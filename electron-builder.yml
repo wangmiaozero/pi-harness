@@ -1,0 +1,44 @@
+appId: dev.pi-switch.app
+productName: Pi-Switch
+copyright: Copyright © 2026 wangmiao
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.{map,d.ts}'
+asarUnpack: []
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  icon: build/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  category: Development
+  icon: build/icon.png
+  maintainer: wangmiao <tuziling84@gmail.com>
+publish:
+  - provider: github
+    owner: wangmiaozero
+    repo: pi-switch
+    releaseType: release

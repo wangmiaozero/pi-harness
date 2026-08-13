@@ -1,0 +1,237 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+/* =============================================================================
+ * Tailwind theme — expose the design tokens as utility colors so we can write
+ * `bg-surface`, `text-secondary`, etc. without repeating var() everywhere.
+ * ============================================================================= */
+@theme {
+  --color-window: var(--bg-window);
+  --color-titlebar: var(--bg-titlebar);
+  --color-sidebar: var(--bg-sidebar);
+  --color-workspace: var(--bg-workspace);
+  --color-surface: var(--bg-surface);
+  --color-surface-raised: var(--bg-surface-raised);
+  --color-hover: var(--bg-hover);
+  --color-selected: var(--bg-selected);
+
+  --color-content: var(--bg-workspace);
+  --color-elevated: var(--bg-surface-raised);
+
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-disabled: var(--text-disabled);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-tint: var(--accent-tint);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+/* =============================================================================
+ * Base reset
+ * ============================================================================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: var(--color-text-primary);
+  background: var(--bg-window);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+
+  /* Stable baseline. Use em/rem everywhere; only allow .5px steps for true
+   * precision (icon positioning). */
+  -webkit-text-size-adjust: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Native form controls should adopt our color stack on macOS. */
+input,
+textarea,
+select {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+::selection {
+  background: var(--accent-tint-strong);
+  color: var(--text-primary);
+}
+
+/* =============================================================================
+ * Scrollbar — macOS-like, thin, never the system default.
+ * ============================================================================= */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* =============================================================================
+ * Drag regions (TitleBar). App's draggable titlebar areas opt in; interactive
+ * controls in the titlebar opt out with .no-drag.
+ * ============================================================================= */
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* =============================================================================
+ * Global interaction primitives
+ * ============================================================================= */
+
+/* One focus ring to rule them all. 1px accent, no glow. Apply via class
+ * .pi-focusable or via :focus-visible. */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: inherit;
+}
+
+/* Animations — short and quiet. */
+@keyframes pi-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pi-pop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* =============================================================================
+ * Substrate helpers — the look that everything else rests on.
+ * ============================================================================= */
+
+/* The macOS-style focus ring used by form controls and table rows. */
+.pi-focusable:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* Hairline divider used in toolbar / sidebar / inspector section separators.
+ * 1px, very low contrast — never use a colored line. */
+.pi-divider {
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+/* Subtle section header for Inspector / Settings / Diagnostics. */
+.pi-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  height: 30px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+/* Property row used in Inspector / Settings property lists. */
+.pi-property-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px var(--space-3);
+  min-height: 30px;
+  font-size: 12.5px;
+}
+
+.pi-property-row + .pi-property-row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.pi-property-row > dt {
+  color: var(--text-tertiary);
+}
+
+.pi-property-row > dd {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Backwards-compat .drag-region/.no-drag left in place at top of file. */

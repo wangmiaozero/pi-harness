@@ -1,0 +1,68 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out/
+release/
+
+# Vite / electron-vite caches
+.vite/
+.vite-node/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Env / secrets / certs — never open-source
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.p8
+*.pfx
+*.keystore
+secrets.bin
+
+# Local editor / agent — personal paths & settings
+.vscode/
+.idea/
+.claude/
+.cursor/
+.codex/
+*.local
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Typecheck cache
+.tsbuildinfo/
+*.tsbuildinfo
+
+# Internal notes (not for open source)
+task/
+design-qa.md
+
+# Icon intermediate (keep png/ico/icns)
+build/icon.iconset/
+
+# Legacy Tauri scaffold (not part of Electron app)
+src-tauri/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+e2e/.auth/

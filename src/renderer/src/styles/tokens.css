@@ -1,0 +1,319 @@
+/* =============================================================================
+ * Pi-Switch · Timeless Graphite · Design Tokens
+ *
+ * The whole visual system keys off this file. Components must reference these
+ * tokens instead of hard-coded colors / radii. Theme switch = `data-theme` on
+ * the root element.
+ *
+ * Surfaces form a 6-step elevation ladder; the delta between any two adjacent
+ * steps is intentionally small (2% – 5% lightness) so the UI reads as one
+ * continuous workspace, not as Card-on-Card.
+ * ============================================================================= */
+
+:root,
+:root[data-theme='dark'] {
+  /* ---------- Surface ladder (dark) ---------- */
+  --bg-window: #16181b; /* Window — outermost */
+  --bg-titlebar: #181a1d; /* TitleBar */
+  --bg-sidebar: #191b1f; /* Sidebar (a touch darker than Window) */
+  --bg-workspace: #1d1f23; /* Main content background */
+  --bg-surface: #212429; /* Table rows, list rows, inputs */
+  --bg-surface-raised: #25282e; /* Cards, dialogs, popovers */
+  --bg-hover: #292d33; /* Hover state */
+  --bg-selected: #2b3441; /* Selected row / sidebar item (accent tint base) */
+
+  /* Legacy aliases — many components still reference these. Kept stable so
+   * we don't have to re-skin every page in one pass; the new ladder above
+   * is the source of truth. */
+  --color-window: var(--bg-window);
+  --color-sidebar: var(--bg-sidebar);
+  --color-content: var(--bg-workspace);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-surface-raised);
+  --color-hover: var(--bg-hover);
+  --color-selected: var(--bg-selected);
+
+  /* ---------- Borders ---------- */
+  /* Almost invisible by default. We rely on background deltas, not borders,
+   * for hierarchy. */
+  --border-subtle: rgba(255, 255, 255, 0.055);
+  --border-default: rgba(255, 255, 255, 0.075);
+  --border-strong: rgba(255, 255, 255, 0.11);
+  --color-border: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  /* ---------- Form controls ---------- */
+  --control-bg: rgba(255, 255, 255, 0.025);
+  --control-bg-hover: rgba(255, 255, 255, 0.045);
+  --control-bg-disabled: rgba(255, 255, 255, 0.014);
+  --control-border: rgba(255, 255, 255, 0.1);
+  --control-border-hover: rgba(255, 255, 255, 0.16);
+  --control-placeholder: rgba(255, 255, 255, 0.31);
+  --control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025), 0 1px 1px rgba(0, 0, 0, 0.12);
+
+  /* ---------- Text ---------- */
+  --text-primary: rgba(255, 255, 255, 0.9);
+  --text-secondary: rgba(255, 255, 255, 0.62);
+  --text-tertiary: rgba(255, 255, 255, 0.4);
+  --text-disabled: rgba(255, 255, 255, 0.26);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+
+  /* ---------- Accent (macOS-like, low saturation) ---------- */
+  --accent: #5b91f5;
+  --accent-hover: #6a9cf7;
+  --accent-active: #4a82e8;
+  --accent-tint: rgba(91, 145, 245, 0.13); /* row tint, sidebar selected bg */
+  --accent-tint-soft: rgba(91, 145, 245, 0.08);
+  --accent-tint-strong: rgba(91, 145, 245, 0.22);
+  --accent-border: rgba(91, 145, 245, 0.32);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+
+  /* ---------- Semantic (muted, never fluorescent) ---------- */
+  --success: #5abf8a;
+  --success-tint: rgba(90, 191, 138, 0.12);
+  --warning: #d6a85c;
+  --warning-tint: rgba(214, 168, 92, 0.12);
+  --error: #d46a6a;
+  --error-tint: rgba(212, 106, 106, 0.12);
+  --info: var(--accent);
+  --info-tint: var(--accent-tint);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+
+  /* Subtle semantic surfaces — used for banners / warning zones. */
+  --surface-danger: var(--error-tint);
+  --surface-warning: var(--warning-tint);
+  --surface-info: var(--accent-tint-soft);
+
+  /* ---------- Capability tints (for model feature badges) ---------- */
+  --tone-tools-bg: rgba(91, 145, 245, 0.1);
+  --tone-tools-text: #8fb4f8;
+  --tone-vision-bg: rgba(80, 178, 178, 0.12);
+  --tone-vision-text: #6bb6b6;
+  --tone-reasoning-bg: rgba(160, 130, 210, 0.12);
+  --tone-reasoning-text: #b49bd8;
+  --tone-streaming-bg: rgba(255, 255, 255, 0.06);
+  --tone-streaming-text: var(--text-secondary);
+
+  /* ---------- CodeMirror (low-saturation developer palette) ---------- */
+  --editor-active-line: rgba(255, 255, 255, 0.025);
+  --syntax-property: #87aee9;
+  --syntax-string: #78b995;
+  --syntax-number: #c99a67;
+  --syntax-constant: #a995cf;
+  --syntax-keyword: #94a9ce;
+  --syntax-comment: rgba(255, 255, 255, 0.34);
+  --syntax-heading: #9bb9ec;
+  --syntax-emphasis: #b7a4d6;
+  --syntax-link: #78adb8;
+
+  /* ---------- Diff (Configuration Conflict view) — low-saturation Graphite. ---------- */
+  --diff-added-bg: rgba(90, 191, 138, 0.1);
+  --diff-added-text: rgba(90, 191, 138, 0.92);
+  --diff-added-gutter: rgba(90, 191, 138, 0.28);
+  --diff-removed-bg: rgba(212, 106, 106, 0.1);
+  --diff-removed-text: rgba(212, 106, 106, 0.92);
+  --diff-removed-gutter: rgba(212, 106, 106, 0.28);
+  --diff-equal-bg: transparent;
+  --diff-gutter-bg: rgba(255, 255, 255, 0.03);
+  --diff-gutter-text: rgba(255, 255, 255, 0.3);
+
+  /* ---------- Scrollbar ---------- */
+  --scrollbar-thumb: rgba(255, 255, 255, 0.1);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
+  --scrollbar-thumb-active: rgba(255, 255, 255, 0.28);
+
+  /* ---------- Shadows (graphite, never colorful) ---------- */
+  --shadow-popover: 0 1px 2px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-dialog: 0 2px 4px rgba(0, 0, 0, 0.3), 0 16px 32px rgba(0, 0, 0, 0.45);
+
+  /* ---------- Focus ring (1px accent, no glow) ---------- */
+  --focus-ring: 0 0 0 1px var(--accent);
+  --focus-ring-offset: 1px;
+}
+
+/* =============================================================================
+ * Light Theme
+ * macOS Neutral Light — never pure SaaS white. We use a warm off-white ladder
+ * so the UI sits on a clean desk, not on a hospital floor.
+ * ============================================================================= */
+:root[data-theme='light'] {
+  --bg-window: #f2f2f3;
+  --bg-titlebar: #ecedef;
+  --bg-sidebar: #ecedef;
+  --bg-workspace: #f5f5f6;
+  --bg-surface: #ffffff;
+  --bg-surface-raised: #ffffff;
+  --bg-hover: #eceef1;
+  --bg-selected: #dce6f4;
+
+  --color-window: var(--bg-window);
+  --color-sidebar: var(--bg-sidebar);
+  --color-content: var(--bg-workspace);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-surface-raised);
+  --color-hover: var(--bg-hover);
+  --color-selected: var(--bg-selected);
+
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.09);
+  --border-strong: rgba(0, 0, 0, 0.15);
+  --color-border: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  --control-bg: rgba(255, 255, 255, 0.88);
+  --control-bg-hover: #ffffff;
+  --control-bg-disabled: rgba(0, 0, 0, 0.025);
+  --control-border: rgba(0, 0, 0, 0.13);
+  --control-border-hover: rgba(0, 0, 0, 0.22);
+  --control-placeholder: rgba(0, 0, 0, 0.38);
+  --control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 1px rgba(0, 0, 0, 0.04);
+
+  --text-primary: rgba(0, 0, 0, 0.86);
+  --text-secondary: rgba(0, 0, 0, 0.64);
+  --text-tertiary: rgba(0, 0, 0, 0.48);
+  --text-disabled: rgba(0, 0, 0, 0.3);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+
+  --accent: #2a6fe0;
+  --accent-hover: #1f5dc9;
+  --accent-active: #1850b5;
+  --accent-tint: rgba(42, 111, 224, 0.1);
+  --accent-tint-soft: rgba(42, 111, 224, 0.06);
+  --accent-tint-strong: rgba(42, 111, 224, 0.2);
+  --accent-border: rgba(42, 111, 224, 0.28);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+
+  --success: #1f9d63;
+  --success-tint: rgba(31, 157, 99, 0.1);
+  --warning: #b07a1f;
+  --warning-tint: rgba(176, 122, 31, 0.1);
+  --error: #c84a4a;
+  --error-tint: rgba(200, 74, 74, 0.1);
+  --info: var(--accent);
+  --info-tint: var(--accent-tint);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+
+  --surface-danger: var(--error-tint);
+  --surface-warning: var(--warning-tint);
+  --surface-info: var(--accent-tint-soft);
+
+  --tone-tools-bg: rgba(42, 111, 224, 0.08);
+  --tone-tools-text: #1f5dc9;
+  --tone-vision-bg: rgba(20, 130, 130, 0.1);
+  --tone-vision-text: #147e7e;
+  --tone-reasoning-bg: rgba(120, 90, 180, 0.1);
+  --tone-reasoning-text: #7757b5;
+  --tone-streaming-bg: rgba(0, 0, 0, 0.04);
+  --tone-streaming-text: var(--text-secondary);
+
+  --editor-active-line: rgba(0, 0, 0, 0.025);
+  --syntax-property: #3567a8;
+  --syntax-string: #28764d;
+  --syntax-number: #9a602a;
+  --syntax-constant: #6e56a1;
+  --syntax-keyword: #526d9a;
+  --syntax-comment: rgba(0, 0, 0, 0.4);
+  --syntax-heading: #315f9d;
+  --syntax-emphasis: #76589e;
+  --syntax-link: #2e727d;
+
+  --diff-added-bg: rgba(31, 157, 99, 0.08);
+  --diff-added-text: rgba(20, 120, 75, 0.95);
+  --diff-added-gutter: rgba(31, 157, 99, 0.25);
+  --diff-removed-bg: rgba(200, 74, 74, 0.08);
+  --diff-removed-text: rgba(160, 50, 50, 0.95);
+  --diff-removed-gutter: rgba(200, 74, 74, 0.25);
+  --diff-gutter-bg: rgba(0, 0, 0, 0.02);
+  --diff-gutter-text: rgba(0, 0, 0, 0.35);
+
+  --scrollbar-thumb: rgba(0, 0, 0, 0.16);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.28);
+  --scrollbar-thumb-active: rgba(0, 0, 0, 0.38);
+
+  --shadow-popover: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-dialog: 0 4px 16px rgba(0, 0, 0, 0.16);
+
+  --focus-ring: 0 0 0 1px var(--accent);
+  --focus-ring-offset: 1px;
+}
+
+/* =============================================================================
+ * Layout & Sizing — stable across themes.
+ * ============================================================================= */
+:root {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', system-ui,
+    sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'JetBrains Mono', 'Consolas', monospace;
+
+  --sidebar-width: 220px;
+  --titlebar-height: 36px;
+  --inspector-width: 320px;
+
+  /* Radius scale — never use rounded-xl/rounded-2xl in components. */
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 7px;
+  --radius-lg: 9px;
+  --radius-xl: 11px;
+  --radius-pill: 999px;
+
+  /* Spacing — 4pt grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+
+  /* Component heights */
+  --height-button: 28px; /* default */
+  --height-button-md: 30px;
+  --height-input: 28px;
+  --height-select: 28px;
+  --height-switch-track: 18px;
+  --height-switch-thumb: 14px;
+  --height-row: 34px; /* list / table row (Standard) */
+  --height-row-sm: 30px; /* list / table row (Compact) */
+  --height-toolbar: 36px;
+  --height-page-header: 44px;
+
+  /* Motion */
+  --motion-fast: 100ms;
+  --motion-base: 140ms;
+  --motion-slow: 200ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Backwards-compat: a few legacy components still reference these names. */
+  --radius-sm-old: var(--radius-sm);
+  --radius-md-old: var(--radius-md);
+}
+
+/* =============================================================================
+ * Density — Standard (default) vs Compact.
+ * Compact shrinks row/button heights to fit more on screen; visual rules
+ * (radius, color, type) are unchanged so the two densities look like one
+ * design system.
+ * ============================================================================= */
+:root[data-density='compact'] {
+  --height-button: 26px;
+  --height-button-md: 28px;
+  --height-input: 26px;
+  --height-select: 26px;
+  --height-row: 30px;
+  --height-row-sm: 28px;
+  --height-toolbar: 32px;
+  --height-page-header: 40px;
+}

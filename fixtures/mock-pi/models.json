@@ -1,0 +1,30 @@
+{
+  "providers": {
+    "openai-compatible": {
+      "api": "openai-completions",
+      "baseUrl": "https://api.openai.com/v1",
+      "apiKey": "$OPENAI_API_KEY",
+      "models": [
+        {
+          "id": "gpt-4o",
+          "name": "GPT-4o",
+          "reasoning": false,
+          "input": ["text", "image"]
+        }
+      ]
+    },
+    "anthropic": {
+      "api": "anthropic-messages",
+      "baseUrl": "https://api.anthropic.com",
+      "apiKey": "$ANTHROPIC_API_KEY",
+      "models": [
+        {
+          "id": "claude-sonnet-4-20250514",
+          "name": "Claude Sonnet 4",
+          "reasoning": true,
+          "input": ["text", "image"]
+        }
+      ]
+    }
+  }
+}

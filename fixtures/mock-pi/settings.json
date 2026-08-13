@@ -1,0 +1,6 @@
+{
+  "defaultProvider": "openai-compatible",
+  "defaultModel": "gpt-4o",
+  "theme": "dark",
+  "skills": ["./skills"]
+}

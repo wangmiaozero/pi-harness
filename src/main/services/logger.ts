@@ -1,0 +1,76 @@
+/**
+ * Main-process logger with automatic secret redaction.
+ *
+ * Every log call runs through a redactor that masks the values of any key
+ * matching the secret-denylist (apiKey, authorization, token, secret,
+ * password, cookie, bearer). Raw secrets are never written to logs.
+ */
+
+import { createConsola } from 'consola'
+
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'silent'
+
+const SECRET_KEY_RE =
+  /(api[-_]?key|authorization|^auth$|token|secret|password|cookie|bearer|apikey)/i
+const MASK = '••••••••••'
+
+/** Redact secret-shaped keys anywhere in a log argument (objects/arrays/strings). */
+export function redactSecrets(value: unknown, seen = new WeakSet()): unknown {
+  if (value == null) return value
+  if (typeof value === 'string') return value
+  if (typeof value !== 'object') return value
+  if (seen.has(value as object)) return value
+  seen.add(value as object)
+
+  if (Array.isArray(value)) {
+    return value.map((item) => redactSecrets(item, seen))
+  }
+
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    out[k] = SECRET_KEY_RE.test(k) ? MASK : redactSecrets(v, seen)
+  }
+  return out
+}
+
+class Logger {
+  private consola = createConsola({ level: 4 })
+
+  private scope(name: string) {
+    return this.consola.withTag(name)
+  }
+
+  for(name: string) {
+    const scoped = this.scope(name)
+    const wrap = (level: 'debug' | 'info' | 'warn' | 'error') => {
+      return (...args: unknown[]) => {
+        const redacted = args.map((a) => redactSecrets(a))
+        // consola overloads reject a free spread; call with known arity.
+        if (redacted.length === 0) scoped[level]('')
+        else if (redacted.length === 1) scoped[level](redacted[0])
+        else scoped[level](redacted[0], ...redacted.slice(1))
+      }
+    }
+    return {
+      debug: wrap('debug'),
+      info: wrap('info'),
+      warn: wrap('warn'),
+      error: wrap('error')
+    }
+  }
+}
+
+export const logger = new Logger()
+
+/** Sub-loggers for each documented subsystem. */
+export const log = {
+  app: logger.for('app'),
+  pi: logger.for('pi'),
+  config: logger.for('config'),
+  provider: logger.for('provider'),
+  skills: logger.for('skills'),
+  backup: logger.for('backup'),
+  ipc: logger.for('ipc'),
+  updater: logger.for('updater'),
+  security: logger.for('security')
+}

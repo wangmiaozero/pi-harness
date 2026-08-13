@@ -1,0 +1,8 @@
+out
+dist
+release
+node_modules
+src/renderer/src/i18n/locales
+pnpm-lock.yaml
+*.icns
+*.ico

@@ -1,0 +1,349 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import {
+  RefreshCw,
+  FolderOpen,
+  RotateCcw,
+  Download,
+  ArrowUpCircle,
+  Cpu,
+  Box,
+  Activity,
+  Circle
+} from '@lucide/vue'
+import { toast } from 'vue-sonner'
+import Button from '@renderer/components/ui/Button.vue'
+import Badge from '@renderer/components/ui/Badge.vue'
+import EmptyState from '@renderer/components/ui/EmptyState.vue'
+import InspectorSection from '@renderer/components/ui/InspectorSection.vue'
+import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
+import { usePiStore } from '@renderer/stores/pi'
+import { useProvidersStore } from '@renderer/stores/providers'
+import { useModelsStore } from '@renderer/stores/models'
+import { callApi, getApi } from '@renderer/composables/useApi'
+import { askConfirm } from '@renderer/composables/useConfirmDialog'
+
+const { t } = useI18n()
+const router = useRouter()
+const piStore = usePiStore()
+const providersStore = useProvidersStore()
+const modelsStore = useModelsStore()
+const actionMessage = ref('')
+
+const env = computed(() => piStore.environment)
+
+const stats = computed(() => ({
+  providers: providersStore.items.length,
+  enabledProviders: providersStore.items.filter((p) => p.enabled).length,
+  models: modelsStore.items.length,
+  enabledModels: modelsStore.items.filter((m) => m.enabled).length
+}))
+
+const configStatusLabel = computed(() => {
+  if (env.value?.configValid) return t('common.valid')
+  if (env.value?.configReadable) return t('common.invalid')
+  return t('overview.unreadable')
+})
+
+const setupWarnings = computed(() => {
+  const warnings: string[] = []
+  if (providersStore.items.length > 0 && modelsStore.items.length === 0) {
+    warnings.push(t('overview.setupWarnNoModels'))
+  }
+  const { providerKey, modelId } = modelsStore.active
+  if (providerKey) {
+    const provider = providersStore.items.find((p) => p.key === providerKey)
+    if (!provider) {
+      warnings.push(t('overview.setupWarnActiveMissing', { provider: providerKey }))
+    } else if (modelId) {
+      const modelExists = modelsStore.items.some(
+        (m) => m.modelId === modelId && m.providerId === provider.id
+      )
+      if (!modelExists) {
+        warnings.push(
+          t('overview.setupWarnActiveModelMissing', { provider: providerKey, model: modelId })
+        )
+      }
+    }
+  }
+  return warnings
+})
+
+async function refreshAll() {
+  await Promise.all([piStore.refresh(), providersStore.fetchList(), modelsStore.fetchList()])
+  toast.success(t('common.refreshed'))
+}
+
+async function reloadConfig() {
+  try {
+    await callApi(() => getApi().config.reload())
+    await refreshAll()
+    toast.success(t('overview.configReloaded'))
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('overview.reloadFailed'))
+  }
+}
+
+async function openConfigDir() {
+  const dir = env.value?.configDir
+  if (!dir) {
+    toast.error(t('overview.configDirUnknown'))
+    return
+  }
+  await callApi(() => getApi().system.openPath(dir))
+}
+
+async function installPi() {
+  if (env.value?.installed) return
+  const ok = await askConfirm({
+    title: t('overview.installConfirmTitle'),
+    description: t('overview.installConfirm'),
+    confirmLabel: t('overview.installAction'),
+    tone: 'primary'
+  })
+  if (!ok) return
+  try {
+    const result = await piStore.install()
+    actionMessage.value = result.message
+    toast.success(t('overview.installOk'), { description: result.message })
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
+async function updatePi() {
+  if (!env.value?.installed) return
+  const ok = await askConfirm({
+    title: t('overview.updateConfirmTitle'),
+    description: t('overview.updateConfirm'),
+    confirmLabel: t('overview.updateAction'),
+    tone: 'primary'
+  })
+  if (!ok) return
+  try {
+    const result = await piStore.update(false)
+    actionMessage.value = result.message
+    if (
+      result.previousVersion &&
+      result.currentVersion &&
+      result.previousVersion !== result.currentVersion
+    ) {
+      toast.success(t('overview.updateOk'), { description: result.message })
+    } else {
+      toast.info(t('overview.alreadyLatest'), { description: result.message })
+    }
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
+onMounted(() => {
+  void refreshAll()
+})
+</script>
+
+<template>
+  <div class="flex h-full min-h-0 flex-col">
+    <header
+      class="flex shrink-0 items-center justify-between gap-3 px-5 h-[var(--height-page-header)] border-b border-[var(--border-subtle)]"
+    >
+      <div class="min-w-0">
+        <h1 class="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
+          {{ $t('overview.title') }}
+        </h1>
+        <p class="text-[11.5px] text-[var(--text-tertiary)] -mt-0.5">
+          {{ $t('overview.subtitle') }}
+        </p>
+      </div>
+      <Button variant="ghost" size="sm" :loading="piStore.loading" @click="refreshAll">
+        <RefreshCw class="size-3.5" :stroke-width="1.75" />
+        {{ $t('common.refresh') }}
+      </Button>
+    </header>
+
+    <div class="flex-1 overflow-y-auto">
+      <div class="w-full px-5 py-5 space-y-5">
+        <!-- Setup warnings as compact banners, not big Cards. -->
+        <div v-if="setupWarnings.length > 0" class="space-y-2">
+          <div
+            v-for="(warn, i) in setupWarnings"
+            :key="i"
+            class="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--warning)]/30 bg-[var(--warning-tint)] px-3 py-2.5 text-[11.5px] leading-snug text-[var(--text-secondary)]"
+          >
+            <Circle
+              class="mt-1 size-2 shrink-0 fill-current text-[var(--warning)]"
+              :stroke-width="0"
+            />
+            <span>{{ warn }}</span>
+          </div>
+        </div>
+
+        <!-- Current Model — the focal point. Single Surface, no Card. -->
+        <div
+          class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-5 py-4"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <p
+                class="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+              >
+                {{ $t('overview.currentModel') }}
+              </p>
+              <template v-if="modelsStore.active.providerKey && modelsStore.active.modelId">
+                <p class="mt-1 flex flex-wrap items-baseline gap-2">
+                  <span
+                    class="font-[family-name:var(--font-mono)] text-[18px] font-semibold text-[var(--text-primary)]"
+                  >
+                    {{ modelsStore.active.modelId }}
+                  </span>
+                  <span class="text-[12px] text-[var(--text-tertiary)]">{{
+                    $t('overview.from')
+                  }}</span>
+                  <span class="text-[12.5px] text-[var(--accent)]">{{
+                    modelsStore.active.providerKey
+                  }}</span>
+                </p>
+                <p
+                  v-if="
+                    modelsStore.items.find((m) =>
+                      modelsStore.isActive(
+                        m,
+                        providersStore.items.find((p) => p.id === m.providerId)?.key
+                      )
+                    )?.displayName
+                  "
+                  class="mt-0.5 text-[12px] text-[var(--text-secondary)]"
+                >
+                  {{
+                    modelsStore.items.find((m) =>
+                      modelsStore.isActive(
+                        m,
+                        providersStore.items.find((p) => p.id === m.providerId)?.key
+                      )
+                    )?.displayName
+                  }}
+                </p>
+              </template>
+              <EmptyState
+                v-else
+                :title="$t('overview.noActiveModel')"
+                :description="$t('overview.noActiveModelHint')"
+              />
+            </div>
+            <Button variant="secondary" size="sm" @click="router.push('/models')">
+              <Cpu class="size-3.5" :stroke-width="1.75" />
+              {{ $t('overview.manageModels') }}
+            </Button>
+          </div>
+        </div>
+
+        <!-- Pi environment — single inspector section. -->
+        <InspectorSection>
+          <template #title>{{ $t('overview.environment') }}</template>
+          <PropertyRow :label="$t('overview.cliPath')" mono>
+            {{ env?.cliPath ?? $t('common.unknown') }}
+          </PropertyRow>
+          <PropertyRow :label="$t('overview.configDir')" mono>
+            {{ env?.configDir ?? $t('common.unknown') }}
+          </PropertyRow>
+          <PropertyRow :label="$t('overview.platform')" mono>
+            {{ env?.platform }} / {{ env?.arch }}
+          </PropertyRow>
+          <PropertyRow v-if="env?.configError" :label="$t('overview.error')">
+            <span class="text-[var(--error)]">{{ env.configError }}</span>
+          </PropertyRow>
+        </InspectorSection>
+
+        <!-- Quick stats — single horizontal surface, not 4 separate Cards. -->
+        <div
+          class="flex flex-wrap items-stretch overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] divide-x divide-[var(--border-subtle)]"
+        >
+          <div class="flex flex-1 items-center gap-3 px-4 py-3">
+            <Box class="size-3.5 text-[var(--text-tertiary)]" :stroke-width="1.75" />
+            <div class="min-w-0">
+              <p class="text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+                {{ $t('overview.providers') }}
+              </p>
+              <p class="text-[12.5px] text-[var(--text-primary)]">
+                <span class="font-semibold tabular-nums">{{ stats.enabledProviders }}</span>
+                <span class="text-[var(--text-tertiary)]"> / {{ stats.providers }}</span>
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-1 items-center gap-3 px-4 py-3">
+            <Cpu class="size-3.5 text-[var(--text-tertiary)]" :stroke-width="1.75" />
+            <div class="min-w-0">
+              <p class="text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+                {{ $t('overview.models') }}
+              </p>
+              <p class="text-[12.5px] text-[var(--text-primary)]">
+                <span class="font-semibold tabular-nums">{{ stats.enabledModels }}</span>
+                <span class="text-[var(--text-tertiary)]"> / {{ stats.models }}</span>
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-1 items-center gap-3 px-4 py-3">
+            <Activity class="size-3.5 text-[var(--text-tertiary)]" :stroke-width="1.75" />
+            <div class="min-w-0">
+              <p class="text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+                {{ $t('overview.config') }}
+              </p>
+              <p class="text-[12.5px]">
+                <Badge
+                  :tone="env?.configValid ? 'success' : env?.configReadable ? 'warning' : 'error'"
+                >
+                  {{ configStatusLabel }}
+                </Badge>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions — a single toolbar strip. -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span
+            class="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)] pr-1"
+          >
+            {{ $t('overview.quickActions') }}
+          </span>
+          <Button
+            v-if="!env?.installed"
+            variant="primary"
+            size="sm"
+            :loading="piStore.mutating"
+            :disabled="piStore.mutating"
+            @click="installPi"
+          >
+            <Download class="size-3.5" :stroke-width="1.75" />
+            {{ piStore.mutating ? $t('overview.installing') : $t('overview.installPi') }}
+          </Button>
+          <Button
+            v-else
+            :variant="piStore.updateAvailable ? 'primary' : 'secondary'"
+            size="sm"
+            :loading="piStore.mutating"
+            :disabled="piStore.mutating"
+            @click="updatePi"
+          >
+            <ArrowUpCircle class="size-3.5" :stroke-width="1.75" />
+            {{ piStore.mutating ? $t('overview.updating') : $t('overview.updatePi') }}
+          </Button>
+          <Button variant="ghost" size="sm" @click="router.push('/providers')">
+            <Box class="size-3.5" :stroke-width="1.75" />
+            {{ $t('overview.manageProviders') }}
+          </Button>
+          <Button variant="ghost" size="sm" @click="reloadConfig">
+            <RotateCcw class="size-3.5" :stroke-width="1.75" />
+            {{ $t('overview.reloadConfig') }}
+          </Button>
+          <Button variant="ghost" size="sm" :disabled="!env?.configDir" @click="openConfigDir">
+            <FolderOpen class="size-3.5" :stroke-width="1.75" />
+            {{ $t('overview.openConfigDir') }}
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
