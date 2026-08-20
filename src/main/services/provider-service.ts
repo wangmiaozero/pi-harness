@@ -187,19 +187,68 @@ export class ProviderService {
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
     if (current.apiKeyRef) await secretStore.removeSecret(current.apiKeyRef)
 
+    // Cascade: deleting the provider entry also removes every nested model in models.json.
     await this.config.patchProvider(key, () => undefined, {
       overwrite: options?.overwrite,
-      reason: `delete provider ${key}`
+      reason: `delete provider ${key} (cascade models)`
     })
+
+    const active = await this.config.getActiveModel()
+    if (active.providerKey === key) {
+      await this.retargetActiveAfterProviderRemoved(key, options)
+    }
 
     const meta = await this.metadata.read()
     const providers = { ...meta.providers }
     delete providers[key]
     const models = { ...meta.models }
     for (const k of Object.keys(models)) {
-      if (k.startsWith(`${key}::`)) delete models[k]
+      if (k === key || k.startsWith(`${key}::`)) delete models[k]
     }
     await this.metadata.write({ providers, models })
+  }
+
+  /** Pick another provider/model for settings.json, or clear active if none left. */
+  private async retargetActiveAfterProviderRemoved(
+    removedKey: string,
+    options?: WriteOptions
+  ): Promise<void> {
+    const snap = await this.config.read()
+    const meta = await this.metadata.read()
+    let fallback: { providerKey: string; modelId: string } | null = null
+    let enabledFallback: { providerKey: string; modelId: string } | null = null
+
+    for (const [pkey, pi] of Object.entries(snap.models.providers)) {
+      if (pkey === removedKey) continue
+      const modelId =
+        meta.providers[pkey]?.defaultModelId?.trim() || pi.models?.[0]?.id?.trim() || ''
+      if (!modelId) continue
+      const candidate = { providerKey: pkey, modelId }
+      fallback ??= candidate
+      if (meta.providers[pkey]?.enabled !== false) {
+        enabledFallback = candidate
+        break
+      }
+    }
+
+    const next = enabledFallback ?? fallback
+    if (next) {
+      await this.config.setActiveModel(next.providerKey, next.modelId, {
+        overwrite: options?.overwrite ?? true,
+        reason: `retarget active after delete provider ${removedKey}`,
+        skipBackup: true
+      })
+      return
+    }
+
+    await this.config.patchSettings(
+      (s) => ({ ...s, defaultProvider: undefined, defaultModel: undefined }),
+      {
+        overwrite: options?.overwrite ?? true,
+        reason: `clear active after delete provider ${removedKey}`,
+        skipBackup: true
+      }
+    )
   }
 
   async duplicate(key: string, options?: WriteOptions): Promise<ProviderProfile> {
@@ -240,7 +289,9 @@ export class ProviderService {
     return dup
   }
 
-  /** Quick enable toggle — at most one provider may be enabled. */
+  /** Quick enable toggle — at most one provider may be enabled.
+   * Enabling also switches Pi's active model to this provider's default / first model.
+   */
   async setEnabled(key: string, enabled: boolean): Promise<ProviderProfile> {
     const current = await this.get(key)
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
@@ -271,6 +322,22 @@ export class ProviderService {
     }
 
     await this.metadata.update({ providers: providersMeta })
+
+    if (enabled) {
+      const modelId =
+        current.defaultModelId?.trim() || (await this.firstModelId(key)) || null
+      if (modelId) {
+        try {
+          await this.config.setActiveModel(key, modelId, {
+            overwrite: true,
+            reason: `enable provider ${key} → active ${key}/${modelId}`
+          })
+        } catch (err) {
+          log.provider.warn('set active model after enable failed:', err)
+        }
+      }
+    }
+
     const updated = await this.get(key)
     if (!updated) throw new ValidationError('setEnabled failed')
     return updated
@@ -311,15 +378,20 @@ export class ProviderService {
         ...base
       }
     }
+    if (!resolvedModelId) {
+      return {
+        ok: false,
+        status: 'model_not_found',
+        httpStatus: null,
+        latencyMs: Date.now() - started,
+        message: 'Model ID required — enter a model id to run a real chat probe',
+        ...base
+      }
+    }
 
     const proto = getProtocol(provider.protocol)
     const normalized = normalizeProviderBaseUrl(provider.baseUrl)
-    let url = normalized.url
-    // Protocol-driven probe: openai-family → /models; others → base URL.
-    if (provider.protocol === 'openai-completions' || provider.protocol === 'openai-responses') {
-      url = `${url}/models`
-    }
-    base.endpoint = url
+    const root = normalized.url.replace(/\/+$/, '')
 
     let apiKey: string | null = null
     try {
@@ -346,19 +418,41 @@ export class ProviderService {
       }
     }
 
-    const headers: Record<string, string> = { ...provider.headers, Accept: 'application/json' }
-    if (apiKey && provider.authHeader) headers.Authorization = `Bearer ${apiKey}`
-    if (provider.protocol === 'anthropic-messages' && apiKey) {
-      headers['x-api-key'] = apiKey
-      headers['anthropic-version'] = '2023-06-01'
+    const probe = buildChatProbe(
+      provider.protocol,
+      root,
+      resolvedModelId,
+      apiKey,
+      provider.authHeader
+    )
+    base.endpoint = probe.url
+
+    const headers: Record<string, string> = {
+      ...provider.headers,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...probe.headers
+    }
+    // Probe already set Authorization / x-api-key when needed. Only fill Bearer
+    // as a last resort for protocols that didn't set auth themselves.
+    if (apiKey && provider.authHeader && !headers.Authorization && !headers['x-api-key']) {
+      headers.Authorization = `Bearer ${apiKey}`
     }
 
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), provider.timeout ?? 15_000)
+    const timer = setTimeout(() => controller.abort(), provider.timeout ?? 30_000)
     try {
-      const res = await fetch(url, { method: 'GET', headers, signal: controller.signal })
+      const res = await fetch(probe.url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(probe.body),
+        signal: controller.signal
+      })
       const latencyMs = Date.now() - started
-      const mapped = mapHttpStatus(res.status, proto?.label ?? provider.protocol)
+      const bodyText = await res.text().catch(() => '')
+      const bodySnippet = summarizeErrorBody(bodyText)
+
+      const mapped = mapHttpStatus(res.status, proto?.label ?? provider.protocol, bodySnippet)
       if (mapped) {
         let message = mapped.message
         if (normalized.changed) {
@@ -367,30 +461,40 @@ export class ProviderService {
         }
         return { ...mapped, latencyMs, message, ...base }
       }
-      // Soft-validate JSON body when content-type looks like JSON
-      const ctype = res.headers.get('content-type') ?? ''
-      if (ctype.includes('application/json')) {
-        try {
-          await res.json()
-        } catch {
+
+      // 2xx — verify it looks like a chat response (not an HTML login page etc.)
+      if (res.status >= 200 && res.status < 300) {
+        const errInBody = extractApiError(bodyText)
+        if (errInBody) {
           return {
             ok: false,
-            status: 'invalid_response',
+            status: 'model_error',
             httpStatus: res.status,
             latencyMs,
-            message: 'Response claimed JSON but failed to parse',
+            message: errInBody,
             ...base
           }
         }
+        return {
+          ok: true,
+          status: 'success',
+          httpStatus: res.status,
+          latencyMs,
+          message: normalized.changed
+            ? `Chat OK (${latencyMs}ms). Note: Base URL was normalized — save the provider to persist.`
+            : `Chat OK (${latencyMs}ms) — model responded`,
+          ...base
+        }
       }
+
       return {
-        ok: true,
-        status: 'success',
+        ok: false,
+        status: 'endpoint_error',
         httpStatus: res.status,
         latencyMs,
-        message: normalized.changed
-          ? `Reachable (${latencyMs}ms). Note: Base URL was normalized (dropped …/chat/completions). Save the provider to persist.`
-          : `Reachable (${latencyMs}ms)`,
+        message: bodySnippet
+          ? `HTTP ${res.status}: ${bodySnippet}`
+          : `HTTP ${res.status} from ${proto?.label ?? provider.protocol}`,
         ...base
       }
     } catch (err) {
@@ -451,16 +555,116 @@ export class ProviderService {
   }
 }
 
+function buildChatProbe(
+  protocol: string,
+  root: string,
+  modelId: string,
+  apiKey: string | null,
+  authHeader: boolean
+): { url: string; body: Record<string, unknown>; headers: Record<string, string> } {
+  const headers: Record<string, string> = {}
+
+  if (protocol === 'anthropic-messages') {
+    // Anthropic SDK / Claude Code / CC Switch append `/v1/messages` to the base.
+    // Volcengine Agent Plan expects the same: …/api/plan/v1/messages
+    // Auth: native Anthropic uses x-api-key; Volcengine & many gateways want Bearer.
+    // Send both when we have a key so either style works.
+    headers['anthropic-version'] = '2023-06-01'
+    if (apiKey) {
+      headers['x-api-key'] = apiKey
+      if (authHeader) headers.Authorization = `Bearer ${apiKey}`
+    }
+    return {
+      url: `${root}/v1/messages`,
+      headers,
+      body: {
+        model: modelId,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'ping' }]
+      }
+    }
+  }
+
+  if (protocol === 'openai-responses') {
+    if (apiKey && authHeader) headers.Authorization = `Bearer ${apiKey}`
+    return {
+      url: `${root}/responses`,
+      headers,
+      body: {
+        model: modelId,
+        max_output_tokens: 1,
+        input: 'ping'
+      }
+    }
+  }
+
+  if (protocol === 'google-generative-ai') {
+    const encoded = encodeURIComponent(modelId)
+    const qs = apiKey ? `?key=${encodeURIComponent(apiKey)}` : ''
+    return {
+      url: `${root}/models/${encoded}:generateContent${qs}`,
+      headers,
+      body: {
+        contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
+        generationConfig: { maxOutputTokens: 1 }
+      }
+    }
+  }
+
+  // openai-completions (default) — same path Pi uses for chat
+  if (apiKey && authHeader) headers.Authorization = `Bearer ${apiKey}`
+  return {
+    url: `${root}/chat/completions`,
+    headers,
+    body: {
+      model: modelId,
+      max_tokens: 1,
+      stream: false,
+      messages: [{ role: 'user', content: 'ping' }]
+    }
+  }
+}
+
+function summarizeErrorBody(text: string): string {
+  const trimmed = text.trim()
+  if (!trimmed) return ''
+  try {
+    const json = JSON.parse(trimmed) as {
+      error?: { message?: string; type?: string; code?: string | number }
+      message?: string
+    }
+    const msg = json.error?.message ?? json.message
+    if (msg) return String(msg).slice(0, 240)
+  } catch {
+    // not JSON
+  }
+  return trimmed.replace(/\s+/g, ' ').slice(0, 240)
+}
+
+function extractApiError(text: string): string | null {
+  const snippet = summarizeErrorBody(text)
+  if (!snippet) return null
+  try {
+    const json = JSON.parse(text) as { error?: unknown }
+    if (json.error) return snippet
+  } catch {
+    return null
+  }
+  return null
+}
+
 function mapHttpStatus(
   status: number,
-  protocolLabel: string
+  protocolLabel: string,
+  bodySnippet = ''
 ): Omit<ConnectionTestResult, 'latencyMs' | 'endpoint' | 'protocol' | 'modelId'> | null {
+  const detail = bodySnippet ? `: ${bodySnippet}` : ''
   if (status === 401) {
     return {
       ok: false,
       status: 'auth_error',
       httpStatus: status,
-      message: `Authentication failed (${status})`
+      message: `401 Unauthorized — API key invalid or missing${detail}`
     }
   }
   if (status === 403) {
@@ -468,7 +672,7 @@ function mapHttpStatus(
       ok: false,
       status: 'forbidden',
       httpStatus: status,
-      message: `Forbidden (${status})`
+      message: `403 Forbidden — key lacks access to this model/endpoint${detail}`
     }
   }
   if (status === 404) {
@@ -476,7 +680,7 @@ function mapHttpStatus(
       ok: false,
       status: 'model_not_found',
       httpStatus: status,
-      message: `Not found (${status}) — endpoint or model may be wrong`
+      message: `404 Not Found — wrong endpoint or model id${detail}`
     }
   }
   if (status === 429) {
@@ -484,7 +688,7 @@ function mapHttpStatus(
       ok: false,
       status: 'rate_limited',
       httpStatus: status,
-      message: `Rate limited (${status})`
+      message: `429 Rate limited — quota exhausted or too many requests${detail}`
     }
   }
   if (status >= 500) {
@@ -492,7 +696,7 @@ function mapHttpStatus(
       ok: false,
       status: 'endpoint_error',
       httpStatus: status,
-      message: `Upstream error HTTP ${status} (${protocolLabel})`
+      message: `Upstream error HTTP ${status} (${protocolLabel})${detail}`
     }
   }
   if (status >= 400) {
@@ -500,7 +704,7 @@ function mapHttpStatus(
       ok: false,
       status: 'endpoint_error',
       httpStatus: status,
-      message: `HTTP ${status} from ${protocolLabel}`
+      message: `HTTP ${status} from ${protocolLabel}${detail}`
     }
   }
   return null

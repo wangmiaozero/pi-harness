@@ -198,8 +198,7 @@ export class PiConfigService {
     mutate: (existing: PiProviderConfig | undefined) => PiProviderConfig | undefined,
     options: WriteOptions = {}
   ): Promise<void> {
-    await this.withWriteLock(async () => {
-      const models = await this.readModelsParsed()
+    await this.patchModels((models) => {
       const current = models.providers[key]
       const next = mutate(current)
       const nextProviders = { ...models.providers }
@@ -208,8 +207,22 @@ export class PiConfigService {
       } else {
         nextProviders[key] = next
       }
-      const nextModels: PiModelsConfig = { ...models, providers: nextProviders }
-      await this.writeModels(nextModels, options)
+      return { ...models, providers: nextProviders }
+    }, options)
+  }
+
+  /**
+   * Atomic models.json mutation (single read/write). Use when a change spans
+   * multiple providers — e.g. moving a model between providers.
+   */
+  async patchModels(
+    mutate: (models: PiModelsConfig) => PiModelsConfig,
+    options: WriteOptions = {}
+  ): Promise<void> {
+    await this.withWriteLock(async () => {
+      const models = await this.readModelsParsed()
+      const next = mutate(models)
+      await this.writeModels(next, options)
     })
   }
 

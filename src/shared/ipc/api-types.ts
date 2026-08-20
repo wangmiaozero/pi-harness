@@ -134,10 +134,8 @@ export interface DiagnosticsReport {
   config: ConfigStatus
 }
 
-export type AppLocale = 'zh-CN' | 'en-US' | 'ko-KR' | 'ru-RU' | 'fr-FR' | 'de-DE'
-
 export interface AppSettings {
-  language: 'auto' | AppLocale
+  language: 'auto' | 'zh-CN' | 'en-US'
   theme: 'system' | 'dark' | 'light'
   density: 'comfortable' | 'compact'
   mockMode: boolean
@@ -183,6 +181,8 @@ export interface SystemInfo {
   arch: string
   versions: { electron: string; chrome: string; node: string }
   appVersion: string
+  /** True when running from an installed / electron-builder package (not `pnpm dev`). */
+  packaged: boolean
 }
 
 /** Listener for main→renderer push events. */
@@ -258,6 +258,8 @@ export interface PiSwitchAPI {
     create(reason?: string): Promise<BackupRecord>
     restore(id: string): Promise<void>
     delete(id: string): Promise<void>
+    /** Keep only backups from local today; delete the rest. */
+    purgeOlderThanToday(): Promise<{ deleted: number; freedBytes: number }>
     openFolder(): Promise<void>
   }
   settings: {

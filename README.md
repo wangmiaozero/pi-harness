@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-0.3.0-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.6-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-22C55E?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
@@ -88,7 +88,7 @@ Do not store secrets in `VITE_*` variables — they are bundled into the rendere
 | `pnpm test:e2e` | Compile, then run Playwright Electron smoke tests |
 | `pnpm compile` | Vite build to `out/` (no installer) |
 | `pnpm build` | Compile and package macOS / Windows / Linux → `release/` |
-| `pnpm build:mac` | macOS only |
+| `pnpm build:mac` | macOS Apple Silicon |
 
 ## Architecture
 

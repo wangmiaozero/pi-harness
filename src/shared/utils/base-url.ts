@@ -47,7 +47,7 @@ export function baseUrlHintForProtocol(protocol: string): string {
     return 'Use the API root only (e.g. https://api.example.com/v1). Do not append /chat/completions.'
   }
   if (protocol === 'anthropic-messages') {
-    return 'Use the API root only (e.g. https://api.anthropic.com). Do not append /v1/messages.'
+    return 'Use the API root only (e.g. https://api.anthropic.com or https://ark.cn-beijing.volces.com/api/plan). Client appends /v1/messages — do not include it.'
   }
   return 'Use the provider API root, not a specific chat/completions path.'
 }

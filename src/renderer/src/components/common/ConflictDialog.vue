@@ -17,7 +17,6 @@ import Dialog from '@renderer/components/ui/Dialog.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import { useConfigConflict, type ConflictResolution } from '@renderer/composables/useConfigConflict'
 import { diffLines, diffSummary } from '@shared/utils/diff'
-import { formatDateTime } from '@renderer/utils/format'
 
 const { t, locale } = useI18n()
 const { state, resolveConflict } = useConfigConflict()
@@ -53,7 +52,19 @@ function decide(resolution: ConflictResolution) {
 }
 
 function formatTime(ms: number | null): string {
-  return formatDateTime(ms, locale.value)
+  if (!ms) return '—'
+  const d = new Date(ms)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  if (locale.value === 'zh-CN') {
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  }
+  return d.toLocaleString(locale.value, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
 }
 
 const fileLabel = computed(() => (state.file === 'models' ? 'models.json' : 'settings.json'))
@@ -87,7 +98,10 @@ const fileLabel = computed(() => (state.file === 'models' ? 'models.json' : 'set
 
       <dl class="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1 text-[12px]">
         <dt class="text-[var(--text-tertiary)]">{{ t('conflict.file') }}</dt>
-        <dd class="truncate font-[family-name:var(--font-mono)] text-[var(--text-primary)]">
+        <dd
+          class="truncate font-[family-name:var(--font-mono)] text-[var(--text-primary)]"
+          :title="state.snapshot.path"
+        >
           {{ state.snapshot.path }}
         </dd>
 

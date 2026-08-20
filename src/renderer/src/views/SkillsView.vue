@@ -35,7 +35,7 @@ import { getErrorPayload } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { formatRelativeTime } from '@renderer/utils/format'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const store = useSkillsStore()
 const pi = usePiStore()
 
@@ -373,6 +373,7 @@ function selectedSkill(): SkillInfo | undefined {
                         ? 'text-[var(--accent)]'
                         : 'text-[var(--text-primary)]'
                     "
+                    :title="skill.name"
                   >
                     {{ skill.name }}
                   </span>
@@ -381,6 +382,7 @@ function selectedSkill(): SkillInfo | undefined {
                 <p
                   v-if="skill.description"
                   class="truncate text-[11px] text-[var(--text-tertiary)]"
+                  :title="skill.description"
                 >
                   {{ skill.description }}
                 </p>
@@ -405,11 +407,15 @@ function selectedSkill(): SkillInfo | undefined {
             class="flex shrink-0 items-center justify-between gap-3 px-5 h-[44px] border-b border-[var(--border-subtle)]"
           >
             <div class="min-w-0">
-              <h2 class="truncate text-[13.5px] font-semibold text-[var(--text-primary)]">
+              <h2
+                class="truncate text-[13.5px] font-semibold text-[var(--text-primary)]"
+                :title="selectedSkill()?.name"
+              >
                 {{ selectedSkill()?.name }}
               </h2>
               <p
                 class="truncate font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
+                :title="selectedSkill()?.path"
               >
                 {{ selectedSkill()?.path }}
               </p>
@@ -481,7 +487,7 @@ function selectedSkill(): SkillInfo | undefined {
                 {{ selectedSkill()?.source }}
               </PropertyRow>
               <PropertyRow :label="$t('skills.colModified')" mono>
-                {{ selectedSkill() ? formatRelativeTime(selectedSkill()!.lastModified, locale) : '—' }}
+                {{ selectedSkill() ? formatRelativeTime(selectedSkill()!.lastModified) : '—' }}
               </PropertyRow>
             </InspectorSection>
 

@@ -49,6 +49,12 @@ const headersPlaceholder = '{"X-Custom":"value"}'
 const defaultModelIdStr = ref('')
 const query = ref('')
 
+/** Shared column tracks via subgrid — actions always reserved so hover icons never overlap. */
+const listGrid = {
+  gridTemplateColumns:
+    'minmax(0, 1.8fr) minmax(0, 0.95fr) 44px 72px 40px minmax(0, 0.7fr) 120px'
+} as const
+
 const defaultForm = (): ProviderForm => ({
   key: '',
   name: '',
@@ -138,6 +144,28 @@ function onBaseUrlBlur() {
   }
 }
 
+/** Suggest a provider key from free text. Preserves case; only sanitizes. */
+function suggestProviderKey(raw: string): string {
+  const cleaned = raw
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^A-Za-z0-9._+-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[^A-Za-z0-9]+/, '')
+    .replace(/-+$/g, '')
+    .slice(0, 128)
+  if (!cleaned) return ''
+  return /^[A-Za-z0-9]/.test(cleaned) ? cleaned : `p-${cleaned}`.slice(0, 128)
+}
+
+function uniqueProviderKey(base: string): string {
+  const existing = new Set(providersStore.items.map((p) => p.key))
+  if (!existing.has(base)) return base
+  let i = 2
+  while (existing.has(`${base}-${i}`)) i++
+  return `${base}-${i}`.slice(0, 128)
+}
+
 function openCreate(presetId?: string) {
   editingKey.value = null
   form.value = defaultForm()
@@ -156,6 +184,13 @@ function openCreate(presetId?: string) {
     form.value.baseUrl = preset.defaultBaseUrl
     form.value.name = preset.name
     form.value.displayName = preset.name
+    // Prefill key so save never hits empty-key validation. Keep preset id casing.
+    form.value.key = uniqueProviderKey(suggestProviderKey(preset.id))
+    if (preset.placeholderApiKey) {
+      apiKeyKind.value = 'literal'
+      // Placeholder only — user replaces with real secret (e.g. nvapi-…).
+      apiKeyValue.value = ''
+    }
   }
   dialogOpen.value = true
 }
@@ -254,6 +289,20 @@ function buildApiKey(): ProviderForm['apiKey'] {
 async function save() {
   saving.value = true
   try {
+    // Auto-fill key from displayName when creating and key left blank.
+    // Preserve user casing — never force lowercase (nvapi-…, OpenAI, …).
+    if (!isEditing.value && !form.value.key.trim()) {
+      const fromName = suggestProviderKey(form.value.displayName || form.value.name)
+      if (fromName) form.value.key = uniqueProviderKey(fromName)
+    }
+    if (!form.value.key.trim()) {
+      toast.error(t('providers.keyRequired'))
+      return
+    }
+    if (!form.value.displayName.trim()) {
+      toast.error(t('providers.displayNameRequired'))
+      return
+    }
     let headers: Record<string, string> = {}
     try {
       const parsed = JSON.parse(headersJson.value || '{}') as unknown
@@ -346,11 +395,17 @@ async function toggleEnabled(provider: ProviderProfile, enabled: boolean) {
   if (provider.enabled === enabled) return
   try {
     await providersStore.setEnabled(provider.key, enabled)
-    toast.success(
-      enabled
-        ? t('providers.enabledToast', { name: provider.displayName })
-        : t('providers.disabledToast', { name: provider.displayName })
-    )
+    if (enabled) {
+      await modelsStore.fetchList()
+      const active = modelsStore.active
+      const label =
+        active.providerKey && active.modelId
+          ? `${active.providerKey}/${active.modelId}`
+          : provider.displayName
+      toast.success(t('providers.enabledWithModelToast', { name: provider.displayName, model: label }))
+    } else {
+      toast.success(t('providers.disabledToast', { name: provider.displayName }))
+    }
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
   }
@@ -457,7 +512,7 @@ onMounted(() => {
         {{ $t('providers.presetsLabel') }}
       </span>
       <button
-        v-for="preset in PROVIDER_PRESETS.slice(0, 3)"
+        v-for="preset in PROVIDER_PRESETS.filter((p) => p.id !== 'custom')"
         :key="preset.id"
         type="button"
         class="inline-flex h-[26px] items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
@@ -520,74 +575,67 @@ onMounted(() => {
         :icon="Search"
       />
 
-      <!-- macOS Resource List. No outer Card, no obvious borders. Subtle
-           hairline between rows, accent-tint hover, accent indicator + tint on
-           the active row. -->
+      <!-- One parent grid + subgrid rows: shared tracks, reserved action column. -->
       <div
         v-else
         class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] overflow-hidden"
       >
-        <div
-          class="grid items-center gap-3 px-3 h-[30px] text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]"
-          style="
-            grid-template-columns: minmax(200px, 1.6fr) 110px 70px 90px 44px 70px minmax(
-                30px,
-                auto
-              );
-          "
-        >
-          <span>{{ $t('providers.colName') }}</span>
-          <span>{{ $t('providers.colProtocol') }}</span>
-          <span class="tabular-nums">{{ $t('providers.colModels') }}</span>
-          <span>{{ $t('providers.colKey') }}</span>
-          <span>{{ $t('providers.colEnabled') }}</span>
-          <span>{{ $t('providers.colUpdated') }}</span>
-          <span />
-        </div>
-        <div class="divide-y divide-[var(--border-subtle)]">
+        <div class="grid gap-x-3" :style="listGrid">
+          <div
+            class="col-span-full grid grid-cols-subgrid items-center px-3 h-[30px] text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+          >
+            <span class="min-w-0 truncate">{{ $t('providers.colName') }}</span>
+            <span class="min-w-0 truncate">{{ $t('providers.colProtocol') }}</span>
+            <span class="tabular-nums">{{ $t('providers.colModels') }}</span>
+            <span class="min-w-0 truncate">{{ $t('providers.colKey') }}</span>
+            <span>{{ $t('providers.colEnabled') }}</span>
+            <span class="min-w-0 truncate">{{ $t('providers.colUpdated') }}</span>
+            <span />
+          </div>
+
           <div
             v-for="provider in filteredProviders"
             :key="provider.id"
-            class="group relative grid items-center gap-3 px-3 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-[var(--bg-hover)]"
+            class="group relative col-span-full grid grid-cols-subgrid items-center px-3 overflow-hidden border-b border-[var(--border-subtle)] last:border-b-0 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-[var(--bg-hover)]"
             :style="{ height: 'var(--height-row)' }"
-            style="
-              grid-template-columns: minmax(200px, 1.6fr) 110px 70px 90px 44px 70px minmax(
-                  30px,
-                  auto
-                );
-            "
           >
-            <!-- 1.5px accent edge for the enabled "active" row only. -->
             <span
               v-if="provider.enabled"
               class="pointer-events-none absolute left-0 top-1/2 h-3 w-[2px] -translate-y-1/2 rounded-r-full bg-[var(--accent)]"
             />
-            <!-- Column 1: Name (primary) + base URL (mono secondary) -->
-            <div class="min-w-0">
-              <div class="truncate text-[13px] font-medium text-[var(--text-primary)]">
+
+            <div class="min-w-0 overflow-hidden">
+              <div
+                class="truncate whitespace-nowrap text-[13px] font-medium leading-tight text-[var(--text-primary)]"
+                :title="provider.displayName"
+              >
                 {{ provider.displayName }}
               </div>
               <div
-                class="truncate font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
+                class="truncate whitespace-nowrap font-[family-name:var(--font-mono)] text-[10.5px] leading-tight text-[var(--text-tertiary)]"
+                :title="provider.baseUrl || $t('common.unknown')"
               >
                 {{ provider.baseUrl || $t('common.unknown') }}
               </div>
             </div>
-            <!-- Column 2: Protocol -->
-            <div class="truncate text-[12px] text-[var(--text-secondary)]">
+
+            <div
+              class="min-w-0 truncate whitespace-nowrap text-[12px] text-[var(--text-secondary)]"
+              :title="protocolLabel(provider.protocol)"
+            >
               {{ protocolLabel(provider.protocol) }}
             </div>
-            <!-- Column 3: Model count -->
+
             <div class="tabular-nums text-[12px] text-[var(--text-secondary)]">
               {{ provider.modelCount }}
             </div>
-            <!-- Column 4: API key type (muted badge) -->
-            <div>
-              <Badge tone="muted">
+
+            <div class="min-w-0 overflow-hidden">
+              <Badge tone="muted" class="max-w-full truncate" :title="keyBadge(provider)">
                 {{ keyBadge(provider) }}
               </Badge>
             </div>
-            <!-- Column 5: Enabled compact switch (always visible — primary row control) -->
+
             <div class="flex items-center">
               <Switch
                 :model-value="provider.enabled"
@@ -595,13 +643,16 @@ onMounted(() => {
                 @update:model-value="(v) => toggleEnabled(provider, v)"
               />
             </div>
-            <!-- Column 6: Updated time -->
-            <div class="truncate text-[11.5px] text-[var(--text-tertiary)]">
-              {{ formatRelativeTime(provider.updatedAt, locale) }}
-            </div>
-            <!-- Column 7: Action cluster (revealed on row hover) -->
+
             <div
-              class="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+              class="min-w-0 truncate whitespace-nowrap text-[11.5px] text-[var(--text-tertiary)]"
+              :title="formatRelativeTime(provider.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US')"
+            >
+              {{ formatRelativeTime(provider.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US') }}
+            </div>
+
+            <div
+              class="flex w-full items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
             >
               <IconButton :label="$t('providers.testAction')" @click="openTest(provider)">
                 <Zap class="size-3.5" :stroke-width="1.75" />
@@ -623,7 +674,6 @@ onMounted(() => {
           </div>
         </div>
       </div>
-
       <p
         v-if="providersStore.items.length > 0"
         class="px-1 text-[11.5px] text-[var(--text-tertiary)]"
@@ -807,9 +857,32 @@ onMounted(() => {
           v-if="testResult"
           class="space-y-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2.5"
         >
-          <Badge :tone="testResult.ok ? 'success' : 'error'">
-            {{ testResult.ok ? $t('providers.testSuccess') : $t('providers.testFailed') }}
-          </Badge>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <Badge
+              :tone="
+                testResult.ok
+                  ? 'success'
+                  : testResult.status === 'rate_limited'
+                    ? 'warning'
+                    : 'error'
+              "
+            >
+              {{
+                testResult.ok
+                  ? $t('providers.testSuccess')
+                  : testResult.status === 'rate_limited'
+                    ? $t('providers.testRateLimited')
+                    : testResult.status === 'auth_error'
+                      ? $t('providers.testUnauthorized')
+                      : testResult.status === 'forbidden'
+                        ? $t('providers.testForbidden')
+                        : $t('providers.testFailed')
+              }}
+            </Badge>
+            <Badge v-if="testResult.httpStatus != null" tone="muted">
+              HTTP {{ testResult.httpStatus }}
+            </Badge>
+          </div>
           <p class="text-[12px] text-[var(--text-secondary)]">{{ testResult.message }}</p>
           <dl
             class="grid grid-cols-[80px_1fr] gap-x-3 gap-y-1 text-[10.5px] text-[var(--text-tertiary)]"

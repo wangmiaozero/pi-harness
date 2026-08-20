@@ -69,6 +69,9 @@ export const useProvidersStore = defineStore('providers', () => {
         .then(() => ({ key }))
     )
     await fetchList()
+    // Cascade lives in main; refresh models so the Models page drops orphaned rows immediately.
+    const { useModelsStore } = await import('@renderer/stores/models')
+    await useModelsStore().fetchList()
   }
 
   async function duplicate(key: string) {

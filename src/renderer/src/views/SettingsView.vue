@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Save, FolderOpen, Archive, Trash2, RotateCcw, Download } from '@lucide/vue'
+import { Save, FolderOpen, Archive, Trash2, RotateCcw, Download, Eraser } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import type { AppSettings } from '@shared/ipc/api-types'
 import Button from '@renderer/components/ui/Button.vue'
@@ -16,7 +16,6 @@ import { useSettingsStore } from '@renderer/stores/settings'
 import { getApi } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { formatDateTime, formatBytes } from '@renderer/utils/format'
-import { APP_LOCALE_LABELS, type AppLocale } from '@renderer/i18n'
 
 const { t, locale } = useI18n()
 const store = useSettingsStore()
@@ -24,6 +23,8 @@ const saving = ref(false)
 const updateBusy = ref(false)
 const updateMessage = ref<string | null>(null)
 const updateDownloaded = ref(false)
+/** Developer / Mock toggles are for local `pnpm dev` only — hidden when packaged. */
+const showDeveloper = ref(false)
 
 const draft = ref<AppSettings>({
   language: 'zh-CN',
@@ -61,10 +62,8 @@ const backupRetentionStr = computed({
 
 const languageOptions = computed(() => [
   { value: 'auto', label: t('settings.languageAuto') },
-  ...(Object.entries(APP_LOCALE_LABELS) as Array<[AppLocale, string]>).map(([value, label]) => ({
-    value,
-    label
-  }))
+  { value: 'zh-CN', label: '简体中文' },
+  { value: 'en-US', label: 'English' }
 ])
 
 const themeOptions = computed(() => [
@@ -139,6 +138,29 @@ async function deleteBackup(id: string) {
   }
 }
 
+async function purgeOldBackups() {
+  const olderCount = store.backups.filter((b) => {
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    return b.timestamp < start.getTime()
+  }).length
+  if (olderCount === 0) {
+    toast.info(t('settings.purgeOldNone'))
+    return
+  }
+  try {
+    const result = await store.purgeOlderThanToday()
+    toast.success(
+      t('settings.purgeOldDone', {
+        count: result.deleted,
+        size: formatBytes(result.freedBytes)
+      })
+    )
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
 async function checkUpdates() {
   updateBusy.value = true
   updateMessage.value = null
@@ -188,6 +210,14 @@ async function installUpdate() {
 
 onMounted(() => {
   void Promise.all([store.fetch(), store.fetchBackups()])
+  void getApi()
+    .system.info()
+    .then((info) => {
+      showDeveloper.value = !info.packaged
+    })
+    .catch(() => {
+      showDeveloper.value = false
+    })
 })
 </script>
 
@@ -288,16 +318,23 @@ onMounted(() => {
               class="h-[var(--height-input)] w-[88px] rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 text-right text-[12px] tabular-nums text-[var(--text-primary)] shadow-[var(--control-shadow)] transition-[background-color,border-color,box-shadow] hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] focus:border-[var(--accent)] focus:bg-[var(--control-bg-hover)] focus:outline-none focus:shadow-[var(--focus-ring)]"
             />
           </PropertyRow>
-          <div class="px-3 py-2 flex items-center gap-1.5 border-t border-[var(--border-subtle)]">
+          <div class="px-3 py-2 flex flex-wrap items-center gap-1.5 border-t border-[var(--border-subtle)]">
             <Button variant="secondary" size="sm" @click="createBackup">
               <Archive class="size-3.5" :stroke-width="1.75" />
               {{ $t('settings.createBackup') }}
+            </Button>
+            <Button variant="secondary" size="sm" @click="purgeOldBackups">
+              <Eraser class="size-3.5" :stroke-width="1.75" />
+              {{ $t('settings.purgeOldBackups') }}
             </Button>
             <Button variant="ghost" size="sm" @click="store.openBackupFolder">
               <FolderOpen class="size-3.5" :stroke-width="1.75" />
               {{ $t('settings.openFolder') }}
             </Button>
           </div>
+          <p class="px-3 pb-2 text-[10.5px] text-[var(--text-tertiary)]">
+            {{ $t('settings.purgeOldHint') }}
+          </p>
           <div class="border-t border-[var(--border-subtle)]">
             <div
               v-if="store.backupsLoading"
@@ -318,8 +355,13 @@ onMounted(() => {
                 class="group flex items-center gap-3 px-3 py-1.5 hover:bg-[var(--bg-hover)]"
               >
                 <div class="min-w-0 flex-1">
-                  <div class="truncate text-[12px] text-[var(--text-primary)]">
-                    {{ formatDateTime(backup.timestamp, locale) }}
+                  <div
+                    class="truncate text-[12px] text-[var(--text-primary)]"
+                    :title="
+                      formatDateTime(backup.timestamp, locale === 'zh-CN' ? 'zh-CN' : 'en-US')
+                    "
+                  >
+                    {{ formatDateTime(backup.timestamp, locale === 'zh-CN' ? 'zh-CN' : 'en-US') }}
                   </div>
                   <div class="flex items-center gap-1.5 mt-0.5">
                     <Badge tone="muted">
@@ -381,8 +423,9 @@ onMounted(() => {
           </div>
         </InspectorSection>
 
-        <!-- Developer -->
+        <!-- Developer — only in unpackaged / pnpm dev builds -->
         <InspectorSection
+          v-if="showDeveloper"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
           <template #title>{{ $t('settings.developer') }}</template>

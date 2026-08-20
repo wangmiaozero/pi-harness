@@ -59,6 +59,7 @@ function isActive(path: string): boolean {
         <span
           class="truncate text-[13px]"
           :class="isActive(item.to) ? 'font-medium' : 'font-normal'"
+          :title="item.label"
         >
           {{ item.label }}
         </span>

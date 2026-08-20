@@ -78,4 +78,20 @@ describe('providerFormSchema', () => {
     })
     expect(r.success).toBe(true)
   })
+
+  it('accepts mixed-case keys and opaque api secrets', () => {
+    const r = providerFormSchema.safeParse({
+      key: 'NVIDIA-NIM',
+      name: 'NVIDIA',
+      displayName: 'NVIDIA NIM',
+      enabled: true,
+      protocol: 'openai-completions',
+      baseUrl: 'https://integrate.api.nvidia.com/v1',
+      apiKey: { kind: 'literal', literal: 'nvapi-4SasPSHM0Ilo' },
+      headers: {},
+      authHeader: true,
+      timeout: null
+    })
+    expect(r.success).toBe(true)
+  })
 })

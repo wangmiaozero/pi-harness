@@ -63,36 +63,69 @@ export class ModelService {
   }
 
   async update(id: string, raw: unknown, options?: WriteOptions): Promise<ModelDefinition> {
-    const [providerKey, ...rest] = id.split('::')
+    const [oldProviderKey, ...rest] = id.split('::')
     const oldModelId = rest.join('::')
-    if (!providerKey || !oldModelId) throw new ValidationError(`Invalid model id: ${id}`)
+    if (!oldProviderKey || !oldModelId) throw new ValidationError(`Invalid model id: ${id}`)
 
-    const form = this.parseForm({ ...(raw as object), providerId: providerKey })
+    const form = this.parseForm(raw)
+    const newProviderKey = form.providerId
+    const newModelId = form.modelId
+    const moved = newProviderKey !== oldProviderKey
 
-    await this.config.patchProvider(
-      providerKey,
-      (cur) => {
-        if (!cur) throw new NotFoundError(`Provider not found: ${providerKey}`)
-        const models = [...(cur.models ?? [])]
-        const idx = models.findIndex((m) => m.id === oldModelId)
+    await this.config.patchModels(
+      (models) => {
+        const providers = { ...models.providers }
+        const oldProvider = providers[oldProviderKey]
+        if (!oldProvider) throw new NotFoundError(`Provider not found: ${oldProviderKey}`)
+
+        const oldModels = [...(oldProvider.models ?? [])]
+        const idx = oldModels.findIndex((m) => m.id === oldModelId)
         if (idx < 0) throw new NotFoundError(`Model not found: ${id}`)
-        if (form.modelId !== oldModelId && models.some((m) => m.id === form.modelId)) {
-          throw new ValidationError(`Model id conflict: ${form.modelId}`)
+        const existing = oldModels[idx]!
+
+        if (!moved) {
+          if (newModelId !== oldModelId && oldModels.some((m) => m.id === newModelId)) {
+            throw new ValidationError(`Model id conflict: ${newModelId}`)
+          }
+          oldModels[idx] = domainModelToPi(existing, form)
+          providers[oldProviderKey] = { ...oldProvider, models: oldModels }
+          return { ...models, providers }
         }
-        models[idx] = domainModelToPi(models[idx], form)
-        return { ...cur, models }
+
+        if (oldModels.length <= 1) {
+          throw new ValidationError('Provider must keep at least one model')
+        }
+
+        const newProvider = providers[newProviderKey]
+        if (!newProvider) throw new NotFoundError(`Provider not found: ${newProviderKey}`)
+        const destModels = [...(newProvider.models ?? [])]
+        if (destModels.some((m) => m.id === newModelId)) {
+          throw new ValidationError(`Model already exists: ${newProviderKey}/${newModelId}`)
+        }
+
+        oldModels.splice(idx, 1)
+        providers[oldProviderKey] = { ...oldProvider, models: oldModels }
+        destModels.push(domainModelToPi(existing, form))
+        providers[newProviderKey] = { ...newProvider, models: destModels }
+        return { ...models, providers }
       },
-      { overwrite: options?.overwrite, reason: `update model ${id}` }
+      {
+        overwrite: options?.overwrite,
+        reason: moved
+          ? `move model ${oldProviderKey}/${oldModelId} → ${newProviderKey}/${newModelId}`
+          : `update model ${id}`
+      }
     )
 
     const meta = await this.metadata.read()
-    const models = { ...meta.models }
-    if (form.modelId !== oldModelId) {
-      delete models[modelMetaKey(providerKey, oldModelId)]
-    }
-    const mk = modelMetaKey(providerKey, form.modelId)
-    models[mk] = {
-      ...models[mk],
+    const modelsMeta = { ...meta.models }
+    const providersMeta = { ...meta.providers }
+    const oldMk = modelMetaKey(oldProviderKey, oldModelId)
+    const newMk = modelMetaKey(newProviderKey, newModelId)
+    const prevMeta = modelsMeta[oldMk]
+    if (oldMk !== newMk) delete modelsMeta[oldMk]
+    modelsMeta[newMk] = {
+      ...prevMeta,
       displayName: form.displayName,
       enabled: form.enabled,
       capabilities: {
@@ -103,12 +136,34 @@ export class ModelService {
         streaming: form.streaming
       },
       updatedAt: Date.now(),
-      createdAt: models[mk]?.createdAt ?? Date.now()
+      createdAt: prevMeta?.createdAt ?? Date.now()
     }
-    await this.metadata.write({ ...meta, models })
+
+    // If the old provider's defaultModelId pointed at this model, clear or retarget.
+    const oldProvMeta = providersMeta[oldProviderKey]
+    if (oldProvMeta?.defaultModelId === oldModelId) {
+      providersMeta[oldProviderKey] = {
+        ...oldProvMeta,
+        defaultModelId: moved ? null : newModelId,
+        updatedAt: Date.now()
+      }
+    }
+
+    await this.metadata.write({ ...meta, models: modelsMeta, providers: providersMeta })
+
+    // Keep settings.json active model in sync when this was the active entry.
+    if (moved || newModelId !== oldModelId) {
+      const active = await this.config.getActiveModel()
+      if (active.providerKey === oldProviderKey && active.modelId === oldModelId) {
+        await this.config.setActiveModel(newProviderKey, newModelId, {
+          overwrite: options?.overwrite,
+          reason: `retarget active model after edit ${oldProviderKey}/${oldModelId}`
+        })
+      }
+    }
 
     const updated = (await this.list()).find(
-      (m) => m.providerId === providerKey && m.modelId === form.modelId
+      (m) => m.providerId === newProviderKey && m.modelId === newModelId
     )
     if (!updated) throw new ValidationError('Model update failed')
     return updated
@@ -123,8 +178,12 @@ export class ModelService {
       providerKey,
       (cur) => {
         if (!cur) throw new NotFoundError(`Provider not found: ${providerKey}`)
-        const models = (cur.models ?? []).filter((m: PiModelConfig) => m.id !== modelId)
-        if (models.length === (cur.models ?? []).length) {
+        const existing = cur.models ?? []
+        if (existing.length <= 1) {
+          throw new ValidationError('Provider must keep at least one model')
+        }
+        const models = existing.filter((m: PiModelConfig) => m.id !== modelId)
+        if (models.length === existing.length) {
           throw new NotFoundError(`Model not found: ${id}`)
         }
         return { ...cur, models }

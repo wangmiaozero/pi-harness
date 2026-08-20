@@ -1,6 +1,6 @@
 {
   "name": "pi-switch",
-  "version": "0.3.0",
+  "version": "1.0.6",
   "description": "All-in-One Desktop Manager for Pi Coding Agent",
   "productName": "Pi-Switch",
   "author": {
@@ -28,8 +28,10 @@
   "scripts": {
     "dev": "electron-vite dev",
     "compile": "electron-vite build",
-    "build": "pnpm compile && electron-builder --mac --win --linux",
-    "build:mac": "pnpm compile && electron-builder --mac",
+    "build": "pnpm compile && electron-builder --mac --win --linux && node scripts/clean-unpacked-mac.mjs",
+    "build:mac": "pnpm compile && electron-builder --mac --arm64 && node scripts/clean-unpacked-mac.mjs",
+    "build:mac:intel": "pnpm compile && electron-builder --mac --x64 && node scripts/clean-unpacked-mac.mjs",
+    "build:mac:all": "pnpm compile && electron-builder --mac --arm64 --x64 && node scripts/clean-unpacked-mac.mjs",
     "build:win": "pnpm compile && electron-builder --win",
     "build:linux": "pnpm compile && electron-builder --linux",
     "preview": "electron-vite preview",

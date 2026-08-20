@@ -8,21 +8,28 @@
 import { z } from 'zod'
 import { piApiTypeSchema, piThinkingLevelSchema, piInputTypeSchema } from './pi'
 
-const slugRegex = /^[a-z0-9][a-z0-9-_]*$/
+/**
+ * Provider key = models.json object key.
+ * Must stay a single path segment (no / \\), but otherwise match real-world
+ * ids: mixed case, digits, `_-.+` (e.g. `nvapi-4SasPSHM0Ilo`, `OpenAI`, `stepfun`).
+ * Do NOT force lowercase — vendors use casing in ids and api-key-shaped tokens.
+ */
+const providerKeyRegex = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$/
 
 export const providerKeySchema = z
   .string()
   .min(1)
-  .max(64)
-  .regex(slugRegex, 'lowercase letters, numbers, hyphens, underscores')
+  .max(128)
+  .regex(providerKeyRegex, 'letters, digits, . _ + - ; must start with a letter or digit')
 
 export const protocolIdSchema = piApiTypeSchema
 
 export const apiKeySpecSchema = z.object({
   kind: z.enum(['literal', 'env', 'command', 'stored']),
-  literal: z.string().optional(),
-  envRef: z.string().optional(),
-  command: z.string().optional()
+  /** Opaque vendor secret — never format-validated (nvapi-…, sk-…, etc.). */
+  literal: z.string().max(8_192).optional(),
+  envRef: z.string().max(256).optional(),
+  command: z.string().max(2_048).optional()
 })
 
 export const headerMapSchema = z.record(z.string(), z.string())
@@ -44,6 +51,7 @@ export const providerFormSchema = z.object({
 
 export const modelFormSchema = z.object({
   providerId: z.string().min(1),
+  /** Vendor model ids are free-form (e.g. `meta/llama3.1-70b`, `step-3.7-flash`). */
   modelId: z.string().min(1).max(256),
   displayName: z.string().min(1).max(256),
   protocol: protocolIdSchema,

@@ -87,6 +87,7 @@ const api: PiSwitchAPI = {
     create: (reason) => invoke(IPC_INVOKE.backupCreate, reason),
     restore: (id) => invoke(IPC_INVOKE.backupRestore, id),
     delete: (id) => invoke(IPC_INVOKE.backupDelete, id),
+    purgeOlderThanToday: () => invoke(IPC_INVOKE.backupPurgeOlderThanToday),
     openFolder: () => invoke(IPC_INVOKE.backupOpenFolder)
   },
   settings: {

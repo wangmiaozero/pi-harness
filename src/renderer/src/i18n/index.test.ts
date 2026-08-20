@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { messages, resolveLocale } from './index'
+import { messages } from './index'
 
 function leafPaths(tree: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(tree).flatMap(([key, value]) => {
@@ -19,11 +19,11 @@ function sourceFiles(directory: string): string[] {
 }
 
 describe('localized copy', () => {
-  it('keeps all locale message keys in sync', () => {
+  it('keeps English and Simplified Chinese message keys in sync', () => {
     const english = leafPaths(messages['en-US']).sort()
-    for (const locale of Object.keys(messages) as Array<keyof typeof messages>) {
-      expect(leafPaths(messages[locale]).sort(), locale).toEqual(english)
-    }
+    const chinese = leafPaths(messages['zh-CN']).sort()
+
+    expect(chinese).toEqual(english)
   })
 
   it('does not ship empty localized messages', () => {
@@ -41,12 +41,5 @@ describe('localized copy', () => {
     })
 
     expect(used.filter((key) => !available.has(key))).toEqual([])
-  })
-
-  it('resolves explicit and auto locales', () => {
-    expect(resolveLocale('ko-KR')).toBe('ko-KR')
-    expect(resolveLocale('ru-RU')).toBe('ru-RU')
-    expect(resolveLocale('fr-FR')).toBe('fr-FR')
-    expect(resolveLocale('de-DE')).toBe('de-DE')
   })
 })

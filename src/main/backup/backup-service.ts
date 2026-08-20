@@ -168,6 +168,32 @@ export class BackupService {
     }
   }
 
+  /**
+   * Delete every backup whose timestamp is before local midnight today.
+   * Keeps today's snapshots so recent undo is still available.
+   */
+  async purgeOlderThanToday(): Promise<{ deleted: number; freedBytes: number }> {
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+    const cutoff = startOfToday.getTime()
+
+    const all = await this.list()
+    const stale = all.filter((b) => b.timestamp < cutoff)
+    let freedBytes = 0
+    let deleted = 0
+    for (const b of stale) {
+      freedBytes += b.sizeBytes ?? 0
+      try {
+        await this.delete(b.id)
+        deleted++
+      } catch (err) {
+        log.backup.warn('purge older backup failed:', b.id, err)
+      }
+    }
+    log.backup.info('purged backups older than today', { deleted, freedBytes, cutoff })
+    return { deleted, freedBytes }
+  }
+
   async openFolder(): Promise<string> {
     const root = this.root()
     await fs.mkdir(root, { recursive: true })

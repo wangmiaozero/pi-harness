@@ -12,7 +12,6 @@ const invoke = (name: string) => `pi-switch:${name}` as const
 export const IPC_INVOKE = {
   // system
   systemInfo: invoke('system:info'),
-  systemOpenExternal: invoke('system:open-external'),
   systemOpenPath: invoke('system:open-path'),
   systemShowItem: invoke('system:show-item'),
 
@@ -66,6 +65,7 @@ export const IPC_INVOKE = {
   backupCreate: invoke('backup:create'),
   backupRestore: invoke('backup:restore'),
   backupDelete: invoke('backup:delete'),
+  backupPurgeOlderThanToday: invoke('backup:purge-older-than-today'),
   backupOpenFolder: invoke('backup:open-folder'),
 
   // settings (Pi-Switch app settings)

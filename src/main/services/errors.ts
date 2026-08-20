@@ -68,8 +68,24 @@ export class SkillConflictError extends AppError {
 
 export class ValidationError extends AppError {
   constructor(message: string, details?: unknown) {
-    super('VALIDATION_ERROR', message, details)
+    super('VALIDATION_ERROR', formatValidationMessage(message, details), details)
   }
+}
+
+function formatValidationMessage(message: string, details?: unknown): string {
+  const issues = (
+    details as { issues?: Array<{ path?: Array<string | number>; message?: string }> } | undefined
+  )?.issues
+  if (!issues?.length) return message
+  const parts = issues
+    .map((i) => {
+      const path = i.path?.length ? i.path.join('.') : ''
+      const msg = i.message ?? ''
+      if (!msg) return path
+      return path ? `${path}: ${msg}` : msg
+    })
+    .filter(Boolean)
+  return parts.length ? `${message} (${parts.join('; ')})` : message
 }
 
 export class FileSystemError extends AppError {

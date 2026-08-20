@@ -12,10 +12,11 @@ import {
   Brain,
   Radio,
   Cpu,
-  Circle
+  Circle,
+  Zap
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import type { ModelDefinition } from '@shared/ipc/api-types'
+import type { ModelDefinition, ConnectionTestResult } from '@shared/ipc/api-types'
 import type { ModelForm } from '@shared/schemas/domain'
 import { PROTOCOLS } from '@shared/constants/protocols'
 import { PI_THINKING_LEVELS, type PiThinkingLevel } from '@shared/constants/index'
@@ -38,11 +39,20 @@ const providersStore = useProvidersStore()
 
 const dialogOpen = ref(false)
 const deleteOpen = ref(false)
+const testOpen = ref(false)
 const editingId = ref<string | null>(null)
 const deletingModel = ref<ModelDefinition | null>(null)
+const testingModel = ref<ModelDefinition | null>(null)
+const testResult = ref<ConnectionTestResult | null>(null)
+const testLoading = ref(false)
 const saving = ref(false)
 const useProviderProtocol = ref(true)
 const showAdvanced = ref(false)
+
+const listGrid = {
+  gridTemplateColumns:
+    '20px minmax(0, 1.3fr) minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 1fr) 76px 68px 120px'
+} as const
 
 const defaultForm = (): ModelForm => ({
   providerId: '',
@@ -203,6 +213,7 @@ async function save() {
       toast.success(t('models.created'))
     }
     dialogOpen.value = false
+    await providersStore.fetchList()
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
   } finally {
@@ -211,16 +222,31 @@ async function save() {
 }
 
 function confirmDelete(model: ModelDefinition) {
+  if (!canDeleteModel(model)) {
+    toast.error(t('models.keepAtLeastOne'))
+    return
+  }
   deletingModel.value = model
   deleteOpen.value = true
 }
 
+/** Each provider must retain ≥1 model — hide delete when it's the last one. */
+function canDeleteModel(model: ModelDefinition): boolean {
+  return modelsStore.items.filter((m) => m.providerId === model.providerId).length > 1
+}
+
 async function doDelete() {
   if (!deletingModel.value) return
+  if (!canDeleteModel(deletingModel.value)) {
+    toast.error(t('models.keepAtLeastOne'))
+    deleteOpen.value = false
+    return
+  }
   try {
     await modelsStore.remove(deletingModel.value.id)
     toast.success(t('models.deleted'))
     deleteOpen.value = false
+    await providersStore.fetchList()
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
   }
@@ -237,6 +263,34 @@ async function setActive(model: ModelDefinition) {
     toast.success(t('models.activated'))
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
+function openTest(model: ModelDefinition) {
+  testingModel.value = model
+  testResult.value = null
+  testOpen.value = true
+}
+
+async function runTest() {
+  const model = testingModel.value
+  if (!model) return
+  const key = providerKeyFor(model)
+  if (!key) {
+    toast.error(t('models.providerMissing'))
+    return
+  }
+  testLoading.value = true
+  testResult.value = null
+  try {
+    const result = await providersStore.testConnection(key, model.modelId)
+    testResult.value = result
+    if (result.ok) toast.success(t('providers.testOk'))
+    else toast.error(result.message)
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('common.failed'))
+  } finally {
+    testLoading.value = false
   }
 }
 
@@ -291,12 +345,16 @@ onMounted(() => {
           <template v-if="activeModel">
             <span
               class="font-[family-name:var(--font-mono)] text-[12.5px] text-[var(--text-primary)]"
+              :title="`${providerKeyFor(activeModel)} / ${activeModel.modelId}`"
             >
               {{ providerKeyFor(activeModel) }}
               <span class="text-[var(--text-tertiary)]"> / </span>
               {{ activeModel.modelId }}
             </span>
-            <span class="truncate text-[11.5px] text-[var(--text-tertiary)]">
+            <span
+              class="truncate text-[11.5px] text-[var(--text-tertiary)]"
+              :title="activeModel.displayName"
+            >
               — {{ activeModel.displayName }}
             </span>
           </template>
@@ -374,139 +432,171 @@ onMounted(() => {
         :description="$t('models.filterEmptyHint')"
       />
 
-      <!-- Resource list — each row is a "cardless" line with primary name +
-           model id + capabilities. Active row gets an accent edge + soft tint. -->
+      <!-- One parent grid + subgrid rows so every column shares the same tracks. -->
       <div
         v-else
-        class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] overflow-hidden divide-y divide-[var(--border-subtle)]"
+        class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] overflow-hidden"
       >
-        <div
-          v-for="model in filteredModels"
-          :key="model.id"
-          class="group relative flex items-center gap-3 px-4 py-1.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-[var(--bg-hover)]"
-          :class="
-            modelsStore.isActive(model, providerKeyFor(model)) ? 'bg-[var(--accent-tint-soft)]' : ''
-          "
-        >
-          <span
-            v-if="modelsStore.isActive(model, providerKeyFor(model))"
-            class="pointer-events-none absolute left-0 top-1/2 h-6 w-[2px] -translate-y-1/2 rounded-r-full bg-[var(--accent)]"
-          />
-
-          <!-- Active check / inactive status indicator -->
-          <div class="flex size-3 shrink-0 items-center justify-center">
-            <Check
-              v-if="modelsStore.isActive(model, providerKeyFor(model))"
-              class="size-3 text-[var(--accent)]"
-              :stroke-width="2.5"
-            />
-            <Circle
-              v-else
-              class="size-1.5 fill-current text-[var(--text-disabled)]"
-              :stroke-width="0"
-            />
+        <div class="grid gap-x-3" :style="listGrid">
+          <div
+            class="col-span-full grid grid-cols-subgrid items-center px-3 h-[30px] text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+          >
+            <span />
+            <span class="min-w-0 truncate">{{ $t('models.colModel') }}</span>
+            <span class="min-w-0 truncate">{{ $t('models.fieldModelId') }}</span>
+            <span class="min-w-0 truncate">{{ $t('models.colProvider') }}</span>
+            <span class="min-w-0 truncate">{{ $t('models.colProtocol') }}</span>
+            <span class="min-w-0 truncate">{{ $t('models.colCapabilities') }}</span>
+            <span class="min-w-0 truncate">{{ $t('models.colUpdated') }}</span>
+            <span />
           </div>
 
-          <!-- Primary / secondary text -->
-          <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-center gap-2">
+          <div
+            v-for="model in filteredModels"
+            :key="model.id"
+            class="group relative col-span-full grid grid-cols-subgrid items-center px-3 overflow-hidden border-b border-[var(--border-subtle)] last:border-b-0 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-[var(--bg-hover)]"
+            :class="
+              modelsStore.isActive(model, providerKeyFor(model)) ? 'bg-[var(--accent-tint-soft)]' : ''
+            "
+            :style="{ height: 'var(--height-row)' }"
+          >
+            <span
+              v-if="modelsStore.isActive(model, providerKeyFor(model))"
+              class="pointer-events-none absolute left-0 top-1/2 h-6 w-[2px] -translate-y-1/2 rounded-r-full bg-[var(--accent)]"
+            />
+
+            <div class="flex size-3 shrink-0 items-center justify-center">
+              <Check
+                v-if="modelsStore.isActive(model, providerKeyFor(model))"
+                class="size-3 text-[var(--accent)]"
+                :stroke-width="2.5"
+              />
+              <Circle
+                v-else
+                class="size-1.5 fill-current text-[var(--text-disabled)]"
+                :stroke-width="0"
+              />
+            </div>
+
+            <div class="flex min-w-0 items-center gap-1.5 overflow-hidden">
               <span
-                class="truncate text-[13px] font-medium"
+                class="min-w-0 truncate whitespace-nowrap text-[13px] font-medium"
                 :class="
                   modelsStore.isActive(model, providerKeyFor(model))
                     ? 'text-[var(--accent)]'
                     : 'text-[var(--text-primary)]'
                 "
+                :title="
+                  modelsStore.isActive(model, providerKeyFor(model))
+                    ? `${model.displayName} · ${$t('models.active')}`
+                    : model.displayName
+                "
               >
                 {{ model.displayName }}
               </span>
-              <span
-                v-if="modelsStore.isActive(model, providerKeyFor(model))"
-                class="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--accent)]"
-              >
-                · {{ $t('models.active') }}
-              </span>
-              <Badge v-if="!model.enabled" tone="muted">
+              <Badge v-if="!model.enabled" tone="muted" class="shrink-0">
                 {{ $t('common.disabled') }}
               </Badge>
-              <Badge v-if="looksLikeImageModel(model)" tone="warning">
+              <Badge v-if="looksLikeImageModel(model)" tone="warning" class="shrink-0">
                 {{ $t('models.imageModelBadge') }}
               </Badge>
             </div>
 
             <div
-              class="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-[family-name:var(--font-mono)] text-[11px] text-[var(--text-tertiary)]"
+              class="min-w-0 truncate whitespace-nowrap font-[family-name:var(--font-mono)] text-[11.5px] text-[var(--text-secondary)]"
+              :title="model.modelId"
             >
-              <span class="text-[var(--text-secondary)]">{{ model.modelId }}</span>
-              <span class="text-[var(--border-strong)]">·</span>
-              <span>{{ providerKeyFor(model) ?? $t('common.unknown') }}</span>
-              <span class="text-[var(--border-strong)]">·</span>
-              <span>{{ protocolLabel(model.protocol) }}</span>
-              <span v-if="model.contextWindow" class="tabular-nums text-[var(--border-strong)]">
-                · {{ (model.contextWindow / 1000).toFixed(0) }}k ctx
+              {{ model.modelId }}
+            </div>
+
+            <div
+              class="min-w-0 truncate whitespace-nowrap font-[family-name:var(--font-mono)] text-[11.5px] text-[var(--text-tertiary)]"
+              :title="providerKeyFor(model) ?? $t('common.unknown')"
+            >
+              {{ providerKeyFor(model) ?? $t('common.unknown') }}
+            </div>
+
+            <div
+              class="min-w-0 truncate whitespace-nowrap text-[11.5px] text-[var(--text-secondary)]"
+              :title="protocolLabel(model.protocol)"
+            >
+              {{ protocolLabel(model.protocol) }}
+            </div>
+
+            <div class="flex min-w-0 items-center gap-1 overflow-hidden">
+              <span
+                v-if="model.vision"
+                class="inline-flex size-[18px] shrink-0 items-center justify-center rounded-[4px] bg-[var(--tone-vision-bg)] text-[var(--tone-vision-text)]"
+                :title="$t('models.flagVision')"
+              >
+                <Eye class="size-3" :stroke-width="1.75" />
               </span>
-              <span class="flex flex-wrap items-center gap-1 font-[family-name:var(--font-sans)]">
-                <span
-                  v-if="model.vision"
-                  class="inline-flex items-center gap-1 rounded-[4px] border border-transparent bg-[var(--tone-vision-bg)] px-1.5 h-[18px] text-[10.5px] text-[var(--tone-vision-text)]"
-                >
-                  <Eye class="size-3" :stroke-width="1.75" />
-                  {{ $t('models.flagVision') }}
-                </span>
-                <span
-                  v-if="model.tools"
-                  class="inline-flex items-center gap-1 rounded-[4px] border border-transparent bg-[var(--tone-tools-bg)] px-1.5 h-[18px] text-[10.5px] text-[var(--tone-tools-text)]"
-                >
-                  <Wrench class="size-3" :stroke-width="1.75" />
-                  {{ $t('models.flagTools') }}
-                </span>
-                <span
-                  v-if="model.reasoning"
-                  class="inline-flex items-center gap-1 rounded-[4px] border border-transparent bg-[var(--tone-reasoning-bg)] px-1.5 h-[18px] text-[10.5px] text-[var(--tone-reasoning-text)]"
-                >
-                  <Brain class="size-3" :stroke-width="1.75" />
-                  {{ $t('models.flagReasoning') }}
-                </span>
-                <span
-                  v-if="model.streaming"
-                  class="inline-flex items-center gap-1 rounded-[4px] border border-transparent bg-[var(--tone-streaming-bg)] px-1.5 h-[18px] text-[10.5px] text-[var(--tone-streaming-text)]"
-                >
-                  <Radio class="size-3" :stroke-width="1.75" />
-                  {{ $t('models.flagStreaming') }}
-                </span>
+              <span
+                v-if="model.tools"
+                class="inline-flex size-[18px] shrink-0 items-center justify-center rounded-[4px] bg-[var(--tone-tools-bg)] text-[var(--tone-tools-text)]"
+                :title="$t('models.flagTools')"
+              >
+                <Wrench class="size-3" :stroke-width="1.75" />
+              </span>
+              <span
+                v-if="model.reasoning"
+                class="inline-flex size-[18px] shrink-0 items-center justify-center rounded-[4px] bg-[var(--tone-reasoning-bg)] text-[var(--tone-reasoning-text)]"
+                :title="$t('models.flagReasoning')"
+              >
+                <Brain class="size-3" :stroke-width="1.75" />
+              </span>
+              <span
+                v-if="model.streaming"
+                class="inline-flex size-[18px] shrink-0 items-center justify-center rounded-[4px] bg-[var(--tone-streaming-bg)] text-[var(--tone-streaming-text)]"
+                :title="$t('models.flagStreaming')"
+              >
+                <Radio class="size-3" :stroke-width="1.75" />
+              </span>
+              <span
+                v-if="!model.vision && !model.tools && !model.reasoning && !model.streaming"
+                class="text-[10.5px] text-[var(--text-disabled)]"
+              >
+                —
               </span>
             </div>
-          </div>
 
-          <!-- Trailing meta + actions -->
-          <div class="flex shrink-0 items-center gap-2 self-center">
-            <span class="hidden text-[10.5px] text-[var(--text-tertiary)] sm:inline">
-              {{ formatRelativeTime(model.updatedAt, locale) }}
-            </span>
-            <Button
-              v-if="!modelsStore.isActive(model, providerKeyFor(model))"
-              variant="ghost"
-              size="sm"
-              :disabled="!model.enabled"
-              :title="$t('models.setActive')"
-              @click="setActive(model)"
-            >
-              <Star class="size-3.5" :stroke-width="1.75" />
-              <span>{{ $t('models.setActive') }}</span>
-            </Button>
             <div
-              class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+              class="min-w-0 truncate whitespace-nowrap text-[10.5px] text-[var(--text-tertiary)]"
+              :title="formatRelativeTime(model.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US')"
             >
-              <IconButton :label="$t('common.edit')" @click="openEdit(model)">
+              {{ formatRelativeTime(model.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US') }}
+            </div>
+
+            <div class="flex w-full items-center justify-end gap-0.5">
+              <IconButton
+                v-if="!modelsStore.isActive(model, providerKeyFor(model))"
+                :label="$t('models.setActive')"
+                :disabled="!model.enabled"
+                @click="setActive(model)"
+              >
+                <Star class="size-3.5" :stroke-width="1.75" />
+              </IconButton>
+              <span v-else class="size-7 shrink-0" aria-hidden="true" />
+              <IconButton :label="$t('providers.testAction')" @click="openTest(model)">
+                <Zap class="size-3.5" :stroke-width="1.75" />
+              </IconButton>
+              <IconButton
+                class="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                :label="$t('common.edit')"
+                @click="openEdit(model)"
+              >
                 <Pencil class="size-3.5" :stroke-width="1.75" />
               </IconButton>
               <IconButton
+                v-if="canDeleteModel(model)"
+                class="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                 variant="danger"
                 :label="$t('common.delete')"
                 @click="confirmDelete(model)"
               >
                 <Trash2 class="size-3.5" :stroke-width="1.75" />
               </IconButton>
+              <span v-else class="size-7 shrink-0 opacity-0" aria-hidden="true" />
             </div>
           </div>
         </div>
@@ -642,6 +732,93 @@ onMounted(() => {
         </Button>
         <Button variant="danger" @click="doDelete">
           {{ $t('common.delete') }}
+        </Button>
+      </template>
+    </Dialog>
+
+    <Dialog
+      v-model:open="testOpen"
+      :title="$t('providers.testTitle')"
+      :description="
+        testingModel
+          ? `${providerKeyFor(testingModel) ?? ''} / ${testingModel.modelId}`
+          : undefined
+      "
+    >
+      <div class="space-y-3">
+        <p class="text-[12px] text-[var(--text-secondary)]">
+          {{ $t('providers.testModelHint') }}
+        </p>
+        <div
+          v-if="testResult"
+          class="space-y-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2.5"
+        >
+          <div class="flex flex-wrap items-center gap-1.5">
+            <Badge
+              :tone="
+                testResult.ok
+                  ? 'success'
+                  : testResult.status === 'rate_limited'
+                    ? 'warning'
+                    : 'error'
+              "
+            >
+              {{
+                testResult.ok
+                  ? $t('providers.testSuccess')
+                  : testResult.status === 'rate_limited'
+                    ? $t('providers.testRateLimited')
+                    : testResult.status === 'auth_error'
+                      ? $t('providers.testUnauthorized')
+                      : testResult.status === 'forbidden'
+                        ? $t('providers.testForbidden')
+                        : $t('providers.testFailed')
+              }}
+            </Badge>
+            <Badge v-if="testResult.httpStatus != null" tone="muted">
+              HTTP {{ testResult.httpStatus }}
+            </Badge>
+          </div>
+          <p class="text-[12px] text-[var(--text-secondary)]">{{ testResult.message }}</p>
+          <dl
+            class="grid grid-cols-[80px_1fr] gap-x-3 gap-y-1 text-[10.5px] text-[var(--text-tertiary)]"
+          >
+            <dt>{{ $t('providers.testStatus') }}</dt>
+            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
+              {{ testResult.status }}
+            </dd>
+            <dt>{{ $t('providers.testHttp') }}</dt>
+            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
+              {{ testResult.httpStatus ?? '—' }}
+            </dd>
+            <dt>{{ $t('providers.testLatency') }}</dt>
+            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
+              {{ testResult.latencyMs }} ms
+            </dd>
+            <dt>{{ $t('providers.testProtocol') }}</dt>
+            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
+              {{ testResult.protocol ?? '—' }}
+            </dd>
+            <dt>{{ $t('providers.testEndpoint') }}</dt>
+            <dd
+              class="truncate font-[family-name:var(--font-mono)] text-[var(--text-secondary)]"
+              :title="testResult.endpoint ?? ''"
+            >
+              {{ testResult.endpoint ?? '—' }}
+            </dd>
+            <dt>{{ $t('providers.testModel') }}</dt>
+            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
+              {{ testResult.modelId ?? '—' }}
+            </dd>
+          </dl>
+        </div>
+      </div>
+      <template #footer>
+        <Button variant="ghost" @click="testOpen = false">
+          {{ $t('common.close') }}
+        </Button>
+        <Button variant="primary" :loading="testLoading" @click="runTest">
+          {{ $t('providers.testRun') }}
         </Button>
       </template>
     </Dialog>

@@ -41,8 +41,9 @@ function wrap<T>(
   return fn()
     .then((data) => ({ ok: true as const, data }))
     .catch((err) => {
-      log.ipc.error('handler failed:', err)
-      return { ok: false as const, error: toErrorPayload(err) }
+      const payload = toErrorPayload(err)
+      log.ipc.error('handler failed:', payload.message, payload)
+      return { ok: false as const, error: payload }
     })
 }
 
@@ -60,7 +61,8 @@ export function registerIpc(services: Services): void {
         chrome: process.versions.chrome,
         node: process.versions.node
       },
-      appVersion: APP_VERSION
+      appVersion: APP_VERSION,
+      packaged: app.isPackaged
     }))
   )
   ipcMain.handle(IPC_INVOKE.systemOpenPath, (_e, p: string) =>
@@ -225,6 +227,9 @@ export function registerIpc(services: Services): void {
   )
   ipcMain.handle(IPC_INVOKE.backupRestore, (_e, id: string) => wrap(() => backup.restore(id)))
   ipcMain.handle(IPC_INVOKE.backupDelete, (_e, id: string) => wrap(() => backup.delete(id)))
+  ipcMain.handle(IPC_INVOKE.backupPurgeOlderThanToday, () =>
+    wrap(() => backup.purgeOlderThanToday())
+  )
   ipcMain.handle(IPC_INVOKE.backupOpenFolder, () =>
     wrap(async () => {
       const folder = await backup.openFolder()

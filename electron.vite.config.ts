@@ -34,6 +34,11 @@ export default defineConfig({
       }
     },
     plugins: [vue(), tailwindcss()],
+    server: {
+      // Desktop-only: never auto-open a system/IDE browser. Electron loads this URL.
+      open: false,
+      strictPort: true
+    },
     build: {
       rollupOptions: {
         input: { index: resolve(import.meta.dirname, 'src/renderer/index.html') }

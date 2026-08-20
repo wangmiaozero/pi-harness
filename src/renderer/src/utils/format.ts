@@ -1,37 +1,31 @@
-import { formatDistanceToNow, format, type Locale } from 'date-fns'
-import { de, enUS, fr, ko, ru, zhCN } from 'date-fns/locale'
+import { formatDistanceToNow, format } from 'date-fns'
+import { enUS, zhCN } from 'date-fns/locale'
 
-const localeMap: Record<string, Locale> = {
+const localeMap = {
   'en-US': enUS,
-  'zh-CN': zhCN,
-  'ko-KR': ko,
-  'ru-RU': ru,
-  'fr-FR': fr,
-  'de-DE': de
-}
+  'zh-CN': zhCN
+} as const
 
-function dateLocale(locale: string): Locale {
-  return localeMap[locale] ?? zhCN
-}
+export type FormatLocale = keyof typeof localeMap
 
 export function formatRelativeTime(
   timestamp: number | Date | null | undefined,
-  locale = 'zh-CN'
+  locale: FormatLocale = 'zh-CN'
 ): string {
   if (timestamp == null) return '—'
   const date = timestamp instanceof Date ? timestamp : new Date(timestamp)
   if (Number.isNaN(date.getTime())) return '—'
-  return formatDistanceToNow(date, { addSuffix: true, locale: dateLocale(locale) })
+  return formatDistanceToNow(date, { addSuffix: true, locale: localeMap[locale] })
 }
 
 export function formatDateTime(
   timestamp: number | Date | null | undefined,
-  locale = 'zh-CN'
+  locale: FormatLocale = 'zh-CN'
 ): string {
   if (timestamp == null) return '—'
   const date = timestamp instanceof Date ? timestamp : new Date(timestamp)
   if (Number.isNaN(date.getTime())) return '—'
-  return format(date, 'yyyy-MM-dd HH:mm:ss', { locale: dateLocale(locale) })
+  return format(date, 'yyyy-MM-dd HH:mm:ss', { locale: localeMap[locale] })
 }
 
 export function formatBytes(bytes: number | null | undefined): string {

@@ -239,6 +239,7 @@ onBeforeUnmount(() => {
         <p
           v-if="store.raw"
           class="truncate font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
+          :title="store.raw.path"
         >
           {{ store.raw.path }}
         </p>

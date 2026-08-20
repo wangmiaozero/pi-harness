@@ -115,6 +115,14 @@ export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
     documentation: 'Any endpoint implementing the Anthropic Messages API.'
   },
   {
+    id: 'nvidia-nim',
+    name: 'NVIDIA NIM',
+    protocol: 'openai-completions',
+    defaultBaseUrl: 'https://integrate.api.nvidia.com/v1',
+    placeholderApiKey: 'nvapi-...',
+    documentation: 'NVIDIA NIM / NGC. API keys look like nvapi-… (mixed case is fine).'
+  },
+  {
     id: 'ollama-local',
     name: 'Ollama / Local',
     protocol: 'openai-completions',

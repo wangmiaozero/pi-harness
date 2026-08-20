@@ -322,13 +322,17 @@ function onKey(e: KeyboardEvent) {
           >
             <span
               class="w-[88px] shrink-0 truncate text-[10px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+              :title="cmd.group"
             >
               {{ cmd.group }}
             </span>
-            <span class="min-w-0 flex-1 truncate text-[12.5px]">{{ cmd.label }}</span>
+            <span class="min-w-0 flex-1 truncate text-[12.5px]" :title="cmd.label">{{
+              cmd.label
+            }}</span>
             <span
               v-if="cmd.hint"
               class="shrink-0 truncate font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
+              :title="cmd.hint"
             >
               {{ cmd.hint }}
             </span>
