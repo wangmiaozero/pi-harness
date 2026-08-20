@@ -30,7 +30,7 @@ function sanitize(s: string): string {
 function npmCandidates(): string[] {
   const home = homedir()
   const isWin = process.platform === 'win32'
-  const names = isWin ? ['npm.cmd', 'npm.exe', 'npm'] : ['npm']
+  const names = isWin ? ['npm.exe', 'npm.cmd', 'npm'] : ['npm']
   const dirs = [
     path.dirname(process.execPath),
     '/opt/homebrew/bin',
@@ -77,6 +77,9 @@ async function run(
   args: string[],
   timeoutMs: number
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const isWindowsShim = process.platform === 'win32' && /\.(?:cmd|bat)$/i.test(file)
+  const executable = isWindowsShim ? (process.env.ComSpec ?? 'cmd.exe') : file
+  const executableArgs = isWindowsShim ? ['/d', '/s', '/c', file, ...args] : args
   const opts: ExecFileOptions = {
     timeout: timeoutMs,
     maxBuffer: 20 * 1024 * 1024,
@@ -84,7 +87,7 @@ async function run(
     env: { ...process.env, npm_config_fund: 'false', npm_config_audit: 'false' }
   }
   try {
-    const { stdout, stderr } = await execFileP(file, args, opts)
+    const { stdout, stderr } = await execFileP(executable, executableArgs, opts)
     return { stdout: toStr(stdout), stderr: sanitize(toStr(stderr)), exitCode: 0 }
   } catch (err) {
     const e = err as NodeJS.ErrnoException & {
@@ -112,10 +115,20 @@ function parseSemverHint(text: string): string | null {
   return m?.[1] ?? null
 }
 
-class PiInstallService {
+export class PiInstallService {
   async checkLatest(): Promise<PiLatestInfo> {
     const installedPath = await piProcess.resolveCliPath()
-    const installedVersion = installedPath ? await piProcess.version() : null
+    if (!installedPath) {
+      return {
+        installed: false,
+        installedVersion: null,
+        latestVersion: null,
+        updateAvailable: false,
+        packageName: PI_NPM_PACKAGE
+      }
+    }
+
+    const installedVersion = await piProcess.version()
     const installedClean = installedVersion ? parseSemverHint(installedVersion) : null
 
     let latestVersion: string | null = null
@@ -142,7 +155,7 @@ class PiInstallService {
     )
 
     return {
-      installed: Boolean(installedPath),
+      installed: true,
       installedVersion: installedClean ?? installedVersion,
       latestVersion,
       updateAvailable,

@@ -12,6 +12,8 @@
 
 :root,
 :root[data-theme='dark'] {
+  color-scheme: dark;
+
   /* ---------- Surface ladder (dark) ---------- */
   --bg-window: #16181b; /* Window — outermost */
   --bg-titlebar: #181a1d; /* TitleBar */
@@ -142,6 +144,8 @@
  * so the UI sits on a clean desk, not on a hospital floor.
  * ============================================================================= */
 :root[data-theme='light'] {
+  color-scheme: light;
+
   --bg-window: #f2f2f3;
   --bg-titlebar: #ecedef;
   --bg-sidebar: #ecedef;

@@ -90,6 +90,15 @@ select {
   appearance: none;
 }
 
+/* Chromium on Windows does not consistently paint an appearance-none
+ * select popup from color-scheme alone. Give native popup rows explicit
+ * theme colors so dark-mode options remain visible. */
+select option,
+select optgroup {
+  color: var(--text-primary);
+  background-color: var(--bg-surface-raised);
+}
+
 ::selection {
   background: var(--accent-tint-strong);
   color: var(--text-primary);

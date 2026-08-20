@@ -34,7 +34,7 @@ export interface PiExecOptions {
   env?: Record<string, string>
 }
 
-class PiProcessService {
+export class PiProcessService {
   private cachedPath: string | null = null
   private cachedAt = 0
   private readonly cacheTtlMs = 10_000
@@ -82,19 +82,36 @@ class PiProcessService {
       }
     }
 
+    const checkExplicitPath = async (file: string): Promise<string | null> => {
+      if (process.platform !== 'win32') return check(file)
+      if (path.extname(file)) return check(file)
+      for (const candidate of [`${file}.exe`, `${file}.cmd`, `${file}.bat`]) {
+        const found = await check(candidate)
+        if (found) return found
+      }
+      return null
+    }
+
     // 1. explicit override / cache / candidate dirs
     if (override?.trim()) {
-      const found = await check(override.trim())
+      const found = await checkExplicitPath(override.trim())
       if (found) return this.setCache(found)
     }
     for (const dir of this.candidateDirs()) {
-      // skip dirs that are already full file paths
-      const base =
-        dir.endsWith('pi') || dir.endsWith('pi.cmd') || dir.endsWith('cli.js')
-          ? dir
-          : path.join(dir, 'pi')
-      const found = await check(base)
-      if (found) return this.setCache(found)
+      const basename = path.basename(dir).toLowerCase()
+      const isFilePath = ['pi', 'pi.exe', 'pi.cmd', 'pi.bat', 'cli.js'].includes(basename)
+      if (isFilePath) {
+        const found = await checkExplicitPath(dir)
+        if (found) return this.setCache(found)
+        continue
+      }
+
+      const executableNames =
+        process.platform === 'win32' ? ['pi.exe', 'pi.cmd', 'pi.bat'] : ['pi']
+      for (const name of executableNames) {
+        const found = await check(path.join(dir, name))
+        if (found) return this.setCache(found)
+      }
       const js = path.join(dir, 'cli.js')
       const foundJs = await check(js)
       if (foundJs) return this.setCache(foundJs)
@@ -104,13 +121,17 @@ class PiProcessService {
     const which = process.platform === 'win32' ? 'where' : 'which'
     try {
       const { stdout } = await execFileP(which, ['pi'], { timeout: 5000 })
-      const first = stdout
+      const matches = stdout
         .split(/\r?\n/)
-        .find((l) => l.trim())
-        ?.trim()
+        .map((line) => line.trim())
+        .filter(Boolean)
+      const first =
+        process.platform === 'win32'
+          ? matches.find((file) => /\.(?:exe|cmd|bat)$/i.test(file))
+          : matches[0]
       if (first) return this.setCache(first)
-    } catch (err) {
-      log.pi.debug('which/where lookup failed:', err)
+    } catch {
+      log.pi.debug('Pi executable not found on PATH')
     }
 
     return null
@@ -133,8 +154,17 @@ class PiProcessService {
     if (!cliPath) throw new PiCliMissingError()
 
     const isJs = cliPath.endsWith('.js')
-    const file = isJs ? process.execPath : cliPath
-    const args = isJs ? [cliPath, ...options.args] : options.args
+    const isWindowsShim = process.platform === 'win32' && /\.(?:cmd|bat)$/i.test(cliPath)
+    const file = isJs
+      ? process.execPath
+      : isWindowsShim
+        ? (process.env.ComSpec ?? 'cmd.exe')
+        : cliPath
+    const args = isJs
+      ? [cliPath, ...options.args]
+      : isWindowsShim
+        ? ['/d', '/s', '/c', cliPath, ...options.args]
+        : options.args
 
     const execOptions: ExecFileOptions = {
       timeout: options.timeoutMs ?? 30_000,

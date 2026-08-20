@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { createI18n } from 'vue-i18n'
 import { messages } from './index'
 
 function leafPaths(tree: Record<string, unknown>, prefix = ''): string[] {
@@ -41,5 +42,17 @@ describe('localized copy', () => {
     })
 
     expect(used.filter((key) => !available.has(key))).toEqual([])
+  })
+
+  it('compiles npm package names in installation messages', () => {
+    for (const locale of Object.keys(messages) as Array<keyof typeof messages>) {
+      const instance = createI18n({ legacy: false, locale, messages })
+      expect(instance.global.t('overview.installHint')).toContain(
+        '@earendil-works/pi-coding-agent'
+      )
+      expect(instance.global.t('overview.installConfirm')).toContain(
+        '@earendil-works/pi-coding-agent'
+      )
+    }
   })
 })

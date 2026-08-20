@@ -10,7 +10,10 @@
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { log } from './logger'
+
+const writeQueues = new Map<string, Promise<void>>()
 
 export async function fileMtime(p: string): Promise<number | null> {
   try {
@@ -42,19 +45,38 @@ export async function readJsonFile<T>(p: string): Promise<T | null> {
  * Atomic text write: temp sibling file → fsync → rename.
  * Ensures the destination is replaced atomically (same filesystem).
  */
-export async function atomicWriteText(filePath: string, content: string): Promise<void> {
+async function writeAtomicText(filePath: string, content: string): Promise<void> {
   const dir = path.dirname(filePath)
   await fs.mkdir(dir, { recursive: true })
-  const tmpPath = path.join(dir, `.${path.basename(filePath)}.${process.pid}.tmp`)
-  await fs.writeFile(tmpPath, content, 'utf8')
-  // fsync the temp file before rename so the data is durable on disk.
-  const handle = await fs.open(tmpPath, 'r')
+  const tmpPath = path.join(dir, `.${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`)
+  let renamed = false
   try {
-    await handle.sync()
+    // Flush through the same writable handle. Windows rejects fsync on the
+    // read-only handle previously used here with EPERM.
+    const handle = await fs.open(tmpPath, 'wx')
+    try {
+      await handle.writeFile(content, 'utf8')
+      await handle.sync()
+    } finally {
+      await handle.close()
+    }
+    await fs.rename(tmpPath, filePath)
+    renamed = true
   } finally {
-    await handle.close()
+    if (!renamed) await fs.rm(tmpPath, { force: true }).catch(() => undefined)
   }
-  await fs.rename(tmpPath, filePath)
+}
+
+export async function atomicWriteText(filePath: string, content: string): Promise<void> {
+  const queueKey = path.resolve(filePath)
+  const previous = writeQueues.get(queueKey) ?? Promise.resolve()
+  const current = previous.catch(() => undefined).then(() => writeAtomicText(filePath, content))
+  writeQueues.set(queueKey, current)
+  try {
+    await current
+  } finally {
+    if (writeQueues.get(queueKey) === current) writeQueues.delete(queueKey)
+  }
 }
 
 export async function atomicWriteJson(filePath: string, data: unknown): Promise<void> {

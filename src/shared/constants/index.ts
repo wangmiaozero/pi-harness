@@ -7,7 +7,7 @@ export const APP_NAME = 'Pi-Switch'
 export const APP_PRODUCT_NAME = 'Pi-Switch'
 export const APP_DESCRIPTION = 'All-in-One Desktop Manager for Pi Coding Agent'
 export const APP_ID = 'dev.pi-switch.app'
-export const APP_VERSION = '0.3.3'
+export const APP_VERSION = '1.0.6'
 
 /** IPC bridge namespace exposed on window. */
 export const API_NAMESPACE = 'piSwitch'

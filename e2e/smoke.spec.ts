@@ -22,4 +22,34 @@ test.describe('Pi-Switch smoke', () => {
     await page.locator('a[href="#/config"]').click()
     await expect(page.getByText(/models\.json/i).first()).toBeVisible()
   })
+
+  test('saves the light theme without requiring Pi', async ({ page }) => {
+    await expect(page.getByText('Pi-Switch').first()).toBeVisible({ timeout: 30_000 })
+
+    await page.locator('a[href="#/settings"]').click()
+    await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
+    await page.locator('select').nth(1).selectOption('light')
+    await page.getByRole('button', { name: /保存|Save/ }).click()
+
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  })
+
+  test('opens the install confirmation when Pi is missing', async ({ page }) => {
+    const pageErrors: string[] = []
+    const consoleErrors: string[] = []
+    page.on('pageerror', (error) => pageErrors.push(error.stack ?? error.message))
+    page.on('console', (message) => {
+      if (message.type() === 'error') consoleErrors.push(message.text())
+    })
+    await expect(page.getByText('Pi-Switch').first()).toBeVisible({ timeout: 30_000 })
+
+    await page.getByRole('button', { name: /安装 Pi|Install Pi/ }).click()
+
+    await page.waitForTimeout(250)
+    expect(pageErrors).toEqual([])
+    expect(consoleErrors).toEqual([])
+
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await expect(page.getByRole('dialog')).toContainText(/安装 Pi|Install Pi/)
+  })
 })
