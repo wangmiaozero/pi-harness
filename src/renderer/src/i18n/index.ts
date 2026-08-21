@@ -10,6 +10,15 @@ const enUS = {
     diagnostics: 'Diagnostics',
     settings: 'Settings'
   },
+  navShort: {
+    overview: 'Home',
+    providers: 'APIs',
+    models: 'Model',
+    skills: 'Skill',
+    config: 'Conf',
+    diagnostics: 'Diag',
+    settings: 'Prefs'
+  },
   common: {
     refresh: 'Refresh',
     save: 'Save',
@@ -504,6 +513,15 @@ const zhCN: MessageTree = {
   nav: {
     overview: '概览',
     providers: '提供商',
+    models: '模型',
+    skills: '技能',
+    config: '配置',
+    diagnostics: '诊断',
+    settings: '设置'
+  },
+  navShort: {
+    overview: '概览',
+    providers: '厂商',
     models: '模型',
     skills: '技能',
     config: '配置',

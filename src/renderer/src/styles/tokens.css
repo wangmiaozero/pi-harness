@@ -260,7 +260,7 @@
     sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'JetBrains Mono', 'Consolas', monospace;
 
-  --sidebar-width: 220px;
+  --sidebar-width: 50px;
   --titlebar-height: 36px;
   --inspector-width: 320px;
 

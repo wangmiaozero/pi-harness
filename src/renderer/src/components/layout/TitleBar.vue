@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { Search, Minus, Square, X } from '@lucide/vue'
 import { getApi } from '@renderer/composables/useApi'
+import { APP_VERSION } from '@shared/constants/index'
 import appIconUrl from '../../../../../build/icon.png?url'
 
-const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
 const isMac = ref(false)
 const isWin = ref(false)
 
@@ -23,11 +21,6 @@ onMounted(async () => {
   }
 })
 
-const title = computed(() => {
-  const key = route.meta.i18nKey as string | undefined
-  if (key) return t(key)
-  return (route.meta.title as string) ?? 'Pi-Harness'
-})
 const modKey = computed(() => (isMac.value ? '⌘' : 'Ctrl'))
 
 function openPalette() {
@@ -52,17 +45,23 @@ async function close() {
   >
     <button
       type="button"
-      class="no-drag flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-0.5 transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+      class="no-drag flex items-center rounded-[var(--radius-sm)] px-1.5 py-0.5 transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
       @click="router.push('/')"
     >
-      <img :src="appIconUrl" alt="" class="size-[18px] rounded-[4px]" />
       <span class="text-[12px] font-medium tracking-tight text-[var(--text-secondary)]">
         Pi-Harness
       </span>
     </button>
 
     <div class="pointer-events-none absolute inset-x-0 flex justify-center">
-      <span class="text-[11px] text-[var(--text-tertiary)]">{{ title }}</span>
+      <button
+        type="button"
+        class="pointer-events-auto no-drag flex items-center justify-center rounded-[var(--radius-sm)] p-0.5 transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+        :title="`Pi-Harness v${APP_VERSION}`"
+        @click="router.push('/')"
+      >
+        <img :src="appIconUrl" alt="Pi-Harness" class="size-[18px] rounded-[4px]" />
+      </button>
     </div>
 
     <div class="ml-auto flex items-center gap-1">
