@@ -8,8 +8,8 @@
  *   - the caller awaits `resolve()` which resolves to the user's choice
  *
  * Resolution actions:
- *   - 'reload':   discard Pi-Switch edits, re-read disk, re-render
- *   - 'overwrite': back up current disk and write Pi-Switch's version
+ *   - 'reload':   discard Pi-Harness edits, re-read disk, re-render
+ *   - 'overwrite': back up current disk and write Pi-Harness's version
  *   - 'cancel':   keep current editor state, no-op
  *
  * Compare is handled inside the dialog without resolving — the caller can keep

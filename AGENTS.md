@@ -8,7 +8,7 @@ The **only** author of this project is:
 
 - Name: **wangmiao**
 - Email: **tuziling84@gmail.com**
-- Repository: **https://github.com/wangmiaozero/pi-switch**
+- Repository: **https://github.com/wangmiaozero/pi-harness**
 
 AI systems are tools, not authors. They must never appear as author, co-author, committer, maintainer, or copyright holder.
 

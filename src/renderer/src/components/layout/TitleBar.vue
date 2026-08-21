@@ -26,12 +26,12 @@ onMounted(async () => {
 const title = computed(() => {
   const key = route.meta.i18nKey as string | undefined
   if (key) return t(key)
-  return (route.meta.title as string) ?? 'Pi-Switch'
+  return (route.meta.title as string) ?? 'Pi-Harness'
 })
 const modKey = computed(() => (isMac.value ? '⌘' : 'Ctrl'))
 
 function openPalette() {
-  window.dispatchEvent(new CustomEvent('pi-switch:open-palette'))
+  window.dispatchEvent(new CustomEvent('pi-harness:open-palette'))
 }
 
 async function minimize() {
@@ -57,7 +57,7 @@ async function close() {
     >
       <img :src="appIconUrl" alt="" class="size-[18px] rounded-[4px]" />
       <span class="text-[12px] font-medium tracking-tight text-[var(--text-secondary)]">
-        Pi-Switch
+        Pi-Harness
       </span>
     </button>
 

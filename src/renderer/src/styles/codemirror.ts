@@ -3,7 +3,7 @@ import { tags } from '@lezer/highlight'
 import { EditorView } from '@codemirror/view'
 
 /**
- * Shared CodeMirror treatment for Pi-Switch's Graphite workspaces.
+ * Shared CodeMirror treatment for Pi-Harness's Graphite workspaces.
  * The palette stays quiet: semantic hues are deliberately muted and every
  * editor shares the same typography, selection, gutter, and focus behavior.
  */

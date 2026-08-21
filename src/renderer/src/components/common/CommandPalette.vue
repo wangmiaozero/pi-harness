@@ -46,11 +46,11 @@ function openPaletteFromEvent() {
 }
 
 onMounted(() => {
-  window.addEventListener('pi-switch:open-palette', openPaletteFromEvent)
+  window.addEventListener('pi-harness:open-palette', openPaletteFromEvent)
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('pi-switch:open-palette', openPaletteFromEvent)
+  window.removeEventListener('pi-harness:open-palette', openPaletteFromEvent)
 })
 
 const commands = computed<PaletteCommand[]>(() => {

@@ -40,7 +40,7 @@ export interface ConfigSnapshot {
 export interface ConflictSnapshot {
   file: 'models' | 'settings'
   path: string
-  /** Last raw content Pi-Switch successfully read or wrote (the "editor baseline"). */
+  /** Last raw content Pi-Harness successfully read or wrote (the "editor baseline"). */
   lastLoaded: string
   /** Current raw content freshly read from disk. */
   currentDisk: string
@@ -91,7 +91,7 @@ export class PiConfigService {
     const modelsText = await readTextFile(modelsPath)
     const settingsText = await readTextFile(settingsPath)
     // Cache the raw baseline so a later conflict snapshot can diff
-    // "what Pi-Switch last saw" vs "what's on disk now".
+    // "what Pi-Harness last saw" vs "what's on disk now".
     this.modelsRaw = modelsText
     this.settingsRaw = settingsText
     const models = this.parseModelsText(modelsText, modelsPath)
@@ -178,7 +178,7 @@ export class PiConfigService {
 
   /**
    * Snapshot for the Configuration Conflict dialog:
-   *   lastLoaded = the raw content Pi-Switch last established as its baseline
+   *   lastLoaded = the raw content Pi-Harness last established as its baseline
    *                (from read()/readRaw()/a successful write)
    *   currentDisk = a fresh read of the file right now
    * Falls back to currentDisk when no baseline is cached (e.g. fresh start).

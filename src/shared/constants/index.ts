@@ -3,10 +3,10 @@
  * Keep this module free of platform-specific (Node/DOM) globals.
  */
 
-export const APP_NAME = 'Pi-Switch'
-export const APP_PRODUCT_NAME = 'Pi-Switch'
+export const APP_NAME = 'Pi-Harness'
+export const APP_PRODUCT_NAME = 'Pi-Harness'
 export const APP_DESCRIPTION = 'All-in-One Desktop Manager for Pi Coding Agent'
-export const APP_ID = 'dev.pi-switch.app'
+export const APP_ID = 'dev.pi-harness.app'
 export const APP_VERSION = '1.0.6'
 
 /** IPC bridge namespace exposed on window. */
@@ -28,7 +28,7 @@ export const PI_FILES = {
   auth: 'auth.json'
 } as const
 
-/** Pi-Switch's own storage file names (in Electron userData). */
+/** Pi-Harness's own storage file names (in Electron userData). */
 export const APP_FILES = {
   settings: 'settings.json',
   metadata: 'metadata.json',

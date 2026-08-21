@@ -10,7 +10,7 @@
  *   - anthropic-messages    (Anthropic Messages API)
  *   - google-generative-ai  (Google Generative AI)
  *
- * This registry is the single source of truth for how Pi-Switch presents
+ * This registry is the single source of truth for how Pi-Harness presents
  * protocols and how the Pi Config Adapter serialises them. "Provider name
  * must not decide the API protocol" — the protocol is an explicit, first-class
  * choice independent of the provider.

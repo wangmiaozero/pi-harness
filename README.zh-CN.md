@@ -1,7 +1,7 @@
-# Pi-Switch
+# Pi-Harness
 
 <p align="center">
-  <img src="build/icon.png" width="96" alt="Pi-Switch" />
+  <img src="build/icon.png" width="96" alt="Pi-Harness" />
 </p>
 
 <p align="center">
@@ -103,7 +103,7 @@ Domain 与 Pi 原生 JSON 之间通过 Adapter 解耦，未知字段透传，不
 
 ## 作者
 
-[wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com) · [github.com/wangmiaozero/pi-switch](https://github.com/wangmiaozero/pi-switch)
+[wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com) · [github.com/wangmiaozero/pi-harness](https://github.com/wangmiaozero/pi-harness)
 
 ## 开源协议
 

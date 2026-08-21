@@ -8,7 +8,7 @@ describe('atomicWriteText', () => {
   let testDir: string
 
   beforeEach(async () => {
-    testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-switch-storage-'))
+    testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-storage-'))
   })
 
   afterEach(async () => {

@@ -66,7 +66,7 @@ function isActive(path: string): boolean {
       </RouterLink>
     </nav>
     <div class="px-3 py-2">
-      <p class="text-[10.5px] text-[var(--text-tertiary)]">Pi-Switch v{{ APP_VERSION }}</p>
+      <p class="text-[10.5px] text-[var(--text-tertiary)]">Pi-Harness v{{ APP_VERSION }}</p>
     </div>
   </aside>
 </template>

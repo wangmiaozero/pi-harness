@@ -2,7 +2,7 @@
  * Pi Config Adapter — Domain ↔ Pi native config translation.
  *
  * Writes ONLY fields Pi understands into models.json / settings.json.
- * Pi-Switch-only metadata stays in the metadata store.
+ * Pi-Harness-only metadata stays in the metadata store.
  */
 
 import type { ProtocolId } from '@shared/constants/protocols'
@@ -52,8 +52,8 @@ export function parseApiKeyFromPi(raw: string | undefined): {
 } {
   if (!raw) return { apiKey: null, apiKeyRef: null }
   if (raw.startsWith('!')) {
-    // Pi-Switch managed keychain
-    const m = raw.match(/-s\s+"pi-switch-([^"]+)"/)
+    // Pi-Harness managed keychain
+    const m = raw.match(/-s\s+"pi-harness-([^"]+)"/)
     if (m?.[1]) {
       return {
         apiKey: { kind: 'stored', command: raw },

@@ -7,7 +7,7 @@
  *            (execFile, args array — never a shell string). The value written
  *            to Pi's models.json is a `!command` that retrieves it at request
  *            time, mirroring the pattern Pi itself documents:
- *              "!security find-generic-password -a \"$USER\" -s \"pi-switch-<id>\" -w"
+ *              "!security find-generic-password -a \"$USER\" -s \"pi-harness-<id>\" -w"
  *            This keeps the plaintext key out of config files entirely.
  *
  *   other  — encrypt the secret with Electron `safeStorage` (DPAPI on Windows,
@@ -15,7 +15,7 @@
  *            vault file under userData. The value written to Pi's models.json
  *            is the resolved literal (Pi's native field).
  *
- * Pi-Switch never persists its own secrets as plaintext JSON, and the
+ * Pi-Harness never persists its own secrets as plaintext JSON, and the
  * renderer never holds plaintext keys — it only sees a masked display string.
  */
 
@@ -33,7 +33,7 @@ import { SecurityError } from '../services/errors'
 const execFileP = promisify(execFile)
 
 const isMac = process.platform === 'darwin'
-const SERVICE = 'pi-switch'
+const SERVICE = 'pi-harness'
 
 /** Stable keychain service name for a stored secret. */
 function keyService(id: string): string {

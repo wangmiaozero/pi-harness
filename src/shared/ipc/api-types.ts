@@ -75,7 +75,7 @@ export interface RawConfig {
 
 /**
  * Configuration Conflict Dialog payload.
- * `lastLoaded` is what Pi-Switch last established as its baseline (read or write).
+ * `lastLoaded` is what Pi-Harness last established as its baseline (read or write).
  * `currentDisk` is a fresh read of the file at the moment of the conflict.
  */
 export interface ConfigConflictSnapshot {

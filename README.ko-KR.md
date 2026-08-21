@@ -1,7 +1,7 @@
-# Pi-Switch
+# Pi-Harness
 
 <p align="center">
-  <img src="build/icon.png" width="96" alt="Pi-Switch" />
+  <img src="build/icon.png" width="96" alt="Pi-Harness" />
 </p>
 
 <p align="center">
@@ -103,7 +103,7 @@ Domain은 Adapter를 통해 Pi 네이티브 JSON과 분리됩니다. 알 수 없
 
 ## 저자
 
-[wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com) · [github.com/wangmiaozero/pi-switch](https://github.com/wangmiaozero/pi-switch)
+[wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com) · [github.com/wangmiaozero/pi-harness](https://github.com/wangmiaozero/pi-harness)
 
 ## 라이선스
 

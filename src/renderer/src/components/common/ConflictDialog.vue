@@ -4,7 +4,7 @@
  *
  * Mounted once at app shell level (App.vue) and driven by `useConfigConflict()`.
  * Shows lastLoaded vs currentDisk as a line diff and offers four actions:
- *   - Reload   — discard Pi-Switch edits, re-read disk (resolveConflict('reload'))
+ *   - Reload   — discard Pi-Harness edits, re-read disk (resolveConflict('reload'))
  *   - Compare  — toggle inline diff view (no resolution, just inspection)
  *   - Overwrite — confirm + resolveConflict('overwrite') (caller will backup-then-write)
  *   - Cancel   — resolveConflict('cancel')

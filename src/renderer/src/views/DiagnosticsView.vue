@@ -141,7 +141,7 @@ onMounted(() => {
                 {{ $t('diagnostics.application') }}
               </p>
               <p class="mt-0.5 text-[13px] font-semibold text-[var(--text-primary)]">
-                Pi-Switch {{ store.report.app.version }}
+                Pi-Harness {{ store.report.app.version }}
               </p>
               <p class="text-[10.5px] text-[var(--text-tertiary)]">
                 Electron {{ store.report.app.electron }}

@@ -1,5 +1,5 @@
 /**
- * Pi-Switch metadata — domain fields that must NOT be written into Pi config
+ * Pi-Harness metadata — domain fields that must NOT be written into Pi config
  * (enabled flags, display names, timeouts, capability badges, etc.).
  */
 

@@ -1,5 +1,5 @@
-appId: dev.pi-switch.app
-productName: Pi-Switch
+appId: dev.pi-harness.app
+productName: Pi-Harness
 copyright: Copyright © 2026 wangmiao
 directories:
   output: release
@@ -27,8 +27,8 @@ mac:
   hardenedRuntime: true
   gatekeeperAssess: false
   extendInfo:
-    CFBundleDisplayName: Pi-Switch
-    CFBundleName: Pi-Switch
+    CFBundleDisplayName: Pi-Harness
+    CFBundleName: Pi-Harness
 win:
   target:
     - target: nsis
@@ -50,5 +50,5 @@ linux:
 publish:
   - provider: github
     owner: wangmiaozero
-    repo: pi-switch
+    repo: pi-harness
     releaseType: release

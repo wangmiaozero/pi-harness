@@ -1,5 +1,5 @@
 /**
- * Atomic, crash-safe file I/O used for Pi-Switch's own stores and by the
+ * Atomic, crash-safe file I/O used for Pi-Harness's own stores and by the
  * PiConfigService for Pi's native config.
  *
  * Write path: write temp file → fsync → rename over target. If the process
@@ -85,7 +85,7 @@ export async function atomicWriteJson(filePath: string, data: unknown): Promise<
 }
 
 /**
- * A small cached JSON store for Pi-Switch app state (settings/metadata/ui-state).
+ * A small cached JSON store for Pi-Harness app state (settings/metadata/ui-state).
  * Reads lazily, writes atomically, and never holds secrets in plaintext beyond
  * the process.
  */

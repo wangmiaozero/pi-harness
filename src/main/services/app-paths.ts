@@ -38,22 +38,22 @@ export function expandHome(p: string): string {
   return p
 }
 
-/** Pi-Switch app settings file (Electron userData). */
+/** Pi-Harness app settings file (Electron userData). */
 export function appSettingsPath(): string {
   return path.join(userData(), 'settings.json')
 }
 
-/** Pi-Switch metadata file (Electron userData). */
+/** Pi-Harness metadata file (Electron userData). */
 export function appMetadataPath(): string {
   return path.join(userData(), 'metadata.json')
 }
 
-/** Pi-Switch UI state file (Electron userData). */
+/** Pi-Harness UI state file (Electron userData). */
 export function appUiStatePath(): string {
   return path.join(userData(), 'ui-state.json')
 }
 
-/** Pi-Switch encrypted secret vault (non-keychain fallback). */
+/** Pi-Harness encrypted secret vault (non-keychain fallback). */
 export function appSecretVaultPath(): string {
   return path.join(userData(), 'secrets.bin')
 }

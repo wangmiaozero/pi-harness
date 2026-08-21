@@ -1,5 +1,5 @@
 /**
- * Zod schemas for Pi-Switch IPC input validation.
+ * Zod schemas for Pi-Harness IPC input validation.
  *
  * The renderer is untrusted. Every IPC handler re-validates input with these
  * schemas before acting — TypeScript types are not runtime safety.

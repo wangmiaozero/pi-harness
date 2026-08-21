@@ -3,7 +3,7 @@ import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescri
 
 export default defineConfigWithVueTs([
   {
-    name: 'pi-switch/ignores',
+    name: 'pi-harness/ignores',
     ignores: [
       'out/**',
       'dist/**',
@@ -21,7 +21,7 @@ export default defineConfigWithVueTs([
   vueTsConfigs.recommended,
 
   {
-    name: 'pi-switch/rules',
+    name: 'pi-harness/rules',
     rules: {
       'vue/multi-word-component-names': 'off',
       'vue/html-self-closing': 'off',

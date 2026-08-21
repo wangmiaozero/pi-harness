@@ -7,7 +7,7 @@
  * share one definition.
  */
 
-const invoke = (name: string) => `pi-switch:${name}` as const
+const invoke = (name: string) => `pi-harness:${name}` as const
 
 export const IPC_INVOKE = {
   // system
@@ -72,7 +72,7 @@ export const IPC_INVOKE = {
   backupPurgeOlderThanToday: invoke('backup:purge-older-than-today'),
   backupOpenFolder: invoke('backup:open-folder'),
 
-  // settings (Pi-Switch app settings)
+  // settings (Pi-Harness app settings)
   settingsGet: invoke('settings:get'),
   settingsSet: invoke('settings:set'),
   uiStateGet: invoke('settings:ui-state-get'),
@@ -100,9 +100,9 @@ export const IPC_INVOKE = {
 
 /** Main → renderer push events (one-way, via webContents.send). */
 export const IPC_EVENT = {
-  configChanged: 'pi-switch:event:config-changed',
-  piEnvironmentChanged: 'pi-switch:event:pi-env-changed',
-  notification: 'pi-switch:event:notification'
+  configChanged: 'pi-harness:event:config-changed',
+  piEnvironmentChanged: 'pi-harness:event:pi-env-changed',
+  notification: 'pi-harness:event:notification'
 } as const
 
 export type IpcEventName = (typeof IPC_EVENT)[keyof typeof IPC_EVENT]

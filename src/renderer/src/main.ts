@@ -43,7 +43,7 @@ const unsubscribers: Array<() => void> = [
 
 getApi().on('notification', (payload) => {
   const event = payload as { level?: string; title?: string; message?: string }
-  const title = event.title ?? 'Pi-Switch'
+  const title = event.title ?? 'Pi-Harness'
   const message = event.message
   switch (event.level) {
     case 'success':

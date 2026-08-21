@@ -7,7 +7,7 @@
  *
  * These schemas are deliberately permissive: Pi's real config carries many
  * protocol-specific `compat` keys and provider/model fields that vary by
- * version. We validate structure and the fields Pi-Switch edits, and carry
+ * version. We validate structure and the fields Pi-Harness edits, and carry
  * everything else through untouched.
  */
 

@@ -11,7 +11,7 @@ describeWindows('PiProcessService on Windows', () => {
   let previousCliPath: string | undefined
 
   beforeEach(async () => {
-    testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-switch-process-'))
+    testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-process-'))
     previousCliPath = process.env.PI_SWITCH_PI_CLI_PATH
   })
 

@@ -1,6 +1,6 @@
 /**
  * electron-builder leaves unpacked *.app under release/mac* after DMG build.
- * Spotlight / Launchpad indexes those copies → duplicate "Pi-Switch.app" icons.
+ * Spotlight / Launchpad indexes those copies → duplicate "Pi-Harness.app" icons.
  * Keep only the DMG (and yml/blockmap); delete unpacked app bundles.
  */
 import fs from 'node:fs/promises'

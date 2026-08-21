@@ -1,6 +1,6 @@
 /**
  * Typed IPC accessor for the Electron desktop shell.
- * There is no browser / Vite-only mock — Pi-Switch is desktop-only.
+ * There is no browser / Vite-only mock — Pi-Harness is desktop-only.
  */
 
 import type { PiSwitchAPI, IpcError } from '@shared/ipc/api-types'
@@ -15,12 +15,12 @@ export function getApi(): PiSwitchAPI {
   if (!isBridgeAvailable() || !window.piSwitch) {
     throw Object.assign(
       new Error(
-        'Pi-Switch IPC bridge unavailable. Launch via Electron (`pnpm dev`), not a browser.'
+        'Pi-Harness IPC bridge unavailable. Launch via Electron (`pnpm dev`), not a browser.'
       ),
       {
         payload: {
           code: 'IPC_ERROR',
-          message: 'Pi-Switch IPC bridge unavailable. Desktop shell required.'
+          message: 'Pi-Harness IPC bridge unavailable. Desktop shell required.'
         } satisfies AppErrorPayload
       }
     )

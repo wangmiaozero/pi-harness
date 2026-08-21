@@ -52,7 +52,7 @@ export function createMainWindow(): BrowserWindow {
     win.show()
   })
 
-  // Pi-Switch is a desktop-only application. Renderer content must never
+  // Pi-Harness is a desktop-only application. Renderer content must never
   // create a browser window or hand a URL to the system browser.
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 

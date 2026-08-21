@@ -4,7 +4,7 @@
  * Derived from the real Pi 0.84.1 configuration files
  * (~/.pi/agent/settings.json, ~/.pi/agent/models.json) and the official
  * docs (providers.md, models.md, settings.md, skills.md). These describe
- * the ON-DISK format Pi expects — NOT Pi-Switch's domain model.
+ * the ON-DISK format Pi expects — NOT Pi-Harness's domain model.
  */
 
 import type { PiThinkingLevel, PiInputType } from '../constants/index'
@@ -76,7 +76,7 @@ export interface PiModelsConfig {
 
 /**
  * Root of ~/.pi/agent/settings.json. Pi uses a free-form JSON object; these
- * are the known fields Pi-Switch cares about. Everything else is preserved.
+ * are the known fields Pi-Harness cares about. Everything else is preserved.
  */
 export interface PiSettingsConfig {
   defaultProvider?: string | null

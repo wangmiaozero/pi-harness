@@ -270,7 +270,7 @@ const enUS = {
   },
   diagnostics: {
     title: 'Diagnostics',
-    subtitle: 'Inspect Pi-Switch, Pi CLI, and configuration health',
+    subtitle: 'Inspect Pi-Harness, Pi CLI, and configuration health',
     empty: 'No diagnostics report',
     emptyHint: 'Run diagnostics to inspect the application and Pi environment.',
     refresh: 'Run diagnostics',
@@ -321,7 +321,7 @@ const enUS = {
     editTitle: 'Edit skill: {name}',
     preview: 'Preview',
     reveal: 'Reveal in folder',
-    editorHint: 'Pi-Switch writes SKILL.md. Markdown body below.',
+    editorHint: 'Pi-Harness writes SKILL.md. Markdown body below.',
     fieldName: 'Name',
     fieldDescription: 'Description',
     fieldDescriptionPlaceholder: 'Short description (first line shown)',
@@ -445,7 +445,7 @@ const enUS = {
     deleteBackupConfirm: 'Permanently delete this backup? This cannot be undone.',
     deleteBackupAction: 'Delete',
     installUpdateTitle: 'Install update & restart',
-    installUpdateConfirm: 'Install the downloaded update and restart Pi-Switch now?',
+    installUpdateConfirm: 'Install the downloaded update and restart Pi-Harness now?',
     installUpdateAction: 'Install & Restart'
   },
   palette: {
@@ -477,7 +477,7 @@ const enUS = {
   },
   conflict: {
     title: 'Configuration conflict on {file}',
-    description: 'This file changed externally since Pi-Switch last loaded it.',
+    description: 'This file changed externally since Pi-Harness last loaded it.',
     message: 'Configuration changed externally.',
     file: 'File',
     lastLoaded: 'Last loaded',
@@ -771,7 +771,7 @@ const zhCN: MessageTree = {
     editTitle: '编辑技能：{name}',
     preview: '预览',
     reveal: '在文件夹中显示',
-    editorHint: 'Pi-Switch 写入 SKILL.md，下方为 Markdown 正文。',
+    editorHint: 'Pi-Harness 写入 SKILL.md，下方为 Markdown 正文。',
     fieldName: '名称',
     fieldDescription: '描述',
     fieldDescriptionPlaceholder: '简短描述（列表显示首行）',
@@ -865,7 +865,7 @@ const zhCN: MessageTree = {
   },
   diagnostics: {
     title: '诊断',
-    subtitle: '检查 Pi-Switch、Pi CLI 与配置环境',
+    subtitle: '检查 Pi-Harness、Pi CLI 与配置环境',
     empty: '暂无诊断报告',
     emptyHint: '运行诊断以检查应用与 Pi 环境。',
     refresh: '运行诊断',
@@ -939,7 +939,7 @@ const zhCN: MessageTree = {
     deleteBackupConfirm: '确定永久删除此备份？此操作不可撤销。',
     deleteBackupAction: '删除',
     installUpdateTitle: '安装更新并重启',
-    installUpdateConfirm: '确定安装已下载的更新并立即重启 Pi-Switch？',
+    installUpdateConfirm: '确定安装已下载的更新并立即重启 Pi-Harness？',
     installUpdateAction: '安装并重启'
   },
   palette: {
@@ -971,10 +971,10 @@ const zhCN: MessageTree = {
   },
   conflict: {
     title: '配置文件冲突：{file}',
-    description: '该文件在 Pi-Switch 上次加载之后又被外部修改。',
+    description: '该文件在 Pi-Harness 上次加载之后又被外部修改。',
     message: '配置已在外部被修改。',
     file: '文件',
-    lastLoaded: 'Pi-Switch 上次加载',
+    lastLoaded: 'Pi-Harness 上次加载',
     currentDisk: '当前磁盘修改时间',
     compare: '对比',
     hideCompare: '收起对比',

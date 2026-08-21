@@ -13,7 +13,7 @@ function parseApiKeyFromPi(raw: string | undefined): {
 } {
   if (!raw) return { apiKey: null, apiKeyRef: null }
   if (raw.startsWith('!')) {
-    const m = raw.match(/-s\s+"pi-switch-([^"]+)"/)
+    const m = raw.match(/-s\s+"pi-harness-([^"]+)"/)
     if (m?.[1]) {
       return {
         apiKey: { kind: 'stored', command: raw },
@@ -36,8 +36,8 @@ describe('parseApiKeyFromPi (wire rules)', () => {
     })
   })
 
-  it('parses pi-switch keychain commands', () => {
-    const cmd = '!security find-generic-password -a "$USER" -s "pi-switch-abc123" -w'
+  it('parses pi-harness keychain commands', () => {
+    const cmd = '!security find-generic-password -a "$USER" -s "pi-harness-abc123" -w'
     const r = parseApiKeyFromPi(cmd)
     expect(r.apiKeyRef).toBe('abc123')
     expect(r.apiKey?.kind).toBe('stored')

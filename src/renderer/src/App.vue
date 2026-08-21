@@ -78,6 +78,6 @@ onBeforeUnmount(() => {
   <Toaster
     :theme="toasterTheme"
     position="bottom-right"
-    :toast-options="{ class: 'pi-switch-toast' }"
+    :toast-options="{ class: 'pi-harness-toast' }"
   />
 </template>

@@ -1,11 +1,11 @@
 ---
 name: demo-skill
-description: Demo skill for Pi-Switch mock fixtures
+description: Demo skill for Pi-Harness mock fixtures
 ---
 
 # Demo Skill
 
-Use this skill when testing Pi-Switch Skills Create / Import / Edit flows.
+Use this skill when testing Pi-Harness Skills Create / Import / Edit flows.
 
 ## When to use
 

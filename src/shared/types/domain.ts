@@ -1,15 +1,15 @@
 /**
- * Pi-Switch Domain Model.
+ * Pi-Harness Domain Model.
  *
  * Provider ≠ Protocol ≠ Model — these are three decoupled concepts:
  *   - ProviderProfile: a service endpoint + credential bundle.
  *   - Protocol: the API wire format (see Protocol Registry). Stored by id.
  *   - ModelDefinition: a concrete model exposed under a provider.
  *
- * This is Pi-Switch's OWN domain. It is never written verbatim to Pi config;
+ * This is Pi-Harness's OWN domain. It is never written verbatim to Pi config;
  * the Pi Config Adapter translates it into Pi's native models.json / settings.json
  * shape, writing ONLY fields Pi understands. Extra domain metadata (enabled,
- * timeout, displayName, capability badges) lives in Pi-Switch's metadata store.
+ * timeout, displayName, capability badges) lives in Pi-Harness's metadata store.
  *
  * Model-agnostic: no field keys off a model name. Unknown providers, model IDs,
  * base URLs and headers are all permitted.
@@ -36,7 +36,7 @@ export type CapabilityKey = keyof ModelCapabilities
  * - literal:  the resolved plaintext is written into models.json (Pi's native field).
  * - env:      a `$ENV` / `${ENV}` reference string is written.
  * - command:  a `!command` (e.g. keychain retrieval) is written.
- * - stored:   key is held in Pi-Switch's secure SecretStore; the serialised form
+ * - stored:   key is held in Pi-Harness's secure SecretStore; the serialised form
  *             depends on the platform (keychain command on macOS, literal elsewhere).
  */
 export type ApiKeyKind = 'literal' | 'env' | 'command' | 'stored'
@@ -66,7 +66,7 @@ export interface ProviderProfile {
   apiKey: ApiKeySpec | null
   headers: Record<string, string>
   authHeader: boolean
-  /** Pi-Switch-only metadata; NOT written to Pi config. */
+  /** Pi-Harness-only metadata; NOT written to Pi config. */
   timeout: number | null
   /** Preferred model id for connection tests / first-run bootstrap. */
   defaultModelId: string | null

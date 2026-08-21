@@ -1,5 +1,5 @@
 /**
- * ProviderService — CRUD over Pi models.json providers + Pi-Switch metadata.
+ * ProviderService — CRUD over Pi models.json providers + Pi-Harness metadata.
  */
 
 import type { ProviderProfile } from '@shared/types/domain'

@@ -30,7 +30,7 @@ export const test = base.extend<Fixtures>({
     if (!fs.existsSync(mainJs)) {
       throw new Error('out/main/index.js missing — run `pnpm compile` before e2e')
     }
-    const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-switch-e2e-'))
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-'))
     const { ELECTRON_RUN_AS_NODE: _runAsNode, ...restEnv } = process.env
     void _runAsNode
     const app = await electron.launch({
