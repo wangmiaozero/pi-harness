@@ -96,6 +96,56 @@ export interface SkillInfo {
   issues: string[]
   lastModified: number | null
   hasReadme: boolean
+  /** Package-provided skills are inspectable but must be managed through Pi packages. */
+  readOnly?: boolean
+  origin?: 'local' | 'package'
+  packageSource?: string
+}
+
+export interface PiPackageResources {
+  skills: string[]
+  prompts: string[]
+  extensions: string[]
+  themes: string[]
+}
+
+export interface PiPackageInfo {
+  source: string
+  name: string
+  version: string | null
+  description: string
+  path: string | null
+  installed: boolean
+  available: boolean
+  resources: PiPackageResources
+}
+
+export interface SkillMarketPackage {
+  source: string
+  name: string
+  description: string
+  installed: boolean
+  installedVersion: string | null
+}
+
+export interface SkillMarketCollection {
+  id: string
+  title: string
+  summary: string
+  path: string
+  content: string
+  kind: 'bundle' | 'guide'
+  packages: SkillMarketPackage[]
+  lastModified: number | null
+}
+
+export interface PiPackageActionResult {
+  source: string
+  ok: boolean
+  skipped: boolean
+  message: string
+  stdout: string
+  stderr: string
 }
 
 export interface BackupRecord {
@@ -243,6 +293,10 @@ export interface PiSwitchAPI {
   }
   skills: {
     list(): Promise<SkillInfo[]>
+    packages(): Promise<PiPackageInfo[]>
+    market(): Promise<SkillMarketCollection[]>
+    installPackages(sources: string[]): Promise<PiPackageActionResult[]>
+    removePackage(source: string): Promise<PiPackageActionResult>
     read(path: string): Promise<{ content: string; mtime: number | null }>
     create(form: unknown): Promise<SkillInfo>
     update(form: unknown): Promise<SkillInfo>

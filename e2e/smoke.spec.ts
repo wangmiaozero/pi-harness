@@ -23,6 +23,18 @@ test.describe('Pi-Switch smoke', () => {
     await expect(page.getByText(/models\.json/i).first()).toBeVisible()
   })
 
+  test('shows local skills and task-powered marketplace recipes', async ({ page }) => {
+    await expect(page.getByText('Pi-Switch').first()).toBeVisible({ timeout: 30_000 })
+
+    await page.locator('a[href="#/skills"]').click()
+    await expect(page.locator('h1').filter({ hasText: /技能|Skills/ })).toBeVisible()
+    await expect(page.locator('ul').getByText('demo-skill', { exact: true })).toBeVisible()
+
+    await page.getByRole('button', { name: /市场|Market/ }).click()
+    await expect(page.getByText(/标准开发版.*一键安装/).first()).toBeVisible()
+    await expect(page.getByText(/架构师.*Agent.*开发版.*一键安装/).first()).toBeVisible()
+  })
+
   test('saves the light theme without requiring Pi', async ({ page }) => {
     await expect(page.getByText('Pi-Switch').first()).toBeVisible({ timeout: 30_000 })
 

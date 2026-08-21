@@ -74,6 +74,10 @@ const api: PiSwitchAPI = {
   },
   skills: {
     list: () => invoke(IPC_INVOKE.skillsList),
+    packages: () => invoke(IPC_INVOKE.skillsPackages),
+    market: () => invoke(IPC_INVOKE.skillsMarket),
+    installPackages: (sources) => invoke(IPC_INVOKE.skillsInstallPackages, sources),
+    removePackage: (source) => invoke(IPC_INVOKE.skillsRemovePackage, source),
     read: (path) => invoke(IPC_INVOKE.skillRead, path),
     create: (form) => invoke(IPC_INVOKE.skillCreate, form),
     update: (form) => invoke(IPC_INVOKE.skillUpdate, form),

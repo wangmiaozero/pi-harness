@@ -52,6 +52,10 @@ export const IPC_INVOKE = {
 
   // skills
   skillsList: invoke('skills:list'),
+  skillsPackages: invoke('skills:packages'),
+  skillsMarket: invoke('skills:market'),
+  skillsInstallPackages: invoke('skills:install-packages'),
+  skillsRemovePackage: invoke('skills:remove-package'),
   skillRead: invoke('skills:read'),
   skillCreate: invoke('skills:create'),
   skillUpdate: invoke('skills:update'),

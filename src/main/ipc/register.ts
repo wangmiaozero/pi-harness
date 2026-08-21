@@ -183,6 +183,22 @@ export function registerIpc(services: Services): void {
 
   // ---- skills ----
   ipcMain.handle(IPC_INVOKE.skillsList, () => wrap(() => skills.list()))
+  ipcMain.handle(IPC_INVOKE.skillsPackages, () => wrap(() => skills.listPackages()))
+  ipcMain.handle(IPC_INVOKE.skillsMarket, () => wrap(() => skills.listMarket()))
+  ipcMain.handle(IPC_INVOKE.skillsInstallPackages, (_e, sources: unknown) =>
+    wrap(() => {
+      if (!Array.isArray(sources) || !sources.every((source) => typeof source === 'string')) {
+        throw new ValidationError('Invalid package sources')
+      }
+      return skills.installPackages(sources)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.skillsRemovePackage, (_e, source: unknown) =>
+    wrap(() => {
+      if (typeof source !== 'string') throw new ValidationError('Invalid package source')
+      return skills.removePackage(source)
+    })
+  )
   ipcMain.handle(IPC_INVOKE.skillRead, (_e, p: string) => wrap(() => skills.read(p)))
   ipcMain.handle(IPC_INVOKE.skillCreate, (_e, form: unknown) =>
     wrap(() => {

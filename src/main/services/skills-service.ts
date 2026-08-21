@@ -12,13 +12,22 @@
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import type { SkillInfo } from '@shared/ipc/api-types'
+import type {
+  PiPackageActionResult,
+  PiPackageInfo,
+  PiPackageResources,
+  SkillInfo,
+  SkillMarketCollection,
+  SkillMarketPackage
+} from '@shared/ipc/api-types'
 import { piEnvironment } from '../pi/environment'
+import { piProcess } from '../process/pi-process'
 import { atomicWriteText, fileMtime, readTextFile } from './storage'
 import { log } from './logger'
 import type { AppSettings } from '@shared/ipc/api-types'
 import type { JsonStore } from './storage'
 import { ValidationError, FileSystemError, SkillConflictError } from './errors'
+import { skillMarketDir } from './app-paths'
 
 export interface SkillForm {
   name: string
@@ -44,6 +53,21 @@ export interface SkillValidationResult {
 }
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/
+const PACKAGE_SOURCE_PATTERN =
+  /^(?:npm:[@a-zA-Z0-9._/-]+(?:@[a-zA-Z0-9._-]+)?|git:[^\s]+|https?:\/\/[^\s]+|\.?\.?[\\/][^\0]+)$/
+const EMPTY_RESOURCES = (): PiPackageResources => ({
+  skills: [],
+  prompts: [],
+  extensions: [],
+  themes: []
+})
+
+interface PackageManifest {
+  name?: string
+  version?: string
+  description?: string
+  pi?: Partial<Record<keyof PiPackageResources, unknown>>
+}
 
 export class SkillsService {
   constructor(private readonly settingsStore: JsonStore<AppSettings>) {}
@@ -59,7 +83,136 @@ export class SkillsService {
       const skills = await this.scanDir(dir)
       out.push(...skills)
     }
-    return out.sort((a, b) => a.name.localeCompare(b.name))
+    const packages = await this.listPackagesFromConfig(env.configDir)
+    for (const pkg of packages) {
+      if (!pkg.path || !pkg.available) continue
+      out.push(...(await this.scanPackageSkills(pkg)))
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name) || a.path.localeCompare(b.path))
+  }
+
+  /** Installed Pi packages, including their package-provided resources. */
+  async listPackages(): Promise<PiPackageInfo[]> {
+    const settings = this.settingsStore.peek()
+    const env = await piEnvironment.detect({
+      cliPath: settings.manualCliPath,
+      configDir: settings.manualConfigDir
+    })
+    return this.listPackagesFromConfig(env.configDir)
+  }
+
+  /** Markdown recipes under task/ become the local, offline marketplace. */
+  async listMarket(): Promise<SkillMarketCollection[]> {
+    const installed = await this.listPackages()
+    const installedBySource = new Map(installed.map((pkg) => [pkg.source, pkg]))
+    const installedByName = new Map(installed.map((pkg) => [pkg.name, pkg]))
+    const dir = skillMarketDir()
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true })
+      const collections: SkillMarketCollection[] = []
+      for (const entry of entries) {
+        if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.md')) continue
+        const filePath = path.join(dir, entry.name)
+        const content = await readTextFile(filePath)
+        if (content === null) continue
+        const parsed = parseMarketDocument(entry.name, filePath, content)
+        parsed.packages = parsed.packages.map((pkg) => {
+          const match = installedBySource.get(pkg.source) ?? installedByName.get(pkg.name)
+          return {
+            ...pkg,
+            description: match?.description || pkg.description,
+            installed: Boolean(match),
+            installedVersion: match?.version ?? null
+          }
+        })
+        parsed.lastModified = await fileMtime(filePath)
+        collections.push(parsed)
+      }
+      return collections.sort((a, b) => {
+        if (a.kind !== b.kind) return a.kind === 'bundle' ? -1 : 1
+        return a.title.localeCompare(b.title)
+      })
+    } catch (err) {
+      log.skills.warn(`market directory scan failed (${dir}):`, err)
+      return []
+    }
+  }
+
+  /** Install one or more marketplace sources, continuing after individual failures. */
+  async installPackages(sources: string[]): Promise<PiPackageActionResult[]> {
+    const unique = [...new Set(sources.map((source) => source.trim()).filter(Boolean))]
+    if (unique.length === 0 || unique.length > 50) {
+      throw new ValidationError('Choose between 1 and 50 packages to install.')
+    }
+    unique.forEach(assertPackageSource)
+
+    const installed = new Set((await this.listPackages()).map((pkg) => pkg.source))
+    const results: PiPackageActionResult[] = []
+    for (const source of unique) {
+      if (installed.has(source)) {
+        results.push({
+          source,
+          ok: true,
+          skipped: true,
+          message: 'Already installed',
+          stdout: '',
+          stderr: ''
+        })
+        continue
+      }
+      try {
+        const result = await piProcess.exec({
+          args: ['install', source, '--no-approve'],
+          timeoutMs: 5 * 60_000
+        })
+        const ok = result.exitCode === 0
+        results.push({
+          source,
+          ok,
+          skipped: false,
+          message: ok ? 'Installed' : `Install failed (exit ${result.exitCode})`,
+          stdout: result.stdout,
+          stderr: result.stderr
+        })
+        if (ok) installed.add(source)
+      } catch (err) {
+        results.push({
+          source,
+          ok: false,
+          skipped: false,
+          message: (err as Error).message,
+          stdout: '',
+          stderr: ''
+        })
+      }
+    }
+    log.skills.info(
+      `package install finished: ${results.filter((result) => result.ok).length}/${results.length}`
+    )
+    return results
+  }
+
+  /** Remove a configured Pi package through the native CLI. */
+  async removePackage(source: string): Promise<PiPackageActionResult> {
+    const normalized = source.trim()
+    assertPackageSource(normalized)
+    const installed = await this.listPackages()
+    if (!installed.some((pkg) => pkg.source === normalized)) {
+      throw new ValidationError(`Package is not installed: ${normalized}`)
+    }
+    const result = await piProcess.exec({
+      args: ['remove', normalized, '--no-approve'],
+      timeoutMs: 5 * 60_000
+    })
+    const ok = result.exitCode === 0
+    return {
+      source: normalized,
+      ok,
+      skipped: false,
+      message: ok ? 'Removed' : `Remove failed (exit ${result.exitCode})`,
+      stdout: result.stdout,
+      stderr: result.stderr
+    }
   }
 
   async read(skillPath: string): Promise<{ content: string; mtime: number | null }> {
@@ -112,7 +265,9 @@ export class SkillsService {
       isValid: true,
       issues: [],
       lastModified: Date.now(),
-      hasReadme: true
+      hasReadme: true,
+      readOnly: false,
+      origin: 'local'
     }
   }
 
@@ -157,7 +312,9 @@ export class SkillsService {
       isValid: true,
       issues: [],
       lastModified: Date.now(),
-      hasReadme: true
+      hasReadme: true,
+      readOnly: false,
+      origin: 'local'
     }
   }
 
@@ -223,13 +380,115 @@ export class SkillsService {
       isValid: true,
       issues: [],
       lastModified: Date.now(),
-      hasReadme: true
+      hasReadme: true,
+      readOnly: false,
+      origin: 'local'
     }
   }
 
   /** Run client-side validation only — does not touch disk. */
   validate(form: SkillForm): SkillValidationResult {
     return validateSkill(form)
+  }
+
+  private async listPackagesFromConfig(configDir: string | null): Promise<PiPackageInfo[]> {
+    if (!configDir) return []
+    const settingsText = await readTextFile(path.join(configDir, 'settings.json'))
+    if (!settingsText) return []
+
+    let rawPackages: unknown[] = []
+    try {
+      const settings = JSON.parse(settingsText) as { packages?: unknown[] | null }
+      rawPackages = Array.isArray(settings.packages) ? settings.packages : []
+    } catch (err) {
+      log.skills.warn('could not parse settings.json packages:', err)
+      return []
+    }
+
+    const sources = rawPackages
+      .map((entry) => {
+        if (typeof entry === 'string') return entry
+        if (entry && typeof entry === 'object' && 'source' in entry) {
+          const source = (entry as { source?: unknown }).source
+          return typeof source === 'string' ? source : null
+        }
+        return null
+      })
+      .filter((source): source is string => Boolean(source))
+
+    const packages: PiPackageInfo[] = []
+    for (const source of [...new Set(sources)]) {
+      const fallbackName = packageNameFromSource(source)
+      const packagePath = resolveInstalledPackagePath(configDir, source)
+      const manifest = packagePath
+        ? await readPackageManifest(path.join(packagePath, 'package.json'))
+        : null
+      const resources =
+        packagePath && manifest
+          ? await this.readPackageResources(packagePath, manifest)
+          : EMPTY_RESOURCES()
+      packages.push({
+        source,
+        name: manifest?.name || fallbackName,
+        version: manifest?.version ?? null,
+        description: manifest?.description ?? '',
+        path: packagePath,
+        installed: true,
+        available: Boolean(packagePath && manifest),
+        resources
+      })
+    }
+    return packages.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  private async readPackageResources(
+    packageRoot: string,
+    manifest: PackageManifest
+  ): Promise<PiPackageResources> {
+    const resources = EMPTY_RESOURCES()
+    for (const kind of Object.keys(resources) as (keyof PiPackageResources)[]) {
+      const entries = stringArray(manifest.pi?.[kind])
+      if (kind === 'skills') {
+        const dirs = await discoverSkillDirs(packageRoot, entries)
+        resources.skills = dirs.map((dir) => path.basename(dir)).sort()
+        continue
+      }
+      const names: string[] = []
+      for (const entry of entries) {
+        const resourcePath = safePackageResourcePath(packageRoot, entry)
+        if (!resourcePath) continue
+        names.push(...(await discoverResourceNames(resourcePath, kind)))
+      }
+      resources[kind] = [...new Set(names)].sort()
+    }
+    return resources
+  }
+
+  private async scanPackageSkills(pkg: PiPackageInfo): Promise<SkillInfo[]> {
+    if (!pkg.path) return []
+    const manifest = await readPackageManifest(path.join(pkg.path, 'package.json'))
+    const skillEntries = stringArray(manifest?.pi?.skills)
+    const dirs = await discoverSkillDirs(pkg.path, skillEntries)
+    const skills: SkillInfo[] = []
+    for (const skillPath of dirs) {
+      const skillMd = path.join(skillPath, 'SKILL.md')
+      const readmeText = await readTextFile(skillMd)
+      if (readmeText === null) continue
+      skills.push({
+        name: path.basename(skillPath),
+        description: extractDescription(readmeText),
+        path: skillPath,
+        source: pkg.path,
+        isValid: true,
+        issues: [],
+        lastModified: await fileMtime(skillMd),
+        hasReadme: true,
+        readOnly: true,
+        origin: 'package',
+        packageSource: pkg.source
+      })
+    }
+    return skills
   }
 
   private async allowedRoots(): Promise<string[]> {
@@ -283,7 +542,9 @@ export class SkillsService {
           isValid: issues.length === 0,
           issues,
           lastModified: await fileMtime(skillPath),
-          hasReadme
+          hasReadme,
+          readOnly: false,
+          origin: 'local'
         })
       }
       return skills
@@ -297,7 +558,13 @@ export class SkillsService {
 function extractDescription(md: string | null): string {
   if (!md) return ''
   const lines = md.split(/\r?\n/).map((l) => l.trim())
-  for (const line of lines) {
+  let frontmatter = lines[0] === '---'
+  for (let index = frontmatter ? 1 : 0; index < lines.length; index++) {
+    const line = lines[index]
+    if (frontmatter) {
+      if (line === '---') frontmatter = false
+      continue
+    }
     if (!line || line.startsWith('#')) continue
     return line.slice(0, 200)
   }
@@ -351,4 +618,199 @@ async function uniqueSkillName(targetRoot: string, base: string): Promise<string
     if (!(await fileMtime(path.join(root, candidate)))) return candidate
   }
   throw new ValidationError(`Unable to find free name for skill: ${base}`)
+}
+
+function stringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (entry): entry is string => typeof entry === 'string' && Boolean(entry.trim())
+  )
+}
+
+function assertPackageSource(source: string): void {
+  if (!PACKAGE_SOURCE_PATTERN.test(source) || source.includes('$') || source.includes('<')) {
+    throw new ValidationError(`Invalid package source: ${source}`)
+  }
+}
+
+export function packageNameFromSource(source: string): string {
+  if (source.startsWith('npm:')) {
+    const spec = source.slice(4)
+    if (spec.startsWith('@')) {
+      const slash = spec.indexOf('/')
+      const versionAt = slash >= 0 ? spec.indexOf('@', slash) : -1
+      return versionAt >= 0 ? spec.slice(0, versionAt) : spec
+    }
+    const versionAt = spec.lastIndexOf('@')
+    return versionAt > 0 ? spec.slice(0, versionAt) : spec
+  }
+  const clean = source.replace(/[\\/]+$/, '').replace(/\.git$/i, '')
+  return clean.split(/[\\/]/).at(-1) || source
+}
+
+export function resolveInstalledPackagePath(configDir: string, source: string): string | null {
+  if (source.startsWith('npm:')) {
+    return path.join(configDir, 'npm', 'node_modules', packageNameFromSource(source))
+  }
+  if (path.isAbsolute(source)) return path.resolve(source)
+  if (source.startsWith('./') || source.startsWith('../')) {
+    return path.resolve(configDir, source)
+  }
+  return null
+}
+
+async function readPackageManifest(manifestPath: string): Promise<PackageManifest | null> {
+  const text = await readTextFile(manifestPath)
+  if (!text) return null
+  try {
+    return JSON.parse(text) as PackageManifest
+  } catch {
+    return null
+  }
+}
+
+function safePackageResourcePath(packageRoot: string, entry: string): string | null {
+  const root = path.resolve(packageRoot)
+  const target = path.resolve(root, entry)
+  return target === root || target.startsWith(root + path.sep) ? target : null
+}
+
+async function discoverSkillDirs(packageRoot: string, entries: string[]): Promise<string[]> {
+  const found = new Set<string>()
+  for (const entry of entries) {
+    const target = safePackageResourcePath(packageRoot, entry)
+    if (!target) continue
+    await walk(target, 0, async (itemPath, isDirectory) => {
+      if (!isDirectory && path.basename(itemPath).toLowerCase() === 'skill.md') {
+        found.add(path.dirname(itemPath))
+      }
+    })
+  }
+  return [...found].sort()
+}
+
+async function discoverResourceNames(
+  resourcePath: string,
+  kind: Exclude<keyof PiPackageResources, 'skills'>
+): Promise<string[]> {
+  const found = new Set<string>()
+  const extensions: Record<typeof kind, Set<string>> = {
+    prompts: new Set(['.md']),
+    extensions: new Set(['.ts', '.js', '.mjs', '.cjs']),
+    themes: new Set(['.json'])
+  }
+  await walk(resourcePath, 0, async (itemPath, isDirectory) => {
+    if (isDirectory || !extensions[kind].has(path.extname(itemPath).toLowerCase())) return
+    found.add(path.basename(itemPath, path.extname(itemPath)))
+  })
+  return [...found]
+}
+
+async function walk(
+  target: string,
+  depth: number,
+  visit: (itemPath: string, isDirectory: boolean) => Promise<void>
+): Promise<void> {
+  if (depth > 5) return
+  let stat
+  try {
+    stat = await fs.lstat(target)
+  } catch {
+    return
+  }
+  if (stat.isSymbolicLink()) return
+  if (!stat.isDirectory()) {
+    await visit(target, false)
+    return
+  }
+  await visit(target, true)
+  let entries
+  try {
+    entries = await fs.readdir(target, { withFileTypes: true })
+  } catch {
+    return
+  }
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
+    await walk(path.join(target, entry.name), depth + 1, visit)
+  }
+}
+
+export function parseMarketDocument(
+  fileName: string,
+  filePath: string,
+  content: string
+): SkillMarketCollection {
+  const heading = content.match(/^\s{0,3}#{1,6}\s+(.+)$/m)?.[1]?.trim()
+  const title = heading || fileName.replace(/\.md$/i, '')
+  const summary = extractMarketSummary(content, title)
+  const sources: string[] = []
+
+  for (const match of content.matchAll(/\bpi\s+install\s+["']?((?:npm|git):[^\s"'`]+)/g)) {
+    const source = match[1]
+    if (!source.includes('$') && !source.includes('<')) sources.push(source)
+  }
+  for (const block of content.matchAll(/for\s+pkg\s+in([\s\S]*?)\bdo\b/g)) {
+    for (const match of block[1].matchAll(/["']([^"']+)["']/g)) {
+      const packageName = match[1].trim()
+      if (packageName && !packageName.includes('$')) sources.push(`npm:${packageName}`)
+    }
+  }
+
+  const packages: SkillMarketPackage[] = [...new Set(sources)]
+    .filter((source) => {
+      try {
+        assertPackageSource(source)
+        return true
+      } catch {
+        return false
+      }
+    })
+    .map((source) => ({
+      source,
+      name: packageNameFromSource(source),
+      description: '',
+      installed: false,
+      installedVersion: null
+    }))
+
+  const baseId = fileName
+    .replace(/\.md$/i, '')
+    .toLowerCase()
+    .replace(/[^\p{Letter}\p{Number}]+/gu, '-')
+    .replace(/^-|-$/g, '')
+
+  return {
+    id: baseId || `market-${packages.length}`,
+    title,
+    summary,
+    path: filePath,
+    content,
+    kind: /一键安装|one[ -]?click/i.test(`${fileName} ${title}`) ? 'bundle' : 'guide',
+    packages,
+    lastModified: null
+  }
+}
+
+function extractMarketSummary(content: string, title: string): string {
+  let inCode = false
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim()
+    if (line.startsWith('```')) {
+      inCode = !inCode
+      continue
+    }
+    if (
+      inCode ||
+      !line ||
+      line.startsWith('#') ||
+      line.startsWith('|') ||
+      line.startsWith('---') ||
+      line.replace(/^>\s*/, '') === title
+    ) {
+      continue
+    }
+    return line.replace(/^>\s*/, '').replace(/[*_`]/g, '').slice(0, 240)
+  }
+  return ''
 }

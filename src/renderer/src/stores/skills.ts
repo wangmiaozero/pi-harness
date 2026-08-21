@@ -1,10 +1,17 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { SkillInfo } from '@shared/ipc/api-types'
+import type {
+  PiPackageActionResult,
+  PiPackageInfo,
+  SkillInfo,
+  SkillMarketCollection
+} from '@shared/ipc/api-types'
 import { callApi, getApi } from '@renderer/composables/useApi'
 
 export const useSkillsStore = defineStore('skills', () => {
   const skills = ref<SkillInfo[]>([])
+  const packages = ref<PiPackageInfo[]>([])
+  const market = ref<SkillMarketCollection[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const selectedPath = ref<string | null>(null)
@@ -18,7 +25,14 @@ export const useSkillsStore = defineStore('skills', () => {
     loading.value = true
     error.value = null
     try {
-      skills.value = await callApi(() => getApi().skills.list())
+      const [skillList, packageList, marketList] = await Promise.all([
+        callApi(() => getApi().skills.list()),
+        callApi(() => getApi().skills.packages()),
+        callApi(() => getApi().skills.market())
+      ])
+      skills.value = skillList
+      packages.value = packageList
+      market.value = marketList
     } catch (e) {
       error.value = (e as { message?: string }).message ?? String(e)
     } finally {
@@ -30,7 +44,14 @@ export const useSkillsStore = defineStore('skills', () => {
     loading.value = true
     error.value = null
     try {
-      skills.value = await callApi(() => getApi().skills.refresh())
+      const [skillList, packageList, marketList] = await Promise.all([
+        callApi(() => getApi().skills.refresh()),
+        callApi(() => getApi().skills.packages()),
+        callApi(() => getApi().skills.market())
+      ])
+      skills.value = skillList
+      packages.value = packageList
+      market.value = marketList
     } catch (e) {
       error.value = (e as { message?: string }).message ?? String(e)
     } finally {
@@ -84,8 +105,22 @@ export const useSkillsStore = defineStore('skills', () => {
     await fetchList()
   }
 
+  async function installPackages(sources: string[]): Promise<PiPackageActionResult[]> {
+    const results = await callApi(() => getApi().skills.installPackages(sources))
+    await refresh()
+    return results
+  }
+
+  async function removePackage(source: string): Promise<PiPackageActionResult> {
+    const result = await callApi(() => getApi().skills.removePackage(source))
+    await refresh()
+    return result
+  }
+
   return {
     skills,
+    packages,
+    market,
     loading,
     error,
     selectedPath,
@@ -96,6 +131,8 @@ export const useSkillsStore = defineStore('skills', () => {
     fetchList,
     refresh,
     loadDetail,
-    remove
+    remove,
+    installPackages,
+    removePackage
   }
 })

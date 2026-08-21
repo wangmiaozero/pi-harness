@@ -8,6 +8,11 @@ files:
   - out/**/*
   - package.json
   - '!**/*.{map,d.ts}'
+extraResources:
+  - from: task
+    to: task
+    filter:
+      - '*.md'
 asarUnpack: []
 mac:
   category: public.app-category.developer-tools
