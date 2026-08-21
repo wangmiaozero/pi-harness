@@ -2,7 +2,6 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  BookOpen,
   CheckCircle2,
   Download,
   Eye,
@@ -127,8 +126,8 @@ const filteredMarket = computed(() => {
   if (!q) return store.market
   return store.market.filter(
     (collection) =>
-      collection.title.toLowerCase().includes(q) ||
-      collection.summary.toLowerCase().includes(q) ||
+      marketCollectionTitle(collection).toLowerCase().includes(q) ||
+      marketCollectionSummary(collection).toLowerCase().includes(q) ||
       collection.packages.some(
         (pkg) => pkg.name.toLowerCase().includes(q) || pkg.source.toLowerCase().includes(q)
       )
@@ -420,6 +419,20 @@ function installedCount(collection: SkillMarketCollection): number {
   return collection.packages.filter((pkg) => pkg.installed).length
 }
 
+function marketCollectionTitle(collection: SkillMarketCollection): string {
+  if (collection.id === 'core-development') return t('skills.marketCoreTitle')
+  if (collection.id === 'agent-architecture') return t('skills.marketAgentTitle')
+  if (collection.id === 'curated-extensions') return t('skills.marketCuratedTitle')
+  return collection.id
+}
+
+function marketCollectionSummary(collection: SkillMarketCollection): string {
+  if (collection.id === 'core-development') return t('skills.marketCoreSummary')
+  if (collection.id === 'agent-architecture') return t('skills.marketAgentSummary')
+  if (collection.id === 'curated-extensions') return t('skills.marketCuratedSummary')
+  return ''
+}
+
 function packageResourceCount(pkg: PiPackageInfo): number {
   return Object.values(pkg.resources).reduce((total, entries) => total + entries.length, 0)
 }
@@ -614,7 +627,7 @@ function resourceGroups(pkg: PiPackageInfo) {
                       }}
                     </Badge>
                     <span class="truncate text-[12.5px] font-medium text-[var(--text-primary)]">
-                      {{ collection.title }}
+                      {{ marketCollectionTitle(collection) }}
                     </span>
                   </div>
                   <div
@@ -828,7 +841,7 @@ function resourceGroups(pkg: PiPackageInfo) {
               <div class="min-w-0">
                 <div class="flex items-center gap-2">
                   <h2 class="truncate text-[13.5px] font-semibold text-[var(--text-primary)]">
-                    {{ selectedCollection.title }}
+                    {{ marketCollectionTitle(selectedCollection) }}
                   </h2>
                   <Badge :tone="selectedCollection.kind === 'bundle' ? 'accent' : 'muted'">
                     {{
@@ -839,16 +852,10 @@ function resourceGroups(pkg: PiPackageInfo) {
                   </Badge>
                 </div>
                 <p class="truncate text-[10.5px] text-[var(--text-tertiary)]">
-                  {{ selectedCollection.summary }}
+                  {{ marketCollectionSummary(selectedCollection) }}
                 </p>
               </div>
               <div class="flex shrink-0 items-center gap-1.5">
-                <IconButton
-                  :label="$t('skills.revealRecipe')"
-                  @click="reveal(selectedCollection.path)"
-                >
-                  <BookOpen class="size-3.5" :stroke-width="1.75" />
-                </IconButton>
                 <Button
                   v-if="selectedCollection.kind === 'bundle'"
                   variant="primary"
@@ -921,14 +928,6 @@ function resourceGroups(pkg: PiPackageInfo) {
                     <CheckCircle2 v-else class="size-4 shrink-0 text-[var(--success)]" />
                   </div>
                 </div>
-              </InspectorSection>
-              <div class="my-1 h-px bg-[var(--border-subtle)]" />
-              <InspectorSection>
-                <template #title>{{ $t('skills.recipeContent') }}</template>
-                <pre
-                  class="whitespace-pre-wrap break-words px-3 py-3 font-[family-name:var(--font-mono)] text-[11.5px] leading-[1.55] text-[var(--text-secondary)]"
-                  v-text="selectedCollection.content"
-                />
               </InspectorSection>
             </div>
           </template>

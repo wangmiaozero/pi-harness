@@ -23,7 +23,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByText(/models\.json/i).first()).toBeVisible()
   })
 
-  test('shows local skills and task-powered marketplace recipes', async ({ page }) => {
+  test('shows local skills and the curated extension market', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 
     await page.locator('a[href="#/skills"]').click()
@@ -31,8 +31,11 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.locator('ul').getByText('demo-skill', { exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: /市场|Market/ }).click()
-    await expect(page.getByText(/标准开发版.*一键安装/).first()).toBeVisible()
-    await expect(page.getByText(/架构师.*Agent.*开发版.*一键安装/).first()).toBeVisible()
+    await expect(page.getByText(/日常开发套件|Core Development/).first()).toBeVisible()
+    await expect(page.getByText(/Agent 架构套件|Agent Architecture/).first()).toBeVisible()
+    await expect(page.getByText(/精选扩展|Curated Extensions/).first()).toBeVisible()
+    await expect(page.getByText(/Pi Coding Agent.*一键安装/)).toHaveCount(0)
+    await expect(page.getByText(/方案内容|Recipe content/)).toHaveCount(0)
   })
 
   test('saves the light theme without requiring Pi', async ({ page }) => {

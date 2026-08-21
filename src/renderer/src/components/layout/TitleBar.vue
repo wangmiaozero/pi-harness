@@ -43,24 +43,17 @@ async function close() {
     class="drag-region relative flex h-[var(--titlebar-height)] shrink-0 items-center bg-[var(--bg-titlebar)]"
     :class="isMac ? 'pl-[76px] pr-3' : 'pl-3 pr-1'"
   >
-    <button
-      type="button"
-      class="no-drag flex items-center rounded-[var(--radius-sm)] px-1.5 py-0.5 transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-      @click="router.push('/')"
-    >
-      <span class="text-[12px] font-medium tracking-tight text-[var(--text-secondary)]">
-        Pi-Harness
-      </span>
-    </button>
-
     <div class="pointer-events-none absolute inset-x-0 flex justify-center">
       <button
         type="button"
-        class="pointer-events-auto no-drag flex items-center justify-center rounded-[var(--radius-sm)] p-0.5 transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+        class="pointer-events-auto no-drag flex flex-col items-center justify-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
         :title="`Pi-Harness v${APP_VERSION}`"
         @click="router.push('/')"
       >
-        <img :src="appIconUrl" alt="Pi-Harness" class="size-[18px] rounded-[4px]" />
+        <img :src="appIconUrl" alt="" class="size-[18px] rounded-[4px]" />
+        <span class="text-[11px] font-medium leading-none tracking-tight text-[var(--text-secondary)]">
+          Pi-Harness
+        </span>
       </button>
     </div>
 

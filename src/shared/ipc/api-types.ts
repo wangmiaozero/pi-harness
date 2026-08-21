@@ -130,13 +130,8 @@ export interface SkillMarketPackage {
 
 export interface SkillMarketCollection {
   id: string
-  title: string
-  summary: string
-  path: string
-  content: string
   kind: 'bundle' | 'guide'
   packages: SkillMarketPackage[]
-  lastModified: number | null
 }
 
 export interface PiPackageActionResult {

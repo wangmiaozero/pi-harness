@@ -31,7 +31,7 @@ export function createMainWindow(): BrowserWindow {
     ...(isMac
       ? {
           titleBarStyle: 'hiddenInset' as const,
-          trafficLightPosition: { x: 16, y: 12 }
+          trafficLightPosition: { x: 16, y: 18 }
         }
       : {
           frame: false

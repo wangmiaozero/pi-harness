@@ -68,16 +68,6 @@ export function logFilePath(): string {
   return path.join(userData(), 'logs', 'main.log')
 }
 
-/** Bundled Markdown recipes that power the local Skills marketplace. */
-export function skillMarketDir(): string {
-  const override = process.env.PI_SWITCH_SKILL_MARKET_DIR?.trim()
-  if (override) return path.resolve(expandHome(override))
-  if (app.isPackaged) return path.join(process.resourcesPath, 'task')
-  // electron-vite and Playwright launch the compiled main entry from different
-  // app paths, while both retain the repository as cwd in development.
-  return path.join(process.cwd(), 'task')
-}
-
 export function getIsDev(): boolean {
   return isDev()
 }

@@ -17,8 +17,7 @@ import type {
   PiPackageInfo,
   PiPackageResources,
   SkillInfo,
-  SkillMarketCollection,
-  SkillMarketPackage
+  SkillMarketCollection
 } from '@shared/ipc/api-types'
 import { piEnvironment } from '../pi/environment'
 import { piProcess } from '../process/pi-process'
@@ -27,7 +26,6 @@ import { log } from './logger'
 import type { AppSettings } from '@shared/ipc/api-types'
 import type { JsonStore } from './storage'
 import { ValidationError, FileSystemError, SkillConflictError } from './errors'
-import { skillMarketDir } from './app-paths'
 
 export interface SkillForm {
   name: string
@@ -69,6 +67,47 @@ interface PackageManifest {
   pi?: Partial<Record<keyof PiPackageResources, unknown>>
 }
 
+interface MarketCatalogEntry {
+  id: 'core-development' | 'agent-architecture' | 'curated-extensions'
+  kind: 'bundle' | 'guide'
+  sources: readonly string[]
+}
+
+const CORE_DEVELOPMENT_SOURCES = [
+  'npm:pi-powerline-footer',
+  'npm:pi-web-access',
+  'npm:pi-subagents',
+  'npm:@ff-labs/pi-fff',
+  'npm:pi-markdown-preview',
+  'npm:pi-cjk-markdown-fix',
+  'npm:@dietrichgebert/ponytail'
+] as const
+
+const AGENT_ARCHITECTURE_SOURCES = [
+  ...CORE_DEVELOPMENT_SOURCES,
+  'npm:pi-mcp-adapter',
+  'npm:pi-lean-ctx',
+  'npm:pi-hermes-memory',
+  'npm:pi-btw',
+  'npm:pi-intercom',
+  'npm:@gonrocca/zero-pi'
+] as const
+
+export const SKILL_MARKET_CATALOG: readonly MarketCatalogEntry[] = [
+  { id: 'core-development', kind: 'bundle', sources: CORE_DEVELOPMENT_SOURCES },
+  { id: 'agent-architecture', kind: 'bundle', sources: AGENT_ARCHITECTURE_SOURCES },
+  {
+    id: 'curated-extensions',
+    kind: 'guide',
+    sources: [...AGENT_ARCHITECTURE_SOURCES, 'npm:pi-antigravity']
+  }
+]
+
+const MARKET_PACKAGE_DESCRIPTIONS: Readonly<Record<string, string>> = {
+  'npm:pi-cjk-markdown-fix': 'Improves CJK Markdown rendering in Pi.',
+  'npm:pi-antigravity': 'Adds Antigravity model-provider integration for Pi.'
+}
+
 export class SkillsService {
   constructor(private readonly settingsStore: JsonStore<AppSettings>) {}
 
@@ -101,41 +140,26 @@ export class SkillsService {
     return this.listPackagesFromConfig(env.configDir)
   }
 
-  /** Markdown recipes under task/ become the local, offline marketplace. */
+  /** Curated, product-owned package catalog. Reference documents are never exposed at runtime. */
   async listMarket(): Promise<SkillMarketCollection[]> {
     const installed = await this.listPackages()
     const installedBySource = new Map(installed.map((pkg) => [pkg.source, pkg]))
     const installedByName = new Map(installed.map((pkg) => [pkg.name, pkg]))
-    const dir = skillMarketDir()
-    try {
-      const entries = await fs.readdir(dir, { withFileTypes: true })
-      const collections: SkillMarketCollection[] = []
-      for (const entry of entries) {
-        if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.md')) continue
-        const filePath = path.join(dir, entry.name)
-        const content = await readTextFile(filePath)
-        if (content === null) continue
-        const parsed = parseMarketDocument(entry.name, filePath, content)
-        parsed.packages = parsed.packages.map((pkg) => {
-          const match = installedBySource.get(pkg.source) ?? installedByName.get(pkg.name)
-          return {
-            ...pkg,
-            description: match?.description || pkg.description,
-            installed: Boolean(match),
-            installedVersion: match?.version ?? null
-          }
-        })
-        parsed.lastModified = await fileMtime(filePath)
-        collections.push(parsed)
-      }
-      return collections.sort((a, b) => {
-        if (a.kind !== b.kind) return a.kind === 'bundle' ? -1 : 1
-        return a.title.localeCompare(b.title)
+    return SKILL_MARKET_CATALOG.map((collection) => ({
+      id: collection.id,
+      kind: collection.kind,
+      packages: collection.sources.map((source) => {
+        const name = packageNameFromSource(source)
+        const match = installedBySource.get(source) ?? installedByName.get(name)
+        return {
+          source,
+          name,
+          description: match?.description || MARKET_PACKAGE_DESCRIPTIONS[source] || '',
+          installed: Boolean(match),
+          installedVersion: match?.version ?? null
+        }
       })
-    } catch (err) {
-      log.skills.warn(`market directory scan failed (${dir}):`, err)
-      return []
-    }
+    }))
   }
 
   /** Install one or more marketplace sources, continuing after individual failures. */
@@ -734,83 +758,4 @@ async function walk(
     if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
     await walk(path.join(target, entry.name), depth + 1, visit)
   }
-}
-
-export function parseMarketDocument(
-  fileName: string,
-  filePath: string,
-  content: string
-): SkillMarketCollection {
-  const heading = content.match(/^\s{0,3}#{1,6}\s+(.+)$/m)?.[1]?.trim()
-  const title = heading || fileName.replace(/\.md$/i, '')
-  const summary = extractMarketSummary(content, title)
-  const sources: string[] = []
-
-  for (const match of content.matchAll(/\bpi\s+install\s+["']?((?:npm|git):[^\s"'`]+)/g)) {
-    const source = match[1]
-    if (!source.includes('$') && !source.includes('<')) sources.push(source)
-  }
-  for (const block of content.matchAll(/for\s+pkg\s+in([\s\S]*?)\bdo\b/g)) {
-    for (const match of block[1].matchAll(/["']([^"']+)["']/g)) {
-      const packageName = match[1].trim()
-      if (packageName && !packageName.includes('$')) sources.push(`npm:${packageName}`)
-    }
-  }
-
-  const packages: SkillMarketPackage[] = [...new Set(sources)]
-    .filter((source) => {
-      try {
-        assertPackageSource(source)
-        return true
-      } catch {
-        return false
-      }
-    })
-    .map((source) => ({
-      source,
-      name: packageNameFromSource(source),
-      description: '',
-      installed: false,
-      installedVersion: null
-    }))
-
-  const baseId = fileName
-    .replace(/\.md$/i, '')
-    .toLowerCase()
-    .replace(/[^\p{Letter}\p{Number}]+/gu, '-')
-    .replace(/^-|-$/g, '')
-
-  return {
-    id: baseId || `market-${packages.length}`,
-    title,
-    summary,
-    path: filePath,
-    content,
-    kind: /一键安装|one[ -]?click/i.test(`${fileName} ${title}`) ? 'bundle' : 'guide',
-    packages,
-    lastModified: null
-  }
-}
-
-function extractMarketSummary(content: string, title: string): string {
-  let inCode = false
-  for (const rawLine of content.split(/\r?\n/)) {
-    const line = rawLine.trim()
-    if (line.startsWith('```')) {
-      inCode = !inCode
-      continue
-    }
-    if (
-      inCode ||
-      !line ||
-      line.startsWith('#') ||
-      line.startsWith('|') ||
-      line.startsWith('---') ||
-      line.replace(/^>\s*/, '') === title
-    ) {
-      continue
-    }
-    return line.replace(/^>\s*/, '').replace(/[*_`]/g, '').slice(0, 240)
-  }
-  return ''
 }
