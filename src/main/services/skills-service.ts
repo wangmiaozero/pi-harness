@@ -93,19 +93,37 @@ const AGENT_ARCHITECTURE_SOURCES = [
   'npm:@gonrocca/zero-pi'
 ] as const
 
+const COMMUNITY_EXTENSION_SOURCES = [
+  'npm:pi-agent-mode',
+  'npm:pi-crew',
+  'npm:@baochunli/pi-collaborating-agents',
+  'npm:pi-sub-agent',
+  'npm:pi-mcp-extension',
+  'npm:pi-lmstudio',
+  'npm:@langchain/langsmith-pi-extension'
+] as const
+
 export const SKILL_MARKET_CATALOG: readonly MarketCatalogEntry[] = [
   { id: 'core-development', kind: 'bundle', sources: CORE_DEVELOPMENT_SOURCES },
   { id: 'agent-architecture', kind: 'bundle', sources: AGENT_ARCHITECTURE_SOURCES },
   {
     id: 'curated-extensions',
     kind: 'guide',
-    sources: [...AGENT_ARCHITECTURE_SOURCES, 'npm:pi-antigravity']
+    sources: [...AGENT_ARCHITECTURE_SOURCES, 'npm:pi-antigravity', ...COMMUNITY_EXTENSION_SOURCES]
   }
 ]
 
 const MARKET_PACKAGE_DESCRIPTIONS: Readonly<Record<string, string>> = {
   'npm:pi-cjk-markdown-fix': 'Improves CJK Markdown rendering in Pi.',
-  'npm:pi-antigravity': 'Adds Antigravity model-provider integration for Pi.'
+  'npm:pi-antigravity': 'Adds Antigravity model-provider integration for Pi.',
+  'npm:pi-agent-mode': 'Switches between Markdown-defined agent modes with inline execution.',
+  'npm:pi-crew': 'Coordinates agent teams, worktrees, workflows, and async tasks.',
+  'npm:@baochunli/pi-collaborating-agents':
+    'Shares messages and file reservations between collaborating agents.',
+  'npm:pi-sub-agent': 'Adds a focused sub-agent tool and settings command.',
+  'npm:pi-mcp-extension': 'Connects Pi to MCP servers through a full client extension.',
+  'npm:pi-lmstudio': 'Connects Pi to local models served by LM Studio.',
+  'npm:@langchain/langsmith-pi-extension': 'Traces Pi model and tool activity in LangSmith.'
 }
 
 export class SkillsService {

@@ -69,7 +69,7 @@ export const IPC_INVOKE = {
   backupCreate: invoke('backup:create'),
   backupRestore: invoke('backup:restore'),
   backupDelete: invoke('backup:delete'),
-  backupPurgeOlderThanToday: invoke('backup:purge-older-than-today'),
+  backupPruneToRetention: invoke('backup:prune-to-retention'),
   backupOpenFolder: invoke('backup:open-folder'),
 
   // settings (Pi-Harness app settings)

@@ -69,8 +69,8 @@ export const useSettingsStore = defineStore('settings', () => {
     await fetchBackups()
   }
 
-  async function purgeOlderThanToday() {
-    const result = await callApi(() => getApi().backup.purgeOlderThanToday())
+  async function pruneBackups(retention: number) {
+    const result = await callApi(() => getApi().backup.pruneToRetention(retention))
     await fetchBackups()
     return result
   }
@@ -91,7 +91,7 @@ export const useSettingsStore = defineStore('settings', () => {
     createBackup,
     restoreBackup,
     deleteBackup,
-    purgeOlderThanToday,
+    pruneBackups,
     openBackupFolder
   }
 })

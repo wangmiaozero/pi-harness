@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createI18n } from 'vue-i18n'
 import { messages } from './index'
+import { MARKET_PACKAGE_DESCRIPTION_KEYS } from './marketplace'
 
 function leafPaths(tree: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(tree).flatMap(([key, value]) => {
@@ -58,6 +59,18 @@ describe('localized copy', () => {
     for (const locale of Object.keys(messages) as Array<keyof typeof messages>) {
       const instance = createI18n({ legacy: false, locale, messages })
       expect(instance.global.t('providers.headersPlaceholder')).toBe('{ "X-Custom": "value" }')
+    }
+  })
+
+  it('localizes every marketplace package description', () => {
+    const english = createI18n({ legacy: false, locale: 'en-US', messages })
+    const chinese = createI18n({ legacy: false, locale: 'zh-CN', messages })
+
+    expect(Object.keys(MARKET_PACKAGE_DESCRIPTION_KEYS)).toHaveLength(21)
+    for (const key of Object.values(MARKET_PACKAGE_DESCRIPTION_KEYS)) {
+      expect(english.global.te(key)).toBe(true)
+      expect(chinese.global.te(key)).toBe(true)
+      expect(english.global.t(key)).not.toBe(chinese.global.t(key))
     }
   })
 })

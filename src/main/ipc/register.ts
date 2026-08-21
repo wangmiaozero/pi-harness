@@ -243,8 +243,8 @@ export function registerIpc(services: Services): void {
   )
   ipcMain.handle(IPC_INVOKE.backupRestore, (_e, id: string) => wrap(() => backup.restore(id)))
   ipcMain.handle(IPC_INVOKE.backupDelete, (_e, id: string) => wrap(() => backup.delete(id)))
-  ipcMain.handle(IPC_INVOKE.backupPurgeOlderThanToday, () =>
-    wrap(() => backup.purgeOlderThanToday())
+  ipcMain.handle(IPC_INVOKE.backupPruneToRetention, (_e, retention: number) =>
+    wrap(() => backup.pruneToRetention(retention))
   )
   ipcMain.handle(IPC_INVOKE.backupOpenFolder, () =>
     wrap(async () => {

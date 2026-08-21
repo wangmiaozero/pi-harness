@@ -1,0 +1,23 @@
+export const MARKET_PACKAGE_DESCRIPTION_KEYS: Readonly<Record<string, string>> = {
+  'npm:pi-powerline-footer': 'skills.marketPackagePiPowerlineFooter',
+  'npm:pi-web-access': 'skills.marketPackagePiWebAccess',
+  'npm:pi-subagents': 'skills.marketPackagePiSubagents',
+  'npm:@ff-labs/pi-fff': 'skills.marketPackagePiFff',
+  'npm:pi-markdown-preview': 'skills.marketPackagePiMarkdownPreview',
+  'npm:pi-cjk-markdown-fix': 'skills.marketPackagePiCjkMarkdownFix',
+  'npm:@dietrichgebert/ponytail': 'skills.marketPackagePonytail',
+  'npm:pi-mcp-adapter': 'skills.marketPackagePiMcpAdapter',
+  'npm:pi-lean-ctx': 'skills.marketPackagePiLeanCtx',
+  'npm:pi-hermes-memory': 'skills.marketPackagePiHermesMemory',
+  'npm:pi-btw': 'skills.marketPackagePiBtw',
+  'npm:pi-intercom': 'skills.marketPackagePiIntercom',
+  'npm:@gonrocca/zero-pi': 'skills.marketPackageZeroPi',
+  'npm:pi-antigravity': 'skills.marketPackagePiAntigravity',
+  'npm:pi-agent-mode': 'skills.marketPackagePiAgentMode',
+  'npm:pi-crew': 'skills.marketPackagePiCrew',
+  'npm:@baochunli/pi-collaborating-agents': 'skills.marketPackagePiCollaboratingAgents',
+  'npm:pi-sub-agent': 'skills.marketPackagePiSubAgent',
+  'npm:pi-mcp-extension': 'skills.marketPackagePiMcpExtension',
+  'npm:pi-lmstudio': 'skills.marketPackagePiLmStudio',
+  'npm:@langchain/langsmith-pi-extension': 'skills.marketPackageLangsmithPiExtension'
+}

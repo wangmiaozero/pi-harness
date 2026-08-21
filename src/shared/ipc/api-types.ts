@@ -307,8 +307,8 @@ export interface PiSwitchAPI {
     create(reason?: string): Promise<BackupRecord>
     restore(id: string): Promise<void>
     delete(id: string): Promise<void>
-    /** Keep only backups from local today; delete the rest. */
-    purgeOlderThanToday(): Promise<{ deleted: number; freedBytes: number }>
+    /** Keep the newest `retention` backups; delete the rest. */
+    pruneToRetention(retention: number): Promise<{ deleted: number; freedBytes: number }>
     openFolder(): Promise<void>
   }
   settings: {

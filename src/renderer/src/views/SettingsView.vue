@@ -138,20 +138,24 @@ async function deleteBackup(id: string) {
   }
 }
 
-async function purgeOldBackups() {
-  const olderCount = store.backups.filter((b) => {
-    const start = new Date()
-    start.setHours(0, 0, 0, 0)
-    return b.timestamp < start.getTime()
-  }).length
-  if (olderCount === 0) {
-    toast.info(t('settings.purgeOldNone'))
+async function cleanupBackups() {
+  const retention = draft.value.backupRetention
+  const deleteCount = Math.max(0, store.backups.length - retention)
+  if (deleteCount === 0) {
+    toast.info(t('settings.cleanupNone', { count: retention }))
     return
   }
+  const ok = await askConfirm({
+    title: t('settings.cleanupTitle'),
+    description: t('settings.cleanupConfirm', { retention, count: deleteCount }),
+    confirmLabel: t('settings.cleanupAction'),
+    tone: 'danger'
+  })
+  if (!ok) return
   try {
-    const result = await store.purgeOlderThanToday()
+    const result = await store.pruneBackups(retention)
     toast.success(
-      t('settings.purgeOldDone', {
+      t('settings.cleanupDone', {
         count: result.deleted,
         size: formatBytes(result.freedBytes)
       })
@@ -318,14 +322,16 @@ onMounted(() => {
               class="h-[var(--height-input)] w-[88px] rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 text-right text-[12px] tabular-nums text-[var(--text-primary)] shadow-[var(--control-shadow)] transition-[background-color,border-color,box-shadow] hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] focus:border-[var(--accent)] focus:bg-[var(--control-bg-hover)] focus:outline-none focus:shadow-[var(--focus-ring)]"
             />
           </PropertyRow>
-          <div class="px-3 py-2 flex flex-wrap items-center gap-1.5 border-t border-[var(--border-subtle)]">
+          <div
+            class="px-3 py-2 flex flex-wrap items-center gap-1.5 border-t border-[var(--border-subtle)]"
+          >
             <Button variant="secondary" size="sm" @click="createBackup">
               <Archive class="size-3.5" :stroke-width="1.75" />
               {{ $t('settings.createBackup') }}
             </Button>
-            <Button variant="secondary" size="sm" @click="purgeOldBackups">
+            <Button variant="secondary" size="sm" @click="cleanupBackups">
               <Eraser class="size-3.5" :stroke-width="1.75" />
-              {{ $t('settings.purgeOldBackups') }}
+              {{ $t('settings.cleanupBackups') }}
             </Button>
             <Button variant="ghost" size="sm" @click="store.openBackupFolder">
               <FolderOpen class="size-3.5" :stroke-width="1.75" />
@@ -333,7 +339,7 @@ onMounted(() => {
             </Button>
           </div>
           <p class="px-3 pb-2 text-[10.5px] text-[var(--text-tertiary)]">
-            {{ $t('settings.purgeOldHint') }}
+            {{ $t('settings.cleanupHint', { count: draft.backupRetention }) }}
           </p>
           <div class="border-t border-[var(--border-subtle)]">
             <div

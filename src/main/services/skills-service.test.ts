@@ -22,7 +22,18 @@ describe('Skills marketplace catalog', () => {
     }
     expect(SKILL_MARKET_CATALOG[0].sources).toHaveLength(7)
     expect(SKILL_MARKET_CATALOG[1].sources).toHaveLength(13)
-    expect(SKILL_MARKET_CATALOG[2].sources).toHaveLength(14)
+    expect(SKILL_MARKET_CATALOG[2].sources).toHaveLength(21)
+    expect(SKILL_MARKET_CATALOG[2].sources).toEqual(
+      expect.arrayContaining([
+        'npm:pi-agent-mode',
+        'npm:pi-crew',
+        'npm:@baochunli/pi-collaborating-agents',
+        'npm:pi-sub-agent',
+        'npm:pi-mcp-extension',
+        'npm:pi-lmstudio',
+        'npm:@langchain/langsmith-pi-extension'
+      ])
+    )
   })
 })
 

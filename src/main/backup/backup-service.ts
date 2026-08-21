@@ -168,29 +168,25 @@ export class BackupService {
     }
   }
 
-  /**
-   * Delete every backup whose timestamp is before local midnight today.
-   * Keeps today's snapshots so recent undo is still available.
-   */
-  async purgeOlderThanToday(): Promise<{ deleted: number; freedBytes: number }> {
-    const startOfToday = new Date()
-    startOfToday.setHours(0, 0, 0, 0)
-    const cutoff = startOfToday.getTime()
-
+  /** Keep the newest `retention` backups and delete every older snapshot. */
+  async pruneToRetention(retention: number): Promise<{ deleted: number; freedBytes: number }> {
+    if (!Number.isSafeInteger(retention) || retention < 1) {
+      throw new BackupError('Backup retention must be a positive integer')
+    }
     const all = await this.list()
-    const stale = all.filter((b) => b.timestamp < cutoff)
+    const excess = all.slice(retention)
     let freedBytes = 0
     let deleted = 0
-    for (const b of stale) {
-      freedBytes += b.sizeBytes ?? 0
+    for (const backup of excess) {
       try {
-        await this.delete(b.id)
+        await this.delete(backup.id)
         deleted++
+        freedBytes += backup.sizeBytes ?? 0
       } catch (err) {
-        log.backup.warn('purge older backup failed:', b.id, err)
+        log.backup.warn('prune backup failed:', backup.id, err)
       }
     }
-    log.backup.info('purged backups older than today', { deleted, freedBytes, cutoff })
+    log.backup.info('pruned backups to retention', { retention, deleted, freedBytes })
     return { deleted, freedBytes }
   }
 
@@ -203,11 +199,7 @@ export class BackupService {
   private async prune(): Promise<void> {
     const settings = this.settingsStore.peek()
     const retention = settings.backupRetention ?? 20
-    if (retention <= 0) return
-    const all = await this.list()
-    const excess = all.slice(retention)
-    for (const b of excess) {
-      await this.delete(b.id).catch(() => {})
-    }
+    if (!Number.isSafeInteger(retention) || retention <= 0) return
+    await this.pruneToRetention(retention)
   }
 }

@@ -39,6 +39,7 @@ import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
 import SearchField from '@renderer/components/ui/SearchField.vue'
 import Select from '@renderer/components/ui/Select.vue'
 import { graphiteEditorTheme, graphiteSyntaxHighlighting } from '@renderer/styles/codemirror'
+import { MARKET_PACKAGE_DESCRIPTION_KEYS } from '@renderer/i18n/marketplace'
 import { useSkillsStore } from '@renderer/stores/skills'
 import { usePiStore } from '@renderer/stores/pi'
 import { getApi, getErrorPayload } from '@renderer/composables/useApi'
@@ -129,7 +130,10 @@ const filteredMarket = computed(() => {
       marketCollectionTitle(collection).toLowerCase().includes(q) ||
       marketCollectionSummary(collection).toLowerCase().includes(q) ||
       collection.packages.some(
-        (pkg) => pkg.name.toLowerCase().includes(q) || pkg.source.toLowerCase().includes(q)
+        (pkg) =>
+          pkg.name.toLowerCase().includes(q) ||
+          pkg.source.toLowerCase().includes(q) ||
+          marketPackageDescription(pkg).toLowerCase().includes(q)
       )
   )
 })
@@ -431,6 +435,11 @@ function marketCollectionSummary(collection: SkillMarketCollection): string {
   if (collection.id === 'agent-architecture') return t('skills.marketAgentSummary')
   if (collection.id === 'curated-extensions') return t('skills.marketCuratedSummary')
   return ''
+}
+
+function marketPackageDescription(pkg: SkillMarketPackage): string {
+  const key = MARKET_PACKAGE_DESCRIPTION_KEYS[pkg.source]
+  return key ? t(key) : pkg.description || pkg.source
 }
 
 function packageResourceCount(pkg: PiPackageInfo): number {
@@ -911,7 +920,7 @@ function resourceGroups(pkg: PiPackageInfo) {
                       <p
                         class="truncate font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
                       >
-                        {{ pkg.description || pkg.source }}
+                        {{ marketPackageDescription(pkg) }}
                       </p>
                     </div>
                     <Button
