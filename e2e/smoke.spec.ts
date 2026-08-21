@@ -23,6 +23,37 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByText(/models\.json/i).first()).toBeVisible()
   })
 
+  test('opens the create provider dialog', async ({ page }) => {
+    const pageErrors: string[] = []
+    const consoleErrors: string[] = []
+    page.on('pageerror', (error) => pageErrors.push(error.stack ?? error.message))
+    page.on('console', (message) => {
+      if (message.type() === 'error' || message.type() === 'warning') {
+        consoleErrors.push(message.text())
+      }
+    })
+    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
+
+    await page.locator('a[href="#/providers"]').click()
+    await page.getByRole('button', { name: /新建提供商|New provider/ }).click()
+
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toContainText(/新建提供商|New provider/)
+    await expect(dialog.getByRole('button', { name: /保存|Save/ })).toBeVisible()
+
+    const apiKeyType = dialog.getByRole('button', {
+      name: /API 密钥类型|API key type/,
+      exact: true
+    })
+    await apiKeyType.click()
+    await page.getByRole('option', { name: /明文|Literal \(plaintext\)/, exact: true }).click()
+    await expect(apiKeyType).toContainText(/明文|Literal \(plaintext\)/)
+
+    expect(pageErrors).toEqual([])
+    expect(consoleErrors).toEqual([])
+  })
+
   test('shows local skills and the curated extension market', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 
@@ -43,7 +74,8 @@ test.describe('Pi-Harness smoke', () => {
 
     await page.locator('a[href="#/settings"]').click()
     await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
-    await page.locator('select').nth(1).selectOption('light')
+    await page.getByRole('button', { name: /主题|Theme/, exact: true }).click()
+    await page.getByRole('option', { name: /浅色|Light/, exact: true }).click()
     await page.getByRole('button', { name: /保存|Save/ }).click()
 
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')

@@ -16,13 +16,18 @@ import {
   Zap
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import type { ModelDefinition, ConnectionTestResult } from '@shared/ipc/api-types'
-import type { ModelForm } from '@shared/schemas/domain'
+import type {
+  ModelDefinition,
+  ConnectionTestResult,
+  ProviderProfile
+} from '@shared/ipc/api-types'
+import type { ModelForm, ProviderForm } from '@shared/schemas/domain'
 import { PROTOCOLS } from '@shared/constants/protocols'
 import { PI_THINKING_LEVELS, type PiThinkingLevel } from '@shared/constants/index'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Select from '@renderer/components/ui/Select.vue'
+import Combobox from '@renderer/components/ui/Combobox.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import Badge from '@renderer/components/ui/Badge.vue'
 import Switch from '@renderer/components/ui/Switch.vue'
@@ -48,10 +53,12 @@ const testLoading = ref(false)
 const saving = ref(false)
 const useProviderProtocol = ref(true)
 const showAdvanced = ref(false)
+/** Editable models.json provider key — may rename the provider on save. */
+const providerKeyDraft = ref('')
 
 const listGrid = {
   gridTemplateColumns:
-    '20px minmax(0, 1.3fr) minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 1fr) 76px 68px 120px'
+    '20px minmax(8rem, 1.2fr) minmax(6rem, 1fr) max-content max-content 4.75rem max-content max-content'
 } as const
 
 const defaultForm = (): ModelForm => ({
@@ -77,8 +84,12 @@ const thinkingMap = ref<Record<PiThinkingLevel, string>>(
 )
 
 const protocolOptions = computed(() => PROTOCOLS.map((p) => ({ value: p.id, label: p.label })))
-const providerOptions = computed(() =>
-  providersStore.items.map((p) => ({ value: p.id, label: `${p.displayName} (${p.key})` }))
+const providerKeyOptions = computed(() =>
+  providersStore.items.map((p) => ({
+    value: p.key,
+    label: p.key,
+    hint: p.displayName && p.displayName !== p.key ? p.displayName : undefined
+  }))
 )
 
 const isEditing = computed(() => editingId.value !== null)
@@ -87,14 +98,42 @@ const selectedProvider = computed(() =>
   providersStore.items.find((p) => p.id === form.value.providerId)
 )
 
+function bindProvider(p: ProviderProfile | undefined) {
+  if (!p) return
+  form.value.providerId = p.id
+  providerKeyDraft.value = p.key
+  if (useProviderProtocol.value) form.value.protocol = p.protocol
+}
+
+function providerToForm(p: ProviderProfile, key: string): ProviderForm {
+  return {
+    key,
+    name: p.name || p.displayName || key,
+    displayName: p.displayName,
+    enabled: p.enabled,
+    protocol: p.protocol,
+    baseUrl: p.baseUrl,
+    apiKey: p.apiKey,
+    headers: { ...p.headers },
+    authHeader: p.authHeader,
+    timeout: p.timeout,
+    defaultModelId: p.defaultModelId
+  }
+}
+
 watch(
   () => form.value.providerId,
   (id) => {
-    if (!useProviderProtocol.value) return
     const p = providersStore.items.find((x) => x.id === id)
-    if (p) form.value.protocol = p.protocol
+    if (p && p.key !== providerKeyDraft.value.trim()) providerKeyDraft.value = p.key
+    if (p && useProviderProtocol.value) form.value.protocol = p.protocol
   }
 )
+
+watch(providerKeyDraft, (v) => {
+  const match = providersStore.items.find((p) => p.key === v.trim())
+  if (match && match.id !== form.value.providerId) form.value.providerId = match.id
+})
 
 function providerKeyFor(model: ModelDefinition): string | undefined {
   return providersStore.items.find((p) => p.id === model.providerId)?.key
@@ -155,8 +194,7 @@ function openCreate() {
   showAdvanced.value = false
   resetThinkingMap()
   if (providersStore.items.length > 0) {
-    form.value.providerId = providersStore.items[0]!.id
-    form.value.protocol = providersStore.items[0]!.protocol
+    bindProvider(providersStore.items[0])
   }
   dialogOpen.value = true
 }
@@ -181,6 +219,7 @@ function openEdit(model: ModelDefinition) {
   }
   contextWindowStr.value = model.contextWindow != null ? String(model.contextWindow) : ''
   maxOutputStr.value = model.maxOutputTokens != null ? String(model.maxOutputTokens) : ''
+  providerKeyDraft.value = provider?.key ?? model.providerId
   resetThinkingMap(model.thinkingLevels)
   showAdvanced.value = Boolean(model.thinkingLevels && Object.keys(model.thinkingLevels).length)
   dialogOpen.value = true
@@ -193,14 +232,39 @@ function parseOptionalInt(value: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
+async function resolveProviderIdForSave(): Promise<string | null> {
+  const nextKey = providerKeyDraft.value.trim()
+  if (!nextKey) {
+    toast.error(t('providers.keyRequired'))
+    return null
+  }
+  const exact = providersStore.items.find((p) => p.key === nextKey)
+  if (exact) return exact.id
+
+  const current = selectedProvider.value
+  if (!current) {
+    toast.error(t('models.providerMissing'))
+    return null
+  }
+  const renamed = await providersStore.update(current.key, providerToForm(current, nextKey))
+  if (!renamed) return null
+  toast.success(t('providers.updated'))
+  return renamed.key
+}
+
 async function save() {
   saving.value = true
   try {
-    if (useProviderProtocol.value && selectedProvider.value) {
-      form.value.protocol = selectedProvider.value.protocol
+    const providerId = await resolveProviderIdForSave()
+    if (!providerId) return
+    form.value.providerId = providerId
+    const provider = providersStore.items.find((p) => p.id === providerId)
+    if (useProviderProtocol.value && provider) {
+      form.value.protocol = provider.protocol
     }
     const payload: ModelForm = {
       ...form.value,
+      providerId,
       contextWindow: parseOptionalInt(contextWindowStr.value),
       maxOutputTokens: parseOptionalInt(maxOutputStr.value),
       thinkingLevels: buildThinkingLevels()
@@ -437,7 +501,7 @@ onMounted(() => {
         v-else
         class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] overflow-hidden"
       >
-        <div class="grid gap-x-3" :style="listGrid">
+        <div class="grid gap-x-2" :style="listGrid">
           <div
             class="col-span-full grid grid-cols-subgrid items-center px-3 h-[30px] text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]"
           >
@@ -448,7 +512,7 @@ onMounted(() => {
             <span class="min-w-0 truncate">{{ $t('models.colProtocol') }}</span>
             <span class="min-w-0 truncate">{{ $t('models.colCapabilities') }}</span>
             <span class="min-w-0 truncate">{{ $t('models.colUpdated') }}</span>
-            <span />
+            <span class="text-right">{{ $t('common.actions') }}</span>
           </div>
 
           <div
@@ -561,42 +625,37 @@ onMounted(() => {
             </div>
 
             <div
-              class="min-w-0 truncate whitespace-nowrap text-[10.5px] text-[var(--text-tertiary)]"
+              class="whitespace-nowrap text-[10.5px] text-[var(--text-tertiary)]"
               :title="formatRelativeTime(model.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US')"
             >
               {{ formatRelativeTime(model.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US') }}
             </div>
 
-            <div class="flex w-full items-center justify-end gap-0.5">
+            <div class="flex items-center justify-end gap-px">
               <IconButton
                 v-if="!modelsStore.isActive(model, providerKeyFor(model))"
+                show-label
                 :label="$t('models.setActive')"
                 :disabled="!model.enabled"
                 @click="setActive(model)"
               >
-                <Star class="size-3.5" :stroke-width="1.75" />
+                <Star class="size-3.5 shrink-0" :stroke-width="1.75" />
               </IconButton>
-              <span v-else class="size-7 shrink-0" aria-hidden="true" />
-              <IconButton :label="$t('providers.testAction')" @click="openTest(model)">
-                <Zap class="size-3.5" :stroke-width="1.75" />
+              <IconButton show-label :label="$t('common.test')" @click="openTest(model)">
+                <Zap class="size-3.5 shrink-0" :stroke-width="1.75" />
               </IconButton>
-              <IconButton
-                class="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-                :label="$t('common.edit')"
-                @click="openEdit(model)"
-              >
-                <Pencil class="size-3.5" :stroke-width="1.75" />
+              <IconButton show-label :label="$t('common.edit')" @click="openEdit(model)">
+                <Pencil class="size-3.5 shrink-0" :stroke-width="1.75" />
               </IconButton>
               <IconButton
                 v-if="canDeleteModel(model)"
-                class="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                show-label
                 variant="danger"
                 :label="$t('common.delete')"
                 @click="confirmDelete(model)"
               >
-                <Trash2 class="size-3.5" :stroke-width="1.75" />
+                <Trash2 class="size-3.5 shrink-0" :stroke-width="1.75" />
               </IconButton>
-              <span v-else class="size-7 shrink-0 opacity-0" aria-hidden="true" />
             </div>
           </div>
         </div>
@@ -608,49 +667,58 @@ onMounted(() => {
       :title="isEditing ? $t('models.edit') : $t('models.create')"
       wide
     >
-      <div class="space-y-3">
-        <Select
-          v-model="form.providerId"
+      <div class="space-y-2.5">
+        <Combobox
+          v-model="providerKeyDraft"
           :label="$t('models.fieldProvider')"
-          :options="providerOptions"
+          :hint="$t('models.fieldProviderKeyHint')"
+          :placeholder="$t('providers.keyPlaceholder')"
+          :options="providerKeyOptions"
+          mono
         />
         <div class="grid grid-cols-2 gap-3">
           <Input
             v-model="form.modelId"
             :label="$t('models.fieldModelId')"
-            placeholder="gpt-4o"
+            :placeholder="$t('models.modelIdPlaceholder')"
             mono
           />
-          <Input v-model="form.displayName" :label="$t('models.fieldDisplayName')" />
+          <Input
+            v-model="form.displayName"
+            :label="$t('models.fieldDisplayName')"
+            :placeholder="$t('models.displayNamePlaceholder')"
+          />
         </div>
-        <div class="flex items-center justify-between gap-3">
-          <span class="text-[12px] text-[var(--text-secondary)]">{{ $t('common.enabled') }}</span>
-          <Switch v-model="form.enabled" :label="$t('common.enabled')" />
-        </div>
-        <div class="flex items-center justify-between gap-3">
-          <span class="text-[12px] text-[var(--text-secondary)]">{{
-            $t('models.useProviderProtocol')
-          }}</span>
-          <Switch v-model="useProviderProtocol" :label="$t('models.useProviderProtocol')" />
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex h-[var(--height-input)] items-center justify-between gap-2">
+            <span class="text-[12px] text-[var(--text-secondary)]">{{ $t('common.enabled') }}</span>
+            <Switch v-model="form.enabled" :label="$t('common.enabled')" />
+          </div>
+          <div class="flex h-[var(--height-input)] items-center justify-between gap-2">
+            <span class="min-w-0 truncate text-[12px] text-[var(--text-secondary)]">{{
+              $t('models.useProviderProtocol')
+            }}</span>
+            <Switch v-model="useProviderProtocol" :label="$t('models.useProviderProtocol')" />
+          </div>
         </div>
         <Select
+          v-if="!useProviderProtocol"
           v-model="form.protocol"
           :label="$t('models.fieldProtocol')"
           :options="protocolOptions"
-          :disabled="useProviderProtocol"
         />
         <div class="grid grid-cols-2 gap-3">
           <Input
             v-model="contextWindowStr"
             :label="$t('models.fieldContext')"
             type="number"
-            placeholder="128000"
+            :placeholder="$t('models.contextPlaceholder')"
           />
           <Input
             v-model="maxOutputStr"
             :label="$t('models.fieldMaxOutput')"
             type="number"
-            placeholder="4096"
+            :placeholder="$t('models.maxOutputPlaceholder')"
           />
         </div>
 

@@ -44,15 +44,14 @@ const testResult = ref<ConnectionTestResult | null>(null)
 const testLoading = ref(false)
 const saving = ref(false)
 const timeoutStr = ref('')
-const headersJson = ref('{}')
-const headersPlaceholder = '{"X-Custom":"value"}'
+const headersJson = ref('')
 const defaultModelIdStr = ref('')
 const query = ref('')
 
-/** Shared column tracks via subgrid — actions always reserved so hover icons never overlap. */
+/** Name takes leftover width; other columns hug their content so 标识/操作 aren't crushed. */
 const listGrid = {
   gridTemplateColumns:
-    'minmax(0, 1.8fr) minmax(0, 0.95fr) 44px 72px 40px minmax(0, 0.7fr) 120px'
+    'minmax(8rem, 1fr) max-content 2.75rem max-content 2.25rem max-content max-content'
 } as const
 
 const defaultForm = (): ProviderForm => ({
@@ -176,7 +175,7 @@ function openCreate(presetId?: string) {
   preservedCommand.value = null
   keychainService.value = null
   timeoutStr.value = ''
-  headersJson.value = '{}'
+  headersJson.value = ''
   defaultModelIdStr.value = ''
   const preset = PROVIDER_PRESETS.find((p) => p.id === presetId)
   if (preset) {
@@ -295,8 +294,16 @@ async function save() {
       const fromName = suggestProviderKey(form.value.displayName || form.value.name)
       if (fromName) form.value.key = uniqueProviderKey(fromName)
     }
-    if (!form.value.key.trim()) {
+    const nextKey = form.value.key.trim()
+    if (!nextKey) {
       toast.error(t('providers.keyRequired'))
+      return
+    }
+    const keyTaken = providersStore.items.some(
+      (p) => p.key === nextKey && p.key !== editingKey.value
+    )
+    if (keyTaken) {
+      toast.error(t('providers.keyExists', { key: nextKey }))
       return
     }
     if (!form.value.displayName.trim()) {
@@ -330,8 +337,9 @@ async function save() {
     }
     const payload: ProviderForm = {
       ...form.value,
+      key: nextKey,
       baseUrl: normalized.url,
-      name: form.value.name || form.value.displayName || form.value.key,
+      name: form.value.name || form.value.displayName || nextKey,
       apiKey: buildApiKey(),
       headers,
       timeout,
@@ -580,17 +588,17 @@ onMounted(() => {
         v-else
         class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] overflow-hidden"
       >
-        <div class="grid gap-x-3" :style="listGrid">
+        <div class="grid gap-x-2" :style="listGrid">
           <div
             class="col-span-full grid grid-cols-subgrid items-center px-3 h-[30px] text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]"
           >
             <span class="min-w-0 truncate">{{ $t('providers.colName') }}</span>
-            <span class="min-w-0 truncate">{{ $t('providers.colProtocol') }}</span>
+            <span>{{ $t('providers.colProtocol') }}</span>
             <span class="tabular-nums">{{ $t('providers.colModels') }}</span>
-            <span class="min-w-0 truncate">{{ $t('providers.colKey') }}</span>
+            <span>{{ $t('providers.colKey') }}</span>
             <span>{{ $t('providers.colEnabled') }}</span>
-            <span class="min-w-0 truncate">{{ $t('providers.colUpdated') }}</span>
-            <span />
+            <span>{{ $t('providers.colUpdated') }}</span>
+            <span class="text-right">{{ $t('common.actions') }}</span>
           </div>
 
           <div
@@ -620,7 +628,7 @@ onMounted(() => {
             </div>
 
             <div
-              class="min-w-0 truncate whitespace-nowrap text-[12px] text-[var(--text-secondary)]"
+              class="whitespace-nowrap text-[12px] text-[var(--text-secondary)]"
               :title="protocolLabel(provider.protocol)"
             >
               {{ protocolLabel(provider.protocol) }}
@@ -630,8 +638,8 @@ onMounted(() => {
               {{ provider.modelCount }}
             </div>
 
-            <div class="min-w-0 overflow-hidden">
-              <Badge tone="muted" class="max-w-full truncate" :title="keyBadge(provider)">
+            <div>
+              <Badge tone="muted" class="max-w-full" :title="keyBadge(provider)">
                 {{ keyBadge(provider) }}
               </Badge>
             </div>
@@ -645,30 +653,33 @@ onMounted(() => {
             </div>
 
             <div
-              class="min-w-0 truncate whitespace-nowrap text-[11.5px] text-[var(--text-tertiary)]"
+              class="whitespace-nowrap text-[11.5px] text-[var(--text-tertiary)]"
               :title="formatRelativeTime(provider.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US')"
             >
               {{ formatRelativeTime(provider.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US') }}
             </div>
 
-            <div
-              class="flex w-full items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
-            >
-              <IconButton :label="$t('providers.testAction')" @click="openTest(provider)">
-                <Zap class="size-3.5" :stroke-width="1.75" />
+            <div class="flex items-center justify-end gap-px">
+              <IconButton show-label :label="$t('common.test')" @click="openTest(provider)">
+                <Zap class="size-3.5 shrink-0" :stroke-width="1.75" />
               </IconButton>
-              <IconButton :label="$t('common.edit')" @click="openEdit(provider)">
-                <Pencil class="size-3.5" :stroke-width="1.75" />
-              </IconButton>
-              <IconButton :label="$t('common.duplicate')" @click="confirmDuplicate(provider)">
-                <Copy class="size-3.5" :stroke-width="1.75" />
+              <IconButton show-label :label="$t('common.edit')" @click="openEdit(provider)">
+                <Pencil class="size-3.5 shrink-0" :stroke-width="1.75" />
               </IconButton>
               <IconButton
+                show-label
+                :label="$t('common.duplicate')"
+                @click="confirmDuplicate(provider)"
+              >
+                <Copy class="size-3.5 shrink-0" :stroke-width="1.75" />
+              </IconButton>
+              <IconButton
+                show-label
                 variant="danger"
                 :label="$t('common.delete')"
                 @click="confirmDelete(provider)"
               >
-                <Trash2 class="size-3.5" :stroke-width="1.75" />
+                <Trash2 class="size-3.5 shrink-0" :stroke-width="1.75" />
               </IconButton>
             </div>
           </div>
@@ -692,13 +703,21 @@ onMounted(() => {
           <Input
             v-model="form.key"
             :label="$t('providers.fieldKey')"
-            placeholder="my-provider"
-            :disabled="isEditing"
+            :placeholder="$t('providers.keyPlaceholder')"
+            :hint="$t('providers.fieldKeyHint')"
             mono
           />
-          <Input v-model="form.displayName" :label="$t('providers.fieldDisplayName')" />
+          <Input
+            v-model="form.displayName"
+            :label="$t('providers.fieldDisplayName')"
+            :placeholder="$t('providers.displayNamePlaceholder')"
+          />
         </div>
-        <Input v-model="form.name" :label="$t('providers.fieldInternalName')" />
+        <Input
+          v-model="form.name"
+          :label="$t('providers.fieldInternalName')"
+          :placeholder="$t('providers.internalNamePlaceholder')"
+        />
         <Select
           v-model="form.protocol"
           :label="$t('providers.fieldProtocol')"
@@ -707,7 +726,7 @@ onMounted(() => {
         <Input
           v-model="form.baseUrl"
           :label="$t('providers.fieldBaseUrl')"
-          placeholder="https://api.example.com/v1"
+          :placeholder="$t('providers.baseUrlPlaceholder')"
           :hint="baseUrlHint"
           mono
           @blur="onBaseUrlBlur"
@@ -786,13 +805,13 @@ onMounted(() => {
         <Input
           v-model="timeoutStr"
           :label="$t('providers.fieldTimeout')"
-          placeholder="15000"
+          :placeholder="$t('providers.timeoutPlaceholder')"
           mono
         />
         <Textarea
           v-model="headersJson"
           :label="$t('providers.fieldHeaders')"
-          :placeholder="headersPlaceholder"
+          :placeholder="$t('providers.headersPlaceholder')"
           :hint="$t('providers.headersHint')"
           :rows="3"
           mono

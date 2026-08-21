@@ -21,6 +21,7 @@ import type { ConnectionTestResult } from '@shared/ipc/api-types'
 import { getProtocol } from '@shared/constants/protocols'
 import { log } from '../services/logger'
 import { normalizeProviderBaseUrl } from '@shared/utils/base-url'
+import type { PiProviderConfig } from '@shared/types/pi'
 
 export class ProviderService {
   constructor(
@@ -112,9 +113,15 @@ export class ProviderService {
   }
 
   async update(key: string, raw: unknown, options?: WriteOptions): Promise<ProviderProfile> {
-    const form = this.parseForm({ ...(raw as object), key })
+    const form = this.parseForm(raw)
     const current = await this.get(key)
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
+
+    const newKey = form.key
+    if (newKey !== key) {
+      const clash = await this.get(newKey)
+      if (clash) throw new ValidationError(`Provider key already exists: ${newKey}`)
+    }
 
     let secretId = current.apiKeyRef
     if (form.apiKey?.kind === 'literal' && form.apiKey.literal) {
@@ -133,37 +140,79 @@ export class ProviderService {
           ? undefined // keep existing
           : await resolveApiKeyForPi(form.apiKey, secretId)
 
-    await this.config.patchProvider(
-      key,
-      (cur) => {
-        const next = domainProviderToPi(cur, {
-          protocol: form.protocol,
-          baseUrl: form.baseUrl,
-          headers: form.headers,
-          authHeader: form.authHeader,
-          apiKeyValue
+    const applyPi = (cur: PiProviderConfig | undefined) => {
+      if (!cur) throw new NotFoundError(`Provider not found: ${key}`)
+      const next = domainProviderToPi(cur, {
+        protocol: form.protocol,
+        baseUrl: form.baseUrl,
+        headers: form.headers,
+        authHeader: form.authHeader,
+        apiKeyValue
+      })
+      return ensureDefaultModel(next, form.defaultModelId ?? null, form.protocol)
+    }
+
+    if (newKey === key) {
+      await this.config.patchProvider(key, applyPi, {
+        overwrite: options?.overwrite,
+        reason: `update provider ${key}`
+      })
+    } else {
+      await this.config.patchModels(
+        (models) => {
+          const providers = { ...models.providers }
+          const cur = providers[key]
+          if (!cur) throw new NotFoundError(`Provider not found: ${key}`)
+          delete providers[key]
+          providers[newKey] = applyPi(cur)
+          return { ...models, providers }
+        },
+        { overwrite: options?.overwrite, reason: `rename provider ${key} → ${newKey}` }
+      )
+      const active = await this.config.getActiveModel()
+      if (active.providerKey === key && active.modelId) {
+        await this.config.setActiveModel(newKey, active.modelId, {
+          overwrite: options?.overwrite ?? true,
+          reason: `retarget active after rename ${key} → ${newKey}`,
+          skipBackup: true
         })
-        return ensureDefaultModel(next, form.defaultModelId ?? null, form.protocol)
-      },
-      { overwrite: options?.overwrite, reason: `update provider ${key}` }
-    )
+      }
+    }
 
     const meta = await this.metadata.read()
     const now = Date.now()
     const providersMeta = { ...meta.providers }
+    let modelsMeta = { ...meta.models }
+
+    if (newKey !== key) {
+      const oldProv = providersMeta[key]
+      delete providersMeta[key]
+      providersMeta[newKey] = { ...oldProv }
+      const prefix = `${key}::`
+      const moved: typeof modelsMeta = {}
+      for (const [mk, mv] of Object.entries(modelsMeta)) {
+        if (mk.startsWith(prefix)) {
+          moved[`${newKey}::${mk.slice(prefix.length)}`] = mv
+        } else {
+          moved[mk] = mv
+        }
+      }
+      modelsMeta = moved
+    }
+
     if (form.enabled) {
       for (const k of Object.keys((await this.config.read()).models.providers)) {
         const prev = providersMeta[k] ?? {}
         providersMeta[k] = {
           ...prev,
-          enabled: k === key,
+          enabled: k === newKey,
           updatedAt: now,
           createdAt: prev.createdAt ?? now
         }
       }
     }
-    providersMeta[key] = {
-      ...providersMeta[key],
+    providersMeta[newKey] = {
+      ...providersMeta[newKey],
       displayName: form.displayName,
       enabled: form.enabled,
       timeout: form.timeout,
@@ -171,13 +220,13 @@ export class ProviderService {
       defaultModelId:
         form.defaultModelId !== undefined
           ? form.defaultModelId
-          : (meta.providers[key]?.defaultModelId ?? null),
+          : (providersMeta[newKey]?.defaultModelId ?? null),
       updatedAt: now,
-      createdAt: meta.providers[key]?.createdAt ?? now
+      createdAt: providersMeta[newKey]?.createdAt ?? now
     }
-    await this.metadata.update({ providers: providersMeta })
+    await this.metadata.write({ providers: providersMeta, models: modelsMeta })
 
-    const updated = await this.get(key)
+    const updated = await this.get(newKey)
     if (!updated) throw new ValidationError('Provider update failed')
     return updated
   }

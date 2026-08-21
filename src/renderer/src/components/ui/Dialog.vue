@@ -24,10 +24,10 @@ const { t } = useI18n()
   <DialogRoot v-model:open="open">
     <DialogPortal>
       <DialogOverlay
-        class="fixed inset-0 z-50 bg-black/45 data-[state=open]:animate-[pi-fade-in_var(--motion-base)_var(--ease-out)] data-[state=closed]:animate-[pi-fade-in_var(--motion-base)_var(--ease-out)_reverse]"
+        class="fixed inset-0 z-[100] bg-black/45 data-[state=open]:animate-[pi-fade-in_var(--motion-base)_var(--ease-out)] data-[state=closed]:animate-[pi-fade-in_var(--motion-base)_var(--ease-out)_reverse]"
       />
       <DialogContent
-        class="fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-dialog)] focus:outline-none data-[state=open]:animate-[pi-pop-in_var(--motion-base)_var(--ease-out)]"
+        class="fixed left-1/2 top-1/2 z-[101] flex max-h-[85vh] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-dialog)] focus:outline-none data-[state=open]:animate-[pi-pop-in_var(--motion-base)_var(--ease-out)]"
         :class="wide ? 'w-[min(560px,92vw)]' : 'w-[min(420px,92vw)]'"
       >
         <div class="flex shrink-0 items-start justify-between gap-3 px-4 pb-3 pt-4">
@@ -46,7 +46,7 @@ const { t } = useI18n()
             <X class="size-3" aria-hidden="true" :stroke-width="1.75" />
           </DialogClose>
         </div>
-        <div v-if="$slots.default" class="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+        <div v-if="$slots.default" class="overflow-y-auto px-4 pb-4">
           <slot />
         </div>
         <footer

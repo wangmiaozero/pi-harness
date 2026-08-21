@@ -47,12 +47,17 @@ describe('localized copy', () => {
   it('compiles npm package names in installation messages', () => {
     for (const locale of Object.keys(messages) as Array<keyof typeof messages>) {
       const instance = createI18n({ legacy: false, locale, messages })
-      expect(instance.global.t('overview.installHint')).toContain(
-        '@earendil-works/pi-coding-agent'
-      )
+      expect(instance.global.t('overview.installHint')).toContain('@earendil-works/pi-coding-agent')
       expect(instance.global.t('overview.installConfirm')).toContain(
         '@earendil-works/pi-coding-agent'
       )
+    }
+  })
+
+  it('compiles JSON examples as literal text', () => {
+    for (const locale of Object.keys(messages) as Array<keyof typeof messages>) {
+      const instance = createI18n({ legacy: false, locale, messages })
+      expect(instance.global.t('providers.headersPlaceholder')).toBe('{ "X-Custom": "value" }')
     }
   })
 })
