@@ -13,6 +13,7 @@ import { homedir } from 'node:os'
 import fs from 'node:fs/promises'
 import { log } from '../services/logger'
 import { PiCliError, PiCliMissingError } from '../services/errors'
+import { nodeToolDirectories } from '../pi/node-environment'
 
 const execFileP = promisify(execFile)
 
@@ -39,7 +40,7 @@ export class PiProcessService {
   private cachedAt = 0
   private readonly cacheTtlMs = 10_000
 
-  private candidateDirs(): string[] {
+  private async candidateDirs(): Promise<string[]> {
     const home = homedir()
     const isWin = process.platform === 'win32'
     const dirs = [
@@ -60,6 +61,7 @@ export class PiProcessService {
       '/opt/homebrew/bin',
       '/usr/local/bin',
       '/usr/bin',
+      ...(await nodeToolDirectories()),
       ...(process.env.PATH?.split(path.delimiter) ?? [])
     ].filter((d): d is string => Boolean(d))
     if (isWin) {
@@ -99,7 +101,7 @@ export class PiProcessService {
       const found = await checkExplicitPath(override.trim())
       if (found) return this.setCache(found)
     }
-    for (const dir of this.candidateDirs()) {
+    for (const dir of await this.candidateDirs()) {
       const basename = path.basename(dir).toLowerCase()
       const isFilePath = ['pi', 'pi.exe', 'pi.cmd', 'pi.bat', 'cli.js'].includes(basename)
       if (isFilePath) {
@@ -108,8 +110,7 @@ export class PiProcessService {
         continue
       }
 
-      const executableNames =
-        process.platform === 'win32' ? ['pi.exe', 'pi.cmd', 'pi.bat'] : ['pi']
+      const executableNames = process.platform === 'win32' ? ['pi.exe', 'pi.cmd', 'pi.bat'] : ['pi']
       for (const name of executableNames) {
         const found = await check(path.join(dir, name))
         if (found) return this.setCache(found)

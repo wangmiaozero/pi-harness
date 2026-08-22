@@ -17,6 +17,7 @@ import { piModelsConfigSchema, piSettingsConfigSchema } from '@shared/schemas/pi
 import { log } from '../services/logger'
 import type { PiEnvironment } from '@shared/ipc/api-types'
 import type { PiSettingsConfig } from '@shared/types/pi'
+import { detectNodeRuntime } from './node-environment'
 
 class PiEnvironmentService {
   async detect(override?: {
@@ -26,7 +27,10 @@ class PiEnvironmentService {
     const platform = process.platform
     const arch = process.arch
     const cliPath = await piProcess.resolveCliPath(override?.cliPath ?? undefined)
-    const version = cliPath ? await piProcess.version() : null
+    const [version, nodeRuntime] = await Promise.all([
+      cliPath ? piProcess.version() : null,
+      detectNodeRuntime()
+    ])
 
     const configDir = getPiConfigDir(override?.configDir)
     const settingsPath = path.join(configDir, PI_FILES.settings)
@@ -62,7 +66,8 @@ class PiEnvironmentService {
       configValid: valid,
       configError: error,
       platform,
-      arch
+      arch,
+      nodeRuntime
     }
   }
 

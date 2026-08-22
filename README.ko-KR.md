@@ -53,7 +53,7 @@ Pi-Harness는 Pi 제공자, 모델, 자격 증명, 스킬, 원본 구성, 백업
 
 | 모듈          | 설명                                                                                               |
 | ------------- | -------------------------------------------------------------------------------------------------- |
-| **개요**      | 활성 모델, Pi CLI / 구성 디렉터리, 환경 상태, 자주 쓰는 작업                                       |
+| **개요**      | 활성 모델, 환경 상태, Node.js/Pi 설치 안내 및 Pi 원클릭 설치                                       |
 | **작업 공간** | 네이티브 프로젝트와 Pi Session, 스트리밍 대화, Thinking / Tool Call, 경량 편집, Git Diff, Worktree |
 | **제공자**    | 검색 가능한 Pi 호환 프리셋; Provider ≠ Protocol ≠ Model; Keychain / `safeStorage` 자격 증명        |
 | **모델**      | 프리셋 또는 사용자 지정 모델 ID, 기능 메타데이터, 활성 모델 선택, 쓰기 후 검증                     |
@@ -67,7 +67,7 @@ Pi-Harness는 Pi 제공자, 모델, 자격 증명, 스킬, 원본 구성, 백업
 - 쓰기 전 자동 백업; 원자적 쓰기
 - 외부 변경 감지(mtime), Reload / Compare / Overwrite
 - 패키지 빌드는 백그라운드에서 업데이트를 확인·다운로드하고, 종료 시 또는 **설치 후 재시작**으로 설치합니다
-- 데스크톱 전용: 외부 브라우저 창과 앱 밖 URL 이동을 차단
+- 데스크톱 전용: 임의 외부 이동을 차단하고 고정된 Node.js 공식 다운로드만 허용
 
 ## 경량 편집기 범위
 
@@ -126,6 +126,7 @@ Domain은 Adapter를 통해 Pi 네이티브 JSON과 분리됩니다. 알 수 없
 
 - [변경 기록](CHANGELOG.md)
 - [애플리케이션 업데이트 및 릴리스 산출물](docs/application-updates.md)
+- [Pi 설치 및 Node.js 필수 조건](docs/pi-installation.md)
 - [경량 코드 편집기 범위](docs/lightweight-code-editor.md)
 - [마스코트 디자인 및 런타임 규칙](docs/mascot-design.md)
 

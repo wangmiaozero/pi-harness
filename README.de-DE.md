@@ -53,7 +53,7 @@ Geheimnisse erscheinen im Renderer nie im Klartext. macOS speichert sie im Syste
 
 | Modul              | Beschreibung                                                                                                        |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| **Übersicht**      | Aktives Modell, Pi-CLI / Konfigurationsverzeichnis, Umgebungsstatus und häufige Aktionen                            |
+| **Übersicht**      | Aktives Modell, Umgebungsstatus, geführte Node.js/Pi-Einrichtung und Pi-Ein-Klick-Installation                      |
 | **Arbeitsbereich** | Native Projekte und Pi-Sitzungen, Streaming-Chat, Thinking / Tool Call, leichte Bearbeitung, Git Diff und Worktree  |
 | **Anbieter**       | Durchsuchbare Pi-kompatible Presets; Provider ≠ Protocol ≠ Model; Keychain / `safeStorage`                          |
 | **Modelle**        | Preset- oder eigene Modell-IDs, Fähigkeitsmetadaten, aktive Auswahl, Verifikation nach dem Schreiben                |
@@ -67,7 +67,7 @@ Zuverlässigkeit:
 - Automatisches Backup vor dem Schreiben; atomare Schreibvorgänge
 - Erkennung externer Änderungen (mtime) mit Reload / Compare / Overwrite
 - Paketierte Builds prüfen und laden Updates im Hintergrund; Installation beim Beenden oder über **Installieren & Neustarten**
-- Nur Desktop: externe Browserfenster und URL-Handoff außerhalb der App werden blockiert
+- Nur Desktop: beliebige externe Navigation ist blockiert; nur der feste offizielle Node.js-Download ist freigegeben
 
 ## Grenze des leichtgewichtigen Editors
 
@@ -126,6 +126,7 @@ Die Domain bleibt über einen Adapter vom nativen Pi-JSON entkoppelt. Unbekannte
 
 - [Änderungsprotokoll](CHANGELOG.md)
 - [Anwendungsupdates und Release-Artefakte](docs/application-updates.md)
+- [Pi-Installation und Node.js-Voraussetzungen](docs/pi-installation.md)
 - [Grenze des leichtgewichtigen Code-Editors](docs/lightweight-code-editor.md)
 - [Maskottchen-Design und Laufzeitregeln](docs/mascot-design.md)
 

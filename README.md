@@ -53,7 +53,7 @@ Secrets never appear in the renderer as plaintext. macOS stores them in the syst
 
 | Module          | Description                                                                                                         |
 | --------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Overview**    | Active model, Pi CLI / config directory, environment status, and common actions                                     |
+| **Overview**    | Active model, environment status, guided Node.js/Pi setup, one-click Pi install, and common actions                 |
 | **Workspace**   | Native projects and Pi Sessions, streaming chat, Thinking / Tool Call, lightweight editing, Git Diff, Worktree      |
 | **Providers**   | Searchable Pi-compatible presets; Provider ≠ Protocol ≠ Model; credentials use Keychain / `safeStorage`             |
 | **Models**      | Preset or custom model IDs, capability metadata, active-model selection, read-back verification                     |
@@ -67,7 +67,7 @@ Reliability:
 - Automatic backup before writes; atomic writes
 - External change detection (mtime) with Reload / Compare / Overwrite
 - Packaged builds check and download updates in the background, then install on quit or via **Install & Restart**
-- Desktop-only: external browser windows and off-app URL handoff are blocked
+- Desktop-only: arbitrary external navigation is blocked; the fixed official Node.js download action is allowlisted
 
 ## Lightweight editor boundary
 
@@ -77,7 +77,7 @@ Pi-Harness is deliberately not a general-purpose IDE: no LSP/IntelliSense, seman
 
 ## Requirements
 
-- Node.js ≥ 22 (enforced when installing dependencies)
+- Node.js ≥ 22 for development; packaged users are guided to the official Node.js download before Pi setup
 - pnpm `9.12.1` (see the `packageManager` field)
 - [Pi Coding Agent](https://github.com/badlogic/pi-mono) installed, or install / update from the app
 
@@ -127,6 +127,7 @@ Domain stays decoupled from Pi native JSON via an Adapter. Unknown fields pass t
 
 - [Changelog](CHANGELOG.md)
 - [Application updates and release artifacts](docs/application-updates.md)
+- [Pi installation and Node.js prerequisites](docs/pi-installation.md)
 - [Lightweight code editor boundary](docs/lightweight-code-editor.md)
 - [Mascot design and runtime rules](docs/mascot-design.md)
 

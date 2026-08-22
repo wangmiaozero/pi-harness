@@ -53,7 +53,7 @@ Pi-Harness 通过桌面界面管理 Pi 的 Provider、Model、凭证、Skills、
 
 | 模块       | 说明                                                                                  |
 | ---------- | ------------------------------------------------------------------------------------- |
-| **概览**   | 当前模型、Pi CLI / 配置目录、环境状态与常用操作                                       |
+| **概览**   | 当前模型、环境状态、Node.js/Pi 安装引导、Pi 一键安装与常用操作                        |
 | **工作区** | 原生项目与 Pi Session、流式对话、Thinking / Tool Call、轻量编辑、Git Diff、Worktree   |
 | **提供商** | 可搜索的 Pi 兼容预设；Provider ≠ Protocol ≠ Model；凭证走 Keychain / `safeStorage`    |
 | **模型**   | 预设或自定义模型 ID、能力元数据、激活模型、写入后回读校验                             |
@@ -67,7 +67,7 @@ Pi-Harness 通过桌面界面管理 Pi 的 Provider、Model、凭证、Skills、
 - 写配置前自动备份；原子写入
 - 外部修改检测（mtime），冲突对话框：Reload / Compare / Overwrite
 - 打包版通过 `electron-updater` 后台检查并下载更新，退出时安装，也可选择“安装并重启”
-- 桌面应用：拦截站外浏览器窗口与 URL 跳转
+- 桌面应用：拦截任意站外跳转，仅放行固定的 Node.js 官方下载入口
 
 ## 轻量编辑器边界
 
@@ -77,7 +77,7 @@ Pi-Harness 明确不是通用 IDE：不提供 LSP/IntelliSense、语义重构、
 
 ## 环境要求
 
-- Node.js ≥ 22（安装依赖时强制校验）
+- 开发环境需要 Node.js ≥ 22；打包版会在安装 Pi 前引导用户前往 Node.js 官方地址
 - pnpm `9.12.1`（见 `packageManager` 字段）
 - 已安装 [Pi Coding Agent](https://github.com/badlogic/pi-mono)，或在应用内安装 / 更新
 
@@ -127,6 +127,7 @@ Domain 与 Pi 原生 JSON 之间通过 Adapter 解耦，未知字段透传，不
 
 - [更新记录](CHANGELOG.md)
 - [应用更新与发布产物](docs/application-updates.md)
+- [Pi 安装与 Node.js 前置条件](docs/pi-installation.md)
 - [轻量代码编辑器边界](docs/lightweight-code-editor.md)
 - [看板娘设计与运行时规则](docs/mascot-design.md)
 

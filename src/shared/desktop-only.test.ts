@@ -11,12 +11,22 @@ function runtimeSources(directory: string): string[] {
 }
 
 describe('desktop-only runtime', () => {
-  it('does not expose or invoke a system browser', () => {
-    const sources = runtimeSources(join(process.cwd(), 'src'))
-      .map((path) => readFileSync(path, 'utf8'))
-      .join('\n')
+  it('allows only the fixed official Node.js download in the system browser', () => {
+    const sourcePaths = runtimeSources(join(process.cwd(), 'src'))
+    const externalCallSites = sourcePaths.filter((path) =>
+      /\bopenExternal\b/.test(readFileSync(path, 'utf8'))
+    )
+    const sources = sourcePaths.map((path) => readFileSync(path, 'utf8')).join('\n')
+    const registerSource = readFileSync(join(process.cwd(), 'src/main/ipc/register.ts'), 'utf8')
+    const installConstants = readFileSync(
+      join(process.cwd(), 'src/shared/constants/pi-install.ts'),
+      'utf8'
+    )
 
-    expect(sources).not.toMatch(/\bopenExternal\b/)
+    expect(externalCallSites).toEqual([join(process.cwd(), 'src/main/ipc/register.ts')])
+    expect(registerSource.match(/\bopenExternal\b/g)).toHaveLength(1)
+    expect(registerSource).toContain('shell.openExternal(NODE_DOWNLOAD_URL)')
+    expect(installConstants).toContain("NODE_DOWNLOAD_URL = 'https://nodejs.org/en/download'")
     expect(sources).not.toMatch(/\bwindow\.open\b/)
     expect(sources).not.toMatch(/updater:open-releases/)
   })

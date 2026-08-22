@@ -192,6 +192,11 @@ const commands = computed<PaletteCommand[]>(() => {
           toast.info(t('overview.updateHint'))
           return
         }
+        if (!pi.nodeReady) {
+          toast.warning(t('overview.nodeRequired'))
+          await router.push('/')
+          return
+        }
         const ok = await askConfirm({
           title: t('overview.installConfirmTitle'),
           description: t('overview.installConfirm'),

@@ -11,7 +11,10 @@ import {
   Cpu,
   Box,
   Activity,
-  Circle
+  Circle,
+  Copy,
+  ExternalLink,
+  Terminal
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import Button from '@renderer/components/ui/Button.vue'
@@ -24,6 +27,7 @@ import { useProvidersStore } from '@renderer/stores/providers'
 import { useModelsStore } from '@renderer/stores/models'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
+import { PI_INSTALL_COMMAND } from '@shared/constants/pi-install'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -33,6 +37,21 @@ const modelsStore = useModelsStore()
 const actionMessage = ref('')
 
 const env = computed(() => piStore.environment)
+const canInstallPi = computed(() => env.value?.nodeRuntime.ready ?? false)
+const nodeStatusLabel = computed(() => {
+  const runtime = env.value?.nodeRuntime
+  if (!runtime?.ready) return t('overview.nodeMissing')
+  return t('overview.nodeReady', {
+    node: runtime.nodeVersion ?? 'Node.js',
+    npm: runtime.npmVersion ?? 'npm'
+  })
+})
+const piInstallGuidance = computed(() =>
+  canInstallPi.value ? t('overview.piRequiredReadyHint') : t('overview.piRequiredNodeHint')
+)
+const nodeStepLabel = computed(() =>
+  canInstallPi.value ? t('overview.nodeDetected') : t('overview.installNodeFirst')
+)
 
 const stats = computed(() => ({
   providers: providersStore.items.length,
@@ -97,6 +116,10 @@ async function openConfigDir() {
 
 async function installPi() {
   if (env.value?.installed) return
+  if (!canInstallPi.value) {
+    toast.warning(t('overview.nodeRequired'))
+    return
+  }
   const ok = await askConfirm({
     title: t('overview.installConfirmTitle'),
     description: t('overview.installConfirm'),
@@ -108,6 +131,23 @@ async function installPi() {
     const result = await piStore.install()
     actionMessage.value = result.message
     toast.success(t('overview.installOk'), { description: result.message })
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
+async function copyInstallCommand() {
+  try {
+    await getApi().pi.copyInstallCommand()
+    toast.success(t('overview.installCommandCopied'))
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
+async function openNodeDownload() {
+  try {
+    await getApi().pi.openNodeDownload()
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
   }
@@ -179,6 +219,85 @@ onMounted(() => {
             <span>{{ warn }}</span>
           </div>
         </div>
+
+        <section
+          v-if="env && !env.installed"
+          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--warning)]/35 bg-[var(--bg-surface)]"
+        >
+          <div class="flex items-start gap-3 px-4 py-3.5">
+            <div
+              class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--warning-tint)] text-[var(--warning)]"
+            >
+              <Terminal class="size-4" :stroke-width="1.75" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 class="text-[13px] font-semibold text-[var(--text-primary)]">
+                  {{ $t('overview.piRequiredTitle') }}
+                </h2>
+                <Badge :tone="canInstallPi ? 'success' : 'warning'">
+                  {{ nodeStatusLabel }}
+                </Badge>
+              </div>
+              <p class="mt-1 text-[11.5px] leading-5 text-[var(--text-secondary)]">
+                {{ piInstallGuidance }}
+              </p>
+            </div>
+          </div>
+
+          <div class="border-t border-[var(--border-subtle)] px-4 py-3 space-y-2.5">
+            <div class="flex items-center gap-2.5">
+              <span
+                class="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-[10px] font-semibold text-[var(--text-secondary)]"
+              >
+                1
+              </span>
+              <span class="min-w-0 flex-1 text-[11.5px] text-[var(--text-secondary)]">
+                {{ nodeStepLabel }}
+              </span>
+              <Button v-if="!canInstallPi" variant="secondary" size="sm" @click="openNodeDownload">
+                <ExternalLink class="size-3.5" :stroke-width="1.75" />
+                {{ $t('overview.installNode') }}
+              </Button>
+            </div>
+
+            <div class="flex items-center gap-2.5">
+              <span
+                class="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--bg-hover)] text-[10px] font-semibold text-[var(--text-secondary)]"
+              >
+                2
+              </span>
+              <code
+                class="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-window)] px-2.5 py-1.5 font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-primary)]"
+              >
+                {{ PI_INSTALL_COMMAND }}
+              </code>
+              <Button variant="ghost" size="sm" @click="copyInstallCommand">
+                <Copy class="size-3.5" :stroke-width="1.75" />
+                {{ $t('overview.copyCommand') }}
+              </Button>
+            </div>
+          </div>
+
+          <div
+            class="flex flex-wrap items-center gap-2 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] px-4 py-2.5"
+          >
+            <Button
+              variant="primary"
+              size="sm"
+              :loading="piStore.mutating"
+              :disabled="piStore.mutating || !canInstallPi"
+              @click="installPi"
+            >
+              <Download class="size-3.5" :stroke-width="1.75" />
+              {{ piStore.mutating ? $t('overview.installing') : $t('overview.oneClickInstall') }}
+            </Button>
+            <Button v-if="!canInstallPi" variant="ghost" size="sm" @click="refreshAll">
+              <RefreshCw class="size-3.5" :stroke-width="1.75" />
+              {{ $t('overview.nodeInstalledRefresh') }}
+            </Button>
+          </div>
+        </section>
 
         <!-- Current Model — the focal point. Single Surface, no Card. -->
         <div
@@ -309,18 +428,7 @@ onMounted(() => {
             {{ $t('overview.quickActions') }}
           </span>
           <Button
-            v-if="!env?.installed"
-            variant="primary"
-            size="sm"
-            :loading="piStore.mutating"
-            :disabled="piStore.mutating"
-            @click="installPi"
-          >
-            <Download class="size-3.5" :stroke-width="1.75" />
-            {{ piStore.mutating ? $t('overview.installing') : $t('overview.installPi') }}
-          </Button>
-          <Button
-            v-else
+            v-if="env?.installed"
             :variant="piStore.updateAvailable ? 'primary' : 'secondary'"
             size="sm"
             :loading="piStore.mutating"

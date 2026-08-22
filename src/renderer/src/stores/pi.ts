@@ -14,6 +14,7 @@ export const usePiStore = defineStore('pi', () => {
   const installed = computed(() => environment.value?.installed ?? false)
   const configValid = computed(() => environment.value?.configValid ?? false)
   const updateAvailable = computed(() => latest.value?.updateAvailable ?? false)
+  const nodeReady = computed(() => environment.value?.nodeRuntime.ready ?? false)
 
   async function detect() {
     loading.value = true
@@ -96,6 +97,7 @@ export const usePiStore = defineStore('pi', () => {
     installed,
     configValid,
     updateAvailable,
+    nodeReady,
     detect,
     checkLatest,
     refresh,

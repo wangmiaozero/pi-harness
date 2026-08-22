@@ -49,6 +49,18 @@ export interface PiEnvironment {
   configError: string | null
   platform: NodeJS.Platform | string
   arch: string
+  nodeRuntime: NodeRuntimeInfo
+}
+
+export interface NodeRuntimeInfo {
+  nodeInstalled: boolean
+  nodePath: string | null
+  nodeVersion: string | null
+  npmInstalled: boolean
+  npmPath: string | null
+  npmVersion: string | null
+  /** True when both the system Node.js runtime and npm are executable. */
+  ready: boolean
 }
 
 export interface PiVersionInfo {
@@ -296,6 +308,8 @@ export interface PiSwitchAPI {
     install(): Promise<PiInstallResult>
     /** Update installed Pi (`pi update --self`). */
     update(force?: boolean): Promise<PiInstallResult>
+    copyInstallCommand(): Promise<string>
+    openNodeDownload(): Promise<void>
   }
   providers: {
     list(): Promise<ProviderProfile[]>

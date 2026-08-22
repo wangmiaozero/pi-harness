@@ -43,7 +43,9 @@ const api: PiSwitchAPI = {
     runHelp: () => invoke(IPC_INVOKE.piRunHelp),
     checkLatest: () => invoke(IPC_INVOKE.piCheckLatest),
     install: () => invoke(IPC_INVOKE.piInstall),
-    update: (force) => invoke(IPC_INVOKE.piUpdate, force)
+    update: (force) => invoke(IPC_INVOKE.piUpdate, force),
+    copyInstallCommand: () => invoke(IPC_INVOKE.piCopyInstallCommand),
+    openNodeDownload: () => invoke(IPC_INVOKE.piOpenNodeDownload)
   },
   providers: {
     list: () => invoke(IPC_INVOKE.providerList),

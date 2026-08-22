@@ -22,6 +22,8 @@ export const IPC_INVOKE = {
   piCheckLatest: invoke('pi:check-latest'),
   piInstall: invoke('pi:install'),
   piUpdate: invoke('pi:update'),
+  piCopyInstallCommand: invoke('pi:copy-install-command'),
+  piOpenNodeDownload: invoke('pi:open-node-download'),
 
   // providers
   providerList: invoke('providers:list'),

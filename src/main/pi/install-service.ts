@@ -1,23 +1,23 @@
 /**
  * PiInstallService — install / update the Pi Coding Agent CLI.
  *
- * Install:  npm install -g @earendil-works/pi-coding-agent  (only when missing)
+ * Install:  npm install -g --ignore-scripts @earendil-works/pi-coding-agent
  * Update:   pi update --self                                 (only when present)
  */
 
 import { execFile, type ExecFileOptions } from 'node:child_process'
 import { promisify } from 'node:util'
 import path from 'node:path'
-import { homedir } from 'node:os'
-import fs from 'node:fs/promises'
 import { piProcess } from '../process/pi-process'
 import { log } from '../services/logger'
 import { PiCliError, ValidationError } from '../services/errors'
 import type { PiInstallResult, PiLatestInfo } from '@shared/ipc/api-types'
+import { PI_INSTALL_ARGS, PI_NPM_PACKAGE } from '@shared/constants/pi-install'
+import { resolveNpmExecutable } from './node-environment'
 
 const execFileP = promisify(execFile)
 
-export const PI_NPM_PACKAGE = '@earendil-works/pi-coding-agent'
+export { PI_NPM_PACKAGE } from '@shared/constants/pi-install'
 
 function toStr(v: string | Buffer): string {
   return typeof v === 'string' ? v : v.toString('utf8')
@@ -25,51 +25,6 @@ function toStr(v: string | Buffer): string {
 
 function sanitize(s: string): string {
   return s.replace(/(?:sk-[a-zA-Z0-9-]{6,}|Bearer [^\s]+)/gi, '[redacted]')
-}
-
-function npmCandidates(): string[] {
-  const home = homedir()
-  const isWin = process.platform === 'win32'
-  const names = isWin ? ['npm.exe', 'npm.cmd', 'npm'] : ['npm']
-  const dirs = [
-    path.dirname(process.execPath),
-    '/opt/homebrew/bin',
-    '/usr/local/bin',
-    '/usr/bin',
-    path.join(home, '.npm-global', 'bin'),
-    path.join(home, '.local', 'bin'),
-    ...(process.env.PATH?.split(path.delimiter) ?? [])
-  ]
-  const out: string[] = []
-  for (const dir of dirs) {
-    for (const name of names) {
-      out.push(path.join(dir, name))
-    }
-  }
-  return out
-}
-
-async function resolveNpm(): Promise<string> {
-  for (const candidate of npmCandidates()) {
-    try {
-      await fs.access(candidate, fs.constants.X_OK | fs.constants.F_OK)
-      return candidate
-    } catch {
-      /* next */
-    }
-  }
-  const which = process.platform === 'win32' ? 'where' : 'which'
-  try {
-    const { stdout } = await execFileP(which, ['npm'], { timeout: 5000 })
-    const first = stdout
-      .split(/\r?\n/)
-      .find((l) => l.trim())
-      ?.trim()
-    if (first) return first
-  } catch {
-    /* fallthrough */
-  }
-  throw new PiCliError('npm not found — install Node.js / npm first')
 }
 
 async function run(
@@ -84,7 +39,12 @@ async function run(
     timeout: timeoutMs,
     maxBuffer: 20 * 1024 * 1024,
     windowsHide: true,
-    env: { ...process.env, npm_config_fund: 'false', npm_config_audit: 'false' }
+    env: {
+      ...process.env,
+      PATH: [path.dirname(file), process.env.PATH].filter(Boolean).join(path.delimiter),
+      npm_config_fund: 'false',
+      npm_config_audit: 'false'
+    }
   }
   try {
     const { stdout, stderr } = await execFileP(executable, executableArgs, opts)
@@ -110,12 +70,25 @@ async function run(
   }
 }
 
+interface PiInstallDependencies {
+  resolveNpm: typeof resolveNpmExecutable
+  runCommand: typeof run
+}
+
 function parseSemverHint(text: string): string | null {
   const m = text.trim().match(/(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)/)
   return m?.[1] ?? null
 }
 
 export class PiInstallService {
+  private readonly resolveNpm: typeof resolveNpmExecutable
+  private readonly runCommand: typeof run
+
+  constructor(dependencies: Partial<PiInstallDependencies> = {}) {
+    this.resolveNpm = dependencies.resolveNpm ?? resolveNpmExecutable
+    this.runCommand = dependencies.runCommand ?? run
+  }
+
   async checkLatest(): Promise<PiLatestInfo> {
     const installedPath = await piProcess.resolveCliPath()
     if (!installedPath) {
@@ -133,8 +106,8 @@ export class PiInstallService {
 
     let latestVersion: string | null = null
     try {
-      const npm = await resolveNpm()
-      const res = await run(npm, ['view', PI_NPM_PACKAGE, 'version', '--json'], 30_000)
+      const npm = await this.resolveNpm()
+      const res = await this.runCommand(npm, ['view', PI_NPM_PACKAGE, 'version', '--json'], 30_000)
       if (res.exitCode === 0) {
         const raw = res.stdout.trim()
         try {
@@ -172,9 +145,14 @@ export class PiInstallService {
       })
     }
 
-    const npm = await resolveNpm()
+    let npm: string
+    try {
+      npm = await this.resolveNpm()
+    } catch {
+      throw new PiCliError('Node.js and npm are required before installing Pi')
+    }
     log.pi.info('installing Pi via npm', { package: PI_NPM_PACKAGE, npm })
-    const res = await run(npm, ['install', '-g', PI_NPM_PACKAGE], 5 * 60_000)
+    const res = await this.runCommand(npm, [...PI_INSTALL_ARGS], 5 * 60_000)
 
     piProcess.invalidateCache()
     const cliPath = await piProcess.resolveCliPath()
@@ -213,7 +191,7 @@ export class PiInstallService {
     const isJs = cliPath.endsWith('.js')
     const file = isJs ? process.execPath : cliPath
     const execArgs = isJs ? [cliPath, ...args] : args
-    const res = await run(file, execArgs, 5 * 60_000)
+    const res = await this.runCommand(file, execArgs, 5 * 60_000)
 
     piProcess.invalidateCache()
     const currentVersion = await piProcess.version()

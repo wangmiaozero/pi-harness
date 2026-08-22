@@ -10,6 +10,7 @@
 - **New silver-haired styles.** Added “Office Style (Black Tights)” and “Maid Style (White Stockings)” as transparent `1024 × 1536` runtime assets.
 - **Safe rich chat rendering.** Assistant responses now render streaming Markdown headings, lists, task lists, links, images, tables, blockquotes, inline code, and fenced code blocks through an explicit security allowlist.
 - **Background application updates.** Installed builds check GitHub Releases after launch, download updates automatically with live progress, and notify when the update is ready. The update installs on normal quit or immediately through “Install & Restart.”
+- **Guided Pi installation.** When Pi is missing, the Overview detects system Node.js/npm, offers a one-click install using `npm install -g --ignore-scripts @earendil-works/pi-coding-agent`, and provides a copyable manual command. If Node.js is missing, Pi-Harness opens only the official Node.js download page and guides the user to refresh detection before installing Pi.
 
 ### Changed
 

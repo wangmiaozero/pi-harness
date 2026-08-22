@@ -11,6 +11,7 @@ import {
   nativeTheme
 } from 'electron'
 import { IPC_EVENT, IPC_INVOKE } from '@shared/ipc/channels'
+import { NODE_DOWNLOAD_URL, PI_INSTALL_COMMAND } from '@shared/constants/pi-install'
 import { toErrorPayload } from '../services/errors'
 import { log } from '../services/logger'
 import { APP_VERSION } from '@shared/constants/index'
@@ -112,6 +113,17 @@ export function registerIpc(services: Services): void {
   ipcMain.handle(IPC_INVOKE.piInstall, () => wrap(() => piInstall.install()))
   ipcMain.handle(IPC_INVOKE.piUpdate, (_e, force?: boolean) =>
     wrap(() => piInstall.update(Boolean(force)))
+  )
+  ipcMain.handle(IPC_INVOKE.piCopyInstallCommand, () =>
+    wrap(async () => {
+      clipboard.writeText(PI_INSTALL_COMMAND)
+      return PI_INSTALL_COMMAND
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.piOpenNodeDownload, () =>
+    wrap(async () => {
+      await shell.openExternal(NODE_DOWNLOAD_URL)
+    })
   )
 
   // ---- providers ----

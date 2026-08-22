@@ -53,7 +53,7 @@ Les secrets n’apparaissent jamais en clair dans le Renderer. macOS les stocke 
 
 | Module                | Description                                                                                                       |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Aperçu**            | Modèle actif, Pi CLI / répertoire de configuration, état de l’environnement et actions courantes                  |
+| **Aperçu**            | Modèle actif, état de l’environnement, configuration guidée Node.js/Pi et installation Pi en un clic              |
 | **Espace de travail** | Projets et sessions Pi natifs, chat en streaming, Thinking / Tool Call, édition légère, Git Diff et Worktree      |
 | **Fournisseurs**      | Préréglages Pi compatibles et recherchables ; Provider ≠ Protocol ≠ Model ; Trousseau / `safeStorage`             |
 | **Modèles**           | ID prédéfinis ou personnalisés, métadonnées de capacité, sélection active, vérification après écriture            |
@@ -67,7 +67,7 @@ Fiabilité :
 - Sauvegarde automatique avant écriture ; écritures atomiques
 - Détection des changements externes (mtime) : Reload / Compare / Overwrite
 - Les builds packagés vérifient et téléchargent les mises à jour en arrière-plan, puis les installent à la fermeture ou via **Installer et redémarrer**
-- Application de bureau : fenêtres de navigateur externes et redirections URL hors app bloquées
+- Application de bureau : navigation externe arbitraire bloquée ; seul le téléchargement officiel fixe de Node.js est autorisé
 
 ## Limites de l’éditeur léger
 
@@ -126,6 +126,7 @@ Le domaine reste découplé du JSON natif Pi via un Adapter. Les champs inconnus
 
 - [Historique des modifications](CHANGELOG.md)
 - [Mises à jour de l’application et artefacts de version](docs/application-updates.md)
+- [Installation de Pi et prérequis Node.js](docs/pi-installation.md)
 - [Limites de l’éditeur de code léger](docs/lightweight-code-editor.md)
 - [Conception de la mascotte et règles d’exécution](docs/mascot-design.md)
 
