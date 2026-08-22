@@ -2,7 +2,7 @@
  * Electron main process entry.
  */
 
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, nativeTheme } from 'electron'
 import path from 'node:path'
 import { initAppPaths, appSettingsPath, appUiStatePath } from './services/app-paths'
 import { JsonStore } from './services/storage'
@@ -74,6 +74,7 @@ async function bootstrap(): Promise<void> {
 
   const settingsStore = new JsonStore<AppSettings>(appSettingsPath(), DEFAULT_SETTINGS)
   await settingsStore.read()
+  nativeTheme.themeSource = settingsStore.peek().theme
   const uiStateStore = new JsonStore<Record<string, unknown>>(appUiStatePath(), {})
   await uiStateStore.read()
 

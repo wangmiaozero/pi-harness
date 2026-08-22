@@ -5,7 +5,8 @@ import { Plus, Pencil, Copy, Trash2, Zap, Box, Search, Circle } from '@lucide/vu
 import { toast } from 'vue-sonner'
 import type { ProviderProfile, ConnectionTestResult } from '@shared/ipc/api-types'
 import type { ProviderForm } from '@shared/schemas/domain'
-import { PROTOCOLS, PROVIDER_PRESETS } from '@shared/constants/protocols'
+import { PROTOCOLS, PROVIDER_PRESETS, type ProviderPreset } from '@shared/constants/protocols'
+import { findProviderPreset } from '@shared/constants/provider-presets'
 import { isKeychainCommand, keychainServiceName } from '@shared/utils/api-key'
 import { normalizeProviderBaseUrl } from '@shared/utils/base-url'
 import Button from '@renderer/components/ui/Button.vue'
@@ -18,6 +19,7 @@ import Switch from '@renderer/components/ui/Switch.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import SearchField from '@renderer/components/ui/SearchField.vue'
+import Combobox from '@renderer/components/ui/Combobox.vue'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useModelsStore } from '@renderer/stores/models'
 import { formatRelativeTime } from '@renderer/utils/format'
@@ -47,6 +49,8 @@ const timeoutStr = ref('')
 const headersJson = ref('')
 const defaultModelIdStr = ref('')
 const query = ref('')
+const presetSearch = ref('')
+const activePreset = ref<ProviderPreset | null>(null)
 
 /** Name takes leftover width; other columns hug their content so 标识/操作 aren't crushed. */
 const listGrid = {
@@ -76,6 +80,25 @@ const preservedCommand = ref<string | null>(null)
 const keychainService = ref<string | null>(null)
 
 const protocolOptions = computed(() => PROTOCOLS.map((p) => ({ value: p.id, label: p.label })))
+const providerPresetOptions = computed(() =>
+  PROVIDER_PRESETS.map((preset) => ({
+    value: preset.id,
+    label: preset.name,
+    hint: t('providers.presetModelCount', { count: preset.models.length })
+  }))
+)
+const presetModelOptions = computed(() =>
+  (activePreset.value?.models ?? []).map((model) => ({
+    value: model.id,
+    label: model.name,
+    hint: model.contextWindow
+      ? t('providers.modelContext', { count: model.contextWindow.toLocaleString() })
+      : undefined
+  }))
+)
+const selectedCatalogModel = computed(() =>
+  activePreset.value?.models.find((model) => model.id === defaultModelIdStr.value.trim())
+)
 
 const apiKeyTypeOptions = computed(() => [
   { value: 'none', label: t('providers.keyTypeNone') },
@@ -178,9 +201,11 @@ function openCreate(presetId?: string) {
   headersJson.value = ''
   defaultModelIdStr.value = ''
   const preset = PROVIDER_PRESETS.find((p) => p.id === presetId)
+  activePreset.value = preset ?? null
   if (preset) {
     form.value.protocol = preset.protocol
     form.value.baseUrl = preset.defaultBaseUrl
+    form.value.authHeader = preset.authHeader
     form.value.name = preset.name
     form.value.displayName = preset.name
     // Prefill key so save never hits empty-key validation. Keep preset id casing.
@@ -190,8 +215,14 @@ function openCreate(presetId?: string) {
       // Placeholder only — user replaces with real secret (e.g. nvapi-…).
       apiKeyValue.value = ''
     }
+    defaultModelIdStr.value = preset.defaultModelId || preset.models[0]?.id || ''
   }
   dialogOpen.value = true
+}
+
+function selectProviderPreset(presetId: string) {
+  presetSearch.value = ''
+  openCreate(presetId)
 }
 
 function openEdit(provider: ProviderProfile) {
@@ -216,6 +247,12 @@ function openEdit(provider: ProviderProfile) {
     provider.defaultModelId ??
     modelsStore.items.find((m) => m.providerId === provider.id)?.modelId ??
     ''
+  activePreset.value =
+    findProviderPreset({
+      key: provider.key,
+      protocol: provider.protocol,
+      baseUrl: provider.baseUrl
+    }) ?? null
 
   const spec = provider.apiKey
   if (!spec) {
@@ -343,7 +380,15 @@ async function save() {
       apiKey: buildApiKey(),
       headers,
       timeout,
-      defaultModelId: defaultModelIdStr.value.trim() || null
+      defaultModelId: defaultModelIdStr.value.trim() || null,
+      defaultModel: selectedCatalogModel.value
+        ? {
+            id: selectedCatalogModel.value.id,
+            name: selectedCatalogModel.value.name,
+            contextWindow: selectedCatalogModel.value.contextWindow ?? null,
+            maxOutputTokens: selectedCatalogModel.value.maxOutputTokens ?? null
+          }
+        : null
     }
     if (isEditing.value && editingKey.value) {
       await providersStore.update(editingKey.value, payload)
@@ -410,7 +455,9 @@ async function toggleEnabled(provider: ProviderProfile, enabled: boolean) {
         active.providerKey && active.modelId
           ? `${active.providerKey}/${active.modelId}`
           : provider.displayName
-      toast.success(t('providers.enabledWithModelToast', { name: provider.displayName, model: label }))
+      toast.success(
+        t('providers.enabledWithModelToast', { name: provider.displayName, model: label })
+      )
     } else {
       toast.success(t('providers.disabledToast', { name: provider.displayName }))
     }
@@ -509,26 +556,23 @@ onMounted(() => {
       </div>
     </header>
 
-    <!-- Presets as inline toolbar actions, not navigation tabs. -->
+    <!-- Searchable Pi-compatible provider/model presets. -->
     <div
       v-if="PROVIDER_PRESETS.length > 0"
-      class="flex shrink-0 items-center gap-1 px-5 h-[40px] border-b border-[var(--border-subtle)]"
+      class="flex shrink-0 items-center gap-2 px-5 h-[48px] border-b border-[var(--border-subtle)]"
     >
       <span
         class="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)] pr-1"
       >
         {{ $t('providers.presetsLabel') }}
       </span>
-      <button
-        v-for="preset in PROVIDER_PRESETS.filter((p) => p.id !== 'custom')"
-        :key="preset.id"
-        type="button"
-        class="inline-flex h-[26px] items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-        @click="openCreate(preset.id)"
-      >
-        <Box class="size-3 text-[var(--text-tertiary)]" :stroke-width="1.75" />
-        {{ preset.name }}
-      </button>
+      <Combobox
+        v-model="presetSearch"
+        class="w-[340px]"
+        :placeholder="$t('providers.presetPlaceholder')"
+        :options="providerPresetOptions"
+        @select="selectProviderPreset"
+      />
     </div>
 
     <div class="flex-1 overflow-y-auto px-5 pt-4 pb-6 space-y-4">
@@ -654,7 +698,9 @@ onMounted(() => {
 
             <div
               class="whitespace-nowrap text-[11.5px] text-[var(--text-tertiary)]"
-              :title="formatRelativeTime(provider.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US')"
+              :title="
+                formatRelativeTime(provider.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US')
+              "
             >
               {{ formatRelativeTime(provider.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US') }}
             </div>
@@ -696,6 +742,7 @@ onMounted(() => {
     <Dialog
       v-model:open="dialogOpen"
       :title="isEditing ? $t('providers.edit') : $t('providers.create')"
+      persistent
       wide
     >
       <div class="space-y-3">
@@ -779,11 +826,12 @@ onMounted(() => {
           </p>
         </template>
 
-        <Input
+        <Combobox
           v-model="defaultModelIdStr"
           :label="$t('providers.fieldDefaultModel')"
           :placeholder="$t('providers.defaultModelPlaceholder')"
           :hint="$t('providers.defaultModelHint')"
+          :options="presetModelOptions"
           mono
         />
 

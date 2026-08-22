@@ -3,6 +3,9 @@ import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { Check, ChevronDown } from '@lucide/vue'
 
 const model = defineModel<string>({ default: '' })
+const emit = defineEmits<{
+  select: [value: string]
+}>()
 
 const props = withDefaults(
   defineProps<{
@@ -31,7 +34,8 @@ const panelRef = ref<HTMLElement | null>(null)
 const panelStyle = ref<Record<string, string>>({})
 
 const filtered = computed(() => {
-  const q = model.value.trim().toLowerCase()
+  const hasExactSelection = props.options.some((option) => option.value === model.value)
+  const q = open.value && hasExactSelection ? '' : model.value.trim().toLowerCase()
   if (!q) return props.options
   return props.options.filter(
     (o) =>
@@ -61,6 +65,7 @@ function showPanel() {
 function pick(opt: { value: string }) {
   model.value = opt.value
   open.value = false
+  emit('select', opt.value)
 }
 
 function onDocPointer(e: PointerEvent) {
@@ -142,7 +147,7 @@ const inputClasses = computed(() => {
         v-if="open && filtered.length > 0"
         ref="panelRef"
         data-combobox-panel
-        class="pointer-events-auto fixed z-[110] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
+        class="pointer-events-auto fixed z-[110] max-h-[240px] overflow-y-auto rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
         :style="panelStyle"
         @pointerdown.stop
       >

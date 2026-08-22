@@ -46,7 +46,17 @@ export const providerFormSchema = z.object({
   authHeader: z.boolean(),
   timeout: z.number().int().positive().nullable(),
   /** Optional default model id — auto-created under the provider if missing. */
-  defaultModelId: z.string().min(1).max(256).nullable().optional()
+  defaultModelId: z.string().min(1).max(256).nullable().optional(),
+  /** Optional catalog metadata used when auto-creating the selected default model. */
+  defaultModel: z
+    .object({
+      id: z.string().min(1).max(256),
+      name: z.string().min(1).max(256),
+      contextWindow: z.number().int().positive().nullable(),
+      maxOutputTokens: z.number().int().positive().nullable()
+    })
+    .nullable()
+    .optional()
 })
 
 export const modelFormSchema = z.object({

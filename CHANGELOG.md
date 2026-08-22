@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 1.0.8 — 2026-08-22
+
+### Added
+
+- **Pi-compatible provider presets.** Added a searchable catalog of 54 providers and 2,478 conversational text/code models merged from the local AgentDesk and WangmiaoGit-p catalogs. Media-only and utility endpoints are excluded; generated presets are limited to Pi-supported protocols.
+- **Key-only provider setup.** Select a provider and model to prefill the provider key, display name, protocol, API base URL, authentication mode, and default model. Every generated field remains editable.
+- **Shared model catalog.** The Models form reuses the selected provider's preset catalog while continuing to accept arbitrary vendor model IDs.
+
+### Changed
+
+- **Default model registration.** Saving a provider now registers the selected model with its display name, context window, and maximum output-token metadata when available.
+- **Native theme synchronization.** Electron native context menus now follow the current light/dark theme immediately and after restart.
+- **Session selection.** Replaced the crowded selected-row treatment with a compact accent dot and accent text.
+- **Version source.** `APP_VERSION` is derived from `package.json`; the application version is no longer duplicated in source code.
+
+### Fixed
+
+- Provider dialogs no longer close when clicking the backdrop or pressing Escape. They close only through an explicit close/cancel action or after a successful save.
+- Large provider/model comboboxes are scrollable and show the full option set when reopening an existing selection.
+
+## 1.0.7 — 2026-08-22
+
 ### Added
 
 - **Agent Workspace.** Native Projects / Sessions / Chat / Files / Git Worktree inside Pi-Harness. Pi Session JSONL under `~/.pi/agent/sessions/` is shared with the Pi CLI. AgentSession runs in Electron Main and streams over IPC — no pi-web iframe, Next.js, or HTTP server.

@@ -16,13 +16,10 @@ import {
   Zap
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import type {
-  ModelDefinition,
-  ConnectionTestResult,
-  ProviderProfile
-} from '@shared/ipc/api-types'
+import type { ModelDefinition, ConnectionTestResult, ProviderProfile } from '@shared/ipc/api-types'
 import type { ModelForm, ProviderForm } from '@shared/schemas/domain'
 import { PROTOCOLS } from '@shared/constants/protocols'
+import { findProviderPreset } from '@shared/constants/provider-presets'
 import { PI_THINKING_LEVELS, type PiThinkingLevel } from '@shared/constants/index'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
@@ -97,6 +94,29 @@ const isEditing = computed(() => editingId.value !== null)
 const selectedProvider = computed(() =>
   providersStore.items.find((p) => p.id === form.value.providerId)
 )
+const selectedProviderPreset = computed(() =>
+  findProviderPreset({
+    key: providerKeyDraft.value,
+    protocol: selectedProvider.value?.protocol ?? form.value.protocol,
+    baseUrl: selectedProvider.value?.baseUrl
+  })
+)
+const modelPresetOptions = computed(() =>
+  (selectedProviderPreset.value?.models ?? []).map((model) => ({
+    value: model.id,
+    label: model.name,
+    hint: model.contextWindow ? model.contextWindow.toLocaleString() : undefined
+  }))
+)
+
+function selectModelPreset(modelId: string) {
+  if (isEditing.value) return
+  const model = selectedProviderPreset.value?.models.find((item) => item.id === modelId)
+  if (!model) return
+  form.value.displayName = model.name
+  contextWindowStr.value = model.contextWindow != null ? String(model.contextWindow) : ''
+  maxOutputStr.value = model.maxOutputTokens != null ? String(model.maxOutputTokens) : ''
+}
 
 function bindProvider(p: ProviderProfile | undefined) {
   if (!p) return
@@ -520,7 +540,9 @@ onMounted(() => {
             :key="model.id"
             class="group relative col-span-full grid grid-cols-subgrid items-center px-3 overflow-hidden border-b border-[var(--border-subtle)] last:border-b-0 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-[var(--bg-hover)]"
             :class="
-              modelsStore.isActive(model, providerKeyFor(model)) ? 'bg-[var(--accent-tint-soft)]' : ''
+              modelsStore.isActive(model, providerKeyFor(model))
+                ? 'bg-[var(--accent-tint-soft)]'
+                : ''
             "
             :style="{ height: 'var(--height-row)' }"
           >
@@ -677,11 +699,13 @@ onMounted(() => {
           mono
         />
         <div class="grid grid-cols-2 gap-3">
-          <Input
+          <Combobox
             v-model="form.modelId"
             :label="$t('models.fieldModelId')"
             :placeholder="$t('models.modelIdPlaceholder')"
+            :options="modelPresetOptions"
             mono
+            @select="selectModelPreset"
           />
           <Input
             v-model="form.displayName"
@@ -808,9 +832,7 @@ onMounted(() => {
       v-model:open="testOpen"
       :title="$t('providers.testTitle')"
       :description="
-        testingModel
-          ? `${providerKeyFor(testingModel) ?? ''} / ${testingModel.modelId}`
-          : undefined
+        testingModel ? `${providerKeyFor(testingModel) ?? ''} / ${testingModel.modelId}` : undefined
       "
     >
       <div class="space-y-3">

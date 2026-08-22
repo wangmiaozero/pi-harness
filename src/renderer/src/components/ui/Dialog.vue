@@ -10,14 +10,19 @@ import {
 import { X } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 
-defineProps<{
+const props = defineProps<{
   title: string
   description?: string
   wide?: boolean
+  persistent?: boolean
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
 const { t } = useI18n()
+
+function preventImplicitClose(event: Event) {
+  if (props.persistent) event.preventDefault()
+}
 </script>
 
 <template>
@@ -29,6 +34,8 @@ const { t } = useI18n()
       <DialogContent
         class="fixed left-1/2 top-1/2 z-[101] flex max-h-[85vh] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-dialog)] focus:outline-none data-[state=open]:animate-[pi-pop-in_var(--motion-base)_var(--ease-out)]"
         :class="wide ? 'w-[min(560px,92vw)]' : 'w-[min(420px,92vw)]'"
+        @interact-outside="preventImplicitClose"
+        @escape-key-down="preventImplicitClose"
       >
         <div class="flex shrink-0 items-start justify-between gap-3 px-4 pb-3 pt-4">
           <div class="min-w-0">

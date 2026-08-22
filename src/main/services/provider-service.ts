@@ -61,7 +61,12 @@ export class ProviderService {
           authHeader: form.authHeader,
           apiKeyValue
         })
-        return ensureDefaultModel(next, form.defaultModelId ?? null, form.protocol)
+        return ensureDefaultModel(
+          next,
+          form.defaultModelId ?? null,
+          form.protocol,
+          form.defaultModel ?? null
+        )
       },
       { overwrite: options?.overwrite, reason: `create provider ${form.key}` }
     )
@@ -149,7 +154,12 @@ export class ProviderService {
         authHeader: form.authHeader,
         apiKeyValue
       })
-      return ensureDefaultModel(next, form.defaultModelId ?? null, form.protocol)
+      return ensureDefaultModel(
+        next,
+        form.defaultModelId ?? null,
+        form.protocol,
+        form.defaultModel ?? null
+      )
     }
 
     if (newKey === key) {
@@ -795,21 +805,38 @@ async function resolveCredentialForTest(provider: ProviderProfile): Promise<stri
 function ensureDefaultModel(
   provider: import('@shared/types/pi').PiProviderConfig,
   defaultModelId: string | null,
-  protocol: import('@shared/constants/protocols').ProtocolId
+  protocol: import('@shared/constants/protocols').ProtocolId,
+  catalogModel: {
+    id: string
+    name: string
+    contextWindow: number | null
+    maxOutputTokens: number | null
+  } | null
 ): import('@shared/types/pi').PiProviderConfig {
   const id = defaultModelId?.trim()
   if (!id) return provider
   const models = [...(provider.models ?? [])]
-  if (models.some((m) => m.id === id)) return { ...provider, models }
+  const catalog = catalogModel?.id === id ? catalogModel : null
+  const existingIndex = models.findIndex((model) => model.id === id)
+  if (existingIndex >= 0) {
+    const existing = models[existingIndex]!
+    models[existingIndex] = {
+      ...existing,
+      name: catalog?.name || existing.name || id,
+      contextWindow: catalog?.contextWindow ?? existing.contextWindow,
+      maxTokens: catalog?.maxOutputTokens ?? existing.maxTokens
+    }
+    return { ...provider, models }
+  }
   models.push(
     domainModelToPi(undefined, {
       modelId: id,
-      displayName: id,
+      displayName: catalog?.name || id,
       protocol,
       reasoning: false,
       vision: false,
-      contextWindow: null,
-      maxOutputTokens: null
+      contextWindow: catalog?.contextWindow ?? null,
+      maxOutputTokens: catalog?.maxOutputTokens ?? null
     })
   )
   return { ...provider, models }

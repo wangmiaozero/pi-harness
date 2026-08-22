@@ -1,6 +1,6 @@
 {
   "name": "pi-harness",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "The Complete Desktop Harness for Pi Coding Agent",
   "productName": "Pi-Harness",
   "author": {
@@ -45,6 +45,7 @@
     "test:watch": "vitest",
     "test:e2e": "pnpm compile && playwright test",
     "test:e2e:only": "playwright test",
+    "sync:provider-presets": "node scripts/sync-provider-presets.mjs",
     "clean": "rimraf out dist release .vite-node"
   },
   "dependencies": {

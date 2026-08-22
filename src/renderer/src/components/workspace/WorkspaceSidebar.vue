@@ -400,7 +400,7 @@ defineExpose({ pickProject })
 
             <div
               v-if="!isCollapsed(project.projectKey)"
-              class="ml-5 border-l border-[var(--border-subtle)] pl-1"
+              class="ml-5 mt-0.5 border-l border-[var(--border-subtle)] pl-1"
             >
               <p
                 v-if="!project.sessions.length"
@@ -415,14 +415,19 @@ defineExpose({ pickProject })
                 class="group/session relative flex h-7 w-full items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-left transition-[color,background-color,box-shadow] active:bg-[var(--accent-tint-strong)]"
                 :class="
                   sessions.currentId === session.id
-                    ? 'bg-[var(--accent-tint)] shadow-[inset_2px_0_0_var(--accent)]'
-                    : 'hover:bg-[var(--bg-hover)]'
+                    ? 'font-medium text-[var(--accent)]'
+                    : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
                 "
                 :aria-current="sessions.currentId === session.id ? 'page' : undefined"
                 :title="session.name || session.firstMessage"
                 @click="openSession(session)"
                 @contextmenu="onContextMenu(session, $event)"
               >
+                <span
+                  v-if="sessions.currentId === session.id"
+                  class="absolute left-0.5 size-1 rounded-full bg-[var(--accent)]"
+                  aria-hidden="true"
+                />
                 <GitBranch
                   v-if="session.worktreeBranch"
                   class="size-3 shrink-0 text-[var(--text-tertiary)]"
@@ -434,7 +439,7 @@ defineExpose({ pickProject })
                   :stroke-width="1.75"
                   :aria-label="$t('workspace.pinned')"
                 />
-                <span class="min-w-0 flex-1 truncate text-[12px] text-[var(--text-primary)]">
+                <span class="min-w-0 flex-1 truncate text-[12px] text-current">
                   {{ session.name || session.firstMessage || session.id }}
                 </span>
                 <span

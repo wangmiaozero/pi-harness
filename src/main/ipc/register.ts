@@ -2,7 +2,14 @@
  * IPC handler registration — all channels validated; errors become AppErrorPayload.
  */
 
-import { BrowserWindow, ipcMain as electronIpcMain, shell, clipboard, app } from 'electron'
+import {
+  BrowserWindow,
+  ipcMain as electronIpcMain,
+  shell,
+  clipboard,
+  app,
+  nativeTheme
+} from 'electron'
 import { IPC_EVENT, IPC_INVOKE } from '@shared/ipc/channels'
 import { toErrorPayload } from '../services/errors'
 import { log } from '../services/logger'
@@ -273,7 +280,11 @@ export function registerIpc(services: Services): void {
   // ---- settings ----
   ipcMain.handle(IPC_INVOKE.settingsGet, () => wrap(() => settingsStore.read()))
   ipcMain.handle(IPC_INVOKE.settingsSet, (_e, patch: Partial<AppSettings>) =>
-    wrap(() => settingsStore.update(patch))
+    wrap(async () => {
+      const settings = await settingsStore.update(patch)
+      nativeTheme.themeSource = settings.theme
+      return settings
+    })
   )
   ipcMain.handle(IPC_INVOKE.uiStateGet, () => wrap(() => uiStateStore.read()))
   ipcMain.handle(IPC_INVOKE.uiStateSet, (_e, state: Record<string, unknown>) =>

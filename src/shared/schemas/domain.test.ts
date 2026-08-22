@@ -94,4 +94,27 @@ describe('providerFormSchema', () => {
     })
     expect(r.success).toBe(true)
   })
+
+  it('accepts catalog metadata for the auto-created default model', () => {
+    const r = providerFormSchema.safeParse({
+      key: 'deepseek',
+      name: 'DeepSeek',
+      displayName: 'DeepSeek',
+      enabled: true,
+      protocol: 'openai-completions',
+      baseUrl: 'https://api.deepseek.com',
+      apiKey: { kind: 'literal', literal: 'sk-secret' },
+      headers: {},
+      authHeader: true,
+      timeout: null,
+      defaultModelId: 'deepseek-v4-flash',
+      defaultModel: {
+        id: 'deepseek-v4-flash',
+        name: 'DeepSeek V4 Flash',
+        contextWindow: 1_000_000,
+        maxOutputTokens: 384_000
+      }
+    })
+    expect(r.success).toBe(true)
+  })
 })

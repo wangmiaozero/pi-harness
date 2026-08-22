@@ -3,11 +3,13 @@
  * Keep this module free of platform-specific (Node/DOM) globals.
  */
 
+import { version as packageVersion } from '../../../package.json'
+
 export const APP_NAME = 'Pi-Harness'
 export const APP_PRODUCT_NAME = 'Pi-Harness'
 export const APP_DESCRIPTION = 'The Complete Desktop Harness for Pi Coding Agent'
 export const APP_ID = 'dev.pi-harness.app'
-export const APP_VERSION = '1.0.6'
+export const APP_VERSION = packageVersion
 export const AUTHOR_WATERMARK = 'wangmiao'
 
 /** IPC bridge namespace exposed on window. */
