@@ -20,7 +20,7 @@
 
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-0.3.0-4C8DFF?style=flat-square" />
-  <img alt="license" src="https://img.shields.io/badge/license-MIT-22C55E?style=flat-square" />
+  <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
@@ -31,11 +31,17 @@
 
 ## 화면 미리보기
 
-| 개요 | 제공자 |
+| 개요 | 설정 |
 | :---: | :---: |
-| ![Overview](docs/1.jpg) | ![Providers](docs/2.jpg) |
-| **모델** | **스킬** |
-| ![Models](docs/3.jpg) | ![Skills](docs/4.jpg) |
+| ![개요](docs/概览.jpg) | ![설정](docs/设置.jpg) |
+| **작업 공간 — 세션** | **작업 공간 — 편집기** |
+| ![작업 공간 세션](docs/工作区-1.jpg) | ![작업 공간 편집기](docs/工作区-2.jpg) |
+| **제공자 — 목록** | **제공자 — 상세** |
+| ![제공자 목록](docs/提供商-1.jpg) | ![제공자 상세](docs/提供商-2.jpg) |
+| **모델 — 목록** | **모델 — 상세** |
+| ![모델 목록](docs/模型-1.jpg) | ![모델 상세](docs/模型-2.jpg) |
+| **스킬 — 설치됨** | **스킬 — 마켓** |
+| ![설치된 스킬](docs/技能-1.jpg) | ![스킬 마켓](docs/技能-2.jpg) |
 
 ## 기능
 
@@ -107,4 +113,6 @@ Domain은 Adapter를 통해 Pi 네이티브 JSON과 분리됩니다. 알 수 없
 
 ## 라이선스
 
-[MIT](./LICENSE) © 2026 wangmiao
+Pi-Harness는 [GNU Affero General Public License v3.0 only](./LICENSE)(`AGPL-3.0-only`)에 따라 배포되는 자유 소프트웨어입니다. 라이선스 조건에 따라 사용, 수정 및 재배포할 수 있습니다. 수정 버전을 네트워크를 통해 제공하는 경우 AGPL v3에 따라 해당 사용자에게 대응 소스 코드를 제공해야 합니다.
+
+Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

@@ -8,7 +8,14 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: { index: resolve(import.meta.dirname, 'src/main/index.ts') },
-        external: ['electron', 'chokidar']
+        external: [
+          'electron',
+          'chokidar',
+          '@earendil-works/pi-coding-agent',
+          '@earendil-works/pi-agent-core',
+          '@earendil-works/pi-ai',
+          '@earendil-works/pi-tui'
+        ]
       }
     },
     resolve: {

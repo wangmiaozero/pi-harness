@@ -7,8 +7,26 @@
 import type { AppErrorPayload } from '../types/errors'
 import type { ProviderProfile, ModelDefinition, ActiveModel, ApiKeySpec } from '../types/domain'
 import type { ProtocolId } from '../constants/protocols'
+import type {
+  AgentStateSnapshot,
+  FilePreview,
+  FileTreeEntry,
+  FileWriteResult,
+  GitFileDiffResponse,
+  GitStatusResponse,
+  PromptAgentInput,
+  ProjectContextAction,
+  SessionContext,
+  SessionContextAction,
+  SessionDetail,
+  SessionInfo,
+  SessionProjectGroup,
+  StartAgentSessionInput,
+  WorktreeInfo
+} from '../types/workspace'
+import type { ToolPreset } from '../workspace/tool-presets'
 
-/** A Result that the preload throws as an Error carrying `payload` on failure. */
+/** Legacy renderer-side Error envelope accepted by the API error normalizer. */
 export interface IpcError extends Error {
   payload: AppErrorPayload
 }
@@ -177,6 +195,12 @@ export interface DiagnosticsReport {
     secretBackend: 'keychain' | 'safeStorage' | 'unavailable'
   }
   config: ConfigStatus
+  workspace: {
+    sessionRoot: string
+    sessionCount: number
+    runningSessions: string[]
+    piSdkLoaded: boolean
+  }
 }
 
 export interface AppSettings {
@@ -189,6 +213,9 @@ export interface AppSettings {
   autoBackup: boolean
   backupRetention: number
   developerMode: boolean
+  defaultToolPreset: ToolPreset
+  restoreTabs: boolean
+  autoOpenLastProject: boolean
 }
 
 export interface NotificationEvent {
@@ -234,8 +261,8 @@ export interface SystemInfo {
 export type IpcEventListener = (payload: unknown) => void
 
 /**
- * The full typed bridge. Each method is `(arg) => Promise<Result>` and throws
- * an IpcError (carrying AppErrorPayload) on failure.
+ * The full typed bridge. Each method returns a Promise and rejects with a
+ * structured AppErrorPayload on failure.
  */
 export interface PiSwitchAPI {
   // system
@@ -291,6 +318,7 @@ export interface PiSwitchAPI {
     packages(): Promise<PiPackageInfo[]>
     market(): Promise<SkillMarketCollection[]>
     installPackages(sources: string[]): Promise<PiPackageActionResult[]>
+    removePackages(sources: string[]): Promise<PiPackageActionResult[]>
     removePackage(source: string): Promise<PiPackageActionResult>
     read(path: string): Promise<{ content: string; mtime: number | null }>
     create(form: unknown): Promise<SkillInfo>
@@ -350,9 +378,71 @@ export interface PiSwitchAPI {
     maximizeToggle(): Promise<void>
     close(): Promise<void>
   }
+  workspace: {
+    listProjects(): Promise<SessionProjectGroup[]>
+    pickDirectory(): Promise<string | null>
+    allowRoot(root: string): Promise<void>
+    projectContextMenu(
+      projectKey: string,
+      projectRoot: string,
+      isPinned?: boolean,
+      locale?: 'zh-CN' | 'en-US'
+    ): Promise<ProjectContextAction | null>
+    getPathForFile(file: unknown): string
+  }
+  sessions: {
+    list(force?: boolean): Promise<SessionInfo[]>
+    get(sessionId: string): Promise<SessionDetail>
+    rename(sessionId: string, name: string): Promise<void>
+    delete(sessionId: string): Promise<void>
+    context(sessionId: string, leafId?: string | null): Promise<SessionContext>
+    export(sessionId: string, format: 'html' | 'markdown'): Promise<string | null>
+    viewFullHistory(sessionId: string): Promise<void>
+    contextMenu(
+      sessionId: string,
+      isWorktree?: boolean,
+      isPinned?: boolean,
+      locale?: 'zh-CN' | 'en-US'
+    ): Promise<SessionContextAction | null>
+  }
+  agent: {
+    start(input: StartAgentSessionInput): Promise<{ sessionId: string; cwd: string }>
+    prompt(input: PromptAgentInput): Promise<unknown>
+    abort(sessionId: string): Promise<void>
+    state(sessionId: string): Promise<AgentStateSnapshot | null>
+    running(): Promise<string[]>
+    command(sessionId: string, command: Record<string, unknown>): Promise<unknown>
+  }
+  files: {
+    list(directory: string): Promise<FileTreeEntry[]>
+    read(path: string): Promise<FilePreview>
+    write(
+      path: string,
+      text: string,
+      expectedRevision: string,
+      overwrite?: boolean
+    ): Promise<FileWriteResult>
+    upload(
+      directory: string,
+      fileName: string,
+      dataBase64: string,
+      overwrite?: boolean
+    ): Promise<{ path: string }>
+  }
+  git: {
+    status(cwd: string): Promise<GitStatusResponse>
+    diff(cwd: string, filePath: string): Promise<GitFileDiffResponse>
+  }
+  worktrees: {
+    list(cwd: string): Promise<WorktreeInfo[]>
+    create(cwd: string, branch: string): Promise<{ path: string; branch: string }>
+    remove(cwd: string, worktreePath: string, force?: boolean): Promise<void>
+  }
   on(event: 'config-changed', listener: IpcEventListener): () => void
   on(event: 'pi-environment-changed', listener: IpcEventListener): () => void
   on(event: 'notification', listener: IpcEventListener): () => void
+  on(event: 'agent-event', listener: IpcEventListener): () => void
+  on(event: 'agent-running', listener: IpcEventListener): () => void
 }
 
 declare global {

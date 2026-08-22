@@ -35,7 +35,10 @@ const draft = ref<AppSettings>({
   manualConfigDir: null,
   autoBackup: true,
   backupRetention: 20,
-  developerMode: false
+  developerMode: false,
+  defaultToolPreset: 'default',
+  restoreTabs: true,
+  autoOpenLastProject: true
 })
 
 const manualCliPath = computed({
@@ -75,6 +78,13 @@ const themeOptions = computed(() => [
 const densityOptions = computed(() => [
   { value: 'comfortable', label: t('settings.densityComfortable') },
   { value: 'compact', label: t('settings.densityCompact') }
+])
+
+const toolPresetOptions = computed(() => [
+  { value: 'none', label: t('workspace.presetNone') },
+  { value: 'read-only', label: t('workspace.presetReadOnly') },
+  { value: 'default', label: t('workspace.presetDefault') },
+  { value: 'full', label: t('workspace.presetFull') }
 ])
 
 watch(
@@ -272,6 +282,32 @@ onMounted(() => {
               :options="densityOptions"
               layout="row"
             />
+          </div>
+        </InspectorSection>
+
+        <InspectorSection
+          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+        >
+          <template #title>{{ $t('settings.workspace') }}</template>
+          <div
+            class="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]"
+          >
+            <Select
+              v-model="draft.defaultToolPreset"
+              :label="$t('settings.defaultToolPreset')"
+              :options="toolPresetOptions"
+              layout="row"
+            />
+            <PropertyRow :label="$t('settings.restoreTabs')">
+              <div class="flex items-center justify-end">
+                <Switch v-model="draft.restoreTabs" :label="$t('settings.restoreTabs')" />
+              </div>
+            </PropertyRow>
+            <PropertyRow :label="$t('settings.autoOpenLastProject')">
+              <div class="flex items-center justify-end">
+                <Switch v-model="draft.autoOpenLastProject" :label="$t('settings.autoOpenLastProject')" />
+              </div>
+            </PropertyRow>
           </div>
         </InspectorSection>
 

@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>All-in-One Desktop Manager for <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
-  Local-first desktop configuration manager · Electron · Vue 3 · TypeScript
+  <strong>The Complete Desktop Harness for <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
+  Local-first desktop harness · Electron · Vue 3 · TypeScript
 </p>
 
 <p align="center">
@@ -20,28 +20,35 @@
 
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-1.0.6-4C8DFF?style=flat-square" />
-  <img alt="license" src="https://img.shields.io/badge/license-MIT-22C55E?style=flat-square" />
+  <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
 
-Manage providers, models, API keys, skills, raw Pi config, backups, and diagnostics from a desktop UI — without hand-editing `~/.pi/agent/*.json`.
+Manage providers, models, API keys, skills, raw Pi config, backups, and diagnostics — then open Workspace and talk to Pi Coding Agent against a real project, without leaving the desktop app.
 
 Secrets never appear in the renderer as plaintext. macOS stores them in the system Keychain; Windows and Linux use Electron `safeStorage`. Unknown Pi fields are preserved.
 
 ## Screenshots
 
-| Overview | Providers |
+| Overview | Settings |
 | :---: | :---: |
-| ![Overview](docs/1.jpg) | ![Providers](docs/2.jpg) |
-| **Models** | **Skills** |
-| ![Models](docs/3.jpg) | ![Skills](docs/4.jpg) |
+| ![Overview](docs/概览.jpg) | ![Settings](docs/设置.jpg) |
+| **Workspace — Sessions** | **Workspace — Editor** |
+| ![Workspace sessions](docs/工作区-1.jpg) | ![Workspace editor](docs/工作区-2.jpg) |
+| **Providers — List** | **Providers — Details** |
+| ![Providers list](docs/提供商-1.jpg) | ![Provider details](docs/提供商-2.jpg) |
+| **Models — List** | **Models — Details** |
+| ![Models list](docs/模型-1.jpg) | ![Model details](docs/模型-2.jpg) |
+| **Skills — Installed** | **Skills — Market** |
+| ![Installed skills](docs/技能-1.jpg) | ![Skills market](docs/技能-2.jpg) |
 
 ## Features
 
 | Module | Description |
 | --- | --- |
 | **Overview** | Active model, Pi CLI / config directory, environment status, and common actions |
+| **Workspace** | Projects, Sessions, streaming chat, thinking, tool calls, lightweight code editing, git diff, worktrees |
 | **Providers** | Provider ≠ Protocol ≠ Model; credentials go to Keychain / `safeStorage` |
 | **Models** | Capability flags, active model, connection test; writes re-read `settings.json` to verify |
 | **Skills** | Create / import / edit / validate `SKILL.md`; path-root enforcement |
@@ -107,4 +114,6 @@ Domain stays decoupled from Pi native JSON via an Adapter. Unknown fields pass t
 
 ## License
 
-[MIT](./LICENSE) © 2026 wangmiao
+Pi-Harness is free software licensed under the [GNU Affero General Public License v3.0 only](./LICENSE) (`AGPL-3.0-only`). You may use, modify, and redistribute it under the license terms. Modified versions made available over a network must offer their corresponding source to users as required by AGPL v3.
+
+Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

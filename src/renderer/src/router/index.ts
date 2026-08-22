@@ -10,6 +10,12 @@ const router = createRouter({
       meta: { title: 'Overview', i18nKey: 'nav.overview' }
     },
     {
+      path: '/workspace',
+      name: 'workspace',
+      component: () => import('@renderer/views/WorkspaceView.vue'),
+      meta: { title: 'Workspace', i18nKey: 'nav.workspace' }
+    },
+    {
       path: '/providers',
       name: 'providers',
       component: () => import('@renderer/views/ProvidersView.vue'),

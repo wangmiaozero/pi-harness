@@ -211,6 +211,18 @@ onMounted(() => {
             <PropertyRow label="PATH" mono>
               {{ store.report.system.pathSummary }}
             </PropertyRow>
+            <PropertyRow :label="$t('diagnostics.sessionRoot')" mono>
+              {{ store.report.workspace.sessionRoot || '—' }}
+            </PropertyRow>
+            <PropertyRow :label="$t('diagnostics.sessionCount')">
+              {{ store.report.workspace.sessionCount }}
+            </PropertyRow>
+            <PropertyRow :label="$t('diagnostics.runningSessions')">
+              {{ store.report.workspace.runningSessions.join(', ') || '—' }}
+            </PropertyRow>
+            <PropertyRow :label="$t('diagnostics.piSdk')">
+              {{ store.report.workspace.piSdkLoaded ? $t('common.installed') : $t('common.notFound') }}
+            </PropertyRow>
             <PropertyRow v-if="store.report.config.lastError" :label="$t('diagnostics.lastError')">
               <span class="text-[var(--error)]">{{ store.report.config.lastError }}</span>
             </PropertyRow>

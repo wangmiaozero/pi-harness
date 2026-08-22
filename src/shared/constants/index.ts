@@ -5,9 +5,10 @@
 
 export const APP_NAME = 'Pi-Harness'
 export const APP_PRODUCT_NAME = 'Pi-Harness'
-export const APP_DESCRIPTION = 'All-in-One Desktop Manager for Pi Coding Agent'
+export const APP_DESCRIPTION = 'The Complete Desktop Harness for Pi Coding Agent'
 export const APP_ID = 'dev.pi-harness.app'
 export const APP_VERSION = '1.0.6'
+export const AUTHOR_WATERMARK = 'wangmiao'
 
 /** IPC bridge namespace exposed on window. */
 export const API_NAMESPACE = 'piSwitch'

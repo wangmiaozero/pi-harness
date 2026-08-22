@@ -13,12 +13,30 @@ import { atomicWriteText } from './storage'
 import path from 'node:path'
 import { userData } from './app-paths'
 import { secretStore } from '../security/secret-store'
+import type { SessionService } from '../sessions/session-service'
+import type { AgentRuntimeService } from '../agent/agent-runtime-service'
+import type { FileAccessService } from '../files/file-access-service'
+import { peekPiCodingAgent } from '../agent/pi-sdk'
 
 export class DiagnosticsService {
+  private workspace: {
+    sessions: SessionService
+    agent: AgentRuntimeService
+    access: FileAccessService
+  } | null = null
+
   constructor(
     private readonly settingsStore: JsonStore<AppSettings>,
     private readonly config: PiConfigService
   ) {}
+
+  attachWorkspace(workspace: {
+    sessions: SessionService
+    agent: AgentRuntimeService
+    access: FileAccessService
+  }): void {
+    this.workspace = workspace
+  }
 
   async get(): Promise<DiagnosticsReport> {
     const settings = this.settingsStore.peek()
@@ -64,7 +82,13 @@ export class DiagnosticsService {
           .join(path.delimiter),
         secretBackend
       },
-      config
+      config,
+      workspace: {
+        sessionRoot: this.workspace?.sessions.sessionsRoot() ?? '',
+        sessionCount: this.workspace ? (await this.workspace.sessions.list()).length : 0,
+        runningSessions: this.workspace?.agent.listRunning() ?? [],
+        piSdkLoaded: peekPiCodingAgent() !== null
+      }
     }
   }
 

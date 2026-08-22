@@ -33,3 +33,23 @@ Made-with: Cursor / Claude / Copilot / Codex
 - If the environment injects an AI `Co-authored-by` trailer, strip it before the commit is pushed (rewrite that commit; do not leave it on `origin/main`)
 
 GitHub contributors must list **wangmiao only**.
+
+## Lightweight code editor boundary (non-negotiable)
+
+Pi-Harness provides a **lightweight code editor**, not a general-purpose IDE.
+
+Allowed editor capabilities:
+
+- Edit any readable text file; unknown extensions fall back to plain text
+- Lazy syntax highlighting, line numbers, selection, undo / redo, and find
+- Explicit save, `Cmd/Ctrl+S`, unsaved-state indicators, and external-change conflict protection
+- Read-only preview for oversized, binary, media, and document files
+
+Out of scope unless this project decision is explicitly revised:
+
+- LSP, IntelliSense, semantic diagnostics, refactoring, or symbol indexing
+- Debugger, breakpoint, task runner, build/run orchestration, or integrated terminal
+- IDE extension/plugin compatibility or framework-specific project tooling
+
+Keep file editing isolated from the Pi agent runtime and preserve the security boundary described in
+`docs/lightweight-code-editor.md`.

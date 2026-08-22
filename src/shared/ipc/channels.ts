@@ -55,6 +55,7 @@ export const IPC_INVOKE = {
   skillsPackages: invoke('skills:packages'),
   skillsMarket: invoke('skills:market'),
   skillsInstallPackages: invoke('skills:install-packages'),
+  skillsRemovePackages: invoke('skills:remove-packages'),
   skillsRemovePackage: invoke('skills:remove-package'),
   skillRead: invoke('skills:read'),
   skillCreate: invoke('skills:create'),
@@ -95,14 +96,49 @@ export const IPC_INVOKE = {
   // window
   windowMinimize: invoke('window:minimize'),
   windowMaximizeToggle: invoke('window:maximize-toggle'),
-  windowClose: invoke('window:close')
+  windowClose: invoke('window:close'),
+
+  workspaceListProjects: invoke('workspace:list-projects'),
+  workspacePickDirectory: invoke('workspace:pick-directory'),
+  workspaceAllowRoot: invoke('workspace:allow-root'),
+  workspaceProjectContextMenu: invoke('workspace:project-context-menu'),
+
+  sessionList: invoke('session:list'),
+  sessionGet: invoke('session:get'),
+  sessionRename: invoke('session:rename'),
+  sessionDelete: invoke('session:delete'),
+  sessionContext: invoke('session:context'),
+  sessionExport: invoke('session:export'),
+  sessionViewHistory: invoke('session:view-history'),
+  sessionContextMenu: invoke('session:context-menu'),
+
+  agentStart: invoke('agent:start'),
+  agentPrompt: invoke('agent:prompt'),
+  agentAbort: invoke('agent:abort'),
+  agentState: invoke('agent:state'),
+  agentRunning: invoke('agent:running'),
+  agentCommand: invoke('agent:command'),
+
+  filesList: invoke('files:list'),
+  filesRead: invoke('files:read'),
+  filesWrite: invoke('files:write'),
+  filesUpload: invoke('files:upload'),
+
+  gitStatus: invoke('git:status'),
+  gitDiff: invoke('git:diff'),
+
+  worktreeList: invoke('worktree:list'),
+  worktreeCreate: invoke('worktree:create'),
+  worktreeRemove: invoke('worktree:remove')
 } as const
 
 /** Main → renderer push events (one-way, via webContents.send). */
 export const IPC_EVENT = {
   configChanged: 'pi-harness:event:config-changed',
   piEnvironmentChanged: 'pi-harness:event:pi-env-changed',
-  notification: 'pi-harness:event:notification'
+  notification: 'pi-harness:event:notification',
+  agentEvent: 'pi-harness:agent:event',
+  agentRunning: 'pi-harness:agent:running'
 } as const
 
 export type IpcEventName = (typeof IPC_EVENT)[keyof typeof IPC_EVENT]

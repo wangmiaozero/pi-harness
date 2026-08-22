@@ -17,6 +17,7 @@ export type AppErrorCode =
   | 'CONFIG_NOT_FOUND'
   | 'VALIDATION_ERROR'
   | 'FILE_SYSTEM_ERROR'
+  | 'FILE_CONFLICT'
   | 'NETWORK_ERROR'
   | 'AUTHENTICATION_ERROR'
   | 'PROTOCOL_ERROR'
@@ -24,6 +25,10 @@ export type AppErrorCode =
   | 'SECURITY_ERROR'
   | 'NOT_FOUND'
   | 'IPC_ERROR'
+  | 'AGENT_ERROR'
+  | 'SESSION_ERROR'
+  | 'GIT_ERROR'
+  | 'PATH_DENIED'
 
 export interface AppErrorPayload {
   code: AppErrorCode

@@ -10,11 +10,14 @@ import { usePiStore } from '@renderer/stores/pi'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useModelsStore } from '@renderer/stores/models'
 import { useSettingsStore } from '@renderer/stores/settings'
+import { useAgentStore } from '@renderer/stores/agent'
 import { getApi } from '@renderer/composables/useApi'
 import { toast } from 'vue-sonner'
 import { applyTheme } from '@renderer/utils/theme'
+import { installAuthorWatermark } from '@renderer/utils/author-watermark'
 
 applyTheme('dark')
+installAuthorWatermark()
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -34,11 +37,13 @@ const piStore = usePiStore()
 const providersStore = useProvidersStore()
 const modelsStore = useModelsStore()
 const settingsStore = useSettingsStore()
+const agentStore = useAgentStore()
 
 const unsubscribers: Array<() => void> = [
   piStore.setupListeners(),
   providersStore.setupListeners(),
-  modelsStore.setupListeners()
+  modelsStore.setupListeners(),
+  agentStore.setupListeners()
 ]
 
 getApi().on('notification', (payload) => {

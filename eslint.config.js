@@ -6,6 +6,7 @@ export default defineConfigWithVueTs([
     name: 'pi-harness/ignores',
     ignores: [
       'out/**',
+      'src/renderer/out/**',
       'dist/**',
       'release/**',
       'node_modules/**',

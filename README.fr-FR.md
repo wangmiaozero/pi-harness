@@ -20,7 +20,7 @@
 
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-0.3.0-4C8DFF?style=flat-square" />
-  <img alt="license" src="https://img.shields.io/badge/license-MIT-22C55E?style=flat-square" />
+  <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
@@ -31,11 +31,17 @@ Les secrets n’apparaissent jamais en clair dans le Renderer. macOS les stocke 
 
 ## Captures d’écran
 
-| Aperçu | Fournisseurs |
+| Aperçu | Paramètres |
 | :---: | :---: |
-| ![Overview](docs/1.jpg) | ![Providers](docs/2.jpg) |
-| **Modèles** | **Compétences** |
-| ![Models](docs/3.jpg) | ![Skills](docs/4.jpg) |
+| ![Aperçu](docs/概览.jpg) | ![Paramètres](docs/设置.jpg) |
+| **Espace de travail — Sessions** | **Espace de travail — Éditeur** |
+| ![Sessions](docs/工作区-1.jpg) | ![Éditeur](docs/工作区-2.jpg) |
+| **Fournisseurs — Liste** | **Fournisseurs — Détails** |
+| ![Liste des fournisseurs](docs/提供商-1.jpg) | ![Détails du fournisseur](docs/提供商-2.jpg) |
+| **Modèles — Liste** | **Modèles — Détails** |
+| ![Liste des modèles](docs/模型-1.jpg) | ![Détails du modèle](docs/模型-2.jpg) |
+| **Compétences — Installées** | **Compétences — Marché** |
+| ![Compétences installées](docs/技能-1.jpg) | ![Marché des compétences](docs/技能-2.jpg) |
 
 ## Fonctionnalités
 
@@ -107,4 +113,6 @@ Le domaine reste découplé du JSON natif Pi via un Adapter. Les champs inconnus
 
 ## Licence
 
-[MIT](./LICENSE) © 2026 wangmiao
+Pi-Harness est un logiciel libre sous [GNU Affero General Public License v3.0 only](./LICENSE) (`AGPL-3.0-only`). Son utilisation, sa modification et sa redistribution sont autorisées selon les conditions de la licence. Toute version modifiée mise à disposition via un réseau doit proposer à ses utilisateurs le code source correspondant, conformément à l’AGPL v3.
+
+Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

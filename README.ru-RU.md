@@ -20,7 +20,7 @@
 
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-0.3.0-4C8DFF?style=flat-square" />
-  <img alt="license" src="https://img.shields.io/badge/license-MIT-22C55E?style=flat-square" />
+  <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
@@ -31,11 +31,17 @@
 
 ## Скриншоты
 
-| Обзор | Провайдеры |
+| Обзор | Настройки |
 | :---: | :---: |
-| ![Overview](docs/1.jpg) | ![Providers](docs/2.jpg) |
-| **Модели** | **Навыки** |
-| ![Models](docs/3.jpg) | ![Skills](docs/4.jpg) |
+| ![Обзор](docs/概览.jpg) | ![Настройки](docs/设置.jpg) |
+| **Рабочая область — Сессии** | **Рабочая область — Редактор** |
+| ![Сессии](docs/工作区-1.jpg) | ![Редактор](docs/工作区-2.jpg) |
+| **Провайдеры — Список** | **Провайдеры — Детали** |
+| ![Список провайдеров](docs/提供商-1.jpg) | ![Детали провайдера](docs/提供商-2.jpg) |
+| **Модели — Список** | **Модели — Детали** |
+| ![Список моделей](docs/模型-1.jpg) | ![Детали модели](docs/模型-2.jpg) |
+| **Навыки — Установленные** | **Навыки — Маркет** |
+| ![Установленные навыки](docs/技能-1.jpg) | ![Маркет навыков](docs/技能-2.jpg) |
 
 ## Возможности
 
@@ -107,4 +113,6 @@ Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
 
 ## Лицензия
 
-[MIT](./LICENSE) © 2026 wangmiao
+Pi-Harness — свободное программное обеспечение под лицензией [GNU Affero General Public License v3.0 only](./LICENSE) (`AGPL-3.0-only`). Использование, изменение и распространение разрешены на условиях лицензии. При предоставлении изменённой версии по сети пользователям необходимо предложить соответствующий исходный код согласно AGPL v3.
+
+Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

@@ -20,7 +20,7 @@
 
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-0.3.0-4C8DFF?style=flat-square" />
-  <img alt="license" src="https://img.shields.io/badge/license-MIT-22C55E?style=flat-square" />
+  <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
@@ -31,11 +31,17 @@ Geheimnisse erscheinen im Renderer nie im Klartext. macOS speichert sie im Syste
 
 ## Screenshots
 
-| Übersicht | Anbieter |
+| Übersicht | Einstellungen |
 | :---: | :---: |
-| ![Overview](docs/1.jpg) | ![Providers](docs/2.jpg) |
-| **Modelle** | **Skills** |
-| ![Models](docs/3.jpg) | ![Skills](docs/4.jpg) |
+| ![Übersicht](docs/概览.jpg) | ![Einstellungen](docs/设置.jpg) |
+| **Arbeitsbereich — Sitzungen** | **Arbeitsbereich — Editor** |
+| ![Arbeitsbereich Sitzungen](docs/工作区-1.jpg) | ![Arbeitsbereich Editor](docs/工作区-2.jpg) |
+| **Anbieter — Liste** | **Anbieter — Details** |
+| ![Anbieterliste](docs/提供商-1.jpg) | ![Anbieterdetails](docs/提供商-2.jpg) |
+| **Modelle — Liste** | **Modelle — Details** |
+| ![Modellliste](docs/模型-1.jpg) | ![Modelldetails](docs/模型-2.jpg) |
+| **Skills — Installiert** | **Skills — Markt** |
+| ![Installierte Skills](docs/技能-1.jpg) | ![Skills-Markt](docs/技能-2.jpg) |
 
 ## Funktionen
 
@@ -107,4 +113,6 @@ Die Domain bleibt über einen Adapter vom nativen Pi-JSON entkoppelt. Unbekannte
 
 ## Lizenz
 
-[MIT](./LICENSE) © 2026 wangmiao
+Pi-Harness ist freie Software unter der [GNU Affero General Public License v3.0 only](./LICENSE) (`AGPL-3.0-only`). Nutzung, Änderung und Weitergabe sind gemäß den Lizenzbedingungen erlaubt. Über ein Netzwerk bereitgestellte geänderte Versionen müssen ihren Benutzern den korrespondierenden Quellcode gemäß AGPL v3 anbieten.
+
+Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

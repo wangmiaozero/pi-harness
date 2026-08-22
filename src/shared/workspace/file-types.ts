@@ -1,0 +1,120 @@
+export const TEXT_PREVIEW_MAX_BYTES = 256 * 1024
+export const TEXT_EDIT_MAX_BYTES = 2 * 1024 * 1024
+export const IMAGE_PREVIEW_MAX_BYTES = 10 * 1024 * 1024
+export const DOCX_PREVIEW_MAX_BYTES = 10 * 1024 * 1024
+export const AUDIO_PREVIEW_MAX_BYTES = 10 * 1024 * 1024
+export const PDF_PREVIEW_MAX_BYTES = 20 * 1024 * 1024
+export const FILE_UPLOAD_MAX_BYTES = 25 * 1024 * 1024
+
+export type DocumentPreviewKind = 'pdf' | 'docx'
+
+export const IMAGE_EXT_TO_MIME: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml',
+  bmp: 'image/bmp',
+  ico: 'image/vnd.microsoft.icon',
+  avif: 'image/avif'
+}
+
+export const AUDIO_EXT_TO_MIME: Record<string, string> = {
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  ogg: 'audio/ogg',
+  oga: 'audio/ogg',
+  opus: 'audio/ogg',
+  m4a: 'audio/mp4',
+  aac: 'audio/aac',
+  flac: 'audio/flac',
+  weba: 'audio/webm',
+  webm: 'audio/webm'
+}
+
+export const DOCUMENT_EXT_TO_MIME: Record<DocumentPreviewKind, string> = {
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+}
+
+export const EXT_TO_LANGUAGE: Record<string, string> = {
+  ts: 'typescript',
+  tsx: 'typescript',
+  js: 'javascript',
+  jsx: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  py: 'python',
+  rb: 'ruby',
+  go: 'go',
+  rs: 'rust',
+  java: 'java',
+  kt: 'kotlin',
+  swift: 'swift',
+  c: 'c',
+  cpp: 'cpp',
+  h: 'c',
+  hpp: 'cpp',
+  cs: 'csharp',
+  html: 'html',
+  htm: 'html',
+  css: 'css',
+  scss: 'css',
+  less: 'css',
+  json: 'json',
+  jsonl: 'json',
+  yaml: 'yaml',
+  yml: 'yaml',
+  toml: 'toml',
+  xml: 'xml',
+  md: 'markdown',
+  mdx: 'markdown',
+  sh: 'bash',
+  bash: 'bash',
+  zsh: 'bash',
+  fish: 'bash',
+  sql: 'sql',
+  graphql: 'graphql',
+  gql: 'graphql',
+  dockerfile: 'dockerfile',
+  tf: 'hcl',
+  hcl: 'hcl',
+  env: 'bash',
+  gitignore: 'bash',
+  txt: 'text',
+  vue: 'vue'
+}
+
+function getBaseName(filePath: string): string {
+  return filePath.replace(/\\/g, '/').split('/').pop() ?? ''
+}
+
+export function getFileExt(filePath: string): string {
+  const base = getBaseName(filePath).toLowerCase()
+  if (!base.includes('.')) return ''
+  return base.split('.').pop() ?? ''
+}
+
+export function getImageMime(filePath: string): string | null {
+  return IMAGE_EXT_TO_MIME[getFileExt(filePath)] ?? null
+}
+
+export function getAudioMime(filePath: string): string | null {
+  return AUDIO_EXT_TO_MIME[getFileExt(filePath)] ?? null
+}
+
+export function documentPreviewKind(filePath: string): DocumentPreviewKind | null {
+  const ext = getFileExt(filePath)
+  if (ext === 'pdf' || ext === 'docx') return ext
+  return null
+}
+
+export function getLanguage(filePath: string): string {
+  const base = getBaseName(filePath).toLowerCase()
+  if (base === 'dockerfile' || base.startsWith('dockerfile.')) return 'dockerfile'
+  if (base === '.env' || base.startsWith('.env.')) return 'bash'
+  if (base === 'makefile' || base === 'gnumakefile') return 'makefile'
+  const ext = base.split('.').pop() ?? ''
+  return EXT_TO_LANGUAGE[ext] ?? 'text'
+}

@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Agent Workspace.** Native Projects / Sessions / Chat / Files / Git Worktree inside Pi-Harness. Pi Session JSONL under `~/.pi/agent/sessions/` is shared with the Pi CLI. AgentSession runs in Electron Main and streams over IPC — no pi-web iframe, Next.js, or HTTP server.
+- **Workspace file workflow.** Multi-file upload with size validation and overwrite confirmation, manual refresh, and automatic file / preview / Git Diff refresh after agent completion or application refocus.
+
+### Changed
+
+- **AGPL license.** Relicensed the project under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`).
+- **Canonical path compatibility.** Allowed roots now recognize equivalent real paths (for example macOS `/var` → `/private/var`) without weakening sibling-prefix or parent-traversal protection.
+
 ## 0.3.0 — 2026-08-12
 
 ### Changed

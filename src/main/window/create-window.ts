@@ -5,9 +5,11 @@
 import { BrowserWindow } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
+import { pathToFileURL } from 'node:url'
 import { DEFAULT_WINDOW } from '@shared/constants/index'
 import { getIsDev } from '../services/app-paths'
 import { log } from '../services/logger'
+import { isAllowedRendererNavigation } from './navigation-policy'
 
 function resolvePreload(): string {
   const dir = path.join(import.meta.dirname, '../preload')
@@ -20,6 +22,10 @@ function resolvePreload(): string {
 
 export function createMainWindow(): BrowserWindow {
   const isMac = process.platform === 'darwin'
+  const rendererEntry = path.join(import.meta.dirname, '../renderer/index.html')
+  const developmentRendererUrl =
+    getIsDev() && process.env['ELECTRON_RENDERER_URL'] ? process.env['ELECTRON_RENDERER_URL'] : null
+  const rendererUrl = developmentRendererUrl ?? pathToFileURL(rendererEntry).href
 
   const win = new BrowserWindow({
     width: DEFAULT_WINDOW.width,
@@ -57,11 +63,7 @@ export function createMainWindow(): BrowserWindow {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 
   win.webContents.on('will-navigate', (event, url) => {
-    const allowed =
-      url.startsWith('file://') ||
-      url.startsWith('http://localhost') ||
-      url.startsWith('http://127.0.0.1')
-    if (!allowed) {
+    if (!isAllowedRendererNavigation(url, rendererUrl)) {
       event.preventDefault()
       log.app.warn('blocked navigation outside the desktop application')
     }
@@ -71,11 +73,11 @@ export function createMainWindow(): BrowserWindow {
     log.app.error('preload failed', { preloadPath, error: String(error) })
   })
 
-  if (getIsDev() && process.env['ELECTRON_RENDERER_URL']) {
-    void win.loadURL(process.env['ELECTRON_RENDERER_URL'])
-    log.app.info('loaded renderer URL', process.env['ELECTRON_RENDERER_URL'])
+  if (developmentRendererUrl) {
+    void win.loadURL(developmentRendererUrl)
+    log.app.info('loaded development renderer')
   } else {
-    void win.loadFile(path.join(import.meta.dirname, '../renderer/index.html'))
+    void win.loadFile(rendererEntry)
   }
 
   return win

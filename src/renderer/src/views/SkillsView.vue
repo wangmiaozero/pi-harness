@@ -2,7 +2,6 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  CheckCircle2,
   Download,
   Eye,
   FileEdit,
@@ -57,6 +56,7 @@ const query = ref('')
 const selectedPackageSource = ref<string | null>(null)
 const selectedCollectionId = ref<string | null>(null)
 const installKey = ref<string | null>(null)
+const removeKey = ref<string | null>(null)
 
 const deleteOpen = ref(false)
 const editorOpen = ref(false)
@@ -398,6 +398,57 @@ async function installPackages(key: string, packages: SkillMarketPackage[]) {
   }
 }
 
+function marketInstalledSource(pkg: SkillMarketPackage): string {
+  return (
+    store.packages.find((installed) => installed.source === pkg.source)?.source ??
+    store.packages.find((installed) => installed.name === pkg.name)?.source ??
+    pkg.source
+  )
+}
+
+async function removeMarketPackages(key: string, packages: SkillMarketPackage[]) {
+  const installedPackages = packages.filter((pkg) => pkg.installed)
+  const sources = [...new Set(installedPackages.map(marketInstalledSource))]
+  if (sources.length === 0) {
+    toast.success(t('skills.marketAlreadyRemoved'))
+    return
+  }
+
+  const confirmed = await askConfirm({
+    title: t('skills.removePackagesTitle', { count: sources.length }),
+    description: t('skills.removePackagesHint'),
+    confirmLabel: sources.length === 1 ? t('skills.removePackage') : t('skills.removeInstalled'),
+    tone: 'danger'
+  })
+  if (!confirmed) return
+
+  removeKey.value = key
+  try {
+    const results = await store.removePackages(sources)
+    const failures = results.filter((result) => !result.ok)
+    const removedCount = results.filter((result) => result.ok && !result.skipped).length
+    if (failures.length) {
+      toast.error(
+        t('skills.packageRemovePartial', {
+          removed: removedCount,
+          failed: failures.length,
+          name: failures[0].source
+        })
+      )
+    } else if (removedCount === 0) {
+      toast.success(t('skills.marketAlreadyRemoved'))
+    } else if (installedPackages.length === 1) {
+      toast.success(t('skills.packageRemoved', { name: installedPackages[0].name }))
+    } else {
+      toast.success(t('skills.packagesRemoved', { count: removedCount }))
+    }
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('skills.packageRemoveFailed'))
+  } finally {
+    removeKey.value = null
+  }
+}
+
 function askRemovePackage(pkg: PiPackageInfo) {
   removingPackage.value = pkg
   packageRemoveOpen.value = true
@@ -421,6 +472,18 @@ async function confirmRemovePackage() {
 
 function installedCount(collection: SkillMarketCollection): number {
   return collection.packages.filter((pkg) => pkg.installed).length
+}
+
+function hasMissingPackages(collection: SkillMarketCollection): boolean {
+  return installedCount(collection) < collection.packages.length
+}
+
+function isInstallDisabled(key: string): boolean {
+  return removeKey.value !== null || (installKey.value !== null && installKey.value !== key)
+}
+
+function isRemoveDisabled(key: string): boolean {
+  return installKey.value !== null || (removeKey.value !== null && removeKey.value !== key)
 }
 
 function marketCollectionTitle(collection: SkillMarketCollection): string {
@@ -866,25 +929,30 @@ function resourceGroups(pkg: PiPackageInfo) {
               </div>
               <div class="flex shrink-0 items-center gap-1.5">
                 <Button
-                  v-if="selectedCollection.kind === 'bundle'"
+                  v-if="
+                    selectedCollection.kind === 'bundle' && installedCount(selectedCollection) > 0
+                  "
+                  variant="danger"
+                  size="sm"
+                  :loading="removeKey === selectedCollection.id"
+                  :disabled="isRemoveDisabled(selectedCollection.id)"
+                  @click="removeMarketPackages(selectedCollection.id, selectedCollection.packages)"
+                >
+                  <Trash2 class="size-3.5" />
+                  {{ $t('skills.removeInstalled') }}
+                </Button>
+                <Button
+                  v-if="
+                    selectedCollection.kind === 'bundle' && hasMissingPackages(selectedCollection)
+                  "
                   variant="primary"
                   size="sm"
                   :loading="installKey === selectedCollection.id"
-                  :disabled="
-                    installedCount(selectedCollection) === selectedCollection.packages.length
-                  "
+                  :disabled="isInstallDisabled(selectedCollection.id)"
                   @click="installPackages(selectedCollection.id, selectedCollection.packages)"
                 >
-                  <CheckCircle2
-                    v-if="installedCount(selectedCollection) === selectedCollection.packages.length"
-                    class="size-3.5"
-                  />
-                  <Download v-else class="size-3.5" />
-                  {{
-                    installedCount(selectedCollection) === selectedCollection.packages.length
-                      ? $t('skills.allInstalled')
-                      : $t('skills.installMissing')
-                  }}
+                  <Download class="size-3.5" />
+                  {{ $t('skills.installMissing') }}
                 </Button>
               </div>
             </div>
@@ -928,13 +996,23 @@ function resourceGroups(pkg: PiPackageInfo) {
                       variant="secondary"
                       size="sm"
                       :loading="installKey === pkg.source"
-                      :disabled="installKey !== null"
+                      :disabled="isInstallDisabled(pkg.source)"
                       @click="installPackages(pkg.source, [pkg])"
                     >
                       <Download class="size-3.5" />
                       {{ $t('skills.install') }}
                     </Button>
-                    <CheckCircle2 v-else class="size-4 shrink-0 text-[var(--success)]" />
+                    <Button
+                      v-else
+                      variant="danger"
+                      size="sm"
+                      :loading="removeKey === pkg.source"
+                      :disabled="isRemoveDisabled(pkg.source)"
+                      @click="removeMarketPackages(pkg.source, [pkg])"
+                    >
+                      <Trash2 class="size-3.5" />
+                      {{ $t('skills.removePackage') }}
+                    </Button>
                   </div>
                 </div>
               </InspectorSection>

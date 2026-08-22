@@ -3,7 +3,7 @@
  * Renderer never sees ipcRenderer or channel strings.
  */
 
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import { IPC_EVENT, IPC_INVOKE } from '../shared/ipc/channels'
 import type { PiSwitchAPI, IpcEventListener } from '../shared/ipc/api-types'
 import type { AppErrorPayload } from '../shared/types/errors'
@@ -14,12 +14,13 @@ type IpcResult<T> = { ok: true; data: T } | { ok: false; error: AppErrorPayload 
 async function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, ...args)) as IpcResult<T>
   if (!result || typeof result !== 'object' || !('ok' in result)) {
-    throw Object.assign(new Error('Malformed IPC response'), {
-      payload: { code: 'IPC_ERROR', message: 'Malformed IPC response' } satisfies AppErrorPayload
-    })
+    throw { code: 'IPC_ERROR', message: 'Malformed IPC response' } satisfies AppErrorPayload
   }
   if (!result.ok) {
-    throw Object.assign(new Error(result.error.message), { payload: result.error })
+    // contextBridge preserves structured-cloneable objects, but strips custom
+    // properties attached to Error instances. Reject with the typed payload so
+    // renderer conflict/error handling receives the original error code.
+    throw result.error
   }
   return result.data
 }
@@ -77,6 +78,7 @@ const api: PiSwitchAPI = {
     packages: () => invoke(IPC_INVOKE.skillsPackages),
     market: () => invoke(IPC_INVOKE.skillsMarket),
     installPackages: (sources) => invoke(IPC_INVOKE.skillsInstallPackages, sources),
+    removePackages: (sources) => invoke(IPC_INVOKE.skillsRemovePackages, sources),
     removePackage: (source) => invoke(IPC_INVOKE.skillsRemovePackage, source),
     read: (path) => invoke(IPC_INVOKE.skillRead, path),
     create: (form) => invoke(IPC_INVOKE.skillCreate, form),
@@ -119,10 +121,62 @@ const api: PiSwitchAPI = {
     maximizeToggle: () => invoke(IPC_INVOKE.windowMaximizeToggle),
     close: () => invoke(IPC_INVOKE.windowClose)
   },
+  workspace: {
+    listProjects: () => invoke(IPC_INVOKE.workspaceListProjects),
+    pickDirectory: () => invoke(IPC_INVOKE.workspacePickDirectory),
+    allowRoot: (root) => invoke(IPC_INVOKE.workspaceAllowRoot, { root }),
+    projectContextMenu: (projectKey, projectRoot, isPinned, locale) =>
+      invoke(IPC_INVOKE.workspaceProjectContextMenu, {
+        projectKey,
+        projectRoot,
+        isPinned,
+        locale
+      }),
+    getPathForFile: (file) => webUtils.getPathForFile(file as never)
+  },
+  sessions: {
+    list: (force) => invoke(IPC_INVOKE.sessionList, force),
+    get: (sessionId) => invoke(IPC_INVOKE.sessionGet, sessionId),
+    rename: (sessionId, name) => invoke(IPC_INVOKE.sessionRename, { sessionId, name }),
+    delete: (sessionId) => invoke(IPC_INVOKE.sessionDelete, sessionId),
+    context: (sessionId, leafId) => invoke(IPC_INVOKE.sessionContext, { sessionId, leafId }),
+    export: (sessionId, format) => invoke(IPC_INVOKE.sessionExport, { sessionId, format }),
+    viewFullHistory: (sessionId) => invoke(IPC_INVOKE.sessionViewHistory, sessionId),
+    contextMenu: (sessionId, isWorktree, isPinned, locale) =>
+      invoke(IPC_INVOKE.sessionContextMenu, { sessionId, isWorktree, isPinned, locale })
+  },
+  agent: {
+    start: (input) => invoke(IPC_INVOKE.agentStart, input),
+    prompt: (input) => invoke(IPC_INVOKE.agentPrompt, input),
+    abort: (sessionId) => invoke(IPC_INVOKE.agentAbort, sessionId),
+    state: (sessionId) => invoke(IPC_INVOKE.agentState, sessionId),
+    running: () => invoke(IPC_INVOKE.agentRunning),
+    command: (sessionId, command) => invoke(IPC_INVOKE.agentCommand, { sessionId, ...command })
+  },
+  files: {
+    list: (directory) => invoke(IPC_INVOKE.filesList, directory),
+    read: (path) => invoke(IPC_INVOKE.filesRead, path),
+    write: (path, text, expectedRevision, overwrite) =>
+      invoke(IPC_INVOKE.filesWrite, { path, text, expectedRevision, overwrite }),
+    upload: (directory, fileName, dataBase64, overwrite) =>
+      invoke(IPC_INVOKE.filesUpload, { directory, fileName, dataBase64, overwrite })
+  },
+  git: {
+    status: (cwd) => invoke(IPC_INVOKE.gitStatus, cwd),
+    diff: (cwd, filePath) => invoke(IPC_INVOKE.gitDiff, { cwd, filePath })
+  },
+  worktrees: {
+    list: (cwd) => invoke(IPC_INVOKE.worktreeList, cwd),
+    create: (cwd, branch) => invoke(IPC_INVOKE.worktreeCreate, { cwd, branch }),
+    remove: (cwd, worktreePath, force) =>
+      invoke(IPC_INVOKE.worktreeRemove, { cwd, worktreePath, force })
+  },
   on(event, listener) {
     if (event === 'config-changed') return onEvent(IPC_EVENT.configChanged, listener)
     if (event === 'pi-environment-changed') return onEvent(IPC_EVENT.piEnvironmentChanged, listener)
     if (event === 'notification') return onEvent(IPC_EVENT.notification, listener)
+    if (event === 'agent-event') return onEvent(IPC_EVENT.agentEvent, listener)
+    if (event === 'agent-running') return onEvent(IPC_EVENT.agentRunning, listener)
     return () => {}
   }
 }

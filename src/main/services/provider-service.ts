@@ -19,7 +19,7 @@ import {
 import { randomBytes } from 'node:crypto'
 import type { ConnectionTestResult } from '@shared/ipc/api-types'
 import { getProtocol } from '@shared/constants/protocols'
-import { log } from '../services/logger'
+import { log, redactSecretText } from '../services/logger'
 import { normalizeProviderBaseUrl } from '@shared/utils/base-url'
 import type { PiProviderConfig } from '@shared/types/pi'
 
@@ -373,8 +373,7 @@ export class ProviderService {
     await this.metadata.update({ providers: providersMeta })
 
     if (enabled) {
-      const modelId =
-        current.defaultModelId?.trim() || (await this.firstModelId(key)) || null
+      const modelId = current.defaultModelId?.trim() || (await this.firstModelId(key)) || null
       if (modelId) {
         try {
           await this.config.setActiveModel(key, modelId, {
@@ -451,7 +450,7 @@ export class ProviderService {
         status: 'auth_error',
         httpStatus: null,
         latencyMs: Date.now() - started,
-        message: `Credential resolve failed: ${(err as Error).message}`,
+        message: `Credential resolve failed: ${redactSecretText((err as Error).message)}`,
         ...base
       }
     }
@@ -474,7 +473,7 @@ export class ProviderService {
       apiKey,
       provider.authHeader
     )
-    base.endpoint = probe.url
+    base.endpoint = redactSecretText(probe.url)
 
     const headers: Record<string, string> = {
       ...provider.headers,
@@ -565,7 +564,7 @@ export class ProviderService {
         status: 'network_error',
         httpStatus: null,
         latencyMs,
-        message: (err as Error).message,
+        message: redactSecretText((err as Error).message),
         ...base
       }
     } finally {
@@ -683,11 +682,11 @@ function summarizeErrorBody(text: string): string {
       message?: string
     }
     const msg = json.error?.message ?? json.message
-    if (msg) return String(msg).slice(0, 240)
+    if (msg) return redactSecretText(String(msg).slice(0, 240))
   } catch {
     // not JSON
   }
-  return trimmed.replace(/\s+/g, ' ').slice(0, 240)
+  return redactSecretText(trimmed.replace(/\s+/g, ' ').slice(0, 240))
 }
 
 function extractApiError(text: string): string | null {

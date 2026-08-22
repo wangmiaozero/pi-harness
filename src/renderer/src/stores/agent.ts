@@ -1,0 +1,439 @@
+import { defineStore } from 'pinia'
+import { ref, shallowRef } from 'vue'
+import type {
+  AgentEvent,
+  AgentImageAttachment,
+  AgentMessage,
+  AgentStateSnapshot,
+  ImageContent,
+  SessionDetail,
+  SessionStats,
+  TextContent,
+  ToolEntry
+} from '@shared/types/workspace'
+import {
+  INITIAL_STREAMING_STATE,
+  streamReducer,
+  type StreamingState
+} from '@shared/workspace/streaming-message'
+import { normalizeToolCalls } from '@shared/workspace/normalize'
+import type { ClientAssistantMessageEvent } from '@shared/workspace/agent-event-wire'
+import { callApi, getApi } from '@renderer/composables/useApi'
+import {
+  getPresetFromTools,
+  getToolNamesForPreset,
+  type ToolPreset
+} from '@shared/workspace/tool-presets'
+import { useSessionStore } from './sessions'
+
+export const useAgentStore = defineStore('agent', () => {
+  const messages = shallowRef<AgentMessage[]>([])
+  const entryIds = shallowRef<string[]>([])
+  const entryParents = shallowRef<Record<string, string | null>>({})
+  const streaming = shallowRef<StreamingState>(INITIAL_STREAMING_STATE)
+  const state = shallowRef<AgentStateSnapshot | null>(null)
+  const runningIds = ref<string[]>([])
+  const tools = shallowRef<ToolEntry[]>([])
+  const thinkingLevel = ref('auto')
+  const sessionStats = shallowRef<SessionStats | null>(null)
+  const completionCount = ref(0)
+  const error = ref<string | null>(null)
+  const sending = ref(false)
+  let loadedDetail: SessionDetail | null = null
+  let loadedStatsOverride: Partial<SessionStats> | null = null
+  let loadedSessionId: string | null = null
+  const transientSessionIds = new Set<string>()
+  let unsubEvent: (() => void) | null = null
+  let unsubRunning: (() => void) | null = null
+
+  function setupListeners() {
+    unsubEvent?.()
+    unsubRunning?.()
+    unsubEvent = getApi().on('agent-event', (payload) => {
+      const body = payload as { sessionId?: string; event?: AgentEvent }
+      if (!body.sessionId || !body.event) return
+      if (body.event.type === 'agent_end') void syncPersistedSession(body.sessionId)
+      if (body.sessionId !== loadedSessionId) return
+      if (body.event.type === 'prompt_done') completionCount.value += 1
+      applyEvent(body.event)
+    })
+    unsubRunning = getApi().on('agent-running', (payload) => {
+      const body = payload as { ids?: string[] }
+      runningIds.value = body.ids ?? []
+    })
+    return () => {
+      unsubEvent?.()
+      unsubRunning?.()
+    }
+  }
+
+  function applyEvent(event: AgentEvent) {
+    switch (event.type) {
+      case 'agent_start':
+        streaming.value = streamReducer(streaming.value, { type: 'start' })
+        break
+      case 'message_start': {
+        const msg = event.message as AgentMessage | undefined
+        if (msg?.role === 'assistant') {
+          streaming.value = streamReducer(streaming.value, { type: 'snapshot', message: msg })
+        }
+        break
+      }
+      case 'message_update': {
+        const delta = event.assistantMessageEvent as ClientAssistantMessageEvent | undefined
+        if (delta) streaming.value = streamReducer(streaming.value, { type: 'delta', event: delta })
+        break
+      }
+      case 'message_end': {
+        const completed = event.message as AgentMessage | undefined
+        if (completed && completed.role !== 'user') {
+          messages.value = [...messages.value, normalizeToolCalls(completed)]
+        } else if (completed?.role === 'user') {
+          const last = messages.value.at(-1)
+          if (!(last?.role === 'user' && userText(last) === userText(completed))) {
+            messages.value = [...messages.value, completed]
+          }
+        }
+        loadedStatsOverride = null
+        refreshLocalStats()
+        streaming.value = streamReducer(streaming.value, { type: 'end' })
+        break
+      }
+      case 'prompt_error':
+        error.value = String(event.errorMessage ?? 'Agent error')
+        streaming.value = streamReducer(streaming.value, { type: 'end' })
+        break
+      case 'compaction_start':
+      case 'auto_compaction_start':
+      case 'compaction_end':
+      case 'auto_compaction_end':
+      case 'agent_end':
+      case 'agent_settled':
+        void reconcile(loadedSessionId)
+        break
+      default:
+        break
+    }
+  }
+
+  async function load(sessionId: string | null) {
+    loadedSessionId = sessionId
+    error.value = null
+    streaming.value = INITIAL_STREAMING_STATE
+    if (!sessionId) {
+      messages.value = []
+      entryIds.value = []
+      entryParents.value = {}
+      state.value = null
+      tools.value = []
+      sessionStats.value = null
+      loadedDetail = null
+      loadedStatsOverride = null
+      thinkingLevel.value = 'auto'
+      return
+    }
+    if (transientSessionIds.has(sessionId)) {
+      await reconcile(sessionId)
+      return
+    }
+    const detail = await callApi(() => getApi().sessions.get(sessionId))
+    loadedDetail = detail
+    loadedStatsOverride = null
+    messages.value = detail.context.messages
+    entryIds.value = detail.context.entryIds
+    entryParents.value = detail.context.entryParents ?? {}
+    thinkingLevel.value = detail.context.thinkingLevel
+    refreshLocalStats()
+    await reconcile(sessionId)
+  }
+
+  async function reconcile(sessionId: string | null) {
+    if (!sessionId) return
+    try {
+      let snap = await callApi(() => getApi().agent.state(sessionId))
+      runningIds.value = await callApi(() => getApi().agent.running())
+      try {
+        const listed = (await callApi(() =>
+          getApi().agent.command(sessionId, { type: 'get_tools' })
+        )) as ToolEntry[]
+        tools.value = listed
+        const stats = (await callApi(() =>
+          getApi().agent.command(sessionId, { type: 'get_session_stats' })
+        )) as Partial<SessionStats>
+        loadedStatsOverride = stats
+        sessionStats.value = deriveSessionStats(
+          sessionId,
+          messages.value,
+          loadedDetail,
+          loadedStatsOverride
+        )
+        if (!snap) snap = await callApi(() => getApi().agent.state(sessionId))
+      } catch {
+        /* session may not be live yet */
+      }
+      state.value = snap
+      if (snap?.isStreaming) {
+        streaming.value = { ...streaming.value, isStreaming: true }
+      } else if (!snap?.isPromptRunning) {
+        streaming.value = INITIAL_STREAMING_STATE
+      }
+      if (snap?.thinkingLevel) thinkingLevel.value = snap.thinkingLevel
+    } catch {
+      state.value = null
+    }
+  }
+
+  async function send(
+    sessionId: string | null,
+    cwd: string | null,
+    message: string,
+    preset: ToolPreset,
+    images: AgentImageAttachment[] = []
+  ) {
+    if (!message.trim() && !images.length) return
+    sending.value = true
+    error.value = null
+    const imageBlocks: ImageContent[] = images.map((image) => ({
+      type: 'image',
+      source: { type: 'base64', media_type: image.mimeType, data: image.data }
+    }))
+    const textBlocks: TextContent[] = message.trim() ? [{ type: 'text', text: message }] : []
+    const optimistic: AgentMessage = {
+      role: 'user',
+      content: imageBlocks.length ? [...textBlocks, ...imageBlocks] : message,
+      timestamp: Date.now()
+    }
+    messages.value = [...messages.value, optimistic]
+    let createdSessionId: string | null = null
+    try {
+      if (!sessionId) {
+        if (!cwd) throw new Error('No project cwd')
+        const started = await callApi(() =>
+          getApi().agent.start({
+            cwd,
+            toolNames: getToolNamesForPreset(preset),
+            ...(thinkingLevel.value !== 'auto' ? { thinkingLevel: thinkingLevel.value } : {})
+          })
+        )
+        loadedSessionId = started.sessionId
+        transientSessionIds.add(started.sessionId)
+        createdSessionId = started.sessionId
+        useSessionStore().addTransientSession(
+          started.sessionId,
+          started.cwd,
+          message.trim() || '[image]'
+        )
+        await callApi(() =>
+          getApi().agent.prompt({
+            sessionId: started.sessionId,
+            message,
+            ...(images.length ? { images } : {})
+          })
+        )
+        return started.sessionId
+      }
+      const snap = await callApi(() => getApi().agent.state(sessionId))
+      if (snap?.isStreaming || snap?.isPromptRunning) {
+        await callApi(() =>
+          getApi().agent.prompt({
+            sessionId,
+            message,
+            streamingBehavior: 'followUp',
+            ...(images.length ? { images } : {})
+          })
+        )
+      } else {
+        await callApi(() => getApi().agent.start({ sessionId }))
+        await callApi(() =>
+          getApi().agent.prompt({ sessionId, message, ...(images.length ? { images } : {}) })
+        )
+      }
+      return sessionId
+    } catch (e) {
+      error.value = (e as { message?: string }).message ?? String(e)
+      messages.value = messages.value.slice(0, -1)
+      if (createdSessionId) {
+        transientSessionIds.delete(createdSessionId)
+        useSessionStore().removeTransientSession(createdSessionId)
+      }
+      return sessionId
+    } finally {
+      sending.value = false
+    }
+  }
+
+  async function abort(sessionId: string) {
+    await callApi(() => getApi().agent.abort(sessionId))
+  }
+
+  async function compact(sessionId: string) {
+    error.value = null
+    try {
+      return (await callApi(() => getApi().agent.command(sessionId, { type: 'compact' }))) as {
+        cancelled?: boolean
+        reason?: 'session-too-small' | 'already-compacted'
+      } | null
+    } catch (e) {
+      error.value = (e as { message?: string }).message ?? String(e)
+      return null
+    }
+  }
+
+  async function syncPersistedSession(sessionId: string) {
+    const sessions = useSessionStore()
+    await sessions.refresh(true)
+    if (!sessions.items.some((session) => session.id === sessionId && !session.transient)) return
+    transientSessionIds.delete(sessionId)
+    if (loadedSessionId === sessionId) await load(sessionId)
+  }
+
+  async function setThinking(sessionId: string, level: string) {
+    thinkingLevel.value = level
+    if (level === 'auto') return
+    await callApi(() => getApi().agent.command(sessionId, { type: 'set_thinking_level', level }))
+  }
+
+  async function setTools(sessionId: string, preset: ToolPreset) {
+    await callApi(() =>
+      getApi().agent.command(sessionId, {
+        type: 'set_tools',
+        toolNames: getToolNamesForPreset(preset)
+      })
+    )
+    tools.value = (await callApi(() =>
+      getApi().agent.command(sessionId, { type: 'get_tools' })
+    )) as ToolEntry[]
+  }
+
+  async function setModel(sessionId: string, provider: string, modelId: string) {
+    await callApi(() => getApi().agent.command(sessionId, { type: 'set_model', provider, modelId }))
+  }
+
+  async function navigate(sessionId: string, targetId: string) {
+    await callApi(() => getApi().agent.command(sessionId, { type: 'navigate_tree', targetId }))
+    await load(sessionId)
+  }
+
+  async function fork(sessionId: string, entryId: string) {
+    const result = (await callApi(() =>
+      getApi().agent.command(sessionId, { type: 'fork', entryId })
+    )) as { cancelled?: boolean; newSessionId?: string }
+    return result
+  }
+
+  const activePreset = () => getPresetFromTools(tools.value)
+
+  function refreshLocalStats() {
+    if (!loadedSessionId) {
+      sessionStats.value = null
+      return
+    }
+    sessionStats.value = deriveSessionStats(
+      loadedSessionId,
+      messages.value,
+      loadedDetail,
+      loadedStatsOverride ?? undefined
+    )
+  }
+
+  return {
+    messages,
+    entryIds,
+    entryParents,
+    streaming,
+    state,
+    runningIds,
+    tools,
+    thinkingLevel,
+    sessionStats,
+    completionCount,
+    error,
+    sending,
+    setupListeners,
+    load,
+    reconcile,
+    send,
+    abort,
+    compact,
+    setThinking,
+    setTools,
+    setModel,
+    navigate,
+    fork,
+    activePreset
+  }
+})
+
+function userText(message: AgentMessage): string {
+  if (message.role !== 'user') return ''
+  return typeof message.content === 'string'
+    ? message.content
+    : message.content
+        .filter((b) => b.type === 'text')
+        .map((b) => (b.type === 'text' ? b.text : ''))
+        .join('\n')
+}
+
+function deriveSessionStats(
+  sessionId: string,
+  messages: AgentMessage[],
+  detail: SessionDetail | null,
+  raw?: Partial<SessionStats>
+): SessionStats {
+  const fallback = {
+    userMessages: 0,
+    assistantMessages: 0,
+    toolCalls: 0,
+    toolResults: 0,
+    tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+    cost: 0
+  }
+  for (const message of messages) {
+    if (message.role === 'user') fallback.userMessages += 1
+    if (message.role === 'toolResult') fallback.toolResults += 1
+    if (message.role !== 'assistant') continue
+    fallback.assistantMessages += 1
+    fallback.toolCalls += message.content.filter((block) => block.type === 'toolCall').length
+    const usage = message.usage
+    if (!usage) continue
+    fallback.tokens.input += usage.input ?? 0
+    fallback.tokens.output += usage.output ?? 0
+    fallback.tokens.cacheRead += usage.cacheRead ?? 0
+    fallback.tokens.cacheWrite += usage.cacheWrite ?? 0
+    fallback.cost += usage.cost?.total ?? 0
+  }
+  fallback.tokens.total =
+    fallback.tokens.input +
+    fallback.tokens.output +
+    fallback.tokens.cacheRead +
+    fallback.tokens.cacheWrite
+
+  const rawTokens = raw?.tokens
+  const numberOr = (value: unknown, defaultValue: number) =>
+    typeof value === 'number' && Number.isFinite(value) ? value : defaultValue
+  const tokens = {
+    input: numberOr(rawTokens?.input, fallback.tokens.input),
+    output: numberOr(rawTokens?.output, fallback.tokens.output),
+    cacheRead: numberOr(rawTokens?.cacheRead, fallback.tokens.cacheRead),
+    cacheWrite: numberOr(rawTokens?.cacheWrite, fallback.tokens.cacheWrite),
+    total: 0
+  }
+  tokens.total = numberOr(
+    rawTokens?.total,
+    tokens.input + tokens.output + tokens.cacheRead + tokens.cacheWrite
+  )
+
+  return {
+    sessionFile: raw?.sessionFile || detail?.filePath || undefined,
+    sessionId: raw?.sessionId || sessionId,
+    sessionName: raw?.sessionName || detail?.info?.name || undefined,
+    userMessages: numberOr(raw?.userMessages, fallback.userMessages),
+    assistantMessages: numberOr(raw?.assistantMessages, fallback.assistantMessages),
+    toolCalls: numberOr(raw?.toolCalls, fallback.toolCalls),
+    toolResults: numberOr(raw?.toolResults, fallback.toolResults),
+    totalMessages: numberOr(raw?.totalMessages, messages.length),
+    tokens,
+    cost: numberOr(raw?.cost, fallback.cost),
+    totalActiveMs: numberOr(raw?.totalActiveMs, detail?.totalActiveMs ?? 0)
+  }
+}

@@ -242,13 +242,60 @@ export class SkillsService {
     if (!installed.some((pkg) => pkg.source === normalized)) {
       throw new ValidationError(`Package is not installed: ${normalized}`)
     }
+    return this.executePackageRemoval(normalized)
+  }
+
+  /** Remove multiple configured Pi packages, continuing after individual failures. */
+  async removePackages(sources: string[]): Promise<PiPackageActionResult[]> {
+    const unique = [...new Set(sources.map((source) => source.trim()).filter(Boolean))]
+    if (unique.length === 0 || unique.length > 50) {
+      throw new ValidationError('Choose between 1 and 50 packages to remove.')
+    }
+    unique.forEach(assertPackageSource)
+
+    const installed = new Set((await this.listPackages()).map((pkg) => pkg.source))
+    const results: PiPackageActionResult[] = []
+    for (const source of unique) {
+      if (!installed.has(source)) {
+        results.push({
+          source,
+          ok: true,
+          skipped: true,
+          message: 'Already removed',
+          stdout: '',
+          stderr: ''
+        })
+        continue
+      }
+      try {
+        const result = await this.executePackageRemoval(source)
+        results.push(result)
+        if (result.ok) installed.delete(source)
+      } catch (err) {
+        results.push({
+          source,
+          ok: false,
+          skipped: false,
+          message: (err as Error).message,
+          stdout: '',
+          stderr: ''
+        })
+      }
+    }
+    log.skills.info(
+      `package removal finished: ${results.filter((result) => result.ok).length}/${results.length}`
+    )
+    return results
+  }
+
+  private async executePackageRemoval(source: string): Promise<PiPackageActionResult> {
     const result = await piProcess.exec({
-      args: ['remove', normalized, '--no-approve'],
+      args: ['remove', source, '--no-approve'],
       timeoutMs: 5 * 60_000
     })
     const ok = result.exitCode === 0
     return {
-      source: normalized,
+      source,
       ok,
       skipped: false,
       message: ok ? 'Removed' : `Remove failed (exit ${result.exitCode})`,

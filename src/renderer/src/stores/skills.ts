@@ -111,6 +111,12 @@ export const useSkillsStore = defineStore('skills', () => {
     return results
   }
 
+  async function removePackages(sources: string[]): Promise<PiPackageActionResult[]> {
+    const results = await callApi(() => getApi().skills.removePackages(sources))
+    await refresh()
+    return results
+  }
+
   async function removePackage(source: string): Promise<PiPackageActionResult> {
     const result = await callApi(() => getApi().skills.removePackage(source))
     await refresh()
@@ -133,6 +139,7 @@ export const useSkillsStore = defineStore('skills', () => {
     loadDetail,
     remove,
     installPackages,
+    removePackages,
     removePackage
   }
 })

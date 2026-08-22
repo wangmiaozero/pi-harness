@@ -2,7 +2,7 @@
  * IPC handler registration — all channels validated; errors become AppErrorPayload.
  */
 
-import { BrowserWindow, ipcMain, shell, clipboard, app } from 'electron'
+import { BrowserWindow, ipcMain as electronIpcMain, shell, clipboard, app } from 'electron'
 import { IPC_EVENT, IPC_INVOKE } from '@shared/ipc/channels'
 import { toErrorPayload } from '../services/errors'
 import { log } from '../services/logger'
@@ -21,8 +21,10 @@ import { piInstall } from '../pi/install-service'
 import { logFilePath } from '../services/app-paths'
 import { readTextFile } from '../services/storage'
 import { testConnectionSchema, skillFormSchema, skillImportSchema } from '@shared/schemas/domain'
-import { ValidationError } from '../services/errors'
+import { SecurityError, ValidationError } from '../services/errors'
 import { checkForUpdates, downloadUpdate, installUpdate } from '../updater'
+import { registerWorkspaceIpc, type WorkspaceServices } from './register-workspace'
+import { createTrustedIpcMain } from './trusted-ipc'
 
 export interface Services {
   settingsStore: JsonStore<AppSettings>
@@ -33,6 +35,8 @@ export interface Services {
   backup: BackupService
   skills: SkillsService
   diagnostics: DiagnosticsService
+  workspace: WorkspaceServices
+  getMainWindow: () => BrowserWindow | null
 }
 
 function wrap<T>(
@@ -50,6 +54,11 @@ function wrap<T>(
 export function registerIpc(services: Services): void {
   const { settingsStore, uiStateStore, config, providers, models, backup, skills, diagnostics } =
     services
+  const ipcMain = createTrustedIpcMain(electronIpcMain, services.getMainWindow, () =>
+    wrap(async () => {
+      throw new SecurityError('Untrusted IPC sender')
+    })
+  )
 
   // ---- system ----
   ipcMain.handle(IPC_INVOKE.systemInfo, () =>
@@ -193,6 +202,14 @@ export function registerIpc(services: Services): void {
       return skills.installPackages(sources)
     })
   )
+  ipcMain.handle(IPC_INVOKE.skillsRemovePackages, (_e, sources: unknown) =>
+    wrap(() => {
+      if (!Array.isArray(sources) || !sources.every((source) => typeof source === 'string')) {
+        throw new ValidationError('Invalid package sources')
+      }
+      return skills.removePackages(sources)
+    })
+  )
   ipcMain.handle(IPC_INVOKE.skillsRemovePackage, (_e, source: unknown) =>
     wrap(() => {
       if (typeof source !== 'string') throw new ValidationError('Invalid package source')
@@ -308,6 +325,8 @@ export function registerIpc(services: Services): void {
       BrowserWindow.fromWebContents(e.sender)?.close()
     })
   )
+
+  registerWorkspaceIpc(ipcMain, wrap, services.workspace)
 
   void app
 }

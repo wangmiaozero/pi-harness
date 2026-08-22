@@ -18,6 +18,13 @@ import { registerIpc, broadcastConfigChanged } from './ipc/register'
 import { createMainWindow } from './window/create-window'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
+import { FileAccessService } from './files/file-access-service'
+import { FileService } from './files/file-service'
+import { GitService } from './git/git-service'
+import { WorktreeService } from './git/worktree-service'
+import { SessionService } from './sessions/session-service'
+import { SessionExportService } from './sessions/session-export-service'
+import { AgentRuntimeService } from './agent/agent-runtime-service'
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'zh-CN',
@@ -28,7 +35,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   manualConfigDir: null,
   autoBackup: true,
   backupRetention: 20,
-  developerMode: false
+  developerMode: false,
+  defaultToolPreset: 'default',
+  restoreTabs: true,
+  autoOpenLastProject: true
 }
 
 app.setName(APP_NAME)
@@ -54,6 +64,10 @@ async function bootstrap(): Promise<void> {
   app.on('web-contents-created', (_event, contents) => {
     contents.on('will-attach-webview', (e) => e.preventDefault())
     contents.setWindowOpenHandler(() => ({ action: 'deny' }))
+    contents.session.setPermissionCheckHandler(() => false)
+    contents.session.setPermissionRequestHandler((_webContents, _permission, callback) => {
+      callback(false)
+    })
   })
 
   const settingsStore = new JsonStore<AppSettings>(appSettingsPath(), DEFAULT_SETTINGS)
@@ -77,6 +91,23 @@ async function bootstrap(): Promise<void> {
   const skills = new SkillsService(settingsStore)
   const diagnostics = new DiagnosticsService(settingsStore, config)
 
+  const access = new FileAccessService()
+  const worktrees = new WorktreeService(access)
+  const sessions = new SessionService(settingsStore, worktrees, access)
+  access.attachSessionLister(() => sessions.list())
+  const files = new FileService(access)
+  const git = new GitService(access)
+  const sessionExport = new SessionExportService(sessions)
+  const agent = new AgentRuntimeService(sessions)
+  diagnostics.attachWorkspace({
+    sessions,
+    agent,
+    access
+  })
+
+  let mainWindow: BrowserWindow | null = null
+  agent.attachWindow(() => mainWindow)
+
   registerIpc({
     settingsStore,
     uiStateStore,
@@ -85,10 +116,12 @@ async function bootstrap(): Promise<void> {
     models,
     backup,
     skills,
-    diagnostics
+    diagnostics,
+    workspace: { access, files, git, worktrees, sessions, sessionExport, agent },
+    getMainWindow: () => mainWindow
   })
 
-  let mainWindow: BrowserWindow | null = createMainWindow()
+  mainWindow = createMainWindow()
 
   config.startWatcher(() => {
     broadcastConfigChanged(mainWindow)
@@ -106,6 +139,7 @@ async function bootstrap(): Promise<void> {
 
   app.on('before-quit', () => {
     config.stopWatcher()
+    void agent.shutdownAll()
   })
 
   app.on('second-instance', () => {

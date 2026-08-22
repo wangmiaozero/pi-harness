@@ -4,7 +4,7 @@ import { computed } from 'vue'
 /* Compact icon button. Square 28×28 by default; pass showLabel to render the
  * accessible name next to the icon so row actions are readable without hover. */
 
-type Variant = 'default' | 'danger'
+type Variant = 'default' | 'accent' | 'danger'
 
 const props = withDefaults(
   defineProps<{
@@ -24,30 +24,38 @@ const props = withDefaults(
 )
 
 const classes = computed(() => {
-  const sizing = props.showLabel
-    ? 'h-6 px-1 gap-0.5 text-[11px] font-medium'
-    : 'size-7'
+  const sizing = props.showLabel ? 'h-6 px-1 gap-0.5 text-[11px] font-medium' : 'size-7'
   const base =
     'inline-flex items-center justify-center rounded-[var(--radius-sm)] ' +
     sizing +
-    ' transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] ' +
+    ' transition-[color,background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] ' +
     'focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] ' +
     'disabled:opacity-40 disabled:pointer-events-none'
 
   if (props.active) {
-    return base + ' bg-[var(--accent-tint)] text-[var(--accent)]'
+    return (
+      base +
+      ' border border-[var(--accent-border)] bg-[var(--accent-tint-strong)] text-[var(--accent)]'
+    )
   }
 
   if (props.variant === 'danger') {
     return (
       base +
-      ' bg-transparent text-[var(--text-tertiary)] hover:text-[var(--error)] hover:bg-[var(--error-tint)]'
+      ' border border-transparent bg-transparent text-[var(--text-tertiary)] hover:border-[var(--error)] hover:text-[var(--error)] hover:bg-[var(--error-tint)] active:bg-[var(--error-tint)]'
+    )
+  }
+
+  if (props.variant === 'accent') {
+    return (
+      base +
+      ' border border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)] hover:bg-[var(--accent-tint-strong)] active:bg-[var(--bg-selected)]'
     )
   }
 
   return (
     base +
-    ' bg-transparent text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+    ' border border-transparent bg-transparent text-[var(--text-tertiary)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] active:border-[var(--accent-border)] active:bg-[var(--accent-tint-strong)] active:text-[var(--accent)]'
   )
 })
 </script>

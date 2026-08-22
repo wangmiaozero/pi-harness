@@ -3,14 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="author" content="wangmiao" />
+    <meta name="pi-harness-author-watermark" content="wangmiao" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; frame-src 'self' blob:;"
     />
     <title>Pi-Harness</title>
   </head>
   <body>
     <div id="app"></div>
+    <span id="pi-harness-author-watermark" hidden aria-hidden="true">wangmiao</span>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

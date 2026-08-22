@@ -65,6 +65,15 @@ const commands = computed<PaletteCommand[]>(() => {
       }
     },
     {
+      id: 'nav-workspace',
+      label: t('palette.goWorkspace'),
+      group: t('palette.groupNav'),
+      keywords: 'chat session agent',
+      run: () => {
+        void router.push('/workspace')
+      }
+    },
+    {
       id: 'nav-providers',
       label: t('palette.goProviders'),
       group: t('palette.groupNav'),
@@ -112,6 +121,31 @@ const commands = computed<PaletteCommand[]>(() => {
       keywords: 'preferences',
       run: () => {
         void router.push('/settings')
+      }
+    },
+    {
+      id: 'workspace-new-session',
+      label: t('palette.newSession'),
+      group: t('palette.groupActions'),
+      keywords: 'chat',
+      run: () => {
+        void router.push('/workspace')
+      }
+    },
+    {
+      id: 'workspace-abort',
+      label: t('palette.abortAgent'),
+      group: t('palette.groupActions'),
+      run: () => {
+        window.dispatchEvent(new CustomEvent('pi-harness:abort-agent'))
+      }
+    },
+    {
+      id: 'workspace-compact',
+      label: t('palette.compactSession'),
+      group: t('palette.groupActions'),
+      run: () => {
+        window.dispatchEvent(new CustomEvent('pi-harness:compact-session'))
       }
     },
     {
