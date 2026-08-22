@@ -101,12 +101,25 @@ const selectedProviderPreset = computed(() =>
     baseUrl: selectedProvider.value?.baseUrl
   })
 )
+const conflictingModelIds = computed(
+  () =>
+    new Set(
+      modelsStore.items
+        .filter(
+          (model) => model.providerId === form.value.providerId && model.id !== editingId.value
+        )
+        .map((model) => model.modelId)
+    )
+)
+const modelIdConflict = computed(() => conflictingModelIds.value.has(form.value.modelId.trim()))
 const modelPresetOptions = computed(() =>
-  (selectedProviderPreset.value?.models ?? []).map((model) => ({
-    value: model.id,
-    label: model.name,
-    hint: model.contextWindow ? model.contextWindow.toLocaleString() : undefined
-  }))
+  (selectedProviderPreset.value?.models ?? [])
+    .filter((model) => !conflictingModelIds.value.has(model.id))
+    .map((model) => ({
+      value: model.id,
+      label: model.name,
+      hint: model.contextWindow ? model.contextWindow.toLocaleString() : undefined
+    }))
 )
 
 function selectModelPreset(modelId: string) {
@@ -273,6 +286,10 @@ async function resolveProviderIdForSave(): Promise<string | null> {
 }
 
 async function save() {
+  if (modelIdConflict.value) {
+    toast.error(t('models.modelExists', { id: form.value.modelId.trim() }))
+    return
+  }
   saving.value = true
   try {
     const providerId = await resolveProviderIdForSave()
@@ -704,6 +721,9 @@ onMounted(() => {
             :label="$t('models.fieldModelId')"
             :placeholder="$t('models.modelIdPlaceholder')"
             :options="modelPresetOptions"
+            :error="
+              modelIdConflict ? $t('models.modelExists', { id: form.modelId.trim() }) : undefined
+            "
             mono
             @select="selectModelPreset"
           />
@@ -807,7 +827,7 @@ onMounted(() => {
         <Button variant="ghost" @click="dialogOpen = false">
           {{ $t('common.cancel') }}
         </Button>
-        <Button variant="primary" :loading="saving" @click="save">
+        <Button variant="primary" :disabled="modelIdConflict" :loading="saving" @click="save">
           {{ $t('common.save') }}
         </Button>
       </template>

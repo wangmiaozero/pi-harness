@@ -393,6 +393,46 @@ test.describe('Pi-Harness smoke', () => {
     expect(consoleErrors).toEqual([])
   })
 
+  test('prevents duplicate model ids before save', async ({ page }) => {
+    const pageErrors: string[] = []
+    const consoleErrors: string[] = []
+    page.on('pageerror', (error) => pageErrors.push(error.stack ?? error.message))
+    page.on('console', (message) => {
+      if (message.type() === 'error') consoleErrors.push(message.text())
+    })
+
+    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
+    await page.locator('a[href="#/models"]').click()
+    await page.getByRole('button', { name: /新建模型|New model/ }).click()
+
+    const dialog = page.getByRole('dialog')
+    await page.mouse.click(5, 5)
+    await expect(dialog).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeVisible()
+    const modelId = dialog.getByLabel(/模型 ID|Model ID/)
+    await modelId.fill('gpt-4o')
+    await expect(dialog).toContainText(/已存在模型.*gpt-4o|Model.*gpt-4o.*already exists/)
+    await expect(dialog.getByRole('button', { name: /保存|Save/ })).toBeDisabled()
+
+    expect(pageErrors).toEqual([])
+    expect(consoleErrors).toEqual([])
+  })
+
+  test('keeps the command palette open until its close button is used', async ({ page }) => {
+    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
+    await page.keyboard.press('Meta+K')
+
+    const palette = page.getByRole('dialog', { name: /命令面板|Command Palette/ })
+    await expect(palette).toBeVisible()
+    await page.mouse.click(5, 5)
+    await expect(palette).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(palette).toBeVisible()
+    await palette.getByRole('button', { name: /关闭|Close/ }).click()
+    await expect(palette).toBeHidden()
+  })
+
   test('shows local skills and the curated extension market', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 

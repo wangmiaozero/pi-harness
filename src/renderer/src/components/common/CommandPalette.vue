@@ -17,7 +17,7 @@ import { usePiStore } from '@renderer/stores/pi'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useI18n } from 'vue-i18n'
-import { Search } from '@lucide/vue'
+import { Search, X } from '@lucide/vue'
 
 export interface PaletteCommand {
   id: string
@@ -307,6 +307,10 @@ function onKey(e: KeyboardEvent) {
     if (cmd) void run(cmd)
   }
 }
+
+function preventImplicitClose(event: Event) {
+  event.preventDefault()
+}
 </script>
 
 <template>
@@ -317,6 +321,8 @@ function onKey(e: KeyboardEvent) {
       />
       <DialogContent
         class="fixed left-1/2 top-[18%] z-[60] w-[min(580px,92vw)] -translate-x-1/2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-dialog)] focus:outline-none data-[state=open]:animate-[pi-pop-in_var(--motion-base)_var(--ease-out)]"
+        @interact-outside="preventImplicitClose"
+        @escape-key-down="preventImplicitClose"
         @keydown="onKey"
       >
         <DialogTitle class="sr-only">{{ $t('titlebar.commandPalette') }}</DialogTitle>
@@ -333,6 +339,12 @@ function onKey(e: KeyboardEvent) {
             :placeholder="$t('palette.placeholder')"
             class="min-w-0 flex-1 bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
           />
+          <DialogClose
+            class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+            :aria-label="$t('common.close')"
+          >
+            <X aria-hidden="true" class="size-3" :stroke-width="1.75" />
+          </DialogClose>
         </div>
         <div class="max-h-[360px] overflow-y-auto py-1">
           <template v-if="filtered.length === 0">
@@ -372,7 +384,6 @@ function onKey(e: KeyboardEvent) {
             </span>
           </button>
         </div>
-        <DialogClose class="sr-only" />
       </DialogContent>
     </DialogPortal>
   </DialogRoot>

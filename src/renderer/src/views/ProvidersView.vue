@@ -742,7 +742,6 @@ onMounted(() => {
     <Dialog
       v-model:open="dialogOpen"
       :title="isEditing ? $t('providers.edit') : $t('providers.create')"
-      persistent
       wide
     >
       <div class="space-y-3">

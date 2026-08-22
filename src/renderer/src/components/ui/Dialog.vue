@@ -10,18 +10,17 @@ import {
 import { X } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 
-const props = defineProps<{
+defineProps<{
   title: string
   description?: string
   wide?: boolean
-  persistent?: boolean
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
 const { t } = useI18n()
 
 function preventImplicitClose(event: Event) {
-  if (props.persistent) event.preventDefault()
+  event.preventDefault()
 }
 </script>
 
