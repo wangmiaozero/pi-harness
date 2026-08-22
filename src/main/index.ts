@@ -26,6 +26,8 @@ import { WorktreeService } from './git/worktree-service'
 import { SessionService } from './sessions/session-service'
 import { SessionExportService } from './sessions/session-export-service'
 import { AgentRuntimeService } from './agent/agent-runtime-service'
+import { onUpdateState, startAutomaticUpdates, stopAutomaticUpdates } from './updater'
+import { IPC_EVENT } from '@shared/ipc/channels'
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'zh-CN',
@@ -128,6 +130,13 @@ async function bootstrap(): Promise<void> {
 
   mainWindow = createMainWindow()
 
+  const unsubscribeUpdateState = onUpdateState((state) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(IPC_EVENT.updaterState, state)
+    }
+  })
+  startAutomaticUpdates()
+
   config.startWatcher(() => {
     broadcastConfigChanged(mainWindow)
   })
@@ -143,6 +152,8 @@ async function bootstrap(): Promise<void> {
   })
 
   app.on('before-quit', () => {
+    stopAutomaticUpdates()
+    unsubscribeUpdateState()
     config.stopWatcher()
     void agent.shutdownAll()
   })

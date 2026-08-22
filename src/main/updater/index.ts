@@ -1,177 +1,208 @@
 /**
- * Auto-updater — electron-updater with safe defaults.
+ * Application updater backed by electron-updater.
  *
- * Strategy (0.2.0):
- *   - Packaged builds: check GitHub Releases via electron-updater.
- *   - Dev / unpackaged: return a clear "not available" result (no fake success).
- *   - Never auto-download or auto-install on launch.
- *   - User must explicitly Check / Download / Install & Restart.
+ * Installed builds check in the background, download updates automatically,
+ * and install them on normal app quit. Users can also install immediately by
+ * choosing "Install & Restart" after the download is ready.
  */
 
 import { app } from 'electron'
-import { log } from '../services/logger'
+import type { AppUpdateState } from '@shared/ipc/api-types'
 import { APP_VERSION } from '@shared/constants/index'
+import { log } from '../services/logger'
 
-export type UpdateStatus =
-  'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'
+type AutoUpdater = typeof import('electron-updater').autoUpdater
+type UpdateStateListener = (state: AppUpdateState) => void
 
-export interface UpdateCheckResult {
-  available: boolean
-  currentVersion: string
-  latestVersion: string | null
-  status: UpdateStatus
-  message: string
-  downloaded: boolean
+const state: AppUpdateState = {
+  supported: false,
+  available: false,
+  currentVersion: APP_VERSION,
+  latestVersion: null,
+  status: 'idle',
+  downloaded: false,
+  downloadProgress: null
 }
 
-let lastStatus: UpdateStatus = 'idle'
-let downloaded = false
-let latestVersion: string | null = null
-let autoUpdaterLoaded: typeof import('electron-updater').autoUpdater | null = null
+const listeners = new Set<UpdateStateListener>()
+let autoUpdaterLoaded: AutoUpdater | null = null
+let automaticCheckTimer: ReturnType<typeof setTimeout> | null = null
 
-async function getAutoUpdater() {
+function snapshot(): AppUpdateState {
+  return { ...state }
+}
+
+function updateState(patch: Partial<AppUpdateState>): AppUpdateState {
+  Object.assign(state, patch)
+  const next = snapshot()
+  for (const listener of listeners) {
+    try {
+      listener(next)
+    } catch (error) {
+      log.updater.warn('update state listener failed:', error)
+    }
+  }
+  return next
+}
+
+async function getAutoUpdater(): Promise<AutoUpdater | null> {
   if (autoUpdaterLoaded) return autoUpdaterLoaded
   if (!app.isPackaged) return null
+
   try {
-    const mod = await import('electron-updater')
-    const au = mod.autoUpdater
-    au.autoDownload = false
-    au.autoInstallOnAppQuit = false
-    au.on('error', (err: Error) => {
-      lastStatus = 'error'
-      log.updater.error('updater error:', err)
+    const { autoUpdater } = await import('electron-updater')
+    autoUpdater.autoDownload = true
+    autoUpdater.autoInstallOnAppQuit = true
+    autoUpdater.logger = log.updater
+
+    autoUpdater.on('checking-for-update', () => {
+      updateState({ supported: true, status: 'checking', downloadProgress: null })
     })
-    au.on('update-available', (info: { version: string }) => {
-      lastStatus = 'available'
-      latestVersion = info.version
+    autoUpdater.on('update-available', (info) => {
+      updateState({
+        supported: true,
+        available: true,
+        latestVersion: info.version,
+        status: 'available',
+        downloaded: false,
+        downloadProgress: 0
+      })
       log.updater.info('update available:', info.version)
     })
-    au.on('update-not-available', () => {
-      lastStatus = 'not-available'
+    autoUpdater.on('update-not-available', (info) => {
+      updateState({
+        supported: true,
+        available: false,
+        latestVersion: info.version ?? APP_VERSION,
+        status: 'not-available',
+        downloaded: false,
+        downloadProgress: null
+      })
       log.updater.info('no update available')
     })
-    au.on('download-progress', (p: { percent: number }) => {
-      lastStatus = 'downloading'
-      log.updater.debug('download progress:', Math.round(p.percent))
+    autoUpdater.on('download-progress', (progress) => {
+      updateState({
+        supported: true,
+        available: true,
+        status: 'downloading',
+        downloadProgress: Math.max(0, Math.min(100, progress.percent))
+      })
     })
-    au.on('update-downloaded', (info: { version: string }) => {
-      lastStatus = 'downloaded'
-      downloaded = true
-      latestVersion = info.version
+    autoUpdater.on('update-downloaded', (info) => {
+      updateState({
+        supported: true,
+        available: true,
+        latestVersion: info.version,
+        status: 'downloaded',
+        downloaded: true,
+        downloadProgress: 100
+      })
       log.updater.info('update downloaded:', info.version)
     })
-    autoUpdaterLoaded = au
-    return au
-  } catch (err) {
-    log.updater.warn('electron-updater unavailable:', err)
+    autoUpdater.on('error', (error) => {
+      updateState({ supported: true, status: 'error', downloadProgress: null })
+      log.updater.error('updater error:', error)
+    })
+
+    autoUpdaterLoaded = autoUpdater
+    updateState({ supported: true })
+    return autoUpdater
+  } catch (error) {
+    updateState({ supported: true, status: 'error', downloadProgress: null })
+    log.updater.error('electron-updater unavailable:', error)
     return null
   }
 }
 
-export async function checkForUpdates(): Promise<UpdateCheckResult> {
-  const currentVersion = APP_VERSION
-  const au = await getAutoUpdater()
-  if (!au) {
-    lastStatus = 'not-available'
-    return {
-      available: false,
-      currentVersion,
-      latestVersion: null,
-      status: 'not-available',
-      downloaded: false,
-      message: 'Automatic updates are available only in packaged builds.'
-    }
-  }
+export function getUpdateState(): AppUpdateState {
+  if (!app.isPackaged) return { ...state, supported: false, status: 'idle' }
+  return snapshot()
+}
 
-  lastStatus = 'checking'
+export function onUpdateState(listener: UpdateStateListener): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
+export async function checkForUpdates(): Promise<AppUpdateState> {
+  if (automaticCheckTimer) {
+    clearTimeout(automaticCheckTimer)
+    automaticCheckTimer = null
+  }
+  const autoUpdater = await getAutoUpdater()
+  if (!autoUpdater) return getUpdateState()
+
+  updateState({ supported: true, status: 'checking', downloadProgress: null })
   try {
-    const result = await au.checkForUpdates()
-    const version = result?.updateInfo?.version ?? null
-    const available = Boolean(version && version !== currentVersion)
-    lastStatus = available ? 'available' : 'not-available'
-    latestVersion = version
-    return {
-      available,
-      currentVersion,
-      latestVersion: version,
-      status: lastStatus,
-      downloaded,
-      message: available
-        ? `Update available: ${version}`
-        : `You are on the latest version (${currentVersion}).`
+    const result = await autoUpdater.checkForUpdates()
+    if (!result) return updateState({ supported: true, status: 'error', downloadProgress: null })
+
+    const available = result.isUpdateAvailable
+    const latestVersion = result.updateInfo.version ?? null
+    if (!available) {
+      return updateState({
+        available: false,
+        latestVersion,
+        status: 'not-available',
+        downloaded: false,
+        downloadProgress: null
+      })
     }
-  } catch (err) {
-    lastStatus = 'error'
-    log.updater.error('checkForUpdates failed:', err)
-    return {
-      available: false,
-      currentVersion,
-      latestVersion: null,
-      status: 'error',
-      downloaded: false,
-      message: (err as Error).message || 'Update check failed'
+
+    // autoDownload starts as part of checkForUpdates(). Do not overwrite a
+    // newer progress/downloaded event that may already have arrived.
+    if (state.status === 'checking') {
+      updateState({
+        available: true,
+        latestVersion,
+        status: 'available',
+        downloaded: false,
+        downloadProgress: 0
+      })
     }
+    return snapshot()
+  } catch (error) {
+    updateState({ supported: true, status: 'error', downloadProgress: null })
+    log.updater.error('checkForUpdates failed:', error)
+    return snapshot()
   }
 }
 
-export async function downloadUpdate(): Promise<UpdateCheckResult> {
-  const au = await getAutoUpdater()
-  const currentVersion = APP_VERSION
-  if (!au) {
-    return {
-      available: false,
-      currentVersion,
-      latestVersion: null,
-      status: 'not-available',
-      downloaded: false,
-      message: 'Download is only available in packaged builds.'
-    }
-  }
+/** Retained as an explicit retry path; normal downloads start automatically. */
+export async function downloadUpdate(): Promise<AppUpdateState> {
+  const autoUpdater = await getAutoUpdater()
+  if (!autoUpdater) return getUpdateState()
+
   try {
-    lastStatus = 'downloading'
-    await au.downloadUpdate()
-    return {
-      available: true,
-      currentVersion,
-      latestVersion,
-      status: lastStatus,
-      downloaded,
-      message: downloaded
-        ? `Update ${latestVersion} downloaded. Restart to install.`
-        : 'Download started…'
-    }
-  } catch (err) {
-    lastStatus = 'error'
-    return {
-      available: true,
-      currentVersion,
-      latestVersion,
-      status: 'error',
-      downloaded: false,
-      message: (err as Error).message || 'Download failed'
-    }
+    updateState({ supported: true, available: true, status: 'downloading' })
+    await autoUpdater.downloadUpdate()
+  } catch (error) {
+    updateState({ supported: true, status: 'error', downloadProgress: null })
+    log.updater.error('downloadUpdate failed:', error)
   }
+  return snapshot()
 }
 
 export async function installUpdate(): Promise<void> {
-  const au = await getAutoUpdater()
-  if (!au || !downloaded) {
-    throw new Error('No downloaded update to install')
-  }
-  // Quit and install — user-initiated only.
-  au.quitAndInstall(false, true)
+  const autoUpdater = await getAutoUpdater()
+  if (!autoUpdater || !state.downloaded) throw new Error('No downloaded update to install')
+  autoUpdater.quitAndInstall(false, true)
 }
 
-export function getUpdateState(): {
-  status: UpdateStatus
-  downloaded: boolean
-  latestVersion: string | null
-  currentVersion: string
-} {
-  return {
-    status: lastStatus,
-    downloaded,
-    latestVersion,
-    currentVersion: APP_VERSION
-  }
+export function startAutomaticUpdates(delayMs = 10_000): void {
+  if (!app.isPackaged || automaticCheckTimer) return
+  automaticCheckTimer = setTimeout(
+    () => {
+      automaticCheckTimer = null
+      void checkForUpdates()
+    },
+    Math.max(0, delayMs)
+  )
+  automaticCheckTimer.unref()
+}
+
+export function stopAutomaticUpdates(): void {
+  if (!automaticCheckTimer) return
+  clearTimeout(automaticCheckTimer)
+  automaticCheckTimer = null
 }

@@ -29,7 +29,7 @@ import { logFilePath } from '../services/app-paths'
 import { readTextFile } from '../services/storage'
 import { testConnectionSchema, skillFormSchema, skillImportSchema } from '@shared/schemas/domain'
 import { SecurityError, ValidationError } from '../services/errors'
-import { checkForUpdates, downloadUpdate, installUpdate } from '../updater'
+import { checkForUpdates, downloadUpdate, getUpdateState, installUpdate } from '../updater'
 import { registerWorkspaceIpc, type WorkspaceServices } from './register-workspace'
 import { createTrustedIpcMain } from './trusted-ipc'
 
@@ -313,6 +313,7 @@ export function registerIpc(services: Services): void {
   )
 
   // ---- updater ----
+  ipcMain.handle(IPC_INVOKE.updaterState, () => wrap(async () => getUpdateState()))
   ipcMain.handle(IPC_INVOKE.updaterCheck, () => wrap(() => checkForUpdates()))
   ipcMain.handle(IPC_INVOKE.updaterDownload, () => wrap(() => downloadUpdate()))
   ipcMain.handle(IPC_INVOKE.updaterInstall, () => wrap(() => installUpdate()))

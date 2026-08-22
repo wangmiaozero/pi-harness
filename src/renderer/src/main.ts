@@ -15,6 +15,7 @@ import { getApi } from '@renderer/composables/useApi'
 import { toast } from 'vue-sonner'
 import { applyTheme } from '@renderer/utils/theme'
 import { installAuthorWatermark } from '@renderer/utils/author-watermark'
+import type { AppUpdateState } from '@shared/ipc/api-types'
 
 applyTheme('dark')
 installAuthorWatermark()
@@ -64,6 +65,24 @@ getApi().on('notification', (payload) => {
       toast.info(title, { description: message })
   }
 })
+
+let notifiedUpdateVersion: string | null = null
+unsubscribers.push(
+  getApi().on('updater-state', (payload) => {
+    const state = payload as Partial<AppUpdateState>
+    if (
+      state.status !== 'downloaded' ||
+      !state.latestVersion ||
+      state.latestVersion === notifiedUpdateVersion
+    ) {
+      return
+    }
+    notifiedUpdateVersion = state.latestVersion
+    toast.success(i18n.global.t('settings.updateReadyTitle'), {
+      description: i18n.global.t('settings.updateReady', { version: state.latestVersion })
+    })
+  })
+)
 
 async function bootstrap() {
   await settingsStore.fetch()

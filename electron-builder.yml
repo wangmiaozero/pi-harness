@@ -25,6 +25,10 @@ mac:
     - target: dmg
       arch:
         - arm64
+    # MacUpdater installs from the ZIP payload; DMG remains the manual installer.
+    - target: zip
+      arch:
+        - arm64
   icon: build/icon.icns
   hardenedRuntime: true
   gatekeeperAssess: false

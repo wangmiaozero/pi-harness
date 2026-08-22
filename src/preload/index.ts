@@ -112,6 +112,7 @@ const api: PiSwitchAPI = {
     openFolder: () => invoke(IPC_INVOKE.logsOpenFolder)
   },
   updater: {
+    state: () => invoke(IPC_INVOKE.updaterState),
     check: () => invoke(IPC_INVOKE.updaterCheck),
     download: () => invoke(IPC_INVOKE.updaterDownload),
     install: () => invoke(IPC_INVOKE.updaterInstall)
@@ -177,6 +178,7 @@ const api: PiSwitchAPI = {
     if (event === 'notification') return onEvent(IPC_EVENT.notification, listener)
     if (event === 'agent-event') return onEvent(IPC_EVENT.agentEvent, listener)
     if (event === 'agent-running') return onEvent(IPC_EVENT.agentRunning, listener)
+    if (event === 'updater-state') return onEvent(IPC_EVENT.updaterState, listener)
     return () => {}
   }
 }

@@ -89,6 +89,7 @@ export const IPC_INVOKE = {
   logsOpenFolder: invoke('logs:open-folder'),
 
   // updater
+  updaterState: invoke('updater:state'),
   updaterCheck: invoke('updater:check'),
   updaterDownload: invoke('updater:download'),
   updaterInstall: invoke('updater:install'),
@@ -138,7 +139,8 @@ export const IPC_EVENT = {
   piEnvironmentChanged: 'pi-harness:event:pi-env-changed',
   notification: 'pi-harness:event:notification',
   agentEvent: 'pi-harness:agent:event',
-  agentRunning: 'pi-harness:agent:running'
+  agentRunning: 'pi-harness:agent:running',
+  updaterState: 'pi-harness:updater:state'
 } as const
 
 export type IpcEventName = (typeof IPC_EVENT)[keyof typeof IPC_EVENT]

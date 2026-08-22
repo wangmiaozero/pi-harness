@@ -66,7 +66,7 @@ Zuverlässigkeit:
 
 - Automatisches Backup vor dem Schreiben; atomare Schreibvorgänge
 - Erkennung externer Änderungen (mtime) mit Reload / Compare / Overwrite
-- Paketierte Builds unterstützen `electron-updater` (keine stille Auto-Installation)
+- Paketierte Builds prüfen und laden Updates im Hintergrund; Installation beim Beenden oder über **Installieren & Neustarten**
 - Nur Desktop: externe Browserfenster und URL-Handoff außerhalb der App werden blockiert
 
 ## Grenze des leichtgewichtigen Editors
@@ -125,6 +125,7 @@ Die Domain bleibt über einen Adapter vom nativen Pi-JSON entkoppelt. Unbekannte
 ## Projektdokumentation
 
 - [Änderungsprotokoll](CHANGELOG.md)
+- [Anwendungsupdates und Release-Artefakte](docs/application-updates.md)
 - [Grenze des leichtgewichtigen Code-Editors](docs/lightweight-code-editor.md)
 - [Maskottchen-Design und Laufzeitregeln](docs/mascot-design.md)
 

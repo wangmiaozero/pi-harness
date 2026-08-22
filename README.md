@@ -66,7 +66,7 @@ Reliability:
 
 - Automatic backup before writes; atomic writes
 - External change detection (mtime) with Reload / Compare / Overwrite
-- Packaged builds support `electron-updater` (never silent auto-install)
+- Packaged builds check and download updates in the background, then install on quit or via **Install & Restart**
 - Desktop-only: external browser windows and off-app URL handoff are blocked
 
 ## Lightweight editor boundary
@@ -126,6 +126,7 @@ Domain stays decoupled from Pi native JSON via an Adapter. Unknown fields pass t
 ## Project documentation
 
 - [Changelog](CHANGELOG.md)
+- [Application updates and release artifacts](docs/application-updates.md)
 - [Lightweight code editor boundary](docs/lightweight-code-editor.md)
 - [Mascot design and runtime rules](docs/mascot-design.md)
 

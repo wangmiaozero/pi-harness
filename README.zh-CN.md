@@ -66,7 +66,7 @@ Pi-Harness 通过桌面界面管理 Pi 的 Provider、Model、凭证、Skills、
 
 - 写配置前自动备份；原子写入
 - 外部修改检测（mtime），冲突对话框：Reload / Compare / Overwrite
-- 打包版支持 `electron-updater`（不会静默安装）
+- 打包版通过 `electron-updater` 后台检查并下载更新，退出时安装，也可选择“安装并重启”
 - 桌面应用：拦截站外浏览器窗口与 URL 跳转
 
 ## 轻量编辑器边界
@@ -126,6 +126,7 @@ Domain 与 Pi 原生 JSON 之间通过 Adapter 解耦，未知字段透传，不
 ## 项目文档
 
 - [更新记录](CHANGELOG.md)
+- [应用更新与发布产物](docs/application-updates.md)
 - [轻量代码编辑器边界](docs/lightweight-code-editor.md)
 - [看板娘设计与运行时规则](docs/mascot-design.md)
 

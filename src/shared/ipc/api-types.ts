@@ -259,6 +259,20 @@ export interface SystemInfo {
   packaged: boolean
 }
 
+export type AppUpdateStatus =
+  'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'
+
+export interface AppUpdateState {
+  /** False for local development; application updates apply only to installed builds. */
+  supported: boolean
+  available: boolean
+  currentVersion: string
+  latestVersion: string | null
+  status: AppUpdateStatus
+  downloaded: boolean
+  downloadProgress: number | null
+}
+
 /** Listener for main→renderer push events. */
 export type IpcEventListener = (payload: unknown) => void
 
@@ -357,22 +371,9 @@ export interface PiSwitchAPI {
     openFolder(): Promise<void>
   }
   updater: {
-    check(): Promise<{
-      available: boolean
-      currentVersion: string
-      latestVersion: string | null
-      status: string
-      message: string
-      downloaded: boolean
-    }>
-    download(): Promise<{
-      available: boolean
-      currentVersion: string
-      latestVersion: string | null
-      status: string
-      message: string
-      downloaded: boolean
-    }>
+    state(): Promise<AppUpdateState>
+    check(): Promise<AppUpdateState>
+    download(): Promise<AppUpdateState>
     install(): Promise<void>
   }
   window: {
@@ -445,6 +446,7 @@ export interface PiSwitchAPI {
   on(event: 'notification', listener: IpcEventListener): () => void
   on(event: 'agent-event', listener: IpcEventListener): () => void
   on(event: 'agent-running', listener: IpcEventListener): () => void
+  on(event: 'updater-state', listener: IpcEventListener): () => void
 }
 
 declare global {

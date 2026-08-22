@@ -66,7 +66,7 @@ Fiabilité :
 
 - Sauvegarde automatique avant écriture ; écritures atomiques
 - Détection des changements externes (mtime) : Reload / Compare / Overwrite
-- Les builds packagés prennent en charge `electron-updater` (jamais d’installation silencieuse)
+- Les builds packagés vérifient et téléchargent les mises à jour en arrière-plan, puis les installent à la fermeture ou via **Installer et redémarrer**
 - Application de bureau : fenêtres de navigateur externes et redirections URL hors app bloquées
 
 ## Limites de l’éditeur léger
@@ -125,6 +125,7 @@ Le domaine reste découplé du JSON natif Pi via un Adapter. Les champs inconnus
 ## Documentation du projet
 
 - [Historique des modifications](CHANGELOG.md)
+- [Mises à jour de l’application et artefacts de version](docs/application-updates.md)
 - [Limites de l’éditeur de code léger](docs/lightweight-code-editor.md)
 - [Conception de la mascotte et règles d’exécution](docs/mascot-design.md)
 

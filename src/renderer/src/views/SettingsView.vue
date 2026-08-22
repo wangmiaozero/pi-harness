@@ -1,18 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  Save,
-  FolderOpen,
-  Archive,
-  Trash2,
-  RotateCcw,
-  Download,
-  Eraser,
-  CircleOff
-} from '@lucide/vue'
+import { Save, FolderOpen, Archive, Trash2, RotateCcw, Eraser, CircleOff } from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import type { AppSettings } from '@shared/ipc/api-types'
+import type { AppSettings, AppUpdateState } from '@shared/ipc/api-types'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Select from '@renderer/components/ui/Select.vue'
@@ -32,10 +23,34 @@ const { t, locale } = useI18n()
 const store = useSettingsStore()
 const saving = ref(false)
 const updateBusy = ref(false)
-const updateMessage = ref<string | null>(null)
-const updateDownloaded = ref(false)
+const updateState = ref<AppUpdateState | null>(null)
+const updateSupported = ref(false)
 /** Developer / Mock toggles are for local `pnpm dev` only — hidden when packaged. */
 const showDeveloper = ref(false)
+
+const updateDownloaded = computed(() => Boolean(updateState.value?.downloaded))
+const updateProgress = computed(() => Math.round(updateState.value?.downloadProgress ?? 0))
+const updateMessage = computed(() => {
+  const current = updateState.value
+  if (!current) return null
+  const version = current.latestVersion ?? current.currentVersion
+  switch (current.status) {
+    case 'checking':
+      return t('settings.updateChecking')
+    case 'available':
+      return t('settings.updateAvailable', { version })
+    case 'downloading':
+      return t('settings.updateDownloading', { version, progress: updateProgress.value })
+    case 'downloaded':
+      return t('settings.updateReady', { version })
+    case 'not-available':
+      return t('settings.updateCurrent', { version: current.currentVersion })
+    case 'error':
+      return t('settings.updateFailed')
+    default:
+      return null
+  }
+})
 
 const draft = ref<AppSettings>({
   language: 'zh-CN',
@@ -198,14 +213,12 @@ async function cleanupBackups() {
 
 async function checkUpdates() {
   updateBusy.value = true
-  updateMessage.value = null
   try {
     const result = await getApi().updater.check()
-    updateMessage.value = result.message
-    updateDownloaded.value = result.downloaded
-    if (result.status === 'error') toast.error(result.message)
-    else if (result.available) toast.success(result.message)
-    else toast.info(result.message)
+    updateState.value = result
+    if (result.status === 'error') toast.error(t('settings.updateFailed'))
+    else if (result.available) toast.info(updateMessage.value ?? t('settings.updateChecking'))
+    else toast.info(updateMessage.value ?? t('settings.updateFailed'))
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
   } finally {
@@ -213,20 +226,12 @@ async function checkUpdates() {
   }
 }
 
-async function downloadUpdate() {
-  updateBusy.value = true
-  try {
-    const result = await getApi().updater.download()
-    updateMessage.value = result.message
-    updateDownloaded.value = result.downloaded
-    if (result.status === 'error') toast.error(result.message)
-    else toast.success(result.message)
-  } catch (e) {
-    toast.error((e as { message?: string }).message ?? t('common.failed'))
-  } finally {
-    updateBusy.value = false
+const stopUpdateListener = getApi().on('updater-state', (payload) => {
+  const next = payload as Partial<AppUpdateState>
+  if (typeof next.status === 'string' && typeof next.currentVersion === 'string') {
+    updateState.value = next as AppUpdateState
   }
-}
+})
 
 async function installUpdate() {
   const ok = await askConfirm({
@@ -247,13 +252,18 @@ onMounted(() => {
   void Promise.all([store.fetch(), store.fetchBackups()])
   void getApi()
     .system.info()
-    .then((info) => {
+    .then(async (info) => {
       showDeveloper.value = !info.packaged
+      updateSupported.value = info.packaged
+      if (info.packaged) updateState.value = await getApi().updater.state()
     })
     .catch(() => {
       showDeveloper.value = false
+      updateSupported.value = false
     })
 })
+
+onBeforeUnmount(stopUpdateListener)
 </script>
 
 <template>
@@ -511,6 +521,7 @@ onMounted(() => {
 
         <!-- Updates -->
         <InspectorSection
+          v-if="updateSupported"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
           <template #title>{{ $t('settings.updates') }}</template>
@@ -521,13 +532,22 @@ onMounted(() => {
             <p v-if="updateMessage" class="text-[12px] text-[var(--text-secondary)]">
               {{ updateMessage }}
             </p>
+            <div
+              v-if="updateState?.status === 'downloading'"
+              class="h-1 overflow-hidden rounded-full bg-[var(--bg-hover)]"
+              role="progressbar"
+              :aria-valuenow="updateProgress"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              <div
+                class="h-full rounded-full bg-[var(--accent)] transition-[width] duration-200"
+                :style="{ width: `${updateProgress}%` }"
+              />
+            </div>
             <div class="flex flex-wrap gap-1.5">
               <Button variant="secondary" size="sm" :loading="updateBusy" @click="checkUpdates">
                 {{ $t('settings.checkUpdates') }}
-              </Button>
-              <Button variant="ghost" size="sm" :disabled="updateBusy" @click="downloadUpdate">
-                <Download class="size-3.5" :stroke-width="1.75" />
-                {{ $t('settings.downloadUpdate') }}
               </Button>
               <Button
                 variant="primary"
