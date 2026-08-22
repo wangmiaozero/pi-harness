@@ -12,12 +12,12 @@ describeWindows('PiProcessService on Windows', () => {
 
   beforeEach(async () => {
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-process-'))
-    previousCliPath = process.env.PI_SWITCH_PI_CLI_PATH
+    previousCliPath = process.env.PI_HARNESS_PI_CLI_PATH
   })
 
   afterEach(async () => {
-    if (previousCliPath === undefined) delete process.env.PI_SWITCH_PI_CLI_PATH
-    else process.env.PI_SWITCH_PI_CLI_PATH = previousCliPath
+    if (previousCliPath === undefined) delete process.env.PI_HARNESS_PI_CLI_PATH
+    else process.env.PI_HARNESS_PI_CLI_PATH = previousCliPath
     await fs.rm(testDir, { recursive: true, force: true })
   })
 
@@ -36,7 +36,7 @@ describeWindows('PiProcessService on Windows', () => {
     const unixShim = path.join(testDir, 'pi')
     await fs.writeFile(unixShim, '#!/bin/sh\necho 9.9.9\n', 'utf8')
     await fs.writeFile(`${unixShim}.cmd`, '@echo off\r\necho 1.2.3\r\n', 'utf8')
-    process.env.PI_SWITCH_PI_CLI_PATH = unixShim
+    process.env.PI_HARNESS_PI_CLI_PATH = unixShim
 
     const version = await new PiProcessService().version()
 

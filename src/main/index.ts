@@ -44,8 +44,10 @@ const DEFAULT_SETTINGS: AppSettings = {
 app.setName(APP_NAME)
 
 // Allow e2e / isolated runs to redirect userData before ready.
-if (process.env.PI_SWITCH_USER_DATA?.trim()) {
-  app.setPath('userData', path.resolve(process.env.PI_SWITCH_USER_DATA.trim()))
+const userDataOverride =
+  process.env.PI_HARNESS_USER_DATA?.trim() || process.env.PI_SWITCH_USER_DATA?.trim()
+if (userDataOverride) {
+  app.setPath('userData', path.resolve(userDataOverride))
 }
 
 // Single instance

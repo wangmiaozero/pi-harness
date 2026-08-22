@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>All-in-One-Desktop-Manager für <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
-  Local-first Desktop-Konfigurationsmanager · Electron · Vue 3 · TypeScript
+  <strong>Vollständiger Desktop-Harness für <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
+  Local-first Desktop-Harness · Electron · Vue 3 · TypeScript
 </p>
 
 <p align="center">
@@ -19,13 +19,13 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-0.3.0-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.7-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
 
-Verwalten Sie Anbieter, Modelle, API-Schlüssel, Skills, die rohe Pi-Konfiguration, Backups und Diagnose über eine Desktop-UI — ohne `~/.pi/agent/*.json` von Hand zu bearbeiten.
+Verwalten Sie Anbieter, Modelle, API-Schlüssel, Skills, Pi-Konfiguration, Backups und Diagnose und arbeiten Sie anschließend im Arbeitsbereich direkt mit Pi Coding Agent an einem echten Projekt.
 
 Geheimnisse erscheinen im Renderer nie im Klartext. macOS speichert sie im System-Schlüsselbund; Windows und Linux nutzen Electron `safeStorage`. Unbekannte Pi-Felder bleiben erhalten.
 
@@ -48,6 +48,7 @@ Geheimnisse erscheinen im Renderer nie im Klartext. macOS speichert sie im Syste
 | Modul | Beschreibung |
 | --- | --- |
 | **Übersicht** | Aktives Modell, Pi-CLI / Konfigurationsverzeichnis, Umgebungsstatus und häufige Aktionen |
+| **Arbeitsbereich** | Projekte, Sessions, Streaming-Chat, Thinking, Tool Call, leichtgewichtige Codebearbeitung, Git Diff und Worktree |
 | **Anbieter** | Provider ≠ Protocol ≠ Model; Zugangsdaten in Keychain / `safeStorage` |
 | **Modelle** | Fähigkeitsflags, aktives Modell, Verbindungstest; nach dem Schreiben wird `settings.json` erneut gelesen |
 | **Skills** | `SKILL.md` erstellen / importieren / bearbeiten / prüfen; Pfadwurzel-Beschränkung |
@@ -79,7 +80,7 @@ Ohne lokale Pi-Installation in den Einstellungen das Konfigurationsverzeichnis a
 
 ```bash
 cp .env.example .env
-# PI_SWITCH_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
+# PI_HARNESS_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
 ```
 
 Keine Geheimnisse in `VITE_*`-Variablen speichern — sie landen im Renderer-Bundle.
@@ -100,6 +101,8 @@ Keine Geheimnisse in `VITE_*`-Variablen speichern — sie landen im Renderer-Bun
 
 ```
 Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
+                                                ├─ AgentSession      Projekte / Sessions / Streaming-Ausführung
+                                                ├─ Workspace         Dateien / leichter Editor / Git
                                                 ├─ PiConfigService   atomares Schreiben / mtime-Konflikt
                                                 ├─ Provider / Model / Skills / Backup / Diagnostics
                                                 └─ SecretStore       Keychain / safeStorage

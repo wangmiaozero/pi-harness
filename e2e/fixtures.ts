@@ -39,8 +39,8 @@ export const test = base.extend<Fixtures>({
       env: {
         ...restEnv,
         ELECTRON_RUN_AS_NODE: undefined,
-        PI_SWITCH_PI_CONFIG_DIR: fixturesPi,
-        PI_SWITCH_USER_DATA: userData
+        PI_HARNESS_PI_CONFIG_DIR: fixturesPi,
+        PI_HARNESS_USER_DATA: userData
       },
       timeout: 60_000
     })

@@ -43,7 +43,9 @@ export class PiProcessService {
     const home = homedir()
     const isWin = process.platform === 'win32'
     const dirs = [
-      process.env.PI_SWITCH_PI_CLI_PATH?.trim() || null,
+      process.env.PI_HARNESS_PI_CLI_PATH?.trim() ||
+        process.env.PI_SWITCH_PI_CLI_PATH?.trim() ||
+        null,
       path.join(home, '.npm-global', 'bin'),
       path.join(
         home,

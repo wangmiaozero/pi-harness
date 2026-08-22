@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-0.3.0-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.7-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
@@ -80,7 +80,7 @@ pnpm dev
 
 ```bash
 cp .env.example .env
-# PI_SWITCH_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
+# PI_HARNESS_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
 ```
 
 不要使用 `VITE_*` 存放密钥——它们会被打进 Renderer 包。
@@ -101,6 +101,8 @@ cp .env.example .env
 
 ```
 Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
+                                                ├─ AgentSession      项目 / 会话 / 流式执行
+                                                ├─ Workspace         文件 / 轻量编辑器 / Git
                                                 ├─ PiConfigService   原子写 / mtime 冲突
                                                 ├─ Provider / Model / Skills / Backup / Diagnostics
                                                 └─ SecretStore       Keychain / safeStorage

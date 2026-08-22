@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>Gestionnaire de bureau tout-en-un pour <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
-  Gestionnaire de configuration local-first · Electron · Vue 3 · TypeScript
+  <strong>Harness de bureau complet pour <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
+  Harness de bureau local-first · Electron · Vue 3 · TypeScript
 </p>
 
 <p align="center">
@@ -19,13 +19,13 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-0.3.0-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.7-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
 
-Gérez les fournisseurs, modèles, clés API, compétences, configuration brute Pi, sauvegardes et diagnostics depuis une interface de bureau — sans éditer à la main `~/.pi/agent/*.json`.
+Gérez fournisseurs, modèles, clés API, compétences, configuration Pi, sauvegardes et diagnostics, puis travaillez avec Pi Coding Agent sur un projet réel directement dans l’espace de travail.
 
 Les secrets n’apparaissent jamais en clair dans le Renderer. macOS les stocke dans le Trousseau ; Windows et Linux utilisent Electron `safeStorage`. Les champs Pi inconnus sont conservés.
 
@@ -48,6 +48,7 @@ Les secrets n’apparaissent jamais en clair dans le Renderer. macOS les stocke 
 | Module | Description |
 | --- | --- |
 | **Aperçu** | Modèle actif, Pi CLI / répertoire de configuration, état de l’environnement et actions courantes |
+| **Espace de travail** | Projets, sessions, chat en streaming, Thinking, Tool Call, édition de code légère, Git Diff et Worktree |
 | **Fournisseurs** | Provider ≠ Protocol ≠ Model ; identifiants dans le Trousseau / `safeStorage` |
 | **Modèles** | Capacités, modèle actif, test de connexion ; relecture de `settings.json` après écriture |
 | **Compétences** | Créer / importer / modifier / valider `SKILL.md` ; contrainte de racine de chemin |
@@ -79,7 +80,7 @@ Sans Pi local, pointez Réglages → répertoire de configuration vers `fixtures
 
 ```bash
 cp .env.example .env
-# PI_SWITCH_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
+# PI_HARNESS_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
 ```
 
 Ne stockez pas de secrets dans des variables `VITE_*` — elles sont incluses dans le bundle Renderer.
@@ -100,6 +101,8 @@ Ne stockez pas de secrets dans des variables `VITE_*` — elles sont incluses da
 
 ```
 Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
+                                                ├─ AgentSession      projets / sessions / exécution en streaming
+                                                ├─ Workspace         fichiers / éditeur léger / Git
                                                 ├─ PiConfigService   écriture atomique / conflit mtime
                                                 ├─ Provider / Model / Skills / Backup / Diagnostics
                                                 └─ SecretStore       Keychain / safeStorage

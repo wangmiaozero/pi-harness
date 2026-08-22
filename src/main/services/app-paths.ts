@@ -20,7 +20,8 @@ function userData(): string {
 
 /** Pi config directory. Defaults to ~/.pi/agent, overridable by settings/env. */
 export function getPiConfigDir(override?: string | null): string {
-  const envOverride = process.env.PI_SWITCH_PI_CONFIG_DIR
+  const envOverride =
+    process.env.PI_HARNESS_PI_CONFIG_DIR ?? process.env.PI_SWITCH_PI_CONFIG_DIR
   if (override && override.trim()) return path.resolve(expandHome(override.trim()))
   if (envOverride && envOverride.trim()) return path.resolve(expandHome(envOverride.trim()))
   return path.join(homedir(), '.pi', 'agent')

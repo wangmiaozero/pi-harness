@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a>를 위한 올인원 데스크톱 관리자</strong><br />
-  로컬 우선 데스크톱 구성 관리자 · Electron · Vue 3 · TypeScript
+  <strong><a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a>를 위한 완전한 데스크톱 Harness</strong><br />
+  로컬 우선 데스크톱 Harness · Electron · Vue 3 · TypeScript
 </p>
 
 <p align="center">
@@ -19,13 +19,13 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-0.3.0-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.7-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
 
-데스크톱 UI에서 제공자, 모델, API 키, 스킬, 원본 Pi 구성, 백업, 진단을 관리합니다. `~/.pi/agent/*.json`을 직접 편집할 필요가 없습니다.
+데스크톱 UI에서 제공자, 모델, API 키, 스킬, 원본 Pi 구성, 백업, 진단을 관리한 뒤, 작업 공간에서 실제 프로젝트를 대상으로 Pi Coding Agent와 직접 대화할 수 있습니다.
 
 비밀 값은 Renderer에 평문으로 노출되지 않습니다. macOS는 시스템 키체인에 저장하고, Windows / Linux는 Electron `safeStorage`를 사용합니다. 알 수 없는 Pi 필드는 그대로 유지됩니다.
 
@@ -48,6 +48,7 @@
 | 모듈 | 설명 |
 | --- | --- |
 | **개요** | 활성 모델, Pi CLI / 구성 디렉터리, 환경 상태, 자주 쓰는 작업 |
+| **작업 공간** | 프로젝트, Session, 스트리밍 대화, Thinking, Tool Call, 경량 코드 편집, Git Diff, Worktree |
 | **제공자** | Provider ≠ Protocol ≠ Model; 자격 증명은 Keychain / `safeStorage`에 저장 |
 | **모델** | 기능 플래그, 활성 모델, 연결 테스트; 쓰기 후 `settings.json`을 다시 읽어 검증 |
 | **스킬** | `SKILL.md` 생성 / 가져오기 / 편집 / 검증; 경로 루트 제약 |
@@ -79,7 +80,7 @@ pnpm dev
 
 ```bash
 cp .env.example .env
-# PI_SWITCH_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
+# PI_HARNESS_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
 ```
 
 비밀 값을 `VITE_*`에 넣지 마세요. Renderer 번들에 포함됩니다.
@@ -100,6 +101,8 @@ cp .env.example .env
 
 ```
 Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
+                                                ├─ AgentSession      프로젝트 / 세션 / 스트리밍 실행
+                                                ├─ Workspace         파일 / 경량 편집기 / Git
                                                 ├─ PiConfigService   원자적 쓰기 / mtime 충돌
                                                 ├─ Provider / Model / Skills / Backup / Diagnostics
                                                 └─ SecretStore       Keychain / safeStorage

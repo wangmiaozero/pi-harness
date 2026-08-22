@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>Универсальный настольный менеджер для <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
-  Локальный менеджер конфигурации · Electron · Vue 3 · TypeScript
+  <strong>Полноценный настольный Harness для <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
+  Локальный настольный Harness · Electron · Vue 3 · TypeScript
 </p>
 
 <p align="center">
@@ -19,13 +19,13 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-0.3.0-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.7-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
 
-Управляйте провайдерами, моделями, API-ключами, навыками, исходной конфигурацией Pi, резервными копиями и диагностикой из настольного интерфейса — без ручного редактирования `~/.pi/agent/*.json`.
+Управляйте провайдерами, моделями, API-ключами, навыками, конфигурацией Pi, резервными копиями и диагностикой, а затем работайте с Pi Coding Agent над реальным проектом прямо в рабочей области приложения.
 
 Секреты никогда не попадают в Renderer в открытом виде. macOS хранит их в системной связке ключей; Windows и Linux используют Electron `safeStorage`. Неизвестные поля Pi сохраняются.
 
@@ -48,6 +48,7 @@
 | Модуль | Описание |
 | --- | --- |
 | **Обзор** | Активная модель, Pi CLI / каталог конфигурации, состояние среды и частые действия |
+| **Рабочая область** | Проекты, сессии, потоковый чат, Thinking, Tool Call, лёгкое редактирование кода, Git Diff и Worktree |
 | **Провайдеры** | Provider ≠ Protocol ≠ Model; учётные данные в Keychain / `safeStorage` |
 | **Модели** | Флаги возможностей, активная модель, проверка соединения; после записи повторно читается `settings.json` |
 | **Навыки** | Создание / импорт / правка / проверка `SKILL.md`; ограничение корневыми путями |
@@ -79,7 +80,7 @@ pnpm dev
 
 ```bash
 cp .env.example .env
-# PI_SWITCH_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
+# PI_HARNESS_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
 ```
 
 Не храните секреты в переменных `VITE_*` — они попадают в бандл Renderer.
@@ -100,6 +101,8 @@ cp .env.example .env
 
 ```
 Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
+                                                ├─ AgentSession      проекты / сессии / потоковое выполнение
+                                                ├─ Workspace         файлы / лёгкий редактор / Git
                                                 ├─ PiConfigService   атомарная запись / конфликт mtime
                                                 ├─ Provider / Model / Skills / Backup / Diagnostics
                                                 └─ SecretStore       Keychain / safeStorage
