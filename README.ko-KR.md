@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.0.8-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.9-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
@@ -31,30 +31,30 @@
 
 ## 화면 미리보기
 
-| 개요 | 설정 |
-| :---: | :---: |
-| ![개요](docs/概览.jpg) | ![설정](docs/设置.jpg) |
-| **작업 공간 — 세션** | **작업 공간 — 편집기** |
+|                 개요                 |                  설정                  |
+| :----------------------------------: | :------------------------------------: |
+|        ![개요](docs/概览.jpg)        |         ![설정](docs/设置.jpg)         |
+|         **작업 공간 — 세션**         |         **작업 공간 — 편집기**         |
 | ![작업 공간 세션](docs/工作区-1.jpg) | ![작업 공간 편집기](docs/工作区-2.jpg) |
-| **제공자 — 목록** | **제공자 — 상세** |
-| ![제공자 목록](docs/提供商-1.jpg) | ![제공자 상세](docs/提供商-2.jpg) |
-| **모델 — 목록** | **모델 — 상세** |
-| ![모델 목록](docs/模型-1.jpg) | ![모델 상세](docs/模型-2.jpg) |
-| **스킬 — 설치됨** | **스킬 — 마켓** |
-| ![설치된 스킬](docs/技能-1.jpg) | ![스킬 마켓](docs/技能-2.jpg) |
+|          **제공자 — 목록**           |           **제공자 — 상세**            |
+|  ![제공자 목록](docs/提供商-1.jpg)   |   ![제공자 상세](docs/提供商-2.jpg)    |
+|           **모델 — 목록**            |            **모델 — 상세**             |
+|    ![모델 목록](docs/模型-1.jpg)     |     ![모델 상세](docs/模型-2.jpg)      |
+|          **스킬 — 설치됨**           |            **스킬 — 마켓**             |
+|   ![설치된 스킬](docs/技能-1.jpg)    |     ![스킬 마켓](docs/技能-2.jpg)      |
 
 ## 기능
 
-| 모듈 | 설명 |
-| --- | --- |
-| **개요** | 활성 모델, Pi CLI / 구성 디렉터리, 환경 상태, 자주 쓰는 작업 |
-| **작업 공간** | 프로젝트, Session, 스트리밍 대화, Thinking, Tool Call, 경량 코드 편집, Git Diff, Worktree |
-| **제공자** | Provider ≠ Protocol ≠ Model; 자격 증명은 Keychain / `safeStorage`에 저장 |
-| **모델** | 기능 플래그, 활성 모델, 연결 테스트; 쓰기 후 `settings.json`을 다시 읽어 검증 |
-| **스킬** | `SKILL.md` 생성 / 가져오기 / 편집 / 검증; 경로 루트 제약 |
-| **구성** | CodeMirror로 `models.json` / `settings.json` 편집; 서식 지정 및 파일 관리자에서 표시 |
-| **진단** | 환경 보고서; 복사 시 민감 정보 제거 (`apiKey` / `token` / `secret` 등) |
-| **설정** | 简体中文 / English / 한국어 / Русский / Français / Deutsch, 다크 / 라이트, 표준 / 컴팩트 밀도, 백업 |
+| 모듈          | 설명                                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------------- |
+| **개요**      | 활성 모델, Pi CLI / 구성 디렉터리, 환경 상태, 자주 쓰는 작업                                      |
+| **작업 공간** | 프로젝트, Session, 안전한 스트리밍 Markdown, 접이식 도구 결과, 경량 코드 편집, Git Diff, Worktree |
+| **제공자**    | Provider ≠ Protocol ≠ Model; 자격 증명은 Keychain / `safeStorage`에 저장                          |
+| **모델**      | 기능 플래그, 활성 모델, 연결 테스트; 쓰기 후 `settings.json`을 다시 읽어 검증                     |
+| **스킬**      | `SKILL.md` 생성 / 가져오기 / 편집 / 검증; 경로 루트 제약                                          |
+| **구성**      | CodeMirror로 `models.json` / `settings.json` 편집; 서식 지정 및 파일 관리자에서 표시              |
+| **진단**      | 환경 보고서; 복사 시 민감 정보 제거 (`apiKey` / `token` / `secret` 등)                            |
+| **설정**      | 简体中文 / English / 한국어 / Русский / Français / Deutsch, 테마, 밀도, 백업, 선택형 마스코트     |
 
 안정성:
 
@@ -87,15 +87,15 @@ cp .env.example .env
 
 ## 명령
 
-| 명령 | 설명 |
-| --- | --- |
-| `pnpm typecheck` | Vue / TypeScript 타입 검사 |
-| `pnpm lint` | ESLint |
-| `pnpm test` | Vitest 단위 테스트 |
-| `pnpm test:e2e` | 컴파일 후 Playwright Electron smoke 실행 |
-| `pnpm compile` | Vite로 `out/`에 컴파일 (설치 패키지 없음) |
-| `pnpm build` | 컴파일 후 macOS / Windows / Linux 패키지 → `release/` |
-| `pnpm build:mac` | macOS만 |
+| 명령             | 설명                                                  |
+| ---------------- | ----------------------------------------------------- |
+| `pnpm typecheck` | Vue / TypeScript 타입 검사                            |
+| `pnpm lint`      | ESLint                                                |
+| `pnpm test`      | Vitest 단위 테스트                                    |
+| `pnpm test:e2e`  | 컴파일 후 Playwright Electron smoke 실행              |
+| `pnpm compile`   | Vite로 `out/`에 컴파일 (설치 패키지 없음)             |
+| `pnpm build`     | 컴파일 후 macOS / Windows / Linux 패키지 → `release/` |
+| `pnpm build:mac` | macOS만                                               |
 
 ## 아키텍처
 

@@ -25,6 +25,7 @@ import type {
   WorktreeInfo
 } from '../types/workspace'
 import type { ToolPreset } from '../workspace/tool-presets'
+import type { MascotStyle } from '../constants/mascot'
 
 /** Legacy renderer-side Error envelope accepted by the API error normalizer. */
 export interface IpcError extends Error {
@@ -207,6 +208,7 @@ export interface AppSettings {
   language: 'auto' | 'zh-CN' | 'en-US'
   theme: 'system' | 'dark' | 'light'
   density: 'comfortable' | 'compact'
+  mascotStyle: MascotStyle
   mockMode: boolean
   manualCliPath: string | null
   manualConfigDir: string | null

@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.0.8-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.9-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
@@ -31,30 +31,30 @@ Secrets never appear in the renderer as plaintext. macOS stores them in the syst
 
 ## Screenshots
 
-| Overview | Settings |
-| :---: | :---: |
-| ![Overview](docs/概览.jpg) | ![Settings](docs/设置.jpg) |
-| **Workspace — Sessions** | **Workspace — Editor** |
+|                 Overview                 |                Settings                |
+| :--------------------------------------: | :------------------------------------: |
+|        ![Overview](docs/概览.jpg)        |       ![Settings](docs/设置.jpg)       |
+|         **Workspace — Sessions**         |         **Workspace — Editor**         |
 | ![Workspace sessions](docs/工作区-1.jpg) | ![Workspace editor](docs/工作区-2.jpg) |
-| **Providers — List** | **Providers — Details** |
-| ![Providers list](docs/提供商-1.jpg) | ![Provider details](docs/提供商-2.jpg) |
-| **Models — List** | **Models — Details** |
-| ![Models list](docs/模型-1.jpg) | ![Model details](docs/模型-2.jpg) |
-| **Skills — Installed** | **Skills — Market** |
-| ![Installed skills](docs/技能-1.jpg) | ![Skills market](docs/技能-2.jpg) |
+|           **Providers — List**           |        **Providers — Details**         |
+|   ![Providers list](docs/提供商-1.jpg)   | ![Provider details](docs/提供商-2.jpg) |
+|            **Models — List**             |          **Models — Details**          |
+|     ![Models list](docs/模型-1.jpg)      |   ![Model details](docs/模型-2.jpg)    |
+|          **Skills — Installed**          |          **Skills — Market**           |
+|   ![Installed skills](docs/技能-1.jpg)   |   ![Skills market](docs/技能-2.jpg)    |
 
 ## Features
 
-| Module | Description |
-| --- | --- |
-| **Overview** | Active model, Pi CLI / config directory, environment status, and common actions |
-| **Workspace** | Projects, Sessions, streaming chat, thinking, tool calls, lightweight code editing, git diff, worktrees |
-| **Providers** | Provider ≠ Protocol ≠ Model; credentials go to Keychain / `safeStorage` |
-| **Models** | Capability flags, active model, connection test; writes re-read `settings.json` to verify |
-| **Skills** | Create / import / edit / validate `SKILL.md`; path-root enforcement |
-| **Config** | CodeMirror editor for `models.json` / `settings.json`; format and reveal in the file manager |
-| **Diagnostics** | Environment report; copy is sanitized (`apiKey` / `token` / `secret`, etc.) |
-| **Settings** | zh-CN / English / 한국어 / Русский / Français / Deutsch, dark / light, standard / compact density, backups |
+| Module          | Description                                                                                                          |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Overview**    | Active model, Pi CLI / config directory, environment status, and common actions                                      |
+| **Workspace**   | Projects, Sessions, safe streaming Markdown, collapsible tool results, lightweight code editing, git diff, worktrees |
+| **Providers**   | Provider ≠ Protocol ≠ Model; credentials go to Keychain / `safeStorage`                                              |
+| **Models**      | Capability flags, active model, connection test; writes re-read `settings.json` to verify                            |
+| **Skills**      | Create / import / edit / validate `SKILL.md`; path-root enforcement                                                  |
+| **Config**      | CodeMirror editor for `models.json` / `settings.json`; format and reveal in the file manager                         |
+| **Diagnostics** | Environment report; copy is sanitized (`apiKey` / `token` / `secret`, etc.)                                          |
+| **Settings**    | zh-CN / English / 한국어 / Русский / Français / Deutsch, themes, density, backups, optional mascots                  |
 
 Reliability:
 
@@ -87,15 +87,15 @@ Do not store secrets in `VITE_*` variables — they are bundled into the rendere
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `pnpm typecheck` | Vue / TypeScript typecheck |
-| `pnpm lint` | ESLint |
-| `pnpm test` | Vitest unit tests |
-| `pnpm test:e2e` | Compile, then run Playwright Electron smoke tests |
-| `pnpm compile` | Vite build to `out/` (no installer) |
-| `pnpm build` | Compile and package macOS / Windows / Linux → `release/` |
-| `pnpm build:mac` | macOS Apple Silicon |
+| Command          | Purpose                                                  |
+| ---------------- | -------------------------------------------------------- |
+| `pnpm typecheck` | Vue / TypeScript typecheck                               |
+| `pnpm lint`      | ESLint                                                   |
+| `pnpm test`      | Vitest unit tests                                        |
+| `pnpm test:e2e`  | Compile, then run Playwright Electron smoke tests        |
+| `pnpm compile`   | Vite build to `out/` (no installer)                      |
+| `pnpm build`     | Compile and package macOS / Windows / Linux → `release/` |
+| `pnpm build:mac` | macOS Apple Silicon                                      |
 
 ## Architecture
 

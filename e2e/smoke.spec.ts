@@ -8,9 +8,10 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     // zh-CN default label for Overview is 「概览」
     await expect(page.locator('a[href="#/"]').filter({ hasText: /概览|Overview/ })).toBeVisible()
+    await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
   })
 
-  test('navigates Workspace / Providers / Models / Settings / Config', async ({
+  test('navigates every primary page with the default mascot hidden', async ({
     electronApp,
     page
   }) => {
@@ -50,6 +51,7 @@ test.describe('Pi-Harness smoke', () => {
       )
     })
     await page.locator('a[href="#/workspace"]').click()
+    await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
     await expect(page.locator('main aside')).toBeVisible()
     await expect(page.getByTestId('workspace-project-required')).toBeVisible()
     await expect(page.getByTestId('workspace-new-session')).toBeDisabled()
@@ -72,15 +74,28 @@ test.describe('Pi-Harness smoke', () => {
 
     await page.locator('a[href="#/providers"]').click()
     await expect(page.locator('h1').filter({ hasText: /提供商|Providers/ })).toBeVisible()
+    await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
 
     await page.locator('a[href="#/models"]').click()
     await expect(page.locator('h1').filter({ hasText: /模型|Models/ })).toBeVisible()
+    await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
 
     await page.locator('a[href="#/settings"]').click()
     await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
+    await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
 
     await page.locator('a[href="#/config"]').click()
     await expect(page.getByText(/models\.json/i).first()).toBeVisible()
+    await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
+
+    await page.locator('a[href="#/skills"]').click()
+    await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
+
+    await page.locator('a[href="#/diagnostics"]').click()
+    await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
+
+    await page.locator('a[href="#/"]').click()
+    await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
 
     expect(pageErrors).toEqual([])
     expect(consoleErrors).toEqual([])
@@ -111,6 +126,7 @@ test.describe('Pi-Harness smoke', () => {
     ).toHaveCount(1)
     const composer = page.locator('main textarea')
     await expect(composer).toBeVisible()
+    await expect(page.getByTestId('workspace-mascot')).toHaveCount(0)
     await composer.focus()
     const modelSelect = page.getByTestId('workspace-model-select').getByRole('button')
     await modelSelect.click()
@@ -205,6 +221,40 @@ test.describe('Pi-Harness smoke', () => {
     await expect(code.locator('.cm-content')).toContainText('const answer = 42')
     expect(pageErrors).toEqual([])
     expect(consoleErrors).toEqual([])
+  })
+
+  test('switches the office mascot style from Settings', async ({ page }) => {
+    const fixtureRoot = path.resolve(import.meta.dirname, '../fixtures')
+    await page.evaluate(async (root) => {
+      await window.piSwitch.workspace.allowRoot(root)
+      localStorage.setItem(
+        'pi-harness.workspace.v1',
+        JSON.stringify({ projectKey: null, pickedCwd: root, tabs: [], activeTabId: null })
+      )
+    }, fixtureRoot)
+
+    await page.locator('a[href="#/settings"]').click()
+    await expect(page.getByRole('button', { name: /无看板娘|No Mascot/ })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    await expect(page.getByRole('button', { name: /长发御姐|Long-haired Executive/ })).toHaveCount(
+      0
+    )
+    await expect(
+      page.getByRole('button', { name: /女仆风格（白丝）|Maid Style \(White Stockings\)/ })
+    ).toHaveCount(1)
+    await page
+      .getByRole('button', { name: /职场风格（黑丝）|Office Style \(Black Tights\)/ })
+      .click()
+    await page.getByRole('button', { name: /保存|Save/, exact: true }).click()
+    await expect(page.getByText(/设置已保存|Settings saved/)).toBeVisible()
+    await expect(page.getByTestId('page-mascot-background')).toHaveAttribute('data-style', 'office')
+
+    await page.locator('a[href="#/workspace"]').click()
+    await expect(page.getByTestId('page-mascot-background')).toHaveAttribute('data-style', 'office')
+    await expect(page.getByTestId('workspace-mascot')).toBeVisible()
+    await expect(page.getByTestId('workspace-mascot')).toHaveAttribute('data-style', 'office')
   })
 
   test('edits, saves, and protects externally changed text files', async ({ page }) => {

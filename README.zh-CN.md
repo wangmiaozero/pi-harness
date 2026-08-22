@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.0.8-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.9-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
@@ -31,30 +31,30 @@
 
 ## 界面预览
 
-| 概览 | 设置 |
-| :---: | :---: |
-| ![概览](docs/概览.jpg) | ![设置](docs/设置.jpg) |
-| **工作区 — 会话** | **工作区 — 编辑器** |
+|               概览               |                设置                |
+| :------------------------------: | :--------------------------------: |
+|      ![概览](docs/概览.jpg)      |       ![设置](docs/设置.jpg)       |
+|        **工作区 — 会话**         |        **工作区 — 编辑器**         |
 | ![工作区会话](docs/工作区-1.jpg) | ![工作区编辑器](docs/工作区-2.jpg) |
-| **提供商 — 列表** | **提供商 — 详情** |
-| ![提供商列表](docs/提供商-1.jpg) | ![提供商详情](docs/提供商-2.jpg) |
-| **模型 — 列表** | **模型 — 详情** |
-| ![模型列表](docs/模型-1.jpg) | ![模型详情](docs/模型-2.jpg) |
-| **技能 — 已安装** | **技能 — 市场** |
-| ![已安装技能](docs/技能-1.jpg) | ![技能市场](docs/技能-2.jpg) |
+|        **提供商 — 列表**         |         **提供商 — 详情**          |
+| ![提供商列表](docs/提供商-1.jpg) |  ![提供商详情](docs/提供商-2.jpg)  |
+|         **模型 — 列表**          |          **模型 — 详情**           |
+|   ![模型列表](docs/模型-1.jpg)   |    ![模型详情](docs/模型-2.jpg)    |
+|        **技能 — 已安装**         |          **技能 — 市场**           |
+|  ![已安装技能](docs/技能-1.jpg)  |    ![技能市场](docs/技能-2.jpg)    |
 
 ## 功能
 
-| 模块 | 说明 |
-| --- | --- |
-| **概览** | 当前模型、Pi CLI / 配置目录、环境状态与常用操作 |
-| **工作区** | 项目、Session、流式对话、Thinking、Tool Call、轻量代码编辑、Git Diff、Worktree |
-| **提供商** | 协议解耦（Provider ≠ Protocol ≠ Model）；凭证走 Keychain / `safeStorage` |
-| **模型** | 能力标记、激活模型、连接测试；写入后回读 `settings.json` 校验 |
-| **技能** | 创建 / 导入 / 编辑 / 校验 `SKILL.md`；路径根目录约束 |
-| **配置** | CodeMirror 编辑 `models.json` / `settings.json`；格式化、在文件管理器中显示 |
-| **诊断** | 环境报告；复制前脱敏（apiKey / token / secret 等） |
-| **设置** | 简体中文 / English / 한국어 / Русский / Français / Deutsch、深浅色、标准 / 紧凑密度、自动备份与保留策略 |
+| 模块       | 说明                                                                                     |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| **概览**   | 当前模型、Pi CLI / 配置目录、环境状态与常用操作                                          |
+| **工作区** | 项目、Session、安全流式 Markdown、可折叠工具结果、轻量代码编辑、Git Diff、Worktree       |
+| **提供商** | 协议解耦（Provider ≠ Protocol ≠ Model）；凭证走 Keychain / `safeStorage`                 |
+| **模型**   | 能力标记、激活模型、连接测试；写入后回读 `settings.json` 校验                            |
+| **技能**   | 创建 / 导入 / 编辑 / 校验 `SKILL.md`；路径根目录约束                                     |
+| **配置**   | CodeMirror 编辑 `models.json` / `settings.json`；格式化、在文件管理器中显示              |
+| **诊断**   | 环境报告；复制前脱敏（apiKey / token / secret 等）                                       |
+| **设置**   | 简体中文 / English / 한국어 / Русский / Français / Deutsch、主题、密度、备份、可选看板娘 |
 
 可靠性：
 
@@ -87,15 +87,15 @@ cp .env.example .env
 
 ## 常用命令
 
-| 命令 | 作用 |
-| --- | --- |
-| `pnpm typecheck` | Vue / TypeScript 类型检查 |
-| `pnpm lint` | ESLint |
-| `pnpm test` | Vitest 单元测试 |
-| `pnpm test:e2e` | 编译后跑 Playwright Electron smoke |
-| `pnpm compile` | Vite 编译到 `out/`（不打安装包） |
-| `pnpm build` | 编译并打包 macOS / Windows / Linux → `release/` |
-| `pnpm build:mac` | 仅 macOS |
+| 命令             | 作用                                            |
+| ---------------- | ----------------------------------------------- |
+| `pnpm typecheck` | Vue / TypeScript 类型检查                       |
+| `pnpm lint`      | ESLint                                          |
+| `pnpm test`      | Vitest 单元测试                                 |
+| `pnpm test:e2e`  | 编译后跑 Playwright Electron smoke              |
+| `pnpm compile`   | Vite 编译到 `out/`（不打安装包）                |
+| `pnpm build`     | 编译并打包 macOS / Windows / Linux → `release/` |
+| `pnpm build:mac` | 仅 macOS                                        |
 
 ## 架构
 

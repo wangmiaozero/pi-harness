@@ -18,6 +18,7 @@ import { registerIpc, broadcastConfigChanged } from './ipc/register'
 import { createMainWindow } from './window/create-window'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
+import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
 import { FileAccessService } from './files/file-access-service'
 import { FileService } from './files/file-service'
 import { GitService } from './git/git-service'
@@ -30,6 +31,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   language: 'zh-CN',
   theme: 'dark',
   density: 'comfortable',
+  mascotStyle: DEFAULT_MASCOT_STYLE,
   mockMode: false,
   manualCliPath: null,
   manualConfigDir: null,

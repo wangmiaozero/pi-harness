@@ -1,6 +1,6 @@
 {
   "name": "pi-harness",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "The Complete Desktop Harness for Pi Coding Agent",
   "productName": "Pi-Harness",
   "author": {
@@ -59,6 +59,7 @@
     "@codemirror/language-data": "^6.5.2",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.8",
+    "@comark/vue": "^0.6.2",
     "@earendil-works/pi-agent-core": "0.84.2",
     "@earendil-works/pi-ai": "0.84.2",
     "@earendil-works/pi-coding-agent": "0.84.2",

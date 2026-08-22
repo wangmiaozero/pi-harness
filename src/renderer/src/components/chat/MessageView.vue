@@ -1,9 +1,52 @@
 <script setup lang="ts">
+import { Markdown } from '@comark/vue'
+import security from '@comark/vue/plugins/security'
+import taskList from '@comark/vue/plugins/task-list'
 import { computed, ref } from 'vue'
 import type { AgentMessage, ImageContent } from '@shared/types/workspace'
 import ToolCallView from './ToolCallView.vue'
 import BranchNavigator from './BranchNavigator.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
+
+const markdownOptions = {
+  registerDefaultPlugins: false
+}
+const markdownPlugins = [
+  taskList(),
+  security({
+    allowedTags: [
+      'p',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'ul',
+      'ol',
+      'li',
+      'strong',
+      'em',
+      's',
+      'code',
+      'pre',
+      'blockquote',
+      'hr',
+      'br',
+      'a',
+      'img',
+      'table',
+      'thead',
+      'tbody',
+      'tr',
+      'th',
+      'td',
+      'input'
+    ],
+    allowedProtocols: ['http', 'https', 'mailto'],
+    allowDataImages: false
+  })
+]
 
 const props = defineProps<{
   message: AgentMessage
@@ -80,6 +123,7 @@ const bashText = computed(() => {
 <template>
   <article class="mb-3">
     <p
+      v-if="message.role !== 'toolResult'"
       class="mb-1 text-[10.5px] font-medium uppercase tracking-[0.05em] text-[var(--text-tertiary)]"
     >
       <template v-if="message.role === 'user'">{{ $t('workspace.roleUser') }}</template>
@@ -87,7 +131,6 @@ const bashText = computed(() => {
         {{ $t('workspace.roleAssistant') }}
         <span v-if="streaming"> · {{ $t('workspace.streaming') }}</span>
       </template>
-      <template v-else-if="message.role === 'toolResult'">{{ $t('workspace.roleTool') }}</template>
       <template v-else-if="message.role === 'bashExecution'">bash</template>
       <template v-else>{{ message.customType }}</template>
     </p>
@@ -113,12 +156,20 @@ const bashText = computed(() => {
 
     <div v-else-if="message.role === 'assistant'" class="space-y-2">
       <template v-for="(block, i) in message.content" :key="i">
-        <p
-          v-if="block.type === 'text'"
-          class="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]"
-        >
-          {{ block.text }}
-        </p>
+        <Suspense v-if="block.type === 'text'">
+          <Markdown
+            :value="block.text"
+            :options="markdownOptions"
+            :plugins="markdownPlugins"
+            :streaming="streaming"
+            class="markdown-content"
+          />
+          <template #fallback>
+            <p class="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]">
+              {{ block.text }}
+            </p>
+          </template>
+        </Suspense>
         <details
           v-else-if="block.type === 'thinking'"
           class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1"
@@ -148,16 +199,28 @@ const bashText = computed(() => {
       </template>
     </div>
 
-    <pre
+    <details
       v-else-if="message.role === 'toolResult'"
-      class="overflow-x-auto whitespace-pre-wrap rounded-[var(--radius-sm)] bg-[var(--bg-surface)] px-3 py-2 font-[family-name:var(--font-mono)] text-[11.5px]"
-      :class="message.isError ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'"
-    >{{ toolResultText }}</pre>
+      data-testid="tool-result-details"
+      class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+    >
+      <summary
+        class="cursor-pointer px-2.5 py-1.5 text-[10.5px] font-medium uppercase tracking-[0.05em] text-[var(--text-tertiary)] select-none"
+      >
+        {{ $t('workspace.roleTool') }}
+      </summary>
+      <pre
+        class="max-h-[32rem] overflow-auto whitespace-pre-wrap border-t border-[var(--border-subtle)] px-3 py-2 font-[family-name:var(--font-mono)] text-[11.5px]"
+        :class="message.isError ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'"
+        v-text="toolResultText"
+      />
+    </details>
 
     <pre
       v-else-if="message.role === 'bashExecution'"
       class="overflow-x-auto whitespace-pre-wrap rounded-[var(--radius-sm)] bg-[var(--bg-surface)] px-3 py-2 font-[family-name:var(--font-mono)] text-[11.5px] text-[var(--text-secondary)]"
-    >{{ bashText }}</pre>
+      v-text="bashText"
+    />
 
     <p v-else class="whitespace-pre-wrap text-[13px] text-[var(--text-secondary)]">
       {{ typeof message.content === 'string' ? message.content : '' }}
@@ -170,3 +233,177 @@ const bashText = computed(() => {
     </Dialog>
   </article>
 </template>
+
+<style scoped>
+.markdown-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.markdown-content :deep(p),
+.markdown-content :deep(ul),
+.markdown-content :deep(ol),
+.markdown-content :deep(pre),
+.markdown-content :deep(blockquote),
+.markdown-content :deep(table) {
+  margin: 0 0 0.75em;
+}
+
+.markdown-content :deep(> :last-child) {
+  margin-bottom: 0;
+}
+
+.markdown-content :deep(h1),
+.markdown-content :deep(h2),
+.markdown-content :deep(h3),
+.markdown-content :deep(h4),
+.markdown-content :deep(h5),
+.markdown-content :deep(h6) {
+  margin: 1.15em 0 0.55em;
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.markdown-content :deep(h1:first-child),
+.markdown-content :deep(h2:first-child),
+.markdown-content :deep(h3:first-child),
+.markdown-content :deep(h4:first-child),
+.markdown-content :deep(h5:first-child),
+.markdown-content :deep(h6:first-child) {
+  margin-top: 0;
+}
+
+.markdown-content :deep(h1) {
+  font-size: 1.45em;
+}
+
+.markdown-content :deep(h2) {
+  font-size: 1.3em;
+}
+
+.markdown-content :deep(h3) {
+  font-size: 1.15em;
+}
+
+.markdown-content :deep(h4),
+.markdown-content :deep(h5),
+.markdown-content :deep(h6) {
+  font-size: 1em;
+}
+
+.markdown-content :deep(ul),
+.markdown-content :deep(ol) {
+  padding-left: 1.5em;
+}
+
+.markdown-content :deep(ul) {
+  list-style: disc;
+}
+
+.markdown-content :deep(ol) {
+  list-style: decimal;
+}
+
+.markdown-content :deep(li) {
+  margin: 0.2em 0;
+}
+
+.markdown-content :deep(li > ul),
+.markdown-content :deep(li > ol) {
+  margin: 0.2em 0;
+}
+
+.markdown-content :deep(strong) {
+  font-weight: 650;
+}
+
+.markdown-content :deep(a) {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown-content :deep(code) {
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-surface-raised);
+  padding: 0.08em 0.35em;
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.markdown-content :deep(pre) {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  padding: 10px 12px;
+  line-height: 1.55;
+}
+
+.markdown-content :deep(pre code) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+}
+
+.markdown-content :deep(blockquote) {
+  border-left: 3px solid var(--border-strong);
+  padding-left: 0.85em;
+  color: var(--text-secondary);
+}
+
+.markdown-content :deep(hr) {
+  margin: 1em 0;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.markdown-content :deep(table) {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdown-content :deep(th),
+.markdown-content :deep(td) {
+  border: 1px solid var(--border-default);
+  padding: 5px 8px;
+  text-align: left;
+}
+
+.markdown-content :deep(th) {
+  background: var(--bg-surface);
+  font-weight: 600;
+}
+
+.markdown-content :deep(img) {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+}
+
+.markdown-content :deep(.contains-task-list) {
+  padding-left: 0;
+  list-style: none;
+}
+
+.markdown-content :deep(.task-list-item) {
+  list-style: none;
+}
+
+.markdown-content :deep(.task-list-item-checkbox) {
+  width: 13px;
+  height: 13px;
+  margin: 0 0.45em 0 0;
+  vertical-align: -2px;
+  accent-color: var(--accent);
+  appearance: auto;
+}
+</style>

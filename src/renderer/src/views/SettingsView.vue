@@ -1,7 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Save, FolderOpen, Archive, Trash2, RotateCcw, Download, Eraser } from '@lucide/vue'
+import {
+  Save,
+  FolderOpen,
+  Archive,
+  Trash2,
+  RotateCcw,
+  Download,
+  Eraser,
+  CircleOff
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import type { AppSettings } from '@shared/ipc/api-types'
 import Button from '@renderer/components/ui/Button.vue'
@@ -16,6 +25,8 @@ import { useSettingsStore } from '@renderer/stores/settings'
 import { getApi } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { formatDateTime, formatBytes } from '@renderer/utils/format'
+import { DEFAULT_MASCOT_STYLE, MASCOT_STYLES } from '@shared/constants/mascot'
+import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
 
 const { t, locale } = useI18n()
 const store = useSettingsStore()
@@ -30,6 +41,7 @@ const draft = ref<AppSettings>({
   language: 'zh-CN',
   theme: 'dark',
   density: 'comfortable',
+  mascotStyle: DEFAULT_MASCOT_STYLE,
   mockMode: false,
   manualCliPath: null,
   manualConfigDir: null,
@@ -79,6 +91,15 @@ const densityOptions = computed(() => [
   { value: 'comfortable', label: t('settings.densityComfortable') },
   { value: 'compact', label: t('settings.densityCompact') }
 ])
+
+const mascotOptions = computed(() =>
+  MASCOT_STYLES.map((style) => ({
+    value: style,
+    image: MASCOT_IMAGES[style],
+    label: t(`settings.mascot${style[0].toUpperCase()}${style.slice(1)}`),
+    description: t(`settings.mascot${style[0].toUpperCase()}${style.slice(1)}Hint`)
+  }))
+)
 
 const toolPresetOptions = computed(() => [
   { value: 'none', label: t('workspace.presetNone') },
@@ -288,6 +309,58 @@ onMounted(() => {
         <InspectorSection
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
+          <template #title>{{ $t('settings.mascot') }}</template>
+          <div class="border-t border-[var(--border-subtle)] p-3">
+            <p class="mb-3 text-[11.5px] text-[var(--text-tertiary)]">
+              {{ $t('settings.mascotHint') }}
+            </p>
+            <div class="grid grid-cols-2 gap-2.5 min-[900px]:grid-cols-3">
+              <button
+                v-for="option in mascotOptions"
+                :key="option.value"
+                type="button"
+                class="group min-w-0 overflow-hidden rounded-[var(--radius-md)] border text-left transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+                :class="
+                  draft.mascotStyle === option.value
+                    ? 'border-[var(--accent-border)] bg-[var(--accent-tint-soft)]'
+                    : 'border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
+                "
+                :aria-pressed="draft.mascotStyle === option.value"
+                @click="draft.mascotStyle = option.value"
+              >
+                <div class="h-32 bg-[var(--bg-window)]/45 px-2 pt-2">
+                  <img
+                    v-if="option.image"
+                    :src="option.image"
+                    alt=""
+                    loading="lazy"
+                    class="size-full object-contain object-bottom transition-transform duration-150 group-hover:scale-[1.025]"
+                  />
+                  <div
+                    v-else
+                    class="flex size-full items-center justify-center text-[var(--text-tertiary)]"
+                  >
+                    <CircleOff class="size-10" :stroke-width="1.25" />
+                  </div>
+                </div>
+                <div class="border-t border-[var(--border-subtle)] px-2.5 py-2">
+                  <div class="truncate text-[12px] font-medium text-[var(--text-primary)]">
+                    {{ option.label }}
+                  </div>
+                  <div
+                    class="mt-0.5 line-clamp-2 text-[10.5px] leading-4 text-[var(--text-tertiary)]"
+                  >
+                    {{ option.description }}
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </InspectorSection>
+
+        <InspectorSection
+          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+        >
           <template #title>{{ $t('settings.workspace') }}</template>
           <div
             class="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]"
@@ -305,7 +378,10 @@ onMounted(() => {
             </PropertyRow>
             <PropertyRow :label="$t('settings.autoOpenLastProject')">
               <div class="flex items-center justify-end">
-                <Switch v-model="draft.autoOpenLastProject" :label="$t('settings.autoOpenLastProject')" />
+                <Switch
+                  v-model="draft.autoOpenLastProject"
+                  :label="$t('settings.autoOpenLastProject')"
+                />
               </div>
             </PropertyRow>
           </div>

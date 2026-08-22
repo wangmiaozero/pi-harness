@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.0.8-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.9-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
@@ -31,30 +31,30 @@ Geheimnisse erscheinen im Renderer nie im Klartext. macOS speichert sie im Syste
 
 ## Screenshots
 
-| Übersicht | Einstellungen |
-| :---: | :---: |
-| ![Übersicht](docs/概览.jpg) | ![Einstellungen](docs/设置.jpg) |
-| **Arbeitsbereich — Sitzungen** | **Arbeitsbereich — Editor** |
+|                   Übersicht                    |                Einstellungen                |
+| :--------------------------------------------: | :-----------------------------------------: |
+|          ![Übersicht](docs/概览.jpg)           |       ![Einstellungen](docs/设置.jpg)       |
+|         **Arbeitsbereich — Sitzungen**         |         **Arbeitsbereich — Editor**         |
 | ![Arbeitsbereich Sitzungen](docs/工作区-1.jpg) | ![Arbeitsbereich Editor](docs/工作区-2.jpg) |
-| **Anbieter — Liste** | **Anbieter — Details** |
-| ![Anbieterliste](docs/提供商-1.jpg) | ![Anbieterdetails](docs/提供商-2.jpg) |
-| **Modelle — Liste** | **Modelle — Details** |
-| ![Modellliste](docs/模型-1.jpg) | ![Modelldetails](docs/模型-2.jpg) |
-| **Skills — Installiert** | **Skills — Markt** |
-| ![Installierte Skills](docs/技能-1.jpg) | ![Skills-Markt](docs/技能-2.jpg) |
+|              **Anbieter — Liste**              |           **Anbieter — Details**            |
+|      ![Anbieterliste](docs/提供商-1.jpg)       |    ![Anbieterdetails](docs/提供商-2.jpg)    |
+|              **Modelle — Liste**               |            **Modelle — Details**            |
+|        ![Modellliste](docs/模型-1.jpg)         |      ![Modelldetails](docs/模型-2.jpg)      |
+|            **Skills — Installiert**            |             **Skills — Markt**              |
+|    ![Installierte Skills](docs/技能-1.jpg)     |      ![Skills-Markt](docs/技能-2.jpg)       |
 
 ## Funktionen
 
-| Modul | Beschreibung |
-| --- | --- |
-| **Übersicht** | Aktives Modell, Pi-CLI / Konfigurationsverzeichnis, Umgebungsstatus und häufige Aktionen |
-| **Arbeitsbereich** | Projekte, Sessions, Streaming-Chat, Thinking, Tool Call, leichtgewichtige Codebearbeitung, Git Diff und Worktree |
-| **Anbieter** | Provider ≠ Protocol ≠ Model; Zugangsdaten in Keychain / `safeStorage` |
-| **Modelle** | Fähigkeitsflags, aktives Modell, Verbindungstest; nach dem Schreiben wird `settings.json` erneut gelesen |
-| **Skills** | `SKILL.md` erstellen / importieren / bearbeiten / prüfen; Pfadwurzel-Beschränkung |
-| **Konfiguration** | CodeMirror-Editor für `models.json` / `settings.json`; Formatieren und im Dateimanager anzeigen |
-| **Diagnose** | Umgebungsbericht; Kopieren wird bereinigt (`apiKey` / `token` / `secret` usw.) |
-| **Einstellungen** | 简体中文 / English / 한국어 / Русский / Français / Deutsch, Dunkel / Hell, Standard- / Kompaktdichte, Backups |
+| Modul              | Beschreibung                                                                                                                              |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Übersicht**      | Aktives Modell, Pi-CLI / Konfigurationsverzeichnis, Umgebungsstatus und häufige Aktionen                                                  |
+| **Arbeitsbereich** | Projekte, Sessions, sicheres Streaming-Markdown, einklappbare Werkzeugergebnisse, leichtgewichtige Codebearbeitung, Git Diff und Worktree |
+| **Anbieter**       | Provider ≠ Protocol ≠ Model; Zugangsdaten in Keychain / `safeStorage`                                                                     |
+| **Modelle**        | Fähigkeitsflags, aktives Modell, Verbindungstest; nach dem Schreiben wird `settings.json` erneut gelesen                                  |
+| **Skills**         | `SKILL.md` erstellen / importieren / bearbeiten / prüfen; Pfadwurzel-Beschränkung                                                         |
+| **Konfiguration**  | CodeMirror-Editor für `models.json` / `settings.json`; Formatieren und im Dateimanager anzeigen                                           |
+| **Diagnose**       | Umgebungsbericht; Kopieren wird bereinigt (`apiKey` / `token` / `secret` usw.)                                                            |
+| **Einstellungen**  | 简体中文 / English / 한국어 / Русский / Français / Deutsch, Themes, Dichte, Backups, optionale Maskottchen                                |
 
 Zuverlässigkeit:
 
@@ -87,15 +87,15 @@ Keine Geheimnisse in `VITE_*`-Variablen speichern — sie landen im Renderer-Bun
 
 ## Befehle
 
-| Befehl | Zweck |
-| --- | --- |
-| `pnpm typecheck` | Vue- / TypeScript-Typprüfung |
-| `pnpm lint` | ESLint |
-| `pnpm test` | Vitest-Unit-Tests |
-| `pnpm test:e2e` | Kompilieren, dann Playwright-Electron-Smoke |
-| `pnpm compile` | Vite-Build nach `out/` (kein Installer) |
-| `pnpm build` | Kompilieren und Pakete für macOS / Windows / Linux → `release/` |
-| `pnpm build:mac` | Nur macOS |
+| Befehl           | Zweck                                                           |
+| ---------------- | --------------------------------------------------------------- |
+| `pnpm typecheck` | Vue- / TypeScript-Typprüfung                                    |
+| `pnpm lint`      | ESLint                                                          |
+| `pnpm test`      | Vitest-Unit-Tests                                               |
+| `pnpm test:e2e`  | Kompilieren, dann Playwright-Electron-Smoke                     |
+| `pnpm compile`   | Vite-Build nach `out/` (kein Installer)                         |
+| `pnpm build`     | Kompilieren und Pakete für macOS / Windows / Linux → `release/` |
+| `pnpm build:mac` | Nur macOS                                                       |
 
 ## Architektur
 

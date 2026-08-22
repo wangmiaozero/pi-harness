@@ -4,6 +4,7 @@ import type { AppSettings, BackupRecord } from '@shared/ipc/api-types'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { i18n, resolveLocale } from '@renderer/i18n'
 import { watchSystemTheme, type ThemePreference } from '@renderer/utils/theme'
+import { normalizeMascotStyle } from '@shared/constants/mascot'
 
 export const useSettingsStore = defineStore('settings', () => {
   const settings = ref<AppSettings | null>(null)
@@ -19,6 +20,7 @@ export const useSettingsStore = defineStore('settings', () => {
       const next = await callApi(() => getApi().settings.get())
       // Product default language is zh-CN; migrate bare defaults once.
       if (!next.language) next.language = 'zh-CN'
+      next.mascotStyle = normalizeMascotStyle(next.mascotStyle)
       settings.value = next
       applyLocale(settings.value.language)
       applyThemePrefs(settings.value.theme)
@@ -31,6 +33,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   async function patch(partial: Partial<AppSettings>) {
     settings.value = await callApi(() => getApi().settings.set(partial))
+    settings.value.mascotStyle = normalizeMascotStyle(settings.value.mascotStyle)
     applyLocale(settings.value.language)
     applyThemePrefs(settings.value.theme)
     return settings.value

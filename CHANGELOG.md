@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 1.0.9 — 2026-08-22
+
+### Added
+
+- **Optional mascot system.** Added an application-wide mascot selector with six visual styles, synchronized page backgrounds, and a workspace status mascot. “No Mascot” is the default and renders no decorative image.
+- **New silver-haired styles.** Added “Office Style (Black Tights)” and “Maid Style (White Stockings)” as transparent `1024 × 1536` runtime assets.
+- **Safe rich chat rendering.** Assistant responses now render streaming Markdown headings, lists, task lists, links, images, tables, blockquotes, inline code, and fenced code blocks through an explicit security allowlist.
+
+### Changed
+
+- Tool results are collapsed by default and expand into a bounded scrollable panel, reducing noise in long sessions.
+- Mascot settings are normalized on load and save; missing, invalid, and removed `longhair` values fall back to “No Mascot.”
+
 ## 1.0.8 — 2026-08-22
 
 ### Added

@@ -134,7 +134,7 @@ watch(
 <template>
   <div class="flex h-full min-h-0">
     <WorkspaceSidebar ref="workspaceSidebar" @focus-composer="focusComposer" />
-    <section class="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--bg-workspace)]">
+    <section class="flex min-h-0 min-w-0 flex-1 flex-col">
       <template v-if="workspace.canChat">
         <WorkspaceTabs ref="workspaceTabs" @focus-composer="focusComposer" />
       </template>

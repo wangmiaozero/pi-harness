@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.0.8-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.0.9-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
@@ -31,30 +31,30 @@ Les secrets n’apparaissent jamais en clair dans le Renderer. macOS les stocke 
 
 ## Captures d’écran
 
-| Aperçu | Paramètres |
-| :---: | :---: |
-| ![Aperçu](docs/概览.jpg) | ![Paramètres](docs/设置.jpg) |
-| **Espace de travail — Sessions** | **Espace de travail — Éditeur** |
-| ![Sessions](docs/工作区-1.jpg) | ![Éditeur](docs/工作区-2.jpg) |
-| **Fournisseurs — Liste** | **Fournisseurs — Détails** |
+|                    Aperçu                    |                  Paramètres                  |
+| :------------------------------------------: | :------------------------------------------: |
+|           ![Aperçu](docs/概览.jpg)           |         ![Paramètres](docs/设置.jpg)         |
+|       **Espace de travail — Sessions**       |       **Espace de travail — Éditeur**        |
+|        ![Sessions](docs/工作区-1.jpg)        |        ![Éditeur](docs/工作区-2.jpg)         |
+|           **Fournisseurs — Liste**           |          **Fournisseurs — Détails**          |
 | ![Liste des fournisseurs](docs/提供商-1.jpg) | ![Détails du fournisseur](docs/提供商-2.jpg) |
-| **Modèles — Liste** | **Modèles — Détails** |
-| ![Liste des modèles](docs/模型-1.jpg) | ![Détails du modèle](docs/模型-2.jpg) |
-| **Compétences — Installées** | **Compétences — Marché** |
-| ![Compétences installées](docs/技能-1.jpg) | ![Marché des compétences](docs/技能-2.jpg) |
+|             **Modèles — Liste**              |            **Modèles — Détails**             |
+|    ![Liste des modèles](docs/模型-1.jpg)     |    ![Détails du modèle](docs/模型-2.jpg)     |
+|         **Compétences — Installées**         |           **Compétences — Marché**           |
+|  ![Compétences installées](docs/技能-1.jpg)  |  ![Marché des compétences](docs/技能-2.jpg)  |
 
 ## Fonctionnalités
 
-| Module | Description |
-| --- | --- |
-| **Aperçu** | Modèle actif, Pi CLI / répertoire de configuration, état de l’environnement et actions courantes |
-| **Espace de travail** | Projets, sessions, chat en streaming, Thinking, Tool Call, édition de code légère, Git Diff et Worktree |
-| **Fournisseurs** | Provider ≠ Protocol ≠ Model ; identifiants dans le Trousseau / `safeStorage` |
-| **Modèles** | Capacités, modèle actif, test de connexion ; relecture de `settings.json` après écriture |
-| **Compétences** | Créer / importer / modifier / valider `SKILL.md` ; contrainte de racine de chemin |
-| **Configuration** | Éditeur CodeMirror pour `models.json` / `settings.json` ; formatage et affichage dans le gestionnaire de fichiers |
-| **Diagnostics** | Rapport d’environnement ; copie assainie (`apiKey` / `token` / `secret`, etc.) |
-| **Réglages** | 简体中文 / English / 한국어 / Русский / Français / Deutsch, sombre / clair, densité standard / compacte, sauvegardes |
+| Module                | Description                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Aperçu**            | Modèle actif, Pi CLI / répertoire de configuration, état de l’environnement et actions courantes                               |
+| **Espace de travail** | Projets, sessions, Markdown sécurisé en streaming, résultats d’outils repliables, édition de code légère, Git Diff et Worktree |
+| **Fournisseurs**      | Provider ≠ Protocol ≠ Model ; identifiants dans le Trousseau / `safeStorage`                                                   |
+| **Modèles**           | Capacités, modèle actif, test de connexion ; relecture de `settings.json` après écriture                                       |
+| **Compétences**       | Créer / importer / modifier / valider `SKILL.md` ; contrainte de racine de chemin                                              |
+| **Configuration**     | Éditeur CodeMirror pour `models.json` / `settings.json` ; formatage et affichage dans le gestionnaire de fichiers              |
+| **Diagnostics**       | Rapport d’environnement ; copie assainie (`apiKey` / `token` / `secret`, etc.)                                                 |
+| **Réglages**          | 简体中文 / English / 한국어 / Русский / Français / Deutsch, thèmes, densité, sauvegardes, mascotte optionnelle                 |
 
 Fiabilité :
 
@@ -87,15 +87,15 @@ Ne stockez pas de secrets dans des variables `VITE_*` — elles sont incluses da
 
 ## Commandes
 
-| Commande | Rôle |
-| --- | --- |
-| `pnpm typecheck` | Vérification de types Vue / TypeScript |
-| `pnpm lint` | ESLint |
-| `pnpm test` | Tests unitaires Vitest |
-| `pnpm test:e2e` | Compilation, puis smoke Playwright Electron |
-| `pnpm compile` | Compilation Vite vers `out/` (pas d’installateur) |
-| `pnpm build` | Compilation et paquets macOS / Windows / Linux → `release/` |
-| `pnpm build:mac` | macOS uniquement |
+| Commande         | Rôle                                                        |
+| ---------------- | ----------------------------------------------------------- |
+| `pnpm typecheck` | Vérification de types Vue / TypeScript                      |
+| `pnpm lint`      | ESLint                                                      |
+| `pnpm test`      | Tests unitaires Vitest                                      |
+| `pnpm test:e2e`  | Compilation, puis smoke Playwright Electron                 |
+| `pnpm compile`   | Compilation Vite vers `out/` (pas d’installateur)           |
+| `pnpm build`     | Compilation et paquets macOS / Windows / Linux → `release/` |
+| `pnpm build:mac` | macOS uniquement                                            |
 
 ## Architecture
 

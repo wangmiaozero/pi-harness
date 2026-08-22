@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import MessageView from './MessageView.vue'
 import ChatComposer from './ChatComposer.vue'
+import MascotView from './MascotView.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import { ArrowDown, ArrowUp, Check, Copy, Gauge, History, MessageSquare } from '@lucide/vue'
 import { useAgentStore } from '@renderer/stores/agent'
@@ -15,6 +16,7 @@ import type { ToolPreset } from '@shared/workspace/tool-presets'
 import type { AgentImageAttachment } from '@shared/types/workspace'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { useCompletionSound } from '@renderer/composables/useCompletionSound'
+import { normalizeMascotStyle } from '@shared/constants/mascot'
 
 const { locale } = useI18n()
 const agent = useAgentStore()
@@ -31,6 +33,10 @@ const hasScrollOverflow = ref(false)
 const atScrollTop = ref(true)
 const atScrollBottom = ref(true)
 const completionSound = useCompletionSound()
+const mascotStyle = computed(() => normalizeMascotStyle(settings.settings?.mascotStyle))
+const mascotActive = computed(
+  () => agent.sending || agent.streaming.isStreaming || agent.state?.isPromptRunning === true
+)
 let stickToBottom = true
 let scrollResizeObserver: ResizeObserver | null = null
 
@@ -333,7 +339,7 @@ function duration(value: number): string {
       <div
         ref="scroller"
         data-testid="chat-scroller"
-        class="h-full min-h-0 overflow-y-auto px-4 py-3"
+        class="h-full min-h-0 overflow-y-auto px-4 py-3 min-[1080px]:pr-[132px]"
         @scroll.passive="onScrollerScroll"
       >
         <div ref="scrollContent">
@@ -357,10 +363,11 @@ function duration(value: number): string {
           </p>
         </div>
       </div>
+      <MascotView :style="mascotStyle" :active="mascotActive" class="hidden min-[1080px]:block" />
       <div
         v-if="hasScrollOverflow"
         data-testid="chat-scroll-controls"
-        class="absolute bottom-3 right-4 z-20 flex flex-col gap-1"
+        class="absolute bottom-3 right-4 z-20 flex flex-col gap-1 min-[1080px]:right-[120px]"
       >
         <button
           v-if="!atScrollTop"
