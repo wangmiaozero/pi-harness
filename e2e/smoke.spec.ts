@@ -112,6 +112,21 @@ test.describe('Pi-Harness smoke', () => {
     const composer = page.locator('main textarea')
     await expect(composer).toBeVisible()
     await composer.focus()
+    const modelSelect = page.getByTestId('workspace-model-select').getByRole('button')
+    await modelSelect.click()
+    const modelPanel = page.getByRole('listbox')
+    await expect(modelPanel).toBeVisible()
+    const [modelSelectBox, modelPanelBox] = await Promise.all([
+      modelSelect.boundingBox(),
+      modelPanel.boundingBox()
+    ])
+    expect(modelSelectBox).not.toBeNull()
+    expect(modelPanelBox).not.toBeNull()
+    expect(
+      Math.abs(modelSelectBox!.y - (modelPanelBox!.y + modelPanelBox!.height))
+    ).toBeLessThanOrEqual(6)
+    await page.keyboard.press('Escape')
+    await expect(modelPanel).toBeHidden()
     const aiMotion = page.getByTestId('ai-motion-border')
     await expect(aiMotion).toHaveClass(/opacity-0/)
     await expect(aiMotion.locator('canvas')).toHaveCount(0)

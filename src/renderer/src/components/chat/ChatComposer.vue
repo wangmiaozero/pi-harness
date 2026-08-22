@@ -344,7 +344,12 @@ async function onCompact() {
       >
         <ImagePlus aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
       </button>
-      <Select v-model="modelValue" :options="modelOptions" class="min-w-[190px] max-w-[300px]" />
+      <Select
+        v-model="modelValue"
+        data-testid="workspace-model-select"
+        :options="modelOptions"
+        class="min-w-[190px] max-w-[300px]"
+      />
       <div class="ml-auto flex items-center gap-0.5">
         <ComposerOptionMenu
           v-model="thinkingValue"

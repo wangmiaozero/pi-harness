@@ -59,11 +59,13 @@ function syncPanel() {
   const gap = 4
   const spaceBelow = window.innerHeight - r.bottom - 8
   const openUp = spaceBelow < 120 && r.top > spaceBelow
+  const availableHeight = openUp ? r.top - gap - 8 : spaceBelow
   panelStyle.value = {
-    top: openUp ? `${Math.round(r.top - gap - maxH)}px` : `${Math.round(r.bottom + gap)}px`,
+    top: openUp ? `${Math.round(r.top - gap)}px` : `${Math.round(r.bottom + gap)}px`,
     left: `${Math.round(r.left)}px`,
     width: `${Math.round(r.width)}px`,
-    maxHeight: `${maxH}px`
+    maxHeight: `${Math.max(80, Math.min(maxH, availableHeight))}px`,
+    transform: openUp ? 'translateY(-100%)' : 'none'
   }
 }
 
