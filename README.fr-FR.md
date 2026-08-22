@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>Harness de bureau complet pour <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
-  Harness de bureau local-first · Electron · Vue 3 · TypeScript
+  <strong>Console de contrôle locale et espace de travail natif pour <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
+  Configurer Pi · Exécuter des sessions projet · Consulter et modifier les fichiers locaux
 </p>
 
 <p align="center">
@@ -25,15 +25,21 @@
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
 
-Gérez fournisseurs, modèles, clés API, compétences, configuration Pi, sauvegardes et diagnostics, puis travaillez avec Pi Coding Agent sur un projet réel directement dans l’espace de travail.
+Pi-Harness gère les fournisseurs, modèles, identifiants, compétences, fichiers de configuration, sauvegardes et diagnostics de Pi, puis exécute des sessions Pi Agent liées à un projet dans un espace de travail natif. Les sessions restent compatibles avec les JSONL de Pi CLI sous `~/.pi/agent/sessions/` ; aucun pi-web, serveur Next.js ou iframe n’est intégré.
 
 Les secrets n’apparaissent jamais en clair dans le Renderer. macOS les stocke dans le Trousseau ; Windows et Linux utilisent Electron `safeStorage`. Les champs Pi inconnus sont conservés.
 
+## Points clés de la v1.0.9
+
+- Les réponses Assistant utilisent un Markdown sécurisé en streaming avec une liste blanche explicite de balises et protocoles.
+- Les Tool Result sont repliés par défaut et s’ouvrent dans une zone défilable à hauteur limitée.
+- La mascotte globale est désactivée par défaut ; six styles sont disponibles, dont les nouveaux styles bureau et maid.
+
 ## Captures d’écran
 
-|                    Aperçu                    |                  Paramètres                  |
+|                    Aperçu                    |             Réglages — Mascotte              |
 | :------------------------------------------: | :------------------------------------------: |
-|           ![Aperçu](docs/概览.jpg)           |         ![Paramètres](docs/设置.jpg)         |
+|           ![Aperçu](docs/概览.jpg)           |     ![Réglages mascotte](docs/设置.jpg)      |
 |       **Espace de travail — Sessions**       |       **Espace de travail — Éditeur**        |
 |        ![Sessions](docs/工作区-1.jpg)        |        ![Éditeur](docs/工作区-2.jpg)         |
 |           **Fournisseurs — Liste**           |          **Fournisseurs — Détails**          |
@@ -45,16 +51,16 @@ Les secrets n’apparaissent jamais en clair dans le Renderer. macOS les stocke 
 
 ## Fonctionnalités
 
-| Module                | Description                                                                                                                    |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Aperçu**            | Modèle actif, Pi CLI / répertoire de configuration, état de l’environnement et actions courantes                               |
-| **Espace de travail** | Projets, sessions, Markdown sécurisé en streaming, résultats d’outils repliables, édition de code légère, Git Diff et Worktree |
-| **Fournisseurs**      | Provider ≠ Protocol ≠ Model ; identifiants dans le Trousseau / `safeStorage`                                                   |
-| **Modèles**           | Capacités, modèle actif, test de connexion ; relecture de `settings.json` après écriture                                       |
-| **Compétences**       | Créer / importer / modifier / valider `SKILL.md` ; contrainte de racine de chemin                                              |
-| **Configuration**     | Éditeur CodeMirror pour `models.json` / `settings.json` ; formatage et affichage dans le gestionnaire de fichiers              |
-| **Diagnostics**       | Rapport d’environnement ; copie assainie (`apiKey` / `token` / `secret`, etc.)                                                 |
-| **Réglages**          | 简体中文 / English / 한국어 / Русский / Français / Deutsch, thèmes, densité, sauvegardes, mascotte optionnelle                 |
+| Module                | Description                                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Aperçu**            | Modèle actif, Pi CLI / répertoire de configuration, état de l’environnement et actions courantes                  |
+| **Espace de travail** | Projets et sessions Pi natifs, chat en streaming, Thinking / Tool Call, édition légère, Git Diff et Worktree      |
+| **Fournisseurs**      | Préréglages Pi compatibles et recherchables ; Provider ≠ Protocol ≠ Model ; Trousseau / `safeStorage`             |
+| **Modèles**           | ID prédéfinis ou personnalisés, métadonnées de capacité, sélection active, vérification après écriture            |
+| **Compétences**       | Créer / importer / modifier / valider `SKILL.md` ; contrainte de racine de chemin                                 |
+| **Configuration**     | Éditeur CodeMirror pour `models.json` / `settings.json` ; formatage et affichage dans le gestionnaire de fichiers |
+| **Diagnostics**       | Rapport d’environnement ; copie assainie (`apiKey` / `token` / `secret`, etc.)                                    |
+| **Réglages**          | Interface 简体中文 / English, thème système/sombre/clair, densité, outils, restauration, sauvegardes, mascotte    |
 
 Fiabilité :
 
@@ -62,6 +68,12 @@ Fiabilité :
 - Détection des changements externes (mtime) : Reload / Compare / Overwrite
 - Les builds packagés prennent en charge `electron-updater` (jamais d’installation silencieuse)
 - Application de bureau : fenêtres de navigateur externes et redirections URL hors app bloquées
+
+## Limites de l’éditeur léger
+
+L’espace de travail modifie les fichiers texte lisibles avec coloration syntaxique paresseuse, numéros de ligne, annuler/rétablir, recherche, sauvegarde explicite, indicateurs de modifications et protection contre les changements externes. Les extensions texte inconnues sont ouvertes en texte brut ; les fichiers volumineux, binaires, multimédias et documents restent en lecture seule.
+
+Pi-Harness n’est volontairement pas un IDE généraliste : pas de LSP/IntelliSense, refactorisation sémantique, débogueur, exécuteur de tâches, terminal intégré ni compatibilité avec les extensions IDE. Voir [les limites de l’éditeur léger](docs/lightweight-code-editor.md).
 
 ## Prérequis
 
@@ -101,14 +113,20 @@ Ne stockez pas de secrets dans des variables `VITE_*` — elles sont incluses da
 
 ```
 Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
-                                                ├─ AgentSession      projets / sessions / exécution en streaming
-                                                ├─ Workspace         fichiers / éditeur léger / Git
+                                                ├─ AgentRuntime      sessions Pi / streaming / événements d’outils
+                                                ├─ Workspace         projets / fichiers / éditeur léger / Git
                                                 ├─ PiConfigService   écriture atomique / conflit mtime
                                                 ├─ Provider / Model / Skills / Backup / Diagnostics
                                                 └─ SecretStore       Keychain / safeStorage
 ```
 
 Le domaine reste découplé du JSON natif Pi via un Adapter. Les champs inconnus transitent tels quels. La logique n’est pas figée sur un nom de modèle.
+
+## Documentation du projet
+
+- [Historique des modifications](CHANGELOG.md)
+- [Limites de l’éditeur de code léger](docs/lightweight-code-editor.md)
+- [Conception de la mascotte et règles d’exécution](docs/mascot-design.md)
 
 ## Auteur
 

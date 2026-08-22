@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a>를 위한 완전한 데스크톱 Harness</strong><br />
-  로컬 우선 데스크톱 Harness · Electron · Vue 3 · TypeScript
+  <strong><a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a>를 위한 로컬 우선 데스크톱 제어판 및 네이티브 작업 공간</strong><br />
+  Pi 구성 · 프로젝트 세션 실행 · 로컬 파일 확인 및 편집
 </p>
 
 <p align="center">
@@ -25,15 +25,21 @@
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
 
-데스크톱 UI에서 제공자, 모델, API 키, 스킬, 원본 Pi 구성, 백업, 진단을 관리한 뒤, 작업 공간에서 실제 프로젝트를 대상으로 Pi Coding Agent와 직접 대화할 수 있습니다.
+Pi-Harness는 Pi 제공자, 모델, 자격 증명, 스킬, 원본 구성, 백업 및 진단을 관리하고 네이티브 작업 공간에서 실제 프로젝트에 연결된 Pi Agent 세션을 실행합니다. 세션은 `~/.pi/agent/sessions/`의 Pi CLI JSONL과 호환되며 pi-web, Next.js 서버 또는 iframe을 내장하지 않습니다.
 
 비밀 값은 Renderer에 평문으로 노출되지 않습니다. macOS는 시스템 키체인에 저장하고, Windows / Linux는 Electron `safeStorage`를 사용합니다. 알 수 없는 Pi 필드는 그대로 유지됩니다.
 
+## v1.0.9 주요 변경 사항
+
+- Assistant 응답은 명시적 태그/프로토콜 허용 목록을 통해 안전한 스트리밍 Markdown으로 렌더링됩니다.
+- Tool Result는 기본적으로 접혀 있으며 제한된 높이의 스크롤 패널에서 펼쳐집니다.
+- 전역 마스코트는 기본적으로 꺼져 있으며, 새로운 오피스 및 메이드 스타일을 포함한 6개 스타일을 선택할 수 있습니다.
+
 ## 화면 미리보기
 
-|                 개요                 |                  설정                  |
+|                 개요                 |            설정 — 마스코트             |
 | :----------------------------------: | :------------------------------------: |
-|        ![개요](docs/概览.jpg)        |         ![설정](docs/设置.jpg)         |
+|        ![개요](docs/概览.jpg)        |    ![마스코트 설정](docs/设置.jpg)     |
 |         **작업 공간 — 세션**         |         **작업 공간 — 편집기**         |
 | ![작업 공간 세션](docs/工作区-1.jpg) | ![작업 공간 편집기](docs/工作区-2.jpg) |
 |          **제공자 — 목록**           |           **제공자 — 상세**            |
@@ -45,16 +51,16 @@
 
 ## 기능
 
-| 모듈          | 설명                                                                                              |
-| ------------- | ------------------------------------------------------------------------------------------------- |
-| **개요**      | 활성 모델, Pi CLI / 구성 디렉터리, 환경 상태, 자주 쓰는 작업                                      |
-| **작업 공간** | 프로젝트, Session, 안전한 스트리밍 Markdown, 접이식 도구 결과, 경량 코드 편집, Git Diff, Worktree |
-| **제공자**    | Provider ≠ Protocol ≠ Model; 자격 증명은 Keychain / `safeStorage`에 저장                          |
-| **모델**      | 기능 플래그, 활성 모델, 연결 테스트; 쓰기 후 `settings.json`을 다시 읽어 검증                     |
-| **스킬**      | `SKILL.md` 생성 / 가져오기 / 편집 / 검증; 경로 루트 제약                                          |
-| **구성**      | CodeMirror로 `models.json` / `settings.json` 편집; 서식 지정 및 파일 관리자에서 표시              |
-| **진단**      | 환경 보고서; 복사 시 민감 정보 제거 (`apiKey` / `token` / `secret` 등)                            |
-| **설정**      | 简体中文 / English / 한국어 / Русский / Français / Deutsch, 테마, 밀도, 백업, 선택형 마스코트     |
+| 모듈          | 설명                                                                                               |
+| ------------- | -------------------------------------------------------------------------------------------------- |
+| **개요**      | 활성 모델, Pi CLI / 구성 디렉터리, 환경 상태, 자주 쓰는 작업                                       |
+| **작업 공간** | 네이티브 프로젝트와 Pi Session, 스트리밍 대화, Thinking / Tool Call, 경량 편집, Git Diff, Worktree |
+| **제공자**    | 검색 가능한 Pi 호환 프리셋; Provider ≠ Protocol ≠ Model; Keychain / `safeStorage` 자격 증명        |
+| **모델**      | 프리셋 또는 사용자 지정 모델 ID, 기능 메타데이터, 활성 모델 선택, 쓰기 후 검증                     |
+| **스킬**      | `SKILL.md` 생성 / 가져오기 / 편집 / 검증; 경로 루트 제약                                           |
+| **구성**      | CodeMirror로 `models.json` / `settings.json` 편집; 서식 지정 및 파일 관리자에서 표시               |
+| **진단**      | 환경 보고서; 복사 시 민감 정보 제거 (`apiKey` / `token` / `secret` 등)                             |
+| **설정**      | 简体中文 / English UI, 시스템/다크/라이트 테마, 밀도, 도구 프리셋, 복원 동작, 백업, 마스코트       |
 
 안정성:
 
@@ -62,6 +68,12 @@
 - 외부 변경 감지(mtime), Reload / Compare / Overwrite
 - 패키지 빌드는 `electron-updater` 지원(자동 설치 없음)
 - 데스크톱 전용: 외부 브라우저 창과 앱 밖 URL 이동을 차단
+
+## 경량 편집기 범위
+
+작업 공간은 지연 구문 강조, 줄 번호, 실행 취소/다시 실행, 찾기, 명시적 저장, 미저장 표시 및 외부 변경 충돌 보호를 제공하며 읽을 수 있는 텍스트 파일을 편집합니다. 알 수 없는 텍스트 확장자는 일반 텍스트로 열리고, 대용량·바이너리·미디어·문서 파일은 읽기 전용 미리 보기를 사용합니다.
+
+Pi-Harness는 범용 IDE가 아닙니다. LSP/IntelliSense, 시맨틱 리팩터링, 디버거, 태스크 러너, 통합 터미널 또는 IDE 확장 호환성을 제공하지 않습니다. [경량 편집기 설계 범위](docs/lightweight-code-editor.md)를 참고하세요.
 
 ## 요구 사항
 
@@ -101,14 +113,20 @@ cp .env.example .env
 
 ```
 Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
-                                                ├─ AgentSession      프로젝트 / 세션 / 스트리밍 실행
-                                                ├─ Workspace         파일 / 경량 편집기 / Git
+                                                ├─ AgentRuntime      Pi 세션 / 스트리밍 / 도구 이벤트
+                                                ├─ Workspace         프로젝트 / 파일 / 경량 편집기 / Git
                                                 ├─ PiConfigService   원자적 쓰기 / mtime 충돌
                                                 ├─ Provider / Model / Skills / Backup / Diagnostics
                                                 └─ SecretStore       Keychain / safeStorage
 ```
 
 Domain은 Adapter를 통해 Pi 네이티브 JSON과 분리됩니다. 알 수 없는 필드는 그대로 전달되며, 특정 모델 이름에 로직을 고정하지 않습니다.
+
+## 프로젝트 문서
+
+- [변경 기록](CHANGELOG.md)
+- [경량 코드 편집기 범위](docs/lightweight-code-editor.md)
+- [마스코트 디자인 및 런타임 규칙](docs/mascot-design.md)
 
 ## 저자
 

@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>The Complete Desktop Harness for <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
-  Local-first desktop harness · Electron · Vue 3 · TypeScript
+  <strong>Local-first desktop control plane and native workspace for <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
+  Configure Pi · Run project sessions · Inspect and edit local files
 </p>
 
 <p align="center">
@@ -25,15 +25,21 @@
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
 </p>
 
-Manage providers, models, API keys, skills, raw Pi config, backups, and diagnostics — then open Workspace and talk to Pi Coding Agent against a real project, without leaving the desktop app.
+Pi-Harness manages Pi providers, models, credentials, skills, raw configuration, backups, and diagnostics, then runs project-scoped Pi Agent sessions in a native desktop Workspace. Sessions remain compatible with Pi CLI JSONL under `~/.pi/agent/sessions/`; there is no embedded pi-web, Next.js server, or iframe.
 
 Secrets never appear in the renderer as plaintext. macOS stores them in the system Keychain; Windows and Linux use Electron `safeStorage`. Unknown Pi fields are preserved.
 
+## v1.0.9 highlights
+
+- Assistant responses render safe streaming Markdown through an explicit tag and protocol allowlist.
+- Tool results are collapsed by default and expand into a bounded scrollable panel.
+- Optional application-wide mascots: “No Mascot” is the default, with six selectable visual styles including the new office and maid variants.
+
 ## Screenshots
 
-|                 Overview                 |                Settings                |
+|                 Overview                 |           Settings — Mascots           |
 | :--------------------------------------: | :------------------------------------: |
-|        ![Overview](docs/概览.jpg)        |       ![Settings](docs/设置.jpg)       |
+|        ![Overview](docs/概览.jpg)        |   ![Mascot settings](docs/设置.jpg)    |
 |         **Workspace — Sessions**         |         **Workspace — Editor**         |
 | ![Workspace sessions](docs/工作区-1.jpg) | ![Workspace editor](docs/工作区-2.jpg) |
 |           **Providers — List**           |        **Providers — Details**         |
@@ -45,16 +51,16 @@ Secrets never appear in the renderer as plaintext. macOS stores them in the syst
 
 ## Features
 
-| Module          | Description                                                                                                          |
-| --------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Overview**    | Active model, Pi CLI / config directory, environment status, and common actions                                      |
-| **Workspace**   | Projects, Sessions, safe streaming Markdown, collapsible tool results, lightweight code editing, git diff, worktrees |
-| **Providers**   | Provider ≠ Protocol ≠ Model; credentials go to Keychain / `safeStorage`                                              |
-| **Models**      | Capability flags, active model, connection test; writes re-read `settings.json` to verify                            |
-| **Skills**      | Create / import / edit / validate `SKILL.md`; path-root enforcement                                                  |
-| **Config**      | CodeMirror editor for `models.json` / `settings.json`; format and reveal in the file manager                         |
-| **Diagnostics** | Environment report; copy is sanitized (`apiKey` / `token` / `secret`, etc.)                                          |
-| **Settings**    | zh-CN / English / 한국어 / Русский / Français / Deutsch, themes, density, backups, optional mascots                  |
+| Module          | Description                                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Overview**    | Active model, Pi CLI / config directory, environment status, and common actions                                     |
+| **Workspace**   | Native projects and Pi Sessions, streaming chat, Thinking / Tool Call, lightweight editing, Git Diff, Worktree      |
+| **Providers**   | Searchable Pi-compatible presets; Provider ≠ Protocol ≠ Model; credentials use Keychain / `safeStorage`             |
+| **Models**      | Preset or custom model IDs, capability metadata, active-model selection, read-back verification                     |
+| **Skills**      | Create / import / edit / validate `SKILL.md`; path-root enforcement                                                 |
+| **Config**      | CodeMirror editor for `models.json` / `settings.json`; format and reveal in the file manager                        |
+| **Diagnostics** | Environment report; copy is sanitized (`apiKey` / `token` / `secret`, etc.)                                         |
+| **Settings**    | Simplified Chinese / English UI, system/dark/light themes, density, tool preset, restore behavior, backups, mascots |
 
 Reliability:
 
@@ -62,6 +68,12 @@ Reliability:
 - External change detection (mtime) with Reload / Compare / Overwrite
 - Packaged builds support `electron-updater` (never silent auto-install)
 - Desktop-only: external browser windows and off-app URL handoff are blocked
+
+## Lightweight editor boundary
+
+Workspace can edit readable text files with lazy syntax highlighting, line numbers, undo/redo, find, explicit save, unsaved indicators, and external-change conflict protection. Unknown text extensions fall back to plain text; oversized, binary, media, and document files use read-only previews.
+
+Pi-Harness is deliberately not a general-purpose IDE: no LSP/IntelliSense, semantic refactoring, debugger, task runner, integrated terminal, or IDE extension compatibility. See [the lightweight editor design boundary](docs/lightweight-code-editor.md).
 
 ## Requirements
 
@@ -87,28 +99,35 @@ Do not store secrets in `VITE_*` variables — they are bundled into the rendere
 
 ## Commands
 
-| Command          | Purpose                                                  |
-| ---------------- | -------------------------------------------------------- |
-| `pnpm typecheck` | Vue / TypeScript typecheck                               |
-| `pnpm lint`      | ESLint                                                   |
-| `pnpm test`      | Vitest unit tests                                        |
-| `pnpm test:e2e`  | Compile, then run Playwright Electron smoke tests        |
-| `pnpm compile`   | Vite build to `out/` (no installer)                      |
-| `pnpm build`     | Compile and package macOS / Windows / Linux → `release/` |
-| `pnpm build:mac` | macOS Apple Silicon                                      |
+| Command                                 | Purpose                                                  |
+| --------------------------------------- | -------------------------------------------------------- |
+| `pnpm typecheck`                        | Vue / TypeScript typecheck                               |
+| `pnpm lint`                             | ESLint                                                   |
+| `pnpm test`                             | Vitest unit tests                                        |
+| `pnpm test:e2e`                         | Compile, then run Playwright Electron smoke tests        |
+| `pnpm sync:provider-presets -- --check` | Verify the generated provider/model catalog              |
+| `pnpm compile`                          | Vite build to `out/` (no installer)                      |
+| `pnpm build`                            | Compile and package macOS / Windows / Linux → `release/` |
+| `pnpm build:mac`                        | macOS Apple Silicon                                      |
 
 ## Architecture
 
 ```
 Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
-                                                ├─ AgentSession      projects / sessions / streaming
-                                                ├─ Workspace         files / lightweight editor / git
+                                                ├─ AgentRuntime      Pi sessions / streaming / tool events
+                                                ├─ Workspace         projects / files / lightweight editor / git
                                                 ├─ PiConfigService   atomic write / mtime conflict
                                                 ├─ Provider / Model / Skills / Backup / Diagnostics
                                                 └─ SecretStore       Keychain / safeStorage
 ```
 
 Domain stays decoupled from Pi native JSON via an Adapter. Unknown fields pass through. Logic is not hard-coded to a specific model name.
+
+## Project documentation
+
+- [Changelog](CHANGELOG.md)
+- [Lightweight code editor boundary](docs/lightweight-code-editor.md)
+- [Mascot design and runtime rules](docs/mascot-design.md)
 
 ## Author
 
