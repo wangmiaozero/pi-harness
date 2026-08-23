@@ -90,6 +90,14 @@ const api: PiSwitchAPI = {
     delete: (path) => invoke(IPC_INVOKE.skillDelete, path),
     refresh: () => invoke(IPC_INVOKE.skillsRefresh)
   },
+  capabilities: {
+    list: () => invoke(IPC_INVOKE.capabilitiesList),
+    installSkill: (skillId) => invoke(IPC_INVOKE.capabilityInstallSkill, { skillId }),
+    updateSkill: (skillId) => invoke(IPC_INVOKE.capabilityUpdateSkill, { skillId }),
+    uninstallSkill: (skillId) => invoke(IPC_INVOKE.capabilityUninstallSkill, { skillId }),
+    setSkillEnabled: (skillId, enabled) =>
+      invoke(IPC_INVOKE.capabilitySetSkillEnabled, { skillId, enabled })
+  },
   backup: {
     list: () => invoke(IPC_INVOKE.backupList),
     create: (reason) => invoke(IPC_INVOKE.backupCreate, reason),
@@ -175,12 +183,15 @@ const api: PiSwitchAPI = {
       invoke(IPC_INVOKE.worktreeRemove, { cwd, worktreePath, force })
   },
   on(event, listener) {
-    if (event === 'config-changed') return onEvent(IPC_EVENT.configChanged, listener)
-    if (event === 'pi-environment-changed') return onEvent(IPC_EVENT.piEnvironmentChanged, listener)
-    if (event === 'notification') return onEvent(IPC_EVENT.notification, listener)
-    if (event === 'agent-event') return onEvent(IPC_EVENT.agentEvent, listener)
-    if (event === 'agent-running') return onEvent(IPC_EVENT.agentRunning, listener)
-    if (event === 'updater-state') return onEvent(IPC_EVENT.updaterState, listener)
+    const ipcListener = listener as IpcEventListener
+    if (event === 'config-changed') return onEvent(IPC_EVENT.configChanged, ipcListener)
+    if (event === 'pi-environment-changed')
+      return onEvent(IPC_EVENT.piEnvironmentChanged, ipcListener)
+    if (event === 'notification') return onEvent(IPC_EVENT.notification, ipcListener)
+    if (event === 'agent-event') return onEvent(IPC_EVENT.agentEvent, ipcListener)
+    if (event === 'agent-running') return onEvent(IPC_EVENT.agentRunning, ipcListener)
+    if (event === 'updater-state') return onEvent(IPC_EVENT.updaterState, ipcListener)
+    if (event === 'capability-progress') return onEvent(IPC_EVENT.capabilityProgress, ipcListener)
     return () => {}
   }
 }

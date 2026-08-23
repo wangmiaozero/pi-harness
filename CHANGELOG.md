@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+## 1.1.0 — 2026-08-24
+
+### Added
+
+- **Runtime-driven pet states.** Upgraded all six mascot themes to a manifest-based 13-state visual layer covering thinking, running, coding, tool calls, waiting, review, completion, failure, warnings, greetings, celebration, and sleep. Maid White and Office Black Tights are prioritized presets.
+- **Pet controls and diagnostics.** Added animation, status-copy, auto-sleep duration, visibility, and sound settings plus a development-only state preview. Completion sound now defaults to off.
+- **Resilient sprite renderer.** Added requestAnimationFrame sprite playback, per-theme animation fallback, reduced-motion support, isolated resource failure handling, and deterministic temporary-state sequences.
+- **Capability Layer.** Added a shared domain model for `skill`, `extension`, `package`, `mcp`, and `preset` capabilities, plus a Main-process skill adapter and registry that normalize installed and catalog metadata.
+- **Featured Skills.** Added a compact Featured section to Skills with Odai (`Agent Governance & Task Execution`) represented as an ordinary skill capability.
+- **Trusted skill lifecycle.** Added install, update, enable/disable, refresh, and uninstall actions with typed progress states (`resolving`, `installing`, `validating`, `success`, `failed`). Updates and uninstalls snapshot skill directories under Pi-Harness user data.
+
+### Security
+
+- Renderer capability mutations accept only a Zod-validated registry `skillId`; arbitrary source URLs, commands, paths, and install targets are rejected.
+- Featured skills are resolved from the trusted Main-process catalog and installed through argument-array process execution with an allowlisted environment, isolated npm configuration/cache, and lifecycle scripts disabled. Results are validated for `SKILL.md` and metadata, then atomically placed inside the detected global Pi skill root.
+- Added per-skill Main-process mutation locks, real-path and symlink escape protection, mandatory backups before local delete/import-replace operations, sanitized stdout/stderr/exit-code reporting, and Harness-only capability metadata without inventing Pi configuration fields.
+- Persisted only the safe error code/action/timestamp for failed capability mutations so failure state survives restart without storing command output or secrets.
+
+### Tests
+
+- Added resolver, runtime-event adapter, Tool/Coding detector, manifest, temporary-state, sleep/wake, animation fallback, resource-failure, and Electron settings coverage for the pet system.
+- Added unit and integration coverage for capability normalization, catalog trust, skill parsing, IPC input rejection, path traversal, staged install validation, duplicate install, mutation locking, metadata, update backups, enable/disable, uninstall, and refresh/discovery.
+- Added an Electron E2E flow using isolated Pi config and capability fixtures; developer `~/.pi/agent/skills` is never touched.
+
 ## 1.0.9 — 2026-08-22
 
 ### Added

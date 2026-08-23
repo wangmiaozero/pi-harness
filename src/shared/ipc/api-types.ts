@@ -26,6 +26,11 @@ import type {
 } from '../types/workspace'
 import type { ToolPreset } from '../workspace/tool-presets'
 import type { MascotStyle } from '../constants/mascot'
+import type {
+  CapabilityActionResult,
+  CapabilityDescriptor,
+  CapabilityMutationProgress
+} from '../capabilities/types'
 
 /** Legacy renderer-side Error envelope accepted by the API error normalizer. */
 export interface IpcError extends Error {
@@ -221,6 +226,12 @@ export interface AppSettings {
   theme: 'system' | 'dark' | 'light'
   density: 'comfortable' | 'compact'
   mascotStyle: MascotStyle
+  petEnabled: boolean
+  petAnimations: boolean
+  petStatusText: boolean
+  petAutoSleep: boolean
+  petSleepMinutes: number
+  petSound: boolean
   mockMode: boolean
   manualCliPath: string | null
   manualConfigDir: string | null
@@ -360,6 +371,13 @@ export interface PiSwitchAPI {
     delete(path: string): Promise<void>
     refresh(): Promise<SkillInfo[]>
   }
+  capabilities: {
+    list(): Promise<CapabilityDescriptor[]>
+    installSkill(skillId: string): Promise<CapabilityActionResult>
+    updateSkill(skillId: string): Promise<CapabilityActionResult>
+    uninstallSkill(skillId: string): Promise<CapabilityActionResult>
+    setSkillEnabled(skillId: string, enabled: boolean): Promise<CapabilityActionResult>
+  }
   backup: {
     list(): Promise<BackupRecord[]>
     create(reason?: string): Promise<BackupRecord>
@@ -461,6 +479,10 @@ export interface PiSwitchAPI {
   on(event: 'agent-event', listener: IpcEventListener): () => void
   on(event: 'agent-running', listener: IpcEventListener): () => void
   on(event: 'updater-state', listener: IpcEventListener): () => void
+  on(
+    event: 'capability-progress',
+    listener: (payload: CapabilityMutationProgress) => void
+  ): () => void
 }
 
 declare global {

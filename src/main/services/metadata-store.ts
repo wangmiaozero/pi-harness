@@ -5,6 +5,7 @@
 
 import { appMetadataPath } from './app-paths'
 import { JsonStore } from './storage'
+import type { CapabilityMetadata } from '@shared/capabilities/types'
 
 export interface ProviderMeta {
   displayName?: string
@@ -35,11 +36,14 @@ export interface AppMetadata {
   providers: Record<string, ProviderMeta>
   /** key: `${providerKey}::${modelId}` */
   models: Record<string, ModelMeta>
+  /** Pi-Harness-only capability state. Never written into Pi native settings. */
+  capabilities: Record<string, CapabilityMetadata>
 }
 
 const DEFAULTS: AppMetadata = {
   providers: {},
-  models: {}
+  models: {},
+  capabilities: {}
 }
 
 export function modelMetaKey(providerKey: string, modelId: string): string {

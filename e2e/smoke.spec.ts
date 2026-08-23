@@ -101,6 +101,31 @@ test.describe('Pi-Harness smoke', () => {
     expect(consoleErrors).toEqual([])
   })
 
+  test('installs a featured skill through the trusted capability flow', async ({ page }) => {
+    await page.locator('a[href="#/skills"]').click()
+    const card = page.getByTestId('featured-capability-odai')
+    await expect(card).toBeVisible()
+    await expect(card).toContainText('Odai')
+    await expect(card).toContainText(/未安装|Not installed/)
+
+    await card.click()
+    await page.getByTestId('featured-capability-install').click()
+    await expect(card).toContainText(/已安装|Installed/, { timeout: 15_000 })
+
+    const state = await page.evaluate(async () => {
+      const [capabilities, skills] = await Promise.all([
+        window.piSwitch.capabilities.list(),
+        window.piSwitch.skills.refresh()
+      ])
+      return {
+        capability: capabilities.find((entry) => entry.id === 'odai'),
+        discovered: skills.some((skill) => skill.name === 'odai')
+      }
+    })
+    expect(state.capability).toMatchObject({ installed: true, enabled: true, status: 'installed' })
+    expect(state.discovered).toBe(true)
+  })
+
   test('opens a source file in the Workspace code viewer', async ({ page }) => {
     const pageErrors: string[] = []
     const consoleErrors: string[] = []
@@ -244,9 +269,16 @@ test.describe('Pi-Harness smoke', () => {
     await expect(
       page.getByRole('button', { name: /女仆风格（白丝）|Maid Style \(White Stockings\)/ })
     ).toHaveCount(1)
+    await expect(page.getByText(/优先推荐|Priority/, { exact: true })).toHaveCount(2)
+    const maidWhite = page.getByRole('button', {
+      name: /女仆风格（白丝）|Maid Style \(White Stockings\)/
+    })
+    await maidWhite.click()
+    await expect(maidWhite).toHaveAttribute('aria-pressed', 'true')
     await page
       .getByRole('button', { name: /职场风格（黑丝）|Office Style \(Black Tights\)/ })
       .click()
+    await page.getByRole('switch', { name: /启用动画|Animations/ }).click()
     await page.getByRole('button', { name: /保存|Save/, exact: true }).click()
     await expect(page.getByText(/设置已保存|Settings saved/)).toBeVisible()
     await expect(page.getByTestId('page-mascot-background')).toHaveAttribute('data-style', 'office')
@@ -255,6 +287,10 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByTestId('page-mascot-background')).toHaveAttribute('data-style', 'office')
     await expect(page.getByTestId('workspace-mascot')).toBeVisible()
     await expect(page.getByTestId('workspace-mascot')).toHaveAttribute('data-style', 'office')
+    await expect(page.getByTestId('workspace-mascot')).toHaveAttribute('data-state', 'idle')
+    await expect(page.getByTestId('workspace-mascot').locator('.pet-renderer')).toHaveClass(
+      /pet-motion-off/
+    )
   })
 
   test('edits, saves, and protects externally changed text files', async ({ page }) => {
@@ -553,7 +589,7 @@ test.describe('Pi-Harness smoke', () => {
     })
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 
-    await page.getByRole('button', { name: /安装 Pi|Install Pi/ }).click()
+    await page.getByRole('button', { name: /一键安装|安装 Pi|Install Pi/ }).click()
 
     await page.waitForTimeout(250)
     expect(pageErrors).toEqual([])

@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.0.9-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.1.0-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
@@ -29,11 +29,12 @@ Pi-Harness manages Pi providers, models, credentials, skills, raw configuration,
 
 Secrets never appear in the renderer as plaintext. macOS stores them in the system Keychain; Windows and Linux use Electron `safeStorage`. Unknown Pi fields are preserved.
 
-## v1.0.9 highlights
+## v1.1.0 highlights
 
-- Assistant responses render safe streaming Markdown through an explicit tag and protocol allowlist.
-- Tool results are collapsed by default and expand into a bounded scrollable panel.
-- Optional application-wide mascots: “No Mascot” is the default, with six selectable visual styles including the new office and maid variants.
+- A shared Capability Layer now models Skills, Extensions, Packages, MCP, and Presets while Pi remains the only Agent Runtime.
+- The Skills page includes a compact Featured section with Odai as a regular `skill` capability for agent governance and verified task execution.
+- Featured skills install from a trusted Main-process catalog through typed IPC, isolated staging, `SKILL.md` validation, atomic placement, mutation locks, and sanitized progress/errors.
+- Installed featured skills can be viewed, edited, updated, enabled/disabled, and uninstalled. Updates and uninstalls create local skill backups first.
 
 ## Screenshots
 
@@ -57,7 +58,7 @@ Secrets never appear in the renderer as plaintext. macOS stores them in the syst
 | **Workspace**   | Native projects and Pi Sessions, streaming chat, Thinking / Tool Call, lightweight editing, Git Diff, Worktree      |
 | **Providers**   | Searchable Pi-compatible presets; Provider ≠ Protocol ≠ Model; credentials use Keychain / `safeStorage`             |
 | **Models**      | Preset or custom model IDs, capability metadata, active-model selection, read-back verification                     |
-| **Skills**      | Create / import / edit / validate `SKILL.md`; path-root enforcement                                                 |
+| **Skills**      | Capability-backed local/featured skills; create, import, edit, validate, install, update, enable/disable, uninstall |
 | **Config**      | CodeMirror editor for `models.json` / `settings.json`; format and reveal in the file manager                        |
 | **Diagnostics** | Environment report; copy is sanitized (`apiKey` / `token` / `secret`, etc.)                                         |
 | **Settings**    | Simplified Chinese / English UI, system/dark/light themes, density, tool preset, restore behavior, backups, mascots |
@@ -68,6 +69,7 @@ Reliability:
 - External change detection (mtime) with Reload / Compare / Overwrite
 - Packaged builds check and download updates in the background, then install on quit or via **Install & Restart**
 - Desktop-only: arbitrary external navigation is blocked; the fixed official Node.js download action is allowlisted
+- Featured skill sources are resolved from a trusted Main-process registry; the renderer cannot submit commands, URLs, or install paths
 
 ## Lightweight editor boundary
 
@@ -117,6 +119,8 @@ Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
                                                 ├─ AgentRuntime      Pi sessions / streaming / tool events
                                                 ├─ Workspace         projects / files / lightweight editor / git
                                                 ├─ PiConfigService   atomic write / mtime conflict
+                                                ├─ CapabilityService Skills / Extensions / Packages / MCP / Presets
+                                                ├─ Pet Adapter       Runtime state → 13-state visual layer
                                                 ├─ Provider / Model / Skills / Backup / Diagnostics
                                                 └─ SecretStore       Keychain / safeStorage
 ```
@@ -129,7 +133,9 @@ Domain stays decoupled from Pi native JSON via an Adapter. Unknown fields pass t
 - [Application updates and release artifacts](docs/application-updates.md)
 - [Pi installation and Node.js prerequisites](docs/pi-installation.md)
 - [Lightweight code editor boundary](docs/lightweight-code-editor.md)
+- [Capability Layer and featured skill security](docs/capability-layer.md)
 - [Mascot design and runtime rules](docs/mascot-design.md)
+- [Pet state system and sprite manifests](docs/pet-state-system.md)
 
 ## Author
 

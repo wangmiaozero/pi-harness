@@ -1,11 +1,11 @@
 export const MASCOT_STYLES = [
   'none',
+  'maidWhite',
+  'office',
   'knowledge',
   'engineer',
   'maid',
-  'mature',
-  'office',
-  'maidWhite'
+  'mature'
 ] as const
 
 export type MascotStyle = (typeof MASCOT_STYLES)[number]

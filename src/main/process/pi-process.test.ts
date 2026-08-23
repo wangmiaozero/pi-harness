@@ -6,6 +6,20 @@ import { PiProcessService } from './pi-process'
 
 const describeWindows = process.platform === 'win32' ? describe : describe.skip
 
+describe('PiProcessService environment override', () => {
+  it('does not fall through to a host Pi when the explicit environment path is missing', async () => {
+    const previous = process.env.PI_HARNESS_PI_CLI_PATH
+    const missing = path.join(os.tmpdir(), `pi-harness-missing-${Date.now()}`, 'pi')
+    process.env.PI_HARNESS_PI_CLI_PATH = missing
+    try {
+      await expect(new PiProcessService().resolveCliPath()).resolves.toBeNull()
+    } finally {
+      if (previous === undefined) delete process.env.PI_HARNESS_PI_CLI_PATH
+      else process.env.PI_HARNESS_PI_CLI_PATH = previous
+    }
+  })
+})
+
 describeWindows('PiProcessService on Windows', () => {
   let testDir: string
   let previousCliPath: string | undefined

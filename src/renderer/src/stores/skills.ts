@@ -1,17 +1,26 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type {
   PiPackageActionResult,
   PiPackageInfo,
   SkillInfo,
   SkillMarketCollection
 } from '@shared/ipc/api-types'
-import { callApi, getApi } from '@renderer/composables/useApi'
+import { callApi, getApi, getErrorPayload } from '@renderer/composables/useApi'
+import type {
+  CapabilityActionResult,
+  CapabilityDescriptor,
+  CapabilityMutationProgress
+} from '@shared/capabilities/types'
+import type { AppErrorPayload } from '@shared/types/errors'
 
 export const useSkillsStore = defineStore('skills', () => {
   const skills = ref<SkillInfo[]>([])
   const packages = ref<PiPackageInfo[]>([])
   const market = ref<SkillMarketCollection[]>([])
+  const capabilities = ref<CapabilityDescriptor[]>([])
+  const capabilityProgress = ref<Record<string, CapabilityMutationProgress>>({})
+  const capabilityErrors = ref<Record<string, AppErrorPayload>>({})
   const loading = ref(false)
   const error = ref<string | null>(null)
   const selectedPath = ref<string | null>(null)
@@ -20,19 +29,34 @@ export const useSkillsStore = defineStore('skills', () => {
   const detailMtime = ref<number | null>(null)
   const detailFilePath = ref<string | null>(null)
   const detailLoading = ref(false)
+  const featuredSkills = computed(() => capabilities.value.filter((entry) => entry.featured))
+  const installingIds = computed(() =>
+    Object.values(capabilityProgress.value)
+      .filter((progress) => ['resolving', 'installing', 'validating'].includes(progress.phase))
+      .map((progress) => progress.skillId)
+  )
+
+  getApi().on('capability-progress', (progress) => {
+    capabilityProgress.value = {
+      ...capabilityProgress.value,
+      [progress.skillId]: progress
+    }
+  })
 
   async function fetchList() {
     loading.value = true
     error.value = null
     try {
-      const [skillList, packageList, marketList] = await Promise.all([
+      const [skillList, packageList, marketList, capabilityList] = await Promise.all([
         callApi(() => getApi().skills.list()),
         callApi(() => getApi().skills.packages()),
-        callApi(() => getApi().skills.market())
+        callApi(() => getApi().skills.market()),
+        callApi(() => getApi().capabilities.list())
       ])
       skills.value = skillList
       packages.value = packageList
       market.value = marketList
+      capabilities.value = capabilityList
     } catch (e) {
       error.value = (e as { message?: string }).message ?? String(e)
     } finally {
@@ -44,14 +68,16 @@ export const useSkillsStore = defineStore('skills', () => {
     loading.value = true
     error.value = null
     try {
-      const [skillList, packageList, marketList] = await Promise.all([
+      const [skillList, packageList, marketList, capabilityList] = await Promise.all([
         callApi(() => getApi().skills.refresh()),
         callApi(() => getApi().skills.packages()),
-        callApi(() => getApi().skills.market())
+        callApi(() => getApi().skills.market()),
+        callApi(() => getApi().capabilities.list())
       ])
       skills.value = skillList
       packages.value = packageList
       market.value = marketList
+      capabilities.value = capabilityList
     } catch (e) {
       error.value = (e as { message?: string }).message ?? String(e)
     } finally {
@@ -123,10 +149,89 @@ export const useSkillsStore = defineStore('skills', () => {
     return result
   }
 
+  async function mutateCapability(
+    skillId: string,
+    action: () => Promise<CapabilityActionResult>
+  ): Promise<CapabilityActionResult> {
+    const existing = capabilityProgress.value[skillId]
+    capabilityProgress.value = {
+      ...capabilityProgress.value,
+      [skillId]: {
+        skillId,
+        action: existing?.action ?? 'install',
+        phase: 'resolving'
+      }
+    }
+    const errors = { ...capabilityErrors.value }
+    delete errors[skillId]
+    capabilityErrors.value = errors
+    try {
+      const result = await callApi(action)
+      await refresh()
+      return result
+    } catch (error) {
+      const payload = getErrorPayload(error)
+      capabilityErrors.value = { ...capabilityErrors.value, [skillId]: payload }
+      const progress = capabilityProgress.value[skillId]
+      capabilityProgress.value = {
+        ...capabilityProgress.value,
+        [skillId]: {
+          ...progress,
+          skillId,
+          action: progress?.action ?? 'install',
+          phase: 'failed',
+          message: payload.message
+        }
+      }
+      throw payload
+    }
+  }
+
+  function installSkill(skillId: string) {
+    capabilityProgress.value = {
+      ...capabilityProgress.value,
+      [skillId]: { skillId, action: 'install', phase: 'resolving' }
+    }
+    return mutateCapability(skillId, () => getApi().capabilities.installSkill(skillId))
+  }
+
+  function updateSkill(skillId: string) {
+    capabilityProgress.value = {
+      ...capabilityProgress.value,
+      [skillId]: { skillId, action: 'update', phase: 'resolving' }
+    }
+    return mutateCapability(skillId, () => getApi().capabilities.updateSkill(skillId))
+  }
+
+  function uninstallSkill(skillId: string) {
+    capabilityProgress.value = {
+      ...capabilityProgress.value,
+      [skillId]: { skillId, action: 'uninstall', phase: 'resolving' }
+    }
+    return mutateCapability(skillId, () => getApi().capabilities.uninstallSkill(skillId))
+  }
+
+  function setSkillEnabled(skillId: string, enabled: boolean) {
+    capabilityProgress.value = {
+      ...capabilityProgress.value,
+      [skillId]: {
+        skillId,
+        action: enabled ? 'enable' : 'disable',
+        phase: 'resolving'
+      }
+    }
+    return mutateCapability(skillId, () => getApi().capabilities.setSkillEnabled(skillId, enabled))
+  }
+
   return {
     skills,
     packages,
     market,
+    capabilities,
+    featuredSkills,
+    capabilityProgress,
+    capabilityErrors,
+    installingIds,
     loading,
     error,
     selectedPath,
@@ -140,6 +245,10 @@ export const useSkillsStore = defineStore('skills', () => {
     remove,
     installPackages,
     removePackages,
-    removePackage
+    removePackage,
+    installSkill,
+    updateSkill,
+    uninstallSkill,
+    setSkillEnabled
   }
 })

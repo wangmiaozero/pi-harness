@@ -16,6 +16,8 @@ import { toast } from 'vue-sonner'
 import { applyTheme } from '@renderer/utils/theme'
 import { installAuthorWatermark } from '@renderer/utils/author-watermark'
 import type { AppUpdateState } from '@shared/ipc/api-types'
+import { usePetStore } from '@renderer/stores/pet'
+import { installPetRuntimeAdapter } from '@renderer/pet/install-runtime-adapter'
 
 applyTheme('dark')
 installAuthorWatermark()
@@ -39,6 +41,7 @@ const providersStore = useProvidersStore()
 const modelsStore = useModelsStore()
 const settingsStore = useSettingsStore()
 const agentStore = useAgentStore()
+const petStore = usePetStore()
 
 const unsubscribers: Array<() => void> = [
   piStore.setupListeners(),
@@ -46,6 +49,7 @@ const unsubscribers: Array<() => void> = [
   modelsStore.setupListeners(),
   agentStore.setupListeners()
 ]
+unsubscribers.push(installPetRuntimeAdapter())
 
 getApi().on('notification', (payload) => {
   const event = payload as { level?: string; title?: string; message?: string }
@@ -56,6 +60,7 @@ getApi().on('notification', (payload) => {
       toast.success(title, { description: message })
       break
     case 'warning':
+      petStore.handleEvent({ type: 'WARNING' })
       toast.warning(title, { description: message })
       break
     case 'error':

@@ -18,6 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
 const mainJs = path.join(root, 'out/main/index.js')
 const fixturesPi = path.join(root, 'fixtures/mock-pi')
+const capabilityFixtures = path.join(root, 'fixtures/capabilities')
 
 type Fixtures = {
   electronApp: ElectronApplication
@@ -31,6 +32,8 @@ export const test = base.extend<Fixtures>({
       throw new Error('out/main/index.js missing — run `pnpm compile` before e2e')
     }
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-'))
+    const isolatedPi = path.join(userData, 'mock-pi')
+    fs.cpSync(fixturesPi, isolatedPi, { recursive: true })
     const { ELECTRON_RUN_AS_NODE: _runAsNode, ...restEnv } = process.env
     void _runAsNode
     const app = await electron.launch({
@@ -39,8 +42,10 @@ export const test = base.extend<Fixtures>({
       env: {
         ...restEnv,
         ELECTRON_RUN_AS_NODE: undefined,
-        PI_HARNESS_PI_CONFIG_DIR: fixturesPi,
-        PI_HARNESS_USER_DATA: userData
+        PI_HARNESS_PI_CLI_PATH: path.join(userData, 'missing-pi-cli'),
+        PI_HARNESS_PI_CONFIG_DIR: isolatedPi,
+        PI_HARNESS_USER_DATA: userData,
+        PI_HARNESS_CAPABILITY_FIXTURES_DIR: capabilityFixtures
       },
       timeout: 60_000
     })

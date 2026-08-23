@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.0.9-4C8DFF?style=flat-square" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.1.0-4C8DFF?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
@@ -29,11 +29,12 @@ Pi-Harness 通过桌面界面管理 Pi 的 Provider、Model、凭证、Skills、
 
 密钥不出 Renderer 明文；macOS 写入系统钥匙串，Windows / Linux 走 Electron `safeStorage`。未知 Pi 字段原样保留。
 
-## v1.0.9 重点
+## v1.1.0 重点
 
-- Assistant 响应通过显式标签/协议白名单安全渲染流式 Markdown。
-- Tool Result 默认折叠，展开后在高度受控的独立区域滚动。
-- 全局看板娘默认关闭，可选择 6 套可见风格，包括新增的职场黑丝与女仆白丝版本。
+- 新增统一 Capability Layer，在领域层兼容 Skills、Extensions、Packages、MCP 与 Presets；Pi 仍是唯一 Agent Runtime。
+- Skills 页面新增紧凑的“精选技能”，Odai 作为普通 `skill` Capability 接入，用于 Agent 治理与任务验收。
+- 精选技能只从 Main Process 的可信 Catalog 安装，经过 typed IPC、隔离暂存、`SKILL.md` 校验、原子落盘、并发锁与错误脱敏。
+- 已安装的精选技能支持查看、编辑、更新、启用/禁用与卸载；更新和卸载前自动创建本地 Skill 备份。
 
 ## 界面预览
 
@@ -57,7 +58,7 @@ Pi-Harness 通过桌面界面管理 Pi 的 Provider、Model、凭证、Skills、
 | **工作区** | 原生项目与 Pi Session、流式对话、Thinking / Tool Call、轻量编辑、Git Diff、Worktree   |
 | **提供商** | 可搜索的 Pi 兼容预设；Provider ≠ Protocol ≠ Model；凭证走 Keychain / `safeStorage`    |
 | **模型**   | 预设或自定义模型 ID、能力元数据、激活模型、写入后回读校验                             |
-| **技能**   | 创建 / 导入 / 编辑 / 校验 `SKILL.md`；路径根目录约束                                  |
+| **技能**   | Capability 化的本地/精选技能；创建、导入、编辑、校验、安装、更新、启停与卸载          |
 | **配置**   | CodeMirror 编辑 `models.json` / `settings.json`；格式化、在文件管理器中显示           |
 | **诊断**   | 环境报告；复制前脱敏（apiKey / token / secret 等）                                    |
 | **设置**   | 简体中文 / English UI、跟随系统/深色/浅色主题、密度、工具预设、恢复行为、备份、看板娘 |
@@ -68,6 +69,7 @@ Pi-Harness 通过桌面界面管理 Pi 的 Provider、Model、凭证、Skills、
 - 外部修改检测（mtime），冲突对话框：Reload / Compare / Overwrite
 - 打包版通过 `electron-updater` 后台检查并下载更新，退出时安装，也可选择“安装并重启”
 - 桌面应用：拦截任意站外跳转，仅放行固定的 Node.js 官方下载入口
+- 精选技能来源由 Main Process 的可信 Registry 解析；Renderer 无法提交命令、URL 或安装路径
 
 ## 轻量编辑器边界
 
@@ -117,6 +119,8 @@ Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
                                                 ├─ AgentRuntime      Pi 会话 / 流式输出 / 工具事件
                                                 ├─ Workspace         项目 / 文件 / 轻量编辑器 / Git
                                                 ├─ PiConfigService   原子写 / mtime 冲突
+                                                ├─ CapabilityService Skills / Extensions / Packages / MCP / Presets
+                                                ├─ Pet Adapter       Runtime 状态 → 13 状态可视化层
                                                 ├─ Provider / Model / Skills / Backup / Diagnostics
                                                 └─ SecretStore       Keychain / safeStorage
 ```
@@ -129,7 +133,9 @@ Domain 与 Pi 原生 JSON 之间通过 Adapter 解耦，未知字段透传，不
 - [应用更新与发布产物](docs/application-updates.md)
 - [Pi 安装与 Node.js 前置条件](docs/pi-installation.md)
 - [轻量代码编辑器边界](docs/lightweight-code-editor.md)
+- [Capability Layer 与精选技能安全模型](docs/capability-layer.md)
 - [看板娘设计与运行时规则](docs/mascot-design.md)
+- [宠物状态系统与 Sprite Manifest](docs/pet-state-system.md)
 
 ## 作者
 

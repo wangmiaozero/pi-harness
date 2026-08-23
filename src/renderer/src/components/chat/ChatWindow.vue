@@ -17,6 +17,7 @@ import type { AgentImageAttachment } from '@shared/types/workspace'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { useCompletionSound } from '@renderer/composables/useCompletionSound'
 import { normalizeMascotStyle } from '@shared/constants/mascot'
+import { usePetStore } from '@renderer/stores/pet'
 
 const { locale } = useI18n()
 const agent = useAgentStore()
@@ -24,6 +25,7 @@ const sessions = useSessionStore()
 const workspace = useWorkspaceStore()
 const models = useModelsStore()
 const settings = useSettingsStore()
+const pet = usePetStore()
 const scroller = ref<HTMLElement | null>(null)
 const scrollContent = ref<HTMLElement | null>(null)
 const composer = ref<InstanceType<typeof ChatComposer> | null>(null)
@@ -34,9 +36,7 @@ const atScrollTop = ref(true)
 const atScrollBottom = ref(true)
 const completionSound = useCompletionSound()
 const mascotStyle = computed(() => normalizeMascotStyle(settings.settings?.mascotStyle))
-const mascotActive = computed(
-  () => agent.sending || agent.streaming.isStreaming || agent.state?.isPromptRunning === true
-)
+const mascotActive = computed(() => !['idle', 'review', 'sleeping'].includes(pet.state))
 let stickToBottom = true
 let scrollResizeObserver: ResizeObserver | null = null
 
@@ -118,6 +118,19 @@ watch(
     if (next > previous) void completionSound.play()
   }
 )
+
+watch(
+  () => settings.settings?.petSound,
+  (enabled) => completionSound.setEnabled(enabled ?? false),
+  { immediate: true }
+)
+
+function toggleCompletionSound() {
+  completionSound.toggle()
+  void settings
+    .patch({ petSound: completionSound.enabled.value })
+    .catch((error) => toast.error((error as Error).message))
+}
 
 watch(
   () => sessions.currentId,
@@ -363,7 +376,16 @@ function duration(value: number): string {
           </p>
         </div>
       </div>
-      <MascotView :style="mascotStyle" :active="mascotActive" class="hidden min-[1080px]:block" />
+      <MascotView
+        :style="mascotStyle"
+        :state="pet.state"
+        :current-tool="pet.currentTool"
+        :active="mascotActive"
+        :enabled="settings.settings?.petEnabled ?? true"
+        :animated="settings.settings?.petAnimations ?? true"
+        :show-status="settings.settings?.petStatusText ?? true"
+        class="hidden min-[1080px]:block"
+      />
       <div
         v-if="hasScrollOverflow"
         data-testid="chat-scroll-controls"
@@ -398,7 +420,7 @@ function duration(value: number): string {
       :sound-enabled="completionSound.enabled.value"
       @send="onSend"
       @abort="onAbort"
-      @toggle-sound="completionSound.toggle"
+      @toggle-sound="toggleCompletionSound"
       @unlock-audio="completionSound.unlock"
     />
   </div>

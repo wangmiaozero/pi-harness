@@ -18,6 +18,7 @@ import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { formatDateTime, formatBytes } from '@renderer/utils/format'
 import { DEFAULT_MASCOT_STYLE, MASCOT_STYLES } from '@shared/constants/mascot'
 import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
+import PetDebug from '@renderer/components/pet/PetDebug.vue'
 
 const { t, locale } = useI18n()
 const store = useSettingsStore()
@@ -57,6 +58,12 @@ const draft = ref<AppSettings>({
   theme: 'dark',
   density: 'comfortable',
   mascotStyle: DEFAULT_MASCOT_STYLE,
+  petEnabled: true,
+  petAnimations: true,
+  petStatusText: true,
+  petAutoSleep: true,
+  petSleepMinutes: 10,
+  petSound: false,
   mockMode: false,
   manualCliPath: null,
   manualConfigDir: null,
@@ -90,6 +97,14 @@ const backupRetentionStr = computed({
   }
 })
 
+const petSleepMinutesStr = computed({
+  get: () => String(draft.value.petSleepMinutes),
+  set: (v: string) => {
+    const n = parseInt(v, 10)
+    draft.value.petSleepMinutes = Number.isFinite(n) ? Math.min(120, Math.max(1, n)) : 10
+  }
+})
+
 const languageOptions = computed(() => [
   { value: 'auto', label: t('settings.languageAuto') },
   { value: 'zh-CN', label: '简体中文' },
@@ -111,6 +126,7 @@ const mascotOptions = computed(() =>
   MASCOT_STYLES.map((style) => ({
     value: style,
     image: MASCOT_IMAGES[style],
+    priority: style === 'maidWhite' || style === 'office',
     label: t(`settings.mascot${style[0].toUpperCase()}${style.slice(1)}`),
     description: t(`settings.mascot${style[0].toUpperCase()}${style.slice(1)}Hint`)
   }))
@@ -354,8 +370,13 @@ onBeforeUnmount(stopUpdateListener)
                   </div>
                 </div>
                 <div class="border-t border-[var(--border-subtle)] px-2.5 py-2">
-                  <div class="truncate text-[12px] font-medium text-[var(--text-primary)]">
-                    {{ option.label }}
+                  <div class="flex min-w-0 items-center gap-1.5">
+                    <div class="truncate text-[12px] font-medium text-[var(--text-primary)]">
+                      {{ option.label }}
+                    </div>
+                    <Badge v-if="option.priority" tone="accent" class="shrink-0">
+                      {{ $t('settings.petPriority') }}
+                    </Badge>
                   </div>
                   <div
                     class="mt-0.5 line-clamp-2 text-[10.5px] leading-4 text-[var(--text-tertiary)]"
@@ -364,6 +385,35 @@ onBeforeUnmount(stopUpdateListener)
                   </div>
                 </div>
               </button>
+            </div>
+            <div
+              class="mt-3 divide-y divide-[var(--border-subtle)] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)]"
+            >
+              <PropertyRow :label="$t('settings.petEnabled')">
+                <Switch v-model="draft.petEnabled" :label="$t('settings.petEnabled')" />
+              </PropertyRow>
+              <PropertyRow :label="$t('settings.petAnimations')">
+                <Switch v-model="draft.petAnimations" :label="$t('settings.petAnimations')" />
+              </PropertyRow>
+              <PropertyRow :label="$t('settings.petStatusText')">
+                <Switch v-model="draft.petStatusText" :label="$t('settings.petStatusText')" />
+              </PropertyRow>
+              <PropertyRow :label="$t('settings.petAutoSleep')">
+                <Switch v-model="draft.petAutoSleep" :label="$t('settings.petAutoSleep')" />
+              </PropertyRow>
+              <PropertyRow :label="$t('settings.petSleepMinutes')">
+                <Input
+                  v-model="petSleepMinutesStr"
+                  type="number"
+                  min="1"
+                  max="120"
+                  class="w-20"
+                  :disabled="!draft.petAutoSleep"
+                />
+              </PropertyRow>
+              <PropertyRow :label="$t('settings.petSound')">
+                <Switch v-model="draft.petSound" :label="$t('settings.petSound')" />
+              </PropertyRow>
             </div>
           </div>
         </InspectorSection>
@@ -577,6 +627,7 @@ onBeforeUnmount(stopUpdateListener)
               <Switch v-model="draft.mockMode" :label="$t('settings.mockMode')" />
             </div>
           </PropertyRow>
+          <PetDebug v-if="draft.developerMode" :style="draft.mascotStyle" />
         </InspectorSection>
       </div>
     </div>

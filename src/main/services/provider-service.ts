@@ -234,7 +234,7 @@ export class ProviderService {
       updatedAt: now,
       createdAt: providersMeta[newKey]?.createdAt ?? now
     }
-    await this.metadata.write({ providers: providersMeta, models: modelsMeta })
+    await this.metadata.write({ ...meta, providers: providersMeta, models: modelsMeta })
 
     const updated = await this.get(newKey)
     if (!updated) throw new ValidationError('Provider update failed')
@@ -264,7 +264,7 @@ export class ProviderService {
     for (const k of Object.keys(models)) {
       if (k === key || k.startsWith(`${key}::`)) delete models[k]
     }
-    await this.metadata.write({ providers, models })
+    await this.metadata.write({ ...meta, providers, models })
   }
 
   /** Pick another provider/model for settings.json, or clear active if none left. */

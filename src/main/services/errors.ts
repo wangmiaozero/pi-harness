@@ -67,6 +67,25 @@ export class SkillConflictError extends AppError {
   }
 }
 
+export class SkillMutationError extends AppError {
+  constructor(
+    code:
+      | 'SKILL_NOT_FOUND'
+      | 'SKILL_ALREADY_INSTALLED'
+      | 'SKILL_INSTALL_FAILED'
+      | 'SKILL_INVALID'
+      | 'SKILL_PATH_INVALID'
+      | 'SKILL_PERMISSION_DENIED'
+      | 'SKILL_CONFLICT'
+      | 'NETWORK_ERROR'
+      | 'PROCESS_FAILED',
+    message: string,
+    details?: unknown
+  ) {
+    super(code, message, details)
+  }
+}
+
 export class ValidationError extends AppError {
   constructor(message: string, details?: unknown) {
     super('VALIDATION_ERROR', formatValidationMessage(message, details), details)

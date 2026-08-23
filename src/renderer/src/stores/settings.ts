@@ -21,6 +21,7 @@ export const useSettingsStore = defineStore('settings', () => {
       // Product default language is zh-CN; migrate bare defaults once.
       if (!next.language) next.language = 'zh-CN'
       next.mascotStyle = normalizeMascotStyle(next.mascotStyle)
+      normalizePetSettings(next)
       settings.value = next
       applyLocale(settings.value.language)
       applyThemePrefs(settings.value.theme)
@@ -34,6 +35,7 @@ export const useSettingsStore = defineStore('settings', () => {
   async function patch(partial: Partial<AppSettings>) {
     settings.value = await callApi(() => getApi().settings.set(partial))
     settings.value.mascotStyle = normalizeMascotStyle(settings.value.mascotStyle)
+    normalizePetSettings(settings.value)
     applyLocale(settings.value.language)
     applyThemePrefs(settings.value.theme)
     return settings.value
@@ -45,6 +47,15 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function applyThemePrefs(theme: AppSettings['theme']) {
     watchSystemTheme(theme as ThemePreference)
+  }
+
+  function normalizePetSettings(value: AppSettings): void {
+    value.petEnabled ??= true
+    value.petAnimations ??= true
+    value.petStatusText ??= true
+    value.petAutoSleep ??= true
+    value.petSound ??= false
+    value.petSleepMinutes = Math.min(120, Math.max(1, value.petSleepMinutes || 10))
   }
 
   async function fetchBackups() {

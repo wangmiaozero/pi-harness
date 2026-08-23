@@ -33,7 +33,7 @@ function playTone(context: AudioContext) {
 
 export function useCompletionSound() {
   const stored = localStorage.getItem(STORAGE_KEY)
-  const enabled = ref(stored === null ? true : stored === 'true')
+  const enabled = ref(stored === null ? false : stored === 'true')
 
   async function unlock(force = false) {
     if (!force && !enabled.value) return
@@ -41,10 +41,14 @@ export function useCompletionSound() {
     if (context?.state === 'suspended') await context.resume().catch(() => undefined)
   }
 
-  function toggle() {
-    enabled.value = !enabled.value
+  function setEnabled(next: boolean) {
+    enabled.value = next
     localStorage.setItem(STORAGE_KEY, String(enabled.value))
     if (enabled.value) void unlock(true)
+  }
+
+  function toggle() {
+    setEnabled(!enabled.value)
   }
 
   async function play() {
@@ -55,5 +59,5 @@ export function useCompletionSound() {
     if (context.state === 'running') playTone(context)
   }
 
-  return { enabled, toggle, unlock, play }
+  return { enabled, setEnabled, toggle, unlock, play }
 }

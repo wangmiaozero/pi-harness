@@ -12,6 +12,7 @@
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import type {
   PiPackageActionResult,
   PiPackageInfo,
@@ -26,6 +27,7 @@ import { log } from './logger'
 import type { AppSettings } from '@shared/ipc/api-types'
 import type { JsonStore } from './storage'
 import { ValidationError, FileSystemError, SkillConflictError } from './errors'
+import { capabilityBackupDir } from './app-paths'
 
 export interface SkillForm {
   name: string
@@ -137,7 +139,7 @@ export class SkillsService {
     })
     const out: SkillInfo[] = []
     for (const dir of env.skillsDirs) {
-      const skills = await this.scanDir(dir)
+      const skills = await this.scanDir(dir, env.skillsDirs)
       out.push(...skills)
     }
     const packages = await this.listPackagesFromConfig(env.configDir)
@@ -305,17 +307,49 @@ export class SkillsService {
   }
 
   async read(skillPath: string): Promise<{ content: string; mtime: number | null }> {
-    const text = await readTextFile(skillPath)
-    if (text === null) throw new FileSystemError(`Skill file not found: ${skillPath}`)
-    const mtime = await fileMtime(skillPath)
+    const resolved = path.resolve(skillPath)
+    if (!['skill.md', 'readme.md'].includes(path.basename(resolved).toLowerCase())) {
+      throw new ValidationError('Only SKILL.md and README.md can be read through the Skills API')
+    }
+    const allowedRoots = await this.allowedReadRoots()
+    await this.assertReadablePath(resolved, allowedRoots)
+    const text = await readTextFile(resolved)
+    if (text === null) throw new FileSystemError(`Skill file not found: ${resolved}`)
+    const mtime = await fileMtime(resolved)
     return { content: text, mtime }
   }
 
   async delete(skillPath: string): Promise<void> {
     const allowedRoots = await this.allowedRoots()
-    await this.assertInsideRoots(skillPath, allowedRoots, 'delete')
     const resolved = path.resolve(skillPath)
+    const root = allowedRoots.find(
+      (candidate) => path.dirname(resolved) === path.resolve(candidate)
+    )
+    if (!root) {
+      throw new ValidationError('Refusing to delete: expected a direct child of a skill root')
+    }
+    let stat: Awaited<ReturnType<typeof fs.lstat>>
+    try {
+      stat = await fs.lstat(resolved)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new FileSystemError(`Skill directory not found: ${resolved}`)
+      }
+      throw error
+    }
+    if (stat.isSymbolicLink()) {
+      await fs.unlink(resolved)
+      log.skills.info(`removed skill symlink ${resolved}`)
+      return
+    }
+    if (!stat.isDirectory()) throw new ValidationError('Skill delete target must be a directory')
+    const [realRoot, realTarget] = await Promise.all([fs.realpath(root), fs.realpath(resolved)])
+    if (path.dirname(realTarget) !== realRoot) {
+      throw new ValidationError('Refusing to delete: resolved path escapes the skill root')
+    }
+    const backupPath = await this.backupSkillDirectory(resolved, 'delete')
     await fs.rm(resolved, { recursive: true, force: true })
+    log.skills.info('deleted skill with backup', { skill: resolved, backupPath })
   }
 
   /**
@@ -325,7 +359,7 @@ export class SkillsService {
    */
   async create(form: SkillForm): Promise<SkillInfo> {
     const allowedRoots = await this.allowedRoots()
-    await this.assertInsideRoots(form.targetRoot, allowedRoots, 'create targetRoot')
+    this.assertKnownRoot(form.targetRoot, allowedRoots, 'create targetRoot')
     const validation = validateSkill(form)
     if (!validation.valid) {
       throw new ValidationError('Invalid skill', { issues: validation.issues })
@@ -338,8 +372,7 @@ export class SkillsService {
       throw new ValidationError(`Skill name escapes targetRoot: ${form.name}`)
     }
     // Reject if skill dir already exists (the caller may import+replace)
-    const exists = await fileMtime(skillDir)
-    if (exists !== null) {
+    if (await lstatOrNull(skillDir)) {
       throw new ValidationError(`Skill already exists: ${skillDir}`)
     }
     await fs.mkdir(skillDir, { recursive: true })
@@ -367,16 +400,14 @@ export class SkillsService {
    */
   async update(form: SkillForm): Promise<SkillInfo> {
     const allowedRoots = await this.allowedRoots()
-    await this.assertInsideRoots(form.targetRoot, allowedRoots, 'update targetRoot')
+    this.assertKnownRoot(form.targetRoot, allowedRoots, 'update targetRoot')
     const validation = validateSkill(form)
     if (!validation.valid) {
       throw new ValidationError('Invalid skill', { issues: validation.issues })
     }
     const skillDir = path.resolve(form.targetRoot, form.name)
     const skillMd = path.join(skillDir, 'SKILL.md')
-    if (!(await fileMtime(skillDir))) {
-      throw new ValidationError(`Skill does not exist: ${skillDir}`)
-    }
+    await this.assertWritableSkillDirectory(skillDir, allowedRoots)
     const currentMtime = await fileMtime(skillMd)
     if (
       form.expectedMtime != null &&
@@ -419,7 +450,7 @@ export class SkillsService {
     onConflict?: 'rename' | 'replace' | 'cancel'
   }): Promise<SkillInfo> {
     const allowedRoots = await this.allowedRoots()
-    await this.assertInsideRoots(input.targetRoot, allowedRoots, 'import targetRoot')
+    this.assertKnownRoot(input.targetRoot, allowedRoots, 'import targetRoot')
     if (!NAME_PATTERN.test(input.name)) {
       throw new ValidationError(`Invalid skill name: ${input.name}`)
     }
@@ -436,8 +467,8 @@ export class SkillsService {
     }
     let finalName = input.name
     let finalDst = dst
-    const dstExists = await fileMtime(dst)
-    if (dstExists !== null) {
+    const dstStat = await lstatOrNull(dst)
+    if (dstStat) {
       const policy = input.onConflict ?? 'cancel'
       if (policy === 'cancel') {
         throw new ValidationError(`Skill already exists at target: ${dst}`)
@@ -446,15 +477,13 @@ export class SkillsService {
         finalName = await uniqueSkillName(input.targetRoot, input.name)
         finalDst = path.resolve(input.targetRoot, finalName)
       } else {
-        // replace — snapshot SKILL.md beside the skill dir, then remove
-        const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-        const backupPath = `${finalDst}.bak-${stamp}`
-        try {
-          await fs.cp(finalDst, backupPath, { recursive: true })
-          log.skills.info(`backed up skill before replace: ${backupPath}`)
-        } catch (err) {
-          log.skills.warn('skill replace backup failed:', err)
+        if (!dstStat.isDirectory() || dstStat.isSymbolicLink()) {
+          throw new ValidationError('Refusing to replace a non-directory or symbolic-link skill')
         }
+        await this.assertWritableSkillDirectory(finalDst, allowedRoots)
+        // Never remove the existing directory unless its backup completed.
+        const backupPath = await this.backupSkillDirectory(finalDst, 'import-replace')
+        log.skills.info(`backed up skill before replace: ${backupPath}`)
         await fs.rm(finalDst, { recursive: true, force: true })
       }
     }
@@ -589,33 +618,112 @@ export class SkillsService {
     return env.skillsDirs.map((d) => path.resolve(d))
   }
 
-  /**
-   * Path-traversal defence: the given target must be a known skill root or
-   * live strictly underneath one. Symlink escape is not checked here — callers
-   * that need symlink safety should lstat the leaf after the write.
-   */
-  private async assertInsideRoots(
-    target: string,
-    allowedRoots: string[],
-    label: string
-  ): Promise<void> {
-    const resolved = path.resolve(target)
-    const ok = allowedRoots.some(
-      (root) => resolved === root || resolved.startsWith(root + path.sep)
+  private async backupSkillDirectory(source: string, action: string): Promise<string> {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const backupPath = path.join(
+      capabilityBackupDir(),
+      `${stamp}-${action}-${path.basename(source)}-${randomUUID()}`
     )
-    if (!ok) {
-      throw new ValidationError(`Refusing to ${label}: path outside skill roots (${target})`)
+    await fs.mkdir(path.dirname(backupPath), { recursive: true })
+    await fs.cp(source, backupPath, { recursive: true, errorOnExist: true })
+    return backupPath
+  }
+
+  private async allowedReadRoots(): Promise<string[]> {
+    const roots = await this.allowedRoots()
+    const packages = await this.listPackages()
+    return [
+      ...roots,
+      ...packages
+        .map((pkg) => pkg.path)
+        .filter((packagePath): packagePath is string => Boolean(packagePath))
+        .map((packagePath) => path.resolve(packagePath))
+    ]
+  }
+
+  private async assertReadablePath(target: string, allowedRoots: string[]): Promise<void> {
+    const resolved = path.resolve(target)
+    const lexicalMatch = allowedRoots.some(
+      (root) => resolved !== root && resolved.startsWith(path.resolve(root) + path.sep)
+    )
+    if (!lexicalMatch) {
+      throw new ValidationError('Refusing to read: path outside skill and package roots')
+    }
+    let realTarget: string
+    try {
+      realTarget = await fs.realpath(resolved)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new FileSystemError(`Skill file not found: ${resolved}`)
+      }
+      throw error
+    }
+    const realRoots = await Promise.all(
+      allowedRoots.map((root) => fs.realpath(root).catch(() => null))
+    )
+    const realMatch = realRoots.some(
+      (root) => root && realTarget !== root && realTarget.startsWith(root + path.sep)
+    )
+    if (!realMatch) {
+      throw new ValidationError('Refusing to read: symlink target outside skill and package roots')
     }
   }
 
-  private async scanDir(dir: string): Promise<SkillInfo[]> {
+  private assertKnownRoot(target: string, allowedRoots: string[], label: string): void {
+    const resolved = path.resolve(target)
+    const ok = allowedRoots.some((root) => resolved === path.resolve(root))
+    if (!ok) {
+      throw new ValidationError(`Refusing to ${label}: expected a configured skill root`)
+    }
+  }
+
+  private async assertWritableSkillDirectory(
+    target: string,
+    allowedRoots: string[]
+  ): Promise<void> {
+    const resolved = path.resolve(target)
+    if (!allowedRoots.some((root) => path.dirname(resolved) === path.resolve(root))) {
+      throw new ValidationError('Refusing to write: expected a direct child of a skill root')
+    }
+    const targetStat = await lstatOrNull(resolved)
+    if (!targetStat) throw new FileSystemError(`Skill directory not found: ${resolved}`)
+    if (!targetStat.isDirectory() && !targetStat.isSymbolicLink()) {
+      throw new ValidationError('Skill write target must be a directory')
+    }
+    const [realTarget, realTargetStat, realRoots] = await Promise.all([
+      fs.realpath(resolved),
+      fs.stat(resolved),
+      Promise.all(allowedRoots.map((root) => fs.realpath(root).catch(() => null)))
+    ])
+    if (!realTargetStat.isDirectory()) {
+      throw new ValidationError('Skill write target must resolve to a directory')
+    }
+    if (!realRoots.some((root) => root && path.dirname(realTarget) === root)) {
+      throw new ValidationError('Refusing to write: symlink target outside skill roots')
+    }
+  }
+
+  private async scanDir(dir: string, allowedRoots: string[]): Promise<SkillInfo[]> {
     try {
       const entries = await fs.readdir(dir, { withFileTypes: true })
+      const realRoots = (
+        await Promise.all(allowedRoots.map((root) => fs.realpath(root).catch(() => null)))
+      ).filter((root): root is string => Boolean(root))
       const skills: SkillInfo[] = []
       for (const ent of entries) {
         if (!ent.isDirectory() && !ent.isSymbolicLink()) continue
         if (ent.name.startsWith('.')) continue
         const skillPath = path.join(dir, ent.name)
+        if (ent.isSymbolicLink()) {
+          const realSkillPath = await fs.realpath(skillPath).catch(() => null)
+          if (
+            !realSkillPath ||
+            !realRoots.some((root) => realSkillPath.startsWith(root + path.sep))
+          ) {
+            log.skills.warn(`ignored skill symlink outside configured roots: ${skillPath}`)
+            continue
+          }
+        }
         const readme = path.join(skillPath, 'SKILL.md')
         const alt = path.join(skillPath, 'README.md')
         const readmeText = (await readTextFile(readme)) ?? (await readTextFile(alt))
@@ -704,9 +812,18 @@ async function uniqueSkillName(targetRoot: string, base: string): Promise<string
   const root = path.resolve(targetRoot)
   for (let i = 2; i < 1000; i++) {
     const candidate = `${base}-${i}`
-    if (!(await fileMtime(path.join(root, candidate)))) return candidate
+    if (!(await lstatOrNull(path.join(root, candidate)))) return candidate
   }
   throw new ValidationError(`Unable to find free name for skill: ${base}`)
+}
+
+async function lstatOrNull(target: string): Promise<Awaited<ReturnType<typeof fs.lstat>> | null> {
+  try {
+    return await fs.lstat(target)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
+    throw error
+  }
 }
 
 function stringArray(value: unknown): string[] {

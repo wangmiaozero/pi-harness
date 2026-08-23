@@ -67,6 +67,13 @@ export const IPC_INVOKE = {
   skillDelete: invoke('skills:delete'),
   skillsRefresh: invoke('skills:refresh'),
 
+  // unified capability layer (trusted catalog mutations only)
+  capabilitiesList: invoke('capabilities:list'),
+  capabilityInstallSkill: invoke('capabilities:skills:install'),
+  capabilityUpdateSkill: invoke('capabilities:skills:update'),
+  capabilityUninstallSkill: invoke('capabilities:skills:uninstall'),
+  capabilitySetSkillEnabled: invoke('capabilities:skills:set-enabled'),
+
   // backups
   backupList: invoke('backup:list'),
   backupCreate: invoke('backup:create'),
@@ -142,7 +149,8 @@ export const IPC_EVENT = {
   notification: 'pi-harness:event:notification',
   agentEvent: 'pi-harness:agent:event',
   agentRunning: 'pi-harness:agent:running',
-  updaterState: 'pi-harness:updater:state'
+  updaterState: 'pi-harness:updater:state',
+  capabilityProgress: 'pi-harness:capabilities:mutation-progress'
 } as const
 
 export type IpcEventName = (typeof IPC_EVENT)[keyof typeof IPC_EVENT]

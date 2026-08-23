@@ -72,7 +72,12 @@ class PiEnvironmentService {
   }
 
   private async resolveSkillDirs(settingsPath: string): Promise<string[]> {
-    const dirs = new Set<string>(getDefaultSkillDirs())
+    // The active Pi config directory is always the primary global skill root,
+    // including when Settings points Pi-Harness at a non-default config dir.
+    const dirs = new Set<string>([
+      path.join(path.dirname(settingsPath), 'skills'),
+      ...getDefaultSkillDirs()
+    ])
     try {
       const text = await readTextFile(settingsPath)
       if (text) {

@@ -9,9 +9,13 @@ import {
   FilePlus2,
   FolderOpen,
   Package as PackageIcon,
+  Power,
+  PowerOff,
   Puzzle,
   RefreshCw,
+  RotateCw,
   Search,
+  ShieldCheck,
   Sparkles,
   Store as StoreIcon,
   Trash2
@@ -26,6 +30,7 @@ import type {
   SkillMarketCollection,
   SkillMarketPackage
 } from '@shared/ipc/api-types'
+import type { CapabilityDescriptor } from '@shared/capabilities/types'
 import type { SkillForm, SkillImportInput } from '@shared/schemas/domain'
 import Badge from '@renderer/components/ui/Badge.vue'
 import Button from '@renderer/components/ui/Button.vue'
@@ -55,6 +60,7 @@ const mode = ref<ViewMode>('skills')
 const query = ref('')
 const selectedPackageSource = ref<string | null>(null)
 const selectedCollectionId = ref<string | null>(null)
+const selectedCapabilityId = ref<string | null>(null)
 const installKey = ref<string | null>(null)
 const removeKey = ref<string | null>(null)
 
@@ -147,6 +153,9 @@ const selectedPackage = computed(() =>
 const selectedCollection = computed(() =>
   store.market.find((collection) => collection.id === selectedCollectionId.value)
 )
+const selectedCapability = computed(() =>
+  store.featuredSkills.find((capability) => capability.id === selectedCapabilityId.value)
+)
 
 watch(mode, () => {
   query.value = ''
@@ -168,13 +177,136 @@ onMounted(async () => {
 })
 
 function selectDefaults() {
-  if (!store.selectedPath && store.skills[0]) void store.loadDetail(store.skills[0].path)
+  if (!selectedCapabilityId.value && store.featuredSkills[0]) {
+    selectedCapabilityId.value = store.featuredSkills[0].id
+  } else if (!store.selectedPath && store.skills[0]) {
+    void store.loadDetail(store.skills[0].path)
+  }
   if (!selectedPackageSource.value && store.packages[0]) {
     selectedPackageSource.value = store.packages[0].source
   }
   if (!selectedCollectionId.value && store.market[0]) {
     selectedCollectionId.value = store.market[0].id
   }
+}
+
+function selectSkill(skill: SkillInfo) {
+  selectedCapabilityId.value = null
+  void store.loadDetail(skill.path)
+}
+
+function selectCapability(capability: CapabilityDescriptor) {
+  selectedCapabilityId.value = capability.id
+}
+
+function capabilityStatusLabel(capability: CapabilityDescriptor): string {
+  const progress = store.capabilityProgress[capability.id]
+  if (progress && ['resolving', 'installing', 'validating'].includes(progress.phase)) {
+    return t(`skills.capabilityPhase${progress.phase[0].toUpperCase()}${progress.phase.slice(1)}`)
+  }
+  if (store.capabilityErrors[capability.id] || capability.status === 'failed') {
+    return t('skills.capabilityStatusFailed')
+  }
+  if (!capability.installed) return t('skills.capabilityStatusNotInstalled')
+  if (!capability.enabled) return t('skills.capabilityStatusDisabled')
+  if (capability.updateAvailable) return t('skills.capabilityStatusUpdateAvailable')
+  return t('skills.capabilityStatusInstalled')
+}
+
+function capabilityStatusTone(
+  capability: CapabilityDescriptor
+): 'muted' | 'success' | 'warning' | 'error' | 'accent' {
+  if (store.installingIds.includes(capability.id)) return 'accent'
+  if (store.capabilityErrors[capability.id] || capability.status === 'failed') return 'error'
+  if (!capability.installed) return 'muted'
+  if (!capability.enabled || capability.updateAvailable) return 'warning'
+  return 'success'
+}
+
+function capabilityErrorMessage(capability: CapabilityDescriptor): string | null {
+  const errorCode = store.capabilityErrors[capability.id]?.code ?? capability.lastErrorCode
+  if (!errorCode) return null
+  const knownCodes = [
+    'SKILL_NOT_FOUND',
+    'SKILL_ALREADY_INSTALLED',
+    'SKILL_INSTALL_FAILED',
+    'SKILL_INVALID',
+    'SKILL_PATH_INVALID',
+    'SKILL_PERMISSION_DENIED',
+    'SKILL_CONFLICT',
+    'NETWORK_ERROR',
+    'PROCESS_FAILED'
+  ]
+  return knownCodes.includes(errorCode)
+    ? t(`skills.capabilityError${errorCode}`)
+    : t('skills.capabilityErrorUnknown')
+}
+
+function capabilityUseCaseLabel(useCase: string): string {
+  const suffix = useCase
+    .split('-')
+    .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
+    .join('')
+  return t(`skills.capabilityUseCase${suffix}`)
+}
+
+async function installCapability(capability: CapabilityDescriptor) {
+  try {
+    await store.installSkill(capability.id)
+    toast.success(t('skills.capabilityInstalled', { name: capability.name }))
+  } catch {
+    toast.error(capabilityErrorMessage(capability) ?? t('skills.capabilityInstallFailed'))
+  }
+}
+
+async function updateCapability(capability: CapabilityDescriptor) {
+  try {
+    await store.updateSkill(capability.id)
+    toast.success(t('skills.capabilityUpdated', { name: capability.name }))
+  } catch {
+    toast.error(capabilityErrorMessage(capability) ?? t('skills.capabilityUpdateFailed'))
+  }
+}
+
+async function toggleCapability(capability: CapabilityDescriptor) {
+  try {
+    await store.setSkillEnabled(capability.id, !capability.enabled)
+    toast.success(
+      capability.enabled
+        ? t('skills.capabilityDisabled', { name: capability.name })
+        : t('skills.capabilityEnabled', { name: capability.name })
+    )
+  } catch {
+    toast.error(capabilityErrorMessage(capability) ?? t('skills.capabilityToggleFailed'))
+  }
+}
+
+async function uninstallCapability(capability: CapabilityDescriptor) {
+  const confirmed = await askConfirm({
+    title: t('skills.capabilityUninstallTitle', { name: capability.name }),
+    description: t('skills.capabilityUninstallHint'),
+    confirmLabel: t('skills.capabilityUninstall'),
+    tone: 'danger'
+  })
+  if (!confirmed) return
+  try {
+    await store.uninstallSkill(capability.id)
+    toast.success(t('skills.capabilityUninstalled', { name: capability.name }))
+  } catch {
+    toast.error(capabilityErrorMessage(capability) ?? t('skills.capabilityUninstallFailed'))
+  }
+}
+
+async function viewInstalledCapability(capability: CapabilityDescriptor) {
+  if (!capability.installPath) return
+  selectedCapabilityId.value = null
+  await store.loadDetail(capability.installPath)
+}
+
+async function editInstalledCapability(capability: CapabilityDescriptor) {
+  if (!capability.installPath) return
+  const skill = store.skills.find((entry) => entry.path === capability.installPath)
+  if (skill && !skill.readOnly) await openEdit(skill)
 }
 
 async function refreshAll() {
@@ -580,6 +712,51 @@ function resourceGroups(pkg: PiPackageInfo) {
 
         <div class="min-h-0 flex-1 overflow-y-auto">
           <template v-if="mode === 'skills'">
+            <section
+              v-if="store.featuredSkills.length"
+              class="border-b border-[var(--border-subtle)] py-1.5"
+            >
+              <div
+                class="flex items-center gap-1.5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                <ShieldCheck class="size-3" :stroke-width="1.8" />
+                {{ $t('skills.featured') }}
+              </div>
+              <button
+                v-for="capability in store.featuredSkills"
+                :key="capability.id"
+                type="button"
+                :data-testid="`featured-capability-${capability.id}`"
+                class="relative flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors"
+                :class="
+                  selectedCapabilityId === capability.id
+                    ? 'bg-[var(--accent-tint)]'
+                    : 'hover:bg-[var(--bg-hover)]'
+                "
+                @click="selectCapability(capability)"
+              >
+                <span
+                  v-if="selectedCapabilityId === capability.id"
+                  class="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-[var(--accent)]"
+                />
+                <span class="min-w-0">
+                  <span class="block truncate text-[12.5px] font-medium text-[var(--text-primary)]">
+                    {{ capability.name }}
+                  </span>
+                  <span class="block truncate text-[10.5px] text-[var(--text-tertiary)]">
+                    {{ capability.description }}
+                  </span>
+                </span>
+                <Badge :tone="capabilityStatusTone(capability)">
+                  {{ capabilityStatusLabel(capability) }}
+                </Badge>
+              </button>
+            </section>
+            <div
+              class="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
+              {{ $t('skills.installedSection') }}
+            </div>
             <div v-if="!store.loading && filteredSkills.length === 0" class="px-3 py-6">
               <EmptyState
                 :title="store.skills.length ? $t('skills.filterEmpty') : $t('skills.empty')"
@@ -599,7 +776,7 @@ function resourceGroups(pkg: PiPackageInfo) {
                     ? 'bg-[var(--accent-tint)]'
                     : 'hover:bg-[var(--bg-hover)]'
                 "
-                @click="store.loadDetail(skill.path)"
+                @click="selectSkill(skill)"
               >
                 <span
                   v-if="store.selectedPath === skill.path"
@@ -720,7 +897,176 @@ function resourceGroups(pkg: PiPackageInfo) {
 
       <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <template v-if="mode === 'skills'">
-          <div v-if="!selectedSkill" class="flex flex-1 items-center justify-center">
+          <template v-if="selectedCapability">
+            <div
+              class="flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-5 py-1.5"
+            >
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <h2 class="truncate text-[13.5px] font-semibold text-[var(--text-primary)]">
+                    {{ selectedCapability.name }}
+                  </h2>
+                  <Badge :tone="capabilityStatusTone(selectedCapability)">
+                    {{ capabilityStatusLabel(selectedCapability) }}
+                  </Badge>
+                  <Badge tone="muted">Capability · Skill</Badge>
+                </div>
+                <p class="truncate text-[10.5px] text-[var(--text-tertiary)]">
+                  {{ selectedCapability.description }}
+                </p>
+              </div>
+              <div class="flex shrink-0 items-center gap-1.5">
+                <Button
+                  v-if="!selectedCapability.installed"
+                  data-testid="featured-capability-install"
+                  variant="primary"
+                  size="sm"
+                  :loading="store.installingIds.includes(selectedCapability.id)"
+                  @click="installCapability(selectedCapability)"
+                >
+                  <Download class="size-3.5" />
+                  {{ $t('skills.install') }}
+                </Button>
+                <template v-else>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    :disabled="store.installingIds.includes(selectedCapability.id)"
+                    @click="viewInstalledCapability(selectedCapability)"
+                  >
+                    <Eye class="size-3.5" />
+                    {{ $t('skills.capabilityView') }}
+                  </Button>
+                  <Button
+                    v-if="selectedCapability.enabled"
+                    variant="ghost"
+                    size="sm"
+                    :disabled="store.installingIds.includes(selectedCapability.id)"
+                    @click="editInstalledCapability(selectedCapability)"
+                  >
+                    <FileEdit class="size-3.5" />
+                    {{ $t('skills.edit') }}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    :loading="store.installingIds.includes(selectedCapability.id)"
+                    @click="toggleCapability(selectedCapability)"
+                  >
+                    <PowerOff v-if="selectedCapability.enabled" class="size-3.5" />
+                    <Power v-else class="size-3.5" />
+                    {{
+                      selectedCapability.enabled
+                        ? $t('skills.capabilityDisable')
+                        : $t('skills.capabilityEnable')
+                    }}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    :loading="store.installingIds.includes(selectedCapability.id)"
+                    @click="updateCapability(selectedCapability)"
+                  >
+                    <RotateCw class="size-3.5" />
+                    {{ $t('skills.capabilityUpdate') }}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    :disabled="store.installingIds.includes(selectedCapability.id)"
+                    @click="uninstallCapability(selectedCapability)"
+                  >
+                    <Trash2 class="size-3.5" />
+                    {{ $t('skills.capabilityUninstall') }}
+                  </Button>
+                </template>
+              </div>
+            </div>
+            <div class="min-h-0 flex-1 overflow-y-auto">
+              <InspectorSection>
+                <template #title>{{ $t('skills.capabilityOverview') }}</template>
+                <PropertyRow :label="$t('skills.colStatus')">
+                  <Badge :tone="capabilityStatusTone(selectedCapability)">
+                    {{ capabilityStatusLabel(selectedCapability) }}
+                  </Badge>
+                </PropertyRow>
+                <PropertyRow :label="$t('skills.capabilityType')" mono>
+                  {{ selectedCapability.type }}
+                </PropertyRow>
+                <PropertyRow :label="$t('skills.capabilitySource')" mono>
+                  {{ selectedCapability.sourceUrl || selectedCapability.source }}
+                </PropertyRow>
+                <PropertyRow :label="$t('skills.capabilityVersion')" mono>
+                  {{ selectedCapability.installedVersion || selectedCapability.version || '—' }}
+                </PropertyRow>
+                <PropertyRow :label="$t('skills.capabilityInstallPath')" mono>
+                  {{ selectedCapability.installPath || '—' }}
+                </PropertyRow>
+                <PropertyRow
+                  v-if="selectedCapability.lastModified"
+                  :label="$t('skills.colModified')"
+                  mono
+                >
+                  {{ formatRelativeTime(selectedCapability.lastModified) }}
+                </PropertyRow>
+              </InspectorSection>
+              <div class="my-1 h-px bg-[var(--border-subtle)]" />
+              <InspectorSection>
+                <template #title>{{ $t('skills.capabilitySuitableFor') }}</template>
+                <ul class="space-y-2 px-3 py-3 text-[12px] text-[var(--text-secondary)]">
+                  <li
+                    v-for="useCase in selectedCapability.useCases"
+                    :key="useCase"
+                    class="flex items-center gap-2"
+                  >
+                    <span class="size-1 rounded-full bg-[var(--accent)]" />
+                    {{ capabilityUseCaseLabel(useCase) }}
+                  </li>
+                </ul>
+                <div class="flex flex-wrap gap-1.5 px-3 pb-3">
+                  <Badge v-for="tag in selectedCapability.tags" :key="tag" tone="muted">
+                    {{ tag }}
+                  </Badge>
+                </div>
+              </InspectorSection>
+              <div class="my-1 h-px bg-[var(--border-subtle)]" />
+              <InspectorSection>
+                <template #title>{{ $t('skills.capabilityRuntimeBoundary') }}</template>
+                <p class="px-3 py-3 text-[12px] leading-relaxed text-[var(--text-tertiary)]">
+                  {{ $t('skills.capabilityRuntimeHint') }}
+                </p>
+              </InspectorSection>
+              <div
+                v-if="
+                  store.capabilityErrors[selectedCapability.id] || selectedCapability.lastErrorCode
+                "
+                class="mx-3 my-3 rounded-[var(--radius-sm)] border border-[var(--error)]/30 bg-[var(--error-tint)] px-3 py-2"
+              >
+                <p class="text-[11.5px] font-medium text-[var(--error)]">
+                  {{ capabilityErrorMessage(selectedCapability) }}
+                </p>
+                <p
+                  class="mt-1 font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
+                >
+                  {{
+                    store.capabilityErrors[selectedCapability.id]?.code ??
+                      selectedCapability.lastErrorCode
+                  }}
+                  <template
+                    v-if="store.capabilityProgress[selectedCapability.id]?.exitCode != null"
+                  >
+                    · exit {{ store.capabilityProgress[selectedCapability.id]?.exitCode }}
+                  </template>
+                </p>
+                <pre
+                  v-if="store.capabilityProgress[selectedCapability.id]?.stderr"
+                  class="mt-2 max-h-28 overflow-auto whitespace-pre-wrap break-words font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
+                  v-text="store.capabilityProgress[selectedCapability.id]?.stderr"
+                />
+              </div>
+            </div>
+          </template>
+          <div v-else-if="!selectedSkill" class="flex flex-1 items-center justify-center">
             <EmptyState
               :title="$t('skills.select')"
               :description="$t('skills.selectHint')"

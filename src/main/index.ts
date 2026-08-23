@@ -28,12 +28,20 @@ import { SessionExportService } from './sessions/session-export-service'
 import { AgentRuntimeService } from './agent/agent-runtime-service'
 import { onUpdateState, startAutomaticUpdates, stopAutomaticUpdates } from './updater'
 import { IPC_EVENT } from '@shared/ipc/channels'
+import { SkillRegistry } from './capabilities/skill-registry'
+import { CapabilityService } from './capabilities/capability-service'
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'zh-CN',
   theme: 'dark',
   density: 'comfortable',
   mascotStyle: DEFAULT_MASCOT_STYLE,
+  petEnabled: true,
+  petAnimations: true,
+  petStatusText: true,
+  petAutoSleep: true,
+  petSleepMinutes: 10,
+  petSound: false,
   mockMode: false,
   manualCliPath: null,
   manualConfigDir: null,
@@ -96,6 +104,8 @@ async function bootstrap(): Promise<void> {
   const providers = new ProviderService(config, metadata)
   const models = new ModelService(config, metadata)
   const skills = new SkillsService(settingsStore)
+  const skillRegistry = new SkillRegistry(settingsStore, metadata, skills)
+  const capabilities = new CapabilityService(metadata, skillRegistry)
   const diagnostics = new DiagnosticsService(settingsStore, config)
 
   const access = new FileAccessService()
@@ -123,6 +133,7 @@ async function bootstrap(): Promise<void> {
     models,
     backup,
     skills,
+    capabilities,
     diagnostics,
     workspace: { access, files, git, worktrees, sessions, sessionExport, agent },
     getMainWindow: () => mainWindow

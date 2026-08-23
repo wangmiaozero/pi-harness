@@ -53,3 +53,18 @@ Out of scope unless this project decision is explicitly revised:
 
 Keep file editing isolated from the Pi agent runtime and preserve the security boundary described in
 `docs/lightweight-code-editor.md`.
+
+## Capability layer boundary (non-negotiable)
+
+- Pi-Harness is the desktop control plane and workspace; Pi Coding Agent is the only Agent Runtime.
+- Skills, extensions, packages, MCP entries, and presets share the Capability domain model. Do not create a second incompatible definition hierarchy.
+- Featured skill mutations accept only trusted catalog ids through validated IPC. Renderer code must never submit shell commands, arbitrary source URLs, or install paths.
+- A featured skill such as Odai is ordinary catalog data with `type: skill`. Do not add skill-specific runtime, provider, session, executor, or IPC branches.
+- Pi-Harness-only capability state belongs in its own metadata store, never as invented fields in Pi native configuration.
+
+## Pet state layer boundary (non-negotiable)
+
+- The pet system is a read-only visualization adapter over Pi Agent Runtime events and Renderer state. It must not modify Runtime, Streaming, Tool Call, Provider, Session, or file-editing behavior.
+- Keep durable state resolution in `src/shared/pet/resolver.ts`, temporary animation sequencing in the independent Pet Store, and rendering decisions in manifest-driven pet components.
+- Temporary animation completion must re-run the Resolver; never force the Pet state to `idle`.
+- Missing animations and failed visual resources must fall back locally and must never interrupt Agent execution.

@@ -33,6 +33,8 @@ import { SecurityError, ValidationError } from '../services/errors'
 import { checkForUpdates, downloadUpdate, getUpdateState, installUpdate } from '../updater'
 import { registerWorkspaceIpc, type WorkspaceServices } from './register-workspace'
 import { createTrustedIpcMain } from './trusted-ipc'
+import type { CapabilityService } from '../capabilities/capability-service'
+import { capabilityMutationSchema, capabilityToggleSchema } from '@shared/capabilities/schema'
 
 export interface Services {
   settingsStore: JsonStore<AppSettings>
@@ -42,6 +44,7 @@ export interface Services {
   models: ModelService
   backup: BackupService
   skills: SkillsService
+  capabilities: CapabilityService
   diagnostics: DiagnosticsService
   workspace: WorkspaceServices
   getMainWindow: () => BrowserWindow | null
@@ -60,8 +63,17 @@ function wrap<T>(
 }
 
 export function registerIpc(services: Services): void {
-  const { settingsStore, uiStateStore, config, providers, models, backup, skills, diagnostics } =
-    services
+  const {
+    settingsStore,
+    uiStateStore,
+    config,
+    providers,
+    models,
+    backup,
+    skills,
+    capabilities,
+    diagnostics
+  } = services
   const ipcMain = createTrustedIpcMain(electronIpcMain, services.getMainWindow, () =>
     wrap(async () => {
       throw new SecurityError('Untrusted IPC sender')
@@ -271,6 +283,59 @@ export function registerIpc(services: Services): void {
   )
   ipcMain.handle(IPC_INVOKE.skillDelete, (_e, p: string) => wrap(() => skills.delete(p)))
   ipcMain.handle(IPC_INVOKE.skillsRefresh, () => wrap(() => skills.list()))
+
+  // ---- capabilities ----
+  capabilities.onProgress((progress) => {
+    const window = services.getMainWindow()
+    if (window && !window.isDestroyed()) {
+      window.webContents.send(IPC_EVENT.capabilityProgress, progress)
+    }
+  })
+  ipcMain.handle(IPC_INVOKE.capabilitiesList, () => wrap(() => capabilities.list()))
+  ipcMain.handle(IPC_INVOKE.capabilityInstallSkill, (_e, input: unknown) =>
+    wrap(() => {
+      const parsed = capabilityMutationSchema.safeParse(input)
+      if (!parsed.success) {
+        throw new ValidationError('Invalid capability install input', {
+          issues: parsed.error.issues
+        })
+      }
+      return capabilities.install(parsed.data.skillId)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.capabilityUpdateSkill, (_e, input: unknown) =>
+    wrap(() => {
+      const parsed = capabilityMutationSchema.safeParse(input)
+      if (!parsed.success) {
+        throw new ValidationError('Invalid capability update input', {
+          issues: parsed.error.issues
+        })
+      }
+      return capabilities.update(parsed.data.skillId)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.capabilityUninstallSkill, (_e, input: unknown) =>
+    wrap(() => {
+      const parsed = capabilityMutationSchema.safeParse(input)
+      if (!parsed.success) {
+        throw new ValidationError('Invalid capability uninstall input', {
+          issues: parsed.error.issues
+        })
+      }
+      return capabilities.uninstall(parsed.data.skillId)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.capabilitySetSkillEnabled, (_e, input: unknown) =>
+    wrap(() => {
+      const parsed = capabilityToggleSchema.safeParse(input)
+      if (!parsed.success) {
+        throw new ValidationError('Invalid capability enable input', {
+          issues: parsed.error.issues
+        })
+      }
+      return capabilities.setEnabled(parsed.data.skillId, parsed.data.enabled)
+    })
+  )
 
   // ---- backup ----
   ipcMain.handle(IPC_INVOKE.backupList, () => wrap(() => backup.list()))

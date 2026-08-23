@@ -96,6 +96,18 @@ export class PiProcessService {
       return null
     }
 
+    // An environment override is authoritative. This is required for packaged
+    // automation and isolated tests: a missing explicit target must not fall
+    // through to an unrelated Pi installation on the host machine.
+    const environmentOverride =
+      process.env.PI_HARNESS_PI_CLI_PATH?.trim() ||
+      process.env.PI_SWITCH_PI_CLI_PATH?.trim() ||
+      null
+    if (!override?.trim() && environmentOverride) {
+      const found = await checkExplicitPath(environmentOverride)
+      return found ? this.setCache(found) : null
+    }
+
     // 1. explicit override / cache / candidate dirs
     if (override?.trim()) {
       const found = await checkExplicitPath(override.trim())
