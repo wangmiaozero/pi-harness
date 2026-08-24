@@ -175,9 +175,13 @@ export class EnvironmentManager {
       const existing = await this.active
       if (existing.result) return existing.result
     }
-    const task = await this.runTask('pi', async () => {
+    const task = await this.runTask('pi', async (signal) => {
       this.update('updating-pi', 20, 'Updating Pi Coding Agent')
-      const result = await this.dependencies.piInstaller.update(force)
+      const result = await this.dependencies.piInstaller.update(force, {
+        signal,
+        onProgress: (progress) => this.mapPiUpdateProgress(progress),
+        onLog: (message, level) => this.appendLog(message, level)
+      })
       this.update('verifying-pi', 90, 'Verifying the updated Pi Coding Agent')
       await this.detectAndBroadcast()
       return result
@@ -282,6 +286,11 @@ export class EnvironmentManager {
 
   private mapPiProgress(progress: PiInstallProgress): void {
     const mapped = 55 + Math.round((progress.progress / 100) * 43)
+    this.update(progress.phase, mapped, progress.message)
+  }
+
+  private mapPiUpdateProgress(progress: PiInstallProgress): void {
+    const mapped = 20 + Math.round((progress.progress / 100) * 68)
     this.update(progress.phase, mapped, progress.message)
   }
 

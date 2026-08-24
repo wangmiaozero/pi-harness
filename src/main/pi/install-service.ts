@@ -220,20 +220,50 @@ export class PiInstallService {
     }
   }
 
-  async update(force = false): Promise<PiInstallResult> {
+  async update(force = false, options: PiInstallOptions = {}): Promise<PiInstallResult> {
     const cliPath = await piProcess.resolveCliPath()
     if (!cliPath) throw new ValidationError('Pi is not installed. Use Install first.')
     const previousVersion = await piProcess.version()
+    if (isProjectLocalPiShim(cliPath)) {
+      options.onLog?.(
+        'The active Pi executable belongs to this project; updating the user installation with npm instead.',
+        'warning'
+      )
+      const installed = await this.install({ ...options, force: true })
+      const previous = parseSemverHint(previousVersion ?? '') ?? previousVersion
+      return {
+        ...installed,
+        action: 'update',
+        previousVersion: previous,
+        message:
+          previous !== installed.currentVersion
+            ? `Updated Pi ${previous ?? '?'} → ${installed.currentVersion ?? '?'}`
+            : `Pi is already up to date (${installed.currentVersion ?? previousVersion ?? '?'})`
+      }
+    }
     const args = force ? ['update', '--self', '--force'] : ['update', '--self']
     log.pi.info('updating Pi', { cliPath, args })
     const isJavaScript = cliPath.endsWith('.js')
     const executable = isJavaScript ? process.execPath : cliPath
     const executableArgs = isJavaScript ? [cliPath, ...args] : args
+    options.onProgress?.({
+      phase: 'running-pi-update',
+      progress: 25,
+      message: `Executing ${displayCommand(cliPath, args)}`
+    })
     const result = await this.dependencies.runCommand(executable, executableArgs, {
       timeoutMs: 5 * 60_000,
-      env: isJavaScript ? { ...process.env, ELECTRON_RUN_AS_NODE: '1' } : process.env
+      signal: options.signal,
+      env: isJavaScript ? { ...process.env, ELECTRON_RUN_AS_NODE: '1' } : process.env,
+      onStdout: (chunk) => options.onLog?.(chunk.trimEnd(), 'stdout'),
+      onStderr: (chunk) => options.onLog?.(chunk.trimEnd(), 'stderr')
     })
     piProcess.invalidateCache()
+    options.onProgress?.({
+      phase: 'verifying-pi',
+      progress: 90,
+      message: 'Verifying the updated Pi Coding Agent'
+    })
     const currentVersion = await piProcess.version()
     if (result.exitCode !== 0) {
       throw new PiCliError('Pi update failed', {
@@ -257,6 +287,11 @@ export class PiInstallService {
       log: `${result.stdout}\n${result.stderr}`.trim().slice(0, 4000)
     }
   }
+}
+
+function isProjectLocalPiShim(cliPath: string): boolean {
+  const normalized = path.resolve(cliPath).replace(/\\/g, '/')
+  return /\/node_modules\/\.bin\/pi(?:\.(?:cmd|bat|exe))?$/i.test(normalized)
 }
 
 function classifyNpmFailure(stderr: string, stdout: string, exitCode: number): EnvironmentError {

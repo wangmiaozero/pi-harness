@@ -8,6 +8,8 @@ import type {
 } from '@shared/ipc/api-types'
 import { callApi, getApi } from '@renderer/composables/useApi'
 
+const SUCCESS_TASK_DISMISS_MS = 4_000
+
 export const usePiStore = defineStore('pi', () => {
   const environment = ref<PiEnvironment | null>(null)
   const latest = ref<PiLatestInfo | null>(null)
@@ -16,12 +18,35 @@ export const usePiStore = defineStore('pi', () => {
   const installTask = ref<EnvironmentInstallTask | null>(null)
   const error = ref<string | null>(null)
   const lastActionLog = ref<string>('')
+  let taskDismissTimer: ReturnType<typeof setTimeout> | null = null
 
   const installed = computed(() => environment.value?.installed ?? false)
   const configValid = computed(() => environment.value?.configValid ?? false)
   const updateAvailable = computed(() => latest.value?.updateAvailable ?? false)
   const nodeReady = computed(() => environment.value?.nodeRuntime.ready ?? false)
   const mutating = computed(() => actionPending.value || installTask.value?.state === 'running')
+
+  function setInstallTask(task: EnvironmentInstallTask | null): void {
+    if (taskDismissTimer) {
+      clearTimeout(taskDismissTimer)
+      taskDismissTimer = null
+    }
+    installTask.value = task
+    if (task?.state !== 'success') return
+
+    const elapsed = task.finishedAt ? Math.max(0, Date.now() - task.finishedAt) : 0
+    const remaining = SUCCESS_TASK_DISMISS_MS - elapsed
+    if (remaining <= 0) {
+      installTask.value = null
+      return
+    }
+    taskDismissTimer = setTimeout(() => {
+      if (installTask.value?.id === task.id && installTask.value.state === 'success') {
+        installTask.value = null
+      }
+      taskDismissTimer = null
+    }, remaining)
+  }
 
   async function detect() {
     loading.value = true
@@ -89,7 +114,7 @@ export const usePiStore = defineStore('pi', () => {
     error.value = null
     try {
       const result = await callApi(() => getApi().pi.installNode())
-      installTask.value = result
+      setInstallTask(result)
       lastActionLog.value = result.logs.map((entry) => entry.message).join('\n')
       await detect()
       return result
@@ -118,7 +143,7 @@ export const usePiStore = defineStore('pi', () => {
   }
 
   async function cancelInstall(): Promise<void> {
-    installTask.value = await callApi(() => getApi().pi.cancelInstall())
+    setInstallTask(await callApi(() => getApi().pi.cancelInstall()))
     await detect()
   }
 
@@ -149,15 +174,19 @@ export const usePiStore = defineStore('pi', () => {
       else void refresh()
     })
     const removeTask = api.on('environment-install-task', (payload) => {
-      installTask.value = payload
+      setInstallTask(payload)
       if (payload.logs.length) {
         lastActionLog.value = payload.logs.map((entry) => entry.message).join('\n')
       }
     })
     void api.pi.getInstallTask().then((task) => {
-      installTask.value = task
+      setInstallTask(task)
     })
     return () => {
+      if (taskDismissTimer) {
+        clearTimeout(taskDismissTimer)
+        taskDismissTimer = null
+      }
       removeEnvironment()
       removeTask()
     }

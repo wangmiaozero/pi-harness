@@ -35,6 +35,42 @@ describe('bundled Matt Pocock source', () => {
       resources: expect.arrayContaining(['SKILL.md', 'tests.md', 'mocking.md'])
     })
   })
+
+  it('uses the same content hash for LF and CRLF text checkouts', async () => {
+    const sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-skill-hash-'))
+    const lfRoot = path.join(sandbox, 'lf')
+    const crlfRoot = path.join(sandbox, 'crlf')
+    await Promise.all([fs.mkdir(lfRoot), fs.mkdir(crlfRoot)])
+    await Promise.all([
+      fs.writeFile(path.join(lfRoot, 'SKILL.md'), '---\nname: example\n---\n'),
+      fs.writeFile(path.join(crlfRoot, 'SKILL.md'), '---\r\nname: example\r\n---\r\n')
+    ])
+
+    try {
+      await expect(hashSkillDirectory(lfRoot)).resolves.toEqual(await hashSkillDirectory(crlfRoot))
+    } finally {
+      await fs.rm(sandbox, { recursive: true, force: true })
+    }
+  })
+
+  it('does not normalize binary resource bytes', async () => {
+    const sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-skill-hash-'))
+    const leftRoot = path.join(sandbox, 'left')
+    const rightRoot = path.join(sandbox, 'right')
+    await Promise.all([fs.mkdir(leftRoot), fs.mkdir(rightRoot)])
+    await Promise.all([
+      fs.writeFile(path.join(leftRoot, 'asset.bin'), Buffer.from([0xff, 0x0d, 0x0a, 0xfe])),
+      fs.writeFile(path.join(rightRoot, 'asset.bin'), Buffer.from([0xff, 0x0a, 0xfe]))
+    ])
+
+    try {
+      expect((await hashSkillDirectory(leftRoot)).hash).not.toBe(
+        (await hashSkillDirectory(rightRoot)).hash
+      )
+    } finally {
+      await fs.rm(sandbox, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('BuiltinSkillService lifecycle', () => {

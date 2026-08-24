@@ -822,7 +822,7 @@ export async function hashSkillDirectory(
       resources.push(relative)
       hash.update(relative)
       hash.update('\0')
-      hash.update(data)
+      hash.update(normalizeTextLineEndings(data))
       hash.update('\0')
     }
   }
@@ -1029,6 +1029,12 @@ function toSlash(value: string): string {
 
 function arraysEqual(left: string[], right: string[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+function normalizeTextLineEndings(data: Buffer): Buffer {
+  const text = data.toString('utf8')
+  if (!text.includes('\r\n') || !Buffer.from(text, 'utf8').equals(data)) return data
+  return Buffer.from(text.replace(/\r\n/g, '\n'), 'utf8')
 }
 
 async function readdirSafe(directory: string): Promise<Dirent<string>[]> {

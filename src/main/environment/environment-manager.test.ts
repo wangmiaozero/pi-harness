@@ -18,6 +18,13 @@ const installResult: PiInstallResult = {
   log: 'npm install'
 }
 
+const updateResult: PiInstallResult = {
+  ...installResult,
+  action: 'update',
+  previousVersion: '0.84.1',
+  message: 'Updated Pi 0.84.1 → 0.84.2'
+}
+
 describe('EnvironmentManager', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -144,6 +151,29 @@ describe('EnvironmentManager', () => {
       state: 'cancelled',
       cancellable: false,
       error: { code: 'INSTALL_CANCELLED' }
+    })
+  })
+
+  it('streams Pi update progress and command output into the environment task', async () => {
+    const fixture = managerFixture({ nodeVersion: 'v24.15.0', piReady: true })
+    fixture.piInstaller.update.mockImplementation(async (_force, options) => {
+      options?.onProgress?.({ phase: 'running-pi-update', progress: 25, message: 'Updating Pi' })
+      options?.onLog?.('Downloading Pi update', 'stdout')
+      return updateResult
+    })
+
+    await expect(fixture.manager.updatePi()).resolves.toEqual(updateResult)
+
+    expect(fixture.piInstaller.update).toHaveBeenCalledWith(
+      false,
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    )
+    expect(fixture.manager.getTask()).toMatchObject({
+      state: 'success',
+      progress: 100,
+      logs: expect.arrayContaining([
+        expect.objectContaining({ level: 'stdout', message: 'Downloading Pi update' })
+      ])
     })
   })
 })

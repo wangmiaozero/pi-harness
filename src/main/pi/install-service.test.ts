@@ -96,7 +96,7 @@ describe('PiInstallService', () => {
   it('finds Pi from the npm prefix after refreshing PATH', async () => {
     const sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-pi-prefix-'))
     const binDir = path.join(sandbox, 'bin')
-    const piPath = path.join(binDir, 'pi')
+    const piPath = path.join(binDir, process.platform === 'win32' ? 'pi.cmd' : 'pi')
     await fs.mkdir(binDir, { recursive: true })
     await fs.writeFile(piPath, '#!/bin/sh\n')
     await fs.chmod(piPath, 0o755)
@@ -148,5 +148,71 @@ describe('PiInstallService', () => {
     })
 
     await expect(service.install()).rejects.toMatchObject({ code: 'NPM_NOT_FOUND' })
+  })
+
+  it('updates a project-local Pi through the writable npm prefix', async () => {
+    const localPi = path.join('/workspace', 'node_modules', '.bin', 'pi.cmd')
+    const installedPi = path.join('/tmp', 'npm-global', 'bin', 'pi.cmd')
+    piProcessMock.resolveCliPath
+      .mockResolvedValueOnce(localPi)
+      .mockResolvedValueOnce(localPi)
+      .mockResolvedValueOnce(installedPi)
+    piProcessMock.version
+      .mockResolvedValueOnce('0.84.2')
+      .mockResolvedValueOnce('0.84.2')
+      .mockResolvedValueOnce('0.85.0')
+    const runCommand = vi.fn().mockResolvedValue({ stdout: 'updated', stderr: '', exitCode: 0 })
+    const onLog = vi.fn()
+    const service = new PiInstallService({
+      detectRuntime: async () => readyRuntime,
+      ensurePrefix: async () => writablePrefix,
+      refreshPath: async () => '/tmp/bin:/tmp/npm-global/bin',
+      runCommand
+    })
+
+    const result = await service.update(false, { onLog })
+
+    expect(runCommand).toHaveBeenCalledWith(
+      '/tmp/bin/npm',
+      [...PI_INSTALL_ARGS],
+      expect.objectContaining({ timeoutMs: 10 * 60_000 })
+    )
+    expect(runCommand.mock.calls.flat(Infinity)).not.toContain('--self')
+    expect(onLog).toHaveBeenCalledWith(
+      expect.stringContaining('belongs to this project'),
+      'warning'
+    )
+    expect(result).toMatchObject({
+      action: 'update',
+      previousVersion: '0.84.2',
+      currentVersion: '0.85.0'
+    })
+  })
+
+  it('streams self-update output and progress for a global Pi installation', async () => {
+    piProcessMock.resolveCliPath.mockResolvedValue('/tmp/bin/pi')
+    piProcessMock.version.mockResolvedValueOnce('0.84.2').mockResolvedValueOnce('0.85.0')
+    const onLog = vi.fn()
+    const onProgress = vi.fn()
+    const runCommand = vi.fn(async (_executable, _args, options) => {
+      options.onStdout?.('downloading\n')
+      options.onStderr?.('update warning\n')
+      return { stdout: 'downloading\n', stderr: 'update warning\n', exitCode: 0, signal: null }
+    })
+    const service = new PiInstallService({ runCommand })
+
+    await expect(service.update(false, { onLog, onProgress })).resolves.toMatchObject({
+      action: 'update',
+      currentVersion: '0.85.0'
+    })
+
+    expect(runCommand).toHaveBeenCalledWith(
+      '/tmp/bin/pi',
+      ['update', '--self'],
+      expect.objectContaining({ timeoutMs: 5 * 60_000 })
+    )
+    expect(onLog).toHaveBeenCalledWith('downloading', 'stdout')
+    expect(onLog).toHaveBeenCalledWith('update warning', 'stderr')
+    expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({ progress: 90 }))
   })
 })

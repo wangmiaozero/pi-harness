@@ -762,6 +762,7 @@ export class SkillsService {
       }
       return skills
     } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return []
       log.pi.debug(`skill dir scan failed (${dir}):`, err)
       return []
     }

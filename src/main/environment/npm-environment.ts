@@ -118,18 +118,27 @@ export async function ensureWritableNpmPrefix(
 
 export function npmEnvironment(
   nodePath?: string | null,
-  prefix?: string | null
+  prefix?: string | null,
+  parentEnvironment: NodeJS.ProcessEnv = process.env
 ): NodeJS.ProcessEnv {
   const bin = prefix ? npmBinDirectory(prefix) : null
   return {
-    ...process.env,
-    PATH: [nodePath ? path.dirname(nodePath) : null, bin, process.env.PATH]
+    ...withoutInheritedNpmConfig(parentEnvironment),
+    PATH: [nodePath ? path.dirname(nodePath) : null, bin, parentEnvironment.PATH]
       .filter(Boolean)
       .join(path.delimiter),
     ...(prefix ? { NPM_CONFIG_PREFIX: prefix } : {}),
     npm_config_fund: 'false',
     npm_config_audit: 'false'
   }
+}
+
+function withoutInheritedNpmConfig(environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const clean = { ...environment }
+  for (const key of Object.keys(clean)) {
+    if (/^npm_config_/i.test(key)) clean[key] = undefined
+  }
+  return clean
 }
 
 export function runNpm(

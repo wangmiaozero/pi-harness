@@ -11,6 +11,7 @@ vi.mock('./app-paths', () => ({
 }))
 
 import { piEnvironment } from '../pi/environment'
+import { log } from './logger'
 import {
   SKILL_MARKET_CATALOG,
   SkillsService,
@@ -115,6 +116,14 @@ describe('SkillsService path boundaries', () => {
     await expect(service().list()).resolves.not.toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'escaped' })])
     )
+  })
+
+  it('treats an optional skill root that does not exist as empty', async () => {
+    await fs.rm(skillRoot, { recursive: true, force: true })
+    const debug = vi.spyOn(log.pi, 'debug')
+
+    await expect(service().list()).resolves.toEqual([])
+    expect(debug).not.toHaveBeenCalled()
   })
 
   it('backs up direct child directories and never deletes a root or symlink target', async () => {

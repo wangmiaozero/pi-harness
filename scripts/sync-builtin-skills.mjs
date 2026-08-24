@@ -83,12 +83,18 @@ async function hashDirectory(root) {
       resources.push(relative)
       hash.update(relative)
       hash.update('\0')
-      hash.update(data)
+      hash.update(normalizeTextLineEndings(data))
       hash.update('\0')
     }
   }
   await visit(root)
   return { hash: hash.digest('hex'), resources }
+}
+
+function normalizeTextLineEndings(data) {
+  const text = data.toString('utf8')
+  if (!text.includes('\r\n') || !Buffer.from(text, 'utf8').equals(data)) return data
+  return Buffer.from(text.replace(/\r\n/g, '\n'), 'utf8')
 }
 
 async function sourceCommit(source) {
