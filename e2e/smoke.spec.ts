@@ -75,6 +75,16 @@ test.describe('Pi-Harness smoke', () => {
     await page.locator('a[href="#/providers"]').click()
     await expect(page.locator('h1').filter({ hasText: /提供商|Providers/ })).toBeVisible()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
+    const providerSwitches = page.locator('main [role="switch"]')
+    await expect(providerSwitches).toHaveCount(2)
+    await expect
+      .poll(() =>
+        providerSwitches.evaluateAll(
+          (switches) =>
+            switches.filter((item) => item.getAttribute('aria-checked') === 'true').length
+        )
+      )
+      .toBe(1)
 
     await page.locator('a[href="#/models"]').click()
     await expect(page.locator('h1').filter({ hasText: /模型|Models/ })).toBeVisible()
@@ -259,6 +269,32 @@ test.describe('Pi-Harness smoke', () => {
     }, fixtureRoot)
 
     await page.locator('a[href="#/settings"]').click()
+    const bypass = await page.evaluate(() =>
+      window.piSwitch.settings.set({
+        mascotUnlocked: true,
+        mascotStyle: 'office',
+        petEnabled: true
+      })
+    )
+    expect(bypass).toMatchObject({
+      mascotUnlocked: false,
+      mascotStyle: 'none',
+      petEnabled: false
+    })
+    const mascotToggle = page.getByTestId('mascot-section-toggle')
+    await expect(mascotToggle).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.getByRole('button', { name: /无看板娘|No Mascot/ })).toHaveCount(0)
+    await mascotToggle.click()
+    const answer = page.getByTestId('mascot-unlock-answer')
+    await expect(answer).toBeVisible()
+    await answer.fill('1000')
+    await page.getByRole('button', { name: /解锁|Unlock/, exact: true }).click()
+    await expect(page.getByRole('alert')).toContainText(/答案不正确|Incorrect answer/)
+    await expect(page.getByRole('button', { name: /无看板娘|No Mascot/ })).toHaveCount(0)
+    await answer.fill('1024')
+    await page.getByRole('button', { name: /解锁|Unlock/, exact: true }).click()
+    await expect(page.getByText(/看板娘设置已解锁|Mascot settings unlocked/)).toBeVisible()
+    await expect(mascotToggle).toHaveAttribute('aria-expanded', 'true')
     await expect(page.getByRole('button', { name: /无看板娘|No Mascot/ })).toHaveAttribute(
       'aria-pressed',
       'true'
@@ -269,7 +305,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(
       page.getByRole('button', { name: /女仆风格（白丝）|Maid Style \(White Stockings\)/ })
     ).toHaveCount(1)
-    await expect(page.getByText(/优先推荐|Priority/, { exact: true })).toHaveCount(2)
+    await expect(page.getByText(/优先推荐|Priority/, { exact: true })).toHaveCount(0)
     const maidWhite = page.getByRole('button', {
       name: /女仆风格（白丝）|Maid Style \(White Stockings\)/
     })
@@ -278,6 +314,7 @@ test.describe('Pi-Harness smoke', () => {
     await page
       .getByRole('button', { name: /职场风格（黑丝）|Office Style \(Black Tights\)/ })
       .click()
+    await page.getByRole('switch', { name: /显示宠物|Show pet/ }).click()
     await page.getByRole('switch', { name: /启用动画|Animations/ }).click()
     await page.getByRole('button', { name: /保存|Save/, exact: true }).click()
     await expect(page.getByText(/设置已保存|Settings saved/)).toBeVisible()
@@ -288,6 +325,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByTestId('workspace-mascot')).toBeVisible()
     await expect(page.getByTestId('workspace-mascot')).toHaveAttribute('data-style', 'office')
     await expect(page.getByTestId('workspace-mascot')).toHaveAttribute('data-state', 'idle')
+    await expect(page.getByTestId('pet-status-bubble')).toContainText(/待机|Idle/)
     await expect(page.getByTestId('workspace-mascot').locator('.pet-renderer')).toHaveClass(
       /pet-motion-off/
     )

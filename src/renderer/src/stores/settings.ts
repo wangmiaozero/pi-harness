@@ -41,6 +41,12 @@ export const useSettingsStore = defineStore('settings', () => {
     return settings.value
   }
 
+  async function unlockMascot(answer: string): Promise<boolean> {
+    const unlocked = await callApi(() => getApi().settings.unlockMascot(answer))
+    if (unlocked && settings.value) settings.value.mascotUnlocked = true
+    return unlocked
+  }
+
   function applyLocale(language: AppSettings['language']) {
     i18n.global.locale.value = resolveLocale(language)
   }
@@ -50,12 +56,17 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function normalizePetSettings(value: AppSettings): void {
-    value.petEnabled ??= true
+    value.mascotUnlocked ??= false
+    value.petEnabled ??= false
     value.petAnimations ??= true
     value.petStatusText ??= true
     value.petAutoSleep ??= true
     value.petSound ??= false
     value.petSleepMinutes = Math.min(120, Math.max(1, value.petSleepMinutes || 10))
+    if (!value.mascotUnlocked) {
+      value.mascotStyle = 'none'
+      value.petEnabled = false
+    }
   }
 
   async function fetchBackups() {
@@ -101,6 +112,7 @@ export const useSettingsStore = defineStore('settings', () => {
     error,
     fetch,
     patch,
+    unlockMascot,
     fetchBackups,
     createBackup,
     restoreBackup,

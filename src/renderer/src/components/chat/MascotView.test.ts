@@ -30,4 +30,22 @@ describe('MascotView', () => {
     expect(mascot.attributes('aria-hidden')).toBe('true')
     expect(wrapper.get('img').attributes('alt')).toBe('')
   })
+
+  it('shows the current task status above the mascot, including failure and completion', async () => {
+    const wrapper = mount(MascotView, {
+      props: { style: 'office', state: 'failed', showStatus: true }
+    })
+    const mascot = wrapper.get('[data-testid="workspace-mascot"]')
+
+    expect(mascot.element.firstElementChild?.getAttribute('data-testid')).toBe('pet-status-bubble')
+    expect(wrapper.get('[data-testid="pet-status-bubble"]').text()).toContain('任务失败')
+
+    await wrapper.setProps({ state: 'success' })
+    expect(wrapper.get('[data-testid="pet-status-bubble"]').text()).toContain('任务完成')
+
+    await wrapper.setProps({ state: 'review' })
+    expect(wrapper.get('[data-testid="pet-status-bubble"]').text()).toContain(
+      '任务完成，请查看结果'
+    )
+  })
 })

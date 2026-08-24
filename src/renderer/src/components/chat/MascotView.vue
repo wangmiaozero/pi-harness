@@ -36,10 +36,16 @@ const manifest = computed(() => getPetManifest(props.style))
     :data-style="style"
     :data-active="active ? 'true' : 'false'"
     :data-state="state"
-    class="pointer-events-none absolute bottom-2.5 right-2.5 z-10 w-[112px] select-none"
+    class="pointer-events-none absolute bottom-2.5 right-6 z-10 flex w-[112px] select-none flex-col items-center"
     aria-hidden="true"
   >
+    <PetStatus
+      v-if="showStatus"
+      :key="`${state}:${currentTool ?? ''}`"
+      :state="state"
+      :current-tool="currentTool"
+      class="mb-1"
+    />
     <PetRenderer :manifest="manifest" :state="state" :animated="animated" />
-    <PetStatus v-if="showStatus" :state="state" :current-tool="currentTool" class="mt-0.5" />
   </div>
 </template>

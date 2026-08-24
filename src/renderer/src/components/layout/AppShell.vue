@@ -24,7 +24,7 @@ const mascotStyle = computed(() => normalizeMascotStyle(settings.settings?.masco
         <MascotBackground
           :style="mascotStyle"
           :state="pet.state"
-          :enabled="settings.settings?.petEnabled ?? true"
+          :enabled="Boolean(settings.settings?.mascotUnlocked && settings.settings?.petEnabled)"
           :animated="settings.settings?.petAnimations ?? true"
         />
         <main

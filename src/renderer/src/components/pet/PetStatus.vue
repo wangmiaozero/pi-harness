@@ -19,46 +19,95 @@ const label = computed(() => {
 </script>
 
 <template>
-  <div class="pet-status" :data-state="state">
+  <div data-testid="pet-status-bubble" class="pet-status" :data-state="state">
     <span class="pet-status-dot" aria-hidden="true" />
-    <span class="truncate">{{ label }}</span>
+    <span class="pet-status-label">{{ label }}</span>
   </div>
 </template>
 
 <style scoped>
 .pet-status {
+  --pet-status-color: var(--text-tertiary);
+  --pet-status-bg: color-mix(in srgb, var(--bg-surface-raised) 94%, transparent);
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  min-width: 0;
-  color: var(--text-tertiary);
+  width: max-content;
+  min-width: 48px;
+  max-width: 144px;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--pet-status-color) 34%, var(--border-default));
+  border-radius: 8px;
+  background: var(--pet-status-bg);
+  color: var(--text-secondary);
   font-size: 10.5px;
-  line-height: 16px;
+  line-height: 15px;
+  text-align: center;
+  box-shadow: var(--shadow-popover);
+  backdrop-filter: blur(10px);
+  animation: pet-status-enter 160ms var(--ease-out) both;
+}
+.pet-status::after {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid color-mix(in srgb, var(--pet-status-color) 34%, var(--border-default));
+  border-bottom: 1px solid color-mix(in srgb, var(--pet-status-color) 34%, var(--border-default));
+  background: var(--pet-status-bg);
+  content: '';
+  transform: translateX(-50%) rotate(45deg);
+}
+.pet-status-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .pet-status-dot {
   width: 5px;
   height: 5px;
   flex: none;
   border-radius: 999px;
-  background: var(--text-tertiary);
-  box-shadow: 0 0 5px currentColor;
+  background: var(--pet-status-color);
+  box-shadow: 0 0 5px var(--pet-status-color);
 }
-[data-state='running'] .pet-status-dot,
-[data-state='thinking'] .pet-status-dot,
-[data-state='coding'] .pet-status-dot,
-[data-state='tool-calling'] .pet-status-dot {
-  background: var(--accent);
+[data-state='running'],
+[data-state='thinking'],
+[data-state='coding'],
+[data-state='tool-calling'] {
+  --pet-status-color: var(--accent);
 }
-[data-state='success'] .pet-status-dot,
-[data-state='jumping'] .pet-status-dot {
-  background: var(--success);
+[data-state='success'],
+[data-state='review'],
+[data-state='jumping'] {
+  --pet-status-color: var(--success);
 }
-[data-state='warning'] .pet-status-dot,
-[data-state='waiting'] .pet-status-dot {
-  background: var(--warning);
+[data-state='warning'],
+[data-state='waiting'] {
+  --pet-status-color: var(--warning);
 }
-[data-state='failed'] .pet-status-dot {
-  background: var(--error);
+[data-state='failed'] {
+  --pet-status-color: var(--error);
+}
+
+@keyframes pet-status-enter {
+  from {
+    opacity: 0;
+    transform: translateY(2px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-status {
+    animation: none;
+  }
 }
 </style>

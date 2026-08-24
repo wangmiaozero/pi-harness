@@ -63,6 +63,11 @@ export class DiagnosticsService {
         chrome: process.versions.chrome,
         node: process.versions.node
       },
+      environment: {
+        state: pi.state,
+        piStatus: pi.piStatus,
+        nodeRuntime: pi.nodeRuntime
+      },
       pi: {
         installed: pi.installed,
         version: pi.version,
@@ -80,7 +85,7 @@ export class DiagnosticsService {
         arch: process.arch,
         shell: process.env.SHELL ?? null,
         homeDir: homedir(),
-        pathSummary: (process.env.PATH ?? '')
+        pathSummary: (pi.nodeRuntime.resolvedPath || process.env.PATH || '')
           .split(path.delimiter)
           .slice(0, 8)
           .join(path.delimiter),

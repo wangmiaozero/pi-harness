@@ -32,8 +32,17 @@ export class ProviderService {
   async list(): Promise<ProviderProfile[]> {
     const snap = await this.config.read()
     const meta = await this.metadata.read()
+    const providerKeys = Object.keys(snap.models.providers)
+    const enabledKey = resolveEnabledProviderKey(
+      providerKeys,
+      meta.providers,
+      snap.settings.defaultProvider ?? null
+    )
     return Object.entries(snap.models.providers).map(([key, pi]) =>
-      providerToDomain(key, pi, meta.providers[key])
+      providerToDomain(key, pi, {
+        ...meta.providers[key],
+        enabled: key === enabledKey
+      })
     )
   }
 
@@ -611,6 +620,37 @@ export class ProviderService {
     }
     return null
   }
+}
+
+/**
+ * Provider metadata can briefly lag behind models.json while providers are
+ * created, renamed, or added outside Pi-Harness. Resolve that partial state to
+ * a deterministic single selection before it reaches the renderer.
+ */
+export function resolveEnabledProviderKey(
+  providerKeys: string[],
+  providersMeta: AppMetadata['providers'],
+  activeProviderKey: string | null
+): string | null {
+  const configured = new Set(providerKeys)
+  const explicitlyEnabled = providerKeys.filter((key) => providersMeta[key]?.enabled === true)
+
+  if (explicitlyEnabled.length > 0) {
+    if (activeProviderKey && explicitlyEnabled.includes(activeProviderKey)) {
+      return activeProviderKey
+    }
+    return explicitlyEnabled[0] ?? null
+  }
+
+  const untracked = providerKeys.filter((key) => providersMeta[key]?.enabled === undefined)
+  if (
+    activeProviderKey &&
+    configured.has(activeProviderKey) &&
+    untracked.includes(activeProviderKey)
+  ) {
+    return activeProviderKey
+  }
+  return untracked[0] ?? null
 }
 
 function buildChatProbe(

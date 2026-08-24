@@ -14,6 +14,7 @@ import fs from 'node:fs/promises'
 import { log } from '../services/logger'
 import { PiCliError, PiCliMissingError } from '../services/errors'
 import { nodeToolDirectories } from '../pi/node-environment'
+import { resolveExecutable } from '../environment/command-resolver'
 
 const execFileP = promisify(execFile)
 
@@ -114,6 +115,7 @@ export class PiProcessService {
       const found = await checkExplicitPath(override.trim())
       if (found) return this.setCache(found)
     }
+    const candidateDirectories: string[] = []
     for (const dir of await this.candidateDirs()) {
       const basename = path.basename(dir).toLowerCase()
       const isFilePath = ['pi', 'pi.exe', 'pi.cmd', 'pi.bat', 'cli.js'].includes(basename)
@@ -122,33 +124,19 @@ export class PiProcessService {
         if (found) return this.setCache(found)
         continue
       }
-
-      const executableNames = process.platform === 'win32' ? ['pi.exe', 'pi.cmd', 'pi.bat'] : ['pi']
-      for (const name of executableNames) {
-        const found = await check(path.join(dir, name))
-        if (found) return this.setCache(found)
-      }
+      candidateDirectories.push(dir)
       const js = path.join(dir, 'cli.js')
       const foundJs = await check(js)
       if (foundJs) return this.setCache(foundJs)
     }
 
-    // 2. last resort: PATH lookup via `which` / `where` (execFile, no shell)
-    const which = process.platform === 'win32' ? 'where' : 'which'
-    try {
-      const { stdout } = await execFileP(which, ['pi'], { timeout: 5000 })
-      const matches = stdout
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean)
-      const first =
-        process.platform === 'win32'
-          ? matches.find((file) => /\.(?:exe|cmd|bat)$/i.test(file))
-          : matches[0]
-      if (first) return this.setCache(first)
-    } catch {
-      log.pi.debug('Pi executable not found on PATH')
-    }
+    // 2. shared resolver adds process PATH, login-shell PATH, where/Get-Command/which fallbacks.
+    const resolved = await resolveExecutable('pi', {
+      additionalDirectories: candidateDirectories,
+      versionArgs: ['--version']
+    })
+    if (resolved.path) return this.setCache(resolved.path)
+    log.pi.debug('Pi executable not found in the resolved user environment')
 
     return null
   }
@@ -185,7 +173,11 @@ export class PiProcessService {
     const execOptions: ExecFileOptions = {
       timeout: options.timeoutMs ?? 30_000,
       cwd: options.cwd,
-      env: { ...process.env, ...options.env },
+      env: {
+        ...process.env,
+        ...options.env,
+        ...(isJs ? { ELECTRON_RUN_AS_NODE: '1' } : {})
+      },
       maxBuffer: 10 * 1024 * 1024,
       windowsHide: true
     }

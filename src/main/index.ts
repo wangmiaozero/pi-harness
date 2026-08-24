@@ -33,13 +33,15 @@ import { CapabilityService } from './capabilities/capability-service'
 import { PiPackageManager } from './packages/package-manager'
 import { BuiltinSkillService } from './skills/builtin-skill-service'
 import { PackageHealthError } from './services/errors'
+import { EnvironmentManager } from './environment/environment-manager'
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'zh-CN',
   theme: 'dark',
   density: 'comfortable',
+  mascotUnlocked: false,
   mascotStyle: DEFAULT_MASCOT_STYLE,
-  petEnabled: true,
+  petEnabled: false,
   petAnimations: true,
   petStatusText: true,
   petAutoSleep: true,
@@ -96,6 +98,8 @@ async function bootstrap(): Promise<void> {
   const metadata = createMetadataStore()
   await metadata.read()
 
+  let mainWindow: BrowserWindow | null = null
+
   const backup = new BackupService(settingsStore)
   const config = new PiConfigService(settingsStore, backup)
   backup.attachConfig(config)
@@ -113,6 +117,19 @@ async function bootstrap(): Promise<void> {
   const skillRegistry = new SkillRegistry(settingsStore, metadata, skills)
   const capabilities = new CapabilityService(metadata, skillRegistry)
   const diagnostics = new DiagnosticsService(settingsStore, config, packageManager)
+  const environment = new EnvironmentManager(settingsStore, {
+    onTask: (task) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC_EVENT.environmentInstallTask, task)
+      }
+    },
+    onEnvironmentChanged: (state) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC_EVENT.piEnvironmentChanged, state)
+        mainWindow.webContents.send(IPC_EVENT.configChanged, { at: Date.now() })
+      }
+    }
+  })
 
   const worktrees = new WorktreeService(access)
   const sessions = new SessionService(settingsStore, worktrees, access)
@@ -127,7 +144,6 @@ async function bootstrap(): Promise<void> {
     access
   })
 
-  let mainWindow: BrowserWindow | null = null
   agent.attachWindow(() => mainWindow)
 
   registerIpc({
@@ -140,6 +156,7 @@ async function bootstrap(): Promise<void> {
     skills,
     capabilities,
     diagnostics,
+    environment,
     workspace: {
       access,
       files,

@@ -16,10 +16,14 @@ import { useDiagnosticsStore } from '@renderer/stores/diagnostics'
 import { useI18n } from 'vue-i18n'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
+import { usePiStore } from '@renderer/stores/pi'
+import EnvironmentTaskProgress from '@renderer/components/environment/EnvironmentTaskProgress.vue'
+import { askConfirm } from '@renderer/composables/useConfirmDialog'
 
 const store = useDiagnosticsStore()
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
+const pi = usePiStore()
 const repairingPermissions = ref(false)
 
 /* CodeMirror viewer for the raw report. We keep it tiny — 1 instance, mounted
@@ -95,9 +99,33 @@ async function repairPermissions() {
   }
 }
 
+async function repairEnvironment() {
+  const confirmed = await askConfirm({
+    title: t('overview.bootstrapConfirmTitle'),
+    description: t('overview.bootstrapConfirm'),
+    confirmLabel: t('overview.bootstrapAction'),
+    tone: 'primary'
+  })
+  if (!confirmed) return
+  try {
+    const result = await pi.bootstrap()
+    toast.success(t('overview.installOk'), { description: result.message })
+    await refresh()
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
 onMounted(() => {
   void store.fetch()
 })
+
+watch(
+  () => pi.environment,
+  () => {
+    if (store.report) void refresh()
+  }
+)
 </script>
 
 <template>
@@ -114,6 +142,17 @@ onMounted(() => {
         </p>
       </div>
       <div class="flex items-center gap-1.5">
+        <Button
+          v-if="store.report?.environment.state !== 'ready'"
+          variant="primary"
+          size="sm"
+          :loading="pi.mutating"
+          :disabled="pi.mutating"
+          @click="repairEnvironment"
+        >
+          <Wrench class="size-3.5" />
+          {{ $t('diagnostics.repairEnvironment') }}
+        </Button>
         <Button variant="ghost" size="sm" :loading="store.loading" @click="refresh">
           <RefreshCw class="size-3.5" :stroke-width="1.75" />
         </Button>
@@ -233,6 +272,10 @@ onMounted(() => {
           </div>
         </div>
 
+        <div v-if="pi.installTask" class="px-5 pt-4">
+          <EnvironmentTaskProgress :task="pi.installTask" @cancel="pi.cancelInstall" />
+        </div>
+
         <!-- Property table (Inspector-style) -->
         <div class="px-5 pt-4 pb-2 space-y-4">
           <InspectorSection>
@@ -242,6 +285,25 @@ onMounted(() => {
             </PropertyRow>
             <PropertyRow :label="$t('diagnostics.piCli')" mono>
               {{ store.report.pi.cliPath ?? '—' }}
+            </PropertyRow>
+            <PropertyRow label="Node.js" mono>
+              {{ store.report.environment.nodeRuntime.nodeVersion ?? '—' }} ·
+              {{ store.report.environment.nodeRuntime.nodePath ?? '—' }}
+            </PropertyRow>
+            <PropertyRow label="npm" mono>
+              {{ store.report.environment.nodeRuntime.npmVersion ?? '—' }} ·
+              {{ store.report.environment.nodeRuntime.npmPath ?? '—' }}
+            </PropertyRow>
+            <PropertyRow label="npm prefix" mono>
+              {{ store.report.environment.nodeRuntime.npmPrefix ?? '—' }}
+              ·
+              {{
+                store.report.environment.nodeRuntime.npmPrefixWritable === true
+                  ? $t('diagnostics.writable')
+                  : store.report.environment.nodeRuntime.npmPrefixWritable === false
+                    ? $t('diagnostics.notWritable')
+                    : '—'
+              }}
             </PropertyRow>
             <PropertyRow :label="$t('diagnostics.configPath')" mono>
               {{ store.report.config.modelsPath }}
@@ -314,6 +376,7 @@ onMounted(() => {
               :label="$t('diagnostics.permissionProblem')"
               mono
             >
+              <!-- prettier-ignore -->
               <span class="text-[var(--error)]">{{ permission.path }} · {{ permission.problem }}</span>
             </PropertyRow>
           </InspectorSection>

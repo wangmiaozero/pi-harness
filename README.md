@@ -80,7 +80,7 @@ Pi-Harness is deliberately not a general-purpose IDE: no LSP/IntelliSense, seman
 
 ## Requirements
 
-- Node.js ≥ 22 for development; packaged users are guided to the official Node.js download before Pi setup
+- Node.js ≥ 22 for development; packaged users can install or repair Node.js, npm, PATH, and Pi in one click
 - pnpm `9.12.1` (see the `packageManager` field)
 - [Pi Coding Agent](https://github.com/badlogic/pi-mono) installed, or install / update from the app
 

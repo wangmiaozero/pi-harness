@@ -18,6 +18,25 @@ describe('PiProcessService environment override', () => {
       else process.env.PI_HARNESS_PI_CLI_PATH = previous
     }
   })
+
+  it('runs a JavaScript CLI through packaged Electron in Node mode', async () => {
+    const previous = process.env.PI_HARNESS_PI_CLI_PATH
+    const testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-js-cli-'))
+    const cliPath = path.join(testDir, 'cli.js')
+    await fs.writeFile(
+      cliPath,
+      "process.stdout.write(process.env.ELECTRON_RUN_AS_NODE === '1' ? '1.2.3' : 'wrong-mode')\n"
+    )
+    await fs.chmod(cliPath, 0o755)
+    process.env.PI_HARNESS_PI_CLI_PATH = cliPath
+    try {
+      await expect(new PiProcessService().version()).resolves.toBe('1.2.3')
+    } finally {
+      if (previous === undefined) delete process.env.PI_HARNESS_PI_CLI_PATH
+      else process.env.PI_HARNESS_PI_CLI_PATH = previous
+      await fs.rm(testDir, { recursive: true, force: true })
+    }
+  })
 })
 
 describeWindows('PiProcessService on Windows', () => {

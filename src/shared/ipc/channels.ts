@@ -99,6 +99,7 @@ export const IPC_INVOKE = {
   // settings (Pi-Harness app settings)
   settingsGet: invoke('settings:get'),
   settingsSet: invoke('settings:set'),
+  settingsUnlockMascot: invoke('settings:unlock-mascot'),
   uiStateGet: invoke('settings:ui-state-get'),
   uiStateSet: invoke('settings:ui-state-set'),
 

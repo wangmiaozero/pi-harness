@@ -42,6 +42,18 @@ class PiEnvironmentService {
     const skillsDirs = await this.resolveSkillDirs(settingsPath)
 
     const { readable, writable, valid, error } = await this.checkConfig(configDir)
+    const piStatus = !cliPath ? 'missing' : version ? 'ready' : 'failed'
+    const state = !nodeRuntime.nodeInstalled
+      ? 'node-required'
+      : !nodeRuntime.nodeSupported
+        ? 'node-outdated'
+        : !nodeRuntime.npmInstalled
+          ? 'npm-unavailable'
+          : piStatus === 'ready'
+            ? 'ready'
+            : piStatus === 'failed'
+              ? 'failed'
+              : 'pi-required'
 
     log.pi.info('pi environment detected:', {
       installed: Boolean(cliPath),
@@ -67,7 +79,9 @@ class PiEnvironmentService {
       configError: error,
       platform,
       arch,
-      nodeRuntime
+      nodeRuntime,
+      state,
+      piStatus
     }
   }
 

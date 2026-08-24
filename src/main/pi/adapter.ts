@@ -96,7 +96,7 @@ export function providerToDomain(
     key,
     name: meta?.displayName ?? key,
     displayName: meta?.displayName ?? key,
-    enabled: meta?.enabled ?? true,
+    enabled: meta?.enabled ?? false,
     protocol,
     baseUrl: pi.baseUrl ?? '',
     apiKeyRef,

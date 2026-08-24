@@ -1,7 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Save, FolderOpen, Archive, Trash2, RotateCcw, Eraser, CircleOff } from '@lucide/vue'
+import {
+  Save,
+  FolderOpen,
+  Archive,
+  Trash2,
+  RotateCcw,
+  Eraser,
+  CircleOff,
+  ChevronDown,
+  KeyRound,
+  LockKeyhole,
+  LockKeyholeOpen
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import type { AppSettings, AppUpdateState } from '@shared/ipc/api-types'
 import Button from '@renderer/components/ui/Button.vue'
@@ -28,6 +40,11 @@ const updateState = ref<AppUpdateState | null>(null)
 const updateSupported = ref(false)
 /** Developer / Mock toggles are for local `pnpm dev` only — hidden when packaged. */
 const showDeveloper = ref(false)
+const mascotExpanded = ref(false)
+const mascotUnlockOpen = ref(false)
+const mascotUnlocking = ref(false)
+const mascotAnswer = ref('')
+const mascotUnlockError = ref('')
 
 const updateDownloaded = computed(() => Boolean(updateState.value?.downloaded))
 const updateProgress = computed(() => Math.round(updateState.value?.downloadProgress ?? 0))
@@ -57,8 +74,9 @@ const draft = ref<AppSettings>({
   language: 'zh-CN',
   theme: 'dark',
   density: 'comfortable',
+  mascotUnlocked: false,
   mascotStyle: DEFAULT_MASCOT_STYLE,
-  petEnabled: true,
+  petEnabled: false,
   petAnimations: true,
   petStatusText: true,
   petAutoSleep: true,
@@ -126,7 +144,6 @@ const mascotOptions = computed(() =>
   MASCOT_STYLES.map((style) => ({
     value: style,
     image: MASCOT_IMAGES[style],
-    priority: style === 'maidWhite' || style === 'office',
     label: t(`settings.mascot${style[0].toUpperCase()}${style.slice(1)}`),
     description: t(`settings.mascot${style[0].toUpperCase()}${style.slice(1)}Hint`)
   }))
@@ -150,12 +167,50 @@ watch(
 async function saveSettings() {
   saving.value = true
   try {
+    if (!draft.value.mascotUnlocked) {
+      draft.value.mascotStyle = DEFAULT_MASCOT_STYLE
+      draft.value.petEnabled = false
+    }
     await store.patch({ ...draft.value })
     toast.success(t('settings.saved'))
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
   } finally {
     saving.value = false
+  }
+}
+
+function toggleMascotSection(): void {
+  if (!draft.value.mascotUnlocked) {
+    mascotUnlockOpen.value = !mascotUnlockOpen.value
+    mascotExpanded.value = false
+    mascotUnlockError.value = ''
+    return
+  }
+  mascotExpanded.value = !mascotExpanded.value
+}
+
+async function unlockMascot(): Promise<void> {
+  if (mascotUnlocking.value) return
+  mascotUnlocking.value = true
+  mascotUnlockError.value = ''
+  try {
+    const unlocked = await store.unlockMascot(mascotAnswer.value)
+    if (!unlocked) {
+      mascotUnlockError.value = t('settings.mascotUnlockIncorrect')
+      return
+    }
+    draft.value.mascotUnlocked = true
+    draft.value.mascotStyle = DEFAULT_MASCOT_STYLE
+    draft.value.petEnabled = false
+    mascotAnswer.value = ''
+    mascotUnlockOpen.value = false
+    mascotExpanded.value = true
+    toast.success(t('settings.mascotUnlockSuccess'))
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('common.failed'))
+  } finally {
+    mascotUnlocking.value = false
   }
 }
 
@@ -332,11 +387,121 @@ onBeforeUnmount(stopUpdateListener)
           </div>
         </InspectorSection>
 
-        <InspectorSection
+        <section
+          data-testid="mascot-settings-section"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
-          <template #title>{{ $t('settings.mascot') }}</template>
-          <div class="border-t border-[var(--border-subtle)] p-3">
+          <button
+            type="button"
+            data-testid="mascot-section-toggle"
+            class="flex h-[34px] w-full items-center justify-between gap-3 px-3 text-left transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] disabled:cursor-wait disabled:hover:bg-transparent"
+            :disabled="store.loading || !store.settings"
+            :aria-expanded="draft.mascotUnlocked ? mascotExpanded : mascotUnlockOpen"
+            aria-controls="mascot-settings-content"
+            @click="toggleMascotSection"
+          >
+            <span class="flex min-w-0 items-center gap-2">
+              <LockKeyholeOpen
+                v-if="draft.mascotUnlocked"
+                class="size-3.5 shrink-0 text-[var(--success)]"
+                :stroke-width="1.75"
+              />
+              <LockKeyhole
+                v-else
+                class="size-3.5 shrink-0 text-[var(--warning)]"
+                :stroke-width="1.75"
+              />
+              <span
+                class="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+              >
+                {{ $t('settings.mascot') }}
+              </span>
+              <Badge :tone="draft.mascotUnlocked ? 'success' : 'warning'">
+                {{
+                  draft.mascotUnlocked ? $t('settings.mascotUnlocked') : $t('settings.mascotLocked')
+                }}
+              </Badge>
+            </span>
+            <ChevronDown
+              class="size-3.5 shrink-0 text-[var(--text-tertiary)] transition-transform duration-150"
+              :class="
+                draft.mascotUnlocked
+                  ? mascotExpanded && 'rotate-180'
+                  : mascotUnlockOpen && 'rotate-180'
+              "
+              :stroke-width="1.75"
+            />
+          </button>
+
+          <div
+            v-if="!draft.mascotUnlocked && mascotUnlockOpen"
+            id="mascot-settings-content"
+            class="border-t border-[var(--border-subtle)] p-3"
+          >
+            <form
+              data-testid="mascot-unlock-form"
+              class="rounded-[var(--radius-sm)] border border-[var(--warning)]/30 bg-[var(--warning-tint)] p-3"
+              @submit.prevent="unlockMascot"
+            >
+              <div class="flex items-start gap-2.5">
+                <KeyRound
+                  class="mt-0.5 size-4 shrink-0 text-[var(--warning)]"
+                  :stroke-width="1.75"
+                />
+                <div class="min-w-0 flex-1">
+                  <label
+                    for="mascot-unlock-answer"
+                    class="block text-[12px] font-semibold text-[var(--text-primary)]"
+                  >
+                    {{ $t('settings.mascotUnlockQuestion') }}
+                  </label>
+                  <p class="mt-0.5 text-[10.5px] text-[var(--text-tertiary)]">
+                    {{ $t('settings.mascotLockedHint') }}
+                  </p>
+                  <div class="mt-2 flex items-start gap-2">
+                    <div class="min-w-0 flex-1">
+                      <input
+                        id="mascot-unlock-answer"
+                        v-model="mascotAnswer"
+                        data-testid="mascot-unlock-answer"
+                        type="password"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        :placeholder="$t('settings.mascotUnlockPlaceholder')"
+                        class="h-[var(--height-input)] w-full rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 font-[family-name:var(--font-mono)] text-[12px] text-[var(--text-primary)] shadow-[var(--control-shadow)] placeholder:text-[var(--control-placeholder)] hover:border-[var(--control-border-hover)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
+                        :aria-invalid="Boolean(mascotUnlockError)"
+                        :aria-describedby="mascotUnlockError ? 'mascot-unlock-error' : undefined"
+                        @input="mascotUnlockError = ''"
+                      />
+                      <p
+                        v-if="mascotUnlockError"
+                        id="mascot-unlock-error"
+                        role="alert"
+                        class="mt-1 text-[10.5px] text-[var(--error)]"
+                      >
+                        {{ mascotUnlockError }}
+                      </p>
+                    </div>
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="sm"
+                      :loading="mascotUnlocking"
+                      :disabled="!mascotAnswer.trim() || mascotUnlocking"
+                    >
+                      {{ $t('settings.mascotUnlockAction') }}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div
+            v-else-if="draft.mascotUnlocked && mascotExpanded"
+            id="mascot-settings-content"
+            class="border-t border-[var(--border-subtle)] p-3"
+          >
             <p class="mb-3 text-[11.5px] text-[var(--text-tertiary)]">
               {{ $t('settings.mascotHint') }}
             </p>
@@ -374,9 +539,6 @@ onBeforeUnmount(stopUpdateListener)
                     <div class="truncate text-[12px] font-medium text-[var(--text-primary)]">
                       {{ option.label }}
                     </div>
-                    <Badge v-if="option.priority" tone="accent" class="shrink-0">
-                      {{ $t('settings.petPriority') }}
-                    </Badge>
                   </div>
                   <div
                     class="mt-0.5 line-clamp-2 text-[10.5px] leading-4 text-[var(--text-tertiary)]"
@@ -416,7 +578,7 @@ onBeforeUnmount(stopUpdateListener)
               </PropertyRow>
             </div>
           </div>
-        </InspectorSection>
+        </section>
 
         <InspectorSection
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"

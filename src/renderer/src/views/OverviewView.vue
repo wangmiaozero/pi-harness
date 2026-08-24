@@ -13,7 +13,6 @@ import {
   Activity,
   Circle,
   Copy,
-  ExternalLink,
   Terminal
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
@@ -28,6 +27,7 @@ import { useModelsStore } from '@renderer/stores/models'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { PI_INSTALL_COMMAND } from '@shared/constants/pi-install'
+import EnvironmentTaskProgress from '@renderer/components/environment/EnvironmentTaskProgress.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -40,7 +40,11 @@ const env = computed(() => piStore.environment)
 const canInstallPi = computed(() => env.value?.nodeRuntime.ready ?? false)
 const nodeStatusLabel = computed(() => {
   const runtime = env.value?.nodeRuntime
-  if (!runtime?.ready) return t('overview.nodeMissing')
+  if (!runtime?.nodeInstalled) return t('overview.nodeMissing')
+  if (!runtime.nodeSupported) {
+    return t('overview.nodeOutdated', { version: runtime.nodeVersion ?? '?' })
+  }
+  if (!runtime.npmInstalled) return t('overview.npmMissing')
   return t('overview.nodeReady', {
     node: runtime.nodeVersion ?? 'Node.js',
     npm: runtime.npmVersion ?? 'npm'
@@ -50,7 +54,16 @@ const piInstallGuidance = computed(() =>
   canInstallPi.value ? t('overview.piRequiredReadyHint') : t('overview.piRequiredNodeHint')
 )
 const nodeStepLabel = computed(() =>
-  canInstallPi.value ? t('overview.nodeDetected') : t('overview.installNodeFirst')
+  canInstallPi.value
+    ? t('overview.nodeDetected')
+    : env.value?.nodeRuntime.nodeInstalled && !env.value.nodeRuntime.nodeSupported
+      ? t('overview.upgradeNodeFirst')
+      : t('overview.installNodeFirst')
+)
+const nodeActionLabel = computed(() =>
+  env.value?.nodeRuntime.nodeInstalled && !env.value.nodeRuntime.nodeSupported
+    ? t('overview.upgradeNode')
+    : t('overview.installNode')
 )
 
 const stats = computed(() => ({
@@ -115,24 +128,37 @@ async function openConfigDir() {
 }
 
 async function installPi() {
-  if (env.value?.installed) return
-  if (!canInstallPi.value) {
-    toast.warning(t('overview.nodeRequired'))
-    return
-  }
   const ok = await askConfirm({
-    title: t('overview.installConfirmTitle'),
-    description: t('overview.installConfirm'),
-    confirmLabel: t('overview.installAction'),
+    title: t('overview.bootstrapConfirmTitle'),
+    description: t('overview.bootstrapConfirm'),
+    confirmLabel: t('overview.bootstrapAction'),
     tone: 'primary'
   })
   if (!ok) return
   try {
-    const result = await piStore.install()
+    const result = await piStore.bootstrap()
     actionMessage.value = result.message
+    await refreshAll()
     toast.success(t('overview.installOk'), { description: result.message })
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
+async function installNode() {
+  const ok = await askConfirm({
+    title: nodeActionLabel.value,
+    description: t('overview.nodeInstallConfirm'),
+    confirmLabel: nodeActionLabel.value,
+    tone: 'primary'
+  })
+  if (!ok) return
+  try {
+    await piStore.installNode()
+    await refreshAll()
+    toast.success(t('overview.nodeInstallOk'))
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('common.failed'))
   }
 }
 
@@ -140,14 +166,6 @@ async function copyInstallCommand() {
   try {
     await getApi().pi.copyInstallCommand()
     toast.success(t('overview.installCommandCopied'))
-  } catch (e) {
-    toast.error((e as { message?: string }).message ?? t('common.failed'))
-  }
-}
-
-async function openNodeDownload() {
-  try {
-    await getApi().pi.openNodeDownload()
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
   }
@@ -176,6 +194,24 @@ async function updatePi() {
     }
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
+async function reinstallPi() {
+  const ok = await askConfirm({
+    title: t('overview.reinstallPi'),
+    description: t('overview.reinstallConfirm'),
+    confirmLabel: t('overview.reinstallPi'),
+    tone: 'primary'
+  })
+  if (!ok) return
+  try {
+    const result = await piStore.reinstall()
+    actionMessage.value = result.message
+    await refreshAll()
+    toast.success(t('overview.installOk'), { description: result.message })
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('common.failed'))
   }
 }
 
@@ -221,7 +257,7 @@ onMounted(() => {
         </div>
 
         <section
-          v-if="env && !env.installed"
+          v-if="env && env.state !== 'ready'"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--warning)]/35 bg-[var(--bg-surface)]"
         >
           <div class="flex items-start gap-3 px-4 py-3.5">
@@ -233,7 +269,7 @@ onMounted(() => {
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
                 <h2 class="text-[13px] font-semibold text-[var(--text-primary)]">
-                  {{ $t('overview.piRequiredTitle') }}
+                  {{ $t('overview.environmentRepairTitle') }}
                 </h2>
                 <Badge :tone="canInstallPi ? 'success' : 'warning'">
                   {{ nodeStatusLabel }}
@@ -255,9 +291,16 @@ onMounted(() => {
               <span class="min-w-0 flex-1 text-[11.5px] text-[var(--text-secondary)]">
                 {{ nodeStepLabel }}
               </span>
-              <Button v-if="!canInstallPi" variant="secondary" size="sm" @click="openNodeDownload">
-                <ExternalLink class="size-3.5" :stroke-width="1.75" />
-                {{ $t('overview.installNode') }}
+              <Button
+                v-if="!canInstallPi"
+                variant="secondary"
+                size="sm"
+                :loading="piStore.mutating"
+                :disabled="piStore.mutating"
+                @click="installNode"
+              >
+                <Download class="size-3.5" :stroke-width="1.75" />
+                {{ nodeActionLabel }}
               </Button>
             </div>
 
@@ -279,6 +322,10 @@ onMounted(() => {
             </div>
           </div>
 
+          <div v-if="piStore.installTask" class="border-t border-[var(--border-subtle)] px-4 py-3">
+            <EnvironmentTaskProgress :task="piStore.installTask" @cancel="piStore.cancelInstall" />
+          </div>
+
           <div
             class="flex flex-wrap items-center gap-2 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] px-4 py-2.5"
           >
@@ -286,18 +333,26 @@ onMounted(() => {
               variant="primary"
               size="sm"
               :loading="piStore.mutating"
-              :disabled="piStore.mutating || !canInstallPi"
+              :disabled="piStore.mutating"
               @click="installPi"
             >
               <Download class="size-3.5" :stroke-width="1.75" />
-              {{ piStore.mutating ? $t('overview.installing') : $t('overview.oneClickInstall') }}
+              {{
+                piStore.mutating ? $t('overview.installing') : $t('overview.oneClickEnvironment')
+              }}
             </Button>
-            <Button v-if="!canInstallPi" variant="ghost" size="sm" @click="refreshAll">
+            <Button variant="ghost" size="sm" :disabled="piStore.mutating" @click="refreshAll">
               <RefreshCw class="size-3.5" :stroke-width="1.75" />
-              {{ $t('overview.nodeInstalledRefresh') }}
+              {{ $t('common.refresh') }}
             </Button>
           </div>
         </section>
+
+        <EnvironmentTaskProgress
+          v-if="env?.state === 'ready' && piStore.installTask"
+          :task="piStore.installTask"
+          @cancel="piStore.cancelInstall"
+        />
 
         <!-- Current Model — the focal point. Single Surface, no Card. -->
         <div
@@ -363,6 +418,17 @@ onMounted(() => {
           <template #title>{{ $t('overview.environment') }}</template>
           <PropertyRow :label="$t('overview.cliPath')" mono>
             {{ env?.cliPath ?? $t('common.unknown') }}
+          </PropertyRow>
+          <PropertyRow label="Node.js" mono>
+            {{ env?.nodeRuntime.nodeVersion ?? $t('common.notFound') }} ·
+            {{ env?.nodeRuntime.nodePath ?? '—' }}
+          </PropertyRow>
+          <PropertyRow label="npm" mono>
+            {{ env?.nodeRuntime.npmVersion ?? $t('common.notFound') }} ·
+            {{ env?.nodeRuntime.npmPath ?? '—' }}
+          </PropertyRow>
+          <PropertyRow label="npm prefix" mono>
+            {{ env?.nodeRuntime.npmPrefix ?? '—' }}
           </PropertyRow>
           <PropertyRow :label="$t('overview.configDir')" mono>
             {{ env?.configDir ?? $t('common.unknown') }}
@@ -437,6 +503,16 @@ onMounted(() => {
           >
             <ArrowUpCircle class="size-3.5" :stroke-width="1.75" />
             {{ piStore.mutating ? $t('overview.updating') : $t('overview.updatePi') }}
+          </Button>
+          <Button
+            v-if="env?.installed"
+            variant="secondary"
+            size="sm"
+            :disabled="piStore.mutating"
+            @click="reinstallPi"
+          >
+            <Download class="size-3.5" :stroke-width="1.75" />
+            {{ $t('overview.reinstallPi') }}
           </Button>
           <Button variant="ghost" size="sm" @click="router.push('/providers')">
             <Box class="size-3.5" :stroke-width="1.75" />

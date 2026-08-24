@@ -2,44 +2,45 @@
 
 ## Unreleased
 
+## 1.1.0 — 2026-08-24
+
 ### Added
 
+- **One-click Environment Bootstrap.** Added cross-platform Node.js 22+ detection and user-level installation, npm prefix repair, login-shell PATH recovery, streaming install progress/logs, cancellation, verification, and automatic Pi-dependent store refresh.
+- **Managed Node runtime.** Downloads a current supported Node.js LTS from the official distribution service, verifies SHA-256 checksums, installs with atomic rollback, and never downgrades an existing supported runtime.
 - **Pi Package lifecycle reconciliation.** Added global/project registry reconciliation against npm, git, and local installation entities with healthy, missing, orphaned, permission-error, corrupted, and unknown states.
 - **Repair and thorough cleanup.** Added reinstall, re-register, verified uninstall, orphan deletion, batch uninstall, third-party cleanup, permission repair, transaction logs, registry rollback, and startup preflight protection.
 - **Universal Skill uninstall.** Standalone/user-authored Skills are backed up then removed directly; Package-provided Skills uninstall their owning Package instead of corrupting a child resource.
 - **Matt Pocock built-in Skills.** Bundled 29 formal engineering, productivity, and misc Skills for offline global/project installation, update detection, individual/batch uninstall, and reinstall without touching the read-only application source.
 - **Built-in Skill ownership.** Added content hashes, source commits, modified/missing/conflict health, exact-path ownership, backup-first atomic replacement, and same-name protection without creating Pi package state.
-
-### Security
-
-- Package mutations accept only validated source/scope/project targets. Cleanup plans and managed delete paths are re-derived in Main; Renderer cannot submit shell commands, install paths, or arbitrary delete targets.
-- Built-in Skill mutations accept only trusted collection/Skill ids and authorized scopes. Installed paths and bundled paths are always derived in Main; uninstall never relies on a same-name match.
-
-### Tests
-
-- Added Package lifecycle coverage for reconciliation, ownership, scopes, missing files, orphaned installs, corruption, dependencies, permissions, stale registry removal, safe deletion, project install verification, and injection rejection.
-- Added built-in Collection coverage for source scanning, complete resource copies, install/uninstall/reinstall, batch isolation, duplicate conflicts, local modifications, bundle upgrades, missing Ownership cleanup, and project scope.
-
-## 1.1.0 — 2026-08-24
-
-### Added
-
 - **Runtime-driven pet states.** Upgraded all six mascot themes to a manifest-based 13-state visual layer covering thinking, running, coding, tool calls, waiting, review, completion, failure, warnings, greetings, celebration, and sleep. Maid White and Office Black Tights are prioritized presets.
 - **Pet controls and diagnostics.** Added animation, status-copy, auto-sleep duration, visibility, and sound settings plus a development-only state preview. Completion sound now defaults to off.
 - **Resilient sprite renderer.** Added requestAnimationFrame sprite playback, per-theme animation fallback, reduced-motion support, isolated resource failure handling, and deterministic temporary-state sequences.
+- **Mascot settings lock.** The mascot section is collapsed and locked by default; answering the built-in `1 KiB` challenge unlocks the persisted controls, while Main-process settings enforcement prevents enabling a mascot before unlock.
 - **Capability Layer.** Added a shared domain model for `skill`, `extension`, `package`, `mcp`, and `preset` capabilities, plus a Main-process skill adapter and registry that normalize installed and catalog metadata.
 - **Featured Skills.** Added a compact Featured section to Skills with Odai (`Agent Governance & Task Execution`) represented as an ordinary skill capability.
 - **Trusted skill lifecycle.** Added install, update, enable/disable, refresh, and uninstall actions with typed progress states (`resolving`, `installing`, `validating`, `success`, `failed`). Updates and uninstalls snapshot skill directories under Pi-Harness user data.
 
 ### Security
 
+- Environment commands use fixed executable/argument arrays. npm global permission repair uses a backed-up user prefix and never invokes `sudo`; Node replacement is restricted to the dedicated managed runtime root.
+- Package mutations accept only validated source/scope/project targets. Cleanup plans and managed delete paths are re-derived in Main; Renderer cannot submit shell commands, install paths, or arbitrary delete targets.
+- Built-in Skill mutations accept only trusted collection/Skill ids and authorized scopes. Installed paths and bundled paths are always derived in Main; uninstall never relies on a same-name match.
 - Renderer capability mutations accept only a Zod-validated registry `skillId`; arbitrary source URLs, commands, paths, and install targets are rejected.
 - Featured skills are resolved from the trusted Main-process catalog and installed through argument-array process execution with an allowlisted environment, isolated npm configuration/cache, and lifecycle scripts disabled. Results are validated for `SKILL.md` and metadata, then atomically placed inside the detected global Pi skill root.
 - Added per-skill Main-process mutation locks, real-path and symlink escape protection, mandatory backups before local delete/import-replace operations, sanitized stdout/stderr/exit-code reporting, and Harness-only capability metadata without inventing Pi configuration fields.
 - Persisted only the safe error code/action/timestamp for failed capability mutations so failure state survives restart without storing command output or secrets.
 
+### Fixed
+
+- Provider enablement now resolves incomplete or conflicting metadata to at most one enabled provider, ignores stale list responses, and serializes UI toggle actions so refresh races cannot display every provider as enabled.
+- Removed the visible “Priority” mascot badges and moved runtime-driven task status into a speech bubble above the workspace mascot, including completion, failure, waiting, warning, tool, and execution states.
+
 ### Tests
 
+- Added SemVer, login-shell resolution, Node release/artifact policy, npm prefix repair, exact Pi install arguments, EACCES, cancellation, retry, concurrency, and full bootstrap ordering coverage.
+- Added Package lifecycle coverage for reconciliation, ownership, scopes, missing files, orphaned installs, corruption, dependencies, permissions, stale registry removal, safe deletion, project install verification, and injection rejection.
+- Added built-in Collection coverage for source scanning, complete resource copies, install/uninstall/reinstall, batch isolation, duplicate conflicts, local modifications, bundle upgrades, missing Ownership cleanup, and project scope.
 - Added resolver, runtime-event adapter, Tool/Coding detector, manifest, temporary-state, sleep/wake, animation fallback, resource-failure, and Electron settings coverage for the pet system.
 - Added unit and integration coverage for capability normalization, catalog trust, skill parsing, IPC input rejection, path traversal, staged install validation, duplicate install, mutation locking, metadata, update backups, enable/disable, uninstall, and refresh/discovery.
 - Added an Electron E2E flow using isolated Pi config and capability fixtures; developer `~/.pi/agent/skills` is never touched.

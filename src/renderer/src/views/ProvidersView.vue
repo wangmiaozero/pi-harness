@@ -45,6 +45,7 @@ const testModelId = ref('')
 const testResult = ref<ConnectionTestResult | null>(null)
 const testLoading = ref(false)
 const saving = ref(false)
+const providerTogglePending = ref<string | null>(null)
 const timeoutStr = ref('')
 const headersJson = ref('')
 const defaultModelIdStr = ref('')
@@ -445,7 +446,8 @@ async function doDelete() {
 }
 
 async function toggleEnabled(provider: ProviderProfile, enabled: boolean) {
-  if (provider.enabled === enabled) return
+  if (provider.enabled === enabled || providerTogglePending.value !== null) return
+  providerTogglePending.value = provider.key
   try {
     await providersStore.setEnabled(provider.key, enabled)
     if (enabled) {
@@ -463,6 +465,8 @@ async function toggleEnabled(provider: ProviderProfile, enabled: boolean) {
     }
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
+  } finally {
+    providerTogglePending.value = null
   }
 }
 
@@ -692,6 +696,7 @@ onMounted(() => {
               <Switch
                 :model-value="provider.enabled"
                 :label="$t('providers.colEnabled')"
+                :disabled="providerTogglePending !== null"
                 @update:model-value="(v) => toggleEnabled(provider, v)"
               />
             </div>

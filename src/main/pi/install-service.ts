@@ -1,92 +1,60 @@
-/**
- * PiInstallService — install / update the Pi Coding Agent CLI.
- *
- * Install:  npm install -g --ignore-scripts @earendil-works/pi-coding-agent
- * Update:   pi update --self                                 (only when present)
- */
+/** Pi Coding Agent install/update lifecycle. All commands use argument arrays and stream output. */
 
-import { execFile, type ExecFileOptions } from 'node:child_process'
-import { promisify } from 'node:util'
 import path from 'node:path'
 import { piProcess } from '../process/pi-process'
 import { log } from '../services/logger'
-import { PiCliError, ValidationError } from '../services/errors'
+import { AppError, EnvironmentError, PiCliError, ValidationError } from '../services/errors'
 import type { PiInstallResult, PiLatestInfo } from '@shared/ipc/api-types'
-import { PI_INSTALL_ARGS, PI_NPM_PACKAGE } from '@shared/constants/pi-install'
-import { resolveNpmExecutable } from './node-environment'
-
-const execFileP = promisify(execFile)
+import { PI_INSTALL_ARGS, PI_INSTALL_COMMAND, PI_NPM_PACKAGE } from '@shared/constants/pi-install'
+import { detectNodeRuntime, MINIMUM_NODE_VERSION, resolveNpmExecutable } from './node-environment'
+import { displayCommand, runCommand, type CommandRunOptions } from '../environment/command-runner'
+import {
+  ensureWritableNpmPrefix,
+  npmEnvironment,
+  type WritableNpmEnvironment
+} from '../environment/npm-environment'
+import { refreshRuntimePath } from '../environment/path-manager'
 
 export { PI_NPM_PACKAGE } from '@shared/constants/pi-install'
 
-function toStr(v: string | Buffer): string {
-  return typeof v === 'string' ? v : v.toString('utf8')
+export interface PiInstallProgress {
+  phase: string
+  progress: number
+  message: string
 }
 
-function sanitize(s: string): string {
-  return s.replace(/(?:sk-[a-zA-Z0-9-]{6,}|Bearer [^\s]+)/gi, '[redacted]')
-}
-
-async function run(
-  file: string,
-  args: string[],
-  timeoutMs: number
-): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  const isWindowsShim = process.platform === 'win32' && /\.(?:cmd|bat)$/i.test(file)
-  const executable = isWindowsShim ? (process.env.ComSpec ?? 'cmd.exe') : file
-  const executableArgs = isWindowsShim ? ['/d', '/s', '/c', file, ...args] : args
-  const opts: ExecFileOptions = {
-    timeout: timeoutMs,
-    maxBuffer: 20 * 1024 * 1024,
-    windowsHide: true,
-    env: {
-      ...process.env,
-      PATH: [path.dirname(file), process.env.PATH].filter(Boolean).join(path.delimiter),
-      npm_config_fund: 'false',
-      npm_config_audit: 'false'
-    }
-  }
-  try {
-    const { stdout, stderr } = await execFileP(executable, executableArgs, opts)
-    return { stdout: toStr(stdout), stderr: sanitize(toStr(stderr)), exitCode: 0 }
-  } catch (err) {
-    const e = err as NodeJS.ErrnoException & {
-      stdout?: string | Buffer
-      stderr?: string | Buffer
-      code?: number | string
-      signal?: NodeJS.Signals
-    }
-    if (e.signal === 'SIGTERM' || (typeof e.code === 'string' && e.code.includes('TIMEDOUT'))) {
-      throw new PiCliError(`Command timed out after ${timeoutMs}ms: ${file} ${args.join(' ')}`)
-    }
-    if (typeof e.code === 'number') {
-      return {
-        stdout: toStr(e.stdout ?? ''),
-        stderr: sanitize(toStr(e.stderr ?? '')),
-        exitCode: e.code
-      }
-    }
-    throw new PiCliError(`Failed to run ${file}: ${e.message}`, { args })
-  }
+export interface PiInstallOptions {
+  force?: boolean
+  signal?: AbortSignal
+  onProgress?: (progress: PiInstallProgress) => void
+  onLog?: (message: string, level?: 'info' | 'stdout' | 'stderr' | 'warning') => void
 }
 
 interface PiInstallDependencies {
   resolveNpm: typeof resolveNpmExecutable
-  runCommand: typeof run
+  detectRuntime: typeof detectNodeRuntime
+  runCommand: typeof runCommand
+  ensurePrefix: typeof ensureWritableNpmPrefix
+  refreshPath: typeof refreshRuntimePath
 }
 
 function parseSemverHint(text: string): string | null {
-  const m = text.trim().match(/(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)/)
-  return m?.[1] ?? null
+  const match = text.trim().match(/(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)/)
+  return match?.[1] ?? null
 }
 
 export class PiInstallService {
-  private readonly resolveNpm: typeof resolveNpmExecutable
-  private readonly runCommand: typeof run
+  private readonly dependencies: PiInstallDependencies
 
   constructor(dependencies: Partial<PiInstallDependencies> = {}) {
-    this.resolveNpm = dependencies.resolveNpm ?? resolveNpmExecutable
-    this.runCommand = dependencies.runCommand ?? run
+    this.dependencies = {
+      resolveNpm: resolveNpmExecutable,
+      detectRuntime: detectNodeRuntime,
+      runCommand,
+      ensurePrefix: ensureWritableNpmPrefix,
+      refreshPath: refreshRuntimePath,
+      ...dependencies
+    }
   }
 
   async checkLatest(): Promise<PiLatestInfo> {
@@ -103,13 +71,16 @@ export class PiInstallService {
 
     const installedVersion = await piProcess.version()
     const installedClean = installedVersion ? parseSemverHint(installedVersion) : null
-
     let latestVersion: string | null = null
     try {
-      const npm = await this.resolveNpm()
-      const res = await this.runCommand(npm, ['view', PI_NPM_PACKAGE, 'version', '--json'], 30_000)
-      if (res.exitCode === 0) {
-        const raw = res.stdout.trim()
+      const npm = await this.dependencies.resolveNpm()
+      const result = await this.dependencies.runCommand(
+        npm,
+        ['view', PI_NPM_PACKAGE, 'version', '--json'],
+        { timeoutMs: 30_000, env: npmEnvironment() }
+      )
+      if (result.exitCode === 0) {
+        const raw = result.stdout.trim()
         try {
           const parsed = JSON.parse(raw) as string
           latestVersion = typeof parsed === 'string' ? parsed : parseSemverHint(raw)
@@ -117,109 +88,240 @@ export class PiInstallService {
           latestVersion = parseSemverHint(raw)
         }
       } else {
-        log.pi.warn('npm view failed:', res.stderr || res.stdout)
+        log.pi.warn('npm view failed:', result.stderr || result.stdout)
       }
-    } catch (err) {
-      log.pi.warn('checkLatest failed:', err)
+    } catch (error) {
+      log.pi.warn('checkLatest failed:', error)
     }
-
-    const updateAvailable = Boolean(
-      installedClean && latestVersion && installedClean !== latestVersion
-    )
 
     return {
       installed: true,
       installedVersion: installedClean ?? installedVersion,
       latestVersion,
-      updateAvailable,
+      updateAvailable: Boolean(installedClean && latestVersion && installedClean !== latestVersion),
       packageName: PI_NPM_PACKAGE
     }
   }
 
-  /** One-click install — refused if Pi is already present. */
-  async install(): Promise<PiInstallResult> {
+  async install(options: PiInstallOptions = {}): Promise<PiInstallResult> {
     const existing = await piProcess.resolveCliPath()
-    if (existing) {
-      throw new ValidationError('Pi is already installed. Use Update instead.', {
+    const previousVersion = existing ? await piProcess.version() : null
+    if (existing && !options.force) {
+      throw new ValidationError('Pi is already installed. Use Update or Reinstall instead.', {
         cliPath: existing
       })
     }
+    const progress = (phase: string, value: number, message: string) => {
+      options.onProgress?.({ phase, progress: value, message })
+      options.onLog?.(message, 'info')
+    }
+    progress('checking-node', 5, `Checking Node.js >= ${MINIMUM_NODE_VERSION}`)
+    const runtime = await this.dependencies.detectRuntime()
+    if (!runtime.nodeInstalled) {
+      throw new EnvironmentError('NODE_NOT_FOUND', 'Node.js is required before installing Pi')
+    }
+    if (!runtime.nodeSupported) {
+      throw new EnvironmentError(
+        'NODE_VERSION_TOO_LOW',
+        `Pi-Harness requires Node.js >= ${MINIMUM_NODE_VERSION}`,
+        { version: runtime.nodeVersion }
+      )
+    }
+    if (!runtime.npmInstalled || !runtime.npmPath) {
+      throw new EnvironmentError('NPM_NOT_FOUND', 'npm is unavailable; repair Node.js first')
+    }
 
-    let npm: string
+    progress('checking-npm', 15, `Using npm ${runtime.npmVersion ?? ''}`.trim())
+    progress('checking-npm-permissions', 20, 'Checking npm global prefix permissions')
+    let prefix: WritableNpmEnvironment
     try {
-      npm = await this.resolveNpm()
-    } catch {
-      throw new PiCliError('Node.js and npm are required before installing Pi')
-    }
-    log.pi.info('installing Pi via npm', { package: PI_NPM_PACKAGE, npm })
-    const res = await this.runCommand(npm, [...PI_INSTALL_ARGS], 5 * 60_000)
-
-    piProcess.invalidateCache()
-    const cliPath = await piProcess.resolveCliPath()
-    const currentVersion = cliPath ? await piProcess.version() : null
-
-    if (res.exitCode !== 0 || !cliPath) {
-      throw new PiCliError('Pi install failed', {
-        exitCode: res.exitCode,
-        stderr: res.stderr.slice(0, 2000),
-        stdout: res.stdout.slice(0, 1000)
+      prefix = await this.dependencies.ensurePrefix(runtime.npmPath, {
+        nodePath: runtime.nodePath,
+        signal: options.signal,
+        onLog: (message) => options.onLog?.(message, 'info')
       })
+    } catch (error) {
+      throw normalizeNpmCommandError(error)
+    }
+    progress('preparing-pi-install', 25, `Executing ${PI_INSTALL_COMMAND}`)
+    log.pi.info('installing Pi via npm', {
+      package: PI_NPM_PACKAGE,
+      npm: runtime.npmPath,
+      command: PI_INSTALL_COMMAND,
+      prefix: prefix.prefix
+    })
+    const commandOptions: CommandRunOptions = {
+      timeoutMs: 10 * 60_000,
+      signal: options.signal,
+      env: prefix.env,
+      onStdout: (chunk) => options.onLog?.(chunk.trimEnd(), 'stdout'),
+      onStderr: (chunk) => options.onLog?.(chunk.trimEnd(), 'stderr')
+    }
+    progress('installing-pi', 35, 'Installing Pi Coding Agent with npm')
+    let result
+    try {
+      result = await this.dependencies.runCommand(
+        runtime.npmPath,
+        [...PI_INSTALL_ARGS],
+        commandOptions
+      )
+    } catch (error) {
+      if (options.signal?.aborted) {
+        throw new EnvironmentError('INSTALL_CANCELLED', 'Pi installation was cancelled')
+      }
+      throw normalizeNpmCommandError(error)
+    }
+    if (result.exitCode !== 0)
+      throw classifyNpmFailure(result.stderr, result.stdout, result.exitCode)
+
+    progress('resolving-pi', 82, 'npm install completed; resolving the Pi executable')
+    const pathDirectories = [
+      runtime.nodePath ? path.dirname(runtime.nodePath) : null,
+      prefix.binDir
+    ].filter(Boolean) as string[]
+    await this.dependencies.refreshPath(pathDirectories)
+    piProcess.invalidateCache()
+    let cliPath = await piProcess.resolveCliPath()
+    if (!cliPath && prefix.binDir) {
+      cliPath = await resolvePiFromPrefix(prefix)
+    }
+    if (!cliPath) {
+      throw new EnvironmentError(
+        'PI_NOT_FOUND_AFTER_INSTALL',
+        'Pi was installed but its executable was not found after refreshing PATH',
+        { prefix: prefix.prefix, binDir: prefix.binDir }
+      )
     }
 
+    progress('verifying-pi', 92, `Verifying ${cliPath}`)
+    piProcess.invalidateCache()
+    const currentVersion = await piProcess.version()
+    if (!currentVersion) {
+      throw new EnvironmentError(
+        'PI_NOT_FOUND_AFTER_INSTALL',
+        'Pi executable exists but `pi --version` failed',
+        { cliPath }
+      )
+    }
+    progress('refreshing-environment', 98, 'Refreshing Pi-Harness environment state')
+    const parsedVersion = parseSemverHint(currentVersion) ?? currentVersion
+    progress('pi-ready', 100, `Pi Coding Agent ${parsedVersion} is ready`)
     return {
       ok: true,
       action: 'install',
-      previousVersion: null,
-      currentVersion: parseSemverHint(currentVersion ?? '') ?? currentVersion,
+      previousVersion,
+      currentVersion: parsedVersion,
       latestVersion: null,
-      message: `Installed Pi ${currentVersion ?? ''}`.trim(),
-      log: sanitize((res.stdout + '\n' + res.stderr).trim()).slice(0, 4000)
+      message: `${options.force ? 'Reinstalled' : 'Installed'} Pi ${parsedVersion}`,
+      log: [displayCommand(runtime.npmPath, [...PI_INSTALL_ARGS]), result.stdout, result.stderr]
+        .filter(Boolean)
+        .join('\n')
+        .slice(0, 8_000)
     }
   }
 
-  /** Update Pi in place via `pi update --self`. */
   async update(force = false): Promise<PiInstallResult> {
     const cliPath = await piProcess.resolveCliPath()
-    if (!cliPath) {
-      throw new ValidationError('Pi is not installed. Use Install first.')
-    }
-
+    if (!cliPath) throw new ValidationError('Pi is not installed. Use Install first.')
     const previousVersion = await piProcess.version()
     const args = force ? ['update', '--self', '--force'] : ['update', '--self']
     log.pi.info('updating Pi', { cliPath, args })
-
-    const isJs = cliPath.endsWith('.js')
-    const file = isJs ? process.execPath : cliPath
-    const execArgs = isJs ? [cliPath, ...args] : args
-    const res = await this.runCommand(file, execArgs, 5 * 60_000)
-
+    const isJavaScript = cliPath.endsWith('.js')
+    const executable = isJavaScript ? process.execPath : cliPath
+    const executableArgs = isJavaScript ? [cliPath, ...args] : args
+    const result = await this.dependencies.runCommand(executable, executableArgs, {
+      timeoutMs: 5 * 60_000,
+      env: isJavaScript ? { ...process.env, ELECTRON_RUN_AS_NODE: '1' } : process.env
+    })
     piProcess.invalidateCache()
     const currentVersion = await piProcess.version()
-
-    if (res.exitCode !== 0) {
+    if (result.exitCode !== 0) {
       throw new PiCliError('Pi update failed', {
-        exitCode: res.exitCode,
-        stderr: res.stderr.slice(0, 2000),
-        stdout: res.stdout.slice(0, 1000)
+        exitCode: result.exitCode,
+        stderr: result.stderr.slice(0, 2000),
+        stdout: result.stdout.slice(0, 1000)
       })
     }
-
-    const prev = parseSemverHint(previousVersion ?? '') ?? previousVersion
-    const curr = parseSemverHint(currentVersion ?? '') ?? currentVersion
-    const changed = prev !== curr
-
+    const previous = parseSemverHint(previousVersion ?? '') ?? previousVersion
+    const current = parseSemverHint(currentVersion ?? '') ?? currentVersion
     return {
       ok: true,
       action: 'update',
-      previousVersion: prev,
-      currentVersion: curr,
+      previousVersion: previous,
+      currentVersion: current,
       latestVersion: null,
-      message: changed
-        ? `Updated Pi ${prev ?? '?'} → ${curr ?? '?'}`
-        : `Pi is already up to date (${curr ?? previousVersion ?? '?'})`,
-      log: sanitize((res.stdout + '\n' + res.stderr).trim()).slice(0, 4000)
+      message:
+        previous !== current
+          ? `Updated Pi ${previous ?? '?'} → ${current ?? '?'}`
+          : `Pi is already up to date (${current ?? previousVersion ?? '?'})`,
+      log: `${result.stdout}\n${result.stderr}`.trim().slice(0, 4000)
     }
   }
+}
+
+function classifyNpmFailure(stderr: string, stdout: string, exitCode: number): EnvironmentError {
+  const combined = `${stderr}\n${stdout}`
+  const details = { exitCode, stderr: stderr.slice(0, 2500), stdout: stdout.slice(0, 1000) }
+  if (/EACCES|permission denied|operation not permitted/i.test(combined)) {
+    return new EnvironmentError(
+      'NPM_PERMISSION_DENIED',
+      'npm global installation was denied by filesystem permissions',
+      details
+    )
+  }
+  if (/ETIMEDOUT|ECONNRESET|ENETUNREACH|EAI_AGAIN|ENOTFOUND/i.test(combined)) {
+    return new EnvironmentError(
+      'NETWORK_ERROR',
+      'Network connection failed during npm install',
+      details
+    )
+  }
+  if (/ENOENT|not recognized as an internal|command not found/i.test(combined)) {
+    return new EnvironmentError(
+      'NPM_NOT_FOUND',
+      'npm became unavailable during installation',
+      details
+    )
+  }
+  return new EnvironmentError(
+    'NPM_INSTALL_FAILED',
+    'npm failed to install Pi Coding Agent',
+    details
+  )
+}
+
+function normalizeNpmCommandError(error: unknown): unknown {
+  const details =
+    error instanceof AppError ? (error.details as { code?: string } | undefined) : null
+  if (error instanceof AppError && error.code === 'COMMAND_FAILED' && details?.code === 'ENOENT') {
+    return new EnvironmentError(
+      'NPM_NOT_FOUND',
+      'npm became unavailable; the Node.js runtime must be repaired',
+      details
+    )
+  }
+  return error
+}
+
+async function resolvePiFromPrefix(prefix: WritableNpmEnvironment): Promise<string | null> {
+  if (!prefix.binDir) return null
+  const candidates =
+    process.platform === 'win32'
+      ? ['pi.cmd', 'pi.exe', 'pi.bat'].map((name) => path.join(prefix.binDir!, name))
+      : [path.join(prefix.binDir, 'pi')]
+  for (const candidate of candidates) {
+    try {
+      const fs = await import('node:fs/promises')
+      await fs.access(
+        candidate,
+        process.platform === 'win32' ? fs.constants.F_OK : fs.constants.X_OK
+      )
+      return candidate
+    } catch {
+      // Try next generated launcher.
+    }
+  }
+  return null
 }
 
 export const piInstall = new PiInstallService()

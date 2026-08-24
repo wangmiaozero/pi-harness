@@ -52,6 +52,9 @@ export const useSkillsStore = defineStore('skills', () => {
       [progress.skillId]: progress
     }
   })
+  getApi().on('pi-environment-changed', () => {
+    void refresh()
+  })
 
   async function fetchList() {
     loading.value = true

@@ -381,7 +381,7 @@ function duration(value: number): string {
         :state="pet.state"
         :current-tool="pet.currentTool"
         :active="mascotActive"
-        :enabled="settings.settings?.petEnabled ?? true"
+        :enabled="Boolean(settings.settings?.mascotUnlocked && settings.settings?.petEnabled)"
         :animated="settings.settings?.petAnimations ?? true"
         :show-status="settings.settings?.petStatusText ?? true"
         class="hidden min-[1080px]:block"

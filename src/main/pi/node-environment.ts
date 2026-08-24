@@ -1,11 +1,17 @@
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { homedir } from 'node:os'
+import semver from 'semver'
 import type { NodeRuntimeInfo } from '@shared/ipc/api-types'
+import { managedNodeRoot, npmUserPrefix } from '../services/app-paths'
+import {
+  resolveExecutable,
+  resolveLoginShellPath,
+  type ResolvedExecutable
+} from '../environment/command-resolver'
+import { inspectNpmPrefix, npmBinDirectory } from '../environment/npm-environment'
 
-const execFileP = promisify(execFile)
+export const MINIMUM_NODE_VERSION = '22.0.0'
 
 async function addVersionDirectories(
   directories: Set<string>,
@@ -19,8 +25,12 @@ async function addVersionDirectories(
       .sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true }))
       .forEach((entry) => directories.add(path.join(root, entry.name, suffix)))
   } catch {
-    // Node manager is not installed.
+    // Optional Node manager is not installed.
   }
+}
+
+export function managedNodeBinDirectory(root = managedNodeRoot()): string {
+  return process.platform === 'win32' ? root : path.join(root, 'bin')
 }
 
 /** Candidate binary directories, including GUI-invisible Node manager paths. */
@@ -28,6 +38,7 @@ export async function nodeToolDirectories(): Promise<string[]> {
   const home = homedir()
   const directories = new Set(
     [
+      managedNodeBinDirectory(),
       process.env.NVM_BIN,
       process.env.VOLTA_HOME ? path.join(process.env.VOLTA_HOME, 'bin') : null,
       path.dirname(process.execPath),
@@ -38,7 +49,7 @@ export async function nodeToolDirectories(): Promise<string[]> {
       path.join(home, '.asdf', 'shims'),
       path.join(home, '.local', 'share', 'mise', 'shims'),
       path.join(home, '.local', 'share', 'fnm', 'aliases', 'default', 'bin'),
-      path.join(home, '.npm-global', 'bin'),
+      npmBinDirectory(npmUserPrefix()),
       ...(process.env.PATH?.split(path.delimiter) ?? [])
     ].filter((value): value is string => Boolean(value?.trim()))
   )
@@ -68,85 +79,72 @@ export async function nodeToolDirectories(): Promise<string[]> {
   return [...directories]
 }
 
-function executableNames(tool: 'node' | 'npm'): string[] {
-  if (process.platform !== 'win32') return [tool]
-  return tool === 'node' ? ['node.exe', 'node'] : ['npm.cmd', 'npm.exe', 'npm.bat', 'npm']
+export function normalizeNodeVersion(version: string | null | undefined): string | null {
+  if (!version) return null
+  const match = version.trim().match(/v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/)
+  if (!match) return null
+  return semver.valid(match[1])
 }
 
-async function resolveExecutable(
-  tool: 'node' | 'npm',
-  directories: string[]
-): Promise<string | null> {
-  for (const directory of directories) {
-    for (const name of executableNames(tool)) {
-      const candidate = path.join(directory, name)
-      try {
-        await fs.access(candidate, fs.constants.F_OK | fs.constants.X_OK)
-        return candidate
-      } catch {
-        // Try the next candidate.
-      }
-    }
-  }
-
-  const locator = process.platform === 'win32' ? 'where' : 'which'
-  try {
-    const { stdout } = await execFileP(locator, [tool], { timeout: 5000, windowsHide: true })
-    return (
-      stdout
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .find(Boolean) ?? null
-    )
-  } catch {
-    return null
-  }
-}
-
-async function readVersion(executable: string): Promise<string | null> {
-  const isWindowsShim = process.platform === 'win32' && /\.(?:cmd|bat)$/i.test(executable)
-  const file = isWindowsShim ? (process.env.ComSpec ?? 'cmd.exe') : executable
-  const args = isWindowsShim ? ['/d', '/s', '/c', executable, '--version'] : ['--version']
-  const executableDir = path.dirname(executable)
-  try {
-    const { stdout } = await execFileP(file, args, {
-      timeout: 5000,
-      windowsHide: true,
-      env: {
-        ...process.env,
-        PATH: [executableDir, process.env.PATH].filter(Boolean).join(path.delimiter)
-      }
-    })
-    return stdout.trim().split(/\r?\n/)[0] || null
-  } catch {
-    return null
-  }
+export function isNodeVersionSupported(version: string | null | undefined): boolean {
+  const normalized = normalizeNodeVersion(version)
+  return Boolean(normalized && semver.gte(normalized, MINIMUM_NODE_VERSION))
 }
 
 export async function detectNodeRuntime(): Promise<NodeRuntimeInfo> {
   const directories = await nodeToolDirectories()
-  const [nodePath, npmPath] = await Promise.all([
-    resolveExecutable('node', directories),
-    resolveExecutable('npm', directories)
+  const managedBin = managedNodeBinDirectory()
+  const candidates = directories.map((directory) => ({
+    path: directory,
+    source: samePath(directory, managedBin) ? ('managed-runtime' as const) : ('candidate' as const)
+  }))
+  const [node, npm, loginShell] = await Promise.all([
+    resolveExecutable('node', { additionalDirectories: candidates }),
+    resolveExecutable('npm', { additionalDirectories: candidates }),
+    resolveLoginShellPath()
   ])
-  const [nodeVersion, npmVersion] = await Promise.all([
-    nodePath ? readVersion(nodePath) : null,
-    npmPath ? readVersion(npmPath) : null
-  ])
+  const nodeInstalled = validResolution(node)
+  const npmInstalled = validResolution(npm)
+  const nodeSupported = nodeInstalled && isNodeVersionSupported(node.version)
+  const prefix =
+    npmInstalled && npm.path
+      ? await inspectNpmPrefix(npm.path, { nodePath: node.path })
+      : { prefix: null, binDir: null, writable: null }
 
   return {
-    nodeInstalled: Boolean(nodePath && nodeVersion),
-    nodePath,
-    nodeVersion,
-    npmInstalled: Boolean(npmPath && npmVersion),
-    npmPath,
-    npmVersion,
-    ready: Boolean(nodePath && nodeVersion && npmPath && npmVersion)
+    nodeInstalled,
+    nodePath: node.path,
+    nodeVersion: node.version,
+    npmInstalled,
+    npmPath: npm.path,
+    npmVersion: npm.version,
+    nodeSupported,
+    minimumNodeVersion: MINIMUM_NODE_VERSION,
+    nodeStatus: !nodeInstalled ? 'missing' : nodeSupported ? 'ready' : 'outdated',
+    npmStatus: npmInstalled ? 'ready' : 'missing',
+    nodeSource: node.source,
+    npmSource: npm.source,
+    npmPrefix: prefix.prefix,
+    npmPrefixWritable: prefix.writable,
+    npmBinDir: prefix.binDir,
+    resolvedPath: loginShell.path ?? process.env.PATH ?? '',
+    ready: Boolean(nodeSupported && npmInstalled)
   }
 }
 
 export async function resolveNpmExecutable(): Promise<string> {
   const runtime = await detectNodeRuntime()
-  if (!runtime.ready || !runtime.npmPath) throw new Error('Node.js or npm not found')
+  if (!runtime.nodeSupported) throw new Error(`Node.js >= ${MINIMUM_NODE_VERSION} is required`)
+  if (!runtime.npmInstalled || !runtime.npmPath) throw new Error('npm not found')
   return runtime.npmPath
+}
+
+function validResolution(executable: ResolvedExecutable): boolean {
+  return Boolean(executable.found && executable.path && executable.version)
+}
+
+function samePath(left: string, right: string): boolean {
+  const a = path.resolve(left)
+  const b = path.resolve(right)
+  return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b
 }

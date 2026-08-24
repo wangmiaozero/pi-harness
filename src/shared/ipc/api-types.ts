@@ -94,20 +94,10 @@ export interface NodeRuntimeInfo {
 }
 
 export type CommandResolutionSource =
-  | 'explicit'
-  | 'managed-runtime'
-  | 'candidate'
-  | 'process-path'
-  | 'login-shell'
-  | 'system-locator'
+  'explicit' | 'managed-runtime' | 'candidate' | 'process-path' | 'login-shell' | 'system-locator'
 
 export type EnvironmentInstallTaskType = 'node' | 'pi' | 'environment'
-export type EnvironmentInstallTaskState =
-  | 'pending'
-  | 'running'
-  | 'success'
-  | 'failed'
-  | 'cancelled'
+export type EnvironmentInstallTaskState = 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
 
 export interface EnvironmentInstallLog {
   at: number
@@ -428,6 +418,11 @@ export interface BackupRecord {
 
 export interface DiagnosticsReport {
   app: { version: string; electron: string; chrome: string; node: string }
+  environment: {
+    state: EnvironmentState
+    piStatus: RuntimeStatus
+    nodeRuntime: NodeRuntimeInfo
+  }
   pi: {
     installed: boolean
     version: string | null
@@ -474,6 +469,7 @@ export interface AppSettings {
   language: 'auto' | 'zh-CN' | 'en-US'
   theme: 'system' | 'dark' | 'light'
   density: 'comfortable' | 'compact'
+  mascotUnlocked: boolean
   mascotStyle: MascotStyle
   petEnabled: boolean
   petAnimations: boolean
@@ -654,6 +650,7 @@ export interface PiSwitchAPI {
   settings: {
     get(): Promise<AppSettings>
     set(patch: Partial<AppSettings>): Promise<AppSettings>
+    unlockMascot(answer: string): Promise<boolean>
     getUiState(): Promise<Record<string, unknown>>
     setUiState(state: Record<string, unknown>): Promise<void>
   }

@@ -184,27 +184,23 @@ const commands = computed<PaletteCommand[]>(() => {
     },
     {
       id: 'install-pi',
-      label: t('overview.installPi'),
+      label: t('overview.oneClickEnvironment'),
       group: t('palette.groupActions'),
       keywords: 'npm install pi coding agent',
       run: async () => {
-        if (pi.installed) {
+        if (!pi.environment) await pi.detect()
+        if (pi.environment?.state === 'ready') {
           toast.info(t('overview.updateHint'))
           return
         }
-        if (!pi.nodeReady) {
-          toast.warning(t('overview.nodeRequired'))
-          await router.push('/')
-          return
-        }
         const ok = await askConfirm({
-          title: t('overview.installConfirmTitle'),
-          description: t('overview.installConfirm'),
-          confirmLabel: t('overview.installAction'),
+          title: t('overview.bootstrapConfirmTitle'),
+          description: t('overview.bootstrapConfirm'),
+          confirmLabel: t('overview.bootstrapAction'),
           tone: 'primary'
         })
         if (!ok) return
-        const result = await pi.install()
+        const result = await pi.bootstrap()
         toast.success(t('overview.installOk'), { description: result.message })
       }
     },

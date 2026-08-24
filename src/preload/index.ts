@@ -43,6 +43,11 @@ const api: PiSwitchAPI = {
     runHelp: () => invoke(IPC_INVOKE.piRunHelp),
     checkLatest: () => invoke(IPC_INVOKE.piCheckLatest),
     install: () => invoke(IPC_INVOKE.piInstall),
+    bootstrap: () => invoke(IPC_INVOKE.piBootstrap),
+    installNode: () => invoke(IPC_INVOKE.piInstallNode),
+    reinstall: () => invoke(IPC_INVOKE.piReinstall),
+    getInstallTask: () => invoke(IPC_INVOKE.piGetInstallTask),
+    cancelInstall: () => invoke(IPC_INVOKE.piCancelInstall),
     update: (force) => invoke(IPC_INVOKE.piUpdate, force),
     copyInstallCommand: () => invoke(IPC_INVOKE.piCopyInstallCommand),
     openNodeDownload: () => invoke(IPC_INVOKE.piOpenNodeDownload)
@@ -118,6 +123,7 @@ const api: PiSwitchAPI = {
   settings: {
     get: () => invoke(IPC_INVOKE.settingsGet),
     set: (patch) => invoke(IPC_INVOKE.settingsSet, patch),
+    unlockMascot: (answer) => invoke(IPC_INVOKE.settingsUnlockMascot, answer),
     getUiState: () => invoke(IPC_INVOKE.uiStateGet),
     setUiState: (state) => invoke(IPC_INVOKE.uiStateSet, state)
   },
@@ -196,6 +202,8 @@ const api: PiSwitchAPI = {
     if (event === 'config-changed') return onEvent(IPC_EVENT.configChanged, ipcListener)
     if (event === 'pi-environment-changed')
       return onEvent(IPC_EVENT.piEnvironmentChanged, ipcListener)
+    if (event === 'environment-install-task')
+      return onEvent(IPC_EVENT.environmentInstallTask, ipcListener)
     if (event === 'notification') return onEvent(IPC_EVENT.notification, ipcListener)
     if (event === 'agent-event') return onEvent(IPC_EVENT.agentEvent, ipcListener)
     if (event === 'agent-running') return onEvent(IPC_EVENT.agentRunning, ipcListener)

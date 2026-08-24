@@ -23,9 +23,7 @@ import type { ModelService } from '../services/model-service'
 import type { BackupService } from '../backup/backup-service'
 import type { SkillsService } from '../services/skills-service'
 import type { DiagnosticsService } from '../services/diagnostics-service'
-import { piEnvironment } from '../pi/environment'
 import { piProcess } from '../process/pi-process'
-import { piInstall } from '../pi/install-service'
 import { logFilePath } from '../services/app-paths'
 import { readTextFile } from '../services/storage'
 import {
@@ -43,6 +41,8 @@ import { registerWorkspaceIpc, type WorkspaceServices } from './register-workspa
 import { createTrustedIpcMain } from './trusted-ipc'
 import type { CapabilityService } from '../capabilities/capability-service'
 import { capabilityMutationSchema, capabilityToggleSchema } from '@shared/capabilities/schema'
+import type { EnvironmentManager } from '../environment/environment-manager'
+import { DEFAULT_MASCOT_STYLE, isMascotUnlockAnswer } from '@shared/constants/mascot'
 
 export interface Services {
   settingsStore: JsonStore<AppSettings>
@@ -54,6 +54,7 @@ export interface Services {
   skills: SkillsService
   capabilities: CapabilityService
   diagnostics: DiagnosticsService
+  environment: EnvironmentManager
   workspace: WorkspaceServices
   getMainWindow: () => BrowserWindow | null
 }
@@ -80,7 +81,8 @@ export function registerIpc(services: Services): void {
     backup,
     skills,
     capabilities,
-    diagnostics
+    diagnostics,
+    environment
   } = services
   const ipcMain = createTrustedIpcMain(electronIpcMain, services.getMainWindow, () =>
     wrap(async () => {
@@ -114,12 +116,7 @@ export function registerIpc(services: Services): void {
   )
 
   // ---- pi ----
-  ipcMain.handle(IPC_INVOKE.piDetect, () =>
-    wrap(async () => {
-      const s = settingsStore.peek()
-      return piEnvironment.detect({ cliPath: s.manualCliPath, configDir: s.manualConfigDir })
-    })
-  )
+  ipcMain.handle(IPC_INVOKE.piDetect, () => wrap(() => environment.detect()))
   ipcMain.handle(IPC_INVOKE.piGetVersion, () =>
     wrap(async () => {
       const s = settingsStore.peek()
@@ -129,10 +126,15 @@ export function registerIpc(services: Services): void {
     })
   )
   ipcMain.handle(IPC_INVOKE.piRunHelp, () => wrap(() => piProcess.help()))
-  ipcMain.handle(IPC_INVOKE.piCheckLatest, () => wrap(() => piInstall.checkLatest()))
-  ipcMain.handle(IPC_INVOKE.piInstall, () => wrap(() => piInstall.install()))
+  ipcMain.handle(IPC_INVOKE.piCheckLatest, () => wrap(() => environment.checkLatest()))
+  ipcMain.handle(IPC_INVOKE.piInstall, () => wrap(() => environment.installPi()))
+  ipcMain.handle(IPC_INVOKE.piBootstrap, () => wrap(() => environment.bootstrap()))
+  ipcMain.handle(IPC_INVOKE.piInstallNode, () => wrap(() => environment.installNode()))
+  ipcMain.handle(IPC_INVOKE.piReinstall, () => wrap(() => environment.reinstallPi()))
+  ipcMain.handle(IPC_INVOKE.piGetInstallTask, () => wrap(async () => environment.getTask()))
+  ipcMain.handle(IPC_INVOKE.piCancelInstall, () => wrap(() => environment.cancel()))
   ipcMain.handle(IPC_INVOKE.piUpdate, (_e, force?: boolean) =>
-    wrap(() => piInstall.update(Boolean(force)))
+    wrap(() => environment.updatePi(Boolean(force)))
   )
   ipcMain.handle(IPC_INVOKE.piCopyInstallCommand, () =>
     wrap(async () => {
@@ -431,9 +433,27 @@ export function registerIpc(services: Services): void {
   ipcMain.handle(IPC_INVOKE.settingsGet, () => wrap(() => settingsStore.read()))
   ipcMain.handle(IPC_INVOKE.settingsSet, (_e, patch: Partial<AppSettings>) =>
     wrap(async () => {
-      const settings = await settingsStore.update(patch)
+      const current = await settingsStore.read()
+      const nextPatch = { ...patch }
+      if (!current.mascotUnlocked) nextPatch.mascotUnlocked = false
+      const mascotUnlocked = current.mascotUnlocked && nextPatch.mascotUnlocked !== false
+      if (!mascotUnlocked) {
+        nextPatch.mascotUnlocked = false
+        nextPatch.mascotStyle = DEFAULT_MASCOT_STYLE
+        nextPatch.petEnabled = false
+      }
+      const settings = await settingsStore.update(nextPatch)
       nativeTheme.themeSource = settings.theme
       return settings
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.settingsUnlockMascot, (_e, answer: unknown) =>
+    wrap(async () => {
+      if (typeof answer !== 'string' || answer.length > 64 || !isMascotUnlockAnswer(answer)) {
+        return false
+      }
+      await settingsStore.update({ mascotUnlocked: true })
+      return true
     })
   )
   ipcMain.handle(IPC_INVOKE.uiStateGet, () => wrap(() => uiStateStore.read()))

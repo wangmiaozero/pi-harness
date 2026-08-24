@@ -9,16 +9,21 @@ export const useProvidersStore = defineStore('providers', () => {
   const items = ref<ProviderProfile[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  let listRequestId = 0
 
   async function fetchList() {
+    const requestId = ++listRequestId
     loading.value = true
     error.value = null
     try {
-      items.value = await callApi(() => getApi().providers.list())
+      const next = await callApi(() => getApi().providers.list())
+      if (requestId === listRequestId) items.value = next
     } catch (e) {
-      error.value = (e as { message?: string }).message ?? String(e)
+      if (requestId === listRequestId) {
+        error.value = (e as { message?: string }).message ?? String(e)
+      }
     } finally {
-      loading.value = false
+      if (requestId === listRequestId) loading.value = false
     }
   }
 
