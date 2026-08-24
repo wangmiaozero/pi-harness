@@ -35,6 +35,7 @@ export const useAgentStore = defineStore('agent', () => {
   const runningIds = ref<string[]>([])
   const tools = shallowRef<ToolEntry[]>([])
   const thinkingLevel = ref('auto')
+  const toolPreset = ref<ToolPreset>('default')
   const sessionStats = shallowRef<SessionStats | null>(null)
   const completionCount = ref(0)
   const error = ref<string | null>(null)
@@ -42,6 +43,11 @@ export const useAgentStore = defineStore('agent', () => {
   let loadedDetail: SessionDetail | null = null
   let loadedStatsOverride: Partial<SessionStats> | null = null
   let loadedSessionId: string | null = null
+  let loadGeneration = 0
+  const composerSelections = new Map<
+    string,
+    { thinkingLevel: string; toolPreset: ToolPreset }
+  >()
   const transientSessionIds = new Set<string>()
   let unsubEvent: (() => void) | null = null
   let unsubRunning: (() => void) | null = null
@@ -117,6 +123,7 @@ export const useAgentStore = defineStore('agent', () => {
   }
 
   async function load(sessionId: string | null) {
+    const generation = ++loadGeneration
     loadedSessionId = sessionId
     error.value = null
     streaming.value = INITIAL_STREAMING_STATE
@@ -130,36 +137,59 @@ export const useAgentStore = defineStore('agent', () => {
       loadedDetail = null
       loadedStatsOverride = null
       thinkingLevel.value = 'auto'
+      toolPreset.value = 'default'
       return
     }
+    const savedSelection = composerSelections.get(sessionId)
+    if (savedSelection) applyComposerSelection(savedSelection)
+    else {
+      thinkingLevel.value = 'auto'
+      toolPreset.value = 'default'
+    }
     if (transientSessionIds.has(sessionId)) {
-      await reconcile(sessionId)
+      await reconcile(sessionId, !savedSelection, generation)
+      if (isCurrentLoad(sessionId, generation) && !composerSelections.has(sessionId)) {
+        rememberComposerSelection(sessionId)
+      }
       return
     }
     const detail = await callApi(() => getApi().sessions.get(sessionId))
+    if (!isCurrentLoad(sessionId, generation)) return
     loadedDetail = detail
     loadedStatsOverride = null
     messages.value = detail.context.messages
     entryIds.value = detail.context.entryIds
     entryParents.value = detail.context.entryParents ?? {}
-    thinkingLevel.value = detail.context.thinkingLevel
+    if (!savedSelection) thinkingLevel.value = detail.context.thinkingLevel
     refreshLocalStats()
-    await reconcile(sessionId)
+    await reconcile(sessionId, !savedSelection, generation)
+    if (isCurrentLoad(sessionId, generation) && !composerSelections.has(sessionId)) {
+      rememberComposerSelection(sessionId)
+    }
   }
 
-  async function reconcile(sessionId: string | null) {
+  async function reconcile(
+    sessionId: string | null,
+    initializeComposer = false,
+    generation = loadGeneration
+  ) {
     if (!sessionId) return
     try {
       let snap = await callApi(() => getApi().agent.state(sessionId))
-      runningIds.value = await callApi(() => getApi().agent.running())
+      const running = await callApi(() => getApi().agent.running())
+      if (!isCurrentLoad(sessionId, generation)) return
+      runningIds.value = running
+      let listed: ToolEntry[] | null = null
       try {
-        const listed = (await callApi(() =>
+        listed = (await callApi(() =>
           getApi().agent.command(sessionId, { type: 'get_tools' })
         )) as ToolEntry[]
+        if (!isCurrentLoad(sessionId, generation)) return
         tools.value = listed
         const stats = (await callApi(() =>
           getApi().agent.command(sessionId, { type: 'get_session_stats' })
         )) as Partial<SessionStats>
+        if (!isCurrentLoad(sessionId, generation)) return
         loadedStatsOverride = stats
         sessionStats.value = deriveSessionStats(
           sessionId,
@@ -171,15 +201,19 @@ export const useAgentStore = defineStore('agent', () => {
       } catch {
         /* session may not be live yet */
       }
+      if (!isCurrentLoad(sessionId, generation)) return
       state.value = snap
       if (snap?.isStreaming) {
         streaming.value = { ...streaming.value, isStreaming: true }
       } else if (!snap?.isPromptRunning) {
         streaming.value = INITIAL_STREAMING_STATE
       }
-      if (snap?.thinkingLevel) thinkingLevel.value = snap.thinkingLevel
+      if (initializeComposer && !composerSelections.has(sessionId)) {
+        if (snap?.thinkingLevel) thinkingLevel.value = snap.thinkingLevel
+        if (listed) toolPreset.value = getPresetFromTools(listed)
+      }
     } catch {
-      state.value = null
+      if (isCurrentLoad(sessionId, generation)) state.value = null
     }
   }
 
@@ -217,6 +251,11 @@ export const useAgentStore = defineStore('agent', () => {
         )
         loadedSessionId = started.sessionId
         transientSessionIds.add(started.sessionId)
+        composerSelections.set(started.sessionId, {
+          thinkingLevel: thinkingLevel.value,
+          toolPreset: preset
+        })
+        toolPreset.value = preset
         createdSessionId = started.sessionId
         useSessionStore().addTransientSession(
           started.sessionId,
@@ -243,7 +282,13 @@ export const useAgentStore = defineStore('agent', () => {
           })
         )
       } else {
-        await callApi(() => getApi().agent.start({ sessionId }))
+        await callApi(() =>
+          getApi().agent.start({
+            sessionId,
+            toolNames: getToolNamesForPreset(toolPreset.value),
+            ...(thinkingLevel.value !== 'auto' ? { thinkingLevel: thinkingLevel.value } : {})
+          })
+        )
         await callApi(() =>
           getApi().agent.prompt({ sessionId, message, ...(images.length ? { images } : {}) })
         )
@@ -254,6 +299,7 @@ export const useAgentStore = defineStore('agent', () => {
       messages.value = messages.value.slice(0, -1)
       if (createdSessionId) {
         transientSessionIds.delete(createdSessionId)
+        composerSelections.delete(createdSessionId)
         useSessionStore().removeTransientSession(createdSessionId)
       }
       return sessionId
@@ -288,21 +334,47 @@ export const useAgentStore = defineStore('agent', () => {
   }
 
   async function setThinking(sessionId: string, level: string) {
+    const previous = composerSelections.get(sessionId) ?? {
+      thinkingLevel: thinkingLevel.value,
+      toolPreset: toolPreset.value
+    }
     thinkingLevel.value = level
+    rememberComposerSelection(sessionId)
     if (level === 'auto') return
-    await callApi(() => getApi().agent.command(sessionId, { type: 'set_thinking_level', level }))
+    try {
+      await callApi(() =>
+        getApi().agent.command(sessionId, { type: 'set_thinking_level', level })
+      )
+    } catch (cause) {
+      composerSelections.set(sessionId, previous)
+      if (loadedSessionId === sessionId) applyComposerSelection(previous)
+      throw cause
+    }
   }
 
   async function setTools(sessionId: string, preset: ToolPreset) {
-    await callApi(() =>
-      getApi().agent.command(sessionId, {
-        type: 'set_tools',
-        toolNames: getToolNamesForPreset(preset)
-      })
-    )
-    tools.value = (await callApi(() =>
-      getApi().agent.command(sessionId, { type: 'get_tools' })
-    )) as ToolEntry[]
+    const previous = composerSelections.get(sessionId) ?? {
+      thinkingLevel: thinkingLevel.value,
+      toolPreset: toolPreset.value
+    }
+    toolPreset.value = preset
+    rememberComposerSelection(sessionId)
+    try {
+      await callApi(() =>
+        getApi().agent.command(sessionId, {
+          type: 'set_tools',
+          toolNames: getToolNamesForPreset(preset)
+        })
+      )
+      const listed = (await callApi(() =>
+        getApi().agent.command(sessionId, { type: 'get_tools' })
+      )) as ToolEntry[]
+      if (loadedSessionId === sessionId) tools.value = listed
+    } catch (cause) {
+      composerSelections.set(sessionId, previous)
+      if (loadedSessionId === sessionId) applyComposerSelection(previous)
+      throw cause
+    }
   }
 
   async function setModel(sessionId: string, provider: string, modelId: string) {
@@ -321,7 +393,26 @@ export const useAgentStore = defineStore('agent', () => {
     return result
   }
 
-  const activePreset = () => getPresetFromTools(tools.value)
+  const activePreset = () => toolPreset.value
+
+  function rememberComposerSelection(sessionId: string) {
+    composerSelections.set(sessionId, {
+      thinkingLevel: thinkingLevel.value,
+      toolPreset: toolPreset.value
+    })
+  }
+
+  function applyComposerSelection(selection: {
+    thinkingLevel: string
+    toolPreset: ToolPreset
+  }) {
+    thinkingLevel.value = selection.thinkingLevel
+    toolPreset.value = selection.toolPreset
+  }
+
+  function isCurrentLoad(sessionId: string, generation: number) {
+    return loadedSessionId === sessionId && loadGeneration === generation
+  }
 
   function refreshLocalStats() {
     if (!loadedSessionId) {
@@ -345,6 +436,7 @@ export const useAgentStore = defineStore('agent', () => {
     runningIds,
     tools,
     thinkingLevel,
+    toolPreset,
     sessionStats,
     completionCount,
     error,

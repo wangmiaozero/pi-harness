@@ -84,6 +84,85 @@ describe('agent store new-session handshake', () => {
     expect(command).not.toHaveBeenCalled()
   })
 
+  it('keeps explicit composer selections stable across runtime reconciliation and reload', async () => {
+    let runtimeThinking = 'off'
+    let runtimeTools = toolEntries(['read', 'bash', 'edit', 'write'])
+    const command = vi.fn().mockImplementation(
+      (_id: string, input: { type: string; toolNames?: string[] }) => {
+        if (input.type === 'get_tools') return runtimeTools
+        if (input.type === 'set_tools') {
+          runtimeTools = toolEntries(input.toolNames ?? [])
+          return null
+        }
+        if (input.type === 'get_session_stats') return {}
+        return null
+      }
+    )
+    window.piSwitch = {
+      sessions: { get: vi.fn().mockResolvedValue(sessionDetail('off')) },
+      agent: {
+        state: vi.fn(() =>
+          Promise.resolve({
+            thinkingLevel: runtimeThinking,
+            isStreaming: false,
+            isPromptRunning: false
+          })
+        ),
+        running: vi.fn().mockResolvedValue([]),
+        command
+      }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    await agent.load('session-1')
+    await agent.setThinking('session-1', 'high')
+    await agent.setTools('session-1', 'read-only')
+
+    runtimeThinking = 'minimal'
+    runtimeTools = toolEntries(['read', 'bash', 'edit', 'write'])
+    await agent.reconcile('session-1')
+    await agent.load('session-1')
+
+    expect(agent.thinkingLevel).toBe('high')
+    expect(agent.activePreset()).toBe('read-only')
+
+    await agent.setThinking('session-1', 'auto')
+    runtimeThinking = 'off'
+    await agent.reconcile('session-1')
+    expect(agent.thinkingLevel).toBe('auto')
+  })
+
+  it('reapplies composer selections when an existing session runtime is restarted', async () => {
+    const start = vi.fn().mockResolvedValue({ sessionId: 'session-1', cwd: '/code/project' })
+    const prompt = vi.fn().mockResolvedValue(null)
+    const command = vi.fn().mockImplementation(
+      (_id: string, input: { type: string; toolNames?: string[] }) => {
+        if (input.type === 'get_tools') return toolEntries(input.toolNames ?? [])
+        return null
+      }
+    )
+    window.piSwitch = {
+      agent: {
+        state: vi.fn().mockResolvedValue(null),
+        start,
+        prompt,
+        command
+      }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    await agent.setThinking('session-1', 'high')
+    await agent.setTools('session-1', 'read-only')
+    await agent.send('session-1', '/code/project', 'hello', 'default')
+
+    expect(start).toHaveBeenCalledWith({
+      sessionId: 'session-1',
+      toolNames: ['read', 'grep', 'find', 'ls'],
+      thinkingLevel: 'high'
+    })
+    expect(prompt).toHaveBeenCalledWith({ sessionId: 'session-1', message: 'hello' })
+  })
+
   it('loads SDK session stats for the chat toolbar', async () => {
     window.piSwitch = {
       sessions: {
@@ -160,3 +239,29 @@ describe('agent store new-session handshake', () => {
     expect(agent.completionCount).toBe(1)
   })
 })
+
+function sessionDetail(thinkingLevel: string) {
+  return {
+    sessionId: 'session-1',
+    filePath: '/tmp/session-1.jsonl',
+    info: { id: 'session-1', name: 'Demo' },
+    leafId: 'leaf-1',
+    totalActiveMs: 0,
+    context: {
+      messages: [],
+      entryIds: [],
+      entryParents: {},
+      thinkingLevel,
+      model: null
+    }
+  }
+}
+
+function toolEntries(activeNames: string[]) {
+  const active = new Set(activeNames)
+  return ['read', 'bash', 'edit', 'write', 'grep', 'find', 'ls'].map((name) => ({
+    name,
+    description: name,
+    active: active.has(name)
+  }))
+}

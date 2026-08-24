@@ -99,8 +99,8 @@ const thinkingOptions = computed(() => [
 const thinkingValue = computed({
   get: () => agent.thinkingLevel,
   set: async (value: string) => {
-    agent.thinkingLevel = value
     if (sessions.currentId) await agent.setThinking(sessions.currentId, value)
+    else agent.thinkingLevel = value
   }
 })
 
