@@ -1,8 +1,15 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type {
+  BuiltinSkillActionResult,
+  BuiltinSkillMutationTarget,
   PiPackageActionResult,
+  PiPackageCleanupPlan,
+  PiPackageCleanupResult,
   PiPackageInfo,
+  PiPackagePermission,
+  PiPackageScope,
+  PiPackageTarget,
   SkillInfo,
   SkillMarketCollection
 } from '@shared/ipc/api-types'
@@ -13,6 +20,7 @@ import type {
   CapabilityMutationProgress
 } from '@shared/capabilities/types'
 import type { AppErrorPayload } from '@shared/types/errors'
+import { useWorkspaceStore } from './workspace'
 
 export const useSkillsStore = defineStore('skills', () => {
   const skills = ref<SkillInfo[]>([])
@@ -21,6 +29,8 @@ export const useSkillsStore = defineStore('skills', () => {
   const capabilities = ref<CapabilityDescriptor[]>([])
   const capabilityProgress = ref<Record<string, CapabilityMutationProgress>>({})
   const capabilityErrors = ref<Record<string, AppErrorPayload>>({})
+  const packageResults = ref<PiPackageActionResult[]>([])
+  const builtinSkillResults = ref<BuiltinSkillActionResult[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const selectedPath = ref<string | null>(null)
@@ -47,10 +57,11 @@ export const useSkillsStore = defineStore('skills', () => {
     loading.value = true
     error.value = null
     try {
+      const projectRoot = useWorkspaceStore().currentCwd
       const [skillList, packageList, marketList, capabilityList] = await Promise.all([
-        callApi(() => getApi().skills.list()),
-        callApi(() => getApi().skills.packages()),
-        callApi(() => getApi().skills.market()),
+        callApi(() => getApi().skills.list(projectRoot)),
+        callApi(() => getApi().skills.packages(projectRoot)),
+        callApi(() => getApi().skills.market(projectRoot)),
         callApi(() => getApi().capabilities.list())
       ])
       skills.value = skillList
@@ -68,10 +79,11 @@ export const useSkillsStore = defineStore('skills', () => {
     loading.value = true
     error.value = null
     try {
+      const projectRoot = useWorkspaceStore().currentCwd
       const [skillList, packageList, marketList, capabilityList] = await Promise.all([
-        callApi(() => getApi().skills.refresh()),
-        callApi(() => getApi().skills.packages()),
-        callApi(() => getApi().skills.market()),
+        callApi(() => getApi().skills.list(projectRoot)),
+        callApi(() => getApi().skills.packages(projectRoot)),
+        callApi(() => getApi().skills.market(projectRoot)),
         callApi(() => getApi().capabilities.list())
       ])
       skills.value = skillList
@@ -131,22 +143,137 @@ export const useSkillsStore = defineStore('skills', () => {
     await fetchList()
   }
 
-  async function installPackages(sources: string[]): Promise<PiPackageActionResult[]> {
-    const results = await callApi(() => getApi().skills.installPackages(sources))
+  function targetFor(source: string, scope: PiPackageScope = 'global'): PiPackageTarget {
+    const projectRoot = scope === 'project' ? useWorkspaceStore().currentCwd : null
+    return { source, scope, projectRoot }
+  }
+
+  async function installPackages(
+    sources: string[],
+    scope: PiPackageScope = 'global'
+  ): Promise<PiPackageActionResult[]> {
+    const results = await callApi(() =>
+      getApi().skills.installPackages(sources.map((source) => targetFor(source, scope)))
+    )
+    packageResults.value = results
     await refresh()
     return results
   }
 
-  async function removePackages(sources: string[]): Promise<PiPackageActionResult[]> {
-    const results = await callApi(() => getApi().skills.removePackages(sources))
+  async function removePackages(packageIds: string[]): Promise<PiPackageActionResult[]> {
+    const targets = packageIds
+      .map((id) => packages.value.find((pkg) => pkg.id === id || pkg.source === id))
+      .filter((pkg): pkg is PiPackageInfo => Boolean(pkg))
+      .map((pkg) => targetForPackage(pkg))
+    const results = await callApi(() => getApi().skills.removePackages(targets))
+    packageResults.value = results
     await refresh()
     return results
   }
 
-  async function removePackage(source: string): Promise<PiPackageActionResult> {
-    const result = await callApi(() => getApi().skills.removePackage(source))
+  async function removePackage(pkg: PiPackageInfo): Promise<PiPackageActionResult> {
+    const result = await callApi(() => getApi().skills.removePackage(targetForPackage(pkg)))
+    packageResults.value = [result]
     await refresh()
     return result
+  }
+
+  async function repairPackage(pkg: PiPackageInfo): Promise<PiPackageActionResult> {
+    const result = await callApi(() => getApi().skills.repairPackage(targetForPackage(pkg)))
+    packageResults.value = [result]
+    await refresh()
+    return result
+  }
+
+  async function registerPackage(pkg: PiPackageInfo): Promise<PiPackageActionResult> {
+    const result = await callApi(() => getApi().skills.registerPackage(targetForPackage(pkg)))
+    packageResults.value = [result]
+    await refresh()
+    return result
+  }
+
+  async function deleteOrphanPackage(pkg: PiPackageInfo): Promise<PiPackageActionResult> {
+    const result = await callApi(() => getApi().skills.deleteOrphanPackage(targetForPackage(pkg)))
+    packageResults.value = [result]
+    await refresh()
+    return result
+  }
+
+  async function getCleanupPlan(): Promise<PiPackageCleanupPlan> {
+    return callApi(() => getApi().skills.cleanupPlan(useWorkspaceStore().currentCwd))
+  }
+
+  async function cleanupThirdParty(): Promise<PiPackageCleanupResult> {
+    const result = await callApi(() =>
+      getApi().skills.cleanupThirdParty(useWorkspaceStore().currentCwd)
+    )
+    packageResults.value = result.packageResults
+    await refresh()
+    return result
+  }
+
+  async function repairPermissions(): Promise<PiPackagePermission[]> {
+    const result = await callApi(() =>
+      getApi().skills.repairPermissions(useWorkspaceStore().currentCwd)
+    )
+    await refresh()
+    return result
+  }
+
+  function builtinTarget(
+    collectionId: string,
+    skillIds: string[],
+    scope: PiPackageScope,
+    overwrite = false
+  ): BuiltinSkillMutationTarget {
+    return {
+      collectionId,
+      skillIds,
+      scope,
+      projectRoot: scope === 'project' ? useWorkspaceStore().currentCwd : null,
+      overwrite
+    }
+  }
+
+  async function installBuiltinSkills(
+    collectionId: string,
+    skillIds: string[],
+    scope: PiPackageScope,
+    overwrite = false
+  ): Promise<BuiltinSkillActionResult[]> {
+    const results = await callApi(() =>
+      getApi().skills.installBuiltinSkills(builtinTarget(collectionId, skillIds, scope, overwrite))
+    )
+    builtinSkillResults.value = results
+    await refresh()
+    return results
+  }
+
+  async function updateBuiltinSkills(
+    collectionId: string,
+    skillIds: string[],
+    scope: PiPackageScope,
+    overwrite = true
+  ): Promise<BuiltinSkillActionResult[]> {
+    const results = await callApi(() =>
+      getApi().skills.updateBuiltinSkills(builtinTarget(collectionId, skillIds, scope, overwrite))
+    )
+    builtinSkillResults.value = results
+    await refresh()
+    return results
+  }
+
+  async function uninstallBuiltinSkills(
+    collectionId: string,
+    skillIds: string[],
+    scope: PiPackageScope
+  ): Promise<BuiltinSkillActionResult[]> {
+    const results = await callApi(() =>
+      getApi().skills.uninstallBuiltinSkills(builtinTarget(collectionId, skillIds, scope))
+    )
+    builtinSkillResults.value = results
+    await refresh()
+    return results
   }
 
   async function mutateCapability(
@@ -231,6 +358,8 @@ export const useSkillsStore = defineStore('skills', () => {
     featuredSkills,
     capabilityProgress,
     capabilityErrors,
+    packageResults,
+    builtinSkillResults,
     installingIds,
     loading,
     error,
@@ -246,9 +375,22 @@ export const useSkillsStore = defineStore('skills', () => {
     installPackages,
     removePackages,
     removePackage,
+    repairPackage,
+    registerPackage,
+    deleteOrphanPackage,
+    getCleanupPlan,
+    cleanupThirdParty,
+    repairPermissions,
+    installBuiltinSkills,
+    updateBuiltinSkills,
+    uninstallBuiltinSkills,
     installSkill,
     updateSkill,
     uninstallSkill,
     setSkillEnabled
   }
 })
+
+function targetForPackage(pkg: PiPackageInfo): PiPackageTarget {
+  return { source: pkg.source, scope: pkg.scope, projectRoot: pkg.projectRoot }
+}

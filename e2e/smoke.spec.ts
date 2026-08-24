@@ -544,6 +544,84 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByText(/方案内容|Recipe content/)).toHaveCount(0)
   })
 
+  test('installs, uninstalls, and reinstalls a bundled Matt Pocock Skill', async ({ page }) => {
+    await page.locator('a[href="#/skills"]').click()
+    await page.getByRole('button', { name: /市场|Market/ }).click()
+
+    const collection = page.getByTestId('market-collection-builtin:mattpocock-skills')
+    await expect(collection).toContainText('Skills For Real Engineers')
+    await collection.click()
+
+    const skill = page.getByTestId('builtin-skill-tdd')
+    await expect(skill).toContainText('tdd')
+    await skill.getByRole('button', { name: /安装|Install/, exact: true }).click()
+    await expect(skill).toContainText(/已安装|Installed/)
+
+    await skill.getByRole('button', { name: /卸载技能|Uninstall skill/ }).click()
+    const uninstall = page.getByRole('dialog', {
+      name: /卸载 1 个内置技能|Uninstall 1 built-in Skills/
+    })
+    await uninstall.getByRole('button', { name: /卸载技能|Uninstall skill/ }).click()
+    await expect(skill).toContainText(/未安装|Not installed/)
+
+    await skill.getByRole('button', { name: /安装|Install/, exact: true }).click()
+    await expect(skill).toContainText(/已安装|Installed/)
+
+    const state = await page.evaluate(async () => {
+      const market = await window.piSwitch.skills.market()
+      const bundled = market.find(
+        (entry) => entry.id === 'builtin:mattpocock-skills' && entry.kind === 'builtin-skills'
+      )
+      const tdd =
+        bundled?.kind === 'builtin-skills'
+          ? bundled.skills.find((entry) => entry.id === 'tdd')
+          : undefined
+      return {
+        resources: tdd?.resources,
+        installation: tdd?.installations.find((entry) => entry.scope === 'global')
+      }
+    })
+    expect(state.resources).toEqual(expect.arrayContaining(['SKILL.md', 'tests.md', 'mocking.md']))
+    expect(state.installation).toMatchObject({ installed: true, owned: true, health: 'healthy' })
+  })
+
+  test('uninstalls a user-authored standalone skill with a backup-first flow', async ({ page }) => {
+    await page.locator('a[href="#/skills"]').click()
+    await page.locator('ul').getByText('demo-skill', { exact: true }).click()
+    await page.getByLabel(/卸载技能|Uninstall skill/).click()
+
+    const dialog = page.getByRole('dialog', { name: /卸载技能|Uninstall skill/ })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('button', { name: /卸载技能|Uninstall skill/ }).click()
+
+    await expect(page.locator('ul').getByText('demo-skill', { exact: true })).toHaveCount(0)
+  })
+
+  test('reconciles and thoroughly unloads a registered package with missing files', async ({
+    page
+  }) => {
+    await page.evaluate(async () => {
+      const raw = await window.piSwitch.config.readRaw('settings')
+      const settings = JSON.parse(raw.content || '{}') as { packages?: unknown[] }
+      settings.packages = [...(settings.packages ?? []), 'npm:pi-e2e-missing']
+      await window.piSwitch.config.writeRaw('settings', `${JSON.stringify(settings, null, 2)}\n`, {
+        overwrite: true
+      })
+    })
+
+    await page.locator('a[href="#/skills"]').click()
+    await page.getByRole('button', { name: /扩展包|Packages/, exact: true }).click()
+    const packageRow = page.getByRole('listitem').filter({ hasText: 'pi-e2e-missing' })
+    await expect(packageRow).toBeVisible()
+    await packageRow.click()
+    await expect(page.getByText(/已注册但文件缺失|Missing/, { exact: true }).first()).toBeVisible()
+    await page.getByRole('button', { name: /卸载|Uninstall/, exact: true }).click()
+
+    const dialog = page.getByRole('dialog', { name: /卸载扩展包|Uninstall package/ })
+    await dialog.getByRole('button', { name: /卸载|Uninstall/, exact: true }).click()
+    await expect(packageRow).toHaveCount(0)
+  })
+
   test('saves the light theme without requiring Pi', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 

@@ -45,7 +45,8 @@ export const test = base.extend<Fixtures>({
         PI_HARNESS_PI_CLI_PATH: path.join(userData, 'missing-pi-cli'),
         PI_HARNESS_PI_CONFIG_DIR: isolatedPi,
         PI_HARNESS_USER_DATA: userData,
-        PI_HARNESS_CAPABILITY_FIXTURES_DIR: capabilityFixtures
+        PI_HARNESS_CAPABILITY_FIXTURES_DIR: capabilityFixtures,
+        PI_HARNESS_BUILTIN_SKILLS_DIR: path.join(root, 'resources', 'builtin-skills')
       },
       timeout: 60_000
     })

@@ -9,7 +9,7 @@ const props = defineProps<{
   isError?: boolean
 }>()
 
-const open = ref(false)
+const open = ref(true)
 const args = computed(() => JSON.stringify(props.block.input, null, 2))
 </script>
 

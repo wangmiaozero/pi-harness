@@ -43,6 +43,28 @@ export class PiCliMissingError extends AppError {
   }
 }
 
+export class EnvironmentError extends AppError {
+  constructor(
+    code:
+      | 'NODE_NOT_FOUND'
+      | 'NODE_VERSION_TOO_LOW'
+      | 'NODE_DOWNLOAD_FAILED'
+      | 'NODE_INSTALL_FAILED'
+      | 'NPM_NOT_FOUND'
+      | 'NPM_PERMISSION_DENIED'
+      | 'NPM_INSTALL_FAILED'
+      | 'PI_NOT_FOUND_AFTER_INSTALL'
+      | 'PATH_NOT_REFRESHED'
+      | 'NETWORK_ERROR'
+      | 'COMMAND_FAILED'
+      | 'INSTALL_CANCELLED',
+    message: string,
+    details?: unknown
+  ) {
+    super(code, message, details)
+  }
+}
+
 export class ConfigError extends AppError {
   constructor(message: string, details?: unknown) {
     super('CONFIG_ERROR', message, details)
@@ -83,6 +105,12 @@ export class SkillMutationError extends AppError {
     details?: unknown
   ) {
     super(code, message, details)
+  }
+}
+
+export class PackageHealthError extends AppError {
+  constructor(message: string, details?: unknown) {
+    super('PACKAGE_HEALTH_ERROR', message, details)
   }
 }
 

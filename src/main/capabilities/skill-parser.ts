@@ -21,6 +21,13 @@ function unquote(value: string): string {
     ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
       (trimmed.startsWith("'") && trimmed.endsWith("'")))
   ) {
+    if (trimmed.startsWith('"')) {
+      try {
+        return JSON.parse(trimmed) as string
+      } catch {
+        /* fall through to minimal YAML quote removal */
+      }
+    }
     return trimmed.slice(1, -1)
   }
   return trimmed

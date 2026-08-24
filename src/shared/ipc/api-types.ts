@@ -4,7 +4,7 @@
  * it never calls `invoke("...")` with a raw string.
  */
 
-import type { AppErrorPayload } from '../types/errors'
+import type { AppErrorCode, AppErrorPayload } from '../types/errors'
 import type { ProviderProfile, ModelDefinition, ActiveModel, ApiKeySpec } from '../types/domain'
 import type { ProtocolId } from '../constants/protocols'
 import type {
@@ -55,7 +55,22 @@ export interface PiEnvironment {
   platform: NodeJS.Platform | string
   arch: string
   nodeRuntime: NodeRuntimeInfo
+  state: EnvironmentState
+  piStatus: RuntimeStatus
 }
+
+export type RuntimeStatus = 'checking' | 'missing' | 'outdated' | 'ready' | 'installing' | 'failed'
+
+export type EnvironmentState =
+  | 'checking'
+  | 'node-required'
+  | 'node-outdated'
+  | 'node-installing'
+  | 'npm-unavailable'
+  | 'pi-required'
+  | 'pi-installing'
+  | 'ready'
+  | 'failed'
 
 export interface NodeRuntimeInfo {
   nodeInstalled: boolean
@@ -64,8 +79,55 @@ export interface NodeRuntimeInfo {
   npmInstalled: boolean
   npmPath: string | null
   npmVersion: string | null
-  /** True when both the system Node.js runtime and npm are executable. */
+  nodeSupported: boolean
+  minimumNodeVersion: string
+  nodeStatus: RuntimeStatus
+  npmStatus: RuntimeStatus
+  nodeSource: CommandResolutionSource | null
+  npmSource: CommandResolutionSource | null
+  npmPrefix: string | null
+  npmPrefixWritable: boolean | null
+  npmBinDir: string | null
+  resolvedPath: string
+  /** True when Node.js >= the minimum version and npm are executable. */
   ready: boolean
+}
+
+export type CommandResolutionSource =
+  | 'explicit'
+  | 'managed-runtime'
+  | 'candidate'
+  | 'process-path'
+  | 'login-shell'
+  | 'system-locator'
+
+export type EnvironmentInstallTaskType = 'node' | 'pi' | 'environment'
+export type EnvironmentInstallTaskState =
+  | 'pending'
+  | 'running'
+  | 'success'
+  | 'failed'
+  | 'cancelled'
+
+export interface EnvironmentInstallLog {
+  at: number
+  level: 'info' | 'stdout' | 'stderr' | 'warning' | 'error'
+  message: string
+}
+
+export interface EnvironmentInstallTask {
+  id: string
+  type: EnvironmentInstallTaskType
+  state: EnvironmentInstallTaskState
+  phase: string
+  progress: number
+  message: string
+  logs: EnvironmentInstallLog[]
+  startedAt: number | null
+  finishedAt: number | null
+  cancellable: boolean
+  error: AppErrorPayload | null
+  result: PiInstallResult | null
 }
 
 export interface PiVersionInfo {
@@ -134,8 +196,23 @@ export interface SkillInfo {
   hasReadme: boolean
   /** Package-provided skills are inspectable but must be managed through Pi packages. */
   readOnly?: boolean
-  origin?: 'local' | 'package'
+  origin?: 'local' | 'package' | 'builtin'
   packageSource?: string
+  scope?: 'global' | 'project' | 'shared' | 'unknown'
+  packageId?: string
+  packageName?: string
+  packageVersion?: string | null
+  packageType?: PiPackageSourceType
+  packagePath?: string | null
+  packageScope?: PiPackageScope
+  registryPath?: string | null
+  builtinCollectionId?: string
+  builtinCollectionName?: string
+  builtinCategory?: BuiltinSkillCategory
+  builtinRepository?: string
+  bundledPath?: string
+  bundledCommit?: string
+  builtinHealth?: BuiltinSkillHealth
 }
 
 export interface PiPackageResources {
@@ -143,17 +220,71 @@ export interface PiPackageResources {
   prompts: string[]
   extensions: string[]
   themes: string[]
+  tools: string[]
+}
+
+export type PiPackageSourceType = 'npm' | 'git' | 'local' | 'builtin' | 'unknown'
+export type PiPackageScope = 'global' | 'project'
+export type PiPackageHealth =
+  'healthy' | 'missing' | 'orphaned' | 'permission-error' | 'corrupted' | 'unknown'
+
+export type PiPackageProblemCode =
+  | 'FILES_MISSING'
+  | 'ORPHANED_FILES'
+  | 'PERMISSION_ERROR'
+  | 'MANIFEST_MISSING'
+  | 'MANIFEST_INVALID'
+  | 'DEPENDENCY_MISSING'
+  | 'UNKNOWN_SOURCE'
+  | 'REGISTRY_MISMATCH'
+
+export interface PiPackageProblem {
+  code: PiPackageProblemCode
+  message: string
+  path: string | null
+  recoverable: boolean
+}
+
+export interface PiPackagePermission {
+  path: string
+  exists: boolean
+  readable: boolean
+  writable: boolean
+  executable: boolean
+  ownerUid: number | null
+  currentUid: number | null
+  ownerMatches: boolean | null
+  problem: string | null
+}
+
+export interface PiPackageResource {
+  type: 'skill' | 'extension' | 'tool' | 'prompt' | 'theme' | 'other'
+  name: string
+  path: string
+  packageId: string
 }
 
 export interface PiPackageInfo {
+  id: string
   source: string
   name: string
+  sourceType: PiPackageSourceType
+  scope: PiPackageScope
+  projectRoot: string | null
+  registered: boolean
+  registryPath: string
   version: string | null
   description: string
   path: string | null
   installed: boolean
   available: boolean
+  healthy: boolean
+  health: PiPackageHealth
+  managed: boolean
   resources: PiPackageResources
+  resourceItems: PiPackageResource[]
+  problems: PiPackageProblem[]
+  permissions: PiPackagePermission[]
 }
 
 export interface SkillMarketPackage {
@@ -164,19 +295,124 @@ export interface SkillMarketPackage {
   installedVersion: string | null
 }
 
-export interface SkillMarketCollection {
+export interface PackageSkillMarketCollection {
   id: string
   kind: 'bundle' | 'guide'
   packages: SkillMarketPackage[]
 }
 
+export type BuiltinSkillCategory = 'engineering' | 'productivity' | 'misc'
+
+export type BuiltinSkillHealth =
+  | 'not-installed'
+  | 'healthy'
+  | 'missing'
+  | 'modified'
+  | 'conflict'
+  | 'corrupted'
+  | 'update-available'
+
+export interface BuiltinSkillInstallation {
+  scope: PiPackageScope
+  projectRoot: string | null
+  installedPath: string
+  installedAt: string | null
+  sourceCommit: string
+  sourceHash: string
+  installedHash: string | null
+  installed: boolean
+  owned: boolean
+  modified: boolean
+  updateAvailable: boolean
+  health: BuiltinSkillHealth
+}
+
+export interface BuiltinSkillInfo {
+  id: string
+  name: string
+  description: string
+  collectionId: string
+  category: BuiltinSkillCategory
+  source: 'builtin'
+  sourceRepository: string
+  sourcePath: string
+  bundledPath: string
+  bundledHash: string
+  bundledHealthy: boolean
+  commit: string
+  resources: string[]
+  installations: BuiltinSkillInstallation[]
+}
+
+export interface BuiltinSkillMarketCollection {
+  id: string
+  kind: 'builtin-skills'
+  name: string
+  displayName: string
+  author: string
+  repository: string
+  license: string
+  commit: string
+  source: 'builtin'
+  skills: BuiltinSkillInfo[]
+}
+
+export type SkillMarketCollection = PackageSkillMarketCollection | BuiltinSkillMarketCollection
+
+export interface BuiltinSkillMutationTarget {
+  collectionId: string
+  skillIds: string[]
+  scope: PiPackageScope
+  projectRoot?: string | null
+  overwrite?: boolean
+}
+
+export interface BuiltinSkillActionResult {
+  collectionId: string
+  skillId: string
+  scope: PiPackageScope
+  action: 'install' | 'update' | 'uninstall'
+  ok: boolean
+  skipped: boolean
+  message: string
+  installedPath: string | null
+  backupPath: string | null
+  errorCode: AppErrorCode | null
+  logs: { phase: string; ok: boolean; message: string; path?: string }[]
+}
+
 export interface PiPackageActionResult {
   source: string
+  scope: PiPackageScope
+  action: 'install' | 'repair' | 'register' | 'uninstall' | 'delete-orphan'
   ok: boolean
   skipped: boolean
   message: string
   stdout: string
   stderr: string
+  errorCode: 'EACCES' | 'PROCESS_FAILED' | 'VERIFY_FAILED' | null
+  logs: { phase: string; ok: boolean; message: string; path?: string }[]
+}
+
+export interface PiPackageTarget {
+  source: string
+  scope: PiPackageScope
+  projectRoot?: string | null
+}
+
+export interface PiPackageCleanupPlan {
+  packages: PiPackageTarget[]
+  orphanPackages: PiPackageTarget[]
+  standaloneSkills: { path: string; name: string; scope: SkillInfo['scope'] }[]
+  totals: { npm: number; git: number; local: number; orphaned: number; skills: number }
+  preserved: string[]
+}
+
+export interface PiPackageCleanupResult {
+  plan: PiPackageCleanupPlan
+  packageResults: PiPackageActionResult[]
+  removedSkills: string[]
+  failures: { target: string; message: string }[]
 }
 
 export interface BackupRecord {
@@ -213,6 +449,19 @@ export interface DiagnosticsReport {
     secretBackend: 'keychain' | 'safeStorage' | 'unavailable'
   }
   config: ConfigStatus
+  packages: {
+    registryCount: number
+    installedCount: number
+    healthyCount: number
+    missingCount: number
+    orphanedCount: number
+    corruptedCount: number
+    permissionErrorCount: number
+    skillsCount: number
+    startupRisk: boolean
+    registryPaths: string[]
+    permissions: PiPackagePermission[]
+  }
   workspace: {
     sessionRoot: string
     sessionCount: number
@@ -317,6 +566,12 @@ export interface PiSwitchAPI {
     checkLatest(): Promise<PiLatestInfo>
     /** One-click install — only when Pi is missing. */
     install(): Promise<PiInstallResult>
+    /** Install/repair Node, npm, and Pi as one guarded task. */
+    bootstrap(): Promise<PiInstallResult>
+    installNode(): Promise<EnvironmentInstallTask>
+    reinstall(): Promise<PiInstallResult>
+    getInstallTask(): Promise<EnvironmentInstallTask | null>
+    cancelInstall(): Promise<EnvironmentInstallTask | null>
     /** Update installed Pi (`pi update --self`). */
     update(force?: boolean): Promise<PiInstallResult>
     copyInstallCommand(): Promise<string>
@@ -355,12 +610,21 @@ export interface PiSwitchAPI {
     conflictSnapshot(file: 'models' | 'settings'): Promise<ConfigConflictSnapshot>
   }
   skills: {
-    list(): Promise<SkillInfo[]>
-    packages(): Promise<PiPackageInfo[]>
-    market(): Promise<SkillMarketCollection[]>
-    installPackages(sources: string[]): Promise<PiPackageActionResult[]>
-    removePackages(sources: string[]): Promise<PiPackageActionResult[]>
-    removePackage(source: string): Promise<PiPackageActionResult>
+    list(projectRoot?: string | null): Promise<SkillInfo[]>
+    packages(projectRoot?: string | null): Promise<PiPackageInfo[]>
+    market(projectRoot?: string | null): Promise<SkillMarketCollection[]>
+    installBuiltinSkills(target: BuiltinSkillMutationTarget): Promise<BuiltinSkillActionResult[]>
+    updateBuiltinSkills(target: BuiltinSkillMutationTarget): Promise<BuiltinSkillActionResult[]>
+    uninstallBuiltinSkills(target: BuiltinSkillMutationTarget): Promise<BuiltinSkillActionResult[]>
+    installPackages(targets: PiPackageTarget[]): Promise<PiPackageActionResult[]>
+    repairPackage(target: PiPackageTarget): Promise<PiPackageActionResult>
+    registerPackage(target: PiPackageTarget): Promise<PiPackageActionResult>
+    removePackages(targets: PiPackageTarget[]): Promise<PiPackageActionResult[]>
+    removePackage(target: PiPackageTarget): Promise<PiPackageActionResult>
+    deleteOrphanPackage(target: PiPackageTarget): Promise<PiPackageActionResult>
+    cleanupPlan(projectRoot?: string | null): Promise<PiPackageCleanupPlan>
+    cleanupThirdParty(projectRoot?: string | null): Promise<PiPackageCleanupResult>
+    repairPermissions(projectRoot?: string | null): Promise<PiPackagePermission[]>
     read(path: string): Promise<{ content: string; mtime: number | null }>
     create(form: unknown): Promise<SkillInfo>
     update(form: unknown): Promise<SkillInfo>
@@ -475,6 +739,10 @@ export interface PiSwitchAPI {
   }
   on(event: 'config-changed', listener: IpcEventListener): () => void
   on(event: 'pi-environment-changed', listener: IpcEventListener): () => void
+  on(
+    event: 'environment-install-task',
+    listener: (payload: EnvironmentInstallTask) => void
+  ): () => void
   on(event: 'notification', listener: IpcEventListener): () => void
   on(event: 'agent-event', listener: IpcEventListener): () => void
   on(event: 'agent-running', listener: IpcEventListener): () => void

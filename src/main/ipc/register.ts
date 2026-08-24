@@ -28,7 +28,15 @@ import { piProcess } from '../process/pi-process'
 import { piInstall } from '../pi/install-service'
 import { logFilePath } from '../services/app-paths'
 import { readTextFile } from '../services/storage'
-import { testConnectionSchema, skillFormSchema, skillImportSchema } from '@shared/schemas/domain'
+import {
+  builtinSkillMutationTargetSchema,
+  optionalProjectRootSchema,
+  piPackageTargetSchema,
+  piPackageTargetsSchema,
+  testConnectionSchema,
+  skillFormSchema,
+  skillImportSchema
+} from '@shared/schemas/domain'
 import { SecurityError, ValidationError } from '../services/errors'
 import { checkForUpdates, downloadUpdate, getUpdateState, installUpdate } from '../updater'
 import { registerWorkspaceIpc, type WorkspaceServices } from './register-workspace'
@@ -222,30 +230,93 @@ export function registerIpc(services: Services): void {
   )
 
   // ---- skills ----
-  ipcMain.handle(IPC_INVOKE.skillsList, () => wrap(() => skills.list()))
-  ipcMain.handle(IPC_INVOKE.skillsPackages, () => wrap(() => skills.listPackages()))
-  ipcMain.handle(IPC_INVOKE.skillsMarket, () => wrap(() => skills.listMarket()))
-  ipcMain.handle(IPC_INVOKE.skillsInstallPackages, (_e, sources: unknown) =>
+  const parseProjectRoot = (input: unknown): string | null | undefined => {
+    const parsed = optionalProjectRootSchema.safeParse(input)
+    if (!parsed.success) throw new ValidationError('Invalid project root')
+    return parsed.data
+  }
+  const parsePackageTarget = (input: unknown) => {
+    const parsed = piPackageTargetSchema.safeParse(input)
+    if (!parsed.success) {
+      throw new ValidationError('Invalid package target', { issues: parsed.error.issues })
+    }
+    return parsed.data
+  }
+  const notifyPackageMutation = <T>(operation: () => Promise<T>): Promise<T> =>
+    operation().then((result) => {
+      broadcastConfigChanged(services.getMainWindow())
+      return result
+    })
+
+  ipcMain.handle(IPC_INVOKE.skillsList, (_e, projectRoot: unknown) =>
+    wrap(() => skills.list(parseProjectRoot(projectRoot)))
+  )
+  ipcMain.handle(IPC_INVOKE.skillsPackages, (_e, projectRoot: unknown) =>
+    wrap(() => skills.listPackages(parseProjectRoot(projectRoot)))
+  )
+  ipcMain.handle(IPC_INVOKE.skillsMarket, (_e, projectRoot: unknown) =>
+    wrap(() => skills.listMarket(parseProjectRoot(projectRoot)))
+  )
+  const parseBuiltinSkillTarget = (input: unknown) => {
+    const parsed = builtinSkillMutationTargetSchema.safeParse(input)
+    if (!parsed.success) {
+      throw new ValidationError('Invalid built-in Skill target', { issues: parsed.error.issues })
+    }
+    return parsed.data
+  }
+  ipcMain.handle(IPC_INVOKE.skillsInstallBuiltin, (_e, target: unknown) =>
+    wrap(() =>
+      notifyPackageMutation(() => skills.installBuiltinSkills(parseBuiltinSkillTarget(target)))
+    )
+  )
+  ipcMain.handle(IPC_INVOKE.skillsUpdateBuiltin, (_e, target: unknown) =>
+    wrap(() =>
+      notifyPackageMutation(() => skills.updateBuiltinSkills(parseBuiltinSkillTarget(target)))
+    )
+  )
+  ipcMain.handle(IPC_INVOKE.skillsUninstallBuiltin, (_e, target: unknown) =>
+    wrap(() =>
+      notifyPackageMutation(() => skills.uninstallBuiltinSkills(parseBuiltinSkillTarget(target)))
+    )
+  )
+  ipcMain.handle(IPC_INVOKE.skillsInstallPackages, (_e, targets: unknown) =>
     wrap(() => {
-      if (!Array.isArray(sources) || !sources.every((source) => typeof source === 'string')) {
-        throw new ValidationError('Invalid package sources')
+      const parsed = piPackageTargetsSchema.safeParse(targets)
+      if (!parsed.success) {
+        throw new ValidationError('Invalid package targets', { issues: parsed.error.issues })
       }
-      return skills.installPackages(sources)
+      return notifyPackageMutation(() => skills.installPackages(parsed.data))
     })
   )
-  ipcMain.handle(IPC_INVOKE.skillsRemovePackages, (_e, sources: unknown) =>
+  ipcMain.handle(IPC_INVOKE.skillsRepairPackage, (_e, target: unknown) =>
+    wrap(() => notifyPackageMutation(() => skills.repairPackage(parsePackageTarget(target))))
+  )
+  ipcMain.handle(IPC_INVOKE.skillsRegisterPackage, (_e, target: unknown) =>
+    wrap(() => notifyPackageMutation(() => skills.registerPackage(parsePackageTarget(target))))
+  )
+  ipcMain.handle(IPC_INVOKE.skillsRemovePackages, (_e, targets: unknown) =>
     wrap(() => {
-      if (!Array.isArray(sources) || !sources.every((source) => typeof source === 'string')) {
-        throw new ValidationError('Invalid package sources')
+      const parsed = piPackageTargetsSchema.safeParse(targets)
+      if (!parsed.success) {
+        throw new ValidationError('Invalid package targets', { issues: parsed.error.issues })
       }
-      return skills.removePackages(sources)
+      return notifyPackageMutation(() => skills.removePackages(parsed.data))
     })
   )
-  ipcMain.handle(IPC_INVOKE.skillsRemovePackage, (_e, source: unknown) =>
-    wrap(() => {
-      if (typeof source !== 'string') throw new ValidationError('Invalid package source')
-      return skills.removePackage(source)
-    })
+  ipcMain.handle(IPC_INVOKE.skillsRemovePackage, (_e, target: unknown) =>
+    wrap(() => notifyPackageMutation(() => skills.removePackage(parsePackageTarget(target))))
+  )
+  ipcMain.handle(IPC_INVOKE.skillsDeleteOrphanPackage, (_e, target: unknown) =>
+    wrap(() => notifyPackageMutation(() => skills.deleteOrphanPackage(parsePackageTarget(target))))
+  )
+  ipcMain.handle(IPC_INVOKE.skillsCleanupPlan, (_e, projectRoot: unknown) =>
+    wrap(() => skills.cleanupPlan(parseProjectRoot(projectRoot)))
+  )
+  ipcMain.handle(IPC_INVOKE.skillsCleanupThirdParty, (_e, projectRoot: unknown) =>
+    wrap(() => notifyPackageMutation(() => skills.cleanupThirdParty(parseProjectRoot(projectRoot))))
+  )
+  ipcMain.handle(IPC_INVOKE.skillsRepairPermissions, (_e, projectRoot: unknown) =>
+    wrap(() => notifyPackageMutation(() => skills.repairPermissions(parseProjectRoot(projectRoot))))
   )
   ipcMain.handle(IPC_INVOKE.skillRead, (_e, p: string) => wrap(() => skills.read(p)))
   ipcMain.handle(IPC_INVOKE.skillCreate, (_e, form: unknown) =>
@@ -282,7 +353,9 @@ export function registerIpc(services: Services): void {
     })
   )
   ipcMain.handle(IPC_INVOKE.skillDelete, (_e, p: string) => wrap(() => skills.delete(p)))
-  ipcMain.handle(IPC_INVOKE.skillsRefresh, () => wrap(() => skills.list()))
+  ipcMain.handle(IPC_INVOKE.skillsRefresh, (_e, projectRoot: unknown) =>
+    wrap(() => skills.list(parseProjectRoot(projectRoot)))
+  )
 
   // ---- capabilities ----
   capabilities.onProgress((progress) => {

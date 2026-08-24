@@ -27,7 +27,7 @@
   "packageManager": "pnpm@9.12.1",
   "scripts": {
     "dev": "electron-vite dev",
-    "compile": "electron-vite build",
+    "compile": "pnpm check:builtin-skills && electron-vite build",
     "build": "pnpm compile && electron-builder --mac --win --linux && node scripts/clean-unpacked-mac.mjs",
     "build:mac": "pnpm compile && electron-builder --mac --arm64 && node scripts/clean-unpacked-mac.mjs",
     "build:mac:intel": "pnpm compile && electron-builder --mac --x64 && node scripts/clean-unpacked-mac.mjs",
@@ -46,6 +46,8 @@
     "test:e2e": "pnpm compile && playwright test",
     "test:e2e:only": "playwright test",
     "sync:provider-presets": "node scripts/sync-provider-presets.mjs",
+    "sync:builtin-skills": "node scripts/sync-builtin-skills.mjs",
+    "check:builtin-skills": "node scripts/sync-builtin-skills.mjs --check",
     "clean": "rimraf out dist release .vite-node"
   },
   "dependencies": {
@@ -74,8 +76,11 @@
     "consola": "^3.4.2",
     "date-fns": "^4.4.0",
     "electron-updater": "^6.6.2",
+    "extract-zip": "^2.0.1",
     "pinia": "^4.0.2",
     "reka-ui": "^2.10.3",
+    "semver": "^7.8.5",
+    "tar": "^7.5.22",
     "vue": "^3.5.41",
     "vue-i18n": "^11.4.8",
     "vue-router": "^4",
@@ -86,6 +91,7 @@
     "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.2.0",
+    "@types/semver": "^7.8.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/eslint-config-typescript": "^14.9.0",
     "@vue/test-utils": "^2.4.11",

@@ -114,6 +114,59 @@ export const skillImportSchema = z.object({
   onConflict: z.enum(['rename', 'replace', 'cancel']).optional()
 })
 
+export const piPackageTargetSchema = z
+  .object({
+    source: z
+      .string()
+      .trim()
+      .min(1)
+      .max(4096)
+      .refine((value) => !value.includes('\0')),
+    scope: z.enum(['global', 'project']),
+    projectRoot: pathSegmentSchema.nullable().optional()
+  })
+  .superRefine((target, context) => {
+    if (target.scope === 'project' && !target.projectRoot) {
+      context.addIssue({
+        code: 'custom',
+        path: ['projectRoot'],
+        message: 'projectRoot is required for project packages'
+      })
+    }
+  })
+
+export const piPackageTargetsSchema = z.array(piPackageTargetSchema).min(1).max(50)
+export const builtinSkillMutationTargetSchema = z
+  .object({
+    collectionId: z
+      .string()
+      .trim()
+      .regex(/^builtin:[a-z0-9][a-z0-9._-]{0,127}$/),
+    skillIds: z
+      .array(
+        z
+          .string()
+          .trim()
+          .regex(/^[a-z0-9][a-z0-9._-]{0,127}$/)
+      )
+      .min(1)
+      .max(100),
+    scope: z.enum(['global', 'project']),
+    projectRoot: pathSegmentSchema.nullable().optional(),
+    overwrite: z.boolean().optional()
+  })
+  .strict()
+  .superRefine((target, context) => {
+    if (target.scope === 'project' && !target.projectRoot) {
+      context.addIssue({
+        code: 'custom',
+        path: ['projectRoot'],
+        message: 'projectRoot is required for project Skills'
+      })
+    }
+  })
+export const optionalProjectRootSchema = pathSegmentSchema.nullable().optional()
+
 export type SkillForm = z.infer<typeof skillFormSchema>
 export type SkillImportInput = z.infer<typeof skillImportSchema>
 

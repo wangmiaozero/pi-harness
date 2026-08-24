@@ -172,6 +172,8 @@ const bashText = computed(() => {
         </Suspense>
         <details
           v-else-if="block.type === 'thinking'"
+          open
+          data-testid="thinking-details"
           class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1"
         >
           <summary class="cursor-pointer text-[11px] text-[var(--text-tertiary)]">
@@ -201,6 +203,7 @@ const bashText = computed(() => {
 
     <details
       v-else-if="message.role === 'toolResult'"
+      open
       data-testid="tool-result-details"
       class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
     >

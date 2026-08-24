@@ -6,6 +6,7 @@
 import { appMetadataPath } from './app-paths'
 import { JsonStore } from './storage'
 import type { CapabilityMetadata } from '@shared/capabilities/types'
+import type { BuiltinSkillCategory, PiPackageScope } from '@shared/ipc/api-types'
 
 export interface ProviderMeta {
   displayName?: string
@@ -32,18 +33,39 @@ export interface ModelMeta {
   updatedAt?: number
 }
 
+export interface BuiltinSkillOwnership {
+  collectionId: string
+  skillId: string
+  category: BuiltinSkillCategory
+  scope: PiPackageScope
+  projectRoot: string | null
+  installedPath: string
+  sourcePath: string
+  installedAt: string
+  sourceCommit: string
+  sourceHash: string
+}
+
+export interface BuiltinSkillOwnershipManifest {
+  schemaVersion: 1
+  installed: Record<string, BuiltinSkillOwnership>
+}
+
 export interface AppMetadata {
   providers: Record<string, ProviderMeta>
   /** key: `${providerKey}::${modelId}` */
   models: Record<string, ModelMeta>
   /** Pi-Harness-only capability state. Never written into Pi native settings. */
   capabilities: Record<string, CapabilityMetadata>
+  /** Ownership only; Pi still discovers installed standalone Skills from the filesystem. */
+  builtinSkills: BuiltinSkillOwnershipManifest
 }
 
 const DEFAULTS: AppMetadata = {
   providers: {},
   models: {},
-  capabilities: {}
+  capabilities: {},
+  builtinSkills: { schemaVersion: 1, installed: {} }
 }
 
 export function modelMetaKey(providerKey: string, modelId: string): string {

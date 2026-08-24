@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Added
+
+- **Pi Package lifecycle reconciliation.** Added global/project registry reconciliation against npm, git, and local installation entities with healthy, missing, orphaned, permission-error, corrupted, and unknown states.
+- **Repair and thorough cleanup.** Added reinstall, re-register, verified uninstall, orphan deletion, batch uninstall, third-party cleanup, permission repair, transaction logs, registry rollback, and startup preflight protection.
+- **Universal Skill uninstall.** Standalone/user-authored Skills are backed up then removed directly; Package-provided Skills uninstall their owning Package instead of corrupting a child resource.
+- **Matt Pocock built-in Skills.** Bundled 29 formal engineering, productivity, and misc Skills for offline global/project installation, update detection, individual/batch uninstall, and reinstall without touching the read-only application source.
+- **Built-in Skill ownership.** Added content hashes, source commits, modified/missing/conflict health, exact-path ownership, backup-first atomic replacement, and same-name protection without creating Pi package state.
+
+### Security
+
+- Package mutations accept only validated source/scope/project targets. Cleanup plans and managed delete paths are re-derived in Main; Renderer cannot submit shell commands, install paths, or arbitrary delete targets.
+- Built-in Skill mutations accept only trusted collection/Skill ids and authorized scopes. Installed paths and bundled paths are always derived in Main; uninstall never relies on a same-name match.
+
+### Tests
+
+- Added Package lifecycle coverage for reconciliation, ownership, scopes, missing files, orphaned installs, corruption, dependencies, permissions, stale registry removal, safe deletion, project install verification, and injection rejection.
+- Added built-in Collection coverage for source scanning, complete resource copies, install/uninstall/reinstall, batch isolation, duplicate conflicts, local modifications, bundle upgrades, missing Ownership cleanup, and project scope.
+
 ## 1.1.0 — 2026-08-24
 
 ### Added

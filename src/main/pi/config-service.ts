@@ -291,6 +291,11 @@ export class PiConfigService {
     })
   }
 
+  /** Create an explicit settings.json snapshot before a multi-step package transaction. */
+  async backupSettings(reason: string): Promise<void> {
+    await this.backupBeforeWrite('settings', reason)
+  }
+
   async getActiveModel(): Promise<{ providerKey: string | null; modelId: string | null }> {
     const s = await this.readSettingsParsed()
     return {

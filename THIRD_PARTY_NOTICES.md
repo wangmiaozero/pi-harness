@@ -12,6 +12,15 @@ Pi-Harness is inspired by the following MIT-licensed project:
 
 Pi-Harness does not embed the Pi Web Next.js/React application. Agent sessions run in the Electron main process via `@earendil-works/pi-coding-agent`.
 
+## Matt Pocock Skills
+
+- Project: [mattpocock/skills](https://github.com/mattpocock/skills)
+- Copyright: Copyright (c) 2026 Matt Pocock
+- License: MIT
+- Used as: the read-only "Skills For Real Engineers" collection bundled with Pi-Harness. Each Skill is installed into Pi only after an explicit user action.
+
+The original license text is distributed with the collection at `builtin-skills/mattpocock/LICENSE` in packaged applications.
+
 ## AI Motion
 
 - Project: [gaomeng1900/ai-motion](https://github.com/gaomeng1900/ai-motion)

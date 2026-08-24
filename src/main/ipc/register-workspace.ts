@@ -45,6 +45,10 @@ export interface WorkspaceServices {
   sessions: SessionService
   sessionExport: SessionExportService
   agent: AgentRuntimeService
+  beforeAgentStart?: (
+    cwd: string | null | undefined,
+    sessionId: string | null | undefined
+  ) => Promise<void>
 }
 
 type Wrap = <T>(
@@ -56,7 +60,8 @@ export function registerWorkspaceIpc(
   wrap: Wrap,
   services: WorkspaceServices
 ): void {
-  const { access, files, git, worktrees, sessions, sessionExport, agent } = services
+  const { access, files, git, worktrees, sessions, sessionExport, agent, beforeAgentStart } =
+    services
 
   ipcMain.handle(IPC_INVOKE.workspaceListProjects, () =>
     wrap(async () => groupSessionsByProject(await sessions.list()))
@@ -158,6 +163,7 @@ export function registerWorkspaceIpc(
       if (!parsed.success)
         throw new ValidationError('Invalid start', { issues: parsed.error.issues })
       if (parsed.data.cwd) access.allowRoot(parsed.data.cwd)
+      await beforeAgentStart?.(parsed.data.cwd, parsed.data.sessionId)
       return agent.start(parsed.data)
     })
   )

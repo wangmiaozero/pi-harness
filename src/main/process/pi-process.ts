@@ -33,6 +33,7 @@ export interface PiExecOptions {
   timeoutMs?: number
   cwd?: string
   env?: Record<string, string>
+  cliPath?: string | null
 }
 
 export class PiProcessService {
@@ -165,7 +166,7 @@ export class PiProcessService {
 
   /** Run `pi <args>` safely. Returns captured output. */
   async exec(options: PiExecOptions): Promise<PiExecResult> {
-    const cliPath = await this.resolveCliPath()
+    const cliPath = await this.resolveCliPath(options.cliPath)
     if (!cliPath) throw new PiCliMissingError()
 
     const isJs = cliPath.endsWith('.js')

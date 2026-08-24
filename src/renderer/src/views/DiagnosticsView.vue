@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch, nextTick } from 'vue'
-import { RefreshCw, Copy, Download, Activity } from '@lucide/vue'
+import { RefreshCw, Copy, Download, Activity, Wrench } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { EditorView, basicSetup } from 'codemirror'
 import { EditorState } from '@codemirror/state'
@@ -14,9 +14,13 @@ import IconButton from '@renderer/components/ui/IconButton.vue'
 import { graphiteEditorTheme, graphiteSyntaxHighlighting } from '@renderer/styles/codemirror'
 import { useDiagnosticsStore } from '@renderer/stores/diagnostics'
 import { useI18n } from 'vue-i18n'
+import { callApi, getApi } from '@renderer/composables/useApi'
+import { useWorkspaceStore } from '@renderer/stores/workspace'
 
 const store = useDiagnosticsStore()
 const { t } = useI18n()
+const workspace = useWorkspaceStore()
+const repairingPermissions = ref(false)
 
 /* CodeMirror viewer for the raw report. We keep it tiny — 1 instance, mounted
  * only when the report is loaded. */
@@ -76,6 +80,21 @@ async function exportReport() {
   }
 }
 
+async function repairPermissions() {
+  repairingPermissions.value = true
+  try {
+    const reports = await callApi(() => getApi().skills.repairPermissions(workspace.currentCwd))
+    const remaining = reports.filter((entry) => entry.problem).length
+    if (remaining) toast.warning(t('diagnostics.permissionsRemain', { count: remaining }))
+    else toast.success(t('diagnostics.permissionsRepaired'))
+    await refresh()
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('diagnostics.permissionsRepairFailed'))
+  } finally {
+    repairingPermissions.value = false
+  }
+}
+
 onMounted(() => {
   void store.fetch()
 })
@@ -132,7 +151,7 @@ onMounted(() => {
         <!-- Status strip: App / Pi / Config in one Surface, divided by hairlines. -->
         <div class="px-5 pt-4">
           <div
-            class="grid grid-cols-3 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] divide-x divide-[var(--border-subtle)]"
+            class="grid grid-cols-4 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] divide-x divide-[var(--border-subtle)]"
           >
             <div class="px-4 py-3">
               <p
@@ -192,6 +211,25 @@ onMounted(() => {
                 </span>
               </div>
             </div>
+            <div class="px-4 py-3">
+              <p
+                class="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+              >
+                {{ $t('diagnostics.packages') }}
+              </p>
+              <div class="mt-0.5 flex items-center gap-2">
+                <Badge :tone="store.report.packages.startupRisk ? 'error' : 'success'">
+                  {{
+                    store.report.packages.startupRisk
+                      ? $t('diagnostics.startupRisk')
+                      : $t('diagnostics.healthy')
+                  }}
+                </Badge>
+                <span class="text-[10.5px] text-[var(--text-tertiary)]">
+                  {{ store.report.packages.healthyCount }}/{{ store.report.packages.registryCount }}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -221,10 +259,62 @@ onMounted(() => {
               {{ store.report.workspace.runningSessions.join(', ') || '—' }}
             </PropertyRow>
             <PropertyRow :label="$t('diagnostics.piSdk')">
-              {{ store.report.workspace.piSdkLoaded ? $t('common.installed') : $t('common.notFound') }}
+              {{
+                store.report.workspace.piSdkLoaded ? $t('common.installed') : $t('common.notFound')
+              }}
             </PropertyRow>
             <PropertyRow v-if="store.report.config.lastError" :label="$t('diagnostics.lastError')">
               <span class="text-[var(--error)]">{{ store.report.config.lastError }}</span>
+            </PropertyRow>
+          </InspectorSection>
+          <InspectorSection>
+            <template #title>
+              <span class="flex items-center justify-between gap-3">
+                <span>{{ $t('diagnostics.packageHealth') }}</span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  :loading="repairingPermissions"
+                  @click="repairPermissions"
+                >
+                  <Wrench class="size-3.5" />
+                  {{ $t('diagnostics.repairPermissions') }}
+                </Button>
+              </span>
+            </template>
+            <PropertyRow :label="$t('diagnostics.registeredPackages')">
+              {{ store.report.packages.registryCount }}
+            </PropertyRow>
+            <PropertyRow :label="$t('diagnostics.healthyPackages')">
+              {{ store.report.packages.healthyCount }}
+            </PropertyRow>
+            <PropertyRow :label="$t('diagnostics.missingPackages')">
+              {{ store.report.packages.missingCount }}
+            </PropertyRow>
+            <PropertyRow :label="$t('diagnostics.orphanedPackages')">
+              {{ store.report.packages.orphanedCount }}
+            </PropertyRow>
+            <PropertyRow :label="$t('diagnostics.corruptedPackages')">
+              {{ store.report.packages.corruptedCount }}
+            </PropertyRow>
+            <PropertyRow :label="$t('diagnostics.permissionErrors')">
+              {{ store.report.packages.permissionErrorCount }}
+            </PropertyRow>
+            <PropertyRow :label="$t('diagnostics.packageSkills')">
+              {{ store.report.packages.skillsCount }}
+            </PropertyRow>
+            <PropertyRow :label="$t('diagnostics.registryPaths')" mono>
+              {{ store.report.packages.registryPaths.join(', ') || '—' }}
+            </PropertyRow>
+            <PropertyRow
+              v-for="permission in store.report.packages.permissions.filter(
+                (entry) => entry.problem
+              )"
+              :key="permission.path"
+              :label="$t('diagnostics.permissionProblem')"
+              mono
+            >
+              <span class="text-[var(--error)]">{{ permission.path }} · {{ permission.problem }}</span>
             </PropertyRow>
           </InspectorSection>
         </div>

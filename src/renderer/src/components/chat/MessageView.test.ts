@@ -56,7 +56,7 @@ describe('MessageView', () => {
     expect(wrapper.find('script').exists()).toBe(false)
   })
 
-  it('collapses tool results by default and allows expanding them', async () => {
+  it('expands tool results by default and allows collapsing them', async () => {
     const message: ToolResultMessage = {
       role: 'toolResult',
       toolCallId: 'tool-1',
@@ -76,11 +76,39 @@ describe('MessageView', () => {
     })
 
     const details = wrapper.get('[data-testid="tool-result-details"]')
-    expect(details.attributes('open')).toBeUndefined()
+    expect(details.attributes('open')).toBe('')
     expect(details.get('summary').text()).toBe('工具')
     expect(details.get('pre').text()).toBe('<html>generated output</html>')
 
     await details.get('summary').trigger('click')
-    expect((details.element as HTMLDetailsElement).open).toBe(true)
+    expect((details.element as HTMLDetailsElement).open).toBe(false)
+  })
+
+  it('expands assistant thinking by default and allows collapsing it', async () => {
+    const message: AssistantMessage = {
+      role: 'assistant',
+      model: 'test-model',
+      provider: 'test-provider',
+      content: [{ type: 'thinking', thinking: '分析问题' }]
+    }
+
+    const wrapper = mount(MessageView, {
+      props: { message },
+      global: {
+        mocks: { $t: (key: string) => key },
+        stubs: {
+          BranchNavigator: true,
+          Dialog: true,
+          ToolCallView: true
+        }
+      }
+    })
+
+    const details = wrapper.get('[data-testid="thinking-details"]')
+    expect(details.attributes('open')).toBe('')
+    expect(details.text()).toContain('分析问题')
+
+    await details.get('summary').trigger('click')
+    expect((details.element as HTMLDetailsElement).open).toBe(false)
   })
 })

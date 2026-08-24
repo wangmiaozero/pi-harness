@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin:mattpocock-skills",
+  "name": "Matt Pocock Skills",
+  "displayName": "Skills For Real Engineers",
+  "author": "Matt Pocock",
+  "repository": "mattpocock/skills",
+  "license": "MIT",
+  "commit": "5b15a47f2d7150f545fbcacbfe381787fc0230dc",
+  "syncedAt": "2026-08-24T11:51:13.638Z",
+  "skills": [
+    {
+      "id": "ask-matt",
+      "name": "ask-matt",
+      "description": "Ask which skill or flow fits your situation. A router over the skills in this repo.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/ask-matt",
+      "hash": "0261a2abbd43cc5bb391878106cda2eb7c4eabdde9ba5701b51d831f6e98f658",
+      "resources": [
+        "agents/openai.yaml",
+        "PHASE-BOUNDARIES.md",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "code-review",
+      "name": "code-review",
+      "description": "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes: Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs both reviews in parallel sub-agents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to \"review since X\".",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/code-review",
+      "hash": "12daafb9c4f77deb3c3303dc2e6f8a3c2a0ff7928fc004af959ba18b8bd38068",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "codebase-design",
+      "name": "codebase-design",
+      "description": "Shared vocabulary for designing deep modules. Use when the user wants to design or improve a module's interface, find deepening opportunities, decide where a seam goes, make code more testable or AI-navigable, or when another skill needs the deep-module vocabulary.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/codebase-design",
+      "hash": "9f457cc65ef2d70eb5b8a44a4dae2b139840078b6596a67ee8c4e95f5a0e6f5c",
+      "resources": [
+        "agents/openai.yaml",
+        "DEEPENING.md",
+        "DESIGN-IT-TWICE.md",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "diagnosing-bugs",
+      "name": "diagnosing-bugs",
+      "description": "Diagnosis loop for hard bugs and performance regressions. Use when the user says \"diagnose\"/\"debug this\", or reports something broken/throwing/failing/slow.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/diagnosing-bugs",
+      "hash": "bcdaec9e1033901c396437fcb102161d8ad3cd87632007aaf270b19e03e70117",
+      "resources": [
+        "agents/openai.yaml",
+        "scripts/hitl-loop.template.sh",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "domain-modeling",
+      "name": "domain-modeling",
+      "description": "Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or editing a CONTEXT.md, or recording or editing an ADR.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/domain-modeling",
+      "hash": "2bc3bb0a64ea9c6f5c3bcf78fc17f0fcdc7c062edc547ef006441de0b576d248",
+      "resources": [
+        "ADR-FORMAT.md",
+        "agents/openai.yaml",
+        "CONTEXT-FORMAT.md",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "grill-with-docs",
+      "name": "grill-with-docs",
+      "description": "A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as we go.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/grill-with-docs",
+      "hash": "6b1292031c4f38a11309b9dad9be1141c1921c6edf86d1ae6da8b048fa71a349",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "implement",
+      "name": "implement",
+      "description": "Implement a piece of work based on a spec or set of tickets.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/implement",
+      "hash": "b49a049477c7eec7f8dd90745dbc3f27bf75617b832d5b5f33c55aab7638a12e",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "improve-codebase-architecture",
+      "name": "improve-codebase-architecture",
+      "description": "Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you pick.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/improve-codebase-architecture",
+      "hash": "86f5e0413fa5b42b8e954858a09ce5a73187c61169f1b3b199bc79416fd78086",
+      "resources": [
+        "agents/openai.yaml",
+        "HTML-REPORT.md",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "prototype",
+      "name": "prototype",
+      "description": "Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, or explore what a UI should look like.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/prototype",
+      "hash": "492e4433fcd9cf88c0854aba063829ee248b208849e5827a45da8424199fd10f",
+      "resources": [
+        "agents/openai.yaml",
+        "LOGIC.md",
+        "SKILL.md",
+        "UI.md"
+      ]
+    },
+    {
+      "id": "research",
+      "name": "research",
+      "description": "Investigate a question against high-trust primary sources and capture the findings as a Markdown file in the repo. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/research",
+      "hash": "75b7f9bbd7ccff6755a006f8b25d319a46ecbf6bd4b4c3323965ed9cb65e78ff",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "resolving-merge-conflicts",
+      "name": "resolving-merge-conflicts",
+      "description": "Use when you need to resolve an in-progress git merge/rebase conflict.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/resolving-merge-conflicts",
+      "hash": "310fa72a34cddd1dd1a9790f9ebc17bf2c83caeae5cdf87e2485be8b1abec90e",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "setup-matt-pocock-skills",
+      "name": "setup-matt-pocock-skills",
+      "description": "Configure this repo for the engineering skills: set up its issue tracker, triage label vocabulary, and domain doc layout. Run once before first use of the other engineering skills.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/setup-matt-pocock-skills",
+      "hash": "80cd6b5be4f67913f1b10f5acd97fccaeb6401682ae7ff3a971460cb73d86cbe",
+      "resources": [
+        "agents/openai.yaml",
+        "domain.md",
+        "issue-tracker-github.md",
+        "issue-tracker-gitlab.md",
+        "issue-tracker-local.md",
+        "SKILL.md",
+        "triage-labels.md"
+      ]
+    },
+    {
+      "id": "tdd",
+      "name": "tdd",
+      "description": "Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions \"red-green-refactor\", or wants integration tests.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/tdd",
+      "hash": "28b5e430968370f51b03b88b4b4a046286192733d2f45bd5b8049e16f45fd234",
+      "resources": [
+        "agents/openai.yaml",
+        "mocking.md",
+        "SKILL.md",
+        "tests.md"
+      ]
+    },
+    {
+      "id": "to-spec",
+      "name": "to-spec",
+      "description": "Turn the current conversation into a spec and publish it to the project issue tracker: no interview, just synthesis of what you've already discussed.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/to-spec",
+      "hash": "f8041146ec1678c32304f46c9de99b73a4b5dadf664e35a8124be47c4cfe3196",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "to-tickets",
+      "name": "to-tickets",
+      "description": "Break a plan, spec, or the current conversation into a set of tracer-bullet tickets, each declaring its blocking edges, published to the configured tracker (edges as text in one file per ticket locally, or native blocking links on a real tracker).",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/to-tickets",
+      "hash": "597a1a0af4f7391ab459a02a3f33576109b6bc61ecdc5e7e05149336858b4f29",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "triage",
+      "name": "triage",
+      "description": "Move issues and external PRs through a state machine of triage roles, categorise, verify, grill if needed, and write agent-ready briefs.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/triage",
+      "hash": "461668611d1bd0eeb0533f347c11690a556c966a75938363a171914dcc42481a",
+      "resources": [
+        "AGENT-BRIEF.md",
+        "agents/openai.yaml",
+        "OUT-OF-SCOPE.md",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "wayfinder",
+      "name": "wayfinder",
+      "description": "Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on your issue tracker, and resolve them one at a time until the way to the destination is clear.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/wayfinder",
+      "hash": "93d2a866764b048ad641e82e27e7a1940fc370e7933470bffeb937fa1fb3922b",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "wizard",
+      "name": "wizard",
+      "description": "Generate an interactive bash wizard that walks a human through steps only they can perform. Use when provisioning infrastructure, setting up credentials or CI secrets, walking an unfamiliar third-party dashboard, or running a one-off migration or cutover. Don't invoke this for steps the agent can perform itself.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/wizard",
+      "hash": "518a4d148ef366cde28bd3b5f3eefc54ac7ddeeb670cd96eaff07cf4d2ce30f0",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md",
+        "template.sh"
+      ]
+    },
+    {
+      "id": "grill-me",
+      "name": "grill-me",
+      "description": "A relentless interview to sharpen a plan or design.",
+      "category": "productivity",
+      "sourcePath": "skills/productivity/grill-me",
+      "hash": "5a13e157f85835632b132390a162d234822658b6a544f31cc2578280062bd044",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "grilling",
+      "name": "grilling",
+      "description": "Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases.",
+      "category": "productivity",
+      "sourcePath": "skills/productivity/grilling",
+      "hash": "0ca4cfe5105d79c6ef6755491492e056c43e88b82666376d8ecd7fac695d96e6",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "handoff",
+      "name": "handoff",
+      "description": "Compact the current conversation into a handoff document for another agent to pick up.",
+      "category": "productivity",
+      "sourcePath": "skills/productivity/handoff",
+      "hash": "e5a44fccc710f5402deee06beaf5178397885765773375f186aefd179565f23f",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "teach",
+      "name": "teach",
+      "description": "Teach the user a new skill or concept, within this workspace.",
+      "category": "productivity",
+      "sourcePath": "skills/productivity/teach",
+      "hash": "7e67f13dc27781aad061d1eee61676c39c51d4d7ad6d7dc07ef943653c6e01ff",
+      "resources": [
+        "agents/openai.yaml",
+        "GLOSSARY-FORMAT.md",
+        "LEARNING-RECORD-FORMAT.md",
+        "MISSION-FORMAT.md",
+        "RESOURCES-FORMAT.md",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "to-questionnaire",
+      "name": "to-questionnaire",
+      "description": "Turn a decision you can't fully answer into a questionnaire for someone else to fill in.",
+      "category": "productivity",
+      "sourcePath": "skills/productivity/to-questionnaire",
+      "hash": "915ac22f1133fd4a7899ac6536e704cae57f1104d45745b32193d1572332868f",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "wait-what",
+      "name": "wait-what",
+      "description": "Stop. That last message did not land: re-pitch it.",
+      "category": "productivity",
+      "sourcePath": "skills/productivity/wait-what",
+      "hash": "3f2e7e2ce8820380c08df1d6f2d8dc6aaefe5c2857d00a7190990c62d4039316",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "writing-for-agents",
+      "name": "writing-for-agents",
+      "description": "Writing documents for agents. Use when creating or editing skills, or modifying AGENTS.md or CLAUDE.md.",
+      "category": "productivity",
+      "sourcePath": "skills/productivity/writing-for-agents",
+      "hash": "0071124a923559493bc8924a90fb87bceb048d31ad2ce785fa4281d7c506bfa7",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL-MECHANICS.md",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "git-guardrails-claude-code",
+      "name": "git-guardrails-claude-code",
+      "description": "Set up Claude Code hooks to block dangerous git commands (push, reset --hard, clean, branch -D, etc.) before they execute. Use when user wants to prevent destructive git operations, add git safety hooks, or block git push/reset in Claude Code.",
+      "category": "misc",
+      "sourcePath": "skills/misc/git-guardrails-claude-code",
+      "hash": "aca7bba953f95596412477fe84b7d4937754f1ad00268f4608599df3ffcce3a5",
+      "resources": [
+        "agents/openai.yaml",
+        "scripts/block-dangerous-git.sh",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "migrate-to-shoehorn",
+      "name": "migrate-to-shoehorn",
+      "description": "Migrate test files from `as` type assertions to @total-typescript/shoehorn. Use when user mentions shoehorn, wants to replace `as` in tests, or needs partial test data.",
+      "category": "misc",
+      "sourcePath": "skills/misc/migrate-to-shoehorn",
+      "hash": "a556e54775ab12f2ee8a9ac898fd70de4ae07fd3819039bc8fce334f9e56b54f",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "scaffold-exercises",
+      "name": "scaffold-exercises",
+      "description": "Create exercise directory structures with sections, problems, solutions, and explainers that pass linting. Use when user wants to scaffold exercises, create exercise stubs, or set up a new course section.",
+      "category": "misc",
+      "sourcePath": "skills/misc/scaffold-exercises",
+      "hash": "3a1e2a2dd40691e229bae49d18b61e0304f12b6fe270dade1aadcb984c02d77e",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "setup-pre-commit",
+      "name": "setup-pre-commit",
+      "description": "Set up Husky pre-commit hooks with lint-staged (Prettier), type checking, and tests in the current repo. Use when user wants to add pre-commit hooks, set up Husky, configure lint-staged, or add commit-time formatting/typechecking/testing.",
+      "category": "misc",
+      "sourcePath": "skills/misc/setup-pre-commit",
+      "hash": "89aaa5ee01b7ffdee592f2ab7a6853cebe20d7bf2479871698aeadf4d000204c",
+      "resources": [
+        "agents/openai.yaml",
+        "SKILL.md"
+      ]
+    }
+  ]
+}

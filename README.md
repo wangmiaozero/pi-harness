@@ -35,6 +35,7 @@ Secrets never appear in the renderer as plaintext. macOS stores them in the syst
 - The Skills page includes a compact Featured section with Odai as a regular `skill` capability for agent governance and verified task execution.
 - Featured skills install from a trusted Main-process catalog through typed IPC, isolated staging, `SKILL.md` validation, atomic placement, mutation locks, and sanitized progress/errors.
 - Installed featured skills can be viewed, edited, updated, enabled/disabled, and uninstalled. Updates and uninstalls create local skill backups first.
+- Matt Pocock's 29 formal Skills ship as a read-only built-in Collection with offline global/project install, exact Ownership, conflict protection, updates, and individual/batch uninstall.
 
 ## Screenshots
 
@@ -58,7 +59,7 @@ Secrets never appear in the renderer as plaintext. macOS stores them in the syst
 | **Workspace**   | Native projects and Pi Sessions, streaming chat, Thinking / Tool Call, lightweight editing, Git Diff, Worktree      |
 | **Providers**   | Searchable Pi-compatible presets; Provider ≠ Protocol ≠ Model; credentials use Keychain / `safeStorage`             |
 | **Models**      | Preset or custom model IDs, capability metadata, active-model selection, read-back verification                     |
-| **Skills**      | Capability-backed local/featured skills; create, import, edit, validate, install, update, enable/disable, uninstall |
+| **Skills**      | Local/featured/package/built-in Skills; offline Collections, ownership, health, repair, rollback, and bulk cleanup  |
 | **Config**      | CodeMirror editor for `models.json` / `settings.json`; format and reveal in the file manager                        |
 | **Diagnostics** | Environment report; copy is sanitized (`apiKey` / `token` / `secret`, etc.)                                         |
 | **Settings**    | Simplified Chinese / English UI, system/dark/light themes, density, tool preset, restore behavior, backups, mascots |
@@ -108,6 +109,8 @@ Do not store secrets in `VITE_*` variables — they are bundled into the rendere
 | `pnpm test`                             | Vitest unit tests                                        |
 | `pnpm test:e2e`                         | Compile, then run Playwright Electron smoke tests        |
 | `pnpm sync:provider-presets -- --check` | Verify the generated provider/model catalog              |
+| `pnpm sync:builtin-skills`              | Sync the local Matt Pocock source into bundled resources |
+| `pnpm check:builtin-skills`             | Verify bundled Skill manifests, resources, and hashes    |
 | `pnpm compile`                          | Vite build to `out/` (no installer)                      |
 | `pnpm build`                            | Compile and package macOS / Windows / Linux → `release/` |
 | `pnpm build:mac`                        | macOS Apple Silicon                                      |
@@ -120,6 +123,8 @@ Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
                                                 ├─ Workspace         projects / files / lightweight editor / git
                                                 ├─ PiConfigService   atomic write / mtime conflict
                                                 ├─ CapabilityService Skills / Extensions / Packages / MCP / Presets
+                                                ├─ PackageLifecycle   registry / files / ownership / health / repair
+                                                ├─ BuiltinSkills      bundled source / ownership / atomic lifecycle
                                                 ├─ Pet Adapter       Runtime state → 13-state visual layer
                                                 ├─ Provider / Model / Skills / Backup / Diagnostics
                                                 └─ SecretStore       Keychain / safeStorage
@@ -134,6 +139,8 @@ Domain stays decoupled from Pi native JSON via an Adapter. Unknown fields pass t
 - [Pi installation and Node.js prerequisites](docs/pi-installation.md)
 - [Lightweight code editor boundary](docs/lightweight-code-editor.md)
 - [Capability Layer and featured skill security](docs/capability-layer.md)
+- [Pi Package and Skill lifecycle](docs/package-lifecycle.md)
+- [Built-in Skills Collections](docs/builtin-skills.md)
 - [Mascot design and runtime rules](docs/mascot-design.md)
 - [Pet state system and sprite manifests](docs/pet-state-system.md)
 

@@ -17,6 +17,7 @@ import type { SessionService } from '../sessions/session-service'
 import type { AgentRuntimeService } from '../agent/agent-runtime-service'
 import type { FileAccessService } from '../files/file-access-service'
 import { peekPiCodingAgent } from '../agent/pi-sdk'
+import type { PiPackageManager } from '../packages/package-manager'
 
 export class DiagnosticsService {
   private workspace: {
@@ -27,7 +28,8 @@ export class DiagnosticsService {
 
   constructor(
     private readonly settingsStore: JsonStore<AppSettings>,
-    private readonly config: PiConfigService
+    private readonly config: PiConfigService,
+    private readonly packages?: PiPackageManager
   ) {}
 
   attachWorkspace(workspace: {
@@ -45,6 +47,8 @@ export class DiagnosticsService {
       configDir: settings.manualConfigDir
     })
     const config = await this.config.getStatus()
+    const packageList = this.packages ? await this.packages.list() : []
+    const packagePermissions = this.packages ? await this.packages.permissions() : []
     const secretBackend =
       process.platform === 'darwin'
         ? 'keychain'
@@ -83,6 +87,21 @@ export class DiagnosticsService {
         secretBackend
       },
       config,
+      packages: {
+        registryCount: packageList.filter((pkg) => pkg.registered).length,
+        installedCount: packageList.filter((pkg) => pkg.installed).length,
+        healthyCount: packageList.filter((pkg) => pkg.health === 'healthy').length,
+        missingCount: packageList.filter((pkg) => pkg.health === 'missing').length,
+        orphanedCount: packageList.filter((pkg) => pkg.health === 'orphaned').length,
+        corruptedCount: packageList.filter((pkg) => pkg.health === 'corrupted').length,
+        permissionErrorCount: packageList.filter((pkg) => pkg.health === 'permission-error').length,
+        skillsCount: packageList.reduce((total, pkg) => total + pkg.resources.skills.length, 0),
+        startupRisk: packageList.some(
+          (pkg) => pkg.registered && !['healthy', 'unknown'].includes(pkg.health)
+        ),
+        registryPaths: [...new Set(packageList.map((pkg) => pkg.registryPath))],
+        permissions: packagePermissions
+      },
       workspace: {
         sessionRoot: this.workspace?.sessions.sessionsRoot() ?? '',
         sessionCount: this.workspace ? (await this.workspace.sessions.list()).length : 0,

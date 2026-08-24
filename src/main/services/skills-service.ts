@@ -15,19 +15,25 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type {
   PiPackageActionResult,
+  PiPackageCleanupPlan,
+  PiPackageCleanupResult,
   PiPackageInfo,
-  PiPackageResources,
+  PiPackagePermission,
+  PiPackageTarget,
+  BuiltinSkillActionResult,
+  BuiltinSkillMutationTarget,
   SkillInfo,
   SkillMarketCollection
 } from '@shared/ipc/api-types'
 import { piEnvironment } from '../pi/environment'
-import { piProcess } from '../process/pi-process'
 import { atomicWriteText, fileMtime, readTextFile } from './storage'
 import { log } from './logger'
 import type { AppSettings } from '@shared/ipc/api-types'
 import type { JsonStore } from './storage'
-import { ValidationError, FileSystemError, SkillConflictError } from './errors'
+import { AppError, ValidationError, FileSystemError, SkillConflictError } from './errors'
 import { capabilityBackupDir } from './app-paths'
+import { PiPackageManager, packageNameFromSource } from '../packages/package-manager'
+import type { BuiltinSkillService } from '../skills/builtin-skill-service'
 
 export interface SkillForm {
   name: string
@@ -53,21 +59,6 @@ export interface SkillValidationResult {
 }
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/
-const PACKAGE_SOURCE_PATTERN =
-  /^(?:npm:[@a-zA-Z0-9._/-]+(?:@[a-zA-Z0-9._-]+)?|git:[^\s]+|https?:\/\/[^\s]+|\.?\.?[\\/][^\0]+)$/
-const EMPTY_RESOURCES = (): PiPackageResources => ({
-  skills: [],
-  prompts: [],
-  extensions: [],
-  themes: []
-})
-
-interface PackageManifest {
-  name?: string
-  version?: string
-  description?: string
-  pi?: Partial<Record<keyof PiPackageResources, unknown>>
-}
 
 interface MarketCatalogEntry {
   id: 'core-development' | 'agent-architecture' | 'curated-extensions'
@@ -129,48 +120,74 @@ const MARKET_PACKAGE_DESCRIPTIONS: Readonly<Record<string, string>> = {
 }
 
 export class SkillsService {
-  constructor(private readonly settingsStore: JsonStore<AppSettings>) {}
+  private readonly knownProjectRoots = new Set<string>()
 
-  async list(): Promise<SkillInfo[]> {
+  constructor(
+    private readonly settingsStore: JsonStore<AppSettings>,
+    private readonly packageManager = new PiPackageManager(settingsStore),
+    private readonly builtinSkills?: BuiltinSkillService
+  ) {}
+
+  async list(projectRoot?: string | null): Promise<SkillInfo[]> {
     const settings = this.settingsStore.peek()
     const env = await piEnvironment.detect({
       cliPath: settings.manualCliPath,
       configDir: settings.manualConfigDir
     })
+    // PackageManager validates the project root before it is trusted by skill file operations.
+    const packages = await this.packageManager.list(projectRoot)
+    if (projectRoot) this.knownProjectRoots.add(path.resolve(projectRoot))
+    const skillRoots = [
+      ...env.skillsDirs,
+      ...(projectRoot
+        ? [
+            path.join(path.resolve(projectRoot), '.pi', 'skills'),
+            path.join(path.resolve(projectRoot), '.agents', 'skills')
+          ]
+        : [])
+    ].filter((root, index, roots) => roots.indexOf(root) === index)
     const out: SkillInfo[] = []
-    for (const dir of env.skillsDirs) {
-      const skills = await this.scanDir(dir, env.skillsDirs)
+    for (const dir of skillRoots) {
+      const skills = await this.scanDir(
+        dir,
+        skillRoots,
+        this.skillScope(dir, projectRoot, env.configDir)
+      )
       out.push(...skills)
     }
-    const packages = await this.listPackagesFromConfig(env.configDir)
     for (const pkg of packages) {
-      if (!pkg.path || !pkg.available) continue
+      if (!pkg.path || !pkg.installed) continue
       out.push(...(await this.scanPackageSkills(pkg)))
     }
-    return out.sort((a, b) => a.name.localeCompare(b.name) || a.path.localeCompare(b.path))
+    const unique = [
+      ...new Map(out.map((skill) => [path.resolve(skill.path), skill])).values()
+    ].sort((a, b) => a.name.localeCompare(b.name) || a.path.localeCompare(b.path))
+    return this.builtinSkills ? this.builtinSkills.decorateInstalledSkills(unique) : unique
   }
 
   /** Installed Pi packages, including their package-provided resources. */
-  async listPackages(): Promise<PiPackageInfo[]> {
-    const settings = this.settingsStore.peek()
-    const env = await piEnvironment.detect({
-      cliPath: settings.manualCliPath,
-      configDir: settings.manualConfigDir
-    })
-    return this.listPackagesFromConfig(env.configDir)
+  async listPackages(projectRoot?: string | null): Promise<PiPackageInfo[]> {
+    const packages = await this.packageManager.list(projectRoot)
+    if (projectRoot) this.knownProjectRoots.add(path.resolve(projectRoot))
+    return packages
   }
 
   /** Curated, product-owned package catalog. Reference documents are never exposed at runtime. */
-  async listMarket(): Promise<SkillMarketCollection[]> {
-    const installed = await this.listPackages()
-    const installedBySource = new Map(installed.map((pkg) => [pkg.source, pkg]))
-    const installedByName = new Map(installed.map((pkg) => [pkg.name, pkg]))
-    return SKILL_MARKET_CATALOG.map((collection) => ({
+  async listMarket(projectRoot?: string | null): Promise<SkillMarketCollection[]> {
+    const installed = await this.listPackages(projectRoot)
+    const installedBySource = new Map(
+      installed.filter((pkg) => pkg.registered).map((pkg) => [`${pkg.scope}:${pkg.source}`, pkg])
+    )
+    const installedByName = new Map(
+      installed.filter((pkg) => pkg.registered).map((pkg) => [`${pkg.scope}:${pkg.name}`, pkg])
+    )
+    const packageCollections: SkillMarketCollection[] = SKILL_MARKET_CATALOG.map((collection) => ({
       id: collection.id,
       kind: collection.kind,
       packages: collection.sources.map((source) => {
         const name = packageNameFromSource(source)
-        const match = installedBySource.get(source) ?? installedByName.get(name)
+        const match =
+          installedBySource.get(`global:${source}`) ?? installedByName.get(`global:${name}`)
         return {
           source,
           name,
@@ -180,54 +197,43 @@ export class SkillsService {
         }
       })
     }))
+    const builtinCollections = this.builtinSkills ? await this.builtinSkills.list(projectRoot) : []
+    return [...builtinCollections, ...packageCollections]
+  }
+
+  async installBuiltinSkills(
+    target: BuiltinSkillMutationTarget
+  ): Promise<BuiltinSkillActionResult[]> {
+    if (!this.builtinSkills) throw new ValidationError('Built-in Skills are unavailable')
+    return this.builtinSkills.install(target)
+  }
+
+  async updateBuiltinSkills(
+    target: BuiltinSkillMutationTarget
+  ): Promise<BuiltinSkillActionResult[]> {
+    if (!this.builtinSkills) throw new ValidationError('Built-in Skills are unavailable')
+    return this.builtinSkills.update(target)
+  }
+
+  async uninstallBuiltinSkills(
+    target: BuiltinSkillMutationTarget
+  ): Promise<BuiltinSkillActionResult[]> {
+    if (!this.builtinSkills) throw new ValidationError('Built-in Skills are unavailable')
+    return this.builtinSkills.uninstall(target)
   }
 
   /** Install one or more marketplace sources, continuing after individual failures. */
-  async installPackages(sources: string[]): Promise<PiPackageActionResult[]> {
-    const unique = [...new Set(sources.map((source) => source.trim()).filter(Boolean))]
+  async installPackages(targets: PiPackageTarget[]): Promise<PiPackageActionResult[]> {
+    const unique = uniqueTargets(targets)
     if (unique.length === 0 || unique.length > 50) {
       throw new ValidationError('Choose between 1 and 50 packages to install.')
     }
-    unique.forEach(assertPackageSource)
-
-    const installed = new Set((await this.listPackages()).map((pkg) => pkg.source))
     const results: PiPackageActionResult[] = []
-    for (const source of unique) {
-      if (installed.has(source)) {
-        results.push({
-          source,
-          ok: true,
-          skipped: true,
-          message: 'Already installed',
-          stdout: '',
-          stderr: ''
-        })
-        continue
-      }
+    for (const target of unique) {
       try {
-        const result = await piProcess.exec({
-          args: ['install', source, '--no-approve'],
-          timeoutMs: 5 * 60_000
-        })
-        const ok = result.exitCode === 0
-        results.push({
-          source,
-          ok,
-          skipped: false,
-          message: ok ? 'Installed' : `Install failed (exit ${result.exitCode})`,
-          stdout: result.stdout,
-          stderr: result.stderr
-        })
-        if (ok) installed.add(source)
+        results.push(await this.packageManager.install(target))
       } catch (err) {
-        results.push({
-          source,
-          ok: false,
-          skipped: false,
-          message: (err as Error).message,
-          stdout: '',
-          stderr: ''
-        })
+        results.push(failedPackageAction(target, 'install', err))
       }
     }
     log.skills.info(
@@ -236,52 +242,34 @@ export class SkillsService {
     return results
   }
 
-  /** Remove a configured Pi package through the native CLI. */
-  async removePackage(source: string): Promise<PiPackageActionResult> {
-    const normalized = source.trim()
-    assertPackageSource(normalized)
-    const installed = await this.listPackages()
-    if (!installed.some((pkg) => pkg.source === normalized)) {
-      throw new ValidationError(`Package is not installed: ${normalized}`)
-    }
-    return this.executePackageRemoval(normalized)
+  async repairPackage(target: PiPackageTarget): Promise<PiPackageActionResult> {
+    return this.packageManager.install(target, 'repair')
+  }
+
+  async registerPackage(target: PiPackageTarget): Promise<PiPackageActionResult> {
+    return this.packageManager.install(target, 'register')
+  }
+
+  async removePackage(target: PiPackageTarget): Promise<PiPackageActionResult> {
+    return this.packageManager.uninstall(target)
+  }
+
+  async deleteOrphanPackage(target: PiPackageTarget): Promise<PiPackageActionResult> {
+    return this.packageManager.deleteOrphan(target)
   }
 
   /** Remove multiple configured Pi packages, continuing after individual failures. */
-  async removePackages(sources: string[]): Promise<PiPackageActionResult[]> {
-    const unique = [...new Set(sources.map((source) => source.trim()).filter(Boolean))]
+  async removePackages(targets: PiPackageTarget[]): Promise<PiPackageActionResult[]> {
+    const unique = uniqueTargets(targets)
     if (unique.length === 0 || unique.length > 50) {
       throw new ValidationError('Choose between 1 and 50 packages to remove.')
     }
-    unique.forEach(assertPackageSource)
-
-    const installed = new Set((await this.listPackages()).map((pkg) => pkg.source))
     const results: PiPackageActionResult[] = []
-    for (const source of unique) {
-      if (!installed.has(source)) {
-        results.push({
-          source,
-          ok: true,
-          skipped: true,
-          message: 'Already removed',
-          stdout: '',
-          stderr: ''
-        })
-        continue
-      }
+    for (const target of unique) {
       try {
-        const result = await this.executePackageRemoval(source)
-        results.push(result)
-        if (result.ok) installed.delete(source)
+        results.push(await this.packageManager.uninstall(target))
       } catch (err) {
-        results.push({
-          source,
-          ok: false,
-          skipped: false,
-          message: (err as Error).message,
-          stdout: '',
-          stderr: ''
-        })
+        results.push(failedPackageAction(target, 'uninstall', err))
       }
     }
     log.skills.info(
@@ -290,20 +278,76 @@ export class SkillsService {
     return results
   }
 
-  private async executePackageRemoval(source: string): Promise<PiPackageActionResult> {
-    const result = await piProcess.exec({
-      args: ['remove', source, '--no-approve'],
-      timeoutMs: 5 * 60_000
-    })
-    const ok = result.exitCode === 0
+  async cleanupPlan(projectRoot?: string | null): Promise<PiPackageCleanupPlan> {
+    const [packages, skills] = await Promise.all([
+      this.listPackages(projectRoot),
+      this.list(projectRoot)
+    ])
+    const registered = packages.filter((pkg) => pkg.registered && pkg.sourceType !== 'builtin')
+    const orphaned = packages.filter((pkg) => !pkg.registered && pkg.health === 'orphaned')
+    const standaloneSkills = skills
+      .filter((skill) => skill.origin === 'local' && !skill.readOnly)
+      .map((skill) => ({ path: skill.path, name: skill.name, scope: skill.scope }))
     return {
-      source,
-      ok,
-      skipped: false,
-      message: ok ? 'Removed' : `Remove failed (exit ${result.exitCode})`,
-      stdout: result.stdout,
-      stderr: result.stderr
+      packages: registered.map(packageTarget),
+      orphanPackages: orphaned.map(packageTarget),
+      standaloneSkills,
+      totals: {
+        npm: registered.filter((pkg) => pkg.sourceType === 'npm').length,
+        git: registered.filter((pkg) => pkg.sourceType === 'git').length,
+        local: registered.filter((pkg) => pkg.sourceType === 'local').length,
+        orphaned: orphaned.length,
+        skills: standaloneSkills.length
+      },
+      preserved: [
+        'providers and models',
+        'API keys and credentials',
+        'sessions and history',
+        'Pi settings unrelated to packages',
+        'Pi-Harness application settings'
+      ]
     }
+  }
+
+  /** Recomputes the plan server-side; renderer-provided paths are never trusted. */
+  async cleanupThirdParty(projectRoot?: string | null): Promise<PiPackageCleanupResult> {
+    const plan = await this.cleanupPlan(projectRoot)
+    const packageResults: PiPackageActionResult[] = []
+    const removedSkills: string[] = []
+    const failures: PiPackageCleanupResult['failures'] = []
+    for (const target of plan.packages) {
+      try {
+        const result = await this.packageManager.uninstall(target)
+        packageResults.push(result)
+        if (!result.ok) failures.push({ target: target.source, message: result.message })
+      } catch (error) {
+        packageResults.push(failedPackageAction(target, 'uninstall', error))
+        failures.push({ target: target.source, message: (error as Error).message })
+      }
+    }
+    for (const target of plan.orphanPackages) {
+      try {
+        const result = await this.packageManager.deleteOrphan(target)
+        packageResults.push(result)
+        if (!result.ok) failures.push({ target: target.source, message: result.message })
+      } catch (error) {
+        packageResults.push(failedPackageAction(target, 'delete-orphan', error))
+        failures.push({ target: target.source, message: (error as Error).message })
+      }
+    }
+    for (const skill of plan.standaloneSkills) {
+      try {
+        await this.delete(skill.path)
+        removedSkills.push(skill.path)
+      } catch (error) {
+        failures.push({ target: skill.path, message: (error as Error).message })
+      }
+    }
+    return { plan, packageResults, removedSkills, failures }
+  }
+
+  async repairPermissions(projectRoot?: string | null): Promise<PiPackagePermission[]> {
+    return this.packageManager.repairPermissions(projectRoot)
   }
 
   async read(skillPath: string): Promise<{ content: string; mtime: number | null }> {
@@ -322,6 +366,17 @@ export class SkillsService {
   async delete(skillPath: string): Promise<void> {
     const allowedRoots = await this.allowedRoots()
     const resolved = path.resolve(skillPath)
+    const builtinTarget = this.builtinSkills?.ownershipTargetForPath(resolved)
+    if (builtinTarget) {
+      const [result] = await this.builtinSkills!.uninstall(builtinTarget)
+      if (!result?.ok) {
+        throw new AppError(
+          result?.errorCode ?? 'SKILL_INSTALL_FAILED',
+          result?.message ?? 'Built-in Skill uninstall failed'
+        )
+      }
+      return
+    }
     const root = allowedRoots.find(
       (candidate) => path.dirname(resolved) === path.resolve(candidate)
     )
@@ -509,86 +564,11 @@ export class SkillsService {
     return validateSkill(form)
   }
 
-  private async listPackagesFromConfig(configDir: string | null): Promise<PiPackageInfo[]> {
-    if (!configDir) return []
-    const settingsText = await readTextFile(path.join(configDir, 'settings.json'))
-    if (!settingsText) return []
-
-    let rawPackages: unknown[] = []
-    try {
-      const settings = JSON.parse(settingsText) as { packages?: unknown[] | null }
-      rawPackages = Array.isArray(settings.packages) ? settings.packages : []
-    } catch (err) {
-      log.skills.warn('could not parse settings.json packages:', err)
-      return []
-    }
-
-    const sources = rawPackages
-      .map((entry) => {
-        if (typeof entry === 'string') return entry
-        if (entry && typeof entry === 'object' && 'source' in entry) {
-          const source = (entry as { source?: unknown }).source
-          return typeof source === 'string' ? source : null
-        }
-        return null
-      })
-      .filter((source): source is string => Boolean(source))
-
-    const packages: PiPackageInfo[] = []
-    for (const source of [...new Set(sources)]) {
-      const fallbackName = packageNameFromSource(source)
-      const packagePath = resolveInstalledPackagePath(configDir, source)
-      const manifest = packagePath
-        ? await readPackageManifest(path.join(packagePath, 'package.json'))
-        : null
-      const resources =
-        packagePath && manifest
-          ? await this.readPackageResources(packagePath, manifest)
-          : EMPTY_RESOURCES()
-      packages.push({
-        source,
-        name: manifest?.name || fallbackName,
-        version: manifest?.version ?? null,
-        description: manifest?.description ?? '',
-        path: packagePath,
-        installed: true,
-        available: Boolean(packagePath && manifest),
-        resources
-      })
-    }
-    return packages.sort((a, b) => a.name.localeCompare(b.name))
-  }
-
-  private async readPackageResources(
-    packageRoot: string,
-    manifest: PackageManifest
-  ): Promise<PiPackageResources> {
-    const resources = EMPTY_RESOURCES()
-    for (const kind of Object.keys(resources) as (keyof PiPackageResources)[]) {
-      const entries = stringArray(manifest.pi?.[kind])
-      if (kind === 'skills') {
-        const dirs = await discoverSkillDirs(packageRoot, entries)
-        resources.skills = dirs.map((dir) => path.basename(dir)).sort()
-        continue
-      }
-      const names: string[] = []
-      for (const entry of entries) {
-        const resourcePath = safePackageResourcePath(packageRoot, entry)
-        if (!resourcePath) continue
-        names.push(...(await discoverResourceNames(resourcePath, kind)))
-      }
-      resources[kind] = [...new Set(names)].sort()
-    }
-    return resources
-  }
-
   private async scanPackageSkills(pkg: PiPackageInfo): Promise<SkillInfo[]> {
     if (!pkg.path) return []
-    const manifest = await readPackageManifest(path.join(pkg.path, 'package.json'))
-    const skillEntries = stringArray(manifest?.pi?.skills)
-    const dirs = await discoverSkillDirs(pkg.path, skillEntries)
     const skills: SkillInfo[] = []
-    for (const skillPath of dirs) {
+    for (const resource of pkg.resourceItems.filter((item) => item.type === 'skill')) {
+      const skillPath = resource.path
       const skillMd = path.join(skillPath, 'SKILL.md')
       const readmeText = await readTextFile(skillMd)
       if (readmeText === null) continue
@@ -603,7 +583,15 @@ export class SkillsService {
         hasReadme: true,
         readOnly: true,
         origin: 'package',
-        packageSource: pkg.source
+        packageSource: pkg.source,
+        scope: pkg.scope,
+        packageId: pkg.id,
+        packageName: pkg.name,
+        packageVersion: pkg.version,
+        packageType: pkg.sourceType,
+        packagePath: pkg.path,
+        packageScope: pkg.scope,
+        registryPath: pkg.registryPath
       })
     }
     return skills
@@ -615,7 +603,15 @@ export class SkillsService {
       cliPath: settings.manualCliPath,
       configDir: settings.manualConfigDir
     })
-    return env.skillsDirs.map((d) => path.resolve(d))
+    return [
+      ...env.skillsDirs,
+      ...[...this.knownProjectRoots].flatMap((root) => [
+        path.join(root, '.pi', 'skills'),
+        path.join(root, '.agents', 'skills')
+      ])
+    ]
+      .map((d) => path.resolve(d))
+      .filter((root, index, roots) => roots.indexOf(root) === index)
   }
 
   private async backupSkillDirectory(source: string, action: string): Promise<string> {
@@ -631,7 +627,11 @@ export class SkillsService {
 
   private async allowedReadRoots(): Promise<string[]> {
     const roots = await this.allowedRoots()
-    const packages = await this.listPackages()
+    const packageGroups = await Promise.all([
+      this.listPackages(),
+      ...[...this.knownProjectRoots].map((root) => this.listPackages(root))
+    ])
+    const packages = packageGroups.flat()
     return [
       ...roots,
       ...packages
@@ -703,7 +703,22 @@ export class SkillsService {
     }
   }
 
-  private async scanDir(dir: string, allowedRoots: string[]): Promise<SkillInfo[]> {
+  private skillScope(
+    dir: string,
+    projectRoot: string | null | undefined,
+    configDir: string | null
+  ): SkillInfo['scope'] {
+    const resolved = path.resolve(dir)
+    if (projectRoot && resolved.startsWith(path.resolve(projectRoot) + path.sep)) return 'project'
+    if (configDir && resolved.startsWith(path.resolve(configDir) + path.sep)) return 'global'
+    return 'shared'
+  }
+
+  private async scanDir(
+    dir: string,
+    allowedRoots: string[],
+    scope: SkillInfo['scope']
+  ): Promise<SkillInfo[]> {
     try {
       const entries = await fs.readdir(dir, { withFileTypes: true })
       const realRoots = (
@@ -741,7 +756,8 @@ export class SkillsService {
           lastModified: await fileMtime(skillPath),
           hasReadme,
           readOnly: false,
-          origin: 'local'
+          origin: 'local',
+          scope
         })
       }
       return skills
@@ -826,118 +842,40 @@ async function lstatOrNull(target: string): Promise<Awaited<ReturnType<typeof fs
   }
 }
 
-function stringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value.filter(
-    (entry): entry is string => typeof entry === 'string' && Boolean(entry.trim())
-  )
+function uniqueTargets(targets: PiPackageTarget[]): PiPackageTarget[] {
+  const unique = new Map<string, PiPackageTarget>()
+  for (const target of targets) {
+    const source = target?.source?.trim()
+    if (!source) continue
+    const normalized = { ...target, source }
+    unique.set(`${normalized.scope}:${normalized.projectRoot ?? ''}:${source}`, normalized)
+  }
+  return [...unique.values()]
 }
 
-function assertPackageSource(source: string): void {
-  if (!PACKAGE_SOURCE_PATTERN.test(source) || source.includes('$') || source.includes('<')) {
-    throw new ValidationError(`Invalid package source: ${source}`)
-  }
+function packageTarget(pkg: PiPackageInfo): PiPackageTarget {
+  return { source: pkg.source, scope: pkg.scope, projectRoot: pkg.projectRoot }
 }
 
-export function packageNameFromSource(source: string): string {
-  if (source.startsWith('npm:')) {
-    const spec = source.slice(4)
-    if (spec.startsWith('@')) {
-      const slash = spec.indexOf('/')
-      const versionAt = slash >= 0 ? spec.indexOf('@', slash) : -1
-      return versionAt >= 0 ? spec.slice(0, versionAt) : spec
-    }
-    const versionAt = spec.lastIndexOf('@')
-    return versionAt > 0 ? spec.slice(0, versionAt) : spec
-  }
-  const clean = source.replace(/[\\/]+$/, '').replace(/\.git$/i, '')
-  return clean.split(/[\\/]/).at(-1) || source
-}
-
-export function resolveInstalledPackagePath(configDir: string, source: string): string | null {
-  if (source.startsWith('npm:')) {
-    return path.join(configDir, 'npm', 'node_modules', packageNameFromSource(source))
-  }
-  if (path.isAbsolute(source)) return path.resolve(source)
-  if (source.startsWith('./') || source.startsWith('../')) {
-    return path.resolve(configDir, source)
-  }
-  return null
-}
-
-async function readPackageManifest(manifestPath: string): Promise<PackageManifest | null> {
-  const text = await readTextFile(manifestPath)
-  if (!text) return null
-  try {
-    return JSON.parse(text) as PackageManifest
-  } catch {
-    return null
+function failedPackageAction(
+  target: PiPackageTarget,
+  action: PiPackageActionResult['action'],
+  error: unknown
+): PiPackageActionResult {
+  return {
+    source: target.source,
+    scope: target.scope,
+    action,
+    ok: false,
+    skipped: false,
+    message: error instanceof Error ? error.message : String(error),
+    stdout: '',
+    stderr: '',
+    errorCode: 'PROCESS_FAILED',
+    logs: [
+      { phase: action, ok: false, message: error instanceof Error ? error.message : String(error) }
+    ]
   }
 }
 
-function safePackageResourcePath(packageRoot: string, entry: string): string | null {
-  const root = path.resolve(packageRoot)
-  const target = path.resolve(root, entry)
-  return target === root || target.startsWith(root + path.sep) ? target : null
-}
-
-async function discoverSkillDirs(packageRoot: string, entries: string[]): Promise<string[]> {
-  const found = new Set<string>()
-  for (const entry of entries) {
-    const target = safePackageResourcePath(packageRoot, entry)
-    if (!target) continue
-    await walk(target, 0, async (itemPath, isDirectory) => {
-      if (!isDirectory && path.basename(itemPath).toLowerCase() === 'skill.md') {
-        found.add(path.dirname(itemPath))
-      }
-    })
-  }
-  return [...found].sort()
-}
-
-async function discoverResourceNames(
-  resourcePath: string,
-  kind: Exclude<keyof PiPackageResources, 'skills'>
-): Promise<string[]> {
-  const found = new Set<string>()
-  const extensions: Record<typeof kind, Set<string>> = {
-    prompts: new Set(['.md']),
-    extensions: new Set(['.ts', '.js', '.mjs', '.cjs']),
-    themes: new Set(['.json'])
-  }
-  await walk(resourcePath, 0, async (itemPath, isDirectory) => {
-    if (isDirectory || !extensions[kind].has(path.extname(itemPath).toLowerCase())) return
-    found.add(path.basename(itemPath, path.extname(itemPath)))
-  })
-  return [...found]
-}
-
-async function walk(
-  target: string,
-  depth: number,
-  visit: (itemPath: string, isDirectory: boolean) => Promise<void>
-): Promise<void> {
-  if (depth > 5) return
-  let stat
-  try {
-    stat = await fs.lstat(target)
-  } catch {
-    return
-  }
-  if (stat.isSymbolicLink()) return
-  if (!stat.isDirectory()) {
-    await visit(target, false)
-    return
-  }
-  await visit(target, true)
-  let entries
-  try {
-    entries = await fs.readdir(target, { withFileTypes: true })
-  } catch {
-    return
-  }
-  for (const entry of entries) {
-    if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
-    await walk(path.join(target, entry.name), depth + 1, visit)
-  }
-}
+export { packageNameFromSource, resolveInstalledPackagePath } from '../packages/package-manager'

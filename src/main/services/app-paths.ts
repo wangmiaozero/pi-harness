@@ -68,6 +68,35 @@ export function capabilityBackupDir(): string {
   return path.join(userData(), 'capability-backups')
 }
 
+/** Pi-Harness-managed, user-writable Node.js runtime (never requires sudo/admin). */
+export function managedNodeRoot(): string {
+  const override = process.env.PI_HARNESS_NODE_ROOT?.trim()
+  return override ? path.resolve(expandHome(override)) : path.join(homedir(), '.pi-harness', 'node')
+}
+
+/** User-level npm prefix used only when the existing global prefix is not writable. */
+export function npmUserPrefix(): string {
+  const override = process.env.PI_HARNESS_NPM_PREFIX?.trim()
+  return override ? path.resolve(expandHome(override)) : path.join(homedir(), '.npm-global')
+}
+
+export function environmentDownloadsDir(): string {
+  return path.join(userData(), 'environment-downloads')
+}
+
+export function environmentBackupDir(): string {
+  return path.join(userData(), 'environment-backups')
+}
+
+/** Read-only Skills Collections bundled with Pi-Harness. */
+export function builtinSkillsRoot(): string {
+  const override = process.env.PI_HARNESS_BUILTIN_SKILLS_DIR?.trim()
+  if (override) return path.resolve(expandHome(override))
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'builtin-skills')
+    : path.join(app.getAppPath(), 'resources', 'builtin-skills')
+}
+
 /** Log file path. */
 export function logFilePath(): string {
   return path.join(userData(), 'logs', 'main.log')

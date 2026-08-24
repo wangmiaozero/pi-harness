@@ -14,7 +14,7 @@ import { ProviderService } from './services/provider-service'
 import { ModelService } from './services/model-service'
 import { SkillsService } from './services/skills-service'
 import { DiagnosticsService } from './services/diagnostics-service'
-import { registerIpc, broadcastConfigChanged } from './ipc/register'
+import { registerIpc, broadcastConfigChanged, broadcastNotification } from './ipc/register'
 import { createMainWindow } from './window/create-window'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
@@ -30,6 +30,9 @@ import { onUpdateState, startAutomaticUpdates, stopAutomaticUpdates } from './up
 import { IPC_EVENT } from '@shared/ipc/channels'
 import { SkillRegistry } from './capabilities/skill-registry'
 import { CapabilityService } from './capabilities/capability-service'
+import { PiPackageManager } from './packages/package-manager'
+import { BuiltinSkillService } from './skills/builtin-skill-service'
+import { PackageHealthError } from './services/errors'
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'zh-CN',
@@ -103,12 +106,14 @@ async function bootstrap(): Promise<void> {
   await config.read().catch((err) => log.config.warn('initial config read failed:', err))
   const providers = new ProviderService(config, metadata)
   const models = new ModelService(config, metadata)
-  const skills = new SkillsService(settingsStore)
+  const access = new FileAccessService()
+  const packageManager = new PiPackageManager(settingsStore, config, access)
+  const builtinSkills = new BuiltinSkillService(settingsStore, metadata, access)
+  const skills = new SkillsService(settingsStore, packageManager, builtinSkills)
   const skillRegistry = new SkillRegistry(settingsStore, metadata, skills)
   const capabilities = new CapabilityService(metadata, skillRegistry)
-  const diagnostics = new DiagnosticsService(settingsStore, config)
+  const diagnostics = new DiagnosticsService(settingsStore, config, packageManager)
 
-  const access = new FileAccessService()
   const worktrees = new WorktreeService(access)
   const sessions = new SessionService(settingsStore, worktrees, access)
   access.attachSessionLister(() => sessions.list())
@@ -135,11 +140,58 @@ async function bootstrap(): Promise<void> {
     skills,
     capabilities,
     diagnostics,
-    workspace: { access, files, git, worktrees, sessions, sessionExport, agent },
+    workspace: {
+      access,
+      files,
+      git,
+      worktrees,
+      sessions,
+      sessionExport,
+      agent,
+      beforeAgentStart: async (cwd, sessionId) => {
+        const sessionInfo = !cwd && sessionId ? (await sessions.get(sessionId)).info : null
+        const projectRoot = cwd ?? sessionInfo?.projectRoot ?? sessionInfo?.cwd ?? null
+        const risky = (await packageManager.list(projectRoot)).filter(
+          (pkg) =>
+            pkg.registered && ['missing', 'permission-error', 'corrupted'].includes(pkg.health)
+        )
+        if (risky.length) {
+          throw new PackageHealthError(
+            `Pi package startup preflight failed: ${risky.map((pkg) => `${pkg.name} (${pkg.health})`).join(', ')}. Repair or fully uninstall them in Skills > Packages before starting Pi.`,
+            {
+              packages: risky.map((pkg) => ({
+                id: pkg.id,
+                name: pkg.name,
+                health: pkg.health,
+                scope: pkg.scope
+              }))
+            }
+          )
+        }
+      }
+    },
     getMainWindow: () => mainWindow
   })
 
   mainWindow = createMainWindow()
+
+  void packageManager
+    .list()
+    .then((packages) => {
+      const risky = packages.filter(
+        (pkg) => pkg.registered && ['missing', 'permission-error', 'corrupted'].includes(pkg.health)
+      )
+      if (!risky.length) return
+      const chinese = settingsStore.peek().language === 'zh-CN'
+      broadcastNotification(mainWindow, {
+        level: 'warning',
+        title: chinese ? '检测到扩展包启动风险' : 'Package startup risk detected',
+        message: chinese
+          ? `${risky.map((pkg) => pkg.name).join('、')} 需要先修复或彻底卸载。`
+          : `${risky.map((pkg) => pkg.name).join(', ')} must be repaired or fully uninstalled.`
+      })
+    })
+    .catch((error) => log.skills.warn('startup package health check failed', error))
 
   const unsubscribeUpdateState = onUpdateState((state) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
