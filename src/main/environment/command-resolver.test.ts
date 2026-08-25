@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { resolveExecutable } from './command-resolver'
+import { resolveExecutable, resolveLoginShellPath } from './command-resolver'
 
 describe.runIf(process.platform !== 'win32')('login-shell command resolver', () => {
   let sandbox = ''
@@ -34,5 +34,20 @@ describe.runIf(process.platform !== 'win32')('login-shell command resolver', () 
       version: '9.8.7',
       source: 'login-shell'
     })
+  })
+
+  it('loads interactive shell configuration when resolving PATH', async () => {
+    sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-shell-path-'))
+    const expectedPath = path.join(sandbox, 'bin')
+    const shell = path.join(sandbox, 'login-shell')
+    await fs.writeFile(
+      shell,
+      '#!/bin/sh\n[ "$1" = "-ilc" ] || exit 23\nprintf "__PI_HARNESS_PATH__%s\\n" "$PI_HARNESS_TEST_RESOLVED"\n'
+    )
+    await fs.chmod(shell, 0o755)
+    process.env.SHELL = shell
+    process.env.PI_HARNESS_TEST_RESOLVED = expectedPath
+
+    await expect(resolveLoginShellPath()).resolves.toEqual({ shell, path: expectedPath })
   })
 })

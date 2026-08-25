@@ -34,10 +34,11 @@ export function managedNodeBinDirectory(root = managedNodeRoot()): string {
 }
 
 /** Candidate binary directories, including GUI-invisible Node manager paths. */
-export async function nodeToolDirectories(): Promise<string[]> {
+export async function nodeToolDirectories(preferredPath?: string | null): Promise<string[]> {
   const home = homedir()
   const directories = new Set(
     [
+      ...splitSearchPath(preferredPath),
       managedNodeBinDirectory(),
       process.env.NVM_BIN,
       process.env.VOLTA_HOME ? path.join(process.env.VOLTA_HOME, 'bin') : null,
@@ -92,16 +93,24 @@ export function isNodeVersionSupported(version: string | null | undefined): bool
 }
 
 export async function detectNodeRuntime(): Promise<NodeRuntimeInfo> {
-  const directories = await nodeToolDirectories()
+  // Desktop apps inherit a launch-service PATH that can differ from the user's
+  // interactive terminal. Resolve that shell first so version managers and
+  // ~/.zshrc PATH changes win over stale Homebrew/system installations.
+  const loginShell = await resolveLoginShellPath()
+  const directories = await nodeToolDirectories(loginShell.path)
   const managedBin = managedNodeBinDirectory()
+  const loginDirectories = new Set(splitSearchPath(loginShell.path).map(pathIdentity))
   const candidates = directories.map((directory) => ({
     path: directory,
-    source: samePath(directory, managedBin) ? ('managed-runtime' as const) : ('candidate' as const)
+    source: samePath(directory, managedBin)
+      ? ('managed-runtime' as const)
+      : loginDirectories.has(pathIdentity(directory))
+        ? ('login-shell' as const)
+        : ('candidate' as const)
   }))
-  const [node, npm, loginShell] = await Promise.all([
+  const [node, npm] = await Promise.all([
     resolveExecutable('node', { additionalDirectories: candidates }),
-    resolveExecutable('npm', { additionalDirectories: candidates }),
-    resolveLoginShellPath()
+    resolveExecutable('npm', { additionalDirectories: candidates })
   ])
   const nodeInstalled = validResolution(node)
   const npmInstalled = validResolution(npm)
@@ -144,7 +153,17 @@ function validResolution(executable: ResolvedExecutable): boolean {
 }
 
 function samePath(left: string, right: string): boolean {
-  const a = path.resolve(left)
-  const b = path.resolve(right)
-  return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b
+  return pathIdentity(left) === pathIdentity(right)
+}
+
+function pathIdentity(value: string): string {
+  const resolved = path.resolve(value)
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved
+}
+
+function splitSearchPath(value: string | null | undefined): string[] {
+  return (value ?? '')
+    .split(path.delimiter)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
 }

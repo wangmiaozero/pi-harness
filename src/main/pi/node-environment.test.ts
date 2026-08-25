@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { isNodeVersionSupported, normalizeNodeVersion } from './node-environment'
+import path from 'node:path'
+import os from 'node:os'
+import {
+  isNodeVersionSupported,
+  nodeToolDirectories,
+  normalizeNodeVersion
+} from './node-environment'
 
 describe('Node.js version policy', () => {
   it.each([
@@ -16,5 +22,16 @@ describe('Node.js version policy', () => {
   it('normalizes version output without reducing it to a major integer', () => {
     expect(normalizeNodeVersion('node v24.15.0')).toBe('24.15.0')
     expect(normalizeNodeVersion('v22.0.0-rc.1')).toBe('22.0.0-rc.1')
+  })
+
+  it('prioritizes the interactive shell PATH over GUI fallback directories', async () => {
+    const shellBin = path.join(os.tmpdir(), 'pi-harness-shell-node-bin')
+    const shellFallback = path.join(os.tmpdir(), 'pi-harness-shell-fallback-bin')
+
+    const directories = await nodeToolDirectories(
+      [shellBin, shellFallback].join(path.delimiter)
+    )
+
+    expect(directories.slice(0, 2)).toEqual([shellBin, shellFallback])
   })
 })

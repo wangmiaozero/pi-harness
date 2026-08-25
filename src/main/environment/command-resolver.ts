@@ -6,6 +6,8 @@ import type { CommandResolutionSource } from '@shared/ipc/api-types'
 
 const execFileP = promisify(execFile)
 const COMMAND_PATTERN = /^[a-zA-Z0-9._-]+$/
+const LOGIN_SHELL_PATH_MARKER = '__PI_HARNESS_PATH__'
+const LOGIN_SHELL_EXECUTABLE_MARKER = '__PI_HARNESS_EXECUTABLE__'
 
 export interface ResolvedExecutable {
   found: boolean
@@ -68,12 +70,19 @@ export async function resolveLoginShellPath(): Promise<{
   }
   for (const shell of loginShellCandidates()) {
     try {
-      const { stdout } = await execFileP(shell, ['-lc', 'printf "%s" "$PATH"'], {
-        timeout: 8_000,
-        windowsHide: true,
-        env: process.env
-      })
-      const value = String(stdout).trim()
+      const { stdout } = await execFileP(
+        shell,
+        [
+          '-ilc',
+          `printf '\n${LOGIN_SHELL_PATH_MARKER}%s\n' "$PATH"`
+        ],
+        {
+          timeout: 8_000,
+          windowsHide: true,
+          env: process.env
+        }
+      )
+      const value = markedShellOutput(stdout, LOGIN_SHELL_PATH_MARKER)
       if (value) return { shell, path: value }
     } catch {
       // Try the next supported login shell.
@@ -189,10 +198,15 @@ async function resolveFromLoginShell(command: string): Promise<string | null> {
     try {
       const { stdout } = await execFileP(
         shell,
-        ['-lc', 'command -v -- "$1"', 'pi-harness', command],
+        [
+          '-ilc',
+          `candidate=$(command -v -- "$1") || exit $?; printf '\n${LOGIN_SHELL_EXECUTABLE_MARKER}%s\n' "$candidate"`,
+          'pi-harness',
+          command
+        ],
         { timeout: 8_000, windowsHide: true, env: process.env }
       )
-      const candidate = String(stdout).trim().split(/\r?\n/).find(Boolean)?.trim()
+      const candidate = markedShellOutput(stdout, LOGIN_SHELL_EXECUTABLE_MARKER)
       if (candidate && path.isAbsolute(candidate) && (await isExecutableFile(candidate))) {
         return candidate
       }
@@ -260,6 +274,18 @@ function executableNames(command: string): string[] {
 
 function loginShellCandidates(): string[] {
   return [...new Set([process.env.SHELL, '/bin/zsh', '/bin/bash'].filter(Boolean) as string[])]
+}
+
+function markedShellOutput(output: string | Buffer, marker: string): string | null {
+  const lines = String(output).split(/\r?\n/)
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index].trim()
+    if (line.startsWith(marker)) return line.slice(marker.length).trim() || null
+  }
+  return lines
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .at(-1) ?? null
 }
 
 function splitPath(value: string | null | undefined): string[] {
