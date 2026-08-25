@@ -465,10 +465,17 @@ export interface DiagnosticsReport {
   }
 }
 
+export type AccentColor =
+  'blue' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'green' | 'graphite' | 'custom'
+
 export interface AppSettings {
   language: 'auto' | 'zh-CN' | 'en-US'
   theme: 'system' | 'dark' | 'light'
+  accentColor: AccentColor
+  /** Hex color applied only when accentColor === 'custom'. */
+  customAccentColor: string
   density: 'comfortable' | 'compact'
+  aiMotionBorder: boolean
   mascotUnlocked: boolean
   mascotStyle: MascotStyle
   petEnabled: boolean

@@ -62,17 +62,6 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
 
-  /* ---------- Accent (macOS-like, low saturation) ---------- */
-  --accent: #5b91f5;
-  --accent-hover: #6a9cf7;
-  --accent-active: #4a82e8;
-  --accent-tint: rgba(91, 145, 245, 0.13); /* row tint, sidebar selected bg */
-  --accent-tint-soft: rgba(91, 145, 245, 0.08);
-  --accent-tint-strong: rgba(91, 145, 245, 0.22);
-  --accent-border: rgba(91, 145, 245, 0.32);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-
   /* ---------- Semantic (muted, never fluorescent) ---------- */
   --success: #5abf8a;
   --success-tint: rgba(90, 191, 138, 0.12);
@@ -92,8 +81,8 @@
   --surface-info: var(--accent-tint-soft);
 
   /* ---------- Capability tints (for model feature badges) ---------- */
-  --tone-tools-bg: rgba(91, 145, 245, 0.1);
-  --tone-tools-text: #8fb4f8;
+  --tone-tools-bg: rgba(var(--accent-rgb), 0.1);
+  --tone-tools-text: var(--accent);
   --tone-vision-bg: rgba(80, 178, 178, 0.12);
   --tone-vision-text: #6bb6b6;
   --tone-reasoning-bg: rgba(160, 130, 210, 0.12);
@@ -185,16 +174,6 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
 
-  --accent: #2a6fe0;
-  --accent-hover: #1f5dc9;
-  --accent-active: #1850b5;
-  --accent-tint: rgba(42, 111, 224, 0.1);
-  --accent-tint-soft: rgba(42, 111, 224, 0.06);
-  --accent-tint-strong: rgba(42, 111, 224, 0.2);
-  --accent-border: rgba(42, 111, 224, 0.28);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-
   --success: #1f9d63;
   --success-tint: rgba(31, 157, 99, 0.1);
   --warning: #b07a1f;
@@ -211,8 +190,8 @@
   --surface-warning: var(--warning-tint);
   --surface-info: var(--accent-tint-soft);
 
-  --tone-tools-bg: rgba(42, 111, 224, 0.08);
-  --tone-tools-text: #1f5dc9;
+  --tone-tools-bg: rgba(var(--accent-rgb), 0.08);
+  --tone-tools-text: var(--accent);
   --tone-vision-bg: rgba(20, 130, 130, 0.1);
   --tone-vision-text: #147e7e;
   --tone-reasoning-bg: rgba(120, 90, 180, 0.1);
@@ -249,6 +228,124 @@
 
   --focus-ring: 0 0 0 1px var(--accent);
   --focus-ring-offset: 1px;
+}
+
+/* =============================================================================
+ * Accent palette — user-selectable theme color.
+ * Driven by `data-accent` on <html>. Each accent ships a dark + light pair;
+ * tint alphas are theme-aware and derived from --accent-rgb.
+ * ============================================================================= */
+:root {
+  --accent-rgb: 91, 145, 245; /* blue (dark default) */
+  --accent: rgb(var(--accent-rgb));
+  --accent-hover: #6a9cf7;
+  --accent-active: #4a82e8;
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+}
+
+:root[data-accent='purple'] {
+  --accent-rgb: 167, 139, 250;
+  --accent-hover: #b9a7f8;
+  --accent-active: #9072e6;
+}
+:root[data-accent='pink'] {
+  --accent-rgb: 244, 114, 182;
+  --accent-hover: #f493c8;
+  --accent-active: #df5ca2;
+}
+:root[data-accent='red'] {
+  --accent-rgb: 248, 113, 113;
+  --accent-hover: #f58f8f;
+  --accent-active: #de5b5b;
+}
+:root[data-accent='orange'] {
+  --accent-rgb: 251, 146, 60;
+  --accent-hover: #f5a066;
+  --accent-active: #e27a30;
+}
+:root[data-accent='yellow'] {
+  --accent-rgb: 234, 179, 8;
+  --accent-hover: #eac452;
+  --accent-active: #c99c0a;
+}
+:root[data-accent='green'] {
+  --accent-rgb: 52, 211, 153;
+  --accent-hover: #5ed9ad;
+  --accent-active: #2dba8c;
+}
+:root[data-accent='graphite'] {
+  --accent-rgb: 138, 145, 158;
+  --accent-hover: #a8afbc;
+  --accent-active: #79818e;
+}
+
+/* Light theme — higher-saturation accents for contrast on light surfaces. */
+:root[data-theme='light'] {
+  --accent-rgb: 42, 111, 224;
+  --accent-hover: #1f5dc9;
+  --accent-active: #1850b5;
+}
+:root[data-theme='light'][data-accent='purple'] {
+  --accent-rgb: 124, 58, 237;
+  --accent-hover: #6d28d9;
+  --accent-active: #5b21b6;
+}
+:root[data-theme='light'][data-accent='pink'] {
+  --accent-rgb: 219, 39, 119;
+  --accent-hover: #be185d;
+  --accent-active: #9d174d;
+}
+:root[data-theme='light'][data-accent='red'] {
+  --accent-rgb: 220, 38, 38;
+  --accent-hover: #b91c1c;
+  --accent-active: #991b1b;
+}
+:root[data-theme='light'][data-accent='orange'] {
+  --accent-rgb: 234, 88, 12;
+  --accent-hover: #c2410c;
+  --accent-active: #9a3412;
+}
+:root[data-theme='light'][data-accent='yellow'] {
+  --accent-rgb: 202, 138, 4;
+  --accent-hover: #a16207;
+  --accent-active: #854d0e;
+}
+:root[data-theme='light'][data-accent='green'] {
+  --accent-rgb: 5, 150, 105;
+  --accent-hover: #047857;
+  --accent-active: #065f46;
+}
+:root[data-theme='light'][data-accent='graphite'] {
+  --accent-rgb: 95, 102, 114;
+  --accent-hover: #6b7280;
+  --accent-active: #4b5563;
+}
+
+/* Tint ladder — theme-aware alphas over the resolved accent rgb. */
+:root,
+:root[data-theme='dark'] {
+  --accent-tint: rgba(var(--accent-rgb), 0.13);
+  --accent-tint-soft: rgba(var(--accent-rgb), 0.08);
+  --accent-tint-strong: rgba(var(--accent-rgb), 0.22);
+  --accent-border: rgba(var(--accent-rgb), 0.32);
+}
+:root[data-theme='light'] {
+  --accent-tint: rgba(var(--accent-rgb), 0.1);
+  --accent-tint-soft: rgba(var(--accent-rgb), 0.06);
+  --accent-tint-strong: rgba(var(--accent-rgb), 0.2);
+  --accent-border: rgba(var(--accent-rgb), 0.28);
+}
+
+/* Custom accent — hover/active derived from the picked color via color-mix.
+ * Dark surfaces brighten on hover; light surfaces darken. */
+:root[data-accent='custom'] {
+  --accent-hover: color-mix(in srgb, var(--accent) 85%, white);
+  --accent-active: color-mix(in srgb, var(--accent) 82%, black);
+}
+:root[data-theme='light'][data-accent='custom'] {
+  --accent-hover: color-mix(in srgb, var(--accent) 85%, black);
+  --accent-active: color-mix(in srgb, var(--accent) 72%, black);
 }
 
 /* =============================================================================

@@ -2,31 +2,83 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { LayoutDashboard, Box, Cpu, Activity, Settings, Sparkles, FileCode2, SquareTerminal } from '@lucide/vue'
+import {
+  LayoutDashboard,
+  Box,
+  Cpu,
+  Activity,
+  Settings,
+  Sparkles,
+  FileCode2,
+  SquareTerminal
+} from '@lucide/vue'
 
 const route = useRoute()
 const { t } = useI18n()
 
 const navItems = computed(() => [
-  { name: 'overview', to: '/', icon: LayoutDashboard, label: t('nav.overview'), short: t('navShort.overview') },
-  { name: 'workspace', to: '/workspace', icon: SquareTerminal, label: t('nav.workspace'), short: t('navShort.workspace') },
-  { name: 'providers', to: '/providers', icon: Box, label: t('nav.providers'), short: t('navShort.providers') },
+  {
+    name: 'workspace',
+    to: '/workspace',
+    icon: SquareTerminal,
+    label: t('nav.workspace'),
+    short: t('navShort.workspace')
+  },
+  {
+    name: 'overview',
+    to: '/overview',
+    icon: LayoutDashboard,
+    label: t('nav.overview'),
+    short: t('navShort.overview')
+  },
+  {
+    name: 'providers',
+    to: '/providers',
+    icon: Box,
+    label: t('nav.providers'),
+    short: t('navShort.providers')
+  },
   { name: 'models', to: '/models', icon: Cpu, label: t('nav.models'), short: t('navShort.models') },
-  { name: 'skills', to: '/skills', icon: Sparkles, label: t('nav.skills'), short: t('navShort.skills') },
-  { name: 'config', to: '/config', icon: FileCode2, label: t('nav.config'), short: t('navShort.config') },
-  { name: 'diagnostics', to: '/diagnostics', icon: Activity, label: t('nav.diagnostics'), short: t('navShort.diagnostics') },
-  { name: 'settings', to: '/settings', icon: Settings, label: t('nav.settings'), short: t('navShort.settings') }
+  {
+    name: 'skills',
+    to: '/skills',
+    icon: Sparkles,
+    label: t('nav.skills'),
+    short: t('navShort.skills')
+  },
+  {
+    name: 'config',
+    to: '/config',
+    icon: FileCode2,
+    label: t('nav.config'),
+    short: t('navShort.config')
+  },
+  {
+    name: 'diagnostics',
+    to: '/diagnostics',
+    icon: Activity,
+    label: t('nav.diagnostics'),
+    short: t('navShort.diagnostics')
+  },
+  {
+    name: 'settings',
+    to: '/settings',
+    icon: Settings,
+    label: t('nav.settings'),
+    short: t('navShort.settings')
+  }
 ])
 
 function isActive(path: string): boolean {
-  if (path === '/') return route.path === '/'
   return route.path.startsWith(path)
 }
 </script>
 
 <template>
   <!-- 50px icon rail. Labels live in title + sr-only so hover / a11y / e2e still work. -->
-  <aside class="flex w-[var(--sidebar-width)] shrink-0 flex-col items-center bg-[var(--bg-sidebar)]">
+  <aside
+    class="flex w-[var(--sidebar-width)] shrink-0 flex-col items-center bg-[var(--bg-sidebar)]"
+  >
     <nav class="flex w-full flex-1 flex-col items-center gap-1 px-1 pt-2">
       <RouterLink
         v-for="item in navItems"

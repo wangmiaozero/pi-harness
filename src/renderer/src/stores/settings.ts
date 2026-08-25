@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import type { AppSettings, BackupRecord } from '@shared/ipc/api-types'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { i18n, resolveLocale } from '@renderer/i18n'
-import { watchSystemTheme, type ThemePreference } from '@renderer/utils/theme'
+import { watchSystemTheme, applyAccent, type ThemePreference } from '@renderer/utils/theme'
 import { normalizeMascotStyle } from '@shared/constants/mascot'
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -21,10 +21,14 @@ export const useSettingsStore = defineStore('settings', () => {
       // Product default language is zh-CN; migrate bare defaults once.
       if (!next.language) next.language = 'zh-CN'
       next.mascotStyle = normalizeMascotStyle(next.mascotStyle)
+      next.aiMotionBorder ??= true
+      next.accentColor ??= 'blue'
+      next.customAccentColor ??= '#5b91f5'
       normalizePetSettings(next)
       settings.value = next
       applyLocale(settings.value.language)
       applyThemePrefs(settings.value.theme)
+      applyAccentPrefs(settings.value)
     } catch (e) {
       error.value = (e as { message?: string }).message ?? String(e)
     } finally {
@@ -38,6 +42,7 @@ export const useSettingsStore = defineStore('settings', () => {
     normalizePetSettings(settings.value)
     applyLocale(settings.value.language)
     applyThemePrefs(settings.value.theme)
+    applyAccentPrefs(settings.value)
     return settings.value
   }
 
@@ -53,6 +58,10 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function applyThemePrefs(theme: AppSettings['theme']) {
     watchSystemTheme(theme as ThemePreference)
+  }
+
+  function applyAccentPrefs(settingsValue: AppSettings): void {
+    applyAccent(settingsValue.accentColor, settingsValue.customAccentColor)
   }
 
   function normalizePetSettings(value: AppSettings): void {

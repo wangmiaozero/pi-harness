@@ -56,21 +56,21 @@ onBeforeUnmount(() => {
 const commands = computed<PaletteCommand[]>(() => {
   const cmds: PaletteCommand[] = [
     {
-      id: 'nav-overview',
-      label: t('palette.goOverview'),
-      group: t('palette.groupNav'),
-      keywords: 'home dashboard',
-      run: () => {
-        void router.push('/')
-      }
-    },
-    {
       id: 'nav-workspace',
       label: t('palette.goWorkspace'),
       group: t('palette.groupNav'),
       keywords: 'chat session agent',
       run: () => {
         void router.push('/workspace')
+      }
+    },
+    {
+      id: 'nav-overview',
+      label: t('palette.goOverview'),
+      group: t('palette.groupNav'),
+      keywords: 'home dashboard',
+      run: () => {
+        void router.push('/overview')
       }
     },
     {

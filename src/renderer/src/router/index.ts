@@ -5,6 +5,10 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      redirect: '/workspace'
+    },
+    {
+      path: '/overview',
       name: 'overview',
       component: () => import('@renderer/views/OverviewView.vue'),
       meta: { title: 'Overview', i18nKey: 'nav.overview' }
@@ -53,7 +57,7 @@ const router = createRouter({
     },
     {
       path: '/:pathMatch(.*)*',
-      redirect: '/'
+      redirect: '/workspace'
     }
   ]
 })

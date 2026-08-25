@@ -13,13 +13,14 @@ import { useSettingsStore } from '@renderer/stores/settings'
 import { useAgentStore } from '@renderer/stores/agent'
 import { getApi } from '@renderer/composables/useApi'
 import { toast } from 'vue-sonner'
-import { applyTheme } from '@renderer/utils/theme'
+import { applyTheme, applyAccent } from '@renderer/utils/theme'
 import { installAuthorWatermark } from '@renderer/utils/author-watermark'
 import type { AppUpdateState } from '@shared/ipc/api-types'
 import { usePetStore } from '@renderer/stores/pet'
 import { installPetRuntimeAdapter } from '@renderer/pet/install-runtime-adapter'
 
 applyTheme('dark')
+applyAccent('blue')
 installAuthorWatermark()
 
 const app = createApp(App)

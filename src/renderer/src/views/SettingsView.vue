@@ -30,6 +30,7 @@ import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { formatDateTime, formatBytes } from '@renderer/utils/format'
 import { DEFAULT_MASCOT_STYLE, MASCOT_STYLES } from '@shared/constants/mascot'
 import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
+import { ACCENT_COLORS } from '@renderer/utils/theme'
 import PetDebug from '@renderer/components/pet/PetDebug.vue'
 
 const { t, locale } = useI18n()
@@ -73,7 +74,10 @@ const updateMessage = computed(() => {
 const draft = ref<AppSettings>({
   language: 'zh-CN',
   theme: 'dark',
+  accentColor: 'blue',
+  customAccentColor: '#5b91f5',
   density: 'comfortable',
+  aiMotionBorder: true,
   mascotUnlocked: false,
   mascotStyle: DEFAULT_MASCOT_STYLE,
   petEnabled: false,
@@ -134,6 +138,31 @@ const themeOptions = computed(() => [
   { value: 'dark', label: t('settings.themeDark') },
   { value: 'light', label: t('settings.themeLight') }
 ])
+
+const accentOptions = computed(() => [
+  ...ACCENT_COLORS.map((color) => ({
+    value: color.id,
+    label: t(`settings.accent${color.id.charAt(0).toUpperCase()}${color.id.slice(1)}`),
+    swatch: color.swatch
+  })),
+  { value: 'custom', label: t('settings.accentCustom'), swatch: draft.value.customAccentColor }
+])
+
+/** 自定义色 hex 输入，仅接受 #rgb / #rrggbb。 */
+const customAccentHexText = computed({
+  get: () => draft.value.customAccentColor,
+  set: (v: string) => {
+    const hex = v.trim().replace(/^#/, '')
+    const full =
+      hex.length === 3
+        ? hex
+            .split('')
+            .map((c) => c + c)
+            .join('')
+        : hex
+    if (/^[0-9a-fA-F]{6}$/.test(full)) draft.value.customAccentColor = `#${full.toLowerCase()}`
+  }
+})
 
 const densityOptions = computed(() => [
   { value: 'comfortable', label: t('settings.densityComfortable') },
@@ -379,11 +408,50 @@ onBeforeUnmount(stopUpdateListener)
               layout="row"
             />
             <Select
+              v-model="draft.accentColor"
+              :label="$t('settings.accentColor')"
+              :options="accentOptions"
+              layout="row"
+            />
+            <div
+              v-if="draft.accentColor === 'custom'"
+              class="grid grid-cols-[132px_minmax(0,1fr)] items-center gap-x-4 gap-y-1 px-3 py-2"
+            >
+              <label
+                for="accent-custom-color"
+                class="text-[11.5px] font-medium text-[var(--text-secondary)]"
+              >
+                {{ $t('settings.customAccentColor') }}
+              </label>
+              <div class="flex items-center gap-2">
+                <input
+                  id="accent-custom-color"
+                  v-model="draft.customAccentColor"
+                  type="color"
+                  class="h-[var(--height-input)] w-10 shrink-0 cursor-pointer rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] p-0.5 transition-[border-color,box-shadow] hover:border-[var(--control-border-hover)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
+                  :aria-label="$t('settings.customAccentColor')"
+                />
+                <input
+                  v-model="customAccentHexText"
+                  type="text"
+                  placeholder="#5b91f5"
+                  maxlength="7"
+                  spellcheck="false"
+                  class="h-[var(--height-input)] w-28 rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 font-[family-name:var(--font-mono)] text-[12px] text-[var(--text-primary)] shadow-[var(--control-shadow)] placeholder:text-[var(--control-placeholder)] hover:border-[var(--control-border-hover)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
+                />
+              </div>
+            </div>
+            <Select
               v-model="draft.density"
               :label="$t('settings.density')"
               :options="densityOptions"
               layout="row"
             />
+            <PropertyRow :label="$t('settings.aiMotionBorder')">
+              <div class="flex items-center justify-end">
+                <Switch v-model="draft.aiMotionBorder" :label="$t('settings.aiMotionBorder')" />
+              </div>
+            </PropertyRow>
           </div>
         </InspectorSection>
 

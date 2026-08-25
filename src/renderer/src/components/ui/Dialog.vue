@@ -2,6 +2,7 @@
 import {
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogOverlay,
   DialogPortal,
   DialogRoot,
@@ -41,9 +42,14 @@ function preventImplicitClose(event: Event) {
             <DialogTitle class="text-[14px] font-semibold text-[var(--text-primary)]">
               {{ title }}
             </DialogTitle>
-            <p v-if="description" class="mt-0.5 text-[12px] text-[var(--text-secondary)]">
+            <DialogDescription
+              v-if="description"
+              class="mt-0.5 text-[12px] text-[var(--text-secondary)]"
+            >
               {{ description }}
-            </p>
+            </DialogDescription>
+            <!-- 无描述时也提供隐藏描述，满足 Dialog 的可访问性要求。 -->
+            <DialogDescription v-else class="sr-only">{{ title }}</DialogDescription>
           </div>
           <DialogClose
             class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"

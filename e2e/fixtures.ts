@@ -44,6 +44,9 @@ export const test = base.extend<Fixtures>({
         ELECTRON_RUN_AS_NODE: undefined,
         PI_HARNESS_PI_CLI_PATH: path.join(userData, 'missing-pi-cli'),
         PI_HARNESS_PI_CONFIG_DIR: isolatedPi,
+        /* Pi SDK 自身的 agent 目录（sessions/models/settings 等）也要隔离到 mock-pi，
+         * 否则 SessionManager.listAll 会读真实 ~/.pi/agent 数据。 */
+        PI_CODING_AGENT_DIR: isolatedPi,
         PI_HARNESS_USER_DATA: userData,
         PI_HARNESS_CAPABILITY_FIXTURES_DIR: capabilityFixtures,
         PI_HARNESS_BUILTIN_SKILLS_DIR: path.join(root, 'resources', 'builtin-skills')

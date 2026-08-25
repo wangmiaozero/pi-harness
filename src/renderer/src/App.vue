@@ -9,7 +9,13 @@ import AiMotionBorder from '@renderer/components/ui/AiMotionBorder.vue'
 import { Toaster } from 'vue-sonner'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useAgentStore } from '@renderer/stores/agent'
-import { applyTheme, watchSystemTheme, type ThemePreference } from '@renderer/utils/theme'
+import {
+  applyTheme,
+  applyAccent,
+  watchSystemTheme,
+  type ThemePreference
+} from '@renderer/utils/theme'
+import type { AccentColor } from '@shared/ipc/api-types'
 import { installShortcutListener, registerShortcut } from '@renderer/composables/shortcuts'
 import { shouldActivateAiMotionFrame } from '@renderer/composables/useAiMotionFrame'
 
@@ -18,13 +24,15 @@ const agent = useAgentStore()
 const router = useRouter()
 const paletteOpen = ref(false)
 
-const appMotionActive = computed(() =>
-  shouldActivateAiMotionFrame({
-    sending: agent.sending,
-    runningAgentCount: agent.runningIds.length,
-    streaming: agent.streaming.isStreaming,
-    promptRunning: agent.state?.isPromptRunning === true
-  })
+const appMotionActive = computed(
+  () =>
+    settings.settings?.aiMotionBorder !== false &&
+    shouldActivateAiMotionFrame({
+      sending: agent.sending,
+      runningAgentCount: agent.runningIds.length,
+      streaming: agent.streaming.isStreaming,
+      promptRunning: agent.state?.isPromptRunning === true
+    })
 )
 
 const toasterTheme = computed(() => {
@@ -49,6 +57,17 @@ watch(
   () => settings.settings?.density,
   (density) => {
     document.documentElement.dataset.density = density ?? 'comfortable'
+  },
+  { immediate: true }
+)
+
+watch(
+  (): [AccentColor | undefined, string | undefined] => [
+    settings.settings?.accentColor,
+    settings.settings?.customAccentColor
+  ],
+  ([accent, customHex]) => {
+    applyAccent(accent, customHex)
   },
   { immediate: true }
 )

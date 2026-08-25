@@ -153,6 +153,30 @@ select optgroup {
  * Global interaction primitives
  * ============================================================================= */
 
+/*
+ * 统一可交互元素的鼠标语义，并保留 Tailwind 工具类覆盖特殊状态的能力。
+ * 原生 disabled 已阻止触发事件，不应再通过 pointer-events 隐藏禁用态光标。
+ */
+@layer base {
+  :where(
+    button:not(:disabled),
+    a[href],
+    summary,
+    [role='button']:not([aria-disabled='true']),
+    [role='link']:not([aria-disabled='true']),
+    [role='menuitem']:not([aria-disabled='true']),
+    [role='option']:not([aria-disabled='true']),
+    [role='switch']:not([aria-disabled='true']),
+    [role='tab']:not([aria-disabled='true'])
+  ) {
+    cursor: pointer;
+  }
+
+  :where(button:disabled, [aria-disabled='true']) {
+    cursor: not-allowed;
+  }
+}
+
 /* One focus ring to rule them all. 1px accent, no glow. Apply via class
  * .pi-focusable or via :focus-visible. */
 :focus {

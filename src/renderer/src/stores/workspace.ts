@@ -359,9 +359,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       if (snap.pickedCwd && !removedProjects.has(projectIdentityKey(snap.pickedCwd))) {
         pickedCwd.value = snap.pickedCwd
       }
-      if (snap.projectKey && !removedProjects.has(snap.projectKey)) {
-        sessions.selectProjectKey(snap.projectKey)
-      }
+      /* 上次未选中项目时也显式清空，避免 sessions.refresh 的自动选中残留。 */
+      const projectKey =
+        snap.projectKey && !removedProjects.has(snap.projectKey) ? snap.projectKey : null
+      sessions.selectProjectKey(projectKey)
     }
     if (opts.restoreTabs && snap.tabs?.length) {
       const archived = new Set(archivedSessionIds.value)

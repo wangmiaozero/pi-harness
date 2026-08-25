@@ -35,9 +35,6 @@ const dragActive = ref(false)
 let dragDepth = 0
 
 const projects = computed(() => workspace.projects)
-const newChatActive = computed(
-  () => workspace.activeTab?.kind === 'chat' && workspace.activeTab.sessionId === 'new'
-)
 const newSessionLabel = computed(() =>
   workspace.canChat ? t('workspace.newSession') : t('workspace.newSessionRequiresProject')
 )
@@ -293,26 +290,24 @@ defineExpose({ pickProject })
       </p>
       <div class="flex items-center">
         <IconButton
-          variant="accent"
-          :active="newChatActive"
           :disabled="!workspace.canChat"
           :label="newSessionLabel"
-          :aria-pressed="newChatActive"
+          class="border-0!"
           data-testid="workspace-new-session"
           @click="newSession"
         >
           <Plus class="size-3.5" :stroke-width="1.75" />
         </IconButton>
-        <IconButton :label="$t('common.refresh')" @click="sessions.refresh(true)">
+        <IconButton :label="$t('common.refresh')" class="border-0!" @click="sessions.refresh(true)">
           <RefreshCw class="size-3.5" :stroke-width="1.75" />
         </IconButton>
-        <IconButton :label="$t('workspace.openProject')" @click="pickProject">
+        <IconButton :label="$t('workspace.openProject')" class="border-0!" @click="pickProject">
           <FolderOpen class="size-3.5" :stroke-width="1.75" />
         </IconButton>
       </div>
     </div>
 
-    <div class="flex border-b border-[var(--border-subtle)] px-1 py-1">
+    <div class="flex gap-1 border-b border-[var(--border-subtle)] px-1 py-1">
       <button
         v-for="item in [
           { id: 'sessions', label: $t('workspace.sessions') },

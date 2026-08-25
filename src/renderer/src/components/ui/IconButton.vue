@@ -30,7 +30,7 @@ const classes = computed(() => {
     sizing +
     ' transition-[color,background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] ' +
     'focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] ' +
-    'disabled:opacity-40 disabled:pointer-events-none'
+    'disabled:opacity-40'
 
   if (props.active) {
     return (

@@ -38,7 +38,10 @@ import { EnvironmentManager } from './environment/environment-manager'
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'zh-CN',
   theme: 'dark',
+  accentColor: 'blue',
+  customAccentColor: '#5b91f5',
   density: 'comfortable',
+  aiMotionBorder: true,
   mascotUnlocked: false,
   mascotStyle: DEFAULT_MASCOT_STYLE,
   petEnabled: false,

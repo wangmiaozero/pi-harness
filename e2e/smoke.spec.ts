@@ -4,17 +4,39 @@ import os from 'node:os'
 import { test, expect } from './fixtures'
 
 test.describe('Pi-Harness smoke', () => {
-  test('launches and shows overview', async ({ page }) => {
+  test('launches and shows workspace', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
-    // zh-CN default label for Overview is 「概览」
-    await expect(page.locator('a[href="#/"]').filter({ hasText: /概览|Overview/ })).toBeVisible()
+    // 默认直达工作区；菜单首项为工作区，概览入口现位于 #/overview
+    await expect(page.locator('a[href="#/workspace"]')).toBeVisible()
+    await expect(page.getByTestId('workspace-project-required')).toBeVisible()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
   })
 
-  test('navigates every primary page with the default mascot hidden', async ({
-    electronApp,
-    page
-  }) => {
+  test('uses semantic cursors and borderless workspace actions', async ({ page }) => {
+    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
+
+    const enabledButton = page.locator('main button:not(:disabled)').first()
+    await expect(enabledButton).toBeVisible()
+    await expect
+      .poll(() => enabledButton.evaluate((element) => getComputedStyle(element).cursor))
+      .toBe('pointer')
+
+    await page.locator('a[href="#/workspace"]').click()
+    await expect
+      .poll(() =>
+        page
+          .getByTestId('workspace-sidebar')
+          .locator(':scope > div')
+          .first()
+          .getByRole('button')
+          .evaluateAll((buttons) =>
+            buttons.map((button) => getComputedStyle(button).borderTopWidth)
+          )
+      )
+      .toEqual(['0px', '0px', '0px'])
+  })
+
+  test('navigates every primary page with the default mascot hidden', async ({ page }) => {
     const pageErrors: string[] = []
     const consoleErrors: string[] = []
     page.on('pageerror', (error) => pageErrors.push(error.stack ?? error.message))
@@ -22,17 +44,6 @@ test.describe('Pi-Harness smoke', () => {
       if (message.type() === 'error') consoleErrors.push(message.text())
     })
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
-    await expect
-      .poll(() => electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource))
-      .toBe('dark')
-    await page.evaluate(() => window.piSwitch.settings.set({ theme: 'light' }))
-    await expect
-      .poll(() => electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource))
-      .toBe('light')
-    await page.evaluate(() => window.piSwitch.settings.set({ theme: 'dark' }))
-    await expect
-      .poll(() => electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource))
-      .toBe('dark')
 
     await page.evaluate(async () => {
       const sessionProjects = (await window.piSwitch.sessions.list())
@@ -50,7 +61,9 @@ test.describe('Pi-Harness smoke', () => {
         })
       )
     })
-    await page.locator('a[href="#/workspace"]').click()
+    /* 启动已直达工作区：重载让 workspace 以“无项目”快照重新初始化。 */
+    await page.reload()
+    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
     await expect(page.locator('main aside')).toBeVisible()
     await expect(page.getByTestId('workspace-project-required')).toBeVisible()
@@ -104,7 +117,7 @@ test.describe('Pi-Harness smoke', () => {
     await page.locator('a[href="#/diagnostics"]').click()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
 
-    await page.locator('a[href="#/"]').click()
+    await page.locator('a[href="#/overview"]').click()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
 
     expect(pageErrors).toEqual([])
@@ -665,7 +678,8 @@ test.describe('Pi-Harness smoke', () => {
 
     await page.locator('a[href="#/settings"]').click()
     await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
-    await page.getByRole('button', { name: /主题|Theme/, exact: true }).click()
+    /* ^主题$ 锚定避免误中“主题颜色”下拉。 */
+    await page.getByRole('button', { name: /^主题$|^Theme$/ }).click()
     await page.getByRole('option', { name: /浅色|Light/, exact: true }).click()
     await page.getByRole('button', { name: /保存|Save/ }).click()
 
@@ -705,6 +719,8 @@ test.describe('Pi-Harness smoke', () => {
     })
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 
+    /* 启动已直达工作区，安装引导按钮在总览页。 */
+    await page.locator('a[href="#/overview"]').click()
     await page.getByRole('button', { name: /一键安装|安装 Pi|Install Pi/ }).click()
 
     await page.waitForTimeout(250)

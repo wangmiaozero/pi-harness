@@ -28,7 +28,7 @@ const classes = computed(() => {
     'relative inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-sm)] font-medium select-none whitespace-nowrap ' +
     'transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] ' +
     'focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] ' +
-    'disabled:opacity-45 disabled:pointer-events-none'
+    'disabled:opacity-45'
 
   const sizes = {
     sm: 'h-[var(--height-button)] px-2 text-[12px]',

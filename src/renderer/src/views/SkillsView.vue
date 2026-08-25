@@ -1167,9 +1167,7 @@ function resourceGroups(pkg: PiPackageInfo) {
     <div class="flex min-h-0 flex-1">
       <div class="flex min-h-0 w-[320px] shrink-0 flex-col border-r border-[var(--border-subtle)]">
         <div class="border-b border-[var(--border-subtle)] p-2.5">
-          <div
-            class="mb-2 grid grid-cols-3 rounded-[var(--radius-sm)] bg-[var(--bg-surface)] p-0.5"
-          >
+          <div class="mb-2 grid grid-cols-3 gap-1 rounded-[var(--radius-sm)] p-0.5">
             <button
               v-for="item in [
                 { id: 'skills', label: $t('skills.tabSkills'), icon: Sparkles },
@@ -1181,8 +1179,8 @@ function resourceGroups(pkg: PiPackageInfo) {
               class="flex h-7 items-center justify-center gap-1 rounded-[4px] text-[11px] font-medium transition-colors"
               :class="
                 mode === item.id
-                  ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
-                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
+                  : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]'
               "
               @click="mode = item.id"
             >

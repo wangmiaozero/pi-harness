@@ -8,7 +8,7 @@ const props = withDefaults(
   defineProps<{
     label?: string
     disabled?: boolean
-    options: { value: string; label: string }[]
+    options: { value: string; label: string; swatch?: string }[]
     hint?: string
     error?: string
     layout?: 'stacked' | 'row'
@@ -140,6 +140,11 @@ watch(open, (v) => {
         class="min-w-0 flex-1 truncate"
         :class="selected ? '' : 'text-[var(--control-placeholder)]'"
       >
+        <span
+          v-if="selected?.swatch"
+          class="mr-1.5 inline-block size-2.5 rounded-full align-[-1px]"
+          :style="{ backgroundColor: selected.swatch }"
+        />
         {{ selected?.label || placeholder || '' }}
       </span>
       <ChevronDown
@@ -181,6 +186,11 @@ watch(open, (v) => {
             class="min-w-0 truncate"
             :class="mono ? 'font-[family-name:var(--font-mono)] text-[12px]' : ''"
           >
+            <span
+              v-if="opt.swatch"
+              class="mr-1.5 inline-block size-2.5 rounded-full align-[-1px]"
+              :style="{ backgroundColor: opt.swatch }"
+            />
             {{ opt.label }}
           </span>
           <Check
