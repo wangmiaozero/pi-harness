@@ -111,4 +111,29 @@ describe('MessageView', () => {
     await details.get('summary').trigger('click')
     expect((details.element as HTMLDetailsElement).open).toBe(false)
   })
+
+  it('shows assistant API errors when the model returns no content', () => {
+    const message: AssistantMessage = {
+      role: 'assistant',
+      model: 'glm-5.3',
+      provider: 'volcengine',
+      content: [],
+      stopReason: 'error',
+      errorMessage: '404 status code (no body)'
+    }
+
+    const wrapper = mount(MessageView, {
+      props: { message },
+      global: {
+        mocks: { $t: (key: string) => key },
+        stubs: {
+          BranchNavigator: true,
+          Dialog: true,
+          ToolCallView: true
+        }
+      }
+    })
+
+    expect(wrapper.get('[data-testid="assistant-error"]').text()).toBe('404 status code (no body)')
+  })
 })

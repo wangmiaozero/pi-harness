@@ -13,6 +13,7 @@ import type {
 } from '@shared/types/workspace'
 import {
   INITIAL_STREAMING_STATE,
+  assistantHasRenderableContent,
   streamReducer,
   type StreamingState
 } from '@shared/workspace/streaming-message'
@@ -85,12 +86,31 @@ export const useAgentStore = defineStore('agent', () => {
       case 'message_update': {
         const delta = event.assistantMessageEvent as ClientAssistantMessageEvent | undefined
         if (delta) streaming.value = streamReducer(streaming.value, { type: 'delta', event: delta })
+        const snapshot = event.message as AgentMessage | undefined
+        if (
+          snapshot?.role === 'assistant' &&
+          assistantHasRenderableContent(snapshot) &&
+          !assistantHasRenderableContent(streaming.value.streamingMessage)
+        ) {
+          streaming.value = streamReducer(streaming.value, { type: 'snapshot', message: snapshot })
+        }
         break
       }
       case 'message_end': {
         const completed = event.message as AgentMessage | undefined
         if (completed && completed.role !== 'user') {
-          messages.value = [...messages.value, normalizeToolCalls(completed)]
+          const live = streaming.value.streamingMessage
+          const stored =
+            completed.role === 'assistant' &&
+            !assistantHasRenderableContent(completed) &&
+            live &&
+            assistantHasRenderableContent(live)
+              ? live
+              : completed
+          messages.value = [...messages.value, normalizeToolCalls(stored)]
+          if (stored.role === 'assistant' && stored.errorMessage) {
+            error.value = String(stored.errorMessage)
+          }
         } else if (completed?.role === 'user') {
           const last = messages.value.at(-1)
           if (!(last?.role === 'user' && userText(last) === userText(completed))) {

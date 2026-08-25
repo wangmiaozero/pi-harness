@@ -14,6 +14,7 @@ import {
   RefreshCw
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+import { getApi } from '@renderer/composables/useApi'
 import type {
   ProviderProfile,
   ConnectionTestResult,
@@ -43,8 +44,11 @@ import Combobox from '@renderer/components/ui/Combobox.vue'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useModelsStore } from '@renderer/stores/models'
 import { formatRelativeTime } from '@renderer/utils/format'
-
-type ApiKeyUiKind = 'none' | 'literal' | 'env' | 'command' | 'keychain' | 'stored'
+import {
+  apiKeyKindsForPlatform,
+  rendererPlatformHint,
+  type ApiKeyUiKind
+} from '@renderer/utils/provider-credentials'
 
 /** Sentinel shown in the password field when a secret already exists (never submitted as a real key). */
 const KEY_MASK = '••••••••••••••••'
@@ -73,6 +77,9 @@ const defaultModelIdStr = ref('')
 const query = ref('')
 const presetSearch = ref('')
 const activePreset = ref<ProviderPreset | null>(null)
+const platform = ref(
+  rendererPlatformHint(typeof navigator === 'undefined' ? undefined : navigator.platform)
+)
 const discoveredModels = ref<DiscoveredProviderModel[]>([])
 const discoveredSource = ref('')
 const discoveringModels = ref(false)
@@ -186,14 +193,17 @@ const selectedDefaultModel = computed(() => {
   return discovered ? { ...discovered, contextWindow: null, maxOutputTokens: null } : undefined
 })
 
-const apiKeyTypeOptions = computed(() => [
-  { value: 'none', label: t('providers.keyTypeNone') },
-  { value: 'literal', label: t('providers.keyTypeLiteral') },
-  { value: 'env', label: t('providers.keyTypeEnv') },
-  { value: 'command', label: t('providers.keyTypeCommand') },
-  { value: 'keychain', label: t('providers.keyTypeKeychain') },
-  { value: 'stored', label: t('providers.keyTypeStored') }
-])
+const apiKeyTypeOptions = computed(() => {
+  const labels: Record<ApiKeyUiKind, string> = {
+    none: t('providers.keyTypeNone'),
+    literal: t('providers.keyTypeLiteral'),
+    env: t('providers.keyTypeEnv'),
+    command: t('providers.keyTypeCommand'),
+    keychain: t('providers.keyTypeKeychain'),
+    stored: t('providers.keyTypeStored')
+  }
+  return apiKeyKindsForPlatform(platform.value).map((value) => ({ value, label: labels[value] }))
+})
 
 const isEditing = computed(() => editingKey.value !== null)
 
@@ -379,7 +389,11 @@ function openEdit(provider: ProviderProfile) {
   } else if (spec.kind === 'env') {
     apiKeyKind.value = 'env'
     apiKeyValue.value = spec.envRef ?? ''
-  } else if (spec.kind === 'command' && isKeychainCommand(spec.command)) {
+  } else if (
+    platform.value === 'darwin' &&
+    spec.kind === 'command' &&
+    isKeychainCommand(spec.command)
+  ) {
     // Keychain !security … — NEVER dump the raw command into the value field
     apiKeyKind.value = 'keychain'
     preservedCommand.value = spec.command ?? null
@@ -705,7 +719,7 @@ function keyBadge(provider: ProviderProfile): string {
   if (!spec) return t('providers.keyTypeNone')
   if (spec.kind === 'stored') return t('providers.keyTypeStored')
   if (spec.kind === 'env') return t('providers.keyTypeEnv')
-  if (spec.kind === 'command' && isKeychainCommand(spec.command))
+  if (platform.value === 'darwin' && spec.kind === 'command' && isKeychainCommand(spec.command))
     return t('providers.keyTypeKeychain')
   if (spec.kind === 'command') return t('providers.keyTypeCommand')
   return t('providers.keyTypeLiteral')
@@ -728,9 +742,18 @@ const filteredProviders = computed(() => {
   })
 })
 
+async function loadPlatform(): Promise<void> {
+  try {
+    platform.value = (await getApi().system.info()).platform
+  } catch {
+    // Keep the synchronous navigator-derived hint when the bridge is unavailable.
+  }
+}
+
 onMounted(() => {
   void providersStore.fetchList()
   void modelsStore.fetchList()
+  void loadPlatform()
 })
 </script>
 

@@ -36,8 +36,14 @@ function updateContentBlock(
   }
 }
 
+function contentIndexOf(event: ClientAssistantMessageEvent): number {
+  const raw = event.contentIndex
+  const contentIndex = typeof raw === 'number' ? raw : Number(raw)
+  return Number.isInteger(contentIndex) && contentIndex >= 0 ? contentIndex : -1
+}
+
 function applyDelta(state: StreamingState, event: ClientAssistantMessageEvent): StreamingState {
-  const contentIndex = typeof event.contentIndex === 'number' ? event.contentIndex : -1
+  const contentIndex = contentIndexOf(event)
   switch (event.type) {
     case 'text_start':
       return updateContentBlock(state, contentIndex, (current) =>
@@ -50,11 +56,12 @@ function applyDelta(state: StreamingState, event: ClientAssistantMessageEvent): 
           : null
       )
     case 'text_end':
-      return updateContentBlock(state, contentIndex, (current) => ({
-        ...(current?.type === 'text' ? current : { type: 'text', text: '' }),
-        type: 'text',
-        text: String(event.content ?? '')
-      }))
+      return updateContentBlock(state, contentIndex, (current) => {
+        const previous = current?.type === 'text' ? current.text : ''
+        const next =
+          event.content == null || event.content === '' ? previous : String(event.content)
+        return { type: 'text', text: next }
+      })
     case 'thinking_start':
       return updateContentBlock(state, contentIndex, (current) =>
         current?.type === 'thinking' ? current : { type: 'thinking', thinking: '' }
@@ -66,11 +73,15 @@ function applyDelta(state: StreamingState, event: ClientAssistantMessageEvent): 
           : null
       )
     case 'thinking_end':
-      return updateContentBlock(state, contentIndex, (current) => ({
-        ...(current?.type === 'thinking' ? current : { type: 'thinking', thinking: '' }),
-        type: 'thinking',
-        thinking: String(event.content ?? '')
-      }))
+      return updateContentBlock(state, contentIndex, (current) => {
+        const previous = current?.type === 'thinking' ? current.thinking : ''
+        const next =
+          event.content == null || event.content === '' ? previous : String(event.content)
+        return {
+          type: 'thinking',
+          thinking: next
+        }
+      })
     case 'toolcall_start':
       return updateContentBlock(state, contentIndex, (current) => {
         if (current?.type === 'toolCall') {
@@ -114,6 +125,16 @@ function applyDelta(state: StreamingState, event: ClientAssistantMessageEvent): 
     default:
       return state
   }
+}
+
+export function assistantHasRenderableContent(message: AgentMessage | null | undefined): boolean {
+  if (!message || message.role !== 'assistant' || !Array.isArray(message.content)) return false
+  return message.content.some((block) => {
+    if (block.type === 'text') return Boolean(block.text)
+    if (block.type === 'thinking') return Boolean(block.thinking)
+    if (block.type === 'toolCall') return Boolean(block.toolName || block.toolCallId)
+    return true
+  })
 }
 
 export function streamReducer(state: StreamingState, action: StreamAction): StreamingState {

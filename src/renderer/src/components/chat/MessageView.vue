@@ -2,7 +2,7 @@
 import { Markdown } from '@comark/vue'
 import security from '@comark/vue/plugins/security'
 import taskList from '@comark/vue/plugins/task-list'
-import { computed, ref } from 'vue'
+import { computed, onErrorCaptured, ref } from 'vue'
 import type { AgentMessage, ImageContent } from '@shared/types/workspace'
 import ToolCallView from './ToolCallView.vue'
 import BranchNavigator from './BranchNavigator.vue'
@@ -55,6 +55,12 @@ const props = defineProps<{
 }>()
 const previewSrc = ref<string | null>(null)
 const previewOpen = ref(false)
+const markdownFailed = ref(false)
+
+onErrorCaptured(() => {
+  markdownFailed.value = true
+  return false
+})
 
 function imageSource(image: ImageContent): string | null {
   const source = (image as { source?: ImageContent['source'] }).source
@@ -156,7 +162,13 @@ const bashText = computed(() => {
 
     <div v-else-if="message.role === 'assistant'" class="space-y-2">
       <template v-for="(block, i) in message.content" :key="i">
-        <Suspense v-if="block.type === 'text'">
+        <p
+          v-if="block.type === 'text' && markdownFailed"
+          class="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]"
+        >
+          {{ block.text }}
+        </p>
+        <Suspense v-else-if="block.type === 'text'">
           <Markdown
             :value="block.text"
             :options="markdownOptions"
@@ -199,6 +211,13 @@ const bashText = computed(() => {
           />
         </button>
       </template>
+      <p
+        v-if="message.errorMessage"
+        data-testid="assistant-error"
+        class="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2 text-[12px] text-[var(--danger)]"
+      >
+        {{ message.errorMessage }}
+      </p>
     </div>
 
     <details

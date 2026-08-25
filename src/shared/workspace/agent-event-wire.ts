@@ -7,7 +7,7 @@ export interface AgentEventLike {
 
 export type ClientAssistantMessageEvent = {
   type: string
-  contentIndex?: number
+  contentIndex?: number | string
   delta?: string
   content?: string
   id?: string
@@ -19,12 +19,32 @@ export type ClientAssistantMessageEvent = {
 export type ClientMessageUpdateEvent = {
   type: 'message_update'
   assistantMessageEvent: ClientAssistantMessageEvent
+  message?: AssistantMessage
 }
 
 const OMITTED_EVENT_TYPES = new Set(['turn_start', 'turn_end'])
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function jsonClone<T>(value: T): T | undefined {
+  try {
+    return JSON.parse(JSON.stringify(value)) as T
+  } catch {
+    return undefined
+  }
+}
+
+function slimAssistantMessage(message: unknown): AssistantMessage | undefined {
+  if (!isObject(message) || message.role !== 'assistant') return undefined
+  const cloned = jsonClone({
+    role: 'assistant' as const,
+    model: typeof message.model === 'string' ? message.model : '',
+    provider: typeof message.provider === 'string' ? message.provider : '',
+    content: Array.isArray(message.content) ? message.content : []
+  })
+  return cloned
 }
 
 function toolCallMetadata(event: Record<string, unknown>): { id: string; toolName: string } | null {
@@ -75,10 +95,12 @@ export function toClientAgentEvent(
     }
 
     const record = assistantMessageEvent as Record<string, unknown>
+    const snapshot = slimAssistantMessage(event.message)
     if (!('partial' in record)) {
       return {
         type: 'message_update',
-        assistantMessageEvent: record as ClientAssistantMessageEvent
+        assistantMessageEvent: record as ClientAssistantMessageEvent,
+        ...(snapshot ? { message: snapshot } : {})
       }
     }
 
@@ -89,7 +111,8 @@ export function toClientAgentEvent(
       type: 'message_update',
       assistantMessageEvent: metadata
         ? { ...deltaEvent, ...metadata }
-        : (deltaEvent as ClientAssistantMessageEvent)
+        : (deltaEvent as ClientAssistantMessageEvent),
+      ...(snapshot ? { message: snapshot } : {})
     }
   }
 
@@ -104,6 +127,15 @@ export function toClientAgentEvent(
 
   if (event.type === 'agent_end') return { type: 'agent_end' }
   return event
+}
+
+/** JSON-clone so Electron IPC cannot drop events that contain class instances. */
+export function toIpcAgentEvent(
+  event: AgentEventLike
+): AgentEventLike | ClientMessageUpdateEvent | null {
+  const client = toClientAgentEvent(event)
+  if (!client) return null
+  return jsonClone(client) ?? { type: client.type }
 }
 
 export function isCompactionEvent(type: string): boolean {

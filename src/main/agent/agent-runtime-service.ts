@@ -21,7 +21,7 @@ import type {
 import {
   isIdleResetEvent,
   isRunningStateEvent,
-  toClientAgentEvent
+  toIpcAgentEvent
 } from '@shared/workspace/agent-event-wire'
 import { getToolNamesForPreset } from '@shared/workspace/tool-presets'
 import { validateAgentImages } from '@shared/workspace/image-attachments'
@@ -368,7 +368,7 @@ export class AgentSessionWrapper {
   }
 
   private emit(event: AgentEvent): void {
-    const client = toClientAgentEvent(event)
+    const client = toIpcAgentEvent(event)
     if (!client) return
     for (const listener of this.listeners) {
       try {
@@ -652,7 +652,13 @@ export class AgentRuntimeService implements AgentRuntime {
   }
 
   private broadcastEvent(sessionId: string, event: AgentEvent): void {
-    this.getWindow()?.webContents.send(IPC_EVENT.agentEvent, { sessionId, event })
+    const win = this.getWindow()
+    if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return
+    try {
+      win.webContents.send(IPC_EVENT.agentEvent, { sessionId, event })
+    } catch (error) {
+      log.agent.error('failed to send agent event:', error)
+    }
   }
 
   private broadcastRunning(): void {

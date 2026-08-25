@@ -3,6 +3,8 @@ import {
   appSettingsPatchSchema,
   backupRetentionSchema,
   modelCompositeIdSchema,
+  omitLegacyAppSettingsKeys,
+  pickKnownAppSettings,
   screenMotionActiveSchema,
   uiStateSchema
 } from './ipc'
@@ -27,6 +29,13 @@ describe('IPC schemas', () => {
     expect(appSettingsPatchSchema.safeParse({ unexpected: true }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ windowMotionEnabled: false }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ screenMotionEnabled: true }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ density: 'compact' }).success).toBe(false)
+    expect(
+      appSettingsPatchSchema.safeParse(
+        omitLegacyAppSettingsKeys({ theme: 'dark', density: 'compact' })
+      ).success
+    ).toBe(true)
+    expect(pickKnownAppSettings({ theme: 'dark', density: 'compact' })).toEqual({ theme: 'dark' })
   })
 
   it('rejects oversized UI state', () => {

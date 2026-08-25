@@ -47,6 +47,8 @@ import { DEFAULT_MASCOT_STYLE, isMascotUnlockAnswer } from '@shared/constants/ma
 import { providerKeySchema, backupIdSchema, pathSegmentSchema } from '@shared/schemas/domain'
 import {
   appSettingsPatchSchema,
+  omitLegacyAppSettingsKeys,
+  pickKnownAppSettings,
   backupReasonSchema,
   backupRetentionSchema,
   configContentSchema,
@@ -537,11 +539,17 @@ export function registerIpc(services: Services): void {
   )
 
   // ---- settings ----
-  ipcMain.handle(IPC_INVOKE.settingsGet, () => wrap(() => settingsStore.read()))
+  ipcMain.handle(IPC_INVOKE.settingsGet, () =>
+    wrap(async () => pickKnownAppSettings(await settingsStore.read()))
+  )
   ipcMain.handle(IPC_INVOKE.settingsSet, (_e, patch: unknown) =>
     wrap(async () => {
-      const parsedPatch = parseInput(appSettingsPatchSchema, patch, 'Invalid settings')
-      const current = await settingsStore.read()
+      const parsedPatch = parseInput(
+        appSettingsPatchSchema,
+        omitLegacyAppSettingsKeys(patch),
+        'Invalid settings'
+      )
+      const current = pickKnownAppSettings(await settingsStore.read())
       const nextPatch: Partial<AppSettings> = { ...parsedPatch }
       if (!current.mascotUnlocked) nextPatch.mascotUnlocked = false
       const mascotUnlocked = current.mascotUnlocked && nextPatch.mascotUnlocked !== false
@@ -550,7 +558,8 @@ export function registerIpc(services: Services): void {
         nextPatch.mascotStyle = DEFAULT_MASCOT_STYLE
         nextPatch.petEnabled = false
       }
-      const settings = await settingsStore.update(nextPatch)
+      const settings = { ...current, ...nextPatch }
+      await settingsStore.write(settings)
       nativeTheme.themeSource = settings.theme
       return settings
     })

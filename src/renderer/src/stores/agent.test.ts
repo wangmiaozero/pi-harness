@@ -265,6 +265,101 @@ describe('agent store new-session handshake', () => {
     onAgentEvent?.({ sessionId: 'session-new', event: { type: 'prompt_done' } })
     expect(agent.completionCount).toBe(1)
   })
+
+  it('keeps streamed assistant text when message_end arrives empty', async () => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      agent: {
+        start: vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' }),
+        prompt: vi.fn().mockResolvedValue(null),
+        state: vi.fn().mockResolvedValue(null),
+        running: vi.fn().mockResolvedValue([])
+      }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.send(null, '/code/project', 'hello', 'default')
+
+    onAgentEvent?.({
+      sessionId: 'session-new',
+      event: {
+        type: 'message_start',
+        message: { role: 'assistant', model: 'm', provider: 'p', content: [] }
+      }
+    })
+    onAgentEvent?.({
+      sessionId: 'session-new',
+      event: {
+        type: 'message_update',
+        assistantMessageEvent: { type: 'text_start', contentIndex: 0 }
+      }
+    })
+    onAgentEvent?.({
+      sessionId: 'session-new',
+      event: {
+        type: 'message_update',
+        assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: '项目说明' }
+      }
+    })
+    onAgentEvent?.({
+      sessionId: 'session-new',
+      event: {
+        type: 'message_end',
+        message: { role: 'assistant', model: 'm', provider: 'p', content: [] }
+      }
+    })
+
+    expect(agent.messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: [{ type: 'text', text: '项目说明' }]
+    })
+  })
+
+  it('surfaces assistant stopReason errors from message_end', async () => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      agent: {
+        start: vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' }),
+        prompt: vi.fn().mockResolvedValue(null),
+        state: vi.fn().mockResolvedValue(null),
+        running: vi.fn().mockResolvedValue([])
+      }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.send(null, '/code/project', 'hello', 'default')
+
+    onAgentEvent?.({
+      sessionId: 'session-new',
+      event: {
+        type: 'message_end',
+        message: {
+          role: 'assistant',
+          model: 'glm-5.3',
+          provider: 'volcengine',
+          content: [],
+          stopReason: 'error',
+          errorMessage: '404 status code (no body)'
+        }
+      }
+    })
+
+    expect(agent.error).toBe('404 status code (no body)')
+    expect(agent.messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      errorMessage: '404 status code (no body)'
+    })
+  })
 })
 
 function sessionDetail(thinkingLevel: string) {
