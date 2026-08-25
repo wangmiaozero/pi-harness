@@ -61,7 +61,7 @@ Pi-Harness 通过桌面界面管理 Pi 的 Provider、Model、凭证、Skills、
 | **技能**   | Capability 化的本地/精选技能；创建、导入、编辑、校验、安装、更新、启停与卸载          |
 | **配置**   | CodeMirror 编辑 `models.json` / `settings.json`；格式化、在文件管理器中显示           |
 | **诊断**   | 环境报告；复制前脱敏（apiKey / token / secret 等）                                    |
-| **设置**   | 简体中文 / English UI、跟随系统/深色/浅色主题、密度、工具预设、恢复行为、备份、看板娘 |
+| **设置**   | 简体中文 / English UI、跟随系统/深色/浅色主题、工具预设、恢复行为、备份、看板娘 |
 
 可靠性：
 

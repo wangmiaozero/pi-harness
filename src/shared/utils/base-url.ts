@@ -41,6 +41,27 @@ export function normalizeProviderBaseUrl(raw: string): BaseUrlNormalizeResult {
   return { url, changed: changed || stripped != null, stripped }
 }
 
+export type VolcenginePlanKind = 'agent-plan' | 'coding-plan'
+
+/** Volcengine Agent/Coding Plan Anthropic roots do not expose GET /v1/models. */
+export function volcenginePlanKind(baseUrl: string): VolcenginePlanKind | null {
+  try {
+    const url = new URL(baseUrl.trim())
+    const host = url.hostname.toLowerCase()
+    if (!host.endsWith('volces.com') && !host.endsWith('volcengine.com')) return null
+    const path = url.pathname.replace(/\/+$/, '').toLowerCase()
+    if (/(?:^|\/)api\/plan(?:\/|$)/.test(path)) return 'agent-plan'
+    if (/(?:^|\/)api\/coding(?:\/|$)/.test(path)) return 'coding-plan'
+    return null
+  } catch {
+    return null
+  }
+}
+
+export function isMissingModelCatalogMessage(message: string): boolean {
+  return /\bHTTP 40[45]\b|\bHTTP 501\b/i.test(message)
+}
+
 /** Human hint shown under the Base URL field. */
 export function baseUrlHintForProtocol(protocol: string): string {
   if (protocol === 'openai-completions' || protocol === 'openai-responses') {

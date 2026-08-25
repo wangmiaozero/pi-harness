@@ -23,6 +23,12 @@ export const overwriteOptionsSchema = z
 export const backupReasonSchema = z.string().trim().min(1).max(256).optional()
 export const backupRetentionSchema = z.number().int().min(1).max(1000)
 export const optionalBooleanSchema = z.boolean().optional()
+export const screenMotionActiveSchema = z
+  .object({
+    active: z.boolean(),
+    theme: z.enum(['dark', 'light'])
+  })
+  .strict()
 export const modelCompositeIdSchema = z
   .string()
   .max(386)
@@ -45,7 +51,6 @@ export const appSettingsPatchSchema = z
   .object({
     language: z.enum(['auto', 'zh-CN', 'en-US']),
     theme: z.enum(['system', 'dark', 'light']),
-    density: z.enum(['comfortable', 'compact']),
     mascotUnlocked: z.boolean(),
     mascotStyle: z.enum(MASCOT_STYLES),
     petEnabled: z.boolean(),
@@ -66,7 +71,9 @@ export const appSettingsPatchSchema = z
     developerMode: z.boolean(),
     defaultToolPreset: z.enum(TOOL_PRESET_VALUES),
     restoreTabs: z.boolean(),
-    autoOpenLastProject: z.boolean()
+    autoOpenLastProject: z.boolean(),
+    windowMotionEnabled: z.boolean(),
+    screenMotionEnabled: z.boolean()
   })
   .partial()
   .strict()

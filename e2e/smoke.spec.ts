@@ -451,7 +451,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.locator('h1').filter({ hasText: /技能|Skills/ })).toBeVisible()
     await expect(page.locator('ul').getByText('demo-skill', { exact: true })).toBeVisible()
 
-    await page.getByRole('button', { name: /市场|Market/ }).click()
+    await page.getByRole('tab', { name: /市场|Market/ }).click()
     await expect(page.getByText(/日常开发套件|Core Development/).first()).toBeVisible()
     await expect(page.getByText(/Agent 架构套件|Agent Architecture/).first()).toBeVisible()
     const curatedCollection = page
@@ -471,7 +471,7 @@ test.describe('Pi-Harness smoke', () => {
 
   test('installs, uninstalls, and reinstalls a bundled Matt Pocock Skill', async ({ page }) => {
     await page.locator('a[href="#/skills"]').click()
-    await page.getByRole('button', { name: /市场|Market/ }).click()
+    await page.getByRole('tab', { name: /市场|Market/ }).click()
 
     const collection = page.getByTestId('market-collection-builtin:mattpocock-skills')
     await expect(collection).toContainText('Skills For Real Engineers')
@@ -535,7 +535,7 @@ test.describe('Pi-Harness smoke', () => {
     })
 
     await page.locator('a[href="#/skills"]').click()
-    await page.getByRole('button', { name: /扩展包|Packages/, exact: true }).click()
+    await page.getByRole('tab', { name: /扩展包|Packages/, exact: true }).click()
     const packageRow = page.getByRole('listitem').filter({ hasText: 'pi-e2e-missing' })
     await expect(packageRow).toBeVisible()
     await packageRow.click()
@@ -552,6 +552,8 @@ test.describe('Pi-Harness smoke', () => {
 
     await page.locator('a[href="#/settings"]').click()
     await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
+    await expect(page.getByTestId('window-motion-toggle')).toHaveAttribute('aria-checked', 'false')
+    await expect(page.getByTestId('screen-motion-toggle')).toHaveAttribute('aria-checked', 'true')
     await page.getByRole('button', { name: /主题|Theme/, exact: true }).click()
     await page.getByRole('option', { name: /浅色|Light/, exact: true }).click()
     await page.getByRole('button', { name: /保存|Save/ }).click()

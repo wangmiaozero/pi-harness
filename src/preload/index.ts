@@ -202,6 +202,9 @@ const api: PiSwitchAPI = {
     remove: (cwd, worktreePath, force) =>
       invoke(IPC_INVOKE.worktreeRemove, { cwd, worktreePath, force })
   },
+  aiMotion: {
+    setActive: (input) => invoke(IPC_INVOKE.aiMotionSetActive, input)
+  },
   on(event, listener) {
     const ipcListener = listener as IpcEventListener
     if (event === 'config-changed') return onEvent(IPC_EVENT.configChanged, ipcListener)

@@ -20,6 +20,21 @@ const mainJs = path.join(root, 'out/main/index.js')
 const fixturesPi = path.join(root, 'fixtures/mock-pi')
 const capabilityFixtures = path.join(root, 'fixtures/capabilities')
 
+function isMainRenderer(page: Page): boolean {
+  const url = page.url()
+  return Boolean(url) && url !== 'about:blank' && !url.includes('overlay.html')
+}
+
+async function waitForMainWindow(electronApp: ElectronApplication): Promise<Page> {
+  const deadline = Date.now() + 60_000
+  while (Date.now() < deadline) {
+    const existing = electronApp.windows().find(isMainRenderer)
+    if (existing) return existing
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  }
+  throw new Error('Pi-Harness main window did not appear')
+}
+
 type Fixtures = {
   electronApp: ElectronApplication
   page: Page
@@ -66,7 +81,7 @@ export const test = base.extend<Fixtures>({
     fs.rmSync(userData, { recursive: true, force: true })
   },
   page: async ({ electronApp }, use) => {
-    const page = await electronApp.firstWindow()
+    const page = await waitForMainWindow(electronApp)
     await page.waitForLoadState('domcontentloaded')
     await use(page)
   }

@@ -156,7 +156,9 @@ export const IPC_INVOKE = {
 
   worktreeList: invoke('worktree:list'),
   worktreeCreate: invoke('worktree:create'),
-  worktreeRemove: invoke('worktree:remove')
+  worktreeRemove: invoke('worktree:remove'),
+
+  aiMotionSetActive: invoke('ai-motion:set-active')
 } as const
 
 /** Main → renderer push events (one-way, via webContents.send). */
@@ -168,7 +170,8 @@ export const IPC_EVENT = {
   agentEvent: 'pi-harness:agent:event',
   agentRunning: 'pi-harness:agent:running',
   updaterState: 'pi-harness:updater:state',
-  capabilityProgress: 'pi-harness:capabilities:mutation-progress'
+  capabilityProgress: 'pi-harness:capabilities:mutation-progress',
+  aiMotionActive: 'pi-harness:event:ai-motion-active'
 } as const
 
 export type IpcEventName = (typeof IPC_EVENT)[keyof typeof IPC_EVENT]

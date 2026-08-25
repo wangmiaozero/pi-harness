@@ -60,7 +60,7 @@ Les secrets n’apparaissent jamais en clair dans le Renderer. macOS les stocke 
 | **Compétences**       | Créer / importer / modifier / valider `SKILL.md` ; contrainte de racine de chemin                                 |
 | **Configuration**     | Éditeur CodeMirror pour `models.json` / `settings.json` ; formatage et affichage dans le gestionnaire de fichiers |
 | **Diagnostics**       | Rapport d’environnement ; copie assainie (`apiKey` / `token` / `secret`, etc.)                                    |
-| **Réglages**          | Interface 简体中文 / English, thème système/sombre/clair, densité, outils, restauration, sauvegardes, mascotte    |
+| **Réglages**          | Interface 简体中文 / English, thème système/sombre/clair, outils, restauration, sauvegardes, mascotte    |
 
 Fiabilité :
 

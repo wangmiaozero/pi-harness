@@ -19,6 +19,15 @@ describe('isAllowedRendererNavigation', () => {
     ).toBe(false)
   })
 
+  it('allows only the packaged overlay renderer for the overlay window', () => {
+    const rendererUrl = 'file:///Applications/Pi-Harness/renderer/overlay.html'
+
+    expect(isAllowedRendererNavigation(rendererUrl, rendererUrl)).toBe(true)
+    expect(
+      isAllowedRendererNavigation('file:///Applications/Pi-Harness/renderer/index.html', rendererUrl)
+    ).toBe(false)
+  })
+
   it('rejects malformed URLs', () => {
     expect(isAllowedRendererNavigation('not a URL', 'file:///app/index.html')).toBe(false)
   })

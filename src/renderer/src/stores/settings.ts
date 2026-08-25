@@ -63,6 +63,8 @@ export const useSettingsStore = defineStore('settings', () => {
     value.petAutoSleep ??= true
     value.petSound ??= false
     value.petSleepMinutes = Math.min(120, Math.max(1, value.petSleepMinutes || 10))
+    value.windowMotionEnabled ??= false
+    value.screenMotionEnabled ??= true
     if (!value.mascotUnlocked) {
       value.mascotStyle = 'none'
       value.petEnabled = false

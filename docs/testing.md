@@ -19,7 +19,7 @@ Service tests use temporary directories and real JSON stores where useful. They 
 
 ## Electron E2E
 
-Playwright launches the compiled Electron app with a fresh user-data directory, a copied mock Pi configuration, a missing mock CLI, isolated `PI_CODING_AGENT_DIR`, capability fixtures, and preauthorized temporary workspace roots. No real API key or external model request is required.
+Playwright launches the compiled Electron app with a fresh user-data directory, a copied mock Pi configuration, a missing mock CLI, isolated `PI_CODING_AGENT_DIR`, capability fixtures, and preauthorized temporary workspace roots. No real API key or external model request is required. The fixture binds to the main renderer and ignores the optional screen-motion overlay window.
 
 ```bash
 pnpm test:e2e       # compile + all Electron tests

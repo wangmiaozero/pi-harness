@@ -25,7 +25,10 @@ export default defineConfig({
   preload: {
     build: {
       rollupOptions: {
-        input: { index: resolve(import.meta.dirname, 'src/preload/index.ts') }
+        input: {
+          index: resolve(import.meta.dirname, 'src/preload/index.ts'),
+          overlay: resolve(import.meta.dirname, 'src/preload/overlay.ts')
+        }
       }
     },
     resolve: {
@@ -48,7 +51,10 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        input: { index: resolve(import.meta.dirname, 'src/renderer/index.html') }
+        input: {
+          index: resolve(import.meta.dirname, 'src/renderer/index.html'),
+          overlay: resolve(import.meta.dirname, 'src/renderer/overlay.html')
+        }
       }
     }
   }

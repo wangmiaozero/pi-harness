@@ -21,6 +21,7 @@ import { SkillsService } from './services/skills-service'
 import { DiagnosticsService } from './services/diagnostics-service'
 import { registerIpc, broadcastConfigChanged, broadcastNotification } from './ipc/register'
 import { createMainWindow } from './window/create-window'
+import { ScreenMotionOverlayController } from './window/screen-motion-overlay'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
 import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
@@ -43,7 +44,6 @@ import { EnvironmentManager } from './environment/environment-manager'
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'zh-CN',
   theme: 'dark',
-  density: 'comfortable',
   mascotUnlocked: false,
   mascotStyle: DEFAULT_MASCOT_STYLE,
   petEnabled: false,
@@ -60,7 +60,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   developerMode: false,
   defaultToolPreset: 'default',
   restoreTabs: true,
-  autoOpenLastProject: true
+  autoOpenLastProject: true,
+  windowMotionEnabled: false,
+  screenMotionEnabled: true
 }
 
 app.setName(APP_NAME)
@@ -108,6 +110,16 @@ async function bootstrap(): Promise<void> {
   await metadata.read()
 
   let mainWindow: BrowserWindow | null = null
+  const screenMotion = new ScreenMotionOverlayController()
+
+  const openMainWindow = (): void => {
+    mainWindow = createMainWindow()
+    mainWindow.on('closed', () => {
+      screenMotion.stop()
+      mainWindow = null
+    })
+    screenMotion.start()
+  }
 
   const backup = new BackupService(settingsStore)
   const config = new PiConfigService(settingsStore, backup)
@@ -202,10 +214,11 @@ async function bootstrap(): Promise<void> {
         }
       }
     },
-    getMainWindow: () => mainWindow
+    getMainWindow: () => mainWindow,
+    setScreenMotionActive: (payload) => screenMotion.setActive(payload)
   })
 
-  mainWindow = createMainWindow()
+  openMainWindow()
 
   void packageManager
     .list()
@@ -237,16 +250,18 @@ async function bootstrap(): Promise<void> {
   })
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      mainWindow = createMainWindow()
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      openMainWindow()
     }
   })
 
   app.on('window-all-closed', () => {
+    screenMotion.stop()
     if (process.platform !== 'darwin') app.quit()
   })
 
   app.on('before-quit', () => {
+    screenMotion.stop()
     stopAutomaticUpdates()
     unsubscribeUpdateState()
     config.stopWatcher()

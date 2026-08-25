@@ -521,7 +521,6 @@ export interface DiagnosticsReport {
 export interface AppSettings {
   language: 'auto' | 'zh-CN' | 'en-US'
   theme: 'system' | 'dark' | 'light'
-  density: 'comfortable' | 'compact'
   mascotUnlocked: boolean
   mascotStyle: MascotStyle
   petEnabled: boolean
@@ -539,6 +538,8 @@ export interface AppSettings {
   defaultToolPreset: ToolPreset
   restoreTabs: boolean
   autoOpenLastProject: boolean
+  windowMotionEnabled: boolean
+  screenMotionEnabled: boolean
 }
 
 export interface NotificationEvent {
@@ -603,6 +604,15 @@ export interface AppUpdateState {
 
 /** Listener for main→renderer push events. */
 export type IpcEventListener = (payload: unknown) => void
+
+export interface ScreenMotionActivePayload {
+  active: boolean
+  theme: 'dark' | 'light'
+}
+
+export interface PiSwitchOverlayAPI {
+  onActive(listener: (payload: ScreenMotionActivePayload) => void): () => void
+}
 
 /**
  * The full typed bridge. Each method returns a Promise and rejects with a
@@ -795,6 +805,9 @@ export interface PiSwitchAPI {
     create(cwd: string, branch: string): Promise<{ path: string; branch: string }>
     remove(cwd: string, worktreePath: string, force?: boolean): Promise<void>
   }
+  aiMotion: {
+    setActive(input: ScreenMotionActivePayload): Promise<void>
+  }
   on(event: 'config-changed', listener: IpcEventListener): () => void
   on(event: 'pi-environment-changed', listener: IpcEventListener): () => void
   on(
@@ -814,6 +827,7 @@ export interface PiSwitchAPI {
 declare global {
   interface Window {
     piSwitch?: PiSwitchAPI
+    piSwitchOverlay?: PiSwitchOverlayAPI
   }
 }
 

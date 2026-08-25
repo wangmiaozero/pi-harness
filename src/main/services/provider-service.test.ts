@@ -154,6 +154,93 @@ describe('ProviderService model discovery', () => {
     ).resolves.toEqual([])
   })
 
+  it('falls back to Volcengine OpenAI-style /v3/models when Anthropic /v1/models is missing', async () => {
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const href = String(url)
+      if (href.includes('/api/plan/v1/models') || href.endsWith('/api/plan/models')) {
+        return new Response('{"error":"not found"}', { status: 404 })
+      }
+      if (href.includes('/api/plan/v3/models')) {
+        return new Response(JSON.stringify({ data: [{ id: 'glm-5.3', name: 'GLM 5.3' }] }), {
+          status: 200
+        })
+      }
+      return new Response('unexpected', { status: 500 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const service = new ProviderService({} as never, {} as never)
+
+    const models = await service.discoverModels({
+      protocol: 'anthropic-messages',
+      baseUrl: 'https://ark.cn-beijing.volces.com/api/plan',
+      apiKey: { kind: 'literal', literal: 'ark-key' },
+      headers: {},
+      authHeader: false,
+      timeout: 5_000
+    })
+
+    expect(models).toEqual([{ id: 'glm-5.3', name: 'GLM 5.3' }])
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
+      'https://ark.cn-beijing.volces.com/api/plan/v1/models?limit=100',
+      'https://ark.cn-beijing.volces.com/api/plan/models',
+      'https://ark.cn-beijing.volces.com/api/plan/v3/models'
+    ])
+  })
+
+  it('treats a missing Anthropic model catalog as empty instead of failing', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('{"type":"not_found"}', { status: 404 }))
+    )
+    const service = new ProviderService({} as never, {} as never)
+
+    await expect(
+      service.discoverModels({
+        protocol: 'anthropic-messages',
+        baseUrl: 'https://ark.cn-beijing.volces.com/api/plan',
+        apiKey: { kind: 'literal', literal: 'ark-key' },
+        headers: {},
+        authHeader: false,
+        timeout: null
+      })
+    ).resolves.toEqual([])
+  })
+
+  it('does not fail Agent Plan discovery when fallback catalog endpoints error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('{"error":"unauthorized"}', { status: 401 }))
+    )
+    const service = new ProviderService({} as never, {} as never)
+
+    await expect(
+      service.discoverModels({
+        protocol: 'anthropic-messages',
+        baseUrl: 'https://ark.cn-beijing.volces.com/api/plan',
+        apiKey: { kind: 'literal', literal: 'ark-key' },
+        headers: {},
+        authHeader: false,
+        timeout: null
+      })
+    ).resolves.toEqual([])
+  })
+
+  it('still fails OpenAI-compatible discovery on HTTP 404', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('missing', { status: 404 })))
+    const service = new ProviderService({} as never, {} as never)
+
+    await expect(
+      service.discoverModels({
+        protocol: 'openai-completions',
+        baseUrl: 'https://api.failure.test/v1',
+        apiKey: null,
+        headers: {},
+        authHeader: true,
+        timeout: null
+      })
+    ).rejects.toThrow(/HTTP 404/)
+  })
+
   it('merges discovered models into a new provider without duplicating ids', async () => {
     const providers: Record<string, PiProviderConfig> = {}
     const metadataState = {

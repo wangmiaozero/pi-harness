@@ -7,6 +7,7 @@ Pi-Harness treats renderer input, local configuration, package metadata, archive
 - The renderer receives one typed API through `contextBridge`; raw `ipcRenderer` is never exposed.
 - `contextIsolation` is enabled, `nodeIntegration` is disabled, webviews and new windows are denied, and permission requests are rejected by default.
 - IPC channel names are centralized. Main rejects calls not originating from the current main window's main frame.
+- The screen-motion overlay is a separate transparent window with a listen-only preload. It cannot invoke IPC. Mouse events are ignored so the overlay cannot intercept clicks.
 - Zod schemas validate high-risk inputs including settings patches, configuration writes, provider/model identifiers, backup operations, package/skill targets, paths, booleans, and bounded UI state.
 - Errors cross IPC as sanitized data with a stable code, safe user message, recoverability, and redacted context.
 

@@ -3,6 +3,7 @@ import {
   appSettingsPatchSchema,
   backupRetentionSchema,
   modelCompositeIdSchema,
+  screenMotionActiveSchema,
   uiStateSchema
 } from './ipc'
 import { backupIdSchema } from './domain'
@@ -24,6 +25,8 @@ describe('IPC schemas', () => {
     expect(appSettingsPatchSchema.safeParse({ theme: 'dark' }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ theme: 'neon' }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ unexpected: true }).success).toBe(false)
+    expect(appSettingsPatchSchema.safeParse({ windowMotionEnabled: false }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ screenMotionEnabled: true }).success).toBe(true)
   })
 
   it('rejects oversized UI state', () => {
@@ -31,5 +34,17 @@ describe('IPC schemas', () => {
     expect(uiStateSchema.safeParse({ payload: 'x'.repeat(2 * 1024 * 1024 + 1) }).success).toBe(
       false
     )
+  })
+
+  it('accepts only the screen-motion active payload', () => {
+    expect(screenMotionActiveSchema.safeParse({ active: true, theme: 'dark' }).success).toBe(true)
+    expect(screenMotionActiveSchema.safeParse({ active: false, theme: 'light' }).success).toBe(true)
+    expect(screenMotionActiveSchema.safeParse({ active: true }).success).toBe(false)
+    expect(screenMotionActiveSchema.safeParse({ active: true, theme: 'system' }).success).toBe(
+      false
+    )
+    expect(
+      screenMotionActiveSchema.safeParse({ active: true, theme: 'dark', extra: true }).success
+    ).toBe(false)
   })
 })

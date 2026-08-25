@@ -23,6 +23,8 @@ Electron Main
 
 The renderer has no direct Electron, filesystem, process, shell, or secret-store access. `contextIsolation` stays enabled and `nodeIntegration` stays disabled. Main accepts calls only from the current main window's main frame and validates renderer-controlled values at runtime.
 
+Agent activity can paint a second `ai-motion` ring on the physical display edge through a transparent, click-through overlay `BrowserWindow`. That overlay uses a listen-only preload, cannot invoke privileged IPC, and is destroyed with the main window so it cannot keep the process alive.
+
 ## Agent Runtime
 
 `src/main/agent/runtime.ts` is the application-facing runtime contract. Workspace IPC and diagnostics depend on that contract rather than Pi SDK implementation details. `AgentRuntimeService` is the Pi-backed implementation and owns session start, prompt, abort, stop, tool selection, state, and shutdown coordination.

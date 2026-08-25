@@ -15,7 +15,7 @@ import { NODE_DOWNLOAD_URL, PI_INSTALL_COMMAND } from '@shared/constants/pi-inst
 import { toErrorPayload } from '../services/errors'
 import { log } from '../services/logger'
 import { APP_VERSION } from '@shared/constants/index'
-import type { AppSettings } from '@shared/ipc/api-types'
+import type { AppSettings, ScreenMotionActivePayload } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
 import type { PiConfigService } from '../pi/config-service'
 import type { ProviderService } from '../services/provider-service'
@@ -54,6 +54,7 @@ import {
   modelCompositeIdSchema,
   optionalBooleanSchema,
   overwriteOptionsSchema,
+  screenMotionActiveSchema,
   systemPathSchema,
   uiStateSchema
 } from '@shared/schemas/ipc'
@@ -74,6 +75,7 @@ export interface Services {
   environment: EnvironmentManager
   workspace: WorkspaceServices
   getMainWindow: () => BrowserWindow | null
+  setScreenMotionActive: (payload: ScreenMotionActivePayload) => void
 }
 
 function wrap<T>(
@@ -611,6 +613,14 @@ export function registerIpc(services: Services): void {
   ipcMain.handle(IPC_INVOKE.windowClose, (e) =>
     wrap(async () => {
       BrowserWindow.fromWebContents(e.sender)?.close()
+    })
+  )
+
+  ipcMain.handle(IPC_INVOKE.aiMotionSetActive, (_e, input: unknown) =>
+    wrap(async () => {
+      services.setScreenMotionActive(
+        parseInput(screenMotionActiveSchema, input, 'Invalid screen motion state')
+      )
     })
   )
 

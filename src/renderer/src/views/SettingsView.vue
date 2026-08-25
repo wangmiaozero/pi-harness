@@ -75,7 +75,6 @@ const updateMessage = computed(() => {
 const draft = ref<AppSettings>({
   language: 'zh-CN',
   theme: 'dark',
-  density: 'comfortable',
   mascotUnlocked: false,
   mascotStyle: DEFAULT_MASCOT_STYLE,
   petEnabled: false,
@@ -92,7 +91,9 @@ const draft = ref<AppSettings>({
   developerMode: false,
   defaultToolPreset: 'default',
   restoreTabs: true,
-  autoOpenLastProject: true
+  autoOpenLastProject: true,
+  windowMotionEnabled: false,
+  screenMotionEnabled: true
 })
 
 const manualCliPath = computed({
@@ -135,11 +136,6 @@ const themeOptions = computed(() => [
   { value: 'system', label: t('settings.themeSystem') },
   { value: 'dark', label: t('settings.themeDark') },
   { value: 'light', label: t('settings.themeLight') }
-])
-
-const densityOptions = computed(() => [
-  { value: 'comfortable', label: t('settings.densityComfortable') },
-  { value: 'compact', label: t('settings.densityCompact') }
 ])
 
 const mascotOptions = computed(() =>
@@ -380,12 +376,24 @@ onBeforeUnmount(stopUpdateListener)
               :options="themeOptions"
               layout="row"
             />
-            <Select
-              v-model="draft.density"
-              :label="$t('settings.density')"
-              :options="densityOptions"
-              layout="row"
-            />
+            <PropertyRow :label="$t('settings.windowMotionEnabled')">
+              <div class="flex items-center justify-end">
+                <Switch
+                  v-model="draft.windowMotionEnabled"
+                  :label="$t('settings.windowMotionEnabled')"
+                  data-testid="window-motion-toggle"
+                />
+              </div>
+            </PropertyRow>
+            <PropertyRow :label="$t('settings.screenMotionEnabled')">
+              <div class="flex items-center justify-end">
+                <Switch
+                  v-model="draft.screenMotionEnabled"
+                  :label="$t('settings.screenMotionEnabled')"
+                  data-testid="screen-motion-toggle"
+                />
+              </div>
+            </PropertyRow>
           </div>
         </InspectorSection>
 

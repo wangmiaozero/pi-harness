@@ -32,8 +32,24 @@ describe('desktop-only runtime', () => {
   })
 
   it('denies renderer attempts to create a new window', () => {
-    const source = readFileSync(join(process.cwd(), 'src/main/window/create-window.ts'), 'utf8')
+    const guard = readFileSync(join(process.cwd(), 'src/main/window/renderer-guards.ts'), 'utf8')
+    const mainWindow = readFileSync(join(process.cwd(), 'src/main/window/create-window.ts'), 'utf8')
+    const overlay = readFileSync(
+      join(process.cwd(), 'src/main/window/screen-motion-overlay.ts'),
+      'utf8'
+    )
 
-    expect(source).toContain("setWindowOpenHandler(() => ({ action: 'deny' }))")
+    expect(guard).toContain("setWindowOpenHandler(() => ({ action: 'deny' }))")
+    expect(mainWindow).toContain('attachRendererGuards(')
+    expect(overlay).toContain('attachRendererGuards(')
+  })
+
+  it('keeps the screen-motion overlay preload listen-only', () => {
+    const source = readFileSync(join(process.cwd(), 'src/preload/overlay.ts'), 'utf8')
+
+    expect(source).not.toMatch(/ipcRenderer\.invoke/)
+    expect(source).toContain('onActive')
+    expect(source).toContain('OVERLAY_API_NAMESPACE')
+    expect(source).not.toContain('IPC_INVOKE')
   })
 })

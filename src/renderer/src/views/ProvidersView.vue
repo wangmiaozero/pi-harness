@@ -23,7 +23,11 @@ import type { ProviderForm } from '@shared/schemas/domain'
 import { PROTOCOLS, PROVIDER_PRESETS, type ProviderPreset } from '@shared/constants/protocols'
 import { findProviderPreset } from '@shared/constants/provider-presets'
 import { isKeychainCommand, keychainServiceName } from '@shared/utils/api-key'
-import { normalizeProviderBaseUrl } from '@shared/utils/base-url'
+import {
+  isMissingModelCatalogMessage,
+  normalizeProviderBaseUrl,
+  volcenginePlanKind
+} from '@shared/utils/base-url'
 import { suggestProviderIdentity } from '@shared/utils/provider-identity'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
@@ -450,6 +454,20 @@ function parseTimeout(): number | null {
   return Number.isFinite(timeout) && timeout > 0 ? timeout : null
 }
 
+function showModelCatalogHint(source: string) {
+  const plan = volcenginePlanKind(form.value.baseUrl)
+  const message =
+    plan === 'agent-plan'
+      ? t('providers.modelsDiscoveryAgentPlan')
+      : plan === 'coding-plan'
+        ? t('providers.modelsDiscoveryCodingPlan')
+        : form.value.protocol === 'anthropic-messages'
+          ? t('providers.modelsDiscoveryNoCatalog')
+          : t('providers.modelsDiscoveryEmpty')
+  modelDiscoveryFeedback.value = { kind: 'empty', message, source }
+  toast.info(message)
+}
+
 async function discoverProviderModels() {
   const normalized = normalizeProviderBaseUrl(form.value.baseUrl)
   form.value.baseUrl = normalized.url
@@ -475,9 +493,7 @@ async function discoverProviderModels() {
     discoveredModels.value = models
     discoveredSource.value = source
     if (models.length === 0) {
-      const message = t('providers.modelsDiscoveryEmpty')
-      modelDiscoveryFeedback.value = { kind: 'empty', message, source }
-      toast.info(message)
+      showModelCatalogHint(source)
       return
     }
     if (!defaultModelIdStr.value.trim()) defaultModelIdStr.value = models[0]?.id ?? ''
@@ -486,6 +502,13 @@ async function discoverProviderModels() {
     toast.success(t('providers.modelsDiscovered', { count: models.length }))
   } catch (error) {
     const detail = (error as { message?: string }).message ?? t('providers.modelsDiscoveryFailed')
+    if (
+      form.value.protocol === 'anthropic-messages' &&
+      (volcenginePlanKind(normalized.url) || isMissingModelCatalogMessage(detail))
+    ) {
+      showModelCatalogHint(source)
+      return
+    }
     const message = t('providers.modelsDiscoveryError', { message: detail })
     modelDiscoveryFeedback.value = { kind: 'error', message, source }
     toast.error(message)

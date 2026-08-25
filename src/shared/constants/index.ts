@@ -15,6 +15,9 @@ export const AUTHOR_WATERMARK = 'wangmiao'
 /** IPC bridge namespace exposed on window. */
 export const API_NAMESPACE = 'piSwitch'
 
+/** Listen-only bridge for the screen-motion overlay window. */
+export const OVERLAY_API_NAMESPACE = 'piSwitchOverlay'
+
 /** Default window geometry. */
 export const DEFAULT_WINDOW = {
   width: 1200,

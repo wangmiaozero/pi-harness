@@ -20,7 +20,7 @@ import { randomBytes } from 'node:crypto'
 import type { ConnectionTestResult } from '@shared/ipc/api-types'
 import { getProtocol } from '@shared/constants/protocols'
 import { log, redactSecretText } from '../services/logger'
-import { normalizeProviderBaseUrl } from '@shared/utils/base-url'
+import { normalizeProviderBaseUrl, volcenginePlanKind } from '@shared/utils/base-url'
 import type { PiProviderConfig } from '@shared/types/pi'
 
 export class ProviderService {
@@ -432,45 +432,64 @@ export class ProviderService {
 
     const existing = input.existingProviderKey ? await this.get(input.existingProviderKey) : null
     const apiKey = await resolveDiscoveryCredential(input.apiKey, existing)
-    const request = buildModelListRequest(input.protocol, root, apiKey, input.authHeader)
-    const headers: Record<string, string> = { ...input.headers, ...request.headers }
-    setHeaderIfMissing(headers, 'Accept', 'application/json')
+    const candidates = buildModelListCandidates(input.protocol, root, apiKey, input.authHeader)
 
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), Math.min(input.timeout ?? 30_000, 120_000))
     const models = new Map<string, DiscoveredProviderModel>()
-    let url = request.url
+    let catalogMissing = false
 
     try {
-      for (let page = 0; page < 20 && models.size < 2_000; page++) {
-        const response = await fetch(url, { method: 'GET', headers, signal: controller.signal })
-        const text = await response.text()
-        if (!response.ok) {
-          const detail = summarizeErrorBody(text)
-          throw new ValidationError(
-            detail
-              ? `Model discovery failed (HTTP ${response.status}): ${detail}`
-              : `Model discovery failed (HTTP ${response.status})`
-          )
-        }
-        if (text.length > 2_000_000) {
-          throw new ValidationError('Model discovery response is too large')
+      for (const candidate of candidates) {
+        const headers: Record<string, string> = { ...input.headers, ...candidate.headers }
+        setHeaderIfMissing(headers, 'Accept', 'application/json')
+        let url = candidate.url
+        let reachedCatalog = false
+
+        for (let page = 0; page < 20 && models.size < 2_000; page++) {
+          const response = await fetch(url, { method: 'GET', headers, signal: controller.signal })
+          const text = await response.text()
+          if (!response.ok) {
+            const planRoot = volcenginePlanKind(normalized.url)
+            if (
+              input.protocol === 'anthropic-messages' &&
+              (isMissingModelCatalogStatus(response.status) ||
+                catalogMissing ||
+                planRoot !== null)
+            ) {
+              catalogMissing = true
+              break
+            }
+            const detail = summarizeErrorBody(text)
+            throw new ValidationError(
+              detail
+                ? `Model discovery failed (HTTP ${response.status}): ${detail}`
+                : `Model discovery failed (HTTP ${response.status})`
+            )
+          }
+          reachedCatalog = true
+          catalogMissing = false
+          if (text.length > 2_000_000) {
+            throw new ValidationError('Model discovery response is too large')
+          }
+
+          let payload: unknown
+          try {
+            payload = JSON.parse(text)
+          } catch {
+            throw new ValidationError('Model discovery endpoint returned invalid JSON')
+          }
+          for (const model of parseDiscoveredModels(payload)) {
+            if (!models.has(model.id)) models.set(model.id, model)
+            if (models.size >= 2_000) break
+          }
+
+          const next = nextModelListPage(input.protocol, url, payload)
+          if (!next) break
+          url = next
         }
 
-        let payload: unknown
-        try {
-          payload = JSON.parse(text)
-        } catch {
-          throw new ValidationError('Model discovery endpoint returned invalid JSON')
-        }
-        for (const model of parseDiscoveredModels(payload)) {
-          if (!models.has(model.id)) models.set(model.id, model)
-          if (models.size >= 2_000) break
-        }
-
-        const next = nextModelListPage(input.protocol, url, payload)
-        if (!next) break
-        url = next
+        if (reachedCatalog) break
       }
     } catch (error) {
       if ((error as Error).name === 'AbortError') {
@@ -484,6 +503,7 @@ export class ProviderService {
       clearTimeout(timer)
     }
 
+    if (catalogMissing && models.size === 0) return []
     return [...models.values()]
   }
 
@@ -768,6 +788,26 @@ async function resolveDiscoveryCredential(
   return null
 }
 
+const MISSING_MODEL_CATALOG_STATUSES = new Set([404, 405, 501])
+
+function isMissingModelCatalogStatus(status: number): boolean {
+  return MISSING_MODEL_CATALOG_STATUSES.has(status)
+}
+
+function anthropicAuthHeaders(apiKey: string | null): Record<string, string> {
+  const headers: Record<string, string> = { 'anthropic-version': '2023-06-01' }
+  if (!apiKey) return headers
+  // Native Anthropic wants x-api-key; Volcengine / many CN gateways want Bearer.
+  headers['x-api-key'] = apiKey
+  headers.Authorization = `Bearer ${apiKey}`
+  return headers
+}
+
+function openaiAuthHeaders(apiKey: string | null): Record<string, string> {
+  if (!apiKey) return {}
+  return { Authorization: `Bearer ${apiKey}`, 'x-api-key': apiKey }
+}
+
 function buildModelListRequest(
   protocol: ProviderModelDiscoveryInput['protocol'],
   root: URL,
@@ -781,11 +821,7 @@ function buildModelListRequest(
   if (protocol === 'anthropic-messages') {
     url.pathname = `${path.endsWith('/v1') ? path : `${path}/v1`}/models`
     url.searchParams.set('limit', '100')
-    headers['anthropic-version'] = '2023-06-01'
-    if (apiKey) {
-      headers['x-api-key'] = apiKey
-      if (authHeader) headers.Authorization = `Bearer ${apiKey}`
-    }
+    Object.assign(headers, anthropicAuthHeaders(apiKey))
     return { url, headers }
   }
 
@@ -797,6 +833,39 @@ function buildModelListRequest(
     headers.Authorization = `Bearer ${apiKey}`
   }
   return { url, headers }
+}
+
+/**
+ * Anthropic-compatible CN gateways (Volcengine Ark Agent/Coding Plan) implement
+ * POST /v1/messages but not GET /v1/models. Try OpenAI-style siblings before failing.
+ */
+function buildModelListCandidates(
+  protocol: ProviderModelDiscoveryInput['protocol'],
+  root: URL,
+  apiKey: string | null,
+  authHeader: boolean
+): { url: URL; headers: Record<string, string> }[] {
+  const primary = buildModelListRequest(protocol, root, apiKey, authHeader)
+  if (protocol !== 'anthropic-messages') return [primary]
+
+  const path = root.pathname.replace(/\/+$/, '')
+  const candidates = [primary]
+  const seen = new Set([primary.url.pathname])
+  const openaiHeaders = openaiAuthHeaders(apiKey)
+
+  const push = (pathname: string): void => {
+    if (seen.has(pathname)) return
+    seen.add(pathname)
+    const url = new URL(root.toString())
+    url.pathname = pathname
+    candidates.push({ url, headers: openaiHeaders })
+  }
+
+  push(`${path}/models`)
+  if (/(?:^|\/)api\/(?:plan|coding)$/i.test(path)) {
+    push(`${path}/v3/models`)
+  }
+  return candidates
 }
 
 function nextModelListPage(

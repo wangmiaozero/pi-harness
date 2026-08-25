@@ -60,7 +60,7 @@ Geheimnisse erscheinen im Renderer nie im Klartext. macOS speichert sie im Syste
 | **Skills**         | `SKILL.md` erstellen / importieren / bearbeiten / prüfen; Pfadwurzel-Beschränkung                                   |
 | **Konfiguration**  | CodeMirror-Editor für `models.json` / `settings.json`; Formatieren und im Dateimanager anzeigen                     |
 | **Diagnose**       | Umgebungsbericht; Kopieren wird bereinigt (`apiKey` / `token` / `secret` usw.)                                      |
-| **Einstellungen**  | Oberfläche 简体中文 / English, System/Dunkel/Hell, Dichte, Werkzeug-Preset, Wiederherstellung, Backups, Maskottchen |
+| **Einstellungen**  | Oberfläche 简体中文 / English, System/Dunkel/Hell, Werkzeug-Preset, Wiederherstellung, Backups, Maskottchen |
 
 Zuverlässigkeit:
 

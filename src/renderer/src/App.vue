@@ -12,19 +12,28 @@ import { useAgentStore } from '@renderer/stores/agent'
 import { applyTheme, watchSystemTheme, type ThemePreference } from '@renderer/utils/theme'
 import { installShortcutListener, registerShortcut } from '@renderer/composables/shortcuts'
 import { shouldActivateAiMotionFrame } from '@renderer/composables/useAiMotionFrame'
+import { getApi, isBridgeAvailable } from '@renderer/composables/useApi'
 
 const settings = useSettingsStore()
 const agent = useAgentStore()
 const router = useRouter()
 const paletteOpen = ref(false)
 
-const appMotionActive = computed(() =>
+const agentMotionActive = computed(() =>
   shouldActivateAiMotionFrame({
     sending: agent.sending,
     runningAgentCount: agent.runningIds.length,
     streaming: agent.streaming.isStreaming,
     promptRunning: agent.state?.isPromptRunning === true
   })
+)
+
+const windowMotionActive = computed(
+  () => agentMotionActive.value && settings.settings?.windowMotionEnabled === true
+)
+
+const screenMotionActive = computed(
+  () => agentMotionActive.value && settings.settings?.screenMotionEnabled !== false
 )
 
 const toasterTheme = computed(() => {
@@ -46,9 +55,15 @@ watch(
 )
 
 watch(
-  () => settings.settings?.density,
-  (density) => {
-    document.documentElement.dataset.density = density ?? 'comfortable'
+  [screenMotionActive, toasterTheme],
+  ([active, theme]) => {
+    if (!isBridgeAvailable()) return
+    void getApi()
+      .aiMotion.setActive({
+        active,
+        theme: theme === 'light' ? 'light' : 'dark'
+      })
+      .catch(() => undefined)
   },
   { immediate: true }
 )
@@ -98,7 +113,7 @@ onBeforeUnmount(() => {
     aria-hidden="true"
   >
     <AiMotionBorder
-      :active="appMotionActive"
+      :active="windowMotionActive"
       :border-radius="14"
       :border-width="2.5"
       :glow-width="56"

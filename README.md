@@ -62,7 +62,7 @@ Secrets never appear in the renderer as plaintext. macOS stores them in the syst
 | **Skills**      | Local/featured/package/built-in Skills; offline Collections, ownership, health, repair, rollback, and bulk cleanup  |
 | **Config**      | CodeMirror editor for `models.json` / `settings.json`; format and reveal in the file manager                        |
 | **Diagnostics** | Environment report; copy is sanitized (`apiKey` / `token` / `secret`, etc.)                                         |
-| **Settings**    | Simplified Chinese / English UI, system/dark/light themes, density, tool preset, restore behavior, backups, mascots |
+| **Settings**    | Simplified Chinese / English UI, system/dark/light themes, tool preset, restore behavior, backups, mascots |
 
 Reliability:
 

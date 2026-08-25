@@ -1,0 +1,8 @@
+@import './main.css';
+
+html,
+body,
+#app {
+  background: transparent;
+  pointer-events: none;
+}
