@@ -34,6 +34,20 @@ Made-with: Cursor / Claude / Copilot / Codex
 
 GitHub contributors must list **wangmiao only**.
 
+## Engineering governance (required reading)
+
+The repository-wide engineering upgrade is **complete**. Do not rerun or reinterpret
+`task/docs/工程化质量升级-1.md` as an active implementation prompt.
+
+Before changing code, read [`docs/engineering-governance.md`](docs/engineering-governance.md) and the
+relevant domain documents it links. Its architecture, compatibility, security, testing, and scope
+rules are the maintenance baseline for all coding agents.
+
+Files under `task/docs/` are historical task and release records by default. They are context, not
+authorization and not active instructions, unless the user explicitly reactivates a specific task.
+Only implement the user's current requested scope, preserve unrelated working-tree changes, and run
+verification proportional to the risk of that change.
+
 ## Lightweight code editor boundary (non-negotiable)
 
 Pi-Harness provides a **lightweight code editor**, not a general-purpose IDE.

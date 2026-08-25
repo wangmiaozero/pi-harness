@@ -55,7 +55,7 @@ const providerKeyDraft = ref('')
 
 const listGrid = {
   gridTemplateColumns:
-    '20px minmax(8rem, 1.2fr) minmax(6rem, 1fr) max-content max-content 4.75rem max-content max-content'
+    '20px minmax(8rem, 1.2fr) minmax(6rem, 1fr) max-content max-content 4.75rem max-content 19rem'
 } as const
 
 const defaultForm = (): ModelForm => ({
@@ -536,11 +536,12 @@ onMounted(() => {
       <!-- One parent grid + subgrid rows so every column shares the same tracks. -->
       <div
         v-else
-        class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] overflow-hidden"
+        data-testid="models-table-scroll"
+        class="overflow-x-auto overflow-y-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
       >
-        <div class="grid gap-x-2" :style="listGrid">
+        <div class="grid min-w-[1150px] gap-x-2" :style="listGrid">
           <div
-            class="col-span-full grid grid-cols-subgrid items-center px-3 h-[30px] text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+            class="col-span-full grid h-[30px] grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3 text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
           >
             <span />
             <span class="min-w-0 truncate">{{ $t('models.colModel') }}</span>
@@ -549,16 +550,20 @@ onMounted(() => {
             <span class="min-w-0 truncate">{{ $t('models.colProtocol') }}</span>
             <span class="min-w-0 truncate">{{ $t('models.colCapabilities') }}</span>
             <span class="min-w-0 truncate">{{ $t('models.colUpdated') }}</span>
-            <span class="text-right">{{ $t('common.actions') }}</span>
+            <span
+              class="sticky right-0 z-20 flex self-stretch items-center justify-end border-l border-[var(--border-subtle)] bg-[inherit] pl-2 pr-3"
+            >
+              {{ $t('common.actions') }}
+            </span>
           </div>
 
           <div
             v-for="model in filteredModels"
             :key="model.id"
-            class="group relative col-span-full grid grid-cols-subgrid items-center px-3 overflow-hidden border-b border-[var(--border-subtle)] last:border-b-0 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-[var(--bg-hover)]"
+            class="group relative col-span-full grid grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-[var(--bg-hover)]"
             :class="
               modelsStore.isActive(model, providerKeyFor(model))
-                ? 'bg-[var(--accent-tint-soft)]'
+                ? '!bg-[var(--bg-selected)] hover:!bg-[var(--bg-hover)]'
                 : ''
             "
             :style="{ height: 'var(--height-row)' }"
@@ -670,31 +675,54 @@ onMounted(() => {
               {{ formatRelativeTime(model.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US') }}
             </div>
 
-            <div class="flex items-center justify-end gap-px">
-              <IconButton
-                v-if="!modelsStore.isActive(model, providerKeyFor(model))"
-                show-label
-                :label="$t('models.setActive')"
-                :disabled="!model.enabled"
-                @click="setActive(model)"
-              >
-                <Star class="size-3.5 shrink-0" :stroke-width="1.75" />
-              </IconButton>
-              <IconButton show-label :label="$t('common.test')" @click="openTest(model)">
-                <Zap class="size-3.5 shrink-0" :stroke-width="1.75" />
-              </IconButton>
-              <IconButton show-label :label="$t('common.edit')" @click="openEdit(model)">
-                <Pencil class="size-3.5 shrink-0" :stroke-width="1.75" />
-              </IconButton>
-              <IconButton
-                v-if="canDeleteModel(model)"
-                show-label
-                variant="danger"
-                :label="$t('common.delete')"
-                @click="confirmDelete(model)"
-              >
-                <Trash2 class="size-3.5 shrink-0" :stroke-width="1.75" />
-              </IconButton>
+            <div
+              data-testid="model-action-cell"
+              class="sticky right-0 z-10 grid h-full grid-cols-[6rem_3.5rem_3.5rem_3.5rem] items-center border-l border-[var(--border-subtle)] bg-[inherit] pl-2 pr-3"
+            >
+              <div class="flex min-w-0 items-center justify-center">
+                <IconButton
+                  v-if="!modelsStore.isActive(model, providerKeyFor(model))"
+                  show-label
+                  class="w-full"
+                  :label="$t('models.setActive')"
+                  :disabled="!model.enabled"
+                  @click="setActive(model)"
+                >
+                  <Star class="size-3.5 shrink-0" :stroke-width="1.75" />
+                </IconButton>
+              </div>
+              <div class="flex min-w-0 items-center justify-center">
+                <IconButton
+                  show-label
+                  class="w-full"
+                  :label="$t('common.test')"
+                  @click="openTest(model)"
+                >
+                  <Zap class="size-3.5 shrink-0" :stroke-width="1.75" />
+                </IconButton>
+              </div>
+              <div class="flex min-w-0 items-center justify-center">
+                <IconButton
+                  show-label
+                  class="w-full"
+                  :label="$t('common.edit')"
+                  @click="openEdit(model)"
+                >
+                  <Pencil class="size-3.5 shrink-0" :stroke-width="1.75" />
+                </IconButton>
+              </div>
+              <div class="flex min-w-0 items-center justify-center">
+                <IconButton
+                  v-if="canDeleteModel(model)"
+                  show-label
+                  class="w-full"
+                  variant="danger"
+                  :label="$t('common.delete')"
+                  @click="confirmDelete(model)"
+                >
+                  <Trash2 class="size-3.5 shrink-0" :stroke-width="1.75" />
+                </IconButton>
+              </div>
             </div>
           </div>
         </div>

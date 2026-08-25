@@ -39,6 +39,7 @@ export const IPC_INVOKE = {
   providerDuplicate: invoke('providers:duplicate'),
   providerSetEnabled: invoke('providers:set-enabled'),
   providerTestConnection: invoke('providers:test-connection'),
+  providerDiscoverModels: invoke('providers:discover-models'),
 
   // models
   modelList: invoke('models:list'),

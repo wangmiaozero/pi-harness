@@ -1,6 +1,34 @@
 import { test, expect } from './fixtures'
 
 test.describe('Models', () => {
+  test('keeps model actions aligned and fixed to the right', async ({ page }) => {
+    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
+    await page.setViewportSize({ width: 960, height: 720 })
+    await page.locator('a[href="#/models"]').click()
+
+    const table = page.getByTestId('models-table-scroll')
+    const actionCells = page.getByTestId('model-action-cell')
+    await expect(actionCells).toHaveCount(2)
+
+    const before = await actionCells.evaluateAll((cells) =>
+      cells.map((cell) => cell.getBoundingClientRect().left)
+    )
+    expect(new Set(before.map(Math.round)).size).toBe(1)
+
+    await table.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth
+    })
+    const [tableBox, actionBox] = await Promise.all([
+      table.boundingBox(),
+      actionCells.first().boundingBox()
+    ])
+    expect(tableBox).not.toBeNull()
+    expect(actionBox).not.toBeNull()
+    expect(Math.abs(actionBox!.x + actionBox!.width - tableBox!.x - tableBox!.width)).toBeLessThan(
+      3
+    )
+  })
+
   test('prevents duplicate model ids before save', async ({ page }) => {
     const pageErrors: string[] = []
     const consoleErrors: string[] = []

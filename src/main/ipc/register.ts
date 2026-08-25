@@ -31,6 +31,7 @@ import {
   optionalProjectRootSchema,
   piPackageTargetSchema,
   piPackageTargetsSchema,
+  providerModelDiscoverySchema,
   testConnectionSchema,
   skillFormSchema,
   skillImportSchema
@@ -238,6 +239,13 @@ export function registerIpc(services: Services): void {
       if (!r.success) throw new ValidationError('Invalid test input', { issues: r.error.issues })
       return providers.testConnection(r.data)
     })
+  )
+  ipcMain.handle(IPC_INVOKE.providerDiscoverModels, (_e, input: unknown) =>
+    wrap(() =>
+      providers.discoverModels(
+        parseInput(providerModelDiscoverySchema, input, 'Invalid model discovery input')
+      )
+    )
   )
 
   // ---- models ----

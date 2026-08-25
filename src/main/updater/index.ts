@@ -7,12 +7,17 @@
  */
 
 import { app } from 'electron'
+import { gt as isVersionGreater, valid as validVersion } from 'semver'
 import type { AppUpdateState } from '@shared/ipc/api-types'
 import { APP_VERSION } from '@shared/constants/index'
 import { log } from '../services/logger'
 
 type AutoUpdater = typeof import('electron-updater').autoUpdater
 type UpdateStateListener = (state: AppUpdateState) => void
+
+const LATEST_RELEASE_API_URL =
+  'https://api.github.com/repos/wangmiaozero/pi-harness/releases/latest'
+const RELEASE_CHECK_TIMEOUT_MS = 8_000
 
 const state: AppUpdateState = {
   supported: false,
@@ -56,7 +61,12 @@ async function getAutoUpdater(): Promise<AutoUpdater | null> {
     autoUpdater.logger = log.updater
 
     autoUpdater.on('checking-for-update', () => {
-      updateState({ supported: true, status: 'checking', downloadProgress: null })
+      updateState({
+        supported: true,
+        status: 'checking',
+        downloaded: false,
+        downloadProgress: null
+      })
     })
     autoUpdater.on('update-available', (info) => {
       updateState({
@@ -135,7 +145,7 @@ export async function checkForUpdates(): Promise<AppUpdateState> {
   updateState({ supported: true, status: 'checking', downloadProgress: null })
   try {
     const result = await autoUpdater.checkForUpdates()
-    if (!result) return updateState({ supported: true, status: 'error', downloadProgress: null })
+    if (!result) return recoverFromUpdaterFailure(new Error('Updater returned no result'))
 
     const available = result.isUpdateAvailable
     const latestVersion = result.updateInfo.version ?? null
@@ -162,9 +172,80 @@ export async function checkForUpdates(): Promise<AppUpdateState> {
     }
     return snapshot()
   } catch (error) {
-    updateState({ supported: true, status: 'error', downloadProgress: null })
     log.updater.error('checkForUpdates failed:', error)
-    return snapshot()
+    return recoverFromUpdaterFailure(error)
+  }
+}
+
+/**
+ * electron-updater requires latest*.yml and platform payloads. If a Release is
+ * incomplete, fall back to GitHub's stable Release API so the UI can still
+ * distinguish "already current" from "new version requires manual install".
+ */
+async function recoverFromUpdaterFailure(updaterError: unknown): Promise<AppUpdateState> {
+  try {
+    const latestVersion = await fetchLatestReleaseVersion()
+    const currentVersion = validVersion(APP_VERSION)
+    if (!currentVersion) throw new Error(`Invalid current version: ${APP_VERSION}`)
+
+    if (isVersionGreater(latestVersion, currentVersion)) {
+      log.updater.warn('automatic update metadata unavailable; manual update required', {
+        currentVersion,
+        latestVersion
+      })
+      return updateState({
+        supported: true,
+        available: true,
+        latestVersion,
+        status: 'manual-update',
+        downloaded: false,
+        downloadProgress: null
+      })
+    }
+
+    log.updater.info('release API confirms current version:', currentVersion)
+    return updateState({
+      supported: true,
+      available: false,
+      latestVersion,
+      status: 'not-available',
+      downloaded: false,
+      downloadProgress: null
+    })
+  } catch (fallbackError) {
+    log.updater.error('release API fallback failed:', fallbackError, {
+      updaterError
+    })
+    return updateState({
+      supported: true,
+      status: 'error',
+      downloaded: false,
+      downloadProgress: null
+    })
+  }
+}
+
+async function fetchLatestReleaseVersion(): Promise<string> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), RELEASE_CHECK_TIMEOUT_MS)
+  timer.unref()
+  try {
+    const response = await fetch(LATEST_RELEASE_API_URL, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'User-Agent': `Pi-Harness/${APP_VERSION}`,
+        'X-GitHub-Api-Version': '2022-11-28'
+      },
+      signal: controller.signal
+    })
+    if (!response.ok) throw new Error(`GitHub Releases API returned HTTP ${response.status}`)
+    const payload = (await response.json()) as { tag_name?: unknown }
+    const rawTag = typeof payload.tag_name === 'string' ? payload.tag_name.trim() : ''
+    const version = validVersion(rawTag.replace(/^v/i, ''))
+    if (!version) throw new Error('GitHub Releases API returned an invalid tag')
+    return version
+  } finally {
+    clearTimeout(timer)
   }
 }
 

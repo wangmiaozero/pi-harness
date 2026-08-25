@@ -34,6 +34,11 @@ export const apiKeySpecSchema = z.object({
 
 export const headerMapSchema = z.record(z.string(), z.string())
 
+export const discoveredProviderModelSchema = z.object({
+  id: z.string().trim().min(1).max(256),
+  name: z.string().trim().min(1).max(256)
+})
+
 export const providerFormSchema = z.object({
   key: providerKeySchema,
   name: z.string().min(1).max(128),
@@ -56,8 +61,22 @@ export const providerFormSchema = z.object({
       maxOutputTokens: z.number().int().positive().nullable()
     })
     .nullable()
-    .optional()
+    .optional(),
+  /** Models discovered from the provider API and merged on save. */
+  discoveredModels: z.array(discoveredProviderModelSchema).max(2_000).optional()
 })
+
+export const providerModelDiscoverySchema = z
+  .object({
+    existingProviderKey: providerKeySchema.nullable().optional(),
+    protocol: protocolIdSchema,
+    baseUrl: z.string().trim().min(1).max(512),
+    apiKey: apiKeySpecSchema.nullable(),
+    headers: headerMapSchema,
+    authHeader: z.boolean(),
+    timeout: z.number().int().positive().nullable()
+  })
+  .strict()
 
 export const modelFormSchema = z.object({
   providerId: z.string().min(1),
@@ -175,5 +194,6 @@ export type SkillForm = z.infer<typeof skillFormSchema>
 export type SkillImportInput = z.infer<typeof skillImportSchema>
 
 export type ProviderForm = z.infer<typeof providerFormSchema>
+export type ProviderModelDiscoveryInput = z.infer<typeof providerModelDiscoverySchema>
 export type ModelForm = z.infer<typeof modelFormSchema>
 export type ProviderKey = z.infer<typeof providerKeySchema>

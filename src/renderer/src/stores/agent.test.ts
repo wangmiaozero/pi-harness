@@ -84,6 +84,33 @@ describe('agent store new-session handshake', () => {
     expect(command).not.toHaveBeenCalled()
   })
 
+  it('refreshes the loaded session state after switching models', async () => {
+    const oldState = agentState('nvidia', 'minimax-m3')
+    const nextState = agentState('openai', 'gpt-5')
+    const state = vi.fn().mockResolvedValueOnce(oldState).mockResolvedValueOnce(nextState)
+    const command = vi.fn().mockImplementation((_id: string, input: { type: string }) => {
+      if (input.type === 'get_tools') return []
+      if (input.type === 'get_session_stats') return {}
+      if (input.type === 'set_model') return { id: 'gpt-5', provider: 'openai' }
+      return null
+    })
+    window.piSwitch = {
+      sessions: { get: vi.fn().mockResolvedValue(sessionDetail('medium')) },
+      agent: { state, running: vi.fn().mockResolvedValue([]), command }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    await agent.load('session-1')
+    await agent.setModel('session-1', 'openai', 'gpt-5')
+
+    expect(command).toHaveBeenCalledWith('session-1', {
+      type: 'set_model',
+      provider: 'openai',
+      modelId: 'gpt-5'
+    })
+    expect(agent.state?.model).toEqual({ provider: 'openai', id: 'gpt-5' })
+  })
+
   it('keeps explicit composer selections stable across runtime reconciliation and reload', async () => {
     let runtimeThinking = 'off'
     let runtimeTools = toolEntries(['read', 'bash', 'edit', 'write'])
@@ -264,4 +291,22 @@ function toolEntries(activeNames: string[]) {
     description: name,
     active: active.has(name)
   }))
+}
+
+function agentState(provider: string, id: string) {
+  return {
+    sessionId: 'session-1',
+    sessionFile: '/tmp/session-1.jsonl',
+    status: 'idle',
+    isStreaming: false,
+    isPromptRunning: false,
+    isBashRunning: false,
+    isCompacting: false,
+    autoCompactionEnabled: true,
+    model: { provider, id },
+    thinkingLevel: 'medium',
+    contextUsage: null,
+    pendingMessageCount: 0,
+    queuedMessages: { steering: [], followUp: [] }
+  }
 }

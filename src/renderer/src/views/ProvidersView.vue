@@ -1,14 +1,30 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, Pencil, Copy, Trash2, Zap, Box, Search, Circle } from '@lucide/vue'
+import {
+  Plus,
+  Pencil,
+  Copy,
+  Trash2,
+  Zap,
+  Box,
+  Search,
+  Circle,
+  Sparkles,
+  RefreshCw
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import type { ProviderProfile, ConnectionTestResult } from '@shared/ipc/api-types'
+import type {
+  ProviderProfile,
+  ConnectionTestResult,
+  DiscoveredProviderModel
+} from '@shared/ipc/api-types'
 import type { ProviderForm } from '@shared/schemas/domain'
 import { PROTOCOLS, PROVIDER_PRESETS, type ProviderPreset } from '@shared/constants/protocols'
 import { findProviderPreset } from '@shared/constants/provider-presets'
 import { isKeychainCommand, keychainServiceName } from '@shared/utils/api-key'
 import { normalizeProviderBaseUrl } from '@shared/utils/base-url'
+import { suggestProviderIdentity } from '@shared/utils/provider-identity'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
@@ -45,6 +61,7 @@ const testModelId = ref('')
 const testResult = ref<ConnectionTestResult | null>(null)
 const testLoading = ref(false)
 const saving = ref(false)
+const saveError = ref('')
 const providerTogglePending = ref<string | null>(null)
 const timeoutStr = ref('')
 const headersJson = ref('')
@@ -52,11 +69,19 @@ const defaultModelIdStr = ref('')
 const query = ref('')
 const presetSearch = ref('')
 const activePreset = ref<ProviderPreset | null>(null)
+const discoveredModels = ref<DiscoveredProviderModel[]>([])
+const discoveredSource = ref('')
+const discoveringModels = ref(false)
+type ModelDiscoveryFeedbackKind = 'loading' | 'success' | 'empty' | 'error'
+const modelDiscoveryFeedback = ref<{
+  kind: ModelDiscoveryFeedbackKind
+  message: string
+  source: string
+} | null>(null)
 
 /** Name takes leftover width; other columns hug their content so 标识/操作 aren't crushed. */
 const listGrid = {
-  gridTemplateColumns:
-    'minmax(8rem, 1fr) max-content 2.75rem max-content 2.25rem max-content max-content'
+  gridTemplateColumns: 'minmax(8rem, 1fr) max-content 2.75rem max-content 2.25rem max-content 19rem'
 } as const
 
 const defaultForm = (): ProviderForm => ({
@@ -88,18 +113,74 @@ const providerPresetOptions = computed(() =>
     hint: t('providers.presetModelCount', { count: preset.models.length })
   }))
 )
-const presetModelOptions = computed(() =>
-  (activePreset.value?.models ?? []).map((model) => ({
-    value: model.id,
-    label: model.name,
-    hint: model.contextWindow
-      ? t('providers.modelContext', { count: model.contextWindow.toLocaleString() })
-      : undefined
-  }))
+const currentDiscoveredModels = computed(() =>
+  discoveredSource.value === modelDiscoverySource() ? discoveredModels.value : []
 )
-const selectedCatalogModel = computed(() =>
-  activePreset.value?.models.find((model) => model.id === defaultModelIdStr.value.trim())
-)
+const visibleModelDiscoveryFeedback = computed(() => {
+  const feedback = modelDiscoveryFeedback.value
+  return feedback?.source === modelDiscoverySource() ? feedback : null
+})
+const modelDiscoveryFeedbackClass = computed(() => {
+  switch (visibleModelDiscoveryFeedback.value?.kind) {
+    case 'success':
+      return 'text-[var(--success)]'
+    case 'error':
+      return 'text-[var(--error)]'
+    case 'empty':
+      return 'text-[var(--warning)]'
+    default:
+      return 'text-[var(--text-tertiary)]'
+  }
+})
+const modelOptions = computed(() => {
+  const options = new Map<string, { value: string; label: string; hint?: string }>()
+  for (const model of activePreset.value?.models ?? []) {
+    options.set(model.id, {
+      value: model.id,
+      label: model.name,
+      hint: model.contextWindow
+        ? t('providers.modelContext', { count: model.contextWindow.toLocaleString() })
+        : undefined
+    })
+  }
+  for (const model of modelsStore.items.filter((item) => item.providerId === editingKey.value)) {
+    if (!options.has(model.modelId)) {
+      options.set(model.modelId, {
+        value: model.modelId,
+        label: model.displayName,
+        hint: t('providers.existingModelHint')
+      })
+    }
+  }
+  for (const model of currentDiscoveredModels.value) {
+    if (!options.has(model.id)) {
+      options.set(model.id, {
+        value: model.id,
+        label: model.name,
+        hint: t('providers.discoveredModelHint')
+      })
+    }
+  }
+  return [...options.values()]
+})
+const selectedDefaultModel = computed(() => {
+  const id = defaultModelIdStr.value.trim()
+  const preset = activePreset.value?.models.find((model) => model.id === id)
+  if (preset) return preset
+  const existing = modelsStore.items.find(
+    (model) => model.providerId === editingKey.value && model.modelId === id
+  )
+  if (existing) {
+    return {
+      id,
+      name: existing.displayName,
+      contextWindow: existing.contextWindow,
+      maxOutputTokens: existing.maxOutputTokens
+    }
+  }
+  const discovered = currentDiscoveredModels.value.find((model) => model.id === id)
+  return discovered ? { ...discovered, contextWindow: null, maxOutputTokens: null } : undefined
+})
 
 const apiKeyTypeOptions = computed(() => [
   { value: 'none', label: t('providers.keyTypeNone') },
@@ -167,6 +248,25 @@ function onBaseUrlBlur() {
   }
 }
 
+function modelDiscoverySource(): string {
+  return `${form.value.protocol}\0${normalizeProviderBaseUrl(form.value.baseUrl).url}`
+}
+
+function generateProviderIdentity() {
+  const normalized = normalizeProviderBaseUrl(form.value.baseUrl)
+  const suggestion = suggestProviderIdentity(normalized.url)
+  if (!suggestion) {
+    toast.error(t('providers.identityInvalidUrl'))
+    return
+  }
+  const preset = findProviderPreset({ baseUrl: normalized.url })
+  form.value.baseUrl = normalized.url
+  form.value.key = uniqueProviderKey(preset?.id ?? suggestion.key)
+  form.value.displayName = preset?.name ?? suggestion.displayName
+  form.value.name = preset?.id ?? suggestion.internalName
+  toast.success(t('providers.identityGenerated'))
+}
+
 /** Suggest a provider key from free text. Preserves case; only sanitizes. */
 function suggestProviderKey(raw: string): string {
   const cleaned = raw
@@ -182,7 +282,9 @@ function suggestProviderKey(raw: string): string {
 }
 
 function uniqueProviderKey(base: string): string {
-  const existing = new Set(providersStore.items.map((p) => p.key))
+  const existing = new Set(
+    providersStore.items.filter((p) => p.key !== editingKey.value).map((p) => p.key)
+  )
   if (!existing.has(base)) return base
   let i = 2
   while (existing.has(`${base}-${i}`)) i++
@@ -201,13 +303,17 @@ function openCreate(presetId?: string) {
   timeoutStr.value = ''
   headersJson.value = ''
   defaultModelIdStr.value = ''
+  discoveredModels.value = []
+  discoveredSource.value = ''
+  modelDiscoveryFeedback.value = null
+  saveError.value = ''
   const preset = PROVIDER_PRESETS.find((p) => p.id === presetId)
   activePreset.value = preset ?? null
   if (preset) {
     form.value.protocol = preset.protocol
     form.value.baseUrl = preset.defaultBaseUrl
     form.value.authHeader = preset.authHeader
-    form.value.name = preset.name
+    form.value.name = preset.id
     form.value.displayName = preset.name
     // Prefill key so save never hits empty-key validation. Keep preset id casing.
     form.value.key = uniqueProviderKey(suggestProviderKey(preset.id))
@@ -254,6 +360,10 @@ function openEdit(provider: ProviderProfile) {
       protocol: provider.protocol,
       baseUrl: provider.baseUrl
     }) ?? null
+  discoveredModels.value = []
+  discoveredSource.value = ''
+  modelDiscoveryFeedback.value = null
+  saveError.value = ''
 
   const spec = provider.apiKey
   if (!spec) {
@@ -323,8 +433,70 @@ function buildApiKey(): ProviderForm['apiKey'] {
   return { kind: 'command', command: value.startsWith('!') ? value : `!${value}` }
 }
 
+function parseHeadersJson(): Record<string, string> {
+  const parsed = JSON.parse(headersJson.value || '{}') as unknown
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(t('providers.headersObjectRequired'))
+  }
+  return Object.fromEntries(
+    Object.entries(parsed as Record<string, unknown>).map(([key, value]) => [key, String(value)])
+  )
+}
+
+function parseTimeout(): number | null {
+  const raw = timeoutStr.value.trim()
+  if (!raw) return null
+  const timeout = Number.parseInt(raw, 10)
+  return Number.isFinite(timeout) && timeout > 0 ? timeout : null
+}
+
+async function discoverProviderModels() {
+  const normalized = normalizeProviderBaseUrl(form.value.baseUrl)
+  form.value.baseUrl = normalized.url
+  const source = modelDiscoverySource()
+  discoveringModels.value = true
+  discoveredModels.value = []
+  discoveredSource.value = source
+  modelDiscoveryFeedback.value = {
+    kind: 'loading',
+    message: t('providers.modelsDiscovering'),
+    source
+  }
+  try {
+    const models = await providersStore.discoverModels({
+      existingProviderKey: editingKey.value,
+      protocol: form.value.protocol,
+      baseUrl: normalized.url,
+      apiKey: buildApiKey(),
+      headers: parseHeadersJson(),
+      authHeader: form.value.authHeader,
+      timeout: parseTimeout()
+    })
+    discoveredModels.value = models
+    discoveredSource.value = source
+    if (models.length === 0) {
+      const message = t('providers.modelsDiscoveryEmpty')
+      modelDiscoveryFeedback.value = { kind: 'empty', message, source }
+      toast.info(message)
+      return
+    }
+    if (!defaultModelIdStr.value.trim()) defaultModelIdStr.value = models[0]?.id ?? ''
+    const message = t('providers.modelsReadyToImport', { count: models.length })
+    modelDiscoveryFeedback.value = { kind: 'success', message, source }
+    toast.success(t('providers.modelsDiscovered', { count: models.length }))
+  } catch (error) {
+    const detail = (error as { message?: string }).message ?? t('providers.modelsDiscoveryFailed')
+    const message = t('providers.modelsDiscoveryError', { message: detail })
+    modelDiscoveryFeedback.value = { kind: 'error', message, source }
+    toast.error(message)
+  } finally {
+    discoveringModels.value = false
+  }
+}
+
 async function save() {
   saving.value = true
+  saveError.value = ''
   try {
     // Auto-fill key from displayName when creating and key left blank.
     // Preserve user casing — never force lowercase (nvapi-…, OpenAI, …).
@@ -334,40 +506,32 @@ async function save() {
     }
     const nextKey = form.value.key.trim()
     if (!nextKey) {
-      toast.error(t('providers.keyRequired'))
+      saveError.value = t('providers.keyRequired')
+      toast.error(saveError.value)
       return
     }
     const keyTaken = providersStore.items.some(
       (p) => p.key === nextKey && p.key !== editingKey.value
     )
     if (keyTaken) {
-      toast.error(t('providers.keyExists', { key: nextKey }))
+      saveError.value = t('providers.keyExists', { key: nextKey })
+      toast.error(saveError.value)
       return
     }
     if (!form.value.displayName.trim()) {
-      toast.error(t('providers.displayNameRequired'))
+      saveError.value = t('providers.displayNameRequired')
+      toast.error(saveError.value)
       return
     }
     let headers: Record<string, string> = {}
     try {
-      const parsed = JSON.parse(headersJson.value || '{}') as unknown
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error('Headers must be a JSON object')
-      }
-      headers = Object.fromEntries(
-        Object.entries(parsed as Record<string, unknown>).map(([k, v]) => [k, String(v)])
-      )
+      headers = parseHeadersJson()
     } catch (e) {
-      toast.error((e as Error).message || 'Invalid headers JSON')
+      saveError.value = (e as Error).message || 'Invalid headers JSON'
+      toast.error(saveError.value)
       return
     }
-    const timeoutTrim = timeoutStr.value.trim()
-    const timeout = timeoutTrim
-      ? (() => {
-          const n = parseInt(timeoutTrim, 10)
-          return Number.isFinite(n) && n > 0 ? n : null
-        })()
-      : null
+    const timeout = parseTimeout()
     const normalized = normalizeProviderBaseUrl(form.value.baseUrl)
     if (normalized.changed) {
       form.value.baseUrl = normalized.url
@@ -382,20 +546,34 @@ async function save() {
       headers,
       timeout,
       defaultModelId: defaultModelIdStr.value.trim() || null,
-      defaultModel: selectedCatalogModel.value
+      defaultModel: selectedDefaultModel.value
         ? {
-            id: selectedCatalogModel.value.id,
-            name: selectedCatalogModel.value.name,
-            contextWindow: selectedCatalogModel.value.contextWindow ?? null,
-            maxOutputTokens: selectedCatalogModel.value.maxOutputTokens ?? null
+            id: selectedDefaultModel.value.id,
+            name: selectedDefaultModel.value.name,
+            contextWindow: selectedDefaultModel.value.contextWindow ?? null,
+            maxOutputTokens: selectedDefaultModel.value.maxOutputTokens ?? null
           }
-        : null
+        : null,
+      // Electron IPC cannot structured-clone Vue reactive proxies. Build an
+      // explicit plain snapshot before crossing the preload boundary.
+      discoveredModels: currentDiscoveredModels.value.map((model) => ({
+        id: model.id,
+        name: model.name
+      }))
     }
     if (isEditing.value && editingKey.value) {
-      await providersStore.update(editingKey.value, payload)
+      const updated = await providersStore.update(editingKey.value, payload)
+      if (!updated) {
+        saveError.value = t('providers.saveCancelled')
+        return
+      }
       toast.success(t('providers.updated'))
     } else {
-      await providersStore.create(payload)
+      const created = await providersStore.create(payload)
+      if (!created) {
+        saveError.value = t('providers.saveCancelled')
+        return
+      }
       toast.success(t('providers.created'))
       if (payload.defaultModelId) {
         toast.info(t('providers.defaultModelCreated', { id: payload.defaultModelId }))
@@ -406,7 +584,8 @@ async function save() {
     dialogOpen.value = false
     await modelsStore.fetchList()
   } catch (e) {
-    toast.error((e as { message?: string }).message ?? t('common.failed'))
+    saveError.value = (e as { message?: string }).message ?? t('common.failed')
+    toast.error(saveError.value)
   } finally {
     saving.value = false
   }
@@ -634,11 +813,12 @@ onMounted(() => {
       <!-- One parent grid + subgrid rows: shared tracks, reserved action column. -->
       <div
         v-else
-        class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] overflow-hidden"
+        data-testid="providers-table-scroll"
+        class="overflow-x-auto overflow-y-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
       >
-        <div class="grid gap-x-2" :style="listGrid">
+        <div class="grid min-w-[1000px] gap-x-2" :style="listGrid">
           <div
-            class="col-span-full grid grid-cols-subgrid items-center px-3 h-[30px] text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+            class="col-span-full grid h-[30px] grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3 text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
           >
             <span class="min-w-0 truncate">{{ $t('providers.colName') }}</span>
             <span>{{ $t('providers.colProtocol') }}</span>
@@ -646,13 +826,17 @@ onMounted(() => {
             <span>{{ $t('providers.colKey') }}</span>
             <span>{{ $t('providers.colEnabled') }}</span>
             <span>{{ $t('providers.colUpdated') }}</span>
-            <span class="text-right">{{ $t('common.actions') }}</span>
+            <span
+              class="sticky right-0 z-20 flex self-stretch items-center justify-end border-l border-[var(--border-subtle)] bg-[inherit] pl-2 pr-3"
+            >
+              {{ $t('common.actions') }}
+            </span>
           </div>
 
           <div
             v-for="provider in filteredProviders"
             :key="provider.id"
-            class="group relative col-span-full grid grid-cols-subgrid items-center px-3 overflow-hidden border-b border-[var(--border-subtle)] last:border-b-0 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-[var(--bg-hover)]"
+            class="group relative col-span-full grid grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-[var(--bg-hover)]"
             :style="{ height: 'var(--height-row)' }"
           >
             <span
@@ -710,15 +894,29 @@ onMounted(() => {
               {{ formatRelativeTime(provider.updatedAt, locale === 'zh-CN' ? 'zh-CN' : 'en-US') }}
             </div>
 
-            <div class="flex items-center justify-end gap-px">
-              <IconButton show-label :label="$t('common.test')" @click="openTest(provider)">
+            <div
+              data-testid="provider-action-cell"
+              class="sticky right-0 z-10 grid h-full grid-cols-4 items-center border-l border-[var(--border-subtle)] bg-[inherit] pl-2 pr-3"
+            >
+              <IconButton
+                show-label
+                class="w-full"
+                :label="$t('common.test')"
+                @click="openTest(provider)"
+              >
                 <Zap class="size-3.5 shrink-0" :stroke-width="1.75" />
               </IconButton>
-              <IconButton show-label :label="$t('common.edit')" @click="openEdit(provider)">
+              <IconButton
+                show-label
+                class="w-full"
+                :label="$t('common.edit')"
+                @click="openEdit(provider)"
+              >
                 <Pencil class="size-3.5 shrink-0" :stroke-width="1.75" />
               </IconButton>
               <IconButton
                 show-label
+                class="w-full"
                 :label="$t('common.duplicate')"
                 @click="confirmDuplicate(provider)"
               >
@@ -726,6 +924,7 @@ onMounted(() => {
               </IconButton>
               <IconButton
                 show-label
+                class="w-full"
                 variant="danger"
                 :label="$t('common.delete')"
                 @click="confirmDelete(provider)"
@@ -774,14 +973,27 @@ onMounted(() => {
           :label="$t('providers.fieldProtocol')"
           :options="protocolOptions"
         />
-        <Input
-          v-model="form.baseUrl"
-          :label="$t('providers.fieldBaseUrl')"
-          :placeholder="$t('providers.baseUrlPlaceholder')"
-          :hint="baseUrlHint"
-          mono
-          @blur="onBaseUrlBlur"
-        />
+        <div class="space-y-2">
+          <Input
+            v-model="form.baseUrl"
+            :label="$t('providers.fieldBaseUrl')"
+            :placeholder="$t('providers.baseUrlPlaceholder')"
+            :hint="baseUrlHint"
+            mono
+            @blur="onBaseUrlBlur"
+          />
+          <div class="flex justify-end">
+            <Button
+              variant="secondary"
+              size="sm"
+              :disabled="!form.baseUrl.trim()"
+              @click="generateProviderIdentity"
+            >
+              <Sparkles class="size-3.5" :stroke-width="1.75" />
+              {{ $t('providers.generateIdentity') }}
+            </Button>
+          </div>
+        </div>
         <Select
           v-model="apiKeyKind"
           :label="$t('providers.fieldApiKeyType')"
@@ -830,14 +1042,36 @@ onMounted(() => {
           </p>
         </template>
 
-        <Combobox
-          v-model="defaultModelIdStr"
-          :label="$t('providers.fieldDefaultModel')"
-          :placeholder="$t('providers.defaultModelPlaceholder')"
-          :hint="$t('providers.defaultModelHint')"
-          :options="presetModelOptions"
-          mono
-        />
+        <div class="space-y-2">
+          <Combobox
+            v-model="defaultModelIdStr"
+            :label="$t('providers.fieldDefaultModel')"
+            :placeholder="$t('providers.defaultModelPlaceholder')"
+            :hint="$t('providers.defaultModelHint')"
+            :options="modelOptions"
+            mono
+          />
+          <div class="flex items-center justify-between gap-3">
+            <span
+              role="status"
+              aria-live="polite"
+              class="min-w-0 flex-1 text-[10.5px] leading-snug"
+              :class="modelDiscoveryFeedbackClass"
+            >
+              {{ visibleModelDiscoveryFeedback?.message ?? '' }}
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              :loading="discoveringModels"
+              :disabled="!form.baseUrl.trim()"
+              @click="discoverProviderModels"
+            >
+              <RefreshCw class="size-3.5" :stroke-width="1.75" />
+              {{ $t('providers.discoverAllModels') }}
+            </Button>
+          </div>
+        </div>
 
         <div class="flex items-center justify-between gap-3">
           <div class="min-w-0">
@@ -870,6 +1104,14 @@ onMounted(() => {
         />
       </div>
       <template #footer>
+        <span
+          v-if="saveError"
+          role="alert"
+          class="mr-auto min-w-0 truncate text-left text-[11px] text-[var(--error)]"
+          :title="saveError"
+        >
+          {{ saveError }}
+        </span>
         <Button variant="ghost" @click="dialogOpen = false">
           {{ $t('common.cancel') }}
         </Button>

@@ -8,7 +8,7 @@ const props = withDefaults(
   defineProps<{
     label?: string
     disabled?: boolean
-    options: { value: string; label: string }[]
+    options: { value: string; label: string; group?: string }[]
     hint?: string
     error?: string
     layout?: 'stacked' | 'row'
@@ -33,6 +33,26 @@ const panelRef = ref<HTMLElement | null>(null)
 const panelStyle = ref<Record<string, string>>({})
 
 const selected = computed(() => props.options.find((o) => o.value === model.value))
+const selectedLabel = computed(() => {
+  if (!selected.value) return ''
+  return selected.value.group
+    ? `${selected.value.group} / ${selected.value.label}`
+    : selected.value.label
+})
+
+const optionGroups = computed(() => {
+  const groups = new Map<
+    string,
+    { label: string | null; options: { value: string; label: string; group?: string }[] }
+  >()
+  for (const option of props.options) {
+    const key = option.group ?? ''
+    const group = groups.get(key)
+    if (group) group.options.push(option)
+    else groups.set(key, { label: option.group ?? null, options: [option] })
+  }
+  return [...groups.values()]
+})
 
 const fieldClasses = computed(() =>
   props.layout === 'row'
@@ -140,7 +160,7 @@ watch(open, (v) => {
         class="min-w-0 flex-1 truncate"
         :class="selected ? '' : 'text-[var(--control-placeholder)]'"
       >
-        {{ selected?.label || placeholder || '' }}
+        {{ selectedLabel || placeholder || '' }}
       </span>
       <ChevronDown
         aria-hidden="true"
@@ -167,28 +187,45 @@ watch(open, (v) => {
         :style="panelStyle"
         @pointerdown.stop
       >
-        <button
-          v-for="opt in options"
-          :key="opt.value"
-          type="button"
-          role="option"
-          class="flex w-full items-center justify-between gap-2 rounded-[4px] px-2 py-[6px] text-left text-[12.5px] text-[var(--text-primary)] outline-none hover:bg-[var(--bg-hover)]"
-          :class="opt.value === model ? 'bg-[var(--accent-tint)] text-[var(--accent)]' : ''"
-          :aria-selected="opt.value === model"
-          @mousedown.prevent="pick(opt.value)"
+        <div
+          v-for="(group, groupIndex) in optionGroups"
+          :key="group.label ?? `ungrouped-${groupIndex}`"
+          :role="group.label ? 'group' : undefined"
+          :aria-label="group.label ?? undefined"
+          :class="groupIndex > 0 ? 'mt-1 border-t border-[var(--border-subtle)] pt-1' : ''"
         >
-          <span
-            class="min-w-0 truncate"
-            :class="mono ? 'font-[family-name:var(--font-mono)] text-[12px]' : ''"
+          <div
+            v-if="group.label"
+            class="px-2 py-1 text-[10.5px] font-semibold text-[var(--text-tertiary)]"
           >
-            {{ opt.label }}
-          </span>
-          <Check
-            v-if="opt.value === model"
-            class="size-3 shrink-0 text-[var(--accent)]"
-            :stroke-width="2"
-          />
-        </button>
+            {{ group.label }}
+          </div>
+          <button
+            v-for="opt in group.options"
+            :key="opt.value"
+            type="button"
+            role="option"
+            class="flex w-full items-center justify-between gap-2 rounded-[4px] py-[6px] pr-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none hover:bg-[var(--bg-hover)]"
+            :class="[
+              opt.group ? 'pl-4' : 'pl-2',
+              opt.value === model ? 'bg-[var(--accent-tint)] text-[var(--accent)]' : ''
+            ]"
+            :aria-selected="opt.value === model"
+            @mousedown.prevent="pick(opt.value)"
+          >
+            <span
+              class="min-w-0 truncate"
+              :class="mono ? 'font-[family-name:var(--font-mono)] text-[12px]' : ''"
+            >
+              {{ opt.label }}
+            </span>
+            <Check
+              v-if="opt.value === model"
+              class="size-3 shrink-0 text-[var(--accent)]"
+              :stroke-width="2"
+            />
+          </button>
+        </div>
       </div>
     </Teleport>
   </div>

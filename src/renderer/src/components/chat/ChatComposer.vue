@@ -39,6 +39,7 @@ const previewImage = ref<ChatDraftImage | null>(null)
 const previewOpen = ref(false)
 const dragActive = ref(false)
 const pendingImageCount = ref(0)
+const modelSwitching = ref(false)
 let dragDepth = 0
 
 const busy = computed(
@@ -65,10 +66,12 @@ const modelOptions = computed(() =>
   models.items
     .filter((m) => m.enabled)
     .map((m) => {
-      const key = providers.items.find((p) => p.id === m.providerId)?.key ?? m.providerId
+      const provider = providers.items.find((p) => p.id === m.providerId)
+      const key = provider?.key ?? m.providerId
       return {
         value: `${key}/${m.modelId}`,
-        label: `${key}/${m.displayName || m.modelId}`
+        label: m.displayName || m.modelId,
+        group: provider?.displayName || key
       }
     })
 )
@@ -81,8 +84,19 @@ const modelValue = computed({
   set: async (value: string) => {
     const [provider, ...rest] = value.split('/')
     const modelId = rest.join('/')
-    if (sessions.currentId && provider && modelId) {
-      await agent.setModel(sessions.currentId, provider, modelId)
+    if (!provider || !modelId) return
+    modelSwitching.value = true
+    try {
+      if (sessions.currentId) await agent.setModel(sessions.currentId, provider, modelId)
+      else await models.setActive(provider, modelId)
+    } catch (cause) {
+      const message =
+        cause && typeof cause === 'object' && 'message' in cause
+          ? String(cause.message)
+          : String(cause)
+      toast.error(t('workspace.modelSwitchFailed'), { description: message })
+    } finally {
+      modelSwitching.value = false
     }
   }
 })
@@ -348,6 +362,7 @@ async function onCompact() {
         v-model="modelValue"
         data-testid="workspace-model-select"
         :options="modelOptions"
+        :disabled="busy || modelSwitching"
         class="min-w-[190px] max-w-[300px]"
       />
       <div class="ml-auto flex items-center gap-0.5">

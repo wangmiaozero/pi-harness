@@ -104,3 +104,20 @@ export interface ActiveModel {
   providerKey: string | null
   modelId: string | null
 }
+
+/** Minimal model metadata returned by a provider's model-list endpoint. */
+export interface DiscoveredProviderModel {
+  id: string
+  name: string
+}
+
+/** Draft connection details used only for a read-only model discovery request. */
+export interface ProviderModelDiscoveryInput {
+  existingProviderKey?: string | null
+  protocol: ProtocolId
+  baseUrl: string
+  apiKey: ApiKeySpec | null
+  headers: Record<string, string>
+  authHeader: boolean
+  timeout: number | null
+}

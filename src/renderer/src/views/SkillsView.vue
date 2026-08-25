@@ -1075,7 +1075,8 @@ function resourceGroups(pkg: PiPackageInfo) {
       <div class="flex min-h-0 w-[320px] shrink-0 flex-col border-r border-[var(--border-subtle)]">
         <div class="border-b border-[var(--border-subtle)] p-2.5">
           <div
-            class="mb-2 grid grid-cols-3 rounded-[var(--radius-sm)] bg-[var(--bg-surface)] p-0.5"
+            role="tablist"
+            class="mb-2 grid grid-cols-3 gap-0.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-window)] p-0.5"
           >
             <button
               v-for="item in [
@@ -1085,16 +1086,37 @@ function resourceGroups(pkg: PiPackageInfo) {
               ] as const"
               :key="item.id"
               type="button"
-              class="flex h-7 items-center justify-center gap-1 rounded-[4px] text-[11px] font-medium transition-colors"
+              role="tab"
+              :aria-selected="mode === item.id"
+              class="group flex h-7 cursor-pointer items-center justify-center gap-1 rounded-[4px] border border-transparent text-[11px] font-medium transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
               :class="
                 mode === item.id
-                  ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'
-                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  ? 'border-[var(--accent-border)] bg-[var(--accent-tint-strong)] shadow-[inset_0_-2px_0_var(--accent)]'
+                  : 'hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
               "
               @click="mode = item.id"
             >
-              <component :is="item.icon" class="size-3" :stroke-width="1.8" />
-              {{ item.label }}
+              <component
+                :is="item.icon"
+                class="size-3 transition-colors"
+                :class="
+                  mode === item.id
+                    ? 'text-[var(--accent)]'
+                    : 'text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]'
+                "
+                :stroke-width="1.8"
+              />
+              <span
+                data-tab-label
+                class="transition-colors"
+                :class="
+                  mode === item.id
+                    ? 'text-[var(--accent)]'
+                    : 'text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]'
+                "
+              >
+                {{ item.label }}
+              </span>
             </button>
           </div>
           <SearchField v-model="query" :placeholder="$t('skills.filterPlaceholder')" size="sm" />

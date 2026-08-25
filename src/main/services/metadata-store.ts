@@ -9,6 +9,8 @@ import type { CapabilityMetadata } from '@shared/capabilities/types'
 import type { BuiltinSkillCategory, PiPackageScope } from '@shared/ipc/api-types'
 
 export interface ProviderMeta {
+  /** Pi-Harness internal provider name; Pi models.json has no equivalent field. */
+  name?: string
   displayName?: string
   enabled?: boolean
   timeout?: number | null

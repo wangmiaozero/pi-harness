@@ -63,6 +63,8 @@ const updateMessage = computed(() => {
       return t('settings.updateReady', { version })
     case 'not-available':
       return t('settings.updateCurrent', { version: current.currentVersion })
+    case 'manual-update':
+      return t('settings.updateManualRequired', { version })
     case 'error':
       return t('settings.updateFailed')
     default:

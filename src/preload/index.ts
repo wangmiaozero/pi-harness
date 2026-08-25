@@ -60,7 +60,8 @@ const api: PiSwitchAPI = {
     delete: (key, options) => invoke(IPC_INVOKE.providerDelete, key, options ?? {}),
     duplicate: (key, options) => invoke(IPC_INVOKE.providerDuplicate, key, options ?? {}),
     setEnabled: (key, enabled) => invoke(IPC_INVOKE.providerSetEnabled, key, enabled),
-    testConnection: (input) => invoke(IPC_INVOKE.providerTestConnection, input)
+    testConnection: (input) => invoke(IPC_INVOKE.providerTestConnection, input),
+    discoverModels: (input) => invoke(IPC_INVOKE.providerDiscoverModels, input)
   },
   models: {
     list: () => invoke(IPC_INVOKE.modelList),

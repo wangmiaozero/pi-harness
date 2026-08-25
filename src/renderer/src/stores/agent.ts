@@ -374,6 +374,8 @@ export const useAgentStore = defineStore('agent', () => {
 
   async function setModel(sessionId: string, provider: string, modelId: string) {
     await callApi(() => getApi().agent.command(sessionId, { type: 'set_model', provider, modelId }))
+    const snapshot = await callApi(() => getApi().agent.state(sessionId))
+    if (loadedSessionId === sessionId) state.value = snapshot
   }
 
   async function navigate(sessionId: string, targetId: string) {

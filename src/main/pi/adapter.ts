@@ -94,7 +94,7 @@ export function providerToDomain(
   return {
     id: key,
     key,
-    name: meta?.displayName ?? key,
+    name: meta?.name ?? meta?.displayName ?? key,
     displayName: meta?.displayName ?? key,
     enabled: meta?.enabled ?? false,
     protocol,

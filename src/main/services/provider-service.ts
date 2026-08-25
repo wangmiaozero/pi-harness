@@ -2,9 +2,9 @@
  * ProviderService — CRUD over Pi models.json providers + Pi-Harness metadata.
  */
 
-import type { ProviderProfile } from '@shared/types/domain'
-import type { ProviderForm } from '@shared/schemas/domain'
-import { providerFormSchema } from '@shared/schemas/domain'
+import type { DiscoveredProviderModel, ProviderProfile } from '@shared/types/domain'
+import type { ProviderForm, ProviderModelDiscoveryInput } from '@shared/schemas/domain'
+import { providerFormSchema, providerModelDiscoverySchema } from '@shared/schemas/domain'
 import type { JsonStore } from '../services/storage'
 import type { AppMetadata } from '../services/metadata-store'
 import { NotFoundError, ValidationError } from '../services/errors'
@@ -71,7 +71,7 @@ export class ProviderService {
           apiKeyValue
         })
         return ensureDefaultModel(
-          next,
+          mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol),
           form.defaultModelId ?? null,
           form.protocol,
           form.defaultModel ?? null
@@ -96,6 +96,7 @@ export class ProviderService {
     }
     providersMeta[form.key] = {
       ...providersMeta[form.key],
+      name: form.name,
       displayName: form.displayName,
       enabled: form.enabled,
       timeout: form.timeout,
@@ -164,7 +165,7 @@ export class ProviderService {
         apiKeyValue
       })
       return ensureDefaultModel(
-        next,
+        mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol),
         form.defaultModelId ?? null,
         form.protocol,
         form.defaultModel ?? null
@@ -232,6 +233,7 @@ export class ProviderService {
     }
     providersMeta[newKey] = {
       ...providersMeta[newKey],
+      name: form.name,
       displayName: form.displayName,
       enabled: form.enabled,
       timeout: form.timeout,
@@ -408,6 +410,81 @@ export class ProviderService {
     const updated = await this.get(key)
     if (!updated) throw new ValidationError('setEnabled failed')
     return updated
+  }
+
+  /** Read a provider's model-list endpoint without mutating models.json. */
+  async discoverModels(raw: ProviderModelDiscoveryInput): Promise<DiscoveredProviderModel[]> {
+    const parsed = providerModelDiscoverySchema.safeParse(raw)
+    if (!parsed.success) {
+      throw new ValidationError('Invalid model discovery input', { issues: parsed.error.issues })
+    }
+    const input = parsed.data
+    const normalized = normalizeProviderBaseUrl(input.baseUrl)
+    let root: URL
+    try {
+      root = new URL(normalized.url)
+    } catch {
+      throw new ValidationError('Base URL must be a valid HTTP(S) URL')
+    }
+    if (!['http:', 'https:'].includes(root.protocol)) {
+      throw new ValidationError('Base URL must use HTTP or HTTPS')
+    }
+
+    const existing = input.existingProviderKey ? await this.get(input.existingProviderKey) : null
+    const apiKey = await resolveDiscoveryCredential(input.apiKey, existing)
+    const request = buildModelListRequest(input.protocol, root, apiKey, input.authHeader)
+    const headers: Record<string, string> = { ...input.headers, ...request.headers }
+    setHeaderIfMissing(headers, 'Accept', 'application/json')
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), Math.min(input.timeout ?? 30_000, 120_000))
+    const models = new Map<string, DiscoveredProviderModel>()
+    let url = request.url
+
+    try {
+      for (let page = 0; page < 20 && models.size < 2_000; page++) {
+        const response = await fetch(url, { method: 'GET', headers, signal: controller.signal })
+        const text = await response.text()
+        if (!response.ok) {
+          const detail = summarizeErrorBody(text)
+          throw new ValidationError(
+            detail
+              ? `Model discovery failed (HTTP ${response.status}): ${detail}`
+              : `Model discovery failed (HTTP ${response.status})`
+          )
+        }
+        if (text.length > 2_000_000) {
+          throw new ValidationError('Model discovery response is too large')
+        }
+
+        let payload: unknown
+        try {
+          payload = JSON.parse(text)
+        } catch {
+          throw new ValidationError('Model discovery endpoint returned invalid JSON')
+        }
+        for (const model of parseDiscoveredModels(payload)) {
+          if (!models.has(model.id)) models.set(model.id, model)
+          if (models.size >= 2_000) break
+        }
+
+        const next = nextModelListPage(input.protocol, url, payload)
+        if (!next) break
+        url = next
+      }
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        throw new ValidationError('Model discovery request timed out')
+      }
+      if (error instanceof ValidationError) throw error
+      throw new ValidationError(
+        `Model discovery request failed: ${redactSecretText((error as Error).message)}`
+      )
+    } finally {
+      clearTimeout(timer)
+    }
+
+    return [...models.values()]
   }
 
   async testConnection(input: {
@@ -653,6 +730,150 @@ export function resolveEnabledProviderKey(
   return untracked[0] ?? null
 }
 
+async function resolveDiscoveryCredential(
+  draft: ProviderForm['apiKey'],
+  existing: ProviderProfile | null
+): Promise<string | null> {
+  if (!draft) return null
+  if (draft.kind === 'literal') {
+    const literal = draft.literal?.trim()
+    return literal || (existing ? resolveCredentialForTest(existing) : null)
+  }
+  if (draft.kind === 'env') {
+    const name = draft.envRef
+      ?.trim()
+      .replace(/^\$\{?/, '')
+      .replace(/\}$/, '')
+    if (!name) return null
+    const value = process.env[name]?.trim()
+    if (!value) throw new ValidationError(`Environment variable is empty or missing: ${name}`)
+    return value
+  }
+  if (draft.kind === 'stored') {
+    if (!existing) throw new ValidationError('Save the API key before discovering models')
+    return resolveCredentialForTest(existing)
+  }
+  if (draft.kind === 'command') {
+    if (
+      !existing ||
+      existing.apiKey?.kind !== 'command' ||
+      existing.apiKey.command !== draft.command
+    ) {
+      throw new ValidationError(
+        'Save the provider before using a command credential to discover models'
+      )
+    }
+    return resolveCredentialForTest(existing)
+  }
+  return null
+}
+
+function buildModelListRequest(
+  protocol: ProviderModelDiscoveryInput['protocol'],
+  root: URL,
+  apiKey: string | null,
+  authHeader: boolean
+): { url: URL; headers: Record<string, string> } {
+  const url = new URL(root.toString())
+  const headers: Record<string, string> = {}
+  const path = url.pathname.replace(/\/+$/, '')
+
+  if (protocol === 'anthropic-messages') {
+    url.pathname = `${path.endsWith('/v1') ? path : `${path}/v1`}/models`
+    url.searchParams.set('limit', '100')
+    headers['anthropic-version'] = '2023-06-01'
+    if (apiKey) {
+      headers['x-api-key'] = apiKey
+      if (authHeader) headers.Authorization = `Bearer ${apiKey}`
+    }
+    return { url, headers }
+  }
+
+  url.pathname = `${path}/models`
+  if (protocol === 'google-generative-ai') {
+    url.searchParams.set('pageSize', '1000')
+    if (apiKey) url.searchParams.set('key', apiKey)
+  } else if (apiKey && authHeader) {
+    headers.Authorization = `Bearer ${apiKey}`
+  }
+  return { url, headers }
+}
+
+function nextModelListPage(
+  protocol: ProviderModelDiscoveryInput['protocol'],
+  currentUrl: URL,
+  payload: unknown
+): URL | null {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null
+  const page = payload as Record<string, unknown>
+  const next = new URL(currentUrl.toString())
+
+  if (protocol === 'google-generative-ai') {
+    const token = page.nextPageToken
+    if (typeof token !== 'string' || !token) return null
+    next.searchParams.set('pageToken', token)
+    return next
+  }
+
+  if (protocol === 'anthropic-messages' && page.has_more === true) {
+    const data = Array.isArray(page.data) ? page.data : []
+    const lastItem = data.at(-1)
+    const lastId =
+      typeof page.last_id === 'string'
+        ? page.last_id
+        : lastItem && typeof lastItem === 'object' && typeof lastItem.id === 'string'
+          ? lastItem.id
+          : ''
+    if (!lastId) return null
+    next.searchParams.set('after_id', lastId)
+    return next
+  }
+  return null
+}
+
+function parseDiscoveredModels(payload: unknown): DiscoveredProviderModel[] {
+  let entries: unknown[] = []
+  if (Array.isArray(payload)) {
+    entries = payload
+  } else if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>
+    if (Array.isArray(record.data)) entries = record.data
+    else if (Array.isArray(record.models)) entries = record.models
+  }
+
+  const models: DiscoveredProviderModel[] = []
+  for (const entry of entries) {
+    if (typeof entry === 'string') {
+      const id = entry.trim().replace(/^models\//, '')
+      if (id && id.length <= 256) models.push({ id, name: id })
+      continue
+    }
+    if (!entry || typeof entry !== 'object') continue
+    const item = entry as Record<string, unknown>
+    const rawId =
+      typeof item.id === 'string' ? item.id : typeof item.name === 'string' ? item.name : ''
+    const id = rawId.trim().replace(/^models\//, '')
+    if (!id || id.length > 256) continue
+    const rawName =
+      typeof item.display_name === 'string'
+        ? item.display_name
+        : typeof item.displayName === 'string'
+          ? item.displayName
+          : typeof item.id === 'string' && typeof item.name === 'string'
+            ? item.name
+            : id
+    const name = rawName.trim().slice(0, 256) || id
+    models.push({ id, name })
+  }
+  return models
+}
+
+function setHeaderIfMissing(headers: Record<string, string>, name: string, value: string): void {
+  if (!Object.keys(headers).some((key) => key.toLowerCase() === name.toLowerCase())) {
+    headers[name] = value
+  }
+}
+
 function buildChatProbe(
   protocol: string,
   root: string,
@@ -879,5 +1100,32 @@ function ensureDefaultModel(
       maxOutputTokens: catalog?.maxOutputTokens ?? null
     })
   )
+  return { ...provider, models }
+}
+
+function mergeDiscoveredModels(
+  provider: PiProviderConfig,
+  discovered: DiscoveredProviderModel[],
+  protocol: ProviderModelDiscoveryInput['protocol']
+): PiProviderConfig {
+  if (discovered.length === 0) return provider
+  const models = [...(provider.models ?? [])]
+  const existingIds = new Set(models.map((model) => model.id))
+  for (const model of discovered) {
+    const id = model.id.trim()
+    if (!id || existingIds.has(id)) continue
+    models.push(
+      domainModelToPi(undefined, {
+        modelId: id,
+        displayName: model.name.trim() || id,
+        protocol,
+        reasoning: false,
+        vision: false,
+        contextWindow: null,
+        maxOutputTokens: null
+      })
+    )
+    existingIds.add(id)
+  }
   return { ...provider, models }
 }

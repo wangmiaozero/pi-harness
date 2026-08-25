@@ -237,6 +237,9 @@ const enUS = {
       'Use the API root only (e.g. https://api.anthropic.com or https://ark.cn-beijing.volces.com/api/plan). Client appends /v1/messages — do not include it.',
     baseUrlHintGeneric: 'Use the provider API root, not a specific chat/completions path.',
     baseUrlNormalized: 'Base URL normalized: removed trailing chat/completions (or similar) path.',
+    generateIdentity: 'Generate identity from URL',
+    identityGenerated: 'Provider identity generated from Base URL',
+    identityInvalidUrl: 'Enter a valid HTTP(S) Base URL first',
     keySavedEcho: 'key is set (not shown)',
     keyKeepPlaceholder: 'Leave blank to keep current key',
     addModelHint:
@@ -250,6 +253,17 @@ const enUS = {
     defaultModelHint:
       'Saved under this provider if missing. Used for connection tests and as the active model when none is set.',
     defaultModelCreated: 'Default model registered: {id}',
+    discoverAllModels: 'Fetch all models',
+    modelsDiscovering: 'Fetching models from the provider…',
+    modelsDiscovered: 'Fetched {count} models',
+    modelsDiscoveryFailed: 'Failed to fetch models',
+    modelsDiscoveryEmpty: 'The provider returned no models.',
+    modelsDiscoveryError: 'Failed to fetch models: {message}',
+    modelsReadyToImport: '{count} models will be imported on save',
+    saveCancelled: 'Save cancelled; draft changes were kept.',
+    discoveredModelHint: 'API',
+    existingModelHint: 'Existing',
+    headersObjectRequired: 'Headers must be a JSON object',
     testModelHint:
       'Sends a real 1-token chat request (not GET /models). Needed to surface 401 / 429 / model errors.'
   },
@@ -741,6 +755,8 @@ const enUS = {
     updateReadyTitle: 'Update ready',
     updateReady: 'Update {version} is ready. Restart now or install automatically when you quit.',
     updateCurrent: 'Pi-Harness {version} is up to date.',
+    updateManualRequired:
+      'Update {version} is available, but its automatic-update files are incomplete. Install it manually from GitHub Releases.',
     updateFailed: 'Unable to check for updates. Try again later.',
     developer: 'Developer',
     developerMode: 'Developer mode',
@@ -851,6 +867,7 @@ const enUS = {
     compactUnavailable: 'This session is too short to compact.',
     compactAlready: 'This session has already been compacted.',
     model: 'Model',
+    modelSwitchFailed: 'Unable to switch model',
     thinking: 'Thinking',
     tools: 'Tools',
     presetNone: 'None',
@@ -1224,6 +1241,9 @@ const zhCN: MessageTree = {
       '只填 API 根路径（如 https://api.anthropic.com 或 https://ark.cn-beijing.volces.com/api/plan）。客户端会自动拼 /v1/messages，不要自己带。',
     baseUrlHintGeneric: '填提供商 API 根路径，不要填具体的 chat/completions 地址。',
     baseUrlNormalized: '已自动规范化 Base URL：去掉了末尾的 /chat/completions（或同类路径）。',
+    generateIdentity: '根据 URL 生成标识与名称',
+    identityGenerated: '已根据 API 基础 URL 生成提供商信息',
+    identityInvalidUrl: '请先填写有效的 HTTP(S) API 基础 URL',
     keySavedEcho: '密钥已保存（不回显明文）',
     keyKeepPlaceholder: '留空则保持当前密钥',
     addModelHint:
@@ -1237,6 +1257,17 @@ const zhCN: MessageTree = {
     defaultModelHint:
       '若该模型尚不存在会自动写入提供商；连接测试优先用它；若尚未设置当前模型也会用它兜底。',
     defaultModelCreated: '已注册默认模型：{id}',
+    discoverAllModels: '一键获取全部模型',
+    modelsDiscovering: '正在从厂商获取模型…',
+    modelsDiscovered: '已获取 {count} 个模型',
+    modelsDiscoveryFailed: '获取模型失败',
+    modelsDiscoveryEmpty: '厂商没有返回任何模型。',
+    modelsDiscoveryError: '获取模型失败：{message}',
+    modelsReadyToImport: '保存后将导入 {count} 个模型',
+    saveCancelled: '保存已取消，草稿内容仍保留。',
+    discoveredModelHint: 'API 获取',
+    existingModelHint: '已存在',
+    headersObjectRequired: '自定义请求头必须是 JSON 对象',
     testModelHint:
       '会真实打一发 1 token 的 chat 请求（不是 GET /models），才能暴露 401 / 429 / 模型错误。'
   },
@@ -1713,6 +1744,8 @@ const zhCN: MessageTree = {
     updateReadyTitle: '更新已就绪',
     updateReady: '新版本 {version} 已下载，可立即重启；也会在退出应用时自动安装。',
     updateCurrent: '当前 Pi-Harness {version} 已是最新版本。',
+    updateManualRequired:
+      '发现新版本 {version}，但自动更新文件不完整，请从 GitHub Releases 手动安装。',
     updateFailed: '检查更新失败，请稍后重试。',
     developer: '开发者',
     developerMode: '开发者模式',
@@ -1823,6 +1856,7 @@ const zhCN: MessageTree = {
     compactUnavailable: '当前会话内容较少，无需压缩。',
     compactAlready: '当前会话已经压缩过。',
     model: '模型',
+    modelSwitchFailed: '切换模型失败',
     thinking: '思考',
     tools: '工具',
     presetNone: '关闭',

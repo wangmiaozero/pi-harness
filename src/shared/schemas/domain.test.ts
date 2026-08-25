@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { skillFormSchema, skillImportSchema, providerFormSchema } from '@shared/schemas/domain'
+import {
+  skillFormSchema,
+  skillImportSchema,
+  providerFormSchema,
+  providerModelDiscoverySchema
+} from '@shared/schemas/domain'
 
 describe('skillFormSchema', () => {
   it('accepts a valid skill', () => {
@@ -116,5 +121,52 @@ describe('providerFormSchema', () => {
       }
     })
     expect(r.success).toBe(true)
+  })
+
+  it('accepts discovered models for atomic import on provider save', () => {
+    const r = providerFormSchema.safeParse({
+      key: 'acme',
+      name: 'acme',
+      displayName: 'Acme',
+      enabled: true,
+      protocol: 'openai-completions',
+      baseUrl: 'https://api.acme.test/v1',
+      apiKey: null,
+      headers: {},
+      authHeader: true,
+      timeout: null,
+      discoveredModels: [
+        { id: 'acme-chat', name: 'Acme Chat' },
+        { id: 'acme-reasoning', name: 'Acme Reasoning' }
+      ]
+    })
+    expect(r.success).toBe(true)
+  })
+})
+
+describe('providerModelDiscoverySchema', () => {
+  it('accepts only bounded draft connection fields', () => {
+    expect(
+      providerModelDiscoverySchema.safeParse({
+        existingProviderKey: null,
+        protocol: 'openai-completions',
+        baseUrl: 'https://api.acme.test/v1',
+        apiKey: { kind: 'literal', literal: 'secret' },
+        headers: { 'X-Org': '1' },
+        authHeader: true,
+        timeout: 15_000
+      }).success
+    ).toBe(true)
+    expect(
+      providerModelDiscoverySchema.safeParse({
+        protocol: 'openai-completions',
+        baseUrl: 'https://api.acme.test/v1',
+        apiKey: null,
+        headers: {},
+        authHeader: true,
+        timeout: null,
+        arbitraryCommand: '!dangerous'
+      }).success
+    ).toBe(false)
   })
 })

@@ -94,6 +94,25 @@ jobs:
           pattern: release-*
           path: release-artifacts
           merge-multiple: true
+      - name: Validate updater artifacts
+        working-directory: release-artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in latest-mac.yml latest.yml latest-linux.yml; do
+            test -s "$file" || { echo "Missing required updater metadata: $file" >&2; exit 1; }
+          done
+          for pattern in '*.zip' '*.zip.blockmap' '*.exe' '*.exe.blockmap' '*.AppImage' '*.AppImage.blockmap'; do
+            compgen -G "$pattern" >/dev/null || { echo "Missing required updater payload: $pattern" >&2; exit 1; }
+          done
+          test "$(find . -maxdepth 1 -type f -name '*.dmg' | wc -l | tr -d ' ')" -ge 2 || {
+            echo 'Missing one or more macOS architecture DMGs' >&2
+            exit 1
+          }
+          test "$(find . -maxdepth 1 -type f -name '*.zip' | wc -l | tr -d ' ')" -ge 2 || {
+            echo 'Missing one or more macOS automatic-update ZIPs' >&2
+            exit 1
+          }
       - name: Generate SHA256SUMS
         working-directory: release-artifacts
         run: find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\0' | sort -z | xargs -0 sha256sum > SHA256SUMS

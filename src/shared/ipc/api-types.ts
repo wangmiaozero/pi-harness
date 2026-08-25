@@ -5,7 +5,15 @@
  */
 
 import type { AppErrorCode, AppErrorPayload } from '../types/errors'
-import type { ProviderProfile, ModelDefinition, ActiveModel, ApiKeySpec } from '../types/domain'
+import type {
+  ProviderProfile,
+  ModelDefinition,
+  ActiveModel,
+  ApiKeySpec,
+  DiscoveredProviderModel,
+  ProviderModelDiscoveryInput
+} from '../types/domain'
+
 import type { ProtocolId } from '../constants/protocols'
 import type {
   AgentStateSnapshot,
@@ -573,7 +581,14 @@ export interface SystemInfo {
 }
 
 export type AppUpdateStatus =
-  'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'manual-update'
+  | 'error'
 
 export interface AppUpdateState {
   /** False for local development; application updates apply only to installed builds. */
@@ -627,6 +642,7 @@ export interface PiSwitchAPI {
     duplicate(key: string, options?: { overwrite?: boolean }): Promise<ProviderProfile>
     setEnabled(key: string, enabled: boolean): Promise<ProviderProfile>
     testConnection(input: unknown): Promise<ConnectionTestResult>
+    discoverModels(input: ProviderModelDiscoveryInput): Promise<DiscoveredProviderModel[]>
   }
   models: {
     list(): Promise<ModelDefinition[]>
@@ -801,4 +817,12 @@ declare global {
   }
 }
 
-export type { ProviderProfile, ModelDefinition, ActiveModel, ApiKeySpec, ProtocolId }
+export type {
+  ProviderProfile,
+  ModelDefinition,
+  ActiveModel,
+  ApiKeySpec,
+  DiscoveredProviderModel,
+  ProviderModelDiscoveryInput,
+  ProtocolId
+}

@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ProviderProfile, ConnectionTestResult } from '@shared/ipc/api-types'
+import type {
+  ProviderProfile,
+  ConnectionTestResult,
+  DiscoveredProviderModel,
+  ProviderModelDiscoveryInput
+} from '@shared/ipc/api-types'
 import type { ProviderForm } from '@shared/schemas/domain'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { isConfigConflict, openConflict } from '@renderer/composables/useConfigConflict'
@@ -99,6 +104,12 @@ export const useProvidersStore = defineStore('providers', () => {
     return callApi(() => getApi().providers.testConnection({ providerKey, modelId }))
   }
 
+  async function discoverModels(
+    input: ProviderModelDiscoveryInput
+  ): Promise<DiscoveredProviderModel[]> {
+    return callApi(() => getApi().providers.discoverModels(input))
+  }
+
   function setupListeners() {
     const api = getApi()
     return api.on('config-changed', () => {
@@ -117,6 +128,7 @@ export const useProvidersStore = defineStore('providers', () => {
     duplicate,
     setEnabled,
     testConnection,
+    discoverModels,
     setupListeners
   }
 })
