@@ -51,7 +51,9 @@ async function close() {
         @click="router.push('/')"
       >
         <img :src="appIconUrl" alt="" class="size-[18px] rounded-[4px]" />
-        <span class="text-[11px] font-medium leading-none tracking-tight text-[var(--text-secondary)]">
+        <span
+          class="text-[11px] font-medium leading-none tracking-tight text-[var(--text-secondary)]"
+        >
           Pi-Harness
         </span>
       </button>

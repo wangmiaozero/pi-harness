@@ -25,8 +25,14 @@ import {
 } from '@shared/workspace/agent-event-wire'
 import { getToolNamesForPreset } from '@shared/workspace/tool-presets'
 import { validateAgentImages } from '@shared/workspace/image-attachments'
-import { loadPiCodingAgent, type AgentSessionLike, type PiSessionManagerLike } from './pi-sdk'
+import {
+  loadPiCodingAgent,
+  peekPiCodingAgent,
+  type AgentSessionLike,
+  type PiSessionManagerLike
+} from './pi-sdk'
 import type { SessionService } from '../sessions/session-service'
+import type { AgentRuntime } from './runtime'
 
 const IDLE_MS = 10 * 60 * 1000
 const CODING_TOOL_NAMES = ['read', 'bash', 'edit', 'write', 'grep', 'find', 'ls']
@@ -413,7 +419,8 @@ function withExtensionTools(session: AgentSessionLike, toolNames: string[]): str
   return [...new Set([...toolNames, ...extensionToolNames])]
 }
 
-export class AgentRuntimeService {
+/** Pi Coding Agent-backed implementation of the Pi-Harness runtime boundary. */
+export class AgentRuntimeService implements AgentRuntime {
   private registry = new Map<string, AgentSessionWrapper>()
   private startLocks = new Map<
     string,
@@ -422,6 +429,10 @@ export class AgentRuntimeService {
   private getWindow: () => BrowserWindow | null = () => null
 
   constructor(private readonly sessions: SessionService) {}
+
+  diagnostics(): { implementation: 'pi'; sdkLoaded: boolean } {
+    return { implementation: 'pi', sdkLoaded: peekPiCodingAgent() !== null }
+  }
 
   attachWindow(getWindow: () => BrowserWindow | null): void {
     this.getWindow = getWindow
@@ -522,6 +533,10 @@ export class AgentRuntimeService {
     const wrapper = this.registry.get(sessionId)
     if (!wrapper) return
     await wrapper.send({ type: 'abort' })
+  }
+
+  async stop(sessionId: string): Promise<void> {
+    await this.registry.get(sessionId)?.shutdown()
   }
 
   async command(sessionId: string, command: Record<string, unknown>): Promise<unknown> {

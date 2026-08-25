@@ -158,7 +158,11 @@ const api: PiSwitchAPI = {
         isPinned,
         locale
       }),
-    getPathForFile: (file) => webUtils.getPathForFile(file as never)
+    getPathForFile: async (file) => {
+      const root = webUtils.getPathForFile(file as never)
+      if (root) await invoke(IPC_INVOKE.workspaceAuthorizeDroppedRoot, { root })
+      return root
+    }
   },
   sessions: {
     list: (force) => invoke(IPC_INVOKE.sessionList, force),

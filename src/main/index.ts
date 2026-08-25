@@ -4,7 +4,12 @@
 
 import { app, BrowserWindow, nativeTheme } from 'electron'
 import path from 'node:path'
-import { initAppPaths, appSettingsPath, appUiStatePath } from './services/app-paths'
+import {
+  initAppPaths,
+  appSettingsPath,
+  appUiStatePath,
+  appAuthorizedRootsPath
+} from './services/app-paths'
 import { JsonStore } from './services/storage'
 import { log } from './services/logger'
 import { BackupService } from './backup/backup-service'
@@ -19,7 +24,7 @@ import { createMainWindow } from './window/create-window'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
 import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
-import { FileAccessService } from './files/file-access-service'
+import { FileAccessService, type AuthorizedRootsState } from './files/file-access-service'
 import { FileService } from './files/file-service'
 import { GitService } from './git/git-service'
 import { WorktreeService } from './git/worktree-service'
@@ -94,6 +99,10 @@ async function bootstrap(): Promise<void> {
   nativeTheme.themeSource = settingsStore.peek().theme
   const uiStateStore = new JsonStore<Record<string, unknown>>(appUiStatePath(), {})
   await uiStateStore.read()
+  const authorizedRootsStore = new JsonStore<AuthorizedRootsState>(appAuthorizedRootsPath(), {
+    roots: []
+  })
+  await authorizedRootsStore.read()
 
   const metadata = createMetadataStore()
   await metadata.read()
@@ -110,13 +119,19 @@ async function bootstrap(): Promise<void> {
   await config.read().catch((err) => log.config.warn('initial config read failed:', err))
   const providers = new ProviderService(config, metadata)
   const models = new ModelService(config, metadata)
-  const access = new FileAccessService()
+  const access = new FileAccessService(authorizedRootsStore)
   const packageManager = new PiPackageManager(settingsStore, config, access)
   const builtinSkills = new BuiltinSkillService(settingsStore, metadata, access)
-  const skills = new SkillsService(settingsStore, packageManager, builtinSkills)
+  const skills = new SkillsService(settingsStore, packageManager, builtinSkills, access)
   const skillRegistry = new SkillRegistry(settingsStore, metadata, skills)
   const capabilities = new CapabilityService(metadata, skillRegistry)
-  const diagnostics = new DiagnosticsService(settingsStore, config, packageManager)
+  const diagnostics = new DiagnosticsService(
+    settingsStore,
+    config,
+    packageManager,
+    capabilities,
+    skills
+  )
   const environment = new EnvironmentManager(settingsStore, {
     onTask: (task) => {
       if (mainWindow && !mainWindow.isDestroyed()) {

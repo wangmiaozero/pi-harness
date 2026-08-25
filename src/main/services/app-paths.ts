@@ -53,6 +53,11 @@ export function appUiStatePath(): string {
   return path.join(userData(), 'ui-state.json')
 }
 
+/** Main-owned directory grants created only by an explicit picker/drop action. */
+export function appAuthorizedRootsPath(): string {
+  return path.join(userData(), 'authorized-roots.json')
+}
+
 /** Pi-Harness encrypted secret vault (non-keychain fallback). */
 export function appSecretVaultPath(): string {
   return path.join(userData(), 'secrets.bin')

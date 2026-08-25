@@ -40,7 +40,9 @@ export interface PiCodingAgentModule {
   }
   getAgentDir?: () => string
   SettingsManager?: { create: (cwd: string, agentDir: string) => unknown }
-  createAgentSessionServices?: (options: Record<string, unknown>) => Promise<Record<string, unknown>>
+  createAgentSessionServices?: (
+    options: Record<string, unknown>
+  ) => Promise<Record<string, unknown>>
   createAgentSessionFromServices?: (options: Record<string, unknown>) => Promise<{
     session: AgentSessionLike
   }>
@@ -92,14 +94,21 @@ export interface AgentSessionLike {
     setUIContext?: (ctx: unknown, mode?: string) => void
   }
   promptTemplates?: Array<{ name: string; description?: string; sourceInfo?: unknown }>
-  resourceLoader?: { getSkills?: () => { skills: Array<{ name: string; description?: string; sourceInfo?: unknown }> } }
+  resourceLoader?: {
+    getSkills?: () => {
+      skills: Array<{ name: string; description?: string; sourceInfo?: unknown }>
+    }
+  }
   subscribe: (listener: (event: { type: string; [key: string]: unknown }) => void) => () => void
   prompt: (message: string, options?: Record<string, unknown>) => Promise<void>
   abort: () => Promise<void> | void
   abortCompaction?: () => void
   abortBash?: () => void
   compact: (instructions?: string) => Promise<unknown>
-  navigateTree: (targetId: string, options?: Record<string, unknown>) => Promise<{ cancelled: boolean }>
+  navigateTree: (
+    targetId: string,
+    options?: Record<string, unknown>
+  ) => Promise<{ cancelled: boolean }>
   setModel: (model: unknown) => Promise<void>
   setThinkingLevel: (level: string) => void
   setSessionName: (name: string) => void

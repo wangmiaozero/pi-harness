@@ -31,4 +31,14 @@ describe('logger secret redaction', () => {
       headers: { Authorization: '••••••••••' }
     })
   })
+
+  it('does not leak the original object through circular references', () => {
+    const input: Record<string, unknown> = { token: 'plain-secret' }
+    input.self = input
+
+    const output = redactSecrets(input)
+
+    expect(output).toEqual({ token: '••••••••••', self: '[Circular]' })
+    expect(JSON.stringify(output)).not.toContain('plain-secret')
+  })
 })

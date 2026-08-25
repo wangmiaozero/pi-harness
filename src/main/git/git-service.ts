@@ -19,7 +19,9 @@ export class GitService {
     const realCwd = await this.access.assertAllowed(cwd, { mustExist: true })
     let repositoryRoot: string | null = null
     try {
-      repositoryRoot = toNativePath((await gitExec(realCwd, ['rev-parse', '--show-toplevel'])).trim())
+      repositoryRoot = toNativePath(
+        (await gitExec(realCwd, ['rev-parse', '--show-toplevel'])).trim()
+      )
     } catch {
       return { isGitRepository: false, repositoryRoot: null, files: [], additions: 0, deletions: 0 }
     }
@@ -29,9 +31,15 @@ export class GitService {
 
     const [porcelain, numstat] = await Promise.all([
       gitExec(repositoryRoot, ['status', '--porcelain=v1', '-z', '--untracked-files=all']),
-      gitExec(repositoryRoot, ['diff', '--no-color', '--no-ext-diff', '--numstat', 'HEAD', '--', '.']).catch(
-        () => ''
-      )
+      gitExec(repositoryRoot, [
+        'diff',
+        '--no-color',
+        '--no-ext-diff',
+        '--numstat',
+        'HEAD',
+        '--',
+        '.'
+      ]).catch(() => '')
     ])
 
     const entries = parseGitPorcelainV1(porcelain)
@@ -68,7 +76,9 @@ export class GitService {
     const realFile = await this.access.assertAllowed(filePath)
     let repositoryRoot: string
     try {
-      repositoryRoot = toNativePath((await gitExec(realCwd, ['rev-parse', '--show-toplevel'])).trim())
+      repositoryRoot = toNativePath(
+        (await gitExec(realCwd, ['rev-parse', '--show-toplevel'])).trim()
+      )
     } catch {
       return { supported: false }
     }
@@ -93,7 +103,11 @@ export class GitService {
           return { supported: true, status: classified.status, patch: '' }
         }
         const content = await readFile(realFile, 'utf8')
-        return { supported: true, status: classified.status, patch: createAddedFilePatch(relativePath, content) }
+        return {
+          supported: true,
+          status: classified.status,
+          patch: createAddedFilePatch(relativePath, content)
+        }
       } catch {
         return { supported: true, status: classified.status, patch: '' }
       }

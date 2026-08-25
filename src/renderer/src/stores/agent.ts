@@ -44,10 +44,7 @@ export const useAgentStore = defineStore('agent', () => {
   let loadedStatsOverride: Partial<SessionStats> | null = null
   let loadedSessionId: string | null = null
   let loadGeneration = 0
-  const composerSelections = new Map<
-    string,
-    { thinkingLevel: string; toolPreset: ToolPreset }
-  >()
+  const composerSelections = new Map<string, { thinkingLevel: string; toolPreset: ToolPreset }>()
   const transientSessionIds = new Set<string>()
   let unsubEvent: (() => void) | null = null
   let unsubRunning: (() => void) | null = null
@@ -342,9 +339,7 @@ export const useAgentStore = defineStore('agent', () => {
     rememberComposerSelection(sessionId)
     if (level === 'auto') return
     try {
-      await callApi(() =>
-        getApi().agent.command(sessionId, { type: 'set_thinking_level', level })
-      )
+      await callApi(() => getApi().agent.command(sessionId, { type: 'set_thinking_level', level }))
     } catch (cause) {
       composerSelections.set(sessionId, previous)
       if (loadedSessionId === sessionId) applyComposerSelection(previous)
@@ -402,10 +397,7 @@ export const useAgentStore = defineStore('agent', () => {
     })
   }
 
-  function applyComposerSelection(selection: {
-    thinkingLevel: string
-    toolPreset: ToolPreset
-  }) {
+  function applyComposerSelection(selection: { thinkingLevel: string; toolPreset: ToolPreset }) {
     thinkingLevel.value = selection.thinkingLevel
     toolPreset.value = selection.toolPreset
   }

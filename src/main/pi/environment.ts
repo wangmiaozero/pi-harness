@@ -15,7 +15,7 @@ import { PI_FILES } from '@shared/constants/index'
 import { readTextFile, fileMtime } from '../services/storage'
 import { piModelsConfigSchema, piSettingsConfigSchema } from '@shared/schemas/pi'
 import { log } from '../services/logger'
-import type { PiEnvironment } from '@shared/ipc/api-types'
+import type { EnvironmentCheckResult, NodeRuntimeInfo, PiEnvironment } from '@shared/ipc/api-types'
 import type { PiSettingsConfig } from '@shared/types/pi'
 import { detectNodeRuntime } from './node-environment'
 
@@ -81,7 +81,17 @@ class PiEnvironmentService {
       arch,
       nodeRuntime,
       state,
-      piStatus
+      piStatus,
+      checks: buildEnvironmentChecks({
+        nodeRuntime,
+        piInstalled: Boolean(cliPath),
+        piVersion: version,
+        piPath: cliPath,
+        configDir,
+        configReadable: readable,
+        configWritable: writable,
+        skillsDirs
+      })
     }
   }
 
@@ -193,3 +203,120 @@ class PiEnvironmentService {
 }
 
 export const piEnvironment = new PiEnvironmentService()
+
+export function buildEnvironmentChecks(input: {
+  nodeRuntime: NodeRuntimeInfo
+  piInstalled: boolean
+  piVersion: string | null
+  piPath: string | null
+  configDir: string | null
+  configReadable: boolean
+  configWritable: boolean
+  skillsDirs: string[]
+}): EnvironmentCheckResult[] {
+  const { nodeRuntime } = input
+  const nodeStatus = !nodeRuntime.nodeInstalled
+    ? ('error' as const)
+    : nodeRuntime.nodeSupported
+      ? ('healthy' as const)
+      : ('warning' as const)
+  const pathEntries = new Set(
+    (nodeRuntime.resolvedPath || '').split(path.delimiter).filter(Boolean).map(pathIdentity)
+  )
+  const nodeDirectory = nodeRuntime.nodePath
+    ? pathIdentity(path.dirname(nodeRuntime.nodePath))
+    : null
+  const nodeOnPath = Boolean(nodeDirectory && pathEntries.has(nodeDirectory))
+
+  return [
+    {
+      id: 'node',
+      status: nodeStatus,
+      installed: nodeRuntime.nodeInstalled,
+      version: nodeRuntime.nodeVersion,
+      path: nodeRuntime.nodePath,
+      message: !nodeRuntime.nodeInstalled
+        ? 'Node.js was not found.'
+        : nodeRuntime.nodeSupported
+          ? `Node.js ${nodeRuntime.nodeVersion ?? ''} is supported.`
+          : `Node.js ${nodeRuntime.nodeVersion ?? 'unknown'} is below ${nodeRuntime.minimumNodeVersion}.`,
+      ...(nodeRuntime.nodeSupported
+        ? {}
+        : { remediation: 'Install or upgrade Node.js to version 22 or newer.' })
+    },
+    {
+      id: 'npm',
+      status: nodeRuntime.npmInstalled ? 'healthy' : 'error',
+      installed: nodeRuntime.npmInstalled,
+      version: nodeRuntime.npmVersion,
+      path: nodeRuntime.npmPath,
+      message: nodeRuntime.npmInstalled ? 'npm is available.' : 'npm was not found.',
+      ...(nodeRuntime.npmInstalled ? {} : { remediation: 'Repair the Node.js/npm environment.' })
+    },
+    {
+      id: 'pnpm',
+      status: nodeRuntime.pnpmInstalled ? 'healthy' : 'warning',
+      installed: nodeRuntime.pnpmInstalled,
+      version: nodeRuntime.pnpmVersion,
+      path: nodeRuntime.pnpmPath,
+      message: nodeRuntime.pnpmInstalled ? 'pnpm is available.' : 'pnpm was not found.',
+      ...(nodeRuntime.pnpmInstalled
+        ? {}
+        : { remediation: 'Install pnpm for development workflows.' })
+    },
+    {
+      id: 'pi',
+      status: !input.piInstalled ? 'warning' : input.piVersion ? 'healthy' : 'error',
+      installed: input.piInstalled,
+      version: input.piVersion,
+      path: input.piPath,
+      message: !input.piInstalled
+        ? 'Pi Coding Agent is not installed.'
+        : input.piVersion
+          ? `Pi Coding Agent ${input.piVersion} is ready.`
+          : 'Pi Coding Agent exists but its version could not be verified.',
+      ...(!input.piInstalled ? { remediation: 'Install Pi Coding Agent from Overview.' } : {})
+    },
+    {
+      id: 'path',
+      status: nodeOnPath ? 'healthy' : 'warning',
+      installed: nodeOnPath,
+      version: null,
+      path: nodeRuntime.resolvedPath || null,
+      message: nodeOnPath
+        ? 'The resolved PATH contains the active Node.js directory.'
+        : 'The active Node.js executable is outside the resolved PATH.',
+      ...(nodeOnPath ? {} : { remediation: 'Refresh or repair the desktop application PATH.' })
+    },
+    {
+      id: 'config-directory',
+      status: input.configReadable && input.configWritable ? 'healthy' : 'warning',
+      installed: Boolean(input.configDir),
+      version: null,
+      path: input.configDir,
+      message:
+        input.configReadable && input.configWritable
+          ? 'The Pi configuration directory is readable and writable.'
+          : 'The Pi configuration directory is missing or not fully writable.',
+      ...(input.configReadable && input.configWritable
+        ? {}
+        : { remediation: 'Check the configured directory and its permissions.' })
+    },
+    {
+      id: 'skills-directory',
+      status: input.skillsDirs.length ? 'healthy' : 'warning',
+      installed: input.skillsDirs.length > 0,
+      version: null,
+      path: input.skillsDirs[0] ?? null,
+      message: input.skillsDirs.length
+        ? `${input.skillsDirs.length} Skills directory path(s) resolved.`
+        : 'No Skills directory could be resolved.',
+      ...(input.skillsDirs.length ? {} : { remediation: 'Check the Pi Skills configuration.' })
+    }
+  ]
+}
+
+function pathIdentity(value: string): string {
+  const resolved = path.resolve(value)
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved
+}

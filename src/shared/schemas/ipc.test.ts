@@ -1,0 +1,35 @@
+import { describe, expect, it } from 'vitest'
+import {
+  appSettingsPatchSchema,
+  backupRetentionSchema,
+  modelCompositeIdSchema,
+  uiStateSchema
+} from './ipc'
+import { backupIdSchema } from './domain'
+
+describe('IPC schemas', () => {
+  it('rejects path traversal backup ids', () => {
+    expect(backupIdSchema.safeParse('../settings.json').success).toBe(false)
+    expect(backupIdSchema.safeParse('1720000000000-deadbeef').success).toBe(true)
+  })
+
+  it('validates bounded model ids and backup retention', () => {
+    expect(modelCompositeIdSchema.safeParse('openai::gpt-5').success).toBe(true)
+    expect(modelCompositeIdSchema.safeParse('missing-separator').success).toBe(false)
+    expect(backupRetentionSchema.safeParse(20).success).toBe(true)
+    expect(backupRetentionSchema.safeParse(0).success).toBe(false)
+  })
+
+  it('accepts known settings only', () => {
+    expect(appSettingsPatchSchema.safeParse({ theme: 'dark' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ theme: 'neon' }).success).toBe(false)
+    expect(appSettingsPatchSchema.safeParse({ unexpected: true }).success).toBe(false)
+  })
+
+  it('rejects oversized UI state', () => {
+    expect(uiStateSchema.safeParse({ selected: 'overview' }).success).toBe(true)
+    expect(uiStateSchema.safeParse({ payload: 'x'.repeat(2 * 1024 * 1024 + 1) }).success).toBe(
+      false
+    )
+  })
+})

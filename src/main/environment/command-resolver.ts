@@ -72,10 +72,7 @@ export async function resolveLoginShellPath(): Promise<{
     try {
       const { stdout } = await execFileP(
         shell,
-        [
-          '-ilc',
-          `printf '\n${LOGIN_SHELL_PATH_MARKER}%s\n' "$PATH"`
-        ],
+        ['-ilc', `printf '\n${LOGIN_SHELL_PATH_MARKER}%s\n' "$PATH"`],
         {
           timeout: 8_000,
           windowsHide: true,
@@ -282,10 +279,12 @@ function markedShellOutput(output: string | Buffer, marker: string): string | nu
     const line = lines[index].trim()
     if (line.startsWith(marker)) return line.slice(marker.length).trim() || null
   }
-  return lines
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .at(-1) ?? null
+  return (
+    lines
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .at(-1) ?? null
+  )
 }
 
 function splitPath(value: string | null | undefined): string[] {

@@ -43,6 +43,22 @@ import type { CapabilityService } from '../capabilities/capability-service'
 import { capabilityMutationSchema, capabilityToggleSchema } from '@shared/capabilities/schema'
 import type { EnvironmentManager } from '../environment/environment-manager'
 import { DEFAULT_MASCOT_STYLE, isMascotUnlockAnswer } from '@shared/constants/mascot'
+import { providerKeySchema, backupIdSchema, pathSegmentSchema } from '@shared/schemas/domain'
+import {
+  appSettingsPatchSchema,
+  backupReasonSchema,
+  backupRetentionSchema,
+  configContentSchema,
+  configFileSchema,
+  modelCompositeIdSchema,
+  optionalBooleanSchema,
+  overwriteOptionsSchema,
+  systemPathSchema,
+  uiStateSchema
+} from '@shared/schemas/ipc'
+import type { ZodType } from 'zod'
+import { OpenPathPolicy } from '../security/open-path-policy'
+import { FileSystemError } from '../services/errors'
 
 export interface Services {
   settingsStore: JsonStore<AppSettings>
@@ -71,6 +87,12 @@ function wrap<T>(
     })
 }
 
+function parseInput<T>(schema: ZodType<T>, input: unknown, message: string): T {
+  const parsed = schema.safeParse(input)
+  if (!parsed.success) throw new ValidationError(message, { issues: parsed.error.issues })
+  return parsed.data
+}
+
 export function registerIpc(services: Services): void {
   const {
     settingsStore,
@@ -89,6 +111,11 @@ export function registerIpc(services: Services): void {
       throw new SecurityError('Untrusted IPC sender')
     })
   )
+  const openPathPolicy = new OpenPathPolicy({
+    settingsStore,
+    skills,
+    access: services.workspace.access
+  })
 
   // ---- system ----
   ipcMain.handle(IPC_INVOKE.systemInfo, () =>
@@ -104,14 +131,18 @@ export function registerIpc(services: Services): void {
       packaged: app.isPackaged
     }))
   )
-  ipcMain.handle(IPC_INVOKE.systemOpenPath, (_e, p: string) =>
+  ipcMain.handle(IPC_INVOKE.systemOpenPath, (_e, input: unknown) =>
     wrap(async () => {
-      await shell.openPath(p)
+      const requested = parseInput(systemPathSchema, input, 'Invalid path')
+      const authorized = await openPathPolicy.authorize(requested)
+      const error = await shell.openPath(authorized)
+      if (error) throw new FileSystemError('Failed to open path', { path: authorized, error })
     })
   )
-  ipcMain.handle(IPC_INVOKE.systemShowItem, (_e, p: string) =>
+  ipcMain.handle(IPC_INVOKE.systemShowItem, (_e, input: unknown) =>
     wrap(async () => {
-      shell.showItemInFolder(p)
+      const requested = parseInput(systemPathSchema, input, 'Invalid path')
+      shell.showItemInFolder(await openPathPolicy.authorize(requested))
     })
   )
 
@@ -133,8 +164,12 @@ export function registerIpc(services: Services): void {
   ipcMain.handle(IPC_INVOKE.piReinstall, () => wrap(() => environment.reinstallPi()))
   ipcMain.handle(IPC_INVOKE.piGetInstallTask, () => wrap(async () => environment.getTask()))
   ipcMain.handle(IPC_INVOKE.piCancelInstall, () => wrap(() => environment.cancel()))
-  ipcMain.handle(IPC_INVOKE.piUpdate, (_e, force?: boolean) =>
-    wrap(() => environment.updatePi(Boolean(force)))
+  ipcMain.handle(IPC_INVOKE.piUpdate, (_e, force: unknown) =>
+    wrap(() =>
+      environment.updatePi(
+        parseInput(optionalBooleanSchema, force, 'Invalid update option') ?? false
+      )
+    )
   )
   ipcMain.handle(IPC_INVOKE.piCopyInstallCommand, () =>
     wrap(async () => {
@@ -150,27 +185,52 @@ export function registerIpc(services: Services): void {
 
   // ---- providers ----
   ipcMain.handle(IPC_INVOKE.providerList, () => wrap(() => providers.list()))
-  ipcMain.handle(IPC_INVOKE.providerGet, (_e, key: string) => wrap(() => providers.get(key)))
+  ipcMain.handle(IPC_INVOKE.providerGet, (_e, key: unknown) =>
+    wrap(() => providers.get(parseInput(providerKeySchema, key, 'Invalid provider key')))
+  )
   ipcMain.handle(
     IPC_INVOKE.providerCreate,
     (_e, form: unknown, options?: { overwrite?: boolean }) =>
-      wrap(() => providers.create(form, options))
+      wrap(() =>
+        providers.create(form, parseInput(overwriteOptionsSchema, options, 'Invalid write options'))
+      )
   )
   ipcMain.handle(
     IPC_INVOKE.providerUpdate,
-    (_e, key: string, form: unknown, options?: { overwrite?: boolean }) =>
-      wrap(() => providers.update(key, form, options))
+    (_e, key: unknown, form: unknown, options?: { overwrite?: boolean }) =>
+      wrap(() =>
+        providers.update(
+          parseInput(providerKeySchema, key, 'Invalid provider key'),
+          form,
+          parseInput(overwriteOptionsSchema, options, 'Invalid write options')
+        )
+      )
   )
-  ipcMain.handle(IPC_INVOKE.providerDelete, (_e, key: string, options?: { overwrite?: boolean }) =>
-    wrap(() => providers.delete(key, options))
+  ipcMain.handle(IPC_INVOKE.providerDelete, (_e, key: unknown, options?: { overwrite?: boolean }) =>
+    wrap(() =>
+      providers.delete(
+        parseInput(providerKeySchema, key, 'Invalid provider key'),
+        parseInput(overwriteOptionsSchema, options, 'Invalid write options')
+      )
+    )
   )
   ipcMain.handle(
     IPC_INVOKE.providerDuplicate,
-    (_e, key: string, options?: { overwrite?: boolean }) =>
-      wrap(() => providers.duplicate(key, options))
+    (_e, key: unknown, options?: { overwrite?: boolean }) =>
+      wrap(() =>
+        providers.duplicate(
+          parseInput(providerKeySchema, key, 'Invalid provider key'),
+          parseInput(overwriteOptionsSchema, options, 'Invalid write options')
+        )
+      )
   )
-  ipcMain.handle(IPC_INVOKE.providerSetEnabled, (_e, key: string, enabled: boolean) =>
-    wrap(() => providers.setEnabled(key, Boolean(enabled)))
+  ipcMain.handle(IPC_INVOKE.providerSetEnabled, (_e, key: unknown, enabled: unknown) =>
+    wrap(() =>
+      providers.setEnabled(
+        parseInput(providerKeySchema, key, 'Invalid provider key'),
+        parseInput(optionalBooleanSchema.unwrap(), enabled, 'Invalid enabled state')
+      )
+    )
   )
   ipcMain.handle(IPC_INVOKE.providerTestConnection, (_e, input: unknown) =>
     wrap(async () => {
@@ -183,20 +243,38 @@ export function registerIpc(services: Services): void {
   // ---- models ----
   ipcMain.handle(IPC_INVOKE.modelList, () => wrap(() => models.list()))
   ipcMain.handle(IPC_INVOKE.modelCreate, (_e, form: unknown, options?: { overwrite?: boolean }) =>
-    wrap(() => models.create(form, options))
+    wrap(() =>
+      models.create(form, parseInput(overwriteOptionsSchema, options, 'Invalid write options'))
+    )
   )
   ipcMain.handle(
     IPC_INVOKE.modelUpdate,
-    (_e, id: string, form: unknown, options?: { overwrite?: boolean }) =>
-      wrap(() => models.update(id, form, options))
+    (_e, id: unknown, form: unknown, options?: { overwrite?: boolean }) =>
+      wrap(() =>
+        models.update(
+          parseInput(modelCompositeIdSchema, id, 'Invalid model id'),
+          form,
+          parseInput(overwriteOptionsSchema, options, 'Invalid write options')
+        )
+      )
   )
-  ipcMain.handle(IPC_INVOKE.modelDelete, (_e, id: string, options?: { overwrite?: boolean }) =>
-    wrap(() => models.delete(id, options))
+  ipcMain.handle(IPC_INVOKE.modelDelete, (_e, id: unknown, options?: { overwrite?: boolean }) =>
+    wrap(() =>
+      models.delete(
+        parseInput(modelCompositeIdSchema, id, 'Invalid model id'),
+        parseInput(overwriteOptionsSchema, options, 'Invalid write options')
+      )
+    )
   )
   ipcMain.handle(
     IPC_INVOKE.modelSetActive,
     (_e, input: unknown, options?: { overwrite?: boolean }) =>
-      wrap(() => models.setActive(input, options))
+      wrap(() =>
+        models.setActive(
+          input,
+          parseInput(overwriteOptionsSchema, options, 'Invalid write options')
+        )
+      )
   )
   ipcMain.handle(IPC_INVOKE.modelGetActive, () => wrap(() => models.getActive()))
 
@@ -207,16 +285,19 @@ export function registerIpc(services: Services): void {
       return raw
     })
   )
-  ipcMain.handle(IPC_INVOKE.configReadRaw, (_e, file: 'models' | 'settings') =>
-    wrap(() => config.readRaw(file))
+  ipcMain.handle(IPC_INVOKE.configReadRaw, (_e, file: unknown) =>
+    wrap(() => config.readRaw(parseInput(configFileSchema, file, 'Invalid config file')))
   )
   ipcMain.handle(
     IPC_INVOKE.configWriteRaw,
-    (_e, file: 'models' | 'settings', content: string, options?: { overwrite?: boolean }) =>
+    (_e, file: unknown, content: unknown, options?: { overwrite?: boolean }) =>
       wrap(async () => {
-        if (file === 'models')
-          await config.writeModelsRaw(content, { overwrite: options?.overwrite })
-        else await config.writeSettingsRaw(content, { overwrite: options?.overwrite })
+        const configFile = parseInput(configFileSchema, file, 'Invalid config file')
+        const configContent = parseInput(configContentSchema, content, 'Invalid config content')
+        const writeOptions = parseInput(overwriteOptionsSchema, options, 'Invalid write options')
+        if (configFile === 'models')
+          await config.writeModelsRaw(configContent, { overwrite: writeOptions?.overwrite })
+        else await config.writeSettingsRaw(configContent, { overwrite: writeOptions?.overwrite })
       })
   )
   ipcMain.handle(IPC_INVOKE.configReadSettings, () => wrap(() => config.readRaw('settings')))
@@ -227,8 +308,10 @@ export function registerIpc(services: Services): void {
     })
   )
   ipcMain.handle(IPC_INVOKE.configGetStatus, () => wrap(() => config.getStatus()))
-  ipcMain.handle(IPC_INVOKE.configConflictSnapshot, (_e, file: 'models' | 'settings') =>
-    wrap(() => config.getConflictSnapshot(file))
+  ipcMain.handle(IPC_INVOKE.configConflictSnapshot, (_e, file: unknown) =>
+    wrap(() =>
+      config.getConflictSnapshot(parseInput(configFileSchema, file, 'Invalid config file'))
+    )
   )
 
   // ---- skills ----
@@ -320,7 +403,9 @@ export function registerIpc(services: Services): void {
   ipcMain.handle(IPC_INVOKE.skillsRepairPermissions, (_e, projectRoot: unknown) =>
     wrap(() => notifyPackageMutation(() => skills.repairPermissions(parseProjectRoot(projectRoot))))
   )
-  ipcMain.handle(IPC_INVOKE.skillRead, (_e, p: string) => wrap(() => skills.read(p)))
+  ipcMain.handle(IPC_INVOKE.skillRead, (_e, input: unknown) =>
+    wrap(() => skills.read(parseInput(pathSegmentSchema, input, 'Invalid skill path')))
+  )
   ipcMain.handle(IPC_INVOKE.skillCreate, (_e, form: unknown) =>
     wrap(() => {
       const r = skillFormSchema.safeParse(form)
@@ -354,7 +439,9 @@ export function registerIpc(services: Services): void {
       return skills.validate(r.data)
     })
   )
-  ipcMain.handle(IPC_INVOKE.skillDelete, (_e, p: string) => wrap(() => skills.delete(p)))
+  ipcMain.handle(IPC_INVOKE.skillDelete, (_e, input: unknown) =>
+    wrap(() => skills.delete(parseInput(pathSegmentSchema, input, 'Invalid skill path')))
+  )
   ipcMain.handle(IPC_INVOKE.skillsRefresh, (_e, projectRoot: unknown) =>
     wrap(() => skills.list(parseProjectRoot(projectRoot)))
   )
@@ -414,13 +501,23 @@ export function registerIpc(services: Services): void {
 
   // ---- backup ----
   ipcMain.handle(IPC_INVOKE.backupList, () => wrap(() => backup.list()))
-  ipcMain.handle(IPC_INVOKE.backupCreate, (_e, reason?: string) =>
-    wrap(() => backup.create(reason ?? 'manual'))
+  ipcMain.handle(IPC_INVOKE.backupCreate, (_e, reason: unknown) =>
+    wrap(() =>
+      backup.create(parseInput(backupReasonSchema, reason, 'Invalid backup reason') ?? 'manual')
+    )
   )
-  ipcMain.handle(IPC_INVOKE.backupRestore, (_e, id: string) => wrap(() => backup.restore(id)))
-  ipcMain.handle(IPC_INVOKE.backupDelete, (_e, id: string) => wrap(() => backup.delete(id)))
-  ipcMain.handle(IPC_INVOKE.backupPruneToRetention, (_e, retention: number) =>
-    wrap(() => backup.pruneToRetention(retention))
+  ipcMain.handle(IPC_INVOKE.backupRestore, (_e, id: unknown) =>
+    wrap(() => backup.restore(parseInput(backupIdSchema, id, 'Invalid backup id')))
+  )
+  ipcMain.handle(IPC_INVOKE.backupDelete, (_e, id: unknown) =>
+    wrap(() => backup.delete(parseInput(backupIdSchema, id, 'Invalid backup id')))
+  )
+  ipcMain.handle(IPC_INVOKE.backupPruneToRetention, (_e, retention: unknown) =>
+    wrap(() =>
+      backup.pruneToRetention(
+        parseInput(backupRetentionSchema, retention, 'Invalid backup retention')
+      )
+    )
   )
   ipcMain.handle(IPC_INVOKE.backupOpenFolder, () =>
     wrap(async () => {
@@ -431,10 +528,11 @@ export function registerIpc(services: Services): void {
 
   // ---- settings ----
   ipcMain.handle(IPC_INVOKE.settingsGet, () => wrap(() => settingsStore.read()))
-  ipcMain.handle(IPC_INVOKE.settingsSet, (_e, patch: Partial<AppSettings>) =>
+  ipcMain.handle(IPC_INVOKE.settingsSet, (_e, patch: unknown) =>
     wrap(async () => {
+      const parsedPatch = parseInput(appSettingsPatchSchema, patch, 'Invalid settings')
       const current = await settingsStore.read()
-      const nextPatch = { ...patch }
+      const nextPatch: Partial<AppSettings> = { ...parsedPatch }
       if (!current.mascotUnlocked) nextPatch.mascotUnlocked = false
       const mascotUnlocked = current.mascotUnlocked && nextPatch.mascotUnlocked !== false
       if (!mascotUnlocked) {
@@ -457,8 +555,8 @@ export function registerIpc(services: Services): void {
     })
   )
   ipcMain.handle(IPC_INVOKE.uiStateGet, () => wrap(() => uiStateStore.read()))
-  ipcMain.handle(IPC_INVOKE.uiStateSet, (_e, state: Record<string, unknown>) =>
-    wrap(() => uiStateStore.write(state))
+  ipcMain.handle(IPC_INVOKE.uiStateSet, (_e, state: unknown) =>
+    wrap(() => uiStateStore.write(parseInput(uiStateSchema, state, 'Invalid UI state')))
   )
 
   // ---- diagnostics ----

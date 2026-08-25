@@ -14,7 +14,9 @@ const args = computed(() => JSON.stringify(props.block.input, null, 2))
 </script>
 
 <template>
-  <div class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+  <div
+    class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+  >
     <button
       class="flex w-full items-center justify-between px-2.5 py-1.5 text-left"
       @click="open = !open"
@@ -29,6 +31,6 @@ const args = computed(() => JSON.stringify(props.block.input, null, 2))
     <pre
       v-if="open"
       class="max-h-64 overflow-auto border-t border-[var(--border-subtle)] px-2.5 py-2 font-[family-name:var(--font-mono)] text-[11px] text-[var(--text-secondary)]"
-    >{{ block.rawInput || args }}{{ result ? '\n---\n' + result : '' }}</pre>
+      >{{ block.rawInput || args }}{{ result ? '\n---\n' + result : '' }}</pre>
   </div>
 </template>

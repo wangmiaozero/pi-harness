@@ -293,6 +293,26 @@ describe('PiPackageManager reconciliation and lifecycle', () => {
     expect(processMock.exec).not.toHaveBeenCalled()
   })
 
+  it('requires local package paths to be inside an authorized root', async () => {
+    const outside = path.join(sandbox, 'outside-package')
+    await fs.mkdir(outside)
+    const access = {
+      assertAllowed: vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('denied'), { code: 'PATH_DENIED' }))
+    }
+    const secured = new PiPackageManager(
+      { peek: () => ({ manualCliPath: null, manualConfigDir: agentDir }) } as never,
+      undefined,
+      access as never
+    )
+
+    await expect(secured.install({ source: outside, scope: 'global' })).rejects.toMatchObject({
+      code: 'PATH_DENIED'
+    })
+    expect(processMock.exec).not.toHaveBeenCalled()
+  })
+
   it('classifies npm permission failures without relying on localized UI text', () => {
     expect(classifyPackageError('npm error code EACCES')).toBe('EACCES')
     expect(classifyPackageError('permission denied')).toBe('EACCES')

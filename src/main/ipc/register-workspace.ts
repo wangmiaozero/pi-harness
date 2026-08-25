@@ -29,13 +29,14 @@ import type { GitService } from '../git/git-service'
 import type { WorktreeService } from '../git/worktree-service'
 import type { SessionService } from '../sessions/session-service'
 import type { SessionExportService } from '../sessions/session-export-service'
-import type { AgentRuntimeService } from '../agent/agent-runtime-service'
+import type { AgentRuntime } from '../agent/runtime'
 import type { ProjectContextAction, SessionContextAction } from '@shared/types/workspace'
 import {
   getProjectContextMenuLabels,
   getSessionContextMenuLabels
 } from '@shared/workspace/context-menu-labels'
 import type { IpcHandleRegistrar } from './trusted-ipc'
+import { optionalBooleanSchema } from '@shared/schemas/ipc'
 
 export interface WorkspaceServices {
   access: FileAccessService
@@ -44,7 +45,7 @@ export interface WorkspaceServices {
   worktrees: WorktreeService
   sessions: SessionService
   sessionExport: SessionExportService
-  agent: AgentRuntimeService
+  agent: AgentRuntime
   beforeAgentStart?: (
     cwd: string | null | undefined,
     sessionId: string | null | undefined
@@ -73,8 +74,15 @@ export function registerWorkspaceIpc(
         ? await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] })
         : await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
       const dir = result.canceled ? null : (result.filePaths[0] ?? null)
-      if (dir) access.allowRoot(dir)
-      return dir
+      return dir ? access.authorizeRoot(dir) : null
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceAuthorizeDroppedRoot, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = allowRootSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid dropped root', { issues: parsed.error.issues })
+      return access.authorizeRoot(parsed.data.root)
     })
   )
   ipcMain.handle(IPC_INVOKE.workspaceAllowRoot, (_e, input: unknown) =>
@@ -82,7 +90,7 @@ export function registerWorkspaceIpc(
       const parsed = allowRootSchema.safeParse(input)
       if (!parsed.success)
         throw new ValidationError('Invalid root', { issues: parsed.error.issues })
-      access.allowRoot(parsed.data.root)
+      await access.restoreRoot(parsed.data.root)
     })
   )
   ipcMain.handle(IPC_INVOKE.workspaceProjectContextMenu, (e, input: unknown) =>
@@ -95,8 +103,13 @@ export function registerWorkspaceIpc(
     })
   )
 
-  ipcMain.handle(IPC_INVOKE.sessionList, (_e, force?: boolean) =>
-    wrap(() => sessions.list(Boolean(force)))
+  ipcMain.handle(IPC_INVOKE.sessionList, (_e, force: unknown) =>
+    wrap(() => {
+      const parsed = optionalBooleanSchema.safeParse(force)
+      if (!parsed.success)
+        throw new ValidationError('Invalid refresh option', { issues: parsed.error.issues })
+      return sessions.list(parsed.data ?? false)
+    })
   )
   ipcMain.handle(IPC_INVOKE.sessionGet, (_e, sessionId: unknown) =>
     wrap(async () => {
@@ -115,7 +128,7 @@ export function registerWorkspaceIpc(
   ipcMain.handle(IPC_INVOKE.sessionDelete, (_e, sessionId: unknown) =>
     wrap(async () => {
       const id = sessionIdSchema.parse(sessionId)
-      await agent.get(id)?.shutdown()
+      await agent.stop(id)
       await sessions.remove(id)
     })
   )
@@ -162,7 +175,7 @@ export function registerWorkspaceIpc(
       const parsed = startAgentSessionSchema.safeParse(input)
       if (!parsed.success)
         throw new ValidationError('Invalid start', { issues: parsed.error.issues })
-      if (parsed.data.cwd) access.allowRoot(parsed.data.cwd)
+      if (parsed.data.cwd) await access.assertAllowed(parsed.data.cwd, { mustExist: true })
       await beforeAgentStart?.(parsed.data.cwd, parsed.data.sessionId)
       return agent.start(parsed.data)
     })

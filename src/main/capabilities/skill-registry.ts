@@ -148,10 +148,25 @@ export class SkillRegistry {
       definition.version && installedVersion && definition.version !== installedVersion
     )
     const enabled = installed?.enabled ?? true
+    const managed = Boolean(metadata.installPath)
     return {
       ...definition,
       installed: Boolean(installed),
       enabled,
+      health: metadata.lastErrorCode
+        ? 'error'
+        : !installed
+          ? 'not-installed'
+          : !enabled || updateAvailable
+            ? 'warning'
+            : 'healthy',
+      ownership: installed
+        ? {
+            managedBy: managed ? 'pi-harness' : 'external',
+            scope: 'global',
+            readOnly: false
+          }
+        : undefined,
       installPath: installed?.path ?? null,
       installedVersion,
       lastModified: installed?.parsed.lastModified ?? null,
@@ -183,6 +198,13 @@ export class SkillRegistry {
       tags: parsed?.tags ?? [],
       installed: true,
       enabled: true,
+      health: skill.isValid ? 'healthy' : 'error',
+      ownership: {
+        managedBy: skill.origin === 'package' ? 'pi-package' : 'external',
+        scope:
+          skill.scope === 'project' ? 'project' : skill.scope === 'global' ? 'global' : 'unknown',
+        readOnly: Boolean(skill.readOnly)
+      },
       installPath: skill.path,
       installedVersion: parsed?.version ?? null,
       lastModified: parsed?.lastModified ?? skill.lastModified,

@@ -57,6 +57,19 @@ export interface PiEnvironment {
   nodeRuntime: NodeRuntimeInfo
   state: EnvironmentState
   piStatus: RuntimeStatus
+  checks: EnvironmentCheckResult[]
+}
+
+export type EnvironmentCheckStatus = 'healthy' | 'warning' | 'error'
+
+export interface EnvironmentCheckResult {
+  id: 'node' | 'npm' | 'pnpm' | 'pi' | 'path' | 'config-directory' | 'skills-directory'
+  status: EnvironmentCheckStatus
+  installed: boolean
+  version: string | null
+  path: string | null
+  message: string
+  remediation?: string
 }
 
 export type RuntimeStatus = 'checking' | 'missing' | 'outdated' | 'ready' | 'installing' | 'failed'
@@ -79,12 +92,16 @@ export interface NodeRuntimeInfo {
   npmInstalled: boolean
   npmPath: string | null
   npmVersion: string | null
+  pnpmInstalled: boolean
+  pnpmPath: string | null
+  pnpmVersion: string | null
   nodeSupported: boolean
   minimumNodeVersion: string
   nodeStatus: RuntimeStatus
   npmStatus: RuntimeStatus
   nodeSource: CommandResolutionSource | null
   npmSource: CommandResolutionSource | null
+  pnpmSource: CommandResolutionSource | null
   npmPrefix: string | null
   npmPrefixWritable: boolean | null
   npmBinDir: string | null
@@ -422,6 +439,7 @@ export interface DiagnosticsReport {
     state: EnvironmentState
     piStatus: RuntimeStatus
     nodeRuntime: NodeRuntimeInfo
+    checks: EnvironmentCheckResult[]
   }
   pi: {
     installed: boolean
@@ -443,6 +461,29 @@ export interface DiagnosticsReport {
     pathSummary: string
     secretBackend: 'keychain' | 'safeStorage' | 'unavailable'
   }
+  storage: {
+    config: { path: string | null; writable: boolean }
+    sessions: { path: string; writable: boolean }
+    skills: { paths: string[]; writable: boolean }
+  }
+  security: {
+    secretStoreAvailable: boolean
+    backend: 'keychain' | 'safeStorage' | 'unavailable'
+    trustedIpcSenders: boolean
+    contextIsolation: boolean
+    nodeIntegration: boolean
+  }
+  git: {
+    installed: boolean
+    version: string | null
+    path: string | null
+  }
+  capabilities: {
+    registryCount: number
+    installedCount: number
+    healthyCount: number
+    builtinSkillCount: number
+  }
   config: ConfigStatus
   packages: {
     registryCount: number
@@ -462,6 +503,10 @@ export interface DiagnosticsReport {
     sessionCount: number
     runningSessions: string[]
     piSdkLoaded: boolean
+    runtime: 'pi'
+    currentWorkspace: string | null
+    writable: boolean | null
+    allowedRootCount: number
   }
 }
 
@@ -684,7 +729,7 @@ export interface PiSwitchAPI {
       isPinned?: boolean,
       locale?: 'zh-CN' | 'en-US'
     ): Promise<ProjectContextAction | null>
-    getPathForFile(file: unknown): string
+    getPathForFile(file: unknown): Promise<string>
   }
   sessions: {
     list(force?: boolean): Promise<SessionInfo[]>

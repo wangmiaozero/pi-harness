@@ -1,18 +1,11 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
 import type {
   AppSettings,
   PiPackageActionResult,
-  PiPackageHealth,
   PiPackageInfo,
   PiPackagePermission,
-  PiPackageProblem,
-  PiPackageResource,
-  PiPackageResources,
   PiPackageScope,
-  PiPackageSourceType,
   PiPackageTarget
 } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
@@ -24,16 +17,36 @@ import type { FileAccessService } from '../files/file-access-service'
 import { capabilityBackupDir, getPiConfigDir } from '../services/app-paths'
 import { ValidationError } from '../services/errors'
 import { log } from '../services/logger'
-
-const EMPTY_RESOURCES = (): PiPackageResources => ({
-  skills: [],
-  prompts: [],
-  extensions: [],
-  themes: [],
-  tools: []
-})
-
-const execFileAsync = promisify(execFile)
+import {
+  classifyPackageError,
+  packageId,
+  packageIdentity,
+  parseGitSource,
+  parseNpmSource,
+  resolvePackageSource,
+  type ResolvedPackageSource
+} from './package-source'
+import {
+  findNestedPermissionProblem,
+  inspectPackagePermission,
+  repairForeignOwnershipWithMacAuthorization,
+  repairOwnedPermissions,
+  repairSingleOwnedPermission
+} from './package-permissions'
+import {
+  dedupePackageProblems as dedupeProblems,
+  discoverGitPackages,
+  emptyPackageResources as EMPTY_RESOURCES,
+  inspectPackageContents,
+  looksLikePiPackage,
+  packageProblem as problem,
+  readGitOrigin,
+  readPackageManifest as readManifest,
+  resolvePackageHealth as resolveHealth,
+  resourceFilterFromRegistry,
+  topLevelNpmPackages,
+  type ResourceFilter
+} from './package-inspection'
 
 const PACKAGE_SOURCE_PATTERN =
   /^(?:npm:[@a-zA-Z0-9._/-]+(?:@[a-zA-Z0-9._-]+)?|git:[^\s]+|(?:https?|ssh|git):\/\/[^\s]+|[a-zA-Z]:[\\/][^\0]+|\.?\.?[\\/][^\0]+|\/[^\0]+)$/
@@ -55,32 +68,6 @@ interface RegistrySnapshot {
   path: string
   content: string | null
   scope: PiPackageScope
-}
-
-interface PackageManifest {
-  name?: string
-  version?: string
-  description?: string
-  dependencies?: Record<string, unknown>
-  pi?: Partial<Record<'skills' | 'prompts' | 'extensions' | 'themes', unknown>>
-}
-
-type ResourceKind = 'skills' | 'prompts' | 'extensions' | 'themes'
-type ResourceFilter = Partial<Record<ResourceKind, string[]>>
-
-interface ResolvedSource {
-  type: PiPackageSourceType
-  name: string
-  installPath: string | null
-  managedRoot: string | null
-}
-
-interface PackageInspection {
-  manifest: PackageManifest | null
-  manifestState: 'valid' | 'missing' | 'invalid'
-  resources: PiPackageResources
-  resourceItems: PiPackageResource[]
-  problems: PiPackageProblem[]
 }
 
 type PackageAction = PiPackageActionResult['action']
@@ -405,7 +392,7 @@ export class PiPackageManager {
         path.join(scope.baseDir, 'npm', 'node_modules'),
         path.join(scope.baseDir, 'git')
       ]
-      for (const candidate of candidates) reports.push(await inspectPermission(candidate))
+      for (const candidate of candidates) reports.push(await inspectPackagePermission(candidate))
       for (const managedRoot of [
         path.join(scope.baseDir, 'npm', 'node_modules'),
         path.join(scope.baseDir, 'git')
@@ -453,13 +440,13 @@ export class PiPackageManager {
   private async inspectPackage(
     scope: RegistryScope,
     source: string,
-    resolved: ResolvedSource,
+    resolved: ResolvedPackageSource,
     registered: boolean,
     resourceFilter?: ResourceFilter
   ): Promise<PiPackageInfo> {
     const id = packageId(scope.scope, source, scope.baseDir)
     const installPath = resolved.installPath
-    const rootPermission = installPath ? await inspectPermission(installPath) : null
+    const rootPermission = installPath ? await inspectPackagePermission(installPath) : null
     const exists = rootPermission?.exists ?? false
     const inspection =
       exists &&
@@ -610,19 +597,40 @@ export class PiPackageManager {
 
   private async normalizeTarget(target: PiPackageTarget): Promise<PiPackageTarget> {
     const source = target.source?.trim()
-    if (!source || !PACKAGE_SOURCE_PATTERN.test(source) || /[$<>\0]/.test(source)) {
+    if (
+      !source ||
+      !PACKAGE_SOURCE_PATTERN.test(source) ||
+      /[$<>\0\r\n]/.test(source) ||
+      (source.startsWith('npm:') && !parseNpmSource(source)) ||
+      ((source.startsWith('git:') || /^(?:https?|ssh|git):\/\//i.test(source)) &&
+        !parseGitSource(source))
+    ) {
       throw new ValidationError(`Invalid package source: ${source || '<empty>'}`)
     }
     if (!['global', 'project'].includes(target.scope)) {
       throw new ValidationError('Invalid package scope')
     }
+    const localSource =
+      path.isAbsolute(source) || source.startsWith('./') || source.startsWith('../')
     if (target.scope === 'project') {
       if (!target.projectRoot)
         throw new ValidationError('Project package target requires projectRoot')
       const projectRoot = this.access
         ? await this.access.assertAllowed(target.projectRoot, { mustExist: true })
         : path.resolve(target.projectRoot)
+      if (localSource && this.access) {
+        await this.access.assertAllowed(
+          path.isAbsolute(source) ? source : path.resolve(projectRoot, source),
+          { mustExist: true }
+        )
+      }
       return { source, scope: 'project', projectRoot }
+    }
+    if (localSource) {
+      if (!path.isAbsolute(source)) {
+        throw new ValidationError('Global local package sources must use an absolute path')
+      }
+      if (this.access) await this.access.assertAllowed(source, { mustExist: true })
     }
     return { source, scope: 'global', projectRoot: null }
   }
@@ -813,548 +821,6 @@ async function readRegistryScope(
   return { scope, projectRoot, baseDir, registryPath, entries }
 }
 
-function resolvePackageSource(baseDir: string, source: string): ResolvedSource {
-  if (source.startsWith('npm:')) {
-    const name = packageNameFromSource(source)
-    const managedRoot = path.join(baseDir, 'npm', 'node_modules')
-    return { type: 'npm', name, installPath: path.join(managedRoot, name), managedRoot }
-  }
-  const git = parseGitSource(source)
-  if (git) {
-    const managedRoot = path.join(baseDir, 'git')
-    return {
-      type: 'git',
-      name: path.basename(git.packagePath),
-      installPath: path.join(managedRoot, git.host, git.packagePath),
-      managedRoot
-    }
-  }
-  if (path.isAbsolute(source) || source.startsWith('./') || source.startsWith('../')) {
-    const installPath = path.isAbsolute(source)
-      ? path.resolve(source)
-      : path.resolve(baseDir, source)
-    return { type: 'local', name: path.basename(installPath), installPath, managedRoot: null }
-  }
-  return { type: 'unknown', name: source, installPath: null, managedRoot: null }
-}
-
-function parseGitSource(source: string): { host: string; packagePath: string } | null {
-  const value = source.startsWith('git:') ? source.slice(4) : source
-  if (!source.startsWith('git:') && !/^(?:https?|ssh|git):\/\//i.test(value)) return null
-  const scp = value.match(/^git@([^:]+):(.+)$/)
-  let host = ''
-  let packagePath = ''
-  if (scp) {
-    host = scp[1] ?? ''
-    packagePath = scp[2] ?? ''
-  } else if (value.includes('://')) {
-    try {
-      const url = new URL(value)
-      host = url.hostname
-      packagePath = url.pathname.replace(/^\/+/, '')
-    } catch {
-      return null
-    }
-  } else {
-    const slash = value.indexOf('/')
-    if (slash < 1) return null
-    host = value.slice(0, slash)
-    packagePath = value.slice(slash + 1)
-  }
-  const refAt = packagePath.indexOf('@')
-  if (refAt > 0) packagePath = packagePath.slice(0, refAt)
-  packagePath = packagePath.replace(/\.git$/i, '').replace(/^\/+/, '')
-  if (!host || !packagePath || packagePath.split('/').includes('..')) return null
-  return { host, packagePath }
-}
-
-async function inspectPackageContents(
-  packageIdValue: string,
-  packagePath: string,
-  sourceType: PiPackageSourceType,
-  baseDir: string,
-  resourceFilter?: ResourceFilter
-): Promise<PackageInspection> {
-  const packageStat = await lstatOrNull(packagePath)
-  if (packageStat?.isFile()) {
-    const extension = path.extname(packagePath).toLowerCase()
-    const isExtension = ['.ts', '.js', '.mjs', '.cjs'].includes(extension)
-    const extensionItems: PiPackageResource[] = isExtension
-      ? [
-          {
-            type: 'extension',
-            name: path.basename(packagePath, extension),
-            path: packagePath,
-            packageId: packageIdValue
-          }
-        ]
-      : []
-    const toolItems = await discoverDeclaredTools(packageIdValue, extensionItems)
-    return {
-      manifest: null,
-      manifestState: 'missing',
-      resources: {
-        ...EMPTY_RESOURCES(),
-        extensions: isExtension ? [path.basename(packagePath, extension)] : [],
-        tools: toolItems.map((item) => item.name)
-      },
-      resourceItems: [...extensionItems, ...toolItems],
-      problems: isExtension
-        ? []
-        : [problem('MANIFEST_MISSING', 'Local package file is not a Pi extension', packagePath)]
-    }
-  }
-  const manifestResult = await readManifest(path.join(packagePath, 'package.json'))
-  const manifest = manifestResult.value
-  const resources = EMPTY_RESOURCES()
-  const resourceItems: PiPackageResource[] = []
-  const problems: PiPackageProblem[] = []
-  if (sourceType === 'npm' && manifestResult.state === 'missing') {
-    problems.push(problem('MANIFEST_MISSING', 'npm package.json is missing', packagePath))
-  } else if (manifestResult.state === 'invalid') {
-    problems.push(problem('MANIFEST_INVALID', 'package.json is invalid', packagePath))
-  }
-
-  const kinds = ['skills', 'prompts', 'extensions', 'themes'] as const
-  for (const kind of kinds) {
-    const hasPiManifest = Boolean(manifest?.pi && typeof manifest.pi === 'object')
-    const declaredValue = manifest?.pi?.[kind]
-    const entries = hasPiManifest
-      ? Array.isArray(declaredValue)
-        ? stringArray(declaredValue)
-        : []
-      : [kind]
-    let discovered = await discoverResources(packagePath, kind, entries)
-    const filter = resourceFilter?.[kind]
-    if (filter !== undefined) discovered = applyResourceFilter(packagePath, discovered, filter)
-    resources[kind] = discovered.map((entry) => entry.name)
-    for (const entry of discovered) {
-      resourceItems.push({
-        type:
-          kind === 'skills'
-            ? 'skill'
-            : kind === 'prompts'
-              ? 'prompt'
-              : (kind.slice(0, -1) as 'extension' | 'theme'),
-        name: entry.name,
-        path: entry.path,
-        packageId: packageIdValue
-      })
-    }
-  }
-
-  const toolItems = await discoverDeclaredTools(
-    packageIdValue,
-    resourceItems.filter((item) => item.type === 'extension')
-  )
-  resourceItems.push(...toolItems)
-  resources.tools = toolItems.map((item) => item.name)
-
-  if (manifest?.dependencies) {
-    for (const dependency of Object.keys(manifest.dependencies)) {
-      const local = path.join(packagePath, 'node_modules', dependency)
-      const hoisted = path.join(baseDir, 'npm', 'node_modules', dependency)
-      if (!(await lstatOrNull(local)) && !(await lstatOrNull(hoisted))) {
-        problems.push(
-          problem('DEPENDENCY_MISSING', `Runtime dependency is missing: ${dependency}`, local)
-        )
-        break
-      }
-    }
-  }
-  return {
-    manifest,
-    manifestState: manifestResult.state,
-    resources,
-    resourceItems,
-    problems
-  }
-}
-
-async function discoverDeclaredTools(
-  packageIdValue: string,
-  extensions: PiPackageResource[]
-): Promise<PiPackageResource[]> {
-  const tools = new Map<string, PiPackageResource>()
-  for (const extension of extensions) {
-    const stat = await lstatOrNull(extension.path)
-    if (!stat?.isFile() || stat.size > 1024 * 1024) continue
-    let source = ''
-    try {
-      source = (await fs.readFile(extension.path, 'utf8')) || ''
-    } catch {
-      continue
-    }
-    const patterns = [
-      /registerTool\s*\(\s*\{[\s\S]{0,1200}?\bname\s*:\s*['"]([^'"]+)['"]/g,
-      /defineTool\s*\(\s*\{[\s\S]{0,1200}?\bname\s*:\s*['"]([^'"]+)['"]/g
-    ]
-    for (const pattern of patterns) {
-      for (const match of source.matchAll(pattern)) {
-        const name = match[1]?.trim()
-        if (!name || tools.has(name)) continue
-        tools.set(name, {
-          type: 'tool',
-          name,
-          path: extension.path,
-          packageId: packageIdValue
-        })
-      }
-    }
-  }
-  return [...tools.values()].sort((left, right) => left.name.localeCompare(right.name))
-}
-
-async function discoverResources(
-  packageRoot: string,
-  kind: 'skills' | 'prompts' | 'extensions' | 'themes',
-  entries: string[]
-): Promise<{ name: string; path: string }[]> {
-  const found = new Map<string, string>()
-  for (const rawEntry of entries) {
-    if (!rawEntry || rawEntry.startsWith('!') || rawEntry.startsWith('-')) continue
-    const entry = rawEntry.startsWith('+') ? rawEntry.slice(1) : rawEntry
-    const prefix = entry.split(/[?*\[]/, 1)[0] || kind
-    const target = safeResourcePath(packageRoot, prefix.replace(/[\\/]$/, ''))
-    if (!target) continue
-    await walk(target, 0, async (itemPath, isDirectory) => {
-      if (kind === 'skills') {
-        if (!isDirectory && path.basename(itemPath).toLowerCase() === 'skill.md') {
-          found.set(path.dirname(itemPath), path.basename(path.dirname(itemPath)))
-        }
-        return
-      }
-      if (isDirectory) return
-      const extensions = {
-        prompts: new Set(['.md']),
-        extensions: new Set(['.ts', '.js', '.mjs', '.cjs']),
-        themes: new Set(['.json'])
-      }[kind]
-      const extension = path.extname(itemPath).toLowerCase()
-      if (extensions.has(extension)) found.set(itemPath, path.basename(itemPath, extension))
-    })
-  }
-  const discovered = [...found.entries()]
-    .map(([itemPath, name]) => ({ name, path: itemPath }))
-    .sort((left, right) => left.name.localeCompare(right.name))
-  return applyResourceFilter(packageRoot, discovered, entries)
-}
-
-function resourceFilterFromRegistry(raw: unknown): ResourceFilter | undefined {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
-  const filter: ResourceFilter = {}
-  let found = false
-  for (const kind of ['skills', 'prompts', 'extensions', 'themes'] as const) {
-    if (!(kind in raw)) continue
-    const value = (raw as Record<string, unknown>)[kind]
-    filter[kind] = stringArray(value)
-    found = true
-  }
-  return found ? filter : undefined
-}
-
-function applyResourceFilter<T extends { path: string }>(
-  packageRoot: string,
-  resources: T[],
-  patterns: string[]
-): T[] {
-  if (patterns.length === 0) return []
-  const normalized = patterns.map((pattern) => pattern.trim()).filter(Boolean)
-  const includes = normalized.filter(
-    (pattern) => !pattern.startsWith('!') && !pattern.startsWith('-')
-  )
-  const excludes = normalized
-    .filter((pattern) => pattern.startsWith('!') || pattern.startsWith('-'))
-    .map((pattern) => pattern.slice(1))
-  return resources.filter((resource) => {
-    const relative = path.relative(packageRoot, resource.path).split(path.sep).join('/')
-    const included =
-      includes.length === 0 || includes.some((pattern) => resourcePatternMatches(relative, pattern))
-    return included && !excludes.some((pattern) => resourcePatternMatches(relative, pattern))
-  })
-}
-
-function resourcePatternMatches(relativePath: string, rawPattern: string): boolean {
-  const pattern = rawPattern.replace(/^\+/, '').replace(/^\.\//, '').replace(/\/$/, '')
-  if (!pattern) return false
-  const candidates = [relativePath, `${relativePath}/SKILL.md`]
-  if (!/[?*]/.test(pattern)) {
-    return candidates.some(
-      (candidate) => candidate === pattern || candidate.startsWith(`${pattern}/`)
-    )
-  }
-  let expression = '^'
-  for (let index = 0; index < pattern.length; index++) {
-    const character = pattern[index]!
-    if (character === '*' && pattern[index + 1] === '*') {
-      expression += '.*'
-      index++
-    } else if (character === '*') {
-      expression += '[^/]*'
-    } else if (character === '?') {
-      expression += '[^/]'
-    } else {
-      expression += character.replace(/[|\\{}()[\]^$+?.]/g, '\\$&')
-    }
-  }
-  const regexp = new RegExp(`${expression}(?:/.*)?$`)
-  return candidates.some((candidate) => regexp.test(candidate))
-}
-
-async function readManifest(
-  manifestPath: string
-): Promise<{ state: 'valid' | 'missing' | 'invalid'; value: PackageManifest | null }> {
-  const text = await readTextFile(manifestPath)
-  if (text === null) return { state: 'missing', value: null }
-  try {
-    return { state: 'valid', value: JSON.parse(text) as PackageManifest }
-  } catch {
-    return { state: 'invalid', value: null }
-  }
-}
-
-async function looksLikePiPackage(
-  packagePath: string,
-  manifest: PackageManifest | null
-): Promise<boolean> {
-  if (manifest?.pi && typeof manifest.pi === 'object') return true
-  for (const kind of ['skills', 'prompts', 'extensions', 'themes'] as const) {
-    if ((await discoverResources(packagePath, kind, [kind])).length > 0) return true
-  }
-  return false
-}
-
-async function topLevelNpmPackages(root: string): Promise<string[]> {
-  const entries = await readdirSafe(root)
-  const packages: string[] = []
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name.startsWith('.')) continue
-    const target = path.join(root, entry.name)
-    if (!entry.name.startsWith('@')) {
-      packages.push(target)
-      continue
-    }
-    for (const scoped of await readdirSafe(target)) {
-      if (scoped.isDirectory() && !scoped.name.startsWith('.'))
-        packages.push(path.join(target, scoped.name))
-    }
-  }
-  return packages
-}
-
-async function discoverGitPackages(root: string): Promise<string[]> {
-  const found: string[] = []
-  async function scan(current: string, depth: number): Promise<void> {
-    if (depth > 4) return
-    if (await lstatOrNull(path.join(current, '.git'))) {
-      found.push(current)
-      return
-    }
-    for (const entry of await readdirSafe(current)) {
-      if (entry.isDirectory() && !entry.name.startsWith('.'))
-        await scan(path.join(current, entry.name), depth + 1)
-    }
-  }
-  await scan(root, 0)
-  return found
-}
-
-async function readGitOrigin(packagePath: string): Promise<string | null> {
-  const config = await readTextFile(path.join(packagePath, '.git', 'config'))
-  if (!config) return null
-  const remote = config.match(/\[remote "origin"\][\s\S]*?\n\s*url\s*=\s*([^\r\n]+)/)?.[1]?.trim()
-  if (!remote) return null
-  return remote.includes('://') ? remote : `git:${remote}`
-}
-
-async function inspectPermission(target: string): Promise<PiPackagePermission> {
-  const currentUid = typeof process.getuid === 'function' ? process.getuid() : null
-  let stat: Awaited<ReturnType<typeof fs.lstat>> | null = null
-  let statError: NodeJS.ErrnoException | null = null
-  try {
-    stat = await fs.lstat(target)
-  } catch (error) {
-    statError = error as NodeJS.ErrnoException
-  }
-  if (!stat) {
-    const inaccessible = statError?.code !== 'ENOENT' && statError !== null
-    return {
-      path: target,
-      exists: inaccessible,
-      readable: false,
-      writable: false,
-      executable: false,
-      ownerUid: null,
-      currentUid,
-      ownerMatches: null,
-      problem: inaccessible
-        ? `${statError?.code ?? 'FILE_SYSTEM_ERROR'}: ${statError?.message ?? 'Cannot inspect path'}`
-        : null
-    }
-  }
-  const [readable, writable, executable] = await Promise.all([
-    hasAccess(target, fs.constants.R_OK),
-    hasAccess(target, fs.constants.W_OK),
-    hasAccess(target, fs.constants.X_OK)
-  ])
-  const ownerUid = typeof stat.uid === 'number' ? stat.uid : null
-  const ownerMatches = ownerUid === null || currentUid === null ? null : ownerUid === currentUid
-  const problem =
-    ownerMatches === false
-      ? `Owner uid ${ownerUid} differs from current uid ${currentUid}`
-      : !readable || !writable || (stat.isDirectory() && !executable)
-        ? 'Current user lacks read/write/execute permission'
-        : null
-  return {
-    path: target,
-    exists: true,
-    readable,
-    writable,
-    executable,
-    ownerUid,
-    currentUid,
-    ownerMatches,
-    problem
-  }
-}
-
-async function findNestedPermissionProblem(root: string): Promise<PiPackagePermission | null> {
-  let visited = 0
-  const maxEntries = 4000
-  async function scan(current: string, depth: number): Promise<PiPackagePermission | null> {
-    if (depth > 6 || visited++ > maxEntries) return null
-    const permission = await inspectPermission(current)
-    if (permission.exists && permission.problem) return permission
-    const stat = await lstatOrNull(current)
-    if (!stat?.isDirectory() || stat.isSymbolicLink()) return null
-    for (const entry of await readdirSafe(current)) {
-      const found = await scan(path.join(current, entry.name), depth + 1)
-      if (found) return found
-    }
-    return null
-  }
-  return scan(root, 0)
-}
-
-async function repairOwnedPermissions(root: string): Promise<void> {
-  const currentUid = typeof process.getuid === 'function' ? process.getuid() : null
-  if (currentUid === null) return
-  async function repair(current: string, depth: number): Promise<void> {
-    if (depth > 8) return
-    const stat = await lstatOrNull(current)
-    if (!stat || stat.isSymbolicLink()) return
-    if (stat.uid === currentUid) {
-      const ownerReadWrite = 0o600
-      const ownerExecute = stat.isDirectory() || (stat.mode & 0o100) !== 0 ? 0o100 : 0
-      await fs.chmod(current, stat.mode | ownerReadWrite | ownerExecute).catch(() => undefined)
-    }
-    if (!stat.isDirectory()) return
-    for (const entry of await readdirSafe(current))
-      await repair(path.join(current, entry.name), depth + 1)
-  }
-  await repair(root, 0)
-}
-
-async function repairSingleOwnedPermission(target: string): Promise<void> {
-  const currentUid = typeof process.getuid === 'function' ? process.getuid() : null
-  if (currentUid === null) return
-  const stat = await lstatOrNull(target)
-  if (!stat || stat.isSymbolicLink() || stat.uid !== currentUid) return
-  const ownerExecute = stat.isDirectory() || (stat.mode & 0o100) !== 0 ? 0o100 : 0
-  await fs.chmod(target, stat.mode | 0o600 | ownerExecute).catch(() => undefined)
-}
-
-async function repairForeignOwnershipWithMacAuthorization(
-  scopes: RegistryScope[],
-  permissions: PiPackagePermission[]
-): Promise<void> {
-  const uid = typeof process.getuid === 'function' ? process.getuid() : null
-  const gid = typeof process.getgid === 'function' ? process.getgid() : null
-  if (uid === null || gid === null) return
-  const commands: string[] = []
-  for (const scope of scopes) {
-    if (
-      permissions.some(
-        (permission) =>
-          permission.path === scope.baseDir &&
-          permission.exists &&
-          permission.ownerMatches === false
-      )
-    ) {
-      commands.push(
-        `/usr/sbin/chown ${uid}:${gid} ${shellQuote(scope.baseDir)}`,
-        `/bin/chmod u+rwx ${shellQuote(scope.baseDir)}`
-      )
-    }
-    for (const root of [path.join(scope.baseDir, 'npm'), path.join(scope.baseDir, 'git')]) {
-      const rootStat = await lstatOrNull(root)
-      if (!rootStat?.isDirectory() || rootStat.isSymbolicLink()) continue
-      const hasForeignOwner = permissions.some(
-        (permission) =>
-          permission.exists &&
-          permission.ownerMatches === false &&
-          (permission.path === root || permission.path.startsWith(root + path.sep))
-      )
-      if (!hasForeignOwner) continue
-      commands.push(
-        `/usr/sbin/chown -R ${uid}:${gid} ${shellQuote(root)}`,
-        `/bin/chmod -R u+rwX ${shellQuote(root)}`
-      )
-    }
-  }
-  if (!commands.length) return
-  const command = commands.join(' && ')
-  const appleScriptString = command.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-  await execFileAsync('/usr/bin/osascript', [
-    '-e',
-    `do shell script "${appleScriptString}" with administrator privileges`
-  ])
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'"'"'`)}'`
-}
-
-function resolveHealth(
-  registered: boolean,
-  installed: boolean,
-  problems: PiPackageProblem[]
-): PiPackageHealth {
-  if (problems.some((entry) => entry.code === 'PERMISSION_ERROR')) return 'permission-error'
-  if (registered && !installed) return 'missing'
-  if (!registered && installed) return 'orphaned'
-  if (
-    problems.some((entry) =>
-      ['MANIFEST_MISSING', 'MANIFEST_INVALID', 'DEPENDENCY_MISSING', 'REGISTRY_MISMATCH'].includes(
-        entry.code
-      )
-    )
-  ) {
-    return 'corrupted'
-  }
-  if (problems.some((entry) => entry.code === 'UNKNOWN_SOURCE')) return 'unknown'
-  return 'healthy'
-}
-
-function problem(
-  code: PiPackageProblem['code'],
-  message: string,
-  problemPath: string | null,
-  recoverable = true
-): PiPackageProblem {
-  return { code, message, path: problemPath, recoverable }
-}
-
-function dedupeProblems(problems: PiPackageProblem[]): PiPackageProblem[] {
-  const seen = new Set<string>()
-  return problems.filter((entry) => {
-    const key = `${entry.code}:${entry.path ?? ''}`
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-}
-
 function removeRegistryPackage(packages: unknown, source: string, baseDir?: string): unknown[] {
   const values = Array.isArray(packages) ? packages : []
   const identity = packageIdentity(source, baseDir)
@@ -1364,81 +830,13 @@ function removeRegistryPackage(packages: unknown, source: string, baseDir?: stri
   })
 }
 
-export function packageNameFromSource(source: string): string {
-  if (!source.startsWith('npm:')) return path.basename(source)
-  const spec = source.slice(4)
-  if (spec.startsWith('@')) {
-    const slash = spec.indexOf('/')
-    const versionAt = slash >= 0 ? spec.indexOf('@', slash) : -1
-    return versionAt >= 0 ? spec.slice(0, versionAt) : spec
-  }
-  const versionAt = spec.lastIndexOf('@')
-  return versionAt > 0 ? spec.slice(0, versionAt) : spec
-}
-
-export function packageIdentity(source: string, baseDir?: string): string {
-  if (source.startsWith('npm:')) return `npm:${packageNameFromSource(source).toLowerCase()}`
-  const git = parseGitSource(source)
-  if (git) return `git:${git.host.toLowerCase()}/${git.packagePath.toLowerCase()}`
-  const localPath = baseDir
-    ? path.resolve(baseDir, source)
-    : path.isAbsolute(source)
-      ? path.resolve(source)
-      : source
-  return `local:${process.platform === 'win32' ? localPath.toLowerCase() : localPath}`
-}
-
-export function packageId(scope: PiPackageScope, source: string, baseDir?: string): string {
-  return `${scope}:${packageIdentity(source, baseDir)}`
-}
-
-export function resolveInstalledPackagePath(configDir: string, source: string): string | null {
-  return resolvePackageSource(configDir, source).installPath
-}
-
-export function classifyPackageError(output: string): PiPackageActionResult['errorCode'] {
-  return /\bEACCES\b|permission denied|operation not permitted|npm\s+error\s+syscall\s+rename/i.test(
-    output
-  )
-    ? 'EACCES'
-    : output.trim()
-      ? 'PROCESS_FAILED'
-      : null
-}
-
-function safeResourcePath(root: string, entry: string): string | null {
-  const resolvedRoot = path.resolve(root)
-  const target = path.resolve(resolvedRoot, entry)
-  return target === resolvedRoot || target.startsWith(resolvedRoot + path.sep) ? target : null
-}
-
-async function walk(
-  target: string,
-  depth: number,
-  visit: (itemPath: string, isDirectory: boolean) => Promise<void>
-): Promise<void> {
-  if (depth > 6) return
-  const stat = await lstatOrNull(target)
-  if (!stat || stat.isSymbolicLink()) return
-  if (!stat.isDirectory()) {
-    await visit(target, false)
-    return
-  }
-  await visit(target, true)
-  for (const entry of await readdirSafe(target)) {
-    if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
-    await walk(path.join(target, entry.name), depth + 1, visit)
-  }
-}
-
-async function hasAccess(target: string, mode: number): Promise<boolean> {
-  try {
-    await fs.access(target, mode)
-    return true
-  } catch {
-    return false
-  }
-}
+export {
+  classifyPackageError,
+  packageId,
+  packageIdentity,
+  packageNameFromSource,
+  resolveInstalledPackagePath
+} from './package-source'
 
 async function readdirSafe(target: string) {
   try {
@@ -1446,21 +844,6 @@ async function readdirSafe(target: string) {
   } catch {
     return []
   }
-}
-
-async function lstatOrNull(target: string) {
-  try {
-    return await fs.lstat(target)
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
-    return null
-  }
-}
-
-function stringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === 'string' && Boolean(entry.trim()))
-    : []
 }
 
 async function pruneFiles(directory: string, retention: number): Promise<void> {

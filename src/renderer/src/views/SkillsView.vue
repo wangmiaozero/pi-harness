@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Download,
@@ -22,16 +22,11 @@ import {
   Trash2,
   Wrench
 } from '@lucide/vue'
-import { EditorView, basicSetup } from 'codemirror'
-import { EditorState } from '@codemirror/state'
-import { markdown } from '@codemirror/lang-markdown'
 import { toast } from 'vue-sonner'
 import type {
-  BuiltinSkillHealth,
   BuiltinSkillInfo,
   BuiltinSkillInstallation,
   BuiltinSkillMarketCollection,
-  PackageSkillMarketCollection,
   PiPackageHealth,
   PiPackageInfo,
   PiPackageScope,
@@ -43,15 +38,12 @@ import type { CapabilityDescriptor } from '@shared/capabilities/types'
 import type { SkillForm, SkillImportInput } from '@shared/schemas/domain'
 import Badge from '@renderer/components/ui/Badge.vue'
 import Button from '@renderer/components/ui/Button.vue'
-import Dialog from '@renderer/components/ui/Dialog.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
-import Input from '@renderer/components/ui/Input.vue'
 import InspectorSection from '@renderer/components/ui/InspectorSection.vue'
 import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
 import SearchField from '@renderer/components/ui/SearchField.vue'
 import Select from '@renderer/components/ui/Select.vue'
-import { graphiteEditorTheme, graphiteSyntaxHighlighting } from '@renderer/styles/codemirror'
 import { MARKET_PACKAGE_DESCRIPTION_KEYS } from '@renderer/i18n/marketplace'
 import { useSkillsStore } from '@renderer/stores/skills'
 import { usePiStore } from '@renderer/stores/pi'
@@ -59,6 +51,11 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { getApi, getErrorPayload } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { formatRelativeTime } from '@renderer/utils/format'
+import SkillConfirmDialogs from '@renderer/features/skills/components/SkillConfirmDialogs.vue'
+import SkillEditorDialog from '@renderer/features/skills/components/SkillEditorDialog.vue'
+import SkillImportDialog from '@renderer/features/skills/components/SkillImportDialog.vue'
+import SkillMarketDetail from '@renderer/features/skills/components/SkillMarketDetail.vue'
+import type { SkillEditorFormState, SkillImportFormState } from '@renderer/features/skills/types'
 
 type ViewMode = 'skills' | 'packages' | 'market'
 
@@ -92,16 +89,7 @@ const deleting = ref<SkillInfo | null>(null)
 const editing = ref<SkillInfo | null>(null)
 const removingPackage = ref<PiPackageInfo | null>(null)
 
-const editorHost = ref<HTMLElement | null>(null)
-let editorView: EditorView | null = null
-
-const form = reactive<{
-  name: string
-  description: string
-  content: string
-  targetRoot: string
-  expectedMtime: number | null
-}>({
+const form = reactive<SkillEditorFormState>({
   name: '',
   description: '',
   content: t('skills.starterContent'),
@@ -109,7 +97,7 @@ const form = reactive<{
   expectedMtime: null
 })
 
-const importForm = reactive<{ source: string; name: string; targetRoot: string }>({
+const importForm = reactive<SkillImportFormState>({
   source: '',
   name: '',
   targetRoot: ''
@@ -219,15 +207,6 @@ watch(
     if (!cwd && marketInstallScope.value === 'project') marketInstallScope.value = 'global'
   }
 )
-
-watch(editorOpen, async (open) => {
-  if (open) {
-    await nextTick()
-    mountEditor(form.content)
-  } else {
-    destroyEditor()
-  }
-})
 
 onMounted(async () => {
   if (!pi.environment) await pi.detect().catch(() => undefined)
@@ -418,29 +397,11 @@ function openImport() {
   importOpen.value = true
 }
 
-function mountEditor(doc: string) {
-  destroyEditor()
-  if (!editorHost.value) return
-  editorView = new EditorView({
-    parent: editorHost.value,
-    state: EditorState.create({
-      doc,
-      extensions: [
-        basicSetup,
-        markdown(),
-        graphiteEditorTheme,
-        graphiteSyntaxHighlighting,
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) form.content = update.state.doc.toString()
-        })
-      ]
-    })
-  })
-}
-
-function destroyEditor() {
-  editorView?.destroy()
-  editorView = null
+async function pickImportSource() {
+  const source = await getApi().workspace.pickDirectory()
+  if (!source) return
+  importForm.source = source
+  if (!importForm.name) importForm.name = deriveName(source)
 }
 
 async function saveSkill(overwrite = false) {
@@ -616,10 +577,6 @@ function installedMarketPackage(pkg: SkillMarketPackage): PiPackageInfo | undefi
 
 function marketPackageInstalled(pkg: SkillMarketPackage): boolean {
   return Boolean(installedMarketPackage(pkg)?.registered)
-}
-
-function marketPackageVersion(pkg: SkillMarketPackage): string | null {
-  return installedMarketPackage(pkg)?.version ?? null
 }
 
 async function removeMarketPackages(key: string, packages: SkillMarketPackage[]) {
@@ -949,12 +906,6 @@ function isBuiltinCollection(
   return collection.kind === 'builtin-skills'
 }
 
-function isPackageCollection(
-  collection: SkillMarketCollection
-): collection is PackageSkillMarketCollection {
-  return collection.kind !== 'builtin-skills'
-}
-
 function currentBuiltinInstallation(skill: BuiltinSkillInfo): BuiltinSkillInstallation | undefined {
   return skill.installations.find((installation) => installation.scope === marketInstallScope.value)
 }
@@ -968,18 +919,10 @@ function builtinSkillOwned(skill: BuiltinSkillInfo): boolean {
   return Boolean(currentBuiltinInstallation(skill)?.owned)
 }
 
-function builtinSkillHealth(skill: BuiltinSkillInfo): BuiltinSkillHealth {
-  return currentBuiltinInstallation(skill)?.health ?? 'not-installed'
-}
-
 function installedCount(collection: SkillMarketCollection): number {
   return isBuiltinCollection(collection)
     ? collection.skills.filter(builtinSkillInstalled).length
     : collection.packages.filter(marketPackageInstalled).length
-}
-
-function hasMissingPackages(collection: SkillMarketCollection): boolean {
-  return installedCount(collection) < collectionItemCount(collection)
 }
 
 function collectionItemCount(collection: SkillMarketCollection): number {
@@ -1002,14 +945,6 @@ function collectionKindTone(
   return collection.kind === 'bundle' ? 'accent' : 'muted'
 }
 
-function isInstallDisabled(key: string): boolean {
-  return removeKey.value !== null || (installKey.value !== null && installKey.value !== key)
-}
-
-function isRemoveDisabled(key: string): boolean {
-  return installKey.value !== null || (removeKey.value !== null && removeKey.value !== key)
-}
-
 function marketCollectionTitle(collection: SkillMarketCollection): string {
   if (isBuiltinCollection(collection)) return collection.displayName
   if (collection.id === 'core-development') return t('skills.marketCoreTitle')
@@ -1026,34 +961,6 @@ function marketCollectionSummary(collection: SkillMarketCollection): string {
   if (collection.id === 'agent-architecture') return t('skills.marketAgentSummary')
   if (collection.id === 'curated-extensions') return t('skills.marketCuratedSummary')
   return ''
-}
-
-function builtinHealthLabel(health: BuiltinSkillHealth): string {
-  const suffix = health.replace(/(^|-)(\w)/g, (_, _dash, letter) => letter.toUpperCase())
-  return t(`skills.builtinHealth${suffix}`)
-}
-
-function builtinHealthTone(
-  health: BuiltinSkillHealth
-): 'muted' | 'success' | 'warning' | 'error' | 'accent' {
-  if (health === 'healthy') return 'success'
-  if (health === 'not-installed') return 'muted'
-  if (health === 'update-available') return 'accent'
-  if (health === 'missing' || health === 'corrupted') return 'error'
-  return 'warning'
-}
-
-function visibleBuiltinSkills(collection: BuiltinSkillMarketCollection): BuiltinSkillInfo[] {
-  const q = query.value.trim().toLowerCase()
-  if (!q) return collection.skills
-  return collection.skills.filter(
-    (skill) =>
-      skill.name.toLowerCase().includes(q) ||
-      skill.description.toLowerCase().includes(q) ||
-      skill.category.includes(q) ||
-      collection.author.toLowerCase().includes(q) ||
-      collection.name.toLowerCase().includes(q)
-  )
 }
 
 function marketPackageDescription(pkg: SkillMarketPackage): string {
@@ -1939,383 +1846,54 @@ function resourceGroups(pkg: PiPackageInfo) {
               :icon="StoreIcon"
             />
           </div>
-          <template v-else>
-            <div
-              class="flex min-h-[54px] shrink-0 items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-5 py-1.5"
-            >
-              <div class="min-w-0">
-                <div class="flex items-center gap-2">
-                  <h2 class="truncate text-[13.5px] font-semibold text-[var(--text-primary)]">
-                    {{ marketCollectionTitle(selectedCollection) }}
-                  </h2>
-                  <Badge :tone="collectionKindTone(selectedCollection)">
-                    {{ collectionKindLabel(selectedCollection) }}
-                  </Badge>
-                </div>
-                <p class="truncate text-[10.5px] text-[var(--text-tertiary)]">
-                  {{ marketCollectionSummary(selectedCollection) }}
-                </p>
-              </div>
-              <div class="flex shrink-0 items-center gap-1.5">
-                <template v-if="isBuiltinCollection(selectedCollection)">
-                  <Button
-                    v-if="selectedCollection.skills.some(builtinSkillOwned)"
-                    variant="danger"
-                    size="sm"
-                    :loading="removeKey === selectedCollection.id"
-                    :disabled="isRemoveDisabled(selectedCollection.id)"
-                    @click="
-                      uninstallBuiltinCollectionSkills(
-                        selectedCollection,
-                        selectedCollection.skills
-                      )
-                    "
-                  >
-                    <Trash2 class="size-3.5" />
-                    {{ $t('skills.builtinRemoveAll') }}
-                  </Button>
-                  <Button
-                    v-if="hasMissingPackages(selectedCollection)"
-                    variant="primary"
-                    size="sm"
-                    :loading="installKey === selectedCollection.id"
-                    :disabled="isInstallDisabled(selectedCollection.id)"
-                    @click="
-                      installBuiltinCollectionSkills(selectedCollection, selectedCollection.skills)
-                    "
-                  >
-                    <Download class="size-3.5" />
-                    {{ $t('skills.builtinInstallAll') }}
-                  </Button>
-                </template>
-                <template v-else-if="isPackageCollection(selectedCollection)">
-                  <Button
-                    v-if="
-                      selectedCollection.kind === 'bundle' && installedCount(selectedCollection) > 0
-                    "
-                    variant="danger"
-                    size="sm"
-                    :loading="removeKey === selectedCollection.id"
-                    :disabled="isRemoveDisabled(selectedCollection.id)"
-                    @click="
-                      removeMarketPackages(selectedCollection.id, selectedCollection.packages)
-                    "
-                  >
-                    <Trash2 class="size-3.5" />
-                    {{ $t('skills.removeInstalled') }}
-                  </Button>
-                  <Button
-                    v-if="
-                      selectedCollection.kind === 'bundle' && hasMissingPackages(selectedCollection)
-                    "
-                    variant="primary"
-                    size="sm"
-                    :loading="installKey === selectedCollection.id"
-                    :disabled="isInstallDisabled(selectedCollection.id)"
-                    @click="installPackages(selectedCollection.id, selectedCollection.packages)"
-                  >
-                    <Download class="size-3.5" />
-                    {{ $t('skills.installMissing') }}
-                  </Button>
-                </template>
-              </div>
-            </div>
-            <div class="min-h-0 flex-1 overflow-y-auto">
-              <template v-if="isBuiltinCollection(selectedCollection)">
-                <InspectorSection>
-                  <template #title>{{ $t('skills.builtinCollection') }}</template>
-                  <PropertyRow :label="$t('skills.builtinAuthor')">
-                    {{ selectedCollection.author }}
-                  </PropertyRow>
-                  <PropertyRow :label="$t('skills.colSource')">
-                    {{ $t('skills.builtinSource') }}
-                  </PropertyRow>
-                  <PropertyRow :label="$t('skills.builtinRepository')" mono>
-                    {{ selectedCollection.repository }}
-                  </PropertyRow>
-                  <PropertyRow :label="$t('skills.builtinLicense')" mono>
-                    {{ selectedCollection.license }}
-                  </PropertyRow>
-                  <PropertyRow :label="$t('skills.builtinVersion')" mono>
-                    {{ selectedCollection.commit.slice(0, 12) }}
-                  </PropertyRow>
-                  <PropertyRow :label="$t('skills.packageScope')">
-                    {{
-                      marketInstallScope === 'global'
-                        ? $t('skills.packageScopeGlobal')
-                        : $t('skills.packageScopeProject')
-                    }}
-                  </PropertyRow>
-                </InspectorSection>
-                <div class="my-1 h-px bg-[var(--border-subtle)]" />
-                <InspectorSection>
-                  <template #title>
-                    {{ $t('skills.marketSkills') }}
-                    <span class="ml-1 font-normal text-[var(--text-tertiary)]">
-                      {{ installedCount(selectedCollection) }}/{{
-                        selectedCollection.skills.length
-                      }}
-                    </span>
-                  </template>
-                  <div class="divide-y divide-[var(--border-subtle)]">
-                    <div
-                      v-for="skill in visibleBuiltinSkills(selectedCollection)"
-                      :key="skill.id"
-                      :data-testid="`builtin-skill-${skill.id}`"
-                      class="flex min-h-[68px] items-center justify-between gap-3 px-3 py-2.5"
-                    >
-                      <div class="min-w-0">
-                        <div class="flex items-center gap-1.5">
-                          <span
-                            class="truncate text-[12.5px] font-medium text-[var(--text-primary)]"
-                          >
-                            {{ skill.name }}
-                          </span>
-                          <Badge tone="muted">{{ skill.category }}</Badge>
-                          <Badge :tone="builtinHealthTone(builtinSkillHealth(skill))">
-                            {{ builtinHealthLabel(builtinSkillHealth(skill)) }}
-                          </Badge>
-                        </div>
-                        <p
-                          class="mt-0.5 line-clamp-2 text-[10.5px] leading-relaxed text-[var(--text-tertiary)]"
-                        >
-                          {{ skill.description }}
-                        </p>
-                        <p
-                          class="mt-1 truncate font-[family-name:var(--font-mono)] text-[9.5px] text-[var(--text-disabled)]"
-                        >
-                          {{ skill.sourcePath }} · {{ skill.resources.length }}
-                          {{ $t('skills.resourcesUnit') }}
-                        </p>
-                      </div>
-                      <div class="flex shrink-0 items-center gap-1.5">
-                        <Button
-                          v-if="!builtinSkillOwned(skill)"
-                          variant="secondary"
-                          size="sm"
-                          :loading="installKey === skill.id"
-                          :disabled="isInstallDisabled(skill.id)"
-                          @click="installBuiltinCollectionSkills(selectedCollection, [skill])"
-                        >
-                          <Download class="size-3.5" />
-                          {{
-                            builtinSkillHealth(skill) === 'conflict'
-                              ? $t('skills.builtinResolveConflict')
-                              : $t('skills.install')
-                          }}
-                        </Button>
-                        <Button
-                          v-if="builtinSkillOwned(skill) && builtinSkillHealth(skill) !== 'healthy'"
-                          variant="secondary"
-                          size="sm"
-                          :loading="installKey === skill.id"
-                          :disabled="isInstallDisabled(skill.id)"
-                          @click="updateBuiltinCollectionSkill(selectedCollection, skill)"
-                        >
-                          <RotateCw class="size-3.5" />
-                          {{
-                            builtinSkillHealth(skill) === 'update-available'
-                              ? $t('skills.capabilityUpdate')
-                              : $t('skills.reinstallPackage')
-                          }}
-                        </Button>
-                        <Button
-                          v-if="builtinSkillOwned(skill)"
-                          variant="danger"
-                          size="sm"
-                          :loading="removeKey === skill.id"
-                          :disabled="isRemoveDisabled(skill.id)"
-                          @click="uninstallBuiltinCollectionSkills(selectedCollection, [skill])"
-                        >
-                          <Trash2 class="size-3.5" />
-                          {{ $t('skills.uninstallSkill') }}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </InspectorSection>
-              </template>
-              <InspectorSection v-else-if="isPackageCollection(selectedCollection)">
-                <template #title>
-                  {{ $t('skills.marketPackages') }}
-                  <span class="ml-1 font-normal text-[var(--text-tertiary)]">
-                    {{ installedCount(selectedCollection) }}/{{
-                      selectedCollection.packages.length
-                    }}
-                  </span>
-                </template>
-                <div class="divide-y divide-[var(--border-subtle)]">
-                  <div
-                    v-for="pkg in selectedCollection.packages"
-                    :key="pkg.source"
-                    class="flex min-h-[52px] items-center justify-between gap-3 px-3 py-2"
-                  >
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-1.5">
-                        <span class="truncate text-[12.5px] font-medium text-[var(--text-primary)]">
-                          {{ pkg.name }}
-                        </span>
-                        <Badge v-if="marketPackageInstalled(pkg)" tone="success">
-                          {{
-                            marketPackageVersion(pkg)
-                              ? `v${marketPackageVersion(pkg)}`
-                              : $t('common.installed')
-                          }}
-                        </Badge>
-                      </div>
-                      <p
-                        class="truncate font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
-                      >
-                        {{ marketPackageDescription(pkg) }}
-                      </p>
-                    </div>
-                    <Button
-                      v-if="!marketPackageInstalled(pkg)"
-                      variant="secondary"
-                      size="sm"
-                      :loading="installKey === pkg.source"
-                      :disabled="isInstallDisabled(pkg.source)"
-                      @click="installPackages(pkg.source, [pkg])"
-                    >
-                      <Download class="size-3.5" />
-                      {{ $t('skills.install') }}
-                    </Button>
-                    <Button
-                      v-else
-                      variant="danger"
-                      size="sm"
-                      :loading="removeKey === pkg.source"
-                      :disabled="isRemoveDisabled(pkg.source)"
-                      @click="removeMarketPackages(pkg.source, [pkg])"
-                    >
-                      <Trash2 class="size-3.5" />
-                      {{ $t('skills.removePackage') }}
-                    </Button>
-                  </div>
-                </div>
-              </InspectorSection>
-            </div>
-          </template>
+          <SkillMarketDetail
+            v-else
+            :collection="selectedCollection"
+            :packages="store.packages"
+            :scope="marketInstallScope"
+            :query="query"
+            :install-key="installKey"
+            :remove-key="removeKey"
+            @install-packages="installPackages"
+            @remove-packages="removeMarketPackages"
+            @install-builtin="installBuiltinCollectionSkills"
+            @update-builtin="updateBuiltinCollectionSkill"
+            @uninstall-builtin="uninstallBuiltinCollectionSkills"
+          />
         </template>
       </div>
     </div>
 
-    <Dialog
-      v-model:open="deleteOpen"
-      :title="$t('skills.deleteConfirm')"
-      :description="$t('skills.deleteHint')"
-    >
-      <p
-        class="mb-4 break-all font-[family-name:var(--font-mono)] text-[11px] text-[var(--text-tertiary)]"
-      >
-        {{ deleting?.path }}
-      </p>
-      <template #footer>
-        <Button variant="ghost" size="sm" @click="deleteOpen = false">
-          <span>{{ $t('common.cancel') }}</span>
-        </Button>
-        <Button variant="danger" size="sm" @click="confirmDelete">
-          {{ $t('skills.uninstallSkill') }}
-        </Button>
-      </template>
-    </Dialog>
+    <SkillConfirmDialogs
+      v-model:delete-open="deleteOpen"
+      v-model:package-remove-open="packageRemoveOpen"
+      :deleting="deleting"
+      :removing-package="removingPackage"
+      :package-remove-busy="packageRemoveBusy"
+      @confirm-delete="confirmDelete"
+      @confirm-package-remove="confirmRemovePackage"
+    />
 
-    <Dialog
-      v-model:open="packageRemoveOpen"
-      :title="$t('skills.removePackageTitle')"
-      :description="$t('skills.removePackageHint')"
-    >
-      <p
-        class="mb-4 break-all font-[family-name:var(--font-mono)] text-[11px] text-[var(--text-tertiary)]"
-      >
-        {{ removingPackage?.source }}
-      </p>
-      <template #footer>
-        <Button variant="ghost" size="sm" @click="packageRemoveOpen = false">
-          {{ $t('common.cancel') }}
-        </Button>
-        <Button
-          variant="danger"
-          size="sm"
-          :loading="packageRemoveBusy"
-          @click="confirmRemovePackage"
-        >
-          {{ $t('skills.removePackage') }}
-        </Button>
-      </template>
-    </Dialog>
+    <SkillEditorDialog
+      :open="editorOpen"
+      :editing="editing"
+      :form="form"
+      :known-roots="knownRoots"
+      :busy="saveBusy"
+      @update:open="editorOpen = $event"
+      @update:form="Object.assign(form, $event)"
+      @save="saveSkill()"
+    />
 
-    <Dialog
-      v-model:open="editorOpen"
-      wide
-      :title="editing ? $t('skills.editTitle', { name: editing.name }) : $t('skills.createTitle')"
-      :description="$t('skills.editorHint')"
-    >
-      <div class="flex flex-col gap-3">
-        <div class="grid grid-cols-2 gap-3">
-          <Input
-            v-model="form.name"
-            :label="$t('skills.fieldName')"
-            placeholder="my-skill"
-            :disabled="!!editing"
-          />
-          <Select
-            v-model="form.targetRoot"
-            :label="$t('skills.fieldTargetRoot')"
-            :options="knownRoots.map((root) => ({ value: root, label: root }))"
-            :disabled="!!editing"
-          />
-        </div>
-        <Input
-          v-model="form.description"
-          :label="$t('skills.fieldDescription')"
-          :placeholder="$t('skills.fieldDescriptionPlaceholder')"
-        />
-        <div class="flex flex-col gap-1">
-          <span class="text-[11.5px] font-medium text-[var(--text-secondary)]">SKILL.md</span>
-          <div
-            ref="editorHost"
-            class="h-[42vh] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-default)]"
-          />
-        </div>
-      </div>
-      <template #footer>
-        <Button variant="ghost" @click="editorOpen = false">{{ $t('common.cancel') }}</Button>
-        <Button variant="primary" :loading="saveBusy" @click="saveSkill">
-          <span>{{ $t('common.save') }}</span>
-        </Button>
-      </template>
-    </Dialog>
-
-    <Dialog
-      v-model:open="importOpen"
-      :title="$t('skills.importTitle')"
-      :description="$t('skills.importHint')"
-    >
-      <div class="flex flex-col gap-3">
-        <Input
-          v-model="importForm.source"
-          :label="$t('skills.importSource')"
-          :placeholder="$t('skills.importSourcePlaceholder')"
-        />
-        <Input
-          v-model="importForm.name"
-          :label="$t('skills.fieldName')"
-          :placeholder="$t('skills.importNamePlaceholder')"
-        />
-        <Select
-          v-model="importForm.targetRoot"
-          :label="$t('skills.fieldTargetRoot')"
-          :options="knownRoots.map((root) => ({ value: root, label: root }))"
-        />
-      </div>
-      <template #footer>
-        <Button variant="ghost" @click="importOpen = false">{{ $t('common.cancel') }}</Button>
-        <Button variant="primary" :loading="importBusy" @click="startImport">
-          <FileInput class="size-3.5" :stroke-width="1.75" />
-          {{ $t('skills.import') }}
-        </Button>
-      </template>
-    </Dialog>
+    <SkillImportDialog
+      :open="importOpen"
+      :form="importForm"
+      :known-roots="knownRoots"
+      :busy="importBusy"
+      @update:open="importOpen = $event"
+      @update:form="Object.assign(importForm, $event)"
+      @pick-source="pickImportSource"
+      @submit="startImport"
+    />
   </div>
 </template>

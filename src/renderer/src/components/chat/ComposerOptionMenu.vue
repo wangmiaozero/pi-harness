@@ -104,7 +104,11 @@ onBeforeUnmount(() => {
         type="button"
         role="option"
         class="grid w-full grid-cols-[12px_minmax(70px,1fr)_auto] items-center gap-2 rounded-[6px] px-2.5 py-2 text-left text-[12px] text-[var(--text-secondary)] outline-none hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-        :class="option.value === model ? 'bg-[var(--bg-hover)] font-medium text-[var(--text-primary)]' : ''"
+        :class="
+          option.value === model
+            ? 'bg-[var(--bg-hover)] font-medium text-[var(--text-primary)]'
+            : ''
+        "
         :aria-selected="option.value === model"
         @mousedown.prevent="pick(option.value)"
       >

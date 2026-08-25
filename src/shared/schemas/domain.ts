@@ -81,7 +81,11 @@ export const setActiveModelSchema = z.object({
   modelId: z.string().min(1)
 })
 
-export const backupIdSchema = z.string().min(1)
+export const backupIdSchema = z
+  .string()
+  .min(1)
+  .max(128)
+  .regex(/^[0-9]+-[a-f0-9]{8}$/, 'invalid backup id')
 
 export const pathSegmentSchema = z
   .string()

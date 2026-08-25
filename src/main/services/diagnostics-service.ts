@@ -3,7 +3,7 @@
  */
 
 import { homedir } from 'node:os'
-import { app } from 'electron'
+import fs from 'node:fs/promises'
 import type { AppSettings, DiagnosticsReport } from '@shared/ipc/api-types'
 import type { JsonStore } from './storage'
 import { piEnvironment } from '../pi/environment'
@@ -14,27 +14,32 @@ import path from 'node:path'
 import { userData } from './app-paths'
 import { secretStore } from '../security/secret-store'
 import type { SessionService } from '../sessions/session-service'
-import type { AgentRuntimeService } from '../agent/agent-runtime-service'
+import type { AgentRuntime } from '../agent/runtime'
 import type { FileAccessService } from '../files/file-access-service'
-import { peekPiCodingAgent } from '../agent/pi-sdk'
 import type { PiPackageManager } from '../packages/package-manager'
+import type { CapabilityService } from '../capabilities/capability-service'
+import type { SkillsService } from './skills-service'
+import { resolveExecutable } from '../environment/command-resolver'
+import { redactSecrets } from './logger'
 
 export class DiagnosticsService {
   private workspace: {
     sessions: SessionService
-    agent: AgentRuntimeService
+    agent: AgentRuntime
     access: FileAccessService
   } | null = null
 
   constructor(
     private readonly settingsStore: JsonStore<AppSettings>,
     private readonly config: PiConfigService,
-    private readonly packages?: PiPackageManager
+    private readonly packages?: PiPackageManager,
+    private readonly capabilitiesService?: CapabilityService,
+    private readonly skillsService?: SkillsService
   ) {}
 
   attachWorkspace(workspace: {
     sessions: SessionService
-    agent: AgentRuntimeService
+    agent: AgentRuntime
     access: FileAccessService
   }): void {
     this.workspace = workspace
@@ -47,14 +52,32 @@ export class DiagnosticsService {
       configDir: settings.manualConfigDir
     })
     const config = await this.config.getStatus()
-    const packageList = this.packages ? await this.packages.list() : []
-    const packagePermissions = this.packages ? await this.packages.permissions() : []
+    const [packageList, packagePermissions, capabilityList, installedSkills, git] =
+      await Promise.all([
+        this.packages ? this.packages.list() : [],
+        this.packages ? this.packages.permissions() : [],
+        this.capabilitiesService ? this.capabilitiesService.list() : [],
+        this.skillsService ? this.skillsService.list() : [],
+        resolveExecutable('git')
+      ])
     const secretBackend =
       process.platform === 'darwin'
         ? 'keychain'
         : secretStore.isAvailable()
           ? 'safeStorage'
           : 'unavailable'
+    const sessionRoot = this.workspace?.sessions.sessionsRoot() ?? ''
+    const allowedRoots = this.workspace ? [...(await this.workspace.access.getAllowedRoots())] : []
+    const currentWorkspace = this.workspace?.access.getActiveRoot() ?? null
+    const runtimeDiagnostics = this.workspace?.agent.diagnostics() ?? {
+      implementation: 'pi' as const,
+      sdkLoaded: false
+    }
+    const [sessionWritable, skillsWritable, workspaceWritable] = await Promise.all([
+      isWritableDirectory(sessionRoot),
+      someWritableDirectory(pi.skillsDirs),
+      currentWorkspace ? isWritableDirectory(currentWorkspace) : null
+    ])
 
     return {
       app: {
@@ -66,7 +89,8 @@ export class DiagnosticsService {
       environment: {
         state: pi.state,
         piStatus: pi.piStatus,
-        nodeRuntime: pi.nodeRuntime
+        nodeRuntime: pi.nodeRuntime,
+        checks: pi.checks
       },
       pi: {
         installed: pi.installed,
@@ -91,6 +115,29 @@ export class DiagnosticsService {
           .join(path.delimiter),
         secretBackend
       },
+      storage: {
+        config: { path: pi.configDir, writable: pi.configWritable },
+        sessions: { path: sessionRoot, writable: sessionWritable },
+        skills: { paths: pi.skillsDirs, writable: skillsWritable }
+      },
+      security: {
+        secretStoreAvailable: secretBackend !== 'unavailable',
+        backend: secretBackend,
+        trustedIpcSenders: true,
+        contextIsolation: true,
+        nodeIntegration: false
+      },
+      git: {
+        installed: git.found,
+        version: git.version,
+        path: git.path
+      },
+      capabilities: {
+        registryCount: capabilityList.length,
+        installedCount: capabilityList.filter((capability) => capability.installed).length,
+        healthyCount: capabilityList.filter((capability) => capability.health === 'healthy').length,
+        builtinSkillCount: installedSkills.filter((skill) => skill.origin === 'builtin').length
+      },
       config,
       packages: {
         registryCount: packageList.filter((pkg) => pkg.registered).length,
@@ -108,22 +155,21 @@ export class DiagnosticsService {
         permissions: packagePermissions
       },
       workspace: {
-        sessionRoot: this.workspace?.sessions.sessionsRoot() ?? '',
+        sessionRoot,
         sessionCount: this.workspace ? (await this.workspace.sessions.list()).length : 0,
         runningSessions: this.workspace?.agent.listRunning() ?? [],
-        piSdkLoaded: peekPiCodingAgent() !== null
+        piSdkLoaded: runtimeDiagnostics.sdkLoaded,
+        runtime: runtimeDiagnostics.implementation,
+        currentWorkspace,
+        writable: workspaceWritable,
+        allowedRootCount: allowedRoots.length
       }
     }
   }
 
   async copyText(): Promise<string> {
     const report = await this.get()
-    // Sanitize anything that could look like a secret field name before clipboard.
-    const text = JSON.stringify(report, null, 2)
-    return text.replace(
-      /("(?:api[-_]?key|authorization|token|secret|password|cookie|bearer)"\s*:\s*)"[^"]*"/gi,
-      '$1"••••••••••"'
-    )
+    return formatDiagnosticsReport(report)
   }
 
   async export(): Promise<string> {
@@ -134,4 +180,40 @@ export class DiagnosticsService {
   }
 }
 
-void app
+export function formatDiagnosticsReport(
+  report: DiagnosticsReport,
+  homeDirectory = homedir()
+): string {
+  return JSON.stringify(maskHomePaths(redactSecrets(report), homeDirectory), null, 2)
+}
+
+function maskHomePaths(value: unknown, homeDirectory: string): unknown {
+  if (typeof value === 'string') {
+    return homeDirectory && value.includes(homeDirectory)
+      ? value.split(homeDirectory).join('~')
+      : value
+  }
+  if (Array.isArray(value)) return value.map((entry) => maskHomePaths(entry, homeDirectory))
+  if (!value || typeof value !== 'object') return value
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+      key,
+      maskHomePaths(entry, homeDirectory)
+    ])
+  )
+}
+
+async function isWritableDirectory(directory: string): Promise<boolean> {
+  if (!directory) return false
+  try {
+    await fs.access(directory, fs.constants.W_OK)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function someWritableDirectory(directories: string[]): Promise<boolean> {
+  const results = await Promise.all(directories.map(isWritableDirectory))
+  return results.some(Boolean)
+}

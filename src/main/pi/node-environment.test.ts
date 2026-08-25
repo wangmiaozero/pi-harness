@@ -28,9 +28,7 @@ describe('Node.js version policy', () => {
     const shellBin = path.join(os.tmpdir(), 'pi-harness-shell-node-bin')
     const shellFallback = path.join(os.tmpdir(), 'pi-harness-shell-fallback-bin')
 
-    const directories = await nodeToolDirectories(
-      [shellBin, shellFallback].join(path.delimiter)
-    )
+    const directories = await nodeToolDirectories([shellBin, shellFallback].join(path.delimiter))
 
     expect(directories.slice(0, 2)).toEqual([shellBin, shellFallback])
   })

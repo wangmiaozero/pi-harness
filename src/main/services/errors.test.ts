@@ -21,12 +21,30 @@ describe('IPC error payload redaction', () => {
     expect(toErrorPayload(error)).toEqual({
       code: 'APP_ERROR',
       message: 'provider failed',
+      userMessage: 'provider failed',
+      recoverable: false,
+      context: { authorization: '••••••••••' },
       details: { authorization: '••••••••••' },
       cause: {
         code: 'APP_ERROR',
         message: 'token=••••••••••',
+        userMessage: 'token=••••••••••',
+        recoverable: false,
+        context: undefined,
         details: undefined
       }
+    })
+  })
+
+  it('marks conflicts as recoverable while preserving the legacy details field', () => {
+    const error = new AppError('CONFIG_CONFLICT', 'Configuration changed', { file: 'models' })
+
+    expect(toErrorPayload(error)).toMatchObject({
+      code: 'CONFIG_CONFLICT',
+      recoverable: true,
+      userMessage: 'Configuration changed',
+      context: { file: 'models' },
+      details: { file: 'models' }
     })
   })
 })

@@ -133,7 +133,7 @@ async function onDrop(event: DragEvent) {
     if (item.kind !== 'file' || !entry?.isDirectory) continue
     const file = item.getAsFile()
     if (!file) continue
-    const path = getApi().workspace.getPathForFile(file)
+    const path = await getApi().workspace.getPathForFile(file)
     if (path) directories.push(path)
   }
   if (!directories.length) {

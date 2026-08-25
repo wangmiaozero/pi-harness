@@ -10,7 +10,9 @@ import { normalize, parse, win32, posix } from 'node:path'
 const WINDOWS_ABSOLUTE_RE = /^[a-zA-Z]:[\\/]/
 
 export function isWindowsAbsolutePath(filePath: string): boolean {
-  return WINDOWS_ABSOLUTE_RE.test(filePath) || filePath.startsWith('\\\\') || filePath.startsWith('//')
+  return (
+    WINDOWS_ABSOLUTE_RE.test(filePath) || filePath.startsWith('\\\\') || filePath.startsWith('//')
+  )
 }
 
 export function toNativePath(p: string, platform: NodeJS.Platform = process.platform): string {
@@ -37,7 +39,10 @@ export function normalizePath(p: string, platform: NodeJS.Platform = process.pla
     const normalized = win32.normalize(p)
     const parsed = parse(normalized)
     let end = normalized.length
-    while (end > parsed.root.length && (normalized[end - 1] === '\\' || normalized[end - 1] === '/')) {
+    while (
+      end > parsed.root.length &&
+      (normalized[end - 1] === '\\' || normalized[end - 1] === '/')
+    ) {
       end--
     }
     return normalized.slice(0, end)

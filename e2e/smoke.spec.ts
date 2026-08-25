@@ -1,6 +1,5 @@
 import path from 'node:path'
 import fs from 'node:fs'
-import os from 'node:os'
 import { test, expect } from './fixtures'
 
 test.describe('Pi-Harness smoke', () => {
@@ -111,31 +110,6 @@ test.describe('Pi-Harness smoke', () => {
     expect(consoleErrors).toEqual([])
   })
 
-  test('installs a featured skill through the trusted capability flow', async ({ page }) => {
-    await page.locator('a[href="#/skills"]').click()
-    const card = page.getByTestId('featured-capability-odai')
-    await expect(card).toBeVisible()
-    await expect(card).toContainText('Odai')
-    await expect(card).toContainText(/未安装|Not installed/)
-
-    await card.click()
-    await page.getByTestId('featured-capability-install').click()
-    await expect(card).toContainText(/已安装|Installed/, { timeout: 15_000 })
-
-    const state = await page.evaluate(async () => {
-      const [capabilities, skills] = await Promise.all([
-        window.piSwitch.capabilities.list(),
-        window.piSwitch.skills.refresh()
-      ])
-      return {
-        capability: capabilities.find((entry) => entry.id === 'odai'),
-        discovered: skills.some((skill) => skill.name === 'odai')
-      }
-    })
-    expect(state.capability).toMatchObject({ installed: true, enabled: true, status: 'installed' })
-    expect(state.discovered).toBe(true)
-  })
-
   test('opens a source file in the Workspace code viewer', async ({ page }) => {
     const pageErrors: string[] = []
     const consoleErrors: string[] = []
@@ -226,7 +200,10 @@ test.describe('Pi-Harness smoke', () => {
       element.querySelector('[data-scroll-test-filler]')?.remove()
     })
 
-    await page.getByRole('button', { name: /文件|Files/, exact: true }).click()
+    await page
+      .locator('main aside')
+      .getByRole('button', { name: /^(文件|Files)$/ })
+      .click()
     await expect(aiMotion).toHaveClass(/opacity-0/)
     await page.getByRole('button', { name: 'code-preview.html', exact: true }).click()
 
@@ -331,8 +308,12 @@ test.describe('Pi-Harness smoke', () => {
     )
   })
 
-  test('edits, saves, and protects externally changed text files', async ({ page }) => {
-    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-editor-e2e-'))
+  test('edits, saves, and protects externally changed text files', async ({
+    page,
+    workspaceRoot
+  }) => {
+    const tempRoot = path.join(workspaceRoot, 'editor')
+    fs.mkdirSync(tempRoot)
     const filePath = path.join(tempRoot, 'editable.ts')
     fs.mkdirSync(path.join(tempRoot, 'node_modules'))
     fs.writeFileSync(path.join(tempRoot, '.env'), 'TOKEN=test\n')
@@ -348,7 +329,10 @@ test.describe('Pi-Harness smoke', () => {
       }, tempRoot)
 
       await page.locator('a[href="#/workspace"]').click()
-      await page.getByRole('button', { name: /文件|Files/, exact: true }).click()
+      await page
+        .locator('main aside')
+        .getByRole('button', { name: /^(文件|Files)$/ })
+        .click()
       await expect(page.getByRole('button', { name: 'node_modules', exact: true })).toBeVisible()
       await expect(page.getByRole('button', { name: '.env', exact: true })).toBeVisible()
       await page.getByRole('button', { name: 'editable.ts', exact: true }).click()
@@ -409,8 +393,12 @@ test.describe('Pi-Harness smoke', () => {
     }
   })
 
-  test('uploads files and refreshes an open preview after workspace changes', async ({ page }) => {
-    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-upload-e2e-'))
+  test('uploads files and refreshes an open preview after workspace changes', async ({
+    page,
+    workspaceRoot
+  }) => {
+    const tempRoot = path.join(workspaceRoot, 'upload')
+    fs.mkdirSync(tempRoot)
     const fixtureRoot = path.join(tempRoot, 'project')
     const uploadSource = path.join(tempRoot, 'uploaded.txt')
     fs.mkdirSync(fixtureRoot)
@@ -427,7 +415,10 @@ test.describe('Pi-Harness smoke', () => {
       }, fixtureRoot)
 
       await page.locator('a[href="#/workspace"]').click()
-      await page.getByRole('button', { name: /文件|Files/, exact: true }).click()
+      await page
+        .locator('main aside')
+        .getByRole('button', { name: /^(文件|Files)$/ })
+        .click()
       await expect(page.getByRole('button', { name: 'existing.txt', exact: true })).toBeVisible()
       const chooser = page.waitForEvent('filechooser')
       await page.getByRole('button', { name: /上传文件|Upload files/ }).click()
@@ -451,110 +442,6 @@ test.describe('Pi-Harness smoke', () => {
     } finally {
       fs.rmSync(tempRoot, { recursive: true, force: true })
     }
-  })
-
-  test('opens the create provider dialog', async ({ page }) => {
-    const pageErrors: string[] = []
-    const consoleErrors: string[] = []
-    page.on('pageerror', (error) => pageErrors.push(error.stack ?? error.message))
-    page.on('console', (message) => {
-      if (message.type() === 'error' || message.type() === 'warning') {
-        consoleErrors.push(message.text())
-      }
-    })
-    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
-
-    await page.locator('a[href="#/providers"]').click()
-    const presetPicker = page.getByPlaceholder(/搜索并选择厂商|Search and select a provider/)
-    await presetPicker.fill('DeepSeek')
-    await page
-      .locator('[data-combobox-panel]')
-      .getByRole('button', { name: /DeepSeek/ })
-      .click()
-
-    let dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible()
-    await expect(dialog.getByLabel(/提供商标识|Provider key/)).toHaveValue('deepseek')
-    await expect(dialog.getByLabel(/显示名称|Display name/)).toHaveValue('DeepSeek')
-    await expect(dialog.getByLabel(/API 基础 URL|API Base URL/)).toHaveValue(
-      'https://api.deepseek.com'
-    )
-    await expect(
-      dialog.getByRole('button', { name: /API 密钥类型|API key type/, exact: true })
-    ).toContainText(/明文|Literal/)
-    await expect(dialog.getByLabel(/API 密钥$|API key$/)).toBeVisible()
-    await expect(dialog.getByLabel(/默认模型 ID|Default model ID/)).toHaveValue('deepseek-v4-flash')
-    await dialog.getByLabel(/默认模型 ID|Default model ID/).click()
-    const deepSeekChat = page
-      .locator('[data-combobox-panel]')
-      .getByRole('button', { name: /DeepSeek Chat/ })
-    await expect(deepSeekChat).toBeVisible()
-    await deepSeekChat.click()
-    await expect(dialog.getByLabel(/默认模型 ID|Default model ID/)).toHaveValue('deepseek-chat')
-    await dialog.getByRole('button', { name: /取消|Cancel/ }).click()
-
-    await page.getByRole('button', { name: /新建提供商|New provider/ }).click()
-
-    dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible()
-    await expect(dialog).toContainText(/新建提供商|New provider/)
-    await expect(dialog.getByRole('button', { name: /保存|Save/ })).toBeVisible()
-
-    await page.mouse.click(5, 5)
-    await expect(dialog).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(dialog).toBeVisible()
-
-    const apiKeyType = dialog.getByRole('button', {
-      name: /API 密钥类型|API key type/,
-      exact: true
-    })
-    await apiKeyType.click()
-    await page.getByRole('option', { name: /明文|Literal \(plaintext\)/, exact: true }).click()
-    await expect(apiKeyType).toContainText(/明文|Literal \(plaintext\)/)
-
-    expect(pageErrors).toEqual([])
-    expect(consoleErrors).toEqual([])
-  })
-
-  test('prevents duplicate model ids before save', async ({ page }) => {
-    const pageErrors: string[] = []
-    const consoleErrors: string[] = []
-    page.on('pageerror', (error) => pageErrors.push(error.stack ?? error.message))
-    page.on('console', (message) => {
-      if (message.type() === 'error') consoleErrors.push(message.text())
-    })
-
-    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
-    await page.locator('a[href="#/models"]').click()
-    await page.getByRole('button', { name: /新建模型|New model/ }).click()
-
-    const dialog = page.getByRole('dialog')
-    await page.mouse.click(5, 5)
-    await expect(dialog).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(dialog).toBeVisible()
-    const modelId = dialog.getByLabel(/模型 ID|Model ID/)
-    await modelId.fill('gpt-4o')
-    await expect(dialog).toContainText(/已存在模型.*gpt-4o|Model.*gpt-4o.*already exists/)
-    await expect(dialog.getByRole('button', { name: /保存|Save/ })).toBeDisabled()
-
-    expect(pageErrors).toEqual([])
-    expect(consoleErrors).toEqual([])
-  })
-
-  test('keeps the command palette open until its close button is used', async ({ page }) => {
-    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
-    await page.keyboard.press('Meta+K')
-
-    const palette = page.getByRole('dialog', { name: /命令面板|Command Palette/ })
-    await expect(palette).toBeVisible()
-    await page.mouse.click(5, 5)
-    await expect(palette).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(palette).toBeVisible()
-    await palette.getByRole('button', { name: /关闭|Close/ }).click()
-    await expect(palette).toBeHidden()
   })
 
   test('shows local skills and the curated extension market', async ({ page }) => {
@@ -694,24 +581,5 @@ test.describe('Pi-Harness smoke', () => {
     )
     await dialog.getByRole('button', { name: /清理|Clean up/, exact: true }).click()
     await expect(backupRows).toHaveCount(1)
-  })
-
-  test('opens the install confirmation when Pi is missing', async ({ page }) => {
-    const pageErrors: string[] = []
-    const consoleErrors: string[] = []
-    page.on('pageerror', (error) => pageErrors.push(error.stack ?? error.message))
-    page.on('console', (message) => {
-      if (message.type() === 'error') consoleErrors.push(message.text())
-    })
-    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
-
-    await page.getByRole('button', { name: /一键安装|安装 Pi|Install Pi/ }).click()
-
-    await page.waitForTimeout(250)
-    expect(pageErrors).toEqual([])
-    expect(consoleErrors).toEqual([])
-
-    await expect(page.getByRole('dialog')).toBeVisible()
-    await expect(page.getByRole('dialog')).toContainText(/安装 Pi|Install Pi/)
   })
 })

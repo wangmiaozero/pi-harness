@@ -19,7 +19,11 @@ GitHub Release 必须同时包含 `electron-builder` 生成的更新元数据和
 - Windows：NSIS 安装包、blockmap 和 `latest.yml`。
 - Linux：AppImage、blockmap 和 `latest-linux.yml`。
 
+推送 `v*` tag 会触发 `.github/workflows/release.yml`：macOS 同时构建 arm64/x64，Windows 和 Linux 构建 x64，随后统一创建 GitHub Release，并为所有产物生成 `SHA256SUMS`。
+
 macOS 和 Windows 的正式发布产物应完成平台代码签名。更新器只消费 `electron-builder.yml` 中 `wangmiaozero/pi-harness` 的正式 Release，不在开发模式启用 `forceDevUpdateConfig`。
+
+仓库不保存签名证书或私钥。当前工作流在没有 signing secret 时通过 `CSC_IDENTITY_AUTO_DISCOVERY=false` 明确跳过 macOS 自动签名发现；这使社区构建可重复执行，但无签名产物不能替代经过签名和公证的正式分发版本。
 
 ## 本地验证
 

@@ -34,6 +34,7 @@ import { AppError, ValidationError, FileSystemError, SkillConflictError } from '
 import { capabilityBackupDir } from './app-paths'
 import { PiPackageManager, packageNameFromSource } from '../packages/package-manager'
 import type { BuiltinSkillService } from '../skills/builtin-skill-service'
+import type { FileAccessService } from '../files/file-access-service'
 
 export interface SkillForm {
   name: string
@@ -125,7 +126,8 @@ export class SkillsService {
   constructor(
     private readonly settingsStore: JsonStore<AppSettings>,
     private readonly packageManager = new PiPackageManager(settingsStore),
-    private readonly builtinSkills?: BuiltinSkillService
+    private readonly builtinSkills?: BuiltinSkillService,
+    private readonly access?: FileAccessService
   ) {}
 
   async list(projectRoot?: string | null): Promise<SkillInfo[]> {
@@ -509,7 +511,10 @@ export class SkillsService {
     if (!NAME_PATTERN.test(input.name)) {
       throw new ValidationError(`Invalid skill name: ${input.name}`)
     }
-    const src = path.resolve(input.source)
+    const requestedSource = path.resolve(input.source)
+    const src = this.access
+      ? await this.access.assertAllowed(requestedSource, { mustExist: true })
+      : requestedSource
     const dst = path.resolve(input.targetRoot, input.name)
     if (!(await fileMtime(src))) {
       throw new FileSystemError(`Source not found: ${src}`)

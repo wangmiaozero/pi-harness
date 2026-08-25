@@ -32,7 +32,9 @@ export function redactSecrets(value: unknown, seen = new WeakSet()): unknown {
   if (value == null) return value
   if (typeof value === 'string') return redactSecretText(value)
   if (typeof value !== 'object') return value
-  if (seen.has(value as object)) return value
+  // Never hand the original object back to the logger. A circular reference
+  // can otherwise re-introduce secret-shaped fields after its first redaction.
+  if (seen.has(value as object)) return '[Circular]'
   seen.add(value as object)
 
   if (value instanceof Error) {

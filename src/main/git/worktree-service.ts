@@ -90,7 +90,10 @@ export class WorktreeService {
         flush()
         current = { path: toNativePath(line.slice('worktree '.length).trim()) }
       } else if (line.startsWith('branch ') && current) {
-        current.branch = line.slice('branch '.length).trim().replace(/^refs\/heads\//, '')
+        current.branch = line
+          .slice('branch '.length)
+          .trim()
+          .replace(/^refs\/heads\//, '')
       } else if (line.startsWith('prunable') && current) {
         current.prunable = true
       } else if (line.trim() === '') {

@@ -11,6 +11,7 @@ vi.mock('./app-paths', () => ({
 }))
 
 import { piEnvironment } from '../pi/environment'
+import { FileAccessService } from '../files/file-access-service'
 import { log } from './logger'
 import {
   SKILL_MARKET_CATALOG,
@@ -179,6 +180,24 @@ describe('SkillsService path boundaries', () => {
       fs.readFile(path.join(appPathsMock.backupDir, backups[0]!, 'SKILL.md'), 'utf8')
     ).resolves.toBe('# Original')
     expect((await service().list()).map((skill) => skill.name)).toEqual(['replace-me'])
+  })
+
+  it('requires imported sources to come from an explicitly allowed root', async () => {
+    const source = path.join(sandbox, 'untrusted-source')
+    await fs.mkdir(source)
+    await fs.writeFile(path.join(source, 'SKILL.md'), '# Untrusted')
+    const access = new FileAccessService()
+    access.allowRoot(skillRoot)
+    const secureService = new SkillsService(
+      { peek: () => ({ manualCliPath: null, manualConfigDir: null }) } as never,
+      undefined,
+      undefined,
+      access
+    )
+
+    await expect(
+      secureService.import({ source, name: 'untrusted', targetRoot: skillRoot })
+    ).rejects.toMatchObject({ code: 'PATH_DENIED' })
   })
 
   it('rejects nested target roots and external symlinks for writes', async () => {

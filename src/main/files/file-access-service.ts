@@ -3,19 +3,27 @@
  * Session cwds, project roots, and explicitly chosen directories only.
  */
 
-import { readdir, realpath } from 'node:fs/promises'
+import { readdir, realpath, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import path from 'node:path'
 import { PathDeniedError } from '../services/errors'
 import { isPathWithinRoots } from '@shared/workspace/path-security'
 import { toSlashPath } from '@shared/workspace/paths'
 import type { SessionInfo } from '@shared/types/workspace'
+import type { JsonStore } from '../services/storage'
+
+export interface AuthorizedRootsState {
+  roots: string[]
+}
 
 export class FileAccessService {
   private additionalRoots = new Set<string>()
+  private activeRoot: string | null = null
   private cache: { roots: Set<string>; realRoots: Set<string> | null; expiresAt: number } | null =
     null
   private listSessions: () => Promise<SessionInfo[]> = async () => []
+
+  constructor(private readonly authorizedRootsStore?: JsonStore<AuthorizedRootsState>) {}
 
   attachSessionLister(listSessions: () => Promise<SessionInfo[]>): void {
     this.listSessions = listSessions
@@ -29,6 +37,30 @@ export class FileAccessService {
       this.cache.roots.add(normalized)
       this.cache.realRoots = null
     }
+  }
+
+  /** Persist a root only after an explicit OS picker or native file-drop gesture. */
+  async authorizeRoot(root: string): Promise<string> {
+    const resolved = await this.assertDirectory(root)
+    this.allowRoot(resolved)
+    this.activeRoot = resolved
+    if (this.authorizedRootsStore) {
+      const current = await this.authorizedRootsStore.read()
+      const roots = [...new Set([...current.roots, resolved])]
+      await this.authorizedRootsStore.write({ roots })
+    }
+    return resolved
+  }
+
+  /** Restore is read-only with respect to grants: it cannot create a new permission. */
+  async restoreRoot(root: string): Promise<string> {
+    const resolved = await this.assertAllowed(root, { mustExist: true })
+    this.activeRoot = await this.assertDirectory(resolved)
+    return this.activeRoot
+  }
+
+  getActiveRoot(): string | null {
+    return this.activeRoot
   }
 
   invalidate(): void {
@@ -57,6 +89,12 @@ export class FileAccessService {
     }
 
     for (const root of this.additionalRoots) roots.add(root)
+    if (this.authorizedRootsStore) {
+      const persisted = await this.authorizedRootsStore.read()
+      for (const root of persisted.roots) {
+        if (typeof root === 'string' && root) roots.add(toSlashPath(root))
+      }
+    }
     this.cache = { roots, realRoots: null, expiresAt: now + 5_000 }
     return roots
   }
@@ -65,19 +103,28 @@ export class FileAccessService {
     const roots = await this.getAllowedRoots()
     const lexicallyAllowed = isPathWithinRoots(target, roots)
     let realRoots: Set<string> | null = null
+    let realTarget: string | null = null
     if (!lexicallyAllowed) {
       realRoots = await this.getRealRoots(roots)
-    }
-    if (!lexicallyAllowed && !isPathWithinRoots(target, realRoots ?? [])) {
-      throw new PathDeniedError('Path is outside the allowed workspace roots', { target })
+      if (options.mustExist) {
+        try {
+          realTarget = await realpath(target)
+        } catch {
+          throw new PathDeniedError('Path does not exist or cannot be resolved', { target })
+        }
+      }
+      if (!isPathWithinRoots(realTarget ?? target, realRoots)) {
+        throw new PathDeniedError('Path is outside the allowed workspace roots', { target })
+      }
     }
     if (!options.mustExist) return target
 
-    let realTarget: string
-    try {
-      realTarget = await realpath(target)
-    } catch {
-      throw new PathDeniedError('Path does not exist or cannot be resolved', { target })
+    if (!realTarget) {
+      try {
+        realTarget = await realpath(target)
+      } catch {
+        throw new PathDeniedError('Path does not exist or cannot be resolved', { target })
+      }
     }
     realRoots ??= await this.getRealRoots(roots)
     if (!isPathWithinRoots(realTarget, realRoots)) {
@@ -101,5 +148,16 @@ export class FileAccessService {
     const realRoots = new Set(resolved.filter((root): root is string => root !== null))
     if (this.cache?.roots === roots) this.cache.realRoots = realRoots
     return realRoots
+  }
+
+  private async assertDirectory(target: string): Promise<string> {
+    let resolved: string
+    try {
+      resolved = await realpath(target)
+      if (!(await stat(resolved)).isDirectory()) throw new Error('not a directory')
+    } catch {
+      throw new PathDeniedError('Authorized root must be an existing directory', { target })
+    }
+    return resolved
   }
 }

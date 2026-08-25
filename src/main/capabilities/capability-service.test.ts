@@ -13,6 +13,7 @@ const descriptor: CapabilityDescriptor = {
   install: { strategy: 'skills-cli', selector: 'odai', target: 'pi-global' },
   installed: true,
   enabled: true,
+  health: 'healthy',
   installPath: '/fixture/skills/odai',
   installedVersion: null,
   lastModified: 1,
@@ -129,6 +130,7 @@ describe('SkillRegistry persisted capability state', () => {
         id: 'odai',
         installed: false,
         status: 'failed',
+        health: 'error',
         lastErrorCode: 'NETWORK_ERROR',
         lastErrorAction: 'install',
         lastErrorAt: 123

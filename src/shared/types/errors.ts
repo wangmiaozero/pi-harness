@@ -52,6 +52,12 @@ export type AppErrorCode =
 export interface AppErrorPayload {
   code: AppErrorCode
   message: string
+  /** Safe, end-user-facing fallback. Defaults to `message` for legacy errors. */
+  userMessage?: string
+  /** Whether retry/repair can reasonably succeed without changing user data. */
+  recoverable?: boolean
+  /** Structured, sanitised diagnostic context. `details` remains for compatibility. */
+  context?: unknown
   /** Technical details (sanitised — never contains secrets). */
   details?: unknown
   cause?: AppErrorPayload

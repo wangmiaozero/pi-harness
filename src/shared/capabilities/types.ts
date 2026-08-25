@@ -48,9 +48,19 @@ export interface CapabilityDefinition {
 export type CapabilityStatus =
   'not-installed' | 'installed' | 'disabled' | 'installing' | 'failed' | 'update-available'
 
+export type CapabilityHealth = 'not-installed' | 'healthy' | 'warning' | 'error' | 'unknown'
+
+export interface CapabilityOwnership {
+  managedBy: 'pi-harness' | 'pi-package' | 'external'
+  scope: 'global' | 'project' | 'unknown'
+  readOnly: boolean
+}
+
 export interface CapabilityDescriptor extends CapabilityDefinition {
   installed: boolean
   enabled: boolean
+  health: CapabilityHealth
+  ownership?: CapabilityOwnership
   installPath: string | null
   installedVersion: string | null
   lastModified: number | null

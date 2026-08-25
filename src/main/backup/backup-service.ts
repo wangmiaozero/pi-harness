@@ -14,6 +14,7 @@ import { PI_FILES, APP_VERSION } from '@shared/constants/index'
 import type { BackupRecord, AppSettings } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
 import type { PiConfigService } from '../pi/config-service'
+import { backupIdSchema } from '@shared/schemas/domain'
 
 interface BackupManifest {
   id: string
@@ -52,6 +53,9 @@ export class BackupService {
   }
 
   private backupPath(id: string): string {
+    if (!backupIdSchema.safeParse(id).success) {
+      throw new BackupError('Invalid backup id')
+    }
     return path.join(this.root(), id)
   }
 
@@ -136,6 +140,10 @@ export class BackupService {
     // an in-flight editor. `overwrite: true` because restore is an explicit
     // replace; `skipBackup: true` because we already snapshotted above.
     for (const name of manifest.files) {
+      if (name !== PI_FILES.models && name !== PI_FILES.settings) {
+        log.backup.warn('ignored unknown file in backup manifest', { id, name })
+        continue
+      }
       const text = await readTextFile(path.join(dest, name))
       if (text === null) continue
       if (name === PI_FILES.models) {
@@ -150,10 +158,6 @@ export class BackupService {
           skipBackup: true,
           reason: `restore ${id}`
         })
-      } else {
-        // Unknown file in manifest (back-compat) — write directly under the Pi dir.
-        await fs.mkdir(this.piDir(), { recursive: true })
-        await atomicWriteText(path.join(this.piDir(), name), text)
       }
     }
     log.backup.info('backup restored', { id })

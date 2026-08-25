@@ -23,10 +23,16 @@ const capabilityFixtures = path.join(root, 'fixtures/capabilities')
 type Fixtures = {
   electronApp: ElectronApplication
   page: Page
+  workspaceRoot: string
 }
 
 export const test = base.extend<Fixtures>({
-  electronApp: async ({}, use, testInfo) => {
+  workspaceRoot: async ({}, use) => {
+    const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-workspace-'))
+    await use(workspaceRoot)
+    fs.rmSync(workspaceRoot, { recursive: true, force: true })
+  },
+  electronApp: async ({ workspaceRoot }, use, testInfo) => {
     void testInfo
     if (!fs.existsSync(mainJs)) {
       throw new Error('out/main/index.js missing — run `pnpm compile` before e2e')
@@ -34,6 +40,10 @@ export const test = base.extend<Fixtures>({
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-'))
     const isolatedPi = path.join(userData, 'mock-pi')
     fs.cpSync(fixturesPi, isolatedPi, { recursive: true })
+    fs.writeFileSync(
+      path.join(userData, 'authorized-roots.json'),
+      `${JSON.stringify({ roots: [path.join(root, 'fixtures'), workspaceRoot] }, null, 2)}\n`
+    )
     const { ELECTRON_RUN_AS_NODE: _runAsNode, ...restEnv } = process.env
     void _runAsNode
     const app = await electron.launch({
@@ -44,6 +54,7 @@ export const test = base.extend<Fixtures>({
         ELECTRON_RUN_AS_NODE: undefined,
         PI_HARNESS_PI_CLI_PATH: path.join(userData, 'missing-pi-cli'),
         PI_HARNESS_PI_CONFIG_DIR: isolatedPi,
+        PI_CODING_AGENT_DIR: isolatedPi,
         PI_HARNESS_USER_DATA: userData,
         PI_HARNESS_CAPABILITY_FIXTURES_DIR: capabilityFixtures,
         PI_HARNESS_BUILTIN_SKILLS_DIR: path.join(root, 'resources', 'builtin-skills')

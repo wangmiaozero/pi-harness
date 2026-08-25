@@ -61,7 +61,10 @@ describe('tool call normalization', () => {
       role: 'assistant',
       model: 'x',
       provider: 'p',
-      content: [{ type: 'text', text: 'ok' }, { type: 'future', payload: 1 }]
+      content: [
+        { type: 'text', text: 'ok' },
+        { type: 'future', payload: 1 }
+      ]
     } as unknown as AgentMessage
     const normalized = normalizeToolCalls(msg)
     if (normalized.role !== 'assistant') return

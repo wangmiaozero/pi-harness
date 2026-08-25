@@ -19,12 +19,12 @@ async function main() {
     try {
       await fs.rm(dir, { recursive: true, force: true })
       removed++
-      console.log(`removed ${path.relative(root, dir)}`)
+      process.stdout.write(`removed ${path.relative(root, dir)}\n`)
     } catch (err) {
       console.warn(`skip ${name}:`, err instanceof Error ? err.message : err)
     }
   }
-  if (removed === 0) console.log('no unpacked mac apps to clean')
+  if (removed === 0) process.stdout.write('no unpacked mac apps to clean\n')
 }
 
 main().catch((err) => {

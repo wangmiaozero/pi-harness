@@ -1,6 +1,7 @@
 out
 dist
 release
+resources/builtin-skills
 node_modules
 src/renderer/src/i18n/locales
 pnpm-lock.yaml

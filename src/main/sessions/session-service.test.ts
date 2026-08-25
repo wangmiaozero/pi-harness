@@ -19,10 +19,34 @@ describe('SessionService path cache', () => {
 describe('computeSessionTotalActiveMs', () => {
   it('counts agent activity while excluding human idle before user messages', () => {
     const entries = [
-      { type: 'message', id: '1', parentId: null, timestamp: '2026-08-21T10:00:00.000Z', message: { role: 'user' } },
-      { type: 'message', id: '2', parentId: '1', timestamp: '2026-08-21T10:00:04.000Z', message: { role: 'assistant' } },
-      { type: 'message', id: '3', parentId: '2', timestamp: '2026-08-21T12:00:00.000Z', message: { role: 'user' } },
-      { type: 'message', id: '4', parentId: '3', timestamp: '2026-08-21T12:00:03.000Z', message: { role: 'assistant' } }
+      {
+        type: 'message',
+        id: '1',
+        parentId: null,
+        timestamp: '2026-08-21T10:00:00.000Z',
+        message: { role: 'user' }
+      },
+      {
+        type: 'message',
+        id: '2',
+        parentId: '1',
+        timestamp: '2026-08-21T10:00:04.000Z',
+        message: { role: 'assistant' }
+      },
+      {
+        type: 'message',
+        id: '3',
+        parentId: '2',
+        timestamp: '2026-08-21T12:00:00.000Z',
+        message: { role: 'user' }
+      },
+      {
+        type: 'message',
+        id: '4',
+        parentId: '3',
+        timestamp: '2026-08-21T12:00:03.000Z',
+        message: { role: 'assistant' }
+      }
     ]
 
     expect(computeSessionTotalActiveMs(entries)).toBe(7000)

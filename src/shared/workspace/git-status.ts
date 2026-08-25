@@ -8,7 +8,9 @@ export interface GitPorcelainEntry {
 }
 
 function usesRenamePath(indexStatus: string, worktreeStatus: string): boolean {
-  return indexStatus === 'R' || indexStatus === 'C' || worktreeStatus === 'R' || worktreeStatus === 'C'
+  return (
+    indexStatus === 'R' || indexStatus === 'C' || worktreeStatus === 'R' || worktreeStatus === 'C'
+  )
 }
 
 export function parseGitPorcelainV1(output: string): GitPorcelainEntry[] {

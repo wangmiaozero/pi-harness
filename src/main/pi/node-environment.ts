@@ -108,12 +108,14 @@ export async function detectNodeRuntime(): Promise<NodeRuntimeInfo> {
         ? ('login-shell' as const)
         : ('candidate' as const)
   }))
-  const [node, npm] = await Promise.all([
+  const [node, npm, pnpm] = await Promise.all([
     resolveExecutable('node', { additionalDirectories: candidates }),
-    resolveExecutable('npm', { additionalDirectories: candidates })
+    resolveExecutable('npm', { additionalDirectories: candidates }),
+    resolveExecutable('pnpm', { additionalDirectories: candidates })
   ])
   const nodeInstalled = validResolution(node)
   const npmInstalled = validResolution(npm)
+  const pnpmInstalled = validResolution(pnpm)
   const nodeSupported = nodeInstalled && isNodeVersionSupported(node.version)
   const prefix =
     npmInstalled && npm.path
@@ -127,12 +129,16 @@ export async function detectNodeRuntime(): Promise<NodeRuntimeInfo> {
     npmInstalled,
     npmPath: npm.path,
     npmVersion: npm.version,
+    pnpmInstalled,
+    pnpmPath: pnpm.path,
+    pnpmVersion: pnpm.version,
     nodeSupported,
     minimumNodeVersion: MINIMUM_NODE_VERSION,
     nodeStatus: !nodeInstalled ? 'missing' : nodeSupported ? 'ready' : 'outdated',
     npmStatus: npmInstalled ? 'ready' : 'missing',
     nodeSource: node.source,
     npmSource: npm.source,
+    pnpmSource: pnpm.source,
     npmPrefix: prefix.prefix,
     npmPrefixWritable: prefix.writable,
     npmBinDir: prefix.binDir,

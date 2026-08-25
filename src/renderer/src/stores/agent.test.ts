@@ -87,8 +87,9 @@ describe('agent store new-session handshake', () => {
   it('keeps explicit composer selections stable across runtime reconciliation and reload', async () => {
     let runtimeThinking = 'off'
     let runtimeTools = toolEntries(['read', 'bash', 'edit', 'write'])
-    const command = vi.fn().mockImplementation(
-      (_id: string, input: { type: string; toolNames?: string[] }) => {
+    const command = vi
+      .fn()
+      .mockImplementation((_id: string, input: { type: string; toolNames?: string[] }) => {
         if (input.type === 'get_tools') return runtimeTools
         if (input.type === 'set_tools') {
           runtimeTools = toolEntries(input.toolNames ?? [])
@@ -96,8 +97,7 @@ describe('agent store new-session handshake', () => {
         }
         if (input.type === 'get_session_stats') return {}
         return null
-      }
-    )
+      })
     window.piSwitch = {
       sessions: { get: vi.fn().mockResolvedValue(sessionDetail('off')) },
       agent: {
@@ -135,12 +135,12 @@ describe('agent store new-session handshake', () => {
   it('reapplies composer selections when an existing session runtime is restarted', async () => {
     const start = vi.fn().mockResolvedValue({ sessionId: 'session-1', cwd: '/code/project' })
     const prompt = vi.fn().mockResolvedValue(null)
-    const command = vi.fn().mockImplementation(
-      (_id: string, input: { type: string; toolNames?: string[] }) => {
+    const command = vi
+      .fn()
+      .mockImplementation((_id: string, input: { type: string; toolNames?: string[] }) => {
         if (input.type === 'get_tools') return toolEntries(input.toolNames ?? [])
         return null
-      }
-    )
+      })
     window.piSwitch = {
       agent: {
         state: vi.fn().mockResolvedValue(null),

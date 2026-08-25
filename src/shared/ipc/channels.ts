@@ -125,6 +125,7 @@ export const IPC_INVOKE = {
 
   workspaceListProjects: invoke('workspace:list-projects'),
   workspacePickDirectory: invoke('workspace:pick-directory'),
+  workspaceAuthorizeDroppedRoot: invoke('workspace:authorize-dropped-root'),
   workspaceAllowRoot: invoke('workspace:allow-root'),
   workspaceProjectContextMenu: invoke('workspace:project-context-menu'),
 

@@ -135,6 +135,10 @@ Domain stays decoupled from Pi native JSON via an Adapter. Unknown fields pass t
 ## Project documentation
 
 - [Changelog](CHANGELOG.md)
+- [Architecture and process boundaries](docs/architecture.md)
+- [Security model](docs/security.md)
+- [Testing strategy and local quality gate](docs/testing.md)
+- [Contributing](CONTRIBUTING.md)
 - [Application updates and release artifacts](docs/application-updates.md)
 - [Pi installation and Node.js prerequisites](docs/pi-installation.md)
 - [Lightweight code editor boundary](docs/lightweight-code-editor.md)
