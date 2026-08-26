@@ -89,6 +89,7 @@ jobs:
     needs: [macos, windows, linux]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           pattern: release-*
@@ -116,8 +117,25 @@ jobs:
       - name: Generate SHA256SUMS
         working-directory: release-artifacts
         run: find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
+      - name: Prepare public release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          awk -v version="$version" '
+            /^## / {
+              if (capture) exit
+              capture = ($2 == version)
+            }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md || { echo "Missing public changelog for $RELEASE_TAG" >&2; exit 1; }
+          unexpected="$(grep '^### ' release-notes.md | grep -Ev '^### (Added|Fixed)$' || true)"
+          test -z "$unexpected" || { echo "Release notes may contain only Added and Fixed sections" >&2; exit 1; }
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" release-artifacts/* --verify-tag --generate-notes --title "$RELEASE_TAG"
+        run: gh release create "$RELEASE_TAG" release-artifacts/* --verify-tag --notes-file release-notes.md --title "$RELEASE_TAG"

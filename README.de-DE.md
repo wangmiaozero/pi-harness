@@ -16,6 +16,7 @@
 <p align="center">
   <a href="README.md">English</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
   <a href="README.ja-JP.md">日本語</a> ·
   <a href="README.ko-KR.md">한국어</a> ·
   <a href="README.ru-RU.md">Русский</a> ·
@@ -35,7 +36,7 @@
 
 ### Mehr als eine Pi-Chat-Oberfläche
 
-Ein einfacher Desktop-Client öffnet Pi und startet einen Chat. Pi-Harness richtet zusätzlich die Umgebung ein, verwaltet Anbieter und Modelle, installiert Skills und Pi-Pakete und verbindet Sitzungen, Dateien und Git in einem Projektarbeitsbereich.
+Ein einfacher Desktop-Client öffnet Pi und startet einen Chat. Pi-Harness bündelt Umgebung, Anbieter, Modelle, Skills, Pakete, Projekte, Dateien und Git in einem Desktop-Arbeitsbereich.
 
 ```text
 Einfacher Desktop-Client              Pi-Harness
@@ -69,11 +70,11 @@ Nutzer der paketierten App müssen das Repository nicht klonen und pnpm nicht in
 ## Was du tun kannst
 
 - **Workspace:** Pi-Sitzungen in einem echten Projekt starten oder fortsetzen und Streaming, Thinking, Tool Calls, Dateien und Git zusammen nutzen.
-- **Providers & Models:** Pi-kompatible Presets oder eigene APIs einrichten, verfügbare Modelle abrufen, wenn der Anbieter dies unterstützt, die Verbindung testen und das aktive Modell wählen.
-- **Skills, Packages & MCP:** lokale Skills, vertrauenswürdige Empfehlungen, integrierte Sammlungen und Pi-Pakete verwalten; MCP über unterstützte Pakete anbinden.
+- **Providers & Models:** Pi-kompatible Anbieter und Modelle einrichten, die Verbindung testen und das aktive Modell wählen.
+- **Skills, Packages & MCP:** lokale Skills und Pi-Pakete verwalten; MCP über unterstützte Pakete anbinden.
 - **Environment:** Node.js, npm, PATH und Pi erkennen und typische Installationsprobleme direkt in der Desktop-App beheben.
 - **Files & Git:** Dateien durchsuchen und hochladen, mit Konfliktschutz bearbeiten sowie Git Diff und Worktrees verwenden.
-- **Diagnostics & Security:** Umgebung und Capabilities prüfen. Zugangsdaten bleiben im Schlüsselbund oder in Electron safeStorage; kopierte Diagnosen werden bereinigt.
+- **Diagnostics:** Zustand der Anwendung und Umgebung prüfen.
 
 ## So funktioniert es
 
@@ -121,7 +122,7 @@ Installieren → Provider konfigurieren → Modell wählen → Projekt öffnen �
 
 Pi-Harness bearbeitet lesbare Textdateien mit Syntax-Highlighting, Zeilennummern, Rückgängig/Wiederholen, Suche, explizitem Speichern und Schutz vor externen Änderungen. Große, binäre, Medien- und Dokumentdateien werden schreibgeschützt angezeigt.
 
-Es ist keine IDE: kein LSP/IntelliSense, semantisches Refactoring, Debugger, Task Runner, integriertes Terminal oder IDE-Erweiterungssystem. Siehe [Grenze des leichtgewichtigen Editors](docs/lightweight-code-editor.md).
+Es ist keine IDE: kein LSP/IntelliSense, semantisches Refactoring, Debugger, Task Runner, integriertes Terminal oder IDE-Erweiterungssystem.
 
 ## Architektur
 
@@ -144,7 +145,7 @@ Es ist keine IDE: kein LSP/IntelliSense, semantisches Refactoring, Debugger, Tas
                            Pi Coding Agent
 ```
 
-Pi Coding Agent bleibt die einzige Agent Runtime. Details: [Architektur](docs/architecture.md), [Capability Layer](docs/capability-layer.md), [Sicherheitsmodell](docs/security.md).
+Pi Coding Agent bleibt die einzige Agent Runtime.
 
 ## Voraussetzungen
 
@@ -169,13 +170,6 @@ pnpm dev
 
 ## Dokumentation
 
-- [Architektur](docs/architecture.md)
-- [Sicherheit](docs/security.md)
-- [Tests](docs/testing.md)
-- [Anwendungsupdates](docs/application-updates.md)
-- [Pi-Installation](docs/pi-installation.md)
-- [Capability Layer](docs/capability-layer.md)
-- [Package- und Skill-Lebenszyklus](docs/package-lifecycle.md)
 - [Änderungsprotokoll](CHANGELOG.md)
 - [Beitragen](CONTRIBUTING.md)
 

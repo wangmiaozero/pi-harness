@@ -16,6 +16,7 @@
 <p align="center">
   <a href="README.md">English</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
   <a href="README.ja-JP.md">日本語</a> ·
   <a href="README.ko-KR.md">한국어</a> ·
   <a href="README.ru-RU.md">Русский</a> ·
@@ -35,7 +36,7 @@
 
 ### Plus qu’une interface de chat pour Pi
 
-Un client de bureau classique ouvre Pi et lance un chat. Pi-Harness prépare aussi l’environnement, gère les fournisseurs et les modèles, installe les Skills et paquets Pi, puis rassemble sessions, fichiers et Git dans l’espace de travail du projet.
+Un client de bureau classique ouvre Pi et lance un chat. Pi-Harness regroupe environnement, fournisseurs, modèles, Skills, paquets, projets, fichiers et Git dans un seul espace de travail de bureau.
 
 ```text
 Client de bureau classique            Pi-Harness
@@ -69,11 +70,11 @@ Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer 
 ## Ce que vous pouvez faire
 
 - **Espace de travail :** lancer ou reprendre des sessions Pi dans un vrai projet, avec réponses en streaming, Thinking, Tool Call, fichiers et Git.
-- **Fournisseurs et modèles :** utiliser un préréglage compatible Pi ou une API personnalisée, charger les modèles lorsque le fournisseur le permet, tester la connexion et choisir le modèle actif.
-- **Skills, paquets et MCP :** gérer les Skills locaux, les sélections de confiance, les collections intégrées et les paquets Pi ; connecter MCP via les paquets pris en charge.
+- **Fournisseurs et modèles :** configurer des fournisseurs et modèles compatibles Pi, tester la connexion et choisir le modèle actif.
+- **Skills, paquets et MCP :** gérer les Skills locaux et les paquets Pi ; connecter MCP via les paquets pris en charge.
 - **Environnement :** détecter Node.js, npm, PATH et Pi, puis résoudre les problèmes d’installation courants depuis l’application.
 - **Fichiers et Git :** parcourir et importer des fichiers, les modifier avec protection contre les conflits, consulter Git Diff et travailler avec les Worktrees.
-- **Diagnostic et sécurité :** vérifier l’état de l’environnement et des capacités. Les identifiants restent dans le Trousseau ou Electron safeStorage et les diagnostics copiés sont assainis.
+- **Diagnostic :** vérifier l’état de l’application et de l’environnement.
 
 ## Fonctionnement
 
@@ -121,7 +122,7 @@ Installer → Configurer le fournisseur → Choisir le modèle → Ouvrir le pro
 
 Pi-Harness modifie les fichiers texte lisibles avec coloration syntaxique, numéros de ligne, annuler/rétablir, recherche, sauvegarde explicite et protection contre les changements externes. Les fichiers volumineux, binaires, multimédias et documents restent en lecture seule.
 
-Ce n’est pas un IDE : pas de LSP/IntelliSense, refactorisation sémantique, débogueur, exécuteur de tâches, terminal intégré ou compatibilité avec les extensions IDE. Consultez les [limites de l’éditeur léger](docs/lightweight-code-editor.md).
+Ce n’est pas un IDE : pas de LSP/IntelliSense, refactorisation sémantique, débogueur, exécuteur de tâches, terminal intégré ou compatibilité avec les extensions IDE.
 
 ## Architecture
 
@@ -144,7 +145,7 @@ Ce n’est pas un IDE : pas de LSP/IntelliSense, refactorisation sémantique, d�
                            Pi Coding Agent
 ```
 
-Pi Coding Agent reste le seul Agent Runtime. Pour les détails : [architecture](docs/architecture.md), [Capability Layer](docs/capability-layer.md), [sécurité](docs/security.md).
+Pi Coding Agent reste le seul Agent Runtime.
 
 ## Prérequis
 
@@ -169,13 +170,6 @@ Contrôles courants : pnpm typecheck, pnpm lint, pnpm test, pnpm compile et pnpm
 
 ## Documentation
 
-- [Architecture](docs/architecture.md)
-- [Sécurité](docs/security.md)
-- [Tests](docs/testing.md)
-- [Mises à jour de l’application](docs/application-updates.md)
-- [Installation de Pi](docs/pi-installation.md)
-- [Capability Layer](docs/capability-layer.md)
-- [Cycle de vie Package et Skill](docs/package-lifecycle.md)
 - [Historique des modifications](CHANGELOG.md)
 - [Contribuer](CONTRIBUTING.md)
 

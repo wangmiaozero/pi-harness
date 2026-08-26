@@ -3,11 +3,11 @@ import { isAllowedRendererNavigation } from './navigation-policy'
 
 describe('isAllowedRendererNavigation', () => {
   it('allows only the configured development origin', () => {
-    const rendererUrl = 'http://localhost:5173/'
+    const rendererUrl = 'http://localhost:31415/'
 
-    expect(isAllowedRendererNavigation('http://localhost:5173/workspace', rendererUrl)).toBe(true)
-    expect(isAllowedRendererNavigation('http://localhost.evil.test:5173/', rendererUrl)).toBe(false)
-    expect(isAllowedRendererNavigation('http://127.0.0.1:5173/', rendererUrl)).toBe(false)
+    expect(isAllowedRendererNavigation('http://localhost:31415/workspace', rendererUrl)).toBe(true)
+    expect(isAllowedRendererNavigation('http://localhost.evil.test:31415/', rendererUrl)).toBe(false)
+    expect(isAllowedRendererNavigation('http://127.0.0.1:31415/', rendererUrl)).toBe(false)
   })
 
   it('allows only the packaged renderer file while permitting hash routes', () => {

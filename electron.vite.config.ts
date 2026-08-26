@@ -46,8 +46,10 @@ export default defineConfig({
     plugins: [vue(), tailwindcss()],
     server: {
       // Desktop-only: never auto-open a system/IDE browser. Electron loads this URL.
+      // 31415 ≈ π (3.1415); fail if occupied so Electron does not follow a fallback port.
       open: false,
-      strictPort: true
+      strictPort: true,
+      port: 31415
     },
     build: {
       rollupOptions: {

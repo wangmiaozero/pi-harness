@@ -16,6 +16,7 @@
 <p align="center">
   <a href="README.md">English</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
   <a href="README.ja-JP.md">日本語</a> ·
   <a href="README.ko-KR.md">한국어</a> ·
   <a href="README.ru-RU.md">Русский</a> ·
@@ -35,7 +36,7 @@
 
 ### Pi 채팅 UI 그 이상
 
-일반 데스크톱 클라이언트는 Pi를 열고 채팅을 시작합니다. Pi-Harness는 실행 환경을 준비하고, Provider와 모델을 관리하고, Skills와 Pi 패키지를 설치하며, 세션·파일·Git을 하나의 프로젝트 작업 공간에 연결합니다.
+일반 데스크톱 클라이언트는 Pi를 열고 채팅을 시작합니다. Pi-Harness는 환경 설정, Provider, 모델, Skills, 패키지, 프로젝트, 파일, Git을 하나의 데스크톱 작업 공간에 모읍니다.
 
 ```text
 일반 데스크톱 클라이언트              Pi-Harness
@@ -69,11 +70,11 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 ## 할 수 있는 일
 
 - **Workspace:** 실제 프로젝트에서 Pi 세션을 시작하거나 이어서 실행하고, 스트리밍 응답, Thinking, Tool Call, 파일, Git을 함께 확인합니다.
-- **Providers & Models:** Pi 호환 프리셋 또는 사용자 지정 API를 구성하고, 가능한 경우 모델 목록을 가져오며, 연결 테스트 후 활성 모델을 선택합니다.
-- **Skills, Packages & MCP:** 로컬 Skills, 신뢰할 수 있는 추천 항목, 내장 컬렉션, Pi 패키지를 관리하고 지원되는 패키지로 MCP를 연결합니다.
+- **Providers & Models:** Pi 호환 Provider와 모델을 구성하고 연결 테스트 후 활성 모델을 선택합니다.
+- **Skills, Packages & MCP:** 로컬 Skills와 Pi 패키지를 관리하고 지원되는 패키지로 MCP를 연결합니다.
 - **Environment:** Node.js, npm, PATH, Pi를 감지하고 일반적인 설치 문제를 데스크톱 앱에서 해결합니다.
 - **Files & Git:** 파일을 탐색·업로드하고, 충돌 보호가 있는 경량 편집기를 사용하며, Git Diff와 Worktree를 확인합니다.
-- **Diagnostics & Security:** 환경과 기능 상태를 진단합니다. 자격 증명은 Keychain 또는 Electron safeStorage에 보관되고 복사한 진단 정보는 정리됩니다.
+- **Diagnostics:** 애플리케이션과 환경 상태를 확인합니다.
 
 ## 사용 흐름
 
@@ -121,7 +122,7 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 
 Pi-Harness는 구문 강조, 줄 번호, 실행 취소/다시 실행, 찾기, 명시적 저장, 미저장 상태, 외부 변경 충돌 보호를 갖춘 경량 텍스트 편집기를 제공합니다. 대용량·바이너리·미디어·문서 파일은 읽기 전용으로 미리 봅니다.
 
-Pi-Harness는 IDE가 아닙니다. LSP/IntelliSense, 시맨틱 리팩터링, 디버거, 태스크 러너, 통합 터미널, IDE 확장 호환성을 제공하지 않습니다. [경량 코드 편집기 범위](docs/lightweight-code-editor.md)를 참고하세요.
+Pi-Harness는 IDE가 아닙니다. LSP/IntelliSense, 시맨틱 리팩터링, 디버거, 태스크 러너, 통합 터미널, IDE 확장 호환성을 제공하지 않습니다.
 
 ## 아키텍처
 
@@ -144,7 +145,7 @@ Pi-Harness는 IDE가 아닙니다. LSP/IntelliSense, 시맨틱 리팩터링, 디
                            Pi Coding Agent
 ```
 
-Pi Coding Agent는 유일한 Agent Runtime입니다. 구현 세부 사항은 [아키텍처](docs/architecture.md), [Capability Layer](docs/capability-layer.md), [보안 모델](docs/security.md)을 참고하세요.
+Pi Coding Agent는 유일한 Agent Runtime입니다.
 
 ## 요구 사항
 
@@ -169,13 +170,6 @@ pnpm dev
 
 ## 문서
 
-- [아키텍처](docs/architecture.md)
-- [보안](docs/security.md)
-- [테스트](docs/testing.md)
-- [애플리케이션 업데이트](docs/application-updates.md)
-- [Pi 설치](docs/pi-installation.md)
-- [Capability Layer](docs/capability-layer.md)
-- [Package 및 Skill 수명 주기](docs/package-lifecycle.md)
 - [변경 기록](CHANGELOG.md)
 - [기여 안내](CONTRIBUTING.md)
 

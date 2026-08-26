@@ -16,6 +16,7 @@
 <p align="center">
   <a href="README.md">English</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
   <a href="README.ja-JP.md">日本語</a> ·
   <a href="README.ko-KR.md">한국어</a> ·
   <a href="README.ru-RU.md">Русский</a> ·
@@ -42,7 +43,7 @@
 
 ### More than a Pi chat UI
 
-A basic desktop client gets you from Pi to chat. Pi-Harness also prepares the environment, manages providers and models, installs Skills and Pi packages, and gives every project a native workspace for sessions, files, and Git.
+A basic desktop client gets you from Pi to chat. Pi-Harness also brings environment setup, provider and model management, Skills, packages, projects, files, and Git into one desktop workspace.
 
 ```text
 Typical desktop client                Pi-Harness
@@ -85,7 +86,7 @@ Choose a Pi-compatible preset or configure a custom API, discover available mode
 
 ### Skills, Packages & MCP
 
-Create and manage local Skills, install trusted featured and bundled collections, repair Pi packages, and add MCP connectivity through supported Pi packages.
+Create and manage local Skills and Pi packages, and add MCP connectivity through supported packages.
 
 ### Environment
 
@@ -97,7 +98,7 @@ Browse and upload files, edit readable text with conflict protection, inspect Gi
 
 ### Diagnostics & Security
 
-Inspect environment, storage, workspace, and capability health while credentials stay in Keychain or Electron `safeStorage` and copied diagnostics are sanitized.
+Inspect environment, storage, workspace, and capability health from the desktop app.
 
 ## How it works
 
@@ -129,7 +130,7 @@ Keep project sessions, streaming responses, Thinking, Tool Calls, files, and Git
 
 ### 3. Configure providers and models
 
-Start with a preset or custom API, test it, import discoverable models, and choose the model Pi should use.
+Start with a preset or custom API, test it, manage available models, and choose the model Pi should use.
 
 |              Providers               |             Provider setup             |
 | :----------------------------------: | :------------------------------------: |
@@ -139,7 +140,7 @@ Start with a preset or custom API, test it, import discoverable models, and choo
 
 ### 4. Extend Pi with Skills and packages
 
-Manage local Skills, trusted featured entries, built-in collections, and Pi packages with ownership and health checks.
+Manage local Skills, collections, and Pi packages.
 
 |           Installed Skills           | Built-in collections and packages |
 | :----------------------------------: | :-------------------------------: |
@@ -147,29 +148,28 @@ Manage local Skills, trusted featured entries, built-in collections, and Pi pack
 
 ### 5. Make the workspace yours
 
-Choose system, light, or dark appearance and optionally enable a runtime-driven mascot after the core workspace is set up.
+Choose system, light, or dark appearance and optionally enable a mascot.
 
 ![Appearance and mascot settings](docs/设置.jpg)
 
 ## Core features
 
-| Area              | What Pi-Harness does                                                                                            |
-| ----------------- | --------------------------------------------------------------------------------------------------------------- |
-| Overview          | Shows the active model, environment status, configuration health, and quick actions                             |
-| Workspace         | Runs project-scoped Pi sessions with streaming, Thinking, Tool Calls, files, Git Diff, and Worktree             |
-| Providers         | Manages presets and custom endpoints, credentials, live model discovery, and connection tests                   |
-| Models            | Creates custom or preset-backed model entries and selects the active Pi model                                   |
-| Skills & Packages | Creates, imports, validates, installs, updates, repairs, disables, backs up, and removes supported capabilities |
-| Config            | Edits `models.json` and `settings.json` with formatting, backups, atomic writes, and external-change protection |
-| Diagnostics       | Reports environment, storage, workspace, security, and capability health with sanitized copy/export             |
-| Updates           | Checks GitHub Releases in packaged builds and installs compatible updates when updater metadata is available    |
-| Appearance        | Offers system, light, and dark themes, density controls, and optional runtime-driven mascots                    |
+| Area               | What Pi-Harness does                                  |
+| ------------------ | ----------------------------------------------------- |
+| Overview           | Shows environment, configuration, and model status    |
+| Workspace          | Runs Pi sessions with project files and Git context   |
+| Providers & Models | Manages Pi-compatible providers and models            |
+| Skills & Packages  | Manages supported Skills and packages                 |
+| Config             | Edits Pi configuration files with conflict protection |
+| Diagnostics        | Reports application and environment health            |
+| Updates            | Installs compatible application updates               |
+| Appearance         | Offers theme, density, and optional mascot settings   |
 
 ### Lightweight editor, not an IDE
 
 Pi-Harness edits readable text with lazy syntax highlighting, line numbers, undo/redo, find, explicit save, unsaved-state indicators, and external-change conflict protection. Oversized, binary, media, and document files use read-only previews.
 
-It deliberately does not include LSP/IntelliSense, semantic refactoring, a debugger, task runner, integrated terminal, or IDE extension compatibility. See the [lightweight editor boundary](docs/lightweight-code-editor.md).
+It deliberately does not include LSP/IntelliSense, semantic refactoring, a debugger, task runner, integrated terminal, or IDE extension compatibility.
 
 ## Architecture
 
@@ -196,13 +196,7 @@ Pi-Harness separates managing Pi, using Pi, and extending Pi while keeping Pi Co
                            Pi Coding Agent
 ```
 
-The desktop boundary is `Vue Renderer → typed preload API → validated IPC → Main services → Pi SDK / operating system`. Domain adapters preserve unknown Pi configuration fields. Read the [architecture](docs/architecture.md) and [Capability Layer](docs/capability-layer.md) documents for the implementation details.
-
-## Security
-
-Secrets never return to the renderer as plaintext. macOS uses the system Keychain; Windows uses Electron `safeStorage`. Configuration changes are backup-first and atomic, workspace access is restricted to authorized roots, and diagnostics redact secret-like values and home paths.
-
-See the [security model](docs/security.md) for trust boundaries, path validation, process execution, and disclosure guidance.
+The desktop boundary is `Vue Renderer → typed preload API → validated IPC → Main services → Pi SDK / operating system`. Domain adapters preserve unknown Pi configuration fields.
 
 ## Requirements
 
@@ -237,20 +231,12 @@ pnpm test:e2e:only
 
 ## Documentation
 
-- [Architecture and process boundaries](docs/architecture.md)
-- [Security model](docs/security.md)
-- [Testing strategy](docs/testing.md)
-- [Application updates and release artifacts](docs/application-updates.md)
-- [Pi installation and Node.js prerequisites](docs/pi-installation.md)
-- [Lightweight code editor boundary](docs/lightweight-code-editor.md)
-- [Capability Layer and featured skill security](docs/capability-layer.md)
-- [Pi Package and Skill lifecycle](docs/package-lifecycle.md)
-- [Built-in Skills collections](docs/builtin-skills.md)
 - [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
 
 ## Contributing
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and keep changes within the documented architecture and security boundaries.
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change.
 
 ## License
 

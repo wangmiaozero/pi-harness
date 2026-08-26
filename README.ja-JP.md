@@ -16,6 +16,7 @@
 <p align="center">
   <a href="README.md">English</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
   <a href="README.ja-JP.md">日本語</a> ·
   <a href="README.ko-KR.md">한국어</a> ·
   <a href="README.ru-RU.md">Русский</a> ·
@@ -35,7 +36,7 @@
 
 ### 単なる Pi チャット UI ではありません
 
-一般的なデスクトップクライアントは、Pi を開いてチャットを始めるためのものです。Pi-Harness はさらに、実行環境の準備、Provider とモデルの管理、Skills と Pi パッケージのインストールを行い、セッション、ファイル、Git をプロジェクトのワークスペースにまとめます。
+一般的なデスクトップクライアントは、Pi を開いてチャットを始めるためのものです。Pi-Harness は、環境設定、Provider、モデル、Skills、パッケージ、プロジェクト、ファイル、Git を 1 つのデスクトップワークスペースにまとめます。
 
 ```text
 一般的なデスクトップクライアント        Pi-Harness
@@ -69,11 +70,11 @@ Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js �
 ## できること
 
 - **Workspace:** 実際のプロジェクトで Pi セッションを開始または再開し、ストリーミング応答、Thinking、Tool Call、ファイル、Git を同じ場所で扱えます。
-- **Providers & Models:** Pi 互換のプリセットまたはカスタム API を設定し、Provider が対応している場合はモデル一覧を取得して、接続テストと使用モデルの選択を行えます。
-- **Skills, Packages & MCP:** ローカル Skills、信頼済みのおすすめ項目、内蔵コレクション、Pi パッケージを管理し、対応パッケージ経由で MCP に接続できます。
+- **Providers & Models:** Pi 互換の Provider とモデルを設定し、接続テストと使用モデルの選択を行えます。
+- **Skills, Packages & MCP:** ローカル Skills と Pi パッケージを管理し、対応パッケージ経由で MCP に接続できます。
 - **Environment:** Node.js、npm、PATH、Pi を検出し、よくあるインストール問題をデスクトップアプリから解決できます。
 - **Files & Git:** ファイルの閲覧とアップロード、競合保護付きの軽量編集、Git Diff、Worktree を利用できます。
-- **Diagnostics & Security:** 環境と Capability の状態を診断します。認証情報は Keychain または Electron safeStorage に保存され、コピーする診断情報はサニタイズされます。
+- **Diagnostics:** アプリケーションと環境の状態を確認できます。
 
 ## 利用の流れ
 
@@ -123,7 +124,7 @@ Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js �
 
 Pi-Harness は、シンタックスハイライト、行番号、元に戻す／やり直し、検索、明示的な保存、未保存状態、外部変更との競合保護を備えた軽量テキストエディターを提供します。大容量ファイル、バイナリ、メディア、ドキュメントは読み取り専用でプレビューします。
 
-Pi-Harness は IDE ではありません。LSP/IntelliSense、セマンティックリファクタリング、デバッガー、タスクランナー、統合ターミナル、IDE 拡張機能との互換性は提供しません。詳しくは[軽量コードエディターの境界](docs/lightweight-code-editor.md)を参照してください。
+Pi-Harness は IDE ではありません。LSP/IntelliSense、セマンティックリファクタリング、デバッガー、タスクランナー、統合ターミナル、IDE 拡張機能との互換性は提供しません。
 
 ## アーキテクチャ
 
@@ -146,7 +147,7 @@ Pi-Harness は IDE ではありません。LSP/IntelliSense、セマンティッ
                            Pi Coding Agent
 ```
 
-Pi Coding Agent が唯一の Agent Runtime です。実装の詳細は、[アーキテクチャ](docs/architecture.md)、[Capability Layer](docs/capability-layer.md)、[セキュリティモデル](docs/security.md)を参照してください。
+Pi Coding Agent が唯一の Agent Runtime です。
 
 ## 必要環境
 
@@ -171,13 +172,6 @@ pnpm dev
 
 ## ドキュメント
 
-- [アーキテクチャ](docs/architecture.md)
-- [セキュリティ](docs/security.md)
-- [テスト](docs/testing.md)
-- [アプリケーション更新](docs/application-updates.md)
-- [Pi のインストール](docs/pi-installation.md)
-- [Capability Layer](docs/capability-layer.md)
-- [Package と Skill のライフサイクル](docs/package-lifecycle.md)
 - [変更履歴](CHANGELOG.md)
 - [コントリビューションガイド](CONTRIBUTING.md)
 

@@ -1,180 +1,85 @@
 # Changelog
 
+Public release notes contain only released, user-visible additions and fixes.
+
 ## Unreleased
+
+### Added
+
+### Fixed
 
 ## 1.1.1 — 2026-08-25
 
 ### Added
 
-- **Live provider model discovery.** Providers can load a model catalog from supported API roots and import discovered models on save. Anthropic-compatible gateways without a model catalog can still be configured with a manually entered model ID.
-- **Provider identity suggestions.** Provider keys, display names, and internal names can be derived locally from the API hostname without contacting the endpoint.
-
-### Changed
-
-- **Login-shell Node.js resolution.** Pi detection, installation, and updates use the Node.js and npm resolved from the user's login shell instead of relying on a stale GUI `PATH`.
-- **Release validation.** Tag-triggered releases validate updater metadata and platform payloads before publishing and generate `SHA256SUMS`.
+- Improved provider and model configuration workflows.
 
 ### Fixed
 
-- **Anthropic-compatible Chinese gateways.** Model discovery recognizes gateways such as Volcengine Ark Agent Plan that support `POST /v1/messages` but do not expose the usual Anthropic model catalog.
-- **Pi updates with built-in Skills.** Pi update tasks no longer collide with bundled Skill checksum validation.
-- **Latest-version update status.** Missing updater metadata no longer appears as a generic network failure when the installed version already matches the latest stable release.
-
-### Security
-
-- Restricted reveal-in-file-manager actions to authorized workspace, Pi configuration, Skill, and Package roots.
-- Kept model discovery read-only until the user saves and preserved validated IPC, path, and capability mutation boundaries.
+- Fixed compatibility and stability issues in environment detection, updates, and provider handling.
 
 ## 1.1.0 — 2026-08-24
 
 ### Added
 
-- **One-click Environment Bootstrap.** Added cross-platform Node.js 22+ detection and user-level installation, npm prefix repair, login-shell PATH recovery, streaming install progress/logs, cancellation, verification, and automatic Pi-dependent store refresh.
-- **Managed Node runtime.** Downloads a current supported Node.js LTS from the official distribution service, verifies SHA-256 checksums, installs with atomic rollback, and never downgrades an existing supported runtime.
-- **Pi Package lifecycle reconciliation.** Added global/project registry reconciliation against npm, git, and local installation entities with healthy, missing, orphaned, permission-error, corrupted, and unknown states.
-- **Repair and thorough cleanup.** Added reinstall, re-register, verified uninstall, orphan deletion, batch uninstall, third-party cleanup, permission repair, transaction logs, registry rollback, and startup preflight protection.
-- **Universal Skill uninstall.** Standalone/user-authored Skills are backed up then removed directly; Package-provided Skills uninstall their owning Package instead of corrupting a child resource.
-- **Matt Pocock built-in Skills.** Bundled 29 formal engineering, productivity, and misc Skills for offline global/project installation, update detection, individual/batch uninstall, and reinstall without touching the read-only application source.
-- **Built-in Skill ownership.** Added content hashes, source commits, modified/missing/conflict health, exact-path ownership, backup-first atomic replacement, and same-name protection without creating Pi package state.
-- **Runtime-driven pet states.** Upgraded all six mascot themes to a manifest-based 13-state visual layer covering thinking, running, coding, tool calls, waiting, review, completion, failure, warnings, greetings, celebration, and sleep. Maid White and Office Black Tights are prioritized presets.
-- **Pet controls and diagnostics.** Added animation, status-copy, auto-sleep duration, visibility, and sound settings plus a development-only state preview. Completion sound now defaults to off.
-- **Resilient sprite renderer.** Added requestAnimationFrame sprite playback, per-theme animation fallback, reduced-motion support, isolated resource failure handling, and deterministic temporary-state sequences.
-- **Mascot settings lock.** The mascot section is collapsed and locked by default; answering the built-in `1 KiB` challenge unlocks the persisted controls, while Main-process settings enforcement prevents enabling a mascot before unlock.
-- **Capability Layer.** Added a shared domain model for `skill`, `extension`, `package`, `mcp`, and `preset` capabilities, plus a Main-process skill adapter and registry that normalize installed and catalog metadata.
-- **Featured Skills.** Added a compact Featured section to Skills with Odai (`Agent Governance & Task Execution`) represented as an ordinary skill capability.
-- **Trusted skill lifecycle.** Added install, update, enable/disable, refresh, and uninstall actions with typed progress states (`resolving`, `installing`, `validating`, `success`, `failed`). Updates and uninstalls snapshot skill directories under Pi-Harness user data.
-
-### Security
-
-- Environment commands use fixed executable/argument arrays. npm global permission repair uses a backed-up user prefix and never invokes `sudo`; Node replacement is restricted to the dedicated managed runtime root.
-- Package mutations accept only validated source/scope/project targets. Cleanup plans and managed delete paths are re-derived in Main; Renderer cannot submit shell commands, install paths, or arbitrary delete targets.
-- Built-in Skill mutations accept only trusted collection/Skill ids and authorized scopes. Installed paths and bundled paths are always derived in Main; uninstall never relies on a same-name match.
-- Renderer capability mutations accept only a Zod-validated registry `skillId`; arbitrary source URLs, commands, paths, and install targets are rejected.
-- Featured skills are resolved from the trusted Main-process catalog and installed through argument-array process execution with an allowlisted environment, isolated npm configuration/cache, and lifecycle scripts disabled. Results are validated for `SKILL.md` and metadata, then atomically placed inside the detected global Pi skill root.
-- Added per-skill Main-process mutation locks, real-path and symlink escape protection, mandatory backups before local delete/import-replace operations, sanitized stdout/stderr/exit-code reporting, and Harness-only capability metadata without inventing Pi configuration fields.
-- Persisted only the safe error code/action/timestamp for failed capability mutations so failure state survives restart without storing command output or secrets.
+- Added environment setup, Skills and package management, and workspace experience improvements.
 
 ### Fixed
 
-- Provider enablement now resolves incomplete or conflicting metadata to at most one enabled provider, ignores stale list responses, and serializes UI toggle actions so refresh races cannot display every provider as enabled.
-- Removed the visible “Priority” mascot badges and moved runtime-driven task status into a speech bubble above the workspace mascot, including completion, failure, waiting, warning, tool, and execution states.
-
-### Tests
-
-- Added SemVer, login-shell resolution, Node release/artifact policy, npm prefix repair, exact Pi install arguments, EACCES, cancellation, retry, concurrency, and full bootstrap ordering coverage.
-- Added Package lifecycle coverage for reconciliation, ownership, scopes, missing files, orphaned installs, corruption, dependencies, permissions, stale registry removal, safe deletion, project install verification, and injection rejection.
-- Added built-in Collection coverage for source scanning, complete resource copies, install/uninstall/reinstall, batch isolation, duplicate conflicts, local modifications, bundle upgrades, missing Ownership cleanup, and project scope.
-- Added resolver, runtime-event adapter, Tool/Coding detector, manifest, temporary-state, sleep/wake, animation fallback, resource-failure, and Electron settings coverage for the pet system.
-- Added unit and integration coverage for capability normalization, catalog trust, skill parsing, IPC input rejection, path traversal, staged install validation, duplicate install, mutation locking, metadata, update backups, enable/disable, uninstall, and refresh/discovery.
-- Added an Electron E2E flow using isolated Pi config and capability fixtures; developer `~/.pi/agent/skills` is never touched.
+- Fixed provider state handling and general runtime stability.
 
 ## 1.0.9 — 2026-08-22
 
 ### Added
 
-- **Optional mascot system.** Added an application-wide mascot selector with six visual styles, synchronized page backgrounds, and a workspace status mascot. “No Mascot” is the default and renders no decorative image.
-- **New silver-haired styles.** Added “Office Style (Black Tights)” and “Maid Style (White Stockings)” as transparent `1024 × 1536` runtime assets.
-- **Safe rich chat rendering.** Assistant responses now render streaming Markdown headings, lists, task lists, links, images, tables, blockquotes, inline code, and fenced code blocks through an explicit security allowlist.
-- **Background application updates.** Installed builds check GitHub Releases after launch, download updates automatically with live progress, and notify when the update is ready. The update installs on normal quit or immediately through “Install & Restart.”
-- **Guided Pi installation.** When Pi is missing, the Overview detects system Node.js/npm, offers a one-click install using `npm install -g --ignore-scripts @earendil-works/pi-coding-agent`, and provides a copyable manual command. If Node.js is missing, Pi-Harness opens only the official Node.js download page and guides the user to refresh detection before installing Pi.
+- Added chat, appearance, update, and installation experience improvements.
 
-### Changed
+### Fixed
 
-- Tool results are collapsed by default and expand into a bounded scrollable panel, reducing noise in long sessions.
-- Mascot settings are normalized on load and save; missing, invalid, and removed `longhair` values fall back to “No Mascot.”
-- Development builds no longer show a packaged-updater warning. The update section is available only where application updates can actually be installed.
+- Fixed configuration and update-state compatibility issues.
 
 ## 1.0.8 — 2026-08-22
 
 ### Added
 
-- **Pi-compatible provider presets.** Added a searchable catalog of 54 providers and 2,478 conversational text/code models merged from the local AgentDesk and WangmiaoGit-p catalogs. Media-only and utility endpoints are excluded; generated presets are limited to Pi-supported protocols.
-- **Key-only provider setup.** Select a provider and model to prefill the provider key, display name, protocol, API base URL, authentication mode, and default model. Every generated field remains editable.
-- **Shared model catalog.** The Models form reuses the selected provider's preset catalog while continuing to accept arbitrary vendor model IDs.
-
-### Changed
-
-- **Default model registration.** Saving a provider now registers the selected model with its display name, context window, and maximum output-token metadata when available.
-- **Native theme synchronization.** Electron native context menus now follow the current light/dark theme immediately and after restart.
-- **Session selection.** Replaced the crowded selected-row treatment with a compact accent dot and accent text.
-- **Version source.** `APP_VERSION` is derived from `package.json`; the application version is no longer duplicated in source code.
+- Added provider and model configuration improvements.
 
 ### Fixed
 
-- Provider dialogs no longer close when clicking the backdrop or pressing Escape. They close only through an explicit close/cancel action or after a successful save.
-- Large provider/model comboboxes are scrollable and show the full option set when reopening an existing selection.
+- Fixed dialog, selection, and theme consistency issues.
 
 ## 1.0.7 — 2026-08-22
 
 ### Added
 
-- **Agent Workspace.** Native Projects / Sessions / Chat / Files / Git Worktree inside Pi-Harness. Pi Session JSONL under `~/.pi/agent/sessions/` is shared with the Pi CLI. AgentSession runs in Electron Main and streams over IPC — no pi-web iframe, Next.js, or HTTP server.
-- **Workspace file workflow.** Multi-file upload with size validation and overwrite confirmation, manual refresh, and automatic file / preview / Git Diff refresh after agent completion or application refocus.
+- Added project workspace and file workflows.
 
-### Changed
+### Fixed
 
-- **AGPL license.** Relicensed the project under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`).
-- **Canonical path compatibility.** Allowed roots now recognize equivalent real paths (for example macOS `/var` → `/private/var`) without weakening sibling-prefix or parent-traversal protection.
+- Fixed path compatibility and workspace stability issues.
 
 ## 0.3.0 — 2026-08-12
 
-### Changed
+### Added
 
-- **Redesigned desktop visual system.** "Timeless Graphite · macOS Pro" — every surface, border, divider, button, and piece of typography now keys off a single token ladder. No more "Web Admin Dashboard" feel.
-- **Refined Graphite theme.** Dark / Light now share the same 6-step surface ladder (`window → titlebar → sidebar → workspace → surface → surface-raised → hover → selected`). The delta between adjacent steps is intentionally small (2-5%) so the app reads as one continuous workspace.
-- **Redesigned resource lists.** Providers and Models are no longer HTML DataTables inside Card chrome. They are macOS-style Resource Lists: compact rows, hairline separators, accent-tint on hover, accent indicator on the active row.
-- **Refined Sidebar / TitleBar / Inspector.** Sidebar selected state uses a 2px accent indicator + soft accent tint (not a grey block). TitleBar is 36px tall with a single-line NSToolbar-style search field. The title bar's π icon and app name are restrained.
-- **Unified desktop components.** Button (5 variants, 2 sizes), Input, Select (with custom caret), Switch (28×16 track, 14px thumb), Badge (5 tones + 4 capability tints), Dialog (Graphite with proper animations), EmptyState (compact, no illustration), IconButton, PropertyRow, InspectorSection, SearchField — all share one geometry and one color system.
-- **CodeMirror Graphite theme.** Custom theme used in the Config editor, Skills editor, and Diagnostics raw-report viewer. Workspace-colored background, muted syntax, accent selection, 1px focus border.
-- **macOS-style scrollbar.** 8px wide, transparent track, ~10% white thumb, hover brightens to ~20%. Never the OS default.
-- **Density switch.** "Compact" mode (in Settings → Density) tightens row heights, button heights, and toolbar padding for users who want more density.
-- **Removed Card chrome everywhere.** Diagnostics no longer has three Dashboard Cards (replaced by a single Status Strip + Inspector Property Table). Settings and Skills use Section Headers with Property Rows instead of Cards.
+- Added refreshed desktop themes and interface components.
 
-### Notes
+### Fixed
 
-- No business logic, IPC, domain, store, or service changes. This is a pure visual refactor.
-- Light theme is supported and follows the same ladder structure. Density is the only user-controlled visual setting that changes layout geometry.
+- Fixed visual consistency and density issues.
 
 ## 0.2.0 — 2026-08-12
 
-### Reliability
+### Added
 
-- Unified **Configuration Conflict** dialog (Reload / Compare / Overwrite / Cancel) with line diff
-- Provider / Model / Active Model writes now surface `CONFIG_CONFLICT` (first attempt without `overwrite`)
-- `setActive` read-back verifies settings.json before updating UI
-- Skills edit detects external `SKILL.md` mtime conflict (`SKILL_CONFLICT` → overwrite / reload)
+- Added configuration, provider, model, skill, diagnostics, and update workflows.
 
-### Skills
+### Fixed
 
-- Create / Edit / Import / Validate skills (`SKILL.md`)
-- Path-root enforcement; import supports rename / replace (with local backup on replace)
-- CodeMirror markdown editor; empty-list create uses Pi `skillsDirs`
-
-### Provider / Model
-
-- Provider advanced: timeout + custom headers JSON
-- Model advanced: protocol override toggle + `thinkingLevelMap` editor
-- Connection Test 2.0: richer status mapping, endpoint/protocol/model/latency display; resolves stored/env/command credentials in Main
-
-### Config / Diagnostics / Updates
-
-- Config editor: Format JSON, Reveal in Finder/Explorer, i18n actions
-- Diagnostics: skillsDirs list, secret backend, copy sanitize
-- `electron-updater` wired (packaged builds only; never auto-install)
-- Mock fixtures under `fixtures/mock-pi/`
-- Playwright Electron smoke E2E (`pnpm test:e2e`)
-- `src-tauri/` ignored (legacy Tauri remnant)
-
-### Tests
-
-- Unit tests: diff, skill/provider schemas, api-key wire rules, skills path roots (20 passing)
-- E2E smoke: launch + nav Providers/Models/Settings/Config
-
-### Notes
-
-- Signed GitHub Releases required for real auto-update end-to-end
-- E2E requires Electron binary downloaded (`node_modules/electron`)
+- Fixed configuration conflicts and validation behavior.
 
 ## 0.1.0
 
-Initial Electron + Vue 3 desktop manager for Pi Coding Agent.
+### Added
+
+- Initial Pi-Harness release.
