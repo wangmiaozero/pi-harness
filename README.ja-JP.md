@@ -173,7 +173,6 @@ pnpm dev
 ## ドキュメント
 
 - [変更履歴](CHANGELOG.md)
-- [コントリビューションガイド](CONTRIBUTING.md)
 
 ## ライセンス
 

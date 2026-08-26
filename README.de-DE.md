@@ -171,7 +171,6 @@ pnpm dev
 ## Dokumentation
 
 - [Änderungsprotokoll](CHANGELOG.md)
-- [Beitragen](CONTRIBUTING.md)
 
 ## Lizenz
 

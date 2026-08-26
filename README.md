@@ -232,11 +232,6 @@ pnpm test:e2e:only
 ## Documentation
 
 - [Changelog](CHANGELOG.md)
-- [Contributing](CONTRIBUTING.md)
-
-## Contributing
-
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change.
 
 ## License
 

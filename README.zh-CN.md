@@ -232,11 +232,6 @@ pnpm test:e2e:only
 ## 文档
 
 - [更新记录](CHANGELOG.md)
-- [参与贡献](CONTRIBUTING.md)
-
-## 参与贡献
-
-欢迎提交贡献。提交变更前请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 许可协议
 

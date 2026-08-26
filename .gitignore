@@ -39,6 +39,7 @@ secrets.bin
 *.ntvs*
 *.njsproj
 *.sln
+/CONTRIBUTING.md
 
 # OS junk
 .DS_Store

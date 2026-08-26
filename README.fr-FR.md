@@ -171,7 +171,6 @@ Contrôles courants : pnpm typecheck, pnpm lint, pnpm test, pnpm compile et pnpm
 ## Documentation
 
 - [Historique des modifications](CHANGELOG.md)
-- [Contribuer](CONTRIBUTING.md)
 
 ## Licence
 

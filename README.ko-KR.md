@@ -171,7 +171,6 @@ pnpm dev
 ## 문서
 
 - [변경 기록](CHANGELOG.md)
-- [기여 안내](CONTRIBUTING.md)
 
 ## 라이선스
 
