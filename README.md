@@ -5,13 +5,18 @@
 </p>
 
 <p align="center">
-  <strong>Local-first desktop control plane and native workspace for <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
-  Configure Pi · Run project sessions · Inspect and edit local files
+  <strong>The complete desktop workspace for <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
+  Configure Pi · Run agents · Manage models, Skills, packages, and projects
+</p>
+
+<p align="center">
+  Everything you need to configure, run, and extend Pi Coding Agent in one native desktop app.
 </p>
 
 <p align="center">
   <a href="README.md">English</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.ja-JP.md">日本語</a> ·
   <a href="README.ko-KR.md">한국어</a> ·
   <a href="README.ru-RU.md">Русский</a> ·
   <a href="README.fr-FR.md">Français</a> ·
@@ -19,141 +24,240 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.1.0-4C8DFF?style=flat-square" />
-  <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
-  <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
-  <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1"><img alt="release v1.1.1" src="https://img.shields.io/badge/release-v1.1.1-4C8DFF?style=flat-square" /></a>
+  <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
+  <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
 
-Pi-Harness manages Pi providers, models, credentials, skills, raw configuration, backups, and diagnostics, then runs project-scoped Pi Agent sessions in a native desktop Workspace. Sessions remain compatible with Pi CLI JSONL under `~/.pi/agent/sessions/`; there is no embedded pi-web, Next.js server, or iframe.
+![Pi-Harness overview with environment status, active model, and quick actions](docs/概览.jpg)
 
-Secrets never appear in the renderer as plaintext. macOS stores them in the system Keychain; Windows and Linux use Electron `safeStorage`. Unknown Pi fields are preserved.
+<p align="center">
+  <a href="#download">Download</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#screenshots">Screenshots</a> ·
+  <a href="#development">Development</a>
+</p>
 
-## v1.1.0 highlights
+## Why Pi-Harness?
 
-- A shared Capability Layer now models Skills, Extensions, Packages, MCP, and Presets while Pi remains the only Agent Runtime.
-- The Skills page includes a compact Featured section with Odai as a regular `skill` capability for agent governance and verified task execution.
-- Featured skills install from a trusted Main-process catalog through typed IPC, isolated staging, `SKILL.md` validation, atomic placement, mutation locks, and sanitized progress/errors.
-- Installed featured skills can be viewed, edited, updated, enabled/disabled, and uninstalled. Updates and uninstalls create local skill backups first.
-- Matt Pocock's 29 formal Skills ship as a read-only built-in Collection with offline global/project install, exact Ownership, conflict protection, updates, and individual/batch uninstall.
+### More than a Pi chat UI
+
+A basic desktop client gets you from Pi to chat. Pi-Harness also prepares the environment, manages providers and models, installs Skills and Pi packages, and gives every project a native workspace for sessions, files, and Git.
+
+```text
+Typical desktop client                Pi-Harness
+
+Pi → Chat                             Environment
+                                      + Providers / Models
+                                      + Skills / Packages / MCP adapters
+                                      + Workspace / Sessions / Files / Git
+                                      ↓
+                                      Pi Coding Agent
+```
+
+Pi-Harness is not a wrapped web UI. It embeds no pi-web, Next.js server, or iframe, and it does not add a second agent runtime. Pi Coding Agent remains the only Agent Runtime, with sessions compatible with Pi CLI JSONL under `~/.pi/agent/sessions/`.
+
+**Configure Pi. Run Pi. Extend Pi.**
+
+## Download
+
+Download Pi-Harness v1.1.1 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1).
+
+| Platform            | Installer                                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| macOS Apple Silicon | [`Pi-Harness-1.1.1-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.1.1.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1.dmg)             |
+| Windows x64         | [`Pi-Harness.Setup.1.1.1.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness.Setup.1.1.1.exe) |
+
+> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.1.1 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1) for details.
+
+Packaged users do not need to clone the repository or install pnpm. Pi-Harness can detect, install, and repair Node.js, npm, PATH, and Pi Coding Agent where supported.
+
+## What you can do
+
+### Workspace
+
+Open a project, start or resume Pi sessions, stream Thinking and Tool Calls, and keep the conversation beside the files it changes.
+
+### Providers & Models
+
+Choose a Pi-compatible preset or configure a custom API, discover available models where the provider supports it, test the connection, and select the active model.
+
+### Skills, Packages & MCP
+
+Create and manage local Skills, install trusted featured and bundled collections, repair Pi packages, and add MCP connectivity through supported Pi packages.
+
+### Environment
+
+Detect Node.js, npm, PATH, and Pi Coding Agent, then install or repair common environment problems from the desktop app.
+
+### Files & Git
+
+Browse and upload files, edit readable text with conflict protection, inspect Git diffs, and work with project worktrees without turning the app into an IDE.
+
+### Diagnostics & Security
+
+Inspect environment, storage, workspace, and capability health while credentials stay in Keychain or Electron `safeStorage` and copied diagnostics are sanitized.
+
+## How it works
+
+1. **Launch Pi-Harness** and let Overview check Node.js, npm, PATH, and Pi.
+2. **Configure a provider** from a preset or your own Pi-compatible endpoint.
+3. **Choose a model** and run a connection test.
+4. **Open a project** in the native Workspace.
+5. **Start or resume a Pi session** with streaming output, Tool Calls, files, and Git context.
+
+```text
+Install → Configure provider → Select model → Open project → Run Pi
+```
 
 ## Screenshots
 
-|                 Overview                 |           Settings — Mascots           |
+### 1. Know what is ready
+
+Overview shows the active model, Pi environment, configuration health, and common setup actions in one place.
+
+![Overview](docs/概览.jpg)
+
+### 2. Run Pi inside a real project
+
+Keep project sessions, streaming responses, Thinking, Tool Calls, files, and Git in one native workspace.
+
+|                 Sessions                 |     Files and lightweight editing      |
 | :--------------------------------------: | :------------------------------------: |
-|        ![Overview](docs/概览.jpg)        |   ![Mascot settings](docs/设置.jpg)    |
-|         **Workspace — Sessions**         |         **Workspace — Editor**         |
 | ![Workspace sessions](docs/工作区-1.jpg) | ![Workspace editor](docs/工作区-2.jpg) |
-|           **Providers — List**           |        **Providers — Details**         |
-|   ![Providers list](docs/提供商-1.jpg)   | ![Provider details](docs/提供商-2.jpg) |
-|            **Models — List**             |          **Models — Details**          |
-|     ![Models list](docs/模型-1.jpg)      |   ![Model details](docs/模型-2.jpg)    |
-|          **Skills — Installed**          |          **Skills — Market**           |
-|   ![Installed skills](docs/技能-1.jpg)   |   ![Skills market](docs/技能-2.jpg)    |
 
-## Features
+### 3. Configure providers and models
 
-| Module          | Description                                                                                                         |
-| --------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Overview**    | Active model, environment status, guided Node.js/Pi setup, one-click Pi install, and common actions                 |
-| **Workspace**   | Native projects and Pi Sessions, streaming chat, Thinking / Tool Call, lightweight editing, Git Diff, Worktree      |
-| **Providers**   | Searchable Pi-compatible presets; Provider ≠ Protocol ≠ Model; credentials use Keychain / `safeStorage`             |
-| **Models**      | Preset or custom model IDs, capability metadata, active-model selection, read-back verification                     |
-| **Skills**      | Local/featured/package/built-in Skills; offline Collections, ownership, health, repair, rollback, and bulk cleanup  |
-| **Config**      | CodeMirror editor for `models.json` / `settings.json`; format and reveal in the file manager                        |
-| **Diagnostics** | Environment report; copy is sanitized (`apiKey` / `token` / `secret`, etc.)                                         |
-| **Settings**    | Simplified Chinese / English UI, system/dark/light themes, tool preset, restore behavior, backups, mascots |
+Start with a preset or custom API, test it, import discoverable models, and choose the model Pi should use.
 
-Reliability:
+|              Providers               |             Provider setup             |
+| :----------------------------------: | :------------------------------------: |
+| ![Providers list](docs/提供商-1.jpg) | ![Provider details](docs/提供商-2.jpg) |
+|              **Models**              |            **Model setup**             |
+|   ![Models list](docs/模型-1.jpg)    |   ![Model details](docs/模型-2.jpg)    |
 
-- Automatic backup before writes; atomic writes
-- External change detection (mtime) with Reload / Compare / Overwrite
-- Packaged builds check and download updates in the background, then install on quit or via **Install & Restart**
-- Desktop-only: arbitrary external navigation is blocked; the fixed official Node.js download action is allowlisted
-- Featured skill sources are resolved from a trusted Main-process registry; the renderer cannot submit commands, URLs, or install paths
+### 4. Extend Pi with Skills and packages
 
-## Lightweight editor boundary
+Manage local Skills, trusted featured entries, built-in collections, and Pi packages with ownership and health checks.
 
-Workspace can edit readable text files with lazy syntax highlighting, line numbers, undo/redo, find, explicit save, unsaved indicators, and external-change conflict protection. Unknown text extensions fall back to plain text; oversized, binary, media, and document files use read-only previews.
+|           Installed Skills           | Built-in collections and packages |
+| :----------------------------------: | :-------------------------------: |
+| ![Installed skills](docs/技能-1.jpg) | ![Skills market](docs/技能-2.jpg) |
 
-Pi-Harness is deliberately not a general-purpose IDE: no LSP/IntelliSense, semantic refactoring, debugger, task runner, integrated terminal, or IDE extension compatibility. See [the lightweight editor design boundary](docs/lightweight-code-editor.md).
+### 5. Make the workspace yours
 
-## Requirements
+Choose system, light, or dark appearance and optionally enable a runtime-driven mascot after the core workspace is set up.
 
-- Node.js ≥ 22 for development; packaged users can install or repair Node.js, npm, PATH, and Pi in one click
-- pnpm `9.12.1` (see the `packageManager` field)
-- [Pi Coding Agent](https://github.com/badlogic/pi-mono) installed, or install / update from the app
+![Appearance and mascot settings](docs/设置.jpg)
 
-## Quick start
+## Core features
 
-```bash
-pnpm install
-pnpm dev
-```
+| Area              | What Pi-Harness does                                                                                            |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| Overview          | Shows the active model, environment status, configuration health, and quick actions                             |
+| Workspace         | Runs project-scoped Pi sessions with streaming, Thinking, Tool Calls, files, Git Diff, and Worktree             |
+| Providers         | Manages presets and custom endpoints, credentials, live model discovery, and connection tests                   |
+| Models            | Creates custom or preset-backed model entries and selects the active Pi model                                   |
+| Skills & Packages | Creates, imports, validates, installs, updates, repairs, disables, backs up, and removes supported capabilities |
+| Config            | Edits `models.json` and `settings.json` with formatting, backups, atomic writes, and external-change protection |
+| Diagnostics       | Reports environment, storage, workspace, security, and capability health with sanitized copy/export             |
+| Updates           | Checks GitHub Releases in packaged builds and installs compatible updates when updater metadata is available    |
+| Appearance        | Offers system, light, and dark themes, density controls, and optional runtime-driven mascots                    |
 
-Without a local Pi install, point Settings → config directory at `fixtures/mock-pi/`, or:
+### Lightweight editor, not an IDE
 
-```bash
-cp .env.example .env
-# PI_HARNESS_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
-```
+Pi-Harness edits readable text with lazy syntax highlighting, line numbers, undo/redo, find, explicit save, unsaved-state indicators, and external-change conflict protection. Oversized, binary, media, and document files use read-only previews.
 
-Do not store secrets in `VITE_*` variables — they are bundled into the renderer.
-
-## Commands
-
-| Command                                 | Purpose                                                  |
-| --------------------------------------- | -------------------------------------------------------- |
-| `pnpm typecheck`                        | Vue / TypeScript typecheck                               |
-| `pnpm lint`                             | ESLint                                                   |
-| `pnpm test`                             | Vitest unit tests                                        |
-| `pnpm test:e2e`                         | Compile, then run Playwright Electron smoke tests        |
-| `pnpm sync:provider-presets -- --check` | Verify the generated provider/model catalog              |
-| `pnpm sync:builtin-skills`              | Sync the local Matt Pocock source into bundled resources |
-| `pnpm check:builtin-skills`             | Verify bundled Skill manifests, resources, and hashes    |
-| `pnpm compile`                          | Vite build to `out/` (no installer)                      |
-| `pnpm build`                            | Compile and package macOS / Windows / Linux → `release/` |
-| `pnpm build:mac`                        | macOS Apple Silicon                                      |
+It deliberately does not include LSP/IntelliSense, semantic refactoring, a debugger, task runner, integrated terminal, or IDE extension compatibility. See the [lightweight editor boundary](docs/lightweight-code-editor.md).
 
 ## Architecture
 
+Pi-Harness separates managing Pi, using Pi, and extending Pi while keeping Pi Coding Agent as the only runtime.
+
+```text
+                                Pi-Harness
+
+              ┌────────────────────┼────────────────────┐
+              │                    │                    │
+              ▼                    ▼                    ▼
+       Control Plane          Workspace          Capability Layer
+       Manage Pi              Use Pi             Extend Pi
+
+       Providers              Projects           Skills
+       Models                 Sessions           Packages
+       Environment            Agent              MCP adapters
+       Config / Secrets       Streaming          Presets
+       Backup / Diagnostics   Files / Git
+       Updates                Worktree
+              │                    │                    │
+              └────────────────────┼────────────────────┘
+                                   ▼
+                           Pi Coding Agent
 ```
-Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
-                                                ├─ AgentRuntime      Pi sessions / streaming / tool events
-                                                ├─ Workspace         projects / files / lightweight editor / git
-                                                ├─ PiConfigService   atomic write / mtime conflict
-                                                ├─ CapabilityService Skills / Extensions / Packages / MCP / Presets
-                                                ├─ PackageLifecycle   registry / files / ownership / health / repair
-                                                ├─ BuiltinSkills      bundled source / ownership / atomic lifecycle
-                                                ├─ Pet Adapter       Runtime state → 13-state visual layer
-                                                ├─ Provider / Model / Skills / Backup / Diagnostics
-                                                └─ SecretStore       Keychain / safeStorage
+
+The desktop boundary is `Vue Renderer → typed preload API → validated IPC → Main services → Pi SDK / operating system`. Domain adapters preserve unknown Pi configuration fields. Read the [architecture](docs/architecture.md) and [Capability Layer](docs/capability-layer.md) documents for the implementation details.
+
+## Security
+
+Secrets never return to the renderer as plaintext. macOS uses the system Keychain; Windows uses Electron `safeStorage`. Configuration changes are backup-first and atomic, workspace access is restricted to authorized roots, and diagnostics redact secret-like values and home paths.
+
+See the [security model](docs/security.md) for trust boundaries, path validation, process execution, and disclosure guidance.
+
+## Requirements
+
+For the packaged app:
+
+- macOS Apple Silicon, macOS Intel, or Windows x64
+- Pi Coding Agent, which Pi-Harness can install or repair from the app
+
+For development from source:
+
+- Node.js ≥ 22
+- pnpm `9.12.1`
+
+## Development
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
-Domain stays decoupled from Pi native JSON via an Adapter. Unknown fields pass through. Logic is not hard-coded to a specific model name.
+Without a local Pi installation, point **Settings → Config directory** at `fixtures/mock-pi/`, or copy `.env.example` to `.env` and set `PI_HARNESS_PI_CONFIG_DIR` to that fixture. Never store secrets in `VITE_*` variables; they are bundled into the renderer.
 
-## Project documentation
+Common checks:
 
-- [Changelog](CHANGELOG.md)
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm compile
+pnpm test:e2e:only
+```
+
+## Documentation
+
 - [Architecture and process boundaries](docs/architecture.md)
 - [Security model](docs/security.md)
-- [Testing strategy and local quality gate](docs/testing.md)
-- [Contributing](CONTRIBUTING.md)
+- [Testing strategy](docs/testing.md)
 - [Application updates and release artifacts](docs/application-updates.md)
 - [Pi installation and Node.js prerequisites](docs/pi-installation.md)
 - [Lightweight code editor boundary](docs/lightweight-code-editor.md)
 - [Capability Layer and featured skill security](docs/capability-layer.md)
 - [Pi Package and Skill lifecycle](docs/package-lifecycle.md)
-- [Built-in Skills Collections](docs/builtin-skills.md)
-- [Mascot design and runtime rules](docs/mascot-design.md)
-- [Pet state system and sprite manifests](docs/pet-state-system.md)
+- [Built-in Skills collections](docs/builtin-skills.md)
+- [Changelog](CHANGELOG.md)
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and keep changes within the documented architecture and security boundaries.
+
+## License
+
+Pi-Harness is free software licensed under the [GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`). You may use, modify, and redistribute it under the license terms. Modified versions made available over a network must offer their corresponding source to users as required by AGPL v3.
+
+Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).
 
 ## Author
 
 [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com) · [github.com/wangmiaozero/pi-harness](https://github.com/wangmiaozero/pi-harness)
-
-## License
-
-Pi-Harness is free software licensed under the [GNU Affero General Public License v3.0 only](./LICENSE) (`AGPL-3.0-only`). You may use, modify, and redistribute it under the license terms. Modified versions made available over a network must offer their corresponding source to users as required by AGPL v3.
-
-Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

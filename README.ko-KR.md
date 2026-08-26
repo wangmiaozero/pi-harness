@@ -5,13 +5,18 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a>를 위한 로컬 우선 데스크톱 제어판 및 네이티브 작업 공간</strong><br />
-  Pi 구성 · 프로젝트 세션 실행 · 로컬 파일 확인 및 편집
+  <strong><a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a>를 위한 올인원 데스크톱 작업 공간</strong><br />
+  Pi 구성 · 에이전트 실행 · 모델, Skills, 패키지, 프로젝트 관리
+</p>
+
+<p align="center">
+  Pi Coding Agent를 구성하고 실행하며 확장하는 데 필요한 기능을 하나의 네이티브 데스크톱 앱에 모았습니다.
 </p>
 
 <p align="center">
   <a href="README.md">English</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.ja-JP.md">日本語</a> ·
   <a href="README.ko-KR.md">한국어</a> ·
   <a href="README.ru-RU.md">Русский</a> ·
   <a href="README.fr-FR.md">Français</a> ·
@@ -19,123 +24,167 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.1.0-4C8DFF?style=flat-square" />
-  <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
-  <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
-  <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1"><img alt="release v1.1.1" src="https://img.shields.io/badge/release-v1.1.1-4C8DFF?style=flat-square" /></a>
+  <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
+  <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
 
-Pi-Harness는 Pi 제공자, 모델, 자격 증명, 스킬, 원본 구성, 백업 및 진단을 관리하고 네이티브 작업 공간에서 실제 프로젝트에 연결된 Pi Agent 세션을 실행합니다. 세션은 `~/.pi/agent/sessions/`의 Pi CLI JSONL과 호환되며 pi-web, Next.js 서버 또는 iframe을 내장하지 않습니다.
+![환경 상태, 활성 모델, 빠른 작업을 보여 주는 Pi-Harness 개요](docs/概览.jpg)
 
-비밀 값은 Renderer에 평문으로 노출되지 않습니다. macOS는 시스템 키체인에 저장하고, Windows / Linux는 Electron `safeStorage`를 사용합니다. 알 수 없는 Pi 필드는 그대로 유지됩니다.
+## 왜 Pi-Harness인가요?
 
-## v1.0.9 주요 변경 사항
+### Pi 채팅 UI 그 이상
 
-- Assistant 응답은 명시적 태그/프로토콜 허용 목록을 통해 안전한 스트리밍 Markdown으로 렌더링됩니다.
-- Tool Result는 기본적으로 접혀 있으며 제한된 높이의 스크롤 패널에서 펼쳐집니다.
-- 전역 마스코트는 기본적으로 꺼져 있으며, 새로운 오피스 및 메이드 스타일을 포함한 6개 스타일을 선택할 수 있습니다.
+일반 데스크톱 클라이언트는 Pi를 열고 채팅을 시작합니다. Pi-Harness는 실행 환경을 준비하고, Provider와 모델을 관리하고, Skills와 Pi 패키지를 설치하며, 세션·파일·Git을 하나의 프로젝트 작업 공간에 연결합니다.
+
+```text
+일반 데스크톱 클라이언트              Pi-Harness
+
+Pi → Chat                             Environment
+                                      + Providers / Models
+                                      + Skills / Packages / MCP adapters
+                                      + Workspace / Sessions / Files / Git
+                                      ↓
+                                      Pi Coding Agent
+```
+
+Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 포함하지 않으며 두 번째 Agent Runtime을 만들지 않습니다. Pi Coding Agent가 유일한 Agent Runtime이고, 세션은 ~/.pi/agent/sessions/의 Pi CLI JSONL과 호환됩니다.
+
+**Pi 구성. Pi 실행. Pi 확장.**
+
+## 다운로드
+
+[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1)에서 Pi-Harness v1.1.1을 다운로드하세요.
+
+| 플랫폼              | 설치 파일                                                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| macOS Apple Silicon | [Pi-Harness-1.1.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.1.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1.dmg)             |
+| Windows x64         | [Pi-Harness.Setup.1.1.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness.Setup.1.1.1.exe) |
+
+> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v1.1.1 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1)를 참고하세요.
+
+패키지 사용자는 저장소를 clone하거나 pnpm을 설치할 필요가 없습니다. Pi-Harness는 지원되는 환경에서 Node.js, npm, PATH, Pi Coding Agent를 감지하고 설치하거나 복구할 수 있습니다.
+
+## 할 수 있는 일
+
+- **Workspace:** 실제 프로젝트에서 Pi 세션을 시작하거나 이어서 실행하고, 스트리밍 응답, Thinking, Tool Call, 파일, Git을 함께 확인합니다.
+- **Providers & Models:** Pi 호환 프리셋 또는 사용자 지정 API를 구성하고, 가능한 경우 모델 목록을 가져오며, 연결 테스트 후 활성 모델을 선택합니다.
+- **Skills, Packages & MCP:** 로컬 Skills, 신뢰할 수 있는 추천 항목, 내장 컬렉션, Pi 패키지를 관리하고 지원되는 패키지로 MCP를 연결합니다.
+- **Environment:** Node.js, npm, PATH, Pi를 감지하고 일반적인 설치 문제를 데스크톱 앱에서 해결합니다.
+- **Files & Git:** 파일을 탐색·업로드하고, 충돌 보호가 있는 경량 편집기를 사용하며, Git Diff와 Worktree를 확인합니다.
+- **Diagnostics & Security:** 환경과 기능 상태를 진단합니다. 자격 증명은 Keychain 또는 Electron safeStorage에 보관되고 복사한 진단 정보는 정리됩니다.
+
+## 사용 흐름
+
+1. Pi-Harness를 실행하고 환경 상태를 확인합니다.
+2. Provider를 구성합니다.
+3. 모델을 선택하고 연결을 테스트합니다.
+4. 프로젝트를 엽니다.
+5. Pi 세션을 시작하거나 이어서 실행합니다.
+
+```text
+설치 → Provider 구성 → 모델 선택 → 프로젝트 열기 → Pi 실행
+```
 
 ## 화면 미리보기
 
-|                 개요                 |            설정 — 마스코트             |
+### 1. 준비 상태 확인
+
+![개요](docs/概览.jpg)
+
+### 2. 실제 프로젝트에서 Pi 실행
+
+|            프로젝트 세션             |            파일과 경량 편집            |
 | :----------------------------------: | :------------------------------------: |
-|        ![개요](docs/概览.jpg)        |    ![마스코트 설정](docs/设置.jpg)     |
-|         **작업 공간 — 세션**         |         **작업 공간 — 편집기**         |
 | ![작업 공간 세션](docs/工作区-1.jpg) | ![작업 공간 편집기](docs/工作区-2.jpg) |
-|          **제공자 — 목록**           |           **제공자 — 상세**            |
-|  ![제공자 목록](docs/提供商-1.jpg)   |   ![제공자 상세](docs/提供商-2.jpg)    |
-|           **모델 — 목록**            |            **모델 — 상세**             |
-|    ![모델 목록](docs/模型-1.jpg)     |     ![모델 상세](docs/模型-2.jpg)      |
-|          **스킬 — 설치됨**           |            **스킬 — 마켓**             |
-|   ![설치된 스킬](docs/技能-1.jpg)    |     ![스킬 마켓](docs/技能-2.jpg)      |
 
-## 기능
+### 3. Provider와 모델 구성
 
-| 모듈          | 설명                                                                                               |
-| ------------- | -------------------------------------------------------------------------------------------------- |
-| **개요**      | 활성 모델, 환경 상태, Node.js/Pi 설치 안내 및 Pi 원클릭 설치                                       |
-| **작업 공간** | 네이티브 프로젝트와 Pi Session, 스트리밍 대화, Thinking / Tool Call, 경량 편집, Git Diff, Worktree |
-| **제공자**    | 검색 가능한 Pi 호환 프리셋; Provider ≠ Protocol ≠ Model; Keychain / `safeStorage` 자격 증명        |
-| **모델**      | 프리셋 또는 사용자 지정 모델 ID, 기능 메타데이터, 활성 모델 선택, 쓰기 후 검증                     |
-| **스킬**      | `SKILL.md` 생성 / 가져오기 / 편집 / 검증; 경로 루트 제약                                           |
-| **구성**      | CodeMirror로 `models.json` / `settings.json` 편집; 서식 지정 및 파일 관리자에서 표시               |
-| **진단**      | 환경 보고서; 복사 시 민감 정보 제거 (`apiKey` / `token` / `secret` 등)                             |
-| **설정**      | 简体中文 / English UI, 시스템/다크/라이트 테마, 도구 프리셋, 복원 동작, 백업, 마스코트       |
+|              Provider               |            Provider 설정            |
+| :---------------------------------: | :---------------------------------: |
+| ![Provider 목록](docs/提供商-1.jpg) | ![Provider 상세](docs/提供商-2.jpg) |
+|              **모델**               |            **모델 설정**            |
+|    ![모델 목록](docs/模型-1.jpg)    |    ![모델 상세](docs/模型-2.jpg)    |
 
-안정성:
+### 4. Skills와 패키지로 Pi 확장
 
-- 쓰기 전 자동 백업; 원자적 쓰기
-- 외부 변경 감지(mtime), Reload / Compare / Overwrite
-- 패키지 빌드는 백그라운드에서 업데이트를 확인·다운로드하고, 종료 시 또는 **설치 후 재시작**으로 설치합니다
-- 데스크톱 전용: 임의 외부 이동을 차단하고 고정된 Node.js 공식 다운로드만 허용
+|           설치된 Skills           |      내장 컬렉션과 패키지       |
+| :-------------------------------: | :-----------------------------: |
+| ![설치된 Skills](docs/技能-1.jpg) | ![Skills 마켓](docs/技能-2.jpg) |
 
-## 경량 편집기 범위
+### 5. 작업 공간 꾸미기
 
-작업 공간은 지연 구문 강조, 줄 번호, 실행 취소/다시 실행, 찾기, 명시적 저장, 미저장 표시 및 외부 변경 충돌 보호를 제공하며 읽을 수 있는 텍스트 파일을 편집합니다. 알 수 없는 텍스트 확장자는 일반 텍스트로 열리고, 대용량·바이너리·미디어·문서 파일은 읽기 전용 미리 보기를 사용합니다.
+![외형과 마스코트 설정](docs/设置.jpg)
 
-Pi-Harness는 범용 IDE가 아닙니다. LSP/IntelliSense, 시맨틱 리팩터링, 디버거, 태스크 러너, 통합 터미널 또는 IDE 확장 호환성을 제공하지 않습니다. [경량 편집기 설계 범위](docs/lightweight-code-editor.md)를 참고하세요.
+## 편집기 범위
 
-## 요구 사항
+Pi-Harness는 구문 강조, 줄 번호, 실행 취소/다시 실행, 찾기, 명시적 저장, 미저장 상태, 외부 변경 충돌 보호를 갖춘 경량 텍스트 편집기를 제공합니다. 대용량·바이너리·미디어·문서 파일은 읽기 전용으로 미리 봅니다.
 
-- Node.js ≥ 22 (의존성 설치 시 강제)
-- pnpm `9.12.1` (`packageManager` 필드 참고)
-- [Pi Coding Agent](https://github.com/badlogic/pi-mono) 설치, 또는 앱에서 설치 / 업데이트
-
-## 빠른 시작
-
-```bash
-pnpm install
-pnpm dev
-```
-
-로컬 Pi가 없으면 설정에서 구성 디렉터리를 `fixtures/mock-pi/`로 지정하거나:
-
-```bash
-cp .env.example .env
-# PI_HARNESS_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
-```
-
-비밀 값을 `VITE_*`에 넣지 마세요. Renderer 번들에 포함됩니다.
-
-## 명령
-
-| 명령             | 설명                                                  |
-| ---------------- | ----------------------------------------------------- |
-| `pnpm typecheck` | Vue / TypeScript 타입 검사                            |
-| `pnpm lint`      | ESLint                                                |
-| `pnpm test`      | Vitest 단위 테스트                                    |
-| `pnpm test:e2e`  | 컴파일 후 Playwright Electron smoke 실행              |
-| `pnpm compile`   | Vite로 `out/`에 컴파일 (설치 패키지 없음)             |
-| `pnpm build`     | 컴파일 후 macOS / Windows / Linux 패키지 → `release/` |
-| `pnpm build:mac` | macOS만                                               |
+Pi-Harness는 IDE가 아닙니다. LSP/IntelliSense, 시맨틱 리팩터링, 디버거, 태스크 러너, 통합 터미널, IDE 확장 호환성을 제공하지 않습니다. [경량 코드 편집기 범위](docs/lightweight-code-editor.md)를 참고하세요.
 
 ## 아키텍처
 
+```text
+                                Pi-Harness
+
+              ┌────────────────────┼────────────────────┐
+              ▼                    ▼                    ▼
+       Control Plane          Workspace          Capability Layer
+       Pi 관리                Pi 사용             Pi 확장
+
+       Providers              Projects           Skills
+       Models                 Sessions           Packages
+       Environment            Agent              MCP adapters
+       Config / Secrets       Streaming          Presets
+       Backup / Diagnostics   Files / Git
+       Updates                Worktree
+              └────────────────────┼────────────────────┘
+                                   ▼
+                           Pi Coding Agent
 ```
-Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
-                                                ├─ AgentRuntime      Pi 세션 / 스트리밍 / 도구 이벤트
-                                                ├─ Workspace         프로젝트 / 파일 / 경량 편집기 / Git
-                                                ├─ PiConfigService   원자적 쓰기 / mtime 충돌
-                                                ├─ Provider / Model / Skills / Backup / Diagnostics
-                                                └─ SecretStore       Keychain / safeStorage
+
+Pi Coding Agent는 유일한 Agent Runtime입니다. 구현 세부 사항은 [아키텍처](docs/architecture.md), [Capability Layer](docs/capability-layer.md), [보안 모델](docs/security.md)을 참고하세요.
+
+## 요구 사항
+
+패키지 앱:
+
+- macOS Apple Silicon, macOS Intel 또는 Windows x64
+- 앱에서 설치하거나 복구할 수 있는 Pi Coding Agent
+
+소스 개발:
+
+- Node.js ≥ 22
+- pnpm 9.12.1
+
+## 개발
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
-Domain은 Adapter를 통해 Pi 네이티브 JSON과 분리됩니다. 알 수 없는 필드는 그대로 전달되며, 특정 모델 이름에 로직을 고정하지 않습니다.
+일반 확인 명령은 pnpm typecheck, pnpm lint, pnpm test, pnpm compile, pnpm test:e2e:only입니다. 비밀 값은 Renderer 번들에 포함되는 VITE_* 변수에 저장하지 마세요.
 
-## 프로젝트 문서
+## 문서
 
+- [아키텍처](docs/architecture.md)
+- [보안](docs/security.md)
+- [테스트](docs/testing.md)
+- [애플리케이션 업데이트](docs/application-updates.md)
+- [Pi 설치](docs/pi-installation.md)
+- [Capability Layer](docs/capability-layer.md)
+- [Package 및 Skill 수명 주기](docs/package-lifecycle.md)
 - [변경 기록](CHANGELOG.md)
-- [애플리케이션 업데이트 및 릴리스 산출물](docs/application-updates.md)
-- [Pi 설치 및 Node.js 필수 조건](docs/pi-installation.md)
-- [경량 코드 편집기 범위](docs/lightweight-code-editor.md)
-- [마스코트 디자인 및 런타임 규칙](docs/mascot-design.md)
+- [기여 안내](CONTRIBUTING.md)
+
+## 라이선스
+
+Pi-Harness는 [GNU Affero General Public License v3.0 only](LICENSE)(AGPL-3.0-only)에 따라 배포됩니다.
+
+Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).
 
 ## 저자
 
 [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com) · [github.com/wangmiaozero/pi-harness](https://github.com/wangmiaozero/pi-harness)
-
-## 라이선스
-
-Pi-Harness는 [GNU Affero General Public License v3.0 only](./LICENSE)(`AGPL-3.0-only`)에 따라 배포되는 자유 소프트웨어입니다. 라이선스 조건에 따라 사용, 수정 및 재배포할 수 있습니다. 수정 버전을 네트워크를 통해 제공하는 경우 AGPL v3에 따라 해당 사용자에게 대응 소스 코드를 제공해야 합니다.
-
-Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

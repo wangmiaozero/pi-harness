@@ -5,13 +5,18 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a> 的本地优先桌面控制台与原生工作区</strong><br />
-  配置 Pi · 运行项目会话 · 查看并编辑本地文件
+  <strong><a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a> 一站式桌面工作台</strong><br />
+  配置 Pi · 管理模型 · 安装 Skills 与扩展包 · 运行 Agent · 管理项目
+</p>
+
+<p align="center">
+  把使用 Pi Coding Agent 需要的环境、Provider、模型、能力和工作区集中到一个原生桌面应用中。
 </p>
 
 <p align="center">
   <a href="README.md">English</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.ja-JP.md">日本語</a> ·
   <a href="README.ko-KR.md">한국어</a> ·
   <a href="README.ru-RU.md">Русский</a> ·
   <a href="README.fr-FR.md">Français</a> ·
@@ -19,130 +24,240 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.1.0-4C8DFF?style=flat-square" />
-  <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
-  <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
-  <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1"><img alt="v1.1.1 发布版" src="https://img.shields.io/badge/release-v1.1.1-4C8DFF?style=flat-square" /></a>
+  <img alt="支持 macOS 和 Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
+  <a href="LICENSE"><img alt="AGPL-3.0-only 许可" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
 
-Pi-Harness 通过桌面界面管理 Pi 的 Provider、Model、凭证、Skills、原始配置、备份与诊断，并在原生工作区中运行面向真实项目的 Pi Agent Session。会话继续兼容 `~/.pi/agent/sessions/` 下的 Pi CLI JSONL，不嵌入 pi-web、Next.js 服务或 iframe。
+![Pi-Harness 概览页：环境状态、当前模型和快捷操作](docs/概览.jpg)
 
-密钥不出 Renderer 明文；macOS 写入系统钥匙串，Windows / Linux 走 Electron `safeStorage`。未知 Pi 字段原样保留。
+<p align="center">
+  <a href="#下载">下载</a> ·
+  <a href="#工作流程">工作流程</a> ·
+  <a href="#界面预览">界面预览</a> ·
+  <a href="#开发">开发</a>
+</p>
 
-## v1.1.0 重点
+## 为什么是 Pi-Harness？
 
-- 新增统一 Capability Layer，在领域层兼容 Skills、Extensions、Packages、MCP 与 Presets；Pi 仍是唯一 Agent Runtime。
-- Skills 页面新增紧凑的“精选技能”，Odai 作为普通 `skill` Capability 接入，用于 Agent 治理与任务验收。
-- 精选技能只从 Main Process 的可信 Catalog 安装，经过 typed IPC、隔离暂存、`SKILL.md` 校验、原子落盘、并发锁与错误脱敏。
-- 已安装的精选技能支持查看、编辑、更新、启用/禁用与卸载；更新和卸载前自动创建本地 Skill 备份。
+### 不只是 Pi 聊天界面
+
+普通桌面客户端解决的是“打开 Pi 并开始聊天”。Pi-Harness 还会准备运行环境、管理 Provider 和模型、安装 Skills 与 Pi 扩展包，并为每个项目提供包含会话、文件和 Git 的原生工作区。
+
+```text
+普通桌面客户端                         Pi-Harness
+
+Pi → Chat                             Environment
+                                      + Providers / Models
+                                      + Skills / Packages / MCP adapters
+                                      + Workspace / Sessions / Files / Git
+                                      ↓
+                                      Pi Coding Agent
+```
+
+Pi-Harness 不是网页套壳：不嵌入 pi-web、Next.js 服务或 iframe，也不实现第二套 Agent Runtime。Pi Coding Agent 始终是唯一 Agent Runtime，会话与 `~/.pi/agent/sessions/` 下的 Pi CLI JSONL 保持兼容。
+
+**配置 Pi。运行 Pi。扩展 Pi。**
+
+## 下载
+
+从 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1) 下载 Pi-Harness v1.1.1。
+
+| 平台                | 安装包                                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| macOS Apple Silicon | [`Pi-Harness-1.1.1-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.1.1.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1.dmg)             |
+| Windows x64         | [`Pi-Harness.Setup.1.1.1.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness.Setup.1.1.1.exe) |
+
+> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.1.1 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1)。
+
+安装包用户不需要 clone 仓库，也不需要安装 pnpm。Pi-Harness 可以在支持的环境中检测、安装和修复 Node.js、npm、PATH 与 Pi Coding Agent。
+
+## 你可以做什么
+
+### 工作区
+
+打开真实项目，新建或继续 Pi 会话，让 Thinking、Tool Call、流式回复和被修改的文件处在同一个工作区里。
+
+### Provider 与模型
+
+使用 Pi 兼容预设或自定义 API；在服务支持时拉取模型目录，测试连接，并选择当前模型。
+
+### Skills、扩展包与 MCP
+
+创建和管理本地 Skills，安装可信精选能力与内置集合，修复 Pi Package，并通过支持的 Pi 扩展包接入 MCP。
+
+### 运行环境
+
+检测 Node.js、npm、PATH 与 Pi Coding Agent，直接在桌面应用里安装或修复常见环境问题。
+
+### 文件与 Git
+
+浏览和上传文件，安全编辑可读文本，查看 Git Diff，并使用项目 Worktree；定位仍是轻量工作区，不是 IDE。
+
+### 诊断与安全
+
+查看环境、存储、工作区与能力健康状态；凭证写入 Keychain 或 Electron `safeStorage`，复制诊断时自动脱敏。
+
+## 工作流程
+
+1. **启动 Pi-Harness**，在概览页检查 Node.js、npm、PATH 与 Pi。
+2. **配置 Provider**，选择预设或填写自己的 Pi 兼容 API。
+3. **选择模型**，并运行连接测试。
+4. **打开项目**，进入原生工作区。
+5. **新建或继续 Pi 会话**，使用流式输出、Tool Call、文件和 Git 上下文完成任务。
+
+```text
+安装 → 配置 Provider → 选择模型 → 打开项目 → 运行 Pi
+```
 
 ## 界面预览
 
-|               概览               |           设置 — 看板娘            |
+### 1. 先确认环境就绪
+
+概览页集中展示当前模型、Pi 环境、配置健康度与常用安装操作。
+
+![概览](docs/概览.jpg)
+
+### 2. 在真实项目中运行 Pi
+
+项目、会话、流式回复、Thinking、Tool Call、文件和 Git 都在同一个原生工作区中。
+
+|             项目会话             |           文件与轻量编辑           |
 | :------------------------------: | :--------------------------------: |
-|      ![概览](docs/概览.jpg)      |    ![看板娘设置](docs/设置.jpg)    |
-|        **工作区 — 会话**         |        **工作区 — 编辑器**         |
 | ![工作区会话](docs/工作区-1.jpg) | ![工作区编辑器](docs/工作区-2.jpg) |
-|        **提供商 — 列表**         |         **提供商 — 详情**          |
-| ![提供商列表](docs/提供商-1.jpg) |  ![提供商详情](docs/提供商-2.jpg)  |
-|         **模型 — 列表**          |          **模型 — 详情**           |
-|   ![模型列表](docs/模型-1.jpg)   |    ![模型详情](docs/模型-2.jpg)    |
-|        **技能 — 已安装**         |          **技能 — 市场**           |
-|  ![已安装技能](docs/技能-1.jpg)  |    ![技能市场](docs/技能-2.jpg)    |
 
-## 功能
+### 3. 配置 Provider 与模型
 
-| 模块       | 说明                                                                                  |
-| ---------- | ------------------------------------------------------------------------------------- |
-| **概览**   | 当前模型、环境状态、Node.js/Pi 安装引导、Pi 一键安装与常用操作                        |
-| **工作区** | 原生项目与 Pi Session、流式对话、Thinking / Tool Call、轻量编辑、Git Diff、Worktree   |
-| **提供商** | 可搜索的 Pi 兼容预设；Provider ≠ Protocol ≠ Model；凭证走 Keychain / `safeStorage`    |
-| **模型**   | 预设或自定义模型 ID、能力元数据、激活模型、写入后回读校验                             |
-| **技能**   | Capability 化的本地/精选技能；创建、导入、编辑、校验、安装、更新、启停与卸载          |
-| **配置**   | CodeMirror 编辑 `models.json` / `settings.json`；格式化、在文件管理器中显示           |
-| **诊断**   | 环境报告；复制前脱敏（apiKey / token / secret 等）                                    |
-| **设置**   | 简体中文 / English UI、跟随系统/深色/浅色主题、工具预设、恢复行为、备份、看板娘 |
+从预设或自定义 API 开始，测试连接、导入可发现模型，再指定 Pi 使用的当前模型。
 
-可靠性：
+|          Provider 列表           |          Provider 配置           |
+| :------------------------------: | :------------------------------: |
+| ![提供商列表](docs/提供商-1.jpg) | ![提供商详情](docs/提供商-2.jpg) |
+|           **模型列表**           |           **模型配置**           |
+|   ![模型列表](docs/模型-1.jpg)   |   ![模型详情](docs/模型-2.jpg)   |
 
-- 写配置前自动备份；原子写入
-- 外部修改检测（mtime），冲突对话框：Reload / Compare / Overwrite
-- 打包版通过 `electron-updater` 后台检查并下载更新，退出时安装，也可选择“安装并重启”
-- 桌面应用：拦截任意站外跳转，仅放行固定的 Node.js 官方下载入口
-- 精选技能来源由 Main Process 的可信 Registry 解析；Renderer 无法提交命令、URL 或安装路径
+### 4. 用 Skills 与扩展包扩展 Pi
 
-## 轻量编辑器边界
+管理本地 Skill、精选能力、内置集合和 Pi Package，并检查归属与健康状态。
 
-工作区可以编辑可读文本文件，支持懒加载语法高亮、行号、撤销/重做、查找、显式保存、未保存状态和外部变更冲突保护。未知文本扩展名回退为纯文本；超大文件、二进制、媒体和文档使用只读预览。
+|         已安装 Skills          |       内置集合与扩展包       |
+| :----------------------------: | :--------------------------: |
+| ![已安装技能](docs/技能-1.jpg) | ![技能市场](docs/技能-2.jpg) |
 
-Pi-Harness 明确不是通用 IDE：不提供 LSP/IntelliSense、语义重构、调试器、任务运行器、集成终端或 IDE 扩展兼容。详见[轻量代码编辑器设计边界](docs/lightweight-code-editor.md)。
+### 5. 调整工作区外观
 
-## 环境要求
+选择跟随系统、浅色或深色主题；核心工作区就绪后，还可以按需启用运行时驱动的看板娘。
 
-- 开发环境需要 Node.js ≥ 22；打包版会在安装 Pi 前引导用户前往 Node.js 官方地址
-- pnpm `9.12.1`（见 `packageManager` 字段）
-- 已安装 [Pi Coding Agent](https://github.com/badlogic/pi-mono)，或在应用内安装 / 更新
+![外观与看板娘设置](docs/设置.jpg)
 
-## 快速开始
+## 核心功能
 
-```bash
-pnpm install
-pnpm dev
-```
+| 模块              | Pi-Harness 提供的能力                                                          |
+| ----------------- | ------------------------------------------------------------------------------ |
+| 概览              | 当前模型、环境状态、配置健康度和常用操作                                       |
+| 工作区            | 项目级 Pi 会话、流式输出、Thinking、Tool Call、文件、Git Diff 与 Worktree      |
+| Provider          | Pi 兼容预设、自定义端点、凭证、实时模型发现与连接测试                          |
+| 模型              | 创建预设或自定义模型，并选择 Pi 当前使用的模型                                 |
+| Skills 与 Package | 创建、导入、校验、安装、更新、修复、启停、备份和卸载受支持能力                 |
+| 配置              | 编辑 `models.json` / `settings.json`，支持格式化、备份、原子写入和外部变更保护 |
+| 诊断              | 检查环境、存储、工作区、安全与能力健康度，并对复制/导出内容脱敏                |
+| 更新              | 打包版检查 GitHub Releases，并在存在兼容 updater 元数据时安装更新              |
+| 外观              | 跟随系统、浅色/深色主题、密度设置，以及可选的运行时看板娘                      |
 
-无本机 Pi 环境时，可在设置里把配置目录指到 `fixtures/mock-pi/`，或：
+### 轻量编辑器，不是 IDE
 
-```bash
-cp .env.example .env
-# PI_HARNESS_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
-```
+Pi-Harness 可以编辑可读文本文件，支持懒加载语法高亮、行号、撤销/重做、查找、显式保存、未保存状态和外部变更冲突保护。超大文件、二进制、媒体和文档使用只读预览。
 
-不要使用 `VITE_*` 存放密钥——它们会被打进 Renderer 包。
-
-## 常用命令
-
-| 命令                                    | 作用                                            |
-| --------------------------------------- | ----------------------------------------------- |
-| `pnpm typecheck`                        | Vue / TypeScript 类型检查                       |
-| `pnpm lint`                             | ESLint                                          |
-| `pnpm test`                             | Vitest 单元测试                                 |
-| `pnpm test:e2e`                         | 编译后跑 Playwright Electron smoke              |
-| `pnpm sync:provider-presets -- --check` | 校验生成的厂商/模型目录                         |
-| `pnpm compile`                          | Vite 编译到 `out/`（不打安装包）                |
-| `pnpm build`                            | 编译并打包 macOS / Windows / Linux → `release/` |
-| `pnpm build:mac`                        | 仅 macOS                                        |
+它不提供 LSP/IntelliSense、语义重构、调试器、任务运行器、集成终端或 IDE 扩展兼容。详见[轻量代码编辑器边界](docs/lightweight-code-editor.md)。
 
 ## 架构
 
+Pi-Harness 将“管理 Pi、使用 Pi、扩展 Pi”分层，同时始终保持 Pi Coding Agent 是唯一 Agent Runtime。
+
+```text
+                                Pi-Harness
+
+              ┌────────────────────┼────────────────────┐
+              │                    │                    │
+              ▼                    ▼                    ▼
+       Control Plane          Workspace          Capability Layer
+       管理 Pi                使用 Pi             扩展 Pi
+
+       Providers              Projects           Skills
+       Models                 Sessions           Packages
+       Environment            Agent              MCP adapters
+       Config / Secrets       Streaming          Presets
+       Backup / Diagnostics   Files / Git
+       Updates                Worktree
+              │                    │                    │
+              └────────────────────┼────────────────────┘
+                                   ▼
+                           Pi Coding Agent
 ```
-Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
-                                                ├─ AgentRuntime      Pi 会话 / 流式输出 / 工具事件
-                                                ├─ Workspace         项目 / 文件 / 轻量编辑器 / Git
-                                                ├─ PiConfigService   原子写 / mtime 冲突
-                                                ├─ CapabilityService Skills / Extensions / Packages / MCP / Presets
-                                                ├─ Pet Adapter       Runtime 状态 → 13 状态可视化层
-                                                ├─ Provider / Model / Skills / Backup / Diagnostics
-                                                └─ SecretStore       Keychain / safeStorage
+
+桌面边界固定为 `Vue Renderer → typed preload API → validated IPC → Main services → Pi SDK / 操作系统`。Domain Adapter 会保留 Pi 配置中的未知字段。实现细节见[架构说明](docs/architecture.md)与 [Capability Layer](docs/capability-layer.md)。
+
+## 安全
+
+密钥不会以明文返回 Renderer。macOS 使用系统钥匙串，Windows 使用 Electron `safeStorage`。配置变更先备份再原子写入；工作区文件访问限制在已授权根目录；诊断会隐藏凭证字段和 Home 路径。
+
+完整的信任边界、路径校验、进程执行与漏洞报告方式见[安全模型](docs/security.md)。
+
+## 环境要求
+
+安装包用户：
+
+- macOS Apple Silicon、macOS Intel 或 Windows x64
+- Pi Coding Agent，可直接在 Pi-Harness 中安装或修复
+
+源码开发：
+
+- Node.js ≥ 22
+- pnpm `9.12.1`
+
+## 开发
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
-Domain 与 Pi 原生 JSON 之间通过 Adapter 解耦，未知字段透传，不因某个模型名写死逻辑。
+本机没有 Pi 时，可在“设置 → 配置目录”中指向 `fixtures/mock-pi/`；也可以把 `.env.example` 复制为 `.env`，并将 `PI_HARNESS_PI_CONFIG_DIR` 指向该 fixture。不要在 `VITE_*` 变量中存放密钥，它们会被打进 Renderer 包。
 
-## 项目文档
+常用检查：
 
-- [更新记录](CHANGELOG.md)
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm compile
+pnpm test:e2e:only
+```
+
+## 文档
+
+- [架构与进程边界](docs/architecture.md)
+- [安全模型](docs/security.md)
+- [测试策略](docs/testing.md)
 - [应用更新与发布产物](docs/application-updates.md)
 - [Pi 安装与 Node.js 前置条件](docs/pi-installation.md)
 - [轻量代码编辑器边界](docs/lightweight-code-editor.md)
-- [Capability Layer 与精选技能安全模型](docs/capability-layer.md)
-- [看板娘设计与运行时规则](docs/mascot-design.md)
-- [宠物状态系统与 Sprite Manifest](docs/pet-state-system.md)
+- [Capability Layer 与精选 Skill 安全模型](docs/capability-layer.md)
+- [Pi Package 与 Skill 生命周期](docs/package-lifecycle.md)
+- [内置 Skills 集合](docs/builtin-skills.md)
+- [更新记录](CHANGELOG.md)
+
+## 参与贡献
+
+欢迎提交贡献。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)，并遵守项目已经确定的架构与安全边界。
+
+## 许可协议
+
+Pi-Harness 采用 [GNU Affero General Public License v3.0 only](LICENSE)（`AGPL-3.0-only`）发布。你可以在协议条款下使用、修改和再分发；通过网络向用户提供修改版时，必须按 AGPL v3 要求向这些用户提供对应源代码。
+
+Copyright © 2026 [wangmiao](https://github.com/wangmiaozero)。
 
 ## 作者
 
 [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com) · [github.com/wangmiaozero/pi-harness](https://github.com/wangmiaozero/pi-harness)
-
-## 许可协议
-
-Pi-Harness 采用 [GNU Affero General Public License v3.0 only](./LICENSE)（`AGPL-3.0-only`）发布。你可以在该协议条款下使用、修改和再分发；通过网络向用户提供修改版时，必须按 AGPL v3 要求向这些用户提供对应源代码。
-
-Copyright © 2026 [wangmiao](https://github.com/wangmiaozero)。

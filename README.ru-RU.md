@@ -5,13 +5,18 @@
 </p>
 
 <p align="center">
-  <strong>Локальная настольная панель управления и нативная рабочая область для <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
-  Настройка Pi · Проектные сессии · Просмотр и редактирование локальных файлов
+  <strong>Единое настольное рабочее пространство для <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
+  Настройка Pi · Запуск агента · Управление моделями, Skills, пакетами и проектами
+</p>
+
+<p align="center">
+  Всё необходимое для настройки, запуска и расширения Pi Coding Agent в одном нативном настольном приложении.
 </p>
 
 <p align="center">
   <a href="README.md">English</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.ja-JP.md">日本語</a> ·
   <a href="README.ko-KR.md">한국어</a> ·
   <a href="README.ru-RU.md">Русский</a> ·
   <a href="README.fr-FR.md">Français</a> ·
@@ -19,123 +24,167 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.1.0-4C8DFF?style=flat-square" />
-  <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" />
-  <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
-  <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22-43853D?style=flat-square" />
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1"><img alt="release v1.1.1" src="https://img.shields.io/badge/release-v1.1.1-4C8DFF?style=flat-square" /></a>
+  <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
+  <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
 
-Pi-Harness управляет провайдерами, моделями, учётными данными, навыками, исходной конфигурацией, резервными копиями и диагностикой Pi, а также запускает проектные сессии Pi Agent в нативной рабочей области. Сессии совместимы с JSONL Pi CLI в `~/.pi/agent/sessions/`; pi-web, сервер Next.js и iframe не встраиваются.
+![Обзор Pi-Harness: среда, активная модель и быстрые действия](docs/概览.jpg)
 
-Секреты никогда не попадают в Renderer в открытом виде. macOS хранит их в системной связке ключей; Windows и Linux используют Electron `safeStorage`. Неизвестные поля Pi сохраняются.
+## Зачем нужен Pi-Harness?
 
-## Главное в v1.0.9
+### Больше, чем чат-интерфейс для Pi
 
-- Ответы Assistant отображаются как безопасный потоковый Markdown с явным белым списком тегов и протоколов.
-- Tool Result по умолчанию свёрнут и раскрывается в панели с ограниченной высотой и прокруткой.
-- Глобальный маскот по умолчанию отключён; доступны шесть стилей, включая новые офисный и maid-варианты.
+Обычный настольный клиент позволяет открыть Pi и начать чат. Pi-Harness также готовит среду, управляет провайдерами и моделями, устанавливает Skills и пакеты Pi и объединяет сессии, файлы и Git в рабочем пространстве проекта.
 
-## Скриншоты
+```text
+Обычный настольный клиент             Pi-Harness
 
-|                  Обзор                   |           Настройки — Маскот            |
-| :--------------------------------------: | :-------------------------------------: |
-|         ![Обзор](docs/概览.jpg)          |   ![Настройки маскота](docs/设置.jpg)   |
-|       **Рабочая область — Сессии**       |     **Рабочая область — Редактор**      |
-|       ![Сессии](docs/工作区-1.jpg)       |     ![Редактор](docs/工作区-2.jpg)      |
-|         **Провайдеры — Список**          |         **Провайдеры — Детали**         |
-| ![Список провайдеров](docs/提供商-1.jpg) | ![Детали провайдера](docs/提供商-2.jpg) |
-|           **Модели — Список**            |           **Модели — Детали**           |
-|    ![Список моделей](docs/模型-1.jpg)    |    ![Детали модели](docs/模型-2.jpg)    |
-|        **Навыки — Установленные**        |           **Навыки — Маркет**           |
-| ![Установленные навыки](docs/技能-1.jpg) |   ![Маркет навыков](docs/技能-2.jpg)    |
+Pi → Chat                             Environment
+                                      + Providers / Models
+                                      + Skills / Packages / MCP adapters
+                                      + Workspace / Sessions / Files / Git
+                                      ↓
+                                      Pi Coding Agent
+```
+
+Pi-Harness — не обёртка над веб-интерфейсом. В нём нет встроенного pi-web, сервера Next.js или iframe, а также второй среды выполнения агента. Pi Coding Agent остаётся единственным Agent Runtime; сессии совместимы с JSONL Pi CLI в ~/.pi/agent/sessions/.
+
+**Настроить Pi. Запустить Pi. Расширить Pi.**
+
+## Скачать
+
+Скачайте Pi-Harness v1.1.1 из [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1).
+
+| Платформа           | Установщик                                                                                                                   |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| macOS Apple Silicon | [Pi-Harness-1.1.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.1.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1.dmg)             |
+| Windows x64         | [Pi-Harness.Setup.1.1.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness.Setup.1.1.1.exe) |
+
+> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.1.1](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1).
+
+Пользователям готового приложения не нужно клонировать репозиторий или устанавливать pnpm. Pi-Harness может обнаружить, установить и восстановить Node.js, npm, PATH и Pi Coding Agent в поддерживаемой среде.
 
 ## Возможности
 
-| Модуль              | Описание                                                                                                                    |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Обзор**           | Активная модель, состояние среды, настройка Node.js/Pi и установка Pi в один клик                                           |
-| **Рабочая область** | Нативные проекты и сессии Pi, потоковый чат, Thinking / Tool Call, лёгкое редактирование, Git Diff и Worktree               |
-| **Провайдеры**      | Поисковые Pi-совместимые пресеты; Provider ≠ Protocol ≠ Model; Keychain / `safeStorage`                                     |
-| **Модели**          | Пресетные или пользовательские ID, метаданные возможностей, выбор активной модели, проверка после записи                    |
-| **Навыки**          | Создание / импорт / правка / проверка `SKILL.md`; ограничение корневыми путями                                              |
-| **Конфигурация**    | Редактор CodeMirror для `models.json` / `settings.json`; форматирование и показ в файловом менеджере                        |
-| **Диагностика**     | Отчёт о среде; при копировании данные очищаются (`apiKey` / `token` / `secret` и т. д.)                                     |
-| **Настройки**       | Интерфейс 简体中文 / English, системная/тёмная/светлая тема, пресет инструментов, восстановление, бэкапы, маскот |
+- **Рабочее пространство:** запуск и продолжение Pi-сессий в реальном проекте; потоковые ответы, Thinking, Tool Call, файлы и Git рядом.
+- **Провайдеры и модели:** Pi-совместимые пресеты и собственные API, загрузка каталога моделей там, где она поддерживается, проверка подключения и выбор активной модели.
+- **Skills, пакеты и MCP:** локальные Skills, доверенные рекомендации, встроенные коллекции, пакеты Pi и подключение MCP через поддерживаемые пакеты.
+- **Среда:** обнаружение и восстановление Node.js, npm, PATH и Pi прямо из настольного приложения.
+- **Файлы и Git:** просмотр и загрузка файлов, лёгкий редактор с защитой от конфликтов, Git Diff и Worktree.
+- **Диагностика и безопасность:** проверка среды и возможностей; учётные данные хранятся в Keychain или Electron safeStorage, а копируемая диагностика очищается.
 
-Надёжность:
+## Как это работает
 
-- Автобэкап перед записью; атомарная запись
-- Обнаружение внешних изменений (mtime): Reload / Compare / Overwrite
-- Сборки с установщиком проверяют и загружают обновления в фоне, затем устанавливают их при выходе или через **Установить и перезапустить**
-- Только десктоп: произвольная внешняя навигация заблокирована; разрешена лишь фиксированная официальная загрузка Node.js
+1. Запустите Pi-Harness и проверьте среду.
+2. Настройте Provider.
+3. Выберите модель и проверьте подключение.
+4. Откройте проект.
+5. Начните или продолжите Pi-сессию.
 
-## Граница лёгкого редактора
-
-Рабочая область редактирует читаемые текстовые файлы и поддерживает ленивую подсветку синтаксиса, номера строк, отмену/повтор, поиск, явное сохранение, индикаторы несохранённых изменений и защиту от внешних изменений. Неизвестные текстовые расширения открываются как обычный текст; большие, бинарные, медиа- и документные файлы доступны только для просмотра.
-
-Pi-Harness намеренно не является универсальной IDE: нет LSP/IntelliSense, семантического рефакторинга, отладчика, запуска задач, встроенного терминала и совместимости с расширениями IDE. См. [границы лёгкого редактора](docs/lightweight-code-editor.md).
-
-## Требования
-
-- Node.js ≥ 22 (проверяется при установке зависимостей)
-- pnpm `9.12.1` (см. поле `packageManager`)
-- Установленный [Pi Coding Agent](https://github.com/badlogic/pi-mono) либо установка / обновление из приложения
-
-## Быстрый старт
-
-```bash
-pnpm install
-pnpm dev
+```text
+Установка → Provider → Модель → Проект → Запуск Pi
 ```
 
-Без локального Pi укажите в настройках каталог `fixtures/mock-pi/` или:
+## Скриншоты
 
-```bash
-cp .env.example .env
-# PI_HARNESS_PI_CONFIG_DIR=/absolute/path/to/fixtures/mock-pi
-```
+### 1. Проверка готовности
 
-Не храните секреты в переменных `VITE_*` — они попадают в бандл Renderer.
+![Обзор](docs/概览.jpg)
 
-## Команды
+### 2. Pi в реальном проекте
 
-| Команда          | Назначение                                           |
-| ---------------- | ---------------------------------------------------- |
-| `pnpm typecheck` | Проверка типов Vue / TypeScript                      |
-| `pnpm lint`      | ESLint                                               |
-| `pnpm test`      | Модульные тесты Vitest                               |
-| `pnpm test:e2e`  | Сборка, затем Playwright Electron smoke              |
-| `pnpm compile`   | Сборка Vite в `out/` (без установщика)               |
-| `pnpm build`     | Сборка и пакеты macOS / Windows / Linux → `release/` |
-| `pnpm build:mac` | Только macOS                                         |
+|        Сессии проекта        | Файлы и лёгкое редактирование  |
+| :--------------------------: | :----------------------------: |
+| ![Сессии](docs/工作区-1.jpg) | ![Редактор](docs/工作区-2.jpg) |
+
+### 3. Провайдеры и модели
+
+|                Провайдеры                |            Настройка провайдера            |
+| :--------------------------------------: | :----------------------------------------: |
+| ![Список провайдеров](docs/提供商-1.jpg) | ![Настройка провайдера](docs/提供商-2.jpg) |
+|                **Модели**                |            **Настройка модели**            |
+|    ![Список моделей](docs/模型-1.jpg)    |    ![Настройка модели](docs/模型-2.jpg)    |
+
+### 4. Расширение Pi
+
+|           Установленные Skills           |        Коллекции и пакеты         |
+| :--------------------------------------: | :-------------------------------: |
+| ![Установленные Skills](docs/技能-1.jpg) | ![Маркет Skills](docs/技能-2.jpg) |
+
+### 5. Внешний вид
+
+![Настройки внешнего вида и маскота](docs/设置.jpg)
+
+## Граница редактора
+
+Pi-Harness редактирует читаемые текстовые файлы с подсветкой синтаксиса, номерами строк, отменой/повтором, поиском, явным сохранением и защитой от внешних изменений. Большие, бинарные, медиафайлы и документы доступны только для просмотра.
+
+Это не IDE: нет LSP/IntelliSense, семантического рефакторинга, отладчика, запуска задач, встроенного терминала или совместимости с расширениями IDE. См. [границу лёгкого редактора](docs/lightweight-code-editor.md).
 
 ## Архитектура
 
+```text
+                                Pi-Harness
+
+              ┌────────────────────┼────────────────────┐
+              ▼                    ▼                    ▼
+       Control Plane          Workspace          Capability Layer
+       Управление Pi          Работа с Pi        Расширение Pi
+
+       Providers              Projects           Skills
+       Models                 Sessions           Packages
+       Environment            Agent              MCP adapters
+       Config / Secrets       Streaming          Presets
+       Backup / Diagnostics   Files / Git
+       Updates                Worktree
+              └────────────────────┼────────────────────┘
+                                   ▼
+                           Pi Coding Agent
 ```
-Renderer (Vue 3)  --typed IPC-->  Preload  -->  Main
-                                                ├─ AgentRuntime      сессии Pi / поток / события инструментов
-                                                ├─ Workspace         проекты / файлы / лёгкий редактор / Git
-                                                ├─ PiConfigService   атомарная запись / конфликт mtime
-                                                ├─ Provider / Model / Skills / Backup / Diagnostics
-                                                └─ SecretStore       Keychain / safeStorage
+
+Pi Coding Agent остаётся единственным Agent Runtime. Подробнее: [архитектура](docs/architecture.md), [Capability Layer](docs/capability-layer.md), [модель безопасности](docs/security.md).
+
+## Требования
+
+Готовое приложение:
+
+- macOS Apple Silicon, macOS Intel или Windows x64
+- Pi Coding Agent, который можно установить или восстановить из Pi-Harness
+
+Разработка из исходного кода:
+
+- Node.js ≥ 22
+- pnpm 9.12.1
+
+## Разработка
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
-Домен отделён от нативного JSON Pi через Adapter. Неизвестные поля проходят насквозь. Логика не привязана к конкретному имени модели.
+Основные проверки: pnpm typecheck, pnpm lint, pnpm test, pnpm compile, pnpm test:e2e:only. Не храните секреты в переменных VITE_* — они попадают в бандл Renderer.
 
-## Документация проекта
+## Документация
 
+- [Архитектура](docs/architecture.md)
+- [Безопасность](docs/security.md)
+- [Тестирование](docs/testing.md)
+- [Обновления приложения](docs/application-updates.md)
+- [Установка Pi](docs/pi-installation.md)
+- [Capability Layer](docs/capability-layer.md)
+- [Жизненный цикл Package и Skill](docs/package-lifecycle.md)
 - [История изменений](CHANGELOG.md)
-- [Обновления приложения и артефакты релиза](docs/application-updates.md)
-- [Установка Pi и требования Node.js](docs/pi-installation.md)
-- [Граница лёгкого редактора кода](docs/lightweight-code-editor.md)
-- [Дизайн маскота и правила выполнения](docs/mascot-design.md)
+- [Участие в разработке](CONTRIBUTING.md)
+
+## Лицензия
+
+Pi-Harness распространяется по лицензии [GNU Affero General Public License v3.0 only](LICENSE) (AGPL-3.0-only).
+
+Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).
 
 ## Автор
 
 [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com) · [github.com/wangmiaozero/pi-harness](https://github.com/wangmiaozero/pi-harness)
-
-## Лицензия
-
-Pi-Harness — свободное программное обеспечение под лицензией [GNU Affero General Public License v3.0 only](./LICENSE) (`AGPL-3.0-only`). Использование, изменение и распространение разрешены на условиях лицензии. При предоставлении изменённой версии по сети пользователям необходимо предложить соответствующий исходный код согласно AGPL v3.
-
-Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

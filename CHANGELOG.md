@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+## 1.1.1 — 2026-08-25
+
+### Added
+
+- **Live provider model discovery.** Providers can load a model catalog from supported API roots and import discovered models on save. Anthropic-compatible gateways without a model catalog can still be configured with a manually entered model ID.
+- **Provider identity suggestions.** Provider keys, display names, and internal names can be derived locally from the API hostname without contacting the endpoint.
+
+### Changed
+
+- **Login-shell Node.js resolution.** Pi detection, installation, and updates use the Node.js and npm resolved from the user's login shell instead of relying on a stale GUI `PATH`.
+- **Release validation.** Tag-triggered releases validate updater metadata and platform payloads before publishing and generate `SHA256SUMS`.
+
+### Fixed
+
+- **Anthropic-compatible Chinese gateways.** Model discovery recognizes gateways such as Volcengine Ark Agent Plan that support `POST /v1/messages` but do not expose the usual Anthropic model catalog.
+- **Pi updates with built-in Skills.** Pi update tasks no longer collide with bundled Skill checksum validation.
+- **Latest-version update status.** Missing updater metadata no longer appears as a generic network failure when the installed version already matches the latest stable release.
+
+### Security
+
+- Restricted reveal-in-file-manager actions to authorized workspace, Pi configuration, Skill, and Package roots.
+- Kept model discovery read-only until the user saves and preserved validated IPC, path, and capability mutation boundaries.
+
 ## 1.1.0 — 2026-08-24
 
 ### Added
