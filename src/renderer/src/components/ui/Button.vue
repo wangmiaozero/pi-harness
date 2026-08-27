@@ -25,7 +25,7 @@ const props = withDefaults(
  * background + foreground — never scale, never bounce. */
 const classes = computed(() => {
   const base =
-    'relative inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-sm)] font-medium select-none whitespace-nowrap ' +
+    'ui-button relative inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-sm)] font-medium select-none whitespace-nowrap ' +
     'transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] ' +
     'focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] ' +
     'disabled:opacity-45 disabled:pointer-events-none'
@@ -53,7 +53,12 @@ const classes = computed(() => {
 </script>
 
 <template>
-  <button :type="type" :class="classes" :disabled="disabled || loading">
+  <button
+    :type="type"
+    :class="classes"
+    :data-variant="variant"
+    :disabled="disabled || loading"
+  >
     <span
       v-if="loading"
       class="absolute inline-block size-3 animate-spin rounded-full border-[1.5px] border-current border-r-transparent"

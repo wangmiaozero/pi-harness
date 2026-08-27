@@ -177,7 +177,7 @@ defineExpose({ requestCloseTab })
 <template>
   <div
     data-testid="workspace-tabs"
-    class="flex h-8 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-[var(--border-subtle)] px-1"
+    class="mission-tabs flex h-8 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-[var(--border-subtle)] px-1"
   >
     <button
       v-for="tab in workspace.tabs"

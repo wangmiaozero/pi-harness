@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './tokens.css';
+@import './starship-cockpit.css';
 
 /* =============================================================================
  * Tailwind theme — expose the design tokens as utility colors so we can write

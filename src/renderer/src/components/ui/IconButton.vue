@@ -26,7 +26,7 @@ const props = withDefaults(
 const classes = computed(() => {
   const sizing = props.showLabel ? 'h-6 px-1 gap-0.5 text-[11px] font-medium' : 'size-7'
   const base =
-    'inline-flex items-center justify-center rounded-[var(--radius-sm)] ' +
+    'ui-icon-button inline-flex items-center justify-center rounded-[var(--radius-sm)] ' +
     sizing +
     ' transition-[color,background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] ' +
     'focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] ' +
@@ -61,7 +61,14 @@ const classes = computed(() => {
 </script>
 
 <template>
-  <button type="button" :class="classes" :disabled="disabled" :aria-label="label" :title="label">
+  <button
+    type="button"
+    :class="classes"
+    :data-variant="variant"
+    :disabled="disabled"
+    :aria-label="label"
+    :title="label"
+  >
     <slot />
     <span v-if="showLabel && label" class="whitespace-nowrap leading-none">{{ label }}</span>
   </button>

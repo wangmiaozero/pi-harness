@@ -204,9 +204,9 @@ function duration(value: number): string {
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 flex-col">
+  <div data-testid="chat-window" class="chat-window flex h-full min-h-0 flex-col">
     <div
-      class="flex h-9 shrink-0 items-stretch border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[11px] text-[var(--text-secondary)]"
+      class="chat-status-hud flex h-9 shrink-0 items-stretch border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[11px] text-[var(--text-secondary)]"
     >
       <button
         type="button"
@@ -251,7 +251,7 @@ function duration(value: number): string {
     </div>
     <div
       v-if="statsOpen"
-      class="grid shrink-0 grid-cols-[minmax(320px,1.7fr)_minmax(150px,.55fr)_minmax(190px,.75fr)] gap-6 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] px-4 py-3 font-[family-name:var(--font-mono)] text-[11.5px] leading-5 shadow-[var(--shadow-sm)]"
+      class="session-hud grid shrink-0 grid-cols-[minmax(320px,1.7fr)_minmax(150px,.55fr)_minmax(190px,.75fr)] gap-6 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] px-4 py-3 font-[family-name:var(--font-mono)] text-[11.5px] leading-5 shadow-[var(--shadow-sm)]"
     >
       <section class="min-w-0">
         <h3 class="mb-1.5 font-semibold text-[var(--text-primary)]">
@@ -352,10 +352,10 @@ function duration(value: number): string {
       <div
         ref="scroller"
         data-testid="chat-scroller"
-        class="h-full min-h-0 overflow-y-auto px-4 py-3 min-[1080px]:pr-[132px]"
+        class="chat-scroller h-full min-h-0 overflow-y-auto px-4 py-3 min-[1080px]:pr-[132px]"
         @scroll.passive="onScrollerScroll"
       >
-        <div ref="scrollContent">
+        <div ref="scrollContent" class="chat-scroll-content">
           <EmptyState
             v-if="!displayMessages.length"
             :title="$t('workspace.emptyChat')"
@@ -381,7 +381,10 @@ function duration(value: number): string {
         :state="pet.state"
         :current-tool="pet.currentTool"
         :active="mascotActive"
-        :enabled="Boolean(settings.settings?.mascotUnlocked && settings.settings?.petEnabled)"
+        :enabled="
+          Boolean(settings.settings?.mascotUnlocked && settings.settings?.petEnabled) &&
+          mascotStyle !== 'starshipCockpit'
+        "
         :animated="settings.settings?.petAnimations ?? true"
         :show-status="settings.settings?.petStatusText ?? true"
         class="hidden min-[1080px]:block"

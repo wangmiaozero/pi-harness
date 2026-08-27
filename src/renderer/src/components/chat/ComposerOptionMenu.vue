@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
   <button
     ref="trigger"
     type="button"
-    class="inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-[12px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-45"
+    class="cockpit-control-button inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-[12px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-45"
     :class="open ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]' : ''"
     :disabled="disabled"
     :title="label"

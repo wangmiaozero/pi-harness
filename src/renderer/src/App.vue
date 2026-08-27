@@ -13,11 +13,13 @@ import { applyTheme, watchSystemTheme, type ThemePreference } from '@renderer/ut
 import { installShortcutListener, registerShortcut } from '@renderer/composables/shortcuts'
 import { shouldActivateAiMotionFrame } from '@renderer/composables/useAiMotionFrame'
 import { getApi, isBridgeAvailable } from '@renderer/composables/useApi'
+import { applyVisualSkin, isStarshipCockpitActive } from '@renderer/utils/visual-skin'
 
 const settings = useSettingsStore()
 const agent = useAgentStore()
 const router = useRouter()
 const paletteOpen = ref(false)
+const starshipCockpitActive = computed(() => isStarshipCockpitActive(settings.settings))
 
 const agentMotionActive = computed(() =>
   shouldActivateAiMotionFrame({
@@ -37,6 +39,7 @@ const screenMotionActive = computed(
 )
 
 const toasterTheme = computed(() => {
+  if (starshipCockpitActive.value) return 'dark'
   const t = settings.settings?.theme ?? 'dark'
   if (t === 'light') return 'light'
   if (t === 'system') {
@@ -46,10 +49,16 @@ const toasterTheme = computed(() => {
 })
 
 watch(
-  () => settings.settings?.theme,
-  (theme) => {
+  () => [
+    settings.settings?.theme,
+    settings.settings?.mascotStyle,
+    settings.settings?.mascotUnlocked,
+    settings.settings?.petEnabled
+  ],
+  ([theme]) => {
     const pref = (theme ?? 'dark') as ThemePreference
     watchSystemTheme(pref)
+    applyVisualSkin(settings.settings)
   },
   { immediate: true }
 )

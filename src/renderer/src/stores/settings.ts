@@ -5,6 +5,9 @@ import { callApi, getApi } from '@renderer/composables/useApi'
 import { i18n, resolveLocale } from '@renderer/i18n'
 import { watchSystemTheme, type ThemePreference } from '@renderer/utils/theme'
 import { normalizeMascotStyle } from '@shared/constants/mascot'
+import { normalizeNavOrder } from '@shared/constants/navigation'
+import { applyVisualSkin } from '@renderer/utils/visual-skin'
+import { toIpcSettingsPatch } from '@renderer/utils/settings-patch'
 
 export const useSettingsStore = defineStore('settings', () => {
   const settings = ref<AppSettings | null>(null)
@@ -24,7 +27,7 @@ export const useSettingsStore = defineStore('settings', () => {
       normalizePetSettings(next)
       settings.value = next
       applyLocale(settings.value.language)
-      applyThemePrefs(settings.value.theme)
+      applyExperiencePrefs(settings.value)
     } catch (e) {
       error.value = (e as { message?: string }).message ?? String(e)
     } finally {
@@ -33,11 +36,11 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   async function patch(partial: Partial<AppSettings>) {
-    settings.value = await callApi(() => getApi().settings.set(partial))
+    settings.value = await callApi(() => getApi().settings.set(toIpcSettingsPatch(partial)))
     settings.value.mascotStyle = normalizeMascotStyle(settings.value.mascotStyle)
     normalizePetSettings(settings.value)
     applyLocale(settings.value.language)
-    applyThemePrefs(settings.value.theme)
+    applyExperiencePrefs(settings.value)
     return settings.value
   }
 
@@ -55,6 +58,11 @@ export const useSettingsStore = defineStore('settings', () => {
     watchSystemTheme(theme as ThemePreference)
   }
 
+  function applyExperiencePrefs(value: AppSettings) {
+    applyThemePrefs(value.theme)
+    applyVisualSkin(value)
+  }
+
   function normalizePetSettings(value: AppSettings): void {
     value.mascotUnlocked ??= false
     value.petEnabled ??= false
@@ -65,6 +73,7 @@ export const useSettingsStore = defineStore('settings', () => {
     value.petSleepMinutes = Math.min(120, Math.max(1, value.petSleepMinutes || 10))
     value.windowMotionEnabled ??= false
     value.screenMotionEnabled ??= true
+    value.navOrder = normalizeNavOrder(value.navOrder)
     if (!value.mascotUnlocked) {
       value.mascotStyle = 'none'
       value.petEnabled = false

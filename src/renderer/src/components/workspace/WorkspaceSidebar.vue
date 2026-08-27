@@ -19,16 +19,21 @@ import WorktreeSwitcher from '@renderer/components/git/WorktreeSwitcher.vue'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
+import { useModelsStore } from '@renderer/stores/models'
+import { useSettingsStore } from '@renderer/stores/settings'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { projectIdentityKey } from '@shared/workspace/project-identity'
 import type { SessionInfo, SessionProjectGroup } from '@shared/types/workspace'
+import StarshipModelHud from '@renderer/components/starship/StarshipModelHud.vue'
 
 const emit = defineEmits<{ 'focus-composer': [] }>()
 const { t, locale } = useI18n()
 const sessions = useSessionStore()
 const workspace = useWorkspaceStore()
 const agent = useAgentStore()
+const models = useModelsStore()
+const settings = useSettingsStore()
 const section = ref<'sessions' | 'files' | 'git'>('sessions')
 const collapsedProjectKeys = ref<string[]>([])
 const dragActive = ref(false)
@@ -41,6 +46,10 @@ const newChatActive = computed(
 const newSessionLabel = computed(() =>
   workspace.canChat ? t('workspace.newSession') : t('workspace.newSessionRequiresProject')
 )
+const activeProviderKey = computed(
+  () => agent.state?.model?.provider ?? models.active.providerKey
+)
+const activeModelId = computed(() => agent.state?.model?.id ?? models.active.modelId)
 
 function running(id: string): boolean {
   return agent.runningIds.includes(id)
@@ -279,7 +288,7 @@ defineExpose({ pickProject })
 <template>
   <aside
     data-testid="workspace-sidebar"
-    class="relative flex w-[260px] shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-sidebar)]"
+    class="workspace-control-panel relative flex w-[260px] shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-sidebar)]"
     @dragenter.prevent="onDragEnter"
     @dragover.prevent="onDragOver"
     @dragleave.prevent="onDragLeave"
@@ -288,10 +297,13 @@ defineExpose({ pickProject })
     <div
       class="flex items-center justify-between px-2.5 h-9 border-b border-[var(--border-subtle)]"
     >
-      <p class="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
-        {{ $t('workspace.title') }}
+      <p class="flex flex-col text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+        <span>{{ $t('workspace.title') }}</span>
+        <span class="cockpit-only text-[7px] tracking-[0.18em] text-[var(--accent)]">
+          MISSION CONTROL
+        </span>
       </p>
-      <div class="flex items-center">
+      <div class="workspace-command-actions flex items-center">
         <IconButton
           variant="accent"
           :active="newChatActive"
@@ -455,6 +467,16 @@ defineExpose({ pickProject })
       <FileExplorer v-else-if="section === 'files'" />
       <WorktreeSwitcher v-else />
     </div>
+
+    <StarshipModelHud
+      :provider-key="activeProviderKey"
+      :model-id="activeModelId"
+      :thinking-level="agent.thinkingLevel"
+      :total-tokens="agent.sessionStats?.tokens.total ?? null"
+      :message-count="agent.sessionStats?.totalMessages ?? null"
+      :context-percent="agent.state?.contextUsage?.percent ?? null"
+      :animated="settings.settings?.petAnimations ?? true"
+    />
 
     <div
       v-if="dragActive"

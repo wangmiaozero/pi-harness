@@ -17,7 +17,12 @@ describe('MascotView', () => {
     for (const style of MASCOT_STYLES.filter((style) => style !== 'none')) {
       await wrapper.setProps({ style })
       expect(wrapper.get('[data-testid="workspace-mascot"]').attributes('data-style')).toBe(style)
-      const assetName = style === 'maidWhite' ? 'pico-maid-white' : `pico-${style}`
+      const assetName =
+        style === 'maidWhite'
+          ? 'pico-maid-white'
+          : style === 'starshipCockpit'
+            ? 'frost-navigator'
+            : `pico-${style}`
       expect(wrapper.get('img').attributes('src')).toContain(assetName)
     }
   })

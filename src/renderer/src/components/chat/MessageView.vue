@@ -127,7 +127,7 @@ const bashText = computed(() => {
 </script>
 
 <template>
-  <article class="mb-3">
+  <article class="message-hud mb-3" :data-message-role="message.role">
     <p
       v-if="message.role !== 'toolResult'"
       class="mb-1 text-[10.5px] font-medium uppercase tracking-[0.05em] text-[var(--text-tertiary)]"
@@ -143,7 +143,7 @@ const bashText = computed(() => {
 
     <div
       v-if="message.role === 'user'"
-      class="rounded-[var(--radius-sm)] bg-[var(--bg-surface)] px-3 py-2 text-[13px] text-[var(--text-primary)]"
+      class="user-message-body rounded-[var(--radius-sm)] bg-[var(--bg-surface)] px-3 py-2 text-[13px] text-[var(--text-primary)]"
     >
       <p v-if="userText" class="whitespace-pre-wrap">{{ userText }}</p>
       <div v-if="userImages.length" class="flex flex-wrap gap-2" :class="userText ? 'mt-2' : ''">
@@ -160,7 +160,7 @@ const bashText = computed(() => {
       </div>
     </div>
 
-    <div v-else-if="message.role === 'assistant'" class="space-y-2">
+    <div v-else-if="message.role === 'assistant'" class="assistant-message-body space-y-2">
       <template v-for="(block, i) in message.content" :key="i">
         <p
           v-if="block.type === 'text' && markdownFailed"
@@ -186,9 +186,12 @@ const bashText = computed(() => {
           v-else-if="block.type === 'thinking'"
           open
           data-testid="thinking-details"
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1"
+          class="thinking-hud rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1"
         >
           <summary class="cursor-pointer text-[11px] text-[var(--text-tertiary)]">
+            <span class="cockpit-only mr-1 inline font-[family-name:var(--font-mono)] text-[8px] tracking-[0.14em] text-[var(--accent)]">
+              AI PROCESS HUD ·
+            </span>
             {{ $t('workspace.thinking') }}
           </summary>
           <p class="mt-1 whitespace-pre-wrap text-[12px] text-[var(--text-secondary)]">

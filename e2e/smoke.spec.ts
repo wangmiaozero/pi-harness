@@ -561,6 +561,25 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   })
 
+  test('reorders the sidebar from settings', async ({ page }) => {
+    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
+    await page.locator('a[href="#/settings"]').click()
+    await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
+
+    await page.getByTestId('nav-order-toggle').click()
+    const items = page.getByTestId('nav-order-item')
+    await expect(items.first()).toHaveAttribute('data-nav-id', 'workspace')
+    await items.first().focus()
+    await items.first().press('ArrowDown')
+    await expect(items.first()).toHaveAttribute('data-nav-id', 'overview')
+    await page.getByRole('button', { name: /保存|Save/ }).click()
+    await expect(page.getByText(/设置已保存|Settings saved/)).toBeVisible()
+
+    const rail = page.locator('[data-testid="app-navigation-rail"] a')
+    await expect(rail.first()).toHaveAttribute('href', '#/')
+    await expect(rail.nth(1)).toHaveAttribute('href', '#/workspace')
+  })
+
   test('cleans backups according to the retention count after confirmation', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.locator('a[href="#/settings"]').click()

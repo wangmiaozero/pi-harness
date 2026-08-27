@@ -286,13 +286,19 @@ async function onCompact() {
 
 <template>
   <div
-    class="relative border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 transition-colors"
+    data-testid="chat-composer"
+    class="command-console relative border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 transition-colors"
     :class="dragActive ? 'bg-[var(--accent-tint)] shadow-[inset_0_0_0_1px_var(--accent)]' : ''"
     @dragenter="onDragEnter"
     @dragover="onDragOver"
     @dragleave="onDragLeave"
     @drop="onDrop"
   >
+    <div
+      class="cockpit-only command-console-label mb-1 font-[family-name:var(--font-mono)] text-[8px] font-semibold tracking-[0.2em] text-[var(--accent)]"
+    >
+      COMMAND CONSOLE
+    </div>
     <input
       ref="fileInput"
       type="file"
@@ -347,10 +353,10 @@ async function onCompact() {
         @paste="onPaste"
       />
     </div>
-    <div class="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
+    <div class="command-console-controls mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
       <button
         type="button"
-        class="inline-flex size-8 shrink-0 items-center justify-center rounded-[8px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+        class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[8px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
         :class="workspace.draftImages.length ? 'text-[var(--accent)]' : ''"
         :title="$t('workspace.attachImage')"
         :aria-label="$t('workspace.attachImage')"
@@ -397,7 +403,7 @@ async function onCompact() {
         </Button>
         <button
           type="button"
-          class="inline-flex size-8 items-center justify-center rounded-[8px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+          class="cockpit-control-button inline-flex size-8 items-center justify-center rounded-[8px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           :title="soundEnabled ? $t('workspace.disableSound') : $t('workspace.enableSound')"
           :aria-label="soundEnabled ? $t('workspace.disableSound') : $t('workspace.enableSound')"
           :aria-pressed="soundEnabled"
@@ -420,7 +426,9 @@ async function onCompact() {
         </Button>
       </div>
     </div>
-    <p class="mt-1 text-[10.5px] text-[var(--text-tertiary)]">{{ $t('workspace.sendHint') }}</p>
+    <p class="command-console-hint mt-1 text-[10.5px] text-[var(--text-tertiary)]">
+      {{ $t('workspace.sendHint') }}
+    </p>
     <div
       v-if="dragActive"
       class="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-[var(--radius-sm)] border border-dashed border-[var(--accent)] bg-[var(--bg-surface-raised)]/90 text-[12px] font-medium text-[var(--accent)]"

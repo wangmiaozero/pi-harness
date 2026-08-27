@@ -12,62 +12,80 @@ import {
   FileCode2,
   SquareTerminal
 } from '@lucide/vue'
+import { useSettingsStore } from '@renderer/stores/settings'
+import { normalizeNavOrder, type NavItemId } from '@shared/constants/navigation'
 
 const route = useRoute()
 const { t } = useI18n()
+const settings = useSettingsStore()
 
-const navItems = computed(() => [
-  {
-    name: 'overview',
-    to: '/',
-    icon: LayoutDashboard,
-    label: t('nav.overview'),
-    short: t('navShort.overview')
-  },
-  {
-    name: 'workspace',
-    to: '/workspace',
-    icon: SquareTerminal,
-    label: t('nav.workspace'),
-    short: t('navShort.workspace')
-  },
-  {
-    name: 'providers',
-    to: '/providers',
-    icon: Box,
-    label: t('nav.providers'),
-    short: t('navShort.providers')
-  },
-  { name: 'models', to: '/models', icon: Cpu, label: t('nav.models'), short: t('navShort.models') },
-  {
-    name: 'skills',
-    to: '/skills',
-    icon: Sparkles,
-    label: t('nav.skills'),
-    short: t('navShort.skills')
-  },
-  {
-    name: 'config',
-    to: '/config',
-    icon: FileCode2,
-    label: t('nav.config'),
-    short: t('navShort.config')
-  },
-  {
-    name: 'diagnostics',
-    to: '/diagnostics',
-    icon: Activity,
-    label: t('nav.diagnostics'),
-    short: t('navShort.diagnostics')
-  },
-  {
-    name: 'settings',
-    to: '/settings',
-    icon: Settings,
-    label: t('nav.settings'),
-    short: t('navShort.settings')
-  }
-])
+const catalog = computed(
+  (): Record<
+    NavItemId,
+    { name: NavItemId; to: string; icon: typeof SquareTerminal; label: string; short: string }
+  > => ({
+    workspace: {
+      name: 'workspace',
+      to: '/workspace',
+      icon: SquareTerminal,
+      label: t('nav.workspace'),
+      short: t('navShort.workspace')
+    },
+    overview: {
+      name: 'overview',
+      to: '/',
+      icon: LayoutDashboard,
+      label: t('nav.overview'),
+      short: t('navShort.overview')
+    },
+    providers: {
+      name: 'providers',
+      to: '/providers',
+      icon: Box,
+      label: t('nav.providers'),
+      short: t('navShort.providers')
+    },
+    models: {
+      name: 'models',
+      to: '/models',
+      icon: Cpu,
+      label: t('nav.models'),
+      short: t('navShort.models')
+    },
+    skills: {
+      name: 'skills',
+      to: '/skills',
+      icon: Sparkles,
+      label: t('nav.skills'),
+      short: t('navShort.skills')
+    },
+    config: {
+      name: 'config',
+      to: '/config',
+      icon: FileCode2,
+      label: t('nav.config'),
+      short: t('navShort.config')
+    },
+    diagnostics: {
+      name: 'diagnostics',
+      to: '/diagnostics',
+      icon: Activity,
+      label: t('nav.diagnostics'),
+      short: t('navShort.diagnostics')
+    },
+    settings: {
+      name: 'settings',
+      to: '/settings',
+      icon: Settings,
+      label: t('nav.settings'),
+      short: t('navShort.settings')
+    }
+  })
+)
+
+const navItems = computed(() =>
+  normalizeNavOrder(settings.settings?.navOrder).map((id) => catalog.value[id])
+)
 
 function isActive(path: string): boolean {
   if (path === '/') return route.path === '/'
@@ -78,7 +96,8 @@ function isActive(path: string): boolean {
 <template>
   <!-- 50px icon rail. Labels live in title + sr-only so hover / a11y / e2e still work. -->
   <aside
-    class="flex w-[var(--sidebar-width)] shrink-0 flex-col items-center bg-[var(--bg-sidebar)]"
+    class="app-navigation-rail flex w-[var(--sidebar-width)] shrink-0 flex-col items-center bg-[var(--bg-sidebar)]"
+    data-testid="app-navigation-rail"
   >
     <nav class="flex w-full flex-1 flex-col items-center gap-1 px-1 pt-2">
       <RouterLink

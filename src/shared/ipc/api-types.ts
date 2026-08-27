@@ -34,6 +34,7 @@ import type {
 } from '../types/workspace'
 import type { ToolPreset } from '../workspace/tool-presets'
 import type { MascotStyle } from '../constants/mascot'
+import type { NavItemId } from '../constants/navigation'
 import type {
   CapabilityActionResult,
   CapabilityDescriptor,
@@ -540,6 +541,7 @@ export interface AppSettings {
   autoOpenLastProject: boolean
   windowMotionEnabled: boolean
   screenMotionEnabled: boolean
+  navOrder: NavItemId[]
 }
 
 export interface NotificationEvent {

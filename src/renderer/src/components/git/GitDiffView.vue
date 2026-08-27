@@ -22,7 +22,7 @@ watch(
 </script>
 
 <template>
-  <div class="h-full overflow-auto p-3">
+  <div class="git-diff-view h-full overflow-auto p-3">
     <EmptyState v-if="!diff?.patch" :title="$t('workspace.noDiff')" :icon="GitBranch" />
     <pre
       v-else

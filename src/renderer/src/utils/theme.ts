@@ -16,7 +16,8 @@ export function resolveTheme(pref: ThemePreference): 'dark' | 'light' {
 export function applyTheme(pref: ThemePreference): void {
   const resolved = resolveTheme(pref)
   document.documentElement.dataset.theme = resolved
-  document.documentElement.style.colorScheme = resolved
+  document.documentElement.style.colorScheme =
+    document.documentElement.dataset.visualSkin === 'starship-cockpit' ? 'dark' : resolved
 }
 
 let mediaListener: ((e: MediaQueryListEvent) => void) | null = null

@@ -19,7 +19,12 @@ describe('MascotBackground', () => {
       const background = wrapper.get('[data-testid="page-mascot-background"]')
       expect(background.attributes('data-style')).toBe(style)
       expect(background.attributes('aria-hidden')).toBe('true')
-      const assetName = style === 'maidWhite' ? 'pico-maid-white' : `pico-${style}`
+      const assetName =
+        style === 'maidWhite'
+          ? 'pico-maid-white'
+          : style === 'starshipCockpit'
+            ? 'frost-navigator'
+            : `pico-${style}`
       expect(wrapper.get('img').attributes('src')).toContain(assetName)
       expect(wrapper.get('img').attributes('alt')).toBe('')
     }

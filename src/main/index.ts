@@ -25,6 +25,7 @@ import { ScreenMotionOverlayController } from './window/screen-motion-overlay'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
 import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
+import { DEFAULT_NAV_ORDER } from '@shared/constants/navigation'
 import { FileAccessService, type AuthorizedRootsState } from './files/file-access-service'
 import { FileService } from './files/file-service'
 import { GitService } from './git/git-service'
@@ -62,7 +63,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   restoreTabs: true,
   autoOpenLastProject: true,
   windowMotionEnabled: false,
-  screenMotionEnabled: true
+  screenMotionEnabled: true,
+  navOrder: [...DEFAULT_NAV_ORDER]
 }
 
 app.setName(APP_NAME)

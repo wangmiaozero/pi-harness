@@ -5,12 +5,14 @@ export const MASCOT_STYLES = [
   'knowledge',
   'engineer',
   'maid',
-  'mature'
+  'mature',
+  'starshipCockpit'
 ] as const
 
 export type MascotStyle = (typeof MASCOT_STYLES)[number]
 
 export const DEFAULT_MASCOT_STYLE: MascotStyle = 'none'
+export const STARSHIP_COCKPIT_MASCOT_STYLE: MascotStyle = 'starshipCockpit'
 export const MASCOT_UNLOCK_ANSWER = '1024'
 
 export function normalizeMascotStyle(value: unknown): MascotStyle {

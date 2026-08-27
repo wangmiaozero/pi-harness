@@ -62,7 +62,7 @@ const fieldClasses = computed(() =>
 
 const triggerClasses = computed(() => {
   const base =
-    'inline-flex h-[var(--height-select)] w-full items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-[var(--control-border)] ' +
+    'ui-select-trigger inline-flex h-[var(--height-select)] w-full items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-[var(--control-border)] ' +
     'bg-[var(--control-bg)] px-2.5 text-left text-[13px] text-[var(--text-primary)] shadow-[var(--control-shadow)] ' +
     'transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] ' +
     'hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] ' +

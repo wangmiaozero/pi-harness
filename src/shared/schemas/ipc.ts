@@ -2,6 +2,7 @@
 
 import { z } from 'zod'
 import { MASCOT_STYLES } from '../constants/mascot'
+import { normalizeNavOrder } from '../constants/navigation'
 import { TOOL_PRESET_VALUES } from '../workspace/tool-presets'
 import { providerKeySchema } from './domain'
 
@@ -72,7 +73,8 @@ const appSettingsFields = {
   restoreTabs: z.boolean(),
   autoOpenLastProject: z.boolean(),
   windowMotionEnabled: z.boolean(),
-  screenMotionEnabled: z.boolean()
+  screenMotionEnabled: z.boolean(),
+  navOrder: z.array(z.unknown()).max(32).transform(normalizeNavOrder)
 }
 
 /** Dropped UI keys that may still exist in older Pi-Harness settings.json files. */

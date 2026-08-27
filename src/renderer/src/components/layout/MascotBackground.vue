@@ -11,8 +11,9 @@ const props = withDefaults(
     state?: PetState
     enabled?: boolean
     animated?: boolean
+    context?: 'workspace' | 'page'
   }>(),
-  { state: 'idle', enabled: true, animated: true }
+  { state: 'idle', enabled: true, animated: true, context: 'page' }
 )
 
 const manifest = computed(() => getPetManifest(props.style))
@@ -24,7 +25,9 @@ const manifest = computed(() => getPetManifest(props.style))
     data-testid="page-mascot-background"
     :data-style="style"
     :data-state="state"
+    :data-context="context"
     class="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none"
+    :class="style === 'starshipCockpit' ? 'mascot-background--starship' : ''"
     aria-hidden="true"
   >
     <PetRenderer
@@ -52,6 +55,34 @@ const manifest = computed(() => getPetManifest(props.style))
   mask-image: linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.72) 24%, #000 48%, #000 100%);
 }
 
+.mascot-background--starship .mascot-background-renderer {
+  right: auto;
+  bottom: -7%;
+  left: clamp(220px, 18vw, 300px);
+  height: 96%;
+  max-height: 860px;
+  max-width: min(41vw, 520px);
+  opacity: 0.94;
+  filter: saturate(0.98) contrast(1.04) drop-shadow(0 0 24px rgb(75 164 255 / 0.24));
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 91%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 91%, transparent 100%);
+}
+
+.mascot-background--starship[data-context='page'] .mascot-background-renderer {
+  right: 2%;
+  left: auto;
+  height: 94%;
+  max-width: 42%;
+  opacity: 0.13;
+  filter: saturate(0.78) contrast(0.98);
+  -webkit-mask-image: linear-gradient(to right, transparent, rgb(0 0 0 / 0.82) 34%, #000 60%);
+  mask-image: linear-gradient(to right, transparent, rgb(0 0 0 / 0.82) 34%, #000 60%);
+}
+
+.mascot-background--starship :deep(.pet-renderer--background .pet-sprite) {
+  filter: none;
+}
+
 :global(:root[data-theme='light'] .mascot-background-renderer) {
   opacity: 0.065;
   filter: saturate(0.68) contrast(0.86);
@@ -67,6 +98,25 @@ const manifest = computed(() => getPetManifest(props.style))
 
   :global(:root[data-theme='light'] .mascot-background-renderer) {
     opacity: 0.05;
+  }
+
+  .mascot-background--starship .mascot-background-renderer {
+    left: 270px;
+    height: 82%;
+    max-width: 38%;
+    opacity: 0.82;
+  }
+
+  .mascot-background--starship[data-context='page'] .mascot-background-renderer {
+    right: 1%;
+    left: auto;
+    opacity: 0.1;
+  }
+}
+
+@media (max-width: 949px) {
+  .mascot-background--starship[data-context='workspace'] {
+    display: none;
   }
 }
 </style>

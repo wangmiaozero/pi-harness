@@ -28,7 +28,14 @@ import { useSettingsStore } from '@renderer/stores/settings'
 import { getApi } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { formatDateTime, formatBytes } from '@renderer/utils/format'
-import { DEFAULT_MASCOT_STYLE, MASCOT_STYLES } from '@shared/constants/mascot'
+import {
+  DEFAULT_MASCOT_STYLE,
+  MASCOT_STYLES,
+  STARSHIP_COCKPIT_MASCOT_STYLE,
+  type MascotStyle
+} from '@shared/constants/mascot'
+import { DEFAULT_NAV_ORDER, normalizeNavOrder } from '@shared/constants/navigation'
+import NavOrderList from '@renderer/components/settings/NavOrderList.vue'
 import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
 import PetDebug from '@renderer/components/pet/PetDebug.vue'
 
@@ -41,6 +48,7 @@ const updateSupported = ref(false)
 /** Developer / Mock toggles are for local `pnpm dev` only — hidden when packaged. */
 const showDeveloper = ref(false)
 const mascotExpanded = ref(false)
+const navOrderExpanded = ref(false)
 const mascotUnlockOpen = ref(false)
 const mascotUnlocking = ref(false)
 const mascotAnswer = ref('')
@@ -93,7 +101,8 @@ const draft = ref<AppSettings>({
   restoreTabs: true,
   autoOpenLastProject: true,
   windowMotionEnabled: false,
-  screenMotionEnabled: true
+  screenMotionEnabled: true,
+  navOrder: [...DEFAULT_NAV_ORDER]
 })
 
 const manualCliPath = computed({
@@ -154,10 +163,16 @@ const toolPresetOptions = computed(() => [
   { value: 'full', label: t('workspace.presetFull') }
 ])
 
+const navOrderIsDefault = computed(
+  () =>
+    draft.value.navOrder.length === DEFAULT_NAV_ORDER.length &&
+    draft.value.navOrder.every((id, index) => id === DEFAULT_NAV_ORDER[index])
+)
+
 watch(
   () => store.settings,
   (s) => {
-    if (s) draft.value = { ...s }
+    if (s) draft.value = { ...s, navOrder: normalizeNavOrder(s.navOrder) }
   },
   { immediate: true }
 )
@@ -178,6 +193,10 @@ async function saveSettings() {
   }
 }
 
+function resetNavOrder(): void {
+  draft.value.navOrder = [...DEFAULT_NAV_ORDER]
+}
+
 function toggleMascotSection(): void {
   if (!draft.value.mascotUnlocked) {
     mascotUnlockOpen.value = !mascotUnlockOpen.value
@@ -186,6 +205,11 @@ function toggleMascotSection(): void {
     return
   }
   mascotExpanded.value = !mascotExpanded.value
+}
+
+function selectMascot(style: MascotStyle): void {
+  draft.value.mascotStyle = style
+  if (style === STARSHIP_COCKPIT_MASCOT_STYLE) draft.value.petEnabled = true
 }
 
 async function unlockMascot(): Promise<void> {
@@ -336,7 +360,7 @@ onBeforeUnmount(stopUpdateListener)
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 flex-col">
+  <div class="settings-view flex h-full min-h-0 flex-col">
     <header
       class="flex shrink-0 items-center justify-between gap-3 px-5 h-[var(--height-page-header)] border-b border-[var(--border-subtle)]"
     >
@@ -396,6 +420,53 @@ onBeforeUnmount(stopUpdateListener)
             </PropertyRow>
           </div>
         </InspectorSection>
+
+        <section
+          data-testid="nav-order-section"
+          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+        >
+          <button
+            type="button"
+            data-testid="nav-order-toggle"
+            class="flex h-[34px] w-full items-center justify-between gap-3 px-3 text-left transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+            :aria-expanded="navOrderExpanded"
+            aria-controls="nav-order-settings-content"
+            @click="navOrderExpanded = !navOrderExpanded"
+          >
+            <span
+              class="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+            >
+              {{ $t('settings.navOrder') }}
+            </span>
+            <ChevronDown
+              class="size-3.5 shrink-0 text-[var(--text-tertiary)] transition-transform duration-150"
+              :class="navOrderExpanded && 'rotate-180'"
+              :stroke-width="1.75"
+            />
+          </button>
+          <div
+            v-if="navOrderExpanded"
+            id="nav-order-settings-content"
+            class="border-t border-[var(--border-subtle)]"
+          >
+            <div class="flex items-center justify-between gap-2 px-3 py-2">
+              <p class="text-[11.5px] text-[var(--text-tertiary)]">
+                {{ $t('settings.navOrderHint') }}
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                :disabled="navOrderIsDefault"
+                data-testid="nav-order-reset"
+                @click="resetNavOrder"
+              >
+                <RotateCcw class="size-3" :stroke-width="1.75" />
+                {{ $t('settings.navOrderReset') }}
+              </Button>
+            </div>
+            <NavOrderList v-model="draft.navOrder" />
+          </div>
+        </section>
 
         <section
           data-testid="mascot-settings-section"
@@ -527,9 +598,10 @@ onBeforeUnmount(stopUpdateListener)
                     : 'border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
                 "
                 :aria-pressed="draft.mascotStyle === option.value"
-                @click="draft.mascotStyle = option.value"
+                :data-mascot-option="option.value"
+                @click="selectMascot(option.value)"
               >
-                <div class="h-32 bg-[var(--bg-window)]/45 px-2 pt-2">
+                <div class="mascot-option-preview h-32 bg-[var(--bg-window)]/45 px-2 pt-2">
                   <img
                     v-if="option.image"
                     :src="option.image"
@@ -582,9 +654,6 @@ onBeforeUnmount(stopUpdateListener)
                   class="w-20"
                   :disabled="!draft.petAutoSleep"
                 />
-              </PropertyRow>
-              <PropertyRow :label="$t('settings.petSound')">
-                <Switch v-model="draft.petSound" :label="$t('settings.petSound')" />
               </PropertyRow>
             </div>
           </div>

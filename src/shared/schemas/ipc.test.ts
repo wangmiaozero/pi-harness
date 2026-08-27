@@ -29,6 +29,9 @@ describe('IPC schemas', () => {
     expect(appSettingsPatchSchema.safeParse({ unexpected: true }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ windowMotionEnabled: false }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ screenMotionEnabled: true }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ navOrder: ['settings'] }).success).toBe(true)
+    expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder?.[0]).toBe('settings')
+    expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder).toHaveLength(8)
     expect(appSettingsPatchSchema.safeParse({ density: 'compact' }).success).toBe(false)
     expect(
       appSettingsPatchSchema.safeParse(

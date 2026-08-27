@@ -234,7 +234,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--bg-workspace)]">
+  <div class="file-viewer flex h-full min-h-0 flex-col overflow-hidden bg-[var(--bg-workspace)]">
     <header
       v-if="preview"
       class="flex h-8 shrink-0 items-center justify-between gap-4 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3"
