@@ -46,9 +46,7 @@ const newChatActive = computed(
 const newSessionLabel = computed(() =>
   workspace.canChat ? t('workspace.newSession') : t('workspace.newSessionRequiresProject')
 )
-const activeProviderKey = computed(
-  () => agent.state?.model?.provider ?? models.active.providerKey
-)
+const activeProviderKey = computed(() => agent.state?.model?.provider ?? models.active.providerKey)
 const activeModelId = computed(() => agent.state?.model?.id ?? models.active.modelId)
 
 function running(id: string): boolean {
@@ -295,9 +293,11 @@ defineExpose({ pickProject })
     @drop.prevent="onDrop"
   >
     <div
-      class="flex items-center justify-between px-2.5 h-9 border-b border-[var(--border-subtle)]"
+      class="mission-control-header flex items-center justify-between px-2.5 h-9 border-b border-[var(--border-subtle)]"
     >
-      <p class="flex flex-col text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+      <p
+        class="flex flex-col text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+      >
         <span>{{ $t('workspace.title') }}</span>
         <span class="cockpit-only text-[7px] tracking-[0.18em] text-[var(--accent)]">
           MISSION CONTROL
@@ -324,7 +324,7 @@ defineExpose({ pickProject })
       </div>
     </div>
 
-    <div class="flex border-b border-[var(--border-subtle)] px-1 py-1">
+    <div class="workspace-section-tabs flex border-b border-[var(--border-subtle)] px-1 py-1">
       <button
         v-for="item in [
           { id: 'sessions', label: $t('workspace.sessions') },
@@ -332,12 +332,13 @@ defineExpose({ pickProject })
           { id: 'git', label: $t('workspace.git') }
         ]"
         :key="item.id"
-        class="flex-1 rounded-[var(--radius-sm)] py-1 text-[11px]"
+        class="workspace-section-tab flex-1 rounded-[var(--radius-sm)] py-1 text-[11px]"
         :class="
           section === item.id
             ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
             : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]'
         "
+        :aria-pressed="section === item.id"
         @click="section = item.id as 'sessions' | 'files' | 'git'"
       >
         {{ item.label }}
@@ -356,15 +357,20 @@ defineExpose({ pickProject })
             :description="$t('workspace.dropProjectHint')"
             :icon="FolderOpen"
           />
-          <div v-for="project in projects" :key="project.projectKey" class="mb-1">
+          <div
+            v-for="project in projects"
+            :key="project.projectKey"
+            class="project-tree-group mb-1"
+          >
             <div
-              class="group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
+              class="project-tree-row group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
               :class="
                 sessions.currentProjectKey === project.projectKey
                   ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
               "
               :data-project-key="project.projectKey"
+              :data-active="sessions.currentProjectKey === project.projectKey ? 'true' : 'false'"
               @contextmenu="onProjectContextMenu(project, $event)"
             >
               <button
@@ -412,7 +418,7 @@ defineExpose({ pickProject })
 
             <div
               v-if="!isCollapsed(project.projectKey)"
-              class="ml-5 mt-0.5 border-l border-[var(--border-subtle)] pl-1"
+              class="session-tree-branch ml-5 mt-0.5 border-l border-[var(--border-subtle)] pl-1"
             >
               <p
                 v-if="!project.sessions.length"
@@ -424,13 +430,14 @@ defineExpose({ pickProject })
                 v-for="session in project.sessions"
                 :key="session.id"
                 type="button"
-                class="group/session relative flex h-7 w-full items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-left transition-[color,background-color,box-shadow] active:bg-[var(--accent-tint-strong)]"
+                class="session-tree-row group/session relative flex h-7 w-full items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-left transition-[color,background-color,box-shadow] active:bg-[var(--accent-tint-strong)]"
                 :class="
                   sessions.currentId === session.id
                     ? 'font-medium text-[var(--accent)]'
                     : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
                 "
                 :aria-current="sessions.currentId === session.id ? 'page' : undefined"
+                :data-active="sessions.currentId === session.id ? 'true' : 'false'"
                 :title="session.name || session.firstMessage"
                 @click="openSession(session)"
                 @contextmenu="onContextMenu(session, $event)"

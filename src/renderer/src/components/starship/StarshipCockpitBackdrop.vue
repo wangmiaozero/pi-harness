@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import deepSpaceImage from '@renderer/assets/themes/starship-cockpit/deep-space.png'
 import distantPlanetImage from '@renderer/assets/themes/starship-cockpit/distant-planet.png'
+import cockpitConsoleDeckImage from '@renderer/assets/themes/starship-cockpit/cockpit-console-deck.png'
 import StarfieldCanvas from './StarfieldCanvas.vue'
 
 withDefaults(
@@ -39,6 +40,13 @@ withDefaults(
     />
     <StarfieldCanvas class="absolute inset-0" :active="true" :animated="animated" />
     <div class="starship-space-vignette absolute inset-0" />
+    <img
+      v-if="workspace"
+      :src="cockpitConsoleDeckImage"
+      alt=""
+      draggable="false"
+      class="starship-console-deck absolute max-w-none"
+    />
   </div>
 </template>
 
@@ -48,14 +56,14 @@ withDefaults(
 }
 
 .starship-deep-space {
-  opacity: 0.92;
-  filter: saturate(0.9) brightness(0.8) contrast(1.08);
+  opacity: 0.98;
+  filter: saturate(0.98) brightness(0.94) contrast(1.08);
   animation: starship-space-drift 38s ease-in-out infinite alternate;
   will-change: transform;
 }
 
 .starship-nebula {
-  opacity: 0.16;
+  opacity: 0.2;
   filter: blur(22px) saturate(1.22) brightness(1.08);
   mix-blend-mode: screen;
   animation: starship-nebula-drift 32s ease-in-out infinite alternate;
@@ -68,7 +76,7 @@ withDefaults(
     linear-gradient(118deg, transparent 35%, rgb(65 221 221 / 0.12) 49%, transparent 63%);
   filter: blur(30px);
   mix-blend-mode: screen;
-  opacity: 0.72;
+  opacity: 0.82;
   transform: rotate(-5deg);
   animation: starship-aurora-flow 26s ease-in-out infinite alternate;
   will-change: transform, opacity;
@@ -89,8 +97,30 @@ withDefaults(
 
 .starship-space-vignette {
   background:
-    linear-gradient(90deg, rgb(1 5 16 / 0.52), transparent 23%, transparent 76%, rgb(1 5 16 / 0.42)),
+    radial-gradient(ellipse at 39% 48%, transparent 0 18%, rgb(1 5 16 / 0.12) 46%, transparent 64%),
+    linear-gradient(
+      90deg,
+      rgb(1 5 16 / 0.58),
+      transparent 24%,
+      transparent 49%,
+      rgb(1 5 16 / 0.24) 68%,
+      rgb(1 5 16 / 0.5)
+    ),
     linear-gradient(180deg, rgb(1 5 16 / 0.18), transparent 28%, rgb(1 5 16 / 0.54));
+}
+
+.starship-console-deck {
+  right: clamp(28px, 3.4vw, 66px);
+  bottom: clamp(142px, 16vh, 186px);
+  z-index: 2;
+  width: clamp(380px, 30vw, 570px);
+  opacity: 0.9;
+  filter: saturate(0.84) brightness(0.9) contrast(1.12) drop-shadow(0 0 18px rgb(44 161 255 / 0.22));
+}
+
+[data-animated='true'] .starship-console-deck {
+  animation: starship-console-pulse 5.6s ease-in-out infinite;
+  will-change: opacity, filter;
 }
 
 [data-intensity='soft'] .starship-deep-space {
@@ -108,6 +138,19 @@ withDefaults(
 [data-animated='false'] .starship-aurora,
 [data-animated='false'] .starship-distant-planet {
   animation: none;
+}
+
+@keyframes starship-console-pulse {
+  0%,
+  100% {
+    opacity: 0.84;
+    filter: saturate(0.8) brightness(0.84) contrast(1.1)
+      drop-shadow(0 0 14px rgb(44 161 255 / 0.18));
+  }
+  50% {
+    opacity: 0.96;
+    filter: saturate(0.94) brightness(1) contrast(1.14) drop-shadow(0 0 22px rgb(44 161 255 / 0.28));
+  }
 }
 
 @keyframes starship-space-drift {
@@ -154,7 +197,8 @@ withDefaults(
   .starship-deep-space,
   .starship-nebula,
   .starship-aurora,
-  .starship-distant-planet {
+  .starship-distant-planet,
+  .starship-console-deck {
     animation: none;
   }
 }

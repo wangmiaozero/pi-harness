@@ -21,7 +21,7 @@ import {
   MAX_ATTACHED_IMAGE_BYTES,
   MAX_ATTACHED_IMAGES
 } from '@shared/workspace/image-attachments'
-import { ImagePlus, Lightbulb, Minimize2, Volume2, VolumeX, Wrench, X } from '@lucide/vue'
+import { ImagePlus, Lightbulb, Minimize2, Send, Volume2, VolumeX, Wrench, X } from '@lucide/vue'
 
 defineProps<{ soundEnabled: boolean }>()
 const emit = defineEmits<{ send: []; abort: []; toggleSound: []; unlockAudio: [] }>()
@@ -333,7 +333,7 @@ async function onCompact() {
       </div>
     </div>
     <div
-      class="relative overflow-hidden rounded-[var(--radius-sm)] border bg-[var(--control-bg)] shadow-[var(--control-shadow)] transition-[background-color,border-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-[var(--control-bg-hover)]"
+      class="command-console-input relative overflow-hidden rounded-[var(--radius-sm)] border bg-[var(--control-bg)] shadow-[var(--control-shadow)] transition-[background-color,border-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-[var(--control-bg-hover)]"
       :class="
         textareaFocused
           ? 'border-[var(--accent-border)] bg-[var(--control-bg-hover)]'
@@ -371,7 +371,7 @@ async function onCompact() {
         :disabled="busy || modelSwitching"
         class="min-w-[190px] max-w-[300px]"
       />
-      <div class="ml-auto flex items-center gap-0.5">
+      <div class="console-tool-strip ml-auto flex items-center gap-0.5">
         <ComposerOptionMenu
           v-model="thinkingValue"
           :label="$t('workspace.changeThinking')"
@@ -416,12 +416,14 @@ async function onCompact() {
           {{ $t('workspace.abort') }}
         </Button>
         <Button
+          class="command-execute-button"
           variant="primary"
           size="sm"
           :disabled="!canSend"
           :loading="agent.sending"
           @click="emit('send')"
         >
+          <Send aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
           {{ $t('workspace.send') }}
         </Button>
       </div>

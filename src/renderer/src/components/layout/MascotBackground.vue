@@ -57,15 +57,19 @@ const manifest = computed(() => getPetManifest(props.style))
 
 .mascot-background--starship .mascot-background-renderer {
   right: auto;
-  bottom: -7%;
+  bottom: -16%;
   left: clamp(220px, 18vw, 300px);
-  height: 96%;
-  max-height: 860px;
-  max-width: min(41vw, 520px);
+  height: 112%;
+  max-height: 980px;
+  max-width: min(48vw, 660px);
   opacity: 0.94;
   filter: saturate(0.98) contrast(1.04) drop-shadow(0 0 24px rgb(75 164 255 / 0.24));
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 91%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 91%, transparent 100%);
+}
+
+.mascot-background--starship {
+  z-index: 4;
 }
 
 .mascot-background--starship[data-context='page'] .mascot-background-renderer {

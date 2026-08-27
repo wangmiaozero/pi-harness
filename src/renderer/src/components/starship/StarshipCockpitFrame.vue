@@ -1,27 +1,45 @@
 <script setup lang="ts">
-import cockpitFrameImage from '@renderer/assets/themes/starship-cockpit/cockpit-frame-alpha.png'
+import topLeftImage from '@renderer/assets/themes/starship-cockpit/cockpit-top-left.png'
+import topImage from '@renderer/assets/themes/starship-cockpit/cockpit-top.png'
+import topRightImage from '@renderer/assets/themes/starship-cockpit/cockpit-top-right.png'
+import leftImage from '@renderer/assets/themes/starship-cockpit/cockpit-left.png'
+import rightImage from '@renderer/assets/themes/starship-cockpit/cockpit-right.png'
+import bottomLeftImage from '@renderer/assets/themes/starship-cockpit/cockpit-bottom-left.png'
+import bottomImage from '@renderer/assets/themes/starship-cockpit/cockpit-bottom.png'
+import bottomRightImage from '@renderer/assets/themes/starship-cockpit/cockpit-bottom-right.png'
+
+const frameSegments = [
+  { area: 'top-left', image: topLeftImage },
+  { area: 'top', image: topImage },
+  { area: 'top-right', image: topRightImage },
+  { area: 'left', image: leftImage },
+  { area: 'right', image: rightImage },
+  { area: 'bottom-left', image: bottomLeftImage },
+  { area: 'bottom', image: bottomImage },
+  { area: 'bottom-right', image: bottomRightImage }
+] as const
+
+const frameLayers = ['structure', 'energy'] as const
 </script>
 
 <template>
   <div
     data-testid="starship-cockpit-frame"
-    class="starship-cockpit-frame pointer-events-none contents select-none"
+    class="pointer-events-none contents select-none"
     aria-hidden="true"
   >
-    <div class="starship-cockpit-frame__layer starship-cockpit-frame__layer--back absolute inset-0 z-[1] overflow-hidden">
-      <img
-        :src="cockpitFrameImage"
-        alt=""
-        draggable="false"
-        class="starship-frame-art absolute inset-0 size-full max-w-none"
-      />
-    </div>
-    <div class="starship-cockpit-frame__layer starship-cockpit-frame__layer--edge absolute inset-0 z-[30] overflow-hidden">
-      <img
-        :src="cockpitFrameImage"
-        alt=""
-        draggable="false"
-        class="starship-frame-art absolute inset-0 size-full max-w-none"
+    <div
+      v-for="layer in frameLayers"
+      :key="layer"
+      class="starship-cockpit-frame absolute inset-0"
+      :class="`starship-cockpit-frame--${layer}`"
+    >
+      <span
+        v-for="segment in frameSegments"
+        :key="segment.area"
+        class="starship-cockpit-frame__segment"
+        :data-frame-area="segment.area"
+        :style="{ backgroundImage: `url(${segment.image})` }"
       />
     </div>
   </div>

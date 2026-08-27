@@ -7,12 +7,25 @@
 :root[data-visual-skin='starship-cockpit'] {
   color-scheme: dark;
 
-  --cockpit-bg-deep: #010511;
+  --starship-bg-0: #01040c;
+  --starship-bg-1: #030917;
+  --starship-bg-2: #061226;
+  --starship-blue: #4c8dff;
+  --starship-cyan: #67d8ff;
+  --starship-violet: #8174ff;
+  --starship-border: rgb(103 216 255 / 0.25);
+  --starship-border-active: rgb(103 216 255 / 0.72);
+  --starship-glass: rgb(2 11 29 / 0.68);
+  --starship-glass-heavy: rgb(1 8 22 / 0.86);
+  --starship-text: #d8e8ff;
+  --starship-text-secondary: #7f9aba;
+
+  --cockpit-bg-deep: var(--starship-bg-0);
   --cockpit-bg-panel: rgb(3 13 31 / 0.82);
   --cockpit-bg-glass: rgb(5 18 41 / 0.66);
-  --cockpit-blue: #5b8cff;
-  --cockpit-cyan: #68dcff;
-  --cockpit-violet: #8a72ff;
+  --cockpit-blue: var(--starship-blue);
+  --cockpit-cyan: var(--starship-cyan);
+  --cockpit-violet: var(--starship-violet);
   --cockpit-border: rgb(91 175 255 / 0.2);
   --cockpit-border-active: rgb(104 220 255 / 0.48);
   --cockpit-text: rgb(235 246 255 / 0.94);
@@ -20,6 +33,8 @@
   --cockpit-text-muted: rgb(148 184 216 / 0.48);
 
   --sidebar-width: 56px;
+  --starship-workspace-panel-width: 320px;
+  --starship-left-dock-width: calc(var(--sidebar-width) + var(--starship-workspace-panel-width));
 
   --bg-window: #010511;
   --bg-titlebar: rgb(2 8 21 / 0.72);
@@ -118,9 +133,10 @@
 :root[data-visual-skin='starship-cockpit'] .app-titlebar {
   z-index: 40;
   border-bottom: 1px solid rgb(91 187 255 / 0.16);
-  background:
-    linear-gradient(180deg, rgb(2 8 21 / 0.12), rgb(2 8 21 / 0.34));
-  box-shadow: inset 0 -1px rgb(90 209 255 / 0.04), 0 8px 32px rgb(0 3 13 / 0.22);
+  background: linear-gradient(180deg, rgb(2 8 21 / 0.12), rgb(2 8 21 / 0.34));
+  box-shadow:
+    inset 0 -1px rgb(90 209 255 / 0.04),
+    0 8px 32px rgb(0 3 13 / 0.22);
 }
 
 :root[data-visual-skin='starship-cockpit'] .app-titlebar::before,
@@ -158,7 +174,7 @@
 
 :root[data-visual-skin='starship-cockpit'] .app-titlebar-brand-name {
   color: rgb(207 231 255 / 0.9);
-  font: 500 17px/1 var(--font-sans);
+  font: 500 24px/1 var(--font-sans);
   letter-spacing: -0.025em;
   text-shadow: 0 0 14px rgb(104 220 255 / 0.34);
 }
@@ -168,23 +184,25 @@
   top: 6px;
   left: 84px;
   display: flex;
-  width: 150px;
-  height: 34px;
+  width: 190px;
+  height: 36px;
   align-items: center;
   gap: 8px;
   padding: 3px 10px 3px 4px;
   border: 1px solid rgb(104 220 255 / 0.16);
   color: rgb(211 235 252 / 0.84);
   background: linear-gradient(100deg, rgb(10 34 68 / 0.62), rgb(2 11 27 / 0.18));
-  box-shadow: inset 0 1px rgb(187 235 255 / 0.045), 0 0 18px rgb(43 151 232 / 0.08);
+  box-shadow:
+    inset 0 1px rgb(187 235 255 / 0.045),
+    0 0 18px rgb(43 151 232 / 0.08);
   clip-path: polygon(5px 0, 100% 0, calc(100% - 8px) 100%, 0 100%, 0 5px);
   font-family: var(--font-mono);
 }
 
 :root[data-visual-skin='starship-cockpit'] .starship-titlebar-identity__icon {
-  width: 29px;
-  height: 29px;
-  flex: 0 0 29px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
   border: 1px solid rgb(104 220 255 / 0.38);
   border-radius: 5px;
   filter: saturate(0.92) brightness(1.08) drop-shadow(0 0 9px rgb(83 174 255 / 0.42));
@@ -199,7 +217,7 @@
 
 :root[data-visual-skin='starship-cockpit'] .starship-titlebar-identity strong {
   overflow: hidden;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.045em;
   text-overflow: ellipsis;
@@ -209,9 +227,29 @@
 
 :root[data-visual-skin='starship-cockpit'] .starship-titlebar-identity small {
   color: rgb(119 197 238 / 0.62);
-  font-size: 6.5px;
+  font-size: 8px;
   letter-spacing: 0.09em;
   white-space: nowrap;
+}
+
+:root[data-visual-skin='starship-cockpit'] .starship-search-trigger {
+  width: 212px;
+  border-color: rgb(103 216 255 / 0.22);
+  border-radius: 0;
+  background: linear-gradient(90deg, rgb(2 12 29 / 0.78), rgb(7 25 48 / 0.62));
+  box-shadow: inset 0 1px rgb(189 236 255 / 0.045);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+:root[data-visual-skin='starship-cockpit'] .starship-search-trigger:hover {
+  border-color: rgb(103 216 255 / 0.42);
+  background: linear-gradient(90deg, rgb(4 20 43 / 0.9), rgb(10 37 67 / 0.7));
+}
+
+:root[data-visual-skin='starship-cockpit'] .starship-search-trigger kbd {
+  border-radius: 2px;
+  border-color: rgb(103 216 255 / 0.17);
+  background: rgb(5 21 43 / 0.66);
 }
 
 :root[data-visual-skin='starship-cockpit'] .ui-button {
@@ -223,8 +261,7 @@
   border: 1px solid rgb(112 220 255 / 0.56);
   color: rgb(239 249 255 / 0.96);
   background:
-    linear-gradient(135deg, rgb(67 117 247 / 0.92), rgb(39 170 232 / 0.78)),
-    rgb(23 74 148 / 0.9);
+    linear-gradient(135deg, rgb(67 117 247 / 0.92), rgb(39 170 232 / 0.78)), rgb(23 74 148 / 0.9);
   box-shadow:
     inset 0 1px rgb(223 249 255 / 0.18),
     0 0 12px rgb(71 170 255 / 0.2),
@@ -235,8 +272,7 @@
 :root[data-visual-skin='starship-cockpit'] .ui-button[data-variant='primary']:hover {
   border-color: rgb(149 234 255 / 0.76);
   background:
-    linear-gradient(135deg, rgb(83 137 255 / 0.98), rgb(53 193 245 / 0.88)),
-    rgb(27 83 162 / 0.94);
+    linear-gradient(135deg, rgb(83 137 255 / 0.98), rgb(53 193 245 / 0.88)), rgb(27 83 162 / 0.94);
   box-shadow:
     inset 0 1px rgb(235 252 255 / 0.24),
     0 0 18px rgb(87 193 255 / 0.3),
@@ -261,7 +297,9 @@
   border-color: rgb(104 220 255 / 0.32);
   color: rgb(151 224 255 / 0.92);
   background: linear-gradient(145deg, rgb(18 66 113 / 0.58), rgb(5 24 51 / 0.72));
-  box-shadow: inset 0 1px rgb(190 238 255 / 0.06), 0 0 12px rgb(70 178 255 / 0.1);
+  box-shadow:
+    inset 0 1px rgb(190 238 255 / 0.06),
+    0 0 12px rgb(70 178 255 / 0.1);
 }
 
 :root[data-visual-skin='starship-cockpit'] .workspace-command-actions {
@@ -273,8 +311,8 @@
 }
 
 :root[data-visual-skin='starship-cockpit'] .workspace-command-actions .ui-icon-button {
-  width: 24px;
-  height: 25px;
+  width: 30px;
+  height: 30px;
   border: 1px solid rgb(104 220 255 / 0.18);
   color: rgb(175 216 241 / 0.72);
   background: linear-gradient(145deg, rgb(18 54 92 / 0.46), rgb(3 17 37 / 0.74));
@@ -283,38 +321,98 @@
 }
 
 :root[data-visual-skin='starship-cockpit'] .workspace-command-actions .ui-icon-button:hover,
-:root[data-visual-skin='starship-cockpit'] .workspace-command-actions .ui-icon-button[data-variant='accent'] {
+:root[data-visual-skin='starship-cockpit']
+  .workspace-command-actions
+  .ui-icon-button[data-variant='accent'] {
   border-color: rgb(104 220 255 / 0.46);
   color: rgb(177 236 255 / 0.96);
   background: linear-gradient(145deg, rgb(24 83 137 / 0.72), rgb(4 27 58 / 0.88));
-  box-shadow: inset 0 1px rgb(205 244 255 / 0.1), 0 0 10px rgb(71 181 255 / 0.14);
+  box-shadow:
+    inset 0 1px rgb(205 244 255 / 0.1),
+    0 0 10px rgb(71 181 255 / 0.14);
 }
 
 :root[data-visual-skin='starship-cockpit'] .command-console .cockpit-control-button {
+  width: 40px;
+  height: 40px;
   border: 1px solid transparent;
   clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
 }
 
+:root[data-visual-skin='starship-cockpit'] .command-console .cockpit-control-button:has(> span) {
+  width: auto;
+  min-width: 64px;
+}
+
 :root[data-visual-skin='starship-cockpit'] .ui-select-trigger {
   border-radius: 3px;
-  background:
-    linear-gradient(145deg, rgb(17 50 86 / 0.34), transparent 58%),
-    var(--control-bg);
+  background: linear-gradient(145deg, rgb(17 50 86 / 0.34), transparent 58%), var(--control-bg);
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 
 :root[data-visual-skin='starship-cockpit'] .app-navigation-rail {
   position: relative;
   z-index: 4;
-  background:
-    linear-gradient(180deg, rgb(3 13 31 / 0.82), rgb(1 7 18 / 0.9)),
-    var(--bg-sidebar);
+  background: linear-gradient(180deg, rgb(3 13 31 / 0.82), rgb(1 7 18 / 0.9)), var(--bg-sidebar);
   border-right: 1px solid rgb(95 188 255 / 0.14);
-  box-shadow: inset -1px 0 rgb(111 218 255 / 0.04), 8px 0 28px rgb(0 3 13 / 0.2);
+  box-shadow:
+    inset -1px 0 rgb(111 218 255 / 0.04),
+    8px 0 28px rgb(0 3 13 / 0.2);
 }
 
 :root[data-visual-skin='starship-cockpit'] .app-navigation-rail a[aria-current='page'] {
   text-shadow: 0 0 12px rgb(104 220 255 / 0.35);
+}
+
+:root[data-visual-skin='starship-cockpit'] .app-navigation-rail nav {
+  gap: 3px;
+  padding: 8px 4px 6px;
+}
+
+:root[data-visual-skin='starship-cockpit'] .app-navigation-rail a {
+  width: 100%;
+  min-height: 51px;
+  padding: 7px 0;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: rgb(139 174 205 / 0.58);
+}
+
+:root[data-visual-skin='starship-cockpit'] .app-navigation-rail a:hover {
+  color: rgb(191 224 247 / 0.82);
+  background: linear-gradient(90deg, rgb(23 73 116 / 0.38), rgb(6 25 51 / 0.2));
+}
+
+:root[data-visual-skin='starship-cockpit'] .app-navigation-rail a[aria-current='page'] {
+  border-color: rgb(103 216 255 / 0.22);
+  color: rgb(221 240 255 / 0.96);
+  background:
+    linear-gradient(180deg, rgb(29 88 145 / 0.54), rgb(7 31 65 / 0.66)), var(--starship-glass);
+  box-shadow:
+    inset 0 0 16px rgb(53 158 231 / 0.1),
+    0 0 14px rgb(54 163 242 / 0.08);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+
+:root[data-visual-skin='starship-cockpit'] .app-navigation-rail a[aria-current='page']::after {
+  position: absolute;
+  right: 7px;
+  bottom: 0;
+  left: 7px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--starship-cyan), transparent);
+  box-shadow: 0 0 8px rgb(103 216 255 / 0.5);
+  content: '';
+}
+
+:root[data-visual-skin='starship-cockpit']
+  .app-navigation-rail
+  a[aria-current='page']
+  > span:first-child {
+  width: 3px;
+  height: 22px;
+  border-radius: 0;
+  box-shadow: 0 0 10px rgb(103 216 255 / 0.74);
 }
 
 :root[data-visual-skin='starship-cockpit'] .starship-viewport-root {
@@ -333,27 +431,162 @@
 }
 
 :root[data-visual-skin='starship-cockpit'] .workspace-control-panel {
+  isolation: isolate;
   z-index: 4;
-  width: 220px;
+  width: var(--starship-workspace-panel-width);
   background:
-    linear-gradient(180deg, rgb(5 18 41 / 0.86), rgb(2 10 25 / 0.82)),
-    var(--cockpit-bg-panel);
+    linear-gradient(180deg, rgb(5 18 41 / 0.76), rgb(2 10 25 / 0.72)), var(--cockpit-bg-panel);
   border-color: rgb(104 220 255 / 0.16);
-  box-shadow: 12px 0 36px rgb(0 3 13 / 0.28), inset -1px 0 rgb(104 220 255 / 0.04);
+  box-shadow:
+    12px 0 36px rgb(0 3 13 / 0.28),
+    inset -1px 0 rgb(104 220 255 / 0.04);
   backdrop-filter: blur(12px);
+}
+
+:root[data-visual-skin='starship-cockpit'] .workspace-control-panel::before {
+  position: absolute;
+  top: 106px;
+  bottom: 136px;
+  left: 52px;
+  z-index: 0;
+  width: 238px;
+  background: url('../assets/themes/starship-cockpit/cockpit-left.png') top left / 238px auto
+    no-repeat;
+  content: '';
+  filter: saturate(0.72) brightness(0.62) contrast(1.14)
+    drop-shadow(0 0 13px rgb(45 156 240 / 0.16));
+  mask-image: linear-gradient(180deg, transparent, #000 9%, #000 88%, transparent);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+:root[data-visual-skin='starship-cockpit'] .workspace-control-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+:root[data-visual-skin='starship-cockpit'] .mission-control-header {
+  position: relative;
+  height: 44px;
+  border-bottom-color: rgb(103 216 255 / 0.15);
+  background: linear-gradient(90deg, rgb(10 38 76 / 0.42), transparent 74%);
+}
+
+:root[data-visual-skin='starship-cockpit'] .mission-control-header::after {
+  position: absolute;
+  right: 8px;
+  bottom: -1px;
+  left: 8px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--starship-cyan),
+    rgb(103 216 255 / 0.08) 44%,
+    transparent
+  );
+  content: '';
+  opacity: 0.58;
+}
+
+:root[data-visual-skin='starship-cockpit'] .workspace-section-tabs {
+  gap: 3px;
+  padding: 4px;
+  border-bottom-color: rgb(103 216 255 / 0.13);
+  background: rgb(1 9 23 / 0.36);
+}
+
+:root[data-visual-skin='starship-cockpit'] .workspace-section-tab {
+  position: relative;
+  height: 31px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+
+:root[data-visual-skin='starship-cockpit'] .workspace-section-tab[aria-pressed='true'] {
+  border-color: rgb(103 216 255 / 0.24);
+  color: rgb(220 239 255 / 0.94);
+  background: linear-gradient(180deg, rgb(25 76 126 / 0.48), rgb(5 25 53 / 0.58));
+  box-shadow:
+    inset 0 -1px 0 rgb(103 216 255 / 0.72),
+    inset 0 0 12px rgb(76 141 255 / 0.08);
+}
+
+:root[data-visual-skin='starship-cockpit'] .workspace-section-tab[aria-pressed='true']::after {
+  position: absolute;
+  right: 18%;
+  bottom: 0;
+  left: 18%;
+  height: 1px;
+  background: var(--starship-cyan);
+  box-shadow: 0 0 7px rgb(103 216 255 / 0.62);
+  content: '';
+}
+
+:root[data-visual-skin='starship-cockpit'] .project-tree-row {
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+}
+
+:root[data-visual-skin='starship-cockpit'] .project-tree-row:hover {
+  border-color: rgb(103 216 255 / 0.1);
+  background: linear-gradient(90deg, rgb(19 61 101 / 0.3), transparent);
+}
+
+:root[data-visual-skin='starship-cockpit'] .project-tree-row[data-active='true'] {
+  border-color: rgb(103 216 255 / 0.18);
+  color: var(--starship-text);
+  background: linear-gradient(90deg, rgb(18 64 108 / 0.42), rgb(3 16 36 / 0.18));
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+}
+
+:root[data-visual-skin='starship-cockpit'] .session-tree-branch {
+  border-left-color: rgb(103 216 255 / 0.18);
+  box-shadow: -1px 0 rgb(54 138 204 / 0.04);
+}
+
+:root[data-visual-skin='starship-cockpit'] .session-tree-row {
+  border-radius: 2px;
+}
+
+:root[data-visual-skin='starship-cockpit'] .session-tree-row[data-active='true'] {
+  color: rgb(179 229 255 / 0.96);
+  background: linear-gradient(90deg, rgb(20 74 123 / 0.3), transparent 86%);
+  box-shadow: inset 2px 0 0 var(--starship-cyan);
+}
+
+:root[data-visual-skin='starship-cockpit']
+  .session-tree-row[data-active='true']
+  > span[aria-hidden='true'] {
+  left: 6px;
+  width: 4px;
+  height: 4px;
+  box-shadow: 0 0 7px rgb(103 216 255 / 0.76);
 }
 
 :root[data-visual-skin='starship-cockpit'] .mission-tabs {
   z-index: 4;
+  height: 38px;
+  padding: 3px 7px;
   background: rgb(3 13 31 / 0.74);
   border-color: rgb(104 220 255 / 0.14);
   backdrop-filter: blur(10px);
 }
 
+:root[data-visual-skin='starship-cockpit'] .mission-tabs > button {
+  height: 30px;
+  border-radius: 2px;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+
 :root[data-visual-skin='starship-cockpit'] .mission-tabs > button[aria-pressed='true'] {
   border-color: rgb(104 220 255 / 0.26);
   background: rgb(9 35 66 / 0.58);
-  box-shadow: inset 0 -2px 0 var(--cockpit-cyan), 0 7px 24px rgb(47 166 255 / 0.08);
+  box-shadow:
+    inset 0 -2px 0 var(--cockpit-cyan),
+    0 7px 24px rgb(47 166 255 / 0.08);
 }
 
 :root[data-visual-skin='starship-cockpit'] .chat-window {
@@ -366,10 +599,13 @@
   margin: 6px 8px 0;
   height: 34px;
   border: 1px solid rgb(104 220 255 / 0.18);
-  border-radius: 6px;
+  border-radius: 2px;
   background: rgb(3 15 34 / 0.62);
-  box-shadow: inset 0 1px rgb(151 231 255 / 0.04), 0 8px 26px rgb(0 3 13 / 0.18);
+  box-shadow:
+    inset 0 1px rgb(151 231 255 / 0.04),
+    0 8px 26px rgb(0 3 13 / 0.18);
   backdrop-filter: blur(12px);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
 
 :root[data-visual-skin='starship-cockpit'] .session-hud {
@@ -384,13 +620,17 @@
 
 @media (min-width: 1180px) {
   :root[data-visual-skin='starship-cockpit'] .chat-scroller {
-    padding-right: 22px;
-    padding-left: clamp(350px, 32vw, 470px);
+    display: grid;
+    grid-template-columns: minmax(350px, 40%) minmax(0, 1fr);
+    column-gap: clamp(16px, 2vw, 30px);
+    padding-right: 24px;
+    padding-left: 16px;
   }
 
   :root[data-visual-skin='starship-cockpit'] .chat-scroll-content {
+    grid-column: 2;
     width: min(100%, 760px);
-    margin-left: auto;
+    margin-left: 0;
   }
 }
 
@@ -408,15 +648,17 @@
 :root[data-visual-skin='starship-cockpit'] .user-message-body,
 :root[data-visual-skin='starship-cockpit'] .assistant-message-body {
   border: 1px solid rgb(96 188 255 / 0.2);
-  border-radius: 7px;
+  border-radius: 2px;
   background: rgb(4 16 36 / 0.68);
   box-shadow: inset 0 1px rgb(166 231 255 / 0.035);
   backdrop-filter: blur(12px);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
 
 :root[data-visual-skin='starship-cockpit'] .assistant-message-body {
   padding: 10px 12px;
   border-left-color: rgb(104 220 255 / 0.42);
+  background: rgb(3 14 33 / 0.52);
 }
 
 :root[data-visual-skin='starship-cockpit'] .user-message-body {
@@ -427,6 +669,7 @@
 :root[data-visual-skin='starship-cockpit'] .thinking-hud {
   border-color: rgb(121 148 255 / 0.25);
   background: rgb(13 18 53 / 0.42);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 
 :root[data-visual-skin='starship-cockpit'] .thinking-hud > summary {
@@ -438,19 +681,50 @@
   margin: 0 8px 8px 0;
   padding: 6px 10px 6px;
   border: 1px solid rgb(104 220 255 / 0.24);
-  border-radius: 3px;
+  border-radius: 0;
   background:
-    linear-gradient(180deg, rgb(7 22 47 / 0.84), rgb(3 13 30 / 0.94)),
-    var(--cockpit-bg-panel);
-  box-shadow: 0 -12px 42px rgb(0 4 16 / 0.34), inset 0 1px rgb(166 231 255 / 0.055);
+    linear-gradient(180deg, rgb(7 22 47 / 0.84), rgb(3 13 30 / 0.94)), var(--cockpit-bg-panel);
+  box-shadow:
+    0 -12px 42px rgb(0 4 16 / 0.34),
+    inset 0 1px rgb(166 231 255 / 0.055);
   backdrop-filter: blur(14px);
-  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%, 0 9px);
+  clip-path: polygon(
+    12px 0,
+    calc(100% - 12px) 0,
+    100% 12px,
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    8px 100%,
+    0 calc(100% - 8px),
+    0 12px
+  );
 }
 
 :root[data-visual-skin='starship-cockpit'] .command-console textarea {
-  height: 48px;
-  min-height: 48px;
+  height: 76px;
+  min-height: 76px;
   line-height: 1.45;
+}
+
+:root[data-visual-skin='starship-cockpit'] .command-console-input {
+  border-color: rgb(103 216 255 / 0.1) !important;
+  border-radius: 0;
+  background: rgb(1 8 22 / 0.42);
+  box-shadow: inset 0 0 0 1px rgb(103 216 255 / 0.025);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+
+:root[data-visual-skin='starship-cockpit'] .command-console:focus-within {
+  border-color: rgb(103 216 255 / 0.46);
+  box-shadow:
+    0 -12px 42px rgb(0 4 16 / 0.34),
+    inset 0 0 0 1px rgb(103 216 255 / 0.06),
+    0 0 16px rgb(67 164 232 / 0.1);
+}
+
+:root[data-visual-skin='starship-cockpit'] .command-console-input:focus-within {
+  border-color: rgb(103 216 255 / 0.14) !important;
+  background: rgb(2 12 29 / 0.56);
 }
 
 :root[data-visual-skin='starship-cockpit'] .command-console > div[aria-busy] {
@@ -462,26 +736,71 @@
   margin-top: 6px;
 }
 
+:root[data-visual-skin='starship-cockpit'] .command-console .ui-select-trigger {
+  height: 40px;
+  border-color: rgb(103 216 255 / 0.2);
+  border-radius: 0;
+  background: linear-gradient(145deg, rgb(14 45 80 / 0.42), rgb(2 13 30 / 0.72));
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+
+:root[data-visual-skin='starship-cockpit'] .console-tool-strip {
+  min-height: 44px;
+  gap: 4px;
+}
+
+:root[data-visual-skin='starship-cockpit'] .console-tool-strip > * + * {
+  box-shadow: -5px 0 0 -4px rgb(103 216 255 / 0.16);
+}
+
 :root[data-visual-skin='starship-cockpit'] .command-console-hint {
   margin-top: 2px;
 }
 
-:root[data-visual-skin='starship-cockpit'] .command-console .ui-button[data-variant='primary']:disabled {
-  opacity: 0.78 !important;
-  border-color: rgb(104 220 255 / 0.36);
-  color: rgb(174 222 244 / 0.66);
+:root[data-visual-skin='starship-cockpit']
+  .command-console
+  .ui-button[data-variant='primary']:disabled {
+  opacity: 0.9 !important;
+  border-color: rgb(104 220 255 / 0.52);
+  color: rgb(187 229 248 / 0.82);
   background:
-    linear-gradient(135deg, rgb(30 77 131 / 0.7), rgb(15 64 99 / 0.68)),
-    rgb(7 28 58 / 0.82);
-  box-shadow: inset 0 1px rgb(202 243 255 / 0.08), 0 0 10px rgb(67 170 235 / 0.1);
+    linear-gradient(135deg, rgb(30 77 131 / 0.7), rgb(15 64 99 / 0.68)), rgb(7 28 58 / 0.82);
+  box-shadow:
+    inset 0 1px rgb(202 243 255 / 0.08),
+    0 0 10px rgb(67 170 235 / 0.1);
   filter: saturate(0.72);
 }
 
 :root[data-visual-skin='starship-cockpit'] .command-console .ui-button[data-variant='primary'] {
-  min-width: 56px;
-  height: 32px;
+  min-width: 116px;
+  height: 56px;
   font-family: var(--font-mono);
   letter-spacing: 0.06em;
+}
+
+:root[data-visual-skin='starship-cockpit'] .command-console .command-execute-button {
+  margin-left: 6px;
+  border-color: rgb(103 216 255 / 0.68);
+  background:
+    linear-gradient(90deg, rgb(45 89 201 / 0.82), rgb(34 158 221 / 0.82)), rgb(11 50 108 / 0.92);
+  box-shadow:
+    inset 0 0 12px rgb(194 239 255 / 0.1),
+    0 0 18px rgb(76 141 255 / 0.22);
+  clip-path: polygon(
+    12px 0,
+    calc(100% - 12px) 0,
+    100% 12px,
+    100% calc(100% - 12px),
+    calc(100% - 12px) 100%,
+    12px 100%,
+    0 calc(100% - 12px),
+    0 12px
+  );
+}
+
+:root[data-visual-skin='starship-cockpit'] .command-console .command-execute-button:active {
+  filter: brightness(0.86);
+  transform: scale(0.98);
 }
 
 :root[data-visual-skin='starship-cockpit'] .command-console::before,
@@ -520,17 +839,51 @@
 }
 
 :root[data-visual-skin='starship-cockpit'] .starship-model-hud {
+  position: relative;
   flex: none;
-  width: 176px;
-  margin: 8px auto 100px;
-  padding: 9px 10px 8px;
+  width: 280px;
+  min-height: 205px;
+  margin: 8px auto 150px;
+  padding: 11px 12px 10px;
   border: 1px solid rgb(104 220 255 / 0.18);
-  border-radius: 7px;
+  border-radius: 2px;
   background:
-    linear-gradient(150deg, rgb(6 24 49 / 0.88), rgb(2 11 27 / 0.9)),
-    var(--cockpit-bg-panel);
-  box-shadow: inset 0 1px rgb(173 232 255 / 0.04), 0 10px 28px rgb(0 3 13 / 0.2);
+    linear-gradient(150deg, rgb(6 24 49 / 0.88), rgb(2 11 27 / 0.9)), var(--cockpit-bg-panel);
+  box-shadow:
+    inset 0 1px rgb(173 232 255 / 0.04),
+    0 10px 28px rgb(0 3 13 / 0.2);
   backdrop-filter: blur(12px);
+  clip-path: polygon(
+    7px 0,
+    calc(100% - 7px) 0,
+    100% 7px,
+    100% calc(100% - 7px),
+    calc(100% - 7px) 100%,
+    7px 100%,
+    0 calc(100% - 7px),
+    0 7px
+  );
+}
+
+:root[data-visual-skin='starship-cockpit'] .starship-model-hud::before,
+:root[data-visual-skin='starship-cockpit'] .starship-model-hud::after {
+  position: absolute;
+  width: 28px;
+  height: 1px;
+  background: var(--starship-cyan);
+  box-shadow: 0 0 7px rgb(103 216 255 / 0.38);
+  content: '';
+  opacity: 0.55;
+}
+
+:root[data-visual-skin='starship-cockpit'] .starship-model-hud::before {
+  top: 0;
+  left: 12px;
+}
+
+:root[data-visual-skin='starship-cockpit'] .starship-model-hud::after {
+  right: 12px;
+  bottom: 0;
 }
 
 :root[data-visual-skin='starship-cockpit'] .starship-model-hud__header {
@@ -560,7 +913,7 @@
 
 :root[data-visual-skin='starship-cockpit'] .starship-model-hud__radar {
   position: relative;
-  height: 43px;
+  height: 90px;
   margin: 6px -2px 0;
   overflow: hidden;
   border-top: 1px solid rgb(104 220 255 / 0.07);
@@ -614,8 +967,12 @@
   animation: starship-radar-ping 2.4s ease-out infinite;
 }
 
-:root[data-visual-skin='starship-cockpit'] .starship-model-hud[data-animated='false'] .starship-model-hud__sweep,
-:root[data-visual-skin='starship-cockpit'] .starship-model-hud[data-animated='false'] .starship-model-hud__ping {
+:root[data-visual-skin='starship-cockpit']
+  .starship-model-hud[data-animated='false']
+  .starship-model-hud__sweep,
+:root[data-visual-skin='starship-cockpit']
+  .starship-model-hud[data-animated='false']
+  .starship-model-hud__ping {
   animation: none;
 }
 
@@ -674,37 +1031,94 @@
   box-shadow: inset 0 0 0 1px rgb(104 220 255 / 0.08);
 }
 
-.starship-cockpit-frame__layer {
-  filter: drop-shadow(0 0 14px rgb(42 145 232 / 0.16));
+:root[data-visual-skin='starship-cockpit'] .starship-cockpit-frame {
+  display: grid;
+  grid-template:
+    'top-left top top-right' 48px
+    'left . right' minmax(0, 1fr)
+    'bottom-left bottom bottom-right' 50px
+    / 48px minmax(0, 1fr) 48px;
+  filter: drop-shadow(0 0 18px rgb(42 145 232 / 0.22));
 }
 
-.starship-frame-art {
-  object-fit: fill;
+:root[data-visual-skin='starship-cockpit'] .starship-cockpit-frame--structure {
+  z-index: 1;
 }
 
-.starship-cockpit-frame__layer--back .starship-frame-art {
-  opacity: 0.66;
-  filter: saturate(0.8) brightness(0.72) contrast(1.08);
-  mix-blend-mode: screen;
-}
-
-.starship-cockpit-frame__layer--edge {
+:root[data-visual-skin='starship-cockpit'] .starship-cockpit-frame--energy {
+  z-index: 30;
   -webkit-mask:
-    linear-gradient(#000 0 0) top / 100% 58px no-repeat,
-    linear-gradient(#000 0 0) bottom / 100% 28px no-repeat,
-    linear-gradient(#000 0 0) left / 20px 100% no-repeat,
-    linear-gradient(#000 0 0) right / 20px 100% no-repeat;
+    linear-gradient(#000 0 0) top / 100% 7px no-repeat,
+    linear-gradient(#000 0 0) bottom / 100% 8px no-repeat,
+    linear-gradient(#000 0 0) left / 5px 100% no-repeat,
+    linear-gradient(#000 0 0) right / 5px 100% no-repeat;
   mask:
-    linear-gradient(#000 0 0) top / 100% 58px no-repeat,
-    linear-gradient(#000 0 0) bottom / 100% 28px no-repeat,
-    linear-gradient(#000 0 0) left / 20px 100% no-repeat,
-    linear-gradient(#000 0 0) right / 20px 100% no-repeat;
+    linear-gradient(#000 0 0) top / 100% 7px no-repeat,
+    linear-gradient(#000 0 0) bottom / 100% 8px no-repeat,
+    linear-gradient(#000 0 0) left / 5px 100% no-repeat,
+    linear-gradient(#000 0 0) right / 5px 100% no-repeat;
 }
 
-.starship-cockpit-frame__layer--edge .starship-frame-art {
-  opacity: 0.88;
-  filter: saturate(0.94) brightness(0.84) contrast(1.1);
-  mix-blend-mode: normal;
+:root[data-visual-skin='starship-cockpit'] .starship-cockpit-frame__segment {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  filter: saturate(0.94) brightness(0.88) contrast(1.08);
+  opacity: 0.98;
+}
+
+:root[data-visual-skin='starship-cockpit']
+  .starship-cockpit-frame--energy
+  .starship-cockpit-frame__segment {
+  filter: saturate(1.32) brightness(1.46) contrast(1.12);
+  mix-blend-mode: screen;
+  opacity: 0.42;
+}
+
+:root[data-visual-skin='starship-cockpit']
+  .starship-cockpit-frame--structure
+  .starship-cockpit-frame__segment {
+  filter: saturate(0.82) brightness(0.7) contrast(1.12);
+  opacity: 0.3;
+}
+
+:root[data-visual-skin='starship-cockpit']
+  .starship-cockpit-frame__segment[data-frame-area='top-left'] {
+  grid-area: top-left;
+}
+
+:root[data-visual-skin='starship-cockpit'] .starship-cockpit-frame__segment[data-frame-area='top'] {
+  grid-area: top;
+}
+
+:root[data-visual-skin='starship-cockpit']
+  .starship-cockpit-frame__segment[data-frame-area='top-right'] {
+  grid-area: top-right;
+}
+
+:root[data-visual-skin='starship-cockpit']
+  .starship-cockpit-frame__segment[data-frame-area='left'] {
+  grid-area: left;
+}
+
+:root[data-visual-skin='starship-cockpit']
+  .starship-cockpit-frame__segment[data-frame-area='right'] {
+  grid-area: right;
+}
+
+:root[data-visual-skin='starship-cockpit']
+  .starship-cockpit-frame__segment[data-frame-area='bottom-left'] {
+  grid-area: bottom-left;
+}
+
+:root[data-visual-skin='starship-cockpit']
+  .starship-cockpit-frame__segment[data-frame-area='bottom'] {
+  grid-area: bottom;
+}
+
+:root[data-visual-skin='starship-cockpit']
+  .starship-cockpit-frame__segment[data-frame-area='bottom-right'] {
+  grid-area: bottom-right;
 }
 
 @keyframes starship-radar-sweep {
@@ -738,8 +1152,8 @@
 }
 
 @media (max-width: 949px) {
-  :root[data-visual-skin='starship-cockpit'] .workspace-control-panel {
-    width: 210px;
+  :root[data-visual-skin='starship-cockpit'] {
+    --starship-workspace-panel-width: 210px;
   }
 
   :root[data-visual-skin='starship-cockpit'] .chat-status-hud,
@@ -748,7 +1162,6 @@
     margin-right: 8px;
     margin-left: 8px;
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {

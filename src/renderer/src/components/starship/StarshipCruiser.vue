@@ -6,7 +6,7 @@ withDefaults(defineProps<{ animated?: boolean }>(), { animated: true })
 
 <template>
   <div
-    class="starship-cruiser-layer pointer-events-none absolute inset-0 z-20 overflow-hidden select-none"
+    class="starship-cruiser-layer pointer-events-none absolute inset-0 z-[3] overflow-hidden select-none"
     :data-animated="animated ? 'true' : 'false'"
     aria-hidden="true"
   >

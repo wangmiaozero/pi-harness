@@ -58,11 +58,7 @@ async function close() {
         :title="`Pi-Harness v${APP_VERSION}`"
         @click="router.push('/')"
       >
-        <img
-          :src="appIconUrl"
-          alt=""
-          class="app-titlebar-brand-icon size-[18px] rounded-[4px]"
-        />
+        <img :src="appIconUrl" alt="" class="app-titlebar-brand-icon size-[18px] rounded-[4px]" />
         <span
           class="app-titlebar-brand-name text-[11px] font-medium leading-none tracking-tight text-[var(--text-secondary)]"
         >
@@ -81,7 +77,7 @@ async function close() {
       <!-- Command palette trigger styled like an NSToolbar search field. -->
       <button
         type="button"
-        class="no-drag flex h-7 w-[200px] items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] pl-2 pr-1.5 text-[11.5px] text-[var(--text-tertiary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:border-[var(--accent)] focus-visible:shadow-[var(--focus-ring)]"
+        class="starship-search-trigger no-drag flex h-7 w-[200px] items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] pl-2 pr-1.5 text-[11.5px] text-[var(--text-tertiary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:border-[var(--accent)] focus-visible:shadow-[var(--focus-ring)]"
         :title="$t('titlebar.commandPalette')"
         @click="openPalette"
       >
