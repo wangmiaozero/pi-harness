@@ -46,7 +46,7 @@ const router = createRouter({
       meta: { title: 'Diagnostics', i18nKey: 'nav.diagnostics' }
     },
     {
-      path: '/settings',
+      path: '/settings/:section?',
       name: 'settings',
       component: () => import('@renderer/views/SettingsView.vue'),
       meta: { title: 'Settings', i18nKey: 'nav.settings' }

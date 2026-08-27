@@ -11,6 +11,7 @@ import StarshipCockpitBackdrop from '@renderer/components/starship/StarshipCockp
 import StarshipCockpitFrame from '@renderer/components/starship/StarshipCockpitFrame.vue'
 import StarshipCruiser from '@renderer/components/starship/StarshipCruiser.vue'
 import StarshipEngineHud from '@renderer/components/starship/StarshipEngineHud.vue'
+import PetStatus from '@renderer/components/pet/PetStatus.vue'
 import { isStarshipCockpitActive } from '@renderer/utils/visual-skin'
 
 const route = useRoute()
@@ -55,6 +56,19 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
           :enabled="Boolean(settings.settings?.mascotUnlocked && settings.settings?.petEnabled)"
           :animated="visualAnimationsEnabled"
           :context="isWorkspace ? 'workspace' : 'page'"
+        />
+        <PetStatus
+          v-if="
+            starshipCockpitActive &&
+            isWorkspace &&
+            Boolean(settings.settings?.petStatusText ?? true)
+          "
+          :key="`${pet.state}:${pet.currentTool ?? ''}`"
+          class="starship-navigator-bubble"
+          tail="left"
+          :state="pet.state"
+          :current-tool="pet.currentTool"
+          aria-hidden="true"
         />
         <main
           class="relative z-10 h-full min-h-0"

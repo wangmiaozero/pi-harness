@@ -7,6 +7,12 @@ const execFileAsync = promisify(execFile)
 const GIT_TIMEOUT_MS = 10_000
 const GIT_MAX_BUFFER = 8 * 1024 * 1024
 
+export function isNotAGitRepository(error: unknown): boolean {
+  const message =
+    error instanceof Error ? error.message : typeof error === 'string' ? error : String(error)
+  return /not a git repository/i.test(message)
+}
+
 export async function gitExec(
   cwd: string,
   args: string[],

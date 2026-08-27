@@ -87,7 +87,7 @@ const manifest = computed(() => getPetManifest(props.style))
   filter: none;
 }
 
-:global(:root[data-theme='light'] .mascot-background-renderer) {
+:global(:root[data-theme='light']:not([data-visual-skin='starship-cockpit']) .mascot-background-renderer) {
   opacity: 0.065;
   filter: saturate(0.68) contrast(0.86);
 }
@@ -100,7 +100,9 @@ const manifest = computed(() => getPetManifest(props.style))
     opacity: 0.075;
   }
 
-  :global(:root[data-theme='light'] .mascot-background-renderer) {
+  :global(
+    :root[data-theme='light']:not([data-visual-skin='starship-cockpit']) .mascot-background-renderer
+  ) {
     opacity: 0.05;
   }
 

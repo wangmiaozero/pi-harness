@@ -25,12 +25,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1"><img alt="release v1.1.1" src="https://img.shields.io/badge/release-v1.1.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2"><img alt="release v1.1.2" src="https://img.shields.io/badge/release-v1.1.2-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
 
-![Pi-Harness-Übersicht mit Umgebung, aktivem Modell und Schnellaktionen](docs/概览.jpg)
+<p align="center">
+  <video src="docs/workspace.mp4" poster="docs/workspace-3.jpg" width="920" controls muted loop playsinline>
+    <a href="docs/workspace.mp4">Pi-Harness-Arbeitsbereich</a>
+  </video>
+</p>
 
 ## Warum Pi-Harness?
 
@@ -55,15 +59,15 @@ Pi-Harness ist kein Wrapper um eine Web-Oberfläche. Es bettet weder pi-web noch
 
 ## Download
 
-Lade Pi-Harness v1.1.1 aus den [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1) herunter.
+Lade Pi-Harness v1.1.2 aus den [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2) herunter.
 
 | Plattform           | Installer                                                                                                                    |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.1.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.1.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1.dmg)             |
-| Windows x64         | [Pi-Harness.Setup.1.1.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness.Setup.1.1.1.exe) |
+| macOS Apple Silicon | [Pi-Harness-1.1.2-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.1.2.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2.dmg)             |
+| Windows x64         | [Pi-Harness.Setup.1.1.2.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness.Setup.1.1.2.exe) |
 
-> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v1.1.1](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1).
+> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v1.1.2](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2).
 
 Nutzer der paketierten App müssen das Repository nicht klonen und pnpm nicht installieren. Pi-Harness kann Node.js, npm, PATH und Pi Coding Agent in unterstützten Umgebungen erkennen, installieren und reparieren.
 
@@ -92,31 +96,33 @@ Installieren → Provider konfigurieren → Modell wählen → Projekt öffnen �
 
 ### 1. Bereitschaft prüfen
 
-![Übersicht](docs/概览.jpg)
+![Übersicht](docs/overview.jpg)
 
 ### 2. Pi in einem echten Projekt ausführen
 
 |        Projektsitzungen         | Dateien und leichte Bearbeitung |
 | :-----------------------------: | :-----------------------------: |
-| ![Sitzungen](docs/工作区-1.jpg) |  ![Editor](docs/工作区-2.jpg)   |
+| ![Sitzungen](docs/workspace-1.jpg) |  ![Editor](docs/workspace-2.jpg)   |
+
+![Starship-Cockpit-Arbeitsbereich](docs/workspace-3.jpg)
 
 ### 3. Anbieter und Modelle konfigurieren
 
 |              Anbieter               |          Anbieter einrichten          |
 | :---------------------------------: | :-----------------------------------: |
-| ![Anbieterliste](docs/提供商-1.jpg) | ![Anbieterdetails](docs/提供商-2.jpg) |
+| ![Anbieterliste](docs/providers-1.jpg) | ![Anbieterdetails](docs/providers-2.jpg) |
 |             **Modelle**             |         **Modell einrichten**         |
-|   ![Modellliste](docs/模型-1.jpg)   |   ![Modelldetails](docs/模型-2.jpg)   |
+|   ![Modellliste](docs/models-1.jpg)   |   ![Modelldetails](docs/models-2.jpg)   |
 
 ### 4. Pi erweitern
 
-|           Installierte Skills           |      Sammlungen und Pakete       |
-| :-------------------------------------: | :------------------------------: |
-| ![Installierte Skills](docs/技能-1.jpg) | ![Skills-Markt](docs/技能-2.jpg) |
+![Skills-Markt](docs/skills.jpg)
 
 ### 5. Workspace anpassen
 
-![Einstellungen für Erscheinungsbild und Maskottchen](docs/设置.jpg)
+![Einstellungen für Erscheinungsbild und Maskottchen](docs/settings.jpg)
+
+![Auswahl des Maskottchen-Stils](docs/mascot-settings.jpg)
 
 ## Editor-Grenze
 

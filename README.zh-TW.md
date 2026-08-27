@@ -25,12 +25,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1"><img alt="v1.1.1 發行版" src="https://img.shields.io/badge/release-v1.1.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2"><img alt="v1.1.2 發行版" src="https://img.shields.io/badge/release-v1.1.2-4C8DFF?style=flat-square" /></a>
   <img alt="支援 macOS 和 Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 授權" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
 
-![Pi-Harness 概覽頁：環境狀態、目前模型和快速操作](docs/概览.jpg)
+<p align="center">
+  <video src="docs/workspace.mp4" poster="docs/workspace-3.jpg" width="920" controls muted loop playsinline>
+    <a href="docs/workspace.mp4">Pi-Harness 工作區</a>
+  </video>
+</p>
 
 <p align="center">
   <a href="#下載">下載</a> ·
@@ -62,15 +66,15 @@ Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，�
 
 ## 下載
 
-從 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1) 下載 Pi-Harness v1.1.1。
+從 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2) 下載 Pi-Harness v1.1.2。
 
 | 平台                | 安裝程式                                                                                                                       |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.1.1-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.1.1.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1.dmg)             |
-| Windows x64         | [`Pi-Harness.Setup.1.1.1.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness.Setup.1.1.1.exe) |
+| macOS Apple Silicon | [`Pi-Harness-1.1.2-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.1.2.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2.dmg)             |
+| Windows x64         | [`Pi-Harness.Setup.1.1.2.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness.Setup.1.1.2.exe) |
 
-> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v1.1.1 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1)。
+> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v1.1.2 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2)。
 
 安裝程式使用者不需要 clone 儲存庫，也不需要安裝 pnpm。Pi-Harness 可在支援的環境中偵測、安裝及修復 Node.js、npm、PATH 與 Pi Coding Agent。
 
@@ -118,7 +122,7 @@ Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，�
 
 概覽頁集中顯示目前模型、Pi 環境、設定健康狀態與常用安裝操作。
 
-![概覽](docs/概览.jpg)
+![概覽](docs/overview.jpg)
 
 ### 2. 在實際專案中執行 Pi
 
@@ -126,7 +130,9 @@ Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，�
 
 |             專案工作階段             |           檔案與輕量編輯           |
 | :----------------------------------: | :--------------------------------: |
-| ![工作區工作階段](docs/工作区-1.jpg) | ![工作區編輯器](docs/工作区-2.jpg) |
+| ![工作區工作階段](docs/workspace-1.jpg) | ![工作區編輯器](docs/workspace-2.jpg) |
+
+![星際駕駛艙工作區](docs/workspace-3.jpg)
 
 ### 3. 設定 Provider 與模型
 
@@ -134,23 +140,23 @@ Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，�
 
 |          Provider 清單           |            Provider 設定             |
 | :------------------------------: | :----------------------------------: |
-| ![供應商清單](docs/提供商-1.jpg) | ![供應商詳細資料](docs/提供商-2.jpg) |
+| ![供應商清單](docs/providers-1.jpg) | ![供應商詳細資料](docs/providers-2.jpg) |
 |           **模型清單**           |             **模型設定**             |
-|   ![模型清單](docs/模型-1.jpg)   |   ![模型詳細資料](docs/模型-2.jpg)   |
+|   ![模型清單](docs/models-1.jpg)   |   ![模型詳細資料](docs/models-2.jpg)   |
 
 ### 4. 使用 Skills 與擴充套件擴充 Pi
 
 管理本機 Skill、集合和 Pi Package。
 
-|         已安裝 Skills          |       內建集合與擴充套件        |
-| :----------------------------: | :-----------------------------: |
-| ![已安裝技能](docs/技能-1.jpg) | ![Skills 市集](docs/技能-2.jpg) |
+![Skills 市集](docs/skills.jpg)
 
 ### 5. 調整工作區外觀
 
 選擇跟隨系統、淺色或深色主題，並依需求啟用看板娘。
 
-![外觀與看板娘設定](docs/设置.jpg)
+![外觀與看板娘設定](docs/settings.jpg)
+
+![看板娘風格選擇](docs/mascot-settings.jpg)
 
 ## 核心功能
 

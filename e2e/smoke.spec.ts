@@ -258,10 +258,7 @@ test.describe('Pi-Harness smoke', () => {
       mascotStyle: 'none',
       petEnabled: false
     })
-    const mascotToggle = page.getByTestId('mascot-section-toggle')
-    await expect(mascotToggle).toHaveAttribute('aria-expanded', 'false')
-    await expect(page.getByRole('button', { name: /无看板娘|No Mascot/ })).toHaveCount(0)
-    await mascotToggle.click()
+    await page.getByTestId('settings-section-mascot').click()
     const answer = page.getByTestId('mascot-unlock-answer')
     await expect(answer).toBeVisible()
     await answer.fill('1000')
@@ -271,7 +268,6 @@ test.describe('Pi-Harness smoke', () => {
     await answer.fill('1024')
     await page.getByRole('button', { name: /解锁|Unlock/, exact: true }).click()
     await expect(page.getByText(/看板娘设置已解锁|Mascot settings unlocked/)).toBeVisible()
-    await expect(mascotToggle).toHaveAttribute('aria-expanded', 'true')
     await expect(page.getByRole('button', { name: /无看板娘|No Mascot/ })).toHaveAttribute(
       'aria-pressed',
       'true'
@@ -552,6 +548,7 @@ test.describe('Pi-Harness smoke', () => {
 
     await page.locator('a[href="#/settings"]').click()
     await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
+    await page.getByTestId('settings-section-general').click()
     await expect(page.getByTestId('window-motion-toggle')).toHaveAttribute('aria-checked', 'false')
     await expect(page.getByTestId('screen-motion-toggle')).toHaveAttribute('aria-checked', 'true')
     await page.getByRole('button', { name: /主题|Theme/, exact: true }).click()
@@ -565,8 +562,8 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.locator('a[href="#/settings"]').click()
     await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
+    await page.getByTestId('settings-section-nav').click()
 
-    await page.getByTestId('nav-order-toggle').click()
     const items = page.getByTestId('nav-order-item')
     await expect(items.first()).toHaveAttribute('data-nav-id', 'workspace')
     await items.first().focus()
@@ -584,6 +581,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.locator('a[href="#/settings"]').click()
     await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
+    await page.getByTestId('settings-section-backup').click()
 
     const createBackup = page.getByRole('button', { name: /创建备份|Create backup/ })
     const backupRows = page.locator('main ul > li')

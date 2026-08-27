@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   Save,
@@ -9,10 +10,14 @@ import {
   RotateCcw,
   Eraser,
   CircleOff,
-  ChevronDown,
+  ArrowLeft,
   KeyRound,
-  LockKeyhole,
-  LockKeyholeOpen
+  SlidersHorizontal,
+  PanelLeft,
+  Sparkles,
+  AppWindow,
+  Download,
+  Code2
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import type { AppSettings, AppUpdateState } from '@shared/ipc/api-types'
@@ -40,6 +45,8 @@ import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
 import PetDebug from '@renderer/components/pet/PetDebug.vue'
 
 const { t, locale } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const store = useSettingsStore()
 const saving = ref(false)
 const updateBusy = ref(false)
@@ -47,12 +54,26 @@ const updateState = ref<AppUpdateState | null>(null)
 const updateSupported = ref(false)
 /** Developer / Mock toggles are for local `pnpm dev` only — hidden when packaged. */
 const showDeveloper = ref(false)
-const mascotExpanded = ref(false)
-const navOrderExpanded = ref(false)
-const mascotUnlockOpen = ref(false)
+const menuReady = ref(false)
 const mascotUnlocking = ref(false)
 const mascotAnswer = ref('')
 const mascotUnlockError = ref('')
+
+const SETTINGS_SECTIONS = [
+  'general',
+  'nav',
+  'mascot',
+  'workspace',
+  'paths',
+  'backup',
+  'updates',
+  'developer'
+] as const
+type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]
+
+function isSettingsSection(value: unknown): value is SettingsSectionId {
+  return typeof value === 'string' && (SETTINGS_SECTIONS as readonly string[]).includes(value)
+}
 
 const updateDownloaded = computed(() => Boolean(updateState.value?.downloaded))
 const updateProgress = computed(() => Math.round(updateState.value?.downloadProgress ?? 0))
@@ -169,6 +190,125 @@ const navOrderIsDefault = computed(
     draft.value.navOrder.every((id, index) => id === DEFAULT_NAV_ORDER[index])
 )
 
+const section = computed<SettingsSectionId | null>(() => {
+  const raw = route.params.section
+  const id = Array.isArray(raw) ? raw[0] : raw
+  return isSettingsSection(id) ? id : null
+})
+
+const sectionTitle = computed(() => {
+  switch (section.value) {
+    case 'general':
+      return t('settings.general')
+    case 'nav':
+      return t('settings.navOrder')
+    case 'mascot':
+      return t('settings.mascot')
+    case 'workspace':
+      return t('settings.workspace')
+    case 'paths':
+      return t('settings.manualPaths')
+    case 'backup':
+      return t('settings.backup')
+    case 'updates':
+      return t('settings.updates')
+    case 'developer':
+      return t('settings.developer')
+    default:
+      return t('settings.title')
+  }
+})
+
+const sectionSubtitle = computed(() => {
+  switch (section.value) {
+    case 'general':
+      return t('settings.sectionGeneralHint')
+    case 'nav':
+      return t('settings.sectionNavHint')
+    case 'mascot':
+      return t('settings.sectionMascotHint')
+    case 'workspace':
+      return t('settings.sectionWorkspaceHint')
+    case 'paths':
+      return t('settings.sectionPathsHint')
+    case 'backup':
+      return t('settings.sectionBackupHint')
+    case 'updates':
+      return t('settings.sectionUpdatesHint')
+    case 'developer':
+      return t('settings.sectionDeveloperHint')
+    default:
+      return t('settings.subtitle')
+  }
+})
+
+type SettingsMenuIcon = typeof SlidersHorizontal
+
+const settingsMenu = computed(() => {
+  const items: {
+    id: SettingsSectionId
+    title: string
+    hint: string
+    icon: SettingsMenuIcon
+  }[] = [
+    {
+      id: 'general',
+      title: t('settings.general'),
+      hint: t('settings.sectionGeneralHint'),
+      icon: SlidersHorizontal
+    },
+    {
+      id: 'nav',
+      title: t('settings.navOrder'),
+      hint: t('settings.sectionNavHint'),
+      icon: PanelLeft
+    },
+    {
+      id: 'mascot',
+      title: t('settings.mascot'),
+      hint: t('settings.sectionMascotHint'),
+      icon: Sparkles
+    },
+    {
+      id: 'workspace',
+      title: t('settings.workspace'),
+      hint: t('settings.sectionWorkspaceHint'),
+      icon: AppWindow
+    },
+    {
+      id: 'paths',
+      title: t('settings.manualPaths'),
+      hint: t('settings.sectionPathsHint'),
+      icon: FolderOpen
+    },
+    {
+      id: 'backup',
+      title: t('settings.backup'),
+      hint: t('settings.sectionBackupHint'),
+      icon: Archive
+    }
+  ]
+  if (updateSupported.value) {
+    items.push({
+      id: 'updates',
+      title: t('settings.updates'),
+      hint: t('settings.sectionUpdatesHint'),
+      icon: Download
+    })
+  }
+  if (showDeveloper.value) {
+    items.push({
+      id: 'developer',
+      title: t('settings.developer'),
+      hint: t('settings.sectionDeveloperHint'),
+      icon: Code2
+    })
+  }
+  return items
+})
+
+const settingsHomeEmptySlots = computed(() => Math.max(0, 9 - settingsMenu.value.length))
+
 watch(
   () => store.settings,
   (s) => {
@@ -176,6 +316,19 @@ watch(
   },
   { immediate: true }
 )
+
+watch([section, showDeveloper, updateSupported, menuReady], ([, developer, updates, ready]) => {
+  const raw = route.params.section
+  const requested = Array.isArray(raw) ? raw[0] : raw
+  if (!requested) return
+  if (!isSettingsSection(requested)) {
+    void router.replace('/settings')
+    return
+  }
+  if (!ready) return
+  if (requested === 'developer' && !developer) void router.replace('/settings')
+  if (requested === 'updates' && !updates) void router.replace('/settings')
+})
 
 async function saveSettings() {
   saving.value = true
@@ -197,14 +350,8 @@ function resetNavOrder(): void {
   draft.value.navOrder = [...DEFAULT_NAV_ORDER]
 }
 
-function toggleMascotSection(): void {
-  if (!draft.value.mascotUnlocked) {
-    mascotUnlockOpen.value = !mascotUnlockOpen.value
-    mascotExpanded.value = false
-    mascotUnlockError.value = ''
-    return
-  }
-  mascotExpanded.value = !mascotExpanded.value
+function goBackToSettingsHome(): void {
+  void router.push('/settings')
 }
 
 function selectMascot(style: MascotStyle): void {
@@ -226,8 +373,7 @@ async function unlockMascot(): Promise<void> {
     draft.value.mascotStyle = DEFAULT_MASCOT_STYLE
     draft.value.petEnabled = false
     mascotAnswer.value = ''
-    mascotUnlockOpen.value = false
-    mascotExpanded.value = true
+    mascotUnlockError.value = ''
     toast.success(t('settings.mascotUnlockSuccess'))
   } catch (error) {
     toast.error((error as { message?: string }).message ?? t('common.failed'))
@@ -348,11 +494,13 @@ onMounted(() => {
     .then(async (info) => {
       showDeveloper.value = !info.packaged
       updateSupported.value = info.packaged
+      menuReady.value = true
       if (info.packaged) updateState.value = await getApi().updater.state()
     })
     .catch(() => {
       showDeveloper.value = false
       updateSupported.value = false
+      menuReady.value = true
     })
 })
 
@@ -364,13 +512,25 @@ onBeforeUnmount(stopUpdateListener)
     <header
       class="flex shrink-0 items-center justify-between gap-3 px-5 h-[var(--height-page-header)] border-b border-[var(--border-subtle)]"
     >
-      <div class="min-w-0">
-        <h1 class="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
-          {{ $t('settings.title') }}
-        </h1>
-        <p class="text-[11.5px] text-[var(--text-tertiary)] -mt-0.5">
-          {{ $t('settings.subtitle') }}
-        </p>
+      <div class="flex min-w-0 items-center gap-2 self-stretch">
+        <IconButton
+          v-if="section"
+          :label="$t('settings.back')"
+          data-testid="settings-back"
+          @click="goBackToSettingsHome"
+        >
+          <ArrowLeft class="size-3.5" :stroke-width="1.75" />
+        </IconButton>
+        <div class="flex min-w-0 flex-col justify-center self-stretch">
+          <h1
+            class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
+          >
+            {{ sectionTitle }}
+          </h1>
+          <p class="mt-[3px] text-[11.5px] leading-[14px] text-[var(--text-tertiary)]">
+            {{ sectionSubtitle }}
+          </p>
+        </div>
       </div>
       <Button variant="primary" size="sm" :loading="saving" @click="saveSettings">
         <Save class="size-3.5" :stroke-width="1.75" />
@@ -378,10 +538,59 @@ onBeforeUnmount(stopUpdateListener)
       </Button>
     </header>
 
-    <div class="flex-1 overflow-y-auto">
-      <div class="mx-auto max-w-[720px] px-6 py-5 space-y-5">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div v-if="!section" class="flex min-h-0 flex-1 flex-col p-5">
+        <nav
+          data-testid="settings-home"
+          class="grid min-h-0 flex-1 grid-cols-3 grid-rows-3 gap-3 overflow-hidden"
+        >
+          <RouterLink
+            v-for="item in settingsMenu"
+            :key="item.id"
+            :to="`/settings/${item.id}`"
+            :data-testid="`settings-section-${item.id}`"
+            class="settings-home-card group flex min-h-0 flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 no-drag shadow-[var(--shadow-popover)] transition-[background-color,border-color,box-shadow] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+          >
+            <component
+              :is="item.icon"
+              class="size-5 text-[var(--text-secondary)] transition-colors group-hover:text-[var(--text-primary)]"
+              :stroke-width="1.75"
+            />
+            <span class="min-w-0">
+              <span class="flex items-center gap-2">
+                <span class="text-[14px] font-medium text-[var(--text-primary)]">
+                  {{ item.title }}
+                </span>
+                <Badge
+                  v-if="item.id === 'mascot'"
+                  :tone="draft.mascotUnlocked ? 'success' : 'warning'"
+                >
+                  {{
+                    draft.mascotUnlocked
+                      ? $t('settings.mascotUnlocked')
+                      : $t('settings.mascotLocked')
+                  }}
+                </Badge>
+              </span>
+              <span class="mt-1 block text-[12px] leading-snug text-[var(--text-tertiary)]">
+                {{ item.hint }}
+              </span>
+            </span>
+          </RouterLink>
+          <div
+            v-for="slot in settingsHomeEmptySlots"
+            :key="`empty-${slot}`"
+            class="rounded-[var(--radius-lg)] border border-[var(--border-subtle)]/50 bg-[var(--bg-surface)]/30"
+            aria-hidden="true"
+          />
+        </nav>
+      </div>
+
+      <div v-else class="flex-1 overflow-y-auto">
+        <div class="mx-auto w-full max-w-[720px] space-y-5 px-6 py-5">
         <!-- General — Inspector property rows. No Card. -->
         <InspectorSection
+          v-if="section === 'general'"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
           <template #title>{{ $t('settings.general') }}</template>
@@ -422,103 +631,34 @@ onBeforeUnmount(stopUpdateListener)
         </InspectorSection>
 
         <section
+          v-else-if="section === 'nav'"
           data-testid="nav-order-section"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
-          <button
-            type="button"
-            data-testid="nav-order-toggle"
-            class="flex h-[34px] w-full items-center justify-between gap-3 px-3 text-left transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-            :aria-expanded="navOrderExpanded"
-            aria-controls="nav-order-settings-content"
-            @click="navOrderExpanded = !navOrderExpanded"
-          >
-            <span
-              class="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+          <div class="flex items-center justify-between gap-2 px-3 py-2">
+            <p class="text-[11.5px] text-[var(--text-tertiary)]">
+              {{ $t('settings.navOrderHint') }}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              :disabled="navOrderIsDefault"
+              data-testid="nav-order-reset"
+              @click="resetNavOrder"
             >
-              {{ $t('settings.navOrder') }}
-            </span>
-            <ChevronDown
-              class="size-3.5 shrink-0 text-[var(--text-tertiary)] transition-transform duration-150"
-              :class="navOrderExpanded && 'rotate-180'"
-              :stroke-width="1.75"
-            />
-          </button>
-          <div
-            v-if="navOrderExpanded"
-            id="nav-order-settings-content"
-            class="border-t border-[var(--border-subtle)]"
-          >
-            <div class="flex items-center justify-between gap-2 px-3 py-2">
-              <p class="text-[11.5px] text-[var(--text-tertiary)]">
-                {{ $t('settings.navOrderHint') }}
-              </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                :disabled="navOrderIsDefault"
-                data-testid="nav-order-reset"
-                @click="resetNavOrder"
-              >
-                <RotateCcw class="size-3" :stroke-width="1.75" />
-                {{ $t('settings.navOrderReset') }}
-              </Button>
-            </div>
-            <NavOrderList v-model="draft.navOrder" />
+              <RotateCcw class="size-3" :stroke-width="1.75" />
+              {{ $t('settings.navOrderReset') }}
+            </Button>
           </div>
+          <NavOrderList v-model="draft.navOrder" />
         </section>
 
         <section
+          v-else-if="section === 'mascot'"
           data-testid="mascot-settings-section"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
-          <button
-            type="button"
-            data-testid="mascot-section-toggle"
-            class="flex h-[34px] w-full items-center justify-between gap-3 px-3 text-left transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] disabled:cursor-wait disabled:hover:bg-transparent"
-            :disabled="store.loading || !store.settings"
-            :aria-expanded="draft.mascotUnlocked ? mascotExpanded : mascotUnlockOpen"
-            aria-controls="mascot-settings-content"
-            @click="toggleMascotSection"
-          >
-            <span class="flex min-w-0 items-center gap-2">
-              <LockKeyholeOpen
-                v-if="draft.mascotUnlocked"
-                class="size-3.5 shrink-0 text-[var(--success)]"
-                :stroke-width="1.75"
-              />
-              <LockKeyhole
-                v-else
-                class="size-3.5 shrink-0 text-[var(--warning)]"
-                :stroke-width="1.75"
-              />
-              <span
-                class="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
-              >
-                {{ $t('settings.mascot') }}
-              </span>
-              <Badge :tone="draft.mascotUnlocked ? 'success' : 'warning'">
-                {{
-                  draft.mascotUnlocked ? $t('settings.mascotUnlocked') : $t('settings.mascotLocked')
-                }}
-              </Badge>
-            </span>
-            <ChevronDown
-              class="size-3.5 shrink-0 text-[var(--text-tertiary)] transition-transform duration-150"
-              :class="
-                draft.mascotUnlocked
-                  ? mascotExpanded && 'rotate-180'
-                  : mascotUnlockOpen && 'rotate-180'
-              "
-              :stroke-width="1.75"
-            />
-          </button>
-
-          <div
-            v-if="!draft.mascotUnlocked && mascotUnlockOpen"
-            id="mascot-settings-content"
-            class="border-t border-[var(--border-subtle)] p-3"
-          >
+          <div v-if="!draft.mascotUnlocked" id="mascot-settings-content" class="p-3">
             <form
               data-testid="mascot-unlock-form"
               class="rounded-[var(--radius-sm)] border border-[var(--warning)]/30 bg-[var(--warning-tint)] p-3"
@@ -578,11 +718,7 @@ onBeforeUnmount(stopUpdateListener)
             </form>
           </div>
 
-          <div
-            v-else-if="draft.mascotUnlocked && mascotExpanded"
-            id="mascot-settings-content"
-            class="border-t border-[var(--border-subtle)] p-3"
-          >
+          <div v-else id="mascot-settings-content" class="p-3">
             <p class="mb-3 text-[11.5px] text-[var(--text-tertiary)]">
               {{ $t('settings.mascotHint') }}
             </p>
@@ -660,9 +796,9 @@ onBeforeUnmount(stopUpdateListener)
         </section>
 
         <InspectorSection
+          v-else-if="section === 'workspace'"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
-          <template #title>{{ $t('settings.workspace') }}</template>
           <div
             class="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]"
           >
@@ -688,11 +824,10 @@ onBeforeUnmount(stopUpdateListener)
           </div>
         </InspectorSection>
 
-        <!-- Manual paths — same pattern. -->
         <InspectorSection
+          v-else-if="section === 'paths'"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
-          <template #title>{{ $t('settings.manualPaths') }}</template>
           <div
             class="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]"
           >
@@ -715,11 +850,10 @@ onBeforeUnmount(stopUpdateListener)
           </div>
         </InspectorSection>
 
-        <!-- Backup — property rows + a compact backup list (resource list style). -->
         <InspectorSection
+          v-else-if="section === 'backup'"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
-          <template #title>{{ $t('settings.backup') }}</template>
           <PropertyRow :label="$t('settings.autoBackup')">
             <div class="flex items-center justify-end">
               <Switch v-model="draft.autoBackup" :label="$t('settings.autoBackup')" />
@@ -810,12 +944,10 @@ onBeforeUnmount(stopUpdateListener)
           </div>
         </InspectorSection>
 
-        <!-- Updates -->
         <InspectorSection
-          v-if="updateSupported"
+          v-else-if="section === 'updates'"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
-          <template #title>{{ $t('settings.updates') }}</template>
           <div class="px-3 py-2.5 space-y-2.5">
             <p class="text-[11.5px] text-[var(--text-tertiary)]">
               {{ $t('settings.updatesHint') }}
@@ -852,12 +984,10 @@ onBeforeUnmount(stopUpdateListener)
           </div>
         </InspectorSection>
 
-        <!-- Developer — only in unpackaged / pnpm dev builds -->
         <InspectorSection
-          v-if="showDeveloper"
+          v-else-if="section === 'developer'"
           class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
         >
-          <template #title>{{ $t('settings.developer') }}</template>
           <PropertyRow :label="$t('settings.developerMode')">
             <div class="flex items-center justify-end">
               <Switch v-model="draft.developerMode" :label="$t('settings.developerMode')" />
@@ -870,6 +1000,7 @@ onBeforeUnmount(stopUpdateListener)
           </PropertyRow>
           <PetDebug v-if="draft.developerMode" :style="draft.mascotStyle" />
         </InspectorSection>
+        </div>
       </div>
     </div>
   </div>

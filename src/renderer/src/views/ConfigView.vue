@@ -159,11 +159,13 @@ onBeforeUnmount(() => {
     <header
       class="flex shrink-0 items-center justify-between gap-3 px-5 h-[var(--height-page-header)] border-b border-[var(--border-subtle)]"
     >
-      <div class="min-w-0 flex items-center gap-3">
-        <h1 class="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
+      <div class="flex min-w-0 items-center gap-3 self-stretch">
+        <h1
+          class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
+        >
           {{ $t('nav.config') }}
         </h1>
-        <p class="text-[11.5px] text-[var(--text-tertiary)] -mt-0.5 hidden sm:block">
+        <p class="hidden text-[11.5px] leading-[14px] text-[var(--text-tertiary)] sm:block">
           {{ $t('config.subtitle') }}
         </p>
       </div>

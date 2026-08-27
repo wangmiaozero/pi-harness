@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
-import { gitExec } from './git-exec'
+import { gitExec, isNotAGitRepository } from './git-exec'
 import { GitError } from '../services/errors'
 import type { FileAccessService } from '../files/file-access-service'
 import type { ProjectInfo, WorktreeInfo } from '@shared/types/workspace'
@@ -68,7 +68,13 @@ export class WorktreeService {
 
   async list(cwd: string): Promise<WorktreeInfo[]> {
     await this.access.assertAllowed(cwd, { mustExist: true })
-    const out = await gitExec(cwd, ['worktree', 'list', '--porcelain'])
+    let out: string
+    try {
+      out = await gitExec(cwd, ['worktree', 'list', '--porcelain'])
+    } catch (error) {
+      if (isNotAGitRepository(error)) return []
+      throw error
+    }
     const worktrees: WorktreeInfo[] = []
     let current: (Partial<WorktreeInfo> & { prunable?: boolean }) | null = null
 

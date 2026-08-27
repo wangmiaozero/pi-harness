@@ -21,6 +21,7 @@ const props = withDefaults(
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const stars: Star[] = []
+let context: CanvasRenderingContext2D | null = null
 let resizeObserver: ResizeObserver | null = null
 let motionQuery: MediaQueryList | null = null
 let animationFrame: number | null = null
@@ -51,17 +52,42 @@ function rebuildStars(): void {
   }
 }
 
+function acquireContext(element: HTMLCanvasElement): CanvasRenderingContext2D | null {
+  if (!context || context.canvas !== element) {
+    context = element.getContext('2d', { alpha: true, willReadFrequently: true })
+  }
+  return context
+}
+
 function resizeCanvas(): void {
   const element = canvas.value
   if (!element) return
   const rect = element.getBoundingClientRect()
-  width = Math.max(1, rect.width)
-  height = Math.max(1, rect.height)
-  pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5)
-  element.width = Math.round(width * pixelRatio)
-  element.height = Math.round(height * pixelRatio)
+  const nextWidth = Math.max(1, rect.width)
+  const nextHeight = Math.max(1, rect.height)
+  const nextRatio = Math.min(window.devicePixelRatio || 1, 1.5)
+  const bufferWidth = Math.round(nextWidth * nextRatio)
+  const bufferHeight = Math.round(nextHeight * nextRatio)
+  if (
+    width === nextWidth &&
+    height === nextHeight &&
+    pixelRatio === nextRatio &&
+    element.width === bufferWidth &&
+    element.height === bufferHeight
+  ) {
+    return
+  }
+  const resume = shouldAnimate()
+  stop()
+  width = nextWidth
+  height = nextHeight
+  pixelRatio = nextRatio
+  element.width = bufferWidth
+  element.height = bufferHeight
+  context = acquireContext(element)
   rebuildStars()
   draw(performance.now(), 0)
+  if (resume) syncAnimation()
 }
 
 function starColor(star: Star, alpha: number): string {
@@ -72,11 +98,11 @@ function starColor(star: Star, alpha: number): string {
 
 function draw(now: number, deltaSeconds: number): void {
   const element = canvas.value
-  const context = element?.getContext('2d')
-  if (!element || !context) return
+  const ctx = element ? acquireContext(element) : null
+  if (!element || !ctx) return
 
-  context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
-  context.clearRect(0, 0, width, height)
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
+  ctx.clearRect(0, 0, width, height)
 
   for (const star of stars) {
     if (deltaSeconds > 0) {
@@ -86,10 +112,10 @@ function draw(now: number, deltaSeconds: number): void {
       if (star.y > height + 3) star.y = -3
     }
     const twinkle = 0.88 + Math.sin(now / 1800 + star.phase) * 0.12
-    context.beginPath()
-    context.fillStyle = starColor(star, star.alpha * twinkle)
-    context.arc(star.x, star.y, star.radius, 0, Math.PI * 2)
-    context.fill()
+    ctx.beginPath()
+    ctx.fillStyle = starColor(star, star.alpha * twinkle)
+    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2)
+    ctx.fill()
   }
 }
 
@@ -144,6 +170,7 @@ watch(() => [props.active, props.animated], syncAnimation)
 
 onBeforeUnmount(() => {
   stop()
+  context = null
   resizeObserver?.disconnect()
   motionQuery?.removeEventListener('change', syncAnimation)
   document.removeEventListener('visibilitychange', onVisibilityChange)

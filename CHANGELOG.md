@@ -8,6 +8,16 @@ Public release notes contain only released, user-visible additions and fixes.
 
 ### Fixed
 
+## 1.1.2 — 2026-08-27
+
+### Added
+
+- Added Starship Cockpit and Frost Navigator appearance, settings sections, and sidebar order.
+
+### Fixed
+
+- Fixed workspace chat stability, Git handling outside repositories, and cockpit appearance consistency.
+
 ## 1.1.1 — 2026-08-25
 
 ### Added

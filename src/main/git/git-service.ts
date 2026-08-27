@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { gitExec } from './git-exec'
+import { gitExec, isNotAGitRepository } from './git-exec'
 import type { FileAccessService } from '../files/file-access-service'
 import type { GitFileDiffResponse, GitStatusResponse } from '@shared/types/workspace'
 import { classifyGitStatus, parseGitPorcelainV1 } from '@shared/workspace/git-status'
@@ -29,18 +29,33 @@ export class GitService {
       return { isGitRepository: false, repositoryRoot: null, files: [], additions: 0, deletions: 0 }
     }
 
-    const [porcelain, numstat] = await Promise.all([
-      gitExec(repositoryRoot, ['status', '--porcelain=v1', '-z', '--untracked-files=all']),
-      gitExec(repositoryRoot, [
-        'diff',
-        '--no-color',
-        '--no-ext-diff',
-        '--numstat',
-        'HEAD',
-        '--',
-        '.'
-      ]).catch(() => '')
-    ])
+    let porcelain: string
+    let numstat: string
+    try {
+      ;[porcelain, numstat] = await Promise.all([
+        gitExec(repositoryRoot, ['status', '--porcelain=v1', '-z', '--untracked-files=all']),
+        gitExec(repositoryRoot, [
+          'diff',
+          '--no-color',
+          '--no-ext-diff',
+          '--numstat',
+          'HEAD',
+          '--',
+          '.'
+        ]).catch(() => '')
+      ])
+    } catch (error) {
+      if (isNotAGitRepository(error)) {
+        return {
+          isGitRepository: false,
+          repositoryRoot: null,
+          files: [],
+          additions: 0,
+          deletions: 0
+        }
+      }
+      throw error
+    }
 
     const entries = parseGitPorcelainV1(porcelain)
     const files = entries.flatMap((entry) => {

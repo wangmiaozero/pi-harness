@@ -25,12 +25,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1"><img alt="release v1.1.1" src="https://img.shields.io/badge/release-v1.1.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2"><img alt="release v1.1.2" src="https://img.shields.io/badge/release-v1.1.2-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
 
-![환경 상태, 활성 모델, 빠른 작업을 보여 주는 Pi-Harness 개요](docs/概览.jpg)
+<p align="center">
+  <video src="docs/workspace.mp4" poster="docs/workspace-3.jpg" width="920" controls muted loop playsinline>
+    <a href="docs/workspace.mp4">Pi-Harness 작업 공간</a>
+  </video>
+</p>
 
 ## 왜 Pi-Harness인가요?
 
@@ -55,15 +59,15 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 
 ## 다운로드
 
-[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1)에서 Pi-Harness v1.1.1을 다운로드하세요.
+[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2)에서 Pi-Harness v1.1.2을 다운로드하세요.
 
 | 플랫폼              | 설치 파일                                                                                                                    |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.1.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.1.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1.dmg)             |
-| Windows x64         | [Pi-Harness.Setup.1.1.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness.Setup.1.1.1.exe) |
+| macOS Apple Silicon | [Pi-Harness-1.1.2-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.1.2.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2.dmg)             |
+| Windows x64         | [Pi-Harness.Setup.1.1.2.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness.Setup.1.1.2.exe) |
 
-> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v1.1.1 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1)를 참고하세요.
+> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v1.1.2 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2)를 참고하세요.
 
 패키지 사용자는 저장소를 clone하거나 pnpm을 설치할 필요가 없습니다. Pi-Harness는 지원되는 환경에서 Node.js, npm, PATH, Pi Coding Agent를 감지하고 설치하거나 복구할 수 있습니다.
 
@@ -92,31 +96,33 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 
 ### 1. 준비 상태 확인
 
-![개요](docs/概览.jpg)
+![개요](docs/overview.jpg)
 
 ### 2. 실제 프로젝트에서 Pi 실행
 
 |            프로젝트 세션             |            파일과 경량 편집            |
 | :----------------------------------: | :------------------------------------: |
-| ![작업 공간 세션](docs/工作区-1.jpg) | ![작업 공간 편집기](docs/工作区-2.jpg) |
+| ![작업 공간 세션](docs/workspace-1.jpg) | ![작업 공간 편집기](docs/workspace-2.jpg) |
+
+![스타십 콕핏 작업 공간](docs/workspace-3.jpg)
 
 ### 3. Provider와 모델 구성
 
 |              Provider               |            Provider 설정            |
 | :---------------------------------: | :---------------------------------: |
-| ![Provider 목록](docs/提供商-1.jpg) | ![Provider 상세](docs/提供商-2.jpg) |
+| ![Provider 목록](docs/providers-1.jpg) | ![Provider 상세](docs/providers-2.jpg) |
 |              **모델**               |            **모델 설정**            |
-|    ![모델 목록](docs/模型-1.jpg)    |    ![모델 상세](docs/模型-2.jpg)    |
+|    ![모델 목록](docs/models-1.jpg)    |    ![모델 상세](docs/models-2.jpg)    |
 
 ### 4. Skills와 패키지로 Pi 확장
 
-|           설치된 Skills           |      내장 컬렉션과 패키지       |
-| :-------------------------------: | :-----------------------------: |
-| ![설치된 Skills](docs/技能-1.jpg) | ![Skills 마켓](docs/技能-2.jpg) |
+![Skills 마켓](docs/skills.jpg)
 
 ### 5. 작업 공간 꾸미기
 
-![외형과 마스코트 설정](docs/设置.jpg)
+![외형과 마스코트 설정](docs/settings.jpg)
+
+![마스코트 스타일 선택](docs/mascot-settings.jpg)
 
 ## 편집기 범위
 

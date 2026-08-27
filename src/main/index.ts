@@ -41,6 +41,7 @@ import { PiPackageManager } from './packages/package-manager'
 import { BuiltinSkillService } from './skills/builtin-skill-service'
 import { PackageHealthError } from './services/errors'
 import { EnvironmentManager } from './environment/environment-manager'
+import { applyChromiumGpuWorkarounds } from './window/chromium-flags'
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'zh-CN',
@@ -68,6 +69,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 }
 
 app.setName(APP_NAME)
+applyChromiumGpuWorkarounds()
 
 // Allow e2e / isolated runs to redirect userData before ready.
 const userDataOverride =

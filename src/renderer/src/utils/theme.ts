@@ -14,10 +14,10 @@ export function resolveTheme(pref: ThemePreference): 'dark' | 'light' {
 }
 
 export function applyTheme(pref: ThemePreference): void {
-  const resolved = resolveTheme(pref)
+  const starshipActive = document.documentElement.dataset.visualSkin === 'starship-cockpit'
+  const resolved = starshipActive ? 'dark' : resolveTheme(pref)
   document.documentElement.dataset.theme = resolved
-  document.documentElement.style.colorScheme =
-    document.documentElement.dataset.visualSkin === 'starship-cockpit' ? 'dark' : resolved
+  document.documentElement.style.colorScheme = resolved
 }
 
 let mediaListener: ((e: MediaQueryListEvent) => void) | null = null

@@ -21,10 +21,10 @@ export function applyVisualSkin(settings: VisualSkinSettings | null | undefined)
   const root = document.documentElement
   if (isStarshipCockpitActive(settings)) {
     root.dataset.visualSkin = STARSHIP_COCKPIT_SKIN
+    root.dataset.theme = 'dark'
     root.style.colorScheme = 'dark'
     return
   }
 
   delete root.dataset.visualSkin
-  root.style.colorScheme = root.dataset.theme === 'light' ? 'light' : 'dark'
 }

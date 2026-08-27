@@ -59,8 +59,8 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function applyExperiencePrefs(value: AppSettings) {
-    applyThemePrefs(value.theme)
     applyVisualSkin(value)
+    applyThemePrefs(value.theme)
   }
 
   function normalizePetSettings(value: AppSettings): void {

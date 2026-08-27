@@ -57,8 +57,8 @@ watch(
   ],
   ([theme]) => {
     const pref = (theme ?? 'dark') as ThemePreference
-    watchSystemTheme(pref)
     applyVisualSkin(settings.settings)
+    watchSystemTheme(pref)
   },
   { immediate: true }
 )
@@ -80,6 +80,7 @@ watch(
 let uninstallShortcuts: (() => void) | null = null
 
 onMounted(() => {
+  applyVisualSkin(settings.settings)
   applyTheme((settings.settings?.theme ?? 'dark') as ThemePreference)
   uninstallShortcuts = installShortcutListener()
   registerShortcut({

@@ -25,12 +25,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1"><img alt="release v1.1.1" src="https://img.shields.io/badge/release-v1.1.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2"><img alt="release v1.1.2" src="https://img.shields.io/badge/release-v1.1.2-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
 
-![環境状態、現在のモデル、クイック操作を表示する Pi-Harness の概要画面](docs/概览.jpg)
+<p align="center">
+  <video src="docs/workspace.mp4" poster="docs/workspace-3.jpg" width="920" controls muted loop playsinline>
+    <a href="docs/workspace.mp4">Pi-Harness ワークスペース</a>
+  </video>
+</p>
 
 ## Why Pi-Harness?
 
@@ -55,15 +59,15 @@ Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js �
 
 ## ダウンロード
 
-[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1) から Pi-Harness v1.1.1 をダウンロードしてください。
+[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2) から Pi-Harness v1.1.2 をダウンロードしてください。
 
 | プラットフォーム    | インストーラー                                                                                                               |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.1.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.1.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness-1.1.1.dmg)             |
-| Windows x64         | [Pi-Harness.Setup.1.1.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.1/Pi-Harness.Setup.1.1.1.exe) |
+| macOS Apple Silicon | [Pi-Harness-1.1.2-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.1.2.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2.dmg)             |
+| Windows x64         | [Pi-Harness.Setup.1.1.2.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness.Setup.1.1.2.exe) |
 
-> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v1.1.1 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.1)を参照してください。
+> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v1.1.2 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2)を参照してください。
 
 パッケージ版の利用者は、リポジトリの clone や pnpm のインストールを行う必要はありません。Pi-Harness は、対応環境で Node.js、npm、PATH、Pi Coding Agent を検出し、インストールまたは修復できます。
 
@@ -94,31 +98,33 @@ Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js �
 
 概要画面では、現在のモデル、Pi の実行環境、設定の状態、よく使う操作をまとめて確認できます。
 
-![概要](docs/概览.jpg)
+![概要](docs/overview.jpg)
 
 ### 2. 実際のプロジェクトで Pi を実行
 
 |             プロジェクトのセッション             |                ファイルと軽量編集                |
 | :----------------------------------------------: | :----------------------------------------------: |
-| ![ワークスペースのセッション](docs/工作区-1.jpg) | ![ワークスペースのエディター](docs/工作区-2.jpg) |
+| ![ワークスペースのセッション](docs/workspace-1.jpg) | ![ワークスペースのエディター](docs/workspace-2.jpg) |
+
+![スターシップコックピットのワークスペース](docs/workspace-3.jpg)
 
 ### 3. Provider とモデルを設定
 
 |              Provider               |            Provider の設定            |
 | :---------------------------------: | :-----------------------------------: |
-| ![Provider 一覧](docs/提供商-1.jpg) | ![Provider の詳細](docs/提供商-2.jpg) |
+| ![Provider 一覧](docs/providers-1.jpg) | ![Provider の詳細](docs/providers-2.jpg) |
 |             **モデル**              |            **モデル設定**             |
-|   ![モデル一覧](docs/模型-1.jpg)    |   ![モデルの詳細](docs/模型-2.jpg)    |
+|   ![モデル一覧](docs/models-1.jpg)    |   ![モデルの詳細](docs/models-2.jpg)    |
 
 ### 4. Skills とパッケージで Pi を拡張
 
-|           インストール済み Skills           |     内蔵コレクションとパッケージ      |
-| :-----------------------------------------: | :-----------------------------------: |
-| ![インストール済み Skills](docs/技能-1.jpg) | ![Skills マーケット](docs/技能-2.jpg) |
+![Skills マーケット](docs/skills.jpg)
 
 ### 5. ワークスペースをカスタマイズ
 
-![外観とマスコットの設定](docs/设置.jpg)
+![外観とマスコットの設定](docs/settings.jpg)
+
+![マスコットスタイルの選択](docs/mascot-settings.jpg)
 
 ## エディターの範囲
 

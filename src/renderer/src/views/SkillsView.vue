@@ -1021,11 +1021,13 @@ function resourceGroups(pkg: PiPackageInfo) {
     <header
       class="flex h-[var(--height-page-header)] shrink-0 items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-5"
     >
-      <div class="min-w-0">
-        <h1 class="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
+      <div class="flex min-w-0 flex-col justify-center self-stretch">
+        <h1
+          class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
+        >
           {{ $t('nav.skills') }}
         </h1>
-        <p class="-mt-0.5 text-[11.5px] text-[var(--text-tertiary)]">
+        <p class="mt-[3px] text-[11.5px] leading-[14px] text-[var(--text-tertiary)]">
           {{ $t('skills.subtitle') }}
         </p>
       </div>

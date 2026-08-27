@@ -4,7 +4,14 @@ import { i18n } from '@renderer/i18n'
 import { categorizePetTool } from '@shared/pet/tool-detector'
 import type { PetState } from '@shared/pet/types'
 
-const props = defineProps<{ state: PetState; currentTool?: string | null }>()
+const props = withDefaults(
+  defineProps<{
+    state: PetState
+    currentTool?: string | null
+    tail?: 'bottom' | 'left'
+  }>(),
+  { currentTool: null, tail: 'bottom' }
+)
 const label = computed(() => {
   if ((props.state === 'coding' || props.state === 'tool-calling') && props.currentTool) {
     const category = categorizePetTool(props.currentTool)
@@ -19,7 +26,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <div data-testid="pet-status-bubble" class="pet-status" :data-state="state">
+  <div data-testid="pet-status-bubble" class="pet-status" :data-state="state" :data-tail="tail">
     <span class="pet-status-dot" aria-hidden="true" />
     <span class="pet-status-label">{{ label }}</span>
   </div>
@@ -62,6 +69,12 @@ const label = computed(() => {
   background: var(--pet-status-bg);
   content: '';
   transform: translateX(-50%) rotate(45deg);
+}
+.pet-status[data-tail='left']::after {
+  top: 54%;
+  bottom: auto;
+  left: -4px;
+  transform: translateY(-50%) rotate(135deg);
 }
 .pet-status-label {
   min-width: 0;

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { applyTheme } from './theme'
 import { applyVisualSkin, isStarshipCockpitActive } from './visual-skin'
 
 const activeSettings = {
@@ -21,17 +22,19 @@ describe('starship cockpit visual skin', () => {
     expect(isStarshipCockpitActive({ ...activeSettings, mascotStyle: 'office' })).toBe(false)
   })
 
-  it('overrides the visual skin independently while preserving the stored theme marker', () => {
-    document.documentElement.dataset.theme = 'light'
-
+  it('pins appearance to dark so light/dark preference cannot restyle the cockpit', () => {
     applyVisualSkin(activeSettings)
+    applyTheme('light')
 
-    expect(document.documentElement.dataset.theme).toBe('light')
     expect(document.documentElement.dataset.visualSkin).toBe('starship-cockpit')
+    expect(document.documentElement.dataset.theme).toBe('dark')
     expect(document.documentElement.style.colorScheme).toBe('dark')
 
     applyVisualSkin({ ...activeSettings, mascotStyle: 'office' })
+    applyTheme('light')
+
     expect(document.documentElement.dataset.visualSkin).toBeUndefined()
+    expect(document.documentElement.dataset.theme).toBe('light')
     expect(document.documentElement.style.colorScheme).toBe('light')
   })
 })
