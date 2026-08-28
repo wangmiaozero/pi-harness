@@ -31,9 +31,8 @@
 </p>
 
 <p align="center">
-  <video src="docs/workspace.mp4" poster="docs/workspace-3.jpg" width="920" controls muted loop playsinline>
-    <a href="docs/workspace.mp4">Рабочее пространство Pi-Harness</a>
-  </video>
+  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace-3.jpg" width="920" alt="Демонстрация рабочего пространства Pi-Harness" /></a><br />
+  <a href="docs/workspace.mp4?raw=1">▶ Посмотреть демонстрацию рабочего пространства Pi-Harness</a>
 </p>
 
 ## Зачем нужен Pi-Harness?

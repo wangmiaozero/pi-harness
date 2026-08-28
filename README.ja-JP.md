@@ -31,9 +31,8 @@
 </p>
 
 <p align="center">
-  <video src="docs/workspace.mp4" poster="docs/workspace-3.jpg" width="920" controls muted loop playsinline>
-    <a href="docs/workspace.mp4">Pi-Harness ワークスペース</a>
-  </video>
+  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace-3.jpg" width="920" alt="Pi-Harness ワークスペースのデモ" /></a><br />
+  <a href="docs/workspace.mp4?raw=1">▶ Pi-Harness ワークスペースのデモを見る</a>
 </p>
 
 ## Why Pi-Harness?

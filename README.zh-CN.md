@@ -31,9 +31,8 @@
 </p>
 
 <p align="center">
-  <video src="docs/workspace.mp4" poster="docs/workspace-3.jpg" width="920" controls muted loop playsinline>
-    <a href="docs/workspace.mp4">Pi-Harness 工作区</a>
-  </video>
+  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace-3.jpg" width="920" alt="Pi-Harness 工作区演示" /></a><br />
+  <a href="docs/workspace.mp4?raw=1">▶ 观看 Pi-Harness 工作区演示</a>
 </p>
 
 <p align="center">
