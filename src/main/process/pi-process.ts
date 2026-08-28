@@ -14,12 +14,29 @@ import fs from 'node:fs/promises'
 import { log } from '../services/logger'
 import { PiCliError, PiCliMissingError } from '../services/errors'
 import { nodeToolDirectories } from '../pi/node-environment'
-import { resolveExecutable } from '../environment/command-resolver'
+import { resolveExecutable, resolveLoginShellPath } from '../environment/command-resolver'
 
 const execFileP = promisify(execFile)
 
 function toStr(v: string | Buffer): string {
   return typeof v === 'string' ? v : v.toString('utf8')
+}
+
+/** Deduplicate path entries, preserving first-seen precedence. */
+function mergePathEntries(...values: Array<string | null | undefined>): string {
+  const seen = new Set<string>()
+  const entries: string[] = []
+  for (const value of values) {
+    for (const entry of (value ?? '').split(path.delimiter)) {
+      const trimmed = entry.trim()
+      if (!trimmed) continue
+      const identity = process.platform === 'win32' ? trimmed.toLowerCase() : trimmed
+      if (seen.has(identity)) continue
+      seen.add(identity)
+      entries.push(trimmed)
+    }
+  }
+  return entries.join(path.delimiter)
 }
 
 export interface PiExecResult {
@@ -41,6 +58,10 @@ export class PiProcessService {
   private cachedPath: string | null = null
   private cachedAt = 0
   private readonly cacheTtlMs = 10_000
+
+  private cachedSearchPath: string | null = null
+  private searchPathCachedAt = 0
+  private readonly searchPathTtlMs = 10 * 60_000
 
   private async candidateDirs(): Promise<string[]> {
     const home = homedir()
@@ -150,6 +171,30 @@ export class PiProcessService {
   invalidateCache(): void {
     this.cachedPath = null
     this.cachedAt = 0
+    this.cachedSearchPath = null
+    this.searchPathCachedAt = 0
+  }
+
+  /**
+   * Search path handed to spawned Pi processes.
+   *
+   * Desktop apps launched from Finder/Dock/Spotlight inherit a minimal system
+   * PATH, so the Pi CLI could not find `npm` for `pi install` (spawn ENOENT)
+   * even though the login shell has it. Merge the inherited PATH with the
+   * resolved login-shell PATH and the known Node tool directories so child
+   * processes work regardless of how the app was launched.
+   */
+  private async resolveChildSearchPath(): Promise<string> {
+    const now = Date.now()
+    if (this.cachedSearchPath && now - this.searchPathCachedAt < this.searchPathTtlMs) {
+      return this.cachedSearchPath
+    }
+    const login = await resolveLoginShellPath()
+    const directories = await nodeToolDirectories(login.path)
+    const merged = mergePathEntries(process.env.PATH, login.path, ...directories)
+    this.cachedSearchPath = merged
+    this.searchPathCachedAt = now
+    return merged
   }
 
   /** Run `pi <args>` safely. Returns captured output. */
@@ -175,6 +220,7 @@ export class PiProcessService {
       cwd: options.cwd,
       env: {
         ...process.env,
+        PATH: await this.resolveChildSearchPath(),
         ...options.env,
         ...(isJs ? { ELECTRON_RUN_AS_NODE: '1' } : {})
       },

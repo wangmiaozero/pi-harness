@@ -27,6 +27,7 @@ import type {
   BuiltinSkillInfo,
   BuiltinSkillInstallation,
   BuiltinSkillMarketCollection,
+  PiPackageActionResult,
   PiPackageHealth,
   PiPackageInfo,
   PiPackageScope,
@@ -531,6 +532,17 @@ async function confirmDelete() {
   }
 }
 
+/** Short human-readable reason for a failed package action, used in toasts. */
+function packageFailureReason(result: PiPackageActionResult, fallback: string): string {
+  const stderrTail = result.stderr
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .at(-1)
+  const reason = stderrTail || result.message
+  return reason ? reason.slice(0, 200) : fallback
+}
+
 async function installPackages(key: string, packages: SkillMarketPackage[]) {
   const sources = packages.filter((pkg) => !marketPackageInstalled(pkg)).map((pkg) => pkg.source)
   if (sources.length === 0) {
@@ -547,7 +559,8 @@ async function installPackages(key: string, packages: SkillMarketPackage[]) {
         t('skills.packageInstallPartial', {
           installed: installedCount,
           failed: failures.length,
-          name: failures[0].source
+          name: failures[0].source,
+          reason: packageFailureReason(failures[0], t('skills.packageInstallFailed'))
         })
       )
     } else {
@@ -605,7 +618,8 @@ async function removeMarketPackages(key: string, packages: SkillMarketPackage[])
         t('skills.packageRemovePartial', {
           removed: removedCount,
           failed: failures.length,
-          name: failures[0].source
+          name: failures[0].source,
+          reason: packageFailureReason(failures[0], t('skills.packageRemoveFailed'))
         })
       )
     } else if (removedCount === 0) {

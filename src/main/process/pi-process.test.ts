@@ -19,6 +19,36 @@ describe('PiProcessService environment override', () => {
     }
   })
 
+  it('spawns the CLI with an enriched PATH beyond the inherited one', async () => {
+    const previous = process.env.PI_HARNESS_PI_CLI_PATH
+    const previousPath = process.env.PATH
+    const testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-path-'))
+    const cliPath = path.join(testDir, 'cli.js')
+    await fs.writeFile(
+      cliPath,
+      "process.stdout.write('__PATH__' + (process.env.PATH || '') + '__END__')\n"
+    )
+    await fs.chmod(cliPath, 0o755)
+    process.env.PI_HARNESS_PI_CLI_PATH = cliPath
+    // Simulate a GUI launch: Finder/Dock apps inherit a minimal system PATH.
+    process.env.PATH = ['/usr/bin', '/bin'].join(path.delimiter)
+    try {
+      const result = await new PiProcessService().exec({ args: ['--version'] })
+      const marker = result.stdout.match(/__PATH__(.*)__END__/)
+      expect(marker).not.toBeNull()
+      const entries = (marker?.[1] ?? '').split(path.delimiter).filter(Boolean)
+      // Inherited entries keep precedence, and the child PATH is enriched with
+      // login-shell / Node tool directories so `pi install` can find `npm`.
+      expect(entries.slice(0, 2)).toEqual(['/usr/bin', '/bin'])
+      expect(entries.length).toBeGreaterThan(2)
+    } finally {
+      process.env.PATH = previousPath
+      if (previous === undefined) delete process.env.PI_HARNESS_PI_CLI_PATH
+      else process.env.PI_HARNESS_PI_CLI_PATH = previous
+      await fs.rm(testDir, { recursive: true, force: true })
+    }
+  }, 20_000)
+
   it('runs a JavaScript CLI through packaged Electron in Node mode', async () => {
     const previous = process.env.PI_HARNESS_PI_CLI_PATH
     const testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-js-cli-'))
