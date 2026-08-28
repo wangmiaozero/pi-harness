@@ -31,7 +31,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace-3.jpg" width="920" alt="Pi-Harness 작업 공간 데모" /></a><br />
+  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace.gif" width="920" alt="Pi-Harness 작업 공간 데모" /></a><br />
   <a href="docs/workspace.mp4?raw=1">▶ Pi-Harness 작업 공간 데모 보기</a>
 </p>
 
