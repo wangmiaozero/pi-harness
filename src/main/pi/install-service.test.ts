@@ -199,7 +199,10 @@ describe('PiInstallService', () => {
       options.onStderr?.('update warning\n')
       return { stdout: 'downloading\n', stderr: 'update warning\n', exitCode: 0, signal: null }
     })
-    const service = new PiInstallService({ runCommand })
+    const service = new PiInstallService({
+      detectRuntime: async () => readyRuntime,
+      runCommand
+    })
 
     await expect(service.update(false, { onLog, onProgress })).resolves.toMatchObject({
       action: 'update',
@@ -214,5 +217,62 @@ describe('PiInstallService', () => {
     expect(onLog).toHaveBeenCalledWith('downloading', 'stdout')
     expect(onLog).toHaveBeenCalledWith('update warning', 'stderr')
     expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({ progress: 90 }))
+  })
+
+  it('exposes the resolved Node runtime so pi self-update can spawn npm', async () => {
+    piProcessMock.resolveCliPath.mockResolvedValue('/tmp/npm-global/bin/pi')
+    piProcessMock.version.mockResolvedValueOnce('0.84.2').mockResolvedValueOnce('0.85.0')
+    const runCommand = vi
+      .fn()
+      .mockResolvedValue({ stdout: '', stderr: '', exitCode: 0, signal: null })
+    const launchServicePath = process.env.PATH
+    const service = new PiInstallService({
+      detectRuntime: async () =>
+        ({
+          nodePath: '/tmp/pi-harness-runtime/bin/node',
+          npmPath: '/tmp/pi-harness-runtime/bin/npm'
+        }) as never,
+      runCommand
+    })
+
+    try {
+      // Simulate a GUI launch whose PATH has no Node/npm.
+      process.env.PATH = '/usr/bin:/bin:/usr/sbin:/sbin'
+      await service.update(false)
+    } finally {
+      process.env.PATH = launchServicePath
+    }
+
+    const env = runCommand.mock.calls[0][2]?.env ?? {}
+    const pathEntries = String(env.PATH ?? '').split(path.delimiter)
+    expect(pathEntries[0]).toBe('/tmp/pi-harness-runtime/bin')
+    expect(pathEntries).not.toContain('/usr/local/bin')
+    expect(env.ELECTRON_RUN_AS_NODE).toBeUndefined()
+  })
+
+  it('sets ELECTRON_RUN_AS_NODE for a JavaScript CLI entrypoint', async () => {
+    const cliJs = path.join('/tmp', 'npm-global', 'lib', 'node_modules', 'pi', 'dist', 'cli.js')
+    piProcessMock.resolveCliPath.mockResolvedValue(cliJs)
+    piProcessMock.version.mockResolvedValueOnce('0.84.2').mockResolvedValueOnce('0.85.0')
+    const runCommand = vi
+      .fn()
+      .mockResolvedValue({ stdout: '', stderr: '', exitCode: 0, signal: null })
+    const service = new PiInstallService({
+      detectRuntime: async () => readyRuntime,
+      runCommand
+    })
+
+    await service.update(false)
+
+    expect(runCommand).toHaveBeenCalledWith(
+      process.execPath,
+      [cliJs, 'update', '--self'],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          ELECTRON_RUN_AS_NODE: '1',
+          PATH: expect.stringContaining('/tmp/bin')
+        })
+      })
+    )
   })
 })

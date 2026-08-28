@@ -4,7 +4,7 @@ import path from 'node:path'
 import { piProcess } from '../process/pi-process'
 import { log } from '../services/logger'
 import { AppError, EnvironmentError, PiCliError, ValidationError } from '../services/errors'
-import type { PiInstallResult, PiLatestInfo } from '@shared/ipc/api-types'
+import type { NodeRuntimeInfo, PiInstallResult, PiLatestInfo } from '@shared/ipc/api-types'
 import { PI_INSTALL_ARGS, PI_INSTALL_COMMAND, PI_NPM_PACKAGE } from '@shared/constants/pi-install'
 import { detectNodeRuntime, MINIMUM_NODE_VERSION, resolveNpmExecutable } from './node-environment'
 import { displayCommand, runCommand, type CommandRunOptions } from '../environment/command-runner'
@@ -246,6 +246,13 @@ export class PiInstallService {
     const isJavaScript = cliPath.endsWith('.js')
     const executable = isJavaScript ? process.execPath : cliPath
     const executableArgs = isJavaScript ? [cliPath, ...args] : args
+    // The Pi CLI spawns npm by name while running `update --self`, but packaged
+    // desktop apps inherit a launch-service PATH without Node. Expose the resolved
+    // runtime the same way install() does so the update does not depend on how the
+    // app was launched.
+    const runtime = await this.dependencies.detectRuntime()
+    const updateEnv = selfUpdateEnvironment(runtime)
+    const env = isJavaScript ? { ...updateEnv, ELECTRON_RUN_AS_NODE: '1' } : updateEnv
     options.onProgress?.({
       phase: 'running-pi-update',
       progress: 25,
@@ -254,7 +261,7 @@ export class PiInstallService {
     const result = await this.dependencies.runCommand(executable, executableArgs, {
       timeoutMs: 5 * 60_000,
       signal: options.signal,
-      env: isJavaScript ? { ...process.env, ELECTRON_RUN_AS_NODE: '1' } : process.env,
+      env,
       onStdout: (chunk) => options.onLog?.(chunk.trimEnd(), 'stdout'),
       onStderr: (chunk) => options.onLog?.(chunk.trimEnd(), 'stderr')
     })
@@ -287,6 +294,34 @@ export class PiInstallService {
       log: `${result.stdout}\n${result.stderr}`.trim().slice(0, 4000)
     }
   }
+}
+
+/**
+ * Environment for `pi update --self`. The Pi CLI resolves npm by name, so the
+ * resolved Node/npm bin directories are prepended to PATH; inherited npm config
+ * is stripped exactly like direct npm installs.
+ */
+function selfUpdateEnvironment(
+  runtime: Pick<NodeRuntimeInfo, 'nodePath' | 'npmPath'>
+): NodeJS.ProcessEnv {
+  const env = npmEnvironment(runtime.nodePath)
+  const runtimeDirectories = [runtime.nodePath, runtime.npmPath]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => path.dirname(value))
+  const pathEntries = (env.PATH ?? '').split(path.delimiter).filter(Boolean)
+  const seen = new Set(pathEntries.map(pathIdentity))
+  for (const directory of runtimeDirectories) {
+    const identity = pathIdentity(directory)
+    if (seen.has(identity)) continue
+    seen.add(identity)
+    pathEntries.unshift(directory)
+  }
+  return { ...env, PATH: pathEntries.join(path.delimiter) }
+}
+
+function pathIdentity(value: string): string {
+  const resolved = path.resolve(value)
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved
 }
 
 function isProjectLocalPiShim(cliPath: string): boolean {
