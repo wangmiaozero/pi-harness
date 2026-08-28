@@ -69,6 +69,17 @@ describe('workspace tab activation', () => {
     expect(workspace.activeTabId).toBe('chat:new')
     expect(sessions.currentId).toBeNull()
   })
+
+  it('opens Harness as a Workspace-level tab without requiring a project', () => {
+    const workspace = useWorkspaceStore()
+
+    workspace.ensureHarnessTab('Harness Console')
+
+    expect(workspace.tabs).toEqual([
+      { id: 'harness', kind: 'harness', title: 'Harness Console', closable: true }
+    ])
+    expect(workspace.activeTabId).toBe('harness')
+  })
 })
 
 describe('workspace file edit buffers', () => {

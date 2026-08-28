@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Folder,
   FolderOpen,
+  Gauge,
   GitBranch,
   Pin,
   Plus,
@@ -27,14 +28,15 @@ import { projectIdentityKey } from '@shared/workspace/project-identity'
 import type { SessionInfo, SessionProjectGroup } from '@shared/types/workspace'
 import StarshipModelHud from '@renderer/components/starship/StarshipModelHud.vue'
 
-const emit = defineEmits<{ 'focus-composer': [] }>()
+const emit = defineEmits<{ 'focus-composer': []; 'open-harness': [] }>()
 const { t, locale } = useI18n()
 const sessions = useSessionStore()
 const workspace = useWorkspaceStore()
 const agent = useAgentStore()
 const models = useModelsStore()
 const settings = useSettingsStore()
-const section = ref<'sessions' | 'files' | 'git'>('sessions')
+type WorkspaceSection = 'sessions' | 'files' | 'git' | 'harness'
+const section = ref<WorkspaceSection>('sessions')
 const collapsedProjectKeys = ref<string[]>([])
 const dragActive = ref(false)
 let dragDepth = 0
@@ -51,6 +53,11 @@ const activeModelId = computed(() => agent.state?.model?.id ?? models.active.mod
 
 function running(id: string): boolean {
   return agent.runningIds.includes(id)
+}
+
+function selectSection(next: WorkspaceSection) {
+  section.value = next
+  if (next === 'harness') emit('open-harness')
 }
 
 async function openSession(session: SessionInfo) {
@@ -329,7 +336,8 @@ defineExpose({ pickProject })
         v-for="item in [
           { id: 'sessions', label: $t('workspace.sessions') },
           { id: 'files', label: $t('workspace.files') },
-          { id: 'git', label: $t('workspace.git') }
+          { id: 'git', label: $t('workspace.git') },
+          { id: 'harness', label: $t('workspace.harness') }
         ]"
         :key="item.id"
         class="workspace-section-tab flex-1 rounded-[var(--radius-sm)] py-1 text-[11px]"
@@ -339,7 +347,7 @@ defineExpose({ pickProject })
             : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]'
         "
         :aria-pressed="section === item.id"
-        @click="section = item.id as 'sessions' | 'files' | 'git'"
+        @click="selectSection(item.id as WorkspaceSection)"
       >
         {{ item.label }}
       </button>
@@ -472,7 +480,47 @@ defineExpose({ pickProject })
         </div>
       </template>
       <FileExplorer v-else-if="section === 'files'" />
-      <WorktreeSwitcher v-else />
+      <WorktreeSwitcher v-else-if="section === 'git'" />
+      <div v-else class="p-3" data-testid="harness-sidebar-status">
+        <div
+          class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
+        >
+          <div class="flex items-center gap-2">
+            <Gauge class="size-4 text-[var(--accent)]" :stroke-width="1.6" />
+            <p class="text-[12px] font-medium text-[var(--text-primary)]">
+              {{ $t('workspace.harnessTitle') }}
+            </p>
+          </div>
+          <p class="mt-2 text-[10.5px] leading-relaxed text-[var(--text-tertiary)]">
+            {{
+              sessions.currentId
+                ? $t('workspace.harnessInspectCurrent')
+                : $t('workspace.harnessNoSessionHint')
+            }}
+          </p>
+          <div
+            v-if="agent.state"
+            class="mt-3 flex items-center gap-2 text-[10.5px] text-[var(--text-secondary)]"
+          >
+            <span
+              class="size-1.5 rounded-full"
+              :class="
+                agent.state.status === 'running'
+                  ? 'bg-[var(--success)]'
+                  : 'bg-[var(--text-disabled)]'
+              "
+            />
+            <span class="capitalize">{{ agent.state.status }}</span>
+            <span class="ml-auto font-mono">
+              {{
+                agent.state.contextUsage?.percent === null || !agent.state.contextUsage
+                  ? '—'
+                  : `${agent.state.contextUsage.percent.toFixed(0)}%`
+              }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <StarshipModelHud

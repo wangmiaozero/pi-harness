@@ -33,6 +33,8 @@ import { WorktreeService } from './git/worktree-service'
 import { SessionService } from './sessions/session-service'
 import { SessionExportService } from './sessions/session-export-service'
 import { AgentRuntimeService } from './agent/agent-runtime-service'
+import { PiHarnessAdapter } from './harness/adapters/pi-harness-adapter'
+import { HarnessRuntime } from './harness/harness-runtime'
 import { onUpdateState, startAutomaticUpdates, stopAutomaticUpdates } from './updater'
 import { IPC_EVENT } from '@shared/ipc/channels'
 import { SkillRegistry } from './capabilities/skill-registry'
@@ -168,14 +170,16 @@ async function bootstrap(): Promise<void> {
   const files = new FileService(access)
   const git = new GitService(access)
   const sessionExport = new SessionExportService(sessions)
-  const agent = new AgentRuntimeService(sessions)
+  const piAgent = new AgentRuntimeService(sessions)
+  const harness = new HarnessRuntime(new PiHarnessAdapter(piAgent))
   diagnostics.attachWorkspace({
     sessions,
-    agent,
+    agent: harness,
     access
   })
 
-  agent.attachWindow(() => mainWindow)
+  piAgent.attachWindow(() => mainWindow)
+  harness.attachWindow(() => mainWindow)
 
   registerIpc({
     settingsStore,
@@ -188,6 +192,7 @@ async function bootstrap(): Promise<void> {
     capabilities,
     diagnostics,
     environment,
+    harness,
     workspace: {
       access,
       files,
@@ -195,7 +200,7 @@ async function bootstrap(): Promise<void> {
       worktrees,
       sessions,
       sessionExport,
-      agent,
+      agent: harness,
       beforeAgentStart: async (cwd, sessionId) => {
         const sessionInfo = !cwd && sessionId ? (await sessions.get(sessionId)).info : null
         const projectRoot = cwd ?? sessionInfo?.projectRoot ?? sessionInfo?.cwd ?? null
@@ -269,7 +274,7 @@ async function bootstrap(): Promise<void> {
     stopAutomaticUpdates()
     unsubscribeUpdateState()
     config.stopWatcher()
-    void agent.shutdownAll()
+    void harness.shutdownAll()
   })
 
   app.on('second-instance', () => {

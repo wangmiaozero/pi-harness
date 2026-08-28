@@ -382,7 +382,9 @@ describe('ProviderService protocol updates', () => {
   })
 
   it('probes with the model api, not the provider api', async () => {
-    const fetchMock = vi.fn(async () => new Response('{"id":"ok"}', { status: 200 }))
+    const fetchMock = vi.fn(
+      async (_input: string | URL | Request) => new Response('{"id":"ok"}', { status: 200 })
+    )
     vi.stubGlobal('fetch', fetchMock)
     const providers: Record<string, PiProviderConfig> = {
       zhipuai: {

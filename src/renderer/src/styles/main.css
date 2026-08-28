@@ -2,6 +2,97 @@
 @import './tokens.css';
 @import './starship-cockpit.css';
 
+.harness-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-surface-raised) 92%, transparent);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+}
+
+.harness-card-title {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.harness-metric {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  padding: 8px 10px;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+}
+
+.harness-metric strong {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.harness-textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  padding: 7px 9px;
+  color: var(--text-primary);
+  font-size: 11.5px;
+  line-height: 1.45;
+  outline: none;
+}
+
+.harness-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+
+.harness-action-button,
+.harness-danger-button,
+.harness-inline-button {
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--accent-tint);
+  padding: 5px 10px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.harness-danger-button {
+  border-color: var(--error);
+  background: var(--error-tint);
+  color: var(--error);
+}
+
+.harness-inline-button {
+  padding: 3px 7px;
+  font-size: 10px;
+}
+
+.harness-action-button:hover,
+.harness-inline-button:hover {
+  background: var(--accent-tint-strong);
+}
+
+.harness-action-button:disabled,
+.harness-danger-button:disabled,
+.harness-inline-button:disabled,
+.harness-textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 /* =============================================================================
  * Tailwind theme — expose the design tokens as utility colors so we can write
  * `bg-surface`, `text-secondary`, etc. without repeating var() everywhere.

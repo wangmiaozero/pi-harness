@@ -33,6 +33,15 @@ import type {
   WorktreeInfo
 } from '../types/workspace'
 import type { ToolPreset } from '../workspace/tool-presets'
+import type {
+  HarnessCompactionResult,
+  HarnessEvent,
+  HarnessForkResult,
+  HarnessSessionInfo,
+  HarnessState,
+  HarnessStats,
+  HarnessTool
+} from '../types/harness'
 import type { MascotStyle } from '../constants/mascot'
 import type { NavItemId } from '../constants/navigation'
 import type {
@@ -782,6 +791,23 @@ export interface PiSwitchAPI {
     running(): Promise<string[]>
     command(sessionId: string, command: Record<string, unknown>): Promise<unknown>
   }
+  harness: {
+    state(sessionId: string): Promise<HarnessState | null>
+    tools(sessionId: string): Promise<HarnessTool[]>
+    setTools(sessionId: string, toolNames: string[]): Promise<void>
+    setModel(sessionId: string, provider: string, modelId: string): Promise<void>
+    setThinkingLevel(sessionId: string, level: string): Promise<void>
+    compact(sessionId: string, instructions?: string): Promise<HarnessCompactionResult | unknown>
+    abortCompaction(sessionId: string): Promise<void>
+    setAutoCompaction(sessionId: string, enabled: boolean): Promise<void>
+    steer(sessionId: string, message: string): Promise<void>
+    followUp(sessionId: string, message: string): Promise<void>
+    fork(sessionId: string, entryId: string): Promise<HarnessForkResult>
+    navigateTree(sessionId: string, entryId: string): Promise<unknown>
+    session(sessionId: string): Promise<HarnessSessionInfo>
+    stats(sessionId: string): Promise<HarnessStats>
+    timeline(sessionId: string): Promise<HarnessEvent[]>
+  }
   files: {
     list(directory: string): Promise<FileTreeEntry[]>
     read(path: string): Promise<FilePreview>
@@ -819,6 +845,7 @@ export interface PiSwitchAPI {
   on(event: 'notification', listener: IpcEventListener): () => void
   on(event: 'agent-event', listener: IpcEventListener): () => void
   on(event: 'agent-running', listener: IpcEventListener): () => void
+  on(event: 'harness-event', listener: IpcEventListener): () => void
   on(event: 'updater-state', listener: IpcEventListener): () => void
   on(
     event: 'capability-progress',

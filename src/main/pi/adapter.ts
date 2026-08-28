@@ -186,7 +186,8 @@ function inheritsProviderApi(
 }
 
 export function providerProtocolFromPi(api: string | undefined): ProtocolId {
-  return isProtocolId(api ?? '') ? api : 'openai-completions'
+  const normalized = api ?? ''
+  return isProtocolId(normalized) ? normalized : 'openai-completions'
 }
 
 export function domainProviderToPi(

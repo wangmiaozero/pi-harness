@@ -70,6 +70,10 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByTestId('project-drop-overlay')).toBeVisible()
     await workspaceSidebar.dispatchEvent('dragleave')
     await expect(page.getByTestId('project-drop-overlay')).toHaveCount(0)
+    await workspaceSidebar.getByRole('button', { name: /Harness/ }).click()
+    await expect(page.getByTestId('harness-console')).toBeVisible()
+    await expect(page.getByText(/尚未选择会话|No session selected/)).toBeVisible()
+    await expect(page.getByTestId('workspace-tabs')).toBeVisible()
 
     await page.locator('a[href="#/providers"]').click()
     await expect(page.locator('h1').filter({ hasText: /提供商|Providers/ })).toBeVisible()

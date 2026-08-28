@@ -48,6 +48,16 @@ export type AppErrorCode =
   | 'SESSION_ERROR'
   | 'GIT_ERROR'
   | 'PATH_DENIED'
+  | 'SESSION_NOT_FOUND'
+  | 'SESSION_NOT_RUNNING'
+  | 'MODEL_NOT_FOUND'
+  | 'TOOL_NOT_FOUND'
+  | 'COMPACTION_NOT_AVAILABLE'
+  | 'CAPABILITY_NOT_SUPPORTED'
+  | 'PI_SDK_NOT_AVAILABLE'
+  | 'AGENT_RUNNING'
+  | 'BASH_RUNNING'
+  | 'INVALID_STATE'
 
 export interface AppErrorPayload {
   code: AppErrorCode

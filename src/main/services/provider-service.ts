@@ -518,7 +518,7 @@ export class ProviderService {
       (await this.firstModelId(input.providerKey))
     const probeProtocol = provider
       ? await this.resolveModelProtocol(input.providerKey, resolvedModelId, provider.protocol)
-      : (provider?.protocol ?? null)
+      : null
     const base = {
       endpoint: null as string | null,
       protocol: probeProtocol,

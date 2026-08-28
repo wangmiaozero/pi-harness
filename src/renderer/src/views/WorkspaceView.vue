@@ -6,6 +6,7 @@ import WorkspaceTabs from '@renderer/components/workspace/WorkspaceTabs.vue'
 import ChatWindow from '@renderer/components/chat/ChatWindow.vue'
 import FileViewer from '@renderer/components/files/FileViewer.vue'
 import GitDiffView from '@renderer/components/git/GitDiffView.vue'
+import HarnessConsole from '@renderer/components/harness/HarnessConsole.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import { FolderOpen } from '@lucide/vue'
 import { useSessionStore } from '@renderer/stores/sessions'
@@ -40,6 +41,10 @@ function startNewSession() {
 
 function openProject() {
   void workspaceSidebar.value?.pickProject()
+}
+
+function openHarness() {
+  workspace.ensureHarnessTab(t('workspace.harnessTitle'))
 }
 
 const offNew = registerShortcut({
@@ -133,13 +138,17 @@ watch(
 
 <template>
   <div class="workspace-view flex h-full min-h-0">
-    <WorkspaceSidebar ref="workspaceSidebar" @focus-composer="focusComposer" />
+    <WorkspaceSidebar
+      ref="workspaceSidebar"
+      @focus-composer="focusComposer"
+      @open-harness="openHarness"
+    />
     <section class="workspace-main flex min-h-0 min-w-0 flex-1 flex-col">
-      <template v-if="workspace.canChat">
+      <template v-if="workspace.tabs.length">
         <WorkspaceTabs ref="workspaceTabs" @focus-composer="focusComposer" />
       </template>
       <div
-        v-if="!workspace.canChat"
+        v-if="!workspace.canChat && activeKind !== 'harness'"
         data-testid="workspace-project-required"
         class="flex min-h-0 flex-1 items-center justify-center"
       >
@@ -161,6 +170,7 @@ watch(
         <ChatWindow v-if="activeKind === 'chat'" ref="chatWindow" />
         <FileViewer v-else-if="activeKind === 'file'" />
         <GitDiffView v-else-if="activeKind === 'diff'" />
+        <HarnessConsole v-else-if="activeKind === 'harness'" />
       </div>
     </section>
   </div>

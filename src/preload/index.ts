@@ -184,6 +184,29 @@ const api: PiSwitchAPI = {
     running: () => invoke(IPC_INVOKE.agentRunning),
     command: (sessionId, command) => invoke(IPC_INVOKE.agentCommand, { sessionId, ...command })
   },
+  harness: {
+    state: (sessionId) => invoke(IPC_INVOKE.harnessGetState, { sessionId }),
+    tools: (sessionId) => invoke(IPC_INVOKE.harnessGetTools, { sessionId }),
+    setTools: (sessionId, toolNames) =>
+      invoke(IPC_INVOKE.harnessSetTools, { sessionId, toolNames }),
+    setModel: (sessionId, provider, modelId) =>
+      invoke(IPC_INVOKE.harnessSetModel, { sessionId, provider, modelId }),
+    setThinkingLevel: (sessionId, level) =>
+      invoke(IPC_INVOKE.harnessSetThinkingLevel, { sessionId, level }),
+    compact: (sessionId, instructions) =>
+      invoke(IPC_INVOKE.harnessCompact, { sessionId, ...(instructions ? { instructions } : {}) }),
+    abortCompaction: (sessionId) => invoke(IPC_INVOKE.harnessAbortCompaction, { sessionId }),
+    setAutoCompaction: (sessionId, enabled) =>
+      invoke(IPC_INVOKE.harnessSetAutoCompaction, { sessionId, enabled }),
+    steer: (sessionId, message) => invoke(IPC_INVOKE.harnessSteer, { sessionId, message }),
+    followUp: (sessionId, message) => invoke(IPC_INVOKE.harnessFollowUp, { sessionId, message }),
+    fork: (sessionId, entryId) => invoke(IPC_INVOKE.harnessFork, { sessionId, entryId }),
+    navigateTree: (sessionId, entryId) =>
+      invoke(IPC_INVOKE.harnessNavigateTree, { sessionId, entryId }),
+    session: (sessionId) => invoke(IPC_INVOKE.harnessGetSession, { sessionId }),
+    stats: (sessionId) => invoke(IPC_INVOKE.harnessGetStats, { sessionId }),
+    timeline: (sessionId) => invoke(IPC_INVOKE.harnessGetTimeline, { sessionId })
+  },
   files: {
     list: (directory) => invoke(IPC_INVOKE.filesList, directory),
     read: (path) => invoke(IPC_INVOKE.filesRead, path),
@@ -215,6 +238,7 @@ const api: PiSwitchAPI = {
     if (event === 'notification') return onEvent(IPC_EVENT.notification, ipcListener)
     if (event === 'agent-event') return onEvent(IPC_EVENT.agentEvent, ipcListener)
     if (event === 'agent-running') return onEvent(IPC_EVENT.agentRunning, ipcListener)
+    if (event === 'harness-event') return onEvent(IPC_EVENT.harnessEvent, ipcListener)
     if (event === 'updater-state') return onEvent(IPC_EVENT.updaterState, ipcListener)
     if (event === 'capability-progress') return onEvent(IPC_EVENT.capabilityProgress, ipcListener)
     return () => {}

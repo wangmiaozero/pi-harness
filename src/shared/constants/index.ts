@@ -7,7 +7,7 @@ import { version as packageVersion } from '../../../package.json'
 
 export const APP_NAME = 'Pi-Harness'
 export const APP_PRODUCT_NAME = 'Pi-Harness'
-export const APP_DESCRIPTION = 'The Complete Desktop Harness for Pi Coding Agent'
+export const APP_DESCRIPTION = 'Desktop Harness & Control Center for Pi Coding Agent'
 export const APP_ID = 'dev.pi-harness.app'
 export const APP_VERSION = packageVersion
 export const AUTHOR_WATERMARK = 'wangmiao'

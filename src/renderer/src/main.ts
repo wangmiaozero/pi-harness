@@ -11,6 +11,7 @@ import { useProvidersStore } from '@renderer/stores/providers'
 import { useModelsStore } from '@renderer/stores/models'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useAgentStore } from '@renderer/stores/agent'
+import { useHarnessStore } from '@renderer/stores/harness'
 import { getApi } from '@renderer/composables/useApi'
 import { toast } from 'vue-sonner'
 import { applyTheme } from '@renderer/utils/theme'
@@ -41,13 +42,15 @@ const providersStore = useProvidersStore()
 const modelsStore = useModelsStore()
 const settingsStore = useSettingsStore()
 const agentStore = useAgentStore()
+const harnessStore = useHarnessStore()
 const petStore = usePetStore()
 
 const unsubscribers: Array<() => void> = [
   piStore.setupListeners(),
   providersStore.setupListeners(),
   modelsStore.setupListeners(),
-  agentStore.setupListeners()
+  agentStore.setupListeners(),
+  harnessStore.setupListeners()
 ]
 unsubscribers.push(installPetRuntimeAdapter())
 

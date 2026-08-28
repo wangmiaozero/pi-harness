@@ -207,6 +207,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeTabId.value = id
   }
 
+  function ensureHarnessTab(title: string) {
+    const id = 'harness'
+    if (!tabs.value.some((tab) => tab.id === id)) {
+      tabs.value = [...tabs.value, { id, kind: 'harness', title, closable: true }]
+    }
+    activeTabId.value = id
+  }
+
   function closeTab(id: string) {
     const index = tabs.value.findIndex((t) => t.id === id)
     if (index === -1) return
@@ -494,6 +502,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         }
         continue
       }
+      if (tab.kind === 'harness') continue
       if (tab.kind !== 'chat') continue
       if (tab.sessionId === 'new') {
         if (!currentCwd.value || !isPathWithinProjectRoots(currentCwd.value, availableRoots)) {
@@ -618,6 +627,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     ensureChatTab,
     openFileTab,
     openDiffTab,
+    ensureHarnessTab,
     closeTab,
     closeOtherTabs,
     closeTabsToRight,

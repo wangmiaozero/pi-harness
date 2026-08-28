@@ -111,13 +111,14 @@ export interface AgentSessionLike {
   ) => Promise<{ cancelled: boolean }>
   setModel: (model: unknown) => Promise<void>
   setThinkingLevel: (level: string) => void
+  getAvailableThinkingLevels?: () => string[]
   setSessionName: (name: string) => void
   setAutoCompactionEnabled: (enabled: boolean) => void
   setAutoRetryEnabled?: (enabled: boolean) => void
   setActiveToolsByName: (names: string[]) => void
   getAllTools: () => Array<{ name: string; description: string }>
   getActiveToolNames: () => string[]
-  getContextUsage: () => {
+  getContextUsage?: () => {
     percent: number | null
     contextWindow: number
     tokens: number | null

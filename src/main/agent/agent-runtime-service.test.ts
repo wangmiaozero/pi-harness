@@ -48,6 +48,25 @@ describe('AgentRuntimeService', () => {
 
     expect(result).toEqual({ cancelled: true, reason: 'session-too-small' })
   })
+
+  it('keeps extension tools for coding presets and allows exact Harness selections', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.getAllTools = () => [
+      { name: 'read', description: 'Read' },
+      { name: 'extension_x', description: 'Extension' }
+    ]
+    const wrapper = new AgentSessionWrapper(inner)
+
+    await wrapper.send({ type: 'set_tools', toolNames: ['read'] })
+    expect(inner.setActiveToolsByName).toHaveBeenLastCalledWith(['read', 'extension_x'])
+
+    await wrapper.send({
+      type: 'set_tools',
+      toolNames: ['read'],
+      preserveExtensionTools: false
+    })
+    expect(inner.setActiveToolsByName).toHaveBeenLastCalledWith(['read'])
+  })
 })
 
 function createSessionManager(): PiSessionManagerLike {
@@ -93,7 +112,7 @@ function createAgentSession(manager: PiSessionManagerLike): AgentSessionLike {
     setThinkingLevel: () => undefined,
     setSessionName: () => undefined,
     setAutoCompactionEnabled: () => undefined,
-    setActiveToolsByName: () => undefined,
+    setActiveToolsByName: vi.fn(),
     getAllTools: () => [],
     getActiveToolNames: () => [],
     getContextUsage: () => null,

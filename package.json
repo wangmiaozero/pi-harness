@@ -1,7 +1,7 @@
 {
   "name": "pi-harness",
   "version": "1.1.2",
-  "description": "The Complete Desktop Harness for Pi Coding Agent",
+  "description": "Desktop Harness & Control Center for Pi Coding Agent",
   "productName": "Pi-Harness",
   "author": {
     "name": "wangmiao",

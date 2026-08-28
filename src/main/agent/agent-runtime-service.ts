@@ -38,6 +38,7 @@ const IDLE_MS = 10 * 60 * 1000
 const CODING_TOOL_NAMES = ['read', 'bash', 'edit', 'write', 'grep', 'find', 'ls']
 
 type EventListener = (event: AgentEvent) => void
+type SessionEventListener = (event: AgentEvent) => void
 
 export class AgentSessionWrapper {
   private listeners: EventListener[] = []
@@ -285,7 +286,11 @@ export class AgentSessionWrapper {
       case 'set_tools': {
         const toolNames = (command.toolNames as string[]) ?? []
         this.setForceEmptySystemPrompt(toolNames.length === 0)
-        this.inner.setActiveToolsByName(withExtensionTools(this.inner, toolNames))
+        const nextToolNames =
+          command.preserveExtensionTools === false
+            ? toolNames
+            : withExtensionTools(this.inner, toolNames)
+        this.inner.setActiveToolsByName(nextToolNames)
         this.applyForcedEmptySystemPrompt()
         return null
       }
@@ -318,7 +323,9 @@ export class AgentSessionWrapper {
 
   snapshot(): AgentStateSnapshot {
     const model = this.inner.model
-    const contextUsage = this.inner.getContextUsage()
+    const contextUsage = safelyRead(() => this.inner.getContextUsage?.() ?? null, null)
+    const steeringMessages = safelyRead(() => this.inner.getSteeringMessages?.() ?? [], [])
+    const followUpMessages = safelyRead(() => this.inner.getFollowUpMessages?.() ?? [], [])
     return {
       sessionId: this.inner.sessionId,
       sessionFile: this.inner.sessionFile ?? '',
@@ -327,7 +334,7 @@ export class AgentSessionWrapper {
       isPromptRunning: this.pendingPromptCount > 0,
       isBashRunning: this.inner.isBashRunning,
       isCompacting: this.inner.isCompacting,
-      autoCompactionEnabled: this.inner.autoCompactionEnabled,
+      autoCompactionEnabled: this.inner.autoCompactionEnabled === true,
       model: model ? { id: model.id, provider: model.provider } : undefined,
       thinkingLevel: this.inner.agent.state?.thinkingLevel ?? 'off',
       contextUsage: contextUsage
@@ -339,8 +346,8 @@ export class AgentSessionWrapper {
         : null,
       pendingMessageCount: this.inner.pendingMessageCount ?? 0,
       queuedMessages: {
-        steering: [...(this.inner.getSteeringMessages?.() ?? [])],
-        followUp: [...(this.inner.getFollowUpMessages?.() ?? [])]
+        steering: [...steeringMessages],
+        followUp: [...followUpMessages]
       }
     }
   }
@@ -419,9 +426,18 @@ function withExtensionTools(session: AgentSessionLike, toolNames: string[]): str
   return [...new Set([...toolNames, ...extensionToolNames])]
 }
 
+function safelyRead<T>(read: () => T, fallback: T): T {
+  try {
+    return read()
+  } catch {
+    return fallback
+  }
+}
+
 /** Pi Coding Agent-backed implementation of the Pi-Harness runtime boundary. */
 export class AgentRuntimeService implements AgentRuntime {
   private registry = new Map<string, AgentSessionWrapper>()
+  private sessionListeners = new Map<string, Set<SessionEventListener>>()
   private startLocks = new Map<
     string,
     Promise<{ session: AgentSessionWrapper; realSessionId: string }>
@@ -444,6 +460,16 @@ export class AgentRuntimeService implements AgentRuntime {
 
   get(sessionId: string): AgentSessionWrapper | undefined {
     return this.registry.get(sessionId)
+  }
+
+  subscribe(sessionId: string, listener: SessionEventListener): () => void {
+    const listeners = this.sessionListeners.get(sessionId) ?? new Set<SessionEventListener>()
+    listeners.add(listener)
+    this.sessionListeners.set(sessionId, listeners)
+    return () => {
+      listeners.delete(listener)
+      if (!listeners.size) this.sessionListeners.delete(sessionId)
+    }
   }
 
   async getState(sessionId: string): Promise<AgentStateSnapshot | null> {
@@ -637,6 +663,13 @@ export class AgentRuntimeService implements AgentRuntime {
     })
     wrapper.onEvent((event) => {
       if (event.type === 'agent_end') this.sessions.invalidate()
+      for (const listener of this.sessionListeners.get(realSessionId) ?? []) {
+        try {
+          listener(event)
+        } catch (error) {
+          log.agent.error('failed to deliver runtime session event:', error)
+        }
+      }
       this.broadcastEvent(realSessionId, event)
       if (isRunningStateEvent(event.type)) this.broadcastRunning()
     })
