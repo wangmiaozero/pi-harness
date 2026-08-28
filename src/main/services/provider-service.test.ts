@@ -226,7 +226,10 @@ describe('ProviderService model discovery', () => {
   })
 
   it('still fails OpenAI-compatible discovery on HTTP 404', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('missing', { status: 404 })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('missing', { status: 404 }))
+    )
     const service = new ProviderService({} as never, {} as never)
 
     await expect(
@@ -298,6 +301,119 @@ describe('ProviderService model discovery', () => {
       'acme-chat',
       'acme-reasoning'
     ])
+    expect(providers.acme?.models?.every((model) => model.api === undefined)).toBe(true)
     expect(created.name).toBe('acme')
+  })
+})
+
+function providerForm(overrides: Record<string, unknown> = {}) {
+  return {
+    key: 'zhipuai',
+    name: 'zhipuai',
+    displayName: 'ZhipuAI',
+    enabled: false,
+    protocol: 'anthropic-messages',
+    baseUrl: 'https://open.bigmodel.cn/api/anthropic',
+    apiKey: null,
+    headers: {},
+    authHeader: true,
+    timeout: null,
+    ...overrides
+  }
+}
+
+describe('ProviderService protocol updates', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('rewrites inherited model api when the provider protocol changes', async () => {
+    const providers: Record<string, PiProviderConfig> = {
+      zhipuai: {
+        api: 'openai-completions',
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        models: [
+          { id: 'chat-a', name: 'chat-a', api: 'openai-completions' },
+          { id: 'chat-b', name: 'chat-b', api: 'openai-completions' },
+          { id: 'other', name: 'other', api: 'openai-responses' }
+        ]
+      }
+    }
+    const metadataState = {
+      providers: { zhipuai: { enabled: false } },
+      models: {},
+      capabilities: {},
+      builtinSkills: { schemaVersion: 1, installed: {} }
+    }
+    const config = {
+      read: vi.fn(async () => ({
+        models: { providers },
+        settings: {},
+        modelsMtime: null,
+        settingsMtime: null
+      })),
+      patchProvider: vi.fn(
+        async (
+          key: string,
+          update: (current: PiProviderConfig | undefined) => PiProviderConfig
+        ) => {
+          providers[key] = update(providers[key])
+        }
+      )
+    }
+    const metadata = {
+      read: vi.fn(async () => metadataState),
+      update: vi.fn(async (patch: Partial<typeof metadataState>) =>
+        Object.assign(metadataState, patch)
+      ),
+      write: vi.fn(async (next: typeof metadataState) => Object.assign(metadataState, next))
+    }
+    const service = new ProviderService(config as never, metadata as never)
+
+    await service.update('zhipuai', providerForm())
+
+    expect(providers.zhipuai?.api).toBe('anthropic-messages')
+    expect(providers.zhipuai?.baseUrl).toBe('https://open.bigmodel.cn/api/anthropic')
+    expect(providers.zhipuai?.models?.map((model) => [model.id, model.api])).toEqual([
+      ['chat-a', undefined],
+      ['chat-b', undefined],
+      ['other', 'openai-responses']
+    ])
+  })
+
+  it('probes with the model api, not the provider api', async () => {
+    const fetchMock = vi.fn(async () => new Response('{"id":"ok"}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const providers: Record<string, PiProviderConfig> = {
+      zhipuai: {
+        api: 'anthropic-messages',
+        baseUrl: 'https://open.bigmodel.cn/api/anthropic',
+        models: [{ id: 'chat-a', name: 'chat-a', api: 'openai-completions' }]
+      }
+    }
+    const config = {
+      read: vi.fn(async () => ({
+        models: { providers },
+        settings: {},
+        modelsMtime: null,
+        settingsMtime: null
+      }))
+    }
+    const metadata = {
+      read: vi.fn(async () => ({
+        providers: { zhipuai: { enabled: true } },
+        models: {},
+        capabilities: {},
+        builtinSkills: { schemaVersion: 1, installed: {} }
+      }))
+    }
+    const service = new ProviderService(config as never, metadata as never)
+
+    const result = await service.testConnection({ providerKey: 'zhipuai', modelId: 'chat-a' })
+
+    expect(result.protocol).toBe('openai-completions')
+    expect(String(fetchMock.mock.calls[0]![0])).toBe(
+      'https://open.bigmodel.cn/api/anthropic/chat/completions'
+    )
   })
 })

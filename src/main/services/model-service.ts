@@ -10,10 +10,8 @@ import type { AppMetadata } from '../services/metadata-store'
 import { modelMetaKey } from '../services/metadata-store'
 import { NotFoundError, ValidationError } from '../services/errors'
 import type { PiConfigService, WriteOptions } from '../pi/config-service'
-import { domainModelToPi, modelToDomain } from '../pi/adapter'
+import { domainModelToPi, modelToDomain, providerProtocolFromPi } from '../pi/adapter'
 import type { PiModelConfig } from '@shared/types/pi'
-import { isProtocolId } from '@shared/constants/protocols'
-import type { ProtocolId } from '@shared/constants/protocols'
 
 export class ModelService {
   constructor(
@@ -26,9 +24,7 @@ export class ModelService {
     const meta = await this.metadata.read()
     const out: ModelDefinition[] = []
     for (const [pkey, provider] of Object.entries(snap.models.providers)) {
-      const protocol: ProtocolId = isProtocolId(provider.api ?? '')
-        ? (provider.api as ProtocolId)
-        : 'openai-completions'
+      const protocol = providerProtocolFromPi(provider.api)
       for (const m of provider.models ?? []) {
         out.push(modelToDomain(pkey, m, protocol, meta.models[modelMetaKey(pkey, m.id)]))
       }
@@ -48,7 +44,7 @@ export class ModelService {
         if (models.some((m) => m.id === form.modelId)) {
           throw new ValidationError(`Model already exists: ${form.modelId}`)
         }
-        models.push(domainModelToPi(undefined, form))
+        models.push(domainModelToPi(undefined, form, providerProtocolFromPi(cur.api)))
         return { ...cur, models }
       },
       { overwrite: options?.overwrite, reason: `create model ${providerKey}/${form.modelId}` }
@@ -87,7 +83,7 @@ export class ModelService {
           if (newModelId !== oldModelId && oldModels.some((m) => m.id === newModelId)) {
             throw new ValidationError(`Model id conflict: ${newModelId}`)
           }
-          oldModels[idx] = domainModelToPi(existing, form)
+          oldModels[idx] = domainModelToPi(existing, form, providerProtocolFromPi(oldProvider.api))
           providers[oldProviderKey] = { ...oldProvider, models: oldModels }
           return { ...models, providers }
         }
@@ -105,7 +101,7 @@ export class ModelService {
 
         oldModels.splice(idx, 1)
         providers[oldProviderKey] = { ...oldProvider, models: oldModels }
-        destModels.push(domainModelToPi(existing, form))
+        destModels.push(domainModelToPi(existing, form, providerProtocolFromPi(newProvider.api)))
         providers[newProviderKey] = { ...newProvider, models: destModels }
         return { ...models, providers }
       },

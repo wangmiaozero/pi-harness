@@ -18,7 +18,8 @@ import {
 } from '../pi/adapter'
 import { randomBytes } from 'node:crypto'
 import type { ConnectionTestResult } from '@shared/ipc/api-types'
-import { getProtocol } from '@shared/constants/protocols'
+import { getProtocol, isProtocolId } from '@shared/constants/protocols'
+import type { ProtocolId } from '@shared/constants/protocols'
 import { log, redactSecretText } from '../services/logger'
 import { normalizeProviderBaseUrl, volcenginePlanKind } from '@shared/utils/base-url'
 import type { PiProviderConfig } from '@shared/types/pi'
@@ -453,9 +454,7 @@ export class ProviderService {
             const planRoot = volcenginePlanKind(normalized.url)
             if (
               input.protocol === 'anthropic-messages' &&
-              (isMissingModelCatalogStatus(response.status) ||
-                catalogMissing ||
-                planRoot !== null)
+              (isMissingModelCatalogStatus(response.status) || catalogMissing || planRoot !== null)
             ) {
               catalogMissing = true
               break
@@ -517,9 +516,12 @@ export class ProviderService {
       (input.modelId?.trim() || null) ??
       provider?.defaultModelId ??
       (await this.firstModelId(input.providerKey))
+    const probeProtocol = provider
+      ? await this.resolveModelProtocol(input.providerKey, resolvedModelId, provider.protocol)
+      : (provider?.protocol ?? null)
     const base = {
       endpoint: null as string | null,
-      protocol: provider?.protocol ?? null,
+      protocol: probeProtocol,
       modelId: resolvedModelId
     }
     if (!provider) {
@@ -553,7 +555,7 @@ export class ProviderService {
       }
     }
 
-    const proto = getProtocol(provider.protocol)
+    const proto = getProtocol(probeProtocol ?? provider.protocol)
     const normalized = normalizeProviderBaseUrl(provider.baseUrl)
     const root = normalized.url.replace(/\/+$/, '')
 
@@ -583,7 +585,7 @@ export class ProviderService {
     }
 
     const probe = buildChatProbe(
-      provider.protocol,
+      probeProtocol ?? provider.protocol,
       root,
       resolvedModelId,
       apiKey,
@@ -702,6 +704,20 @@ export class ProviderService {
     const snap = await this.config.read()
     const models = snap.models.providers[providerKey]?.models ?? []
     return models[0]?.id ?? null
+  }
+
+  /** Pi streams with model.api; provider.api is only the fallback. */
+  private async resolveModelProtocol(
+    providerKey: string,
+    modelId: string | null,
+    fallback: ProtocolId
+  ): Promise<ProtocolId> {
+    if (!modelId) return fallback
+    const snap = await this.config.read()
+    const api = snap.models.providers[providerKey]?.models?.find(
+      (model) => model.id === modelId
+    )?.api
+    return api && isProtocolId(api) ? api : fallback
   }
 
   private async persistSecret(key: string, apiKey: ProviderForm['apiKey']): Promise<string | null> {
@@ -1159,15 +1175,19 @@ function ensureDefaultModel(
     return { ...provider, models }
   }
   models.push(
-    domainModelToPi(undefined, {
-      modelId: id,
-      displayName: catalog?.name || id,
-      protocol,
-      reasoning: false,
-      vision: false,
-      contextWindow: catalog?.contextWindow ?? null,
-      maxOutputTokens: catalog?.maxOutputTokens ?? null
-    })
+    domainModelToPi(
+      undefined,
+      {
+        modelId: id,
+        displayName: catalog?.name || id,
+        protocol,
+        reasoning: false,
+        vision: false,
+        contextWindow: catalog?.contextWindow ?? null,
+        maxOutputTokens: catalog?.maxOutputTokens ?? null
+      },
+      protocol
+    )
   )
   return { ...provider, models }
 }
@@ -1184,15 +1204,19 @@ function mergeDiscoveredModels(
     const id = model.id.trim()
     if (!id || existingIds.has(id)) continue
     models.push(
-      domainModelToPi(undefined, {
-        modelId: id,
-        displayName: model.name.trim() || id,
-        protocol,
-        reasoning: false,
-        vision: false,
-        contextWindow: null,
-        maxOutputTokens: null
-      })
+      domainModelToPi(
+        undefined,
+        {
+          modelId: id,
+          displayName: model.name.trim() || id,
+          protocol,
+          reasoning: false,
+          vision: false,
+          contextWindow: null,
+          maxOutputTokens: null
+        },
+        protocol
+      )
     )
     existingIds.add(id)
   }

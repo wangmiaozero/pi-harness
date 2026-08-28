@@ -153,6 +153,42 @@ export function modelToDomain(
   }
 }
 
+/**
+ * Pi resolves `definition.api ?? provider.api`. Models that follow the
+ * provider must omit `api`, otherwise a later protocol change (or a newly
+ * discovered model) stays stuck on a stale per-model copy. Only an explicit
+ * per-model override keeps `api`.
+ */
+export function syncInheritedModelApis(
+  models: PiModelConfig[] | undefined,
+  providerApi: string | undefined,
+  previousProviderApi?: string
+): PiModelConfig[] {
+  if (!models?.length) return models ?? []
+  return models.map((model) => {
+    if (!inheritsProviderApi(model.api, providerApi, previousProviderApi)) return model
+    if (!model.api) return model
+    const next = { ...model }
+    delete next.api
+    return next
+  })
+}
+
+function inheritsProviderApi(
+  modelApi: string | undefined,
+  providerApi: string | undefined,
+  previousProviderApi?: string
+): boolean {
+  if (!modelApi) return true
+  return (
+    modelApi === providerApi || (previousProviderApi != null && modelApi === previousProviderApi)
+  )
+}
+
+export function providerProtocolFromPi(api: string | undefined): ProtocolId {
+  return isProtocolId(api ?? '') ? api : 'openai-completions'
+}
+
 export function domainProviderToPi(
   existing: PiProviderConfig | undefined,
   form: {
@@ -169,7 +205,7 @@ export function domainProviderToPi(
     baseUrl: form.baseUrl || undefined,
     headers: Object.keys(form.headers).length ? form.headers : existing?.headers,
     authHeader: form.authHeader,
-    models: existing?.models ?? []
+    models: syncInheritedModelApis(existing?.models, form.protocol, existing?.api)
   }
   if (form.apiKeyValue !== undefined) {
     if (form.apiKeyValue === '') delete next.apiKey
@@ -189,20 +225,23 @@ export function domainModelToPi(
     contextWindow: number | null
     maxOutputTokens: number | null
     thinkingLevels?: Partial<Record<string, string | null>>
-  }
+  },
+  providerProtocol: ProtocolId
 ): PiModelConfig {
   const input = form.vision ? (['text', 'image'] as const) : (['text'] as const)
-  return {
+  const next: PiModelConfig = {
     ...(existing ?? {}),
     id: form.modelId,
     name: form.displayName,
-    api: form.protocol,
     reasoning: form.reasoning || undefined,
     input: [...input],
     contextWindow: form.contextWindow ?? undefined,
     maxTokens: form.maxOutputTokens ?? undefined,
     thinkingLevelMap: form.thinkingLevels
   }
+  if (form.protocol === providerProtocol) delete next.api
+  else next.api = form.protocol
+  return next
 }
 
 export { maskKey, modelMetaKey }
