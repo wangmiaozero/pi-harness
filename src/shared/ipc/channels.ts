@@ -126,9 +126,23 @@ export const IPC_INVOKE = {
 
   workspaceListProjects: invoke('workspace:list-projects'),
   workspacePickDirectory: invoke('workspace:pick-directory'),
+  workspacePickWorkspaceSources: invoke('workspace:pick-workspace-sources'),
+  workspacePickWorkspaceFile: invoke('workspace:pick-workspace-file'),
+  workspaceSaveWorkspaceFile: invoke('workspace:save-workspace-file'),
   workspaceAuthorizeDroppedRoot: invoke('workspace:authorize-dropped-root'),
   workspaceAllowRoot: invoke('workspace:allow-root'),
   workspaceProjectContextMenu: invoke('workspace:project-context-menu'),
+  workspaceGetActive: invoke('workspace:get-active'),
+  workspaceSync: invoke('workspace:sync'),
+  workspaceOpenFile: invoke('workspace:open-file'),
+  workspaceSave: invoke('workspace:save'),
+  workspaceSearch: invoke('workspace:search'),
+  workspaceOpenTerminal: invoke('workspace:open-terminal'),
+  workspaceRelocateFolder: invoke('workspace:relocate-folder'),
+  workspaceListRecent: invoke('workspace:list-recent'),
+  workspaceBindSession: invoke('workspace:bind-session'),
+  workspaceGetSessionBinding: invoke('workspace:get-session-binding'),
+  workspaceListSessionBindings: invoke('workspace:list-session-bindings'),
 
   sessionList: invoke('session:list'),
   sessionGet: invoke('session:get'),
@@ -168,6 +182,7 @@ export const IPC_INVOKE = {
   filesUpload: invoke('files:upload'),
 
   gitStatus: invoke('git:status'),
+  gitStatusMany: invoke('git:status-many'),
   gitDiff: invoke('git:diff'),
 
   worktreeList: invoke('worktree:list'),
@@ -188,7 +203,8 @@ export const IPC_EVENT = {
   harnessEvent: 'pi-harness:harness:event',
   updaterState: 'pi-harness:updater:state',
   capabilityProgress: 'pi-harness:capabilities:mutation-progress',
-  aiMotionActive: 'pi-harness:event:ai-motion-active'
+  aiMotionActive: 'pi-harness:event:ai-motion-active',
+  workspaceChanged: 'pi-harness:event:workspace-changed'
 } as const
 
 export type IpcEventName = (typeof IPC_EVENT)[keyof typeof IPC_EVENT]

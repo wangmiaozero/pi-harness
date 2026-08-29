@@ -154,7 +154,7 @@ export class FileService {
       throw new ValidationError('Edited file exceeds 2 MB')
     }
 
-    const realPath = await this.access.assertAllowed(filePath, { mustExist: true })
+    const realPath = await this.access.assertWritable(filePath, { mustExist: true })
     if ((await lstat(filePath)).isSymbolicLink()) {
       throw new ValidationError('Refusing to edit a symbolic link', { filePath })
     }
@@ -217,8 +217,8 @@ export class FileService {
       throw new ValidationError('Invalid upload file name', { fileName })
     }
     const requestedTarget = path.join(directory, fileName)
-    await this.access.assertAllowed(requestedTarget)
-    const realDir = await this.access.assertAllowed(directory, { mustExist: true })
+    await this.access.assertWritable(requestedTarget)
+    const realDir = await this.access.assertWritable(directory, { mustExist: true })
     const target = path.join(realDir, fileName)
     const buf = Buffer.from(dataBase64, 'base64')
     if (buf.byteLength > FILE_UPLOAD_MAX_BYTES) {
@@ -245,7 +245,7 @@ export class FileService {
       if (!targetStat.isFile()) {
         throw new ValidationError('Upload target is not a file', { fileName })
       }
-      await this.access.assertAllowed(requestedTarget, { mustExist: true })
+      await this.access.assertWritable(requestedTarget, { mustExist: true })
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     }

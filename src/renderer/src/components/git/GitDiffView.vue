@@ -11,10 +11,12 @@ const diff = ref<GitFileDiffResponse | null>(null)
 const filePath = computed(() => workspace.activeTab?.filePath ?? null)
 
 watch(
-  [filePath, () => workspace.currentCwd, () => workspace.contentRevision],
-  async ([path, cwd]) => {
+  [filePath, () => workspace.contentRevision],
+  async ([path]) => {
     diff.value = null
-    if (!path || !cwd) return
+    if (!path) return
+    const cwd = workspace.folderForPath(path)?.resolvedPath ?? workspace.currentCwd
+    if (!cwd) return
     diff.value = await callApi(() => getApi().git.diff(cwd, path))
   },
   { immediate: true }

@@ -39,6 +39,8 @@ type Fixtures = {
   electronApp: ElectronApplication
   page: Page
   workspaceRoot: string
+  testUserData: string
+  piAgentDir: string
 }
 
 export const test = base.extend<Fixtures>({
@@ -47,16 +49,23 @@ export const test = base.extend<Fixtures>({
     await use(workspaceRoot)
     fs.rmSync(workspaceRoot, { recursive: true, force: true })
   },
-  electronApp: async ({ workspaceRoot }, use, testInfo) => {
+  testUserData: async ({}, use) => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-'))
+    await use(userData)
+    fs.rmSync(userData, { recursive: true, force: true })
+  },
+  piAgentDir: async ({ testUserData }, use) => {
+    const isolatedPi = path.join(testUserData, 'mock-pi')
+    fs.cpSync(fixturesPi, isolatedPi, { recursive: true })
+    await use(isolatedPi)
+  },
+  electronApp: async ({ workspaceRoot, testUserData, piAgentDir }, use, testInfo) => {
     void testInfo
     if (!fs.existsSync(mainJs)) {
       throw new Error('out/main/index.js missing — run `pnpm compile` before e2e')
     }
-    const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-'))
-    const isolatedPi = path.join(userData, 'mock-pi')
-    fs.cpSync(fixturesPi, isolatedPi, { recursive: true })
     fs.writeFileSync(
-      path.join(userData, 'authorized-roots.json'),
+      path.join(testUserData, 'authorized-roots.json'),
       `${JSON.stringify({ roots: [path.join(root, 'fixtures'), workspaceRoot] }, null, 2)}\n`
     )
     const { ELECTRON_RUN_AS_NODE: _runAsNode, ...restEnv } = process.env
@@ -67,10 +76,10 @@ export const test = base.extend<Fixtures>({
       env: {
         ...restEnv,
         ELECTRON_RUN_AS_NODE: undefined,
-        PI_HARNESS_PI_CLI_PATH: path.join(userData, 'missing-pi-cli'),
-        PI_HARNESS_PI_CONFIG_DIR: isolatedPi,
-        PI_CODING_AGENT_DIR: isolatedPi,
-        PI_HARNESS_USER_DATA: userData,
+        PI_HARNESS_PI_CLI_PATH: path.join(testUserData, 'missing-pi-cli'),
+        PI_HARNESS_PI_CONFIG_DIR: piAgentDir,
+        PI_CODING_AGENT_DIR: piAgentDir,
+        PI_HARNESS_USER_DATA: testUserData,
         PI_HARNESS_CAPABILITY_FIXTURES_DIR: capabilityFixtures,
         PI_HARNESS_BUILTIN_SKILLS_DIR: path.join(root, 'resources', 'builtin-skills')
       },
@@ -78,7 +87,6 @@ export const test = base.extend<Fixtures>({
     })
     await use(app)
     await app.close().catch(() => undefined)
-    fs.rmSync(userData, { recursive: true, force: true })
   },
   page: async ({ electronApp }, use) => {
     const page = await waitForMainWindow(electronApp)

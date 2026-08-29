@@ -8,7 +8,8 @@ import {
   initAppPaths,
   appSettingsPath,
   appUiStatePath,
-  appAuthorizedRootsPath
+  appAuthorizedRootsPath,
+  appWorkspaceStatePath
 } from './services/app-paths'
 import { JsonStore } from './services/storage'
 import { log } from './services/logger'
@@ -33,6 +34,7 @@ import { WorktreeService } from './git/worktree-service'
 import { SessionService } from './sessions/session-service'
 import { SessionExportService } from './sessions/session-export-service'
 import { AgentRuntimeService } from './agent/agent-runtime-service'
+import { WorkspaceService, type WorkspaceStateRecord } from './workspace/workspace-service'
 import { PiHarnessAdapter } from './harness/adapters/pi-harness-adapter'
 import { HarnessRuntime } from './harness/harness-runtime'
 import { onUpdateState, startAutomaticUpdates, stopAutomaticUpdates } from './updater'
@@ -41,7 +43,7 @@ import { SkillRegistry } from './capabilities/skill-registry'
 import { CapabilityService } from './capabilities/capability-service'
 import { PiPackageManager } from './packages/package-manager'
 import { BuiltinSkillService } from './skills/builtin-skill-service'
-import { PackageHealthError } from './services/errors'
+import { PackageHealthError, PathDeniedError } from './services/errors'
 import { EnvironmentManager } from './environment/environment-manager'
 import { applyChromiumGpuWorkarounds } from './window/chromium-flags'
 
@@ -111,6 +113,12 @@ async function bootstrap(): Promise<void> {
     roots: []
   })
   await authorizedRootsStore.read()
+  const workspaceStateStore = new JsonStore<WorkspaceStateRecord>(appWorkspaceStatePath(), {
+    active: null,
+    recent: [],
+    sessionBindings: {}
+  })
+  await workspaceStateStore.read()
 
   const metadata = createMetadataStore()
   await metadata.read()
@@ -169,8 +177,23 @@ async function bootstrap(): Promise<void> {
   access.attachSessionLister(() => sessions.list())
   const files = new FileService(access)
   const git = new GitService(access)
+  const workspaceState = new WorkspaceService(access, workspaceStateStore)
+  await workspaceState.load().catch((error) => log.app.warn('workspace load failed:', error))
+  workspaceState.onFilesChanged((roots) => {
+    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return
+    mainWindow.webContents.send(IPC_EVENT.workspaceChanged, { roots })
+  })
   const sessionExport = new SessionExportService(sessions)
-  const piAgent = new AgentRuntimeService(sessions)
+  const piAgent = new AgentRuntimeService(sessions, {
+    getPrompt: (sessionId) => workspaceState.getPromptForSession(sessionId),
+    assertWritable: (target, sessionId) => {
+      const folders = workspaceState.getFoldersForSession(sessionId)
+      if (!folders.length) {
+        throw new PathDeniedError('No projects are attached to this session.', { sessionId })
+      }
+      return access.assertWritableInFolders(target, folders)
+    }
+  })
   const harness = new HarnessRuntime(new PiHarnessAdapter(piAgent))
   diagnostics.attachWorkspace({
     sessions,
@@ -201,9 +224,11 @@ async function bootstrap(): Promise<void> {
       sessions,
       sessionExport,
       agent: harness,
+      workspaceState,
       beforeAgentStart: async (cwd, sessionId) => {
         const sessionInfo = !cwd && sessionId ? (await sessions.get(sessionId)).info : null
         const projectRoot = cwd ?? sessionInfo?.projectRoot ?? sessionInfo?.cwd ?? null
+        if (sessionId) await workspaceState.activateSession(sessionId, projectRoot)
         const risky = (await packageManager.list(projectRoot)).filter(
           (pkg) =>
             pkg.registered && ['missing', 'permission-error', 'corrupted'].includes(pkg.health)
@@ -275,6 +300,7 @@ async function bootstrap(): Promise<void> {
     unsubscribeUpdateState()
     config.stopWatcher()
     void harness.shutdownAll()
+    void workspaceState.close()
   })
 
   app.on('second-instance', () => {

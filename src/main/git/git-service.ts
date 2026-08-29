@@ -31,8 +31,9 @@ export class GitService {
 
     let porcelain: string
     let numstat: string
+    let branch: string | null = null
     try {
-      ;[porcelain, numstat] = await Promise.all([
+      ;[porcelain, numstat, branch] = await Promise.all([
         gitExec(repositoryRoot, ['status', '--porcelain=v1', '-z', '--untracked-files=all']),
         gitExec(repositoryRoot, [
           'diff',
@@ -42,7 +43,10 @@ export class GitService {
           'HEAD',
           '--',
           '.'
-        ]).catch(() => '')
+        ]).catch(() => ''),
+        gitExec(repositoryRoot, ['rev-parse', '--abbrev-ref', 'HEAD'])
+          .then((value) => value.trim() || null)
+          .catch(() => null)
       ])
     } catch (error) {
       if (isNotAGitRepository(error)) {
@@ -83,7 +87,11 @@ export class GitService {
       if (Number.isInteger(deletedCount)) deletions += deletedCount
     }
 
-    return { isGitRepository: true, repositoryRoot, files, additions, deletions }
+    return { isGitRepository: true, repositoryRoot, files, additions, deletions, branch }
+  }
+
+  async statusMany(cwds: string[]): Promise<GitStatusResponse[]> {
+    return Promise.all(cwds.map((cwd) => this.status(cwd)))
   }
 
   async diff(cwd: string, filePath: string): Promise<GitFileDiffResponse> {

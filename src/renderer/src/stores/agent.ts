@@ -26,6 +26,7 @@ import {
   type ToolPreset
 } from '@shared/workspace/tool-presets'
 import { useSessionStore } from './sessions'
+import { useWorkspaceStore } from './workspace'
 
 export const useAgentStore = defineStore('agent', () => {
   const messages = shallowRef<AgentMessage[]>([])
@@ -279,6 +280,7 @@ export const useAgentStore = defineStore('agent', () => {
           started.cwd,
           message.trim() || '[image]'
         )
+        void useWorkspaceStore().bindCurrentSession(started.sessionId)
         await callApi(() =>
           getApi().agent.prompt({
             sessionId: started.sessionId,

@@ -21,6 +21,7 @@ import {
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import type { AppSettings, AppUpdateState } from '@shared/ipc/api-types'
+import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Select from '@renderer/components/ui/Select.vue'
@@ -509,7 +510,7 @@ onBeforeUnmount(stopUpdateListener)
 
 <template>
   <div class="settings-view flex h-full min-h-0 flex-col">
-    <header class="page-header">
+    <PageHeader>
       <div class="flex min-w-0 items-center gap-2 self-stretch">
         <IconButton
           v-if="section"
@@ -534,7 +535,7 @@ onBeforeUnmount(stopUpdateListener)
         <Save class="size-3.5" :stroke-width="1.75" />
         {{ $t('common.save') }}
       </Button>
-    </header>
+    </PageHeader>
 
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div v-if="!section" class="flex min-h-0 flex-1 flex-col p-5">

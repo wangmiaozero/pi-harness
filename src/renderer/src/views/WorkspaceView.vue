@@ -14,6 +14,8 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { registerShortcut } from '@renderer/composables/shortcuts'
+import { getApi } from '@renderer/composables/useApi'
+import type { RecentWorkspace } from '@shared/types/workspace'
 
 const { t } = useI18n()
 const sessions = useSessionStore()
@@ -24,6 +26,8 @@ const workspaceSidebar = ref<InstanceType<typeof WorkspaceSidebar> | null>(null)
 const chatWindow = ref<InstanceType<typeof ChatWindow> | null>(null)
 const workspaceTabs = ref<InstanceType<typeof WorkspaceTabs> | null>(null)
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
+let unsubWorkspaceChanged: (() => void) | null = null
+let sessionSwitchQueue: Promise<void> = Promise.resolve()
 
 const activeKind = computed(() => workspace.activeTab?.kind ?? 'chat')
 
@@ -41,6 +45,18 @@ function startNewSession() {
 
 function openProject() {
   void workspaceSidebar.value?.pickProject()
+}
+
+function openWorkspace() {
+  void workspaceSidebar.value?.openWorkspaceFile()
+}
+
+function addFolder() {
+  void workspaceSidebar.value?.addFolder()
+}
+
+function saveWorkspace() {
+  void workspaceSidebar.value?.saveWorkspace()
 }
 
 function openHarness() {
@@ -70,6 +86,27 @@ function onCompactEvent() {
   if (sessions.currentId) void agent.compact(sessions.currentId)
 }
 
+function onOpenFolderEvent() {
+  openProject()
+}
+
+function onOpenWorkspaceEvent() {
+  openWorkspace()
+}
+
+function onAddFolderEvent() {
+  addFolder()
+}
+
+function onSaveWorkspaceEvent() {
+  saveWorkspace()
+}
+
+function onOpenRecentEvent(event: Event) {
+  const item = (event as CustomEvent<RecentWorkspace>).detail
+  if (item) openRecent(item)
+}
+
 function scheduleContentRefresh() {
   if (document.visibilityState === 'hidden') return
   if (refreshTimer) clearTimeout(refreshTimer)
@@ -90,41 +127,67 @@ onMounted(() => {
       restoreTabs: settings.settings?.restoreTabs !== false,
       autoOpenLastProject: settings.settings?.autoOpenLastProject !== false
     })
+    if (workspace.canChat && !workspace.tabs.length) {
+      workspace.ensureChatTab('new', t('workspace.newSession'))
+    }
     await Promise.all([workspace.loadFiles(), workspace.loadGit()])
+    await workspace.refreshRecent()
   })()
   window.addEventListener('pi-harness:abort-agent', onAbortEvent)
   window.addEventListener('pi-harness:compact-session', onCompactEvent)
+  window.addEventListener('pi-harness:workspace-open-folder', onOpenFolderEvent)
+  window.addEventListener('pi-harness:workspace-open-file', onOpenWorkspaceEvent)
+  window.addEventListener('pi-harness:workspace-add-folder', onAddFolderEvent)
+  window.addEventListener('pi-harness:workspace-save', onSaveWorkspaceEvent)
+  window.addEventListener('pi-harness:workspace-open-recent', onOpenRecentEvent)
   window.addEventListener('focus', scheduleContentRefresh)
   document.addEventListener('visibilitychange', onVisibilityChange)
+  unsubWorkspaceChanged = getApi().on('workspace-changed', () => {
+    scheduleContentRefresh()
+  })
 })
 
 onBeforeUnmount(() => {
   offNew()
   offClose()
   if (refreshTimer) clearTimeout(refreshTimer)
+  unsubWorkspaceChanged?.()
   window.removeEventListener('pi-harness:abort-agent', onAbortEvent)
   window.removeEventListener('pi-harness:compact-session', onCompactEvent)
+  window.removeEventListener('pi-harness:workspace-open-folder', onOpenFolderEvent)
+  window.removeEventListener('pi-harness:workspace-open-file', onOpenWorkspaceEvent)
+  window.removeEventListener('pi-harness:workspace-add-folder', onAddFolderEvent)
+  window.removeEventListener('pi-harness:workspace-save', onSaveWorkspaceEvent)
+  window.removeEventListener('pi-harness:workspace-open-recent', onOpenRecentEvent)
   window.removeEventListener('focus', scheduleContentRefresh)
   document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 
-watch(
-  () => sessions.currentId,
-  async (id) => {
-    await agent.load(id)
-    if (id) {
-      const session = sessions.current
-      workspace.ensureChatTab(id, session?.name || session?.firstMessage?.slice(0, 32) || id)
-    }
-    await Promise.all([workspace.loadFiles(), workspace.loadGit()])
+function openRecent(item: RecentWorkspace) {
+  void workspaceSidebar.value?.openRecent(item)
+}
+
+async function switchSession(id: string | null) {
+  if (id && !sessions.items.some((session) => session.id === id)) {
+    workspace.pruneUnavailableSessionTabs()
+    sessions.selectSession(null)
+    await agent.load(null)
+    return
   }
-)
+  if (id) await workspace.restoreSessionWorkspace(id)
+  else await workspace.restoreDraftWorkspace()
+  await agent.load(id)
+  if (id) {
+    const session = sessions.current
+    workspace.ensureChatTab(id, session?.name || session?.firstMessage?.slice(0, 32) || id)
+  }
+  await Promise.all([workspace.loadFiles(), workspace.loadGit()])
+}
 
 watch(
-  () => sessions.currentProjectKey,
-  () => {
-    void workspace.loadFiles()
-    void workspace.loadGit()
+  () => sessions.currentId,
+  (id) => {
+    sessionSwitchQueue = sessionSwitchQueue.catch(() => undefined).then(() => switchSession(id))
   }
 )
 
@@ -163,6 +226,28 @@ watch(
             @click="openProject"
           >
             {{ $t('workspace.openProject') }}
+          </button>
+          <button
+            type="button"
+            class="mt-2 rounded-[var(--radius-sm)] border border-[var(--border-default)] px-3 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+            @click="openWorkspace"
+          >
+            {{ $t('workspace.openWorkspace') }}
+          </button>
+          <p
+            v-if="workspace.recentWorkspaces.length"
+            class="mt-4 text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+          >
+            {{ $t('workspace.recentWorkspaces') }}
+          </p>
+          <button
+            v-for="item in workspace.recentWorkspaces.slice(0, 8)"
+            :key="item.id"
+            type="button"
+            class="mt-1 max-w-[280px] truncate rounded-[var(--radius-sm)] px-2 py-1 text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+            @click="openRecent(item)"
+          >
+            {{ item.name || item.workspaceFile || item.folderPaths[0] }}
           </button>
         </EmptyState>
       </div>

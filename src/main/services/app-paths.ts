@@ -58,6 +58,11 @@ export function appAuthorizedRootsPath(): string {
   return path.join(userData(), 'authorized-roots.json')
 }
 
+/** Active multi-root workspace, recents, and session bindings. */
+export function appWorkspaceStatePath(): string {
+  return path.join(userData(), 'workspace-state.json')
+}
+
 /** Pi-Harness encrypted secret vault (non-keychain fallback). */
 export function appSecretVaultPath(): string {
   return path.join(userData(), 'secrets.bin')

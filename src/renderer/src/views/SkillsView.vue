@@ -37,6 +37,7 @@ import type {
 } from '@shared/ipc/api-types'
 import type { CapabilityDescriptor } from '@shared/capabilities/types'
 import type { SkillForm, SkillImportInput } from '@shared/schemas/domain'
+import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Badge from '@renderer/components/ui/Badge.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
@@ -1032,7 +1033,7 @@ function resourceGroups(pkg: PiPackageInfo) {
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <header class="page-header">
+    <PageHeader>
       <div class="flex min-w-0 flex-col justify-center self-stretch">
         <h1
           class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
@@ -1083,7 +1084,7 @@ function resourceGroups(pkg: PiPackageInfo) {
           </Button>
         </template>
       </div>
-    </header>
+    </PageHeader>
 
     <div class="flex min-h-0 flex-1">
       <div class="flex min-h-0 w-[320px] shrink-0 flex-col border-r border-[var(--border-subtle)]">

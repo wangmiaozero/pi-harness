@@ -30,6 +30,7 @@ import {
   volcenginePlanKind
 } from '@shared/utils/base-url'
 import { suggestProviderIdentity } from '@shared/utils/provider-identity'
+import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
@@ -761,7 +762,7 @@ onMounted(() => {
   <div class="flex h-full min-h-0 flex-col">
     <!-- Page header — compact, single line, page title + description on the
          left, search + primary action on the right. -->
-    <header class="page-header">
+    <PageHeader>
       <div class="flex min-w-0 flex-col justify-center self-stretch">
         <h1
           class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
@@ -783,7 +784,7 @@ onMounted(() => {
           {{ $t('providers.create') }}
         </Button>
       </div>
-    </header>
+    </PageHeader>
 
     <!-- Searchable Pi-compatible provider/model presets. -->
     <div

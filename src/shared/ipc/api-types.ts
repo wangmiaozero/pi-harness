@@ -17,19 +17,26 @@ import type {
 import type { ProtocolId } from '../constants/protocols'
 import type {
   AgentStateSnapshot,
+  AgentWorkspace,
   FilePreview,
+  FileSearchHit,
+  FileSearchScope,
   FileTreeEntry,
   FileWriteResult,
   GitFileDiffResponse,
   GitStatusResponse,
   PromptAgentInput,
   ProjectContextAction,
+  RecentWorkspace,
   SessionContext,
   SessionContextAction,
   SessionDetail,
   SessionInfo,
   SessionProjectGroup,
+  SessionWorkspaceBinding,
   StartAgentSessionInput,
+  WorkspaceFolderRole,
+  WorkspaceFolderSnapshot,
   WorktreeInfo
 } from '../types/workspace'
 import type { ToolPreset } from '../workspace/tool-presets'
@@ -759,6 +766,9 @@ export interface PiSwitchAPI {
   workspace: {
     listProjects(): Promise<SessionProjectGroup[]>
     pickDirectory(): Promise<string | null>
+    pickWorkspaceSources(): Promise<string[]>
+    pickWorkspaceFile(): Promise<string | null>
+    saveWorkspaceFile(): Promise<string | null>
     allowRoot(root: string): Promise<void>
     projectContextMenu(
       projectKey: string,
@@ -767,6 +777,47 @@ export interface PiSwitchAPI {
       locale?: 'zh-CN' | 'en-US'
     ): Promise<ProjectContextAction | null>
     getPathForFile(file: unknown): Promise<string>
+    getActive(): Promise<AgentWorkspace | null>
+    sync(input: {
+      workspaceFile?: string | null
+      folders: Array<{
+        path: string
+        resolvedPath?: string
+        name?: string
+        role?: WorkspaceFolderRole
+        readonly?: boolean
+      }>
+      settings?: Record<string, unknown>
+    }): Promise<AgentWorkspace>
+    openWorkspaceFile(path: string): Promise<AgentWorkspace>
+    save(input: {
+      path?: string
+      folders: Array<{
+        path: string
+        resolvedPath?: string
+        name?: string
+        role?: WorkspaceFolderRole
+        readonly?: boolean
+      }>
+      settings?: Record<string, unknown>
+      workspaceFile?: string | null
+    }): Promise<AgentWorkspace>
+    search(
+      query: string,
+      scope?: FileSearchScope,
+      folderId?: string
+    ): Promise<FileSearchHit[]>
+    openInTerminal(directory: string): Promise<void>
+    relocateFolder(folderId: string, path: string): Promise<AgentWorkspace>
+    listRecent(): Promise<RecentWorkspace[]>
+    bindSession(
+      sessionId: string,
+      workspaceId: string,
+      folders: WorkspaceFolderSnapshot[],
+      mainFolderId?: string
+    ): Promise<void>
+    getSessionBinding(sessionId: string): Promise<SessionWorkspaceBinding | null>
+    listSessionBindings(): Promise<Record<string, SessionWorkspaceBinding>>
   }
   sessions: {
     list(force?: boolean): Promise<SessionInfo[]>
@@ -826,6 +877,7 @@ export interface PiSwitchAPI {
   }
   git: {
     status(cwd: string): Promise<GitStatusResponse>
+    statusMany(cwds: string[]): Promise<GitStatusResponse[]>
     diff(cwd: string, filePath: string): Promise<GitFileDiffResponse>
   }
   worktrees: {
@@ -851,6 +903,7 @@ export interface PiSwitchAPI {
     event: 'capability-progress',
     listener: (payload: CapabilityMutationProgress) => void
   ): () => void
+  on(event: 'workspace-changed', listener: IpcEventListener): () => void
 }
 
 declare global {

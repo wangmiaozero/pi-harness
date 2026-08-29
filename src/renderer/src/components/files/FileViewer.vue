@@ -41,18 +41,24 @@ const currentText = computed(() => {
 })
 const dirty = computed(() => workspace.isFileDirty(filePath.value))
 const editable = computed(
-  () => preview.value?.kind === 'text' && !preview.value.truncated && Boolean(editBuffer.value)
+  () =>
+    preview.value?.kind === 'text' &&
+    !preview.value.truncated &&
+    Boolean(editBuffer.value) &&
+    !workspace.isPathReadonly(filePath.value)
 )
 const lineCount = computed(() => (currentText.value.match(/\n/g)?.length ?? 0) + 1)
 const displayPath = computed(() => {
   const file = preview.value
   if (!file) return ''
   const normalizedPath = file.path.replace(/\\/g, '/')
-  const normalizedRoot = workspace.currentCwd?.replace(/\\/g, '/').replace(/\/+$/, '')
+  const normalizedRoot = workspace.folderForPath(file.path)?.resolvedPath?.replace(/\\/g, '/').replace(/\/+$/, '')
   if (normalizedRoot && normalizedPath.startsWith(`${normalizedRoot}/`)) {
-    return normalizedPath.slice(normalizedRoot.length + 1)
+    const folderName = workspace.folderForPath(file.path)?.name
+    const relative = normalizedPath.slice(normalizedRoot.length + 1)
+    return folderName ? `${folderName}/${relative}` : relative
   }
-  return normalizedPath
+  return workspace.displayFilePath(file.path)
 })
 
 const fileEditorTheme = EditorView.theme({

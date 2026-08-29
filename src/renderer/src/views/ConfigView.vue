@@ -8,6 +8,7 @@ import { keymap } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { Save, RotateCcw, RefreshCw, AlignLeft, FolderOpen, Circle } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Badge from '@renderer/components/ui/Badge.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
@@ -156,7 +157,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="flex h-full min-h-0 flex-col">
     <!-- Editor-style header: file selector as a tab strip, actions on the right. -->
-    <header class="page-header">
+    <PageHeader>
       <div class="flex min-w-0 items-center gap-3 self-stretch">
         <h1
           class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
@@ -201,7 +202,7 @@ onBeforeUnmount(() => {
           {{ $t('common.save') }}
         </Button>
       </div>
-    </header>
+    </PageHeader>
 
     <!-- File selector strip — a tab-like control, not Tabs components, just two
          underlined buttons. -->

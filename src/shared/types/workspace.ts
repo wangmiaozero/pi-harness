@@ -255,6 +255,9 @@ export interface GitStatusResponse {
   files: GitFileStatus[]
   additions: number
   deletions: number
+  folderId?: string
+  folderName?: string
+  branch?: string | null
 }
 
 export interface GitFileDiffResponse {
@@ -267,6 +270,7 @@ export interface FileTreeEntry {
   name: string
   path: string
   isDirectory: boolean
+  workspaceFolderId?: string
 }
 
 export type FilePreviewKind = 'text' | 'image' | 'audio' | 'pdf' | 'docx' | 'binary'
@@ -360,5 +364,77 @@ export type SessionContextAction =
   | 'delete'
   | 'open-worktree'
 
+export type WorkspaceFolderRole = 'main' | 'reference' | 'dependency' | 'docs'
+
+export interface WorkspaceFolder {
+  id: string
+  name: string
+  path: string
+  resolvedPath: string
+  role: WorkspaceFolderRole
+  readonly: boolean
+  exists: boolean
+}
+
+export interface AgentWorkspace {
+  id: string
+  name: string
+  workspaceFile: string | null
+  folders: WorkspaceFolder[]
+  settings: Record<string, unknown>
+  createdAt: number
+  updatedAt: number
+}
+
+export interface RecentWorkspace {
+  id: string
+  name: string
+  workspaceFile: string | null
+  folderPaths: string[]
+  lastOpenedAt: number
+}
+
+export interface WorkspaceFolderSnapshot {
+  id: string
+  path: string
+  role: WorkspaceFolderRole
+  readonly?: boolean
+}
+
+export interface SessionWorkspaceBinding {
+  workspaceId: string
+  mainFolderId?: string
+  folders: WorkspaceFolderSnapshot[]
+}
+
+export interface FileSearchHit {
+  workspaceFolderId: string
+  workspaceFolderName: string
+  relativePath: string
+  absolutePath: string
+  line?: number
+  preview?: string
+}
+
+export type FileSearchScope = 'workspace' | 'main' | 'folder'
+
+export interface GitRepositoryStatus extends GitStatusResponse {
+  folderId: string
+  folderName: string
+  branch: string | null
+}
+
 export type ProjectContextAction =
-  'pin' | 'unpin' | 'reveal' | 'remove' | 'archive-chats' | 'create-worktree'
+  | 'pin'
+  | 'unpin'
+  | 'reveal'
+  | 'remove'
+  | 'archive-chats'
+  | 'create-worktree'
+  | 'set-main'
+  | 'set-role-reference'
+  | 'set-role-dependency'
+  | 'set-role-docs'
+  | 'toggle-readonly'
+  | 'open-terminal'
+  | 'relocate'

@@ -5,6 +5,7 @@ import { toast } from 'vue-sonner'
 import { EditorView, basicSetup } from 'codemirror'
 import { EditorState } from '@codemirror/state'
 import { json } from '@codemirror/lang-json'
+import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Badge from '@renderer/components/ui/Badge.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
@@ -130,7 +131,7 @@ watch(
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <header class="page-header">
+    <PageHeader>
       <div class="flex min-w-0 flex-col justify-center self-stretch">
         <h1
           class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
@@ -165,7 +166,7 @@ watch(
           {{ $t('common.export') }}
         </Button>
       </div>
-    </header>
+    </PageHeader>
 
     <div class="flex-1 overflow-y-auto">
       <div

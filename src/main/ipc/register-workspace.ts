@@ -1,4 +1,4 @@
-import { BrowserWindow, Menu, dialog } from 'electron'
+import { BrowserWindow, Menu, dialog, type OpenDialogOptions } from 'electron'
 import { IPC_INVOKE } from '@shared/ipc/channels'
 import {
   allowRootSchema,
@@ -8,6 +8,7 @@ import {
   fileWriteSchema,
   fileUploadSchema,
   gitDiffSchema,
+  gitStatusManySchema,
   gitStatusSchema,
   promptAgentSchema,
   projectContextMenuSchema,
@@ -17,6 +18,14 @@ import {
   sessionIdSchema,
   sessionRenameSchema,
   startAgentSessionSchema,
+  workspaceBindSessionSchema,
+  workspaceOpenFileSchema,
+  workspaceOpenTerminalSchema,
+  workspaceRelocateFolderSchema,
+  workspaceSaveSchema,
+  workspaceSearchSchema,
+  workspaceSessionIdSchema,
+  workspaceSyncSchema,
   worktreeCreateSchema,
   worktreeListSchema,
   worktreeRemoveSchema
@@ -30,6 +39,7 @@ import type { WorktreeService } from '../git/worktree-service'
 import type { SessionService } from '../sessions/session-service'
 import type { SessionExportService } from '../sessions/session-export-service'
 import type { AgentRuntime } from '../agent/runtime'
+import type { WorkspaceService } from '../workspace/workspace-service'
 import type { ProjectContextAction, SessionContextAction } from '@shared/types/workspace'
 import {
   getProjectContextMenuLabels,
@@ -46,6 +56,7 @@ export interface WorkspaceServices {
   sessions: SessionService
   sessionExport: SessionExportService
   agent: AgentRuntime
+  workspaceState: WorkspaceService
   beforeAgentStart?: (
     cwd: string | null | undefined,
     sessionId: string | null | undefined
@@ -61,8 +72,17 @@ export function registerWorkspaceIpc(
   wrap: Wrap,
   services: WorkspaceServices
 ): void {
-  const { access, files, git, worktrees, sessions, sessionExport, agent, beforeAgentStart } =
-    services
+  const {
+    access,
+    files,
+    git,
+    worktrees,
+    sessions,
+    sessionExport,
+    agent,
+    workspaceState,
+    beforeAgentStart
+  } = services
 
   ipcMain.handle(IPC_INVOKE.workspaceListProjects, () =>
     wrap(async () => groupSessionsByProject(await sessions.list()))
@@ -76,6 +96,131 @@ export function registerWorkspaceIpc(
       const dir = result.canceled ? null : (result.filePaths[0] ?? null)
       return dir ? access.authorizeRoot(dir) : null
     })
+  )
+  ipcMain.handle(IPC_INVOKE.workspacePickWorkspaceSources, (e) =>
+    wrap(async () => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      const options: OpenDialogOptions = {
+        properties: ['openFile', 'openDirectory', 'multiSelections', 'createDirectory'],
+        filters: [{ name: 'Projects or Workspace', extensions: ['code-workspace'] }]
+      }
+      const result = win
+        ? await dialog.showOpenDialog(win, options)
+        : await dialog.showOpenDialog(options)
+      if (result.canceled) return []
+      return Promise.all(
+        result.filePaths.map((source) =>
+          source.toLowerCase().endsWith('.code-workspace')
+            ? Promise.resolve(source)
+            : access.authorizeRoot(source)
+        )
+      )
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspacePickWorkspaceFile, (e) =>
+    wrap(async () => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      const result = win
+        ? await dialog.showOpenDialog(win, {
+            properties: ['openFile'],
+            filters: [{ name: 'Workspace', extensions: ['code-workspace'] }]
+          })
+        : await dialog.showOpenDialog({
+            properties: ['openFile'],
+            filters: [{ name: 'Workspace', extensions: ['code-workspace'] }]
+          })
+      return result.canceled ? null : (result.filePaths[0] ?? null)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceSaveWorkspaceFile, (e) =>
+    wrap(async () => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      const result = win
+        ? await dialog.showSaveDialog(win, {
+            filters: [{ name: 'Workspace', extensions: ['code-workspace'] }],
+            defaultPath: 'workspace.code-workspace'
+          })
+        : await dialog.showSaveDialog({
+            filters: [{ name: 'Workspace', extensions: ['code-workspace'] }],
+            defaultPath: 'workspace.code-workspace'
+          })
+      return result.canceled ? null : (result.filePath ?? null)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceGetActive, () => wrap(async () => workspaceState.getActive()))
+  ipcMain.handle(IPC_INVOKE.workspaceSync, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = workspaceSyncSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid workspace', { issues: parsed.error.issues })
+      return workspaceState.sync(parsed.data)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceOpenFile, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = workspaceOpenFileSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid workspace file', { issues: parsed.error.issues })
+      return workspaceState.openWorkspaceFile(parsed.data.path)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceSave, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = workspaceSaveSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid workspace save', { issues: parsed.error.issues })
+      const dest = parsed.data.path ?? parsed.data.workspaceFile
+      if (!dest) throw new ValidationError('Workspace save path is required')
+      return workspaceState.saveWorkspaceFile(dest, parsed.data)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceSearch, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = workspaceSearchSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid search', { issues: parsed.error.issues })
+      return workspaceState.search(parsed.data.query, parsed.data.scope, parsed.data.folderId)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceOpenTerminal, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = workspaceOpenTerminalSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid terminal directory', { issues: parsed.error.issues })
+      await workspaceState.openInTerminal(parsed.data.directory)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceRelocateFolder, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = workspaceRelocateFolderSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid relocate', { issues: parsed.error.issues })
+      return workspaceState.relocateFolder(parsed.data.folderId, parsed.data.path)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceListRecent, () => wrap(() => workspaceState.listRecent()))
+  ipcMain.handle(IPC_INVOKE.workspaceBindSession, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = workspaceBindSessionSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid session binding', { issues: parsed.error.issues })
+      await workspaceState.bindSession(parsed.data.sessionId, {
+        workspaceId: parsed.data.workspaceId,
+        mainFolderId: parsed.data.mainFolderId,
+        folders: parsed.data.folders
+      })
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceGetSessionBinding, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = workspaceSessionIdSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid session', { issues: parsed.error.issues })
+      return workspaceState.getSessionBinding(parsed.data.sessionId)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceListSessionBindings, () =>
+    wrap(() => workspaceState.listSessionBindings())
   )
   ipcMain.handle(IPC_INVOKE.workspaceAuthorizeDroppedRoot, (_e, input: unknown) =>
     wrap(async () => {
@@ -130,6 +275,7 @@ export function registerWorkspaceIpc(
       const id = sessionIdSchema.parse(sessionId)
       await agent.stop(id)
       await sessions.remove(id)
+      await workspaceState.unbindSession(id)
     })
   )
   ipcMain.handle(IPC_INVOKE.sessionContext, (_e, input: unknown) =>
@@ -177,7 +323,9 @@ export function registerWorkspaceIpc(
         throw new ValidationError('Invalid start', { issues: parsed.error.issues })
       if (parsed.data.cwd) await access.assertAllowed(parsed.data.cwd, { mustExist: true })
       await beforeAgentStart?.(parsed.data.cwd, parsed.data.sessionId)
-      return agent.start(parsed.data)
+      const started = await agent.start(parsed.data)
+      if (!parsed.data.sessionId) await workspaceState.bindActiveToSession(started.sessionId)
+      return started
     })
   )
   ipcMain.handle(IPC_INVOKE.agentPrompt, (_e, input: unknown) =>
@@ -260,6 +408,14 @@ export function registerWorkspaceIpc(
       const parsed = gitStatusSchema.safeParse(typeof input === 'string' ? { cwd: input } : input)
       if (!parsed.success) throw new ValidationError('Invalid cwd', { issues: parsed.error.issues })
       return git.status(parsed.data.cwd)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.gitStatusMany, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitStatusManySchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid cwd list', { issues: parsed.error.issues })
+      return git.statusMany(parsed.data.cwds)
     })
   )
   ipcMain.handle(IPC_INVOKE.gitDiff, (_e, input: unknown) =>
@@ -356,7 +512,20 @@ function showProjectMenu(
         label: isPinned ? labels.unpin : labels.pin,
         click: () => finish(isPinned ? 'unpin' : 'pin')
       },
+      { label: labels.setMain, click: () => finish('set-main') },
+      {
+        label: labels.setRole,
+        submenu: [
+          { label: labels.roleReference, click: () => finish('set-role-reference') },
+          { label: labels.roleDependency, click: () => finish('set-role-dependency') },
+          { label: labels.roleDocs, click: () => finish('set-role-docs') }
+        ]
+      },
+      { label: labels.toggleReadonly, click: () => finish('toggle-readonly') },
+      { type: 'separator' },
       { label: labels.reveal, click: () => finish('reveal') },
+      { label: labels.openTerminal, click: () => finish('open-terminal') },
+      { label: labels.relocate, click: () => finish('relocate') },
       { label: labels.createWorktree, click: () => finish('create-worktree') },
       { type: 'separator' },
       { label: labels.archiveChats, click: () => finish('archive-chats') },

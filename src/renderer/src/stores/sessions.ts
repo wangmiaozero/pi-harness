@@ -32,6 +32,9 @@ export const useSessionStore = defineStore('sessions', () => {
         (session) => session.transient && !persistedIds.has(session.id)
       )
       items.value = [...transients, ...persisted]
+      if (currentId.value && !items.value.some((session) => session.id === currentId.value)) {
+        currentId.value = null
+      }
       const selected = items.value.find((session) => session.id === currentId.value)
       if (selected?.projectKey) currentProjectKey.value = selected.projectKey
       if (!currentProjectKey.value && items.value[0]?.projectKey) {

@@ -16,6 +16,7 @@ import {
   Terminal
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Badge from '@renderer/components/ui/Badge.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
@@ -222,7 +223,7 @@ onMounted(() => {
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <header class="page-header">
+    <PageHeader>
       <div class="flex min-w-0 flex-col justify-center self-stretch">
         <h1
           class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
@@ -237,7 +238,7 @@ onMounted(() => {
         <RefreshCw class="size-3.5" :stroke-width="1.75" />
         {{ $t('common.refresh') }}
       </Button>
-    </header>
+    </PageHeader>
 
     <div class="flex-1 overflow-y-auto">
       <div class="w-full px-5 py-5 space-y-5">

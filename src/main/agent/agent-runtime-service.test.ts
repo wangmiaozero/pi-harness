@@ -40,6 +40,46 @@ describe('AgentRuntimeService', () => {
     expect(cachePath).not.toHaveBeenCalled()
   })
 
+  it('injects workspace context into the Pi system prompt', async () => {
+    const manager = createSessionManager()
+    const inner = createAgentSession(manager)
+    loadPiCodingAgent.mockResolvedValue({
+      SessionManager: { create: () => manager },
+      createAgentSessionServices: async () => ({}),
+      createAgentSessionFromServices: async () => ({ session: inner }),
+      getAgentDir: () => '/tmp/agent'
+    })
+    const sessions = {
+      cachePath: vi.fn(),
+      invalidate: vi.fn(),
+      resolvePath: vi.fn()
+    } as unknown as SessionService
+
+    await new AgentRuntimeService(sessions, {
+      getPrompt: () =>
+        '--- BEGIN PI-HARNESS WORKSPACE ---\nMain Project\n--- END PI-HARNESS WORKSPACE ---'
+    }).start({ cwd: '/tmp/project' })
+
+    expect(inner.agent.state?.systemPrompt).toContain('PI-HARNESS WORKSPACE')
+    expect(inner.agent.state?.systemPrompt).toContain('Main Project')
+  })
+
+  it('refreshes session project context before every prompt', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.agent.state!.systemPrompt = 'Host prompt'
+    const wrapper = new AgentSessionWrapper(inner)
+    let project = 'Project A'
+    wrapper.setWorkspacePromptProvider(
+      () => `--- BEGIN PI-HARNESS WORKSPACE ---\n${project}\n--- END PI-HARNESS WORKSPACE ---`
+    )
+
+    project = 'Project B'
+    await wrapper.send({ type: 'prompt', message: 'continue' })
+
+    expect(inner.agent.state?.systemPrompt).toContain('Project B')
+    expect(inner.agent.state?.systemPrompt).not.toContain('Project A')
+  })
+
   it('treats a short-session compaction as a normal no-op', async () => {
     const inner = createAgentSession(createSessionManager())
     inner.compact = vi.fn().mockRejectedValue(new Error('Nothing to compact (session too small)'))

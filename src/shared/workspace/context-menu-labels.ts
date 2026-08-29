@@ -21,6 +21,14 @@ export interface ProjectContextMenuLabels {
   remove: string
   archiveChats: string
   createWorktree: string
+  setMain: string
+  setRole: string
+  roleReference: string
+  roleDependency: string
+  roleDocs: string
+  toggleReadonly: string
+  openTerminal: string
+  relocate: string
 }
 
 export function getSessionContextMenuLabels(
@@ -52,9 +60,17 @@ export function getProjectContextMenuLabels(
     pin: isChinese ? '置顶' : 'Pin',
     unpin: isChinese ? '取消置顶' : 'Unpin',
     reveal: revealLabel(isChinese, platform),
-    remove: isChinese ? '移除项目' : 'Remove Project',
+    remove: isChinese ? '从工作区移除' : 'Remove Folder from Workspace',
     archiveChats: isChinese ? '归档聊天' : 'Archive Chats',
-    createWorktree: isChinese ? '创建永久工作树' : 'Create Permanent Worktree'
+    createWorktree: isChinese ? '创建永久工作树' : 'Create Permanent Worktree',
+    setMain: isChinese ? '设为主项目' : 'Set as Main Project',
+    setRole: isChinese ? '设置角色' : 'Set Role',
+    roleReference: isChinese ? '设置为 Reference' : 'Set as Reference',
+    roleDependency: isChinese ? '设置为 Dependency' : 'Set as Dependency',
+    roleDocs: isChinese ? '设置为 Docs' : 'Set as Docs',
+    toggleReadonly: isChinese ? '切换只读' : 'Toggle Read-only',
+    openTerminal: isChinese ? '在终端中打开' : 'Open in Terminal',
+    relocate: isChinese ? '重新定位' : 'Relocate'
   }
 }
 

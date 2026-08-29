@@ -53,13 +53,13 @@ export class WorktreeService {
       const isWorktreeTopLevel = !samePath(gitDir, commonDir) && isTopLevel
       const topLevelProjectRoot = isWorktreeTopLevel ? dirname(commonDir) : toplevel
       info = {
-        projectRoot: isTopLevel ? await realPathOrSelf(topLevelProjectRoot) : cwd,
+        projectRoot: isTopLevel ? await realPathOrSelf(topLevelProjectRoot) : realCwd,
         branch: ref && ref !== 'HEAD' ? ref : null,
         isWorktree: isWorktreeTopLevel,
         isTopLevel
       }
     } catch {
-      info = { projectRoot: cwd, branch: null, isWorktree: false, isTopLevel: false }
+      info = { projectRoot: await realPathOrSelf(cwd), branch: null, isWorktree: false, isTopLevel: false }
     }
 
     this.projectCache.set(cwd, { info, expiresAt: Date.now() + PROJECT_CACHE_TTL_MS })

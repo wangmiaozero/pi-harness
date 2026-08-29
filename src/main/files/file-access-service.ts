@@ -9,7 +9,8 @@ import path from 'node:path'
 import { PathDeniedError } from '../services/errors'
 import { isPathWithinRoots } from '@shared/workspace/path-security'
 import { toSlashPath } from '@shared/workspace/paths'
-import type { SessionInfo } from '@shared/types/workspace'
+import { isWorkspacePathWritable } from '@shared/workspace/workspace-permission'
+import type { SessionInfo, WorkspaceFolder } from '@shared/types/workspace'
 import type { JsonStore } from '../services/storage'
 
 export interface AuthorizedRootsState {
@@ -19,6 +20,7 @@ export interface AuthorizedRootsState {
 export class FileAccessService {
   private additionalRoots = new Set<string>()
   private activeRoot: string | null = null
+  private workspaceFolders: Array<Pick<WorkspaceFolder, 'resolvedPath' | 'readonly' | 'exists'>> = []
   private cache: { roots: Set<string>; realRoots: Set<string> | null; expiresAt: number } | null =
     null
   private listSessions: () => Promise<SessionInfo[]> = async () => []
@@ -37,6 +39,20 @@ export class FileAccessService {
       this.cache.roots.add(normalized)
       this.cache.realRoots = null
     }
+  }
+
+  setWorkspaceFolders(
+    folders: Array<Pick<WorkspaceFolder, 'resolvedPath' | 'readonly' | 'exists'>>
+  ): void {
+    this.workspaceFolders = folders.filter((folder) => folder.resolvedPath)
+    for (const folder of this.workspaceFolders) {
+      if (folder.exists !== false) this.allowRoot(folder.resolvedPath)
+    }
+    this.invalidate()
+  }
+
+  getWorkspaceFolders(): Array<Pick<WorkspaceFolder, 'resolvedPath' | 'readonly' | 'exists'>> {
+    return this.workspaceFolders
   }
 
   /** Persist a root only after an explicit OS picker or native file-drop gesture. */
@@ -131,6 +147,30 @@ export class FileAccessService {
       throw new PathDeniedError('Resolved path escapes the allowed workspace roots', { target })
     }
     return realTarget
+  }
+
+  async assertWritable(target: string, options: { mustExist?: boolean } = {}): Promise<string> {
+    const allowed = await this.assertAllowed(target, options)
+    return this.assertWritableInFolders(target, this.workspaceFolders, allowed)
+  }
+
+  async assertWritableInFolders(
+    target: string,
+    folders: Array<Pick<WorkspaceFolder, 'resolvedPath' | 'readonly' | 'exists'>>,
+    alreadyAllowed?: string
+  ): Promise<string> {
+    const allowed = alreadyAllowed ?? (await this.assertAllowed(target))
+    if (!folders.length) return allowed
+    if (
+      !isWorkspacePathWritable(allowed, folders) &&
+      !isWorkspacePathWritable(target, folders)
+    ) {
+      throw new PathDeniedError(
+        'This path is outside the projects attached to the current session or is read-only.',
+        { target }
+      )
+    }
+    return allowed
   }
 
   private async getRealRoots(roots: Set<string>): Promise<Set<string>> {

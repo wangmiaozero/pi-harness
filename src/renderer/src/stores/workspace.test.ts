@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import type { PiSwitchAPI } from '@shared/ipc/api-types'
-import type { WorkspaceTab } from '@shared/types/workspace'
-import type { SessionInfo } from '@shared/types/workspace'
+import type { SessionInfo, SessionWorkspaceBinding, WorkspaceTab } from '@shared/types/workspace'
 import { projectIdentityKey } from '@shared/workspace/project-identity'
 import { useWorkspaceStore } from './workspace'
 import { useSessionStore } from './sessions'
@@ -55,6 +54,10 @@ describe('workspace tab activation', () => {
   it('keeps the selected session in sync with the active chat tab', () => {
     const workspace = useWorkspaceStore()
     const sessions = useSessionStore()
+    sessions.items = [
+      session('session-a', '/code/a', '2026-01-01T00:00:00.000Z'),
+      session('session-b', '/code/b', '2026-01-02T00:00:00.000Z')
+    ]
     workspace.tabs = [
       { id: 'chat:session-a', kind: 'chat', title: 'A', sessionId: 'session-a', closable: true },
       { id: 'chat:session-b', kind: 'chat', title: 'B', sessionId: 'session-b', closable: true },
@@ -67,6 +70,20 @@ describe('workspace tab activation', () => {
 
     workspace.activateTab('chat:new')
     expect(workspace.activeTabId).toBe('chat:new')
+    expect(sessions.currentId).toBeNull()
+  })
+
+  it('drops a chat tab whose session no longer exists', () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    workspace.tabs = [
+      { id: 'chat:missing', kind: 'chat', title: 'Missing', sessionId: 'missing', closable: true }
+    ]
+
+    workspace.activateTab('chat:missing')
+
+    expect(workspace.tabs).toEqual([])
+    expect(workspace.activeTabId).toBeNull()
     expect(sessions.currentId).toBeNull()
   })
 
@@ -147,26 +164,23 @@ describe('workspace projects', () => {
     expect(workspace.tabs.map((tab) => tab.id)).toEqual(['chat:new'])
   })
 
-  it('sorts pinned projects and sessions before unpinned entries', () => {
+  it('prefixes file tabs with the folder name in a multi-root workspace', () => {
     const workspace = useWorkspaceStore()
-    const sessions = useSessionStore()
-    const projectA = '/code/a'
-    const projectB = '/code/b'
-    workspace.addProjectRoot(projectA)
-    workspace.addProjectRoot(projectB)
-    sessions.items = [
-      session('newer', projectA, '2026-01-02T00:00:00.000Z'),
-      session('older', projectA, '2026-01-01T00:00:00.000Z')
-    ]
+    workspace.addProjectRoot('/code/AgentDesk')
+    workspace.addProjectRoot('/code/opencode')
+    workspace.openFileTab('/code/AgentDesk/src/index.ts', 'index.ts')
+    expect(workspace.tabs[0]).toMatchObject({
+      id: 'file:/code/AgentDesk/src/index.ts',
+      title: 'AgentDesk/index.ts'
+    })
+  })
 
-    workspace.setProjectPinned(projectIdentityKey(projectB), true)
+  it('keeps pin state on sessions instead of project roots', () => {
+    const workspace = useWorkspaceStore()
     workspace.setSessionPinned('older', true)
 
-    expect(workspace.projects.map((project) => project.projectKey)).toEqual([
-      projectIdentityKey(projectB),
-      projectIdentityKey(projectA)
-    ])
-    expect(workspace.projects[1]?.sessions.map((item) => item.id)).toEqual(['older', 'newer'])
+    expect(workspace.isSessionPinned('older')).toBe(true)
+    expect(workspace.isSessionPinned('newer')).toBe(false)
   })
 
   it('archives sessions without deleting them from the Pi session store', () => {
@@ -180,13 +194,13 @@ describe('workspace projects', () => {
     workspace.archiveSession('session-a')
 
     expect(sessions.items).toHaveLength(1)
-    expect(workspace.projects[0]?.sessions).toEqual([])
+    expect(workspace.archivedSessionIds).toEqual(['session-a'])
     expect(workspace.tabs).toEqual([])
     expect(sessions.currentId).toBeNull()
     expect(workspace.pinnedSessionIds).toEqual([])
   })
 
-  it('removes a project from the sidebar and restores it when explicitly re-added', () => {
+  it('removes only the project from the active session and keeps its chat tab', () => {
     const workspace = useWorkspaceStore()
     const sessions = useSessionStore()
     const root = '/code/a'
@@ -199,12 +213,134 @@ describe('workspace projects', () => {
     workspace.removeProject(projectKey)
 
     expect(workspace.projects).toEqual([])
-    expect(workspace.tabs).toEqual([])
-    expect(workspace.removedProjectKeys).toEqual([projectKey])
+    expect(workspace.tabs.map((tab) => tab.id)).toEqual(['chat:session-a'])
 
     workspace.addProjectRoot(root)
     expect(workspace.projects).toHaveLength(1)
-    expect(workspace.removedProjectKeys).toEqual([])
+  })
+
+  it('replaces project roots when switching sessions instead of merging them globally', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [
+      session('session-a', '/code/a', '2026-01-01T00:00:00.000Z'),
+      session('session-b', '/code/b', '2026-01-02T00:00:00.000Z')
+    ]
+    const bindings = {
+      'session-a': binding('session-a', ['/code/a']),
+      'session-b': binding('session-b', ['/code/b', '/code/shared'])
+    }
+    window.piSwitch = workspaceApi(bindings)
+
+    await workspace.restoreSessionWorkspace('session-a')
+    expect(workspace.projectRoots).toEqual(['/code/a'])
+
+    await workspace.restoreSessionWorkspace('session-b')
+    expect(workspace.projectRoots).toEqual(['/code/b', '/code/shared'])
+    expect(workspace.projectRoots).not.toContain('/code/a')
+    delete window.piSwitch
+  })
+
+  it('creates one draft workspace from multiple imported project folders', async () => {
+    const workspace = useWorkspaceStore()
+    window.piSwitch = workspaceApi({})
+
+    try {
+      await workspace.resetDraftWorkspaceRoots(['/code/a', '/code/b', '/code/a/'])
+
+      expect(workspace.projectRoots).toEqual(['/code/a', '/code/b'])
+      expect(workspace.activeSessionWorkspaceId).toBeNull()
+      expect(workspace.workspaceFolders.map((folder) => [folder.resolvedPath, folder.role])).toEqual([
+        ['/code/a', 'main'],
+        ['/code/b', 'reference']
+      ])
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('scopes sessions to the active workspace while keeping them all without one', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [
+      session('session-a', '/code/a', '2026-01-01T00:00:00.000Z'),
+      session('session-b', '/code/b', '2026-01-02T00:00:00.000Z'),
+      session('session-shared', '/code/shared', '2026-01-03T00:00:00.000Z')
+    ]
+    window.piSwitch = workspaceApi({})
+
+    try {
+      expect(sessions.items.every((item) => workspace.isSessionInActiveWorkspace(item))).toBe(true)
+
+      await workspace.resetDraftWorkspaceRoots(['/code/a'])
+
+      expect(workspace.isSessionInActiveWorkspace(sessions.items[0])).toBe(true)
+      expect(workspace.isSessionInActiveWorkspace(sessions.items[1])).toBe(false)
+      expect(workspace.isSessionInActiveWorkspace(sessions.items[2])).toBe(false)
+
+      await workspace.resetDraftWorkspaceRoots(['/code/b', '/code/shared'])
+
+      expect(workspace.isSessionInActiveWorkspace(sessions.items[0])).toBe(false)
+      expect(workspace.isSessionInActiveWorkspace(sessions.items[1])).toBe(true)
+      expect(workspace.isSessionInActiveWorkspace(sessions.items[2])).toBe(true)
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('matches sessions bound to a workspace folder even when their cwd moved', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    const relocated = session('session-moved', '/code/old-location', '2026-01-01T00:00:00.000Z')
+    sessions.items = [relocated]
+    window.piSwitch = workspaceApi({
+      'session-moved': binding('session-moved', ['/code/current'])
+    })
+
+    try {
+      await workspace.refreshSessionBindings()
+      await workspace.resetDraftWorkspaceRoots(['/code/current'])
+
+      expect(workspace.isSessionInActiveWorkspace(relocated)).toBe(true)
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('copies the selected session workspace into a new-session draft', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [session('session-a', '/code/a', '2026-01-01T00:00:00.000Z')]
+    window.piSwitch = workspaceApi({
+      'session-a': binding('session-a', ['/code/a', '/code/shared'])
+    })
+
+    try {
+      await workspace.restoreSessionWorkspace('session-a')
+      expect(workspace.activeSessionWorkspaceId).toBe('session-a')
+
+      await expect(workspace.startDraftFromActiveWorkspace()).resolves.toBe(true)
+
+      expect(workspace.activeSessionWorkspaceId).toBeNull()
+      expect(workspace.projectRoots).toEqual(['/code/a', '/code/shared'])
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('promotes the first added folder to Main and later folders to Reference', () => {
+    const workspace = useWorkspaceStore()
+    workspace.addProjectRoot('/code/a')
+    workspace.addProjectRoot('/code/b')
+    expect(workspace.workspaceFolders.map((folder) => [folder.name, folder.role])).toEqual([
+      ['a', 'main'],
+      ['b', 'reference']
+    ])
+    workspace.setFolderRole(projectIdentityKey('/code/b'), 'main')
+    expect(workspace.mainFolder?.resolvedPath).toBe('/code/b')
+    expect(
+      workspace.workspaceFolders.find((folder) => folder.id === projectIdentityKey('/code/a'))?.role
+    ).toBe('reference')
   })
 
   it('closes file and diff tabs that belong to a removed project', () => {
@@ -260,6 +396,7 @@ describe('workspace projects', () => {
       setItem: vi.fn(),
       removeItem: vi.fn()
     })
+    window.piSwitch = workspaceApi({})
 
     try {
       await workspace.restore({ restoreTabs: true, autoOpenLastProject: true })
@@ -269,8 +406,73 @@ describe('workspace projects', () => {
       expect(workspace.tabs).toEqual([])
       expect(workspace.activeTabId).toBeNull()
     } finally {
+      delete window.piSwitch
       vi.unstubAllGlobals()
     }
+  })
+
+  it('does not restore chat tabs for sessions missing from the latest session list', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [session('session-a', '/code/a', '2026-01-01T00:00:00.000Z')]
+    const snapshot = JSON.stringify({
+      projectKey: null,
+      pickedCwd: null,
+      projectRoots: [],
+      tabs: [
+        {
+          id: 'chat:missing',
+          kind: 'chat',
+          title: 'Missing',
+          sessionId: 'missing',
+          closable: true
+        },
+        {
+          id: 'chat:session-a',
+          kind: 'chat',
+          title: 'Session A',
+          sessionId: 'session-a',
+          closable: true
+        }
+      ],
+      activeTabId: 'chat:missing'
+    })
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => snapshot),
+      setItem: vi.fn(),
+      removeItem: vi.fn()
+    })
+    window.piSwitch = workspaceApi({
+      'session-a': binding('session-a', ['/code/a'])
+    })
+
+    try {
+      await workspace.restore({ restoreTabs: true, autoOpenLastProject: true })
+
+      expect(workspace.tabs.map((tab) => tab.id)).toEqual(['chat:session-a'])
+      expect(workspace.activeTabId).toBe('chat:session-a')
+      expect(sessions.currentId).toBe('session-a')
+      expect(workspace.projectRoots).toEqual(['/code/a'])
+    } finally {
+      delete window.piSwitch
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('forgets deleted session tabs and workspace bindings', () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    const current = session('session-a', '/code/a', '2026-01-01T00:00:00.000Z')
+    sessions.items = [current]
+    sessions.selectSession(current.id)
+    workspace.sessionBindings = { 'session-a': binding('session-a', ['/code/a']) }
+    workspace.ensureChatTab(current.id, 'Session A')
+
+    workspace.forgetSession(current.id)
+
+    expect(workspace.sessionBindings).toEqual({})
+    expect(workspace.tabs).toEqual([])
+    expect(sessions.currentId).toBeNull()
   })
 })
 
@@ -285,22 +487,25 @@ describe('workspace content refresh', () => {
 
   it('refreshes the visible directory and invalidates open previews', async () => {
     const list = vi.fn().mockResolvedValue([])
-    const status = vi.fn().mockResolvedValue({
-      isGitRepository: true,
-      repositoryRoot: '/code/project',
-      files: [],
-      additions: 0,
-      deletions: 0
-    })
-    window.piSwitch = { files: { list }, git: { status } } as unknown as PiSwitchAPI
+    const statusMany = vi.fn().mockResolvedValue([
+      {
+        isGitRepository: true,
+        repositoryRoot: '/code/project',
+        files: [],
+        additions: 0,
+        deletions: 0,
+        branch: 'main'
+      }
+    ])
+    window.piSwitch = { files: { list }, git: { statusMany } } as unknown as PiSwitchAPI
     const workspace = useWorkspaceStore()
     workspace.setPickedCwd('/code/project')
     await workspace.loadFiles('/code/project/src')
 
     await workspace.refreshContent()
 
-    expect(list).toHaveBeenLastCalledWith('/code/project/src')
-    expect(status).toHaveBeenLastCalledWith('/code/project')
+    expect(list).toHaveBeenCalledWith('/code/project/src')
+    expect(statusMany).toHaveBeenCalled()
     expect(workspace.contentRevision).toBe(1)
   })
 })
@@ -354,4 +559,45 @@ function session(id: string, cwd: string, modified: string): SessionInfo {
     projectRoot: cwd,
     projectKey: projectIdentityKey(cwd)
   }
+}
+
+function binding(sessionId: string, paths: string[]): SessionWorkspaceBinding {
+  const folders = paths.map((path, index) => ({
+    id: projectIdentityKey(path),
+    path,
+    role: index === 0 ? ('main' as const) : ('reference' as const)
+  }))
+  return {
+    workspaceId: `session:${sessionId}`,
+    mainFolderId: folders[0]?.id,
+    folders
+  }
+}
+
+function workspaceApi(bindings: Record<string, SessionWorkspaceBinding>): PiSwitchAPI {
+  const sync: PiSwitchAPI['workspace']['sync'] = async (input) => ({
+    id: 'active',
+    name: 'Session projects',
+    workspaceFile: input.workspaceFile ?? null,
+    folders: input.folders.map((folder, index) => ({
+      id: projectIdentityKey(folder.resolvedPath ?? folder.path),
+      name: (folder.resolvedPath ?? folder.path).split('/').at(-1) ?? folder.path,
+      path: folder.path,
+      resolvedPath: folder.resolvedPath ?? folder.path,
+      role: index === 0 ? 'main' : 'reference',
+      readonly: folder.readonly === true,
+      exists: true
+    })),
+    settings: input.settings ?? {},
+    createdAt: 1,
+    updatedAt: 1
+  })
+  return {
+    workspace: {
+      listSessionBindings: async () => bindings,
+      getSessionBinding: async (sessionId: string) => bindings[sessionId] ?? null,
+      allowRoot: async () => undefined,
+      sync
+    }
+  } as unknown as PiSwitchAPI
 }

@@ -151,6 +151,9 @@ const api: PiSwitchAPI = {
   workspace: {
     listProjects: () => invoke(IPC_INVOKE.workspaceListProjects),
     pickDirectory: () => invoke(IPC_INVOKE.workspacePickDirectory),
+    pickWorkspaceSources: () => invoke(IPC_INVOKE.workspacePickWorkspaceSources),
+    pickWorkspaceFile: () => invoke(IPC_INVOKE.workspacePickWorkspaceFile),
+    saveWorkspaceFile: () => invoke(IPC_INVOKE.workspaceSaveWorkspaceFile),
     allowRoot: (root) => invoke(IPC_INVOKE.workspaceAllowRoot, { root }),
     projectContextMenu: (projectKey, projectRoot, isPinned, locale) =>
       invoke(IPC_INVOKE.workspaceProjectContextMenu, {
@@ -163,7 +166,21 @@ const api: PiSwitchAPI = {
       const root = webUtils.getPathForFile(file as never)
       if (root) await invoke(IPC_INVOKE.workspaceAuthorizeDroppedRoot, { root })
       return root
-    }
+    },
+    getActive: () => invoke(IPC_INVOKE.workspaceGetActive),
+    sync: (input) => invoke(IPC_INVOKE.workspaceSync, input),
+    openWorkspaceFile: (path) => invoke(IPC_INVOKE.workspaceOpenFile, { path }),
+    save: (input) => invoke(IPC_INVOKE.workspaceSave, input),
+    search: (query, scope, folderId) =>
+      invoke(IPC_INVOKE.workspaceSearch, { query, scope, folderId }),
+    openInTerminal: (directory) => invoke(IPC_INVOKE.workspaceOpenTerminal, { directory }),
+    relocateFolder: (folderId, path) =>
+      invoke(IPC_INVOKE.workspaceRelocateFolder, { folderId, path }),
+    listRecent: () => invoke(IPC_INVOKE.workspaceListRecent),
+    bindSession: (sessionId, workspaceId, folders, mainFolderId) =>
+      invoke(IPC_INVOKE.workspaceBindSession, { sessionId, workspaceId, folders, mainFolderId }),
+    getSessionBinding: (sessionId) => invoke(IPC_INVOKE.workspaceGetSessionBinding, { sessionId }),
+    listSessionBindings: () => invoke(IPC_INVOKE.workspaceListSessionBindings)
   },
   sessions: {
     list: (force) => invoke(IPC_INVOKE.sessionList, force),
@@ -217,6 +234,7 @@ const api: PiSwitchAPI = {
   },
   git: {
     status: (cwd) => invoke(IPC_INVOKE.gitStatus, cwd),
+    statusMany: (cwds) => invoke(IPC_INVOKE.gitStatusMany, { cwds }),
     diff: (cwd, filePath) => invoke(IPC_INVOKE.gitDiff, { cwd, filePath })
   },
   worktrees: {
@@ -241,6 +259,7 @@ const api: PiSwitchAPI = {
     if (event === 'harness-event') return onEvent(IPC_EVENT.harnessEvent, ipcListener)
     if (event === 'updater-state') return onEvent(IPC_EVENT.updaterState, ipcListener)
     if (event === 'capability-progress') return onEvent(IPC_EVENT.capabilityProgress, ipcListener)
+    if (event === 'workspace-changed') return onEvent(IPC_EVENT.workspaceChanged, ipcListener)
     return () => {}
   }
 }

@@ -163,7 +163,8 @@ export class SessionService {
   }
 
   async remove(sessionId: string): Promise<void> {
-    const filePath = await this.requirePath(sessionId)
+    const filePath = await this.resolvePath(sessionId)
+    if (!filePath) return
     const header = await readSessionHeader(filePath)
     const parentSessionPath = header?.parentSession
     const dir = path.dirname(filePath)

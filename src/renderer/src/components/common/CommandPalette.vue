@@ -16,6 +16,7 @@ import { useModelsStore } from '@renderer/stores/models'
 import { usePiStore } from '@renderer/stores/pi'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useProvidersStore } from '@renderer/stores/providers'
+import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useI18n } from 'vue-i18n'
 import { Search, X } from '@lucide/vue'
 
@@ -36,6 +37,7 @@ const models = useModelsStore()
 const providers = useProvidersStore()
 const pi = usePiStore()
 const settings = useSettingsStore()
+const workspace = useWorkspaceStore()
 
 const query = ref('')
 const activeIndex = ref(0)
@@ -149,6 +151,46 @@ const commands = computed<PaletteCommand[]>(() => {
       }
     },
     {
+      id: 'workspace-open-folder',
+      label: t('palette.openWorkspaceFolder'),
+      group: t('palette.groupWorkspace'),
+      keywords: 'open folder project',
+      run: () => {
+        void router.push('/workspace')
+        window.dispatchEvent(new CustomEvent('pi-harness:workspace-open-folder'))
+      }
+    },
+    {
+      id: 'workspace-open-file',
+      label: t('palette.openWorkspaceFile'),
+      group: t('palette.groupWorkspace'),
+      keywords: 'code-workspace import',
+      run: () => {
+        void router.push('/workspace')
+        window.dispatchEvent(new CustomEvent('pi-harness:workspace-open-file'))
+      }
+    },
+    {
+      id: 'workspace-add-folder',
+      label: t('palette.addFolderToWorkspace'),
+      group: t('palette.groupWorkspace'),
+      keywords: 'multi root',
+      run: () => {
+        void router.push('/workspace')
+        window.dispatchEvent(new CustomEvent('pi-harness:workspace-add-folder'))
+      }
+    },
+    {
+      id: 'workspace-save',
+      label: t('palette.saveWorkspace'),
+      group: t('palette.groupWorkspace'),
+      keywords: 'code-workspace export',
+      run: () => {
+        void router.push('/workspace')
+        window.dispatchEvent(new CustomEvent('pi-harness:workspace-save'))
+      }
+    },
+    {
       id: 'add-provider',
       label: t('palette.addProvider'),
       group: t('palette.groupActions'),
@@ -246,6 +288,41 @@ const commands = computed<PaletteCommand[]>(() => {
     }
   ]
 
+  for (const item of workspace.recentWorkspaces) {
+    cmds.push({
+      id: `workspace-recent-${item.id}`,
+      label: t('palette.openRecentWorkspace', { name: item.name }),
+      hint: item.workspaceFile || item.folderPaths.join(', '),
+      group: t('palette.groupWorkspace'),
+      keywords: `recent ${item.name} ${item.workspaceFile ?? ''}`,
+      run: () => {
+        void router.push('/workspace')
+        window.dispatchEvent(new CustomEvent('pi-harness:workspace-open-recent', { detail: item }))
+      }
+    })
+  }
+
+  for (const folder of workspace.workspaceFolders) {
+    cmds.push({
+      id: `workspace-remove-${folder.id}`,
+      label: t('palette.removeFolder', { name: folder.name }),
+      group: t('palette.groupWorkspace'),
+      keywords: `remove ${folder.name}`,
+      run: async () => {
+        const ok = await askConfirm({
+          title: t('workspace.removeFolder'),
+          description: folder.name,
+          confirmLabel: t('workspace.removeFolder'),
+          tone: 'danger'
+        })
+        if (!ok) return
+        void router.push('/workspace')
+        workspace.removeProject(folder.id)
+        toast.success(t('workspace.projectRemoved'), { description: folder.name })
+      }
+    })
+  }
+
   for (const m of models.items) {
     if (!m.enabled) continue
     cmds.push({
@@ -277,6 +354,7 @@ watch(open, async (v) => {
   if (v) {
     query.value = ''
     activeIndex.value = 0
+    void workspace.refreshRecent()
     await nextTick()
     inputRef.value?.focus()
   }

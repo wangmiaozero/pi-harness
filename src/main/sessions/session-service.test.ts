@@ -14,6 +14,14 @@ describe('SessionService path cache', () => {
 
     await expect(service.resolvePath('missing-session')).resolves.toBeNull()
   })
+
+  it('treats deleting an already missing session as success', async () => {
+    const access = { invalidate: vi.fn() } as unknown as FileAccessService
+    const service = new SessionService({} as JsonStore<AppSettings>, {} as WorktreeService, access)
+    vi.spyOn(service, 'resolvePath').mockResolvedValue(null)
+
+    await expect(service.remove('missing-session')).resolves.toBeUndefined()
+  })
 })
 
 describe('computeSessionTotalActiveMs', () => {

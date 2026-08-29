@@ -13,7 +13,8 @@ describe('FileService', () => {
   beforeEach(async () => {
     directory = await mkdtemp(path.join(tmpdir(), 'pi-harness-file-service-'))
     const access = {
-      assertAllowed: vi.fn(async (target: string) => target)
+      assertAllowed: vi.fn(async (target: string) => target),
+      assertWritable: vi.fn(async (target: string) => target)
     } as unknown as FileAccessService
     service = new FileService(access)
   })
@@ -163,11 +164,14 @@ describe('FileService', () => {
   it('keeps lexical root validation separate from the canonical write path', async () => {
     const requestedDirectory = '/var/folders/project'
     const requestedTarget = path.join(requestedDirectory, 'uploaded.txt')
-    const assertAllowed = vi.fn(async (target: string, options?: { mustExist?: boolean }) => {
+    const assertWritable = vi.fn(async (target: string, options?: { mustExist?: boolean }) => {
       if (target === requestedDirectory && options?.mustExist) return directory
       return target
     })
-    service = new FileService({ assertAllowed } as unknown as FileAccessService)
+    service = new FileService({
+      assertAllowed: assertWritable,
+      assertWritable
+    } as unknown as FileAccessService)
 
     const result = await service.upload(
       requestedDirectory,
@@ -175,8 +179,8 @@ describe('FileService', () => {
       Buffer.from('uploaded').toString('base64')
     )
 
-    expect(assertAllowed).toHaveBeenNthCalledWith(1, requestedTarget)
-    expect(assertAllowed).toHaveBeenNthCalledWith(2, requestedDirectory, { mustExist: true })
+    expect(assertWritable).toHaveBeenNthCalledWith(1, requestedTarget)
+    expect(assertWritable).toHaveBeenNthCalledWith(2, requestedDirectory, { mustExist: true })
     expect(result.path).toBe(path.join(directory, 'uploaded.txt'))
     await expect(readFile(result.path, 'utf8')).resolves.toBe('uploaded')
   })

@@ -119,6 +119,10 @@ export const gitStatusSchema = z.object({
   cwd: cwdSchema
 })
 
+export const gitStatusManySchema = z.object({
+  cwds: z.array(cwdSchema).max(64)
+})
+
 export const gitDiffSchema = z.object({
   cwd: cwdSchema,
   filePath: workspacePathSchema
@@ -159,4 +163,66 @@ export const projectContextMenuSchema = z.object({
   projectRoot: workspacePathSchema,
   isPinned: z.boolean().optional(),
   locale: z.enum(['zh-CN', 'en-US']).optional()
+})
+
+export const workspaceFolderRoleSchema = z.enum(['main', 'reference', 'dependency', 'docs'])
+
+export const workspaceFolderInputSchema = z.object({
+  path: workspacePathSchema,
+  resolvedPath: workspacePathSchema.optional(),
+  name: z.string().min(1).max(256).optional(),
+  role: workspaceFolderRoleSchema.optional(),
+  readonly: z.boolean().optional()
+})
+
+export const workspaceSyncSchema = z.object({
+  workspaceFile: workspacePathSchema.nullable().optional(),
+  folders: z.array(workspaceFolderInputSchema).max(64),
+  settings: z.record(z.string(), z.unknown()).optional()
+})
+
+export const workspaceOpenFileSchema = z.object({
+  path: workspacePathSchema
+})
+
+export const workspaceSaveSchema = z.object({
+  path: workspacePathSchema.optional(),
+  folders: z.array(workspaceFolderInputSchema).max(64),
+  settings: z.record(z.string(), z.unknown()).optional(),
+  workspaceFile: workspacePathSchema.nullable().optional()
+})
+
+export const workspaceSearchSchema = z.object({
+  query: z.string().min(1).max(512),
+  scope: z.enum(['workspace', 'main', 'folder']).default('workspace'),
+  folderId: z.string().min(1).max(4096).optional()
+})
+
+export const workspaceOpenTerminalSchema = z.object({
+  directory: workspacePathSchema
+})
+
+export const workspaceRelocateFolderSchema = z.object({
+  folderId: z.string().min(1).max(4096),
+  path: workspacePathSchema
+})
+
+export const workspaceBindSessionSchema = z.object({
+  sessionId: sessionIdSchema,
+  workspaceId: z.string().min(1).max(4096),
+  mainFolderId: z.string().min(1).max(4096).optional(),
+  folders: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(4096),
+        path: workspacePathSchema,
+        role: workspaceFolderRoleSchema,
+        readonly: z.boolean().optional()
+      })
+    )
+    .max(64)
+})
+
+export const workspaceSessionIdSchema = z.object({
+  sessionId: sessionIdSchema
 })

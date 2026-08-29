@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, realpath, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { FileAccessService } from '../files/file-access-service'
@@ -25,9 +25,9 @@ describe('WorktreeService', () => {
     await expect(service.list(directory)).resolves.toEqual([])
   })
 
-  it('resolves a non-git folder as a plain project', async () => {
+  it('resolves a non-git folder as a canonical project root', async () => {
     await expect(service.resolveProject(directory)).resolves.toEqual({
-      projectRoot: directory,
+      projectRoot: await realpath(directory),
       branch: null,
       isWorktree: false,
       isTopLevel: false

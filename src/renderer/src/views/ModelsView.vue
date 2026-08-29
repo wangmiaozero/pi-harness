@@ -21,6 +21,7 @@ import type { ModelForm, ProviderForm } from '@shared/schemas/domain'
 import { PROTOCOLS } from '@shared/constants/protocols'
 import { findProviderPreset } from '@shared/constants/provider-presets'
 import { PI_THINKING_LEVELS, type PiThinkingLevel } from '@shared/constants/index'
+import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Select from '@renderer/components/ui/Select.vue'
@@ -402,7 +403,7 @@ onMounted(() => {
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <header class="page-header">
+    <PageHeader>
       <div class="flex min-w-0 flex-col justify-center self-stretch">
         <h1
           class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
@@ -429,7 +430,7 @@ onMounted(() => {
           {{ $t('models.create') }}
         </Button>
       </div>
-    </header>
+    </PageHeader>
 
     <div class="flex-1 overflow-y-auto px-5 pt-4 pb-6 space-y-4">
       <!-- Active Model summary — single line, not a Card. -->

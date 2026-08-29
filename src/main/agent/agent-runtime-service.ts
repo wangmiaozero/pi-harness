@@ -31,6 +31,8 @@ import {
   type AgentSessionLike,
   type PiSessionManagerLike
 } from './pi-sdk'
+import { applyWorkspacePrompt } from '@shared/workspace/workspace-context'
+import { wrapWorkspaceWriteTools } from '../workspace/workspace-tool-guard'
 import type { SessionService } from '../sessions/session-service'
 import type { AgentRuntime } from './runtime'
 
@@ -49,6 +51,8 @@ export class AgentSessionWrapper {
   private pendingPromptCount = 0
   private promptAdmissionTail: Promise<void> = Promise.resolve()
   private forceEmptySystemPrompt = false
+  private workspacePrompt = ''
+  private workspacePromptProvider: (() => string | null) | null = null
   private _alive = true
 
   constructor(public inner: AgentSessionLike) {}
@@ -106,6 +110,16 @@ export class AgentSessionWrapper {
     this.applyForcedEmptySystemPrompt()
   }
 
+  setWorkspacePrompt(prompt: string | null): void {
+    this.workspacePrompt = prompt ?? ''
+    this.applyForcedEmptySystemPrompt()
+  }
+
+  setWorkspacePromptProvider(provider: (() => string | null) | null): void {
+    this.workspacePromptProvider = provider
+    this.applyForcedEmptySystemPrompt()
+  }
+
   async send(command: Record<string, unknown>): Promise<unknown> {
     this.resetIdleTimer()
     const type = command.type as string
@@ -143,6 +157,7 @@ export class AgentSessionWrapper {
             this.resetIdleTimer()
           }
           this.pendingPromptCount += 1
+          this.applyForcedEmptySystemPrompt()
           const images = command.images as
             Array<{ type: 'image'; data: string; mimeType: string }> | undefined
           const streamingBehavior = command.streamingBehavior as 'steer' | 'followUp' | undefined
@@ -410,9 +425,15 @@ export class AgentSessionWrapper {
   }
 
   private applyForcedEmptySystemPrompt(): void {
-    if (this.forceEmptySystemPrompt && this.inner.agent.state) {
+    if (!this.inner.agent.state) return
+    if (this.forceEmptySystemPrompt) {
       this.inner.agent.state.systemPrompt = ''
+      return
     }
+    this.inner.agent.state.systemPrompt = applyWorkspacePrompt(
+      this.inner.agent.state.systemPrompt,
+      this.workspacePromptProvider?.() ?? (this.workspacePrompt || null)
+    )
   }
 }
 
@@ -444,7 +465,13 @@ export class AgentRuntimeService implements AgentRuntime {
   >()
   private getWindow: () => BrowserWindow | null = () => null
 
-  constructor(private readonly sessions: SessionService) {}
+  constructor(
+    private readonly sessions: SessionService,
+    private readonly workspace?: {
+      getPrompt?: (sessionId: string) => string | null
+      assertWritable?: (target: string, sessionId: string) => Promise<string>
+    }
+  ) {}
 
   diagnostics(): { implementation: 'pi'; sdkLoaded: boolean } {
     return { implementation: 'pi', sdkLoaded: peekPiCodingAgent() !== null }
@@ -649,11 +676,15 @@ export class AgentRuntimeService implements AgentRuntime {
       inner.setActiveToolsByName(withExtensionTools(inner, toolNames))
     }
 
+    const realSessionId = inner.sessionId
     const wrapper = new AgentSessionWrapper(inner)
     if (toolNames?.length === 0) wrapper.setForceEmptySystemPrompt(true)
+    wrapper.setWorkspacePromptProvider(() => this.workspace?.getPrompt?.(realSessionId) ?? null)
+    if (this.workspace?.assertWritable) {
+      wrapWorkspaceWriteTools(inner, (target) => this.workspace!.assertWritable!(target, realSessionId))
+    }
     wrapper.start()
 
-    const realSessionId = inner.sessionId
     const realSessionFile = inner.sessionFile
     if (realSessionFile && input.sessionId) this.sessions.cachePath(realSessionId, realSessionFile)
 
