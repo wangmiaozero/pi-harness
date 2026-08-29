@@ -300,7 +300,7 @@ defineExpose({ pickProject })
     @drop.prevent="onDrop"
   >
     <div
-      class="mission-control-header flex items-center justify-between px-2.5 h-9 border-b border-[var(--border-subtle)]"
+      class="mission-control-header flex h-[var(--height-page-header)] items-center justify-between border-b border-[var(--border-subtle)] px-2.5"
     >
       <p
         class="flex flex-col text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"

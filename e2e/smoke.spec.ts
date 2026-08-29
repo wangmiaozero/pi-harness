@@ -239,7 +239,15 @@ test.describe('Pi-Harness smoke', () => {
     expect(consoleErrors).toEqual([])
   })
 
-  test('switches the office mascot style from Settings', async ({ page }) => {
+  test('switches mascot styles and keeps starship composer controls compact', async ({ page }) => {
+    const pageErrors: string[] = []
+    const consoleErrors: string[] = []
+    page.on('pageerror', (error) => pageErrors.push(error.stack ?? error.message))
+    page.on('console', (message) => {
+      if (message.type() === 'error') consoleErrors.push(message.text())
+    })
+
+    await page.setViewportSize({ width: 1728, height: 1084 })
     const fixtureRoot = path.resolve(import.meta.dirname, '../fixtures')
     await page.evaluate(async (root) => {
       await window.piSwitch.workspace.allowRoot(root)
@@ -250,6 +258,7 @@ test.describe('Pi-Harness smoke', () => {
     }, fixtureRoot)
 
     await page.locator('a[href="#/settings"]').click()
+    await expect(page.locator('.page-header')).toHaveCSS('height', '44px')
     const bypass = await page.evaluate(() =>
       window.piSwitch.settings.set({
         mascotUnlocked: true,
@@ -306,6 +315,52 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByTestId('workspace-mascot').locator('.pet-renderer')).toHaveClass(
       /pet-motion-off/
     )
+
+    await page.locator('a[href="#/settings"]').click()
+    await page.getByTestId('settings-section-mascot').click()
+    await page
+      .getByRole('button', { name: /星际驾驶舱 · 霜蓝导航员|Starship Cockpit · Frost Navigator/ })
+      .click()
+    await page.getByRole('button', { name: /保存|Save/, exact: true }).click()
+    await page.locator('a[href="#/workspace"]').click()
+    await expect
+      .poll(() => page.locator('html').getAttribute('data-visual-skin'))
+      .toBe('starship-cockpit')
+    const cockpitInterior = page.getByTestId('starship-cockpit-interior')
+    await expect(cockpitInterior).toBeVisible()
+    await expect(cockpitInterior.locator('img')).toHaveJSProperty('naturalWidth', 1672)
+    const layerOrder = await page.evaluate(() => ({
+      cockpit: Number(
+        getComputedStyle(document.querySelector('[data-testid="starship-cockpit-interior"]')!).zIndex
+      ),
+      mascot: Number(
+        getComputedStyle(document.querySelector('[data-testid="page-mascot-background"]')!).zIndex
+      )
+    }))
+    expect(layerOrder.mascot).toBeGreaterThan(layerOrder.cockpit)
+    await page.getByTestId('workspace-new-session').click()
+    await expect(page.getByTestId('workspace-tabs')).toHaveCSS('height', '44px')
+    await expect(
+      page.getByTestId('workspace-sidebar').locator('.mission-control-header')
+    ).toHaveCSS('height', '44px')
+
+    const composerMetrics = await page.getByTestId('chat-composer').evaluate((composer) => {
+      const input = composer.querySelector<HTMLElement>('.command-console-input')
+      const send = composer.querySelector<HTMLElement>('.command-execute-button')
+      if (!input || !send) throw new Error('Composer controls are missing')
+      const composerBox = composer.getBoundingClientRect()
+      const inputBox = input.getBoundingClientRect()
+      const sendBox = send.getBoundingClientRect()
+      return {
+        inputHeight: inputBox.height,
+        controlsAreaHeight: composerBox.bottom - inputBox.bottom,
+        sendHeight: sendBox.height
+      }
+    })
+    expect(composerMetrics.sendHeight).toBeLessThanOrEqual(36)
+    expect(composerMetrics.controlsAreaHeight).toBeLessThan(composerMetrics.inputHeight)
+    expect(pageErrors).toEqual([])
+    expect(consoleErrors).toEqual([])
   })
 
   test('edits, saves, and protects externally changed text files', async ({

@@ -292,7 +292,7 @@
   --height-row: 34px; /* list / table row (Standard) */
   --height-row-sm: 30px; /* list / table row (Compact) */
   --height-toolbar: 36px;
-  --height-page-header: 56px;
+  --height-page-header: 44px;
 
   /* Motion */
   --motion-fast: 100ms;

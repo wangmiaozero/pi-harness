@@ -509,9 +509,7 @@ onBeforeUnmount(stopUpdateListener)
 
 <template>
   <div class="settings-view flex h-full min-h-0 flex-col">
-    <header
-      class="flex shrink-0 items-center justify-between gap-3 px-5 h-[var(--height-page-header)] border-b border-[var(--border-subtle)]"
-    >
+    <header class="page-header">
       <div class="flex min-w-0 items-center gap-2 self-stretch">
         <IconButton
           v-if="section"

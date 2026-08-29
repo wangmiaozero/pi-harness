@@ -333,8 +333,8 @@
 }
 
 :root[data-visual-skin='starship-cockpit'] .command-console .cockpit-control-button {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border: 1px solid transparent;
   clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
 }
@@ -447,16 +447,16 @@
   position: absolute;
   top: 106px;
   bottom: 136px;
-  left: 52px;
+  left: 0;
   z-index: 0;
-  width: 238px;
-  background: url('../assets/themes/starship-cockpit/cockpit-left.png') top left / 238px auto
-    no-repeat;
+  width: 100%;
+  background: url('../assets/themes/starship-cockpit/cockpit-interior-foreground.png') left center /
+    auto 100% no-repeat;
   content: '';
-  filter: saturate(0.72) brightness(0.62) contrast(1.14)
-    drop-shadow(0 0 13px rgb(45 156 240 / 0.16));
+  filter: saturate(0.76) brightness(0.7) contrast(1.14)
+    drop-shadow(0 0 16px rgb(45 156 240 / 0.2));
   mask-image: linear-gradient(180deg, transparent, #000 9%, #000 88%, transparent);
-  opacity: 0.7;
+  opacity: 0.78;
   pointer-events: none;
 }
 
@@ -467,7 +467,6 @@
 
 :root[data-visual-skin='starship-cockpit'] .mission-control-header {
   position: relative;
-  height: 44px;
   border-bottom-color: rgb(103 216 255 / 0.15);
   background: linear-gradient(90deg, rgb(10 38 76 / 0.42), transparent 74%);
 }
@@ -568,8 +567,7 @@
 
 :root[data-visual-skin='starship-cockpit'] .mission-tabs {
   z-index: 4;
-  height: 38px;
-  padding: 3px 7px;
+  padding: 6px 7px;
   background: rgb(3 13 31 / 0.74);
   border-color: rgb(104 220 255 / 0.14);
   backdrop-filter: blur(10px);
@@ -737,7 +735,7 @@
 }
 
 :root[data-visual-skin='starship-cockpit'] .command-console .ui-select-trigger {
-  height: 40px;
+  height: 32px;
   border-color: rgb(103 216 255 / 0.2);
   border-radius: 0;
   background: linear-gradient(145deg, rgb(14 45 80 / 0.42), rgb(2 13 30 / 0.72));
@@ -745,7 +743,7 @@
 }
 
 :root[data-visual-skin='starship-cockpit'] .console-tool-strip {
-  min-height: 44px;
+  min-height: 36px;
   gap: 4px;
 }
 
@@ -772,8 +770,8 @@
 }
 
 :root[data-visual-skin='starship-cockpit'] .command-console .ui-button[data-variant='primary'] {
-  min-width: 116px;
-  height: 56px;
+  min-width: 96px;
+  height: 36px;
   font-family: var(--font-mono);
   letter-spacing: 0.06em;
 }
@@ -787,14 +785,14 @@
     inset 0 0 12px rgb(194 239 255 / 0.1),
     0 0 18px rgb(76 141 255 / 0.22);
   clip-path: polygon(
-    12px 0,
-    calc(100% - 12px) 0,
-    100% 12px,
-    100% calc(100% - 12px),
-    calc(100% - 12px) 100%,
-    12px 100%,
-    0 calc(100% - 12px),
-    0 12px
+    8px 0,
+    calc(100% - 8px) 0,
+    100% 8px,
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    8px 100%,
+    0 calc(100% - 8px),
+    0 8px
   );
 }
 

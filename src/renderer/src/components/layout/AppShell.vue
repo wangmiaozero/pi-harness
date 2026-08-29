@@ -9,6 +9,7 @@ import Sidebar from './Sidebar.vue'
 import TitleBar from './TitleBar.vue'
 import StarshipCockpitBackdrop from '@renderer/components/starship/StarshipCockpitBackdrop.vue'
 import StarshipCockpitFrame from '@renderer/components/starship/StarshipCockpitFrame.vue'
+import StarshipCockpitInterior from '@renderer/components/starship/StarshipCockpitInterior.vue'
 import StarshipCruiser from '@renderer/components/starship/StarshipCruiser.vue'
 import StarshipEngineHud from '@renderer/components/starship/StarshipEngineHud.vue'
 import PetStatus from '@renderer/components/pet/PetStatus.vue'
@@ -48,6 +49,10 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
         <StarshipCockpitBackdrop
           v-if="starshipCockpitActive"
           :workspace="isWorkspace"
+          :animated="visualAnimationsEnabled"
+        />
+        <StarshipCockpitInterior
+          v-if="starshipCockpitActive && isWorkspace"
           :animated="visualAnimationsEnabled"
         />
         <MascotBackground

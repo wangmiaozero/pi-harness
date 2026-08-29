@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import deepSpaceImage from '@renderer/assets/themes/starship-cockpit/deep-space.png'
 import distantPlanetImage from '@renderer/assets/themes/starship-cockpit/distant-planet.png'
-import cockpitConsoleDeckImage from '@renderer/assets/themes/starship-cockpit/cockpit-console-deck.png'
 import StarfieldCanvas from './StarfieldCanvas.vue'
 
 withDefaults(
@@ -40,13 +39,6 @@ withDefaults(
     />
     <StarfieldCanvas class="absolute inset-0" :active="true" :animated="animated" />
     <div class="starship-space-vignette absolute inset-0" />
-    <img
-      v-if="workspace"
-      :src="cockpitConsoleDeckImage"
-      alt=""
-      draggable="false"
-      class="starship-console-deck absolute max-w-none"
-    />
   </div>
 </template>
 
@@ -109,20 +101,6 @@ withDefaults(
     linear-gradient(180deg, rgb(1 5 16 / 0.18), transparent 28%, rgb(1 5 16 / 0.54));
 }
 
-.starship-console-deck {
-  right: clamp(28px, 3.4vw, 66px);
-  bottom: clamp(142px, 16vh, 186px);
-  z-index: 2;
-  width: clamp(380px, 30vw, 570px);
-  opacity: 0.9;
-  filter: saturate(0.84) brightness(0.9) contrast(1.12) drop-shadow(0 0 18px rgb(44 161 255 / 0.22));
-}
-
-[data-animated='true'] .starship-console-deck {
-  animation: starship-console-pulse 5.6s ease-in-out infinite;
-  will-change: opacity, filter;
-}
-
 [data-intensity='soft'] .starship-deep-space {
   opacity: 0.34;
   filter: saturate(0.72) brightness(0.52) contrast(1.05);
@@ -138,19 +116,6 @@ withDefaults(
 [data-animated='false'] .starship-aurora,
 [data-animated='false'] .starship-distant-planet {
   animation: none;
-}
-
-@keyframes starship-console-pulse {
-  0%,
-  100% {
-    opacity: 0.84;
-    filter: saturate(0.8) brightness(0.84) contrast(1.1)
-      drop-shadow(0 0 14px rgb(44 161 255 / 0.18));
-  }
-  50% {
-    opacity: 0.96;
-    filter: saturate(0.94) brightness(1) contrast(1.14) drop-shadow(0 0 22px rgb(44 161 255 / 0.28));
-  }
 }
 
 @keyframes starship-space-drift {
@@ -197,8 +162,7 @@ withDefaults(
   .starship-deep-space,
   .starship-nebula,
   .starship-aurora,
-  .starship-distant-planet,
-  .starship-console-deck {
+  .starship-distant-planet {
     animation: none;
   }
 }

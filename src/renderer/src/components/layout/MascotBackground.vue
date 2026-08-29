@@ -69,7 +69,7 @@ const manifest = computed(() => getPetManifest(props.style))
 }
 
 .mascot-background--starship {
-  z-index: 4;
+  z-index: 6;
 }
 
 .mascot-background--starship[data-context='page'] .mascot-background-renderer {
