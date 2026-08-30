@@ -40,8 +40,17 @@ test('mascot gallery fills the page with equal-height previews across skins and 
       await page.setViewportSize({ width, height })
       const galleryBox = (await gallery.boundingBox())!
       const pageBox = (await page.locator('.settings-view').boundingBox())!
+      // Classic (non-overlay) scrollbars in the settings scroller consume
+      // layout width at narrower viewports; only the padding itself is fixed.
+      const scrollbarWidth = await gallery.evaluate((el) => {
+        const scroller = (el as HTMLElement).closest('.overflow-y-auto')
+        return scroller ? scroller.offsetWidth - scroller.clientWidth : 0
+      })
       expect(galleryBox.x - pageBox.x).toBeCloseTo(24, 0)
-      expect(pageBox.x + pageBox.width - galleryBox.x - galleryBox.width).toBeCloseTo(24, 0)
+      expect(pageBox.x + pageBox.width - galleryBox.x - galleryBox.width).toBeCloseTo(
+        24 + scrollbarWidth,
+        0
+      )
 
       const cards = await options.evaluateAll((elements) =>
         elements.map((element) => {
