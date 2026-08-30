@@ -8,6 +8,19 @@ Public release notes contain only released, user-visible additions and fixes.
 
 ### Fixed
 
+## 1.2.0 — 2026-08-30
+
+### Added
+
+- Added the visual Harness console with session, tool, stats, and timeline panels.
+- Added multi-root `.code-workspace` support, workspace search, and file explorer context actions.
+- Added project export to Markdown/HTML and portrait mascot skins.
+- Added mascot-free packaging mode for source builds.
+
+### Fixed
+
+- Fixed Pi self-update PATH resolution, model/provider protocol sync, and market package installs from GUI launches.
+
 ## 1.1.2 — 2026-08-27
 
 ### Added

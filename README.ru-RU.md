@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2"><img alt="release v1.1.2" src="https://img.shields.io/badge/release-v1.1.2-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0"><img alt="release v1.2.0" src="https://img.shields.io/badge/release-v1.2.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -58,15 +58,15 @@ Pi-Harness — не обёртка над веб-интерфейсом. В нё
 
 ## Скачать
 
-Скачайте Pi-Harness v1.1.2 из [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2).
+Скачайте Pi-Harness v1.2.0 из [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0).
 
 | Платформа           | Установщик                                                                                                                   |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.1.2-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.1.2.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2.dmg)             |
-| Windows x64         | [Pi-Harness.Setup.1.1.2.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness.Setup.1.1.2.exe) |
+| macOS Apple Silicon | [Pi-Harness-1.2.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness-1.2.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.2.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness-1.2.0.dmg)             |
+| Windows x64         | [Pi-Harness.Setup.1.2.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness.Setup.1.2.0.exe) |
 
-> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.1.2](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2).
+> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.2.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0).
 
 Пользователям готового приложения не нужно клонировать репозиторий или устанавливать pnpm. Pi-Harness может обнаружить, установить и восстановить Node.js, npm, PATH и Pi Coding Agent в поддерживаемой среде.
 

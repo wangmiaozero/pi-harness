@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2"><img alt="v1.1.2 发布版" src="https://img.shields.io/badge/release-v1.1.2-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0"><img alt="v1.2.0 发布版" src="https://img.shields.io/badge/release-v1.2.0-4C8DFF?style=flat-square" /></a>
   <img alt="支持 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 许可" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -248,16 +248,16 @@ Pi-Harness 正在从桌面控制中心继续升级为完整的 Pi Agent Harness 
 
 ## 下载
 
-从 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2) 下载 Pi-Harness v1.1.2。
+从 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0) 下载 Pi-Harness v1.2.0。
 
 | 平台                | 安装包                                                                                                                             |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [`Pi-Harness-1.1.2-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2-arm64.dmg)     |
-| macOS Intel         | [`Pi-Harness-1.1.2.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2.dmg)                 |
-| Windows x64         | [`Pi-Harness Setup 1.1.2.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness%20Setup%201.1.2.exe) |
-| Linux x64           | [`Pi-Harness-1.1.2.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.1.2/Pi-Harness-1.1.2.AppImage)       |
+| macOS Apple Silicon | [`Pi-Harness-1.2.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness-1.2.0-arm64.dmg)     |
+| macOS Intel         | [`Pi-Harness-1.2.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness-1.2.0.dmg)                 |
+| Windows x64         | [`Pi-Harness Setup 1.2.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness%20Setup%201.2.0.exe) |
+| Linux x64           | [`Pi-Harness-1.2.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness-1.2.0.AppImage)       |
 
-> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.1.2 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.1.2)。
+> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.2.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0)。
 
 安装包用户不需要 clone 仓库，也不需要安装 pnpm。Pi-Harness 可以在支持的环境中检测、安装和修复 Node.js、npm、PATH 与 Pi Coding Agent。
 
