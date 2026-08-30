@@ -1,11 +1,22 @@
 import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// Keep version comparisons independent of package.json release bumps.
+const versions = vi.hoisted(() => ({
+  current: '1.2.0',
+  older: '1.1.0',
+  newer: '1.2.1'
+}))
+
 const mocks = vi.hoisted(() => ({
   app: { isPackaged: false },
   autoUpdater: null as unknown
 }))
 
+vi.mock('@shared/constants/index', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@shared/constants/index')>()),
+  APP_VERSION: versions.current
+}))
 vi.mock('electron', () => ({ app: mocks.app }))
 vi.mock('electron-updater', () => ({
   get autoUpdater() {
@@ -44,11 +55,11 @@ describe('application updater', () => {
     const fake = mocks.autoUpdater as FakeAutoUpdater
     fake.checkForUpdates.mockImplementation(async () => {
       fake.emit('checking-for-update')
-      fake.emit('update-available', { version: '1.1.0' })
+      fake.emit('update-available', { version: versions.newer })
       fake.emit('download-progress', { percent: 42.4 })
       return {
         isUpdateAvailable: true,
-        updateInfo: { version: '1.1.0' }
+        updateInfo: { version: versions.newer }
       }
     })
 
@@ -60,12 +71,13 @@ describe('application updater', () => {
     expect(result).toMatchObject({
       supported: true,
       available: true,
-      latestVersion: '1.1.0',
+      currentVersion: versions.current,
+      latestVersion: versions.newer,
       status: 'downloading',
       downloadProgress: 42.4
     })
 
-    fake.emit('update-downloaded', { version: '1.1.0' })
+    fake.emit('update-downloaded', { version: versions.newer })
     expect(updater.getUpdateState()).toMatchObject({
       status: 'downloaded',
       downloaded: true,
@@ -76,31 +88,36 @@ describe('application updater', () => {
     expect(fake.quitAndInstall).toHaveBeenCalledWith(false, true)
   })
 
-  it('uses the stable Release API when updater metadata is missing', async () => {
-    mocks.app.isPackaged = true
-    const fake = mocks.autoUpdater as FakeAutoUpdater
-    fake.checkForUpdates.mockRejectedValue(new Error('latest-mac.yml returned HTTP 404'))
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: vi.fn().mockResolvedValue({ tag_name: 'v1.1.0' })
-    })
-    vi.stubGlobal('fetch', fetchMock)
+  it.each([versions.older, versions.current])(
+    'reports no update for Release %s when updater metadata is missing',
+    async (latestVersion) => {
+      mocks.app.isPackaged = true
+      const fake = mocks.autoUpdater as FakeAutoUpdater
+      fake.checkForUpdates.mockRejectedValue(new Error('latest-mac.yml returned HTTP 404'))
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({ tag_name: `v${latestVersion}` })
+      })
+      vi.stubGlobal('fetch', fetchMock)
 
-    const updater = await import('./index')
-    const result = await updater.checkForUpdates()
+      const updater = await import('./index')
+      const result = await updater.checkForUpdates()
 
-    expect(result).toMatchObject({
-      supported: true,
-      available: false,
-      latestVersion: '1.1.0',
-      status: 'not-available'
-    })
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.github.com/repos/wangmiaozero/pi-harness/releases/latest',
-      expect.objectContaining({ signal: expect.any(AbortSignal) })
-    )
-  })
+      expect(result).toMatchObject({
+        supported: true,
+        available: false,
+        currentVersion: versions.current,
+        latestVersion,
+        status: 'not-available',
+        downloaded: false
+      })
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://api.github.com/repos/wangmiaozero/pi-harness/releases/latest',
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      )
+    }
+  )
 
   it('reports a manual update when a newer Release lacks updater metadata', async () => {
     mocks.app.isPackaged = true
@@ -111,7 +128,7 @@ describe('application updater', () => {
       vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: vi.fn().mockResolvedValue({ tag_name: 'v1.2.0' })
+        json: vi.fn().mockResolvedValue({ tag_name: `v${versions.newer}` })
       })
     )
 
@@ -121,7 +138,8 @@ describe('application updater', () => {
     expect(result).toMatchObject({
       supported: true,
       available: true,
-      latestVersion: '1.2.0',
+      currentVersion: versions.current,
+      latestVersion: versions.newer,
       status: 'manual-update',
       downloaded: false
     })

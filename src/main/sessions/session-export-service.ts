@@ -63,6 +63,30 @@ export class SessionExportService {
       throw error
     }
   }
+
+  async exportProject(
+    name: string,
+    sessionIds: string[],
+    format: 'html' | 'markdown'
+  ): Promise<string | null> {
+    const ext = format === 'html' ? 'html' : 'md'
+    const result = await dialog.showSaveDialog({
+      defaultPath: `${sanitizeFileName(name)}.${ext}`,
+      filters: [{ name: format === 'html' ? 'HTML' : 'Markdown', extensions: [ext] }]
+    })
+    if (result.canceled || !result.filePath) return null
+    const sections: string[] = [`# ${name}`]
+    for (const id of new Set(sessionIds)) {
+      sections.push(renderMarkdown(await this.sessions.get(id)))
+    }
+    const markdown = sections.join('\n\n---\n\n')
+    await writeFile(
+      result.filePath,
+      format === 'html' ? renderHtmlDocument(name, markdown) : markdown,
+      'utf8'
+    )
+    return result.filePath
+  }
 }
 
 function sanitizeFileName(name: string): string {
@@ -79,13 +103,16 @@ function renderMarkdown(detail: SessionDetail): string {
 }
 
 function renderHtml(detail: SessionDetail): string {
-  const md = renderMarkdown(detail)
-  const escaped = escapeHtml(md)
+  return renderHtmlDocument(detail.info?.name || detail.sessionId, renderMarkdown(detail))
+}
+
+function renderHtmlDocument(title: string, markdown: string): string {
+  const escaped = escapeHtml(markdown)
   return `<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(detail.info?.name || detail.sessionId)}</title>
+  <title>${escapeHtml(title)}</title>
   <style>
     :root { color-scheme: light dark; }
     body { font-family: ui-sans-serif, system-ui, sans-serif; max-width: 920px; margin: 40px auto; padding: 0 24px; color: CanvasText; background: Canvas; }

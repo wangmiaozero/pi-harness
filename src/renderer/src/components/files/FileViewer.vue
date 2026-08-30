@@ -30,7 +30,7 @@ let view: EditorView | null = null
 let loadVersion = 0
 let editorVersion = 0
 
-const filePath = computed(() => workspace.activeTab?.filePath ?? null)
+const filePath = computed(() => workspace.activeFileTab?.filePath ?? null)
 const editBuffer = computed(() => {
   const path = filePath.value
   return path ? workspace.fileEditBuffers[path] : undefined
@@ -52,7 +52,10 @@ const displayPath = computed(() => {
   const file = preview.value
   if (!file) return ''
   const normalizedPath = file.path.replace(/\\/g, '/')
-  const normalizedRoot = workspace.folderForPath(file.path)?.resolvedPath?.replace(/\\/g, '/').replace(/\/+$/, '')
+  const normalizedRoot = workspace
+    .folderForPath(file.path)
+    ?.resolvedPath?.replace(/\\/g, '/')
+    .replace(/\/+$/, '')
   if (normalizedRoot && normalizedPath.startsWith(`${normalizedRoot}/`)) {
     const folderName = workspace.folderForPath(file.path)?.name
     const relative = normalizedPath.slice(normalizedRoot.length + 1)

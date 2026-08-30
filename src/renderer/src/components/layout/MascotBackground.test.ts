@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import MascotBackground from './MascotBackground.vue'
 import { MASCOT_STYLES } from '@shared/constants/mascot'
+import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
 
 describe('MascotBackground', () => {
   it('renders no image for the none style', () => {
@@ -19,14 +20,13 @@ describe('MascotBackground', () => {
       const background = wrapper.get('[data-testid="page-mascot-background"]')
       expect(background.attributes('data-style')).toBe(style)
       expect(background.attributes('aria-hidden')).toBe('true')
-      const assetName =
-        style === 'maidWhite'
-          ? 'pico-maid-white'
-          : style === 'starshipCockpit'
-            ? 'frost-navigator'
-            : `pico-${style}`
-      expect(wrapper.get('img').attributes('src')).toContain(assetName)
+      expect(wrapper.get('img').attributes('src')).toBe(MASCOT_IMAGES[style])
       expect(wrapper.get('img').attributes('alt')).toBe('')
     }
+  })
+
+  it('keeps original portrait backgrounds static even with pet animations enabled', () => {
+    const wrapper = mount(MascotBackground, { props: { style: 'noirScholar', animated: true } })
+    expect(wrapper.get('.pet-renderer').classes()).toContain('pet-motion-off')
   })
 })

@@ -12,9 +12,11 @@ import {
   gitStatusSchema,
   promptAgentSchema,
   projectContextMenuSchema,
+  sessionFolderContextMenuSchema,
   sessionContextMenuSchema,
   sessionContextSchema,
   sessionExportSchema,
+  projectExportSchema,
   sessionIdSchema,
   sessionRenameSchema,
   startAgentSessionSchema,
@@ -40,7 +42,11 @@ import type { SessionService } from '../sessions/session-service'
 import type { SessionExportService } from '../sessions/session-export-service'
 import type { AgentRuntime } from '../agent/runtime'
 import type { WorkspaceService } from '../workspace/workspace-service'
-import type { ProjectContextAction, SessionContextAction } from '@shared/types/workspace'
+import type {
+  ProjectContextAction,
+  SessionContextAction,
+  SessionFolderContextAction
+} from '@shared/types/workspace'
 import {
   getProjectContextMenuLabels,
   getSessionContextMenuLabels
@@ -247,6 +253,17 @@ export function registerWorkspaceIpc(
       return showProjectMenu(win, parsed.data.isPinned === true, parsed.data.locale ?? 'en-US')
     })
   )
+  ipcMain.handle(IPC_INVOKE.workspaceSessionFolderContextMenu, (e, input: unknown) =>
+    wrap(async () => {
+      const parsed = sessionFolderContextMenuSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid session folder menu', {
+          issues: parsed.error.issues
+        })
+      const win = BrowserWindow.fromWebContents(e.sender)
+      return showSessionFolderMenu(win, parsed.data.locale ?? 'en-US')
+    })
+  )
 
   ipcMain.handle(IPC_INVOKE.sessionList, (_e, force: unknown) =>
     wrap(() => {
@@ -301,18 +318,25 @@ export function registerWorkspaceIpc(
       await sessionExport.viewFullHistory(id, BrowserWindow.fromWebContents(e.sender))
     })
   )
+  ipcMain.handle(IPC_INVOKE.projectExport, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = projectExportSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid project export', { issues: parsed.error.issues })
+      return sessionExport.exportProject(
+        parsed.data.name,
+        parsed.data.sessionIds,
+        parsed.data.format
+      )
+    })
+  )
   ipcMain.handle(IPC_INVOKE.sessionContextMenu, (e, input: unknown) =>
     wrap(async () => {
       const parsed = sessionContextMenuSchema.safeParse(input)
       if (!parsed.success)
         throw new ValidationError('Invalid menu', { issues: parsed.error.issues })
       const win = BrowserWindow.fromWebContents(e.sender)
-      return showSessionMenu(
-        win,
-        parsed.data.isWorktree === true,
-        parsed.data.isPinned === true,
-        parsed.data.locale ?? 'en-US'
-      )
+      return showSessionMenu(win, parsed.data.locale ?? 'en-US')
     })
   )
 
@@ -456,8 +480,6 @@ export function registerWorkspaceIpc(
 
 function showSessionMenu(
   win: BrowserWindow | null,
-  isWorktree: boolean,
-  isPinned: boolean,
   locale: 'zh-CN' | 'en-US'
 ): Promise<SessionContextAction | null> {
   return new Promise((resolve) => {
@@ -469,24 +491,34 @@ function showSessionMenu(
       resolve(action)
     }
     const items: Electron.MenuItemConstructorOptions[] = [
-      {
-        label: isPinned ? labels.unpin : labels.pin,
-        click: () => finish(isPinned ? 'unpin' : 'pin')
-      },
-      { label: labels.open, click: () => finish('open') },
-      { label: labels.rename, click: () => finish('rename') },
-      { label: labels.archive, click: () => finish('archive') },
-      { label: labels.fork, click: () => finish('fork') },
-      { type: 'separator' },
-      { label: labels.exportHtml, click: () => finish('export-html') },
-      { label: labels.exportMarkdown, click: () => finish('export-md') },
-      { label: labels.reveal, click: () => finish('reveal') }
+      { id: 'rename', label: labels.rename, click: () => finish('rename') },
+      { id: 'delete', label: labels.delete, click: () => finish('delete') }
     ]
-    if (isWorktree) {
-      items.push({ label: labels.openWorktree, click: () => finish('open-worktree') })
-    }
-    items.push({ type: 'separator' }, { label: labels.delete, click: () => finish('delete') })
     const menu = Menu.buildFromTemplate(items)
+    menu.popup({
+      window: win ?? undefined,
+      callback: () => finish(null)
+    })
+  })
+}
+
+function showSessionFolderMenu(
+  win: BrowserWindow | null,
+  locale: 'zh-CN' | 'en-US'
+): Promise<SessionFolderContextAction | null> {
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (action: SessionFolderContextAction | null) => {
+      if (settled) return
+      settled = true
+      resolve(action)
+    }
+    const menu = Menu.buildFromTemplate([
+      {
+        label: locale === 'zh-CN' ? '移除' : 'Remove',
+        click: () => finish('remove')
+      }
+    ])
     menu.popup({
       window: win ?? undefined,
       callback: () => finish(null)
@@ -509,28 +541,25 @@ function showProjectMenu(
     }
     const menu = Menu.buildFromTemplate([
       {
+        id: isPinned ? 'unpin' : 'pin',
         label: isPinned ? labels.unpin : labels.pin,
         click: () => finish(isPinned ? 'unpin' : 'pin')
       },
-      { label: labels.setMain, click: () => finish('set-main') },
+      { id: 'open', label: labels.open, click: () => finish('open') },
+      { id: 'edit', label: labels.edit, click: () => finish('edit') },
+      { id: 'rename', label: labels.rename, click: () => finish('rename') },
+      { id: 'archive-chats', label: labels.archiveChats, click: () => finish('archive-chats') },
       {
-        label: labels.setRole,
-        submenu: [
-          { label: labels.roleReference, click: () => finish('set-role-reference') },
-          { label: labels.roleDependency, click: () => finish('set-role-dependency') },
-          { label: labels.roleDocs, click: () => finish('set-role-docs') }
-        ]
+        id: 'create-worktree',
+        label: labels.createWorktree,
+        click: () => finish('create-worktree')
       },
-      { label: labels.toggleReadonly, click: () => finish('toggle-readonly') },
       { type: 'separator' },
-      { label: labels.reveal, click: () => finish('reveal') },
-      { label: labels.openTerminal, click: () => finish('open-terminal') },
-      { label: labels.relocate, click: () => finish('relocate') },
-      { label: labels.createWorktree, click: () => finish('create-worktree') },
+      { id: 'export-html', label: labels.exportHtml, click: () => finish('export-html') },
+      { id: 'export-md', label: labels.exportMarkdown, click: () => finish('export-md') },
+      { id: 'reveal', label: labels.reveal, click: () => finish('reveal') },
       { type: 'separator' },
-      { label: labels.archiveChats, click: () => finish('archive-chats') },
-      { type: 'separator' },
-      { label: labels.remove, click: () => finish('remove') }
+      { id: 'remove', label: labels.remove, click: () => finish('remove') }
     ])
     menu.popup({
       window: win ?? undefined,

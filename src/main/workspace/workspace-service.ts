@@ -423,11 +423,24 @@ export class WorkspaceService {
         }
       })
     )
+    const byPath = new Map<string, (typeof resolved)[number]>()
+    for (const folder of resolved) {
+      const key = projectIdentityKey(folder.resolvedPath)
+      const existing = byPath.get(key)
+      if (existing) {
+        // Aliases must not duplicate a source or weaken its read-only restriction.
+        existing.readonly ||= folder.readonly
+        if (folder.role === 'main') existing.role = 'main'
+      } else {
+        byPath.set(key, folder)
+      }
+    }
+    const uniqueFolders = [...byPath.values()]
     const mainIndex = Math.max(
       0,
-      resolved.findIndex((folder) => folder.role === 'main')
+      uniqueFolders.findIndex((folder) => folder.role === 'main')
     )
-    return ensureSingleMainFolder(resolved, mainIndex === -1 ? 0 : mainIndex)
+    return ensureSingleMainFolder(uniqueFolders, mainIndex)
   }
 
   private toWorkspace(input: {

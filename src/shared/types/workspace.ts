@@ -355,6 +355,7 @@ export type SessionContextAction =
   | 'pin'
   | 'unpin'
   | 'open'
+  | 'edit'
   | 'rename'
   | 'archive'
   | 'fork'
@@ -363,6 +364,8 @@ export type SessionContextAction =
   | 'reveal'
   | 'delete'
   | 'open-worktree'
+
+export type SessionFolderContextAction = 'remove'
 
 export type WorkspaceFolderRole = 'main' | 'reference' | 'dependency' | 'docs'
 
@@ -427,6 +430,11 @@ export interface GitRepositoryStatus extends GitStatusResponse {
 export type ProjectContextAction =
   | 'pin'
   | 'unpin'
+  | 'open'
+  | 'edit'
+  | 'rename'
+  | 'export-html'
+  | 'export-md'
   | 'reveal'
   | 'remove'
   | 'archive-chats'

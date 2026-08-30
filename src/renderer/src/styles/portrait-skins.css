@@ -1,0 +1,381 @@
+/* Two original-art skins share layout rules, but own distinct semantic palettes. */
+:root[data-visual-skin='noir-scholar'] {
+  --bg-window: #151310;
+  --bg-titlebar: #191714;
+  --bg-sidebar: #1c1916;
+  --bg-workspace: #201d19;
+  --bg-surface: #27231e;
+  --bg-surface-raised: #2e2923;
+  --bg-hover: #363026;
+  --bg-selected: #423727;
+  --text-primary: #f2ece2;
+  --text-secondary: #c7bba9;
+  --text-tertiary: #a29685;
+  --text-disabled: #7a7064;
+  --accent: #c5a470;
+  --accent-hover: #dcc095;
+  --accent-active: #b99863;
+  --portrait-button-bg: #89612e;
+  --portrait-button-hover: #946b36;
+  --portrait-button-active: #785329;
+  --accent-border: #806540;
+  --border-subtle: rgb(206 178 131 / 0.1);
+  --border-default: rgb(206 178 131 / 0.18);
+  --border-strong: rgb(206 178 131 / 0.3);
+  --control-bg: #24201c;
+  --control-bg-hover: #2f2922;
+  --control-bg-disabled: #211e1a;
+  --control-border: rgb(206 178 131 / 0.24);
+  --control-border-hover: rgb(206 178 131 / 0.42);
+  --control-placeholder: #958775;
+  --syntax-property: #d6b989;
+  --syntax-heading: #dcc496;
+  --portrait-panel-background: transparent;
+  --portrait-scene-image: url('../assets/themes/portraits/noir-study.png');
+  --portrait-glass-chrome: rgb(30 26 22 / 0.56);
+  --portrait-glass-control: rgb(40 34 27 / 0.46);
+  --portrait-glass-message: rgb(21 19 16 / 0.62);
+  --portrait-glass-input: rgb(25 22 18 / 0.4);
+  --portrait-glass-input-focus: rgb(25 22 18 / 0.54);
+  --portrait-glass-highlight: rgb(255 235 200 / 0.06);
+  --portrait-glass-shadow: rgb(0 0 0 / 0.08);
+  --portrait-status-bg: rgb(30 26 22 / 0.68);
+  --portrait-page-overlay: rgb(21 19 16 / 0.64);
+}
+
+:root[data-visual-skin='moonlit-maid'] {
+  --bg-window: #eeeaf0;
+  --bg-titlebar: #e8e2eb;
+  --bg-sidebar: #eee8f0;
+  --bg-workspace: #faf7fb;
+  --bg-surface: #fff;
+  --bg-surface-raised: #fff;
+  --bg-hover: #eee6f0;
+  --bg-selected: #e4d8e8;
+  --text-primary: #352d3a;
+  --text-secondary: #67586e;
+  --text-tertiary: #817188;
+  --text-disabled: #a99cae;
+  --accent: #806284;
+  --accent-hover: #705376;
+  --accent-active: #614568;
+  --portrait-button-bg: var(--accent);
+  --portrait-button-hover: var(--accent-hover);
+  --portrait-button-active: var(--accent-active);
+  --accent-border: #c1aac8;
+  --border-subtle: rgb(103 74 114 / 0.09);
+  --border-default: rgb(103 74 114 / 0.16);
+  --border-strong: rgb(103 74 114 / 0.28);
+  --control-bg: #fff;
+  --control-bg-hover: #fcf9fd;
+  --control-bg-disabled: #f0eaf2;
+  --control-border: rgb(103 74 114 / 0.22);
+  --control-border-hover: rgb(103 74 114 / 0.4);
+  --control-placeholder: #938199;
+  --syntax-property: #806284;
+  --syntax-heading: #806284;
+  --portrait-panel-background: transparent;
+  --portrait-scene-image: url('../assets/themes/portraits/moonlit-tea-room.png');
+  --portrait-glass-chrome: rgb(250 247 251 / 0.5);
+  --portrait-glass-control: rgb(255 253 255 / 0.52);
+  --portrait-glass-message: rgb(255 253 255 / 0.6);
+  --portrait-glass-input: rgb(255 253 255 / 0.3);
+  --portrait-glass-input-focus: rgb(255 253 255 / 0.5);
+  --portrait-glass-highlight: rgb(255 255 255 / 0.65);
+  --portrait-glass-shadow: rgb(72 50 84 / 0.05);
+  --portrait-status-bg: rgb(255 253 255 / 0.72);
+  --portrait-page-overlay: rgb(250 247 251 / 0.62);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) {
+  --accent-tint: color-mix(in srgb, var(--accent) 13%, transparent);
+  --accent-tint-soft: color-mix(in srgb, var(--accent) 7%, transparent);
+  --accent-tint-strong: color-mix(in srgb, var(--accent) 23%, transparent);
+  --scrollbar-thumb: color-mix(in srgb, var(--accent) 24%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--accent) 40%, transparent);
+  --scrollbar-thumb-active: color-mix(in srgb, var(--accent) 56%, transparent);
+  --focus-ring: 0 0 0 2px var(--accent-border);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .app-titlebar {
+  border-bottom: 1px solid var(--border-default);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .mascot-background--portrait
+  .mascot-background-renderer {
+  filter: none;
+  mask-image: none;
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .ui-button[data-variant='primary'] {
+  background: var(--portrait-button-bg);
+  color: #fff;
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .ui-button[data-variant='primary']:hover:not(:disabled) {
+  background: var(--portrait-button-hover);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .ui-button[data-variant='primary']:active:not(:disabled) {
+  background: var(--portrait-button-active);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .ui-button[data-variant='primary']:disabled {
+  background: color-mix(in srgb, var(--portrait-button-bg) 65%, var(--bg-surface));
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .app-titlebar-brand-name {
+  color: var(--text-primary);
+  letter-spacing: 0.06em;
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .chat-scroller {
+  padding-inline: clamp(16px, 3%, 32px);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .chat-scroll-content {
+  max-width: 860px;
+  margin-inline: auto;
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .command-console {
+  border-top: 1px solid var(--border-default);
+  background: var(--bg-surface);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .command-console-input {
+  border-color: var(--border-default);
+  background: var(--control-bg);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .user-message-body {
+  border: 1px solid var(--border-subtle);
+  background: var(--accent-tint-soft);
+}
+
+/* The wallpaper sits below every glass surface, including the titlebar and sidebar. */
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .app-shell {
+  background: var(--portrait-scene-image) center / cover no-repeat var(--bg-workspace);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  :is(.starship-viewport-root, .workspace-primary) {
+  background: transparent;
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .workspace-content {
+  position: relative;
+  container-type: size;
+}
+
+:root[data-visual-skin='noir-scholar'] .workspace-content {
+  --study-room-width: max(100cqw, calc(100cqh * 1672 / 941));
+  --study-room-height: max(100cqh, calc(100cqw * 941 / 1672));
+  --study-seat-x: calc((100cqw - var(--study-room-width)) / 2 + var(--study-room-width) * 0.235);
+  --study-seat-y: calc((100cqh - var(--study-room-height)) / 2 + var(--study-room-height) * 0.795);
+  --study-reading-inset: max(
+    min(32cqw, 440px),
+    calc(var(--study-seat-x) + var(--study-room-height) * 0.14 + 20px)
+  );
+  container-name: study-scene;
+  /* Keep the seated portrait aligned with the original room's chair. Chrome uses
+     the same wallpaper underneath its blurred surfaces. */
+  background: var(--portrait-scene-image) center / cover no-repeat var(--bg-workspace);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .workspace-primary {
+  position: relative;
+  z-index: 1;
+}
+
+/* The portrait is scenery, not a column that shortens the composer. */
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .portrait-skin-panel {
+  position: absolute;
+  inset: 0;
+  max-width: none;
+  border-right-color: transparent;
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .portrait-skin-heading {
+  width: min(32%, 416px);
+}
+
+:root[data-visual-skin='noir-scholar'] .portrait-skin-character {
+  position: absolute;
+  /* Share the room's cover transform. The seated figure's contact point (58%, 54%)
+     stays on the chair seat (23.5%, 79.5%), independent of window aspect ratio. */
+  top: var(--study-seat-y);
+  left: var(--study-seat-x);
+  height: calc(var(--study-room-height) * 0.5);
+  aspect-ratio: 2 / 3;
+  transform: translate(-58%, -54%);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .portrait-skin-artwork {
+  align-items: flex-end;
+  padding: 0;
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .portrait-skin-artwork
+  img {
+  height: 100%;
+  object-position: center bottom;
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .portrait-skin-footer {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  width: 100%;
+}
+
+/* Keep prose beside the portrait, but let the composer cover its lower half. */
+@container study-scene (min-width: 821px) and (min-aspect-ratio: 1.15) {
+  :root[data-visual-skin='noir-scholar']
+    .workspace-content:has(.portrait-skin-panel)
+    .chat-scroller {
+    padding-left: var(--study-reading-inset);
+  }
+
+  :root[data-visual-skin='noir-scholar']
+    .workspace-content:has(.portrait-skin-panel)
+    .chat-status-hud,
+  :root[data-visual-skin='noir-scholar'] .workspace-content:has(.portrait-skin-panel) .session-hud {
+    margin-left: var(--study-reading-inset);
+  }
+}
+
+@container study-scene (max-aspect-ratio: 1.15) {
+  :root[data-visual-skin='noir-scholar'] .portrait-skin-panel {
+    display: none;
+  }
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  :is(
+    .app-titlebar,
+    .app-navigation-rail,
+    .workspace-control-panel,
+    .workspace-tabbar,
+    .chat-status-hud,
+    .session-hud,
+    .command-console
+  ) {
+  background: var(--portrait-glass-chrome);
+  backdrop-filter: blur(20px) saturate(120%);
+  box-shadow: inset 0 1px var(--portrait-glass-highlight);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .workspace-tabbar
+  > div {
+  background: transparent;
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  :is(.ui-select-trigger, .starship-search-trigger) {
+  background: var(--portrait-glass-control);
+  backdrop-filter: blur(12px);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .message-hud {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--portrait-glass-message);
+  backdrop-filter: blur(16px) saturate(110%);
+  box-shadow:
+    inset 0 1px var(--portrait-glass-highlight),
+    0 8px 24px var(--portrait-glass-shadow);
+  padding: 12px;
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .command-console {
+  flex-shrink: 0;
+  z-index: 2;
+  margin: 0;
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .command-console-input {
+  background: var(--portrait-glass-input);
+  box-shadow: inset 0 1px 5px var(--portrait-glass-shadow);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .command-console-input:focus-within {
+  background: var(--portrait-glass-input-focus);
+}
+
+:root[data-visual-skin='noir-scholar'] .user-message-body {
+  background: rgb(197 164 112 / 0.09);
+}
+
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .portrait-skin-footer
+  .pet-status {
+  --pet-status-bg: var(--portrait-status-bg);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+/* Other pages use the same room at lower intensity behind their existing surfaces. */
+:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+  .starship-viewport-root:not(:has(.workspace-view)) {
+  background: var(--portrait-page-overlay);
+  backdrop-filter: blur(16px);
+}
+
+/* The standing portrait has its own floor anchor; it never reserves composer width. */
+:root[data-visual-skin='moonlit-maid'] .workspace-content {
+  --tea-portrait-column: min(32cqw, 440px);
+  container-name: tea-scene;
+}
+
+:root[data-visual-skin='moonlit-maid'] .portrait-skin-character {
+  position: absolute;
+  bottom: 14px;
+  left: calc(var(--tea-portrait-column) / 2);
+  height: min(68cqh, calc(var(--tea-portrait-column) * 1.5 - 36px));
+  aspect-ratio: 2 / 3;
+  transform: translateX(-50%);
+}
+
+@container tea-scene (min-width: 821px) {
+  :root[data-visual-skin='moonlit-maid']
+    .workspace-content:has(.portrait-skin-panel)
+    .chat-scroller {
+    padding-left: var(--tea-portrait-column);
+  }
+
+  :root[data-visual-skin='moonlit-maid']
+    .workspace-content:has(.portrait-skin-panel)
+    :is(.chat-status-hud, .session-hud) {
+    margin-left: var(--tea-portrait-column);
+  }
+}
+
+:root[data-visual-skin='moonlit-maid'] .user-message-body {
+  background: rgb(128 98 132 / 0.09);
+}
+
+/* Picker geometry is shared by all styles; skins supply only their scene background. */
+[data-mascot-option='noirScholar'] .mascot-option-preview {
+  background: url('../assets/themes/portraits/noir-study.png') center / cover no-repeat #201d19;
+}
+
+[data-mascot-option='moonlitMaid'] .mascot-option-preview {
+  background: url('../assets/themes/portraits/moonlit-tea-room.png') center / cover no-repeat
+    #e8e2eb;
+}

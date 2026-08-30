@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import MascotView from './MascotView.vue'
 import { MASCOT_STYLES } from '@shared/constants/mascot'
+import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
 
 describe('MascotView', () => {
   it('renders no image for the none style', () => {
@@ -17,13 +18,7 @@ describe('MascotView', () => {
     for (const style of MASCOT_STYLES.filter((style) => style !== 'none')) {
       await wrapper.setProps({ style })
       expect(wrapper.get('[data-testid="workspace-mascot"]').attributes('data-style')).toBe(style)
-      const assetName =
-        style === 'maidWhite'
-          ? 'pico-maid-white'
-          : style === 'starshipCockpit'
-            ? 'frost-navigator'
-            : `pico-${style}`
-      expect(wrapper.get('img').attributes('src')).toContain(assetName)
+      expect(wrapper.get('img').attributes('src')).toBe(MASCOT_IMAGES[style])
     }
   })
 

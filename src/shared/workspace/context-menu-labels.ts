@@ -4,6 +4,7 @@ export interface SessionContextMenuLabels {
   pin: string
   unpin: string
   open: string
+  edit: string
   rename: string
   archive: string
   fork: string
@@ -17,6 +18,11 @@ export interface SessionContextMenuLabels {
 export interface ProjectContextMenuLabels {
   pin: string
   unpin: string
+  open: string
+  edit: string
+  rename: string
+  exportHtml: string
+  exportMarkdown: string
   reveal: string
   remove: string
   archiveChats: string
@@ -40,6 +46,7 @@ export function getSessionContextMenuLabels(
     pin: isChinese ? '置顶' : 'Pin',
     unpin: isChinese ? '取消置顶' : 'Unpin',
     open: isChinese ? '打开' : 'Open',
+    edit: isChinese ? '编辑' : 'Edit',
     rename: isChinese ? '重命名' : 'Rename',
     archive: isChinese ? '归档' : 'Archive',
     fork: isChinese ? '创建分支' : 'Fork',
@@ -59,10 +66,15 @@ export function getProjectContextMenuLabels(
   return {
     pin: isChinese ? '置顶' : 'Pin',
     unpin: isChinese ? '取消置顶' : 'Unpin',
+    open: isChinese ? '打开' : 'Open',
+    edit: isChinese ? '编辑' : 'Edit',
+    rename: isChinese ? '重命名' : 'Rename',
+    exportHtml: isChinese ? '导出 HTML' : 'Export HTML',
+    exportMarkdown: isChinese ? '导出 Markdown' : 'Export Markdown',
     reveal: revealLabel(isChinese, platform),
-    remove: isChinese ? '从工作区移除' : 'Remove Folder from Workspace',
-    archiveChats: isChinese ? '归档聊天' : 'Archive Chats',
-    createWorktree: isChinese ? '创建永久工作树' : 'Create Permanent Worktree',
+    remove: isChinese ? '删除' : 'Delete',
+    archiveChats: isChinese ? '归档' : 'Archive',
+    createWorktree: isChinese ? '创建分支' : 'Create Branch',
     setMain: isChinese ? '设为主项目' : 'Set as Main Project',
     setRole: isChinese ? '设置角色' : 'Set Role',
     roleReference: isChinese ? '设置为 Reference' : 'Set as Reference',

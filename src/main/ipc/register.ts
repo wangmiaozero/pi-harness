@@ -45,6 +45,7 @@ import { capabilityMutationSchema, capabilityToggleSchema } from '@shared/capabi
 import type { EnvironmentManager } from '../environment/environment-manager'
 import { DEFAULT_MASCOT_STYLE, isMascotUnlockAnswer } from '@shared/constants/mascot'
 import { normalizeNavOrder } from '@shared/constants/navigation'
+import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
 import { providerKeySchema, backupIdSchema, pathSegmentSchema } from '@shared/schemas/domain'
 import {
   appSettingsPatchSchema,
@@ -546,6 +547,7 @@ export function registerIpc(services: Services): void {
   ipcMain.handle(IPC_INVOKE.settingsGet, () =>
     wrap(async () => {
       const settings = pickKnownAppSettings(await settingsStore.read())
+      settings.theme = normalizeAppTheme(settings.theme)
       settings.navOrder = normalizeNavOrder(settings.navOrder)
       return settings
     })
@@ -558,6 +560,7 @@ export function registerIpc(services: Services): void {
         'Invalid settings'
       )
       const current = pickKnownAppSettings(await settingsStore.read())
+      current.theme = normalizeAppTheme(current.theme)
       current.navOrder = normalizeNavOrder(current.navOrder)
       const nextPatch: Partial<AppSettings> = { ...parsedPatch }
       if (!current.mascotUnlocked) nextPatch.mascotUnlocked = false
@@ -570,7 +573,7 @@ export function registerIpc(services: Services): void {
       const settings = { ...current, ...nextPatch }
       settings.navOrder = normalizeNavOrder(settings.navOrder)
       await settingsStore.write(settings)
-      nativeTheme.themeSource = settings.theme
+      nativeTheme.themeSource = themeAppearance(settings.theme)
       return settings
     })
   )

@@ -18,7 +18,9 @@ import {
 import { toast } from 'vue-sonner'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
-import FileExplorer from '@renderer/components/files/FileExplorer.vue'
+import Button from '@renderer/components/ui/Button.vue'
+import Dialog from '@renderer/components/ui/Dialog.vue'
+import Input from '@renderer/components/ui/Input.vue'
 import WorktreeSwitcher from '@renderer/components/git/WorktreeSwitcher.vue'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
@@ -27,9 +29,22 @@ import { useModelsStore } from '@renderer/stores/models'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useHarnessStore } from '@renderer/stores/harness'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
-import { callApi, getApi } from '@renderer/composables/useApi'
-import type { RecentWorkspace, SessionInfo, WorkspaceFolder } from '@shared/types/workspace'
+import { callApi, getApi, getErrorPayload } from '@renderer/composables/useApi'
+import type {
+  RecentWorkspace,
+  SessionInfo,
+  SessionProjectGroup,
+  WorkspaceFolder
+} from '@shared/types/workspace'
 import StarshipModelHud from '@renderer/components/starship/StarshipModelHud.vue'
+import ProjectWorkspaceDialog from './ProjectWorkspaceDialog.vue'
+import RenameDialog from './RenameDialog.vue'
+import { projectIdentityKey } from '@shared/workspace/project-identity'
+import {
+  groupSessionsByProject,
+  mergeWorkspaceProjects,
+  projectDisplayName
+} from '@shared/workspace/session-tree'
 
 const emit = defineEmits<{ 'focus-composer': []; 'open-harness': [] }>()
 const { t, locale } = useI18n()
@@ -39,19 +54,30 @@ const agent = useAgentStore()
 const models = useModelsStore()
 const settings = useSettingsStore()
 const harness = useHarnessStore()
-type WorkspaceSection = 'sessions' | 'files' | 'git' | 'harness'
+type WorkspaceSection = 'sessions' | 'git' | 'harness'
 const section = ref<WorkspaceSection>('sessions')
 const collapsedSessionIds = ref<string[]>([])
+const collapsedProjectKeys = ref<string[]>([])
 const dragActive = ref(false)
 const refreshing = ref(false)
+const importingProject = ref(false)
+const importingWorkspace = ref(false)
+const editingProject = ref<SessionProjectGroup | null>(null)
+const editingName = ref('')
+const editingFolders = ref<WorkspaceFolder[]>([])
+const savingSessionFolders = ref(false)
+const renaming = ref<{ session?: SessionInfo; project?: SessionProjectGroup } | null>(null)
+const renameValue = ref('')
+const renameSaving = ref(false)
+const branchingProject = ref<SessionProjectGroup | null>(null)
+const branchName = ref('')
+const branchSaving = ref(false)
 let dragDepth = 0
 
 const visibleSessions = computed(() => {
   const archived = new Set(workspace.archivedSessionIds)
   return sessions.items
-    .filter(
-      (session) => !archived.has(session.id) && workspace.isSessionInActiveWorkspace(session)
-    )
+    .filter((session) => !archived.has(session.id))
     .map((session, index) => ({ session, index }))
     .sort(
       (a, b) =>
@@ -60,18 +86,44 @@ const visibleSessions = computed(() => {
     )
     .map(({ session }) => session)
 })
+const projectGroups = computed(() =>
+  mergeWorkspaceProjects(
+    workspace.importedProjectRoots,
+    groupSessionsByProject(
+      visibleSessions.value.map((session) => {
+        const primary = sessionFolders(session)[0]
+        return primary
+          ? { ...session, projectRoot: primary.resolvedPath, projectKey: primary.id }
+          : session
+      })
+    )
+  )
+    .filter((group) => !workspace.removedProjectKeys.includes(group.projectKey))
+    .map((group) => ({
+      ...group,
+      name: workspace.projectSettings[group.projectKey]?.name || group.name,
+      sessions: [...group.sessions].sort(
+        (a, b) => Number(workspace.isSessionPinned(b.id)) - Number(workspace.isSessionPinned(a.id))
+      )
+    }))
+    .sort(
+      (a, b) =>
+        Number(workspace.isProjectPinned(b.projectKey)) -
+        Number(workspace.isProjectPinned(a.projectKey))
+    )
+)
 const newChatActive = computed(
   () => workspace.activeTab?.kind === 'chat' && workspace.activeTab.sessionId === 'new'
 )
-const canShowSessionFiles = computed(
+const canShowSessionGit = computed(() => workspace.hasSessionWorkspace)
+const canStartSessionFromCurrentProject = computed(
   () =>
     Boolean(sessions.currentId && sessions.current) &&
-    workspace.activeSessionWorkspaceId === sessions.currentId
+    workspace.activeSessionWorkspaceId === sessions.currentId &&
+    workspace.workspaceFolders.length > 0
 )
-const canStartSessionFromCurrentProject = computed(() => workspace.canChat)
 const sectionItems = computed(() => [
-  { id: 'sessions' as const, label: t('workspace.sessions') },
-  { id: 'files' as const, label: t('workspace.files') },
+  { id: 'sessions' as const, label: t('workspace.projects') },
   { id: 'git' as const, label: t('workspace.git') },
   { id: 'harness' as const, label: t('workspace.harness') }
 ])
@@ -109,46 +161,210 @@ async function newSession() {
   emit('focus-composer')
 }
 
-async function pickProject(): Promise<boolean> {
-  const dir = await callApi(() => getApi().workspace.pickDirectory())
-  if (!dir) return false
-  await sessions.refresh(true)
-  await workspace.resetDraftWorkspace(dir)
+async function newSessionFromProject(group: SessionProjectGroup) {
+  try {
+    await workspace.startDraftFromProject(group.projectRoot)
+    sessions.selectSession(null)
+    workspace.ensureChatTab('new', t('workspace.newSession'))
+    emit('focus-composer')
+  } catch (error) {
+    toast.error(getErrorPayload(error).message)
+  }
+}
+
+async function openDraftSession() {
+  if (!workspace.hasDraftSession) return
+  await workspace.restoreDraftWorkspace()
   sessions.selectSession(null)
   workspace.ensureChatTab('new', t('workspace.newSession'))
-  await Promise.all([workspace.loadFiles(), workspace.loadGit()])
-  toast.success(t('workspace.projectPicked'), { description: dir })
-  return true
+  emit('focus-composer')
+}
+
+function isProjectActive(group: SessionProjectGroup): boolean {
+  return newChatActive.value && workspace.draftWorkspaceFolders[0]?.id === group.projectKey
+}
+
+function isProjectCollapsed(projectKey: string): boolean {
+  return collapsedProjectKeys.value.includes(projectKey)
+}
+
+async function openProjectGroup(group: SessionProjectGroup) {
+  if (!group.sessions.length) {
+    if (workspace.hasDraftSession && workspace.draftWorkspaceFolders[0]?.id === group.projectKey) {
+      await openDraftSession()
+    } else {
+      await newSessionFromProject(group)
+    }
+    return
+  }
+  collapsedProjectKeys.value = isProjectCollapsed(group.projectKey)
+    ? collapsedProjectKeys.value.filter((key) => key !== group.projectKey)
+    : [...collapsedProjectKeys.value, group.projectKey]
+}
+
+async function removeProject(group: SessionProjectGroup) {
+  const confirmed = await askConfirm({
+    title: t('workspace.deleteProjectTitle'),
+    description: t('workspace.deleteProjectConfirm', { name: group.name }),
+    confirmLabel: t('common.delete'),
+    tone: 'danger'
+  })
+  if (!confirmed) return
+  await workspace.removeProjectEntry(group.projectKey)
+  toast.success(t('workspace.importedProjectRemoved'))
+}
+
+async function onProjectContextMenu(group: SessionProjectGroup, event: MouseEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+  try {
+    await handleProjectContextMenu(group)
+  } catch (error) {
+    toast.error(getErrorPayload(error).message)
+  }
+}
+
+async function handleProjectContextMenu(group: SessionProjectGroup) {
+  const action = await callApi(() =>
+    getApi().workspace.projectContextMenu(
+      group.projectKey,
+      group.projectRoot,
+      workspace.isProjectPinned(group.projectKey),
+      locale.value === 'en-US' ? 'en-US' : 'zh-CN'
+    )
+  )
+  if (action === 'pin' || action === 'unpin') {
+    workspace.setProjectPinned(group.projectKey, action === 'pin')
+  } else if (action === 'open') {
+    collapsedProjectKeys.value = collapsedProjectKeys.value.filter(
+      (key) => key !== group.projectKey
+    )
+    const session =
+      group.sessions.find((item) => item.id === sessions.currentId) ?? group.sessions[0]
+    if (session) await openSession(session)
+    else await newSessionFromProject(group)
+  } else if (action === 'edit') {
+    editingProject.value = group
+    editingName.value = group.name
+    editingFolders.value = workspace.projectSourceRoots(group.projectRoot).map((root, index) => ({
+      id: projectIdentityKey(root),
+      name: projectDisplayName(root),
+      path: root,
+      resolvedPath: root,
+      role: index === 0 ? 'main' : 'reference',
+      readonly: false,
+      exists: true
+    }))
+  } else if (action === 'rename') {
+    renaming.value = { project: group }
+    renameValue.value = group.name
+  } else if (action === 'archive-chats') {
+    const confirmed = await askConfirm({
+      title: t('workspace.archiveProjectTitle'),
+      description: t('workspace.archiveProjectConfirm', {
+        name: group.name,
+        count: group.sessions.length
+      }),
+      confirmLabel: t('workspace.archiveProjectTitle')
+    })
+    if (!confirmed) return
+    workspace.rememberImportedProjects([group.projectRoot])
+    workspace.archiveProjectSessions(group.projectKey)
+    toast.success(t('workspace.projectChatsArchived'))
+  } else if (action === 'create-worktree') {
+    branchingProject.value = group
+    branchName.value = ''
+  } else if (action === 'export-html' || action === 'export-md') {
+    if (!group.sessions.length) {
+      toast.info(t('workspace.noSessionsToExport'))
+      return
+    }
+    const path = await callApi(() =>
+      getApi().sessions.exportProject(
+        group.name,
+        group.sessions.map((session) => session.id),
+        action === 'export-html' ? 'html' : 'markdown'
+      )
+    )
+    if (path) toast.success(t('workspace.exported'), { description: path })
+  } else if (action === 'reveal') {
+    await callApi(() => getApi().system.showItem(group.projectRoot))
+  } else if (action === 'remove') {
+    await removeProject(group)
+  }
+}
+
+async function createProjectBranch() {
+  if (!branchingProject.value || branchSaving.value || !branchName.value.trim()) return
+  branchSaving.value = true
+  try {
+    const result = await callApi(() =>
+      getApi().worktrees.create(branchingProject.value!.projectRoot, branchName.value.trim())
+    )
+    workspace.rememberImportedProjects([result.path])
+    branchingProject.value = null
+    toast.success(t('workspace.worktreeCreated'), { description: result.path })
+  } catch (error) {
+    toast.error(getErrorPayload(error).message)
+  } finally {
+    branchSaving.value = false
+  }
+}
+
+async function pickProject(): Promise<boolean> {
+  if (importingProject.value || importingWorkspace.value) return false
+  importingProject.value = true
+  try {
+    const dir = await callApi(() => getApi().workspace.pickDirectory())
+    if (!dir) return false
+    await sessions.refresh(true)
+    await workspace.resetDraftWorkspace(dir)
+    workspace.rememberImportedProjects(workspace.draftProjectRoots)
+    sessions.selectSession(null)
+    workspace.ensureChatTab('new', t('workspace.newSession'))
+    await Promise.all([workspace.loadFiles(), workspace.loadGit()])
+    toast.success(t('workspace.projectPicked'), { description: dir })
+    emit('focus-composer')
+    return true
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('common.failed'))
+    return false
+  } finally {
+    importingProject.value = false
+  }
 }
 
 async function importWorkspace(): Promise<boolean> {
-  const sources = await callApi(() => getApi().workspace.pickWorkspaceSources())
-  if (!sources.length) return false
-  await sessions.refresh(true)
-  const workspaceFile = sources.find((source) =>
-    source.toLowerCase().endsWith('.code-workspace')
-  )
-  const directories = sources.filter(
-    (source) => !source.toLowerCase().endsWith('.code-workspace')
-  )
-  if (workspaceFile) {
-    await workspace.importDraftWorkspaceFile(workspaceFile)
-    for (const directory of directories) workspace.addProjectRoot(directory)
-    if (directories.length) await workspace.syncActiveWorkspace()
-  } else {
-    await workspace.resetDraftWorkspaceRoots(directories)
+  if (importingProject.value || importingWorkspace.value) return false
+  importingWorkspace.value = true
+  try {
+    const sources = await callApi(() => getApi().workspace.pickWorkspaceSources())
+    if (!sources.length) return false
+    await sessions.refresh(true)
+    const workspaceFile = sources.find((source) => source.toLowerCase().endsWith('.code-workspace'))
+    const directories = sources.filter(
+      (source) => !source.toLowerCase().endsWith('.code-workspace')
+    )
+    if (workspaceFile) {
+      await workspace.importDraftWorkspaceFile(workspaceFile, directories)
+    } else {
+      await workspace.resetDraftWorkspaceRoots(directories)
+    }
+    workspace.rememberDraftProject()
+    sessions.selectSession(null)
+    workspace.ensureChatTab('new', t('workspace.newSession'))
+    await Promise.all([workspace.loadFiles(), workspace.loadGit()])
+    toast.success(t('workspace.workspaceOpened'), {
+      description: workspaceFile ?? directories[0]
+    })
+    emit('focus-composer')
+    return true
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('common.failed'))
+    return false
+  } finally {
+    importingWorkspace.value = false
   }
-  sessions.selectSession(null)
-  workspace.ensureChatTab('new', t('workspace.newSession'))
-  await Promise.all([workspace.loadFiles(), workspace.loadGit()])
-  toast.success(
-    workspaceFile
-      ? t('workspace.workspaceOpened')
-      : t('workspace.projectsImported', { count: directories.length }),
-    { description: workspaceFile ?? directories[0] }
-  )
-  emit('focus-composer')
-  return true
 }
 
 async function refreshWorkspace() {
@@ -183,6 +399,8 @@ async function addFolder(target?: SessionInfo): Promise<boolean> {
     if (workspace.activeSessionWorkspaceId !== null) await workspace.restoreDraftWorkspace()
     workspace.addProjectRoot(dir)
     await workspace.syncActiveWorkspace()
+    workspace.markDraftSessionVisible()
+    workspace.rememberDraftProject()
   }
   await Promise.all([workspace.loadFiles(), workspace.loadGit()])
   toast.success(t('workspace.folderAdded'), { description: dir })
@@ -195,6 +413,7 @@ async function openWorkspaceFile(): Promise<boolean> {
   await sessions.refresh(true)
   await workspace.openWorkspaceFile(path)
   if (sessions.currentId) await workspace.bindCurrentSession(sessions.currentId)
+  else workspace.rememberDraftProject()
   workspace.ensureChatTab(
     sessions.currentId ?? 'new',
     sessions.current ? sessionTitle(sessions.current).slice(0, 28) : t('workspace.newSession')
@@ -261,6 +480,10 @@ async function onDrop(event: DragEvent) {
   for (const directory of directories) workspace.addProjectRoot(directory)
   await workspace.syncActiveWorkspace()
   if (sessions.currentId) await workspace.bindCurrentSession(sessions.currentId)
+  else {
+    workspace.markDraftSessionVisible()
+    workspace.rememberDraftProject()
+  }
   await Promise.all([workspace.loadFiles(), workspace.loadGit()])
   toast.success(
     directories.length === 1
@@ -271,6 +494,7 @@ async function onDrop(event: DragEvent) {
 
 async function onContextMenu(session: SessionInfo, event: MouseEvent) {
   event.preventDefault()
+  event.stopPropagation()
   const action = await callApi(() =>
     getApi().sessions.contextMenu(
       session.id,
@@ -279,45 +503,35 @@ async function onContextMenu(session: SessionInfo, event: MouseEvent) {
       locale.value === 'en-US' ? 'en-US' : 'zh-CN'
     )
   )
-  if (!action) return
-  if (action === 'pin' || action === 'unpin') {
-    const pinned = action === 'pin'
-    workspace.setSessionPinned(session.id, pinned)
-    toast.success(t(pinned ? 'workspace.sessionPinned' : 'workspace.sessionUnpinned'))
-    return
-  }
-  if (action === 'open') return openSession(session)
   if (action === 'rename') {
-    const name = window.prompt(t('workspace.renamePrompt'), session.name ?? '')
-    if (!name?.trim()) return
-    await callApi(() => getApi().sessions.rename(session.id, name.trim()))
-    await sessions.refresh(true)
-    return
+    renaming.value = { session }
+    renameValue.value = sessionTitle(session)
+  } else if (action === 'delete') {
+    await deleteSession(session)
   }
-  if (action === 'archive') {
-    workspace.archiveSession(session.id)
-    toast.success(t('workspace.sessionArchived'))
-    return
+}
+
+async function saveRename() {
+  if (!renaming.value || renameSaving.value || !renameValue.value.trim()) return
+  renameSaving.value = true
+  try {
+    const name = renameValue.value.trim()
+    if (renaming.value.session) {
+      const id = renaming.value.session.id
+      await callApi(() => getApi().sessions.rename(id, name))
+      await sessions.refresh(true)
+      const tab = workspace.tabs.find((item) => item.kind === 'chat' && item.sessionId === id)
+      if (tab) tab.title = name.slice(0, 28)
+    } else if (renaming.value.project) {
+      const root = renaming.value.project.projectRoot
+      workspace.saveProjectSettings(root, name, workspace.projectSourceRoots(root))
+    }
+    renaming.value = null
+  } catch (error) {
+    toast.error(getErrorPayload(error).message)
+  } finally {
+    renameSaving.value = false
   }
-  if (action === 'delete') {
-    return deleteSession(session)
-  }
-  if (action === 'export-html' || action === 'export-md') {
-    const path = await callApi(() =>
-      getApi().sessions.export(session.id, action === 'export-html' ? 'html' : 'markdown')
-    )
-    if (path) toast.success(t('workspace.exported'), { description: path })
-    return
-  }
-  if (action === 'reveal') {
-    await callApi(() => getApi().system.showItem(session.path))
-    return
-  }
-  if (action === 'open-worktree' && session.cwd) {
-    await callApi(() => getApi().system.openPath(session.cwd))
-    return
-  }
-  if (action === 'fork') toast.info(t('workspace.forkHint'))
 }
 
 async function deleteSession(session: SessionInfo) {
@@ -329,6 +543,8 @@ async function deleteSession(session: SessionInfo) {
   })
   if (!ok) return
   await callApi(() => getApi().sessions.delete(session.id))
+  const root = sessionFolders(session)[0]?.resolvedPath
+  if (root) workspace.rememberImportedProjects([root])
   if (session.transient) sessions.removeTransientSession(session.id)
   workspace.forgetSession(session.id)
   await sessions.refresh(true)
@@ -344,20 +560,81 @@ async function removeFolder(session: SessionInfo, folder: WorkspaceFolder) {
     tone: 'danger'
   })
   if (!confirmed) return
-  if (sessions.currentId !== session.id) {
-    sessions.selectSession(session.id)
-    await workspace.restoreSessionWorkspace(session.id)
-  }
-  workspace.removeProject(folder.id)
-  await workspace.syncActiveWorkspace()
-  await workspace.bindCurrentSession(session.id)
+  await workspace.saveSessionFolders(
+    session.id,
+    folders.filter((candidate) => candidate.id !== folder.id)
+  )
   toast.success(t('workspace.projectRemoved'), { description: folder.name })
+}
+
+async function onFolderContextMenu(
+  session: SessionInfo,
+  folder: WorkspaceFolder,
+  event: MouseEvent
+) {
+  event.preventDefault()
+  event.stopPropagation()
+  if (sessionFolders(session).length <= 1) return
+  const action = await callApi(() =>
+    getApi().workspace.sessionFolderContextMenu(locale.value === 'en-US' ? 'en-US' : 'zh-CN')
+  )
+  if (action === 'remove') await removeFolder(session, folder)
+}
+
+async function addEditingFolder() {
+  const dir = await callApi(() => getApi().workspace.pickDirectory())
+  if (!dir) return
+  const id = projectIdentityKey(dir)
+  if (editingFolders.value.some((folder) => folder.id === id)) return
+  editingFolders.value = [
+    ...editingFolders.value,
+    {
+      id,
+      name: projectDisplayName(dir),
+      path: dir,
+      resolvedPath: dir,
+      role: editingFolders.value.length === 0 ? 'main' : 'reference',
+      readonly: false,
+      exists: true
+    }
+  ]
+}
+
+function removeEditingFolder(folder: WorkspaceFolder) {
+  if (editingFolders.value[0]?.id === folder.id) return
+  editingFolders.value = editingFolders.value
+    .filter((candidate) => candidate.id !== folder.id)
+    .map((candidate, index) => ({
+      ...candidate,
+      role: index === 0 ? 'main' : 'reference'
+    }))
+}
+
+async function saveEditingFolders() {
+  if (!editingProject.value || savingSessionFolders.value || !editingName.value.trim()) return
+  savingSessionFolders.value = true
+  try {
+    for (const folder of editingFolders.value)
+      await callApi(() => getApi().workspace.allowRoot(folder.resolvedPath))
+    workspace.saveProjectSettings(
+      editingProject.value.projectRoot,
+      editingName.value,
+      editingFolders.value.map((folder) => folder.resolvedPath)
+    )
+    toast.success(t('workspace.projectSettingsUpdated'))
+    editingProject.value = null
+  } catch (error) {
+    toast.error(getErrorPayload(error).message)
+  } finally {
+    savingSessionFolders.value = false
+  }
 }
 
 async function openRecent(item: RecentWorkspace) {
   await sessions.refresh(true)
   await workspace.openRecentWorkspace(item)
   if (sessions.currentId) await workspace.bindCurrentSession(sessions.currentId)
+  else workspace.rememberDraftProject()
   workspace.ensureChatTab(
     sessions.currentId ?? 'new',
     sessions.current ? sessionTitle(sessions.current).slice(0, 28) : t('workspace.newSession')
@@ -415,18 +692,28 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
           />
         </IconButton>
         <IconButton
+          :disabled="importingProject || importingWorkspace"
           :label="$t('workspace.importProject')"
           data-testid="workspace-import-project"
           @click="pickProject"
         >
-          <FolderOpen class="size-3.5" :stroke-width="1.75" />
+          <FolderOpen
+            class="size-3.5"
+            :class="importingProject ? 'animate-pulse' : ''"
+            :stroke-width="1.75"
+          />
         </IconButton>
         <IconButton
+          :disabled="importingProject || importingWorkspace"
           :label="$t('workspace.importWorkspace')"
           data-testid="workspace-import-workspace"
           @click="importWorkspace"
         >
-          <FolderPlus class="size-3.5" :stroke-width="1.75" />
+          <FolderPlus
+            class="size-3.5"
+            :class="importingWorkspace ? 'animate-pulse' : ''"
+            :stroke-width="1.75"
+          />
         </IconButton>
       </div>
     </div>
@@ -453,128 +740,171 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
       <template v-if="section === 'sessions'">
         <div class="px-2 py-2" data-testid="workspace-session-tree">
           <p class="mb-1 text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
-            {{ $t('workspace.sessions') }}
+            {{ $t('workspace.projects') }}
           </p>
           <EmptyState
-            v-if="!visibleSessions.length"
-            :title="$t('workspace.noSessions')"
-            :description="
-              workspace.canChat ? $t('workspace.noSessionsHint') : $t('workspace.dropProjectHint')
-            "
-            :icon="MessageSquare"
-          >
-            <button
-              v-if="workspace.canChat"
-              type="button"
-              class="mt-3 rounded-[var(--radius-sm)] border border-[var(--accent-border)] bg-[var(--accent-tint)] px-3 py-1.5 text-[12px] font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent-tint-strong)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] active:bg-[var(--bg-selected)]"
-              data-testid="workspace-empty-new-session"
-              @click="newSession"
-            >
-              {{ $t('workspace.newSession') }}
-            </button>
-          </EmptyState>
+            v-if="!projectGroups.length"
+            :title="$t('workspace.noProjects')"
+            :description="$t('workspace.dropProjectHint')"
+            :icon="FolderOpen"
+          />
 
-          <div v-for="session in visibleSessions" :key="session.id" class="mb-1">
+          <div
+            v-for="(group, groupIndex) in projectGroups"
+            :key="group.projectKey"
+            :data-testid="`workspace-project-group-${groupIndex}`"
+            class="mb-2"
+          >
             <div
               class="group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
+              :data-testid="`workspace-project-${groupIndex}`"
               :class="
-                sessions.currentId === session.id
+                isProjectActive(group)
                   ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
               "
-              @contextmenu="onContextMenu(session, $event)"
+              @contextmenu="onProjectContextMenu(group, $event)"
             >
-              <button
-                v-if="session.transient"
-                type="button"
-                class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-70 hover:bg-[var(--bg-hover)] hover:text-[var(--danger)] hover:opacity-100"
-                :title="$t('common.delete')"
-                :aria-label="`${$t('common.delete')}: ${sessionTitle(session)}`"
-                @click.stop="deleteSession(session)"
-              >
-                <X class="size-3.5" :stroke-width="1.75" />
-              </button>
-              <button
-                type="button"
-                class="flex size-6 shrink-0 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
-                @click.stop="toggleSession(session.id)"
-              >
-                <ChevronRight v-if="isCollapsed(session.id)" class="size-3" :stroke-width="1.75" />
-                <ChevronDown v-else class="size-3" :stroke-width="1.75" />
-              </button>
               <button
                 type="button"
                 class="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left"
-                :title="sessionTitle(session)"
-                @click="openSession(session)"
+                :title="group.projectRoot"
+                :aria-expanded="
+                  group.sessions.length ? !isProjectCollapsed(group.projectKey) : undefined
+                "
+                @click="openProjectGroup(group)"
               >
-                <GitBranch
-                  v-if="session.worktreeBranch"
-                  class="size-3 shrink-0 text-[var(--text-tertiary)]"
-                  :stroke-width="1.75"
-                />
-                <MessageSquare v-else class="size-3.5 shrink-0" :stroke-width="1.7" />
-                <span class="min-w-0 flex-1 truncate font-medium">{{ sessionTitle(session) }}</span>
-                <Pin
-                  v-if="workspace.isSessionPinned(session.id)"
-                  class="size-3 shrink-0 text-[var(--text-tertiary)]"
-                  :stroke-width="1.75"
-                />
-                <span
-                  v-if="running(session.id)"
-                  class="size-1.5 shrink-0 rounded-full bg-[var(--success)]"
-                />
+                <span class="flex size-5 shrink-0 items-center justify-center">
+                  <ChevronRight
+                    v-if="group.sessions.length && isProjectCollapsed(group.projectKey)"
+                    class="size-3"
+                    :stroke-width="1.75"
+                  />
+                  <ChevronDown
+                    v-else-if="group.sessions.length"
+                    class="size-3"
+                    :stroke-width="1.75"
+                  />
+                </span>
+                <Folder class="size-3.5 shrink-0" :stroke-width="1.7" />
+                <span class="min-w-0 flex-1 truncate font-medium">
+                  {{ group.name }}
+                </span>
               </button>
+              <Pin
+                v-if="workspace.isProjectPinned(group.projectKey)"
+                class="mr-1 size-3 shrink-0 text-[var(--text-tertiary)]"
+                :stroke-width="1.75"
+              />
               <button
                 type="button"
-                class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-60 hover:bg-[var(--accent-tint-strong)] hover:text-[var(--accent)] hover:opacity-100"
-                :title="$t('workspace.addFolder')"
-                @click.stop="addFolder(session)"
+                class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] hover:bg-[var(--accent-tint-strong)] hover:text-[var(--accent)]"
+                :title="$t('workspace.newSession')"
+                :aria-label="`${$t('workspace.newSession')}: ${group.name}`"
+                :data-testid="`workspace-new-project-session-${groupIndex}`"
+                @click.stop="newSessionFromProject(group)"
               >
                 <Plus class="size-3.5" :stroke-width="1.75" />
               </button>
             </div>
 
-            <div
-              v-if="!isCollapsed(session.id)"
-              class="ml-5 border-l border-[var(--border-subtle)] pl-2"
-            >
-              <div
-                v-for="(folder, index) in sessionFolders(session)"
-                :key="folder.id"
-                class="group/folder flex h-7 items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)]"
-              >
-                <Folder class="size-3.5 shrink-0" :stroke-width="1.7" />
-                <span class="min-w-0 flex-1 truncate" :title="folder.resolvedPath">{{
-                  folder.name
-                }}</span>
-                <span v-if="index === 0" class="text-[9.5px] text-[var(--text-tertiary)]">
-                  {{ $t('workspace.primaryProject') }}
-                </span>
-                <button
-                  v-if="sessionFolders(session).length > 1"
-                  type="button"
-                  class="flex size-5 items-center justify-center rounded text-[var(--text-tertiary)] opacity-70 hover:bg-[var(--bg-hover)] hover:text-[var(--danger)] hover:opacity-100"
-                  :title="$t('workspace.removeFolder')"
-                  :aria-label="`${$t('workspace.removeFolder')}: ${folder.name}`"
-                  @click="removeFolder(session, folder)"
+            <div v-if="!isProjectCollapsed(group.projectKey)" class="ml-10 pl-1">
+              <div v-for="session in group.sessions" :key="session.id" class="mb-1">
+                <div
+                  :data-testid="`session-row-${session.id}`"
+                  class="group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
+                  :class="
+                    sessions.currentId === session.id
+                      ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                  "
+                  @contextmenu="onContextMenu(session, $event)"
                 >
-                  <X class="size-3" :stroke-width="1.75" />
-                </button>
+                  <button
+                    v-if="session.transient"
+                    type="button"
+                    class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-70 hover:bg-[var(--bg-hover)] hover:text-[var(--danger)] hover:opacity-100"
+                    :title="$t('common.delete')"
+                    :aria-label="`${$t('common.delete')}: ${sessionTitle(session)}`"
+                    @click.stop="deleteSession(session)"
+                  >
+                    <X class="size-3.5" :stroke-width="1.75" />
+                  </button>
+                  <button
+                    v-if="sessionFolders(session).length > 1"
+                    type="button"
+                    class="flex size-6 shrink-0 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+                    :aria-label="
+                      isCollapsed(session.id)
+                        ? $t('workspace.expandProject')
+                        : $t('workspace.collapseProject')
+                    "
+                    @click.stop="toggleSession(session.id)"
+                  >
+                    <ChevronRight
+                      v-if="isCollapsed(session.id)"
+                      class="size-3"
+                      :stroke-width="1.75"
+                    />
+                    <ChevronDown v-else class="size-3" :stroke-width="1.75" />
+                  </button>
+                  <button
+                    type="button"
+                    class="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left"
+                    :title="sessionTitle(session)"
+                    @click="openSession(session)"
+                  >
+                    <GitBranch
+                      v-if="session.worktreeBranch"
+                      class="size-3 shrink-0 text-[var(--text-tertiary)]"
+                      :stroke-width="1.75"
+                    />
+                    <span class="min-w-0 flex-1 truncate">{{ sessionTitle(session) }}</span>
+                    <Pin
+                      v-if="workspace.isSessionPinned(session.id)"
+                      class="size-3 shrink-0 text-[var(--text-tertiary)]"
+                      :stroke-width="1.75"
+                    />
+                    <span
+                      v-if="running(session.id)"
+                      class="size-1.5 shrink-0 rounded-full bg-[var(--success)]"
+                    />
+                  </button>
+                </div>
+
+                <div
+                  v-if="sessionFolders(session).length > 1 && !isCollapsed(session.id)"
+                  class="ml-5 border-l border-[var(--border-subtle)] pl-2"
+                >
+                  <div
+                    v-for="(folder, index) in sessionFolders(session)"
+                    :key="folder.id"
+                    :data-testid="`session-project-${session.id}-${index}`"
+                    class="flex h-7 cursor-default items-center gap-1.5 pr-1 text-[11.5px] text-[var(--text-tertiary)]"
+                    @contextmenu="onFolderContextMenu(session, folder, $event)"
+                  >
+                    <Folder class="size-3.5 shrink-0 opacity-80" :stroke-width="1.7" />
+                    <span class="min-w-0 flex-1 truncate" :title="folder.resolvedPath">{{
+                      folder.name
+                    }}</span>
+                    <span v-if="index === 0" class="text-[9.5px] text-[var(--text-tertiary)]">
+                      {{ $t('workspace.primaryProject') }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </template>
-      <FileExplorer v-else-if="section === 'files' && canShowSessionFiles" />
-      <div v-else-if="section === 'files'" data-testid="workspace-files-unavailable" class="p-3">
+      <WorktreeSwitcher v-else-if="section === 'git' && canShowSessionGit" />
+      <div v-else-if="section === 'git'" data-testid="workspace-git-unavailable" class="p-3">
         <EmptyState
           :title="$t('workspace.noSessions')"
-          :description="$t('workspace.noSessionsHint')"
+          :description="$t('workspace.gitRequiresSession')"
           :icon="MessageSquare"
         />
       </div>
-      <WorktreeSwitcher v-else-if="section === 'git'" />
       <div v-else-if="section === 'harness'" class="p-3" data-testid="harness-sidebar-status">
         <div
           class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
@@ -640,5 +970,58 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
         </p>
       </div>
     </div>
+
+    <ProjectWorkspaceDialog
+      v-if="editingProject"
+      v-model:name="editingName"
+      :open="true"
+      :folders="editingFolders"
+      :saving="savingSessionFolders"
+      @update:open="(open) => !open && !savingSessionFolders && (editingProject = null)"
+      @add="addEditingFolder"
+      @remove="removeEditingFolder"
+      @save="saveEditingFolders"
+    />
+    <RenameDialog
+      v-if="renaming"
+      v-model:name="renameValue"
+      :open="true"
+      :title="
+        $t(renaming.session ? 'workspace.renameSessionTitle' : 'workspace.renameProjectTitle')
+      "
+      :saving="renameSaving"
+      @update:open="(open) => !open && !renameSaving && (renaming = null)"
+      @save="saveRename"
+    />
+    <Dialog
+      v-if="branchingProject"
+      :open="true"
+      :title="$t('workspace.createBranchTitle')"
+      :description="$t('workspace.createBranchHint', { name: branchingProject.name })"
+      @update:open="(open) => !open && !branchSaving && (branchingProject = null)"
+    >
+      <form id="project-branch-form" @submit.prevent="createProjectBranch">
+        <Input
+          v-model="branchName"
+          :label="$t('workspace.branchName')"
+          :disabled="branchSaving"
+          data-testid="project-branch-name"
+        />
+      </form>
+      <template #footer>
+        <Button variant="ghost" :disabled="branchSaving" @click="branchingProject = null">
+          <span>{{ $t('common.cancel') }}</span>
+        </Button>
+        <Button
+          variant="primary"
+          type="submit"
+          form="project-branch-form"
+          :disabled="!branchName.trim()"
+          :loading="branchSaving"
+        >
+          <span>{{ $t('common.create') }}</span>
+        </Button>
+      </template>
+    </Dialog>
   </aside>
 </template>

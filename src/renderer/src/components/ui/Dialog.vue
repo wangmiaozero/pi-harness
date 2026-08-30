@@ -14,9 +14,12 @@ defineProps<{
   title: string
   description?: string
   wide?: boolean
+  medium?: boolean
+  prominentTitle?: boolean
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
+const emit = defineEmits<{ 'open-auto-focus': [event: Event] }>()
 const { t } = useI18n()
 
 function preventImplicitClose(event: Event) {
@@ -32,13 +35,19 @@ function preventImplicitClose(event: Event) {
       />
       <DialogContent
         class="fixed left-1/2 top-1/2 z-[101] flex max-h-[85vh] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-dialog)] focus:outline-none data-[state=open]:animate-[pi-pop-in_var(--motion-base)_var(--ease-out)]"
-        :class="wide ? 'w-[min(560px,92vw)]' : 'w-[min(420px,92vw)]'"
+        :class="
+          medium ? 'w-[min(520px,92vw)]' : wide ? 'w-[min(560px,92vw)]' : 'w-[min(420px,92vw)]'
+        "
         @interact-outside="preventImplicitClose"
         @escape-key-down="preventImplicitClose"
+        @open-auto-focus="emit('open-auto-focus', $event)"
       >
         <div class="flex shrink-0 items-start justify-between gap-3 px-4 pb-3 pt-4">
           <div class="min-w-0">
-            <DialogTitle class="text-[14px] font-semibold text-[var(--text-primary)]">
+            <DialogTitle
+              class="font-semibold text-[var(--text-primary)]"
+              :class="prominentTitle ? 'text-[16px]' : 'text-[14px]'"
+            >
               {{ title }}
             </DialogTitle>
             <p v-if="description" class="mt-0.5 text-[12px] text-[var(--text-secondary)]">

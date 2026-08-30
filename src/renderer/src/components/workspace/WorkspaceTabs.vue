@@ -6,6 +6,7 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import type { WorkspaceTab } from '@shared/types/workspace'
 
+const props = withDefaults(defineProps<{ scope?: 'main' | 'files' }>(), { scope: 'main' })
 const emit = defineEmits<{ 'focus-composer': [] }>()
 const { t } = useI18n()
 
@@ -18,14 +19,20 @@ interface TabMenuState {
 }
 
 const workspace = useWorkspaceStore()
+const visibleTabs = computed(() =>
+  props.scope === 'files' ? workspace.sessionFileTabs : workspace.mainTabs
+)
+const selectedId = computed(() =>
+  props.scope === 'files' ? workspace.activeFileTab?.id : workspace.activeTabId
+)
 const menu = ref<TabMenuState | null>(null)
 const menuElement = ref<HTMLElement | null>(null)
 
 const targetIndex = computed(() =>
-  menu.value ? workspace.tabs.findIndex((tab) => tab.id === menu.value?.tabId) : -1
+  menu.value ? visibleTabs.value.findIndex((tab) => tab.id === menu.value?.tabId) : -1
 )
 const targetTab = computed(() =>
-  menu.value ? (workspace.tabs.find((tab) => tab.id === menu.value?.tabId) ?? null) : null
+  menu.value ? (visibleTabs.value.find((tab) => tab.id === menu.value?.tabId) ?? null) : null
 )
 const menuStyle = computed(() => ({
   left: `${menu.value?.x ?? 0}px`,
@@ -41,13 +48,13 @@ function actionEnabled(action: TabMenuAction): boolean {
     case 'close':
       return targetTab.value?.closable === true
     case 'closeOthers':
-      return workspace.tabs.length > 1
+      return visibleTabs.value.length > 1
     case 'closeRight':
-      return targetIndex.value >= 0 && targetIndex.value < workspace.tabs.length - 1
+      return targetIndex.value >= 0 && targetIndex.value < visibleTabs.value.length - 1
     case 'closeLeft':
       return targetIndex.value > 0
     case 'closeAll':
-      return workspace.tabs.length > 0
+      return visibleTabs.value.length > 0
   }
 }
 
@@ -69,19 +76,20 @@ async function openMenu(tab: WorkspaceTab, event: MouseEvent) {
 }
 
 function tabsAffectedBy(action: TabMenuAction, tabId: string): WorkspaceTab[] {
-  const index = workspace.tabs.findIndex((tab) => tab.id === tabId)
+  const tabs = visibleTabs.value
+  const index = tabs.findIndex((tab) => tab.id === tabId)
   if (index === -1) return []
   switch (action) {
     case 'close':
-      return [workspace.tabs[index]]
+      return [tabs[index]]
     case 'closeOthers':
-      return workspace.tabs.filter((tab) => tab.id !== tabId)
+      return tabs.filter((tab) => tab.id !== tabId)
     case 'closeRight':
-      return workspace.tabs.slice(index + 1)
+      return tabs.slice(index + 1)
     case 'closeLeft':
-      return workspace.tabs.slice(0, index)
+      return tabs.slice(0, index)
     case 'closeAll':
-      return [...workspace.tabs]
+      return [...tabs]
   }
 }
 
@@ -107,23 +115,9 @@ async function confirmDiscard(tabs: WorkspaceTab[]): Promise<boolean> {
 async function executeAction(action: TabMenuAction, tabId: string) {
   const affected = tabsAffectedBy(action, tabId)
   if (!(await confirmDiscard(affected))) return
-  switch (action) {
-    case 'close':
-      workspace.closeTab(tabId)
-      break
-    case 'closeOthers':
-      workspace.closeOtherTabs(tabId)
-      break
-    case 'closeRight':
-      workspace.closeTabsToRight(tabId)
-      break
-    case 'closeLeft':
-      workspace.closeTabsToLeft(tabId)
-      break
-    case 'closeAll':
-      workspace.closeAllTabs()
-      break
-  }
+  // File actions never close chats, and main-tab actions never discard file buffers.
+  affected.forEach((tab) => workspace.closeTab(tab.id))
+  if (action !== 'close' && action !== 'closeAll') workspace.activateTab(tabId)
 }
 
 function runAction(action: TabMenuAction) {
@@ -176,20 +170,21 @@ defineExpose({ requestCloseTab })
 
 <template>
   <div
-    data-testid="workspace-tabs"
-    class="mission-tabs flex h-[var(--height-page-header)] shrink-0 items-center gap-0.5 overflow-x-auto border-b border-[var(--border-subtle)] px-1"
+    :data-testid="scope === 'files' ? 'workspace-file-tabs' : 'workspace-tabs'"
+    class="flex min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-[var(--border-subtle)] px-1"
+    :class="scope === 'files' ? 'h-9' : 'mission-tabs h-[var(--height-page-header)] flex-1'"
   >
     <button
-      v-for="tab in workspace.tabs"
+      v-for="tab in visibleTabs"
       :key="tab.id"
       type="button"
       class="group flex h-7 max-w-[180px] items-center gap-1 rounded-[var(--radius-sm)] border border-transparent px-2 text-[11.5px] transition-[color,background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] active:border-[var(--accent-border)] active:bg-[var(--accent-tint-strong)]"
       :class="
-        workspace.activeTabId === tab.id
+        selectedId === tab.id
           ? 'border-[var(--accent-border)] bg-[var(--bg-surface-raised)] text-[var(--text-primary)] shadow-[inset_0_-2px_0_var(--accent)]'
           : 'text-[var(--text-tertiary)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]'
       "
-      :aria-pressed="workspace.activeTabId === tab.id"
+      :aria-pressed="selectedId === tab.id"
       :data-tab-id="tab.id"
       @click="activateTab(tab)"
       @contextmenu.prevent.stop="openMenu(tab, $event)"

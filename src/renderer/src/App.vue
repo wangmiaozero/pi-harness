@@ -9,17 +9,17 @@ import AiMotionBorder from '@renderer/components/ui/AiMotionBorder.vue'
 import { Toaster } from 'vue-sonner'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useAgentStore } from '@renderer/stores/agent'
-import { applyTheme, watchSystemTheme, type ThemePreference } from '@renderer/utils/theme'
+import { applyTheme } from '@renderer/utils/theme'
+import { themeAppearance } from '@shared/constants/theme'
 import { installShortcutListener, registerShortcut } from '@renderer/composables/shortcuts'
 import { shouldActivateAiMotionFrame } from '@renderer/composables/useAiMotionFrame'
 import { getApi, isBridgeAvailable } from '@renderer/composables/useApi'
-import { applyVisualSkin, isStarshipCockpitActive } from '@renderer/utils/visual-skin'
+import { applyVisualSkin, getActiveVisualSkin } from '@renderer/utils/visual-skin'
 
 const settings = useSettingsStore()
 const agent = useAgentStore()
 const router = useRouter()
 const paletteOpen = ref(false)
-const starshipCockpitActive = computed(() => isStarshipCockpitActive(settings.settings))
 
 const agentMotionActive = computed(() =>
   shouldActivateAiMotionFrame({
@@ -39,13 +39,10 @@ const screenMotionActive = computed(
 )
 
 const toasterTheme = computed(() => {
-  if (starshipCockpitActive.value) return 'dark'
-  const t = settings.settings?.theme ?? 'dark'
-  if (t === 'light') return 'light'
-  if (t === 'system') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  }
-  return 'dark'
+  return (
+    getActiveVisualSkin(settings.settings)?.appearance ??
+    themeAppearance(settings.settings?.theme ?? 'dark')
+  )
 })
 
 watch(
@@ -55,10 +52,9 @@ watch(
     settings.settings?.mascotUnlocked,
     settings.settings?.petEnabled
   ],
-  ([theme]) => {
-    const pref = (theme ?? 'dark') as ThemePreference
+  () => {
     applyVisualSkin(settings.settings)
-    watchSystemTheme(pref)
+    applyTheme(settings.settings?.theme ?? 'dark')
   },
   { immediate: true }
 )
@@ -81,7 +77,7 @@ let uninstallShortcuts: (() => void) | null = null
 
 onMounted(() => {
   applyVisualSkin(settings.settings)
-  applyTheme((settings.settings?.theme ?? 'dark') as ThemePreference)
+  applyTheme(settings.settings?.theme ?? 'dark')
   uninstallShortcuts = installShortcutListener()
   registerShortcut({
     id: 'command-palette',

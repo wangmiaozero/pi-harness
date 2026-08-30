@@ -4,6 +4,7 @@ import type { MascotStyle } from '@shared/constants/mascot'
 import type { PetState } from '@shared/pet/types'
 import { getPetManifest } from '@renderer/pet/manifests'
 import PetRenderer from '@renderer/components/pet/PetRenderer.vue'
+import { getVisualSkin } from '@renderer/utils/skin-catalog'
 
 const props = withDefaults(
   defineProps<{
@@ -17,6 +18,7 @@ const props = withDefaults(
 )
 
 const manifest = computed(() => getPetManifest(props.style))
+const portrait = computed(() => getVisualSkin(props.style)?.portrait === true)
 </script>
 
 <template>
@@ -27,13 +29,16 @@ const manifest = computed(() => getPetManifest(props.style))
     :data-state="state"
     :data-context="context"
     class="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none"
-    :class="style === 'starshipCockpit' ? 'mascot-background--starship' : ''"
+    :class="{
+      'mascot-background--starship': style === 'starshipCockpit',
+      'mascot-background--portrait': portrait
+    }"
     aria-hidden="true"
   >
     <PetRenderer
       :manifest="manifest"
       :state="state"
-      :animated="animated"
+      :animated="animated && !portrait"
       variant="background"
       class="mascot-background-renderer absolute -bottom-[10%] right-[2%] h-[96%] max-h-[760px] max-w-[42%]"
     />
@@ -87,7 +92,25 @@ const manifest = computed(() => getPetManifest(props.style))
   filter: none;
 }
 
-:global(:root[data-theme='light']:not([data-visual-skin='starship-cockpit']) .mascot-background-renderer) {
+/* Original portrait artwork is never cropped, recolored or animated. */
+.mascot-background--portrait .mascot-background-renderer {
+  bottom: 2%;
+  height: 94%;
+  max-height: none;
+  max-width: 38%;
+  filter: none;
+  mask-image: none;
+}
+
+.mascot-background--portrait :deep(.pet-sprite) {
+  object-fit: contain;
+  filter: none;
+}
+
+:global(
+  :root[data-appearance='light']:not([data-visual-skin='starship-cockpit'])
+    .mascot-background-renderer
+) {
   opacity: 0.065;
   filter: saturate(0.68) contrast(0.86);
 }
@@ -101,7 +124,8 @@ const manifest = computed(() => getPetManifest(props.style))
   }
 
   :global(
-    :root[data-theme='light']:not([data-visual-skin='starship-cockpit']) .mascot-background-renderer
+    :root[data-appearance='light']:not([data-visual-skin='starship-cockpit'])
+      .mascot-background-renderer
   ) {
     opacity: 0.05;
   }

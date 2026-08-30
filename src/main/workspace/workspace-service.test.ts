@@ -83,6 +83,32 @@ describe('WorkspaceService', () => {
     expect(service.getPrompt()).toContain('missing')
   })
 
+  it('deduplicates imported source paths while preserving order and read-only restrictions', async () => {
+    directory = await mkdtemp(path.join(tmpdir(), 'pi-harness-workspace-dedup-'))
+    const server = path.join(directory, 'server')
+    const blog = path.join(directory, 'blog')
+    await Promise.all([mkdir(server), mkdir(blog)])
+    const workspaceFile = path.join(directory, 'Combined.code-workspace')
+    await writeFile(
+      workspaceFile,
+      JSON.stringify({
+        folders: [{ path: 'server' }, { path: 'blog' }, { path: './blog/' }]
+      })
+    )
+    const { service } = createService(directory)
+    const opened = await service.openWorkspaceFile(workspaceFile)
+    expect(opened.folders.map((folder) => folder.resolvedPath)).toEqual(
+      await Promise.all([realpath(server), realpath(blog)])
+    )
+    const synced = await service.sync({
+      workspaceFile,
+      folders: [...opened.folders, { path: './blog/', readonly: true, name: 'Duplicate alias' }]
+    })
+    expect(synced.folders).toHaveLength(2)
+    expect(synced.folders[0]).toMatchObject({ name: 'server', role: 'main' })
+    expect(synced.folders[1]).toMatchObject({ name: 'blog', role: 'reference', readonly: true })
+  })
+
   it('round-trips session workspace bindings', async () => {
     directory = await mkdtemp(path.join(tmpdir(), 'pi-harness-workspace-bind-'))
     const { service } = createService(directory)

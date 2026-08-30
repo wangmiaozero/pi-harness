@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { MASCOT_STYLES } from '../constants/mascot'
 import { normalizeNavOrder } from '../constants/navigation'
+import { APP_THEMES } from '../constants/theme'
 import { TOOL_PRESET_VALUES } from '../workspace/tool-presets'
 import { providerKeySchema } from './domain'
 
@@ -50,7 +51,7 @@ const optionalFilesystemPathSchema = systemPathSchema.nullable()
 
 const appSettingsFields = {
   language: z.enum(['auto', 'zh-CN', 'en-US']),
-  theme: z.enum(['system', 'dark', 'light']),
+  theme: z.enum(APP_THEMES),
   mascotUnlocked: z.boolean(),
   mascotStyle: z.enum(MASCOT_STYLES),
   petEnabled: z.boolean(),

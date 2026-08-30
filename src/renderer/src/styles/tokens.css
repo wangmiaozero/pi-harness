@@ -143,7 +143,7 @@
  * macOS Neutral Light — never pure SaaS white. We use a warm off-white ladder
  * so the UI sits on a clean desk, not on a hospital floor.
  * ============================================================================= */
-:root[data-theme='light'] {
+:root:is([data-theme='light'], [data-theme='pink'], [data-theme='purple'], [data-theme='green']) {
   color-scheme: light;
 
   --bg-window: #f2f2f3;
@@ -249,6 +249,67 @@
 
   --focus-ring: 0 0 0 1px var(--accent);
   --focus-ring-offset: 1px;
+}
+
+/* Soft color themes keep the light appearance while tinting the full surface ladder. */
+:root[data-theme='pink'] {
+  --bg-window: #f7eff3;
+  --bg-titlebar: #f2e7ed;
+  --bg-sidebar: #f2e7ed;
+  --bg-workspace: #faf4f7;
+  --bg-surface: #fffafb;
+  --bg-surface-raised: #fffafb;
+  --bg-hover: #f3e5ec;
+  --bg-selected: #f4d9e7;
+  --accent: #cf4f8a;
+  --accent-hover: #b93e76;
+  --accent-active: #a93468;
+  --accent-tint: rgba(207, 79, 138, 0.11);
+  --accent-tint-soft: rgba(207, 79, 138, 0.065);
+  --accent-tint-strong: rgba(207, 79, 138, 0.21);
+  --accent-border: rgba(207, 79, 138, 0.3);
+  --tone-tools-bg: rgba(207, 79, 138, 0.09);
+  --tone-tools-text: #ad326b;
+}
+
+:root[data-theme='purple'] {
+  --bg-window: #f2eff8;
+  --bg-titlebar: #ebe7f3;
+  --bg-sidebar: #ebe7f3;
+  --bg-workspace: #f6f3fb;
+  --bg-surface: #fbfaff;
+  --bg-surface-raised: #fbfaff;
+  --bg-hover: #eae4f4;
+  --bg-selected: #e5dafa;
+  --accent: #7957d5;
+  --accent-hover: #6743c5;
+  --accent-active: #5835b5;
+  --accent-tint: rgba(121, 87, 213, 0.11);
+  --accent-tint-soft: rgba(121, 87, 213, 0.065);
+  --accent-tint-strong: rgba(121, 87, 213, 0.21);
+  --accent-border: rgba(121, 87, 213, 0.3);
+  --tone-tools-bg: rgba(121, 87, 213, 0.09);
+  --tone-tools-text: #6743c5;
+}
+
+:root[data-theme='green'] {
+  --bg-window: #edf5f1;
+  --bg-titlebar: #e6f0eb;
+  --bg-sidebar: #e6f0eb;
+  --bg-workspace: #f2f8f5;
+  --bg-surface: #fafffc;
+  --bg-surface-raised: #fafffc;
+  --bg-hover: #e2efe8;
+  --bg-selected: #d7ecdf;
+  --accent: #27845e;
+  --accent-hover: #1d704e;
+  --accent-active: #185f42;
+  --accent-tint: rgba(39, 132, 94, 0.11);
+  --accent-tint-soft: rgba(39, 132, 94, 0.065);
+  --accent-tint-strong: rgba(39, 132, 94, 0.21);
+  --accent-border: rgba(39, 132, 94, 0.3);
+  --tone-tools-bg: rgba(39, 132, 94, 0.09);
+  --tone-tools-text: #1d704e;
 }
 
 /* =============================================================================

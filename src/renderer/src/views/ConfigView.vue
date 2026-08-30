@@ -6,7 +6,7 @@ import { EditorState } from '@codemirror/state'
 import { json } from '@codemirror/lang-json'
 import { keymap } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
-import { Save, RotateCcw, RefreshCw, AlignLeft, FolderOpen, Circle } from '@lucide/vue'
+import { Save, RotateCcw, RefreshCw, AlignLeft, FolderOpen, Circle, ArrowLeft } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
@@ -15,8 +15,10 @@ import IconButton from '@renderer/components/ui/IconButton.vue'
 import { graphiteEditorTheme, graphiteSyntaxHighlighting } from '@renderer/styles/codemirror'
 import { useConfigStore, type ConfigFile } from '@renderer/stores/config'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
+import { useRouter } from 'vue-router'
 
 const { t } = useI18n()
+const router = useRouter()
 const store = useConfigStore()
 const host = ref<HTMLElement | null>(null)
 const view = shallowRef<EditorView | null>(null)
@@ -159,6 +161,9 @@ onBeforeUnmount(() => {
     <!-- Editor-style header: file selector as a tab strip, actions on the right. -->
     <PageHeader>
       <div class="flex min-w-0 items-center gap-3 self-stretch">
+        <IconButton :label="$t('settings.back')" @click="router.push('/settings')">
+          <ArrowLeft class="size-3.5" :stroke-width="1.75" />
+        </IconButton>
         <h1
           class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
         >

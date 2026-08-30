@@ -76,6 +76,12 @@ export const sessionExportSchema = z.object({
   format: z.enum(['html', 'markdown'])
 })
 
+export const projectExportSchema = z.object({
+  name: z.string().trim().min(1).max(256),
+  sessionIds: z.array(sessionIdSchema).min(1).max(10000),
+  format: z.enum(['html', 'markdown'])
+})
+
 export const sessionContextSchema = z.object({
   sessionId: sessionIdSchema,
   leafId: z.string().min(1).max(128).nullable().optional()
@@ -165,6 +171,10 @@ export const projectContextMenuSchema = z.object({
   locale: z.enum(['zh-CN', 'en-US']).optional()
 })
 
+export const sessionFolderContextMenuSchema = z.object({
+  locale: z.enum(['zh-CN', 'en-US']).optional()
+})
+
 export const workspaceFolderRoleSchema = z.enum(['main', 'reference', 'dependency', 'docs'])
 
 export const workspaceFolderInputSchema = z.object({
@@ -220,6 +230,7 @@ export const workspaceBindSessionSchema = z.object({
         readonly: z.boolean().optional()
       })
     )
+    .min(1)
     .max(64)
 })
 

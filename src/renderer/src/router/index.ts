@@ -34,13 +34,13 @@ const router = createRouter({
       meta: { title: 'Skills', i18nKey: 'nav.skills' }
     },
     {
-      path: '/config',
+      path: '/settings/config',
       name: 'config',
       component: () => import('@renderer/views/ConfigView.vue'),
       meta: { title: 'Config', i18nKey: 'nav.config' }
     },
     {
-      path: '/diagnostics',
+      path: '/settings/diagnostics',
       name: 'diagnostics',
       component: () => import('@renderer/views/DiagnosticsView.vue'),
       meta: { title: 'Diagnostics', i18nKey: 'nav.diagnostics' }
@@ -51,6 +51,8 @@ const router = createRouter({
       component: () => import('@renderer/views/SettingsView.vue'),
       meta: { title: 'Settings', i18nKey: 'nav.settings' }
     },
+    { path: '/config', redirect: '/settings/config' },
+    { path: '/diagnostics', redirect: '/settings/diagnostics' },
     {
       path: '/:pathMatch(.*)*',
       redirect: '/'

@@ -3,8 +3,10 @@ import { ref } from 'vue'
 import type { AppSettings, BackupRecord } from '@shared/ipc/api-types'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { i18n, resolveLocale } from '@renderer/i18n'
-import { watchSystemTheme, type ThemePreference } from '@renderer/utils/theme'
+import { applyTheme } from '@renderer/utils/theme'
+import { normalizeAppTheme } from '@shared/constants/theme'
 import { normalizeMascotStyle } from '@shared/constants/mascot'
+import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { normalizeNavOrder } from '@shared/constants/navigation'
 import { applyVisualSkin } from '@renderer/utils/visual-skin'
 import { toIpcSettingsPatch } from '@renderer/utils/settings-patch'
@@ -45,6 +47,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   async function unlockMascot(answer: string): Promise<boolean> {
+    if (!MASCOT_ENABLED) return false
     const unlocked = await callApi(() => getApi().settings.unlockMascot(answer))
     if (unlocked && settings.value) settings.value.mascotUnlocked = true
     return unlocked
@@ -54,16 +57,13 @@ export const useSettingsStore = defineStore('settings', () => {
     i18n.global.locale.value = resolveLocale(language)
   }
 
-  function applyThemePrefs(theme: AppSettings['theme']) {
-    watchSystemTheme(theme as ThemePreference)
-  }
-
   function applyExperiencePrefs(value: AppSettings) {
     applyVisualSkin(value)
-    applyThemePrefs(value.theme)
+    applyTheme(value.theme)
   }
 
   function normalizePetSettings(value: AppSettings): void {
+    value.theme = normalizeAppTheme(value.theme)
     value.mascotUnlocked ??= false
     value.petEnabled ??= false
     value.petAnimations ??= true
@@ -74,6 +74,12 @@ export const useSettingsStore = defineStore('settings', () => {
     value.windowMotionEnabled ??= false
     value.screenMotionEnabled ??= true
     value.navOrder = normalizeNavOrder(value.navOrder)
+    if (!MASCOT_ENABLED) {
+      // Mascot-free builds ship neither the Settings section nor the assets.
+      value.mascotUnlocked = false
+      value.mascotStyle = 'none'
+      value.petEnabled = false
+    }
     if (!value.mascotUnlocked) {
       value.mascotStyle = 'none'
       value.petEnabled = false

@@ -1,34 +1,11 @@
-/**
- * Theme application — Graphite dark + light semantic tokens via data-theme.
- */
+import { themeAppearance, type AppTheme } from '@shared/constants/theme'
+import { getSkinAppearance } from './skin-catalog'
 
-export type ThemePreference = 'system' | 'dark' | 'light'
-
-function systemPrefersDark(): boolean {
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true
-}
-
-export function resolveTheme(pref: ThemePreference): 'dark' | 'light' {
-  if (pref === 'system') return systemPrefersDark() ? 'dark' : 'light'
-  return pref
-}
-
-export function applyTheme(pref: ThemePreference): void {
-  const starshipActive = document.documentElement.dataset.visualSkin === 'starship-cockpit'
-  const resolved = starshipActive ? 'dark' : resolveTheme(pref)
-  document.documentElement.dataset.theme = resolved
-  document.documentElement.style.colorScheme = resolved
-}
-
-let mediaListener: ((e: MediaQueryListEvent) => void) | null = null
-
-export function watchSystemTheme(pref: ThemePreference): void {
-  const mq = window.matchMedia?.('(prefers-color-scheme: dark)')
-  if (!mq) return
-  if (mediaListener) mq.removeEventListener('change', mediaListener)
-  mediaListener = () => {
-    if (pref === 'system') applyTheme('system')
-  }
-  mq.addEventListener('change', mediaListener)
-  applyTheme(pref)
+/** A visual skin owns its appearance without overwriting the saved plain palette. */
+export function applyTheme(pref: AppTheme): void {
+  const root = document.documentElement
+  const theme = getSkinAppearance(root.dataset.visualSkin) ?? pref
+  root.dataset.theme = theme
+  root.dataset.appearance = themeAppearance(theme)
+  root.style.colorScheme = themeAppearance(theme)
 }

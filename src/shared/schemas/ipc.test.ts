@@ -25,13 +25,17 @@ describe('IPC schemas', () => {
 
   it('accepts known settings only', () => {
     expect(appSettingsPatchSchema.safeParse({ theme: 'dark' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ theme: 'pink' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ theme: 'purple' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ theme: 'green' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ theme: 'system' }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ theme: 'neon' }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ unexpected: true }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ windowMotionEnabled: false }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ screenMotionEnabled: true }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ navOrder: ['settings'] }).success).toBe(true)
     expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder?.[0]).toBe('settings')
-    expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder).toHaveLength(8)
+    expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder).toHaveLength(6)
     expect(appSettingsPatchSchema.safeParse({ density: 'compact' }).success).toBe(false)
     expect(
       appSettingsPatchSchema.safeParse(
@@ -47,6 +51,16 @@ describe('IPC schemas', () => {
       false
     )
   })
+
+  it.each(['noirScholar', 'moonlitMaid'])(
+    'accepts the %s skin without changing color preference',
+    (mascotStyle) => {
+      expect(appSettingsPatchSchema.parse({ mascotStyle, petEnabled: true })).toEqual({
+        mascotStyle,
+        petEnabled: true
+      })
+    }
+  )
 
   it('accepts only the screen-motion active payload', () => {
     expect(screenMotionActiveSchema.safeParse({ active: true, theme: 'dark' }).success).toBe(true)

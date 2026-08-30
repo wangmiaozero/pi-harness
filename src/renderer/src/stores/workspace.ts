@@ -28,6 +28,8 @@ interface WorkspaceSnapshot {
   pickedCwd: string | null
   projectRoots?: string[]
   draftProjectRoots?: string[]
+  importedProjectRoots?: string[]
+  projectSettings?: Record<string, ProjectSettings>
   pinnedProjectKeys?: string[]
   pinnedSessionIds?: string[]
   archivedSessionIds?: string[]
@@ -48,6 +50,11 @@ interface FolderMeta {
   exists?: boolean
 }
 
+interface ProjectSettings {
+  name: string
+  roots: string[]
+}
+
 export interface ChatDraftImage extends AgentImageAttachment {
   id: string
   name: string
@@ -63,6 +70,8 @@ export interface FileEditBuffer {
 export const useWorkspaceStore = defineStore('workspace', () => {
   const tabs = ref<WorkspaceTab[]>([])
   const activeTabId = ref<string | null>(null)
+  const activeFileTabId = ref<string | null>(null)
+  const filePanelOpen = ref(false)
   const drafts = ref<Record<string, string>>({})
   const draftImageMap = ref<Record<string, ChatDraftImage[]>>({})
   const fileEditBuffers = ref<Record<string, FileEditBuffer>>({})
@@ -76,6 +85,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const pickedCwd = ref<string | null>(null)
   const projectRoots = ref<string[]>([])
   const draftProjectRoots = ref<string[]>([])
+  // Navigation entries are independent of the selected session's file/Git roots.
+  const importedProjectRoots = ref<string[]>([])
+  const projectSettings = ref<Record<string, ProjectSettings>>({})
+  const draftSessionVisible = ref(false)
   const workspaceFile = ref<string | null>(null)
   const draftWorkspaceFile = ref<string | null>(null)
   const folderMeta = ref<Record<string, FolderMeta>>({})
@@ -92,6 +105,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const contentRevision = ref(0)
   const hydrated = ref(false)
   let filesLoadVersion = 0
+  let fileScopeVersion = 0
   let gitLoadVersion = 0
 
   const sessions = useSessionStore()
@@ -143,6 +157,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     return folders
   })
+  const draftWorkspaceFolders = computed<WorkspaceFolder[]>(() =>
+    draftProjectRoots.value.map((projectRoot, index) => {
+      const id = projectIdentityKey(projectRoot)
+      const meta = draftFolderMeta.value[id] ?? {}
+      return {
+        id,
+        name: meta.name || projectDisplayName(projectRoot),
+        path: projectRoot,
+        resolvedPath: projectRoot,
+        role: index === 0 ? 'main' : (meta.role ?? 'reference'),
+        readonly: meta.readonly === true,
+        exists: meta.exists !== false
+      }
+    })
+  )
+  const hasDraftSession = computed(
+    () => draftSessionVisible.value && draftWorkspaceFolders.value.length > 0
+  )
   const mainFolder = computed(
     () =>
       workspaceFolders.value.find((folder) => folder.role === 'main') ??
@@ -171,7 +203,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       )
     )
   })
-  const activeTab = computed(() => tabs.value.find((t) => t.id === activeTabId.value) ?? null)
+  const mainTabs = computed(() => tabs.value.filter((tab) => tab.kind !== 'file'))
+  const activeTab = computed(() => mainTabs.value.find((t) => t.id === activeTabId.value) ?? null)
+  const hasSessionWorkspace = computed(
+    () =>
+      Boolean(sessions.currentId && sessions.current) &&
+      activeSessionWorkspaceId.value === sessions.currentId
+  )
+  const sessionFileTabs = computed(() =>
+    hasSessionWorkspace.value
+      ? tabs.value.filter((tab) => tab.kind === 'file' && Boolean(folderForPath(tab.filePath)))
+      : []
+  )
+  const activeFileTab = computed(
+    () =>
+      sessionFileTabs.value.find((tab) => tab.id === activeFileTabId.value) ??
+      sessionFileTabs.value.at(-1) ??
+      null
+  )
   const draftKey = computed(() => sessions.currentId ?? '__new__')
   const draft = computed({
     get: () => drafts.value[draftKey.value] ?? '',
@@ -259,6 +308,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function openFileTab(filePath: string, title: string) {
+    if (!hasSessionWorkspace.value || !folderForPath(filePath)) return
     const id = `file:${filePath}`
     const folder = folderForPath(filePath)
     const tabTitle =
@@ -266,7 +316,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!tabs.value.some((t) => t.id === id)) {
       tabs.value = [...tabs.value, { id, kind: 'file', title: tabTitle, filePath, closable: true }]
     }
-    activeTabId.value = id
+    activeFileTabId.value = id
+    filePanelOpen.value = true
   }
 
   function openDiffTab(filePath: string, title: string) {
@@ -291,7 +342,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const next = tabs.value.filter((t) => t.id !== id)
     tabs.value = next
     if (activeTabId.value === id) {
-      const fallbackId = next[Math.max(0, index - 1)]?.id ?? null
+      const fallbackId =
+        next
+          .slice(0, index)
+          .filter((tab) => tab.kind !== 'file')
+          .at(-1)?.id ??
+        mainTabs.value[0]?.id ??
+        null
       if (fallbackId) activateTab(fallbackId)
       else activeTabId.value = null
     }
@@ -333,6 +390,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function activateTab(id: string) {
     const tab = tabs.value.find((item) => item.id === id)
     if (!tab) return
+    if (tab.kind === 'file') {
+      if (sessionFileTabs.value.some((item) => item.id === id)) {
+        activeFileTabId.value = id
+        filePanelOpen.value = true
+      }
+      return
+    }
     if (
       tab.kind === 'chat' &&
       tab.sessionId &&
@@ -351,6 +415,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function loadFiles(dir?: string) {
     const version = ++filesLoadVersion
+    const scopeVersion = fileScopeVersion
+    const sessionId = sessions.currentId
+    const isCurrent = () =>
+      version === filesLoadVersion &&
+      scopeVersion === fileScopeVersion &&
+      sessionId === sessions.currentId &&
+      hasSessionWorkspace.value
+    if (!hasSessionWorkspace.value) {
+      files.value = []
+      fileChildren.value = {}
+      filesLoading.value = false
+      return
+    }
     const cwd =
       dir ?? listedPath.value ?? currentCwd.value ?? mainFolder.value?.resolvedPath ?? null
     filesLoading.value = true
@@ -369,10 +446,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
           }
         })
       )
-      if (version !== filesLoadVersion) return
+      if (!isCurrent()) return
       const nextChildren = { ...fileChildren.value }
       for (const [root, entries] of rootEntries) nextChildren[root] = entries
-      if (cwd) {
+      if (cwd && folderForPath(cwd)) {
         const already = roots.some(
           (folder) => projectIdentityKey(folder.resolvedPath) === projectIdentityKey(cwd)
         )
@@ -388,6 +465,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             nextChildren[cwd] = []
           }
         }
+        if (!isCurrent()) return
         files.value = nextChildren[cwd] ?? []
         listedPath.value = cwd
       } else {
@@ -396,7 +474,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       }
       fileChildren.value = nextChildren
     } catch {
-      if (version !== filesLoadVersion) return
+      if (!isCurrent()) return
       files.value = []
       listedPath.value = null
     } finally {
@@ -406,7 +484,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function loadDirectory(directory: string): Promise<FileTreeEntry[]> {
     const folder = folderForPath(directory)
+    if (!hasSessionWorkspace.value || !folder) return []
+    const version = fileScopeVersion
+    const sessionId = sessions.currentId
     const listed = await callApi(() => getApi().files.list(directory))
+    if (
+      version !== fileScopeVersion ||
+      sessionId !== sessions.currentId ||
+      !hasSessionWorkspace.value
+    )
+      return []
     const entries = listed.map((entry) => ({ ...entry, workspaceFolderId: folder?.id }))
     fileChildren.value = { ...fileChildren.value, [directory]: entries }
     return entries
@@ -420,6 +507,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         pickedCwd: activeSessionWorkspaceId.value ? null : pickedCwd.value,
         projectRoots: draftProjectRoots.value,
         draftProjectRoots: draftProjectRoots.value,
+        importedProjectRoots: importedProjectRoots.value,
+        projectSettings: projectSettings.value,
         pinnedProjectKeys: pinnedProjectKeys.value,
         pinnedSessionIds: pinnedSessionIds.value,
         archivedSessionIds: archivedSessionIds.value,
@@ -464,6 +553,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function restore(opts: { restoreTabs: boolean; autoOpenLastProject: boolean }) {
+    if (hydrated.value) {
+      if (sessions.currentId) await restoreSessionWorkspace(sessions.currentId)
+      else await restoreDraftWorkspace()
+      return
+    }
     let snap: WorkspaceSnapshot | null = null
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
@@ -482,35 +576,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return
     }
     const restoredRemovedProjectKeys = stringList(snap.removedProjectKeys)
-    const removedProjects = new Set(restoredRemovedProjectKeys)
-    const restoredRoots = [
-      ...(Array.isArray(snap.draftProjectRoots)
-        ? snap.draftProjectRoots
-        : Array.isArray(snap.projectRoots)
-          ? snap.projectRoots
-          : [])
-    ].filter((root) => !removedProjects.has(projectIdentityKey(root)))
-    if (
-      snap.pickedCwd &&
-      !removedProjects.has(projectIdentityKey(snap.pickedCwd)) &&
-      !restoredRoots.some(
-        (root) => projectIdentityKey(root) === projectIdentityKey(snap.pickedCwd!)
-      )
-    ) {
-      restoredRoots.push(snap.pickedCwd)
-    }
-    draftProjectRoots.value = restoredRoots
-    draftWorkspaceFile.value =
-      typeof snap.draftWorkspaceFile === 'string'
-        ? snap.draftWorkspaceFile
-        : typeof snap.workspaceFile === 'string'
-          ? snap.workspaceFile
-          : null
-    draftFolderMeta.value = isFolderMetaMap(snap.draftFolderMeta)
-      ? snap.draftFolderMeta
-      : isFolderMetaMap(snap.folderMeta)
-        ? snap.folderMeta
-        : {}
+    importedProjectRoots.value = uniqueProjectRoots(stringList(snap.importedProjectRoots))
+    projectSettings.value = Object.fromEntries(
+      Object.entries(snap.projectSettings ?? {}).flatMap(([key, value]) => {
+        if (!value || typeof value.name !== 'string') return []
+        const roots = uniqueProjectRoots(stringList(value.roots))
+        return roots.length ? [[key, { name: value.name.slice(0, 256), roots }]] : []
+      })
+    )
+    // An unsent workspace is an ephemeral new-session draft. Never revive it
+    // after startup as if the user had selected a project in this run.
+    draftProjectRoots.value = []
+    draftWorkspaceFile.value = null
+    draftFolderMeta.value = {}
+    draftSessionVisible.value = false
     recentWorkspaces.value = Array.isArray(snap.recentWorkspaces) ? snap.recentWorkspaces : []
     pinnedProjectKeys.value = stringList(snap.pinnedProjectKeys)
     pinnedSessionIds.value = stringList(snap.pinnedSessionIds)
@@ -521,10 +600,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } catch {
       sessionBindings.value = {}
     }
-    if (opts.autoOpenLastProject) {
-      if (snap.pickedCwd) pickedCwd.value = snap.pickedCwd
-      if (snap.projectKey) sessions.selectProjectKey(snap.projectKey)
-    }
+    if (opts.autoOpenLastProject && snap.projectKey) sessions.selectProjectKey(snap.projectKey)
     if (opts.restoreTabs && snap.tabs?.length) {
       const archived = new Set(archivedSessionIds.value)
       const availableSessionIds = new Set(sessions.items.map((session) => session.id))
@@ -538,13 +614,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       activeTabId.value = snap.activeTabId
       pruneOrphanedProjectTabs()
       if (!tabs.value.some((tab) => tab.id === activeTabId.value)) {
-        activeTabId.value = tabs.value.at(-1)?.id ?? null
+        activeTabId.value = mainTabs.value.at(-1)?.id ?? null
       }
       if (activeTabId.value) activateTab(activeTabId.value)
     }
     hydrated.value = true
     if (sessions.currentId) await restoreSessionWorkspace(sessions.currentId)
-    else await restoreDraftWorkspace()
+    else await replaceActiveWorkspace([], null)
     persist()
   }
 
@@ -593,7 +669,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function archiveProjectSessions(projectKey: string) {
     const sessionIds = sessions.items
-      .filter((session) => sessionProjectKey(session) === projectKey)
+      .filter((session) => sessionFolders(session)[0]?.id === projectKey)
       .map((session) => session.id)
     const ids = new Set(sessionIds)
     archivedSessionIds.value = stringList([...archivedSessionIds.value, ...sessionIds])
@@ -712,14 +788,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!removedTabIds.size) return
     tabs.value = tabs.value.filter((tab) => !removedTabIds.has(tab.id))
     if (activeTabId.value && removedTabIds.has(activeTabId.value)) {
-      const fallbackId = tabs.value.at(-1)?.id
+      const fallbackId = mainTabs.value.at(-1)?.id
       if (fallbackId) activateTab(fallbackId)
       else activeTabId.value = null
     }
-  }
-
-  function sessionProjectKey(session: { projectKey?: string; projectRoot?: string; cwd: string }) {
-    return session.projectKey || projectIdentityKey(session.projectRoot || session.cwd)
   }
 
   async function loadGit() {
@@ -894,7 +966,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     ownerId: string | null,
     nextWorkspaceFile: string | null = null
   ) {
-    activeSessionWorkspaceId.value = ownerId
+    // The new owner must not observe the previous session's roots while sync is pending.
+    activeSessionWorkspaceId.value = null
+    fileScopeVersion += 1
+    filesLoadVersion += 1
+    files.value = []
+    fileChildren.value = {}
+    filesLoading.value = false
     const active = await callApi(() =>
       getApi().workspace.sync({
         workspaceFile: nextWorkspaceFile,
@@ -909,6 +987,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       })
     )
     applyActiveWorkspace(active)
+    activeSessionWorkspaceId.value = ownerId
     pickedCwd.value = active.folders[0]?.resolvedPath ?? null
     listedPath.value = pickedCwd.value
     files.value = []
@@ -924,20 +1003,40 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (active.folders[0]?.resolvedPath) pickedCwd.value = active.folders[0].resolvedPath
     cacheActiveWorkspace()
     if (activeSessionWorkspaceId.value) await bindCurrentSession(activeSessionWorkspaceId.value)
+    else draftSessionVisible.value = active.folders.length > 0
     persist()
     await Promise.all([loadFiles(), loadGit()])
     return active
   }
 
-  async function importDraftWorkspaceFile(path: string) {
+  async function importDraftWorkspaceFile(path: string, additionalRoots: string[] = []) {
     activeSessionWorkspaceId.value = null
-    const active = await callApi(() => getApi().workspace.openWorkspaceFile(path))
+    let active = await callApi(() => getApi().workspace.openWorkspaceFile(path))
+    if (additionalRoots.length) {
+      active = await callApi(() =>
+        getApi().workspace.sync({
+          workspaceFile: active.workspaceFile,
+          folders: [
+            ...active.folders.map((folder) => ({
+              path: folder.path,
+              resolvedPath: folder.resolvedPath,
+              name: folder.name,
+              role: folder.role,
+              readonly: folder.readonly
+            })),
+            ...additionalRoots.map((root) => ({ path: root, role: 'reference' as const }))
+          ],
+          settings: active.settings
+        })
+      )
+    }
     applyActiveWorkspace(active)
     pickedCwd.value = active.folders[0]?.resolvedPath ?? null
     listedPath.value = pickedCwd.value
     files.value = []
     fileChildren.value = {}
     cacheActiveWorkspace()
+    draftSessionVisible.value = active.folders.length > 0
     persist()
     await Promise.all([loadFiles(), loadGit()])
     return active
@@ -969,7 +1068,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     scope: FileSearchScope = 'workspace',
     folderId?: string
   ): Promise<FileSearchHit[]> {
-    return callApi(() => getApi().workspace.search(query, scope, folderId))
+    if (!hasSessionWorkspace.value) return []
+    const version = fileScopeVersion
+    const sessionId = sessions.currentId
+    const hits = await callApi(() => getApi().workspace.search(query, scope, folderId))
+    return version === fileScopeVersion &&
+      sessionId === sessions.currentId &&
+      hasSessionWorkspace.value
+      ? hits.filter((hit) => Boolean(folderForPath(hit.absolutePath)))
+      : []
   }
 
   async function relocateFolder(folderId: string, nextPath: string) {
@@ -1065,12 +1172,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function resetDraftWorkspaceRoots(roots: string[]) {
-    const uniqueRoots = roots.filter(
-      (root, index) =>
-        roots.findIndex(
-          (candidate) => projectIdentityKey(candidate) === projectIdentityKey(root)
-        ) === index
-    )
+    const uniqueRoots = uniqueProjectRoots(roots)
     draftProjectRoots.value = uniqueRoots
     draftWorkspaceFile.value = null
     draftFolderMeta.value = Object.fromEntries(
@@ -1079,6 +1181,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         { role: index === 0 ? 'main' : 'reference' } satisfies FolderMeta
       ])
     )
+    draftSessionVisible.value = uniqueRoots.length > 0
     await restoreDraftWorkspace()
   }
 
@@ -1095,6 +1198,205 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       null,
       workspaceFile.value
     )
+    draftSessionVisible.value = true
+    return true
+  }
+
+  function markDraftSessionVisible() {
+    draftSessionVisible.value = draftProjectRoots.value.length > 0
+  }
+
+  function rememberImportedProjects(roots: string[]) {
+    importedProjectRoots.value = uniqueProjectRoots([...importedProjectRoots.value, ...roots])
+    const keys = new Set(roots.map((root) => projectIdentityKey(root)))
+    removedProjectKeys.value = removedProjectKeys.value.filter((key) => !keys.has(key))
+    persist()
+  }
+
+  function rememberDraftProject() {
+    const primary = draftWorkspaceFolders.value[0]
+    if (!primary) return
+    const savedName = projectSettings.value[primary.id]?.name
+    const fileName = draftWorkspaceFile.value
+      ?.split(/[\\/]/)
+      .pop()
+      ?.replace(/\.code-workspace$/i, '')
+    // One imported workspace is one navigation project, with multiple source roots.
+    saveProjectSettings(
+      primary.resolvedPath,
+      savedName || fileName || primary.name,
+      draftProjectRoots.value
+    )
+  }
+
+  function projectSourceRoots(root: string): string[] {
+    const key = projectIdentityKey(root)
+    const saved = projectSettings.value[key]
+    if (saved) return [...saved.roots]
+    if (draftWorkspaceFolders.value[0]?.id === key) return [...draftProjectRoots.value]
+    const session = sessions.items.find((item) => sessionFolders(item)[0]?.id === key)
+    return session ? sessionFolders(session).map((folder) => folder.resolvedPath) : [root]
+  }
+
+  function saveProjectSettings(root: string, name: string, roots: string[]) {
+    const key = projectIdentityKey(root)
+    projectSettings.value = {
+      ...projectSettings.value,
+      [key]: { name: name.trim().slice(0, 256), roots: uniqueProjectRoots([root, ...roots]) }
+    }
+    rememberImportedProjects([root])
+  }
+
+  async function startDraftFromProject(root: string) {
+    const roots = projectSourceRoots(root)
+    for (const source of roots) await callApi(() => getApi().workspace.allowRoot(source))
+    await resetDraftWorkspaceRoots(roots)
+  }
+
+  async function removeProjectEntry(projectKey: string) {
+    const ids = new Set(
+      sessions.items
+        .filter((session) => sessionFolders(session)[0]?.id === projectKey)
+        .map((session) => session.id)
+    )
+    removedProjectKeys.value = stringList([...removedProjectKeys.value, projectKey])
+    pinnedProjectKeys.value = pinnedProjectKeys.value.filter((key) => key !== projectKey)
+    closeSessionTabs(ids)
+    if (sessions.currentId && ids.has(sessions.currentId)) sessions.selectSession(null)
+    await removeImportedProject(projectKey)
+    // Removing a navigation entry does not delete session history or source files.
+    if (!sessions.currentId) {
+      await restoreDraftWorkspace()
+      await Promise.all([loadFiles(), loadGit()])
+    }
+    persist()
+  }
+
+  async function removeImportedProject(projectKey: string) {
+    importedProjectRoots.value = importedProjectRoots.value.filter(
+      (root) => projectIdentityKey(root) !== projectKey
+    )
+    if (
+      draftWorkspaceFolders.value[0]?.id === projectKey &&
+      (projectSettings.value[projectKey]?.roots.length ?? 0) > 1
+    ) {
+      await discardDraftSession()
+    } else if (draftProjectRoots.value.some((root) => projectIdentityKey(root) === projectKey)) {
+      await removeDraftProject(projectKey)
+    }
+    persist()
+  }
+
+  async function discardDraftSession() {
+    draftSessionVisible.value = false
+    draftProjectRoots.value = []
+    draftWorkspaceFile.value = null
+    draftFolderMeta.value = {}
+    closeTab('chat:new')
+    if (activeSessionWorkspaceId.value === null) {
+      await replaceActiveWorkspace([], null)
+      await Promise.all([loadFiles(), loadGit()])
+    } else {
+      persist()
+    }
+  }
+
+  async function removeDraftProject(projectKey: string) {
+    draftProjectRoots.value = draftProjectRoots.value.filter(
+      (root) => projectIdentityKey(root) !== projectKey
+    )
+    const nextMeta = { ...draftFolderMeta.value }
+    delete nextMeta[projectKey]
+    draftFolderMeta.value = nextMeta
+    if (!draftProjectRoots.value.length) {
+      await discardDraftSession()
+      return
+    }
+    const firstKey = projectIdentityKey(draftProjectRoots.value[0])
+    draftFolderMeta.value = {
+      ...draftFolderMeta.value,
+      [firstKey]: { ...draftFolderMeta.value[firstKey], role: 'main' }
+    }
+    if (activeSessionWorkspaceId.value === null) {
+      await restoreDraftWorkspace()
+      await Promise.all([loadFiles(), loadGit()])
+    } else {
+      persist()
+    }
+  }
+
+  function consumeDraftSession() {
+    draftSessionVisible.value = false
+    draftProjectRoots.value = []
+    draftWorkspaceFile.value = null
+    draftFolderMeta.value = {}
+    closeTab('chat:new')
+    persist()
+  }
+
+  async function startDraftFromSession(sessionId: string): Promise<boolean> {
+    await restoreSessionWorkspace(sessionId)
+    return startDraftFromActiveWorkspace()
+  }
+
+  async function saveSessionFolders(
+    sessionId: string,
+    nextFolders: WorkspaceFolder[]
+  ): Promise<boolean> {
+    const folders = nextFolders.filter(
+      (folder, index) =>
+        nextFolders.findIndex(
+          (candidate) =>
+            projectIdentityKey(candidate.resolvedPath) === projectIdentityKey(folder.resolvedPath)
+        ) === index
+    )
+    if (!folders.length) return false
+
+    for (const folder of folders) {
+      try {
+        await callApi(() => getApi().workspace.allowRoot(folder.resolvedPath))
+      } catch {
+        /* existing bindings may intentionally retain a temporarily missing folder */
+      }
+    }
+
+    const current = sessionBindings.value[sessionId]
+    const snapshots = folders.map((folder, index) => ({
+      id: projectIdentityKey(folder.resolvedPath),
+      path: folder.resolvedPath,
+      role: index === 0 ? ('main' as const) : ('reference' as const),
+      readonly: folder.readonly
+    }))
+    const binding: SessionWorkspaceBinding = {
+      workspaceId: current?.workspaceId ?? `session:${sessionId}`,
+      mainFolderId: snapshots[0]?.id,
+      folders: snapshots
+    }
+
+    await callApi(() =>
+      getApi().workspace.bindSession(
+        sessionId,
+        binding.workspaceId,
+        binding.folders,
+        binding.mainFolderId
+      )
+    )
+    sessionBindings.value = { ...sessionBindings.value, [sessionId]: binding }
+
+    if (activeSessionWorkspaceId.value === sessionId) {
+      await replaceActiveWorkspace(
+        folders.map((folder, index) => ({
+          path: folder.resolvedPath,
+          name: folder.name,
+          role: index === 0 ? 'main' : 'reference',
+          readonly: folder.readonly
+        })),
+        sessionId,
+        binding.workspaceId.endsWith('.code-workspace') ? binding.workspaceId : null
+      )
+      await bindCurrentSession(sessionId)
+      await Promise.all([loadFiles(), loadGit()])
+    }
     return true
   }
 
@@ -1142,19 +1444,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  /**
-   * Whether a session belongs to the active workspace. Sessions outside the
-   * active workspace stay visible only while no workspace context exists,
-   * so first-run users can still reopen past sessions from any project.
-   */
-  function isSessionInActiveWorkspace(session: SessionInfo): boolean {
-    if (!projectRoots.value.length) return true
-    const keys = new Set(projectRoots.value.map((root) => projectIdentityKey(root)))
-    if (session.projectKey && keys.has(session.projectKey)) return true
-    if (session.cwd && keys.has(projectIdentityKey(session.cwd))) return true
-    return sessionFolders(session).some((folder) => keys.has(folder.id))
-  }
-
   function sessionFolders(session: SessionInfo): WorkspaceFolder[] {
     const binding = sessionBindings.value[session.id]
     const snapshots: Array<{
@@ -1194,6 +1483,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   return {
     tabs,
+    mainTabs,
+    activeFileTabId,
+    activeFileTab,
+    sessionFileTabs,
+    filePanelOpen,
+    hasSessionWorkspace,
     activeTabId,
     activeTab,
     drafts,
@@ -1214,6 +1509,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     canChat,
     pickedCwd,
     projectRoots,
+    draftProjectRoots,
+    importedProjectRoots,
+    draftSessionVisible,
+    draftWorkspaceFolders,
+    hasDraftSession,
     sessionBindings,
     activeSessionWorkspaceId,
     workspaceFile,
@@ -1234,6 +1534,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     resetDraftWorkspace,
     resetDraftWorkspaceRoots,
     startDraftFromActiveWorkspace,
+    startDraftFromSession,
+    markDraftSessionVisible,
+    rememberImportedProjects,
+    rememberDraftProject,
+    projectSettings,
+    projectSourceRoots,
+    saveProjectSettings,
+    startDraftFromProject,
+    removeProjectEntry,
+    removeImportedProject,
+    discardDraftSession,
+    removeDraftProject,
+    consumeDraftSession,
+    saveSessionFolders,
     isProjectPinned,
     setProjectPinned,
     isSessionPinned,
@@ -1282,20 +1596,25 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     restoreDraftWorkspace,
     bindCurrentSession,
     sessionFolders,
-    isSessionInActiveWorkspace,
     refreshSessionBindings,
     refreshRecent,
     syncActiveWorkspace
   }
 })
 
+function uniqueProjectRoots(roots: string[]): string[] {
+  const seen = new Set<string>()
+  return roots.filter((root) => {
+    const key = projectIdentityKey(root)
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 function stringList(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return [
     ...new Set(value.filter((item): item is string => typeof item === 'string' && item !== ''))
   ]
-}
-
-function isFolderMetaMap(value: unknown): value is Record<string, FolderMeta> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }

@@ -162,6 +162,8 @@ const api: PiSwitchAPI = {
         isPinned,
         locale
       }),
+    sessionFolderContextMenu: (locale) =>
+      invoke(IPC_INVOKE.workspaceSessionFolderContextMenu, { locale }),
     getPathForFile: async (file) => {
       const root = webUtils.getPathForFile(file as never)
       if (root) await invoke(IPC_INVOKE.workspaceAuthorizeDroppedRoot, { root })
@@ -189,6 +191,8 @@ const api: PiSwitchAPI = {
     delete: (sessionId) => invoke(IPC_INVOKE.sessionDelete, sessionId),
     context: (sessionId, leafId) => invoke(IPC_INVOKE.sessionContext, { sessionId, leafId }),
     export: (sessionId, format) => invoke(IPC_INVOKE.sessionExport, { sessionId, format }),
+    exportProject: (name, sessionIds, format) =>
+      invoke(IPC_INVOKE.projectExport, { name, sessionIds, format }),
     viewFullHistory: (sessionId) => invoke(IPC_INVOKE.sessionViewHistory, sessionId),
     contextMenu: (sessionId, isWorktree, isPinned, locale) =>
       invoke(IPC_INVOKE.sessionContextMenu, { sessionId, isWorktree, isPinned, locale })

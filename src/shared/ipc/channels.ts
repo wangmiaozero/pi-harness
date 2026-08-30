@@ -132,6 +132,7 @@ export const IPC_INVOKE = {
   workspaceAuthorizeDroppedRoot: invoke('workspace:authorize-dropped-root'),
   workspaceAllowRoot: invoke('workspace:allow-root'),
   workspaceProjectContextMenu: invoke('workspace:project-context-menu'),
+  workspaceSessionFolderContextMenu: invoke('workspace:session-folder-context-menu'),
   workspaceGetActive: invoke('workspace:get-active'),
   workspaceSync: invoke('workspace:sync'),
   workspaceOpenFile: invoke('workspace:open-file'),
@@ -150,6 +151,7 @@ export const IPC_INVOKE = {
   sessionDelete: invoke('session:delete'),
   sessionContext: invoke('session:context'),
   sessionExport: invoke('session:export'),
+  projectExport: invoke('project:export'),
   sessionViewHistory: invoke('session:view-history'),
   sessionContextMenu: invoke('session:context-menu'),
 

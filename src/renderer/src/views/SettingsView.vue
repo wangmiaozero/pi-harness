@@ -17,7 +17,9 @@ import {
   Sparkles,
   AppWindow,
   Download,
-  Code2
+  Code2,
+  FileCode2,
+  Activity
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import type { AppSettings, AppUpdateState } from '@shared/ipc/api-types'
@@ -34,15 +36,12 @@ import { useSettingsStore } from '@renderer/stores/settings'
 import { getApi } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { formatDateTime, formatBytes } from '@renderer/utils/format'
-import {
-  DEFAULT_MASCOT_STYLE,
-  MASCOT_STYLES,
-  STARSHIP_COCKPIT_MASCOT_STYLE,
-  type MascotStyle
-} from '@shared/constants/mascot'
+import { DEFAULT_MASCOT_STYLE, MASCOT_STYLES, type MascotStyle } from '@shared/constants/mascot'
+import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { DEFAULT_NAV_ORDER, normalizeNavOrder } from '@shared/constants/navigation'
 import NavOrderList from '@renderer/components/settings/NavOrderList.vue'
 import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
+import { getVisualSkin } from '@renderer/utils/skin-catalog'
 import PetDebug from '@renderer/components/pet/PetDebug.vue'
 
 const { t, locale } = useI18n()
@@ -60,7 +59,7 @@ const mascotUnlocking = ref(false)
 const mascotAnswer = ref('')
 const mascotUnlockError = ref('')
 
-const SETTINGS_SECTIONS = [
+const SETTINGS_SECTIONS_ALL = [
   'general',
   'nav',
   'mascot',
@@ -70,7 +69,13 @@ const SETTINGS_SECTIONS = [
   'updates',
   'developer'
 ] as const
+const SETTINGS_SECTIONS = MASCOT_ENABLED
+  ? SETTINGS_SECTIONS_ALL
+  : SETTINGS_SECTIONS_ALL.filter(
+      (id): id is Exclude<(typeof SETTINGS_SECTIONS_ALL)[number], 'mascot'> => id !== 'mascot'
+    )
 type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]
+type SettingsMenuSectionId = SettingsSectionId | 'config' | 'diagnostics'
 
 function isSettingsSection(value: unknown): value is SettingsSectionId {
   return typeof value === 'string' && (SETTINGS_SECTIONS as readonly string[]).includes(value)
@@ -164,9 +169,11 @@ const languageOptions = computed(() => [
 ])
 
 const themeOptions = computed(() => [
-  { value: 'system', label: t('settings.themeSystem') },
   { value: 'dark', label: t('settings.themeDark') },
-  { value: 'light', label: t('settings.themeLight') }
+  { value: 'light', label: t('settings.themeLight') },
+  { value: 'pink', label: t('settings.themePink') },
+  { value: 'purple', label: t('settings.themePurple') },
+  { value: 'green', label: t('settings.themeGreen') }
 ])
 
 const mascotOptions = computed(() =>
@@ -247,7 +254,7 @@ type SettingsMenuIcon = typeof SlidersHorizontal
 
 const settingsMenu = computed(() => {
   const items: {
-    id: SettingsSectionId
+    id: SettingsMenuSectionId
     title: string
     hint: string
     icon: SettingsMenuIcon
@@ -275,6 +282,18 @@ const settingsMenu = computed(() => {
       title: t('settings.workspace'),
       hint: t('settings.sectionWorkspaceHint'),
       icon: AppWindow
+    },
+    {
+      id: 'config',
+      title: t('nav.config'),
+      hint: t('config.subtitle'),
+      icon: FileCode2
+    },
+    {
+      id: 'diagnostics',
+      title: t('nav.diagnostics'),
+      hint: t('diagnostics.subtitle'),
+      icon: Activity
     },
     {
       id: 'paths',
@@ -305,7 +324,7 @@ const settingsMenu = computed(() => {
       icon: Code2
     })
   }
-  return items
+  return MASCOT_ENABLED ? items : items.filter((item) => item.id !== 'mascot')
 })
 
 const settingsHomeEmptySlots = computed(() => Math.max(0, 9 - settingsMenu.value.length))
@@ -357,7 +376,7 @@ function goBackToSettingsHome(): void {
 
 function selectMascot(style: MascotStyle): void {
   draft.value.mascotStyle = style
-  if (style === STARSHIP_COCKPIT_MASCOT_STYLE) draft.value.petEnabled = true
+  if (getVisualSkin(style)) draft.value.petEnabled = true
 }
 
 async function unlockMascot(): Promise<void> {
@@ -586,421 +605,486 @@ onBeforeUnmount(stopUpdateListener)
       </div>
 
       <div v-else class="flex-1 overflow-y-auto">
-        <div class="mx-auto w-full max-w-[720px] space-y-5 px-6 py-5">
-        <!-- General — Inspector property rows. No Card. -->
-        <InspectorSection
-          v-if="section === 'general'"
-          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+        <div
+          class="mx-auto w-full space-y-5 px-6 py-5"
+          :class="
+            section === 'mascot' && draft.mascotUnlocked
+              ? 'settings-mascot-gallery'
+              : 'max-w-[720px]'
+          "
         >
-          <template #title>{{ $t('settings.general') }}</template>
-          <div
-            class="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]"
+          <!-- General — Inspector property rows. No Card. -->
+          <InspectorSection
+            v-if="section === 'general'"
+            class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
           >
-            <Select
-              v-model="draft.language"
-              :label="$t('settings.language')"
-              :options="languageOptions"
-              layout="row"
-            />
-            <Select
-              v-model="draft.theme"
-              :label="$t('settings.theme')"
-              :options="themeOptions"
-              layout="row"
-            />
-            <PropertyRow :label="$t('settings.windowMotionEnabled')">
-              <div class="flex items-center justify-end">
-                <Switch
-                  v-model="draft.windowMotionEnabled"
-                  :label="$t('settings.windowMotionEnabled')"
-                  data-testid="window-motion-toggle"
-                />
-              </div>
-            </PropertyRow>
-            <PropertyRow :label="$t('settings.screenMotionEnabled')">
-              <div class="flex items-center justify-end">
-                <Switch
-                  v-model="draft.screenMotionEnabled"
-                  :label="$t('settings.screenMotionEnabled')"
-                  data-testid="screen-motion-toggle"
-                />
-              </div>
-            </PropertyRow>
-          </div>
-        </InspectorSection>
-
-        <section
-          v-else-if="section === 'nav'"
-          data-testid="nav-order-section"
-          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
-        >
-          <div class="flex items-center justify-between gap-2 px-3 py-2">
-            <p class="text-[11.5px] text-[var(--text-tertiary)]">
-              {{ $t('settings.navOrderHint') }}
-            </p>
-            <Button
-              variant="ghost"
-              size="sm"
-              :disabled="navOrderIsDefault"
-              data-testid="nav-order-reset"
-              @click="resetNavOrder"
+            <template #title>{{ $t('settings.general') }}</template>
+            <div
+              class="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]"
             >
-              <RotateCcw class="size-3" :stroke-width="1.75" />
-              {{ $t('settings.navOrderReset') }}
-            </Button>
-          </div>
-          <NavOrderList v-model="draft.navOrder" />
-        </section>
-
-        <section
-          v-else-if="section === 'mascot'"
-          data-testid="mascot-settings-section"
-          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
-        >
-          <div v-if="!draft.mascotUnlocked" id="mascot-settings-content" class="p-3">
-            <form
-              data-testid="mascot-unlock-form"
-              class="rounded-[var(--radius-sm)] border border-[var(--warning)]/30 bg-[var(--warning-tint)] p-3"
-              @submit.prevent="unlockMascot"
-            >
-              <div class="flex items-start gap-2.5">
-                <KeyRound
-                  class="mt-0.5 size-4 shrink-0 text-[var(--warning)]"
-                  :stroke-width="1.75"
-                />
-                <div class="min-w-0 flex-1">
-                  <label
-                    for="mascot-unlock-answer"
-                    class="block text-[12px] font-semibold text-[var(--text-primary)]"
-                  >
-                    {{ $t('settings.mascotUnlockQuestion') }}
-                  </label>
-                  <p class="mt-0.5 text-[10.5px] text-[var(--text-tertiary)]">
-                    {{ $t('settings.mascotLockedHint') }}
-                  </p>
-                  <div class="mt-2 flex items-start gap-2">
-                    <div class="min-w-0 flex-1">
-                      <input
-                        id="mascot-unlock-answer"
-                        v-model="mascotAnswer"
-                        data-testid="mascot-unlock-answer"
-                        type="password"
-                        inputmode="numeric"
-                        autocomplete="off"
-                        :placeholder="$t('settings.mascotUnlockPlaceholder')"
-                        class="h-[var(--height-input)] w-full rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 font-[family-name:var(--font-mono)] text-[12px] text-[var(--text-primary)] shadow-[var(--control-shadow)] placeholder:text-[var(--control-placeholder)] hover:border-[var(--control-border-hover)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
-                        :aria-invalid="Boolean(mascotUnlockError)"
-                        :aria-describedby="mascotUnlockError ? 'mascot-unlock-error' : undefined"
-                        @input="mascotUnlockError = ''"
-                      />
-                      <p
-                        v-if="mascotUnlockError"
-                        id="mascot-unlock-error"
-                        role="alert"
-                        class="mt-1 text-[10.5px] text-[var(--error)]"
-                      >
-                        {{ mascotUnlockError }}
-                      </p>
-                    </div>
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="sm"
-                      :loading="mascotUnlocking"
-                      :disabled="!mascotAnswer.trim() || mascotUnlocking"
-                    >
-                      {{ $t('settings.mascotUnlockAction') }}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </form>
-          </div>
-
-          <div v-else id="mascot-settings-content" class="p-3">
-            <p class="mb-3 text-[11.5px] text-[var(--text-tertiary)]">
-              {{ $t('settings.mascotHint') }}
-            </p>
-            <div class="grid grid-cols-2 gap-2.5 min-[900px]:grid-cols-3">
-              <button
-                v-for="option in mascotOptions"
-                :key="option.value"
-                type="button"
-                class="group min-w-0 overflow-hidden rounded-[var(--radius-md)] border text-left transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-                :class="
-                  draft.mascotStyle === option.value
-                    ? 'border-[var(--accent-border)] bg-[var(--accent-tint-soft)]'
-                    : 'border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
-                "
-                :aria-pressed="draft.mascotStyle === option.value"
-                :data-mascot-option="option.value"
-                @click="selectMascot(option.value)"
-              >
-                <div class="mascot-option-preview h-32 bg-[var(--bg-window)]/45 px-2 pt-2">
-                  <img
-                    v-if="option.image"
-                    :src="option.image"
-                    alt=""
-                    loading="lazy"
-                    class="size-full object-contain object-bottom transition-transform duration-150 group-hover:scale-[1.025]"
+              <Select
+                v-model="draft.language"
+                :label="$t('settings.language')"
+                :options="languageOptions"
+                layout="row"
+              />
+              <Select
+                v-model="draft.theme"
+                :label="$t('settings.theme')"
+                :options="themeOptions"
+                layout="row"
+              />
+              <PropertyRow :label="$t('settings.windowMotionEnabled')">
+                <div class="flex items-center justify-end">
+                  <Switch
+                    v-model="draft.windowMotionEnabled"
+                    :label="$t('settings.windowMotionEnabled')"
+                    data-testid="window-motion-toggle"
                   />
-                  <div
-                    v-else
-                    class="flex size-full items-center justify-center text-[var(--text-tertiary)]"
-                  >
-                    <CircleOff class="size-10" :stroke-width="1.25" />
-                  </div>
                 </div>
-                <div class="border-t border-[var(--border-subtle)] px-2.5 py-2">
-                  <div class="flex min-w-0 items-center gap-1.5">
-                    <div class="truncate text-[12px] font-medium text-[var(--text-primary)]">
-                      {{ option.label }}
+              </PropertyRow>
+              <PropertyRow :label="$t('settings.screenMotionEnabled')">
+                <div class="flex items-center justify-end">
+                  <Switch
+                    v-model="draft.screenMotionEnabled"
+                    :label="$t('settings.screenMotionEnabled')"
+                    data-testid="screen-motion-toggle"
+                  />
+                </div>
+              </PropertyRow>
+            </div>
+          </InspectorSection>
+
+          <section
+            v-else-if="section === 'nav'"
+            data-testid="nav-order-section"
+            class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+          >
+            <div class="flex items-center justify-between gap-2 px-3 py-2">
+              <p class="text-[11.5px] text-[var(--text-tertiary)]">
+                {{ $t('settings.navOrderHint') }}
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                :disabled="navOrderIsDefault"
+                data-testid="nav-order-reset"
+                @click="resetNavOrder"
+              >
+                <RotateCcw class="size-3" :stroke-width="1.75" />
+                {{ $t('settings.navOrderReset') }}
+              </Button>
+            </div>
+            <NavOrderList v-model="draft.navOrder" />
+          </section>
+
+          <section
+            v-else-if="section === 'mascot'"
+            data-testid="mascot-settings-section"
+            class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+          >
+            <div v-if="!draft.mascotUnlocked" id="mascot-settings-content" class="p-3">
+              <form
+                data-testid="mascot-unlock-form"
+                class="rounded-[var(--radius-sm)] border border-[var(--warning)]/30 bg-[var(--warning-tint)] p-3"
+                @submit.prevent="unlockMascot"
+              >
+                <div class="flex items-start gap-2.5">
+                  <KeyRound
+                    class="mt-0.5 size-4 shrink-0 text-[var(--warning)]"
+                    :stroke-width="1.75"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <label
+                      for="mascot-unlock-answer"
+                      class="block text-[12px] font-semibold text-[var(--text-primary)]"
+                    >
+                      {{ $t('settings.mascotUnlockQuestion') }}
+                    </label>
+                    <p class="mt-0.5 text-[10.5px] text-[var(--text-tertiary)]">
+                      {{ $t('settings.mascotLockedHint') }}
+                    </p>
+                    <div class="mt-2 flex items-start gap-2">
+                      <div class="min-w-0 flex-1">
+                        <input
+                          id="mascot-unlock-answer"
+                          v-model="mascotAnswer"
+                          data-testid="mascot-unlock-answer"
+                          type="password"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          :placeholder="$t('settings.mascotUnlockPlaceholder')"
+                          class="h-[var(--height-input)] w-full rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 font-[family-name:var(--font-mono)] text-[12px] text-[var(--text-primary)] shadow-[var(--control-shadow)] placeholder:text-[var(--control-placeholder)] hover:border-[var(--control-border-hover)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
+                          :aria-invalid="Boolean(mascotUnlockError)"
+                          :aria-describedby="mascotUnlockError ? 'mascot-unlock-error' : undefined"
+                          @input="mascotUnlockError = ''"
+                        />
+                        <p
+                          v-if="mascotUnlockError"
+                          id="mascot-unlock-error"
+                          role="alert"
+                          class="mt-1 text-[10.5px] text-[var(--error)]"
+                        >
+                          {{ mascotUnlockError }}
+                        </p>
+                      </div>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        :loading="mascotUnlocking"
+                        :disabled="!mascotAnswer.trim() || mascotUnlocking"
+                      >
+                        {{ $t('settings.mascotUnlockAction') }}
+                      </Button>
                     </div>
                   </div>
-                  <div
-                    class="mt-0.5 line-clamp-2 text-[10.5px] leading-4 text-[var(--text-tertiary)]"
-                  >
-                    {{ option.description }}
-                  </div>
                 </div>
-              </button>
+              </form>
             </div>
-            <div
-              class="mt-3 divide-y divide-[var(--border-subtle)] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)]"
-            >
-              <PropertyRow :label="$t('settings.petEnabled')">
-                <Switch v-model="draft.petEnabled" :label="$t('settings.petEnabled')" />
-              </PropertyRow>
-              <PropertyRow :label="$t('settings.petAnimations')">
-                <Switch v-model="draft.petAnimations" :label="$t('settings.petAnimations')" />
-              </PropertyRow>
-              <PropertyRow :label="$t('settings.petStatusText')">
-                <Switch v-model="draft.petStatusText" :label="$t('settings.petStatusText')" />
-              </PropertyRow>
-              <PropertyRow :label="$t('settings.petAutoSleep')">
-                <Switch v-model="draft.petAutoSleep" :label="$t('settings.petAutoSleep')" />
-              </PropertyRow>
-              <PropertyRow :label="$t('settings.petSleepMinutes')">
-                <Input
-                  v-model="petSleepMinutesStr"
-                  type="number"
-                  min="1"
-                  max="120"
-                  class="w-20"
-                  :disabled="!draft.petAutoSleep"
-                />
-              </PropertyRow>
-            </div>
-          </div>
-        </section>
 
-        <InspectorSection
-          v-else-if="section === 'workspace'"
-          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
-        >
-          <div
-            class="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]"
-          >
-            <Select
-              v-model="draft.defaultToolPreset"
-              :label="$t('settings.defaultToolPreset')"
-              :options="toolPresetOptions"
-              layout="row"
-            />
-            <PropertyRow :label="$t('settings.restoreTabs')">
-              <div class="flex items-center justify-end">
-                <Switch v-model="draft.restoreTabs" :label="$t('settings.restoreTabs')" />
-              </div>
-            </PropertyRow>
-            <PropertyRow :label="$t('settings.autoOpenLastProject')">
-              <div class="flex items-center justify-end">
-                <Switch
-                  v-model="draft.autoOpenLastProject"
-                  :label="$t('settings.autoOpenLastProject')"
-                />
-              </div>
-            </PropertyRow>
-          </div>
-        </InspectorSection>
-
-        <InspectorSection
-          v-else-if="section === 'paths'"
-          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
-        >
-          <div
-            class="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]"
-          >
-            <Input
-              v-model="manualCliPath"
-              :label="$t('settings.cliPath')"
-              :hint="$t('settings.cliPathHint')"
-              placeholder="/usr/local/bin/pi"
-              layout="row"
-              mono
-            />
-            <Input
-              v-model="manualConfigDir"
-              :label="$t('settings.configDir')"
-              :hint="$t('settings.configDirHint')"
-              placeholder="~/.pi/agent"
-              layout="row"
-              mono
-            />
-          </div>
-        </InspectorSection>
-
-        <InspectorSection
-          v-else-if="section === 'backup'"
-          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
-        >
-          <PropertyRow :label="$t('settings.autoBackup')">
-            <div class="flex items-center justify-end">
-              <Switch v-model="draft.autoBackup" :label="$t('settings.autoBackup')" />
-            </div>
-          </PropertyRow>
-          <PropertyRow :label="$t('settings.retention')">
-            <input
-              v-model="backupRetentionStr"
-              type="number"
-              min="1"
-              step="1"
-              :aria-label="$t('settings.retention')"
-              class="h-[var(--height-input)] w-[88px] rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 text-right text-[12px] tabular-nums text-[var(--text-primary)] shadow-[var(--control-shadow)] transition-[background-color,border-color,box-shadow] hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] focus:border-[var(--accent)] focus:bg-[var(--control-bg-hover)] focus:outline-none focus:shadow-[var(--focus-ring)]"
-            />
-          </PropertyRow>
-          <div
-            class="px-3 py-2 flex flex-wrap items-center gap-1.5 border-t border-[var(--border-subtle)]"
-          >
-            <Button variant="secondary" size="sm" @click="createBackup">
-              <Archive class="size-3.5" :stroke-width="1.75" />
-              {{ $t('settings.createBackup') }}
-            </Button>
-            <Button variant="secondary" size="sm" @click="cleanupBackups">
-              <Eraser class="size-3.5" :stroke-width="1.75" />
-              {{ $t('settings.cleanupBackups') }}
-            </Button>
-            <Button variant="ghost" size="sm" @click="store.openBackupFolder">
-              <FolderOpen class="size-3.5" :stroke-width="1.75" />
-              {{ $t('settings.openFolder') }}
-            </Button>
-          </div>
-          <p class="px-3 pb-2 text-[10.5px] text-[var(--text-tertiary)]">
-            {{ $t('settings.cleanupHint', { count: draft.backupRetention }) }}
-          </p>
-          <div class="border-t border-[var(--border-subtle)]">
-            <div
-              v-if="store.backupsLoading"
-              class="px-3 py-3 text-[11.5px] text-[var(--text-tertiary)]"
-            >
-              {{ $t('settings.loadingBackups') }}
-            </div>
-            <div
-              v-else-if="store.backups.length === 0"
-              class="px-3 py-3 text-[11.5px] text-[var(--text-tertiary)]"
-            >
-              {{ $t('settings.noBackups') }}
-            </div>
-            <ul v-else class="divide-y divide-[var(--border-subtle)]">
-              <li
-                v-for="backup in store.backups"
-                :key="backup.id"
-                class="group flex items-center gap-3 px-3 py-1.5 hover:bg-[var(--bg-hover)]"
-              >
-                <div class="min-w-0 flex-1">
-                  <div
-                    class="truncate text-[12px] text-[var(--text-primary)]"
-                    :title="
-                      formatDateTime(backup.timestamp, locale === 'zh-CN' ? 'zh-CN' : 'en-US')
-                    "
-                  >
-                    {{ formatDateTime(backup.timestamp, locale === 'zh-CN' ? 'zh-CN' : 'en-US') }}
-                  </div>
-                  <div class="flex items-center gap-1.5 mt-0.5">
-                    <Badge tone="muted">
-                      {{ backup.reason }}
-                    </Badge>
-                    <span class="text-[10.5px] text-[var(--text-tertiary)] tabular-nums">
-                      {{ formatBytes(backup.sizeBytes) }}
-                    </span>
-                  </div>
-                </div>
-                <div
-                  class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+            <div v-else id="mascot-settings-content" class="p-3">
+              <p class="mb-3 text-[11.5px] text-[var(--text-tertiary)]">
+                {{ $t('settings.mascotHint') }}
+              </p>
+              <div class="mascot-options-grid" data-testid="mascot-options-grid">
+                <button
+                  v-for="option in mascotOptions"
+                  :key="option.value"
+                  type="button"
+                  class="mascot-option flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-md)] border text-left transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+                  :class="
+                    draft.mascotStyle === option.value
+                      ? 'border-[var(--accent-border)] bg-[var(--accent-tint-soft)]'
+                      : 'border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
+                  "
+                  :aria-pressed="draft.mascotStyle === option.value"
+                  :data-mascot-option="option.value"
+                  @click="selectMascot(option.value)"
                 >
-                  <IconButton :label="$t('common.restore')" @click="restoreBackup(backup.id)">
-                    <RotateCcw class="size-3.5" :stroke-width="1.75" />
-                  </IconButton>
-                  <IconButton
-                    variant="danger"
-                    :label="$t('common.delete')"
-                    @click="deleteBackup(backup.id)"
-                  >
-                    <Trash2 class="size-3.5" :stroke-width="1.75" />
-                  </IconButton>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </InspectorSection>
-
-        <InspectorSection
-          v-else-if="section === 'updates'"
-          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
-        >
-          <div class="px-3 py-2.5 space-y-2.5">
-            <p class="text-[11.5px] text-[var(--text-tertiary)]">
-              {{ $t('settings.updatesHint') }}
-            </p>
-            <p v-if="updateMessage" class="text-[12px] text-[var(--text-secondary)]">
-              {{ updateMessage }}
-            </p>
-            <div
-              v-if="updateState?.status === 'downloading'"
-              class="h-1 overflow-hidden rounded-full bg-[var(--bg-hover)]"
-              role="progressbar"
-              :aria-valuenow="updateProgress"
-              aria-valuemin="0"
-              aria-valuemax="100"
-            >
+                  <div class="mascot-option-preview bg-[var(--bg-window)]/45">
+                    <img
+                      v-if="option.image"
+                      :src="option.image"
+                      alt=""
+                      loading="lazy"
+                      class="mascot-option-image"
+                    />
+                    <div
+                      v-else
+                      class="flex size-full items-center justify-center text-[var(--text-tertiary)]"
+                    >
+                      <CircleOff class="size-10" :stroke-width="1.25" />
+                    </div>
+                  </div>
+                  <div class="mascot-option-copy border-t border-[var(--border-subtle)] p-3">
+                    <div class="flex min-w-0 items-center gap-1.5">
+                      <div class="truncate text-[12px] font-medium text-[var(--text-primary)]">
+                        {{ option.label }}
+                      </div>
+                    </div>
+                    <div
+                      class="mt-0.5 line-clamp-2 text-[10.5px] leading-4 text-[var(--text-tertiary)]"
+                    >
+                      {{ option.description }}
+                    </div>
+                  </div>
+                </button>
+              </div>
               <div
-                class="h-full rounded-full bg-[var(--accent)] transition-[width] duration-200"
-                :style="{ width: `${updateProgress}%` }"
+                class="mt-3 divide-y divide-[var(--border-subtle)] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)]"
+              >
+                <PropertyRow :label="$t('settings.petEnabled')">
+                  <Switch v-model="draft.petEnabled" :label="$t('settings.petEnabled')" />
+                </PropertyRow>
+                <PropertyRow :label="$t('settings.petAnimations')">
+                  <Switch v-model="draft.petAnimations" :label="$t('settings.petAnimations')" />
+                </PropertyRow>
+                <PropertyRow :label="$t('settings.petStatusText')">
+                  <Switch v-model="draft.petStatusText" :label="$t('settings.petStatusText')" />
+                </PropertyRow>
+                <PropertyRow :label="$t('settings.petAutoSleep')">
+                  <Switch v-model="draft.petAutoSleep" :label="$t('settings.petAutoSleep')" />
+                </PropertyRow>
+                <PropertyRow :label="$t('settings.petSleepMinutes')">
+                  <Input
+                    v-model="petSleepMinutesStr"
+                    type="number"
+                    min="1"
+                    max="120"
+                    class="w-20"
+                    :disabled="!draft.petAutoSleep"
+                  />
+                </PropertyRow>
+              </div>
+            </div>
+          </section>
+
+          <InspectorSection
+            v-else-if="section === 'workspace'"
+            class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+          >
+            <div
+              class="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]"
+            >
+              <Select
+                v-model="draft.defaultToolPreset"
+                :label="$t('settings.defaultToolPreset')"
+                :options="toolPresetOptions"
+                layout="row"
+              />
+              <PropertyRow :label="$t('settings.restoreTabs')">
+                <div class="flex items-center justify-end">
+                  <Switch v-model="draft.restoreTabs" :label="$t('settings.restoreTabs')" />
+                </div>
+              </PropertyRow>
+              <PropertyRow :label="$t('settings.autoOpenLastProject')">
+                <div class="flex items-center justify-end">
+                  <Switch
+                    v-model="draft.autoOpenLastProject"
+                    :label="$t('settings.autoOpenLastProject')"
+                  />
+                </div>
+              </PropertyRow>
+            </div>
+          </InspectorSection>
+
+          <InspectorSection
+            v-else-if="section === 'paths'"
+            class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+          >
+            <div
+              class="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]"
+            >
+              <Input
+                v-model="manualCliPath"
+                :label="$t('settings.cliPath')"
+                :hint="$t('settings.cliPathHint')"
+                placeholder="/usr/local/bin/pi"
+                layout="row"
+                mono
+              />
+              <Input
+                v-model="manualConfigDir"
+                :label="$t('settings.configDir')"
+                :hint="$t('settings.configDirHint')"
+                placeholder="~/.pi/agent"
+                layout="row"
+                mono
               />
             </div>
-            <div class="flex flex-wrap gap-1.5">
-              <Button variant="secondary" size="sm" :loading="updateBusy" @click="checkUpdates">
-                {{ $t('settings.checkUpdates') }}
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                :disabled="!updateDownloaded"
-                @click="installUpdate"
-              >
-                {{ $t('settings.installUpdate') }}
-              </Button>
-            </div>
-          </div>
-        </InspectorSection>
+          </InspectorSection>
 
-        <InspectorSection
-          v-else-if="section === 'developer'"
-          class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
-        >
-          <PropertyRow :label="$t('settings.developerMode')">
-            <div class="flex items-center justify-end">
-              <Switch v-model="draft.developerMode" :label="$t('settings.developerMode')" />
+          <InspectorSection
+            v-else-if="section === 'backup'"
+            class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+          >
+            <PropertyRow :label="$t('settings.autoBackup')">
+              <div class="flex items-center justify-end">
+                <Switch v-model="draft.autoBackup" :label="$t('settings.autoBackup')" />
+              </div>
+            </PropertyRow>
+            <PropertyRow :label="$t('settings.retention')">
+              <input
+                v-model="backupRetentionStr"
+                type="number"
+                min="1"
+                step="1"
+                :aria-label="$t('settings.retention')"
+                class="h-[var(--height-input)] w-[88px] rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 text-right text-[12px] tabular-nums text-[var(--text-primary)] shadow-[var(--control-shadow)] transition-[background-color,border-color,box-shadow] hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] focus:border-[var(--accent)] focus:bg-[var(--control-bg-hover)] focus:outline-none focus:shadow-[var(--focus-ring)]"
+              />
+            </PropertyRow>
+            <div
+              class="px-3 py-2 flex flex-wrap items-center gap-1.5 border-t border-[var(--border-subtle)]"
+            >
+              <Button variant="secondary" size="sm" @click="createBackup">
+                <Archive class="size-3.5" :stroke-width="1.75" />
+                {{ $t('settings.createBackup') }}
+              </Button>
+              <Button variant="secondary" size="sm" @click="cleanupBackups">
+                <Eraser class="size-3.5" :stroke-width="1.75" />
+                {{ $t('settings.cleanupBackups') }}
+              </Button>
+              <Button variant="ghost" size="sm" @click="store.openBackupFolder">
+                <FolderOpen class="size-3.5" :stroke-width="1.75" />
+                {{ $t('settings.openFolder') }}
+              </Button>
             </div>
-          </PropertyRow>
-          <PropertyRow :label="$t('settings.mockMode')">
-            <div class="flex items-center justify-end">
-              <Switch v-model="draft.mockMode" :label="$t('settings.mockMode')" />
+            <p class="px-3 pb-2 text-[10.5px] text-[var(--text-tertiary)]">
+              {{ $t('settings.cleanupHint', { count: draft.backupRetention }) }}
+            </p>
+            <div class="border-t border-[var(--border-subtle)]">
+              <div
+                v-if="store.backupsLoading"
+                class="px-3 py-3 text-[11.5px] text-[var(--text-tertiary)]"
+              >
+                {{ $t('settings.loadingBackups') }}
+              </div>
+              <div
+                v-else-if="store.backups.length === 0"
+                class="px-3 py-3 text-[11.5px] text-[var(--text-tertiary)]"
+              >
+                {{ $t('settings.noBackups') }}
+              </div>
+              <ul v-else class="divide-y divide-[var(--border-subtle)]">
+                <li
+                  v-for="backup in store.backups"
+                  :key="backup.id"
+                  class="group flex items-center gap-3 px-3 py-1.5 hover:bg-[var(--bg-hover)]"
+                >
+                  <div class="min-w-0 flex-1">
+                    <div
+                      class="truncate text-[12px] text-[var(--text-primary)]"
+                      :title="
+                        formatDateTime(backup.timestamp, locale === 'zh-CN' ? 'zh-CN' : 'en-US')
+                      "
+                    >
+                      {{ formatDateTime(backup.timestamp, locale === 'zh-CN' ? 'zh-CN' : 'en-US') }}
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                      <Badge tone="muted">
+                        {{ backup.reason }}
+                      </Badge>
+                      <span class="text-[10.5px] text-[var(--text-tertiary)] tabular-nums">
+                        {{ formatBytes(backup.sizeBytes) }}
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                  >
+                    <IconButton :label="$t('common.restore')" @click="restoreBackup(backup.id)">
+                      <RotateCcw class="size-3.5" :stroke-width="1.75" />
+                    </IconButton>
+                    <IconButton
+                      variant="danger"
+                      :label="$t('common.delete')"
+                      @click="deleteBackup(backup.id)"
+                    >
+                      <Trash2 class="size-3.5" :stroke-width="1.75" />
+                    </IconButton>
+                  </div>
+                </li>
+              </ul>
             </div>
-          </PropertyRow>
-          <PetDebug v-if="draft.developerMode" :style="draft.mascotStyle" />
-        </InspectorSection>
+          </InspectorSection>
+
+          <InspectorSection
+            v-else-if="section === 'updates'"
+            class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+          >
+            <div class="px-3 py-2.5 space-y-2.5">
+              <p class="text-[11.5px] text-[var(--text-tertiary)]">
+                {{ $t('settings.updatesHint') }}
+              </p>
+              <p v-if="updateMessage" class="text-[12px] text-[var(--text-secondary)]">
+                {{ updateMessage }}
+              </p>
+              <div
+                v-if="updateState?.status === 'downloading'"
+                class="h-1 overflow-hidden rounded-full bg-[var(--bg-hover)]"
+                role="progressbar"
+                :aria-valuenow="updateProgress"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <div
+                  class="h-full rounded-full bg-[var(--accent)] transition-[width] duration-200"
+                  :style="{ width: `${updateProgress}%` }"
+                />
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <Button variant="secondary" size="sm" :loading="updateBusy" @click="checkUpdates">
+                  {{ $t('settings.checkUpdates') }}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  :disabled="!updateDownloaded"
+                  @click="installUpdate"
+                >
+                  {{ $t('settings.installUpdate') }}
+                </Button>
+              </div>
+            </div>
+          </InspectorSection>
+
+          <InspectorSection
+            v-else-if="section === 'developer'"
+            class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+          >
+            <PropertyRow :label="$t('settings.developerMode')">
+              <div class="flex items-center justify-end">
+                <Switch v-model="draft.developerMode" :label="$t('settings.developerMode')" />
+              </div>
+            </PropertyRow>
+            <PropertyRow :label="$t('settings.mockMode')">
+              <div class="flex items-center justify-end">
+                <Switch v-model="draft.mockMode" :label="$t('settings.mockMode')" />
+              </div>
+            </PropertyRow>
+            <PetDebug v-if="draft.developerMode" :style="draft.mascotStyle" />
+          </InspectorSection>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.settings-mascot-gallery {
+  container: mascot-gallery / inline-size;
+}
+
+.mascot-options-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--mascot-columns, 1), minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mascot-option-preview {
+  height: 208px;
+  flex: none;
+  overflow: hidden;
+}
+
+/* Crop only the picker viewport; the original art and workspace portrait stay intact. */
+.mascot-option-image {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: 100%;
+  margin-inline: auto;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.mascot-option-copy {
+  height: 80px;
+  flex: none;
+}
+
+@container mascot-gallery (min-width: 500px) {
+  .mascot-options-grid {
+    --mascot-columns: 2;
+  }
+}
+
+@container mascot-gallery (min-width: 800px) {
+  .mascot-options-grid {
+    --mascot-columns: 3;
+  }
+}
+
+@container mascot-gallery (min-width: 1100px) {
+  .mascot-options-grid {
+    --mascot-columns: 4;
+  }
+}
+
+@container mascot-gallery (min-width: 1400px) {
+  .mascot-options-grid {
+    --mascot-columns: 5;
+  }
+}
+</style>

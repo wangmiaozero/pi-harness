@@ -7,9 +7,9 @@ import { useWorkspaceStore } from './workspace'
 import { useSessionStore } from './sessions'
 
 const tabs: WorkspaceTab[] = [
-  { id: 'a', kind: 'file', title: 'a.ts', filePath: '/a.ts', closable: true },
-  { id: 'b', kind: 'file', title: 'b.ts', filePath: '/b.ts', closable: true },
-  { id: 'c', kind: 'file', title: 'c.ts', filePath: '/c.ts', closable: true }
+  { id: 'a', kind: 'diff', title: 'a.ts', filePath: '/a.ts', closable: true },
+  { id: 'b', kind: 'diff', title: 'b.ts', filePath: '/b.ts', closable: true },
+  { id: 'c', kind: 'diff', title: 'c.ts', filePath: '/c.ts', closable: true }
 ]
 
 describe('workspace tab closing', () => {
@@ -134,6 +134,108 @@ describe('workspace file edit buffers', () => {
   })
 })
 
+describe('conversation file panel', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+  afterEach(() => {
+    delete window.piSwitch
+  })
+
+  it('opens and closes files without replacing the active conversation', () => {
+    const workspace = useWorkspaceStore()
+    selectFileSession(workspace, '/code/a', 'a')
+    workspace.openFileTab('/code/a/index.ts', 'index.ts')
+    workspace.openFileTab('/code/a/other.ts', 'other.ts')
+    expect(workspace.activeTabId).toBe('chat:a')
+    expect(workspace.mainTabs.map((tab) => tab.id)).toEqual(['chat:a'])
+    expect(workspace.activeFileTab?.filePath).toBe('/code/a/other.ts')
+    workspace.closeTab(workspace.activeFileTab!.id)
+    expect(workspace.activeFileTab?.filePath).toBe('/code/a/index.ts')
+    expect(useSessionStore().currentId).toBe('a')
+    expect(workspace.activeTabId).toBe('chat:a')
+  })
+
+  it('preserves unsaved buffers on collapse and scopes previews to the selected session', () => {
+    const workspace = useWorkspaceStore()
+    selectFileSession(workspace, '/code/a', 'a')
+    workspace.openFileTab('/code/a/index.ts', 'index.ts')
+    workspace.ensureFileEditBuffer('/code/a/index.ts', 'initial', 'revision')
+    workspace.updateFileEditBuffer('/code/a/index.ts', 'unsaved')
+    workspace.filePanelOpen = false
+    workspace.filePanelOpen = true
+    expect(workspace.fileEditBuffers['/code/a/index.ts'].content).toBe('unsaved')
+    selectFileSession(workspace, '/code/b', 'b')
+    expect(workspace.sessionFileTabs).toEqual([])
+    expect(workspace.activeFileTab).toBeNull()
+    workspace.openFileTab('/code/a/index.ts', 'index.ts')
+    expect(workspace.activeFileTab).toBeNull()
+    selectFileSession(workspace, '/code/a', 'a')
+    expect(workspace.activeFileTab?.filePath).toBe('/code/a/index.ts')
+    expect(workspace.isFileDirty('/code/a/index.ts')).toBe(true)
+    useSessionStore().selectSession(null)
+    expect(workspace.activeFileTab).toBeNull()
+  })
+
+  it('never lists or searches draft/global folders without a selected session', async () => {
+    const workspace = useWorkspaceStore()
+    const list = vi.fn()
+    const search = vi.fn()
+    window.piSwitch = { files: { list }, workspace: { search } } as unknown as PiSwitchAPI
+    workspace.addProjectRoot('/code/draft')
+    await workspace.loadFiles()
+    expect(await workspace.loadDirectory('/code/draft')).toEqual([])
+    expect(await workspace.searchFiles('index')).toEqual([])
+    workspace.openFileTab('/code/draft/index.ts', 'index.ts')
+    expect(list).not.toHaveBeenCalled()
+    expect(search).not.toHaveBeenCalled()
+    expect(workspace.sessionFileTabs).toEqual([])
+    expect(workspace.tabs).toEqual([])
+  })
+
+  it('ignores stale directory results after switching sessions', async () => {
+    const workspace = useWorkspaceStore()
+    let finish!: (entries: []) => void
+    const list = vi.fn(
+      () =>
+        new Promise<[]>((resolve) => {
+          finish = resolve
+        })
+    )
+    window.piSwitch = { files: { list } } as unknown as PiSwitchAPI
+    selectFileSession(workspace, '/code/a', 'a')
+    const loading = workspace.loadDirectory('/code/a')
+    selectFileSession(workspace, '/code/b', 'b')
+    finish([])
+    expect(await loading).toEqual([])
+    expect(workspace.fileChildren['/code/a']).toBeUndefined()
+  })
+
+  it('does not expose old roots while the next session workspace is synchronizing', async () => {
+    const workspace = useWorkspaceStore()
+    selectFileSession(workspace, '/code/a', 'a')
+    const sessions = useSessionStore()
+    sessions.items.push(session('b', '/code/b', '2026-08-30T00:00:00.000Z'))
+    const api = workspaceApi({ b: binding('b', ['/code/b']) })
+    const synced = await api.workspace.sync({ folders: [{ path: '/code/b' }] })
+    let finish!: (value: typeof synced) => void
+    api.workspace.sync = vi.fn(
+      () =>
+        new Promise<typeof synced>((resolve) => {
+          finish = resolve
+        })
+    )
+    window.piSwitch = api
+    sessions.selectSession('b')
+    const loading = workspace.restoreSessionWorkspace('b')
+    await vi.waitFor(() => expect(api.workspace.sync).toHaveBeenCalled())
+    expect(workspace.activeSessionWorkspaceId).toBeNull()
+    expect(workspace.hasSessionWorkspace).toBe(false)
+    finish(synced)
+    await loading
+    expect(workspace.hasSessionWorkspace).toBe(true)
+    expect(workspace.projectRoots).toEqual(['/code/b'])
+  })
+})
+
 describe('workspace projects', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -166,10 +268,11 @@ describe('workspace projects', () => {
 
   it('prefixes file tabs with the folder name in a multi-root workspace', () => {
     const workspace = useWorkspaceStore()
+    selectFileSession(workspace, '/code/AgentDesk')
     workspace.addProjectRoot('/code/AgentDesk')
     workspace.addProjectRoot('/code/opencode')
     workspace.openFileTab('/code/AgentDesk/src/index.ts', 'index.ts')
-    expect(workspace.tabs[0]).toMatchObject({
+    expect(workspace.activeFileTab).toMatchObject({
       id: 'file:/code/AgentDesk/src/index.ts',
       title: 'AgentDesk/index.ts'
     })
@@ -250,58 +353,17 @@ describe('workspace projects', () => {
 
       expect(workspace.projectRoots).toEqual(['/code/a', '/code/b'])
       expect(workspace.activeSessionWorkspaceId).toBeNull()
-      expect(workspace.workspaceFolders.map((folder) => [folder.resolvedPath, folder.role])).toEqual([
+      expect(
+        workspace.workspaceFolders.map((folder) => [folder.resolvedPath, folder.role])
+      ).toEqual([
         ['/code/a', 'main'],
         ['/code/b', 'reference']
       ])
-    } finally {
-      delete window.piSwitch
-    }
-  })
-
-  it('scopes sessions to the active workspace while keeping them all without one', async () => {
-    const workspace = useWorkspaceStore()
-    const sessions = useSessionStore()
-    sessions.items = [
-      session('session-a', '/code/a', '2026-01-01T00:00:00.000Z'),
-      session('session-b', '/code/b', '2026-01-02T00:00:00.000Z'),
-      session('session-shared', '/code/shared', '2026-01-03T00:00:00.000Z')
-    ]
-    window.piSwitch = workspaceApi({})
-
-    try {
-      expect(sessions.items.every((item) => workspace.isSessionInActiveWorkspace(item))).toBe(true)
-
-      await workspace.resetDraftWorkspaceRoots(['/code/a'])
-
-      expect(workspace.isSessionInActiveWorkspace(sessions.items[0])).toBe(true)
-      expect(workspace.isSessionInActiveWorkspace(sessions.items[1])).toBe(false)
-      expect(workspace.isSessionInActiveWorkspace(sessions.items[2])).toBe(false)
-
-      await workspace.resetDraftWorkspaceRoots(['/code/b', '/code/shared'])
-
-      expect(workspace.isSessionInActiveWorkspace(sessions.items[0])).toBe(false)
-      expect(workspace.isSessionInActiveWorkspace(sessions.items[1])).toBe(true)
-      expect(workspace.isSessionInActiveWorkspace(sessions.items[2])).toBe(true)
-    } finally {
-      delete window.piSwitch
-    }
-  })
-
-  it('matches sessions bound to a workspace folder even when their cwd moved', async () => {
-    const workspace = useWorkspaceStore()
-    const sessions = useSessionStore()
-    const relocated = session('session-moved', '/code/old-location', '2026-01-01T00:00:00.000Z')
-    sessions.items = [relocated]
-    window.piSwitch = workspaceApi({
-      'session-moved': binding('session-moved', ['/code/current'])
-    })
-
-    try {
-      await workspace.refreshSessionBindings()
-      await workspace.resetDraftWorkspaceRoots(['/code/current'])
-
-      expect(workspace.isSessionInActiveWorkspace(relocated)).toBe(true)
+      expect(workspace.hasDraftSession).toBe(true)
+      expect(workspace.draftWorkspaceFolders.map((folder) => folder.resolvedPath)).toEqual([
+        '/code/a',
+        '/code/b'
+      ])
     } finally {
       delete window.piSwitch
     }
@@ -323,6 +385,62 @@ describe('workspace projects', () => {
 
       expect(workspace.activeSessionWorkspaceId).toBeNull()
       expect(workspace.projectRoots).toEqual(['/code/a', '/code/shared'])
+      expect(workspace.hasDraftSession).toBe(true)
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('copies a target session workspace into a new-session draft', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [session('session-a', '/code/a', '2026-01-01T00:00:00.000Z')]
+    window.piSwitch = workspaceApi({
+      'session-a': binding('session-a', ['/code/a', '/code/shared'])
+    })
+
+    try {
+      await expect(workspace.startDraftFromSession('session-a')).resolves.toBe(true)
+
+      expect(workspace.activeSessionWorkspaceId).toBeNull()
+      expect(workspace.projectRoots).toEqual(['/code/a', '/code/shared'])
+      expect(workspace.hasDraftSession).toBe(true)
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('updates only the target session project binding', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    const target = session('session-a', '/code/a', '2026-01-01T00:00:00.000Z')
+    sessions.items = [target, session('session-b', '/code/b', '2026-01-02T00:00:00.000Z')]
+    const bindings = {
+      'session-a': binding('session-a', ['/code/a']),
+      'session-b': binding('session-b', ['/code/b'])
+    }
+    window.piSwitch = workspaceApi(bindings)
+
+    try {
+      await workspace.refreshSessionBindings()
+      const folders = workspace.sessionFolders(target)
+      folders.push({
+        id: projectIdentityKey('/code/shared'),
+        name: 'shared',
+        path: '/code/shared',
+        resolvedPath: '/code/shared',
+        role: 'reference',
+        readonly: false,
+        exists: true
+      })
+
+      await expect(workspace.saveSessionFolders(target.id, folders)).resolves.toBe(true)
+
+      expect(bindings['session-a'].folders.map((folder) => folder.path)).toEqual([
+        '/code/a',
+        '/code/shared'
+      ])
+      expect(bindings['session-b'].folders.map((folder) => folder.path)).toEqual(['/code/b'])
     } finally {
       delete window.piSwitch
     }
@@ -360,7 +478,7 @@ describe('workspace projects', () => {
     workspace.removeProject(projectIdentityKey(rootA))
 
     expect(workspace.tabs.map((tab) => tab.id)).toEqual(['file-b'])
-    expect(workspace.activeTabId).toBe('file-b')
+    expect(workspace.activeTabId).toBeNull()
     expect(workspace.fileEditBuffers['/code/a/src/a.ts']).toBeUndefined()
   })
 
@@ -409,6 +527,333 @@ describe('workspace projects', () => {
       delete window.piSwitch
       vi.unstubAllGlobals()
     }
+  })
+
+  it('does not restore an unsent draft workspace or its Git source after restart', async () => {
+    const workspace = useWorkspaceStore()
+    const staleRoot = '/code/stale-draft'
+    const snapshot = JSON.stringify({
+      projectKey: null,
+      pickedCwd: staleRoot,
+      projectRoots: [staleRoot],
+      draftProjectRoots: [staleRoot],
+      workspaceFile: null,
+      draftWorkspaceFile: null,
+      folderMeta: {
+        [projectIdentityKey(staleRoot)]: { role: 'main' }
+      },
+      draftFolderMeta: {
+        [projectIdentityKey(staleRoot)]: { role: 'main' }
+      },
+      tabs: [
+        {
+          id: 'chat:new',
+          kind: 'chat',
+          title: 'New session',
+          sessionId: 'new',
+          closable: true
+        }
+      ],
+      activeTabId: 'chat:new'
+    })
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => snapshot),
+      setItem: vi.fn(),
+      removeItem: vi.fn()
+    })
+    const api = workspaceApi({})
+    const sync = vi.spyOn(api.workspace, 'sync')
+    window.piSwitch = api
+
+    try {
+      await workspace.restore({ restoreTabs: true, autoOpenLastProject: true })
+
+      expect(workspace.projectRoots).toEqual([])
+      expect(workspace.currentCwd).toBeNull()
+      expect(workspace.hasDraftSession).toBe(false)
+      expect(workspace.tabs).toEqual([])
+      expect(workspace.gitStatuses).toEqual([])
+      expect(sync).toHaveBeenLastCalledWith(
+        expect.objectContaining({ workspaceFile: null, folders: [] })
+      )
+    } finally {
+      delete window.piSwitch
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('discards a draft and clears its active workspace', async () => {
+    const workspace = useWorkspaceStore()
+    window.piSwitch = workspaceApi({})
+
+    try {
+      await workspace.resetDraftWorkspaceRoots(['/code/a', '/code/b'])
+      workspace.ensureChatTab('new', 'New session')
+      expect(workspace.hasDraftSession).toBe(true)
+
+      await workspace.discardDraftSession()
+
+      expect(workspace.hasDraftSession).toBe(false)
+      expect(workspace.draftWorkspaceFolders).toEqual([])
+      expect(workspace.projectRoots).toEqual([])
+      expect(workspace.tabs.map((tab) => tab.id)).not.toContain('chat:new')
+      expect(workspace.gitStatuses).toEqual([])
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('keeps explicitly selected projects when the Workspace view remounts in the same run', async () => {
+    const workspace = useWorkspaceStore()
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+      removeItem: vi.fn()
+    })
+    window.piSwitch = workspaceApi({})
+
+    try {
+      await workspace.restore({ restoreTabs: true, autoOpenLastProject: true })
+      await workspace.resetDraftWorkspace('/code/current-run')
+      workspace.ensureChatTab('new', 'New session')
+
+      await workspace.restore({ restoreTabs: true, autoOpenLastProject: true })
+
+      expect(workspace.hasDraftSession).toBe(true)
+      expect(workspace.projectRoots).toEqual(['/code/current-run'])
+      expect(workspace.tabs.map((tab) => tab.id)).toContain('chat:new')
+    } finally {
+      delete window.piSwitch
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('keeps imported project entries separate from the active draft and session roots', async () => {
+    const workspace = useWorkspaceStore()
+    window.piSwitch = workspaceApi({})
+    try {
+      await workspace.resetDraftWorkspace('/code/a')
+      workspace.rememberImportedProjects(['/code/a/', '/code/a'])
+      await workspace.resetDraftWorkspace('/code/b')
+      workspace.rememberImportedProjects(['/code/b'])
+
+      expect(workspace.importedProjectRoots).toEqual(['/code/a/', '/code/b'])
+      expect(workspace.projectRoots).toEqual(['/code/b'])
+      await workspace.discardDraftSession()
+      expect(workspace.importedProjectRoots).toEqual(['/code/a/', '/code/b'])
+      expect(workspace.projectRoots).toEqual([])
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('restores only explicit project entries without activating their files or Git', async () => {
+    const workspace = useWorkspaceStore()
+    const setItem = vi.fn()
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => JSON.stringify({ importedProjectRoots: ['/code/saved'], tabs: [] })),
+      setItem
+    })
+    const api = workspaceApi({})
+    const sync = vi.spyOn(api.workspace, 'sync')
+    window.piSwitch = api
+    try {
+      await workspace.restore({ restoreTabs: true, autoOpenLastProject: true })
+      expect(workspace.importedProjectRoots).toEqual(['/code/saved'])
+      expect(workspace.projectRoots).toEqual([])
+      expect(workspace.canChat).toBe(false)
+      expect(workspace.tabs).toEqual([])
+      expect(sync).toHaveBeenLastCalledWith(expect.objectContaining({ folders: [] }))
+      expect(JSON.parse(setItem.mock.lastCall![1]).importedProjectRoots).toEqual(['/code/saved'])
+    } finally {
+      delete window.piSwitch
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('imports multiple source folders as one project, using the first folder as primary', async () => {
+    const workspace = useWorkspaceStore()
+    window.piSwitch = workspaceApi({})
+    try {
+      await workspace.resetDraftWorkspaceRoots(['/code/server', '/code/blog', '/code/blog/'])
+      workspace.rememberDraftProject()
+      workspace.rememberDraftProject()
+
+      expect(workspace.importedProjectRoots).toEqual(['/code/server'])
+      expect(workspace.projectSettings[projectIdentityKey('/code/server')]).toEqual({
+        name: 'server',
+        roots: ['/code/server', '/code/blog']
+      })
+      await workspace.discardDraftSession()
+      await workspace.startDraftFromProject('/code/server')
+      expect(workspace.draftProjectRoots).toEqual(['/code/server', '/code/blog'])
+      expect(workspace.mainFolder?.resolvedPath).toBe('/code/server')
+      expect(workspace.importedProjectRoots).toEqual(['/code/server'])
+
+      await workspace.removeProjectEntry(projectIdentityKey('/code/server'))
+      expect(workspace.importedProjectRoots).toEqual([])
+      expect(workspace.draftProjectRoots).toEqual([])
+      expect(workspace.canChat).toBe(false)
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('persists workspace project sources and name without restoring a draft, files or Git', async () => {
+    const workspace = useWorkspaceStore()
+    let snapshot: string | null = null
+    vi.stubGlobal('localStorage', {
+      getItem: () => snapshot,
+      setItem: (_key: string, value: string) => {
+        snapshot = value
+      }
+    })
+    const api = workspaceApi({})
+    api.workspace.openWorkspaceFile = async (path) =>
+      api.workspace.sync({
+        workspaceFile: path,
+        folders: [{ path: '/code/server' }, { path: '/code/blog' }]
+      })
+    window.piSwitch = api
+    try {
+      await workspace.restore({ restoreTabs: true, autoOpenLastProject: true })
+      await workspace.importDraftWorkspaceFile('/code/Combined.CODE-WORKSPACE')
+      workspace.rememberDraftProject()
+      expect(workspace.projectSettings[projectIdentityKey('/code/server')].name).toBe('Combined')
+      workspace.saveProjectSettings('/code/server', 'My workspace', workspace.draftProjectRoots)
+      workspace.rememberDraftProject()
+      expect(workspace.projectSettings[projectIdentityKey('/code/server')].name).toBe(
+        'My workspace'
+      )
+
+      setActivePinia(createPinia())
+      const restored = useWorkspaceStore()
+      await restored.restore({ restoreTabs: true, autoOpenLastProject: true })
+      expect(restored.importedProjectRoots).toEqual(['/code/server'])
+      expect(restored.projectSettings[projectIdentityKey('/code/server')]).toEqual({
+        name: 'My workspace',
+        roots: ['/code/server', '/code/blog']
+      })
+      expect(restored.draftProjectRoots).toEqual([])
+      expect(restored.projectRoots).toEqual([])
+      expect(restored.files).toEqual([])
+      expect(restored.gitStatuses).toEqual([])
+      await restored.startDraftFromProject('/code/server')
+      expect(restored.draftProjectRoots).toEqual(['/code/server', '/code/blog'])
+    } finally {
+      delete window.piSwitch
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('does not merge standalone projects or existing sessions when importing workspace sources', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [session('blog', '/code/blog', '2026-01-01')]
+    const bindings = { blog: binding('blog', ['/code/blog']) }
+    window.piSwitch = workspaceApi(bindings)
+    try {
+      workspace.rememberImportedProjects(['/code/blog'])
+      workspace.rememberDraftProject()
+      expect(workspace.importedProjectRoots).toEqual(['/code/blog'])
+      const before = structuredClone(bindings)
+      await workspace.resetDraftWorkspaceRoots(['/code/server', '/code/blog'])
+      workspace.rememberDraftProject()
+      expect(workspace.importedProjectRoots).toEqual(['/code/blog', '/code/server'])
+      expect(workspace.projectSourceRoots('/code/server')).toEqual(['/code/server', '/code/blog'])
+      expect(workspace.projectSourceRoots('/code/blog')).toEqual(['/code/blog'])
+      expect(bindings).toEqual(before)
+      expect(sessions.items.map((item) => item.id)).toEqual(['blog'])
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('removes imported draft projects without changing a selected real session', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [session('selected', '/code/selected', '2026-01-01T00:00:00.000Z')]
+    window.piSwitch = workspaceApi({})
+    try {
+      await workspace.resetDraftWorkspaceRoots(['/code/a', '/code/b'])
+      workspace.rememberImportedProjects(['/code/a', '/code/b'])
+      sessions.selectSession('selected')
+      await workspace.restoreSessionWorkspace('selected')
+
+      await workspace.removeImportedProject(projectIdentityKey('/code/a'))
+      expect(workspace.importedProjectRoots).toEqual(['/code/b'])
+      expect(workspace.draftWorkspaceFolders).toEqual([
+        expect.objectContaining({ resolvedPath: '/code/b', role: 'main' })
+      ])
+      await workspace.removeImportedProject(projectIdentityKey('/code/b'))
+      expect(workspace.importedProjectRoots).toEqual([])
+      expect(workspace.hasDraftSession).toBe(false)
+      expect(sessions.currentId).toBe('selected')
+      expect(workspace.projectRoots).toEqual(['/code/selected'])
+      expect(workspace.activeSessionWorkspaceId).toBe('selected')
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('saves project names and source folders without rebinding existing sessions', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [session('a', '/code/a', '2026-01-01'), session('b', '/code/b', '2026-01-01')]
+    const bindings = { a: binding('a', ['/code/a', '/code/old']), b: binding('b', ['/code/b']) }
+    window.piSwitch = workspaceApi(bindings)
+    try {
+      await workspace.restoreSessionWorkspace('a')
+      const before = structuredClone(bindings)
+      workspace.saveProjectSettings('/code/a', 'A renamed', ['/code/a', '/code/new', '/code/new'])
+      expect(workspace.projectSettings[projectIdentityKey('/code/a')]).toEqual({
+        name: 'A renamed',
+        roots: ['/code/a', '/code/new']
+      })
+      await workspace.startDraftFromProject('/code/a')
+      expect(workspace.draftProjectRoots).toEqual(['/code/a', '/code/new'])
+      expect(bindings).toEqual(before)
+      expect(workspace.importedProjectRoots).toEqual(['/code/a'])
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('removes only the project navigation entry and allows explicitly reimporting it', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [session('a', '/code/a', '2026-01-01'), session('b', '/code/b', '2026-01-01')]
+    window.piSwitch = workspaceApi({})
+    try {
+      workspace.rememberImportedProjects(['/code/a', '/code/b'])
+      sessions.selectSession('b')
+      await workspace.restoreSessionWorkspace('b')
+      await workspace.removeProjectEntry(projectIdentityKey('/code/a'))
+      expect(sessions.items.map((item) => item.id)).toEqual(['a', 'b'])
+      expect(sessions.currentId).toBe('b')
+      expect(workspace.projectRoots).toEqual(['/code/b'])
+      expect(workspace.removedProjectKeys).toContain(projectIdentityKey('/code/a'))
+      workspace.rememberImportedProjects(['/code/a'])
+      expect(workspace.removedProjectKeys).not.toContain(projectIdentityKey('/code/a'))
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('archives by the bound primary project, never by an attachment or stale cwd', () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [
+      session('a', '/code/old', '2026-01-01'),
+      session('b', '/code/b', '2026-01-01')
+    ]
+    workspace.sessionBindings = {
+      a: binding('a', ['/code/a']),
+      b: binding('b', ['/code/b', '/code/a'])
+    }
+    workspace.archiveProjectSessions(projectIdentityKey('/code/a'))
+    expect(workspace.archivedSessionIds).toEqual(['a'])
+    expect(sessions.items).toHaveLength(2)
   })
 
   it('does not restore chat tabs for sessions missing from the latest session list', async () => {
@@ -500,6 +945,7 @@ describe('workspace content refresh', () => {
     window.piSwitch = { files: { list }, git: { statusMany } } as unknown as PiSwitchAPI
     const workspace = useWorkspaceStore()
     workspace.setPickedCwd('/code/project')
+    selectFileSession(workspace, '/code/project')
     await workspace.loadFiles('/code/project/src')
 
     await workspace.refreshContent()
@@ -561,6 +1007,22 @@ function session(id: string, cwd: string, modified: string): SessionInfo {
   }
 }
 
+function selectFileSession(
+  workspace: ReturnType<typeof useWorkspaceStore>,
+  root: string,
+  id = 'file-session'
+) {
+  const sessions = useSessionStore()
+  sessions.items = [
+    ...sessions.items.filter((item) => item.id !== id),
+    session(id, root, '2026-08-30T00:00:00.000Z')
+  ]
+  sessions.selectSession(id)
+  workspace.projectRoots = [root]
+  workspace.activeSessionWorkspaceId = id
+  workspace.ensureChatTab(id, id)
+}
+
 function binding(sessionId: string, paths: string[]): SessionWorkspaceBinding {
   const folders = paths.map((path, index) => ({
     id: projectIdentityKey(path),
@@ -596,6 +1058,14 @@ function workspaceApi(bindings: Record<string, SessionWorkspaceBinding>): PiSwit
     workspace: {
       listSessionBindings: async () => bindings,
       getSessionBinding: async (sessionId: string) => bindings[sessionId] ?? null,
+      bindSession: async (
+        sessionId: string,
+        workspaceId: string,
+        folders: SessionWorkspaceBinding['folders'],
+        mainFolderId?: string
+      ) => {
+        bindings[sessionId] = { workspaceId, folders, mainFolderId }
+      },
       allowRoot: async () => undefined,
       sync
     }

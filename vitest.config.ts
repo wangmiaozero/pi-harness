@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { resolve } from 'node:path'
 
 export default defineConfig({
+  define: { __MASCOT_ENABLED__: true },
   plugins: [vue()],
   resolve: {
     alias: {

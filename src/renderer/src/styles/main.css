@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import './tokens.css';
 @import './starship-cockpit.css';
+@import './portrait-skins.css';
 
 .harness-card {
   border: 1px solid var(--border-subtle);
@@ -166,12 +167,15 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  color: inherit;
+/* Resets stay below component utilities, especially primary button text-white. */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
 }
 
 /* Native form controls should adopt our color stack on macOS. */

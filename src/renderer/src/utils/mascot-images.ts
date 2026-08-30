@@ -9,5 +9,7 @@ export const MASCOT_IMAGES: Record<MascotStyle, string | null> = {
   mature: PET_MANIFESTS.mature.sprite,
   office: PET_MANIFESTS.office.sprite,
   maidWhite: PET_MANIFESTS.maidWhite.sprite,
-  starshipCockpit: PET_MANIFESTS.starshipCockpit.sprite
+  starshipCockpit: PET_MANIFESTS.starshipCockpit.sprite,
+  noirScholar: PET_MANIFESTS.noirScholar.sprite,
+  moonlitMaid: PET_MANIFESTS.moonlitMaid.sprite
 }

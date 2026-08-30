@@ -32,7 +32,7 @@ function pixelRatio(): number {
 }
 
 function currentMode(): 'dark' | 'light' {
-  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
+  return document.documentElement.dataset.appearance === 'light' ? 'light' : 'dark'
 }
 
 function clearPauseTimer() {

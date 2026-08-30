@@ -27,6 +27,7 @@ import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
 import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
 import { DEFAULT_NAV_ORDER } from '@shared/constants/navigation'
+import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
 import { FileAccessService, type AuthorizedRootsState } from './files/file-access-service'
 import { FileService } from './files/file-service'
 import { GitService } from './git/git-service'
@@ -105,8 +106,13 @@ async function bootstrap(): Promise<void> {
   })
 
   const settingsStore = new JsonStore<AppSettings>(appSettingsPath(), DEFAULT_SETTINGS)
-  await settingsStore.read()
-  nativeTheme.themeSource = settingsStore.peek().theme
+  const storedSettings = await settingsStore.read()
+  const theme = normalizeAppTheme(
+    storedSettings.theme,
+    nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
+  )
+  if (theme !== storedSettings.theme) await settingsStore.update({ theme })
+  nativeTheme.themeSource = themeAppearance(theme)
   const uiStateStore = new JsonStore<Record<string, unknown>>(appUiStatePath(), {})
   await uiStateStore.read()
   const authorizedRootsStore = new JsonStore<AuthorizedRootsState>(appAuthorizedRootsPath(), {

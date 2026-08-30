@@ -105,7 +105,7 @@ const commands = computed<PaletteCommand[]>(() => {
       group: t('palette.groupNav'),
       keywords: 'json models settings editor',
       run: () => {
-        void router.push('/config')
+        void router.push('/settings/config')
       }
     },
     {
@@ -113,7 +113,7 @@ const commands = computed<PaletteCommand[]>(() => {
       label: t('palette.goDiagnostics'),
       group: t('palette.groupNav'),
       run: () => {
-        void router.push('/diagnostics')
+        void router.push('/settings/diagnostics')
       }
     },
     {

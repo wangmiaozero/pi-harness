@@ -17,6 +17,7 @@ import type { AgentImageAttachment } from '@shared/types/workspace'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { useCompletionSound } from '@renderer/composables/useCompletionSound'
 import { normalizeMascotStyle } from '@shared/constants/mascot'
+import { getVisualSkin } from '@renderer/utils/skin-catalog'
 import { usePetStore } from '@renderer/stores/pet'
 
 const { locale } = useI18n()
@@ -160,6 +161,7 @@ async function onSend() {
   if (agent.error) return
   workspace.clearDraft(draftKey)
   if (sessionId && sessionId !== sessions.currentId) {
+    workspace.consumeDraftSession()
     sessions.selectSession(sessionId)
   }
 }
@@ -383,7 +385,7 @@ function duration(value: number): string {
         :active="mascotActive"
         :enabled="
           Boolean(settings.settings?.mascotUnlocked && settings.settings?.petEnabled) &&
-          mascotStyle !== 'starshipCockpit'
+          !getVisualSkin(mascotStyle)
         "
         :animated="settings.settings?.petAnimations ?? true"
         :show-status="settings.settings?.petStatusText ?? true"

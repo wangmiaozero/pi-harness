@@ -15,6 +15,7 @@ import type {
 } from '../types/domain'
 
 import type { ProtocolId } from '../constants/protocols'
+import type { AppTheme } from '../constants/theme'
 import type {
   AgentStateSnapshot,
   AgentWorkspace,
@@ -30,6 +31,7 @@ import type {
   RecentWorkspace,
   SessionContext,
   SessionContextAction,
+  SessionFolderContextAction,
   SessionDetail,
   SessionInfo,
   SessionProjectGroup,
@@ -537,7 +539,7 @@ export interface DiagnosticsReport {
 
 export interface AppSettings {
   language: 'auto' | 'zh-CN' | 'en-US'
-  theme: 'system' | 'dark' | 'light'
+  theme: AppTheme
   mascotUnlocked: boolean
   mascotStyle: MascotStyle
   petEnabled: boolean
@@ -776,6 +778,7 @@ export interface PiSwitchAPI {
       isPinned?: boolean,
       locale?: 'zh-CN' | 'en-US'
     ): Promise<ProjectContextAction | null>
+    sessionFolderContextMenu(locale?: 'zh-CN' | 'en-US'): Promise<SessionFolderContextAction | null>
     getPathForFile(file: unknown): Promise<string>
     getActive(): Promise<AgentWorkspace | null>
     sync(input: {
@@ -802,11 +805,7 @@ export interface PiSwitchAPI {
       settings?: Record<string, unknown>
       workspaceFile?: string | null
     }): Promise<AgentWorkspace>
-    search(
-      query: string,
-      scope?: FileSearchScope,
-      folderId?: string
-    ): Promise<FileSearchHit[]>
+    search(query: string, scope?: FileSearchScope, folderId?: string): Promise<FileSearchHit[]>
     openInTerminal(directory: string): Promise<void>
     relocateFolder(folderId: string, path: string): Promise<AgentWorkspace>
     listRecent(): Promise<RecentWorkspace[]>
@@ -826,6 +825,11 @@ export interface PiSwitchAPI {
     delete(sessionId: string): Promise<void>
     context(sessionId: string, leafId?: string | null): Promise<SessionContext>
     export(sessionId: string, format: 'html' | 'markdown'): Promise<string | null>
+    exportProject(
+      name: string,
+      sessionIds: string[],
+      format: 'html' | 'markdown'
+    ): Promise<string | null>
     viewFullHistory(sessionId: string): Promise<void>
     contextMenu(
       sessionId: string,

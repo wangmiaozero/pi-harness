@@ -19,6 +19,7 @@ import { installAuthorWatermark } from '@renderer/utils/author-watermark'
 import type { AppUpdateState } from '@shared/ipc/api-types'
 import { usePetStore } from '@renderer/stores/pet'
 import { installPetRuntimeAdapter } from '@renderer/pet/install-runtime-adapter'
+import { MASCOT_ENABLED } from '@shared/feature-flags'
 
 applyTheme('dark')
 installAuthorWatermark()
@@ -52,7 +53,7 @@ const unsubscribers: Array<() => void> = [
   agentStore.setupListeners(),
   harnessStore.setupListeners()
 ]
-unsubscribers.push(installPetRuntimeAdapter())
+if (MASCOT_ENABLED) unsubscribers.push(installPetRuntimeAdapter())
 
 getApi().on('notification', (payload) => {
   const event = payload as { level?: string; title?: string; message?: string }
@@ -63,7 +64,7 @@ getApi().on('notification', (payload) => {
       toast.success(title, { description: message })
       break
     case 'warning':
-      petStore.handleEvent({ type: 'WARNING' })
+      if (MASCOT_ENABLED) petStore.handleEvent({ type: 'WARNING' })
       toast.warning(title, { description: message })
       break
     case 'error':

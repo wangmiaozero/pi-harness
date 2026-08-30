@@ -13,7 +13,7 @@ import StarshipCockpitInterior from '@renderer/components/starship/StarshipCockp
 import StarshipCruiser from '@renderer/components/starship/StarshipCruiser.vue'
 import StarshipEngineHud from '@renderer/components/starship/StarshipEngineHud.vue'
 import PetStatus from '@renderer/components/pet/PetStatus.vue'
-import { isStarshipCockpitActive } from '@renderer/utils/visual-skin'
+import { getActiveVisualSkin, isStarshipCockpitActive } from '@renderer/utils/visual-skin'
 
 const route = useRoute()
 const settings = useSettingsStore()
@@ -21,6 +21,7 @@ const pet = usePetStore()
 const isWorkspace = computed(() => route.path.startsWith('/workspace'))
 const mascotStyle = computed(() => normalizeMascotStyle(settings.settings?.mascotStyle))
 const starshipCockpitActive = computed(() => isStarshipCockpitActive(settings.settings))
+const visualSkin = computed(() => getActiveVisualSkin(settings.settings))
 const pageVisible = ref(document.visibilityState === 'visible')
 const visualAnimationsEnabled = computed(
   () => (settings.settings?.petAnimations ?? true) && pageVisible.value
@@ -38,7 +39,7 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
   <div
     data-testid="app-shell"
     class="app-shell relative flex h-full flex-col overflow-hidden bg-[var(--bg-window)]"
-    :data-visual-skin="starshipCockpitActive ? 'starship-cockpit' : undefined"
+    :data-visual-skin="visualSkin?.id"
   >
     <TitleBar :starship-cockpit="starshipCockpitActive" />
     <div class="app-body relative z-[2] flex min-h-0 flex-1">
@@ -56,6 +57,7 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
           :animated="visualAnimationsEnabled"
         />
         <MascotBackground
+          v-if="!isWorkspace || !visualSkin?.portrait"
           :style="mascotStyle"
           :state="pet.state"
           :enabled="Boolean(settings.settings?.mascotUnlocked && settings.settings?.petEnabled)"
