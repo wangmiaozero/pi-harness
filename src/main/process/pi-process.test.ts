@@ -1,8 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { PiProcessService } from './pi-process'
+import * as commandResolver from '../environment/command-resolver'
+
+beforeEach(() => {
+  vi.spyOn(commandResolver, 'resolveLoginShellPath').mockImplementation(async () => ({
+    shell: null,
+    path: process.env.PATH ?? null
+  }))
+})
+afterEach(() => vi.restoreAllMocks())
 
 const describeWindows = process.platform === 'win32' ? describe : describe.skip
 
@@ -37,8 +46,7 @@ describe('PiProcessService environment override', () => {
       const marker = result.stdout.match(/__PATH__(.*)__END__/)
       expect(marker).not.toBeNull()
       const entries = (marker?.[1] ?? '').split(path.delimiter).filter(Boolean)
-      // Inherited entries keep precedence, and the child PATH is enriched with
-      // login-shell / Node tool directories so `pi install` can find `npm`.
+      // When no shell environment is available, retain the inherited PATH.
       expect(entries.slice(0, 2)).toEqual(['/usr/bin', '/bin'])
       expect(entries.length).toBeGreaterThan(2)
     } finally {
@@ -48,6 +56,31 @@ describe('PiProcessService environment override', () => {
       await fs.rm(testDir, { recursive: true, force: true })
     }
   }, 20_000)
+
+  it('uses the project shell runtime and re-probes after a version switch', async () => {
+    const testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-node-switch-'))
+    const cliPath = path.join(testDir, 'cli.js')
+    await fs.writeFile(cliPath, 'process.stdout.write(process.env.PATH)')
+    await fs.chmod(cliPath, 0o755)
+    const shellPath = path.join(testDir, 'shims')
+    const probe = vi.mocked(commandResolver.resolveLoginShellPath)
+    const service = new PiProcessService()
+    try {
+      for (const version of ['22', '24']) {
+        const nodeBin = path.join(testDir, version, 'bin')
+        probe.mockResolvedValue({
+          shell: 'fixture-shell',
+          path: shellPath,
+          node: { path: path.join(nodeBin, 'node'), version: `v${version}.0.0` }
+        })
+        const result = await service.exec({ args: [], cliPath, cwd: testDir })
+        expect(result.stdout.split(path.delimiter).slice(0, 2)).toEqual([nodeBin, shellPath])
+        expect(probe).toHaveBeenLastCalledWith({ probeNode: true, cwd: testDir })
+      }
+    } finally {
+      await fs.rm(testDir, { recursive: true, force: true })
+    }
+  })
 
   it('runs a JavaScript CLI through packaged Electron in Node mode', async () => {
     const previous = process.env.PI_HARNESS_PI_CLI_PATH

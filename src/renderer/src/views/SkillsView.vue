@@ -739,7 +739,7 @@ async function uninstallBuiltinCollectionSkills(
   }
   const confirmed = await askConfirm({
     title: t('skills.builtinRemoveTitle', { count: owned.length }),
-    description: t('skills.builtinRemoveHint'),
+    description: t(collection.role ? 'skills.builtinBundleRemoveHint' : 'skills.builtinRemoveHint'),
     confirmLabel: owned.length === 1 ? t('skills.uninstallSkill') : t('skills.builtinRemoveAll'),
     tone: 'danger'
   })
@@ -949,18 +949,21 @@ function collectionUnit(collection: SkillMarketCollection): string {
 }
 
 function collectionKindLabel(collection: SkillMarketCollection): string {
-  if (isBuiltinCollection(collection)) return t('skills.marketBuiltin')
+  if (isBuiltinCollection(collection))
+    return t(collection.role ? 'skills.marketBundle' : 'skills.marketBuiltin')
   return collection.kind === 'bundle' ? t('skills.marketBundle') : t('skills.marketGuide')
 }
 
 function collectionKindTone(
   collection: SkillMarketCollection
 ): 'muted' | 'success' | 'warning' | 'error' | 'accent' {
-  if (isBuiltinCollection(collection)) return 'success'
+  if (isBuiltinCollection(collection)) return collection.role ? 'accent' : 'success'
   return collection.kind === 'bundle' ? 'accent' : 'muted'
 }
 
 function marketCollectionTitle(collection: SkillMarketCollection): string {
+  if (isBuiltinCollection(collection) && collection.role)
+    return t(`skills.role${collection.role}Title`)
   if (isBuiltinCollection(collection)) return collection.displayName
   if (collection.id === 'core-development') return t('skills.marketCoreTitle')
   if (collection.id === 'agent-architecture') return t('skills.marketAgentTitle')
@@ -969,6 +972,8 @@ function marketCollectionTitle(collection: SkillMarketCollection): string {
 }
 
 function marketCollectionSummary(collection: SkillMarketCollection): string {
+  if (isBuiltinCollection(collection) && collection.role)
+    return t(`skills.role${collection.role}Summary`)
   if (isBuiltinCollection(collection)) {
     return `${collection.name} · ${collection.author} · ${collection.repository}`
   }

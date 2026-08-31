@@ -36,7 +36,7 @@ export function runCommand(
       env: {
         ...process.env,
         ...options.env,
-        PATH: mergePath(path.dirname(executable), options.env?.PATH, process.env.PATH)
+        PATH: mergePath(options.env?.PATH, path.dirname(executable), process.env.PATH)
       },
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe']

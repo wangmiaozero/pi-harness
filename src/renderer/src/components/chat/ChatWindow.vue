@@ -206,7 +206,7 @@ function duration(value: number): string {
 </script>
 
 <template>
-  <div data-testid="chat-window" class="chat-window flex h-full min-h-0 flex-col">
+  <div data-testid="chat-window" class="chat-window flex h-full min-h-0 min-w-0 flex-col">
     <div
       class="chat-status-hud flex h-9 shrink-0 items-stretch border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[11px] text-[var(--text-secondary)]"
     >
@@ -357,7 +357,7 @@ function duration(value: number): string {
         class="chat-scroller h-full min-h-0 overflow-y-auto px-4 py-3 min-[1080px]:pr-[132px]"
         @scroll.passive="onScrollerScroll"
       >
-        <div ref="scrollContent" class="chat-scroll-content">
+        <div ref="scrollContent" class="chat-scroll-content min-w-0">
           <EmptyState
             v-if="!displayMessages.length"
             :title="$t('workspace.emptyChat')"
@@ -373,7 +373,10 @@ function duration(value: number): string {
               Boolean(agent.streaming.streamingMessage) && index === displayMessages.length - 1
             "
           />
-          <p v-if="agent.error" class="mt-2 text-[12px] text-[var(--danger)]">
+          <p
+            v-if="agent.error"
+            class="mt-2 text-[12px] text-[var(--danger)] [overflow-wrap:anywhere]"
+          >
             {{ agent.error }}
           </p>
         </div>

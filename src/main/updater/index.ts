@@ -6,7 +6,7 @@
  * choosing "Install & Restart" after the download is ready.
  */
 
-import { app } from 'electron'
+import { app, net, shell } from 'electron'
 import { gt as isVersionGreater, valid as validVersion } from 'semver'
 import type { AppUpdateState } from '@shared/ipc/api-types'
 import { APP_VERSION } from '@shared/constants/index'
@@ -17,6 +17,7 @@ type UpdateStateListener = (state: AppUpdateState) => void
 
 const LATEST_RELEASE_API_URL =
   'https://api.github.com/repos/wangmiaozero/pi-harness/releases/latest'
+const LATEST_RELEASE_URL = 'https://github.com/wangmiaozero/pi-harness/releases/latest'
 const RELEASE_CHECK_TIMEOUT_MS = 8_000
 
 const state: AppUpdateState = {
@@ -31,6 +32,7 @@ const state: AppUpdateState = {
 
 const listeners = new Set<UpdateStateListener>()
 let autoUpdaterLoaded: AutoUpdater | null = null
+let checkInFlight: Promise<AppUpdateState> | null = null
 let automaticCheckTimer: ReturnType<typeof setTimeout> | null = null
 
 function snapshot(): AppUpdateState {
@@ -55,7 +57,10 @@ async function getAutoUpdater(): Promise<AutoUpdater | null> {
   if (!app.isPackaged) return null
 
   try {
-    const { autoUpdater } = await import('electron-updater')
+    // Node's ESM loader does not expose the CommonJS autoUpdater getter as a
+    // named export. Keep this lazy so development never initializes an updater.
+    const { default: updaterModule } = await import('electron-updater')
+    const { autoUpdater } = updaterModule
     autoUpdater.autoDownload = true
     autoUpdater.autoInstallOnAppQuit = true
     autoUpdater.logger = log.updater
@@ -110,7 +115,7 @@ async function getAutoUpdater(): Promise<AutoUpdater | null> {
       log.updater.info('update downloaded:', info.version)
     })
     autoUpdater.on('error', (error) => {
-      updateState({ supported: true, status: 'error', downloadProgress: null })
+      updateState({ supported: true, status: 'error', downloaded: false, downloadProgress: null })
       log.updater.error('updater error:', error)
     })
 
@@ -134,18 +139,35 @@ export function onUpdateState(listener: UpdateStateListener): () => void {
   return () => listeners.delete(listener)
 }
 
-export async function checkForUpdates(): Promise<AppUpdateState> {
+export function checkForUpdates(): Promise<AppUpdateState> {
   if (automaticCheckTimer) {
     clearTimeout(automaticCheckTimer)
     automaticCheckTimer = null
   }
-  const autoUpdater = await getAutoUpdater()
-  if (!autoUpdater) return getUpdateState()
+  if (!app.isPackaged) return Promise.resolve(getUpdateState())
+  if (checkInFlight) return checkInFlight
+  // A second check must not discard an update that is downloading or ready.
+  if (state.downloaded || state.status === 'available' || state.status === 'downloading') {
+    return Promise.resolve(snapshot())
+  }
+  checkInFlight = performUpdateCheck().finally(() => {
+    checkInFlight = null
+  })
+  return checkInFlight
+}
 
+async function performUpdateCheck(): Promise<AppUpdateState> {
   updateState({ supported: true, status: 'checking', downloadProgress: null })
+  const autoUpdater = await getAutoUpdater()
+  if (!autoUpdater) return recoverFromUpdaterFailure(new Error('Updater could not be loaded'))
+
   try {
     const result = await autoUpdater.checkForUpdates()
     if (!result) return recoverFromUpdaterFailure(new Error('Updater returned no result'))
+
+    // Automatic download failures happen after checkForUpdates resolves. Handle
+    // the rejection as well as the error event so missing payloads stay actionable.
+    void result.downloadPromise?.catch((error: unknown) => reportDownloadFailure(error))
 
     const available = result.isUpdateAvailable
     const latestVersion = result.updateInfo.version ?? null
@@ -175,6 +197,17 @@ export async function checkForUpdates(): Promise<AppUpdateState> {
     log.updater.error('checkForUpdates failed:', error)
     return recoverFromUpdaterFailure(error)
   }
+}
+
+function reportDownloadFailure(error: unknown): AppUpdateState {
+  log.updater.error('update download failed:', error)
+  // The check already confirmed a newer version. A failed download should not
+  // require another network request just to offer its manual installer.
+  return updateState({
+    status: state.available && state.latestVersion ? 'manual-update' : 'error',
+    downloaded: false,
+    downloadProgress: null
+  })
 }
 
 /**
@@ -218,6 +251,8 @@ async function recoverFromUpdaterFailure(updaterError: unknown): Promise<AppUpda
     })
     return updateState({
       supported: true,
+      available: false,
+      latestVersion: null,
       status: 'error',
       downloaded: false,
       downloadProgress: null
@@ -226,20 +261,39 @@ async function recoverFromUpdaterFailure(updaterError: unknown): Promise<AppUpda
 }
 
 async function fetchLatestReleaseVersion(): Promise<string> {
+  // Chromium networking follows Electron's system proxy settings. The public
+  // website endpoint remains usable when the unauthenticated API is rate limited.
+  for (const url of [LATEST_RELEASE_API_URL, LATEST_RELEASE_URL]) {
+    try {
+      return await fetchReleaseVersion(url)
+    } catch (error) {
+      log.updater.warn('release version check failed:', error)
+    }
+  }
+  throw new Error('Latest release could not be checked')
+}
+
+async function fetchReleaseVersion(url: string): Promise<string> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), RELEASE_CHECK_TIMEOUT_MS)
   timer.unref()
   try {
-    const response = await fetch(LATEST_RELEASE_API_URL, {
+    const response = await net.fetch(url, {
       headers: {
-        Accept: 'application/vnd.github+json',
+        Accept: 'application/json',
         'User-Agent': `Pi-Harness/${APP_VERSION}`,
         'X-GitHub-Api-Version': '2022-11-28'
       },
       signal: controller.signal
     })
     if (!response.ok) throw new Error(`GitHub Releases API returned HTTP ${response.status}`)
-    const payload = (await response.json()) as { tag_name?: unknown }
+    const payload: unknown = await response.json()
+    if (!payload || typeof payload !== 'object' || !('tag_name' in payload)) {
+      throw new Error('GitHub Releases returned an invalid response')
+    }
+    if (('draft' in payload && payload.draft) || ('prerelease' in payload && payload.prerelease)) {
+      throw new Error('GitHub Releases returned an unpublished or prerelease version')
+    }
     const rawTag = typeof payload.tag_name === 'string' ? payload.tag_name.trim() : ''
     const version = validVersion(rawTag.replace(/^v/i, ''))
     if (!version) throw new Error('GitHub Releases API returned an invalid tag')
@@ -251,6 +305,7 @@ async function fetchLatestReleaseVersion(): Promise<string> {
 
 /** Retained as an explicit retry path; normal downloads start automatically. */
 export async function downloadUpdate(): Promise<AppUpdateState> {
+  if (state.downloaded || state.status === 'downloading') return getUpdateState()
   const autoUpdater = await getAutoUpdater()
   if (!autoUpdater) return getUpdateState()
 
@@ -258,10 +313,14 @@ export async function downloadUpdate(): Promise<AppUpdateState> {
     updateState({ supported: true, available: true, status: 'downloading' })
     await autoUpdater.downloadUpdate()
   } catch (error) {
-    updateState({ supported: true, status: 'error', downloadProgress: null })
-    log.updater.error('downloadUpdate failed:', error)
+    return reportDownloadFailure(error)
   }
   return snapshot()
+}
+
+/** Never accept a renderer-controlled URL or an external Release response URL. */
+export async function openReleasePage(): Promise<void> {
+  await shell.openExternal(LATEST_RELEASE_URL)
 }
 
 export async function installUpdate(): Promise<void> {

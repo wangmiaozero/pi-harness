@@ -336,6 +336,8 @@ export interface PackageSkillMarketCollection {
 }
 
 export type BuiltinSkillCategory = 'engineering' | 'productivity' | 'misc'
+export type BuiltinSkillRole =
+  'uiDesigner' | 'frontendEngineer' | 'backendEngineer' | 'productEngineer'
 
 export type BuiltinSkillHealth =
   | 'not-installed'
@@ -381,6 +383,7 @@ export interface BuiltinSkillInfo {
 export interface BuiltinSkillMarketCollection {
   id: string
   kind: 'builtin-skills'
+  role?: BuiltinSkillRole
   name: string
   displayName: string
   author: string
@@ -759,6 +762,7 @@ export interface PiSwitchAPI {
     check(): Promise<AppUpdateState>
     download(): Promise<AppUpdateState>
     install(): Promise<void>
+    openReleasePage(): Promise<void>
   }
   window: {
     minimize(): Promise<void>

@@ -7,6 +7,7 @@ import path from 'node:path'
 import type { BuiltinSkillCategory } from '@shared/ipc/api-types'
 import { parseSkillDirectory } from '../capabilities/skill-parser'
 import { SkillMutationError } from '../services/errors'
+import builtinSources from '@shared/skills/builtin-sources.json'
 
 export const BUILTIN_SKILL_CATEGORIES = ['engineering', 'productivity', 'misc'] as const
 
@@ -15,9 +16,7 @@ export interface BuiltinSkillSourceDefinition {
   directory: string
 }
 
-export const BUILTIN_SKILL_SOURCES: readonly BuiltinSkillSourceDefinition[] = [
-  { id: 'builtin:mattpocock-skills', directory: 'mattpocock' }
-]
+export const BUILTIN_SKILL_SOURCES: readonly BuiltinSkillSourceDefinition[] = builtinSources
 
 export interface BundledManifestSkill {
   id: string

@@ -11,7 +11,7 @@ function runtimeSources(directory: string): string[] {
 }
 
 describe('desktop-only runtime', () => {
-  it('allows only the fixed official Node.js download in the system browser', () => {
+  it('allows only the fixed official Node.js and application release downloads', () => {
     const sourcePaths = runtimeSources(join(process.cwd(), 'src'))
     const externalCallSites = sourcePaths.filter((path) =>
       /\bopenExternal\b/.test(readFileSync(path, 'utf8'))
@@ -22,11 +22,23 @@ describe('desktop-only runtime', () => {
       join(process.cwd(), 'src/shared/constants/pi-install.ts'),
       'utf8'
     )
+    const updaterSource = readFileSync(join(process.cwd(), 'src/main/updater/index.ts'), 'utf8')
 
-    expect(externalCallSites).toEqual([join(process.cwd(), 'src/main/ipc/register.ts')])
+    expect(externalCallSites).toEqual([
+      join(process.cwd(), 'src/main/ipc/register.ts'),
+      join(process.cwd(), 'src/main/updater/index.ts')
+    ])
     expect(registerSource.match(/\bopenExternal\b/g)).toHaveLength(1)
     expect(registerSource).toContain('shell.openExternal(NODE_DOWNLOAD_URL)')
     expect(installConstants).toContain("NODE_DOWNLOAD_URL = 'https://nodejs.org/en/download'")
+    expect(updaterSource.match(/\bopenExternal\b/g)).toHaveLength(1)
+    expect(updaterSource).toContain('shell.openExternal(LATEST_RELEASE_URL)')
+    expect(updaterSource).toContain(
+      "LATEST_RELEASE_URL = 'https://github.com/wangmiaozero/pi-harness/releases/latest'"
+    )
+    expect(registerSource).toContain(
+      "parseInput(noArgsSchema, args, 'Unexpected release page arguments')"
+    )
     expect(sources).not.toMatch(/\bwindow\.open\b/)
     expect(sources).not.toMatch(/updater:open-releases/)
   })

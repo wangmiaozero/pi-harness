@@ -1,14 +1,14 @@
 /**
  * electron-builder leaves unpacked *.app under release/mac* after DMG build.
  * Spotlight / Launchpad indexes those copies → duplicate "Pi-Harness.app" icons.
- * Keep only the DMG (and yml/blockmap); delete unpacked app bundles.
+ * Keep the DMG, ZIP and update files; delete unpacked app bundles.
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const release = path.join(root, 'release')
+const release = path.join(root, 'release', process.argv.includes('--nomascot') ? 'nomascot' : '')
 
 const UNPACKED = ['mac', 'mac-arm64', 'mac-universal', 'mac-x64']
 

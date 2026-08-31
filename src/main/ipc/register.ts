@@ -37,7 +37,13 @@ import {
   skillImportSchema
 } from '@shared/schemas/domain'
 import { SecurityError, ValidationError } from '../services/errors'
-import { checkForUpdates, downloadUpdate, getUpdateState, installUpdate } from '../updater'
+import {
+  checkForUpdates,
+  downloadUpdate,
+  getUpdateState,
+  installUpdate,
+  openReleasePage
+} from '../updater'
 import { registerWorkspaceIpc, type WorkspaceServices } from './register-workspace'
 import { createTrustedIpcMain } from './trusted-ipc'
 import type { CapabilityService } from '../capabilities/capability-service'
@@ -57,6 +63,7 @@ import {
   configContentSchema,
   configFileSchema,
   modelCompositeIdSchema,
+  noArgsSchema,
   optionalBooleanSchema,
   overwriteOptionsSchema,
   screenMotionActiveSchema,
@@ -619,6 +626,12 @@ export function registerIpc(services: Services): void {
   ipcMain.handle(IPC_INVOKE.updaterCheck, () => wrap(() => checkForUpdates()))
   ipcMain.handle(IPC_INVOKE.updaterDownload, () => wrap(() => downloadUpdate()))
   ipcMain.handle(IPC_INVOKE.updaterInstall, () => wrap(() => installUpdate()))
+  ipcMain.handle(IPC_INVOKE.updaterOpenReleasePage, (_event, ...args: unknown[]) =>
+    wrap(async () => {
+      parseInput(noArgsSchema, args, 'Unexpected release page arguments')
+      await openReleasePage()
+    })
+  )
 
   // ---- window ----
   ipcMain.handle(IPC_INVOKE.windowMinimize, (e) =>

@@ -189,7 +189,9 @@ const bashText = computed(() => {
           class="thinking-hud rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1"
         >
           <summary class="cursor-pointer text-[11px] text-[var(--text-tertiary)]">
-            <span class="cockpit-only mr-1 inline font-[family-name:var(--font-mono)] text-[8px] tracking-[0.14em] text-[var(--accent)]">
+            <span
+              class="cockpit-only mr-1 inline font-[family-name:var(--font-mono)] text-[8px] tracking-[0.14em] text-[var(--accent)]"
+            >
               AI PROCESS HUD ·
             </span>
             {{ $t('workspace.thinking') }}
@@ -260,6 +262,12 @@ const bashText = computed(() => {
 </template>
 
 <style scoped>
+.message-hud {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .markdown-content {
   min-width: 0;
   overflow-wrap: anywhere;

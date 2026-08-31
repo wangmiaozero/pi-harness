@@ -82,6 +82,9 @@ function isSettingsSection(value: unknown): value is SettingsSectionId {
 }
 
 const updateDownloaded = computed(() => Boolean(updateState.value?.downloaded))
+const updateInProgress = computed(() =>
+  ['checking', 'available', 'downloading'].includes(updateState.value?.status ?? '')
+)
 const updateProgress = computed(() => Math.round(updateState.value?.downloadProgress ?? 0))
 const updateMessage = computed(() => {
   const current = updateState.value
@@ -507,6 +510,14 @@ async function installUpdate() {
   }
 }
 
+async function openReleasePage() {
+  try {
+    await getApi().updater.openReleasePage()
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
 onMounted(() => {
   void Promise.all([store.fetch(), store.fetchBackups()])
   void getApi()
@@ -560,14 +571,14 @@ onBeforeUnmount(stopUpdateListener)
       <div v-if="!section" class="flex min-h-0 flex-1 flex-col p-5">
         <nav
           data-testid="settings-home"
-          class="grid min-h-0 flex-1 grid-cols-3 grid-rows-3 gap-3 overflow-hidden"
+          class="grid min-h-0 min-w-0 flex-1 grid-cols-3 grid-rows-3 gap-3 overflow-visible"
         >
           <RouterLink
             v-for="item in settingsMenu"
             :key="item.id"
             :to="`/settings/${item.id}`"
             :data-testid="`settings-section-${item.id}`"
-            class="settings-home-card group flex min-h-0 flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 no-drag shadow-[var(--shadow-popover)] transition-[background-color,border-color,box-shadow] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+            class="settings-home-card group flex min-h-0 min-w-0 flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 no-drag shadow-[var(--shadow-popover)] transition-[background-color,border-color,box-shadow] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
           >
             <component
               :is="item.icon"
@@ -994,10 +1005,25 @@ onBeforeUnmount(stopUpdateListener)
                 />
               </div>
               <div class="flex flex-wrap gap-1.5">
-                <Button variant="secondary" size="sm" :loading="updateBusy" @click="checkUpdates">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  :loading="updateBusy"
+                  :disabled="updateInProgress"
+                  @click="checkUpdates"
+                >
                   {{ $t('settings.checkUpdates') }}
                 </Button>
                 <Button
+                  v-if="updateState?.status === 'manual-update' || updateState?.status === 'error'"
+                  variant="primary"
+                  size="sm"
+                  @click="openReleasePage"
+                >
+                  {{ $t('settings.openReleasePage') }}
+                </Button>
+                <Button
+                  v-else
                   variant="primary"
                   size="sm"
                   :disabled="!updateDownloaded"

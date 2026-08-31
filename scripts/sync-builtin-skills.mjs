@@ -11,20 +11,29 @@ const execFileAsync = promisify(execFile)
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(scriptDir, '..')
 const bundledParent = path.join(projectRoot, 'resources', 'builtin-skills')
-const destination = path.join(bundledParent, 'mattpocock')
+const sources = JSON.parse(
+  await fs.readFile(path.join(projectRoot, 'src/shared/skills/builtin-sources.json'), 'utf8')
+)
 const categories = ['engineering', 'productivity', 'misc']
 
 function parseArguments(argv) {
-  let source =
-    process.env.MATTPOCOCK_SKILLS_SOURCE?.trim() || path.resolve(projectRoot, '..', 'skills')
+  let source
+  let collection
   let check = false
   for (let index = 0; index < argv.length; index++) {
     const value = argv[index]
     if (value === '--check') check = true
+    else if (value === '--collection' && argv[index + 1]) collection = argv[++index]
     else if (value === '--source' && argv[index + 1]) source = argv[++index]
     else throw new Error(`Unknown or incomplete option: ${value}`)
   }
-  return { source: path.resolve(source), check }
+  const definition = sources.find((item) => item.directory === (collection || 'mattpocock'))
+  if (!definition) throw new Error(`Unknown built-in collection: ${collection}`)
+  source ||=
+    definition.directory === 'mattpocock'
+      ? process.env.MATTPOCOCK_SKILLS_SOURCE?.trim() || path.resolve(projectRoot, '..', 'skills')
+      : path.resolve(projectRoot, '..', `${definition.directory}-skills`)
+  return { source: path.resolve(source), check, definition, all: !collection }
 }
 
 function parseScalar(value) {
@@ -104,11 +113,14 @@ async function sourceCommit(source) {
   return commit
 }
 
-async function discoverSkills(source) {
+async function discoverSkills(source, definition) {
   const skills = []
   const ids = new Set()
-  for (const category of categories) {
-    const categoryRoot = path.join(source, 'skills', category)
+  for (const category of definition.layout === 'flat' ? ['engineering'] : categories) {
+    const categoryRoot =
+      definition.layout === 'flat'
+        ? path.join(source, 'skills')
+        : path.join(source, 'skills', category)
     for (const entry of await readEntries(categoryRoot)) {
       if (!entry.isDirectory() || entry.isSymbolicLink()) continue
       if (!/^[a-z0-9][a-z0-9._-]{0,127}$/.test(entry.name)) {
@@ -141,17 +153,18 @@ async function discoverSkills(source) {
   return skills
 }
 
-async function verifyBundle(root) {
+async function verifyBundle(root, definition) {
   const manifest = JSON.parse(await fs.readFile(path.join(root, 'manifest.json'), 'utf8'))
   if (
     manifest.schemaVersion !== 1 ||
-    manifest.id !== 'builtin:mattpocock-skills' ||
+    manifest.id !== definition.id ||
+    manifest.repository !== definition.repository ||
     manifest.license !== 'MIT' ||
     !/^[a-f0-9]{40}$/.test(manifest.commit) ||
     !Array.isArray(manifest.skills) ||
     manifest.skills.length === 0
   ) {
-    throw new Error('Bundled Matt Pocock manifest is invalid')
+    throw new Error(`Bundled ${definition.name} manifest is invalid`)
   }
   await fs.access(path.join(root, 'LICENSE'))
   const ids = new Set()
@@ -177,27 +190,34 @@ async function verifyBundle(root) {
   return manifest
 }
 
-async function sync(source) {
+async function sync(source, definition) {
+  const destination = path.join(bundledParent, definition.directory)
   const sourceSkills = path.join(source, 'skills')
   const sourceLicense = path.join(source, 'LICENSE')
   await Promise.all([fs.access(sourceSkills), fs.access(sourceLicense)])
-  const [commit, skills] = await Promise.all([sourceCommit(source), discoverSkills(source)])
-  const staging = path.join(bundledParent, `.mattpocock.sync-${randomUUID()}`)
+  const [commit, skills] = await Promise.all([
+    sourceCommit(source),
+    discoverSkills(source, definition)
+  ])
+  const staging = path.join(bundledParent, `.${definition.directory}.sync-${randomUUID()}`)
   await fs.mkdir(staging, { recursive: true })
   try {
     await fs.copyFile(sourceLicense, path.join(staging, 'LICENSE'))
     for (const skill of skills) {
-      const sourcePath = path.join(source, ...skill.sourcePath.split('/'))
+      const sourcePath =
+        definition.layout === 'flat'
+          ? path.join(source, 'skills', skill.id)
+          : path.join(source, ...skill.sourcePath.split('/'))
       const targetPath = path.join(staging, ...skill.sourcePath.split('/'))
       await fs.cp(sourcePath, targetPath, { recursive: true, errorOnExist: true })
     }
     const manifest = {
       schemaVersion: 1,
-      id: 'builtin:mattpocock-skills',
-      name: 'Matt Pocock Skills',
-      displayName: 'Skills For Real Engineers',
-      author: 'Matt Pocock',
-      repository: 'mattpocock/skills',
+      id: definition.id,
+      name: definition.name,
+      displayName: definition.displayName,
+      author: definition.author,
+      repository: definition.repository,
       license: 'MIT',
       commit,
       syncedAt: new Date().toISOString(),
@@ -207,7 +227,7 @@ async function sync(source) {
       path.join(staging, 'manifest.json'),
       `${JSON.stringify(manifest, null, 2)}\n`
     )
-    await verifyBundle(staging)
+    await verifyBundle(staging, definition)
     await fs.rm(destination, { recursive: true, force: true })
     await fs.rename(staging, destination)
     return manifest
@@ -218,10 +238,14 @@ async function sync(source) {
 
 async function main() {
   const options = parseArguments(process.argv.slice(2))
-  const manifest = options.check ? await verifyBundle(destination) : await sync(options.source)
-  process.stdout.write(
-    `${options.check ? 'Verified' : 'Synced'} ${manifest.skills.length} Matt Pocock Skills at ${manifest.commit}\n`
-  )
+  for (const definition of options.check && options.all ? sources : [options.definition]) {
+    const manifest = options.check
+      ? await verifyBundle(path.join(bundledParent, definition.directory), definition)
+      : await sync(options.source, definition)
+    process.stdout.write(
+      `${options.check ? 'Verified' : 'Synced'} ${manifest.skills.length} ${definition.name} at ${manifest.commit}\n`
+    )
+  }
 }
 
 main().catch((error) => {

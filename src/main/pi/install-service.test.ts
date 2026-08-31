@@ -78,6 +78,37 @@ describe('PiInstallService', () => {
     expect(result).toMatchObject({ ok: true, action: 'install', currentVersion: '0.84.2' })
   })
 
+  it('checks registry updates with the detected Node ahead of a different npm directory', async () => {
+    piProcessMock.resolveCliPath.mockResolvedValue('/tmp/pi')
+    piProcessMock.version.mockResolvedValue('0.84.2')
+    const nodeBin = path.join(os.tmpdir(), 'active node', 'bin')
+    const npmBin = path.join(os.tmpdir(), 'other npm', 'bin')
+    const runCommand = vi.fn().mockResolvedValue({
+      stdout: '"0.85.0"',
+      stderr: '',
+      exitCode: 0
+    })
+    const service = new PiInstallService({
+      detectRuntime: async () =>
+        ({
+          nodeSupported: true,
+          nodePath: path.join(nodeBin, 'node'),
+          npmPath: path.join(npmBin, 'npm'),
+          resolvedPath: process.env.PATH
+        }) as never,
+      runCommand
+    })
+
+    expect(await service.checkLatest()).toMatchObject({
+      updateAvailable: true,
+      latestVersion: '0.85.0'
+    })
+    expect(runCommand.mock.calls[0][2].env.PATH.split(path.delimiter).slice(0, 2)).toEqual([
+      nodeBin,
+      npmBin
+    ])
+  })
+
   it('requires Node.js and npm before one-click installation', async () => {
     piProcessMock.resolveCliPath.mockResolvedValue(null)
     const runCommand = vi.fn()
@@ -230,7 +261,7 @@ describe('PiInstallService', () => {
       detectRuntime: async () =>
         ({
           nodePath: '/tmp/pi-harness-runtime/bin/node',
-          npmPath: '/tmp/pi-harness-runtime/bin/npm'
+          npmPath: '/tmp/other-npm/bin/npm'
         }) as never,
       runCommand
     })
@@ -246,6 +277,7 @@ describe('PiInstallService', () => {
     const env = runCommand.mock.calls[0][2]?.env ?? {}
     const pathEntries = String(env.PATH ?? '').split(path.delimiter)
     expect(pathEntries[0]).toBe('/tmp/pi-harness-runtime/bin')
+    expect(pathEntries[1]).toBe('/tmp/other-npm/bin')
     expect(pathEntries).not.toContain('/usr/local/bin')
     expect(env.ELECTRON_RUN_AS_NODE).toBeUndefined()
   })

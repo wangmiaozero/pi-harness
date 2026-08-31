@@ -26,6 +26,7 @@ class PiEnvironmentService {
   }): Promise<PiEnvironment> {
     const platform = process.platform
     const arch = process.arch
+    piProcess.invalidateCache()
     const cliPath = await piProcess.resolveCliPath(override?.cliPath ?? undefined)
     const [version, nodeRuntime] = await Promise.all([
       cliPath ? piProcess.version() : null,

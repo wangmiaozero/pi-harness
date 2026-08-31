@@ -42,6 +42,18 @@ describe('npm global prefix repair', () => {
     }
   })
 
+  it('keeps the selected Node directory ahead of the npm executable directory', async () => {
+    const selectedBin = path.join(os.tmpdir(), 'selected node', 'bin')
+    const result = await runCommand(
+      process.execPath,
+      ['-e', 'process.stdout.write(process.env.PATH)'],
+      { env: npmEnvironment(path.join(selectedBin, 'node')) }
+    )
+
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout.split(path.delimiter)[0]).toBe(selectedBin)
+  })
+
   it('switches an unwritable global prefix to a user prefix without sudo', async () => {
     const sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-npm-prefix-'))
     const userPrefix = path.join(sandbox, 'npm-global')

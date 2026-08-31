@@ -38,6 +38,8 @@ mac:
     CFBundleDisplayName: Pi-Harness
     CFBundleName: Pi-Harness
 win:
+  # Keep local filenames identical to the GitHub upload names.
+  artifactName: ${productName}-Setup-${version}.${ext}
   target:
     - target: nsis
       arch:
@@ -56,7 +58,7 @@ linux:
   icon: build/icon.png
   maintainer: wangmiao <tuziling84@gmail.com>
 publish:
-  - provider: github
-    owner: wangmiaozero
-    repo: pi-harness
-    releaseType: release
+  provider: github
+  owner: wangmiaozero
+  repo: pi-harness
+  releaseType: release

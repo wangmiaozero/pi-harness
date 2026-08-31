@@ -494,6 +494,20 @@ const enUS = {
     marketBundle: 'Bundle',
     marketGuide: 'Guide',
     marketBuiltin: 'Built-in',
+    roleuiDesignerTitle: 'UI Designer Skill Suite',
+    roleuiDesignerSummary:
+      'Interface polish, visual design, prototypes, motion vocabulary, and animation review.',
+    rolefrontendEngineerTitle: 'Frontend Engineer Skill Suite',
+    rolefrontendEngineerSummary:
+      'UI implementation, animations, component selection, testing, debugging, and code review.',
+    rolebackendEngineerTitle: 'Backend Engineer Skill Suite',
+    rolebackendEngineerSummary:
+      'Domain modeling, specifications, module design, test-driven development, and architecture review.',
+    roleproductEngineerTitle: 'Product Engineer Skill Suite',
+    roleproductEngineerSummary:
+      'Research, requirements clarification, specifications, task breakdown, triage, and prototypes.',
+    builtinBundleRemoveHint:
+      'Installed skills will be backed up before removal. Skills shared with other suites will also become uninstalled there; bundled sources are kept.',
     marketCoreTitle: 'Core Development',
     marketCoreSummary: 'Essential tools for everyday coding, research, multi-agent work, and docs.',
     marketAgentTitle: 'Agent Architecture',
@@ -772,8 +786,9 @@ const enUS = {
     colSize: 'Size',
     updates: 'Updates',
     updatesHint:
-      'Checks for updates in the background and downloads them automatically. Updates install on quit, or you can restart immediately.',
+      'Checks for updates in the background. Supported updates download automatically and install on quit or restart; otherwise, download the installer.',
     checkUpdates: 'Check for updates',
+    openReleasePage: 'Go to downloads',
     installUpdate: 'Install & Restart',
     updateChecking: 'Checking for updates…',
     updateAvailable: 'Update {version} found. Preparing the download…',
@@ -782,8 +797,9 @@ const enUS = {
     updateReady: 'Update {version} is ready. Restart now or install automatically when you quit.',
     updateCurrent: 'Pi-Harness {version} is up to date.',
     updateManualRequired:
-      'Update {version} is available, but its automatic-update files are incomplete. Install it manually from GitHub Releases.',
-    updateFailed: 'Unable to check for updates. Try again later.',
+      'Update {version} is available. Automatic updating is unavailable; download the installer from the release page.',
+    updateFailed:
+      'Unable to complete the update. Check your connection and retry, or go to the release page.',
     developer: 'Developer',
     developerMode: 'Developer mode',
     mockMode: 'Mock mode',
@@ -1587,6 +1603,16 @@ const zhCN: MessageTree = {
     marketBundle: '套装',
     marketGuide: '指南',
     marketBuiltin: '内置',
+    roleuiDesignerTitle: 'UI 设计师 Skill套件',
+    roleuiDesignerSummary: '界面细节、视觉设计、原型探索、动效表达与动画审查。',
+    rolefrontendEngineerTitle: '前端工程师 Skill套件',
+    rolefrontendEngineerSummary: '界面实现、交互动效、组件选型、测试、排错与代码审查。',
+    rolebackendEngineerTitle: '后端工程师 Skill套件',
+    rolebackendEngineerSummary: '领域建模、技术规格、模块设计、测试驱动开发与架构审查。',
+    roleproductEngineerTitle: '产品工程师 Skill套件',
+    roleproductEngineerSummary: '调研、需求澄清、规格编写、任务拆解、问题分诊与原型验证。',
+    builtinBundleRemoveHint:
+      '卸载前会备份已安装技能。与其他套件共用的技能也会同步变为未安装，应用内置资源仍会保留。',
     marketCoreTitle: '日常开发套件',
     marketCoreSummary: '覆盖日常编码、资料检索、多 Agent 协作与文档预览的核心工具。',
     marketAgentTitle: 'Agent 架构套件',
@@ -1922,8 +1948,10 @@ const zhCN: MessageTree = {
     colReason: '原因',
     colSize: '大小',
     updates: '更新',
-    updatesHint: '后台自动检查并下载新版本；退出应用时自动安装，也可立即重启完成更新。',
+    updatesHint:
+      '后台检查新版本；支持自动更新时自动下载，并在退出或重启时安装，否则可前往下载安装包。',
     checkUpdates: '检查更新',
+    openReleasePage: '前往下载',
     installUpdate: '安装并重启',
     updateChecking: '正在检查更新…',
     updateAvailable: '发现新版本 {version}，正在准备下载…',
@@ -1931,9 +1959,8 @@ const zhCN: MessageTree = {
     updateReadyTitle: '更新已就绪',
     updateReady: '新版本 {version} 已下载，可立即重启；也会在退出应用时自动安装。',
     updateCurrent: '当前 Pi-Harness {version} 已是最新版本。',
-    updateManualRequired:
-      '发现新版本 {version}，但自动更新文件不完整，请从 GitHub Releases 手动安装。',
-    updateFailed: '检查更新失败，请稍后重试。',
+    updateManualRequired: '发现新版本 {version}，暂时无法自动更新，请前往发布页下载安装包。',
+    updateFailed: '暂时无法完成更新，请检查网络后重试，或前往发布页下载。',
     developer: '开发者',
     developerMode: '开发者模式',
     mockMode: 'Mock 模式',

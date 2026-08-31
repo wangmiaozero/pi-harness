@@ -6,6 +6,7 @@ import type { AppSettings } from '@shared/ipc/api-types'
 import { JsonStore } from '../services/storage'
 import type { AppMetadata } from '../services/metadata-store'
 import { piEnvironment } from '../pi/environment'
+import { buildBuiltinSkillBundles, BUILTIN_SKILL_BUNDLES } from '@shared/skills/builtin-bundles'
 import {
   BuiltinSkillService,
   hashSkillDirectory,
@@ -16,6 +17,19 @@ const COMMIT_A = 'a'.repeat(40)
 const COMMIT_B = 'b'.repeat(40)
 
 describe('bundled Matt Pocock source', () => {
+  it('bundles all Emil Kowalski skills, references, and the upstream license', async () => {
+    const root = path.resolve('resources/builtin-skills/emilkowalski')
+    const source = await scanBuiltinSkillSource(root, 'builtin:emilkowalski-skills')
+    expect(source.skills).toHaveLength(12)
+    expect(source.skills.every((skill) => skill.bundledHealthy)).toBe(true)
+    expect(source.skills.find((skill) => skill.id === 'animate')?.resources).toContain('RECIPES.md')
+    expect(source.skills.find((skill) => skill.id === 'prototype')?.resources).toContain(
+      'PICKER.md'
+    )
+    expect(await fs.readFile(path.join(root, 'LICENSE'), 'utf8')).toContain(
+      'Copyright (c) 2026 Emil Kowalski'
+    )
+  })
   it('scans all formal categories and preserves complete Skill resources', async () => {
     const source = await scanBuiltinSkillSource(
       path.resolve('resources/builtin-skills/mattpocock'),
@@ -109,6 +123,25 @@ describe('BuiltinSkillService lifecycle', () => {
         files: { 'templates/lesson.md': 'lesson' }
       }
     ])
+    await writeBundle(
+      path.join(sourceParent, 'emilkowalski'),
+      COMMIT_B,
+      [
+        {
+          id: 'emil-design-eng',
+          category: 'engineering',
+          description: 'Design engineering',
+          files: {}
+        },
+        {
+          id: 'tdd',
+          category: 'engineering',
+          description: 'Different source fixture',
+          files: { 'different.md': 'other source' }
+        }
+      ],
+      'builtin:emilkowalski-skills'
+    )
     metadata = new JsonStore<AppMetadata>(path.join(sandbox, 'metadata.json'), {
       providers: {},
       models: {},
@@ -132,13 +165,13 @@ describe('BuiltinSkillService lifecycle', () => {
     await fs.rm(sandbox, { recursive: true, force: true })
   })
 
-  function createService(): BuiltinSkillService {
+  function createService(bundledRoot = sourceParent): BuiltinSkillService {
     return new BuiltinSkillService(
       settings,
       metadata,
       { assertAllowed: vi.fn(async (target: string) => target) } as never,
       {
-        sourceRoot: () => sourceParent,
+        sourceRoot: () => bundledRoot,
         backupRoot: () => backupRoot,
         now: () => new Date('2026-08-24T00:00:00.000Z'),
         uuid: () => 'test-id'
@@ -186,6 +219,78 @@ describe('BuiltinSkillService lifecycle', () => {
     ])
   })
 
+  it('builds four complete role suites without cloning canonical skills or installation state', async () => {
+    const sources = await createService(path.resolve('resources/builtin-skills')).list()
+    const suites = buildBuiltinSkillBundles(sources)
+    expect(suites.map((suite) => suite.skills.length)).toEqual([6, 7, 7, 6])
+    expect(new Set(suites.map((suite) => suite.role)).size).toBe(4)
+    for (const suite of suites) {
+      expect(new Set(suite.skills.map((skill) => skill.id)).size).toBe(suite.skills.length)
+      for (const skill of suite.skills) {
+        expect(skill).toBe(
+          sources
+            .find((source) => source.id === skill.collectionId)
+            ?.skills.find((entry) => entry.id === skill.id)
+        )
+      }
+    }
+    expect(new Set(BUILTIN_SKILL_BUNDLES.map((bundle) => bundle.id)).size).toBe(4)
+  })
+
+  it('installs a mixed-source role suite and shares ownership with other suites', async () => {
+    const suiteTarget = {
+      ...target(['tdd', 'emil-design-eng']),
+      collectionId: 'builtin:frontend-engineer'
+    }
+    const installed = await service.install(suiteTarget)
+    expect(installed.every((result) => result.ok)).toBe(true)
+    expect(
+      Object.values(metadata.peek().builtinSkills.installed)
+        .map((record) => record.collectionId)
+        .sort()
+    ).toEqual(['builtin:emilkowalski-skills', 'builtin:mattpocock-skills'])
+
+    const [shared] = await service.install({
+      ...target(['tdd']),
+      collectionId: 'builtin:backend-engineer'
+    })
+    expect(shared).toMatchObject({ ok: true, skipped: true })
+    expect(Object.values(metadata.peek().builtinSkills.installed)).toHaveLength(2)
+    const removed = await service.uninstall(suiteTarget)
+    expect(removed.every((result) => result.ok)).toBe(true)
+    expect(Object.values(metadata.peek().builtinSkills.installed)).toHaveLength(0)
+    expect(
+      (await service.list())[0].skills.find((skill) => skill.id === 'tdd')?.installations[0].health
+    ).toBe('not-installed')
+  })
+
+  it('rejects skills outside the trusted role suite', async () => {
+    expect(
+      await service.install({ ...target(['teach']), collectionId: 'builtin:frontend-engineer' })
+    ).toEqual([expect.objectContaining({ ok: false, errorCode: 'SKILL_NOT_FOUND' })])
+    expect(Object.values(metadata.peek().builtinSkills.installed)).toHaveLength(0)
+  })
+
+  it('transfers same-name ownership only after confirmation and prevents stale-source uninstall', async () => {
+    await service.install(target(['tdd']))
+    const otherTarget = { ...target(['tdd']), collectionId: 'builtin:emilkowalski-skills' }
+    expect(await service.install(otherTarget)).toEqual([
+      expect.objectContaining({ ok: false, errorCode: 'SKILL_CONFLICT' })
+    ])
+    expect(await service.install({ ...otherTarget, overwrite: true })).toEqual([
+      expect.objectContaining({ ok: true })
+    ])
+    expect(Object.values(metadata.peek().builtinSkills.installed)).toEqual([
+      expect.objectContaining({ collectionId: 'builtin:emilkowalski-skills' })
+    ])
+    expect(await service.uninstall(target(['tdd']))).toEqual([
+      expect.objectContaining({ ok: false })
+    ])
+    expect(
+      await fs.readFile(path.join(globalConfig, 'skills', 'tdd', 'different.md'), 'utf8')
+    ).toBe('other source')
+  })
+
   it('batch uninstall removes only collection-owned Skills', async () => {
     const foreign = path.join(globalConfig, 'skills', 'foreign-skill')
     await fs.mkdir(foreign, { recursive: true })
@@ -197,6 +302,27 @@ describe('BuiltinSkillService lifecycle', () => {
     expect(results).toHaveLength(2)
     expect(results.every((result) => result.ok)).toBe(true)
     await expect(fs.readFile(path.join(foreign, 'SKILL.md'), 'utf8')).resolves.toBe('# Foreign')
+  })
+
+  it('restores the former source and ownership if a cross-source replacement fails', async () => {
+    await service.install(target(['tdd']))
+    vi.spyOn(metadata, 'update').mockRejectedValueOnce(new Error('fixture write failure'))
+    expect(
+      await service.install({
+        ...target(['tdd']),
+        collectionId: 'builtin:emilkowalski-skills',
+        overwrite: true
+      })
+    ).toEqual([expect.objectContaining({ ok: false })])
+    expect(await fs.readFile(path.join(globalConfig, 'skills', 'tdd', 'tests.md'), 'utf8')).toBe(
+      'tests'
+    )
+    expect(Object.values(metadata.peek().builtinSkills.installed)).toEqual([
+      expect.objectContaining({ collectionId: 'builtin:mattpocock-skills' })
+    ])
+    expect(await service.uninstall(target(['tdd']))).toEqual([
+      expect.objectContaining({ ok: true })
+    ])
   })
 
   it('reports an unowned same-name Skill as conflict and never overwrites silently', async () => {
@@ -301,7 +427,8 @@ async function writeBundle(
     category: 'engineering' | 'productivity' | 'misc'
     description: string
     files: Record<string, string>
-  }>
+  }>,
+  collectionId = 'builtin:mattpocock-skills'
 ): Promise<void> {
   await fs.rm(root, { recursive: true, force: true })
   await fs.mkdir(root, { recursive: true })
@@ -335,7 +462,7 @@ async function writeBundle(
     JSON.stringify(
       {
         schemaVersion: 1,
-        id: 'builtin:mattpocock-skills',
+        id: collectionId,
         name: 'Matt Pocock Skills',
         displayName: 'Skills For Real Engineers',
         author: 'Matt Pocock',

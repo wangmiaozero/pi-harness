@@ -6,7 +6,7 @@ import { log } from '../services/logger'
 import { AppError, EnvironmentError, PiCliError, ValidationError } from '../services/errors'
 import type { NodeRuntimeInfo, PiInstallResult, PiLatestInfo } from '@shared/ipc/api-types'
 import { PI_INSTALL_ARGS, PI_INSTALL_COMMAND, PI_NPM_PACKAGE } from '@shared/constants/pi-install'
-import { detectNodeRuntime, MINIMUM_NODE_VERSION, resolveNpmExecutable } from './node-environment'
+import { detectNodeRuntime, MINIMUM_NODE_VERSION } from './node-environment'
 import { displayCommand, runCommand, type CommandRunOptions } from '../environment/command-runner'
 import {
   ensureWritableNpmPrefix,
@@ -31,7 +31,6 @@ export interface PiInstallOptions {
 }
 
 interface PiInstallDependencies {
-  resolveNpm: typeof resolveNpmExecutable
   detectRuntime: typeof detectNodeRuntime
   runCommand: typeof runCommand
   ensurePrefix: typeof ensureWritableNpmPrefix
@@ -48,7 +47,6 @@ export class PiInstallService {
 
   constructor(dependencies: Partial<PiInstallDependencies> = {}) {
     this.dependencies = {
-      resolveNpm: resolveNpmExecutable,
       detectRuntime: detectNodeRuntime,
       runCommand,
       ensurePrefix: ensureWritableNpmPrefix,
@@ -73,11 +71,17 @@ export class PiInstallService {
     const installedClean = installedVersion ? parseSemverHint(installedVersion) : null
     let latestVersion: string | null = null
     try {
-      const npm = await this.dependencies.resolveNpm()
+      const runtime = await this.dependencies.detectRuntime()
+      if (!runtime.nodeSupported || !runtime.npmPath) {
+        throw new EnvironmentError(
+          'NPM_NOT_FOUND',
+          'A supported Node.js runtime and npm are required'
+        )
+      }
       const result = await this.dependencies.runCommand(
-        npm,
+        runtime.npmPath,
         ['view', PI_NPM_PACKAGE, 'version', '--json'],
-        { timeoutMs: 30_000, env: npmEnvironment() }
+        { timeoutMs: 30_000, env: selfUpdateEnvironment(runtime) }
       )
       if (result.exitCode === 0) {
         const raw = result.stdout.trim()
@@ -137,6 +141,7 @@ export class PiInstallService {
     try {
       prefix = await this.dependencies.ensurePrefix(runtime.npmPath, {
         nodePath: runtime.nodePath,
+        env: { ...process.env, PATH: runtime.resolvedPath || process.env.PATH },
         signal: options.signal,
         onLog: (message) => options.onLog?.(message, 'info')
       })
@@ -302,19 +307,25 @@ export class PiInstallService {
  * is stripped exactly like direct npm installs.
  */
 function selfUpdateEnvironment(
-  runtime: Pick<NodeRuntimeInfo, 'nodePath' | 'npmPath'>
+  runtime: Pick<NodeRuntimeInfo, 'nodePath' | 'npmPath' | 'resolvedPath'>
 ): NodeJS.ProcessEnv {
-  const env = npmEnvironment(runtime.nodePath)
+  const env = npmEnvironment(runtime.nodePath, null, {
+    ...process.env,
+    PATH: runtime.resolvedPath || process.env.PATH
+  })
   const runtimeDirectories = [runtime.nodePath, runtime.npmPath]
     .filter((value): value is string => Boolean(value))
     .map((value) => path.dirname(value))
-  const pathEntries = (env.PATH ?? '').split(path.delimiter).filter(Boolean)
-  const seen = new Set(pathEntries.map(pathIdentity))
-  for (const directory of runtimeDirectories) {
+  const pathEntries: string[] = []
+  const seen = new Set<string>()
+  for (const directory of [
+    ...runtimeDirectories,
+    ...(env.PATH ?? '').split(path.delimiter).filter(Boolean)
+  ]) {
     const identity = pathIdentity(directory)
     if (seen.has(identity)) continue
     seen.add(identity)
-    pathEntries.unshift(directory)
+    pathEntries.push(directory)
   }
   return { ...env, PATH: pathEntries.join(path.delimiter) }
 }

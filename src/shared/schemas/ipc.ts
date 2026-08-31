@@ -7,6 +7,8 @@ import { APP_THEMES } from '../constants/theme'
 import { TOOL_PRESET_VALUES } from '../workspace/tool-presets'
 import { providerKeySchema } from './domain'
 
+export const noArgsSchema = z.tuple([])
+
 export const systemPathSchema = z
   .string()
   .trim()

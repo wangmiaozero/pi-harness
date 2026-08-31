@@ -59,10 +59,6 @@ export class PiProcessService {
   private cachedAt = 0
   private readonly cacheTtlMs = 10_000
 
-  private cachedSearchPath: string | null = null
-  private searchPathCachedAt = 0
-  private readonly searchPathTtlMs = 10 * 60_000
-
   private async candidateDirs(): Promise<string[]> {
     const home = homedir()
     const isWin = process.platform === 'win32'
@@ -171,8 +167,6 @@ export class PiProcessService {
   invalidateCache(): void {
     this.cachedPath = null
     this.cachedAt = 0
-    this.cachedSearchPath = null
-    this.searchPathCachedAt = 0
   }
 
   /**
@@ -184,17 +178,18 @@ export class PiProcessService {
    * resolved login-shell PATH and the known Node tool directories so child
    * processes work regardless of how the app was launched.
    */
-  private async resolveChildSearchPath(): Promise<string> {
-    const now = Date.now()
-    if (this.cachedSearchPath && now - this.searchPathCachedAt < this.searchPathTtlMs) {
-      return this.cachedSearchPath
+  private async resolveChildEnvironment(cwd?: string): Promise<NodeJS.ProcessEnv> {
+    const login = await resolveLoginShellPath({ probeNode: true, cwd })
+    const env = { ...process.env, ...login.env }
+    const directories = await nodeToolDirectories(login.path, env)
+    return {
+      ...env,
+      PATH: mergePathEntries(
+        login.node ? path.dirname(login.node.path) : null,
+        login.path,
+        ...directories
+      )
     }
-    const login = await resolveLoginShellPath()
-    const directories = await nodeToolDirectories(login.path)
-    const merged = mergePathEntries(process.env.PATH, login.path, ...directories)
-    this.cachedSearchPath = merged
-    this.searchPathCachedAt = now
-    return merged
   }
 
   /** Run `pi <args>` safely. Returns captured output. */
@@ -219,8 +214,7 @@ export class PiProcessService {
       timeout: options.timeoutMs ?? 30_000,
       cwd: options.cwd,
       env: {
-        ...process.env,
-        PATH: await this.resolveChildSearchPath(),
+        ...(await this.resolveChildEnvironment(options.cwd)),
         ...options.env,
         ...(isJs ? { ELECTRON_RUN_AS_NODE: '1' } : {})
       },

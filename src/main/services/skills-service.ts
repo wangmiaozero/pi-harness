@@ -35,6 +35,7 @@ import { capabilityBackupDir } from './app-paths'
 import { PiPackageManager, packageNameFromSource } from '../packages/package-manager'
 import type { BuiltinSkillService } from '../skills/builtin-skill-service'
 import type { FileAccessService } from '../files/file-access-service'
+import { buildBuiltinSkillBundles } from '@shared/skills/builtin-bundles'
 
 export interface SkillForm {
   name: string
@@ -200,7 +201,11 @@ export class SkillsService {
       })
     }))
     const builtinCollections = this.builtinSkills ? await this.builtinSkills.list(projectRoot) : []
-    return [...builtinCollections, ...packageCollections]
+    return [
+      ...builtinCollections,
+      ...buildBuiltinSkillBundles(builtinCollections),
+      ...packageCollections
+    ]
   }
 
   async installBuiltinSkills(

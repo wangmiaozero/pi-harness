@@ -20,6 +20,7 @@ import { parseSkillDirectory } from '../capabilities/skill-parser'
 import { builtinSkillsRoot, capabilityBackupDir } from '../services/app-paths'
 import { AppError, SkillMutationError, ValidationError } from '../services/errors'
 import { log } from '../services/logger'
+import { findBuiltinSkillBundle } from '@shared/skills/builtin-bundles'
 import {
   BUILTIN_SKILL_SOURCES,
   hashSkillDirectory,
@@ -181,27 +182,42 @@ export class BuiltinSkillService {
   }
 
   async install(target: BuiltinSkillMutationTarget): Promise<BuiltinSkillActionResult[]> {
-    const normalized = await this.normalizeTarget(target, true)
-    const source = await this.findSource(normalized.collectionId)
-    return this.mutateMany(normalized, 'install', (skillId) =>
-      this.installOne(source, skillId, normalized)
-    )
+    return this.mutateCollection(target, 'install')
   }
 
   async update(target: BuiltinSkillMutationTarget): Promise<BuiltinSkillActionResult[]> {
-    const normalized = await this.normalizeTarget({ ...target, overwrite: true }, true)
-    const source = await this.findSource(normalized.collectionId)
-    return this.mutateMany(normalized, 'update', (skillId) =>
-      this.installOne(source, skillId, normalized, 'update')
-    )
+    return this.mutateCollection({ ...target, overwrite: true }, 'update')
   }
 
   async uninstall(target: BuiltinSkillMutationTarget): Promise<BuiltinSkillActionResult[]> {
-    const normalized = await this.normalizeTarget(target, false)
-    const source = await this.findSource(normalized.collectionId)
-    return this.mutateMany(normalized, 'uninstall', (skillId) =>
-      this.uninstallOne(source, skillId, normalized)
+    return this.mutateCollection(target, 'uninstall')
+  }
+
+  private async mutateCollection(
+    target: BuiltinSkillMutationTarget,
+    action: BuiltinSkillActionResult['action']
+  ): Promise<BuiltinSkillActionResult[]> {
+    const normalized = await this.normalizeTarget(target, action !== 'uninstall')
+    const bundle = findBuiltinSkillBundle(normalized.collectionId)
+    const sources = new Map(
+      (await this.scanSources()).map((source) => [source.manifest.id, source])
     )
+    return this.mutateMany(normalized, action, (skillId) => {
+      const sourceId = bundle
+        ? bundle.members.find((member) => member.skillId === skillId)?.collectionId
+        : normalized.collectionId
+      const source = sourceId ? sources.get(sourceId) : undefined
+      if (!source)
+        throw new SkillMutationError('SKILL_NOT_FOUND', 'Skill is not a member of this collection')
+      const canonicalTarget = {
+        ...normalized,
+        collectionId: source.manifest.id,
+        skillIds: [skillId]
+      }
+      return action === 'uninstall'
+        ? this.uninstallOne(source, skillId, canonicalTarget)
+        : this.installOne(source, skillId, canonicalTarget, action)
+    })
   }
 
   private async mutateMany(
@@ -212,7 +228,8 @@ export class BuiltinSkillService {
     const results: BuiltinSkillActionResult[] = []
     for (const skillId of target.skillIds) {
       const key = ownershipKey(
-        target.collectionId,
+        // Different collections can target the same installed directory.
+        'builtin',
         skillId,
         target.scope,
         target.projectRoot ?? null
@@ -256,6 +273,11 @@ export class BuiltinSkillService {
     const destination = safeSkillChild(context.root, skill.id)
     const key = ownershipKey(source.manifest.id, skill.id, context.scope, context.projectRoot)
     const ownership = this.ownershipRecords()[key]
+    const previousPathOwner = Object.entries(this.ownershipRecords()).find(
+      ([otherKey, record]) =>
+        otherKey !== key &&
+        normalizePathIdentity(record.installedPath) === normalizePathIdentity(destination)
+    )
     const existing = await lstatOrNull(destination)
     const logs: BuiltinSkillActionResult['logs'] = [
       {
@@ -394,6 +416,7 @@ export class BuiltinSkillService {
       if (movedExisting) await fs.rename(rollback, destination).catch(() => undefined)
       if (ownership) await this.setOwnership(key, ownership).catch(() => undefined)
       else await this.setOwnership(key, null).catch(() => undefined)
+      if (previousPathOwner) await this.setOwnership(...previousPathOwner).catch(() => undefined)
       throw error
     } finally {
       await fs.rm(incoming, { recursive: true, force: true }).catch(() => undefined)
@@ -593,14 +616,6 @@ export class BuiltinSkillService {
     )
   }
 
-  private async findSource(collectionId: string): Promise<ScannedBuiltinSource> {
-    const sources = await this.scanSources()
-    const source = sources.find((entry) => entry.manifest.id === collectionId)
-    if (!source)
-      throw new SkillMutationError('SKILL_NOT_FOUND', 'Built-in Skills Collection was not found')
-    return source
-  }
-
   private async scopeContexts(projectRoot?: string | null): Promise<ScopeContext[]> {
     const settings = this.settingsStore.peek()
     const environment = await piEnvironment.detect({
@@ -640,7 +655,10 @@ export class BuiltinSkillService {
     allowOverwrite: boolean
   ): Promise<BuiltinSkillMutationTarget> {
     const collectionId = target.collectionId.trim()
-    if (!BUILTIN_SKILL_SOURCES.some((source) => source.id === collectionId)) {
+    if (
+      !BUILTIN_SKILL_SOURCES.some((source) => source.id === collectionId) &&
+      !findBuiltinSkillBundle(collectionId)
+    ) {
       throw new ValidationError('Unknown built-in Skills Collection')
     }
     const skillIds = [...new Set(target.skillIds.map((id) => id.trim()))]
@@ -666,8 +684,19 @@ export class BuiltinSkillService {
 
   private async setOwnership(key: string, value: BuiltinSkillOwnership | null): Promise<void> {
     const installed = { ...this.ownershipRecords() }
-    if (value) installed[key] = value
-    else delete installed[key]
+    if (value) {
+      // An explicitly confirmed replacement transfers ownership of this path.
+      // Keeping the former source's record could later uninstall the new skill.
+      for (const [otherKey, record] of Object.entries(installed)) {
+        if (
+          otherKey !== key &&
+          normalizePathIdentity(record.installedPath) === normalizePathIdentity(value.installedPath)
+        ) {
+          delete installed[otherKey]
+        }
+      }
+      installed[key] = value
+    } else delete installed[key]
     await this.metadataStore.update({
       builtinSkills: { schemaVersion: 1, installed }
     })

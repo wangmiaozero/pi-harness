@@ -3,6 +3,7 @@ import {
   appSettingsPatchSchema,
   backupRetentionSchema,
   modelCompositeIdSchema,
+  noArgsSchema,
   omitLegacyAppSettingsKeys,
   pickKnownAppSettings,
   screenMotionActiveSchema,
@@ -11,6 +12,12 @@ import {
 import { backupIdSchema } from './domain'
 
 describe('IPC schemas', () => {
+  it('rejects arbitrary URLs and options for argument-free actions', () => {
+    expect(noArgsSchema.safeParse([]).success).toBe(true)
+    expect(noArgsSchema.safeParse(['https://example.com']).success).toBe(false)
+    expect(noArgsSchema.safeParse([{ url: 'file:///tmp/untrusted' }]).success).toBe(false)
+  })
+
   it('rejects path traversal backup ids', () => {
     expect(backupIdSchema.safeParse('../settings.json').success).toBe(false)
     expect(backupIdSchema.safeParse('1720000000000-deadbeef').success).toBe(true)

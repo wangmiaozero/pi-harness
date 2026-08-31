@@ -1,0 +1,17 @@
+extends: ./electron-builder.yml
+directories:
+  output: release/nomascot
+mac:
+  artifactName: ${productName}-${version}-${arch}-nomascot.${ext}
+win:
+  artifactName: ${productName}-Setup-${version}-nomascot.${ext}
+linux:
+  artifactName: ${productName}-${version}-${arch}-nomascot.${ext}
+# The embedded app-update.yml and published metadata must use the same channel.
+# Keep both variants on the same stable GitHub Release without crossing feeds.
+publish:
+  provider: github
+  owner: wangmiaozero
+  repo: pi-harness
+  releaseType: release
+  channel: nomascot

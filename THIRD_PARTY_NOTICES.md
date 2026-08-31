@@ -21,6 +21,15 @@ Pi-Harness does not embed the Pi Web Next.js/React application. Agent sessions r
 
 The original license text is distributed with the collection at `builtin-skills/mattpocock/LICENSE` in packaged applications.
 
+## Emil Kowalski Skills
+
+- Project: [emilkowalski/skills](https://github.com/emilkowalski/skills)
+- Copyright: Copyright (c) 2026 Emil Kowalski
+- License: MIT
+- Used as: bundled Skill content, installed into Pi only after an explicit user action.
+
+The original license text is distributed with the collection at `builtin-skills/emilkowalski/LICENSE` in packaged applications.
+
 ## AI Motion
 
 - Project: [gaomeng1900/ai-motion](https://github.com/gaomeng1900/ai-motion)

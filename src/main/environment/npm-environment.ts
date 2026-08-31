@@ -45,6 +45,7 @@ export async function ensureWritableNpmPrefix(
   npmPath: string,
   options: {
     nodePath?: string | null
+    env?: NodeJS.ProcessEnv
     signal?: AbortSignal
     onLog?: (message: string) => void
     backupRoot?: string
@@ -59,12 +60,12 @@ export async function ensureWritableNpmPrefix(
   const runNpmCommand = options.runNpmCommand ?? runNpm
   const persistPath = options.persistPath ?? persistUserPath
   const backupConfig = options.backupConfig ?? backupNpmConfig
-  const current = await inspectPrefix(npmPath, { nodePath: options.nodePath })
+  const current = await inspectPrefix(npmPath, { nodePath: options.nodePath, env: options.env })
   if (current.prefix && current.writable) {
     options.onLog?.(`npm global prefix is writable: ${current.prefix}`)
     return {
       ...current,
-      env: npmEnvironment(options.nodePath, current.prefix),
+      env: npmEnvironment(options.nodePath, current.prefix, options.env),
       changed: false,
       previousPrefix: current.prefix
     }
@@ -83,7 +84,7 @@ export async function ensureWritableNpmPrefix(
     fs.mkdir(npmModulesDirectory(prefix), { recursive: true })
   ])
   await backupConfig(options.backupRoot ?? environmentBackupDir())
-  const env = npmEnvironment(options.nodePath, prefix)
+  const env = npmEnvironment(options.nodePath, prefix, options.env)
   const result = await runNpmCommand(npmPath, ['config', 'set', 'prefix', prefix], {
     nodePath: options.nodePath,
     env,
@@ -154,14 +155,15 @@ export function runNpm(
   } = {}
 ): Promise<CommandRunResult> {
   return runCommand(npmPath, args, {
+    cwd: homedir(),
     signal: options.signal,
     timeoutMs: options.timeoutMs,
     onStdout: options.onStdout,
     onStderr: options.onStderr,
-    env: {
-      ...npmEnvironment(options.nodePath),
+    env: npmEnvironment(options.nodePath, options.env?.NPM_CONFIG_PREFIX, {
+      ...process.env,
       ...options.env
-    }
+    })
   })
 }
 

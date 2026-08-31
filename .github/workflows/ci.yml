@@ -59,3 +59,5 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: ${{ matrix.command }}
+      - name: Native environment regression tests
+        run: pnpm exec vitest run src/main/environment src/main/pi/node-environment.test.ts src/main/pi/node-runtime.test.ts src/main/pi/environment-checks.test.ts src/main/pi/install-service.test.ts src/main/process/pi-process.test.ts

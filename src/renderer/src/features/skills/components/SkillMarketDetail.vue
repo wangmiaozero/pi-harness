@@ -48,7 +48,9 @@ const visibleBuiltinSkills = computed(() => {
       skill.description.toLowerCase().includes(q) ||
       skill.category.includes(q) ||
       collection.author.toLowerCase().includes(q) ||
-      collection.name.toLowerCase().includes(q)
+      collectionTitle(collection).toLowerCase().includes(q) ||
+      collectionSummary(collection).toLowerCase().includes(q) ||
+      collection.repository.toLowerCase().includes(q)
   )
 })
 
@@ -118,6 +120,8 @@ function isRemoveDisabled(key: string): boolean {
 }
 
 function collectionTitle(collection: SkillMarketCollection): string {
+  if (isBuiltinCollection(collection) && collection.role)
+    return t(`skills.role${collection.role}Title`)
   if (isBuiltinCollection(collection)) return collection.displayName
   if (collection.id === 'core-development') return t('skills.marketCoreTitle')
   if (collection.id === 'agent-architecture') return t('skills.marketAgentTitle')
@@ -126,6 +130,8 @@ function collectionTitle(collection: SkillMarketCollection): string {
 }
 
 function collectionSummary(collection: SkillMarketCollection): string {
+  if (isBuiltinCollection(collection) && collection.role)
+    return t(`skills.role${collection.role}Summary`)
   if (isBuiltinCollection(collection)) {
     return `${collection.name} · ${collection.author} · ${collection.repository}`
   }
@@ -136,12 +142,13 @@ function collectionSummary(collection: SkillMarketCollection): string {
 }
 
 function collectionKindLabel(collection: SkillMarketCollection): string {
-  if (isBuiltinCollection(collection)) return t('skills.marketBuiltin')
+  if (isBuiltinCollection(collection))
+    return t(collection.role ? 'skills.marketBundle' : 'skills.marketBuiltin')
   return collection.kind === 'bundle' ? t('skills.marketBundle') : t('skills.marketGuide')
 }
 
 function collectionKindTone(collection: SkillMarketCollection): 'muted' | 'success' | 'accent' {
-  if (isBuiltinCollection(collection)) return 'success'
+  if (isBuiltinCollection(collection)) return collection.role ? 'accent' : 'success'
   return collection.kind === 'bundle' ? 'accent' : 'muted'
 }
 
@@ -247,7 +254,7 @@ function marketPackageDescription(pkg: SkillMarketPackage): string {
         <PropertyRow :label="$t('skills.builtinLicense')" mono>
           {{ collection.license }}
         </PropertyRow>
-        <PropertyRow :label="$t('skills.builtinVersion')" mono>
+        <PropertyRow v-if="!collection.role" :label="$t('skills.builtinVersion')" mono>
           {{ collection.commit.slice(0, 12) }}
         </PropertyRow>
         <PropertyRow :label="$t('skills.packageScope')">
@@ -289,6 +296,7 @@ function marketPackageDescription(pkg: SkillMarketPackage): string {
               <p
                 class="mt-1 truncate font-[family-name:var(--font-mono)] text-[9.5px] text-[var(--text-disabled)]"
               >
+                <template v-if="collection.role">{{ skill.sourceRepository }} · </template>
                 {{ skill.sourcePath }} · {{ skill.resources.length }}
                 {{ $t('skills.resourcesUnit') }}
               </p>
