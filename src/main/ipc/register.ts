@@ -44,6 +44,7 @@ import type { CapabilityService } from '../capabilities/capability-service'
 import { capabilityMutationSchema, capabilityToggleSchema } from '@shared/capabilities/schema'
 import type { EnvironmentManager } from '../environment/environment-manager'
 import { DEFAULT_MASCOT_STYLE, isMascotUnlockAnswer } from '@shared/constants/mascot'
+import { installAppMenu } from '../window/app-menu'
 import { normalizeNavOrder } from '@shared/constants/navigation'
 import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
 import { providerKeySchema, backupIdSchema, pathSegmentSchema } from '@shared/schemas/domain'
@@ -574,6 +575,7 @@ export function registerIpc(services: Services): void {
       settings.navOrder = normalizeNavOrder(settings.navOrder)
       await settingsStore.write(settings)
       nativeTheme.themeSource = themeAppearance(settings.theme)
+      if (settings.language !== current.language) installAppMenu(settings.language)
       return settings
     })
   )

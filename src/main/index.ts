@@ -22,6 +22,7 @@ import { SkillsService } from './services/skills-service'
 import { DiagnosticsService } from './services/diagnostics-service'
 import { registerIpc, broadcastConfigChanged, broadcastNotification } from './ipc/register'
 import { createMainWindow } from './window/create-window'
+import { installAppMenu } from './window/app-menu'
 import { ScreenMotionOverlayController } from './window/screen-motion-overlay'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
@@ -113,6 +114,10 @@ async function bootstrap(): Promise<void> {
   )
   if (theme !== storedSettings.theme) await settingsStore.update({ theme })
   nativeTheme.themeSource = themeAppearance(theme)
+  // Install before the first window opens: replaces Electron's default menu,
+  // whose CmdOrCtrl+W "Close Window" accelerator hijacked the workspace
+  // close-tab shortcut and closed the whole window mid-conversation.
+  installAppMenu(storedSettings.language)
   const uiStateStore = new JsonStore<Record<string, unknown>>(appUiStatePath(), {})
   await uiStateStore.read()
   const authorizedRootsStore = new JsonStore<AuthorizedRootsState>(appAuthorizedRootsPath(), {
