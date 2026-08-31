@@ -42,6 +42,8 @@
     "build:mac:all:nomascot": "pnpm compile:nomascot && electron-builder --publish never --config electron-builder.nomascot.yml --mac --arm64 --x64 && node scripts/clean-unpacked-mac.mjs --nomascot",
     "build:win:nomascot": "pnpm compile:nomascot && electron-builder --publish never --config electron-builder.nomascot.yml --win",
     "build:linux:nomascot": "pnpm compile:nomascot && electron-builder --publish never --config electron-builder.nomascot.yml --linux",
+    "build:release:mac-linux": "pnpm build:mac:all && pnpm build:linux && pnpm build:mac:all:nomascot && pnpm build:linux:nomascot",
+    "build:release:win": "pnpm build:win && pnpm build:win:nomascot",
     "preview": "electron-vite preview",
     "typecheck": "vue-tsc --noEmit -p tsconfig.node.json && vue-tsc --noEmit -p tsconfig.web.json",
     "lint": "eslint .",
