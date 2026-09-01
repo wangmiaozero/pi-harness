@@ -26,8 +26,15 @@ import type {
   FileWriteResult,
   GitFileDiffResponse,
   GitCommitInfo,
+  GitCommitDetails,
+  GitCommitDiffResponse,
   GitCommitMessageResponse,
   GitCommitResponse,
+  GitActionRequest,
+  GitActionResponse,
+  GitBranchContextAction,
+  GitContextMenuSelection,
+  GitRepositoryOverview,
   GitStatusResponse,
   PromptAgentInput,
   ProjectContextAction,
@@ -895,6 +902,18 @@ export interface PiSwitchAPI {
     generateCommitMessage(cwd: string, draft?: string): Promise<GitCommitMessageResponse>
     commit(cwd: string, message: string): Promise<GitCommitResponse>
     history(cwd: string, limit?: number): Promise<GitCommitInfo[]>
+    overview(cwd: string): Promise<GitRepositoryOverview>
+    commitDetails(cwd: string, hash: string): Promise<GitCommitDetails>
+    commitDiff(cwd: string, hash: string, filePath: string): Promise<GitCommitDiffResponse>
+    action(input: GitActionRequest): Promise<GitActionResponse>
+    branchContextMenu(input: {
+      locale: 'zh-CN' | 'en-US'
+      branchName: string
+      branchType: 'local' | 'remote'
+      current: boolean
+      upstream: string | null
+      upstreamChoices: string[]
+    }): Promise<GitContextMenuSelection<GitBranchContextAction> | null>
   }
   worktrees: {
     list(cwd: string): Promise<WorktreeInfo[]>

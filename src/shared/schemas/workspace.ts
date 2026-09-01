@@ -154,6 +154,60 @@ export const gitHistorySchema = z.object({
   limit: z.number().int().min(1).max(200).optional().default(100)
 })
 
+const gitRefSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(512)
+  .refine((value) => !value.startsWith('-') && !/[\0\r\n]/.test(value), 'invalid git ref')
+
+export const gitOverviewSchema = z.object({ cwd: cwdSchema })
+
+export const gitCommitDetailsSchema = z.object({
+  cwd: cwdSchema,
+  hash: gitRefSchema
+})
+
+export const gitCommitDiffSchema = z.object({
+  cwd: cwdSchema,
+  hash: gitRefSchema,
+  filePath: z.string().trim().min(1).max(4096).refine((value) => !value.includes('\0'))
+})
+
+export const gitActionSchema = z.object({
+  cwd: cwdSchema,
+  action: z.enum([
+    'fetch',
+    'pull',
+    'pull-rebase',
+    'push',
+    'create-branch',
+    'checkout-branch',
+    'checkout-remote',
+    'stash',
+    'stash-pop',
+    'merge',
+    'rebase',
+    'rename-branch',
+    'delete-branch',
+    'set-upstream',
+    'unset-upstream'
+  ]),
+  target: gitRefSchema.optional(),
+  name: gitRefSchema.optional(),
+  upstream: gitRefSchema.optional(),
+  message: z.string().trim().max(500).optional()
+})
+
+export const gitBranchContextMenuSchema = z.object({
+  locale: z.enum(['zh-CN', 'en-US']).optional().default('en-US'),
+  branchName: gitRefSchema,
+  branchType: z.enum(['local', 'remote']),
+  current: z.boolean(),
+  upstream: gitRefSchema.nullable(),
+  upstreamChoices: z.array(gitRefSchema).max(200)
+})
+
 export const worktreeListSchema = z.object({
   cwd: cwdSchema
 })

@@ -276,6 +276,119 @@ export interface GitCommitInfo {
   subject: string
 }
 
+export interface GitBranchInfo {
+  name: string
+  fullName: string
+  type: 'local' | 'remote'
+  tipHash: string
+  upstream: string | null
+  ahead: number
+  behind: number
+  current: boolean
+}
+
+export interface GitRemoteInfo {
+  name: string
+  url: string
+}
+
+export interface GitPullRequestInfo {
+  number: number
+  title: string
+  branch: string
+  author: string
+  url: string
+  draft: boolean
+}
+
+export interface GitPullRequestState {
+  provider: 'github' | null
+  available: boolean
+  authenticated: boolean
+  message: string | null
+  items: GitPullRequestInfo[]
+}
+
+export interface GitSubmoduleInfo {
+  path: string
+  hash: string
+  state: 'clean' | 'modified' | 'uninitialized' | 'conflict'
+}
+
+export interface GitRepositoryOverview {
+  currentBranch: string | null
+  detached: boolean
+  branches: GitBranchInfo[]
+  remotes: GitRemoteInfo[]
+  stashCount: number
+  pullRequests: GitPullRequestState
+  submodules: GitSubmoduleInfo[]
+}
+
+export interface GitCommitFileInfo {
+  path: string
+  previousPath: string | null
+  status: 'A' | 'M' | 'D' | 'R' | 'C' | 'T' | 'U' | 'X' | 'B'
+}
+
+export interface GitCommitDetails extends GitCommitInfo {
+  body: string
+  files: GitCommitFileInfo[]
+}
+
+export interface GitCommitDiffResponse {
+  patch: string
+  truncated: boolean
+}
+
+export type GitAction =
+  | 'fetch'
+  | 'pull'
+  | 'pull-rebase'
+  | 'push'
+  | 'create-branch'
+  | 'checkout-branch'
+  | 'checkout-remote'
+  | 'stash'
+  | 'stash-pop'
+  | 'merge'
+  | 'rebase'
+  | 'rename-branch'
+  | 'delete-branch'
+  | 'set-upstream'
+  | 'unset-upstream'
+
+export interface GitActionRequest {
+  cwd: string
+  action: GitAction
+  target?: string
+  name?: string
+  upstream?: string
+  message?: string
+}
+
+export interface GitActionResponse {
+  hash: string | null
+  message: string
+}
+
+export type GitBranchContextAction =
+  | 'checkout'
+  | 'push'
+  | 'merge'
+  | 'rebase'
+  | 'create-branch'
+  | 'rename'
+  | 'set-upstream'
+  | 'unset-upstream'
+  | 'delete'
+  | 'copy-name'
+
+export interface GitContextMenuSelection<T extends string = string> {
+  action: T
+  value?: string
+}
+
 export interface GitCommitMessageResponse {
   message: string
   provider: string

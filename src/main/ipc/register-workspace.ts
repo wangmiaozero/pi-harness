@@ -12,6 +12,11 @@ import {
   gitGenerateCommitMessageSchema,
   gitCommitSchema,
   gitHistorySchema,
+  gitOverviewSchema,
+  gitCommitDetailsSchema,
+  gitCommitDiffSchema,
+  gitActionSchema,
+  gitBranchContextMenuSchema,
   gitStatusManySchema,
   gitStatusSchema,
   promptAgentSchema,
@@ -49,6 +54,8 @@ import type { AgentRuntime } from '../agent/runtime'
 import type { WorkspaceService } from '../workspace/workspace-service'
 import type {
   ProjectContextAction,
+  GitBranchContextAction,
+  GitContextMenuSelection,
   SessionContextAction,
   SessionFolderContextAction
 } from '@shared/types/workspace'
@@ -500,6 +507,46 @@ export function registerWorkspaceIpc(
       return git.history(parsed.data.cwd, parsed.data.limit)
     })
   )
+  ipcMain.handle(IPC_INVOKE.gitOverview, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitOverviewSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid git overview request', { issues: parsed.error.issues })
+      return git.overview(parsed.data.cwd)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.gitCommitDetails, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitCommitDetailsSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid commit details request', { issues: parsed.error.issues })
+      return git.commitDetails(parsed.data.cwd, parsed.data.hash)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.gitCommitDiff, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitCommitDiffSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid commit diff request', { issues: parsed.error.issues })
+      return git.commitDiff(parsed.data.cwd, parsed.data.hash, parsed.data.filePath)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.gitAction, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitActionSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid git action request', { issues: parsed.error.issues })
+      return git.action(parsed.data)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.gitBranchContextMenu, (e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitBranchContextMenuSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid branch menu request', { issues: parsed.error.issues })
+      return showGitBranchMenu(BrowserWindow.fromWebContents(e.sender), parsed.data)
+    })
+  )
 
   ipcMain.handle(IPC_INVOKE.worktreeList, (_e, input: unknown) =>
     wrap(async () => {
@@ -615,5 +662,87 @@ function showProjectMenu(
       window: win ?? undefined,
       callback: () => finish(null)
     })
+  })
+}
+
+function showGitBranchMenu(
+  win: BrowserWindow | null,
+  input: {
+    locale: 'zh-CN' | 'en-US'
+    branchName: string
+    branchType: 'local' | 'remote'
+    current: boolean
+    upstream: string | null
+    upstreamChoices: string[]
+  }
+): Promise<GitContextMenuSelection<GitBranchContextAction> | null> {
+  return new Promise((resolve) => {
+    const zh = input.locale === 'zh-CN'
+    let settled = false
+    const finish = (action: GitBranchContextAction | null, value?: string) => {
+      if (settled) return
+      settled = true
+      resolve(action ? { action, ...(value ? { value } : {}) } : null)
+    }
+    const items: Electron.MenuItemConstructorOptions[] = [
+      {
+        label: zh ? `检出 ${input.branchName}` : `Checkout ${input.branchName}`,
+        enabled: !input.current,
+        click: () => finish('checkout')
+      }
+    ]
+    if (input.branchType === 'local') {
+      items.push({ label: zh ? '推送' : 'Push', click: () => finish('push') })
+    }
+    items.push(
+      { type: 'separator' },
+      {
+        label: zh ? '合并到当前分支' : 'Merge into current branch',
+        enabled: !input.current,
+        click: () => finish('merge')
+      },
+      {
+        label: zh ? '将当前分支 Rebase 到此分支' : 'Rebase current branch onto this branch',
+        enabled: !input.current,
+        click: () => finish('rebase')
+      },
+      { type: 'separator' },
+      {
+        label: zh ? '从此处创建分支…' : 'Create branch here…',
+        click: () => finish('create-branch')
+      }
+    )
+    if (input.branchType === 'local') {
+      items.push(
+        { label: zh ? '重命名…' : 'Rename…', click: () => finish('rename') },
+        {
+          label: zh ? '设置上游分支' : 'Set upstream',
+          enabled: input.upstreamChoices.length > 0,
+          submenu: input.upstreamChoices.map((choice) => ({
+            label: choice,
+            type: 'radio' as const,
+            checked: choice === input.upstream,
+            click: () => finish('set-upstream', choice)
+          }))
+        }
+      )
+      if (input.upstream) {
+        items.push({ label: zh ? '取消上游分支' : 'Unset upstream', click: () => finish('unset-upstream') })
+      }
+      items.push(
+        { type: 'separator' },
+        {
+          label: zh ? '删除分支…' : 'Delete branch…',
+          enabled: !input.current,
+          click: () => finish('delete')
+        }
+      )
+    }
+    items.push(
+      { type: 'separator' },
+      { label: zh ? '复制分支名称' : 'Copy branch name', click: () => finish('copy-name') }
+    )
+    const menu = Menu.buildFromTemplate(items)
+    menu.popup({ window: win ?? undefined, callback: () => finish(null) })
   })
 }
