@@ -73,7 +73,25 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
 
   const commitPanel = page.getByTestId('git-commit-panel')
   await expect(commitPanel).toBeVisible()
-  await expect(page.getByTestId('git-history-graph').locator(':scope > div')).toHaveCount(4)
+  const graph = page.getByTestId('git-history-graph')
+  await expect(graph.locator(':scope > div')).toHaveCount(4)
+  await expect(page.getByText(/选择一个变更|Select a change/)).toHaveCount(0)
+  expect((await page.getByTestId('git-workspace-view').boundingBox())?.width).toBeGreaterThan(800)
+
+  await graph.locator('[data-git-ref="feature/graph"]').click()
+  await expect(page.getByTestId('git-active-ref-filter')).toContainText('feature/graph')
+  await expect(graph.locator(':scope > div')).toHaveCount(2)
+  await page.getByTestId('git-active-ref-filter').click()
+  await expect(graph.locator(':scope > div')).toHaveCount(4)
+
+  await graph.locator(':scope > div').first().click()
+  await expect(page.getByTestId('git-commit-detail')).toContainText('merge: graph feature')
+
+  const qaDir =
+    process.env.PI_HARNESS_DESIGN_QA_DIR ?? fs.mkdtempSync(path.join(os.tmpdir(), 'git-qa-'))
+  const qaPath = path.join(qaDir, 'git-workspace-graph.png')
+  await page.screenshot({ animations: 'disabled', path: qaPath })
+
   await commitPanel.getByRole('button', { name: /graph\.ts$/ }).click()
   await expect(page.getByText('export const visible = true', { exact: false })).toBeVisible()
   await expect(page.getByTestId('git-generate-message')).toBeDisabled()
@@ -89,13 +107,9 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
   expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth)
   expect(overflow.documentScrollWidth).toBeLessThanOrEqual(overflow.documentClientWidth)
 
-  const qaDir =
-    process.env.PI_HARNESS_DESIGN_QA_DIR ?? fs.mkdtempSync(path.join(os.tmpdir(), 'git-qa-'))
-  const qaPath = path.join(qaDir, 'git-workspace-graph.png')
-  await page.screenshot({ animations: 'disabled', path: qaPath })
-
   await commitPanel.getByPlaceholder(/提交信息|Commit message/).fill('feat(git): 集成提交工作流')
   await page.getByTestId('git-create-commit').click()
+  await page.getByTestId('workspace-section-git').click()
   await expect(page.getByTestId('git-history-graph').locator(':scope > div')).toHaveCount(5)
   expect(git(repository, ['log', '-1', '--format=%s']).trim()).toBe('feat(git): 集成提交工作流')
 })

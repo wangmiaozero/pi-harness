@@ -11,6 +11,7 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useModelsStore } from '@renderer/stores/models'
 import type { GitFileStatus } from '@shared/types/workspace'
 
+const emit = defineEmits<{ 'open-diff': [] }>()
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
 const models = useModelsStore()
@@ -36,6 +37,7 @@ const activeModel = computed(() => {
 
 function openDiff(file: GitFileStatus) {
   workspace.openDiffTab(file.filePath, `Diff: ${workspace.displayFilePath(file.filePath)}`)
+  emit('open-diff')
 }
 
 async function mutate(action: 'stage' | 'unstage', targets: GitFileStatus[]) {

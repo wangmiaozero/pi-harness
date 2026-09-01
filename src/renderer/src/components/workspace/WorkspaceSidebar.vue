@@ -49,6 +49,7 @@ import {
 const emit = defineEmits<{
   'focus-composer': []
   'open-harness': []
+  'open-main-tab': []
   'section-change': [section: 'sessions' | 'git' | 'harness']
 }>()
 const { t, locale } = useI18n()
@@ -902,7 +903,10 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
           </div>
         </div>
       </template>
-      <WorktreeSwitcher v-else-if="section === 'git' && canShowSessionGit" />
+      <WorktreeSwitcher
+        v-else-if="section === 'git' && canShowSessionGit"
+        @open-diff="emit('open-main-tab')"
+      />
       <div v-else-if="section === 'git'" data-testid="workspace-git-unavailable" class="p-3">
         <EmptyState
           :title="$t('workspace.noSessions')"

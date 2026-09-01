@@ -7,7 +7,10 @@ import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import type { WorkspaceTab } from '@shared/types/workspace'
 
 const props = withDefaults(defineProps<{ scope?: 'main' | 'files' }>(), { scope: 'main' })
-const emit = defineEmits<{ 'focus-composer': [] }>()
+const emit = defineEmits<{
+  'focus-composer': []
+  'activate-tab': [kind: WorkspaceTab['kind']]
+}>()
 const { t } = useI18n()
 
 type TabMenuAction = 'close' | 'closeOthers' | 'closeRight' | 'closeLeft' | 'closeAll'
@@ -135,6 +138,7 @@ async function requestCloseTab(tabId: string) {
 
 function activateTab(tab: WorkspaceTab) {
   workspace.activateTab(tab.id)
+  emit('activate-tab', tab.kind)
   if (tab.kind === 'chat') emit('focus-composer')
 }
 

@@ -10,6 +10,7 @@ import { toast } from 'vue-sonner'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import GitCommitPanel from './GitCommitPanel.vue'
 
+const emit = defineEmits<{ 'open-diff': [] }>()
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
 const worktrees = ref<WorktreeInfo[]>([])
@@ -61,16 +62,9 @@ async function remove(path: string) {
   await Promise.all([refresh(), workspace.loadGit()])
 }
 
-function openDiff(filePath: string) {
-  const name = workspace.displayFilePath(filePath)
-  workspace.openDiffTab(filePath, `Diff: ${name}`)
-}
-
 function selectRepository(folderId: string) {
   selectedFolderId.value = folderId
   workspace.selectGitRepository(folderId)
-  const first = workspace.gitStatuses.find((repo) => repo.folderId === folderId)?.files[0]
-  if (first) openDiff(first.filePath)
 }
 
 onMounted(() => {
@@ -118,7 +112,7 @@ watch(
         {{ $t('workspace.gitChanges', { count: repo.files.length }) }}
       </p>
     </div>
-    <GitCommitPanel v-if="workspace.gitStatus?.isGitRepository" />
+    <GitCommitPanel v-if="workspace.gitStatus?.isGitRepository" @open-diff="emit('open-diff')" />
     <div class="border-t border-[var(--border-subtle)] pt-2">
       <p class="mb-1 px-1 text-[10.5px] font-medium text-[var(--text-secondary)]">
         {{ $t('workspace.gitWorktrees') }}

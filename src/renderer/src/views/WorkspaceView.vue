@@ -31,6 +31,7 @@ const chatWindow = ref<InstanceType<typeof ChatWindow> | null>(null)
 const workspaceTabs = ref<InstanceType<typeof WorkspaceTabs> | null>(null)
 const filesPanel = ref<InstanceType<typeof WorkspaceFilesPanel> | null>(null)
 const activeWorkspaceSection = ref<'sessions' | 'git' | 'harness'>('sessions')
+const sectionContentOverride = ref(false)
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 let unsubWorkspaceChanged: (() => void) | null = null
 let sessionSwitchQueue: Promise<void> = Promise.resolve()
@@ -72,6 +73,11 @@ function openHarness() {
 
 function setWorkspaceSection(section: 'sessions' | 'git' | 'harness') {
   activeWorkspaceSection.value = section
+  sectionContentOverride.value = false
+}
+
+function showActiveWorkspaceTab() {
+  if (activeWorkspaceSection.value === 'git') sectionContentOverride.value = true
 }
 
 const offNew = registerShortcut({
@@ -220,6 +226,7 @@ watch(
       ref="workspaceSidebar"
       @focus-composer="focusComposer"
       @open-harness="openHarness"
+      @open-main-tab="showActiveWorkspaceTab"
       @section-change="setWorkspaceSection"
     />
     <section class="workspace-main flex min-h-0 min-w-0 flex-1 flex-col">
@@ -229,6 +236,7 @@ watch(
         <WorkspaceTabs
           v-if="workspace.mainTabs.length"
           ref="workspaceTabs"
+          @activate-tab="showActiveWorkspaceTab"
           @focus-composer="focusComposer"
         />
         <div
@@ -299,7 +307,7 @@ watch(
             </EmptyState>
           </div>
           <div v-else class="h-full min-h-0 overflow-hidden">
-            <GitWorkspaceView v-if="activeWorkspaceSection === 'git'" />
+            <GitWorkspaceView v-if="activeWorkspaceSection === 'git' && !sectionContentOverride" />
             <ChatWindow v-else-if="activeKind === 'chat'" ref="chatWindow" />
             <GitDiffView v-else-if="activeKind === 'diff'" />
             <HarnessConsole v-else-if="activeKind === 'harness'" />

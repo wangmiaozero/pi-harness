@@ -77,3 +77,23 @@ export function layoutGitGraph(commits: GitCommitInfo[]): GitGraphRow[] {
     }
   })
 }
+
+export function filterGitCommitsByTip(
+  commits: GitCommitInfo[],
+  tipHash: string | null
+): GitCommitInfo[] {
+  if (!tipHash) return commits
+  const byHash = new Map(commits.map((commit) => [commit.hash, commit]))
+  if (!byHash.has(tipHash)) return commits
+
+  const reachable = new Set<string>()
+  const pending = [tipHash]
+  while (pending.length) {
+    const hash = pending.pop()!
+    if (reachable.has(hash)) continue
+    reachable.add(hash)
+    const commit = byHash.get(hash)
+    if (commit) pending.push(...commit.parents)
+  }
+  return commits.filter((commit) => reachable.has(commit.hash))
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GitCommitInfo } from '../types/workspace'
-import { layoutGitGraph } from './git-graph'
+import { filterGitCommitsByTip, layoutGitGraph } from './git-graph'
 
 function commit(hash: string, parents: string[] = []): GitCommitInfo {
   return {
@@ -22,14 +22,21 @@ describe('layoutGitGraph', () => {
   })
 
   it('allocates and joins a second lane for a merge parent', () => {
-    const rows = layoutGitGraph([
+    const commits = [
       commit('merge', ['main', 'topic']),
       commit('main', ['base']),
       commit('topic', ['base']),
       commit('base')
-    ])
+    ]
+    const rows = layoutGitGraph(commits)
     expect(rows[0]?.parentLanes).toHaveLength(2)
     expect(rows.some((row) => row.laneCount >= 2)).toBe(true)
     expect(rows.at(-1)?.mergeSources).toHaveLength(2)
+
+    expect(filterGitCommitsByTip(commits, 'topic').map((item) => item.hash)).toEqual([
+      'topic',
+      'base'
+    ])
+    expect(filterGitCommitsByTip(commits, null)).toBe(commits)
   })
 })
