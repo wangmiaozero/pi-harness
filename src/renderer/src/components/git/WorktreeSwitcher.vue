@@ -8,6 +8,7 @@ import { callApi, getApi } from '@renderer/composables/useApi'
 import type { WorktreeInfo } from '@shared/types/workspace'
 import { toast } from 'vue-sonner'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
+import GitCommitPanel from './GitCommitPanel.vue'
 
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
@@ -17,7 +18,8 @@ const selectedFolderId = ref<string | null>(null)
 
 function selectedRoot(): string | null {
   return (
-    workspace.workspaceFolders.find((folder) => folder.id === selectedFolderId.value)?.resolvedPath ??
+    workspace.workspaceFolders.find((folder) => folder.id === selectedFolderId.value)
+      ?.resolvedPath ??
     workspace.mainFolder?.resolvedPath ??
     workspace.currentCwd
   )
@@ -64,6 +66,13 @@ function openDiff(filePath: string) {
   workspace.openDiffTab(filePath, `Diff: ${name}`)
 }
 
+function selectRepository(folderId: string) {
+  selectedFolderId.value = folderId
+  workspace.selectGitRepository(folderId)
+  const first = workspace.gitStatuses.find((repo) => repo.folderId === folderId)?.files[0]
+  if (first) openDiff(first.filePath)
+}
+
 onMounted(() => {
   selectedFolderId.value = workspace.mainFolder?.id ?? null
   void refresh()
@@ -71,6 +80,7 @@ onMounted(() => {
 })
 
 watch(selectedFolderId, () => {
+  if (selectedFolderId.value) workspace.selectGitRepository(selectedFolderId.value)
   void refresh()
 })
 
@@ -97,7 +107,7 @@ watch(
       <button
         type="button"
         class="flex w-full items-center justify-between text-left text-[12px]"
-        @click="selectedFolderId = repo.folderId"
+        @click="selectRepository(repo.folderId)"
       >
         <span class="truncate font-medium">{{ repo.folderName }}</span>
         <span class="text-[10.5px] text-[var(--text-tertiary)]">
@@ -107,33 +117,30 @@ watch(
       <p class="text-[10.5px] text-[var(--text-tertiary)]">
         {{ $t('workspace.gitChanges', { count: repo.files.length }) }}
       </p>
+    </div>
+    <GitCommitPanel v-if="workspace.gitStatus?.isGitRepository" />
+    <div class="border-t border-[var(--border-subtle)] pt-2">
+      <p class="mb-1 px-1 text-[10.5px] font-medium text-[var(--text-secondary)]">
+        {{ $t('workspace.gitWorktrees') }}
+      </p>
+      <div class="flex gap-1">
+        <Input v-model="branch" :placeholder="$t('workspace.branchPlaceholder')" />
+        <Button size="sm" @click="create">{{ $t('workspace.addWorktree') }}</Button>
+      </div>
       <button
-        v-for="file in repo.files"
-        :key="file.filePath"
-        class="flex w-full items-center justify-between rounded-[var(--radius-sm)] px-1 py-0.5 text-[12px] hover:bg-[var(--bg-hover)]"
-        @click="openDiff(file.filePath)"
+        v-for="wt in worktrees"
+        :key="wt.path"
+        class="flex items-center justify-between rounded-[var(--radius-sm)] px-2 py-1 text-left text-[12px] hover:bg-[var(--bg-hover)]"
       >
-        <span class="truncate">{{ workspace.displayFilePath(file.filePath) }}</span>
-        <span class="text-[10px] text-[var(--text-tertiary)]">{{ file.code }}</span>
+        <span class="truncate">{{ wt.branch || wt.path }} {{ wt.isMain ? '(main)' : '' }}</span>
+        <span
+          v-if="!wt.isMain"
+          class="text-[11px] text-[var(--danger)]"
+          @click.stop="remove(wt.path)"
+        >
+          {{ $t('common.delete') }}
+        </span>
       </button>
     </div>
-    <div class="flex gap-1">
-      <Input v-model="branch" :placeholder="$t('workspace.branchPlaceholder')" />
-      <Button size="sm" @click="create">{{ $t('workspace.addWorktree') }}</Button>
-    </div>
-    <button
-      v-for="wt in worktrees"
-      :key="wt.path"
-      class="flex items-center justify-between rounded-[var(--radius-sm)] px-2 py-1 text-left text-[12px] hover:bg-[var(--bg-hover)]"
-    >
-      <span class="truncate">{{ wt.branch || wt.path }} {{ wt.isMain ? '(main)' : '' }}</span>
-      <span
-        v-if="!wt.isMain"
-        class="text-[11px] text-[var(--danger)]"
-        @click.stop="remove(wt.path)"
-      >
-        {{ $t('common.delete') }}
-      </span>
-    </button>
   </div>
 </template>

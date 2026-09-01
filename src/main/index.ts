@@ -32,6 +32,7 @@ import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
 import { FileAccessService, type AuthorizedRootsState } from './files/file-access-service'
 import { FileService } from './files/file-service'
 import { GitService } from './git/git-service'
+import { GitCommitMessageService } from './git/commit-message-service'
 import { WorktreeService } from './git/worktree-service'
 import { SessionService } from './sessions/session-service'
 import { SessionExportService } from './sessions/session-export-service'
@@ -188,6 +189,7 @@ async function bootstrap(): Promise<void> {
   access.attachSessionLister(() => sessions.list())
   const files = new FileService(access)
   const git = new GitService(access)
+  const gitCommitMessages = new GitCommitMessageService(config)
   const workspaceState = new WorkspaceService(access, workspaceStateStore)
   await workspaceState.load().catch((error) => log.app.warn('workspace load failed:', error))
   workspaceState.onFilesChanged((roots) => {
@@ -231,6 +233,7 @@ async function bootstrap(): Promise<void> {
       access,
       files,
       git,
+      gitCommitMessages,
       worktrees,
       sessions,
       sessionExport,

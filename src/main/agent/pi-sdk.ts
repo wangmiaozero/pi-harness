@@ -40,9 +40,10 @@ export interface PiCodingAgentModule {
   }
   getAgentDir?: () => string
   SettingsManager?: { create: (cwd: string, agentDir: string) => unknown }
-  createAgentSessionServices?: (
-    options: Record<string, unknown>
-  ) => Promise<Record<string, unknown>>
+  createAgentSessionServices?: (options: Record<string, unknown>) => Promise<{
+    modelRuntime: PiModelRuntimeLike
+    [key: string]: unknown
+  }>
   createAgentSessionFromServices?: (options: Record<string, unknown>) => Promise<{
     session: AgentSessionLike
   }>
@@ -67,6 +68,28 @@ export interface PiCodingAgentModule {
   ) => unknown[]
 }
 
+export interface PiModelRuntimeLike {
+  getModel: (provider: string, modelId: string) => unknown
+  refresh: (options?: { allowNetwork?: boolean }) => Promise<unknown>
+  completeSimple: (
+    model: unknown,
+    context: {
+      systemPrompt?: string
+      messages: Array<{ role: 'user'; content: string; timestamp: number }>
+    },
+    options?: {
+      maxTokens?: number
+      temperature?: number
+      timeoutMs?: number
+      maxRetries?: number
+    }
+  ) => Promise<{
+    content: Array<{ type: string; text?: string }>
+    stopReason?: string
+    errorMessage?: string
+  }>
+}
+
 export interface AgentSessionLike {
   sessionId: string
   sessionFile?: string | null
@@ -81,8 +104,9 @@ export interface AgentSessionLike {
   thinkingLevel?: string
   agent: { state?: { systemPrompt?: string; thinkingLevel?: string; streamingMessage?: unknown } }
   modelRuntime: {
-    getModel: (provider: string, modelId: string) => unknown
+    getModel: PiModelRuntimeLike['getModel']
     refresh: (options?: { allowNetwork?: boolean }) => Promise<void>
+    completeSimple?: PiModelRuntimeLike['completeSimple']
   }
   settingsManager?: { getShellPath?: () => string }
   extensionRunner?: {

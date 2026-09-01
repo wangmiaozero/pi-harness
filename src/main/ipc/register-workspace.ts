@@ -8,6 +8,10 @@ import {
   fileWriteSchema,
   fileUploadSchema,
   gitDiffSchema,
+  gitPathListSchema,
+  gitGenerateCommitMessageSchema,
+  gitCommitSchema,
+  gitHistorySchema,
   gitStatusManySchema,
   gitStatusSchema,
   promptAgentSchema,
@@ -37,6 +41,7 @@ import { ValidationError } from '../services/errors'
 import type { FileAccessService } from '../files/file-access-service'
 import type { FileService } from '../files/file-service'
 import type { GitService } from '../git/git-service'
+import type { GitCommitMessageService } from '../git/commit-message-service'
 import type { WorktreeService } from '../git/worktree-service'
 import type { SessionService } from '../sessions/session-service'
 import type { SessionExportService } from '../sessions/session-export-service'
@@ -58,6 +63,7 @@ export interface WorkspaceServices {
   access: FileAccessService
   files: FileService
   git: GitService
+  gitCommitMessages: GitCommitMessageService
   worktrees: WorktreeService
   sessions: SessionService
   sessionExport: SessionExportService
@@ -82,6 +88,7 @@ export function registerWorkspaceIpc(
     access,
     files,
     git,
+    gitCommitMessages,
     worktrees,
     sessions,
     sessionExport,
@@ -448,6 +455,49 @@ export function registerWorkspaceIpc(
       if (!parsed.success)
         throw new ValidationError('Invalid diff query', { issues: parsed.error.issues })
       return git.diff(parsed.data.cwd, parsed.data.filePath)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.gitStage, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitPathListSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid stage request', { issues: parsed.error.issues })
+      await git.stage(parsed.data.cwd, parsed.data.filePaths)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.gitUnstage, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitPathListSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid unstage request', { issues: parsed.error.issues })
+      await git.unstage(parsed.data.cwd, parsed.data.filePaths)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.gitGenerateCommitMessage, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitGenerateCommitMessageSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid commit message request', {
+          issues: parsed.error.issues
+        })
+      const context = await git.commitMessageContext(parsed.data.cwd, parsed.data.draft)
+      return gitCommitMessages.generate(context)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.gitCommit, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitCommitSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid commit request', { issues: parsed.error.issues })
+      return git.commit(parsed.data.cwd, parsed.data.message)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.gitHistory, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitHistorySchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid git history request', { issues: parsed.error.issues })
+      return git.history(parsed.data.cwd, parsed.data.limit)
     })
   )
 

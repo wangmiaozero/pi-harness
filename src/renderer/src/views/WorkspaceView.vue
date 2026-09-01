@@ -8,6 +8,7 @@ import WorkspaceFilesPanel from '@renderer/components/workspace/WorkspaceFilesPa
 import PortraitSkinPanel from '@renderer/components/layout/PortraitSkinPanel.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import GitDiffView from '@renderer/components/git/GitDiffView.vue'
+import GitWorkspaceView from '@renderer/components/git/GitWorkspaceView.vue'
 import HarnessConsole from '@renderer/components/harness/HarnessConsole.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import { FolderOpen } from '@lucide/vue'
@@ -29,6 +30,7 @@ const workspaceSidebar = ref<InstanceType<typeof WorkspaceSidebar> | null>(null)
 const chatWindow = ref<InstanceType<typeof ChatWindow> | null>(null)
 const workspaceTabs = ref<InstanceType<typeof WorkspaceTabs> | null>(null)
 const filesPanel = ref<InstanceType<typeof WorkspaceFilesPanel> | null>(null)
+const activeWorkspaceSection = ref<'sessions' | 'git' | 'harness'>('sessions')
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 let unsubWorkspaceChanged: (() => void) | null = null
 let sessionSwitchQueue: Promise<void> = Promise.resolve()
@@ -66,6 +68,10 @@ function saveWorkspace() {
 
 function openHarness() {
   workspace.ensureHarnessTab(t('workspace.harnessTitle'))
+}
+
+function setWorkspaceSection(section: 'sessions' | 'git' | 'harness') {
+  activeWorkspaceSection.value = section
 }
 
 const offNew = registerShortcut({
@@ -214,6 +220,7 @@ watch(
       ref="workspaceSidebar"
       @focus-composer="focusComposer"
       @open-harness="openHarness"
+      @section-change="setWorkspaceSection"
     />
     <section class="workspace-main flex min-h-0 min-w-0 flex-1 flex-col">
       <div
@@ -292,7 +299,8 @@ watch(
             </EmptyState>
           </div>
           <div v-else class="h-full min-h-0 overflow-hidden">
-            <ChatWindow v-if="activeKind === 'chat'" ref="chatWindow" />
+            <GitWorkspaceView v-if="activeWorkspaceSection === 'git'" />
+            <ChatWindow v-else-if="activeKind === 'chat'" ref="chatWindow" />
             <GitDiffView v-else-if="activeKind === 'diff'" />
             <HarnessConsole v-else-if="activeKind === 'harness'" />
           </div>

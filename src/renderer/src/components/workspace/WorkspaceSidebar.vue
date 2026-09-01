@@ -46,7 +46,11 @@ import {
   projectDisplayName
 } from '@shared/workspace/session-tree'
 
-const emit = defineEmits<{ 'focus-composer': []; 'open-harness': [] }>()
+const emit = defineEmits<{
+  'focus-composer': []
+  'open-harness': []
+  'section-change': [section: 'sessions' | 'git' | 'harness']
+}>()
 const { t, locale } = useI18n()
 const sessions = useSessionStore()
 const workspace = useWorkspaceStore()
@@ -144,6 +148,7 @@ function sessionFolders(session: SessionInfo): WorkspaceFolder[] {
 
 function selectSection(next: WorkspaceSection) {
   section.value = next
+  emit('section-change', next)
   if (next === 'harness') emit('open-harness')
 }
 

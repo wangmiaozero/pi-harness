@@ -134,6 +134,26 @@ export const gitDiffSchema = z.object({
   filePath: workspacePathSchema
 })
 
+export const gitPathListSchema = z.object({
+  cwd: cwdSchema,
+  filePaths: z.array(workspacePathSchema).min(1).max(500)
+})
+
+export const gitGenerateCommitMessageSchema = z.object({
+  cwd: cwdSchema,
+  draft: z.string().max(20_000).optional().default('')
+})
+
+export const gitCommitSchema = z.object({
+  cwd: cwdSchema,
+  message: z.string().trim().min(1).max(20_000)
+})
+
+export const gitHistorySchema = z.object({
+  cwd: cwdSchema,
+  limit: z.number().int().min(1).max(200).optional().default(100)
+})
+
 export const worktreeListSchema = z.object({
   cwd: cwdSchema
 })

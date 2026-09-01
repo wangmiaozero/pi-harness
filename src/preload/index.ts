@@ -240,7 +240,13 @@ const api: PiSwitchAPI = {
   git: {
     status: (cwd) => invoke(IPC_INVOKE.gitStatus, cwd),
     statusMany: (cwds) => invoke(IPC_INVOKE.gitStatusMany, { cwds }),
-    diff: (cwd, filePath) => invoke(IPC_INVOKE.gitDiff, { cwd, filePath })
+    diff: (cwd, filePath) => invoke(IPC_INVOKE.gitDiff, { cwd, filePath }),
+    stage: (cwd, filePaths) => invoke(IPC_INVOKE.gitStage, { cwd, filePaths }),
+    unstage: (cwd, filePaths) => invoke(IPC_INVOKE.gitUnstage, { cwd, filePaths }),
+    generateCommitMessage: (cwd, draft) =>
+      invoke(IPC_INVOKE.gitGenerateCommitMessage, { cwd, draft }),
+    commit: (cwd, message) => invoke(IPC_INVOKE.gitCommit, { cwd, message }),
+    history: (cwd, limit) => invoke(IPC_INVOKE.gitHistory, { cwd, limit })
   },
   worktrees: {
     list: (cwd) => invoke(IPC_INVOKE.worktreeList, cwd),

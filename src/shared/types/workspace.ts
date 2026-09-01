@@ -266,6 +266,26 @@ export interface GitFileDiffResponse {
   patch?: string
 }
 
+export interface GitCommitInfo {
+  hash: string
+  parents: string[]
+  author: string
+  email: string
+  authoredAt: string
+  refs: string[]
+  subject: string
+}
+
+export interface GitCommitMessageResponse {
+  message: string
+  provider: string
+  modelId: string
+}
+
+export interface GitCommitResponse {
+  hash: string
+}
+
 export interface FileTreeEntry {
   name: string
   path: string

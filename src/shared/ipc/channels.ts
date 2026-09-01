@@ -187,6 +187,11 @@ export const IPC_INVOKE = {
   gitStatus: invoke('git:status'),
   gitStatusMany: invoke('git:status-many'),
   gitDiff: invoke('git:diff'),
+  gitStage: invoke('git:stage'),
+  gitUnstage: invoke('git:unstage'),
+  gitGenerateCommitMessage: invoke('git:generate-commit-message'),
+  gitCommit: invoke('git:commit'),
+  gitHistory: invoke('git:history'),
 
   worktreeList: invoke('worktree:list'),
   worktreeCreate: invoke('worktree:create'),

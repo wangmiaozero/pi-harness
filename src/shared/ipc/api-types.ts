@@ -25,6 +25,9 @@ import type {
   FileTreeEntry,
   FileWriteResult,
   GitFileDiffResponse,
+  GitCommitInfo,
+  GitCommitMessageResponse,
+  GitCommitResponse,
   GitStatusResponse,
   PromptAgentInput,
   ProjectContextAction,
@@ -887,6 +890,11 @@ export interface PiSwitchAPI {
     status(cwd: string): Promise<GitStatusResponse>
     statusMany(cwds: string[]): Promise<GitStatusResponse[]>
     diff(cwd: string, filePath: string): Promise<GitFileDiffResponse>
+    stage(cwd: string, filePaths: string[]): Promise<void>
+    unstage(cwd: string, filePaths: string[]): Promise<void>
+    generateCommitMessage(cwd: string, draft?: string): Promise<GitCommitMessageResponse>
+    commit(cwd: string, message: string): Promise<GitCommitResponse>
+    history(cwd: string, limit?: number): Promise<GitCommitInfo[]>
   }
   worktrees: {
     list(cwd: string): Promise<WorktreeInfo[]>

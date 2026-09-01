@@ -79,6 +79,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const fileChildren = shallowRef<Record<string, FileTreeEntry[]>>({})
   const gitStatus = shallowRef<GitStatusResponse | null>(null)
   const gitStatuses = shallowRef<GitRepositoryStatus[]>([])
+  const selectedGitFolderId = ref<string | null>(null)
+  const gitRevision = ref(0)
   const filesLoading = ref(false)
   const gitLoading = ref(false)
   const sidebarWidth = ref(260)
@@ -801,6 +803,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!folders.length && !cwd) {
       gitStatus.value = null
       gitStatuses.value = []
+      selectedGitFolderId.value = null
       gitLoading.value = false
       return
     }
@@ -815,10 +818,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         folderName: folders[index]?.name ?? cwds[index] ?? '',
         branch: status.branch ?? null
       }))
-      gitStatus.value =
-        gitStatuses.value.find((status) => status.folderId === folderForPath(cwd ?? '')?.id) ??
-        gitStatuses.value[0] ??
-        null
+      const selected = gitStatuses.value.find(
+        (status) => status.folderId === selectedGitFolderId.value
+      )
+      const contextual = gitStatuses.value.find(
+        (status) => status.folderId === folderForPath(cwd ?? '')?.id
+      )
+      gitStatus.value = selected ?? contextual ?? gitStatuses.value[0] ?? null
+      selectedGitFolderId.value = gitStatus.value?.folderId ?? null
+      gitRevision.value += 1
     } catch {
       if (version !== gitLoadVersion) return
       gitStatus.value = null
@@ -826,6 +834,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } finally {
       if (version === gitLoadVersion) gitLoading.value = false
     }
+  }
+
+  function selectGitRepository(folderId: string): void {
+    const selected = gitStatuses.value.find((status) => status.folderId === folderId)
+    if (!selected) return
+    selectedGitFolderId.value = folderId
+    gitStatus.value = selected
+    gitRevision.value += 1
   }
 
   async function refreshContent(directory?: string) {
@@ -1502,6 +1518,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     fileChildren,
     gitStatus,
     gitStatuses,
+    selectedGitFolderId,
+    gitRevision,
     filesLoading,
     gitLoading,
     sidebarWidth,
@@ -1572,6 +1590,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadFiles,
     loadDirectory,
     loadGit,
+    selectGitRepository,
     refreshContent,
     addDraftImages,
     removeDraftImage,
