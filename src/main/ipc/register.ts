@@ -100,7 +100,15 @@ function wrap<T>(
     .then((data) => ({ ok: true as const, data }))
     .catch((err) => {
       const payload = toErrorPayload(err)
-      log.ipc.error('handler failed:', payload.message, payload)
+      if (payload.code === 'GIT_ERROR') {
+        log.git.warn('operation failed', {
+          code: payload.code,
+          message: payload.userMessage ?? payload.message,
+          details: payload.details
+        })
+      } else {
+        log.ipc.error('handler failed:', payload.message, payload)
+      }
       return { ok: false as const, error: payload }
     })
 }

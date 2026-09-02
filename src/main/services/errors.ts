@@ -217,8 +217,15 @@ export class SessionError extends AppError {
 }
 
 export class GitError extends AppError {
-  constructor(message: string, details?: unknown) {
-    super('GIT_ERROR', message, details)
+  constructor(
+    message: string,
+    details?: unknown,
+    options: { userMessage?: string; recoverable?: boolean } = {}
+  ) {
+    super('GIT_ERROR', message, details, undefined, {
+      userMessage: options.userMessage ?? message,
+      recoverable: options.recoverable ?? true
+    })
   }
 }
 

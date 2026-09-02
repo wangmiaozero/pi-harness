@@ -17,7 +17,7 @@ import Dialog from '@renderer/components/ui/Dialog.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
-import { callApi, getApi, getErrorPayload } from '@renderer/composables/useApi'
+import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
 import type {
   GitActionRequest,
   GitBranchInfo,
@@ -95,7 +95,7 @@ async function refresh() {
   } catch (error) {
     if (version !== refreshVersion || selectedRoot() !== cwd) return
     overview.value = null
-    toast.error(getErrorPayload(error).message)
+    toast.error(getErrorMessage(error))
   } finally {
     if (version === refreshVersion) loading.value = false
   }
@@ -111,7 +111,7 @@ async function runAction(input: Omit<GitActionRequest, 'cwd'>, label: string) {
     await refresh()
     toast.success(t('workspace.gitActionDone', { action: label }))
   } catch (error) {
-    toast.error(getErrorPayload(error).message)
+    toast.error(getErrorMessage(error))
   } finally {
     actionBusy.value = false
   }

@@ -6,7 +6,7 @@ import { Minus, Plus, Sparkles } from '@lucide/vue'
 import Button from '@renderer/components/ui/Button.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
-import { callApi, getApi, getErrorPayload } from '@renderer/composables/useApi'
+import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useModelsStore } from '@renderer/stores/models'
 import type { GitFileStatus } from '@shared/types/workspace'
@@ -53,7 +53,7 @@ async function mutate(action: 'stage' | 'unstage', targets: GitFileStatus[]) {
     )
     await workspace.refreshContent()
   } catch (error) {
-    toast.error(getErrorPayload(error).message)
+    toast.error(getErrorMessage(error))
   } finally {
     mutating.value = false
   }
@@ -68,7 +68,7 @@ async function generate() {
     message.value = result.message
     toast.success(t('workspace.gitMessageGenerated'))
   } catch (error) {
-    toast.error(getErrorPayload(error).message)
+    toast.error(getErrorMessage(error))
   } finally {
     generating.value = false
   }
@@ -85,7 +85,7 @@ async function commit() {
     await workspace.refreshContent()
     toast.success(t('workspace.gitCommitted', { hash: result.hash.slice(0, 7) }))
   } catch (error) {
-    toast.error(getErrorPayload(error).message)
+    toast.error(getErrorMessage(error))
   } finally {
     committing.value = false
   }

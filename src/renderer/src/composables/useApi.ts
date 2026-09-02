@@ -41,6 +41,11 @@ export function getErrorPayload(error: unknown): AppErrorPayload {
   return { code: 'APP_ERROR', message: String(error) }
 }
 
+export function getErrorMessage(error: unknown): string {
+  const payload = getErrorPayload(error)
+  return payload.userMessage?.trim() || payload.message
+}
+
 export function useApi() {
   return {
     api: getApi(),

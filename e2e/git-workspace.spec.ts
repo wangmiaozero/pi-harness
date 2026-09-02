@@ -80,6 +80,13 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
   await expect(repositorySidebar.getByRole('button', { name: /^(子模块|Submodules)/ })).toBeVisible()
   await expect(repositorySidebar.locator('[data-git-branch="main"]')).toBeVisible()
   await expect(repositorySidebar.locator('[data-git-branch="feature/graph"]')).toBeVisible()
+
+  await page.getByTestId('git-pull').click()
+  await expect(
+    page.getByText('No upstream branch is configured. Set an upstream branch before pulling.')
+  ).toBeVisible()
+  await expect(page.getByText(/Command failed: git -C/)).toHaveCount(0)
+
   const graph = page.getByTestId('git-history-graph')
   await expect(graph.locator(':scope > div')).toHaveCount(4)
   await expect(page.getByText(/选择一个变更|Select a change/)).toHaveCount(0)
@@ -95,8 +102,15 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
   const review = page.getByTestId('git-commit-review')
   await expect(review).toContainText('merge: graph feature')
   await expect(review.getByText(/已更改文件|Changed files/)).toBeVisible()
-  await expect(review.getByText('graph.ts', { exact: true })).toBeVisible()
-  await expect(review.getByText('export const lanes = 2', { exact: false })).toBeVisible()
+  await review.getByText('graph.ts', { exact: true }).click()
+  const historicalDiff = page.getByTestId('git-historical-diff')
+  await expect(historicalDiff).toBeVisible()
+  await expect(historicalDiff.getByText('export const lanes = 2', { exact: false })).toBeVisible()
+  await expect(graph).toBeHidden()
+  await historicalDiff.getByRole('button', { name: /返回图谱|Back to graph/ }).click()
+  await expect(graph).toBeVisible()
+
+  await review.getByText('graph.ts', { exact: true }).click()
 
   const qaDir =
     process.env.PI_HARNESS_DESIGN_QA_DIR ?? fs.mkdtempSync(path.join(os.tmpdir(), 'git-qa-'))

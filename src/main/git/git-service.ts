@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { gitExec, isNotAGitRepository } from './git-exec'
+import { gitExec, isEmptyGitHistory, isNotAGitRepository } from './git-exec'
 import { GitError } from '../services/errors'
 import type { FileAccessService } from '../files/file-access-service'
 import type {
@@ -241,7 +241,7 @@ export class GitService {
       `--max-count=${limit}`,
       '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%D%x1f%s%x1e'
     ]).catch((error) => {
-      if (/does not have any commits|unknown revision|bad revision/i.test(String(error))) return ''
+      if (isEmptyGitHistory(error)) return ''
       throw error
     })
     return output

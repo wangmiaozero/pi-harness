@@ -7,7 +7,6 @@ import {
   ArrowDownToLine,
   ArrowUpToLine,
   Copy,
-  FileCode2,
   GitBranch,
   GitCommit,
   RefreshCw,
@@ -15,7 +14,7 @@ import {
   X
 } from '@lucide/vue'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
-import { callApi, getApi, getErrorPayload } from '@renderer/composables/useApi'
+import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
 import type {
   GitAction,
   GitCommitDetails,
@@ -24,6 +23,7 @@ import type {
 } from '@shared/types/workspace'
 import { filterGitCommitsByTip } from '@shared/workspace/git-graph'
 import IconButton from '@renderer/components/ui/IconButton.vue'
+import GitCommitDiffPreview from './GitCommitDiffPreview.vue'
 import GitHistoryGraph from './GitHistoryGraph.vue'
 import { toast } from 'vue-sonner'
 
@@ -98,7 +98,7 @@ async function loadHistory() {
   } catch (error) {
     if (request !== historyRequest || repository.value !== cwd) return
     commits.value = []
-    toast.error(getErrorPayload(error).message)
+    toast.error(getErrorMessage(error))
   } finally {
     if (request === historyRequest) historyLoading.value = false
   }
@@ -116,13 +116,19 @@ async function loadDetails(hash: string | null) {
     const details = await callApi(() => getApi().git.commitDetails(cwd, hash))
     if (request !== detailsRequest || repository.value !== cwd || selectedHash.value !== hash) return
     selectedDetails.value = details
-    if (details.files[0]) await loadCommitDiff(details.files[0])
   } catch (error) {
     if (request !== detailsRequest || repository.value !== cwd || selectedHash.value !== hash) return
-    toast.error(getErrorPayload(error).message)
+    toast.error(getErrorMessage(error))
   } finally {
     if (request === detailsRequest) detailsLoading.value = false
   }
+}
+
+function closeCommitDiff() {
+  selectedFile.value = null
+  commitPatch.value = ''
+  patchLoading.value = false
+  patchRequest += 1
 }
 
 async function loadCommitDiff(file: GitCommitFileInfo) {
@@ -145,7 +151,7 @@ async function loadCommitDiff(file: GitCommitFileInfo) {
     }
   } catch (error) {
     if (request !== patchRequest || repository.value !== cwd) return
-    toast.error(getErrorPayload(error).message)
+    toast.error(getErrorMessage(error))
   } finally {
     if (request === patchRequest) patchLoading.value = false
   }
@@ -161,7 +167,7 @@ async function runAction(action: GitAction, label: string) {
     await loadHistory()
     toast.success(t('workspace.gitActionDone', { action: label }))
   } catch (error) {
-    toast.error(getErrorPayload(error).message)
+    toast.error(getErrorMessage(error))
   } finally {
     actionBusy.value = false
   }
@@ -305,7 +311,16 @@ watch(selectedHash, loadDetails)
     </div>
 
     <div class="relative flex min-h-0 min-w-0 flex-1">
+      <GitCommitDiffPreview
+        v-if="selectedFile && selectedDetails"
+        :file="selectedFile"
+        :patch="commitPatch"
+        :loading="patchLoading"
+        :commit-hash="selectedDetails.hash"
+        @close="closeCommitDiff"
+      />
       <GitHistoryGraph
+        v-else
         class="min-h-0 min-w-0 flex-1"
         :commits="visibleCommits"
         :loading="historyLoading"
@@ -359,7 +374,7 @@ watch(selectedHash, loadDetails)
             <div class="shrink-0 border-b border-[var(--border-subtle)] px-3 py-2 text-[10px] font-semibold text-[var(--text-secondary)]">
               {{ $t('workspace.gitChangedFiles', { count: selectedDetails.files.length }) }}
             </div>
-            <div class="max-h-44 shrink-0 overflow-y-auto border-b border-[var(--border-subtle)] p-1">
+            <div class="min-h-0 flex-1 overflow-y-auto p-1">
               <button
                 v-for="file in selectedDetails.files"
                 :key="`${file.status}-${file.path}`"
@@ -375,21 +390,11 @@ watch(selectedHash, loadDetails)
                   {{ file.path }}
                 </span>
               </button>
-            </div>
-            <div class="min-h-0 flex-1 overflow-auto bg-[var(--bg-surface)]">
-              <div v-if="patchLoading" class="p-3 text-[10px] text-[var(--text-tertiary)]">
-                {{ $t('common.loading') }}
-              </div>
-              <pre
-                v-else-if="commitPatch"
-                class="min-w-max whitespace-pre p-3 font-[family-name:var(--font-mono)] text-[9.5px] leading-[1.55] text-[var(--text-secondary)]"
-              ><code>{{ commitPatch }}</code></pre>
               <div
-                v-else
-                class="flex h-full min-h-28 items-center justify-center gap-2 px-4 text-center text-[10px] text-[var(--text-disabled)]"
+                v-if="!selectedDetails.files.length"
+                class="flex min-h-28 items-center justify-center px-4 text-center text-[10px] text-[var(--text-disabled)]"
               >
-                <FileCode2 class="size-4" />
-                {{ selectedFile ? $t('workspace.gitNoPatch') : $t('workspace.gitSelectCommitFile') }}
+                {{ $t('workspace.gitNoPatch') }}
               </div>
             </div>
           </div>
@@ -427,7 +432,7 @@ watch(selectedHash, loadDetails)
 }
 
 .git-review-panel {
-  width: clamp(360px, 40%, 620px);
+  width: clamp(320px, 30%, 440px);
 }
 
 @container (max-width: 820px) {
