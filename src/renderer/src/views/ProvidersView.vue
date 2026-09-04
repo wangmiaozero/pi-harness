@@ -187,7 +187,8 @@ const selectedDefaultModel = computed(() => {
       id,
       name: existing.displayName,
       contextWindow: existing.contextWindow,
-      maxOutputTokens: existing.maxOutputTokens
+      maxOutputTokens: existing.maxOutputTokens,
+      input: existing.vision ? (['text', 'image'] as const) : (['text'] as const)
     }
   }
   const discovered = currentDiscoveredModels.value.find((model) => model.id === id)
@@ -589,14 +590,18 @@ async function save() {
             id: selectedDefaultModel.value.id,
             name: selectedDefaultModel.value.name,
             contextWindow: selectedDefaultModel.value.contextWindow ?? null,
-            maxOutputTokens: selectedDefaultModel.value.maxOutputTokens ?? null
+            maxOutputTokens: selectedDefaultModel.value.maxOutputTokens ?? null,
+            input: selectedDefaultModel.value.input
+              ? [...selectedDefaultModel.value.input]
+              : undefined
           }
         : null,
       // Electron IPC cannot structured-clone Vue reactive proxies. Build an
       // explicit plain snapshot before crossing the preload boundary.
       discoveredModels: currentDiscoveredModels.value.map((model) => ({
         id: model.id,
-        name: model.name
+        name: model.name,
+        input: model.input ? [...model.input] : undefined
       }))
     }
     if (isEditing.value && editingKey.value) {

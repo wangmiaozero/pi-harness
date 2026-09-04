@@ -3,8 +3,8 @@ import { resolvePetAnimation, singleFrameAnimation } from './animations'
 import type { PetManifest } from './types'
 
 const manifest: PetManifest = {
-  id: 'engineer',
-  name: 'Engineer',
+  id: 'office',
+  name: 'Office',
   sprite: '/pet.png',
   frameWidth: 100,
   frameHeight: 100,

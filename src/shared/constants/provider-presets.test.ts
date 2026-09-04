@@ -52,4 +52,26 @@ describe('provider preset catalog', () => {
     expect(modelIds).not.toContain('gpt-realtime-2.1')
     expect(modelIds).not.toContain('gemini-2.5-pro-preview-tts')
   })
+
+  it('imports multimodal capabilities from the Pi model catalog generically', () => {
+    const declared = PROVIDER_PRESETS.flatMap((preset) => preset.models).filter(
+      (model) => model.input
+    )
+    const multimodal = declared.filter((model) => model.input?.includes('image'))
+
+    expect(declared.length).toBeGreaterThan(1_000)
+    expect(multimodal.length).toBeGreaterThan(500)
+    expect(
+      findProviderPreset({ key: 'stepfun' })?.models.find((model) => model.id === 'step-3.7-flash')
+        ?.input
+    ).toEqual(['text', 'image'])
+    expect(
+      findProviderPreset({ key: 'openai' })?.models.find((model) => model.id === 'gpt-4o')?.input
+    ).toEqual(['text', 'image'])
+    expect(
+      findProviderPreset({ key: 'anthropic' })?.models.find(
+        (model) => model.id === 'claude-sonnet-4-5-20250929'
+      )?.input
+    ).toEqual(['text', 'image'])
+  })
 })

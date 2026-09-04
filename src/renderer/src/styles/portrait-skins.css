@@ -210,6 +210,24 @@
   width: min(32%, 416px);
 }
 
+/* The office alias keeps the noir study wallpaper but shows a standing pico sprite,
+   so it anchors to the floor like the moonlit portrait instead of the seated figure. */
+:root[data-visual-skin='noir-scholar'] .portrait-skin-panel[data-style='office'] {
+  --office-portrait-column: min(32cqw, 440px);
+}
+
+:root[data-visual-skin='noir-scholar']
+  .portrait-skin-panel[data-style='office']
+  .portrait-skin-character {
+  position: absolute;
+  top: auto;
+  bottom: 0;
+  left: calc(var(--office-portrait-column) / 2);
+  height: min(68cqh, calc(var(--office-portrait-column) * 1.5 - 36px));
+  aspect-ratio: 2 / 3;
+  transform: translateX(-50%);
+}
+
 :root[data-visual-skin='noir-scholar'] .portrait-skin-character {
   position: absolute;
   /* Share the room's cover transform. The seated figure's contact point (58%, 54%)
@@ -371,6 +389,15 @@
 }
 
 /* Picker geometry is shared by all styles; skins supply only their scene background. */
+[data-mascot-option='maidWhite'] .mascot-option-preview {
+  background: url('../assets/themes/starship-cockpit/deep-space.png') center / cover no-repeat
+    #0a1420;
+}
+
+[data-mascot-option='office'] .mascot-option-preview {
+  background: url('../assets/themes/portraits/noir-study.png') center / cover no-repeat #201d19;
+}
+
 [data-mascot-option='noirScholar'] .mascot-option-preview {
   background: url('../assets/themes/portraits/noir-study.png') center / cover no-repeat #201d19;
 }

@@ -1,6 +1,18 @@
 import path from 'node:path'
 import fs from 'node:fs'
-import { test, expect } from './fixtures'
+import { test, expect, type Page } from './fixtures'
+
+async function expectPersistedMascotStyle(page: Page, style: string) {
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.piSwitch.settings
+          .get()
+          .then((settings: { mascotStyle: string }) => settings.mascotStyle)
+      )
+    )
+    .toBe(style)
+}
 
 test('switches original portrait skins, persists selection and restores plain themes', async ({
   page,
@@ -21,7 +33,7 @@ test('switches original portrait skins, persists selection and restores plain th
     ['moonlitMaid', 'moonlit-maid', 'light', 'moonlit-maid']
   ] as const) {
     await page.locator(`[data-mascot-option="${style}"]`).click()
-    await page.getByRole('button', { name: /保存|Save/, exact: true }).click()
+    await expectPersistedMascotStyle(page, style)
     await expect(page.locator('html')).toHaveAttribute('data-visual-skin', id)
     await expect(page.locator('html')).toHaveAttribute('data-appearance', appearance)
     await page.reload()
@@ -277,12 +289,12 @@ test('switches original portrait skins, persists selection and restores plain th
   }
 
   await page.locator('[data-mascot-option="starshipCockpit"]').click()
-  await page.getByRole('button', { name: /保存|Save/, exact: true }).click()
+  await expectPersistedMascotStyle(page, 'starshipCockpit')
   await expect(page.locator('html')).toHaveAttribute('data-visual-skin', 'starship-cockpit')
   await expect(page.locator('.app-body')).toHaveCSS('background-image', 'none')
   await expect(page.getByTestId('app-shell')).not.toHaveCSS('background-image', /noir-study/)
   await page.locator('[data-mascot-option="none"]').click()
-  await page.getByRole('button', { name: /保存|Save/, exact: true }).click()
+  await expectPersistedMascotStyle(page, 'none')
   await expect(page.locator('html')).not.toHaveAttribute('data-visual-skin')
   await expect(page.locator('.starship-viewport-root')).toHaveCSS('background-image', 'none')
   await expect(page.locator('.app-body')).toHaveCSS('background-image', 'none')

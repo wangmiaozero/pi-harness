@@ -1,5 +1,5 @@
 import type { MascotStyle } from '@shared/constants/mascot'
-import { STARSHIP_COCKPIT_MASCOT_STYLE } from '@shared/constants/mascot'
+import { resolveMascotStyle, STARSHIP_COCKPIT_MASCOT_STYLE } from '@shared/constants/mascot'
 import { getVisualSkin, type VisualSkin } from './skin-catalog'
 
 export const STARSHIP_COCKPIT_SKIN = 'starship-cockpit'
@@ -21,8 +21,8 @@ export function getActiveVisualSkin(
 export function isStarshipCockpitActive(settings: VisualSkinSettings | null | undefined): boolean {
   return Boolean(
     settings?.mascotUnlocked &&
-    settings.petEnabled &&
-    settings.mascotStyle === STARSHIP_COCKPIT_MASCOT_STYLE
+      settings.petEnabled &&
+      resolveMascotStyle(settings.mascotStyle) === STARSHIP_COCKPIT_MASCOT_STYLE
   )
 }
 

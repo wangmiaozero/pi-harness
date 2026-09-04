@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
-  Save,
   FolderOpen,
   Archive,
   Trash2,
@@ -48,7 +47,6 @@ const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const store = useSettingsStore()
-const saving = ref(false)
 const updateBusy = ref(false)
 const updateState = ref<AppUpdateState | null>(null)
 const updateSupported = ref(false)
@@ -332,12 +330,47 @@ const settingsMenu = computed(() => {
 
 const settingsHomeEmptySlots = computed(() => Math.max(0, 9 - settingsMenu.value.length))
 
+/**
+ * Debounce window that coalesces rapid setting changes into one IPC write.
+ * Every draft mutation autosaves; leaving the view flushes a pending save.
+ */
+const AUTO_SAVE_DEBOUNCE_MS = 350
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+/** Serialized snapshot of what was last persisted, for echo/external-change detection. */
+let lastPersisted = ''
+let adoptingStoreSettings = false
+
 watch(
   () => store.settings,
   (s) => {
-    if (s) draft.value = { ...s, navOrder: normalizeNavOrder(s.navOrder) }
+    if (!s) return
+    const incoming = { ...s, navOrder: normalizeNavOrder(s.navOrder) }
+    const serialized = JSON.stringify(incoming)
+    if (serialized === JSON.stringify(draft.value)) {
+      // Save echo or no-op: record the snapshot, keep any newer local edits.
+      lastPersisted = serialized
+      return
+    }
+    // Adopt external changes only when the draft carries no unsaved edits.
+    if (lastPersisted !== '' && JSON.stringify(draft.value) !== lastPersisted) return
+    lastPersisted = serialized
+    adoptingStoreSettings = true
+    draft.value = incoming
+    void nextTick().then(() => {
+      adoptingStoreSettings = false
+    })
   },
   { immediate: true }
+)
+
+watch(
+  draft,
+  () => {
+    if (adoptingStoreSettings) return
+    schedulePersist()
+  },
+  { deep: true }
 )
 
 watch([section, showDeveloper, updateSupported, menuReady], ([, developer, updates, ready]) => {
@@ -353,20 +386,30 @@ watch([section, showDeveloper, updateSupported, menuReady], ([, developer, updat
   if (requested === 'updates' && !updates) void router.replace('/settings')
 })
 
-async function saveSettings() {
-  saving.value = true
+async function persistDraft(): Promise<void> {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  const patch: AppSettings = { ...draft.value }
+  if (!patch.mascotUnlocked) {
+    patch.mascotStyle = DEFAULT_MASCOT_STYLE
+    patch.petEnabled = false
+  }
   try {
-    if (!draft.value.mascotUnlocked) {
-      draft.value.mascotStyle = DEFAULT_MASCOT_STYLE
-      draft.value.petEnabled = false
-    }
-    await store.patch({ ...draft.value })
-    toast.success(t('settings.saved'))
+    const saved = await store.patch(patch)
+    lastPersisted = JSON.stringify(saved)
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
-  } finally {
-    saving.value = false
   }
+}
+
+function schedulePersist(): void {
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    saveTimer = null
+    void persistDraft()
+  }, AUTO_SAVE_DEBOUNCE_MS)
 }
 
 function resetNavOrder(): void {
@@ -535,7 +578,11 @@ onMounted(() => {
     })
 })
 
-onBeforeUnmount(stopUpdateListener)
+onBeforeUnmount(() => {
+  stopUpdateListener()
+  // Flush a pending autosave immediately when leaving the settings view.
+  if (saveTimer) void persistDraft()
+})
 </script>
 
 <template>
@@ -561,10 +608,6 @@ onBeforeUnmount(stopUpdateListener)
           </p>
         </div>
       </div>
-      <Button variant="primary" size="sm" :loading="saving" @click="saveSettings">
-        <Save class="size-3.5" :stroke-width="1.75" />
-        {{ $t('common.save') }}
-      </Button>
     </PageHeader>
 
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">

@@ -1,4 +1,5 @@
 import type { MascotStyle } from '@shared/constants/mascot'
+import { resolveMascotStyle } from '@shared/constants/mascot'
 
 /** Visual-only presets; ordinary color preferences are retained when a skin is active. */
 export const VISUAL_SKINS = {
@@ -10,8 +11,9 @@ export const VISUAL_SKINS = {
 export type VisualSkin = (typeof VISUAL_SKINS)[keyof typeof VISUAL_SKINS]
 
 export function getVisualSkin(style: MascotStyle): VisualSkin | undefined {
-  return Object.hasOwn(VISUAL_SKINS, style)
-    ? VISUAL_SKINS[style as keyof typeof VISUAL_SKINS]
+  const resolved = resolveMascotStyle(style)
+  return Object.hasOwn(VISUAL_SKINS, resolved)
+    ? VISUAL_SKINS[resolved as keyof typeof VISUAL_SKINS]
     : undefined
 }
 

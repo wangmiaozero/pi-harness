@@ -69,7 +69,7 @@ export interface PiCodingAgentModule {
 }
 
 export interface PiModelRuntimeLike {
-  getModel: (provider: string, modelId: string) => unknown
+  getModel: (provider: string, modelId: string) => PiModelLike | undefined
   refresh: (options?: { allowNetwork?: boolean }) => Promise<unknown>
   completeSimple: (
     model: unknown,
@@ -90,6 +90,13 @@ export interface PiModelRuntimeLike {
   }>
 }
 
+export interface PiModelLike {
+  id: string
+  provider: string
+  input?: Array<'text' | 'image'>
+  compat?: { thinkingFormat?: string }
+}
+
 export interface AgentSessionLike {
   sessionId: string
   sessionFile?: string | null
@@ -100,7 +107,7 @@ export interface AgentSessionLike {
   autoCompactionEnabled: boolean
   autoRetryEnabled?: boolean
   pendingMessageCount?: number
-  model: { id: string; provider: string; compat?: { thinkingFormat?: string } } | null
+  model: PiModelLike | null
   thinkingLevel?: string
   agent: { state?: { systemPrompt?: string; thinkingLevel?: string; streamingMessage?: unknown } }
   modelRuntime: {
@@ -108,7 +115,7 @@ export interface AgentSessionLike {
     refresh: (options?: { allowNetwork?: boolean }) => Promise<void>
     completeSimple?: PiModelRuntimeLike['completeSimple']
   }
-  settingsManager?: { getShellPath?: () => string }
+  settingsManager?: { getShellPath?: () => string; getBlockImages?: () => boolean }
   extensionRunner?: {
     getRegisteredCommands?: () => Array<{
       invocationName: string
@@ -133,7 +140,7 @@ export interface AgentSessionLike {
     targetId: string,
     options?: Record<string, unknown>
   ) => Promise<{ cancelled: boolean }>
-  setModel: (model: unknown) => Promise<void>
+  setModel: (model: PiModelLike) => Promise<void>
   setThinkingLevel: (level: string) => void
   getAvailableThinkingLevels?: () => string[]
   setSessionName: (name: string) => void

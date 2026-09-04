@@ -36,7 +36,7 @@ const activeModel = computed(() => {
 })
 
 function openDiff(file: GitFileStatus) {
-  workspace.openDiffTab(file.filePath, `Diff: ${workspace.displayFilePath(file.filePath)}`)
+  workspace.openDiffTab(file.filePath, `Diff: ${workspace.gitDisplayFilePath(file.filePath)}`)
   emit('open-diff')
 }
 
@@ -121,10 +121,10 @@ async function commit() {
         <button
           type="button"
           class="min-w-0 flex-1 truncate px-1.5 py-1 text-left text-[11px] text-[var(--text-secondary)]"
-          :title="workspace.displayFilePath(file.filePath)"
+          :title="workspace.gitDisplayFilePath(file.filePath)"
           @click="openDiff(file)"
         >
-          {{ workspace.displayFilePath(file.filePath) }}
+          {{ workspace.gitDisplayFilePath(file.filePath) }}
         </button>
         <span class="text-[9.5px] text-[var(--text-tertiary)]">{{ file.indexStatus }}</span>
         <IconButton
@@ -161,10 +161,10 @@ async function commit() {
         <button
           type="button"
           class="min-w-0 flex-1 truncate px-1.5 py-1 text-left text-[11px] text-[var(--text-secondary)]"
-          :title="workspace.displayFilePath(file.filePath)"
+          :title="workspace.gitDisplayFilePath(file.filePath)"
           @click="openDiff(file)"
         >
-          {{ workspace.displayFilePath(file.filePath) }}
+          {{ workspace.gitDisplayFilePath(file.filePath) }}
         </button>
         <span class="text-[9.5px] text-[var(--text-tertiary)]">{{ file.worktreeStatus }}</span>
         <IconButton

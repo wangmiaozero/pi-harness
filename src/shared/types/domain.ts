@@ -16,7 +16,7 @@
  */
 
 import type { ProtocolId } from '../constants/protocols'
-import type { PiThinkingLevel } from '../constants/index'
+import type { PiInputType, PiThinkingLevel } from '../constants/index'
 
 /** Optional capability metadata. Unknown ≠ unsupported. */
 export interface ModelCapabilities {
@@ -109,6 +109,7 @@ export interface ActiveModel {
 export interface DiscoveredProviderModel {
   id: string
   name: string
+  input?: PiInputType[]
 }
 
 /** Draft connection details used only for a read-only model discovery request. */

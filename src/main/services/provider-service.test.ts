@@ -69,7 +69,11 @@ describe('ProviderService model discovery', () => {
         new Response(
           JSON.stringify({
             data: [
-              { id: 'acme-chat', name: 'Acme Chat' },
+              {
+                id: 'acme-chat',
+                name: 'Acme Chat',
+                architecture: { input_modalities: ['text', 'image'] }
+              },
               { id: 'acme-reasoning' },
               { id: 'acme-chat', name: 'Duplicate' }
             ]
@@ -91,7 +95,7 @@ describe('ProviderService model discovery', () => {
     })
 
     expect(models).toEqual([
-      { id: 'acme-chat', name: 'Acme Chat' },
+      { id: 'acme-chat', name: 'Acme Chat', input: ['text', 'image'] },
       { id: 'acme-reasoning', name: 'acme-reasoning' }
     ])
     const [url, init] = fetchMock.mock.calls[0]!
@@ -302,6 +306,7 @@ describe('ProviderService model discovery', () => {
       'acme-reasoning'
     ])
     expect(providers.acme?.models?.every((model) => model.api === undefined)).toBe(true)
+    expect(providers.acme?.models?.every((model) => model.input?.includes('image'))).toBe(true)
     expect(created.name).toBe('acme')
   })
 })

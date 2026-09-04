@@ -73,9 +73,10 @@ for (const kind of ['folders', 'code-workspace', 'mixed'] as const) {
     await expect(page.getByTestId('workspace-new-session')).toBeDisabled()
     await page.getByTestId('workspace-toggle-files').click()
     await expect(page.getByTestId('workspace-files-unavailable')).toBeVisible()
-    await page.getByTestId('workspace-section-git').click()
-    await expect(page.getByTestId('workspace-git-unavailable')).toBeVisible()
-    await page.getByTestId('workspace-section-sessions').click()
+    // The imported project appears in the workspace-wide Git view.
+    await page.locator('a[href="#/git"]').click()
+    await expect(page.getByTestId('git-repository-sidebar')).toContainText(projectName)
+    await page.locator('a[href="#/workspace"]').click()
 
     await electronApp.evaluate(({ Menu }) => {
       Menu.buildFromTemplate = ((items: Electron.MenuItemConstructorOptions[]) =>
@@ -124,8 +125,9 @@ for (const kind of ['folders', 'code-workspace', 'mixed'] as const) {
       await page.getByTestId('workspace-toggle-files').click()
     }
     await expect(page.getByTestId('workspace-files-unavailable')).toBeVisible()
-    await page.getByTestId('workspace-section-git').click()
-    await expect(page.getByTestId('workspace-git-unavailable')).toBeVisible()
+    await page.locator('a[href="#/git"]').click()
+    await expect(page.getByTestId('git-repository-sidebar')).toContainText(projectName)
+    await page.locator('a[href="#/workspace"]').click()
     expect(errors).toEqual([])
   })
 }

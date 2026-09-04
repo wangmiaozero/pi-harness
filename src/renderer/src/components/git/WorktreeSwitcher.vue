@@ -59,9 +59,9 @@ const upstreamChoices = computed(() =>
 )
 
 function selectedRoot(): string | null {
+  // Git is workspace-wide: resolve the selection among all navigation projects.
   return (
-    workspace.workspaceFolders.find((folder) => folder.id === selectedFolderId.value)
-      ?.resolvedPath ??
+    workspace.gitRoots.find((root) => root.id === selectedFolderId.value)?.path ??
     workspace.mainFolder?.resolvedPath ??
     workspace.currentCwd
   )
@@ -245,9 +245,26 @@ function selectRepository(folderId: string) {
 }
 
 onMounted(() => {
-  selectedFolderId.value = workspace.mainFolder?.id ?? null
+  selectedFolderId.value =
+    workspace.selectedGitFolderId ??
+    workspace.gitStatuses[0]?.folderId ??
+    workspace.mainFolder?.id ??
+    null
   void workspace.loadGit()
+  void refresh()
 })
+
+// Keep the local selection aligned with the workspace-wide repository list.
+watch(
+  () => workspace.gitStatuses,
+  (statuses) => {
+    if (!statuses.length) return
+    if (!statuses.some((repo) => repo.folderId === selectedFolderId.value)) {
+      selectedFolderId.value = workspace.selectedGitFolderId ?? statuses[0]?.folderId ?? null
+    }
+  },
+  { immediate: true }
+)
 
 watch(selectedFolderId, () => {
   if (selectedFolderId.value) workspace.selectGitRepository(selectedFolderId.value)

@@ -36,7 +36,8 @@ export const headerMapSchema = z.record(z.string(), z.string())
 
 export const discoveredProviderModelSchema = z.object({
   id: z.string().trim().min(1).max(256),
-  name: z.string().trim().min(1).max(256)
+  name: z.string().trim().min(1).max(256),
+  input: z.array(piInputTypeSchema).optional()
 })
 
 export const providerFormSchema = z.object({
@@ -58,7 +59,8 @@ export const providerFormSchema = z.object({
       id: z.string().min(1).max(256),
       name: z.string().min(1).max(256),
       contextWindow: z.number().int().positive().nullable(),
-      maxOutputTokens: z.number().int().positive().nullable()
+      maxOutputTokens: z.number().int().positive().nullable(),
+      input: z.array(piInputTypeSchema).optional()
     })
     .nullable()
     .optional(),

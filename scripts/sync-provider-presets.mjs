@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
+import { getBuiltinModels, getBuiltinProviders } from '@earendil-works/pi-ai/providers/all'
 import { format } from 'prettier'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -59,6 +60,12 @@ function normalizeModel(model) {
   }
   if (Number.isSafeInteger(model.maxOutputTokens) && model.maxOutputTokens > 0) {
     normalized.maxOutputTokens = model.maxOutputTokens
+  }
+  if (
+    Array.isArray(model.input) &&
+    model.input.every((input) => input === 'text' || input === 'image')
+  ) {
+    normalized.input = [...new Set(model.input)]
   }
   return normalized
 }
@@ -188,13 +195,60 @@ function mergeCatalogs(primary, secondary) {
   return merged
 }
 
-const wangmiaoGit = readWangmiaoGitCatalog()
-const providers = mergeCatalogs(wangmiaoGit.providers, readAgentDeskCatalog()).map(
-  ({ rank: _rank, ...provider }) => ({
-    ...provider,
-    documentation: `${provider.documentation} Sources: ${provider.sources.join(', ')}.`
-  })
+const builtinModels = getBuiltinProviders().flatMap((provider) => getBuiltinModels(provider))
+const builtinModelsByProviderAndId = new Map(
+  builtinModels.map((model) => [
+    `${model.provider.toLowerCase()}\0${model.id.toLowerCase()}`,
+    model
+  ])
 )
+const builtinModelsById = indexBuiltinModels((model) => model.id.toLowerCase())
+const builtinModelsByLeafId = indexBuiltinModels((model) =>
+  model.id.toLowerCase().split('/').at(-1)
+)
+
+function indexBuiltinModels(keyOf) {
+  const index = new Map()
+  for (const model of builtinModels) {
+    const key = keyOf(model)
+    const matches = index.get(key) ?? []
+    matches.push(model)
+    index.set(key, matches)
+  }
+  return index
+}
+
+function consensusInput(models) {
+  if (!models?.length) return undefined
+  const inputs = new Map(models.map((model) => [model.input.join(','), model.input]))
+  return inputs.size === 1 ? [...inputs.values()][0] : undefined
+}
+
+function resolveModelInput(providerId, model) {
+  if (model.input) return model.input
+  const id = model.id.toLowerCase()
+  const exact = builtinModelsByProviderAndId.get(`${providerId.toLowerCase()}\0${id}`)
+  if (exact) return exact.input
+  return consensusInput(builtinModelsById.get(id)) ?? consensusInput(builtinModelsByLeafId.get(id))
+}
+
+function applyModelCapabilities(providers) {
+  return providers.map((provider) => ({
+    ...provider,
+    models: provider.models.map((model) => {
+      const input = resolveModelInput(provider.id, model)
+      return input ? { ...model, input } : model
+    })
+  }))
+}
+
+const wangmiaoGit = readWangmiaoGitCatalog()
+const providers = applyModelCapabilities(
+  mergeCatalogs(wangmiaoGit.providers, readAgentDeskCatalog())
+).map(({ rank: _rank, ...provider }) => ({
+  ...provider,
+  documentation: `${provider.documentation} Sources: ${provider.sources.join(', ')}.`
+}))
 const output = {
   updatedAt: wangmiaoGit.updatedAt,
   providers

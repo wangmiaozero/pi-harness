@@ -136,7 +136,7 @@ describe('providerFormSchema', () => {
       authHeader: true,
       timeout: null,
       discoveredModels: [
-        { id: 'acme-chat', name: 'Acme Chat' },
+        { id: 'acme-chat', name: 'Acme Chat', input: ['text', 'image'] },
         { id: 'acme-reasoning', name: 'Acme Reasoning' }
       ]
     })

@@ -15,7 +15,10 @@ watch(
   async ([path]) => {
     diff.value = null
     if (!path) return
-    const cwd = workspace.folderForPath(path)?.resolvedPath ?? workspace.currentCwd
+    const cwd =
+      workspace.folderForPath(path)?.resolvedPath ??
+      workspace.gitFolderForPath(path)?.resolvedPath ??
+      workspace.currentCwd
     if (!cwd) return
     diff.value = await callApi(() => getApi().git.diff(cwd, path))
   },

@@ -9,7 +9,6 @@ import {
   FolderPlus,
   Gauge,
   GitBranch,
-  MessageSquare,
   Pin,
   Plus,
   RefreshCw,
@@ -21,13 +20,13 @@ import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import Input from '@renderer/components/ui/Input.vue'
-import WorktreeSwitcher from '@renderer/components/git/WorktreeSwitcher.vue'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
 import { useModelsStore } from '@renderer/stores/models'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useHarnessStore } from '@renderer/stores/harness'
+import HarnessContextGauge from '@renderer/components/harness/HarnessContextGauge.vue'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { callApi, getApi, getErrorPayload } from '@renderer/composables/useApi'
 import type {
@@ -40,17 +39,12 @@ import StarshipModelHud from '@renderer/components/starship/StarshipModelHud.vue
 import ProjectWorkspaceDialog from './ProjectWorkspaceDialog.vue'
 import RenameDialog from './RenameDialog.vue'
 import { projectIdentityKey } from '@shared/workspace/project-identity'
-import {
-  groupSessionsByProject,
-  mergeWorkspaceProjects,
-  projectDisplayName
-} from '@shared/workspace/session-tree'
+import { projectDisplayName } from '@shared/workspace/session-tree'
 
 const emit = defineEmits<{
   'focus-composer': []
   'open-harness': []
-  'open-main-tab': []
-  'section-change': [section: 'sessions' | 'git' | 'harness']
+  'section-change': [section: 'sessions' | 'harness']
 }>()
 const { t, locale } = useI18n()
 const sessions = useSessionStore()
@@ -59,7 +53,7 @@ const agent = useAgentStore()
 const models = useModelsStore()
 const settings = useSettingsStore()
 const harness = useHarnessStore()
-type WorkspaceSection = 'sessions' | 'git' | 'harness'
+type WorkspaceSection = 'sessions' | 'harness'
 const section = ref<WorkspaceSection>('sessions')
 const collapsedSessionIds = ref<string[]>([])
 const collapsedProjectKeys = ref<string[]>([])
@@ -79,48 +73,10 @@ const branchName = ref('')
 const branchSaving = ref(false)
 let dragDepth = 0
 
-const visibleSessions = computed(() => {
-  const archived = new Set(workspace.archivedSessionIds)
-  return sessions.items
-    .filter((session) => !archived.has(session.id))
-    .map((session, index) => ({ session, index }))
-    .sort(
-      (a, b) =>
-        Number(workspace.isSessionPinned(b.session.id)) -
-          Number(workspace.isSessionPinned(a.session.id)) || a.index - b.index
-    )
-    .map(({ session }) => session)
-})
-const projectGroups = computed(() =>
-  mergeWorkspaceProjects(
-    workspace.importedProjectRoots,
-    groupSessionsByProject(
-      visibleSessions.value.map((session) => {
-        const primary = sessionFolders(session)[0]
-        return primary
-          ? { ...session, projectRoot: primary.resolvedPath, projectKey: primary.id }
-          : session
-      })
-    )
-  )
-    .filter((group) => !workspace.removedProjectKeys.includes(group.projectKey))
-    .map((group) => ({
-      ...group,
-      name: workspace.projectSettings[group.projectKey]?.name || group.name,
-      sessions: [...group.sessions].sort(
-        (a, b) => Number(workspace.isSessionPinned(b.id)) - Number(workspace.isSessionPinned(a.id))
-      )
-    }))
-    .sort(
-      (a, b) =>
-        Number(workspace.isProjectPinned(b.projectKey)) -
-        Number(workspace.isProjectPinned(a.projectKey))
-    )
-)
+const projectGroups = computed(() => workspace.sessionProjectGroups)
 const newChatActive = computed(
   () => workspace.activeTab?.kind === 'chat' && workspace.activeTab.sessionId === 'new'
 )
-const canShowSessionGit = computed(() => workspace.hasSessionWorkspace)
 const canStartSessionFromCurrentProject = computed(
   () =>
     Boolean(sessions.currentId && sessions.current) &&
@@ -128,9 +84,8 @@ const canStartSessionFromCurrentProject = computed(
     workspace.workspaceFolders.length > 0
 )
 const sectionItems = computed(() => [
-  { id: 'sessions' as const, label: t('workspace.projects') },
-  { id: 'git' as const, label: t('workspace.git') },
-  { id: 'harness' as const, label: t('workspace.harness') }
+  { id: 'sessions' as const, label: t('workspace.projects'), icon: Folder },
+  { id: 'harness' as const, label: t('workspace.harness'), icon: Gauge }
 ])
 const activeProviderKey = computed(() => agent.state?.model?.provider ?? models.active.providerKey)
 const activeModelId = computed(() => agent.state?.model?.id ?? models.active.modelId)
@@ -724,21 +679,27 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
       </div>
     </div>
 
-    <div class="workspace-section-tabs flex border-b border-[var(--border-subtle)] px-1 py-1">
+    <div class="workspace-section-tabs flex gap-1 border-b border-[var(--border-subtle)] px-2 py-1.5">
       <button
         v-for="item in sectionItems"
         :key="item.id"
         :data-testid="`workspace-section-${item.id}`"
-        class="workspace-section-tab flex-1 rounded-[var(--radius-sm)] py-1 text-[11px]"
+        class="workspace-section-tab flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] border py-1.5 text-[11px] transition-colors duration-[var(--motion-fast)]"
         :class="
           section === item.id
-            ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
-            : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]'
+            ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--text-primary)]'
+            : 'border-transparent text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]'
         "
         :aria-pressed="section === item.id"
         @click="selectSection(item.id as WorkspaceSection)"
       >
-        {{ item.label }}
+        <component
+          :is="item.icon"
+          class="size-3.5 shrink-0"
+          :stroke-width="1.75"
+          :class="section === item.id ? 'text-[var(--accent)]' : ''"
+        />
+        <span class="truncate">{{ item.label }}</span>
       </button>
     </div>
 
@@ -903,28 +864,34 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
           </div>
         </div>
       </template>
-      <WorktreeSwitcher
-        v-else-if="section === 'git' && canShowSessionGit"
-        @open-diff="emit('open-main-tab')"
-      />
-      <div v-else-if="section === 'git'" data-testid="workspace-git-unavailable" class="p-3">
-        <EmptyState
-          :title="$t('workspace.noSessions')"
-          :description="$t('workspace.gitRequiresSession')"
-          :icon="MessageSquare"
-        />
-      </div>
       <div v-else-if="section === 'harness'" class="p-3" data-testid="harness-sidebar-status">
         <div
-          class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
+          class="relative overflow-hidden rounded-[var(--radius-md)] border border-[var(--accent-border)] bg-[var(--bg-surface)] p-3 shadow-[0_1px_8px_var(--accent-shadow,transparent)]"
         >
-          <div class="flex items-center gap-2">
-            <Gauge class="size-4 text-[var(--accent)]" :stroke-width="1.6" />
-            <p class="text-[12px] font-medium text-[var(--text-primary)]">
-              {{ $t('workspace.harnessTitle') }}
-            </p>
+          <div
+            class="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-[var(--accent-tint)] opacity-60 blur-xl"
+          />
+          <div class="relative flex items-start gap-2.5">
+            <span
+              class="flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent-tint)] text-[var(--accent)]"
+            >
+              <Gauge class="size-4" :stroke-width="1.6" />
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-[12px] font-semibold text-[var(--text-primary)]">
+                {{ $t('workspace.harnessTitle') }}
+              </p>
+              <p class="truncate text-[9.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+                {{ $t('workspace.harnessPoweredBy') }}
+              </p>
+            </div>
+            <HarnessContextGauge
+              v-if="agent.state"
+              :percent="agent.state.contextUsage?.percent ?? null"
+              :running="agent.state.status === 'running'"
+            />
           </div>
-          <p class="mt-2 text-[10.5px] leading-relaxed text-[var(--text-tertiary)]">
+          <p class="relative mt-2.5 text-[10.5px] leading-relaxed text-[var(--text-tertiary)]">
             {{
               sessions.currentId
                 ? $t('workspace.harnessInspectCurrent')
@@ -933,18 +900,18 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
           </p>
           <div
             v-if="agent.state"
-            class="mt-3 flex items-center gap-2 text-[10.5px] text-[var(--text-secondary)]"
+            class="relative mt-3 flex items-center gap-2 text-[10.5px] text-[var(--text-secondary)]"
           >
             <span
               class="size-1.5 rounded-full"
               :class="
                 agent.state.status === 'running'
-                  ? 'bg-[var(--success)]'
+                  ? 'animate-pulse bg-[var(--success)]'
                   : 'bg-[var(--text-disabled)]'
               "
             />
             <span class="capitalize">{{ agent.state.status }}</span>
-            <span class="ml-auto font-mono">
+            <span class="ml-auto font-mono text-[var(--text-tertiary)]">
               {{
                 agent.state.contextUsage?.percent === null || !agent.state.contextUsage
                   ? '—'

@@ -1,9 +1,5 @@
 import { PET_STATES, type PetManifest, type PetState, type PetThemeId } from '@shared/pet/types'
 import { singleFrameAnimation } from '@shared/pet/animations'
-import knowledgeImage from '@renderer/assets/mascot/pico-knowledge.png'
-import engineerImage from '@renderer/assets/mascot/pico-engineer.png'
-import maidImage from '@renderer/assets/mascot/pico-maid.png'
-import matureImage from '@renderer/assets/mascot/pico-mature.png'
 import officeImage from '@renderer/assets/mascot/pico-office.png'
 import maidWhiteImage from '@renderer/assets/mascot/pico-maid-white.png'
 import frostNavigatorImage from '@renderer/assets/themes/starship-cockpit/frost-navigator.png'
@@ -13,10 +9,6 @@ import moonlitMaidImage from '@renderer/assets/themes/portraits/moonlit-maid.png
 export const PET_THEME_ORDER: readonly PetThemeId[] = [
   'maidWhite',
   'office',
-  'knowledge',
-  'engineer',
-  'maid',
-  'mature',
   'starshipCockpit',
   'noirScholar',
   'moonlitMaid'
@@ -56,14 +48,15 @@ function manifest(
   }
 }
 
-/** Built-in manifests. Priority themes expose all state animation entries immediately. */
+/**
+ * Built-in manifests. Priority themes expose all state animation entries
+ * immediately. `maidWhite` and `office` keep their own characters but borrow
+ * the starship cockpit and noir study scene backgrounds and skins (see
+ * `MASCOT_STYLE_VISUAL_ALIASES`) until dedicated scenes exist.
+ */
 export const PET_MANIFESTS: Readonly<Record<PetThemeId, PetManifest>> = {
   maidWhite: manifest('maidWhite', 'Maid Style (White Stockings)', maidWhiteImage, '#7ab8ff', true),
   office: manifest('office', 'Office Style (Black Tights)', officeImage, '#8caeff', true),
-  knowledge: manifest('knowledge', 'Infinite Knowledge', knowledgeImage, '#558cff'),
-  engineer: manifest('engineer', 'Engineering Executor', engineerImage, '#3d8cff'),
-  maid: manifest('maid', 'Maid Assistant', maidImage, '#669dff'),
-  mature: manifest('mature', 'Mature Navigator', matureImage, '#8aa8ff'),
   noirScholar: manifest(
     'noirScholar',
     'Noir Study · Silver Scholar',

@@ -1,4 +1,5 @@
 import generatedCatalog from './provider-presets.generated.json'
+import type { PiInputType } from './index'
 import type { ProtocolId } from './protocols'
 
 export interface ProviderPresetModel {
@@ -6,6 +7,7 @@ export interface ProviderPresetModel {
   name: string
   contextWindow?: number
   maxOutputTokens?: number
+  input?: readonly PiInputType[]
 }
 
 export interface ProviderPreset {

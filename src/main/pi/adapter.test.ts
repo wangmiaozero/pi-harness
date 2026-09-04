@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { domainModelToPi, domainProviderToPi, syncInheritedModelApis } from './adapter'
+import {
+  domainModelToPi,
+  domainProviderToPi,
+  modelToDomain,
+  syncInheritedModelApis
+} from './adapter'
 import type { PiModelConfig } from '@shared/types/pi'
 
 const models = (entries: Array<[string, string | undefined]>): PiModelConfig[] =>
@@ -108,5 +113,19 @@ describe('domainModelToPi', () => {
       'anthropic-messages'
     )
     expect(next.api).toBe('openai-responses')
+  })
+})
+
+describe('modelToDomain', () => {
+  it('uses Pi input modalities instead of stale metadata for vision support', () => {
+    const model = modelToDomain(
+      'provider',
+      { id: 'multimodal', input: ['text', 'image'] },
+      'openai-completions',
+      { capabilities: { vision: false } }
+    )
+
+    expect(model.vision).toBe(true)
+    expect(model.capabilities.vision).toBe(true)
   })
 })

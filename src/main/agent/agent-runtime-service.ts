@@ -13,6 +13,7 @@ import { AgentError } from '../services/errors'
 import { IPC_EVENT } from '@shared/ipc/channels'
 import type {
   AgentEvent,
+  AgentImageAttachment,
   AgentRuntimeStatus,
   AgentStateSnapshot,
   StartAgentSessionInput,
@@ -132,6 +133,7 @@ export class AgentSessionWrapper {
           if (this.inner.isBashRunning) {
             throw new AgentError('Cannot send a prompt while a shell command is running')
           }
+          const images = await this.prepareImages(command.images)
           let preflightAccepted = false
           let preflightSettled = false
           let promptSettled = false
@@ -158,8 +160,6 @@ export class AgentSessionWrapper {
           }
           this.pendingPromptCount += 1
           this.applyForcedEmptySystemPrompt()
-          const images = command.images as
-            Array<{ type: 'image'; data: string; mimeType: string }> | undefined
           const streamingBehavior = command.streamingBehavior as 'steer' | 'followUp' | undefined
           let prompt: Promise<void>
           try {
@@ -207,11 +207,8 @@ export class AgentSessionWrapper {
       case 'set_model': {
         const provider = String(command.provider ?? '')
         const modelId = String(command.modelId ?? '')
-        let model = this.inner.modelRuntime.getModel(provider, modelId)
-        if (!model) {
-          await this.inner.modelRuntime.refresh({ allowNetwork: false })
-          model = this.inner.modelRuntime.getModel(provider, modelId)
-        }
+        await this.inner.modelRuntime.refresh({ allowNetwork: false })
+        const model = this.inner.modelRuntime.getModel(provider, modelId)
         if (!model) throw new AgentError(`Model not found: ${provider}/${modelId}`)
         await this.inner.setModel(model)
         return {
@@ -314,14 +311,20 @@ export class AgentSessionWrapper {
           const imageError = validateAgentImages(command.images)
           if (imageError) throw new AgentError(imageError)
         }
-        await this.inner.steer?.(String(command.message ?? ''), command.images)
+        await this.inner.steer?.(
+          String(command.message ?? ''),
+          await this.prepareImages(command.images)
+        )
         return null
       case 'follow_up':
         {
           const imageError = validateAgentImages(command.images)
           if (imageError) throw new AgentError(imageError)
         }
-        await this.inner.followUp?.(String(command.message ?? ''), command.images)
+        await this.inner.followUp?.(
+          String(command.message ?? ''),
+          await this.prepareImages(command.images)
+        )
         return null
       case 'get_session_stats':
         return {
@@ -411,6 +414,39 @@ export class AgentSessionWrapper {
     return release
   }
 
+  private async prepareImages(value: unknown): Promise<AgentImageAttachment[] | undefined> {
+    const images = value as AgentImageAttachment[] | undefined
+    if (!images?.length) return undefined
+    if (this.inner.settingsManager?.getBlockImages?.()) {
+      throw new AgentError('Image input is disabled in Pi settings')
+    }
+
+    const currentModel = this.inner.model
+    let model = currentModel
+    if (!this.inner.isStreaming && model) {
+      await this.inner.modelRuntime.refresh({ allowNetwork: false })
+      const refreshed = this.inner.modelRuntime.getModel(model.provider, model.id)
+      if (!refreshed) throw new AgentError(`Model not found: ${model.provider}/${model.id}`)
+      model = refreshed
+    }
+    if (!model) throw new AgentError('No model selected')
+
+    // Provider catalogs are often incomplete or stale. Mark the active model as
+    // image-capable for an explicit image prompt so Pi forwards the image instead
+    // of silently replacing it with an omission placeholder. The upstream API
+    // remains the final authority and will return an actionable error if needed.
+    const effectiveModel = model.input?.includes('image')
+      ? model
+      : {
+          ...model,
+          input: [...new Set(['text', ...(model.input ?? []), 'image'])] as Array<'text' | 'image'>
+        }
+    if (!sameInputCapabilities(currentModel?.input, effectiveModel.input)) {
+      await this.inner.setModel(effectiveModel)
+    }
+    return images
+  }
+
   private resetIdleTimer(): void {
     if (this.idleTimer) clearTimeout(this.idleTimer)
     this.idleTimer = setTimeout(() => {
@@ -435,6 +471,15 @@ export class AgentSessionWrapper {
       this.workspacePromptProvider?.() ?? (this.workspacePrompt || null)
     )
   }
+}
+
+function sameInputCapabilities(
+  left: Array<'text' | 'image'> | undefined,
+  right: Array<'text' | 'image'> | undefined
+): boolean {
+  return Boolean(
+    left?.length === right?.length && left?.every((value) => right?.includes(value) === true)
+  )
 }
 
 function withExtensionTools(session: AgentSessionLike, toolNames: string[]): string[] {
@@ -681,7 +726,9 @@ export class AgentRuntimeService implements AgentRuntime {
     if (toolNames?.length === 0) wrapper.setForceEmptySystemPrompt(true)
     wrapper.setWorkspacePromptProvider(() => this.workspace?.getPrompt?.(realSessionId) ?? null)
     if (this.workspace?.assertWritable) {
-      wrapWorkspaceWriteTools(inner, (target) => this.workspace!.assertWritable!(target, realSessionId))
+      wrapWorkspaceWriteTools(inner, (target) =>
+        this.workspace!.assertWritable!(target, realSessionId)
+      )
     }
     wrapper.start()
 

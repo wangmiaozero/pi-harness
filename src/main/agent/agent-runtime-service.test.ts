@@ -107,6 +107,88 @@ describe('AgentRuntimeService', () => {
     })
     expect(inner.setActiveToolsByName).toHaveBeenLastCalledWith(['read'])
   })
+
+  it('forwards images even when a provider catalog omits the model capability', async () => {
+    const inner = createAgentSession(createSessionManager())
+    const refresh = vi.fn(async () => undefined)
+    inner.modelRuntime = {
+      refresh,
+      getModel: () => ({ id: 'glm-5.3-flash', provider: 'zhipuai', input: ['text'] })
+    }
+    inner.model = { id: 'glm-5.3-flash', provider: 'zhipuai', input: ['text'] }
+    inner.setModel = vi.fn(async () => undefined)
+    const image = { type: 'image', data: 'TQ==', mimeType: 'image/png' }
+
+    await new AgentSessionWrapper(inner).send({
+      type: 'prompt',
+      message: 'describe',
+      images: [image]
+    })
+
+    expect(refresh).toHaveBeenCalledWith({ allowNetwork: false })
+    expect(inner.setModel).toHaveBeenCalledWith(
+      expect.objectContaining({ input: ['text', 'image'] })
+    )
+    expect(inner.prompt).toHaveBeenCalledWith(
+      'describe',
+      expect.objectContaining({ images: [image], source: 'rpc' })
+    )
+  })
+
+  it('forwards queued images through steer with the same capability promotion', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.isStreaming = true
+    inner.model = { id: 'future-multimodal', provider: 'provider', input: ['text'] }
+    inner.setModel = vi.fn(async () => undefined)
+    inner.steer = vi.fn(async () => undefined)
+    const image = { type: 'image', data: 'TQ==', mimeType: 'image/png' }
+
+    await new AgentSessionWrapper(inner).send({
+      type: 'steer',
+      message: 'inspect',
+      images: [image]
+    })
+
+    expect(inner.setModel).toHaveBeenCalledWith(
+      expect.objectContaining({ input: ['text', 'image'] })
+    )
+    expect(inner.steer).toHaveBeenCalledWith('inspect', [image])
+  })
+
+  it('rejects image prompts when Pi image input is globally disabled', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.settingsManager = { getBlockImages: () => true }
+    const wrapper = new AgentSessionWrapper(inner)
+
+    await expect(
+      wrapper.send({
+        type: 'prompt',
+        message: 'describe',
+        images: [{ type: 'image', data: 'TQ==', mimeType: 'image/png' }]
+      })
+    ).rejects.toThrow('Image input is disabled in Pi settings')
+    expect(inner.prompt).not.toHaveBeenCalled()
+    expect(wrapper.isRunning()).toBe(false)
+  })
+
+  it('refreshes the model catalog before every explicit model switch', async () => {
+    const inner = createAgentSession(createSessionManager())
+    const model = { id: 'model', provider: 'provider', input: ['text', 'image'] as const }
+    inner.modelRuntime = {
+      refresh: vi.fn(async () => undefined),
+      getModel: () => ({ ...model, input: [...model.input] })
+    }
+    inner.setModel = vi.fn(async () => undefined)
+
+    await new AgentSessionWrapper(inner).send({
+      type: 'set_model',
+      provider: 'provider',
+      modelId: 'model'
+    })
+
+    expect(inner.modelRuntime.refresh).toHaveBeenCalledWith({ allowNetwork: false })
+    expect(inner.setModel).toHaveBeenCalledWith(expect.objectContaining({ input: model.input }))
+  })
 })
 
 function createSessionManager(): PiSessionManagerLike {

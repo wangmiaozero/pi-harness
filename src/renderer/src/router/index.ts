@@ -16,6 +16,12 @@ const router = createRouter({
       meta: { title: 'Workspace', i18nKey: 'nav.workspace' }
     },
     {
+      path: '/git',
+      name: 'git',
+      component: () => import('@renderer/views/GitView.vue'),
+      meta: { title: 'Git', i18nKey: 'nav.git' }
+    },
+    {
       path: '/providers',
       name: 'providers',
       component: () => import('@renderer/views/ProvidersView.vue'),

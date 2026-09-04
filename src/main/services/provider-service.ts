@@ -948,9 +948,44 @@ function parseDiscoveredModels(payload: unknown): DiscoveredProviderModel[] {
             ? item.name
             : id
     const name = rawName.trim().slice(0, 256) || id
-    models.push({ id, name })
+    const input = parseDiscoveredModelInput(item)
+    models.push({ id, name, ...(input ? { input } : {}) })
   }
   return models
+}
+
+function parseDiscoveredModelInput(
+  item: Record<string, unknown>
+): Array<'text' | 'image'> | undefined {
+  const architecture = asRecord(item.architecture)
+  const capabilities = asRecord(item.capabilities)
+  const candidates = [
+    item.input,
+    item.input_modalities,
+    item.inputModalities,
+    item.supported_input_modalities,
+    architecture?.input_modalities,
+    architecture?.inputModalities,
+    capabilities?.input_modalities,
+    capabilities?.inputModalities
+  ]
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate)) continue
+    const values = candidate.filter((value): value is string => typeof value === 'string')
+    if (values.length === 0) continue
+    const supportsImage = values.some((value) => /image|vision/i.test(value))
+    return supportsImage ? ['text', 'image'] : ['text']
+  }
+
+  const vision = capabilities?.vision ?? capabilities?.image ?? capabilities?.multimodal
+  if (typeof vision === 'boolean') return vision ? ['text', 'image'] : ['text']
+  return undefined
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined
 }
 
 function setHeaderIfMissing(headers: Record<string, string>, name: string, value: string): void {
@@ -1157,6 +1192,7 @@ function ensureDefaultModel(
     name: string
     contextWindow: number | null
     maxOutputTokens: number | null
+    input?: ('text' | 'image')[]
   } | null
 ): import('@shared/types/pi').PiProviderConfig {
   const id = defaultModelId?.trim()
@@ -1170,7 +1206,8 @@ function ensureDefaultModel(
       ...existing,
       name: catalog?.name || existing.name || id,
       contextWindow: catalog?.contextWindow ?? existing.contextWindow,
-      maxTokens: catalog?.maxOutputTokens ?? existing.maxTokens
+      maxTokens: catalog?.maxOutputTokens ?? existing.maxTokens,
+      input: catalog?.input ? [...catalog.input] : existing.input
     }
     return { ...provider, models }
   }
@@ -1182,7 +1219,7 @@ function ensureDefaultModel(
         displayName: catalog?.name || id,
         protocol,
         reasoning: false,
-        vision: false,
+        vision: catalog?.input?.includes('image') ?? true,
         contextWindow: catalog?.contextWindow ?? null,
         maxOutputTokens: catalog?.maxOutputTokens ?? null
       },
@@ -1211,7 +1248,7 @@ function mergeDiscoveredModels(
           displayName: model.name.trim() || id,
           protocol,
           reasoning: false,
-          vision: false,
+          vision: model.input?.includes('image') ?? true,
           contextWindow: null,
           maxOutputTokens: null
         },

@@ -13,7 +13,7 @@ describe('MascotBackground', () => {
   })
 
   it('renders every visual style as decorative content', async () => {
-    const wrapper = mount(MascotBackground, { props: { style: 'knowledge' } })
+    const wrapper = mount(MascotBackground, { props: { style: 'moonlitMaid' } })
 
     for (const style of MASCOT_STYLES.filter((style) => style !== 'none')) {
       await wrapper.setProps({ style })

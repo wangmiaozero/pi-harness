@@ -1,15 +1,31 @@
 export const NAV_ITEM_IDS = [
   'workspace',
-  'overview',
+  'git',
   'providers',
   'models',
   'skills',
+  'overview',
   'settings'
 ] as const
 
 export type NavItemId = (typeof NAV_ITEM_IDS)[number]
 
 export const DEFAULT_NAV_ORDER: NavItemId[] = [...NAV_ITEM_IDS]
+
+/**
+ * Default order before Git moved below Workspace and Overview moved above
+ * Settings. Saved settings still holding this exact sequence are migrated to
+ * the new default instead of being treated as a user customization.
+ */
+export const LEGACY_NAV_ORDER: NavItemId[] = [
+  'workspace',
+  'overview',
+  'providers',
+  'models',
+  'skills',
+  'settings',
+  'git'
+]
 
 const NAV_ITEM_ID_SET = new Set<string>(NAV_ITEM_IDS)
 
@@ -18,6 +34,13 @@ export function isNavItemId(value: unknown): value is NavItemId {
 }
 
 export function normalizeNavOrder(value: unknown): NavItemId[] {
+  if (
+    Array.isArray(value) &&
+    value.length === LEGACY_NAV_ORDER.length &&
+    LEGACY_NAV_ORDER.every((id, index) => value[index] === id)
+  ) {
+    return [...DEFAULT_NAV_ORDER]
+  }
   const seen = new Set<NavItemId>()
   const next: NavItemId[] = []
   if (Array.isArray(value)) {

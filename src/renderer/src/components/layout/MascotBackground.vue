@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { MascotStyle } from '@shared/constants/mascot'
+import { resolveMascotStyle } from '@shared/constants/mascot'
 import type { PetState } from '@shared/pet/types'
 import { getPetManifest } from '@renderer/pet/manifests'
 import PetRenderer from '@renderer/components/pet/PetRenderer.vue'
@@ -18,6 +19,7 @@ const props = withDefaults(
 )
 
 const manifest = computed(() => getPetManifest(props.style))
+const backgroundStyle = computed(() => resolveMascotStyle(props.style))
 const portrait = computed(() => getVisualSkin(props.style)?.portrait === true)
 </script>
 
@@ -30,7 +32,7 @@ const portrait = computed(() => getVisualSkin(props.style)?.portrait === true)
     :data-context="context"
     class="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none"
     :class="{
-      'mascot-background--starship': style === 'starshipCockpit',
+      'mascot-background--starship': backgroundStyle === 'starshipCockpit',
       'mascot-background--portrait': portrait
     }"
     aria-hidden="true"

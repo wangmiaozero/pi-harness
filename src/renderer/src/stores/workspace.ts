@@ -9,6 +9,7 @@ import type {
   GitStatusResponse,
   RecentWorkspace,
   SessionInfo,
+  SessionProjectGroup,
   SessionWorkspaceBinding,
   WorkspaceFolder,
   WorkspaceFolderRole,
@@ -16,7 +17,11 @@ import type {
 } from '@shared/types/workspace'
 import { isPathWithinProjectRoots, projectIdentityKey } from '@shared/workspace/project-identity'
 import { findContainingWorkspaceFolder } from '@shared/workspace/workspace-permission'
-import { projectDisplayName } from '@shared/workspace/session-tree'
+import {
+  groupSessionsByProject,
+  mergeWorkspaceProjects,
+  projectDisplayName
+} from '@shared/workspace/session-tree'
 import { MAX_ATTACHED_IMAGES } from '@shared/workspace/image-attachments'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { useSessionStore } from './sessions'
@@ -177,6 +182,59 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const hasDraftSession = computed(
     () => draftSessionVisible.value && draftWorkspaceFolders.value.length > 0
   )
+  // All navigation projects shown in the Workspace sidebar. The Git view reads
+  // the same list, so removing a project removes it from Git as well.
+  const sessionProjectGroups = computed<SessionProjectGroup[]>(() => {
+    const archived = new Set(archivedSessionIds.value)
+    const grouped = groupSessionsByProject(
+      sessions.items
+        .filter((session) => !archived.has(session.id))
+        .map((session, index) => ({ session, index }))
+        .sort(
+          (a, b) =>
+            Number(isSessionPinned(b.session.id)) - Number(isSessionPinned(a.session.id)) ||
+            a.index - b.index
+        )
+        .map(({ session }) => {
+          const primary = sessionFolders(session)[0]
+          return primary
+            ? { ...session, projectRoot: primary.resolvedPath, projectKey: primary.id }
+            : session
+        })
+    )
+    return mergeWorkspaceProjects(importedProjectRoots.value, grouped)
+      .filter((group) => !removedProjectKeys.value.includes(group.projectKey))
+      .map((group) => ({
+        ...group,
+        name: projectSettings.value[group.projectKey]?.name || group.name,
+        sessions: [...group.sessions].sort(
+          (a, b) => Number(isSessionPinned(b.id)) - Number(isSessionPinned(a.id))
+        )
+      }))
+      .sort(
+        (a, b) =>
+          Number(isProjectPinned(b.projectKey)) - Number(isProjectPinned(a.projectKey))
+      )
+  })
+  // Every source root across all workspace projects, in stable project order.
+  const gitRoots = computed(() => {
+    const roots: Array<{ id: string; name: string; path: string }> = []
+    const seen = new Set<string>()
+    for (const group of sessionProjectGroups.value) {
+      projectSourceRoots(group.projectRoot).forEach((root, index) => {
+        if (!root) return
+        const id = projectIdentityKey(root)
+        if (seen.has(id)) return
+        seen.add(id)
+        roots.push({
+          id,
+          name: index === 0 ? group.name : projectDisplayName(root),
+          path: root
+        })
+      })
+    }
+    return roots
+  })
   const mainFolder = computed(
     () =>
       workspaceFolders.value.find((folder) => folder.role === 'main') ??
@@ -798,9 +856,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function loadGit() {
     const version = ++gitLoadVersion
-    const folders = workspaceFolders.value.filter((folder) => folder.exists)
+    // Git is workspace-wide: every project in the navigation list is inspected,
+    // not just the folders of the currently selected session.
+    const roots = gitRoots.value
     const cwd = currentCwd.value
-    if (!folders.length && !cwd) {
+    if (!roots.length && !cwd) {
       gitStatus.value = null
       gitStatuses.value = []
       selectedGitFolderId.value = null
@@ -809,13 +869,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     gitLoading.value = true
     try {
-      const cwds = folders.length ? folders.map((folder) => folder.resolvedPath) : cwd ? [cwd] : []
+      const cwds = roots.length ? roots.map((root) => root.path) : cwd ? [cwd] : []
       const next = await callApi(() => getApi().git.statusMany(cwds))
       if (version !== gitLoadVersion) return
       gitStatuses.value = next.map((status, index) => ({
         ...status,
-        folderId: folders[index]?.id ?? projectIdentityKey(cwds[index] ?? ''),
-        folderName: folders[index]?.name ?? cwds[index] ?? '',
+        folderId: roots[index]?.id ?? projectIdentityKey(cwds[index] ?? ''),
+        folderName: roots[index]?.name ?? cwds[index] ?? '',
         branch: status.branch ?? null
       }))
       const selected = gitStatuses.value.find(
@@ -861,6 +921,34 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function folderForPath(target: string | null | undefined): WorkspaceFolder | null {
     if (!target) return null
     return findContainingWorkspaceFolder(target, workspaceFolders.value)
+  }
+
+  // Workspace-wide resolution for Git surfaces: every navigation project,
+  // not only the folders of the currently selected session.
+  function gitFolderForPath(target: string | null | undefined): WorkspaceFolder | null {
+    if (!target) return null
+    const root = findContainingWorkspaceFolder(
+      target,
+      gitRoots.value.map((item) => ({ ...item, resolvedPath: item.path }))
+    )
+    return root
+      ? {
+          id: root.id,
+          name: root.name,
+          path: root.path,
+          resolvedPath: root.path,
+          role: 'main',
+          readonly: false,
+          exists: true
+        }
+      : null
+  }
+
+  function gitDisplayFilePath(target: string): string {
+    const folder = gitFolderForPath(target)
+    if (!folder) return target
+    const relative = target.slice(folder.resolvedPath.length).replace(/^[\\/]+/, '')
+    return relative ? `${folder.name}/${relative.replace(/\\/g, '/')}` : folder.name
   }
 
   function isPathReadonly(target: string | null | undefined): boolean {
@@ -1280,11 +1368,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     closeSessionTabs(ids)
     if (sessions.currentId && ids.has(sessions.currentId)) sessions.selectSession(null)
     await removeImportedProject(projectKey)
-    // Removing a navigation entry does not delete session history or source files.
-    if (!sessions.currentId) {
-      await restoreDraftWorkspace()
-      await Promise.all([loadFiles(), loadGit()])
-    }
+    // Removing a navigation entry also removes it from the workspace-wide Git view.
+    if (!sessions.currentId) await restoreDraftWorkspace()
+    await Promise.all([loadFiles(), loadGit()])
     persist()
   }
 
@@ -1518,6 +1604,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     fileChildren,
     gitStatus,
     gitStatuses,
+    sessionProjectGroups,
+    gitRoots,
     selectedGitFolderId,
     gitRevision,
     filesLoading,
@@ -1591,6 +1679,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadDirectory,
     loadGit,
     selectGitRepository,
+    gitFolderForPath,
+    gitDisplayFilePath,
     refreshContent,
     addDraftImages,
     removeDraftImage,

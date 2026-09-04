@@ -146,8 +146,10 @@ test('project actions belong to the project row; chats only rename and delete', 
   await expect(project).toContainText('skills')
   await page.getByTestId('workspace-toggle-files').click()
   await expect(page.getByTestId('workspace-files-unavailable')).toBeVisible()
-  await page.getByTestId('workspace-section-git').click()
-  await expect(page.getByTestId('workspace-git-unavailable')).toBeVisible()
+  // Git reads all workspace projects, so the project stays visible without any session.
+  await page.locator('a[href="#/git"]').click()
+  await expect(page.getByTestId('git-repository-sidebar')).toContainText('skills')
+  await page.locator('a[href="#/workspace"]').click()
 })
 
 test('project menu pin, rename, open, reveal, export, archive and remove are scoped', async ({

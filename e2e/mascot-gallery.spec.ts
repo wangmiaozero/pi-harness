@@ -1,5 +1,17 @@
 import path from 'node:path'
-import { test, expect } from './fixtures'
+import { test, expect, type Page } from './fixtures'
+
+async function expectPersistedMascotStyle(page: Page, style: string) {
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.piSwitch.settings
+          .get()
+          .then((settings: { mascotStyle: string }) => settings.mascotStyle)
+      )
+    )
+    .toBe(style)
+}
 
 test('mascot gallery fills the page with equal-height previews across skins and window sizes', async ({
   page
@@ -13,7 +25,7 @@ test('mascot gallery fills the page with equal-height previews across skins and 
   const gallery = page.getByTestId('mascot-settings-section')
   const grid = page.getByTestId('mascot-options-grid')
   const options = grid.locator('[data-mascot-option]')
-  await expect(options).toHaveCount(10)
+  await expect(options).toHaveCount(6)
   await grid.locator('img').evaluateAll(async (images) => {
     await Promise.all(images.map((image) => (image as HTMLImageElement).decode()))
   })
@@ -29,7 +41,8 @@ test('mascot gallery fills the page with equal-height previews across skins and 
     await option.press('Space')
     await expect(option).toHaveAttribute('aria-pressed', 'true')
     await expect(grid.locator('[aria-pressed="true"]')).toHaveCount(1)
-    await page.getByRole('button', { name: /保存|Save/, exact: true }).click()
+
+    await expectPersistedMascotStyle(page, style)
 
     for (const [width, height, columns] of [
       [1920, 1080, 5],

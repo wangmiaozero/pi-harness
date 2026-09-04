@@ -121,7 +121,8 @@ export function modelToDomain(
     ? (pi.api as ProtocolId)
     : providerProtocol
   const input = pi.input ?? ['text']
-  const vision = meta?.capabilities?.vision ?? input.includes('image')
+  // `input` is a Pi-native runtime field. Never let stale UI metadata override it.
+  const vision = input.includes('image')
   const tools = meta?.capabilities?.tools ?? true
   const reasoning = meta?.capabilities?.reasoning ?? pi.reasoning ?? false
   const streaming = meta?.capabilities?.streaming ?? true

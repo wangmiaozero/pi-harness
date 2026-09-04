@@ -4,7 +4,8 @@ import {
   MASCOT_STYLES,
   MASCOT_UNLOCK_ANSWER,
   isMascotUnlockAnswer,
-  normalizeMascotStyle
+  normalizeMascotStyle,
+  resolveMascotStyle
 } from './mascot'
 
 describe('mascot styles', () => {
@@ -17,6 +18,13 @@ describe('mascot styles', () => {
 
   it('accepts every supported style', () => {
     for (const style of MASCOT_STYLES) expect(normalizeMascotStyle(style)).toBe(style)
+  })
+
+  it('borrows the cockpit and noir study looks for maidWhite and office', () => {
+    expect(resolveMascotStyle('maidWhite')).toBe('starshipCockpit')
+    expect(resolveMascotStyle('office')).toBe('noirScholar')
+    expect(resolveMascotStyle('starshipCockpit')).toBe('starshipCockpit')
+    expect(resolveMascotStyle('none')).toBe('none')
   })
 
   it('accepts only the 1 KiB byte-count answer', () => {

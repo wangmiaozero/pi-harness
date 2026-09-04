@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { LayoutDashboard, Box, Cpu, Settings, Sparkles, SquareTerminal } from '@lucide/vue'
+import { LayoutDashboard, Box, Cpu, Settings, Sparkles, SquareTerminal, GitBranch } from '@lucide/vue'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { normalizeNavOrder, type NavItemId } from '@shared/constants/navigation'
 
@@ -56,6 +56,13 @@ const catalog = computed(
       icon: Settings,
       label: t('nav.settings'),
       short: t('navShort.settings')
+    },
+    git: {
+      name: 'git',
+      to: '/git',
+      icon: GitBranch,
+      label: t('nav.git'),
+      short: t('navShort.git')
     }
   })
 )

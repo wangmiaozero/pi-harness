@@ -194,18 +194,16 @@ test.describe('Pi-Harness smoke', () => {
     await expect(sessionTree.getByText(/暂无项目|No projects/)).toBeVisible()
     await expect(page.getByTestId('workspace-section-sessions')).toHaveText(/项目|Projects/)
 
-    await page.getByTestId('workspace-section-git').click()
-    await expect(page.getByTestId('workspace-git-unavailable')).toBeVisible()
-    await expect(page.getByTestId('workspace-git-unavailable')).toContainText(
-      /选择或创建会话后查看 Git 状态|Select or create a session to view Git status/
-    )
+    // Git is a standalone route that reads every workspace project.
+    await page.locator('a[href="#/git"]').click()
+    await expect(page.getByTestId('git-no-projects')).toBeVisible()
+    await page.locator('a[href="#/workspace"]').click()
 
     const importedProject = path.join(workspaceRoot, 'explicit-project')
     fs.mkdirSync(importedProject, { recursive: true })
     await electronApp.evaluate(({ dialog }, picked) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [picked] })
     }, importedProject)
-    await page.getByTestId('workspace-section-sessions').click()
     await page.getByTestId('workspace-import-project').click()
     await expect(page.getByTestId('workspace-project-0')).toContainText('explicit-project')
     await expect(sessionTree.getByText(/待创建会话|Pending session/)).toHaveCount(0)
@@ -223,9 +221,10 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByTestId('workspace-draft-session')).toHaveCount(0)
     await page.getByTestId('workspace-toggle-files').click()
     await expect(page.getByTestId('workspace-files-unavailable')).toBeVisible()
-    await page.getByTestId('workspace-section-git').click()
-    await expect(page.getByTestId('workspace-git-unavailable')).toBeVisible()
-    await page.getByTestId('workspace-section-sessions').click()
+    // The imported project shows up in the workspace-wide Git view without a session.
+    await page.locator('a[href="#/git"]').click()
+    await expect(page.getByTestId('git-repository-sidebar')).toContainText('explicit-project')
+    await page.locator('a[href="#/workspace"]').click()
     await electronApp.evaluate(({ Menu }) => {
       Menu.buildFromTemplate = ((template: Electron.MenuItemConstructorOptions[]) =>
         ({
@@ -244,8 +243,9 @@ test.describe('Pi-Harness smoke', () => {
       .click()
     await expect(page.getByTestId('workspace-draft-session')).toHaveCount(0)
     await expect(sessionTree.getByText(/暂无项目|No projects/)).toBeVisible()
-    await page.getByTestId('workspace-section-git').click()
-    await expect(page.getByTestId('workspace-git-unavailable')).toBeVisible()
+    // Removing the workspace project removes it from the Git view as well.
+    await page.locator('a[href="#/git"]').click()
+    await expect(page.getByTestId('git-no-projects')).toBeVisible()
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({
         path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-git-empty.png')
@@ -719,10 +719,14 @@ test.describe('Pi-Harness smoke', () => {
     await page
       .getByRole('button', { name: /职场风格（黑丝）|Office Style \(Black Tights\)/ })
       .click()
-    await page.getByRole('switch', { name: /显示宠物|Show pet/ }).click()
+    // Selecting a visual-skin style auto-enables the pet; only turn animations off.
+    await expect(page.getByRole('switch', { name: /显示宠物|Show pet/ })).toBeChecked()
     await page.getByRole('switch', { name: /启用动画|Animations/ }).click()
-    await page.getByRole('button', { name: /保存|Save/, exact: true }).click()
-    await expect(page.getByText(/设置已保存|Settings saved/)).toBeVisible()
+    await expect
+      .poll(() =>
+        page.evaluate(async () => (await window.piSwitch.settings.get()).petEnabled)
+      )
+      .toBe(true)
     await expect(page.getByTestId('page-mascot-background')).toHaveAttribute('data-style', 'office')
 
     await page.locator('a[href="#/workspace"]').click()
@@ -730,13 +734,19 @@ test.describe('Pi-Harness smoke', () => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [picked] })
     }, fixtureRoot)
     await page.getByTestId('workspace-import-project').click()
-    await expect(page.getByTestId('page-mascot-background')).toHaveAttribute('data-style', 'office')
-    await expect(page.getByTestId('workspace-mascot')).toBeVisible()
-    await expect(page.getByTestId('workspace-mascot')).toHaveAttribute('data-style', 'office')
-    await expect(page.getByTestId('workspace-mascot')).toHaveAttribute('data-state', 'idle')
-    await expect(page.getByTestId('pet-status-bubble')).toContainText(/待机|Idle/)
-    await expect(page.getByTestId('workspace-mascot').locator('.pet-renderer')).toHaveClass(
-      /pet-motion-off/
+    await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
+    const portraitPanel = page.getByTestId('portrait-skin-panel')
+    await expect(portraitPanel).toBeVisible()
+    await expect(portraitPanel).toHaveAttribute('data-style', 'office')
+    await expect(portraitPanel.getByTestId('pet-status-bubble')).toContainText(/待机|Idle/)
+    await expect(page.getByTestId('workspace-mascot')).toHaveCount(0)
+
+    // The office sprite is a standing character: it must anchor to the workspace
+    // floor instead of the noir study's seated-figure geometry.
+    const officeSceneBox = (await page.getByTestId('workspace-scene').boundingBox())!
+    const officeImageBox = (await page.getByTestId('portrait-skin-image').boundingBox())!
+    expect(officeImageBox.y + officeImageBox.height).toBeGreaterThan(
+      officeSceneBox.y + officeSceneBox.height - 48
     )
 
     await page.locator('a[href="#/settings"]').click()
@@ -744,7 +754,11 @@ test.describe('Pi-Harness smoke', () => {
     await page
       .getByRole('button', { name: /星际驾驶舱 · 霜蓝导航员|Starship Cockpit · Frost Navigator/ })
       .click()
-    await page.getByRole('button', { name: /保存|Save/, exact: true }).click()
+    await expect
+      .poll(() =>
+        page.evaluate(async () => (await window.piSwitch.settings.get()).mascotStyle)
+      )
+      .toBe('starshipCockpit')
     await page.locator('a[href="#/workspace"]').click()
     await expect
       .poll(() => page.locator('html').getAttribute('data-visual-skin'))
@@ -752,6 +766,9 @@ test.describe('Pi-Harness smoke', () => {
     const cockpitInterior = page.getByTestId('starship-cockpit-interior')
     await expect(cockpitInterior).toBeVisible()
     await expect(cockpitInterior.locator('img')).toHaveJSProperty('naturalWidth', 1672)
+    await expect(page.getByTestId('page-mascot-background').locator('.pet-renderer')).toHaveClass(
+      /pet-motion-off/
+    )
     const layerOrder = await page.evaluate(() => ({
       cockpit: Number(
         getComputedStyle(document.querySelector('[data-testid="starship-cockpit-interior"]')!)
@@ -1075,17 +1092,20 @@ test.describe('Pi-Harness smoke', () => {
     await page.getByRole('button', { name: /主题|Theme/, exact: true }).click()
     await expect(page.getByRole('option', { name: /跟随系统|System/, exact: true })).toHaveCount(0)
     await page.getByRole('option', { name: /粉色|Pink/, exact: true }).click()
-    const saveButton = page.getByRole('button', { name: /保存|Save/ })
-    await expect
-      .poll(() => saveButton.evaluate((element) => getComputedStyle(element).color))
-      .toBe('rgb(255, 255, 255)')
-    await saveButton.click()
-
+    // Settings autosave: the theme applies without any explicit save action.
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'pink')
     await expect(page.locator('html')).toHaveAttribute('data-appearance', 'light')
     await expect
       .poll(() => electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource))
       .toBe('light')
+    // Primary buttons must still render white text on the new palette.
+    await page.getByTestId('settings-back').click()
+    await page.getByTestId('settings-section-mascot').click()
+    const primaryButton = page.getByRole('button', { name: /解锁|Unlock/, exact: true })
+    await expect(primaryButton).toBeVisible()
+    await expect
+      .poll(() => primaryButton.evaluate((element) => getComputedStyle(element).color))
+      .toBe('rgb(255, 255, 255)')
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.setViewportSize({ width: 1200, height: 780 })
       await page.screenshot({
@@ -1104,12 +1124,10 @@ test.describe('Pi-Harness smoke', () => {
     await expect(items.first()).toHaveAttribute('data-nav-id', 'workspace')
     await items.first().focus()
     await items.first().press('ArrowDown')
-    await expect(items.first()).toHaveAttribute('data-nav-id', 'overview')
-    await page.getByRole('button', { name: /保存|Save/ }).click()
-    await expect(page.getByText(/设置已保存|Settings saved/)).toBeVisible()
+    await expect(items.first()).toHaveAttribute('data-nav-id', 'git')
 
     const rail = page.locator('[data-testid="app-navigation-rail"] a')
-    await expect(rail.first()).toHaveAttribute('href', '#/')
+    await expect(rail.first()).toHaveAttribute('href', '#/git')
     await expect(rail.nth(1)).toHaveAttribute('href', '#/workspace')
   })
 

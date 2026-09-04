@@ -48,6 +48,20 @@ describe('visual skin transitions', () => {
     expect(document.documentElement.dataset.visualSkin).toBeUndefined()
     expect(document.documentElement.dataset.theme).toBe('green')
   })
+
+  it('lets maidWhite and office borrow the cockpit and noir study skins', () => {
+    applyVisualSkin({ ...activeSettings, mascotStyle: 'maidWhite' })
+    applyTheme('light')
+    expect(document.documentElement.dataset.visualSkin).toBe('starship-cockpit')
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(isStarshipCockpitActive({ ...activeSettings, mascotStyle: 'maidWhite' })).toBe(true)
+
+    applyVisualSkin({ ...activeSettings, mascotStyle: 'office' })
+    applyTheme('light')
+    expect(document.documentElement.dataset.visualSkin).toBe('noir-scholar')
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(isStarshipCockpitActive({ ...activeSettings, mascotStyle: 'office' })).toBe(false)
+  })
 })
 
 describe('starship cockpit visual skin', () => {
@@ -67,10 +81,10 @@ describe('starship cockpit visual skin', () => {
     expect(document.documentElement.dataset.appearance).toBe('dark')
     expect(document.documentElement.style.colorScheme).toBe('dark')
 
-    applyVisualSkin({ ...activeSettings, mascotStyle: 'office' })
+    applyVisualSkin({ ...activeSettings, mascotStyle: 'moonlitMaid' })
     applyTheme('light')
 
-    expect(document.documentElement.dataset.visualSkin).toBeUndefined()
+    expect(document.documentElement.dataset.visualSkin).toBe('moonlit-maid')
     expect(document.documentElement.dataset.theme).toBe('light')
     expect(document.documentElement.dataset.appearance).toBe('light')
     expect(document.documentElement.style.colorScheme).toBe('light')

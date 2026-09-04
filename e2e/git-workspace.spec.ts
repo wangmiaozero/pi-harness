@@ -63,13 +63,9 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
   seedSession(piAgentDir, repository, sessionId)
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.evaluate(() => window.piSwitch.settings.set({ theme: 'light' }))
-  await page.locator('a[href="#/workspace"]').click()
-  await page.getByTestId('workspace-refresh').click()
-  await page
-    .getByTestId(`session-row-${sessionId}`)
-    .getByRole('button', { name: 'Git workspace', exact: true })
-    .click()
-  await page.getByTestId('workspace-section-git').click()
+  // Git is a standalone route that reads every workspace project, no session selection needed.
+  await page.locator('a[href="#/git"]').click()
+  await expect(page.getByTestId('git-view')).toBeVisible()
 
   const commitPanel = page.getByTestId('git-commit-panel')
   await expect(commitPanel).toBeVisible()
@@ -123,7 +119,7 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
   await commitPanel.getByRole('button', { name: /全部暂存|Stage all/ }).click()
   await expect(page.getByTestId('git-generate-message')).toBeEnabled()
 
-  const overflow = await page.getByTestId('workspace-scene').evaluate((element) => ({
+  const overflow = await page.getByTestId('git-view').evaluate((element) => ({
     clientWidth: element.clientWidth,
     scrollWidth: element.scrollWidth,
     documentClientWidth: document.documentElement.clientWidth,
@@ -134,7 +130,7 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
 
   await commitPanel.getByPlaceholder(/提交信息|Commit message/).fill('feat(git): 集成提交工作流')
   await page.getByTestId('git-create-commit').click()
-  await page.getByTestId('workspace-section-git').click()
+  await page.getByTestId('git-back-to-graph').click()
   await expect(page.getByTestId('git-history-graph').locator(':scope > div')).toHaveCount(5)
   expect(git(repository, ['log', '-1', '--format=%s']).trim()).toBe('feat(git): 集成提交工作流')
 })

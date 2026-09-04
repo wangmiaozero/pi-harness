@@ -4,6 +4,8 @@ import MascotView from './MascotView.vue'
 import { MASCOT_STYLES } from '@shared/constants/mascot'
 import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
 
+const FIRST_RENDERABLE_STYLE = 'moonlitMaid'
+
 describe('MascotView', () => {
   it('renders no image for the none style', () => {
     const wrapper = mount(MascotView, { props: { style: 'none' } })
@@ -13,7 +15,7 @@ describe('MascotView', () => {
   })
 
   it('renders every visual style', async () => {
-    const wrapper = mount(MascotView, { props: { style: 'knowledge' } })
+    const wrapper = mount(MascotView, { props: { style: FIRST_RENDERABLE_STYLE } })
 
     for (const style of MASCOT_STYLES.filter((style) => style !== 'none')) {
       await wrapper.setProps({ style })
@@ -23,7 +25,7 @@ describe('MascotView', () => {
   })
 
   it('reflects the active state without exposing decorative content', () => {
-    const wrapper = mount(MascotView, { props: { style: 'knowledge', active: true } })
+    const wrapper = mount(MascotView, { props: { style: FIRST_RENDERABLE_STYLE, active: true } })
     const mascot = wrapper.get('[data-testid="workspace-mascot"]')
 
     expect(mascot.attributes('data-active')).toBe('true')
