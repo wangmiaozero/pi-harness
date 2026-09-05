@@ -38,13 +38,26 @@ function jsonClone<T>(value: T): T | undefined {
 
 function slimAssistantMessage(message: unknown): AssistantMessage | undefined {
   if (!isObject(message) || message.role !== 'assistant') return undefined
-  const cloned = jsonClone({
+  // Build the slim shape without an intermediate deep clone. The SDK attaches
+  // the full accumulated message to every streaming delta; cloning it twice
+  // per delta (here and again in toIpcAgentEvent) makes streaming cost
+  // O(text²) on the main process. toIpcAgentEvent performs the single JSON
+  // pass that makes this payload IPC-safe, so slimming only reshapes it here.
+  return {
     role: 'assistant' as const,
     model: typeof message.model === 'string' ? message.model : '',
     provider: typeof message.provider === 'string' ? message.provider : '',
-    content: Array.isArray(message.content) ? message.content : []
-  })
-  return cloned
+    content: (Array.isArray(message.content) ? message.content : []) as AssistantMessage['content']
+  }
+}
+
+/**
+ * True when the event carries an assistant-shaped accumulated-message
+ * snapshot worth relaying. Cheap field checks only — no cloning.
+ */
+export function hasAssistantSnapshot(event: AgentEventLike): boolean {
+  if (event.type !== 'message_update') return false
+  return slimAssistantMessage((event as { message?: unknown }).message) !== undefined
 }
 
 function toolCallMetadata(event: Record<string, unknown>): { id: string; toolName: string } | null {
@@ -166,3 +179,19 @@ export function isIdleResetEvent(type: string): boolean {
 }
 
 export type { AgentEvent, AssistantMessage }
+
+export interface AgentEventEnvelopePayload {
+  sessionId?: string
+  event?: AgentEvent
+}
+
+/**
+ * Agent events arrive either as a single `{ sessionId, event }` envelope or
+ * as an array of envelopes coalesced by the main-process event batcher.
+ * Return the envelopes in delivery order so listeners can treat both shapes
+ * identically.
+ */
+export function normalizeAgentEventEnvelopes(payload: unknown): AgentEventEnvelopePayload[] {
+  if (Array.isArray(payload)) return payload as AgentEventEnvelopePayload[]
+  return [payload as AgentEventEnvelopePayload]
+}

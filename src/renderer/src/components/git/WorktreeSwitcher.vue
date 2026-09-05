@@ -25,6 +25,7 @@ import type {
   WorktreeInfo
 } from '@shared/types/workspace'
 import { toast } from 'vue-sonner'
+import { toNativeMenuLocale } from '@shared/constants/language'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import GitCommitPanel from './GitCommitPanel.vue'
 
@@ -164,7 +165,7 @@ async function branchMenu(branch: GitBranchInfo, event?: MouseEvent) {
   event?.preventDefault()
   const selection = await callApi(() =>
     getApi().git.branchContextMenu({
-      locale: locale.value === 'zh-CN' ? 'zh-CN' : 'en-US',
+      locale: toNativeMenuLocale(locale.value),
       branchName: branch.name,
       branchType: branch.type,
       current: branch.current,

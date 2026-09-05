@@ -23,7 +23,7 @@ describe('ChatComposer model capabilities', () => {
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
     })
-    const attach = wrapper.get('button[aria-label="附加图片"]')
+    const attach = wrapper.get(`button[aria-label="${i18n.global.t('workspace.attachImage')}"]`)
     expect(attach.attributes('disabled')).toBeDefined()
 
     models.active = { providerKey: 'provider', modelId: 'vision' }
@@ -46,7 +46,7 @@ describe('ChatComposer model capabilities', () => {
     models.active = { providerKey: 'provider', modelId: 'text-only' }
     await wrapper.vm.$nextTick()
     expect(wrapper.get('.command-execute-button').attributes('disabled')).toBeDefined()
-    expect(wrapper.text()).toContain('当前模型不支持图片输入，请切换到多模态模型。')
+    expect(wrapper.text()).toContain(String(i18n.global.t('workspace.imageUnsupported')))
   })
 })
 

@@ -239,6 +239,67 @@ describe('AgentRuntimeService', () => {
     })
   })
 
+  it('throttles accumulated-message snapshots on streaming deltas', () => {
+    vi.useFakeTimers()
+    const inner = createAgentSession(createSessionManager())
+    let emitSdkEvent: ((event: { type: string; [key: string]: unknown }) => void) | undefined
+    inner.subscribe = (listener) => {
+      emitSdkEvent = listener
+      return () => undefined
+    }
+
+    const events: Array<{ type: string; message?: unknown }> = []
+    const wrapper = new AgentSessionWrapper(inner)
+    wrapper.start()
+    wrapper.onEvent((event) => events.push(event as { type: string; message?: unknown }))
+
+    const snapshot = () => ({
+      role: 'assistant',
+      model: 'model',
+      provider: 'provider',
+      content: [{ type: 'text', text: 'accumulated' }]
+    })
+    const delta = (text: string) => ({
+      type: 'message_update',
+      message: snapshot(),
+      assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: text }
+    })
+
+    emitSdkEvent?.(delta('a'))
+    emitSdkEvent?.(delta('b'))
+    emitSdkEvent?.(delta('c'))
+
+    const updates = events.filter((event) => event.type === 'message_update')
+    expect(updates).toHaveLength(3)
+    expect(updates[0].message).toMatchObject({ role: 'assistant' })
+    expect(updates[1].message).toBeUndefined()
+    expect(updates[2].message).toBeUndefined()
+
+    // message_start / message_end always carry authoritative copies.
+    emitSdkEvent?.({
+      type: 'message_start',
+      message: { role: 'assistant', model: 'model', provider: 'provider', content: [] }
+    })
+    emitSdkEvent?.({
+      type: 'message_end',
+      message: { role: 'assistant', model: 'model', provider: 'provider', content: [] }
+    })
+    const boundaries = events.filter(
+      (event) => event.type === 'message_start' || event.type === 'message_end'
+    )
+    expect(boundaries).toHaveLength(2)
+    expect(boundaries[0].message).toMatchObject({ role: 'assistant' })
+    expect(boundaries[1].message).toMatchObject({ role: 'assistant' })
+
+    // After the interval a new snapshot is relayed (mid-stream reload recovery).
+    vi.advanceTimersByTime(250)
+    emitSdkEvent?.(delta('d'))
+    const recovered = events.filter((event) => event.type === 'message_update').at(-1)
+    expect(recovered?.message).toMatchObject({ role: 'assistant' })
+
+    vi.useRealTimers()
+  })
+
   it('refreshes the model catalog before every explicit model switch', async () => {
     const inner = createAgentSession(createSessionManager())
     const model = { id: 'model', provider: 'provider', input: ['text', 'image'] as const }

@@ -1,6 +1,7 @@
 /** Runtime schemas for non-domain IPC inputs. */
 
 import { z } from 'zod'
+import { APP_LANGUAGES } from '../constants/language'
 import { MASCOT_STYLES } from '../constants/mascot'
 import { normalizeNavOrder } from '../constants/navigation'
 import { APP_THEMES } from '../constants/theme'
@@ -52,7 +53,7 @@ export const modelCompositeIdSchema = z
 const optionalFilesystemPathSchema = systemPathSchema.nullable()
 
 const appSettingsFields = {
-  language: z.enum(['auto', 'zh-CN', 'en-US']),
+  language: z.enum(APP_LANGUAGES),
   theme: z.enum(APP_THEMES),
   mascotUnlocked: z.boolean(),
   mascotStyle: z.enum(MASCOT_STYLES),

@@ -417,6 +417,67 @@ describe('agent store new-session handshake', () => {
     })
   })
 
+  it('applies coalesced event batches in delivery order', async () => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      agent: {
+        start: vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' }),
+        prompt: vi.fn().mockResolvedValue(null),
+        state: vi.fn().mockResolvedValue(null),
+        running: vi.fn().mockResolvedValue([])
+      }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.send(null, '/code/project', 'hello', 'default')
+
+    onAgentEvent?.([
+      { sessionId: 'session-new', event: { type: 'agent_start' } },
+      {
+        sessionId: 'session-new',
+        event: {
+          type: 'message_start',
+          message: { role: 'assistant', model: 'm', provider: 'p', content: [] }
+        }
+      },
+      {
+        sessionId: 'session-new',
+        event: {
+          type: 'message_update',
+          assistantMessageEvent: { type: 'text_start', contentIndex: 0 }
+        }
+      },
+      {
+        sessionId: 'session-new',
+        event: {
+          type: 'message_update',
+          assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: '批量' }
+        }
+      },
+      {
+        sessionId: 'session-new',
+        event: {
+          type: 'message_update',
+          assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: '事件' }
+        }
+      },
+      {
+        sessionId: 'session-new',
+        event: { type: 'prompt_done', success: true }
+      }
+    ])
+
+    expect(agent.streaming.streamingMessage?.content).toEqual([
+      { type: 'text', text: '批量事件' }
+    ])
+    expect(agent.completionCount).toBe(1)
+  })
+
   it('surfaces assistant stopReason errors from message_end', async () => {
     let onAgentEvent: ((payload: unknown) => void) | undefined
     window.piSwitch = {

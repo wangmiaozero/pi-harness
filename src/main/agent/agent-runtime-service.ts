@@ -20,6 +20,7 @@ import type {
   ToolEntry
 } from '@shared/types/workspace'
 import {
+  hasAssistantSnapshot,
   isIdleResetEvent,
   isRunningStateEvent,
   toIpcAgentEvent
@@ -33,6 +34,7 @@ import {
   type AgentSessionLike,
   type PiSessionManagerLike
 } from './pi-sdk'
+import { AgentEventBatcher, type AgentEventBatch } from './agent-event-batcher'
 import { applyWorkspacePrompt } from '@shared/workspace/workspace-context'
 import { wrapWorkspaceWriteTools } from '../workspace/workspace-tool-guard'
 import type { SessionService } from '../sessions/session-service'
@@ -40,6 +42,8 @@ import type { AgentRuntime } from './runtime'
 
 const IDLE_MS = 10 * 60 * 1000
 const CODING_TOOL_NAMES = ['read', 'bash', 'edit', 'write', 'grep', 'find', 'ls']
+/** Minimum spacing between accumulated-message snapshots relayed on message_update. */
+const SNAPSHOT_WIRE_MIN_INTERVAL_MS = 200
 
 type EventListener = (event: AgentEvent) => void
 type SessionEventListener = (event: AgentEvent) => void
@@ -53,6 +57,7 @@ export class AgentSessionWrapper {
   private pendingPromptCount = 0
   private promptAdmissionTail: Promise<void> = Promise.resolve()
   private promptErrorMessage: string | null = null
+  private lastSnapshotWireAt = 0
   private forceEmptySystemPrompt = false
   private workspacePrompt = ''
   private workspacePromptProvider: (() => string | null) | null = null
@@ -94,9 +99,29 @@ export class AgentSessionWrapper {
         /* session list refresh is triggered by the runtime service */
       }
       if (isIdleResetEvent(event.type)) this.resetIdleTimer()
-      this.emit(event as AgentEvent)
+      this.emit(this.throttleWireSnapshot(event as AgentEvent))
     })
     this.resetIdleTimer()
+  }
+
+  /**
+   * The SDK attaches the full accumulated message to every streaming delta,
+   * so relaying it verbatim makes per-delta serialization cost grow with the
+   * message length. The renderer only consults that snapshot to recover the
+   * partial message after a mid-stream reload (its reducer ignores deltas for
+   * blocks it has not seen, so a later snapshot still seeds the full state),
+   * and `message_start` / `message_end` always carry authoritative copies.
+   * Sending one snapshot per interval is therefore indistinguishable in
+   * normal streaming while keeping message_update payloads O(delta).
+   */
+  private throttleWireSnapshot(event: AgentEvent): AgentEvent {
+    if (!hasAssistantSnapshot(event)) return event
+    const now = Date.now()
+    if (now - this.lastSnapshotWireAt < SNAPSHOT_WIRE_MIN_INTERVAL_MS) {
+      return { ...event, message: undefined }
+    }
+    this.lastSnapshotWireAt = now
+    return event
   }
 
   onEvent(listener: EventListener): () => void {
@@ -792,14 +817,18 @@ export class AgentRuntimeService implements AgentRuntime {
   }
 
   private broadcastEvent(sessionId: string, event: AgentEvent): void {
+    this.eventBatcher.push({ sessionId, event })
+  }
+
+  private readonly eventBatcher = new AgentEventBatcher((batch: AgentEventBatch) => {
     const win = this.getWindow()
     if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return
     try {
-      win.webContents.send(IPC_EVENT.agentEvent, { sessionId, event })
+      win.webContents.send(IPC_EVENT.agentEvent, batch)
     } catch (error) {
       log.agent.error('failed to send agent event:', error)
     }
-  }
+  })
 
   private broadcastRunning(): void {
     this.getWindow()?.webContents.send(IPC_EVENT.agentRunning, { ids: this.listRunning() })

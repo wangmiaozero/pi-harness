@@ -26,6 +26,7 @@ import { installAppMenu } from './window/app-menu'
 import { ScreenMotionOverlayController } from './window/screen-motion-overlay'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
+import { isChineseLocale, resolveAppLocale } from '@shared/constants/language'
 import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
 import { DEFAULT_NAV_ORDER } from '@shared/constants/navigation'
 import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
@@ -51,7 +52,7 @@ import { EnvironmentManager } from './environment/environment-manager'
 import { applyChromiumGpuWorkarounds } from './window/chromium-flags'
 
 const DEFAULT_SETTINGS: AppSettings = {
-  language: 'zh-CN',
+  language: 'auto',
   theme: 'dark',
   mascotUnlocked: false,
   mascotStyle: DEFAULT_MASCOT_STYLE,
@@ -271,7 +272,9 @@ async function bootstrap(): Promise<void> {
         (pkg) => pkg.registered && ['missing', 'permission-error', 'corrupted'].includes(pkg.health)
       )
       if (!risky.length) return
-      const chinese = settingsStore.peek().language === 'zh-CN'
+      const chinese = isChineseLocale(
+        resolveAppLocale(settingsStore.peek().language, app.getLocale())
+      )
       broadcastNotification(mainWindow, {
         level: 'warning',
         title: chinese ? '检测到扩展包启动风险' : 'Package startup risk detected',

@@ -37,6 +37,7 @@ const atScrollBottom = ref(true)
 const completionSound = useCompletionSound()
 let stickToBottom = true
 let scrollResizeObserver: ResizeObserver | null = null
+let scrollSyncFrame: number | null = null
 
 const SCROLL_EDGE_THRESHOLD = 24
 
@@ -82,6 +83,19 @@ function syncAfterContentResize() {
   updateScrollState()
 }
 
+/**
+ * Streaming updates fire the content watcher and the ResizeObserver within
+ * the same frame; coalesce them into one layout pass per frame instead of
+ * forcing a synchronous reflow per event.
+ */
+function scheduleScrollSync() {
+  if (scrollSyncFrame !== null) return
+  scrollSyncFrame = requestAnimationFrame(() => {
+    scrollSyncFrame = null
+    syncAfterContentResize()
+  })
+}
+
 function scrollToEdge(edge: 'top' | 'bottom', behavior?: ScrollBehavior) {
   const el = scroller.value
   if (!el) return
@@ -95,20 +109,26 @@ function scrollToEdge(edge: 'top' | 'bottom', behavior?: ScrollBehavior) {
 
 watch(displayMessages, async () => {
   await nextTick()
-  syncAfterContentResize()
+  scheduleScrollSync()
 })
 
 onMounted(async () => {
   await nextTick()
   if (typeof ResizeObserver !== 'undefined') {
-    scrollResizeObserver = new ResizeObserver(syncAfterContentResize)
+    scrollResizeObserver = new ResizeObserver(scheduleScrollSync)
     if (scroller.value) scrollResizeObserver.observe(scroller.value)
     if (scrollContent.value) scrollResizeObserver.observe(scrollContent.value)
   }
   syncAfterContentResize()
 })
 
-onBeforeUnmount(() => scrollResizeObserver?.disconnect())
+onBeforeUnmount(() => {
+  scrollResizeObserver?.disconnect()
+  if (scrollSyncFrame !== null) {
+    cancelAnimationFrame(scrollSyncFrame)
+    scrollSyncFrame = null
+  }
+})
 
 watch(
   () => agent.completionCount,
@@ -431,3 +451,18 @@ function duration(value: number): string {
     />
   </div>
 </template>
+
+<style scoped>
+/*
+ * Long sessions keep every historical message in the layout tree; during
+ * streaming each content change would otherwise re-run layout and paint for
+ * the entire transcript. `content-visibility: auto` lets the engine skip
+ * off-screen messages entirely. The `auto` keyword in contain-intrinsic-size
+ * remembers each message's last rendered height once measured, so scrollbar
+ * geometry and scroll positions stay stable (initial estimate 120px).
+ */
+.chat-scroll-content > * {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+</style>

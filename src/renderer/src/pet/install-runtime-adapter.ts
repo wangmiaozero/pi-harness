@@ -6,7 +6,7 @@ import { usePetStore } from '@renderer/stores/pet'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { adaptAgentEventToPetEvents } from '@shared/pet/runtime-adapter'
-import type { AgentEvent } from '@shared/types/workspace'
+import { normalizeAgentEventEnvelopes } from '@shared/workspace/agent-event-wire'
 
 const ACTIVITY_THROTTLE_MS = 500
 
@@ -20,9 +20,10 @@ export function installPetRuntimeAdapter(): () => void {
   let lastActivityAt = 0
 
   const unsubscribeAgent = getApi().on('agent-event', (payload) => {
-    const body = payload as { sessionId?: string; event?: AgentEvent }
-    if (!body.event || (sessions.currentId && body.sessionId !== sessions.currentId)) return
-    for (const event of adaptAgentEventToPetEvents(body.event)) pet.handleEvent(event)
+    for (const body of normalizeAgentEventEnvelopes(payload)) {
+      if (!body.event || (sessions.currentId && body.sessionId !== sessions.currentId)) continue
+      for (const event of adaptAgentEventToPetEvents(body.event)) pet.handleEvent(event)
+    }
   })
 
   stops.push(

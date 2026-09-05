@@ -54,7 +54,9 @@ function rebuildStars(): void {
 
 function acquireContext(element: HTMLCanvasElement): CanvasRenderingContext2D | null {
   if (!context || context.canvas !== element) {
-    context = element.getContext('2d', { alpha: true, willReadFrequently: true })
+    // No pixel readback happens on this canvas; `willReadFrequently` would
+    // only force a CPU-backed surface where one is not required.
+    context = element.getContext('2d', { alpha: true })
   }
   return context
 }
@@ -90,10 +92,10 @@ function resizeCanvas(): void {
   if (resume) syncAnimation()
 }
 
-function starColor(star: Star, alpha: number): string {
-  if (star.tint === 'cyan') return `rgba(114, 225, 255, ${alpha})`
-  if (star.tint === 'blue') return `rgba(145, 179, 255, ${alpha})`
-  return `rgba(224, 239, 255, ${alpha})`
+const TINT_COLORS: Record<Star['tint'], string> = {
+  cyan: 'rgb(114, 225, 255)',
+  blue: 'rgb(145, 179, 255)',
+  white: 'rgb(224, 239, 255)'
 }
 
 function draw(now: number, deltaSeconds: number): void {
@@ -112,11 +114,15 @@ function draw(now: number, deltaSeconds: number): void {
       if (star.y > height + 3) star.y = -3
     }
     const twinkle = 0.88 + Math.sin(now / 1800 + star.phase) * 0.12
+    // Opaque tint + globalAlpha composites identically to a per-star rgba()
+    // string, without re-parsing a color string for every star every frame.
+    ctx.globalAlpha = star.alpha * twinkle
+    ctx.fillStyle = TINT_COLORS[star.tint]
     ctx.beginPath()
-    ctx.fillStyle = starColor(star, star.alpha * twinkle)
     ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2)
     ctx.fill()
   }
+  ctx.globalAlpha = 1
 }
 
 function shouldAnimate(): boolean {
@@ -134,12 +140,22 @@ function stop(): void {
   previousTime = 0
 }
 
+/* Star drift (~1-4px/s) and multi-second twinkle cycles cannot visibly
+ * express 60fps; 32fps renders identically while halving the raster cost. */
+const MIN_FRAME_MS = 1000 / 32
+let lastDrawAt = 0
+
 function tick(now: number): void {
   if (!shouldAnimate()) {
     stop()
     draw(now, 0)
     return
   }
+  if (now - lastDrawAt < MIN_FRAME_MS) {
+    animationFrame = requestAnimationFrame(tick)
+    return
+  }
+  lastDrawAt = now
   const deltaSeconds = previousTime ? Math.min((now - previousTime) / 1000, 0.05) : 0
   previousTime = now
   draw(now, deltaSeconds)

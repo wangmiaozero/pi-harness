@@ -20,6 +20,7 @@
 import { Menu, app } from 'electron'
 import type { MenuItemConstructorOptions } from 'electron'
 import type { AppSettings } from '@shared/ipc/api-types'
+import { isChineseLocale, resolveAppLocale } from '@shared/constants/language'
 
 /** Flat list of every item in the template, depth-first, parents included. */
 export function collectMenuItems(
@@ -57,8 +58,7 @@ export function buildAppMenuTemplate(
   language: AppSettings['language'],
   appLocale: string
 ): MenuItemConstructorOptions[] {
-  const zh =
-    language === 'zh-CN' || (language === 'auto' && !appLocale.toLowerCase().startsWith('en'))
+  const zh = isChineseLocale(resolveAppLocale(language, appLocale))
   const macAppMenu: MenuItemConstructorOptions[] = isMac ? [{ role: 'appMenu' }] : []
   const macWindowExtras: MenuItemConstructorOptions[] = isMac
     ? [{ type: 'separator' }, { role: 'front' }]

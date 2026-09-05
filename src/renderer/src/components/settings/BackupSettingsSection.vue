@@ -160,9 +160,9 @@ async function cleanupBackups(): Promise<void> {
           <div class="min-w-0 flex-1">
             <div
               class="truncate text-[12px] text-[var(--text-primary)]"
-              :title="formatDateTime(backup.timestamp, locale === 'zh-CN' ? 'zh-CN' : 'en-US')"
+              :title="formatDateTime(backup.timestamp, locale)"
             >
-              {{ formatDateTime(backup.timestamp, locale === 'zh-CN' ? 'zh-CN' : 'en-US') }}
+              {{ formatDateTime(backup.timestamp, locale) }}
             </div>
             <div class="flex items-center gap-1.5 mt-0.5">
               <Badge tone="muted">{{ backup.reason }}</Badge>

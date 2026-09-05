@@ -2,8 +2,8 @@
 import { computed, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AppSettings } from '@shared/ipc/api-types'
-import type { AppTheme } from '@shared/constants/theme'
-import { APP_THEMES } from '@shared/constants/theme'
+import { APP_LANGUAGE_LABELS, APP_LANGUAGES } from '@shared/constants/language'
+import { APP_THEMES, type AppTheme } from '@shared/constants/theme'
 import Select from '@renderer/components/ui/Select.vue'
 import Switch from '@renderer/components/ui/Switch.vue'
 import InspectorSection from '@renderer/components/ui/InspectorSection.vue'
@@ -26,11 +26,12 @@ const THEME_LABEL_KEYS: Record<AppTheme, string> = {
   cyan: 'themeCyan'
 }
 
-const languageOptions = computed(() => [
-  { value: 'auto', label: t('settings.languageAuto') },
-  { value: 'zh-CN', label: '简体中文' },
-  { value: 'en-US', label: 'English' }
-])
+const languageOptions = computed(() =>
+  APP_LANGUAGES.map((value) => ({
+    value,
+    label: value === 'auto' ? t('settings.languageAuto') : APP_LANGUAGE_LABELS[value]
+  }))
+)
 
 const themeOptions = computed(() =>
   APP_THEMES.map((theme) => ({ value: theme, label: t(`settings.${THEME_LABEL_KEYS[theme]}`) }))

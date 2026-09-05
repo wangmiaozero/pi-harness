@@ -38,6 +38,7 @@ import type {
 import StarshipModelHud from '@renderer/components/starship/StarshipModelHud.vue'
 import ProjectWorkspaceDialog from './ProjectWorkspaceDialog.vue'
 import RenameDialog from './RenameDialog.vue'
+import { toNativeMenuLocale } from '@shared/constants/language'
 import { projectIdentityKey } from '@shared/workspace/project-identity'
 import { projectDisplayName } from '@shared/workspace/session-tree'
 
@@ -191,7 +192,7 @@ async function handleProjectContextMenu(group: SessionProjectGroup) {
       group.projectKey,
       group.projectRoot,
       workspace.isProjectPinned(group.projectKey),
-      locale.value === 'en-US' ? 'en-US' : 'zh-CN'
+      toNativeMenuLocale(locale.value)
     )
   )
   if (action === 'pin' || action === 'unpin') {
@@ -461,7 +462,7 @@ async function onContextMenu(session: SessionInfo, event: MouseEvent) {
       session.id,
       Boolean(session.worktreeBranch),
       workspace.isSessionPinned(session.id),
-      locale.value === 'en-US' ? 'en-US' : 'zh-CN'
+      toNativeMenuLocale(locale.value)
     )
   )
   if (action === 'rename') {
@@ -537,7 +538,7 @@ async function onFolderContextMenu(
   event.stopPropagation()
   if (sessionFolders(session).length <= 1) return
   const action = await callApi(() =>
-    getApi().workspace.sessionFolderContextMenu(locale.value === 'en-US' ? 'en-US' : 'zh-CN')
+    getApi().workspace.sessionFolderContextMenu(toNativeMenuLocale(locale.value))
   )
   if (action === 'remove') await removeFolder(session, folder)
 }

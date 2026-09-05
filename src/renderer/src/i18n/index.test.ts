@@ -21,11 +21,11 @@ function sourceFiles(directory: string): string[] {
 }
 
 describe('localized copy', () => {
-  it('keeps English and Simplified Chinese message keys in sync', () => {
+  it('keeps every locale message key in sync with English', () => {
     const english = leafPaths(messages['en-US']).sort()
-    const chinese = leafPaths(messages['zh-CN']).sort()
-
-    expect(chinese).toEqual(english)
+    for (const locale of Object.keys(messages) as Array<keyof typeof messages>) {
+      expect(leafPaths(messages[locale]).sort()).toEqual(english)
+    }
   })
 
   it('does not ship empty localized messages', () => {
@@ -64,13 +64,15 @@ describe('localized copy', () => {
 
   it('localizes every marketplace package description', () => {
     const english = createI18n({ legacy: false, locale: 'en-US', messages })
-    const chinese = createI18n({ legacy: false, locale: 'zh-CN', messages })
-
     expect(Object.keys(MARKET_PACKAGE_DESCRIPTION_KEYS)).toHaveLength(21)
-    for (const key of Object.values(MARKET_PACKAGE_DESCRIPTION_KEYS)) {
-      expect(english.global.te(key)).toBe(true)
-      expect(chinese.global.te(key)).toBe(true)
-      expect(english.global.t(key)).not.toBe(chinese.global.t(key))
+    for (const locale of Object.keys(messages) as Array<keyof typeof messages>) {
+      const instance = createI18n({ legacy: false, locale, messages })
+      for (const key of Object.values(MARKET_PACKAGE_DESCRIPTION_KEYS)) {
+        expect(instance.global.te(key)).toBe(true)
+        if (locale !== 'en-US') {
+          expect(instance.global.t(key)).not.toBe(english.global.t(key))
+        }
+      }
     }
   })
 })

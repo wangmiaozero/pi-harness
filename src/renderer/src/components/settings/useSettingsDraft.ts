@@ -28,7 +28,7 @@ export function useSettingsDraft(): SettingsDraft {
   const store = useSettingsStore()
 
   const draft = ref<AppSettings>({
-    language: 'zh-CN',
+    language: 'auto',
     theme: 'dark',
     mascotUnlocked: false,
     mascotStyle: DEFAULT_MASCOT_STYLE,

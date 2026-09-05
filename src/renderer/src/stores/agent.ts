@@ -19,6 +19,7 @@ import {
 } from '@shared/workspace/streaming-message'
 import { normalizeToolCalls } from '@shared/workspace/normalize'
 import type { ClientAssistantMessageEvent } from '@shared/workspace/agent-event-wire'
+import { normalizeAgentEventEnvelopes } from '@shared/workspace/agent-event-wire'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import {
   getPresetFromTools,
@@ -55,24 +56,25 @@ export const useAgentStore = defineStore('agent', () => {
     unsubEvent?.()
     unsubRunning?.()
     unsubEvent = getApi().on('agent-event', (payload) => {
-      const body = payload as { sessionId?: string; event?: AgentEvent }
-      if (!body.sessionId || !body.event) return
-      if (body.event.type === 'agent_end') void syncPersistedSession(body.sessionId)
-      if (body.sessionId !== loadedSessionId) return
-      if (body.event.type === 'prompt_done') {
-        const completionError =
-          body.event.success === false
-            ? String(body.event.errorMessage ?? 'Agent error')
-            : undefined
-        if (body.event.success === false) {
-          error.value = completionError ?? 'Agent error'
-          streaming.value = streamReducer(streaming.value, { type: 'end' })
-        } else {
-          completionCount.value += 1
+      for (const body of normalizeAgentEventEnvelopes(payload)) {
+        if (!body.sessionId || !body.event) continue
+        if (body.event.type === 'agent_end') void syncPersistedSession(body.sessionId)
+        if (body.sessionId !== loadedSessionId) continue
+        if (body.event.type === 'prompt_done') {
+          const completionError =
+            body.event.success === false
+              ? String(body.event.errorMessage ?? 'Agent error')
+              : undefined
+          if (body.event.success === false) {
+            error.value = completionError ?? 'Agent error'
+            streaming.value = streamReducer(streaming.value, { type: 'end' })
+          } else {
+            completionCount.value += 1
+          }
+          void syncPersistedSession(body.sessionId, completionError)
         }
-        void syncPersistedSession(body.sessionId, completionError)
+        applyEvent(body.event)
       }
-      applyEvent(body.event)
     })
     unsubRunning = getApi().on('agent-running', (payload) => {
       const body = payload as { ids?: string[] }

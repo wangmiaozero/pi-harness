@@ -285,8 +285,17 @@ export class HarnessRuntime implements AgentRuntime {
   }
 
   private emit(sessionId: string, event: HarnessEvent): void {
-    const timeline = [...(this.timelines.get(sessionId) ?? []), event].slice(-MAX_TIMELINE_EVENTS)
-    this.timelines.set(sessionId, timeline)
+    // Append in place: copying the capped timeline on every event costs O(n)
+    // per event during bursts; readers still receive a defensive copy below.
+    let timeline = this.timelines.get(sessionId)
+    if (!timeline) {
+      timeline = []
+      this.timelines.set(sessionId, timeline)
+    }
+    timeline.push(event)
+    if (timeline.length > MAX_TIMELINE_EVENTS) {
+      timeline.splice(0, timeline.length - MAX_TIMELINE_EVENTS)
+    }
     const payload = { sessionId, event }
     for (const listener of this.listeners) {
       try {

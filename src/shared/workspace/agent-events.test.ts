@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { streamReducer, INITIAL_STREAMING_STATE } from './streaming-message'
-import { toClientAgentEvent } from './agent-event-wire'
+import {
+  normalizeAgentEventEnvelopes,
+  toClientAgentEvent
+} from './agent-event-wire'
 import { startAgentSessionSchema, workspacePathSchema } from '../schemas/workspace'
 
 describe('agent event normalization', () => {
@@ -81,6 +84,27 @@ describe('agent event normalization', () => {
     })
     state = streamReducer(state, { type: 'delta', event: { type: 'text_end', contentIndex: 0 } })
     expect(state.streamingMessage?.content).toEqual([{ type: 'text', text: 'Hello' }])
+  })
+})
+
+describe('agent event envelope normalization', () => {
+  it('wraps a single envelope payload', () => {
+    expect(normalizeAgentEventEnvelopes({ sessionId: 's1', event: { type: 'agent_start' } }))
+      .toEqual([{ sessionId: 's1', event: { type: 'agent_start' } }])
+  })
+
+  it('returns batched envelopes in delivery order', () => {
+    const batch = [
+      { sessionId: 's1', event: { type: 'message_update' } },
+      { sessionId: 's1', event: { type: 'message_end' } },
+      { sessionId: 's2', event: { type: 'agent_end' } }
+    ]
+    expect(normalizeAgentEventEnvelopes(batch)).toEqual(batch)
+  })
+
+  it('keeps malformed payloads as a single entry for listener-side validation', () => {
+    expect(normalizeAgentEventEnvelopes(null)).toEqual([null])
+    expect(normalizeAgentEventEnvelopes(undefined)).toEqual([undefined])
   })
 })
 

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Markdown } from '@comark/vue'
 import security from '@comark/vue/plugins/security'
 import taskList from '@comark/vue/plugins/task-list'
 import { computed, onErrorCaptured, ref } from 'vue'
 import type { AgentMessage, ImageContent } from '@shared/types/workspace'
 import ToolCallView from './ToolCallView.vue'
 import BranchNavigator from './BranchNavigator.vue'
+import StreamingMarkdown from './StreamingMarkdown.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 
 const markdownOptions = {
@@ -164,7 +164,7 @@ const bashText = computed(() => {
           {{ block.text }}
         </p>
         <Suspense v-else-if="block.type === 'text'">
-          <Markdown
+          <StreamingMarkdown
             :value="block.text"
             :options="markdownOptions"
             :plugins="markdownPlugins"

@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
+import { i18n } from '@renderer/i18n'
 import MascotView from './MascotView.vue'
 import { MASCOT_STYLES } from '@shared/constants/mascot'
 import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
@@ -40,14 +41,18 @@ describe('MascotView', () => {
     const mascot = wrapper.get('[data-testid="workspace-mascot"]')
 
     expect(mascot.element.firstElementChild?.getAttribute('data-testid')).toBe('pet-status-bubble')
-    expect(wrapper.get('[data-testid="pet-status-bubble"]').text()).toContain('任务失败')
+    expect(wrapper.get('[data-testid="pet-status-bubble"]').text()).toContain(
+      String(i18n.global.t('pet.stateFailed'))
+    )
 
     await wrapper.setProps({ state: 'success' })
-    expect(wrapper.get('[data-testid="pet-status-bubble"]').text()).toContain('任务完成')
+    expect(wrapper.get('[data-testid="pet-status-bubble"]').text()).toContain(
+      String(i18n.global.t('pet.stateSuccess'))
+    )
 
     await wrapper.setProps({ state: 'review' })
     expect(wrapper.get('[data-testid="pet-status-bubble"]').text()).toContain(
-      '任务完成，请查看结果'
+      String(i18n.global.t('pet.stateReview'))
     )
   })
 })

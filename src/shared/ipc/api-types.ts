@@ -14,6 +14,7 @@ import type {
   ProviderModelDiscoveryInput
 } from '../types/domain'
 
+import type { AppLanguage } from '../constants/language'
 import type { ProtocolId } from '../constants/protocols'
 import type { AppTheme } from '../constants/theme'
 import type {
@@ -551,7 +552,7 @@ export interface DiagnosticsReport {
 }
 
 export interface AppSettings {
-  language: 'auto' | 'zh-CN' | 'en-US'
+  language: AppLanguage
   theme: AppTheme
   mascotUnlocked: boolean
   mascotStyle: MascotStyle
