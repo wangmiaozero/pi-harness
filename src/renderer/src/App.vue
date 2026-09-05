@@ -49,8 +49,7 @@ watch(
   () => [
     settings.settings?.theme,
     settings.settings?.mascotStyle,
-    settings.settings?.mascotUnlocked,
-    settings.settings?.petEnabled
+    settings.settings?.mascotUnlocked
   ],
   () => {
     applyVisualSkin(settings.settings)

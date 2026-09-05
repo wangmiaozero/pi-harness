@@ -55,7 +55,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
   mascotUnlocked: false,
   mascotStyle: DEFAULT_MASCOT_STYLE,
-  petEnabled: false,
   petAnimations: true,
   petStatusText: true,
   petAutoSleep: true,
@@ -109,10 +108,7 @@ async function bootstrap(): Promise<void> {
 
   const settingsStore = new JsonStore<AppSettings>(appSettingsPath(), DEFAULT_SETTINGS)
   const storedSettings = await settingsStore.read()
-  const theme = normalizeAppTheme(
-    storedSettings.theme,
-    nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
-  )
+  const theme = normalizeAppTheme(storedSettings.theme)
   if (theme !== storedSettings.theme) await settingsStore.update({ theme })
   nativeTheme.themeSource = themeAppearance(theme)
   // Install before the first window opens: replaces Electron's default menu,

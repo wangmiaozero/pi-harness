@@ -2,6 +2,10 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { test, expect } from './fixtures'
 
+const { version: APP_VERSION } = JSON.parse(fs.readFileSync('package.json', 'utf8')) as {
+  version: string
+}
+
 test.describe('Pi-Harness smoke', () => {
   test('launches and shows overview', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
@@ -120,7 +124,10 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
 
     await page.locator('a[href="#/settings"]').click()
-    await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
+    await expect(page.locator('h1').filter({ hasText: /通用|General/ })).toBeVisible()
+    await expect(page.getByTestId('settings-layout')).toBeVisible()
+    await expect(page.getByTestId('settings-version')).toContainText('Pi-Harness')
+    await expect(page.getByTestId('settings-version')).toContainText(APP_VERSION)
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({
@@ -681,26 +688,26 @@ test.describe('Pi-Harness smoke', () => {
     const bypass = await page.evaluate(() =>
       window.piSwitch.settings.set({
         mascotUnlocked: true,
-        mascotStyle: 'office',
-        petEnabled: true
+        mascotStyle: 'office'
       })
     )
     expect(bypass).toMatchObject({
       mascotUnlocked: false,
-      mascotStyle: 'none',
-      petEnabled: false
+      mascotStyle: 'none'
     })
-    await page.getByTestId('settings-section-mascot').click()
+    const themeSection = page.getByTestId('settings-section-mascot')
+    await expect(themeSection.getByText(/主题|Theme/, { exact: true })).toBeVisible()
+    await themeSection.click()
     const answer = page.getByTestId('mascot-unlock-answer')
     await expect(answer).toBeVisible()
     await answer.fill('1000')
     await page.getByRole('button', { name: /解锁|Unlock/, exact: true }).click()
     await expect(page.getByRole('alert')).toContainText(/答案不正确|Incorrect answer/)
-    await expect(page.getByRole('button', { name: /无看板娘|No Mascot/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /无主题|No Theme/ })).toHaveCount(0)
     await answer.fill('1024')
     await page.getByRole('button', { name: /解锁|Unlock/, exact: true }).click()
-    await expect(page.getByText(/看板娘设置已解锁|Mascot settings unlocked/)).toBeVisible()
-    await expect(page.getByRole('button', { name: /无看板娘|No Mascot/ })).toHaveAttribute(
+    await expect(page.getByText(/主题设置已解锁|Theme settings unlocked/)).toBeVisible()
+    await expect(page.getByRole('button', { name: /无主题|No Theme/ })).toHaveAttribute(
       'aria-pressed',
       'true'
     )
@@ -719,14 +726,11 @@ test.describe('Pi-Harness smoke', () => {
     await page
       .getByRole('button', { name: /职场风格（黑丝）|Office Style \(Black Tights\)/ })
       .click()
-    // Selecting a visual-skin style auto-enables the pet; only turn animations off.
-    await expect(page.getByRole('switch', { name: /显示宠物|Show pet/ })).toBeChecked()
+    await expect(page.getByRole('switch', { name: /显示宠物|Show pet/ })).toHaveCount(0)
     await page.getByRole('switch', { name: /启用动画|Animations/ }).click()
     await expect
-      .poll(() =>
-        page.evaluate(async () => (await window.piSwitch.settings.get()).petEnabled)
-      )
-      .toBe(true)
+      .poll(() => page.evaluate(async () => (await window.piSwitch.settings.get()).mascotStyle))
+      .toBe('office')
     await expect(page.getByTestId('page-mascot-background')).toHaveAttribute('data-style', 'office')
 
     await page.locator('a[href="#/workspace"]').click()
@@ -755,9 +759,7 @@ test.describe('Pi-Harness smoke', () => {
       .getByRole('button', { name: /星际驾驶舱 · 霜蓝导航员|Starship Cockpit · Frost Navigator/ })
       .click()
     await expect
-      .poll(() =>
-        page.evaluate(async () => (await window.piSwitch.settings.get()).mascotStyle)
-      )
+      .poll(() => page.evaluate(async () => (await window.piSwitch.settings.get()).mascotStyle))
       .toBe('starshipCockpit')
     await page.locator('a[href="#/workspace"]').click()
     await expect
@@ -1085,8 +1087,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 
     await page.locator('a[href="#/settings"]').click()
-    await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
-    await page.getByTestId('settings-section-general').click()
+    await expect(page.locator('h1').filter({ hasText: /通用|General/ })).toBeVisible()
     await expect(page.getByTestId('window-motion-toggle')).toHaveAttribute('aria-checked', 'false')
     await expect(page.getByTestId('screen-motion-toggle')).toHaveAttribute('aria-checked', 'true')
     await page.getByRole('button', { name: /主题|Theme/, exact: true }).click()
@@ -1099,7 +1100,6 @@ test.describe('Pi-Harness smoke', () => {
       .poll(() => electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource))
       .toBe('light')
     // Primary buttons must still render white text on the new palette.
-    await page.getByTestId('settings-back').click()
     await page.getByTestId('settings-section-mascot').click()
     const primaryButton = page.getByRole('button', { name: /解锁|Unlock/, exact: true })
     await expect(primaryButton).toBeVisible()
@@ -1117,7 +1117,7 @@ test.describe('Pi-Harness smoke', () => {
   test('reorders the sidebar from settings', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.locator('a[href="#/settings"]').click()
-    await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
+    await expect(page.locator('h1').filter({ hasText: /通用|General/ })).toBeVisible()
     await page.getByTestId('settings-section-nav').click()
 
     const items = page.getByTestId('nav-order-item')
@@ -1134,7 +1134,7 @@ test.describe('Pi-Harness smoke', () => {
   test('cleans backups according to the retention count after confirmation', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.locator('a[href="#/settings"]').click()
-    await expect(page.locator('h1').filter({ hasText: /设置|Settings/ })).toBeVisible()
+    await expect(page.locator('h1').filter({ hasText: /通用|General/ })).toBeVisible()
     await page.getByTestId('settings-section-backup').click()
 
     const createBackup = page.getByRole('button', { name: /创建备份|Create backup/ })

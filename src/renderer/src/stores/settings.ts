@@ -23,10 +23,7 @@ export const useSettingsStore = defineStore('settings', () => {
     error.value = null
     try {
       const next = await callApi(() => getApi().settings.get())
-      // Product default language is zh-CN; migrate bare defaults once.
-      if (!next.language) next.language = 'zh-CN'
-      next.mascotStyle = normalizeMascotStyle(next.mascotStyle)
-      normalizePetSettings(next)
+      normalizeExperienceSettings(next)
       settings.value = next
       applyLocale(settings.value.language)
       applyExperiencePrefs(settings.value)
@@ -39,8 +36,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   async function patch(partial: Partial<AppSettings>) {
     settings.value = await callApi(() => getApi().settings.set(toIpcSettingsPatch(partial)))
-    settings.value.mascotStyle = normalizeMascotStyle(settings.value.mascotStyle)
-    normalizePetSettings(settings.value)
+    normalizeExperienceSettings(settings.value)
     applyLocale(settings.value.language)
     applyExperiencePrefs(settings.value)
     return settings.value
@@ -62,27 +58,17 @@ export const useSettingsStore = defineStore('settings', () => {
     applyTheme(value.theme)
   }
 
-  function normalizePetSettings(value: AppSettings): void {
+  function normalizeExperienceSettings(value: AppSettings): void {
     value.theme = normalizeAppTheme(value.theme)
-    value.mascotUnlocked ??= false
-    value.petEnabled ??= false
-    value.petAnimations ??= true
-    value.petStatusText ??= true
-    value.petAutoSleep ??= true
-    value.petSound ??= false
-    value.petSleepMinutes = Math.min(120, Math.max(1, value.petSleepMinutes || 10))
-    value.windowMotionEnabled ??= false
-    value.screenMotionEnabled ??= true
+    value.mascotStyle = normalizeMascotStyle(value.mascotStyle)
+    value.petSleepMinutes = Math.min(120, Math.max(1, value.petSleepMinutes))
     value.navOrder = normalizeNavOrder(value.navOrder)
     if (!MASCOT_ENABLED) {
       // Mascot-free builds ship neither the Settings section nor the assets.
       value.mascotUnlocked = false
       value.mascotStyle = 'none'
-      value.petEnabled = false
-    }
-    if (!value.mascotUnlocked) {
+    } else if (!value.mascotUnlocked) {
       value.mascotStyle = 'none'
-      value.petEnabled = false
     }
   }
 

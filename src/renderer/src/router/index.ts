@@ -40,22 +40,30 @@ const router = createRouter({
       meta: { title: 'Skills', i18nKey: 'nav.skills' }
     },
     {
-      path: '/settings/config',
-      name: 'config',
-      component: () => import('@renderer/views/ConfigView.vue'),
-      meta: { title: 'Config', i18nKey: 'nav.config' }
-    },
-    {
-      path: '/settings/diagnostics',
-      name: 'diagnostics',
-      component: () => import('@renderer/views/DiagnosticsView.vue'),
-      meta: { title: 'Diagnostics', i18nKey: 'nav.diagnostics' }
-    },
-    {
-      path: '/settings/:section?',
-      name: 'settings',
-      component: () => import('@renderer/views/SettingsView.vue'),
-      meta: { title: 'Settings', i18nKey: 'nav.settings' }
+      path: '/settings',
+      component: () => import('@renderer/views/SettingsLayout.vue'),
+      meta: { title: 'Settings', i18nKey: 'nav.settings' },
+      children: [
+        { path: '', redirect: '/settings/general' },
+        {
+          path: 'config',
+          name: 'config',
+          component: () => import('@renderer/views/ConfigView.vue'),
+          meta: { title: 'Config', i18nKey: 'nav.config' }
+        },
+        {
+          path: 'diagnostics',
+          name: 'diagnostics',
+          component: () => import('@renderer/views/DiagnosticsView.vue'),
+          meta: { title: 'Diagnostics', i18nKey: 'nav.diagnostics' }
+        },
+        {
+          path: ':section',
+          name: 'settings',
+          component: () => import('@renderer/views/SettingsView.vue'),
+          meta: { title: 'Settings', i18nKey: 'nav.settings' }
+        }
+      ]
     },
     { path: '/config', redirect: '/settings/config' },
     { path: '/diagnostics', redirect: '/settings/diagnostics' },

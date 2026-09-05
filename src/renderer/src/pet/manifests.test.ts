@@ -4,7 +4,7 @@ import { resolveMascotStyle } from '@shared/constants/mascot'
 import { PET_MANIFESTS, PET_THEME_ORDER } from './manifests'
 
 describe('built-in pet manifests', () => {
-  it('ships the cockpit, portrait themes, and the two artwork-borrowing styles', () => {
+  it('ships five independent built-in themes', () => {
     expect(Object.keys(PET_MANIFESTS)).toHaveLength(5)
     expect(PET_THEME_ORDER.slice(0, 2)).toEqual(['maidWhite', 'office'])
     expect(PET_THEME_ORDER.slice(-3)).toEqual(['starshipCockpit', 'noirScholar', 'moonlitMaid'])
@@ -13,11 +13,11 @@ describe('built-in pet manifests', () => {
     expect(PET_MANIFESTS.starshipCockpit.priority).toBe(true)
   })
 
-  it('keeps the maidWhite and office characters but borrows the scene skins', () => {
+  it('keeps the maidWhite and office characters on their own scene skins', () => {
     expect(PET_MANIFESTS.maidWhite.sprite).toMatch(/pico-maid-white\.png$/)
     expect(PET_MANIFESTS.office.sprite).toMatch(/pico-office\.png$/)
-    expect(resolveMascotStyle('maidWhite')).toBe('starshipCockpit')
-    expect(resolveMascotStyle('office')).toBe('noirScholar')
+    expect(resolveMascotStyle('maidWhite')).toBe('maidWhite')
+    expect(resolveMascotStyle('office')).toBe('office')
   })
 
   it('defines every state directly for every priority theme', () => {

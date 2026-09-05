@@ -1219,7 +1219,7 @@ function ensureDefaultModel(
         displayName: catalog?.name || id,
         protocol,
         reasoning: false,
-        vision: catalog?.input?.includes('image') ?? true,
+        vision: catalog?.input?.includes('image') ?? false,
         contextWindow: catalog?.contextWindow ?? null,
         maxOutputTokens: catalog?.maxOutputTokens ?? null
       },
@@ -1248,7 +1248,7 @@ function mergeDiscoveredModels(
           displayName: model.name.trim() || id,
           protocol,
           reasoning: false,
-          vision: model.input?.includes('image') ?? true,
+          vision: model.input?.includes('image') ?? false,
           contextWindow: null,
           maxOutputTokens: null
         },

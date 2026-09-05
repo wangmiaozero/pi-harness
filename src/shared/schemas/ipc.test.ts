@@ -4,7 +4,6 @@ import {
   backupRetentionSchema,
   modelCompositeIdSchema,
   noArgsSchema,
-  omitLegacyAppSettingsKeys,
   pickKnownAppSettings,
   screenMotionActiveSchema,
   uiStateSchema
@@ -38,17 +37,13 @@ describe('IPC schemas', () => {
     expect(appSettingsPatchSchema.safeParse({ theme: 'system' }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ theme: 'neon' }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ unexpected: true }).success).toBe(false)
+    expect(appSettingsPatchSchema.safeParse({ petEnabled: true }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ windowMotionEnabled: false }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ screenMotionEnabled: true }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ navOrder: ['settings'] }).success).toBe(true)
     expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder?.[0]).toBe('settings')
     expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder).toHaveLength(7)
     expect(appSettingsPatchSchema.safeParse({ density: 'compact' }).success).toBe(false)
-    expect(
-      appSettingsPatchSchema.safeParse(
-        omitLegacyAppSettingsKeys({ theme: 'dark', density: 'compact' })
-      ).success
-    ).toBe(true)
     expect(pickKnownAppSettings({ theme: 'dark', density: 'compact' })).toEqual({ theme: 'dark' })
   })
 
@@ -62,10 +57,7 @@ describe('IPC schemas', () => {
   it.each(['noirScholar', 'moonlitMaid'])(
     'accepts the %s skin without changing color preference',
     (mascotStyle) => {
-      expect(appSettingsPatchSchema.parse({ mascotStyle, petEnabled: true })).toEqual({
-        mascotStyle,
-        petEnabled: true
-      })
+      expect(appSettingsPatchSchema.parse({ mascotStyle })).toEqual({ mascotStyle })
     }
   )
 

@@ -3,6 +3,8 @@ import { resolveMascotStyle } from '@shared/constants/mascot'
 
 /** Visual-only presets; ordinary color preferences are retained when a skin is active. */
 export const VISUAL_SKINS = {
+  maidWhite: { id: 'maid-white', appearance: 'light', portrait: true },
+  office: { id: 'office-executive', appearance: 'dark', portrait: true },
   starshipCockpit: { id: 'starship-cockpit', appearance: 'dark', portrait: false },
   noirScholar: { id: 'noir-scholar', appearance: 'dark', portrait: true },
   moonlitMaid: { id: 'moonlit-maid', appearance: 'light', portrait: true }

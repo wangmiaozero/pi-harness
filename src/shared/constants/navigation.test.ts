@@ -1,23 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import {
-  DEFAULT_NAV_ORDER,
-  LEGACY_NAV_ORDER,
-  NAV_ITEM_IDS,
-  moveNavItem,
-  normalizeNavOrder
-} from './navigation'
+import { DEFAULT_NAV_ORDER, NAV_ITEM_IDS, moveNavItem, normalizeNavOrder } from './navigation'
 
 describe('navigation order', () => {
   it('defaults to workspace, git, then overview above settings', () => {
     expect(DEFAULT_NAV_ORDER.slice(0, 2)).toEqual(['workspace', 'git'])
     expect(DEFAULT_NAV_ORDER.indexOf('overview')).toBe(DEFAULT_NAV_ORDER.indexOf('settings') - 1)
-  })
-
-  it('migrates the saved legacy default to the new default', () => {
-    expect(normalizeNavOrder(LEGACY_NAV_ORDER)).toEqual(DEFAULT_NAV_ORDER)
-    const tweaked = [...LEGACY_NAV_ORDER]
-    tweaked[0] = 'settings'
-    expect(normalizeNavOrder(tweaked)[0]).toBe('settings')
   })
 
   it('fills missing ids and drops unknowns', () => {

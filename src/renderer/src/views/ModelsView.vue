@@ -66,7 +66,7 @@ const defaultForm = (): ModelForm => ({
   protocol: 'openai-completions',
   enabled: true,
   reasoning: false,
-  vision: true,
+  vision: false,
   tools: false,
   streaming: true,
   contextWindow: null,
@@ -128,7 +128,7 @@ function selectModelPreset(modelId: string) {
   const model = selectedProviderPreset.value?.models.find((item) => item.id === modelId)
   if (!model) return
   form.value.displayName = model.name
-  form.value.vision = model.input?.includes('image') ?? true
+  form.value.vision = model.input?.includes('image') ?? false
   contextWindowStr.value = model.contextWindow != null ? String(model.contextWindow) : ''
   maxOutputStr.value = model.maxOutputTokens != null ? String(model.maxOutputTokens) : ''
 }

@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'node:path'
 
 export default defineConfig(({ mode }) => {
-  // `--mode nomascot` compiles the mascot (看板娘) module out of the app:
+  // `--mode nomascot` compiles the optional theme-art module out of the app:
   // the Settings section is hidden, the pet runtime is skipped, and the
   // sprite data module is swapped for an empty stub so its assets never
   // enter the bundle. Driven by the `*:nomascot` scripts in package.json.

@@ -3,12 +3,7 @@ export const APP_THEMES = ['dark', 'light', 'pink', 'purple', 'green'] as const
 export type AppTheme = (typeof APP_THEMES)[number]
 export type ThemeAppearance = 'dark' | 'light'
 
-/** Legacy system preferences are resolved once, never followed after migration. */
-export function normalizeAppTheme(
-  value: unknown,
-  legacyAppearance: ThemeAppearance = 'dark'
-): AppTheme {
-  if (value === 'system') return legacyAppearance
+export function normalizeAppTheme(value: unknown): AppTheme {
   return APP_THEMES.includes(value as AppTheme) ? (value as AppTheme) : 'dark'
 }
 

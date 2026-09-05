@@ -20,11 +20,8 @@ describe('mascot styles', () => {
     for (const style of MASCOT_STYLES) expect(normalizeMascotStyle(style)).toBe(style)
   })
 
-  it('borrows the cockpit and noir study looks for maidWhite and office', () => {
-    expect(resolveMascotStyle('maidWhite')).toBe('starshipCockpit')
-    expect(resolveMascotStyle('office')).toBe('noirScholar')
-    expect(resolveMascotStyle('starshipCockpit')).toBe('starshipCockpit')
-    expect(resolveMascotStyle('none')).toBe('none')
+  it('keeps every style visually independent', () => {
+    for (const style of MASCOT_STYLES) expect(resolveMascotStyle(style)).toBe(style)
   })
 
   it('accepts only the 1 KiB byte-count answer', () => {

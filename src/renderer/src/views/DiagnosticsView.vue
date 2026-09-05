@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch, nextTick } from 'vue'
-import { RefreshCw, Copy, Download, Activity, Wrench, ArrowLeft } from '@lucide/vue'
+import { RefreshCw, Copy, Download, Activity, Wrench } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { EditorView, basicSetup } from 'codemirror'
 import { EditorState } from '@codemirror/state'
@@ -20,10 +20,8 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { usePiStore } from '@renderer/stores/pi'
 import EnvironmentTaskProgress from '@renderer/components/environment/EnvironmentTaskProgress.vue'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
-import { useRouter } from 'vue-router'
 
 const store = useDiagnosticsStore()
-const router = useRouter()
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
 const pi = usePiStore()
@@ -135,9 +133,6 @@ watch(
   <div class="flex h-full min-h-0 flex-col">
     <PageHeader>
       <div class="flex min-w-0 items-center gap-2 self-stretch">
-        <IconButton :label="$t('settings.back')" @click="router.push('/settings')">
-          <ArrowLeft class="size-3.5" :stroke-width="1.75" />
-        </IconButton>
         <div class="flex min-w-0 flex-col justify-center self-stretch">
           <h1
             class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"

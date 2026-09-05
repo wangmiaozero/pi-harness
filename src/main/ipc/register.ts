@@ -56,7 +56,6 @@ import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
 import { providerKeySchema, backupIdSchema, pathSegmentSchema } from '@shared/schemas/domain'
 import {
   appSettingsPatchSchema,
-  omitLegacyAppSettingsKeys,
   pickKnownAppSettings,
   backupReasonSchema,
   backupRetentionSchema,
@@ -572,7 +571,7 @@ export function registerIpc(services: Services): void {
     wrap(async () => {
       const parsedPatch = parseInput(
         appSettingsPatchSchema,
-        omitLegacyAppSettingsKeys(patch),
+        patch,
         'Invalid settings'
       )
       const current = pickKnownAppSettings(await settingsStore.read())
@@ -584,7 +583,6 @@ export function registerIpc(services: Services): void {
       if (!mascotUnlocked) {
         nextPatch.mascotUnlocked = false
         nextPatch.mascotStyle = DEFAULT_MASCOT_STYLE
-        nextPatch.petEnabled = false
       }
       const settings = { ...current, ...nextPatch }
       settings.navOrder = normalizeNavOrder(settings.navOrder)

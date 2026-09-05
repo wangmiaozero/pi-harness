@@ -555,7 +555,6 @@ export interface AppSettings {
   theme: AppTheme
   mascotUnlocked: boolean
   mascotStyle: MascotStyle
-  petEnabled: boolean
   petAnimations: boolean
   petStatusText: boolean
   petAutoSleep: boolean
@@ -844,7 +843,7 @@ export interface PiSwitchAPI {
       sessionIds: string[],
       format: 'html' | 'markdown'
     ): Promise<string | null>
-    viewFullHistory(sessionId: string): Promise<void>
+    viewFullHistory(sessionId: string): Promise<SessionDetail>
     contextMenu(
       sessionId: string,
       isWorktree?: boolean,

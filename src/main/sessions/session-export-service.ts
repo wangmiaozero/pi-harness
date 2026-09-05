@@ -1,6 +1,5 @@
-import { BrowserWindow, dialog } from 'electron'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import os from 'node:os'
+import { dialog } from 'electron'
+import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { AgentMessage, SessionDetail } from '@shared/types/workspace'
 import type { SessionService } from './session-service'
@@ -26,42 +25,6 @@ export class SessionExportService {
     if (result.canceled || !result.filePath) return null
     await writeFile(result.filePath, body, 'utf8')
     return result.filePath
-  }
-
-  async viewFullHistory(sessionId: string, parent?: BrowserWindow | null): Promise<void> {
-    const detail = await this.sessions.getFullHistory(sessionId)
-    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'pi-harness-history-'))
-    const filePath = path.join(tempDir, `${sanitizeFileName(detail.info?.name || sessionId)}.html`)
-    await writeFile(filePath, renderHtml(detail), 'utf8')
-
-    const win = new BrowserWindow({
-      width: 1040,
-      height: 760,
-      minWidth: 720,
-      minHeight: 520,
-      show: false,
-      title: detail.info?.name || sessionId,
-      ...(parent ? { parent } : {}),
-      webPreferences: {
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true,
-        webSecurity: true
-      }
-    })
-    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-    win.webContents.on('will-navigate', (event) => event.preventDefault())
-    win.once('ready-to-show', () => win.show())
-    win.once('closed', () => {
-      void rm(tempDir, { recursive: true, force: true })
-    })
-    try {
-      await win.loadFile(filePath)
-    } catch (error) {
-      win.destroy()
-      await rm(tempDir, { recursive: true, force: true })
-      throw error
-    }
   }
 
   async exportProject(

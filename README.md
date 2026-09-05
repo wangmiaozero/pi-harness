@@ -83,7 +83,7 @@ The surrounding desktop capabilities are summarized below.
 | Files              | Provides lightweight editing with explicit save and conflict handling |
 | Diagnostics        | Reports application, environment, storage, and workspace health       |
 | Updates            | Installs compatible application updates                               |
-| Appearance         | Offers themes, density, cockpit mode, and optional mascots            |
+| Appearance         | Offers appearance, density, cockpit mode, and optional themes         |
 
 ### Lightweight editor, not an IDE
 

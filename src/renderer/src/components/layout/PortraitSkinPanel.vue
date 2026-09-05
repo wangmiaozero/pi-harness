@@ -8,9 +8,6 @@ import PetStatus from '@renderer/components/pet/PetStatus.vue'
 const props = defineProps<{ style: MascotStyle; showStatus: boolean }>()
 const pet = usePetStore()
 const manifest = computed(() => getPetManifest(props.style))
-const labelKey = computed(
-  () => `settings.mascot${props.style[0].toUpperCase()}${props.style.slice(1)}`
-)
 const failed = ref(false)
 watch(
   () => props.style,
@@ -28,11 +25,6 @@ watch(
     class="portrait-skin-panel pointer-events-none select-none"
     aria-hidden="true"
   >
-    <div class="portrait-skin-heading">
-      <span class="portrait-skin-rule" />
-      <span>{{ $t(labelKey) }}</span>
-      <span class="portrait-skin-rule" />
-    </div>
     <div class="portrait-skin-character">
       <div class="portrait-skin-artwork">
         <img
@@ -59,26 +51,9 @@ watch(
   min-width: 0;
   max-width: 440px;
   flex-direction: column;
-  padding: 20px 12px 12px;
+  padding: 0 12px 12px;
   border-right: 1px solid var(--border-subtle);
   background: var(--portrait-panel-background);
-}
-
-.portrait-skin-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  color: var(--text-secondary);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-}
-
-.portrait-skin-rule {
-  height: 1px;
-  flex: 1;
-  background: var(--accent-border);
 }
 
 .portrait-skin-artwork {

@@ -1,4 +1,92 @@
-/* Two original-art skins share layout rules, but own distinct semantic palettes. */
+/* Each portrait skin owns its scene and semantic palette. */
+:root[data-visual-skin='maid-white'] {
+  --bg-window: #edf4ff;
+  --bg-titlebar: #f4f8ff;
+  --bg-sidebar: #e8f1ff;
+  --bg-workspace: #f8fbff;
+  --bg-surface: #fff;
+  --bg-surface-raised: #fff;
+  --bg-hover: #dfebfc;
+  --bg-selected: #cddffc;
+  --text-primary: #20304a;
+  --text-secondary: #50627f;
+  --text-tertiary: #71829c;
+  --text-disabled: #a2aec0;
+  --accent: #3868bd;
+  --accent-hover: #2f59a5;
+  --accent-active: #274b8c;
+  --portrait-button-bg: #3564b6;
+  --portrait-button-hover: #2e57a0;
+  --portrait-button-active: #274986;
+  --accent-border: #91afe1;
+  --border-subtle: rgb(47 89 165 / 0.1);
+  --border-default: rgb(47 89 165 / 0.2);
+  --border-strong: rgb(47 89 165 / 0.34);
+  --control-bg: #f9fbff;
+  --control-bg-hover: #fff;
+  --control-bg-disabled: #e9f0fa;
+  --control-border: rgb(47 89 165 / 0.25);
+  --control-border-hover: rgb(47 89 165 / 0.46);
+  --control-placeholder: #7487a4;
+  --syntax-property: #3868bd;
+  --syntax-heading: #315fae;
+  --portrait-panel-background: transparent;
+  --portrait-scene-image: url('../assets/themes/maid-white/azure-patisserie-atelier-v2.png');
+  --portrait-glass-chrome: rgb(239 246 255 / 0.76);
+  --portrait-glass-control: rgb(251 253 255 / 0.78);
+  --portrait-glass-message: rgb(247 251 255 / 0.8);
+  --portrait-glass-input: rgb(247 251 255 / 0.7);
+  --portrait-glass-input-focus: rgb(255 255 255 / 0.84);
+  --portrait-glass-highlight: rgb(255 255 255 / 0.82);
+  --portrait-glass-shadow: rgb(31 72 132 / 0.08);
+  --portrait-status-bg: rgb(245 250 255 / 0.88);
+  --portrait-page-overlay: rgb(239 246 255 / 0.72);
+}
+
+:root[data-visual-skin='office-executive'] {
+  --bg-window: #111214;
+  --bg-titlebar: #151416;
+  --bg-sidebar: #181619;
+  --bg-workspace: #1b191c;
+  --bg-surface: #232024;
+  --bg-surface-raised: #2a262a;
+  --bg-hover: #342d31;
+  --bg-selected: #442d32;
+  --text-primary: #f2ede8;
+  --text-secondary: #c9bbb2;
+  --text-tertiary: #9f9089;
+  --text-disabled: #786d69;
+  --accent: #c5a176;
+  --accent-hover: #ddbb91;
+  --accent-active: #ad895f;
+  --portrait-button-bg: #84434d;
+  --portrait-button-hover: #98515d;
+  --portrait-button-active: #713640;
+  --accent-border: #80664f;
+  --border-subtle: rgb(203 169 126 / 0.1);
+  --border-default: rgb(203 169 126 / 0.2);
+  --border-strong: rgb(203 169 126 / 0.34);
+  --control-bg: #211e21;
+  --control-bg-hover: #2c272b;
+  --control-bg-disabled: #1d1b1e;
+  --control-border: rgb(203 169 126 / 0.24);
+  --control-border-hover: rgb(203 169 126 / 0.44);
+  --control-placeholder: #94857e;
+  --syntax-property: #d1ae82;
+  --syntax-heading: #dbc093;
+  --portrait-panel-background: transparent;
+  --portrait-scene-image: url('../assets/themes/office-executive/dusk-executive-suite-v2.png');
+  --portrait-glass-chrome: rgb(20 18 20 / 0.72);
+  --portrait-glass-control: rgb(35 31 34 / 0.7);
+  --portrait-glass-message: rgb(24 22 24 / 0.76);
+  --portrait-glass-input: rgb(27 24 27 / 0.68);
+  --portrait-glass-input-focus: rgb(32 28 31 / 0.82);
+  --portrait-glass-highlight: rgb(255 226 193 / 0.07);
+  --portrait-glass-shadow: rgb(0 0 0 / 0.14);
+  --portrait-status-bg: rgb(27 24 26 / 0.84);
+  --portrait-page-overlay: rgb(17 18 20 / 0.7);
+}
+
 :root[data-visual-skin='noir-scholar'] {
   --bg-window: #151310;
   --bg-titlebar: #191714;
@@ -87,7 +175,7 @@
   --portrait-page-overlay: rgb(250 247 251 / 0.62);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) {
+:root[data-portrait-skin='true'] {
   --accent-tint: color-mix(in srgb, var(--accent) 13%, transparent);
   --accent-tint-soft: color-mix(in srgb, var(--accent) 7%, transparent);
   --accent-tint-strong: color-mix(in srgb, var(--accent) 23%, transparent);
@@ -97,81 +185,71 @@
   --focus-ring: 0 0 0 2px var(--accent-border);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .app-titlebar {
+:root[data-portrait-skin='true'] .app-titlebar {
   border-bottom: 1px solid var(--border-default);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .mascot-background--portrait
-  .mascot-background-renderer {
+:root[data-portrait-skin='true'] .mascot-background--portrait .mascot-background-renderer {
   filter: none;
   mask-image: none;
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .ui-button[data-variant='primary'] {
+:root[data-portrait-skin='true'] .ui-button[data-variant='primary'] {
   background: var(--portrait-button-bg);
   color: #fff;
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .ui-button[data-variant='primary']:hover:not(:disabled) {
+:root[data-portrait-skin='true'] .ui-button[data-variant='primary']:hover:not(:disabled) {
   background: var(--portrait-button-hover);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .ui-button[data-variant='primary']:active:not(:disabled) {
+:root[data-portrait-skin='true'] .ui-button[data-variant='primary']:active:not(:disabled) {
   background: var(--portrait-button-active);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .ui-button[data-variant='primary']:disabled {
+:root[data-portrait-skin='true'] .ui-button[data-variant='primary']:disabled {
   background: color-mix(in srgb, var(--portrait-button-bg) 65%, var(--bg-surface));
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .app-titlebar-brand-name {
+:root[data-portrait-skin='true'] .app-titlebar-brand-name {
   color: var(--text-primary);
   letter-spacing: 0.06em;
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .chat-scroller {
+:root[data-portrait-skin='true'] .chat-scroller {
   padding-inline: clamp(16px, 3%, 32px);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .chat-scroll-content {
+:root[data-portrait-skin='true'] .chat-scroll-content {
   max-width: 860px;
   margin-inline: auto;
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .command-console {
+:root[data-portrait-skin='true'] .command-console {
   border-top: 1px solid var(--border-default);
   background: var(--bg-surface);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .command-console-input {
+:root[data-portrait-skin='true'] .command-console-input {
   border-color: var(--border-default);
   background: var(--control-bg);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .user-message-body {
+:root[data-portrait-skin='true'] .user-message-body {
   border: 1px solid var(--border-subtle);
   background: var(--accent-tint-soft);
 }
 
 /* The wallpaper sits below every glass surface, including the titlebar and sidebar. */
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .app-shell {
+:root[data-portrait-skin='true'] .app-shell {
   background: var(--portrait-scene-image) center / cover no-repeat var(--bg-workspace);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  :is(.starship-viewport-root, .workspace-primary) {
+:root[data-portrait-skin='true'] :is(.starship-viewport-root, .workspace-primary) {
   background: transparent;
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .workspace-content {
+:root[data-portrait-skin='true'] .workspace-content {
   position: relative;
   container-type: size;
 }
@@ -191,41 +269,17 @@
   background: var(--portrait-scene-image) center / cover no-repeat var(--bg-workspace);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .workspace-primary {
+:root[data-portrait-skin='true'] .workspace-primary {
   position: relative;
   z-index: 1;
 }
 
 /* The portrait is scenery, not a column that shortens the composer. */
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .portrait-skin-panel {
+:root[data-portrait-skin='true'] .portrait-skin-panel {
   position: absolute;
   inset: 0;
   max-width: none;
   border-right-color: transparent;
-}
-
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .portrait-skin-heading {
-  width: min(32%, 416px);
-}
-
-/* The office alias keeps the noir study wallpaper but shows a standing pico sprite,
-   so it anchors to the floor like the moonlit portrait instead of the seated figure. */
-:root[data-visual-skin='noir-scholar'] .portrait-skin-panel[data-style='office'] {
-  --office-portrait-column: min(32cqw, 440px);
-}
-
-:root[data-visual-skin='noir-scholar']
-  .portrait-skin-panel[data-style='office']
-  .portrait-skin-character {
-  position: absolute;
-  top: auto;
-  bottom: 0;
-  left: calc(var(--office-portrait-column) / 2);
-  height: min(68cqh, calc(var(--office-portrait-column) * 1.5 - 36px));
-  aspect-ratio: 2 / 3;
-  transform: translateX(-50%);
 }
 
 :root[data-visual-skin='noir-scholar'] .portrait-skin-character {
@@ -239,21 +293,17 @@
   transform: translate(-58%, -54%);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .portrait-skin-artwork {
+:root[data-portrait-skin='true'] .portrait-skin-artwork {
   align-items: flex-end;
   padding: 0;
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .portrait-skin-artwork
-  img {
+:root[data-portrait-skin='true'] .portrait-skin-artwork img {
   height: 100%;
   object-position: center bottom;
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .portrait-skin-footer {
+:root[data-portrait-skin='true'] .portrait-skin-footer {
   position: absolute;
   bottom: calc(100% + 10px);
   width: 100%;
@@ -266,13 +316,6 @@
     .chat-scroller {
     padding-left: var(--study-reading-inset);
   }
-
-  :root[data-visual-skin='noir-scholar']
-    .workspace-content:has(.portrait-skin-panel)
-    .chat-status-hud,
-  :root[data-visual-skin='noir-scholar'] .workspace-content:has(.portrait-skin-panel) .session-hud {
-    margin-left: var(--study-reading-inset);
-  }
 }
 
 @container study-scene (max-aspect-ratio: 1.15) {
@@ -281,7 +324,7 @@
   }
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
+:root[data-portrait-skin='true']
   :is(
     .app-titlebar,
     .app-navigation-rail,
@@ -296,19 +339,16 @@
   box-shadow: inset 0 1px var(--portrait-glass-highlight);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .workspace-tabbar
-  > div {
+:root[data-portrait-skin='true'] .workspace-tabbar > div {
   background: transparent;
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  :is(.ui-select-trigger, .starship-search-trigger) {
+:root[data-portrait-skin='true'] :is(.ui-select-trigger, .starship-search-trigger) {
   background: var(--portrait-glass-control);
   backdrop-filter: blur(12px);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .message-hud {
+:root[data-portrait-skin='true'] .message-hud {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--portrait-glass-message);
@@ -319,20 +359,18 @@
   padding: 12px;
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid']) .command-console {
+:root[data-portrait-skin='true'] .command-console {
   flex-shrink: 0;
   z-index: 2;
   margin: 0;
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .command-console-input {
+:root[data-portrait-skin='true'] .command-console-input {
   background: var(--portrait-glass-input);
   box-shadow: inset 0 1px 5px var(--portrait-glass-shadow);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .command-console-input:focus-within {
+:root[data-portrait-skin='true'] .command-console-input:focus-within {
   background: var(--portrait-glass-input-focus);
 }
 
@@ -340,47 +378,54 @@
   background: rgb(197 164 112 / 0.09);
 }
 
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .portrait-skin-footer
-  .pet-status {
+:root[data-visual-skin='maid-white'] .user-message-body {
+  background: rgb(56 104 189 / 0.1);
+}
+
+:root[data-visual-skin='office-executive'] .user-message-body {
+  background: rgb(132 67 77 / 0.14);
+}
+
+:root[data-portrait-skin='true'] .portrait-skin-footer .pet-status {
   --pet-status-bg: var(--portrait-status-bg);
   font-size: 11px;
   color: var(--text-primary);
 }
 
 /* Other pages use the same room at lower intensity behind their existing surfaces. */
-:root:is([data-visual-skin='noir-scholar'], [data-visual-skin='moonlit-maid'])
-  .starship-viewport-root:not(:has(.workspace-view)) {
+:root[data-portrait-skin='true'] .starship-viewport-root:not(:has(.workspace-view)) {
   background: var(--portrait-page-overlay);
   backdrop-filter: blur(16px);
 }
 
-/* The standing portrait has its own floor anchor; it never reserves composer width. */
-:root[data-visual-skin='moonlit-maid'] .workspace-content {
-  --tea-portrait-column: min(32cqw, 440px);
-  container-name: tea-scene;
+/* Standing portraits share geometry while keeping independent scenes and palettes. */
+:root:is(
+    [data-visual-skin='maid-white'],
+    [data-visual-skin='office-executive'],
+    [data-visual-skin='moonlit-maid']
+  )
+  .workspace-content {
+  --standing-portrait-column: min(32cqw, 440px);
+  container-name: standing-scene;
 }
 
-:root[data-visual-skin='moonlit-maid'] .portrait-skin-character {
+:root:is(
+    [data-visual-skin='maid-white'],
+    [data-visual-skin='office-executive'],
+    [data-visual-skin='moonlit-maid']
+  )
+  .portrait-skin-character {
   position: absolute;
   bottom: 14px;
-  left: calc(var(--tea-portrait-column) / 2);
-  height: min(68cqh, calc(var(--tea-portrait-column) * 1.5 - 36px));
+  left: calc(var(--standing-portrait-column) / 2);
+  height: min(68cqh, calc(var(--standing-portrait-column) * 1.5 - 36px));
   aspect-ratio: 2 / 3;
   transform: translateX(-50%);
 }
 
-@container tea-scene (min-width: 821px) {
-  :root[data-visual-skin='moonlit-maid']
-    .workspace-content:has(.portrait-skin-panel)
-    .chat-scroller {
-    padding-left: var(--tea-portrait-column);
-  }
-
-  :root[data-visual-skin='moonlit-maid']
-    .workspace-content:has(.portrait-skin-panel)
-    :is(.chat-status-hud, .session-hud) {
-    margin-left: var(--tea-portrait-column);
+@container standing-scene (min-width: 821px) {
+  :root[data-portrait-skin='true'] .workspace-content:has(.portrait-skin-panel) .chat-scroller {
+    padding-left: var(--standing-portrait-column);
   }
 }
 
@@ -390,12 +435,13 @@
 
 /* Picker geometry is shared by all styles; skins supply only their scene background. */
 [data-mascot-option='maidWhite'] .mascot-option-preview {
-  background: url('../assets/themes/starship-cockpit/deep-space.png') center / cover no-repeat
-    #0a1420;
+  background: url('../assets/themes/maid-white/azure-patisserie-atelier-v2.png') center / cover
+    no-repeat #edf4ff;
 }
 
 [data-mascot-option='office'] .mascot-option-preview {
-  background: url('../assets/themes/portraits/noir-study.png') center / cover no-repeat #201d19;
+  background: url('../assets/themes/office-executive/dusk-executive-suite-v2.png') center / cover
+    no-repeat #1b191c;
 }
 
 [data-mascot-option='noirScholar'] .mascot-option-preview {

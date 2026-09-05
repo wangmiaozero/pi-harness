@@ -14,6 +14,72 @@ async function expectPersistedMascotStyle(page: Page, style: string) {
     .toBe(style)
 }
 
+test('maid and office use dedicated scenes and independent palettes', async ({
+  page,
+  electronApp
+}, testInfo) => {
+  await page.setViewportSize({ width: 1728, height: 1084 })
+  await page.locator('a[href="#/settings"]').click()
+  await page.getByTestId('settings-section-mascot').click()
+  await page.getByTestId('mascot-unlock-answer').fill('1024')
+  await page.getByRole('button', { name: /解锁|Unlock/, exact: true }).click()
+
+  for (const theme of [
+    {
+      style: 'maidWhite',
+      skin: 'maid-white',
+      appearance: 'light',
+      scene: 'azure-patisserie-atelier-v2',
+      sprite: 'pico-maid-white'
+    },
+    {
+      style: 'office',
+      skin: 'office-executive',
+      appearance: 'dark',
+      scene: 'dusk-executive-suite-v2',
+      sprite: 'pico-office'
+    }
+  ] as const) {
+    await page.locator(`[data-mascot-option="${theme.style}"]`).click()
+    await expectPersistedMascotStyle(page, theme.style)
+    await expect(page.locator('html')).toHaveAttribute('data-visual-skin', theme.skin)
+    await expect(page.locator('html')).toHaveAttribute('data-portrait-skin', 'true')
+    await expect(page.locator('html')).toHaveAttribute('data-appearance', theme.appearance)
+    await expect(
+      page.locator(`[data-mascot-option="${theme.style}"] .mascot-option-preview`)
+    ).toHaveCSS('background-image', new RegExp(theme.scene))
+    await expect(page.getByTestId('app-shell')).toHaveCSS(
+      'background-image',
+      new RegExp(theme.scene)
+    )
+
+    await page.locator('a[href="#/workspace"]').click()
+    if (await page.getByTestId('workspace-import-project').isVisible()) {
+      await electronApp.evaluate(
+        ({ dialog }, root) => {
+          dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [root] })
+        },
+        path.resolve(import.meta.dirname, '../fixtures')
+      )
+      await page.getByTestId('workspace-import-project').click()
+    }
+    await expect(page.getByTestId('portrait-skin-panel')).toBeVisible()
+    await expect(page.locator('.portrait-skin-heading')).toHaveCount(0)
+    await expect(page.getByTestId('portrait-skin-image')).toHaveAttribute(
+      'src',
+      new RegExp(theme.sprite)
+    )
+    await expect(page.getByTestId('app-shell')).toHaveCSS(
+      'background-image',
+      new RegExp(theme.scene)
+    )
+    await page.screenshot({ path: path.join(testInfo.outputDir, `${theme.skin}.png`) })
+
+    await page.locator('a[href="#/settings"]').click()
+    await page.getByTestId('settings-section-mascot').click()
+  }
+})
+
 test('switches original portrait skins, persists selection and restores plain themes', async ({
   page,
   electronApp,
@@ -73,6 +139,7 @@ test('switches original portrait skins, persists selection and restores plain th
     const panel = page.getByTestId('portrait-skin-panel')
     const image = page.getByTestId('portrait-skin-image')
     await expect(panel).toBeVisible()
+    await expect(page.locator('.portrait-skin-heading')).toHaveCount(0)
     await expect(image).toHaveAttribute('src', new RegExp(filename))
     await expect(image).toHaveJSProperty('naturalWidth', 1024)
     await expect(image).toHaveJSProperty('naturalHeight', 1536)
@@ -87,10 +154,12 @@ test('switches original portrait skins, persists selection and restores plain th
       expect(panelBox!.x).toBeCloseTo(chatBox!.x, 0)
       const composer = page.getByTestId('chat-composer')
       const composerBox = (await composer.boundingBox())!
+      const statusBox = (await page.getByTestId('chat-status-hud').boundingBox())!
       const sceneBox = (await page.getByTestId('workspace-scene').boundingBox())!
       expect(composerBox.x).toBeCloseTo(sceneBox.x, 0)
       expect(composerBox.width).toBeCloseTo(sceneBox.width, 0)
-      expect(composerBox.y + composerBox.height).toBeCloseTo(sceneBox.y + sceneBox.height, 0)
+      expect(composerBox.y + composerBox.height).toBeCloseTo(statusBox.y, 0)
+      expect(statusBox.y + statusBox.height).toBeCloseTo(sceneBox.y + sceneBox.height, 0)
       const bubbleBox = (await panel.getByTestId('pet-status-bubble').boundingBox())!
       const imageBox = (await image.boundingBox())!
       expect(bubbleBox.y + bubbleBox.height).toBeLessThan(imageBox.y)
@@ -219,6 +288,20 @@ test('switches original portrait skins, persists selection and restores plain th
         const imageBox = (await image.boundingBox())!
         expect(messageBox.x).toBeGreaterThan(imageBox.x + imageBox.width)
       }
+      const statsToggle = page.getByTestId('chat-status-hud').locator('button[aria-expanded]')
+      await expect(statsToggle).toBeVisible()
+      await statsToggle.click()
+      const sessionHud = page.locator('.session-hud')
+      await expect(sessionHud).toBeVisible()
+      const [composerBox, sessionBox, statusBox] = await Promise.all([
+        page.getByTestId('chat-composer').boundingBox(),
+        sessionHud.boundingBox(),
+        page.getByTestId('chat-status-hud').boundingBox()
+      ])
+      expect(composerBox!.y + composerBox!.height).toBeCloseTo(sessionBox!.y, 0)
+      expect(sessionBox!.y + sessionBox!.height).toBeCloseTo(statusBox!.y, 0)
+      await statsToggle.click()
+      await expect(sessionHud).toHaveCount(0)
       await page.screenshot({
         path: path.join(path.dirname(saveScreenshot), `${filename}-chat.png`)
       })
@@ -246,10 +329,12 @@ test('switches original portrait skins, persists selection and restores plain th
           expect(bubbleBox.y + bubbleBox.height).toBeLessThan(imageBox.y)
           expect(bubbleBox.x + bubbleBox.width / 2).toBeCloseTo(imageBox.x + imageBox.width / 2, 0)
           const composerBox = (await page.getByTestId('chat-composer').boundingBox())!
+          const statusBox = (await page.getByTestId('chat-status-hud').boundingBox())!
           expect(imageBox.y + imageBox.height).toBeGreaterThan(composerBox.y)
           expect(composerBox.x).toBeCloseTo(sceneBox.x, 0)
           expect(composerBox.width).toBeCloseTo(sceneBox.width, 0)
-          expect(composerBox.y + composerBox.height).toBeCloseTo(sceneBox.y + sceneBox.height, 0)
+          expect(composerBox.y + composerBox.height).toBeCloseTo(statusBox.y, 0)
+          expect(statusBox.y + statusBox.height).toBeCloseTo(sceneBox.y + sceneBox.height, 0)
           const messageBox = (await assistant.boundingBox())!
           expect(messageBox.x).toBeGreaterThan(imageBox.x + imageBox.width)
           await page.screenshot({

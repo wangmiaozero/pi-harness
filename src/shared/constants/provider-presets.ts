@@ -50,7 +50,40 @@ const genericPresets: readonly ProviderPreset[] = [
   }
 ]
 
-const importedPresets = generatedCatalog.providers as unknown as ProviderPreset[]
+const CURRENT_MODEL_OVERRIDES = {
+  zhipuai: {
+    defaultModelId: 'glm-5.3-flash',
+    models: [{ id: 'glm-5.3-flash', name: 'GLM-5.3-Flash', input: ['text', 'image'] }]
+  },
+  'zhipuai-coding-plan': {
+    defaultModelId: 'glm-5.3-flash',
+    models: [{ id: 'glm-5.3-flash', name: 'GLM-5.3-Flash', input: ['text', 'image'] }]
+  }
+} as const satisfies Partial<
+  Record<
+    string,
+    {
+      defaultModelId?: string
+      models: readonly ProviderPresetModel[]
+    }
+  >
+>
+
+function applyCurrentModelOverrides(preset: ProviderPreset): ProviderPreset {
+  const override = CURRENT_MODEL_OVERRIDES[preset.id as keyof typeof CURRENT_MODEL_OVERRIDES]
+  if (!override) return preset
+
+  const overriddenIds = new Set<string>(override.models.map((model) => model.id))
+  return {
+    ...preset,
+    defaultModelId: override.defaultModelId,
+    models: [...override.models, ...preset.models.filter((model) => !overriddenIds.has(model.id))]
+  }
+}
+
+const importedPresets = (generatedCatalog.providers as unknown as ProviderPreset[]).map(
+  applyCurrentModelOverrides
+)
 
 export const PROVIDER_PRESETS: readonly ProviderPreset[] = [...genericPresets, ...importedPresets]
 

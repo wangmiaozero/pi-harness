@@ -56,7 +56,6 @@ const appSettingsFields = {
   theme: z.enum(APP_THEMES),
   mascotUnlocked: z.boolean(),
   mascotStyle: z.enum(MASCOT_STYLES),
-  petEnabled: z.boolean(),
   petAnimations: z.boolean(),
   petStatusText: z.boolean(),
   petAutoSleep: z.boolean(),
@@ -80,17 +79,7 @@ const appSettingsFields = {
   navOrder: z.array(z.unknown()).max(32).transform(normalizeNavOrder)
 }
 
-/** Dropped UI keys that may still exist in older Pi-Harness settings.json files. */
-export const LEGACY_APP_SETTINGS_KEYS = ['density'] as const
-
 export const appSettingsPatchSchema = z.object(appSettingsFields).partial().strict()
-
-export function omitLegacyAppSettingsKeys(input: unknown): unknown {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) return input
-  const next: Record<string, unknown> = { ...(input as Record<string, unknown>) }
-  for (const key of LEGACY_APP_SETTINGS_KEYS) delete next[key]
-  return next
-}
 
 export function pickKnownAppSettings<T extends object>(value: T): T {
   const source = value as Record<string, unknown>

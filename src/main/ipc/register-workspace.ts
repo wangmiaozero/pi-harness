@@ -326,10 +326,10 @@ export function registerWorkspaceIpc(
       return sessionExport.exportToFile(parsed.data.sessionId, parsed.data.format)
     })
   )
-  ipcMain.handle(IPC_INVOKE.sessionViewHistory, (e, sessionId: unknown) =>
+  ipcMain.handle(IPC_INVOKE.sessionViewHistory, (_e, sessionId: unknown) =>
     wrap(async () => {
       const id = sessionIdSchema.parse(sessionId)
-      await sessionExport.viewFullHistory(id, BrowserWindow.fromWebContents(e.sender))
+      return sessions.getFullHistory(id)
     })
   )
   ipcMain.handle(IPC_INVOKE.projectExport, (_e, input: unknown) =>
@@ -727,7 +727,10 @@ function showGitBranchMenu(
         }
       )
       if (input.upstream) {
-        items.push({ label: zh ? '取消上游分支' : 'Unset upstream', click: () => finish('unset-upstream') })
+        items.push({
+          label: zh ? '取消上游分支' : 'Unset upstream',
+          click: () => finish('unset-upstream')
+        })
       }
       items.push(
         { type: 'separator' },

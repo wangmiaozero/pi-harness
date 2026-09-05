@@ -2,24 +2,7 @@
 import { ref, computed, nextTick, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import {
-  FolderOpen,
-  Archive,
-  Trash2,
-  RotateCcw,
-  Eraser,
-  CircleOff,
-  ArrowLeft,
-  KeyRound,
-  SlidersHorizontal,
-  PanelLeft,
-  Sparkles,
-  AppWindow,
-  Download,
-  Code2,
-  FileCode2,
-  Activity
-} from '@lucide/vue'
+import { FolderOpen, Archive, Trash2, RotateCcw, Eraser, CircleOff, KeyRound } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import type { AppSettings, AppUpdateState } from '@shared/ipc/api-types'
 import PageHeader from '@renderer/components/common/PageHeader.vue'
@@ -40,7 +23,6 @@ import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { DEFAULT_NAV_ORDER, normalizeNavOrder } from '@shared/constants/navigation'
 import NavOrderList from '@renderer/components/settings/NavOrderList.vue'
 import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
-import { getVisualSkin } from '@renderer/utils/skin-catalog'
 import PetDebug from '@renderer/components/pet/PetDebug.vue'
 
 const { t, locale } = useI18n()
@@ -73,7 +55,6 @@ const SETTINGS_SECTIONS = MASCOT_ENABLED
       (id): id is Exclude<(typeof SETTINGS_SECTIONS_ALL)[number], 'mascot'> => id !== 'mascot'
     )
 type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]
-type SettingsMenuSectionId = SettingsSectionId | 'config' | 'diagnostics'
 
 function isSettingsSection(value: unknown): value is SettingsSectionId {
   return typeof value === 'string' && (SETTINGS_SECTIONS as readonly string[]).includes(value)
@@ -113,7 +94,6 @@ const draft = ref<AppSettings>({
   theme: 'dark',
   mascotUnlocked: false,
   mascotStyle: DEFAULT_MASCOT_STYLE,
-  petEnabled: false,
   petAnimations: true,
   petStatusText: true,
   petAutoSleep: true,
@@ -251,85 +231,6 @@ const sectionSubtitle = computed(() => {
   }
 })
 
-type SettingsMenuIcon = typeof SlidersHorizontal
-
-const settingsMenu = computed(() => {
-  const items: {
-    id: SettingsMenuSectionId
-    title: string
-    hint: string
-    icon: SettingsMenuIcon
-  }[] = [
-    {
-      id: 'general',
-      title: t('settings.general'),
-      hint: t('settings.sectionGeneralHint'),
-      icon: SlidersHorizontal
-    },
-    {
-      id: 'nav',
-      title: t('settings.navOrder'),
-      hint: t('settings.sectionNavHint'),
-      icon: PanelLeft
-    },
-    {
-      id: 'mascot',
-      title: t('settings.mascot'),
-      hint: t('settings.sectionMascotHint'),
-      icon: Sparkles
-    },
-    {
-      id: 'workspace',
-      title: t('settings.workspace'),
-      hint: t('settings.sectionWorkspaceHint'),
-      icon: AppWindow
-    },
-    {
-      id: 'config',
-      title: t('nav.config'),
-      hint: t('config.subtitle'),
-      icon: FileCode2
-    },
-    {
-      id: 'diagnostics',
-      title: t('nav.diagnostics'),
-      hint: t('diagnostics.subtitle'),
-      icon: Activity
-    },
-    {
-      id: 'paths',
-      title: t('settings.manualPaths'),
-      hint: t('settings.sectionPathsHint'),
-      icon: FolderOpen
-    },
-    {
-      id: 'backup',
-      title: t('settings.backup'),
-      hint: t('settings.sectionBackupHint'),
-      icon: Archive
-    }
-  ]
-  if (updateSupported.value) {
-    items.push({
-      id: 'updates',
-      title: t('settings.updates'),
-      hint: t('settings.sectionUpdatesHint'),
-      icon: Download
-    })
-  }
-  if (showDeveloper.value) {
-    items.push({
-      id: 'developer',
-      title: t('settings.developer'),
-      hint: t('settings.sectionDeveloperHint'),
-      icon: Code2
-    })
-  }
-  return MASCOT_ENABLED ? items : items.filter((item) => item.id !== 'mascot')
-})
-
-const settingsHomeEmptySlots = computed(() => Math.max(0, 9 - settingsMenu.value.length))
-
 /**
  * Debounce window that coalesces rapid setting changes into one IPC write.
  * Every draft mutation autosaves; leaving the view flushes a pending save.
@@ -378,12 +279,12 @@ watch([section, showDeveloper, updateSupported, menuReady], ([, developer, updat
   const requested = Array.isArray(raw) ? raw[0] : raw
   if (!requested) return
   if (!isSettingsSection(requested)) {
-    void router.replace('/settings')
+    void router.replace('/settings/general')
     return
   }
   if (!ready) return
-  if (requested === 'developer' && !developer) void router.replace('/settings')
-  if (requested === 'updates' && !updates) void router.replace('/settings')
+  if (requested === 'developer' && !developer) void router.replace('/settings/general')
+  if (requested === 'updates' && !updates) void router.replace('/settings/general')
 })
 
 async function persistDraft(): Promise<void> {
@@ -394,7 +295,6 @@ async function persistDraft(): Promise<void> {
   const patch: AppSettings = { ...draft.value }
   if (!patch.mascotUnlocked) {
     patch.mascotStyle = DEFAULT_MASCOT_STYLE
-    patch.petEnabled = false
   }
   try {
     const saved = await store.patch(patch)
@@ -416,13 +316,8 @@ function resetNavOrder(): void {
   draft.value.navOrder = [...DEFAULT_NAV_ORDER]
 }
 
-function goBackToSettingsHome(): void {
-  void router.push('/settings')
-}
-
 function selectMascot(style: MascotStyle): void {
   draft.value.mascotStyle = style
-  if (getVisualSkin(style)) draft.value.petEnabled = true
 }
 
 async function unlockMascot(): Promise<void> {
@@ -437,7 +332,6 @@ async function unlockMascot(): Promise<void> {
     }
     draft.value.mascotUnlocked = true
     draft.value.mascotStyle = DEFAULT_MASCOT_STYLE
-    draft.value.petEnabled = false
     mascotAnswer.value = ''
     mascotUnlockError.value = ''
     toast.success(t('settings.mascotUnlockSuccess'))
@@ -588,77 +482,20 @@ onBeforeUnmount(() => {
 <template>
   <div class="settings-view flex h-full min-h-0 flex-col">
     <PageHeader>
-      <div class="flex min-w-0 items-center gap-2 self-stretch">
-        <IconButton
-          v-if="section"
-          :label="$t('settings.back')"
-          data-testid="settings-back"
-          @click="goBackToSettingsHome"
+      <div class="flex min-w-0 flex-col justify-center self-stretch">
+        <h1
+          class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
         >
-          <ArrowLeft class="size-3.5" :stroke-width="1.75" />
-        </IconButton>
-        <div class="flex min-w-0 flex-col justify-center self-stretch">
-          <h1
-            class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
-          >
-            {{ sectionTitle }}
-          </h1>
-          <p class="mt-[3px] text-[11.5px] leading-[14px] text-[var(--text-tertiary)]">
-            {{ sectionSubtitle }}
-          </p>
-        </div>
+          {{ sectionTitle }}
+        </h1>
+        <p class="mt-[3px] text-[11.5px] leading-[14px] text-[var(--text-tertiary)]">
+          {{ sectionSubtitle }}
+        </p>
       </div>
     </PageHeader>
 
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div v-if="!section" class="flex min-h-0 flex-1 flex-col p-5">
-        <nav
-          data-testid="settings-home"
-          class="grid min-h-0 min-w-0 flex-1 grid-cols-3 grid-rows-3 gap-3 overflow-visible"
-        >
-          <RouterLink
-            v-for="item in settingsMenu"
-            :key="item.id"
-            :to="`/settings/${item.id}`"
-            :data-testid="`settings-section-${item.id}`"
-            class="settings-home-card group flex min-h-0 min-w-0 flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 no-drag shadow-[var(--shadow-popover)] transition-[background-color,border-color,box-shadow] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-          >
-            <component
-              :is="item.icon"
-              class="size-5 text-[var(--text-secondary)] transition-colors group-hover:text-[var(--text-primary)]"
-              :stroke-width="1.75"
-            />
-            <span class="min-w-0">
-              <span class="flex items-center gap-2">
-                <span class="text-[14px] font-medium text-[var(--text-primary)]">
-                  {{ item.title }}
-                </span>
-                <Badge
-                  v-if="item.id === 'mascot'"
-                  :tone="draft.mascotUnlocked ? 'success' : 'warning'"
-                >
-                  {{
-                    draft.mascotUnlocked
-                      ? $t('settings.mascotUnlocked')
-                      : $t('settings.mascotLocked')
-                  }}
-                </Badge>
-              </span>
-              <span class="mt-1 block text-[12px] leading-snug text-[var(--text-tertiary)]">
-                {{ item.hint }}
-              </span>
-            </span>
-          </RouterLink>
-          <div
-            v-for="slot in settingsHomeEmptySlots"
-            :key="`empty-${slot}`"
-            class="rounded-[var(--radius-lg)] border border-[var(--border-subtle)]/50 bg-[var(--bg-surface)]/30"
-            aria-hidden="true"
-          />
-        </nav>
-      </div>
-
-      <div v-else class="flex-1 overflow-y-auto">
+      <div class="flex-1 overflow-y-auto">
         <div
           class="mx-auto w-full space-y-5 px-6 py-5"
           :class="
@@ -848,9 +685,6 @@ onBeforeUnmount(() => {
               <div
                 class="mt-3 divide-y divide-[var(--border-subtle)] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)]"
               >
-                <PropertyRow :label="$t('settings.petEnabled')">
-                  <Switch v-model="draft.petEnabled" :label="$t('settings.petEnabled')" />
-                </PropertyRow>
                 <PropertyRow :label="$t('settings.petAnimations')">
                   <Switch v-model="draft.petAnimations" :label="$t('settings.petAnimations')" />
                 </PropertyRow>

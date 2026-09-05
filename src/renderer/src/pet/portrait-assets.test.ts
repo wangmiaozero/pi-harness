@@ -47,3 +47,29 @@ describe('unchanged user-supplied portrait assets', () => {
     expect(image.readUInt32BE(20)).toBe(PET_MANIFESTS[style].frameHeight)
   })
 })
+
+describe('independent maid and office scene assets', () => {
+  it.each([
+    'src/renderer/src/assets/themes/maid-white/azure-patisserie-atelier-v2.png',
+    'src/renderer/src/assets/themes/office-executive/dusk-executive-suite-v2.png'
+  ])('ships %s at the workspace scene dimensions', (filename) => {
+    const image = readFileSync(path.resolve(filename))
+    expect(image.readUInt32BE(16)).toBe(1672)
+    expect(image.readUInt32BE(20)).toBe(941)
+  })
+
+  it('keeps all four portrait scene backgrounds byte-distinct', () => {
+    const scenes = [
+      'src/renderer/src/assets/themes/maid-white/azure-patisserie-atelier-v2.png',
+      'src/renderer/src/assets/themes/office-executive/dusk-executive-suite-v2.png',
+      'src/renderer/src/assets/themes/portraits/moonlit-tea-room.png',
+      'src/renderer/src/assets/themes/portraits/noir-study.png'
+    ]
+    const hashes = scenes.map((filename) =>
+      createHash('sha256')
+        .update(readFileSync(path.resolve(filename)))
+        .digest('hex')
+    )
+    expect(new Set(hashes).size).toBe(scenes.length)
+  })
+})

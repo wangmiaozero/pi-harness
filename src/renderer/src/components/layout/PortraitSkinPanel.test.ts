@@ -9,7 +9,7 @@ import PortraitSkinPanel from './PortraitSkinPanel.vue'
 beforeEach(() => setActivePinia(createPinia()))
 
 describe('portrait skin panel', () => {
-  it.each(['noirScholar', 'moonlitMaid'] as const)(
+  it.each(['maidWhite', 'office', 'noirScholar', 'moonlitMaid'] as const)(
     'keeps %s art and status together without changing pet state',
     async (style) => {
       const pet = usePetStore()
@@ -19,6 +19,7 @@ describe('portrait skin panel', () => {
       })
       expect(wrapper.get('img').attributes('src')).toBe(PET_MANIFESTS[style].sprite)
       expect(wrapper.get('aside').attributes('aria-hidden')).toBe('true')
+      expect(wrapper.find('.portrait-skin-heading').exists()).toBe(false)
       expect(wrapper.find('button').exists()).toBe(false)
       const character = wrapper.get('.portrait-skin-character')
       expect(character.find('[data-testid="portrait-skin-image"]').exists()).toBe(true)

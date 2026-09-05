@@ -32,7 +32,9 @@ export function adaptAgentEventToPetEvents(event: AgentEvent): PetEvent[] {
     case 'prompt_error':
       return [{ type: 'TASK_FAILED' }]
     case 'prompt_done':
-      return [{ type: 'TASK_SUCCEEDED', celebrate: true }]
+      return event.success === false
+        ? [{ type: 'TASK_FAILED' }]
+        : [{ type: 'TASK_SUCCEEDED', celebrate: true }]
     case 'agent_end':
     case 'agent_settled':
       return [{ type: 'RUNTIME_SETTLED' }]

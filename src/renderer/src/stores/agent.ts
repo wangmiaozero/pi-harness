@@ -59,7 +59,19 @@ export const useAgentStore = defineStore('agent', () => {
       if (!body.sessionId || !body.event) return
       if (body.event.type === 'agent_end') void syncPersistedSession(body.sessionId)
       if (body.sessionId !== loadedSessionId) return
-      if (body.event.type === 'prompt_done') completionCount.value += 1
+      if (body.event.type === 'prompt_done') {
+        const completionError =
+          body.event.success === false
+            ? String(body.event.errorMessage ?? 'Agent error')
+            : undefined
+        if (body.event.success === false) {
+          error.value = completionError ?? 'Agent error'
+          streaming.value = streamReducer(streaming.value, { type: 'end' })
+        } else {
+          completionCount.value += 1
+        }
+        void syncPersistedSession(body.sessionId, completionError)
+      }
       applyEvent(body.event)
     })
     unsubRunning = getApi().on('agent-running', (payload) => {
@@ -344,12 +356,13 @@ export const useAgentStore = defineStore('agent', () => {
     }
   }
 
-  async function syncPersistedSession(sessionId: string) {
+  async function syncPersistedSession(sessionId: string, terminalError?: string) {
     const sessions = useSessionStore()
     await sessions.refresh(true)
     if (!sessions.items.some((session) => session.id === sessionId && !session.transient)) return
     transientSessionIds.delete(sessionId)
     if (loadedSessionId === sessionId) await load(sessionId)
+    if (terminalError && loadedSessionId === sessionId) error.value = terminalError
   }
 
   async function setThinking(sessionId: string, level: string) {

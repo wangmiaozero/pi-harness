@@ -10,6 +10,7 @@ describe('pet runtime adapter', () => {
   it('maps lifecycle and completion events', () => {
     expect(adapt({ type: 'agent_start' })).toEqual([{ type: 'TASK_STARTED' }])
     expect(adapt({ type: 'prompt_done' })).toEqual([{ type: 'TASK_SUCCEEDED', celebrate: true }])
+    expect(adapt({ type: 'prompt_done', success: false })).toEqual([{ type: 'TASK_FAILED' }])
     expect(adapt({ type: 'prompt_error' })).toEqual([{ type: 'TASK_FAILED' }])
     expect(adapt({ type: 'agent_end' })).toEqual([{ type: 'RUNTIME_SETTLED' }])
   })

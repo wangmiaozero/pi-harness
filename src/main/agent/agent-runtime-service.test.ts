@@ -108,37 +108,36 @@ describe('AgentRuntimeService', () => {
     expect(inner.setActiveToolsByName).toHaveBeenLastCalledWith(['read'])
   })
 
-  it('forwards images even when a provider catalog omits the model capability', async () => {
+  it('rejects image prompts when the active model is text-only', async () => {
     const inner = createAgentSession(createSessionManager())
     const refresh = vi.fn(async () => undefined)
     inner.modelRuntime = {
       refresh,
-      getModel: () => ({ id: 'glm-5.3-flash', provider: 'zhipuai', input: ['text'] })
+      getModel: () => ({ id: 'unlisted-vision-model', provider: 'provider', input: ['text'] })
     }
-    inner.model = { id: 'glm-5.3-flash', provider: 'zhipuai', input: ['text'] }
+    inner.model = { id: 'unlisted-vision-model', provider: 'provider', input: ['text'] }
     inner.setModel = vi.fn(async () => undefined)
     const image = { type: 'image', data: 'TQ==', mimeType: 'image/png' }
 
-    await new AgentSessionWrapper(inner).send({
-      type: 'prompt',
-      message: 'describe',
-      images: [image]
-    })
+    const wrapper = new AgentSessionWrapper(inner)
 
+    await expect(
+      wrapper.send({
+        type: 'prompt',
+        message: 'describe',
+        images: [image]
+      })
+    ).rejects.toThrow('Model does not support image input: provider/unlisted-vision-model')
     expect(refresh).toHaveBeenCalledWith({ allowNetwork: false })
-    expect(inner.setModel).toHaveBeenCalledWith(
-      expect.objectContaining({ input: ['text', 'image'] })
-    )
-    expect(inner.prompt).toHaveBeenCalledWith(
-      'describe',
-      expect.objectContaining({ images: [image], source: 'rpc' })
-    )
+    expect(inner.setModel).not.toHaveBeenCalled()
+    expect(inner.prompt).not.toHaveBeenCalled()
+    expect(wrapper.isRunning()).toBe(false)
   })
 
-  it('forwards queued images through steer with the same capability promotion', async () => {
+  it('forwards queued images when the active model declares image input', async () => {
     const inner = createAgentSession(createSessionManager())
     inner.isStreaming = true
-    inner.model = { id: 'future-multimodal', provider: 'provider', input: ['text'] }
+    inner.model = { id: 'multimodal', provider: 'provider', input: ['text', 'image'] }
     inner.setModel = vi.fn(async () => undefined)
     inner.steer = vi.fn(async () => undefined)
     const image = { type: 'image', data: 'TQ==', mimeType: 'image/png' }
@@ -149,9 +148,7 @@ describe('AgentRuntimeService', () => {
       images: [image]
     })
 
-    expect(inner.setModel).toHaveBeenCalledWith(
-      expect.objectContaining({ input: ['text', 'image'] })
-    )
+    expect(inner.setModel).not.toHaveBeenCalled()
     expect(inner.steer).toHaveBeenCalledWith('inspect', [image])
   })
 
@@ -169,6 +166,44 @@ describe('AgentRuntimeService', () => {
     ).rejects.toThrow('Image input is disabled in Pi settings')
     expect(inner.prompt).not.toHaveBeenCalled()
     expect(wrapper.isRunning()).toBe(false)
+  })
+
+  it('reports a resolved assistant error as a failed prompt completion', async () => {
+    const inner = createAgentSession(createSessionManager())
+    let emitSdkEvent: ((event: { type: string; [key: string]: unknown }) => void) | undefined
+    inner.subscribe = (listener) => {
+      emitSdkEvent = listener
+      return () => undefined
+    }
+    inner.prompt = vi.fn(async (_message: string, options?: Record<string, unknown>) => {
+      const preflightResult = options?.preflightResult as ((success: boolean) => void) | undefined
+      preflightResult?.(true)
+      emitSdkEvent?.({
+        type: 'message_end',
+        message: {
+          role: 'assistant',
+          model: 'glm-5.3',
+          provider: 'volcengine',
+          content: [],
+          stopReason: 'error',
+          errorMessage: 'Model only supports text input'
+        }
+      })
+    })
+    const wrapper = new AgentSessionWrapper(inner)
+    const events: Array<{ type: string; [key: string]: unknown }> = []
+    wrapper.start()
+    wrapper.onEvent((event) => events.push(event))
+
+    await wrapper.send({ type: 'prompt', message: 'describe' })
+
+    await vi.waitFor(() => {
+      expect(events.at(-1)).toEqual({
+        type: 'prompt_done',
+        success: false,
+        errorMessage: 'Model only supports text input'
+      })
+    })
   })
 
   it('refreshes the model catalog before every explicit model switch', async () => {

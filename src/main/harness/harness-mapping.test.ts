@@ -64,6 +64,9 @@ describe('Harness mappings', () => {
     expect(mapAgentEvent({ type: 'queue_update', steering: ['a'], followUp: ['b', 'c'] })).toEqual([
       expect.objectContaining({ type: 'queue.changed', steering: 1, followUp: 2 })
     ])
+    expect(
+      mapAgentEvent({ type: 'prompt_done', success: false, errorMessage: 'Request failed' })
+    ).toEqual([expect.objectContaining({ type: 'runtime.error', message: 'Request failed' })])
   })
 
   it('maps Pi SessionManager entries to a content-free session tree DTO', () => {

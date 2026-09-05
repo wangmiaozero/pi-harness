@@ -306,7 +306,7 @@ describe('ProviderService model discovery', () => {
       'acme-reasoning'
     ])
     expect(providers.acme?.models?.every((model) => model.api === undefined)).toBe(true)
-    expect(providers.acme?.models?.every((model) => model.input?.includes('image'))).toBe(true)
+    expect(providers.acme?.models?.every((model) => model.input?.includes('image'))).toBe(false)
     expect(created.name).toBe('acme')
   })
 })

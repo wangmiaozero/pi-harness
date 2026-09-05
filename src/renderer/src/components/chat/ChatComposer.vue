@@ -46,7 +46,6 @@ const busy = computed(
   () => agent.sending || agent.streaming.isStreaming || agent.state?.isPromptRunning === true
 )
 const compactAvailable = computed(() => canCompactSession(agent.messages, agent.state, busy.value))
-const canSend = computed(() => Boolean(workspace.draft.trim() || workspace.draftImages.length))
 
 function onTextareaFocus() {
   textareaFocused.value = true
@@ -101,6 +100,26 @@ const modelValue = computed({
   }
 })
 
+const selectedModel = computed(() =>
+  models.items.find((model) => {
+    const provider = providers.items.find((item) => item.id === model.providerId)
+    const providerKey = provider?.key ?? model.providerId
+    return `${providerKey}/${model.modelId}` === modelValue.value
+  })
+)
+const supportsImages = computed(() => selectedModel.value?.vision === true)
+const hasUnsupportedImages = computed(
+  () => workspace.draftImages.length > 0 && !supportsImages.value
+)
+const canSend = computed(
+  () =>
+    Boolean(workspace.draft.trim() || workspace.draftImages.length) && !hasUnsupportedImages.value
+)
+
+function warnImageUnsupported() {
+  toast.warning(t('workspace.imageUnsupported'))
+}
+
 const thinkingOptions = computed(() => [
   { value: 'auto', label: 'auto', description: t('workspace.thinkingAuto') },
   ...PI_THINKING_LEVELS.map((level) => ({
@@ -138,7 +157,8 @@ const toolPreset = computed({
 function onKeydown(e: KeyboardEvent) {
   if (shouldSendComposerKey(e)) {
     e.preventDefault()
-    emit('send')
+    if (hasUnsupportedImages.value) warnImageUnsupported()
+    else if (canSend.value) emit('send')
   }
   if (e.key === 'Escape' && busy.value) {
     e.preventDefault()
@@ -181,6 +201,10 @@ function readImage(file: File): Promise<ChatDraftImage> {
 }
 
 async function processImageFiles(files: File[]) {
+  if (!supportsImages.value) {
+    warnImageUnsupported()
+    return
+  }
   const imageFiles = files.filter((file) => file.type.startsWith('image/'))
   if (!imageFiles.length) {
     if (files.length) toast.warning(t('workspace.imageOnly'))
@@ -220,6 +244,10 @@ async function processImageFiles(files: File[]) {
 
 function chooseImages() {
   emit('unlockAudio')
+  if (!supportsImages.value) {
+    warnImageUnsupported()
+    return
+  }
   fileInput.value?.click()
 }
 
@@ -332,6 +360,9 @@ async function onCompact() {
         </button>
       </div>
     </div>
+    <p v-if="hasUnsupportedImages" class="mb-2 text-[11px] text-[var(--danger)]">
+      {{ $t('workspace.imageUnsupported') }}
+    </p>
     <div
       class="command-console-input relative overflow-hidden rounded-[var(--radius-sm)] border bg-[var(--control-bg)] shadow-[var(--control-shadow)] transition-[background-color,border-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-[var(--control-bg-hover)]"
       :class="
@@ -356,9 +387,10 @@ async function onCompact() {
     <div class="command-console-controls mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
       <button
         type="button"
-        class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[8px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+        class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[8px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
         :class="workspace.draftImages.length ? 'text-[var(--accent)]' : ''"
-        :title="$t('workspace.attachImage')"
+        :disabled="!supportsImages"
+        :title="supportsImages ? $t('workspace.attachImage') : $t('workspace.imageUnsupported')"
         :aria-label="$t('workspace.attachImage')"
         @click="chooseImages"
       >

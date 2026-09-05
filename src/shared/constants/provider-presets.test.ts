@@ -74,4 +74,15 @@ describe('provider preset catalog', () => {
       )?.input
     ).toEqual(['text', 'image'])
   })
+
+  it('ships the current GLM flash model as multimodal', () => {
+    for (const providerId of ['zhipuai', 'zhipuai-coding-plan']) {
+      const preset = findProviderPreset({ key: providerId })
+      expect(preset?.defaultModelId).toBe('glm-5.3-flash')
+      expect(preset?.models.find((model) => model.id === 'glm-5.3-flash')?.input).toEqual([
+        'text',
+        'image'
+      ])
+    }
+  })
 })

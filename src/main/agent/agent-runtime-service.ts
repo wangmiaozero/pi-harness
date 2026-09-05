@@ -51,6 +51,7 @@ export class AgentSessionWrapper {
   private shutdownPromise: Promise<void> | null = null
   private pendingPromptCount = 0
   private promptAdmissionTail: Promise<void> = Promise.resolve()
+  private promptErrorMessage: string | null = null
   private forceEmptySystemPrompt = false
   private workspacePrompt = ''
   private workspacePromptProvider: (() => string | null) | null = null
@@ -85,6 +86,9 @@ export class AgentSessionWrapper {
 
   start(): void {
     this.unsubscribe = this.inner.subscribe((event) => {
+      if (event.type === 'message_end') {
+        this.promptErrorMessage = assistantErrorMessage(event.message)
+      }
       if (event.type === 'agent_end') {
         /* session list refresh is triggered by the runtime service */
       }
@@ -159,6 +163,7 @@ export class AgentSessionWrapper {
             this.resetIdleTimer()
           }
           this.pendingPromptCount += 1
+          this.promptErrorMessage = null
           this.applyForcedEmptySystemPrompt()
           const streamingBehavior = command.streamingBehavior as 'steer' | 'followUp' | undefined
           let prompt: Promise<void>
@@ -179,17 +184,27 @@ export class AgentSessionWrapper {
             () => {
               acceptPreflight()
               finishPrompt()
-              if (!streamingBehavior) this.emit({ type: 'prompt_done' })
+              if (!streamingBehavior) {
+                const errorMessage = this.promptErrorMessage
+                this.emit({
+                  type: 'prompt_done',
+                  success: errorMessage === null,
+                  ...(errorMessage ? { errorMessage } : {})
+                })
+              }
             },
             (error) => {
               rejectPreflight(error)
               finishPrompt()
               if (preflightAccepted) {
+                const errorMessage = error instanceof Error ? error.message : String(error)
                 this.emit({
                   type: 'prompt_error',
-                  errorMessage: error instanceof Error ? error.message : String(error)
+                  errorMessage
                 })
-                if (!streamingBehavior) this.emit({ type: 'prompt_done' })
+                if (!streamingBehavior) {
+                  this.emit({ type: 'prompt_done', success: false, errorMessage })
+                }
               }
             }
           )
@@ -431,18 +446,8 @@ export class AgentSessionWrapper {
     }
     if (!model) throw new AgentError('No model selected')
 
-    // Provider catalogs are often incomplete or stale. Mark the active model as
-    // image-capable for an explicit image prompt so Pi forwards the image instead
-    // of silently replacing it with an omission placeholder. The upstream API
-    // remains the final authority and will return an actionable error if needed.
-    const effectiveModel = model.input?.includes('image')
-      ? model
-      : {
-          ...model,
-          input: [...new Set(['text', ...(model.input ?? []), 'image'])] as Array<'text' | 'image'>
-        }
-    if (!sameInputCapabilities(currentModel?.input, effectiveModel.input)) {
-      await this.inner.setModel(effectiveModel)
+    if (!model.input?.includes('image')) {
+      throw new AgentError(`Model does not support image input: ${model.provider}/${model.id}`)
     }
     return images
   }
@@ -473,13 +478,14 @@ export class AgentSessionWrapper {
   }
 }
 
-function sameInputCapabilities(
-  left: Array<'text' | 'image'> | undefined,
-  right: Array<'text' | 'image'> | undefined
-): boolean {
-  return Boolean(
-    left?.length === right?.length && left?.every((value) => right?.includes(value) === true)
-  )
+function assistantErrorMessage(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null
+  const message = value as { role?: unknown; stopReason?: unknown; errorMessage?: unknown }
+  if (message.role !== 'assistant') return null
+  if (message.stopReason !== 'error' && typeof message.errorMessage !== 'string') return null
+  return typeof message.errorMessage === 'string' && message.errorMessage.trim()
+    ? message.errorMessage
+    : 'Agent error'
 }
 
 function withExtensionTools(session: AgentSessionLike, toolNames: string[]): string[] {

@@ -25,8 +25,11 @@ describe('MascotBackground', () => {
     }
   })
 
-  it('keeps original portrait backgrounds static even with pet animations enabled', () => {
-    const wrapper = mount(MascotBackground, { props: { style: 'noirScholar', animated: true } })
-    expect(wrapper.get('.pet-renderer').classes()).toContain('pet-motion-off')
-  })
+  it.each(['maidWhite', 'office', 'noirScholar', 'moonlitMaid'] as const)(
+    'keeps the %s portrait static even with pet animations enabled',
+    (style) => {
+      const wrapper = mount(MascotBackground, { props: { style, animated: true } })
+      expect(wrapper.get('.pet-renderer').classes()).toContain('pet-motion-off')
+    }
+  )
 })

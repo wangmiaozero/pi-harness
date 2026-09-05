@@ -10,7 +10,15 @@ export function mapAgentEvent(event: AgentEvent, timestamp = Date.now()): Harnes
     case 'agent_settled':
       return [{ type: 'runtime.idle', timestamp }]
     case 'prompt_done':
-      return [{ type: 'prompt.completed', timestamp }]
+      return event.success === false
+        ? [
+            {
+              type: 'runtime.error',
+              timestamp,
+              message: redactSecretText(String(event.errorMessage ?? 'Agent error'))
+            }
+          ]
+        : [{ type: 'prompt.completed', timestamp }]
     case 'prompt_error':
       return [
         {

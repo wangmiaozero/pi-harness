@@ -60,7 +60,7 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
           v-if="!isWorkspace || !visualSkin?.portrait"
           :style="mascotStyle"
           :state="pet.state"
-          :enabled="Boolean(settings.settings?.mascotUnlocked && settings.settings?.petEnabled)"
+          :enabled="Boolean(visualSkin)"
           :animated="visualAnimationsEnabled"
           :context="isWorkspace ? 'workspace' : 'page'"
         />

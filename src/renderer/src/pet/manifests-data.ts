@@ -48,15 +48,10 @@ function manifest(
   }
 }
 
-/**
- * Built-in manifests. Priority themes expose all state animation entries
- * immediately. `maidWhite` and `office` keep their own characters but borrow
- * the starship cockpit and noir study scene backgrounds and skins (see
- * `MASCOT_STYLE_VISUAL_ALIASES`) until dedicated scenes exist.
- */
+/** Built-in manifests. Priority themes expose all state animation entries immediately. */
 export const PET_MANIFESTS: Readonly<Record<PetThemeId, PetManifest>> = {
-  maidWhite: manifest('maidWhite', 'Maid Style (White Stockings)', maidWhiteImage, '#7ab8ff', true),
-  office: manifest('office', 'Office Style (Black Tights)', officeImage, '#8caeff', true),
+  maidWhite: manifest('maidWhite', 'Maid Style (White Stockings)', maidWhiteImage, '#3868bd', true),
+  office: manifest('office', 'Office Style (Black Tights)', officeImage, '#c5a176', true),
   noirScholar: manifest(
     'noirScholar',
     'Noir Study · Silver Scholar',

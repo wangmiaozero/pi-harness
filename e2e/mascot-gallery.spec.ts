@@ -47,8 +47,8 @@ test('mascot gallery fills the page with equal-height previews across skins and 
     for (const [width, height, columns] of [
       [1920, 1080, 5],
       [1440, 900, 4],
-      [1000, 780, 3],
-      [760, 780, 2]
+      [1000, 780, 2],
+      [760, 780, 1]
     ]) {
       await page.setViewportSize({ width, height })
       const galleryBox = (await gallery.boundingBox())!
@@ -105,9 +105,8 @@ test('mascot gallery fills the page with equal-height previews across skins and 
   }
 
   // The wider gallery must not change the density of unrelated settings pages.
-  await page.getByTestId('settings-back').click()
   await page.getByTestId('settings-section-general').click()
-  const general = page.getByTestId('settings-back')
+  const general = page.getByTestId('window-motion-toggle')
   await expect(general).toBeVisible()
   expect(
     await page

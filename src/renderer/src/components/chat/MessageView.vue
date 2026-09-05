@@ -71,11 +71,6 @@ function imageSource(image: ImageContent): string | null {
   if (source?.type === 'url' && source.url?.startsWith('data:image/')) {
     return source.url
   }
-  const legacy = image as ImageContent & { data?: string; mimeType?: string }
-  if (legacy.data) {
-    const mime = legacy.mimeType?.startsWith('image/') ? legacy.mimeType : 'image/png'
-    return `data:${mime};base64,${legacy.data}`
-  }
   return null
 }
 

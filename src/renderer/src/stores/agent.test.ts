@@ -266,6 +266,103 @@ describe('agent store new-session handshake', () => {
     expect(agent.completionCount).toBe(1)
   })
 
+  it('reloads the persisted final response when live message events were missed', async () => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    const finalAssistant = {
+      role: 'assistant' as const,
+      model: 'vision-model',
+      provider: 'provider',
+      content: [{ type: 'text' as const, text: '图片内容已识别' }]
+    }
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      sessions: {
+        list: vi.fn().mockResolvedValue([
+          {
+            path: '/tmp/session-new.jsonl',
+            id: 'session-new',
+            cwd: '/code/project',
+            created: '2026-09-05T00:00:00.000Z',
+            modified: '2026-09-05T00:00:01.000Z',
+            messageCount: 2,
+            firstMessage: 'describe'
+          }
+        ]),
+        get: vi.fn().mockResolvedValue({
+          sessionId: 'session-new',
+          filePath: '/tmp/session-new.jsonl',
+          info: { id: 'session-new', name: 'Demo' },
+          leafId: 'leaf-2',
+          totalActiveMs: 0,
+          context: {
+            messages: [{ role: 'user', content: 'describe' }, finalAssistant],
+            entryIds: ['leaf-1', 'leaf-2'],
+            entryParents: { 'leaf-1': null, 'leaf-2': 'leaf-1' },
+            thinkingLevel: 'medium',
+            model: null
+          }
+        })
+      },
+      agent: {
+        start: vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' }),
+        prompt: vi.fn().mockResolvedValue(null),
+        state: vi.fn().mockResolvedValue(null),
+        running: vi.fn().mockResolvedValue([]),
+        command: vi.fn().mockImplementation((_id: string, input: { type: string }) => {
+          if (input.type === 'get_tools') return []
+          if (input.type === 'get_session_stats') return {}
+          return null
+        })
+      }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.send(null, '/code/project', 'describe', 'default')
+
+    onAgentEvent?.({
+      sessionId: 'session-new',
+      event: { type: 'prompt_done', success: true }
+    })
+
+    await vi.waitFor(() => expect(agent.messages.at(-1)).toEqual(finalAssistant))
+    expect(agent.completionCount).toBe(1)
+  })
+
+  it('surfaces failed prompt completion even when message_end was missed', async () => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      sessions: { list: vi.fn().mockResolvedValue([]) },
+      agent: {
+        start: vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' }),
+        prompt: vi.fn().mockResolvedValue(null)
+      }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.send(null, '/code/project', 'describe', 'default')
+
+    onAgentEvent?.({
+      sessionId: 'session-new',
+      event: {
+        type: 'prompt_done',
+        success: false,
+        errorMessage: 'Model only supports text input'
+      }
+    })
+
+    expect(agent.error).toBe('Model only supports text input')
+    expect(agent.completionCount).toBe(0)
+  })
+
   it('keeps streamed assistant text when message_end arrives empty', async () => {
     let onAgentEvent: ((payload: unknown) => void) | undefined
     window.piSwitch = {

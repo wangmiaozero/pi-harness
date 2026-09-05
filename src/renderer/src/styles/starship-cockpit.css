@@ -1,4 +1,4 @@
-/* Starship Cockpit is a visual skin selected from Mascot settings.
+/* Starship Cockpit is a visual skin selected from Theme settings.
  * It intentionally overrides both light and dark theme tokens while active. */
 .cockpit-only {
   display: none;
@@ -593,7 +593,7 @@
 }
 
 :root[data-visual-skin='starship-cockpit'] .chat-status-hud {
-  margin: 6px 8px 0;
+  margin: 0 8px 6px 0;
   height: 34px;
   border: 1px solid rgb(104 220 255 / 0.18);
   border-radius: 2px;
@@ -607,10 +607,11 @@
 
 :root[data-visual-skin='starship-cockpit'] .session-hud {
   margin: 0 8px;
+  border-top: 1px solid rgb(104 220 255 / 0.18);
   border-right: 1px solid rgb(104 220 255 / 0.18);
-  border-bottom: 1px solid rgb(104 220 255 / 0.18);
+  border-bottom: 0;
   border-left: 1px solid rgb(104 220 255 / 0.18);
-  border-radius: 0 0 7px 7px;
+  border-radius: 7px 7px 0 0;
   background: rgb(3 15 34 / 0.78);
   backdrop-filter: blur(14px);
 }
@@ -831,8 +832,7 @@
 }
 
 :root[data-visual-skin='starship-cockpit'] .settings-view section,
-:root[data-visual-skin='starship-cockpit'] .settings-view [class*='bg-[var(--bg-surface)]'],
-:root[data-visual-skin='starship-cockpit'] .settings-home-card {
+:root[data-visual-skin='starship-cockpit'] .settings-view [class*='bg-[var(--bg-surface)]'] {
   backdrop-filter: blur(12px);
 }
 

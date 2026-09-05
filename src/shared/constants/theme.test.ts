@@ -2,15 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { normalizeAppTheme, themeAppearance } from './theme'
 
 describe('app theme', () => {
-  it('migrates the removed system choice to the current appearance', () => {
-    expect(normalizeAppTheme('system', 'dark')).toBe('dark')
-    expect(normalizeAppTheme('system', 'light')).toBe('light')
-  })
-
-  it('keeps supported palettes and rejects stale values', () => {
+  it('keeps supported palettes and rejects unsupported values', () => {
     expect(normalizeAppTheme('pink')).toBe('pink')
     expect(normalizeAppTheme('purple')).toBe('purple')
     expect(normalizeAppTheme('green')).toBe('green')
+    expect(normalizeAppTheme('system')).toBe('dark')
     expect(normalizeAppTheme('neon')).toBe('dark')
   })
 
