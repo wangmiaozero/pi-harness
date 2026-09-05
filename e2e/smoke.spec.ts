@@ -7,10 +7,12 @@ const { version: APP_VERSION } = JSON.parse(fs.readFileSync('package.json', 'utf
 }
 
 test.describe('Pi-Harness smoke', () => {
-  test('launches and shows overview', async ({ page }) => {
+  test('launches without an overview rail item and lands in settings overview', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
-    // zh-CN default label for Overview is 「概览」
-    await expect(page.locator('a[href="#/"]').filter({ hasText: /概览|Overview/ })).toBeVisible()
+    // Overview now lives inside Settings; the icon rail must not offer it.
+    await expect(page.locator('a[href="#/"]')).toHaveCount(0)
+    await expect(page.locator('a[href="#/workspace"]').filter({ hasText: /工作区|Workspace/ })).toBeVisible()
+    await expect(page.locator('a[href="#/settings"]').filter({ hasText: /设置|Settings/ })).toBeVisible()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
   })
 
@@ -148,7 +150,8 @@ test.describe('Pi-Harness smoke', () => {
     await page.getByTestId('settings-section-diagnostics').click()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
 
-    await page.locator('a[href="#/"]').click()
+    await page.locator('a[href="#/settings"]').click()
+    await page.getByTestId('settings-section-overview').click()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
 
     expect(pageErrors).toEqual([])

@@ -58,6 +58,12 @@ const label = computed(() => {
   backdrop-filter: blur(10px);
   animation: pet-status-enter 160ms var(--ease-out) both;
 }
+
+/* Windows: skip the blur; the bubble background is near-opaque anyway. */
+:global(:root[data-platform='win']) .pet-status {
+  backdrop-filter: none;
+  --pet-status-bg: var(--bg-surface-raised);
+}
 .pet-status::after {
   position: absolute;
   left: 50%;

@@ -10,6 +10,7 @@ import {
   Download,
   FileCode2,
   FolderOpen,
+  LayoutDashboard,
   PanelLeft,
   Settings2,
   SlidersHorizontal,
@@ -31,6 +32,12 @@ const systemInfoReady = ref(false)
 const menuItems = computed(() => {
   const items = [
     {
+      id: 'overview',
+      to: '/settings/overview',
+      label: t('nav.overview'),
+      icon: LayoutDashboard
+    },
+    {
       id: 'general',
       to: '/settings/general',
       label: t('settings.general'),
@@ -49,14 +56,12 @@ const menuItems = computed(() => {
       icon: Activity
     }
   ]
-  if (packaged.value) {
-    items.push({
-      id: 'updates',
-      to: '/settings/updates',
-      label: t('settings.updates'),
-      icon: Download
-    })
-  }
+  items.push({
+    id: 'updates',
+    to: '/settings/updates',
+    label: t('settings.updates'),
+    icon: Download
+  })
   if (systemInfoReady.value && !packaged.value) {
     items.push({
       id: 'developer',

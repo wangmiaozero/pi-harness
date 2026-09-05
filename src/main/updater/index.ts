@@ -130,7 +130,6 @@ async function getAutoUpdater(): Promise<AutoUpdater | null> {
 }
 
 export function getUpdateState(): AppUpdateState {
-  if (!app.isPackaged) return { ...state, supported: false, status: 'idle' }
   return snapshot()
 }
 
@@ -144,7 +143,6 @@ export function checkForUpdates(): Promise<AppUpdateState> {
     clearTimeout(automaticCheckTimer)
     automaticCheckTimer = null
   }
-  if (!app.isPackaged) return Promise.resolve(getUpdateState())
   if (checkInFlight) return checkInFlight
   // A second check must not discard an update that is downloading or ready.
   if (state.downloaded || state.status === 'available' || state.status === 'downloading') {
@@ -157,6 +155,11 @@ export function checkForUpdates(): Promise<AppUpdateState> {
 }
 
 async function performUpdateCheck(): Promise<AppUpdateState> {
+  if (!app.isPackaged) {
+    // Development builds have no app-update.yml. Compare against the public
+    // GitHub Release so "Check for updates" stays meaningful outside installs.
+    return checkLatestReleaseOnly()
+  }
   updateState({ supported: true, status: 'checking', downloadProgress: null })
   const autoUpdater = await getAutoUpdater()
   if (!autoUpdater) return recoverFromUpdaterFailure(new Error('Updater could not be loaded'))
@@ -249,6 +252,49 @@ async function recoverFromUpdaterFailure(updaterError: unknown): Promise<AppUpda
     log.updater.error('release API fallback failed:', fallbackError, {
       updaterError
     })
+    return updateState({
+      supported: true,
+      available: false,
+      latestVersion: null,
+      status: 'error',
+      downloaded: false,
+      downloadProgress: null
+    })
+  }
+}
+
+/**
+ * Version-only check against the public GitHub Release. Used as the primary
+ * path in development builds and as the recovery path when electron-updater
+ * metadata is missing or incomplete.
+ */
+async function checkLatestReleaseOnly(): Promise<AppUpdateState> {
+  try {
+    const latestVersion = await fetchLatestReleaseVersion()
+    const currentVersion = validVersion(APP_VERSION)
+    if (!currentVersion) throw new Error(`Invalid current version: ${APP_VERSION}`)
+
+    if (isVersionGreater(latestVersion, currentVersion)) {
+      return updateState({
+        supported: true,
+        available: true,
+        latestVersion,
+        status: 'manual-update',
+        downloaded: false,
+        downloadProgress: null
+      })
+    }
+
+    return updateState({
+      supported: true,
+      available: false,
+      latestVersion,
+      status: 'not-available',
+      downloaded: false,
+      downloadProgress: null
+    })
+  } catch (error) {
+    log.updater.error('release version check failed:', error)
     return updateState({
       supported: true,
       available: false,

@@ -24,6 +24,13 @@ import { MASCOT_ENABLED } from '@shared/feature-flags'
 applyTheme('dark')
 installAuthorWatermark()
 
+/* Windows repaints blur/glass effects far more slowly than macOS. The platform
+ * attribute lets CSS drop expensive backdrop-filter layers on Windows without
+ * forking the stylesheet. */
+if (/Win/i.test(navigator.platform)) {
+  document.documentElement.dataset.platform = 'win'
+}
+
 const app = createApp(App)
 const pinia = createPinia()
 

@@ -42,7 +42,7 @@ describe('IPC schemas', () => {
     expect(appSettingsPatchSchema.safeParse({ screenMotionEnabled: true }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ navOrder: ['settings'] }).success).toBe(true)
     expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder?.[0]).toBe('settings')
-    expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder).toHaveLength(7)
+    expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder).toHaveLength(6)
     expect(appSettingsPatchSchema.safeParse({ density: 'compact' }).success).toBe(false)
     expect(pickKnownAppSettings({ theme: 'dark', density: 'compact' })).toEqual({ theme: 'dark' })
   })

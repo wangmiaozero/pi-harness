@@ -143,7 +143,7 @@
  * macOS Neutral Light — never pure SaaS white. We use a warm off-white ladder
  * so the UI sits on a clean desk, not on a hospital floor.
  * ============================================================================= */
-:root:is([data-theme='light'], [data-theme='pink'], [data-theme='purple'], [data-theme='green']) {
+:root:is([data-theme='light'], [data-theme='pink'], [data-theme='purple'], [data-theme='green'], [data-theme='blue'], [data-theme='orange'], [data-theme='red'], [data-theme='cyan']) {
   color-scheme: light;
 
   --bg-window: #f2f2f3;
@@ -310,6 +310,86 @@
   --accent-border: rgba(39, 132, 94, 0.3);
   --tone-tools-bg: rgba(39, 132, 94, 0.09);
   --tone-tools-text: #1d704e;
+}
+
+:root[data-theme='blue'] {
+  --bg-window: #eef2f8;
+  --bg-titlebar: #e7edf6;
+  --bg-sidebar: #e7edf6;
+  --bg-workspace: #f3f6fb;
+  --bg-surface: #fbfcfe;
+  --bg-surface-raised: #fbfcfe;
+  --bg-hover: #e3eaf4;
+  --bg-selected: #d8e5f5;
+  --accent: #3567a8;
+  --accent-hover: #2b5690;
+  --accent-active: #234778;
+  --accent-tint: rgba(53, 103, 168, 0.11);
+  --accent-tint-soft: rgba(53, 103, 168, 0.065);
+  --accent-tint-strong: rgba(53, 103, 168, 0.21);
+  --accent-border: rgba(53, 103, 168, 0.3);
+  --tone-tools-bg: rgba(53, 103, 168, 0.09);
+  --tone-tools-text: #2b5690;
+}
+
+:root[data-theme='orange'] {
+  --bg-window: #f8f2ec;
+  --bg-titlebar: #f3ebe1;
+  --bg-sidebar: #f3ebe1;
+  --bg-workspace: #fbf6f0;
+  --bg-surface: #fffdf9;
+  --bg-surface-raised: #fffdf9;
+  --bg-hover: #f4e9dc;
+  --bg-selected: #f7e3cd;
+  --accent: #c26a1f;
+  --accent-hover: #a85a15;
+  --accent-active: #8f4c10;
+  --accent-tint: rgba(194, 106, 31, 0.11);
+  --accent-tint-soft: rgba(194, 106, 31, 0.065);
+  --accent-tint-strong: rgba(194, 106, 31, 0.21);
+  --accent-border: rgba(194, 106, 31, 0.3);
+  --tone-tools-bg: rgba(194, 106, 31, 0.09);
+  --tone-tools-text: #a85a15;
+}
+
+:root[data-theme='red'] {
+  --bg-window: #f8efef;
+  --bg-titlebar: #f3e7e7;
+  --bg-sidebar: #f3e7e7;
+  --bg-workspace: #fbf5f5;
+  --bg-surface: #fffbfb;
+  --bg-surface-raised: #fffbfb;
+  --bg-hover: #f4e4e4;
+  --bg-selected: #f6dcdc;
+  --accent: #c04a4a;
+  --accent-hover: #a83a3a;
+  --accent-active: #913030;
+  --accent-tint: rgba(192, 74, 74, 0.11);
+  --accent-tint-soft: rgba(192, 74, 74, 0.065);
+  --accent-tint-strong: rgba(192, 74, 74, 0.21);
+  --accent-border: rgba(192, 74, 74, 0.3);
+  --tone-tools-bg: rgba(192, 74, 74, 0.09);
+  --tone-tools-text: #a83a3a;
+}
+
+:root[data-theme='cyan'] {
+  --bg-window: #ecf5f5;
+  --bg-titlebar: #e5efef;
+  --bg-sidebar: #e5efef;
+  --bg-workspace: #f2f9f9;
+  --bg-surface: #f9ffff;
+  --bg-surface-raised: #f9ffff;
+  --bg-hover: #e0efef;
+  --bg-selected: #d5ecec;
+  --accent: #1f8a8a;
+  --accent-hover: #177575;
+  --accent-active: #126161;
+  --accent-tint: rgba(31, 138, 138, 0.11);
+  --accent-tint-soft: rgba(31, 138, 138, 0.065);
+  --accent-tint-strong: rgba(31, 138, 138, 0.21);
+  --accent-border: rgba(31, 138, 138, 0.3);
+  --tone-tools-bg: rgba(31, 138, 138, 0.09);
+  --tone-tools-text: #177575;
 }
 
 /* =============================================================================

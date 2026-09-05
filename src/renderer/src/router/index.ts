@@ -5,9 +5,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'overview',
-      component: () => import('@renderer/views/OverviewView.vue'),
-      meta: { title: 'Overview', i18nKey: 'nav.overview' }
+      redirect: '/settings/overview'
     },
     {
       path: '/workspace',
@@ -45,6 +43,12 @@ const router = createRouter({
       meta: { title: 'Settings', i18nKey: 'nav.settings' },
       children: [
         { path: '', redirect: '/settings/general' },
+        {
+          path: 'overview',
+          name: 'settings-overview',
+          component: () => import('@renderer/views/OverviewView.vue'),
+          meta: { title: 'Overview', i18nKey: 'nav.overview' }
+        },
         {
           path: 'config',
           name: 'config',

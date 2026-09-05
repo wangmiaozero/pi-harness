@@ -52,14 +52,41 @@ describe('application updater', () => {
     mocks.openExternal.mockReset()
   })
 
-  it('stays idle and silent in an unpackaged development build', async () => {
+  it('compares against the public release API in an unpackaged development build', async () => {
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({ tag_name: `v${versions.current}` })
+    })
     const updater = await import('./index')
     const result = await updater.checkForUpdates()
 
-    expect(result).toMatchObject({ supported: false, status: 'idle', available: false })
+    expect(result).toMatchObject({
+      supported: true,
+      status: 'not-available',
+      available: false,
+      currentVersion: versions.current,
+      latestVersion: versions.current
+    })
     expect(result).not.toHaveProperty('message')
+    // Development builds never touch electron-updater itself.
     expect((mocks.autoUpdater as FakeAutoUpdater).checkForUpdates).not.toHaveBeenCalled()
-    expect(mocks.fetch).not.toHaveBeenCalled()
+  })
+
+  it('reports a manual update in development when the public release is newer', async () => {
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({ tag_name: `v${versions.newer}` })
+    })
+    const updater = await import('./index')
+
+    expect(await updater.checkForUpdates()).toMatchObject({
+      supported: true,
+      status: 'manual-update',
+      available: true,
+      latestVersion: versions.newer
+    })
   })
 
   it('automatically downloads packaged updates and exposes progress', async () => {

@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { LayoutDashboard, Box, Cpu, Settings, Sparkles, SquareTerminal, GitBranch } from '@lucide/vue'
+import { Box, Cpu, Settings, Sparkles, SquareTerminal, GitBranch } from '@lucide/vue'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { normalizeNavOrder, type NavItemId } from '@shared/constants/navigation'
 
@@ -21,13 +21,6 @@ const catalog = computed(
       icon: SquareTerminal,
       label: t('nav.workspace'),
       short: t('navShort.workspace')
-    },
-    overview: {
-      name: 'overview',
-      to: '/',
-      icon: LayoutDashboard,
-      label: t('nav.overview'),
-      short: t('navShort.overview')
     },
     providers: {
       name: 'providers',

@@ -1,4 +1,14 @@
-export const APP_THEMES = ['dark', 'light', 'pink', 'purple', 'green'] as const
+export const APP_THEMES = [
+  'dark',
+  'light',
+  'pink',
+  'purple',
+  'green',
+  'blue',
+  'orange',
+  'red',
+  'cyan'
+] as const
 
 export type AppTheme = (typeof APP_THEMES)[number]
 export type ThemeAppearance = 'dark' | 'light'

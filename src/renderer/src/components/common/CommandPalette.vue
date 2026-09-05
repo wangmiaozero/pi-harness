@@ -61,9 +61,9 @@ const commands = computed<PaletteCommand[]>(() => {
       id: 'nav-overview',
       label: t('palette.goOverview'),
       group: t('palette.groupNav'),
-      keywords: 'home dashboard',
+      keywords: 'home dashboard overview settings',
       run: () => {
-        void router.push('/')
+        void router.push('/settings/overview')
       }
     },
     {

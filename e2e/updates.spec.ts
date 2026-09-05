@@ -13,11 +13,25 @@ const updaterModuleUrl = pathToFileURL(
   path.resolve('node_modules/electron-updater/out/main.js')
 ).href
 
-test('development builds do not check installed application updates', async ({ page }) => {
+test('development builds check the public release API from the always-available updates page', async ({
+  electronApp,
+  page
+}) => {
+  // Development builds have no app-update.yml; the check compares against the
+  // public GitHub Release instead. Mock it so the assertion is deterministic.
+  await electronApp.evaluate(({ app, net }, version) => {
+    Object.defineProperty(app, 'isPackaged', { value: false })
+    net.fetch = async () =>
+      new Response(JSON.stringify({ tag_name: `v${version}`, draft: false, prerelease: false }))
+  }, APP_VERSION)
+
   const result = await page.evaluate(() => window.piSwitch.updater.check())
-  expect(result).toMatchObject({ supported: false, status: 'idle', available: false })
+  expect(result).toMatchObject({ supported: true, status: 'not-available', available: false })
+
   await page.locator('a[href="#/settings"]').click()
-  await expect(page.getByRole('button', { name: /检查更新|Check for updates/ })).toHaveCount(0)
+  await page.getByTestId('settings-section-updates').click()
+  await expect(page.getByRole('button', { name: /检查更新|Check for updates/ }).first()).toBeVisible()
+  await expect(page.getByTestId('settings-version')).toContainText(APP_VERSION)
 })
 
 test('loads the real ESM updater and offers the manual release download', async ({

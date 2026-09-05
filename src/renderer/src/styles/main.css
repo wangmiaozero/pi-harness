@@ -12,6 +12,13 @@
   backdrop-filter: blur(12px);
 }
 
+/* Windows: backdrop blur repaints on scroll are expensive and the tint layers
+ * underneath are nearly opaque anyway, so the visual payoff is negligible. */
+:root[data-platform='win'] .harness-card {
+  backdrop-filter: none;
+  background: var(--bg-surface-raised);
+}
+
 .harness-card-title {
   color: var(--text-secondary);
   font-size: 11px;

@@ -4,7 +4,6 @@ export const NAV_ITEM_IDS = [
   'providers',
   'models',
   'skills',
-  'overview',
   'settings'
 ] as const
 
