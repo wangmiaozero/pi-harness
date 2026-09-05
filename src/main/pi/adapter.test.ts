@@ -128,4 +128,16 @@ describe('modelToDomain', () => {
     expect(model.vision).toBe(true)
     expect(model.capabilities.vision).toBe(true)
   })
+
+  it('uses current catalog vision capabilities when local Pi input is stale', () => {
+    const model = modelToDomain(
+      'zhipuai-coding-plan',
+      { id: 'glm-5.3-flash', input: ['text'] },
+      'openai-completions',
+      undefined
+    )
+
+    expect(model.vision).toBe(true)
+    expect(model.capabilities.vision).toBe(true)
+  })
 })

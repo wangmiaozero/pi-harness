@@ -112,3 +112,14 @@ export function findProviderPreset(input: {
       (!protocol || preset.protocol === protocol)
   )
 }
+
+export function resolveModelInput(input: {
+  providerKey: string
+  modelId: string
+  configuredInput?: readonly PiInputType[]
+}): readonly PiInputType[] {
+  const catalogInput = findProviderPreset({ key: input.providerKey })?.models.find(
+    (model) => model.id === input.modelId
+  )?.input
+  return catalogInput ?? input.configuredInput ?? ['text']
+}

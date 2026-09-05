@@ -9,6 +9,7 @@ import type { ProtocolId } from '@shared/constants/protocols'
 import type { ApiKeySpec, ModelDefinition, ProviderProfile } from '@shared/types/domain'
 import type { PiModelConfig, PiProviderConfig } from '@shared/types/pi'
 import { isProtocolId } from '@shared/constants/protocols'
+import { resolveModelInput } from '@shared/constants/provider-presets'
 import type { ModelMeta, ProviderMeta } from '../services/metadata-store'
 import { modelMetaKey } from '../services/metadata-store'
 import { macKeychainCommand, maskKey, secretStore } from '../security/secret-store'
@@ -120,8 +121,13 @@ export function modelToDomain(
   const protocol: ProtocolId = isProtocolId(pi.api ?? '')
     ? (pi.api as ProtocolId)
     : providerProtocol
-  const input = pi.input ?? ['text']
-  // `input` is a Pi-native runtime field. Never let stale UI metadata override it.
+  const input = resolveModelInput({
+    providerKey,
+    modelId: pi.id,
+    configuredInput: pi.input
+  })
+  // Current catalog capabilities override stale local entries; custom models keep
+  // their explicitly configured Pi input modes.
   const vision = input.includes('image')
   const tools = meta?.capabilities?.tools ?? true
   const reasoning = meta?.capabilities?.reasoning ?? pi.reasoning ?? false

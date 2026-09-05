@@ -26,6 +26,7 @@ import {
 } from '@shared/workspace/agent-event-wire'
 import { getToolNamesForPreset } from '@shared/workspace/tool-presets'
 import { validateAgentImages } from '@shared/workspace/image-attachments'
+import { resolveModelInput } from '@shared/constants/provider-presets'
 import {
   loadPiCodingAgent,
   peekPiCodingAgent,
@@ -225,7 +226,12 @@ export class AgentSessionWrapper {
         await this.inner.modelRuntime.refresh({ allowNetwork: false })
         const model = this.inner.modelRuntime.getModel(provider, modelId)
         if (!model) throw new AgentError(`Model not found: ${provider}/${modelId}`)
-        await this.inner.setModel(model)
+        const resolvedInput = resolveModelInput({
+          providerKey: model.provider,
+          modelId: model.id,
+          configuredInput: model.input
+        })
+        await this.inner.setModel({ ...model, input: [...resolvedInput] })
         return {
           id: (model as { id: string }).id,
           provider: (model as { provider: string }).provider
@@ -446,8 +452,16 @@ export class AgentSessionWrapper {
     }
     if (!model) throw new AgentError('No model selected')
 
-    if (!model.input?.includes('image')) {
+    const effectiveInput = resolveModelInput({
+      providerKey: model.provider,
+      modelId: model.id,
+      configuredInput: model.input
+    })
+    if (!effectiveInput.includes('image')) {
       throw new AgentError(`Model does not support image input: ${model.provider}/${model.id}`)
+    }
+    if (!sameInputCapabilities(currentModel?.input, effectiveInput)) {
+      await this.inner.setModel({ ...model, input: [...effectiveInput] })
     }
     return images
   }
@@ -486,6 +500,15 @@ function assistantErrorMessage(value: unknown): string | null {
   return typeof message.errorMessage === 'string' && message.errorMessage.trim()
     ? message.errorMessage
     : 'Agent error'
+}
+
+function sameInputCapabilities(
+  left: readonly ('text' | 'image')[] | undefined,
+  right: readonly ('text' | 'image')[]
+): boolean {
+  return Boolean(
+    left?.length === right.length && left.every((value) => right.includes(value) === true)
+  )
 }
 
 function withExtensionTools(session: AgentSessionLike, toolNames: string[]): string[] {

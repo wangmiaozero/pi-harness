@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { PROTOCOL_IDS } from '@shared/constants/protocols'
-import { findProviderPreset, PROVIDER_PRESETS } from '@shared/constants/provider-presets'
+import {
+  findProviderPreset,
+  PROVIDER_PRESETS,
+  resolveModelInput
+} from '@shared/constants/provider-presets'
 
 describe('provider preset catalog', () => {
   it('contains the merged Pi-compatible provider/model catalog', () => {
@@ -84,5 +88,29 @@ describe('provider preset catalog', () => {
         'image'
       ])
     }
+  })
+
+  it('uses current catalog input modes before stale local model metadata', () => {
+    expect(
+      resolveModelInput({
+        providerKey: 'zhipuai-coding-plan',
+        modelId: 'glm-5.3-flash',
+        configuredInput: ['text']
+      })
+    ).toEqual(['text', 'image'])
+    expect(
+      resolveModelInput({
+        providerKey: 'stepfun',
+        modelId: 'step-3.7-flash',
+        configuredInput: ['text']
+      })
+    ).toEqual(['text', 'image'])
+    expect(
+      resolveModelInput({
+        providerKey: 'custom-provider',
+        modelId: 'custom-vision',
+        configuredInput: ['text', 'image']
+      })
+    ).toEqual(['text', 'image'])
   })
 })

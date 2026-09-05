@@ -152,6 +152,39 @@ describe('AgentRuntimeService', () => {
     expect(inner.steer).toHaveBeenCalledWith('inspect', [image])
   })
 
+  it('applies current catalog image capability before sending to Pi', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.modelRuntime = {
+      refresh: vi.fn(async () => undefined),
+      getModel: () => ({
+        id: 'glm-5.3-flash',
+        provider: 'zhipuai-coding-plan',
+        input: ['text']
+      })
+    }
+    inner.model = {
+      id: 'glm-5.3-flash',
+      provider: 'zhipuai-coding-plan',
+      input: ['text']
+    }
+    inner.setModel = vi.fn(async () => undefined)
+    const image = { type: 'image', data: 'TQ==', mimeType: 'image/png' }
+
+    await new AgentSessionWrapper(inner).send({
+      type: 'prompt',
+      message: 'describe',
+      images: [image]
+    })
+
+    expect(inner.setModel).toHaveBeenCalledWith(
+      expect.objectContaining({ input: ['text', 'image'] })
+    )
+    expect(inner.prompt).toHaveBeenCalledWith(
+      'describe',
+      expect.objectContaining({ images: [image], source: 'rpc' })
+    )
+  })
+
   it('rejects image prompts when Pi image input is globally disabled', async () => {
     const inner = createAgentSession(createSessionManager())
     inner.settingsManager = { getBlockImages: () => true }
