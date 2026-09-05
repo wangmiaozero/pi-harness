@@ -61,6 +61,7 @@ export const ruRU: MessageTree = {
   },
   titlebar: {
     commandPalette: 'Палитра команд',
+    mingSubtitle: 'Код как кисть · Пишем будущее',
     minimize: 'Свернуть',
     maximize: 'Развернуть',
     close: 'Закрыть'
@@ -752,6 +753,10 @@ export const ruRU: MessageTree = {
     mascotNoirScholarHint: 'Серебряные волосы, угольный костюм и тёплое антикварное золото',
     mascotMoonlitMaid: 'Лунный салон · Серебряная горничная',
     mascotMoonlitMaidHint: 'Жемчужно-белый, мягкий сиреневый и серебряноволосая горничная',
+    mascotMingSnow: 'Снежный дворец Мин · Учёная с флейтой',
+    mascotMingSnowHint: 'Снежные павильоны, красная слива и шёлк слоновой кости с золотом',
+    mascotMingMoon: 'Лунный город Мин · Учёная со свитком',
+    mascotMingMoonHint: 'Крыши в лунном свете, багровый шёлк и тихая учёная атмосфера',
     petAnimations: 'Анимация',
     petStatusText: 'Текст состояния',
     petAutoSleep: 'Автосон',

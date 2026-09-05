@@ -7,7 +7,10 @@ import { APP_VERSION } from '@shared/constants/index'
 import appIconUrl from '../../../../../build/icon.png?url'
 
 const router = useRouter()
-withDefaults(defineProps<{ starshipCockpit?: boolean }>(), { starshipCockpit: false })
+withDefaults(defineProps<{ starshipCockpit?: boolean; mingDynasty?: boolean }>(), {
+  starshipCockpit: false,
+  mingDynasty: false
+})
 const isMac = ref(false)
 const isWin = ref(false)
 
@@ -51,10 +54,10 @@ async function close() {
         <small>星际驾驶舱 · 就绪</small>
       </span>
     </div>
-    <div class="pointer-events-none absolute inset-x-0 flex justify-center">
+    <div class="app-titlebar-brand pointer-events-none absolute inset-x-0 flex justify-center">
       <button
         type="button"
-        class="pointer-events-auto no-drag flex flex-col items-center justify-center gap-0.5 rounded-[var(--radius-sm)] px-1.5 py-0.5 transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+        class="app-titlebar-brand-button pointer-events-auto no-drag flex flex-col items-center justify-center gap-0.5 rounded-[var(--radius-sm)] px-1.5 py-0.5 transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
         :title="`Pi-Harness v${APP_VERSION}`"
         @click="router.push('/')"
       >
@@ -62,7 +65,10 @@ async function close() {
         <span
           class="app-titlebar-brand-name text-[11px] font-medium leading-none tracking-tight text-[var(--text-secondary)]"
         >
-          Pi-Harness
+          Pi-Harness<span v-if="mingDynasty"> v{{ APP_VERSION }}</span>
+        </span>
+        <span v-if="mingDynasty" class="ming-titlebar-subtitle">
+          {{ $t('titlebar.mingSubtitle') }}
         </span>
         <span
           v-if="starshipCockpit"

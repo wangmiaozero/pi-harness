@@ -14,7 +14,7 @@ async function expectPersistedMascotStyle(page: Page, style: string) {
     .toBe(style)
 }
 
-test('maid and office use dedicated scenes and independent palettes', async ({
+test('scene portrait themes use dedicated backgrounds and palettes', async ({
   page,
   electronApp
 }, testInfo) => {
@@ -38,6 +38,20 @@ test('maid and office use dedicated scenes and independent palettes', async ({
       appearance: 'dark',
       scene: 'dusk-executive-suite-v2',
       sprite: 'pico-office'
+    },
+    {
+      style: 'mingSnow',
+      skin: 'ming-snow',
+      appearance: 'dark',
+      scene: 'snow-palace',
+      sprite: 'snow-maiden'
+    },
+    {
+      style: 'mingMoon',
+      skin: 'ming-moon',
+      appearance: 'dark',
+      scene: 'moon-city',
+      sprite: 'moon-maiden'
     }
   ] as const) {
     await page.locator(`[data-mascot-option="${theme.style}"]`).click()
@@ -78,6 +92,137 @@ test('maid and office use dedicated scenes and independent palettes', async ({
     await page.locator('a[href="#/settings"]').click()
     await page.getByTestId('settings-section-mascot').click()
   }
+})
+
+test('ming portrait themes render full figures beside parchment conversation surfaces', async ({
+  page,
+  electronApp,
+  piAgentDir,
+  workspaceRoot
+}, testInfo) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  const id = '01a070f4-cc39-79f0-9666-6872c2c3b479'
+  const timestamp = '2026-09-05T06:00:00.000Z'
+  const directory = path.join(
+    piAgentDir,
+    'sessions',
+    `--${workspaceRoot.replace(/^[/\\]/, '').replace(/[/\\:]/g, '-')}--`
+  )
+  fs.mkdirSync(directory, { recursive: true })
+  fs.writeFileSync(
+    path.join(directory, `2026-09-05T06-00-00-000Z_${id}.jsonl`),
+    [
+      { type: 'session', version: 3, id, timestamp, cwd: workspaceRoot },
+      {
+        type: 'message',
+        id: 'user-1',
+        parentId: null,
+        timestamp,
+        message: {
+          role: 'user',
+          content: '将风格切换界面升级为独立的古风卡片网格，并清理冗余代码。',
+          timestamp: Date.parse(timestamp)
+        }
+      },
+      {
+        type: 'message',
+        id: 'assistant-1',
+        parentId: 'user-1',
+        timestamp,
+        message: {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: '已完成界面梳理，人物、场景与会话内容保持独立。\n\n```ts\nconst theme = "ming-dynasty"\n```'
+            },
+            {
+              type: 'toolCall',
+              toolCallId: 'edit-1',
+              toolName: 'edit',
+              input: { edits: [{ oldText: '...', newText: '...' }] }
+            }
+          ],
+          timestamp: Date.parse(timestamp)
+        }
+      }
+    ]
+      .map((entry) => JSON.stringify(entry))
+      .join('\n') + '\n'
+  )
+
+  await page.setViewportSize({ width: 1554, height: 1004 })
+  await page.locator('a[href="#/settings"]').click()
+  await page.getByTestId('settings-section-mascot').click()
+  await page.getByTestId('mascot-unlock-answer').fill('1024')
+  await page.getByRole('button', { name: /解锁|Unlock/, exact: true }).click()
+
+  for (const [style, skin, paper] of [
+    ['mingSnow', 'ming-snow', 'rgba(239, 222, 190, 0.96)'],
+    ['mingMoon', 'ming-moon', 'rgba(235, 214, 177, 0.96)']
+  ] as const) {
+    await page.locator(`[data-mascot-option="${style}"]`).click()
+    await page.locator('a[href="#/workspace"]').click()
+    if (await page.getByTestId('workspace-import-project').isVisible()) {
+      await electronApp.evaluate(({ dialog }, root) => {
+        dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [root] })
+      }, workspaceRoot)
+      await page.getByTestId('workspace-import-project').click()
+    }
+    await page.getByTestId('workspace-refresh').click()
+    await page
+      .getByTestId(`session-row-${id}`)
+      .getByRole('button', { name: /将风格切换界面升级/, exact: true })
+      .click()
+
+    const image = page.getByTestId('portrait-skin-image')
+    const assistant = page.locator('[data-message-role="assistant"]')
+    await expect(page.locator('html')).toHaveAttribute('data-visual-skin', skin)
+    await expect(image).toHaveJSProperty('naturalWidth', 1024)
+    await expect(image).toHaveJSProperty('naturalHeight', 1536)
+    await expect(assistant).toHaveCSS('background-color', paper)
+    await expect(assistant.locator('.tool-call-hud')).toHaveCSS(
+      'background-color',
+      'rgb(29, 29, 27)'
+    )
+
+    const [imageBox, assistantBox] = await Promise.all([
+      image.boundingBox(),
+      assistant.boundingBox()
+    ])
+    expect(assistantBox!.x).toBeGreaterThan(imageBox!.x + imageBox!.width * 0.78)
+    const statsToggle = page.getByTestId('chat-status-hud').locator('button[aria-expanded]')
+    await statsToggle.click()
+    await expect(page.locator('.session-hud')).toBeVisible()
+    await page.screenshot({ path: path.join(testInfo.outputDir, `${skin}-conversation.png`) })
+
+    await page.getByTestId('workspace-section-harness').click()
+    const harnessConsole = page.getByTestId('harness-console')
+    await expect(harnessConsole).toBeVisible()
+    await expect(page.getByTestId('portrait-skin-panel')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-toggle-files')).toHaveCount(0)
+    const [workspaceMainBox, harnessConsoleBox] = await Promise.all([
+      page.getByTestId('workspace-main').boundingBox(),
+      harnessConsole.boundingBox()
+    ])
+    expect(harnessConsoleBox).toEqual(workspaceMainBox)
+    await page.screenshot({ path: path.join(testInfo.outputDir, `${skin}-harness-mode.png`) })
+    await page.getByTestId('workspace-section-sessions').click()
+    await expect(image).toBeVisible()
+    await expect(assistant).toBeVisible()
+
+    await page.setViewportSize({ width: 1200, height: 780 })
+    await expect(page.getByTestId('portrait-skin-panel')).toBeVisible()
+    await expect(assistant).toBeVisible()
+    await page.setViewportSize({ width: 1554, height: 1004 })
+
+    await page.locator('a[href="#/settings"]').click()
+    await page.getByTestId('settings-section-mascot').click()
+  }
+
+  expect(errors).toEqual([])
 })
 
 test('switches original portrait skins, persists selection and restores plain themes', async ({

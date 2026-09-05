@@ -4,7 +4,9 @@ export const MASCOT_STYLES = [
   'office',
   'starshipCockpit',
   'noirScholar',
-  'moonlitMaid'
+  'moonlitMaid',
+  'mingSnow',
+  'mingMoon'
 ] as const
 
 export type MascotStyle = (typeof MASCOT_STYLES)[number]

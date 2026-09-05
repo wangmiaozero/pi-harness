@@ -59,6 +59,7 @@ export const enUS = {
   },
   titlebar: {
     commandPalette: 'Command Palette',
+    mingSubtitle: 'Code in ink · Build what comes next',
     minimize: 'Minimize',
     maximize: 'Maximize',
     close: 'Close'
@@ -749,6 +750,10 @@ export const enUS = {
     mascotNoirScholarHint: 'Silver hair, charcoal tailoring, and warm antique gold',
     mascotMoonlitMaid: 'Moonlit Salon · Silver Maid',
     mascotMoonlitMaidHint: 'Pearl white, soft lilac, and a silver-haired maid',
+    mascotMingSnow: 'Ming Snow Palace · Flute Scholar',
+    mascotMingSnowHint: 'Snowy halls, red plum, and ivory silk with antique gold',
+    mascotMingMoon: 'Ming Moon City · Scroll Scholar',
+    mascotMingMoonHint: 'Moonlit rooftops, oxblood silk, and a quiet scholarly air',
     petAnimations: 'Animations',
     petStatusText: 'Status text',
     petAutoSleep: 'Auto sleep',

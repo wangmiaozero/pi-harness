@@ -477,7 +477,7 @@ export interface PromptAgentInput {
 
 export interface WorkspaceTab {
   id: string
-  kind: 'chat' | 'file' | 'diff' | 'harness'
+  kind: 'chat' | 'file' | 'diff'
   title: string
   sessionId?: string
   filePath?: string

@@ -63,7 +63,9 @@ describe('independent maid and office scene assets', () => {
       'src/renderer/src/assets/themes/maid-white/azure-patisserie-atelier-v2.png',
       'src/renderer/src/assets/themes/office-executive/dusk-executive-suite-v2.png',
       'src/renderer/src/assets/themes/portraits/moonlit-tea-room.png',
-      'src/renderer/src/assets/themes/portraits/noir-study.png'
+      'src/renderer/src/assets/themes/portraits/noir-study.png',
+      'src/renderer/src/assets/themes/ming-dynasty/snow-palace.png',
+      'src/renderer/src/assets/themes/ming-dynasty/moon-city.png'
     ]
     const hashes = scenes.map((filename) =>
       createHash('sha256')
@@ -71,5 +73,27 @@ describe('independent maid and office scene assets', () => {
         .digest('hex')
     )
     expect(new Set(hashes).size).toBe(scenes.length)
+  })
+})
+
+describe('Ming Dynasty scene assets', () => {
+  it.each(['snow-palace', 'moon-city'])('ships %s at the workspace scene dimensions', (name) => {
+    const image = readFileSync(
+      path.resolve(`src/renderer/src/assets/themes/ming-dynasty/${name}.png`)
+    )
+    expect(image.readUInt32BE(16)).toBe(1672)
+    expect(image.readUInt32BE(20)).toBe(941)
+  })
+
+  it.each([
+    ['mingSnow', 'snow-maiden'],
+    ['mingMoon', 'moon-maiden']
+  ] as const)('ships %s as a transparent portrait', (style, name) => {
+    const image = readFileSync(
+      path.resolve(`src/renderer/src/assets/themes/ming-dynasty/${name}.png`)
+    )
+    expect(image.readUInt32BE(16)).toBe(PET_MANIFESTS[style].frameWidth)
+    expect(image.readUInt32BE(20)).toBe(PET_MANIFESTS[style].frameHeight)
+    expect(image.readUInt8(25)).toBe(6)
   })
 })

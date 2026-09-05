@@ -7,7 +7,9 @@ export const VISUAL_SKINS = {
   office: { id: 'office-executive', appearance: 'dark', portrait: true },
   starshipCockpit: { id: 'starship-cockpit', appearance: 'dark', portrait: false },
   noirScholar: { id: 'noir-scholar', appearance: 'dark', portrait: true },
-  moonlitMaid: { id: 'moonlit-maid', appearance: 'light', portrait: true }
+  moonlitMaid: { id: 'moonlit-maid', appearance: 'light', portrait: true },
+  mingSnow: { id: 'ming-snow', appearance: 'dark', portrait: true },
+  mingMoon: { id: 'ming-moon', appearance: 'dark', portrait: true }
 } as const
 
 export type VisualSkin = (typeof VISUAL_SKINS)[keyof typeof VISUAL_SKINS]

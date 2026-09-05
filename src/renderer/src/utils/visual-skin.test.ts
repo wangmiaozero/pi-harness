@@ -43,6 +43,8 @@ describe('visual skin transitions', () => {
       'office',
       'moonlitMaid',
       'noirScholar',
+      'mingSnow',
+      'mingMoon',
       'starshipCockpit'
     ] as const) {
       applyVisualSkin({ ...activeSettings, mascotStyle })

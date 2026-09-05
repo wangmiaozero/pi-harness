@@ -6,6 +6,8 @@ Public release notes contain only released, user-visible additions and fixes.
 
 ### Added
 
+- Added a quarantine-repair app (「修复」) inside the macOS DMG to clear the "app is damaged" Gatekeeper flag on unsigned installs.
+
 ### Fixed
 
 ## 1.2.0 — 2026-08-30

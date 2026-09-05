@@ -65,10 +65,6 @@ function saveWorkspace() {
   void workspaceSidebar.value?.saveWorkspace()
 }
 
-function openHarness() {
-  workspace.ensureHarnessTab(t('workspace.harnessTitle'))
-}
-
 function setWorkspaceSection(section: 'sessions' | 'harness') {
   activeWorkspaceSection.value = section
 }
@@ -84,6 +80,7 @@ const offClose = registerShortcut({
   label: t('workspace.closeTab'),
   keys: ['meta+w', 'ctrl+w'],
   run: () => {
+    if (activeWorkspaceSection.value === 'harness') return
     if (workspace.filePanelOpen && document.activeElement?.closest('#workspace-files-panel')) {
       filesPanel.value?.closeActiveFile()
       return
@@ -217,94 +214,99 @@ watch(
   <div class="workspace-view flex h-full min-h-0">
     <WorkspaceSidebar
       ref="workspaceSidebar"
+      :active-section="activeWorkspaceSection"
       @focus-composer="focusComposer"
-      @open-harness="openHarness"
       @section-change="setWorkspaceSection"
     />
-    <section class="workspace-main flex min-h-0 min-w-0 flex-1 flex-col">
-      <div
-        class="workspace-tabbar flex h-[var(--height-page-header)] min-w-0 shrink-0 items-center"
-      >
-        <WorkspaceTabs
-          v-if="workspace.mainTabs.length"
-          ref="workspaceTabs"
-          @focus-composer="focusComposer"
-        />
+    <section
+      data-testid="workspace-main"
+      class="workspace-main flex min-h-0 min-w-0 flex-1 flex-col"
+    >
+      <HarnessConsole v-if="activeWorkspaceSection === 'harness'" />
+      <template v-else>
         <div
-          class="ml-auto flex h-full shrink-0 items-center border-b border-[var(--border-subtle)] px-2"
+          class="workspace-tabbar flex h-[var(--height-page-header)] min-w-0 shrink-0 items-center"
         >
-          <IconButton
-            :label="$t('workspace.files')"
-            :active="workspace.filePanelOpen"
-            show-label
-            :aria-expanded="workspace.filePanelOpen"
-            aria-controls="workspace-files-panel"
-            data-testid="workspace-toggle-files"
-            @click="workspace.filePanelOpen = !workspace.filePanelOpen"
-          >
-            <FolderOpen class="size-3.5" :stroke-width="1.75" />
-          </IconButton>
-        </div>
-      </div>
-      <div
-        data-testid="workspace-scene"
-        class="workspace-content flex min-h-0 min-w-0 flex-1 overflow-hidden"
-      >
-        <PortraitSkinPanel
-          v-if="portraitSkinActive && settings.settings && !workspace.filePanelOpen"
-          :style="settings.settings.mascotStyle"
-          :show-status="settings.settings.petStatusText"
-        />
-        <div class="workspace-primary min-h-0 min-w-0 flex-1 overflow-hidden">
+          <WorkspaceTabs
+            v-if="workspace.mainTabs.length"
+            ref="workspaceTabs"
+            @focus-composer="focusComposer"
+          />
           <div
-            v-if="!workspace.canChat && activeKind !== 'harness'"
-            data-testid="workspace-project-required"
-            class="flex h-full min-h-0 items-center justify-center"
+            class="ml-auto flex h-full shrink-0 items-center border-b border-[var(--border-subtle)] px-2"
           >
-            <EmptyState
-              :title="$t('workspace.projectRequired')"
-              :description="$t('workspace.projectRequiredHint')"
-              :icon="FolderOpen"
+            <IconButton
+              :label="$t('workspace.files')"
+              :active="workspace.filePanelOpen"
+              show-label
+              :aria-expanded="workspace.filePanelOpen"
+              aria-controls="workspace-files-panel"
+              data-testid="workspace-toggle-files"
+              @click="workspace.filePanelOpen = !workspace.filePanelOpen"
             >
-              <button
-                type="button"
-                class="mt-3 rounded-[var(--radius-sm)] border border-[var(--accent-border)] bg-[var(--accent-tint)] px-3 py-1.5 text-[12px] font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent-tint-strong)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] active:bg-[var(--bg-selected)]"
-                @click="openProject"
-              >
-                {{ $t('workspace.openProject') }}
-              </button>
-              <button
-                type="button"
-                class="mt-2 rounded-[var(--radius-sm)] border border-[var(--border-default)] px-3 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-                @click="openWorkspace"
-              >
-                {{ $t('workspace.openWorkspace') }}
-              </button>
-              <p
-                v-if="workspace.recentWorkspaces.length"
-                class="mt-4 text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
-              >
-                {{ $t('workspace.recentWorkspaces') }}
-              </p>
-              <button
-                v-for="item in workspace.recentWorkspaces.slice(0, 8)"
-                :key="item.id"
-                type="button"
-                class="mt-1 max-w-[280px] truncate rounded-[var(--radius-sm)] px-2 py-1 text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
-                @click="openRecent(item)"
-              >
-                {{ item.name || item.workspaceFile || item.folderPaths[0] }}
-              </button>
-            </EmptyState>
-          </div>
-          <div v-else class="h-full min-h-0 overflow-hidden">
-            <ChatWindow v-if="activeKind === 'chat'" ref="chatWindow" />
-            <GitDiffView v-else-if="activeKind === 'diff'" />
-            <HarnessConsole v-else-if="activeKind === 'harness'" />
+              <FolderOpen class="size-3.5" :stroke-width="1.75" />
+            </IconButton>
           </div>
         </div>
-        <WorkspaceFilesPanel v-if="workspace.filePanelOpen" ref="filesPanel" />
-      </div>
+        <div
+          data-testid="workspace-scene"
+          class="workspace-content flex min-h-0 min-w-0 flex-1 overflow-hidden"
+        >
+          <PortraitSkinPanel
+            v-if="portraitSkinActive && settings.settings && !workspace.filePanelOpen"
+            :style="settings.settings.mascotStyle"
+            :show-status="settings.settings.petStatusText"
+          />
+          <div class="workspace-primary min-h-0 min-w-0 flex-1 overflow-hidden">
+            <div
+              v-if="!workspace.canChat"
+              data-testid="workspace-project-required"
+              class="flex h-full min-h-0 items-center justify-center"
+            >
+              <EmptyState
+                :title="$t('workspace.projectRequired')"
+                :description="$t('workspace.projectRequiredHint')"
+                :icon="FolderOpen"
+              >
+                <button
+                  type="button"
+                  class="mt-3 rounded-[var(--radius-sm)] border border-[var(--accent-border)] bg-[var(--accent-tint)] px-3 py-1.5 text-[12px] font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent-tint-strong)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] active:bg-[var(--bg-selected)]"
+                  @click="openProject"
+                >
+                  {{ $t('workspace.openProject') }}
+                </button>
+                <button
+                  type="button"
+                  class="mt-2 rounded-[var(--radius-sm)] border border-[var(--border-default)] px-3 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+                  @click="openWorkspace"
+                >
+                  {{ $t('workspace.openWorkspace') }}
+                </button>
+                <p
+                  v-if="workspace.recentWorkspaces.length"
+                  class="mt-4 text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+                >
+                  {{ $t('workspace.recentWorkspaces') }}
+                </p>
+                <button
+                  v-for="item in workspace.recentWorkspaces.slice(0, 8)"
+                  :key="item.id"
+                  type="button"
+                  class="mt-1 max-w-[280px] truncate rounded-[var(--radius-sm)] px-2 py-1 text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+                  @click="openRecent(item)"
+                >
+                  {{ item.name || item.workspaceFile || item.folderPaths[0] }}
+                </button>
+              </EmptyState>
+            </div>
+            <div v-else class="h-full min-h-0 overflow-hidden">
+              <ChatWindow v-if="activeKind === 'chat'" ref="chatWindow" />
+              <GitDiffView v-else-if="activeKind === 'diff'" />
+            </div>
+          </div>
+          <WorkspaceFilesPanel v-if="workspace.filePanelOpen" ref="filesPanel" />
+        </div>
+      </template>
     </section>
   </div>
 </template>

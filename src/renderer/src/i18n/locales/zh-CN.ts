@@ -61,6 +61,7 @@ export const zhCN: MessageTree = {
   },
   titlebar: {
     commandPalette: '命令面板',
+    mingSubtitle: '以代码为笔 · 书写智能未来',
     minimize: '最小化',
     maximize: '最大化',
     close: '关闭'
@@ -728,6 +729,10 @@ export const zhCN: MessageTree = {
     mascotNoirScholarHint: '银发黑衣与暖金点缀，沉静的书房氛围',
     mascotMoonlitMaid: '月白茶室 · 银发女仆',
     mascotMoonlitMaidHint: '珍珠白与浅丁香，温柔的银发女仆',
+    mascotMingSnow: '大明雪境 · 执箫问道',
+    mascotMingSnowHint: '雪宫红梅与象牙金绣，清冷雅致',
+    mascotMingMoon: '大明月夜 · 红衣书姬',
+    mascotMingMoonHint: '明月古城、朱红金绣与沉静书卷气',
     petAnimations: '启用动画',
     petStatusText: '显示状态文字',
     petAutoSleep: '自动休眠',

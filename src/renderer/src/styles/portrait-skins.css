@@ -175,6 +175,94 @@
   --portrait-page-overlay: rgb(250 247 251 / 0.62);
 }
 
+:root[data-visual-skin='ming-snow'] {
+  --bg-window: #121516;
+  --bg-titlebar: #17191a;
+  --bg-sidebar: #151718;
+  --bg-workspace: #202326;
+  --bg-surface: #242526;
+  --bg-surface-raised: #2c2b29;
+  --bg-hover: #37332e;
+  --bg-selected: #493a2b;
+  --text-primary: #f3eadb;
+  --text-secondary: #cfc1ad;
+  --text-tertiary: #a99b89;
+  --text-disabled: #796f64;
+  --accent: #d2a066;
+  --accent-hover: #e1b47f;
+  --accent-active: #b8844d;
+  --portrait-button-bg: #9d302d;
+  --portrait-button-hover: #b23b36;
+  --portrait-button-active: #872724;
+  --accent-border: #8f6f4c;
+  --border-subtle: rgb(218 183 136 / 0.12);
+  --border-default: rgb(218 183 136 / 0.24);
+  --border-strong: rgb(218 183 136 / 0.42);
+  --control-bg: #1d1f20;
+  --control-bg-hover: #292827;
+  --control-bg-disabled: #1a1c1d;
+  --control-border: rgb(218 183 136 / 0.26);
+  --control-border-hover: rgb(218 183 136 / 0.48);
+  --control-placeholder: #988a78;
+  --syntax-property: #e0b57d;
+  --syntax-heading: #ebc999;
+  --portrait-panel-background: transparent;
+  --portrait-scene-image: url('../assets/themes/ming-dynasty/snow-palace.png');
+  --portrait-glass-chrome: rgb(13 16 18 / 0.76);
+  --portrait-glass-control: rgb(30 31 31 / 0.68);
+  --portrait-glass-message: rgb(29 28 26 / 0.74);
+  --portrait-glass-input: rgb(16 18 19 / 0.72);
+  --portrait-glass-input-focus: rgb(22 23 23 / 0.84);
+  --portrait-glass-highlight: rgb(255 236 204 / 0.07);
+  --portrait-glass-shadow: rgb(0 0 0 / 0.18);
+  --portrait-status-bg: rgb(30 28 25 / 0.84);
+  --portrait-page-overlay: rgb(16 19 21 / 0.72);
+}
+
+:root[data-visual-skin='ming-moon'] {
+  --bg-window: #0e1113;
+  --bg-titlebar: #151516;
+  --bg-sidebar: #111315;
+  --bg-workspace: #191b1e;
+  --bg-surface: #211e1e;
+  --bg-surface-raised: #292323;
+  --bg-hover: #342828;
+  --bg-selected: #472827;
+  --text-primary: #f4eadd;
+  --text-secondary: #cdb9a8;
+  --text-tertiary: #a49182;
+  --text-disabled: #756860;
+  --accent: #c96958;
+  --accent-hover: #dd806d;
+  --accent-active: #aa5145;
+  --portrait-button-bg: #9f2928;
+  --portrait-button-hover: #b63431;
+  --portrait-button-active: #852120;
+  --accent-border: #8e5748;
+  --border-subtle: rgb(211 159 128 / 0.11);
+  --border-default: rgb(211 159 128 / 0.22);
+  --border-strong: rgb(211 159 128 / 0.4);
+  --control-bg: #1a191a;
+  --control-bg-hover: #272223;
+  --control-bg-disabled: #171718;
+  --control-border: rgb(211 159 128 / 0.24);
+  --control-border-hover: rgb(211 159 128 / 0.46);
+  --control-placeholder: #947e73;
+  --syntax-property: #d99478;
+  --syntax-heading: #e5ad8d;
+  --portrait-panel-background: transparent;
+  --portrait-scene-image: url('../assets/themes/ming-dynasty/moon-city.png');
+  --portrait-glass-chrome: rgb(10 13 15 / 0.78);
+  --portrait-glass-control: rgb(29 26 27 / 0.7);
+  --portrait-glass-message: rgb(26 23 24 / 0.76);
+  --portrait-glass-input: rgb(13 16 18 / 0.74);
+  --portrait-glass-input-focus: rgb(20 20 21 / 0.86);
+  --portrait-glass-highlight: rgb(255 222 195 / 0.07);
+  --portrait-glass-shadow: rgb(0 0 0 / 0.2);
+  --portrait-status-bg: rgb(28 23 23 / 0.86);
+  --portrait-page-overlay: rgb(11 14 17 / 0.74);
+}
+
 :root[data-portrait-skin='true'] {
   --accent-tint: color-mix(in srgb, var(--accent) 13%, transparent);
   --accent-tint-soft: color-mix(in srgb, var(--accent) 7%, transparent);
@@ -402,7 +490,9 @@
 :root:is(
     [data-visual-skin='maid-white'],
     [data-visual-skin='office-executive'],
-    [data-visual-skin='moonlit-maid']
+    [data-visual-skin='moonlit-maid'],
+    [data-visual-skin='ming-snow'],
+    [data-visual-skin='ming-moon']
   )
   .workspace-content {
   --standing-portrait-column: min(32cqw, 440px);
@@ -412,7 +502,9 @@
 :root:is(
     [data-visual-skin='maid-white'],
     [data-visual-skin='office-executive'],
-    [data-visual-skin='moonlit-maid']
+    [data-visual-skin='moonlit-maid'],
+    [data-visual-skin='ming-snow'],
+    [data-visual-skin='ming-moon']
   )
   .portrait-skin-character {
   position: absolute;
@@ -433,6 +525,431 @@
   background: rgb(128 98 132 / 0.09);
 }
 
+:root[data-visual-skin='ming-snow'] .user-message-body {
+  background: rgb(210 160 102 / 0.11);
+}
+
+:root[data-visual-skin='ming-moon'] .user-message-body {
+  background: rgb(159 41 40 / 0.16);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  :is(.message-hud, .command-console-input, .ui-select-trigger) {
+  border-radius: 3px;
+}
+
+/* Ming skins are a complete ink, lacquer and paper system rather than a glass recolor. */
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) {
+  --font-sans: 'Songti SC', STSong, 'Noto Serif CJK SC', 'Times New Roman', serif;
+  --sidebar-width: 80px;
+  --titlebar-height: 70px;
+  --height-page-header: 56px;
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 5px;
+  --ming-paper: rgb(239 222 190 / 0.96);
+  --ming-paper-raised: #f6e8cc;
+  --ming-paper-muted: #dfc9a3;
+  --ming-ink: #261d15;
+  --ming-ink-secondary: #5b4937;
+  --ming-ink-tertiary: #7c6750;
+  --ming-lacquer: rgb(10 12 12 / 0.88);
+  --ming-lacquer-soft: rgb(18 19 18 / 0.82);
+  --ming-gold: #a77a46;
+  --ming-gold-soft: rgb(197 151 93 / 0.5);
+  --ming-frame: #5d3e25;
+  --ming-code: #1d1d1b;
+  --ming-code-raised: #25231f;
+}
+
+:root[data-visual-skin='ming-moon'] {
+  --ming-paper: rgb(235 214 177 / 0.96);
+  --ming-paper-raised: #f1dfbd;
+  --ming-paper-muted: #d8bd91;
+  --ming-frame: #633a27;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .app-shell {
+  background-position: center top;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  :is(.app-titlebar, .app-navigation-rail, .workspace-control-panel, .workspace-tabbar) {
+  border-color: var(--ming-gold-soft);
+  background-color: var(--ming-lacquer);
+  backdrop-filter: blur(8px) saturate(108%);
+  box-shadow:
+    inset 0 1px rgb(246 215 167 / 0.15),
+    inset 0 -1px rgb(43 24 13 / 0.85);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .app-titlebar {
+  border-bottom: 1px solid var(--ming-gold);
+  background-color: rgb(8 10 10 / 0.44);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .app-titlebar-brand {
+  inset-inline: max(76px, calc(var(--sidebar-width) + 16px)) auto;
+  justify-content: flex-start;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .app-titlebar-brand-button {
+  display: grid;
+  width: 360px;
+  height: 48px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-rows: 1fr 1fr;
+  column-gap: 11px;
+  border: 1px solid rgb(172 117 65 / 0.45);
+  background: rgb(10 11 11 / 0.72);
+  padding-inline: 9px 12px;
+  box-shadow:
+    inset 0 0 0 1px rgb(238 196 132 / 0.08),
+    0 3px 12px rgb(0 0 0 / 0.22);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .app-titlebar-brand-icon {
+  width: 36px;
+  height: 36px;
+  grid-row: 1 / 3;
+  border-radius: 3px;
+  border: 1px solid rgb(185 109 64 / 0.55);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .app-titlebar-brand-name {
+  align-self: end;
+  color: #ead5b3;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.045em;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .ming-titlebar-subtitle {
+  align-self: start;
+  color: #a99274;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .starship-search-trigger {
+  width: 270px;
+  height: 32px;
+  border-color: rgb(173 128 76 / 0.44);
+  border-radius: 4px;
+  background: rgb(12 14 15 / 0.76);
+  color: #cdbb9f;
+  backdrop-filter: blur(8px);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .workspace-control-panel {
+  width: 390px;
+  border-right: 1px solid var(--ming-gold);
+  background-color: rgb(9 12 13 / 0.9);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .app-navigation-rail
+  nav
+  > a {
+  min-height: 76px;
+  font-size: 12px;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .app-navigation-rail
+  nav
+  > a
+  svg {
+  width: 20px;
+  height: 20px;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .workspace-control-panel
+  button {
+  font-size: 13px;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .app-navigation-rail {
+  border-right: 1px solid rgb(170 121 72 / 0.42);
+  background-color: rgb(7 10 11 / 0.94);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .app-navigation-rail
+  a.router-link-active {
+  border: 1px solid var(--ming-frame);
+  background: var(--ming-paper-raised);
+  color: var(--ming-ink);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 247 227 / 0.5),
+    0 3px 12px rgb(0 0 0 / 0.32);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .app-navigation-rail
+  a.router-link-active
+  :is(svg, span) {
+  color: #5d321f;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .workspace-section-tab[aria-pressed='true'],
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  [data-testid='workspace-tabs']
+  > button[aria-pressed='true'] {
+  border-color: var(--ming-frame);
+  background: var(--ming-paper-raised);
+  color: var(--ming-ink);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 249 232 / 0.55),
+    inset 0 -2px #a84a35;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .workspace-section-tab[aria-pressed='true']
+  svg {
+  color: #7c3b27;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .workspace-tabbar {
+  border-bottom: 1px solid var(--ming-gold);
+  background-color: rgb(12 14 14 / 0.76);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .workspace-content {
+  --ming-portrait-column: min(46cqw, 820px);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .portrait-skin-character {
+  bottom: 0;
+  left: calc(var(--ming-portrait-column) * 0.42);
+  width: auto;
+  height: min(86cqh, calc(var(--ming-portrait-column) * 1.56));
+  filter: drop-shadow(0 12px 22px rgb(0 0 0 / 0.34));
+}
+
+@container standing-scene (min-width: 821px) {
+  :root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+    .workspace-content:has(.portrait-skin-panel)
+    .chat-scroller {
+    padding: 12px 12px 14px var(--ming-portrait-column);
+  }
+}
+
+@container standing-scene (min-width: 641px) and (max-width: 820px) {
+  :root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .portrait-skin-panel {
+    display: flex;
+  }
+
+  :root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+    .workspace-content:has(.portrait-skin-panel)
+    .chat-scroller {
+    padding: 12px 12px 14px var(--ming-portrait-column);
+  }
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .chat-scroll-content {
+  max-width: none;
+  margin-inline: 0;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .message-hud {
+  --bg-surface: var(--ming-paper-raised);
+  --bg-surface-raised: #ead5ae;
+  --bg-hover: #dcc49a;
+  --text-primary: var(--ming-ink);
+  --text-secondary: var(--ming-ink-secondary);
+  --text-tertiary: var(--ming-ink-tertiary);
+  --border-subtle: rgb(83 55 33 / 0.25);
+  --border-default: rgb(83 55 33 / 0.42);
+  --border-strong: rgb(83 55 33 / 0.65);
+  --accent: #843a2b;
+  border: 1px solid var(--ming-frame);
+  border-radius: 3px;
+  background: var(--ming-paper);
+  color: var(--ming-ink);
+  padding: 14px 15px;
+  backdrop-filter: none;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 249 232 / 0.62),
+    0 8px 22px rgb(0 0 0 / 0.28);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .message-hud
+  :is(.markdown-content, .user-message-body) {
+  font-size: 14px;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .message-hud[data-message-role='user'] {
+  background: rgb(218 194 156 / 0.94);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .user-message-body {
+  border-color: rgb(91 55 31 / 0.28);
+  background: rgb(92 55 31 / 0.08);
+  color: var(--ming-ink);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .thinking-hud {
+  border-color: rgb(91 55 31 / 0.28);
+  background: rgb(255 248 229 / 0.24);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  :is(.tool-call-hud, .tool-result-hud, .bash-message-body),
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .message-hud
+  .assistant-message-body
+  .markdown-content
+  pre {
+  --bg-surface: var(--ming-code);
+  --bg-surface-raised: var(--ming-code-raised);
+  --text-primary: #f0e5d2;
+  --text-secondary: #cfbea5;
+  --text-tertiary: #9f907d;
+  --border-subtle: rgb(211 172 116 / 0.22);
+  border-color: rgb(129 91 49 / 0.65);
+  border-radius: 3px;
+  background: var(--ming-code);
+  color: #cfbea5;
+  box-shadow: inset 0 1px rgb(255 235 197 / 0.06);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .message-hud
+  .assistant-message-body
+  .markdown-content
+  :not(pre)
+  > code {
+  border-color: rgb(91 55 31 / 0.3);
+  background: rgb(80 51 30 / 0.12);
+  color: #5d2f24;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .command-console {
+  border-top: 1px solid var(--ming-gold);
+  background: rgb(9 12 13 / 0.88);
+  backdrop-filter: blur(10px) saturate(108%);
+  box-shadow:
+    inset 0 1px rgb(242 203 143 / 0.12),
+    0 -8px 24px rgb(0 0 0 / 0.2);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .command-console-input {
+  min-height: 76px;
+  border-color: rgb(176 128 70 / 0.5);
+  background: rgb(11 14 15 / 0.74);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 231 190 / 0.04),
+    inset 0 2px 8px rgb(0 0 0 / 0.35);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .command-console-input:focus-within {
+  background: rgb(15 17 17 / 0.9);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .command-console
+  :is(.ui-select-trigger, .cockpit-control-button) {
+  border-radius: 3px;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .command-execute-button {
+  border: 1px solid #cb6a52;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 223 199 / 0.12),
+    0 4px 12px rgb(62 8 8 / 0.28);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .chat-status-hud {
+  border-top: 1px solid rgb(164 116 67 / 0.46);
+  background: rgb(8 11 12 / 0.9);
+  backdrop-filter: blur(8px);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .session-hud {
+  --text-primary: var(--ming-ink);
+  --text-secondary: var(--ming-ink-secondary);
+  --text-tertiary: var(--ming-ink-tertiary);
+  --bg-hover: #dcc49a;
+  margin-left: var(--ming-portrait-column);
+  border: 1px solid var(--ming-frame);
+  background: var(--ming-paper);
+  color: var(--ming-ink);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 249 232 / 0.62),
+    0 -6px 18px rgb(0 0 0 / 0.24);
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .session-hud .break-all {
+  display: -webkit-box;
+  max-height: 3.4em;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .chat-window
+  > .session-hud {
+  order: 2;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .chat-window
+  > .command-console {
+  order: 3;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .chat-window
+  > .chat-status-hud {
+  order: 4;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .portrait-skin-footer
+  .pet-status {
+  --pet-status-bg: rgb(20 20 18 / 0.92);
+  min-width: 30px;
+  max-width: 34px;
+  min-height: 62px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 5px;
+  border-color: rgb(177 127 68 / 0.58);
+  border-radius: 2px;
+  color: #ead8bb;
+  font-size: 12px;
+  line-height: 1.1;
+  writing-mode: vertical-rl;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .portrait-skin-character
+  .portrait-skin-footer {
+  top: 28%;
+  bottom: auto;
+  left: 91%;
+  width: auto;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  .portrait-skin-footer
+  .pet-status::after {
+  top: 50%;
+  bottom: auto;
+  left: -4px;
+  transform: translateY(-50%) rotate(135deg);
+}
+
 /* Picker geometry is shared by all styles; skins supply only their scene background. */
 [data-mascot-option='maidWhite'] .mascot-option-preview {
   background: url('../assets/themes/maid-white/azure-patisserie-atelier-v2.png') center / cover
@@ -451,4 +968,12 @@
 [data-mascot-option='moonlitMaid'] .mascot-option-preview {
   background: url('../assets/themes/portraits/moonlit-tea-room.png') center / cover no-repeat
     #e8e2eb;
+}
+
+[data-mascot-option='mingSnow'] .mascot-option-preview {
+  background: url('../assets/themes/ming-dynasty/snow-palace.png') center / cover no-repeat #202326;
+}
+
+[data-mascot-option='mingMoon'] .mascot-option-preview {
+  background: url('../assets/themes/ming-dynasty/moon-city.png') center / cover no-repeat #191b1e;
 }

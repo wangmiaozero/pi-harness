@@ -58,7 +58,7 @@ describe('IPC schemas', () => {
     )
   })
 
-  it.each(['noirScholar', 'moonlitMaid'])(
+  it.each(['noirScholar', 'moonlitMaid', 'mingSnow', 'mingMoon'])(
     'accepts the %s skin without changing color preference',
     (mascotStyle) => {
       expect(appSettingsPatchSchema.parse({ mascotStyle })).toEqual({ mascotStyle })

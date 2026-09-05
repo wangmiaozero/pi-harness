@@ -5,13 +5,17 @@ import maidWhiteImage from '@renderer/assets/mascot/pico-maid-white.png'
 import frostNavigatorImage from '@renderer/assets/themes/starship-cockpit/frost-navigator.png'
 import noirScholarImage from '@renderer/assets/themes/portraits/noir-scholar.png'
 import moonlitMaidImage from '@renderer/assets/themes/portraits/moonlit-maid.png'
+import mingSnowImage from '@renderer/assets/themes/ming-dynasty/snow-maiden.png'
+import mingMoonImage from '@renderer/assets/themes/ming-dynasty/moon-maiden.png'
 
 export const PET_THEME_ORDER: readonly PetThemeId[] = [
   'maidWhite',
   'office',
   'starshipCockpit',
   'noirScholar',
-  'moonlitMaid'
+  'moonlitMaid',
+  'mingSnow',
+  'mingMoon'
 ]
 
 function animations(states: readonly PetState[]): PetManifest['animations'] {
@@ -66,6 +70,14 @@ export const PET_MANIFESTS: Readonly<Record<PetThemeId, PetManifest>> = {
     '#806284',
     true
   ),
+  mingSnow: manifest(
+    'mingSnow',
+    'Ming Snow Palace · Flute Scholar',
+    mingSnowImage,
+    '#bd8b52',
+    true
+  ),
+  mingMoon: manifest('mingMoon', 'Ming Moon City · Scroll Scholar', mingMoonImage, '#b4493f', true),
   starshipCockpit: {
     ...manifest(
       'starshipCockpit',

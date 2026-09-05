@@ -61,6 +61,7 @@ export const frFR: MessageTree = {
   },
   titlebar: {
     commandPalette: 'Palette de commandes',
+    mingSubtitle: 'Le code en pinceau · Écrire demain',
     minimize: 'Réduire',
     maximize: 'Agrandir',
     close: 'Fermer'
@@ -751,6 +752,10 @@ export const frFR: MessageTree = {
     mascotNoirScholarHint: 'Cheveux argentés, tailleur anthracite et or antique chaleureux',
     mascotMoonlitMaid: 'Salon au clair de lune · Maid d\'argent',
     mascotMoonlitMaidHint: 'Blanc perle, lilas doux et une maid aux cheveux argentés',
+    mascotMingSnow: 'Palais Ming enneigé · Lettrée à la flûte',
+    mascotMingSnowHint: 'Pavillons enneigés, prunier rouge et soie ivoire dorée',
+    mascotMingMoon: 'Cité Ming au clair de lune · Lettrée au rouleau',
+    mascotMingMoonHint: 'Toits au clair de lune, soie rouge sombre et calme lettré',
     petAnimations: 'Animations',
     petStatusText: 'Texte d\'état',
     petAutoSleep: 'Veille automatique',

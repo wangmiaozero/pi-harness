@@ -21,7 +21,7 @@ test.describe('Pi-Harness smoke', () => {
     page
   }) => {
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
-      await page.setViewportSize({ width: 1200, height: 780 })
+      await page.setViewportSize({ width: 1869, height: 1050 })
     }
     const pageErrors: string[] = []
     const consoleErrors: string[] = []
@@ -103,9 +103,29 @@ test.describe('Pi-Harness smoke', () => {
       })
     }
     await workspaceSidebar.getByRole('button', { name: /Harness/ }).click()
-    await expect(page.getByTestId('harness-console')).toBeVisible()
+    const harnessConsole = page.getByTestId('harness-console')
+    await expect(harnessConsole).toBeVisible()
     await expect(page.getByText(/尚未选择会话|No session selected/)).toBeVisible()
-    await expect(page.getByTestId('workspace-tabs')).toBeVisible()
+    await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-toggle-files')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-section-harness')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    const [workspaceMainBox, harnessConsoleBox] = await Promise.all([
+      page.getByTestId('workspace-main').boundingBox(),
+      harnessConsole.boundingBox()
+    ])
+    expect(harnessConsoleBox).toEqual(workspaceMainBox)
+    if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
+      await page.screenshot({
+        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-harness-mode.png')
+      })
+    }
+    await page.getByTestId('workspace-section-sessions').click()
+    await expect(page.getByTestId('harness-console')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-project-required')).toBeVisible()
+    await expect(page.getByTestId('workspace-toggle-files')).toBeVisible()
 
     await page.locator('a[href="#/providers"]').click()
     await expect(page.locator('h1').filter({ hasText: /提供商|Providers/ })).toBeVisible()
@@ -196,8 +216,13 @@ test.describe('Pi-Harness smoke', () => {
     )
 
     await page.locator('a[href="#/workspace"]').click()
+    await expect(page.getByTestId('harness-console')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
+    await page.getByTestId('workspace-section-harness').click()
     await expect(page.getByTestId('harness-console')).toBeVisible()
     await expect(page.getByText(/尚未选择会话|No session selected/)).toBeVisible()
+    await page.getByTestId('workspace-section-sessions').click()
+    await expect(page.getByTestId('harness-console')).toHaveCount(0)
     const sessionTree = page.getByTestId('workspace-session-tree')
     await expect(page.getByTestId('workspace-draft-session')).toHaveCount(0)
     await expect(sessionTree.getByText('fixtures', { exact: true })).toHaveCount(0)
@@ -418,6 +443,24 @@ test.describe('Pi-Harness smoke', () => {
     const sessionRow = page.getByTestId(`session-row-${sessionId}`)
     await expect(sessionRow).toContainText('Multi-project session')
     await expect(page.locator(`[data-testid^="session-project-${sessionId}-"]`)).toHaveCount(2)
+    await sessionRow.getByRole('button', { name: 'Multi-project session' }).click()
+    await page.getByTestId('workspace-section-harness').click()
+    const harnessConsole = page.getByTestId('harness-console')
+    await expect(harnessConsole).toBeVisible()
+    await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-toggle-files')).toHaveCount(0)
+    const [workspaceMainBox, harnessConsoleBox] = await Promise.all([
+      page.getByTestId('workspace-main').boundingBox(),
+      harnessConsole.boundingBox()
+    ])
+    expect(harnessConsoleBox).toEqual(workspaceMainBox)
+    if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
+      await page.screenshot({
+        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-harness-session.png')
+      })
+    }
+    await page.getByTestId('workspace-section-sessions').click()
+    await expect(page.getByTestId('workspace-tabs')).toContainText('Multi-project session')
 
     await electronApp.evaluate(({ Menu }) => {
       Menu.buildFromTemplate = ((template: Electron.MenuItemConstructorOptions[]) =>

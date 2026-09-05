@@ -44,8 +44,15 @@ interface WorkspaceSnapshot {
   folderMeta?: Record<string, FolderMeta>
   draftFolderMeta?: Record<string, FolderMeta>
   recentWorkspaces?: RecentWorkspace[]
-  tabs: WorkspaceTab[]
+  tabs: Array<WorkspaceTab | LegacyHarnessTab>
   activeTabId: string | null
+}
+
+interface LegacyHarnessTab {
+  id: 'harness'
+  kind: 'harness'
+  title: string
+  closable: boolean
 }
 
 interface FolderMeta {
@@ -388,14 +395,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeTabId.value = id
   }
 
-  function ensureHarnessTab(title: string) {
-    const id = 'harness'
-    if (!tabs.value.some((tab) => tab.id === id)) {
-      tabs.value = [...tabs.value, { id, kind: 'harness', title, closable: true }]
-    }
-    activeTabId.value = id
-  }
-
   function closeTab(id: string) {
     const index = tabs.value.findIndex((t) => t.id === id)
     if (index === -1) return
@@ -665,11 +664,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const archived = new Set(archivedSessionIds.value)
       const availableSessionIds = new Set(sessions.items.map((session) => session.id))
       tabs.value = snap.tabs.filter(
-        (tab) =>
-          tab.kind !== 'chat' ||
-          !tab.sessionId ||
-          tab.sessionId === 'new' ||
-          (availableSessionIds.has(tab.sessionId) && !archived.has(tab.sessionId))
+        (tab): tab is WorkspaceTab =>
+          tab.kind !== 'harness' &&
+          (tab.kind !== 'chat' ||
+            !tab.sessionId ||
+            tab.sessionId === 'new' ||
+            (availableSessionIds.has(tab.sessionId) && !archived.has(tab.sessionId)))
       )
       activeTabId.value = snap.activeTabId
       pruneOrphanedProjectTabs()
@@ -822,7 +822,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         if (tab.sessionId === 'new' && !availableRoots.length) removedTabIds.add(tab.id)
         continue
       }
-      if (tab.kind === 'harness') continue
     }
 
     if (!removedTabIds.size) return
@@ -1668,7 +1667,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     ensureChatTab,
     openFileTab,
     openDiffTab,
-    ensureHarnessTab,
     closeTab,
     closeOtherTabs,
     closeTabsToRight,

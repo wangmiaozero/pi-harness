@@ -224,7 +224,7 @@ const bashText = computed(() => {
       v-else-if="message.role === 'toolResult'"
       open
       data-testid="tool-result-details"
-      class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+      class="tool-result-hud rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
     >
       <summary
         class="cursor-pointer px-2.5 py-1.5 text-[10.5px] font-medium uppercase tracking-[0.05em] text-[var(--text-tertiary)] select-none"
@@ -240,7 +240,7 @@ const bashText = computed(() => {
 
     <pre
       v-else-if="message.role === 'bashExecution'"
-      class="overflow-x-auto whitespace-pre-wrap rounded-[var(--radius-sm)] bg-[var(--bg-surface)] px-3 py-2 font-[family-name:var(--font-mono)] text-[11.5px] text-[var(--text-secondary)]"
+      class="bash-message-body overflow-x-auto whitespace-pre-wrap rounded-[var(--radius-sm)] bg-[var(--bg-surface)] px-3 py-2 font-[family-name:var(--font-mono)] text-[11.5px] text-[var(--text-secondary)]"
       v-text="bashText"
     />
 

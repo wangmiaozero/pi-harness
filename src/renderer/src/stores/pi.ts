@@ -19,6 +19,7 @@ export const usePiStore = defineStore('pi', () => {
   const error = ref<string | null>(null)
   const lastActionLog = ref<string>('')
   let taskDismissTimer: ReturnType<typeof setTimeout> | null = null
+  let detectRequest: Promise<void> | null = null
 
   const installed = computed(() => environment.value?.installed ?? false)
   const configValid = computed(() => environment.value?.configValid ?? false)
@@ -48,16 +49,22 @@ export const usePiStore = defineStore('pi', () => {
     }, remaining)
   }
 
-  async function detect() {
+  function detect(): Promise<void> {
+    if (detectRequest) return detectRequest
+
     loading.value = true
     error.value = null
-    try {
-      environment.value = await callApi(() => getApi().pi.detect())
-    } catch (e) {
-      error.value = (e as { message?: string }).message ?? String(e)
-    } finally {
-      loading.value = false
-    }
+    detectRequest = (async () => {
+      try {
+        environment.value = await callApi(() => getApi().pi.detect())
+      } catch (e) {
+        error.value = (e as { message?: string }).message ?? String(e)
+      } finally {
+        loading.value = false
+        detectRequest = null
+      }
+    })()
+    return detectRequest
   }
 
   async function checkLatest() {

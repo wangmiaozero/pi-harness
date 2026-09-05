@@ -15,7 +15,7 @@ const args = computed(() => JSON.stringify(props.block.input, null, 2))
 
 <template>
   <div
-    class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+    class="tool-call-hud rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
   >
     <button
       class="flex w-full items-center justify-between px-2.5 py-1.5 text-left"

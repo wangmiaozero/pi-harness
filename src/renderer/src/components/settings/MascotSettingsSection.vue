@@ -245,7 +245,7 @@ async function unlockMascot(): Promise<void> {
   }
 }
 
-@container mascot-gallery (min-width: 1100px) {
+@container mascot-gallery (min-width: 1040px) {
   .mascot-options-grid {
     --mascot-columns: 4;
   }

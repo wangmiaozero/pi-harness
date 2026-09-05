@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import type { EnvironmentInstallTask, PiSwitchAPI } from '@shared/ipc/api-types'
+import type { EnvironmentInstallTask, PiEnvironment, PiSwitchAPI } from '@shared/ipc/api-types'
 import { usePiStore } from './pi'
 
-describe('Pi install task lifecycle', () => {
+describe('Pi store', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     setActivePinia(createPinia())
@@ -46,6 +46,34 @@ describe('Pi install task lifecycle', () => {
       dispose()
     }
   )
+
+  it('coalesces concurrent environment detection and allows a later refresh', async () => {
+    let resolveDetection: ((environment: PiEnvironment) => void) | undefined
+    const detect = vi.fn(
+      () =>
+        new Promise<PiEnvironment>((resolve) => {
+          resolveDetection = resolve
+        })
+    )
+    window.piSwitch = { pi: { detect } } as unknown as PiSwitchAPI
+    const store = usePiStore()
+
+    const first = store.detect()
+    const second = store.detect()
+
+    expect(detect).toHaveBeenCalledTimes(1)
+    expect(store.loading).toBe(true)
+    resolveDetection?.({ version: '0.84.1' } as PiEnvironment)
+    await Promise.all([first, second])
+    expect(store.environment?.version).toBe('0.84.1')
+    expect(store.loading).toBe(false)
+
+    const refresh = store.detect()
+    expect(detect).toHaveBeenCalledTimes(2)
+    resolveDetection?.({ version: '0.84.2' } as PiEnvironment)
+    await refresh
+    expect(store.environment?.version).toBe('0.84.2')
+  })
 })
 
 function apiFixture() {

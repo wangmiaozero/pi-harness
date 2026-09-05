@@ -37,6 +37,25 @@ mac:
   extendInfo:
     CFBundleDisplayName: Pi-Harness
     CFBundleName: Pi-Harness
+dmg:
+  # 未签名 DMG 安装后可能被 Gatekeeper 标记为「已损坏，无法打开」；
+  # 「修复」App（scripts/prepare-mac-repair-app.mjs 生成）以管理员权限
+  # 移除 quarantine 属性。
+  iconSize: 128
+  contents:
+    - x: 120
+      y: 184
+    - x: 400
+      y: 184
+      type: link
+      path: /Applications
+    - x: 260
+      y: 300
+      type: file
+      path: build/修复.app
+  window:
+    width: 540
+    height: 380
 win:
   # Keep local filenames identical to the GitHub upload names.
   artifactName: ${productName}-Setup-${version}.${ext}

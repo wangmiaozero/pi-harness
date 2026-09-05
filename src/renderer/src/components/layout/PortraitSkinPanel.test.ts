@@ -9,7 +9,7 @@ import PortraitSkinPanel from './PortraitSkinPanel.vue'
 beforeEach(() => setActivePinia(createPinia()))
 
 describe('portrait skin panel', () => {
-  it.each(['maidWhite', 'office', 'noirScholar', 'moonlitMaid'] as const)(
+  it.each(['maidWhite', 'office', 'noirScholar', 'moonlitMaid', 'mingSnow', 'mingMoon'] as const)(
     'keeps %s art and status together without changing pet state',
     async (style) => {
       const pet = usePetStore()

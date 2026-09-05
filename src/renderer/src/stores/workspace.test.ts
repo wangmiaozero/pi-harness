@@ -87,15 +87,30 @@ describe('workspace tab activation', () => {
     expect(sessions.currentId).toBeNull()
   })
 
-  it('opens Harness as a Workspace-level tab without requiring a project', () => {
+  it('drops legacy Harness tabs from restored Workspace state', async () => {
     const workspace = useWorkspaceStore()
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() =>
+        JSON.stringify({
+          tabs: [{ id: 'harness', kind: 'harness', title: 'Harness Console', closable: true }],
+          activeTabId: 'harness'
+        })
+      ),
+      setItem: vi.fn(),
+      removeItem: vi.fn()
+    })
+    window.piSwitch = workspaceApi({})
 
-    workspace.ensureHarnessTab('Harness Console')
+    try {
+      await workspace.restore({ restoreTabs: true, autoOpenLastProject: true })
 
-    expect(workspace.tabs).toEqual([
-      { id: 'harness', kind: 'harness', title: 'Harness Console', closable: true }
-    ])
-    expect(workspace.activeTabId).toBe('harness')
+      expect(workspace.tabs).toEqual([])
+      expect(workspace.mainTabs).toEqual([])
+      expect(workspace.activeTabId).toBeNull()
+    } finally {
+      delete window.piSwitch
+      vi.unstubAllGlobals()
+    }
   })
 })
 

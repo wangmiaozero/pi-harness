@@ -1,0 +1,48 @@
+#!/bin/bash
+set -euo pipefail
+
+# Pi-Harness DMG 附带的隔离属性修复工具。
+# 未签名（ad-hoc）应用从浏览器下载后可能被 Gatekeeper 标记为
+# 「已损坏，无法打开」；本工具以管理员权限移除 quarantine 属性。
+
+CANDIDATES=(
+  "/Applications/Pi-Harness.app"
+  "$HOME/Applications/Pi-Harness.app"
+)
+
+TARGET=""
+for candidate in "${CANDIDATES[@]}"; do
+  if [[ -d "$candidate" ]]; then
+    TARGET="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$TARGET" ]]; then
+  /usr/bin/osascript -e 'display alert "未找到已安装的应用" message "请先将 Pi-Harness 拖入「应用程序」文件夹，再双击运行「修复」。"'
+  exit 1
+fi
+
+set +e
+RESULT=$(/usr/bin/osascript 2>&1 <<EOF
+do shell script "/usr/bin/xattr -r -d com.apple.quarantine " & quoted form of "$TARGET" with administrator privileges
+EOF
+)
+STATUS=$?
+set -e
+
+if [[ $STATUS -ne 0 ]]; then
+  if [[ "$RESULT" == *"User canceled"* ]] || [[ "$RESULT" == *"用户已取消"* ]] || [[ "$RESULT" == *"-128"* ]]; then
+    /usr/bin/osascript -e 'display alert "已取消" message "未输入管理员密码，修复未完成。"'
+    exit 1
+  fi
+  if [[ "$RESULT" == *"No such xattr"* ]] || [[ "$RESULT" == *"unknown attribute"* ]]; then
+    /usr/bin/osascript -e "display alert \"无需修复\" message \"应用未检测到隔离属性：$TARGET\""
+    exit 0
+  fi
+  ESCAPED=${RESULT//\"/\\\"}
+  /usr/bin/osascript -e "display alert \"修复失败\" message \"$ESCAPED\""
+  exit 1
+fi
+
+/usr/bin/osascript -e 'display alert "修复完成" message "已移除隔离属性，现在可以正常打开 Pi-Harness。"'

@@ -61,6 +61,7 @@ export const koKR: MessageTree = {
   },
   titlebar: {
     commandPalette: '명령 팔레트',
+    mingSubtitle: '코드를 붓 삼아 · 미래를 쓰다',
     minimize: '최소화',
     maximize: '최대화',
     close: '닫기'
@@ -752,6 +753,10 @@ export const koKR: MessageTree = {
     mascotNoirScholarHint: '은발, 차콜 테일러링, 따뜻한 앤틱 골드',
     mascotMoonlitMaid: '달빛 살롱 · 은발 메이드',
     mascotMoonlitMaidHint: '진주 화이트, 소프트 라일락, 은발 메이드',
+    mascotMingSnow: '대명 설궁 · 피리 학자',
+    mascotMingSnowHint: '눈 내린 궁전, 홍매, 상아색 비단과 골드',
+    mascotMingMoon: '대명 월성 · 두루마리 학자',
+    mascotMingMoonHint: '달빛 기와집, 짙은 자홍색 비단, 고요한 학구적 분위기',
     petAnimations: '애니메이션',
     petStatusText: '상태 텍스트',
     petAutoSleep: '자동 절전',

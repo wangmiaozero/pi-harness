@@ -25,7 +25,7 @@ describe('MascotBackground', () => {
     }
   })
 
-  it.each(['maidWhite', 'office', 'noirScholar', 'moonlitMaid'] as const)(
+  it.each(['maidWhite', 'office', 'noirScholar', 'moonlitMaid', 'mingSnow', 'mingMoon'] as const)(
     'keeps the %s portrait static even with pet animations enabled',
     (style) => {
       const wrapper = mount(MascotBackground, { props: { style, animated: true } })

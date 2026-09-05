@@ -42,10 +42,14 @@ import { toNativeMenuLocale } from '@shared/constants/language'
 import { projectIdentityKey } from '@shared/workspace/project-identity'
 import { projectDisplayName } from '@shared/workspace/session-tree'
 
+type WorkspaceSection = 'sessions' | 'harness'
+
+const props = withDefaults(defineProps<{ activeSection?: WorkspaceSection }>(), {
+  activeSection: 'sessions'
+})
 const emit = defineEmits<{
   'focus-composer': []
-  'open-harness': []
-  'section-change': [section: 'sessions' | 'harness']
+  'section-change': [section: WorkspaceSection]
 }>()
 const { t, locale } = useI18n()
 const sessions = useSessionStore()
@@ -54,8 +58,7 @@ const agent = useAgentStore()
 const models = useModelsStore()
 const settings = useSettingsStore()
 const harness = useHarnessStore()
-type WorkspaceSection = 'sessions' | 'harness'
-const section = ref<WorkspaceSection>('sessions')
+const section = computed(() => props.activeSection)
 const collapsedSessionIds = ref<string[]>([])
 const collapsedProjectKeys = ref<string[]>([])
 const dragActive = ref(false)
@@ -104,9 +107,7 @@ function sessionFolders(session: SessionInfo): WorkspaceFolder[] {
 }
 
 function selectSection(next: WorkspaceSection) {
-  section.value = next
   emit('section-change', next)
-  if (next === 'harness') emit('open-harness')
 }
 
 async function openSession(session: SessionInfo) {

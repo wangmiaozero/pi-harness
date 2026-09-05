@@ -61,6 +61,7 @@ export const deDE: MessageTree = {
   },
   titlebar: {
     commandPalette: 'Befehlspalette',
+    mingSubtitle: 'Code als Pinsel · Zukunft gestalten',
     minimize: 'Minimieren',
     maximize: 'Maximieren',
     close: 'Schließen'
@@ -752,6 +753,10 @@ export const deDE: MessageTree = {
     mascotNoirScholarHint: 'Silberhaar, anthrazitfarbenes Schneiderhandwerk und warmes Antikgold',
     mascotMoonlitMaid: 'Mondlicht-Salon · Silbermaid',
     mascotMoonlitMaidHint: 'Perlweiß, zartes Flieder und eine silberhaarige Maid',
+    mascotMingSnow: 'Ming-Schneepalast · Flötengelehrte',
+    mascotMingSnowHint: 'Verschneite Hallen, rote Pflaumenblüten und Elfenbeinseide mit Altgold',
+    mascotMingMoon: 'Ming-Mondstadt · Schriftrollengelehrte',
+    mascotMingMoonHint: 'Dächer im Mondlicht, ochsenblutrote Seide und stille Gelehrsamkeit',
     petAnimations: 'Animationen',
     petStatusText: 'Statustext',
     petAutoSleep: 'Automatischer Schlaf',

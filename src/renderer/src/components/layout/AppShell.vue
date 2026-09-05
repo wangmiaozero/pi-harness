@@ -41,7 +41,10 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
     class="app-shell relative flex h-full flex-col overflow-hidden bg-[var(--bg-window)]"
     :data-visual-skin="visualSkin?.id"
   >
-    <TitleBar :starship-cockpit="starshipCockpitActive" />
+    <TitleBar
+      :starship-cockpit="starshipCockpitActive"
+      :ming-dynasty="visualSkin?.id === 'ming-snow' || visualSkin?.id === 'ming-moon'"
+    />
     <div class="app-body relative z-[2] flex min-h-0 flex-1">
       <Sidebar />
       <div

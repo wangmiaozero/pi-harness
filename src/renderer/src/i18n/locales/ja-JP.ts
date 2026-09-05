@@ -61,6 +61,7 @@ export const jaJP: MessageTree = {
   },
   titlebar: {
     commandPalette: 'コマンドパレット',
+    mingSubtitle: 'コードを筆に · 次代を記す',
     minimize: '最小化',
     maximize: '最大化',
     close: '閉じる'
@@ -751,6 +752,10 @@ export const jaJP: MessageTree = {
     mascotNoirScholarHint: '銀髪、チャコールの仕立て、温かみのあるアンティークゴールド',
     mascotMoonlitMaid: '月明かりのサロン · シルバーメイド',
     mascotMoonlitMaidHint: 'パールホワイト、柔らかなライラック、銀髪のメイド',
+    mascotMingSnow: '大明の雪宮 · 笛の女史',
+    mascotMingSnowHint: '雪の宮殿、紅梅、象牙色の絹と古金',
+    mascotMingMoon: '大明の月都 · 巻物の女史',
+    mascotMingMoonHint: '月下の瓦屋根、深紅の絹、静かな書斎の趣',
     petAnimations: 'アニメーション',
     petStatusText: 'ステータス文字',
     petAutoSleep: '自動スリープ',
