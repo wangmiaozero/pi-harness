@@ -1,6 +1,17 @@
 # Pi-Harness
 
 <p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
+  <a href="README.ja-JP.md">日本語</a> ·
+  <a href="README.ko-KR.md">한국어</a> ·
+  <a href="README.ru-RU.md">Русский</a> ·
+  <a href="README.fr-FR.md">Français</a> ·
+  <a href="README.de-DE.md">Deutsch</a>
+</p>
+
+<p align="center">
   <img src="build/icon.png" width="96" alt="Pi-Harness" />
 </p>
 
@@ -14,25 +25,9 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> ·
-  <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="README.zh-TW.md">繁體中文</a> ·
-  <a href="README.ja-JP.md">日本語</a> ·
-  <a href="README.ko-KR.md">한국어</a> ·
-  <a href="README.ru-RU.md">Русский</a> ·
-  <a href="README.fr-FR.md">Français</a> ·
-  <a href="README.de-DE.md">Deutsch</a>
-</p>
-
-<p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0"><img alt="release v1.2.0" src="https://img.shields.io/badge/release-v1.2.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-</p>
-
-<p align="center">
-  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace.gif" width="920" alt="Démonstration de l’espace de travail Pi-Harness" /></a><br />
-  <a href="docs/workspace.mp4?raw=1">▶ Voir la démonstration de l’espace de travail Pi-Harness</a>
 </p>
 
 ## Pourquoi Pi-Harness ?
@@ -93,35 +88,27 @@ Installer → Configurer le fournisseur → Choisir le modèle → Ouvrir le pro
 
 ## Captures d’écran
 
-### 1. Vérifier que tout est prêt
+Les six écrans principaux sont présentés avec le thème par défaut et le thème d’inspiration Ming.
 
-![Aperçu](docs/overview.jpg)
+### Thème par défaut
 
-### 2. Exécuter Pi dans un vrai projet
+|                               Espace de travail                               |                               Git                                |
+| :---------------------------------------------------------------------------: | :--------------------------------------------------------------: |
+|     ![Espace de travail avec le thème par défaut](docs/默认主题/Work.jpg)     |      ![Git avec le thème par défaut](docs/默认主题/Git.jpg)      |
+|                               **Fournisseurs**                                |                           **Modèles**                            |
+|       ![Fournisseurs avec le thème par défaut](docs/默认主题/APIs.jpg)        |   ![Modèles avec le thème par défaut](docs/默认主题/Model.jpg)   |
+|                         **Centre de fonctionnalités**                         |                         **Préférences**                          |
+| ![Centre de fonctionnalités avec le thème par défaut](docs/默认主题/Caps.jpg) | ![Préférences avec le thème par défaut](docs/默认主题/Prefs.jpg) |
 
-|       Sessions du projet       |  Fichiers et édition légère   |
-| :----------------------------: | :---------------------------: |
-| ![Sessions](docs/workspace-1.jpg) | ![Éditeur](docs/workspace-2.jpg) |
+### Thème d’inspiration Ming
 
-![Espace de travail Starship Cockpit](docs/workspace-3.jpg)
-
-### 3. Configurer fournisseurs et modèles
-
-|                 Fournisseurs                 |         Configuration du fournisseur         |
-| :------------------------------------------: | :------------------------------------------: |
-| ![Liste des fournisseurs](docs/providers-1.jpg) | ![Détails du fournisseur](docs/providers-2.jpg) |
-|                 **Modèles**                  |         **Configuration du modèle**          |
-|    ![Liste des modèles](docs/models-1.jpg)     |    ![Détails du modèle](docs/models-2.jpg)     |
-
-### 4. Étendre Pi
-
-![Marché des Skills](docs/skills.jpg)
-
-### 5. Personnaliser l’espace de travail
-
-![Réglages d’apparence et de mascotte](docs/settings.jpg)
-
-![Choix du style de mascotte](docs/mascot-settings.jpg)
+|                          Espace de travail                          |                          Git                           |
+| :-----------------------------------------------------------------: | :----------------------------------------------------: |
+|     ![Espace de travail avec le thème Ming](docs/古风/Work.jpg)     |      ![Git avec le thème Ming](docs/古风/Git.jpg)      |
+|                          **Fournisseurs**                           |                      **Modèles**                       |
+|       ![Fournisseurs avec le thème Ming](docs/古风/APIs.jpg)        |   ![Modèles avec le thème Ming](docs/古风/Model.jpg)   |
+|                    **Centre de fonctionnalités**                    |                    **Préférences**                     |
+| ![Centre de fonctionnalités avec le thème Ming](docs/古风/Caps.jpg) | ![Préférences avec le thème Ming](docs/古风/Prefs.jpg) |
 
 ## Limites de l’éditeur
 

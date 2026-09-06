@@ -89,6 +89,12 @@ const api: PiSwitchAPI = {
     updateBuiltinSkills: (target) => invoke(IPC_INVOKE.skillsUpdateBuiltin, target),
     uninstallBuiltinSkills: (target) => invoke(IPC_INVOKE.skillsUninstallBuiltin, target),
     installPackages: (targets) => invoke(IPC_INVOKE.skillsInstallPackages, targets),
+    searchRegistry: (input) => invoke(IPC_INVOKE.packagesRegistrySearch, input),
+    getRegistryPackageDetail: (name, refresh) =>
+      invoke(IPC_INVOKE.packagesRegistryDetail, { name, refresh: refresh ?? false }),
+    checkPackageUpdates: (projectRoot) => invoke(IPC_INVOKE.packagesCheckUpdates, projectRoot),
+    updatePackage: (target) => invoke(IPC_INVOKE.packagesUpdate, target),
+    updateAllPackages: (projectRoot) => invoke(IPC_INVOKE.packagesUpdateAll, projectRoot),
     repairPackage: (target) => invoke(IPC_INVOKE.skillsRepairPackage, target),
     registerPackage: (target) => invoke(IPC_INVOKE.skillsRegisterPackage, target),
     removePackages: (targets) => invoke(IPC_INVOKE.skillsRemovePackages, targets),
@@ -107,6 +113,7 @@ const api: PiSwitchAPI = {
   },
   capabilities: {
     list: () => invoke(IPC_INVOKE.capabilitiesList),
+    openHomepage: (skillId) => invoke(IPC_INVOKE.capabilityOpenHomepage, { skillId }),
     installSkill: (skillId) => invoke(IPC_INVOKE.capabilityInstallSkill, { skillId }),
     updateSkill: (skillId) => invoke(IPC_INVOKE.capabilityUpdateSkill, { skillId }),
     uninstallSkill: (skillId) => invoke(IPC_INVOKE.capabilityUninstallSkill, { skillId }),
@@ -249,8 +256,7 @@ const api: PiSwitchAPI = {
     history: (cwd, limit) => invoke(IPC_INVOKE.gitHistory, { cwd, limit }),
     overview: (cwd) => invoke(IPC_INVOKE.gitOverview, { cwd }),
     commitDetails: (cwd, hash) => invoke(IPC_INVOKE.gitCommitDetails, { cwd, hash }),
-    commitDiff: (cwd, hash, filePath) =>
-      invoke(IPC_INVOKE.gitCommitDiff, { cwd, hash, filePath }),
+    commitDiff: (cwd, hash, filePath) => invoke(IPC_INVOKE.gitCommitDiff, { cwd, hash, filePath }),
     action: (input) => invoke(IPC_INVOKE.gitAction, input),
     branchContextMenu: (input) => invoke(IPC_INVOKE.gitBranchContextMenu, input)
   },

@@ -286,6 +286,70 @@ describe('PiPackageManager reconciliation and lifecycle', () => {
     )
   })
 
+  it('installs the trusted Superpowers git source through the Pi CLI', async () => {
+    const source = 'git:github.com/obra/superpowers'
+    processMock.exec.mockImplementation(async () => {
+      await writeRegistry(agentDir, [source])
+      await writeGitPackage(agentDir, 'github.com/obra/superpowers', {
+        name: 'superpowers',
+        version: '6.3.0',
+        pi: { extensions: ['.pi/extensions/superpowers.ts'] }
+      })
+      return { stdout: 'installed', stderr: '', exitCode: 0, signal: null }
+    })
+
+    const result = await manager.install({ source, scope: 'global' })
+
+    expect(result).toMatchObject({ ok: true, action: 'install', source })
+    expect(processMock.exec).toHaveBeenCalledWith(
+      expect.objectContaining({ args: ['install', source, '--no-approve'] })
+    )
+  })
+
+  it('updates one installed npm package through the Pi CLI', async () => {
+    await writeRegistry(agentDir, ['npm:pi-update'])
+    await writePackage(agentDir, 'pi-update', { pi: { extensions: [] } })
+    processMock.exec.mockResolvedValue({ stdout: 'updated', stderr: '', exitCode: 0, signal: null })
+
+    const result = await manager.update({ source: 'npm:pi-update', scope: 'global' })
+
+    expect(result).toMatchObject({ ok: true, action: 'update' })
+    expect(processMock.exec).toHaveBeenCalledWith(
+      expect.objectContaining({ args: ['update', 'npm:pi-update', '--no-approve'] })
+    )
+  })
+
+  it('updates an installed trusted git package through the Pi CLI', async () => {
+    const source = 'git:github.com/obra/superpowers'
+    await writeRegistry(agentDir, [source])
+    await writeGitPackage(agentDir, 'github.com/obra/superpowers', {
+      name: 'superpowers',
+      version: '6.3.0',
+      pi: { extensions: ['.pi/extensions/superpowers.ts'] }
+    })
+    processMock.exec.mockResolvedValue({ stdout: 'updated', stderr: '', exitCode: 0, signal: null })
+
+    const result = await manager.update({ source, scope: 'global' })
+
+    expect(result).toMatchObject({ ok: true, action: 'update' })
+    expect(processMock.exec).toHaveBeenCalledWith(
+      expect.objectContaining({ args: ['update', source, '--no-approve'] })
+    )
+  })
+
+  it('updates all installed packages through pi update --extensions', async () => {
+    await writeRegistry(agentDir, ['npm:pi-update-all'])
+    await writePackage(agentDir, 'pi-update-all', { pi: { extensions: [] } })
+    processMock.exec.mockResolvedValue({ stdout: 'updated', stderr: '', exitCode: 0, signal: null })
+
+    const results = await manager.updateAll('global')
+
+    expect(results).toEqual([expect.objectContaining({ ok: true, action: 'update' })])
+    expect(processMock.exec).toHaveBeenCalledWith(
+      expect.objectContaining({ args: ['update', '--extensions', '--no-approve'] })
+    )
+  })
+
   it('rejects package source strings that could become shell syntax', async () => {
     await expect(
       manager.install({ source: 'npm:valid$(touch /tmp/nope)', scope: 'global' })
@@ -340,5 +404,22 @@ async function writePackage(
     path.join(root, 'package.json'),
     JSON.stringify({ name, version: '1.0.0', ...manifest }, null, 2)
   )
+  return root
+}
+
+async function writeGitPackage(
+  baseDir: string,
+  repositoryPath: string,
+  manifest: Record<string, unknown>
+): Promise<string> {
+  const root = path.join(baseDir, 'git', repositoryPath)
+  await fs.mkdir(root, { recursive: true })
+  await fs.writeFile(path.join(root, 'package.json'), JSON.stringify(manifest, null, 2))
+  const extension = (manifest.pi as { extensions?: string[] } | undefined)?.extensions?.[0]
+  if (extension) {
+    const extensionPath = path.join(root, extension)
+    await fs.mkdir(path.dirname(extensionPath), { recursive: true })
+    await fs.writeFile(extensionPath, 'export default function () {}')
+  }
   return root
 }

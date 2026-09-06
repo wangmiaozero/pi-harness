@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { HarnessState } from '@shared/types/harness'
 import { useHarnessStore } from '@renderer/stores/harness'
+import Select from '@renderer/components/ui/Select.vue'
 
-defineProps<{ state: HarnessState }>()
+const props = defineProps<{ state: HarnessState }>()
 
 const harness = useHarnessStore()
 const steeringMessage = ref('')
 const followUpMessage = ref('')
 
-async function changeThinking(event: Event) {
-  await safely(harness.setThinkingLevel((event.target as HTMLSelectElement).value))
+const thinkingOptions = computed(() =>
+  props.state.thinking.options.map((level) => ({ value: level, label: level }))
+)
+
+async function changeThinking(level: string) {
+  await safely(harness.setThinkingLevel(level))
 }
 
 async function queueSteering() {
@@ -60,18 +65,14 @@ async function safely(operation: Promise<unknown>) {
         <label class="text-[11px] text-[var(--text-tertiary)]" for="harness-thinking">
           {{ $t('workspace.thinking') }}
         </label>
-        <select
-          id="harness-thinking"
+        <Select
           data-testid="harness-thinking-select"
-          class="h-7 min-w-[130px] rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-input)] px-2 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
-          :value="state.thinking.level"
+          class="min-w-[130px]"
+          :model-value="state.thinking.level"
+          :options="thinkingOptions"
           :disabled="harness.mutating || !state.capabilities.thinkingLevel"
-          @change="changeThinking"
-        >
-          <option v-for="level in state.thinking.options" :key="level" :value="level">
-            {{ level }}
-          </option>
-        </select>
+          @update:model-value="changeThinking"
+        />
         <button
           type="button"
           class="harness-danger-button ml-auto"

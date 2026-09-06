@@ -7,7 +7,7 @@ test('role suites share canonical skills and preserve unrelated installations wh
   piAgentDir
 }) => {
   await page.locator('a[href="#/skills"]').click()
-  await page.getByRole('tab', { name: /市场|Market/ }).click()
+  await page.getByRole('tab', { name: /精选|Featured/, exact: true }).click()
   const collection = (id: string) => page.getByTestId(`market-collection-builtin:${id}`)
   for (const [id, title] of [
     ['ui-designer', 'UI 设计师 Skill套件'],

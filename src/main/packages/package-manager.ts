@@ -193,6 +193,169 @@ export class PiPackageManager {
     })
   }
 
+  async update(target: PiPackageTarget): Promise<PiPackageActionResult> {
+    const normalized = await this.normalizeTarget(target)
+    return this.withMutation(normalized, 'update', async () => {
+      const logs: PiPackageActionResult['logs'] = [
+        { phase: 'resolve', ok: true, message: `Resolved ${normalized.source}` }
+      ]
+      const before = await this.find(normalized)
+      if (!before?.registered || !before.installed || !['npm', 'git'].includes(before.sourceType)) {
+        throw new ValidationError('Only installed npm or git packages can be updated')
+      }
+      const snapshot = await this.backupRegistry(normalized, `update package ${normalized.source}`)
+      logs.push({ phase: 'backup', ok: true, message: 'Registry backup created' })
+      let process: Awaited<ReturnType<typeof piProcess.exec>>
+      try {
+        process = await this.executeCli('update', normalized)
+      } catch (error) {
+        await this.restoreRegistry(snapshot)
+        const message = error instanceof Error ? error.message : String(error)
+        logs.push({ phase: 'update', ok: false, message })
+        logs.push({
+          phase: 'rollback',
+          ok: true,
+          message: 'Registry restored from transaction snapshot'
+        })
+        return this.result(
+          normalized,
+          'update',
+          false,
+          false,
+          message,
+          logs,
+          undefined,
+          classifyPackageError(message) ?? 'PROCESS_FAILED'
+        )
+      }
+      logs.push({
+        phase: 'update',
+        ok: process.exitCode === 0,
+        message: process.exitCode === 0 ? 'Pi package update completed' : 'Pi package update failed'
+      })
+      await this.reloadConfig()
+      const after = await this.find(normalized)
+      const verified = Boolean(after?.registered && after.installed && after.health === 'healthy')
+      logs.push({
+        phase: 'verify',
+        ok: verified,
+        message: verified ? 'Updated package is healthy' : 'Updated package verification failed'
+      })
+      if (process.exitCode !== 0 || !verified) {
+        await this.restoreRegistry(snapshot)
+        logs.push({
+          phase: 'rollback',
+          ok: true,
+          message: 'Registry restored from transaction snapshot'
+        })
+        const errorCode = classifyPackageError(process.stderr || process.stdout)
+        return this.result(
+          normalized,
+          'update',
+          false,
+          false,
+          process.exitCode !== 0
+            ? `Package update failed (exit ${process.exitCode})`
+            : 'Package update verification failed',
+          logs,
+          process,
+          errorCode ?? 'VERIFY_FAILED'
+        )
+      }
+      return this.result(normalized, 'update', true, false, 'Package updated', logs, process)
+    })
+  }
+
+  async updateAll(
+    scope: PiPackageScope,
+    projectRoot?: string | null
+  ): Promise<PiPackageActionResult[]> {
+    const before = (await this.list(projectRoot)).filter(
+      (pkg) => pkg.scope === scope && pkg.registered && pkg.installed && pkg.sourceType === 'npm'
+    )
+    if (!before.length) return []
+    const mutationTarget: PiPackageTarget = {
+      source: 'npm:__all_extensions__',
+      scope,
+      projectRoot: scope === 'project' ? projectRoot : null
+    }
+    return this.withMutation(mutationTarget, 'update', async () => {
+      const snapshot = await this.backupRegistry(mutationTarget, `update all ${scope} packages`)
+      let process: Awaited<ReturnType<typeof piProcess.exec>>
+      try {
+        process = await this.executeUpdateAll(scope, projectRoot)
+      } catch (error) {
+        await this.restoreRegistry(snapshot)
+        const message = error instanceof Error ? error.message : String(error)
+        return before.map((pkg) =>
+          this.result(
+            packageTarget(pkg),
+            'update',
+            false,
+            false,
+            message,
+            [
+              { phase: 'update-all', ok: false, message },
+              {
+                phase: 'rollback',
+                ok: true,
+                message: 'Registry restored from transaction snapshot'
+              }
+            ],
+            undefined,
+            classifyPackageError(message) ?? 'PROCESS_FAILED'
+          )
+        )
+      }
+      await this.reloadConfig()
+      const after = await this.list(projectRoot)
+      const failed = process.exitCode !== 0
+      if (failed) await this.restoreRegistry(snapshot)
+      return before.map((pkg) => {
+        const current = after.find((candidate) => candidate.id === pkg.id)
+        const verified =
+          !failed && Boolean(current?.registered && current.installed && current.healthy)
+        return this.result(
+          packageTarget(pkg),
+          'update',
+          verified,
+          false,
+          verified ? 'Package updated' : 'Package update failed',
+          [
+            {
+              phase: 'update-all',
+              ok: process.exitCode === 0,
+              message:
+                process.exitCode === 0
+                  ? 'Pi updated installed extensions'
+                  : 'Pi update --extensions failed'
+            },
+            {
+              phase: 'verify',
+              ok: verified,
+              message: verified
+                ? 'Updated package is healthy'
+                : 'Updated package verification failed'
+            },
+            ...(failed
+              ? [
+                  {
+                    phase: 'rollback',
+                    ok: true,
+                    message: 'Registry restored from transaction snapshot'
+                  }
+                ]
+              : [])
+          ],
+          process,
+          verified
+            ? null
+            : (classifyPackageError(process.stderr || process.stdout) ?? 'VERIFY_FAILED')
+        )
+      })
+    })
+  }
+
   async uninstall(target: PiPackageTarget): Promise<PiPackageActionResult> {
     const normalized = await this.normalizeTarget(target)
     return this.withMutation(normalized, 'uninstall', async () => {
@@ -635,7 +798,7 @@ export class PiPackageManager {
     return { source, scope: 'global', projectRoot: null }
   }
 
-  private async executeCli(command: 'install' | 'remove', target: PiPackageTarget) {
+  private async executeCli(command: 'install' | 'remove' | 'update', target: PiPackageTarget) {
     const project = target.scope === 'project'
     const settings = this.settingsStore.peek()
     return piProcess.exec({
@@ -644,6 +807,18 @@ export class PiPackageManager {
       cliPath: settings.manualCliPath,
       env: { PI_CODING_AGENT_DIR: getPiConfigDir(settings.manualConfigDir) },
       ...(project && target.projectRoot ? { cwd: target.projectRoot } : {})
+    })
+  }
+
+  private async executeUpdateAll(scope: PiPackageScope, projectRoot?: string | null) {
+    const project = scope === 'project'
+    const settings = this.settingsStore.peek()
+    return piProcess.exec({
+      args: ['update', '--extensions', ...(project ? ['--local', '--approve'] : ['--no-approve'])],
+      timeoutMs: 10 * 60_000,
+      cliPath: settings.manualCliPath,
+      env: { PI_CODING_AGENT_DIR: getPiConfigDir(settings.manualConfigDir) },
+      ...(project && projectRoot ? { cwd: projectRoot } : {})
     })
   }
 
@@ -828,6 +1003,10 @@ function removeRegistryPackage(packages: unknown, source: string, baseDir?: stri
     const value = typeof entry === 'string' ? entry : (entry as { source?: unknown })?.source
     return typeof value !== 'string' || packageIdentity(value, baseDir) !== identity
   })
+}
+
+function packageTarget(pkg: PiPackageInfo): PiPackageTarget {
+  return { source: pkg.source, scope: pkg.scope, projectRoot: pkg.projectRoot }
 }
 
 export {

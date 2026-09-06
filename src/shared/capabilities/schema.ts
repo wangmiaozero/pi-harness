@@ -1,15 +1,27 @@
 import { z } from 'zod'
-import { CAPABILITY_SOURCES, CAPABILITY_TYPES } from './types'
+import {
+  CAPABILITY_CATEGORIES,
+  CAPABILITY_INTEGRATIONS,
+  CAPABILITY_SOURCES,
+  CAPABILITY_TYPES
+} from './types'
 
 const capabilityIdRegex = /^[a-z0-9][a-z0-9._-]{0,127}$/
 
 export const capabilityIdSchema = z.string().regex(capabilityIdRegex)
 
-const capabilityInstallSchema = z.object({
-  strategy: z.literal('skills-cli'),
-  selector: capabilityIdSchema,
-  target: z.literal('pi-global')
-})
+const capabilityInstallSchema = z.discriminatedUnion('strategy', [
+  z.object({
+    strategy: z.literal('skills-cli'),
+    selector: capabilityIdSchema,
+    target: z.literal('pi-global')
+  }),
+  z.object({
+    strategy: z.literal('pi-package'),
+    source: z.string().regex(/^git:github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/),
+    target: z.literal('pi-global')
+  })
+])
 
 export const capabilityDefinitionSchema = z
   .object({
@@ -22,13 +34,25 @@ export const capabilityDefinitionSchema = z
     sourceUrl: z.url().max(1024).optional(),
     builtin: z.boolean().optional(),
     featured: z.boolean().optional(),
+    recommended: z.boolean().optional(),
+    optional: z.boolean().optional(),
+    category: z.enum(CAPABILITY_CATEGORIES).optional(),
+    integration: z.enum(CAPABILITY_INTEGRATIONS).optional(),
+    order: z.number().int().min(0).max(10_000).optional(),
     tags: z.array(z.string().min(1).max(64)).max(32).optional(),
     useCases: z.array(z.string().min(1).max(64)).max(16).optional(),
     capabilities: z
       .object({
+        brainstorming: z.boolean().optional(),
         planning: z.boolean().optional(),
+        tdd: z.boolean().optional(),
         codeReview: z.boolean().optional(),
         debugging: z.boolean().optional(),
+        systematicDebugging: z.boolean().optional(),
+        worktrees: z.boolean().optional(),
+        subagentWorkflow: z.boolean().optional(),
+        parallelAgentWorkflow: z.boolean().optional(),
+        verification: z.boolean().optional(),
         browser: z.boolean().optional(),
         filesystem: z.boolean().optional(),
         git: z.boolean().optional(),
@@ -41,11 +65,25 @@ export const capabilityDefinitionSchema = z
     metadata: z.record(z.string(), z.unknown()).optional()
   })
   .superRefine((definition, context) => {
-    if (definition.install && definition.type !== 'skill') {
+    if (definition.install?.strategy === 'skills-cli' && definition.type !== 'skill') {
       context.addIssue({
         code: 'custom',
         path: ['install'],
         message: 'skills-cli installation is available only to skill capabilities'
+      })
+    }
+    if (definition.install?.strategy === 'pi-package' && definition.type !== 'package') {
+      context.addIssue({
+        code: 'custom',
+        path: ['install'],
+        message: 'pi-package installation is available only to package capabilities'
+      })
+    }
+    if (definition.builtin && definition.install) {
+      context.addIssue({
+        code: 'custom',
+        path: ['install'],
+        message: 'Built-in capabilities cannot declare an installer'
       })
     }
     if (

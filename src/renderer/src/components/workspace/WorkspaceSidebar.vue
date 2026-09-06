@@ -20,6 +20,7 @@ import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import Input from '@renderer/components/ui/Input.vue'
+import ContextMenu from '@renderer/components/ui/ContextMenu.vue'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
@@ -30,7 +31,10 @@ import HarnessContextGauge from '@renderer/components/harness/HarnessContextGaug
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { callApi, getApi, getErrorPayload } from '@renderer/composables/useApi'
 import type {
+  ProjectContextAction,
   RecentWorkspace,
+  SessionContextAction,
+  SessionFolderContextAction,
   SessionInfo,
   SessionProjectGroup,
   WorkspaceFolder
@@ -41,8 +45,23 @@ import RenameDialog from './RenameDialog.vue'
 import { toNativeMenuLocale } from '@shared/constants/language'
 import { projectIdentityKey } from '@shared/workspace/project-identity'
 import { projectDisplayName } from '@shared/workspace/session-tree'
+import {
+  getProjectContextMenuLabels,
+  getSessionContextMenuLabels
+} from '@shared/workspace/context-menu-labels'
+import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
+import { rendererPlatformHint } from '@renderer/utils/provider-credentials'
 
 type WorkspaceSection = 'sessions' | 'harness'
+type SidebarMenuEntry =
+  | {
+      type: 'action'
+      id: string
+      label: string
+      danger?: boolean
+      testId?: string
+    }
+  | { type: 'separator'; id: string }
 
 const props = withDefaults(defineProps<{ activeSection?: WorkspaceSection }>(), {
   activeSection: 'sessions'
@@ -75,6 +94,12 @@ const renameSaving = ref(false)
 const branchingProject = ref<SessionProjectGroup | null>(null)
 const branchName = ref('')
 const branchSaving = ref(false)
+const sidebarMenu = ref<
+  | { kind: 'project'; group: SessionProjectGroup; x: number; y: number }
+  | { kind: 'session'; session: SessionInfo; x: number; y: number }
+  | { kind: 'folder'; session: SessionInfo; folder: WorkspaceFolder; x: number; y: number }
+  | null
+>(null)
 let dragDepth = 0
 
 const projectGroups = computed(() => workspace.sessionProjectGroups)
@@ -93,6 +118,85 @@ const sectionItems = computed(() => [
 ])
 const activeProviderKey = computed(() => agent.state?.model?.provider ?? models.active.providerKey)
 const activeModelId = computed(() => agent.state?.model?.id ?? models.active.modelId)
+const mingDynastyActive = computed(() => {
+  const skin = getActiveVisualSkin(settings.settings)?.id
+  return skin === 'ming-snow' || skin === 'ming-moon'
+})
+const menuPlatform = computed(
+  () =>
+    rendererPlatformHint(
+      typeof navigator === 'undefined' ? undefined : navigator.platform
+    ) as NodeJS.Platform
+)
+const sidebarMenuLabel = computed(() => {
+  const menu = sidebarMenu.value
+  if (!menu) return ''
+  if (menu.kind === 'project') return menu.group.name
+  if (menu.kind === 'session') return sessionTitle(menu.session)
+  return menu.folder.name
+})
+const sidebarMenuEntries = computed<SidebarMenuEntry[]>(() => {
+  const menu = sidebarMenu.value
+  if (!menu) return []
+  if (menu.kind === 'session') {
+    const labels = getSessionContextMenuLabels(
+      toNativeMenuLocale(locale.value),
+      menuPlatform.value
+    )
+    return [
+      {
+        type: 'action',
+        id: 'rename',
+        label: labels.rename,
+        testId: 'session-context-action-rename'
+      },
+      {
+        type: 'action',
+        id: 'delete',
+        label: labels.delete,
+        danger: true,
+        testId: 'session-context-action-delete'
+      }
+    ]
+  }
+  if (menu.kind === 'folder') {
+    return [
+      {
+        type: 'action',
+        id: 'remove',
+        label: t('workspace.removeFolder'),
+        danger: true,
+        testId: 'folder-context-action-remove'
+      }
+    ]
+  }
+  const labels = getProjectContextMenuLabels(
+    toNativeMenuLocale(locale.value),
+    menuPlatform.value
+  )
+  const pinAction = workspace.isProjectPinned(menu.group.projectKey)
+      ? 'unpin'
+      : 'pin'
+  const entries: SidebarMenuEntry[] = [
+    { type: 'action', id: pinAction, label: labels[pinAction] },
+    { type: 'action', id: 'open', label: labels.open },
+    { type: 'action', id: 'edit', label: labels.edit },
+    { type: 'action', id: 'rename', label: labels.rename },
+    { type: 'action', id: 'archive-chats', label: labels.archiveChats },
+    { type: 'action', id: 'create-worktree', label: labels.createWorktree },
+    { type: 'separator', id: 'exports' },
+    { type: 'action', id: 'export-html', label: labels.exportHtml },
+    { type: 'action', id: 'export-md', label: labels.exportMarkdown },
+    { type: 'action', id: 'reveal', label: labels.reveal },
+    { type: 'separator', id: 'remove' },
+    { type: 'action', id: 'remove', label: labels.remove, danger: true }
+  ]
+  return entries.map((entry) =>
+    entry.type === 'action'
+      ? { ...entry, testId: `project-context-action-${entry.id}` }
+      : entry
+  )
+})
 
 function running(id: string): boolean {
   return agent.runningIds.includes(id)
@@ -180,6 +284,15 @@ async function removeProject(group: SessionProjectGroup) {
 async function onProjectContextMenu(group: SessionProjectGroup, event: MouseEvent) {
   event.preventDefault()
   event.stopPropagation()
+  if (mingDynastyActive.value) {
+    sidebarMenu.value = {
+      kind: 'project',
+      group,
+      x: event.clientX,
+      y: event.clientY
+    }
+    return
+  }
   try {
     await handleProjectContextMenu(group)
   } catch (error) {
@@ -196,6 +309,13 @@ async function handleProjectContextMenu(group: SessionProjectGroup) {
       toNativeMenuLocale(locale.value)
     )
   )
+  if (action) await runProjectContextAction(group, action)
+}
+
+async function runProjectContextAction(
+  group: SessionProjectGroup,
+  action: ProjectContextAction
+) {
   if (action === 'pin' || action === 'unpin') {
     workspace.setProjectPinned(group.projectKey, action === 'pin')
   } else if (action === 'open') {
@@ -254,6 +374,22 @@ async function handleProjectContextMenu(group: SessionProjectGroup) {
     await callApi(() => getApi().system.showItem(group.projectRoot))
   } else if (action === 'remove') {
     await removeProject(group)
+  }
+}
+
+async function runSidebarMenuAction(id: string) {
+  const menu = sidebarMenu.value
+  if (!menu) return
+  try {
+    if (menu.kind === 'project') {
+      await runProjectContextAction(menu.group, id as ProjectContextAction)
+    } else if (menu.kind === 'session') {
+      await runSessionContextAction(menu.session, id as SessionContextAction)
+    } else {
+      await runFolderContextAction(menu.session, menu.folder, id as SessionFolderContextAction)
+    }
+  } catch (error) {
+    toast.error(getErrorPayload(error).message)
   }
 }
 
@@ -458,6 +594,15 @@ async function onDrop(event: DragEvent) {
 async function onContextMenu(session: SessionInfo, event: MouseEvent) {
   event.preventDefault()
   event.stopPropagation()
+  if (mingDynastyActive.value) {
+    sidebarMenu.value = {
+      kind: 'session',
+      session,
+      x: event.clientX,
+      y: event.clientY
+    }
+    return
+  }
   const action = await callApi(() =>
     getApi().sessions.contextMenu(
       session.id,
@@ -466,6 +611,10 @@ async function onContextMenu(session: SessionInfo, event: MouseEvent) {
       toNativeMenuLocale(locale.value)
     )
   )
+  if (action) await runSessionContextAction(session, action)
+}
+
+async function runSessionContextAction(session: SessionInfo, action: SessionContextAction) {
   if (action === 'rename') {
     renaming.value = { session }
     renameValue.value = sessionTitle(session)
@@ -538,9 +687,27 @@ async function onFolderContextMenu(
   event.preventDefault()
   event.stopPropagation()
   if (sessionFolders(session).length <= 1) return
+  if (mingDynastyActive.value) {
+    sidebarMenu.value = {
+      kind: 'folder',
+      session,
+      folder,
+      x: event.clientX,
+      y: event.clientY
+    }
+    return
+  }
   const action = await callApi(() =>
     getApi().workspace.sessionFolderContextMenu(toNativeMenuLocale(locale.value))
   )
+  if (action) await runFolderContextAction(session, folder, action)
+}
+
+async function runFolderContextAction(
+  session: SessionInfo,
+  folder: WorkspaceFolder,
+  action: SessionFolderContextAction
+) {
   if (action === 'remove') await removeFolder(session, folder)
 }
 
@@ -948,6 +1115,17 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
         </p>
       </div>
     </div>
+
+    <ContextMenu
+      :open="Boolean(sidebarMenu)"
+      :x="sidebarMenu?.x ?? 0"
+      :y="sidebarMenu?.y ?? 0"
+      :label="sidebarMenuLabel"
+      :entries="sidebarMenuEntries"
+      :test-id="sidebarMenu ? `${sidebarMenu.kind}-context-menu` : undefined"
+      @close="sidebarMenu = null"
+      @select="runSidebarMenuAction"
+    />
 
     <ProjectWorkspaceDialog
       v-if="editingProject"

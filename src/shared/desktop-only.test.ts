@@ -11,7 +11,7 @@ function runtimeSources(directory: string): string[] {
 }
 
 describe('desktop-only runtime', () => {
-  it('allows only the fixed official Node.js and application release downloads', () => {
+  it('allows only fixed downloads and trusted catalog homepages', () => {
     const sourcePaths = runtimeSources(join(process.cwd(), 'src'))
     const externalCallSites = sourcePaths.filter((path) =>
       /\bopenExternal\b/.test(readFileSync(path, 'utf8'))
@@ -28,8 +28,10 @@ describe('desktop-only runtime', () => {
       join(process.cwd(), 'src/main/ipc/register.ts'),
       join(process.cwd(), 'src/main/updater/index.ts')
     ])
-    expect(registerSource.match(/\bopenExternal\b/g)).toHaveLength(1)
+    expect(registerSource.match(/\bopenExternal\b/g)).toHaveLength(2)
     expect(registerSource).toContain('shell.openExternal(NODE_DOWNLOAD_URL)')
+    expect(registerSource).toContain('shell.openExternal(definition.sourceUrl)')
+    expect(registerSource).toContain("definition?.sourceUrl?.startsWith('https://github.com/')")
     expect(installConstants).toContain("NODE_DOWNLOAD_URL = 'https://nodejs.org/en/download'")
     expect(updaterSource.match(/\bopenExternal\b/g)).toHaveLength(1)
     expect(updaterSource).toContain('shell.openExternal(LATEST_RELEASE_URL)')

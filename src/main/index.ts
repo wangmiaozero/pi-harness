@@ -46,6 +46,7 @@ import { IPC_EVENT } from '@shared/ipc/channels'
 import { SkillRegistry } from './capabilities/skill-registry'
 import { CapabilityService } from './capabilities/capability-service'
 import { PiPackageManager } from './packages/package-manager'
+import { PiPackageRegistry } from './packages/pi-package-registry'
 import { BuiltinSkillService } from './skills/builtin-skill-service'
 import { PackageHealthError, PathDeniedError } from './services/errors'
 import { EnvironmentManager } from './environment/environment-manager'
@@ -156,10 +157,19 @@ async function bootstrap(): Promise<void> {
   const models = new ModelService(config, metadata)
   const access = new FileAccessService(authorizedRootsStore)
   const packageManager = new PiPackageManager(settingsStore, config, access)
+  const packageRegistry = new PiPackageRegistry(
+    process.env.PI_HARNESS_E2E === '1'
+      ? {
+          searchUrl: process.env.PI_HARNESS_REGISTRY_SEARCH_URL,
+          registryUrl: process.env.PI_HARNESS_REGISTRY_URL,
+          downloadsUrl: process.env.PI_HARNESS_DOWNLOADS_URL
+        }
+      : undefined
+  )
   const builtinSkills = new BuiltinSkillService(settingsStore, metadata, access)
-  const skills = new SkillsService(settingsStore, packageManager, builtinSkills, access)
+  const skills = new SkillsService(settingsStore, packageManager, builtinSkills, access, packageRegistry)
   const skillRegistry = new SkillRegistry(settingsStore, metadata, skills)
-  const capabilities = new CapabilityService(metadata, skillRegistry)
+  const capabilities = new CapabilityService(metadata, skillRegistry, undefined, packageManager)
   const diagnostics = new DiagnosticsService(
     settingsStore,
     config,

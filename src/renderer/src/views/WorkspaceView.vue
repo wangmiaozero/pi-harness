@@ -6,6 +6,7 @@ import WorkspaceTabs from '@renderer/components/workspace/WorkspaceTabs.vue'
 import ChatWindow from '@renderer/components/chat/ChatWindow.vue'
 import WorkspaceFilesPanel from '@renderer/components/workspace/WorkspaceFilesPanel.vue'
 import PortraitSkinPanel from '@renderer/components/layout/PortraitSkinPanel.vue'
+import MingWorkspaceOrnaments from '@renderer/components/layout/MingWorkspaceOrnaments.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import GitDiffView from '@renderer/components/git/GitDiffView.vue'
 import HarnessConsole from '@renderer/components/harness/HarnessConsole.vue'
@@ -35,7 +36,11 @@ let unsubWorkspaceChanged: (() => void) | null = null
 let sessionSwitchQueue: Promise<void> = Promise.resolve()
 
 const activeKind = computed(() => workspace.activeTab?.kind ?? 'chat')
-const portraitSkinActive = computed(() => getActiveVisualSkin(settings.settings)?.portrait === true)
+const activeVisualSkin = computed(() => getActiveVisualSkin(settings.settings))
+const portraitSkinActive = computed(() => activeVisualSkin.value?.portrait === true)
+const mingDynastyActive = computed(
+  () => activeVisualSkin.value?.id === 'ming-snow' || activeVisualSkin.value?.id === 'ming-moon'
+)
 
 async function focusComposer() {
   await nextTick()
@@ -224,6 +229,7 @@ watch(
     >
       <HarnessConsole v-if="activeWorkspaceSection === 'harness'" />
       <template v-else>
+        <MingWorkspaceOrnaments v-if="mingDynastyActive && !workspace.filePanelOpen" />
         <div
           class="workspace-tabbar flex h-[var(--height-page-header)] min-w-0 shrink-0 items-center"
         >
@@ -314,6 +320,11 @@ watch(
 <style scoped>
 .workspace-main {
   container-type: inline-size;
+}
+
+.workspace-view {
+  position: relative;
+  isolation: isolate;
 }
 /* On narrow windows keep both conversation and files usable, without covering navigation. */
 @container (max-width: 720px) {

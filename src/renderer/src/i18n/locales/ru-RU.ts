@@ -1,5 +1,6 @@
 /** Русский UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
+import { capabilityMessages } from '../capabilities'
 
 export const ruRU: MessageTree = {
   nav: {
@@ -7,18 +8,19 @@ export const ruRU: MessageTree = {
     workspace: 'Рабочая область',
     providers: 'Провайдеры',
     models: 'Модели',
-    skills: 'Навыки',
+    skills: 'Центр возможностей',
     config: 'Конфигурация',
     diagnostics: 'Диагностика',
     settings: 'Настройки',
     git: 'Git'
   },
+  capabilities: capabilityMessages['ru-RU'],
   navShort: {
     overview: 'Главная',
     workspace: 'Работа',
     providers: 'Сети',
     models: 'Модель',
-    skills: 'Навык',
+    skills: 'Возможн.',
     config: 'Конф.',
     diagnostics: 'Диагн.',
     settings: 'Настр.',

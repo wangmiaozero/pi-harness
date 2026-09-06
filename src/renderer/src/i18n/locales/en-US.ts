@@ -1,22 +1,25 @@
 /** English (United States) UI messages. Source of truth for the message key shape. */
+import { capabilityMessages } from '../capabilities'
+
 export const enUS = {
   nav: {
     overview: 'Overview',
     workspace: 'Workspace',
     providers: 'Providers',
     models: 'Models',
-    skills: 'Skills',
+    skills: 'Capabilities',
     config: 'Config',
     diagnostics: 'Diagnostics',
     settings: 'Settings',
     git: 'Git'
   },
+  capabilities: capabilityMessages['en-US'],
   navShort: {
     overview: 'Home',
     workspace: 'Work',
     providers: 'APIs',
     models: 'Model',
-    skills: 'Skill',
+    skills: 'Caps',
     config: 'Conf',
     diagnostics: 'Diag',
     settings: 'Prefs',

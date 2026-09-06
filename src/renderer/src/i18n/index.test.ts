@@ -31,7 +31,35 @@ describe('localized copy', () => {
   it('does not ship empty localized messages', () => {
     for (const locale of Object.keys(messages) as Array<keyof typeof messages>) {
       const values = Object.values(messages[locale]).flatMap((section) => Object.values(section))
-      expect(values.every((value) => value.trim().length > 0)).toBe(true)
+      expect(values.every((value) => typeof value === 'string' && value.trim().length > 0)).toBe(
+        true
+      )
+    }
+  })
+
+  it('defines the complete Capabilities contract in every locale', () => {
+    const required = [
+      'capabilities.title',
+      'capabilities.officialMarket',
+      'capabilities.installed',
+      'capabilities.skills',
+      'capabilities.featured',
+      'capabilities.install',
+      'capabilities.update',
+      'capabilities.packageCount',
+      'capabilities.methodologySection',
+      'capabilities.nativePiDescription',
+      'capabilities.superpowersDescription',
+      'capabilities.odaiDescription',
+      'capabilities.recommendedBadge',
+      'capabilities.phaseUpdating',
+      'capabilities.phaseUninstalling',
+      'capabilities.useCaseTestDrivenDevelopment',
+      'capabilities.useCaseParallelAgentWorkflow'
+    ]
+    for (const locale of Object.keys(messages) as Array<keyof typeof messages>) {
+      const paths = new Set(leafPaths(messages[locale]))
+      expect(required.filter((key) => !paths.has(key))).toEqual([])
     }
   })
 

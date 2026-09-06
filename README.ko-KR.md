@@ -1,6 +1,17 @@
 # Pi-Harness
 
 <p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
+  <a href="README.ja-JP.md">日本語</a> ·
+  <a href="README.ko-KR.md">한국어</a> ·
+  <a href="README.ru-RU.md">Русский</a> ·
+  <a href="README.fr-FR.md">Français</a> ·
+  <a href="README.de-DE.md">Deutsch</a>
+</p>
+
+<p align="center">
   <img src="build/icon.png" width="96" alt="Pi-Harness" />
 </p>
 
@@ -14,25 +25,9 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> ·
-  <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="README.zh-TW.md">繁體中文</a> ·
-  <a href="README.ja-JP.md">日本語</a> ·
-  <a href="README.ko-KR.md">한국어</a> ·
-  <a href="README.ru-RU.md">Русский</a> ·
-  <a href="README.fr-FR.md">Français</a> ·
-  <a href="README.de-DE.md">Deutsch</a>
-</p>
-
-<p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0"><img alt="release v1.2.0" src="https://img.shields.io/badge/release-v1.2.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-</p>
-
-<p align="center">
-  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace.gif" width="920" alt="Pi-Harness 작업 공간 데모" /></a><br />
-  <a href="docs/workspace.mp4?raw=1">▶ Pi-Harness 작업 공간 데모 보기</a>
 </p>
 
 ## 왜 Pi-Harness인가요?
@@ -93,35 +88,27 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 
 ## 화면 미리보기
 
-### 1. 준비 상태 확인
+동일한 6개 주요 화면을 기본 테마와 고전풍 테마로 각각 보여 줍니다.
 
-![개요](docs/overview.jpg)
+### 기본 테마
 
-### 2. 실제 프로젝트에서 Pi 실행
+|                   작업 공간                    |                    Git                     |
+| :--------------------------------------------: | :----------------------------------------: |
+| ![기본 테마 작업 공간](docs/默认主题/Work.jpg) |  ![기본 테마 Git](docs/默认主题/Git.jpg)   |
+|                  **Provider**                  |                  **모델**                  |
+| ![기본 테마 Provider](docs/默认主题/APIs.jpg)  | ![기본 테마 모델](docs/默认主题/Model.jpg) |
+|                 **기능 센터**                  |                  **설정**                  |
+| ![기본 테마 기능 센터](docs/默认主题/Caps.jpg) | ![기본 테마 설정](docs/默认主题/Prefs.jpg) |
 
-|            프로젝트 세션             |            파일과 경량 편집            |
-| :----------------------------------: | :------------------------------------: |
-| ![작업 공간 세션](docs/workspace-1.jpg) | ![작업 공간 편집기](docs/workspace-2.jpg) |
+### 고전풍 테마
 
-![스타십 콕핏 작업 공간](docs/workspace-3.jpg)
-
-### 3. Provider와 모델 구성
-
-|              Provider               |            Provider 설정            |
-| :---------------------------------: | :---------------------------------: |
-| ![Provider 목록](docs/providers-1.jpg) | ![Provider 상세](docs/providers-2.jpg) |
-|              **모델**               |            **모델 설정**            |
-|    ![모델 목록](docs/models-1.jpg)    |    ![모델 상세](docs/models-2.jpg)    |
-
-### 4. Skills와 패키지로 Pi 확장
-
-![Skills 마켓](docs/skills.jpg)
-
-### 5. 작업 공간 꾸미기
-
-![외형과 마스코트 설정](docs/settings.jpg)
-
-![마스코트 스타일 선택](docs/mascot-settings.jpg)
+|                  작업 공간                   |                   Git                    |
+| :------------------------------------------: | :--------------------------------------: |
+| ![고전풍 테마 작업 공간](docs/古风/Work.jpg) |  ![고전풍 테마 Git](docs/古风/Git.jpg)   |
+|                 **Provider**                 |                 **모델**                 |
+| ![고전풍 테마 Provider](docs/古风/APIs.jpg)  | ![고전풍 테마 모델](docs/古风/Model.jpg) |
+|                **기능 센터**                 |                 **설정**                 |
+| ![고전풍 테마 기능 센터](docs/古风/Caps.jpg) | ![고전풍 테마 설정](docs/古风/Prefs.jpg) |
 
 ## 편집기 범위
 

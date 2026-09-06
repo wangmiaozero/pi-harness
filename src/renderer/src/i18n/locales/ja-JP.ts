@@ -1,5 +1,6 @@
 /** 日本語 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
+import { capabilityMessages } from '../capabilities'
 
 export const jaJP: MessageTree = {
   nav: {
@@ -7,18 +8,19 @@ export const jaJP: MessageTree = {
     workspace: 'ワークスペース',
     providers: 'プロバイダー',
     models: 'モデル',
-    skills: 'スキル',
+    skills: '機能センター',
     config: '構成',
     diagnostics: '診断',
     settings: '設定',
     git: 'Git'
   },
+  capabilities: capabilityMessages['ja-JP'],
   navShort: {
     overview: 'ホーム',
     workspace: '作業',
     providers: 'API',
     models: 'モデル',
-    skills: 'スキル',
+    skills: '機能',
     config: '構成',
     diagnostics: '診断',
     settings: '設定',

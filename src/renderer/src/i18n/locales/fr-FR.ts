@@ -1,5 +1,6 @@
 /** Français UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
+import { capabilityMessages } from '../capabilities'
 
 export const frFR: MessageTree = {
   nav: {
@@ -7,18 +8,19 @@ export const frFR: MessageTree = {
     workspace: 'Espace de travail',
     providers: 'Fournisseurs',
     models: 'Modèles',
-    skills: 'Compétences',
+    skills: 'Centre de capacités',
     config: 'Config',
     diagnostics: 'Diagnostics',
     settings: 'Paramètres',
     git: 'Git'
   },
+  capabilities: capabilityMessages['fr-FR'],
   navShort: {
     overview: 'Accueil',
     workspace: 'Travail',
     providers: 'APIs',
     models: 'Modèle',
-    skills: 'Compét',
+    skills: 'Capacités',
     config: 'Conf',
     diagnostics: 'Diag',
     settings: 'Régl',

@@ -332,6 +332,82 @@ export interface PiPackageInfo {
   permissions: PiPackagePermission[]
 }
 
+export type PiRegistryPackageType = 'extension' | 'skill' | 'prompt' | 'theme' | 'package'
+export type PiRegistrySort = 'downloads' | 'published' | 'relevance'
+
+export interface PiRegistryPackageResources {
+  extensions: string[]
+  skills: string[]
+  prompts: string[]
+  themes: string[]
+}
+
+export interface PiRegistryPackage {
+  name: string
+  version: string
+  description: string
+  keywords: string[]
+  publisher: string
+  author: string
+  maintainers: string[]
+  license: string
+  homepage: string | null
+  repository: string | null
+  npmUrl: string
+  publishDate: string | null
+  monthlyDownloads: number | null
+  weeklyDownloads: number | null
+  types: PiRegistryPackageType[]
+  resources: PiRegistryPackageResources
+  detailStatus: 'loaded' | 'failed'
+  detailError: string | null
+}
+
+export interface PiRegistryPackageDetail extends PiRegistryPackage {
+  latestVersion: string
+  dependencies: Record<string, string>
+  peerDependencies: Record<string, string>
+  dist: {
+    tarball: string | null
+    shasum: string | null
+    integrity: string | null
+    unpackedSize: number | null
+  }
+  piManifest: Record<string, unknown> | null
+}
+
+export interface PiPackageSearchInput {
+  query?: string
+  page?: number
+  pageSize?: number
+  type?: PiRegistryPackageType | 'all'
+  sort?: PiRegistrySort
+  refresh?: boolean
+}
+
+export interface PiPackageSearchResult {
+  items: PiRegistryPackage[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+  fetchedAt: number
+}
+
+export type PiPackageUpdateState =
+  'up-to-date' | 'update-available' | 'fixed-version' | 'check-failed' | 'not-applicable'
+
+export interface PiPackageUpdateInfo {
+  packageId: string
+  source: string
+  scope: PiPackageScope
+  installedVersion: string | null
+  latestVersion: string | null
+  updateAvailable: boolean
+  state: PiPackageUpdateState
+  error: string | null
+}
+
 export interface SkillMarketPackage {
   source: string
   name: string
@@ -432,7 +508,7 @@ export interface BuiltinSkillActionResult {
 export interface PiPackageActionResult {
   source: string
   scope: PiPackageScope
-  action: 'install' | 'repair' | 'register' | 'uninstall' | 'delete-orphan'
+  action: 'install' | 'repair' | 'register' | 'uninstall' | 'delete-orphan' | 'update'
   ok: boolean
   skipped: boolean
   message: string
@@ -717,6 +793,11 @@ export interface PiSwitchAPI {
     updateBuiltinSkills(target: BuiltinSkillMutationTarget): Promise<BuiltinSkillActionResult[]>
     uninstallBuiltinSkills(target: BuiltinSkillMutationTarget): Promise<BuiltinSkillActionResult[]>
     installPackages(targets: PiPackageTarget[]): Promise<PiPackageActionResult[]>
+    searchRegistry(input: PiPackageSearchInput): Promise<PiPackageSearchResult>
+    getRegistryPackageDetail(name: string, refresh?: boolean): Promise<PiRegistryPackageDetail>
+    checkPackageUpdates(projectRoot?: string | null): Promise<PiPackageUpdateInfo[]>
+    updatePackage(target: PiPackageTarget): Promise<PiPackageActionResult>
+    updateAllPackages(projectRoot?: string | null): Promise<PiPackageActionResult[]>
     repairPackage(target: PiPackageTarget): Promise<PiPackageActionResult>
     registerPackage(target: PiPackageTarget): Promise<PiPackageActionResult>
     removePackages(targets: PiPackageTarget[]): Promise<PiPackageActionResult[]>
@@ -737,6 +818,7 @@ export interface PiSwitchAPI {
   }
   capabilities: {
     list(): Promise<CapabilityDescriptor[]>
+    openHomepage(skillId: string): Promise<void>
     installSkill(skillId: string): Promise<CapabilityActionResult>
     updateSkill(skillId: string): Promise<CapabilityActionResult>
     uninstallSkill(skillId: string): Promise<CapabilityActionResult>

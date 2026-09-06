@@ -1,6 +1,17 @@
 # Pi-Harness
 
 <p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
+  <a href="README.ja-JP.md">日本語</a> ·
+  <a href="README.ko-KR.md">한국어</a> ·
+  <a href="README.ru-RU.md">Русский</a> ·
+  <a href="README.fr-FR.md">Français</a> ·
+  <a href="README.de-DE.md">Deutsch</a>
+</p>
+
+<p align="center">
   <img src="build/icon.png" width="96" alt="Pi-Harness" />
 </p>
 
@@ -14,25 +25,9 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> ·
-  <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="README.zh-TW.md">繁體中文</a> ·
-  <a href="README.ja-JP.md">日本語</a> ·
-  <a href="README.ko-KR.md">한국어</a> ·
-  <a href="README.ru-RU.md">Русский</a> ·
-  <a href="README.fr-FR.md">Français</a> ·
-  <a href="README.de-DE.md">Deutsch</a>
-</p>
-
-<p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0"><img alt="release v1.2.0" src="https://img.shields.io/badge/release-v1.2.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-</p>
-
-<p align="center">
-  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace.gif" width="920" alt="Демонстрация рабочего пространства Pi-Harness" /></a><br />
-  <a href="docs/workspace.mp4?raw=1">▶ Посмотреть демонстрацию рабочего пространства Pi-Harness</a>
 </p>
 
 ## Зачем нужен Pi-Harness?
@@ -93,35 +88,27 @@ Pi-Harness — не обёртка над веб-интерфейсом. В нё
 
 ## Скриншоты
 
-### 1. Проверка готовности
+Шесть основных экранов показаны в стандартной теме и в теме в стиле династии Мин.
 
-![Обзор](docs/overview.jpg)
+### Стандартная тема
 
-### 2. Pi в реальном проекте
+|                         Рабочая область                          |                           Git                            |
+| :--------------------------------------------------------------: | :------------------------------------------------------: |
+|  ![Рабочая область в стандартной теме](docs/默认主题/Work.jpg)   |     ![Git в стандартной теме](docs/默认主题/Git.jpg)     |
+|                          **Провайдеры**                          |                        **Модели**                        |
+|     ![Провайдеры в стандартной теме](docs/默认主题/APIs.jpg)     |  ![Модели в стандартной теме](docs/默认主题/Model.jpg)   |
+|                      **Центр возможностей**                      |                      **Настройки**                       |
+| ![Центр возможностей в стандартной теме](docs/默认主题/Caps.jpg) | ![Настройки в стандартной теме](docs/默认主题/Prefs.jpg) |
 
-|        Сессии проекта        | Файлы и лёгкое редактирование  |
-| :--------------------------: | :----------------------------: |
-| ![Сессии](docs/workspace-1.jpg) | ![Редактор](docs/workspace-2.jpg) |
+### Тема в стиле династии Мин
 
-![Рабочая область Starship Cockpit](docs/workspace-3.jpg)
-
-### 3. Провайдеры и модели
-
-|                Провайдеры                |            Настройка провайдера            |
-| :--------------------------------------: | :----------------------------------------: |
-| ![Список провайдеров](docs/providers-1.jpg) | ![Настройка провайдера](docs/providers-2.jpg) |
-|                **Модели**                |            **Настройка модели**            |
-|    ![Список моделей](docs/models-1.jpg)    |    ![Настройка модели](docs/models-2.jpg)    |
-
-### 4. Расширение Pi
-
-![Маркет Skills](docs/skills.jpg)
-
-### 5. Внешний вид
-
-![Настройки внешнего вида и маскота](docs/settings.jpg)
-
-![Выбор стиля маскота](docs/mascot-settings.jpg)
+|                        Рабочая область                        |                          Git                          |
+| :-----------------------------------------------------------: | :---------------------------------------------------: |
+|  ![Рабочая область в теме династии Мин](docs/古风/Work.jpg)   |     ![Git в теме династии Мин](docs/古风/Git.jpg)     |
+|                        **Провайдеры**                         |                      **Модели**                       |
+|     ![Провайдеры в теме династии Мин](docs/古风/APIs.jpg)     |  ![Модели в теме династии Мин](docs/古风/Model.jpg)   |
+|                    **Центр возможностей**                     |                     **Настройки**                     |
+| ![Центр возможностей в теме династии Мин](docs/古风/Caps.jpg) | ![Настройки в теме династии Мин](docs/古风/Prefs.jpg) |
 
 ## Граница редактора
 

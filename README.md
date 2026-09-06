@@ -1,6 +1,17 @@
 # Pi-Harness
 
 <p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
+  <a href="README.ja-JP.md">日本語</a> ·
+  <a href="README.ko-KR.md">한국어</a> ·
+  <a href="README.ru-RU.md">Русский</a> ·
+  <a href="README.fr-FR.md">Français</a> ·
+  <a href="README.de-DE.md">Deutsch</a>
+</p>
+
+<p align="center">
   <img src="build/icon.png" width="110" alt="Pi-Harness" />
 </p>
 
@@ -18,9 +29,8 @@
 
 <p align="center">
   <a href="#download"><strong>Download Pi-Harness</strong></a> ·
-  <a href="README.zh-CN.md">简体中文</a> ·
   <a href="https://github.com/earendil-works/pi">Pi Agent Harness</a> ·
-  <a href="docs/workspace.mp4?raw=1">Watch Demo</a>
+  <a href="#current-screenshots">Screenshots</a>
 </p>
 
 <p align="center">
@@ -31,14 +41,12 @@
 </p>
 
 <p align="center">
-  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace.gif" width="920" alt="Pi-Harness workspace demo" /></a>
-</p>
-
-<p align="center">
   ⭐ <a href="https://github.com/wangmiaozero/pi-harness/stargazers">Star Pi-Harness</a> to follow the next Harness Console updates.
 </p>
 
 ## Why Pi-Harness?
+
+Pi-Harness is a visual Harness Console for Pi Coding Agent. Use Native Pi as-is, or discover and manage optional development methodologies, Skills, extensions, packages, and MCP tools.
 
 [Pi Coding Agent](https://github.com/earendil-works/pi) already has a powerful Agent Harness. Much of its runtime state—context, tools, compaction, queues, and sessions—is naturally exposed through CLI and SDK behavior.
 
@@ -85,6 +93,15 @@ The surrounding desktop capabilities are summarized below.
 | Updates            | Installs compatible application updates                               |
 | Appearance         | Offers appearance, density, cockpit mode, and optional themes         |
 
+### Optional methodologies and add-ons
+
+Native Pi remains the built-in default runtime and workflow. Pi-Harness does not replace it and does not silently install or enable third-party methodologies.
+
+- [Superpowers](https://github.com/obra/superpowers) is the recommended optional add-on: a complete software development methodology for coding agents covering brainstorming, planning, TDD, systematic debugging, Git worktrees, subagent and parallel-agent workflows, code review, and verification. Install it explicitly from Capabilities with `pi install git:github.com/obra/superpowers`.
+- [Odai](https://github.com/orziz/odai) remains an optional governance and adaptive-execution methodology for goal alignment, authorization boundaries, risk awareness, capability routing, evidence, and verification.
+
+Both add-ons use the existing trusted capability/package management flows and can be updated or removed independently.
+
 ### Lightweight editor, not an IDE
 
 Pi-Harness edits readable text with lazy syntax highlighting, line numbers, undo/redo, find, explicit save, unsaved-state indicators, and external-change conflict protection. Oversized, binary, media, and document files use read-only previews.
@@ -127,29 +144,27 @@ Pi-Harness connects to Pi through its runtime interfaces. Sessions remain compat
 
 ## Current screenshots
 
-### Workspace
+The same six product surfaces are shown in both the default and Classical Chinese themes.
 
-Open a real project, start or resume Pi sessions, and keep streaming output beside the files and Git changes produced by the agent.
+### Default theme
 
-<p align="center">
-  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace.gif" width="920" alt="Pi-Harness current workspace" /></a>
-</p>
+|                          Workspace                           |                             Git                              |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+|  ![Workspace in the default theme](docs/默认主题/Work.jpg)   |      ![Git in the default theme](docs/默认主题/Git.jpg)      |
+|                        **Providers**                         |                          **Models**                          |
+|  ![Providers in the default theme](docs/默认主题/APIs.jpg)   |   ![Models in the default theme](docs/默认主题/Model.jpg)    |
+|                       **Capabilities**                       |                       **Preferences**                        |
+| ![Capabilities in the default theme](docs/默认主题/Caps.jpg) | ![Preferences in the default theme](docs/默认主题/Prefs.jpg) |
 
-|                  Sessions                   |       Files and lightweight editing       |
-| :-----------------------------------------: | :---------------------------------------: |
-| ![Workspace sessions](docs/workspace-1.jpg) | ![Workspace editor](docs/workspace-2.jpg) |
+### Classical Chinese theme
 
-![Starship cockpit workspace](docs/workspace-3.jpg)
-
-### Providers, models, and Skills
-
-|                Providers                |              Provider setup               |
-| :-------------------------------------: | :---------------------------------------: |
-| ![Providers list](docs/providers-1.jpg) | ![Provider details](docs/providers-2.jpg) |
-|               **Models**                |              **Model setup**              |
-|    ![Models list](docs/models-1.jpg)    |    ![Model details](docs/models-2.jpg)    |
-
-![Skills market](docs/skills.jpg)
+|                             Workspace                              |                                Git                                 |
+| :----------------------------------------------------------------: | :----------------------------------------------------------------: |
+|  ![Workspace in the Classical Chinese theme](docs/古风/Work.jpg)   |      ![Git in the Classical Chinese theme](docs/古风/Git.jpg)      |
+|                           **Providers**                            |                             **Models**                             |
+|  ![Providers in the Classical Chinese theme](docs/古风/APIs.jpg)   |   ![Models in the Classical Chinese theme](docs/古风/Model.jpg)    |
+|                          **Capabilities**                          |                          **Preferences**                           |
+| ![Capabilities in the Classical Chinese theme](docs/古风/Caps.jpg) | ![Preferences in the Classical Chinese theme](docs/古风/Prefs.jpg) |
 
 ## Coming Next
 
@@ -309,17 +324,6 @@ pnpm test:e2e:only
 The next major step is the visual Harness Console shown above. Runtime and Context Inspectors, Tool inspection, Compaction controls, Session Tree visualization, and the Harness Timeline will continue to evolve.
 
 If you want to follow that work, consider giving [Pi-Harness a ⭐](https://github.com/wangmiaozero/pi-harness/stargazers). It helps you find the project again and helps more Pi users discover it.
-
-## Translations
-
-- [English](README.md)
-- [简体中文](README.zh-CN.md)
-- [繁體中文](README.zh-TW.md)
-- [日本語](README.ja-JP.md)
-- [한국어](README.ko-KR.md)
-- [Русский](README.ru-RU.md)
-- [Français](README.fr-FR.md)
-- [Deutsch](README.de-DE.md)
 
 ## Credits
 

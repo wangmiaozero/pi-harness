@@ -1,5 +1,6 @@
 /** 한국어 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
+import { capabilityMessages } from '../capabilities'
 
 export const koKR: MessageTree = {
   nav: {
@@ -7,18 +8,19 @@ export const koKR: MessageTree = {
     workspace: '작업 영역',
     providers: '제공자',
     models: '모델',
-    skills: '스킬',
+    skills: '기능 센터',
     config: '구성',
     diagnostics: '진단',
     settings: '설정',
     git: 'Git'
   },
+  capabilities: capabilityMessages['ko-KR'],
   navShort: {
     overview: '개요',
     workspace: '작업',
     providers: 'API',
     models: '모델',
-    skills: '스킬',
+    skills: '기능',
     config: '구성',
     diagnostics: '진단',
     settings: '설정',

@@ -1,5 +1,6 @@
 /** Deutsch UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
+import { capabilityMessages } from '../capabilities'
 
 export const deDE: MessageTree = {
   nav: {
@@ -13,6 +14,7 @@ export const deDE: MessageTree = {
     settings: 'Einstellungen',
     git: 'Git'
   },
+  capabilities: capabilityMessages['de-DE'],
   navShort: {
     overview: 'Start',
     workspace: 'Arbeit',

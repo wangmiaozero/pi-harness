@@ -7,9 +7,15 @@ import type {
   PiPackageCleanupPlan,
   PiPackageCleanupResult,
   PiPackageInfo,
+  PiPackageSearchInput,
+  PiPackageUpdateInfo,
   PiPackagePermission,
   PiPackageScope,
   PiPackageTarget,
+  PiRegistryPackage,
+  PiRegistryPackageDetail,
+  PiRegistryPackageType,
+  PiRegistrySort,
   SkillInfo,
   SkillMarketCollection
 } from '@shared/ipc/api-types'
@@ -23,10 +29,24 @@ import type { AppErrorPayload } from '@shared/types/errors'
 import { useWorkspaceStore } from './workspace'
 
 export const useSkillsStore = defineStore('skills', () => {
+  let registryRequestId = 0
   const skills = ref<SkillInfo[]>([])
   const packages = ref<PiPackageInfo[]>([])
   const market = ref<SkillMarketCollection[]>([])
   const capabilities = ref<CapabilityDescriptor[]>([])
+  const registryPackages = ref<PiRegistryPackage[]>([])
+  const registryTotal = ref(0)
+  const registryPage = ref(1)
+  const registryPageSize = ref(50)
+  const registryQuery = ref('')
+  const registryType = ref<PiRegistryPackageType | 'all'>('all')
+  const registrySort = ref<PiRegistrySort>('relevance')
+  const registryLoading = ref(false)
+  const registryRefreshing = ref(false)
+  const registryError = ref<string | null>(null)
+  const registryDetails = ref<Record<string, PiRegistryPackageDetail>>({})
+  const registryLastUpdated = ref<number | null>(null)
+  const packageUpdates = ref<Record<string, PiPackageUpdateInfo>>({})
   const capabilityProgress = ref<Record<string, CapabilityMutationProgress>>({})
   const capabilityErrors = ref<Record<string, AppErrorPayload>>({})
   const packageResults = ref<PiPackageActionResult[]>([])
@@ -42,7 +62,11 @@ export const useSkillsStore = defineStore('skills', () => {
   const featuredSkills = computed(() => capabilities.value.filter((entry) => entry.featured))
   const installingIds = computed(() =>
     Object.values(capabilityProgress.value)
-      .filter((progress) => ['resolving', 'installing', 'validating'].includes(progress.phase))
+      .filter((progress) =>
+        ['resolving', 'installing', 'updating', 'uninstalling', 'validating'].includes(
+          progress.phase
+        )
+      )
       .map((progress) => progress.skillId)
   )
 
@@ -71,6 +95,7 @@ export const useSkillsStore = defineStore('skills', () => {
       packages.value = packageList
       market.value = marketList
       capabilities.value = capabilityList
+      await checkPackageUpdates().catch(() => undefined)
     } catch (e) {
       error.value = (e as { message?: string }).message ?? String(e)
     } finally {
@@ -93,6 +118,7 @@ export const useSkillsStore = defineStore('skills', () => {
       packages.value = packageList
       market.value = marketList
       capabilities.value = capabilityList
+      await checkPackageUpdates().catch(() => undefined)
     } catch (e) {
       error.value = (e as { message?: string }).message ?? String(e)
     } finally {
@@ -160,7 +186,88 @@ export const useSkillsStore = defineStore('skills', () => {
     )
     packageResults.value = results
     await refresh()
+    await syncRegistryAfterMutation()
     return results
+  }
+
+  async function searchRegistry(input: Partial<PiPackageSearchInput> = {}) {
+    if (input.query !== undefined) registryQuery.value = input.query
+    if (input.page !== undefined) registryPage.value = input.page
+    if (input.pageSize !== undefined) registryPageSize.value = input.pageSize
+    if (input.type !== undefined) registryType.value = input.type
+    if (input.sort !== undefined) registrySort.value = input.sort
+    const refreshRegistry = input.refresh === true
+    const requestId = ++registryRequestId
+    registryLoading.value = true
+    registryRefreshing.value = refreshRegistry
+    registryError.value = null
+    try {
+      const result = await callApi(() =>
+        getApi().skills.searchRegistry({
+          query: registryQuery.value,
+          page: registryPage.value,
+          pageSize: registryPageSize.value,
+          type: registryType.value,
+          sort: registrySort.value,
+          refresh: refreshRegistry
+        })
+      )
+      if (requestId === registryRequestId) {
+        registryPackages.value = result.items
+        registryTotal.value = result.total
+        registryPage.value = result.page
+        registryPageSize.value = result.pageSize
+        registryLastUpdated.value = result.fetchedAt
+      }
+      return result
+    } catch (e) {
+      if (requestId === registryRequestId) {
+        registryError.value = (e as { message?: string }).message ?? String(e)
+      }
+      throw e
+    } finally {
+      if (requestId === registryRequestId) {
+        registryLoading.value = false
+        registryRefreshing.value = false
+      }
+    }
+  }
+
+  async function loadRegistryDetail(name: string, refresh = false) {
+    const detail = await callApi(() => getApi().skills.getRegistryPackageDetail(name, refresh))
+    registryDetails.value = { ...registryDetails.value, [name]: detail }
+    return detail
+  }
+
+  async function checkPackageUpdates(): Promise<PiPackageUpdateInfo[]> {
+    const updates = await callApi(() =>
+      getApi().skills.checkPackageUpdates(useWorkspaceStore().currentCwd)
+    )
+    packageUpdates.value = Object.fromEntries(updates.map((update) => [update.packageId, update]))
+    return updates
+  }
+
+  async function updatePackage(pkg: PiPackageInfo): Promise<PiPackageActionResult> {
+    const result = await callApi(() => getApi().skills.updatePackage(targetForPackage(pkg)))
+    packageResults.value = [result]
+    await refresh()
+    await syncRegistryAfterMutation()
+    return result
+  }
+
+  async function updateAllPackages(): Promise<PiPackageActionResult[]> {
+    const results = await callApi(() =>
+      getApi().skills.updateAllPackages(useWorkspaceStore().currentCwd)
+    )
+    packageResults.value = results
+    await refresh()
+    await syncRegistryAfterMutation()
+    return results
+  }
+
+  async function syncRegistryAfterMutation() {
+    if (!registryPackages.value.length) return
+    await searchRegistry({ refresh: true }).catch(() => undefined)
   }
 
   async function removePackages(packageIds: string[]): Promise<PiPackageActionResult[]> {
@@ -171,6 +278,7 @@ export const useSkillsStore = defineStore('skills', () => {
     const results = await callApi(() => getApi().skills.removePackages(targets))
     packageResults.value = results
     await refresh()
+    await syncRegistryAfterMutation()
     return results
   }
 
@@ -178,6 +286,7 @@ export const useSkillsStore = defineStore('skills', () => {
     const result = await callApi(() => getApi().skills.removePackage(targetForPackage(pkg)))
     packageResults.value = [result]
     await refresh()
+    await syncRegistryAfterMutation()
     return result
   }
 
@@ -199,6 +308,7 @@ export const useSkillsStore = defineStore('skills', () => {
     const result = await callApi(() => getApi().skills.deleteOrphanPackage(targetForPackage(pkg)))
     packageResults.value = [result]
     await refresh()
+    await syncRegistryAfterMutation()
     return result
   }
 
@@ -212,6 +322,7 @@ export const useSkillsStore = defineStore('skills', () => {
     )
     packageResults.value = result.packageResults
     await refresh()
+    await syncRegistryAfterMutation()
     return result
   }
 
@@ -357,6 +468,19 @@ export const useSkillsStore = defineStore('skills', () => {
     skills,
     packages,
     market,
+    registryPackages,
+    registryTotal,
+    registryPage,
+    registryPageSize,
+    registryQuery,
+    registryType,
+    registrySort,
+    registryLoading,
+    registryRefreshing,
+    registryError,
+    registryDetails,
+    registryLastUpdated,
+    packageUpdates,
     capabilities,
     featuredSkills,
     capabilityProgress,
@@ -376,6 +500,11 @@ export const useSkillsStore = defineStore('skills', () => {
     loadDetail,
     remove,
     installPackages,
+    searchRegistry,
+    loadRegistryDetail,
+    checkPackageUpdates,
+    updatePackage,
+    updateAllPackages,
     removePackages,
     removePackage,
     repairPackage,

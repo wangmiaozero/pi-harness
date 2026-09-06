@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { Box, Cpu, Settings, Sparkles, SquareTerminal, GitBranch } from '@lucide/vue'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { normalizeNavOrder, type NavItemId } from '@shared/constants/navigation'
+import mingPlumBranchUrl from '@renderer/assets/themes/ming-dynasty/plum-branch.png?url'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -73,10 +74,10 @@ function isActive(path: string): boolean {
 <template>
   <!-- 50px icon rail. Labels live in title + sr-only so hover / a11y / e2e still work. -->
   <aside
-    class="app-navigation-rail flex w-[var(--sidebar-width)] shrink-0 flex-col items-center bg-[var(--bg-sidebar)]"
+    class="app-navigation-rail relative flex w-[var(--sidebar-width)] shrink-0 flex-col items-center overflow-hidden bg-[var(--bg-sidebar)]"
     data-testid="app-navigation-rail"
   >
-    <nav class="flex w-full flex-1 flex-col items-center gap-1 px-1 pt-2">
+    <nav class="relative z-10 flex w-full flex-1 flex-col items-center gap-1 px-1 pt-2">
       <RouterLink
         v-for="item in navItems"
         :key="item.name"
@@ -111,5 +112,13 @@ function isActive(path: string): boolean {
         </span>
       </RouterLink>
     </nav>
+    <img
+      :src="mingPlumBranchUrl"
+      alt=""
+      class="ming-navigation-plum pointer-events-none absolute"
+      data-testid="ming-navigation-plum"
+      draggable="false"
+      aria-hidden="true"
+    />
   </aside>
 </template>

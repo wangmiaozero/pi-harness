@@ -1,5 +1,6 @@
 /** 简体中文 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
+import { capabilityMessages } from '../capabilities'
 
 export const zhCN: MessageTree = {
   nav: {
@@ -7,18 +8,19 @@ export const zhCN: MessageTree = {
     workspace: '工作区',
     providers: '提供商',
     models: '模型',
-    skills: '技能',
+    skills: '能力中心',
     config: '配置',
     diagnostics: '诊断',
     settings: '设置',
     git: 'Git'
   },
+  capabilities: capabilityMessages['zh-CN'],
   navShort: {
     overview: '概览',
     workspace: '工作区',
     providers: '厂商',
     models: '模型',
-    skills: '技能',
+    skills: '能力',
     config: '配置',
     diagnostics: '诊断',
     settings: '设置',

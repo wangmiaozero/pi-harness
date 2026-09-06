@@ -8,10 +8,31 @@ export const CAPABILITY_SOURCES = ['local', 'github', 'npm', 'marketplace', 'bui
 
 export type CapabilitySource = (typeof CAPABILITY_SOURCES)[number]
 
+export const CAPABILITY_CATEGORIES = [
+  'native',
+  'development-methodology',
+  'governance-methodology',
+  'spec-driven-development',
+  'agent-workflow'
+] as const
+
+export type CapabilityCategory = (typeof CAPABILITY_CATEGORIES)[number]
+
+export const CAPABILITY_INTEGRATIONS = ['native-pi', 'pi-package', 'pi-skill'] as const
+
+export type CapabilityIntegration = (typeof CAPABILITY_INTEGRATIONS)[number]
+
 export interface CapabilityFeatureFlags {
+  brainstorming?: boolean
   planning?: boolean
+  tdd?: boolean
   codeReview?: boolean
   debugging?: boolean
+  systematicDebugging?: boolean
+  worktrees?: boolean
+  subagentWorkflow?: boolean
+  parallelAgentWorkflow?: boolean
+  verification?: boolean
   browser?: boolean
   filesystem?: boolean
   git?: boolean
@@ -19,12 +40,19 @@ export interface CapabilityFeatureFlags {
   search?: boolean
 }
 
-export interface CapabilityInstallDefinition {
-  strategy: 'skills-cli'
-  /** Name passed to the trusted installer as `--skill <selector>`. */
-  selector: string
-  target: 'pi-global'
-}
+export type CapabilityInstallDefinition =
+  | {
+      strategy: 'skills-cli'
+      /** Name passed to the trusted installer as `--skill <selector>`. */
+      selector: string
+      target: 'pi-global'
+    }
+  | {
+      strategy: 'pi-package'
+      /** Exact trusted source passed to `pi install` / `pi update` / `pi remove`. */
+      source: string
+      target: 'pi-global'
+    }
 
 export interface CapabilityDefinition {
   id: string
@@ -36,6 +64,12 @@ export interface CapabilityDefinition {
   sourceUrl?: string
   builtin?: boolean
   featured?: boolean
+  recommended?: boolean
+  optional?: boolean
+  category?: CapabilityCategory
+  integration?: CapabilityIntegration
+  /** Stable catalog ordering; lower values are shown first. */
+  order?: number
   tags?: string[]
   useCases?: string[]
   capabilities?: CapabilityFeatureFlags
@@ -46,7 +80,14 @@ export interface CapabilityDefinition {
 }
 
 export type CapabilityStatus =
-  'not-installed' | 'installed' | 'disabled' | 'installing' | 'failed' | 'update-available'
+  | 'not-installed'
+  | 'installed'
+  | 'disabled'
+  | 'installing'
+  | 'updating'
+  | 'uninstalling'
+  | 'failed'
+  | 'update-available'
 
 export type CapabilityHealth = 'not-installed' | 'healthy' | 'warning' | 'error' | 'unknown'
 
@@ -75,7 +116,14 @@ export interface CapabilityDescriptor extends CapabilityDefinition {
 export type CapabilityMutationAction = 'install' | 'update' | 'uninstall' | 'enable' | 'disable'
 
 export type CapabilityMutationPhase =
-  'idle' | 'resolving' | 'installing' | 'validating' | 'success' | 'failed'
+  | 'idle'
+  | 'resolving'
+  | 'installing'
+  | 'updating'
+  | 'uninstalling'
+  | 'validating'
+  | 'success'
+  | 'failed'
 
 export interface CapabilityMutationProgress {
   skillId: string

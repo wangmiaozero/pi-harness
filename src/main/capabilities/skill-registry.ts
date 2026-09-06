@@ -5,20 +5,33 @@ import type {
   CapabilityMetadata
 } from '@shared/capabilities/types'
 import { CAPABILITY_CATALOG } from '@shared/capabilities/catalog'
-import type { AppSettings, SkillInfo } from '@shared/ipc/api-types'
+import type { AppSettings, PiPackageInfo, SkillInfo } from '@shared/ipc/api-types'
 import type { AppMetadata } from '../services/metadata-store'
 import type { JsonStore } from '../services/storage'
 import type { SkillsService } from '../services/skills-service'
 import { piEnvironment } from '../pi/environment'
+import { packageIdentity } from '../packages/package-source'
 import { parseSkillDirectory, type ParsedSkill } from './skill-parser'
 import { SkillMutationError } from '../services/errors'
+import semver from 'semver'
 
-export interface InstalledCapability {
+export interface InstalledSkillCapability {
+  kind: 'skill'
   path: string
   root: string
   enabled: boolean
   parsed: ParsedSkill
 }
+
+export interface InstalledPackageCapability {
+  kind: 'package'
+  path: string
+  root: null
+  enabled: true
+  package: PiPackageInfo
+}
+
+export type InstalledCapability = InstalledSkillCapability | InstalledPackageCapability
 
 export class SkillRegistry {
   constructor(
@@ -29,23 +42,36 @@ export class SkillRegistry {
 
   async list(): Promise<CapabilityDescriptor[]> {
     const installedSkills = await this.skillsService.list()
+    const installedPackages = CAPABILITY_CATALOG.some(
+      (definition) => definition.install?.strategy === 'pi-package'
+    )
+      ? await this.skillsService.listPackages()
+      : []
     const descriptors: CapabilityDescriptor[] = []
     const consumedPaths = new Set<string>()
+    const consumedPackageSources = new Set<string>()
 
     for (const definition of CAPABILITY_CATALOG) {
-      const installed = await this.findInstalled(definition, installedSkills)
+      const installed = await this.findInstalled(definition, installedSkills, installedPackages)
       if (installed) consumedPaths.add(path.resolve(installed.path))
+      if (installed?.kind === 'package') {
+        consumedPackageSources.add(packageIdentity(installed.package.source))
+      }
       descriptors.push(this.toCatalogDescriptor(definition, installed))
     }
 
     for (const skill of installedSkills) {
       if (consumedPaths.has(path.resolve(skill.path))) continue
+      if (skill.packageSource && consumedPackageSources.has(packageIdentity(skill.packageSource))) {
+        continue
+      }
       const parsed = await parseSkillDirectory(skill.path)
       descriptors.push(this.toLocalDescriptor(skill, parsed))
     }
 
     return descriptors.sort(
       (left, right) =>
+        (left.order ?? Number.MAX_SAFE_INTEGER) - (right.order ?? Number.MAX_SAFE_INTEGER) ||
         Number(Boolean(right.featured)) - Number(Boolean(left.featured)) ||
         left.name.localeCompare(right.name) ||
         (left.installPath ?? '').localeCompare(right.installPath ?? '')
@@ -54,14 +80,38 @@ export class SkillRegistry {
 
   async findInstalled(
     definition: CapabilityDefinition,
-    knownSkills?: SkillInfo[]
+    knownSkills?: SkillInfo[],
+    knownPackages?: PiPackageInfo[]
   ): Promise<InstalledCapability | null> {
-    const selector = definition.install?.selector ?? definition.id
+    if (definition.builtin) return null
+    if (definition.install?.strategy === 'pi-package') {
+      const packages = knownPackages ?? (await this.skillsService.listPackages())
+      const identity = packageIdentity(definition.install.source)
+      const match = packages.find(
+        (pkg) =>
+          pkg.scope === 'global' &&
+          pkg.registered &&
+          pkg.installed &&
+          packageIdentity(pkg.source) === identity
+      )
+      if (!match?.path) return null
+      return {
+        kind: 'package',
+        path: match.path,
+        root: null,
+        enabled: true,
+        package: match
+      }
+    }
+
+    const selector =
+      definition.install?.strategy === 'skills-cli' ? definition.install.selector : definition.id
     const metadata = this.capabilityMetadata(definition.id)
     if (metadata.installPath) {
       const parsed = await parseSkillDirectory(metadata.installPath)
       if (parsed) {
         return {
+          kind: 'skill',
           path: parsed.path,
           root: await this.rootForPath(parsed.path),
           enabled: metadata.enabled !== false,
@@ -81,6 +131,7 @@ export class SkillRegistry {
     const parsed = await parseSkillDirectory(match.path)
     if (!parsed) return null
     return {
+      kind: 'skill',
       path: parsed.path,
       root: await this.rootForPath(parsed.path),
       enabled: metadata.enabled !== false,
@@ -89,7 +140,13 @@ export class SkillRegistry {
   }
 
   async isDiscoverable(definition: CapabilityDefinition): Promise<boolean> {
-    const selector = definition.install?.selector ?? definition.id
+    if (definition.builtin) return true
+    if (definition.install?.strategy === 'pi-package') {
+      const installed = await this.findInstalled(definition)
+      return installed?.kind === 'package' && installed.package.health === 'healthy'
+    }
+    const selector =
+      definition.install?.strategy === 'skills-cli' ? definition.install.selector : definition.id
     const skills = await this.skillsService.list()
     return skills.some(
       (skill) =>
@@ -143,47 +200,74 @@ export class SkillRegistry {
     installed: InstalledCapability | null
   ): CapabilityDescriptor {
     const metadata = this.capabilityMetadata(definition.id)
-    const installedVersion = installed?.parsed.version ?? null
-    const updateAvailable = Boolean(
-      definition.version && installedVersion && definition.version !== installedVersion
-    )
-    const enabled = installed?.enabled ?? true
+    const isBuiltin = Boolean(definition.builtin)
+    const isPackage = installed?.kind === 'package'
+    const installedVersion = isPackage
+      ? installed.package.version
+      : installed?.kind === 'skill'
+        ? installed.parsed.version
+        : null
+    const updateAvailable = this.hasUpdate(definition.version, installedVersion)
+    const enabled = installed?.enabled ?? isBuiltin
+    const isInstalled = isBuiltin || Boolean(installed)
+    const packageHealthy = !isPackage || installed.package.health === 'healthy'
     const managed = Boolean(metadata.installPath)
     return {
       ...definition,
-      installed: Boolean(installed),
+      installed: isInstalled,
       enabled,
       health: metadata.lastErrorCode
         ? 'error'
-        : !installed
+        : !isInstalled
           ? 'not-installed'
-          : !enabled || updateAvailable
-            ? 'warning'
-            : 'healthy',
-      ownership: installed
+          : !packageHealthy
+            ? 'error'
+            : !enabled || updateAvailable
+              ? 'warning'
+              : 'healthy',
+      ownership: isInstalled
         ? {
-            managedBy: managed ? 'pi-harness' : 'external',
+            managedBy: isBuiltin
+              ? 'external'
+              : managed
+                ? 'pi-harness'
+                : isPackage
+                  ? 'pi-package'
+                  : 'external',
             scope: 'global',
-            readOnly: false
+            readOnly: isBuiltin
           }
         : undefined,
       installPath: installed?.path ?? null,
       installedVersion,
-      lastModified: installed?.parsed.lastModified ?? null,
+      lastModified: installed?.kind === 'skill' ? installed.parsed.lastModified : null,
       updateAvailable,
-      lastErrorCode: metadata.lastErrorCode ?? null,
+      lastErrorCode:
+        metadata.lastErrorCode ?? (isPackage && !packageHealthy ? 'PACKAGE_HEALTH_ERROR' : null),
       lastErrorAt: metadata.lastErrorAt ?? null,
       lastErrorAction: metadata.lastErrorAction ?? null,
-      status: metadata.lastErrorCode
-        ? 'failed'
-        : !installed
-          ? 'not-installed'
-          : !enabled
-            ? 'disabled'
-            : updateAvailable
-              ? 'update-available'
-              : 'installed'
+      status:
+        metadata.lastErrorCode || (isPackage && !packageHealthy)
+          ? 'failed'
+          : !isInstalled
+            ? 'not-installed'
+            : !enabled
+              ? 'disabled'
+              : updateAvailable
+                ? 'update-available'
+                : 'installed',
+      readOnly: isBuiltin
     }
+  }
+
+  private hasUpdate(
+    availableVersion: string | undefined,
+    installedVersion: string | null
+  ): boolean {
+    if (!availableVersion || !installedVersion) return false
+    return semver.valid(availableVersion) && semver.valid(installedVersion)
+      ? semver.gt(availableVersion, installedVersion)
+      : availableVersion !== installedVersion
   }
 
   private toLocalDescriptor(skill: SkillInfo, parsed: ParsedSkill | null): CapabilityDescriptor {

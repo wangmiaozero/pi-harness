@@ -1,6 +1,17 @@
 # Pi-Harness
 
 <p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
+  <a href="README.ja-JP.md">日本語</a> ·
+  <a href="README.ko-KR.md">한국어</a> ·
+  <a href="README.ru-RU.md">Русский</a> ·
+  <a href="README.fr-FR.md">Français</a> ·
+  <a href="README.de-DE.md">Deutsch</a>
+</p>
+
+<p align="center">
   <img src="build/icon.png" width="96" alt="Pi-Harness" />
 </p>
 
@@ -14,25 +25,9 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> ·
-  <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="README.zh-TW.md">繁體中文</a> ·
-  <a href="README.ja-JP.md">日本語</a> ·
-  <a href="README.ko-KR.md">한국어</a> ·
-  <a href="README.ru-RU.md">Русский</a> ·
-  <a href="README.fr-FR.md">Français</a> ·
-  <a href="README.de-DE.md">Deutsch</a>
-</p>
-
-<p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0"><img alt="release v1.2.0" src="https://img.shields.io/badge/release-v1.2.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-</p>
-
-<p align="center">
-  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace.gif" width="920" alt="Pi-Harness ワークスペースのデモ" /></a><br />
-  <a href="docs/workspace.mp4?raw=1">▶ Pi-Harness ワークスペースのデモを見る</a>
 </p>
 
 ## Why Pi-Harness?
@@ -93,37 +88,27 @@ Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js �
 
 ## スクリーンショット
 
-### 1. 準備状況を確認
+同じ 6 つの主要画面を、デフォルトテーマと古風テーマの両方で紹介します。
 
-概要画面では、現在のモデル、Pi の実行環境、設定の状態、よく使う操作をまとめて確認できます。
+### デフォルトテーマ
 
-![概要](docs/overview.jpg)
+|                       ワークスペース                        |                         Git                          |
+| :---------------------------------------------------------: | :--------------------------------------------------: |
+| ![デフォルトテーマのワークスペース](docs/默认主题/Work.jpg) |   ![デフォルトテーマの Git](docs/默认主题/Git.jpg)   |
+|                        **Provider**                         |                      **モデル**                      |
+|   ![デフォルトテーマの Provider](docs/默认主题/APIs.jpg)    | ![デフォルトテーマのモデル](docs/默认主题/Model.jpg) |
+|                      **機能センター**                       |                       **設定**                       |
+|  ![デフォルトテーマの機能センター](docs/默认主题/Caps.jpg)  |  ![デフォルトテーマの設定](docs/默认主题/Prefs.jpg)  |
 
-### 2. 実際のプロジェクトで Pi を実行
+### 古風テーマ
 
-|             プロジェクトのセッション             |                ファイルと軽量編集                |
-| :----------------------------------------------: | :----------------------------------------------: |
-| ![ワークスペースのセッション](docs/workspace-1.jpg) | ![ワークスペースのエディター](docs/workspace-2.jpg) |
-
-![スターシップコックピットのワークスペース](docs/workspace-3.jpg)
-
-### 3. Provider とモデルを設定
-
-|              Provider               |            Provider の設定            |
-| :---------------------------------: | :-----------------------------------: |
-| ![Provider 一覧](docs/providers-1.jpg) | ![Provider の詳細](docs/providers-2.jpg) |
-|             **モデル**              |            **モデル設定**             |
-|   ![モデル一覧](docs/models-1.jpg)    |   ![モデルの詳細](docs/models-2.jpg)    |
-
-### 4. Skills とパッケージで Pi を拡張
-
-![Skills マーケット](docs/skills.jpg)
-
-### 5. ワークスペースをカスタマイズ
-
-![外観とマスコットの設定](docs/settings.jpg)
-
-![マスコットスタイルの選択](docs/mascot-settings.jpg)
+|                  ワークスペース                   |                    Git                     |
+| :-----------------------------------------------: | :----------------------------------------: |
+| ![古風テーマのワークスペース](docs/古风/Work.jpg) |   ![古風テーマの Git](docs/古风/Git.jpg)   |
+|                   **Provider**                    |                 **モデル**                 |
+|   ![古風テーマの Provider](docs/古风/APIs.jpg)    | ![古風テーマのモデル](docs/古风/Model.jpg) |
+|                 **機能センター**                  |                  **設定**                  |
+|  ![古風テーマの機能センター](docs/古风/Caps.jpg)  |  ![古風テーマの設定](docs/古风/Prefs.jpg)  |
 
 ## エディターの範囲
 

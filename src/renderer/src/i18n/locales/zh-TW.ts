@@ -1,5 +1,6 @@
 /** 繁體中文 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
+import { capabilityMessages } from '../capabilities'
 
 export const zhTW: MessageTree = {
   nav: {
@@ -7,18 +8,19 @@ export const zhTW: MessageTree = {
     workspace: '工作區',
     providers: '供應商',
     models: '模型',
-    skills: '技能',
+    skills: '能力中心',
     config: '配置',
     diagnostics: '診斷',
     settings: '設定',
     git: 'Git'
   },
+  capabilities: capabilityMessages['zh-TW'],
   navShort: {
     overview: '總覽',
     workspace: '工作區',
     providers: '廠商',
     models: '模型',
-    skills: '技能',
+    skills: '能力',
     config: '配置',
     diagnostics: '診斷',
     settings: '設定',

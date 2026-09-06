@@ -18,6 +18,10 @@ import type {
   PiPackageCleanupPlan,
   PiPackageCleanupResult,
   PiPackageInfo,
+  PiPackageSearchInput,
+  PiPackageSearchResult,
+  PiPackageUpdateInfo,
+  PiRegistryPackageDetail,
   PiPackagePermission,
   PiPackageTarget,
   BuiltinSkillActionResult,
@@ -36,6 +40,7 @@ import { PiPackageManager, packageNameFromSource } from '../packages/package-man
 import type { BuiltinSkillService } from '../skills/builtin-skill-service'
 import type { FileAccessService } from '../files/file-access-service'
 import { buildBuiltinSkillBundles } from '@shared/skills/builtin-bundles'
+import { PiPackageRegistry } from '../packages/pi-package-registry'
 
 export interface SkillForm {
   name: string
@@ -128,7 +133,8 @@ export class SkillsService {
     private readonly settingsStore: JsonStore<AppSettings>,
     private readonly packageManager = new PiPackageManager(settingsStore),
     private readonly builtinSkills?: BuiltinSkillService,
-    private readonly access?: FileAccessService
+    private readonly access?: FileAccessService,
+    private readonly packageRegistry = new PiPackageRegistry()
   ) {}
 
   async list(projectRoot?: string | null): Promise<SkillInfo[]> {
@@ -247,6 +253,29 @@ export class SkillsService {
       `package install finished: ${results.filter((result) => result.ok).length}/${results.length}`
     )
     return results
+  }
+
+  searchRegistry(input: PiPackageSearchInput): Promise<PiPackageSearchResult> {
+    return this.packageRegistry.searchPackages(input)
+  }
+
+  getRegistryPackageDetail(name: string, refresh = false): Promise<PiRegistryPackageDetail> {
+    return this.packageRegistry.getPackageDetail(name, refresh)
+  }
+
+  async checkPackageUpdates(projectRoot?: string | null): Promise<PiPackageUpdateInfo[]> {
+    const packages = await this.listPackages(projectRoot)
+    return this.packageRegistry.checkInstalledPackageUpdates(packages)
+  }
+
+  updatePackage(target: PiPackageTarget): Promise<PiPackageActionResult> {
+    return this.packageManager.update(target)
+  }
+
+  async updateAllPackages(projectRoot?: string | null): Promise<PiPackageActionResult[]> {
+    const globalResults = await this.packageManager.updateAll('global', projectRoot)
+    if (!projectRoot) return globalResults
+    return [...globalResults, ...(await this.packageManager.updateAll('project', projectRoot))]
   }
 
   async repairPackage(target: PiPackageTarget): Promise<PiPackageActionResult> {

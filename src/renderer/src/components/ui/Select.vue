@@ -4,11 +4,18 @@ import { Check, ChevronDown } from '@lucide/vue'
 
 const model = defineModel<string>({ default: '' })
 
+interface SelectOption {
+  value: string
+  label: string
+  group?: string
+  disabled?: boolean
+}
+
 const props = withDefaults(
   defineProps<{
     label?: string
     disabled?: boolean
-    options: { value: string; label: string; group?: string }[]
+    options: SelectOption[]
     hint?: string
     error?: string
     layout?: 'stacked' | 'row'
@@ -41,10 +48,7 @@ const selectedLabel = computed(() => {
 })
 
 const optionGroups = computed(() => {
-  const groups = new Map<
-    string,
-    { label: string | null; options: { value: string; label: string; group?: string }[] }
-  >()
+  const groups = new Map<string, { label: string | null; options: SelectOption[] }>()
   for (const option of props.options) {
     const key = option.group ?? ''
     const group = groups.get(key)
@@ -99,8 +103,9 @@ function toggle() {
   open.value = true
 }
 
-function pick(value: string) {
-  model.value = value
+function pick(option: SelectOption) {
+  if (option.disabled) return
+  model.value = option.value
   open.value = false
 }
 
@@ -183,7 +188,7 @@ watch(open, (v) => {
         v-if="open"
         ref="panelRef"
         role="listbox"
-        class="pointer-events-auto fixed z-[110] overflow-y-auto rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
+        class="ui-select-menu pointer-events-auto fixed z-[110] overflow-y-auto rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
         :style="panelStyle"
         @pointerdown.stop
       >
@@ -192,11 +197,12 @@ watch(open, (v) => {
           :key="group.label ?? `ungrouped-${groupIndex}`"
           :role="group.label ? 'group' : undefined"
           :aria-label="group.label ?? undefined"
+          class="ui-select-group"
           :class="groupIndex > 0 ? 'mt-1 border-t border-[var(--border-subtle)] pt-1' : ''"
         >
           <div
             v-if="group.label"
-            class="px-2 py-1 text-[10.5px] font-semibold text-[var(--text-tertiary)]"
+            class="ui-select-group__label px-2 py-1 text-[10.5px] font-semibold text-[var(--text-tertiary)]"
           >
             {{ group.label }}
           </div>
@@ -205,13 +211,15 @@ watch(open, (v) => {
             :key="opt.value"
             type="button"
             role="option"
-            class="flex w-full items-center justify-between gap-2 rounded-[4px] py-[6px] pr-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none hover:bg-[var(--bg-hover)]"
+            class="ui-select-option flex w-full items-center justify-between gap-2 rounded-[4px] py-[6px] pr-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none hover:bg-[var(--bg-hover)]"
             :class="[
               opt.group ? 'pl-4' : 'pl-2',
-              opt.value === model ? 'bg-[var(--accent-tint)] text-[var(--accent)]' : ''
+              opt.value === model ? 'bg-[var(--accent-tint)] text-[var(--accent)]' : '',
+              opt.disabled ? 'cursor-not-allowed opacity-45 hover:bg-transparent' : ''
             ]"
+            :disabled="opt.disabled"
             :aria-selected="opt.value === model"
-            @mousedown.prevent="pick(opt.value)"
+            @mousedown.prevent="pick(opt)"
           >
             <span
               class="min-w-0 truncate"

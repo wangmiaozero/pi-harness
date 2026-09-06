@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { normalizeMascotStyle } from '@shared/constants/mascot'
 import MascotBackground from './MascotBackground.vue'
+import MingShellFrame from './MingShellFrame.vue'
 import { usePetStore } from '@renderer/stores/pet'
 import Sidebar from './Sidebar.vue'
 import TitleBar from './TitleBar.vue'
@@ -98,5 +99,8 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
       :animated="visualAnimationsEnabled"
     />
     <StarshipCockpitFrame v-if="starshipCockpitActive" />
+    <MingShellFrame
+      v-if="visualSkin?.id === 'ming-snow' || visualSkin?.id === 'ming-moon'"
+    />
   </div>
 </template>

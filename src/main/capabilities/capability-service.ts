@@ -1,10 +1,12 @@
 import type {
   CapabilityActionResult,
+  CapabilityDefinition,
   CapabilityDescriptor,
   CapabilityMetadata,
   CapabilityMutationAction,
   CapabilityMutationProgress
 } from '@shared/capabilities/types'
+import type { PiPackageActionResult, PiPackageTarget } from '@shared/ipc/api-types'
 import { findTrustedCapability } from '@shared/capabilities/catalog'
 import type { AppMetadata } from '../services/metadata-store'
 import type { JsonStore } from '../services/storage'
@@ -12,6 +14,7 @@ import { AppError, SkillMutationError } from '../services/errors'
 import { log } from '../services/logger'
 import { SkillInstallService } from './skill-installer'
 import { SkillRegistry } from './skill-registry'
+import type { PiPackageManager } from '../packages/package-manager'
 
 type ProgressListener = (progress: CapabilityMutationProgress) => void
 
@@ -22,7 +25,8 @@ export class CapabilityService {
   constructor(
     private readonly metadataStore: JsonStore<AppMetadata>,
     private readonly registry: SkillRegistry,
-    private readonly installer: SkillInstallService = new SkillInstallService()
+    private readonly installer: SkillInstallService = new SkillInstallService(),
+    private readonly packageManager?: PiPackageManager
   ) {}
 
   list(): Promise<CapabilityDescriptor[]> {
@@ -37,8 +41,26 @@ export class CapabilityService {
   install(skillId: string): Promise<CapabilityActionResult> {
     return this.mutate(skillId, 'install', async (definition, startedAt) => {
       if (await this.registry.findInstalled(definition)) {
-        throw new SkillMutationError('SKILL_ALREADY_INSTALLED', 'Skill is already installed')
+        throw new SkillMutationError('SKILL_ALREADY_INSTALLED', 'Capability is already installed')
       }
+      if (definition.install?.strategy === 'pi-package') {
+        const output = await this.runPackageMutation(definition.install.source, 'install', skillId)
+        const installed = await this.registry.findInstalled(definition)
+        await this.setMetadata(skillId, {
+          enabled: true,
+          installSource: definition.source,
+          sourceUrl: definition.sourceUrl,
+          installPath: installed?.path,
+          lastCheckedAt: Date.now(),
+          lastUpdatedAt: Date.now(),
+          tags: definition.tags,
+          lastErrorCode: null,
+          lastErrorAt: null,
+          lastErrorAction: null
+        })
+        return this.successResult(skillId, 'install', startedAt, packageProcess(output))
+      }
+      this.assertSkillInstaller(definition)
       const targetRoot = await this.registry.globalRoot()
       const output = await this.installer.install(definition, targetRoot, {
         replace: false,
@@ -63,7 +85,28 @@ export class CapabilityService {
   update(skillId: string): Promise<CapabilityActionResult> {
     return this.mutate(skillId, 'update', async (definition, startedAt) => {
       const installed = await this.registry.findInstalled(definition)
-      if (!installed) throw new SkillMutationError('SKILL_NOT_FOUND', 'Skill is not installed')
+      if (!installed) throw new SkillMutationError('SKILL_NOT_FOUND', 'Capability is not installed')
+      if (definition.install?.strategy === 'pi-package') {
+        const output = await this.runPackageMutation(definition.install.source, 'update', skillId)
+        const refreshed = await this.registry.findInstalled(definition)
+        await this.setMetadata(skillId, {
+          enabled: true,
+          installSource: definition.source,
+          sourceUrl: definition.sourceUrl,
+          installPath: refreshed?.path ?? installed.path,
+          lastCheckedAt: Date.now(),
+          lastUpdatedAt: Date.now(),
+          tags: definition.tags,
+          lastErrorCode: null,
+          lastErrorAt: null,
+          lastErrorAction: null
+        })
+        return this.successResult(skillId, 'update', startedAt, packageProcess(output))
+      }
+      this.assertSkillInstaller(definition)
+      if (installed.kind !== 'skill') {
+        throw new AppError('CAPABILITY_NOT_SUPPORTED', 'Unsupported capability installer')
+      }
       const output = await this.installer.install(definition, installed.root, {
         replace: true,
         existingPath: installed.path,
@@ -88,16 +131,23 @@ export class CapabilityService {
   uninstall(skillId: string): Promise<CapabilityActionResult> {
     return this.mutate(skillId, 'uninstall', async (definition, startedAt) => {
       const installed = await this.registry.findInstalled(definition)
-      if (!installed) throw new SkillMutationError('SKILL_NOT_FOUND', 'Skill is not installed')
-      this.emit({ skillId, action: 'uninstall', phase: 'installing' })
-      await this.installer.uninstall(
-        installed.path,
-        installed.root,
-        definition.install?.selector ?? definition.id
-      )
-      const metadata = { ...this.metadataStore.peek().capabilities }
-      delete metadata[skillId]
-      await this.metadataStore.update({ capabilities: metadata })
+      if (!installed) throw new SkillMutationError('SKILL_NOT_FOUND', 'Capability is not installed')
+      if (definition.install?.strategy === 'pi-package') {
+        const output = await this.runPackageMutation(
+          definition.install.source,
+          'uninstall',
+          skillId
+        )
+        await this.clearMetadata(skillId)
+        return this.successResult(skillId, 'uninstall', startedAt, packageProcess(output))
+      }
+      this.assertSkillInstaller(definition)
+      if (installed.kind !== 'skill') {
+        throw new AppError('CAPABILITY_NOT_SUPPORTED', 'Unsupported capability installer')
+      }
+      this.emit({ skillId, action: 'uninstall', phase: 'uninstalling' })
+      await this.installer.uninstall(installed.path, installed.root, definition.install.selector)
+      await this.clearMetadata(skillId)
       return this.successResult(skillId, 'uninstall', startedAt, {
         stdout: '',
         stderr: '',
@@ -111,11 +161,18 @@ export class CapabilityService {
     return this.mutate(skillId, action, async (definition, startedAt) => {
       const installed = await this.registry.findInstalled(definition)
       if (!installed) throw new SkillMutationError('SKILL_NOT_FOUND', 'Skill is not installed')
+      this.assertSkillInstaller(definition)
+      if (installed.kind !== 'skill') {
+        throw new AppError(
+          'CAPABILITY_NOT_SUPPORTED',
+          'Pi packages cannot be enabled or disabled independently'
+        )
+      }
       this.emit({ skillId, action, phase: 'validating' })
       const installPath = await this.installer.setEnabled(
         installed.path,
         installed.root,
-        definition.install?.selector ?? definition.id,
+        definition.install.selector,
         enabled
       )
       await this.setMetadata(skillId, {
@@ -146,11 +203,14 @@ export class CapabilityService {
     ) => Promise<CapabilityActionResult>
   ): Promise<CapabilityActionResult> {
     const definition = findTrustedCapability(skillId)
-    if (!definition || definition.type !== 'skill') {
-      throw new SkillMutationError('SKILL_NOT_FOUND', 'Trusted skill was not found')
+    if (!definition) {
+      throw new SkillMutationError('SKILL_NOT_FOUND', 'Trusted capability was not found')
+    }
+    if (!definition.install) {
+      throw new AppError('CAPABILITY_NOT_SUPPORTED', 'Built-in capabilities cannot be mutated')
     }
     if (this.mutations.has(skillId)) {
-      throw new SkillMutationError('SKILL_CONFLICT', 'A skill mutation is already running')
+      throw new SkillMutationError('SKILL_CONFLICT', 'A capability mutation is already running')
     }
 
     const startedAt = Date.now()
@@ -181,7 +241,7 @@ export class CapabilityService {
         skillId,
         action,
         phase: 'failed',
-        message: error instanceof Error ? error.message : 'Skill mutation failed',
+        message: error instanceof Error ? error.message : 'Capability mutation failed',
         stderr: details?.stderr,
         exitCode: details?.exitCode
       })
@@ -214,6 +274,51 @@ export class CapabilityService {
         }
       }
     })
+  }
+
+  private async clearMetadata(skillId: string): Promise<void> {
+    const metadata = { ...this.metadataStore.peek().capabilities }
+    delete metadata[skillId]
+    await this.metadataStore.update({ capabilities: metadata })
+  }
+
+  private assertSkillInstaller(
+    definition: CapabilityDefinition
+  ): asserts definition is CapabilityDefinition & {
+    install: { strategy: 'skills-cli'; selector: string; target: 'pi-global' }
+  } {
+    if (definition.install?.strategy !== 'skills-cli') {
+      throw new AppError('CAPABILITY_NOT_SUPPORTED', 'Capability does not use the Skills installer')
+    }
+  }
+
+  private async runPackageMutation(
+    source: string,
+    action: Extract<CapabilityMutationAction, 'install' | 'update' | 'uninstall'>,
+    skillId: string
+  ): Promise<PiPackageActionResult> {
+    if (!this.packageManager) {
+      throw new AppError('CAPABILITY_NOT_SUPPORTED', 'Pi Package Manager is unavailable')
+    }
+    this.emit({
+      skillId,
+      action,
+      phase: action === 'install' ? 'installing' : action === 'update' ? 'updating' : 'uninstalling'
+    })
+    const target: PiPackageTarget = {
+      source,
+      scope: 'global',
+      projectRoot: null
+    }
+    const result =
+      action === 'install'
+        ? await this.packageManager.install(target)
+        : action === 'update'
+          ? await this.packageManager.update(target)
+          : await this.packageManager.uninstall(target)
+    if (!result.ok) throw packageMutationError(result)
+    this.emit({ skillId, action, phase: 'validating' })
+    return result
   }
 
   private async recordFailure(
@@ -258,4 +363,31 @@ export class CapabilityService {
       stderr: process.stderr
     }
   }
+}
+
+function packageProcess(result: PiPackageActionResult): {
+  stdout: string
+  stderr: string
+  exitCode: number
+} {
+  return {
+    stdout: result.stdout || result.logs.map((entry) => entry.message).join('\n'),
+    stderr: result.stderr,
+    exitCode: result.ok ? 0 : 1
+  }
+}
+
+function packageMutationError(result: PiPackageActionResult): SkillMutationError {
+  const code =
+    result.errorCode === 'EACCES'
+      ? 'SKILL_PERMISSION_DENIED'
+      : result.errorCode === 'VERIFY_FAILED'
+        ? 'SKILL_INVALID'
+        : 'PROCESS_FAILED'
+  return new SkillMutationError(code, result.message, {
+    stderr: result.stderr || result.stdout || result.logs.map((entry) => entry.message).join('\n'),
+    stdout: result.stdout,
+    exitCode: 1,
+    command: `pi ${result.action === 'uninstall' ? 'remove' : result.action} ${result.source}`
+  })
 }

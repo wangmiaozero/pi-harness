@@ -216,7 +216,7 @@ defineExpose({ requestCloseTab })
       role="menu"
       data-testid="tab-context-menu"
       :aria-label="$t('workspace.tabContextMenu')"
-      class="fixed z-[120] min-w-[210px] rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
+      class="ui-context-menu fixed z-[120] min-w-[210px] rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
       :style="menuStyle"
       @contextmenu.prevent
       @pointerdown.stop
@@ -225,7 +225,7 @@ defineExpose({ requestCloseTab })
         type="button"
         role="menuitem"
         :disabled="!actionEnabled('close')"
-        class="flex w-full rounded-[4px] px-2 py-1.5 text-left text-[12.5px] transition-colors"
+        class="ui-context-menu__item flex w-full rounded-[4px] px-2 py-1.5 text-left text-[12.5px] transition-colors"
         :class="menuItemClass('close')"
         @mousedown.prevent="runAction('close')"
       >
@@ -235,7 +235,7 @@ defineExpose({ requestCloseTab })
         type="button"
         role="menuitem"
         :disabled="!actionEnabled('closeOthers')"
-        class="flex w-full rounded-[4px] px-2 py-1.5 text-left text-[12.5px] transition-colors"
+        class="ui-context-menu__item flex w-full rounded-[4px] px-2 py-1.5 text-left text-[12.5px] transition-colors"
         :class="menuItemClass('closeOthers')"
         @mousedown.prevent="runAction('closeOthers')"
       >
@@ -245,7 +245,7 @@ defineExpose({ requestCloseTab })
         type="button"
         role="menuitem"
         :disabled="!actionEnabled('closeRight')"
-        class="flex w-full rounded-[4px] px-2 py-1.5 text-left text-[12.5px] transition-colors"
+        class="ui-context-menu__item flex w-full rounded-[4px] px-2 py-1.5 text-left text-[12.5px] transition-colors"
         :class="menuItemClass('closeRight')"
         @mousedown.prevent="runAction('closeRight')"
       >
@@ -255,18 +255,18 @@ defineExpose({ requestCloseTab })
         type="button"
         role="menuitem"
         :disabled="!actionEnabled('closeLeft')"
-        class="flex w-full rounded-[4px] px-2 py-1.5 text-left text-[12.5px] transition-colors"
+        class="ui-context-menu__item flex w-full rounded-[4px] px-2 py-1.5 text-left text-[12.5px] transition-colors"
         :class="menuItemClass('closeLeft')"
         @mousedown.prevent="runAction('closeLeft')"
       >
         {{ $t('workspace.closeTabsToLeft') }}
       </button>
-      <div class="mx-1 my-1 h-px bg-[var(--border-subtle)]" />
+      <div class="ui-context-menu__separator mx-1 my-1 h-px bg-[var(--border-subtle)]" />
       <button
         type="button"
         role="menuitem"
         :disabled="!actionEnabled('closeAll')"
-        class="flex w-full rounded-[4px] px-2 py-1.5 text-left text-[12.5px] transition-colors"
+        class="ui-context-menu__item flex w-full rounded-[4px] px-2 py-1.5 text-left text-[12.5px] transition-colors"
         :class="menuItemClass('closeAll')"
         @mousedown.prevent="runAction('closeAll')"
       >

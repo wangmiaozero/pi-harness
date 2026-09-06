@@ -16,22 +16,28 @@ import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import Input from '@renderer/components/ui/Input.vue'
+import ContextMenu from '@renderer/components/ui/ContextMenu.vue'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
+import { useSettingsStore } from '@renderer/stores/settings'
 import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
 import type {
   GitActionRequest,
+  GitBranchContextAction,
   GitBranchInfo,
+  GitContextMenuSelection,
   GitRepositoryOverview,
   WorktreeInfo
 } from '@shared/types/workspace'
 import { toast } from 'vue-sonner'
 import { toNativeMenuLocale } from '@shared/constants/language'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
+import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
 import GitCommitPanel from './GitCommitPanel.vue'
 
 const emit = defineEmits<{ 'open-diff': [] }>()
 const { t, locale } = useI18n()
 const workspace = useWorkspaceStore()
+const settings = useSettingsStore()
 const worktrees = ref<WorktreeInfo[]>([])
 const overview = ref<GitRepositoryOverview | null>(null)
 const branchFilter = ref('')
@@ -47,6 +53,7 @@ const promptOpen = ref(false)
 const promptMode = ref<'create' | 'rename'>('create')
 const promptValue = ref('')
 const promptTarget = ref<GitBranchInfo | null>(null)
+const branchContextMenu = ref<{ branch: GitBranchInfo; x: number; y: number } | null>(null)
 let refreshVersion = 0
 
 const repository = computed(() => workspace.gitStatus?.repositoryRoot ?? null)
@@ -58,6 +65,109 @@ const upstreamChoices = computed(() =>
     .filter((branch) => branch.type === 'remote')
     .map((branch) => branch.name)
 )
+const mingDynastyActive = computed(() => {
+  const skin = getActiveVisualSkin(settings.settings)?.id
+  return skin === 'ming-snow' || skin === 'ming-moon'
+})
+const branchMenuEntries = computed(() => {
+  const branch = branchContextMenu.value?.branch
+  if (!branch) return []
+  const zh = toNativeMenuLocale(locale.value) === 'zh-CN'
+  const entries: Array<
+    | {
+        type: 'action'
+        id: string
+        label: string
+        disabled?: boolean
+        danger?: boolean
+        checked?: boolean
+        inset?: boolean
+        value?: string
+      }
+    | { type: 'separator'; id: string }
+    | { type: 'label'; id: string; label: string }
+  > = [
+    {
+      type: 'action',
+      id: 'checkout',
+      label: zh ? `检出 ${branch.name}` : `Checkout ${branch.name}`,
+      disabled: branch.current
+    }
+  ]
+  if (branch.type === 'local') {
+    entries.push({ type: 'action', id: 'push', label: zh ? '推送' : 'Push' })
+  }
+  entries.push(
+    { type: 'separator', id: 'integrate' },
+    {
+      type: 'action',
+      id: 'merge',
+      label: zh ? '合并到当前分支' : 'Merge into current branch',
+      disabled: branch.current
+    },
+    {
+      type: 'action',
+      id: 'rebase',
+      label: zh ? '将当前分支 Rebase 到此分支' : 'Rebase current branch onto this branch',
+      disabled: branch.current
+    },
+    { type: 'separator', id: 'manage' },
+    {
+      type: 'action',
+      id: 'create-branch',
+      label: zh ? '从此处创建分支…' : 'Create branch here…'
+    }
+  )
+  if (branch.type === 'local') {
+    entries.push({ type: 'action', id: 'rename', label: zh ? '重命名…' : 'Rename…' })
+    if (upstreamChoices.value.length) {
+      entries.push({ type: 'label', id: 'upstream-label', label: zh ? '设置上游分支' : 'Set upstream' })
+      upstreamChoices.value.forEach((choice) => {
+        entries.push({
+          type: 'action',
+          id: 'set-upstream',
+          value: choice,
+          label: choice,
+          checked: choice === branch.upstream,
+          inset: true
+        })
+      })
+    } else {
+      entries.push({
+        type: 'action',
+        id: 'set-upstream',
+        label: zh ? '设置上游分支' : 'Set upstream',
+        disabled: true
+      })
+    }
+    if (branch.upstream) {
+      entries.push({
+        type: 'action',
+        id: 'unset-upstream',
+        label: zh ? '取消上游分支' : 'Unset upstream'
+      })
+    }
+    entries.push(
+      { type: 'separator', id: 'delete-separator' },
+      {
+        type: 'action',
+        id: 'delete',
+        label: zh ? '删除分支…' : 'Delete branch…',
+        disabled: branch.current,
+        danger: true
+      }
+    )
+  }
+  entries.push(
+    { type: 'separator', id: 'copy-separator' },
+    {
+      type: 'action',
+      id: 'copy-name',
+      label: zh ? '复制分支名称' : 'Copy branch name'
+    }
+  )
+  return entries
+})
 
 function selectedRoot(): string | null {
   // Git is workspace-wide: resolve the selection among all navigation projects.
@@ -163,6 +273,17 @@ async function checkout(branch: GitBranchInfo) {
 
 async function branchMenu(branch: GitBranchInfo, event?: MouseEvent) {
   event?.preventDefault()
+  event?.stopPropagation()
+  if (mingDynastyActive.value) {
+    const target = event?.currentTarget as HTMLElement | null
+    const rect = target?.getBoundingClientRect()
+    branchContextMenu.value = {
+      branch,
+      x: event?.clientX || rect?.left || 8,
+      y: event?.clientY || rect?.bottom || 8
+    }
+    return
+  }
   const selection = await callApi(() =>
     getApi().git.branchContextMenu({
       locale: toNativeMenuLocale(locale.value),
@@ -173,7 +294,13 @@ async function branchMenu(branch: GitBranchInfo, event?: MouseEvent) {
       upstreamChoices: upstreamChoices.value
     })
   )
-  if (!selection) return
+  if (selection) await runBranchMenuSelection(branch, selection)
+}
+
+async function runBranchMenuSelection(
+  branch: GitBranchInfo,
+  selection: GitContextMenuSelection<GitBranchContextAction>
+) {
   if (selection.action === 'checkout') return checkout(branch)
   if (selection.action === 'copy-name') {
     await navigator.clipboard.writeText(branch.name)
@@ -224,6 +351,15 @@ async function branchMenu(branch: GitBranchInfo, event?: MouseEvent) {
   if (selection.action === 'push') {
     await runAction({ action: 'push', target: branch.name }, t('workspace.gitPush'))
   }
+}
+
+async function runCustomBranchMenuAction(action: string, value?: string) {
+  const branch = branchContextMenu.value?.branch
+  if (!branch) return
+  await runBranchMenuSelection(branch, {
+    action: action as GitBranchContextAction,
+    ...(value ? { value } : {})
+  })
 }
 
 async function removeWorktree(path: string) {
@@ -347,7 +483,7 @@ watch([repository, () => workspace.gitRevision], () => void refresh())
             <IconButton
               :label="branch.name"
               class="opacity-0 group-hover:opacity-100"
-              @click.stop="branchMenu(branch)"
+              @click.stop="branchMenu(branch, $event)"
             >
               <MoreHorizontal class="size-3" />
             </IconButton>
@@ -380,7 +516,7 @@ watch([repository, () => workspace.gitRevision], () => void refresh())
             <IconButton
               :label="branch.name"
               class="opacity-0 group-hover:opacity-100"
-              @click.stop="branchMenu(branch)"
+              @click.stop="branchMenu(branch, $event)"
             >
               <MoreHorizontal class="size-3" />
             </IconButton>
@@ -520,6 +656,18 @@ watch([repository, () => workspace.gitRevision], () => void refresh())
         </Button>
       </template>
     </Dialog>
+
+    <ContextMenu
+      :open="Boolean(branchContextMenu)"
+      :x="branchContextMenu?.x ?? 0"
+      :y="branchContextMenu?.y ?? 0"
+      :label="branchContextMenu?.branch.name ?? ''"
+      :entries="branchMenuEntries"
+      :width="284"
+      test-id="git-branch-context-menu"
+      @close="branchContextMenu = null"
+      @select="runCustomBranchMenuAction"
+    />
   </div>
 </template>
 

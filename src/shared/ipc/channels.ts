@@ -66,6 +66,11 @@ export const IPC_INVOKE = {
   skillsUpdateBuiltin: invoke('skills:builtin:update'),
   skillsUninstallBuiltin: invoke('skills:builtin:uninstall'),
   skillsInstallPackages: invoke('skills:install-packages'),
+  packagesRegistrySearch: invoke('packages:registry-search'),
+  packagesRegistryDetail: invoke('packages:registry-detail'),
+  packagesCheckUpdates: invoke('packages:check-updates'),
+  packagesUpdate: invoke('packages:update'),
+  packagesUpdateAll: invoke('packages:update-all'),
   skillsRepairPackage: invoke('skills:repair-package'),
   skillsRegisterPackage: invoke('skills:register-package'),
   skillsRemovePackages: invoke('skills:remove-packages'),
@@ -84,6 +89,7 @@ export const IPC_INVOKE = {
 
   // unified capability layer (trusted catalog mutations only)
   capabilitiesList: invoke('capabilities:list'),
+  capabilityOpenHomepage: invoke('capabilities:open-homepage'),
   capabilityInstallSkill: invoke('capabilities:skills:install'),
   capabilityUpdateSkill: invoke('capabilities:skills:update'),
   capabilityUninstallSkill: invoke('capabilities:skills:uninstall'),

@@ -158,9 +158,9 @@ test('ming portrait themes render full figures beside parchment conversation sur
   await page.getByTestId('mascot-unlock-answer').fill('1024')
   await page.getByRole('button', { name: /解锁|Unlock/, exact: true }).click()
 
-  for (const [style, skin, paper] of [
-    ['mingSnow', 'ming-snow', 'rgba(239, 222, 190, 0.96)'],
-    ['mingMoon', 'ming-moon', 'rgba(235, 214, 177, 0.96)']
+  for (const [style, skin, paper, menuPaper] of [
+    ['mingSnow', 'ming-snow', 'rgba(239, 222, 190, 0.96)', 'rgb(246, 232, 204)'],
+    ['mingMoon', 'ming-moon', 'rgba(235, 214, 177, 0.96)', 'rgb(241, 223, 189)']
   ] as const) {
     await page.locator(`[data-mascot-option="${style}"]`).click()
     await page.locator('a[href="#/workspace"]').click()
@@ -179,8 +179,31 @@ test('ming portrait themes render full figures beside parchment conversation sur
     const image = page.getByTestId('portrait-skin-image')
     const assistant = page.locator('[data-message-role="assistant"]')
     await expect(page.locator('html')).toHaveAttribute('data-visual-skin', skin)
+    await expect(page.getByTestId('ming-titlebar-calligraphy')).toBeVisible()
+    if (process.platform !== 'win32') {
+      await expect(page.getByTestId('titlebar-window-controls')).toBeVisible()
+    }
+    await expect(page.getByTestId('ming-shell-frame')).toBeVisible()
+    await expect(page.getByTestId('ming-navigation-plum')).toBeVisible()
+    await expect(page.getByTestId('ming-workspace-calligraphy')).toBeVisible()
+    await expect(page.getByTestId('ming-sidebar-scroll')).toBeVisible()
     await expect(image).toHaveJSProperty('naturalWidth', 1024)
     await expect(image).toHaveJSProperty('naturalHeight', 1536)
+    await expect(page.getByTestId('titlebar-brand-icon')).toHaveJSProperty('naturalWidth', 1024)
+    if (process.platform !== 'win32') {
+      await expect(page.getByTestId('titlebar-window-close')).toHaveCSS(
+        'background-color',
+        'rgb(255, 95, 87)'
+      )
+      await expect(page.getByTestId('titlebar-window-minimize')).toHaveCSS(
+        'background-color',
+        'rgb(254, 188, 46)'
+      )
+      await expect(page.getByTestId('titlebar-window-maximize')).toHaveCSS(
+        'background-color',
+        'rgb(40, 200, 64)'
+      )
+    }
     await expect(assistant).toHaveCSS('background-color', paper)
     await expect(assistant.locator('.tool-call-hud')).toHaveCSS(
       'background-color',
@@ -192,10 +215,58 @@ test('ming portrait themes render full figures beside parchment conversation sur
       assistant.boundingBox()
     ])
     expect(assistantBox!.x).toBeGreaterThan(imageBox!.x + imageBox!.width * 0.78)
+    const brandBox = await page.getByTestId('titlebar-brand').boundingBox()
+    expect(brandBox!.width).toBeGreaterThanOrEqual(312)
+    if (process.platform !== 'win32') {
+      const controlsBox = await page.getByTestId('titlebar-window-controls').boundingBox()
+      expect(controlsBox!.x + controlsBox!.width).toBeLessThan(brandBox!.x)
+    }
+    await page.screenshot({
+      path: path.join(testInfo.outputDir, `${skin}-titlebar-top-left.png`),
+      clip: { x: 0, y: 0, width: 520, height: 70 }
+    })
     const statsToggle = page.getByTestId('chat-status-hud').locator('button[aria-expanded]')
     await statsToggle.click()
     await expect(page.locator('.session-hud')).toBeVisible()
     await page.screenshot({ path: path.join(testInfo.outputDir, `${skin}-conversation.png`) })
+
+    await page.getByTestId('workspace-project-0').click({ button: 'right' })
+    const projectMenu = page.getByTestId('project-context-menu')
+    await expect(projectMenu).toBeVisible()
+    await expect(projectMenu).toHaveCSS('background-color', menuPaper)
+    await expect(projectMenu.getByRole('menuitem')).toHaveCount(10)
+    await expect(projectMenu.getByRole('separator')).toHaveCount(2)
+    await expect(projectMenu.getByTestId('project-context-action-pin')).toBeFocused()
+    await projectMenu.getByTestId('project-context-action-edit').hover()
+    await page.screenshot({
+      path: path.join(testInfo.outputDir, `${skin}-project-context-menu.png`)
+    })
+    await page.keyboard.press('Escape')
+    await expect(projectMenu).toHaveCount(0)
+
+    const sessionRow = page.getByTestId(`session-row-${id}`)
+    await sessionRow.click({ button: 'right' })
+    const sessionMenu = page.getByTestId('session-context-menu')
+    await expect(sessionMenu).toBeVisible()
+    await expect(sessionMenu).toHaveCSS('background-color', menuPaper)
+    await expect(sessionMenu.getByRole('menuitem')).toHaveCount(2)
+    await expect(sessionMenu.getByTestId('session-context-action-rename')).toBeFocused()
+    await sessionMenu.getByTestId('session-context-action-delete').hover()
+    await page.screenshot({
+      path: path.join(testInfo.outputDir, `${skin}-session-context-menu.png`)
+    })
+    await page.keyboard.press('Escape')
+    await expect(sessionMenu).toHaveCount(0)
+
+    await page.getByTestId('workspace-model-select').getByRole('button').click()
+    const modelMenu = page.locator('.ui-select-menu')
+    await expect(modelMenu).toBeVisible()
+    await expect(modelMenu).toHaveCSS('background-color', menuPaper)
+    await expect(modelMenu.locator('.ui-select-option').first()).toBeVisible()
+    await modelMenu.locator('.ui-select-option').first().hover()
+    await page.screenshot({ path: path.join(testInfo.outputDir, `${skin}-model-dropdown.png`) })
+    await page.keyboard.press('Escape')
+    await expect(modelMenu).toHaveCount(0)
 
     await page.getByTestId('workspace-section-harness').click()
     const harnessConsole = page.getByTestId('harness-console')
@@ -216,6 +287,9 @@ test('ming portrait themes render full figures beside parchment conversation sur
     await page.setViewportSize({ width: 1200, height: 780 })
     await expect(page.getByTestId('portrait-skin-panel')).toBeVisible()
     await expect(assistant).toBeVisible()
+    await expect(page.getByTestId('ming-titlebar-calligraphy')).toBeVisible()
+    await expect(page.getByTestId('ming-workspace-calligraphy')).toBeVisible()
+    await expect(page.getByTestId('ming-sidebar-scroll')).toBeVisible()
     await page.setViewportSize({ width: 1554, height: 1004 })
 
     await page.locator('a[href="#/settings"]').click()

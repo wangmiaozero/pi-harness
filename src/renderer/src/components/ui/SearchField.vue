@@ -31,7 +31,7 @@ const emit = defineEmits<{
       :value="modelValue"
       :placeholder="placeholder"
       :aria-label="ariaLabel ?? placeholder"
-      class="min-w-0 flex-1 bg-transparent text-[12px] text-[var(--text-primary)] outline-none placeholder:text-[var(--control-placeholder)]"
+      class="m-0 min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-[12px] text-[var(--text-primary)] shadow-none outline-none ring-0 placeholder:text-[var(--control-placeholder)]"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
     <span

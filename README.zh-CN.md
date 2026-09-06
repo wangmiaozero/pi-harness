@@ -1,6 +1,17 @@
 # Pi-Harness
 
 <p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
+  <a href="README.ja-JP.md">日本語</a> ·
+  <a href="README.ko-KR.md">한국어</a> ·
+  <a href="README.ru-RU.md">Русский</a> ·
+  <a href="README.fr-FR.md">Français</a> ·
+  <a href="README.de-DE.md">Deutsch</a>
+</p>
+
+<p align="center">
   <img src="build/icon.png" width="110" alt="Pi-Harness" />
 </p>
 
@@ -18,9 +29,8 @@
 
 <p align="center">
   <a href="#下载"><strong>下载 Pi-Harness</strong></a> ·
-  <a href="README.md">English</a> ·
   <a href="https://github.com/earendil-works/pi">Pi Agent Harness</a> ·
-  <a href="docs/workspace.mp4?raw=1">观看演示</a>
+  <a href="#当前界面">界面预览</a>
 </p>
 
 <p align="center">
@@ -31,14 +41,12 @@
 </p>
 
 <p align="center">
-  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace.gif" width="920" alt="Pi-Harness 工作区演示" /></a>
-</p>
-
-<p align="center">
   ⭐ <a href="https://github.com/wangmiaozero/pi-harness/stargazers">点个 Star</a>，关注 Pi-Harness 接下来的 Harness Console 更新。
 </p>
 
 ## 为什么是 Pi-Harness？
+
+Pi-Harness 是 Pi Coding Agent 的可视化 Harness Console。你可以直接使用 Native Pi，也可以发现和管理可选的开发方法论、Skills、Extensions、Packages 与 MCP 工具。
 
 [Pi Coding Agent](https://github.com/earendil-works/pi) 本身已经拥有强大的 Agent Harness。大量 Runtime、Context、Tools、Compaction、Queue 和 Session 能力天然存在于 CLI 与 SDK 行为之中。
 
@@ -85,6 +93,15 @@ Pi-Harness 提供围绕它的桌面控制平面、可视化、配置和工作区
 | 更新              | 安装兼容的应用更新                                       |
 | 外观              | 提供明暗主题、密度、驾驶舱模式和特色主题                 |
 
+### 可选方法论与增强能力
+
+Native Pi 始终是内置默认运行时与默认工作流。Pi-Harness 不会替换它，也不会静默安装或启用任何第三方方法论。
+
+- [Superpowers](https://github.com/obra/superpowers) 是推荐的可选增强能力：一套面向编码智能体的完整软件开发方法论，覆盖头脑风暴、计划、TDD、系统化调试、Git worktree、子智能体与并行智能体工作流、代码审查和完成前验证。可在能力中心明确确认后通过 `pi install git:github.com/obra/superpowers` 安装。
+- [Odai](https://github.com/orziz/odai) 保留为可选的治理与自适应执行方法论，用于目标对齐、授权边界、风险感知、能力路由、证据留存与验证。
+
+两者都复用现有可信能力/包管理流程，可独立更新或卸载。
+
 ### 轻量编辑器，不是 IDE
 
 Pi-Harness 可以编辑可读文本文件，支持懒加载语法高亮、行号、撤销/重做、查找、显式保存、未保存状态和外部变更冲突保护。超大文件、二进制、媒体和文档使用只读预览。
@@ -127,29 +144,27 @@ Pi-Harness 通过 Pi 的 Runtime 接口与其连接。Session 与 <code>~/.pi/ag
 
 ## 当前界面
 
-### 工作区
+下面用默认主题与古风主题分别展示同一组 6 个主要界面。
 
-打开真实项目，新建或继续 Pi Session，让流式输出、项目文件与 Git 变更处在同一个原生工作区里。
+### 默认主题
 
-<p align="center">
-  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace.gif" width="920" alt="Pi-Harness 当前工作区" /></a>
-</p>
+|                    工作区                    |                   Git                    |
+| :------------------------------------------: | :--------------------------------------: |
+|  ![默认主题工作区](docs/默认主题/Work.jpg)   |  ![默认主题 Git](docs/默认主题/Git.jpg)  |
+|                 **Provider**                 |                 **模型**                 |
+| ![默认主题 Provider](docs/默认主题/APIs.jpg) | ![默认主题模型](docs/默认主题/Model.jpg) |
+|                 **能力中心**                 |                 **设置**                 |
+| ![默认主题能力中心](docs/默认主题/Caps.jpg)  | ![默认主题设置](docs/默认主题/Prefs.jpg) |
 
-|              项目会话               |            文件与轻量编辑             |
-| :---------------------------------: | :-----------------------------------: |
-| ![工作区会话](docs/workspace-1.jpg) | ![工作区编辑器](docs/workspace-2.jpg) |
+### 古风主题
 
-![星际驾驶舱工作区](docs/workspace-3.jpg)
-
-### Provider、模型与 Skills
-
-|            Provider 列表            |            Provider 配置            |
-| :---------------------------------: | :---------------------------------: |
-| ![提供商列表](docs/providers-1.jpg) | ![提供商详情](docs/providers-2.jpg) |
-|            **模型列表**             |            **模型配置**             |
-|   ![模型列表](docs/models-1.jpg)    |   ![模型详情](docs/models-2.jpg)    |
-
-![技能市场](docs/skills.jpg)
+|                  工作区                  |                 Git                  |
+| :--------------------------------------: | :----------------------------------: |
+|  ![古风主题工作区](docs/古风/Work.jpg)   |  ![古风主题 Git](docs/古风/Git.jpg)  |
+|               **Provider**               |               **模型**               |
+| ![古风主题 Provider](docs/古风/APIs.jpg) | ![古风主题模型](docs/古风/Model.jpg) |
+|               **能力中心**               |               **设置**               |
+| ![古风主题能力中心](docs/古风/Caps.jpg)  | ![古风主题设置](docs/古风/Prefs.jpg) |
 
 ## 接下来
 
@@ -309,17 +324,6 @@ pnpm test:e2e:only
 Pi-Harness 下一阶段的重点，就是上面展示的可视化 Harness Console。Runtime 与 Context Inspector、Tools Inspector、Compaction Control、Session Tree 和 Harness Timeline 会继续完善。
 
 如果你对这些功能感兴趣，可以给 [Pi-Harness 点一个 ⭐](https://github.com/wangmiaozero/pi-harness/stargazers)，关注后续版本。Star 也能帮助更多 Pi 用户发现这个项目。
-
-## 翻译
-
-- [English](README.md)
-- [简体中文](README.zh-CN.md)
-- [繁體中文](README.zh-TW.md)
-- [日本語](README.ja-JP.md)
-- [한국어](README.ko-KR.md)
-- [Русский](README.ru-RU.md)
-- [Français](README.fr-FR.md)
-- [Deutsch](README.de-DE.md)
 
 ## 致谢
 

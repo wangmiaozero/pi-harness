@@ -29,6 +29,8 @@ import { readTextFile } from '../services/storage'
 import {
   builtinSkillMutationTargetSchema,
   optionalProjectRootSchema,
+  piPackageRegistryDetailSchema,
+  piPackageRegistrySearchSchema,
   piPackageTargetSchema,
   piPackageTargetsSchema,
   providerModelDiscoverySchema,
@@ -48,6 +50,7 @@ import { registerWorkspaceIpc, type WorkspaceServices } from './register-workspa
 import { createTrustedIpcMain } from './trusted-ipc'
 import type { CapabilityService } from '../capabilities/capability-service'
 import { capabilityMutationSchema, capabilityToggleSchema } from '@shared/capabilities/schema'
+import { findTrustedCapability } from '@shared/capabilities/catalog'
 import type { EnvironmentManager } from '../environment/environment-manager'
 import { DEFAULT_MASCOT_STYLE, isMascotUnlockAnswer } from '@shared/constants/mascot'
 import { installAppMenu } from '../window/app-menu'
@@ -405,6 +408,37 @@ export function registerIpc(services: Services): void {
       return notifyPackageMutation(() => skills.installPackages(parsed.data))
     })
   )
+  ipcMain.handle(IPC_INVOKE.packagesRegistrySearch, (_e, input: unknown) =>
+    wrap(() => {
+      const parsed = piPackageRegistrySearchSchema.safeParse(input)
+      if (!parsed.success) {
+        throw new ValidationError('Invalid package Registry search', {
+          issues: parsed.error.issues
+        })
+      }
+      return skills.searchRegistry(parsed.data)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.packagesRegistryDetail, (_e, input: unknown) =>
+    wrap(() => {
+      const parsed = piPackageRegistryDetailSchema.safeParse(input)
+      if (!parsed.success) {
+        throw new ValidationError('Invalid package Registry detail request', {
+          issues: parsed.error.issues
+        })
+      }
+      return skills.getRegistryPackageDetail(parsed.data.name, parsed.data.refresh)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.packagesCheckUpdates, (_e, projectRoot: unknown) =>
+    wrap(() => skills.checkPackageUpdates(parseProjectRoot(projectRoot)))
+  )
+  ipcMain.handle(IPC_INVOKE.packagesUpdate, (_e, target: unknown) =>
+    wrap(() => notifyPackageMutation(() => skills.updatePackage(parsePackageTarget(target))))
+  )
+  ipcMain.handle(IPC_INVOKE.packagesUpdateAll, (_e, projectRoot: unknown) =>
+    wrap(() => notifyPackageMutation(() => skills.updateAllPackages(parseProjectRoot(projectRoot))))
+  )
   ipcMain.handle(IPC_INVOKE.skillsRepairPackage, (_e, target: unknown) =>
     wrap(() => notifyPackageMutation(() => skills.repairPackage(parsePackageTarget(target))))
   )
@@ -486,6 +520,21 @@ export function registerIpc(services: Services): void {
     }
   })
   ipcMain.handle(IPC_INVOKE.capabilitiesList, () => wrap(() => capabilities.list()))
+  ipcMain.handle(IPC_INVOKE.capabilityOpenHomepage, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = capabilityMutationSchema.safeParse(input)
+      if (!parsed.success) {
+        throw new ValidationError('Invalid capability homepage input', {
+          issues: parsed.error.issues
+        })
+      }
+      const definition = findTrustedCapability(parsed.data.skillId)
+      if (!definition?.sourceUrl?.startsWith('https://github.com/')) {
+        throw new SecurityError('Capability has no trusted GitHub homepage')
+      }
+      await shell.openExternal(definition.sourceUrl)
+    })
+  )
   ipcMain.handle(IPC_INVOKE.capabilityInstallSkill, (_e, input: unknown) =>
     wrap(() => {
       const parsed = capabilityMutationSchema.safeParse(input)
@@ -569,11 +618,7 @@ export function registerIpc(services: Services): void {
   )
   ipcMain.handle(IPC_INVOKE.settingsSet, (_e, patch: unknown) =>
     wrap(async () => {
-      const parsedPatch = parseInput(
-        appSettingsPatchSchema,
-        patch,
-        'Invalid settings'
-      )
+      const parsedPatch = parseInput(appSettingsPatchSchema, patch, 'Invalid settings')
       const current = pickKnownAppSettings(await settingsStore.read())
       current.theme = normalizeAppTheme(current.theme)
       current.navOrder = normalizeNavOrder(current.navOrder)

@@ -161,6 +161,31 @@ export const piPackageTargetSchema = z
   })
 
 export const piPackageTargetsSchema = z.array(piPackageTargetSchema).min(1).max(50)
+
+export const piPackageRegistryNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(214)
+  .regex(/^(?:@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*$/i, 'invalid npm package name')
+
+export const piPackageRegistrySearchSchema = z
+  .object({
+    query: z.string().trim().max(200).optional(),
+    page: z.number().int().min(1).max(100_000).optional(),
+    pageSize: z.number().int().min(1).max(50).optional(),
+    type: z.enum(['all', 'extension', 'skill', 'prompt', 'theme', 'package']).optional(),
+    sort: z.enum(['downloads', 'published', 'relevance']).optional(),
+    refresh: z.boolean().optional()
+  })
+  .strict()
+
+export const piPackageRegistryDetailSchema = z
+  .object({
+    name: piPackageRegistryNameSchema,
+    refresh: z.boolean().optional()
+  })
+  .strict()
 export const builtinSkillMutationTargetSchema = z
   .object({
     collectionId: z

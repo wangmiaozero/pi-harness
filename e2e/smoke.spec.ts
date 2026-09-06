@@ -7,12 +7,18 @@ const { version: APP_VERSION } = JSON.parse(fs.readFileSync('package.json', 'utf
 }
 
 test.describe('Pi-Harness smoke', () => {
-  test('launches without an overview rail item and lands in settings overview', async ({ page }) => {
+  test('launches without an overview rail item and lands in settings overview', async ({
+    page
+  }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     // Overview now lives inside Settings; the icon rail must not offer it.
     await expect(page.locator('a[href="#/"]')).toHaveCount(0)
-    await expect(page.locator('a[href="#/workspace"]').filter({ hasText: /工作区|Workspace/ })).toBeVisible()
-    await expect(page.locator('a[href="#/settings"]').filter({ hasText: /设置|Settings/ })).toBeVisible()
+    await expect(
+      page.locator('a[href="#/workspace"]').filter({ hasText: /工作区|Workspace/ })
+    ).toBeVisible()
+    await expect(
+      page.locator('a[href="#/settings"]').filter({ hasText: /设置|Settings/ })
+    ).toBeVisible()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
   })
 
@@ -1030,10 +1036,11 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 
     await page.locator('a[href="#/skills"]').click()
-    await expect(page.locator('h1').filter({ hasText: /技能|Skills/ })).toBeVisible()
+    await expect(page.locator('h1').filter({ hasText: /能力中心|Capabilities/ })).toBeVisible()
+    await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
     await expect(page.locator('ul').getByText('demo-skill', { exact: true })).toBeVisible()
 
-    await page.getByRole('tab', { name: /市场|Market/ }).click()
+    await page.getByRole('tab', { name: /精选|Featured/, exact: true }).click()
     await expect(page.getByText(/日常开发套件|Core Development/).first()).toBeVisible()
     await expect(page.getByText(/Agent 架构套件|Agent Architecture/).first()).toBeVisible()
     const curatedCollection = page
@@ -1053,7 +1060,7 @@ test.describe('Pi-Harness smoke', () => {
 
   test('installs, uninstalls, and reinstalls a bundled Matt Pocock Skill', async ({ page }) => {
     await page.locator('a[href="#/skills"]').click()
-    await page.getByRole('tab', { name: /市场|Market/ }).click()
+    await page.getByRole('tab', { name: /精选|Featured/, exact: true }).click()
 
     const collection = page.getByTestId('market-collection-builtin:mattpocock-skills')
     await expect(collection).toContainText('Skills For Real Engineers')
@@ -1094,6 +1101,7 @@ test.describe('Pi-Harness smoke', () => {
 
   test('uninstalls a user-authored standalone skill with a backup-first flow', async ({ page }) => {
     await page.locator('a[href="#/skills"]').click()
+    await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
     await page.locator('ul').getByText('demo-skill', { exact: true }).click()
     await page.getByLabel(/卸载技能|Uninstall skill/).click()
 
@@ -1117,7 +1125,7 @@ test.describe('Pi-Harness smoke', () => {
     })
 
     await page.locator('a[href="#/skills"]').click()
-    await page.getByRole('tab', { name: /扩展包|Packages/, exact: true }).click()
+    await page.getByRole('tab', { name: /已安装|Installed/, exact: true }).click()
     const packageRow = page.getByRole('listitem').filter({ hasText: 'pi-e2e-missing' })
     await expect(packageRow).toBeVisible()
     await packageRow.click()

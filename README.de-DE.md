@@ -1,6 +1,17 @@
 # Pi-Harness
 
 <p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
+  <a href="README.ja-JP.md">日本語</a> ·
+  <a href="README.ko-KR.md">한국어</a> ·
+  <a href="README.ru-RU.md">Русский</a> ·
+  <a href="README.fr-FR.md">Français</a> ·
+  <a href="README.de-DE.md">Deutsch</a>
+</p>
+
+<p align="center">
   <img src="build/icon.png" width="96" alt="Pi-Harness" />
 </p>
 
@@ -14,25 +25,9 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> ·
-  <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="README.zh-TW.md">繁體中文</a> ·
-  <a href="README.ja-JP.md">日本語</a> ·
-  <a href="README.ko-KR.md">한국어</a> ·
-  <a href="README.ru-RU.md">Русский</a> ·
-  <a href="README.fr-FR.md">Français</a> ·
-  <a href="README.de-DE.md">Deutsch</a>
-</p>
-
-<p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0"><img alt="release v1.2.0" src="https://img.shields.io/badge/release-v1.2.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-</p>
-
-<p align="center">
-  <a href="docs/workspace.mp4?raw=1"><img src="docs/workspace.gif" width="920" alt="Demo des Pi-Harness-Arbeitsbereichs" /></a><br />
-  <a href="docs/workspace.mp4?raw=1">▶ Demo des Pi-Harness-Arbeitsbereichs ansehen</a>
 </p>
 
 ## Warum Pi-Harness?
@@ -93,35 +88,27 @@ Installieren → Provider konfigurieren → Modell wählen → Projekt öffnen �
 
 ## Screenshots
 
-### 1. Bereitschaft prüfen
+Dieselben sechs Hauptansichten werden im Standardthema und im Ming-Stil gezeigt.
 
-![Übersicht](docs/overview.jpg)
+### Standardthema
 
-### 2. Pi in einem echten Projekt ausführen
+|                        Arbeitsbereich                        |                            Git                             |
+| :----------------------------------------------------------: | :--------------------------------------------------------: |
+|  ![Arbeitsbereich im Standardthema](docs/默认主题/Work.jpg)  |       ![Git im Standardthema](docs/默认主题/Git.jpg)       |
+|                         **Anbieter**                         |                        **Modelle**                         |
+|     ![Anbieter im Standardthema](docs/默认主题/APIs.jpg)     |    ![Modelle im Standardthema](docs/默认主题/Model.jpg)    |
+|                     **Funktionszentrum**                     |                     **Einstellungen**                      |
+| ![Funktionszentrum im Standardthema](docs/默认主题/Caps.jpg) | ![Einstellungen im Standardthema](docs/默认主题/Prefs.jpg) |
 
-|        Projektsitzungen         | Dateien und leichte Bearbeitung |
-| :-----------------------------: | :-----------------------------: |
-| ![Sitzungen](docs/workspace-1.jpg) |  ![Editor](docs/workspace-2.jpg)   |
+### Ming-Stil
 
-![Starship-Cockpit-Arbeitsbereich](docs/workspace-3.jpg)
-
-### 3. Anbieter und Modelle konfigurieren
-
-|              Anbieter               |          Anbieter einrichten          |
-| :---------------------------------: | :-----------------------------------: |
-| ![Anbieterliste](docs/providers-1.jpg) | ![Anbieterdetails](docs/providers-2.jpg) |
-|             **Modelle**             |         **Modell einrichten**         |
-|   ![Modellliste](docs/models-1.jpg)   |   ![Modelldetails](docs/models-2.jpg)   |
-
-### 4. Pi erweitern
-
-![Skills-Markt](docs/skills.jpg)
-
-### 5. Workspace anpassen
-
-![Einstellungen für Erscheinungsbild und Maskottchen](docs/settings.jpg)
-
-![Auswahl des Maskottchen-Stils](docs/mascot-settings.jpg)
+|                    Arbeitsbereich                    |                        Git                         |
+| :--------------------------------------------------: | :------------------------------------------------: |
+|  ![Arbeitsbereich im Ming-Stil](docs/古风/Work.jpg)  |       ![Git im Ming-Stil](docs/古风/Git.jpg)       |
+|                     **Anbieter**                     |                    **Modelle**                     |
+|     ![Anbieter im Ming-Stil](docs/古风/APIs.jpg)     |    ![Modelle im Ming-Stil](docs/古风/Model.jpg)    |
+|                 **Funktionszentrum**                 |                 **Einstellungen**                  |
+| ![Funktionszentrum im Ming-Stil](docs/古风/Caps.jpg) | ![Einstellungen im Ming-Stil](docs/古风/Prefs.jpg) |
 
 ## Editor-Grenze
 

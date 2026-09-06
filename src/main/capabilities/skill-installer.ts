@@ -285,7 +285,7 @@ export class SkillInstallService {
       onPhase?: (phase: CapabilityMutationPhase) => void
     }
   ): Promise<SkillInstallOutput> {
-    if (!definition.install || !definition.sourceUrl) {
+    if (definition.install?.strategy !== 'skills-cli' || !definition.sourceUrl) {
       throw new SkillMutationError('SKILL_INVALID', 'Capability has no trusted install definition')
     }
     const selector = definition.install.selector

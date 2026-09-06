@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import {
   Download,
   Eye,
+  ExternalLink,
   FileEdit,
   FileInput,
   FilePlus2,
@@ -57,20 +58,21 @@ import SkillConfirmDialogs from '@renderer/features/skills/components/SkillConfi
 import SkillEditorDialog from '@renderer/features/skills/components/SkillEditorDialog.vue'
 import SkillImportDialog from '@renderer/features/skills/components/SkillImportDialog.vue'
 import SkillMarketDetail from '@renderer/features/skills/components/SkillMarketDetail.vue'
+import OfficialPackageMarket from '@renderer/features/skills/components/OfficialPackageMarket.vue'
 import type { SkillEditorFormState, SkillImportFormState } from '@renderer/features/skills/types'
 
-type ViewMode = 'skills' | 'packages' | 'market'
+type ViewMode = 'official-market' | 'skills' | 'packages' | 'market'
 
 const { t } = useI18n()
 const store = useSkillsStore()
 const pi = usePiStore()
 const workspace = useWorkspaceStore()
 
-const mode = ref<ViewMode>('skills')
+const mode = ref<ViewMode>('official-market')
 const query = ref('')
 const selectedPackageId = ref<string | null>(null)
 const selectedPackageIds = ref<string[]>([])
-const packageHealthFilter = ref<'all' | PiPackageHealth>('all')
+const packageHealthFilter = ref<'all' | 'update-available' | PiPackageHealth>('all')
 const packageScopeFilter = ref<'all' | PiPackageScope>('all')
 const marketInstallScope = ref<PiPackageScope>('global')
 const selectedCollectionId = ref<string | null>(null)
@@ -131,7 +133,10 @@ const filteredPackages = computed(() => {
   const q = query.value.trim().toLowerCase()
   return store.packages.filter(
     (pkg) =>
-      (packageHealthFilter.value === 'all' || pkg.health === packageHealthFilter.value) &&
+      (packageHealthFilter.value === 'all' ||
+        (packageHealthFilter.value === 'update-available'
+          ? store.packageUpdates[pkg.id]?.updateAvailable
+          : pkg.health === packageHealthFilter.value)) &&
       (packageScopeFilter.value === 'all' || pkg.scope === packageScopeFilter.value) &&
       (!q ||
         pkg.name.toLowerCase().includes(q) ||
@@ -241,11 +246,16 @@ function selectCapability(capability: CapabilityDescriptor) {
 
 function capabilityStatusLabel(capability: CapabilityDescriptor): string {
   const progress = store.capabilityProgress[capability.id]
-  if (progress && ['resolving', 'installing', 'validating'].includes(progress.phase)) {
+  if (
+    progress &&
+    ['resolving', 'installing', 'updating', 'uninstalling', 'validating'].includes(progress.phase)
+  ) {
+    if (progress.action === 'update') return t('capabilities.phaseUpdating')
+    if (progress.action === 'uninstall') return t('capabilities.phaseUninstalling')
     return t(`skills.capabilityPhase${progress.phase[0].toUpperCase()}${progress.phase.slice(1)}`)
   }
   if (store.capabilityErrors[capability.id] || capability.status === 'failed') {
-    return t('skills.capabilityStatusFailed')
+    return t('capabilities.statusError')
   }
   if (!capability.installed) return t('skills.capabilityStatusNotInstalled')
   if (!capability.enabled) return t('skills.capabilityStatusDisabled')
@@ -264,8 +274,19 @@ function capabilityStatusTone(
 }
 
 function capabilityErrorMessage(capability: CapabilityDescriptor): string | null {
-  const errorCode = store.capabilityErrors[capability.id]?.code ?? capability.lastErrorCode
+  const liveError = store.capabilityErrors[capability.id]
+  const errorCode = liveError?.code ?? capability.lastErrorCode
   if (!errorCode) return null
+  if (liveError?.userMessage || liveError?.message) {
+    return liveError.userMessage || liveError.message
+  }
+  if (capability.install?.strategy === 'pi-package') {
+    if (errorCode === 'SKILL_PERMISSION_DENIED') {
+      return t('capabilities.packagePermissionError')
+    }
+    if (errorCode === 'SKILL_INVALID') return t('capabilities.packageVerificationError')
+    return t('capabilities.packageError')
+  }
   const knownCodes = [
     'SKILL_NOT_FOUND',
     'SKILL_ALREADY_INSTALLED',
@@ -291,15 +312,87 @@ function capabilityUseCaseLabel(useCase: string): string {
     .split('-')
     .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
     .join('')
-  return t(`skills.capabilityUseCase${suffix}`)
+  return t(`capabilities.useCase${suffix}`)
+}
+
+function capabilityDescription(capability: CapabilityDescriptor): string {
+  const keys: Record<string, string> = {
+    'native-pi': 'capabilities.nativePiDescription',
+    superpowers: 'capabilities.superpowersDescription',
+    odai: 'capabilities.odaiDescription'
+  }
+  return keys[capability.id] ? t(keys[capability.id]) : capability.description || '—'
+}
+
+function capabilityCategoryLabel(capability: CapabilityDescriptor): string {
+  const keys = {
+    native: 'capabilities.categoryNative',
+    'development-methodology': 'capabilities.categoryDevelopmentMethodology',
+    'governance-methodology': 'capabilities.categoryGovernanceMethodology'
+  } as const
+  return capability.category && capability.category in keys
+    ? t(keys[capability.category as keyof typeof keys])
+    : capability.category || '—'
+}
+
+function capabilityIntegrationLabel(capability: CapabilityDescriptor): string {
+  const keys = {
+    'native-pi': 'capabilities.integrationNativePi',
+    'pi-package': 'capabilities.integrationPiPackage',
+    'pi-skill': 'capabilities.integrationPiSkill'
+  } as const
+  return capability.integration && capability.integration in keys
+    ? t(keys[capability.integration as keyof typeof keys])
+    : capability.integration || '—'
+}
+
+function capabilityTypeLabel(capability: CapabilityDescriptor): string {
+  if (capability.type === 'package') return t('capabilities.typePackage')
+  if (capability.type === 'skill') return t('capabilities.typeSkill')
+  if (capability.type === 'preset' && capability.builtin) return t('capabilities.builtinBadge')
+  return capability.type
+}
+
+function capabilityRuntimeHint(capability: CapabilityDescriptor): string {
+  if (capability.builtin) return t('capabilities.nativeRuntimeHint')
+  return capability.install?.strategy === 'pi-package'
+    ? t('capabilities.packageRuntimeHint')
+    : t('capabilities.skillRuntimeHint')
+}
+
+function capabilityInstallCommand(capability: CapabilityDescriptor): string | null {
+  return capability.install?.strategy === 'pi-package'
+    ? `pi install ${capability.install.source}`
+    : null
+}
+
+function capabilitySourceLabel(capability: CapabilityDescriptor): string {
+  return capability.sourceUrl?.replace(/^https:\/\/github\.com\//, '') || capability.source
 }
 
 async function installCapability(capability: CapabilityDescriptor) {
+  const command = capabilityInstallCommand(capability)
+  if (command) {
+    const confirmed = await askConfirm({
+      title: t('capabilities.installAddonTitle', { name: capability.name }),
+      description: t('capabilities.installAddonNotice', { command }),
+      confirmLabel: t('skills.install')
+    })
+    if (!confirmed) return
+  }
   try {
     await store.installSkill(capability.id)
     toast.success(t('skills.capabilityInstalled', { name: capability.name }))
   } catch {
     toast.error(capabilityErrorMessage(capability) ?? t('skills.capabilityInstallFailed'))
+  }
+}
+
+async function openCapabilityHomepage(capability: CapabilityDescriptor) {
+  try {
+    await getApi().capabilities.openHomepage(capability.id)
+  } catch (error) {
+    toast.error(getErrorPayload(error).message)
   }
 }
 
@@ -345,6 +438,10 @@ async function viewInstalledCapability(capability: CapabilityDescriptor) {
   if (!capability.installPath) return
   selectedCapabilityId.value = null
   await store.loadDetail(capability.installPath)
+}
+
+async function openInstalledCapability(capability: CapabilityDescriptor) {
+  await openPath(capability.installPath)
 }
 
 async function editInstalledCapability(capability: CapabilityDescriptor) {
@@ -799,6 +896,40 @@ async function repairPackage(pkg: PiPackageInfo) {
   }
 }
 
+async function updateInstalledPackage(pkg: PiPackageInfo) {
+  packageActionBusy.value = pkg.id
+  try {
+    const result = await store.updatePackage(pkg)
+    if (!result.ok) throw new Error(result.stderr || result.message)
+    toast.success(t('capabilities.updateSuccess', { name: pkg.name }))
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('capabilities.updateFailed'))
+  } finally {
+    packageActionBusy.value = null
+  }
+}
+
+async function updateAllInstalledPackages() {
+  const confirmed = await askConfirm({
+    title: t('capabilities.updateAllTitle'),
+    description: t('capabilities.updateNotice'),
+    confirmLabel: t('capabilities.updateAll'),
+    tone: 'primary'
+  })
+  if (!confirmed) return
+  packageActionBusy.value = 'update-all'
+  try {
+    const results = await store.updateAllPackages()
+    const failures = results.filter((result) => !result.ok)
+    if (failures.length) toast.error(t('capabilities.updateAllPartial', { count: failures.length }))
+    else toast.success(t('capabilities.updateAllSuccess', { count: results.length }))
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('capabilities.updateFailed'))
+  } finally {
+    packageActionBusy.value = null
+  }
+}
+
 async function registerPackage(pkg: PiPackageInfo) {
   packageActionBusy.value = pkg.id
   try {
@@ -1007,8 +1138,21 @@ function packageHealthTone(
   return health === 'missing' || health === 'permission-error' ? 'error' : 'warning'
 }
 
+function packageUpdateStateLabel(pkg: PiPackageInfo): string {
+  const state = store.packageUpdates[pkg.id]?.state ?? 'check-failed'
+  const key = {
+    'up-to-date': 'capabilities.updateStateUpToDate',
+    'update-available': 'capabilities.updateStateUpdateAvailable',
+    'fixed-version': 'capabilities.updateStateFixedVersion',
+    'check-failed': 'capabilities.updateStateCheckFailed',
+    'not-applicable': 'capabilities.updateStateNotApplicable'
+  } as const
+  return t(key[state])
+}
+
 const packageHealthOptions = computed(() => [
   { value: 'all', label: t('skills.packageFilterAllHealth') },
+  { value: 'update-available', label: t('capabilities.updateAvailable') },
   ...(['healthy', 'missing', 'orphaned', 'permission-error', 'corrupted', 'unknown'] as const).map(
     (health) => ({ value: health, label: packageHealthLabel(health) })
   )
@@ -1043,14 +1187,20 @@ function resourceGroups(pkg: PiPackageInfo) {
         <h1
           class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
         >
-          {{ $t('nav.skills') }}
+          {{ $t('capabilities.title') }}
         </h1>
         <p class="mt-[3px] text-[11.5px] leading-[14px] text-[var(--text-tertiary)]">
-          {{ $t('skills.subtitle') }}
+          {{ $t('capabilities.subtitle') }}
         </p>
       </div>
       <div class="flex items-center gap-1.5">
-        <Button variant="ghost" size="sm" :loading="store.loading" @click="refreshAll">
+        <Button
+          v-if="mode !== 'official-market'"
+          variant="ghost"
+          size="sm"
+          :loading="store.loading"
+          @click="refreshAll"
+        >
           <RefreshCw class="size-3.5" :stroke-width="1.75" />
         </Button>
         <template v-if="mode === 'skills'">
@@ -1064,6 +1214,16 @@ function resourceGroups(pkg: PiPackageInfo) {
           </Button>
         </template>
         <template v-else-if="mode === 'packages'">
+          <Button
+            v-if="Object.values(store.packageUpdates).some((update) => update.updateAvailable)"
+            variant="primary"
+            size="sm"
+            :loading="packageActionBusy === 'update-all'"
+            @click="updateAllInstalledPackages"
+          >
+            <RotateCw class="size-3.5" />
+            {{ $t('capabilities.updateAll') }}
+          </Button>
           <Button
             v-if="selectedPackageIds.length"
             variant="danger"
@@ -1091,54 +1251,49 @@ function resourceGroups(pkg: PiPackageInfo) {
       </div>
     </PageHeader>
 
-    <div class="flex min-h-0 flex-1">
+    <div
+      role="tablist"
+      class="capabilities-tabs grid shrink-0 grid-cols-4 gap-0.5 border-b border-[var(--border-subtle)] bg-[var(--bg-window)] px-3 py-1.5"
+    >
+      <button
+        v-for="item in [
+          { id: 'official-market', label: $t('capabilities.officialMarket'), icon: StoreIcon },
+          { id: 'packages', label: $t('capabilities.installed'), icon: PackageIcon },
+          { id: 'skills', label: $t('capabilities.skills'), icon: Sparkles },
+          { id: 'market', label: $t('capabilities.featured'), icon: ShieldCheck }
+        ] as const"
+        :key="item.id"
+        type="button"
+        role="tab"
+        :aria-selected="mode === item.id"
+        class="group flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--radius-sm)] border border-transparent text-[11.5px] font-medium transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+        :class="
+          mode === item.id
+            ? 'border-[var(--accent-border)] bg-[var(--accent-tint-strong)] shadow-[inset_0_-2px_0_var(--accent)]'
+            : 'hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
+        "
+        @click="mode = item.id"
+      >
+        <component
+          :is="item.icon"
+          class="size-3.5"
+          :class="mode === item.id ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'"
+          :stroke-width="1.8"
+        />
+        <span
+          data-tab-label
+          :class="mode === item.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'"
+        >
+          {{ item.label }}
+        </span>
+      </button>
+    </div>
+
+    <OfficialPackageMarket v-if="mode === 'official-market'" />
+
+    <div v-else class="flex min-h-0 flex-1">
       <div class="flex min-h-0 w-[320px] shrink-0 flex-col border-r border-[var(--border-subtle)]">
         <div class="border-b border-[var(--border-subtle)] p-2.5">
-          <div
-            role="tablist"
-            class="mb-2 grid grid-cols-3 gap-0.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-window)] p-0.5"
-          >
-            <button
-              v-for="item in [
-                { id: 'skills', label: $t('skills.tabSkills'), icon: Sparkles },
-                { id: 'packages', label: $t('skills.tabPackages'), icon: PackageIcon },
-                { id: 'market', label: $t('skills.tabMarket'), icon: StoreIcon }
-              ] as const"
-              :key="item.id"
-              type="button"
-              role="tab"
-              :aria-selected="mode === item.id"
-              class="group flex h-7 cursor-pointer items-center justify-center gap-1 rounded-[4px] border border-transparent text-[11px] font-medium transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-              :class="
-                mode === item.id
-                  ? 'border-[var(--accent-border)] bg-[var(--accent-tint-strong)] shadow-[inset_0_-2px_0_var(--accent)]'
-                  : 'hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
-              "
-              @click="mode = item.id"
-            >
-              <component
-                :is="item.icon"
-                class="size-3 transition-colors"
-                :class="
-                  mode === item.id
-                    ? 'text-[var(--accent)]'
-                    : 'text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]'
-                "
-                :stroke-width="1.8"
-              />
-              <span
-                data-tab-label
-                class="transition-colors"
-                :class="
-                  mode === item.id
-                    ? 'text-[var(--accent)]'
-                    : 'text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]'
-                "
-              >
-                {{ item.label }}
-              </span>
-            </button>
-          </div>
           <SearchField v-model="query" :placeholder="$t('skills.filterPlaceholder')" size="sm" />
           <div v-if="mode === 'packages'" class="mt-2 grid grid-cols-2 gap-1.5">
             <Select v-model="packageHealthFilter" :options="packageHealthOptions" />
@@ -1159,7 +1314,7 @@ function resourceGroups(pkg: PiPackageInfo) {
                 class="flex items-center gap-1.5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
               >
                 <ShieldCheck class="size-3" :stroke-width="1.8" />
-                {{ $t('skills.featured') }}
+                {{ $t('capabilities.methodologySection') }}
               </div>
               <button
                 v-for="capability in store.featuredSkills"
@@ -1183,12 +1338,17 @@ function resourceGroups(pkg: PiPackageInfo) {
                     {{ capability.name }}
                   </span>
                   <span class="block truncate text-[10.5px] text-[var(--text-tertiary)]">
-                    {{ capability.description }}
+                    {{ capabilityDescription(capability) }}
                   </span>
                 </span>
-                <Badge :tone="capabilityStatusTone(capability)">
-                  {{ capabilityStatusLabel(capability) }}
-                </Badge>
+                <span class="flex shrink-0 items-center gap-1">
+                  <Badge v-if="capability.recommended" tone="accent">
+                    {{ $t('capabilities.recommendedBadge') }}
+                  </Badge>
+                  <Badge :tone="capabilityStatusTone(capability)">
+                    {{ capabilityStatusLabel(capability) }}
+                  </Badge>
+                </span>
               </button>
             </section>
             <div
@@ -1283,7 +1443,10 @@ function resourceGroups(pkg: PiPackageInfo) {
                         {{ pkg.name }}
                       </span>
                     </div>
-                    <Badge :tone="packageHealthTone(pkg.health)">
+                    <Badge v-if="store.packageUpdates[pkg.id]?.updateAvailable" tone="warning">
+                      {{ $t('capabilities.updateAvailable') }}
+                    </Badge>
+                    <Badge v-else :tone="packageHealthTone(pkg.health)">
                       {{ packageHealthLabel(pkg.health) }}
                     </Badge>
                   </div>
@@ -1373,15 +1536,48 @@ function resourceGroups(pkg: PiPackageInfo) {
                   <Badge :tone="capabilityStatusTone(selectedCapability)">
                     {{ capabilityStatusLabel(selectedCapability) }}
                   </Badge>
-                  <Badge tone="muted">Capability · Skill</Badge>
+                  <Badge v-if="selectedCapability.recommended" tone="accent">
+                    {{ $t('capabilities.recommendedBadge') }}
+                  </Badge>
+                  <Badge v-if="selectedCapability.builtin" tone="success">
+                    {{ $t('capabilities.defaultBadge') }}
+                  </Badge>
+                  <Badge v-if="selectedCapability.builtin" tone="muted">
+                    {{ $t('capabilities.builtinBadge') }}
+                  </Badge>
+                  <Badge v-else-if="selectedCapability.optional" tone="muted">
+                    {{ $t('capabilities.optionalBadge') }}
+                  </Badge>
+                  <Badge
+                    v-if="selectedCapability.category === 'governance-methodology'"
+                    tone="muted"
+                  >
+                    {{ $t('capabilities.governanceBadge') }}
+                  </Badge>
+                  <Badge tone="muted">
+                    {{
+                      $t('capabilities.capabilityKind', {
+                        type: capabilityTypeLabel(selectedCapability)
+                      })
+                    }}
+                  </Badge>
                 </div>
                 <p class="truncate text-[10.5px] text-[var(--text-tertiary)]">
-                  {{ selectedCapability.description }}
+                  {{ capabilityDescription(selectedCapability) }}
                 </p>
               </div>
               <div class="flex shrink-0 items-center gap-1.5">
                 <Button
-                  v-if="!selectedCapability.installed"
+                  v-if="selectedCapability.sourceUrl"
+                  variant="ghost"
+                  size="sm"
+                  @click="openCapabilityHomepage(selectedCapability)"
+                >
+                  <ExternalLink class="size-3.5" />
+                  {{ $t('capabilities.homepage') }}
+                </Button>
+                <Button
+                  v-if="!selectedCapability.installed && !selectedCapability.builtin"
                   data-testid="featured-capability-install"
                   variant="primary"
                   size="sm"
@@ -1389,10 +1585,16 @@ function resourceGroups(pkg: PiPackageInfo) {
                   @click="installCapability(selectedCapability)"
                 >
                   <Download class="size-3.5" />
-                  {{ $t('skills.install') }}
+                  {{
+                    store.capabilityErrors[selectedCapability.id] ||
+                    selectedCapability.status === 'failed'
+                      ? $t('capabilities.retryInstall')
+                      : $t('skills.install')
+                  }}
                 </Button>
-                <template v-else>
+                <template v-else-if="!selectedCapability.builtin">
                   <Button
+                    v-if="selectedCapability.type === 'skill'"
                     variant="ghost"
                     size="sm"
                     :disabled="store.installingIds.includes(selectedCapability.id)"
@@ -1402,7 +1604,7 @@ function resourceGroups(pkg: PiPackageInfo) {
                     {{ $t('skills.capabilityView') }}
                   </Button>
                   <Button
-                    v-if="selectedCapability.enabled"
+                    v-if="selectedCapability.type === 'skill' && selectedCapability.enabled"
                     variant="ghost"
                     size="sm"
                     :disabled="store.installingIds.includes(selectedCapability.id)"
@@ -1412,6 +1614,7 @@ function resourceGroups(pkg: PiPackageInfo) {
                     {{ $t('skills.edit') }}
                   </Button>
                   <Button
+                    v-if="selectedCapability.type === 'skill'"
                     variant="secondary"
                     size="sm"
                     :loading="store.installingIds.includes(selectedCapability.id)"
@@ -1424,6 +1627,16 @@ function resourceGroups(pkg: PiPackageInfo) {
                         ? $t('skills.capabilityDisable')
                         : $t('skills.capabilityEnable')
                     }}
+                  </Button>
+                  <Button
+                    v-if="selectedCapability.type === 'package'"
+                    variant="ghost"
+                    size="sm"
+                    :disabled="store.installingIds.includes(selectedCapability.id)"
+                    @click="openInstalledCapability(selectedCapability)"
+                  >
+                    <FolderOpen class="size-3.5" />
+                    {{ $t('skills.openFolder') }}
                   </Button>
                   <Button
                     variant="secondary"
@@ -1455,10 +1668,30 @@ function resourceGroups(pkg: PiPackageInfo) {
                   </Badge>
                 </PropertyRow>
                 <PropertyRow :label="$t('skills.capabilityType')" mono>
-                  {{ selectedCapability.type }}
+                  {{ capabilityTypeLabel(selectedCapability) }}
+                </PropertyRow>
+                <PropertyRow :label="$t('capabilities.capabilityCategory')">
+                  {{ capabilityCategoryLabel(selectedCapability) }}
+                </PropertyRow>
+                <PropertyRow :label="$t('capabilities.capabilityIntegration')">
+                  {{ capabilityIntegrationLabel(selectedCapability) }}
                 </PropertyRow>
                 <PropertyRow :label="$t('skills.capabilitySource')" mono>
-                  {{ selectedCapability.sourceUrl || selectedCapability.source }}
+                  {{ capabilitySourceLabel(selectedCapability) }}
+                </PropertyRow>
+                <PropertyRow
+                  v-if="selectedCapability.sourceUrl"
+                  :label="$t('capabilities.capabilityRepository')"
+                  mono
+                >
+                  {{ selectedCapability.sourceUrl }}
+                </PropertyRow>
+                <PropertyRow
+                  v-if="capabilityInstallCommand(selectedCapability)"
+                  :label="$t('capabilities.capabilityInstallCommand')"
+                  mono
+                >
+                  {{ capabilityInstallCommand(selectedCapability) }}
                 </PropertyRow>
                 <PropertyRow :label="$t('skills.capabilityVersion')" mono>
                   {{ selectedCapability.installedVersion || selectedCapability.version || '—' }}
@@ -1497,7 +1730,7 @@ function resourceGroups(pkg: PiPackageInfo) {
               <InspectorSection>
                 <template #title>{{ $t('skills.capabilityRuntimeBoundary') }}</template>
                 <p class="px-3 py-3 text-[12px] leading-relaxed text-[var(--text-tertiary)]">
-                  {{ $t('skills.capabilityRuntimeHint') }}
+                  {{ capabilityRuntimeHint(selectedCapability) }}
                 </p>
               </InspectorSection>
               <div
@@ -1714,6 +1947,16 @@ function resourceGroups(pkg: PiPackageInfo) {
                 </p>
               </div>
               <div class="flex shrink-0 items-center gap-1.5">
+                <Button
+                  v-if="store.packageUpdates[selectedPackage.id]?.updateAvailable"
+                  variant="primary"
+                  size="sm"
+                  :loading="packageActionBusy === selectedPackage.id"
+                  @click="updateInstalledPackage(selectedPackage)"
+                >
+                  <RotateCw class="size-3.5" />
+                  {{ $t('capabilities.update') }}
+                </Button>
                 <IconButton
                   :disabled="!selectedPackage.available"
                   :label="$t('skills.openFolder')"
@@ -1782,6 +2025,15 @@ function resourceGroups(pkg: PiPackageInfo) {
                 </PropertyRow>
                 <PropertyRow :label="$t('skills.packageSourceType')" mono>
                   {{ selectedPackage.sourceType }}
+                </PropertyRow>
+                <PropertyRow :label="$t('capabilities.installedVersion')" mono>
+                  {{ selectedPackage.version || '—' }}
+                </PropertyRow>
+                <PropertyRow :label="$t('capabilities.latestVersion')" mono>
+                  {{ store.packageUpdates[selectedPackage.id]?.latestVersion || '—' }}
+                </PropertyRow>
+                <PropertyRow :label="$t('capabilities.updateStatus')">
+                  {{ packageUpdateStateLabel(selectedPackage) }}
                 </PropertyRow>
                 <PropertyRow :label="$t('skills.packageScope')">
                   {{

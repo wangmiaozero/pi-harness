@@ -12,7 +12,6 @@ import { attachRendererGuards } from './renderer-guards'
 import { resolvePreload } from './preload-path'
 
 export function createMainWindow(): BrowserWindow {
-  const isMac = process.platform === 'darwin'
   const rendererEntry = path.join(import.meta.dirname, '../renderer/index.html')
   const developmentRendererUrl =
     getIsDev() && process.env['ELECTRON_RENDERER_URL'] ? process.env['ELECTRON_RENDERER_URL'] : null
@@ -25,14 +24,7 @@ export function createMainWindow(): BrowserWindow {
     minHeight: DEFAULT_WINDOW.minHeight,
     show: false,
     backgroundColor: '#17191C',
-    ...(isMac
-      ? {
-          titleBarStyle: 'hiddenInset' as const,
-          trafficLightPosition: { x: 16, y: 18 }
-        }
-      : {
-          frame: false
-        }),
+    frame: false,
     webPreferences: {
       preload: resolvePreload(),
       contextIsolation: true,
