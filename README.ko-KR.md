@@ -25,8 +25,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0"><img alt="release v1.2.0" src="https://img.shields.io/badge/release-v1.2.0-4C8DFF?style=flat-square" /></a>
-  <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.3.0"><img alt="release v1.3.0" src="https://img.shields.io/badge/release-v1.3.0-4C8DFF?style=flat-square" /></a>
+  <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
 
@@ -53,15 +53,16 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 
 ## 다운로드
 
-[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0)에서 Pi-Harness v1.2.0을 다운로드하세요.
+[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.3.0)에서 Pi-Harness v1.3.0을 다운로드하세요.
 
 | 플랫폼              | 설치 파일                                                                                                                    |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.2.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness-1.2.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.2.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness-1.2.0.dmg)             |
-| Windows x64         | [Pi-Harness.Setup.1.2.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness.Setup.1.2.0.exe) |
+| macOS Apple Silicon | [Pi-Harness-1.3.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-1.3.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.3.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-1.3.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.3.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-Setup-1.3.0.exe) |
+| Linux x64           | [Pi-Harness-1.3.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-1.3.0.AppImage)   |
 
-> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v1.2.0 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0)를 참고하세요.
+> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v1.3.0 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.3.0)를 참고하세요.
 
 패키지 사용자는 저장소를 clone하거나 pnpm을 설치할 필요가 없습니다. Pi-Harness는 지원되는 환경에서 Node.js, npm, PATH, Pi Coding Agent를 감지하고 설치하거나 복구할 수 있습니다.
 

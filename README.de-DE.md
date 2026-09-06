@@ -25,8 +25,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0"><img alt="release v1.2.0" src="https://img.shields.io/badge/release-v1.2.0-4C8DFF?style=flat-square" /></a>
-  <img alt="platform macOS and Windows" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-6B7280?style=flat-square" />
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.3.0"><img alt="release v1.3.0" src="https://img.shields.io/badge/release-v1.3.0-4C8DFF?style=flat-square" /></a>
+  <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
 
@@ -53,15 +53,16 @@ Pi-Harness ist kein Wrapper um eine Web-Oberfläche. Es bettet weder pi-web noch
 
 ## Download
 
-Lade Pi-Harness v1.2.0 aus den [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0) herunter.
+Lade Pi-Harness v1.3.0 aus den [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.3.0) herunter.
 
 | Plattform           | Installer                                                                                                                    |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.2.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness-1.2.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.2.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness-1.2.0.dmg)             |
-| Windows x64         | [Pi-Harness.Setup.1.2.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.2.0/Pi-Harness.Setup.1.2.0.exe) |
+| macOS Apple Silicon | [Pi-Harness-1.3.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-1.3.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.3.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-1.3.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.3.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-Setup-1.3.0.exe) |
+| Linux x64           | [Pi-Harness-1.3.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-1.3.0.AppImage)   |
 
-> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v1.2.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.2.0).
+> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v1.3.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.3.0).
 
 Nutzer der paketierten App müssen das Repository nicht klonen und pnpm nicht installieren. Pi-Harness kann Node.js, npm, PATH und Pi Coding Agent in unterstützten Umgebungen erkennen, installieren und reparieren.
 
