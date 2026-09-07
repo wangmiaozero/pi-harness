@@ -27,7 +27,7 @@ import { useAgentStore } from '@renderer/stores/agent'
 import { useModelsStore } from '@renderer/stores/models'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useHarnessStore } from '@renderer/stores/harness'
-import HarnessContextGauge from '@renderer/components/harness/HarnessContextGauge.vue'
+import HarnessContextGauge from '@renderer/features/harness/HarnessContextGauge.vue'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { callApi, getApi, getErrorPayload } from '@renderer/composables/useApi'
 import type {

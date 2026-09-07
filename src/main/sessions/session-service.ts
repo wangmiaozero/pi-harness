@@ -203,6 +203,13 @@ export class SessionService {
     this.invalidate()
   }
 
+  /** Raw JSONL entries for Harness run reconstruction and evaluation evidence. */
+  async readRawEntries(sessionId: string): Promise<SessionEntry[]> {
+    const filePath = await this.resolvePath(sessionId)
+    if (!filePath) return []
+    return this.readEntries(filePath)
+  }
+
   async buildContext(entries: SessionEntry[], leafId?: string | null): Promise<SessionContext> {
     try {
       const sdk = await loadPiCodingAgent()

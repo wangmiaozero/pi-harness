@@ -101,5 +101,6 @@ export const log = {
   security: logger.for('security'),
   agent: logger.for('agent'),
   session: logger.for('session'),
-  git: logger.for('git')
+  git: logger.for('git'),
+  harness: logger.for('harness')
 }

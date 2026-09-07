@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.3.0"><img alt="release v1.3.0" src="https://img.shields.io/badge/release-v1.3.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0"><img alt="release v1.4.0" src="https://img.shields.io/badge/release-v1.4.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -119,13 +119,16 @@ Pi-Harness separates the desktop control plane from the growing visual Harness C
              │                             │
        Control Plane                 Harness Console
              │                             │
-        Providers                      Runtime
-        Models                         Context
-        Skills                         Tools
-        Packages                       Thinking
-        Environment                    Compaction
-        Config                         Sessions
-        Updates                        Timeline
+        Providers                      Overview
+        Models                         Runs
+        Skills                         Trace
+        Packages                       Context
+        Environment                    Tools
+        Config                         Policy
+        Updates                        Checkpoints
+        Backups                        Evaluation
+        Diagnostics                    Sessions
+                                       Stats
              │                             │
              └──────────────┬──────────────┘
                             ▼
@@ -138,9 +141,7 @@ Pi-Harness separates the desktop control plane from the growing visual Harness C
                          Models
 ```
 
-The Control Plane manages everything around Pi. The Harness Console direction makes Pi Agent Harness state visible. Roadmap-only UI is explicitly marked below.
-
-Pi-Harness connects to Pi through its runtime interfaces. Sessions remain compatible with Pi CLI JSONL under <code>~/.pi/agent/sessions/</code>.
+The Control Plane manages everything around Pi. The Harness Console observes and controls Pi Agent Harness state: it records Runs, enforces Policy at the Pi tool boundary, creates Checkpoints, and evaluates finished runs from real evidence. Pi remains the only Agent Runtime; sessions stay compatible with the Pi CLI JSONL under <code>~/.pi/agent/sessions/</code>.
 
 ## Current screenshots
 
@@ -168,11 +169,11 @@ The same six product surfaces are shown in both the default and Classical Chines
 
 ## Coming Next
 
-Pi-Harness is evolving from a desktop control center into a complete visual console for Pi Agent Harness.
+Pi-Harness has shipped its Harness Control Plane: Runs, Policy, Checkpoints, Evaluation, and a filterable Trace are live in the Harness Console.
 
-The next phase focuses on making runtime state easier to inspect without replacing the runtime that Pi already provides.
+The next phase focuses on deeper recovery and inspection without replacing the runtime that Pi already provides.
 
-### Harness Console — planned UI / roadmap preview
+### Harness Console — shipped panels
 
 ```text
 ┌──────────────────────────────────────────────┐
@@ -180,44 +181,44 @@ The next phase focuses on making runtime state easier to inspect without replaci
 │                                              │
 │ ● Running                                    │
 │                                              │
-│ Runtime                                      │
+│ Runs                                         │
 │ ───────────────────────────────────────────  │
-│ Model              claude-sonnet             │
-│ Thinking           High                      │
-│ Status             Running                   │
+│ ▸ #12  ship auth flow        ✓ success       │
+│     74,120 tok · $0.42 · 23 tools · 4m 12s   │
+│ ▸ #11  fix build            ✕ failed         │
 │                                              │
-│ Context                                      │
+│ Policy                                       │
 │ ───────────────────────────────────────────  │
-│ 74,120 / 128,000                             │
-│ █████████████░░░░░░ 58%                      │
+│ Git push         Ask      Budget  ∞ tokens   │
+│ Files delete     Ask      Budget  ∞ cost     │
+│ Shell default    Allow    Dangerous  Confirm │
 │                                              │
-│ Compaction                                   │
-│ Auto               ON                        │
-│ Running            NO                        │
+│ Checkpoints                                   │
+│ ───────────────────────────────────────────  │
+│ ▸ pre-run #12   session · main @ a1b2c3d     │
 │                                              │
-│ Tools                                        │
-│ ✓ read   ✓ grep   ✓ edit   ✓ write   ✓ bash │
-│                                              │
-│ Queue                                        │
-│ Steering           0                         │
-│ Follow-up          1                         │
+│ Evaluation                                   │
+│ ───────────────────────────────────────────  │
+│ ✓ Run completed   ✓ No unhandled errors     │
+│ ✓ Tests passed    ⚠ No lint executed        │
+│ ✓ Git workspace clean                       │
 └──────────────────────────────────────────────┘
 ```
 
-### Harness Timeline — planned UI / roadmap preview
+### Harness Timeline — shipped with filters
 
 ```text
 12:40:03  Session started
-12:40:05  Agent running
+12:40:05  Run started: ship auth flow
 12:40:07  Tool · read · src/auth.ts
-12:40:10  Tool · grep · refreshToken
-12:40:13  Tool · edit · src/auth.ts
+12:40:10  Policy allowed · edit · src/auth.ts
 12:40:23  Compaction started
 12:40:25  Compaction completed
-12:40:31  Agent completed
+12:40:31  Run completed: success
+12:40:32  Evaluation completed: passed
 ```
 
-These previews communicate product direction. They are not screenshots and do not claim that the complete visual inspectors have shipped.
+Filters: All · Runs · Tools · Policy · System. Every timeline entry derives from real Pi events — no mock UI.
 
 ## Roadmap
 
@@ -229,18 +230,14 @@ These previews communicate product direction. They are not screenshots and do no
 
 ### Next
 
-- Complete Harness Console
-- Runtime and Context Inspectors
-- Tools Inspector and Compaction Control
-- Steering and Follow-up Inspector
 - Session Tree visualization
-- Harness Timeline and Stats
+- Recovery workflows beyond checkpoint resume and fork
+- Deeper Context and Queue inspectors
 
 ### Later
 
-- Tool Policy and Approval Policy
-- Workspace Permissions
-- Verification and quality-check integration
+- Workspace permissions beyond the current file policy
+- Verification and quality-check integrations
 - Harness Profiles
 
 ## Pi-Harness compared
@@ -255,24 +252,27 @@ These previews communicate product direction. They are not screenshots and do no
 | Skills management      | CLI / files       | Limited                | Yes                               |
 | Environment management | Manual            | Rare                   | Yes                               |
 | Harness state          | CLI / SDK         | Limited                | Available and growing             |
+| Runs and trace         | No visual console | Rare                   | Yes, live + history, filterable   |
+| Tool policy and budget | Config files      | Rare                   | Yes, enforced at tool boundary    |
+| Checkpoints / recovery | Manual git        | Rare                   | Resume, fork, retry last run      |
+| Run evaluation         | Manual            | Rare                   | Evidence-based checks             |
 | Context inspection     | CLI / SDK         | Limited                | Basic now; full inspector planned |
 | Tool inspection        | CLI / SDK         | Limited                | Selection now; inspector planned  |
 | Compaction control     | CLI / SDK         | Limited                | Yes                               |
-| Harness Timeline       | No visual console | Rare                   | Roadmap                           |
 | Files and Git          | Terminal          | Varies                 | Yes                               |
 
 ## Download
 
-Download Pi-Harness v1.3.0 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.3.0).
+Download Pi-Harness v1.4.0 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0).
 
 | Platform            | Installer                                                                                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.3.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-1.3.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.3.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-1.3.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.3.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-Setup-1.3.0.exe) |
-| Linux x64           | [`Pi-Harness-1.3.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.3.0/Pi-Harness-1.3.0.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.4.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.4.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.4.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-Setup-1.4.0.exe) |
+| Linux x64           | [`Pi-Harness-1.4.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.AppImage)   |
 
-> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.3.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.3.0).
+> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.4.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0).
 
 Packaged users do not need to clone the repository or install pnpm. Pi-Harness can detect, install, and repair Node.js, npm, PATH, and Pi Coding Agent where supported.
 

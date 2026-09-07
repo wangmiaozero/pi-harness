@@ -9,7 +9,7 @@ import PortraitSkinPanel from '@renderer/components/layout/PortraitSkinPanel.vue
 import MingWorkspaceOrnaments from '@renderer/components/layout/MingWorkspaceOrnaments.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import GitDiffView from '@renderer/components/git/GitDiffView.vue'
-import HarnessConsole from '@renderer/components/harness/HarnessConsole.vue'
+import HarnessConsole from '@renderer/features/harness/HarnessConsole.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import { FolderOpen } from '@lucide/vue'
 import { useSessionStore } from '@renderer/stores/sessions'

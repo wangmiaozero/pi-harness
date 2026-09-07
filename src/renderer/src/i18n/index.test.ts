@@ -29,8 +29,12 @@ describe('localized copy', () => {
   })
 
   it('does not ship empty localized messages', () => {
+    const flatValues = (section: unknown): unknown[] =>
+      Object.values(section as Record<string, unknown>).flatMap((value) =>
+        value !== null && typeof value === 'object' ? flatValues(value) : [value]
+      )
     for (const locale of Object.keys(messages) as Array<keyof typeof messages>) {
-      const values = Object.values(messages[locale]).flatMap((section) => Object.values(section))
+      const values = flatValues(messages[locale])
       expect(values.every((value) => typeof value === 'string' && value.trim().length > 0)).toBe(
         true
       )

@@ -1,10 +1,15 @@
 import { defineStore } from 'pinia'
-import { ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 import type {
+  HarnessCheckpoint,
   HarnessCompactionResult,
   HarnessEvent,
   HarnessEventEnvelope,
+  HarnessEvaluation,
   HarnessForkResult,
+  HarnessPolicyConfig,
+  HarnessPolicySnapshot,
+  HarnessRun,
   HarnessSessionInfo,
   HarnessState,
   HarnessStats,
@@ -19,12 +24,28 @@ export const useHarnessStore = defineStore('harness', () => {
   const tools = shallowRef<HarnessTool[]>([])
   const stats = shallowRef<HarnessStats | null>(null)
   const timeline = shallowRef<HarnessEvent[]>([])
+  const runs = shallowRef<HarnessRun[]>([])
+  const currentRunId = ref<string | null>(null)
+  const checkpoints = shallowRef<HarnessCheckpoint[]>([])
+  const evaluations = shallowRef<HarnessEvaluation[]>([])
+  const policy = shallowRef<HarnessPolicySnapshot | null>(null)
   const loading = ref(false)
   const mutating = ref(false)
   const error = ref<string | null>(null)
   let generation = 0
   let refreshTimer: ReturnType<typeof setTimeout> | null = null
+  let runsRefreshTimer: ReturnType<typeof setTimeout> | null = null
   let unsubscribe: (() => void) | null = null
+
+  const currentRun = computed<HarnessRun | null>(
+    () => runs.value.find((run) => run.id === currentRunId.value) ?? null
+  )
+  const activeRun = computed<HarnessRun | null>(
+    () =>
+      runs.value.find((run) =>
+        ['queued', 'running', 'waiting', 'tool-calling', 'verifying'].includes(run.status)
+      ) ?? null
+  )
 
   function setupListeners(): () => void {
     unsubscribe?.()
@@ -32,6 +53,14 @@ export const useHarnessStore = defineStore('harness', () => {
       const envelope = payload as Partial<HarnessEventEnvelope>
       if (!envelope.sessionId || !envelope.event || envelope.sessionId !== sessionId.value) return
       timeline.value = [...timeline.value, envelope.event].slice(-300)
+      if (
+        envelope.event.type.startsWith('run.') ||
+        envelope.event.type.startsWith('budget.') ||
+        envelope.event.type.startsWith('evaluation.')
+      ) {
+        scheduleRunsRefresh()
+      }
+      if (envelope.event.type === 'checkpoint.created') void refreshCheckpoints()
       scheduleRefresh()
     })
     return () => {
@@ -44,12 +73,16 @@ export const useHarnessStore = defineStore('harness', () => {
     const currentGeneration = ++generation
     sessionId.value = nextSessionId
     error.value = null
+    currentRunId.value = null
     if (!nextSessionId) {
       state.value = null
       session.value = null
       tools.value = []
       stats.value = null
       timeline.value = []
+      runs.value = []
+      checkpoints.value = []
+      evaluations.value = []
       loading.value = false
       return
     }
@@ -64,6 +97,10 @@ export const useHarnessStore = defineStore('harness', () => {
       applyState(nextState)
       session.value = nextSession
       timeline.value = nextTimeline
+      // Control-plane data loads in parallel; failures degrade the panel, not the console.
+      void refreshRuns()
+      void refreshCheckpoints()
+      void refreshPolicy()
     } catch (cause) {
       if (currentGeneration === generation) error.value = errorMessage(cause)
     } finally {
@@ -87,6 +124,81 @@ export const useHarnessStore = defineStore('harness', () => {
     } catch (cause) {
       if (currentGeneration === generation) error.value = errorMessage(cause)
     }
+  }
+
+  async function refreshRuns(): Promise<void> {
+    const id = sessionId.value
+    if (!id) return
+    const currentGeneration = generation
+    try {
+      const [nextRuns, nextEvaluations] = await Promise.all([
+        callApi(() => getApi().harness.listRuns(id)),
+        callApi(() => getApi().harness.listEvaluations(id))
+      ])
+      if (currentGeneration !== generation || sessionId.value !== id) return
+      runs.value = nextRuns
+      evaluations.value = nextEvaluations
+    } catch {
+      /* run history is best-effort; the console stays usable without it */
+    }
+  }
+
+  async function refreshCheckpoints(): Promise<void> {
+    const id = sessionId.value
+    if (!id) return
+    const currentGeneration = generation
+    try {
+      const nextCheckpoints = await callApi(() => getApi().harness.listCheckpoints(id))
+      if (currentGeneration !== generation || sessionId.value !== id) return
+      checkpoints.value = nextCheckpoints
+    } catch {
+      /* checkpoints are best-effort */
+    }
+  }
+
+  async function refreshPolicy(): Promise<void> {
+    try {
+      policy.value = await callApi(() => getApi().harness.getPolicy())
+    } catch {
+      /* policy panel shows its error inline */
+    }
+  }
+
+  async function savePolicy(config: HarnessPolicyConfig): Promise<void> {
+    policy.value = await callApi(() => getApi().harness.setPolicy(config))
+  }
+
+  async function evaluateRun(runId: string): Promise<HarnessEvaluation> {
+    const evaluation = await mutate((id) => getApi().harness.evaluateRun(id, runId))
+    await refreshRuns()
+    return evaluation
+  }
+
+  async function createCheckpoint(includeGit = true): Promise<HarnessCheckpoint> {
+    const checkpoint = await mutate((id) => getApi().harness.createCheckpoint(id, includeGit))
+    await refreshCheckpoints()
+    return checkpoint
+  }
+
+  async function resumeCheckpoint(
+    checkpointId: string,
+    message?: string
+  ): Promise<{ resumed: boolean; prompted: boolean }> {
+    const result = await mutate((_id) => getApi().harness.resumeCheckpoint(checkpointId, message))
+    await refreshCheckpoints()
+    return result
+  }
+
+  async function forkCheckpoint(checkpointId: string): Promise<HarnessForkResult> {
+    const result = await mutate((_id) => getApi().harness.forkCheckpoint(checkpointId))
+    await refreshCheckpoints()
+    return result
+  }
+
+  async function retryLastRun(): Promise<{ retried: boolean; prompt: string | null }> {
+    const result = await mutate((id) => getApi().harness.retryLastRun(id))
+    await refreshRuns()
+    return result
   }
 
   async function setTools(toolNames: string[]): Promise<void> {
@@ -160,6 +272,14 @@ export const useHarnessStore = defineStore('harness', () => {
     }, 80)
   }
 
+  function scheduleRunsRefresh(): void {
+    if (runsRefreshTimer) clearTimeout(runsRefreshTimer)
+    runsRefreshTimer = setTimeout(() => {
+      runsRefreshTimer = null
+      void refreshRuns()
+    }, 150)
+  }
+
   return {
     sessionId,
     state,
@@ -167,12 +287,28 @@ export const useHarnessStore = defineStore('harness', () => {
     tools,
     stats,
     timeline,
+    runs,
+    currentRunId,
+    currentRun,
+    activeRun,
+    checkpoints,
+    evaluations,
+    policy,
     loading,
     mutating,
     error,
     setupListeners,
     load,
     refresh,
+    refreshRuns,
+    refreshCheckpoints,
+    refreshPolicy,
+    savePolicy,
+    evaluateRun,
+    createCheckpoint,
+    resumeCheckpoint,
+    forkCheckpoint,
+    retryLastRun,
     setTools,
     setThinkingLevel,
     setAutoCompaction,

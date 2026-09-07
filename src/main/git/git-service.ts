@@ -110,6 +110,49 @@ export class GitService {
     return Promise.all(cwds.map((cwd) => this.status(cwd)))
   }
 
+  /** Current HEAD commit and branch, or null when not a git repository. */
+  async headInfo(cwd: string): Promise<{
+    commit: string | null
+    branch: string | null
+    dirty: { modified: number; added: number; deleted: number } | null
+  } | null> {
+    const realCwd = await this.access.assertAllowed(cwd, { mustExist: true }).catch(() => null)
+    if (!realCwd) return null
+    let repositoryRoot: string | null = null
+    try {
+      repositoryRoot = toNativePath(
+        (await gitExec(realCwd, ['rev-parse', '--show-toplevel'])).trim()
+      )
+    } catch {
+      return null
+    }
+    if (!repositoryRoot) return null
+    try {
+      const [commit, branch, porcelain] = await Promise.all([
+        gitExec(repositoryRoot, ['rev-parse', 'HEAD']),
+        gitExec(repositoryRoot, ['rev-parse', '--abbrev-ref', 'HEAD']),
+        gitExec(repositoryRoot, ['status', '--porcelain=v1', '--untracked-files=all'])
+      ])
+      const lines = porcelain
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+      const count = (predicate: (code: string) => boolean): number =>
+        lines.filter((line) => predicate(line.slice(0, 2))).length
+      return {
+        commit: commit.trim() || null,
+        branch: branch.trim() || null,
+        dirty: {
+          modified: count((code) => code.includes('M')),
+          added: count((code) => code.includes('A') || code === '??'),
+          deleted: count((code) => code.includes('D'))
+        }
+      }
+    } catch {
+      return null
+    }
+  }
+
   async diff(cwd: string, filePath: string): Promise<GitFileDiffResponse> {
     const realCwd = await this.access.assertAllowed(cwd, { mustExist: true })
     const allowedFile = await this.access.assertAllowed(filePath)

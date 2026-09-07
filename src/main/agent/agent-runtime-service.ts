@@ -569,6 +569,8 @@ export class AgentRuntimeService implements AgentRuntime {
     private readonly workspace?: {
       getPrompt?: (sessionId: string) => string | null
       assertWritable?: (target: string, sessionId: string) => Promise<string>
+      /** Last wrap step for agent sessions (policy guard runs after the workspace guard). */
+      wrapSessionTools?: (session: AgentSessionLike, sessionId: string) => void
     }
   ) {}
 
@@ -784,6 +786,7 @@ export class AgentRuntimeService implements AgentRuntime {
         this.workspace!.assertWritable!(target, realSessionId)
       )
     }
+    this.workspace?.wrapSessionTools?.(inner, realSessionId)
     wrapper.start()
 
     const realSessionFile = inner.sessionFile

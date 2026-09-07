@@ -57,6 +57,10 @@ export type AppErrorCode =
   | 'PI_SDK_NOT_AVAILABLE'
   | 'AGENT_RUNNING'
   | 'BASH_RUNNING'
+  | 'POLICY_DENIED'
+  | 'BUDGET_EXCEEDED'
+  | 'CHECKPOINT_NOT_FOUND'
+  | 'RUN_NOT_FOUND'
   | 'INVALID_STATE'
 
 export interface AppErrorPayload {

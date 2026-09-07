@@ -5,15 +5,29 @@ import { useI18n } from 'vue-i18n'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import HarnessOverviewPanel from './HarnessOverviewPanel.vue'
+import HarnessRunsPanel from './HarnessRunsPanel.vue'
 import HarnessContextPanel from './HarnessContextPanel.vue'
 import HarnessToolsPanel from './HarnessToolsPanel.vue'
 import HarnessTimelinePanel from './HarnessTimelinePanel.vue'
 import HarnessSessionPanel from './HarnessSessionPanel.vue'
 import HarnessStatsPanel from './HarnessStatsPanel.vue'
+import HarnessPolicyPanel from './HarnessPolicyPanel.vue'
+import HarnessCheckpointsPanel from './HarnessCheckpointsPanel.vue'
+import HarnessEvaluationPanel from './HarnessEvaluationPanel.vue'
 import { useHarnessStore } from '@renderer/stores/harness'
 import { useSessionStore } from '@renderer/stores/sessions'
 
-type Section = 'overview' | 'context' | 'tools' | 'timeline' | 'session' | 'stats'
+type Section =
+  | 'overview'
+  | 'runs'
+  | 'trace'
+  | 'policy'
+  | 'checkpoints'
+  | 'evaluation'
+  | 'context'
+  | 'tools'
+  | 'session'
+  | 'stats'
 
 const { t } = useI18n()
 const sessions = useSessionStore()
@@ -21,9 +35,13 @@ const harness = useHarnessStore()
 const section = ref<Section>('overview')
 const sections = computed<Array<{ id: Section; label: string }>>(() => [
   { id: 'overview', label: t('workspace.harnessOverview') },
+  { id: 'runs', label: t('workspace.harnessRuns') },
+  { id: 'trace', label: t('workspace.harnessTimeline') },
+  { id: 'policy', label: t('workspace.harnessPolicy') },
+  { id: 'checkpoints', label: t('workspace.harnessCheckpoints') },
+  { id: 'evaluation', label: t('workspace.harnessEvaluation') },
   { id: 'context', label: t('workspace.harnessContext') },
   { id: 'tools', label: t('workspace.tools') },
-  { id: 'timeline', label: t('workspace.harnessTimeline') },
   { id: 'session', label: t('workspace.harnessSession') },
   { id: 'stats', label: t('workspace.harnessStats') }
 ])
@@ -118,9 +136,13 @@ watch(
       </div>
       <template v-if="harness.state">
         <HarnessOverviewPanel v-if="section === 'overview'" :state="harness.state" />
+        <HarnessRunsPanel v-else-if="section === 'runs'" />
+        <HarnessPolicyPanel v-else-if="section === 'policy'" />
+        <HarnessCheckpointsPanel v-else-if="section === 'checkpoints'" />
+        <HarnessEvaluationPanel v-else-if="section === 'evaluation'" />
         <HarnessContextPanel v-else-if="section === 'context'" :state="harness.state" />
         <HarnessToolsPanel v-else-if="section === 'tools'" :state="harness.state" />
-        <HarnessTimelinePanel v-else-if="section === 'timeline'" :events="harness.timeline" />
+        <HarnessTimelinePanel v-else-if="section === 'trace'" :events="harness.timeline" />
         <HarnessSessionPanel
           v-else-if="section === 'session' && harness.session"
           :state="harness.state"

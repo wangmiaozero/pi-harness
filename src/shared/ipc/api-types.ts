@@ -54,9 +54,14 @@ import type {
 } from '../types/workspace'
 import type { ToolPreset } from '../workspace/tool-presets'
 import type {
+  HarnessCheckpoint,
   HarnessCompactionResult,
   HarnessEvent,
+  HarnessEvaluation,
   HarnessForkResult,
+  HarnessPolicyConfig,
+  HarnessPolicySnapshot,
+  HarnessRun,
   HarnessSessionInfo,
   HarnessState,
   HarnessStats,
@@ -958,6 +963,21 @@ export interface PiSwitchAPI {
     session(sessionId: string): Promise<HarnessSessionInfo>
     stats(sessionId: string): Promise<HarnessStats>
     timeline(sessionId: string): Promise<HarnessEvent[]>
+    // Harness Control Plane
+    listRuns(sessionId: string): Promise<HarnessRun[]>
+    getRun(sessionId: string, runId: string): Promise<HarnessRun>
+    getPolicy(): Promise<HarnessPolicySnapshot>
+    setPolicy(config: HarnessPolicyConfig): Promise<HarnessPolicySnapshot>
+    listCheckpoints(sessionId: string): Promise<HarnessCheckpoint[]>
+    createCheckpoint(sessionId: string, includeGit?: boolean): Promise<HarnessCheckpoint>
+    resumeCheckpoint(
+      checkpointId: string,
+      message?: string
+    ): Promise<{ resumed: boolean; prompted: boolean }>
+    forkCheckpoint(checkpointId: string): Promise<HarnessForkResult>
+    retryLastRun(sessionId: string): Promise<{ retried: boolean; prompt: string | null }>
+    evaluateRun(sessionId: string, runId: string): Promise<HarnessEvaluation>
+    listEvaluations(sessionId: string): Promise<HarnessEvaluation[]>
   }
   files: {
     list(directory: string): Promise<FileTreeEntry[]>

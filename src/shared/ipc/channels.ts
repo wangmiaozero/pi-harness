@@ -184,6 +184,18 @@ export const IPC_INVOKE = {
   harnessGetSession: invoke('harness:get-session'),
   harnessGetStats: invoke('harness:get-stats'),
   harnessGetTimeline: invoke('harness:get-timeline'),
+  // Harness Control Plane — Runs / Policy / Checkpoints / Evaluation
+  harnessListRuns: invoke('harness:list-runs'),
+  harnessGetRun: invoke('harness:get-run'),
+  harnessGetPolicy: invoke('harness:get-policy'),
+  harnessSetPolicy: invoke('harness:set-policy'),
+  harnessListCheckpoints: invoke('harness:list-checkpoints'),
+  harnessCreateCheckpoint: invoke('harness:create-checkpoint'),
+  harnessResumeCheckpoint: invoke('harness:resume-checkpoint'),
+  harnessForkCheckpoint: invoke('harness:fork-checkpoint'),
+  harnessRetryLastRun: invoke('harness:retry-last-run'),
+  harnessEvaluateRun: invoke('harness:evaluate-run'),
+  harnessListEvaluations: invoke('harness:list-evaluations'),
 
   filesList: invoke('files:list'),
   filesRead: invoke('files:read'),

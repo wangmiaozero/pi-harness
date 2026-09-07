@@ -43,6 +43,16 @@ export function appSettingsPath(): string {
   return path.join(userData(), 'settings.json')
 }
 
+/** Harness Control Plane policy configuration. */
+export function harnessPolicyPath(): string {
+  return path.join(userData(), 'harness-policy.json')
+}
+
+/** Harness Control Plane checkpoints (recovery anchors). */
+export function harnessCheckpointsPath(): string {
+  return path.join(userData(), 'harness-checkpoints.json')
+}
+
 /** Pi-Harness metadata file (Electron userData). */
 export function appMetadataPath(): string {
   return path.join(userData(), 'metadata.json')

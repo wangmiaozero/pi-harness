@@ -234,7 +234,23 @@ const api: PiSwitchAPI = {
       invoke(IPC_INVOKE.harnessNavigateTree, { sessionId, entryId }),
     session: (sessionId) => invoke(IPC_INVOKE.harnessGetSession, { sessionId }),
     stats: (sessionId) => invoke(IPC_INVOKE.harnessGetStats, { sessionId }),
-    timeline: (sessionId) => invoke(IPC_INVOKE.harnessGetTimeline, { sessionId })
+    timeline: (sessionId) => invoke(IPC_INVOKE.harnessGetTimeline, { sessionId }),
+    // Harness Control Plane
+    listRuns: (sessionId) => invoke(IPC_INVOKE.harnessListRuns, { sessionId }),
+    getRun: (sessionId, runId) => invoke(IPC_INVOKE.harnessGetRun, { sessionId, runId }),
+    getPolicy: () => invoke(IPC_INVOKE.harnessGetPolicy, undefined),
+    setPolicy: (config) => invoke(IPC_INVOKE.harnessSetPolicy, { config }),
+    listCheckpoints: (sessionId) => invoke(IPC_INVOKE.harnessListCheckpoints, { sessionId }),
+    createCheckpoint: (sessionId, includeGit) =>
+      invoke(IPC_INVOKE.harnessCreateCheckpoint, { sessionId, includeGit }),
+    resumeCheckpoint: (checkpointId, message) =>
+      invoke(IPC_INVOKE.harnessResumeCheckpoint, { checkpointId, ...(message ? { message } : {}) }),
+    forkCheckpoint: (checkpointId) =>
+      invoke(IPC_INVOKE.harnessForkCheckpoint, { checkpointId }),
+    retryLastRun: (sessionId) => invoke(IPC_INVOKE.harnessRetryLastRun, { sessionId }),
+    evaluateRun: (sessionId, runId) =>
+      invoke(IPC_INVOKE.harnessEvaluateRun, { sessionId, runId }),
+    listEvaluations: (sessionId) => invoke(IPC_INVOKE.harnessListEvaluations, { sessionId })
   },
   files: {
     list: (directory) => invoke(IPC_INVOKE.filesList, directory),

@@ -9,7 +9,9 @@ import {
   appSettingsPath,
   appUiStatePath,
   appAuthorizedRootsPath,
-  appWorkspaceStatePath
+  appWorkspaceStatePath,
+  harnessCheckpointsPath,
+  harnessPolicyPath
 } from './services/app-paths'
 import { JsonStore } from './services/storage'
 import { log } from './services/logger'
@@ -41,6 +43,10 @@ import { AgentRuntimeService } from './agent/agent-runtime-service'
 import { WorkspaceService, type WorkspaceStateRecord } from './workspace/workspace-service'
 import { PiHarnessAdapter } from './harness/adapters/pi-harness-adapter'
 import { HarnessRuntime } from './harness/harness-runtime'
+import { PolicyEngine } from './harness/policy/policy-engine'
+import { DEFAULT_POLICY_CONFIG } from './harness/policy/policy-defaults'
+import { wrapPolicyGuardedTools } from './harness/policy/policy-tool-guard'
+import { EMPTY_CHECKPOINT_STORE } from './harness/checkpoint/checkpoint-service'
 import { onUpdateState, startAutomaticUpdates, stopAutomaticUpdates } from './updater'
 import { IPC_EVENT } from '@shared/ipc/channels'
 import { SkillRegistry } from './capabilities/skill-registry'
@@ -204,6 +210,10 @@ async function bootstrap(): Promise<void> {
     mainWindow.webContents.send(IPC_EVENT.workspaceChanged, { roots })
   })
   const sessionExport = new SessionExportService(sessions)
+  const policyEngine = new PolicyEngine(
+    new JsonStore(harnessPolicyPath(), structuredClone(DEFAULT_POLICY_CONFIG))
+  )
+  const harnessRef: { current: HarnessRuntime | null } = { current: null }
   const piAgent = new AgentRuntimeService(sessions, {
     getPrompt: (sessionId) => workspaceState.getPromptForSession(sessionId),
     assertWritable: (target, sessionId) => {
@@ -212,9 +222,22 @@ async function bootstrap(): Promise<void> {
         throw new PathDeniedError('No projects are attached to this session.', { sessionId })
       }
       return access.assertWritableInFolders(target, folders)
+    },
+    wrapSessionTools: (session, sessionId) => {
+      wrapPolicyGuardedTools(session, policyEngine, {
+        sessionId,
+        report: (payload) =>
+          harnessRef.current?.recordPolicyDecision(sessionId, { sessionId, ...payload })
+      })
     }
   })
-  const harness = new HarnessRuntime(new PiHarnessAdapter(piAgent))
+  const harness = new HarnessRuntime(new PiHarnessAdapter(piAgent), {
+    policy: policyEngine,
+    checkpointStore: new JsonStore(harnessCheckpointsPath(), EMPTY_CHECKPOINT_STORE),
+    sessions,
+    git
+  })
+  harnessRef.current = harness
   diagnostics.attachWorkspace({
     sessions,
     agent: harness,

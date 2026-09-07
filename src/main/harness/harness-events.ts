@@ -27,13 +27,25 @@ export function mapAgentEvent(event: AgentEvent, timestamp = Date.now()): Harnes
           message: redactSecretText(String(event.errorMessage ?? 'Agent error'))
         }
       ]
+    case 'message_start':
+      return [{ type: 'message.started', timestamp }]
+    case 'message_end':
+      return mapMessageEnd(event, timestamp)
     case 'tool_execution_start':
-      return [{ type: 'tool.started', timestamp, toolName: String(event.toolName ?? 'unknown') }]
+      return [
+        {
+          type: 'tool.started',
+          timestamp,
+          toolCallId: event.toolCallId == null ? undefined : String(event.toolCallId),
+          toolName: String(event.toolName ?? 'unknown')
+        }
+      ]
     case 'tool_execution_end':
       return [
         {
           type: 'tool.completed',
           timestamp,
+          toolCallId: event.toolCallId == null ? undefined : String(event.toolCallId),
           toolName: String(event.toolName ?? 'unknown'),
           isError: event.isError === true
         }
@@ -71,4 +83,53 @@ export function mapAgentEvent(event: AgentEvent, timestamp = Date.now()): Harnes
     default:
       return []
   }
+}
+
+/**
+ * Assistant turn completions carry the authoritative per-message usage:
+ * tokens, estimated cost and model identity. This is the single source the
+ * Run Registry accumulates — never a second bookkeeping pipeline.
+ */
+function mapMessageEnd(event: AgentEvent, timestamp: number): HarnessEvent[] {
+  const message = event.message as
+    | {
+        role?: string
+        model?: string
+        provider?: string
+        usage?: {
+          input?: unknown
+          output?: unknown
+          cacheRead?: unknown
+          cacheWrite?: unknown
+          cost?: { total?: unknown }
+        }
+      }
+    | undefined
+  if (!message || message.role !== 'assistant') return []
+  const usage = message.usage
+  if (!usage) return [{ type: 'message.completed', timestamp }]
+  const number = (value: unknown): number =>
+    typeof value === 'number' && Number.isFinite(value) ? value : 0
+  const cost =
+    typeof usage.cost?.total === 'number' && Number.isFinite(usage.cost.total)
+      ? usage.cost.total
+      : null
+  return [
+    {
+      type: 'message.completed',
+      timestamp,
+      usage: {
+        input: number(usage.input),
+        output: number(usage.output),
+        cacheRead: number(usage.cacheRead),
+        cacheWrite: number(usage.cacheWrite),
+        total: number(usage.input) + number(usage.output) + number(usage.cacheRead),
+        cost
+      },
+      ...(typeof message.model === 'string' && message.model ? { model: message.model } : {}),
+      ...(typeof message.provider === 'string' && message.provider
+        ? { provider: message.provider }
+        : {})
+    }
+  ]
 }
