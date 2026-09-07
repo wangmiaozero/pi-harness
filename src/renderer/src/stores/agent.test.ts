@@ -69,7 +69,7 @@ describe('agent store new-session handshake', () => {
     expect(sessions.items[0]?.firstMessage).toBe('[image]')
     expect(agent.messages[0]).toMatchObject({
       role: 'user',
-      content: [{ type: 'image', source: { type: 'base64', media_type: 'image/png' } }]
+      content: [{ type: 'image', data: 'TQ==', mimeType: 'image/png' }]
     })
   })
 

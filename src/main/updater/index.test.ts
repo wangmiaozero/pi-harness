@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Keep version comparisons independent of package.json release bumps.
 const versions = vi.hoisted(() => ({
@@ -9,10 +9,14 @@ const versions = vi.hoisted(() => ({
 }))
 
 const mocks = vi.hoisted(() => ({
-  app: { isPackaged: false },
+  app: {
+    isPackaged: false,
+    getPath: vi.fn(() => '/Applications/Pi-Harness.app/Contents/MacOS/Pi-Harness')
+  },
   autoUpdater: null as unknown,
   fetch: vi.fn(),
-  openExternal: vi.fn()
+  openExternal: vi.fn(),
+  spawnSync: vi.fn()
 }))
 
 vi.mock('@shared/constants/index', async (importOriginal) => ({
@@ -24,6 +28,14 @@ vi.mock('electron', () => ({
   net: { fetch: mocks.fetch },
   shell: { openExternal: mocks.openExternal }
 }))
+vi.mock('node:child_process', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:child_process')>()
+  return {
+    ...actual,
+    spawnSync: mocks.spawnSync,
+    default: { ...actual, spawnSync: mocks.spawnSync }
+  }
+})
 vi.mock('electron-updater', () => ({
   // Match Node's real ESM namespace: autoUpdater exists only on default.
   default: {
@@ -43,6 +55,8 @@ class FakeAutoUpdater extends EventEmitter {
 }
 
 describe('application updater', () => {
+  afterEach(() => vi.restoreAllMocks())
+
   beforeEach(() => {
     vi.resetModules()
     vi.unstubAllGlobals()
@@ -50,6 +64,12 @@ describe('application updater', () => {
     mocks.autoUpdater = new FakeAutoUpdater()
     mocks.fetch.mockReset()
     mocks.openExternal.mockReset()
+    mocks.spawnSync.mockReset()
+    mocks.spawnSync.mockReturnValueOnce({ status: 0, stdout: '', stderr: '' }).mockReturnValueOnce({
+      status: 0,
+      stdout: '',
+      stderr: 'Authority=Developer ID Application: Example\nTeamIdentifier=EXAMPLETEAM\n'
+    })
   })
 
   it('compares against the public release API in an unpackaged development build', async () => {
@@ -90,6 +110,7 @@ describe('application updater', () => {
   })
 
   it('automatically downloads packaged updates and exposes progress', async () => {
+    const platform = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
     mocks.app.isPackaged = true
     const fake = mocks.autoUpdater as FakeAutoUpdater
     fake.checkForUpdates.mockImplementation(async () => {
@@ -125,6 +146,7 @@ describe('application updater', () => {
 
     await updater.installUpdate()
     expect(fake.quitAndInstall).toHaveBeenCalledWith(false, true)
+    platform.mockRestore()
   })
 
   it.each([versions.older, versions.current])(
@@ -215,7 +237,8 @@ describe('application updater', () => {
     ;(mocks.autoUpdater as FakeAutoUpdater).checkForUpdates.mockRejectedValue(new Error('404'))
     mocks.fetch.mockResolvedValueOnce({ ok: false, status: 403 }).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ tag_name: `v${versions.newer}` })
+      status: 200,
+      url: `https://github.com/wangmiaozero/pi-harness/releases/tag/v${versions.newer}`
     })
 
     const updater = await import('./index')
@@ -227,6 +250,39 @@ describe('application updater', () => {
       'https://github.com/wangmiaozero/pi-harness/releases/latest',
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     )
+  })
+
+  it('uses a manual update on macOS when the installed app is not signed', async () => {
+    const platform = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
+    mocks.app.isPackaged = true
+    mocks.spawnSync.mockReset()
+    mocks.spawnSync
+      .mockReturnValueOnce({ status: 1, stdout: '', stderr: 'code object is not signed at all' })
+      .mockReturnValueOnce({
+        status: 0,
+        stdout: '',
+        stderr: 'Signature=adhoc\nTeamIdentifier=not set\n'
+      })
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ tag_name: `v${versions.newer}` })
+    })
+
+    const updater = await import('./index')
+    expect(await updater.checkForUpdates()).toMatchObject({
+      status: 'manual-update',
+      available: true,
+      latestVersion: versions.newer
+    })
+    expect((mocks.autoUpdater as FakeAutoUpdater).checkForUpdates).not.toHaveBeenCalled()
+    expect(mocks.spawnSync).toHaveBeenNthCalledWith(
+      1,
+      '/usr/bin/codesign',
+      ['--verify', '--deep', '--strict', '/Applications/Pi-Harness.app'],
+      { encoding: 'utf8' }
+    )
+    platform.mockRestore()
   })
 
   it.each([
@@ -308,7 +364,6 @@ describe('application updater', () => {
     const updater = await import('./index')
     await updater.checkForUpdates()
     const error = new Error('ZIP payload returned HTTP 404')
-    fake.emit('error', error)
     rejectDownload(error)
     await vi.waitFor(() => {
       expect(updater.getUpdateState()).toMatchObject({
@@ -316,6 +371,13 @@ describe('application updater', () => {
         latestVersion: versions.newer,
         downloaded: false
       })
+    })
+    // A later native updater error must not erase the already known version.
+    fake.emit('error', error)
+    expect(updater.getUpdateState()).toMatchObject({
+      status: 'manual-update',
+      latestVersion: versions.newer,
+      downloaded: false
     })
     expect(fake.quitAndInstall).not.toHaveBeenCalled()
   })

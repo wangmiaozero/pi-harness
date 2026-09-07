@@ -32,6 +32,10 @@ test('renders full history inside the themed Pi-Harness dialog', async ({
     .getByRole('button', { name: '历史弹窗样式验证', exact: true })
     .click()
   await expect(page.locator('[data-message-role="assistant"]').first()).toBeVisible()
+  await expect(page.locator('[data-message-role="user"] img')).toHaveAttribute(
+    'src',
+    /^data:image\/gif;base64,/
+  )
 
   const windowCount = electronApp.windows().length
   await page
@@ -90,7 +94,19 @@ function seedHistorySession(agentDir: string, cwd: string, sessionId: string): v
       timestamp,
       message: {
         role: 'user',
-        content: index === 0 ? '历史弹窗样式验证' : `第 ${index + 1} 条历史消息`,
+        content:
+          index === 0
+            ? '历史弹窗样式验证'
+            : index === 12
+              ? [
+                  { type: 'text', text: `第 ${index + 1} 条历史消息` },
+                  {
+                    type: 'image',
+                    data: 'R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
+                    mimeType: 'image/gif'
+                  }
+                ]
+              : `第 ${index + 1} 条历史消息`,
         timestamp: Date.parse(timestamp)
       }
     })

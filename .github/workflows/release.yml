@@ -14,7 +14,15 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 45
     env:
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # Signed builds can use Squirrel.Mac automatic installation. Without
+      # these optional secrets the workflow still produces community builds,
+      # which the app intentionally exposes as manual updates on macOS.
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

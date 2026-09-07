@@ -1,9 +1,32 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import MessageView from './MessageView.vue'
-import type { AssistantMessage, ToolResultMessage } from '@shared/types/workspace'
+import type { AssistantMessage, ToolResultMessage, UserMessage } from '@shared/types/workspace'
 
 describe('MessageView', () => {
+  it('renders images from Pi-native persisted user messages', () => {
+    const message: UserMessage = {
+      role: 'user',
+      content: [
+        { type: 'text', text: '看看这个图片信息' },
+        { type: 'image', data: 'TQ==', mimeType: 'image/png' }
+      ]
+    }
+
+    const wrapper = mount(MessageView, {
+      props: { message },
+      global: {
+        mocks: { $t: (key: string) => key },
+        stubs: { BranchNavigator: true, Dialog: true }
+      }
+    })
+
+    expect(wrapper.get('.user-message-body p').text()).toBe('看看这个图片信息')
+    expect(wrapper.get('.user-message-body img').attributes('src')).toBe(
+      'data:image/png;base64,TQ=='
+    )
+  })
+
   it('renders assistant text as safe Markdown', async () => {
     const message: AssistantMessage = {
       role: 'assistant',

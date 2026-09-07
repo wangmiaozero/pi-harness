@@ -7,6 +7,8 @@
  */
 
 import { app, net, shell } from 'electron'
+import { spawnSync } from 'node:child_process'
+import path from 'node:path'
 import { gt as isVersionGreater, valid as validVersion } from 'semver'
 import type { AppUpdateState } from '@shared/ipc/api-types'
 import { APP_VERSION } from '@shared/constants/index'
@@ -34,6 +36,7 @@ const listeners = new Set<UpdateStateListener>()
 let autoUpdaterLoaded: AutoUpdater | null = null
 let checkInFlight: Promise<AppUpdateState> | null = null
 let automaticCheckTimer: ReturnType<typeof setTimeout> | null = null
+let nativeAutoUpdateSupported: boolean | null = null
 
 function snapshot(): AppUpdateState {
   return { ...state }
@@ -54,7 +57,7 @@ function updateState(patch: Partial<AppUpdateState>): AppUpdateState {
 
 async function getAutoUpdater(): Promise<AutoUpdater | null> {
   if (autoUpdaterLoaded) return autoUpdaterLoaded
-  if (!app.isPackaged) return null
+  if (!app.isPackaged || !canUseNativeAutoUpdater()) return null
 
   try {
     // Node's ESM loader does not expose the CommonJS autoUpdater getter as a
@@ -115,8 +118,7 @@ async function getAutoUpdater(): Promise<AutoUpdater | null> {
       log.updater.info('update downloaded:', info.version)
     })
     autoUpdater.on('error', (error) => {
-      updateState({ supported: true, status: 'error', downloaded: false, downloadProgress: null })
-      log.updater.error('updater error:', error)
+      reportUpdaterFailure('updater error:', error)
     })
 
     autoUpdaterLoaded = autoUpdater
@@ -158,6 +160,12 @@ async function performUpdateCheck(): Promise<AppUpdateState> {
   if (!app.isPackaged) {
     // Development builds have no app-update.yml. Compare against the public
     // GitHub Release so "Check for updates" stays meaningful outside installs.
+    return checkLatestReleaseOnly()
+  }
+  if (!canUseNativeAutoUpdater()) {
+    // Squirrel.Mac cannot run from an unsigned/ad-hoc signed app. Avoid
+    // downloading an update that macOS will refuse to install and expose the
+    // stable Release as a manual update instead.
     return checkLatestReleaseOnly()
   }
   updateState({ supported: true, status: 'checking', downloadProgress: null })
@@ -203,14 +211,50 @@ async function performUpdateCheck(): Promise<AppUpdateState> {
 }
 
 function reportDownloadFailure(error: unknown): AppUpdateState {
-  log.updater.error('update download failed:', error)
+  return reportUpdaterFailure('update download failed:', error)
+}
+
+function reportUpdaterFailure(message: string, error: unknown): AppUpdateState {
+  log.updater.error(message, error)
   // The check already confirmed a newer version. A failed download should not
-  // require another network request just to offer its manual installer.
+  // require another network request just to offer its manual installer. The
+  // same rule applies when Squirrel emits a late error after download.
   return updateState({
     status: state.available && state.latestVersion ? 'manual-update' : 'error',
     downloaded: false,
     downloadProgress: null
   })
+}
+
+function canUseNativeAutoUpdater(): boolean {
+  if (process.platform !== 'darwin') return true
+  if (nativeAutoUpdateSupported != null) return nativeAutoUpdateSupported
+
+  const executablePath = app.getPath('exe')
+  const appBundlePath = path.resolve(path.dirname(executablePath), '../..')
+  const verification = spawnSync(
+    '/usr/bin/codesign',
+    ['--verify', '--deep', '--strict', appBundlePath],
+    { encoding: 'utf8' }
+  )
+  const signature = spawnSync('/usr/bin/codesign', ['--display', '--verbose=2', appBundlePath], {
+    encoding: 'utf8'
+  })
+  const signatureDetails = `${signature.stdout ?? ''}\n${signature.stderr ?? ''}`
+  nativeAutoUpdateSupported =
+    verification.status === 0 &&
+    signature.status === 0 &&
+    /(?:^|\n)TeamIdentifier=(?!not set(?:\n|$))\S+/m.test(signatureDetails) &&
+    !/(?:^|\n)Signature=adhoc(?:\n|$)/m.test(signatureDetails)
+
+  if (!nativeAutoUpdateSupported) {
+    log.updater.warn('native macOS auto-update disabled because the installed app is not signed', {
+      appBundlePath,
+      verificationStatus: verification.status,
+      signatureStatus: signature.status
+    })
+  }
+  return nativeAutoUpdateSupported
 }
 
 /**
@@ -309,22 +353,25 @@ async function checkLatestReleaseOnly(): Promise<AppUpdateState> {
 async function fetchLatestReleaseVersion(): Promise<string> {
   // Chromium networking follows Electron's system proxy settings. The public
   // website endpoint remains usable when the unauthenticated API is rate limited.
-  for (const url of [LATEST_RELEASE_API_URL, LATEST_RELEASE_URL]) {
-    try {
-      return await fetchReleaseVersion(url)
-    } catch (error) {
-      log.updater.warn('release version check failed:', error)
-    }
+  try {
+    return await fetchReleaseApiVersion()
+  } catch (error) {
+    log.updater.warn('release API version check failed:', error)
+  }
+  try {
+    return await fetchReleasePageVersion()
+  } catch (error) {
+    log.updater.warn('release page version check failed:', error)
   }
   throw new Error('Latest release could not be checked')
 }
 
-async function fetchReleaseVersion(url: string): Promise<string> {
+async function fetchReleaseApiVersion(): Promise<string> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), RELEASE_CHECK_TIMEOUT_MS)
   timer.unref()
   try {
-    const response = await net.fetch(url, {
+    const response = await net.fetch(LATEST_RELEASE_API_URL, {
       headers: {
         Accept: 'application/json',
         'User-Agent': `Pi-Harness/${APP_VERSION}`,
@@ -343,6 +390,37 @@ async function fetchReleaseVersion(url: string): Promise<string> {
     const rawTag = typeof payload.tag_name === 'string' ? payload.tag_name.trim() : ''
     const version = validVersion(rawTag.replace(/^v/i, ''))
     if (!version) throw new Error('GitHub Releases API returned an invalid tag')
+    return version
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+async function fetchReleasePageVersion(): Promise<string> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), RELEASE_CHECK_TIMEOUT_MS)
+  timer.unref()
+  try {
+    const response = await net.fetch(LATEST_RELEASE_URL, {
+      headers: {
+        Accept: 'text/html',
+        'User-Agent': `Pi-Harness/${APP_VERSION}`
+      },
+      signal: controller.signal
+    })
+    if (!response.ok) throw new Error(`GitHub Releases page returned HTTP ${response.status}`)
+
+    // fetch follows /releases/latest to the stable tag. Read only that trusted
+    // redirect target; the response document is remote content, not app input.
+    const releaseUrl = new URL(response.url)
+    if (releaseUrl.origin !== 'https://github.com') {
+      throw new Error('GitHub Releases redirected to an unexpected origin')
+    }
+    const match = releaseUrl.pathname.match(
+      /^\/wangmiaozero\/pi-harness\/releases\/tag\/v?([^/]+)\/?$/i
+    )
+    const version = match ? validVersion(decodeURIComponent(match[1])) : null
+    if (!version) throw new Error('GitHub Releases page returned an invalid tag URL')
     return version
   } finally {
     clearTimeout(timer)

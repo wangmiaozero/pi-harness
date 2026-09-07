@@ -63,15 +63,12 @@ onErrorCaptured(() => {
 })
 
 function imageSource(image: ImageContent): string | null {
-  const source = (image as { source?: ImageContent['source'] }).source
-  if (source?.type === 'base64' && source.data) {
-    const mime = source.media_type?.startsWith('image/') ? source.media_type : 'image/png'
-    return `data:${mime};base64,${source.data}`
-  }
-  if (source?.type === 'url' && source.url?.startsWith('data:image/')) {
-    return source.url
-  }
-  return null
+  if (typeof image.data !== 'string' || !image.data) return null
+  const mime =
+    typeof image.mimeType === 'string' && image.mimeType.startsWith('image/')
+      ? image.mimeType
+      : 'image/png'
+  return `data:${mime};base64,${image.data}`
 }
 
 function openPreview(src: string) {

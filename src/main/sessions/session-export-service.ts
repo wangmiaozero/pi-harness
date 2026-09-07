@@ -96,7 +96,7 @@ function renderMessageMarkdown(message: AgentMessage): string {
         ? message.content
         : message.content
             .map((block) =>
-              block.type === 'text' ? block.text : `[Image: ${block.source.media_type ?? 'image'}]`
+              block.type === 'text' ? block.text : `[Image: ${block.mimeType || 'image'}]`
             )
             .join('\n\n')
     return `## User\n\n${text}`
@@ -106,7 +106,7 @@ function renderMessageMarkdown(message: AgentMessage): string {
       if (block.type === 'text') return block.text
       if (block.type === 'thinking')
         return `> thinking\n>\n> ${block.thinking.replace(/\n/g, '\n> ')}`
-      if (block.type === 'image') return `[Image: ${block.source.media_type ?? 'image'}]`
+      if (block.type === 'image') return `[Image: ${block.mimeType || 'image'}]`
       if (block.type === 'toolCall') {
         return `\`\`\`tool ${block.toolName}\n${JSON.stringify(block.input, null, 2)}\n\`\`\``
       }

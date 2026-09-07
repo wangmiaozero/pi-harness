@@ -261,7 +261,8 @@ export const useAgentStore = defineStore('agent', () => {
     error.value = null
     const imageBlocks: ImageContent[] = images.map((image) => ({
       type: 'image',
-      source: { type: 'base64', media_type: image.mimeType, data: image.data }
+      data: image.data,
+      mimeType: image.mimeType
     }))
     const textBlocks: TextContent[] = message.trim() ? [{ type: 'text', text: message }] : []
     const optimistic: AgentMessage = {

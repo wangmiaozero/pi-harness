@@ -30,16 +30,19 @@ test('development builds check the public release API from the always-available 
 
   await page.locator('a[href="#/settings"]').click()
   await page.getByTestId('settings-section-updates').click()
-  await expect(page.getByRole('button', { name: /检查更新|Check for updates/ }).first()).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /检查更新|Check for updates/ }).first()
+  ).toBeVisible()
   await expect(page.getByTestId('settings-version')).toContainText(APP_VERSION)
 })
 
-test('loads the real ESM updater and offers the manual release download', async ({
+test('packaged update recovery offers the manual release download', async ({
   electronApp,
   page
 }) => {
-  // Use the real compiled Main/Preload and native module loader. The development
-  // Electron bundle has no app-update.yml, matching an incomplete manual release.
+  // Use the real compiled Main/Preload. Linux exercises the native module
+  // loader; the macOS test Electron is not Developer ID signed and must bypass
+  // Squirrel before falling back to the public Release.
   await electronApp.evaluate(({ app, net, shell }, version) => {
     Object.defineProperty(app, 'isPackaged', { value: true })
     net.fetch = async () =>
@@ -71,7 +74,7 @@ test('loads the real ESM updater and offers the manual release download', async 
     const require = process.getBuiltinModule('module').createRequire(moduleUrl)
     return require('electron-updater').autoUpdater.listenerCount('update-available')
   }, updaterModuleUrl)
-  expect(listenerCount).toBe(1)
+  expect(listenerCount).toBe(process.platform === 'darwin' ? 0 : 1)
 
   await page.getByRole('button', { name: /前往下载|Go to downloads/ }).click()
   await expect

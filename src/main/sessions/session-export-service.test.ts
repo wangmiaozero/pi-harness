@@ -18,6 +18,32 @@ afterEach(async () => {
 })
 
 describe('project chat export', () => {
+  it('exports Pi-native image blocks without losing their media type', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'pi-session-export-test-'))
+    temporaryDirectories.push(dir)
+    const destination = path.join(dir, 'image-session.md')
+    showSaveDialog.mockResolvedValue({ canceled: false, filePath: destination })
+    const get = vi.fn().mockResolvedValue({
+      sessionId: 'image-session',
+      info: { name: 'image-session', cwd: '/code/project' },
+      context: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'inspect' },
+              { type: 'image', data: 'TQ==', mimeType: 'image/png' }
+            ]
+          }
+        ]
+      }
+    })
+    const service = new SessionExportService({ get } as unknown as SessionService)
+
+    await expect(service.exportToFile('image-session', 'markdown')).resolves.toBe(destination)
+    await expect(readFile(destination, 'utf8')).resolves.toContain('[Image: image/png]')
+  })
+
   it.each(['html', 'markdown'] as const)(
     'exports only the supplied chats once as %s',
     async (format) => {

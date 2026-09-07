@@ -35,12 +35,8 @@ export interface TextContent {
 
 export interface ImageContent {
   type: 'image'
-  source: {
-    type: 'base64' | 'url'
-    media_type?: string
-    data?: string
-    url?: string
-  }
+  data: string
+  mimeType: string
 }
 
 export interface ThinkingContent {
