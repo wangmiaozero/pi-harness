@@ -12,11 +12,29 @@ Public release notes contain only released, user-visible additions and fixes.
 - Added evidence-based Run Evaluation: engineering checks over real run evidence (test/lint/build exit codes, tool results, git workspace state) with per-check evidence, plus evaluation status on every run.
 - Added the Runs, Policy, Checkpoints, and Evaluation panels plus a filterable Timeline (runs/tools/policy/system) in the Harness Console.
 - Added per-message usage (tokens and cost) to harness events and run statistics.
+
+### Fixed
+
+- Preserved pasted images throughout live chat rendering, restored session history, and Markdown/HTML exports by keeping Pi-native image content blocks intact.
+- Fixed macOS update checks for unsigned or ad-hoc-signed community builds: available releases now remain visible with a manual-download action instead of being overwritten by a misleading network error.
+- Enabled optional Developer ID signing and notarization credentials in the macOS release workflow so signed builds can use native automatic installation.
+
+## 1.3.0 — 2026-08-30
+
+### Added
+
+- Added **Capabilities**, a unified center for built-in and local Skills, installed packages, featured add-ons, and the live Pi package registry.
+- Added Superpowers as a recommended opt-in methodology; Odai remains optional. Neither installs automatically.
+- Added the complete Classical Chinese theme across windows, menus, dropdowns, and Harness surfaces.
+- Completed the v1.3 interface localization in eight languages.
 - Added a quarantine-repair app (「修复」) inside the macOS DMG to clear the "app is damaged" Gatekeeper flag on unsigned installs.
 
 ### Fixed
 
-## 1.3.0 — 2026-08-30
+- Harness now switches the entire right-hand workspace from the Project/Harness selector instead of appearing as a closable conversation tab.
+- Fixed nested borders inside search fields and improved Classical theme consistency for menus, dropdowns, and inputs.
+
+## 1.2.0 — 2026-08-30
 
 ### Added
 
