@@ -18,7 +18,13 @@ const filters: Array<{ id: TraceFilter; labelKey: string }> = [
 ]
 
 function category(event: HarnessEvent): Exclude<TraceFilter, 'all'> {
-  if (event.type.startsWith('run.') || event.type.startsWith('budget.')) return 'runs'
+  if (
+    event.type.startsWith('run.') ||
+    event.type.startsWith('budget.') ||
+    event.type.startsWith('artifact.') ||
+    event.type.startsWith('baseline.')
+  )
+    return 'runs'
   if (event.type.startsWith('tool.') || event.type.startsWith('compaction.')) return 'tools'
   if (event.type.startsWith('policy.') || event.type.startsWith('evaluation.')) return 'policy'
   return 'system'
@@ -135,6 +141,18 @@ function label(event: HarnessEvent): string {
       return t('workspace.harnessEventRecoveryStarted', { kind: event.kind })
     case 'recovery.completed':
       return t('workspace.harnessEventRecoveryCompleted', { kind: event.kind })
+    case 'run.forked':
+      return t('workspace.harnessEventRunForked')
+    case 'artifact.recorded':
+      return t('workspace.harnessEventArtifactRecorded', { type: event.artifactType })
+    case 'baseline.changed':
+      return t('workspace.harnessEventBaselineChanged')
+    default: {
+      // Orchestration-scoped events (orchestration.* / agent.* / task.* /
+      // handoff.* / review.*) are labelled by the Orchestration panel; the
+      // session timeline still renders them with a readable type tag.
+      return event.type
+    }
   }
 }
 

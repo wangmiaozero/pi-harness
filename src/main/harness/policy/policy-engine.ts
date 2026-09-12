@@ -13,6 +13,8 @@ import type { JsonStore } from '../../services/storage'
 import { log } from '../../services/logger'
 import { HarnessError } from '../harness-error'
 import type {
+  HarnessEvaluationPreset,
+  HarnessEvaluationStageKind,
   HarnessPolicyBudget,
   HarnessPolicyConfig,
   HarnessPolicyDecision,
@@ -81,6 +83,14 @@ export class PolicyEngine {
 
   autoEvaluate(): boolean {
     return this.peek().evaluation.autoEvaluate
+  }
+
+  evaluationPreset(): HarnessEvaluationPreset {
+    return this.peek().evaluation.preset
+  }
+
+  customEvaluationStages(): HarnessEvaluationStageKind[] {
+    return this.peek().evaluation.customStages
   }
 
   autoPreRunCheckpoint(): boolean {
@@ -293,7 +303,12 @@ export function mergeWithDefaults(
       autoEvaluate:
         typeof value.evaluation?.autoEvaluate === 'boolean'
           ? value.evaluation.autoEvaluate
-          : DEFAULT_POLICY_CONFIG.evaluation.autoEvaluate
+          : DEFAULT_POLICY_CONFIG.evaluation.autoEvaluate,
+      preset: normalizePreset(value.evaluation?.preset),
+      customStages: normalizeStageKinds(
+        value.evaluation?.customStages,
+        DEFAULT_POLICY_CONFIG.evaluation.customStages
+      )
     },
     checkpoints: {
       autoPreRun:
@@ -302,4 +317,30 @@ export function mergeWithDefaults(
           : DEFAULT_POLICY_CONFIG.checkpoints.autoPreRun
     }
   }
+}
+
+function normalizePreset(candidate: unknown): HarnessPolicyConfig['evaluation']['preset'] {
+  return candidate === 'fast' || candidate === 'strict' || candidate === 'custom'
+    ? candidate
+    : DEFAULT_POLICY_CONFIG.evaluation.preset
+}
+
+function normalizeStageKinds(
+  candidate: unknown,
+  fallback: HarnessPolicyConfig['evaluation']['customStages']
+): HarnessPolicyConfig['evaluation']['customStages'] {
+  const allowed: HarnessPolicyConfig['evaluation']['customStages'] = [
+    'static-check',
+    'lint',
+    'typecheck',
+    'test',
+    'build',
+    'git-inspection',
+    'custom-check'
+  ]
+  if (!Array.isArray(candidate)) return [...fallback]
+  const stages = candidate.filter((item): item is HarnessPolicyConfig['evaluation']['customStages'][number] =>
+    (allowed as string[]).includes(String(item))
+  )
+  return stages.length ? [...new Set(stages)] : [...fallback]
 }

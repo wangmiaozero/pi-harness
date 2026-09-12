@@ -171,6 +171,8 @@ The same six product surfaces are shown in both the default and Classical Chines
 
 Pi-Harness has shipped its Harness Control Plane: Runs, Policy, Checkpoints, Evaluation, and a filterable Trace are live in the Harness Console.
 
+Version 1.5 added Run Intelligence & Replay: every run records a redacted trace you can replay (play/pause, step, 0.5x–4x/instant) and inspect as a span waterfall; forks, retries, and recoveries form a Run Tree; any two runs can be compared metric-by-metric with real diffs; deterministic Diagnostics explain failures with root-cause chains; project baselines flag regressions; artifacts (files, test/lint/build logs, checkpoints, git commits) are tracked per run; and project statistics summarize success, evaluation pass, and recovery rates over time.
+
 The next phase focuses on deeper recovery and inspection without replacing the runtime that Pi already provides.
 
 ### Harness Console — shipped panels
@@ -202,6 +204,11 @@ The next phase focuses on deeper recovery and inspection without replacing the r
 │ ✓ Run completed   ✓ No unhandled errors     │
 │ ✓ Tests passed    ⚠ No lint executed        │
 │ ✓ Git workspace clean                       │
+│                                              │
+│ Run Detail · Replay                          │
+│ ▸ ▶ 0:42/4:12  speed 1x   fork · re-run      │
+│ ! bash exited 1 → shell failure chain        │
+│ ▲ tokens +150% vs baseline (regression)      │
 └──────────────────────────────────────────────┘
 ```
 
@@ -220,6 +227,23 @@ The next phase focuses on deeper recovery and inspection without replacing the r
 
 Filters: All · Runs · Tools · Policy · System. Every timeline entry derives from real Pi events — no mock UI.
 
+### Run Intelligence — shipped with 1.5
+
+```text
+Run Tree          #12 ── fork ──▶ #13 (new session)
+                  #12 ── retry ─▶ #14
+Waterfall         ▐ model  ████████        3m 02s
+                  ▐ tool   ██              41s
+                  ▐ shell     ███          1m 10s
+Diagnostics       1. bash exited with code 1
+                  2. test stage failed → evaluation failed
+Baseline          tokens +150% · cost +100% · duration ×2  (regression)
+Artifacts         3 files · test-report · build-output · git-commit
+Project · 30d     82% success · 71% eval pass · 45% recovery
+```
+
+All intelligence is deterministic and evidence-based: spans, cause chains, regression findings, and artifacts come from recorded events and real command output — never model guesses.
+
 ## Roadmap
 
 ### Current
@@ -231,8 +255,8 @@ Filters: All · Runs · Tools · Policy · System. Every timeline entry derives 
 ### Next
 
 - Session Tree visualization
-- Recovery workflows beyond checkpoint resume and fork
 - Deeper Context and Queue inspectors
+- Run intelligence beyond deterministic rules (opt-in, clearly separated from recorded evidence)
 
 ### Later
 

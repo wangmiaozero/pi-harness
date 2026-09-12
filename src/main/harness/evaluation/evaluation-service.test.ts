@@ -14,8 +14,14 @@ function run(overrides: Partial<HarnessRun> = {}): HarnessRun {
     id: 'h:entry-1',
     sessionId: 's1',
     parentRunId: null,
+    relation: 'original',
+    forkedFromRunId: null,
+    forkedFromEventId: null,
+    forkedFromCheckpointId: null,
     status: 'success',
     source: 'live',
+    anchorEntryId: null,
+    cwd: null,
     startedAt: Date.parse('2024-01-01T00:00:00.000Z'),
     finishedAt: Date.parse('2024-01-01T00:00:10.000Z'),
     model: 'test-model',
@@ -27,6 +33,9 @@ function run(overrides: Partial<HarnessRun> = {}): HarnessRun {
     contextUsage: null,
     result: null,
     error: null,
+    agentId: null,
+    taskId: null,
+    orchestrationId: null,
     budgetExceeded: null,
     steps: [],
     checkpointIds: [],
@@ -85,7 +94,8 @@ describe('classifyExecutionCommand', () => {
     expect(classifyExecutionCommand('pnpm lint')).toBe('lint')
     expect(classifyExecutionCommand('npx eslint .')).toBe('lint')
     expect(classifyExecutionCommand('pnpm build')).toBe('build')
-    expect(classifyExecutionCommand('tsc --noEmit')).toBe('build')
+    expect(classifyExecutionCommand('tsc --noEmit')).toBe('typecheck')
+    expect(classifyExecutionCommand('pnpm typecheck')).toBe('typecheck')
     expect(classifyExecutionCommand('ls -la')).toBeNull()
   })
 })
@@ -166,7 +176,9 @@ describe('EvaluationService', () => {
     const entries = [
       userEntry('entry-1', '2024-01-01T00:00:01.000Z', 'anchor prompt'),
       bashEntry('b1', '2024-01-01T00:00:02.000Z', 'pnpm vitest run', 0),
-      bashEntry('b2', '2024-01-01T00:00:03.000Z', 'pnpm build', 0)
+      bashEntry('b2', '2024-01-01T00:00:03.000Z', 'pnpm lint', 0),
+      bashEntry('b3', '2024-01-01T00:00:04.000Z', 'tsc --noEmit', 0),
+      bashEntry('b4', '2024-01-01T00:00:05.000Z', 'pnpm build', 0)
     ]
     const service = new EvaluationService({
       getEntries: vi.fn(async () => entries),
@@ -183,7 +195,11 @@ describe('EvaluationService', () => {
     expect(byId.get('test-passed')?.status).toBe('passed')
     expect(byId.get('build-executed')?.status).toBe('passed')
     expect(byId.get('lint-executed')?.status).toBe('passed')
-    expect(service.get('s1', 'h:entry-1')).toEqual(evaluation)
+    expect(evaluation.pipeline?.finalStatus).toBe('passed')
+    expect(
+      evaluation.pipeline?.stages.map((stage) => [stage.kind, stage.status])
+    ).toContainEqual(['typecheck', 'passed'])
+    expect(await service.get('s1', 'h:entry-1')).toEqual(evaluation)
   })
 
   it('marks runs with unhandled errors and failed tests as failed', async () => {

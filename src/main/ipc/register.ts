@@ -76,6 +76,7 @@ import type { ZodType } from 'zod'
 import { OpenPathPolicy } from '../security/open-path-policy'
 import { FileSystemError } from '../services/errors'
 import type { HarnessRuntime } from '../harness/harness-runtime'
+import type { OrchestratorService } from '../harness/orchestrator/orchestrator-service'
 import { registerHarnessIpc } from './register-harness'
 
 export interface Services {
@@ -90,6 +91,7 @@ export interface Services {
   diagnostics: DiagnosticsService
   environment: EnvironmentManager
   harness: HarnessRuntime
+  orchestrator?: OrchestratorService
   workspace: WorkspaceServices
   getMainWindow: () => BrowserWindow | null
   setScreenMotionActive: (payload: ScreenMotionActivePayload) => void
@@ -713,7 +715,7 @@ export function registerIpc(services: Services): void {
   )
 
   registerWorkspaceIpc(ipcMain, wrap, services.workspace)
-  registerHarnessIpc(ipcMain, wrap, services.harness)
+  registerHarnessIpc(ipcMain, wrap, services.harness, services.orchestrator)
 
   void app
 }

@@ -45,6 +45,23 @@ const budgetRows = [
 type BudgetKey = (typeof budgetRows)[number]['key']
 type Draft = HarnessPolicyConfig & { budgetText: Record<BudgetKey, string> }
 
+const CUSTOM_STAGE_OPTIONS = [
+  'static-check',
+  'lint',
+  'typecheck',
+  'test',
+  'build',
+  'git-inspection',
+  'custom-check'
+] as const
+
+function toggleCustomStage(stage: (typeof CUSTOM_STAGE_OPTIONS)[number]): void {
+  const stages = draft.evaluation.customStages
+  const index = stages.indexOf(stage)
+  if (index >= 0) stages.splice(index, 1)
+  else stages.push(stage)
+}
+
 const draft = reactive<Draft>(emptyDraft())
 let loadedFrom: HarnessPolicyConfig | null = null
 
@@ -80,7 +97,7 @@ function emptyDraft(): Draft {
     },
     network: 'ask',
     budget: { maxTokens: null, maxCost: null, maxToolCalls: null, maxRunDurationMs: null },
-    evaluation: { autoEvaluate: true },
+    evaluation: { autoEvaluate: true, preset: 'standard', customStages: [] },
     checkpoints: { autoPreRun: false },
     budgetText: { maxTokens: '', maxCost: '', maxToolCalls: '', maxRunDurationMs: '' }
   }
@@ -271,6 +288,45 @@ function patternListTitle(kind: 'allow' | 'deny'): string {
           class="size-3.5 accent-[var(--accent)]"
         />
       </label>
+      <div
+        class="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2"
+      >
+        <span class="text-[11.5px] text-[var(--text-secondary)]">
+          {{ $t('workspace.harnessPolicyEvalPreset') }}
+        </span>
+        <select
+          v-model="draft.evaluation.preset"
+          class="max-w-[9rem] rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+        >
+          <option value="fast">{{ $t('workspace.harnessPolicyEvalPresetFast') }}</option>
+          <option value="standard">{{ $t('workspace.harnessPolicyEvalPresetStandard') }}</option>
+          <option value="strict">{{ $t('workspace.harnessPolicyEvalPresetStrict') }}</option>
+          <option value="custom">{{ $t('workspace.harnessPolicyEvalPresetCustom') }}</option>
+        </select>
+      </div>
+      <div
+        v-if="draft.evaluation.preset === 'custom'"
+        class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2"
+      >
+        <p class="text-[11.5px] text-[var(--text-secondary)]">
+          {{ $t('workspace.harnessPolicyEvalCustomStages') }}
+        </p>
+        <div class="mt-2 grid grid-cols-2 gap-1.5">
+          <label
+            v-for="stage in CUSTOM_STAGE_OPTIONS"
+            :key="stage"
+            class="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]"
+          >
+            <input
+              :checked="draft.evaluation.customStages.includes(stage)"
+              type="checkbox"
+              class="size-3.5 accent-[var(--accent)]"
+              @change="toggleCustomStage(stage)"
+            />
+            {{ $t(`workspace.harnessStage_${stage}`) }}
+          </label>
+        </div>
+      </div>
       <label
         class="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2"
       >

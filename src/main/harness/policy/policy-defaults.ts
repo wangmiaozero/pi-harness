@@ -76,7 +76,9 @@ export const DEFAULT_POLICY_CONFIG: HarnessPolicyConfig = {
     maxRunDurationMs: null
   },
   evaluation: {
-    autoEvaluate: true
+    autoEvaluate: true,
+    preset: 'standard',
+    customStages: ['lint', 'test']
   },
   checkpoints: {
     autoPreRun: false

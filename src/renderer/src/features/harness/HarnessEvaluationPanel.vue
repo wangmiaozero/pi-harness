@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { AlertTriangle, CheckCircle2, XCircle } from '@lucide/vue'
-import type { HarnessEvaluation } from '@shared/types/harness'
+import { AlertTriangle, CheckCircle2, MinusCircle, XCircle } from '@lucide/vue'
+import type { HarnessEvaluation, HarnessEvaluationStage } from '@shared/types/harness'
 import { useHarnessStore } from '@renderer/stores/harness'
 
-useI18n()
+const { t } = useI18n()
 const harness = useHarnessStore()
 
 const evaluations = computed<HarnessEvaluation[]>(() => [...harness.evaluations])
@@ -36,6 +36,21 @@ function time(timestamp: number): string {
     minute: '2-digit',
     second: '2-digit'
   }).format(timestamp)
+}
+
+function presetLabel(evaluation: HarnessEvaluation): string {
+  const preset = evaluation.pipeline?.preset
+  if (preset === 'fast') return 'Fast'
+  if (preset === 'strict') return 'Strict'
+  if (preset === 'custom') return 'Custom'
+  return 'Standard'
+}
+
+function stageLabel(stage: HarnessEvaluationStage): string {
+  return (
+    stage.name ||
+    t(`workspace.harnessStage_${stage.kind.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)}`)
+  )
 }
 </script>
 
@@ -81,7 +96,29 @@ function time(timestamp: number): string {
           </span>
         </button>
 
-        <ul v-if="expanded.has(evaluation.runId)" class="mt-2 space-y-1 border-t border-[var(--border-subtle)] pt-2">
+        <div v-if="expanded.has(evaluation.runId)" class="mt-2 border-t border-[var(--border-subtle)] pt-2">
+          <div v-if="evaluation.pipeline" class="mb-2">
+            <p class="text-[10.5px] text-[var(--text-tertiary)]">
+              {{ $t('workspace.harnessPolicyEvalPreset') }}: {{ $t(`workspace.harnessPolicyEvalPreset${presetLabel(evaluation)}`) }}
+            </p>
+            <ul class="mt-1 flex flex-wrap gap-1.5" data-testid="harness-evaluation-stages">
+              <li
+                v-for="stage in evaluation.pipeline.stages"
+                :key="stage.id"
+                class="flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-1.5 py-0.5 text-[10.5px]"
+                :title="stage.command ?? undefined"
+              >
+                <component
+                  :is="stage.status === 'passed' ? CheckCircle2 : stage.status === 'warning' ? AlertTriangle : stage.status === 'failed' ? XCircle : MinusCircle"
+                  class="size-3 shrink-0"
+                  :class="checkTone[stage.status] ?? 'text-[var(--text-tertiary)]'"
+                />
+                <span class="text-[var(--text-secondary)]">{{ stageLabel(stage) }}</span>
+                <span v-if="stage.duration !== null" class="text-[var(--text-tertiary)]">· {{ stage.duration }}ms</span>
+              </li>
+            </ul>
+          </div>
+          <ul class="space-y-1">
           <li
             v-for="check in evaluation.checks"
             :key="check.id"
@@ -104,7 +141,8 @@ function time(timestamp: number): string {
               >{{ check.evidence }}</pre>
             </div>
           </li>
-        </ul>
+          </ul>
+        </div>
       </li>
     </ol>
   </section>

@@ -1,18 +1,27 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import type {
+  HarnessArtifact,
+  HarnessBaseline,
   HarnessCheckpoint,
   HarnessCompactionResult,
   HarnessEvent,
   HarnessEventEnvelope,
   HarnessEvaluation,
+  HarnessExportResult,
   HarnessForkResult,
   HarnessPolicyConfig,
   HarnessPolicySnapshot,
+  HarnessProjectStats,
   HarnessRun,
+  HarnessRunComparison,
+  HarnessRunDetail,
+  HarnessRunTreeNode,
   HarnessSessionInfo,
   HarnessState,
   HarnessStats,
+  HarnessStatsRange,
+  HarnessStoreSettings,
   HarnessTool
 } from '@shared/types/harness'
 import { callApi, getApi } from '@renderer/composables/useApi'
@@ -25,7 +34,18 @@ export const useHarnessStore = defineStore('harness', () => {
   const stats = shallowRef<HarnessStats | null>(null)
   const timeline = shallowRef<HarnessEvent[]>([])
   const runs = shallowRef<HarnessRun[]>([])
+  const runScope = ref<'session' | 'project'>('session')
   const currentRunId = ref<string | null>(null)
+  const runDetail = shallowRef<HarnessRunDetail | null>(null)
+  const runTree = shallowRef<HarnessRunTreeNode[]>([])
+  const comparison = shallowRef<HarnessRunComparison | null>(null)
+  const compareRunIdA = ref<string | null>(null)
+  const compareRunIdB = ref<string | null>(null)
+  const baseline = shallowRef<HarnessBaseline | null>(null)
+  const projectStats = shallowRef<HarnessProjectStats | null>(null)
+  const statsRange = ref<HarnessStatsRange>('7d')
+  const artifacts = shallowRef<HarnessArtifact[]>([])
+  const storeSettings = shallowRef<HarnessStoreSettings | null>(null)
   const checkpoints = shallowRef<HarnessCheckpoint[]>([])
   const evaluations = shallowRef<HarnessEvaluation[]>([])
   const policy = shallowRef<HarnessPolicySnapshot | null>(null)
@@ -61,6 +81,14 @@ export const useHarnessStore = defineStore('harness', () => {
         scheduleRunsRefresh()
       }
       if (envelope.event.type === 'checkpoint.created') void refreshCheckpoints()
+      if (envelope.event.type === 'artifact.recorded') {
+        void refreshArtifacts()
+        if (runDetail.value?.run.id === envelope.event.runId) {
+          void loadRunDetail(envelope.event.runId)
+        }
+      }
+      if (envelope.event.type === 'run.forked') void refreshRunTree()
+      if (envelope.event.type === 'baseline.changed') void refreshBaseline()
       scheduleRefresh()
     })
     return () => {
@@ -81,6 +109,12 @@ export const useHarnessStore = defineStore('harness', () => {
       stats.value = null
       timeline.value = []
       runs.value = []
+      runDetail.value = null
+      runTree.value = []
+      comparison.value = null
+      baseline.value = null
+      projectStats.value = null
+      artifacts.value = []
       checkpoints.value = []
       evaluations.value = []
       loading.value = false
@@ -99,8 +133,13 @@ export const useHarnessStore = defineStore('harness', () => {
       timeline.value = nextTimeline
       // Control-plane data loads in parallel; failures degrade the panel, not the console.
       void refreshRuns()
+      void refreshRunTree()
       void refreshCheckpoints()
       void refreshPolicy()
+      void refreshBaseline()
+      void refreshArtifacts()
+      void refreshProjectStats()
+      void refreshStoreSettings()
     } catch (cause) {
       if (currentGeneration === generation) error.value = errorMessage(cause)
     } finally {
@@ -132,7 +171,7 @@ export const useHarnessStore = defineStore('harness', () => {
     const currentGeneration = generation
     try {
       const [nextRuns, nextEvaluations] = await Promise.all([
-        callApi(() => getApi().harness.listRuns(id)),
+        callApi(() => getApi().harness.listRuns(id, runScope.value)),
         callApi(() => getApi().harness.listEvaluations(id))
       ])
       if (currentGeneration !== generation || sessionId.value !== id) return
@@ -141,6 +180,128 @@ export const useHarnessStore = defineStore('harness', () => {
     } catch {
       /* run history is best-effort; the console stays usable without it */
     }
+  }
+
+  async function setRunScope(scope: 'session' | 'project'): Promise<void> {
+    runScope.value = scope
+    await refreshRuns()
+  }
+
+  async function loadRunDetail(runId: string): Promise<HarnessRunDetail> {
+    const id = sessionId.value
+    if (!id) throw new Error('No Harness session selected')
+    const detail = await callApi(() => getApi().harness.getRunDetail(id, runId))
+    runDetail.value = detail
+    currentRunId.value = runId
+    return detail
+  }
+
+  async function refreshRunTree(): Promise<void> {
+    const id = sessionId.value
+    if (!id) return
+    const currentGeneration = generation
+    try {
+      const tree = await callApi(() => getApi().harness.getRunTree(id))
+      if (currentGeneration === generation) runTree.value = tree
+    } catch {
+      /* run tree is best-effort */
+    }
+  }
+
+  async function loadComparison(runIdA: string, runIdB: string): Promise<HarnessRunComparison> {
+    const id = sessionId.value
+    if (!id) throw new Error('No Harness session selected')
+    const result = await callApi(() => getApi().harness.compareRuns(id, runIdA, runIdB))
+    comparison.value = result
+    compareRunIdA.value = runIdA
+    compareRunIdB.value = runIdB
+    return result
+  }
+
+  async function refreshBaseline(): Promise<void> {
+    const id = sessionId.value
+    if (!id) return
+    const currentGeneration = generation
+    try {
+      const next = await callApi(() => getApi().harness.getBaseline(id))
+      if (currentGeneration === generation) baseline.value = next
+    } catch {
+      /* baseline is best-effort */
+    }
+  }
+
+  async function setBaseline(runId: string): Promise<HarnessBaseline> {
+    const next = await mutate((id) => getApi().harness.setBaseline(id, runId))
+    baseline.value = next
+    return next
+  }
+
+  async function refreshProjectStats(): Promise<void> {
+    const id = sessionId.value
+    if (!id) return
+    const currentGeneration = generation
+    try {
+      const next = await callApi(() => getApi().harness.getProjectStats(id, statsRange.value))
+      if (currentGeneration === generation) projectStats.value = next
+    } catch {
+      /* project stats are best-effort */
+    }
+  }
+
+  async function setStatsRange(range: HarnessStatsRange): Promise<void> {
+    statsRange.value = range
+    await refreshProjectStats()
+  }
+
+  async function refreshArtifacts(runId?: string): Promise<void> {
+    const id = sessionId.value
+    if (!id) return
+    const currentGeneration = generation
+    try {
+      const next = await callApi(() => getApi().harness.listArtifacts(id, runId))
+      if (currentGeneration === generation) artifacts.value = next
+    } catch {
+      /* artifacts are best-effort */
+    }
+  }
+
+  async function forkRun(
+    runId: string,
+    options: {
+      mode?: 'fork' | 'rerun'
+      fromEventId?: string
+      fromCheckpointId?: string
+      message?: string
+    } = {}
+  ): Promise<{ forked: boolean; newSessionId: string | null; newRunId: string | null }> {
+    const result = await mutate((id) => getApi().harness.forkRun(id, runId, options))
+    await refreshRuns()
+    await refreshRunTree()
+    return result
+  }
+
+  async function exportRun(runId: string, format: 'json' | 'markdown'): Promise<HarnessExportResult> {
+    return mutate((id) => getApi().harness.exportRun(id, runId, format))
+  }
+
+  async function exportDebugBundle(runId?: string): Promise<HarnessExportResult> {
+    return mutate((id) => getApi().harness.exportDebugBundle(id, runId))
+  }
+
+  async function refreshStoreSettings(): Promise<void> {
+    try {
+      storeSettings.value = await callApi(() => getApi().harness.getStoreSettings())
+    } catch {
+      /* store settings are best-effort */
+    }
+  }
+
+  async function updateStoreSettings(
+    settings: HarnessStoreSettings
+  ): Promise<HarnessStoreSettings> {
+    const next = await mutate((_id) => getApi().harness.updateStoreSettings(settings))
+    storeSettings.value = next
+    return next
   }
 
   async function refreshCheckpoints(): Promise<void> {
@@ -288,9 +449,20 @@ export const useHarnessStore = defineStore('harness', () => {
     stats,
     timeline,
     runs,
+    runScope,
     currentRunId,
     currentRun,
     activeRun,
+    runDetail,
+    runTree,
+    comparison,
+    compareRunIdA,
+    compareRunIdB,
+    baseline,
+    projectStats,
+    statsRange,
+    artifacts,
+    storeSettings,
     checkpoints,
     evaluations,
     policy,
@@ -301,6 +473,20 @@ export const useHarnessStore = defineStore('harness', () => {
     load,
     refresh,
     refreshRuns,
+    setRunScope,
+    loadRunDetail,
+    refreshRunTree,
+    loadComparison,
+    refreshBaseline,
+    setBaseline,
+    refreshProjectStats,
+    setStatsRange,
+    refreshArtifacts,
+    forkRun,
+    exportRun,
+    exportDebugBundle,
+    refreshStoreSettings,
+    updateStoreSettings,
     refreshCheckpoints,
     refreshPolicy,
     savePolicy,

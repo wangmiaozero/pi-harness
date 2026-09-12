@@ -10,9 +10,13 @@ import type {
   HarnessStats
 } from '@shared/types/harness'
 import type { HarnessAdapter } from './harness-types'
-import { HarnessRuntime } from './harness-runtime'
+import { DEFAULT_STORE_SETTINGS, HarnessRuntime } from './harness-runtime'
 import { DEFAULT_POLICY_CONFIG } from './policy/policy-defaults'
 import { EMPTY_CHECKPOINT_STORE } from './checkpoint/checkpoint-service'
+import { EMPTY_EVALUATION_STORE } from './evaluation/evaluation-service'
+import { EMPTY_ARTIFACT_STORE } from './artifacts/artifact-service'
+import { EMPTY_TRACE_STORE } from './trace/trace-repository'
+import { EMPTY_BASELINE_STORE } from './regression/regression-service'
 import { JsonStore } from '../services/storage'
 
 const tempDirs: string[] = []
@@ -33,7 +37,13 @@ function tempStore<T extends object>(name: string, defaults: T): JsonStore<T> {
 function createRuntime(adapter: HarnessAdapter): HarnessRuntime {
   return new HarnessRuntime(adapter, {
     policyStore: tempStore('policy.json', structuredClone(DEFAULT_POLICY_CONFIG)),
-    checkpointStore: tempStore('checkpoints.json', EMPTY_CHECKPOINT_STORE)
+    checkpointStore: tempStore('checkpoints.json', EMPTY_CHECKPOINT_STORE),
+    runStore: tempStore('runs.json', { schemaVersion: 1, runs: [] }),
+    traceStore: tempStore('traces.json', EMPTY_TRACE_STORE),
+    artifactStore: tempStore('artifacts.json', EMPTY_ARTIFACT_STORE),
+    evaluationStore: tempStore('evaluations.json', EMPTY_EVALUATION_STORE),
+    baselineStore: tempStore('baselines.json', EMPTY_BASELINE_STORE),
+    storeSettingsStore: tempStore('store-settings.json', DEFAULT_STORE_SETTINGS)
   })
 }
 

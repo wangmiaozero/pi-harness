@@ -13,6 +13,7 @@ import type {
   HarnessEvent,
   HarnessPolicyBudget,
   HarnessRun,
+  HarnessRunRelation,
   HarnessRunStep,
   HarnessRunStatus,
   HarnessState
@@ -45,9 +46,27 @@ export interface RunRegistryHooks {
   getEntries?: (sessionId: string) => Promise<SessionEntry[]>
   getHarnessState?: (sessionId: string) => Promise<HarnessState | null>
   getLastAssistantText?: (sessionId: string) => Promise<string | null>
+  /** Resolve the session's working directory (project scope of a run). */
+  getCwd?: (sessionId: string) => Promise<string | null>
+  /** Persisted runs from the run repository (survive app restarts). */
+  listPersistedRuns?: (sessionId: string) => Promise<HarnessRun[]>
   onBudgetExceeded?: (sessionId: string, runId: string) => Promise<void>
   /** Called after a run reaches its agent-turn verdict (evaluation hook). */
   onRunSettled?: (run: HarnessRun) => Promise<void>
+  /** Called once the run reached its final verdict (persistence hook). */
+  onRunFinalized?: (run: HarnessRun) => Promise<void>
+}
+
+/** Relation metadata applied to the next run created in a session. */
+export interface RunRelationAnnotation {
+  relation?: Extract<HarnessRunRelation, 'fork' | 'retry' | 'recovery' | 'rerun'>
+  forkedFromRunId?: string | null
+  forkedFromEventId?: string | null
+  forkedFromCheckpointId?: string | null
+  /** Multi-agent orchestration binding for the next run. */
+  agentId?: string | null
+  taskId?: string | null
+  orchestrationId?: string | null
 }
 
 interface LiveRun {
@@ -64,9 +83,15 @@ interface LiveRun {
 export class RunRegistry {
   private readonly sessions = new Map<string, LiveRun[]>()
   private readonly active = new Map<string, LiveRun>()
+  private readonly annotations = new Map<string, RunRelationAnnotation>()
   private stepCounter = 0
 
   constructor(private readonly hooks: RunRegistryHooks) {}
+
+  /** Tag the next run in this session as a fork / retry / recovery / re-run. */
+  annotateNextRun(sessionId: string, annotation: RunRelationAnnotation): void {
+    this.annotations.set(sessionId, annotation)
+  }
 
   handleEvent(sessionId: string, event: HarnessEvent): void {
     if (DERIVED_EVENT_TYPES.has(event.type)) return
@@ -81,16 +106,28 @@ export class RunRegistry {
     return this.active.get(sessionId)?.run ?? null
   }
 
+  /** All live runs across sessions (multi-agent orchestration rollups). */
+  listAllLiveRuns(): HarnessRun[] {
+    return [...this.sessions.values()].flat().map((live) => live.run)
+  }
+
   async listRuns(sessionId: string): Promise<HarnessRun[]> {
     const live = this.sessions.get(sessionId) ?? []
-    const liveAnchors = new Set(live.map((entry) => entry.anchorEntryId).filter(Boolean))
+    const anchors = new Set(
+      live
+        .map((entry) => entry.anchorEntryId ?? entry.run.anchorEntryId ?? null)
+        .filter(Boolean) as string[]
+    )
+    const activeRun = this.active.get(sessionId)
+    if (activeRun?.anchorEntryId) anchors.add(activeRun.anchorEntryId)
+
     const history: HarnessRun[] = []
     if (this.hooks.getEntries) {
       try {
         const entries = await this.hooks.getEntries(sessionId)
         for (const { run, entryIds } of buildRunsFromEntries(entries)) {
           const anchor = entryIds[0] ?? null
-          if (anchor && liveAnchors.has(anchor)) continue
+          if (anchor && anchors.has(anchor)) continue
           if (this.active.get(sessionId)?.anchorEntryId === anchor) continue
           history.push({ ...run, sessionId })
         }
@@ -98,11 +135,31 @@ export class RunRegistry {
         log.harness.warn('run history reconstruction failed:', error)
       }
     }
-    const activeRun = this.active.get(sessionId)
+
+    const persisted: HarnessRun[] = []
+    if (this.hooks.listPersistedRuns) {
+      try {
+        for (const run of await this.hooks.listPersistedRuns(sessionId)) {
+          if (run.anchorEntryId) anchors.add(run.anchorEntryId)
+          persisted.push(run)
+        }
+      } catch (error) {
+        log.harness.warn('persisted run lookup failed:', error)
+      }
+    }
+    // Persisted runs replace history reconstructions with the same anchor.
+    const persistedAnchors = new Set(
+      persisted.map((run) => run.anchorEntryId).filter(Boolean) as string[]
+    )
+    const filteredHistory = history.filter(
+      (run) => !(run.id.startsWith('h:') && persistedAnchors.has(run.id.slice(2)))
+    )
+
     const all = [
       ...(activeRun ? [{ ...activeRun.run, steps: [...activeRun.run.steps] }] : []),
       ...live.map((entry) => ({ ...entry.run, steps: [...entry.run.steps] })),
-      ...history
+      ...persisted,
+      ...filteredHistory
     ]
     const seen = new Set<string>()
     return all
@@ -142,7 +199,17 @@ export class RunRegistry {
     entry.finalized = true
     this.active.delete(sessionId)
     this.emitRunVerdict(sessionId, entry.run)
+    void this.finalizeRun(entry.run)
     return []
+  }
+
+  private async finalizeRun(run: HarnessRun): Promise<void> {
+    if (!this.hooks.onRunFinalized) return
+    try {
+      await this.hooks.onRunFinalized(run)
+    } catch (error) {
+      log.harness.warn(`run finalization failed for ${run.id}:`, error)
+    }
   }
 
   /** Attach a checkpoint id to the active (or given) run. */
@@ -161,12 +228,23 @@ export class RunRegistry {
       case 'prompt.started': {
         const previous = this.active.get(sessionId)
         if (previous && !previous.settled) this.settleRun(sessionId, previous, 'success')
+        const annotation = this.annotations.get(sessionId) ?? null
+        this.annotations.delete(sessionId)
         const run: HarnessRun = {
           id: `run-${randomUUID()}`,
           sessionId,
-          parentRunId: previous?.run.id ?? null,
+          parentRunId: annotation?.forkedFromRunId ?? previous?.run.id ?? null,
+          relation: annotation?.relation ?? 'original',
+          forkedFromRunId: annotation?.forkedFromRunId ?? null,
+          forkedFromEventId: annotation?.forkedFromEventId ?? null,
+          forkedFromCheckpointId: annotation?.forkedFromCheckpointId ?? null,
           status: 'queued',
           source: 'live',
+          anchorEntryId: null,
+          cwd: null,
+          agentId: annotation?.agentId ?? null,
+          taskId: annotation?.taskId ?? null,
+          orchestrationId: annotation?.orchestrationId ?? null,
           startedAt: event.timestamp,
           finishedAt: null,
           model: null,
@@ -397,8 +475,17 @@ export class RunRegistry {
         step.finishedAt = live.run.finishedAt
       }
     }
-    this.captureAnchor(sessionId, live)
     void this.captureRunOutcome(sessionId, live)
+  }
+
+  private async captureRunCwd(sessionId: string, live: LiveRun): Promise<void> {
+    if (!this.hooks.getCwd || live.run.cwd) return
+    try {
+      const cwd = await this.hooks.getCwd(sessionId)
+      if (cwd) live.run.cwd = cwd
+    } catch {
+      /* cwd capture is best-effort */
+    }
   }
 
   private async captureAnchor(sessionId: string, live: LiveRun): Promise<void> {
@@ -414,6 +501,7 @@ export class RunRegistry {
         if (!Number.isFinite(timestamp)) continue
         if (timestamp >= startBoundary) {
           live.anchorEntryId = entry.id
+          live.run.anchorEntryId = entry.id
           return
         }
       }
@@ -435,6 +523,10 @@ export class RunRegistry {
   }
 
   private async captureRunOutcome(sessionId: string, live: LiveRun): Promise<void> {
+    // Anchor + cwd must be settled before evaluation completes the run, so
+    // the persisted record carries them.
+    await this.captureAnchor(sessionId, live)
+    await this.captureRunCwd(sessionId, live)
     if (this.hooks.getLastAssistantText) {
       try {
         const text = await this.hooks.getLastAssistantText(sessionId)

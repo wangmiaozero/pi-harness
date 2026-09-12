@@ -6,6 +6,14 @@ import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import HarnessOverviewPanel from './HarnessOverviewPanel.vue'
 import HarnessRunsPanel from './HarnessRunsPanel.vue'
+import HarnessRunDetailPanel from './HarnessRunDetailPanel.vue'
+import HarnessRunTreePanel from './HarnessRunTreePanel.vue'
+import HarnessComparePanel from './HarnessComparePanel.vue'
+import HarnessWaterfallPanel from './HarnessWaterfallPanel.vue'
+import HarnessArtifactsPanel from './HarnessArtifactsPanel.vue'
+import HarnessRecoveryPanel from './HarnessRecoveryPanel.vue'
+import HarnessDiagnosticsPanel from './HarnessDiagnosticsPanel.vue'
+import HarnessProjectPanel from './HarnessProjectPanel.vue'
 import HarnessContextPanel from './HarnessContextPanel.vue'
 import HarnessToolsPanel from './HarnessToolsPanel.vue'
 import HarnessTimelinePanel from './HarnessTimelinePanel.vue'
@@ -20,10 +28,18 @@ import { useSessionStore } from '@renderer/stores/sessions'
 type Section =
   | 'overview'
   | 'runs'
+  | 'detail'
+  | 'tree'
+  | 'compare'
   | 'trace'
+  | 'waterfall'
+  | 'artifacts'
   | 'policy'
   | 'checkpoints'
+  | 'recovery'
   | 'evaluation'
+  | 'diagnostics'
+  | 'project'
   | 'context'
   | 'tools'
   | 'session'
@@ -36,10 +52,18 @@ const section = ref<Section>('overview')
 const sections = computed<Array<{ id: Section; label: string }>>(() => [
   { id: 'overview', label: t('workspace.harnessOverview') },
   { id: 'runs', label: t('workspace.harnessRuns') },
+  { id: 'detail', label: t('workspace.harnessRunDetail') },
+  { id: 'tree', label: t('workspace.harnessRunTree') },
+  { id: 'compare', label: t('workspace.harnessCompare') },
   { id: 'trace', label: t('workspace.harnessTimeline') },
+  { id: 'waterfall', label: t('workspace.harnessWaterfall') },
+  { id: 'artifacts', label: t('workspace.harnessArtifacts') },
   { id: 'policy', label: t('workspace.harnessPolicy') },
   { id: 'checkpoints', label: t('workspace.harnessCheckpoints') },
+  { id: 'recovery', label: t('workspace.harnessRecovery') },
   { id: 'evaluation', label: t('workspace.harnessEvaluation') },
+  { id: 'diagnostics', label: t('workspace.harnessDiagnostics') },
+  { id: 'project', label: t('workspace.harnessProject') },
   { id: 'context', label: t('workspace.harnessContext') },
   { id: 'tools', label: t('workspace.tools') },
   { id: 'session', label: t('workspace.harnessSession') },
@@ -48,9 +72,16 @@ const sections = computed<Array<{ id: Section; label: string }>>(() => [
 
 watch(
   () => sessions.currentId,
-  (sessionId) => void harness.load(sessionId),
+  (sessionId) => {
+    void harness.load(sessionId)
+  },
   { immediate: true }
 )
+
+async function openRunDetail(runId: string): Promise<void> {
+  await harness.loadRunDetail(runId)
+  section.value = 'detail'
+}
 </script>
 
 <template>
@@ -136,10 +167,18 @@ watch(
       </div>
       <template v-if="harness.state">
         <HarnessOverviewPanel v-if="section === 'overview'" :state="harness.state" />
-        <HarnessRunsPanel v-else-if="section === 'runs'" />
+        <HarnessRunsPanel v-else-if="section === 'runs'" @open-detail="openRunDetail" />
+        <HarnessRunDetailPanel v-else-if="section === 'detail'" />
+        <HarnessRunTreePanel v-else-if="section === 'tree'" />
+        <HarnessComparePanel v-else-if="section === 'compare'" />
+        <HarnessWaterfallPanel v-else-if="section === 'waterfall'" />
+        <HarnessArtifactsPanel v-else-if="section === 'artifacts'" />
         <HarnessPolicyPanel v-else-if="section === 'policy'" />
         <HarnessCheckpointsPanel v-else-if="section === 'checkpoints'" />
+        <HarnessRecoveryPanel v-else-if="section === 'recovery'" />
         <HarnessEvaluationPanel v-else-if="section === 'evaluation'" />
+        <HarnessDiagnosticsPanel v-else-if="section === 'diagnostics'" />
+        <HarnessProjectPanel v-else-if="section === 'project'" />
         <HarnessContextPanel v-else-if="section === 'context'" :state="harness.state" />
         <HarnessToolsPanel v-else-if="section === 'tools'" :state="harness.state" />
         <HarnessTimelinePanel v-else-if="section === 'trace'" :events="harness.timeline" />

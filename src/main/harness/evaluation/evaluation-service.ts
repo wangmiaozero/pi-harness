@@ -1,20 +1,41 @@
 /**
  * Harness Evaluation — engineering verification over real run evidence.
  *
- * No LLM judge in this version. Every check is computed from what actually
- * happened: the run verdict, session entries (bash commands + exit codes),
- * tool results and the git workspace state after the run.
+ * No LLM judge in this version. Every check and pipeline stage is computed
+ * from what actually happened: the run verdict, session entries (bash
+ * commands + exit codes), tool results and the git workspace state after
+ * the run. Stages required by the configured preset turn "not executed"
+ * into a visible warning.
  */
 
+import type { JsonStore } from '../../services/storage'
 import type { GitStatusResponse, SessionEntry } from '@shared/types/workspace'
-import type { HarnessEvaluation, HarnessEvaluationCheck, HarnessRun } from '@shared/types/harness'
+import type {
+  HarnessEvaluation,
+  HarnessEvaluationCheck,
+  HarnessEvaluationPipeline,
+  HarnessEvaluationPreset,
+  HarnessEvaluationStage,
+  HarnessEvaluationStageKind,
+  HarnessRun
+} from '@shared/types/harness'
 import { log } from '../../services/logger'
 
-export type ExecutionKind = 'test' | 'lint' | 'build'
+export type ExecutionKind = 'test' | 'lint' | 'typecheck' | 'build'
 
 export interface EvaluationHooks {
   getEntries: (sessionId: string) => Promise<SessionEntry[]>
   getGitStatus: (sessionId: string) => Promise<GitStatusResponse | null>
+}
+
+export interface EvaluationStoreRecord {
+  schemaVersion: 1
+  evaluations: HarnessEvaluation[]
+}
+
+export const EMPTY_EVALUATION_STORE: EvaluationStoreRecord = {
+  schemaVersion: 1,
+  evaluations: []
 }
 
 export interface ExecutedCommand {
@@ -24,6 +45,7 @@ export interface ExecutedCommand {
 }
 
 const MAX_EVIDENCE_FILES = 20
+const MAX_PERSISTED_EVALUATIONS = 200
 /** Wall-clock tolerance when slicing entries for a live run without an anchor. */
 const SLICE_TOLERANCE_MS = 5000
 
@@ -31,28 +53,67 @@ const TEST_COMMAND_PATTERN =
   /(^|\s)(vitest|jest|pytest3?|unittest|go\s+test|cargo\s+test|mvn\s+test|gradle\s+test|make\s+test|rake|ruff\s+check\s+tests)(\s|$)|(^|\s)(npm|pnpm|yarn|bun)\s+(run\s+)?(test|t)(\s|$)/
 const LINT_COMMAND_PATTERN =
   /(^|\s)(eslint|prettier|biome\s+check|ruff\s+check|flake8|rubocop|golangci-lint|clippy|swiftlint)(\s|$)|(^|\s)(npm|pnpm|yarn|bun)\s+(run\s+)?lint(\s|$)/
+const TYPECHECK_COMMAND_PATTERN =
+  /(^|\s)(tsc|vue-tsc|pyright|mypy|cargo\s+check|go\s+vet)(\s|$)|(^|\s)(npm|pnpm|yarn|bun)\s+(run\s+)?(typecheck|check|type-check)(\s|$)/
 const BUILD_COMMAND_PATTERN =
   /(^|\s)(tsc|vite\s+build|webpack|rollup|esbuild|next\s+build|nuxt\s+build|cargo\s+build|go\s+build|make)(\s|$)|(^|\s)(npm|pnpm|yarn|bun)\s+(run\s+)?build(\s|$)/
 
 export class EvaluationService {
   private readonly cache = new Map<string, HarnessEvaluation[]>()
 
-  constructor(private readonly hooks: EvaluationHooks) {}
+  constructor(
+    private readonly hooks: EvaluationHooks,
+    private readonly store?: JsonStore<EvaluationStoreRecord>
+  ) {}
 
-  list(sessionId: string): HarnessEvaluation[] {
-    return [...(this.cache.get(sessionId) ?? [])]
+  list(sessionId: string): Promise<HarnessEvaluation[]> {
+    if (this.store) return this.listPersisted(sessionId)
+    return Promise.resolve([...(this.cache.get(sessionId) ?? [])])
   }
 
-  get(sessionId: string, runId: string): HarnessEvaluation | null {
-    return this.list(sessionId).find((evaluation) => evaluation.runId === runId) ?? null
+  get(sessionId: string, runId: string): Promise<HarnessEvaluation | null> {
+    return this.list(sessionId).then(
+      (items) => items.find((evaluation) => evaluation.runId === runId) ?? null
+    )
   }
 
-  async evaluate(sessionId: string, run: HarnessRun): Promise<HarnessEvaluation> {
+  /** Evaluations for a set of run ids, across sessions (project scope). */
+  async listByRunIds(runIds: readonly string[]): Promise<Map<string, HarnessEvaluation>> {
+    const wanted = new Set(runIds)
+    const result = new Map<string, HarnessEvaluation>()
+    if (!wanted.size) return result
+    if (this.store) {
+      const record = await this.store.read()
+      for (const evaluation of record.evaluations) {
+        if (wanted.has(evaluation.runId)) result.set(evaluation.runId, evaluation)
+      }
+      return result
+    }
+    for (const items of this.cache.values()) {
+      for (const evaluation of items) {
+        if (wanted.has(evaluation.runId) && !result.has(evaluation.runId)) {
+          result.set(evaluation.runId, evaluation)
+        }
+      }
+    }
+    return result
+  }
+
+  async evaluate(
+    sessionId: string,
+    run: HarnessRun,
+    options: {
+      preset?: HarnessEvaluationPreset
+      customStages?: HarnessEvaluationStageKind[]
+    } = {}
+  ): Promise<HarnessEvaluation> {
     const entries = await this.readEntries(sessionId)
     const runEntries = sliceRunEntries(entries, run)
     const commands = collectExecutedCommands(runEntries)
     const fileMutations = collectFileMutations(runEntries)
     const gitStatus = await this.readGitStatus(sessionId)
+    const preset = options.preset ?? 'standard'
+    const customStages = options.customStages ?? []
 
     const checks: HarnessEvaluationCheck[] = []
     checks.push(evaluateRunStatus(run))
@@ -60,28 +121,61 @@ export class EvaluationService {
     checks.push(evaluateToolFailures(run))
     checks.push(evaluateGitWorkspace(gitStatus))
     checks.push(evaluateExpectedChanges(fileMutations, gitStatus))
-    for (const kind of ['test', 'lint', 'build'] as const) {
+    for (const kind of ['test', 'lint', 'typecheck', 'build'] as const) {
       checks.push(...evaluateExecutionChain(kind, commands, fileMutations))
     }
+
+    const pipeline = buildPipeline({
+      run,
+      preset,
+      customStages,
+      commands,
+      fileMutations,
+      gitStatus,
+      checks
+    })
 
     const evaluation: HarnessEvaluation = {
       runId: run.id,
       sessionId,
       evaluatedAt: Date.now(),
-      status: overallStatus(checks),
-      checks
+      status: pipeline.finalStatus,
+      checks,
+      pipeline
     }
-    this.record(evaluation)
+    await this.record(evaluation)
     return evaluation
   }
 
-  record(evaluation: HarnessEvaluation): void {
+  async record(evaluation: HarnessEvaluation): Promise<void> {
+    if (this.store) {
+      await this.recordPersisted(evaluation)
+      return
+    }
     const existing = this.cache.get(evaluation.sessionId) ?? []
     const next = [
       evaluation,
       ...existing.filter((item) => item.runId !== evaluation.runId)
     ].slice(0, 100)
     this.cache.set(evaluation.sessionId, next)
+  }
+
+  private async listPersisted(sessionId: string): Promise<HarnessEvaluation[]> {
+    const record = await this.store!.read()
+    return record.evaluations
+      .filter((item) => item.sessionId === sessionId)
+      .sort((a, b) => b.evaluatedAt - a.evaluatedAt)
+  }
+
+  private async recordPersisted(evaluation: HarnessEvaluation): Promise<void> {
+    const record = await this.store!.read()
+    const next = [
+      evaluation,
+      ...record.evaluations.filter(
+        (item) => !(item.runId === evaluation.runId && item.sessionId === evaluation.sessionId)
+      )
+    ].slice(0, MAX_PERSISTED_EVALUATIONS)
+    await this.store!.write({ schemaVersion: 1, evaluations: next })
   }
 
   private async readEntries(sessionId: string): Promise<SessionEntry[]> {
@@ -102,9 +196,221 @@ export class EvaluationService {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Evaluation Pipeline
+// ---------------------------------------------------------------------------
+
+export interface PipelineInputs {
+  run: HarnessRun
+  preset: HarnessEvaluationPreset
+  customStages: HarnessEvaluationStageKind[]
+  commands: ExecutedCommand[]
+  fileMutations: string[]
+  gitStatus: GitStatusResponse | null
+  checks: HarnessEvaluationCheck[]
+}
+
+/** Stage kinds each preset requires. */
+export function requiredStagesForPreset(
+  preset: HarnessEvaluationPreset,
+  customStages: readonly HarnessEvaluationStageKind[]
+): HarnessEvaluationStageKind[] {
+  switch (preset) {
+    case 'fast':
+      return ['static-check', 'lint', 'typecheck']
+    case 'standard':
+      return ['static-check', 'lint', 'typecheck', 'test', 'build']
+    case 'strict':
+      return ['static-check', 'lint', 'typecheck', 'test', 'build', 'git-inspection', 'custom-check']
+    case 'custom':
+      return ['static-check', ...customStages]
+  }
+}
+
+export function buildPipeline(inputs: PipelineInputs): HarnessEvaluationPipeline {
+  const required = new Set(requiredStagesForPreset(inputs.preset, inputs.customStages))
+  const stages: HarnessEvaluationStage[] = []
+
+  stages.push(staticCheckStage(inputs))
+  for (const kind of ['lint', 'typecheck', 'test', 'build'] as const) {
+    stages.push(commandStage(kind, inputs.commands, required.has(kind)))
+  }
+  stages.push(gitInspectionStage(inputs.gitStatus, required.has('git-inspection')))
+  stages.push(customCheckStage(inputs.fileMutations, inputs.gitStatus, required.has('custom-check')))
+
+  const relevant = stages.filter((stage) => stage.status !== 'skipped')
+  const finalStatus: HarnessEvaluationPipeline['finalStatus'] = relevant.some(
+    (stage) => stage.status === 'failed'
+  )
+    ? 'failed'
+    : relevant.some((stage) => stage.status === 'warning')
+      ? 'warning'
+      : 'passed'
+
+  return {
+    id: `pipe-${inputs.run.id}`,
+    runId: inputs.run.id,
+    name: `${inputs.preset} pipeline`,
+    preset: inputs.preset,
+    stages,
+    finalStatus,
+    startedAt: inputs.run.startedAt,
+    finishedAt: inputs.run.finishedAt ?? inputs.run.startedAt
+  }
+}
+
+function staticCheckStage(inputs: PipelineInputs): HarnessEvaluationStage {
+  const failedChecks = inputs.checks.filter(
+    (check) => check.id === 'run-completed' || check.id === 'unhandled-errors'
+  )
+  const status = failedChecks.some((check) => check.status === 'failed')
+    ? 'failed'
+    : inputs.run.toolFailureCount > 0
+      ? 'warning'
+      : 'passed'
+  const failed = failedChecks.find((check) => check.status === 'failed')
+  return {
+    id: 'stage-static-check',
+    kind: 'static-check',
+    name: 'Static check',
+    status,
+    command: null,
+    duration: null,
+    evidence: failed?.evidence ?? null,
+    message:
+      failed?.message ??
+      (inputs.run.toolFailureCount > 0
+        ? `${inputs.run.toolFailureCount} tool call(s) failed.`
+        : 'Run verdict and tool results are clean.')
+  }
+}
+
+function commandStage(
+  kind: 'lint' | 'typecheck' | 'test' | 'build',
+  commands: readonly ExecutedCommand[],
+  required: boolean
+): HarnessEvaluationStage {
+  const executed = commands.filter((command) => command.kind === kind)
+  const label = kind === 'typecheck' ? 'Typecheck' : kind === 'test' ? 'Tests' : kind === 'lint' ? 'Lint' : 'Build'
+  if (!executed.length) {
+    return {
+      id: `stage-${kind}`,
+      kind,
+      name: label,
+      status: required ? 'warning' : 'skipped',
+      command: null,
+      duration: null,
+      evidence: null,
+      message: required ? `No ${label.toLowerCase()} command was executed.` : null
+    }
+  }
+  const failed = executed.filter((command) => command.exitCode !== null && command.exitCode !== 0)
+  return {
+    id: `stage-${kind}`,
+    kind,
+    name: label,
+    status: failed.length ? 'failed' : 'passed',
+    command: executed[0]?.command ?? null,
+    duration: null,
+    evidence: failed.length
+      ? failed
+          .slice(0, 5)
+          .map((command) => `exit ${command.exitCode}: ${command.command}`)
+          .join('\n')
+      : null,
+    message: failed.length
+      ? `${failed.length} of ${executed.length} ${label.toLowerCase()} command(s) exited non-zero.`
+      : `${executed.length} ${label.toLowerCase()} command(s) passed.`
+  }
+}
+
+function gitInspectionStage(
+  gitStatus: GitStatusResponse | null,
+  required: boolean
+): HarnessEvaluationStage {
+  if (!gitStatus || !gitStatus.isGitRepository) {
+    return {
+      id: 'stage-git-inspection',
+      kind: 'git-inspection',
+      name: 'Git inspection',
+      status: required ? 'warning' : 'skipped',
+      command: null,
+      duration: null,
+      evidence: null,
+      message: required ? 'Not a git repository.' : null
+    }
+  }
+  const conflicts = gitStatus.files.filter((file) => file.code === 'U' || file.code === 'C')
+  return {
+    id: 'stage-git-inspection',
+    kind: 'git-inspection',
+    name: 'Git inspection',
+    status: conflicts.length ? 'failed' : 'passed',
+    command: null,
+    duration: null,
+    evidence: conflicts.length
+      ? conflicts
+          .slice(0, MAX_EVIDENCE_FILES)
+          .map((file) => file.filePath)
+          .join('\n')
+      : null,
+    message: conflicts.length
+      ? `Conflict markers present in ${conflicts.length} file(s).`
+      : gitStatus.files.length
+        ? `${gitStatus.files.length} file(s) modified in the working tree.`
+        : 'Working tree is clean.'
+  }
+}
+
+function customCheckStage(
+  fileMutations: readonly string[],
+  gitStatus: GitStatusResponse | null,
+  _required: boolean
+): HarnessEvaluationStage {
+  if (!fileMutations.length) {
+    return {
+      id: 'stage-custom-check',
+      kind: 'custom-check',
+      name: 'File changes',
+      status: 'passed',
+      command: null,
+      duration: null,
+      evidence: null,
+      message: 'No file mutations were attempted in this run.'
+    }
+  }
+  const changedByGit = gitStatus?.isGitRepository ? gitStatus.files.length > 0 : null
+  if (changedByGit === false) {
+    return {
+      id: 'stage-custom-check',
+      kind: 'custom-check',
+      name: 'File changes',
+      status: 'warning',
+      command: null,
+      duration: null,
+      evidence: fileMutations.slice(0, MAX_EVIDENCE_FILES).join('\n'),
+      message: `The run attempted to modify ${fileMutations.length} file(s) but the working tree shows no changes.`
+    }
+  }
+  return {
+    id: 'stage-custom-check',
+    kind: 'custom-check',
+    name: 'File changes',
+    status: 'passed',
+    command: null,
+    duration: null,
+    evidence: fileMutations.slice(0, MAX_EVIDENCE_FILES).join('\n'),
+    message: `${fileMutations.length} file(s) targeted for modification.`
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Evidence helpers
+// ---------------------------------------------------------------------------
+
 /** Slice session entries belonging to a run (anchor-based, timestamp fallback). */
 export function sliceRunEntries(entries: readonly SessionEntry[], run: HarnessRun): SessionEntry[] {
-  const anchorId = run.id.startsWith('h:') ? run.id.slice(2) : null
+  const anchorId = run.anchorEntryId ?? (run.id.startsWith('h:') ? run.id.slice(2) : null)
   if (anchorId) {
     const startIndex = entries.findIndex((entry) => entry.id === anchorId)
     if (startIndex >= 0) {
@@ -131,6 +437,7 @@ export function classifyExecutionCommand(command: string): ExecutionKind | null 
   const normalized = command.trim().replace(/\s+/g, ' ')
   if (TEST_COMMAND_PATTERN.test(normalized)) return 'test'
   if (LINT_COMMAND_PATTERN.test(normalized)) return 'lint'
+  if (TYPECHECK_COMMAND_PATTERN.test(normalized)) return 'typecheck'
   if (BUILD_COMMAND_PATTERN.test(normalized)) return 'build'
   return null
 }
@@ -336,7 +643,7 @@ function evaluateExecutionChain(
   fileMutations: readonly string[]
 ): HarnessEvaluationCheck[] {
   const executed = commands.filter((command) => command.kind === kind)
-  const label = kind === 'test' ? 'Tests' : kind === 'lint' ? 'Lint' : 'Build'
+  const label = kind === 'test' ? 'Tests' : kind === 'lint' ? 'Lint' : kind === 'typecheck' ? 'Typecheck' : 'Build'
   if (!executed.length) {
     return [
       {
@@ -387,10 +694,4 @@ function evaluateExecutionChain(
           : `${label} commands completed (exit codes unavailable).`
     }
   ]
-}
-
-function overallStatus(checks: readonly HarnessEvaluationCheck[]): HarnessEvaluation['status'] {
-  if (checks.some((check) => check.status === 'failed')) return 'failed'
-  if (checks.some((check) => check.status === 'warning')) return 'warning'
-  return 'passed'
 }

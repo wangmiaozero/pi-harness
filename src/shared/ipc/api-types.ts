@@ -54,17 +54,36 @@ import type {
 } from '../types/workspace'
 import type { ToolPreset } from '../workspace/tool-presets'
 import type {
+  AgentHandoff,
+  AgentTemplate,
+  HarnessAgent,
+  HarnessArtifact,
+  HarnessBaseline,
   HarnessCheckpoint,
   HarnessCompactionResult,
   HarnessEvent,
   HarnessEvaluation,
+  HarnessExportResult,
   HarnessForkResult,
+  HarnessOrchestrationBudget,
+  HarnessOrchestrationRun,
+  HarnessOrchestrationSnapshot,
+  HarnessOrchestrationStrategy,
   HarnessPolicyConfig,
   HarnessPolicySnapshot,
+  HarnessProjectStats,
   HarnessRun,
+  HarnessRunComparison,
+  HarnessRunDetail,
+  HarnessRunTreeNode,
   HarnessSessionInfo,
   HarnessState,
   HarnessStats,
+  HarnessStatsRange,
+  HarnessStoreSettings,
+  HarnessTask,
+  HarnessTaskPriority,
+  HarnessTeam,
   HarnessTool
 } from '../types/harness'
 import type { MascotStyle } from '../constants/mascot'
@@ -964,8 +983,29 @@ export interface PiSwitchAPI {
     stats(sessionId: string): Promise<HarnessStats>
     timeline(sessionId: string): Promise<HarnessEvent[]>
     // Harness Control Plane
-    listRuns(sessionId: string): Promise<HarnessRun[]>
+    listRuns(sessionId: string, scope?: 'session' | 'project'): Promise<HarnessRun[]>
     getRun(sessionId: string, runId: string): Promise<HarnessRun>
+    getRunDetail(sessionId: string, runId: string): Promise<HarnessRunDetail>
+    getRunTree(sessionId: string): Promise<HarnessRunTreeNode[]>
+    compareRuns(sessionId: string, runIdA: string, runIdB: string): Promise<HarnessRunComparison>
+    forkRun(
+      sessionId: string,
+      runId: string,
+      options?: {
+        mode?: 'fork' | 'rerun'
+        fromEventId?: string
+        fromCheckpointId?: string
+        message?: string
+      }
+    ): Promise<{ forked: boolean; newSessionId: string | null; newRunId: string | null }>
+    getBaseline(sessionId: string): Promise<HarnessBaseline | null>
+    setBaseline(sessionId: string, runId: string): Promise<HarnessBaseline>
+    getProjectStats(sessionId: string, range?: HarnessStatsRange): Promise<HarnessProjectStats>
+    exportRun(sessionId: string, runId: string, format: 'json' | 'markdown'): Promise<HarnessExportResult>
+    exportDebugBundle(sessionId: string, runId?: string): Promise<HarnessExportResult>
+    listArtifacts(sessionId: string, runId?: string): Promise<HarnessArtifact[]>
+    getStoreSettings(): Promise<HarnessStoreSettings>
+    updateStoreSettings(settings: HarnessStoreSettings): Promise<HarnessStoreSettings>
     getPolicy(): Promise<HarnessPolicySnapshot>
     setPolicy(config: HarnessPolicyConfig): Promise<HarnessPolicySnapshot>
     listCheckpoints(sessionId: string): Promise<HarnessCheckpoint[]>
@@ -978,6 +1018,109 @@ export interface PiSwitchAPI {
     retryLastRun(sessionId: string): Promise<{ retried: boolean; prompt: string | null }>
     evaluateRun(sessionId: string, runId: string): Promise<HarnessEvaluation>
     listEvaluations(sessionId: string): Promise<HarnessEvaluation[]>
+  }
+  orchestration: {
+    list(): Promise<HarnessOrchestrationRun[]>
+    get(orchestrationId: string): Promise<HarnessOrchestrationRun | null>
+    create(input: {
+      name?: string
+      cwd: string
+      strategy?: HarnessOrchestrationStrategy
+      teamId?: string | null
+      templateIds?: string[]
+      maxConcurrentAgents?: number
+      maxConcurrentRuns?: number
+      budget?: { maxCost?: number | null; maxTokens?: number | null }
+    }): Promise<HarnessOrchestrationRun>
+    delete(orchestrationId: string): Promise<void>
+    start(orchestrationId: string): Promise<HarnessOrchestrationRun>
+    pause(orchestrationId: string, reason?: string): Promise<HarnessOrchestrationRun>
+    resume(orchestrationId: string): Promise<HarnessOrchestrationRun>
+    abort(orchestrationId: string): Promise<HarnessOrchestrationRun>
+    snapshot(orchestrationId: string): Promise<HarnessOrchestrationSnapshot>
+    listTemplates(): Promise<AgentTemplate[]>
+    saveTemplate(template: {
+      id?: string
+      name: string
+      role: string
+      description?: string | null
+      systemPrompt?: string | null
+      provider?: string | null
+      modelId?: string | null
+      thinkingLevel?: string | null
+      toolNames?: string[] | null
+      skillIds?: string[]
+      workspaceMode?: 'shared' | 'worktree'
+      isReviewer?: boolean
+    }): Promise<AgentTemplate>
+    deleteTemplate(templateId: string): Promise<void>
+    listTeams(): Promise<HarnessTeam[]>
+    saveTeam(team: {
+      id?: string
+      name: string
+      description?: string | null
+      agentTemplateIds: string[]
+    }): Promise<HarnessTeam>
+    deleteTeam(teamId: string): Promise<void>
+    listAgents(orchestrationId?: string): Promise<HarnessAgent[]>
+    addAgent(input: {
+      orchestrationId: string
+      name: string
+      role: string
+      description?: string | null
+      provider?: string | null
+      modelId?: string | null
+      thinkingLevel?: string | null
+      toolNames?: string[] | null
+      skillIds?: string[]
+      workspaceMode?: 'shared' | 'worktree'
+      isReviewer?: boolean
+      templateId?: string | null
+      budget?: HarnessOrchestrationBudget
+    }): Promise<HarnessAgent>
+    updateAgent(input: {
+      agentId: string
+      name?: string
+      description?: string | null
+      provider?: string | null
+      modelId?: string | null
+      thinkingLevel?: string | null
+      toolNames?: string[] | null
+      budget?: HarnessOrchestrationBudget
+    }): Promise<HarnessAgent>
+    deleteAgent(agentId: string): Promise<void>
+    setAgentBudget(
+      agentId: string,
+      budget: HarnessOrchestrationBudget
+    ): Promise<HarnessAgent>
+    listTasks(orchestrationId?: string): Promise<HarnessTask[]>
+    createTask(input: {
+      orchestrationId: string
+      title: string
+      description?: string | null
+      priority?: HarnessTaskPriority
+      assignedAgentId?: string | null
+      parentTaskId?: string | null
+      dependencies?: string[]
+      inputArtifactIds?: string[]
+      reviewRequired?: boolean
+    }): Promise<HarnessTask>
+    updateTask(input: {
+      taskId: string
+      title?: string
+      description?: string | null
+      priority?: HarnessTaskPriority
+      assignedAgentId?: string | null
+      parentTaskId?: string | null
+      dependencies?: string[]
+      inputArtifactIds?: string[]
+      reviewRequired?: boolean
+    }): Promise<HarnessTask>
+    deleteTask(taskId: string): Promise<void>
+    retryTask(taskId: string, agentId?: string | null): Promise<HarnessTask>
+    skipTask(taskId: string): Promise<HarnessTask>
+    reassignTask(taskId: string, agentId: string): Promise<HarnessTask>
+    listHandoffs(orchestrationId?: string): Promise<AgentHandoff[]>
   }
   files: {
     list(directory: string): Promise<FileTreeEntry[]>

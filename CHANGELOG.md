@@ -2,6 +2,26 @@
 
 Public release notes contain only released, user-visible additions and fixes.
 
+## 1.5.0
+
+### Added
+
+- Added Run Replay: every run records a redacted trace (spans + events) that can be replayed with play/pause, step, and 0.5x–4x/instant speeds; runs without a recorded trace are replayed from the persisted session log.
+- Added Trace Waterfall: per-run span timeline (model, tool, shell, git, compaction, checkpoint, recovery, evaluation) with durations and status.
+- Added the Run Tree: forks, retries, recoveries, and re-runs branch off their parent runs across sessions.
+- Added Run Compare: pick any two runs to diff model, tokens, cost, duration, tool calls, failures, evaluation stages, prompt, configuration, tools, and changed files.
+- Added Diagnostics: deterministic root-cause chains and recommendations for failed runs (tool/shell/model/provider failures, timeouts, budget exceedance, policy blocks, evaluation failures), plus rule-based insights (token delta vs baseline, tool-failure hotspots, duration and model shares, context compaction).
+- Added Regression Baselines: mark any run as the project baseline and get deterministic threshold findings (±25% warning, ±50% regression, duration ×1.5/×2) on later runs.
+- Added Artifact Tracking: files, test/lint/build logs, checkpoints, and git commits recorded per run from real evidence, with a type filter.
+- Added evaluation presets (fast/standard/strict/custom) with selectable custom stages, and a pipeline view per evaluation.
+- Added project statistics: run/success/failure rates, sessions, average duration and tokens, evaluation pass rate, recovery rate, and top failure categories over today/7d/30d/all-time ranges.
+- Added Fork & Re-run from any run (new session at that entry, or same-session re-execution) and run exports (JSON/Markdown) plus a redacted debug bundle — all exports strip secrets.
+- Added run-history persistence with retention settings (7/30/90/forever) and per-run trace event caps.
+
+### Fixed
+
+- Anchored live runs to their session entries before settling, so persisted runs always keep their prompt anchor and working directory for replay and project statistics.
+
 ## 1.4.0
 
 ### Added

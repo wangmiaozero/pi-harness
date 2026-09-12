@@ -53,6 +53,40 @@ export function harnessCheckpointsPath(): string {
   return path.join(userData(), 'harness-checkpoints.json')
 }
 
+/** Persisted Harness runs (Run Intelligence store). */
+export function harnessRunsPath(): string {
+  return path.join(userData(), 'harness-runs.json')
+}
+
+/** Persisted Harness traces (spans + replay events per run). */
+export function harnessTracesPath(): string {
+  return path.join(userData(), 'harness-traces.json')
+}
+
+/** Persisted Harness artifacts (metadata only). */
+export function harnessArtifactsPath(): string {
+  return path.join(userData(), 'harness-artifacts.json')
+}
+
+/** Persisted Harness evaluations (checks + pipeline). */
+export function harnessEvaluationsPath(): string {
+  return path.join(userData(), 'harness-evaluations.json')
+}
+
+/** Harness baselines (project → run) and store settings. */
+export function harnessBaselinesPath(): string {
+  return path.join(userData(), 'harness-baselines.json')
+}
+
+export function harnessStoreSettingsPath(): string {
+  return path.join(userData(), 'harness-store-settings.json')
+}
+
+/** Multi-Agent Orchestration state (agents, tasks, teams, templates, runs). */
+export function harnessOrchestrationPath(): string {
+  return path.join(userData(), 'harness-orchestration.json')
+}
+
 /** Pi-Harness metadata file (Electron userData). */
 export function appMetadataPath(): string {
   return path.join(userData(), 'metadata.json')

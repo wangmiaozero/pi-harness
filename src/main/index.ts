@@ -43,6 +43,7 @@ import { AgentRuntimeService } from './agent/agent-runtime-service'
 import { WorkspaceService, type WorkspaceStateRecord } from './workspace/workspace-service'
 import { PiHarnessAdapter } from './harness/adapters/pi-harness-adapter'
 import { HarnessRuntime } from './harness/harness-runtime'
+import { createOrchestrator } from './harness/orchestrator/orchestrator-host'
 import { PolicyEngine } from './harness/policy/policy-engine'
 import { DEFAULT_POLICY_CONFIG } from './harness/policy/policy-defaults'
 import { wrapPolicyGuardedTools } from './harness/policy/policy-tool-guard'
@@ -238,6 +239,8 @@ async function bootstrap(): Promise<void> {
     git
   })
   harnessRef.current = harness
+  const orchestrator = createOrchestrator(harness, workspaceState, worktrees)
+
   diagnostics.attachWorkspace({
     sessions,
     agent: harness,
@@ -246,6 +249,18 @@ async function bootstrap(): Promise<void> {
 
   piAgent.attachWindow(() => mainWindow)
   harness.attachWindow(() => mainWindow)
+
+  // Multi-Agent Orchestration — one subscription onto the unified stream.
+  orchestrator.attach()
+  await orchestrator
+    .recoverAll()
+    .then((count) => {
+      if (count) log.harness.info(`recovered ${count} interrupted orchestration(s) after restart`)
+    })
+    .catch((error) => log.harness.warn('orchestration recovery failed:', error))
+  await orchestrator
+    .ensureBuiltinPresets()
+    .catch((error) => log.harness.warn('orchestration presets failed:', error))
 
   registerIpc({
     settingsStore,
@@ -259,6 +274,7 @@ async function bootstrap(): Promise<void> {
     diagnostics,
     environment,
     harness,
+    orchestrator,
     workspace: {
       access,
       files,
@@ -345,6 +361,7 @@ async function bootstrap(): Promise<void> {
     stopAutomaticUpdates()
     unsubscribeUpdateState()
     config.stopWatcher()
+    orchestrator.detach()
     void harness.shutdownAll()
     void workspaceState.close()
   })

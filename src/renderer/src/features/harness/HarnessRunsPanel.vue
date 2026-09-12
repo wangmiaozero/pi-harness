@@ -27,6 +27,14 @@ const selectedEvaluation = computed(
   () => harness.evaluations.find((item) => item.runId === harness.currentRunId) ?? null
 )
 
+const relationTone: Record<string, string> = {
+  original: 'text-[var(--text-tertiary)]',
+  fork: 'text-[var(--accent)]',
+  retry: 'text-[var(--warning)]',
+  recovery: 'text-[var(--success)]',
+  rerun: 'text-[var(--accent)]'
+}
+
 const statusTone: Record<HarnessRunStatus, string> = {
   queued: 'text-[var(--text-tertiary)]',
   running: 'text-[var(--accent)]',
@@ -86,8 +94,26 @@ function tokens(run: HarnessRun): string {
   return run.usage.totalTokens.toLocaleString()
 }
 
+const emit = defineEmits<{ openDetail: [runId: string] }>()
+
 function selectRun(runId: string): void {
   harness.currentRunId = harness.currentRunId === runId ? null : runId
+}
+
+async function openDetail(runId: string): Promise<void> {
+  emit('openDetail', runId)
+}
+
+async function fork(runId: string): Promise<void> {
+  await harness.forkRun(runId, { mode: 'fork' })
+}
+
+async function rerun(runId: string): Promise<void> {
+  await harness.forkRun(runId, { mode: 'rerun' })
+}
+
+async function setScope(scope: 'session' | 'project'): Promise<void> {
+  await harness.setRunScope(scope)
 }
 
 async function evaluate(runId: string): Promise<void> {
@@ -108,18 +134,34 @@ const retryable = computed(
 
 <template>
   <section class="harness-card max-w-4xl" data-testid="harness-runs-panel">
-    <div class="flex items-center justify-between gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-2">
       <h3 class="harness-card-title">{{ $t('workspace.harnessRuns') }}</h3>
-      <button
-        type="button"
-        class="flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
-        :disabled="!retryable || harness.mutating"
-        :title="$t('workspace.harnessRetryLastRunHint')"
-        @click="retry"
-      >
-        <RotateCcw class="size-3" />
-        {{ $t('workspace.harnessRetryLastRun') }}
-      </button>
+      <div class="flex items-center gap-1">
+        <button
+          v-for="scope in ['session', 'project'] as const"
+          :key="scope"
+          type="button"
+          class="rounded-[var(--radius-sm)] border px-2 py-0.5 text-[10.5px] transition-colors"
+          :class="harness.runScope === scope
+            ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)]'
+            : 'border-transparent text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]'"
+          :aria-pressed="harness.runScope === scope"
+          :data-testid="`harness-runs-scope-${scope}`"
+          @click="setScope(scope)"
+        >
+          {{ $t(`workspace.harnessRunsScope_${scope}`) }}
+        </button>
+        <button
+          type="button"
+          class="flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+          :disabled="!retryable || harness.mutating"
+          :title="$t('workspace.harnessRetryLastRunHint')"
+          @click="retry"
+        >
+          <RotateCcw class="size-3" />
+          {{ $t('workspace.harnessRetryLastRun') }}
+        </button>
+      </div>
     </div>
 
     <p v-if="!runs.length" class="mt-4 text-[12px] text-[var(--text-tertiary)]">
@@ -173,6 +215,13 @@ const retryable = computed(
             </span>
             <span v-if="run.source === 'history'" class="text-[var(--text-disabled)]">
               {{ $t('workspace.harnessRunSourceHistory') }}
+            </span>
+            <span
+              v-if="run.relation !== 'original'"
+              :class="relationTone[run.relation] ?? ''"
+              :data-testid="`harness-run-relation`"
+            >
+              {{ $t(`workspace.harnessRunRelation.${run.relation}`) }}
             </span>
           </div>
         </button>
@@ -254,7 +303,7 @@ const retryable = computed(
             </div>
           </div>
 
-          <div class="mt-3 flex items-center gap-2">
+          <div class="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
               class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
@@ -265,6 +314,32 @@ const retryable = computed(
                 <Loader2 v-if="harness.mutating" class="size-3 animate-spin" />
                 {{ $t('workspace.harnessEvaluateRun') }}
               </span>
+            </button>
+            <button
+              type="button"
+              class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+              :data-testid="`harness-run-open-detail`"
+              @click="openDetail(run.id)"
+            >
+              {{ $t('workspace.harnessRunOpenDetail') }}
+            </button>
+            <button
+              type="button"
+              class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+              :disabled="harness.mutating"
+              :title="$t('workspace.harnessForkRunHint')"
+              @click="fork(run.id)"
+            >
+              {{ $t('workspace.harnessForkRun') }}
+            </button>
+            <button
+              type="button"
+              class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+              :disabled="harness.mutating"
+              :title="$t('workspace.harnessRerunRunHint')"
+              @click="rerun(run.id)"
+            >
+              {{ $t('workspace.harnessRerunRun') }}
             </button>
             <span v-if="run.checkpointIds.length" class="inline-flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)]">
               <Clock class="size-3" />{{ run.checkpointIds.length }}
