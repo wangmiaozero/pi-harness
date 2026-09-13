@@ -30,7 +30,8 @@
 <p align="center">
   <a href="#下载"><strong>下载 Pi-Harness</strong></a> ·
   <a href="https://github.com/earendil-works/pi">Pi Agent Harness</a> ·
-  <a href="#当前界面">界面预览</a>
+  <a href="#当前界面">界面预览</a> ·
+  <a href="#技术交流">技术交流</a>
 </p>
 
 <p align="center">
@@ -326,6 +327,16 @@ pnpm test:e2e:only
 Pi-Harness 下一阶段的重点，就是上面展示的可视化 Harness Console。Runtime 与 Context Inspector、Tools Inspector、Compaction Control、Session Tree 和 Harness Timeline 会继续完善。
 
 如果你对这些功能感兴趣，可以给 [Pi-Harness 点一个 ⭐](https://github.com/wangmiaozero/pi-harness/stargazers)，关注后续版本。Star 也能帮助更多 Pi 用户发现这个项目。
+
+## 技术交流
+
+扫码加入 QQ 群 **pi-harness**，交流使用与开发问题。
+
+**QQ群：1109717308**
+
+<p align="center">
+  <img src="docs/qq-group.jpg" width="280" alt="Pi-Harness QQ 群二维码" />
+</p>
 
 ## 致谢
 
