@@ -370,6 +370,8 @@ const api: PiSwitchAPI = {
     commitDetails: (cwd, hash) => invoke(IPC_INVOKE.gitCommitDetails, { cwd, hash }),
     commitDiff: (cwd, hash, filePath) => invoke(IPC_INVOKE.gitCommitDiff, { cwd, hash, filePath }),
     action: (input) => invoke(IPC_INVOKE.gitAction, input),
+    fileHistory: (cwd, filePath, limit) =>
+      invoke(IPC_INVOKE.gitFileHistory, { cwd, filePath, limit }),
     branchContextMenu: (input) => invoke(IPC_INVOKE.gitBranchContextMenu, input)
   },
   worktrees: {

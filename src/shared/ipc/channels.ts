@@ -256,6 +256,7 @@ export const IPC_INVOKE = {
   gitCommitDetails: invoke('git:commit-details'),
   gitCommitDiff: invoke('git:commit-diff'),
   gitAction: invoke('git:action'),
+  gitFileHistory: invoke('git:file-history'),
   gitBranchContextMenu: invoke('git:branch-context-menu'),
 
   worktreeList: invoke('worktree:list'),

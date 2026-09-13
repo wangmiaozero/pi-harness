@@ -1,53 +1,79 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  Archive,
-  ArchiveRestore,
-  ArrowDownToLine,
-  ArrowUpToLine,
-  Copy,
-  GitBranch,
-  GitCommit,
-  RefreshCw,
-  Search,
-  X
-} from '@lucide/vue'
+import { toast } from 'vue-sonner'
+import { Archive, ArchiveRestore, ArrowDownToLine, ArrowUpToLine, ChevronDown, GitBranch, RefreshCw, Search, X } from '@lucide/vue'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
 import type {
   GitAction,
-  GitCommitDetails,
+  GitCommitInfo,
   GitCommitFileInfo,
-  GitCommitInfo
+  GitFileStatus
 } from '@shared/types/workspace'
 import { filterGitCommitsByTip } from '@shared/workspace/git-graph'
 import IconButton from '@renderer/components/ui/IconButton.vue'
-import GitCommitDiffPreview from './GitCommitDiffPreview.vue'
+import ContextMenu from '@renderer/components/ui/ContextMenu.vue'
 import GitHistoryGraph from './GitHistoryGraph.vue'
-import { toast } from 'vue-sonner'
+import GitFileDiffDrawer from './GitFileDiffDrawer.vue'
+import GitFileHistoryDrawer from './GitFileHistoryDrawer.vue'
 
 interface RefSelection {
   name: string
   hash: string
 }
 
+type ContextMenuEntry =
+  | {
+      type: 'action'
+      id: string
+      label: string
+      disabled?: boolean
+      danger?: boolean
+      checked?: boolean
+      inset?: boolean
+      value?: string
+      testId?: string
+    }
+  | { type: 'separator'; id: string }
+  | { type: 'label'; id: string; label: string }
+
+/** Overlay state handed down by GitView so panes below stay alive. */
+defineProps<{
+  selectedHash: string | null
+  /** Working-tree diff drawer (from the commit panel). */
+  workingFile: GitFileStatus | null
+  workingPatch: string
+  workingLoading: boolean
+  /** Historical diff drawer (from the commit review). */
+  commitFile: GitCommitFileInfo | null
+  commitPatch: string
+  commitLoading: boolean
+  commitHash: string | null
+  /** File history drawer (from either file list). */
+  historyFile: string | null
+  historyCommits: GitCommitInfo[]
+  fileHistoryLoading: boolean
+}>()
+
+const emit = defineEmits<{
+  'select-commit': [hash: string]
+  'close-working-diff': []
+  'close-commit-diff': []
+  'close-file-history': []
+  'open-commit': [commit: GitCommitInfo]
+  'select-ref': [selection: RefSelection]
+}>()
+
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
 const commits = ref<GitCommitInfo[]>([])
 const historyLoading = ref(false)
 const actionBusy = ref(false)
-const selectedHash = ref<string | null>(null)
-const selectedDetails = ref<GitCommitDetails | null>(null)
-const detailsLoading = ref(false)
-const selectedFile = ref<GitCommitFileInfo | null>(null)
-const commitPatch = ref('')
-const patchLoading = ref(false)
 const activeRef = ref<RefSelection | null>(null)
 const searchQuery = ref('')
+const pullMenu = ref<{ x: number; y: number } | null>(null)
 let historyRequest = 0
-let detailsRequest = 0
-let patchRequest = 0
 
 const repository = computed(() => workspace.gitStatus?.repositoryRoot ?? null)
 const visibleCommits = computed(() => {
@@ -62,6 +88,14 @@ const visibleCommits = computed(() => {
   )
 })
 
+const pullMenuEntries = computed<ContextMenuEntry[]>(() => [
+  { type: 'action', id: 'pull', label: t('workspace.gitPull') },
+  { type: 'action', id: 'pull-rebase', label: t('workspace.gitPullRebase') },
+  { type: 'separator', id: 's1' },
+  { type: 'action', id: 'fetch', label: t('workspace.gitFetch') },
+  { type: 'action', id: 'push', label: t('workspace.gitPush') }
+])
+
 function clearFilter() {
   activeRef.value = null
 }
@@ -72,7 +106,6 @@ function selectRef(selection: RefSelection) {
     return
   }
   activeRef.value = selection
-  selectedHash.value = selection.hash
 }
 
 async function loadHistory() {
@@ -80,7 +113,6 @@ async function loadHistory() {
   const cwd = repository.value
   if (!cwd) {
     commits.value = []
-    selectedHash.value = null
     activeRef.value = null
     return
   }
@@ -89,9 +121,6 @@ async function loadHistory() {
     const nextCommits = await callApi(() => getApi().git.history(cwd, 200))
     if (request !== historyRequest || repository.value !== cwd) return
     commits.value = nextCommits
-    if (selectedHash.value && !commits.value.some((item) => item.hash === selectedHash.value)) {
-      selectedHash.value = null
-    }
     if (activeRef.value && !commits.value.some((item) => item.hash === activeRef.value?.hash)) {
       activeRef.value = null
     }
@@ -101,59 +130,6 @@ async function loadHistory() {
     toast.error(getErrorMessage(error))
   } finally {
     if (request === historyRequest) historyLoading.value = false
-  }
-}
-
-async function loadDetails(hash: string | null) {
-  const request = ++detailsRequest
-  const cwd = repository.value
-  selectedDetails.value = null
-  selectedFile.value = null
-  commitPatch.value = ''
-  if (!cwd || !hash) return
-  detailsLoading.value = true
-  try {
-    const details = await callApi(() => getApi().git.commitDetails(cwd, hash))
-    if (request !== detailsRequest || repository.value !== cwd || selectedHash.value !== hash) return
-    selectedDetails.value = details
-  } catch (error) {
-    if (request !== detailsRequest || repository.value !== cwd || selectedHash.value !== hash) return
-    toast.error(getErrorMessage(error))
-  } finally {
-    if (request === detailsRequest) detailsLoading.value = false
-  }
-}
-
-function closeCommitDiff() {
-  selectedFile.value = null
-  commitPatch.value = ''
-  patchLoading.value = false
-  patchRequest += 1
-}
-
-async function loadCommitDiff(file: GitCommitFileInfo) {
-  const request = ++patchRequest
-  const cwd = repository.value
-  const details = selectedDetails.value
-  if (!cwd || !details) return
-  selectedFile.value = file
-  commitPatch.value = ''
-  patchLoading.value = true
-  try {
-    const result = await callApi(() => getApi().git.commitDiff(cwd, details.hash, file.path))
-    if (
-      request === patchRequest &&
-      repository.value === cwd &&
-      selectedDetails.value?.hash === details.hash &&
-      selectedFile.value?.path === file.path
-    ) {
-      commitPatch.value = result.patch
-    }
-  } catch (error) {
-    if (request !== patchRequest || repository.value !== cwd) return
-    toast.error(getErrorMessage(error))
-  } finally {
-    if (request === patchRequest) patchLoading.value = false
   }
 }
 
@@ -173,6 +149,13 @@ async function runAction(action: GitAction, label: string) {
   }
 }
 
+async function runPullMenuAction(id: string) {
+  if (id === 'pull') return runAction('pull', t('workspace.gitPull'))
+  if (id === 'pull-rebase') return runAction('pull-rebase', t('workspace.gitPullRebase'))
+  if (id === 'fetch') return runAction('fetch', t('workspace.gitFetch'))
+  if (id === 'push') return runAction('push', t('workspace.gitPush'))
+}
+
 function focusCommitPanel() {
   const textarea = document.querySelector<HTMLTextAreaElement>(
     '[data-testid="git-commit-panel"] textarea'
@@ -184,20 +167,26 @@ function openCreateBranch() {
   document.querySelector<HTMLButtonElement>('[data-testid="git-create-branch-sidebar"]')?.click()
 }
 
-async function copyHash() {
-  if (!selectedDetails.value) return
-  await navigator.clipboard.writeText(selectedDetails.value.hash)
+/** A ref picked in the sidebar filters the graph; a commit locates a row. */
+function applySidebarRef(selection: RefSelection) {
+  selectRef(selection)
 }
 
-function fileStatusClass(status: GitCommitFileInfo['status']): string {
-  if (status === 'A') return 'text-[var(--success)]'
-  if (status === 'D') return 'text-[var(--danger)]'
-  if (status === 'R' || status === 'C') return 'text-[var(--warning)]'
-  return 'text-[var(--accent)]'
+function locateCommit(hash: string) {
+  emit('select-commit', hash)
+  requestAnimationFrame(() => {
+    const row = document.querySelector(`[data-commit-hash="${hash}"]`)
+    row?.scrollIntoView({ block: 'center' })
+  })
 }
 
 watch([repository, () => workspace.gitRevision], loadHistory, { immediate: true })
-watch(selectedHash, loadDetails)
+
+defineExpose({
+  applySidebarRef,
+  locateCommit,
+  loadHistory
+})
 </script>
 
 <template>
@@ -209,7 +198,7 @@ watch(selectedHash, loadDetails)
       class="git-toolbar flex h-11 shrink-0 items-center gap-1 border-b border-[var(--border-subtle)] px-2"
     >
       <button type="button" class="git-command" @click="focusCommitPanel">
-        <GitCommit class="size-3.5" />{{ $t('workspace.gitCommit') }}
+        {{ $t('workspace.gitCommit') }}
       </button>
       <button
         type="button"
@@ -219,6 +208,21 @@ watch(selectedHash, loadDetails)
         @click="runAction('pull', $t('workspace.gitPull'))"
       >
         <ArrowDownToLine class="size-3.5" />{{ $t('workspace.gitPull') }}
+      </button>
+      <button
+        type="button"
+        class="git-command git-command--careted"
+        :disabled="actionBusy"
+        :aria-label="$t('workspace.gitPullMode')"
+        data-testid="git-pull-mode"
+        @click.stop="
+          pullMenu = {
+            x: ($event.currentTarget as HTMLElement).getBoundingClientRect().left,
+            y: ($event.currentTarget as HTMLElement).getBoundingClientRect().bottom + 4
+          }
+        "
+      >
+        <ChevronDown class="size-3" />
       </button>
       <button
         type="button"
@@ -279,9 +283,7 @@ watch(selectedHash, loadDetails)
       </div>
     </header>
 
-    <div
-      class="flex h-10 shrink-0 items-center gap-2 border-b border-[var(--border-subtle)] px-3"
-    >
+    <div class="flex h-10 shrink-0 items-center gap-2 border-b border-[var(--border-subtle)] px-3">
       <GitBranch class="size-3.5 text-[var(--accent)]" :stroke-width="1.7" />
       <span class="text-[11.5px] font-medium text-[var(--text-primary)]">
         {{ $t('workspace.gitGraph') }}
@@ -310,97 +312,60 @@ watch(selectedHash, loadDetails)
       </IconButton>
     </div>
 
-    <div class="relative flex min-h-0 min-w-0 flex-1">
-      <GitCommitDiffPreview
-        v-if="selectedFile && selectedDetails"
-        :file="selectedFile"
-        :patch="commitPatch"
-        :loading="patchLoading"
-        :commit-hash="selectedDetails.hash"
-        @close="closeCommitDiff"
-      />
+    <!-- The graph pane: drawers OVERLAY it instead of replacing it, so its
+         scroll position and selection survive open/close. -->
+    <div class="relative min-h-0 min-w-0 flex-1">
       <GitHistoryGraph
-        v-else
-        class="min-h-0 min-w-0 flex-1"
+        class="absolute inset-0 min-h-0 min-w-0"
         :commits="visibleCommits"
         :loading="historyLoading"
         :selected-hash="selectedHash"
         :active-ref="activeRef?.name ?? null"
-        @select="selectedHash = $event.hash"
+        @select="emit('select-commit', $event.hash)"
         @select-ref="selectRef"
       />
 
-      <aside
-        v-if="selectedHash"
-        class="git-review-panel flex min-h-0 shrink-0 flex-col border-l border-[var(--border-subtle)] bg-[var(--bg-surface-raised)]"
-        data-testid="git-commit-review"
-      >
-        <header class="flex h-10 shrink-0 items-center gap-2 border-b border-[var(--border-subtle)] px-3">
-          <span class="text-[10.5px] font-semibold text-[var(--text-secondary)]">
-            {{ $t('workspace.gitCommitDetails') }}
-          </span>
-          <IconButton class="ml-auto" :label="$t('common.close')" @click="selectedHash = null">
-            <X class="size-3.5" />
-          </IconButton>
-        </header>
+      <GitFileHistoryDrawer
+        v-if="historyFile"
+        :file-path="historyFile"
+        :commits="historyCommits"
+        :loading="fileHistoryLoading"
+        @close="emit('close-file-history')"
+        @select-commit="emit('open-commit', $event)"
+      />
 
-        <div v-if="detailsLoading" class="space-y-2 p-3">
-          <div class="h-4 animate-pulse rounded bg-[var(--bg-hover)]" />
-          <div class="h-12 animate-pulse rounded bg-[var(--bg-hover)]" />
-        </div>
-        <template v-else-if="selectedDetails">
-          <div class="shrink-0 border-b border-[var(--border-subtle)] p-3">
-            <h3 class="text-[12px] font-semibold leading-snug text-[var(--text-primary)]">
-              {{ selectedDetails.subject }}
-            </h3>
-            <p
-              v-if="selectedDetails.body"
-              class="mt-1 whitespace-pre-wrap text-[10.5px] leading-relaxed text-[var(--text-secondary)]"
-            >
-              {{ selectedDetails.body }}
-            </p>
-            <p class="mt-2 text-[9.5px] text-[var(--text-tertiary)]">
-              {{ selectedDetails.author }} &lt;{{ selectedDetails.email }}&gt;
-            </p>
-            <div class="mt-1 flex items-center gap-1 text-[9.5px] text-[var(--text-tertiary)]">
-              <code>{{ selectedDetails.hash }}</code>
-              <IconButton :label="$t('common.copy')" @click="copyHash">
-                <Copy class="size-3" />
-              </IconButton>
-            </div>
-          </div>
+      <GitFileDiffDrawer
+        v-if="commitFile"
+        :file-path="commitFile.path"
+        :patch="commitPatch"
+        :loading="commitLoading"
+        :badge="$t('workspace.gitHistoricalDiff')"
+        :commit-hash="commitHash"
+        test-id="git-historical-diff"
+        @close="emit('close-commit-diff')"
+      />
 
-          <div class="flex min-h-0 flex-1 flex-col">
-            <div class="shrink-0 border-b border-[var(--border-subtle)] px-3 py-2 text-[10px] font-semibold text-[var(--text-secondary)]">
-              {{ $t('workspace.gitChangedFiles', { count: selectedDetails.files.length }) }}
-            </div>
-            <div class="min-h-0 flex-1 overflow-y-auto p-1">
-              <button
-                v-for="file in selectedDetails.files"
-                :key="`${file.status}-${file.path}`"
-                type="button"
-                class="flex w-full min-w-0 items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-left hover:bg-[var(--bg-hover)]"
-                :class="selectedFile?.path === file.path ? 'bg-[var(--bg-selected)]' : ''"
-                @click="loadCommitDiff(file)"
-              >
-                <span class="w-3 shrink-0 font-mono text-[9.5px] font-bold" :class="fileStatusClass(file.status)">
-                  {{ file.status }}
-                </span>
-                <span class="min-w-0 flex-1 truncate text-[10px] text-[var(--text-secondary)]">
-                  {{ file.path }}
-                </span>
-              </button>
-              <div
-                v-if="!selectedDetails.files.length"
-                class="flex min-h-28 items-center justify-center px-4 text-center text-[10px] text-[var(--text-disabled)]"
-              >
-                {{ $t('workspace.gitNoPatch') }}
-              </div>
-            </div>
-          </div>
-        </template>
-      </aside>
+      <GitFileDiffDrawer
+        v-if="workingFile"
+        :file-path="workingFile.filePath"
+        :patch="workingPatch"
+        :loading="workingLoading"
+        :badge="$t('workspace.gitWorkingDiff')"
+        test-id="git-working-diff"
+        @close="emit('close-working-diff')"
+      />
     </div>
+
+    <ContextMenu
+      :open="Boolean(pullMenu)"
+      :x="pullMenu?.x ?? 0"
+      :y="pullMenu?.y ?? 0"
+      :label="t('workspace.gitPullMode')"
+      :entries="pullMenuEntries"
+      test-id="git-pull-mode-menu"
+      @close="pullMenu = null"
+      @select="runPullMenuAction"
+    />
   </div>
 </template>
 
@@ -421,6 +386,10 @@ watch(selectedHash, loadDetails)
   white-space: nowrap;
 }
 
+.git-command--careted {
+  padding: 0 0.15rem;
+}
+
 .git-command:hover:not(:disabled) {
   background: var(--bg-hover);
   color: var(--text-primary);
@@ -429,10 +398,6 @@ watch(selectedHash, loadDetails)
 .git-command:disabled {
   cursor: not-allowed;
   opacity: 0.45;
-}
-
-.git-review-panel {
-  width: clamp(320px, 30%, 440px);
 }
 
 @container (max-width: 820px) {
@@ -447,11 +412,6 @@ watch(selectedHash, loadDetails)
   .git-command svg {
     flex: none;
     text-indent: 0;
-  }
-
-  .git-review-panel {
-    width: min(440px, 60%);
-    min-width: 320px;
   }
 }
 </style>

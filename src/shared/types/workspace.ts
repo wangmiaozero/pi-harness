@@ -311,12 +311,36 @@ export interface GitSubmoduleInfo {
   state: 'clean' | 'modified' | 'uninitialized' | 'conflict'
 }
 
+export interface GitTagInfo {
+  name: string
+  hash: string
+}
+
+export interface GitStashInfo {
+  ref: string
+  message: string
+  /** Unix epoch seconds of the stash commit. */
+  timestamp: number
+  /** First parent of the stash commit — the commit it was taken on. */
+  baseHash: string
+}
+
+export interface GitActivityDay {
+  /** Local date as YYYY-MM-DD. */
+  date: string
+  commits: number
+}
+
 export interface GitRepositoryOverview {
   currentBranch: string | null
   detached: boolean
   branches: GitBranchInfo[]
   remotes: GitRemoteInfo[]
   stashCount: number
+  stashes: GitStashInfo[]
+  tags: GitTagInfo[]
+  /** Commits per day over roughly the last 26 weeks, for the sidebar heatmap. */
+  activity: GitActivityDay[]
   pullRequests: GitPullRequestState
   submodules: GitSubmoduleInfo[]
 }
@@ -341,18 +365,30 @@ export type GitAction =
   | 'fetch'
   | 'pull'
   | 'pull-rebase'
+  | 'pull-merge'
   | 'push'
+  | 'force-push'
   | 'create-branch'
   | 'checkout-branch'
   | 'checkout-remote'
+  | 'checkout-tag'
+  | 'create-tag'
+  | 'delete-tag'
+  | 'push-tag'
   | 'stash'
   | 'stash-pop'
+  | 'stash-apply'
+  | 'stash-drop'
   | 'merge'
   | 'rebase'
+  | 'fast-forward'
   | 'rename-branch'
   | 'delete-branch'
   | 'set-upstream'
   | 'unset-upstream'
+  | 'discard-file'
+  | 'discard-all'
+  | 'amend-commit'
 
 export interface GitActionRequest {
   cwd: string

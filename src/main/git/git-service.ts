@@ -5,6 +5,7 @@ import { gitExec, isEmptyGitHistory, isNotAGitRepository } from './git-exec'
 import { GitError } from '../services/errors'
 import type { FileAccessService } from '../files/file-access-service'
 import type {
+  GitActivityDay,
   GitCommitInfo,
   GitCommitDetails,
   GitCommitDiffResponse,
@@ -14,7 +15,9 @@ import type {
   GitFileDiffResponse,
   GitPullRequestState,
   GitRepositoryOverview,
-  GitStatusResponse
+  GitStashInfo,
+  GitStatusResponse,
+  GitTagInfo
 } from '@shared/types/workspace'
 import { classifyGitStatus, parseGitPorcelainV1 } from '@shared/workspace/git-status'
 import { TEXT_PREVIEW_MAX_BYTES } from '@shared/workspace/file-types'
@@ -321,21 +324,47 @@ export class GitService {
 
   async overview(cwd: string): Promise<GitRepositoryOverview> {
     const repositoryRoot = await this.repository(cwd)
-    const [currentBranch, branchText, remoteNamesText, stashText, submoduleText] =
-      await Promise.all([
-        gitExec(repositoryRoot, ['symbolic-ref', '--quiet', '--short', 'HEAD'])
-          .then((value) => value.trim() || null)
-          .catch(() => null),
-        gitExec(repositoryRoot, [
-          'for-each-ref',
-          '--format=%(refname)%00%(refname:short)%00%(objectname)%00%(upstream:short)%00%(upstream:track)',
-          'refs/heads',
-          'refs/remotes'
-        ]),
-        gitExec(repositoryRoot, ['remote']).catch(() => ''),
-        gitExec(repositoryRoot, ['stash', 'list', '--format=%gd']).catch(() => ''),
-        gitExec(repositoryRoot, ['submodule', 'status', '--recursive']).catch(() => '')
-      ])
+    const [
+      currentBranch,
+      branchText,
+      remoteNamesText,
+      stashText,
+      submoduleText,
+      tagText,
+      activityText
+    ] = await Promise.all([
+      gitExec(repositoryRoot, ['symbolic-ref', '--quiet', '--short', 'HEAD'])
+        .then((value) => value.trim() || null)
+        .catch(() => null),
+      gitExec(repositoryRoot, [
+        'for-each-ref',
+        '--format=%(refname)%00%(refname:short)%00%(objectname)%00%(upstream:short)%00%(upstream:track)',
+        'refs/heads',
+        'refs/remotes'
+      ]),
+      gitExec(repositoryRoot, ['remote']).catch(() => ''),
+      gitExec(repositoryRoot, [
+        'stash',
+        'list',
+        '--format=%gd%09%at%09%P%09%gs'
+      ]).catch(() => ''),
+      gitExec(repositoryRoot, ['submodule', 'status', '--recursive']).catch(() => ''),
+      gitExec(repositoryRoot, [
+        'for-each-ref',
+        '--sort=-creatordate',
+        // %(*objectname) dereferences annotated tags to their commit.
+        '--format=%(refname:short)%09%(objectname)%09%(*objectname)',
+        'refs/tags'
+      ]).catch(() => ''),
+      gitExec(repositoryRoot, [
+        'log',
+        '--all',
+        '--no-merges',
+        `--since=${GIT_ACTIVITY_DAYS}.days`,
+        '--format=%ad',
+        '--date=format:%Y-%m-%d'
+      ]).catch(() => '')
+    ])
 
     const remoteNames = remoteNamesText.split(/\r?\n/).map((value) => value.trim()).filter(Boolean)
     const remotes = await Promise.all(
@@ -344,6 +373,21 @@ export class GitService {
         url: (await gitExec(repositoryRoot, ['config', '--get', `remote.${name}.url`]).catch(() => '')).trim()
       }))
     )
+    const stashes: GitStashInfo[] = stashText
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .flatMap((line) => {
+        const [ref = '', timestampText = '', parents = '', ...messageParts] = line.split('\t')
+        const message = messageParts.join('\t').replace(/^On [^:]+: /, '')
+        const timestamp = Number(timestampText)
+        if (!ref) return []
+        return [{
+          ref,
+          message,
+          timestamp: Number.isFinite(timestamp) ? timestamp : 0,
+          baseHash: parents.split(' ')[0] ?? ''
+        } satisfies GitStashInfo]
+      })
     const branches = branchText
       .split(/\r?\n/)
       .filter(Boolean)
@@ -368,7 +412,10 @@ export class GitService {
       detached: currentBranch === null,
       branches,
       remotes,
-      stashCount: stashText.split(/\r?\n/).filter(Boolean).length,
+      stashCount: stashes.length,
+      stashes,
+      tags: parseTags(tagText),
+      activity: parseActivity(activityText),
       pullRequests: await githubPullRequests(repositoryRoot, remotes),
       submodules: parseSubmodules(submoduleText)
     }
@@ -440,6 +487,50 @@ export class GitService {
     }
   }
 
+  /** Commits that touched a file, newest first — the file history pane. */
+  async fileHistory(cwd: string, filePath: string, limit = 100): Promise<GitCommitInfo[]> {
+    const repositoryRoot = await this.repository(cwd)
+    const relativePath = assertRepositoryRelativePath(repositoryRoot, filePath)
+    const output = await gitExec(
+      repositoryRoot,
+      [
+        'log',
+        `--max-count=${limit}`,
+        '--decorate=short',
+        '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%D%x1f%s%x1e',
+        '--',
+        relativePath
+      ],
+      { maxBuffer: 2 * 1024 * 1024 }
+    ).catch((error) => {
+      if (isEmptyGitHistory(error)) return ''
+      throw error
+    })
+    return output
+      .split('\x1e')
+      .map((record) => record.replace(/^\s+|\s+$/g, ''))
+      .filter(Boolean)
+      .flatMap((record) => {
+        const [hash, parents = '', author = '', email = '', authoredAt = '', refs = '', subject = ''] =
+          record.split('\x1f')
+        if (!hash) return []
+        return [
+          {
+            hash,
+            parents: parents.split(' ').filter(Boolean),
+            author,
+            email,
+            authoredAt,
+            refs: refs
+              .split(',')
+              .map((ref) => ref.trim())
+              .filter(Boolean),
+            subject
+          }
+        ]
+      })
+  }
+
   async action(input: GitActionRequest): Promise<GitActionResponse> {
     const repositoryRoot = await this.mutableRepository(input.cwd)
     const target = input.target ? assertGitRef(input.target) : null
@@ -457,9 +548,33 @@ export class GitService {
       case 'pull-rebase':
         args = ['pull', '--rebase']
         break
+      case 'pull-merge':
+        args = ['pull', '--no-rebase']
+        break
       case 'push':
         args = await this.pushArgs(repositoryRoot, target)
         break
+      case 'force-push': {
+        if (!target) throw new GitError('Branch is required.')
+        const upstreamText = await gitExec(repositoryRoot, [
+          'for-each-ref',
+          '--format=%(upstream:short) %(upstream:objectname)',
+          `refs/heads/${target}`
+        ])
+          .then((value) => value.trim())
+          .catch(() => '')
+        const [remoteName = '', expectedHash = ''] = upstreamText.split(' ')
+        if (!remoteName) throw new GitError('The branch has no upstream to force-push to.')
+        args = [
+          'push',
+          expectedHash
+            ? `--force-with-lease=refs/heads/${target}:${expectedHash}`
+            : '--force-with-lease',
+          remoteName,
+          target
+        ]
+        break
+      }
       case 'create-branch':
         if (!name) throw new GitError('Branch name is required.')
         args = ['switch', '-c', name, target ?? 'HEAD']
@@ -478,11 +593,43 @@ export class GitService {
         args = exists ? ['switch', localName] : ['switch', '--track', '-c', localName, target]
         break
       }
+      case 'checkout-tag': {
+        if (!target) throw new GitError('Tag is required.')
+        args = ['checkout', '--detach', target]
+        break
+      }
+      case 'create-tag': {
+        if (!name) throw new GitError('Tag name is required.')
+        args = ['tag', name, target ?? 'HEAD']
+        break
+      }
+      case 'delete-tag': {
+        if (!target) throw new GitError('Tag is required.')
+        args = ['tag', '-d', target]
+        break
+      }
+      case 'push-tag': {
+        if (!target) throw new GitError('Tag is required.')
+        const remote = name ?? (await gitExec(repositoryRoot, ['remote'])
+          .then((value) => value.split(/\r?\n/).map((item) => item.trim()).find(Boolean) ?? '')
+          .catch(() => ''))
+        if (!remote) throw new GitError('No remote is configured for this repository.')
+        args = ['push', remote, 'tag', target]
+        break
+      }
       case 'stash':
         args = ['stash', 'push', '-u', ...(input.message?.trim() ? ['-m', input.message.trim()] : [])]
         break
       case 'stash-pop':
-        args = ['stash', 'pop']
+        args = ['stash', 'pop', ...(target ? [target] : [])]
+        break
+      case 'stash-apply':
+        if (!target) throw new GitError('Stash is required.')
+        args = ['stash', 'apply', target]
+        break
+      case 'stash-drop':
+        if (!target) throw new GitError('Stash is required.')
+        args = ['stash', 'drop', target]
         break
       case 'merge':
         if (!target) throw new GitError('Branch to merge is required.')
@@ -492,6 +639,28 @@ export class GitService {
         if (!target) throw new GitError('Rebase target is required.')
         args = ['rebase', target]
         break
+      case 'fast-forward': {
+        if (!target) throw new GitError('Branch is required.')
+        const current = await gitExec(repositoryRoot, ['symbolic-ref', '--quiet', '--short', 'HEAD'])
+          .then((value) => value.trim())
+          .catch(() => '')
+        if (target === current) {
+          // The checked-out branch cannot be updated by refspec; a merge
+          // with --ff-only keeps the same no-surprises guarantee.
+          args = ['merge', '--ff-only', target]
+        } else {
+          const upstreamRef = await gitExec(repositoryRoot, [
+            'for-each-ref',
+            '--format=%(upstream:short)',
+            `refs/heads/${target}`
+          ])
+            .then((value) => value.trim())
+            .catch(() => '')
+          const remoteName = upstreamRef.split('/')[0] || 'origin'
+          args = ['fetch', remoteName, `${target}:${target}`]
+        }
+        break
+      }
       case 'rename-branch':
         if (!target || !name) throw new GitError('Old and new branch names are required.')
         args = ['branch', '-m', target, name]
@@ -508,6 +677,24 @@ export class GitService {
         if (!target) throw new GitError('Branch is required.')
         args = ['branch', '--unset-upstream', target]
         break
+      case 'discard-file': {
+        if (!target) throw new GitError('File is required.')
+        const relativePath = assertRepositoryRelativePath(repositoryRoot, target)
+        args = ['restore', '--', relativePath]
+        break
+      }
+      case 'discard-all':
+        args = ['reset', '-q', 'HEAD']
+        await gitExec(repositoryRoot, args, { timeout: 120_000 })
+        args = ['restore', '--', '.']
+        await gitExec(repositoryRoot, args, { timeout: 120_000 })
+        args = ['clean', '-fd']
+        break
+      case 'amend-commit': {
+        if (!input.message?.trim()) throw new GitError('Commit message is required.')
+        args = ['commit', '--amend', '-m', input.message.trim()]
+        break
+      }
     }
 
     const output = await gitExec(repositoryRoot, args, { timeout: 120_000 })
@@ -612,6 +799,45 @@ function parseSubmodules(output: string): GitRepositoryOverview['submodules'] {
     const state = marker === '-' ? 'uninitialized' : marker === '+' ? 'modified' : marker === 'U' ? 'conflict' : 'clean'
     return [{ path: match[2], hash: match[1], state }]
   })
+}
+
+function parseTags(output: string): GitTagInfo[] {
+  return output
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .flatMap((line) => {
+      const [name = '', objectHash = '', commitHash = ''] = line.split('\t')
+      if (!name) return []
+      // Annotated tags dereference to their commit; lightweight tags are
+      // their own commit.
+      const hash = commitHash || objectHash
+      return [{ name, hash } satisfies GitTagInfo]
+    })
+}
+
+/** Days of commit history the sidebar heatmap covers (≈26 weeks). */
+const GIT_ACTIVITY_DAYS = 182
+
+function parseActivity(output: string): GitActivityDay[] {
+  const counts = new Map<string, number>()
+  for (const line of output.split(/\r?\n/)) {
+    const date = line.trim()
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
+    counts.set(date, (counts.get(date) ?? 0) + 1)
+  }
+  const days: GitActivityDay[] = []
+  if (!counts.size) return days
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const first = new Date(today)
+  first.setDate(first.getDate() - (GIT_ACTIVITY_DAYS - 1))
+  for (let cursor = new Date(first); cursor <= today; cursor.setDate(cursor.getDate() + 1)) {
+    const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(
+      cursor.getDate()
+    ).padStart(2, '0')}`
+    days.push({ date: key, commits: counts.get(key) ?? 0 })
+  }
+  return days
 }
 
 async function githubPullRequests(

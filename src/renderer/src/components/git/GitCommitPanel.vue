@@ -1,24 +1,38 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { Minus, Plus, Sparkles } from '@lucide/vue'
+import { Minus, Plus, Sparkles, Undo2 } from '@lucide/vue'
 import Button from '@renderer/components/ui/Button.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
+import ContextMenu from '@renderer/components/ui/ContextMenu.vue'
 import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useModelsStore } from '@renderer/stores/models'
-import type { GitFileStatus } from '@shared/types/workspace'
+import { askConfirm } from '@renderer/composables/useConfirmDialog'
+import type { GitFileStatus, GitActionRequest } from '@shared/types/workspace'
 
-const emit = defineEmits<{ 'open-diff': [] }>()
+/**
+ * Right panel, following WangmiaoGit's CommitPanelView: unstaged / staged
+ * file sections that size to their content, then the message area pinned
+ * below with amend + AI generate + the commit button. Selecting a commit
+ * in the graph draws CommitDetailView OVER this panel, so layout below
+ * stays intact.
+ */
+const emit = defineEmits<{
+  'open-file': [file: GitFileStatus]
+  'file-history': [filePath: string]
+}>()
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
 const models = useModelsStore()
 const message = ref('')
+const amend = ref(false)
 const mutating = ref(false)
 const generating = ref(false)
 const committing = ref(false)
+const fileMenu = ref<{ file: GitFileStatus; x: number; y: number } | null>(null)
 
 const repository = computed(() => workspace.gitStatus?.repositoryRoot ?? null)
 const files = computed(() => workspace.gitStatus?.files ?? [])
@@ -35,10 +49,20 @@ const activeModel = computed(() => {
   return provider && model ? `${provider}/${model}` : t('workspace.gitNoActiveModel')
 })
 
-function openDiff(file: GitFileStatus) {
-  workspace.openDiffTab(file.filePath, `Diff: ${workspace.gitDisplayFilePath(file.filePath)}`)
-  emit('open-diff')
-}
+// Amend needs the previous commit's subject as the starting message.
+watch(amend, async (amending) => {
+  const cwd = repository.value
+  if (!amending || !cwd || message.value) {
+    if (!amending) message.value = ''
+    return
+  }
+  try {
+    const details = await callApi(() => getApi().git.history(cwd, 1))
+    message.value = details[0]?.subject ?? ''
+  } catch {
+    // Leave the box empty; the user can type over it either way.
+  }
+})
 
 async function mutate(action: 'stage' | 'unstage', targets: GitFileStatus[]) {
   const cwd = repository.value
@@ -57,6 +81,37 @@ async function mutate(action: 'stage' | 'unstage', targets: GitFileStatus[]) {
   } finally {
     mutating.value = false
   }
+}
+
+async function runAction(input: Omit<GitActionRequest, 'cwd'>, label: string) {
+  const cwd = repository.value
+  if (!cwd || mutating.value) return
+  mutating.value = true
+  try {
+    await callApi(() => getApi().git.action({ cwd, ...input }))
+    await workspace.refreshContent()
+    toast.success(t('workspace.gitActionDone', { action: label }))
+  } catch (error) {
+    toast.error(getErrorMessage(error))
+  } finally {
+    mutating.value = false
+  }
+}
+
+async function discard(file: GitFileStatus) {
+  const ok = await askConfirm({
+    title: t('workspace.gitDiscardFile'),
+    description: t('workspace.gitDiscardFileConfirm', { file: workspace.gitDisplayFilePath(file.filePath) }),
+    confirmLabel: t('workspace.gitDiscard'),
+    tone: 'danger'
+  })
+  if (!ok) return
+  if (file.indexStatus === '?') {
+    // Untracked: restore cannot remove it, drop the file itself.
+    await runAction({ action: 'discard-all' }, t('workspace.gitDiscard'))
+    return
+  }
+  await runAction({ action: 'discard-file', target: file.filePath }, t('workspace.gitDiscard'))
 }
 
 async function generate() {
@@ -79,111 +134,228 @@ async function commit() {
   const value = message.value.trim()
   if (!cwd || !value || !staged.value.length || conflicted.value || committing.value) return
   committing.value = true
+  const amending = amend.value
+  let toastHash = ''
   try {
-    const result = await callApi(() => getApi().git.commit(cwd, value))
+    if (amending) {
+      const result = await callApi(() =>
+        getApi().git.action({ cwd, action: 'amend-commit', message: value })
+      )
+      amend.value = false
+      toastHash = result.hash?.slice(0, 7) ?? ''
+    } else {
+      const result = await callApi(() => getApi().git.commit(cwd, value))
+      toastHash = result.hash.slice(0, 7)
+    }
     message.value = ''
     await workspace.refreshContent()
-    toast.success(t('workspace.gitCommitted', { hash: result.hash.slice(0, 7) }))
+    toast.success(
+      toastHash ? t('workspace.gitCommitted', { hash: toastHash }) : t('workspace.gitAmended')
+    )
   } catch (error) {
     toast.error(getErrorMessage(error))
   } finally {
     committing.value = false
   }
 }
+
+const fileMenuEntries = computed(() => {
+  const file = fileMenu.value?.file
+  if (!file) return []
+  const isStaged = file.indexStatus !== ' ' && file.indexStatus !== '?'
+  const entries: Array<
+    | { type: 'action'; id: string; label: string; disabled?: boolean; danger?: boolean }
+    | { type: 'separator'; id: string }
+  > = [
+    {
+      type: 'action',
+      id: isStaged ? 'unstage' : 'stage',
+      label: isStaged ? t('workspace.gitUnstage') : t('workspace.gitStage')
+    },
+    {
+      type: 'action',
+      id: 'stash-file',
+      label: t('workspace.gitStashFile')
+    },
+    {
+      type: 'action',
+      id: 'file-history',
+      label: t('workspace.gitFileHistory')
+    },
+    { type: 'separator', id: 's1' }
+  ]
+  if (file.indexStatus !== '?') {
+    entries.push({
+      type: 'action',
+      id: 'discard',
+      label: t('workspace.gitDiscard'),
+      danger: true
+    })
+  }
+  return entries
+})
+
+async function runFileMenuAction(action: string) {
+  const file = fileMenu.value?.file
+  if (!file) return
+  if (action === 'stage') return mutate('stage', [file])
+  if (action === 'unstage') return mutate('unstage', [file])
+  if (action === 'discard') return discard(file)
+  if (action === 'file-history') return emit('file-history', file.filePath)
+  if (action === 'stash-file') {
+    await runAction(
+      { action: 'stash', ...(file.indexStatus !== '?' ? { target: file.filePath } : {}) },
+      t('workspace.gitStash')
+    )
+  }
+}
+
+function statusClass(status: string, area: 'worktree' | 'index'): string {
+  const code = area === 'worktree' ? status : status
+  if (code === 'A' || code === '?') return 'text-[var(--success)]'
+  if (code === 'D') return 'text-[var(--danger)]'
+  if (code === 'R' || code === 'C') return 'text-[var(--warning)]'
+  if (code === 'U') return 'text-[var(--error)]'
+  return 'text-[var(--accent)]'
+}
 </script>
 
 <template>
-  <div class="border-t border-[var(--border-subtle)] px-2 pb-2 pt-2" data-testid="git-commit-panel">
-    <section>
-      <div class="mb-1 flex items-center gap-1.5 px-1">
-        <span class="text-[10.5px] font-medium text-[var(--text-secondary)]">
-          {{ $t('workspace.gitStaged') }}
-        </span>
-        <span class="text-[10px] text-[var(--text-tertiary)]">{{ staged.length }}</span>
-        <button
-          v-if="staged.length"
-          type="button"
-          class="ml-auto text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-          :disabled="mutating"
-          @click="mutate('unstage', staged)"
-        >
-          {{ $t('workspace.gitUnstageAll') }}
-        </button>
-      </div>
-      <p v-if="!staged.length" class="px-1 pb-1 text-[10px] text-[var(--text-disabled)]">
-        {{ $t('workspace.gitNothingStaged') }}
-      </p>
-      <div
-        v-for="file in staged"
-        :key="`staged-${file.filePath}`"
-        class="group flex min-w-0 items-center rounded-[var(--radius-sm)] hover:bg-[var(--bg-hover)]"
-      >
-        <button
-          type="button"
-          class="min-w-0 flex-1 truncate px-1.5 py-1 text-left text-[11px] text-[var(--text-secondary)]"
-          :title="workspace.gitDisplayFilePath(file.filePath)"
-          @click="openDiff(file)"
-        >
-          {{ workspace.gitDisplayFilePath(file.filePath) }}
-        </button>
-        <span class="text-[9.5px] text-[var(--text-tertiary)]">{{ file.indexStatus }}</span>
-        <IconButton
-          :label="$t('workspace.gitUnstage')"
-          :disabled="mutating"
-          @click="mutate('unstage', [file])"
-        >
-          <Minus class="size-3" />
-        </IconButton>
-      </div>
-    </section>
+  <div class="flex h-full min-h-0 flex-col bg-[var(--bg-surface)]" data-testid="git-commit-panel">
+    <div class="min-h-0 flex-1 overflow-y-auto">
+      <!-- Unstaged -->
+      <section class="pt-2">
+        <div class="flex items-center gap-1.5 px-2.5 pb-1">
+          <span class="text-[10.5px] font-semibold text-[var(--text-secondary)]">
+            {{ $t('workspace.gitUnstaged') }} ({{ unstaged.length }})
+          </span>
+          <button
+            v-if="unstaged.length"
+            type="button"
+            class="ml-auto text-[10px] text-[var(--accent)] hover:text-[var(--accent-hover)]"
+            :disabled="mutating"
+            data-testid="git-stage-all"
+            @click="mutate('stage', unstaged)"
+          >
+            {{ $t('workspace.gitStageAll') }}
+          </button>
+        </div>
+        <p v-if="!unstaged.length" class="px-2.5 pb-2 text-[10px] text-[var(--text-disabled)]">
+          {{ $t('workspace.gitNoUnstaged') }}
+        </p>
+        <div v-else class="px-1.5">
+          <div
+            v-for="file in unstaged"
+            :key="`unstaged-${file.filePath}`"
+            class="group flex min-w-0 items-center rounded-[var(--radius-sm)] pr-0.5 hover:bg-[var(--bg-hover)]"
+          >
+            <button
+              type="button"
+              class="flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1 text-left"
+              :title="workspace.gitDisplayFilePath(file.filePath)"
+              @click="emit('open-file', file)"
+              @contextmenu.prevent="fileMenu = { file, x: $event.clientX, y: $event.clientY }"
+            >
+              <span
+                class="w-3.5 shrink-0 text-center font-[family-name:var(--font-mono)] text-[9.5px] font-bold"
+                :class="statusClass(file.worktreeStatus, 'worktree')"
+              >
+                {{ file.worktreeStatus }}
+              </span>
+              <span class="min-w-0 truncate text-[11px] text-[var(--text-secondary)]">
+                {{ workspace.gitDisplayFilePath(file.filePath) }}
+              </span>
+            </button>
+            <IconButton
+              :label="$t('workspace.gitDiscard')"
+              class="mr-0.5 opacity-0 group-hover:opacity-100"
+              :disabled="mutating"
+              @click="discard(file)"
+            >
+              <Undo2 class="size-3" />
+            </IconButton>
+            <IconButton
+              :label="$t('workspace.gitStage')"
+              :disabled="mutating"
+              @click="mutate('stage', [file])"
+            >
+              <Plus class="size-3" />
+            </IconButton>
+          </div>
+        </div>
+      </section>
 
-    <section class="mt-1.5 border-t border-[var(--border-subtle)] pt-1.5">
-      <div class="mb-1 flex items-center gap-1.5 px-1">
-        <span class="text-[10.5px] font-medium text-[var(--text-secondary)]">
-          {{ $t('workspace.gitUnstaged') }}
-        </span>
-        <span class="text-[10px] text-[var(--text-tertiary)]">{{ unstaged.length }}</span>
-        <button
-          v-if="unstaged.length"
-          type="button"
-          class="ml-auto text-[10px] text-[var(--accent)] hover:text-[var(--accent-hover)]"
-          :disabled="mutating"
-          @click="mutate('stage', unstaged)"
-        >
-          {{ $t('workspace.gitStageAll') }}
-        </button>
-      </div>
-      <div
-        v-for="file in unstaged"
-        :key="`unstaged-${file.filePath}`"
-        class="group flex min-w-0 items-center rounded-[var(--radius-sm)] hover:bg-[var(--bg-hover)]"
-      >
-        <button
-          type="button"
-          class="min-w-0 flex-1 truncate px-1.5 py-1 text-left text-[11px] text-[var(--text-secondary)]"
-          :title="workspace.gitDisplayFilePath(file.filePath)"
-          @click="openDiff(file)"
-        >
-          {{ workspace.gitDisplayFilePath(file.filePath) }}
-        </button>
-        <span class="text-[9.5px] text-[var(--text-tertiary)]">{{ file.worktreeStatus }}</span>
-        <IconButton
-          :label="$t('workspace.gitStage')"
-          :disabled="mutating"
-          @click="mutate('stage', [file])"
-        >
-          <Plus class="size-3" />
-        </IconButton>
-      </div>
-    </section>
+      <!-- Staged -->
+      <section class="mt-1 border-t border-[var(--border-subtle)] pt-2">
+        <div class="flex items-center gap-1.5 px-2.5 pb-1">
+          <span class="text-[10.5px] font-semibold text-[var(--text-secondary)]">
+            {{ $t('workspace.gitStaged') }} ({{ staged.length }})
+          </span>
+          <button
+            v-if="staged.length"
+            type="button"
+            class="ml-auto text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+            :disabled="mutating"
+            @click="mutate('unstage', staged)"
+          >
+            {{ $t('workspace.gitUnstageAll') }}
+          </button>
+        </div>
+        <p v-if="!staged.length" class="px-2.5 pb-2 text-[10px] text-[var(--text-disabled)]">
+          {{ $t('workspace.gitNothingStaged') }}
+        </p>
+        <div v-else class="px-1.5 pb-2">
+          <div
+            v-for="file in staged"
+            :key="`staged-${file.filePath}`"
+            class="group flex min-w-0 items-center rounded-[var(--radius-sm)] pr-0.5 hover:bg-[var(--bg-hover)]"
+          >
+            <button
+              type="button"
+              class="flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1 text-left"
+              :title="workspace.gitDisplayFilePath(file.filePath)"
+              @click="emit('open-file', file)"
+              @contextmenu.prevent="fileMenu = { file, x: $event.clientX, y: $event.clientY }"
+            >
+              <span
+                class="w-3.5 shrink-0 text-center font-[family-name:var(--font-mono)] text-[9.5px] font-bold"
+                :class="statusClass(file.indexStatus, 'index')"
+              >
+                {{ file.indexStatus }}
+              </span>
+              <span class="min-w-0 truncate text-[11px] text-[var(--text-secondary)]">
+                {{ workspace.gitDisplayFilePath(file.filePath) }}
+              </span>
+            </button>
+            <IconButton
+              :label="$t('workspace.gitUnstage')"
+              :disabled="mutating"
+              @click="mutate('unstage', [file])"
+            >
+              <Minus class="size-3" />
+            </IconButton>
+          </div>
+        </div>
+      </section>
+    </div>
 
-    <div class="mt-2 border-t border-[var(--border-subtle)] pt-2">
+    <!-- Message area pinned below the file lists. -->
+    <div class="shrink-0 border-t border-[var(--border-subtle)] p-2.5">
+      <label class="mb-1 flex select-none items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
+        <input
+          v-model="amend"
+          type="checkbox"
+          class="accent-[var(--accent)]"
+          :disabled="committing"
+        />
+        {{ $t('workspace.gitAmendPrevious') }}
+      </label>
       <Textarea
         v-model="message"
         :rows="4"
         :placeholder="$t('workspace.gitCommitPlaceholder')"
         :disabled="generating || committing"
-        class="max-h-40 min-h-20 resize-y"
+        class="max-h-44 min-h-20 resize-y"
       />
       <div class="mt-1 flex min-w-0 items-center gap-1">
         <span
@@ -216,8 +388,19 @@ async function commit() {
         data-testid="git-create-commit"
         @click="commit"
       >
-        {{ $t('workspace.gitCommitCount', { count: staged.length }) }}
+        {{ amend ? $t('workspace.gitAmendCommit') : $t('workspace.gitCommitCount', { count: staged.length }) }}
       </Button>
     </div>
+
+    <ContextMenu
+      :open="Boolean(fileMenu)"
+      :x="fileMenu?.x ?? 0"
+      :y="fileMenu?.y ?? 0"
+      :label="fileMenu ? workspace.gitDisplayFilePath(fileMenu.file.filePath) : ''"
+      :entries="fileMenuEntries"
+      test-id="git-file-context-menu"
+      @close="fileMenu = null"
+      @select="runFileMenuAction"
+    />
   </div>
 </template>

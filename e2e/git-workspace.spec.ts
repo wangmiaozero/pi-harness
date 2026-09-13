@@ -102,8 +102,11 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
   const historicalDiff = page.getByTestId('git-historical-diff')
   await expect(historicalDiff).toBeVisible()
   await expect(historicalDiff.getByText('export const lanes = 2', { exact: false })).toBeVisible()
-  await expect(graph).toBeHidden()
+  // Drawers overlay the graph instead of replacing it, so its state (scroll
+  // position, selection) survives; the graph stays attached underneath.
+  await expect(graph).toBeAttached()
   await historicalDiff.getByRole('button', { name: /返回图谱|Back to graph/ }).click()
+  await expect(historicalDiff).toBeHidden()
   await expect(graph).toBeVisible()
 
   await review.getByText('graph.ts', { exact: true }).click()
@@ -113,6 +116,14 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
   const qaPath = path.join(qaDir, 'git-workspace-graph.png')
   await page.screenshot({ animations: 'disabled', path: qaPath })
 
+  // Drawers overlay their pane instead of replacing it, and the review
+  // overlay covers the commit panel; close both before driving the panel.
+  await historicalDiff.getByRole('button', { name: /返回图谱|Back to graph/ }).click()
+  await expect(historicalDiff).toBeHidden()
+  await page.getByTestId('git-back-to-panel').click()
+  await expect(review).toBeHidden()
+
+  // The working diff opens as an overlay over the graph pane.
   await commitPanel.getByRole('button', { name: /graph\.ts$/ }).click()
   await expect(page.getByText('export const visible = true', { exact: false })).toBeVisible()
   await expect(page.getByTestId('git-generate-message')).toBeDisabled()

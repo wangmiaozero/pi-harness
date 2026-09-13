@@ -180,23 +180,41 @@ export const gitActionSchema = z.object({
     'fetch',
     'pull',
     'pull-rebase',
+    'pull-merge',
     'push',
+    'force-push',
     'create-branch',
     'checkout-branch',
     'checkout-remote',
+    'checkout-tag',
+    'create-tag',
+    'delete-tag',
+    'push-tag',
     'stash',
     'stash-pop',
+    'stash-apply',
+    'stash-drop',
     'merge',
     'rebase',
+    'fast-forward',
     'rename-branch',
     'delete-branch',
     'set-upstream',
-    'unset-upstream'
+    'unset-upstream',
+    'discard-file',
+    'discard-all',
+    'amend-commit'
   ]),
   target: gitRefSchema.optional(),
   name: gitRefSchema.optional(),
   upstream: gitRefSchema.optional(),
   message: z.string().trim().max(500).optional()
+})
+
+export const gitFileHistorySchema = z.object({
+  cwd: cwdSchema,
+  filePath: z.string().trim().min(1).max(4096).refine((value) => !value.includes('\0')),
+  limit: z.number().int().min(1).max(500).optional().default(100)
 })
 
 export const gitBranchContextMenuSchema = z.object({

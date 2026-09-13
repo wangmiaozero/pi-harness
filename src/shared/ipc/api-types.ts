@@ -1151,6 +1151,7 @@ export interface PiSwitchAPI {
     commitDetails(cwd: string, hash: string): Promise<GitCommitDetails>
     commitDiff(cwd: string, hash: string, filePath: string): Promise<GitCommitDiffResponse>
     action(input: GitActionRequest): Promise<GitActionResponse>
+    fileHistory(cwd: string, filePath: string, limit?: number): Promise<GitCommitInfo[]>
     branchContextMenu(input: {
       locale: 'zh-CN' | 'en-US'
       branchName: string

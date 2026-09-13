@@ -2,15 +2,24 @@
 import { computed } from 'vue'
 import { ArrowLeft, FileCode2 } from '@lucide/vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
-import type { GitCommitFileInfo } from '@shared/types/workspace'
 import { parseUnifiedDiff } from '@shared/workspace/unified-diff'
 
-const props = defineProps<{
-  file: GitCommitFileInfo
-  patch: string
-  loading: boolean
-  commitHash: string
-}>()
+/**
+ * Overlay drawer for one file's diff, drawn over the graph pane — never
+ * swapped into its place — so the graph's scroll position and pane widths
+ * survive open and close.
+ */
+const props = withDefaults(
+  defineProps<{
+    filePath: string
+    patch: string
+    loading?: boolean
+    badge?: string | null
+    commitHash?: string | null
+    testId?: string
+  }>(),
+  { loading: false, badge: null, commitHash: null, testId: 'git-file-diff-drawer' }
+)
 
 defineEmits<{ close: [] }>()
 
@@ -21,24 +30,35 @@ const previewTruncated = computed(() => parsedLines.value.length > MAX_RENDERED_
 </script>
 
 <template>
-  <section class="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--bg-surface)]" data-testid="git-historical-diff">
+  <section
+    class="absolute inset-0 z-20 flex min-h-0 min-w-0 flex-col bg-[var(--bg-surface)]"
+    :data-testid="testId"
+  >
     <header
       class="flex h-10 shrink-0 items-center gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] px-2"
     >
-      <IconButton :label="$t('workspace.gitBackToGraph')" @click="$emit('close')">
+      <IconButton
+        :label="$t('workspace.gitBackToGraph')"
+        data-testid="git-back-to-graph"
+        @click="$emit('close')"
+      >
         <ArrowLeft class="size-3.5" />
       </IconButton>
       <FileCode2 class="size-3.5 shrink-0 text-[var(--accent)]" />
       <span class="min-w-0 flex-1 truncate text-[10.5px] font-medium text-[var(--text-primary)]">
-        {{ file.path }}
+        {{ filePath }}
       </span>
-      <span class="shrink-0 font-mono text-[9.5px] text-[var(--text-tertiary)]">
+      <span
+        v-if="commitHash"
+        class="shrink-0 font-[family-name:var(--font-mono)] text-[9.5px] text-[var(--text-tertiary)]"
+      >
         {{ commitHash.slice(0, 8) }}
       </span>
       <span
+        v-if="badge"
         class="shrink-0 rounded border border-[var(--border-subtle)] px-1.5 py-0.5 text-[9px] text-[var(--text-tertiary)]"
       >
-        {{ $t('workspace.gitHistoricalDiff') }}
+        {{ badge }}
       </span>
     </header>
 

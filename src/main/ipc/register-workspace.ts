@@ -16,6 +16,7 @@ import {
   gitCommitDetailsSchema,
   gitCommitDiffSchema,
   gitActionSchema,
+  gitFileHistorySchema,
   gitBranchContextMenuSchema,
   gitStatusManySchema,
   gitStatusSchema,
@@ -537,6 +538,16 @@ export function registerWorkspaceIpc(
       if (!parsed.success)
         throw new ValidationError('Invalid git action request', { issues: parsed.error.issues })
       return git.action(parsed.data)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.gitFileHistory, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = gitFileHistorySchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid git file history request', {
+          issues: parsed.error.issues
+        })
+      return git.fileHistory(parsed.data.cwd, parsed.data.filePath, parsed.data.limit)
     })
   )
   ipcMain.handle(IPC_INVOKE.gitBranchContextMenu, (e, input: unknown) =>
