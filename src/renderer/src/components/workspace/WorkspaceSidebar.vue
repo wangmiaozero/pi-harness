@@ -7,6 +7,7 @@ import {
   Folder,
   FolderOpen,
   FolderPlus,
+  Bot,
   Gauge,
   GitBranch,
   Pin,
@@ -52,7 +53,7 @@ import {
 import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
 import { rendererPlatformHint } from '@renderer/utils/provider-credentials'
 
-type WorkspaceSection = 'sessions' | 'harness'
+type WorkspaceSection = 'sessions' | 'harness' | 'orchestration'
 type SidebarMenuEntry =
   | {
       type: 'action'
@@ -114,7 +115,8 @@ const canStartSessionFromCurrentProject = computed(
 )
 const sectionItems = computed(() => [
   { id: 'sessions' as const, label: t('workspace.projects'), icon: Folder },
-  { id: 'harness' as const, label: t('workspace.harness'), icon: Gauge }
+  { id: 'harness' as const, label: t('workspace.harness'), icon: Gauge },
+  { id: 'orchestration' as const, label: t('orchestration.sidebarLabel'), icon: Bot }
 ])
 const activeProviderKey = computed(() => agent.state?.model?.provider ?? models.active.providerKey)
 const activeModelId = computed(() => agent.state?.model?.id ?? models.active.modelId)

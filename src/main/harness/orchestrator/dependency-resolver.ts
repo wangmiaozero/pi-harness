@@ -26,6 +26,8 @@ export interface DependencyResolution {
 const TERMINAL_STATUSES: ReadonlySet<HarnessTaskStatus> = new Set(['completed', 'cancelled'])
 /** Statuses that never satisfy a dependency and never will without a retry. */
 const UNRESOLVABLE_STATUSES: ReadonlySet<HarnessTaskStatus> = new Set(['failed'])
+/** Task statuses eligible for dispatch. */
+const DISPATCHABLE_STATUSES: ReadonlySet<HarnessTaskStatus> = new Set(['pending', 'ready'])
 
 export function detectCycles(tasks: readonly HarnessTask[]): string[][] {
   const byId = new Map(tasks.map((task) => [task.id, task]))
@@ -70,7 +72,7 @@ export function resolveDependencies(tasks: readonly HarnessTask[]): DependencyRe
       blocked.push({ taskId: task.id, unmet: ['cycle'] })
       continue
     }
-    if (task.status !== 'pending') continue
+    if (!DISPATCHABLE_STATUSES.has(task.status)) continue
     const unmet = task.dependencies
       .filter((dependency) => {
         const dep = byId.get(dependency)

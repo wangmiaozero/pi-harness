@@ -15,7 +15,6 @@ export class ConflictService {
    * agent. Missing paths (command logs etc.) cannot conflict and are ignored.
    */
   detect(orchestrationId: string, artifacts: readonly HarnessArtifact[]): HarnessConflictReport {
-    const byPath = new Map<string, HarnessConflictFile>()
     const pathAgentTasks = new Map<string, Map<string, Set<string>>>()
 
     for (const artifact of artifacts) {

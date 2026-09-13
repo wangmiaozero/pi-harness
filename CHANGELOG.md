@@ -2,6 +2,19 @@
 
 Public release notes contain only released, user-visible additions and fixes.
 
+## 1.6.0
+
+### Added
+
+- Added Multi-Agent Orchestration: coordinate a team of Pi agents on one plan — tasks with dependencies, priorities, assignees, and manual, sequential, or dependency-based scheduling with parallel dispatch under configurable agent/run concurrency.
+- Added the Orchestration console: a dashboard with status, tokens, cost, and cost-by-agent shares, an Agents board, a Tasks board, and Teams & Templates panels. Every agent state comes from a real Pi session — no mocked status.
+- Added agent templates, reusable teams, and built-in team presets, including reviewer roles that approve or reject task results before completion.
+- Added artifact handoff between agents: downstream tasks receive the artifacts and results of their dependencies instead of full session history.
+- Added per-agent Git worktree isolation plus same-file conflict detection across concurrently running agents.
+- Added orchestration budgets (tokens and cost) with per-agent token budgets, pause on budget exceed, and cost-by-agent breakdowns.
+- Added orchestration recovery: pause/resume/abort, retry failed tasks with reviewer feedback carried into the retry, skip, and reassign; interrupted orchestrations are detected after restart and remain resumable.
+- Added dependency cycle detection, stuck-agent hints, and an orchestration timeline of task, agent, handoff, and review events.
+
 ## 1.5.0
 
 ### Added

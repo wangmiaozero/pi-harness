@@ -157,6 +157,22 @@ export class OrchestrationStore {
     })
   }
 
+  /**
+   * Write mutex. Every mutation is a read-modify-write over the whole record;
+   * concurrent callers (event stream vs. user CRUD) would otherwise race and
+   * drop each other's writes. All mutations are serialized through here.
+   */
+  private writeQueue: Promise<unknown> = Promise.resolve()
+
+  private enqueueWrite<T>(op: () => Promise<T>): Promise<T> {
+    const next = this.writeQueue.then(op, op)
+    this.writeQueue = next.then(
+      () => undefined,
+      () => undefined
+    )
+    return next
+  }
+
   // ------------------------------------------------------------- templates
 
   async listTemplates(): Promise<AgentTemplate[]> {
@@ -168,6 +184,10 @@ export class OrchestrationStore {
   }
 
   async saveTemplate(template: AgentTemplate): Promise<AgentTemplate> {
+    return this.enqueueWrite(() => this.saveTemplateOp(template))
+  }
+
+  private async saveTemplateOp(template: AgentTemplate): Promise<AgentTemplate> {
     const record = await this.read()
     const next = record.templates.filter((item) => item.id !== template.id)
     next.unshift(template)
@@ -176,6 +196,10 @@ export class OrchestrationStore {
   }
 
   async deleteTemplate(id: string): Promise<void> {
+    return this.enqueueWrite(() => this.deleteTemplateOp(id))
+  }
+
+  private async deleteTemplateOp(id: string): Promise<void> {
     const record = await this.read()
     await this.write({
       ...record,
@@ -198,6 +222,10 @@ export class OrchestrationStore {
   }
 
   async saveTeam(team: HarnessTeam): Promise<HarnessTeam> {
+    return this.enqueueWrite(() => this.saveTeamOp(team))
+  }
+
+  private async saveTeamOp(team: HarnessTeam): Promise<HarnessTeam> {
     const record = await this.read()
     const next = record.teams.filter((item) => item.id !== team.id)
     next.unshift(team)
@@ -206,6 +234,10 @@ export class OrchestrationStore {
   }
 
   async deleteTeam(id: string): Promise<void> {
+    return this.enqueueWrite(() => this.deleteTeamOp(id))
+  }
+
+  private async deleteTeamOp(id: string): Promise<void> {
     const record = await this.read()
     await this.write({ ...record, teams: record.teams.filter((team) => team.id !== id) })
   }
@@ -221,6 +253,10 @@ export class OrchestrationStore {
   }
 
   async saveOrchestration(run: HarnessOrchestrationRun): Promise<HarnessOrchestrationRun> {
+    return this.enqueueWrite(() => this.saveOrchestrationOp(run))
+  }
+
+  private async saveOrchestrationOp(run: HarnessOrchestrationRun): Promise<HarnessOrchestrationRun> {
     const record = await this.read()
     const next = record.orchestrations.filter((item) => item.id !== run.id)
     next.unshift(run)
@@ -229,6 +265,10 @@ export class OrchestrationStore {
   }
 
   async deleteOrchestration(id: string): Promise<void> {
+    return this.enqueueWrite(() => this.deleteOrchestrationOp(id))
+  }
+
+  private async deleteOrchestrationOp(id: string): Promise<void> {
     const record = await this.read()
     await this.write({
       ...record,
@@ -253,6 +293,10 @@ export class OrchestrationStore {
   }
 
   async saveAgent(agent: HarnessAgent): Promise<HarnessAgent> {
+    return this.enqueueWrite(() => this.saveAgentOp(agent))
+  }
+
+  private async saveAgentOp(agent: HarnessAgent): Promise<HarnessAgent> {
     const record = await this.read()
     const next = record.agents.filter((item) => item.id !== agent.id)
     next.unshift(agent)
@@ -262,6 +306,10 @@ export class OrchestrationStore {
 
   async saveAgents(agents: HarnessAgent[]): Promise<void> {
     if (!agents.length) return
+    return this.enqueueWrite(() => this.saveAgentsOp(agents))
+  }
+
+  private async saveAgentsOp(agents: HarnessAgent[]): Promise<void> {
     const record = await this.read()
     const byId = new Map(record.agents.map((item) => [item.id, item]))
     for (const agent of agents) byId.set(agent.id, agent)
@@ -269,6 +317,10 @@ export class OrchestrationStore {
   }
 
   async deleteAgent(id: string): Promise<void> {
+    return this.enqueueWrite(() => this.deleteAgentOp(id))
+  }
+
+  private async deleteAgentOp(id: string): Promise<void> {
     const record = await this.read()
     await this.write({ ...record, agents: record.agents.filter((agent) => agent.id !== id) })
   }
@@ -287,6 +339,10 @@ export class OrchestrationStore {
   }
 
   async saveTask(task: HarnessTask): Promise<HarnessTask> {
+    return this.enqueueWrite(() => this.saveTaskOp(task))
+  }
+
+  private async saveTaskOp(task: HarnessTask): Promise<HarnessTask> {
     const record = await this.read()
     const next = record.tasks.filter((item) => item.id !== task.id)
     next.unshift(task)
@@ -296,6 +352,10 @@ export class OrchestrationStore {
 
   async saveTasks(tasks: HarnessTask[]): Promise<void> {
     if (!tasks.length) return
+    return this.enqueueWrite(() => this.saveTasksOp(tasks))
+  }
+
+  private async saveTasksOp(tasks: HarnessTask[]): Promise<void> {
     const record = await this.read()
     const byId = new Map(record.tasks.map((item) => [item.id, item]))
     for (const task of tasks) byId.set(task.id, task)
@@ -303,6 +363,10 @@ export class OrchestrationStore {
   }
 
   async deleteTask(id: string): Promise<void> {
+    return this.enqueueWrite(() => this.deleteTaskOp(id))
+  }
+
+  private async deleteTaskOp(id: string): Promise<void> {
     const record = await this.read()
     await this.write({
       ...record,
@@ -326,6 +390,10 @@ export class OrchestrationStore {
   }
 
   async saveHandoff(handoff: AgentHandoff): Promise<AgentHandoff> {
+    return this.enqueueWrite(() => this.saveHandoffOp(handoff))
+  }
+
+  private async saveHandoffOp(handoff: AgentHandoff): Promise<AgentHandoff> {
     const record = await this.read()
     const next = record.handoffs.filter((item) => item.id !== handoff.id)
     next.unshift(handoff)
@@ -340,6 +408,10 @@ export class OrchestrationStore {
   }
 
   async saveEvaluation(evaluation: HarnessOrchestrationEvaluation): Promise<void> {
+    return this.enqueueWrite(() => this.saveEvaluationOp(evaluation))
+  }
+
+  private async saveEvaluationOp(evaluation: HarnessOrchestrationEvaluation): Promise<void> {
     const record = await this.read()
     const next = record.evaluations.filter((item) => item.orchestrationId !== evaluation.orchestrationId)
     next.unshift(evaluation)

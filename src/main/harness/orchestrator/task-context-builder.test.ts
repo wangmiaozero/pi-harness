@@ -75,7 +75,6 @@ function artifact(id: string, overrides: Partial<HarnessArtifact> = {}): Harness
     type: 'file',
     name: `${id}.ts`,
     path: `/repo/src/${id}.ts`,
-    detail: null,
     createdAt: 1,
     producedByAgentId: 'agent-0',
     producedByTaskId: 'task-0',

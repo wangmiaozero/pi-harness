@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import {
   Activity,
   AlertTriangle,
+  Bot,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -27,9 +28,11 @@ import type {
   HarnessRunDetail
 } from '@shared/types/harness'
 import { useHarnessStore } from '@renderer/stores/harness'
+import { useAgentNames } from '@renderer/composables/useAgentNames'
 
 const { t, locale } = useI18n()
 const harness = useHarnessStore()
+const { agentName } = useAgentNames()
 
 const SPEEDS = [0.5, 1, 2, 4, 0] as const
 const speedIndex = ref(1)
@@ -180,6 +183,10 @@ async function exportDebug(): Promise<void> {
           <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10.5px] text-[var(--text-tertiary)]">
             <span :data-testid="`harness-run-detail-relation`">{{ relationLabel(detail.run.relation) }}</span>
             <span>·</span>
+            <span v-if="agentName(detail.run.agentId)" class="inline-flex items-center gap-1 text-[var(--accent)]">
+              <Bot class="size-3" />{{ agentName(detail.run.agentId) }}
+            </span>
+            <span v-if="agentName(detail.run.agentId)">·</span>
             <span>{{ detail.run.model ?? '—' }}</span>
             <span v-if="detail.run.provider">· {{ detail.run.provider }}</span>
             <span v-if="detail.run.forkedFromRunId">· forked from {{ detail.run.forkedFromRunId.slice(0, 18) }}</span>

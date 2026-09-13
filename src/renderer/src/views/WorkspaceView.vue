@@ -10,6 +10,7 @@ import MingWorkspaceOrnaments from '@renderer/components/layout/MingWorkspaceOrn
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import GitDiffView from '@renderer/components/git/GitDiffView.vue'
 import HarnessConsole from '@renderer/features/harness/HarnessConsole.vue'
+import OrchestrationConsole from '@renderer/features/orchestration/OrchestrationConsole.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import { FolderOpen } from '@lucide/vue'
 import { useSessionStore } from '@renderer/stores/sessions'
@@ -30,7 +31,7 @@ const workspaceSidebar = ref<InstanceType<typeof WorkspaceSidebar> | null>(null)
 const chatWindow = ref<InstanceType<typeof ChatWindow> | null>(null)
 const workspaceTabs = ref<InstanceType<typeof WorkspaceTabs> | null>(null)
 const filesPanel = ref<InstanceType<typeof WorkspaceFilesPanel> | null>(null)
-const activeWorkspaceSection = ref<'sessions' | 'harness'>('sessions')
+const activeWorkspaceSection = ref<'sessions' | 'harness' | 'orchestration'>('sessions')
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 let unsubWorkspaceChanged: (() => void) | null = null
 let sessionSwitchQueue: Promise<void> = Promise.resolve()
@@ -70,7 +71,7 @@ function saveWorkspace() {
   void workspaceSidebar.value?.saveWorkspace()
 }
 
-function setWorkspaceSection(section: 'sessions' | 'harness') {
+function setWorkspaceSection(section: 'sessions' | 'harness' | 'orchestration') {
   activeWorkspaceSection.value = section
 }
 
@@ -85,7 +86,7 @@ const offClose = registerShortcut({
   label: t('workspace.closeTab'),
   keys: ['meta+w', 'ctrl+w'],
   run: () => {
-    if (activeWorkspaceSection.value === 'harness') return
+    if (activeWorkspaceSection.value !== 'sessions') return
     if (workspace.filePanelOpen && document.activeElement?.closest('#workspace-files-panel')) {
       filesPanel.value?.closeActiveFile()
       return
@@ -228,6 +229,7 @@ watch(
       class="workspace-main flex min-h-0 min-w-0 flex-1 flex-col"
     >
       <HarnessConsole v-if="activeWorkspaceSection === 'harness'" />
+      <OrchestrationConsole v-else-if="activeWorkspaceSection === 'orchestration'" />
       <template v-else>
         <MingWorkspaceOrnaments v-if="mingDynastyActive && !workspace.filePanelOpen" />
         <div

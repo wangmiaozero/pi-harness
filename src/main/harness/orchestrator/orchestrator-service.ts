@@ -193,6 +193,23 @@ export class OrchestratorService {
     this.stuckTimer = null
   }
 
+  /**
+   * Wait until in-flight dispatch chains have settled. Bounded — returns
+n * even if a dispatch is still legitimately running (no event will ever
+   * settle it). Used before shutdown and by tests.
+   */
+  async waitForSettled(maxWaitMs = 250): Promise<void> {
+    const deadline = Date.now() + maxWaitMs
+    let stable = 0
+    while (Date.now() < deadline && stable < 3) {
+      if (this.sessionDispatches.size > 0) stable = 0
+      else stable += 1
+      await new Promise((resolve) => setTimeout(resolve, 5))
+    }
+    // Final drain for post-settle store writes.
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+
   // ------------------------------------------------------ orchestration CRUD
 
   async listOrchestrations(): Promise<HarnessOrchestrationRun[]> {
@@ -257,7 +274,7 @@ export class OrchestratorService {
   }
 
   async deleteOrchestration(id: string): Promise<void> {
-    const orchestration = await this.requireOrchestration(id)
+    await this.requireOrchestration(id)
     for (const dispatch of this.activeDispatches(id)) {
       this.clearDispatch(dispatch)
     }
@@ -324,7 +341,15 @@ export class OrchestratorService {
       const tokenOk =
         patch.budget.maxTokens === null || usage.totalTokens < patch.budget.maxTokens
       if (costOk && tokenOk) {
-        return this.agents.update(agentId, { status: 'idle' })
+        const unblocked = await this.agents.update(agentId, { status: 'idle' })
+        // The agent can work again — schedule whatever was waiting on it.
+        if (unblocked.orchestrationId) {
+          const orchestration = await this.store.getOrchestration(unblocked.orchestrationId)
+          if (orchestration?.status === 'running') {
+            await this.reconcile(orchestration.id)
+          }
+        }
+        return unblocked
       }
     }
     return next
@@ -719,7 +744,11 @@ export class OrchestratorService {
   async retryTask(input: RetryTaskInput): Promise<HarnessTask> {
     const task = await this.requireTask(input.taskId)
     const orchestration = await this.requireOrchestration(task.orchestrationId ?? '')
-    if (orchestration.status !== 'running' && orchestration.status !== 'paused') {
+    if (
+      orchestration.status !== 'running' &&
+      orchestration.status !== 'paused' &&
+      orchestration.status !== 'failed'
+    ) {
       throw new HarnessError(
         'ORCHESTRATION_NOT_RUNNING',
         `Cannot retry a task while the orchestration is "${orchestration.status}".`
@@ -730,8 +759,8 @@ export class OrchestratorService {
       status: 'pending',
       retryCount: task.retryCount + 1,
       error: null,
-      reviewVerdict: null,
-      reviewSummary: null,
+      // Keep the rejected-review verdict + summary so the retry prompt
+      // surfaces the reviewer feedback to the executor agent.
       finishedAt: null,
       ...(input.agentId ? { assignedAgentId: input.agentId } : {})
     }
@@ -745,7 +774,22 @@ export class OrchestratorService {
       timestamp: Date.now(),
       taskId: task.id
     })
-    if (orchestration.status === 'running') {
+    // Retrying a task on a failed orchestration revives it.
+    if (orchestration.status === 'failed') {
+      await this.store.saveOrchestration({
+        ...orchestration,
+        status: 'running',
+        finishedAt: null,
+        pausedReason: null,
+        updatedAt: Date.now()
+      })
+      this.emit(orchestration.id, {
+        type: 'orchestration.started',
+        timestamp: Date.now(),
+        orchestrationId: orchestration.id
+      })
+    }
+    if (orchestration.status !== 'paused') {
       await this.reconcile(orchestration.id)
     }
     return next
@@ -1470,6 +1514,7 @@ export class OrchestratorService {
 
     // 4. Completion check — every task reached a terminal state.
     if (
+      next.status === 'running' &&
       freshTasks.length > 0 &&
       freshTasks.every((task) => TERMINAL_TASK_STATUSES.has(task.status))
     ) {

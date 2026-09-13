@@ -208,7 +208,12 @@ export class TeamService {
 
     for (const preset of presets) {
       if (byName.has(preset.name)) continue
-      const templateIds = await Promise.all(preset.roles.map((role) => ensureTemplate(role)))
+      // Sequential — the store is read-modify-write; parallel creates would
+      // race and drop templates.
+      const templateIds: string[] = []
+      for (const role of preset.roles) {
+        templateIds.push(await ensureTemplate(role))
+      }
       await this.createTeam({ name: preset.name, agentTemplateIds: templateIds })
     }
   }

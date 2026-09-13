@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   AlertTriangle,
+  Bot,
   CheckCircle2,
   ChevronRight,
   CircleDashed,
@@ -18,9 +19,11 @@ import {
 } from '@lucide/vue'
 import type { HarnessRun, HarnessRunStatus, HarnessRunStep } from '@shared/types/harness'
 import { useHarnessStore } from '@renderer/stores/harness'
+import { useAgentNames } from '@renderer/composables/useAgentNames'
 
 const { t, locale } = useI18n()
 const harness = useHarnessStore()
+const { agentName, hasUnknownAgent, refreshAgents } = useAgentNames()
 
 const runs = computed<HarnessRun[]>(() => [...harness.runs])
 const selectedEvaluation = computed(
@@ -130,6 +133,16 @@ const retryable = computed(
       (run) => (run.status === 'failed' || run.status === 'aborted') && run.prompt.trim()
     ) ?? false
 )
+
+// Orchestration runs may outdate the shared agent cache (new or deleted
+// agents); re-resolve instead of silently dropping attribution.
+watch(
+  () => hasUnknownAgent(runs.value),
+  (unknown, previous) => {
+    if (unknown && !previous) void refreshAgents()
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -212,6 +225,9 @@ const retryable = computed(
             </span>
             <span v-if="run.budgetExceeded" class="inline-flex items-center gap-1 text-[var(--error)]">
               <AlertTriangle class="size-3" />{{ run.budgetExceeded }}
+            </span>
+            <span v-if="run.agentId && agentName(run.agentId)" class="inline-flex items-center gap-1 text-[var(--accent)]">
+              <Bot class="size-3" />{{ agentName(run.agentId) }}
             </span>
             <span v-if="run.source === 'history'" class="text-[var(--text-disabled)]">
               {{ $t('workspace.harnessRunSourceHistory') }}

@@ -24,7 +24,7 @@
 <p align="center">Everything around Pi, in one place.</p>
 
 <p align="center">
-  Manage models · Run agents · Inspect Harness state · Use Skills · Browse files · Control Git
+  Manage models · Run agents · Orchestrate teams · Inspect Harness state · Use Skills · Browse files · Control Git
 </p>
 
 <p align="center">
@@ -86,6 +86,7 @@ The surrounding desktop capabilities are summarized below.
 | Overview           | Shows environment, configuration, and current model status            |
 | Workspace          | Runs Pi sessions beside project files, Git, and worktrees             |
 | Pi Runtime         | Surfaces streaming, Thinking, Tool Calls, context, queues, and stats  |
+| Orchestration      | Coordinates agent teams over tasks, dependencies, and handoffs        |
 | Providers & Models | Manages Pi-compatible providers and models                            |
 | Skills & Packages  | Manages supported Skills, Pi packages, and MCP-capable extensions     |
 | Files              | Provides lightweight editing with explicit save and conflict handling |
@@ -119,16 +120,20 @@ Pi-Harness separates the desktop control plane from the growing visual Harness C
              │                             │
        Control Plane                 Harness Console
              │                             │
-        Providers                      Overview
-        Models                         Runs
-        Skills                         Trace
-        Packages                       Context
-        Environment                    Tools
-        Config                         Policy
-        Updates                        Checkpoints
-        Backups                        Evaluation
-        Diagnostics                    Sessions
-                                       Stats
+        Providers                      Observe
+        Models                         Runs · Trace · Replay
+        Skills                         Diagnostics
+        Packages                       Evaluation
+        Environment                    Artifacts
+        Config
+        Updates                        Control
+        Backups                        Policy · Budget
+        Diagnostics                    Recovery · Checkpoints
+
+                                       Orchestrate
+                                       Tasks · Agents
+                                       Teams · Dependencies
+                                       Handoffs · Review gates
              │                             │
              └──────────────┬──────────────┘
                             ▼
@@ -141,7 +146,7 @@ Pi-Harness separates the desktop control plane from the growing visual Harness C
                          Models
 ```
 
-The Control Plane manages everything around Pi. The Harness Console observes and controls Pi Agent Harness state: it records Runs, enforces Policy at the Pi tool boundary, creates Checkpoints, and evaluates finished runs from real evidence. Pi remains the only Agent Runtime; sessions stay compatible with the Pi CLI JSONL under <code>~/.pi/agent/sessions/</code>.
+The Control Plane manages everything around Pi. The Harness Console observes and controls Pi Agent Harness state: it records Runs, enforces Policy at the Pi tool boundary, creates Checkpoints, evaluates finished runs from real evidence, and orchestrates agent teams over tasks with dependencies, handoffs, and budgets. Pi-Harness does not replace Pi Coding Agent: each agent still runs through Pi, and Pi-Harness provides orchestration, observability, policy, evaluation, recovery, and control. Sessions stay compatible with the Pi CLI JSONL under <code>~/.pi/agent/sessions/</code>.
 
 ## Current screenshots
 
@@ -173,7 +178,9 @@ Pi-Harness has shipped its Harness Control Plane: Runs, Policy, Checkpoints, Eva
 
 Version 1.5 added Run Intelligence & Replay: every run records a redacted trace you can replay (play/pause, step, 0.5x–4x/instant) and inspect as a span waterfall; forks, retries, and recoveries form a Run Tree; any two runs can be compared metric-by-metric with real diffs; deterministic Diagnostics explain failures with root-cause chains; project baselines flag regressions; artifacts (files, test/lint/build logs, checkpoints, git commits) are tracked per run; and project statistics summarize success, evaluation pass, and recovery rates over time.
 
-The next phase focuses on deeper recovery and inspection without replacing the runtime that Pi already provides.
+Version 1.6 added Multi-Agent Orchestration: agent teams coordinated on one plan — tasks with dependencies, priorities, and assignees; manual, sequential, or dependency-based scheduling with parallel dispatch; per-agent worktree isolation; artifact handoffs; review gates; orchestration budgets; and pause/resume/abort with retry, skip, and reassign.
+
+The next phase focuses on session visualization and deeper context inspection without replacing the runtime that Pi already provides.
 
 ### Harness Console — shipped panels
 
@@ -244,6 +251,29 @@ Project · 30d     82% success · 71% eval pass · 45% recovery
 
 All intelligence is deterministic and evidence-based: spans, cause chains, regression findings, and artifacts come from recorded events and real command output — never model guesses.
 
+### Multi-Agent Orchestration — shipped with 1.6
+
+```text
+Team          Architect · Frontend · Backend · QA · Reviewer
+
+Tasks         8 total · 2 running · 1 ready · 1 blocked · 4 done
+
+Agents        Architect   ✓ completed   21,440 tok · $0.11
+              Frontend    ▶ running     64,120 tok · $0.38   worktree
+              Backend     ▶ running     58,301 tok · $0.35   worktree
+              QA          ⏸ waiting on dependencies
+              Reviewer    ⏸ waiting for review gate
+
+Dependencies  design ──┬─▶ frontend ──┬─▶ integrate ─▶ review
+                        └─▶ backend ──┘
+Handoff       architecture.md → Backend
+Conflict      Frontend and Backend both modified src/api.ts
+Budget        $1.24 / $5.00 · pause when exceeded
+Recovery      pause · resume · abort · retry · skip · reassign
+```
+
+Every agent executes through a real Pi session: orchestration adds coordination, not a second runtime.
+
 ## Roadmap
 
 ### Current
@@ -280,6 +310,7 @@ All intelligence is deterministic and evidence-based: spans, cause chains, regre
 | Tool policy and budget | Config files      | Rare                   | Yes, enforced at tool boundary    |
 | Checkpoints / recovery | Manual git        | Rare                   | Resume, fork, retry last run      |
 | Run evaluation         | Manual            | Rare                   | Evidence-based checks             |
+| Agent orchestration    | Not built in      | Rare                   | Teams, tasks, handoffs, reviews   |
 | Context inspection     | CLI / SDK         | Limited                | Basic now; full inspector planned |
 | Tool inspection        | CLI / SDK         | Limited                | Selection now; inspector planned  |
 | Compaction control     | CLI / SDK         | Limited                | Yes                               |
