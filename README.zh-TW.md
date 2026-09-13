@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0"><img alt="v1.4.0 發行版" src="https://img.shields.io/badge/release-v1.4.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="v1.5.0 發行版" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
   <img alt="支援 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 授權" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -60,16 +60,16 @@ Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，�
 
 ## 下載
 
-從 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0) 下載 Pi-Harness v1.4.0。
+從 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0) 下載 Pi-Harness v1.5.0。
 
 | 平台                | 安裝程式                                                                                                                       |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.4.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.4.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.4.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-Setup-1.4.0.exe) |
-| Linux x64           | [`Pi-Harness-1.4.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.5.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.5.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.5.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
+| Linux x64           | [`Pi-Harness-1.5.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
 
-> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v1.4.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0)。
+> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v1.5.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0)。
 
 安裝程式使用者不需要 clone 儲存庫，也不需要安裝 pnpm。Pi-Harness 可在支援的環境中偵測、安裝及修復 Node.js、npm、PATH 與 Pi Coding Agent。
 
@@ -113,7 +113,7 @@ Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，�
 
 ## 介面預覽
 
-以下以預設主題與古風主題，分別展示相同的 6 個主要介面。
+以下以預設主題與古風主題，分別展示相同的主要介面。古風主題工作區包含雪景與月夜兩套畫面。
 
 ### 預設主題
 
@@ -127,13 +127,15 @@ Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，�
 
 ### 古風主題
 
-|                  工作區                  |                 Git                  |
-| :--------------------------------------: | :----------------------------------: |
-|  ![古風主題工作區](docs/古风/Work.jpg)   |  ![古風主題 Git](docs/古风/Git.jpg)  |
-|               **Provider**               |               **模型**               |
-| ![古風主題 Provider](docs/古风/APIs.jpg) | ![古風主題模型](docs/古风/Model.jpg) |
-|               **能力中心**               |               **設定**               |
-| ![古風主題能力中心](docs/古风/Caps.jpg)  | ![古風主題設定](docs/古风/Prefs.jpg) |
+|                    工作區（雪景）                     |                     工作區（月夜）                      |
+| :---------------------------------------------------: | :-----------------------------------------------------: |
+| ![古風主題雪景工作區](docs/古风/Work-1.jpg)           | ![古風主題月夜工作區](docs/古风/Work-2.jpg)             |
+|                         Git                           |                     **Provider**                        |
+|    ![古風主題 Git](docs/古风/Git.jpg)                 | ![古風主題 Provider](docs/古风/APIs.jpg)                |
+|                       **模型**                        |                     **能力中心**                        |
+|  ![古風主題模型](docs/古风/Model.jpg)                 | ![古風主題能力中心](docs/古风/Caps.jpg)                 |
+|                       **設定**                        |                                                         |
+|  ![古風主題設定](docs/古风/Prefs.jpg)                 |                                                         |
 
 ## 核心功能
 

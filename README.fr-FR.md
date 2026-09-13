@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0"><img alt="release v1.4.0" src="https://img.shields.io/badge/release-v1.4.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="release v1.5.0" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -53,16 +53,16 @@ Pi-Harness n’est pas une enveloppe web. Il n’intègre ni pi-web, ni serveur 
 
 ## Télécharger
 
-Téléchargez Pi-Harness v1.4.0 depuis [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0).
+Téléchargez Pi-Harness v1.5.0 depuis [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0).
 
 | Plateforme          | Programme d’installation                                                                                                     |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.4.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.4.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.4.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-Setup-1.4.0.exe) |
-| Linux x64           | [Pi-Harness-1.4.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.5.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.5.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.5.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
+| Linux x64           | [Pi-Harness-1.5.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
 
-> Les builds communautaires macOS peuvent ne pas être signés. Si macOS bloque le premier lancement, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Consultez les [notes de la v1.4.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0).
+> Les builds communautaires macOS peuvent ne pas être signés. Si macOS bloque le premier lancement, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Consultez les [notes de la v1.5.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0).
 
 Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer pnpm. Pi-Harness peut détecter, installer et réparer Node.js, npm, PATH et Pi Coding Agent dans les environnements pris en charge.
 
@@ -89,7 +89,7 @@ Installer → Configurer le fournisseur → Choisir le modèle → Ouvrir le pro
 
 ## Captures d’écran
 
-Les six écrans principaux sont présentés avec le thème par défaut et le thème d’inspiration Ming.
+Les écrans principaux sont présentés avec le thème par défaut et le thème d’inspiration Ming. L’espace de travail Ming comprend une variante neige et une variante nuit.
 
 ### Thème par défaut
 
@@ -103,13 +103,15 @@ Les six écrans principaux sont présentés avec le thème par défaut et le th�
 
 ### Thème d’inspiration Ming
 
-|                          Espace de travail                          |                          Git                           |
-| :-----------------------------------------------------------------: | :----------------------------------------------------: |
-|     ![Espace de travail avec le thème Ming](docs/古风/Work.jpg)     |      ![Git avec le thème Ming](docs/古风/Git.jpg)      |
-|                          **Fournisseurs**                           |                      **Modèles**                       |
-|       ![Fournisseurs avec le thème Ming](docs/古风/APIs.jpg)        |   ![Modèles avec le thème Ming](docs/古风/Model.jpg)   |
-|                    **Centre de fonctionnalités**                    |                    **Préférences**                     |
-| ![Centre de fonctionnalités avec le thème Ming](docs/古风/Caps.jpg) | ![Préférences avec le thème Ming](docs/古风/Prefs.jpg) |
+|                        Espace de travail (neige)                         |                         Espace de travail (nuit)                          |
+| :----------------------------------------------------------------------: | :-----------------------------------------------------------------------: |
+| ![Espace de travail neige avec le thème Ming](docs/古风/Work-1.jpg)      | ![Espace de travail nuit avec le thème Ming](docs/古风/Work-2.jpg)        |
+|                                   Git                                    |                            **Fournisseurs**                               |
+|      ![Git avec le thème Ming](docs/古风/Git.jpg)                        |  ![Fournisseurs avec le thème Ming](docs/古风/APIs.jpg)                   |
+|                                **Modèles**                               |                      **Centre de fonctionnalités**                        |
+|   ![Modèles avec le thème Ming](docs/古风/Model.jpg)                     | ![Centre de fonctionnalités avec le thème Ming](docs/古风/Caps.jpg)       |
+|                              **Préférences**                             |                                                                           |
+| ![Préférences avec le thème Ming](docs/古风/Prefs.jpg)                   |                                                                           |
 
 ## Limites de l’éditeur
 

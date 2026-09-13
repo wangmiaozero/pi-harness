@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0"><img alt="release v1.4.0" src="https://img.shields.io/badge/release-v1.4.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="release v1.5.0" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -53,16 +53,16 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 
 ## 다운로드
 
-[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0)에서 Pi-Harness v1.4.0을 다운로드하세요.
+[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0)에서 Pi-Harness v1.5.0을 다운로드하세요.
 
 | 플랫폼              | 설치 파일                                                                                                                    |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.4.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.4.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.4.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-Setup-1.4.0.exe) |
-| Linux x64           | [Pi-Harness-1.4.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.5.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.5.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.5.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
+| Linux x64           | [Pi-Harness-1.5.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
 
-> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v1.4.0 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0)를 참고하세요.
+> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v1.5.0 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0)를 참고하세요.
 
 패키지 사용자는 저장소를 clone하거나 pnpm을 설치할 필요가 없습니다. Pi-Harness는 지원되는 환경에서 Node.js, npm, PATH, Pi Coding Agent를 감지하고 설치하거나 복구할 수 있습니다.
 
@@ -89,7 +89,7 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 
 ## 화면 미리보기
 
-동일한 6개 주요 화면을 기본 테마와 고전풍 테마로 각각 보여 줍니다.
+동일한 주요 화면을 기본 테마와 고전풍 테마로 각각 보여 줍니다. 고전풍 테마 작업 공간에는 설경과 월야 두 가지가 있습니다.
 
 ### 기본 테마
 
@@ -103,13 +103,15 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 
 ### 고전풍 테마
 
-|                  작업 공간                   |                   Git                    |
-| :------------------------------------------: | :--------------------------------------: |
-| ![고전풍 테마 작업 공간](docs/古风/Work.jpg) |  ![고전풍 테마 Git](docs/古风/Git.jpg)   |
-|                 **Provider**                 |                 **모델**                 |
-| ![고전풍 테마 Provider](docs/古风/APIs.jpg)  | ![고전풍 테마 모델](docs/古风/Model.jpg) |
-|                **기능 센터**                 |                 **설정**                 |
-| ![고전풍 테마 기능 센터](docs/古风/Caps.jpg) | ![고전풍 테마 설정](docs/古风/Prefs.jpg) |
+|                    작업 공간 (설경)                     |                     작업 공간 (월야)                      |
+| :-----------------------------------------------------: | :-------------------------------------------------------: |
+| ![고전풍 테마 설경 작업 공간](docs/古风/Work-1.jpg)     | ![고전풍 테마 월야 작업 공간](docs/古风/Work-2.jpg)       |
+|                          Git                            |                       **Provider**                        |
+|     ![고전풍 테마 Git](docs/古风/Git.jpg)               | ![고전풍 테마 Provider](docs/古风/APIs.jpg)               |
+|                        **모델**                         |                      **기능 센터**                        |
+|  ![고전풍 테마 모델](docs/古风/Model.jpg)               | ![고전풍 테마 기능 센터](docs/古风/Caps.jpg)              |
+|                        **설정**                         |                                                           |
+|  ![고전풍 테마 설정](docs/古风/Prefs.jpg)               |                                                           |
 
 ## 편집기 범위
 

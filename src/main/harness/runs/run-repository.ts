@@ -83,7 +83,7 @@ export class JsonRunRepository implements RunRepository {
   }
 }
 
-/** Merge multi-agent binding defaults into runs persisted before v1.6. */
+/** Merge multi-agent binding defaults into runs persisted before v1.5. */
 function normalizeRun(run: HarnessRun): HarnessRun {
   return {
     ...run,

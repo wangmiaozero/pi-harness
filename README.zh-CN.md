@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0"><img alt="v1.4.0 发布版" src="https://img.shields.io/badge/release-v1.4.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="v1.5.0 发布版" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
   <img alt="支持 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 许可" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -144,7 +144,7 @@ Pi-Harness 通过 Pi 的 Runtime 接口与其连接。Session 与 <code>~/.pi/ag
 
 ## 当前界面
 
-下面用默认主题与古风主题分别展示同一组 6 个主要界面。
+下面用默认主题与古风主题分别展示同一组主要界面。古风主题工作区包含雪景与月夜两套界面。
 
 ### 默认主题
 
@@ -158,13 +158,15 @@ Pi-Harness 通过 Pi 的 Runtime 接口与其连接。Session 与 <code>~/.pi/ag
 
 ### 古风主题
 
-|                  工作区                  |                 Git                  |
-| :--------------------------------------: | :----------------------------------: |
-|  ![古风主题工作区](docs/古风/Work.jpg)   |  ![古风主题 Git](docs/古风/Git.jpg)  |
-|               **Provider**               |               **模型**               |
-| ![古风主题 Provider](docs/古风/APIs.jpg) | ![古风主题模型](docs/古风/Model.jpg) |
-|               **能力中心**               |               **设置**               |
-| ![古风主题能力中心](docs/古风/Caps.jpg)  | ![古风主题设置](docs/古风/Prefs.jpg) |
+|                    工作区（雪景）                     |                     工作区（月夜）                      |
+| :---------------------------------------------------: | :-----------------------------------------------------: |
+| ![古风主题雪景工作区](docs/古风/Work-1.jpg)           | ![古风主题月夜工作区](docs/古风/Work-2.jpg)             |
+|                         Git                           |                     **Provider**                        |
+|    ![古风主题 Git](docs/古风/Git.jpg)                 | ![古风主题 Provider](docs/古风/APIs.jpg)                |
+|                       **模型**                        |                     **能力中心**                        |
+|  ![古风主题模型](docs/古风/Model.jpg)                 | ![古风主题能力中心](docs/古风/Caps.jpg)                 |
+|                       **设置**                        |                                                         |
+|  ![古风主题设置](docs/古风/Prefs.jpg)                 |                                                         |
 
 ## 接下来
 
@@ -263,16 +265,16 @@ Pi-Harness 正在从桌面控制中心继续升级为完整的 Pi Agent Harness 
 
 ## 下载
 
-从 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0) 下载 Pi-Harness v1.4.0。
+从 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0) 下载 Pi-Harness v1.5.0。
 
 | 平台                | 安装包                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.4.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.4.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.4.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-Setup-1.4.0.exe) |
-| Linux x64           | [`Pi-Harness-1.4.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.5.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.5.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.5.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
+| Linux x64           | [`Pi-Harness-1.5.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
 
-> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.4.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0)。
+> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.5.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0)。
 
 安装包用户不需要 clone 仓库，也不需要安装 pnpm。Pi-Harness 可以在支持的环境中检测、安装和修复 Node.js、npm、PATH 与 Pi Coding Agent。
 

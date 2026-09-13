@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0"><img alt="release v1.4.0" src="https://img.shields.io/badge/release-v1.4.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="release v1.5.0" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -53,16 +53,16 @@ Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js �
 
 ## ダウンロード
 
-[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0) から Pi-Harness v1.4.0 をダウンロードしてください。
+[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0) から Pi-Harness v1.5.0 をダウンロードしてください。
 
 | プラットフォーム    | インストーラー                                                                                                               |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.4.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.4.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.4.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-Setup-1.4.0.exe) |
-| Linux x64           | [Pi-Harness-1.4.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.5.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.5.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.5.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
+| Linux x64           | [Pi-Harness-1.5.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
 
-> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v1.4.0 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0)を参照してください。
+> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v1.5.0 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0)を参照してください。
 
 パッケージ版の利用者は、リポジトリの clone や pnpm のインストールを行う必要はありません。Pi-Harness は、対応環境で Node.js、npm、PATH、Pi Coding Agent を検出し、インストールまたは修復できます。
 
@@ -89,7 +89,7 @@ Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js �
 
 ## スクリーンショット
 
-同じ 6 つの主要画面を、デフォルトテーマと古風テーマの両方で紹介します。
+同じ主要画面を、デフォルトテーマと古風テーマの両方で紹介します。古風テーマのワークスペースには雪景色と月夜の 2 種があります。
 
 ### デフォルトテーマ
 
@@ -103,13 +103,15 @@ Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js �
 
 ### 古風テーマ
 
-|                  ワークスペース                   |                    Git                     |
-| :-----------------------------------------------: | :----------------------------------------: |
-| ![古風テーマのワークスペース](docs/古风/Work.jpg) |   ![古風テーマの Git](docs/古风/Git.jpg)   |
-|                   **Provider**                    |                 **モデル**                 |
-|   ![古風テーマの Provider](docs/古风/APIs.jpg)    | ![古風テーマのモデル](docs/古风/Model.jpg) |
-|                 **機能センター**                  |                  **設定**                  |
-|  ![古風テーマの機能センター](docs/古风/Caps.jpg)  |  ![古風テーマの設定](docs/古风/Prefs.jpg)  |
+|                    ワークスペース（雪）                     |                     ワークスペース（月夜）                      |
+| :---------------------------------------------------------: | :-------------------------------------------------------------: |
+| ![古風テーマ雪景色のワークスペース](docs/古风/Work-1.jpg)   | ![古風テーマ月夜のワークスペース](docs/古风/Work-2.jpg)         |
+|                           Git                               |                         **Provider**                            |
+|      ![古風テーマの Git](docs/古风/Git.jpg)                 |   ![古風テーマの Provider](docs/古风/APIs.jpg)                  |
+|                        **モデル**                           |                       **機能センター**                          |
+|  ![古風テーマのモデル](docs/古风/Model.jpg)                 |  ![古風テーマの機能センター](docs/古风/Caps.jpg)                |
+|                         **設定**                            |                                                                 |
+|   ![古風テーマの設定](docs/古风/Prefs.jpg)                  |                                                                 |
 
 ## エディターの範囲
 

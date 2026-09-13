@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0"><img alt="release v1.4.0" src="https://img.shields.io/badge/release-v1.4.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="release v1.5.0" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -53,16 +53,16 @@ Pi-Harness ist kein Wrapper um eine Web-Oberfläche. Es bettet weder pi-web noch
 
 ## Download
 
-Lade Pi-Harness v1.4.0 aus den [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0) herunter.
+Lade Pi-Harness v1.5.0 aus den [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0) herunter.
 
 | Plattform           | Installer                                                                                                                    |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.4.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.4.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.4.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-Setup-1.4.0.exe) |
-| Linux x64           | [Pi-Harness-1.4.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.5.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.5.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.5.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
+| Linux x64           | [Pi-Harness-1.5.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
 
-> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v1.4.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0).
+> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v1.5.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0).
 
 Nutzer der paketierten App müssen das Repository nicht klonen und pnpm nicht installieren. Pi-Harness kann Node.js, npm, PATH und Pi Coding Agent in unterstützten Umgebungen erkennen, installieren und reparieren.
 
@@ -89,7 +89,7 @@ Installieren → Provider konfigurieren → Modell wählen → Projekt öffnen �
 
 ## Screenshots
 
-Dieselben sechs Hauptansichten werden im Standardthema und im Ming-Stil gezeigt.
+Dieselben Hauptansichten werden im Standardthema und im Ming-Stil gezeigt. Der Ming-Arbeitsbereich umfasst eine Schnee- und eine Mondnacht-Variante.
 
 ### Standardthema
 
@@ -103,13 +103,15 @@ Dieselben sechs Hauptansichten werden im Standardthema und im Ming-Stil gezeigt.
 
 ### Ming-Stil
 
-|                    Arbeitsbereich                    |                        Git                         |
-| :--------------------------------------------------: | :------------------------------------------------: |
-|  ![Arbeitsbereich im Ming-Stil](docs/古风/Work.jpg)  |       ![Git im Ming-Stil](docs/古风/Git.jpg)       |
-|                     **Anbieter**                     |                    **Modelle**                     |
-|     ![Anbieter im Ming-Stil](docs/古风/APIs.jpg)     |    ![Modelle im Ming-Stil](docs/古风/Model.jpg)    |
-|                 **Funktionszentrum**                 |                 **Einstellungen**                  |
-| ![Funktionszentrum im Ming-Stil](docs/古风/Caps.jpg) | ![Einstellungen im Ming-Stil](docs/古风/Prefs.jpg) |
+|                      Arbeitsbereich (Schnee)                       |                       Arbeitsbereich (Mondnacht)                        |
+| :----------------------------------------------------------------: | :---------------------------------------------------------------------: |
+| ![Arbeitsbereich Schnee im Ming-Stil](docs/古风/Work-1.jpg)        | ![Arbeitsbereich Mondnacht im Ming-Stil](docs/古风/Work-2.jpg)          |
+|                                Git                                 |                             **Anbieter**                                |
+|       ![Git im Ming-Stil](docs/古风/Git.jpg)                       |    ![Anbieter im Ming-Stil](docs/古风/APIs.jpg)                         |
+|                             **Modelle**                            |                         **Funktionszentrum**                            |
+|    ![Modelle im Ming-Stil](docs/古风/Model.jpg)                    | ![Funktionszentrum im Ming-Stil](docs/古风/Caps.jpg)                    |
+|                          **Einstellungen**                         |                                                                         |
+| ![Einstellungen im Ming-Stil](docs/古风/Prefs.jpg)                 |                                                                         |
 
 ## Editor-Grenze
 

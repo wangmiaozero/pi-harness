@@ -2,26 +2,7 @@
 
 Public release notes contain only released, user-visible additions and fixes.
 
-## 1.6.0
-
-### Added
-
-- Added Multi-Agent Orchestration: coordinate a team of Pi agents on one plan — tasks with dependencies, priorities, assignees, and manual, sequential, or dependency-based scheduling with parallel dispatch under configurable agent/run concurrency.
-- Added the Orchestration console: a dashboard with status, tokens, cost, and cost-by-agent shares, an Agents board, a Tasks board, and Teams & Templates panels. Every agent state comes from a real Pi session — no mocked status.
-- Added agent templates, reusable teams, and built-in team presets, including reviewer roles that approve or reject task results before completion.
-- Added artifact handoff between agents: downstream tasks receive the artifacts and results of their dependencies instead of full session history.
-- Added per-agent Git worktree isolation plus same-file conflict detection across concurrently running agents.
-- Added orchestration budgets (tokens and cost) with per-agent token budgets, pause on budget exceed, and cost-by-agent breakdowns.
-- Added orchestration recovery: pause/resume/abort, retry failed tasks with reviewer feedback carried into the retry, skip, and reassign; interrupted orchestrations are detected after restart and remain resumable.
-- Added dependency cycle detection, stuck-agent hints, and an orchestration timeline of task, agent, handoff, and review events.
-
-### Fixed
-
-- Fixed Harness and Orchestration console surfaces rendering translucent, so they now stay solid under every theme and visual skin.
-- Fixed doubled focus outlines on console inputs and search fields.
-- Fixed the Orchestration console navigation highlighting and dropdowns to follow the active theme.
-
-## 1.5.0
+## 1.5.0 — 2026-09-13
 
 ### Added
 
@@ -36,10 +17,23 @@ Public release notes contain only released, user-visible additions and fixes.
 - Added project statistics: run/success/failure rates, sessions, average duration and tokens, evaluation pass rate, recovery rate, and top failure categories over today/7d/30d/all-time ranges.
 - Added Fork & Re-run from any run (new session at that entry, or same-session re-execution) and run exports (JSON/Markdown) plus a redacted debug bundle — all exports strip secrets.
 - Added run-history persistence with retention settings (7/30/90/forever) and per-run trace event caps.
+- Added Multi-Agent Orchestration: coordinate a team of Pi agents on one plan — tasks with dependencies, priorities, assignees, and manual, sequential, or dependency-based scheduling with parallel dispatch under configurable agent/run concurrency.
+- Added the Orchestration console: a dashboard with status, tokens, cost, and cost-by-agent shares, an Agents board, a Tasks board, and Teams & Templates panels. Every agent state comes from a real Pi session — no mocked status.
+- Added agent templates, reusable teams, and built-in team presets, including reviewer roles that approve or reject task results before completion.
+- Added artifact handoff between agents: downstream tasks receive the artifacts and results of their dependencies instead of full session history.
+- Added per-agent Git worktree isolation plus same-file conflict detection across concurrently running agents.
+- Added orchestration budgets (tokens and cost) with per-agent token budgets, pause on budget exceed, and cost-by-agent breakdowns.
+- Added orchestration recovery: pause/resume/abort, retry failed tasks with reviewer feedback carried into the retry, skip, and reassign; interrupted orchestrations are detected after restart and remain resumable.
+- Added dependency cycle detection, stuck-agent hints, and an orchestration timeline of task, agent, handoff, and review events.
+- Added a native Git workspace with history and activity graphs, a commit panel, and AI commit-message generation.
+- Added a cascading vendor-then-model picker in Workspace and the Git commit panel.
 
 ### Fixed
 
 - Anchored live runs to their session entries before settling, so persisted runs always keep their prompt anchor and working directory for replay and project statistics.
+- Fixed Harness and Orchestration console surfaces rendering translucent, so they now stay solid under every theme and visual skin.
+- Fixed doubled focus outlines on console inputs and search fields.
+- Fixed the Orchestration console navigation highlighting and dropdowns to follow the active theme.
 
 ## 1.4.0
 

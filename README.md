@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0"><img alt="release v1.4.0" src="https://img.shields.io/badge/release-v1.4.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="release v1.5.0" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -150,7 +150,7 @@ The Control Plane manages everything around Pi. The Harness Console observes and
 
 ## Current screenshots
 
-The same six product surfaces are shown in both the default and Classical Chinese themes.
+The same six product surfaces are shown in both the default and Classical Chinese themes. The Classical Chinese theme includes snow and moon workspace variants.
 
 ### Default theme
 
@@ -164,21 +164,21 @@ The same six product surfaces are shown in both the default and Classical Chines
 
 ### Classical Chinese theme
 
-|                             Workspace                              |                                Git                                 |
-| :----------------------------------------------------------------: | :----------------------------------------------------------------: |
-|  ![Workspace in the Classical Chinese theme](docs/古风/Work.jpg)   |      ![Git in the Classical Chinese theme](docs/古风/Git.jpg)      |
-|                           **Providers**                            |                             **Models**                             |
-|  ![Providers in the Classical Chinese theme](docs/古风/APIs.jpg)   |   ![Models in the Classical Chinese theme](docs/古风/Model.jpg)    |
-|                          **Capabilities**                          |                          **Preferences**                           |
-| ![Capabilities in the Classical Chinese theme](docs/古风/Caps.jpg) | ![Preferences in the Classical Chinese theme](docs/古风/Prefs.jpg) |
+|                            Workspace (Snow)                             |                             Workspace (Moon)                             |
+| :---------------------------------------------------------------------: | :----------------------------------------------------------------------: |
+| ![Workspace in the Classical Chinese snow theme](docs/古风/Work-1.jpg)  |  ![Workspace in the Classical Chinese moon theme](docs/古风/Work-2.jpg)  |
+|                                  Git                                    |                              **Providers**                               |
+|      ![Git in the Classical Chinese theme](docs/古风/Git.jpg)           |    ![Providers in the Classical Chinese theme](docs/古风/APIs.jpg)       |
+|                               **Models**                                |                            **Capabilities**                              |
+|   ![Models in the Classical Chinese theme](docs/古风/Model.jpg)         |  ![Capabilities in the Classical Chinese theme](docs/古风/Caps.jpg)      |
+|                            **Preferences**                              |                                                                          |
+| ![Preferences in the Classical Chinese theme](docs/古风/Prefs.jpg)      |                                                                          |
 
 ## Coming Next
 
 Pi-Harness has shipped its Harness Control Plane: Runs, Policy, Checkpoints, Evaluation, and a filterable Trace are live in the Harness Console.
 
-Version 1.5 added Run Intelligence & Replay: every run records a redacted trace you can replay (play/pause, step, 0.5x–4x/instant) and inspect as a span waterfall; forks, retries, and recoveries form a Run Tree; any two runs can be compared metric-by-metric with real diffs; deterministic Diagnostics explain failures with root-cause chains; project baselines flag regressions; artifacts (files, test/lint/build logs, checkpoints, git commits) are tracked per run; and project statistics summarize success, evaluation pass, and recovery rates over time.
-
-Version 1.6 added Multi-Agent Orchestration: agent teams coordinated on one plan — tasks with dependencies, priorities, and assignees; manual, sequential, or dependency-based scheduling with parallel dispatch; per-agent worktree isolation; artifact handoffs; review gates; orchestration budgets; and pause/resume/abort with retry, skip, and reassign.
+Version 1.5 added Run Intelligence & Replay and Multi-Agent Orchestration: every run records a redacted trace you can replay (play/pause, step, 0.5x–4x/instant) and inspect as a span waterfall; forks, retries, and recoveries form a Run Tree; any two runs can be compared metric-by-metric with real diffs; deterministic Diagnostics explain failures with root-cause chains; project baselines flag regressions; artifacts (files, test/lint/build logs, checkpoints, git commits) are tracked per run; and project statistics summarize success, evaluation pass, and recovery rates over time. Agent teams can be coordinated on one plan — tasks with dependencies, priorities, and assignees; manual, sequential, or dependency-based scheduling with parallel dispatch; per-agent worktree isolation; artifact handoffs; review gates; orchestration budgets; and pause/resume/abort with retry, skip, and reassign.
 
 The next phase focuses on session visualization and deeper context inspection without replacing the runtime that Pi already provides.
 
@@ -251,7 +251,7 @@ Project · 30d     82% success · 71% eval pass · 45% recovery
 
 All intelligence is deterministic and evidence-based: spans, cause chains, regression findings, and artifacts come from recorded events and real command output — never model guesses.
 
-### Multi-Agent Orchestration — shipped with 1.6
+### Multi-Agent Orchestration — shipped with 1.5
 
 ```text
 Team          Architect · Frontend · Backend · QA · Reviewer
@@ -318,16 +318,16 @@ Every agent executes through a real Pi session: orchestration adds coordination,
 
 ## Download
 
-Download Pi-Harness v1.4.0 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0).
+Download Pi-Harness v1.5.0 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0).
 
 | Platform            | Installer                                                                                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.4.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.4.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.4.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-Setup-1.4.0.exe) |
-| Linux x64           | [`Pi-Harness-1.4.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.4.0/Pi-Harness-1.4.0.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.5.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.5.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.5.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
+| Linux x64           | [`Pi-Harness-1.5.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
 
-> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.4.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.4.0).
+> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.5.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0).
 
 Packaged users do not need to clone the repository or install pnpm. Pi-Harness can detect, install, and repair Node.js, npm, PATH, and Pi Coding Agent where supported.
 
