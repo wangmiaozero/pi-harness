@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { AlertTriangle, Stethoscope, XCircle } from '@lucide/vue'
 import type { HarnessRun } from '@shared/types/harness'
+import Button from '@renderer/components/ui/Button.vue'
+import Select from '@renderer/components/ui/Select.vue'
 import { useHarnessStore } from '@renderer/stores/harness'
 
 const { t } = useI18n()
@@ -16,8 +18,18 @@ const problemRuns = computed<HarnessRun[]>(() =>
     (run) => run.status === 'failed' || run.status === 'aborted' || run.toolFailureCount > 0
   )
 )
+const runOptions = computed(() =>
+  problemRuns.value.map((run) => ({
+    value: run.id,
+    label: `${compactPrompt(run.prompt)} · ${t(`workspace.harnessRunStatus.${run.status}`)}`
+  }))
+)
 
 const detail = computed(() => harness.runDetail)
+
+function compactPrompt(prompt: string): string {
+  return prompt.replace(/\s+/g, ' ').trim().slice(0, 50) || t('workspace.harnessRunUntitled')
+}
 
 async function diagnose(): Promise<void> {
   if (!selectedRunId.value) return
@@ -35,26 +47,25 @@ async function diagnose(): Promise<void> {
     <h3 class="harness-card-title">{{ t('workspace.harnessDiagnostics') }}</h3>
 
     <div class="mt-3 flex flex-wrap items-center gap-2">
-      <select
+      <Select
         v-model="selectedRunId"
-        class="min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1.5 text-[11.5px] text-[var(--text-primary)]"
+        class="min-w-0 flex-1"
+        size="sm"
+        :options="runOptions"
+        :placeholder="t('workspace.harnessDiagnosticsRun')"
         :aria-label="t('workspace.harnessDiagnosticsRun')"
         data-testid="harness-diagnostics-run-select"
-      >
-        <option value="" disabled>{{ t('workspace.harnessDiagnosticsRun') }}</option>
-        <option v-for="run in problemRuns" :key="run.id" :value="run.id">
-          {{ run.prompt.slice(0, 50) || t('workspace.harnessRunUntitled') }} ·
-          {{ t(`workspace.harnessRunStatus.${run.status}`) }}
-        </option>
-      </select>
-      <button
-        type="button"
-        class="shrink-0 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+      />
+      <Button
+        class="shrink-0"
+        size="sm"
+        variant="secondary"
         :disabled="!selectedRunId || diagnosing"
+        :loading="diagnosing"
         @click="diagnose"
       >
         {{ t('workspace.harnessDiagnoseAction') }}
-      </button>
+      </Button>
     </div>
 
     <p v-if="!problemRuns.length" class="mt-4 text-[12px] text-[var(--text-tertiary)]">
@@ -71,16 +82,32 @@ async function diagnose(): Promise<void> {
         >
           <div class="flex flex-wrap items-center gap-2">
             <component
-              :is="diagnostic.severity === 'info' || diagnostic.severity === 'warning' ? AlertTriangle : XCircle"
+              :is="
+                diagnostic.severity === 'info' || diagnostic.severity === 'warning'
+                  ? AlertTriangle
+                  : XCircle
+              "
               class="size-4 shrink-0"
-              :class="diagnostic.severity === 'info' ? 'text-[var(--text-tertiary)]' : diagnostic.severity === 'warning' ? 'text-[var(--warning)]' : 'text-[var(--error)]'"
+              :class="
+                diagnostic.severity === 'info'
+                  ? 'text-[var(--text-tertiary)]'
+                  : diagnostic.severity === 'warning'
+                    ? 'text-[var(--warning)]'
+                    : 'text-[var(--error)]'
+              "
             />
             <span class="text-[12.5px] font-medium text-[var(--text-primary)]">
               {{ diagnostic.title }}
             </span>
             <span
               class="rounded-full border px-1.5 py-0.5 text-[9.5px] uppercase tracking-wide"
-              :class="diagnostic.severity === 'info' ? 'border-[var(--border-subtle)] text-[var(--text-tertiary)]' : diagnostic.severity === 'warning' ? 'border-[var(--warning)] text-[var(--warning)]' : 'border-[var(--error)] text-[var(--error)]'"
+              :class="
+                diagnostic.severity === 'info'
+                  ? 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'
+                  : diagnostic.severity === 'warning'
+                    ? 'border-[var(--warning)] text-[var(--warning)]'
+                    : 'border-[var(--error)] text-[var(--error)]'
+              "
             >
               {{ diagnostic.severity }}
             </span>
@@ -90,9 +117,11 @@ async function diagnose(): Promise<void> {
           <pre
             v-if="diagnostic.evidence"
             class="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-[var(--radius-sm)] bg-[var(--bg-primary)] p-2 font-mono text-[10px] text-[var(--text-secondary)]"
-          >{{ diagnostic.evidence }}</pre>
+            >{{ diagnostic.evidence }}</pre>
           <div v-if="diagnostic.causeChain.length" class="mt-2">
-            <p class="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+            <p
+              class="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+            >
               <Stethoscope class="size-3" />
               {{ t('workspace.harnessDiagCauseChain') }}
             </p>
@@ -107,7 +136,10 @@ async function diagnose(): Promise<void> {
               </li>
             </ol>
           </div>
-          <p v-if="diagnostic.recommendation" class="mt-2 text-[11.5px] text-[var(--text-secondary)]">
+          <p
+            v-if="diagnostic.recommendation"
+            class="mt-2 text-[11.5px] text-[var(--text-secondary)]"
+          >
             {{ t('workspace.harnessDiagRecommendation') }}: {{ diagnostic.recommendation }}
           </p>
         </div>

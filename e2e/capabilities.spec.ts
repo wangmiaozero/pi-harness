@@ -205,7 +205,10 @@ test.describe('Capabilities', () => {
         }
         ipcMain.handle(
           channels.search,
-          (_event, input: { page?: number; query?: string; type?: string }) => {
+          async (_event, input: { page?: number; query?: string; type?: string }) => {
+            if (input.query?.includes('mcp')) {
+              await new Promise((resolve) => setTimeout(resolve, 1_000))
+            }
             const pageNumber = input.page ?? 1
             const name = input.query?.includes('mcp')
               ? 'pi-mcp-adapter'
@@ -318,7 +321,20 @@ test.describe('Capabilities', () => {
     expect(searchChrome.inputBorderWidth).toBe('0px')
     expect(Number.parseFloat(searchChrome.fieldBorderWidth)).toBeGreaterThan(0)
 
+    await search.focus()
+    const focusChrome = await search.evaluate((input) => {
+      const field = input.closest('label')
+      if (!field) throw new Error('Search field shell is missing')
+      return {
+        inputShadow: getComputedStyle(input).boxShadow,
+        fieldShadow: getComputedStyle(field).boxShadow
+      }
+    })
+    expect(focusChrome.inputShadow).toBe('none')
+    expect(focusChrome.fieldShadow).not.toBe('none')
+
     await search.fill('mcp')
+    await expect(page.getByTestId('registry-loading-overlay')).toBeVisible()
     await expect(page.getByTestId('registry-package-pi-mcp-adapter')).toBeVisible()
     await expect(page.getByText('Pi Manifest')).toBeVisible()
 

@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Waves } from '@lucide/vue'
 import type { HarnessRun, HarnessTraceSpan } from '@shared/types/harness'
+import Button from '@renderer/components/ui/Button.vue'
+import Select from '@renderer/components/ui/Select.vue'
 import { useHarnessStore } from '@renderer/stores/harness'
 
 const { t } = useI18n()
@@ -12,6 +14,12 @@ const selectedRunId = ref<string>('')
 const loading = ref(false)
 
 const runs = computed<HarnessRun[]>(() => harness.runs)
+const runOptions = computed(() =>
+  runs.value.map((run) => ({
+    value: run.id,
+    label: compactPrompt(run.prompt)
+  }))
+)
 const detail = computed(() => harness.runDetail)
 const spans = computed<HarnessTraceSpan[]>(() => detail.value?.trace?.spans ?? [])
 
@@ -19,9 +27,7 @@ const start = computed(() =>
   spans.value.length ? Math.min(...spans.value.map((span) => span.startedAt)) : 0
 )
 const end = computed(() =>
-  spans.value.length
-    ? Math.max(...spans.value.map((span) => span.finishedAt ?? span.startedAt))
-    : 0
+  spans.value.length ? Math.max(...spans.value.map((span) => span.finishedAt ?? span.startedAt)) : 0
 )
 const totalWindow = computed(() => Math.max(1, end.value - start.value))
 
@@ -30,6 +36,10 @@ const statusTone: Record<string, string> = {
   failed: 'bg-[var(--error)]',
   running: 'bg-[var(--accent)]',
   skipped: 'bg-[var(--text-disabled)]'
+}
+
+function compactPrompt(prompt: string): string {
+  return prompt.replace(/\s+/g, ' ').trim().slice(0, 50) || t('workspace.harnessRunUntitled')
 }
 
 async function loadTrace(): Promise<void> {
@@ -63,25 +73,25 @@ function durationLabel(span: HarnessTraceSpan): string {
     <h3 class="harness-card-title">{{ t('workspace.harnessWaterfall') }}</h3>
 
     <div class="mt-3 flex flex-wrap items-center gap-2">
-      <select
+      <Select
         v-model="selectedRunId"
-        class="min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1.5 text-[11.5px] text-[var(--text-primary)]"
+        class="min-w-0 flex-1"
+        size="sm"
+        :options="runOptions"
+        :placeholder="t('workspace.harnessWaterfallRun')"
         :aria-label="t('workspace.harnessWaterfallRun')"
         data-testid="harness-waterfall-run-select"
-      >
-        <option value="" disabled>{{ t('workspace.harnessWaterfallRun') }}</option>
-        <option v-for="run in runs" :key="run.id" :value="run.id">
-          {{ run.prompt.slice(0, 50) || t('workspace.harnessRunUntitled') }}
-        </option>
-      </select>
-      <button
-        type="button"
-        class="shrink-0 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+      />
+      <Button
+        class="shrink-0"
+        size="sm"
+        variant="secondary"
         :disabled="!selectedRunId || loading"
+        :loading="loading"
         @click="loadTrace"
       >
         {{ t('workspace.harnessWaterfallLoad') }}
-      </button>
+      </Button>
     </div>
 
     <template v-if="spans.length">
@@ -97,14 +107,18 @@ function durationLabel(span: HarnessTraceSpan): string {
             <span class="w-28 shrink-0 truncate text-[10.5px] text-[var(--text-secondary)]">
               {{ span.name }}
             </span>
-            <div class="relative h-4 min-w-0 flex-1 rounded-[var(--radius-sm)] bg-[var(--bg-hover)]">
+            <div
+              class="relative h-4 min-w-0 flex-1 rounded-[var(--radius-sm)] bg-[var(--bg-hover)]"
+            >
               <div
                 class="absolute top-0.5 h-3 rounded-sm opacity-90"
                 :class="statusTone[span.status] ?? 'bg-[var(--text-disabled)]'"
                 :style="{ left: `${offset(span)}%`, width: `${width(span)}%` }"
               />
             </div>
-            <span class="w-12 shrink-0 text-right text-[10px] tabular-nums text-[var(--text-tertiary)]">
+            <span
+              class="w-12 shrink-0 text-right text-[10px] tabular-nums text-[var(--text-tertiary)]"
+            >
               {{ durationLabel(span) }}
             </span>
           </li>

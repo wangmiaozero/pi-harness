@@ -23,6 +23,7 @@ import Badge from '@renderer/components/ui/Badge.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import InspectorSection from '@renderer/components/ui/InspectorSection.vue'
+import LoadingOverlay from '@renderer/components/ui/LoadingOverlay.vue'
 import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
 import SearchField from '@renderer/components/ui/SearchField.vue'
 import Select from '@renderer/components/ui/Select.vue'
@@ -322,6 +323,11 @@ function resources(pkg: PiRegistryPackage | undefined) {
         class="flex min-h-0 w-[420px] min-w-[340px] shrink-0 flex-col border-r border-[var(--border-subtle)]"
       >
         <div class="relative min-h-0 flex-1 overflow-y-auto p-2">
+          <LoadingOverlay
+            v-if="store.registryLoading"
+            :label="$t('common.loading')"
+            test-id="registry-loading-overlay"
+          />
           <div
             v-if="store.registryLoading && !store.registryPackages.length"
             class="space-y-2"
@@ -465,7 +471,12 @@ function resources(pkg: PiRegistryPackage | undefined) {
         </footer>
       </section>
 
-      <section class="min-h-0 min-w-0 flex-1 overflow-y-auto">
+      <section class="relative min-h-0 min-w-0 flex-1 overflow-y-auto">
+        <LoadingOverlay
+          v-if="detailLoading"
+          :label="$t('capabilities.loading')"
+          test-id="registry-detail-loading-overlay"
+        />
         <div v-if="!selectedPackage" class="flex h-full items-center justify-center">
           <EmptyState
             :title="$t('capabilities.selectPackage')"
@@ -528,13 +539,7 @@ function resources(pkg: PiRegistryPackage | undefined) {
           </header>
 
           <div
-            v-if="detailLoading"
-            class="flex h-48 items-center justify-center text-[12px] text-[var(--text-tertiary)]"
-          >
-            {{ $t('capabilities.loading') }}
-          </div>
-          <div
-            v-else-if="detailError"
+            v-if="detailError"
             class="m-4 rounded-[var(--radius-md)] border border-[var(--warning)]/40 bg-[var(--warning-tint)] p-4"
           >
             <p class="text-[12px] text-[var(--warning)]">{{ detailError }}</p>

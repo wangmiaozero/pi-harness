@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Download, Target } from '@lucide/vue'
 import type { HarnessStatsRange } from '@shared/types/harness'
+import Select from '@renderer/components/ui/Select.vue'
 import { useHarnessStore } from '@renderer/stores/harness'
 
 const { t } = useI18n()
@@ -18,6 +19,12 @@ const rangeOptions: Array<{ value: HarnessStatsRange; label: string }> = [
   { value: '30d', label: t('workspace.harnessRange30d') },
   { value: 'all', label: t('workspace.harnessRangeAll') }
 ]
+const retentionOptions = computed(() => [
+  { value: '7', label: t('workspace.harnessRetention7d') },
+  { value: '30', label: t('workspace.harnessRetention30d') },
+  { value: '90', label: t('workspace.harnessRetention90d') },
+  { value: '0', label: t('workspace.harnessRetentionForever') }
+])
 
 function percent(value: number | null): string {
   return value === null ? '—' : `${(value * 100).toFixed(1)}%`
@@ -58,9 +65,11 @@ async function exportDebug(): Promise<void> {
           :key="option.value"
           type="button"
           class="rounded-[var(--radius-sm)] border px-2 py-0.5 text-[10.5px] transition-colors"
-          :class="harness.statsRange === option.value
-            ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)]'
-            : 'border-transparent text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]'"
+          :class="
+            harness.statsRange === option.value
+              ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)]'
+              : 'border-transparent text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]'
+          "
           :aria-pressed="harness.statsRange === option.value"
           @click="setRange(option.value)"
         >
@@ -109,7 +118,9 @@ async function exportDebug(): Promise<void> {
     </div>
 
     <div v-if="stats?.topFailureReasons.length" class="mt-4">
-      <p class="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+      <p
+        class="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+      >
         {{ t('workspace.harnessProjectTopFailures') }}
       </p>
       <ul class="space-y-1">
@@ -134,31 +145,33 @@ async function exportDebug(): Promise<void> {
       </ul>
     </div>
 
-    <div v-if="baseline" class="mt-4 flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2">
+    <div
+      v-if="baseline"
+      class="mt-4 flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2"
+    >
       <Target class="size-3.5 shrink-0 text-[var(--accent)]" />
       <span class="min-w-0 flex-1 truncate text-[11px] text-[var(--text-secondary)]">
         {{ t('workspace.harnessBaselineCurrent') }}: {{ baseline.runLabel }}
       </span>
     </div>
 
-    <div class="mt-4 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3">
+    <div
+      class="mt-4 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
+    >
       <div class="flex flex-wrap items-center justify-between gap-2">
         <span class="text-[11.5px] text-[var(--text-secondary)]">
           {{ t('workspace.harnessRetentionLabel') }}
         </span>
-        <select
+        <Select
           v-if="settings"
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11px] text-[var(--text-primary)]"
-          :value="settings.retentionDays"
+          class="w-[132px]"
+          size="sm"
+          :model-value="String(settings.retentionDays)"
+          :options="retentionOptions"
           :disabled="harness.mutating"
           data-testid="harness-retention-select"
-          @change="updateRetention(($event.target as HTMLSelectElement).value)"
-        >
-          <option value="7">{{ t('workspace.harnessRetention7d') }}</option>
-          <option value="30">{{ t('workspace.harnessRetention30d') }}</option>
-          <option value="90">{{ t('workspace.harnessRetention90d') }}</option>
-          <option value="0">{{ t('workspace.harnessRetentionForever') }}</option>
-        </select>
+          @update:model-value="updateRetention"
+        />
       </div>
       <p class="mt-1.5 text-[10.5px] text-[var(--text-tertiary)]">
         {{ t('workspace.harnessRetentionHint') }}

@@ -18,7 +18,7 @@ const emit = defineEmits<{
 
 <template>
   <label
-    class="group flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] shadow-[var(--control-shadow)] transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] focus-within:border-[var(--accent)] focus-within:bg-[var(--control-bg-hover)] focus-within:shadow-[var(--focus-ring)]"
+    class="ui-search-field group flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] shadow-[var(--control-shadow)] transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] focus-within:border-[var(--accent)] focus-within:bg-[var(--control-bg-hover)] focus-within:shadow-[var(--focus-ring)]"
     :class="size === 'sm' ? 'h-7 px-2' : 'h-[var(--height-input)] px-2.5'"
   >
     <Search
@@ -31,7 +31,7 @@ const emit = defineEmits<{
       :value="modelValue"
       :placeholder="placeholder"
       :aria-label="ariaLabel ?? placeholder"
-      class="m-0 min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-[12px] text-[var(--text-primary)] shadow-none outline-none ring-0 placeholder:text-[var(--control-placeholder)]"
+      class="ui-search-field__input m-0 min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-[12px] text-[var(--text-primary)] shadow-none outline-none ring-0 placeholder:text-[var(--control-placeholder)]"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
     <span

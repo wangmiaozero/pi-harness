@@ -268,6 +268,20 @@ select optgroup {
   border-radius: inherit;
 }
 
+/* Composite fields own their focus treatment at the container level. Keep the
+ * nested native input from drawing a second, smaller focus ring. */
+.ui-search-field__input:focus,
+.ui-search-field__input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.ui-search-field__input::-webkit-search-decoration,
+.ui-search-field__input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* Animations — short and quiet. */
 @keyframes pi-fade-in {
   from {

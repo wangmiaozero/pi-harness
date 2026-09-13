@@ -59,6 +59,7 @@ describe('Select', () => {
     const wrapper = mount(Select, {
       props: {
         modelValue: 'a',
+        'aria-label': 'Choose option',
         size: 'sm',
         options: [
           { value: 'a', label: 'Option A' },
@@ -71,5 +72,29 @@ describe('Select', () => {
     const trigger = wrapper.get('button')
     expect(trigger.classes()).toContain('h-7')
     expect(trigger.classes()).toContain('text-[11.5px]')
+    expect(trigger.attributes('aria-label')).toBe('Choose option')
+  })
+
+  it('supports keyboard navigation without opening a native popup', async () => {
+    const wrapper = mount(Select, {
+      attachTo: document.body,
+      props: {
+        modelValue: 'a',
+        options: [
+          { value: 'a', label: 'Option A' },
+          { value: 'b', label: 'Option B' },
+          { value: 'c', label: 'Option C', disabled: true }
+        ]
+      }
+    })
+    wrappers.push(wrapper)
+
+    const trigger = wrapper.get('button')
+    await trigger.trigger('keydown', { key: 'ArrowDown' })
+    await trigger.trigger('keydown', { key: 'ArrowDown' })
+    await trigger.trigger('keydown', { key: 'Enter' })
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([['b']])
+    expect(document.body.querySelector('select')).toBeNull()
   })
 })

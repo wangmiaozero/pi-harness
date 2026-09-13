@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { Check, ChevronDown } from '@lucide/vue'
 
 const model = defineModel<string>({ default: '' })
@@ -20,8 +20,10 @@ const props = withDefaults(
     error?: string
     layout?: 'stacked' | 'row'
     placeholder?: string
+    ariaLabel?: string
     mono?: boolean
     size?: 'md' | 'sm'
+    tone?: 'default' | 'success' | 'warning' | 'error'
   }>(),
   {
     label: '',
@@ -30,12 +32,16 @@ const props = withDefaults(
     disabled: false,
     layout: 'stacked',
     placeholder: '',
-    size: 'md'
+    ariaLabel: '',
+    size: 'md',
+    tone: 'default'
   }
 )
 
 const selectId = useId()
+const listboxId = `${selectId}-listbox`
 const open = ref(false)
+const activeIndex = ref(-1)
 const rootRef = ref<HTMLElement | null>(null)
 const triggerRef = ref<HTMLButtonElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
@@ -80,8 +86,18 @@ const triggerClasses = computed(() => {
     : props.size === 'sm'
       ? 'text-[11.5px]'
       : 'text-[13px]'
-  return `${base} ${size} ${text}`
+  const tone = {
+    default: '',
+    success: '!text-[var(--success)]',
+    warning: '!text-[var(--warning)]',
+    error: '!text-[var(--error)]'
+  }[props.tone]
+  return `${base} ${size} ${text} ${tone}`
 })
+
+const activeDescendant = computed(() =>
+  open.value && activeIndex.value >= 0 ? optionId(activeIndex.value) : undefined
+)
 
 function syncPanel() {
   const el = triggerRef.value
@@ -101,20 +117,98 @@ function syncPanel() {
   }
 }
 
-function toggle() {
-  if (props.disabled) return
-  if (open.value) {
-    open.value = false
-    return
+function optionId(index: number): string {
+  return `${selectId}-option-${index}`
+}
+
+function firstEnabledIndex(): number {
+  return props.options.findIndex((option) => !option.disabled)
+}
+
+function lastEnabledIndex(): number {
+  for (let index = props.options.length - 1; index >= 0; index -= 1) {
+    if (!props.options[index]?.disabled) return index
   }
+  return -1
+}
+
+function selectedEnabledIndex(): number {
+  const index = props.options.findIndex((option) => option.value === model.value)
+  return index >= 0 && !props.options[index]?.disabled ? index : firstEnabledIndex()
+}
+
+function scrollActiveIntoView(): void {
+  void nextTick(() => {
+    const option = panelRef.value?.querySelector<HTMLElement>(
+      `[data-select-index="${activeIndex.value}"]`
+    )
+    if (typeof option?.scrollIntoView === 'function') option.scrollIntoView({ block: 'nearest' })
+  })
+}
+
+function show(): void {
+  if (props.disabled || !props.options.length) return
   syncPanel()
   open.value = true
+  activeIndex.value = selectedEnabledIndex()
+  scrollActiveIntoView()
+}
+
+function toggle() {
+  if (open.value) open.value = false
+  else show()
 }
 
 function pick(option: SelectOption) {
   if (option.disabled) return
   model.value = option.value
   open.value = false
+}
+
+function moveActive(step: 1 | -1): void {
+  if (!props.options.length) return
+  let index = activeIndex.value
+  for (let count = 0; count < props.options.length; count += 1) {
+    index = (index + step + props.options.length) % props.options.length
+    if (!props.options[index]?.disabled) {
+      activeIndex.value = index
+      scrollActiveIntoView()
+      return
+    }
+  }
+}
+
+function onTriggerKey(e: KeyboardEvent): void {
+  if (props.disabled) return
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault()
+    if (!open.value) show()
+    else moveActive(e.key === 'ArrowDown' ? 1 : -1)
+    return
+  }
+  if (e.key === 'Home' && open.value) {
+    e.preventDefault()
+    activeIndex.value = firstEnabledIndex()
+    scrollActiveIntoView()
+    return
+  }
+  if (e.key === 'End' && open.value) {
+    e.preventDefault()
+    activeIndex.value = lastEnabledIndex()
+    scrollActiveIntoView()
+    return
+  }
+  if ((e.key === 'Enter' || e.key === ' ') && open.value) {
+    e.preventDefault()
+    const option = props.options[activeIndex.value]
+    if (option) pick(option)
+    return
+  }
+  if (e.key === 'Escape' && open.value) {
+    e.preventDefault()
+    e.stopPropagation()
+    open.value = false
+  }
 }
 
 function onDocPointer(e: PointerEvent) {
@@ -147,6 +241,13 @@ onBeforeUnmount(() => {
 watch(open, (v) => {
   if (v) syncPanel()
 })
+
+watch(
+  () => [model.value, props.options] as const,
+  () => {
+    if (open.value) activeIndex.value = selectedEnabledIndex()
+  }
+)
 </script>
 
 <template>
@@ -165,9 +266,13 @@ watch(open, (v) => {
       :class="triggerClasses"
       :disabled="disabled"
       :aria-expanded="open"
+      :aria-controls="listboxId"
+      :aria-activedescendant="activeDescendant"
+      :aria-label="ariaLabel || undefined"
       aria-haspopup="listbox"
       :aria-invalid="error ? 'true' : undefined"
       @click="toggle"
+      @keydown="onTriggerKey"
     >
       <span
         class="min-w-0 flex-1 truncate"
@@ -194,6 +299,7 @@ watch(open, (v) => {
     <Teleport to="body">
       <div
         v-if="open"
+        :id="listboxId"
         ref="panelRef"
         role="listbox"
         class="ui-select-menu pointer-events-auto fixed z-[110] overflow-y-auto rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
@@ -216,17 +322,24 @@ watch(open, (v) => {
           </div>
           <button
             v-for="opt in group.options"
+            :id="optionId(options.indexOf(opt))"
             :key="opt.value"
             type="button"
             role="option"
+            tabindex="-1"
+            :data-select-index="options.indexOf(opt)"
             class="ui-select-option flex w-full items-center justify-between gap-2 rounded-[4px] py-[6px] pr-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none hover:bg-[var(--bg-hover)]"
             :class="[
               opt.group ? 'pl-4' : 'pl-2',
               opt.value === model ? 'bg-[var(--accent-tint)] text-[var(--accent)]' : '',
+              options.indexOf(opt) === activeIndex && opt.value !== model
+                ? 'bg-[var(--bg-hover)]'
+                : '',
               opt.disabled ? 'cursor-not-allowed opacity-45 hover:bg-transparent' : ''
             ]"
             :disabled="opt.disabled"
             :aria-selected="opt.value === model"
+            @pointermove="!opt.disabled && (activeIndex = options.indexOf(opt))"
             @mousedown.prevent="pick(opt)"
           >
             <span

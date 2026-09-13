@@ -7,11 +7,23 @@ import type {
   HarnessPolicyDecision,
   HarnessPolicyDomain
 } from '@shared/types/harness'
+import Select from '@renderer/components/ui/Select.vue'
 import { useHarnessStore } from '@renderer/stores/harness'
 
-type DecisionKey = 'tools.default' | 'files.write' | 'files.delete' | 'files.rename' |
-  'files.outsideWorkspace' | 'shell.default' | 'git.commit' | 'git.push' | 'git.forcePush' |
-  'git.reset' | 'git.checkout' | 'git.branchDelete' | 'network'
+type DecisionKey =
+  | 'tools.default'
+  | 'files.write'
+  | 'files.delete'
+  | 'files.rename'
+  | 'files.outsideWorkspace'
+  | 'shell.default'
+  | 'git.commit'
+  | 'git.push'
+  | 'git.forcePush'
+  | 'git.reset'
+  | 'git.checkout'
+  | 'git.branchDelete'
+  | 'network'
 
 const { t } = useI18n()
 const harness = useHarnessStore()
@@ -24,7 +36,11 @@ const decisionRows: Array<{ key: DecisionKey; domain: HarnessPolicyDomain; label
   { key: 'files.write', domain: 'file', labelKey: 'workspace.harnessPolicyFilesWrite' },
   { key: 'files.delete', domain: 'file', labelKey: 'workspace.harnessPolicyFilesDelete' },
   { key: 'files.rename', domain: 'file', labelKey: 'workspace.harnessPolicyFilesRename' },
-  { key: 'files.outsideWorkspace', domain: 'file', labelKey: 'workspace.harnessPolicyFilesOutside' },
+  {
+    key: 'files.outsideWorkspace',
+    domain: 'file',
+    labelKey: 'workspace.harnessPolicyFilesOutside'
+  },
   { key: 'shell.default', domain: 'shell', labelKey: 'workspace.harnessPolicyShellDefault' },
   { key: 'git.commit', domain: 'git', labelKey: 'workspace.harnessPolicyGitCommit' },
   { key: 'git.push', domain: 'git', labelKey: 'workspace.harnessPolicyGitPush' },
@@ -54,6 +70,17 @@ const CUSTOM_STAGE_OPTIONS = [
   'git-inspection',
   'custom-check'
 ] as const
+const decisionOptions = computed(() => [
+  { value: 'allow', label: t('workspace.harnessPolicyAllow') },
+  { value: 'ask', label: t('workspace.harnessPolicyAsk') },
+  { value: 'deny', label: t('workspace.harnessPolicyDeny') }
+])
+const evaluationPresetOptions = computed(() => [
+  { value: 'fast', label: t('workspace.harnessPolicyEvalPresetFast') },
+  { value: 'standard', label: t('workspace.harnessPolicyEvalPresetStandard') },
+  { value: 'strict', label: t('workspace.harnessPolicyEvalPresetStrict') },
+  { value: 'custom', label: t('workspace.harnessPolicyEvalPresetCustom') }
+])
 
 function toggleCustomStage(stage: (typeof CUSTOM_STAGE_OPTIONS)[number]): void {
   const stages = draft.evaluation.customStages
@@ -168,10 +195,10 @@ function writeDecision(key: DecisionKey, value: HarnessPolicyDecision): void {
   if (record[group]) record[group][field] = value
 }
 
-function decisionTone(decision: HarnessPolicyDecision): string {
-  if (decision === 'deny') return 'text-[var(--error)]'
-  if (decision === 'ask') return 'text-[var(--warning)]'
-  return 'text-[var(--success)]'
+function decisionTone(decision: HarnessPolicyDecision): 'success' | 'warning' | 'error' {
+  if (decision === 'deny') return 'error'
+  if (decision === 'ask') return 'warning'
+  return 'success'
 }
 
 async function save(): Promise<void> {
@@ -222,22 +249,22 @@ function patternListTitle(kind: 'allow' | 'deny'): string {
         <span class="min-w-0 truncate text-[11.5px] text-[var(--text-secondary)]">
           {{ $t(row.labelKey) }}
         </span>
-        <select
-          :value="readDecision(row.key)"
-          class="shrink-0 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-1.5 py-0.5 text-[11px]"
-          :class="decisionTone(readDecision(row.key))"
+        <Select
+          class="w-[104px] shrink-0"
+          size="sm"
+          :model-value="readDecision(row.key)"
+          :options="decisionOptions"
+          :tone="decisionTone(readDecision(row.key))"
           :data-testid="`harness-policy-${row.key}`"
-          @change="writeDecision(row.key, ($event.target as HTMLSelectElement).value as HarnessPolicyDecision)"
-        >
-          <option value="allow">{{ $t('workspace.harnessPolicyAllow') }}</option>
-          <option value="ask">{{ $t('workspace.harnessPolicyAsk') }}</option>
-          <option value="deny">{{ $t('workspace.harnessPolicyDeny') }}</option>
-        </select>
+          @update:model-value="writeDecision(row.key, $event as HarnessPolicyDecision)"
+        />
       </label>
     </div>
 
     <div v-if="harness.policy" class="mt-4">
-      <p class="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+      <p
+        class="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+      >
         {{ $t('workspace.harnessPolicyBudget') }}
       </p>
       <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -294,15 +321,12 @@ function patternListTitle(kind: 'allow' | 'deny'): string {
         <span class="text-[11.5px] text-[var(--text-secondary)]">
           {{ $t('workspace.harnessPolicyEvalPreset') }}
         </span>
-        <select
+        <Select
           v-model="draft.evaluation.preset"
-          class="max-w-[9rem] rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
-        >
-          <option value="fast">{{ $t('workspace.harnessPolicyEvalPresetFast') }}</option>
-          <option value="standard">{{ $t('workspace.harnessPolicyEvalPresetStandard') }}</option>
-          <option value="strict">{{ $t('workspace.harnessPolicyEvalPresetStrict') }}</option>
-          <option value="custom">{{ $t('workspace.harnessPolicyEvalPresetCustom') }}</option>
-        </select>
+          class="w-[144px]"
+          size="sm"
+          :options="evaluationPresetOptions"
+        />
       </div>
       <div
         v-if="draft.evaluation.preset === 'custom'"
@@ -346,7 +370,9 @@ function patternListTitle(kind: 'allow' | 'deny'): string {
           <ShieldAlert class="size-3.5 text-[var(--warning)]" />
           {{ $t('workspace.harnessPolicyDangerousPatterns') }}
         </p>
-        <p class="mt-1 line-clamp-3 font-mono text-[10px] leading-relaxed text-[var(--text-tertiary)]">
+        <p
+          class="mt-1 line-clamp-3 font-mono text-[10px] leading-relaxed text-[var(--text-tertiary)]"
+        >
           {{ (harness.policy.dangerousPatterns ?? []).join(' · ') }}
         </p>
       </div>
@@ -358,17 +384,27 @@ function patternListTitle(kind: 'allow' | 'deny'): string {
         :key="kind"
         class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
       >
-        <p class="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+        <p
+          class="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+        >
           {{ patternListTitle(kind) }}
         </p>
         <textarea
-          :value="(kind === 'allow' ? draft.shell.allowCommands : draft.shell.denyCommands).join('\n')"
+          :value="
+            (kind === 'allow' ? draft.shell.allowCommands : draft.shell.denyCommands).join('\n')
+          "
           rows="4"
           :placeholder="$t('workspace.harnessPolicyPatternsPlaceholder')"
           class="w-full resize-y rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1.5 font-mono text-[10.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
           :data-testid="`harness-policy-${kind}-commands`"
           @change="
-            (kind === 'allow' ? (draft.shell.allowCommands = ($event.target as HTMLTextAreaElement).value.split('\n')) : (draft.shell.denyCommands = ($event.target as HTMLTextAreaElement).value.split('\n')))
+            kind === 'allow'
+              ? (draft.shell.allowCommands = ($event.target as HTMLTextAreaElement).value.split(
+                  '\n'
+                ))
+              : (draft.shell.denyCommands = ($event.target as HTMLTextAreaElement).value.split(
+                  '\n'
+                ))
           "
         />
       </div>

@@ -14,6 +14,7 @@ import {
   TestTube2
 } from '@lucide/vue'
 import type { HarnessArtifactType } from '@shared/types/harness'
+import Select from '@renderer/components/ui/Select.vue'
 import { useHarnessStore } from '@renderer/stores/harness'
 
 const { t, locale } = useI18n()
@@ -49,6 +50,13 @@ const FILTER_TYPES: HarnessArtifactType[] = [
   'git-commit',
   'checkpoint'
 ]
+const filterOptions = computed(() => [
+  { value: 'all', label: t('workspace.harnessArtifactFilterAll') },
+  ...FILTER_TYPES.map((type) => ({
+    value: type,
+    label: t(`workspace.harnessArtifactType.${type}`)
+  }))
+])
 
 function time(timestamp: number): string {
   return new Intl.DateTimeFormat(locale.value, {
@@ -71,16 +79,13 @@ function runPrompt(runId: string): string {
   <section class="harness-card" data-testid="harness-artifacts-panel">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h3 class="harness-card-title">{{ t('workspace.harnessArtifacts') }}</h3>
-      <select
+      <Select
         v-model="typeFilter"
-        class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11px] text-[var(--text-primary)]"
+        class="w-[150px]"
+        size="sm"
+        :options="filterOptions"
         :aria-label="t('workspace.harnessArtifactFilter')"
-      >
-        <option value="all">{{ t('workspace.harnessArtifactFilterAll') }}</option>
-        <option v-for="type in FILTER_TYPES" :key="type" :value="type">
-          {{ t(`workspace.harnessArtifactType.${type}`) }}
-        </option>
-      </select>
+      />
     </div>
 
     <p v-if="!artifacts.length" class="mt-4 text-[12px] text-[var(--text-tertiary)]">
@@ -93,7 +98,10 @@ function runPrompt(runId: string): string {
         class="flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-3 py-1.5"
         :data-testid="`harness-artifact-${artifact.type}`"
       >
-        <component :is="typeIcon[artifact.type]" class="size-3.5 shrink-0 text-[var(--text-tertiary)]" />
+        <component
+          :is="typeIcon[artifact.type]"
+          class="size-3.5 shrink-0 text-[var(--text-tertiary)]"
+        />
         <div class="min-w-0 flex-1">
           <p class="truncate text-[11.5px] text-[var(--text-primary)]">{{ artifact.name }}</p>
           <p class="truncate text-[10px] text-[var(--text-tertiary)]">
