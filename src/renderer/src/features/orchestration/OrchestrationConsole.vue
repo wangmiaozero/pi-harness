@@ -4,6 +4,7 @@ import { Bot, Pause, Play, Plus, RefreshCw, Square, Trash2 } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
+import Select from '@renderer/components/ui/Select.vue'
 import OrchestrationDashboard from './OrchestrationDashboard.vue'
 import OrchestrationAgentsPanel from './OrchestrationAgentsPanel.vue'
 import OrchestrationTasksPanel from './OrchestrationTasksPanel.vue'
@@ -25,6 +26,15 @@ const sections = computed<Array<{ id: Section; label: string }>>(() => [
   { id: 'tasks', label: t('orchestration.sectionTasks') },
   { id: 'presets', label: t('orchestration.sectionPresets') }
 ])
+
+const orchestrationOptions = computed(() =>
+  store.orchestrations.length
+    ? store.orchestrations.map((item) => ({
+        value: item.id,
+        label: `${item.name ?? item.id.slice(0, 8)} · ${item.status}`
+      }))
+    : [{ value: '', label: t('orchestration.noneYet') }]
+)
 
 const statusTone: Record<string, string> = {
   pending: 'text-[var(--text-tertiary)]',
@@ -59,7 +69,7 @@ async function toggleRun(): Promise<void> {
 </script>
 
 <template>
-  <div data-testid="orchestration-console" class="flex h-full min-h-0 flex-col bg-[var(--bg-primary)]">
+  <div data-testid="orchestration-console" class="flex h-full min-h-0 flex-col bg-[var(--bg-workspace)]">
     <header
       class="flex min-h-14 shrink-0 items-center gap-3 border-b border-[var(--border-subtle)] px-5"
     >
@@ -82,19 +92,14 @@ async function toggleRun(): Promise<void> {
     </header>
 
     <div class="flex shrink-0 items-center gap-2 border-b border-[var(--border-subtle)] px-4 py-2">
-      <select
-        v-model="store.currentId"
-        class="max-w-[240px] min-w-0 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+      <Select
+        :model-value="store.currentId ?? ''"
+        :options="orchestrationOptions"
+        class="max-w-[240px] min-w-0"
+        size="sm"
         data-testid="orchestration-select"
-        @change="store.select(store.currentId)"
-      >
-        <option v-if="!store.orchestrations.length" :value="null">
-          {{ $t('orchestration.noneYet') }}
-        </option>
-        <option v-for="item in store.orchestrations" :key="item.id" :value="item.id">
-          {{ item.name ?? item.id.slice(0, 8) }} · {{ item.status }}
-        </option>
-      </select>
+        @update:model-value="store.select($event || null)"
+      />
       <button
         type="button"
         class="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--accent-border)] bg-[var(--accent-tint)] px-2 py-1 text-[11px] text-[var(--accent)] transition-colors hover:brightness-95"
@@ -154,11 +159,11 @@ async function toggleRun(): Promise<void> {
         v-for="item in sections"
         :key="item.id"
         type="button"
-        class="rounded-[var(--radius-sm)] border px-2.5 py-1 text-[11px] transition-colors"
+        class="rounded-[var(--radius-sm)] border px-2.5 py-1 text-[11px] transition-colors focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
         :class="
           section === item.id
-            ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)]'
-            : 'border-transparent text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+            ? 'border-[var(--accent-border)] bg-[var(--bg-surface-raised)] text-[var(--text-primary)] shadow-[inset_0_-2px_0_var(--accent)]'
+            : 'border-transparent text-[var(--text-tertiary)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
         "
         :aria-pressed="section === item.id"
         @click="section = item.id"

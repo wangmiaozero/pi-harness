@@ -114,7 +114,7 @@ async function removeTemplate(templateId: string): Promise<void> {
           <input
             v-model="teamForm.name"
             required
-            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
           />
         </label>
         <button
@@ -188,14 +188,14 @@ async function removeTemplate(templateId: string): Promise<void> {
           <input
             v-model="templateForm.name"
             required
-            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
           />
         </label>
         <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
           {{ t('orchestration.agentRole') }}
           <input
             v-model="templateForm.role"
-            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
           />
         </label>
         <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)] sm:col-span-2">
@@ -203,7 +203,7 @@ async function removeTemplate(templateId: string): Promise<void> {
           <textarea
             v-model="templateForm.description"
             rows="2"
-            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
           />
         </label>
         <div class="flex items-center gap-2 sm:col-span-2">

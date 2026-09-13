@@ -85,7 +85,7 @@ async function openRunDetail(runId: string): Promise<void> {
 </script>
 
 <template>
-  <div data-testid="harness-console" class="flex h-full min-h-0 flex-col bg-[var(--bg-primary)]">
+  <div data-testid="harness-console" class="flex h-full min-h-0 flex-col bg-[var(--bg-workspace)]">
     <header
       class="flex min-h-14 shrink-0 items-center gap-3 border-b border-[var(--border-subtle)] px-5"
     >
@@ -131,11 +131,11 @@ async function openRunDetail(runId: string): Promise<void> {
         v-for="item in sections"
         :key="item.id"
         type="button"
-        class="rounded-[var(--radius-sm)] border px-2.5 py-1 text-[11px] transition-colors"
+        class="rounded-[var(--radius-sm)] border px-2.5 py-1 text-[11px] transition-colors focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
         :class="
           section === item.id
-            ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)]'
-            : 'border-transparent text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+            ? 'border-[var(--accent-border)] bg-[var(--bg-surface-raised)] text-[var(--text-primary)] shadow-[inset_0_-2px_0_var(--accent)]'
+            : 'border-transparent text-[var(--text-tertiary)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
         "
         :aria-pressed="section === item.id"
         @click="section = item.id"

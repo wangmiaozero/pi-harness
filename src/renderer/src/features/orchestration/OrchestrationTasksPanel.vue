@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ListTree, Plus, RotateCcw, SkipForward, Trash2, UserRoundCog } from '@lucide/vue'
+import Select from '@renderer/components/ui/Select.vue'
 import { useOrchestrationStore } from '@renderer/stores/orchestration'
 import type { HarnessTask } from '@shared/types/harness'
 
@@ -20,6 +21,21 @@ const form = ref({
 
 const tasks = computed<HarnessTask[]>(() => store.snapshot?.tasks ?? [])
 const busyTaskId = ref<string | null>(null)
+
+const priorityOptions = [
+  { value: 'low', label: 'low' },
+  { value: 'normal', label: 'normal' },
+  { value: 'high', label: 'high' },
+  { value: 'critical', label: 'critical' }
+]
+
+const assigneeOptions = computed(() => [
+  { value: '', label: t('orchestration.taskAutoAssign') },
+  ...(store.snapshot?.agents ?? []).map((snapshot) => ({
+    value: snapshot.agent.id,
+    label: snapshot.agent.name
+  }))
+])
 
 const agentNameById = computed<Map<string, string>>(
   () =>
@@ -141,39 +157,23 @@ async function remove(task: HarnessTask): Promise<void> {
         <input
           v-model="form.title"
           required
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
         />
       </label>
       <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
         {{ t('orchestration.taskPriority') }}
-        <select
-          v-model="form.priority"
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
-        >
-          <option value="low">low</option>
-          <option value="normal">normal</option>
-          <option value="high">high</option>
-          <option value="critical">critical</option>
-        </select>
+        <Select v-model="form.priority" size="sm" :options="priorityOptions" />
       </label>
       <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
         {{ t('orchestration.taskAssignee') }}
-        <select
-          v-model="form.assignedAgentId"
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
-        >
-          <option value="">{{ t('orchestration.taskAutoAssign') }}</option>
-          <option v-for="snapshot in store.snapshot?.agents ?? []" :key="snapshot.agent.id" :value="snapshot.agent.id">
-            {{ snapshot.agent.name }}
-          </option>
-        </select>
+        <Select v-model="form.assignedAgentId" size="sm" :options="assigneeOptions" />
       </label>
       <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
         {{ t('orchestration.taskDependencies') }}
         <input
           v-model="form.dependencies"
           :placeholder="t('orchestration.taskDependenciesPlaceholder')"
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
         />
       </label>
       <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)] sm:col-span-2">
@@ -181,7 +181,7 @@ async function remove(task: HarnessTask): Promise<void> {
         <textarea
           v-model="form.description"
           rows="2"
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
         />
       </label>
       <label class="flex items-center gap-2 text-[10.5px] text-[var(--text-secondary)]">

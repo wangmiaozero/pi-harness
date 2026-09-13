@@ -140,7 +140,7 @@ async function fork(checkpoint: HarnessCheckpoint): Promise<void> {
             v-model="resumePrompt[checkpoint.id]"
             type="text"
             :placeholder="$t('workspace.harnessCheckpointResumePrompt')"
-            class="min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11px] text-[var(--text-primary)]"
+            class="min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
             :data-testid="`harness-checkpoint-resume-input`"
           />
           <button

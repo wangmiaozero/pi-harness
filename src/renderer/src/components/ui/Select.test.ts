@@ -54,4 +54,22 @@ describe('Select', () => {
 
     expect(wrapper.emitted('update:modelValue')).toEqual([['openai/gpt-5']])
   })
+
+  it('applies the compact trigger classes when size is sm', () => {
+    const wrapper = mount(Select, {
+      props: {
+        modelValue: 'a',
+        size: 'sm',
+        options: [
+          { value: 'a', label: 'Option A' },
+          { value: 'b', label: 'Option B' }
+        ]
+      }
+    })
+    wrappers.push(wrapper)
+
+    const trigger = wrapper.get('button')
+    expect(trigger.classes()).toContain('h-7')
+    expect(trigger.classes()).toContain('text-[11.5px]')
+  })
 })

@@ -21,6 +21,7 @@ const props = withDefaults(
     layout?: 'stacked' | 'row'
     placeholder?: string
     mono?: boolean
+    size?: 'md' | 'sm'
   }>(),
   {
     label: '',
@@ -28,7 +29,8 @@ const props = withDefaults(
     error: '',
     disabled: false,
     layout: 'stacked',
-    placeholder: ''
+    placeholder: '',
+    size: 'md'
   }
 )
 
@@ -66,13 +68,19 @@ const fieldClasses = computed(() =>
 
 const triggerClasses = computed(() => {
   const base =
-    'ui-select-trigger inline-flex h-[var(--height-select)] w-full items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-[var(--control-border)] ' +
-    'bg-[var(--control-bg)] px-2.5 text-left text-[13px] text-[var(--text-primary)] shadow-[var(--control-shadow)] ' +
+    'ui-select-trigger inline-flex w-full items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-[var(--control-border)] ' +
+    'bg-[var(--control-bg)] text-left text-[var(--text-primary)] shadow-[var(--control-shadow)] ' +
     'transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] ' +
     'hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] ' +
     'focus:border-[var(--accent)] focus:bg-[var(--control-bg-hover)] focus:outline-none focus:shadow-[var(--focus-ring)] ' +
     'disabled:cursor-not-allowed disabled:border-[var(--border-subtle)] disabled:bg-[var(--control-bg-disabled)] disabled:text-[var(--text-disabled)] disabled:shadow-none'
-  return props.mono ? `${base} font-[family-name:var(--font-mono)] text-[12px]` : base
+  const size = props.size === 'sm' ? 'h-7 px-2' : 'h-[var(--height-select)] px-2.5'
+  const text = props.mono
+    ? 'text-[12px] font-[family-name:var(--font-mono)]'
+    : props.size === 'sm'
+      ? 'text-[11.5px]'
+      : 'text-[13px]'
+  return `${base} ${size} ${text}`
 })
 
 function syncPanel() {

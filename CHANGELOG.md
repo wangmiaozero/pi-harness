@@ -15,6 +15,12 @@ Public release notes contain only released, user-visible additions and fixes.
 - Added orchestration recovery: pause/resume/abort, retry failed tasks with reviewer feedback carried into the retry, skip, and reassign; interrupted orchestrations are detected after restart and remain resumable.
 - Added dependency cycle detection, stuck-agent hints, and an orchestration timeline of task, agent, handoff, and review events.
 
+### Fixed
+
+- Fixed Harness and Orchestration console surfaces rendering translucent, so they now stay solid under every theme and visual skin.
+- Fixed doubled focus outlines on console inputs and search fields.
+- Fixed the Orchestration console navigation highlighting and dropdowns to follow the active theme.
+
 ## 1.5.0
 
 ### Added

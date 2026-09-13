@@ -253,7 +253,7 @@ function patternListTitle(kind: 'allow' | 'deny'): string {
             min="0"
             step="any"
             :placeholder="$t('workspace.harnessPolicyUnlimited')"
-            class="w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-1.5 py-0.5 text-right text-[12px] text-[var(--text-primary)]"
+            class="w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-1.5 py-0.5 text-right text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
             :data-testid="`harness-policy-budget-${row.key}`"
           />
         </label>
@@ -365,7 +365,7 @@ function patternListTitle(kind: 'allow' | 'deny'): string {
           :value="(kind === 'allow' ? draft.shell.allowCommands : draft.shell.denyCommands).join('\n')"
           rows="4"
           :placeholder="$t('workspace.harnessPolicyPatternsPlaceholder')"
-          class="w-full resize-y rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1.5 font-mono text-[10.5px] text-[var(--text-primary)]"
+          class="w-full resize-y rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1.5 font-mono text-[10.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
           :data-testid="`harness-policy-${kind}-commands`"
           @change="
             (kind === 'allow' ? (draft.shell.allowCommands = ($event.target as HTMLTextAreaElement).value.split('\n')) : (draft.shell.denyCommands = ($event.target as HTMLTextAreaElement).value.split('\n')))

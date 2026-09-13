@@ -246,7 +246,7 @@ async function runSearch() {
     <div class="mt-1 flex gap-1">
       <input
         v-model="searchQuery"
-        class="h-7 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2 text-[11px] text-[var(--text-primary)]"
+        class="h-7 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2 text-[11px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
         :placeholder="$t('workspace.searchPlaceholder')"
         @keydown.enter="runSearch"
       />

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Select from '@renderer/components/ui/Select.vue'
 import { useOrchestrationStore, type OrchestrationDraft } from '@renderer/stores/orchestration'
 
 const emit = defineEmits<{ close: [] }>()
@@ -17,6 +18,17 @@ const draft = ref<OrchestrationDraft>({
   budgetMaxTokens: null,
   budgetMaxCost: null
 })
+
+const teamOptions = computed(() => [
+  { value: '', label: t('orchestration.draftNoTeam') },
+  ...store.teams.map((team) => ({ value: team.id, label: team.name }))
+])
+
+const strategyOptions = [
+  { value: 'manual', label: 'manual' },
+  { value: 'sequential', label: 'sequential' },
+  { value: 'dependency', label: 'dependency' }
+]
 
 async function submit(): Promise<void> {
   await store.createOrchestration({
@@ -52,7 +64,7 @@ async function submit(): Promise<void> {
           <input
             v-model="draft.name"
             :placeholder="t('orchestration.draftNamePlaceholder')"
-            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
           />
         </label>
         <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
@@ -60,32 +72,22 @@ async function submit(): Promise<void> {
           <input
             v-model="draft.cwd"
             placeholder="."
-            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
           />
         </label>
         <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
           {{ t('orchestration.draftTeam') }}
-          <select
-            v-model="draft.teamId"
-            class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
-          >
-            <option :value="null">{{ t('orchestration.draftNoTeam') }}</option>
-            <option v-for="team in store.teams" :key="team.id" :value="team.id">
-              {{ team.name }}
-            </option>
-          </select>
+          <Select
+            :model-value="draft.teamId ?? ''"
+            size="sm"
+            :options="teamOptions"
+            @update:model-value="draft.teamId = $event || null"
+          />
         </label>
         <div class="grid grid-cols-2 gap-2">
           <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
             {{ t('orchestration.draftStrategy') }}
-            <select
-              v-model="draft.strategy"
-              class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
-            >
-              <option value="manual">manual</option>
-              <option value="sequential">sequential</option>
-              <option value="dependency">dependency</option>
-            </select>
+            <Select v-model="draft.strategy" size="sm" :options="strategyOptions" />
           </label>
           <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
             {{ t('orchestration.draftConcurrency') }}
@@ -94,7 +96,7 @@ async function submit(): Promise<void> {
               type="number"
               min="1"
               max="16"
-              class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+              class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
             />
           </label>
         </div>
@@ -106,7 +108,7 @@ async function submit(): Promise<void> {
               type="number"
               min="0"
               placeholder="∞"
-              class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+              class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
             />
           </label>
           <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
@@ -117,7 +119,7 @@ async function submit(): Promise<void> {
               min="0"
               step="0.01"
               placeholder="∞"
-              class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+              class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
             />
           </label>
         </div>

@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Bot, Plus, Trash2 } from '@lucide/vue'
+import Select from '@renderer/components/ui/Select.vue'
 import { useOrchestrationStore } from '@renderer/stores/orchestration'
 import type { HarnessAgentSnapshot } from '@shared/types/harness'
 
@@ -23,6 +24,11 @@ const form = ref({
 })
 
 const agents = computed<HarnessAgentSnapshot[]>(() => store.snapshot?.agents ?? [])
+
+const templateOptions = computed(() => [
+  { value: '', label: t('orchestration.agentNoTemplate') },
+  ...store.templates.map((template) => ({ value: template.id, label: template.name }))
+])
 
 const statusTone: Record<string, string> = {
   idle: 'text-[var(--text-tertiary)]',
@@ -96,7 +102,7 @@ async function removeAgent(agentId: string): Promise<void> {
         <input
           v-model="form.name"
           required
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
         />
       </label>
       <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
@@ -105,27 +111,19 @@ async function removeAgent(agentId: string): Promise<void> {
           v-model="form.role"
           required
           :placeholder="t('orchestration.agentRolePlaceholder')"
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
         />
       </label>
       <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
         {{ t('orchestration.agentTemplate') }}
-        <select
-          v-model="form.templateId"
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
-        >
-          <option value="">{{ t('orchestration.agentNoTemplate') }}</option>
-          <option v-for="template in store.templates" :key="template.id" :value="template.id">
-            {{ template.name }}
-          </option>
-        </select>
+        <Select v-model="form.templateId" size="sm" :options="templateOptions" />
       </label>
       <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
         {{ t('orchestration.agentModel') }}
         <input
           v-model="form.modelId"
           :placeholder="t('orchestration.agentModelPlaceholder')"
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
         />
       </label>
       <label class="flex flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
@@ -135,7 +133,7 @@ async function removeAgent(agentId: string): Promise<void> {
           type="number"
           min="0"
           :placeholder="t('orchestration.agentBudgetPlaceholder')"
-          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-[11.5px] text-[var(--text-primary)]"
+          class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11.5px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus:shadow-[var(--focus-ring)]"
         />
       </label>
       <label class="flex items-center gap-2 pt-4 text-[10.5px] text-[var(--text-secondary)]">
