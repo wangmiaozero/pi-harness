@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { GitActivityDay } from '@shared/types/workspace'
 
 /**
@@ -8,6 +8,12 @@ import type { GitActivityDay } from '@shared/types/workspace'
  * commits landed that day. Shading is relative to the repo's own activity
  * (quartiles of the busiest days), so a quiet repo and a busy one both
  * read. Empty days keep a faint tint so the lattice stays visible.
+ *
+ * The grid is sized from the width it is offered, never from its own
+ * content (the reference app's rule): a fixed 9px cell needs ~300px for
+ * 26 weeks and hangs off a 256px sidebar, so the cell size is computed to
+ * fill the pane instead, clamped to a readable range, and the number of
+ * weeks follows what fits.
  */
 const props = withDefaults(
   defineProps<{
@@ -28,6 +34,44 @@ interface Cell {
 
 const WEEKDAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 
+const LABEL_WIDTH = 18
+const GAP = 2
+const CELL_MIN = 5
+const CELL_MAX = 11
+
+const root = ref<HTMLElement | null>(null)
+const availableWidth = ref(0)
+let observer: ResizeObserver | null = null
+
+onMounted(() => {
+  if (!root.value) return
+  observer = new ResizeObserver((entries) => {
+    availableWidth.value = entries[0]?.contentRect.width ?? 0
+  })
+  observer.observe(root.value)
+})
+
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  observer = null
+})
+
+/** The cell size at which the full window fills the pane, clamped. */
+const cellSize = computed(() => {
+  if (!availableWidth.value) return 9
+  const usable = availableWidth.value - LABEL_WIDTH
+  const fitted = (usable - GAP * props.maxWeeks) / props.maxWeeks
+  return Math.max(CELL_MIN, Math.min(CELL_MAX, fitted))
+})
+
+/** As many weeks as fit at that cell size, capped by the data window. */
+const weekCount = computed(() => {
+  if (!availableWidth.value) return props.maxWeeks
+  const usable = availableWidth.value - LABEL_WIDTH
+  const fits = Math.floor((usable + GAP) / (cellSize.value + GAP))
+  return Math.max(1, Math.min(props.maxWeeks, fits))
+})
+
 const countsByDate = computed(() => {
   const map = new Map<string, number>()
   for (const day of props.days) map.set(day.date, day.commits)
@@ -41,10 +85,10 @@ const weeks = computed<Cell[][]>(() => {
   // Anchor the last column to the current, part-finished week, like a calendar.
   const intoWeek = (today.getDay() + 6) % 7 // Monday-based
   const first = new Date(today)
-  first.setDate(first.getDate() - (intoWeek + 7 * (props.maxWeeks - 1)))
+  first.setDate(first.getDate() - (intoWeek + 7 * (weekCount.value - 1)))
   const oldest = props.days.find((day) => day.commits > 0)?.date
   const columns: Cell[][] = []
-  for (let week = 0; week < props.maxWeeks; week++) {
+  for (let week = 0; week < weekCount.value; week++) {
     const column: Cell[] = []
     for (let row = 0; row < 7; row++) {
       const date = new Date(first)
@@ -102,7 +146,7 @@ const summary = computed(() => {
   if (!total) return ''
   const weeksAlive = Math.max(
     1,
-    Math.min(props.maxWeeks, Math.ceil(props.days.filter((d) => d.commits > 0).length / 7))
+    Math.min(weekCount.value, Math.ceil(props.days.filter((d) => d.commits > 0).length / 7))
   )
   return `${total} · ${weeksAlive}w`
 })
@@ -116,18 +160,22 @@ function cellClass(cell: Cell): string {
 
 <template>
   <div
-    v-if="weeks.length"
-    class="flex flex-col gap-1"
+    ref="root"
+    class="flex w-full flex-col gap-1"
     data-testid="git-activity-graph"
     role="img"
     :aria-label="$t('workspace.gitActivityLabel')"
   >
-    <div class="flex items-start gap-[2px]">
-      <div class="flex w-[18px] shrink-0 flex-col gap-[2px] pt-[1px]">
+    <div v-if="weeks.length" class="flex items-start justify-center gap-[2px]">
+      <div
+        class="flex shrink-0 flex-col gap-[2px] pt-[1px]"
+        :style="{ width: `${LABEL_WIDTH}px` }"
+      >
         <span
           v-for="(label, index) in WEEKDAY_LABELS"
           :key="index"
-          class="h-[9px] text-right text-[7.5px] leading-[9px] text-[var(--text-tertiary)]"
+          class="text-right text-[7.5px] text-[var(--text-tertiary)]"
+          :style="{ height: `${cellSize}px`, lineHeight: `${cellSize}px` }"
         >
           {{ label }}
         </span>
@@ -141,6 +189,7 @@ function cellClass(cell: Cell): string {
           v-for="cell in week"
           :key="cell.date"
           :class="cellClass(cell)"
+          :style="{ width: `${cellSize}px`, height: `${cellSize}px` }"
           :title="cell.tooltip"
         />
       </div>
@@ -156,8 +205,6 @@ function cellClass(cell: Cell): string {
 
 <style scoped>
 .activity-cell {
-  height: 9px;
-  width: 9px;
   border-radius: 2px;
   background: color-mix(in srgb, var(--text-primary) 9%, transparent);
 }

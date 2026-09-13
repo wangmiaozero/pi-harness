@@ -154,6 +154,34 @@ export class FileAccessService {
     return this.assertWritableInFolders(target, this.workspaceFolders, allowed)
   }
 
+  /**
+   * Git writes are workspace-wide: the Git page lists every project known to
+   * the app, not only the active session's folders. Committing or stashing in
+   * any of those projects is allowed even when its session is not active.
+   * Anything else keeps the strict session-scoped rule above.
+   */
+  async assertWritableForGit(target: string, options: { mustExist?: boolean } = {}): Promise<string> {
+    const allowed = await this.assertAllowed(target, options)
+    if (
+      isWorkspacePathWritable(allowed, this.workspaceFolders) ||
+      isWorkspacePathWritable(target, this.workspaceFolders)
+    ) {
+      return allowed
+    }
+    const sessions = await this.listSessions()
+    const projectRoots = sessions
+      .map((session) => session.projectRoot || session.cwd)
+      .filter((root): root is string => Boolean(root))
+      .map((root) => toSlashPath(root))
+    if (isPathWithinRoots(allowed, projectRoots) || isPathWithinRoots(target, projectRoots)) {
+      return allowed
+    }
+    throw new PathDeniedError(
+      'This path is outside the projects attached to the current session or is read-only.',
+      { target }
+    )
+  }
+
   async assertWritableInFolders(
     target: string,
     folders: Array<Pick<WorkspaceFolder, 'resolvedPath' | 'readonly' | 'exists'>>,

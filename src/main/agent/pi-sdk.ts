@@ -82,6 +82,8 @@ export interface PiModelRuntimeLike {
       temperature?: number
       timeoutMs?: number
       maxRetries?: number
+      reasoning?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+      thinkingBudgets?: Partial<Record<'minimal' | 'low' | 'medium' | 'high', number>>
     }
   ) => Promise<{
     content: Array<{ type: string; text?: string }>

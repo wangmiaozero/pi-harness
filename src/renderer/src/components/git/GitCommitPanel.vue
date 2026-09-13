@@ -5,11 +5,13 @@ import { toast } from 'vue-sonner'
 import { Minus, Plus, Sparkles, Undo2 } from '@lucide/vue'
 import Button from '@renderer/components/ui/Button.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
+import Select from '@renderer/components/ui/Select.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
 import ContextMenu from '@renderer/components/ui/ContextMenu.vue'
 import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useModelsStore } from '@renderer/stores/models'
+import { useProvidersStore } from '@renderer/stores/providers'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import type { GitFileStatus, GitActionRequest } from '@shared/types/workspace'
 
@@ -27,6 +29,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
 const models = useModelsStore()
+const providers = useProvidersStore()
 const message = ref('')
 const amend = ref(false)
 const mutating = ref(false)
@@ -43,11 +46,148 @@ const unstaged = computed(() =>
   files.value.filter((file) => file.worktreeStatus !== ' ' || file.indexStatus === '?')
 )
 const conflicted = computed(() => files.value.some((file) => file.status === 'conflict'))
-const activeModel = computed(() => {
-  const provider = models.active.providerKey
-  const model = models.active.modelId
-  return provider && model ? `${provider}/${model}` : t('workspace.gitNoActiveModel')
+
+// --- Model picker: defaults to the active model, switchable in place -----
+type ModelEntry = { providerKey: string; modelId: string; label: string; group: string }
+const COMMIT_MODEL_STORAGE_KEY = 'pi-harness.git-commit-model'
+const selectedModel = ref<ModelEntry | null>(readStoredCommitModel())
+const modelPickerTone = ref<'default' | 'error'>('default')
+
+function readStoredCommitModel(): ModelEntry | null {
+  try {
+    const raw = localStorage.getItem(COMMIT_MODEL_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { providerKey?: string; modelId?: string }
+    if (!parsed.providerKey || !parsed.modelId) return null
+    return {
+      providerKey: parsed.providerKey,
+      modelId: parsed.modelId,
+      label: parsed.modelId,
+      group: parsed.providerKey
+    }
+  } catch {
+    return null
+  }
+}
+
+function persistCommitModel(entry: ModelEntry): void {
+  localStorage.setItem(
+    COMMIT_MODEL_STORAGE_KEY,
+    JSON.stringify({ providerKey: entry.providerKey, modelId: entry.modelId })
+  )
+}
+
+/** Enabled models with a resolvable provider key, grouped like the chat picker. */
+const modelChoices = computed<ModelEntry[]>(() => {
+  const byProviderId = new Map(providers.items.map((item) => [item.id, item]))
+  const activeProvider = models.active.providerKey
+  const entries = models.items
+    .filter((model) => model.enabled)
+    .map((model) => {
+      const provider = byProviderId.get(model.providerId)
+      return {
+        providerKey: provider?.key ?? '',
+        modelId: model.modelId,
+        label: model.displayName || model.modelId,
+        group: provider?.displayName || provider?.name || provider?.key || ''
+      }
+    })
+    .filter((model) => model.providerKey)
+  entries.sort((a, b) => {
+    const aActiveProvider = a.providerKey === activeProvider ? 0 : 1
+    const bActiveProvider = b.providerKey === activeProvider ? 0 : 1
+    if (aActiveProvider !== bActiveProvider) return aActiveProvider - bActiveProvider
+    const group = a.group.localeCompare(b.group)
+    if (group) return group
+    const aActive =
+      a.providerKey === models.active.providerKey && a.modelId === models.active.modelId ? 0 : 1
+    const bActive =
+      b.providerKey === models.active.providerKey && b.modelId === models.active.modelId ? 0 : 1
+    return aActive - bActive || a.label.localeCompare(b.label)
+  })
+  return entries
 })
+
+watch(
+  modelChoices,
+  (choices) => {
+    if (!selectedModel.value) return
+    const match = choices.find(
+      (entry) =>
+        entry.providerKey === selectedModel.value?.providerKey &&
+        entry.modelId === selectedModel.value.modelId
+    )
+    if (match) selectedModel.value = match
+    else if (choices.length) selectedModel.value = null
+  },
+  { immediate: true }
+)
+
+/** What generation will use: an explicit pick, else the active model. */
+const effectiveModel = computed<ModelEntry | null>(() => {
+  if (selectedModel.value) return selectedModel.value
+  if (!models.active.providerKey || !models.active.modelId) return null
+  return (
+    modelChoices.value.find(
+      (entry) =>
+        entry.providerKey === models.active.providerKey &&
+        entry.modelId === models.active.modelId
+    ) ?? {
+      providerKey: models.active.providerKey,
+      modelId: models.active.modelId,
+      label: models.active.modelId,
+      group: models.active.providerKey
+    }
+  )
+})
+
+const modelOptions = computed(() =>
+  modelChoices.value.map((entry) => ({
+    value: `${entry.providerKey}/${entry.modelId}`,
+    label: entry.label,
+    group: entry.group
+  }))
+)
+
+const modelValue = computed({
+  get: () =>
+    effectiveModel.value
+      ? `${effectiveModel.value.providerKey}/${effectiveModel.value.modelId}`
+      : '',
+  set: (value: string) => {
+    const entry = modelChoices.value.find(
+      (item) => `${item.providerKey}/${item.modelId}` === value
+    )
+    if (!entry) return
+    selectedModel.value = entry
+    persistCommitModel(entry)
+    modelPickerTone.value = 'default'
+  }
+})
+
+function isModelSwitchError(raw: string): boolean {
+  return /quota is exhausted|AccountQuotaExceeded|usage quota|cannot disable thinking|thinking\.type disabled|empty commit message/i.test(
+    raw
+  )
+}
+
+function generateFailureMessage(error: unknown): string {
+  const raw = getErrorMessage(error)
+  if (/quota is exhausted|AccountQuotaExceeded|usage quota/i.test(raw)) {
+    const reset =
+      raw.match(/until\s+(.+?)\.\s+Switch/i)?.[1] ?? raw.match(/reset at\s+(.+?)(?:\.|$)/i)?.[1]
+    return reset
+      ? t('workspace.gitGenerateQuotaReset', { time: reset.trim() })
+      : t('workspace.gitGenerateQuota')
+  }
+  if (/cannot disable thinking|thinking\.type disabled/i.test(raw)) {
+    return t('workspace.gitGenerateThinkingUnsupported')
+  }
+  if (/empty commit message/i.test(raw)) {
+    return t('workspace.gitGenerateEmpty')
+  }
+  return raw
+}
 
 // Amend needs the previous commit's subject as the starting message.
 watch(amend, async (amending) => {
@@ -119,11 +259,24 @@ async function generate() {
   if (!cwd || !staged.value.length || generating.value) return
   generating.value = true
   try {
-    const result = await callApi(() => getApi().git.generateCommitMessage(cwd, message.value))
+    const model = effectiveModel.value
+      ? {
+          providerKey: effectiveModel.value.providerKey,
+          modelId: effectiveModel.value.modelId
+        }
+      : null
+    const result = await callApi(() =>
+      getApi().git.generateCommitMessage(cwd, message.value, model)
+    )
     message.value = result.message
+    modelPickerTone.value = 'default'
     toast.success(t('workspace.gitMessageGenerated'))
   } catch (error) {
-    toast.error(getErrorMessage(error))
+    const text = generateFailureMessage(error)
+    toast.error(text)
+    if (isModelSwitchError(text) || isModelSwitchError(getErrorMessage(error))) {
+      modelPickerTone.value = 'error'
+    }
   } finally {
     generating.value = false
   }
@@ -357,13 +510,19 @@ function statusClass(status: string, area: 'worktree' | 'index'): string {
         :disabled="generating || committing"
         class="max-h-44 min-h-20 resize-y"
       />
-      <div class="mt-1 flex min-w-0 items-center gap-1">
-        <span
-          class="min-w-0 flex-1 truncate text-[9.5px] text-[var(--text-tertiary)]"
-          :title="activeModel"
-        >
-          {{ activeModel }}
-        </span>
+      <div class="mt-1 flex min-w-0 items-center gap-1.5">
+        <Select
+          v-model="modelValue"
+          size="sm"
+          class="min-w-0 flex-1"
+          data-testid="git-model-picker"
+          :options="modelOptions"
+          :disabled="!modelOptions.length || generating || committing"
+          :aria-label="$t('workspace.gitSwitchModel')"
+          :placeholder="$t('workspace.gitNoActiveModel')"
+          :tone="modelPickerTone"
+          cascade
+        />
         <Button
           size="sm"
           variant="ghost"
@@ -402,5 +561,6 @@ function statusClass(status: string, area: 'worktree' | 'index'): string {
       @close="fileMenu = null"
       @select="runFileMenuAction"
     />
+
   </div>
 </template>

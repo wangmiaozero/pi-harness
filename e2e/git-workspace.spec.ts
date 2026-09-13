@@ -130,6 +130,25 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
   await commitPanel.getByRole('button', { name: /全部暂存|Stage all/ }).click()
   await expect(page.getByTestId('git-generate-message')).toBeEnabled()
 
+  const picker = commitPanel.getByTestId('git-model-picker')
+  await expect(picker).toBeVisible()
+  await picker.getByRole('button').click()
+  const vendors = page.locator('[data-select-cascade-group]')
+  await expect(vendors.first()).toBeVisible()
+  if ((await vendors.count()) > 1) await vendors.nth(1).hover()
+  const listbox = page.getByRole('listbox')
+  await expect(listbox).toBeVisible()
+  const options = listbox.getByRole('option')
+  await expect(options.first()).toBeVisible()
+  if ((await options.count()) > 1) {
+    const second = options.nth(1)
+    const name = (await second.innerText()).trim()
+    await second.click()
+    await expect(picker).toContainText(name)
+  } else {
+    await page.keyboard.press('Escape')
+  }
+
   const overflow = await page.getByTestId('git-view').evaluate((element) => ({
     clientWidth: element.clientWidth,
     scrollWidth: element.scrollWidth,

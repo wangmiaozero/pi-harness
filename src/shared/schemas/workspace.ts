@@ -141,7 +141,13 @@ export const gitPathListSchema = z.object({
 
 export const gitGenerateCommitMessageSchema = z.object({
   cwd: cwdSchema,
-  draft: z.string().max(20_000).optional().default('')
+  draft: z.string().max(20_000).optional().default(''),
+  model: z
+    .object({
+      providerKey: z.string().min(1).max(200),
+      modelId: z.string().min(1).max(300)
+    })
+    .nullish()
 })
 
 export const gitCommitSchema = z.object({
@@ -187,6 +193,7 @@ export const gitActionSchema = z.object({
     'checkout-branch',
     'checkout-remote',
     'checkout-tag',
+    'checkout-commit',
     'create-tag',
     'delete-tag',
     'push-tag',

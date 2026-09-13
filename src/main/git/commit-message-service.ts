@@ -7,6 +7,8 @@ export interface CommitMessageContext {
   summary: string
   recentMessages: string[]
   draft: string
+  /** Use a specific model instead of the active one (the commit panel's picker). */
+  model?: { providerKey: string; modelId: string } | null
 }
 
 export class GitCommitMessageService {
@@ -17,7 +19,10 @@ export class GitCommitMessageService {
     provider: string
     modelId: string
   }> {
-    const { providerKey, modelId } = await this.config.getActiveModel()
+    const override = context.model ?? null
+    const { providerKey, modelId } = override
+      ? { providerKey: override.providerKey, modelId: override.modelId }
+      : await this.config.getActiveModel()
     if (!providerKey || !modelId) {
       throw new ValidationError('Select an active model before generating a commit message.')
     }
@@ -40,6 +45,11 @@ export class GitCommitMessageService {
     }
     if (!model) throw new AgentError(`Model not found: ${providerKey}/${modelId}`)
 
+    // Models that advertise reasoning but whose endpoint rejects
+    // `thinking: {type:"disabled"}` (some OpenAI-compatible serving stacks)
+    // fail without an explicit level, so always request one for reasoning
+    // models — cheap for the task, and the text parts are filtered below.
+    const reasoning = (model as { reasoning?: boolean }).reasoning ? 'low' : undefined
     const response = await services.modelRuntime.completeSimple(
       model,
       {
@@ -53,19 +63,23 @@ export class GitCommitMessageService {
         ]
       },
       {
-        maxTokens: 1_200,
+        // Reasoning and the answer share maxTokens on many OpenAI-compatible
+        // endpoints; keep thinking cheap so the subject still fits.
+        maxTokens: reasoning ? 4_000 : 2_000,
         temperature: 0.2,
         timeoutMs: 60_000,
-        maxRetries: 1
+        maxRetries: 1,
+        reasoning,
+        ...(reasoning ? { thinkingBudgets: { low: 256 } } : {})
       }
     )
-    if (response.errorMessage) throw new AgentError(response.errorMessage)
-    const text = response.content
-      .filter((part) => part.type === 'text' && typeof part.text === 'string')
-      .map((part) => part.text)
-      .join('')
-    const message = cleanCommitMessage(text)
-    if (!message) throw new AgentError('The model returned an empty commit message.')
+    if (response.errorMessage) throw new AgentError(formatCommitGenerationError(response.errorMessage))
+    const message = extractCommitMessage(response.content)
+    if (!message) {
+      throw new AgentError(
+        'The model returned an empty commit message. Switch to another model and retry.'
+      )
+    }
     return { message, provider: providerKey, modelId }
   }
 }
@@ -99,8 +113,87 @@ export function commitUserPrompt(context: CommitMessageContext): string {
   return parts.join('\n\n')
 }
 
+const PROVIDER_STATUS_JSON = /^(\d{3})\s+(\{[\s\S]*\})\s*$/
+
+/** Turn raw provider payloads (429 JSON, thinking rejection) into a short message. */
+export function formatCommitGenerationError(raw: string): string {
+  const trimmed = raw.trim()
+  const match = trimmed.match(PROVIDER_STATUS_JSON)
+  if (!match) return trimmed
+  const status = Number(match[1])
+  let parsed: { error?: { code?: string; message?: string; type?: string } }
+  try {
+    parsed = JSON.parse(match[2]) as { error?: { code?: string; message?: string; type?: string } }
+  } catch {
+    return trimmed
+  }
+  const code = parsed.error?.code ?? ''
+  const message = parsed.error?.message ?? ''
+  const combined = `${code} ${message}`
+  const quota =
+    status === 429 ||
+    code === 'AccountQuotaExceeded' ||
+    /quota|TooManyRequests|rate.?limit/i.test(combined)
+  if (quota) {
+    const reset = message.match(/reset at\s+(.+?)(?:\.|$)/i)?.[1]?.trim()
+    return reset
+      ? `This model's quota is exhausted until ${reset}. Switch to another model and retry.`
+      : "This model's quota is exhausted. Switch to another model and retry."
+  }
+  if (/thinking\.type disabled is not supported/i.test(message)) {
+    return 'This model cannot disable thinking. Switch to another model and retry.'
+  }
+  return message || trimmed
+}
+
+const COMMIT_SUBJECT =
+  /^(feat|fix|refactor|perf|docs|style|test|build|ci|chore|revert)(\([^)]+\))?!?:\s+\S+/i
+
+export function extractCommitMessage(
+  content: Array<{ type: string; text?: string; thinking?: string; redacted?: boolean }>
+): string {
+  const text = content
+    .filter((part) => part.type === 'text' && typeof part.text === 'string')
+    .map((part) => part.text)
+    .join('')
+  const fromText = cleanCommitMessage(text)
+  if (fromText) return fromText
+
+  const thinking = content
+    .filter(
+      (part) =>
+        part.type === 'thinking' && typeof part.thinking === 'string' && !part.redacted
+    )
+    .map((part) => part.thinking)
+    .join('\n')
+  return extractCommitMessageFromThinking(thinking)
+}
+
+export function extractCommitMessageFromThinking(value: string): string {
+  const cleaned = cleanCommitMessage(value)
+  if (!cleaned) return ''
+  const lines = cleaned.split('\n')
+  let start = -1
+  for (let index = 0; index < lines.length; index += 1) {
+    if (COMMIT_SUBJECT.test(lines[index]?.trim() ?? '')) start = index
+  }
+  if (start >= 0) return lines.slice(start).join('\n').trim()
+  const paragraphs = cleaned
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+  const last = paragraphs[paragraphs.length - 1] ?? ''
+  return last.length > 0 && last.length <= 400 ? last : ''
+}
+
 export function cleanCommitMessage(value: string): string {
   let text = value.trim()
+  text = text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+    .trim()
+  const boxed = text.match(/<(?:answer|output)>([\s\S]*?)<\/(?:answer|output)>/i)
+  if (boxed?.[1]) text = boxed[1].trim()
   text = text
     .replace(/^```(?:text|gitcommit)?\s*/i, '')
     .replace(/\s*```$/, '')

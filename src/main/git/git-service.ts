@@ -598,6 +598,11 @@ export class GitService {
         args = ['checkout', '--detach', target]
         break
       }
+      case 'checkout-commit': {
+        if (!target) throw new GitError('Commit is required.')
+        args = ['checkout', '--detach', target]
+        break
+      }
       case 'create-tag': {
         if (!name) throw new GitError('Tag name is required.')
         args = ['tag', name, target ?? 'HEAD']
@@ -734,7 +739,7 @@ export class GitService {
   }
 
   private async mutableRepository(cwd: string): Promise<string> {
-    const realCwd = await this.access.assertWritable(cwd, { mustExist: true })
+    const realCwd = await this.access.assertWritableForGit(cwd, { mustExist: true })
     const repositoryRoot = toNativePath(
       (await gitExec(realCwd, ['rev-parse', '--show-toplevel'])).trim()
     )

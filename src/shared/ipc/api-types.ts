@@ -1144,7 +1144,11 @@ export interface PiSwitchAPI {
     diff(cwd: string, filePath: string): Promise<GitFileDiffResponse>
     stage(cwd: string, filePaths: string[]): Promise<void>
     unstage(cwd: string, filePaths: string[]): Promise<void>
-    generateCommitMessage(cwd: string, draft?: string): Promise<GitCommitMessageResponse>
+    generateCommitMessage(
+      cwd: string,
+      draft?: string,
+      model?: { providerKey: string; modelId: string } | null
+    ): Promise<GitCommitMessageResponse>
     commit(cwd: string, message: string): Promise<GitCommitResponse>
     history(cwd: string, limit?: number): Promise<GitCommitInfo[]>
     overview(cwd: string): Promise<GitRepositoryOverview>

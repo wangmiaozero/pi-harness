@@ -985,11 +985,8 @@
 
 :root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
   :is(.ui-context-menu__item, .ui-select-option, .ui-combobox-option, .composer-option-menu__item) {
-  border: 5px solid transparent;
-  border-image-width: 5px 8px;
-  border-image-outset: 0;
-  border-image-repeat: stretch;
-  border-radius: 0;
+  border: 0;
+  border-radius: 4px;
   background: transparent;
   color: var(--ming-ink-secondary);
   padding-inline: 9px;
@@ -998,26 +995,28 @@
 }
 
 :root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
-  :is(
-    .ui-context-menu__item,
-    .ui-select-option,
-    .ui-combobox-option,
-    .composer-option-menu__item
-  ):hover,
+  :is(.ui-context-menu__item, .ui-combobox-option, .composer-option-menu__item):hover,
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
+  :is(.ui-context-menu__item, .ui-combobox-option, .composer-option-menu__item):focus-visible {
+  border: 0;
+  background: var(--ming-paper-muted);
+  color: var(--ming-ink);
+  filter: none;
+  outline: none;
+}
+
 :root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
   :is(
-    .ui-context-menu__item,
-    .ui-select-option,
-    .ui-combobox-option,
-    .composer-option-menu__item
-  ):focus-visible,
-:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
-  :is(.ui-select-option, .ui-combobox-option, .composer-option-menu__item)[aria-selected='true'] {
-  border-image-source: var(--ming-button-wood);
-  border-image-slice: 82 132 fill;
+    .ui-select-option:hover,
+    .ui-select-option:focus-visible,
+    .ui-select-option--selected,
+    .ui-select-option--active,
+    .ui-select-option[aria-selected='true']
+  ) {
+  border: 0;
   background: transparent;
-  color: #f2dfbc;
-  filter: brightness(1.12) saturate(1.06);
+  color: #843a2b;
+  filter: none;
   outline: none;
 }
 
@@ -1035,7 +1034,7 @@
 }
 
 :root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
-  :is(.ui-context-menu__separator, .ui-select-group + .ui-select-group) {
+  .ui-context-menu__separator {
   height: 4px;
   border-top: 0;
   background-color: transparent;
@@ -1045,11 +1044,21 @@
   background-size: auto 4px;
 }
 
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .ui-select-group--next {
+  margin-top: 8px;
+  border-top: 0;
+  background: none;
+}
+
 :root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
   :is(.ui-context-menu__label, .ui-select-group__label) {
   color: var(--ming-ink-tertiary);
   font-family: var(--font-serif);
   letter-spacing: 0.08em;
+}
+
+:root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon']) .ui-select-option__vendor {
+  color: color-mix(in srgb, var(--ming-ink-tertiary) 88%, transparent);
 }
 
 :root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])

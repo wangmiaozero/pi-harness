@@ -22,6 +22,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   select: [commit: GitCommitInfo]
   'select-ref': [selection: RefSelection]
+  'context-menu': [payload: { commit: GitCommitInfo; x: number; y: number }]
 }>()
 
 const rows = computed(() => layoutGitGraph(props.commits))
@@ -92,6 +93,13 @@ function date(value: string): string {
         :aria-pressed="selectedHash === row.commit.hash"
         :data-commit-hash="row.commit.hash"
         @click="emit('select', row.commit)"
+        @contextmenu.prevent="
+          emit('context-menu', {
+            commit: row.commit,
+            x: $event.clientX,
+            y: $event.clientY
+          })
+        "
         @keydown.enter.prevent="emit('select', row.commit)"
         @keydown.space.prevent="emit('select', row.commit)"
       >

@@ -61,6 +61,54 @@ let historyListRequest = 0
 const repository = computed(() => workspace.gitStatus?.repositoryRoot ?? null)
 const workspaceView = ref<InstanceType<typeof GitWorkspaceView> | null>(null)
 
+// --- Pane widths: both side panes are drag-resizable -----------------------
+const SIDEBAR_DEFAULT = 256
+const PANEL_DEFAULT = 320
+const sidebarWidth = ref(SIDEBAR_DEFAULT)
+const panelWidth = ref(PANEL_DEFAULT)
+const resizing = ref<'sidebar' | 'panel' | null>(null)
+
+function clampWidth(value: number, min: number, max: number): number {
+  return Math.round(Math.min(max, Math.max(min, value)))
+}
+
+function startResize(side: 'sidebar' | 'panel', event: PointerEvent) {
+  if (event.button !== 0) return
+  const startX = event.clientX
+  const startSidebar = sidebarWidth.value
+  const startPanel = panelWidth.value
+  resizing.value = side
+  const target = event.currentTarget as HTMLElement
+  target.setPointerCapture(event.pointerId)
+
+  const onMove = (move: PointerEvent) => {
+    const delta = move.clientX - startX
+    if (side === 'sidebar') {
+      sidebarWidth.value = clampWidth(startSidebar + delta, 200, 460)
+    } else {
+      panelWidth.value = clampWidth(startPanel - delta, 260, 560)
+    }
+  }
+  const onUp = () => {
+    resizing.value = null
+    target.removeEventListener('pointermove', onMove)
+    target.removeEventListener('pointerup', onUp)
+    target.removeEventListener('pointercancel', onUp)
+  }
+  target.addEventListener('pointermove', onMove)
+  target.addEventListener('pointerup', onUp)
+  target.addEventListener('pointercancel', onUp)
+  event.preventDefault()
+}
+
+function resetSidebarWidth() {
+  sidebarWidth.value = SIDEBAR_DEFAULT
+}
+
+function resetPanelWidth() {
+  panelWidth.value = PANEL_DEFAULT
+}
+
 function scheduleGitRefresh() {
   if (document.visibilityState === 'hidden') return
   if (refreshTimer) clearTimeout(refreshTimer)
@@ -234,9 +282,19 @@ watch(repository, () => {
     </div>
     <template v-else>
       <GitSidebar
-        class="w-[272px] shrink-0 border-r border-[var(--border-subtle)]"
+        class="shrink-0 border-r border-[var(--border-subtle)]"
+        :style="{ width: `${sidebarWidth}px` }"
         @select-ref="workspaceView?.applySidebarRef($event)"
         @locate-commit="workspaceView?.locateCommit($event)"
+      />
+      <div
+        class="pane-resizer"
+        :class="resizing === 'sidebar' ? 'pane-resizer--active' : ''"
+        role="separator"
+        :aria-label="$t('workspace.gitSidebarWidth')"
+        :title="$t('common.reset')"
+        @pointerdown="startResize('sidebar', $event)"
+        @dblclick="resetSidebarWidth"
       />
 
       <GitWorkspaceView
@@ -268,11 +326,23 @@ watch(repository, () => {
         />
       </div>
 
+      <div
+        v-if="workspace.gitStatus?.isGitRepository"
+        class="pane-resizer"
+        :class="resizing === 'panel' ? 'pane-resizer--active' : ''"
+        role="separator"
+        :aria-label="$t('workspace.gitPanelWidth')"
+        :title="$t('common.reset')"
+        @pointerdown="startResize('panel', $event)"
+        @dblclick="resetPanelWidth"
+      />
+
       <!-- Right pane: the commit panel, with the selected commit's details
            OVER it (absolute, not swapped) so the panel keeps its layout. -->
       <aside
         v-if="workspace.gitStatus?.isGitRepository"
-        class="relative flex min-h-0 w-[320px] shrink-0 flex-col border-l border-[var(--border-subtle)]"
+        class="relative flex min-h-0 shrink-0 flex-col border-l border-[var(--border-subtle)]"
+        :style="{ width: `${panelWidth}px` }"
       >
         <GitCommitPanel
           @open-file="openWorkingFile"
@@ -291,3 +361,28 @@ watch(repository, () => {
     </template>
   </div>
 </template>
+
+<style scoped>
+.pane-resizer {
+  position: relative;
+  z-index: 10;
+  width: 5px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  transition: background-color 0.15s ease;
+  touch-action: none;
+}
+
+.pane-resizer::after {
+  content: '';
+  position: absolute;
+  inset: 0 2px;
+  border-radius: 2px;
+}
+
+.pane-resizer:hover,
+.pane-resizer--active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+</style>

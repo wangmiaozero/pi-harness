@@ -402,6 +402,7 @@ async function onCompact() {
         :options="modelOptions"
         :disabled="busy || modelSwitching"
         class="min-w-[190px] max-w-[300px]"
+        cascade
       />
       <div class="console-tool-strip ml-auto flex items-center gap-0.5">
         <ComposerOptionMenu

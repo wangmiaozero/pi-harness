@@ -26,7 +26,8 @@ describe('GitService', () => {
     cloneDirectory = null
     const access = {
       assertAllowed: vi.fn(async (target: string) => target),
-      assertWritable: vi.fn(async (target: string) => target)
+      assertWritable: vi.fn(async (target: string) => target),
+      assertWritableForGit: vi.fn(async (target: string) => target)
     } as unknown as FileAccessService
     service = new GitService(access)
   })

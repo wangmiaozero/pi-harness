@@ -597,24 +597,26 @@ watch([repository, () => workspace.gitRevision], () => void refresh())
   <div class="flex h-full min-h-0 flex-col" data-testid="git-repository-sidebar">
     <!-- Repository switcher: a workspace can hold several projects. -->
     <div class="shrink-0 border-b border-[var(--border-subtle)] p-2">
-      <button
-        v-for="repo in workspace.gitStatuses"
-        :key="repo.folderId"
-        type="button"
-        class="mb-1 flex w-full items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-left last:mb-0"
-        :class="
-          selectedFolderId === repo.folderId
-            ? 'bg-[var(--accent-tint)] text-[var(--accent)]'
-            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
-        "
-        :title="repo.folderName"
-        @click="selectRepository(repo.folderId)"
-      >
-        <span class="min-w-0 flex-1 truncate text-[10.5px] font-medium">{{ repo.folderName }}</span>
-        <span class="shrink-0 text-[9px] opacity-70">
-          {{ repo.isGitRepository ? repo.branch || 'HEAD' : $t('workspace.notGit') }}
-        </span>
-      </button>
+      <div class="max-h-[148px] overflow-y-auto" data-testid="git-project-list">
+        <button
+          v-for="repo in workspace.gitStatuses"
+          :key="repo.folderId"
+          type="button"
+          class="mb-1 flex w-full items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-left last:mb-0"
+          :class="
+            selectedFolderId === repo.folderId
+              ? 'bg-[var(--accent-tint)] text-[var(--accent)]'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+          "
+          :title="repo.folderName"
+          @click="selectRepository(repo.folderId)"
+        >
+          <span class="min-w-0 flex-1 truncate text-[10.5px] font-medium">{{ repo.folderName }}</span>
+          <span class="shrink-0 text-[9px] opacity-70">
+            {{ repo.isGitRepository ? repo.branch || 'HEAD' : $t('workspace.notGit') }}
+          </span>
+        </button>
+      </div>
     </div>
 
     <!-- HEAD chip: the branch you are standing on, above everything foldable. -->

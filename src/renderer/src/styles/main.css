@@ -360,4 +360,23 @@ select optgroup {
   white-space: nowrap;
 }
 
+.ui-select-group--next {
+  margin-top: 8px;
+}
+
+.ui-select-group__label {
+  pointer-events: none;
+  user-select: none;
+}
+
+.ui-select-option:hover:not(:disabled),
+.ui-select-option--active:not(.ui-select-option--selected) {
+  color: var(--text-primary);
+}
+
+.ui-select-option--selected,
+.ui-select-option[aria-selected='true'] {
+  color: var(--accent);
+}
+
 /* Backwards-compat .drag-region/.no-drag left in place at top of file. */

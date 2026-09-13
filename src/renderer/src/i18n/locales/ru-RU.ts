@@ -1430,7 +1430,7 @@ export const ruRU: MessageTree = {
     gitNothingStaged: 'Сначала проиндексируйте изменения, затем генерируйте или фиксируйте.',
     gitCommitPlaceholder: 'Сообщение коммита',
     gitGenerate: 'Сгенерировать',
-    gitGenerateHint: 'Отправить индексированные различия активной модели Pi и сгенерировать сообщение коммита.',
+    gitGenerateHint: 'Отправить индексированные различия выбранной модели и сгенерировать сообщение коммита.',
     gitMessageGenerated: 'Сообщение коммита сгенерировано',
     gitNoActiveModel: 'Нет активной модели',
     gitResolveConflicts: 'Сначала разрешите конфликты, затем генерируйте или фиксируйте.',
@@ -1508,7 +1508,27 @@ export const ruRU: MessageTree = {
     gitWorkingDiff: 'Рабочий diff',
     gitBackToPanel: 'К панели коммитов',
     gitPullMode: 'Режим pull',
-    gitFetchAll: 'Получить все удалённые',
+    gitCheckoutCommit: 'Переключиться на коммит (detached)',
+    gitCreateBranchHere: 'Создать ветку здесь…',
+    gitCreateTagHere: 'Создать тег здесь…',
+    gitMergeIntoCurrent: 'Слить в текущую ветку',
+    gitRebaseCurrent: 'Перебазировать текущую ветку на коммит',
+    gitCopySha: 'Копировать SHA',
+    gitCopyMessage: 'Копировать сообщение',
+    gitCopiedSha: 'Скопировано {hash}',
+    gitCopiedMessage: 'Сообщение скопировано',
+    gitSwitchModel: 'Сменить модель генерации',
+    gitGenerateQuota:
+      'Квота этой модели исчерпана. Переключитесь на другую модель и повторите попытку.',
+    gitGenerateQuotaReset:
+      'Квота этой модели исчерпана до {time}. Переключитесь на другую модель и повторите попытку.',
+    gitGenerateThinkingUnsupported:
+      'Эта модель не позволяет отключить рассуждение. Переключитесь на другую модель и повторите попытку.',
+    gitGenerateEmpty:
+      'Модель не вернула пригодное сообщение коммита. Переключитесь на другую модель и повторите попытку.',
+    gitAtCommit: 'На коммите {hash}',
+    gitSidebarWidth: 'Ширина боковой панели (двойной клик — сброс)',
+    gitPanelWidth: 'Ширина панели коммитов (двойной клик — сброс)',
   },
   palette: {
     placeholder: 'Введите команду…',

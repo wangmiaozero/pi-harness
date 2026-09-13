@@ -372,6 +372,7 @@ export type GitAction =
   | 'checkout-branch'
   | 'checkout-remote'
   | 'checkout-tag'
+  | 'checkout-commit'
   | 'create-tag'
   | 'delete-tag'
   | 'push-tag'

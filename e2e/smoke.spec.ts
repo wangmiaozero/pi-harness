@@ -603,17 +603,22 @@ test.describe('Pi-Harness smoke', () => {
     await composer.focus()
     const modelSelect = page.getByTestId('workspace-model-select').getByRole('button')
     await modelSelect.click()
+    const vendorMenu = page.locator('[data-select-cascade-group]').first()
     const modelPanel = page.getByRole('listbox')
+    await expect(vendorMenu).toBeVisible()
     await expect(modelPanel).toBeVisible()
-    const [modelSelectBox, modelPanelBox] = await Promise.all([
+    const vendorPanel = page
+      .locator('.ui-select-menu')
+      .filter({ has: page.locator('[data-select-cascade-group]') })
+    const [modelSelectBox, vendorPanelBox] = await Promise.all([
       modelSelect.boundingBox(),
-      modelPanel.boundingBox()
+      vendorPanel.boundingBox()
     ])
     expect(modelSelectBox).not.toBeNull()
-    expect(modelPanelBox).not.toBeNull()
+    expect(vendorPanelBox).not.toBeNull()
     expect(
-      Math.abs(modelSelectBox!.y - (modelPanelBox!.y + modelPanelBox!.height))
-    ).toBeLessThanOrEqual(6)
+      Math.abs(modelSelectBox!.y - (vendorPanelBox!.y + vendorPanelBox!.height))
+    ).toBeLessThanOrEqual(16)
     await page.keyboard.press('Escape')
     await expect(modelPanel).toBeHidden()
     const aiMotion = page.getByTestId('ai-motion-border')

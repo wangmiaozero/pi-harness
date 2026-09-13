@@ -1430,7 +1430,7 @@ export const deDE: MessageTree = {
     gitNothingStaged: 'Änderungen vormerken, bevor generiert oder committet wird.',
     gitCommitPlaceholder: 'Commit-Nachricht',
     gitGenerate: 'Erzeugen',
-    gitGenerateHint: 'Das vorgemerkte Diff an das aktive Pi-Modell senden und eine Commit-Nachricht erzeugen.',
+    gitGenerateHint: 'Das vorgemerkte Diff an das gewählte Modell senden und eine Commit-Nachricht erzeugen.',
     gitMessageGenerated: 'Commit-Nachricht erzeugt',
     gitNoActiveModel: 'Kein aktives Modell',
     gitResolveConflicts: 'Konflikte lösen, bevor generiert oder committet wird.',
@@ -1508,7 +1508,27 @@ export const deDE: MessageTree = {
     gitWorkingDiff: 'Arbeitsdiff',
     gitBackToPanel: 'Zurück zum Commit-Panel',
     gitPullMode: 'Pull-Modus',
-    gitFetchAll: 'Alle Remotes fetchen',
+    gitCheckoutCommit: 'Diesen Commit auschecken (detached)',
+    gitCreateBranchHere: 'Hier Branch erstellen…',
+    gitCreateTagHere: 'Hier Tag erstellen…',
+    gitMergeIntoCurrent: 'In aktuellen Branch mergen',
+    gitRebaseCurrent: 'Aktuellen Branch auf diesen Commit rebasen',
+    gitCopySha: 'SHA kopieren',
+    gitCopyMessage: 'Commit-Nachricht kopieren',
+    gitCopiedSha: '{hash} kopiert',
+    gitCopiedMessage: 'Commit-Nachricht kopiert',
+    gitSwitchModel: 'Generierungsmodell wechseln',
+    gitGenerateQuota:
+      'Das Kontingent dieses Modells ist aufgebraucht. Wechseln Sie das Modell und versuchen Sie es erneut.',
+    gitGenerateQuotaReset:
+      'Das Kontingent dieses Modells ist bis {time} aufgebraucht. Wechseln Sie das Modell und versuchen Sie es erneut.',
+    gitGenerateThinkingUnsupported:
+      'Dieses Modell kann das Denken nicht deaktivieren. Wechseln Sie das Modell und versuchen Sie es erneut.',
+    gitGenerateEmpty:
+      'Das Modell hat keine verwendbare Commit-Nachricht geliefert. Wechseln Sie das Modell und versuchen Sie es erneut.',
+    gitAtCommit: 'Bei Commit {hash}',
+    gitSidebarWidth: 'Seitenleistenbreite (Doppelklick zum Zurücksetzen)',
+    gitPanelWidth: 'Commit-Panel-Breite (Doppelklick zum Zurücksetzen)',
   },
   palette: {
     placeholder: 'Befehl eingeben…',

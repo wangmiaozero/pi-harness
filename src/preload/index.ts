@@ -362,8 +362,8 @@ const api: PiSwitchAPI = {
     diff: (cwd, filePath) => invoke(IPC_INVOKE.gitDiff, { cwd, filePath }),
     stage: (cwd, filePaths) => invoke(IPC_INVOKE.gitStage, { cwd, filePaths }),
     unstage: (cwd, filePaths) => invoke(IPC_INVOKE.gitUnstage, { cwd, filePaths }),
-    generateCommitMessage: (cwd, draft) =>
-      invoke(IPC_INVOKE.gitGenerateCommitMessage, { cwd, draft }),
+    generateCommitMessage: (cwd, draft, model) =>
+      invoke(IPC_INVOKE.gitGenerateCommitMessage, { cwd, draft, model }),
     commit: (cwd, message) => invoke(IPC_INVOKE.gitCommit, { cwd, message }),
     history: (cwd, limit) => invoke(IPC_INVOKE.gitHistory, { cwd, limit }),
     overview: (cwd) => invoke(IPC_INVOKE.gitOverview, { cwd }),

@@ -489,7 +489,10 @@ export function registerWorkspaceIpc(
           issues: parsed.error.issues
         })
       const context = await git.commitMessageContext(parsed.data.cwd, parsed.data.draft)
-      return gitCommitMessages.generate(context)
+      return gitCommitMessages.generate({
+        ...context,
+        model: parsed.data.model ?? null
+      })
     })
   )
   ipcMain.handle(IPC_INVOKE.gitCommit, (_e, input: unknown) =>
