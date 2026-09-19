@@ -1,15 +1,23 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
 import type { HarnessState } from '@shared/types/harness'
 import { useHarnessStore } from '@renderer/stores/harness'
+import { useCompactionStore } from '@renderer/stores/compaction'
 
 const props = defineProps<{ state: HarnessState }>()
 const harness = useHarnessStore()
+const compaction = useCompactionStore()
 const { t } = useI18n()
 const instructions = ref('')
 const percent = computed(() => props.state.context?.percent ?? 0)
+const compactPhase = computed(() => compaction.buttonPhase(harness.sessionId, 'harness'))
+const compactLabel = computed(() => {
+  if (compactPhase.value === 'queued') return t('workspace.compactQueuedLabel')
+  if (compactPhase.value === 'compacting') return t('workspace.compacting')
+  if (compactPhase.value === 'working') return t('workspace.compactAfterTask')
+  return t('workspace.harnessCompactNow')
+})
 
 async function toggleAutoCompaction() {
   try {
@@ -20,15 +28,11 @@ async function toggleAutoCompaction() {
 }
 
 async function compactNow() {
-  try {
-    const result = (await harness.compact(instructions.value.trim() || undefined)) as {
-      reason?: 'session-too-small' | 'already-compacted'
-    } | null
-    if (result?.reason === 'session-too-small') toast.info(t('workspace.compactUnavailable'))
-    if (result?.reason === 'already-compacted') toast.info(t('workspace.compactAlready'))
-  } catch {
-    /* Store exposes the sanitized error. */
-  }
+  await compaction.requestSmartCompaction({
+    sessionId: harness.sessionId,
+    instruction: instructions.value.trim() || undefined,
+    source: 'harness'
+  })
 }
 </script>
 
@@ -104,16 +108,15 @@ async function compactNow() {
       class="harness-textarea mt-4"
       rows="4"
       :placeholder="$t('workspace.harnessCompactionInstructions')"
-      :disabled="harness.mutating || !state.capabilities.compaction"
     />
     <div class="mt-2 flex gap-2">
       <button
         type="button"
+        data-testid="harness-compact-now"
         class="harness-action-button"
-        :disabled="harness.mutating || state.compaction.running || !state.capabilities.compaction"
         @click="compactNow"
       >
-        {{ $t('workspace.harnessCompactNow') }}
+        {{ compactLabel }}
       </button>
       <button
         v-if="state.compaction.running"

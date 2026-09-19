@@ -15,4 +15,16 @@ export function attachRendererGuards(win: BrowserWindow, rendererUrl: string): v
   win.webContents.on('preload-error', (_event, preloadPath, error) => {
     log.app.error('preload failed', { preloadPath, error: String(error) })
   })
+
+  win.webContents.on('render-process-gone', (_event, details) => {
+    log.app.error('render-process-gone', details)
+    if (win.isDestroyed() || details.reason === 'clean-exit') return
+    if (details.reason === 'killed') return
+    setTimeout(() => {
+      if (win.isDestroyed()) return
+      void win.loadURL(rendererUrl).catch((error) => {
+        log.app.error('failed to recover renderer', error)
+      })
+    }, 250)
+  })
 }

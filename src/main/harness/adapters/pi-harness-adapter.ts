@@ -129,16 +129,9 @@ export class PiHarnessAdapter implements HarnessAdapter {
 
   async setThinkingLevel(sessionId: string, level: string): Promise<void> {
     const wrapper = await this.requireCapability(sessionId, 'thinkingLevel')
-    const options = getThinkingOptions(wrapper.inner)
-    if (!options.includes(level)) {
-      throw new HarnessError(
-        'CAPABILITY_NOT_SUPPORTED',
-        `Thinking level is unavailable: ${level}`,
-        {
-          level,
-          options
-        }
-      )
+    if (typeof wrapper.inner.getAvailableThinkingLevels === 'function') {
+      const options = getThinkingOptions(wrapper.inner)
+      if (level !== 'auto' && options.length > 1 && !options.includes(level)) return
     }
     await this.agent.command(sessionId, { type: 'set_thinking_level', level })
   }

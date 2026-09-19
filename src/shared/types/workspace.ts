@@ -325,10 +325,17 @@ export interface GitStashInfo {
   baseHash: string
 }
 
+export interface GitActivityAuthor {
+  name: string
+  email: string
+  commits: number
+}
+
 export interface GitActivityDay {
   /** Local date as YYYY-MM-DD. */
   date: string
   commits: number
+  authors?: GitActivityAuthor[]
 }
 
 export interface GitRepositoryOverview {

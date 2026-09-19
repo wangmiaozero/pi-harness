@@ -117,6 +117,12 @@ describe('GitService', () => {
       ])
     )
     expect(overview.pullRequests.provider).toBeNull()
+    expect(overview.activity.some((day) => day.commits > 0)).toBe(true)
+    expect(
+      overview.activity.some((day) =>
+        (day.authors ?? []).some((author) => author.email === 'test@example.com')
+      )
+    ).toBe(true)
 
     const details = await service.commitDetails(directory, featureCommit.hash)
     expect(details.subject).toBe('feat: add history review')

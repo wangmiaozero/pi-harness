@@ -47,10 +47,6 @@ function splitLineColor(): string {
   )
 }
 
-function tooltipText(): string {
-  return echartsModule?.resolveThemeColor('--text-primary', '#333') ?? '#333'
-}
-
 function renderTokens(): void {
   if (!tokensChart || !echartsModule) return
   if (!tokenData.value.length) {
@@ -59,8 +55,8 @@ function renderTokens(): void {
   }
   tokensChart.setOption({
     tooltip: {
+      ...echartsModule.chartTooltip(),
       trigger: 'item',
-      textStyle: { color: tooltipText(), fontSize: 11 },
       valueFormatter: (value: unknown) => Number(value).toLocaleString()
     },
     legend: {
@@ -92,9 +88,9 @@ function renderActivity(): void {
   if (!activityChart || !echartsModule) return
   activityChart.setOption({
     tooltip: {
+      ...echartsModule.chartTooltip(),
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      textStyle: { color: tooltipText(), fontSize: 11 },
       valueFormatter: (value: unknown) => Number(value).toLocaleString()
     },
     grid: { left: 8, right: 8, top: 16, bottom: 4, containLabel: true },

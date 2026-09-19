@@ -476,6 +476,21 @@ describe('workspace projects', () => {
     ).toBe('reference')
   })
 
+  it('opens a dropped project as the sole main directory', async () => {
+    const workspace = useWorkspaceStore()
+    window.piSwitch = workspaceApi({})
+    try {
+      workspace.addProjectRoot('/code/existing')
+      await workspace.resetDraftWorkspace('/code/dropped')
+      expect(workspace.workspaceFolders.map((folder) => [folder.resolvedPath, folder.role])).toEqual(
+        [['/code/dropped', 'main']]
+      )
+      expect(workspace.mainFolder?.resolvedPath).toBe('/code/dropped')
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
   it('closes file and diff tabs that belong to a removed project', () => {
     const workspace = useWorkspaceStore()
     const rootA = '/code/a'

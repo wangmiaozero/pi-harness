@@ -97,6 +97,7 @@ export interface PiModelLike {
   provider: string
   input?: Array<'text' | 'image'>
   compat?: { thinkingFormat?: string }
+  thinkingLevelMap?: Partial<Record<string, string | null>>
 }
 
 export interface AgentSessionLike {

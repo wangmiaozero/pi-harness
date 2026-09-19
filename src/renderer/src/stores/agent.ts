@@ -20,14 +20,24 @@ import {
 import { normalizeToolCalls } from '@shared/workspace/normalize'
 import type { ClientAssistantMessageEvent } from '@shared/workspace/agent-event-wire'
 import { normalizeAgentEventEnvelopes } from '@shared/workspace/agent-event-wire'
-import { callApi, getApi } from '@renderer/composables/useApi'
+import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
+import { toComposerThinkingLevel } from '@shared/constants/index'
+import { resolveThinkingLevel } from '@shared/thinking/levels'
+import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 import {
   getPresetFromTools,
   getToolNamesForPreset,
   type ToolPreset
 } from '@shared/workspace/tool-presets'
+import { useModelsStore } from './models'
 import { useSessionStore } from './sessions'
 import { useWorkspaceStore } from './workspace'
+import {
+  forgetComposerCache,
+  hydrateComposerSelections,
+  rememberComposerCache,
+  type ComposerSelection
+} from './composer-cache'
 
 export const useAgentStore = defineStore('agent', () => {
   const messages = shallowRef<AgentMessage[]>([])
@@ -37,8 +47,6 @@ export const useAgentStore = defineStore('agent', () => {
   const state = shallowRef<AgentStateSnapshot | null>(null)
   const runningIds = ref<string[]>([])
   const tools = shallowRef<ToolEntry[]>([])
-  const thinkingLevel = ref('auto')
-  const toolPreset = ref<ToolPreset>('default')
   const sessionStats = shallowRef<SessionStats | null>(null)
   const completionCount = ref(0)
   const error = ref<string | null>(null)
@@ -47,7 +55,10 @@ export const useAgentStore = defineStore('agent', () => {
   let loadedStatsOverride: Partial<SessionStats> | null = null
   let loadedSessionId: string | null = null
   let loadGeneration = 0
-  const composerSelections = new Map<string, { thinkingLevel: string; toolPreset: ToolPreset }>()
+  const composerSelections = new Map<string, ComposerSelection>()
+  const lastComposer = hydrateComposerSelections(composerSelections)
+  const thinkingLevel = ref(lastComposer.thinkingLevel)
+  const toolPreset = ref<ToolPreset>(lastComposer.toolPreset)
   const transientSessionIds = new Set<string>()
   let unsubEvent: (() => void) | null = null
   let unsubRunning: (() => void) | null = null
@@ -59,11 +70,14 @@ export const useAgentStore = defineStore('agent', () => {
       for (const body of normalizeAgentEventEnvelopes(payload)) {
         if (!body.sessionId || !body.event) continue
         if (body.event.type === 'agent_end') void syncPersistedSession(body.sessionId)
+        if (isCompactionSettleEvent(body.event.type)) {
+          void flushQueuedCompaction(body.sessionId)
+        }
         if (body.sessionId !== loadedSessionId) continue
         if (body.event.type === 'prompt_done') {
           const completionError =
             body.event.success === false
-              ? String(body.event.errorMessage ?? 'Agent error')
+              ? inspectRuntimeError(body.event.errorMessage ?? 'Agent error').userMessage
               : undefined
           if (body.event.success === false) {
             error.value = completionError ?? 'Agent error'
@@ -78,7 +92,13 @@ export const useAgentStore = defineStore('agent', () => {
     })
     unsubRunning = getApi().on('agent-running', (payload) => {
       const body = payload as { ids?: string[] }
+      const previous = runningIds.value
       runningIds.value = body.ids ?? []
+      for (const sessionId of previous) {
+        if (!runningIds.value.includes(sessionId)) {
+          void flushQueuedCompaction(sessionId)
+        }
+      }
     })
     return () => {
       unsubEvent?.()
@@ -124,7 +144,7 @@ export const useAgentStore = defineStore('agent', () => {
               : completed
           messages.value = [...messages.value, normalizeToolCalls(stored)]
           if (stored.role === 'assistant' && stored.errorMessage) {
-            error.value = String(stored.errorMessage)
+            error.value = inspectRuntimeError(stored.errorMessage).userMessage
           }
         } else if (completed?.role === 'user') {
           const last = messages.value.at(-1)
@@ -138,7 +158,7 @@ export const useAgentStore = defineStore('agent', () => {
         break
       }
       case 'prompt_error':
-        error.value = String(event.errorMessage ?? 'Agent error')
+        error.value = inspectRuntimeError(event.errorMessage ?? 'Agent error').userMessage
         streaming.value = streamReducer(streaming.value, { type: 'end' })
         break
       case 'compaction_start':
@@ -168,8 +188,7 @@ export const useAgentStore = defineStore('agent', () => {
       sessionStats.value = null
       loadedDetail = null
       loadedStatsOverride = null
-      thinkingLevel.value = 'auto'
-      toolPreset.value = 'default'
+      applyComposerSelection(readLastComposerPrefs())
       return
     }
     const savedSelection = composerSelections.get(sessionId)
@@ -192,7 +211,9 @@ export const useAgentStore = defineStore('agent', () => {
     messages.value = detail.context.messages
     entryIds.value = detail.context.entryIds
     entryParents.value = detail.context.entryParents ?? {}
-    if (!savedSelection) thinkingLevel.value = detail.context.thinkingLevel
+    if (!savedSelection) {
+      thinkingLevel.value = toComposerThinkingLevel(detail.context.thinkingLevel)
+    }
     refreshLocalStats()
     await reconcile(sessionId, !savedSelection, generation)
     if (isCurrentLoad(sessionId, generation) && !composerSelections.has(sessionId)) {
@@ -241,7 +262,9 @@ export const useAgentStore = defineStore('agent', () => {
         streaming.value = INITIAL_STREAMING_STATE
       }
       if (initializeComposer && !composerSelections.has(sessionId)) {
-        if (snap?.thinkingLevel) thinkingLevel.value = snap.thinkingLevel
+        if (snap?.thinkingLevel) {
+          thinkingLevel.value = toComposerThinkingLevel(snap.thinkingLevel)
+        }
         if (listed) toolPreset.value = getPresetFromTools(listed)
       }
     } catch {
@@ -279,7 +302,9 @@ export const useAgentStore = defineStore('agent', () => {
           getApi().agent.start({
             cwd,
             toolNames: getToolNamesForPreset(preset),
-            ...(thinkingLevel.value !== 'auto' ? { thinkingLevel: thinkingLevel.value } : {})
+            ...(thinkingLevel.value !== 'auto'
+              ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value) }
+              : {})
           })
         )
         loadedSessionId = started.sessionId
@@ -320,7 +345,9 @@ export const useAgentStore = defineStore('agent', () => {
           getApi().agent.start({
             sessionId,
             toolNames: getToolNamesForPreset(toolPreset.value),
-            ...(thinkingLevel.value !== 'auto' ? { thinkingLevel: thinkingLevel.value } : {})
+            ...(thinkingLevel.value !== 'auto'
+              ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value) }
+              : {})
           })
         )
         await callApi(() =>
@@ -329,7 +356,7 @@ export const useAgentStore = defineStore('agent', () => {
       }
       return sessionId
     } catch (e) {
-      error.value = (e as { message?: string }).message ?? String(e)
+      error.value = getErrorMessage(e)
       messages.value = messages.value.slice(0, -1)
       if (createdSessionId) {
         transientSessionIds.delete(createdSessionId)
@@ -346,17 +373,33 @@ export const useAgentStore = defineStore('agent', () => {
     await callApi(() => getApi().agent.abort(sessionId))
   }
 
-  async function compact(sessionId: string) {
+  async function compact(sessionId: string, instructions?: string) {
     error.value = null
     try {
-      return (await callApi(() => getApi().agent.command(sessionId, { type: 'compact' }))) as {
+      return (await callApi(() =>
+        getApi().agent.command(sessionId, {
+          type: 'compact',
+          ...(instructions ? { customInstructions: instructions } : {})
+        })
+      )) as {
         cancelled?: boolean
         reason?: 'session-too-small' | 'already-compacted'
       } | null
     } catch (e) {
-      error.value = (e as { message?: string }).message ?? String(e)
+      error.value = getErrorMessage(e)
       return null
     }
+  }
+
+  async function setAutoCompaction(sessionId: string, enabled: boolean) {
+    await callApi(() =>
+      getApi().agent.command(sessionId, { type: 'set_auto_compaction', enabled })
+    )
+    if (loadedSessionId === sessionId) await reconcile(sessionId)
+  }
+
+  function isSessionLoaded(sessionId: string) {
+    return loadedSessionId === sessionId
   }
 
   async function syncPersistedSession(sessionId: string, terminalError?: string) {
@@ -377,7 +420,12 @@ export const useAgentStore = defineStore('agent', () => {
     rememberComposerSelection(sessionId)
     if (level === 'auto') return
     try {
-      await callApi(() => getApi().agent.command(sessionId, { type: 'set_thinking_level', level }))
+      await callApi(() =>
+        getApi().agent.command(sessionId, {
+          type: 'set_thinking_level',
+          level: resolveActivePiThinking(level)
+        })
+      )
     } catch (cause) {
       composerSelections.set(sessionId, previous)
       if (loadedSessionId === sessionId) applyComposerSelection(previous)
@@ -430,16 +478,27 @@ export const useAgentStore = defineStore('agent', () => {
 
   const activePreset = () => toolPreset.value
 
-  function rememberComposerSelection(sessionId: string) {
-    composerSelections.set(sessionId, {
+  function rememberComposerSelection(sessionId: string | null) {
+    const selection = {
       thinkingLevel: thinkingLevel.value,
       toolPreset: toolPreset.value
-    })
+    }
+    if (sessionId) composerSelections.set(sessionId, selection)
+    rememberComposerCache(sessionId, selection)
   }
 
-  function applyComposerSelection(selection: { thinkingLevel: string; toolPreset: ToolPreset }) {
+  function applyComposerSelection(selection: ComposerSelection) {
     thinkingLevel.value = selection.thinkingLevel
     toolPreset.value = selection.toolPreset
+  }
+
+  function readLastComposerPrefs(): ComposerSelection {
+    return hydrateComposerSelections(composerSelections)
+  }
+
+  function forgetComposerSelection(sessionId: string) {
+    composerSelections.delete(sessionId)
+    forgetComposerCache(sessionId)
   }
 
   function isCurrentLoad(sessionId: string, generation: number) {
@@ -479,6 +538,10 @@ export const useAgentStore = defineStore('agent', () => {
     send,
     abort,
     compact,
+    setAutoCompaction,
+    isSessionLoaded,
+    rememberComposerSelection,
+    forgetComposerSelection,
     setThinking,
     setTools,
     setModel,
@@ -487,6 +550,32 @@ export const useAgentStore = defineStore('agent', () => {
     activePreset
   }
 })
+
+function flushQueuedCompaction(sessionId: string): void {
+  void import('./compaction').then(({ useCompactionStore }) => {
+    void useCompactionStore().flushPending(sessionId)
+  })
+}
+
+function resolveActivePiThinking(level: string): string {
+  const models = useModelsStore()
+  const model = models.items.find((item) => item.modelId === models.active.modelId)
+  return resolveThinkingLevel({
+    requested: level,
+    supportedLevels: model?.thinkingLevels
+  })
+}
+
+function isCompactionSettleEvent(type: string): boolean {
+  return (
+    type === 'prompt_done' ||
+    type === 'prompt_error' ||
+    type === 'agent_end' ||
+    type === 'agent_settled' ||
+    type === 'compaction_end' ||
+    type === 'auto_compaction_end'
+  )
+}
 
 function userText(message: AgentMessage): string {
   if (message.role !== 'user') return ''

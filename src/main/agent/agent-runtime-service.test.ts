@@ -89,6 +89,21 @@ describe('AgentRuntimeService', () => {
     expect(result).toEqual({ cancelled: true, reason: 'session-too-small' })
   })
 
+  it('turns a summarization quota failure into a recoverable AgentError', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.compact = vi.fn().mockRejectedValue(
+      new Error(
+        'Summarization failed: 429 {"error":{"code":"AccountQuotaExceeded","message":"You have exceeded the 5-hour usage quota. It will reset at 2026-09-19 11:23:11 +0800 CST.","param":"","type":"TooManyRequests"}}'
+      )
+    )
+
+    await expect(new AgentSessionWrapper(inner).send({ type: 'compact' })).rejects.toMatchObject({
+      code: 'AGENT_ERROR',
+      recoverable: true,
+      userMessage: expect.stringContaining("quota is exhausted until 2026-09-19 11:23:11")
+    })
+  })
+
   it('keeps extension tools for coding presets and allows exact Harness selections', async () => {
     const inner = createAgentSession(createSessionManager())
     inner.getAllTools = () => [
@@ -317,6 +332,36 @@ describe('AgentRuntimeService', () => {
 
     expect(inner.modelRuntime.refresh).toHaveBeenCalledWith({ allowNetwork: false })
     expect(inner.setModel).toHaveBeenCalledWith(expect.objectContaining({ input: model.input }))
+  })
+
+  it('resolves Ultra to the highest supported Pi level', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.setThinkingLevel = vi.fn()
+    inner.getAvailableThinkingLevels = () => ['off', 'high']
+
+    await new AgentSessionWrapper(inner).send({ type: 'set_thinking_level', level: 'ultra' })
+    expect(inner.setThinkingLevel).toHaveBeenCalledWith('high')
+
+    inner.getAvailableThinkingLevels = () => ['off', 'high', 'max']
+    await new AgentSessionWrapper(inner).send({ type: 'set_thinking_level', level: 'ultra' })
+    expect(inner.setThinkingLevel).toHaveBeenLastCalledWith('max')
+  })
+
+  it('temporarily lowers session thinking for compaction and restores it', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.agent.state!.thinkingLevel = 'max'
+    inner.setThinkingLevel = vi.fn((level: string) => {
+      inner.agent.state!.thinkingLevel = level
+    })
+    inner.compact = vi.fn(async () => {
+      expect(inner.agent.state?.thinkingLevel).toBe('medium')
+      return { tokensBefore: 12_000 }
+    })
+
+    await new AgentSessionWrapper(inner).send({ type: 'compact' })
+    expect(inner.setThinkingLevel).toHaveBeenCalledWith('medium')
+    expect(inner.setThinkingLevel).toHaveBeenLastCalledWith('max')
+    expect(inner.agent.state?.thinkingLevel).toBe('max')
   })
 })
 

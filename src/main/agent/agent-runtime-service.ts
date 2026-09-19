@@ -35,8 +35,16 @@ import {
   type PiSessionManagerLike
 } from './pi-sdk'
 import { AgentEventBatcher, type AgentEventBatch } from './agent-event-batcher'
+import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 import { applyWorkspacePrompt } from '@shared/workspace/workspace-context'
+import {
+  getSupportedThinkingLevels,
+  isKnownHarnessThinkingLevel,
+  resolveCompactionThinkingLevel,
+  resolveThinkingLevel
+} from '@shared/thinking/levels'
 import { wrapWorkspaceWriteTools } from '../workspace/workspace-tool-guard'
+import { getIsDev } from '../services/app-paths'
 import type { SessionService } from '../sessions/session-service'
 import type { AgentRuntime } from './runtime'
 
@@ -63,7 +71,9 @@ export class AgentSessionWrapper {
   private workspacePromptProvider: (() => string | null) | null = null
   private _alive = true
 
-  constructor(public inner: AgentSessionLike) {}
+  constructor(public inner: AgentSessionLike) {
+    installCompactionThinkingGuard(inner)
+  }
 
   get sessionId(): string {
     return this.inner.sessionId
@@ -92,14 +102,18 @@ export class AgentSessionWrapper {
 
   start(): void {
     this.unsubscribe = this.inner.subscribe((event) => {
-      if (event.type === 'message_end') {
-        this.promptErrorMessage = assistantErrorMessage(event.message)
+      try {
+        if (event.type === 'message_end') {
+          this.promptErrorMessage = assistantErrorMessage(event.message)
+        }
+        if (event.type === 'agent_end') {
+          /* session list refresh is triggered by the runtime service */
+        }
+        if (isIdleResetEvent(event.type)) this.resetIdleTimer()
+        this.emit(this.throttleWireSnapshot(event as AgentEvent))
+      } catch (error) {
+        log.agent.error('failed to handle Pi session event:', error)
       }
-      if (event.type === 'agent_end') {
-        /* session list refresh is triggered by the runtime service */
-      }
-      if (isIdleResetEvent(event.type)) this.resetIdleTimer()
-      this.emit(this.throttleWireSnapshot(event as AgentEvent))
     })
     this.resetIdleTimer()
   }
@@ -223,7 +237,7 @@ export class AgentSessionWrapper {
               rejectPreflight(error)
               finishPrompt()
               if (preflightAccepted) {
-                const errorMessage = error instanceof Error ? error.message : String(error)
+                const errorMessage = inspectRuntimeError(error).userMessage
                 this.emit({
                   type: 'prompt_error',
                   errorMessage
@@ -299,7 +313,9 @@ export class AgentSessionWrapper {
         return { cancelled: result.cancelled }
       }
       case 'set_thinking_level': {
-        const level = String(command.level ?? 'off')
+        const requested = String(command.level ?? 'off')
+        const level = resolveSessionThinkingLevel(this.inner, requested)
+        if (level !== 'auto' && !supportsThinkingLevel(this.inner, level)) return null
         this.inner.setThinkingLevel(level)
         if (
           level === 'xhigh' &&
@@ -321,7 +337,8 @@ export class AgentSessionWrapper {
           if (message === 'Already compacted') {
             return { cancelled: true, reason: 'already-compacted' }
           }
-          throw error
+          const runtime = inspectRuntimeError(error)
+          throw new AgentError(runtime.userMessage, { kind: runtime.kind }, { recoverable: true })
         }
       case 'abort_compaction':
         this.inner.abortCompaction?.()
@@ -523,7 +540,7 @@ function assistantErrorMessage(value: unknown): string | null {
   if (message.role !== 'assistant') return null
   if (message.stopReason !== 'error' && typeof message.errorMessage !== 'string') return null
   return typeof message.errorMessage === 'string' && message.errorMessage.trim()
-    ? message.errorMessage
+    ? inspectRuntimeError(message.errorMessage).userMessage
     : 'Agent error'
 }
 
@@ -552,6 +569,100 @@ function safelyRead<T>(read: () => T, fallback: T): T {
   } catch {
     return fallback
   }
+}
+
+function supportsThinkingLevel(session: AgentSessionLike, level: string): boolean {
+  if (typeof session.getAvailableThinkingLevels !== 'function') return true
+  try {
+    const levels = session.getAvailableThinkingLevels()
+    return !Array.isArray(levels) || levels.length === 0 || levels.map(String).includes(level)
+  } catch {
+    return true
+  }
+}
+
+function sessionThinkingSource(session: AgentSessionLike): readonly string[] {
+  const available =
+    typeof session.getAvailableThinkingLevels === 'function'
+      ? session.getAvailableThinkingLevels()
+      : null
+  if (Array.isArray(available) && available.length > 0) return available
+  return getSupportedThinkingLevels(session.model?.thinkingLevelMap)
+}
+
+function resolveSessionThinkingLevel(session: AgentSessionLike, requested: string): string {
+  const resolved = resolveThinkingLevel({
+    requested,
+    supportedLevels: sessionThinkingSource(session)
+  })
+  logThinking('Thinking', requested, resolved, session)
+  return resolved
+}
+
+function resolveModelThinkingLevel(requested: string, model: unknown): string {
+  const map =
+    model && typeof model === 'object'
+      ? (model as { thinkingLevelMap?: Partial<Record<string, string | null>> }).thinkingLevelMap
+      : undefined
+  const resolved = resolveThinkingLevel({ requested, supportedLevels: map })
+  logThinking('Thinking', requested, resolved, model)
+  return resolved
+}
+
+function installCompactionThinkingGuard(session: AgentSessionLike): void {
+  const original = session.compact.bind(session)
+  session.compact = async (instructions?: string) => {
+    const current = String(session.agent?.state?.thinkingLevel ?? session.thinkingLevel ?? 'off')
+    const compactionRequested = resolveCompactionThinkingLevel(current)
+    const next = resolveThinkingLevel({
+      requested: compactionRequested,
+      supportedLevels: sessionThinkingSource(session)
+    })
+    const restore = next !== current && supportsThinkingLevel(session, next)
+    if (restore) session.setThinkingLevel(next)
+    logThinking('Compaction', current, next, session, { sessionThinking: current })
+    try {
+      return await original(instructions)
+    } finally {
+      if (restore && supportsThinkingLevel(session, current)) {
+        session.setThinkingLevel(current)
+      }
+    }
+  }
+}
+
+function isDevLoggingEnabled(): boolean {
+  try {
+    return getIsDev()
+  } catch {
+    return false
+  }
+}
+
+function logThinking(
+  label: 'Thinking' | 'Compaction',
+  requested: string,
+  resolved: string,
+  source: AgentSessionLike | unknown,
+  extra?: Record<string, string>
+): void {
+  if (!isDevLoggingEnabled()) return
+  if (!isKnownHarnessThinkingLevel(requested)) {
+    log.agent.warn(`[${label}] unknown thinking level, falling back`, { requested, resolved })
+  }
+  const model =
+    source && typeof source === 'object' && 'model' in source
+      ? (source as AgentSessionLike).model
+      : source && typeof source === 'object'
+        ? (source as { id?: string; provider?: string })
+        : null
+  log.agent.info(`[${label}]`, {
+    requested,
+    resolved,
+    provider: model && 'provider' in model ? String(model.provider ?? '') : '',
+    model: model && 'id' in model ? String(model.id ?? '') : '',
+    ...extra
+  })
 }
 
 /** Pi Coding Agent-backed implementation of the Pi-Harness runtime boundary. */
@@ -769,7 +880,9 @@ export class AgentRuntimeService implements AgentRuntime {
       services,
       sessionManager,
       ...(model ? { model } : {}),
-      ...(input.thinkingLevel ? { thinkingLevel: input.thinkingLevel } : {}),
+      ...(input.thinkingLevel
+        ? { thinkingLevel: resolveModelThinkingLevel(input.thinkingLevel, model) }
+        : {}),
       ...(toolsOption !== undefined ? { tools: toolsOption } : {})
     })
 
@@ -834,6 +947,12 @@ export class AgentRuntimeService implements AgentRuntime {
   })
 
   private broadcastRunning(): void {
-    this.getWindow()?.webContents.send(IPC_EVENT.agentRunning, { ids: this.listRunning() })
+    const win = this.getWindow()
+    if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return
+    try {
+      win.webContents.send(IPC_EVENT.agentRunning, { ids: this.listRunning() })
+    } catch (error) {
+      log.agent.error('failed to send running ids:', error)
+    }
   }
 }

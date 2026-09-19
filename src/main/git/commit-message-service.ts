@@ -1,3 +1,4 @@
+import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 import { AgentError, ValidationError } from '../services/errors'
 import type { PiConfigService } from '../pi/config-service'
 import { loadPiCodingAgent } from '../agent/pi-sdk'
@@ -113,37 +114,9 @@ export function commitUserPrompt(context: CommitMessageContext): string {
   return parts.join('\n\n')
 }
 
-const PROVIDER_STATUS_JSON = /^(\d{3})\s+(\{[\s\S]*\})\s*$/
-
 /** Turn raw provider payloads (429 JSON, thinking rejection) into a short message. */
 export function formatCommitGenerationError(raw: string): string {
-  const trimmed = raw.trim()
-  const match = trimmed.match(PROVIDER_STATUS_JSON)
-  if (!match) return trimmed
-  const status = Number(match[1])
-  let parsed: { error?: { code?: string; message?: string; type?: string } }
-  try {
-    parsed = JSON.parse(match[2]) as { error?: { code?: string; message?: string; type?: string } }
-  } catch {
-    return trimmed
-  }
-  const code = parsed.error?.code ?? ''
-  const message = parsed.error?.message ?? ''
-  const combined = `${code} ${message}`
-  const quota =
-    status === 429 ||
-    code === 'AccountQuotaExceeded' ||
-    /quota|TooManyRequests|rate.?limit/i.test(combined)
-  if (quota) {
-    const reset = message.match(/reset at\s+(.+?)(?:\.|$)/i)?.[1]?.trim()
-    return reset
-      ? `This model's quota is exhausted until ${reset}. Switch to another model and retry.`
-      : "This model's quota is exhausted. Switch to another model and retry."
-  }
-  if (/thinking\.type disabled is not supported/i.test(message)) {
-    return 'This model cannot disable thinking. Switch to another model and retry.'
-  }
-  return message || trimmed
+  return inspectRuntimeError(raw).userMessage
 }
 
 const COMMIT_SUBJECT =

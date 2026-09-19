@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { GitActivityDay } from '@shared/types/workspace'
 
 /**
@@ -20,8 +21,12 @@ const props = withDefaults(
     days: GitActivityDay[]
     /** How many weeks to draw at most. */
     maxWeeks?: number
+    /** Upper bound for a cell in px. Detail view can go larger. */
+    cellMax?: number
+    showMonths?: boolean
+    hideSummary?: boolean
   }>(),
-  { maxWeeks: 26 }
+  { maxWeeks: 26, cellMax: 11, showMonths: false, hideSummary: false }
 )
 
 interface Cell {
@@ -32,19 +37,18 @@ interface Cell {
   tooltip: string
 }
 
-const WEEKDAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
+const { locale, t } = useI18n()
 
 const LABEL_WIDTH = 18
 const GAP = 2
 const CELL_MIN = 5
-const CELL_MAX = 11
 
 const root = ref<HTMLElement | null>(null)
 const availableWidth = ref(0)
 let observer: ResizeObserver | null = null
 
 onMounted(() => {
-  if (!root.value) return
+  if (!root.value || typeof ResizeObserver === 'undefined') return
   observer = new ResizeObserver((entries) => {
     availableWidth.value = entries[0]?.contentRect.width ?? 0
   })
@@ -61,7 +65,7 @@ const cellSize = computed(() => {
   if (!availableWidth.value) return 9
   const usable = availableWidth.value - LABEL_WIDTH
   const fitted = (usable - GAP * props.maxWeeks) / props.maxWeeks
-  return Math.max(CELL_MIN, Math.min(CELL_MAX, fitted))
+  return Math.max(CELL_MIN, Math.min(props.cellMax, fitted))
 })
 
 /** As many weeks as fit at that cell size, capped by the data window. */
@@ -133,13 +137,53 @@ function formatDate(date: Date): string {
 
 function tooltipFor(key: string, commits: number, future: boolean): string {
   if (future) return ''
-  const date = new Date(`${key}T00:00:00`)
-  const label = new Intl.DateTimeFormat(undefined, {
+  const date = new Date(`${key}T12:00:00`)
+  const label = new Intl.DateTimeFormat(locale.value, {
     month: 'short',
     day: 'numeric'
   }).format(date)
-  return `${commits} · ${label}`
+  const names = (props.days.find((day) => day.date === key)?.authors ?? [])
+    .slice(0, 3)
+    .map((author) => author.name)
+    .filter(Boolean)
+  return names.length ? `${commits} · ${label} · ${names.join(', ')}` : `${commits} · ${label}`
 }
+
+const monthLabels = computed(() => {
+  if (!props.showMonths) return []
+  const firstWeek = weeks.value
+  if (!firstWeek.length) return []
+  const fmt = new Intl.DateTimeFormat(locale.value, { month: 'short' })
+  return firstWeek.map((week, index) => {
+    const cell = week.find((item) => !item.future) ?? week[0]
+    if (!cell) return ''
+    const date = new Date(`${cell.date}T12:00:00`)
+    if (index > 0) {
+      const previous = firstWeek[index - 1]?.[0]
+      if (previous) {
+        const prev = new Date(`${previous.date}T12:00:00`)
+        if (prev.getMonth() === date.getMonth() && prev.getFullYear() === date.getFullYear()) {
+          return ''
+        }
+      }
+    }
+    return fmt.format(date)
+  })
+})
+
+const weekdayLabels = computed(() => {
+  const firstWeek = weeks.value[0]
+  if (!firstWeek) return Array.from({ length: 7 }, () => '')
+  void locale.value
+  const style = /^(zh|ja|ko)/i.test(locale.value) ? 'narrow' : 'short'
+  const fmt = new Intl.DateTimeFormat(locale.value, { weekday: style })
+  return firstWeek.map((cell) => {
+    const date = new Date(`${cell.date}T12:00:00`)
+    const day = date.getDay()
+    if (day !== 1 && day !== 3 && day !== 5) return ''
+    return fmt.format(date)
+  })
+})
 
 const summary = computed(() => {
   const total = props.days.reduce((sum, day) => sum + day.commits, 0)
@@ -148,7 +192,7 @@ const summary = computed(() => {
     1,
     Math.min(weekCount.value, Math.ceil(props.days.filter((d) => d.commits > 0).length / 7))
   )
-  return `${total} · ${weeksAlive}w`
+  return t('workspace.gitActivitySummary', { commits: total, weeks: weeksAlive })
 })
 
 function cellClass(cell: Cell): string {
@@ -166,13 +210,24 @@ function cellClass(cell: Cell): string {
     role="img"
     :aria-label="$t('workspace.gitActivityLabel')"
   >
+    <div v-if="weeks.length && showMonths" class="flex items-end justify-center gap-[2px]">
+      <span class="shrink-0" :style="{ width: `${LABEL_WIDTH}px` }" />
+      <span
+        v-for="(label, index) in monthLabels"
+        :key="`month-${index}`"
+        class="overflow-visible whitespace-nowrap text-[8px] leading-none text-[var(--text-tertiary)]"
+        :style="{ width: `${cellSize}px` }"
+      >
+        {{ label }}
+      </span>
+    </div>
     <div v-if="weeks.length" class="flex items-start justify-center gap-[2px]">
       <div
         class="flex shrink-0 flex-col gap-[2px] pt-[1px]"
         :style="{ width: `${LABEL_WIDTH}px` }"
       >
         <span
-          v-for="(label, index) in WEEKDAY_LABELS"
+          v-for="(label, index) in weekdayLabels"
           :key="index"
           class="text-right text-[7.5px] text-[var(--text-tertiary)]"
           :style="{ height: `${cellSize}px`, lineHeight: `${cellSize}px` }"
@@ -195,7 +250,7 @@ function cellClass(cell: Cell): string {
       </div>
     </div>
     <span
-      v-if="summary"
+      v-if="summary && !hideSummary"
       class="self-center text-[9px] text-[var(--text-tertiary)]"
     >
       {{ summary }}

@@ -6,6 +6,7 @@
 import type { PiSwitchAPI, IpcError } from '@shared/ipc/api-types'
 import type { AppErrorPayload } from '@shared/types/errors'
 import { isErrorPayload } from '@shared/types/errors'
+import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 
 export function isBridgeAvailable(): boolean {
   return typeof window !== 'undefined' && typeof window.piSwitch !== 'undefined'
@@ -43,7 +44,8 @@ export function getErrorPayload(error: unknown): AppErrorPayload {
 
 export function getErrorMessage(error: unknown): string {
   const payload = getErrorPayload(error)
-  return payload.userMessage?.trim() || payload.message
+  const raw = payload.userMessage?.trim() || payload.message
+  return inspectRuntimeError(raw).userMessage
 }
 
 export function useApi() {

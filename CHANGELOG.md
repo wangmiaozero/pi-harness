@@ -2,6 +2,23 @@
 
 Public release notes contain only released, user-visible additions and fixes.
 
+## 1.6.0 — 2026-09-19
+
+### Added
+
+- Added a Codex-aligned thinking slider in the workspace composer, including Ultra. Ultra stays a UI alias for the highest Pi thinking level the current model supports; Pi still only receives off/minimal/low/medium/high/xhigh/max.
+- Remembered composer thinking level and tool preset locally, including per-session overrides, so the next launch restores the last selection.
+- Added a Max/Ultra “You are using forbidden power” hint on the thinking slider.
+- Added smart compaction: Compact stays clickable whenever a session exists (except while the agent is actually busy); low-content sessions ask for confirmation; compaction temporarily uses medium thinking and restores the previous level afterwards.
+- Added a Git commit-activity details view with weekly trend, peak day, and committers, plus localized weekday/week labels.
+
+### Fixed
+
+- Turned provider quota and 429 dumps into a recoverable switch-model hint instead of crashing compaction or chat.
+- Fixed themed chart tooltips rendering unreadable light-on-light text.
+- Kept the main window focused after screen-motion overlay updates, so sending a message no longer makes the app appear to vanish.
+- Stopped chat auto-scroll from yanking the transcript when the user has scrolled away from the latest message.
+
 ## 1.5.0 — 2026-09-13
 
 ### Added

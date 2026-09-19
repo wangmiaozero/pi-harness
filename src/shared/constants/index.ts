@@ -54,6 +54,18 @@ export const PI_THINKING_LEVELS = [
 ] as const
 export type PiThinkingLevel = (typeof PI_THINKING_LEVELS)[number]
 
+/** Composer `none` is Pi `off`. Ultra is a UI-only alias for the model's highest Pi level. */
+export function toPiThinkingLevel(level: string): string {
+  if (level === 'none') return 'off'
+  if (level === 'ultra') return 'max'
+  return (PI_THINKING_LEVELS as readonly string[]).includes(level) ? level : 'medium'
+}
+
+/** Convert Pi's native naming into the Codex-aligned composer vocabulary. */
+export function toComposerThinkingLevel(level: string): string {
+  return level === 'off' ? 'none' : level
+}
+
 /** Model input modalities Pi understands. */
 export const PI_INPUT_TYPES = ['text', 'image'] as const
 export type PiInputType = (typeof PI_INPUT_TYPES)[number]

@@ -2,8 +2,10 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { i18n } from '@renderer/i18n'
+import { useAgentStore } from '@renderer/stores/agent'
 import { useModelsStore } from '@renderer/stores/models'
 import { useProvidersStore } from '@renderer/stores/providers'
+import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import type { ModelDefinition, ProviderProfile } from '@shared/ipc/api-types'
 import ChatComposer from './ChatComposer.vue'
@@ -47,6 +49,25 @@ describe('ChatComposer model capabilities', () => {
     await wrapper.vm.$nextTick()
     expect(wrapper.get('.command-execute-button').attributes('disabled')).toBeDefined()
     expect(wrapper.text()).toContain(String(i18n.global.t('workspace.imageUnsupported')))
+  })
+})
+
+describe('ChatComposer compact button', () => {
+  it('stays clickable for a short or busy session', async () => {
+    const sessions = useSessionStore()
+    const agent = useAgentStore()
+    sessions.addTransientSession('session-1', '/code/project', 'hello')
+    sessions.selectSession('session-1')
+    agent.sending = true
+    agent.streaming = { ...agent.streaming, isStreaming: true }
+
+    const wrapper = mount(ChatComposer, {
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    const button = wrapper.get('[data-testid="composer-compact"]')
+    expect(button.attributes('disabled')).toBeUndefined()
+    expect(button.text()).toContain(String(i18n.global.t('workspace.compactAfterTask')))
   })
 })
 

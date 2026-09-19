@@ -48,6 +48,24 @@ export function resolveThemeColor(variable: string, fallback: string): string {
   return value || fallback
 }
 
+/** Tooltip colors follow the current skin so copy stays readable on dark and light. */
+export function chartTooltip() {
+  const text = resolveThemeColor('--text-primary', '#e8eaed')
+  const background = resolveThemeColor('--bg-surface-raised', '#25282e')
+  const border = resolveThemeColor('--border-default', 'rgba(255,255,255,0.08)')
+  return {
+    backgroundColor: background,
+    borderColor: border,
+    borderWidth: 1,
+    padding: [8, 10] as [number, number],
+    textStyle: {
+      color: text,
+      fontSize: 11
+    },
+    extraCssText: `color:${text};background:${background};border:1px solid ${border};box-shadow:0 4px 16px rgba(0,0,0,0.28);`
+  }
+}
+
 /**
  * Re-run the callback whenever the app theme changes (data-theme / class /
  * inline style on <html>), so canvas charts follow the active theme.
@@ -56,7 +74,7 @@ export function observeThemeChanges(callback: () => void): () => void {
   const observer = new MutationObserver(callback)
   observer.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['class', 'data-theme', 'style']
+    attributeFilter: ['class', 'data-theme', 'data-visual-skin', 'style']
   })
   return () => observer.disconnect()
 }

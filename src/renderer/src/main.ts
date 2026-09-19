@@ -34,6 +34,20 @@ if (/Win/i.test(navigator.platform)) {
 const app = createApp(App)
 const pinia = createPinia()
 
+app.config.errorHandler = (error, _instance, info) => {
+  console.error('[vue]', info, error)
+}
+
+window.addEventListener('unhandledrejection', (event) => {
+  event.preventDefault()
+  console.error('[unhandledrejection]', event.reason)
+})
+
+window.addEventListener('error', (event) => {
+  event.preventDefault()
+  console.error('[window.error]', event.error ?? event.message)
+})
+
 app.use(pinia)
 app.use(router)
 app.use(i18n)

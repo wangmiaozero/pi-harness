@@ -22,6 +22,7 @@ import IconButton from '@renderer/components/ui/IconButton.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import ContextMenu from '@renderer/components/ui/ContextMenu.vue'
 import GitActivityGraph from './GitActivityGraph.vue'
+import GitActivityDetails from './GitActivityDetails.vue'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
@@ -75,6 +76,7 @@ const tagsOpen = ref(true)
 const stashesOpen = ref(true)
 const submodulesOpen = ref(true)
 const worktreesOpen = ref(false)
+const activityOpen = ref(false)
 const promptOpen = ref(false)
 const promptMode = ref<'create' | 'rename' | 'create-tag'>('create')
 const promptValue = ref('')
@@ -971,8 +973,25 @@ watch([repository, () => workspace.gitRevision], () => void refresh())
       v-if="activity.length"
       class="shrink-0 overflow-x-auto border-t border-[var(--border-subtle)] px-2 py-2"
     >
-      <GitActivityGraph :days="activity" />
+      <button
+        type="button"
+        data-testid="git-activity-open"
+        class="w-full rounded-[var(--radius-sm)] text-left transition-colors hover:bg-[var(--bg-hover)] focus-visible:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+        :aria-label="$t('workspace.gitActivityOpenDetails')"
+        @click="activityOpen = true"
+      >
+        <GitActivityGraph :days="activity" />
+      </button>
     </div>
+
+    <Dialog
+      v-model:open="activityOpen"
+      large
+      :title="$t('workspace.gitActivityDetails')"
+      :description="$t('workspace.gitActivityLabel')"
+    >
+      <GitActivityDetails v-if="activityOpen" :days="activity" />
+    </Dialog>
 
     <Dialog
       v-model:open="promptOpen"

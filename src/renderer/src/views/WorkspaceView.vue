@@ -16,6 +16,7 @@ import { FolderOpen } from '@lucide/vue'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
+import { useCompactionStore } from '@renderer/stores/compaction'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { registerShortcut } from '@renderer/composables/shortcuts'
 import { getApi } from '@renderer/composables/useApi'
@@ -100,7 +101,10 @@ function onAbortEvent() {
 }
 
 function onCompactEvent() {
-  if (sessions.currentId) void agent.compact(sessions.currentId)
+  void useCompactionStore().requestSmartCompaction({
+    sessionId: sessions.currentId,
+    source: 'command-palette'
+  })
 }
 
 function onOpenFolderEvent() {

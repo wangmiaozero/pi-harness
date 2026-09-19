@@ -25,6 +25,8 @@ import {
 import { MAX_ATTACHED_IMAGES } from '@shared/workspace/image-attachments'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { useSessionStore } from './sessions'
+import { useCompactionStore } from './compaction'
+import { forgetComposerCache } from './composer-cache'
 
 const STORAGE_KEY = 'pi-harness.workspace.v1'
 
@@ -747,6 +749,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     archivedSessionIds.value = archivedSessionIds.value.filter((id) => id !== sessionId)
     closeSessionTabs(new Set([sessionId]))
     if (sessions.currentId === sessionId) sessions.selectSession(null)
+    useCompactionStore().forgetSession(sessionId)
+    forgetComposerCache(sessionId)
     persist()
   }
 

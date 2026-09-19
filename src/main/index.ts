@@ -86,6 +86,13 @@ const DEFAULT_SETTINGS: AppSettings = {
 app.setName(APP_NAME)
 applyChromiumGpuWorkarounds()
 
+process.on('uncaughtException', (error) => {
+  log.app.error('uncaughtException', error)
+})
+process.on('unhandledRejection', (reason) => {
+  log.app.error('unhandledRejection', reason)
+})
+
 // Allow e2e / isolated runs to redirect userData before ready.
 const userDataOverride =
   process.env.PI_HARNESS_USER_DATA?.trim() || process.env.PI_SWITCH_USER_DATA?.trim()
@@ -309,7 +316,16 @@ async function bootstrap(): Promise<void> {
       }
     },
     getMainWindow: () => mainWindow,
-    setScreenMotionActive: (payload) => screenMotion.setActive(payload)
+    setScreenMotionActive: (payload) => {
+      const restoreMainWindow = payload.active && mainWindow?.isFocused() === true
+      screenMotion.setActive(payload)
+      if (!restoreMainWindow) return
+      setImmediate(() => {
+        if (!mainWindow || mainWindow.isDestroyed()) return
+        if (!mainWindow.isVisible()) mainWindow.show()
+        mainWindow.focus()
+      })
+    }
   })
 
   openMainWindow()

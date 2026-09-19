@@ -16,8 +16,9 @@ import type { ToolPreset } from '@shared/workspace/tool-presets'
 import type { AgentImageAttachment, SessionDetail } from '@shared/types/workspace'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { useCompletionSound } from '@renderer/composables/useCompletionSound'
+import { useStickToBottom } from '@renderer/composables/useStickToBottom'
 
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 const agent = useAgentStore()
 const sessions = useSessionStore()
 const workspace = useWorkspaceStore()
@@ -31,15 +32,22 @@ const fullHistoryOpen = ref(false)
 const fullHistoryLoading = ref(false)
 const fullHistoryDetail = ref<SessionDetail | null>(null)
 const copiedField = ref<'file' | 'id' | null>(null)
-const hasScrollOverflow = ref(false)
-const atScrollTop = ref(true)
-const atScrollBottom = ref(true)
 const completionSound = useCompletionSound()
-let stickToBottom = true
-let scrollResizeObserver: ResizeObserver | null = null
-let scrollSyncFrame: number | null = null
-
-const SCROLL_EDGE_THRESHOLD = 24
+const {
+  hasOverflow: hasScrollOverflow,
+  atTop: atScrollTop,
+  atBottom: atScrollBottom,
+  onScroll: onScrollerScroll,
+  onWheel: onScrollerWheel,
+  onTouchStart: onScrollerTouchStart,
+  onTouchMove: onScrollerTouchMove,
+  onPointerDown: onScrollerPointerDown,
+  scrollToEdge,
+  stick: stickToLatest,
+  scheduleSync: scheduleScrollSync,
+  bind: bindChatScroll,
+  unbind: unbindChatScroll
+} = useStickToBottom(scroller, scrollContent)
 
 function focusComposer() {
   composer.value?.focus()
@@ -56,56 +64,12 @@ const contextColor = computed(() => {
   if (percent !== null && percent > 70) return 'var(--warning)'
   return 'var(--text-tertiary)'
 })
+const autoCompactionEnabled = computed(() => agent.state?.autoCompactionEnabled === true)
 
 const displayMessages = computed(() => {
   const live = agent.streaming.streamingMessage
   return live ? [...agent.messages, live] : agent.messages
 })
-
-function updateScrollState() {
-  const el = scroller.value
-  if (!el) return
-  const maxScrollTop = Math.max(0, el.scrollHeight - el.clientHeight)
-  hasScrollOverflow.value = maxScrollTop > 1
-  atScrollTop.value = el.scrollTop <= SCROLL_EDGE_THRESHOLD
-  atScrollBottom.value = maxScrollTop - el.scrollTop <= SCROLL_EDGE_THRESHOLD
-}
-
-function onScrollerScroll() {
-  updateScrollState()
-  stickToBottom = atScrollBottom.value
-}
-
-function syncAfterContentResize() {
-  const el = scroller.value
-  if (!el) return
-  if (stickToBottom) el.scrollTop = el.scrollHeight
-  updateScrollState()
-}
-
-/**
- * Streaming updates fire the content watcher and the ResizeObserver within
- * the same frame; coalesce them into one layout pass per frame instead of
- * forcing a synchronous reflow per event.
- */
-function scheduleScrollSync() {
-  if (scrollSyncFrame !== null) return
-  scrollSyncFrame = requestAnimationFrame(() => {
-    scrollSyncFrame = null
-    syncAfterContentResize()
-  })
-}
-
-function scrollToEdge(edge: 'top' | 'bottom', behavior?: ScrollBehavior) {
-  const el = scroller.value
-  if (!el) return
-  stickToBottom = edge === 'bottom'
-  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-  el.scrollTo({
-    top: edge === 'top' ? 0 : el.scrollHeight,
-    behavior: behavior ?? (reducedMotion ? 'auto' : 'smooth')
-  })
-}
 
 watch(displayMessages, async () => {
   await nextTick()
@@ -114,20 +78,11 @@ watch(displayMessages, async () => {
 
 onMounted(async () => {
   await nextTick()
-  if (typeof ResizeObserver !== 'undefined') {
-    scrollResizeObserver = new ResizeObserver(scheduleScrollSync)
-    if (scroller.value) scrollResizeObserver.observe(scroller.value)
-    if (scrollContent.value) scrollResizeObserver.observe(scrollContent.value)
-  }
-  syncAfterContentResize()
+  bindChatScroll()
 })
 
 onBeforeUnmount(() => {
-  scrollResizeObserver?.disconnect()
-  if (scrollSyncFrame !== null) {
-    cancelAnimationFrame(scrollSyncFrame)
-    scrollSyncFrame = null
-  }
+  unbindChatScroll()
 })
 
 watch(
@@ -157,7 +112,7 @@ watch(
     fullHistoryOpen.value = false
     fullHistoryDetail.value = null
     copiedField.value = null
-    stickToBottom = true
+    stickToLatest()
     await nextTick()
     scrollToEdge('bottom', 'auto')
   }
@@ -172,6 +127,7 @@ async function onSend() {
     mimeType
   }))
   if (!text && !images.length) return
+  stickToLatest()
   const preset = (
     sessions.currentId ? agent.activePreset() : (settings.settings?.defaultToolPreset ?? 'default')
   ) as ToolPreset
@@ -202,6 +158,15 @@ async function viewFullHistory() {
     toast.error((error as Error).message)
   } finally {
     fullHistoryLoading.value = false
+  }
+}
+
+async function toggleAutoCompaction() {
+  if (!sessions.currentId || !agent.state) return
+  try {
+    await agent.setAutoCompaction(sessions.currentId, !autoCompactionEnabled.value)
+  } catch (error) {
+    toast.error((error as Error).message || t('workspace.compactFailed'))
   }
 }
 
@@ -238,6 +203,10 @@ function duration(value: number): string {
         data-testid="chat-scroller"
         class="chat-scroller h-full min-h-0 overflow-y-auto px-4 py-3 min-[1080px]:pr-[132px]"
         @scroll.passive="onScrollerScroll"
+        @wheel.passive="onScrollerWheel"
+        @touchstart.passive="onScrollerTouchStart"
+        @touchmove.passive="onScrollerTouchMove"
+        @pointerdown="onScrollerPointerDown"
       >
         <div ref="scrollContent" class="chat-scroll-content min-w-0">
           <EmptyState
@@ -397,6 +366,23 @@ function duration(value: number): string {
             </dd>
           </template>
         </dl>
+        <button
+          v-if="sessions.currentId && agent.state"
+          type="button"
+          role="switch"
+          data-testid="workspace-auto-compaction"
+          class="mt-3 inline-flex h-7 items-center rounded-full border px-3 text-[11px] font-medium"
+          :class="
+            autoCompactionEnabled
+              ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)]'
+              : 'border-[var(--border-default)] text-[var(--text-tertiary)]'
+          "
+          :aria-checked="autoCompactionEnabled"
+          :title="$t('workspace.autoCompaction')"
+          @click="toggleAutoCompaction"
+        >
+          {{ $t('workspace.autoCompaction') }} · {{ autoCompactionEnabled ? 'ON' : 'OFF' }}
+        </button>
       </section>
     </div>
     <div
@@ -453,6 +439,15 @@ function duration(value: number): string {
 </template>
 
 <style scoped>
+.chat-scroller {
+  /*
+   * Browser scroll anchoring fights stick-to-bottom: measuring an off-screen
+   * message (content-visibility) shifts scrollTop and looks like the user
+   * left the latest turn. We pin to the bottom ourselves while stuck.
+   */
+  overflow-anchor: none;
+}
+
 /*
  * Long sessions keep every historical message in the layout tree; during
  * streaming each content change would otherwise re-run layout and paint for
@@ -460,9 +455,16 @@ function duration(value: number): string {
  * off-screen messages entirely. The `auto` keyword in contain-intrinsic-size
  * remembers each message's last rendered height once measured, so scrollbar
  * geometry and scroll positions stay stable (initial estimate 120px).
+ *
+ * The latest turn (and the optional error line after it) stay fully laid out
+ * so streaming height changes are reflected in scrollHeight immediately.
  */
 .chat-scroll-content > * {
   content-visibility: auto;
   contain-intrinsic-size: auto 120px;
+}
+
+.chat-scroll-content > :nth-last-child(-n + 2) {
+  content-visibility: visible;
 }
 </style>

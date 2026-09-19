@@ -1,47 +1,66 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentMessage, AgentStateSnapshot } from '../types/workspace'
-import { canCompactSession } from './compaction'
+import {
+  canRequestCompaction,
+  compactionUsageHint,
+  compactionUsageRatio,
+  inspectCompactionBusy,
+  parseCompactionRuntimeResult
+} from './compaction'
 
-const state = (tokens: number): AgentStateSnapshot => ({
-  sessionId: 'session',
-  sessionFile: '/tmp/session.jsonl',
-  status: 'idle',
-  isStreaming: false,
-  isPromptRunning: false,
-  isBashRunning: false,
-  isCompacting: false,
-  autoCompactionEnabled: true,
-  thinkingLevel: 'off',
-  contextUsage: { percent: 0.2, contextWindow: 128_000, tokens },
-  pendingMessageCount: 0,
-  queuedMessages: { steering: [], followUp: [] }
+describe('canRequestCompaction', () => {
+  it('only requires a session id', () => {
+    expect(canRequestCompaction(null)).toBe(false)
+    expect(canRequestCompaction(undefined)).toBe(false)
+    expect(canRequestCompaction('session-1')).toBe(true)
+  })
 })
 
-const user = (text: string): AgentMessage => ({ role: 'user', content: text })
-const assistant: AgentMessage = {
-  role: 'assistant',
-  content: [{ type: 'text', text: 'ok' }],
-  model: 'model',
-  provider: 'provider'
-}
-
-describe('manual compaction availability', () => {
-  it('rejects short and single-turn sessions', () => {
-    expect(canCompactSession([user('one'), assistant], state(40_000))).toBe(false)
-    expect(canCompactSession([user('one'), assistant, user('two'), assistant], state(10_000))).toBe(
-      false
-    )
+describe('compaction usage hints', () => {
+  it('treats missing usage as unknown instead of zero tokens', () => {
+    expect(compactionUsageRatio(null)).toBeNull()
+    expect(compactionUsageRatio({ tokens: null, contextWindow: 128_000 })).toBeNull()
+    expect(compactionUsageHint(null)).toBe('unknown')
   })
 
-  it('allows an idle multi-turn session with enough context', () => {
-    expect(canCompactSession([user('one'), assistant, user('two'), assistant], state(40_000))).toBe(
-      true
-    )
+  it('maps usage ratio to recommendation copy only', () => {
+    expect(compactionUsageHint(0.05)).toBe('low')
+    expect(compactionUsageHint(0.45)).toBe('ready')
+    expect(compactionUsageHint(0.7)).toBe('recommend')
+    expect(compactionUsageHint(0.85)).toBe('urgent')
+  })
+})
+
+describe('inspectCompactionBusy', () => {
+  it('prefers compacting over other busy states', () => {
+    expect(inspectCompactionBusy({ isCompacting: true, isStreaming: true })).toBe('compacting')
+    expect(inspectCompactionBusy({ isStreaming: true })).toBe('working')
+    expect(inspectCompactionBusy({ isPromptRunning: true })).toBe('working')
+    expect(inspectCompactionBusy({ sending: true })).toBe('working')
+    expect(inspectCompactionBusy({})).toBeNull()
+  })
+})
+
+describe('parseCompactionRuntimeResult', () => {
+  it('maps Pi skip reasons without treating them as failures', () => {
+    expect(parseCompactionRuntimeResult({ cancelled: true, reason: 'session-too-small' })).toEqual({
+      status: 'session-too-small'
+    })
+    expect(parseCompactionRuntimeResult({ cancelled: true, reason: 'already-compacted' })).toEqual({
+      status: 'already-compacted'
+    })
   })
 
-  it('rejects a session while the agent is busy', () => {
+  it('keeps optional compact metadata when Pi returns it', () => {
     expect(
-      canCompactSession([user('one'), assistant, user('two'), assistant], state(40_000), true)
-    ).toBe(false)
+      parseCompactionRuntimeResult({
+        tokensBefore: 32421,
+        firstKeptEntryId: 'entry-1'
+      })
+    ).toEqual({
+      status: 'compacted',
+      tokensBefore: 32421,
+      firstKeptEntryId: 'entry-1'
+    })
+    expect(parseCompactionRuntimeResult(null)).toEqual({ status: 'compacted' })
   })
 })

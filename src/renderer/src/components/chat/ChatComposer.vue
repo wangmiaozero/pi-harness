@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
-import Select from '@renderer/components/ui/Select.vue'
+import ComposerModelPicker from './ComposerModelPicker.vue'
 import ComposerOptionMenu from './ComposerOptionMenu.vue'
+import {
+  clampThinkingLevel,
+  composerThinkingLevels,
+  resolveAvailableThinkingLevels
+} from './thinking-levels'
 import { shouldSendComposerKey } from './composer-keys'
 import { useWorkspaceStore, type ChatDraftImage } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
@@ -13,15 +18,19 @@ import { useSessionStore } from '@renderer/stores/sessions'
 import { useModelsStore } from '@renderer/stores/models'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useSettingsStore } from '@renderer/stores/settings'
-import { PI_THINKING_LEVELS } from '@shared/constants/index'
 import type { ToolPreset } from '@shared/workspace/tool-presets'
-import { canCompactSession } from '@shared/workspace/compaction'
+import { useCompactionStore } from '@renderer/stores/compaction'
+import {
+  canRequestCompaction,
+  compactionUsageHint,
+  compactionUsageRatio
+} from '@shared/workspace/compaction'
 import {
   isBase64ImageWithinLimits,
   MAX_ATTACHED_IMAGE_BYTES,
   MAX_ATTACHED_IMAGES
 } from '@shared/workspace/image-attachments'
-import { ImagePlus, Lightbulb, Minimize2, Send, Volume2, VolumeX, Wrench, X } from '@lucide/vue'
+import { ImagePlus, Minimize2, Send, Volume2, VolumeX, Wrench, X } from '@lucide/vue'
 
 defineProps<{ soundEnabled: boolean }>()
 const emit = defineEmits<{ send: []; abort: []; toggleSound: []; unlockAudio: [] }>()
@@ -32,6 +41,7 @@ const sessions = useSessionStore()
 const models = useModelsStore()
 const providers = useProvidersStore()
 const settings = useSettingsStore()
+const compaction = useCompactionStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const textarea = ref<HTMLTextAreaElement | null>(null)
 const textareaFocused = ref(false)
@@ -45,7 +55,24 @@ let dragDepth = 0
 const busy = computed(
   () => agent.sending || agent.streaming.isStreaming || agent.state?.isPromptRunning === true
 )
-const compactAvailable = computed(() => canCompactSession(agent.messages, agent.state, busy.value))
+const compactAvailable = computed(() => canRequestCompaction(sessions.currentId))
+const compactPhase = computed(() => compaction.buttonPhase(sessions.currentId, 'workspace'))
+const compactLabel = computed(() => {
+  if (compactPhase.value === 'queued') return t('workspace.compactQueuedLabel')
+  if (compactPhase.value === 'compacting') return t('workspace.compacting')
+  if (compactPhase.value === 'working') return t('workspace.compactAfterTask')
+  return t('workspace.compact')
+})
+const compactTitle = computed(() => {
+  const hintKey = {
+    unknown: 'workspace.compactUsageUnknown',
+    low: 'workspace.compactUsageLow',
+    ready: 'workspace.compactUsageReady',
+    recommend: 'workspace.compactUsageRecommend',
+    urgent: 'workspace.compactUsageUrgent'
+  }[compactionUsageHint(compactionUsageRatio(agent.state?.contextUsage))]
+  return `${t(hintKey)} · ${compactLabel.value}`
+})
 
 function onTextareaFocus() {
   textareaFocused.value = true
@@ -120,21 +147,34 @@ function warnImageUnsupported() {
   toast.warning(t('workspace.imageUnsupported'))
 }
 
-const thinkingOptions = computed(() => [
-  { value: 'auto', label: 'auto', description: t('workspace.thinkingAuto') },
-  ...PI_THINKING_LEVELS.map((level) => ({
-    value: level,
-    label: level,
-    description: t(`workspace.thinking${level[0].toUpperCase()}${level.slice(1)}`)
-  }))
-])
+const thinkingStops = computed(() =>
+  composerThinkingLevels(resolveAvailableThinkingLevels(selectedModel.value?.thinkingLevels))
+)
 
 const thinkingValue = computed({
-  get: () => agent.thinkingLevel,
+  get: () => clampThinkingLevel(agent.thinkingLevel, thinkingStops.value),
   set: async (value: string) => {
-    if (sessions.currentId) await agent.setThinking(sessions.currentId, value)
-    else agent.thinkingLevel = value
+    const level = clampThinkingLevel(value, thinkingStops.value)
+    if (level === agent.thinkingLevel) return
+    try {
+      if (sessions.currentId) await agent.setThinking(sessions.currentId, level)
+      else {
+        agent.thinkingLevel = level
+        agent.rememberComposerSelection(null)
+      }
+    } catch (cause) {
+      const message =
+        cause && typeof cause === 'object' && 'message' in cause
+          ? String(cause.message)
+          : String(cause)
+      toast.error(t('workspace.changeThinking'), { description: message })
+    }
   }
+})
+
+watch(thinkingStops, (levels) => {
+  const next = clampThinkingLevel(agent.thinkingLevel, levels)
+  if (next !== agent.thinkingLevel) thinkingValue.value = next
 })
 
 const toolOptions = computed(() => [
@@ -145,12 +185,15 @@ const toolOptions = computed(() => [
 ])
 
 const toolPreset = computed({
-  get: () =>
-    sessions.currentId ? agent.activePreset() : (settings.settings?.defaultToolPreset ?? 'default'),
+  get: () => (sessions.currentId ? agent.activePreset() : agent.toolPreset),
   set: async (value: string) => {
     const preset = value as ToolPreset
     if (sessions.currentId) await agent.setTools(sessions.currentId, preset)
-    else await settings.patch({ defaultToolPreset: preset })
+    else {
+      agent.toolPreset = preset
+      agent.rememberComposerSelection(null)
+      await settings.patch({ defaultToolPreset: preset })
+    }
   }
 })
 
@@ -305,10 +348,11 @@ function onSoundToggle() {
 }
 
 async function onCompact() {
-  if (!sessions.currentId || !compactAvailable.value) return
-  const result = await agent.compact(sessions.currentId)
-  if (result?.reason === 'session-too-small') toast.info(t('workspace.compactUnavailable'))
-  if (result?.reason === 'already-compacted') toast.info(t('workspace.compactAlready'))
+  if (!compactAvailable.value) return
+  await compaction.requestSmartCompaction({
+    sessionId: sessions.currentId,
+    source: 'workspace'
+  })
 }
 </script>
 
@@ -396,24 +440,15 @@ async function onCompact() {
       >
         <ImagePlus aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
       </button>
-      <Select
-        v-model="modelValue"
-        data-testid="workspace-model-select"
+      <ComposerModelPicker
+        v-model:model="modelValue"
+        v-model:thinking="thinkingValue"
         :options="modelOptions"
+        :thinking-levels="thinkingStops"
         :disabled="busy || modelSwitching"
-        class="min-w-[190px] max-w-[300px]"
-        cascade
+        @interact="emit('unlockAudio')"
       />
       <div class="console-tool-strip ml-auto flex items-center gap-0.5">
-        <ComposerOptionMenu
-          v-model="thinkingValue"
-          :label="$t('workspace.changeThinking')"
-          :icon="Lightbulb"
-          :options="thinkingOptions"
-          :disabled="busy"
-          :menu-width="300"
-          @interact="emit('unlockAudio')"
-        />
         <ComposerOptionMenu
           v-model="toolPreset"
           :label="$t('workspace.changeTools')"
@@ -424,15 +459,15 @@ async function onCompact() {
           @interact="emit('unlockAudio')"
         />
         <Button
-          v-if="sessions.currentId"
+          v-if="compactAvailable"
+          data-testid="composer-compact"
           variant="ghost"
           size="sm"
-          :disabled="!compactAvailable"
-          :title="compactAvailable ? $t('workspace.compact') : $t('workspace.compactUnavailable')"
+          :title="compactTitle"
           @click="onCompact"
         >
           <Minimize2 aria-hidden="true" class="size-3.5" />
-          {{ $t('workspace.compact') }}
+          {{ compactLabel }}
         </Button>
         <button
           type="button"

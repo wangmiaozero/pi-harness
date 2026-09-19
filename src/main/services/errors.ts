@@ -5,6 +5,7 @@
  */
 
 import type { AppErrorPayload, AppErrorCode } from '@shared/types/errors'
+import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 import { redactSecrets, redactSecretText } from './logger'
 
 export interface AppErrorOptions {
@@ -205,8 +206,15 @@ export class NotFoundError extends AppError {
 }
 
 export class AgentError extends AppError {
-  constructor(message: string, details?: unknown) {
-    super('AGENT_ERROR', message, details)
+  constructor(
+    message: string,
+    details?: unknown,
+    options: Omit<AppErrorOptions, 'context' | 'cause'> = {}
+  ) {
+    super('AGENT_ERROR', message, details, undefined, {
+      recoverable: options.recoverable ?? true,
+      userMessage: options.userMessage ?? message
+    })
   }
 }
 
@@ -239,6 +247,16 @@ export class PathDeniedError extends AppError {
 export function toErrorPayload(err: unknown): AppErrorPayload {
   if (err instanceof AppError) return redactErrorPayload(err.toPayload())
   if (err instanceof Error) {
+    const runtime = inspectRuntimeError(err)
+    if (runtime.kind !== 'generic') {
+      return {
+        code: 'AGENT_ERROR',
+        message: redactSecretText(runtime.userMessage),
+        userMessage: runtime.userMessage,
+        recoverable: true,
+        details: { name: err.name, kind: runtime.kind }
+      }
+    }
     return {
       code: 'APP_ERROR',
       message: redactSecretText(err.message),

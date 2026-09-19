@@ -5,7 +5,6 @@ import { gitExec, isEmptyGitHistory, isNotAGitRepository } from './git-exec'
 import { GitError } from '../services/errors'
 import type { FileAccessService } from '../files/file-access-service'
 import type {
-  GitActivityDay,
   GitCommitInfo,
   GitCommitDetails,
   GitCommitDiffResponse,
@@ -19,6 +18,7 @@ import type {
   GitStatusResponse,
   GitTagInfo
 } from '@shared/types/workspace'
+import { GIT_ACTIVITY_DAYS, parseGitActivityLog } from '@shared/workspace/git-activity'
 import { classifyGitStatus, parseGitPorcelainV1 } from '@shared/workspace/git-status'
 import { TEXT_PREVIEW_MAX_BYTES } from '@shared/workspace/file-types'
 import { isPathWithin } from '@shared/workspace/path-security'
@@ -361,7 +361,7 @@ export class GitService {
         '--all',
         '--no-merges',
         `--since=${GIT_ACTIVITY_DAYS}.days`,
-        '--format=%ad',
+        '--format=%ad%x1f%an%x1f%ae',
         '--date=format:%Y-%m-%d'
       ]).catch(() => '')
     ])
@@ -415,7 +415,7 @@ export class GitService {
       stashCount: stashes.length,
       stashes,
       tags: parseTags(tagText),
-      activity: parseActivity(activityText),
+      activity: parseGitActivityLog(activityText),
       pullRequests: await githubPullRequests(repositoryRoot, remotes),
       submodules: parseSubmodules(submoduleText)
     }
@@ -818,31 +818,6 @@ function parseTags(output: string): GitTagInfo[] {
       const hash = commitHash || objectHash
       return [{ name, hash } satisfies GitTagInfo]
     })
-}
-
-/** Days of commit history the sidebar heatmap covers (≈26 weeks). */
-const GIT_ACTIVITY_DAYS = 182
-
-function parseActivity(output: string): GitActivityDay[] {
-  const counts = new Map<string, number>()
-  for (const line of output.split(/\r?\n/)) {
-    const date = line.trim()
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
-    counts.set(date, (counts.get(date) ?? 0) + 1)
-  }
-  const days: GitActivityDay[] = []
-  if (!counts.size) return days
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const first = new Date(today)
-  first.setDate(first.getDate() - (GIT_ACTIVITY_DAYS - 1))
-  for (let cursor = new Date(first); cursor <= today; cursor.setDate(cursor.getDate() + 1)) {
-    const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(
-      cursor.getDate()
-    ).padStart(2, '0')}`
-    days.push({ date: key, commits: counts.get(key) ?? 0 })
-  }
-  return days
 }
 
 async function githubPullRequests(

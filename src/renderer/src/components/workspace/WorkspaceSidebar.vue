@@ -412,20 +412,29 @@ async function createProjectBranch() {
   }
 }
 
+async function openAsMainProject(directories: string[]): Promise<void> {
+  await sessions.refresh(true)
+  if (directories.length === 1) {
+    await workspace.resetDraftWorkspace(directories[0])
+    workspace.rememberImportedProjects(workspace.draftProjectRoots)
+  } else {
+    await workspace.resetDraftWorkspaceRoots(directories)
+    workspace.rememberDraftProject()
+  }
+  sessions.selectSession(null)
+  workspace.ensureChatTab('new', t('workspace.newSession'))
+  await Promise.all([workspace.loadFiles(), workspace.loadGit()])
+  emit('focus-composer')
+}
+
 async function pickProject(): Promise<boolean> {
   if (importingProject.value || importingWorkspace.value) return false
   importingProject.value = true
   try {
     const dir = await callApi(() => getApi().workspace.pickDirectory())
     if (!dir) return false
-    await sessions.refresh(true)
-    await workspace.resetDraftWorkspace(dir)
-    workspace.rememberImportedProjects(workspace.draftProjectRoots)
-    sessions.selectSession(null)
-    workspace.ensureChatTab('new', t('workspace.newSession'))
-    await Promise.all([workspace.loadFiles(), workspace.loadGit()])
+    await openAsMainProject([dir])
     toast.success(t('workspace.projectPicked'), { description: dir })
-    emit('focus-composer')
     return true
   } catch (error) {
     toast.error((error as { message?: string }).message ?? t('common.failed'))
@@ -565,6 +574,7 @@ function onDragOver(event: DragEvent) {
 async function onDrop(event: DragEvent) {
   dragDepth = 0
   dragActive.value = false
+  if (importingProject.value || importingWorkspace.value) return
   const directories: string[] = []
   for (const item of Array.from(event.dataTransfer?.items ?? [])) {
     const entry = item.webkitGetAsEntry?.()
@@ -578,19 +588,19 @@ async function onDrop(event: DragEvent) {
     toast.error(t('workspace.dropFolderOnly'))
     return
   }
-  for (const directory of directories) workspace.addProjectRoot(directory)
-  await workspace.syncActiveWorkspace()
-  if (sessions.currentId) await workspace.bindCurrentSession(sessions.currentId)
-  else {
-    workspace.markDraftSessionVisible()
-    workspace.rememberDraftProject()
+  importingProject.value = true
+  try {
+    await openAsMainProject(directories)
+    toast.success(
+      directories.length === 1
+        ? t('workspace.projectDropped')
+        : t('workspace.projectsDropped', { count: directories.length })
+    )
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('common.failed'))
+  } finally {
+    importingProject.value = false
   }
-  await Promise.all([workspace.loadFiles(), workspace.loadGit()])
-  toast.success(
-    directories.length === 1
-      ? t('workspace.projectDropped')
-      : t('workspace.projectsDropped', { count: directories.length })
-  )
 }
 
 async function onContextMenu(session: SessionInfo, event: MouseEvent) {

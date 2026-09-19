@@ -36,6 +36,20 @@ describe('IPC error payload redaction', () => {
     })
   })
 
+  it('maps provider quota dumps to a recoverable agent error', () => {
+    const payload = toErrorPayload(
+      new Error(
+        'Summarization failed: 429 {"error":{"code":"AccountQuotaExceeded","message":"You have exceeded the 5-hour usage quota. It will reset at 2026-09-19 11:23:11 +0800 CST.","type":"TooManyRequests"}}'
+      )
+    )
+    expect(payload).toMatchObject({
+      code: 'AGENT_ERROR',
+      recoverable: true
+    })
+    expect(payload.userMessage).toContain('quota is exhausted')
+    expect(payload.userMessage).not.toMatch(/[{}]/)
+  })
+
   it('marks conflicts as recoverable while preserving the legacy details field', () => {
     const error = new AppError('CONFIG_CONFLICT', 'Configuration changed', { file: 'models' })
 

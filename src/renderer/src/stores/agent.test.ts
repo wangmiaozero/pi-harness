@@ -2,10 +2,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import type { PiSwitchAPI } from '@shared/ipc/api-types'
 import { useAgentStore } from './agent'
+import { useModelsStore } from './models'
 import { useSessionStore } from './sessions'
-
 describe('agent store new-session handshake', () => {
   beforeEach(() => {
+    const data = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => data.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        data.set(key, value)
+      },
+      removeItem: (key: string) => {
+        data.delete(key)
+      }
+    })
     setActivePinia(createPinia())
   })
 
@@ -49,6 +59,82 @@ describe('agent store new-session handshake', () => {
     )
   })
 
+  it('keeps Ultra in the composer while sending the resolved Pi level', async () => {
+    const start = vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' })
+    const prompt = vi.fn().mockResolvedValue(null)
+    const command = vi.fn().mockResolvedValue(null)
+    window.piSwitch = {
+      agent: { start, prompt, command }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    agent.thinkingLevel = 'ultra'
+    await agent.send(null, '/code/project', 'hello', 'default')
+    expect(start).toHaveBeenCalledWith(
+      expect.objectContaining({ cwd: '/code/project', thinkingLevel: 'max' })
+    )
+    expect(agent.thinkingLevel).toBe('ultra')
+
+    await agent.setThinking('session-new', 'ultra')
+    expect(command).toHaveBeenCalledWith('session-new', {
+      type: 'set_thinking_level',
+      level: 'max'
+    })
+    expect(agent.thinkingLevel).toBe('ultra')
+
+    await agent.setThinking('session-new', 'none')
+    expect(command).toHaveBeenLastCalledWith('session-new', {
+      type: 'set_thinking_level',
+      level: 'off'
+    })
+    expect(agent.thinkingLevel).toBe('none')
+  })
+
+  it('resolves Ultra to the model ceiling and keeps Ultra after compact', async () => {
+    const start = vi.fn().mockResolvedValue({ sessionId: 'session-hi', cwd: '/code/project' })
+    const prompt = vi.fn().mockResolvedValue(null)
+    const command = vi.fn().mockResolvedValue({ tokensBefore: 9000 })
+    window.piSwitch = {
+      agent: { start, prompt, command }
+    } as unknown as PiSwitchAPI
+
+    const models = useModelsStore()
+    models.active = { providerKey: 'provider', modelId: 'limited' }
+    models.items = [
+      {
+        id: 'provider:limited',
+        providerId: 'provider',
+        modelId: 'limited',
+        displayName: 'limited',
+        protocol: 'openai-completions',
+        enabled: true,
+        capabilities: { text: true },
+        contextWindow: 128_000,
+        maxOutputTokens: 8_192,
+        reasoning: true,
+        vision: false,
+        tools: true,
+        streaming: true,
+        thinkingLevels: { off: 'off', high: 'high' },
+        metadata: {},
+        createdAt: 0,
+        updatedAt: 0
+      }
+    ]
+
+    const agent = useAgentStore()
+    agent.thinkingLevel = 'ultra'
+    await agent.send(null, '/code/project', 'hello', 'default')
+    expect(start).toHaveBeenCalledWith(
+      expect.objectContaining({ thinkingLevel: 'high' })
+    )
+    expect(agent.thinkingLevel).toBe('ultra')
+
+    await agent.compact('session-hi')
+    expect(command).toHaveBeenCalledWith('session-hi', { type: 'compact' })
+    expect(agent.thinkingLevel).toBe('ultra')
+  })
+
   it('sends an image-only prompt and keeps the image in the optimistic message', async () => {
     const start = vi.fn().mockResolvedValue({ sessionId: 'session-image', cwd: '/code/project' })
     const prompt = vi.fn().mockResolvedValue(null)
@@ -82,6 +168,23 @@ describe('agent store new-session handshake', () => {
 
     expect(agent.thinkingLevel).toBe('auto')
     expect(command).not.toHaveBeenCalled()
+  })
+
+  it('restores last thinking level and tool preset after the store is recreated', async () => {
+    const command = vi.fn().mockResolvedValue(null)
+    window.piSwitch = { agent: { command } } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    await agent.setThinking('session-1', 'max')
+    await agent.setTools('session-1', 'full')
+
+    setActivePinia(createPinia())
+    const restored = useAgentStore()
+    expect(restored.thinkingLevel).toBe('max')
+    expect(restored.toolPreset).toBe('full')
+    await restored.load(null)
+    expect(restored.thinkingLevel).toBe('max')
+    expect(restored.toolPreset).toBe('full')
   })
 
   it('refreshes the loaded session state after switching models', async () => {
