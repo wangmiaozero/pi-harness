@@ -5,14 +5,17 @@ import AppShell from '@renderer/components/layout/AppShell.vue'
 import CommandPalette from '@renderer/components/common/CommandPalette.vue'
 import ConflictDialog from '@renderer/components/common/ConflictDialog.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
-import AiMotionBorder from '@renderer/components/ui/AiMotionBorder.vue'
+import AgentAuraGlow from '@renderer/components/ui/AgentAuraGlow.vue'
 import { Toaster } from 'vue-sonner'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useAgentStore } from '@renderer/stores/agent'
 import { applyTheme } from '@renderer/utils/theme'
 import { themeAppearance } from '@shared/constants/theme'
 import { installShortcutListener, registerShortcut } from '@renderer/composables/shortcuts'
-import { shouldActivateAiMotionFrame } from '@renderer/composables/useAiMotionFrame'
+import {
+  agentAuraKindForThinking,
+  shouldActivateAgentAuraFrame
+} from '@renderer/composables/useAgentAuraFrame'
 import { getApi, isBridgeAvailable } from '@renderer/composables/useApi'
 import { applyVisualSkin, getActiveVisualSkin } from '@renderer/utils/visual-skin'
 
@@ -22,7 +25,7 @@ const router = useRouter()
 const paletteOpen = ref(false)
 
 const agentMotionActive = computed(() =>
-  shouldActivateAiMotionFrame({
+  shouldActivateAgentAuraFrame({
     sending: agent.sending,
     runningAgentCount: agent.runningIds.length,
     streaming: agent.streaming.isStreaming,
@@ -35,8 +38,10 @@ const windowMotionActive = computed(
 )
 
 const screenMotionActive = computed(
-  () => agentMotionActive.value && settings.settings?.screenMotionEnabled !== false
+  () => agentMotionActive.value && settings.settings?.screenMotionEnabled === true
 )
+
+const auraKind = computed(() => agentAuraKindForThinking(agent.thinkingLevel))
 
 const toasterTheme = computed(() => {
   return (
@@ -59,13 +64,14 @@ watch(
 )
 
 watch(
-  [screenMotionActive, toasterTheme],
-  ([active, theme]) => {
+  [screenMotionActive, toasterTheme, auraKind],
+  ([active, theme, kind]) => {
     if (!isBridgeAvailable()) return
     void getApi()
-      .aiMotion.setActive({
+      .agentAura.setActive({
         active,
-        theme: theme === 'light' ? 'light' : 'dark'
+        theme: theme === 'light' ? 'light' : 'dark',
+        kind
       })
       .catch(() => undefined)
   },
@@ -117,8 +123,9 @@ onBeforeUnmount(() => {
     class="pointer-events-none fixed inset-0 z-[1000] overflow-hidden rounded-[14px]"
     aria-hidden="true"
   >
-    <AiMotionBorder
+    <AgentAuraGlow
       :active="windowMotionActive"
+      :kind="auraKind"
       :border-radius="14"
       :border-width="2.5"
       :glow-width="56"

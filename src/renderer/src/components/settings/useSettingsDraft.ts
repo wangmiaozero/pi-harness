@@ -47,7 +47,7 @@ export function useSettingsDraft(): SettingsDraft {
     restoreTabs: true,
     autoOpenLastProject: true,
     windowMotionEnabled: false,
-    screenMotionEnabled: true,
+    screenMotionEnabled: false,
     navOrder: [...DEFAULT_NAV_ORDER]
   })
 

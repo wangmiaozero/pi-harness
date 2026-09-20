@@ -318,7 +318,11 @@ watch(open, (value) => {
             <span>{{ $t('workspace.thinkingDeeper') }}</span>
           </div>
           <div class="px-1 pb-1">
-            <ThinkingSlider v-model="thinkingValue" :levels="thinkingLevels" />
+            <ThinkingSlider
+              v-model="thinkingValue"
+              :levels="thinkingLevels"
+              :model-id="modelValue"
+            />
           </div>
         </div>
       </div>

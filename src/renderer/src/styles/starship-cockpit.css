@@ -720,9 +720,16 @@
     0 0 16px rgb(67 164 232 / 0.1);
 }
 
-:root[data-visual-skin='starship-cockpit'] .command-console-input:focus-within {
-  border-color: rgb(103 216 255 / 0.14) !important;
-  background: rgb(2 12 29 / 0.56);
+:root[data-visual-skin='starship-cockpit'] .command-console.command-console--ultra {
+  clip-path: none;
+  border-color: transparent;
+}
+
+:root[data-visual-skin='starship-cockpit'] .command-console-input.command-console-input--ultra {
+  border-color: transparent !important;
+  box-shadow: none;
+  clip-path: none;
+  background: transparent;
 }
 
 :root[data-visual-skin='starship-cockpit'] .command-console > div[aria-busy] {

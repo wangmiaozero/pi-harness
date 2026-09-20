@@ -621,12 +621,12 @@ test.describe('Pi-Harness smoke', () => {
     ).toBeLessThanOrEqual(16)
     await page.keyboard.press('Escape')
     await expect(modelPanel).toBeHidden()
-    const aiMotion = page.getByTestId('ai-motion-border')
-    await expect(aiMotion).toHaveClass(/opacity-0/)
-    await expect(aiMotion.locator('canvas')).toHaveCount(0)
+    const agentAura = page.getByTestId('agent-aura-glow')
+    await expect(agentAura).toHaveClass(/opacity-0/)
+    await expect(agentAura.locator('canvas')).toHaveCount(0)
     await expect
       .poll(() =>
-        aiMotion.evaluate((element) => {
+        agentAura.evaluate((element) => {
           const rect = element.getBoundingClientRect()
           return (
             Math.abs(rect.left) < 1 &&
@@ -672,7 +672,7 @@ test.describe('Pi-Harness smoke', () => {
     await page.getByTestId('workspace-toggle-files').click()
     await expect(projectTree).toBeVisible()
     await expect(page.locator('main textarea')).toBeVisible()
-    await expect(aiMotion).toHaveClass(/opacity-0/)
+    await expect(agentAura).toHaveClass(/opacity-0/)
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({
         path: path.join(

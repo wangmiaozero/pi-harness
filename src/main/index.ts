@@ -79,7 +79,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   restoreTabs: true,
   autoOpenLastProject: true,
   windowMotionEnabled: false,
-  screenMotionEnabled: true,
+  screenMotionEnabled: false,
   navOrder: [...DEFAULT_NAV_ORDER]
 }
 
@@ -93,9 +93,13 @@ process.on('unhandledRejection', (reason) => {
   log.app.error('unhandledRejection', reason)
 })
 
-// Allow e2e / isolated runs to redirect userData before ready.
+// Keep development isolated from an installed Pi-Harness instance. Electron's
+// single-instance lock is scoped by userData, so sharing the production path
+// makes `pnpm dev` exit cleanly as soon as the installed app is open.
 const userDataOverride =
-  process.env.PI_HARNESS_USER_DATA?.trim() || process.env.PI_SWITCH_USER_DATA?.trim()
+  process.env.PI_HARNESS_USER_DATA?.trim() ||
+  process.env.PI_SWITCH_USER_DATA?.trim() ||
+  (!app.isPackaged ? path.join(app.getPath('appData'), `${APP_NAME}-dev`) : null)
 if (userDataOverride) {
   app.setPath('userData', path.resolve(userDataOverride))
 }

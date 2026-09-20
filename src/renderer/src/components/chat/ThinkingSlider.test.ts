@@ -68,6 +68,40 @@ describe('ThinkingSlider', () => {
     )
   })
 
+  it('announces the divine-audience decree for GPT 5.6+ on ultra', async () => {
+    const wrapper = mount(ThinkingSlider, {
+      props: { modelValue: 'ultra', modelId: 'openai/gpt-5.6' },
+      global: { plugins: [i18n] }
+    })
+    wrappers.push(wrapper)
+    expect(wrapper.get('[data-testid="composer-thinking-forbidden"]').text()).toBe(
+      String(i18n.global.t('workspace.thinkingDivineAudience'))
+    )
+    expect(wrapper.get('[data-testid="composer-thinking-slider"]').attributes('aria-valuetext')).toBe(
+      String(i18n.global.t('workspace.thinkingDivineAudience'))
+    )
+  })
+
+  it('keeps the forbidden-power decree for GPT 5.6 on max and for other ultra models', async () => {
+    const maxGpt = mount(ThinkingSlider, {
+      props: { modelValue: 'max', modelId: 'openai/gpt-5.6' },
+      global: { plugins: [i18n] }
+    })
+    wrappers.push(maxGpt)
+    expect(maxGpt.get('[data-testid="composer-thinking-forbidden"]').text()).toBe(
+      String(i18n.global.t('workspace.thinkingForbiddenPower'))
+    )
+
+    const ultraGlm = mount(ThinkingSlider, {
+      props: { modelValue: 'ultra', modelId: 'volcengine-coding/glm-5.3' },
+      global: { plugins: [i18n] }
+    })
+    wrappers.push(ultraGlm)
+    expect(ultraGlm.get('[data-testid="composer-thinking-forbidden"]').text()).toBe(
+      String(i18n.global.t('workspace.thinkingForbiddenPower'))
+    )
+  })
+
   it('announces the forbidden-power hint after dragging to max', async () => {
     const wrapper = mount(ThinkingSlider, {
       props: { modelValue: 'high' },

@@ -8,13 +8,15 @@ import {
   thinkingIndex,
   thinkingLevelAt
 } from './thinking-levels'
+import { isGptAtLeast } from '@shared/models/gpt-version'
 
 const model = defineModel<string>({ required: true })
 const props = withDefaults(
   defineProps<{
     levels?: string[]
+    modelId?: string
   }>(),
-  { levels: () => composerThinkingLevels() }
+  { levels: () => composerThinkingLevels(), modelId: '' }
 )
 
 const track = ref<HTMLElement | null>(null)
@@ -24,6 +26,11 @@ const last = computed(() => Math.max(levels.value.length - 1, 0))
 const effect = computed(() => thinkingEffectState(model.value, levels.value))
 const isMax = computed(() => effect.value.max)
 const isUltra = computed(() => model.value === 'ultra')
+const decreeKey = computed(() =>
+  isUltra.value && isGptAtLeast(props.modelId, 5, 6)
+    ? 'workspace.thinkingDivineAudience'
+    : 'workspace.thinkingForbiddenPower'
+)
 const fraction = computed(() => (last.value === 0 ? 0 : index.value / last.value))
 const blast = ref(makeBlast(levels.value.length))
 const sparks = ref(makeSparks(isUltra.value ? 15 : 9))
@@ -122,7 +129,7 @@ function onKeydown(event: KeyboardEvent) {
       :aria-valuemin="0"
       :aria-valuemax="last"
       :aria-valuenow="index"
-      :aria-valuetext="isMax ? $t('workspace.thinkingForbiddenPower') : model"
+      :aria-valuetext="isMax ? $t(decreeKey) : model"
       @pointerdown="onPointerDown"
       @pointermove="onPointerMove"
       @keydown="onKeydown"
@@ -170,7 +177,7 @@ function onKeydown(event: KeyboardEvent) {
     >
       <span class="thinking-forbidden__rays" aria-hidden="true" />
       <span class="thinking-forbidden__halo" aria-hidden="true" />
-      <span class="thinking-forbidden__text">{{ $t('workspace.thinkingForbiddenPower') }}</span>
+      <span class="thinking-forbidden__text">{{ $t(decreeKey) }}</span>
       <span
         v-for="(spark, i) in sparks"
         :key="i"
@@ -190,7 +197,8 @@ function onKeydown(event: KeyboardEvent) {
 
 <style scoped>
 .thinking-slider-stage {
-  overflow: hidden;
+  position: relative;
+  overflow: visible;
   padding: 0;
 }
 

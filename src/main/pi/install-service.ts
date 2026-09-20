@@ -164,6 +164,15 @@ export class PiInstallService {
     }
     progress('installing-pi', 35, 'Installing Pi Coding Agent with npm')
     let result
+    let elapsedSeconds = 0
+    const heartbeat = setInterval(() => {
+      elapsedSeconds += 15
+      progress(
+        'installing-pi',
+        Math.min(78, 35 + Math.floor(elapsedSeconds / 5)),
+        `npm install is still running (${elapsedSeconds}s elapsed)`
+      )
+    }, 15_000)
     try {
       result = await this.dependencies.runCommand(
         runtime.npmPath,
@@ -175,6 +184,8 @@ export class PiInstallService {
         throw new EnvironmentError('INSTALL_CANCELLED', 'Pi installation was cancelled')
       }
       throw normalizeNpmCommandError(error)
+    } finally {
+      clearInterval(heartbeat)
     }
     if (result.exitCode !== 0)
       throw classifyNpmFailure(result.stderr, result.stdout, result.exitCode)
@@ -229,22 +240,12 @@ export class PiInstallService {
     const cliPath = await piProcess.resolveCliPath()
     if (!cliPath) throw new ValidationError('Pi is not installed. Use Install first.')
     const previousVersion = await piProcess.version()
-    if (isProjectLocalPiShim(cliPath)) {
+    if (shouldUpdatePiThroughNpm(cliPath)) {
       options.onLog?.(
-        'The active Pi executable belongs to this project; updating the user installation with npm instead.',
+        'The active Pi installation is managed by npm; updating it with npm instead.',
         'warning'
       )
-      const installed = await this.install({ ...options, force: true })
-      const previous = parseSemverHint(previousVersion ?? '') ?? previousVersion
-      return {
-        ...installed,
-        action: 'update',
-        previousVersion: previous,
-        message:
-          previous !== installed.currentVersion
-            ? `Updated Pi ${previous ?? '?'} → ${installed.currentVersion ?? '?'}`
-            : `Pi is already up to date (${installed.currentVersion ?? previousVersion ?? '?'})`
-      }
+      return this.updateThroughNpm(previousVersion, options)
     }
     const args = force ? ['update', '--self', '--force'] : ['update', '--self']
     log.pi.info('updating Pi', { cliPath, args })
@@ -276,14 +277,21 @@ export class PiInstallService {
       progress: 90,
       message: 'Verifying the updated Pi Coding Agent'
     })
-    const currentVersion = await piProcess.version()
     if (result.exitCode !== 0) {
+      if (selfUpdateRequiresPackageManager(result.stderr, result.stdout)) {
+        options.onLog?.(
+          'Pi cannot self-update this installation; retrying with npm.',
+          'warning'
+        )
+        return this.updateThroughNpm(previousVersion, options)
+      }
       throw new PiCliError('Pi update failed', {
         exitCode: result.exitCode,
         stderr: result.stderr.slice(0, 2000),
         stdout: result.stdout.slice(0, 1000)
       })
     }
+    const currentVersion = await piProcess.version()
     const previous = parseSemverHint(previousVersion ?? '') ?? previousVersion
     const current = parseSemverHint(currentVersion ?? '') ?? currentVersion
     return {
@@ -297,6 +305,23 @@ export class PiInstallService {
           ? `Updated Pi ${previous ?? '?'} → ${current ?? '?'}`
           : `Pi is already up to date (${current ?? previousVersion ?? '?'})`,
       log: `${result.stdout}\n${result.stderr}`.trim().slice(0, 4000)
+    }
+  }
+
+  private async updateThroughNpm(
+    previousVersion: string | null,
+    options: PiInstallOptions
+  ): Promise<PiInstallResult> {
+    const installed = await this.install({ ...options, force: true })
+    const previous = parseSemverHint(previousVersion ?? '') ?? previousVersion
+    return {
+      ...installed,
+      action: 'update',
+      previousVersion: previous,
+      message:
+        previous !== installed.currentVersion
+          ? `Updated Pi ${previous ?? '?'} → ${installed.currentVersion ?? '?'}`
+          : `Pi is already up to date (${installed.currentVersion ?? previousVersion ?? '?'})`
     }
   }
 }
@@ -335,9 +360,20 @@ function pathIdentity(value: string): string {
   return process.platform === 'win32' ? resolved.toLowerCase() : resolved
 }
 
-function isProjectLocalPiShim(cliPath: string): boolean {
+function shouldUpdatePiThroughNpm(cliPath: string): boolean {
   const normalized = path.resolve(cliPath).replace(/\\/g, '/')
-  return /\/node_modules\/\.bin\/pi(?:\.(?:cmd|bat|exe))?$/i.test(normalized)
+  return (
+    /\/node_modules\/\.bin\/pi(?:\.(?:cmd|bat|exe))?$/i.test(normalized) ||
+    normalized.includes(`/node_modules/${PI_NPM_PACKAGE}/`)
+  )
+}
+
+function selfUpdateRequiresPackageManager(stderr: string, stdout: string): boolean {
+  const combined = `${stderr}\n${stdout}`
+  return (
+    /cannot self-update this installation/i.test(combined) ||
+    /not managed by a global pnpm install/i.test(combined)
+  )
 }
 
 function classifyNpmFailure(stderr: string, stdout: string, exitCode: number): EnvironmentError {

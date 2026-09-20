@@ -1,5 +1,5 @@
 /**
- * Click-through fullscreen overlay that paints an ai-motion ring on each
+ * Click-through fullscreen overlay that paints an Agent Aura glow on each
  * display edge. It is an experience-layer window only: no privileged IPC,
  * never steals focus, and must not keep the app alive after the main window
  * closes.
@@ -167,7 +167,7 @@ export class ScreenMotionOverlayController {
   }
 
   private sendPayload(win: BrowserWindow): void {
-    win.webContents.send(IPC_EVENT.aiMotionActive, this.payload)
+    win.webContents.send(IPC_EVENT.agentAuraActive, this.payload)
   }
 
   private destroyWindows(): void {

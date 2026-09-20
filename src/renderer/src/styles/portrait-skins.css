@@ -318,6 +318,10 @@
   background: var(--bg-surface);
 }
 
+:root[data-portrait-skin='true'] .command-console.command-console--ultra {
+  border-top-color: transparent;
+}
+
 :root[data-portrait-skin='true'] .command-console-input {
   border-color: var(--border-default);
   background: var(--control-bg);
@@ -460,6 +464,11 @@
 :root[data-portrait-skin='true'] .command-console-input {
   background: var(--portrait-glass-input);
   box-shadow: inset 0 1px 5px var(--portrait-glass-shadow);
+}
+
+:root[data-portrait-skin='true'] .command-console-input.command-console-input--ultra {
+  background: transparent;
+  box-shadow: none;
 }
 
 :root[data-portrait-skin='true'] .command-console-input:focus-within {

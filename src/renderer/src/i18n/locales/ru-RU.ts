@@ -106,7 +106,7 @@ export const ruRU: MessageTree = {
     latestLabel: 'Актуальная',
     updateAvailable: 'Доступно обновление',
     installHint: "Выполняет npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent",
-    updateHint: 'Выполняет pi update --self',
+    updateHint: 'Обновляет Pi с учётом текущего источника установки',
     installConfirmTitle: 'Установить Pi',
     installConfirm:
       "Выполнить npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent?",
@@ -144,7 +144,8 @@ export const ruRU: MessageTree = {
     copyCommand: 'Копировать команду',
     installCommandCopied: 'Команда установки скопирована',
     updateConfirmTitle: 'Обновить Pi',
-    updateConfirm: 'Выполнить `pi update --self`? Это может занять около минуты.',
+    updateConfirm:
+      'Обновить Pi Coding Agent с учётом текущего источника установки? Это может занять около минуты.',
     updateAction: 'Обновить',
     setupWarnNoModels:
       'Провайдеры есть, а моделей нет. Pi нужны модели у провайдера — откройте «Модели», добавьте одну и сделайте её активной.',
@@ -1337,6 +1338,7 @@ export const ruRU: MessageTree = {
     thinkingUltraHint:
       'Использует максимальный уровень рассуждения модели. Фактическое значение может быть max, xhigh или high.',
     thinkingForbiddenPower: 'Вы используете запретную силу',
+    thinkingDivineAudience: 'Вы говорите с Богом',
     toolsNone: 'Без инструментов',
     toolsReadOnly: '4 встроенных инструмента только для чтения',
     toolsDefault: '4 встроенных инструмента',

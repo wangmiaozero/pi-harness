@@ -741,6 +741,7 @@ export type IpcEventListener = (payload: unknown) => void
 export interface ScreenMotionActivePayload {
   active: boolean
   theme: 'dark' | 'light'
+  kind?: 'glow' | 'burning'
 }
 
 export interface PiSwitchOverlayAPI {
@@ -771,7 +772,7 @@ export interface PiSwitchAPI {
     reinstall(): Promise<PiInstallResult>
     getInstallTask(): Promise<EnvironmentInstallTask | null>
     cancelInstall(): Promise<EnvironmentInstallTask | null>
-    /** Update installed Pi (`pi update --self`). */
+    /** Update installed Pi using its detected installation source. */
     update(force?: boolean): Promise<PiInstallResult>
     copyInstallCommand(): Promise<string>
     openNodeDownload(): Promise<void>
@@ -1170,7 +1171,7 @@ export interface PiSwitchAPI {
     create(cwd: string, branch: string): Promise<{ path: string; branch: string }>
     remove(cwd: string, worktreePath: string, force?: boolean): Promise<void>
   }
-  aiMotion: {
+  agentAura: {
     setActive(input: ScreenMotionActivePayload): Promise<void>
   }
   on(event: 'config-changed', listener: IpcEventListener): () => void

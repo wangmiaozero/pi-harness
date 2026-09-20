@@ -90,7 +90,7 @@
     "@tanstack/vue-query": "^5.101.4",
     "@tauri-apps/api": "^2.9.0",
     "@vueuse/core": "^14.4.0",
-    "ai-motion": "0.4.8",
+    "agent-aura": "^1.0.1",
     "chokidar": "^5.0.0",
     "codemirror": "^6.0.2",
     "consola": "^3.4.2",

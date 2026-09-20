@@ -106,7 +106,7 @@ export const koKR: MessageTree = {
     latestLabel: '최신',
     updateAvailable: '업데이트 있음',
     installHint: "npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent를 실행합니다",
-    updateHint: 'pi update --self를 실행합니다',
+    updateHint: '현재 설치 소스에 맞게 Pi를 업데이트합니다',
     installConfirmTitle: 'Pi 설치',
     installConfirm:
       "npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent를 실행할까요?",
@@ -144,7 +144,8 @@ export const koKR: MessageTree = {
     copyCommand: '명령 복사',
     installCommandCopied: '설치 명령을 복사했습니다',
     updateConfirmTitle: 'Pi 업데이트',
-    updateConfirm: '`pi update --self`를 실행할까요? 1분 정도 걸릴 수 있습니다.',
+    updateConfirm:
+      '현재 설치 소스에 맞게 Pi Coding Agent를 업데이트할까요? 1분 정도 걸릴 수 있습니다.',
     updateAction: '업데이트',
     setupWarnNoModels:
       '제공자는 있지만 모델이 없습니다. Pi는 제공자 아래의 모델이 필요합니다 — 모델로 이동해 추가한 뒤 현재 모델로 설정하세요.',
@@ -1337,6 +1338,7 @@ export const koKR: MessageTree = {
     thinkingUltraHint:
       '이 모델이 허용하는 최고 추론 수준을 사용합니다. 실제 값은 max / xhigh / high 일 수 있습니다.',
     thinkingForbiddenPower: '금기의 힘을 사용 중입니다',
+    thinkingDivineAudience: '신과 대화하고 있습니다',
     toolsNone: '도구 없음',
     toolsReadOnly: '읽기 전용 내장 도구 4개',
     toolsDefault: '내장 도구 4개',

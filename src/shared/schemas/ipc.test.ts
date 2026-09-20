@@ -67,8 +67,14 @@ describe('IPC schemas', () => {
 
   it('accepts only the screen-motion active payload', () => {
     expect(screenMotionActiveSchema.safeParse({ active: true, theme: 'dark' }).success).toBe(true)
+    expect(
+      screenMotionActiveSchema.safeParse({ active: true, theme: 'dark', kind: 'burning' }).success
+    ).toBe(true)
     expect(screenMotionActiveSchema.safeParse({ active: false, theme: 'light' }).success).toBe(true)
     expect(screenMotionActiveSchema.safeParse({ active: true }).success).toBe(false)
+    expect(
+      screenMotionActiveSchema.safeParse({ active: true, theme: 'dark', kind: 'fire' }).success
+    ).toBe(false)
     expect(screenMotionActiveSchema.safeParse({ active: true, theme: 'system' }).success).toBe(
       false
     )
