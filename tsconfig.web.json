@@ -25,13 +25,15 @@
     "baseUrl": ".",
     "paths": {
       "@renderer/*": ["src/renderer/src/*"],
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["src/shared/*"],
+      "@platform/*": ["src/platform/*"]
     }
   },
   "include": [
     "src/renderer/src/**/*.ts",
     "src/renderer/src/**/*.tsx",
     "src/renderer/src/**/*.vue",
+    "src/platform/**/*.ts",
     "src/shared/**/*"
   ]
 }

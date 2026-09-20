@@ -9,7 +9,12 @@ export default defineConfig(({ mode }) => {
   // sprite data module is swapped for an empty stub so its assets never
   // enter the bundle. Driven by the `*:nomascot` scripts in package.json.
   const mascotEnabled = mode !== 'nomascot'
-  const featureDefines = { __MASCOT_ENABLED__: JSON.stringify(mascotEnabled) }
+  // `__TAURI_SHELL__: false` lets Rollup dead-code-eliminate the platform
+  // layer's dynamic `import('./tauri')` from Electron bundles.
+  const featureDefines = {
+    __MASCOT_ENABLED__: JSON.stringify(mascotEnabled),
+    __TAURI_SHELL__: JSON.stringify(false)
+  }
 
   return {
     main: {
@@ -61,7 +66,8 @@ export default defineConfig(({ mode }) => {
                 )
               }),
           '@renderer': resolve(import.meta.dirname, 'src/renderer/src'),
-          '@shared': resolve(import.meta.dirname, 'src/shared')
+          '@shared': resolve(import.meta.dirname, 'src/shared'),
+          '@platform': resolve(import.meta.dirname, 'src/platform')
         }
       },
       plugins: [vue(), tailwindcss()],

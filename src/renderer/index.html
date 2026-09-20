@@ -14,6 +14,10 @@
   <body>
     <div id="app"></div>
     <span id="pi-harness-author-watermark" hidden aria-hidden="true">wangmiao</span>
+    <!-- Platform boot installs window.piSwitch under Tauri before the app
+         runs. Under Electron the preload contextBridge already did it and
+         this script is a no-op. Module scripts execute in order. -->
+    <script type="module" src="./src/platform-boot.ts"></script>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

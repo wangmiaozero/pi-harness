@@ -73,6 +73,14 @@ export type AppErrorCode =
   | 'ORCHESTRATION_NOT_RUNNING'
   | 'ORCHESTRATION_BUSY'
   | 'HANDOFF_NOT_FOUND'
+  /** Desktop shell feature not yet implemented under Tauri (see docs/tauri-migration). */
+  | 'SHELL_METHOD_PENDING'
+  /** Node sidecar not running / refused to start (Tauri host only). */
+  | 'RUNTIME_UNAVAILABLE'
+  /** Node sidecar reported a runtime-level failure (Tauri host only). */
+  | 'RUNTIME_ERROR'
+  /** Node sidecar timed out / handshake failed (Tauri host only). */
+  | 'RUNTIME_TIMEOUT'
 
 export interface AppErrorPayload {
   code: AppErrorCode
