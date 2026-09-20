@@ -1,0 +1,30 @@
+[package]
+name = "pi-harness"
+version = "1.6.0"
+description = "Desktop Harness & Control Center for Pi Coding Agent (Tauri host)"
+authors = ["wangmiao <tuziling84@gmail.com>"]
+license = "AGPL-3.0-only"
+repository = "https://github.com/wangmiaozero/pi-harness"
+edition = "2021"
+rust-version = "1.82"
+
+[lib]
+name = "pi_harness_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["process", "io-util", "sync", "time", "macros"] }
+thiserror = "2"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

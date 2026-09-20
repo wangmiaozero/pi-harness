@@ -62,8 +62,9 @@ build/icon.iconset/
 # DMG repair app generated at build time (template lives in resources/macos)
 build/修复.app/
 
-# Legacy Tauri scaffold (not part of Electron app)
-src-tauri/
+# Tauri 2 desktop host (refactor/tauri-v2): track sources, ignore build output
+src-tauri/target/
+src-tauri/gen/
 
 # Playwright
 test-results/
