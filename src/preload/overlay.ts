@@ -13,8 +13,8 @@ const api: PiSwitchOverlayAPI = {
     const handler = (_event: IpcRendererEvent, payload: ScreenMotionActivePayload) => {
       listener(payload)
     }
-    ipcRenderer.on(IPC_EVENT.aiMotionActive, handler)
-    return () => ipcRenderer.removeListener(IPC_EVENT.aiMotionActive, handler)
+    ipcRenderer.on(IPC_EVENT.agentAuraActive, handler)
+    return () => ipcRenderer.removeListener(IPC_EVENT.agentAuraActive, handler)
   }
 }
 

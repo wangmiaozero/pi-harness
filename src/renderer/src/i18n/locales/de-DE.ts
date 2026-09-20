@@ -106,7 +106,7 @@ export const deDE: MessageTree = {
     latestLabel: 'Aktuell',
     updateAvailable: 'Update verfügbar',
     installHint: "Führt npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent aus",
-    updateHint: 'Führt pi update --self aus',
+    updateHint: 'Aktualisiert Pi passend zur aktuellen Installationsquelle',
     installConfirmTitle: 'Pi installieren',
     installConfirm:
       "npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent ausführen?",
@@ -144,7 +144,8 @@ export const deDE: MessageTree = {
     copyCommand: 'Befehl kopieren',
     installCommandCopied: 'Installationsbefehl kopiert',
     updateConfirmTitle: 'Pi aktualisieren',
-    updateConfirm: '`pi update --self` ausführen? Das kann eine Minute dauern.',
+    updateConfirm:
+      'Pi Coding Agent passend zur aktuellen Installationsquelle aktualisieren? Das kann eine Minute dauern.',
     updateAction: 'Aktualisieren',
     setupWarnNoModels:
       'Es gibt Anbieter, aber keine Modelle. Pi benötigt Modelle unter einem Anbieter — zu Modelle wechseln, eines hinzufügen und aktiv setzen.',
@@ -1337,6 +1338,7 @@ export const deDE: MessageTree = {
     thinkingUltraHint:
       'Nutzt die höchste Reasoning-Stufe dieses Modells. Der Laufzeitwert kann max, xhigh oder high sein.',
     thinkingForbiddenPower: 'Sie nutzen eine verbotene Macht',
+    thinkingDivineAudience: 'Sie sprechen mit Gott',
     toolsNone: 'Keine Werkzeuge',
     toolsReadOnly: '4 schreibgeschützte eingebaute Werkzeuge',
     toolsDefault: '4 eingebaute Werkzeuge',

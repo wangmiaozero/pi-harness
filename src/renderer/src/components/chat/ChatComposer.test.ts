@@ -71,6 +71,24 @@ describe('ChatComposer compact button', () => {
   })
 })
 
+describe('ChatComposer ultra fire border', () => {
+  it('puts BURNING BORDER on the input box only in ultra', async () => {
+    const agent = useAgentStore()
+    const wrapper = mount(ChatComposer, {
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    expect(wrapper.find('[data-testid="agent-aura-fire-border"]').exists()).toBe(false)
+
+    agent.thinkingLevel = 'ultra'
+    await wrapper.vm.$nextTick()
+    const fire = wrapper.get('[data-testid="agent-aura-fire-border"]')
+    expect(wrapper.get('.command-console-input').classes()).toContain('command-console-input--ultra')
+    expect(wrapper.get('[data-testid="chat-composer"]').classes()).toContain('command-console--ultra')
+    expect(fire.element.parentElement?.querySelector('.command-console-input')).toBeTruthy()
+  })
+})
+
 function provider(): ProviderProfile {
   return {
     id: 'provider-id',

@@ -106,7 +106,7 @@ export const zhCN: MessageTree = {
     latestLabel: '最新',
     updateAvailable: '有可用更新',
     installHint: "执行 npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent",
-    updateHint: '执行 pi update --self',
+    updateHint: '根据当前安装来源更新 Pi',
     installConfirmTitle: '安装 Pi',
     installConfirm:
       "确定执行 npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent？",
@@ -141,7 +141,7 @@ export const zhCN: MessageTree = {
     copyCommand: '复制命令',
     installCommandCopied: '安装命令已复制',
     updateConfirmTitle: '更新 Pi',
-    updateConfirm: '确定执行 `pi update --self`？可能需要一两分钟。',
+    updateConfirm: '确定更新 Pi Coding Agent？将根据当前安装来源选择更新方式，可能需要一两分钟。',
     updateAction: '更新',
     setupWarnNoModels: '已有提供商，但尚未配置模型。请前往「模型」页面添加模型并设为当前模型。',
     setupWarnActiveMissing:
@@ -1305,6 +1305,7 @@ export const zhCN: MessageTree = {
     thinkingUltra: '极致推理',
     thinkingUltraHint: '自动使用当前模型可用的最高推理等级，底层可能是 max / xhigh / high。',
     thinkingForbiddenPower: '您正在使用禁忌之力',
+    thinkingDivineAudience: '您正在与神对话',
     toolsNone: '不使用工具',
     toolsReadOnly: '4 个只读内置工具',
     toolsDefault: '4 个内置工具',

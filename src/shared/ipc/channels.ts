@@ -263,7 +263,7 @@ export const IPC_INVOKE = {
   worktreeCreate: invoke('worktree:create'),
   worktreeRemove: invoke('worktree:remove'),
 
-  aiMotionSetActive: invoke('ai-motion:set-active')
+  agentAuraSetActive: invoke('agent-aura:set-active')
 } as const
 
 /** Main → renderer push events (one-way, via webContents.send). */
@@ -277,7 +277,7 @@ export const IPC_EVENT = {
   harnessEvent: 'pi-harness:harness:event',
   updaterState: 'pi-harness:updater:state',
   capabilityProgress: 'pi-harness:capabilities:mutation-progress',
-  aiMotionActive: 'pi-harness:event:ai-motion-active',
+  agentAuraActive: 'pi-harness:event:agent-aura-active',
   workspaceChanged: 'pi-harness:event:workspace-changed'
 } as const
 

@@ -6,6 +6,7 @@ import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import ComposerModelPicker from './ComposerModelPicker.vue'
 import ComposerOptionMenu from './ComposerOptionMenu.vue'
+import AgentAuraFireBorder from '@renderer/components/ui/AgentAuraFireBorder.vue'
 import {
   clampThinkingLevel,
   composerThinkingLevels,
@@ -44,6 +45,7 @@ const settings = useSettingsStore()
 const compaction = useCompactionStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const textarea = ref<HTMLTextAreaElement | null>(null)
+const inputBox = ref<HTMLElement | null>(null)
 const textareaFocused = ref(false)
 const previewImage = ref<ChatDraftImage | null>(null)
 const previewOpen = ref(false)
@@ -359,8 +361,15 @@ async function onCompact() {
 <template>
   <div
     data-testid="chat-composer"
-    class="command-console relative border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 transition-colors"
-    :class="dragActive ? 'bg-[var(--accent-tint)] shadow-[inset_0_0_0_1px_var(--accent)]' : ''"
+    class="command-console relative overflow-visible bg-[var(--bg-surface)] px-3 py-2 transition-colors"
+    :class="
+      [
+        dragActive ? 'bg-[var(--accent-tint)] shadow-[inset_0_0_0_1px_var(--accent)]' : '',
+        thinkingValue === 'ultra'
+          ? 'command-console--ultra border-t-transparent'
+          : 'border-t border-[var(--border-subtle)]'
+      ]
+    "
     @dragenter="onDragEnter"
     @dragover="onDragOver"
     @dragleave="onDragLeave"
@@ -408,11 +417,14 @@ async function onCompact() {
       {{ $t('workspace.imageUnsupported') }}
     </p>
     <div
-      class="command-console-input relative overflow-hidden rounded-[var(--radius-sm)] border bg-[var(--control-bg)] shadow-[var(--control-shadow)] transition-[background-color,border-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-[var(--control-bg-hover)]"
+      ref="inputBox"
+      class="command-console-input relative overflow-hidden rounded-[var(--radius-sm)] transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
       :class="
-        textareaFocused
-          ? 'border-[var(--accent-border)] bg-[var(--control-bg-hover)]'
-          : 'border-[var(--control-border)]'
+        thinkingValue === 'ultra'
+          ? 'command-console-input--ultra'
+          : textareaFocused
+            ? 'border border-[var(--accent-border)] bg-[var(--control-bg-hover)] shadow-[var(--control-shadow)]'
+            : 'border border-[var(--control-border)] bg-[var(--control-bg)] shadow-[var(--control-shadow)] hover:bg-[var(--control-bg-hover)]'
       "
       :aria-busy="busy"
     >
@@ -507,6 +519,7 @@ async function onCompact() {
       {{ $t('workspace.dropImages') }}
     </div>
 
+    <AgentAuraFireBorder v-if="thinkingValue === 'ultra'" :active="true" :target="inputBox" />
     <Dialog v-model:open="previewOpen" wide :title="$t('workspace.previewImage')">
       <img
         v-if="previewImage"
@@ -517,3 +530,16 @@ async function onCompact() {
     </Dialog>
   </div>
 </template>
+
+<style scoped>
+.command-console--ultra {
+  border-top-color: transparent;
+}
+
+.command-console-input--ultra {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  clip-path: none;
+}
+</style>

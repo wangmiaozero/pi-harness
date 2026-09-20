@@ -106,7 +106,7 @@ export const jaJP: MessageTree = {
     latestLabel: '最新',
     updateAvailable: '更新があります',
     installHint: "npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent を実行します",
-    updateHint: 'pi update --self を実行します',
+    updateHint: '現在のインストール元に合わせて Pi を更新します',
     installConfirmTitle: 'Pi をインストール',
     installConfirm:
       "npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent を実行しますか？",
@@ -144,7 +144,8 @@ export const jaJP: MessageTree = {
     copyCommand: 'コマンドをコピー',
     installCommandCopied: 'インストールコマンドをコピーしました',
     updateConfirmTitle: 'Pi を更新',
-    updateConfirm: '`pi update --self` を実行しますか？1 分ほどかかる場合があります。',
+    updateConfirm:
+      '現在のインストール元に合わせて Pi Coding Agent を更新しますか？1 分ほどかかる場合があります。',
     updateAction: '更新',
     setupWarnNoModels:
       'プロバイダーはありますが、モデルがありません。Pi はプロバイダー配下のモデルが必要です。「モデル」で追加し、現在のモデルに設定してください。',
@@ -1336,6 +1337,7 @@ export const jaJP: MessageTree = {
     thinkingUltraHint:
       'このモデルが使える最上位の推論レベルを使います。実際の値は max / xhigh / high です。',
     thinkingForbiddenPower: '禁忌の力を使用しています',
+    thinkingDivineAudience: '神と対話しています',
     toolsNone: 'ツールなし',
     toolsReadOnly: '読み取り専用の内蔵ツール 4 個',
     toolsDefault: '内蔵ツール 4 個',

@@ -105,7 +105,7 @@ export const enUS = {
     latestLabel: 'Latest',
     updateAvailable: 'Update available',
     installHint: "Runs npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent",
-    updateHint: 'Runs pi update --self',
+    updateHint: 'Updates Pi using its current installation source',
     installConfirmTitle: 'Install Pi',
     installConfirm: "Run npm install -g --ignore-scripts {'@'}earendil-works/pi-coding-agent?",
     installAction: 'Install',
@@ -142,7 +142,8 @@ export const enUS = {
     copyCommand: 'Copy command',
     installCommandCopied: 'Install command copied',
     updateConfirmTitle: 'Update Pi',
-    updateConfirm: 'Run `pi update --self`? This may take a minute.',
+    updateConfirm:
+      'Update Pi Coding Agent using its current installation source? This may take a minute.',
     updateAction: 'Update',
     setupWarnNoModels:
       'You have providers but no models. Pi needs models under a provider — go to Models and add one, then set it active.',
@@ -1339,6 +1340,7 @@ export const enUS = {
     thinkingUltraHint:
       'Uses the highest reasoning level this model allows. The runtime value may be max, xhigh, or high.',
     thinkingForbiddenPower: 'You are using forbidden power',
+    thinkingDivineAudience: 'You are speaking with God',
     toolsNone: 'No tools',
     toolsReadOnly: '4 read-only built-in tools',
     toolsDefault: '4 built-in tools',

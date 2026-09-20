@@ -65,9 +65,9 @@ importers:
       '@vueuse/core':
         specifier: ^14.4.0
         version: 14.4.0(vue@3.5.41(typescript@5.9.3))
-      ai-motion:
-        specifier: 0.4.8
-        version: 0.4.8
+      agent-aura:
+        specifier: ^1.0.1
+        version: 1.0.1
       chokidar:
         specifier: ^5.0.0
         version: 5.0.0
@@ -1808,12 +1808,13 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  agent-aura@1.0.1:
+    resolution: {integrity: sha512-c6OTQx1kONjNsh+JsdcmxEA2z5Yxy4zjYRHCbQZc+gYOX/s0WJO2rO0T6mKss1J1FfZ4aIoLWoAeflTY3e/foQ==}
+    engines: {node: '>=18'}
+
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
-
-  ai-motion@0.4.8:
-    resolution: {integrity: sha512-9nQVjf8lrYQWSW0sZdb9bES4x8Ei1w9C0S62po2KvRbMjslmjm0WMeszyW771SEauDnu4YGWqurLZ/gCkCTosQ==}
 
   ajv@6.15.0:
     resolution: {integrity: sha512-fgFx7Hfoq60ytK2c7DhnF8jIvzYgOMxfugjLOSMHjLIPgenqa7S7oaagATUq99mV6IYvN2tRmC0wnTYX6iPbMw==}
@@ -5842,9 +5843,9 @@ snapshots:
 
   acorn@8.18.0: {}
 
-  agent-base@7.1.4: {}
+  agent-aura@1.0.1: {}
 
-  ai-motion@0.4.8: {}
+  agent-base@7.1.4: {}
 
   ajv@6.15.0:
     dependencies:

@@ -706,7 +706,7 @@ export function registerIpc(services: Services): void {
     })
   )
 
-  ipcMain.handle(IPC_INVOKE.aiMotionSetActive, (_e, input: unknown) =>
+  ipcMain.handle(IPC_INVOKE.agentAuraSetActive, (_e, input: unknown) =>
     wrap(async () => {
       services.setScreenMotionActive(
         parseInput(screenMotionActiveSchema, input, 'Invalid screen motion state')

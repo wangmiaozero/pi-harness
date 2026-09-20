@@ -380,8 +380,8 @@ const api: PiSwitchAPI = {
     remove: (cwd, worktreePath, force) =>
       invoke(IPC_INVOKE.worktreeRemove, { cwd, worktreePath, force })
   },
-  aiMotion: {
-    setActive: (input) => invoke(IPC_INVOKE.aiMotionSetActive, input)
+  agentAura: {
+    setActive: (input) => invoke(IPC_INVOKE.agentAuraSetActive, input)
   },
   on(event, listener) {
     const ipcListener = listener as IpcEventListener

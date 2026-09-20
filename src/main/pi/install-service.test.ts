@@ -210,13 +210,109 @@ describe('PiInstallService', () => {
     )
     expect(runCommand.mock.calls.flat(Infinity)).not.toContain('--self')
     expect(onLog).toHaveBeenCalledWith(
-      expect.stringContaining('belongs to this project'),
+      expect.stringContaining('managed by npm'),
       'warning'
     )
     expect(result).toMatchObject({
       action: 'update',
       previousVersion: '0.84.2',
       currentVersion: '0.85.0'
+    })
+  })
+
+  it('updates an npm-global JavaScript installation through npm', async () => {
+    const npmPi = path.join(
+      '/tmp',
+      'npm-global',
+      'lib',
+      'node_modules',
+      '@earendil-works',
+      'pi-coding-agent',
+      'dist',
+      'cli.js'
+    )
+    piProcessMock.resolveCliPath.mockResolvedValue(npmPi)
+    piProcessMock.version
+      .mockResolvedValueOnce('0.85.1')
+      .mockResolvedValueOnce('0.85.1')
+      .mockResolvedValueOnce('0.86.0')
+    const runCommand = vi.fn().mockResolvedValue({ stdout: 'updated', stderr: '', exitCode: 0 })
+    const onLog = vi.fn()
+    const service = new PiInstallService({
+      detectRuntime: async () => readyRuntime,
+      ensurePrefix: async () => writablePrefix,
+      refreshPath: async () => '/tmp/bin:/tmp/npm-global/bin',
+      runCommand
+    })
+
+    const result = await service.update(false, { onLog })
+
+    expect(runCommand).toHaveBeenCalledOnce()
+    expect(runCommand).toHaveBeenCalledWith(
+      '/tmp/bin/npm',
+      [...PI_INSTALL_ARGS],
+      expect.objectContaining({ timeoutMs: 10 * 60_000 })
+    )
+    expect(runCommand.mock.calls.flat(Infinity)).not.toContain('--self')
+    expect(onLog).toHaveBeenCalledWith(
+      expect.stringContaining('managed by npm'),
+      'warning'
+    )
+    expect(result).toMatchObject({
+      action: 'update',
+      previousVersion: '0.85.1',
+      currentVersion: '0.86.0'
+    })
+  })
+
+  it('falls back to npm when Pi refuses self-update for its installation source', async () => {
+    piProcessMock.resolveCliPath
+      .mockResolvedValueOnce('/tmp/bin/pi')
+      .mockResolvedValueOnce('/tmp/bin/pi')
+      .mockResolvedValueOnce('/tmp/npm-global/bin/pi')
+    piProcessMock.version
+      .mockResolvedValueOnce('0.85.1')
+      .mockResolvedValueOnce('0.85.1')
+      .mockResolvedValueOnce('0.86.0')
+    const runCommand = vi
+      .fn()
+      .mockResolvedValueOnce({
+        stdout: '',
+        stderr:
+          'error: pi cannot self-update this installation. This installation is not managed by a global pnpm install.',
+        exitCode: 1
+      })
+      .mockResolvedValueOnce({ stdout: 'updated', stderr: '', exitCode: 0 })
+    const onLog = vi.fn()
+    const service = new PiInstallService({
+      detectRuntime: async () => readyRuntime,
+      ensurePrefix: async () => writablePrefix,
+      refreshPath: async () => '/tmp/bin:/tmp/npm-global/bin',
+      runCommand
+    })
+
+    const result = await service.update(false, { onLog })
+
+    expect(runCommand).toHaveBeenNthCalledWith(
+      1,
+      '/tmp/bin/pi',
+      ['update', '--self'],
+      expect.objectContaining({ timeoutMs: 5 * 60_000 })
+    )
+    expect(runCommand).toHaveBeenNthCalledWith(
+      2,
+      '/tmp/bin/npm',
+      [...PI_INSTALL_ARGS],
+      expect.objectContaining({ timeoutMs: 10 * 60_000 })
+    )
+    expect(onLog).toHaveBeenCalledWith(
+      expect.stringContaining('retrying with npm'),
+      'warning'
+    )
+    expect(result).toMatchObject({
+      action: 'update',
+      previousVersion: '0.85.1',
+      currentVersion: '0.86.0'
     })
   })
 

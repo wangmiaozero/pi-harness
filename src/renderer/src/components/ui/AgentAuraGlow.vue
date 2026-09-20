@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { Motion } from 'ai-motion'
+import { aura, type BurningFire, type Glow } from 'agent-aura'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
     active: boolean
+    kind?: 'glow' | 'burning'
     borderWidth?: number
     glowWidth?: number
     borderRadius?: number
     maxPixelRatio?: number
   }>(),
   {
+    kind: 'glow',
     borderWidth: 2.5,
     glowWidth: 42,
     borderRadius: 7,
@@ -21,7 +23,8 @@ const props = withDefaults(
 const host = ref<HTMLElement | null>(null)
 const fallback = ref(false)
 const reducedMotion = ref(false)
-let motion: Motion | null = null
+let glow: Glow | null = null
+let burning: BurningFire | null = null
 let mounted = false
 let pauseTimer: number | null = null
 let reducedMotionQuery: MediaQueryList | null = null
@@ -41,17 +44,19 @@ function clearPauseTimer() {
   pauseTimer = null
 }
 
-function disposeMotion() {
+function disposeEffects() {
   clearPauseTimer()
-  motion?.dispose()
-  motion = null
+  glow?.dispose()
+  burning?.dispose()
+  glow = null
+  burning = null
 }
 
-function createMotion(): Motion | null {
-  if (motion || !host.value || reducedMotion.value) return motion
+function createGlow(): Glow | null {
+  if (glow || !host.value || reducedMotion.value) return glow
   const rect = host.value.getBoundingClientRect()
   try {
-    motion = new Motion({
+    glow = aura.glow(host.value, {
       width: Math.max(1, rect.width),
       height: Math.max(1, rect.height),
       ratio: pixelRatio(),
@@ -65,13 +70,28 @@ function createMotion(): Motion | null {
         inset: '0'
       }
     })
-    host.value.appendChild(motion.element)
-    motion.autoResize(host.value)
     fallback.value = false
-    return motion
+    return glow
   } catch {
     fallback.value = true
-    motion = null
+    glow = null
+    return null
+  }
+}
+
+function createBurning(): BurningFire | null {
+  if (burning || !host.value || reducedMotion.value) return burning
+  try {
+    burning = aura.burning(host.value, {
+      container: host.value,
+      skipGreeting: true,
+      padding: 2
+    })
+    fallback.value = false
+    return burning
+  } catch {
+    fallback.value = true
+    burning = null
     return null
   }
 }
@@ -79,17 +99,26 @@ function createMotion(): Motion | null {
 function syncActive() {
   if (!mounted) return
   clearPauseTimer()
+  if ((props.kind === 'burning' && glow) || (props.kind !== 'burning' && burning)) {
+    disposeEffects()
+  }
   if (!props.active || reducedMotion.value) {
-    if (motion) {
+    const instance = glow ?? burning
+    if (instance) {
       pauseTimer = window.setTimeout(() => {
-        motion?.pause()
+        instance.pause()
         pauseTimer = null
       }, 200)
     }
     return
   }
 
-  const instance = createMotion()
+  if (props.kind === 'burning') {
+    createBurning()?.start()
+    return
+  }
+
+  const instance = createGlow()
   if (!instance || !host.value) return
   const rect = host.value.getBoundingClientRect()
   instance.start()
@@ -98,12 +127,12 @@ function syncActive() {
 
 function onReducedMotionChange(event: MediaQueryListEvent) {
   reducedMotion.value = event.matches
-  if (event.matches) disposeMotion()
+  if (event.matches) disposeEffects()
   else fallback.value = false
   syncActive()
 }
 
-watch(() => props.active, syncActive)
+watch(() => [props.active, props.kind], syncActive)
 
 onMounted(() => {
   mounted = true
@@ -111,14 +140,14 @@ onMounted(() => {
   reducedMotion.value = reducedMotionQuery?.matches ?? false
   reducedMotionQuery?.addEventListener('change', onReducedMotionChange)
   themeObserver = new MutationObserver(() => {
-    if (!motion) return
-    disposeMotion()
+    if (!glow && !burning) return
+    disposeEffects()
     fallback.value = false
     syncActive()
   })
   themeObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['data-theme']
+    attributeFilter: ['data-theme', 'data-appearance']
   })
   syncActive()
 })
@@ -127,7 +156,7 @@ onBeforeUnmount(() => {
   mounted = false
   reducedMotionQuery?.removeEventListener('change', onReducedMotionChange)
   themeObserver?.disconnect()
-  disposeMotion()
+  disposeEffects()
 })
 </script>
 
@@ -135,9 +164,10 @@ onBeforeUnmount(() => {
   <div
     ref="host"
     aria-hidden="true"
-    data-testid="ai-motion-border"
+    data-testid="agent-aura-glow"
     class="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] transition-opacity duration-200"
     :class="active ? 'opacity-100' : 'opacity-0'"
+    :data-aura-kind="kind"
   >
     <div
       v-if="fallback || reducedMotion"

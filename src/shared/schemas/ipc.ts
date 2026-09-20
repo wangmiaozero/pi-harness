@@ -31,7 +31,8 @@ export const optionalBooleanSchema = z.boolean().optional()
 export const screenMotionActiveSchema = z
   .object({
     active: z.boolean(),
-    theme: z.enum(['dark', 'light'])
+    theme: z.enum(['dark', 'light']),
+    kind: z.enum(['glow', 'burning']).optional()
   })
   .strict()
 export const modelCompositeIdSchema = z

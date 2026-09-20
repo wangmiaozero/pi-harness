@@ -30,12 +30,15 @@ The original license text is distributed with the collection at `builtin-skills/
 
 The original license text is distributed with the collection at `builtin-skills/emilkowalski/LICENSE` in packaged applications.
 
-## AI Motion
+## Agent Aura
 
-- Project: [gaomeng1900/ai-motion](https://github.com/gaomeng1900/ai-motion)
-- Copyright: Copyright (c) 2025 Simon <gaomeng1900@gmail.com>
+- Project: [wangmiaozero/agent-aura](https://github.com/wangmiaozero/agent-aura)
+- Copyright: Copyright (c) 2026 wangmiao
 - License: MIT
-- Used as: WebGL2 animated AI-style border and glow effect.
+- Used as: WebGL2 animated glow effect for active Agent states.
+- Attribution: Agent Aura's Glow engine is adapted from
+  [gaomeng1900/ai-motion](https://github.com/gaomeng1900/ai-motion),
+  Copyright (c) 2025 Simon <gaomeng1900@gmail.com>.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
