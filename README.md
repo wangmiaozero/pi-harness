@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="release v1.5.0" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.6.0"><img alt="release v1.6.0" src="https://img.shields.io/badge/release-v1.6.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -318,16 +318,16 @@ Every agent executes through a real Pi session: orchestration adds coordination,
 
 ## Download
 
-Download Pi-Harness v1.5.0 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0).
+Download Pi-Harness v1.6.0 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.6.0).
 
 | Platform            | Installer                                                                                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.5.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.5.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.5.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
-| Linux x64           | [`Pi-Harness-1.5.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.6.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.6.0/Pi-Harness-1.6.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.6.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.6.0/Pi-Harness-1.6.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.6.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.6.0/Pi-Harness-Setup-1.6.0.exe) |
+| Linux x64           | [`Pi-Harness-1.6.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.6.0/Pi-Harness-1.6.0.AppImage)   |
 
-> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.5.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0).
+> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.6.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.6.0).
 
 Packaged users do not need to clone the repository or install pnpm. Pi-Harness can detect, install, and repair Node.js, npm, PATH, and Pi Coding Agent where supported.
 
