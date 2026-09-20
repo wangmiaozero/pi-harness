@@ -1,0 +1,17 @@
+{
+  "name": "pi-harness-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi-Harness desktop runtime sidecar. Speaks a JSONL JSON-RPC style protocol over stdin/stdout; all diagnostics go to stderr.",
+  "license": "AGPL-3.0-only",
+  "author": {
+    "name": "wangmiao",
+    "email": "tuziling84@gmail.com",
+    "url": "https://github.com/wangmiaozero"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=22"
+  }
+}
