@@ -29,6 +29,30 @@ const START_HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(15);
 const STOP_GRACE: Duration = Duration::from_secs(5);
 /// Default per-request RPC timeout.
 const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+/// Timeout for full-roundtrip desktop requests (session scans, agent start).
+const DESKTOP_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
+/// Compaction runs a full LLM summarisation turn — it can legitimately take
+/// minutes on large sessions.
+const COMPACTION_REQUEST_TIMEOUT: Duration = Duration::from_secs(15 * 60);
+
+/// Timeout for a given `runtime_request` method. Multi-step LLM operations
+/// (compaction) get the long budget; everything else is bounded at 60s.
+pub fn request_timeout_for(method: &str, params: &serde_json::Value) -> Duration {
+    let is_compact = match method {
+        "harness.compact" => true,
+        "agent.command" => params
+            .get("command")
+            .and_then(|command| command.get("type"))
+            .and_then(serde_json::Value::as_str)
+            == Some("compact"),
+        _ => false,
+    };
+    if is_compact {
+        COMPACTION_REQUEST_TIMEOUT
+    } else {
+        DESKTOP_REQUEST_TIMEOUT
+    }
+}
 
 /// Supervisor lifecycle phase, mirrored to the UI as a string.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -127,11 +151,16 @@ pub struct RuntimeSupervisor {
     /// never clobbers a newer child's state.
     generation: Arc<AtomicU64>,
     start_lock: Arc<Mutex<()>>,
+    /// Extra environment variables applied at spawn (test seam).
+    extra_env: Arc<HashMap<String, String>>,
 }
 
 impl RuntimeSupervisor {
     pub fn new() -> Self {
-        let (events, _) = broadcast::channel(256);
+        // Capacity must comfortably absorb a streamed agent turn: message
+        // deltas arrive as one envelope each (16ms batches); a stuck
+        // consumer must not drop session state transitions.
+        let (events, _) = broadcast::channel(1024);
         RuntimeSupervisor {
             state: Arc::new(SharedState {
                 phase: Mutex::new(RuntimePhase::Stopped),
@@ -147,7 +176,16 @@ impl RuntimeSupervisor {
             id_counter: Arc::new(AtomicU64::new(1)),
             generation: Arc::new(AtomicU64::new(0)),
             start_lock: Arc::new(Mutex::new(())),
+            extra_env: Arc::new(HashMap::new()),
         }
+    }
+
+    /// Test seam: additional environment variables for the sidecar process
+    /// (e.g. `PI_HARNESS_TEST_PI_SDK` pointing at a mock SDK module).
+    #[must_use]
+    pub fn with_extra_env(mut self, env: HashMap<String, String>) -> Self {
+        self.extra_env = Arc::new(env);
+        self
     }
 
     /// Subscribe to phase changes, runtime events and stderr logs.
@@ -191,6 +229,7 @@ impl RuntimeSupervisor {
 
         let mut child: Child = Command::new(&node)
             .arg(&script)
+            .envs(self.extra_env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
@@ -374,11 +413,35 @@ impl RuntimeSupervisor {
                 return Err(RpcError {
                     code: crate::runtime::protocol::RUNTIME_EXITED.to_string(),
                     message: "Pi Runtime is not running".to_string(),
+                    user_message: None,
                     data: None,
                 })
             }
         }
         self.request_raw(method, params, request_timeout).await
+    }
+
+    /// Desktop-domain request with auto-start: boots the runtime on demand
+    /// (scenario B — the workspace opens and asks for the session list), then
+    /// routes the request with the method-appropriate timeout.
+    pub async fn desktop_request(
+        &self,
+        method: &str,
+        params: serde_json::Value,
+    ) -> Result<serde_json::Value, RpcError> {
+        let phase = *self.state.phase.lock().await;
+        if phase == RuntimePhase::Stopped || phase == RuntimePhase::Crashed {
+            if let Err(error) = self.start().await {
+                return Err(RpcError {
+                    code: crate::error::RUNTIME_UNAVAILABLE.to_string(),
+                    message: error.parts().1,
+                    user_message: None,
+                    data: None,
+                });
+            }
+        }
+        let timeout = request_timeout_for(method, &params);
+        self.request(method, params, timeout).await
     }
 
     /// Send a request without the phase gate. Used by `stop` (phase is already
@@ -405,6 +468,7 @@ impl RuntimeSupervisor {
                 let mut line = serde_json::to_string(&request).map_err(|error| RpcError {
                     code: crate::runtime::protocol::INTERNAL_ERROR.to_string(),
                     message: format!("Failed to encode request: {error}"),
+                    user_message: None,
                     data: None,
                 })?;
                 line.push('\n');
@@ -414,12 +478,14 @@ impl RuntimeSupervisor {
                     .map_err(|error| RpcError {
                         code: crate::runtime::protocol::RUNTIME_EXITED.to_string(),
                         message: format!("Pi Runtime pipe closed: {error}"),
+                        user_message: None,
                         data: None,
                     })
             }
             None => Err(RpcError {
                 code: crate::runtime::protocol::RUNTIME_EXITED.to_string(),
                 message: "Pi Runtime is not running".to_string(),
+                user_message: None,
                 data: None,
             }),
         };
@@ -435,13 +501,15 @@ impl RuntimeSupervisor {
             Ok(Err(_cancelled)) => Err(RpcError {
                 code: crate::runtime::protocol::RUNTIME_EXITED.to_string(),
                 message: "Pi Runtime exited before answering".to_string(),
+                user_message: None,
                 data: None,
             }),
             Err(_) => {
                 self.pending.lock().await.remove(&id);
                 Err(RpcError {
-                    code: crate::runtime::protocol::RUNTIME_EXITED.to_string(),
+                    code: crate::runtime::protocol::RUNTIME_TIMEOUT.to_string(),
                     message: format!("Pi Runtime request timed out after {request_timeout:?}"),
+                    user_message: None,
                     data: None,
                 })
             }
@@ -519,6 +587,7 @@ impl RuntimeSupervisor {
             let _ = sender.send(Err(RpcError {
                 code: crate::runtime::protocol::RUNTIME_EXITED.to_string(),
                 message: message.clone(),
+                user_message: None,
                 data: None,
             }));
         }

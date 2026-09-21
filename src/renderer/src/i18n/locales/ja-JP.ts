@@ -1574,6 +1574,12 @@ export const jaJP: MessageTree = {
     gitSidebarWidth: 'サイドバー幅（ダブルクリックでリセット）',
     gitPanelWidth: 'コミットパネル幅（ダブルクリックでリセット）',
   },
+  runtimeStatus: {
+    starting: 'Pi ランタイムを起動しています…',
+    crashed: 'Pi ランタイムが予期せず停止しました',
+    restarting: 'Pi ランタイムを再起動しています…',
+    restart: 'ランタイムを再起動'
+  },
   palette: {
     placeholder: 'コマンドを入力…',
     empty: '一致するコマンドがありません',

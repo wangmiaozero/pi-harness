@@ -1536,6 +1536,12 @@ export const zhTW: MessageTree = {
     gitSidebarWidth: '側欄欄寬度（雙擊重置）',
     gitPanelWidth: '提交面板寬度（雙擊重置）',
   },
+  runtimeStatus: {
+    starting: 'Pi 執行時啟動中…',
+    crashed: 'Pi 執行時意外終止',
+    restarting: '正在重新啟動 Pi 執行時…',
+    restart: '重新啟動執行時'
+  },
   palette: {
     placeholder: '輸入命令…',
     empty: '無符合命令',

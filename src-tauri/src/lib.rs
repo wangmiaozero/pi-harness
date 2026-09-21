@@ -36,6 +36,7 @@ pub fn run() {
             commands::runtime::runtime_start,
             commands::runtime::runtime_stop,
             commands::runtime::runtime_restart,
+            commands::runtime::runtime_request,
         ])
         .setup(|app| {
             // Lazy start: the runtime sidecar is NOT started here. It boots

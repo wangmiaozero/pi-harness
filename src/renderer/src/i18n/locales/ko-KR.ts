@@ -1573,6 +1573,12 @@ export const koKR: MessageTree = {
     gitSidebarWidth: '사이드바 너비 (더블클릭하여 재설정)',
     gitPanelWidth: '커밋 패널 너비 (더블클릭하여 재설정)',
   },
+  runtimeStatus: {
+    starting: 'Pi 런타임을 시작하는 중…',
+    crashed: 'Pi 런타임이 예기치 않게 중지되었습니다',
+    restarting: 'Pi 런타임을 다시 시작하는 중…',
+    restart: '런타임 재시작'
+  },
   palette: {
     placeholder: '명령을 입력…',
     empty: '일치하는 명령 없음',

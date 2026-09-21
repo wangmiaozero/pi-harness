@@ -1576,6 +1576,12 @@ export const deDE: MessageTree = {
     gitSidebarWidth: 'Seitenleistenbreite (Doppelklick zum Zurücksetzen)',
     gitPanelWidth: 'Commit-Panel-Breite (Doppelklick zum Zurücksetzen)',
   },
+  runtimeStatus: {
+    starting: 'Pi-Runtime wird gestartet…',
+    crashed: 'Pi-Runtime wurde unerwartet beendet',
+    restarting: 'Pi-Runtime wird neu gestartet…',
+    restart: 'Runtime neu starten'
+  },
   palette: {
     placeholder: 'Befehl eingeben…',
     empty: 'Keine passenden Befehle',

@@ -1576,6 +1576,12 @@ export const enUS = {
     gitSidebarWidth: 'Sidebar width (double-click to reset)',
     gitPanelWidth: 'Commit panel width (double-click to reset)',
   },
+  runtimeStatus: {
+    starting: 'Pi runtime is starting…',
+    crashed: 'Pi runtime stopped unexpectedly',
+    restarting: 'Restarting Pi runtime…',
+    restart: 'Restart runtime'
+  },
   palette: {
     placeholder: 'Type a command…',
     empty: 'No matching commands',

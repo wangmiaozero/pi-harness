@@ -26,6 +26,7 @@
     "paths": {
       "@renderer/*": ["src/renderer/src/*"],
       "@shared/*": ["src/shared/*"],
+      "@platform": ["src/platform/index.ts"],
       "@platform/*": ["src/platform/*"]
     }
   },

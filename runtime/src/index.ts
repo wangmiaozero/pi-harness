@@ -2,49 +2,77 @@
  * Pi-Harness runtime sidecar entry point.
  *
  * Boot sequence:
- * 1. Wire a line reader on stdin and a protocol writer on stdout.
- * 2. Emit `runtime.ready` with identity/protocol versions.
- * 3. For each request line: validate, dispatch, respond exactly once.
- * 4. On SIGTERM/SIGINT or `runtime.shutdown`: respond, flush, exit 0.
+ * 1. Apply the Pi agent-dir environment override (before any SDK load).
+ * 2. Wire services (sessions/agent/harness) with event sinks routed through a
+ *    sequenced emitter; compose the full RPC method registry.
+ * 3. Emit `runtime.ready` with identity/protocol versions.
+ * 4. For each request line: validate, dispatch, respond exactly once.
+ *    Dispatch is concurrent — a slow method (e.g. `harness.compact`) never
+ *    blocks later requests; responses correlate by id.
+ * 5. On SIGTERM/SIGINT or `runtime.shutdown`: emit `runtime.stopping`,
+ *    stop every live agent session, flush pending event batches, exit 0
+ *    (2s watchdog guards against a hung SDK).
  *
  * stdout is protocol-only. Every diagnostic goes to stderr.
  */
 
 import { createLineReader, createStdoutWriter, logDiagnostic } from './transport/jsonl.js'
-import {
-  parseHostRequest,
-  serializeEvent,
-  serializeResponse,
-  type RpcErrorPayload
-} from './protocol/messages.js'
-import { dispatch } from './protocol/dispatch.js'
+import { parseHostRequest, serializeResponse, type RpcErrorPayload } from './protocol/messages.js'
+import { RuntimeEventEmitter } from './protocol/emitter.js'
+import { createMethodRegistry, createDispatcher } from './protocol/dispatch.js'
+import { createRuntimeServices } from './services.js'
+import { resolveConfiguredSdkLoader } from './pi/sdk.js'
+import { applyAgentDirOverride } from './pi/environment.js'
 import { PROTOCOL_VERSION, RUNTIME_VERSION } from './version.js'
 
 const startedAt = Date.now()
 const writer = createStdoutWriter()
+const emitter = new RuntimeEventEmitter({ writeLine: (line) => writer.write(line) })
+
+const services = createRuntimeServices({
+  loadSdk: resolveConfiguredSdkLoader(),
+  log: logDiagnostic,
+  onAgentEvent: (batch) => emitter.emit('agent.event', batch),
+  onRunningChange: (ids) => emitter.emit('agent.running', { ids }),
+  onHarnessEvent: (sessionId, event) => emitter.emit('harness.event', { sessionId, event })
+})
+
+const registry = createMethodRegistry(services)
 
 let shuttingDown = false
-let shutdownReason = 'unknown'
+let exitQueued = false
 
 function emit(event: string, payload?: unknown): void {
-  if (shuttingDown && event !== 'runtime.stopping') return
-  writer.write(serializeEvent(event, payload))
+  emitter.emit(event, payload)
 }
 
 function requestShutdown(reason: string): void {
-  if (shuttingDown) return
+  if (exitQueued) return
+  exitQueued = true
   shuttingDown = true
-  shutdownReason = reason
   emit('runtime.stopping', { reason })
-  // Give stdout a tick to flush, then exit cleanly. The host also enforces its
-  // own stop timeout and can kill the process if this path hangs.
-  setImmediate(() => {
-    logDiagnostic(`shutting down: ${shutdownReason}`)
+  void gracefulExit()
+}
+
+/** Stop all live sessions, flush event batches, then exit 0. */
+async function gracefulExit(): Promise<void> {
+  const watchdog = setTimeout(() => {
+    logDiagnostic('shutdown watchdog fired — forcing exit')
     process.exit(0)
-  })
+  }, 2000)
+  if (typeof watchdog.unref === 'function') watchdog.unref()
+  try {
+    await services.shutdown()
+  } catch (raw) {
+    logDiagnostic(`shutdown cleanup failed: ${raw instanceof Error ? raw.message : String(raw)}`)
+  }
+  // Let pending microtasks (in-flight response writes) settle before exit.
+  await new Promise<void>((resolve) => setImmediate(resolve))
+  process.exit(0)
 }
 
 const context = { startedAt, emit, requestShutdown }
+const registryDispatch = createDispatcher(registry)
 
 async function handleLine(line: string): Promise<void> {
   const parsed = parseHostRequest(line)
@@ -62,11 +90,12 @@ async function handleLine(line: string): Promise<void> {
 
   const { id, method } = parsed.request
   const params = parsed.request.params ?? {}
-  const outcome = await dispatch(method, params, context)
+  const outcome = await registryDispatch(method, params, context)
   writer.write(serializeResponse(id, outcome))
 }
 
 async function main(): Promise<void> {
+  applyAgentDirOverride()
   process.on('SIGTERM', () => requestShutdown('SIGTERM'))
   process.on('SIGINT', () => requestShutdown('SIGINT'))
   // EPIPE: host closed the pipe — exit quietly rather than crash noisily.
@@ -94,6 +123,10 @@ async function main(): Promise<void> {
       // restart, not a timeout.
       const parsed = parseHostRequest(item.line)
       const id = parsed.ok ? parsed.request.id : parsed.id
+      if (id !== null && parsed.ok && parsed.request.method === 'runtime.shutdown') {
+        writer.write(serializeResponse(id, { ok: true, result: { stopping: true } }))
+        continue
+      }
       if (id !== null) {
         writer.write(
           serializeResponse(id, {
@@ -104,12 +137,22 @@ async function main(): Promise<void> {
       }
       continue
     }
-    await handleLine(item.line)
+    // Concurrent dispatch: slow methods (compaction can take minutes) must
+    // not block later requests. Responses correlate by id; the writer is
+    // synchronous, so line order on stdout is preserved.
+    void handleLine(item.line).catch((raw: unknown) => {
+      logDiagnostic(`request handling failed: ${raw instanceof Error ? raw.message : String(raw)}`)
+    })
   }
 
-  // stdin closed — the host is gone.
+  // stdin closed — the host is gone. Clean up, then exit.
   logDiagnostic('stdin closed')
-  process.exit(0)
+  if (!exitQueued) {
+    exitQueued = true
+    shuttingDown = true
+    emit('runtime.stopping', { reason: 'stdin closed' })
+  }
+  await gracefulExit()
 }
 
 main().catch((error: unknown) => {

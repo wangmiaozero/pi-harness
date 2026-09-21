@@ -5,6 +5,7 @@ import AppShell from '@renderer/components/layout/AppShell.vue'
 import CommandPalette from '@renderer/components/common/CommandPalette.vue'
 import ConflictDialog from '@renderer/components/common/ConflictDialog.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
+import RuntimeStatusBanner from '@renderer/components/common/RuntimeStatusBanner.vue'
 import AgentAuraGlow from '@renderer/components/ui/AgentAuraGlow.vue'
 import { Toaster } from 'vue-sonner'
 import { useSettingsStore } from '@renderer/stores/settings'
@@ -114,6 +115,7 @@ onBeforeUnmount(() => {
   <CommandPalette v-model:open="paletteOpen" />
   <ConflictDialog />
   <ConfirmDialog />
+  <RuntimeStatusBanner />
   <Toaster
     :theme="toasterTheme"
     position="bottom-right"

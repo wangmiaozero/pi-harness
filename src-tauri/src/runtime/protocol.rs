@@ -20,6 +20,7 @@ pub const SHUTDOWN: &str = "SHUTDOWN";
 /// Host-side codes (never sent by the runtime).
 pub const RUNTIME_EXITED: &str = "RUNTIME_EXITED";
 pub const PROTOCOL_MISMATCH: &str = "PROTOCOL_MISMATCH";
+pub const RUNTIME_TIMEOUT: &str = "RUNTIME_TIMEOUT";
 
 /// One host -> runtime request (stdin).
 #[derive(Debug, Clone, Serialize)]
@@ -31,10 +32,16 @@ pub struct RpcRequest {
 }
 
 /// Typed runtime -> host error (inside a response, or resolving a request).
+/// `user_message` carries the runtime's sanitized, user-facing phrasing so
+/// the renderer can show it without re-deriving anything (mirrors
+/// `AppErrorPayload.userMessage`).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct RpcError {
     pub code: String,
     pub message: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_message: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
 }
@@ -71,7 +78,8 @@ struct RawResponse {
 impl RuntimeMessage {
     /// Parse one stdout line. Returns `None` on a protocol violation.
     pub fn parse(line: &str) -> Option<RuntimeMessage> {
-        let raw: RawResponse = serde_json::from_str(line).ok()?;
+        let value: serde_json::Value = serde_json::from_str(line).ok()?;
+        let raw: RawResponse = serde_json::from_value(value.clone()).ok()?;
 
         if raw.kind.as_deref() == Some("event") {
             let name = raw.event?;
@@ -80,17 +88,22 @@ impl RuntimeMessage {
         }
 
         let id = raw.id?;
-        match (raw.result, raw.error) {
-            (Some(result), None) => Some(RuntimeMessage::Response {
+        // Key-presence check: a success response may legitimately carry
+        // `"result": null` (void domain methods); serde's Option cannot
+        // distinguish that from a missing field.
+        if value.get("result").is_some() {
+            return Some(RuntimeMessage::Response {
                 id,
-                outcome: Ok(result),
-            }),
-            (None, Some(error)) => Some(RuntimeMessage::Response {
+                outcome: Ok(raw.result.unwrap_or(serde_json::Value::Null)),
+            });
+        }
+        if let Some(error) = raw.error {
+            return Some(RuntimeMessage::Response {
                 id,
                 outcome: Err(error),
-            }),
-            _ => None,
+            });
         }
+        None
     }
 }
 
@@ -112,6 +125,21 @@ mod tests {
             RuntimeMessage::Response { id, outcome } => {
                 assert_eq!(id, "req_1");
                 assert_eq!(outcome.expect("result"), serde_json::json!({"pong": true}));
+            }
+            other => panic!("unexpected variant: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_null_result_response() {
+        // Void domain methods (agent.prompt, harness.setTools, …) respond
+        // with an explicit `result: null`.
+        let message = RuntimeMessage::parse(r#"{"id":"req_3","result":null}"#)
+            .expect("valid response");
+        match message {
+            RuntimeMessage::Response { id, outcome } => {
+                assert_eq!(id, "req_3");
+                assert!(outcome.expect("result").is_null());
             }
             other => panic!("unexpected variant: {other:?}"),
         }

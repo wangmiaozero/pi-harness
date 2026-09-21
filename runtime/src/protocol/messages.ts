@@ -9,22 +9,44 @@
  * Runtime -> host (stdout), one JSON object per line:
  *   success: { "id": "req_001", "result": { ... } }
  *   failure: { "id": "req_001", "error": { "code": "...", "message": "..." } }
- *   event:   { "type": "event", "event": "runtime.ready", "payload": { ... } }
+ *   event:   { "type": "event", "event": "runtime.ready", "payload": { ... },
+ *              "sequence": 42, "timestamp": 1730000000000 }
  *
  * Rules:
  * - `id` is a non-empty string; the host correlates responses by `id`.
  * - A request MUST be answered exactly once, success or failure.
- * - Events are unsolicited and carry no `id`.
+ * - Events are unsolicited and carry no `id`. Since protocol version 1.1
+ *   every event envelope also carries a monotonic `sequence` (1-based, per
+ *   process) and an epoch-ms `timestamp`; older hosts ignore them.
  * - stdout is protocol-only. Human-readable logs go to stderr.
  * - Unknown top-level keys are ignored (forward compatibility).
  */
 
 export const RPC_ERROR_CODES = [
+  // Protocol level
   'INVALID_REQUEST',
   'METHOD_NOT_FOUND',
   'INTERNAL_ERROR',
   'HARNESS_ERROR',
-  'SHUTDOWN'
+  'SHUTDOWN',
+  // Runtime / SDK lifecycle
+  'PI_SDK_LOAD_FAILED',
+  'PI_NOT_FOUND',
+  'PI_SDK_NOT_AVAILABLE',
+  // Sessions
+  'SESSION_NOT_FOUND',
+  'SESSION_NOT_RUNNING',
+  // Agent
+  'AGENT_NOT_FOUND',
+  'AGENT_BUSY',
+  'AGENT_ERROR',
+  'MODEL_NOT_FOUND',
+  'TOOL_NOT_FOUND',
+  'INVALID_INPUT',
+  // Harness
+  'COMPACTION_NOT_AVAILABLE',
+  'COMPACTION_FAILED',
+  'CAPABILITY_NOT_SUPPORTED'
 ] as const
 
 export type RpcErrorCode = (typeof RPC_ERROR_CODES)[number]
@@ -38,6 +60,8 @@ export interface RpcRequest {
 export interface RpcErrorPayload {
   code: RpcErrorCode
   message: string
+  /** Sanitized, user-facing phrasing (mirrors `AppErrorPayload.userMessage`). */
+  userMessage?: string
   /** Optional structured diagnostic context (must be JSON-serialisable). */
   data?: unknown
 }
@@ -48,6 +72,10 @@ export interface RpcEventEnvelope {
   type: 'event'
   event: string
   payload?: unknown
+  /** Monotonic 1-based counter over all events emitted by this process. */
+  sequence?: number
+  /** Epoch milliseconds. */
+  timestamp?: number
 }
 
 /** A response line: either carries `result` or `error`, never both. */
@@ -101,7 +129,11 @@ export function parseRuntimeMessage(line: string): RuntimeMessage | null {
 
   if (parsed['type'] === 'event') {
     if (typeof parsed['event'] !== 'string' || parsed['event'].length === 0) return null
-    return { type: 'event', event: parsed['event'], payload: parsed['payload'] }
+    const envelope: RpcEventEnvelope = { type: 'event', event: parsed['event'] }
+    if ('payload' in parsed) envelope.payload = parsed['payload']
+    if (typeof parsed['sequence'] === 'number') envelope.sequence = parsed['sequence']
+    if (typeof parsed['timestamp'] === 'number') envelope.timestamp = parsed['timestamp']
+    return envelope
   }
 
   if (!isValidId(parsed['id'])) return null
@@ -176,10 +208,20 @@ export function serializeResponse(id: string, outcome: RpcResult): string {
   return JSON.stringify({ id, error: outcome.error })
 }
 
-export function serializeEvent(event: string, payload?: unknown): string {
-  return JSON.stringify(
+/** Optional metadata the sequenced emitter adds to every event envelope. */
+export interface RpcEventMeta {
+  sequence: number
+  timestamp: number
+}
+
+export function serializeEvent(event: string, payload?: unknown, meta?: RpcEventMeta): string {
+  const envelope: RpcEventEnvelope =
     payload === undefined ? { type: 'event', event } : { type: 'event', event, payload }
-  )
+  if (meta) {
+    envelope.sequence = meta.sequence
+    envelope.timestamp = meta.timestamp
+  }
+  return JSON.stringify(envelope)
 }
 
 export function rpcError(code: RpcErrorCode, message: string, data?: unknown): RpcErrorPayload {

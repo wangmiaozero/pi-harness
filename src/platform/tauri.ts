@@ -18,6 +18,23 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 import type { PiSwitchAPI } from '@shared/ipc/api-types'
 import type {
+  HarnessCompactionResult,
+  HarnessEvent,
+  HarnessForkResult,
+  HarnessSessionInfo,
+  HarnessState,
+  HarnessStats,
+  HarnessTool
+} from '@shared/types/harness'
+import type {
+  AgentStateSnapshot,
+  PromptAgentInput,
+  SessionContext,
+  SessionDetail,
+  SessionInfo,
+  StartAgentSessionInput
+} from '@shared/types/workspace'
+import type {
   PlatformRuntimeApi,
   PiSwitchTauriAPI,
   RuntimeLogEvent,
@@ -44,7 +61,8 @@ const COMMANDS = {
   runtimeStatus: 'runtime_status',
   runtimeStart: 'runtime_start',
   runtimeStop: 'runtime_stop',
-  runtimeRestart: 'runtime_restart'
+  runtimeRestart: 'runtime_restart',
+  runtimeRequest: 'runtime_request'
 } as const
 
 /** Event channel names — shared contract with the Rust host. */
@@ -108,6 +126,112 @@ function pendingNamespace<T extends object>(namespace: string): T {
       return (..._args: unknown[]) => pendingMethod(namespace, method)
     }
   }) as T
+}
+
+/**
+ * Domain RPC forwarder: the session/agent/harness methods run on the
+ * Node sidecar (runtime/src/protocol/domain-methods.ts). `runtime_request`
+ * auto-starts the runtime on demand (scenario B: the workspace opens, the
+ * session list request itself boots the sidecar).
+ */
+function rpc<T>(method: string, params: Record<string, unknown> = {}): Promise<T> {
+  return invoke<T>(COMMANDS.runtimeRequest, { method, params })
+}
+
+/** Session APIs backed by the runtime sidecar (phase 2). */
+function createSessionsApi(): PiSwitchAPI['sessions'] {
+  return {
+    list: (force?: boolean) =>
+      rpc<{ sessions: SessionInfo[] }>('session.list', { force: force === true }).then(
+        (result) => result.sessions
+      ),
+    get: (sessionId: string) => rpc<SessionDetail>('session.get', { sessionId }),
+    rename: (sessionId: string, name: string) =>
+      rpc<void>('session.rename', { sessionId, name }).then(() => undefined),
+    delete: (sessionId: string) => rpc<void>('session.delete', { sessionId }).then(() => undefined),
+    context: (sessionId: string, leafId?: string | null) =>
+      rpc<SessionContext>('session.context', { sessionId, leafId: leafId ?? null }),
+    viewFullHistory: (sessionId: string) =>
+      rpc<SessionDetail>('session.viewFullHistory', { sessionId }),
+    // Phase 3 (filesystem/export plane lives in the Rust host):
+    export: () => pendingMethod('sessions', 'export'),
+    exportProject: () => pendingMethod('sessions', 'exportProject'),
+    contextMenu: () => pendingMethod('sessions', 'contextMenu')
+  }
+}
+
+/** Agent APIs backed by the runtime sidecar (phase 2, scenario C). */
+function createAgentApi(): PiSwitchAPI['agent'] {
+  return {
+    start: (input: StartAgentSessionInput) =>
+      rpc<{ sessionId: string; cwd: string }>('agent.start', { ...input }),
+    prompt: (input: PromptAgentInput) => rpc<unknown>('agent.prompt', { ...input }),
+    abort: (sessionId: string) => rpc<void>('agent.abort', { sessionId }).then(() => undefined),
+    state: (sessionId: string) => rpc<AgentStateSnapshot | null>('agent.state', { sessionId }),
+    running: () => rpc<{ ids: string[] }>('agent.running').then((result) => result.ids),
+    command: (sessionId: string, command: Record<string, unknown>) =>
+      rpc<unknown>('agent.command', { sessionId, command })
+  }
+}
+
+/** Harness APIs backed by the runtime sidecar (phase 2). */
+function createHarnessApi(): PiSwitchAPI['harness'] {
+  const pending = pendingMethod
+  return {
+    state: (sessionId: string) => rpc<HarnessState | null>('harness.getState', { sessionId }),
+    tools: (sessionId: string) => rpc<HarnessTool[]>('harness.getTools', { sessionId }),
+    setTools: (sessionId: string, toolNames: string[]) =>
+      rpc<void>('harness.setTools', { sessionId, toolNames }).then(() => undefined),
+    setModel: (sessionId: string, provider: string, modelId: string) =>
+      rpc<void>('harness.setModel', { sessionId, provider, modelId }).then(() => undefined),
+    setThinkingLevel: (sessionId: string, level: string) =>
+      rpc<void>('harness.setThinkingLevel', { sessionId, level }).then(() => undefined),
+    compact: (sessionId: string, instructions?: string) =>
+      rpc<HarnessCompactionResult | unknown>('harness.compact', { sessionId, instructions }),
+    abortCompaction: (sessionId: string) =>
+      rpc<void>('harness.abortCompaction', { sessionId }).then(() => undefined),
+    setAutoCompaction: (sessionId: string, enabled: boolean) =>
+      rpc<void>('harness.setAutoCompaction', { sessionId, enabled }).then(() => undefined),
+    steer: (sessionId: string, message: string) =>
+      rpc<void>('harness.steer', { sessionId, message }).then(() => undefined),
+    followUp: (sessionId: string, message: string) =>
+      rpc<void>('harness.followUp', { sessionId, message }).then(() => undefined),
+    fork: (sessionId: string, entryId: string) =>
+      rpc<HarnessForkResult>('harness.fork', { sessionId, entryId }),
+    navigateTree: (sessionId: string, entryId: string) =>
+      rpc<unknown>('harness.navigateTree', { sessionId, targetId: entryId }),
+    session: (sessionId: string) => rpc<HarnessSessionInfo>('harness.getSession', { sessionId }),
+    stats: (sessionId: string) => rpc<HarnessStats>('harness.getStats', { sessionId }),
+    timeline: (sessionId: string) =>
+      rpc<{ events: HarnessEvent[] }>('harness.getTimeline', { sessionId }).then(
+        (result) => result.events
+      ),
+    // Harness Control Plane — phase 3 (store/policy/checkpoint services
+    // stay on the Electron main process until they migrate):
+    listRuns: (_sessionId: string) => pending('harness', 'listRuns'),
+    getRun: (_sessionId: string) => pending('harness', 'getRun'),
+    getRunDetail: (_sessionId: string) => pending('harness', 'getRunDetail'),
+    getRunTree: (_sessionId: string) => pending('harness', 'getRunTree'),
+    compareRuns: (_sessionId: string) => pending('harness', 'compareRuns'),
+    forkRun: (_sessionId: string) => pending('harness', 'forkRun'),
+    getBaseline: (_sessionId: string) => pending('harness', 'getBaseline'),
+    setBaseline: (_sessionId: string) => pending('harness', 'setBaseline'),
+    getProjectStats: (_sessionId: string) => pending('harness', 'getProjectStats'),
+    exportRun: (_sessionId: string) => pending('harness', 'exportRun'),
+    exportDebugBundle: (_sessionId: string) => pending('harness', 'exportDebugBundle'),
+    listArtifacts: (_sessionId: string) => pending('harness', 'listArtifacts'),
+    getStoreSettings: () => pending('harness', 'getStoreSettings'),
+    updateStoreSettings: () => pending('harness', 'updateStoreSettings'),
+    getPolicy: () => pending('harness', 'getPolicy'),
+    setPolicy: () => pending('harness', 'setPolicy'),
+    listCheckpoints: (_sessionId: string) => pending('harness', 'listCheckpoints'),
+    createCheckpoint: (_sessionId: string) => pending('harness', 'createCheckpoint'),
+    resumeCheckpoint: () => pending('harness', 'resumeCheckpoint'),
+    forkCheckpoint: () => pending('harness', 'forkCheckpoint'),
+    retryLastRun: (_sessionId: string) => pending('harness', 'retryLastRun'),
+    evaluateRun: (_sessionId: string) => pending('harness', 'evaluateRun'),
+    listEvaluations: (_sessionId: string) => pending('harness', 'listEvaluations')
+  }
 }
 
 const runtime: PlatformRuntimeApi = {
@@ -178,14 +302,14 @@ export function createTauriBridge(): PiSwitchTauriAPI {
       close: () => invoke<void>(COMMANDS.windowClose)
     },
     workspace: pendingNamespace<PiSwitchAPI['workspace']>('workspace'),
-    sessions: pendingNamespace<PiSwitchAPI['sessions']>('sessions'),
-    agent: pendingNamespace<PiSwitchAPI['agent']>('agent'),
-    harness: pendingNamespace<PiSwitchAPI['harness']>('harness'),
+    sessions: createSessionsApi(),
+    agent: createAgentApi(),
+    harness: createHarnessApi(),
     orchestration: pendingNamespace<PiSwitchAPI['orchestration']>('orchestration'),
     files: pendingNamespace<PiSwitchAPI['files']>('files'),
     git: pendingNamespace<PiSwitchAPI['git']>('git'),
     worktrees: pendingNamespace<PiSwitchAPI['worktrees']>('worktrees'),
-    aiMotion: pendingNamespace<PiSwitchAPI['aiMotion']>('aiMotion'),
+    agentAura: pendingNamespace<PiSwitchAPI['agentAura']>('agentAura'),
     runtime,
     on: ((event: string, listener: (payload: unknown) => void) => {
       const channel = EVENT_CHANNELS[event] ?? `pi-harness:event:${event}`

@@ -6,6 +6,7 @@ use std::time::Duration;
 use tauri::State;
 
 use crate::error::{AppError, AppResult};
+use crate::runtime::protocol::RpcError;
 use crate::runtime::supervisor::RuntimeSupervisor;
 
 const RUNTIME_RPC_TIMEOUT: Duration = Duration::from_secs(30);
@@ -26,7 +27,17 @@ async fn forward_supervisor_events(app: tauri::AppHandle, supervisor: RuntimeSup
     use tauri::Emitter;
 
     let mut receiver = supervisor.subscribe();
-    while let Ok(event) = receiver.recv().await {
+    loop {
+        let event = match receiver.recv().await {
+            Ok(event) => event,
+            // Slow consumer: the broadcast ring dropped events. Keep going —
+            // session state transitions must never be lost to a UI hiccup.
+            Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                eprintln!("[pi-harness] runtime event forwarder skipped {skipped} events");
+                continue;
+            }
+            Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+        };
         let result: AppResult<()> = (|| {
             match event {
                 SupervisorEvent::PhaseChanged(phase) => {
@@ -36,13 +47,30 @@ async fn forward_supervisor_events(app: tauri::AppHandle, supervisor: RuntimeSup
                     )?;
                 }
                 SupervisorEvent::RuntimeEvent { name, payload } => {
-                    app.emit(
-                        "pi-harness:runtime:event",
-                        serde_json::json!({
-                            "event": name,
-                            "payload": payload,
-                        }),
-                    )?;
+                    // Domain events route to the renderer channels the
+                    // Electron preload also uses (IPC_EVENT in
+                    // src/shared/ipc/channels.ts); the payload shape is the
+                    // RPC event payload, passed through verbatim.
+                    match name.as_str() {
+                        "agent.event" => {
+                            app.emit("pi-harness:agent:event", payload)?;
+                        }
+                        "agent.running" => {
+                            app.emit("pi-harness:agent:running", payload)?;
+                        }
+                        "harness.event" => {
+                            app.emit("pi-harness:harness:event", payload)?;
+                        }
+                        _ => {
+                            app.emit(
+                                "pi-harness:runtime:event",
+                                serde_json::json!({
+                                    "event": name,
+                                    "payload": payload,
+                                }),
+                            )?;
+                        }
+                    }
                 }
                 SupervisorEvent::Log { line } => {
                     app.emit(
@@ -157,4 +185,49 @@ pub async fn runtime_restart(
     state: State<'_, crate::state::AppState>,
 ) -> AppResult<crate::runtime::supervisor::RuntimeStatus> {
     state.runtime.restart().await
+}
+
+/// Lifecycle methods (`runtime.*`) go through their dedicated commands
+/// (start/stop/status/...), never the generic domain forwarder.
+fn ensure_domain_method(method: &str) -> Result<(), RpcError> {
+    if method.starts_with("runtime.") {
+        return Err(RpcError {
+            code: "INVALID_REQUEST".to_string(),
+            message: format!("Method '{method}' must use its dedicated command"),
+            user_message: None,
+            data: None,
+        });
+    }
+    Ok(())
+}
+
+/// Generic domain RPC forwarder: `runtime_request(method, params)` → the
+/// matching `session.*` / `agent.*` / `harness.*` method on the runtime.
+/// Errors are the runtime's `RpcError` payloads verbatim (code + message +
+/// sanitized userMessage), so the renderer sees the exact shape the Electron
+/// preload would have thrown (`AppErrorPayload`).
+#[tauri::command]
+pub async fn runtime_request(
+    state: State<'_, crate::state::AppState>,
+    method: String,
+    params: serde_json::Value,
+) -> Result<serde_json::Value, RpcError> {
+    ensure_domain_method(&method)?;
+    state.runtime.desktop_request(&method, params).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ensure_domain_method;
+
+    #[test]
+    fn rejects_lifecycle_methods_but_allows_domain() {
+        let err = ensure_domain_method("runtime.shutdown").expect_err("guarded");
+        assert_eq!(err.code, "INVALID_REQUEST");
+        assert!(err.message.contains("runtime.shutdown"));
+
+        for method in ["session.list", "agent.start", "harness.compact"] {
+            ensure_domain_method(method).expect("domain methods pass");
+        }
+    }
 }

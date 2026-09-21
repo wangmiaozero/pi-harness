@@ -1,14 +1,18 @@
-# Tauri 2 迁移（第一阶段）
+# Tauri 2 迁移（第二阶段）
 
-> 状态：第一阶段（桌面外壳替换）— 进行中
+> 状态：第二阶段（Pi Runtime Core Migration）— 已完成
 > 分支：`refactor/tauri-v2`（Electron 主线保持可检出、可构建、可发布）
 
 本目录记录 Pi-Harness 从 Electron 迁移到 Tauri 2 的架构、协议与迁移计划。
 
 - [architecture.md](./architecture.md) — 目标架构与模块职责
 - [protocol.md](./protocol.md) — JSONL RPC 协议规范（Rust ↔ Node）
+- [runtime.md](./runtime.md) — 运行时生命周期（懒启动 / 崩溃恢复 / 停机）
+- [agent-runtime.md](./agent-runtime.md) — 运行时侧 Agent/Session/Harness 架构
+- [events.md](./events.md) — 流式事件链路与顺序保证
 - [migration-plan.md](./migration-plan.md) — 分阶段迁移计划与当前进度
 - [compatibility-matrix.md](./compatibility-matrix.md) — `window.piSwitch` API 兼容性矩阵
+- [phase-2-report.md](./phase-2-report.md) — 第二阶段交付报告与验收场景状态
 - [baseline.md](./baseline.md) — Electron 基线指标（内存 / 体积 / 进程数）
 - [benchmark.md](./benchmark.md) — Tauri 第一阶段实测与基线对比
 

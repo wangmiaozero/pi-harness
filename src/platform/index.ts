@@ -19,6 +19,21 @@
 
 export { isTauriHost, isElectronHost } from './detect'
 export { bootDesktopPlatform } from './boot'
+
+/**
+ * The runtime supervisor API — Tauri-only (the Node sidecar is the Tauri
+ * backend; Electron's Pi runtime lives in-process, so its preload exposes
+ * no `runtime` namespace).
+ *
+ * This is the platform capability helper renderer code must use instead of
+ * sniffing `window.__TAURI__` (§25 of the migration plan): all host
+ * knowledge stays inside `src/platform/`.
+ */
+export function getRuntimeApi(): import('./types').PlatformRuntimeApi | null {
+  if (typeof window === 'undefined') return null
+  const bridge = window.piSwitch as import('./types').PiSwitchTauriAPI | undefined
+  return bridge && typeof bridge.runtime === 'object' ? bridge.runtime : null
+}
 export type {
   PlatformRuntimeApi,
   PiSwitchTauriAPI,

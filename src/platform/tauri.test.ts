@@ -139,7 +139,7 @@ describe('tauri bridge', () => {
       'files',
       'git',
       'worktrees',
-      'aiMotion',
+      'agentAura',
       'on'
     ]
     for (const key of required) {

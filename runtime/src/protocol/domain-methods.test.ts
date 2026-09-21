@@ -1,0 +1,316 @@
+/**
+ * Domain RPC method tests against mock SDK services.
+ *
+ * Covers the task §33 list: session list, agent start/state, event
+ * envelopes + sequence, abort, harness state/model/thinking/tools/compaction
+ * — end-to-end through `createMethodRegistry` so validation, error mapping
+ * and result shapes are exercised exactly as the Tauri host will see them.
+ */
+
+import { beforeEach, describe, expect, it } from 'vitest'
+import { createMethodRegistry, createDispatcher, type RpcMethodContext } from './dispatch.js'
+import { createRuntimeServices, type RuntimeServices } from '../services.js'
+import { createMockSdkWorld, mockSdkLoader, type MockSdkWorld } from '../testing/mock-sdk.js'
+import type { AgentEventBatch } from '../agent/events.js'
+
+describe('domain methods over mock SDK', () => {
+  let world: MockSdkWorld
+  let services: RuntimeServices
+  let dispatch: ReturnType<typeof createDispatcher>
+  let agentEvents: Array<{ event: string; payload: unknown }>
+  let harnessEvents: Array<{ sessionId: string; event: { type: string } }>
+  let runningBroadcasts: string[][]
+  let context: RpcMethodContext
+
+  beforeEach(() => {
+    world = createMockSdkWorld()
+    agentEvents = []
+    harnessEvents = []
+    runningBroadcasts = []
+    services = createRuntimeServices({
+      loadSdk: mockSdkLoader(world),
+      onAgentEvent: (batch: AgentEventBatch) => {
+        const envelopes = Array.isArray(batch) ? batch : [batch]
+        for (const envelope of envelopes) {
+          agentEvents.push({ event: 'agent.event', payload: envelope })
+        }
+      },
+      onRunningChange: (ids: string[]) => runningBroadcasts.push([...ids]),
+      onHarnessEvent: (sessionId, event) =>
+        harnessEvents.push({ sessionId, event: event as { type: string } })
+    })
+    dispatch = createDispatcher(createMethodRegistry(services))
+    context = {
+      startedAt: Date.now(),
+      emit: () => {},
+      requestShutdown: () => {}
+    }
+  })
+
+  const call = (method: string, params: Record<string, unknown> = {}) =>
+    dispatch(method, params, context)
+
+  // ------------------------------------------------------------- sessions
+
+  it('session.list returns the SDK listing under a `sessions` key', async () => {
+    world.listing = [
+      {
+        path: '/tmp/pi-harness-test/agent/sessions/a.jsonl',
+        id: 'a',
+        cwd: '/tmp/project-a',
+        created: new Date(),
+        modified: new Date(),
+        messageCount: 3
+      }
+    ]
+    const outcome = await call('session.list', {})
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    const result = outcome.result as { sessions: Array<{ id: string; cwd: string }> }
+    expect(result.sessions).toHaveLength(1)
+    expect(result.sessions[0]!.id).toBe('a')
+    // listing must not have loaded the SDK twice (lazy single load)
+    expect(world.loadCount).toBe(1)
+  })
+
+  it('session.rename validates and forwards', async () => {
+    const outcome = await call('session.rename', { sessionId: 'a', name: 'New name' })
+    // Session "a" does not exist in the mock listing — rename fails with a
+    // typed domain error, not a generic crash.
+    expect(outcome.ok).toBe(false)
+    if (outcome.ok) return
+    expect(outcome.error.code).toBe('SESSION_NOT_FOUND')
+    expect(outcome.error.userMessage).toBeTruthy()
+  })
+
+  it('session methods reject malformed ids', async () => {
+    const outcome = await call('session.get', { sessionId: '' })
+    expect(outcome.ok).toBe(false)
+    if (outcome.ok) return
+    expect(outcome.error.code).toBe('INVALID_INPUT')
+  })
+
+  // --------------------------------------------------------------- agent
+
+  it('agent.start boots a new session through the mock SDK', async () => {
+    const outcome = await call('agent.start', { cwd: '/tmp/demo' })
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    const result = outcome.result as { sessionId: string; cwd: string }
+    expect(result.cwd).toBe('/tmp/demo')
+    expect(result.sessionId).toBe('new-1')
+    // observation happens automatically (harness events flow)
+    const handle = world.sessions.get('new-1')!
+    handle.session.__emit({ type: 'agent_start', sessionId: 'new-1' })
+    expect(harnessEvents.some((e) => e.event.type === 'runtime.started')).toBe(true)
+  })
+
+  it('agent.start sends the initial message after boot', async () => {
+    await call('agent.start', { cwd: '/tmp/demo', message: 'hello world' })
+    const handle = world.sessions.get('new-1')!
+    expect(handle.prompts).toHaveLength(1)
+    expect(handle.prompts[0]!.message).toBe('hello world')
+  })
+
+  it('agent.state returns null for idle-unknown sessions and a snapshot for live ones', async () => {
+    // Electron parity: state() on an unknown session resolves to null (no
+    // auto-start, no crash) — the renderer renders an empty console.
+    const missing = await call('agent.state', { sessionId: 'ghost' })
+    expect(missing.ok).toBe(true)
+    if (missing.ok) expect(missing.result).toBeNull()
+
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const outcome = await call('agent.state', { sessionId: 'new-1' })
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    const snapshot = outcome.result as Record<string, unknown> | null
+    expect(snapshot).not.toBeNull()
+  })
+
+  it('agent.prompt streams events and agent.running broadcasts ids', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const handle = world.sessions.get('new-1')!
+
+    const prompted = await call('agent.prompt', { sessionId: 'new-1', message: 'go' })
+    expect(prompted.ok).toBe(true)
+    expect(handle.prompts).toHaveLength(1)
+
+    // Simulate the SDK turn: start → token → end.
+    handle.session.__emit({ type: 'agent_start', sessionId: 'new-1' })
+    handle.session.__emit({ type: 'message_start', messageId: 'm1', role: 'assistant' })
+    handle.session.__emit({ type: 'agent_end', sessionId: 'new-1' })
+    // agent.event envelopes are batched on a 16ms tick — flush before asserting.
+    await new Promise((resolve) => setTimeout(resolve, 25))
+    expect(
+      agentEvents.some(
+        (e) => e.payload && (e.payload as Record<string, unknown>).sessionId === 'new-1'
+      )
+    ).toBe(true)
+    const running = runningBroadcasts[runningBroadcasts.length - 1]
+    expect(running).toEqual(['new-1'])
+
+    // Stopping the session (idle dispose / explicit stop) clears the set.
+    await services.agent.stop('new-1')
+    const after = runningBroadcasts[runningBroadcasts.length - 1]
+    expect(after).toEqual([])
+  })
+
+  it('agent.abort forwards abort to the session', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const outcome = await call('agent.abort', { sessionId: 'new-1' })
+    expect(outcome.ok).toBe(true)
+    expect(world.sessions.get('new-1')!.aborts).toBe(1)
+  })
+
+  it('agent.running reports sessions with an active turn', async () => {
+    // An idle, freshly started session is NOT running (Electron parity).
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const idle = await call('agent.running', {})
+    if (idle.ok) expect((idle.result as { ids: string[] }).ids).toEqual([])
+
+    // A pending prompt makes it running.
+    await call('agent.prompt', { sessionId: 'new-1', message: 'go' })
+    const outcome = await call('agent.running', {})
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    const result = outcome.result as { ids: string[] }
+    expect(result.ids).toContain('new-1')
+  })
+
+  // ------------------------------------------------------------- harness
+
+  it('harness.getState reports capabilities, tools and thinking options', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const outcome = await call('harness.getState', { sessionId: 'new-1' })
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    const state = outcome.result as {
+      capabilities: {
+        tools: boolean
+        modelSwitch: boolean
+        thinkingLevel: boolean
+        compaction: boolean
+        steering: boolean
+      }
+      tools: Array<{ name: string; active: boolean }>
+      thinking: { options: string[] }
+      sessionId: string
+    }
+    expect(state.capabilities.tools).toBe(true)
+    expect(state.capabilities.modelSwitch).toBe(true)
+    expect(state.capabilities.compaction).toBe(true)
+    expect(state.tools.map((t) => t.name)).toContain('read')
+    expect(state.thinking.options).toEqual(['off', 'low', 'high'])
+  })
+
+  it('harness.setModel switches models and emits model.changed', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const outcome = await call('harness.setModel', {
+      sessionId: 'new-1',
+      provider: 'test-provider',
+      modelId: 'test-model'
+    })
+    expect(outcome.ok).toBe(true)
+    expect(harnessEvents.some((e) => e.event.type === 'model.changed')).toBe(true)
+  })
+
+  it('harness.setModel rejects unknown models with MODEL_NOT_FOUND', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const outcome = await call('harness.setModel', {
+      sessionId: 'new-1',
+      provider: 'nope',
+      modelId: 'nope'
+    })
+    expect(outcome.ok).toBe(false)
+    if (outcome.ok) return
+    expect(outcome.error.code).toBe('MODEL_NOT_FOUND')
+  })
+
+  it('harness.setThinkingLevel switches levels and emits thinking.changed', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const outcome = await call('harness.setThinkingLevel', { sessionId: 'new-1', level: 'high' })
+    expect(outcome.ok).toBe(true)
+    expect(world.sessions.get('new-1')!.thinkingLevels).toContain('high')
+    expect(harnessEvents.some((e) => e.event.type === 'thinking.changed')).toBe(true)
+  })
+
+  it('harness.setTools validates names and emits tools.changed', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const outcome = await call('harness.setTools', {
+      sessionId: 'new-1',
+      toolNames: ['read', 'bash']
+    })
+    expect(outcome.ok).toBe(true)
+    expect(world.sessions.get('new-1')!.session.getActiveToolNames()).toEqual(['read', 'bash'])
+    expect(harnessEvents.some((e) => e.event.type === 'tools.changed')).toBe(true)
+
+    const bad = await call('harness.setTools', { sessionId: 'new-1', toolNames: ['teleport'] })
+    expect(bad.ok).toBe(false)
+    if (!bad.ok) expect(bad.error.code).toBe('TOOL_NOT_FOUND')
+  })
+
+  it('harness.compact runs compaction and emits prompt + compaction events', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const outcome = await call('harness.compact', { sessionId: 'new-1', instructions: 'keep code' })
+    expect(outcome.ok).toBe(true)
+    expect(world.sessions.get('new-1')!.compactions).toEqual(['keep code'])
+    const types = harnessEvents.map((e) => e.event.type)
+    expect(types).toContain('compaction.started')
+    expect(types).toContain('compaction.completed')
+  })
+
+  it('harness.steer and harness.followUp queue messages', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const steer = await call('harness.steer', { sessionId: 'new-1', message: 'turn left' })
+    expect(steer.ok).toBe(true)
+    const followUp = await call('harness.followUp', { sessionId: 'new-1', message: 'then right' })
+    expect(followUp.ok).toBe(true)
+    const handle = world.sessions.get('new-1')!
+    expect(handle.prompts).toHaveLength(2)
+    expect(handle.prompts[0]!.options).toMatchObject({ streamingBehavior: 'steer' })
+    expect(harnessEvents.some((e) => e.event.type === 'steering.queued')).toBe(true)
+    expect(harnessEvents.some((e) => e.event.type === 'followUp.queued')).toBe(true)
+  })
+
+  it('harness.getTimeline replays observed events', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const handle = world.sessions.get('new-1')!
+    handle.session.__emit({ type: 'agent_start', sessionId: 'new-1' })
+    handle.session.__emit({ type: 'agent_end', sessionId: 'new-1' })
+    const outcome = await call('harness.getTimeline', { sessionId: 'new-1' })
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    const result = outcome.result as { events: Array<{ type: string }> }
+    expect(result.events.map((e) => e.type)).toContain('runtime.started')
+  })
+
+  it('agent.command routes set_model through the harness surface', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const outcome = await call('agent.command', {
+      sessionId: 'new-1',
+      command: { type: 'set_model', provider: 'test-provider', modelId: 'test-model' }
+    })
+    expect(outcome.ok).toBe(true)
+    expect(harnessEvents.some((e) => e.event.type === 'model.changed')).toBe(true)
+  })
+
+  it('unknown methods and bad commands stay typed', async () => {
+    const unknown = await call('harness.doesNotExist', {})
+    expect(unknown.ok).toBe(false)
+    if (!unknown.ok) expect(unknown.error.code).toBe('METHOD_NOT_FOUND')
+
+    const badCommand = await call('agent.command', { sessionId: 'x', command: { type: '' } })
+    expect(badCommand.ok).toBe(false)
+    if (!badCommand.ok) expect(badCommand.error.code).toBe('INVALID_INPUT')
+  })
+
+  it('runtime.status reports agent metrics once a session started', async () => {
+    await call('agent.start', { cwd: '/tmp/demo' })
+    const outcome = await call('runtime.status', {})
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    const status = outcome.result as { sdkLoaded: boolean; firstAgentStartMs: number | null }
+    expect(status.sdkLoaded).toBe(true)
+    expect(status.firstAgentStartMs).not.toBeNull()
+  })
+})

@@ -1574,6 +1574,12 @@ export const frFR: MessageTree = {
     gitSidebarWidth: 'Largeur de la barre latérale (double-clic pour réinitialiser)',
     gitPanelWidth: 'Largeur du panneau de commit (double-clic pour réinitialiser)',
   },
+  runtimeStatus: {
+    starting: 'Démarrage du runtime Pi…',
+    crashed: 'Le runtime Pi s\'est arrêté de manière inattendue',
+    restarting: 'Redémarrage du runtime Pi…',
+    restart: 'Redémarrer le runtime'
+  },
   palette: {
     placeholder: 'Saisissez une commande…',
     empty: 'Aucune commande correspondante',

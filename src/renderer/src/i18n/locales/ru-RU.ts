@@ -1576,6 +1576,12 @@ export const ruRU: MessageTree = {
     gitSidebarWidth: 'Ширина боковой панели (двойной клик — сброс)',
     gitPanelWidth: 'Ширина панели коммитов (двойной клик — сброс)',
   },
+  runtimeStatus: {
+    starting: 'Запуск среды выполнения Pi…',
+    crashed: 'Среда выполнения Pi неожиданно завершилась',
+    restarting: 'Перезапуск среды выполнения Pi…',
+    restart: 'Перезапустить среду выполнения'
+  },
   palette: {
     placeholder: 'Введите команду…',
     empty: 'Нет подходящих команд',

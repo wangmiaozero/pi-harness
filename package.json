@@ -35,6 +35,7 @@
     "build:tauri": "pnpm runtime:build && tauri build --config src-tauri/tauri.conf.json",
     "runtime:build": "tsc -p runtime",
     "runtime:typecheck": "tsc -p runtime/tsconfig.test.json --noEmit",
+    "dev:runtime": "pnpm runtime:build && node runtime/dist/index.js",
     "compile": "pnpm check:builtin-skills && electron-vite build",
     "compile:nomascot": "pnpm check:builtin-skills && electron-vite build --mode nomascot",
     "build": "pnpm compile && node scripts/prepare-mac-repair-app.mjs && electron-builder --publish never --mac --win --linux && node scripts/clean-unpacked-mac.mjs",
