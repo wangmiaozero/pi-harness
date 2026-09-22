@@ -92,7 +92,13 @@ The surrounding desktop capabilities are summarized below.
 | Files              | Provides lightweight editing with explicit save and conflict handling |
 | Diagnostics        | Reports application, environment, storage, and workspace health       |
 | Updates            | Installs compatible application updates                               |
-| Appearance         | Offers appearance, density, cockpit mode, and optional themes         |
+| Appearance         | Adds app icons, themes, density, and visual effects                   |
+
+### Startup and appearance
+
+Pi-Harness opens with a startup animation while it checks the npm registry, Node.js, npm, Pi Agent, and the active configuration. The animation remains visible for at least five seconds, uses a monochrome quantum particle effect by default, and follows the selected optional visual theme when one is active.
+
+In **Settings → General**, choose the Classic, Ming, or Quantum app icon—or let Pi-Harness select one automatically—and control the window glow, screen glow, and input flame effect independently. Mascot-free builds keep the default startup animation and these appearance controls without loading optional mascot themes.
 
 ### Optional methodologies and add-ons
 
