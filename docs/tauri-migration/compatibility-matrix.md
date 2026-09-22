@@ -23,7 +23,7 @@ Electron 预载桥与 Tauri 平台层（`src/platform/tauri.ts`）实现同一�
 | `on`         | 12 个事件通道                                      | ✅ 平台层映射到同名 Tauri 事件（未接线的事件源仍待迁移，见下）                                                                              |
 | `runtime` ➕ | `ping` `version` `status` `start` `stop` `restart` | ✅ `runtime_*` 命令                                                                                                                         |
 | `runtime` ➕ | `onState` `onEvent` `onLog`                        | ✅ `pi-harness:runtime:*` 事件                                                                                                              |
-| `sessions`  | `list` `get` `rename` `delete` `context` `viewFullHistory` `contextMenu` | ✅ `session.*` RPC；`contextMenu` 为 Rust 原生菜单 |
+| `sessions`  | `list` `get` `rename` `delete` `context` `viewFullHistory` `contextMenu` `export` `exportProject` | ✅ `session.*` RPC；export 为 Rust save dialog + sidecar render |
 | `agent`     | `start` `prompt` `abort` `state` `running` `command` | ✅ `runtime_request` → 运行时 `agent.*`；`start` 先 `workspace_assert_cwd` |
 | `harness`   | （第二/三阶段全部方法） | ✅ `runtime_request` |
 | `orchestration` | （第三阶段全部方法） | ✅ `runtime_request`；worktree 模式走 sidecar `git worktree add` |
@@ -41,6 +41,7 @@ Electron 预载桥与 Tauri 平台层（`src/platform/tauri.ts`）实现同一�
 | `backup` | `list` `create` `restore` `delete` `pruneToRetention` | ✅ sidecar；`openFolder` 为 Rust |
 | `diagnostics` | `get` | ✅ sidecar（redact）；`copy` / `export` 为 Rust clipboard / save dialog |
 | `logs` | `read` | ✅ sidecar；`openFolder` 为 Rust |
+| `updater` | `state` `check` `download` `install` `openReleasePage` | ✅ tauri-plugin-updater；无签名包时 `manual-update` |
 
 ## 待迁移
 
@@ -50,9 +51,7 @@ Electron 预载桥与 Tauri 平台层（`src/platform/tauri.ts`）实现同一�
 
 | 命名空间                  | 方法数 | 计划阶段 | 迁移目标                                              |
 | ------------------------- | -----: | -------- | ----------------------------------------------------- |
-| `sessions`（剩余）        |      2 | 阶段 5   | `export` / `exportProject` |
-| `updater`                 |      5 | 阶段 7   | Tauri updater 插件（原生侧）                          |
-| `agentAura`               |      1 | 阶段 7   | 悬浮窗恢复后一并处理                                  |
+| `agentAura`               |      1 | overlay  | 悬浮窗恢复后一并处理（入口未开放，非 release blocker） |
 
 方法计数以 `src/shared/ipc/channels.ts` 为准（合计约 200 个 invoke 通道）。
 
@@ -68,8 +67,8 @@ Electron 预载桥与 Tauri 平台层（`src/platform/tauri.ts`）实现同一�
 | Agent 流式事件           | Pi SDK → webContents.send    | Pi SDK → 运行时 → JSONL → Rust → `pi-harness:agent:*` 事件（同 payload 形态） |
 | 运行时崩溃恢复           | 不适用（进程内）              | `RuntimeStatusBanner` + `runtime.restart()`（Crashed 后可重启） |
 | 悬浮窗（overlay）        | 第二 BrowserWindow           | 未实现（入口未开放，无影响）                            |
-| 深度链接 / 单实例        | Electron 协议                | 阶段 7                                                          |
-| 自动更新                 | electron-updater             | 阶段 7（Tauri updater 插件）                                    |
+| 深度链接 / 单实例        | 无自定义协议；`requestSingleInstanceLock` | 无深度链接（不新增）；`tauri-plugin-single-instance` |
+| 自动更新                 | electron-updater             | `piSwitch.updater.*` → tauri-plugin-updater；无签名 metadata 时 `manual-update` |
 
 ## `PiSwitchAPI` 之外的差异
 

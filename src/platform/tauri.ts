@@ -139,7 +139,14 @@ const COMMANDS = {
   logsOpenFolder: 'logs_open_folder',
   diagnosticsCopy: 'diagnostics_copy',
   diagnosticsExport: 'diagnostics_export',
-  capabilitiesOpenHomepage: 'capabilities_open_homepage'
+  capabilitiesOpenHomepage: 'capabilities_open_homepage',
+  sessionsExport: 'sessions_export',
+  sessionsExportProject: 'sessions_export_project',
+  updaterState: 'updater_state',
+  updaterCheck: 'updater_check',
+  updaterDownload: 'updater_download',
+  updaterInstall: 'updater_install',
+  updaterOpenReleasePage: 'updater_open_release_page'
 } as const
 
 /** Event channel names — shared contract with the Rust host. */
@@ -231,9 +238,10 @@ function createSessionsApi(): PiSwitchAPI['sessions'] {
       rpc<SessionContext>('session.context', { sessionId, leafId: leafId ?? null }),
     viewFullHistory: (sessionId: string) =>
       rpc<SessionDetail>('session.viewFullHistory', { sessionId }),
-    // Filesystem export plane is still Electron-only (Phase 5).
-    export: () => pendingMethod('sessions', 'export'),
-    exportProject: () => pendingMethod('sessions', 'exportProject'),
+    export: (sessionId, format) =>
+      invoke<string | null>(COMMANDS.sessionsExport, { sessionId, format }),
+    exportProject: (name, sessionIds, format) =>
+      invoke<string | null>(COMMANDS.sessionsExportProject, { name, sessionIds, format }),
     contextMenu: (sessionId, isWorktree, isPinned, locale) =>
       invoke<SessionContextAction | null>(COMMANDS.sessionsContextMenu, {
         sessionId,
@@ -662,6 +670,16 @@ function createLogsApi(): PiSwitchAPI['logs'] {
   }
 }
 
+function createUpdaterApi(): PiSwitchAPI['updater'] {
+  return {
+    state: () => invoke(COMMANDS.updaterState),
+    check: () => invoke(COMMANDS.updaterCheck),
+    download: () => invoke(COMMANDS.updaterDownload),
+    install: () => invoke(COMMANDS.updaterInstall),
+    openReleasePage: () => invoke(COMMANDS.updaterOpenReleasePage)
+  }
+}
+
 function createWorktreesApi(): PiSwitchAPI['worktrees'] {
   return {
     list: (cwd) => invoke(COMMANDS.worktreesList, { cwd }),
@@ -691,7 +709,7 @@ export function createTauriBridge(): PiSwitchTauriAPI {
     settings: createSettingsApi(),
     diagnostics: createDiagnosticsApi(),
     logs: createLogsApi(),
-    updater: pendingNamespace<PiSwitchAPI['updater']>('updater'),
+    updater: createUpdaterApi(),
     window: {
       minimize: () => invoke<void>(COMMANDS.windowMinimize),
       maximizeToggle: () => invoke<void>(COMMANDS.windowMaximizeToggle),

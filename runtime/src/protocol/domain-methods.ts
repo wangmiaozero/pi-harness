@@ -96,6 +96,33 @@ export function registerDomainMethods(methods: MethodMap, services: RuntimeServi
   methods['session.viewFullHistory'] = async (params) =>
     sessions.getFullHistory(requireString(params, 'sessionId'))
 
+  methods['session.renderExport'] = async (params) => {
+    const format = requireString(params, 'format')
+    if (format !== 'html' && format !== 'markdown') {
+      throw new RuntimeError('INVALID_INPUT', 'Parameter "format" must be "html" or "markdown"')
+    }
+    const { renderSessionExport } = await import('../sessions/export-render.js')
+    const detail = await sessions.get(requireString(params, 'sessionId'))
+    return renderSessionExport(detail, format)
+  }
+
+  methods['session.renderProjectExport'] = async (params) => {
+    const format = requireString(params, 'format')
+    if (format !== 'html' && format !== 'markdown') {
+      throw new RuntimeError('INVALID_INPUT', 'Parameter "format" must be "html" or "markdown"')
+    }
+    const ids = params['sessionIds']
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string')) {
+      throw new RuntimeError('INVALID_INPUT', 'Parameter "sessionIds" must be a string array')
+    }
+    const { renderProjectExport } = await import('../sessions/export-render.js')
+    const details = []
+    for (const id of new Set(ids as string[])) {
+      if (id) details.push(await sessions.get(id))
+    }
+    return renderProjectExport(requireString(params, 'name'), details, format)
+  }
+
   // -------------------------------------------------------------- agent.*
 
   methods['agent.start'] = async (params) => {

@@ -68,7 +68,10 @@
     "sync:provider-presets": "node scripts/sync-provider-presets.mjs",
     "sync:builtin-skills": "node scripts/sync-builtin-skills.mjs",
     "check:builtin-skills": "node scripts/sync-builtin-skills.mjs --check",
-    "clean": "rimraf out dist release .vite-node"
+    "check:version": "node scripts/check-version.mjs",
+    "stage:tauri-runtime": "node scripts/stage-tauri-runtime.mjs",
+    "verify:tauri-release": "node scripts/verify-tauri-release.mjs",
+    "clean": "rimraf out dist release .vite-node src-tauri/resources/runtime src-tauri/resources/runtime-node"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.4",

@@ -8,5 +8,6 @@ pub mod desktop;
 pub mod menus;
 pub mod runtime;
 pub mod system;
+pub mod updater;
 pub mod window;
 pub mod workspace;

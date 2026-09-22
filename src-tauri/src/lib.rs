@@ -9,6 +9,7 @@ pub mod error;
 pub mod files;
 pub mod git;
 pub mod host;
+pub mod migrate;
 pub mod persist;
 pub mod process;
 pub mod runtime;
@@ -18,7 +19,9 @@ pub mod system;
 pub mod workspace;
 pub mod worktree;
 
-use tauri::Manager;
+use std::collections::HashMap;
+
+use tauri::{Manager, WebviewWindow};
 
 use host::DesktopHost;
 use state::AppState;
@@ -29,7 +32,15 @@ pub fn run() {
 
     let app = match tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .manage(AppState::new(app_version))
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                focus_main(&window);
+            }
+        }))
+        .manage(AppState::new(app_version.clone()))
+        .manage(commands::updater::UpdateHub::new(app_version))
         .invoke_handler(tauri::generate_handler![
             commands::system::system_info,
             commands::system::system_open_path,
@@ -96,6 +107,13 @@ pub fn run() {
             commands::desktop::diagnostics_copy,
             commands::desktop::diagnostics_export,
             commands::desktop::capabilities_open_homepage,
+            commands::desktop::sessions_export,
+            commands::desktop::sessions_export_project,
+            commands::updater::updater_state,
+            commands::updater::updater_check,
+            commands::updater::updater_download,
+            commands::updater::updater_install,
+            commands::updater::updater_open_release_page,
         ])
         .manage(commands::menus::MenuWaiter::new())
         .on_menu_event(|app, event| {
@@ -107,16 +125,81 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            let packaged = !tauri::is_dev();
+            let mut extra = HashMap::new();
             if let Ok(dir) = app.path().app_data_dir() {
-                std::env::set_var("PI_HARNESS_USER_DATA", &dir);
-                match DesktopHost::new(dir, app.handle().clone()) {
-                    Ok(host) => {
-                        app.manage(host);
+                match crate::migrate::prepare_user_data(&dir, packaged) {
+                    Ok(plan) => {
+                        std::env::set_var("PI_HARNESS_USER_DATA", &plan.user_data);
+                        extra.insert(
+                            "PI_HARNESS_USER_DATA".into(),
+                            plan.user_data.to_string_lossy().to_string(),
+                        );
+                        match DesktopHost::new(plan.user_data, app.handle().clone()) {
+                            Ok(host) => {
+                                app.manage(host);
+                            }
+                            Err(error) => {
+                                eprintln!("[pi-harness] workspace host failed to load: {error}")
+                            }
+                        }
                     }
-                    Err(error) => eprintln!("[pi-harness] workspace host failed to load: {error}"),
+                    Err(error) => {
+                        eprintln!("[pi-harness] userData migration failed: {error}");
+                        std::env::set_var("PI_HARNESS_USER_DATA", &dir);
+                        extra.insert(
+                            "PI_HARNESS_USER_DATA".into(),
+                            dir.to_string_lossy().to_string(),
+                        );
+                        match DesktopHost::new(dir, app.handle().clone()) {
+                            Ok(host) => {
+                                app.manage(host);
+                            }
+                            Err(host_error) => {
+                                eprintln!(
+                                    "[pi-harness] workspace host failed to load: {host_error}"
+                                )
+                            }
+                        }
+                    }
                 }
             }
+            if let Ok(resource) = app.path().resource_dir() {
+                std::env::set_var("PI_HARNESS_RESOURCES_DIR", &resource);
+                extra.insert(
+                    "PI_HARNESS_RESOURCES_DIR".into(),
+                    resource.to_string_lossy().to_string(),
+                );
+                extra.insert(
+                    "PI_HARNESS_BUILTIN_SKILLS_DIR".into(),
+                    resource
+                        .join("builtin-skills")
+                        .to_string_lossy()
+                        .to_string(),
+                );
+                extra.insert(
+                    "NODE_PATH".into(),
+                    resource
+                        .join("runtime")
+                        .join("node_modules")
+                        .to_string_lossy()
+                        .to_string(),
+                );
+                extra.insert(
+                    "PI_HARNESS_APP_PATH".into(),
+                    resource.to_string_lossy().to_string(),
+                );
+            }
+            extra.insert(
+                "PI_HARNESS_APP_VERSION".into(),
+                env!("CARGO_PKG_VERSION").into(),
+            );
+            extra.insert(
+                "PI_HARNESS_PACKAGED".into(),
+                if packaged { "1" } else { "0" }.into(),
+            );
             let state = app.state::<AppState>();
+            state.runtime.extend_env(extra);
             commands::runtime::install_event_forwarder(app.handle(), &state.runtime);
             Ok(())
         })
@@ -130,4 +213,9 @@ pub fn run() {
     };
 
     app.run(|_app_handle, _event| {});
+}
+
+fn focus_main(window: &WebviewWindow) {
+    let _ = window.unminimize();
+    let _ = window.set_focus();
 }

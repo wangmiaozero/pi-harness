@@ -1,12 +1,10 @@
 //! Sidecar process plumbing: which Node binary to use and where the runtime
 //! entry script lives.
 //!
-//! Resolution order (dev-first; packaging comes with the release phase):
-//! 1. `PI_HARNESS_NODE` env var (explicit override, also used by tests).
-//! 2. `node` on PATH.
-//!
-//! The runtime script is `runtime/dist/index.js` relative to the repository
-//! root. In packaged builds this will move into bundled resources.
+//! Resolution order:
+//! 1. `PI_HARNESS_NODE` / `PI_HARNESS_RUNTIME_SCRIPT` env overrides (tests).
+//! 2. Bundled resources (`PI_HARNESS_RESOURCES_DIR` / packaged resource dir).
+//! 3. Dev fallback: `node` on the login-shell PATH and `runtime/dist/index.js`.
 
 use std::path::{Path, PathBuf};
 
@@ -25,12 +23,35 @@ pub fn resolve_node() -> AppResult<PathBuf> {
         )));
     }
 
+    if let Some(bundled) = bundled_node() {
+        if bundled.is_file() {
+            return Ok(bundled);
+        }
+    }
+
     crate::environment::resolve_node()
 }
 
 /// Resolve the compiled runtime entry script.
 pub fn resolve_runtime_script() -> AppResult<PathBuf> {
-    // In dev the crate lives at <repo>/src-tauri; tests run with the same cwd.
+    if let Ok(explicit) = std::env::var("PI_HARNESS_RUNTIME_SCRIPT") {
+        let path = PathBuf::from(explicit);
+        if path.is_file() {
+            return Ok(path);
+        }
+        return Err(AppError::runtime_unavailable(format!(
+            "PI_HARNESS_RUNTIME_SCRIPT points to a missing file: {}",
+            path.display()
+        )));
+    }
+
+    if let Some(root) = resource_root() {
+        let script = root.join("runtime").join("index.js");
+        if script.is_file() {
+            return Ok(script);
+        }
+    }
+
     let script = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("runtime")
@@ -45,14 +66,24 @@ pub fn resolve_runtime_script() -> AppResult<PathBuf> {
     )))
 }
 
+fn bundled_node() -> Option<PathBuf> {
+    let root = resource_root()?;
+    let name = if cfg!(windows) { "node.exe" } else { "node" };
+    Some(root.join("runtime-node").join(name))
+}
+
+fn resource_root() -> Option<PathBuf> {
+    let dir = std::env::var("PI_HARNESS_RESOURCES_DIR").ok()?;
+    let path = PathBuf::from(dir);
+    path.is_dir().then_some(path)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn resolves_a_node_binary_in_test_env() {
-        // Tests run on machines with Node available; if truly missing the
-        // test fails loudly instead of skipping — the supervisor tests need it.
         let node = resolve_node().expect("node on PATH or PI_HARNESS_NODE");
         assert!(node.is_file(), "node binary must exist: {}", node.display());
     }

@@ -167,6 +167,70 @@ pub async fn capabilities_open_homepage(
     open_https_url(&url)
 }
 
+#[tauri::command]
+pub async fn sessions_export(
+    app: AppHandle,
+    state: State<'_, crate::state::AppState>,
+    session_id: String,
+    format: String,
+) -> AppResult<Option<String>> {
+    let payload = state
+        .runtime
+        .desktop_request(
+            "session.renderExport",
+            serde_json::json!({ "sessionId": session_id, "format": format }),
+        )
+        .await
+        .map_err(|error| AppError::new(&error.code, error.message))?;
+    save_export(&app, &payload, &format)
+}
+
+#[tauri::command]
+pub async fn sessions_export_project(
+    app: AppHandle,
+    state: State<'_, crate::state::AppState>,
+    name: String,
+    session_ids: Vec<String>,
+    format: String,
+) -> AppResult<Option<String>> {
+    let payload = state
+        .runtime
+        .desktop_request(
+            "session.renderProjectExport",
+            serde_json::json!({ "name": name, "sessionIds": session_ids, "format": format }),
+        )
+        .await
+        .map_err(|error| AppError::new(&error.code, error.message))?;
+    save_export(&app, &payload, &format)
+}
+
+fn save_export(app: &AppHandle, payload: &Value, format: &str) -> AppResult<Option<String>> {
+    let body = payload
+        .get("body")
+        .and_then(Value::as_str)
+        .ok_or_else(|| AppError::validation("Export body missing"))?;
+    let default_name = payload
+        .get("defaultName")
+        .and_then(Value::as_str)
+        .unwrap_or("session");
+    let ext = if format == "html" { "html" } else { "md" };
+    let dialog = app
+        .dialog()
+        .file()
+        .set_file_name(format!("{default_name}.{ext}"));
+    let dialog = if format == "html" {
+        dialog.add_filter("HTML", &["html"])
+    } else {
+        dialog.add_filter("Markdown", &["md"])
+    };
+    let Some(path) = dialog.blocking_save_file() else {
+        return Ok(None);
+    };
+    let dest = file_path_to_string(path);
+    std::fs::write(&dest, body).map_err(AppError::from)?;
+    Ok(Some(dest))
+}
+
 async fn request_text(runtime: &RuntimeSupervisor, method: &str) -> AppResult<String> {
     request_text_params(runtime, method, serde_json::json!({})).await
 }

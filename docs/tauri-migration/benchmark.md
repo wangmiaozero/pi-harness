@@ -52,3 +52,19 @@
 - 冷启动时间（需人工计时 / 性能仪器，阶段 7 补）。
 - Pi agent 子进程内存：pi CLI 不在测试机 PATH，无法启动真实会话。
 - Windows / Linux 数据（阶段 7 跨平台验证时补）。
+
+## Phase 6 体积复测（2026-09-22）
+
+本机 `pnpm build:tauri` 打进 sidecar + 官方 Node + Pi SDK 后：
+
+| 项 | Electron | Tauri（Phase 6） | 差异 |
+| --- | ---: | ---: | ---: |
+| 已安装 `.app` | 502 MB | **425 MB** | **-15%** |
+| 安装包 DMG | （本轮未重打） | **129 MB** | n/a |
+| 宿主二进制 | n/a | 44 MB | |
+| `Resources/runtime` | n/a | 238 MB | |
+| `Resources/runtime-node` | n/a | 139 MB | |
+
+阶段 1 的 45 MB / -90% **不再适用**：当时产物不含 Runtime Node 与 Pi SDK。
+冷启动 / Idle RAM / Agent RAM 本轮仍未做 5-run GUI 协议。
+详见 [phase-6-report.md](./phase-6-report.md)。

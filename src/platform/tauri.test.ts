@@ -56,20 +56,20 @@ describe('tauri bridge', () => {
 
   it('pending namespaces reject with SHELL_METHOD_PENDING payloads', async () => {
     const bridge = createTauriBridge()
-    const error = await (bridge.updater as unknown as { state(): Promise<never> })
-      .state()
+    const error = await (bridge.agentAura as unknown as { setActive(): Promise<never> })
+      .setActive()
       .catch((e: unknown) => e)
     expect(isErrorPayload(error)).toBe(true)
     expect((error as { code: string }).code).toBe('SHELL_METHOD_PENDING')
-    expect((error as { context: { namespace: string } }).context.namespace).toBe('updater')
+    expect((error as { context: { namespace: string } }).context.namespace).toBe('agentAura')
   })
 
   it('pending namespaces reject every method on the same namespace', async () => {
     const bridge = createTauriBridge()
     const errors = await Promise.all(
       [
-        (bridge.updater as unknown as { check(): Promise<never> }).check(),
-        (bridge.updater as unknown as { download(): Promise<never> }).download()
+        (bridge.agentAura as unknown as { setActive(): Promise<never> }).setActive(),
+        (bridge.agentAura as unknown as { setActive(): Promise<never> }).setActive()
       ].map((p) => p.catch((e: unknown) => e))
     )
     for (const error of errors) {
@@ -110,11 +110,11 @@ describe('tauri bridge', () => {
 
   it('pending methods surface as structured errors for renderer pipelines', async () => {
     const bridge = createTauriBridge()
-    const error: unknown = await (bridge.updater as unknown as { check(): Promise<never> })
-      .check()
+    const error: unknown = await (bridge.agentAura as unknown as { setActive(): Promise<never> })
+      .setActive()
       .catch((e: unknown) => e)
     expect(error).toMatchObject({ code: 'SHELL_METHOD_PENDING' })
-    expect((error as { message: string }).message).toContain('updater.check')
+    expect((error as { message: string }).message).toContain('agentAura.setActive')
   })
 
   it('settings and providers go through runtime_request', async () => {
@@ -266,5 +266,17 @@ describe('tauri bridge', () => {
     const error = await bridge.workspace.getPathForFile({ name: 'proj' }).catch((e: unknown) => e)
     expect(error).toMatchObject({ code: 'VALIDATION_ERROR' })
     expect(invokeMock).not.toHaveBeenCalled()
+  })
+
+  it('updater and session export invoke Rust commands', async () => {
+    invokeMock.mockResolvedValue(undefined)
+    const bridge = createTauriBridge()
+    await bridge.updater.check()
+    await bridge.sessions.export('s1', 'markdown')
+    expect(invokeMock).toHaveBeenCalledWith('updater_check')
+    expect(invokeMock).toHaveBeenCalledWith('sessions_export', {
+      sessionId: 's1',
+      format: 'markdown'
+    })
   })
 })

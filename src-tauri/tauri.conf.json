@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm tauri:web:dev",
     "devUrl": "http://localhost:31416",
-    "beforeBuildCommand": "pnpm tauri:web:build",
+    "beforeBuildCommand": "pnpm tauri:web:build && node scripts/stage-tauri-runtime.mjs",
     "frontendDist": "../out/renderer-tauri"
   },
   "app": {
@@ -25,7 +25,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost https://ipc.localhost https://api.github.com https://github.com; img-src 'self' data: blob: asset: http://asset.localhost https://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data: blob:; worker-src 'self' blob:"
     }
   },
   "bundle": {
@@ -37,6 +37,27 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": {
+      "resources/runtime": "runtime/",
+      "resources/runtime-node": "runtime-node/",
+      "../resources/builtin-skills": "builtin-skills/"
+    },
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE3NTY0QUY4OUMxREU0QTYKUldTbTVCMmMrRXBXcCthREk3K2FQblVESHQrb0FScFRJcnVrSmxFdC9wL21EMngySlpWa2Y2OWUK",
+      "endpoints": [
+        "https://github.com/wangmiaozero/pi-harness/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

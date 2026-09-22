@@ -18,6 +18,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["process", "io-util", "sync", "time", "macros", "rt-multi-thread"] }
@@ -26,6 +29,7 @@ notify = "6"
 sha2 = "0.10"
 base64 = "0.22"
 uuid = { version = "1", features = ["v4"] }
+ureq = { version = "2", features = ["tls"] }
 
 [profile.release]
 panic = "abort"
@@ -33,3 +37,10 @@ codegen-units = 1
 lto = true
 opt-level = "s"
 strip = true
+
+# strip 不得作用在 proc-macro / build.rs，否则 futures-macro 等
+# 会在 release 编不过（E0463 can't find crate）。
+[profile.release.build-override]
+strip = false
+codegen-units = 16
+opt-level = 0

@@ -65,6 +65,9 @@ build/修复.app/
 # Tauri 2 desktop host (refactor/tauri-v2): track sources, ignore build output
 src-tauri/target/
 src-tauri/gen/
+src-tauri/resources/runtime/
+src-tauri/resources/runtime-node/
+src-tauri/resources/builtin-skills/
 
 # Playwright
 test-results/

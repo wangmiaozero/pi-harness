@@ -1,7 +1,7 @@
-# Tauri 2 迁移（第五阶段）
+# Tauri 2 迁移（第六阶段进行中）
 
-> 状态：第五阶段（Providers + Models + Config + Skills + Environment）— 已完成
-> 分支：`refactor/tauri-v2`（Electron 主线保持可检出、可构建、可发布）
+> 状态：第六阶段（Production Release）— **未达 READY FOR MERGE**，Electron 未退役
+> 分支：`refactor/tauri-v2`
 
 本目录记录 Pi-Harness 从 Electron 迁移到 Tauri 2 的架构、协议与迁移计划。
 
@@ -16,6 +16,7 @@
 - [phase-3-report.md](./phase-3-report.md) — 第三阶段交付报告
 - [phase-4-report.md](./phase-4-report.md) — 第四阶段交付报告
 - [phase-5-report.md](./phase-5-report.md) — 第五阶段交付报告
+- [phase-6-report.md](./phase-6-report.md) — 第六阶段发布报告
 - [workspace.md](./workspace.md) — Workspace / Dialog / Binding
 - [filesystem-security.md](./filesystem-security.md) — 文件读写边界
 - [path-authorization.md](./path-authorization.md) — Authorized roots
@@ -23,6 +24,12 @@
 - [worktree.md](./worktree.md) — Worktree 布局与 Orchestration
 - [providers.md](./providers.md) — Providers / Models / Config / Skills
 - [environment.md](./environment.md) — PATH / Node / Pi install
+- [runtime-packaging.md](./runtime-packaging.md) — 生产 sidecar / 内置 Node
+- [updater.md](./updater.md) — Tauri updater
+- [legacy-migration.md](./legacy-migration.md) — Electron userData 迁移
+- [rollback.md](./rollback.md) — 回滚策略
+- [windows-packaging.md](./windows-packaging.md) — NSIS / WebView2
+- [linux-packaging.md](./linux-packaging.md) — AppImage / WebKitGTK
 - [control-plane.md](./control-plane.md) — Runs / Policy / Checkpoint / Evaluation
 - [orchestration.md](./orchestration.md) — Multi-Agent 状态机
 - [scheduler.md](./scheduler.md) — Task 调度与依赖

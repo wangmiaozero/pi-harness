@@ -16,9 +16,9 @@
 | 2    | 配置与设置   | `settings` / `pi` / `config` / `logs` / `diagnostics` 进运行时；设置页可用 | ✅ 完成（task 16 / 现行 Phase 5） |
 | 3    | 提供商与模型 | `providers` / `models` / `backup`                                          | ✅ 完成（task 16 / 现行 Phase 5） |
 | 4    | 技能与能力   | `skills` / `capabilities`（含包注册表）                                    | ✅ 完成（task 16 / 现行 Phase 5） |
-| 5    | 会话导出     | `sessions.export` / `exportProject`                                        | ⬜                |
+| 5    | 会话导出     | `sessions.export` / `exportProject`                                        | ✅ 完成（task 17 / Phase 6，Rust dialog + sidecar render） |
 | 6    | 工作区与 Git | `workspace` / `files` / `git` / `worktrees`                                | ✅ 完成（task 15 / 现行 Phase 4） |
-| 7    | 发布工程     | updater（Tauri 插件）/ 深度链接 / 单实例 / 安装包与签名 / overlay 窗口     | ⬜                |
+| 7    | 发布工程     | updater / 单实例 / 安装包 / 签名 / sidecar 打包                            | 🚧 进行中（task 17；**未删 Electron**） |
 
 ## 阶段 1 交付清单（本分支）
 
@@ -45,10 +45,10 @@
 
 - **不自启运行时**：设置/主题/关于页不需要 Node。首个依赖运行时的调用
   （阶段 2 的 settings 读取）负责 spawn。
-- **不打包 runtime 进安装包**：`resolve_runtime_script` 目前指向仓库内
-  `runtime/dist/index.js`（dev 优先）。资源打包（`resource` bundle +
-  路径解析调整）在阶段 7 发布工程解决；在此之前 `build:tauri` 产物
-  启动 runtime 会因找不到脚本而报 `RUNTIME_ERROR`（UI 正常）。
+- **生产打包 runtime + 内置 Node**：阶段 7 / Phase 6 已用
+  `scripts/stage-tauri-runtime.mjs` 把 `runtime/dist`、Pi SDK
+  `node_modules`、官方 Node 二进制打进 `src-tauri/resources/`。
+  Dev 仍走 PATH `node` + 仓库 `runtime/dist`。
 - **不做 overlay 窗口**：入口未开放（Electron 下该窗口也从不自动打开）。
 - **不迁移任何业务命名空间**：见兼容性矩阵。
 

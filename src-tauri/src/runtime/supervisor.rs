@@ -172,8 +172,8 @@ pub struct RuntimeSupervisor {
     /// never clobbers a newer child's state.
     generation: Arc<AtomicU64>,
     start_lock: Arc<Mutex<()>>,
-    /// Extra environment variables applied at spawn (test seam).
-    extra_env: Arc<HashMap<String, String>>,
+    /// Extra environment variables applied at spawn (packaging + tests).
+    extra_env: Arc<std::sync::Mutex<HashMap<String, String>>>,
 }
 
 impl RuntimeSupervisor {
@@ -197,16 +197,24 @@ impl RuntimeSupervisor {
             id_counter: Arc::new(AtomicU64::new(1)),
             generation: Arc::new(AtomicU64::new(0)),
             start_lock: Arc::new(Mutex::new(())),
-            extra_env: Arc::new(HashMap::new()),
+            extra_env: Arc::new(std::sync::Mutex::new(HashMap::new())),
         }
     }
 
     /// Test seam: additional environment variables for the sidecar process
     /// (e.g. `PI_HARNESS_TEST_PI_SDK` pointing at a mock SDK module).
     #[must_use]
-    pub fn with_extra_env(mut self, env: HashMap<String, String>) -> Self {
-        self.extra_env = Arc::new(env);
+    pub fn with_extra_env(self, env: HashMap<String, String>) -> Self {
+        self.extend_env(env);
         self
+    }
+
+    pub fn extend_env(&self, env: HashMap<String, String>) {
+        let mut current = self
+            .extra_env
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        current.extend(env);
     }
 
     /// Subscribe to phase changes, runtime events and stderr logs.
@@ -248,10 +256,15 @@ impl RuntimeSupervisor {
         let node = resolve_node()?;
         let script = resolve_runtime_script()?;
 
+        let extra = self
+            .extra_env
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone();
         let mut child: Child = Command::new(&node)
             .arg(&script)
             .env("PATH", crate::environment::merged_path())
-            .envs(self.extra_env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
+            .envs(extra)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())

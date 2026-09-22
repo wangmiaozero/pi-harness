@@ -102,6 +102,13 @@ describe('domain methods over mock SDK', () => {
     expect(outcome.error.code).toBe('INVALID_INPUT')
   })
 
+  it('session.renderExport rejects unknown formats', async () => {
+    const outcome = await call('session.renderExport', { sessionId: 'a', format: 'pdf' })
+    expect(outcome.ok).toBe(false)
+    if (outcome.ok) return
+    expect(outcome.error.code).toBe('INVALID_INPUT')
+  })
+
   // --------------------------------------------------------------- agent
 
   it('agent.start boots a new session through the mock SDK', async () => {

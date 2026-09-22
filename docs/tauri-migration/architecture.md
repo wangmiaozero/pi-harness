@@ -1,31 +1,42 @@
-# 目标架构（第一阶段）
+# 目标架构（Phase 6）
+
+生产目标：Vue Control UI → Platform Bridge → Tauri 2 Desktop Host → Node sidecar（Pi SDK）。Electron 外壳在全部 Production Gate 通过前保留。
 
 ## 总览
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│  Vue 3 渲染层（不重写）                                       │
-│  src/renderer — 页面 / 组件 / stores / composables           │
-│  只依赖 window.piSwitch（PiSwitchAPI 契约）                   │
-└───────────────┬────────────────────────────────────────────┘
-                │ window.piSwitch（平台无关契约）
-┌───────────────┴────────────────────────────────────────────┐
-│  平台桥接层 src/platform/                                    │
-│  detect.ts / boot.ts / tauri.ts / electron.ts / types.ts    │
-│  Tauri: invoke()/listen() 桥实现；Electron: 直接读取 preload  │
-└───────────────┬────────────────────────────────────────────┘
-                │ Tauri IPC（commands / events）
-┌───────────────┴────────────────────────────────────────────┐
-│  Rust 桌面宿主 src-tauri/                                    │
-│  窗口 / 系统集成 / RuntimeSupervisor（进程监督）               │
-│  不含业务逻辑 — 业务全部在 Node 侧                            │
-└───────────────┬────────────────────────────────────────────┘
-                │ JSONL RPC（stdin/stdout, 协议版本 1）
-┌───────────────┴────────────────────────────────────────────┐
-│  Node.js 运行时 sidecar runtime/                             │
-│  请求分发 / 事件广播 / 优雅停机                               │
-│  （后续阶段在此接入 Pi SDK：agent / harness / git / skills…）  │
-└────────────────────────────────────────────────────────────┘
+┌────────────────────────────────┐
+│             Vue 3              │
+│      Pi-Harness Control UI     │
+└───────────────┬────────────────┘
+                │ PiSwitch API
+┌───────────────▼────────────────┐
+│        Platform Bridge         │
+│        src/platform/           │
+└───────────────┬────────────────┘
+                │ Tauri IPC
+┌───────────────▼────────────────┐
+│         Tauri 2 / Rust         │
+│ Desktop Host / Window          │
+│ Filesystem Security            │
+│ Workspace / Git / Worktree     │
+│ Environment / Process          │
+│ Runtime Supervisor             │
+│ Backup / Diagnostics / Updater │
+└───────────────┬────────────────┘
+                │ JSONL RPC
+┌───────────────▼────────────────┐
+│       Pi-Harness Runtime       │
+│            Node.js             │
+│ Session / Agent / Harness      │
+│ Control Plane / Orchestration  │
+│ Providers / Models / Config    │
+│ Skills / Packages / Capabilities│
+└───────────────┬────────────────┘
+                │
+┌───────────────▼────────────────┐
+│       Pi Coding Agent SDK      │
+└────────────────────────────────┘
 ```
 
 ## 模块职责
@@ -61,11 +72,15 @@
 
 | 模块                    | 职责                                                                                 |
 | ----------------------- | ------------------------------------------------------------------------------------ |
-| `commands/`             | Tauri 命令薄层（system / window / runtime），错误统一序列化为 `AppErrorPayload` 形状 |
+| `commands/`             | Tauri 命令薄层（system / window / runtime / workspace / desktop / updater），错误统一序列化为 `AppErrorPayload` 形状 |
 | `runtime/supervisor.rs` | RuntimeSupervisor：spawn / 握手 / 请求关联 / 事件扇出 / 崩溃隔离 / 优雅停机          |
 | `runtime/protocol.rs`   | JSONL 协议解析（与 TS 侧镜像）                                                       |
-| `process/`              | Node 二进制与 runtime 脚本路径解析                                                   |
+| `process/`              | Node 二进制与 runtime 脚本路径解析（bundled → PATH）                                 |
 | `system/`               | 系统集成（open / showItem，argv 直传不经 shell）                                     |
+| `workspace/` `files.rs` `git/` `worktree.rs` | 工作区 / 文件 / Git / worktree；路径必须过 authorized roots |
+| `environment/`          | login-shell PATH + nvm/fnm/Volta/Homebrew                                            |
+| `security.rs`           | Authorized roots                                                                     |
+| `migrate.rs`            | Packaged 共用 Electron `Pi-Harness` userData                                         |
 | `error.rs`              | `AppError`（渲染器兼容的序列化形状）                                                 |
 | `state.rs`              | 受管状态（supervisor + 版本）                                                        |
 
@@ -84,10 +99,10 @@
 
 - 独立 npm 包（`pi-harness-runtime`），**零依赖**、ESM、TypeScript。
 - stdout 只承载协议（JSONL）；诊断走 stderr。
-- `runtime/dist/index.js` 由根脚本 `pnpm runtime:build` 产出（复用根
-  typescript，无独立 node_modules）。
-- 当前方法：`runtime.ping` / `runtime.version` / `runtime.status` /
-  `runtime.shutdown`；后续阶段在此进程内接入 Pi SDK。
+- `runtime/dist/index.js` 由根脚本 `pnpm runtime:build` 产出。
+- 生产包 staging 进 `src-tauri/resources/runtime` + 内置 Node + Pi SDK `node_modules`。
+- 业务方法：session / agent / harness / orchestration / providers / models /
+  config / skills / packages / capabilities / settings / backup。
 
 ## 数据流示例（runtime.ping）
 
