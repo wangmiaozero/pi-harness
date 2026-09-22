@@ -18,12 +18,13 @@ test('keeps the default animation and auto icon without mascot themes', async ({
 
   await page.locator('a[href="#/settings"]').click()
   const iconSettings = page.getByTestId('app-icon-settings')
-  await expect(iconSettings.getByTestId('app-icon-option-auto')).toContainText(
+  const autoIconLabel = iconSettings.getByText('自动 · 使用经典图标', { exact: true })
+  await expect(iconSettings.getByTestId('app-icon-option-auto')).toHaveAccessibleName(
     '自动 · 使用经典图标'
   )
   await iconSettings.getByTestId('app-icon-option-ming').click()
   await expect(page.getByTestId('titlebar-brand-icon')).toHaveAttribute('src', /ming/)
-  await iconSettings.getByTestId('app-icon-option-auto').click()
+  await autoIconLabel.click()
   await expect(page.getByTestId('titlebar-brand-icon')).toHaveAttribute('src', /app-icon-classic/)
   await expect(page.getByTestId('composer-fire-toggle')).toBeVisible()
 })
