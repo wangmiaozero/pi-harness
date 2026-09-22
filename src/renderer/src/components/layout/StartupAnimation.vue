@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { startupChecks, startupPhase } from '@renderer/startup'
+import { STARTUP_MINIMUM_VISIBLE_MS, startupChecks, startupPhase } from '@renderer/startup'
 import { useSettingsStore } from '@renderer/stores/settings'
 import {
   particleOrigin,
@@ -308,13 +308,10 @@ onMounted(() => {
   resizeObserver = new ResizeObserver(buildField)
   if (canvas.value) resizeObserver.observe(canvas.value)
   frameId = requestAnimationFrame(draw)
-  minimumTimer = setTimeout(
-    () => {
-      minimumElapsed = true
-      if (startupPhase.value === 'ready') finishWhenReady()
-    },
-    reducedMotion ? 350 : 1800
-  )
+  minimumTimer = setTimeout(() => {
+    minimumElapsed = true
+    if (startupPhase.value === 'ready') finishWhenReady()
+  }, STARTUP_MINIMUM_VISIBLE_MS)
   // A stalled optional service check must not leave the application covered.
   fallbackTimer = setTimeout(() => {
     minimumElapsed = true
