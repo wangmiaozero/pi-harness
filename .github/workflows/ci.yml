@@ -33,6 +33,11 @@ jobs:
       - run: pnpm compile
       - name: Electron E2E smoke
         run: xvfb-run -a pnpm test:e2e:only
+      - run: pnpm compile:nomascot
+      - name: Electron E2E noMascot smoke
+        run: xvfb-run -a pnpm exec playwright test e2e/nomascot.spec.ts
+        env:
+          PI_HARNESS_E2E_VARIANT: nomascot
 
   package-smoke:
     name: Package smoke (${{ matrix.os }})
@@ -60,4 +65,4 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: ${{ matrix.command }}
       - name: Native environment regression tests
-        run: pnpm exec vitest run src/main/environment src/main/pi/node-environment.test.ts src/main/pi/node-runtime.test.ts src/main/pi/environment-checks.test.ts src/main/pi/install-service.test.ts src/main/process/pi-process.test.ts
+        run: pnpm exec vitest run src/main/environment src/main/pi/node-environment.test.ts src/main/pi/node-runtime.test.ts src/main/pi/environment-checks.test.ts src/main/pi/install-service.test.ts src/main/process/pi-process.test.ts src/main/services/windows-startup-preflight.test.ts

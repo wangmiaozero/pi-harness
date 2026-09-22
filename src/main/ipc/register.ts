@@ -56,6 +56,7 @@ import { DEFAULT_MASCOT_STYLE, isMascotUnlockAnswer } from '@shared/constants/ma
 import { installAppMenu } from '../window/app-menu'
 import { normalizeNavOrder } from '@shared/constants/navigation'
 import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
+import { normalizeAppIconPreference } from '@shared/constants/app-icon'
 import { providerKeySchema, backupIdSchema, pathSegmentSchema } from '@shared/schemas/domain'
 import {
   appSettingsPatchSchema,
@@ -75,6 +76,7 @@ import {
 import type { ZodType } from 'zod'
 import { OpenPathPolicy } from '../security/open-path-policy'
 import { FileSystemError } from '../services/errors'
+import { checkNetwork } from '../services/network-check'
 import type { HarnessRuntime } from '../harness/harness-runtime'
 import type { OrchestratorService } from '../harness/orchestrator/orchestrator-service'
 import { registerHarnessIpc } from './register-harness'
@@ -94,6 +96,7 @@ export interface Services {
   orchestrator?: OrchestratorService
   workspace: WorkspaceServices
   getMainWindow: () => BrowserWindow | null
+  setAppIcon: (settings: AppSettings) => void
   setScreenMotionActive: (payload: ScreenMotionActivePayload) => void
 }
 
@@ -160,6 +163,12 @@ export function registerIpc(services: Services): void {
       appVersion: APP_VERSION,
       packaged: app.isPackaged
     }))
+  )
+  ipcMain.handle(IPC_INVOKE.systemCheckNetwork, (_e, ...args: unknown[]) =>
+    wrap(async () => {
+      parseInput(noArgsSchema, args, 'Unexpected network check arguments')
+      return checkNetwork()
+    })
   )
   ipcMain.handle(IPC_INVOKE.systemOpenPath, (_e, input: unknown) =>
     wrap(async () => {
@@ -614,6 +623,7 @@ export function registerIpc(services: Services): void {
     wrap(async () => {
       const settings = pickKnownAppSettings(await settingsStore.read())
       settings.theme = normalizeAppTheme(settings.theme)
+      settings.appIcon = normalizeAppIconPreference(settings.appIcon)
       settings.navOrder = normalizeNavOrder(settings.navOrder)
       return settings
     })
@@ -623,6 +633,7 @@ export function registerIpc(services: Services): void {
       const parsedPatch = parseInput(appSettingsPatchSchema, patch, 'Invalid settings')
       const current = pickKnownAppSettings(await settingsStore.read())
       current.theme = normalizeAppTheme(current.theme)
+      current.appIcon = normalizeAppIconPreference(current.appIcon)
       current.navOrder = normalizeNavOrder(current.navOrder)
       const nextPatch: Partial<AppSettings> = { ...parsedPatch }
       if (!current.mascotUnlocked) nextPatch.mascotUnlocked = false
@@ -635,6 +646,7 @@ export function registerIpc(services: Services): void {
       settings.navOrder = normalizeNavOrder(settings.navOrder)
       await settingsStore.write(settings)
       nativeTheme.themeSource = themeAppearance(settings.theme)
+      services.setAppIcon(settings)
       if (settings.language !== current.language) installAppMenu(settings.language)
       return settings
     })

@@ -30,6 +30,7 @@ export function useSettingsDraft(): SettingsDraft {
   const draft = ref<AppSettings>({
     language: 'auto',
     theme: 'dark',
+    appIcon: 'auto',
     mascotUnlocked: false,
     mascotStyle: DEFAULT_MASCOT_STYLE,
     petAnimations: true,
@@ -48,6 +49,7 @@ export function useSettingsDraft(): SettingsDraft {
     autoOpenLastProject: true,
     windowMotionEnabled: false,
     screenMotionEnabled: false,
+    composerFireEnabled: true,
     navOrder: [...DEFAULT_NAV_ORDER]
   })
 

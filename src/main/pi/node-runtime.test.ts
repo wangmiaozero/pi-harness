@@ -135,3 +135,32 @@ describe('terminal Node selection', () => {
     }
   })
 })
+
+describe.runIf(process.platform === 'win32')('Windows terminal PATH refresh', () => {
+  it('uses Node 24 from the current Windows PATH when Electron inherited an older PATH', async () => {
+    vi.mocked(resolveLoginShellPath)
+      .mockResolvedValueOnce({
+        shell: 'pwsh.exe',
+        path: path.join(os.tmpdir(), 'old-node'),
+        node: { path: path.join(os.tmpdir(), 'old-node', 'node.exe'), version: 'v20.0.0' }
+      })
+      .mockResolvedValueOnce({
+        shell: 'powershell.exe',
+        path: path.join(os.tmpdir(), 'current-node'),
+        node: { path: path.join(os.tmpdir(), 'current-node', 'node.exe'), version: 'v24.15.0' }
+      })
+
+    const runtime = await detectNodeRuntime()
+
+    expect(resolveLoginShellPath).toHaveBeenNthCalledWith(2, {
+      probeNode: true,
+      refreshWindowsPath: true
+    })
+    expect(runtime).toMatchObject({
+      nodeVersion: 'v24.15.0',
+      nodeSupported: true,
+      nodeStatus: 'ready',
+      ready: true
+    })
+  })
+})

@@ -34,6 +34,7 @@ function onEvent(channel: string, listener: IpcEventListener): () => void {
 const api: PiSwitchAPI = {
   system: {
     info: () => invoke(IPC_INVOKE.systemInfo),
+    checkNetwork: () => invoke(IPC_INVOKE.systemCheckNetwork),
     openPath: (path) => invoke(IPC_INVOKE.systemOpenPath, path),
     showItem: (path) => invoke(IPC_INVOKE.systemShowItem, path)
   },

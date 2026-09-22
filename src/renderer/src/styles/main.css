@@ -19,6 +19,12 @@
   background: var(--bg-surface-raised);
 }
 
+/* Avoid repeated backdrop captures across layered cockpit and portrait surfaces
+ * on Windows, where large transparent regions can stall the renderer. */
+:root[data-platform='win'] * {
+  backdrop-filter: none !important;
+}
+
 .harness-card-title {
   color: var(--text-secondary);
   font-size: 11px;

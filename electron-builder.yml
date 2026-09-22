@@ -9,6 +9,8 @@ files:
   - package.json
   - '!**/*.{map,d.ts}'
 extraResources:
+  - from: build/app-icons
+    to: app-icons
   - from: LICENSE
     to: LICENSE
   - from: NOTICE

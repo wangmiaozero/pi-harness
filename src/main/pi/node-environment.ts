@@ -119,7 +119,18 @@ export async function detectNodeRuntime(): Promise<NodeRuntimeInfo> {
   // Desktop apps inherit a launch-service PATH that can differ from the user's
   // interactive terminal. Resolve that shell first so version managers and
   // ~/.zshrc PATH changes win over stale Homebrew/system installations.
-  const loginShell = await resolveLoginShellPath({ probeNode: true })
+  let loginShell = await resolveLoginShellPath({ probeNode: true })
+  if (
+    process.platform === 'win32' &&
+    (!loginShell.node || !isNodeVersionSupported(loginShell.node.version))
+  ) {
+    const refreshed = await resolveLoginShellPath({ probeNode: true, refreshWindowsPath: true })
+    if (refreshed.node && (isNodeVersionSupported(refreshed.node.version) || !loginShell.node)) {
+      loginShell = refreshed
+    } else if (!loginShell.node && refreshed.path) {
+      loginShell = refreshed
+    }
+  }
   const shellEnv = { ...process.env, ...loginShell.env }
   const directories = await nodeToolDirectories(loginShell.path, shellEnv)
   const managedBin = managedNodeBinDirectory()

@@ -12,6 +12,7 @@ const invoke = (name: string) => `pi-harness:${name}` as const
 export const IPC_INVOKE = {
   // system
   systemInfo: invoke('system:info'),
+  systemCheckNetwork: invoke('system:check-network'),
   systemOpenPath: invoke('system:open-path'),
   systemShowItem: invoke('system:show-item'),
 

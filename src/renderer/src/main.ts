@@ -20,6 +20,7 @@ import type { AppUpdateState } from '@shared/ipc/api-types'
 import { usePetStore } from '@renderer/stores/pet'
 import { installPetRuntimeAdapter } from '@renderer/pet/install-runtime-adapter'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
+import { runtimeStartupChecks, startupChecks, startupPhase } from './startup'
 
 applyTheme('dark')
 installAuthorWatermark()
@@ -115,8 +116,60 @@ unsubscribers.push(
 )
 
 async function bootstrap() {
-  await settingsStore.fetch()
-  await Promise.all([piStore.detect(), providersStore.fetchList(), modelsStore.fetchList()])
+  const networkCheck = getApi()
+    .system.checkNetwork()
+    .then((result) => {
+      startupChecks.network.state = result.reachable ? 'healthy' : 'warning'
+      startupChecks.network.detail = result.reachable
+        ? `已连接 · ${result.latencyMs} ms`
+        : '连接失败'
+    })
+    .catch(() => {
+      startupChecks.network.state = 'error'
+      startupChecks.network.detail = '检测失败'
+    })
+  try {
+    await settingsStore.fetch()
+    startupPhase.value = 'services'
+    const environmentCheck = piStore.detect().then(() => {
+      const environment = piStore.environment
+      const runtimeChecks = runtimeStartupChecks(environment?.nodeRuntime ?? null)
+      Object.assign(startupChecks.node, runtimeChecks.node)
+      Object.assign(startupChecks.npm, runtimeChecks.npm)
+      startupChecks.pi.state = !environment
+        ? 'error'
+        : environment.installed
+          ? 'healthy'
+          : 'warning'
+      startupChecks.pi.detail = !environment
+        ? '检测失败'
+        : environment.installed
+          ? '已安装'
+          : '未安装'
+      startupChecks.config.state = !environment
+        ? 'error'
+        : !environment.configValid
+          ? 'error'
+          : environment.configReadable
+            ? 'healthy'
+            : 'warning'
+      startupChecks.config.detail = !environment
+        ? '检测失败'
+        : !environment.configValid
+          ? '配置异常'
+          : environment.configReadable
+            ? '可读取'
+            : '未配置'
+    })
+    await Promise.all([
+      environmentCheck,
+      providersStore.fetchList(),
+      modelsStore.fetchList(),
+      networkCheck
+    ])
+  } finally {
+    startupPhase.value = 'ready'
+  }
 }
 
 void bootstrap()
