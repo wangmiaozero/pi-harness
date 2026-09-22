@@ -106,7 +106,10 @@ async fn runtime_forwards_agent_events_from_mock_sdk() {
     let supervisor = RuntimeSupervisor::new().with_extra_env(env);
     let collector = tokio::spawn(collect(supervisor.subscribe()));
 
-    supervisor.start().await.expect("runtime starts with mock SDK");
+    supervisor
+        .start()
+        .await
+        .expect("runtime starts with mock SDK");
 
     // Scenario B: a domain request is valid right after boot — the session
     // list arrives before any agent exists (lazy SDK load, empty list).
@@ -114,7 +117,10 @@ async fn runtime_forwards_agent_events_from_mock_sdk() {
         .desktop_request("session.list", serde_json::json!({}))
         .await
         .expect("session.list works right after start");
-    assert!(listed["sessions"].as_array().is_some(), "session.list returns sessions array");
+    assert!(
+        listed["sessions"].as_array().is_some(),
+        "session.list returns sessions array"
+    );
 
     // Domain errors cross the hop with typed codes: an unknown session id
     // must surface SESSION_NOT_FOUND, not a hang or generic error.

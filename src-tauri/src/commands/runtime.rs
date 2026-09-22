@@ -61,6 +61,18 @@ async fn forward_supervisor_events(app: tauri::AppHandle, supervisor: RuntimeSup
                         "harness.event" => {
                             app.emit("pi-harness:harness:event", payload)?;
                         }
+                        "config.changed" => {
+                            app.emit("pi-harness:event:config-changed", payload)?;
+                        }
+                        "pi.environment-changed" => {
+                            app.emit("pi-harness:event:pi-env-changed", payload)?;
+                        }
+                        "environment.install-task" => {
+                            app.emit("pi-harness:event:environment-install-task", payload)?;
+                        }
+                        "capability.progress" => {
+                            app.emit("pi-harness:capabilities:mutation-progress", payload)?;
+                        }
                         _ => {
                             app.emit(
                                 "pi-harness:runtime:event",

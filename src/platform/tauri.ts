@@ -50,12 +50,17 @@ import type {
 } from '@shared/types/harness'
 import type {
   AgentStateSnapshot,
+  ProjectContextAction,
   PromptAgentInput,
   SessionContext,
+  SessionContextAction,
   SessionDetail,
+  SessionFolderContextAction,
   SessionInfo,
   StartAgentSessionInput
 } from '@shared/types/workspace'
+import { groupSessionsByProject } from '@shared/workspace/session-tree'
+import type { AppErrorPayload } from '@shared/types/errors'
 import type {
   PlatformRuntimeApi,
   PiSwitchTauriAPI,
@@ -68,6 +73,7 @@ import type {
   SystemInfo
 } from './types'
 import { pendingMethod } from './detect'
+import { rememberNativeDropPaths, resolveDroppedFilePath } from './dropped-path'
 
 /** Tauri command names (snake_case, from src-tauri/src/commands/). */
 const COMMANDS = {
@@ -84,7 +90,56 @@ const COMMANDS = {
   runtimeStart: 'runtime_start',
   runtimeStop: 'runtime_stop',
   runtimeRestart: 'runtime_restart',
-  runtimeRequest: 'runtime_request'
+  runtimeRequest: 'runtime_request',
+  workspacePickDirectory: 'workspace_pick_directory',
+  workspacePickWorkspaceSources: 'workspace_pick_workspace_sources',
+  workspacePickWorkspaceFile: 'workspace_pick_workspace_file',
+  workspaceSaveWorkspaceFile: 'workspace_save_workspace_file',
+  workspaceAllowRoot: 'workspace_allow_root',
+  workspaceGetPathForFile: 'workspace_get_path_for_file',
+  workspaceGetActive: 'workspace_get_active',
+  workspaceSync: 'workspace_sync',
+  workspaceOpenFile: 'workspace_open_file',
+  workspaceSave: 'workspace_save',
+  workspaceSearch: 'workspace_search',
+  workspaceOpenTerminal: 'workspace_open_terminal',
+  workspaceRelocateFolder: 'workspace_relocate_folder',
+  workspaceListRecent: 'workspace_list_recent',
+  workspaceBindSession: 'workspace_bind_session',
+  workspaceGetSessionBinding: 'workspace_get_session_binding',
+  workspaceListSessionBindings: 'workspace_list_session_bindings',
+  workspaceAssertCwd: 'workspace_assert_cwd',
+  workspaceProjectContextMenu: 'workspace_project_context_menu',
+  workspaceSessionFolderContextMenu: 'workspace_session_folder_context_menu',
+  sessionsContextMenu: 'sessions_context_menu',
+  filesList: 'files_list',
+  filesRead: 'files_read',
+  filesWrite: 'files_write',
+  filesUpload: 'files_upload',
+  gitStatus: 'git_status',
+  gitStatusMany: 'git_status_many',
+  gitDiff: 'git_diff',
+  gitStage: 'git_stage',
+  gitUnstage: 'git_unstage',
+  gitGenerateCommitMessage: 'git_generate_commit_message',
+  gitCommit: 'git_commit',
+  gitHistory: 'git_history',
+  gitOverview: 'git_overview',
+  gitCommitDetails: 'git_commit_details',
+  gitCommitDiff: 'git_commit_diff',
+  gitAction: 'git_action',
+  gitFileHistory: 'git_file_history',
+  gitBranchContextMenu: 'git_branch_context_menu',
+  worktreesList: 'worktrees_list',
+  worktreesCreate: 'worktrees_create',
+  worktreesRemove: 'worktrees_remove',
+  piCopyInstallCommand: 'pi_copy_install_command',
+  piOpenNodeDownload: 'pi_open_node_download',
+  backupOpenFolder: 'backup_open_folder',
+  logsOpenFolder: 'logs_open_folder',
+  diagnosticsCopy: 'diagnostics_copy',
+  diagnosticsExport: 'diagnostics_export',
+  capabilitiesOpenHomepage: 'capabilities_open_homepage'
 } as const
 
 /** Event channel names — shared contract with the Rust host. */
@@ -107,7 +162,8 @@ const EVENT_CHANNELS: Record<string, string> = {
   'harness-event': 'pi-harness:harness:event',
   'updater-state': 'pi-harness:updater:state',
   'capability-progress': 'pi-harness:capabilities:mutation-progress',
-  'workspace-changed': 'pi-harness:event:workspace-changed'
+  'workspace-changed': 'pi-harness:event:workspace-changed',
+  'native-folder-drop': 'pi-harness:event:native-folder-drop'
 }
 
 /**
@@ -175,18 +231,28 @@ function createSessionsApi(): PiSwitchAPI['sessions'] {
       rpc<SessionContext>('session.context', { sessionId, leafId: leafId ?? null }),
     viewFullHistory: (sessionId: string) =>
       rpc<SessionDetail>('session.viewFullHistory', { sessionId }),
-    // Phase 3 (filesystem/export plane lives in the Rust host):
+    // Filesystem export plane is still Electron-only (Phase 5).
     export: () => pendingMethod('sessions', 'export'),
     exportProject: () => pendingMethod('sessions', 'exportProject'),
-    contextMenu: () => pendingMethod('sessions', 'contextMenu')
+    contextMenu: (sessionId, isWorktree, isPinned, locale) =>
+      invoke<SessionContextAction | null>(COMMANDS.sessionsContextMenu, {
+        sessionId,
+        isWorktree: isWorktree === true,
+        isPinned: isPinned === true,
+        locale: locale ?? 'en-US'
+      })
   }
 }
 
 /** Agent APIs backed by the runtime sidecar (phase 2, scenario C). */
 function createAgentApi(): PiSwitchAPI['agent'] {
   return {
-    start: (input: StartAgentSessionInput) =>
-      rpc<{ sessionId: string; cwd: string }>('agent.start', { ...input }),
+    start: async (input: StartAgentSessionInput) => {
+      if (input.cwd) {
+        await invoke<string>(COMMANDS.workspaceAssertCwd, { cwd: input.cwd })
+      }
+      return rpc<{ sessionId: string; cwd: string }>('agent.start', { ...input })
+    },
     prompt: (input: PromptAgentInput) => rpc<unknown>('agent.prompt', { ...input }),
     abort: (sessionId: string) => rpc<void>('agent.abort', { sessionId }).then(() => undefined),
     state: (sessionId: string) => rpc<AgentStateSnapshot | null>('agent.state', { sessionId }),
@@ -371,6 +437,240 @@ function installDragRegionShim(): void {
   })
 }
 
+function createWorkspaceApi(): PiSwitchAPI['workspace'] {
+  return {
+    listProjects: async () => {
+      const sessions = await rpc<{ sessions: SessionInfo[] }>('session.list', { force: false }).then(
+        (result) => result.sessions
+      )
+      return groupSessionsByProject(sessions)
+    },
+    pickDirectory: () => invoke<string | null>(COMMANDS.workspacePickDirectory),
+    pickWorkspaceSources: () => invoke<string[]>(COMMANDS.workspacePickWorkspaceSources),
+    pickWorkspaceFile: () => invoke<string | null>(COMMANDS.workspacePickWorkspaceFile),
+    saveWorkspaceFile: () => invoke<string | null>(COMMANDS.workspaceSaveWorkspaceFile),
+    allowRoot: (root) => invoke<void>(COMMANDS.workspaceAllowRoot, { root }),
+    projectContextMenu: (projectKey, projectRoot, isPinned, locale) =>
+      invoke<ProjectContextAction | null>(COMMANDS.workspaceProjectContextMenu, {
+        projectKey,
+        projectRoot,
+        isPinned: isPinned === true,
+        locale: locale ?? 'en-US'
+      }),
+    sessionFolderContextMenu: (locale) =>
+      invoke<SessionFolderContextAction | null>(COMMANDS.workspaceSessionFolderContextMenu, {
+        locale: locale ?? 'en-US'
+      }),
+    getPathForFile: (file) => {
+      const path = resolveDroppedFilePath(file)
+      if (!path) {
+        return Promise.reject({
+          code: 'VALIDATION_ERROR',
+          message: 'Dropped file path is unavailable',
+          userMessage: '无法解析拖放路径，请改用选择文件夹。',
+          recoverable: true
+        } satisfies AppErrorPayload)
+      }
+      return invoke<string>(COMMANDS.workspaceGetPathForFile, { file: path })
+    },
+    getActive: () => invoke(COMMANDS.workspaceGetActive),
+    sync: (input) => invoke(COMMANDS.workspaceSync, { input }),
+    openWorkspaceFile: (path) => invoke(COMMANDS.workspaceOpenFile, { path }),
+    save: (input) => invoke(COMMANDS.workspaceSave, { input }),
+    search: (query, scope, folderId) =>
+      invoke(COMMANDS.workspaceSearch, { query, scope, folderId }),
+    openInTerminal: (directory) => invoke(COMMANDS.workspaceOpenTerminal, { directory }),
+    relocateFolder: (folderId, path) =>
+      invoke(COMMANDS.workspaceRelocateFolder, { folderId, path }),
+    listRecent: () => invoke(COMMANDS.workspaceListRecent),
+    bindSession: (sessionId, workspaceId, folders, mainFolderId) =>
+      invoke(COMMANDS.workspaceBindSession, {
+        input: { sessionId, workspaceId, folders, mainFolderId }
+      }),
+    getSessionBinding: (sessionId) =>
+      invoke(COMMANDS.workspaceGetSessionBinding, { sessionId }),
+    listSessionBindings: () => invoke(COMMANDS.workspaceListSessionBindings)
+  }
+}
+
+function createFilesApi(): PiSwitchAPI['files'] {
+  return {
+    list: (directory) => invoke(COMMANDS.filesList, { directory }),
+    read: (path) => invoke(COMMANDS.filesRead, { path }),
+    write: (path, text, expectedRevision, overwrite) =>
+      invoke(COMMANDS.filesWrite, { path, text, expectedRevision, overwrite }),
+    upload: (directory, fileName, dataBase64, overwrite) =>
+      invoke(COMMANDS.filesUpload, { directory, fileName, dataBase64, overwrite })
+  }
+}
+
+function createGitApi(): PiSwitchAPI['git'] {
+  return {
+    status: (cwd) => invoke(COMMANDS.gitStatus, { cwd }),
+    statusMany: (cwds) => invoke(COMMANDS.gitStatusMany, { cwds }),
+    diff: (cwd, filePath) => invoke(COMMANDS.gitDiff, { cwd, filePath }),
+    stage: (cwd, filePaths) => invoke(COMMANDS.gitStage, { cwd, filePaths }),
+    unstage: (cwd, filePaths) => invoke(COMMANDS.gitUnstage, { cwd, filePaths }),
+    generateCommitMessage: (cwd, draft, model) =>
+      invoke(COMMANDS.gitGenerateCommitMessage, { cwd, draft, model }),
+    commit: (cwd, message) => invoke(COMMANDS.gitCommit, { cwd, message }),
+    history: (cwd, limit) => invoke(COMMANDS.gitHistory, { cwd, limit }),
+    overview: (cwd) => invoke(COMMANDS.gitOverview, { cwd }),
+    commitDetails: (cwd, hash) => invoke(COMMANDS.gitCommitDetails, { cwd, hash }),
+    commitDiff: (cwd, hash, filePath) => invoke(COMMANDS.gitCommitDiff, { cwd, hash, filePath }),
+    action: (input) => invoke(COMMANDS.gitAction, { input }),
+    fileHistory: (cwd, filePath, limit) =>
+      invoke(COMMANDS.gitFileHistory, { cwd, filePath, limit }),
+    branchContextMenu: (input) => invoke(COMMANDS.gitBranchContextMenu, { input })
+  }
+}
+
+function createPiApi(): PiSwitchAPI['pi'] {
+  return {
+    detect: () => rpc('pi.detect'),
+    getVersion: () => rpc('pi.getVersion'),
+    runHelp: () => rpc('pi.runHelp'),
+    checkLatest: () => rpc('pi.checkLatest'),
+    install: () => rpc('pi.install'),
+    bootstrap: () => rpc('pi.bootstrap'),
+    installNode: () => rpc('pi.installNode'),
+    reinstall: () => rpc('pi.reinstall'),
+    getInstallTask: () => rpc('pi.getInstallTask'),
+    cancelInstall: () => rpc('pi.cancelInstall'),
+    update: (force?: boolean) => rpc('pi.update', { force: force === true }),
+    copyInstallCommand: () => invoke(COMMANDS.piCopyInstallCommand),
+    openNodeDownload: () => invoke(COMMANDS.piOpenNodeDownload)
+  }
+}
+
+function createProvidersApi(): PiSwitchAPI['providers'] {
+  return {
+    list: () => rpc('providers.list'),
+    get: (key) => rpc('providers.get', { key }),
+    create: (form, options) => rpc('providers.create', { form, options }),
+    update: (key, form, options) => rpc('providers.update', { key, form, options }),
+    delete: (key, options) => rpc<void>('providers.delete', { key, options }).then(() => undefined),
+    duplicate: (key, options) => rpc('providers.duplicate', { key, options }),
+    setEnabled: (key, enabled) => rpc('providers.setEnabled', { key, enabled }),
+    testConnection: (input) => rpc('providers.testConnection', { input }),
+    discoverModels: (input) => rpc('providers.discoverModels', { input })
+  }
+}
+
+function createModelsApi(): PiSwitchAPI['models'] {
+  return {
+    list: () => rpc('models.list'),
+    create: (form, options) => rpc('models.create', { form, options }),
+    update: (id, form, options) => rpc('models.update', { id, form, options }),
+    delete: (id, options) => rpc<void>('models.delete', { id, options }).then(() => undefined),
+    setActive: (input, options) => rpc('models.setActive', { input, options }),
+    getActive: () => rpc('models.getActive')
+  }
+}
+
+function createConfigApi(): PiSwitchAPI['config'] {
+  return {
+    read: () => rpc('config.read'),
+    readRaw: (file) => rpc('config.readRaw', { file }),
+    writeRaw: (file, content, options) =>
+      rpc<void>('config.writeRaw', { file, content, options }).then(() => undefined),
+    readSettings: () => rpc('config.readSettings'),
+    reload: () => rpc('config.reload'),
+    getStatus: () => rpc('config.getStatus'),
+    conflictSnapshot: (file) => rpc('config.conflictSnapshot', { file })
+  }
+}
+
+function createSkillsApi(): PiSwitchAPI['skills'] {
+  return {
+    list: (projectRoot) => rpc('skills.list', { projectRoot }),
+    packages: (projectRoot) => rpc('skills.packages', { projectRoot }),
+    market: (projectRoot) => rpc('skills.market', { projectRoot }),
+    installBuiltinSkills: (target) => rpc('skills.installBuiltinSkills', { target }),
+    updateBuiltinSkills: (target) => rpc('skills.updateBuiltinSkills', { target }),
+    uninstallBuiltinSkills: (target) => rpc('skills.uninstallBuiltinSkills', { target }),
+    installPackages: (targets) => rpc('skills.installPackages', { targets }),
+    searchRegistry: (input) => rpc('skills.searchRegistry', { input }),
+    getRegistryPackageDetail: (name, refresh) =>
+      rpc('skills.getRegistryPackageDetail', { name, refresh }),
+    checkPackageUpdates: (projectRoot) => rpc('skills.checkPackageUpdates', { projectRoot }),
+    updatePackage: (target) => rpc('skills.updatePackage', { target }),
+    updateAllPackages: (projectRoot) => rpc('skills.updateAllPackages', { projectRoot }),
+    repairPackage: (target) => rpc('skills.repairPackage', { target }),
+    registerPackage: (target) => rpc('skills.registerPackage', { target }),
+    removePackages: (targets) => rpc('skills.removePackages', { targets }),
+    removePackage: (target) => rpc('skills.removePackage', { target }),
+    deleteOrphanPackage: (target) => rpc('skills.deleteOrphanPackage', { target }),
+    cleanupPlan: (projectRoot) => rpc('skills.cleanupPlan', { projectRoot }),
+    cleanupThirdParty: (projectRoot) => rpc('skills.cleanupThirdParty', { projectRoot }),
+    repairPermissions: (projectRoot) => rpc('skills.repairPermissions', { projectRoot }),
+    read: (path) => rpc('skills.read', { path }),
+    create: (form) => rpc('skills.create', { form }),
+    update: (form) => rpc('skills.update', { form }),
+    import: (input) => rpc('skills.import', { input }),
+    validate: (form) => rpc('skills.validate', { form }),
+    delete: (path) => rpc<void>('skills.delete', { path }).then(() => undefined),
+    refresh: () => rpc('skills.refresh')
+  }
+}
+
+function createCapabilitiesApi(): PiSwitchAPI['capabilities'] {
+  return {
+    list: () => rpc('capabilities.list'),
+    openHomepage: (skillId) => invoke(COMMANDS.capabilitiesOpenHomepage, { skillId }),
+    installSkill: (skillId) => rpc('capabilities.installSkill', { skillId }),
+    updateSkill: (skillId) => rpc('capabilities.updateSkill', { skillId }),
+    uninstallSkill: (skillId) => rpc('capabilities.uninstallSkill', { skillId }),
+    setSkillEnabled: (skillId, enabled) =>
+      rpc('capabilities.setSkillEnabled', { skillId, enabled })
+  }
+}
+
+function createBackupApi(): PiSwitchAPI['backup'] {
+  return {
+    list: () => rpc('backup.list'),
+    create: (reason) => rpc('backup.create', { reason }),
+    restore: (id) => rpc<void>('backup.restore', { id }).then(() => undefined),
+    delete: (id) => rpc<void>('backup.delete', { id }).then(() => undefined),
+    pruneToRetention: (retention) => rpc('backup.pruneToRetention', { retention }),
+    openFolder: () => invoke(COMMANDS.backupOpenFolder).then(() => undefined)
+  }
+}
+
+function createSettingsApi(): PiSwitchAPI['settings'] {
+  return {
+    get: () => rpc('settings.get'),
+    set: (patch) => rpc('settings.set', { patch }),
+    unlockMascot: (answer) => rpc('settings.unlockMascot', { answer }),
+    getUiState: () => rpc('settings.getUiState'),
+    setUiState: (state) => rpc<void>('settings.setUiState', { state }).then(() => undefined)
+  }
+}
+
+function createDiagnosticsApi(): PiSwitchAPI['diagnostics'] {
+  return {
+    get: () => rpc('diagnostics.get'),
+    copy: () => invoke(COMMANDS.diagnosticsCopy),
+    export: () => invoke(COMMANDS.diagnosticsExport)
+  }
+}
+
+function createLogsApi(): PiSwitchAPI['logs'] {
+  return {
+    read: () => rpc('logs.read'),
+    openFolder: () => invoke(COMMANDS.logsOpenFolder)
+  }
+}
+
+function createWorktreesApi(): PiSwitchAPI['worktrees'] {
+  return {
+    list: (cwd) => invoke(COMMANDS.worktreesList, { cwd }),
+    create: (cwd, branch) => invoke(COMMANDS.worktreesCreate, { cwd, branch }),
+    remove: (cwd, worktreePath, force) =>
+      invoke(COMMANDS.worktreesRemove, { cwd, worktreePath, force })
+  }
+}
+
 /**
  * Build the complete Tauri `window.piSwitch` implementation.
  */
@@ -381,30 +681,30 @@ export function createTauriBridge(): PiSwitchTauriAPI {
       openPath: (path: string) => invoke<void>(COMMANDS.systemOpenPath, { path }),
       showItem: (path: string) => invoke<void>(COMMANDS.systemShowItem, { path })
     },
-    pi: pendingNamespace<PiSwitchAPI['pi']>('pi'),
-    providers: pendingNamespace<PiSwitchAPI['providers']>('providers'),
-    models: pendingNamespace<PiSwitchAPI['models']>('models'),
-    config: pendingNamespace<PiSwitchAPI['config']>('config'),
-    skills: pendingNamespace<PiSwitchAPI['skills']>('skills'),
-    capabilities: pendingNamespace<PiSwitchAPI['capabilities']>('capabilities'),
-    backup: pendingNamespace<PiSwitchAPI['backup']>('backup'),
-    settings: pendingNamespace<PiSwitchAPI['settings']>('settings'),
-    diagnostics: pendingNamespace<PiSwitchAPI['diagnostics']>('diagnostics'),
-    logs: pendingNamespace<PiSwitchAPI['logs']>('logs'),
+    pi: createPiApi(),
+    providers: createProvidersApi(),
+    models: createModelsApi(),
+    config: createConfigApi(),
+    skills: createSkillsApi(),
+    capabilities: createCapabilitiesApi(),
+    backup: createBackupApi(),
+    settings: createSettingsApi(),
+    diagnostics: createDiagnosticsApi(),
+    logs: createLogsApi(),
     updater: pendingNamespace<PiSwitchAPI['updater']>('updater'),
     window: {
       minimize: () => invoke<void>(COMMANDS.windowMinimize),
       maximizeToggle: () => invoke<void>(COMMANDS.windowMaximizeToggle),
       close: () => invoke<void>(COMMANDS.windowClose)
     },
-    workspace: pendingNamespace<PiSwitchAPI['workspace']>('workspace'),
+    workspace: createWorkspaceApi(),
     sessions: createSessionsApi(),
     agent: createAgentApi(),
     harness: createHarnessApi(),
     orchestration: createOrchestrationApi(),
-    files: pendingNamespace<PiSwitchAPI['files']>('files'),
-    git: pendingNamespace<PiSwitchAPI['git']>('git'),
-    worktrees: pendingNamespace<PiSwitchAPI['worktrees']>('worktrees'),
+    files: createFilesApi(),
+    git: createGitApi(),
+    worktrees: createWorktreesApi(),
     agentAura: pendingNamespace<PiSwitchAPI['agentAura']>('agentAura'),
     runtime,
     on: ((event: string, listener: (payload: unknown) => void) => {
@@ -414,5 +714,22 @@ export function createTauriBridge(): PiSwitchTauriAPI {
   }
 
   installDragRegionShim()
+  installNativeDropCache()
   return bridge as PiSwitchTauriAPI
+}
+
+/**
+ * Cache Tauri native drag-drop paths so `getPathForFile` can resolve a
+ * WKWebView `File` that only has `name` (no filesystem path).
+ */
+function installNativeDropCache(): void {
+  listen('tauri://drag-drop', (event) => {
+    const payload = event.payload as { paths?: unknown }
+    const paths = Array.isArray(payload?.paths)
+      ? payload.paths.filter((path): path is string => typeof path === 'string')
+      : []
+    if (paths.length) rememberNativeDropPaths(paths)
+  }).catch(() => {
+    /* no webview in unit tests */
+  })
 }

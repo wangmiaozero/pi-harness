@@ -25,11 +25,7 @@ pub fn resolve_node() -> AppResult<PathBuf> {
         )));
     }
 
-    let program = if cfg!(windows) { "node.exe" } else { "node" };
-    let discovered = which_on_path(program).ok_or_else(|| {
-        AppError::io("Node.js was not found on PATH. Install Node.js >= 22 or set PI_HARNESS_NODE.")
-    })?;
-    Ok(discovered)
+    crate::environment::resolve_node()
 }
 
 /// Resolve the compiled runtime entry script.
@@ -47,13 +43,6 @@ pub fn resolve_runtime_script() -> AppResult<PathBuf> {
         "Runtime sidecar is not built: {} is missing. Run `pnpm runtime:build`.",
         script.display()
     )))
-}
-
-fn which_on_path(program: &str) -> Option<PathBuf> {
-    let path = std::env::var_os("PATH")?;
-    std::env::split_paths(&path)
-        .map(|dir| dir.join(program))
-        .find(|candidate| candidate.is_file())
 }
 
 #[cfg(test)]

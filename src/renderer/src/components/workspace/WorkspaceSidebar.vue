@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   ChevronDown,
@@ -31,6 +31,7 @@ import { useHarnessStore } from '@renderer/stores/harness'
 import HarnessContextGauge from '@renderer/features/harness/HarnessContextGauge.vue'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { callApi, getApi, getErrorPayload } from '@renderer/composables/useApi'
+import { isTauriHost } from '@platform/detect'
 import type {
   ProjectContextAction,
   RecentWorkspace,
@@ -571,6 +572,34 @@ function onDragOver(event: DragEvent) {
   event.dataTransfer.dropEffect = 'copy'
 }
 
+let lastDroppedSignature = ''
+let lastDroppedAt = 0
+let stopNativeFolderDrop: (() => void) | null = null
+
+async function importDroppedDirectories(directories: string[]): Promise<void> {
+  const unique = [...new Set(directories.filter((path) => path.length > 0))]
+  if (!unique.length) return
+  const signature = unique.slice().sort().join('\0')
+  const now = Date.now()
+  if (signature === lastDroppedSignature && now - lastDroppedAt < 1000) return
+  lastDroppedSignature = signature
+  lastDroppedAt = now
+  if (importingProject.value || importingWorkspace.value) return
+  importingProject.value = true
+  try {
+    await openAsMainProject(unique)
+    toast.success(
+      unique.length === 1
+        ? t('workspace.projectDropped')
+        : t('workspace.projectsDropped', { count: unique.length })
+    )
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('common.failed'))
+  } finally {
+    importingProject.value = false
+  }
+}
+
 async function onDrop(event: DragEvent) {
   dragDepth = 0
   dragActive.value = false
@@ -581,27 +610,33 @@ async function onDrop(event: DragEvent) {
     if (item.kind !== 'file' || !entry?.isDirectory) continue
     const file = item.getAsFile()
     if (!file) continue
-    const path = await getApi().workspace.getPathForFile(file)
-    if (path) directories.push(path)
+    try {
+      const path = await getApi().workspace.getPathForFile(file)
+      if (path) directories.push(path)
+    } catch {
+      /* WKWebView File has no path; native-folder-drop handles Tauri drops */
+    }
   }
   if (!directories.length) {
+    if (isTauriHost()) return
     toast.error(t('workspace.dropFolderOnly'))
     return
   }
-  importingProject.value = true
-  try {
-    await openAsMainProject(directories)
-    toast.success(
-      directories.length === 1
-        ? t('workspace.projectDropped')
-        : t('workspace.projectsDropped', { count: directories.length })
-    )
-  } catch (error) {
-    toast.error((error as { message?: string }).message ?? t('common.failed'))
-  } finally {
-    importingProject.value = false
-  }
+  await importDroppedDirectories(directories)
 }
+
+onMounted(() => {
+  stopNativeFolderDrop = getApi().on('native-folder-drop', (payload) => {
+    const paths = (payload as { paths?: unknown } | null)?.paths
+    if (!Array.isArray(paths)) return
+    void importDroppedDirectories(paths.filter((path): path is string => typeof path === 'string'))
+  })
+})
+
+onUnmounted(() => {
+  stopNativeFolderDrop?.()
+  stopNativeFolderDrop = null
+})
 
 async function onContextMenu(session: SessionInfo, event: MouseEvent) {
   event.preventDefault()

@@ -429,4 +429,69 @@ describe('domain methods over mock SDK', () => {
     expect(status.sdkLoaded).toBe(true)
     expect(status.firstAgentStartMs).not.toBeNull()
   })
+
+  it('settings.get returns app settings from userData', async () => {
+    const outcome = await call('settings.get', {})
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    const settings = outcome.result as { theme: string; backupRetention: number }
+    expect(settings.theme).toBe('dark')
+    expect(settings.backupRetention).toBe(20)
+  })
+
+  it('providers.list and models.list return arrays', async () => {
+    const providers = await call('providers.list', {})
+    expect(providers.ok).toBe(true)
+    if (!providers.ok) return
+    expect(Array.isArray(providers.result)).toBe(true)
+
+    const models = await call('models.list', {})
+    expect(models.ok).toBe(true)
+    if (!models.ok) return
+    expect(Array.isArray(models.result)).toBe(true)
+  })
+
+  it('config.getStatus reports models.json paths', async () => {
+    const outcome = await call('config.getStatus', {})
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    const status = outcome.result as { modelsPath: string; settingsPath: string }
+    expect(status.modelsPath).toContain('models.json')
+    expect(status.settingsPath).toContain('settings.json')
+  })
+
+  it('backup.list and pi.copyInstallCommand work without a live Pi install', async () => {
+    const backups = await call('backup.list', {})
+    expect(backups.ok).toBe(true)
+    if (!backups.ok) return
+    expect(Array.isArray(backups.result)).toBe(true)
+
+    const command = await call('pi.copyInstallCommand', {})
+    expect(command.ok).toBe(true)
+    if (!command.ok) return
+    expect(String(command.result)).toContain('npm install')
+  })
+
+  it('skills.list and capabilities.list return arrays', async () => {
+    const skills = await call('skills.list', {})
+    expect(skills.ok).toBe(true)
+    if (!skills.ok) return
+    expect(Array.isArray(skills.result)).toBe(true)
+
+    const capabilities = await call('capabilities.list', {})
+    expect(capabilities.ok).toBe(true)
+    if (!capabilities.ok) return
+    expect(Array.isArray(capabilities.result)).toBe(true)
+  }, 30_000)
+
+  it('diagnostics.get redacts secret-shaped fields', async () => {
+    const outcome = await call('diagnostics.get', {})
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    const report = JSON.stringify(outcome.result)
+    expect(report.toLowerCase()).not.toMatch(/sk-[a-z0-9]{8,}/i)
+    expect(outcome.result).toMatchObject({
+      security: { backend: expect.any(String) }
+    })
+  }, 30_000)
 })

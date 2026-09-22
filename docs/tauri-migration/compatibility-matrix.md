@@ -20,15 +20,27 @@ Electron 预载桥与 Tauri 平台层（`src/platform/tauri.ts`）实现同一�
 | `window`     | `minimize()`                                       | ✅ `window_minimize`                                                                                                                        |
 | `window`     | `maximizeToggle()`                                 | ✅ `window_maximize_toggle`                                                                                                                 |
 | `window`     | `close()`                                          | ✅ `window_close`                                                                                                                           |
-| `on`         | 11 个事件通道                                      | ✅ 平台层映射到同名 Tauri 事件（未接线的事件源仍待迁移，见下）                                                                              |
+| `on`         | 12 个事件通道                                      | ✅ 平台层映射到同名 Tauri 事件（未接线的事件源仍待迁移，见下）                                                                              |
 | `runtime` ➕ | `ping` `version` `status` `start` `stop` `restart` | ✅ `runtime_*` 命令                                                                                                                         |
 | `runtime` ➕ | `onState` `onEvent` `onLog`                        | ✅ `pi-harness:runtime:*` 事件                                                                                                              |
-| `sessions`  | `list` `get` `rename` `delete` `context` `viewFullHistory` | ✅ `runtime_request` → 运行时 `session.*`（第二阶段；Pi SDK 懒加载）                                                   |
-| `agent`     | `start` `prompt` `abort` `state` `running` `command` | ✅ `runtime_request` → 运行时 `agent.*`（第二阶段；流式事件经 `pi-harness:agent:*` 通道）                                              |
-| `harness`   | `state` `tools` `setTools` `setModel` `setThinkingLevel` `compact` `abortCompaction` `setAutoCompaction` `steer` `followUp` `fork` `navigateTree` `session` `stats` `timeline` | ✅ `runtime_request` → 运行时 `harness.*`（第二阶段） |
-| `harness`   | `listRuns` `getRun` `getRunDetail` `getRunTree` `compareRuns` `forkRun` `getBaseline` `setBaseline` `getProjectStats` `exportRun` `exportDebugBundle` `listArtifacts` `getStoreSettings` `updateStoreSettings` `getPolicy` `setPolicy` `listCheckpoints` `createCheckpoint` `resumeCheckpoint` `forkCheckpoint` `retryLastRun` `evaluateRun` `listEvaluations` | ✅ `runtime_request` → 运行时 Control Plane（第三阶段） |
-| `orchestration` | `list` `get` `create` `delete` `start` `pause` `resume` `abort` `snapshot` `listTemplates` `saveTemplate` `deleteTemplate` `listTeams` `saveTeam` `deleteTeam` `listAgents` `addAgent` `updateAgent` `deleteAgent` `setAgentBudget` `listTasks` `createTask` `updateTask` `deleteTask` `retryTask` `skipTask` `reassignTask` `listHandoffs` | ✅ `runtime_request` → 运行时 Orchestration（第三阶段） |
-| `on`        | `agent-event` `agent-running` `harness-event`       | ✅ 实时转发（事件流，无轮询）                                                                                                               |
+| `sessions`  | `list` `get` `rename` `delete` `context` `viewFullHistory` `contextMenu` | ✅ `session.*` RPC；`contextMenu` 为 Rust 原生菜单 |
+| `agent`     | `start` `prompt` `abort` `state` `running` `command` | ✅ `runtime_request` → 运行时 `agent.*`；`start` 先 `workspace_assert_cwd` |
+| `harness`   | （第二/三阶段全部方法） | ✅ `runtime_request` |
+| `orchestration` | （第三阶段全部方法） | ✅ `runtime_request`；worktree 模式走 sidecar `git worktree add` |
+| `workspace` | `listProjects` `pickDirectory` `pickWorkspaceSources` `pickWorkspaceFile` `saveWorkspaceFile` `allowRoot` `projectContextMenu` `sessionFolderContextMenu` `getPathForFile` `getActive` `sync` `openWorkspaceFile` `save` `search` `openInTerminal` `relocateFolder` `listRecent` `bindSession` `getSessionBinding` `listSessionBindings` | ✅ Rust Desktop Host + 原生 dialog/菜单 |
+| `files` | `list` `read` `write` `upload` | ✅ Rust；路径必须在 authorized roots |
+| `git` | `status` `statusMany` `diff` `stage` `unstage` `generateCommitMessage` `commit` `history` `overview` `commitDetails` `commitDiff` `action` `fileHistory` `branchContextMenu` | ✅ Rust git CLI；AI commit 经 sidecar；GitHub PR `available: false` |
+| `worktrees` | `list` `create` `remove` | ✅ Rust；`{repo}-worktrees/{branch}` |
+| `settings` | `get` `set` `unlockMascot` `getUiState` `setUiState` | ✅ sidecar JSON store（userData `settings.json` / `ui-state.json`） |
+| `pi` | `detect` `getVersion` `runHelp` `checkLatest` `install` `bootstrap` `installNode` `reinstall` `getInstallTask` `cancelInstall` `update` | ✅ sidecar EnvironmentManager；`copyInstallCommand` / `openNodeDownload` 为 Rust |
+| `config` | `read` `readRaw` `writeRaw` `readSettings` `reload` `getStatus` `conflictSnapshot` | ✅ sidecar PiConfigService + chokidar |
+| `providers` | `list` `get` `create` `update` `delete` `duplicate` `setEnabled` `testConnection` `discoverModels` | ✅ sidecar；secret mask |
+| `models` | `list` `create` `update` `delete` `setActive` `getActive` | ✅ sidecar；`provider + modelId` |
+| `skills` | （包注册表 / builtin / CRUD 全部方法） | ✅ sidecar |
+| `capabilities` | `list` `installSkill` `updateSkill` `uninstallSkill` `setSkillEnabled` | ✅ sidecar 受信目录；`openHomepage` 为 Rust 打开 GitHub URL |
+| `backup` | `list` `create` `restore` `delete` `pruneToRetention` | ✅ sidecar；`openFolder` 为 Rust |
+| `diagnostics` | `get` | ✅ sidecar（redact）；`copy` / `export` 为 Rust clipboard / save dialog |
+| `logs` | `read` | ✅ sidecar；`openFolder` 为 Rust |
 
 ## 待迁移
 
@@ -38,22 +50,7 @@ Electron 预载桥与 Tauri 平台层（`src/platform/tauri.ts`）实现同一�
 
 | 命名空间                  | 方法数 | 计划阶段 | 迁移目标                                              |
 | ------------------------- | -----: | -------- | ----------------------------------------------------- |
-| `settings`                |      4 | 阶段 2   | 运行时（JSON 文件）                                   |
-| `pi`（环境探测/安装）     |     13 | 阶段 2   | 运行时（Node 环境天然可用）                           |
-| `config`                  |      7 | 阶段 2   | 运行时                                                |
-| `logs`                    |      2 | 阶段 2   | 运行时                                                |
-| `diagnostics`             |      3 | 阶段 2   | 运行时                                                |
-| `providers`               |      9 | 阶段 3   | 运行时                                                |
-| `models`                  |      6 | 阶段 3   | 运行时                                                |
-| `backup`                  |      6 | 阶段 3   | 运行时                                                |
-| `skills` / `capabilities` | 27 + 5 | 阶段 4   | 运行时                                                |
-| `sessions`（剩余）        |      3 | 阶段 5   | `export` / `exportProject` / `contextMenu`（文件系统面） |
-| `harness`（控制平面）     |      0 | 阶段 3   | ✅ 已迁入 Runtime Control Plane                        |
-| `orchestration`           |      0 | 阶段 3   | ✅ 已迁入 Runtime Orchestration（Worktree 回退 shared cwd） |
-| `files`                   |      4 | 阶段 5   | 运行时                                                |
-| `git`                     |     12 | 阶段 6   | 运行时                                                |
-| `worktrees`               |      3 | 阶段 6   | 运行时                                                |
-| `workspace`               |     20 | 阶段 6   | 运行时 + 原生对话框（目录选择需要 Tauri dialog 插件） |
+| `sessions`（剩余）        |      2 | 阶段 5   | `export` / `exportProject` |
 | `updater`                 |      5 | 阶段 7   | Tauri updater 插件（原生侧）                          |
 | `agentAura`               |      1 | 阶段 7   | 悬浮窗恢复后一并处理                                  |
 
@@ -67,6 +64,7 @@ Electron 预载桥与 Tauri 平台层（`src/platform/tauri.ts`）实现同一�
 | `system.info().versions` | electron/chrome/node 实值    | electron/chrome 空串；node = sidecar 版本（未启动时空串）       |
 | `system.info().packaged` | `app.isPackaged`             | `!debug_assertions`（dev 构建恒 false）                         |
 | 帧拖拽                   | `-webkit-app-region: drag`   | mousedown shim → `window_start_drag`（WKWebView 忽略 CSS 属性） |
+| 文件夹拖放               | HTML5 File + `webUtils.getPathForFile` | 原生 `DragDrop` → `native-folder-drop`；`getPathForFile` 匹配 basename |
 | Agent 流式事件           | Pi SDK → webContents.send    | Pi SDK → 运行时 → JSONL → Rust → `pi-harness:agent:*` 事件（同 payload 形态） |
 | 运行时崩溃恢复           | 不适用（进程内）              | `RuntimeStatusBanner` + `runtime.restart()`（Crashed 后可重启） |
 | 悬浮窗（overlay）        | 第二 BrowserWindow           | 未实现（入口未开放，无影响）                            |

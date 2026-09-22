@@ -1,6 +1,6 @@
-# Tauri 2 迁移（第三阶段）
+# Tauri 2 迁移（第五阶段）
 
-> 状态：第三阶段（Harness Control Plane + Multi-Agent）— 已完成
+> 状态：第五阶段（Providers + Models + Config + Skills + Environment）— 已完成
 > 分支：`refactor/tauri-v2`（Electron 主线保持可检出、可构建、可发布）
 
 本目录记录 Pi-Harness 从 Electron 迁移到 Tauri 2 的架构、协议与迁移计划。
@@ -14,6 +14,15 @@
 - [compatibility-matrix.md](./compatibility-matrix.md) — `window.piSwitch` API 兼容性矩阵
 - [phase-2-report.md](./phase-2-report.md) — 第二阶段交付报告与验收场景状态
 - [phase-3-report.md](./phase-3-report.md) — 第三阶段交付报告
+- [phase-4-report.md](./phase-4-report.md) — 第四阶段交付报告
+- [phase-5-report.md](./phase-5-report.md) — 第五阶段交付报告
+- [workspace.md](./workspace.md) — Workspace / Dialog / Binding
+- [filesystem-security.md](./filesystem-security.md) — 文件读写边界
+- [path-authorization.md](./path-authorization.md) — Authorized roots
+- [git.md](./git.md) — Git CLI / AI commit
+- [worktree.md](./worktree.md) — Worktree 布局与 Orchestration
+- [providers.md](./providers.md) — Providers / Models / Config / Skills
+- [environment.md](./environment.md) — PATH / Node / Pi install
 - [control-plane.md](./control-plane.md) — Runs / Policy / Checkpoint / Evaluation
 - [orchestration.md](./orchestration.md) — Multi-Agent 状态机
 - [scheduler.md](./scheduler.md) — Task 调度与依赖

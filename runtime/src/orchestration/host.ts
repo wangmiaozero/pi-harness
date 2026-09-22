@@ -2,8 +2,8 @@
  * Orchestrator host adapter for the Node runtime sidecar.
  *
  * Bridges OrchestratorService onto ControlPlane + Harness + Session.
- * Worktree creation is best-effort: Phase 3 does not migrate Git Worktree,
- * so isolated agents fall back to the shared orchestration cwd.
+ * Isolated agents get a real git worktree under `{repo}-worktrees/{branch}`;
+ * the path is appended to authorized-roots.json for the desktop host.
  */
 
 import { JsonStore } from '../support/json-store.js'
@@ -73,10 +73,9 @@ export function createOrchestratorHost(
       // Workspace binding is a desktop-host concern; the sidecar already
       // starts the Pi session with the agent cwd.
     },
-    async createWorktree(cwd: string, _branch: string) {
-      // Git worktree UI/service is the next phase. Shared cwd is the
-      // compatible fallback — agents still run real Pi sessions.
-      return { path: cwd, branch: _branch }
+    async createWorktree(cwd: string, branch: string) {
+      const { createGitWorktree } = await import('./worktree.js')
+      return createGitWorktree(cwd, branch)
     }
   }
 }

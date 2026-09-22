@@ -40,13 +40,34 @@ const COMPACTION_REQUEST_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 pub fn request_timeout_for(method: &str, params: &serde_json::Value) -> Duration {
     let is_compact = match method {
         "harness.compact" => true,
-        "agent.command" => params
-            .get("command")
-            .and_then(|command| command.get("type"))
-            .and_then(serde_json::Value::as_str)
-            == Some("compact"),
+        "agent.command" => {
+            params
+                .get("command")
+                .and_then(|command| command.get("type"))
+                .and_then(serde_json::Value::as_str)
+                == Some("compact")
+        }
         _ => false,
     };
+    if method == "git.generateCommitMessage" {
+        return Duration::from_secs(90);
+    }
+    if matches!(
+        method,
+        "pi.install" | "pi.bootstrap" | "pi.installNode" | "pi.reinstall" | "pi.update"
+    ) {
+        return Duration::from_secs(10 * 60);
+    }
+    if method.starts_with("skills.install")
+        || method.starts_with("skills.update")
+        || method.starts_with("skills.repair")
+        || method.starts_with("capabilities.install")
+        || method.starts_with("capabilities.update")
+        || method == "providers.testConnection"
+        || method == "providers.discoverModels"
+    {
+        return Duration::from_secs(5 * 60);
+    }
     if is_compact {
         COMPACTION_REQUEST_TIMEOUT
     } else {
@@ -229,6 +250,7 @@ impl RuntimeSupervisor {
 
         let mut child: Child = Command::new(&node)
             .arg(&script)
+            .env("PATH", crate::environment::merged_path())
             .envs(self.extra_env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())

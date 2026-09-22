@@ -76,7 +76,8 @@ export interface RpcRequest {
 }
 
 export interface RpcErrorPayload {
-  code: RpcErrorCode
+  /** Protocol codes plus AppErrorCode values from ported desktop services. */
+  code: string
   message: string
   /** Sanitized, user-facing phrasing (mirrors `AppErrorPayload.userMessage`). */
   userMessage?: string

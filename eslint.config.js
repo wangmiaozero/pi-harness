@@ -13,6 +13,9 @@ export default defineConfigWithVueTs([
       'build/**',
       'resources/**',
       'src-tauri/**',
+      'runtime/dist/**',
+      'runtime/src/vendor/**',
+      'runtime/src/desktop/**',
       'src/renderer/src/i18n/locales/**'
     ]
   },

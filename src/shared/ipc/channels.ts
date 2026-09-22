@@ -278,7 +278,8 @@ export const IPC_EVENT = {
   updaterState: 'pi-harness:updater:state',
   capabilityProgress: 'pi-harness:capabilities:mutation-progress',
   agentAuraActive: 'pi-harness:event:agent-aura-active',
-  workspaceChanged: 'pi-harness:event:workspace-changed'
+  workspaceChanged: 'pi-harness:event:workspace-changed',
+  nativeFolderDrop: 'pi-harness:event:native-folder-drop'
 } as const
 
 export type IpcEventName = (typeof IPC_EVENT)[keyof typeof IPC_EVENT]

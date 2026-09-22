@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { PiSwitchAPI } from '@shared/ipc/api-types'
 import { isErrorPayload } from '@shared/types/errors'
+import { rememberNativeDropPaths, resetNativeDropPaths } from './dropped-path'
 
 const invokeMock = vi.fn()
 
@@ -17,6 +18,7 @@ import { createTauriBridge } from './tauri'
 describe('tauri bridge', () => {
   beforeEach(() => {
     invokeMock.mockReset()
+    resetNativeDropPaths()
   })
 
   it('system.info invokes system_info', async () => {
@@ -54,18 +56,20 @@ describe('tauri bridge', () => {
 
   it('pending namespaces reject with SHELL_METHOD_PENDING payloads', async () => {
     const bridge = createTauriBridge()
-    const error = await bridge.git.status('/repo').catch((e: unknown) => e)
+    const error = await (bridge.updater as unknown as { state(): Promise<never> })
+      .state()
+      .catch((e: unknown) => e)
     expect(isErrorPayload(error)).toBe(true)
     expect((error as { code: string }).code).toBe('SHELL_METHOD_PENDING')
-    expect((error as { context: { namespace: string } }).context.namespace).toBe('git')
+    expect((error as { context: { namespace: string } }).context.namespace).toBe('updater')
   })
 
   it('pending namespaces reject every method on the same namespace', async () => {
     const bridge = createTauriBridge()
     const errors = await Promise.all(
       [
-        (bridge.settings as unknown as { get(): Promise<never> }).get(),
-        (bridge.settings as unknown as { set(p: unknown): Promise<never> }).set({})
+        (bridge.updater as unknown as { check(): Promise<never> }).check(),
+        (bridge.updater as unknown as { download(): Promise<never> }).download()
       ].map((p) => p.catch((e: unknown) => e))
     )
     for (const error of errors) {
@@ -105,14 +109,38 @@ describe('tauri bridge', () => {
   })
 
   it('pending methods surface as structured errors for renderer pipelines', async () => {
-    // The renderer's getErrorPayload accepts plain payload objects; assert
-    // the rejection reason is exactly such a shape.
     const bridge = createTauriBridge()
-    const error: unknown = await (bridge.pi as unknown as { detect(): Promise<never> })
-      .detect()
+    const error: unknown = await (bridge.updater as unknown as { check(): Promise<never> })
+      .check()
       .catch((e: unknown) => e)
     expect(error).toMatchObject({ code: 'SHELL_METHOD_PENDING' })
-    expect((error as { message: string }).message).toContain('pi.detect')
+    expect((error as { message: string }).message).toContain('updater.check')
+  })
+
+  it('settings and providers go through runtime_request', async () => {
+    invokeMock.mockResolvedValue({ language: 'auto' })
+    const bridge = createTauriBridge()
+    await bridge.settings.get()
+    await bridge.providers.list()
+    expect(invokeMock).toHaveBeenCalledWith('runtime_request', {
+      method: 'settings.get',
+      params: {}
+    })
+    expect(invokeMock).toHaveBeenCalledWith('runtime_request', {
+      method: 'providers.list',
+      params: {}
+    })
+  })
+
+  it('host-owned pi/backup/diagnostics commands invoke Rust', async () => {
+    invokeMock.mockResolvedValue(undefined)
+    const bridge = createTauriBridge()
+    await bridge.pi.openNodeDownload()
+    await bridge.backup.openFolder()
+    await bridge.logs.openFolder()
+    expect(invokeMock).toHaveBeenCalledWith('pi_open_node_download')
+    expect(invokeMock).toHaveBeenCalledWith('backup_open_folder')
+    expect(invokeMock).toHaveBeenCalledWith('logs_open_folder')
   })
 
   it('harness control-plane methods go through runtime_request', async () => {
@@ -166,5 +194,77 @@ describe('tauri bridge', () => {
       expect(bridge, `missing namespace: ${key}`).toHaveProperty(key)
     }
     expect(bridge).toHaveProperty('runtime')
+  })
+
+  it('workspace/files/git/worktrees invoke Rust commands', async () => {
+    invokeMock.mockResolvedValue(undefined)
+    const bridge = createTauriBridge()
+    await bridge.workspace.pickDirectory()
+    await bridge.files.list('/repo')
+    await bridge.git.status('/repo')
+    await bridge.worktrees.list('/repo')
+    expect(invokeMock).toHaveBeenNthCalledWith(1, 'workspace_pick_directory')
+    expect(invokeMock).toHaveBeenNthCalledWith(2, 'files_list', { directory: '/repo' })
+    expect(invokeMock).toHaveBeenNthCalledWith(3, 'git_status', { cwd: '/repo' })
+    expect(invokeMock).toHaveBeenNthCalledWith(4, 'worktrees_list', { cwd: '/repo' })
+  })
+
+  it('agent.start asserts cwd before runtime_request', async () => {
+    invokeMock.mockResolvedValueOnce('/repo').mockResolvedValueOnce({ sessionId: 's1', cwd: '/repo' })
+    const bridge = createTauriBridge()
+    await bridge.agent.start({ cwd: '/repo', message: 'hi' })
+    expect(invokeMock).toHaveBeenNthCalledWith(1, 'workspace_assert_cwd', { cwd: '/repo' })
+    expect(invokeMock).toHaveBeenNthCalledWith(2, 'runtime_request', {
+      method: 'agent.start',
+      params: { cwd: '/repo', message: 'hi' }
+    })
+  })
+
+  it('workspace.listProjects groups session.list over runtime_request', async () => {
+    invokeMock.mockResolvedValueOnce({
+      sessions: [
+        {
+          path: '/tmp/a.jsonl',
+          id: 'a',
+          cwd: '/tmp/proj',
+          created: '2026-01-01',
+          modified: '2026-01-02',
+          messageCount: 1,
+          firstMessage: 'hi'
+        }
+      ]
+    })
+    const bridge = createTauriBridge()
+    const groups = await bridge.workspace.listProjects()
+    expect(invokeMock).toHaveBeenCalledWith('runtime_request', {
+      method: 'session.list',
+      params: { force: false }
+    })
+    expect(groups.length).toBeGreaterThan(0)
+    expect(groups[0]?.projectRoot).toBe('/tmp/proj')
+  })
+
+  it('workspace.getPathForFile sends a resolved string path', async () => {
+    invokeMock.mockResolvedValueOnce('/tmp/proj')
+    const bridge = createTauriBridge()
+    await bridge.workspace.getPathForFile({ path: '/tmp/proj', name: 'proj' })
+    expect(invokeMock).toHaveBeenCalledWith('workspace_get_path_for_file', { file: '/tmp/proj' })
+  })
+
+  it('workspace.getPathForFile matches native drop cache by File.name', async () => {
+    rememberNativeDropPaths(['/Users/me/code/pi-harness'])
+    invokeMock.mockResolvedValueOnce('/Users/me/code/pi-harness')
+    const bridge = createTauriBridge()
+    await bridge.workspace.getPathForFile({ name: 'pi-harness' })
+    expect(invokeMock).toHaveBeenCalledWith('workspace_get_path_for_file', {
+      file: '/Users/me/code/pi-harness'
+    })
+  })
+
+  it('workspace.getPathForFile rejects when WKWebView File has no path', async () => {
+    const bridge = createTauriBridge()
+    const error = await bridge.workspace.getPathForFile({ name: 'proj' }).catch((e: unknown) => e)
+    expect(error).toMatchObject({ code: 'VALIDATION_ERROR' })
+    expect(invokeMock).not.toHaveBeenCalled()
   })
 })

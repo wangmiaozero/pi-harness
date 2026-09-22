@@ -17,6 +17,7 @@
 
 import { PROTOCOL_VERSION, RUNTIME_VERSION } from '../version.js'
 import { RuntimeError, toRuntimeError } from '../pi/errors.js'
+import { toErrorPayload as toAppErrorPayload } from '../desktop/services/errors.js'
 import type { RuntimeServices } from '../services.js'
 import { peekPiSdk, getPiSdkLoadMetrics } from '../pi/sdk.js'
 import { registerDomainMethods } from './domain-methods.js'
@@ -63,6 +64,19 @@ function toErrorPayload(error: unknown): RpcErrorPayload {
       payload.data = { ...((payload.data as Record<string, unknown> | undefined) ?? {}), details }
     }
     return payload
+  }
+  if (error && typeof error === 'object' && 'toPayload' in error) {
+    const payload = toAppErrorPayload(error)
+    return {
+      code: payload.code,
+      message: payload.message,
+      userMessage: payload.userMessage,
+      data: {
+        recoverable: payload.recoverable,
+        details: payload.details,
+        context: payload.context
+      }
+    }
   }
   const normalized = toRuntimeError(error)
   return {

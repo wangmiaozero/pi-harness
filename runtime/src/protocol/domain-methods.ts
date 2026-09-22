@@ -15,6 +15,7 @@ import type { RuntimeServices } from '../services.js'
 import { requireString, optionalString, RuntimeError } from '../pi/errors.js'
 import type { RpcHandler, RpcParams } from './dispatch.js'
 import { registerControlPlaneMethods } from './domain-control-methods.js'
+import { registerDesktopMethods } from './domain-desktop-methods.js'
 
 type MethodMap = Record<string, RpcHandler>
 
@@ -224,7 +225,30 @@ export function registerDomainMethods(methods: MethodMap, services: RuntimeServi
     return { events: harness.getTimeline(sessionId) }
   }
 
+  methods['git.generateCommitMessage'] = async (params) => {
+    const { generateCommitMessage } = await import('../git/commit-message.js')
+    const recent = params['recentMessages']
+    const recentMessages = Array.isArray(recent)
+      ? recent.filter((item): item is string => typeof item === 'string')
+      : []
+    const model = params['model']
+    return generateCommitMessage(services.loadSdk, {
+      repositoryRoot: requireString(params, 'repositoryRoot'),
+      summary: requireString(params, 'summary'),
+      recentMessages,
+      draft: optionalString(params, 'draft') ?? '',
+      model:
+        model && typeof model === 'object' && !Array.isArray(model)
+          ? {
+              providerKey: String((model as { providerKey?: unknown }).providerKey ?? ''),
+              modelId: String((model as { modelId?: unknown }).modelId ?? '')
+            }
+          : null
+    })
+  }
+
   registerControlPlaneMethods(methods, services)
+  registerDesktopMethods(methods, services)
 }
 
 /** `toolNames?: string[]` — undefined or a string array ([] allowed). */

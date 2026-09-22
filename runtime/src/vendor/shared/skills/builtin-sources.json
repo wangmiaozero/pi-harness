@@ -1,0 +1,20 @@
+[
+  {
+    "id": "builtin:mattpocock-skills",
+    "directory": "mattpocock",
+    "name": "Matt Pocock Skills",
+    "displayName": "Skills For Real Engineers",
+    "author": "Matt Pocock",
+    "repository": "mattpocock/skills",
+    "layout": "categorized"
+  },
+  {
+    "id": "builtin:emilkowalski-skills",
+    "directory": "emilkowalski",
+    "name": "Emil Kowalski Skills",
+    "displayName": "Skills For Designers and Engineers",
+    "author": "Emil Kowalski",
+    "repository": "emilkowalski/skills",
+    "layout": "flat"
+  }
+]

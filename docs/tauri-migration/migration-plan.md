@@ -3,17 +3,21 @@
 原则：**Electron 主线随时可发布**；Tauri 分支每阶段收敛一个可验证的
 垂直切片；渲染层零改动（除 `platform-boot` 一处安装脚本）。
 
+现行重构（`task/12`–`15`）的 Phase 编号：1 Shell、2 Session/Agent/Harness、
+3 Control Plane/Orchestration、4 Workspace/Files/Git/Worktree。
+下表保留最初的 0–7 切分，其中原「阶段 6 工作区与 Git」已由 task 15 完成。
+
 ## 阶段总览
 
 | 阶段 | 主题         | 交付物                                                                     | 状态              |
 | ---- | ------------ | -------------------------------------------------------------------------- | ----------------- |
 | 0    | 基线         | Electron 指标记录（[baseline.md](./baseline.md)）                          | ✅ 完成           |
 | 1    | 桌面外壳替换 | 平台桥接层 + Rust 宿主 + Node sidecar + JSONL RPC + `runtime.*` 命令       | ✅ 完成（本分支） |
-| 2    | 配置与设置   | `settings` / `pi` / `config` / `logs` / `diagnostics` 进运行时；设置页可用 | ⬜                |
-| 3    | 提供商与模型 | `providers` / `models` / `backup`                                          | ⬜                |
-| 4    | 技能与能力   | `skills` / `capabilities`（含包注册表）                                    | ⬜                |
-| 5    | 会话与 Agent | `sessions` / `agent` / `harness` / `files` — Pi SDK 接入运行时             | ⬜                |
-| 6    | 工作区与 Git | `workspace`（含原生对话框）/ `git` / `worktrees` / `orchestration`         | ⬜                |
+| 2    | 配置与设置   | `settings` / `pi` / `config` / `logs` / `diagnostics` 进运行时；设置页可用 | ✅ 完成（task 16 / 现行 Phase 5） |
+| 3    | 提供商与模型 | `providers` / `models` / `backup`                                          | ✅ 完成（task 16 / 现行 Phase 5） |
+| 4    | 技能与能力   | `skills` / `capabilities`（含包注册表）                                    | ✅ 完成（task 16 / 现行 Phase 5） |
+| 5    | 会话导出     | `sessions.export` / `exportProject`                                        | ⬜                |
+| 6    | 工作区与 Git | `workspace` / `files` / `git` / `worktrees`                                | ✅ 完成（task 15 / 现行 Phase 4） |
 | 7    | 发布工程     | updater（Tauri 插件）/ 深度链接 / 单实例 / 安装包与签名 / overlay 窗口     | ⬜                |
 
 ## 阶段 1 交付清单（本分支）

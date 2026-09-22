@@ -3,7 +3,8 @@
   "identifier": "default",
   "description": "Main window capabilities. Custom Pi-Harness commands plus core defaults (event listen). No blanket filesystem/shell/window permissions: privileged operations go through the app's own commands or the runtime RPC.",
   "windows": ["main"],
-  "permissions": [
-    "core:default"
-  ]
+    "permissions": [
+      "core:default",
+      "dialog:default"
+    ]
 }

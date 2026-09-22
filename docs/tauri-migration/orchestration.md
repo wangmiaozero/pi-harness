@@ -22,4 +22,4 @@ OrchestratorService
 - Task 依赖由 Runtime DAG 判断，不在 Vue。
 - Budget / maxConcurrentAgents / maxConcurrentRuns 在 scheduler 真正执行。
 - Crash 后 `recoverAll()`：running task → pending（带 interrupted 原因），orchestration → paused。不自动重跑。
-- Worktree 模式本阶段回退到 shared cwd（Git Worktree 属下一阶段）。
+- Worktree 模式走 `git worktree add`，落到 `{repo}-worktrees/{branch}`，并写入 authorized-roots。

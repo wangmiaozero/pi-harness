@@ -15,6 +15,9 @@ pub const RUNTIME_UNAVAILABLE: &str = "RUNTIME_UNAVAILABLE";
 pub const RUNTIME_ERROR: &str = "RUNTIME_ERROR";
 pub const RUNTIME_TIMEOUT: &str = "RUNTIME_TIMEOUT";
 pub const SHELL_METHOD_PENDING: &str = "SHELL_METHOD_PENDING";
+pub const VALIDATION_ERROR: &str = "VALIDATION_ERROR";
+pub const FILE_CONFLICT: &str = "FILE_CONFLICT";
+pub const GIT_ERROR: &str = "GIT_ERROR";
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -56,6 +59,22 @@ impl AppError {
 
     pub fn invalid_path(message: impl Into<String>) -> Self {
         AppError::new(PATH_DENIED, message)
+    }
+
+    pub fn validation(message: impl Into<String>) -> Self {
+        AppError::new(VALIDATION_ERROR, message)
+    }
+
+    pub fn conflict(message: impl Into<String>) -> Self {
+        AppError::new(FILE_CONFLICT, message)
+    }
+
+    pub fn git(message: impl Into<String>) -> Self {
+        AppError::new(GIT_ERROR, message)
+    }
+
+    pub fn fs(message: impl Into<String>) -> Self {
+        AppError::new(FILE_SYSTEM_ERROR, message)
     }
 
     /// (`code`, `message`) pair expected by the renderer's error normaliser.

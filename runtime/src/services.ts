@@ -18,6 +18,7 @@ import type { OrchestratorService } from './orchestration/service.js'
 import type { PiSdkLoader } from './pi/types.js'
 import { defaultPiSdkLoader } from './pi/sdk.js'
 import { SessionService, type LogFn } from './session/service.js'
+import { createDesktopServices, type DesktopServices } from './desktop-host.js'
 
 export interface RuntimeServiceDeps {
   /** SDK module loader — injected in tests, lazily default in production. */
@@ -32,6 +33,10 @@ export interface RuntimeServiceDeps {
    * Harness events are pushed immediately (they are low volume and must not
    * be reordered against the agent event stream). */
   onHarnessEvent?: (sessionId: string, event: HarnessEvent) => void
+  onConfigChanged?: (payload: { at: number }) => void
+  onEnvironmentChanged?: (environment: unknown) => void
+  onInstallTask?: (task: unknown) => void
+  onCapabilityProgress?: (progress: unknown) => void
 }
 
 export interface RuntimeServices {
@@ -40,6 +45,8 @@ export interface RuntimeServices {
   harness: HarnessService
   control: ControlPlaneService
   orchestration: OrchestratorService
+  desktop: DesktopServices
+  loadSdk: PiSdkLoader
   /** Stop all live agent sessions (flushes the event batcher). */
   shutdown(): Promise<void>
 }
@@ -81,14 +88,27 @@ export function createRuntimeServices(deps: RuntimeServiceDeps = {}): RuntimeSer
       `orchestration recovery failed: ${error instanceof Error ? error.message : String(error)}`
     )
   })
+  const desktop = createDesktopServices({
+    sessions,
+    agent,
+    events: {
+      onConfigChanged: deps.onConfigChanged,
+      onEnvironmentChanged: deps.onEnvironmentChanged,
+      onInstallTask: deps.onInstallTask,
+      onCapabilityProgress: deps.onCapabilityProgress
+    }
+  })
   return {
     sessions,
     agent,
     harness,
     control,
     orchestration,
+    desktop,
+    loadSdk,
     async shutdown(): Promise<void> {
       orchestration.detach()
+      await desktop.shutdown()
       await harness.shutdownAll()
     }
   }

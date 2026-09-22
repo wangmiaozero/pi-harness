@@ -19,8 +19,18 @@ describe('GitService', () => {
   let remoteDirectory: string | null
   let cloneDirectory: string | null
   let service: GitService
+  const previousGitIdentity = {
+    GIT_AUTHOR_NAME: process.env.GIT_AUTHOR_NAME,
+    GIT_AUTHOR_EMAIL: process.env.GIT_AUTHOR_EMAIL,
+    GIT_COMMITTER_NAME: process.env.GIT_COMMITTER_NAME,
+    GIT_COMMITTER_EMAIL: process.env.GIT_COMMITTER_EMAIL
+  }
 
   beforeEach(async () => {
+    process.env.GIT_AUTHOR_NAME = 'Test User'
+    process.env.GIT_AUTHOR_EMAIL = 'test@example.com'
+    process.env.GIT_COMMITTER_NAME = 'Test User'
+    process.env.GIT_COMMITTER_EMAIL = 'test@example.com'
     directory = await mkdtemp(path.join(tmpdir(), 'pi-harness-git-'))
     remoteDirectory = null
     cloneDirectory = null
@@ -36,6 +46,10 @@ describe('GitService', () => {
     await rm(directory, { recursive: true, force: true })
     if (remoteDirectory) await rm(remoteDirectory, { recursive: true, force: true })
     if (cloneDirectory) await rm(cloneDirectory, { recursive: true, force: true })
+    for (const [key, value] of Object.entries(previousGitIdentity)) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
   })
 
   it('returns a non-repository status instead of throwing', async () => {

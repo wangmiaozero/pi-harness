@@ -581,7 +581,7 @@ describe('OrchestratorService dispatch', () => {
       expect(row?.status).toBe('passed')
       return row
     }, 5000)
-    expect(evaluation.status).toBe('passed')
+    expect(evaluation?.status).toBe('passed')
   })
 
   it('fails a task whose reviewer rejects the work, with feedback on retry', async () => {

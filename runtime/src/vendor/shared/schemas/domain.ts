@@ -1,0 +1,229 @@
+// @ts-nocheck
+/**
+ * Zod schemas for Pi-Harness IPC input validation.
+ *
+ * The renderer is untrusted. Every IPC handler re-validates input with these
+ * schemas before acting — TypeScript types are not runtime safety.
+ */
+
+import { z } from 'zod'
+import { piApiTypeSchema, piInputTypeSchema, piThinkingLevelSchema } from './pi.js'
+
+/**
+ * Provider key = models.json object key.
+ * Must stay a single path segment (no / \\), but otherwise match real-world
+ * ids: mixed case, digits, `_-.+` (e.g. `nvapi-4SasPSHM0Ilo`, `OpenAI`, `stepfun`).
+ * Do NOT force lowercase — vendors use casing in ids and api-key-shaped tokens.
+ */
+const providerKeyRegex = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$/
+
+export const providerKeySchema = z
+  .string()
+  .min(1)
+  .max(128)
+  .regex(providerKeyRegex, 'letters, digits, . _ + - ; must start with a letter or digit')
+
+export const protocolIdSchema = piApiTypeSchema
+
+export const apiKeySpecSchema = z.object({
+  kind: z.enum(['literal', 'env', 'command', 'stored']),
+  /** Opaque vendor secret — never format-validated (nvapi-…, sk-…, etc.). */
+  literal: z.string().max(8_192).optional(),
+  envRef: z.string().max(256).optional(),
+  command: z.string().max(2_048).optional()
+})
+
+export const headerMapSchema = z.record(z.string(), z.string())
+
+export const discoveredProviderModelSchema = z.object({
+  id: z.string().trim().min(1).max(256),
+  name: z.string().trim().min(1).max(256),
+  input: z.array(piInputTypeSchema).optional()
+})
+
+export const providerFormSchema = z.object({
+  key: providerKeySchema,
+  name: z.string().min(1).max(128),
+  displayName: z.string().min(1).max(128),
+  enabled: z.boolean(),
+  protocol: protocolIdSchema,
+  baseUrl: z.string().max(512),
+  apiKey: apiKeySpecSchema.nullable(),
+  headers: headerMapSchema,
+  authHeader: z.boolean(),
+  timeout: z.number().int().positive().nullable(),
+  /** Optional default model id — auto-created under the provider if missing. */
+  defaultModelId: z.string().min(1).max(256).nullable().optional(),
+  /** Optional catalog metadata used when auto-creating the selected default model. */
+  defaultModel: z
+    .object({
+      id: z.string().min(1).max(256),
+      name: z.string().min(1).max(256),
+      contextWindow: z.number().int().positive().nullable(),
+      maxOutputTokens: z.number().int().positive().nullable(),
+      input: z.array(piInputTypeSchema).optional()
+    })
+    .nullable()
+    .optional(),
+  /** Models discovered from the provider API and merged on save. */
+  discoveredModels: z.array(discoveredProviderModelSchema).max(2_000).optional()
+})
+
+export const providerModelDiscoverySchema = z
+  .object({
+    existingProviderKey: providerKeySchema.nullable().optional(),
+    protocol: protocolIdSchema,
+    baseUrl: z.string().trim().min(1).max(512),
+    apiKey: apiKeySpecSchema.nullable(),
+    headers: headerMapSchema,
+    authHeader: z.boolean(),
+    timeout: z.number().int().positive().nullable()
+  })
+  .strict()
+
+export const modelFormSchema = z.object({
+  providerId: z.string().min(1),
+  /** Vendor model ids are free-form (e.g. `meta/llama3.1-70b`, `step-3.7-flash`). */
+  modelId: z.string().min(1).max(256),
+  displayName: z.string().min(1).max(256),
+  protocol: protocolIdSchema,
+  enabled: z.boolean(),
+  reasoning: z.boolean(),
+  vision: z.boolean(),
+  tools: z.boolean(),
+  streaming: z.boolean(),
+  contextWindow: z.number().int().positive().nullable(),
+  maxOutputTokens: z.number().int().positive().nullable(),
+  input: z.array(piInputTypeSchema).optional(),
+  thinkingLevels: z
+    .partialRecord(piThinkingLevelSchema, z.union([z.string(), z.null()]))
+    .optional()
+})
+
+export const setActiveModelSchema = z.object({
+  providerKey: z.string().min(1),
+  modelId: z.string().min(1)
+})
+
+export const backupIdSchema = z
+  .string()
+  .min(1)
+  .max(128)
+  .regex(/^[0-9]+-[a-f0-9]{8}$/, 'invalid backup id')
+
+export const pathSegmentSchema = z
+  .string()
+  .max(1024)
+  .refine((s) => !s.includes('\0'), 'no null bytes')
+
+export const testConnectionSchema = z.object({
+  providerKey: z.string().min(1),
+  /** Optional — falls back to provider defaultModelId / first registered model. */
+  modelId: z.string().max(256).optional().default('')
+})
+
+const skillNameRegex = /^[a-z0-9][a-z0-9._-]{0,63}$/
+
+export const skillFormSchema = z.object({
+  name: z.string().regex(skillNameRegex, 'lowercase letters/digits/._-; start with alnum; max 64'),
+  description: z.string().max(500),
+  content: z.string().min(1).max(64_000),
+  targetRoot: pathSegmentSchema,
+  /** Baseline mtime of SKILL.md when the editor opened (for conflict detection). */
+  expectedMtime: z.number().int().nullable().optional(),
+  /** Force overwrite when SKILL.md changed externally. */
+  overwrite: z.boolean().optional()
+})
+
+export const skillImportSchema = z.object({
+  source: pathSegmentSchema,
+  targetRoot: pathSegmentSchema,
+  name: z.string().regex(skillNameRegex),
+  onConflict: z.enum(['rename', 'replace', 'cancel']).optional()
+})
+
+export const piPackageTargetSchema = z
+  .object({
+    source: z
+      .string()
+      .trim()
+      .min(1)
+      .max(4096)
+      .refine((value) => !value.includes('\0')),
+    scope: z.enum(['global', 'project']),
+    projectRoot: pathSegmentSchema.nullable().optional()
+  })
+  .superRefine((target, context) => {
+    if (target.scope === 'project' && !target.projectRoot) {
+      context.addIssue({
+        code: 'custom',
+        path: ['projectRoot'],
+        message: 'projectRoot is required for project packages'
+      })
+    }
+  })
+
+export const piPackageTargetsSchema = z.array(piPackageTargetSchema).min(1).max(50)
+
+export const piPackageRegistryNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(214)
+  .regex(/^(?:@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*$/i, 'invalid npm package name')
+
+export const piPackageRegistrySearchSchema = z
+  .object({
+    query: z.string().trim().max(200).optional(),
+    page: z.number().int().min(1).max(100_000).optional(),
+    pageSize: z.number().int().min(1).max(50).optional(),
+    type: z.enum(['all', 'extension', 'skill', 'prompt', 'theme', 'package']).optional(),
+    sort: z.enum(['downloads', 'published', 'relevance']).optional(),
+    refresh: z.boolean().optional()
+  })
+  .strict()
+
+export const piPackageRegistryDetailSchema = z
+  .object({
+    name: piPackageRegistryNameSchema,
+    refresh: z.boolean().optional()
+  })
+  .strict()
+export const builtinSkillMutationTargetSchema = z
+  .object({
+    collectionId: z
+      .string()
+      .trim()
+      .regex(/^builtin:[a-z0-9][a-z0-9._-]{0,127}$/),
+    skillIds: z
+      .array(
+        z
+          .string()
+          .trim()
+          .regex(/^[a-z0-9][a-z0-9._-]{0,127}$/)
+      )
+      .min(1)
+      .max(100),
+    scope: z.enum(['global', 'project']),
+    projectRoot: pathSegmentSchema.nullable().optional(),
+    overwrite: z.boolean().optional()
+  })
+  .strict()
+  .superRefine((target, context) => {
+    if (target.scope === 'project' && !target.projectRoot) {
+      context.addIssue({
+        code: 'custom',
+        path: ['projectRoot'],
+        message: 'projectRoot is required for project Skills'
+      })
+    }
+  })
+export const optionalProjectRootSchema = pathSegmentSchema.nullable().optional()
+
+export type SkillForm = z.infer<typeof skillFormSchema>
+export type SkillImportInput = z.infer<typeof skillImportSchema>
+
+export type ProviderForm = z.infer<typeof providerFormSchema>
+export type ProviderModelDiscoveryInput = z.infer<typeof providerModelDiscoverySchema>
+export type ModelForm = z.infer<typeof modelFormSchema>
+export type ProviderKey = z.infer<typeof providerKeySchema>

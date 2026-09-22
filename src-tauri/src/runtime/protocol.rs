@@ -134,8 +134,8 @@ mod tests {
     fn parses_null_result_response() {
         // Void domain methods (agent.prompt, harness.setTools, …) respond
         // with an explicit `result: null`.
-        let message = RuntimeMessage::parse(r#"{"id":"req_3","result":null}"#)
-            .expect("valid response");
+        let message =
+            RuntimeMessage::parse(r#"{"id":"req_3","result":null}"#).expect("valid response");
         match message {
             RuntimeMessage::Response { id, outcome } => {
                 assert_eq!(id, "req_3");

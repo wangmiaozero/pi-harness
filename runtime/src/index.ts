@@ -34,7 +34,11 @@ const services = createRuntimeServices({
   log: logDiagnostic,
   onAgentEvent: (batch) => emitter.emit('agent.event', batch),
   onRunningChange: (ids) => emitter.emit('agent.running', { ids }),
-  onHarnessEvent: (sessionId, event) => emitter.emit('harness.event', { sessionId, event })
+  onHarnessEvent: (sessionId, event) => emitter.emit('harness.event', { sessionId, event }),
+  onConfigChanged: (payload) => emitter.emit('config.changed', payload),
+  onEnvironmentChanged: (environment) => emitter.emit('pi.environment-changed', environment),
+  onInstallTask: (task) => emitter.emit('environment.install-task', task),
+  onCapabilityProgress: (progress) => emitter.emit('capability.progress', progress)
 })
 
 const registry = createMethodRegistry(services)

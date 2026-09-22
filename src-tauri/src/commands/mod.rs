@@ -4,6 +4,9 @@
 //! Command naming mirrors the Electron IPC contract
 //! (`src/shared/ipc/channels.ts`): `system:info` -> `system_info`, etc.
 
+pub mod desktop;
+pub mod menus;
 pub mod runtime;
 pub mod system;
 pub mod window;
+pub mod workspace;

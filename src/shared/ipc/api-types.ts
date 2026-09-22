@@ -1190,6 +1190,7 @@ export interface PiSwitchAPI {
     listener: (payload: CapabilityMutationProgress) => void
   ): () => void
   on(event: 'workspace-changed', listener: IpcEventListener): () => void
+  on(event: 'native-folder-drop', listener: IpcEventListener): () => void
 }
 
 declare global {

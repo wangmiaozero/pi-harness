@@ -397,6 +397,7 @@ const api: PiSwitchAPI = {
     if (event === 'updater-state') return onEvent(IPC_EVENT.updaterState, ipcListener)
     if (event === 'capability-progress') return onEvent(IPC_EVENT.capabilityProgress, ipcListener)
     if (event === 'workspace-changed') return onEvent(IPC_EVENT.workspaceChanged, ipcListener)
+    if (event === 'native-folder-drop') return () => {}
     return () => {}
   }
 }
