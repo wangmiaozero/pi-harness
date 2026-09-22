@@ -241,6 +241,27 @@ export interface AgentImageAttachment {
   mimeType: string
 }
 
+export type GitFileStatusKind = 'added' | 'modified' | 'deleted' | 'renamed' | 'unmerged' | 'copied'
+
+export interface GitFileStatus {
+  filePath: string
+  status: GitFileStatusKind | string
+  code: 'M' | 'A' | 'D' | 'R' | 'U' | 'C'
+  indexStatus: string
+  worktreeStatus: string
+}
+
+export interface GitStatusResponse {
+  isGitRepository: boolean
+  repositoryRoot: string | null
+  files: GitFileStatus[]
+  additions: number
+  deletions: number
+  folderId?: string
+  folderName?: string
+  branch?: string | null
+}
+
 export interface StartAgentSessionInput {
   sessionId?: string
   cwd?: string

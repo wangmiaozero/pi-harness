@@ -26,6 +26,8 @@ export interface AgentRuntimeSinks {
   onAgentEvent: (batch: AgentEventBatch) => void
   /** Running session-id set changed. */
   onRunningChange: (ids: string[]) => void
+  /** Live AgentSession just created — Control Plane wraps policy-guarded tools. */
+  onSessionCreated?: (session: AgentSessionLike, sessionId: string) => void
 }
 
 export class AgentRuntimeManager {
@@ -290,6 +292,7 @@ export class AgentRuntimeManager {
       if (isRunningStateEvent(event.type)) this.broadcastRunning()
     })
     this.registry.set(realSessionId, wrapper)
+    this.sinks.onSessionCreated?.(inner, realSessionId)
     const bindExtensions = (
       inner as unknown as {
         bindExtensions?: (bindings: Record<string, unknown>) => Promise<void>

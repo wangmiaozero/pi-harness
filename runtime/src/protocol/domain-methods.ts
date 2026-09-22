@@ -14,6 +14,7 @@
 import type { RuntimeServices } from '../services.js'
 import { requireString, optionalString, RuntimeError } from '../pi/errors.js'
 import type { RpcHandler, RpcParams } from './dispatch.js'
+import { registerControlPlaneMethods } from './domain-control-methods.js'
 
 type MethodMap = Record<string, RpcHandler>
 
@@ -222,6 +223,8 @@ export function registerDomainMethods(methods: MethodMap, services: RuntimeServi
     const sessionId = requireString(params, 'sessionId')
     return { events: harness.getTimeline(sessionId) }
   }
+
+  registerControlPlaneMethods(methods, services)
 }
 
 /** `toolNames?: string[]` — undefined or a string array ([] allowed). */

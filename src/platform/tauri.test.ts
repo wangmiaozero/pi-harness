@@ -115,6 +115,26 @@ describe('tauri bridge', () => {
     expect((error as { message: string }).message).toContain('pi.detect')
   })
 
+  it('harness control-plane methods go through runtime_request', async () => {
+    invokeMock.mockResolvedValue([])
+    const bridge = createTauriBridge()
+    await bridge.harness.listRuns('sess-1', 'session')
+    expect(invokeMock).toHaveBeenCalledWith('runtime_request', {
+      method: 'harness.listRuns',
+      params: { sessionId: 'sess-1', scope: 'session' }
+    })
+  })
+
+  it('orchestration methods go through runtime_request', async () => {
+    invokeMock.mockResolvedValue({ id: 'orch-1' })
+    const bridge = createTauriBridge()
+    await bridge.orchestration.create({ cwd: '/tmp/proj', strategy: 'dependency' })
+    expect(invokeMock).toHaveBeenCalledWith('runtime_request', {
+      method: 'orchestration.create',
+      params: { cwd: '/tmp/proj', strategy: 'dependency' }
+    })
+  })
+
   it('implements the full piSwitch surface', () => {
     const bridge = createTauriBridge()
     const required: Array<keyof PiSwitchAPI> = [

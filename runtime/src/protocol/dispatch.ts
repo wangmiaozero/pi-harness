@@ -56,6 +56,12 @@ function toErrorPayload(error: unknown): RpcErrorPayload {
       userMessage: error.userMessage
     }
     if (!error.recoverable) payload.data = { recoverable: false }
+    // HarnessError (and any RuntimeError subclass carrying structured
+    // details) keeps its context on the wire for the UI.
+    const details = (error as { details?: unknown }).details
+    if (details !== undefined) {
+      payload.data = { ...((payload.data as Record<string, unknown> | undefined) ?? {}), details }
+    }
     return payload
   }
   const normalized = toRuntimeError(error)

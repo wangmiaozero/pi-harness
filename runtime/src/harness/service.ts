@@ -383,6 +383,15 @@ export class HarnessService {
     })
   }
 
+  /**
+   * Public emit used by the Control Plane for derived events (run.*,
+   * checkpoint.*, policy.*, orchestration.*). Same delivery path as
+   * internal emits so the timeline + JSONL sink stay ordered.
+   */
+  emitEvent(sessionId: string, event: object): void {
+    this.emit(sessionId, event as HarnessEvent)
+  }
+
   private emit(sessionId: string, event: HarnessEvent): void {
     if (!this.observedSessions.has(sessionId)) this.observe(sessionId)
     let timeline = this.timelines.get(sessionId)

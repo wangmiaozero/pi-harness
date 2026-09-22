@@ -46,7 +46,25 @@ export const RPC_ERROR_CODES = [
   // Harness
   'COMPACTION_NOT_AVAILABLE',
   'COMPACTION_FAILED',
-  'CAPABILITY_NOT_SUPPORTED'
+  'CAPABILITY_NOT_SUPPORTED',
+  // Harness control plane (Phase 3 — mirrors HarnessErrorCode in harness-control/types.ts)
+  'AGENT_RUNNING',
+  'BASH_RUNNING',
+  'POLICY_DENIED',
+  'BUDGET_EXCEEDED',
+  'CHECKPOINT_NOT_FOUND',
+  'RUN_NOT_FOUND',
+  'FORK_FAILED',
+  'EXPORT_FAILED',
+  'ORCHESTRATION_NOT_FOUND',
+  'TASK_NOT_FOUND',
+  'TEMPLATE_NOT_FOUND',
+  'TEAM_NOT_FOUND',
+  'DEPENDENCY_CYCLE',
+  'ORCHESTRATION_NOT_RUNNING',
+  'ORCHESTRATION_BUSY',
+  'HANDOFF_NOT_FOUND',
+  'INVALID_STATE'
 ] as const
 
 export type RpcErrorCode = (typeof RPC_ERROR_CODES)[number]

@@ -7,7 +7,10 @@
  * and result shapes are exercised exactly as the Tauri host will see them.
  */
 
-import { beforeEach, describe, expect, it } from 'vitest'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createMethodRegistry, createDispatcher, type RpcMethodContext } from './dispatch.js'
 import { createRuntimeServices, type RuntimeServices } from '../services.js'
 import { createMockSdkWorld, mockSdkLoader, type MockSdkWorld } from '../testing/mock-sdk.js'
@@ -21,8 +24,11 @@ describe('domain methods over mock SDK', () => {
   let harnessEvents: Array<{ sessionId: string; event: { type: string } }>
   let runningBroadcasts: string[][]
   let context: RpcMethodContext
+  let dataDir: string
 
   beforeEach(() => {
+    dataDir = mkdtempSync(path.join(tmpdir(), 'pi-domain-rpc-'))
+    process.env.PI_HARNESS_USER_DATA = dataDir
     world = createMockSdkWorld()
     agentEvents = []
     harnessEvents = []
@@ -45,6 +51,12 @@ describe('domain methods over mock SDK', () => {
       emit: () => {},
       requestShutdown: () => {}
     }
+  })
+
+  afterEach(async () => {
+    await services.shutdown()
+    delete process.env.PI_HARNESS_USER_DATA
+    rmSync(dataDir, { recursive: true, force: true })
   })
 
   const call = (method: string, params: Record<string, unknown> = {}) =>
@@ -302,6 +314,110 @@ describe('domain methods over mock SDK', () => {
     const badCommand = await call('agent.command', { sessionId: 'x', command: { type: '' } })
     expect(badCommand.ok).toBe(false)
     if (!badCommand.ok) expect(badCommand.error.code).toBe('INVALID_INPUT')
+  })
+
+  it('harness.getPolicy / setPolicy persist through the control plane', async () => {
+    const before = await call('harness.getPolicy', {})
+    expect(before.ok).toBe(true)
+    if (!before.ok) return
+    const snapshot = before.result as { config: { files: { delete: string } } }
+    expect(snapshot.config.files.delete).toBe('ask')
+
+    const updated = await call('harness.setPolicy', {
+      config: { ...snapshot.config, files: { ...snapshot.config.files, delete: 'deny' } }
+    })
+    expect(updated.ok).toBe(true)
+    if (!updated.ok) return
+    const persisted = updated.result as { config: { files: { delete: string } } }
+    expect(persisted.config.files.delete).toBe('deny')
+
+    const after = await call('harness.getPolicy', {})
+    expect(after.ok).toBe(true)
+    if (!after.ok) return
+    expect((after.result as { config: { files: { delete: string } } }).config.files.delete).toBe(
+      'deny'
+    )
+  })
+
+  it('harness checkpoints / evaluations / settings stay empty until used', async () => {
+    const checkpoints = await call('harness.listCheckpoints', { sessionId: 'missing-session' })
+    expect(checkpoints.ok).toBe(true)
+    if (checkpoints.ok) expect(checkpoints.result).toEqual([])
+
+    const evaluations = await call('harness.listEvaluations', { sessionId: 'missing-session' })
+    expect(evaluations.ok).toBe(true)
+    if (evaluations.ok) expect(evaluations.result).toEqual([])
+
+    const settings = await call('harness.getStoreSettings', {})
+    expect(settings.ok).toBe(true)
+    if (!settings.ok) return
+    expect((settings.result as { retentionDays: number }).retentionDays).toBe(30)
+  })
+
+  it('orchestration.create / list / snapshot stay in the runtime store', async () => {
+    const created = await call('orchestration.create', {
+      cwd: '/tmp/orch',
+      name: 'team-alpha',
+      strategy: 'dependency',
+      maxConcurrentAgents: 2
+    })
+    expect(created.ok).toBe(true)
+    if (!created.ok) return
+    const orch = created.result as { id: string; status: string; cwd: string }
+    expect(orch.cwd).toBe('/tmp/orch')
+    expect(orch.status).toBe('pending')
+
+    const listed = await call('orchestration.list', {})
+    expect(listed.ok).toBe(true)
+    if (!listed.ok) return
+    const rows = listed.result as Array<{ id: string }>
+    expect(rows.some((row) => row.id === orch.id)).toBe(true)
+
+    const snap = await call('orchestration.snapshot', { orchestrationId: orch.id })
+    expect(snap.ok).toBe(true)
+  })
+
+  it('orchestration pause / resume / abort stay on the runtime state machine', async () => {
+    const created = await call('orchestration.create', {
+      cwd: '/tmp/orch-ctrl',
+      name: 'ctrl',
+      strategy: 'manual'
+    })
+    expect(created.ok).toBe(true)
+    if (!created.ok) return
+    const orch = created.result as { id: string }
+
+    const started = await call('orchestration.start', { orchestrationId: orch.id })
+    expect(started.ok).toBe(true)
+    if (!started.ok) return
+    expect((started.result as { status: string }).status).toBe('running')
+
+    const paused = await call('orchestration.pause', {
+      orchestrationId: orch.id,
+      reason: 'hold'
+    })
+    expect(paused.ok).toBe(true)
+    if (!paused.ok) return
+    expect((paused.result as { status: string; pausedReason: string | null }).status).toBe(
+      'paused'
+    )
+
+    const resumed = await call('orchestration.resume', { orchestrationId: orch.id })
+    expect(resumed.ok).toBe(true)
+    if (!resumed.ok) return
+    expect((resumed.result as { status: string }).status).toBe('running')
+
+    const aborted = await call('orchestration.abort', { orchestrationId: orch.id })
+    expect(aborted.ok).toBe(true)
+    if (!aborted.ok) return
+    expect((aborted.result as { status: string }).status).toBe('aborted')
+  })
+
+  it('harness.listRuns returns an empty list for an unknown session', async () => {
+    const outcome = await call('harness.listRuns', { sessionId: 'missing-session' })
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    expect(outcome.result).toEqual([])
   })
 
   it('runtime.status reports agent metrics once a session started', async () => {

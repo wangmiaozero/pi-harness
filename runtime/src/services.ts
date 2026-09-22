@@ -11,6 +11,10 @@ import type { AgentEventBatch } from './agent/events.js'
 import { AgentRuntimeManager } from './agent/manager.js'
 import { HarnessService } from './harness/service.js'
 import type { HarnessEvent } from './harness/types.js'
+import type { HarnessEvent as ControlPlaneEvent } from './harness-control/types.js'
+import { ControlPlaneService } from './harness-control/service.js'
+import { createOrchestrator } from './orchestration/host.js'
+import type { OrchestratorService } from './orchestration/service.js'
 import type { PiSdkLoader } from './pi/types.js'
 import { defaultPiSdkLoader } from './pi/sdk.js'
 import { SessionService, type LogFn } from './session/service.js'
@@ -34,6 +38,8 @@ export interface RuntimeServices {
   sessions: SessionService
   agent: AgentRuntimeManager
   harness: HarnessService
+  control: ControlPlaneService
+  orchestration: OrchestratorService
   /** Stop all live agent sessions (flushes the event batcher). */
   shutdown(): Promise<void>
 }
@@ -42,26 +48,47 @@ export function createRuntimeServices(deps: RuntimeServiceDeps = {}): RuntimeSer
   const loadSdk = deps.loadSdk ?? defaultPiSdkLoader
   const log: LogFn = deps.log ?? (() => {})
   const sessions = new SessionService(loadSdk, log)
+
+  const controlRef: { current?: ControlPlaneService } = {}
   const agent = new AgentRuntimeManager(
     sessions,
     loadSdk,
     {
       onAgentEvent: deps.onAgentEvent ?? (() => {}),
-      onRunningChange: deps.onRunningChange ?? (() => {})
+      onRunningChange: deps.onRunningChange ?? (() => {}),
+      onSessionCreated: (session, sessionId) =>
+        controlRef.current?.wrapSessionTools(session, sessionId)
     },
     log
   )
   const harness = new HarnessService(
     agent,
     sessions,
-    { onEvent: deps.onHarnessEvent ?? (() => {}) },
+    {
+      onEvent: (sessionId, event) => {
+        controlRef.current?.observe(sessionId, event as ControlPlaneEvent)
+        deps.onHarnessEvent?.(sessionId, event)
+      }
+    },
     log
   )
+  const control = new ControlPlaneService({ harness, sessions, agent })
+  controlRef.current = control
+  const orchestration = createOrchestrator(harness, control, sessions)
+  orchestration.attach()
+  void orchestration.recoverAll().catch((error) => {
+    log(
+      `orchestration recovery failed: ${error instanceof Error ? error.message : String(error)}`
+    )
+  })
   return {
     sessions,
     agent,
     harness,
+    control,
+    orchestration,
     async shutdown(): Promise<void> {
+      orchestration.detach()
       await harness.shutdownAll()
     }
   }

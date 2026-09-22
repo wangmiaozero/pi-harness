@@ -26,6 +26,8 @@ Electron 预载桥与 Tauri 平台层（`src/platform/tauri.ts`）实现同一�
 | `sessions`  | `list` `get` `rename` `delete` `context` `viewFullHistory` | ✅ `runtime_request` → 运行时 `session.*`（第二阶段；Pi SDK 懒加载）                                                   |
 | `agent`     | `start` `prompt` `abort` `state` `running` `command` | ✅ `runtime_request` → 运行时 `agent.*`（第二阶段；流式事件经 `pi-harness:agent:*` 通道）                                              |
 | `harness`   | `state` `tools` `setTools` `setModel` `setThinkingLevel` `compact` `abortCompaction` `setAutoCompaction` `steer` `followUp` `fork` `navigateTree` `session` `stats` `timeline` | ✅ `runtime_request` → 运行时 `harness.*`（第二阶段） |
+| `harness`   | `listRuns` `getRun` `getRunDetail` `getRunTree` `compareRuns` `forkRun` `getBaseline` `setBaseline` `getProjectStats` `exportRun` `exportDebugBundle` `listArtifacts` `getStoreSettings` `updateStoreSettings` `getPolicy` `setPolicy` `listCheckpoints` `createCheckpoint` `resumeCheckpoint` `forkCheckpoint` `retryLastRun` `evaluateRun` `listEvaluations` | ✅ `runtime_request` → 运行时 Control Plane（第三阶段） |
+| `orchestration` | `list` `get` `create` `delete` `start` `pause` `resume` `abort` `snapshot` `listTemplates` `saveTemplate` `deleteTemplate` `listTeams` `saveTeam` `deleteTeam` `listAgents` `addAgent` `updateAgent` `deleteAgent` `setAgentBudget` `listTasks` `createTask` `updateTask` `deleteTask` `retryTask` `skipTask` `reassignTask` `listHandoffs` | ✅ `runtime_request` → 运行时 Orchestration（第三阶段） |
 | `on`        | `agent-event` `agent-running` `harness-event`       | ✅ 实时转发（事件流，无轮询）                                                                                                               |
 
 ## 待迁移
@@ -46,8 +48,8 @@ Electron 预载桥与 Tauri 平台层（`src/platform/tauri.ts`）实现同一�
 | `backup`                  |      6 | 阶段 3   | 运行时                                                |
 | `skills` / `capabilities` | 27 + 5 | 阶段 4   | 运行时                                                |
 | `sessions`（剩余）        |      3 | 阶段 5   | `export` / `exportProject` / `contextMenu`（文件系统面） |
-| `harness`（控制平面）     |     24 | 阶段 5   | Run/Checkpoint/Policy/Artifacts/Baseline（下一批）    |
-| `orchestration`           |     25 | 阶段 6   | 运行时（Pi SDK）                                      |
+| `harness`（控制平面）     |      0 | 阶段 3   | ✅ 已迁入 Runtime Control Plane                        |
+| `orchestration`           |      0 | 阶段 3   | ✅ 已迁入 Runtime Orchestration（Worktree 回退 shared cwd） |
 | `files`                   |      4 | 阶段 5   | 运行时                                                |
 | `git`                     |     12 | 阶段 6   | 运行时                                                |
 | `worktrees`               |      3 | 阶段 6   | 运行时                                                |

@@ -1530,8 +1530,8 @@ n * even if a dispatch is still legitimately running (no event will ever
         finishedAt: Date.now(),
         pausedReason: null
       }
-      await this.store.saveOrchestration(next)
       await this.store.saveEvaluation(evaluation)
+      await this.store.saveOrchestration(next)
       this.emit(orchestrationId, {
         type: failed ? 'orchestration.failed' : 'orchestration.completed',
         timestamp: Date.now(),

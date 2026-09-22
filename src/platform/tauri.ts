@@ -18,12 +18,34 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 import type { PiSwitchAPI } from '@shared/ipc/api-types'
 import type {
+  AgentHandoff,
+  AgentTemplate,
+  HarnessAgent,
+  HarnessArtifact,
+  HarnessBaseline,
+  HarnessCheckpoint,
   HarnessCompactionResult,
   HarnessEvent,
+  HarnessEvaluation,
+  HarnessExportResult,
   HarnessForkResult,
+  HarnessOrchestrationBudget,
+  HarnessOrchestrationRun,
+  HarnessOrchestrationSnapshot,
+  HarnessPolicyConfig,
+  HarnessPolicySnapshot,
+  HarnessProjectStats,
+  HarnessRun,
+  HarnessRunComparison,
+  HarnessRunDetail,
+  HarnessRunTreeNode,
   HarnessSessionInfo,
   HarnessState,
   HarnessStats,
+  HarnessStatsRange,
+  HarnessStoreSettings,
+  HarnessTask,
+  HarnessTeam,
   HarnessTool
 } from '@shared/types/harness'
 import type {
@@ -176,7 +198,6 @@ function createAgentApi(): PiSwitchAPI['agent'] {
 
 /** Harness APIs backed by the runtime sidecar (phase 2). */
 function createHarnessApi(): PiSwitchAPI['harness'] {
-  const pending = pendingMethod
   return {
     state: (sessionId: string) => rpc<HarnessState | null>('harness.getState', { sessionId }),
     tools: (sessionId: string) => rpc<HarnessTool[]>('harness.getTools', { sessionId }),
@@ -206,31 +227,106 @@ function createHarnessApi(): PiSwitchAPI['harness'] {
       rpc<{ events: HarnessEvent[] }>('harness.getTimeline', { sessionId }).then(
         (result) => result.events
       ),
-    // Harness Control Plane — phase 3 (store/policy/checkpoint services
-    // stay on the Electron main process until they migrate):
-    listRuns: (_sessionId: string) => pending('harness', 'listRuns'),
-    getRun: (_sessionId: string) => pending('harness', 'getRun'),
-    getRunDetail: (_sessionId: string) => pending('harness', 'getRunDetail'),
-    getRunTree: (_sessionId: string) => pending('harness', 'getRunTree'),
-    compareRuns: (_sessionId: string) => pending('harness', 'compareRuns'),
-    forkRun: (_sessionId: string) => pending('harness', 'forkRun'),
-    getBaseline: (_sessionId: string) => pending('harness', 'getBaseline'),
-    setBaseline: (_sessionId: string) => pending('harness', 'setBaseline'),
-    getProjectStats: (_sessionId: string) => pending('harness', 'getProjectStats'),
-    exportRun: (_sessionId: string) => pending('harness', 'exportRun'),
-    exportDebugBundle: (_sessionId: string) => pending('harness', 'exportDebugBundle'),
-    listArtifacts: (_sessionId: string) => pending('harness', 'listArtifacts'),
-    getStoreSettings: () => pending('harness', 'getStoreSettings'),
-    updateStoreSettings: () => pending('harness', 'updateStoreSettings'),
-    getPolicy: () => pending('harness', 'getPolicy'),
-    setPolicy: () => pending('harness', 'setPolicy'),
-    listCheckpoints: (_sessionId: string) => pending('harness', 'listCheckpoints'),
-    createCheckpoint: (_sessionId: string) => pending('harness', 'createCheckpoint'),
-    resumeCheckpoint: () => pending('harness', 'resumeCheckpoint'),
-    forkCheckpoint: () => pending('harness', 'forkCheckpoint'),
-    retryLastRun: (_sessionId: string) => pending('harness', 'retryLastRun'),
-    evaluateRun: (_sessionId: string) => pending('harness', 'evaluateRun'),
-    listEvaluations: (_sessionId: string) => pending('harness', 'listEvaluations')
+    listRuns: (sessionId: string, scope?: 'session' | 'project') =>
+      rpc<HarnessRun[]>('harness.listRuns', { sessionId, scope }),
+    getRun: (sessionId: string, runId: string) =>
+      rpc<HarnessRun>('harness.getRun', { sessionId, runId }),
+    getRunDetail: (sessionId: string, runId: string) =>
+      rpc<HarnessRunDetail>('harness.getRunDetail', { sessionId, runId }),
+    getRunTree: (sessionId: string) =>
+      rpc<HarnessRunTreeNode[]>('harness.getRunTree', { sessionId }),
+    compareRuns: (sessionId: string, runIdA: string, runIdB: string) =>
+      rpc<HarnessRunComparison>('harness.compareRuns', { sessionId, runIdA, runIdB }),
+    forkRun: (sessionId, runId, options) =>
+      rpc<{ forked: boolean; newSessionId: string | null; newRunId: string | null }>(
+        'harness.forkRun',
+        { sessionId, runId, ...options }
+      ),
+    getBaseline: (sessionId: string) =>
+      rpc<HarnessBaseline | null>('harness.getBaseline', { sessionId }),
+    setBaseline: (sessionId: string, runId: string) =>
+      rpc<HarnessBaseline>('harness.setBaseline', { sessionId, runId }),
+    getProjectStats: (sessionId: string, range?: HarnessStatsRange) =>
+      rpc<HarnessProjectStats>('harness.getProjectStats', { sessionId, range }),
+    exportRun: (sessionId: string, runId: string, format: 'json' | 'markdown') =>
+      rpc<HarnessExportResult>('harness.exportRun', { sessionId, runId, format }),
+    exportDebugBundle: (sessionId: string, runId?: string) =>
+      rpc<HarnessExportResult>('harness.exportDebugBundle', { sessionId, runId }),
+    listArtifacts: (sessionId: string, runId?: string) =>
+      rpc<HarnessArtifact[]>('harness.listArtifacts', { sessionId, runId }),
+    getStoreSettings: () => rpc<HarnessStoreSettings>('harness.getStoreSettings'),
+    updateStoreSettings: (settings: HarnessStoreSettings) =>
+      rpc<HarnessStoreSettings>('harness.updateStoreSettings', { ...settings }),
+    getPolicy: () => rpc<HarnessPolicySnapshot>('harness.getPolicy'),
+    setPolicy: (config: HarnessPolicyConfig) =>
+      rpc<HarnessPolicySnapshot>('harness.setPolicy', { config }),
+    listCheckpoints: (sessionId: string) =>
+      rpc<HarnessCheckpoint[]>('harness.listCheckpoints', { sessionId }),
+    createCheckpoint: (sessionId: string, includeGit?: boolean) =>
+      rpc<HarnessCheckpoint>('harness.createCheckpoint', { sessionId, includeGit }),
+    resumeCheckpoint: (checkpointId: string, message?: string) =>
+      rpc<{ resumed: boolean; prompted: boolean }>('harness.resumeCheckpoint', {
+        checkpointId,
+        message
+      }),
+    forkCheckpoint: (checkpointId: string) =>
+      rpc<HarnessForkResult>('harness.forkCheckpoint', { checkpointId }),
+    retryLastRun: (sessionId: string) =>
+      rpc<{ retried: boolean; prompt: string | null }>('harness.retryLastRun', { sessionId }),
+    evaluateRun: (sessionId: string, runId: string) =>
+      rpc<HarnessEvaluation>('harness.evaluateRun', { sessionId, runId }),
+    listEvaluations: (sessionId: string) =>
+      rpc<HarnessEvaluation[]>('harness.listEvaluations', { sessionId })
+  }
+}
+
+function createOrchestrationApi(): PiSwitchAPI['orchestration'] {
+  return {
+    list: () => rpc<HarnessOrchestrationRun[]>('orchestration.list'),
+    get: (orchestrationId: string) =>
+      rpc<HarnessOrchestrationRun | null>('orchestration.get', { orchestrationId }),
+    create: (input) => rpc<HarnessOrchestrationRun>('orchestration.create', { ...input }),
+    delete: (orchestrationId: string) =>
+      rpc<void>('orchestration.delete', { orchestrationId }).then(() => undefined),
+    start: (orchestrationId: string) =>
+      rpc<HarnessOrchestrationRun>('orchestration.start', { orchestrationId }),
+    pause: (orchestrationId: string, reason?: string) =>
+      rpc<HarnessOrchestrationRun>('orchestration.pause', { orchestrationId, reason }),
+    resume: (orchestrationId: string) =>
+      rpc<HarnessOrchestrationRun>('orchestration.resume', { orchestrationId }),
+    abort: (orchestrationId: string) =>
+      rpc<HarnessOrchestrationRun>('orchestration.abort', { orchestrationId }),
+    snapshot: (orchestrationId: string) =>
+      rpc<HarnessOrchestrationSnapshot>('orchestration.snapshot', { orchestrationId }),
+    listTemplates: () => rpc<AgentTemplate[]>('orchestration.listTemplates'),
+    saveTemplate: (template) => rpc<AgentTemplate>('orchestration.saveTemplate', { ...template }),
+    deleteTemplate: (templateId: string) =>
+      rpc<void>('orchestration.deleteTemplate', { templateId }).then(() => undefined),
+    listTeams: () => rpc<HarnessTeam[]>('orchestration.listTeams'),
+    saveTeam: (team) => rpc<HarnessTeam>('orchestration.saveTeam', { ...team }),
+    deleteTeam: (teamId: string) =>
+      rpc<void>('orchestration.deleteTeam', { teamId }).then(() => undefined),
+    listAgents: (orchestrationId?: string) =>
+      rpc<HarnessAgent[]>('orchestration.listAgents', { orchestrationId }),
+    addAgent: (input) => rpc<HarnessAgent>('orchestration.addAgent', { ...input }),
+    updateAgent: (input) => rpc<HarnessAgent>('orchestration.updateAgent', { ...input }),
+    deleteAgent: (agentId: string) =>
+      rpc<void>('orchestration.deleteAgent', { agentId }).then(() => undefined),
+    setAgentBudget: (agentId: string, budget: HarnessOrchestrationBudget) =>
+      rpc<HarnessAgent>('orchestration.setAgentBudget', { agentId, budget }),
+    listTasks: (orchestrationId?: string) =>
+      rpc<HarnessTask[]>('orchestration.listTasks', { orchestrationId }),
+    createTask: (input) => rpc<HarnessTask>('orchestration.createTask', { ...input }),
+    updateTask: (input) => rpc<HarnessTask>('orchestration.updateTask', { ...input }),
+    deleteTask: (taskId: string) =>
+      rpc<void>('orchestration.deleteTask', { taskId }).then(() => undefined),
+    retryTask: (taskId: string, agentId?: string | null) =>
+      rpc<HarnessTask>('orchestration.retryTask', { taskId, agentId }),
+    skipTask: (taskId: string) => rpc<HarnessTask>('orchestration.skipTask', { taskId }),
+    reassignTask: (taskId: string, agentId: string) =>
+      rpc<HarnessTask>('orchestration.reassignTask', { taskId, agentId }),
+    listHandoffs: (orchestrationId?: string) =>
+      rpc<AgentHandoff[]>('orchestration.listHandoffs', { orchestrationId })
   }
 }
 
@@ -305,7 +401,7 @@ export function createTauriBridge(): PiSwitchTauriAPI {
     sessions: createSessionsApi(),
     agent: createAgentApi(),
     harness: createHarnessApi(),
-    orchestration: pendingNamespace<PiSwitchAPI['orchestration']>('orchestration'),
+    orchestration: createOrchestrationApi(),
     files: pendingNamespace<PiSwitchAPI['files']>('files'),
     git: pendingNamespace<PiSwitchAPI['git']>('git'),
     worktrees: pendingNamespace<PiSwitchAPI['worktrees']>('worktrees'),

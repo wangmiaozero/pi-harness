@@ -1,6 +1,6 @@
-# Tauri 2 迁移（第二阶段）
+# Tauri 2 迁移（第三阶段）
 
-> 状态：第二阶段（Pi Runtime Core Migration）— 已完成
+> 状态：第三阶段（Harness Control Plane + Multi-Agent）— 已完成
 > 分支：`refactor/tauri-v2`（Electron 主线保持可检出、可构建、可发布）
 
 本目录记录 Pi-Harness 从 Electron 迁移到 Tauri 2 的架构、协议与迁移计划。
@@ -13,6 +13,12 @@
 - [migration-plan.md](./migration-plan.md) — 分阶段迁移计划与当前进度
 - [compatibility-matrix.md](./compatibility-matrix.md) — `window.piSwitch` API 兼容性矩阵
 - [phase-2-report.md](./phase-2-report.md) — 第二阶段交付报告与验收场景状态
+- [phase-3-report.md](./phase-3-report.md) — 第三阶段交付报告
+- [control-plane.md](./control-plane.md) — Runs / Policy / Checkpoint / Evaluation
+- [orchestration.md](./orchestration.md) — Multi-Agent 状态机
+- [scheduler.md](./scheduler.md) — Task 调度与依赖
+- [crash-recovery.md](./crash-recovery.md) — Runtime / Orchestration 崩溃恢复
+- [runtime-data-model.md](./runtime-data-model.md) — Session / Run / Task 关系
 - [baseline.md](./baseline.md) — Electron 基线指标（内存 / 体积 / 进程数）
 - [benchmark.md](./benchmark.md) — Tauri 第一阶段实测与基线对比
 

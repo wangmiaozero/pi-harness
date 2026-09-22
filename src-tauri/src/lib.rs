@@ -39,6 +39,11 @@ pub fn run() {
             commands::runtime::runtime_request,
         ])
         .setup(|app| {
+            // Sidecar stores (runs / policy / orchestration) live in the same
+            // user-data root Electron uses, injected at spawn via env.
+            if let Ok(dir) = app.path().app_data_dir() {
+                std::env::set_var("PI_HARNESS_USER_DATA", dir);
+            }
             // Lazy start: the runtime sidecar is NOT started here. It boots
             // on the first `runtime_start` (or a later phase's first
             // agent-dependent feature). Settings/theme/about never spawn Node.
