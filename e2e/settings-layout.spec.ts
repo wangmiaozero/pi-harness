@@ -37,3 +37,52 @@ test('uses a conventional settings sidebar and displays the current application 
     )
   })
 })
+
+test('switches among three app icons and follows Ming themes by default', async ({ page }) => {
+  await page.locator('a[href="#/settings"]').click()
+  const titlebarIcon = page.getByTestId('titlebar-brand-icon')
+  const iconSettings = page.getByTestId('app-icon-settings')
+  await expect(iconSettings).toBeVisible()
+  await expect(titlebarIcon).toHaveAttribute('src', /app-icon-classic/)
+
+  await iconSettings.getByTestId('app-icon-option-quantum').click()
+  await expect(titlebarIcon).toHaveAttribute('src', /quantum/)
+  await expect
+    .poll(() => page.evaluate(() => window.piSwitch.settings.get().then((s) => s.appIcon)))
+    .toBe('quantum')
+
+  await page.reload()
+  await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+  await expect(titlebarIcon).toHaveAttribute('src', /quantum/)
+
+  await page.evaluate(async () => {
+    await window.piSwitch.settings.unlockMascot('1024')
+    await window.piSwitch.settings.set({ appIcon: 'auto', mascotStyle: 'mingSnow' })
+  })
+  await page.reload()
+  await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+  await expect(titlebarIcon).toHaveAttribute('src', /ming/)
+
+  await page.evaluate(() => window.piSwitch.settings.set({ mascotStyle: 'office' }))
+  await page.reload()
+  await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+  await expect(titlebarIcon).toHaveAttribute('src', /app-icon-classic/)
+})
+
+test('persists the input flame setting from General', async ({ page }) => {
+  await page.locator('a[href="#/settings"]').click()
+  const toggle = page.getByTestId('composer-fire-toggle')
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.piSwitch.settings.get().then((s) => s.composerFireEnabled))
+    )
+    .toBe(false)
+
+  await page.reload()
+  await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+})

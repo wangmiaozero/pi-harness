@@ -173,6 +173,9 @@ const thinkingValue = computed({
     }
   }
 })
+const showComposerFire = computed(
+  () => thinkingValue.value === 'ultra' && (settings.settings?.composerFireEnabled ?? true)
+)
 
 watch(thinkingStops, (levels) => {
   const next = clampThinkingLevel(agent.thinkingLevel, levels)
@@ -362,14 +365,12 @@ async function onCompact() {
   <div
     data-testid="chat-composer"
     class="command-console relative overflow-visible bg-[var(--bg-surface)] px-3 py-2 transition-colors"
-    :class="
-      [
-        dragActive ? 'bg-[var(--accent-tint)] shadow-[inset_0_0_0_1px_var(--accent)]' : '',
-        thinkingValue === 'ultra'
-          ? 'command-console--ultra border-t-transparent'
-          : 'border-t border-[var(--border-subtle)]'
-      ]
-    "
+    :class="[
+      dragActive ? 'bg-[var(--accent-tint)] shadow-[inset_0_0_0_1px_var(--accent)]' : '',
+      showComposerFire
+        ? 'command-console--ultra border-t-transparent'
+        : 'border-t border-[var(--border-subtle)]'
+    ]"
     @dragenter="onDragEnter"
     @dragover="onDragOver"
     @dragleave="onDragLeave"
@@ -420,7 +421,7 @@ async function onCompact() {
       ref="inputBox"
       class="command-console-input relative overflow-hidden rounded-[var(--radius-sm)] transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
       :class="
-        thinkingValue === 'ultra'
+        showComposerFire
           ? 'command-console-input--ultra'
           : textareaFocused
             ? 'border border-[var(--accent-border)] bg-[var(--control-bg-hover)] shadow-[var(--control-shadow)]'
@@ -519,7 +520,7 @@ async function onCompact() {
       {{ $t('workspace.dropImages') }}
     </div>
 
-    <AgentAuraFireBorder v-if="thinkingValue === 'ultra'" :active="true" :target="inputBox" />
+    <AgentAuraFireBorder v-if="showComposerFire" :active="true" :target="inputBox" />
     <Dialog v-model:open="previewOpen" wide :title="$t('workspace.previewImage')">
       <img
         v-if="previewImage"

@@ -5,6 +5,7 @@ import { APP_LANGUAGES } from '../constants/language'
 import { MASCOT_STYLES } from '../constants/mascot'
 import { normalizeNavOrder } from '../constants/navigation'
 import { APP_THEMES } from '../constants/theme'
+import { APP_ICON_PREFERENCES } from '../constants/app-icon'
 import { TOOL_PRESET_VALUES } from '../workspace/tool-presets'
 import { providerKeySchema } from './domain'
 
@@ -56,6 +57,7 @@ const optionalFilesystemPathSchema = systemPathSchema.nullable()
 const appSettingsFields = {
   language: z.enum(APP_LANGUAGES),
   theme: z.enum(APP_THEMES),
+  appIcon: z.enum(APP_ICON_PREFERENCES),
   mascotUnlocked: z.boolean(),
   mascotStyle: z.enum(MASCOT_STYLES),
   petAnimations: z.boolean(),
@@ -78,6 +80,7 @@ const appSettingsFields = {
   autoOpenLastProject: z.boolean(),
   windowMotionEnabled: z.boolean(),
   screenMotionEnabled: z.boolean(),
+  composerFireEnabled: z.boolean(),
   navOrder: z.array(z.unknown()).max(32).transform(normalizeNavOrder)
 }
 

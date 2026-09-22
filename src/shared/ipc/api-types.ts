@@ -17,6 +17,7 @@ import type {
 import type { AppLanguage } from '../constants/language'
 import type { ProtocolId } from '../constants/protocols'
 import type { AppTheme } from '../constants/theme'
+import type { AppIconPreference } from '../constants/app-icon'
 import type {
   AgentStateSnapshot,
   AgentWorkspace,
@@ -654,6 +655,7 @@ export interface DiagnosticsReport {
 export interface AppSettings {
   language: AppLanguage
   theme: AppTheme
+  appIcon: AppIconPreference
   mascotUnlocked: boolean
   mascotStyle: MascotStyle
   petAnimations: boolean
@@ -672,6 +674,7 @@ export interface AppSettings {
   autoOpenLastProject: boolean
   windowMotionEnabled: boolean
   screenMotionEnabled: boolean
+  composerFireEnabled: boolean
   navOrder: NavItemId[]
 }
 
@@ -752,10 +755,16 @@ export interface PiSwitchOverlayAPI {
  * The full typed bridge. Each method returns a Promise and rejects with a
  * structured AppErrorPayload on failure.
  */
+export interface NetworkCheckResult {
+  reachable: boolean
+  latencyMs: number | null
+}
+
 export interface PiSwitchAPI {
   // system
   system: {
     info(): Promise<SystemInfo>
+    checkNetwork(): Promise<NetworkCheckResult>
     openPath(path: string): Promise<void>
     showItem(path: string): Promise<void>
   }
@@ -1002,7 +1011,11 @@ export interface PiSwitchAPI {
     getBaseline(sessionId: string): Promise<HarnessBaseline | null>
     setBaseline(sessionId: string, runId: string): Promise<HarnessBaseline>
     getProjectStats(sessionId: string, range?: HarnessStatsRange): Promise<HarnessProjectStats>
-    exportRun(sessionId: string, runId: string, format: 'json' | 'markdown'): Promise<HarnessExportResult>
+    exportRun(
+      sessionId: string,
+      runId: string,
+      format: 'json' | 'markdown'
+    ): Promise<HarnessExportResult>
     exportDebugBundle(sessionId: string, runId?: string): Promise<HarnessExportResult>
     listArtifacts(sessionId: string, runId?: string): Promise<HarnessArtifact[]>
     getStoreSettings(): Promise<HarnessStoreSettings>
@@ -1090,10 +1103,7 @@ export interface PiSwitchAPI {
       budget?: HarnessOrchestrationBudget
     }): Promise<HarnessAgent>
     deleteAgent(agentId: string): Promise<void>
-    setAgentBudget(
-      agentId: string,
-      budget: HarnessOrchestrationBudget
-    ): Promise<HarnessAgent>
+    setAgentBudget(agentId: string, budget: HarnessOrchestrationBudget): Promise<HarnessAgent>
     listTasks(orchestrationId?: string): Promise<HarnessTask[]>
     createTask(input: {
       orchestrationId: string

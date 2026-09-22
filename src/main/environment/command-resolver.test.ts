@@ -126,4 +126,13 @@ describe.runIf(process.platform === 'win32')('Windows command resolver', () => {
     expect(result.node).toEqual({ path: process.execPath, version: process.version })
     expect(result.path).toBeTruthy()
   }, 25_000)
+
+  it('keeps Node executable after refreshing PATH from Windows environment settings', async () => {
+    const result = await resolveLoginShellPath({ probeNode: true, refreshWindowsPath: true })
+    expect(result.node).toEqual({
+      path: expect.any(String),
+      version: expect.stringMatching(/^v\d+\.\d+\.\d+/)
+    })
+    expect(result.path).toContain(path.dirname(process.execPath))
+  }, 25_000)
 })

@@ -5,6 +5,7 @@ import { callApi, getApi } from '@renderer/composables/useApi'
 import { i18n, resolveLocale } from '@renderer/i18n'
 import { applyTheme } from '@renderer/utils/theme'
 import { normalizeAppTheme } from '@shared/constants/theme'
+import { normalizeAppIconPreference } from '@shared/constants/app-icon'
 import { normalizeMascotStyle } from '@shared/constants/mascot'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { normalizeNavOrder } from '@shared/constants/navigation'
@@ -60,6 +61,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function normalizeExperienceSettings(value: AppSettings): void {
     value.theme = normalizeAppTheme(value.theme)
+    value.appIcon = normalizeAppIconPreference(value.appIcon)
     value.mascotStyle = normalizeMascotStyle(value.mascotStyle)
     value.petSleepMinutes = Math.min(120, Math.max(1, value.petSleepMinutes))
     value.navOrder = normalizeNavOrder(value.navOrder)

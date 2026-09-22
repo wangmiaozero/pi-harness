@@ -2,6 +2,7 @@
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppShell from '@renderer/components/layout/AppShell.vue'
+import StartupAnimation from '@renderer/components/layout/StartupAnimation.vue'
 import CommandPalette from '@renderer/components/common/CommandPalette.vue'
 import ConflictDialog from '@renderer/components/common/ConflictDialog.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
@@ -112,6 +113,7 @@ onBeforeUnmount(() => {
   <AppShell>
     <RouterView />
   </AppShell>
+  <StartupAnimation />
   <CommandPalette v-model:open="paletteOpen" />
   <ConflictDialog />
   <ConfirmDialog />

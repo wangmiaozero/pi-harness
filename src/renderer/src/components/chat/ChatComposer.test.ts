@@ -6,6 +6,7 @@ import { useAgentStore } from '@renderer/stores/agent'
 import { useModelsStore } from '@renderer/stores/models'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useSessionStore } from '@renderer/stores/sessions'
+import { useSettingsStore } from '@renderer/stores/settings'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import type { ModelDefinition, ProviderProfile } from '@shared/ipc/api-types'
 import ChatComposer from './ChatComposer.vue'
@@ -83,9 +84,39 @@ describe('ChatComposer ultra fire border', () => {
     agent.thinkingLevel = 'ultra'
     await wrapper.vm.$nextTick()
     const fire = wrapper.get('[data-testid="agent-aura-fire-border"]')
-    expect(wrapper.get('.command-console-input').classes()).toContain('command-console-input--ultra')
-    expect(wrapper.get('[data-testid="chat-composer"]').classes()).toContain('command-console--ultra')
+    expect(wrapper.get('.command-console-input').classes()).toContain(
+      'command-console-input--ultra'
+    )
+    expect(wrapper.get('[data-testid="chat-composer"]').classes()).toContain(
+      'command-console--ultra'
+    )
     expect(fire.element.parentElement?.querySelector('.command-console-input')).toBeTruthy()
+  })
+
+  it('removes the flame and restores the normal input style when disabled', async () => {
+    const agent = useAgentStore()
+    const settings = useSettingsStore()
+    agent.thinkingLevel = 'ultra'
+    const wrapper = mount(ChatComposer, {
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    expect(wrapper.find('[data-testid="agent-aura-fire-border"]').exists()).toBe(true)
+
+    settings.settings = { composerFireEnabled: false } as NonNullable<typeof settings.settings>
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-testid="agent-aura-fire-border"]').exists()).toBe(false)
+    expect(wrapper.get('.command-console-input').classes()).not.toContain(
+      'command-console-input--ultra'
+    )
+    expect(wrapper.get('[data-testid="chat-composer"]').classes()).not.toContain(
+      'command-console--ultra'
+    )
+    expect(agent.thinkingLevel).toBe('ultra')
+
+    settings.settings.composerFireEnabled = true
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-testid="agent-aura-fire-border"]').exists()).toBe(true)
   })
 })
 

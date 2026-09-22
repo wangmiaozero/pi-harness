@@ -10,6 +10,7 @@ import {
   appUiStatePath,
   appAuthorizedRootsPath,
   appWorkspaceStatePath,
+  userData,
   harnessCheckpointsPath,
   harnessPolicyPath
 } from './services/app-paths'
@@ -58,10 +59,14 @@ import { BuiltinSkillService } from './skills/builtin-skill-service'
 import { PackageHealthError, PathDeniedError } from './services/errors'
 import { EnvironmentManager } from './environment/environment-manager'
 import { applyChromiumGpuWorkarounds } from './window/chromium-flags'
+import { applyAppIcon, selectedAppIconPath } from './window/app-icon'
+import { normalizeAppIconPreference } from '@shared/constants/app-icon'
+import { runWindowsStartupPreflight } from './services/windows-startup-preflight'
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'auto',
   theme: 'dark',
+  appIcon: 'auto',
   mascotUnlocked: false,
   mascotStyle: DEFAULT_MASCOT_STYLE,
   petAnimations: true,
@@ -80,6 +85,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   autoOpenLastProject: true,
   windowMotionEnabled: false,
   screenMotionEnabled: false,
+  composerFireEnabled: true,
   navOrder: [...DEFAULT_NAV_ORDER]
 }
 
@@ -113,8 +119,36 @@ if (!gotLock) {
 }
 
 async function bootstrap(): Promise<void> {
-  await app.whenReady()
   initAppPaths(app)
+
+  if (process.platform === 'win32') {
+    try {
+      const result = await runWindowsStartupPreflight(
+        userData(),
+        app.getVersion(),
+        DEFAULT_SETTINGS,
+        {
+          resetLegacyData: app.isPackaged
+        }
+      )
+      let processFailed = false
+      app.on('render-process-gone', (_event, _contents, details) => {
+        if (details.reason !== 'clean-exit' && details.reason !== 'killed') processFailed = true
+      })
+      app.on('child-process-gone', (_event, details) => {
+        if (details.type === 'GPU' && details.reason !== 'clean-exit') processFailed = true
+      })
+      app.on('will-quit', () => {
+        if (!processFailed) result.markClean()
+      })
+      if (result.repaired.length)
+        log.app.info('Windows startup preflight repaired', result.repaired)
+    } catch (error) {
+      log.app.error('Windows startup preflight failed', error)
+    }
+  }
+
+  await app.whenReady()
 
   // Harden: deny permission requests by default
   app.on('web-contents-created', (_event, contents) => {
@@ -130,7 +164,10 @@ async function bootstrap(): Promise<void> {
   const storedSettings = await settingsStore.read()
   const theme = normalizeAppTheme(storedSettings.theme)
   if (theme !== storedSettings.theme) await settingsStore.update({ theme })
+  const appIcon = normalizeAppIconPreference(storedSettings.appIcon)
+  if (appIcon !== storedSettings.appIcon) await settingsStore.update({ appIcon })
   nativeTheme.themeSource = themeAppearance(theme)
+  applyAppIcon(settingsStore.peek(), null)
   // Install before the first window opens: replaces Electron's default menu,
   // whose CmdOrCtrl+W "Close Window" accelerator hijacked the workspace
   // close-tab shortcut and closed the whole window mid-conversation.
@@ -155,7 +192,9 @@ async function bootstrap(): Promise<void> {
   const screenMotion = new ScreenMotionOverlayController()
 
   const openMainWindow = (): void => {
-    mainWindow = createMainWindow()
+    const settings = settingsStore.peek()
+    mainWindow = createMainWindow(selectedAppIconPath(settings))
+    applyAppIcon(settings, mainWindow)
     mainWindow.on('closed', () => {
       screenMotion.stop()
       mainWindow = null
@@ -320,6 +359,7 @@ async function bootstrap(): Promise<void> {
       }
     },
     getMainWindow: () => mainWindow,
+    setAppIcon: (settings) => applyAppIcon(settings, mainWindow),
     setScreenMotionActive: (payload) => {
       const restoreMainWindow = payload.active && mainWindow?.isFocused() === true
       screenMotion.setActive(payload)

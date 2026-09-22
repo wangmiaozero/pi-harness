@@ -109,19 +109,20 @@ export async function resolveExecutable(
 }
 
 export async function resolveLoginShellPath(
-  options: { probeNode?: boolean; cwd?: string } = {}
+  options: { probeNode?: boolean; cwd?: string; refreshWindowsPath?: boolean } = {}
 ): Promise<LoginShellEnvironment> {
   const isWindows = process.platform === 'win32'
   if (isWindows && !options.probeNode) {
     return { shell: process.env.ComSpec ?? null, path: process.env.PATH ?? null }
   }
   const shells = isWindows ? ['pwsh.exe', 'powershell.exe'] : loginShellCandidates()
+  let fallback: LoginShellEnvironment | null = null
   for (const shell of shells) {
     try {
       // Run node itself: command -v alone only identifies a manager's shim, and
       // misses shell functions/lazy activation. The script contains no user input.
       const script = isWindows
-        ? `Write-Output ("${LOGIN_SHELL_PATH_MARKER}" + $env:PATH); '${NODE_PROBE}' | node; exit 0`
+        ? `${options.refreshWindowsPath ? windowsRegistryPathRefreshScript() : ''}Write-Output ("${LOGIN_SHELL_PATH_MARKER}" + $env:PATH); '${NODE_PROBE}' | node; exit 0`
         : `printf '\n${LOGIN_SHELL_PATH_MARKER}%s\n' "$PATH"${options.probeNode ? `; node -e '${NODE_PROBE}'; true` : ''}`
       const { stdout } = await execFileP(
         shell,
@@ -158,13 +159,28 @@ export async function resolveLoginShellPath(
             // A broken shim must not discard an otherwise valid shell PATH.
           }
         }
-        return snapshot
+        if (snapshot.node || !options.probeNode) return snapshot
+        fallback ??= snapshot
       }
     } catch {
       // Try the next supported login shell.
     }
   }
-  return { shell: null, path: isWindows ? (process.env.PATH ?? null) : null }
+  return fallback ?? { shell: null, path: isWindows ? (process.env.PATH ?? null) : null }
+}
+
+function windowsRegistryPathRefreshScript(): string {
+  // A running Electron process can retain the PATH from before Node was installed.
+  // A new terminal receives the current user and machine PATH from the registry.
+  return (
+    [
+      "$userPath=[Environment]::GetEnvironmentVariable('Path','User')",
+      "$machinePath=[Environment]::GetEnvironmentVariable('Path','Machine')",
+      'if($userPath){$userPath=[Environment]::ExpandEnvironmentVariables($userPath)}',
+      'if($machinePath){$machinePath=[Environment]::ExpandEnvironmentVariables($machinePath)}',
+      "$env:PATH=(@($userPath,$machinePath,$env:PATH) | Where-Object { $_ }) -join ';'"
+    ].join(';') + ';'
+  )
 }
 
 export function mergeProcessPath(...pathValues: Array<string | null | undefined>): string {

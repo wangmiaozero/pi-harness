@@ -91,6 +91,7 @@ export const test = base.extend<Fixtures>({
   page: async ({ electronApp }, use) => {
     const page = await waitForMainWindow(electronApp)
     await page.waitForLoadState('domcontentloaded')
+    await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
     await use(page)
   }
 })

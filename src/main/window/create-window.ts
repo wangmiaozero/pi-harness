@@ -11,7 +11,7 @@ import { log } from '../services/logger'
 import { attachRendererGuards } from './renderer-guards'
 import { resolvePreload } from './preload-path'
 
-export function createMainWindow(): BrowserWindow {
+export function createMainWindow(iconPath: string): BrowserWindow {
   const rendererEntry = path.join(import.meta.dirname, '../renderer/index.html')
   const developmentRendererUrl =
     getIsDev() && process.env['ELECTRON_RENDERER_URL'] ? process.env['ELECTRON_RENDERER_URL'] : null
@@ -24,6 +24,7 @@ export function createMainWindow(): BrowserWindow {
     minHeight: DEFAULT_WINDOW.minHeight,
     show: false,
     backgroundColor: '#17191C',
+    icon: iconPath,
     frame: false,
     webPreferences: {
       preload: resolvePreload(),

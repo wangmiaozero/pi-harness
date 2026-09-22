@@ -4,11 +4,15 @@ import { useRouter } from 'vue-router'
 import { Search, Minus, Square, X } from '@lucide/vue'
 import { getApi } from '@renderer/composables/useApi'
 import { APP_VERSION } from '@shared/constants/index'
+import { resolveAppIcon } from '@shared/constants/app-icon'
+import { useSettingsStore } from '@renderer/stores/settings'
 import classicAppIconUrl from '@renderer/assets/app-icon-classic.png?url'
-import mingAppIconUrl from '../../../../../build/icon.png?url'
+import mingAppIconUrl from '../../../../../build/app-icons/ming.png?url'
+import quantumAppIconUrl from '../../../../../build/app-icons/quantum.png?url'
 import mingTitlebarCalligraphyUrl from '@renderer/assets/themes/ming-dynasty/titlebar-calligraphy.png?url'
 
 const router = useRouter()
+const settings = useSettingsStore()
 const props = withDefaults(defineProps<{ starshipCockpit?: boolean; mingDynasty?: boolean }>(), {
   starshipCockpit: false,
   mingDynasty: false
@@ -16,7 +20,10 @@ const props = withDefaults(defineProps<{ starshipCockpit?: boolean; mingDynasty?
 const isMac = ref(false)
 const isWin = ref(false)
 const showLeadingWindowControls = ref(!navigator.platform.startsWith('Win'))
-const titlebarIconUrl = computed(() => (props.mingDynasty ? mingAppIconUrl : classicAppIconUrl))
+const titlebarIconUrl = computed(() => {
+  const icon = resolveAppIcon(settings.settings?.appIcon ?? 'auto', props.mingDynasty)
+  return { classic: classicAppIconUrl, ming: mingAppIconUrl, quantum: quantumAppIconUrl }[icon]
+})
 
 onMounted(async () => {
   try {
@@ -88,7 +95,7 @@ async function close() {
     </div>
 
     <div v-if="starshipCockpit" class="starship-titlebar-identity pointer-events-none">
-      <img :src="classicAppIconUrl" alt="" class="starship-titlebar-identity__icon" />
+      <img :src="titlebarIconUrl" alt="" class="starship-titlebar-identity__icon" />
       <span>
         <strong>PI-HARNESS v{{ APP_VERSION }}</strong>
         <small>星际驾驶舱 · 就绪</small>

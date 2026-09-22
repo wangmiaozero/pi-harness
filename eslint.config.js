@@ -8,6 +8,7 @@ export default defineConfigWithVueTs([
       'out/**',
       'src/renderer/out/**',
       'dist/**',
+      'runtime/dist/**',
       'release/**',
       'node_modules/**',
       'build/**',
