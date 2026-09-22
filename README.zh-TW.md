@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="v1.5.0 發行版" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="v1.7.0 發行版" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
   <img alt="支援 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 授權" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -60,16 +60,18 @@ Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，�
 
 ## 下載
 
-從 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0) 下載 Pi-Harness v1.5.0。
+從 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0) 下載 Pi-Harness v1.7.0。
 
 | 平台                | 安裝程式                                                                                                                       |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.5.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.5.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.5.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
-| Linux x64           | [`Pi-Harness-1.5.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.7.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.7.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.7.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-Setup-1.7.0.exe) |
+| Linux x64           | [`Pi-Harness-1.7.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.AppImage)   |
 
-> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v1.5.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0)。
+> **Windows 升級提示：**首次啟動 v1.7.0 正式安裝程式會一次性重設舊版 Pi-Harness 應用程式資料，包括應用程式設定、本機憑證庫、應用程式內備份與快取。之後需重新設定偏好與憑證。Pi Agent 的獨立資料目錄與專案檔案不會被重設。
+>
+> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v1.7.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0)。
 
 安裝程式使用者不需要 clone 儲存庫，也不需要安裝 pnpm。Pi-Harness 可在支援的環境中偵測、安裝及修復 Node.js、npm、PATH 與 Pi Coding Agent。
 
@@ -148,7 +150,13 @@ Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，�
 | 設定              | 編輯 Pi 設定並提供衝突保護                |
 | 診斷              | 查看應用程式與環境健康狀態                |
 | 更新              | 安裝相容的應用程式更新                    |
-| 外觀              | 提供主題、密度和可選特色主題設定          |
+| 外觀              | 提供應用程式圖示、主題、密度與視覺效果    |
+
+### 啟動與外觀
+
+Pi-Harness 啟動時會顯示動畫，並檢查 npm 軟體源、Node.js、npm、Pi Agent 與目前設定。動畫至少顯示 5 秒；預設使用單色量子粒子效果，啟用特色主題後會跟隨所選主題呈現對應效果。
+
+在「設定 → 一般」中，可以選擇經典、大明或量子應用程式圖示，也可以讓 Pi-Harness 自動選擇；視窗光圈、螢幕光圈與輸入框火焰效果均可獨立控制。無吉祥物版本會保留預設啟動動畫與這些外觀設定，但不會載入可選吉祥物主題。
 
 ### 輕量編輯器，而不是 IDE
 
