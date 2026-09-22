@@ -11,6 +11,13 @@ describe('startup quantum variants', () => {
     )
   })
 
+  it('uses one particle color for the default quantum animation', () => {
+    const palette = STARTUP_PALETTES.none
+    expect(
+      new Set([palette.accent, palette.secondary, palette.tertiary, ...palette.particles])
+    ).toEqual(new Set([palette.accent]))
+  })
+
   it('covers all seven unlocked themes with distinct colors and trajectories', () => {
     const themed = MASCOT_STYLES.filter((style) => style !== 'none')
     expect(themed).toHaveLength(7)

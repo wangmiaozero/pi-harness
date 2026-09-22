@@ -3,6 +3,8 @@ import type { NodeRuntimeInfo } from '@shared/ipc/api-types'
 
 export type StartupPhase = 'settings' | 'services' | 'ready'
 
+export const STARTUP_MINIMUM_VISIBLE_MS = 5000
+
 export const startupPhase = ref<StartupPhase>('settings')
 
 export type StartupCheckState = 'checking' | 'healthy' | 'warning' | 'error'

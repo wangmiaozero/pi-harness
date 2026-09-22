@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { NodeRuntimeInfo } from '@shared/ipc/api-types'
-import { runtimeStartupChecks } from './startup'
+import { runtimeStartupChecks, STARTUP_MINIMUM_VISIBLE_MS } from './startup'
 
 describe('startup runtime checks', () => {
+  it('keeps the startup animation visible for at least five seconds', () => {
+    expect(STARTUP_MINIMUM_VISIBLE_MS).toBe(5000)
+  })
+
   it('keeps a supported Node healthy when npm is missing', () => {
     const runtime = {
       nodeInstalled: true,
