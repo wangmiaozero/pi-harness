@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="release v1.5.0" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -53,16 +53,18 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 
 ## 다운로드
 
-[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0)에서 Pi-Harness v1.5.0을 다운로드하세요.
+[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0)에서 Pi-Harness v1.7.0을 다운로드하세요.
 
 | 플랫폼              | 설치 파일                                                                                                                    |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.5.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.5.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.5.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
-| Linux x64           | [Pi-Harness-1.5.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.7.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.7.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.7.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-Setup-1.7.0.exe) |
+| Linux x64           | [Pi-Harness-1.7.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.AppImage)   |
 
-> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v1.5.0 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0)를 참고하세요.
+> **Windows 업그레이드 안내:** v1.7.0 설치 앱을 처음 실행하면 이전 Pi-Harness 앱 데이터(앱 설정, 로컬 자격 증명 저장소, 앱 백업, 캐시)가 한 번 초기화됩니다. 이후 앱 설정과 자격 증명을 다시 구성해야 합니다. Pi Agent의 별도 데이터 디렉터리와 프로젝트 파일은 초기화되지 않습니다.
+>
+> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v1.7.0 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0)를 참고하세요.
 
 패키지 사용자는 저장소를 clone하거나 pnpm을 설치할 필요가 없습니다. Pi-Harness는 지원되는 환경에서 Node.js, npm, PATH, Pi Coding Agent를 감지하고 설치하거나 복구할 수 있습니다.
 
@@ -74,6 +76,7 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 - **Environment:** Node.js, npm, PATH, Pi를 감지하고 일반적인 설치 문제를 데스크톱 앱에서 해결합니다.
 - **Files & Git:** 파일을 탐색·업로드하고, 충돌 보호가 있는 경량 편집기를 사용하며, Git Diff와 Worktree를 확인합니다.
 - **Diagnostics:** 애플리케이션과 환경 상태를 확인합니다.
+- **시작 및 모양:** 시작 시 npm 레지스트리, Node.js, npm, Pi Agent와 설정을 검사하면서 단색 퀀텀 입자 애니메이션을 최소 5초 동안 표시합니다. 일반 설정에서 클래식, Ming, 퀀텀 앱 아이콘과 창·화면 글로우, 입력창 불꽃 효과를 선택할 수 있습니다. 마스코트 없는 빌드도 선택형 마스코트 테마를 로드하지 않고 기본 시작 애니메이션과 모양 설정을 유지합니다.
 
 ## 사용 흐름
 

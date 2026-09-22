@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="release v1.5.0" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -53,16 +53,18 @@ Pi-Harness — не обёртка над веб-интерфейсом. В нё
 
 ## Скачать
 
-Скачайте Pi-Harness v1.5.0 из [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0).
+Скачайте Pi-Harness v1.7.0 из [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0).
 
 | Платформа           | Установщик                                                                                                                   |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.5.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.5.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.5.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
-| Linux x64           | [Pi-Harness-1.5.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.7.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.7.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.7.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-Setup-1.7.0.exe) |
+| Linux x64           | [Pi-Harness-1.7.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.AppImage)   |
 
-> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.5.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0).
+> **Примечание об обновлении Windows:** при первом запуске установленной версии v1.7.0 старые данные приложения Pi-Harness — настройки, локальное хранилище учётных данных, резервные копии и кэш — сбрасываются один раз. После этого заново настройте параметры и учётные данные. Отдельный каталог данных Pi Agent и файлы проектов не сбрасываются.
+>
+> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.7.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0).
 
 Пользователям готового приложения не нужно клонировать репозиторий или устанавливать pnpm. Pi-Harness может обнаружить, установить и восстановить Node.js, npm, PATH и Pi Coding Agent в поддерживаемой среде.
 
@@ -74,6 +76,7 @@ Pi-Harness — не обёртка над веб-интерфейсом. В нё
 - **Среда:** обнаружение и восстановление Node.js, npm, PATH и Pi прямо из настольного приложения.
 - **Файлы и Git:** просмотр и загрузка файлов, лёгкий редактор с защитой от конфликтов, Git Diff и Worktree.
 - **Диагностика:** проверка состояния приложения и среды.
+- **Запуск и внешний вид:** при запуске проверяются реестр npm, Node.js, npm, Pi Agent и конфигурация, а одноцветная квантовая анимация частиц отображается не менее пяти секунд. В общих настройках доступны значки Classic, Ming и Quantum, свечение окна и экрана, а также эффект пламени в поле ввода. Сборка без маскота сохраняет стандартную стартовую анимацию и эти настройки, не загружая дополнительные темы маскота.
 
 ## Как это работает
 
