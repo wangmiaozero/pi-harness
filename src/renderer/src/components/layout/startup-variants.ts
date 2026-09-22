@@ -17,9 +17,9 @@ export const STARTUP_PALETTES: Record<StartupVariant, StartupPalette> = {
     background: '#000000',
     text: '#f5f6fb',
     accent: '#6dcbf4',
-    secondary: '#7ab1fe',
-    tertiary: '#f87915',
-    particles: ['#f5f6fb', '#6dcbf4', '#7ab1fe', '#f87915']
+    secondary: '#6dcbf4',
+    tertiary: '#6dcbf4',
+    particles: ['#6dcbf4', '#6dcbf4', '#6dcbf4', '#6dcbf4']
   },
   maidWhite: {
     background: '#172a32',
