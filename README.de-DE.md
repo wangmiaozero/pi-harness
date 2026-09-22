@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="release v1.5.0" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -53,16 +53,18 @@ Pi-Harness ist kein Wrapper um eine Web-Oberfläche. Es bettet weder pi-web noch
 
 ## Download
 
-Lade Pi-Harness v1.5.0 aus den [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0) herunter.
+Lade Pi-Harness v1.7.0 aus den [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0) herunter.
 
 | Plattform           | Installer                                                                                                                    |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.5.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.5.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.5.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
-| Linux x64           | [Pi-Harness-1.5.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.7.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.7.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.7.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-Setup-1.7.0.exe) |
+| Linux x64           | [Pi-Harness-1.7.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.AppImage)   |
 
-> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v1.5.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0).
+> **Hinweis zum Windows-Upgrade:** Beim ersten Start der installierten Version v1.7.0 werden ältere Pi-Harness-App-Daten — Einstellungen, lokaler Anmeldedatentresor, App-Backups und Caches — einmalig zurückgesetzt. Konfiguriere danach Einstellungen und Anmeldedaten erneut. Das separate Datenverzeichnis von Pi Agent und Projektdateien werden nicht zurückgesetzt.
+>
+> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v1.7.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0).
 
 Nutzer der paketierten App müssen das Repository nicht klonen und pnpm nicht installieren. Pi-Harness kann Node.js, npm, PATH und Pi Coding Agent in unterstützten Umgebungen erkennen, installieren und reparieren.
 
@@ -74,6 +76,7 @@ Nutzer der paketierten App müssen das Repository nicht klonen und pnpm nicht in
 - **Environment:** Node.js, npm, PATH und Pi erkennen und typische Installationsprobleme direkt in der Desktop-App beheben.
 - **Files & Git:** Dateien durchsuchen und hochladen, mit Konfliktschutz bearbeiten sowie Git Diff und Worktrees verwenden.
 - **Diagnostics:** Zustand der Anwendung und Umgebung prüfen.
+- **Start und Erscheinungsbild:** Beim Start prüft Pi-Harness die npm-Registry, Node.js, npm, Pi Agent und die Konfiguration und zeigt mindestens fünf Sekunden lang eine einfarbige Quantenpartikel-Animation. In den allgemeinen Einstellungen lassen sich Classic-, Ming- oder Quantum-App-Symbole, Fenster- und Bildschirmleuchten sowie der Flammeneffekt des Eingabefelds wählen. Die Version ohne Maskottchen behält die Standardanimation und diese Einstellungen bei, ohne optionale Maskottchen-Themen zu laden.
 
 ## So funktioniert es
 

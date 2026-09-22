@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0"><img alt="release v1.5.0" src="https://img.shields.io/badge/release-v1.5.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -53,16 +53,18 @@ Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js �
 
 ## ダウンロード
 
-[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0) から Pi-Harness v1.5.0 をダウンロードしてください。
+[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0) から Pi-Harness v1.7.0 をダウンロードしてください。
 
 | プラットフォーム    | インストーラー                                                                                                               |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.5.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.5.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.5.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-Setup-1.5.0.exe) |
-| Linux x64           | [Pi-Harness-1.5.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.5.0/Pi-Harness-1.5.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.7.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.7.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.7.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-Setup-1.7.0.exe) |
+| Linux x64           | [Pi-Harness-1.7.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.AppImage)   |
 
-> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v1.5.0 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.5.0)を参照してください。
+> **Windows アップグレード時の注意:** v1.7.0 のインストール版を初めて起動すると、旧バージョンの Pi-Harness アプリデータ（アプリ設定、ローカル認証情報、アプリ内バックアップ、キャッシュ）が一度だけリセットされます。その後、設定と認証情報を再設定してください。Pi Agent の独立したデータディレクトリとプロジェクトファイルはリセットされません。
+>
+> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v1.7.0 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0)を参照してください。
 
 パッケージ版の利用者は、リポジトリの clone や pnpm のインストールを行う必要はありません。Pi-Harness は、対応環境で Node.js、npm、PATH、Pi Coding Agent を検出し、インストールまたは修復できます。
 
@@ -74,6 +76,7 @@ Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js �
 - **Environment:** Node.js、npm、PATH、Pi を検出し、よくあるインストール問題をデスクトップアプリから解決できます。
 - **Files & Git:** ファイルの閲覧とアップロード、競合保護付きの軽量編集、Git Diff、Worktree を利用できます。
 - **Diagnostics:** アプリケーションと環境の状態を確認できます。
+- **起動と外観:** 起動時に npm レジストリ、Node.js、npm、Pi Agent、設定を確認しながら、単色の量子粒子アニメーションを 5 秒以上表示します。一般設定では、クラシック・Ming・量子のアプリアイコン、ウィンドウと画面のグロー、入力欄の炎エフェクトを選択できます。マスコットなしビルドでも、任意のマスコットテーマを読み込まずに標準の起動アニメーションと外観設定を利用できます。
 
 ## 利用の流れ
 
