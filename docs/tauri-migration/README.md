@@ -1,7 +1,7 @@
-# Tauri 2 迁移（第六阶段进行中）
+# Tauri 2 迁移（Phase 7 硬化）
 
-> 状态：第六阶段（Production Release）— **未达 READY FOR MERGE**，Electron 未退役
-> 分支：`refactor/tauri-v2`
+> 状态：Phase 7 代码收口完成，**NEEDS MORE HARDENING**。未合并 `main`。Electron 产品线是 `origin/main-electron`。
+> 分支：`refactor/tauri-v2-hardening` → `origin/main-tauri`
 
 本目录记录 Pi-Harness 从 Electron 迁移到 Tauri 2 的架构、协议与迁移计划。
 
@@ -17,6 +17,8 @@
 - [phase-4-report.md](./phase-4-report.md) — 第四阶段交付报告
 - [phase-5-report.md](./phase-5-report.md) — 第五阶段交付报告
 - [phase-6-report.md](./phase-6-report.md) — 第六阶段发布报告
+- [phase-7-report.md](./phase-7-report.md) — 第七阶段硬化报告
+- [benchmark-final.md](./benchmark-final.md) — sidecar 启动实测
 - [workspace.md](./workspace.md) — Workspace / Dialog / Binding
 - [filesystem-security.md](./filesystem-security.md) — 文件读写边界
 - [path-authorization.md](./path-authorization.md) — Authorized roots

@@ -56,6 +56,7 @@ pub enum RuntimeMessage {
     Event {
         name: String,
         payload: serde_json::Value,
+        sequence: Option<u64>,
     },
 }
 
@@ -73,6 +74,8 @@ struct RawResponse {
     event: Option<String>,
     #[serde(default)]
     payload: Option<serde_json::Value>,
+    #[serde(default)]
+    sequence: Option<u64>,
 }
 
 impl RuntimeMessage {
@@ -84,7 +87,11 @@ impl RuntimeMessage {
         if raw.kind.as_deref() == Some("event") {
             let name = raw.event?;
             let payload = raw.payload.unwrap_or(serde_json::Value::Null);
-            return Some(RuntimeMessage::Event { name, payload });
+            return Some(RuntimeMessage::Event {
+                name,
+                payload,
+                sequence: raw.sequence,
+            });
         }
 
         let id = raw.id?;
@@ -168,7 +175,7 @@ mod tests {
             RuntimeMessage::parse(r#"{"type":"event","event":"runtime.ready","payload":{"a":1}}"#)
                 .expect("valid event");
         match message {
-            RuntimeMessage::Event { name, payload } => {
+            RuntimeMessage::Event { name, payload, .. } => {
                 assert_eq!(name, "runtime.ready");
                 assert_eq!(payload, serde_json::json!({"a": 1}));
             }
@@ -181,7 +188,7 @@ mod tests {
         let message =
             RuntimeMessage::parse(r#"{"type":"event","event":"runtime.stopping"}"#).expect("valid");
         match message {
-            RuntimeMessage::Event { name, payload } => {
+            RuntimeMessage::Event { name, payload, .. } => {
                 assert_eq!(name, "runtime.stopping");
                 assert_eq!(payload, serde_json::Value::Null);
             }

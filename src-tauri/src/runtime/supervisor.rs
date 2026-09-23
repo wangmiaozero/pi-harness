@@ -21,6 +21,7 @@ use tokio::time::timeout;
 
 use crate::error::{AppError, AppResult};
 use crate::process::{resolve_node, resolve_runtime_script};
+use crate::runtime::lifecycle::{note_sequence, CrashLoopDetector};
 use crate::runtime::protocol::{RpcError, RpcRequest, RuntimeMessage, PROTOCOL_VERSION};
 
 /// Timeout for the start handshake (spawn -> protocol version exchange).
@@ -31,8 +32,10 @@ const STOP_GRACE: Duration = Duration::from_secs(5);
 const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 /// Timeout for full-roundtrip desktop requests (session scans, agent start).
 const DESKTOP_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
-/// Compaction runs a full LLM summarisation turn — it can legitimately take
-/// minutes on large sessions.
+/// Default idle window before a Ready runtime with no agents is stopped.
+const DEFAULT_IDLE: Duration = Duration::from_secs(10 * 60);
+/// How often the supervisor asks `runtime.activity`.
+const DEFAULT_IDLE_POLL: Duration = Duration::from_secs(30);
 const COMPACTION_REQUEST_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 
 /// Timeout for a given `runtime_request` method. Multi-step LLM operations
@@ -76,13 +79,19 @@ pub fn request_timeout_for(method: &str, params: &serde_json::Value) -> Duration
 }
 
 /// Supervisor lifecycle phase, mirrored to the UI as a string.
+/// `ready` means the JSONL transport answered `runtime.handshake`.
+/// `busy` means `runtime.activity` reported live work (no idle shutdown).
+/// `failed` means the crash-loop guard is holding until a manual restart.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimePhase {
     Stopped,
     Starting,
-    Running,
+    Ready,
+    Busy,
     Stopping,
     Crashed,
+    Restarting,
+    Failed,
 }
 
 impl RuntimePhase {
@@ -90,9 +99,12 @@ impl RuntimePhase {
         match self {
             RuntimePhase::Stopped => "stopped",
             RuntimePhase::Starting => "starting",
-            RuntimePhase::Running => "running",
+            RuntimePhase::Ready => "ready",
+            RuntimePhase::Busy => "busy",
             RuntimePhase::Stopping => "stopping",
             RuntimePhase::Crashed => "crashed",
+            RuntimePhase::Restarting => "restarting",
+            RuntimePhase::Failed => "failed",
         }
     }
 }
@@ -114,6 +126,12 @@ pub struct RuntimeStatus {
     pub node_version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub generation_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uptime_ms: Option<u64>,
+    pub crash_loop: bool,
+    pub event_gaps: u64,
 }
 
 /// Broadcast payload describing runtime state changes and events.
@@ -123,6 +141,7 @@ pub enum SupervisorEvent {
     RuntimeEvent {
         name: String,
         payload: serde_json::Value,
+        sequence: Option<u64>,
     },
     Log {
         line: String,
@@ -136,6 +155,11 @@ struct SharedState {
     runtime_version: Mutex<Option<String>>,
     node_version: Mutex<Option<String>>,
     last_error: Mutex<Option<String>>,
+    generation_id: Mutex<Option<String>>,
+    started_at: Mutex<Option<std::time::Instant>>,
+    crash_loop: Mutex<bool>,
+    event_gaps: AtomicU64,
+    last_sequence: AtomicU64,
 }
 
 impl SharedState {
@@ -152,6 +176,14 @@ impl SharedState {
             protocol_version: Some(PROTOCOL_VERSION),
             node_version: self.node_version.lock().await.clone(),
             error: self.last_error.lock().await.clone(),
+            generation_id: self.generation_id.lock().await.clone(),
+            uptime_ms: self.started_at.lock().await.map(|started| {
+                std::time::Instant::now()
+                    .saturating_duration_since(started)
+                    .as_millis() as u64
+            }),
+            crash_loop: *self.crash_loop.lock().await,
+            event_gaps: self.event_gaps.load(Ordering::Relaxed),
         }
     }
 }
@@ -174,6 +206,7 @@ pub struct RuntimeSupervisor {
     start_lock: Arc<Mutex<()>>,
     /// Extra environment variables applied at spawn (packaging + tests).
     extra_env: Arc<std::sync::Mutex<HashMap<String, String>>>,
+    crashes: Arc<std::sync::Mutex<CrashLoopDetector>>,
 }
 
 impl RuntimeSupervisor {
@@ -190,6 +223,11 @@ impl RuntimeSupervisor {
                 runtime_version: Mutex::new(None),
                 node_version: Mutex::new(None),
                 last_error: Mutex::new(None),
+                generation_id: Mutex::new(None),
+                started_at: Mutex::new(None),
+                crash_loop: Mutex::new(false),
+                event_gaps: AtomicU64::new(0),
+                last_sequence: AtomicU64::new(0),
             }),
             pending: Arc::new(Mutex::new(HashMap::new())),
             events,
@@ -198,6 +236,7 @@ impl RuntimeSupervisor {
             generation: Arc::new(AtomicU64::new(0)),
             start_lock: Arc::new(Mutex::new(())),
             extra_env: Arc::new(std::sync::Mutex::new(HashMap::new())),
+            crashes: Arc::new(std::sync::Mutex::new(CrashLoopDetector::default())),
         }
     }
 
@@ -230,7 +269,13 @@ impl RuntimeSupervisor {
     /// already running (returns current status).
     pub async fn start(&self) -> AppResult<RuntimeStatus> {
         let _guard = self.start_lock.lock().await;
-        if *self.state.phase.lock().await == RuntimePhase::Running {
+        if *self.state.phase.lock().await == RuntimePhase::Failed {
+            return Err(AppError::runtime_unavailable(
+                "Pi Runtime is in a crash loop. Restart it from the status banner.",
+            ));
+        }
+        let phase = *self.state.phase.lock().await;
+        if phase == RuntimePhase::Ready || phase == RuntimePhase::Busy {
             return Ok(self.state.snapshot().await);
         }
 
@@ -239,8 +284,11 @@ impl RuntimeSupervisor {
 
         match self.spawn_and_handshake().await {
             Ok(()) => {
-                self.state.set_phase(RuntimePhase::Running).await;
-                self.publish(SupervisorEvent::PhaseChanged(RuntimePhase::Running));
+                self.state.set_phase(RuntimePhase::Ready).await;
+                self.publish(SupervisorEvent::PhaseChanged(RuntimePhase::Ready));
+                let generation = self.generation.load(Ordering::Relaxed);
+                let watcher = self.clone();
+                tokio::spawn(async move { watcher.idle_watch(generation).await });
                 Ok(self.state.snapshot().await)
             }
             Err(error) => {
@@ -256,11 +304,18 @@ impl RuntimeSupervisor {
         let node = resolve_node()?;
         let script = resolve_runtime_script()?;
 
-        let extra = self
+        let generation = self.generation.fetch_add(1, Ordering::Relaxed) + 1;
+        let generation_id = format!("runtime-{generation:03}");
+        *self.state.generation_id.lock().await = Some(generation_id.clone());
+        *self.state.started_at.lock().await = Some(std::time::Instant::now());
+        self.state.last_sequence.store(0, Ordering::Relaxed);
+
+        let mut extra = self
             .extra_env
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clone();
+        extra.insert("PI_HARNESS_RUNTIME_GENERATION".into(), generation_id);
         let mut child: Child = Command::new(&node)
             .arg(&script)
             .env("PATH", crate::environment::merged_path())
@@ -279,7 +334,6 @@ impl RuntimeSupervisor {
             })?;
 
         let pid = child.id();
-        let generation = self.generation.fetch_add(1, Ordering::Relaxed) + 1;
         *self.state.pid.lock().await = pid;
         *self.state.exit_code.lock().await = None;
         *self.state.last_error.lock().await = None;
@@ -301,22 +355,30 @@ impl RuntimeSupervisor {
         let watcher = self.clone();
         tokio::spawn(async move { watcher.watch_exit(generation, child).await });
 
-        // Handshake: exchange protocol versions before declaring Running.
+        // Handshake: protocol versions must match before the runtime is Ready.
         let version = timeout(
             START_HANDSHAKE_TIMEOUT,
             self.request(
-                "runtime.version",
-                serde_json::json!({}),
+                "runtime.handshake",
+                serde_json::json!({ "protocolVersion": PROTOCOL_VERSION, "desktopVersion": env!("CARGO_PKG_VERSION") }),
                 DEFAULT_REQUEST_TIMEOUT,
             ),
         )
         .await
         .map_err(|_| AppError::timeout("Pi Runtime did not answer the startup handshake"))?
         .map_err(|error| {
-            AppError::runtime(format!(
-                "Pi Runtime handshake failed: {} ({})",
-                error.message, error.code
-            ))
+            let code = if error.code == "RUNTIME_PROTOCOL_MISMATCH" {
+                crate::runtime::protocol::PROTOCOL_MISMATCH
+            } else {
+                crate::error::RUNTIME_UNAVAILABLE
+            };
+            AppError::new(
+                code,
+                format!(
+                    "Pi Runtime handshake failed: {} ({})",
+                    error.message, error.code
+                ),
+            )
         })?;
 
         let version = version.as_object().ok_or_else(|| {
@@ -328,7 +390,7 @@ impl RuntimeSupervisor {
             .unwrap_or(0);
         if runtime_protocol != u64::from(PROTOCOL_VERSION) {
             return Err(AppError::new(
-                crate::error::RUNTIME_TIMEOUT,
+                crate::runtime::protocol::PROTOCOL_MISMATCH,
                 format!(
                     "Pi Runtime protocol mismatch: host {PROTOCOL_VERSION}, runtime {runtime_protocol}"
                 ),
@@ -361,8 +423,36 @@ impl RuntimeSupervisor {
                         Some(RuntimeMessage::Response { id, outcome }) => {
                             self.resolve_pending(&id, outcome).await;
                         }
-                        Some(RuntimeMessage::Event { name, payload }) => {
-                            self.publish(SupervisorEvent::RuntimeEvent { name, payload });
+                        Some(RuntimeMessage::Event {
+                            name,
+                            payload,
+                            sequence,
+                        }) => {
+                            let previous = {
+                                let current = self.state.last_sequence.load(Ordering::Relaxed);
+                                if current == 0 {
+                                    None
+                                } else {
+                                    Some(current)
+                                }
+                            };
+                            let (next, gap) = note_sequence(previous, sequence);
+                            if let Some(value) = next {
+                                self.state.last_sequence.store(value, Ordering::Relaxed);
+                            }
+                            if gap {
+                                self.state.event_gaps.fetch_add(1, Ordering::Relaxed);
+                                self.publish(SupervisorEvent::Log {
+                                    line: format!(
+                                        "[pi-harness] runtime event sequence gap: {previous:?} -> {sequence:?}"
+                                    ),
+                                });
+                            }
+                            self.publish(SupervisorEvent::RuntimeEvent {
+                                name,
+                                payload,
+                                sequence,
+                            });
                         }
                         None => {
                             self.publish(SupervisorEvent::Log {
@@ -414,13 +504,23 @@ impl RuntimeSupervisor {
             self.state.set_phase(RuntimePhase::Stopped).await;
             self.publish(SupervisorEvent::PhaseChanged(RuntimePhase::Stopped));
         } else if previous_phase != RuntimePhase::Stopped {
-            // Unexpected exit while Starting/Running.
+            let tripped = self
+                .crashes
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .record(std::time::Instant::now());
             *self.state.last_error.lock().await = Some(match code {
                 Some(code) => format!("Pi Runtime exited unexpectedly (code {code})"),
                 None => "Pi Runtime exited unexpectedly".to_string(),
             });
-            self.state.set_phase(RuntimePhase::Crashed).await;
-            self.publish(SupervisorEvent::PhaseChanged(RuntimePhase::Crashed));
+            if tripped {
+                *self.state.crash_loop.lock().await = true;
+                self.state.set_phase(RuntimePhase::Failed).await;
+                self.publish(SupervisorEvent::PhaseChanged(RuntimePhase::Failed));
+            } else {
+                self.state.set_phase(RuntimePhase::Crashed).await;
+                self.publish(SupervisorEvent::PhaseChanged(RuntimePhase::Crashed));
+            }
         }
 
         *self.state.pid.lock().await = None;
@@ -443,7 +543,10 @@ impl RuntimeSupervisor {
         // `Starting` is allowed: the handshake itself is a request issued
         // before the phase moves to `Running`.
         match *self.state.phase.lock().await {
-            RuntimePhase::Running | RuntimePhase::Starting => {}
+            RuntimePhase::Ready
+            | RuntimePhase::Busy
+            | RuntimePhase::Starting
+            | RuntimePhase::Restarting => {}
             _ => {
                 return Err(RpcError {
                     code: crate::runtime::protocol::RUNTIME_EXITED.to_string(),
@@ -558,7 +661,7 @@ impl RuntimeSupervisor {
 
         let phase = *self.state.phase.lock().await;
         match phase {
-            RuntimePhase::Stopped | RuntimePhase::Crashed => {
+            RuntimePhase::Stopped | RuntimePhase::Crashed | RuntimePhase::Failed => {
                 return Ok(self.state.snapshot().await);
             }
             RuntimePhase::Starting => {
@@ -566,7 +669,10 @@ impl RuntimeSupervisor {
                     "Pi Runtime is still starting; try again in a moment",
                 ));
             }
-            RuntimePhase::Running | RuntimePhase::Stopping => {}
+            RuntimePhase::Ready
+            | RuntimePhase::Busy
+            | RuntimePhase::Stopping
+            | RuntimePhase::Restarting => {}
         }
 
         self.state.set_phase(RuntimePhase::Stopping).await;
@@ -598,13 +704,29 @@ impl RuntimeSupervisor {
 
     /// Stop then start again. Fails if the restart does not come back up.
     pub async fn restart(&self) -> AppResult<RuntimeStatus> {
-        self.stop().await?;
-        // Wait for the child to actually leave (watcher sets Stopped).
-        for _ in 0..100 {
-            if *self.state.phase.lock().await == RuntimePhase::Stopped {
-                break;
+        {
+            let mut crashes = self
+                .crashes
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            crashes.reset();
+        }
+        *self.state.crash_loop.lock().await = false;
+        self.publish(SupervisorEvent::PhaseChanged(RuntimePhase::Restarting));
+        let phase = *self.state.phase.lock().await;
+        if matches!(
+            phase,
+            RuntimePhase::Ready | RuntimePhase::Busy | RuntimePhase::Stopping
+        ) {
+            self.stop().await?;
+            for _ in 0..100 {
+                if *self.state.phase.lock().await == RuntimePhase::Stopped {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(50)).await;
             }
-            tokio::time::sleep(Duration::from_millis(50)).await;
+        } else if phase != RuntimePhase::Stopped {
+            self.state.set_phase(RuntimePhase::Stopped).await;
         }
         self.start().await
     }
@@ -628,9 +750,79 @@ impl RuntimeSupervisor {
         }
     }
 
+    async fn idle_watch(self, generation: u64) {
+        let idle_after = idle_window();
+        if idle_after.is_zero() {
+            return;
+        }
+        let poll = idle_poll();
+        let mut idle_since: Option<tokio::time::Instant> = None;
+        loop {
+            tokio::time::sleep(poll).await;
+            if self.generation.load(Ordering::Relaxed) != generation {
+                return;
+            }
+            let phase = *self.state.phase.lock().await;
+            if phase != RuntimePhase::Ready && phase != RuntimePhase::Busy {
+                return;
+            }
+            let busy = match timeout(
+                Duration::from_secs(5),
+                self.request(
+                    "runtime.activity",
+                    serde_json::json!({}),
+                    Duration::from_secs(5),
+                ),
+            )
+            .await
+            {
+                Ok(Ok(value)) => value
+                    .get("busy")
+                    .and_then(serde_json::Value::as_bool)
+                    .unwrap_or(true),
+                _ => true,
+            };
+            if busy {
+                idle_since = None;
+                if phase == RuntimePhase::Ready {
+                    self.state.set_phase(RuntimePhase::Busy).await;
+                    self.publish(SupervisorEvent::PhaseChanged(RuntimePhase::Busy));
+                }
+                continue;
+            }
+            if phase == RuntimePhase::Busy {
+                self.state.set_phase(RuntimePhase::Ready).await;
+                self.publish(SupervisorEvent::PhaseChanged(RuntimePhase::Ready));
+            }
+            let since = idle_since.get_or_insert_with(tokio::time::Instant::now);
+            if since.elapsed() >= idle_after
+                && self.generation.load(Ordering::Relaxed) == generation
+            {
+                let _ = self.stop().await;
+                return;
+            }
+        }
+    }
+
     fn publish(&self, event: SupervisorEvent) {
         let _ = self.events.send(event);
     }
+}
+
+fn idle_window() -> Duration {
+    std::env::var("PI_HARNESS_RUNTIME_IDLE_MS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .map(Duration::from_millis)
+        .unwrap_or(DEFAULT_IDLE)
+}
+
+fn idle_poll() -> Duration {
+    std::env::var("PI_HARNESS_RUNTIME_IDLE_POLL_MS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .map(Duration::from_millis)
+        .unwrap_or(DEFAULT_IDLE_POLL)
 }
 
 impl Default for RuntimeSupervisor {
@@ -648,7 +840,7 @@ mod tests {
         let supervisor = RuntimeSupervisor::new();
 
         let status = supervisor.start().await.expect("runtime starts");
-        assert_eq!(status.phase, "running");
+        assert_eq!(status.phase, "ready");
         assert!(status.pid.is_some());
         assert_eq!(status.protocol_version, Some(PROTOCOL_VERSION));
         assert_eq!(status.runtime_version.as_deref(), Some("0.1.0"));
@@ -690,7 +882,7 @@ mod tests {
 
         // Restart keeps the protocol working.
         let status = supervisor.restart().await.expect("restart succeeds");
-        assert_eq!(status.phase, "running");
+        assert_eq!(status.phase, "ready");
         let pong = supervisor
             .request(
                 "runtime.ping",
@@ -726,7 +918,7 @@ mod tests {
         let supervisor = RuntimeSupervisor::new();
         supervisor.start().await.expect("first start");
         let again = supervisor.start().await.expect("second start is a no-op");
-        assert_eq!(again.phase, "running");
+        assert_eq!(again.phase, "ready");
         supervisor.stop().await.expect("stop");
         for _ in 0..100 {
             if supervisor.status().await.phase == "stopped" {

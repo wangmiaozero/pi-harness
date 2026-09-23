@@ -14,7 +14,16 @@ import type { PiSwitchAPI, SystemInfo } from '@shared/ipc/api-types'
 import type { AppErrorPayload } from '@shared/types/errors'
 
 /** Runtime supervisor phases, mirrored from Rust `RuntimePhase.as_str()`. */
-export type RuntimePhase = 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed'
+export type RuntimePhase =
+  | 'stopped'
+  | 'starting'
+  | 'ready'
+  | 'running'
+  | 'busy'
+  | 'stopping'
+  | 'crashed'
+  | 'restarting'
+  | 'failed'
 
 /** Snapshot returned by the Rust `runtime_status` command (camelCase JSON). */
 export interface RuntimeStatus {
@@ -25,6 +34,10 @@ export interface RuntimeStatus {
   protocolVersion?: number
   nodeVersion?: string
   error?: string
+  generationId?: string
+  uptimeMs?: number
+  crashLoop?: boolean
+  eventGaps?: number
 }
 
 export interface RuntimeVersionResult {

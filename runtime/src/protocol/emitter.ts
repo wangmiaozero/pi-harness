@@ -19,9 +19,11 @@ export interface EventLineWriter {
 export class RuntimeEventEmitter {
   private sequence = 0
   private readonly writer: EventLineWriter
+  private readonly generationId: string | undefined
 
-  constructor(writer: EventLineWriter) {
+  constructor(writer: EventLineWriter, generationId?: string) {
     this.writer = writer
+    this.generationId = generationId
   }
 
   /** Number of events emitted so far (for tests/diagnostics). */
@@ -33,7 +35,11 @@ export class RuntimeEventEmitter {
   emit(event: string, payload?: unknown): void {
     this.sequence += 1
     this.writer.writeLine(
-      serializeEvent(event, payload, { sequence: this.sequence, timestamp: Date.now() })
+      serializeEvent(event, payload, {
+        sequence: this.sequence,
+        timestamp: Date.now(),
+        generationId: this.generationId
+      })
     )
   }
 }

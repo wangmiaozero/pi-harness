@@ -66,5 +66,18 @@ describe('dispatch', () => {
     // Exercise the registry surface
     expect(listMethods()).toContain('runtime.ping')
     expect(listMethods()).toContain('runtime.version')
+    expect(listMethods()).toContain('runtime.handshake')
+    expect(listMethods()).toContain('runtime.activity')
+  })
+
+  it('handshake accepts protocol 1 and rejects a mismatch', async () => {
+    const ok = await dispatch('runtime.handshake', { protocolVersion: 1 }, makeContext())
+    expect(ok.ok).toBe(true)
+    if (ok.ok) {
+      expect((ok.result as { protocolVersion: number }).protocolVersion).toBe(1)
+    }
+    const bad = await dispatch('runtime.handshake', { protocolVersion: 99 }, makeContext())
+    expect(bad.ok).toBe(false)
+    if (!bad.ok) expect(bad.error.code).toBe('RUNTIME_PROTOCOL_MISMATCH')
   })
 })

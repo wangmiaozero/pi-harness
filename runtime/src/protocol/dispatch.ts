@@ -20,6 +20,8 @@ import { RuntimeError, toRuntimeError } from '../pi/errors.js'
 import { toErrorPayload as toAppErrorPayload } from '../desktop/services/errors.js'
 import type { RuntimeServices } from '../services.js'
 import { peekPiSdk, getPiSdkLoadMetrics } from '../pi/sdk.js'
+import { describeActivity } from '../lifecycle/activity.js'
+import { PROTOCOL_MANIFEST } from './manifest.js'
 import { registerDomainMethods } from './domain-methods.js'
 import type { RpcErrorPayload } from './messages.js'
 import { rpcError } from './messages.js'
@@ -95,6 +97,31 @@ const baseMethods: RpcMethodRegistry = {
     nodeVersion: process.version
   }),
 
+  'runtime.handshake': (params) => {
+    const offered = params.protocolVersion
+    if (typeof offered === 'number' && offered !== PROTOCOL_VERSION) {
+      throw new RuntimeError(
+        'RUNTIME_PROTOCOL_MISMATCH',
+        `Desktop protocol ${offered} is not compatible with runtime protocol ${PROTOCOL_VERSION}`,
+        {
+          recoverable: false,
+          userMessage: '桌面宿主与 Runtime 的协议版本不一致，请使用同一版本的 Pi-Harness。'
+        }
+      )
+    }
+    return {
+      runtimeVersion: RUNTIME_VERSION,
+      protocolVersion: PROTOCOL_VERSION,
+      nodeVersion: process.version,
+      capabilities: ['idle-shutdown', 'generation', 'activity'],
+      generationId: process.env.PI_HARNESS_RUNTIME_GENERATION ?? null,
+      manifest: PROTOCOL_MANIFEST
+    }
+  },
+
+  'runtime.activity': () =>
+    describeActivity({ runningAgents: [], installState: null }),
+
   'runtime.status': (_params, context) =>
     statusPayload(context, { firstAgentStartMs: null }, peekPiSdk() !== null),
 
@@ -141,6 +168,13 @@ export function createMethodRegistry(services: RuntimeServices | null): RpcMetho
   }
   const methods: RpcMethodRegistry = {
     ...baseMethods,
+    'runtime.activity': () => {
+      const task = services.desktop.environment.getTask()
+      return describeActivity({
+        runningAgents: services.agent.listRunning(),
+        installState: task?.state ?? null
+      })
+    },
     'runtime.status': (_params, context) =>
       statusPayload(
         context,

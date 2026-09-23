@@ -29,6 +29,7 @@ export const RPC_ERROR_CODES = [
   'INTERNAL_ERROR',
   'HARNESS_ERROR',
   'SHUTDOWN',
+  'RUNTIME_PROTOCOL_MISMATCH',
   // Runtime / SDK lifecycle
   'PI_SDK_LOAD_FAILED',
   'PI_NOT_FOUND',
@@ -95,6 +96,8 @@ export interface RpcEventEnvelope {
   sequence?: number
   /** Epoch milliseconds. */
   timestamp?: number
+  /** Sidecar generation stamped by the desktop host (`runtime-001`). */
+  generationId?: string
 }
 
 /** A response line: either carries `result` or `error`, never both. */
@@ -152,6 +155,7 @@ export function parseRuntimeMessage(line: string): RuntimeMessage | null {
     if ('payload' in parsed) envelope.payload = parsed['payload']
     if (typeof parsed['sequence'] === 'number') envelope.sequence = parsed['sequence']
     if (typeof parsed['timestamp'] === 'number') envelope.timestamp = parsed['timestamp']
+    if (typeof parsed['generationId'] === 'string') envelope.generationId = parsed['generationId']
     return envelope
   }
 
@@ -231,6 +235,7 @@ export function serializeResponse(id: string, outcome: RpcResult): string {
 export interface RpcEventMeta {
   sequence: number
   timestamp: number
+  generationId?: string
 }
 
 export function serializeEvent(event: string, payload?: unknown, meta?: RpcEventMeta): string {
@@ -239,6 +244,7 @@ export function serializeEvent(event: string, payload?: unknown, meta?: RpcEvent
   if (meta) {
     envelope.sequence = meta.sequence
     envelope.timestamp = meta.timestamp
+    if (meta.generationId) envelope.generationId = meta.generationId
   }
   return JSON.stringify(envelope)
 }

@@ -46,7 +46,7 @@ async fn forward_supervisor_events(app: tauri::AppHandle, supervisor: RuntimeSup
                         serde_json::json!({ "phase": phase.as_str() }),
                     )?;
                 }
-                SupervisorEvent::RuntimeEvent { name, payload } => {
+                SupervisorEvent::RuntimeEvent { name, payload, .. } => {
                     // Domain events route to the renderer channels the
                     // Electron preload also uses (IPC_EVENT in
                     // src/shared/ipc/channels.ts); the payload shape is the

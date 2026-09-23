@@ -40,7 +40,7 @@ async fn collect(
         };
         match event {
             SupervisorEvent::Log { line } => eprintln!("[sidecar stderr] {line}"),
-            SupervisorEvent::RuntimeEvent { name, payload } => match name.as_str() {
+            SupervisorEvent::RuntimeEvent { name, payload, .. } => match name.as_str() {
                 "agent.running" => {
                     if payload["ids"]
                         .as_array()

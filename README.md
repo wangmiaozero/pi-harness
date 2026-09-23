@@ -154,6 +154,8 @@ Pi-Harness separates the desktop control plane from the growing visual Harness C
 
 The Control Plane manages everything around Pi. The Harness Console observes and controls Pi Agent Harness state: it records Runs, enforces Policy at the Pi tool boundary, creates Checkpoints, evaluates finished runs from real evidence, and orchestrates agent teams over tasks with dependencies, handoffs, and budgets. Pi-Harness does not replace Pi Coding Agent: each agent still runs through Pi, and Pi-Harness provides orchestration, observability, policy, evaluation, recovery, and control. Sessions stay compatible with the Pi CLI JSONL under <code>~/.pi/agent/sessions/</code>.
 
+On `main-tauri` the desktop host is Tauri 2: Vue talks only to the platform bridge, Rust supervises a Node sidecar, and the sidecar loads the Pi SDK. `origin/main-electron` remains the Electron product line. Do not merge the Tauri line into `main`. See [docs/architecture-rules.md](docs/architecture-rules.md).
+
 ## Current screenshots
 
 The same six product surfaces are shown in both the default and Classical Chinese themes. The Classical Chinese theme includes snow and moon workspace variants.
@@ -367,7 +369,9 @@ For development from source:
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm dev
+pnpm doctor
+pnpm dev          # Electron shell
+pnpm dev:tauri    # Tauri 2 shell on main-tauri
 ```
 
 Without a local Pi installation, point **Settings → Config directory** at <code>fixtures/mock-pi/</code>, or copy <code>.env.example</code> to <code>.env</code> and set <code>PI_HARNESS_PI_CONFIG_DIR</code> to that fixture. Never store secrets in <code>VITE_*</code> variables; they are bundled into the renderer.

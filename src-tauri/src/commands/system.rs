@@ -91,6 +91,10 @@ mod tests {
             protocol_version: None,
             node_version: None,
             error: None,
+            generation_id: None,
+            uptime_ms: None,
+            crash_loop: false,
+            event_gaps: 0,
         };
         let json = serde_json::to_value(&status).expect("serialisable");
         assert_eq!(json["phase"], "stopped");

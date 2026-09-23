@@ -26,8 +26,12 @@ import { applyAgentDirOverride } from './pi/environment.js'
 import { PROTOCOL_VERSION, RUNTIME_VERSION } from './version.js'
 
 const startedAt = Date.now()
+const generationId = process.env.PI_HARNESS_RUNTIME_GENERATION
 const writer = createStdoutWriter()
-const emitter = new RuntimeEventEmitter({ writeLine: (line) => writer.write(line) })
+const emitter = new RuntimeEventEmitter(
+  { writeLine: (line) => writer.write(line) },
+  generationId
+)
 
 const services = createRuntimeServices({
   loadSdk: resolveConfiguredSdkLoader(),
@@ -110,9 +114,20 @@ async function main(): Promise<void> {
   emit('runtime.ready', {
     runtimeVersion: RUNTIME_VERSION,
     protocolVersion: PROTOCOL_VERSION,
-    pid: process.pid
+    pid: process.pid,
+    generationId: generationId ?? null
   })
   logDiagnostic(`ready (runtime ${RUNTIME_VERSION}, protocol ${PROTOCOL_VERSION})`)
+
+  process.on('uncaughtException', (error: Error) => {
+    logDiagnostic(`uncaughtException: ${error.message}`)
+    requestShutdown('uncaughtException')
+  })
+  process.on('unhandledRejection', (reason: unknown) => {
+    const message = reason instanceof Error ? reason.message : String(reason)
+    logDiagnostic(`unhandledRejection: ${message}`)
+    requestShutdown('unhandledRejection')
+  })
 
   const reader = createLineReader(process.stdin)
   for await (const item of reader.read()) {

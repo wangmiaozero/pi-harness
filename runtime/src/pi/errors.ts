@@ -15,6 +15,7 @@ export const RUNTIME_ERROR_CODES = [
   'METHOD_NOT_FOUND',
   'INTERNAL_ERROR',
   'SHUTDOWN',
+  'RUNTIME_PROTOCOL_MISMATCH',
   // Runtime / SDK lifecycle
   'PI_SDK_LOAD_FAILED',
   'PI_NOT_FOUND',

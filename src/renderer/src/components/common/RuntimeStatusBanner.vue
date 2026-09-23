@@ -23,16 +23,18 @@ const dismissed = ref(false)
 
 const visible = computed(() => {
   if (!runtimeApi || dismissed.value) return false
-  if (phase.value === 'crashed') return true
+  if (phase.value === 'crashed' || phase.value === 'failed') return true
   // A starting hint is only interesting once we know the app wanted the
   // runtime (it lazy-starts with the first domain request).
   return phase.value === 'starting'
 })
 
-const tone = computed(() => (phase.value === 'crashed' ? 'danger' : 'info'))
+const tone = computed(() =>
+  phase.value === 'crashed' || phase.value === 'failed' ? 'danger' : 'info'
+)
 const label = computed(() => {
   if (restarting.value) return t('runtimeStatus.restarting')
-  if (phase.value === 'crashed') return t('runtimeStatus.crashed')
+  if (phase.value === 'crashed' || phase.value === 'failed') return t('runtimeStatus.crashed')
   return t('runtimeStatus.starting')
 })
 
@@ -44,7 +46,7 @@ async function restart(): Promise<void> {
   try {
     const status = await runtimeApi.restart()
     phase.value = status.phase
-    if (status.phase === 'running') dismissed.value = true
+    if (status.phase === 'running' || status.phase === 'ready') dismissed.value = true
   } catch {
     // Restart failed; keep the banner so the user can retry.
     phase.value = 'crashed'
@@ -57,7 +59,7 @@ onMounted(() => {
   if (!runtimeApi) return
   unsubscribe = runtimeApi.onState((payload) => {
     phase.value = payload.phase
-    if (payload.phase === 'running' || payload.phase === 'stopped') {
+    if (payload.phase === 'running' || payload.phase === 'ready' || payload.phase === 'stopped') {
       dismissed.value = false
     }
   })
@@ -87,7 +89,7 @@ onBeforeUnmount(() => {
       <span class="runtime-status-banner__dot" aria-hidden="true" />
       <span class="runtime-status-banner__label">{{ label }}</span>
       <button
-        v-if="phase === 'crashed'"
+        v-if="phase === 'crashed' || phase === 'failed'"
         type="button"
         class="runtime-status-banner__action"
         :disabled="restarting"
