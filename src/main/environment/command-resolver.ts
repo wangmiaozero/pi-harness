@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -6,6 +6,61 @@ import { homedir } from 'node:os'
 import type { CommandResolutionSource } from '@shared/ipc/api-types'
 
 const execFileP = promisify(execFile)
+
+/**
+ * `execFile` deliberately drops `detached` when it forwards options to
+ * `spawn`, so login-shell probes must use `spawn` directly to get their own
+ * process group/session (see `DETACHED_LOGIN_SHELL`).
+ */
+function spawnProbe(
+  file: string,
+  args: string[],
+  options: {
+    cwd?: string
+    env?: NodeJS.ProcessEnv
+    timeoutMs?: number
+    detached?: boolean
+  } = {}
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(file, args, {
+      cwd: options.cwd,
+      env: options.env,
+      windowsHide: true,
+      detached: options.detached,
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
+    let stdout = ''
+    let stderr = ''
+    let settled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const finish = (run: () => void): void => {
+      if (settled) return
+      settled = true
+      if (timer) clearTimeout(timer)
+      run()
+    }
+    if (options.timeoutMs) {
+      timer = setTimeout(() => {
+        child.kill('SIGKILL')
+        finish(() => reject(new Error(`Probe timed out after ${options.timeoutMs}ms`)))
+      }, options.timeoutMs)
+    }
+    child.stdout?.on('data', (chunk: Buffer | string) => {
+      stdout += chunk
+    })
+    child.stderr?.on('data', (chunk: Buffer | string) => {
+      stderr += chunk
+    })
+    child.once('error', (error) => finish(() => reject(error)))
+    child.once('close', (code) =>
+      finish(() => {
+        if (code === 0) resolve({ stdout, stderr })
+        else reject(new Error(stderr || `Process exited with code ${code}`))
+      })
+    )
+  })
+}
 const COMMAND_PATTERN = /^[a-zA-Z0-9._-]+$/
 const LOGIN_SHELL_PATH_MARKER = '__PI_HARNESS_PATH__'
 const LOGIN_SHELL_EXECUTABLE_MARKER = '__PI_HARNESS_EXECUTABLE__'
@@ -27,6 +82,19 @@ const NODE_MANAGER_VARIABLES = [
   'XDG_CONFIG_HOME'
 ] as const
 const NODE_PROBE = `process.stdout.write("\\n${LOGIN_SHELL_NODE_MARKER}"+JSON.stringify({path:process.execPath,version:process.version,env:Object.fromEntries(${JSON.stringify(NODE_MANAGER_VARIABLES)}.filter(k=>process.env[k]).map(k=>[k,process.env[k]]))})+"\\n")`
+
+/**
+ * Run login-shell probes in their own session/process group.
+ *
+ * An interactive shell (`bash -ilc`) tries to initialise job control. Its stdio
+ * are pipes, but it still has a controlling terminal, so its `tcgetpgrp()`
+ * check fails and bash concludes it is in the background. Bash then calls
+ * `kill(0, SIGTTIN)` to stop itself — and because the probe would otherwise
+ * share the app's process group, that stop signal suspends the whole Electron
+ * app (window appears, ignores all input). Detaching keeps the probe's process
+ * group separate so the stop can only affect the throwaway shell.
+ */
+const DETACHED_LOGIN_SHELL = process.platform !== 'win32'
 
 export interface LoginShellEnvironment {
   shell: string | null
@@ -124,14 +192,14 @@ export async function resolveLoginShellPath(
       const script = isWindows
         ? `${options.refreshWindowsPath ? windowsRegistryPathRefreshScript() : ''}Write-Output ("${LOGIN_SHELL_PATH_MARKER}" + $env:PATH); '${NODE_PROBE}' | node; exit 0`
         : `printf '\n${LOGIN_SHELL_PATH_MARKER}%s\n' "$PATH"${options.probeNode ? `; node -e '${NODE_PROBE}'; true` : ''}`
-      const { stdout } = await execFileP(
+      const { stdout } = await spawnProbe(
         shell,
         isWindows ? ['-NoLogo', '-NonInteractive', '-Command', script] : ['-ilc', script],
         {
-          timeout: 8_000,
-          windowsHide: true,
+          timeoutMs: 8_000,
           env: process.env,
-          cwd: options.cwd ?? homedir()
+          cwd: options.cwd ?? homedir(),
+          detached: DETACHED_LOGIN_SHELL
         }
       )
       const value = markedShellOutput(stdout, LOGIN_SHELL_PATH_MARKER, false)
@@ -291,7 +359,7 @@ async function isExecutableFile(file: string): Promise<boolean> {
 async function resolveFromLoginShell(command: string): Promise<string | null> {
   for (const shell of loginShellCandidates()) {
     try {
-      const { stdout } = await execFileP(
+      const { stdout } = await spawnProbe(
         shell,
         [
           '-ilc',
@@ -299,7 +367,7 @@ async function resolveFromLoginShell(command: string): Promise<string | null> {
           'pi-harness',
           command
         ],
-        { timeout: 8_000, windowsHide: true, env: process.env }
+        { timeoutMs: 8_000, env: process.env, detached: DETACHED_LOGIN_SHELL }
       )
       const candidate = markedShellOutput(stdout, LOGIN_SHELL_EXECUTABLE_MARKER)
       if (candidate && path.isAbsolute(candidate) && (await isExecutableFile(candidate))) {
