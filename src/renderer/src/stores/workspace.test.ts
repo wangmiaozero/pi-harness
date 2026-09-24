@@ -482,9 +482,9 @@ describe('workspace projects', () => {
     try {
       workspace.addProjectRoot('/code/existing')
       await workspace.resetDraftWorkspace('/code/dropped')
-      expect(workspace.workspaceFolders.map((folder) => [folder.resolvedPath, folder.role])).toEqual(
-        [['/code/dropped', 'main']]
-      )
+      expect(
+        workspace.workspaceFolders.map((folder) => [folder.resolvedPath, folder.role])
+      ).toEqual([['/code/dropped', 'main']])
       expect(workspace.mainFolder?.resolvedPath).toBe('/code/dropped')
     } finally {
       delete window.piSwitch

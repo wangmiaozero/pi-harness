@@ -2,6 +2,18 @@
 
 Public release notes contain only released, user-visible additions and fixes.
 
+## Unreleased
+
+### Added
+
+- Defined Pi-Harness as the operational superset harness for Pi Coding Agent, with Native Pi remaining the execution foundation.
+- Updated the Pi SDK family and desktop dependencies to current compatible stable releases.
+
+### Fixed
+
+- Expanded runtime capability detection so unsupported Pi features degrade cleanly instead of being assumed.
+- Aligned environment checks and CI with the Pi SDK requirement of Node.js 22.19.0 or newer.
+
 ## 1.6.0 — 2026-09-19
 
 ### Added

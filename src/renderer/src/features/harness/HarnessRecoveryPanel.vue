@@ -59,7 +59,9 @@ async function openDetail(runId: string): Promise<void> {
       </p>
     </div>
 
-    <p class="mt-4 flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+    <p
+      class="mt-4 flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+    >
       <LifeBuoy class="size-3" />
       {{ t('workspace.harnessRecoveryRuns') }}
     </p>
@@ -75,7 +77,13 @@ async function openDetail(runId: string): Promise<void> {
           @click="openDetail(run.id)"
         >
           <component
-            :is="run.relation === 'fork' ? GitBranch : run.relation === 'recovery' ? ShieldCheck : RotateCcw"
+            :is="
+              run.relation === 'fork'
+                ? GitBranch
+                : run.relation === 'recovery'
+                  ? ShieldCheck
+                  : RotateCcw
+            "
             class="size-3.5 shrink-0"
             :class="relationTone[run.relation]"
           />

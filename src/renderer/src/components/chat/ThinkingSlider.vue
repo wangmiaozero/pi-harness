@@ -117,57 +117,59 @@ function onKeydown(event: KeyboardEvent) {
 <template>
   <div class="flex w-full flex-col" :style="forbiddenAura">
     <div class="thinking-slider-stage" :class="isUltra ? 'thinking-slider-stage--ultra' : ''">
-    <div
-      ref="track"
-      data-testid="composer-thinking-slider"
-      role="slider"
-      tabindex="0"
-      class="thinking-slider relative h-[27px] w-full cursor-pointer overflow-hidden rounded-[8px] bg-[var(--bg-hover)] outline-none focus-visible:shadow-[var(--focus-ring)]"
-      :class="isUltra ? 'thinking-slider--ultra' : ''"
-      :aria-label="$t('workspace.thinkingIntensity')"
-      :title="isUltra ? $t('workspace.thinkingUltraHint') : $t('workspace.thinkingIntensity')"
-      :aria-valuemin="0"
-      :aria-valuemax="last"
-      :aria-valuenow="index"
-      :aria-valuetext="isMax ? $t(decreeKey) : model"
-      @pointerdown="onPointerDown"
-      @pointermove="onPointerMove"
-      @keydown="onKeydown"
-    >
       <div
-        class="absolute inset-y-0 left-0 rounded-[8px] bg-[color-mix(in_srgb,var(--text-tertiary)_22%,transparent)] transition-[width] duration-150 ease-out"
-        :style="{ width: `calc(${fraction} * (100% - 21px) + 21px)` }"
-      />
-      <div class="absolute inset-x-[9px] top-[7px] flex h-[13px] items-center justify-between">
-        <span
-          v-for="(level, i) in levels"
-          :key="level"
-          aria-hidden="true"
-          class="thinking-slider__tick h-full w-[3px] rounded-[2px] bg-[var(--text-tertiary)]"
-          :class="isMax ? 'thinking-slider__tick--blast' : i > index ? 'opacity-30' : 'opacity-100'"
-          :style="
-            isMax
-              ? {
-                  '--blast-x': `${blast[i]?.x ?? 0}px`,
-                  '--blast-y': `${blast[i]?.y ?? 0}px`,
-                  '--blast-rotate': `${blast[i]?.rotate ?? 0}deg`,
-                  '--blast-delay': `${blast[i]?.delay ?? 0}s`
-                }
-              : undefined
-          "
+        ref="track"
+        data-testid="composer-thinking-slider"
+        role="slider"
+        tabindex="0"
+        class="thinking-slider relative h-[27px] w-full cursor-pointer overflow-hidden rounded-[8px] bg-[var(--bg-hover)] outline-none focus-visible:shadow-[var(--focus-ring)]"
+        :class="isUltra ? 'thinking-slider--ultra' : ''"
+        :aria-label="$t('workspace.thinkingIntensity')"
+        :title="isUltra ? $t('workspace.thinkingUltraHint') : $t('workspace.thinkingIntensity')"
+        :aria-valuemin="0"
+        :aria-valuemax="last"
+        :aria-valuenow="index"
+        :aria-valuetext="isMax ? $t(decreeKey) : model"
+        @pointerdown="onPointerDown"
+        @pointermove="onPointerMove"
+        @keydown="onKeydown"
+      >
+        <div
+          class="absolute inset-y-0 left-0 rounded-[8px] bg-[color-mix(in_srgb,var(--text-tertiary)_22%,transparent)] transition-[width] duration-150 ease-out"
+          :style="{ width: `calc(${fraction} * (100% - 21px) + 21px)` }"
+        />
+        <div class="absolute inset-x-[9px] top-[7px] flex h-[13px] items-center justify-between">
+          <span
+            v-for="(level, i) in levels"
+            :key="level"
+            aria-hidden="true"
+            class="thinking-slider__tick h-full w-[3px] rounded-[2px] bg-[var(--text-tertiary)]"
+            :class="
+              isMax ? 'thinking-slider__tick--blast' : i > index ? 'opacity-30' : 'opacity-100'
+            "
+            :style="
+              isMax
+                ? {
+                    '--blast-x': `${blast[i]?.x ?? 0}px`,
+                    '--blast-y': `${blast[i]?.y ?? 0}px`,
+                    '--blast-rotate': `${blast[i]?.rotate ?? 0}deg`,
+                    '--blast-delay': `${blast[i]?.delay ?? 0}s`
+                  }
+                : undefined
+            "
+          />
+        </div>
+        <ThinkingFlame
+          v-if="effect.ignited"
+          :power="effect.power"
+          :max="effect.max"
+          :ultra="isUltra"
+        />
+        <div
+          class="absolute top-0 h-[27px] w-[21px] rounded-[7px] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-sm)]"
+          :style="{ left: `calc(${fraction} * (100% - 21px))` }"
         />
       </div>
-      <ThinkingFlame
-        v-if="effect.ignited"
-        :power="effect.power"
-        :max="effect.max"
-        :ultra="isUltra"
-      />
-      <div
-        class="absolute top-0 h-[27px] w-[21px] rounded-[7px] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-sm)]"
-        :style="{ left: `calc(${fraction} * (100% - 21px))` }"
-      />
-    </div>
     </div>
     <p
       v-if="isMax"

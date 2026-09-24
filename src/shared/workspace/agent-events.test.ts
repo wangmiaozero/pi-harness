@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { streamReducer, INITIAL_STREAMING_STATE } from './streaming-message'
-import {
-  normalizeAgentEventEnvelopes,
-  toClientAgentEvent
-} from './agent-event-wire'
+import { normalizeAgentEventEnvelopes, toClientAgentEvent } from './agent-event-wire'
 import { startAgentSessionSchema, workspacePathSchema } from '../schemas/workspace'
 
 describe('agent event normalization', () => {
@@ -89,8 +86,9 @@ describe('agent event normalization', () => {
 
 describe('agent event envelope normalization', () => {
   it('wraps a single envelope payload', () => {
-    expect(normalizeAgentEventEnvelopes({ sessionId: 's1', event: { type: 'agent_start' } }))
-      .toEqual([{ sessionId: 's1', event: { type: 'agent_start' } }])
+    expect(
+      normalizeAgentEventEnvelopes({ sessionId: 's1', event: { type: 'agent_start' } })
+    ).toEqual([{ sessionId: 's1', event: { type: 'agent_start' } }])
   })
 
   it('returns batched envelopes in delivery order', () => {

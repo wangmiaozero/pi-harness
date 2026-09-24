@@ -16,13 +16,11 @@
 </p>
 
 <p align="center">
-  <strong>L’espace de travail tout-en-un pour <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
-  Configurer Pi · Exécuter des agents · Gérer modèles, Skills, paquets et projets
+  <strong>Le Superset Harness pour Pi Coding Agent</strong><br />
+  Native Pi, suralimenté.
 </p>
 
-<p align="center">
-  Tout le nécessaire pour configurer, exécuter et étendre Pi Coding Agent dans une seule application de bureau native.
-</p>
+<p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
@@ -50,6 +48,31 @@ Pi → Chat                             Environment
 Pi-Harness n’est pas une enveloppe web. Il n’intègre ni pi-web, ni serveur Next.js, ni iframe, et n’ajoute pas un second Agent Runtime. Pi Coding Agent reste le seul Agent Runtime ; les sessions sont compatibles avec les JSONL de Pi CLI dans ~/.pi/agent/sessions/.
 
 **Configurer Pi. Exécuter Pi. Étendre Pi.**
+
+## Pi Superset Contract
+
+Pi-Harness est un operational superset de Pi Coding Agent. Il préserve l’Agent Runtime natif et la compatibilité de Pi, tout en ajoutant observabilité, gouvernance, orchestration, récupération, évaluation et espace de travail d’ingénierie visuel.
+
+- Pi-Harness ne réduit pas intentionnellement les capacités de Native Pi et conserve les formats natifs lorsque cela est techniquement possible.
+- Native Pi reste toujours le Runtime d’exécution. Pi-Harness ne réimplémente ni Agent Loop, ni Context, ni Compaction, ni Tools, Skills ou Extensions.
+- Les Session et configurations Pi restent utilisables seules ; l’état propre au Harness est stocké séparément.
+- Les améliorations sont additives par défaut et les nouvelles capacités Pi passent d’abord par la couche de compatibilité.
+- La compatibilité repose sur capability detection, graceful degradation et best-effort forward compatibility.
+
+## Matrice Pi / Pi-Harness
+
+| Capacité                             | Native Pi | Pi-Harness             |
+| ------------------------------------ | --------- | ---------------------- |
+| Agent Runtime / Loop                 | Oui       | Native Pi              |
+| Sessions / Context / Compaction      | Oui       | Oui + gestion visuelle |
+| Steering / Follow-up / Thinking      | Oui       | Oui + contrôle visuel  |
+| Models / Tools / Skills / Extensions | Oui       | Oui + Manager / Policy |
+| Runs / Trace / Replay / Compare      | —         | Oui                    |
+| Policy / Budget / Evaluation         | —         | Oui                    |
+| Checkpoint / Recovery / Diagnostics  | —         | Oui                    |
+| Regression / Artifacts               | —         | Oui                    |
+| Multi-Agent / Task DAG / Handoff     | —         | Oui                    |
+| Review Gates / Worktree isolation    | —         | Oui                    |
 
 ## Télécharger
 
@@ -106,15 +129,15 @@ Les écrans principaux sont présentés avec le thème par défaut et le thème 
 
 ### Thème d’inspiration Ming
 
-|                        Espace de travail (neige)                         |                         Espace de travail (nuit)                          |
-| :----------------------------------------------------------------------: | :-----------------------------------------------------------------------: |
-| ![Espace de travail neige avec le thème Ming](docs/古风/Work-1.jpg)      | ![Espace de travail nuit avec le thème Ming](docs/古风/Work-2.jpg)        |
-|                                   Git                                    |                            **Fournisseurs**                               |
-|      ![Git avec le thème Ming](docs/古风/Git.jpg)                        |  ![Fournisseurs avec le thème Ming](docs/古风/APIs.jpg)                   |
-|                                **Modèles**                               |                      **Centre de fonctionnalités**                        |
-|   ![Modèles avec le thème Ming](docs/古风/Model.jpg)                     | ![Centre de fonctionnalités avec le thème Ming](docs/古风/Caps.jpg)       |
-|                              **Préférences**                             |                                                                           |
-| ![Préférences avec le thème Ming](docs/古风/Prefs.jpg)                   |                                                                           |
+|                      Espace de travail (neige)                      |                      Espace de travail (nuit)                       |
+| :-----------------------------------------------------------------: | :-----------------------------------------------------------------: |
+| ![Espace de travail neige avec le thème Ming](docs/古风/Work-1.jpg) | ![Espace de travail nuit avec le thème Ming](docs/古风/Work-2.jpg)  |
+|                                 Git                                 |                          **Fournisseurs**                           |
+|            ![Git avec le thème Ming](docs/古风/Git.jpg)             |       ![Fournisseurs avec le thème Ming](docs/古风/APIs.jpg)        |
+|                             **Modèles**                             |                    **Centre de fonctionnalités**                    |
+|         ![Modèles avec le thème Ming](docs/古风/Model.jpg)          | ![Centre de fonctionnalités avec le thème Ming](docs/古风/Caps.jpg) |
+|                           **Préférences**                           |                                                                     |
+|       ![Préférences avec le thème Ming](docs/古风/Prefs.jpg)        |                                                                     |
 
 ## Limites de l’éditeur
 
@@ -154,7 +177,7 @@ Application empaquetée :
 
 Développement depuis les sources :
 
-- Node.js ≥ 22
+- Node.js ≥ 22.19.0
 - pnpm 9.12.1
 
 ## Développement

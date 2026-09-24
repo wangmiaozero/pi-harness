@@ -74,7 +74,8 @@ export class GitCommitMessageService {
         ...(reasoning ? { thinkingBudgets: { low: 256 } } : {})
       }
     )
-    if (response.errorMessage) throw new AgentError(formatCommitGenerationError(response.errorMessage))
+    if (response.errorMessage)
+      throw new AgentError(formatCommitGenerationError(response.errorMessage))
     const message = extractCommitMessage(response.content)
     if (!message) {
       throw new AgentError(
@@ -134,8 +135,7 @@ export function extractCommitMessage(
 
   const thinking = content
     .filter(
-      (part) =>
-        part.type === 'thinking' && typeof part.thinking === 'string' && !part.redacted
+      (part) => part.type === 'thinking' && typeof part.thinking === 'string' && !part.redacted
     )
     .map((part) => part.thinking)
     .join('\n')

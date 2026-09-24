@@ -153,10 +153,10 @@ export class EvaluationService {
       return
     }
     const existing = this.cache.get(evaluation.sessionId) ?? []
-    const next = [
-      evaluation,
-      ...existing.filter((item) => item.runId !== evaluation.runId)
-    ].slice(0, 100)
+    const next = [evaluation, ...existing.filter((item) => item.runId !== evaluation.runId)].slice(
+      0,
+      100
+    )
     this.cache.set(evaluation.sessionId, next)
   }
 
@@ -221,7 +221,15 @@ export function requiredStagesForPreset(
     case 'standard':
       return ['static-check', 'lint', 'typecheck', 'test', 'build']
     case 'strict':
-      return ['static-check', 'lint', 'typecheck', 'test', 'build', 'git-inspection', 'custom-check']
+      return [
+        'static-check',
+        'lint',
+        'typecheck',
+        'test',
+        'build',
+        'git-inspection',
+        'custom-check'
+      ]
     case 'custom':
       return ['static-check', ...customStages]
   }
@@ -236,7 +244,9 @@ export function buildPipeline(inputs: PipelineInputs): HarnessEvaluationPipeline
     stages.push(commandStage(kind, inputs.commands, required.has(kind)))
   }
   stages.push(gitInspectionStage(inputs.gitStatus, required.has('git-inspection')))
-  stages.push(customCheckStage(inputs.fileMutations, inputs.gitStatus, required.has('custom-check')))
+  stages.push(
+    customCheckStage(inputs.fileMutations, inputs.gitStatus, required.has('custom-check'))
+  )
 
   const relevant = stages.filter((stage) => stage.status !== 'skipped')
   const finalStatus: HarnessEvaluationPipeline['finalStatus'] = relevant.some(
@@ -291,7 +301,14 @@ function commandStage(
   required: boolean
 ): HarnessEvaluationStage {
   const executed = commands.filter((command) => command.kind === kind)
-  const label = kind === 'typecheck' ? 'Typecheck' : kind === 'test' ? 'Tests' : kind === 'lint' ? 'Lint' : 'Build'
+  const label =
+    kind === 'typecheck'
+      ? 'Typecheck'
+      : kind === 'test'
+        ? 'Tests'
+        : kind === 'lint'
+          ? 'Lint'
+          : 'Build'
   if (!executed.length) {
     return {
       id: `stage-${kind}`,
@@ -447,8 +464,7 @@ export function collectExecutedCommands(entries: readonly SessionEntry[]): Execu
   for (const entry of entries) {
     if (entry.type !== 'message') continue
     const message = entry.message as
-      | { role?: string; command?: unknown; exitCode?: unknown; cancelled?: boolean }
-      | undefined
+      { role?: string; command?: unknown; exitCode?: unknown; cancelled?: boolean } | undefined
     if (!message || message.role !== 'bashExecution') continue
     if (typeof message.command !== 'string' || !message.command.trim()) continue
     const kind = classifyExecutionCommand(message.command)
@@ -468,9 +484,7 @@ export function collectFileMutations(entries: readonly SessionEntry[]): string[]
   const paths: string[] = []
   for (const entry of entries) {
     if (entry.type !== 'message') continue
-    const message = entry.message as
-      | { role?: string; content?: unknown }
-      | undefined
+    const message = entry.message as { role?: string; content?: unknown } | undefined
     if (!message || message.role !== 'assistant' || !Array.isArray(message.content)) continue
     for (const block of message.content) {
       if (!block || typeof block !== 'object') continue
@@ -546,7 +560,11 @@ function evaluateUnhandledErrors(run: HarnessRun): HarnessEvaluationCheck {
 function evaluateToolFailures(run: HarnessRun): HarnessEvaluationCheck {
   if (run.toolFailureCount > 0) {
     const failedTools = [
-      ...new Set(run.steps.filter((step) => step.kind === 'tool' && step.status === 'failed').map((step) => step.name))
+      ...new Set(
+        run.steps
+          .filter((step) => step.kind === 'tool' && step.status === 'failed')
+          .map((step) => step.name)
+      )
     ]
     return {
       id: 'tool-failures',
@@ -643,7 +661,14 @@ function evaluateExecutionChain(
   fileMutations: readonly string[]
 ): HarnessEvaluationCheck[] {
   const executed = commands.filter((command) => command.kind === kind)
-  const label = kind === 'test' ? 'Tests' : kind === 'lint' ? 'Lint' : kind === 'typecheck' ? 'Typecheck' : 'Build'
+  const label =
+    kind === 'test'
+      ? 'Tests'
+      : kind === 'lint'
+        ? 'Lint'
+        : kind === 'typecheck'
+          ? 'Typecheck'
+          : 'Build'
   if (!executed.length) {
     return [
       {
@@ -688,10 +713,9 @@ function evaluateExecutionChain(
       id: `${kind}-passed`,
       name: `${label} passed`,
       status: 'passed',
-      message:
-        executed.every((command) => command.exitCode === 0)
-          ? `All ${label} commands exited 0.`
-          : `${label} commands completed (exit codes unavailable).`
+      message: executed.every((command) => command.exitCode === 0)
+        ? `All ${label} commands exited 0.`
+        : `${label} commands completed (exit codes unavailable).`
     }
   ]
 }

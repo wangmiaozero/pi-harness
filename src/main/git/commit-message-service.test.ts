@@ -53,8 +53,8 @@ describe('GitCommitMessageService helpers', () => {
         }
       ])
     ).toBe('feat(ui): 调整提交面板布局')
-    expect(
-      cleanCommitMessage('<think>ignore</think><answer>fix: 修复空提交信息</answer>')
-    ).toBe('fix: 修复空提交信息')
+    expect(cleanCommitMessage('<think>ignore</think><answer>fix: 修复空提交信息</answer>')).toBe(
+      'fix: 修复空提交信息'
+    )
   })
 })

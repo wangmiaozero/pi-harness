@@ -177,7 +177,12 @@ export const gitCommitDetailsSchema = z.object({
 export const gitCommitDiffSchema = z.object({
   cwd: cwdSchema,
   hash: gitRefSchema,
-  filePath: z.string().trim().min(1).max(4096).refine((value) => !value.includes('\0'))
+  filePath: z
+    .string()
+    .trim()
+    .min(1)
+    .max(4096)
+    .refine((value) => !value.includes('\0'))
 })
 
 export const gitActionSchema = z.object({
@@ -220,7 +225,12 @@ export const gitActionSchema = z.object({
 
 export const gitFileHistorySchema = z.object({
   cwd: cwdSchema,
-  filePath: z.string().trim().min(1).max(4096).refine((value) => !value.includes('\0')),
+  filePath: z
+    .string()
+    .trim()
+    .min(1)
+    .max(4096)
+    .refine((value) => !value.includes('\0')),
   limit: z.number().int().min(1).max(500).optional().default(100)
 })
 

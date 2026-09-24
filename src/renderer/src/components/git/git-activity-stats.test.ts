@@ -51,11 +51,6 @@ describe('git activity stats', () => {
         authorCommits: (count) => `${count} commits`,
         more: (count) => `+${count}`
       })
-    ).toEqual([
-      'Weekly commits',
-      '5 commits',
-      'Ada · 3 commits',
-      'Lin · 2 commits'
-    ])
+    ).toEqual(['Weekly commits', '5 commits', 'Ada · 3 commits', 'Lin · 2 commits'])
   })
 })

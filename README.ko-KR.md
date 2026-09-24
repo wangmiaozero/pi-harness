@@ -16,13 +16,11 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a>를 위한 올인원 데스크톱 작업 공간</strong><br />
-  Pi 구성 · 에이전트 실행 · 모델, Skills, 패키지, 프로젝트 관리
+  <strong>Pi Coding Agent를 위한 Superset Harness</strong><br />
+  Native Pi, 더 강력하게.
 </p>
 
-<p align="center">
-  Pi Coding Agent를 구성하고 실행하며 확장하는 데 필요한 기능을 하나의 네이티브 데스크톱 앱에 모았습니다.
-</p>
+<p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
@@ -50,6 +48,31 @@ Pi → Chat                             Environment
 Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 포함하지 않으며 두 번째 Agent Runtime을 만들지 않습니다. Pi Coding Agent가 유일한 Agent Runtime이고, 세션은 ~/.pi/agent/sessions/의 Pi CLI JSONL과 호환됩니다.
 
 **Pi 구성. Pi 실행. Pi 확장.**
+
+## Pi Superset Contract
+
+Pi-Harness는 Pi Coding Agent의 operational superset입니다. Native Pi의 Agent Runtime과 호환성을 유지하면서 관측성, 거버넌스, 오케스트레이션, 복구, 평가 및 시각적 엔지니어링 작업 공간을 추가합니다.
+
+- Native Pi 기능을 의도적으로 줄이지 않으며 기술적으로 가능한 범위에서 Pi 네이티브 형식과 호환됩니다.
+- Native Pi가 항상 실행 Runtime입니다. Agent Loop, Context, Compaction, Tools, Skills 또는 Extensions를 다시 구현하지 않습니다.
+- Pi 네이티브 Session과 설정은 독립적으로 사용할 수 있고 Harness 전용 상태는 별도로 저장합니다.
+- 기능은 기본적으로 추가 방식이며 Pi의 새 기능은 먼저 호환성 계층을 통해 노출합니다.
+- capability detection, graceful degradation 및 best-effort forward compatibility를 사용합니다.
+
+## Pi와 Pi-Harness 기능 매트릭스
+
+| 기능                                 | Native Pi | Pi-Harness                 |
+| ------------------------------------ | --------- | -------------------------- |
+| Agent Runtime / Loop                 | 지원      | Native Pi                  |
+| Sessions / Context / Compaction      | 지원      | 지원 + 시각적 관리 및 제어 |
+| Steering / Follow-up / Thinking      | 지원      | 지원 + 시각적 제어         |
+| Models / Tools / Skills / Extensions | 지원      | 지원 + Manager / Policy    |
+| Runs / Trace / Replay / Compare      | —         | 지원                       |
+| Policy / Budget / Evaluation         | —         | 지원                       |
+| Checkpoint / Recovery / Diagnostics  | —         | 지원                       |
+| Regression / Artifacts               | —         | 지원                       |
+| Multi-Agent / Task DAG / Handoff     | —         | 지원                       |
+| Review Gates / Worktree isolation    | —         | 지원                       |
 
 ## 다운로드
 
@@ -106,15 +129,15 @@ Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 �
 
 ### 고전풍 테마
 
-|                    작업 공간 (설경)                     |                     작업 공간 (월야)                      |
-| :-----------------------------------------------------: | :-------------------------------------------------------: |
-| ![고전풍 테마 설경 작업 공간](docs/古风/Work-1.jpg)     | ![고전풍 테마 월야 작업 공간](docs/古风/Work-2.jpg)       |
-|                          Git                            |                       **Provider**                        |
-|     ![고전풍 테마 Git](docs/古风/Git.jpg)               | ![고전풍 테마 Provider](docs/古风/APIs.jpg)               |
-|                        **모델**                         |                      **기능 센터**                        |
-|  ![고전풍 테마 모델](docs/古风/Model.jpg)               | ![고전풍 테마 기능 센터](docs/古风/Caps.jpg)              |
-|                        **설정**                         |                                                           |
-|  ![고전풍 테마 설정](docs/古风/Prefs.jpg)               |                                                           |
+|                  작업 공간 (설경)                   |                  작업 공간 (월야)                   |
+| :-------------------------------------------------: | :-------------------------------------------------: |
+| ![고전풍 테마 설경 작업 공간](docs/古风/Work-1.jpg) | ![고전풍 테마 월야 작업 공간](docs/古风/Work-2.jpg) |
+|                         Git                         |                    **Provider**                     |
+|        ![고전풍 테마 Git](docs/古风/Git.jpg)        |     ![고전풍 테마 Provider](docs/古风/APIs.jpg)     |
+|                      **모델**                       |                    **기능 센터**                    |
+|      ![고전풍 테마 모델](docs/古风/Model.jpg)       |    ![고전풍 테마 기능 센터](docs/古风/Caps.jpg)     |
+|                      **설정**                       |                                                     |
+|      ![고전풍 테마 설정](docs/古风/Prefs.jpg)       |                                                     |
 
 ## 편집기 범위
 
@@ -154,7 +177,7 @@ Pi Coding Agent는 유일한 Agent Runtime입니다.
 
 소스 개발:
 
-- Node.js ≥ 22
+- Node.js ≥ 22.19.0
 - pnpm 9.12.1
 
 ## 개발

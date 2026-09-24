@@ -128,9 +128,9 @@ function draw(now: number, deltaSeconds: number): void {
 function shouldAnimate(): boolean {
   return Boolean(
     props.active &&
-      props.animated &&
-      document.visibilityState === 'visible' &&
-      !motionQuery?.matches
+    props.animated &&
+    document.visibilityState === 'visible' &&
+    !motionQuery?.matches
   )
 }
 

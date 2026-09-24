@@ -117,11 +117,11 @@ export const enUS = {
       'Install Node.js first, refresh detection, then install Pi with one click or run the command manually.',
     nodeReady: '{node} · npm {npm}',
     nodeMissing: 'Node.js / npm required',
-    nodeOutdated: '{version} is below Node.js 22',
+    nodeOutdated: '{version} is below Node.js 22.19.0',
     npmMissing: 'npm is unavailable',
     nodeDetected: 'Node.js and npm detected. You can install Pi now.',
     installNodeFirst: 'Install the current Node.js LTS release, which includes npm.',
-    upgradeNodeFirst: 'Upgrade Node.js to version 22 or newer before installing Pi.',
+    upgradeNodeFirst: 'Upgrade Node.js to version 22.19.0 or newer before installing Pi.',
     installNode: 'Install Node.js',
     upgradeNode: 'Upgrade Node.js',
     nodeInstallConfirm:

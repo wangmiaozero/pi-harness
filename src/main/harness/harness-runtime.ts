@@ -66,7 +66,12 @@ import {
   EvaluationService,
   type EvaluationStoreRecord
 } from './evaluation/evaluation-service'
-import { JsonRunRepository, buildRunTree, type RunRepository, type RunStoreRecord } from './runs/run-repository'
+import {
+  JsonRunRepository,
+  buildRunTree,
+  type RunRepository,
+  type RunStoreRecord
+} from './runs/run-repository'
 import {
   EMPTY_ARTIFACT_STORE,
   ArtifactService,
@@ -158,8 +163,7 @@ export class HarnessRuntime implements AgentRuntime {
   ) {
     const runStore =
       options.runStore ?? new JsonStore(harnessRunsPath(), { schemaVersion: 1, runs: [] })
-    const traceStore =
-      options.traceStore ?? new JsonStore(harnessTracesPath(), EMPTY_TRACE_STORE)
+    const traceStore = options.traceStore ?? new JsonStore(harnessTracesPath(), EMPTY_TRACE_STORE)
     const artifactStore =
       options.artifactStore ?? new JsonStore(harnessArtifactsPath(), EMPTY_ARTIFACT_STORE)
     const evaluationStore =
@@ -167,12 +171,14 @@ export class HarnessRuntime implements AgentRuntime {
     const baselineStore =
       options.baselineStore ?? new JsonStore(harnessBaselinesPath(), EMPTY_BASELINE_STORE)
     this.storeSettings =
-      options.storeSettingsStore ?? new JsonStore(harnessStoreSettingsPath(), DEFAULT_STORE_SETTINGS)
+      options.storeSettingsStore ??
+      new JsonStore(harnessStoreSettingsPath(), DEFAULT_STORE_SETTINGS)
 
     this.policy =
       options.policy ??
       new PolicyEngine(
-        options.policyStore ?? new JsonStore(harnessPolicyPath(), structuredClone(DEFAULT_POLICY_CONFIG))
+        options.policyStore ??
+          new JsonStore(harnessPolicyPath(), structuredClone(DEFAULT_POLICY_CONFIG))
       )
 
     const readEntries = (sessionId: string): Promise<SessionEntry[]> =>
@@ -306,7 +312,10 @@ export class HarnessRuntime implements AgentRuntime {
 
   // ------------------------------------------------------------- run surface
 
-  async listRuns(sessionId: string, scope: 'session' | 'project' = 'session'): Promise<HarnessRun[]> {
+  async listRuns(
+    sessionId: string,
+    scope: 'session' | 'project' = 'session'
+  ): Promise<HarnessRun[]> {
     if (scope === 'project') {
       const cwd = await this.sessionCwd(sessionId)
       if (!cwd) return this.runs.listRuns(sessionId)
@@ -346,7 +355,7 @@ export class HarnessRuntime implements AgentRuntime {
     const diagnostics = this.diagnosticsService.diagnose(run, trace, evaluation)
     const regression = await this.regressionReport(run)
     const baselineTokens = regression
-      ? (await this.findRun(sessionId, regression.baseline.runId))?.usage.totalTokens ?? null
+      ? ((await this.findRun(sessionId, regression.baseline.runId))?.usage.totalTokens ?? null)
       : null
     const deltaPercent =
       baselineTokens && baselineTokens > 0
@@ -375,7 +384,11 @@ export class HarnessRuntime implements AgentRuntime {
   }
 
   /** Side-by-side comparison of two runs: metrics + real diffs. */
-  async compareRuns(sessionId: string, runIdA: string, runIdB: string): Promise<HarnessRunComparison> {
+  async compareRuns(
+    sessionId: string,
+    runIdA: string,
+    runIdB: string
+  ): Promise<HarnessRunComparison> {
     const [runA, runB] = await Promise.all([
       this.getRun(sessionId, runIdA),
       this.getRun(sessionId, runIdB)
@@ -570,9 +583,7 @@ export class HarnessRuntime implements AgentRuntime {
     const sessionIds = new Set(runs.map((run) => run.sessionId))
     const total = runs.length
     const succeeded = runs.filter((run) => run.status === 'success').length
-    const failed = runs.filter(
-      (run) => run.status === 'failed' || run.status === 'aborted'
-    ).length
+    const failed = runs.filter((run) => run.status === 'failed' || run.status === 'aborted').length
     const durations = runs
       .map((run) => (run.finishedAt ? run.finishedAt - run.startedAt : null))
       .filter((value): value is number => value !== null)
@@ -602,7 +613,9 @@ export class HarnessRuntime implements AgentRuntime {
           ? Number((costs.reduce((sum, value) => sum + value, 0) / costs.length).toFixed(4))
           : null
       })(),
-      toolFailureRate: toolCalls ? round(runs.reduce((sum, run) => sum + run.toolFailureCount, 0) / toolCalls) : null,
+      toolFailureRate: toolCalls
+        ? round(runs.reduce((sum, run) => sum + run.toolFailureCount, 0) / toolCalls)
+        : null,
       evaluationPassRate: evaluated.length ? round(passed / evaluated.length) : null,
       recoveryRate: total ? round(recoveries / total) : null,
       topFailureReasons: this.diagnosticsService.aggregate(
@@ -622,10 +635,7 @@ export class HarnessRuntime implements AgentRuntime {
     return this.exportService.exportRun(detail, format, detail.run.prompt.slice(0, 40))
   }
 
-  async exportDebugBundle(
-    sessionId: string,
-    runId?: string
-  ): Promise<HarnessExportResult> {
+  async exportDebugBundle(sessionId: string, runId?: string): Promise<HarnessExportResult> {
     const payload = runId ? await this.getRunDetail(sessionId, runId) : null
     return this.exportService.exportDebugBundle(payload)
   }
@@ -754,7 +764,13 @@ export class HarnessRuntime implements AgentRuntime {
 
   async evaluateRun(sessionId: string, runId: string): Promise<HarnessEvaluation> {
     const run = await this.getRun(sessionId, runId)
-    const inProgress: HarnessRunStatus[] = ['queued', 'running', 'waiting', 'tool-calling', 'verifying']
+    const inProgress: HarnessRunStatus[] = [
+      'queued',
+      'running',
+      'waiting',
+      'tool-calling',
+      'verifying'
+    ]
     if (inProgress.includes(run.status)) {
       throw new HarnessError('RUN_NOT_FOUND', 'Run is still in progress.', { sessionId, runId })
     }

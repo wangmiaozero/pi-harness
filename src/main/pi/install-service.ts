@@ -279,10 +279,7 @@ export class PiInstallService {
     })
     if (result.exitCode !== 0) {
       if (selfUpdateRequiresPackageManager(result.stderr, result.stdout)) {
-        options.onLog?.(
-          'Pi cannot self-update this installation; retrying with npm.',
-          'warning'
-        )
+        options.onLog?.('Pi cannot self-update this installation; retrying with npm.', 'warning')
         return this.updateThroughNpm(previousVersion, options)
       }
       throw new PiCliError('Pi update failed', {

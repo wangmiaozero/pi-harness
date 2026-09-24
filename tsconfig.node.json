@@ -20,9 +20,8 @@
     "noEmit": true,
     "composite": true,
     "tsBuildInfoFile": ".tsbuildinfo/node.tsbuildinfo",
-    "baseUrl": ".",
     "paths": {
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["./src/shared/*"]
     }
   },
   "include": ["src/main/**/*", "src/preload/**/*", "src/shared/**/*", "electron.vite.config.ts"]

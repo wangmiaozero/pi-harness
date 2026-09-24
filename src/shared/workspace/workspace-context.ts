@@ -18,7 +18,10 @@ export function formatWorkspaceAgentPrompt(workspace: AgentWorkspace): string {
     lines.push('Primary Project:', formatFolderBlock(main, true), '')
   }
   if (others.length) {
-    lines.push('Additional Projects:', ...others.flatMap((folder) => [formatFolderBlock(folder), '']))
+    lines.push(
+      'Additional Projects:',
+      ...others.flatMap((folder) => [formatFolderBlock(folder), ''])
+    )
   }
   lines.push(
     'Folder names:',
@@ -59,7 +62,9 @@ function formatFolderBlock(folder: WorkspaceFolder, main = false): string {
     `  ${folder.resolvedPath}`,
     `  ${role}`,
     `  ${access}`,
-    folder.readonly ? '  This workspace folder is read-only. Do not modify files in this directory.' : ''
+    folder.readonly
+      ? '  This workspace folder is read-only. Do not modify files in this directory.'
+      : ''
   ]
     .filter(Boolean)
     .join('\n')

@@ -34,7 +34,11 @@ describe('AgentEventBatcher', () => {
     expect(sink).toHaveBeenCalledTimes(1)
     const batch = sink.mock.calls[0]?.[0] as AgentEventEnvelope[]
     expect(Array.isArray(batch)).toBe(true)
-    expect(batch.map((item) => (item.event as { delta?: string }).delta)).toEqual(['a', 'b', undefined])
+    expect(batch.map((item) => (item.event as { delta?: string }).delta)).toEqual([
+      'a',
+      'b',
+      undefined
+    ])
     expect(batch.map((item) => item.sessionId)).toEqual(['s1', 's1', 's2'])
   })
 

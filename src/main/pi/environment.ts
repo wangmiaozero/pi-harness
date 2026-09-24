@@ -243,7 +243,9 @@ export function buildEnvironmentChecks(input: {
           : `Node.js ${nodeRuntime.nodeVersion ?? 'unknown'} is below ${nodeRuntime.minimumNodeVersion}.`,
       ...(nodeRuntime.nodeSupported
         ? {}
-        : { remediation: 'Install or upgrade Node.js to version 22 or newer.' })
+        : {
+            remediation: `Install or upgrade Node.js to version ${nodeRuntime.minimumNodeVersion} or newer.`
+          })
     },
     {
       id: 'npm',

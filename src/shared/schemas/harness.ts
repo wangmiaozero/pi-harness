@@ -68,11 +68,7 @@ const commandPatternSchema = z
   .max(256)
   .refine((s) => !/[\r\n]/.test(s), 'single-line patterns only')
 
-const nullablePositiveNumber = z
-  .number()
-  .finite()
-  .positive()
-  .nullable()
+const nullablePositiveNumber = z.number().finite().positive().nullable()
 
 export const harnessPolicyBudgetSchema = z.strictObject({
   maxTokens: nullablePositiveNumber,

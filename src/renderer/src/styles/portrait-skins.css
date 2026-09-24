@@ -975,7 +975,13 @@
 }
 
 :root:is([data-visual-skin='ming-snow'], [data-visual-skin='ming-moon'])
-  :is(.ui-context-menu, .ui-select-menu, .ui-combobox-menu, .composer-option-menu, .composer-model-picker) {
+  :is(
+    .ui-context-menu,
+    .ui-select-menu,
+    .ui-combobox-menu,
+    .composer-option-menu,
+    .composer-model-picker
+  ) {
   --bg-surface: var(--ming-paper-muted);
   --bg-surface-raised: var(--ming-paper-raised);
   --bg-hover: var(--ming-paper-muted);

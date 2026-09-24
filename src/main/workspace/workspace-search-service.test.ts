@@ -19,7 +19,10 @@ describe('WorkspaceSearchService', () => {
     const opencode = path.join(directory, 'opencode')
     await mkdir(path.join(agentDesk, 'src'), { recursive: true })
     await mkdir(path.join(opencode, 'src'), { recursive: true })
-    await writeFile(path.join(agentDesk, 'src', 'provider.ts'), 'export function createAgent() {}\n')
+    await writeFile(
+      path.join(agentDesk, 'src', 'provider.ts'),
+      'export function createAgent() {}\n'
+    )
     await writeFile(path.join(opencode, 'src', 'provider.ts'), 'export function createAgent() {}\n')
     await mkdir(path.join(opencode, 'node_modules'), { recursive: true })
     await writeFile(path.join(opencode, 'node_modules', 'provider.ts'), 'ignored\n')

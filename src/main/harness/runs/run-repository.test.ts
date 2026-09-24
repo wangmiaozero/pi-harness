@@ -71,9 +71,7 @@ describe('JsonRunRepository', () => {
   it('saves, reads and lists runs by session and cwd', async () => {
     const repository = new JsonRunRepository(tempStore())
     await repository.save(run('run-1', { sessionId: 's1', cwd: '/repo' }))
-    await repository.save(
-      run('run-2', { sessionId: 's2', cwd: '/other', prompt: 'other project' })
-    )
+    await repository.save(run('run-2', { sessionId: 's2', cwd: '/other', prompt: 'other project' }))
 
     expect(await repository.get('run-1')).toMatchObject({ id: 'run-1' })
     expect(await repository.get('missing')).toBeNull()

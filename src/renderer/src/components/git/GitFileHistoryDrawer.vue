@@ -37,9 +37,7 @@ function date(value: string): string {
 }
 
 function refs(commit: GitCommitInfo): string {
-  return commit.refs
-    .map((ref) => ref.replace(/^HEAD -> /, '').replace(/^tag: /, ''))
-    .join(', ')
+  return commit.refs.map((ref) => ref.replace(/^HEAD -> /, '').replace(/^tag: /, '')).join(', ')
 }
 </script>
 
@@ -85,7 +83,9 @@ function refs(commit: GitCommitInfo): string {
         class="flex h-10 min-w-0 w-full items-center gap-2 border-b border-[var(--border-subtle)] px-3 text-left transition-colors hover:bg-[var(--bg-hover)]"
         @click="emit('select-commit', commit)"
       >
-        <code class="shrink-0 font-[family-name:var(--font-mono)] text-[9.5px] text-[var(--text-tertiary)]">
+        <code
+          class="shrink-0 font-[family-name:var(--font-mono)] text-[9.5px] text-[var(--text-tertiary)]"
+        >
           {{ commit.hash.slice(0, 7) }}
         </code>
         <span class="min-w-0 flex-1 truncate text-[11px] text-[var(--text-primary)]">
@@ -100,7 +100,10 @@ function refs(commit: GitCommitInfo): string {
         <span class="shrink-0 text-[9.5px] text-[var(--text-tertiary)]">
           {{ commit.author }}
         </span>
-        <time class="shrink-0 text-[9.5px] text-[var(--text-tertiary)]" :datetime="commit.authoredAt">
+        <time
+          class="shrink-0 text-[9.5px] text-[var(--text-tertiary)]"
+          :datetime="commit.authoredAt"
+        >
           {{ date(commit.authoredAt) }}
         </time>
       </button>

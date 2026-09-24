@@ -1148,7 +1148,7 @@ test.describe('Pi-Harness smoke', () => {
     await page.locator('a[href="#/settings"]').click()
     await expect(page.locator('h1').filter({ hasText: /通用|General/ })).toBeVisible()
     await expect(page.getByTestId('window-motion-toggle')).toHaveAttribute('aria-checked', 'false')
-    await expect(page.getByTestId('screen-motion-toggle')).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByTestId('screen-motion-toggle')).toHaveAttribute('aria-checked', 'false')
     await page.getByRole('button', { name: /主题|Theme/, exact: true }).click()
     await expect(page.getByRole('option', { name: /跟随系统|System/, exact: true })).toHaveCount(0)
     await page.getByRole('option', { name: /粉色|Pink/, exact: true }).click()

@@ -129,7 +129,8 @@ async function selectCommit(hash: string | null) {
   detailsLoading.value = true
   try {
     const details = await callApi(() => getApi().git.commitDetails(cwd, hash))
-    if (request !== detailsRequest || repository.value !== cwd || selectedHash.value !== hash) return
+    if (request !== detailsRequest || repository.value !== cwd || selectedHash.value !== hash)
+      return
     selectedDetails.value = details
   } catch (error) {
     if (request !== detailsRequest || repository.value !== cwd) return
@@ -344,10 +345,7 @@ watch(repository, () => {
         class="relative flex min-h-0 shrink-0 flex-col border-l border-[var(--border-subtle)]"
         :style="{ width: `${panelWidth}px` }"
       >
-        <GitCommitPanel
-          @open-file="openWorkingFile"
-          @file-history="openFileHistory"
-        />
+        <GitCommitPanel @open-file="openWorkingFile" @file-history="openFileHistory" />
         <GitCommitDetailsDrawer
           v-if="selectedDetails"
           :details="selectedDetails"

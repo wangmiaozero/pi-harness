@@ -27,10 +27,14 @@ describe('FileAccessService workspace write gate', () => {
       { resolvedPath: readonly, readonly: true, exists: true }
     ])
 
-    await expect(access.assertWritable(path.join(writable, 'a.ts'), { mustExist: true })).resolves.toBe(
+    await expect(
+      access.assertWritable(path.join(writable, 'a.ts'), { mustExist: true })
+    ).resolves.toBe(
       await import('node:fs/promises').then((fs) => fs.realpath(path.join(writable, 'a.ts')))
     )
-    await expect(access.assertWritable(path.join(readonly, 'b.ts'), { mustExist: true })).rejects.toMatchObject({
+    await expect(
+      access.assertWritable(path.join(readonly, 'b.ts'), { mustExist: true })
+    ).rejects.toMatchObject({
       code: 'PATH_DENIED'
     })
   })

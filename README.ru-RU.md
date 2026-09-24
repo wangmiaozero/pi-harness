@@ -16,13 +16,11 @@
 </p>
 
 <p align="center">
-  <strong>Единое настольное рабочее пространство для <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
-  Настройка Pi · Запуск агента · Управление моделями, Skills, пакетами и проектами
+  <strong>Superset Harness для Pi Coding Agent</strong><br />
+  Native Pi с расширенными возможностями.
 </p>
 
-<p align="center">
-  Всё необходимое для настройки, запуска и расширения Pi Coding Agent в одном нативном настольном приложении.
-</p>
+<p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
@@ -50,6 +48,31 @@ Pi → Chat                             Environment
 Pi-Harness — не обёртка над веб-интерфейсом. В нём нет встроенного pi-web, сервера Next.js или iframe, а также второй среды выполнения агента. Pi Coding Agent остаётся единственным Agent Runtime; сессии совместимы с JSONL Pi CLI в ~/.pi/agent/sessions/.
 
 **Настроить Pi. Запустить Pi. Расширить Pi.**
+
+## Pi Superset Contract
+
+Pi-Harness — operational superset для Pi Coding Agent. Он сохраняет нативный Agent Runtime и совместимость Pi, добавляя наблюдаемость, управление, оркестрацию, восстановление, оценку и визуальное инженерное рабочее пространство.
+
+- Pi-Harness намеренно не сокращает возможности Native Pi и сохраняет совместимость с нативными форматами Pi там, где это технически возможно.
+- Native Pi всегда остаётся средой выполнения. Pi-Harness не переопределяет Agent Loop, Context, Compaction, Tools, Skills или Extensions.
+- Нативные Session и конфигурация Pi доступны независимо; данные Harness хранятся отдельно.
+- Расширения по умолчанию аддитивны, а новые функции Pi сначала проходят через слой совместимости.
+- Используются capability detection, graceful degradation и best-effort forward compatibility.
+
+## Матрица возможностей Pi и Pi-Harness
+
+| Возможность                          | Native Pi | Pi-Harness                 |
+| ------------------------------------ | --------- | -------------------------- |
+| Agent Runtime / Loop                 | Да        | Native Pi                  |
+| Sessions / Context / Compaction      | Да        | Да + визуальное управление |
+| Steering / Follow-up / Thinking      | Да        | Да + визуальное управление |
+| Models / Tools / Skills / Extensions | Да        | Да + Manager / Policy      |
+| Runs / Trace / Replay / Compare      | —         | Да                         |
+| Policy / Budget / Evaluation         | —         | Да                         |
+| Checkpoint / Recovery / Diagnostics  | —         | Да                         |
+| Regression / Artifacts               | —         | Да                         |
+| Multi-Agent / Task DAG / Handoff     | —         | Да                         |
+| Review Gates / Worktree isolation    | —         | Да                         |
 
 ## Скачать
 
@@ -106,15 +129,15 @@ Pi-Harness — не обёртка над веб-интерфейсом. В нё
 
 ### Тема в стиле династии Мин
 
-|                     Рабочая область (снег)                      |                      Рабочая область (ночь)                       |
-| :-------------------------------------------------------------: | :---------------------------------------------------------------: |
+|                       Рабочая область (снег)                       |                       Рабочая область (ночь)                       |
+| :----------------------------------------------------------------: | :----------------------------------------------------------------: |
 | ![Рабочая область зимой в теме династии Мин](docs/古风/Work-1.jpg) | ![Рабочая область ночью в теме династии Мин](docs/古风/Work-2.jpg) |
-|                              Git                                |                          **Провайдеры**                           |
-|      ![Git в теме династии Мин](docs/古风/Git.jpg)              |  ![Провайдеры в теме династии Мин](docs/古风/APIs.jpg)            |
-|                           **Модели**                            |                      **Центр возможностей**                       |
-|  ![Модели в теме династии Мин](docs/古风/Model.jpg)             | ![Центр возможностей в теме династии Мин](docs/古风/Caps.jpg)     |
-|                         **Настройки**                           |                                                                   |
-| ![Настройки в теме династии Мин](docs/古风/Prefs.jpg)           |                                                                   |
+|                                Git                                 |                           **Провайдеры**                           |
+|           ![Git в теме династии Мин](docs/古风/Git.jpg)            |       ![Провайдеры в теме династии Мин](docs/古风/APIs.jpg)        |
+|                             **Модели**                             |                       **Центр возможностей**                       |
+|         ![Модели в теме династии Мин](docs/古风/Model.jpg)         |   ![Центр возможностей в теме династии Мин](docs/古风/Caps.jpg)    |
+|                           **Настройки**                            |                                                                    |
+|       ![Настройки в теме династии Мин](docs/古风/Prefs.jpg)        |                                                                    |
 
 ## Граница редактора
 
@@ -154,7 +177,7 @@ Pi Coding Agent остаётся единственным Agent Runtime.
 
 Разработка из исходного кода:
 
-- Node.js ≥ 22
+- Node.js ≥ 22.19.0
 - pnpm 9.12.1
 
 ## Разработка

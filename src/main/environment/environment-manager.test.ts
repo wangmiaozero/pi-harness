@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppSettings, PiEnvironment, PiInstallResult } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
 import { EnvironmentError } from '../services/errors'
+import { isNodeVersionSupported } from '../pi/node-environment'
 
 const piProcessMock = vi.hoisted(() => ({ invalidateCache: vi.fn() }))
 vi.mock('../process/pi-process', () => ({ piProcess: piProcessMock }))
@@ -41,8 +42,8 @@ describe('EnvironmentManager', () => {
     expect(fixture.tasks.at(-1)).toMatchObject({ state: 'success', progress: 100 })
   })
 
-  it('forces a Node 20 upgrade before installing Pi', async () => {
-    const fixture = managerFixture({ nodeVersion: 'v20.19.0', piReady: false })
+  it('upgrades Node versions below the Pi SDK minimum before installing Pi', async () => {
+    const fixture = managerFixture({ nodeVersion: 'v22.18.0', piReady: false })
 
     await fixture.manager.bootstrap()
 
@@ -50,7 +51,7 @@ describe('EnvironmentManager', () => {
     expect(fixture.piInstaller.install).toHaveBeenCalledOnce()
   })
 
-  it.each(['v22.0.0', 'v24.15.0', 'v26.7.0'])(
+  it.each(['v22.19.0', 'v24.15.0', 'v26.7.0'])(
     'reuses supported Node %s without downgrading',
     async (version) => {
       const fixture = managerFixture({ nodeVersion: version, piReady: false })
@@ -215,7 +216,7 @@ function managerFixture(options: { nodeVersion: string | null; piReady: boolean 
   const detectRuntime = vi.fn(async () => {
     order.push('detect-runtime')
     const installed = nodeVersion !== null
-    const supported = installed && Number(nodeVersion!.match(/\d+/)?.[0]) >= 22
+    const supported = installed && isNodeVersionSupported(nodeVersion)
     return {
       nodeInstalled: installed,
       nodeSupported: supported,

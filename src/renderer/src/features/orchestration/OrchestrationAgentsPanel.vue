@@ -178,7 +178,9 @@ async function removeAgent(agentId: string): Promise<void> {
           >
             {{ snapshot.agent.status }}
           </span>
-          <span class="rounded-full border border-[var(--border-subtle)] px-1.5 py-0.5 text-[10px] text-[var(--text-tertiary)]">
+          <span
+            class="rounded-full border border-[var(--border-subtle)] px-1.5 py-0.5 text-[10px] text-[var(--text-tertiary)]"
+          >
             {{ snapshot.agent.role }}
           </span>
           <span
@@ -197,7 +199,9 @@ async function removeAgent(agentId: string): Promise<void> {
             {{ t('orchestration.agentStuck') }}
           </span>
         </div>
-        <div class="mt-1.5 flex flex-wrap items-center gap-3 text-[10.5px] text-[var(--text-tertiary)]">
+        <div
+          class="mt-1.5 flex flex-wrap items-center gap-3 text-[10.5px] text-[var(--text-tertiary)]"
+        >
           <span>runs: {{ snapshot.runCount }}</span>
           <span>tokens: {{ snapshot.totalTokens.toLocaleString() }}</span>
           <span v-if="snapshot.estimatedCost !== null">

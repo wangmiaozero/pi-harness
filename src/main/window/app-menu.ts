@@ -44,7 +44,9 @@ export function hasCloseWindowAccelerator(template: MenuItemConstructorOptions[]
     const modifier = parts.slice(0, -1)
     return (
       parts.at(-1) === 'w' &&
-      modifier.some((part) => ['cmd', 'ctrl', 'command', 'control', 'cmdorctrl', 'commandorcontrol'].includes(part))
+      modifier.some((part) =>
+        ['cmd', 'ctrl', 'command', 'control', 'cmdorctrl', 'commandorcontrol'].includes(part)
+      )
     )
   }
   return collectMenuItems(template).some(
@@ -76,10 +78,6 @@ export function buildAppMenuTemplate(
 
 /** Replace Electron's default menu. Call after app.whenReady(). */
 export function installAppMenu(language: AppSettings['language']): void {
-  const template = buildAppMenuTemplate(
-    process.platform === 'darwin',
-    language,
-    app.getLocale()
-  )
+  const template = buildAppMenuTemplate(process.platform === 'darwin', language, app.getLocale())
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }

@@ -17,7 +17,9 @@ export function inspectRuntimeError(raw: unknown): RuntimeErrorInfo {
     const status = Number(match[1])
     let parsed: { error?: { code?: string; message?: string; type?: string } }
     try {
-      parsed = JSON.parse(match[2]) as { error?: { code?: string; message?: string; type?: string } }
+      parsed = JSON.parse(match[2]) as {
+        error?: { code?: string; message?: string; type?: string }
+      }
     } catch {
       return { kind: 'generic', userMessage: withoutTemplateBraces(stripped) }
     }

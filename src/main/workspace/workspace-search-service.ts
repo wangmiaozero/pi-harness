@@ -80,7 +80,8 @@ async function walk(
     }
     current += 1
     const relativePath = path.relative(folder.resolvedPath, fullPath).split(path.sep).join('/')
-    const nameHit = relativePath.toLowerCase().includes(query) || entry.name.toLowerCase().includes(query)
+    const nameHit =
+      relativePath.toLowerCase().includes(query) || entry.name.toLowerCase().includes(query)
     if (nameHit) {
       hits.push({
         workspaceFolderId: folder.id,

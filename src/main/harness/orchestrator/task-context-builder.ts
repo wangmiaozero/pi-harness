@@ -7,12 +7,7 @@
  * is dumped in, only explicit, selected inputs.
  */
 
-import type {
-  HarnessAgent,
-  HarnessArtifact,
-  HarnessRun,
-  HarnessTask
-} from '@shared/types/harness'
+import type { HarnessAgent, HarnessArtifact, HarnessRun, HarnessTask } from '@shared/types/harness'
 
 const ARTIFACT_CONTEXT_LIMIT = 8
 const RUN_RESULT_PREVIEW = 600
@@ -45,9 +40,7 @@ export class TaskContextBuilder {
     sections.push(this.roleSection(input.agent, input.reviewMode))
     sections.push(this.taskSection(input.task))
 
-    const parent = input.dependencyTasks.find(
-      (task) => task.id === input.task.parentTaskId
-    )
+    const parent = input.dependencyTasks.find((task) => task.id === input.task.parentTaskId)
     if (parent) {
       sections.push(`## Parent task\n${parent.title}\n${parent.description ?? ''}`)
     }
@@ -118,9 +111,7 @@ export class TaskContextBuilder {
         ].join('\n')
       )
     }
-    const results = input.runs
-      .filter((run) => run.result)
-      .slice(0, ARTIFACT_CONTEXT_LIMIT)
+    const results = input.runs.filter((run) => run.result).slice(0, ARTIFACT_CONTEXT_LIMIT)
     if (results.length) {
       sections.push(
         [
@@ -181,9 +172,7 @@ export class TaskContextBuilder {
   private resultSection(runs: HarnessRun[]): string {
     const lines = ['## Results from dependency tasks']
     for (const run of runs) {
-      lines.push(
-        `- ${(run.result ?? '').slice(0, RUN_RESULT_PREVIEW).trim() || '(no summary)'}`
-      )
+      lines.push(`- ${(run.result ?? '').slice(0, RUN_RESULT_PREVIEW).trim() || '(no summary)'}`)
     }
     return lines.join('\n')
   }
@@ -217,10 +206,7 @@ export function parseReviewVerdict(
   const match = result.match(/\[REVIEW:\s*(APPROVED|REJECTED)\s*\]/i)
   if (!match) return null
   const verdict = match[1].toUpperCase() === 'APPROVED' ? 'approved' : 'rejected'
-  const summary = result
-    .replace(match[0], '')
-    .trim()
-    .slice(0, RESULT_PREVIEW_LIMIT)
+  const summary = result.replace(match[0], '').trim().slice(0, RESULT_PREVIEW_LIMIT)
   return { verdict, summary: summary || null }
 }
 

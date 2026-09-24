@@ -13,7 +13,7 @@ const healthyRuntime: NodeRuntimeInfo = {
   pnpmPath: '/opt/tools/bin/pnpm',
   pnpmVersion: '9.12.1',
   nodeSupported: true,
-  minimumNodeVersion: '22.0.0',
+  minimumNodeVersion: '22.19.0',
   nodeStatus: 'ready',
   npmStatus: 'ready',
   nodeSource: 'process-path',
@@ -72,7 +72,7 @@ describe('unified environment checks', () => {
 
     expect(checks.find((check) => check.id === 'node')).toMatchObject({
       status: 'warning',
-      remediation: expect.stringContaining('22')
+      remediation: expect.stringContaining('22.19.0')
     })
     expect(checks.find((check) => check.id === 'pi')).toMatchObject({
       status: 'warning',

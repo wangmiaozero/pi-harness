@@ -131,7 +131,13 @@ async function openReleasePage(): Promise<void> {
         />
       </div>
       <div class="flex flex-wrap gap-1.5">
-        <Button variant="secondary" size="sm" :loading="busy" :disabled="inProgress" @click="checkUpdates">
+        <Button
+          variant="secondary"
+          size="sm"
+          :loading="busy"
+          :disabled="inProgress"
+          @click="checkUpdates"
+        >
           {{ $t('settings.checkUpdates') }}
         </Button>
         <Button

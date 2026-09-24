@@ -343,11 +343,7 @@ export class GitService {
         'refs/remotes'
       ]),
       gitExec(repositoryRoot, ['remote']).catch(() => ''),
-      gitExec(repositoryRoot, [
-        'stash',
-        'list',
-        '--format=%gd%09%at%09%P%09%gs'
-      ]).catch(() => ''),
+      gitExec(repositoryRoot, ['stash', 'list', '--format=%gd%09%at%09%P%09%gs']).catch(() => ''),
       gitExec(repositoryRoot, ['submodule', 'status', '--recursive']).catch(() => ''),
       gitExec(repositoryRoot, [
         'for-each-ref',
@@ -366,11 +362,16 @@ export class GitService {
       ]).catch(() => '')
     ])
 
-    const remoteNames = remoteNamesText.split(/\r?\n/).map((value) => value.trim()).filter(Boolean)
+    const remoteNames = remoteNamesText
+      .split(/\r?\n/)
+      .map((value) => value.trim())
+      .filter(Boolean)
     const remotes = await Promise.all(
       remoteNames.map(async (name) => ({
         name,
-        url: (await gitExec(repositoryRoot, ['config', '--get', `remote.${name}.url`]).catch(() => '')).trim()
+        url: (
+          await gitExec(repositoryRoot, ['config', '--get', `remote.${name}.url`]).catch(() => '')
+        ).trim()
       }))
     )
     const stashes: GitStashInfo[] = stashText
@@ -381,12 +382,14 @@ export class GitService {
         const message = messageParts.join('\t').replace(/^On [^:]+: /, '')
         const timestamp = Number(timestampText)
         if (!ref) return []
-        return [{
-          ref,
-          message,
-          timestamp: Number.isFinite(timestamp) ? timestamp : 0,
-          baseHash: parents.split(' ')[0] ?? ''
-        } satisfies GitStashInfo]
+        return [
+          {
+            ref,
+            message,
+            timestamp: Number.isFinite(timestamp) ? timestamp : 0,
+            baseHash: parents.split(' ')[0] ?? ''
+          } satisfies GitStashInfo
+        ]
       })
     const branches = branchText
       .split(/\r?\n/)
@@ -395,16 +398,18 @@ export class GitService {
         const [fullName = '', name = '', tipHash = '', upstream = '', track = ''] = line.split('\0')
         if (!fullName || !name || fullName.endsWith('/HEAD')) return []
         const type = fullName.startsWith('refs/heads/') ? 'local' : 'remote'
-        return [{
-          name,
-          fullName,
-          type,
-          tipHash,
-          upstream: upstream || null,
-          ahead: Number(track.match(/ahead (\d+)/)?.[1] ?? 0),
-          behind: Number(track.match(/behind (\d+)/)?.[1] ?? 0),
-          current: type === 'local' && name === currentBranch
-        } satisfies GitRepositoryOverview['branches'][number]]
+        return [
+          {
+            name,
+            fullName,
+            type,
+            tipHash,
+            upstream: upstream || null,
+            ahead: Number(track.match(/ahead (\d+)/)?.[1] ?? 0),
+            behind: Number(track.match(/behind (\d+)/)?.[1] ?? 0),
+            current: type === 'local' && name === currentBranch
+          } satisfies GitRepositoryOverview['branches'][number]
+        ]
       })
 
     return {
@@ -445,8 +450,16 @@ export class GitService {
       ])
     ])
     const [record = ''] = metadata.split('\x1e')
-    const [resolvedHash, parents = '', author = '', email = '', authoredAt = '', refs = '', subject = '', body = ''] =
-      record.trim().split('\x1f')
+    const [
+      resolvedHash,
+      parents = '',
+      author = '',
+      email = '',
+      authoredAt = '',
+      refs = '',
+      subject = '',
+      body = ''
+    ] = record.trim().split('\x1f')
     if (!resolvedHash) throw new GitError('Commit was not found.')
     return {
       hash: resolvedHash,
@@ -454,7 +467,10 @@ export class GitService {
       author,
       email,
       authoredAt,
-      refs: refs.split(',').map((value) => value.trim()).filter(Boolean),
+      refs: refs
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean),
       subject,
       body: body.trim(),
       files: parseCommitFiles(fileText)
@@ -511,8 +527,15 @@ export class GitService {
       .map((record) => record.replace(/^\s+|\s+$/g, ''))
       .filter(Boolean)
       .flatMap((record) => {
-        const [hash, parents = '', author = '', email = '', authoredAt = '', refs = '', subject = ''] =
-          record.split('\x1f')
+        const [
+          hash,
+          parents = '',
+          author = '',
+          email = '',
+          authoredAt = '',
+          refs = '',
+          subject = ''
+        ] = record.split('\x1f')
         if (!hash) return []
         return [
           {
@@ -587,7 +610,12 @@ export class GitService {
         if (!target) throw new GitError('Remote branch is required.')
         const localName = target.split('/').slice(1).join('/')
         if (!localName) throw new GitError('Remote branch is invalid.')
-        const exists = await gitExec(repositoryRoot, ['show-ref', '--verify', '--quiet', `refs/heads/${localName}`])
+        const exists = await gitExec(repositoryRoot, [
+          'show-ref',
+          '--verify',
+          '--quiet',
+          `refs/heads/${localName}`
+        ])
           .then(() => true)
           .catch(() => false)
         args = exists ? ['switch', localName] : ['switch', '--track', '-c', localName, target]
@@ -615,15 +643,28 @@ export class GitService {
       }
       case 'push-tag': {
         if (!target) throw new GitError('Tag is required.')
-        const remote = name ?? (await gitExec(repositoryRoot, ['remote'])
-          .then((value) => value.split(/\r?\n/).map((item) => item.trim()).find(Boolean) ?? '')
-          .catch(() => ''))
+        const remote =
+          name ??
+          (await gitExec(repositoryRoot, ['remote'])
+            .then(
+              (value) =>
+                value
+                  .split(/\r?\n/)
+                  .map((item) => item.trim())
+                  .find(Boolean) ?? ''
+            )
+            .catch(() => ''))
         if (!remote) throw new GitError('No remote is configured for this repository.')
         args = ['push', remote, 'tag', target]
         break
       }
       case 'stash':
-        args = ['stash', 'push', '-u', ...(input.message?.trim() ? ['-m', input.message.trim()] : [])]
+        args = [
+          'stash',
+          'push',
+          '-u',
+          ...(input.message?.trim() ? ['-m', input.message.trim()] : [])
+        ]
         break
       case 'stash-pop':
         args = ['stash', 'pop', ...(target ? [target] : [])]
@@ -646,7 +687,12 @@ export class GitService {
         break
       case 'fast-forward': {
         if (!target) throw new GitError('Branch is required.')
-        const current = await gitExec(repositoryRoot, ['symbolic-ref', '--quiet', '--short', 'HEAD'])
+        const current = await gitExec(repositoryRoot, [
+          'symbolic-ref',
+          '--quiet',
+          '--short',
+          'HEAD'
+        ])
           .then((value) => value.trim())
           .catch(() => '')
         if (target === current) {
@@ -709,10 +755,15 @@ export class GitService {
     return { hash, message: output.trim() }
   }
 
-  private async pushArgs(repositoryRoot: string, requestedBranch: string | null): Promise<string[]> {
-    const branch = requestedBranch ?? await gitExec(repositoryRoot, ['symbolic-ref', '--quiet', '--short', 'HEAD'])
-      .then((value) => value.trim())
-      .catch(() => '')
+  private async pushArgs(
+    repositoryRoot: string,
+    requestedBranch: string | null
+  ): Promise<string[]> {
+    const branch =
+      requestedBranch ??
+      (await gitExec(repositoryRoot, ['symbolic-ref', '--quiet', '--short', 'HEAD'])
+        .then((value) => value.trim())
+        .catch(() => ''))
     if (!branch) throw new GitError('Cannot push while HEAD is detached.')
     const upstream = await gitExec(repositoryRoot, [
       'for-each-ref',
@@ -723,7 +774,13 @@ export class GitService {
       .catch(() => '')
     if (upstream) return ['push', upstream.split('/')[0]!, branch]
     const remote = await gitExec(repositoryRoot, ['remote'])
-      .then((value) => value.split(/\r?\n/).map((item) => item.trim()).find(Boolean) ?? '')
+      .then(
+        (value) =>
+          value
+            .split(/\r?\n/)
+            .map((item) => item.trim())
+            .find(Boolean) ?? ''
+      )
       .catch(() => '')
     if (!remote) throw new GitError('No remote is configured for this repository.')
     return ['push', '--set-upstream', remote, branch]
@@ -784,26 +841,41 @@ function assertRepositoryRelativePath(repositoryRoot: string, value: string): st
 }
 
 function parseCommitFiles(output: string): GitCommitDetails['files'] {
-  return output.split(/\r?\n/).filter(Boolean).flatMap((line) => {
-    const [rawStatus = '', first = '', second = ''] = line.split('\t')
-    const status = rawStatus.charAt(0) as GitCommitDetails['files'][number]['status']
-    if (!first || !'AMDRCTUXB'.includes(status)) return []
-    return [{
-      status,
-      path: status === 'R' || status === 'C' ? second : first,
-      previousPath: status === 'R' || status === 'C' ? first : null
-    }]
-  })
+  return output
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .flatMap((line) => {
+      const [rawStatus = '', first = '', second = ''] = line.split('\t')
+      const status = rawStatus.charAt(0) as GitCommitDetails['files'][number]['status']
+      if (!first || !'AMDRCTUXB'.includes(status)) return []
+      return [
+        {
+          status,
+          path: status === 'R' || status === 'C' ? second : first,
+          previousPath: status === 'R' || status === 'C' ? first : null
+        }
+      ]
+    })
 }
 
 function parseSubmodules(output: string): GitRepositoryOverview['submodules'] {
-  return output.split(/\r?\n/).filter(Boolean).flatMap((line) => {
-    const marker = line.charAt(0)
-    const match = line.slice(1).match(/^([0-9a-f]{40})\s+([^\s]+)(?:\s|$)/i)
-    if (!match?.[1] || !match[2]) return []
-    const state = marker === '-' ? 'uninitialized' : marker === '+' ? 'modified' : marker === 'U' ? 'conflict' : 'clean'
-    return [{ path: match[2], hash: match[1], state }]
-  })
+  return output
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .flatMap((line) => {
+      const marker = line.charAt(0)
+      const match = line.slice(1).match(/^([0-9a-f]{40})\s+([^\s]+)(?:\s|$)/i)
+      if (!match?.[1] || !match[2]) return []
+      const state =
+        marker === '-'
+          ? 'uninitialized'
+          : marker === '+'
+            ? 'modified'
+            : marker === 'U'
+              ? 'conflict'
+              : 'clean'
+      return [{ path: match[2], hash: match[1], state }]
+    })
 }
 
 function parseTags(output: string): GitTagInfo[] {
@@ -845,7 +917,18 @@ async function githubPullRequests(
   try {
     const output = await externalExec(
       'gh',
-      ['pr', 'list', '--repo', slug, '--state', 'open', '--limit', '30', '--json', 'number,title,headRefName,author,url,isDraft'],
+      [
+        'pr',
+        'list',
+        '--repo',
+        slug,
+        '--state',
+        'open',
+        '--limit',
+        '30',
+        '--json',
+        'number,title,headRefName,author,url,isDraft'
+      ],
       repositoryRoot,
       20_000
     )
@@ -864,14 +947,16 @@ async function githubPullRequests(
       message: null,
       items: raw.flatMap((item) =>
         typeof item.number === 'number' && item.title && item.url
-          ? [{
-              number: item.number,
-              title: item.title,
-              branch: item.headRefName ?? '',
-              author: item.author?.login ?? '',
-              url: item.url,
-              draft: item.isDraft === true
-            }]
+          ? [
+              {
+                number: item.number,
+                title: item.title,
+                branch: item.headRefName ?? '',
+                author: item.author?.login ?? '',
+                url: item.url,
+                draft: item.isDraft === true
+              }
+            ]
           : []
       )
     }

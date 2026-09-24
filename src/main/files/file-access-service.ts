@@ -20,7 +20,8 @@ export interface AuthorizedRootsState {
 export class FileAccessService {
   private additionalRoots = new Set<string>()
   private activeRoot: string | null = null
-  private workspaceFolders: Array<Pick<WorkspaceFolder, 'resolvedPath' | 'readonly' | 'exists'>> = []
+  private workspaceFolders: Array<Pick<WorkspaceFolder, 'resolvedPath' | 'readonly' | 'exists'>> =
+    []
   private cache: { roots: Set<string>; realRoots: Set<string> | null; expiresAt: number } | null =
     null
   private listSessions: () => Promise<SessionInfo[]> = async () => []
@@ -160,7 +161,10 @@ export class FileAccessService {
    * any of those projects is allowed even when its session is not active.
    * Anything else keeps the strict session-scoped rule above.
    */
-  async assertWritableForGit(target: string, options: { mustExist?: boolean } = {}): Promise<string> {
+  async assertWritableForGit(
+    target: string,
+    options: { mustExist?: boolean } = {}
+  ): Promise<string> {
     const allowed = await this.assertAllowed(target, options)
     if (
       isWorkspacePathWritable(allowed, this.workspaceFolders) ||
@@ -189,10 +193,7 @@ export class FileAccessService {
   ): Promise<string> {
     const allowed = alreadyAllowed ?? (await this.assertAllowed(target))
     if (!folders.length) return allowed
-    if (
-      !isWorkspacePathWritable(allowed, folders) &&
-      !isWorkspacePathWritable(target, folders)
-    ) {
+    if (!isWorkspacePathWritable(allowed, folders) && !isWorkspacePathWritable(target, folders)) {
       throw new PathDeniedError(
         'This path is outside the projects attached to the current session or is read-only.',
         { target }

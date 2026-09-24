@@ -99,10 +99,7 @@ describe('resolveDependencies', () => {
   })
 
   it('marks cycle members as blocked', () => {
-    const tasks = [
-      task('a', { dependencies: ['b'] }),
-      task('b', { dependencies: ['a'] })
-    ]
+    const tasks = [task('a', { dependencies: ['b'] }), task('b', { dependencies: ['a'] })]
     const resolution = resolveDependencies(tasks)
     expect(resolution.ready).toEqual([])
     expect(resolution.blocked.every((item) => item.unmet.includes('cycle'))).toBe(true)

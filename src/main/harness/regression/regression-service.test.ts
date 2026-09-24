@@ -179,10 +179,7 @@ describe('RegressionService', () => {
     const baseline = run('base')
     const evaluations = new Map<string, HarnessEvaluation>([
       ['base', evaluation('base', 'passed', [{ kind: 'test', status: 'passed' }])],
-      [
-        'current',
-        evaluation('current', 'failed', [{ kind: 'test', status: 'failed' }])
-      ]
+      ['current', evaluation('current', 'failed', [{ kind: 'test', status: 'failed' }])]
     ])
 
     const findings = service.compare(run('current'), baseline, evaluations)

@@ -392,9 +392,7 @@ export const useAgentStore = defineStore('agent', () => {
   }
 
   async function setAutoCompaction(sessionId: string, enabled: boolean) {
-    await callApi(() =>
-      getApi().agent.command(sessionId, { type: 'set_auto_compaction', enabled })
-    )
+    await callApi(() => getApi().agent.command(sessionId, { type: 'set_auto_compaction', enabled }))
     if (loadedSessionId === sessionId) await reconcile(sessionId)
   }
 

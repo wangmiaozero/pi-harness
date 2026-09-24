@@ -18,7 +18,11 @@ import type {
   HarnessEvent,
   HarnessRun
 } from '@shared/types/harness'
-import { classifyExecutionCommand, collectFileMutations, sliceRunEntries } from '../evaluation/evaluation-service'
+import {
+  classifyExecutionCommand,
+  collectFileMutations,
+  sliceRunEntries
+} from '../evaluation/evaluation-service'
 
 const MAX_PERSISTED_ARTIFACTS = 1000
 const COMMAND_PREVIEW_LENGTH = 200
@@ -33,9 +37,11 @@ export const EMPTY_ARTIFACT_STORE: ArtifactStoreRecord = { schemaVersion: 1, art
 export interface ArtifactHooks {
   getEntries: (sessionId: string) => Promise<SessionEntry[]>
   getCheckpoints: (sessionId: string) => Promise<HarnessCheckpoint[]>
-  getGitCommits: (cwd: string, since: number, until: number) => Promise<
-    Array<{ hash: string; subject: string; timestamp: number }>
-  >
+  getGitCommits: (
+    cwd: string,
+    since: number,
+    until: number
+  ) => Promise<Array<{ hash: string; subject: string; timestamp: number }>>
   emit: (sessionId: string, event: HarnessEvent) => void
 }
 
@@ -48,9 +54,7 @@ export class ArtifactService {
   async list(sessionId: string, runId?: string): Promise<HarnessArtifact[]> {
     const record = await this.store.read()
     return record.artifacts
-      .filter((artifact) =>
-        runId ? artifact.runId === runId : artifact.sessionId === sessionId
-      )
+      .filter((artifact) => (runId ? artifact.runId === runId : artifact.sessionId === sessionId))
       .sort((a, b) => b.createdAt - a.createdAt)
   }
 
@@ -62,9 +66,7 @@ export class ArtifactService {
 
   async listByTask(taskId: string): Promise<HarnessArtifact[]> {
     const record = await this.store.read()
-    return record.artifacts.filter(
-      (artifact) => artifact.producedByTaskId === taskId
-    )
+    return record.artifacts.filter((artifact) => artifact.producedByTaskId === taskId)
   }
 
   async listByAgent(agentId: string): Promise<HarnessArtifact[]> {
@@ -75,7 +77,9 @@ export class ArtifactService {
   async listByOrchestrationAgents(agentIds: string[]): Promise<HarnessArtifact[]> {
     const record = await this.store.read()
     const wanted = new Set(agentIds)
-    return record.artifacts.filter((artifact) => artifact.producedByAgentId !== null && wanted.has(artifact.producedByAgentId))
+    return record.artifacts.filter(
+      (artifact) => artifact.producedByAgentId !== null && wanted.has(artifact.producedByAgentId)
+    )
   }
 
   async getArtifact(artifactId: string): Promise<HarnessArtifact | null> {
@@ -84,11 +88,7 @@ export class ArtifactService {
   }
 
   /** Record consumption for handoff bookkeeping: who received what. */
-  async markConsumed(
-    artifactIds: string[],
-    agentId: string,
-    taskId: string | null
-  ): Promise<void> {
+  async markConsumed(artifactIds: string[], agentId: string, taskId: string | null): Promise<void> {
     if (!artifactIds.length) return
     const record = await this.store.read()
     const wanted = new Set(artifactIds)
@@ -104,7 +104,7 @@ export class ArtifactService {
         consumedByTaskIds:
           taskId && artifact.consumedByTaskIds.includes(taskId)
             ? artifact.consumedByTaskIds
-            : [...artifact.consumedByTaskIds, taskId].filter(Boolean) as string[]
+            : ([...artifact.consumedByTaskIds, taskId].filter(Boolean) as string[])
       }
     })
     if (changed) await this.store.write({ schemaVersion: 1, artifacts })
@@ -164,14 +164,14 @@ export class ArtifactService {
     for (const entry of entries) {
       if (entry.type !== 'message') continue
       const message = entry.message as
-        | { role?: string; command?: unknown; exitCode?: unknown; cancelled?: boolean }
-        | undefined
+        { role?: string; command?: unknown; exitCode?: unknown; cancelled?: boolean } | undefined
       if (!message || message.role !== 'bashExecution') continue
       if (typeof message.command !== 'string' || !message.command.trim()) continue
       if (message.cancelled === true) continue
       const kind = classifyExecutionCommand(message.command)
       const failed = typeof message.exitCode === 'number' && message.exitCode !== 0
-      const type: HarnessArtifactType = kind === 'test' ? 'test-report' : kind === 'build' ? 'build-output' : 'log'
+      const type: HarnessArtifactType =
+        kind === 'test' ? 'test-report' : kind === 'build' ? 'build-output' : 'log'
       artifacts.push(
         this.artifact(
           run,
@@ -220,7 +220,11 @@ export class ArtifactService {
   private async gitCommitArtifacts(run: HarnessRun): Promise<HarnessArtifact[]> {
     if (!run.cwd || !run.finishedAt) return []
     try {
-      const commits = await this.hooks.getGitCommits(run.cwd, run.startedAt, run.finishedAt + 60_000)
+      const commits = await this.hooks.getGitCommits(
+        run.cwd,
+        run.startedAt,
+        run.finishedAt + 60_000
+      )
       return commits.map((commit) =>
         this.artifact(
           run,
@@ -281,9 +285,7 @@ function fileName(filePath: string): string {
 function timestampOf(entries: readonly SessionEntry[], filePath: string): number {
   for (const entry of entries) {
     if (entry.type !== 'message') continue
-    const message = entry.message as
-      | { role?: string; content?: unknown }
-      | undefined
+    const message = entry.message as { role?: string; content?: unknown } | undefined
     if (!message || message.role !== 'assistant' || !Array.isArray(message.content)) continue
     for (const block of message.content) {
       if (!block || typeof block !== 'object') continue

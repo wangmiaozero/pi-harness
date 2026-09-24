@@ -59,7 +59,12 @@ export class WorktreeService {
         isTopLevel
       }
     } catch {
-      info = { projectRoot: await realPathOrSelf(cwd), branch: null, isWorktree: false, isTopLevel: false }
+      info = {
+        projectRoot: await realPathOrSelf(cwd),
+        branch: null,
+        isWorktree: false,
+        isTopLevel: false
+      }
     }
 
     this.projectCache.set(cwd, { info, expiresAt: Date.now() + PROJECT_CACHE_TTL_MS })

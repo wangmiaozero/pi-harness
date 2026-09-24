@@ -145,10 +145,7 @@ export class PiHarnessAdapter implements HarnessAdapter {
   }
 
   async abortCompaction(sessionId: string): Promise<void> {
-    const wrapper = await this.requireCapability(sessionId, 'compaction')
-    if (typeof wrapper.inner.abortCompaction !== 'function') {
-      throw new HarnessError('COMPACTION_NOT_AVAILABLE', 'This Pi version cannot abort compaction.')
-    }
+    await this.requireCapability(sessionId, 'abortCompaction')
     await this.agent.command(sessionId, { type: 'abort_compaction' })
   }
 

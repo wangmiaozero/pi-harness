@@ -16,13 +16,11 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a> のオールインワン・デスクトップワークスペース</strong><br />
-  Pi を構成 · Agent を実行 · モデル、Skills、パッケージ、プロジェクトを管理
+  <strong>Pi Coding Agent の Superset Harness</strong><br />
+  Native Pi を、さらに強力に。
 </p>
 
-<p align="center">
-  Pi Coding Agent の設定・実行・拡張に必要な機能を、1 つのネイティブデスクトップアプリにまとめます。
-</p>
+<p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
@@ -50,6 +48,31 @@ Pi → Chat                             Environment
 Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js サーバー、iframe を組み込まず、2 つ目の Agent Runtime も実装しません。Pi Coding Agent が唯一の Agent Runtime であり、セッションは ~/.pi/agent/sessions/ にある Pi CLI の JSONL と互換性があります。
 
 **Pi を構成。Pi を実行。Pi を拡張。**
+
+## Pi Superset Contract
+
+Pi-Harness は Pi Coding Agent の operational superset です。Native Pi の Agent Runtime と互換性を保ち、その上に可観測性、ガバナンス、オーケストレーション、復旧、評価、視覚的なエンジニアリングワークスペースを追加します。
+
+- Native Pi の機能を意図的に減らさず、技術的に可能な範囲で Pi のネイティブ形式との互換性を維持します。
+- Native Pi が常に実行 Runtime です。Agent Loop、Context、Compaction、Tools、Skills、Extensions を再実装しません。
+- Pi ネイティブの Session と設定は単独でも利用でき、Harness 固有の状態は分離して保存します。
+- 機能追加は原則として加算的に行い、Pi の新機能はまず互換レイヤー経由で公開します。
+- capability detection、graceful degradation、best-effort forward compatibility を採用します。
+
+## Pi と Pi-Harness の機能マトリクス
+
+| 機能                                 | Native Pi | Pi-Harness              |
+| ------------------------------------ | --------- | ----------------------- |
+| Agent Runtime / Loop                 | 対応      | Native Pi               |
+| Sessions / Context / Compaction      | 対応      | 対応 + 可視化管理・制御 |
+| Steering / Follow-up / Thinking      | 対応      | 対応 + 可視化制御       |
+| Models / Tools / Skills / Extensions | 対応      | 対応 + Manager / Policy |
+| Runs / Trace / Replay / Compare      | —         | 対応                    |
+| Policy / Budget / Evaluation         | —         | 対応                    |
+| Checkpoint / Recovery / Diagnostics  | —         | 対応                    |
+| Regression / Artifacts               | —         | 対応                    |
+| Multi-Agent / Task DAG / Handoff     | —         | 対応                    |
+| Review Gates / Worktree isolation    | —         | 対応                    |
 
 ## ダウンロード
 
@@ -106,15 +129,15 @@ Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js �
 
 ### 古風テーマ
 
-|                    ワークスペース（雪）                     |                     ワークスペース（月夜）                      |
-| :---------------------------------------------------------: | :-------------------------------------------------------------: |
-| ![古風テーマ雪景色のワークスペース](docs/古风/Work-1.jpg)   | ![古風テーマ月夜のワークスペース](docs/古风/Work-2.jpg)         |
-|                           Git                               |                         **Provider**                            |
-|      ![古風テーマの Git](docs/古风/Git.jpg)                 |   ![古風テーマの Provider](docs/古风/APIs.jpg)                  |
-|                        **モデル**                           |                       **機能センター**                          |
-|  ![古風テーマのモデル](docs/古风/Model.jpg)                 |  ![古風テーマの機能センター](docs/古风/Caps.jpg)                |
-|                         **設定**                            |                                                                 |
-|   ![古風テーマの設定](docs/古风/Prefs.jpg)                  |                                                                 |
+|                   ワークスペース（雪）                    |                 ワークスペース（月夜）                  |
+| :-------------------------------------------------------: | :-----------------------------------------------------: |
+| ![古風テーマ雪景色のワークスペース](docs/古风/Work-1.jpg) | ![古風テーマ月夜のワークスペース](docs/古风/Work-2.jpg) |
+|                            Git                            |                      **Provider**                       |
+|          ![古風テーマの Git](docs/古风/Git.jpg)           |      ![古風テーマの Provider](docs/古风/APIs.jpg)       |
+|                        **モデル**                         |                    **機能センター**                     |
+|        ![古風テーマのモデル](docs/古风/Model.jpg)         |     ![古風テーマの機能センター](docs/古风/Caps.jpg)     |
+|                         **設定**                          |                                                         |
+|         ![古風テーマの設定](docs/古风/Prefs.jpg)          |                                                         |
 
 ## エディターの範囲
 
@@ -154,7 +177,7 @@ Pi Coding Agent が唯一の Agent Runtime です。
 
 ソースから開発する場合：
 
-- Node.js ≥ 22
+- Node.js ≥ 22.19.0
 - pnpm 9.12.1
 
 ## 開発

@@ -38,8 +38,7 @@ const assigneeOptions = computed(() => [
 ])
 
 const agentNameById = computed<Map<string, string>>(
-  () =>
-    new Map((store.snapshot?.agents ?? []).map((item) => [item.agent.id, item.agent.name]))
+  () => new Map((store.snapshot?.agents ?? []).map((item) => [item.agent.id, item.agent.name]))
 )
 
 const taskKeyById = computed<Map<string, string>>(() => {
@@ -58,9 +57,7 @@ function shortTitle(task: HarnessTask): string {
 }
 
 function dependencyLabels(task: HarnessTask): string[] {
-  return task.dependencies.map(
-    (depId) => taskKeyById.value.get(depId) ?? depId.slice(0, 8)
-  )
+  return task.dependencies.map((depId) => taskKeyById.value.get(depId) ?? depId.slice(0, 8))
 }
 
 const statusTone: Record<string, string> = {
@@ -244,10 +241,7 @@ async function remove(task: HarnessTask): Promise<void> {
           >
             review
           </span>
-          <span
-            v-if="task.reviewVerdict === 'rejected'"
-            class="text-[10px] text-[var(--error)]"
-          >
+          <span v-if="task.reviewVerdict === 'rejected'" class="text-[10px] text-[var(--error)]">
             {{ t('orchestration.taskRejected') }}
           </span>
           <span v-if="task.retryCount > 0" class="text-[10px] text-[var(--text-tertiary)]">
@@ -261,7 +255,9 @@ async function remove(task: HarnessTask): Promise<void> {
         <p v-if="task.reviewSummary" class="mt-1 text-[10.5px] text-[var(--text-tertiary)]">
           {{ task.reviewSummary }}
         </p>
-        <div class="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-tertiary)]">
+        <div
+          class="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-tertiary)]"
+        >
           <span v-if="dependencyLabels(task).length" class="inline-flex items-center gap-1">
             <ListTree class="size-3" />
             {{ t('orchestration.taskDependsOn') }}: {{ dependencyLabels(task).join(', ') }}
@@ -294,7 +290,11 @@ async function remove(task: HarnessTask): Promise<void> {
           <button
             type="button"
             class="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-0.5 text-[10.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
-            :disabled="busyTaskId !== null || (store.snapshot?.agents.length ?? 0) < 2 || task.status === 'running'"
+            :disabled="
+              busyTaskId !== null ||
+              (store.snapshot?.agents.length ?? 0) < 2 ||
+              task.status === 'running'
+            "
             :title="t('orchestration.taskReassignHint')"
             @click="reassign(task)"
           >

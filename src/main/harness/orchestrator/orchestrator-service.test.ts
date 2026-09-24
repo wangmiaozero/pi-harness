@@ -162,10 +162,7 @@ export class FakeHost implements OrchestratorHost {
   }
 
   seedTaskArtifacts(taskId: string, artifacts: HarnessArtifact[]): void {
-    this.artifactsByTask.set(taskId, [
-      ...(this.artifactsByTask.get(taskId) ?? []),
-      ...artifacts
-    ])
+    this.artifactsByTask.set(taskId, [...(this.artifactsByTask.get(taskId) ?? []), ...artifacts])
   }
 
   /** Simulate the runtime settling a run (evaluation + verdict events). */
@@ -213,7 +210,11 @@ export class FakeHost implements OrchestratorHost {
   }
 }
 
-function makeRun(runId: string, sessionId: string, overrides: Partial<HarnessRun> = {}): HarnessRun {
+function makeRun(
+  runId: string,
+  sessionId: string,
+  overrides: Partial<HarnessRun> = {}
+): HarnessRun {
   return {
     id: runId,
     sessionId,
@@ -308,7 +309,11 @@ async function bootstrapOrchestration(
       budget?: { maxCost: number | null; maxTokens: number | null }
     }
   } = {}
-): Promise<{ orchestrationId: string; agentIds: Record<string, string>; taskIds: Record<string, string> }> {
+): Promise<{
+  orchestrationId: string
+  agentIds: Record<string, string>
+  taskIds: Record<string, string>
+}> {
   const orchestration = await harness.service.createOrchestration({
     name: 'Test orchestration',
     cwd: '/repo',
@@ -648,9 +653,7 @@ describe('OrchestratorService failure handling', () => {
     const retryAnnotations = harness.host.annotations.filter(
       (item) => item.sessionId === harness.host.prompts[1].sessionId
     )
-    expect(
-      retryAnnotations.some((item) => item.annotation.relation === 'retry')
-    ).toBe(true)
+    expect(retryAnnotations.some((item) => item.annotation.relation === 'retry')).toBe(true)
     expect(
       retryAnnotations.some(
         (item) => item.annotation.forkedFromRunId === harness.host.prompts[0].runId

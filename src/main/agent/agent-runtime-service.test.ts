@@ -91,16 +91,18 @@ describe('AgentRuntimeService', () => {
 
   it('turns a summarization quota failure into a recoverable AgentError', async () => {
     const inner = createAgentSession(createSessionManager())
-    inner.compact = vi.fn().mockRejectedValue(
-      new Error(
-        'Summarization failed: 429 {"error":{"code":"AccountQuotaExceeded","message":"You have exceeded the 5-hour usage quota. It will reset at 2026-09-19 11:23:11 +0800 CST.","param":"","type":"TooManyRequests"}}'
+    inner.compact = vi
+      .fn()
+      .mockRejectedValue(
+        new Error(
+          'Summarization failed: 429 {"error":{"code":"AccountQuotaExceeded","message":"You have exceeded the 5-hour usage quota. It will reset at 2026-09-19 11:23:11 +0800 CST.","param":"","type":"TooManyRequests"}}'
+        )
       )
-    )
 
     await expect(new AgentSessionWrapper(inner).send({ type: 'compact' })).rejects.toMatchObject({
       code: 'AGENT_ERROR',
       recoverable: true,
-      userMessage: expect.stringContaining("quota is exhausted until 2026-09-19 11:23:11")
+      userMessage: expect.stringContaining('quota is exhausted until 2026-09-19 11:23:11')
     })
   })
 

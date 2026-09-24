@@ -210,9 +210,7 @@ export function registerHarnessIpc(
     wrap(async () => harness.getStoreSettings())
   )
   ipcMain.handle(IPC_INVOKE.harnessUpdateStoreSettings, (_event, input: unknown) =>
-    wrap(async () =>
-      harness.updateStoreSettings(parse(harnessStoreSettingsSchema, input))
-    )
+    wrap(async () => harness.updateStoreSettings(parse(harnessStoreSettingsSchema, input)))
   )
   ipcMain.handle(IPC_INVOKE.harnessGetPolicy, () => wrap(async () => harness.getPolicySnapshot()))
   ipcMain.handle(IPC_INVOKE.harnessSetPolicy, (_event, input: unknown) =>
@@ -302,8 +300,7 @@ export function registerHarnessIpc(
       wrap(async () => orch.abort(parse(orchestrationGetSchema, input).orchestrationId))
     )
     ipcMain.handle(IPC_INVOKE.orchestrationSnapshot, (_event, input: unknown) =>
-      wrap(async () =>
-        orch.snapshot(parse(orchestrationSnapshotSchema, input).orchestrationId))
+      wrap(async () => orch.snapshot(parse(orchestrationSnapshotSchema, input).orchestrationId))
     )
     ipcMain.handle(IPC_INVOKE.orchestrationListTemplates, () =>
       wrap(async () => orch.listTemplates())
@@ -311,9 +308,7 @@ export function registerHarnessIpc(
     ipcMain.handle(IPC_INVOKE.orchestrationSaveTemplate, (_event, input: unknown) =>
       wrap(async () => {
         const value = parse(orchestrationTemplateInputSchema, input)
-        return value.id
-          ? orch.updateTemplate(value.id, value)
-          : orch.createTemplate(value)
+        return value.id ? orch.updateTemplate(value.id, value) : orch.createTemplate(value)
       })
     )
     ipcMain.handle(IPC_INVOKE.orchestrationDeleteTemplate, (_event, input: unknown) =>
@@ -325,9 +320,7 @@ export function registerHarnessIpc(
     ipcMain.handle(IPC_INVOKE.orchestrationSaveTeam, (_event, input: unknown) =>
       wrap(async () => {
         const value = parse(orchestrationTeamInputSchema, input)
-        return value.id
-          ? orch.updateTeam(value.id, value)
-          : orch.createTeam(value)
+        return value.id ? orch.updateTeam(value.id, value) : orch.createTeam(value)
       })
     )
     ipcMain.handle(IPC_INVOKE.orchestrationDeleteTeam, (_event, input: unknown) =>

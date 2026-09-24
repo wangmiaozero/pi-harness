@@ -99,8 +99,6 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
       :animated="visualAnimationsEnabled"
     />
     <StarshipCockpitFrame v-if="starshipCockpitActive" />
-    <MingShellFrame
-      v-if="visualSkin?.id === 'ming-snow' || visualSkin?.id === 'ming-moon'"
-    />
+    <MingShellFrame v-if="visualSkin?.id === 'ming-snow' || visualSkin?.id === 'ming-moon'" />
   </div>
 </template>

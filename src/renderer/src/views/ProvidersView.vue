@@ -939,9 +939,7 @@ onMounted(() => {
 
             <div
               class="whitespace-nowrap text-[11.5px] text-[var(--text-tertiary)]"
-              :title="
-                formatRelativeTime(provider.updatedAt, locale)
-              "
+              :title="formatRelativeTime(provider.updatedAt, locale)"
             >
               {{ formatRelativeTime(provider.updatedAt, locale) }}
             </div>

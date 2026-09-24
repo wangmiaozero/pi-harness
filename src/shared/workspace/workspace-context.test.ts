@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { applyWorkspacePrompt, formatWorkspaceAgentPrompt, stripWorkspacePrompt } from './workspace-context'
+import {
+  applyWorkspacePrompt,
+  formatWorkspaceAgentPrompt,
+  stripWorkspacePrompt
+} from './workspace-context'
 import type { AgentWorkspace } from '../types/workspace'
 
 describe('workspace agent context', () => {
@@ -45,8 +49,14 @@ describe('workspace agent context', () => {
   })
 
   it('replaces a previous workspace prompt block without dropping the host prompt', () => {
-    const first = applyWorkspacePrompt('Host prompt', '--- BEGIN PI-HARNESS WORKSPACE ---\nA\n--- END PI-HARNESS WORKSPACE ---')
-    const second = applyWorkspacePrompt(first, '--- BEGIN PI-HARNESS WORKSPACE ---\nB\n--- END PI-HARNESS WORKSPACE ---')
+    const first = applyWorkspacePrompt(
+      'Host prompt',
+      '--- BEGIN PI-HARNESS WORKSPACE ---\nA\n--- END PI-HARNESS WORKSPACE ---'
+    )
+    const second = applyWorkspacePrompt(
+      first,
+      '--- BEGIN PI-HARNESS WORKSPACE ---\nB\n--- END PI-HARNESS WORKSPACE ---'
+    )
     expect(second.startsWith('Host prompt')).toBe(true)
     expect(second).toContain('B')
     expect(second).not.toContain('\nA\n')

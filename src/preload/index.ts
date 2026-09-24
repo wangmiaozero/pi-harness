@@ -251,14 +251,11 @@ const api: PiSwitchAPI = {
         runId,
         ...(options?.mode ? { mode: options.mode } : {}),
         ...(options?.fromEventId ? { fromEventId: options.fromEventId } : {}),
-        ...(options?.fromCheckpointId
-          ? { fromCheckpointId: options.fromCheckpointId }
-          : {}),
+        ...(options?.fromCheckpointId ? { fromCheckpointId: options.fromCheckpointId } : {}),
         ...(options?.message ? { message: options.message } : {})
       }),
     getBaseline: (sessionId) => invoke(IPC_INVOKE.harnessGetBaseline, { sessionId }),
-    setBaseline: (sessionId, runId) =>
-      invoke(IPC_INVOKE.harnessSetBaseline, { sessionId, runId }),
+    setBaseline: (sessionId, runId) => invoke(IPC_INVOKE.harnessSetBaseline, { sessionId, runId }),
     getProjectStats: (sessionId, range) =>
       invoke(IPC_INVOKE.harnessGetProjectStats, {
         sessionId,
@@ -277,8 +274,7 @@ const api: PiSwitchAPI = {
         ...(runId ? { runId } : {})
       }),
     getStoreSettings: () => invoke(IPC_INVOKE.harnessGetStoreSettings, undefined),
-    updateStoreSettings: (settings) =>
-      invoke(IPC_INVOKE.harnessUpdateStoreSettings, settings),
+    updateStoreSettings: (settings) => invoke(IPC_INVOKE.harnessUpdateStoreSettings, settings),
     getPolicy: () => invoke(IPC_INVOKE.harnessGetPolicy, undefined),
     setPolicy: (config) => invoke(IPC_INVOKE.harnessSetPolicy, { config }),
     listCheckpoints: (sessionId) => invoke(IPC_INVOKE.harnessListCheckpoints, { sessionId }),
@@ -286,20 +282,16 @@ const api: PiSwitchAPI = {
       invoke(IPC_INVOKE.harnessCreateCheckpoint, { sessionId, includeGit }),
     resumeCheckpoint: (checkpointId, message) =>
       invoke(IPC_INVOKE.harnessResumeCheckpoint, { checkpointId, ...(message ? { message } : {}) }),
-    forkCheckpoint: (checkpointId) =>
-      invoke(IPC_INVOKE.harnessForkCheckpoint, { checkpointId }),
+    forkCheckpoint: (checkpointId) => invoke(IPC_INVOKE.harnessForkCheckpoint, { checkpointId }),
     retryLastRun: (sessionId) => invoke(IPC_INVOKE.harnessRetryLastRun, { sessionId }),
-    evaluateRun: (sessionId, runId) =>
-      invoke(IPC_INVOKE.harnessEvaluateRun, { sessionId, runId }),
+    evaluateRun: (sessionId, runId) => invoke(IPC_INVOKE.harnessEvaluateRun, { sessionId, runId }),
     listEvaluations: (sessionId) => invoke(IPC_INVOKE.harnessListEvaluations, { sessionId })
   },
   orchestration: {
     list: () => invoke(IPC_INVOKE.orchestrationList, undefined),
-    get: (orchestrationId) =>
-      invoke(IPC_INVOKE.orchestrationGet, { orchestrationId }),
+    get: (orchestrationId) => invoke(IPC_INVOKE.orchestrationGet, { orchestrationId }),
     create: (input) => invoke(IPC_INVOKE.orchestrationCreate, input),
-    delete: (orchestrationId) =>
-      invoke(IPC_INVOKE.orchestrationDelete, { orchestrationId }),
+    delete: (orchestrationId) => invoke(IPC_INVOKE.orchestrationDelete, { orchestrationId }),
     start: (orchestrationId) => invoke(IPC_INVOKE.orchestrationStart, { orchestrationId }),
     pause: (orchestrationId, reason) =>
       invoke(IPC_INVOKE.orchestrationPause, {
@@ -308,30 +300,22 @@ const api: PiSwitchAPI = {
       }),
     resume: (orchestrationId) => invoke(IPC_INVOKE.orchestrationResume, { orchestrationId }),
     abort: (orchestrationId) => invoke(IPC_INVOKE.orchestrationAbort, { orchestrationId }),
-    snapshot: (orchestrationId) =>
-      invoke(IPC_INVOKE.orchestrationSnapshot, { orchestrationId }),
+    snapshot: (orchestrationId) => invoke(IPC_INVOKE.orchestrationSnapshot, { orchestrationId }),
     listTemplates: () => invoke(IPC_INVOKE.orchestrationListTemplates, undefined),
     saveTemplate: (template) => invoke(IPC_INVOKE.orchestrationSaveTemplate, template),
-    deleteTemplate: (templateId) =>
-      invoke(IPC_INVOKE.orchestrationDeleteTemplate, { templateId }),
+    deleteTemplate: (templateId) => invoke(IPC_INVOKE.orchestrationDeleteTemplate, { templateId }),
     listTeams: () => invoke(IPC_INVOKE.orchestrationListTeams, undefined),
     saveTeam: (team) => invoke(IPC_INVOKE.orchestrationSaveTeam, team),
     deleteTeam: (teamId) => invoke(IPC_INVOKE.orchestrationDeleteTeam, { teamId }),
     listAgents: (orchestrationId) =>
-      invoke(
-        IPC_INVOKE.orchestrationListAgents,
-        orchestrationId ? { orchestrationId } : undefined
-      ),
+      invoke(IPC_INVOKE.orchestrationListAgents, orchestrationId ? { orchestrationId } : undefined),
     addAgent: (input) => invoke(IPC_INVOKE.orchestrationAddAgent, input),
     updateAgent: (input) => invoke(IPC_INVOKE.orchestrationUpdateAgent, input),
     deleteAgent: (agentId) => invoke(IPC_INVOKE.orchestrationDeleteAgent, { agentId }),
     setAgentBudget: (agentId, budget) =>
       invoke(IPC_INVOKE.orchestrationSetAgentBudget, { agentId, budget }),
     listTasks: (orchestrationId) =>
-      invoke(
-        IPC_INVOKE.orchestrationListTasks,
-        orchestrationId ? { orchestrationId } : undefined
-      ),
+      invoke(IPC_INVOKE.orchestrationListTasks, orchestrationId ? { orchestrationId } : undefined),
     createTask: (input) => invoke(IPC_INVOKE.orchestrationCreateTask, input),
     updateTask: (input) => invoke(IPC_INVOKE.orchestrationUpdateTask, input),
     deleteTask: (taskId) => invoke(IPC_INVOKE.orchestrationDeleteTask, { taskId }),

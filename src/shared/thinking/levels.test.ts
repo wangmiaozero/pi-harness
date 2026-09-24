@@ -7,9 +7,9 @@ import {
 
 describe('resolveThinkingLevel', () => {
   it('maps ultra to the highest supported Pi level', () => {
-    expect(resolveThinkingLevel({ requested: 'ultra', supportedLevels: ['off', 'high', 'max'] })).toBe(
-      'max'
-    )
+    expect(
+      resolveThinkingLevel({ requested: 'ultra', supportedLevels: ['off', 'high', 'max'] })
+    ).toBe('max')
     expect(
       resolveThinkingLevel({ requested: 'ultra', supportedLevels: ['off', 'medium', 'xhigh'] })
     ).toBe('xhigh')
@@ -24,7 +24,9 @@ describe('resolveThinkingLevel', () => {
   })
 
   it('clamps an unsupported request down to the model ceiling', () => {
-    expect(resolveThinkingLevel({ requested: 'max', supportedLevels: ['off', 'high'] })).toBe('high')
+    expect(resolveThinkingLevel({ requested: 'max', supportedLevels: ['off', 'high'] })).toBe(
+      'high'
+    )
   })
 })
 

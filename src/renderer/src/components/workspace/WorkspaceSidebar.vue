@@ -141,10 +141,7 @@ const sidebarMenuEntries = computed<SidebarMenuEntry[]>(() => {
   const menu = sidebarMenu.value
   if (!menu) return []
   if (menu.kind === 'session') {
-    const labels = getSessionContextMenuLabels(
-      toNativeMenuLocale(locale.value),
-      menuPlatform.value
-    )
+    const labels = getSessionContextMenuLabels(toNativeMenuLocale(locale.value), menuPlatform.value)
     return [
       {
         type: 'action',
@@ -172,13 +169,8 @@ const sidebarMenuEntries = computed<SidebarMenuEntry[]>(() => {
       }
     ]
   }
-  const labels = getProjectContextMenuLabels(
-    toNativeMenuLocale(locale.value),
-    menuPlatform.value
-  )
-  const pinAction = workspace.isProjectPinned(menu.group.projectKey)
-      ? 'unpin'
-      : 'pin'
+  const labels = getProjectContextMenuLabels(toNativeMenuLocale(locale.value), menuPlatform.value)
+  const pinAction = workspace.isProjectPinned(menu.group.projectKey) ? 'unpin' : 'pin'
   const entries: SidebarMenuEntry[] = [
     { type: 'action', id: pinAction, label: labels[pinAction] },
     { type: 'action', id: 'open', label: labels.open },
@@ -194,9 +186,7 @@ const sidebarMenuEntries = computed<SidebarMenuEntry[]>(() => {
     { type: 'action', id: 'remove', label: labels.remove, danger: true }
   ]
   return entries.map((entry) =>
-    entry.type === 'action'
-      ? { ...entry, testId: `project-context-action-${entry.id}` }
-      : entry
+    entry.type === 'action' ? { ...entry, testId: `project-context-action-${entry.id}` } : entry
   )
 })
 
@@ -314,10 +304,7 @@ async function handleProjectContextMenu(group: SessionProjectGroup) {
   if (action) await runProjectContextAction(group, action)
 }
 
-async function runProjectContextAction(
-  group: SessionProjectGroup,
-  action: ProjectContextAction
-) {
+async function runProjectContextAction(group: SessionProjectGroup, action: ProjectContextAction) {
   if (action === 'pin' || action === 'unpin') {
     workspace.setProjectPinned(group.projectKey, action === 'pin')
   } else if (action === 'open') {
@@ -860,7 +847,9 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
       </div>
     </div>
 
-    <div class="workspace-section-tabs flex gap-1 border-b border-[var(--border-subtle)] px-2 py-1.5">
+    <div
+      class="workspace-section-tabs flex gap-1 border-b border-[var(--border-subtle)] px-2 py-1.5"
+    >
       <button
         v-for="item in sectionItems"
         :key="item.id"
@@ -1062,7 +1051,9 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
               <p class="truncate text-[12px] font-semibold text-[var(--text-primary)]">
                 {{ $t('workspace.harnessTitle') }}
               </p>
-              <p class="truncate text-[9.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+              <p
+                class="truncate text-[9.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
                 {{ $t('workspace.harnessPoweredBy') }}
               </p>
             </div>

@@ -16,13 +16,11 @@
 </p>
 
 <p align="center">
-  <strong>Der vollständige Desktop-Arbeitsbereich für <a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a></strong><br />
-  Pi konfigurieren · Agents ausführen · Modelle, Skills, Pakete und Projekte verwalten
+  <strong>Das Superset Harness für Pi Coding Agent</strong><br />
+  Native Pi, leistungsstärker.
 </p>
 
-<p align="center">
-  Alles, was du zum Konfigurieren, Ausführen und Erweitern von Pi Coding Agent brauchst, in einer nativen Desktop-App.
-</p>
+<p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
@@ -50,6 +48,31 @@ Pi → Chat                             Environment
 Pi-Harness ist kein Wrapper um eine Web-Oberfläche. Es bettet weder pi-web noch einen Next.js-Server oder iframe ein und fügt keine zweite Agent Runtime hinzu. Pi Coding Agent bleibt die einzige Agent Runtime; Sitzungen sind mit den Pi-CLI-JSONL-Dateien unter ~/.pi/agent/sessions/ kompatibel.
 
 **Pi konfigurieren. Pi ausführen. Pi erweitern.**
+
+## Pi Superset Contract
+
+Pi-Harness ist ein operational superset von Pi Coding Agent. Es bewahrt Native Pis Agent Runtime und Kompatibilität und ergänzt Beobachtbarkeit, Governance, Orchestrierung, Wiederherstellung, Evaluation und einen visuellen Engineering-Arbeitsbereich.
+
+- Pi-Harness reduziert Native-Pi-Fähigkeiten nicht absichtlich und wahrt native Pi-Formate, soweit dies technisch möglich ist.
+- Native Pi bleibt immer die Ausführungs-Runtime. Agent Loop, Context, Compaction, Tools, Skills und Extensions werden nicht neu implementiert.
+- Native Pi-Sessions und -Konfiguration bleiben eigenständig nutzbar; Harness-spezifischer Zustand wird getrennt gespeichert.
+- Erweiterungen sind standardmäßig additiv; neue Pi-Fähigkeiten werden zuerst über die Kompatibilitätsschicht eingebunden.
+- Die Kompatibilität nutzt capability detection, graceful degradation und best-effort forward compatibility.
+
+## Pi-/Pi-Harness-Fähigkeitsmatrix
+
+| Fähigkeit                            | Native Pi | Pi-Harness               |
+| ------------------------------------ | --------- | ------------------------ |
+| Agent Runtime / Loop                 | Ja        | Native Pi                |
+| Sessions / Context / Compaction      | Ja        | Ja + visuelle Verwaltung |
+| Steering / Follow-up / Thinking      | Ja        | Ja + visuelle Steuerung  |
+| Models / Tools / Skills / Extensions | Ja        | Ja + Manager / Policy    |
+| Runs / Trace / Replay / Compare      | —         | Ja                       |
+| Policy / Budget / Evaluation         | —         | Ja                       |
+| Checkpoint / Recovery / Diagnostics  | —         | Ja                       |
+| Regression / Artifacts               | —         | Ja                       |
+| Multi-Agent / Task DAG / Handoff     | —         | Ja                       |
+| Review Gates / Worktree isolation    | —         | Ja                       |
 
 ## Download
 
@@ -106,15 +129,15 @@ Dieselben Hauptansichten werden im Standardthema und im Ming-Stil gezeigt. Der M
 
 ### Ming-Stil
 
-|                      Arbeitsbereich (Schnee)                       |                       Arbeitsbereich (Mondnacht)                        |
-| :----------------------------------------------------------------: | :---------------------------------------------------------------------: |
-| ![Arbeitsbereich Schnee im Ming-Stil](docs/古风/Work-1.jpg)        | ![Arbeitsbereich Mondnacht im Ming-Stil](docs/古风/Work-2.jpg)          |
-|                                Git                                 |                             **Anbieter**                                |
-|       ![Git im Ming-Stil](docs/古风/Git.jpg)                       |    ![Anbieter im Ming-Stil](docs/古风/APIs.jpg)                         |
-|                             **Modelle**                            |                         **Funktionszentrum**                            |
-|    ![Modelle im Ming-Stil](docs/古风/Model.jpg)                    | ![Funktionszentrum im Ming-Stil](docs/古风/Caps.jpg)                    |
-|                          **Einstellungen**                         |                                                                         |
-| ![Einstellungen im Ming-Stil](docs/古风/Prefs.jpg)                 |                                                                         |
+|                   Arbeitsbereich (Schnee)                   |                   Arbeitsbereich (Mondnacht)                   |
+| :---------------------------------------------------------: | :------------------------------------------------------------: |
+| ![Arbeitsbereich Schnee im Ming-Stil](docs/古风/Work-1.jpg) | ![Arbeitsbereich Mondnacht im Ming-Stil](docs/古风/Work-2.jpg) |
+|                             Git                             |                          **Anbieter**                          |
+|           ![Git im Ming-Stil](docs/古风/Git.jpg)            |          ![Anbieter im Ming-Stil](docs/古风/APIs.jpg)          |
+|                         **Modelle**                         |                      **Funktionszentrum**                      |
+|        ![Modelle im Ming-Stil](docs/古风/Model.jpg)         |      ![Funktionszentrum im Ming-Stil](docs/古风/Caps.jpg)      |
+|                      **Einstellungen**                      |                                                                |
+|     ![Einstellungen im Ming-Stil](docs/古风/Prefs.jpg)      |                                                                |
 
 ## Editor-Grenze
 
@@ -154,7 +177,7 @@ Paketierte App:
 
 Entwicklung aus dem Quellcode:
 
-- Node.js ≥ 22
+- Node.js ≥ 22.19.0
 - pnpm 9.12.1
 
 ## Entwicklung

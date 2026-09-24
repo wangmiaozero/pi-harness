@@ -42,7 +42,13 @@ function run(overrides: Partial<HarnessRun> = {}): HarnessRun {
     model: 'model-a',
     provider: null,
     prompt: 'ship it',
-    usage: { inputTokens: 0, outputTokens: 0, cachedTokens: 0, totalTokens: 0, estimatedCost: null },
+    usage: {
+      inputTokens: 0,
+      outputTokens: 0,
+      cachedTokens: 0,
+      totalTokens: 0,
+      estimatedCost: null
+    },
     toolCallCount: 0,
     toolFailureCount: 0,
     contextUsage: null,
@@ -76,7 +82,9 @@ function writeEntry(id: string, timestamp: string, filePath: string): SessionEnt
     timestamp,
     message: {
       role: 'assistant',
-      content: [{ type: 'toolCall', toolCallId: `${id}-tc`, toolName: 'write', input: { path: filePath } }]
+      content: [
+        { type: 'toolCall', toolCallId: `${id}-tc`, toolName: 'write', input: { path: filePath } }
+      ]
     }
   } as unknown as SessionEntry
 }
@@ -91,10 +99,7 @@ function bashEntry(id: string, timestamp: string, command: string, exitCode: num
   } as unknown as SessionEntry
 }
 
-function service(
-  entries: SessionEntry[],
-  options: { cwd?: string | null } = {}
-): ArtifactService {
+function service(entries: SessionEntry[], options: { cwd?: string | null } = {}): ArtifactService {
   const target = run({ cwd: options.cwd ?? null })
   return new ArtifactService(tempStore(), {
     getEntries: vi.fn(async () => entries),

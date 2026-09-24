@@ -256,7 +256,9 @@ export class OrchestrationStore {
     return this.enqueueWrite(() => this.saveOrchestrationOp(run))
   }
 
-  private async saveOrchestrationOp(run: HarnessOrchestrationRun): Promise<HarnessOrchestrationRun> {
+  private async saveOrchestrationOp(
+    run: HarnessOrchestrationRun
+  ): Promise<HarnessOrchestrationRun> {
     const record = await this.read()
     const next = record.orchestrations.filter((item) => item.id !== run.id)
     next.unshift(run)
@@ -404,7 +406,10 @@ export class OrchestrationStore {
   // ----------------------------------------------------------- evaluations
 
   async getEvaluation(orchestrationId: string): Promise<HarnessOrchestrationEvaluation | null> {
-    return (await this.read()).evaluations.find((item) => item.orchestrationId === orchestrationId) ?? null
+    return (
+      (await this.read()).evaluations.find((item) => item.orchestrationId === orchestrationId) ??
+      null
+    )
   }
 
   async saveEvaluation(evaluation: HarnessOrchestrationEvaluation): Promise<void> {
@@ -413,7 +418,9 @@ export class OrchestrationStore {
 
   private async saveEvaluationOp(evaluation: HarnessOrchestrationEvaluation): Promise<void> {
     const record = await this.read()
-    const next = record.evaluations.filter((item) => item.orchestrationId !== evaluation.orchestrationId)
+    const next = record.evaluations.filter(
+      (item) => item.orchestrationId !== evaluation.orchestrationId
+    )
     next.unshift(evaluation)
     await this.write({ ...record, evaluations: next })
   }

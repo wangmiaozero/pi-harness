@@ -95,9 +95,7 @@ export function topologicalLayers(tasks: readonly HarnessTask[]): string[][] {
   const byId = new Map(tasks.map((task) => [task.id, task]))
   const cycles = detectCycles(tasks)
   const cycleIds = new Set(cycles.flat())
-  const remaining = new Set(
-    tasks.filter((task) => !cycleIds.has(task.id)).map((task) => task.id)
-  )
+  const remaining = new Set(tasks.filter((task) => !cycleIds.has(task.id)).map((task) => task.id))
   const layers: string[][] = []
   const placed = new Set<string>()
 

@@ -138,7 +138,10 @@ export function buildRunsFromEntries(entries: readonly SessionEntry[]): Reconstr
   return runs
 }
 
-function finalizeReconstructed(reconstructed: ReconstructedRun, nextTimestamp: number | null): void {
+function finalizeReconstructed(
+  reconstructed: ReconstructedRun,
+  nextTimestamp: number | null
+): void {
   const run = reconstructed.run
   run.finishedAt = nextTimestamp
   run.status = run.error ? 'failed' : 'success'

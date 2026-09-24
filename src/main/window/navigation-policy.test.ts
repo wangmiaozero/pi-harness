@@ -6,7 +6,9 @@ describe('isAllowedRendererNavigation', () => {
     const rendererUrl = 'http://localhost:31415/'
 
     expect(isAllowedRendererNavigation('http://localhost:31415/workspace', rendererUrl)).toBe(true)
-    expect(isAllowedRendererNavigation('http://localhost.evil.test:31415/', rendererUrl)).toBe(false)
+    expect(isAllowedRendererNavigation('http://localhost.evil.test:31415/', rendererUrl)).toBe(
+      false
+    )
     expect(isAllowedRendererNavigation('http://127.0.0.1:31415/', rendererUrl)).toBe(false)
   })
 
@@ -24,7 +26,10 @@ describe('isAllowedRendererNavigation', () => {
 
     expect(isAllowedRendererNavigation(rendererUrl, rendererUrl)).toBe(true)
     expect(
-      isAllowedRendererNavigation('file:///Applications/Pi-Harness/renderer/index.html', rendererUrl)
+      isAllowedRendererNavigation(
+        'file:///Applications/Pi-Harness/renderer/index.html',
+        rendererUrl
+      )
     ).toBe(false)
   })
 

@@ -42,9 +42,7 @@ function buildMetrics(inputs: CompareInputs): HarnessRunComparisonMetric[] {
 
   metrics.push(textMetric('model', runA.model ?? '—', runB.model ?? '—'))
   metrics.push(textMetric('provider', runA.provider ?? '—', runB.provider ?? '—'))
-  metrics.push(
-    numberMetric('tokens', runA.usage.totalTokens, runB.usage.totalTokens, 'lower')
-  )
+  metrics.push(numberMetric('tokens', runA.usage.totalTokens, runB.usage.totalTokens, 'lower'))
   metrics.push(
     numberMetric(
       'cost',
@@ -89,11 +87,7 @@ function buildMetrics(inputs: CompareInputs): HarnessRunComparisonMetric[] {
     )
   )
   metrics.push(
-    textMetric(
-      'evaluation',
-      inputs.evaluationA?.status ?? '—',
-      inputs.evaluationB?.status ?? '—'
-    )
+    textMetric('evaluation', inputs.evaluationA?.status ?? '—', inputs.evaluationB?.status ?? '—')
   )
   metrics.push(textMetric('status', runA.status, runB.status))
   return metrics
@@ -101,7 +95,9 @@ function buildMetrics(inputs: CompareInputs): HarnessRunComparisonMetric[] {
 
 function buildDiffs(inputs: CompareInputs): HarnessRunDiffSection[] {
   const sections: HarnessRunDiffSection[] = []
-  sections.push(lineDiffSection('prompt', splitLines(inputs.runA.prompt), splitLines(inputs.runB.prompt)))
+  sections.push(
+    lineDiffSection('prompt', splitLines(inputs.runA.prompt), splitLines(inputs.runB.prompt))
+  )
   sections.push(configurationDiff(inputs))
   sections.push(toolsDiff(inputs))
   sections.push(filesDiff(inputs))
@@ -132,10 +128,14 @@ function toolsDiff(inputs: CompareInputs): HarnessRunDiffSection {
 
 function filesDiff(inputs: CompareInputs): HarnessRunDiffSection {
   const filesA = new Set(
-    inputs.artifactsA.filter((artifact) => artifact.type === 'file').map((artifact) => artifact.name)
+    inputs.artifactsA
+      .filter((artifact) => artifact.type === 'file')
+      .map((artifact) => artifact.name)
   )
   const filesB = new Set(
-    inputs.artifactsB.filter((artifact) => artifact.type === 'file').map((artifact) => artifact.name)
+    inputs.artifactsB
+      .filter((artifact) => artifact.type === 'file')
+      .map((artifact) => artifact.name)
   )
   const lines: HarnessRunDiffLine[] = []
   for (const file of [...filesA].sort()) {
@@ -159,7 +159,10 @@ function evaluationDiff(inputs: CompareInputs): HarnessRunDiffSection {
   for (const kind of kinds) {
     const statusA = mapA.get(kind) ?? '—'
     const statusB = mapB.get(kind) ?? '—'
-    lines.push({ kind: statusA === statusB ? 'same' : 'added', text: `${kind}: ${statusA} → ${statusB}` })
+    lines.push({
+      kind: statusA === statusB ? 'same' : 'added',
+      text: `${kind}: ${statusA} → ${statusB}`
+    })
   }
   return { id: 'evaluation', lines }
 }
@@ -213,10 +216,7 @@ function numberMetric(
   }
 }
 
-function stageStatus(
-  evaluation: HarnessEvaluation | null,
-  kind: 'test' | 'build'
-): string {
+function stageStatus(evaluation: HarnessEvaluation | null, kind: 'test' | 'build'): string {
   const stage = evaluation?.pipeline?.stages.find((item) => item.kind === kind)
   return stage?.status ?? '—'
 }

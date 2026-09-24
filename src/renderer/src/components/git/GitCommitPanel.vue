@@ -130,8 +130,7 @@ const effectiveModel = computed<ModelEntry | null>(() => {
   return (
     modelChoices.value.find(
       (entry) =>
-        entry.providerKey === models.active.providerKey &&
-        entry.modelId === models.active.modelId
+        entry.providerKey === models.active.providerKey && entry.modelId === models.active.modelId
     ) ?? {
       providerKey: models.active.providerKey,
       modelId: models.active.modelId,
@@ -155,9 +154,7 @@ const modelValue = computed({
       ? `${effectiveModel.value.providerKey}/${effectiveModel.value.modelId}`
       : '',
   set: (value: string) => {
-    const entry = modelChoices.value.find(
-      (item) => `${item.providerKey}/${item.modelId}` === value
-    )
+    const entry = modelChoices.value.find((item) => `${item.providerKey}/${item.modelId}` === value)
     if (!entry) return
     selectedModel.value = entry
     persistCommitModel(entry)
@@ -241,7 +238,9 @@ async function runAction(input: Omit<GitActionRequest, 'cwd'>, label: string) {
 async function discard(file: GitFileStatus) {
   const ok = await askConfirm({
     title: t('workspace.gitDiscardFile'),
-    description: t('workspace.gitDiscardFileConfirm', { file: workspace.gitDisplayFilePath(file.filePath) }),
+    description: t('workspace.gitDiscardFileConfirm', {
+      file: workspace.gitDisplayFilePath(file.filePath)
+    }),
     confirmLabel: t('workspace.gitDiscard'),
     tone: 'danger'
   })
@@ -494,7 +493,9 @@ function statusClass(status: string, area: 'worktree' | 'index'): string {
 
     <!-- Message area pinned below the file lists. -->
     <div class="shrink-0 border-t border-[var(--border-subtle)] p-2.5">
-      <label class="mb-1 flex select-none items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
+      <label
+        class="mb-1 flex select-none items-center gap-1.5 text-[10px] text-[var(--text-secondary)]"
+      >
         <input
           v-model="amend"
           type="checkbox"
@@ -547,7 +548,11 @@ function statusClass(status: string, area: 'worktree' | 'index'): string {
         data-testid="git-create-commit"
         @click="commit"
       >
-        {{ amend ? $t('workspace.gitAmendCommit') : $t('workspace.gitCommitCount', { count: staged.length }) }}
+        {{
+          amend
+            ? $t('workspace.gitAmendCommit')
+            : $t('workspace.gitCommitCount', { count: staged.length })
+        }}
       </Button>
     </div>
 
@@ -561,6 +566,5 @@ function statusClass(status: string, area: 'worktree' | 'index'): string {
       @close="fileMenu = null"
       @select="runFileMenuAction"
     />
-
   </div>
 </template>

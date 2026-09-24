@@ -133,7 +133,9 @@ function onThemeChange(value: string): void {
             value="auto"
             data-testid="app-icon-option-auto"
           />
-          <span>{{ $t(MASCOT_ENABLED ? 'settings.appIconAuto' : 'settings.appIconAutoNoMascot') }}</span>
+          <span>{{
+            $t(MASCOT_ENABLED ? 'settings.appIconAuto' : 'settings.appIconAutoNoMascot')
+          }}</span>
         </label>
       </fieldset>
       <PropertyRow :label="$t('settings.windowMotionEnabled')">

@@ -119,12 +119,7 @@ export function isNetworkCommand(command: string): boolean {
 }
 
 export type GitCommandAction =
-  | 'commit'
-  | 'push'
-  | 'forcePush'
-  | 'reset'
-  | 'checkout'
-  | 'branchDelete'
+  'commit' | 'push' | 'forcePush' | 'reset' | 'checkout' | 'branchDelete'
 
 /** Classify a `git …` command into a Git Policy action, or null when unrelated. */
 export function classifyGitCommand(command: string): GitCommandAction | null {

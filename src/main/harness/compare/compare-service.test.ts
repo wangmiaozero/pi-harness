@@ -121,11 +121,7 @@ describe('compareRuns', () => {
     })
     for (const metric of comparison.metrics) {
       if (metric.id === 'status') continue
-      expect([metric.a, metric.b, metric.tone]).toEqual([
-        metric.a,
-        metric.a,
-        'neutral'
-      ])
+      expect([metric.a, metric.b, metric.tone]).toEqual([metric.a, metric.a, 'neutral'])
     }
   })
 })
