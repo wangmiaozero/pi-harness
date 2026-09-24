@@ -15,10 +15,13 @@
   <img src="build/icon.png" width="96" alt="Pi-Harness" />
 </p>
 
+<h3 align="center">The Operational Superset of Pi Coding Agent</h3>
+
 <p align="center">
-  <strong>Pi Coding Agent の Superset Harness</strong><br />
-  Native Pi を、さらに強力に。
+  <strong>Native Pi のすべてに、可視性、制御、復旧、評価、Multi-Agent オーケストレーションを。</strong>
 </p>
+
+<p align="center">Native Pi を、さらに強力に。</p>
 
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
@@ -30,34 +33,15 @@
 
 ## Why Pi-Harness?
 
-### 単なる Pi チャット UI ではありません
+Pi-Harness は Pi Coding Agent の Operational Superset です。Native Pi を唯一の Agent Runtime として維持し、互換性のある Sessions、Tools、Models、Skills、Extensions、Context、Compaction に、Observe、Control、Recovery、Evaluation、Multi-Agent Orchestration を追加します。
 
-一般的なデスクトップクライアントは、Pi を開いてチャットを始めるためのものです。Pi-Harness は、環境設定、Provider、モデル、Skills、パッケージ、プロジェクト、ファイル、Git を 1 つのデスクトップワークスペースにまとめます。
+> **Pi が Agent を実行し、Pi-Harness がそれを可視化・制御・復旧・編成可能なエンジニアリングシステムにします。**
 
-```text
-一般的なデスクトップクライアント        Pi-Harness
+Pi-Harness は Pi の Agent Runtime を置き換えたり再実装したりしません。
 
-Pi → Chat                             Environment
-                                      + Providers / Models
-                                      + Skills / Packages / MCP adapters
-                                      + Workspace / Sessions / Files / Git
-                                      ↓
-                                      Pi Coding Agent
-```
+## 「Superset」とは
 
-Pi-Harness は Web UI のラッパーではありません。pi-web、Next.js サーバー、iframe を組み込まず、2 つ目の Agent Runtime も実装しません。Pi Coding Agent が唯一の Agent Runtime であり、セッションは ~/.pi/agent/sessions/ にある Pi CLI の JSONL と互換性があります。
-
-**Pi を構成。Pi を実行。Pi を拡張。**
-
-## Pi Superset Contract
-
-Pi-Harness は Pi Coding Agent の operational superset です。Native Pi の Agent Runtime と互換性を保ち、その上に可観測性、ガバナンス、オーケストレーション、復旧、評価、視覚的なエンジニアリングワークスペースを追加します。
-
-- Native Pi の機能を意図的に減らさず、技術的に可能な範囲で Pi のネイティブ形式との互換性を維持します。
-- Native Pi が常に実行 Runtime です。Agent Loop、Context、Compaction、Tools、Skills、Extensions を再実装しません。
-- Pi ネイティブの Session と設定は単独でも利用でき、Harness 固有の状態は分離して保存します。
-- 機能追加は原則として加算的に行い、Pi の新機能はまず互換レイヤー経由で公開します。
-- capability detection、graceful degradation、best-effort forward compatibility を採用します。
+Native Pi は常に実際の実行経路の内側にあり、Pi-Harness はその外側に Harness Control Plane と Visual Engineering Workspace を追加します。
 
 ## Pi と Pi-Harness の機能マトリクス
 
@@ -147,26 +131,61 @@ Pi-Harness は IDE ではありません。LSP/IntelliSense、セマンティッ
 
 ## アーキテクチャ
 
+Native Pi は Pi-Harness の実行アーキテクチャに内包され、置き換えられることはありません。
+
 ```text
-                                Pi-Harness
-
-              ┌────────────────────┼────────────────────┐
-              ▼                    ▼                    ▼
-       Control Plane          Workspace          Capability Layer
-       Pi を管理              Pi を利用          Pi を拡張
-
-       Providers              Projects           Skills
-       Models                 Sessions           Packages
-       Environment            Agent              MCP adapters
-       Config / Secrets       Streaming          Presets
-       Backup / Diagnostics   Files / Git
-       Updates                Worktree
-              └────────────────────┼────────────────────┘
-                                   ▼
-                           Pi Coding Agent
+                         Pi-Harness
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│                Superset Capabilities                │
+│                                                     │
+│  Observe              Control          Orchestrate  │
+│  ─────────            ─────────        ───────────  │
+│  Runs                 Policy           Agents       │
+│  Trace                Budget           Teams        │
+│  Replay               Checkpoints      Tasks        │
+│  Diagnostics          Recovery         DAG          │
+│  Evaluation           Permissions      Handoffs     │
+│  Regression                            Review Gates │
+│  Artifacts                             Worktrees    │
+│                                                     │
+│  Workspace · Models · Providers · Skills · Git      │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │                  Native Pi                    │  │
+│  │                                               │  │
+│  │ Agent Runtime · Sessions · Context · Tools    │  │
+│  │ Compaction · Thinking · Skills · Extensions  │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+└─────────────────────────────────────────────────────┘
 ```
 
-Pi Coding Agent が唯一の Agent Runtime です。
+デスクトップ境界は `Vue Renderer → typed preload API → validated IPC → Main services → Pi compatibility layer → Native Pi SDK` です。Session は <code>~/.pi/agent/sessions/</code> の Pi CLI JSONL と互換性を維持します。
+
+## Harness Control Plane
+
+Runs、Trace、Replay、Run Tree、Run Compare、Policy、Budget、Checkpoints、Recovery、Permissions、Evaluation、Diagnostics、Regression、Artifacts はリリース済みです。データは実際の Pi Event、Session、コマンド結果に基づきます。
+
+## Multi-Agent オーケストレーション
+
+Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Budget、Worktree 分離と、pause、resume、abort、retry、skip、reassign をサポートしています。各 Agent は実際の Pi Session で動作します。
+
+## Pi Superset Contract
+
+Pi-Harness は Pi Coding Agent の operational superset です。Native Pi の Agent Runtime と互換性を保ち、その上に可観測性、ガバナンス、オーケストレーション、復旧、評価、視覚的なエンジニアリングワークスペースを追加します。
+
+- Native Pi の機能を意図的に減らさず、技術的に可能な範囲で Pi のネイティブ形式との互換性を維持します。
+- Native Pi が常に実行 Runtime です。Agent Loop、Context、Compaction、Tools、Skills、Extensions を再実装しません。
+- Pi ネイティブの Session と設定は単独でも利用でき、Harness 固有の状態は分離して保存します。
+- 機能追加は原則として加算的に行い、Pi の新機能はまず互換レイヤー経由で公開します。
+- capability detection、graceful degradation、best-effort forward compatibility を採用します。
+
+## Roadmap
+
+- Session Tree の可視化と、より詳細な Context / Queue inspectors
+- 高度な Workspace 権限と検証連携
+- Harness Profiles と、より高度な Run Analysis
 
 ## 必要環境
 

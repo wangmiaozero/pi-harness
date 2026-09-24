@@ -15,10 +15,13 @@
   <img src="build/icon.png" width="96" alt="Pi-Harness" />
 </p>
 
+<h3 align="center">The Operational Superset of Pi Coding Agent</h3>
+
 <p align="center">
-  <strong>Pi Coding Agent를 위한 Superset Harness</strong><br />
-  Native Pi, 더 강력하게.
+  <strong>Native Pi의 모든 기능에 관측, 제어, 복구, 평가, Multi-Agent 오케스트레이션을 더합니다.</strong>
 </p>
+
+<p align="center">Native Pi, 더 강력하게.</p>
 
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
@@ -30,34 +33,15 @@
 
 ## 왜 Pi-Harness인가요?
 
-### Pi 채팅 UI 그 이상
+Pi-Harness는 Pi Coding Agent의 Operational Superset입니다. Native Pi를 유일한 Agent Runtime으로 유지하고 호환되는 Sessions, Tools, Models, Skills, Extensions, Context, Compaction 위에 Observe, Control, Recovery, Evaluation, Multi-Agent Orchestration을 추가합니다.
 
-일반 데스크톱 클라이언트는 Pi를 열고 채팅을 시작합니다. Pi-Harness는 환경 설정, Provider, 모델, Skills, 패키지, 프로젝트, 파일, Git을 하나의 데스크톱 작업 공간에 모읍니다.
+> **Pi가 Agent를 실행하고, Pi-Harness가 이를 관측·제어·복구·오케스트레이션 가능한 엔지니어링 시스템으로 만듭니다.**
 
-```text
-일반 데스크톱 클라이언트              Pi-Harness
+Pi-Harness는 Pi의 Agent Runtime을 대체하거나 다시 구현하지 않습니다.
 
-Pi → Chat                             Environment
-                                      + Providers / Models
-                                      + Skills / Packages / MCP adapters
-                                      + Workspace / Sessions / Files / Git
-                                      ↓
-                                      Pi Coding Agent
-```
+## “Superset”의 의미
 
-Pi-Harness는 웹 UI 래퍼가 아닙니다. pi-web, Next.js 서버, iframe을 포함하지 않으며 두 번째 Agent Runtime을 만들지 않습니다. Pi Coding Agent가 유일한 Agent Runtime이고, 세션은 ~/.pi/agent/sessions/의 Pi CLI JSONL과 호환됩니다.
-
-**Pi 구성. Pi 실행. Pi 확장.**
-
-## Pi Superset Contract
-
-Pi-Harness는 Pi Coding Agent의 operational superset입니다. Native Pi의 Agent Runtime과 호환성을 유지하면서 관측성, 거버넌스, 오케스트레이션, 복구, 평가 및 시각적 엔지니어링 작업 공간을 추가합니다.
-
-- Native Pi 기능을 의도적으로 줄이지 않으며 기술적으로 가능한 범위에서 Pi 네이티브 형식과 호환됩니다.
-- Native Pi가 항상 실행 Runtime입니다. Agent Loop, Context, Compaction, Tools, Skills 또는 Extensions를 다시 구현하지 않습니다.
-- Pi 네이티브 Session과 설정은 독립적으로 사용할 수 있고 Harness 전용 상태는 별도로 저장합니다.
-- 기능은 기본적으로 추가 방식이며 Pi의 새 기능은 먼저 호환성 계층을 통해 노출합니다.
-- capability detection, graceful degradation 및 best-effort forward compatibility를 사용합니다.
+Native Pi는 항상 실제 실행 경로 안에 있으며, Pi-Harness는 그 바깥에 Harness Control Plane과 Visual Engineering Workspace를 추가합니다.
 
 ## Pi와 Pi-Harness 기능 매트릭스
 
@@ -147,26 +131,61 @@ Pi-Harness는 IDE가 아닙니다. LSP/IntelliSense, 시맨틱 리팩터링, 디
 
 ## 아키텍처
 
+Native Pi는 대체되지 않고 Pi-Harness 실행 아키텍처 내부에 포함됩니다.
+
 ```text
-                                Pi-Harness
-
-              ┌────────────────────┼────────────────────┐
-              ▼                    ▼                    ▼
-       Control Plane          Workspace          Capability Layer
-       Pi 관리                Pi 사용             Pi 확장
-
-       Providers              Projects           Skills
-       Models                 Sessions           Packages
-       Environment            Agent              MCP adapters
-       Config / Secrets       Streaming          Presets
-       Backup / Diagnostics   Files / Git
-       Updates                Worktree
-              └────────────────────┼────────────────────┘
-                                   ▼
-                           Pi Coding Agent
+                         Pi-Harness
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│                Superset Capabilities                │
+│                                                     │
+│  Observe              Control          Orchestrate  │
+│  ─────────            ─────────        ───────────  │
+│  Runs                 Policy           Agents       │
+│  Trace                Budget           Teams        │
+│  Replay               Checkpoints      Tasks        │
+│  Diagnostics          Recovery         DAG          │
+│  Evaluation           Permissions      Handoffs     │
+│  Regression                            Review Gates │
+│  Artifacts                             Worktrees    │
+│                                                     │
+│  Workspace · Models · Providers · Skills · Git      │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │                  Native Pi                    │  │
+│  │                                               │  │
+│  │ Agent Runtime · Sessions · Context · Tools    │  │
+│  │ Compaction · Thinking · Skills · Extensions  │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+└─────────────────────────────────────────────────────┘
 ```
 
-Pi Coding Agent는 유일한 Agent Runtime입니다.
+데스크톱 경계는 `Vue Renderer → typed preload API → validated IPC → Main services → Pi compatibility layer → Native Pi SDK`입니다. Session은 <code>~/.pi/agent/sessions/</code>의 Pi CLI JSONL과 호환됩니다.
+
+## Harness Control Plane
+
+Runs, Trace, Replay, Run Tree, Run Compare, Policy, Budget, Checkpoints, Recovery, Permissions, Evaluation, Diagnostics, Regression, Artifacts가 출시되었습니다. 데이터는 실제 Pi Event, Session 및 명령 결과를 사용합니다.
+
+## Multi-Agent 오케스트레이션
+
+Agents, Teams, Tasks, Dependencies, Handoffs, Review Gates, Budget, Worktree 격리와 pause, resume, abort, retry, skip, reassign을 지원합니다. 각 Agent는 실제 Pi Session으로 실행됩니다.
+
+## Pi Superset Contract
+
+Pi-Harness는 Pi Coding Agent의 operational superset입니다. Native Pi의 Agent Runtime과 호환성을 유지하면서 관측성, 거버넌스, 오케스트레이션, 복구, 평가 및 시각적 엔지니어링 작업 공간을 추가합니다.
+
+- Native Pi 기능을 의도적으로 줄이지 않으며 기술적으로 가능한 범위에서 Pi 네이티브 형식과 호환됩니다.
+- Native Pi가 항상 실행 Runtime입니다. Agent Loop, Context, Compaction, Tools, Skills 또는 Extensions를 다시 구현하지 않습니다.
+- Pi 네이티브 Session과 설정은 독립적으로 사용할 수 있고 Harness 전용 상태는 별도로 저장합니다.
+- 기능은 기본적으로 추가 방식이며 Pi의 새 기능은 먼저 호환성 계층을 통해 노출합니다.
+- capability detection, graceful degradation 및 best-effort forward compatibility를 사용합니다.
+
+## Roadmap
+
+- Session Tree 시각화와 더 깊은 Context / Queue inspectors
+- 고급 Workspace 권한과 검증 통합
+- Harness Profiles와 더 스마트한 Run Analysis
 
 ## 요구 사항
 

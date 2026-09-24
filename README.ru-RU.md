@@ -15,10 +15,13 @@
   <img src="build/icon.png" width="96" alt="Pi-Harness" />
 </p>
 
+<h3 align="center">The Operational Superset of Pi Coding Agent</h3>
+
 <p align="center">
-  <strong>Superset Harness для Pi Coding Agent</strong><br />
-  Native Pi с расширенными возможностями.
+  <strong>Все возможности Native Pi плюс наблюдаемость, управление, восстановление, оценка и Multi-Agent-оркестрация.</strong>
 </p>
+
+<p align="center">Native Pi с расширенными возможностями.</p>
 
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
@@ -30,34 +33,15 @@
 
 ## Зачем нужен Pi-Harness?
 
-### Больше, чем чат-интерфейс для Pi
+Pi-Harness — Operational Superset для Pi Coding Agent. Native Pi остаётся единственным Agent Runtime; совместимые Sessions, Tools, Models, Skills, Extensions, Context и Compaction дополняются наблюдаемостью, управлением, восстановлением, оценкой и Multi-Agent-оркестрацией.
 
-Обычный настольный клиент позволяет открыть Pi и начать чат. Pi-Harness объединяет среду, провайдеры, модели, Skills, пакеты, проекты, файлы и Git в одном рабочем пространстве.
+> **Pi запускает Agent, а Pi-Harness превращает его в наблюдаемую, управляемую, восстанавливаемую и оркестрируемую инженерную систему.**
 
-```text
-Обычный настольный клиент             Pi-Harness
+Pi-Harness не заменяет и не переопределяет Agent Runtime Pi.
 
-Pi → Chat                             Environment
-                                      + Providers / Models
-                                      + Skills / Packages / MCP adapters
-                                      + Workspace / Sessions / Files / Git
-                                      ↓
-                                      Pi Coding Agent
-```
+## Что означает «Superset»
 
-Pi-Harness — не обёртка над веб-интерфейсом. В нём нет встроенного pi-web, сервера Next.js или iframe, а также второй среды выполнения агента. Pi Coding Agent остаётся единственным Agent Runtime; сессии совместимы с JSONL Pi CLI в ~/.pi/agent/sessions/.
-
-**Настроить Pi. Запустить Pi. Расширить Pi.**
-
-## Pi Superset Contract
-
-Pi-Harness — operational superset для Pi Coding Agent. Он сохраняет нативный Agent Runtime и совместимость Pi, добавляя наблюдаемость, управление, оркестрацию, восстановление, оценку и визуальное инженерное рабочее пространство.
-
-- Pi-Harness намеренно не сокращает возможности Native Pi и сохраняет совместимость с нативными форматами Pi там, где это технически возможно.
-- Native Pi всегда остаётся средой выполнения. Pi-Harness не переопределяет Agent Loop, Context, Compaction, Tools, Skills или Extensions.
-- Нативные Session и конфигурация Pi доступны независимо; данные Harness хранятся отдельно.
-- Расширения по умолчанию аддитивны, а новые функции Pi сначала проходят через слой совместимости.
-- Используются capability detection, graceful degradation и best-effort forward compatibility.
+Native Pi всегда остаётся внутри реального пути выполнения; Pi-Harness добавляет вокруг него Harness Control Plane и Visual Engineering Workspace.
 
 ## Матрица возможностей Pi и Pi-Harness
 
@@ -147,26 +131,61 @@ Pi-Harness редактирует читаемые текстовые файлы
 
 ## Архитектура
 
+Native Pi находится внутри архитектуры исполнения Pi-Harness, а не заменяется ею.
+
 ```text
-                                Pi-Harness
-
-              ┌────────────────────┼────────────────────┐
-              ▼                    ▼                    ▼
-       Control Plane          Workspace          Capability Layer
-       Управление Pi          Работа с Pi        Расширение Pi
-
-       Providers              Projects           Skills
-       Models                 Sessions           Packages
-       Environment            Agent              MCP adapters
-       Config / Secrets       Streaming          Presets
-       Backup / Diagnostics   Files / Git
-       Updates                Worktree
-              └────────────────────┼────────────────────┘
-                                   ▼
-                           Pi Coding Agent
+                         Pi-Harness
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│                Superset Capabilities                │
+│                                                     │
+│  Observe              Control          Orchestrate  │
+│  ─────────            ─────────        ───────────  │
+│  Runs                 Policy           Agents       │
+│  Trace                Budget           Teams        │
+│  Replay               Checkpoints      Tasks        │
+│  Diagnostics          Recovery         DAG          │
+│  Evaluation           Permissions      Handoffs     │
+│  Regression                            Review Gates │
+│  Artifacts                             Worktrees    │
+│                                                     │
+│  Workspace · Models · Providers · Skills · Git      │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │                  Native Pi                    │  │
+│  │                                               │  │
+│  │ Agent Runtime · Sessions · Context · Tools    │  │
+│  │ Compaction · Thinking · Skills · Extensions  │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+└─────────────────────────────────────────────────────┘
 ```
 
-Pi Coding Agent остаётся единственным Agent Runtime.
+Граница desktop-слоёв остаётся такой: `Vue Renderer → typed preload API → validated IPC → Main services → Pi compatibility layer → Native Pi SDK`. Session совместимы с Pi CLI JSONL в <code>~/.pi/agent/sessions/</code>.
+
+## Harness Control Plane
+
+Уже выпущены Runs, Trace, Replay, Run Tree, Run Compare, Policy, Budget, Checkpoints, Recovery, Permissions, Evaluation, Diagnostics, Regression и Artifacts. Данные поступают из реальных Pi Event, Session и результатов команд.
+
+## Multi-Agent-оркестрация
+
+Поддерживаются Agents, Teams, Tasks, Dependencies, Handoffs, Review Gates, Budget, изоляция Worktree, а также pause, resume, abort, retry, skip и reassign. Каждый Agent работает через реальный Pi Session.
+
+## Pi Superset Contract
+
+Pi-Harness — operational superset для Pi Coding Agent. Он сохраняет нативный Agent Runtime и совместимость Pi, добавляя наблюдаемость, управление, оркестрацию, восстановление, оценку и визуальное инженерное рабочее пространство.
+
+- Pi-Harness намеренно не сокращает возможности Native Pi и сохраняет совместимость с нативными форматами Pi там, где это технически возможно.
+- Native Pi всегда остаётся средой выполнения. Pi-Harness не переопределяет Agent Loop, Context, Compaction, Tools, Skills или Extensions.
+- Нативные Session и конфигурация Pi доступны независимо; данные Harness хранятся отдельно.
+- Расширения по умолчанию аддитивны, а новые функции Pi сначала проходят через слой совместимости.
+- Используются capability detection, graceful degradation и best-effort forward compatibility.
+
+## Roadmap
+
+- Визуализация Session Tree и более глубокие Context / Queue inspectors
+- Расширенные разрешения Workspace и интеграции проверки
+- Harness Profiles и более интеллектуальный Run Analysis
 
 ## Требования
 
