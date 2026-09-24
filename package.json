@@ -79,7 +79,7 @@
     "@lezer/highlight": "^1.2.4",
     "@lucide/vue": "^1.48.0",
     "@tanstack/vue-query": "^5.103.2",
-    "agent-aura": "^1.1.0",
+    "agent-aura": "^1.1.1",
     "chokidar": "^5.0.0",
     "codemirror": "^6.0.2",
     "consola": "^3.4.2",

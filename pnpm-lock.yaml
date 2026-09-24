@@ -63,8 +63,8 @@ importers:
         specifier: ^5.103.2
         version: 5.103.2(vue@3.5.43(typescript@6.0.3))
       agent-aura:
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: ^1.1.1
+        version: 1.1.1
       chokidar:
         specifier: ^5.0.0
         version: 5.0.0
@@ -1802,8 +1802,8 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
-  agent-aura@1.1.0:
-    resolution: {integrity: sha512-NrkE48+AJuOMqmyOimnjQd98oGEPFt1/2OHNQ0vEtowVsFTL85fglZRVCiCTgSqEcGN2syUkjRhIVDaZuKCyCA==}
+  agent-aura@1.1.1:
+    resolution: {integrity: sha512-pQSlY/EwIWRG8m2CGv7Q+fjHMXj2kko9Mxoy6KGXKykZVeqIjOuWP+W9+D/fcq9fo8/AgNlvOkhhpRuu/Tnzkg==}
     engines: {node: '>=18'}
 
   agent-base@7.1.4:
@@ -5888,7 +5888,7 @@ snapshots:
 
   acorn@8.18.0: {}
 
-  agent-aura@1.1.0: {}
+  agent-aura@1.1.1: {}
 
   agent-base@7.1.4: {}
 
