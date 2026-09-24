@@ -264,8 +264,15 @@ export class ProviderService {
       reason: `delete provider ${key} (cascade models)`
     })
 
+    const snapshot = await this.config.read()
     const active = await this.config.getActiveModel()
-    if (active.providerKey === key) {
+    const remainingProviderKeys = Object.keys(snapshot.models.providers)
+    if (remainingProviderKeys.length === 0) {
+      await this.clearActiveModelAfterProviderRemoved(key, options)
+    } else if (
+      active.providerKey === key ||
+      (active.providerKey !== null && !snapshot.models.providers[active.providerKey])
+    ) {
       await this.retargetActiveAfterProviderRemoved(key, options)
     }
 
@@ -312,8 +319,20 @@ export class ProviderService {
       return
     }
 
+    await this.clearActiveModelAfterProviderRemoved(removedKey, options)
+  }
+
+  private async clearActiveModelAfterProviderRemoved(
+    removedKey: string,
+    options?: WriteOptions
+  ): Promise<void> {
     await this.config.patchSettings(
-      (s) => ({ ...s, defaultProvider: undefined, defaultModel: undefined }),
+      (settings) => {
+        const next = { ...settings }
+        delete next.defaultProvider
+        delete next.defaultModel
+        return next
+      },
       {
         overwrite: options?.overwrite ?? true,
         reason: `clear active after delete provider ${removedKey}`,

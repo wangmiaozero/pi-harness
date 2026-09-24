@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ProviderService, resolveEnabledProviderKey } from './provider-service'
-import type { PiProviderConfig } from '@shared/types/pi'
+import type { PiProviderConfig, PiSettingsConfig } from '@shared/types/pi'
+
+vi.mock('electron', () => ({
+  app: {},
+  safeStorage: {
+    isEncryptionAvailable: vi.fn(() => false)
+  }
+}))
 
 const piProvider = {
   api: 'openai-completions' as const,
@@ -55,6 +62,64 @@ describe('ProviderService enabled-state invariant', () => {
         'stepfun'
       )
     ).toBeNull()
+  })
+})
+
+describe('ProviderService deletion state repair', () => {
+  it('returns settings to the unconfigured state after deleting the last provider', async () => {
+    const providers: Record<string, PiProviderConfig> = {
+      deepseek: {
+        api: 'openai-completions',
+        models: [{ id: 'deepseek-flash', name: 'DeepSeek Flash' }]
+      }
+    }
+    let settings: PiSettingsConfig = {
+      defaultProvider: 'stale-provider',
+      defaultModel: 'deepseek-flash',
+      theme: 'dark'
+    }
+    const metadataState = {
+      providers: { deepseek: { enabled: true } },
+      models: {},
+      capabilities: {},
+      builtinSkills: { schemaVersion: 1, installed: {} }
+    }
+    const config = {
+      read: vi.fn(async () => ({
+        models: { providers },
+        settings,
+        modelsMtime: null,
+        settingsMtime: null
+      })),
+      patchProvider: vi.fn(
+        async (
+          key: string,
+          update: (current: PiProviderConfig | undefined) => PiProviderConfig | undefined
+        ) => {
+          const next = update(providers[key])
+          if (next === undefined) delete providers[key]
+          else providers[key] = next
+        }
+      ),
+      getActiveModel: vi.fn(async () => ({
+        providerKey: settings.defaultProvider ?? null,
+        modelId: settings.defaultModel ?? null
+      })),
+      patchSettings: vi.fn(async (update: (current: typeof settings) => typeof settings) => {
+        settings = update(settings)
+      })
+    }
+    const metadata = {
+      read: vi.fn(async () => metadataState),
+      write: vi.fn(async (next: typeof metadataState) => Object.assign(metadataState, next))
+    }
+    const service = new ProviderService(config as never, metadata as never)
+
+    await service.delete('deepseek')
+
+    expect(providers).toEqual({})
+    expect(settings).toEqual({ theme: 'dark' })
+    expect(config.patchSettings).toHaveBeenCalledOnce()
   })
 })
 
