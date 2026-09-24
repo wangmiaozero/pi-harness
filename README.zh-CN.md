@@ -15,17 +15,15 @@
   <img src="build/icon.png" width="110" alt="Pi-Harness" />
 </p>
 
-<h3 align="center">Pi Coding Agent 的 Superset Harness</h3>
+<h3 align="center">Pi Coding Agent 的 Operational Superset</h3>
 
 <p align="center">
-  <strong>Native Pi，全面增强。</strong>
+  <strong>完整保留 Native Pi，并增加观测、控制、恢复、评估与多 Agent 编排。</strong>
 </p>
+
+<p align="center">Native Pi，全面增强。</p>
 
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
-
-<p align="center">
-  管理模型 · 运行 Agent · 查看 Harness 状态 · 使用 Skills · 浏览文件 · 操作 Git
-</p>
 
 <p align="center">
   <a href="#下载"><strong>下载 Pi-Harness</strong></a> ·
@@ -42,68 +40,66 @@
 </p>
 
 <p align="center">
-  ⭐ <a href="https://github.com/wangmiaozero/pi-harness/stargazers">点个 Star</a>，关注 Pi-Harness 接下来的 Harness Console 更新。
+  ⭐ <a href="https://github.com/wangmiaozero/pi-harness/stargazers">点个 Star</a>，关注 Pi-Harness。
 </p>
 
 ## 为什么是 Pi-Harness？
 
-Pi-Harness 是 Pi Coding Agent 的 operational superset。它保留 Pi 原生 Agent Runtime 与兼容性，并在其上增加可观测性、治理、编排、恢复、评估和可视化工程工作区。
+Pi-Harness 是 Pi Coding Agent 的 Operational Superset。
 
-[Pi Coding Agent](https://github.com/earendil-works/pi) 本身已经拥有强大的 Agent Harness。大量 Runtime、Context、Tools、Compaction、Queue 和 Session 能力天然存在于 CLI 与 SDK 行为之中。
+它继续使用 Native Pi 作为唯一 Agent Runtime，并保持对 Pi Session、Tools、Models、Skills、Extensions、Context 与 Compaction 的兼容，同时在 Pi 之上增加完整的 Harness 工程能力。
 
-Pi-Harness 的目标，是把这些能力真正做成可见、可控、可管理的原生桌面产品，并和日常使用 Pi 所需的配置与项目工具放在一起。
+Pi-Harness 增加：
 
-> **Pi 负责运行 Agent。Pi-Harness 负责让你看见并控制它是如何运行的。**
+- **Observe / 观测** — Runs、Trace、Replay、Diagnostics、Evaluation、Regression、Artifacts
+- **Control / 控制** — Policy、Budget、Checkpoints、Recovery、Permissions、工具控制
+- **Orchestrate / 编排** — Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Worktrees
+- **Work / 工程工作区** — Workspace、Files、Git、Models、Providers、Skills、Packages
 
-Pi-Harness 不是网页套壳：不嵌入 pi-web、Next.js 服务或 iframe，也不增加第二套 Agent Runtime。
+> **Pi 负责运行 Agent；Pi-Harness 让 Pi 变成可观测、可控制、可恢复、可编排的工程系统。**
 
-## 基于 Pi Agent Harness
+Pi-Harness 不替换，也不重新实现 Pi 的 Agent Runtime。
 
-[Pi 官方项目](https://github.com/earendil-works/pi) 已经提供 Agent Harness，并由它驱动 Pi Coding Agent。
+## 什么叫 Superset？
 
-Pi-Harness 不替换、也不重新实现这套 Runtime。真正负责 Agent Loop、工具、上下文、压缩和会话执行的，始终是 Pi Coding Agent 与 Pi Agent Harness。
+Native Pi 始终位于真实执行链路中。
 
-Pi-Harness 提供围绕它的桌面控制平面、可视化、配置和工作区：
+```text
+Pi Coding Agent
+├── Agent Runtime
+├── Session
+├── Context
+├── Tools
+├── Models
+├── Thinking
+├── Compaction
+├── Skills
+└── Extensions
 
-- 查看 Runtime 与 Context 状态
-- 启动、继续、Fork 和导航 Session
-- 选择模型、Thinking Level 与工具
-- 控制 Compaction、Steering 和 Follow-up
-- 观察流式回复、Thinking、Tool Call 与 Agent Event
-- 在 Agent 旁边使用文件和 Git
+              ⊂
 
-**基于 Pi Agent Harness。**
+Pi-Harness
+├── 上述全部 Native Pi 能力
+├── Runs / Trace / Replay
+├── Policy / Budget
+├── Checkpoints / Recovery
+├── Evaluation / Diagnostics
+├── Regression / Artifacts
+├── Multi-Agent Orchestration
+├── Tasks / DAG / Handoffs
+├── Review Gates / Worktrees
+└── Visual Engineering Workspace
+```
 
-## Pi Superset Contract
+## 核心能力
 
-- **Pi Compatibility：**Pi-Harness 不得主动降低 Native Pi 能力；在技术可行时保持 Session、配置、模型、Provider、工具、Skills、Extensions、Packages、Context、Compaction、Steering、Follow-up、Session Tree 与 Thinking Level 兼容。
-- **Pi Is the Runtime：**Native Pi 始终是 Agent 执行 Runtime。Pi-Harness 不重新实现 Agent Loop、`AgentSession`、Context、Compaction、Tool、Skill 或 Extension Runtime。
-- **Native Pi Escape Hatch：**Pi 原生 Session 与配置仍可脱离 Pi-Harness 直接使用。
-- **Additive by Default：**Harness 能力只在 Pi 之上增强，不替换、不削弱 Pi。
-- **Shared State：**尽量使用 Pi 原生状态与格式；Pi-Harness 自有元数据独立存储。
-- **Upstream First：**Pi 新能力优先经兼容层接入，并通过 capability detection、graceful degradation 与 best-effort forward compatibility 降低版本耦合。
-
-Pi-Harness 不替代 Pi；Pi 始终是执行基础。
-
-## 现在已经具备什么
-
-以下都是当前能力，不是 Roadmap 声明：Pi-Harness 可以启动和继续 Pi 兼容 Session；展示流式回复、Thinking、Tool Call、Context 使用量和 Session Stats；切换模型、Thinking Level 与工具预设；控制 Compaction；发送 Steering 与 Follow-up；以及 Fork 或导航 Session 历史。
-
-周边桌面能力汇总如下。
-
-## 核心功能
-
-| 模块              | Pi-Harness 提供的能力                                    |
-| ----------------- | -------------------------------------------------------- |
-| 概览              | 展示环境、配置和当前模型状态                             |
-| 工作区            | 在项目文件、Git 与 Worktree 旁运行 Pi Session            |
-| Pi Runtime        | 展示流式输出、Thinking、Tool Call、Context、Queue 与统计 |
-| Provider 与模型   | 管理 Pi 兼容 Provider 和模型                             |
-| Skills 与 Package | 管理受支持的 Skills、Pi Package 与 MCP 扩展              |
-| 文件              | 提供显式保存、冲突保护和轻量文本编辑                     |
-| 诊断              | 查看应用、环境、存储和工作区健康状态                     |
-| 更新              | 安装兼容的应用更新                                       |
-| 外观              | 提供应用图标、主题、密度与视觉特效                       |
+| 层级               | 能力                                                                                      |
+| ------------------ | ----------------------------------------------------------------------------------------- |
+| Native Pi Runtime  | Agent Runtime、Sessions、Context、Tools、Models、Thinking、Compaction、Skills、Extensions |
+| Observe / 观测     | Runs、Trace、Replay、Run Compare、Diagnostics、Evaluation、Regression、Artifacts          |
+| Control / 控制     | Policy、Budget、Checkpoints、Recovery、Permissions、工具控制、Compaction                  |
+| Orchestrate / 编排 | Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Worktree 隔离                 |
+| Work / 工程工作区  | Workspace、Files、Git、Worktrees、Models、Providers、Skills、Packages                     |
 
 ### 启动与外观
 
@@ -125,40 +121,6 @@ Native Pi 始终是内置默认运行时与默认工作流。Pi-Harness 不会�
 Pi-Harness 可以编辑可读文本文件，支持懒加载语法高亮、行号、撤销/重做、查找、显式保存、未保存状态和外部变更冲突保护。超大文件、二进制、媒体和文档使用只读预览。
 
 它不提供 LSP/IntelliSense、语义重构、调试器、任务运行器、集成终端或 IDE 扩展兼容。
-
-## 架构
-
-Pi-Harness 将桌面控制平面与持续完善的可视化 Harness Console 分层，同时始终保持 Pi Coding Agent 是唯一 Agent Runtime。
-
-```text
-                         Pi-Harness
-
-             ┌──────────────┴──────────────┐
-             │                             │
-       Control Plane                 Harness Console
-             │                             │
-        Providers                      Runtime
-        Models                         Context
-        Skills                         Tools
-        Packages                       Thinking
-        Environment                    Compaction
-        Config                         Sessions
-        Updates                        Timeline
-             │                             │
-             └──────────────┬──────────────┘
-                            ▼
-                    Pi Agent Harness
-                            │
-                            ▼
-                    Pi Coding Agent
-                            │
-                            ▼
-                         Models
-```
-
-Control Plane 负责管理 Pi 周边能力；Harness Console 的产品方向是把 Pi Agent Harness 可视化。尚未发布的界面能力会在下方明确标注为 Roadmap。
-
-Pi-Harness 通过 Pi 的 Runtime 接口与其连接。Session 与 <code>~/.pi/agent/sessions/</code> 下的 Pi CLI JSONL 保持兼容。
 
 ## 当前界面
 
@@ -186,58 +148,98 @@ Pi-Harness 通过 Pi 的 Runtime 接口与其连接。Session 与 <code>~/.pi/ag
 |                  **设置**                   |                                             |
 |    ![古风主题设置](docs/古风/Prefs.jpg)     |                                             |
 
-## 接下来
+## Pi 与 Pi-Harness
 
-Pi-Harness 正在从桌面控制中心继续升级为完整的 Pi Agent Harness 可视化控制台。
+| 能力          | Native Pi | Pi-Harness           |
+| ------------- | --------- | -------------------- |
+| Agent Runtime | 支持      | Native Pi            |
+| Agent Loop    | 支持      | Native Pi            |
+| Sessions      | 支持      | 支持 + 可视化管理    |
+| Context       | 支持      | 支持 + 检查视图      |
+| Compaction    | 支持      | 支持 + 可视化控制    |
+| Steering      | 支持      | 支持                 |
+| Follow-up     | 支持      | 支持                 |
+| Models        | 支持      | 支持 + 管理器        |
+| Thinking      | 支持      | 支持 + 可视化控制    |
+| Tools         | 支持      | 支持 + 选择与 Policy |
+| Skills        | 支持      | 支持 + 管理器        |
+| Extensions    | 支持      | 支持 + 管理器        |
+| Runs          | —         | 支持                 |
+| Trace         | —         | 支持                 |
+| Replay        | —         | 支持                 |
+| Evaluation    | —         | 支持                 |
+| Policy        | —         | 支持                 |
+| Budget        | —         | 支持                 |
+| Checkpoint    | —         | 支持                 |
+| Recovery      | —         | 支持                 |
+| Diagnostics   | —         | 支持                 |
+| Regression    | —         | 支持                 |
+| Artifacts     | —         | 支持                 |
+| Multi-Agent   | —         | 支持                 |
+| Task DAG      | —         | 支持                 |
+| Handoff       | —         | 支持                 |
+| Review Gates  | —         | 支持                 |
+| Worktree 隔离 | —         | 支持                 |
 
-下一阶段的重点，是让 Runtime 状态更容易检查，同时不替换 Pi 已经提供的 Runtime。
+## 架构
 
-### Harness Console — 规划中的 UI / Roadmap 预览
-
-```text
-┌──────────────────────────────────────────────┐
-│ HARNESS                                      │
-│                                              │
-│ ● Running                                    │
-│                                              │
-│ Runtime                                      │
-│ ───────────────────────────────────────────  │
-│ Model              claude-sonnet             │
-│ Thinking           High                      │
-│ Status             Running                   │
-│                                              │
-│ Context                                      │
-│ ───────────────────────────────────────────  │
-│ 74,120 / 128,000                             │
-│ █████████████░░░░░░ 58%                      │
-│                                              │
-│ Compaction                                   │
-│ Auto               ON                        │
-│ Running            NO                        │
-│                                              │
-│ Tools                                        │
-│ ✓ read   ✓ grep   ✓ edit   ✓ write   ✓ bash │
-│                                              │
-│ Queue                                        │
-│ Steering           0                         │
-│ Follow-up          1                         │
-└──────────────────────────────────────────────┘
-```
-
-### Harness Timeline — 规划中的 UI / Roadmap 预览
+Native Pi 位于 Pi-Harness 的执行架构内部，而不是被 Pi-Harness 替换。
 
 ```text
-12:40:03  Session started
-12:40:05  Agent running
-12:40:07  Tool · read · src/auth.ts
-12:40:10  Tool · grep · refreshToken
-12:40:13  Tool · edit · src/auth.ts
-12:40:23  Compaction started
-12:40:25  Compaction completed
-12:40:31  Agent completed
+                         Pi-Harness
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│                Superset Capabilities                │
+│                                                     │
+│  Observe              Control          Orchestrate  │
+│  ─────────            ─────────        ───────────  │
+│  Runs                 Policy           Agents       │
+│  Trace                Budget           Teams        │
+│  Replay               Checkpoints      Tasks        │
+│  Diagnostics          Recovery         DAG          │
+│  Evaluation           Permissions      Handoffs     │
+│  Regression                            Review Gates │
+│  Artifacts                             Worktrees    │
+│                                                     │
+│  Workspace · Models · Providers · Skills · Git      │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │                  Native Pi                    │  │
+│  │                                               │  │
+│  │ Agent Runtime · Sessions · Context · Tools    │  │
+│  │ Compaction · Thinking · Skills · Extensions  │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+└─────────────────────────────────────────────────────┘
 ```
 
-以上内容用于表达产品方向，不是已上线功能截图，也不表示完整可视化 Inspector 已经发布。
+桌面边界保持为 `Vue Renderer → typed preload API → validated IPC → Main services → Pi compatibility layer → Native Pi SDK`。Session 与 <code>~/.pi/agent/sessions/</code> 下的 Pi CLI JSONL 保持兼容。
+
+## Harness Control Plane
+
+Pi-Harness 已经提供完整的 Harness Control Plane，包括：
+
+- Runs、Trace、Replay、Run Tree、Run Compare
+- Policy、Budget、Checkpoints、Recovery、Permissions
+- Evaluation、Diagnostics、Regression、Artifacts
+- 可筛选 Timeline 与基于真实证据的运行详情
+
+这些能力来自真实 Pi Event、Session 和命令结果，不是模拟状态或未来功能预览。
+
+## Multi-Agent 编排
+
+Pi-Harness 已支持 Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Budget 与 Worktree 隔离，并支持 pause、resume、abort、retry、skip 和 reassign。
+
+每个 Agent 都通过真实 Pi Session 执行；编排层增加协调能力，不引入第二套 Agent Runtime。
+
+## Pi Superset Contract
+
+- **Pi Compatibility：**Pi-Harness 不得主动降低 Native Pi 能力；在技术可行时保持 Session、配置、模型、Provider、工具、Skills、Extensions、Packages、Context、Compaction、Steering、Follow-up、Session Tree 与 Thinking Level 兼容。
+- **Pi Is the Runtime：**Native Pi 始终是 Agent 执行 Runtime。Pi-Harness 不重新实现 Agent Loop、`AgentSession`、Context、Compaction、Tool、Skill 或 Extension Runtime。
+- **Native Pi Escape Hatch：**Pi 原生 Session 与配置仍可脱离 Pi-Harness 直接使用。
+- **Additive by Default：**Harness 能力只在 Pi 之上增强，不替换、不削弱 Pi。
+- **Shared State：**尽量使用 Pi 原生状态与格式；Pi-Harness 自有元数据独立存储。
+- **Upstream First：**Pi 新能力优先经兼容层接入，并通过 capability detection、graceful degradation 与 best-effort forward compatibility 降低版本耦合。
 
 ## Roadmap
 
@@ -245,45 +247,19 @@ Pi-Harness 正在从桌面控制中心继续升级为完整的 Pi Agent Harness 
 
 - 上文列出的已发布桌面能力
 - Pi Agent Runtime 集成与 Session 控制
-- 原生项目工作区与控制平面
+- 原生项目工作区、Harness Control Plane 与 Multi-Agent 编排
 
 ### 下一步
 
-- 完整 Harness Console
-- Runtime 与 Context Inspector
-- Tools Inspector 与 Compaction Control
-- Steering 与 Follow-up Inspector
 - Session Tree 可视化
-- Harness Timeline 与 Stats
+- 更深入的 Context 与 Queue Inspector
+- 超越确定性规则的可选 Run 分析，并与记录证据明确区分
 
 ### 后续
 
-- Tool Policy 与 Approval Policy
-- Workspace Permissions
+- 超越当前文件 Policy 的高级 Workspace Permissions
 - Verification 与质量检查集成
 - Harness Profiles
-
-## Pi 与 Pi-Harness 能力矩阵
-
-| 能力                   | Native Pi | Pi-Harness              |
-| ---------------------- | --------- | ----------------------- |
-| Agent Runtime / Loop   | 支持      | Native Pi               |
-| Session                | 支持      | 支持 + 可视化管理       |
-| Context / Compaction   | 支持      | 支持 + 用量与可视化控制 |
-| Steering / Follow-up   | 支持      | 支持                    |
-| Models / Thinking      | 支持      | 支持 + 管理与可视化控制 |
-| Tools                  | 支持      | 支持 + 选择与 Policy    |
-| Skills / Extensions    | 支持      | 支持 + Manager          |
-| Runs / Trace           | —         | 支持                    |
-| Replay / Compare       | —         | 支持                    |
-| Evaluation             | —         | 支持                    |
-| Policy / Budget        | —         | 支持                    |
-| Checkpoint / Recovery  | —         | 支持                    |
-| Diagnostics            | —         | 支持                    |
-| Regression / Artifacts | —         | 支持                    |
-| Multi-Agent / Task DAG | —         | 支持                    |
-| Handoff / Review Gate  | —         | 支持                    |
-| Worktree 隔离          | —         | 支持                    |
 
 ## 下载
 
@@ -347,7 +323,7 @@ pnpm test:e2e:only
 
 ## 关注项目
 
-Pi-Harness 下一阶段的重点，就是上面展示的可视化 Harness Console。Runtime 与 Context Inspector、Tools Inspector、Compaction Control、Session Tree 和 Harness Timeline 会继续完善。
+Pi-Harness 接下来会继续深化 Session Tree 可视化、Context 与 Queue 检查、Workspace Permissions、Verification 集成和 Harness Profiles。
 
 如果你对这些功能感兴趣，可以给 [Pi-Harness 点一个 ⭐](https://github.com/wangmiaozero/pi-harness/stargazers)，关注后续版本。Star 也能帮助更多 Pi 用户发现这个项目。
 

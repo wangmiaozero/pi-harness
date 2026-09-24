@@ -15,17 +15,15 @@
   <img src="build/icon.png" width="110" alt="Pi-Harness" />
 </p>
 
-<h3 align="center">The Superset Harness for Pi Coding Agent</h3>
+<h3 align="center">The Operational Superset of Pi Coding Agent</h3>
 
 <p align="center">
-  <strong>Native Pi, supercharged.</strong>
+  <strong>Everything Pi. More visibility, control, recovery, and orchestration.</strong>
 </p>
+
+<p align="center">Native Pi, supercharged.</p>
 
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
-
-<p align="center">
-  Manage models · Run agents · Orchestrate teams · Inspect Harness state · Use Skills · Browse files · Control Git
-</p>
 
 <p align="center">
   <a href="#download"><strong>Download Pi-Harness</strong></a> ·
@@ -41,69 +39,66 @@
 </p>
 
 <p align="center">
-  ⭐ <a href="https://github.com/wangmiaozero/pi-harness/stargazers">Star Pi-Harness</a> to follow the next Harness Console updates.
+  ⭐ <a href="https://github.com/wangmiaozero/pi-harness/stargazers">Star Pi-Harness</a> to follow the project.
 </p>
 
 ## Why Pi-Harness?
 
-Pi-Harness is an operational superset of Pi Coding Agent. It preserves Pi's native Agent Runtime and compatibility while adding observability, governance, orchestration, recovery, evaluation, and a visual engineering workspace.
+Pi-Harness is an operational superset of Pi Coding Agent.
 
-[Pi Coding Agent](https://github.com/earendil-works/pi) already has a powerful Agent Harness. Much of its runtime state—context, tools, compaction, queues, and sessions—is naturally exposed through CLI and SDK behavior.
+It keeps Native Pi as the execution runtime and preserves Pi-compatible sessions, tools, models, Skills, extensions, context, and compaction, while adding a complete Harness engineering layer around it.
 
-Pi-Harness makes those capabilities visible and manageable in a native desktop workspace, alongside the configuration and project tools needed to use Pi every day.
+Pi-Harness adds:
 
-> **Pi runs the agent. Pi-Harness lets you see and control how it runs.**
+- **Observe** — Runs, Trace, Replay, Diagnostics, Evaluation, Regression, and Artifacts
+- **Control** — Policy, Budget, Checkpoints, Recovery, Permissions, and tool control
+- **Orchestrate** — Agents, Teams, Tasks, Dependencies, Handoffs, Review Gates, and Worktrees
+- **Work** — Workspace, Files, Git, Models, Providers, Skills, and Packages
 
-Pi-Harness is not a wrapped web UI. It embeds no pi-web, Next.js server, or iframe, and it does not add a second Agent Runtime.
+> **Pi runs the agent. Pi-Harness turns Pi into a visible, controllable, recoverable, and orchestratable engineering system.**
 
-## Powered by Pi Agent Harness
+Pi-Harness does not replace or reimplement Pi's Agent Runtime.
 
-[Pi](https://github.com/earendil-works/pi) already provides the Agent Harness that powers Pi Coding Agent.
+## What "Superset" Means
 
-Pi-Harness does not replace or reimplement that runtime. Pi Coding Agent and its Agent Harness remain responsible for the Agent Loop, tools, context, compaction, and session execution.
+Native Pi remains inside the real execution path.
 
-Pi-Harness provides the desktop control plane, visualization, configuration, and workspace around it:
+```text
+Pi Coding Agent
+├── Agent Runtime
+├── Sessions
+├── Context
+├── Tools
+├── Models
+├── Thinking
+├── Compaction
+├── Skills
+└── Extensions
 
-- inspect runtime and context state
-- start, resume, fork, and navigate sessions
-- select models, Thinking levels, and tools
-- control compaction, Steering, and Follow-up messages
-- observe streaming output, Thinking, Tool Calls, and agent events
-- work with files and Git beside the agent
+              ⊂
 
-**Powered by Pi Agent Harness.**
+Pi-Harness
+├── Everything above through Native Pi
+├── Runs / Trace / Replay
+├── Policy / Budget
+├── Checkpoints / Recovery
+├── Evaluation / Diagnostics
+├── Regression / Artifacts
+├── Multi-Agent Orchestration
+├── Tasks / DAG / Handoffs
+├── Review Gates / Worktrees
+└── Visual Engineering Workspace
+```
 
-## Pi Superset Contract
+## Core Capabilities
 
-- **Pi Compatibility:** Pi-Harness must not intentionally reduce Native Pi capabilities. Pi sessions, configuration, models, providers, tools, Skills, extensions, packages, context, compaction, Steering, Follow-up, session trees, and Thinking levels remain compatible whenever technically possible.
-- **Pi Is the Runtime:** Native Pi remains the Agent execution runtime. Pi-Harness does not reimplement the Agent Loop, `AgentSession`, context, compaction, tool, Skill, or extension runtimes.
-- **Native Pi Escape Hatch:** Pi-native sessions and configuration remain usable outside Pi-Harness.
-- **Additive by Default:** Harness capabilities enhance Pi without replacing or weakening it.
-- **Shared State:** Pi-Harness uses Pi-native state and formats where possible; Harness-only metadata stays separate.
-- **Upstream First:** New Pi capabilities enter through the compatibility layer first, with capability detection, graceful degradation, and best-effort forward compatibility.
-
-Pi-Harness does not replace Pi. Pi remains the execution foundation.
-
-## What Pi-Harness already does
-
-These are current capabilities, not roadmap claims: Pi-Harness can start and resume Pi-compatible sessions; stream responses, Thinking, and Tool Calls; show context usage and session statistics; switch models, Thinking levels, and tool presets; control compaction; send Steering and Follow-up messages; and Fork or navigate session history.
-
-The surrounding desktop capabilities are summarized below.
-
-## Core features
-
-| Area               | What Pi-Harness does                                                  |
-| ------------------ | --------------------------------------------------------------------- |
-| Overview           | Shows environment, configuration, and current model status            |
-| Workspace          | Runs Pi sessions beside project files, Git, and worktrees             |
-| Pi Runtime         | Surfaces streaming, Thinking, Tool Calls, context, queues, and stats  |
-| Orchestration      | Coordinates agent teams over tasks, dependencies, and handoffs        |
-| Providers & Models | Manages Pi-compatible providers and models                            |
-| Skills & Packages  | Manages supported Skills, Pi packages, and MCP-capable extensions     |
-| Files              | Provides lightweight editing with explicit save and conflict handling |
-| Diagnostics        | Reports application, environment, storage, and workspace health       |
-| Updates            | Installs compatible application updates                               |
-| Appearance         | Adds app icons, themes, density, and visual effects                   |
+| Layer             | Capabilities                                                                              |
+| ----------------- | ----------------------------------------------------------------------------------------- |
+| Native Pi Runtime | Agent Runtime, Sessions, Context, Tools, Models, Thinking, Compaction, Skills, Extensions |
+| Observe           | Runs, Trace, Replay, Run Compare, Diagnostics, Evaluation, Regression, Artifacts          |
+| Control           | Policy, Budget, Checkpoints, Recovery, Permissions, tool control, Compaction              |
+| Orchestrate       | Agents, Teams, Tasks, Dependencies, Handoffs, Review Gates, Worktree isolation            |
+| Work              | Workspace, Files, Git, Worktrees, Models, Providers, Skills, and Packages                 |
 
 ### Startup and appearance
 
@@ -125,45 +120,6 @@ Both add-ons use the existing trusted capability/package management flows and ca
 Pi-Harness edits readable text with lazy syntax highlighting, line numbers, undo/redo, find, explicit save, unsaved-state indicators, and external-change conflict protection. Oversized, binary, media, and document files use read-only previews.
 
 It deliberately does not include LSP/IntelliSense, semantic refactoring, a debugger, task runner, integrated terminal, or IDE extension compatibility.
-
-## Architecture
-
-Pi-Harness separates the desktop control plane from the growing visual Harness Console while keeping Pi Coding Agent as the only Agent Runtime.
-
-```text
-                         Pi-Harness
-
-             ┌──────────────┴──────────────┐
-             │                             │
-       Control Plane                 Harness Console
-             │                             │
-        Providers                      Observe
-        Models                         Runs · Trace · Replay
-        Skills                         Diagnostics
-        Packages                       Evaluation
-        Environment                    Artifacts
-        Config
-        Updates                        Control
-        Backups                        Policy · Budget
-        Diagnostics                    Recovery · Checkpoints
-
-                                       Orchestrate
-                                       Tasks · Agents
-                                       Teams · Dependencies
-                                       Handoffs · Review gates
-             │                             │
-             └──────────────┬──────────────┘
-                            ▼
-                    Pi Agent Harness
-                            │
-                            ▼
-                    Pi Coding Agent
-                            │
-                            ▼
-                         Models
-```
-
-The Control Plane manages everything around Pi. The Harness Console observes and controls Pi Agent Harness state: it records Runs, enforces Policy at the Pi tool boundary, creates Checkpoints, evaluates finished runs from real evidence, and orchestrates agent teams over tasks with dependencies, handoffs, and budgets. Pi-Harness does not replace Pi Coding Agent: each agent still runs through Pi, and Pi-Harness provides orchestration, observability, policy, evaluation, recovery, and control. Sessions stay compatible with the Pi CLI JSONL under <code>~/.pi/agent/sessions/</code>.
 
 ## Current screenshots
 
@@ -191,7 +147,74 @@ The same six product surfaces are shown in both the default and Classical Chines
 |                            **Preferences**                             |                                                                        |
 |   ![Preferences in the Classical Chinese theme](docs/古风/Prefs.jpg)   |                                                                        |
 
-## Coming Next
+## Pi vs Pi-Harness
+
+| Capability         | Native Pi | Pi-Harness                 |
+| ------------------ | --------- | -------------------------- |
+| Agent Runtime      | Yes       | Native Pi                  |
+| Agent Loop         | Yes       | Native Pi                  |
+| Sessions           | Yes       | Yes + visual management    |
+| Context            | Yes       | Yes + inspection           |
+| Compaction         | Yes       | Yes + visual control       |
+| Steering           | Yes       | Yes                        |
+| Follow-up          | Yes       | Yes                        |
+| Models             | Yes       | Yes + manager              |
+| Thinking           | Yes       | Yes + visual control       |
+| Tools              | Yes       | Yes + selection and policy |
+| Skills             | Yes       | Yes + manager              |
+| Extensions         | Yes       | Yes + manager              |
+| Runs               | —         | Yes                        |
+| Trace              | —         | Yes                        |
+| Replay             | —         | Yes                        |
+| Evaluation         | —         | Yes                        |
+| Policy             | —         | Yes                        |
+| Budget             | —         | Yes                        |
+| Checkpoint         | —         | Yes                        |
+| Recovery           | —         | Yes                        |
+| Diagnostics        | —         | Yes                        |
+| Regression         | —         | Yes                        |
+| Artifacts          | —         | Yes                        |
+| Multi-Agent        | —         | Yes                        |
+| Task DAG           | —         | Yes                        |
+| Handoff            | —         | Yes                        |
+| Review Gates       | —         | Yes                        |
+| Worktree isolation | —         | Yes                        |
+
+## Architecture
+
+Native Pi is contained within Pi-Harness's execution architecture, not replaced by it.
+
+```text
+                         Pi-Harness
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│                Superset Capabilities                │
+│                                                     │
+│  Observe              Control          Orchestrate  │
+│  ─────────            ─────────        ───────────  │
+│  Runs                 Policy           Agents       │
+│  Trace                Budget           Teams        │
+│  Replay               Checkpoints      Tasks        │
+│  Diagnostics          Recovery         DAG          │
+│  Evaluation           Permissions      Handoffs     │
+│  Regression                            Review Gates │
+│  Artifacts                             Worktrees    │
+│                                                     │
+│  Workspace · Models · Providers · Skills · Git      │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │                  Native Pi                    │  │
+│  │                                               │  │
+│  │ Agent Runtime · Sessions · Context · Tools    │  │
+│  │ Compaction · Thinking · Skills · Extensions  │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+```
+
+The desktop boundary remains `Vue Renderer → typed preload API → validated IPC → Main services → Pi compatibility layer → Native Pi SDK`. Sessions remain compatible with Pi CLI JSONL under <code>~/.pi/agent/sessions/</code>.
+
+## Harness Control Plane
 
 Pi-Harness has shipped its Harness Control Plane: Runs, Policy, Checkpoints, Evaluation, and a filterable Trace are live in the Harness Console.
 
@@ -268,7 +291,7 @@ Project · 30d     82% success · 71% eval pass · 45% recovery
 
 All intelligence is deterministic and evidence-based: spans, cause chains, regression findings, and artifacts come from recorded events and real command output — never model guesses.
 
-### Multi-Agent Orchestration — shipped with 1.5
+## Multi-Agent Orchestration
 
 ```text
 Team          Architect · Frontend · Backend · QA · Reviewer
@@ -291,13 +314,22 @@ Recovery      pause · resume · abort · retry · skip · reassign
 
 Every agent executes through a real Pi session: orchestration adds coordination, not a second runtime.
 
+## Pi Superset Contract
+
+- **Pi Compatibility:** Pi-Harness must not intentionally reduce Native Pi capabilities. Pi sessions, configuration, models, providers, tools, Skills, extensions, packages, context, compaction, Steering, Follow-up, session trees, and Thinking levels remain compatible whenever technically possible.
+- **Pi Is the Runtime:** Native Pi remains the Agent execution runtime. Pi-Harness does not reimplement the Agent Loop, `AgentSession`, context, compaction, tool, Skill, or extension runtimes.
+- **Native Pi Escape Hatch:** Pi-native sessions and configuration remain usable outside Pi-Harness.
+- **Additive by Default:** Harness capabilities enhance Pi without replacing or weakening it.
+- **Shared State:** Pi-Harness uses Pi-native state and formats where possible; Harness-only metadata stays separate.
+- **Upstream First:** New Pi capabilities enter through the compatibility layer first, with capability detection, graceful degradation, and best-effort forward compatibility.
+
 ## Roadmap
 
 ### Current
 
 - Released desktop capabilities listed above
 - Pi Agent Runtime integration and session controls
-- Native project workspace and control plane
+- Native project workspace, Harness Control Plane, and Multi-Agent Orchestration
 
 ### Next
 
@@ -310,35 +342,6 @@ Every agent executes through a real Pi session: orchestration adds coordination,
 - Workspace permissions beyond the current file policy
 - Verification and quality-check integrations
 - Harness Profiles
-
-## Pi vs Pi-Harness
-
-| Capability          | Native Pi | Pi-Harness                 |
-| ------------------- | --------- | -------------------------- |
-| Agent Runtime       | Yes       | Native Pi                  |
-| Agent Loop          | Yes       | Native Pi                  |
-| Sessions            | Yes       | Yes + visual management    |
-| Context             | Yes       | Yes + usage view           |
-| Compaction          | Yes       | Yes + visual control       |
-| Steering            | Yes       | Yes                        |
-| Follow-up           | Yes       | Yes                        |
-| Models              | Yes       | Yes + manager              |
-| Thinking            | Yes       | Yes + visual control       |
-| Tools               | Yes       | Yes + selection and policy |
-| Skills              | Yes       | Yes + manager              |
-| Extensions          | Yes       | Yes + package manager      |
-| Runs / Trace        | —         | Yes                        |
-| Replay / Compare    | —         | Yes                        |
-| Evaluation          | —         | Yes                        |
-| Policy / Budget     | —         | Yes                        |
-| Checkpoint/Recovery | —         | Yes                        |
-| Diagnostics         | —         | Yes                        |
-| Regression          | —         | Yes                        |
-| Artifacts           | —         | Yes                        |
-| Multi-Agent         | —         | Yes                        |
-| Task DAG / Handoff  | —         | Yes                        |
-| Review Gates        | —         | Yes                        |
-| Worktree isolation  | —         | Yes                        |
 
 ## Download
 
@@ -402,7 +405,7 @@ pnpm test:e2e:only
 
 ## Follow the project
 
-The next major step is the visual Harness Console shown above. Runtime and Context Inspectors, Tool inspection, Compaction controls, Session Tree visualization, and the Harness Timeline will continue to evolve.
+Pi-Harness continues to deepen Session Tree visualization, Context and Queue inspection, workspace permissions, verification integrations, and Harness Profiles.
 
 If you want to follow that work, consider giving [Pi-Harness a ⭐](https://github.com/wangmiaozero/pi-harness/stargazers). It helps you find the project again and helps more Pi users discover it.
 

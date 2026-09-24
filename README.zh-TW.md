@@ -15,10 +15,13 @@
   <img src="build/icon.png" width="96" alt="Pi-Harness" />
 </p>
 
+<h3 align="center">Pi Coding Agent 的 Operational Superset</h3>
+
 <p align="center">
-  <strong>Pi Coding Agent 的 Superset Harness</strong><br />
-  Native Pi，全面增強。
+  <strong>完整保留 Native Pi，並增加觀測、控制、復原、評估與多 Agent 編排。</strong>
 </p>
+
+<p align="center">Native Pi，全面增強。</p>
 
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
@@ -37,34 +40,20 @@
 
 ## 為什麼選擇 Pi-Harness？
 
-### 不只是 Pi 聊天介面
+Pi-Harness 是 Pi Coding Agent 的 Operational Superset。Native Pi 始終是唯一 Agent Runtime；Pi-Harness 保留相容的 Session、Tools、Models、Skills、Extensions、Context 與 Compaction，並加入完整的 Harness 工程層。
 
-一般桌面用戶端解決的是「開啟 Pi 並開始聊天」。Pi-Harness 進一步將環境設定、Provider、模型、Skills、擴充套件、專案、檔案和 Git 集中到一個桌面工作區中。
+- **Observe** — Runs、Trace、Replay、Diagnostics、Evaluation、Regression、Artifacts
+- **Control** — Policy、Budget、Checkpoints、Recovery、Permissions
+- **Orchestrate** — Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Worktrees
+- **Work** — Workspace、Files、Git、Models、Providers、Skills、Packages
 
-```text
-一般桌面用戶端                         Pi-Harness
+> **Pi 負責執行 Agent；Pi-Harness 讓 Pi 成為可觀測、可控制、可復原、可編排的工程系統。**
 
-Pi → Chat                             Environment
-                                      + Providers / Models
-                                      + Skills / Packages / MCP adapters
-                                      + Workspace / Sessions / Files / Git
-                                      ↓
-                                      Pi Coding Agent
-```
+Pi-Harness 不替換，也不重新實作 Pi 的 Agent Runtime。
 
-Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，也不實作第二套 Agent Runtime。Pi Coding Agent 始終是唯一的 Agent Runtime，工作階段與 `~/.pi/agent/sessions/` 下的 Pi CLI JSONL 保持相容。
+## 什麼叫 Superset？
 
-**設定 Pi。執行 Pi。擴充 Pi。**
-
-## Pi Superset Contract
-
-Pi-Harness 是 Pi Coding Agent 的 operational superset：保留 Native Pi 的 Agent Runtime 與相容性，再加入可觀測性、治理、編排、復原、評估與視覺化工程工作區。
-
-- 不主動降低 Native Pi 能力，並在技術可行時維持 Pi 原生格式相容。
-- Native Pi 始終是執行 Runtime；不重新實作 Agent Loop、Context、Compaction、Tools、Skills 或 Extensions。
-- Pi 原生 Session 與設定仍可獨立使用；Harness 專屬狀態分開儲存。
-- 新增能力預設只做加法；Pi 新功能優先透過相容層接入。
-- 使用 capability detection、graceful degradation 與 best-effort forward compatibility。
+Native Pi 始終位於真實執行鏈路中；Pi-Harness 包含 Native Pi 的全部執行能力，並在外層加入 Observe、Control、Orchestrate 與 Work 能力。
 
 ## Pi 與 Pi-Harness 能力矩陣
 
@@ -162,18 +151,15 @@ Pi-Harness 是 Pi Coding Agent 的 operational superset：保留 Native Pi 的 A
 |                  **設定**                   |                                             |
 |    ![古風主題設定](docs/古风/Prefs.jpg)     |                                             |
 
-## 核心功能
+## 核心能力
 
-| 模組              | Pi-Harness 提供的功能                     |
-| ----------------- | ----------------------------------------- |
-| 概覽              | 顯示環境、設定和目前模型狀態              |
-| 工作區            | 在專案檔案與 Git 上下文中執行 Pi 工作階段 |
-| Provider 與模型   | 管理 Pi 相容 Provider 和模型              |
-| Skills 與 Package | 管理支援的 Skills 和擴充套件              |
-| 設定              | 編輯 Pi 設定並提供衝突保護                |
-| 診斷              | 查看應用程式與環境健康狀態                |
-| 更新              | 安裝相容的應用程式更新                    |
-| 外觀              | 提供應用程式圖示、主題、密度與視覺效果    |
+| 層級               | 能力                                                                                      |
+| ------------------ | ----------------------------------------------------------------------------------------- |
+| Native Pi Runtime  | Agent Runtime、Sessions、Context、Tools、Models、Thinking、Compaction、Skills、Extensions |
+| Observe / 觀測     | Runs、Trace、Replay、Run Compare、Diagnostics、Evaluation、Regression、Artifacts          |
+| Control / 控制     | Policy、Budget、Checkpoints、Recovery、Permissions、工具控制、Compaction                  |
+| Orchestrate / 編排 | Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Worktree 隔離                 |
+| Work / 工程工作區  | Workspace、Files、Git、Worktrees、Models、Providers、Skills、Packages                     |
 
 ### 啟動與外觀
 
@@ -189,30 +175,61 @@ Pi-Harness 可編輯可讀文字檔案，支援延遲載入語法醒目提示、
 
 ## 架構
 
-Pi-Harness 將「管理 Pi、使用 Pi、擴充 Pi」分層，同時始終保持 Pi Coding Agent 是唯一的 Agent Runtime。
+Native Pi 位於 Pi-Harness 的執行架構內部，而不是被 Pi-Harness 替換。
 
 ```text
-                                Pi-Harness
-
-              ┌────────────────────┼────────────────────┐
-              │                    │                    │
-              ▼                    ▼                    ▼
-       Control Plane          Workspace          Capability Layer
-       管理 Pi                使用 Pi             擴充 Pi
-
-       Providers              Projects           Skills
-       Models                 Sessions           Packages
-       Environment            Agent              MCP adapters
-       Config / Secrets       Streaming          Presets
-       Backup / Diagnostics   Files / Git
-       Updates                Worktree
-              │                    │                    │
-              └────────────────────┼────────────────────┘
-                                   ▼
-                           Pi Coding Agent
+                         Pi-Harness
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│                Superset Capabilities                │
+│                                                     │
+│  Observe              Control          Orchestrate  │
+│  ─────────            ─────────        ───────────  │
+│  Runs                 Policy           Agents       │
+│  Trace                Budget           Teams        │
+│  Replay               Checkpoints      Tasks        │
+│  Diagnostics          Recovery         DAG          │
+│  Evaluation           Permissions      Handoffs     │
+│  Regression                            Review Gates │
+│  Artifacts                             Worktrees    │
+│                                                     │
+│  Workspace · Models · Providers · Skills · Git      │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │                  Native Pi                    │  │
+│  │                                               │  │
+│  │ Agent Runtime · Sessions · Context · Tools    │  │
+│  │ Compaction · Thinking · Skills · Extensions  │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+└─────────────────────────────────────────────────────┘
 ```
 
-桌面邊界固定為 `Vue Renderer → typed preload API → validated IPC → Main services → Pi SDK / 作業系統`。Domain Adapter 會保留 Pi 設定中的未知欄位。
+桌面邊界保持為 `Vue Renderer → typed preload API → validated IPC → Main services → Pi compatibility layer → Native Pi SDK`。Session 與 <code>~/.pi/agent/sessions/</code> 下的 Pi CLI JSONL 保持相容。
+
+## Harness Control Plane
+
+已發布 Runs、Trace、Replay、Run Tree、Run Compare、Policy、Budget、Checkpoints、Recovery、Permissions、Evaluation、Diagnostics、Regression 與 Artifacts；資料來自真實 Pi Event、Session 與命令結果。
+
+## Multi-Agent 編排
+
+已支援 Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Budget、Worktree 隔離，以及 pause、resume、abort、retry、skip 與 reassign。每個 Agent 都透過真實 Pi Session 執行。
+
+## Pi Superset Contract
+
+Pi-Harness 是 Pi Coding Agent 的 operational superset：保留 Native Pi 的 Agent Runtime 與相容性，再加入可觀測性、治理、編排、復原、評估與視覺化工程工作區。
+
+- 不主動降低 Native Pi 能力，並在技術可行時維持 Pi 原生格式相容。
+- Native Pi 始終是執行 Runtime；不重新實作 Agent Loop、Context、Compaction、Tools、Skills 或 Extensions。
+- Pi 原生 Session 與設定仍可獨立使用；Harness 專屬狀態分開儲存。
+- 新增能力預設只做加法；Pi 新功能優先透過相容層接入。
+- 使用 capability detection、graceful degradation 與 best-effort forward compatibility。
+
+## Roadmap
+
+- Session Tree 視覺化與更深入的 Context / Queue inspectors
+- 進階工作區權限與驗證整合
+- Harness Profiles 與更智慧的 Run Analysis
 
 ## 環境需求
 
