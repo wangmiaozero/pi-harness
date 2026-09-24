@@ -153,15 +153,28 @@ export class TraceService {
         return span.id
       }
       case 'compaction.completed': {
-        const span = this.closeMatching(frame, 'compaction', 'compaction', event.timestamp, event.aborted === true, {
-          aborted: event.aborted ?? false
-        })
+        const span = this.closeMatching(
+          frame,
+          'compaction',
+          'compaction',
+          event.timestamp,
+          event.aborted === true,
+          {
+            aborted: event.aborted ?? false
+          }
+        )
         return span?.id ?? null
       }
       case 'checkpoint.created': {
-        const span = this.pointSpan(frame, 'checkpoint', `checkpoint (${event.reason})`, event.timestamp, {
-          checkpointId: event.checkpointId
-        })
+        const span = this.pointSpan(
+          frame,
+          'checkpoint',
+          `checkpoint (${event.reason})`,
+          event.timestamp,
+          {
+            checkpointId: event.checkpointId
+          }
+        )
         return span.id
       }
       case 'recovery.started': {
@@ -181,9 +194,16 @@ export class TraceService {
         return span.id
       }
       case 'evaluation.completed': {
-        const span = this.closeMatching(frame, 'evaluation', 'evaluation', event.timestamp, event.status === 'failed', {
-          status: event.status
-        })
+        const span = this.closeMatching(
+          frame,
+          'evaluation',
+          'evaluation',
+          event.timestamp,
+          event.status === 'failed',
+          {
+            status: event.status
+          }
+        )
         return span?.id ?? null
       }
       case 'runtime.error': {
@@ -293,7 +313,11 @@ export class TraceService {
     let span: HarnessTraceSpan | undefined
     for (let index = frame.spans.length - 1; index >= 0; index -= 1) {
       const candidate = frame.spans[index]
-      if (candidate.type === type && candidate.status === 'running' && frame.openSpans.has(candidate.id)) {
+      if (
+        candidate.type === type &&
+        candidate.status === 'running' &&
+        frame.openSpans.has(candidate.id)
+      ) {
         span = candidate
         break
       }
@@ -358,7 +382,9 @@ export class TraceService {
     const runId =
       event.type === 'run.started'
         ? event.runId
-        : event.type === 'run.completed' || event.type === 'run.failed' || event.type === 'run.aborted'
+        : event.type === 'run.completed' ||
+            event.type === 'run.failed' ||
+            event.type === 'run.aborted'
           ? event.runId
           : this.openFrameBySession.get(sessionId)
     const frame = runId ? this.frames.get(runId) : null
@@ -394,7 +420,9 @@ export class TraceService {
 
   private maxEventsPerRun(): number {
     const configured = this.options.maxEventsPerRun
-    return typeof configured === 'number' && configured > 0 ? configured : DEFAULT_MAX_EVENTS_PER_RUN
+    return typeof configured === 'number' && configured > 0
+      ? configured
+      : DEFAULT_MAX_EVENTS_PER_RUN
   }
 }
 

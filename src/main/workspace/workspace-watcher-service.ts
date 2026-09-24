@@ -39,7 +39,9 @@ export class WorkspaceWatcherService {
     if (this.timer) clearTimeout(this.timer)
     this.timer = null
     this.pending.clear()
-    await Promise.all([...this.watchers.values()].map((watcher) => watcher.close().catch(() => undefined)))
+    await Promise.all(
+      [...this.watchers.values()].map((watcher) => watcher.close().catch(() => undefined))
+    )
     this.watchers.clear()
   }
 

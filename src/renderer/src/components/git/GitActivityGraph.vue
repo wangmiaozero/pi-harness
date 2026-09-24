@@ -222,10 +222,7 @@ function cellClass(cell: Cell): string {
       </span>
     </div>
     <div v-if="weeks.length" class="flex items-start justify-center gap-[2px]">
-      <div
-        class="flex shrink-0 flex-col gap-[2px] pt-[1px]"
-        :style="{ width: `${LABEL_WIDTH}px` }"
-      >
+      <div class="flex shrink-0 flex-col gap-[2px] pt-[1px]" :style="{ width: `${LABEL_WIDTH}px` }">
         <span
           v-for="(label, index) in weekdayLabels"
           :key="index"
@@ -235,11 +232,7 @@ function cellClass(cell: Cell): string {
           {{ label }}
         </span>
       </div>
-      <div
-        v-for="(week, weekIndex) in weeks"
-        :key="weekIndex"
-        class="flex flex-col gap-[2px]"
-      >
+      <div v-for="(week, weekIndex) in weeks" :key="weekIndex" class="flex flex-col gap-[2px]">
         <div
           v-for="cell in week"
           :key="cell.date"
@@ -249,10 +242,7 @@ function cellClass(cell: Cell): string {
         />
       </div>
     </div>
-    <span
-      v-if="summary && !hideSummary"
-      class="self-center text-[9px] text-[var(--text-tertiary)]"
-    >
+    <span v-if="summary && !hideSummary" class="self-center text-[9px] text-[var(--text-tertiary)]">
       {{ summary }}
     </span>
   </div>

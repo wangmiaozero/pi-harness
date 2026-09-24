@@ -52,9 +52,7 @@ describe('normalizeGitFailure', () => {
 
     expect(noRepository.details.reason).toBe('not-repository')
     expect(noHistory.details.reason).toBe('no-commits')
-    expect(
-      isEmptyGitHistory(new GitError(noHistory.message, noHistory.details))
-    ).toBe(true)
+    expect(isEmptyGitHistory(new GitError(noHistory.message, noHistory.details))).toBe(true)
   })
 
   it('classifies authentication and local-change failures', () => {

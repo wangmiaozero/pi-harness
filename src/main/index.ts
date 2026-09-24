@@ -224,7 +224,13 @@ async function bootstrap(): Promise<void> {
       : undefined
   )
   const builtinSkills = new BuiltinSkillService(settingsStore, metadata, access)
-  const skills = new SkillsService(settingsStore, packageManager, builtinSkills, access, packageRegistry)
+  const skills = new SkillsService(
+    settingsStore,
+    packageManager,
+    builtinSkills,
+    access,
+    packageRegistry
+  )
   const skillRegistry = new SkillRegistry(settingsStore, metadata, skills)
   const capabilities = new CapabilityService(metadata, skillRegistry, undefined, packageManager)
   const diagnostics = new DiagnosticsService(

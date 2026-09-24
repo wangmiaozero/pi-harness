@@ -31,7 +31,9 @@ function category(event: HarnessEvent): Exclude<TraceFilter, 'all'> {
 }
 
 const ordered = computed(() =>
-  [...props.events].reverse().filter((event) => filter.value === 'all' || category(event) === filter.value)
+  [...props.events]
+    .reverse()
+    .filter((event) => filter.value === 'all' || category(event) === filter.value)
 )
 
 function time(timestamp: number): string {
@@ -158,7 +160,11 @@ function label(event: HarnessEvent): string {
 
 function tone(event: HarnessEvent): string {
   const kind = category(event)
-  if (event.type === 'runtime.error' || event.type === 'run.failed' || event.type === 'budget.exceeded')
+  if (
+    event.type === 'runtime.error' ||
+    event.type === 'run.failed' ||
+    event.type === 'budget.exceeded'
+  )
     return 'bg-[var(--error)]'
   if (event.type === 'policy.denied') return 'bg-[var(--warning)]'
   if (kind === 'runs') return 'bg-[var(--success)]'

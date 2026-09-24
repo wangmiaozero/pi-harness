@@ -78,7 +78,13 @@ function stageLabel(stage: HarnessEvaluationStage): string {
           @click="toggle(evaluation)"
         >
           <component
-            :is="evaluation.status === 'passed' ? CheckCircle2 : evaluation.status === 'warning' ? AlertTriangle : XCircle"
+            :is="
+              evaluation.status === 'passed'
+                ? CheckCircle2
+                : evaluation.status === 'warning'
+                  ? AlertTriangle
+                  : XCircle
+            "
             class="size-3.5 shrink-0"
             :class="checkTone[evaluation.status]"
           />
@@ -88,18 +94,19 @@ function stageLabel(stage: HarnessEvaluationStage): string {
           <span class="shrink-0 text-[10.5px] text-[var(--text-tertiary)]">
             {{ time(evaluation.evaluatedAt) }}
           </span>
-          <span
-            class="shrink-0 text-[10.5px]"
-            :class="checkTone[evaluation.status]"
-          >
+          <span class="shrink-0 text-[10.5px]" :class="checkTone[evaluation.status]">
             {{ $t(`workspace.harnessEvaluationStatus.${evaluation.status}`) }}
           </span>
         </button>
 
-        <div v-if="expanded.has(evaluation.runId)" class="mt-2 border-t border-[var(--border-subtle)] pt-2">
+        <div
+          v-if="expanded.has(evaluation.runId)"
+          class="mt-2 border-t border-[var(--border-subtle)] pt-2"
+        >
           <div v-if="evaluation.pipeline" class="mb-2">
             <p class="text-[10.5px] text-[var(--text-tertiary)]">
-              {{ $t('workspace.harnessPolicyEvalPreset') }}: {{ $t(`workspace.harnessPolicyEvalPreset${presetLabel(evaluation)}`) }}
+              {{ $t('workspace.harnessPolicyEvalPreset') }}:
+              {{ $t(`workspace.harnessPolicyEvalPreset${presetLabel(evaluation)}`) }}
             </p>
             <ul class="mt-1 flex flex-wrap gap-1.5" data-testid="harness-evaluation-stages">
               <li
@@ -109,38 +116,54 @@ function stageLabel(stage: HarnessEvaluationStage): string {
                 :title="stage.command ?? undefined"
               >
                 <component
-                  :is="stage.status === 'passed' ? CheckCircle2 : stage.status === 'warning' ? AlertTriangle : stage.status === 'failed' ? XCircle : MinusCircle"
+                  :is="
+                    stage.status === 'passed'
+                      ? CheckCircle2
+                      : stage.status === 'warning'
+                        ? AlertTriangle
+                        : stage.status === 'failed'
+                          ? XCircle
+                          : MinusCircle
+                  "
                   class="size-3 shrink-0"
                   :class="checkTone[stage.status] ?? 'text-[var(--text-tertiary)]'"
                 />
                 <span class="text-[var(--text-secondary)]">{{ stageLabel(stage) }}</span>
-                <span v-if="stage.duration !== null" class="text-[var(--text-tertiary)]">· {{ stage.duration }}ms</span>
+                <span v-if="stage.duration !== null" class="text-[var(--text-tertiary)]"
+                  >· {{ stage.duration }}ms</span
+                >
               </li>
             </ul>
           </div>
           <ul class="space-y-1">
-          <li
-            v-for="check in evaluation.checks"
-            :key="check.id"
-            class="flex items-start gap-2 text-[11px]"
-            data-testid="harness-evaluation-check"
-          >
-            <component
-              :is="check.status === 'passed' ? CheckCircle2 : check.status === 'warning' ? AlertTriangle : XCircle"
-              class="mt-0.5 size-3 shrink-0"
-              :class="checkTone[check.status]"
-            />
-            <div class="min-w-0">
-              <p class="text-[var(--text-secondary)]">
-                {{ check.name }}
-                <span class="text-[var(--text-tertiary)]">— {{ check.message }}</span>
-              </p>
-              <pre
-                v-if="check.evidence"
-                class="mt-0.5 max-h-24 overflow-auto whitespace-pre-wrap break-all rounded-[var(--radius-sm)] bg-[var(--bg-primary)] px-2 py-1 font-mono text-[10px] text-[var(--text-tertiary)]"
-              >{{ check.evidence }}</pre>
-            </div>
-          </li>
+            <li
+              v-for="check in evaluation.checks"
+              :key="check.id"
+              class="flex items-start gap-2 text-[11px]"
+              data-testid="harness-evaluation-check"
+            >
+              <component
+                :is="
+                  check.status === 'passed'
+                    ? CheckCircle2
+                    : check.status === 'warning'
+                      ? AlertTriangle
+                      : XCircle
+                "
+                class="mt-0.5 size-3 shrink-0"
+                :class="checkTone[check.status]"
+              />
+              <div class="min-w-0">
+                <p class="text-[var(--text-secondary)]">
+                  {{ check.name }}
+                  <span class="text-[var(--text-tertiary)]">— {{ check.message }}</span>
+                </p>
+                <pre
+                  v-if="check.evidence"
+                  class="mt-0.5 max-h-24 overflow-auto whitespace-pre-wrap break-all rounded-[var(--radius-sm)] bg-[var(--bg-primary)] px-2 py-1 font-mono text-[10px] text-[var(--text-tertiary)]"
+                  >{{ check.evidence }}</pre>
+              </div>
+            </li>
           </ul>
         </div>
       </li>

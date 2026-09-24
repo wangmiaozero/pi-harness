@@ -127,7 +127,9 @@ describe('GitService', () => {
     const details = await service.commitDetails(directory, featureCommit.hash)
     expect(details.subject).toBe('feat: add history review')
     expect(details.files).toContainEqual({ status: 'A', path: 'feature.ts', previousPath: null })
-    await expect(service.commitDiff(directory, featureCommit.hash, 'feature.ts')).resolves.toMatchObject({
+    await expect(
+      service.commitDiff(directory, featureCommit.hash, 'feature.ts')
+    ).resolves.toMatchObject({
       truncated: false,
       patch: expect.stringContaining('export const review = true')
     })

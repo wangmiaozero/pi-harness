@@ -33,9 +33,7 @@ export class DiagnosticsService {
   ): HarnessDiagnostic[] {
     const diagnostics: HarnessDiagnostic[] = []
     const failedSpans = (trace?.spans ?? []).filter((span) => span.status === 'failed')
-    const policyBlocks = (trace?.events ?? []).filter(
-      (item) => item.event.type === 'policy.denied'
-    )
+    const policyBlocks = (trace?.events ?? []).filter((item) => item.event.type === 'policy.denied')
 
     if (run.status === 'failed' || run.error) {
       const category = classifyFailure(run, failedSpans, evaluation)
@@ -82,8 +80,7 @@ export class DiagnosticsService {
         eventId: firstEventId(trace, 'budget.exceeded'),
         spanId: null,
         evidence: run.budgetExceeded,
-        recommendation:
-          'Raise the budget in Policy or split the task into smaller runs.',
+        recommendation: 'Raise the budget in Policy or split the task into smaller runs.',
         causeChain: []
       })
     }
@@ -303,7 +300,10 @@ export function classifyFailure(
   return 'unknown'
 }
 
-function severityFor(run: HarnessRun, category: HarnessDiagnosticCategory): HarnessDiagnosticSeverity {
+function severityFor(
+  run: HarnessRun,
+  category: HarnessDiagnosticCategory
+): HarnessDiagnosticSeverity {
   if (category === 'provider-failure' || category === 'unknown') return 'error'
   if (run.status === 'failed') return 'critical'
   return 'error'
@@ -418,10 +418,7 @@ function evidenceFor(
   return parts.length ? parts.join('\n') : null
 }
 
-function firstEventId(
-  trace: HarnessRunTrace | null,
-  type: string
-): string | null {
+function firstEventId(trace: HarnessRunTrace | null, type: string): string | null {
   return trace?.events.find((item) => item.event.type === type)?.id ?? null
 }
 

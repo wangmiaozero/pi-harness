@@ -227,7 +227,9 @@ watch(open, (value) => {
           :key="vendor.label"
           type="button"
           class="flex w-full items-center gap-2 rounded-[6px] px-2 py-1.5 text-left text-[13px] text-[var(--text-primary)] outline-none"
-          :class="openVendor === vendor.label ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)]'"
+          :class="
+            openVendor === vendor.label ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)]'
+          "
           :data-select-cascade-group="vendor.label"
           :data-vendor="vendor.label"
           @pointerenter="revealVendor(vendor.label)"
@@ -313,7 +315,9 @@ watch(open, (value) => {
             {{ $t('workspace.thinkingIntensity') }}
             <span class="font-normal">{{ thinkingValue }}</span>
           </span>
-          <div class="relative z-10 flex items-center justify-between px-1 pt-2 pb-1 text-[11.5px] text-[var(--text-secondary)]">
+          <div
+            class="relative z-10 flex items-center justify-between px-1 pt-2 pb-1 text-[11.5px] text-[var(--text-secondary)]"
+          >
             <span>{{ $t('workspace.thinkingFaster') }}</span>
             <span>{{ $t('workspace.thinkingDeeper') }}</span>
           </div>

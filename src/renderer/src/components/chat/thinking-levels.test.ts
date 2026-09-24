@@ -57,13 +57,21 @@ describe('composer thinking levels', () => {
 
   it('ignites the effect at medium and peaks on the last stop', () => {
     const levels = composerThinkingLevels(null)
-    expect(thinkingEffectState('low', levels)).toMatchObject({ ignited: false, max: false, power: 0 })
+    expect(thinkingEffectState('low', levels)).toMatchObject({
+      ignited: false,
+      max: false,
+      power: 0
+    })
     expect(thinkingEffectState('medium', levels).ignited).toBe(true)
     expect(thinkingEffectState('medium', levels).max).toBe(false)
     expect(thinkingEffectState('medium', levels).power).toBeGreaterThan(0)
     expect(thinkingEffectState('medium', levels).power).toBeLessThan(1)
     expect(thinkingEffectState('high', levels)).toMatchObject({ ignited: true, max: false })
     expect(thinkingEffectState('max', levels)).toMatchObject({ ignited: true, max: true, power: 1 })
-    expect(thinkingEffectState('ultra', levels)).toMatchObject({ ignited: true, max: true, power: 1 })
+    expect(thinkingEffectState('ultra', levels)).toMatchObject({
+      ignited: true,
+      max: true,
+      power: 1
+    })
   })
 })

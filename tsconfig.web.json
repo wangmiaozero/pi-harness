@@ -22,10 +22,9 @@
     "noEmit": true,
     "composite": true,
     "tsBuildInfoFile": ".tsbuildinfo/web.tsbuildinfo",
-    "baseUrl": ".",
     "paths": {
-      "@renderer/*": ["src/renderer/src/*"],
-      "@shared/*": ["src/shared/*"]
+      "@renderer/*": ["./src/renderer/src/*"],
+      "@shared/*": ["./src/shared/*"]
     }
   },
   "include": [

@@ -100,7 +100,9 @@ export class ReplayService {
       if (message.role === 'bashExecution') {
         if (typeof message.command !== 'string' || !message.command.trim()) continue
         const failed =
-          typeof message.exitCode === 'number' && message.exitCode !== 0 && message.cancelled !== true
+          typeof message.exitCode === 'number' &&
+          message.exitCode !== 0 &&
+          message.cancelled !== true
         const span: HarnessTraceSpan = {
           id: `span-h-${entry.id}`,
           runId: run.id,
@@ -173,7 +175,8 @@ export class ReplayService {
                   cacheRead: usage.cacheRead ?? 0,
                   cacheWrite: usage.cacheWrite ?? 0,
                   total:
-                    usage.total ?? (usage.input ?? 0) + (usage.output ?? 0) + (usage.cacheRead ?? 0),
+                    usage.total ??
+                    (usage.input ?? 0) + (usage.output ?? 0) + (usage.cacheRead ?? 0),
                   cost: typeof usage.cost?.total === 'number' ? usage.cost.total : null
                 }
               }
@@ -189,7 +192,7 @@ export class ReplayService {
         const toolName =
           (typeof message.toolName === 'string' && message.toolName) ||
           (typeof message.toolCallId === 'string'
-            ? toolNames.get(message.toolCallId) ?? null
+            ? (toolNames.get(message.toolCallId) ?? null)
             : null) ||
           'tool'
         push({ type: 'tool.completed', timestamp, toolName, isError: message.isError === true })

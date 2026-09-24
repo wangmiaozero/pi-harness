@@ -288,10 +288,7 @@ export const useOrchestrationStore = defineStore('orchestration', () => {
     await refreshSnapshot()
   }
 
-  async function setAgentBudget(
-    agentId: string,
-    budget: HarnessAgentBudget
-  ): Promise<void> {
+  async function setAgentBudget(agentId: string, budget: HarnessAgentBudget): Promise<void> {
     mutating.value = true
     try {
       await callApi(() => getApi().orchestration.setAgentBudget(agentId, budget))
@@ -315,9 +312,7 @@ export const useOrchestrationStore = defineStore('orchestration', () => {
     if (!id) throw new Error('No orchestration selected')
     mutating.value = true
     try {
-      await callApi(() =>
-        getApi().orchestration.createTask({ orchestrationId: id, ...input })
-      )
+      await callApi(() => getApi().orchestration.createTask({ orchestrationId: id, ...input }))
     } finally {
       mutating.value = false
     }

@@ -48,10 +48,7 @@ function weekLabel(start: string): string {
 }
 
 function escapeTooltip(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 function weekTooltip(index: number): string {
@@ -139,7 +136,9 @@ onBeforeUnmount(() => {
   <div class="flex flex-col gap-4" data-testid="git-activity-details">
     <div class="grid grid-cols-3 gap-2">
       <div class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-3 py-2">
-        <p class="text-[10px] text-[var(--text-tertiary)]">{{ $t('workspace.gitActivityTotal') }}</p>
+        <p class="text-[10px] text-[var(--text-tertiary)]">
+          {{ $t('workspace.gitActivityTotal') }}
+        </p>
         <p class="mt-0.5 text-[16px] font-semibold text-[var(--text-primary)]">
           {{ summary.total.toLocaleString() }}
         </p>
@@ -176,8 +175,13 @@ onBeforeUnmount(() => {
             {{ authorInitials(author.name || author.email) }}
           </span>
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-[12px] text-[var(--text-primary)]">{{ author.name }}</span>
-            <span v-if="author.email" class="block truncate text-[10px] text-[var(--text-tertiary)]">
+            <span class="block truncate text-[12px] text-[var(--text-primary)]">{{
+              author.name
+            }}</span>
+            <span
+              v-if="author.email"
+              class="block truncate text-[10px] text-[var(--text-tertiary)]"
+            >
               {{ author.email }}
             </span>
           </span>

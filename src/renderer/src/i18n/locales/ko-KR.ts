@@ -119,11 +119,11 @@ export const koKR: MessageTree = {
       '먼저 Node.js를 설치하고 감지를 새로 고친 다음, Pi를 원클릭 설치하거나 명령을 직접 실행하세요.',
     nodeReady: '{node} · npm {npm}',
     nodeMissing: 'Node.js / npm이 필요합니다',
-    nodeOutdated: '{version}은(는) Node.js 22보다 낮습니다',
+    nodeOutdated: '{version}은(는) Node.js 22.19.0보다 낮습니다',
     npmMissing: 'npm을 사용할 수 없습니다',
     nodeDetected: 'Node.js와 npm이 감지되었습니다. 이제 Pi를 설치할 수 있습니다.',
     installNodeFirst: 'npm이 포함된 현재 Node.js LTS를 먼저 설치하세요.',
-    upgradeNodeFirst: 'Pi를 설치하려면 먼저 Node.js를 22 이상으로 업그레이드하세요.',
+    upgradeNodeFirst: 'Pi를 설치하려면 먼저 Node.js를 22.19.0 이상으로 업그레이드하세요.',
     installNode: 'Node.js 설치',
     upgradeNode: 'Node.js 업그레이드',
     nodeInstallConfirm:

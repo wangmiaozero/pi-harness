@@ -27,6 +27,7 @@ export default defineConfigWithVueTs([
     rules: {
       'vue/multi-word-component-names': 'off',
       'vue/html-self-closing': 'off',
+      'vue/html-closing-bracket-newline': 'off',
       'vue/html-indent': 'off',
       'vue/max-attributes-per-line': 'off',
       'vue/multiline-html-element-content-newline': 'off',

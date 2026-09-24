@@ -72,8 +72,12 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
   const repositorySidebar = page.getByTestId('git-repository-sidebar')
   await expect(repositorySidebar.getByRole('button', { name: /^(本地|Local)/ })).toBeVisible()
   await expect(repositorySidebar.getByRole('button', { name: /^(远程|Remote)/ })).toBeVisible()
-  await expect(repositorySidebar.getByRole('button', { name: /^(拉取请求|Pull requests)/ })).toBeVisible()
-  await expect(repositorySidebar.getByRole('button', { name: /^(子模块|Submodules)/ })).toBeVisible()
+  await expect(
+    repositorySidebar.getByRole('button', { name: /^(拉取请求|Pull requests)/ })
+  ).toBeVisible()
+  await expect(
+    repositorySidebar.getByRole('button', { name: /^(子模块|Submodules)/ })
+  ).toBeVisible()
   await expect(repositorySidebar.locator('[data-git-branch="main"]')).toBeVisible()
   await expect(repositorySidebar.locator('[data-git-branch="feature/graph"]')).toBeVisible()
 

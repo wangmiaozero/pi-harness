@@ -28,9 +28,7 @@ defineOptions({ inheritAttrs: false })
 // The concrete comark plugin type lives in a transitive dependency; derive it
 // from the wrapped component instead of coupling this wrapper to that type.
 type MarkdownProps = InstanceType<typeof Markdown>['$props']
-const markdownPlugins = computed(
-  () => props.plugins as NonNullable<MarkdownProps>['plugins']
-)
+const markdownPlugins = computed(() => props.plugins as NonNullable<MarkdownProps>['plugins'])
 
 const displayed = ref(props.value)
 let timer: ReturnType<typeof setTimeout> | null = null

@@ -30,11 +30,7 @@ describe('workspace permission', () => {
 
   it('keeps a single main folder', () => {
     const next = ensureSingleMainFolder(
-      [
-        { role: 'main' as const },
-        { role: 'reference' as const },
-        { role: 'main' as const }
-      ],
+      [{ role: 'main' as const }, { role: 'reference' as const }, { role: 'main' as const }],
       2
     )
     expect(next.map((folder) => folder.role)).toEqual(['reference', 'reference', 'main'])

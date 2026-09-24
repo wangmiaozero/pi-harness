@@ -15,13 +15,13 @@
   <img src="build/icon.png" width="110" alt="Pi-Harness" />
 </p>
 
-<h3 align="center">Desktop Harness &amp; Control Center for Pi Coding Agent</h3>
+<h3 align="center">The Superset Harness for Pi Coding Agent</h3>
 
 <p align="center">
-  <strong>Bring Pi Agent Harness into a visual desktop workspace.</strong>
+  <strong>Native Pi, supercharged.</strong>
 </p>
 
-<p align="center">Everything around Pi, in one place.</p>
+<p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
   Manage models · Run agents · Orchestrate teams · Inspect Harness state · Use Skills · Browse files · Control Git
@@ -46,7 +46,7 @@
 
 ## Why Pi-Harness?
 
-Pi-Harness is a visual Harness Console for Pi Coding Agent. Use Native Pi as-is, or discover and manage optional development methodologies, Skills, extensions, packages, and MCP tools.
+Pi-Harness is an operational superset of Pi Coding Agent. It preserves Pi's native Agent Runtime and compatibility while adding observability, governance, orchestration, recovery, evaluation, and a visual engineering workspace.
 
 [Pi Coding Agent](https://github.com/earendil-works/pi) already has a powerful Agent Harness. Much of its runtime state—context, tools, compaction, queues, and sessions—is naturally exposed through CLI and SDK behavior.
 
@@ -72,6 +72,17 @@ Pi-Harness provides the desktop control plane, visualization, configuration, and
 - work with files and Git beside the agent
 
 **Powered by Pi Agent Harness.**
+
+## Pi Superset Contract
+
+- **Pi Compatibility:** Pi-Harness must not intentionally reduce Native Pi capabilities. Pi sessions, configuration, models, providers, tools, Skills, extensions, packages, context, compaction, Steering, Follow-up, session trees, and Thinking levels remain compatible whenever technically possible.
+- **Pi Is the Runtime:** Native Pi remains the Agent execution runtime. Pi-Harness does not reimplement the Agent Loop, `AgentSession`, context, compaction, tool, Skill, or extension runtimes.
+- **Native Pi Escape Hatch:** Pi-native sessions and configuration remain usable outside Pi-Harness.
+- **Additive by Default:** Harness capabilities enhance Pi without replacing or weakening it.
+- **Shared State:** Pi-Harness uses Pi-native state and formats where possible; Harness-only metadata stays separate.
+- **Upstream First:** New Pi capabilities enter through the compatibility layer first, with capability detection, graceful degradation, and best-effort forward compatibility.
+
+Pi-Harness does not replace Pi. Pi remains the execution foundation.
 
 ## What Pi-Harness already does
 
@@ -170,15 +181,15 @@ The same six product surfaces are shown in both the default and Classical Chines
 
 ### Classical Chinese theme
 
-|                            Workspace (Snow)                             |                             Workspace (Moon)                             |
-| :---------------------------------------------------------------------: | :----------------------------------------------------------------------: |
-| ![Workspace in the Classical Chinese snow theme](docs/古风/Work-1.jpg)  |  ![Workspace in the Classical Chinese moon theme](docs/古风/Work-2.jpg)  |
-|                                  Git                                    |                              **Providers**                               |
-|      ![Git in the Classical Chinese theme](docs/古风/Git.jpg)           |    ![Providers in the Classical Chinese theme](docs/古风/APIs.jpg)       |
-|                               **Models**                                |                            **Capabilities**                              |
-|   ![Models in the Classical Chinese theme](docs/古风/Model.jpg)         |  ![Capabilities in the Classical Chinese theme](docs/古风/Caps.jpg)      |
-|                            **Preferences**                              |                                                                          |
-| ![Preferences in the Classical Chinese theme](docs/古风/Prefs.jpg)      |                                                                          |
+|                            Workspace (Snow)                            |                            Workspace (Moon)                            |
+| :--------------------------------------------------------------------: | :--------------------------------------------------------------------: |
+| ![Workspace in the Classical Chinese snow theme](docs/古风/Work-1.jpg) | ![Workspace in the Classical Chinese moon theme](docs/古风/Work-2.jpg) |
+|                                  Git                                   |                             **Providers**                              |
+|        ![Git in the Classical Chinese theme](docs/古风/Git.jpg)        |    ![Providers in the Classical Chinese theme](docs/古风/APIs.jpg)     |
+|                               **Models**                               |                            **Capabilities**                            |
+|     ![Models in the Classical Chinese theme](docs/古风/Model.jpg)      |   ![Capabilities in the Classical Chinese theme](docs/古风/Caps.jpg)   |
+|                            **Preferences**                             |                                                                        |
+|   ![Preferences in the Classical Chinese theme](docs/古风/Prefs.jpg)   |                                                                        |
 
 ## Coming Next
 
@@ -300,27 +311,34 @@ Every agent executes through a real Pi session: orchestration adds coordination,
 - Verification and quality-check integrations
 - Harness Profiles
 
-## Pi-Harness compared
+## Pi vs Pi-Harness
 
-“Typical desktop client” describes common lightweight chat clients; individual products vary.
-
-| Capability             | Pi CLI            | Typical desktop client | Pi-Harness                        |
-| ---------------------- | ----------------- | ---------------------- | --------------------------------- |
-| Chat and sessions      | Yes               | Usually                | Yes                               |
-| Project workspace      | Terminal          | Basic                  | Native workspace                  |
-| Provider management    | Config            | Limited                | Yes                               |
-| Skills management      | CLI / files       | Limited                | Yes                               |
-| Environment management | Manual            | Rare                   | Yes                               |
-| Harness state          | CLI / SDK         | Limited                | Available and growing             |
-| Runs and trace         | No visual console | Rare                   | Yes, live + history, filterable   |
-| Tool policy and budget | Config files      | Rare                   | Yes, enforced at tool boundary    |
-| Checkpoints / recovery | Manual git        | Rare                   | Resume, fork, retry last run      |
-| Run evaluation         | Manual            | Rare                   | Evidence-based checks             |
-| Agent orchestration    | Not built in      | Rare                   | Teams, tasks, handoffs, reviews   |
-| Context inspection     | CLI / SDK         | Limited                | Basic now; full inspector planned |
-| Tool inspection        | CLI / SDK         | Limited                | Selection now; inspector planned  |
-| Compaction control     | CLI / SDK         | Limited                | Yes                               |
-| Files and Git          | Terminal          | Varies                 | Yes                               |
+| Capability          | Native Pi | Pi-Harness                 |
+| ------------------- | --------- | -------------------------- |
+| Agent Runtime       | Yes       | Native Pi                  |
+| Agent Loop          | Yes       | Native Pi                  |
+| Sessions            | Yes       | Yes + visual management    |
+| Context             | Yes       | Yes + usage view           |
+| Compaction          | Yes       | Yes + visual control       |
+| Steering            | Yes       | Yes                        |
+| Follow-up           | Yes       | Yes                        |
+| Models              | Yes       | Yes + manager              |
+| Thinking            | Yes       | Yes + visual control       |
+| Tools               | Yes       | Yes + selection and policy |
+| Skills              | Yes       | Yes + manager              |
+| Extensions          | Yes       | Yes + package manager      |
+| Runs / Trace        | —         | Yes                        |
+| Replay / Compare    | —         | Yes                        |
+| Evaluation          | —         | Yes                        |
+| Policy / Budget     | —         | Yes                        |
+| Checkpoint/Recovery | —         | Yes                        |
+| Diagnostics         | —         | Yes                        |
+| Regression          | —         | Yes                        |
+| Artifacts           | —         | Yes                        |
+| Multi-Agent         | —         | Yes                        |
+| Task DAG / Handoff  | —         | Yes                        |
+| Review Gates        | —         | Yes                        |
+| Worktree isolation  | —         | Yes                        |
 
 ## Download
 
@@ -360,7 +378,7 @@ For the packaged app:
 
 For development from source:
 
-- Node.js ≥ 22
+- Node.js ≥ 22.19.0
 - pnpm 9.12.1
 
 ## Development

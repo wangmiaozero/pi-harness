@@ -149,7 +149,16 @@
  * macOS Neutral Light — never pure SaaS white. We use a warm off-white ladder
  * so the UI sits on a clean desk, not on a hospital floor.
  * ============================================================================= */
-:root:is([data-theme='light'], [data-theme='pink'], [data-theme='purple'], [data-theme='green'], [data-theme='blue'], [data-theme='orange'], [data-theme='red'], [data-theme='cyan']) {
+:root:is(
+  [data-theme='light'],
+  [data-theme='pink'],
+  [data-theme='purple'],
+  [data-theme='green'],
+  [data-theme='blue'],
+  [data-theme='orange'],
+  [data-theme='red'],
+  [data-theme='cyan']
+) {
   color-scheme: light;
 
   --bg-window: #f2f2f3;

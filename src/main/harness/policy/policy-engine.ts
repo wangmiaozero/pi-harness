@@ -70,7 +70,11 @@ export class PolicyEngine {
   async update(next: HarnessPolicyConfig): Promise<HarnessPolicySnapshot> {
     const normalized = mergeWithDefaults(next)
     await this.store.write(normalized)
-    return { config: normalized, dangerousPatterns: [...DANGEROUS_COMMAND_PATTERNS], updatedAt: Date.now() }
+    return {
+      config: normalized,
+      dangerousPatterns: [...DANGEROUS_COMMAND_PATTERNS],
+      updatedAt: Date.now()
+    }
   }
 
   peek(): HarnessPolicyConfig {
@@ -108,7 +112,10 @@ export class PolicyEngine {
   }
 
   /** Filter a requested tool list down to what policy allows to be active. */
-  filterToolNames(toolNames: string[]): { allowed: string[]; denied: Array<{ name: string; evaluation: PolicyEvaluation }> } {
+  filterToolNames(toolNames: string[]): {
+    allowed: string[]
+    denied: Array<{ name: string; evaluation: PolicyEvaluation }>
+  } {
     const allowed: string[] = []
     const denied: Array<{ name: string; evaluation: PolicyEvaluation }> = []
     for (const name of toolNames) {
@@ -124,7 +131,9 @@ export class PolicyEngine {
     return { decision: config.files[action], domain: 'file', rule: `files.${action}` }
   }
 
-  gitDecision(action: 'commit' | 'push' | 'forcePush' | 'reset' | 'checkout' | 'branchDelete'): PolicyEvaluation {
+  gitDecision(
+    action: 'commit' | 'push' | 'forcePush' | 'reset' | 'checkout' | 'branchDelete'
+  ): PolicyEvaluation {
     const config = this.peek()
     return { decision: config.git[action], domain: 'git', rule: `git.${action}` }
   }
@@ -243,19 +252,22 @@ export function mergeWithDefaults(
 ): HarnessPolicyConfig {
   if (!value || typeof value !== 'object') return structuredClone(DEFAULT_POLICY_CONFIG)
   const decision = (candidate: unknown, fallback: HarnessPolicyDecision): HarnessPolicyDecision =>
-    candidate === 'allow' || candidate === 'ask' || candidate === 'deny'
-      ? candidate
-      : fallback
+    candidate === 'allow' || candidate === 'ask' || candidate === 'deny' ? candidate : fallback
   const stringList = (candidate: unknown, fallback: string[]): string[] =>
     Array.isArray(candidate)
-      ? candidate.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      ? candidate.filter(
+          (item): item is string => typeof item === 'string' && item.trim().length > 0
+        )
       : fallback
   const positiveOrNull = (candidate: unknown): number | null =>
     typeof candidate === 'number' && Number.isFinite(candidate) && candidate > 0 ? candidate : null
   const overrides: Record<string, HarnessPolicyDecision> = {}
   if (value.tools && typeof value.tools.overrides === 'object' && value.tools.overrides !== null) {
     for (const [toolName, toolDecision] of Object.entries(value.tools.overrides)) {
-      if (toolName && (toolDecision === 'allow' || toolDecision === 'ask' || toolDecision === 'deny')) {
+      if (
+        toolName &&
+        (toolDecision === 'allow' || toolDecision === 'ask' || toolDecision === 'deny')
+      ) {
         overrides[toolName] = toolDecision
       }
     }
@@ -339,8 +351,9 @@ function normalizeStageKinds(
     'custom-check'
   ]
   if (!Array.isArray(candidate)) return [...fallback]
-  const stages = candidate.filter((item): item is HarnessPolicyConfig['evaluation']['customStages'][number] =>
-    (allowed as string[]).includes(String(item))
+  const stages = candidate.filter(
+    (item): item is HarnessPolicyConfig['evaluation']['customStages'][number] =>
+      (allowed as string[]).includes(String(item))
   )
   return stages.length ? [...new Set(stages)] : [...fallback]
 }

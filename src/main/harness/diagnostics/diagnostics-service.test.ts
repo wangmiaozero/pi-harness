@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type {
-  HarnessRun,
-  HarnessRunTrace,
-  HarnessTraceSpan
-} from '@shared/types/harness'
+import type { HarnessRun, HarnessRunTrace, HarnessTraceSpan } from '@shared/types/harness'
 import { buildInsights, classifyFailure, DiagnosticsService } from './diagnostics-service'
 
 function run(overrides: Partial<HarnessRun> = {}): HarnessRun {

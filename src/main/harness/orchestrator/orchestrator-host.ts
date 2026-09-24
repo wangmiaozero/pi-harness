@@ -101,10 +101,7 @@ export function createOrchestrator(
   worktrees: WorktreeService
 ): OrchestratorService {
   const store = new OrchestrationStore(
-    new JsonStore<OrchestrationStoreRecord>(
-      harnessOrchestrationPath(),
-      EMPTY_ORCHESTRATION_STORE
-    )
+    new JsonStore<OrchestrationStoreRecord>(harnessOrchestrationPath(), EMPTY_ORCHESTRATION_STORE)
   )
   return new Service(store, createOrchestratorHost(harness, workspace, worktrees))
 }

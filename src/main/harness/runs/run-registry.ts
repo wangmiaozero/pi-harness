@@ -250,7 +250,13 @@ export class RunRegistry {
           model: null,
           provider: null,
           prompt: (event.message ?? '').slice(0, PROMPT_PREVIEW_LENGTH),
-          usage: { inputTokens: 0, outputTokens: 0, cachedTokens: 0, totalTokens: 0, estimatedCost: null },
+          usage: {
+            inputTokens: 0,
+            outputTokens: 0,
+            cachedTokens: 0,
+            totalTokens: 0,
+            estimatedCost: null
+          },
           toolCallCount: 0,
           toolFailureCount: 0,
           contextUsage: null,
@@ -297,8 +303,7 @@ export class RunRegistry {
           live.run.usage.totalTokens +=
             event.usage.input + event.usage.output + event.usage.cacheRead
           if (event.usage.cost !== null && Number.isFinite(event.usage.cost)) {
-            live.run.usage.estimatedCost =
-              (live.run.usage.estimatedCost ?? 0) + event.usage.cost
+            live.run.usage.estimatedCost = (live.run.usage.estimatedCost ?? 0) + event.usage.cost
           }
         }
         if (event.model && !live.run.model) live.run.model = event.model
@@ -312,10 +317,7 @@ export class RunRegistry {
         if (live.run.status === 'queued' || live.run.status === 'running')
           live.run.status = 'tool-calling'
         const stepId = `step-${++this.stepCounter}`
-        live.openToolStepIds.set(
-          event.toolCallId ?? `${event.toolName}:${event.timestamp}`,
-          stepId
-        )
+        live.openToolStepIds.set(event.toolCallId ?? `${event.toolName}:${event.timestamp}`, stepId)
         this.addStep(live, {
           id: stepId,
           kind: 'tool',
@@ -371,7 +373,9 @@ export class RunRegistry {
       case 'compaction.completed': {
         const live = this.active.get(sessionId)
         if (!live) return
-        const step = [...live.run.steps].reverse().find((candidate) => candidate.kind === 'compaction' && candidate.status === 'running')
+        const step = [...live.run.steps]
+          .reverse()
+          .find((candidate) => candidate.kind === 'compaction' && candidate.status === 'running')
         if (step) {
           step.status = event.aborted ? 'skipped' : 'success'
           step.finishedAt = event.timestamp
@@ -580,10 +584,7 @@ export class RunRegistry {
     if (budget.maxTokens !== null && usage.totalTokens > budget.maxTokens) {
       limit = 'maxTokens'
       value = `${usage.totalTokens} > ${budget.maxTokens}`
-    } else if (
-      budget.maxCost !== null &&
-      (usage.estimatedCost ?? 0) > budget.maxCost
-    ) {
+    } else if (budget.maxCost !== null && (usage.estimatedCost ?? 0) > budget.maxCost) {
       limit = 'maxCost'
       value = `$${usage.estimatedCost?.toFixed(4)} > $${budget.maxCost}`
     } else if (budget.maxToolCalls !== null && live.run.toolCallCount > budget.maxToolCalls) {

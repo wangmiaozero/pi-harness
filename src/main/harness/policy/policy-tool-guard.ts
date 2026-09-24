@@ -65,7 +65,12 @@ async function assertPolicyAllowed(
   // write / edit tools — File Policy.
   const target = readStringArg(args, ['path', 'file', 'file_path', 'filePath', 'target'])
   const evaluation = policy.fileDecision('write')
-  const allowed = await resolve(policy, context, target ?? `${toolName} (unknown target)`, evaluation)
+  const allowed = await resolve(
+    policy,
+    context,
+    target ?? `${toolName} (unknown target)`,
+    evaluation
+  )
   if (!allowed) {
     throw new Error(
       `Blocked by Harness Policy (files.write = ${evaluation.decision}): ${target ?? toolName}`

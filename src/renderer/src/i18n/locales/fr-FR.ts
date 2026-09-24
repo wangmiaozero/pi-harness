@@ -118,11 +118,12 @@ export const frFR: MessageTree = {
       'Installez d\'abord Node.js, actualisez la détection, puis installez Pi en un clic ou exécutez la commande manuellement.',
     nodeReady: '{node} · npm {npm}',
     nodeMissing: 'Node.js / npm requis',
-    nodeOutdated: '{version} est inférieur à Node.js 22',
+    nodeOutdated: '{version} est inférieur à Node.js 22.19.0',
     npmMissing: 'npm est indisponible',
     nodeDetected: 'Node.js et npm détectés. Vous pouvez installer Pi maintenant.',
     installNodeFirst: 'Installez la version LTS actuelle de Node.js, qui inclut npm.',
-    upgradeNodeFirst: 'Mettez Node.js à jour vers la version 22 ou plus récente avant d\'installer Pi.',
+    upgradeNodeFirst:
+      'Mettez Node.js à jour vers la version 22.19.0 ou plus récente avant d\'installer Pi.',
     installNode: 'Installer Node.js',
     upgradeNode: 'Mettre à jour Node.js',
     nodeInstallConfirm:

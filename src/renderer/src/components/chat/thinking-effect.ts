@@ -86,7 +86,9 @@ export function currentVisualSkin(): string {
 }
 
 function accentPalette(): ThinkingEffectPalette {
-  const accent = parseCssColor(getComputedStyle(document.documentElement).getPropertyValue('--accent'))
+  const accent = parseCssColor(
+    getComputedStyle(document.documentElement).getPropertyValue('--accent')
+  )
   if (!accent) return DEFAULT_PALETTE
   return {
     kind: 'motes',
@@ -105,6 +107,10 @@ function parseCssColor(value: string): [number, number, number] | null {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]
 }
 
-function mix(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
+function mix(
+  a: [number, number, number],
+  b: [number, number, number],
+  t: number
+): [number, number, number] {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
 }

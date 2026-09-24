@@ -11,7 +11,7 @@ import {
 } from '../environment/command-resolver'
 import { inspectNpmPrefix, npmBinDirectory } from '../environment/npm-environment'
 
-export const MINIMUM_NODE_VERSION = '22.0.0'
+export const MINIMUM_NODE_VERSION = '22.19.0'
 
 async function addVersionDirectories(
   directories: Set<string>,

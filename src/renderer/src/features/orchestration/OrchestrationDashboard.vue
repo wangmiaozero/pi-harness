@@ -18,9 +18,7 @@ const taskStats = computed(() => {
   const tasks = store.snapshot?.tasks ?? []
   const counts = new Map<string, number>()
   for (const task of tasks) counts.set(task.status, (counts.get(task.status) ?? 0) + 1)
-  return tasks.length
-    ? [...counts.entries()].map(([status, count]) => ({ status, count }))
-    : []
+  return tasks.length ? [...counts.entries()].map(([status, count]) => ({ status, count })) : []
 })
 
 const budgetTokens = computed(() => {
@@ -48,8 +46,7 @@ function fmtTime(timestamp: number | null): string {
 }
 
 const agentNameById = computed<Map<string, string>>(
-  () =>
-    new Map((store.snapshot?.agents ?? []).map((item) => [item.agent.id, item.agent.name]))
+  () => new Map((store.snapshot?.agents ?? []).map((item) => [item.agent.id, item.agent.name]))
 )
 
 function agentName(agentId: string): string {
@@ -89,15 +86,22 @@ const eventLabel: Record<string, string> = {
     <section class="harness-card" data-testid="orchestration-dashboard">
       <h3 class="harness-card-title">{{ t('orchestration.dashboardStatus') }}</h3>
       <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div class="harness-metric rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-2.5">
+        <div
+          class="harness-metric rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-2.5"
+        >
           <span class="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">
             {{ t('orchestration.metricTasks') }}
           </span>
           <span class="text-[15px] font-semibold text-[var(--text-primary)]">
-            {{ orch.successCount }}/{{ (orch.successCount ?? 0) + (orch.failureCount ?? 0) || (store.snapshot?.tasks.length ?? 0) }}
+            {{ orch.successCount }}/{{
+              (orch.successCount ?? 0) + (orch.failureCount ?? 0) ||
+              (store.snapshot?.tasks.length ?? 0)
+            }}
           </span>
         </div>
-        <div class="harness-metric rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-2.5">
+        <div
+          class="harness-metric rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-2.5"
+        >
           <span class="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">
             {{ t('orchestration.metricAgents') }}
           </span>
@@ -105,7 +109,9 @@ const eventLabel: Record<string, string> = {
             {{ store.snapshot?.agents.length ?? 0 }}
           </span>
         </div>
-        <div class="harness-metric rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-2.5">
+        <div
+          class="harness-metric rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-2.5"
+        >
           <span class="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">
             {{ t('orchestration.metricTokens') }}
           </span>
@@ -113,7 +119,9 @@ const eventLabel: Record<string, string> = {
             {{ fmtTokens(orch.totalTokens ?? 0) }}
           </span>
         </div>
-        <div class="harness-metric rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-2.5">
+        <div
+          class="harness-metric rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-2.5"
+        >
           <span class="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">
             {{ t('orchestration.metricCost') }}
           </span>
@@ -168,11 +176,7 @@ const eventLabel: Record<string, string> = {
       </p>
     </section>
 
-    <section
-      v-if="costShares.length"
-      class="harness-card"
-      data-testid="orchestration-cost-shares"
-    >
+    <section v-if="costShares.length" class="harness-card" data-testid="orchestration-cost-shares">
       <h3 class="harness-card-title">{{ t('orchestration.costShares') }}</h3>
       <div class="mt-3 space-y-1.5">
         <div
@@ -217,17 +221,14 @@ const eventLabel: Record<string, string> = {
       </ul>
     </section>
 
-    <section
-      v-if="evaluation"
-      class="harness-card"
-      data-testid="orchestration-evaluation"
-    >
+    <section v-if="evaluation" class="harness-card" data-testid="orchestration-evaluation">
       <h3 class="harness-card-title">{{ t('orchestration.evaluation') }}</h3>
       <div class="mt-2 text-[11px] text-[var(--text-secondary)]">
         <p>
           {{ t('orchestration.evaluationStatus') }}: {{ evaluation.status }} ·
-          {{ t('orchestration.evaluationTasks') }}:
-          {{ evaluation.tasksCompleted }}/{{ evaluation.tasksTotal }}
+          {{ t('orchestration.evaluationTasks') }}: {{ evaluation.tasksCompleted }}/{{
+            evaluation.tasksTotal
+          }}
           · {{ t('orchestration.evaluationFailures') }}: {{ evaluation.runsFailed }}
         </p>
         <ul v-if="evaluation.checks.length" class="mt-1.5 space-y-0.5">

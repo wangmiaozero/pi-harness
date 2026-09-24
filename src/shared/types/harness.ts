@@ -35,9 +35,13 @@ export interface HarnessCapabilities {
   steering: boolean
   followUp: boolean
   compaction: boolean
+  abortCompaction: boolean
   autoCompaction: boolean
+  autoRetry: boolean
   thinkingLevel: boolean
   tools: boolean
+  skills: boolean
+  extensions: boolean
   sessionFork: boolean
   sessionTree: boolean
   modelSwitch: boolean
@@ -163,12 +167,7 @@ export interface HarnessRunStep {
   detail?: string
 }
 
-export type HarnessRunRelation =
-  | 'original'
-  | 'fork'
-  | 'retry'
-  | 'recovery'
-  | 'rerun'
+export type HarnessRunRelation = 'original' | 'fork' | 'retry' | 'recovery' | 'rerun'
 
 export interface HarnessRunUsage {
   inputTokens: number
@@ -296,13 +295,7 @@ export interface HarnessPolicySnapshot {
   updatedAt: number
 }
 
-export type HarnessPolicyDomain =
-  | 'tool'
-  | 'file'
-  | 'shell'
-  | 'git'
-  | 'network'
-  | 'budget'
+export type HarnessPolicyDomain = 'tool' | 'file' | 'shell' | 'git' | 'network' | 'budget'
 
 export interface HarnessPolicyDecisionReport {
   sessionId: string
@@ -350,13 +343,7 @@ export interface HarnessEvaluationCheck {
 
 /** Stage kinds of the evaluation pipeline. Deterministic — no LLM judging. */
 export type HarnessEvaluationStageKind =
-  | 'static-check'
-  | 'lint'
-  | 'typecheck'
-  | 'test'
-  | 'build'
-  | 'git-inspection'
-  | 'custom-check'
+  'static-check' | 'lint' | 'typecheck' | 'test' | 'build' | 'git-inspection' | 'custom-check'
 
 export interface HarnessEvaluationStage {
   id: string
@@ -537,14 +524,7 @@ export interface HarnessInsight {
 // ---------------------------------------------------------------------------
 
 export type HarnessRegressionMetric =
-  | 'tokens'
-  | 'cost'
-  | 'duration'
-  | 'tool-calls'
-  | 'tool-failures'
-  | 'tests'
-  | 'build'
-  | 'evaluation'
+  'tokens' | 'cost' | 'duration' | 'tool-calls' | 'tool-failures' | 'tests' | 'build' | 'evaluation'
 
 export type HarnessRegressionSeverity = 'info' | 'warning' | 'regression' | 'improvement'
 
@@ -755,12 +735,7 @@ export interface HarnessTask {
 }
 
 export type HarnessOrchestrationStatus =
-  | 'pending'
-  | 'running'
-  | 'paused'
-  | 'completed'
-  | 'failed'
-  | 'aborted'
+  'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'aborted'
 
 export type HarnessOrchestrationStrategy = 'manual' | 'sequential' | 'dependency'
 

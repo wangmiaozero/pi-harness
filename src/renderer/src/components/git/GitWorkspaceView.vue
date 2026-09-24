@@ -2,7 +2,18 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { Archive, ArchiveRestore, ArrowDownToLine, ArrowUpToLine, ChevronDown, GitBranch, GitCommitHorizontal, RefreshCw, Search, X } from '@lucide/vue'
+import {
+  Archive,
+  ArchiveRestore,
+  ArrowDownToLine,
+  ArrowUpToLine,
+  ChevronDown,
+  GitBranch,
+  GitCommitHorizontal,
+  RefreshCw,
+  Search,
+  X
+} from '@lucide/vue'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
 import type {
@@ -199,8 +210,7 @@ async function runAction(
   if (!cwd || actionBusy.value) return
   actionBusy.value = true
   try {
-    const request =
-      typeof action === 'string' ? { cwd, action } : { cwd, ...action }
+    const request = typeof action === 'string' ? { cwd, action } : { cwd, ...action }
     await callApi(() => getApi().git.action(request))
     await workspace.refreshContent()
     await loadHistory()
@@ -240,7 +250,10 @@ async function runCommitMenuAction(id: string) {
     return
   }
   if (id === 'checkout') {
-    await runAction({ action: 'checkout-commit', target: commit.hash }, t('workspace.gitCheckoutCommit'))
+    await runAction(
+      { action: 'checkout-commit', target: commit.hash },
+      t('workspace.gitCheckoutCommit')
+    )
     return
   }
   if (id === 'merge') {
@@ -545,9 +558,7 @@ defineExpose({
           v-model="promptValue"
           autofocus
           :placeholder="
-            promptMode === 'create-tag'
-              ? $t('workspace.gitTagName')
-              : $t('workspace.gitBranchName')
+            promptMode === 'create-tag' ? $t('workspace.gitTagName') : $t('workspace.gitBranchName')
           "
         />
       </form>

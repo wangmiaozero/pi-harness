@@ -155,9 +155,11 @@ watch(
           :key="scope"
           type="button"
           class="rounded-[var(--radius-sm)] border px-2 py-0.5 text-[10.5px] transition-colors"
-          :class="harness.runScope === scope
-            ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)]'
-            : 'border-transparent text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]'"
+          :class="
+            harness.runScope === scope
+              ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)]'
+              : 'border-transparent text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]'
+          "
           :aria-pressed="harness.runScope === scope"
           :data-testid="`harness-runs-scope-${scope}`"
           @click="setScope(scope)"
@@ -196,7 +198,15 @@ watch(
         >
           <div class="flex items-center gap-2">
             <component
-              :is="run.status === 'success' ? CheckCircle2 : run.status === 'failed' ? XCircle : run.status === 'aborted' ? SkipForward : Loader2"
+              :is="
+                run.status === 'success'
+                  ? CheckCircle2
+                  : run.status === 'failed'
+                    ? XCircle
+                    : run.status === 'aborted'
+                      ? SkipForward
+                      : Loader2
+              "
               class="size-3.5 shrink-0"
               :class="[statusTone[run.status], run.status === 'running' ? 'animate-spin' : '']"
             />
@@ -211,7 +221,9 @@ watch(
               :class="harness.currentRunId === run.id ? 'rotate-90' : ''"
             />
           </div>
-          <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-5.5 text-[10.5px] text-[var(--text-tertiary)]">
+          <div
+            class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-5.5 text-[10.5px] text-[var(--text-tertiary)]"
+          >
             <span :class="statusTone[run.status]">{{ statusLabel(run.status) }}</span>
             <span class="inline-flex items-center gap-1">
               <Coins class="size-3" />{{ tokens(run) }} tokens
@@ -223,10 +235,16 @@ watch(
               <Hammer class="size-3" />{{ run.toolCallCount }}
               <template v-if="run.toolFailureCount">({{ run.toolFailureCount }} ✗)</template>
             </span>
-            <span v-if="run.budgetExceeded" class="inline-flex items-center gap-1 text-[var(--error)]">
+            <span
+              v-if="run.budgetExceeded"
+              class="inline-flex items-center gap-1 text-[var(--error)]"
+            >
               <AlertTriangle class="size-3" />{{ run.budgetExceeded }}
             </span>
-            <span v-if="run.agentId && agentName(run.agentId)" class="inline-flex items-center gap-1 text-[var(--accent)]">
+            <span
+              v-if="run.agentId && agentName(run.agentId)"
+              class="inline-flex items-center gap-1 text-[var(--accent)]"
+            >
               <Bot class="size-3" />{{ agentName(run.agentId) }}
             </span>
             <span v-if="run.source === 'history'" class="text-[var(--text-disabled)]">
@@ -274,7 +292,9 @@ watch(
           </p>
 
           <div v-if="run.steps.length" class="mt-3">
-            <p class="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+            <p
+              class="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+            >
               {{ $t('workspace.harnessRunSteps') }}
             </p>
             <ol class="max-h-56 space-y-1 overflow-y-auto pr-1">
@@ -292,7 +312,10 @@ watch(
                 <span class="min-w-0 flex-1 truncate text-[var(--text-secondary)]">
                   {{ step.name }}
                 </span>
-                <span v-if="step.detail" class="max-w-[45%] truncate text-[10px] text-[var(--text-tertiary)]">
+                <span
+                  v-if="step.detail"
+                  class="max-w-[45%] truncate text-[10px] text-[var(--text-tertiary)]"
+                >
                   {{ step.detail }}
                 </span>
                 <span class="shrink-0 text-[10px] text-[var(--text-tertiary)]">
@@ -308,9 +331,21 @@ watch(
           >
             <div class="flex items-center gap-1.5 text-[11px]">
               <component
-                :is="selectedEvaluation.status === 'passed' ? CheckCircle2 : selectedEvaluation.status === 'warning' ? AlertTriangle : XCircle"
+                :is="
+                  selectedEvaluation.status === 'passed'
+                    ? CheckCircle2
+                    : selectedEvaluation.status === 'warning'
+                      ? AlertTriangle
+                      : XCircle
+                "
                 class="size-3.5"
-                :class="selectedEvaluation.status === 'passed' ? 'text-[var(--success)]' : selectedEvaluation.status === 'warning' ? 'text-[var(--warning)]' : 'text-[var(--error)]'"
+                :class="
+                  selectedEvaluation.status === 'passed'
+                    ? 'text-[var(--success)]'
+                    : selectedEvaluation.status === 'warning'
+                      ? 'text-[var(--warning)]'
+                      : 'text-[var(--error)]'
+                "
               />
               <span class="text-[var(--text-secondary)]">
                 {{ $t('workspace.harnessEvaluation') }}:
@@ -323,7 +358,10 @@ watch(
             <button
               type="button"
               class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
-              :disabled="harness.mutating || ['queued', 'running', 'waiting', 'tool-calling', 'verifying'].includes(run.status)"
+              :disabled="
+                harness.mutating ||
+                ['queued', 'running', 'waiting', 'tool-calling', 'verifying'].includes(run.status)
+              "
               @click="evaluate(run.id)"
             >
               <span class="inline-flex items-center gap-1">
@@ -357,7 +395,10 @@ watch(
             >
               {{ $t('workspace.harnessRerunRun') }}
             </button>
-            <span v-if="run.checkpointIds.length" class="inline-flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)]">
+            <span
+              v-if="run.checkpointIds.length"
+              class="inline-flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)]"
+            >
               <Clock class="size-3" />{{ run.checkpointIds.length }}
               {{ $t('workspace.harnessCheckpoints') }}
             </span>

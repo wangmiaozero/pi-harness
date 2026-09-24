@@ -199,12 +199,16 @@ export class TeamService {
       return created.id
     }
 
-    const presets: Array<{ name: string; roles: Array<(typeof BUILTIN_TEMPLATE_ROLES)[number]> }> = [
-      { name: 'Solo', roles: ['backend'] },
-      { name: 'Developer + Reviewer', roles: ['backend', 'reviewer'] },
-      { name: 'Frontend + Backend + Reviewer', roles: ['frontend', 'backend', 'reviewer'] },
-      { name: 'Architect + Frontend + Backend + QA + Reviewer', roles: ['architect', 'frontend', 'backend', 'qa', 'reviewer'] }
-    ]
+    const presets: Array<{ name: string; roles: Array<(typeof BUILTIN_TEMPLATE_ROLES)[number]> }> =
+      [
+        { name: 'Solo', roles: ['backend'] },
+        { name: 'Developer + Reviewer', roles: ['backend', 'reviewer'] },
+        { name: 'Frontend + Backend + Reviewer', roles: ['frontend', 'backend', 'reviewer'] },
+        {
+          name: 'Architect + Frontend + Backend + QA + Reviewer',
+          roles: ['architect', 'frontend', 'backend', 'qa', 'reviewer']
+        }
+      ]
 
     for (const preset of presets) {
       if (byName.has(preset.name)) continue

@@ -139,10 +139,7 @@ async function cleanupBackups(): Promise<void> {
       {{ $t('settings.cleanupHint', { count: draft.backupRetention }) }}
     </p>
     <div class="border-t border-[var(--border-subtle)]">
-      <div
-        v-if="store.backupsLoading"
-        class="px-3 py-3 text-[11.5px] text-[var(--text-tertiary)]"
-      >
+      <div v-if="store.backupsLoading" class="px-3 py-3 text-[11.5px] text-[var(--text-tertiary)]">
         {{ $t('settings.loadingBackups') }}
       </div>
       <div
@@ -177,7 +174,11 @@ async function cleanupBackups(): Promise<void> {
             <IconButton :label="$t('common.restore')" @click="restoreBackup(backup.id)">
               <RotateCcw class="size-3.5" :stroke-width="1.75" />
             </IconButton>
-            <IconButton variant="danger" :label="$t('common.delete')" @click="deleteBackup(backup.id)">
+            <IconButton
+              variant="danger"
+              :label="$t('common.delete')"
+              @click="deleteBackup(backup.id)"
+            >
               <Trash2 class="size-3.5" :stroke-width="1.75" />
             </IconButton>
           </div>

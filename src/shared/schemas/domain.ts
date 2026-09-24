@@ -94,9 +94,7 @@ export const modelFormSchema = z.object({
   contextWindow: z.number().int().positive().nullable(),
   maxOutputTokens: z.number().int().positive().nullable(),
   input: z.array(piInputTypeSchema).optional(),
-  thinkingLevels: z
-    .partialRecord(piThinkingLevelSchema, z.union([z.string(), z.null()]))
-    .optional()
+  thinkingLevels: z.partialRecord(piThinkingLevelSchema, z.union([z.string(), z.null()])).optional()
 })
 
 export const setActiveModelSchema = z.object({

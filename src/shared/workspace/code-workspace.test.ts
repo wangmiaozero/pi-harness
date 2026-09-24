@@ -14,21 +14,21 @@ describe('code-workspace parser', () => {
     expect(
       resolveWorkspaceFolderPath('/Users/wangmiao/code/AgentDesk.code-workspace', 'AgentDesk')
     ).toBe('/Users/wangmiao/code/AgentDesk')
-    expect(resolveWorkspaceFolderPath('/Users/wangmiao/code/AgentDesk.code-workspace', 'opencode')).toBe(
-      '/Users/wangmiao/code/opencode'
-    )
+    expect(
+      resolveWorkspaceFolderPath('/Users/wangmiao/code/AgentDesk.code-workspace', 'opencode')
+    ).toBe('/Users/wangmiao/code/opencode')
   })
 
   it('keeps absolute POSIX and Windows folder paths', () => {
-    expect(resolveWorkspaceFolderPath('/tmp/ws.code-workspace', '/Users/wangmiao/code/AgentDesk')).toBe(
-      '/Users/wangmiao/code/AgentDesk'
-    )
+    expect(
+      resolveWorkspaceFolderPath('/tmp/ws.code-workspace', '/Users/wangmiao/code/AgentDesk')
+    ).toBe('/Users/wangmiao/code/AgentDesk')
     expect(
       resolveWorkspaceFolderPath('C:\\Users\\me\\ws.code-workspace', 'D:\\Code\\AgentDesk', 'win32')
     ).toBe('D:\\Code\\AgentDesk')
-    expect(resolveWorkspaceFolderPath('C:\\Users\\me\\ws.code-workspace', 'AgentDesk', 'win32')).toBe(
-      'C:\\Users\\me\\AgentDesk'
-    )
+    expect(
+      resolveWorkspaceFolderPath('C:\\Users\\me\\ws.code-workspace', 'AgentDesk', 'win32')
+    ).toBe('C:\\Users\\me\\AgentDesk')
   })
 
   it('serializes sibling folders as relative paths and preserves unknown settings', () => {
@@ -46,10 +46,7 @@ describe('code-workspace parser', () => {
       "extensions": { "recommendations": ["vue.volar"] }
     }`)
 
-    expect(parsed.folders).toEqual([
-      { path: 'AgentDesk' },
-      { path: 'opencode', name: 'OpenCode' }
-    ])
+    expect(parsed.folders).toEqual([{ path: 'AgentDesk' }, { path: 'opencode', name: 'OpenCode' }])
     expect(parsed.settings?.['editor.fontSize']).toBe(14)
     expect(parsed.extensions).toEqual({ recommendations: ['vue.volar'] })
 
@@ -85,11 +82,11 @@ describe('code-workspace parser', () => {
         folderMeta: { opencode: { role: 'dependency' } }
       })
     ).toBe('dependency')
-    expect(folderReadonlyFromSettings(folder, { folderMeta: { opencode: { readonly: true } } })).toBe(
-      true
-    )
-    expect(folderRoleFromSettings({ path: 'AgentDesk', resolvedPath: '/code/AgentDesk' }, 0, {})).toBe(
-      'main'
-    )
+    expect(
+      folderReadonlyFromSettings(folder, { folderMeta: { opencode: { readonly: true } } })
+    ).toBe(true)
+    expect(
+      folderRoleFromSettings({ path: 'AgentDesk', resolvedPath: '/code/AgentDesk' }, 0, {})
+    ).toBe('main')
   })
 })

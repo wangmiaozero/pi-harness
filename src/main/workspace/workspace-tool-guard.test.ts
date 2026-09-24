@@ -20,7 +20,9 @@ describe('workspace tool guard', () => {
     })
     wrapWorkspaceWriteTools(session, assertWritable)
     await expect(
-      (session.getAllTools()[0] as unknown as { execute: (args: unknown) => Promise<unknown> }).execute({
+      (
+        session.getAllTools()[0] as unknown as { execute: (args: unknown) => Promise<unknown> }
+      ).execute({
         path: '/code/ref/a.ts'
       })
     ).rejects.toThrow('readonly:/code/ref/a.ts')

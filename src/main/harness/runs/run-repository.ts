@@ -43,7 +43,9 @@ export class JsonRunRepository implements RunRepository {
     const record = await this.store.read()
     const byId = new Map(record.runs.map((existing) => [existing.id, existing]))
     for (const run of runs) byId.set(run.id, run)
-    const next = [...byId.values()].sort((a, b) => b.startedAt - a.startedAt).slice(0, MAX_PERSISTED_RUNS)
+    const next = [...byId.values()]
+      .sort((a, b) => b.startedAt - a.startedAt)
+      .slice(0, MAX_PERSISTED_RUNS)
     await this.store.write({ schemaVersion: 1, runs: next })
   }
 
@@ -159,7 +161,10 @@ export function relationLabelKey(relation: HarnessRunRelation): string {
 }
 
 /** Safely log repository failures without breaking the run pipeline. */
-export async function withRepositoryLog<T>(operation: string, task: () => Promise<T>): Promise<T | null> {
+export async function withRepositoryLog<T>(
+  operation: string,
+  task: () => Promise<T>
+): Promise<T | null> {
   try {
     return await task()
   } catch (error) {

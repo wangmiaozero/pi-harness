@@ -1,9 +1,4 @@
-export type UnifiedDiffLineKind =
-  | 'meta'
-  | 'hunk'
-  | 'context'
-  | 'addition'
-  | 'deletion'
+export type UnifiedDiffLineKind = 'meta' | 'hunk' | 'context' | 'addition' | 'deletion'
 
 export interface UnifiedDiffLine {
   kind: UnifiedDiffLineKind

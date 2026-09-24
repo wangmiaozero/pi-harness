@@ -220,10 +220,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
           (a, b) => Number(isSessionPinned(b.id)) - Number(isSessionPinned(a.id))
         )
       }))
-      .sort(
-        (a, b) =>
-          Number(isProjectPinned(b.projectKey)) - Number(isProjectPinned(a.projectKey))
-      )
+      .sort((a, b) => Number(isProjectPinned(b.projectKey)) - Number(isProjectPinned(a.projectKey)))
   })
   // Every source root across all workspace projects, in stable project order.
   const gitRoots = computed(() => {

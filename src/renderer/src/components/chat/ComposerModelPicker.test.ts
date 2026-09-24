@@ -42,7 +42,9 @@ describe('ComposerModelPicker', () => {
     expect(vendors.map((vendor) => vendor.dataset.selectCascadeGroup)).toEqual(['NVIDIA', 'OpenAI'])
     expect(document.body.querySelector('[role="listbox"]')?.textContent).toContain('MiniMax M3')
     expect(document.body.querySelector('[data-testid="composer-thinking-slider"]')).toBeTruthy()
-    expect(document.body.textContent).toContain(String(i18n.global.t('workspace.thinkingIntensity')))
+    expect(document.body.textContent).toContain(
+      String(i18n.global.t('workspace.thinkingIntensity'))
+    )
     expect(document.body.textContent).toContain('medium')
     expect(document.body.textContent).toContain(String(i18n.global.t('workspace.thinkingFaster')))
 

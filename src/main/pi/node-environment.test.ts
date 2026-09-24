@@ -10,7 +10,8 @@ import {
 describe('Node.js version policy', () => {
   it.each([
     ['v24.15.0', true],
-    ['v22.0.0', true],
+    ['v22.19.0', true],
+    ['v22.18.0', false],
     ['26.1.0', true],
     ['v20.19.0', false],
     ['v18.20.8', false],
@@ -21,7 +22,7 @@ describe('Node.js version policy', () => {
 
   it('normalizes version output without reducing it to a major integer', () => {
     expect(normalizeNodeVersion('node v24.15.0')).toBe('24.15.0')
-    expect(normalizeNodeVersion('v22.0.0-rc.1')).toBe('22.0.0-rc.1')
+    expect(normalizeNodeVersion('v22.19.0-rc.1')).toBe('22.19.0-rc.1')
   })
 
   it('prioritizes the interactive shell PATH over GUI fallback directories', async () => {

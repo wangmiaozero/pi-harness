@@ -27,7 +27,13 @@ function run(overrides: Partial<HarnessRun> = {}): HarnessRun {
     model: 'test-model',
     provider: null,
     prompt: 'ship it',
-    usage: { inputTokens: 0, outputTokens: 0, cachedTokens: 0, totalTokens: 0, estimatedCost: null },
+    usage: {
+      inputTokens: 0,
+      outputTokens: 0,
+      cachedTokens: 0,
+      totalTokens: 0,
+      estimatedCost: null
+    },
     toolCallCount: 0,
     toolFailureCount: 0,
     contextUsage: null,
@@ -107,7 +113,13 @@ describe('collectExecutedCommands', () => {
       bashEntry('b2', '2024-01-01T00:00:03.000Z', 'pnpm build', 1),
       {
         ...bashEntry('b3', '2024-01-01T00:00:04.000Z', 'rm -rf x', 0),
-        message: { role: 'bashExecution', command: 'rm -rf x', output: '', exitCode: 0, cancelled: true }
+        message: {
+          role: 'bashExecution',
+          command: 'rm -rf x',
+          output: '',
+          exitCode: 0,
+          cancelled: true
+        }
       } as unknown as SessionEntry
     ]
     expect(collectExecutedCommands(entries)).toEqual([
@@ -196,9 +208,10 @@ describe('EvaluationService', () => {
     expect(byId.get('build-executed')?.status).toBe('passed')
     expect(byId.get('lint-executed')?.status).toBe('passed')
     expect(evaluation.pipeline?.finalStatus).toBe('passed')
-    expect(
-      evaluation.pipeline?.stages.map((stage) => [stage.kind, stage.status])
-    ).toContainEqual(['typecheck', 'passed'])
+    expect(evaluation.pipeline?.stages.map((stage) => [stage.kind, stage.status])).toContainEqual([
+      'typecheck',
+      'passed'
+    ])
     expect(await service.get('s1', 'h:entry-1')).toEqual(evaluation)
   })
 
@@ -212,10 +225,7 @@ describe('EvaluationService', () => {
       getGitStatus: vi.fn(async () => gitStatus())
     })
 
-    const evaluation = await service.evaluate(
-      's1',
-      run({ status: 'failed', error: 'boom' })
-    )
+    const evaluation = await service.evaluate('s1', run({ status: 'failed', error: 'boom' }))
 
     expect(evaluation.status).toBe('failed')
     const byId = new Map(evaluation.checks.map((check) => [check.id, check]))
@@ -249,9 +259,9 @@ describe('EvaluationService', () => {
     const evaluation = await service.evaluate('s1', run())
 
     expect(evaluation.status).toBe('warning')
-    expect(
-      evaluation.checks.find((check) => check.id === 'expected-changes')?.status
-    ).toBe('warning')
+    expect(evaluation.checks.find((check) => check.id === 'expected-changes')?.status).toBe(
+      'warning'
+    )
   })
 
   it('flags merge conflicts in the git workspace as failed', async () => {

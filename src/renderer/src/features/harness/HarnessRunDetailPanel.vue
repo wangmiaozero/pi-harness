@@ -45,12 +45,17 @@ const events = computed(() => detail.value?.trace?.events ?? [])
 const total = computed(() => events.value.length)
 
 const speed = computed(() => SPEEDS[speedIndex.value])
-const speedLabel = computed(() => (speed.value === 0 ? t('workspace.harnessReplayInstant') : `${speed.value}x`))
+const speedLabel = computed(() =>
+  speed.value === 0 ? t('workspace.harnessReplayInstant') : `${speed.value}x`
+)
 
 const progress = computed(() => (total.value ? (cursor.value + 1) / total.value : 0))
 
 const pastEvents = computed(() =>
-  events.value.slice(0, cursor.value + 1).slice(-60).reverse()
+  events.value
+    .slice(0, cursor.value + 1)
+    .slice(-60)
+    .reverse()
 )
 const activeEvent = computed(() => events.value[cursor.value] ?? null)
 
@@ -180,16 +185,25 @@ async function exportDebug(): Promise<void> {
           <h3 class="harness-card-title truncate">
             {{ detail.run.prompt || t('workspace.harnessRunUntitled') }}
           </h3>
-          <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10.5px] text-[var(--text-tertiary)]">
-            <span :data-testid="`harness-run-detail-relation`">{{ relationLabel(detail.run.relation) }}</span>
+          <p
+            class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10.5px] text-[var(--text-tertiary)]"
+          >
+            <span :data-testid="`harness-run-detail-relation`">{{
+              relationLabel(detail.run.relation)
+            }}</span>
             <span>·</span>
-            <span v-if="agentName(detail.run.agentId)" class="inline-flex items-center gap-1 text-[var(--accent)]">
+            <span
+              v-if="agentName(detail.run.agentId)"
+              class="inline-flex items-center gap-1 text-[var(--accent)]"
+            >
               <Bot class="size-3" />{{ agentName(detail.run.agentId) }}
             </span>
             <span v-if="agentName(detail.run.agentId)">·</span>
             <span>{{ detail.run.model ?? '—' }}</span>
             <span v-if="detail.run.provider">· {{ detail.run.provider }}</span>
-            <span v-if="detail.run.forkedFromRunId">· forked from {{ detail.run.forkedFromRunId.slice(0, 18) }}</span>
+            <span v-if="detail.run.forkedFromRunId"
+              >· forked from {{ detail.run.forkedFromRunId.slice(0, 18) }}</span
+            >
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-1.5">
@@ -261,7 +275,11 @@ async function exportDebug(): Promise<void> {
         </div>
         <div class="harness-metric min-h-14">
           <span>{{ t('workspace.harnessRunCost') }}</span>
-          <strong>{{ detail.run.usage.estimatedCost === null ? '—' : `$${detail.run.usage.estimatedCost.toFixed(4)}` }}</strong>
+          <strong>{{
+            detail.run.usage.estimatedCost === null
+              ? '—'
+              : `$${detail.run.usage.estimatedCost.toFixed(4)}`
+          }}</strong>
         </div>
         <div class="harness-metric min-h-14">
           <span>{{ t('workspace.harnessRunToolCalls') }}</span>
@@ -269,7 +287,9 @@ async function exportDebug(): Promise<void> {
         </div>
         <div class="harness-metric min-h-14">
           <span>{{ t('workspace.harnessRunDuration') }}</span>
-          <strong>{{ detail.run.finishedAt ? duration(detail.run.finishedAt - detail.run.startedAt) : '—' }}</strong>
+          <strong>{{
+            detail.run.finishedAt ? duration(detail.run.finishedAt - detail.run.startedAt) : '—'
+          }}</strong>
         </div>
       </div>
 
@@ -283,7 +303,9 @@ async function exportDebug(): Promise<void> {
           <button
             type="button"
             class="flex size-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
-            :aria-label="playing ? t('workspace.harnessReplayPause') : t('workspace.harnessReplayPlay')"
+            :aria-label="
+              playing ? t('workspace.harnessReplayPause') : t('workspace.harnessReplayPlay')
+            "
             :data-testid="`harness-replay-${playing ? 'pause' : 'play'}`"
             @click="toggle"
           >
@@ -342,7 +364,13 @@ async function exportDebug(): Promise<void> {
             <span class="text-[var(--text-tertiary)]">{{ time(item.event.timestamp) }}</span>
             <span
               class="size-1.5 shrink-0 rounded-full"
-              :class="item.event.type.endsWith('failed') || item.event.type.endsWith('error') ? 'bg-[var(--error)]' : item.event.type.endsWith('completed') ? 'bg-[var(--success)]' : 'bg-[var(--text-disabled)]'"
+              :class="
+                item.event.type.endsWith('failed') || item.event.type.endsWith('error')
+                  ? 'bg-[var(--error)]'
+                  : item.event.type.endsWith('completed')
+                    ? 'bg-[var(--success)]'
+                    : 'bg-[var(--text-disabled)]'
+              "
             />
             <span class="truncate">{{ item.event.type }}</span>
           </li>
@@ -370,7 +398,11 @@ async function exportDebug(): Promise<void> {
         >
           <div class="flex flex-wrap items-center gap-2 text-[12px] font-medium">
             <component
-              :is="diagnostic.severity === 'info' || diagnostic.severity === 'warning' ? AlertTriangle : XCircle"
+              :is="
+                diagnostic.severity === 'info' || diagnostic.severity === 'warning'
+                  ? AlertTriangle
+                  : XCircle
+              "
               class="size-3.5"
             />
             {{ diagnostic.title }}
@@ -402,7 +434,9 @@ async function exportDebug(): Promise<void> {
 
       <!-- Insights -->
       <div v-if="detail.insights.length" class="mt-4">
-        <p class="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+        <p
+          class="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+        >
           {{ t('workspace.harnessInsights') }}
         </p>
         <div class="flex flex-wrap gap-1.5">
@@ -413,21 +447,33 @@ async function exportDebug(): Promise<void> {
             :data-testid="`harness-insight`"
           >
             <component
-              :is="insight.kind.includes('delta') && Number(insight.params.percent) > 0 ? TrendingUp : insight.kind.includes('delta') ? TrendingDown : Gauge"
+              :is="
+                insight.kind.includes('delta') && Number(insight.params.percent) > 0
+                  ? TrendingUp
+                  : insight.kind.includes('delta')
+                    ? TrendingDown
+                    : Gauge
+              "
               class="size-3"
             />
-            {{ t(`workspace.harnessInsight.${insight.kind}`, insight.params as Record<string, unknown>) }}
+            {{ t(`workspace.harnessInsight.${insight.kind}`, insight.params) }}
           </span>
         </div>
       </div>
 
       <!-- Regression vs baseline -->
       <div v-if="detail.regression" class="mt-4">
-        <p class="mb-1.5 flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+        <p
+          class="mb-1.5 flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+        >
           <Target class="size-3" />
-          {{ t('workspace.harnessRegressionVsBaseline') }}: {{ detail.regression.baseline.runLabel }}
+          {{ t('workspace.harnessRegressionVsBaseline') }}:
+          {{ detail.regression.baseline.runLabel }}
         </p>
-        <p v-if="!detail.regression.findings.length" class="text-[11px] text-[var(--text-tertiary)]">
+        <p
+          v-if="!detail.regression.findings.length"
+          class="text-[11px] text-[var(--text-tertiary)]"
+        >
           {{ t('workspace.harnessRegressionNoFindings') }}
         </p>
         <ul v-else class="space-y-0.5">
@@ -438,10 +484,18 @@ async function exportDebug(): Promise<void> {
             :class="findingTone[finding.severity]"
           >
             <component
-              :is="finding.severity === 'improvement' ? CheckCircle2 : finding.severity === 'info' ? Activity : AlertTriangle"
+              :is="
+                finding.severity === 'improvement'
+                  ? CheckCircle2
+                  : finding.severity === 'info'
+                    ? Activity
+                    : AlertTriangle
+              "
               class="size-3 shrink-0"
             />
-            <span class="font-medium">{{ t(`workspace.harnessRegressionMetric.${finding.metric}`) }}</span>
+            <span class="font-medium">{{
+              t(`workspace.harnessRegressionMetric.${finding.metric}`)
+            }}</span>
             <span class="text-[var(--text-secondary)]">{{ finding.message }}</span>
             <span v-if="finding.deltaPercent !== null" class="tabular-nums">
               {{ finding.deltaPercent > 0 ? '+' : '' }}{{ finding.deltaPercent }}%
@@ -452,7 +506,9 @@ async function exportDebug(): Promise<void> {
 
       <!-- Artifacts -->
       <div v-if="detail.artifacts.length" class="mt-4">
-        <p class="mb-1.5 flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+        <p
+          class="mb-1.5 flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+        >
           <Copy class="size-3" />
           {{ t('workspace.harnessArtifacts') }} ({{ detail.artifacts.length }})
         </p>

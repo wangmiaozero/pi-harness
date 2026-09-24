@@ -10,10 +10,7 @@ const unlimitedBudget: HarnessPolicyBudget = {
   maxRunDurationMs: null
 }
 
-function createRegistry(
-  overrides: Partial<RunRegistryHooks> = {},
-  entries: SessionEntry[] = []
-) {
+function createRegistry(overrides: Partial<RunRegistryHooks> = {}, entries: SessionEntry[] = []) {
   const emitted: HarnessEvent[] = []
   const hooks: RunRegistryHooks = {
     emit: (_sessionId: string, event: HarnessEvent) => {
@@ -54,7 +51,12 @@ describe('RunRegistry', () => {
       model: 'claude-x',
       provider: 'anthropic'
     })
-    registry.handleEvent('s1', { type: 'tool.started', timestamp: 1300, toolCallId: 'tc1', toolName: 'bash' })
+    registry.handleEvent('s1', {
+      type: 'tool.started',
+      timestamp: 1300,
+      toolCallId: 'tc1',
+      toolName: 'bash'
+    })
     registry.handleEvent('s1', {
       type: 'tool.completed',
       timestamp: 1400,
@@ -92,10 +94,25 @@ describe('RunRegistry', () => {
   it('correlates tool steps by toolCallId and falls back to name matching', () => {
     const { registry } = createRegistry()
     registry.handleEvent('s1', promptEvent('tools', 1000))
-    registry.handleEvent('s1', { type: 'tool.started', timestamp: 1100, toolCallId: 'a', toolName: 'bash' })
+    registry.handleEvent('s1', {
+      type: 'tool.started',
+      timestamp: 1100,
+      toolCallId: 'a',
+      toolName: 'bash'
+    })
     registry.handleEvent('s1', { type: 'tool.started', timestamp: 1200, toolName: 'write' })
-    registry.handleEvent('s1', { type: 'tool.completed', timestamp: 1300, toolCallId: 'a', toolName: 'bash' })
-    registry.handleEvent('s1', { type: 'tool.completed', timestamp: 1400, toolName: 'write', isError: true })
+    registry.handleEvent('s1', {
+      type: 'tool.completed',
+      timestamp: 1300,
+      toolCallId: 'a',
+      toolName: 'bash'
+    })
+    registry.handleEvent('s1', {
+      type: 'tool.completed',
+      timestamp: 1400,
+      toolName: 'write',
+      isError: true
+    })
 
     const run = registry.getCurrentRun('s1')
     expect(run?.steps.filter((step) => step.kind === 'tool')).toEqual(
@@ -136,8 +153,18 @@ describe('RunRegistry', () => {
     })
 
     registry.handleEvent('s1', promptEvent('budget', 1000))
-    registry.handleEvent('s1', { type: 'tool.started', timestamp: 1100, toolCallId: 'a', toolName: 'bash' })
-    registry.handleEvent('s1', { type: 'tool.completed', timestamp: 1200, toolCallId: 'a', toolName: 'bash' })
+    registry.handleEvent('s1', {
+      type: 'tool.started',
+      timestamp: 1100,
+      toolCallId: 'a',
+      toolName: 'bash'
+    })
+    registry.handleEvent('s1', {
+      type: 'tool.completed',
+      timestamp: 1200,
+      toolCallId: 'a',
+      toolName: 'bash'
+    })
     registry.handleEvent('s1', {
       type: 'tool.completed',
       timestamp: 1300,
@@ -200,8 +227,14 @@ describe('RunRegistry', () => {
     expect(history[0]).toMatchObject({ source: 'history', prompt: 'historical prompt' })
 
     // Once the same anchor is observed live, the history duplicate disappears.
-    registry.handleEvent('s1', promptEvent('historical prompt', Date.parse('2024-01-01T00:00:01.000Z')))
-    registry.handleEvent('s1', { type: 'prompt.completed', timestamp: Date.parse('2024-01-01T00:00:03.000Z') })
+    registry.handleEvent(
+      's1',
+      promptEvent('historical prompt', Date.parse('2024-01-01T00:00:01.000Z'))
+    )
+    registry.handleEvent('s1', {
+      type: 'prompt.completed',
+      timestamp: Date.parse('2024-01-01T00:00:03.000Z')
+    })
     await vi.waitFor(async () => {
       const runs = await registry.listRuns('s1')
       expect(runs).toHaveLength(1)

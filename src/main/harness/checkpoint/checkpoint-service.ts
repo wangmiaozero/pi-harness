@@ -11,11 +11,7 @@ import { randomUUID } from 'node:crypto'
 import type { JsonStore } from '../../services/storage'
 import { log } from '../../services/logger'
 import { HarnessError } from '../harness-error'
-import type {
-  HarnessCheckpoint,
-  HarnessEvent,
-  HarnessForkResult
-} from '@shared/types/harness'
+import type { HarnessCheckpoint, HarnessEvent, HarnessForkResult } from '@shared/types/harness'
 
 const MAX_CHECKPOINTS_TOTAL = 500
 const MAX_CHECKPOINTS_PER_SESSION = 100
@@ -34,7 +30,9 @@ export interface CheckpointSessionState {
 export interface CheckpointHooks {
   getSessionState: (sessionId: string) => Promise<CheckpointSessionState>
   getGitState: (cwd: string | null) => Promise<CheckpointGitState | null>
-  getContextState: (sessionId: string) => Promise<{ percent: number | null; tokens: number | null } | null>
+  getContextState: (
+    sessionId: string
+  ) => Promise<{ percent: number | null; tokens: number | null } | null>
   navigateTree: (sessionId: string, entryId: string) => Promise<unknown>
   fork: (sessionId: string, entryId: string) => Promise<HarnessForkResult>
   prompt: (sessionId: string, message: string) => Promise<unknown>
@@ -114,7 +112,10 @@ export class CheckpointService {
   }
 
   /** Navigate the session tree back to the checkpoint anchor, then optionally prompt. */
-  async resume(checkpointId: string, message?: string): Promise<{
+  async resume(
+    checkpointId: string,
+    message?: string
+  ): Promise<{
     resumed: boolean
     prompted: boolean
   }> {

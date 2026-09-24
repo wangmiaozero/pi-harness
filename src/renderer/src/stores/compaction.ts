@@ -295,7 +295,10 @@ function compactionFailure(error: unknown): CompactionResult {
   if (code === 'CAPABILITY_NOT_SUPPORTED' || code === 'COMPACTION_NOT_AVAILABLE') {
     return { status: 'unsupported' }
   }
-  if (code === 'SESSION_NOT_FOUND' || /no (harness )?session selected|session not found/i.test(message)) {
+  if (
+    code === 'SESSION_NOT_FOUND' ||
+    /no (harness )?session selected|session not found/i.test(message)
+  ) {
     return { status: 'session-missing' }
   }
   if (/Nothing to compact|session too small/i.test(message)) return { status: 'session-too-small' }
@@ -355,9 +358,7 @@ function notifyCompactionResult(result: CompactionResult): void {
         return
       }
       if (typeof before === 'number') {
-        toast.success(
-          String(t('workspace.compactDoneTokens', { tokens: before.toLocaleString() }))
-        )
+        toast.success(String(t('workspace.compactDoneTokens', { tokens: before.toLocaleString() })))
         return
       }
       toast.success(String(t('workspace.compactDone')))

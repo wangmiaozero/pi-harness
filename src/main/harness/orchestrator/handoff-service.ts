@@ -6,11 +6,7 @@
  * recorded back onto the artifacts, so "who received what" is answerable.
  */
 
-import type {
-  AgentHandoff,
-  HarnessArtifact,
-  HarnessEvent
-} from '@shared/types/harness'
+import type { AgentHandoff, HarnessArtifact, HarnessEvent } from '@shared/types/harness'
 import { newHandoffId, type OrchestrationStore } from './orchestration-store'
 
 export interface HandoffHooks {
@@ -66,9 +62,7 @@ export class HandoffService {
   }
 
   /** Resolve which upstream agents produced the artifacts a task consumes. */
-  async upstreamProducers(
-    artifacts: readonly HarnessArtifact[]
-  ): Promise<Map<string, string>> {
+  async upstreamProducers(artifacts: readonly HarnessArtifact[]): Promise<Map<string, string>> {
     const producers = new Map<string, string>()
     for (const artifact of artifacts) {
       if (artifact.producedByAgentId) producers.set(artifact.id, artifact.producedByAgentId)

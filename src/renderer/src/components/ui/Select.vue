@@ -478,7 +478,10 @@ watch(
         :style="panelStyle"
         @pointerdown.stop
       >
-        <div class="ui-select-menu__list overflow-y-auto" :style="{ maxHeight: `${listMaxHeight}px` }">
+        <div
+          class="ui-select-menu__list overflow-y-auto"
+          :style="{ maxHeight: `${listMaxHeight}px` }"
+        >
           <button
             v-for="(group, groupIndex) in cascadeGroups"
             :id="vendorId(groupIndex)"
@@ -522,7 +525,9 @@ watch(
               opt.disabled ? 'cursor-not-allowed opacity-45' : ''
             ]"
             :disabled="opt.disabled"
-            @pointermove="!opt.disabled && ((activeIndex = optionIndex(opt)), (cascadeFocus = 'option'))"
+            @pointermove="
+              !opt.disabled && ((activeIndex = optionIndex(opt)), (cascadeFocus = 'option'))
+            "
             @mousedown.prevent="pick(opt)"
           >
             <span
@@ -601,7 +606,10 @@ watch(
         :style="panelStyle"
         @pointerdown.stop
       >
-        <div class="ui-select-menu__list overflow-y-auto" :style="{ maxHeight: `${listMaxHeight}px` }">
+        <div
+          class="ui-select-menu__list overflow-y-auto"
+          :style="{ maxHeight: `${listMaxHeight}px` }"
+        >
           <div
             v-for="(group, groupIndex) in optionGroups"
             :key="group.label ?? `ungrouped-${groupIndex}`"

@@ -69,7 +69,10 @@ async function toggleRun(): Promise<void> {
 </script>
 
 <template>
-  <div data-testid="orchestration-console" class="flex h-full min-h-0 flex-col bg-[var(--bg-workspace)]">
+  <div
+    data-testid="orchestration-console"
+    class="flex h-full min-h-0 flex-col bg-[var(--bg-workspace)]"
+  >
     <header
       class="flex min-h-14 shrink-0 items-center gap-3 border-b border-[var(--border-subtle)] px-5"
     >
@@ -113,13 +116,19 @@ async function toggleRun(): Promise<void> {
         <button
           type="button"
           class="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
-          :disabled="store.mutating || !['pending', 'paused', 'running'].includes(store.current.status)"
+          :disabled="
+            store.mutating || !['pending', 'paused', 'running'].includes(store.current.status)
+          "
           :title="$t('orchestration.toggleRunHint')"
           @click="toggleRun"
         >
           <Play v-if="store.current.status !== 'running'" class="size-3" />
           <Pause v-else class="size-3" />
-          {{ store.current.status === 'running' ? $t('orchestration.pause') : $t('orchestration.start') }}
+          {{
+            store.current.status === 'running'
+              ? $t('orchestration.pause')
+              : $t('orchestration.start')
+          }}
         </button>
         <button
           type="button"
@@ -133,7 +142,10 @@ async function toggleRun(): Promise<void> {
         <button
           type="button"
           class="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--error)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
-          :disabled="store.mutating || !['pending', 'paused', 'failed', 'aborted', 'completed'].includes(store.current.status)"
+          :disabled="
+            store.mutating ||
+            !['pending', 'paused', 'failed', 'aborted', 'completed'].includes(store.current.status)
+          "
           :title="$t('orchestration.deleteHint')"
           data-testid="orchestration-delete"
           @click="removeCurrent"

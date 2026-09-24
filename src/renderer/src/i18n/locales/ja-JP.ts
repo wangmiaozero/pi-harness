@@ -119,11 +119,12 @@ export const jaJP: MessageTree = {
       '先に Node.js をインストールし、検出を更新してから、ワンクリックまたは手動コマンドで Pi をインストールしてください。',
     nodeReady: '{node} · npm {npm}',
     nodeMissing: 'Node.js / npm が必要です',
-    nodeOutdated: '{version} は Node.js 22 未満です',
+    nodeOutdated: '{version} は Node.js 22.19.0 未満です',
     npmMissing: 'npm を利用できません',
     nodeDetected: 'Node.js と npm を検出しました。Pi をインストールできます。',
     installNodeFirst: 'npm 同梱の現行 Node.js LTS を先にインストールしてください。',
-    upgradeNodeFirst: 'Pi をインストールする前に、Node.js を 22 以上へアップグレードしてください。',
+    upgradeNodeFirst:
+      'Pi をインストールする前に、Node.js を 22.19.0 以上へアップグレードしてください。',
     installNode: 'Node.js をインストール',
     upgradeNode: 'Node.js をアップグレード',
     nodeInstallConfirm:

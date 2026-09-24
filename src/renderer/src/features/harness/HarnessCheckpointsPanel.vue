@@ -37,8 +37,7 @@ function time(timestamp: number): string {
 function dirtySummary(checkpoint: HarnessCheckpoint): string {
   if (!checkpoint.gitDirtyState) return ''
   const parts: string[] = []
-  if (checkpoint.gitDirtyState.modified)
-    parts.push(`M ${checkpoint.gitDirtyState.modified}`)
+  if (checkpoint.gitDirtyState.modified) parts.push(`M ${checkpoint.gitDirtyState.modified}`)
   if (checkpoint.gitDirtyState.added) parts.push(`A ${checkpoint.gitDirtyState.added}`)
   if (checkpoint.gitDirtyState.deleted) parts.push(`D ${checkpoint.gitDirtyState.deleted}`)
   return parts.join(' · ')
@@ -108,7 +107,9 @@ async function fork(checkpoint: HarnessCheckpoint): Promise<void> {
           <span class="font-medium text-[var(--text-primary)]">
             {{ $t(reasonLabel[checkpoint.reason]) }}
           </span>
-          <span class="rounded-full border border-[var(--border-subtle)] px-1.5 py-0.5 text-[10px] text-[var(--text-tertiary)]">
+          <span
+            class="rounded-full border border-[var(--border-subtle)] px-1.5 py-0.5 text-[10px] text-[var(--text-tertiary)]"
+          >
             {{ $t(kindLabel[checkpoint.kind]) }}
           </span>
           <span class="text-[var(--text-tertiary)]">{{ time(checkpoint.createdAt) }}</span>
@@ -128,7 +129,10 @@ async function fork(checkpoint: HarnessCheckpoint): Promise<void> {
             {{ dirtySummary(checkpoint) }}
           </span>
           <span
-            v-if="checkpoint.contextState?.percent !== null && checkpoint.contextState?.percent !== undefined"
+            v-if="
+              checkpoint.contextState?.percent !== null &&
+              checkpoint.contextState?.percent !== undefined
+            "
             class="inline-flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)]"
           >
             <MapPin class="size-3" />{{ checkpoint.contextState.percent.toFixed(0) }}%

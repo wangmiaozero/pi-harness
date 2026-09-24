@@ -35,14 +35,14 @@ describe('terminal Node selection', () => {
       vi.mocked(resolveLoginShellPath).mockResolvedValue({
         shell: 'user-shell',
         path: shellBin,
-        node: { path: path.join(nodeBin, 'node'), version: 'v22.0.0' }
+        node: { path: path.join(nodeBin, 'node'), version: 'v22.19.0' }
       })
 
       const runtime = await detectNodeRuntime()
 
       expect(runtime).toMatchObject({
         nodePath: path.join(nodeBin, 'node'),
-        nodeVersion: 'v22.0.0',
+        nodeVersion: 'v22.19.0',
         nodeSupported: true,
         nodeSource: 'login-shell',
         ready: true

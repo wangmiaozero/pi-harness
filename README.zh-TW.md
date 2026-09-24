@@ -16,13 +16,11 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/badlogic/pi-mono">Pi Coding Agent</a> 一站式桌面工作台</strong><br />
-  設定 Pi · 管理模型 · 安裝 Skills 與擴充套件 · 執行 Agent · 管理專案
+  <strong>Pi Coding Agent 的 Superset Harness</strong><br />
+  Native Pi，全面增強。
 </p>
 
-<p align="center">
-  將使用 Pi Coding Agent 所需的環境、Provider、模型、功能與工作區集中到一個原生桌面應用程式中。
-</p>
+<p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="v1.7.0 發行版" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
@@ -57,6 +55,31 @@ Pi → Chat                             Environment
 Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，也不實作第二套 Agent Runtime。Pi Coding Agent 始終是唯一的 Agent Runtime，工作階段與 `~/.pi/agent/sessions/` 下的 Pi CLI JSONL 保持相容。
 
 **設定 Pi。執行 Pi。擴充 Pi。**
+
+## Pi Superset Contract
+
+Pi-Harness 是 Pi Coding Agent 的 operational superset：保留 Native Pi 的 Agent Runtime 與相容性，再加入可觀測性、治理、編排、復原、評估與視覺化工程工作區。
+
+- 不主動降低 Native Pi 能力，並在技術可行時維持 Pi 原生格式相容。
+- Native Pi 始終是執行 Runtime；不重新實作 Agent Loop、Context、Compaction、Tools、Skills 或 Extensions。
+- Pi 原生 Session 與設定仍可獨立使用；Harness 專屬狀態分開儲存。
+- 新增能力預設只做加法；Pi 新功能優先透過相容層接入。
+- 使用 capability detection、graceful degradation 與 best-effort forward compatibility。
+
+## Pi 與 Pi-Harness 能力矩陣
+
+| 能力                                 | Native Pi | Pi-Harness               |
+| ------------------------------------ | --------- | ------------------------ |
+| Agent Runtime / Loop                 | 支援      | Native Pi                |
+| Sessions / Context / Compaction      | 支援      | 支援 + 視覺化管理與控制  |
+| Steering / Follow-up / Thinking      | 支援      | 支援 + 視覺化控制        |
+| Models / Tools / Skills / Extensions | 支援      | 支援 + Manager 與 Policy |
+| Runs / Trace / Replay / Compare      | —         | 支援                     |
+| Policy / Budget / Evaluation         | —         | 支援                     |
+| Checkpoint / Recovery / Diagnostics  | —         | 支援                     |
+| Regression / Artifacts               | —         | 支援                     |
+| Multi-Agent / Task DAG / Handoff     | —         | 支援                     |
+| Review Gates / Worktree 隔離         | —         | 支援                     |
 
 ## 下載
 
@@ -129,15 +152,15 @@ Pi-Harness 不是網頁封裝：不嵌入 pi-web、Next.js 服務或 iframe，�
 
 ### 古風主題
 
-|                    工作區（雪景）                     |                     工作區（月夜）                      |
-| :---------------------------------------------------: | :-----------------------------------------------------: |
-| ![古風主題雪景工作區](docs/古风/Work-1.jpg)           | ![古風主題月夜工作區](docs/古风/Work-2.jpg)             |
-|                         Git                           |                     **Provider**                        |
-|    ![古風主題 Git](docs/古风/Git.jpg)                 | ![古風主題 Provider](docs/古风/APIs.jpg)                |
-|                       **模型**                        |                     **能力中心**                        |
-|  ![古風主題模型](docs/古风/Model.jpg)                 | ![古風主題能力中心](docs/古风/Caps.jpg)                 |
-|                       **設定**                        |                                                         |
-|  ![古風主題設定](docs/古风/Prefs.jpg)                 |                                                         |
+|               工作區（雪景）                |               工作區（月夜）                |
+| :-----------------------------------------: | :-----------------------------------------: |
+| ![古風主題雪景工作區](docs/古风/Work-1.jpg) | ![古風主題月夜工作區](docs/古风/Work-2.jpg) |
+|                     Git                     |                **Provider**                 |
+|     ![古風主題 Git](docs/古风/Git.jpg)      |  ![古風主題 Provider](docs/古风/APIs.jpg)   |
+|                  **模型**                   |                **能力中心**                 |
+|    ![古風主題模型](docs/古风/Model.jpg)     |   ![古風主題能力中心](docs/古风/Caps.jpg)   |
+|                  **設定**                   |                                             |
+|    ![古風主題設定](docs/古风/Prefs.jpg)     |                                             |
 
 ## 核心功能
 
@@ -200,7 +223,7 @@ Pi-Harness 將「管理 Pi、使用 Pi、擴充 Pi」分層，同時始終保持
 
 從原始碼開發：
 
-- Node.js ≥ 22
+- Node.js ≥ 22.19.0
 - pnpm `9.12.1`
 
 ## 開發

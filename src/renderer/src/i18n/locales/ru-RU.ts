@@ -119,11 +119,11 @@ export const ruRU: MessageTree = {
       'Сначала установите Node.js, обновите проверку, затем установите Pi одним нажатием или выполните команду вручную.',
     nodeReady: '{node} · npm {npm}',
     nodeMissing: 'Требуются Node.js / npm',
-    nodeOutdated: '{version} ниже Node.js 22',
+    nodeOutdated: '{version} ниже Node.js 22.19.0',
     npmMissing: 'npm недоступен',
     nodeDetected: 'Обнаружены Node.js и npm. Можно устанавливать Pi.',
     installNodeFirst: 'Сначала установите текущий выпуск Node.js LTS — в него входит npm.',
-    upgradeNodeFirst: 'Перед установкой Pi обновите Node.js до версии 22 или новее.',
+    upgradeNodeFirst: 'Перед установкой Pi обновите Node.js до версии 22.19.0 или новее.',
     installNode: 'Установить Node.js',
     upgradeNode: 'Обновить Node.js',
     nodeInstallConfirm:

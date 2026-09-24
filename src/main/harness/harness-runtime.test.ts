@@ -135,9 +135,9 @@ describe('HarnessRuntime', () => {
       code: 'CAPABILITY_NOT_SUPPORTED'
     })
     expect(
-      runtime.getTimeline('session-1').some(
-        (event) => event.type === 'runtime.error' && event.message === 'Prompt unavailable'
-      )
+      runtime
+        .getTimeline('session-1')
+        .some((event) => event.type === 'runtime.error' && event.message === 'Prompt unavailable')
     ).toBe(true)
   })
 
@@ -270,9 +270,13 @@ function capabilities(): HarnessCapabilities {
     steering: true,
     followUp: true,
     compaction: true,
+    abortCompaction: true,
     autoCompaction: true,
+    autoRetry: true,
     thinkingLevel: true,
     tools: true,
+    skills: true,
+    extensions: true,
     sessionFork: true,
     sessionTree: true,
     modelSwitch: true,

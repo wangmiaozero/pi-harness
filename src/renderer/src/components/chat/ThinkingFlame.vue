@@ -110,7 +110,8 @@ function startParticles() {
     return {
       x: anywhere ? Math.random() * width : width + 4,
       y: 1 + Math.random() * (height - 2),
-      speed: kind === 'embers' ? 22 + depth * 70 : kind === 'stars' ? 18 + depth * 90 : 10 + depth * 36,
+      speed:
+        kind === 'embers' ? 22 + depth * 70 : kind === 'stars' ? 18 + depth * 90 : 10 + depth * 36,
       lift: kind === 'embers' ? (Math.random() - 0.35) * 14 : 0,
       size: kind === 'motes' ? 1.1 + depth * 1.6 : 0.55 + depth * 1.2,
       alpha: 0.35 + depth * 0.55
@@ -137,7 +138,13 @@ function startParticles() {
       ctx.fillRect(dot.x, dot.y - dot.size / 2, streak + dot.size, dot.size)
     }
     if (props.max && !shooting && Math.random() < dt / (props.ultra ? 0.72 : 1.8)) {
-      shooting = { ...make(false), speed: 220 + Math.random() * 140, size: 1.3, alpha: 0.95, life: 1 }
+      shooting = {
+        ...make(false),
+        speed: 220 + Math.random() * 140,
+        size: 1.3,
+        alpha: 0.95,
+        life: 1
+      }
     }
     if (shooting) {
       shooting.x -= shooting.speed * dt
@@ -194,7 +201,11 @@ function startPixelation() {
   frames[1] = requestAnimationFrame(draw)
 }
 
-function applyPalette(gl: WebGLRenderingContext, program: WebGLProgram, next: ThinkingEffectPalette) {
+function applyPalette(
+  gl: WebGLRenderingContext,
+  program: WebGLProgram,
+  next: ThinkingEffectPalette
+) {
   gl.uniform3f(gl.getUniformLocation(program, 'u_c0'), ...next.deep)
   gl.uniform3f(gl.getUniformLocation(program, 'u_c1'), ...next.mid)
   gl.uniform3f(gl.getUniformLocation(program, 'u_c2'), ...next.hot)
@@ -283,10 +294,7 @@ function startFlame() {
 .thinking-flame--ultra {
   inset: -7px -12px;
   border-radius: 13px;
-  filter:
-    saturate(1.25)
-    brightness(1.12)
-    drop-shadow(0 0 8px var(--thinking-wash))
+  filter: saturate(1.25) brightness(1.12) drop-shadow(0 0 8px var(--thinking-wash))
     drop-shadow(0 0 18px var(--thinking-wash));
 }
 

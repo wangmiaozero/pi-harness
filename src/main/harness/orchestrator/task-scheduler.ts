@@ -57,8 +57,7 @@ export class TaskScheduler {
     if (orchestration.strategy === 'sequential') {
       const ordered = [...readyTasks].sort(
         (a, b) =>
-          PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority] ||
-          a.createdAt - b.createdAt
+          PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority] || a.createdAt - b.createdAt
       )
       if (snapshot.runningRunCount >= 1) return []
       const first = ordered[0]
@@ -75,15 +74,11 @@ export class TaskScheduler {
     // both concurrency ceilings and one-run-per-agent at a time.
     const ordered = [...readyTasks].sort(
       (a, b) =>
-        PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority] ||
-        a.createdAt - b.createdAt
+        PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority] || a.createdAt - b.createdAt
     )
     const candidates: DispatchCandidate[] = []
     const runningAgents = new Set(snapshot.runningAgentIds)
-    let runSlots = Math.max(
-      0,
-      orchestration.maxConcurrentRuns - snapshot.runningRunCount
-    )
+    let runSlots = Math.max(0, orchestration.maxConcurrentRuns - snapshot.runningRunCount)
     for (const task of ordered) {
       if (runSlots <= 0) break
       if (runningAgents.size >= orchestration.maxConcurrentAgents) break

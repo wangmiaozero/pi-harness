@@ -45,8 +45,7 @@ export class RunExportService {
     format: 'json' | 'markdown',
     defaultName?: string
   ): Promise<HarnessExportResult> {
-    const body =
-      format === 'json' ? this.renderJson(payload) : this.renderMarkdown(payload)
+    const body = format === 'json' ? this.renderJson(payload) : this.renderMarkdown(payload)
     const ext = format === 'json' ? 'json' : 'md'
     const result = await dialog.showSaveDialog({
       defaultPath: `run-${sanitize(defaultName || payload.run.id)}.${ext}`,
@@ -134,7 +133,9 @@ export class RunExportService {
     if (artifacts.length) {
       lines.push('## Artifacts', '')
       for (const artifact of artifacts) {
-        lines.push(`- [${artifact.type}] ${artifact.name}${artifact.path ? ` (${artifact.path})` : ''}`)
+        lines.push(
+          `- [${artifact.type}] ${artifact.name}${artifact.path ? ` (${artifact.path})` : ''}`
+        )
       }
       lines.push('')
     }
@@ -149,7 +150,8 @@ export class RunExportService {
             lines.push(`- ${cause.title}: ${cause.message}`)
           }
         }
-        if (diagnostic.recommendation) lines.push('', `Recommendation: ${diagnostic.recommendation}`)
+        if (diagnostic.recommendation)
+          lines.push('', `Recommendation: ${diagnostic.recommendation}`)
         lines.push('')
       }
     }

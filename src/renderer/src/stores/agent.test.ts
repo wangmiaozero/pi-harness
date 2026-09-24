@@ -125,9 +125,7 @@ describe('agent store new-session handshake', () => {
     const agent = useAgentStore()
     agent.thinkingLevel = 'ultra'
     await agent.send(null, '/code/project', 'hello', 'default')
-    expect(start).toHaveBeenCalledWith(
-      expect.objectContaining({ thinkingLevel: 'high' })
-    )
+    expect(start).toHaveBeenCalledWith(expect.objectContaining({ thinkingLevel: 'high' }))
     expect(agent.thinkingLevel).toBe('ultra')
 
     await agent.compact('session-hi')
@@ -575,9 +573,7 @@ describe('agent store new-session handshake', () => {
       }
     ])
 
-    expect(agent.streaming.streamingMessage?.content).toEqual([
-      { type: 'text', text: '批量事件' }
-    ])
+    expect(agent.streaming.streamingMessage?.content).toEqual([{ type: 'text', text: '批量事件' }])
     expect(agent.completionCount).toBe(1)
   })
 

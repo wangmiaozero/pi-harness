@@ -96,7 +96,10 @@ describe('PolicyEngine', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'pi-harness-policy-'))
     tempDirs.push(dir)
     const storePath = path.join(dir, 'policy.json')
-    const store = new JsonStore<HarnessPolicyConfig>(storePath, structuredClone(DEFAULT_POLICY_CONFIG))
+    const store = new JsonStore<HarnessPolicyConfig>(
+      storePath,
+      structuredClone(DEFAULT_POLICY_CONFIG)
+    )
     const engine = new PolicyEngine(store)
     await engine.update({
       ...structuredClone(DEFAULT_POLICY_CONFIG),

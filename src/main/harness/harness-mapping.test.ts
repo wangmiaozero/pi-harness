@@ -15,9 +15,13 @@ describe('Harness mappings', () => {
       steering: true,
       followUp: true,
       compaction: true,
+      abortCompaction: true,
       autoCompaction: true,
+      autoRetry: true,
       thinkingLevel: true,
       tools: true,
+      skills: true,
+      extensions: true,
       sessionFork: true,
       sessionTree: true,
       modelSwitch: true,
@@ -29,7 +33,11 @@ describe('Harness mappings', () => {
     session.steer = undefined
     session.abortCompaction = undefined
     session.getSessionStats = undefined
-    expect(detectHarnessCapabilities(session)).toMatchObject({ steering: false, stats: false })
+    expect(detectHarnessCapabilities(session)).toMatchObject({
+      steering: false,
+      abortCompaction: false,
+      stats: false
+    })
   })
 
   it('maps live state and derives missing context percent from real token values', () => {
@@ -164,9 +172,12 @@ function createSession(): AgentSessionLike {
     getAvailableThinkingLevels: () => ['off', 'low', 'high'],
     setSessionName: vi.fn(),
     setAutoCompactionEnabled: vi.fn(),
+    setAutoRetryEnabled: vi.fn(),
     setActiveToolsByName: vi.fn(),
     getAllTools: () => [{ name: 'read', description: 'Read' }],
     getActiveToolNames: () => ['read'],
+    resourceLoader: { getSkills: () => ({ skills: [] }) },
+    extensionRunner: { getRegisteredCommands: () => [] },
     getContextUsage: () => ({ tokens: 10, contextWindow: 100, percent: 10 }),
     getSessionStats: () => ({ sessionId: 'session-1' }),
     steer: vi.fn(),

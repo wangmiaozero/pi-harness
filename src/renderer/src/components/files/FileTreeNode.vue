@@ -26,11 +26,7 @@ const children = computed(() => tree.childrenOf(props.entry.path))
         class="size-3 shrink-0"
         :stroke-width="1.75"
       />
-      <ChevronRight
-        v-else-if="entry.isDirectory"
-        class="size-3 shrink-0"
-        :stroke-width="1.75"
-      />
+      <ChevronRight v-else-if="entry.isDirectory" class="size-3 shrink-0" :stroke-width="1.75" />
       <Folder v-if="entry.isDirectory" class="size-3.5 shrink-0" :stroke-width="1.75" />
       <File v-else class="size-3.5 shrink-0" :stroke-width="1.75" />
       <span class="truncate">{{ entry.name }}</span>

@@ -68,12 +68,10 @@ describe('app menu', () => {
 
   it('detects the regression: a close role or Cmd/Ctrl+W accelerator', () => {
     expect(hasCloseWindowAccelerator([{ role: 'close' }])).toBe(true)
-    expect(
-      hasCloseWindowAccelerator([{ label: 'Close Window', accelerator: 'CmdOrCtrl+W' }])
-    ).toBe(true)
-    expect(
-      hasCloseWindowAccelerator([{ label: 'File', submenu: [{ role: 'close' }] }])
-    ).toBe(true)
+    expect(hasCloseWindowAccelerator([{ label: 'Close Window', accelerator: 'CmdOrCtrl+W' }])).toBe(
+      true
+    )
+    expect(hasCloseWindowAccelerator([{ label: 'File', submenu: [{ role: 'close' }] }])).toBe(true)
     expect(hasCloseWindowAccelerator([{ role: 'quit' }])).toBe(false)
   })
 
@@ -91,7 +89,8 @@ describe('app menu', () => {
     }
     expect(installed.__template).toBeDefined()
     expect(hasCloseWindowAccelerator(installed.__template ?? [])).toBe(false)
-    const templateArg = vi.mocked(Menu.buildFromTemplate).mock.calls[0][0] as MenuItemConstructorOptions[]
+    const templateArg = vi.mocked(Menu.buildFromTemplate).mock
+      .calls[0][0] as MenuItemConstructorOptions[]
     expect(templateArg).toBeDefined()
     expect(hasCloseWindowAccelerator(templateArg)).toBe(false)
   })

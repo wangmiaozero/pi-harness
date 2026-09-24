@@ -167,7 +167,11 @@ const branchMenuEntries = computed(() => {
   if (branch.type === 'local') {
     entries.push({ type: 'action', id: 'rename', label: zh ? '重命名…' : 'Rename…' })
     if (upstreamChoices.value.length) {
-      entries.push({ type: 'label', id: 'upstream-label', label: zh ? '设置上游分支' : 'Set upstream' })
+      entries.push({
+        type: 'label',
+        id: 'upstream-label',
+        label: zh ? '设置上游分支' : 'Set upstream'
+      })
       upstreamChoices.value.forEach((choice) => {
         entries.push({
           type: 'action',
@@ -336,9 +340,7 @@ const filteredWorktrees = computed(() => {
     (worktree) =>
       !(worktree.isMain && (!repositoryRoot || worktree.path === repositoryRoot)) &&
       (!query.value ||
-        `${worktree.branch ?? ''} ${worktree.path}`
-          .toLocaleLowerCase()
-          .includes(query.value))
+        `${worktree.branch ?? ''} ${worktree.path}`.toLocaleLowerCase().includes(query.value))
   )
 })
 
@@ -613,7 +615,9 @@ watch([repository, () => workspace.gitRevision], () => void refresh())
           :title="repo.folderName"
           @click="selectRepository(repo.folderId)"
         >
-          <span class="min-w-0 flex-1 truncate text-[10.5px] font-medium">{{ repo.folderName }}</span>
+          <span class="min-w-0 flex-1 truncate text-[10.5px] font-medium">{{
+            repo.folderName
+          }}</span>
           <span class="shrink-0 text-[9px] opacity-70">
             {{ repo.isGitRepository ? repo.branch || 'HEAD' : $t('workspace.notGit') }}
           </span>
@@ -649,8 +653,12 @@ watch([repository, () => workspace.gitRevision], () => void refresh())
         v-if="headBranch && (headBranch.ahead > 0 || headBranch.behind > 0)"
         class="shrink-0 font-[family-name:var(--font-mono)] text-[9.5px] font-semibold"
       >
-        <span v-if="headBranch.ahead > 0" class="text-[var(--success)]">↑{{ headBranch.ahead }}</span>
-        <span v-if="headBranch.behind > 0" class="text-[var(--warning)]">↓{{ headBranch.behind }}</span>
+        <span v-if="headBranch.ahead > 0" class="text-[var(--success)]"
+          >↑{{ headBranch.ahead }}</span
+        >
+        <span v-if="headBranch.behind > 0" class="text-[var(--warning)]"
+          >↓{{ headBranch.behind }}</span
+        >
       </span>
     </button>
 
@@ -713,10 +721,7 @@ watch([repository, () => workspace.gitRevision], () => void refresh())
               @dblclick="checkout(branch)"
               @contextmenu="branchMenu(branch, $event)"
             >
-              <CircleDot
-                class="size-2.5 shrink-0"
-                :class="branch.current ? 'fill-current' : ''"
-              />
+              <CircleDot class="size-2.5 shrink-0" :class="branch.current ? 'fill-current' : ''" />
               <span class="min-w-0 flex-1 truncate text-left">{{ branch.name }}</span>
               <span
                 v-if="branch.ahead || branch.behind"
@@ -960,10 +965,7 @@ watch([repository, () => workspace.gitRevision], () => void refresh())
           {{ $t('workspace.gitNoMatches', { query: branchFilter.trim() }) }}
         </p>
       </template>
-      <p
-        v-else-if="loading"
-        class="px-2 py-4 text-center text-[10px] text-[var(--text-tertiary)]"
-      >
+      <p v-else-if="loading" class="px-2 py-4 text-center text-[10px] text-[var(--text-tertiary)]">
         {{ $t('common.loading') }}
       </p>
     </div>
@@ -1012,7 +1014,9 @@ watch([repository, () => workspace.gitRevision], () => void refresh())
         <Input
           v-model="promptValue"
           autofocus
-          :placeholder="promptMode === 'create-tag' ? $t('workspace.gitTagName') : $t('workspace.gitBranchName')"
+          :placeholder="
+            promptMode === 'create-tag' ? $t('workspace.gitTagName') : $t('workspace.gitBranchName')
+          "
         />
       </form>
       <template #footer>

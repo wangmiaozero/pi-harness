@@ -62,7 +62,16 @@ export class RegressionService {
     evaluations: ReadonlyMap<string, HarnessEvaluation>
   ): HarnessRegressionFinding[] {
     const findings: HarnessRegressionFinding[] = []
-    findings.push(...metricFinding(current, baseline, 'tokens', current.usage.totalTokens, baseline.usage.totalTokens, '{a} tokens → {b} tokens'))
+    findings.push(
+      ...metricFinding(
+        current,
+        baseline,
+        'tokens',
+        current.usage.totalTokens,
+        baseline.usage.totalTokens,
+        '{a} tokens → {b} tokens'
+      )
+    )
     const currentCost = current.usage.estimatedCost
     const baselineCost = baseline.usage.estimatedCost
     if (currentCost !== null && baselineCost !== null) {
@@ -73,9 +82,7 @@ export class RegressionService {
     const currentDuration = current.finishedAt ? current.finishedAt - current.startedAt : null
     const baselineDuration = baseline.finishedAt ? baseline.finishedAt - baseline.startedAt : null
     if (currentDuration !== null && baselineDuration !== null && baselineDuration > 0) {
-      findings.push(
-        ...durationFinding(current, baseline, currentDuration, baselineDuration)
-      )
+      findings.push(...durationFinding(current, baseline, currentDuration, baselineDuration))
     }
     findings.push(
       ...toolFailureFinding(current, baseline),
@@ -111,7 +118,9 @@ function metricFinding(
       id: `reg-${current.id}-${metric}`,
       metric,
       severity,
-      message: template.replace('{a}', before.toLocaleString()).replace('{b}', after.toLocaleString()),
+      message: template
+        .replace('{a}', before.toLocaleString())
+        .replace('{b}', after.toLocaleString()),
       before: before.toLocaleString(),
       after: after.toLocaleString(),
       deltaPercent: rounded
@@ -145,10 +154,7 @@ function durationFinding(
   ]
 }
 
-function toolFailureFinding(
-  current: HarnessRun,
-  baseline: HarnessRun
-): HarnessRegressionFinding[] {
+function toolFailureFinding(current: HarnessRun, baseline: HarnessRun): HarnessRegressionFinding[] {
   if (current.toolFailureCount === baseline.toolFailureCount) return []
   const regression = current.toolFailureCount > baseline.toolFailureCount
   return [
@@ -168,10 +174,7 @@ function toolFailureFinding(
   ]
 }
 
-function toolCallFinding(
-  current: HarnessRun,
-  baseline: HarnessRun
-): HarnessRegressionFinding[] {
+function toolCallFinding(current: HarnessRun, baseline: HarnessRun): HarnessRegressionFinding[] {
   if (baseline.toolCallCount <= 0) return []
   const percent = ((current.toolCallCount - baseline.toolCallCount) / baseline.toolCallCount) * 100
   if (Math.abs(percent) < WARNING_THRESHOLD) return []
@@ -227,10 +230,7 @@ function evaluationFinding(
     })
   }
   if (currentEvaluation && baselineEvaluation) {
-    if (
-      currentEvaluation.status === 'failed' &&
-      baselineEvaluation.status === 'passed'
-    ) {
+    if (currentEvaluation.status === 'failed' && baselineEvaluation.status === 'passed') {
       findings.push({
         id: `reg-${current.id}-evaluation`,
         metric: 'evaluation',
@@ -245,9 +245,7 @@ function evaluationFinding(
   return findings
 }
 
-function stageLabel(
-  stage: { status: string } | undefined
-): string {
+function stageLabel(stage: { status: string } | undefined): string {
   if (!stage) return 'unknown'
   return stage.status
 }

@@ -49,7 +49,11 @@ const WEEKLY_TOOLTIP_AUTHORS = 8
 
 export function weeklyTooltipLines(
   week: GitActivityWeek,
-  labels: { weekly: string; authorCommits: (count: number) => string; more: (count: number) => string }
+  labels: {
+    weekly: string
+    authorCommits: (count: number) => string
+    more: (count: number) => string
+  }
 ): string[] {
   const shown = week.authors.slice(0, WEEKLY_TOOLTIP_AUTHORS)
   const hidden = week.authors.length - shown.length

@@ -31,9 +31,7 @@ function task(id: string, overrides: Partial<HarnessTask> = {}): HarnessTask {
   }
 }
 
-function orchestration(
-  overrides: Partial<HarnessOrchestrationRun> = {}
-): HarnessOrchestrationRun {
+function orchestration(overrides: Partial<HarnessOrchestrationRun> = {}): HarnessOrchestrationRun {
   return {
     id: 'orch',
     name: null,
@@ -140,11 +138,7 @@ describe('TaskScheduler.plan', () => {
 
 describe('TaskScheduler.deriveStatuses', () => {
   it('derives pending → ready / blocked', () => {
-    const tasks = [
-      task('a'),
-      task('b', { dependencies: ['a'] }),
-      task('c', { status: 'running' })
-    ]
+    const tasks = [task('a'), task('b', { dependencies: ['a'] }), task('c', { status: 'running' })]
     const derived = scheduler.deriveStatuses(tasks)
     expect(derived.get('a')).toBe('ready')
     expect(derived.get('b')).toBe('blocked')

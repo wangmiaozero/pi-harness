@@ -15,13 +15,13 @@
   <img src="build/icon.png" width="110" alt="Pi-Harness" />
 </p>
 
-<h3 align="center">Pi Coding Agent 桌面 Harness 与控制中心</h3>
+<h3 align="center">Pi Coding Agent 的 Superset Harness</h3>
 
 <p align="center">
-  <strong>将 Pi Agent Harness 带入可视化桌面工作区。</strong>
+  <strong>Native Pi，全面增强。</strong>
 </p>
 
-<p align="center">Everything around Pi, in one place.</p>
+<p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
   管理模型 · 运行 Agent · 查看 Harness 状态 · 使用 Skills · 浏览文件 · 操作 Git
@@ -47,7 +47,7 @@
 
 ## 为什么是 Pi-Harness？
 
-Pi-Harness 是 Pi Coding Agent 的可视化 Harness Console。你可以直接使用 Native Pi，也可以发现和管理可选的开发方法论、Skills、Extensions、Packages 与 MCP 工具。
+Pi-Harness 是 Pi Coding Agent 的 operational superset。它保留 Pi 原生 Agent Runtime 与兼容性，并在其上增加可观测性、治理、编排、恢复、评估和可视化工程工作区。
 
 [Pi Coding Agent](https://github.com/earendil-works/pi) 本身已经拥有强大的 Agent Harness。大量 Runtime、Context、Tools、Compaction、Queue 和 Session 能力天然存在于 CLI 与 SDK 行为之中。
 
@@ -73,6 +73,17 @@ Pi-Harness 提供围绕它的桌面控制平面、可视化、配置和工作区
 - 在 Agent 旁边使用文件和 Git
 
 **基于 Pi Agent Harness。**
+
+## Pi Superset Contract
+
+- **Pi Compatibility：**Pi-Harness 不得主动降低 Native Pi 能力；在技术可行时保持 Session、配置、模型、Provider、工具、Skills、Extensions、Packages、Context、Compaction、Steering、Follow-up、Session Tree 与 Thinking Level 兼容。
+- **Pi Is the Runtime：**Native Pi 始终是 Agent 执行 Runtime。Pi-Harness 不重新实现 Agent Loop、`AgentSession`、Context、Compaction、Tool、Skill 或 Extension Runtime。
+- **Native Pi Escape Hatch：**Pi 原生 Session 与配置仍可脱离 Pi-Harness 直接使用。
+- **Additive by Default：**Harness 能力只在 Pi 之上增强，不替换、不削弱 Pi。
+- **Shared State：**尽量使用 Pi 原生状态与格式；Pi-Harness 自有元数据独立存储。
+- **Upstream First：**Pi 新能力优先经兼容层接入，并通过 capability detection、graceful degradation 与 best-effort forward compatibility 降低版本耦合。
+
+Pi-Harness 不替代 Pi；Pi 始终是执行基础。
 
 ## 现在已经具备什么
 
@@ -165,15 +176,15 @@ Pi-Harness 通过 Pi 的 Runtime 接口与其连接。Session 与 <code>~/.pi/ag
 
 ### 古风主题
 
-|                    工作区（雪景）                     |                     工作区（月夜）                      |
-| :---------------------------------------------------: | :-----------------------------------------------------: |
-| ![古风主题雪景工作区](docs/古风/Work-1.jpg)           | ![古风主题月夜工作区](docs/古风/Work-2.jpg)             |
-|                         Git                           |                     **Provider**                        |
-|    ![古风主题 Git](docs/古风/Git.jpg)                 | ![古风主题 Provider](docs/古风/APIs.jpg)                |
-|                       **模型**                        |                     **能力中心**                        |
-|  ![古风主题模型](docs/古风/Model.jpg)                 | ![古风主题能力中心](docs/古风/Caps.jpg)                 |
-|                       **设置**                        |                                                         |
-|  ![古风主题设置](docs/古风/Prefs.jpg)                 |                                                         |
+|               工作区（雪景）                |               工作区（月夜）                |
+| :-----------------------------------------: | :-----------------------------------------: |
+| ![古风主题雪景工作区](docs/古风/Work-1.jpg) | ![古风主题月夜工作区](docs/古风/Work-2.jpg) |
+|                     Git                     |                **Provider**                 |
+|     ![古风主题 Git](docs/古风/Git.jpg)      |  ![古风主题 Provider](docs/古风/APIs.jpg)   |
+|                  **模型**                   |                **能力中心**                 |
+|    ![古风主题模型](docs/古风/Model.jpg)     |   ![古风主题能力中心](docs/古风/Caps.jpg)   |
+|                  **设置**                   |                                             |
+|    ![古风主题设置](docs/古风/Prefs.jpg)     |                                             |
 
 ## 接下来
 
@@ -252,23 +263,27 @@ Pi-Harness 正在从桌面控制中心继续升级为完整的 Pi Agent Harness 
 - Verification 与质量检查集成
 - Harness Profiles
 
-## Pi-Harness 对比
+## Pi 与 Pi-Harness 能力矩阵
 
-“普通桌面客户端”表示常见的轻量聊天客户端，不代表所有具体产品。
-
-| 能力              | Pi CLI         | 普通桌面客户端 | Pi-Harness                          |
-| ----------------- | -------------- | -------------- | ----------------------------------- |
-| Chat 与 Session   | 支持           | 通常支持       | 支持                                |
-| 项目工作区        | Terminal       | 基础           | 原生工作区                          |
-| Provider 管理     | 配置文件       | 有限           | 支持                                |
-| Skills 管理       | CLI / 文件     | 有限           | 支持                                |
-| 环境管理          | 手动           | 很少           | 支持                                |
-| Harness 状态      | CLI / SDK      | 有限           | 已具备并持续完善                    |
-| Context Inspector | CLI / SDK      | 有限           | 当前基础展示；完整 Inspector 规划中 |
-| Tool Inspector    | CLI / SDK      | 有限           | 当前可选择；完整 Inspector 规划中   |
-| Compaction 控制   | CLI / SDK      | 有限           | 支持                                |
-| Harness Timeline  | 无可视化控制台 | 很少           | Roadmap                             |
-| 文件与 Git        | Terminal       | 视产品而定     | 支持                                |
+| 能力                   | Native Pi | Pi-Harness              |
+| ---------------------- | --------- | ----------------------- |
+| Agent Runtime / Loop   | 支持      | Native Pi               |
+| Session                | 支持      | 支持 + 可视化管理       |
+| Context / Compaction   | 支持      | 支持 + 用量与可视化控制 |
+| Steering / Follow-up   | 支持      | 支持                    |
+| Models / Thinking      | 支持      | 支持 + 管理与可视化控制 |
+| Tools                  | 支持      | 支持 + 选择与 Policy    |
+| Skills / Extensions    | 支持      | 支持 + Manager          |
+| Runs / Trace           | —         | 支持                    |
+| Replay / Compare       | —         | 支持                    |
+| Evaluation             | —         | 支持                    |
+| Policy / Budget        | —         | 支持                    |
+| Checkpoint / Recovery  | —         | 支持                    |
+| Diagnostics            | —         | 支持                    |
+| Regression / Artifacts | —         | 支持                    |
+| Multi-Agent / Task DAG | —         | 支持                    |
+| Handoff / Review Gate  | —         | 支持                    |
+| Worktree 隔离          | —         | 支持                    |
 
 ## 下载
 
@@ -308,7 +323,7 @@ Pi-Harness 正在从桌面控制中心继续升级为完整的 Pi Agent Harness 
 
 源码开发：
 
-- Node.js ≥ 22
+- Node.js ≥ 22.19.0
 - pnpm 9.12.1
 
 ## 开发

@@ -52,7 +52,13 @@ const lifecycle: HarnessEvent[] = [
   { type: 'prompt.started', timestamp: 1_000, message: 'ship it' },
   { type: 'run.started', timestamp: 1_001, runId: 'run-1', prompt: 'ship it' },
   { type: 'message.started', timestamp: 1_002 },
-  { type: 'message.completed', timestamp: 2_000, usage: undefined, model: 'model-a', provider: undefined },
+  {
+    type: 'message.completed',
+    timestamp: 2_000,
+    usage: undefined,
+    model: 'model-a',
+    provider: undefined
+  },
   { type: 'run.completed', timestamp: 2_500, runId: 'run-1', status: 'success' }
 ]
 

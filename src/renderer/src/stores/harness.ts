@@ -283,7 +283,10 @@ export const useHarnessStore = defineStore('harness', () => {
     return result
   }
 
-  async function exportRun(runId: string, format: 'json' | 'markdown'): Promise<HarnessExportResult> {
+  async function exportRun(
+    runId: string,
+    format: 'json' | 'markdown'
+  ): Promise<HarnessExportResult> {
     return mutate((id) => getApi().harness.exportRun(id, runId, format))
   }
 

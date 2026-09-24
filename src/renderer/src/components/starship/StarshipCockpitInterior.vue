@@ -23,8 +23,7 @@ withDefaults(defineProps<{ animated?: boolean }>(), { animated: true })
   max-width: none;
   object-fit: fill;
   opacity: 0.86;
-  filter: saturate(0.82) brightness(0.72) contrast(1.16)
-    drop-shadow(0 0 18px rgb(44 161 255 / 0.2));
+  filter: saturate(0.82) brightness(0.72) contrast(1.16) drop-shadow(0 0 18px rgb(44 161 255 / 0.2));
 }
 
 [data-animated='true'] img {

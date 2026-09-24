@@ -209,10 +209,7 @@ describe('PiInstallService', () => {
       expect.objectContaining({ timeoutMs: 10 * 60_000 })
     )
     expect(runCommand.mock.calls.flat(Infinity)).not.toContain('--self')
-    expect(onLog).toHaveBeenCalledWith(
-      expect.stringContaining('managed by npm'),
-      'warning'
-    )
+    expect(onLog).toHaveBeenCalledWith(expect.stringContaining('managed by npm'), 'warning')
     expect(result).toMatchObject({
       action: 'update',
       previousVersion: '0.84.2',
@@ -254,10 +251,7 @@ describe('PiInstallService', () => {
       expect.objectContaining({ timeoutMs: 10 * 60_000 })
     )
     expect(runCommand.mock.calls.flat(Infinity)).not.toContain('--self')
-    expect(onLog).toHaveBeenCalledWith(
-      expect.stringContaining('managed by npm'),
-      'warning'
-    )
+    expect(onLog).toHaveBeenCalledWith(expect.stringContaining('managed by npm'), 'warning')
     expect(result).toMatchObject({
       action: 'update',
       previousVersion: '0.85.1',
@@ -305,10 +299,7 @@ describe('PiInstallService', () => {
       [...PI_INSTALL_ARGS],
       expect.objectContaining({ timeoutMs: 10 * 60_000 })
     )
-    expect(onLog).toHaveBeenCalledWith(
-      expect.stringContaining('retrying with npm'),
-      'warning'
-    )
+    expect(onLog).toHaveBeenCalledWith(expect.stringContaining('retrying with npm'), 'warning')
     expect(result).toMatchObject({
       action: 'update',
       previousVersion: '0.85.1',

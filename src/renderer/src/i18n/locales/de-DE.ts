@@ -119,11 +119,12 @@ export const deDE: MessageTree = {
       'Zuerst Node.js installieren, die Erkennung aktualisieren und danach Pi mit einem Klick installieren oder den Befehl manuell ausführen.',
     nodeReady: '{node} · npm {npm}',
     nodeMissing: 'Node.js / npm erforderlich',
-    nodeOutdated: '{version} liegt unter Node.js 22',
+    nodeOutdated: '{version} liegt unter Node.js 22.19.0',
     npmMissing: 'npm ist nicht verfügbar',
     nodeDetected: 'Node.js und npm erkannt. Pi kann jetzt installiert werden.',
     installNodeFirst: 'Zuerst die aktuelle Node.js-LTS-Version installieren; npm ist enthalten.',
-    upgradeNodeFirst: 'Node.js vor der Pi-Installation auf Version 22 oder neuer aktualisieren.',
+    upgradeNodeFirst:
+      'Node.js vor der Pi-Installation auf Version 22.19.0 oder neuer aktualisieren.',
     installNode: 'Node.js installieren',
     upgradeNode: 'Node.js aktualisieren',
     nodeInstallConfirm:

@@ -104,11 +104,7 @@ async function removeTemplate(templateId: string): Promise<void> {
       </div>
       <p class="mt-1 text-[11px] text-[var(--text-tertiary)]">{{ t('orchestration.teamsHint') }}</p>
 
-      <form
-        v-if="showTeamForm"
-        class="mt-3 flex items-end gap-2"
-        @submit.prevent="saveTeam"
-      >
+      <form v-if="showTeamForm" class="mt-3 flex items-end gap-2" @submit.prevent="saveTeam">
         <label class="flex flex-1 flex-col gap-1 text-[10.5px] text-[var(--text-tertiary)]">
           {{ t('orchestration.teamName') }}
           <input
@@ -176,7 +172,9 @@ async function removeTemplate(templateId: string): Promise<void> {
           {{ t('orchestration.templateAdd') }}
         </button>
       </div>
-      <p class="mt-1 text-[11px] text-[var(--text-tertiary)]">{{ t('orchestration.templatesHint') }}</p>
+      <p class="mt-1 text-[11px] text-[var(--text-tertiary)]">
+        {{ t('orchestration.templatesHint') }}
+      </p>
 
       <form
         v-if="showTemplateForm"
@@ -238,8 +236,11 @@ async function removeTemplate(templateId: string): Promise<void> {
               {{ template.name }}
             </p>
             <p class="text-[10.5px] text-[var(--text-tertiary)]">
-              {{ template.role }}<template v-if="template.modelId"> · {{ template.modelId }}</template>
-              <template v-if="template.isReviewer"> · {{ t('orchestration.agentReviewer') }}</template>
+              {{ template.role
+              }}<template v-if="template.modelId"> · {{ template.modelId }}</template>
+              <template v-if="template.isReviewer">
+                · {{ t('orchestration.agentReviewer') }}</template
+              >
             </p>
             <p v-if="template.description" class="text-[10.5px] text-[var(--text-tertiary)]">
               {{ template.description }}

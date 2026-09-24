@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type {
-  HarnessAgent,
-  HarnessArtifact,
-  HarnessRun,
-  HarnessTask
-} from '@shared/types/harness'
+import type { HarnessAgent, HarnessArtifact, HarnessRun, HarnessTask } from '@shared/types/harness'
 import { TaskContextBuilder, parseReviewVerdict } from './task-context-builder'
 
 function agent(overrides: Partial<HarnessAgent> = {}): HarnessAgent {
@@ -106,7 +101,13 @@ function run(id: string, result: string | null): HarnessRun {
     model: null,
     provider: null,
     prompt: 'do it',
-    usage: { inputTokens: 0, outputTokens: 0, cachedTokens: 0, totalTokens: 0, estimatedCost: null },
+    usage: {
+      inputTokens: 0,
+      outputTokens: 0,
+      cachedTokens: 0,
+      totalTokens: 0,
+      estimatedCost: null
+    },
     toolCallCount: 0,
     toolFailureCount: 0,
     contextUsage: null,

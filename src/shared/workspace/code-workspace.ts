@@ -115,7 +115,11 @@ export function readPiHarnessSettings(
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
   const record = raw as Record<string, unknown>
   const folderMeta: PiHarnessWorkspaceSettings['folderMeta'] = {}
-  if (record.folderMeta && typeof record.folderMeta === 'object' && !Array.isArray(record.folderMeta)) {
+  if (
+    record.folderMeta &&
+    typeof record.folderMeta === 'object' &&
+    !Array.isArray(record.folderMeta)
+  ) {
     for (const [key, value] of Object.entries(record.folderMeta as Record<string, unknown>)) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue
       const meta = value as Record<string, unknown>
@@ -174,10 +178,15 @@ export function folderReadonlyFromSettings(
   return lookupFolderMeta(folder, piHarness)?.readonly === true
 }
 
-export function workspaceDisplayName(workspaceFile: string | null, folders: { name: string }[]): string {
+export function workspaceDisplayName(
+  workspaceFile: string | null,
+  folders: { name: string }[]
+): string {
   if (workspaceFile) {
     const base = projectDisplayName(workspaceFile)
-    return base.endsWith('.code-workspace') ? base.slice(0, -'.code-workspace'.length) || base : base
+    return base.endsWith('.code-workspace')
+      ? base.slice(0, -'.code-workspace'.length) || base
+      : base
   }
   return folders[0]?.name || 'Workspace'
 }
@@ -221,7 +230,9 @@ function matchesMainFolder(
 
 function pathResolver(workspaceFile: string, folderPath: string, platform: NodeJS.Platform) {
   const useWin =
-    platform === 'win32' || isWindowsAbsolutePath(workspaceFile) || isWindowsAbsolutePath(folderPath)
+    platform === 'win32' ||
+    isWindowsAbsolutePath(workspaceFile) ||
+    isWindowsAbsolutePath(folderPath)
   return useWin ? path.win32 : path.posix
 }
 

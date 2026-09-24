@@ -108,7 +108,9 @@ export function normalizeGitFailure(error: unknown): NormalizedGitFailure {
     reason = 'network'
     userMessage = 'The remote repository could not be reached. Check the network and remote access.'
   } else if (
-    /no tracking information|has no upstream branch|set-upstream|does not point to a branch/i.test(output)
+    /no tracking information|has no upstream branch|set-upstream|does not point to a branch/i.test(
+      output
+    )
   ) {
     reason = 'upstream'
     userMessage = 'No upstream branch is configured. Set an upstream branch before pulling.'

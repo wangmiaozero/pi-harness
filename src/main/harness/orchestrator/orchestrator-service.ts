@@ -35,11 +35,7 @@ import type {
 import type { StartAgentSessionInput } from '@shared/types/workspace'
 import { HarnessError } from '../harness-error'
 import { detectCycles } from './dependency-resolver'
-import {
-  OrchestrationStore,
-  newOrchestrationId,
-  newTaskId
-} from './orchestration-store'
+import { OrchestrationStore, newOrchestrationId, newTaskId } from './orchestration-store'
 import { AgentManager, type AgentDefinition } from './agent-manager'
 import { TeamService } from './team-service'
 import { HandoffService } from './handoff-service'
@@ -155,16 +151,16 @@ export class OrchestratorService {
   /** Latest evaluation status per run (before run.completed arrives). */
   private readonly evaluationByRun = new Map<string, 'passed' | 'warning' | 'failed'>()
   /** Retry relation metadata for the next dispatch of a task. */
-  private readonly retryAnnotations = new Map<
-    string,
-    { forkedFromRunId: string | null }
-  >()
+  private readonly retryAnnotations = new Map<string, { forkedFromRunId: string | null }>()
   /** policy.denied events counted per orchestration (in-memory; see note in buildFinalEvaluation). */
   private readonly policyViolations = new Map<string, number>()
   private unsubscribe: (() => void) | null = null
   private stuckTimer: ReturnType<typeof setInterval> | null = null
 
-  constructor(store: OrchestrationStore, private readonly host: OrchestratorHost) {
+  constructor(
+    store: OrchestrationStore,
+    private readonly host: OrchestratorHost
+  ) {
     this.store = store
     this.teams = new TeamService(store)
     this.agents = new AgentManager(store, {
@@ -220,9 +216,7 @@ n * even if a dispatch is still legitimately running (no event will ever
     return this.store.getOrchestration(id)
   }
 
-  async createOrchestration(
-    input: CreateOrchestrationInput
-  ): Promise<HarnessOrchestrationRun> {
+  async createOrchestration(input: CreateOrchestrationInput): Promise<HarnessOrchestrationRun> {
     if (!input.cwd?.trim()) {
       throw new HarnessError('INVALID_STATE', 'A project directory is required.')
     }
@@ -336,10 +330,8 @@ n * even if a dispatch is still legitimately running (no event will ever
     ) {
       const usage = await this.agentUsage(agentId, agent.orchestrationId)
       const costOk =
-        patch.budget.maxCost === null ||
-        (usage.estimatedCost ?? 0) < patch.budget.maxCost
-      const tokenOk =
-        patch.budget.maxTokens === null || usage.totalTokens < patch.budget.maxTokens
+        patch.budget.maxCost === null || (usage.estimatedCost ?? 0) < patch.budget.maxCost
+      const tokenOk = patch.budget.maxTokens === null || usage.totalTokens < patch.budget.maxTokens
       if (costOk && tokenOk) {
         const unblocked = await this.agents.update(agentId, { status: 'idle' })
         // The agent can work again — schedule whatever was waiting on it.
@@ -358,10 +350,7 @@ n * even if a dispatch is still legitimately running (no event will ever
   async deleteAgent(agentId: string): Promise<void> {
     const agent = await this.requireAgent(agentId)
     if (agent.status === 'running' || agent.status === 'queued') {
-      throw new HarnessError(
-        'AGENT_RUNNING',
-        'Cannot delete an agent that is running a task.'
-      )
+      throw new HarnessError('AGENT_RUNNING', 'Cannot delete an agent that is running a task.')
     }
     await this.store.deleteAgent(agentId)
     this.emit(agent.orchestrationId ?? '', {
@@ -567,11 +556,7 @@ n * even if a dispatch is still legitimately running (no event will ever
     const orchestration = await this.requireOrchestration(orchestrationId)
     const tasks = await this.store.listTasks(orchestrationId)
     for (const task of tasks) {
-      if (
-        task.status === 'running' ||
-        task.status === 'verifying' ||
-        task.status === 'review'
-      ) {
+      if (task.status === 'running' || task.status === 'verifying' || task.status === 'review') {
         await this.store.saveTask({
           ...task,
           status: 'pending',
@@ -682,13 +667,15 @@ n * even if a dispatch is still legitimately running (no event will ever
   async updateTask(taskId: string, patch: UpdateTaskInput): Promise<HarnessTask> {
     const task = await this.requireTask(taskId)
     if (task.status === 'running' || task.status === 'verifying') {
-      throw new HarnessError(
-        'ORCHESTRATION_BUSY',
-        'Cannot edit a task while it is running.'
-      )
+      throw new HarnessError('ORCHESTRATION_BUSY', 'Cannot edit a task while it is running.')
     }
     if (patch.dependencies) {
-      await this.validateTaskGraph(task.orchestrationId ?? '', patch.dependencies, patch.parentTaskId ?? task.parentTaskId, taskId)
+      await this.validateTaskGraph(
+        task.orchestrationId ?? '',
+        patch.dependencies,
+        patch.parentTaskId ?? task.parentTaskId,
+        taskId
+      )
     }
     if (patch.assignedAgentId) {
       await this.requireAgent(patch.assignedAgentId)
@@ -716,10 +703,7 @@ n * even if a dispatch is still legitimately running (no event will ever
   async deleteTask(taskId: string): Promise<void> {
     const task = await this.requireTask(taskId)
     if (task.status === 'running' || task.status === 'verifying') {
-      throw new HarnessError(
-        'ORCHESTRATION_BUSY',
-        'Cannot delete a task while it is running.'
-      )
+      throw new HarnessError('ORCHESTRATION_BUSY', 'Cannot delete a task while it is running.')
     }
     await this.store.deleteTask(taskId)
     if (task.orchestrationId) {
@@ -881,10 +865,7 @@ n * even if a dispatch is still legitimately running (no event will ever
     try {
       await this.agents.prepareWorkspace(agentId)
     } catch (error) {
-      await this.failTask(
-        task,
-        `Failed to prepare agent workspace: ${toMessage(error)}`
-      )
+      await this.failTask(task, `Failed to prepare agent workspace: ${toMessage(error)}`)
       return
     }
 
@@ -930,9 +911,7 @@ n * even if a dispatch is still legitimately running (no event will ever
       agentId,
       taskId: task.id,
       orchestrationId: orchestration.id,
-      ...(retry
-        ? { relation: 'retry' as const, forkedFromRunId: retry.forkedFromRunId }
-        : {})
+      ...(retry ? { relation: 'retry' as const, forkedFromRunId: retry.forkedFromRunId } : {})
     }
     this.host.annotateNextRun(sessionId, annotation)
 
@@ -983,12 +962,8 @@ n * even if a dispatch is still legitimately running (no event will ever
     const orchestrationId = task.orchestrationId
     const allTasks = orchestrationId ? await this.store.listTasks(orchestrationId) : []
     const dependencyTasks = allTasks.filter((item) => task.dependencies.includes(item.id))
-    const runs = orchestrationId
-      ? await this.host.listRunsByOrchestration(orchestrationId)
-      : []
-    const dependencyRuns = runs.filter((run) =>
-      task.dependencies.includes(run.taskId ?? '')
-    )
+    const runs = orchestrationId ? await this.host.listRunsByOrchestration(orchestrationId) : []
+    const dependencyRuns = runs.filter((run) => task.dependencies.includes(run.taskId ?? ''))
 
     const artifacts: HarnessArtifact[] = []
     for (const artifactId of task.inputArtifactIds) {
@@ -1168,10 +1143,7 @@ n * even if a dispatch is still legitimately running (no event will ever
     await this.completeTask(task, run)
   }
 
-  private async startReviewGate(
-    task: HarnessTask,
-    run: HarnessRun | null
-  ): Promise<void> {
+  private async startReviewGate(task: HarnessTask, run: HarnessRun | null): Promise<void> {
     const orchestration = await this.store.getOrchestration(task.orchestrationId ?? '')
     if (!orchestration) {
       await this.completeTask(task, run)
@@ -1181,10 +1153,7 @@ n * even if a dispatch is still legitimately running (no event will ever
     const reviewer =
       (task.reviewAgentId ? agents.find((agent) => agent.id === task.reviewAgentId) : null) ??
       agents.find(
-        (agent) =>
-          agent.isReviewer &&
-          agent.status === 'idle' &&
-          agent.id !== task.assignedAgentId
+        (agent) => agent.isReviewer && agent.status === 'idle' && agent.id !== task.assignedAgentId
       )
     await this.store.saveTask({
       ...task,
@@ -1344,8 +1313,7 @@ n * even if a dispatch is still legitimately running (no event will ever
       ...task,
       reviewAgentId: dispatch.agentId,
       reviewVerdict: approved ? 'approved' : 'rejected',
-      reviewSummary:
-        verdict?.summary ?? 'The reviewer did not return an explicit verdict.'
+      reviewSummary: verdict?.summary ?? 'The reviewer did not return an explicit verdict.'
     }
     this.emit(dispatch.orchestrationId, {
       type: approved ? 'review.approved' : 'review.rejected',
@@ -1363,10 +1331,7 @@ n * even if a dispatch is still legitimately running (no event will ever
     }
   }
 
-  private async completeTask(
-    task: HarnessTask,
-    run: HarnessRun | null
-  ): Promise<void> {
+  private async completeTask(task: HarnessTask, run: HarnessRun | null): Promise<void> {
     const artifacts = await this.host.artifactsForTask(task.id)
     const next: HarnessTask = {
       ...task,
@@ -1704,16 +1669,16 @@ n * even if a dispatch is still legitimately running (no event will ever
       const agentRuns = runs.filter((run) => run.agentId === agent.id)
       const dispatch = activeDispatches.find((item) => item.agentId === agent.id)
       const lastEventAt = dispatch?.lastEventAt ?? null
-      const possiblyStuck = dispatch !== undefined && Date.now() - dispatch.lastEventAt > STUCK_THRESHOLD_MS
+      const possiblyStuck =
+        dispatch !== undefined && Date.now() - dispatch.lastEventAt > STUCK_THRESHOLD_MS
       return {
         agent,
         runCount: agentRuns.length,
         totalTokens: agentRuns.reduce((sum, run) => sum + run.usage.totalTokens, 0),
         estimatedCost: sumCost(agentRuns),
         toolCalls: agentRuns.reduce((sum, run) => sum + run.toolCallCount, 0),
-        failures: agentRuns.filter(
-          (run) => run.status === 'failed' || run.status === 'aborted'
-        ).length,
+        failures: agentRuns.filter((run) => run.status === 'failed' || run.status === 'aborted')
+          .length,
         lastEventAt,
         possiblyStuck
       }
@@ -1736,9 +1701,8 @@ n * even if a dispatch is still legitimately running (no event will ever
         totalTokens: agentRuns.reduce((sum, run) => sum + run.usage.totalTokens, 0),
         estimatedCost: cost,
         toolCalls: agentRuns.reduce((sum, run) => sum + run.toolCallCount, 0),
-        failures: agentRuns.filter(
-          (run) => run.status === 'failed' || run.status === 'aborted'
-        ).length,
+        failures: agentRuns.filter((run) => run.status === 'failed' || run.status === 'aborted')
+          .length,
         costPercent:
           totalCost !== null && cost !== null && totalCost > 0
             ? Math.round((cost / totalCost) * 100)
@@ -1798,7 +1762,13 @@ n * even if a dispatch is still legitimately running (no event will ever
 
   private emitAgentEvent(
     agent: HarnessAgent,
-    kind: 'agent.created' | 'agent.assigned' | 'agent.started' | 'agent.waiting' | 'agent.completed' | 'agent.failed',
+    kind:
+      | 'agent.created'
+      | 'agent.assigned'
+      | 'agent.started'
+      | 'agent.waiting'
+      | 'agent.completed'
+      | 'agent.failed',
     extra?: Record<string, unknown>
   ): void {
     const base = { timestamp: Date.now(), agentId: agent.id, name: agent.name }
@@ -1884,17 +1854,11 @@ n * even if a dispatch is still legitimately running (no event will ever
         )
       }
       if (dependency === selfId) {
-        throw new HarnessError(
-          'DEPENDENCY_CYCLE',
-          'A task cannot depend on itself.'
-        )
+        throw new HarnessError('DEPENDENCY_CYCLE', 'A task cannot depend on itself.')
       }
     }
     if (parentTaskId && !ids.has(parentTaskId)) {
-      throw new HarnessError(
-        'TASK_NOT_FOUND',
-        `Parent task not found: ${parentTaskId}`
-      )
+      throw new HarnessError('TASK_NOT_FOUND', `Parent task not found: ${parentTaskId}`)
     }
     const projected = [
       ...existing,

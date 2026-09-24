@@ -1,14 +1,7 @@
 import { PI_THINKING_LEVELS, toPiThinkingLevel, type PiThinkingLevel } from '../constants/index'
 
 export type HarnessThinkingLevel =
-  | 'off'
-  | 'minimal'
-  | 'low'
-  | 'medium'
-  | 'high'
-  | 'xhigh'
-  | 'max'
-  | 'ultra'
+  'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'ultra'
 
 export const THINKING_PRIORITY = PI_THINKING_LEVELS
 

@@ -10,12 +10,16 @@ export function detectHarnessCapabilities(session: AgentSessionLike): HarnessCap
     steering: typeof session.steer === 'function',
     followUp: typeof session.followUp === 'function',
     compaction: typeof session.compact === 'function',
+    abortCompaction: typeof session.abortCompaction === 'function',
     autoCompaction: typeof session.setAutoCompactionEnabled === 'function',
+    autoRetry: typeof session.setAutoRetryEnabled === 'function',
     thinkingLevel: typeof session.setThinkingLevel === 'function',
     tools:
       typeof session.getAllTools === 'function' &&
       typeof session.getActiveToolNames === 'function' &&
       typeof session.setActiveToolsByName === 'function',
+    skills: typeof session.resourceLoader?.getSkills === 'function',
+    extensions: typeof session.extensionRunner?.getRegisteredCommands === 'function',
     sessionFork:
       persisted &&
       typeof manager.getEntry === 'function' &&
