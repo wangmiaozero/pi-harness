@@ -3,6 +3,8 @@
  * AgentSession lives only in Main. Renderer never imports this module.
  */
 
+import type { AgentMessage } from '@shared/types/workspace'
+
 export interface PiSessionManagerLike {
   getCwd(): string
   getSessionFile(): string | null | undefined
@@ -17,6 +19,7 @@ export interface PiSessionManagerLike {
   isPersisted(): boolean
   newSession(options?: { parentSession?: string }): void
   createBranchedSession(entryId: string): string | null
+  appendMessage?(message: AgentMessage): string
   appendSessionInfo?(name: string): void
 }
 
@@ -132,6 +135,7 @@ export interface AgentSessionLike {
     getSkills?: () => {
       skills: Array<{ name: string; description?: string; sourceInfo?: unknown }>
     }
+    reload?: () => Promise<void>
   }
   subscribe: (listener: (event: { type: string; [key: string]: unknown }) => void) => () => void
   prompt: (message: string, options?: Record<string, unknown>) => Promise<void>
@@ -165,6 +169,7 @@ export interface AgentSessionLike {
   followUp?: (message: string, images?: unknown) => Promise<void>
   executeBash?: (command: string, a?: unknown, b?: unknown) => Promise<unknown>
   reload?: () => Promise<void>
+  refreshContext?: () => void
   bindExtensions?: (bindings: Record<string, unknown>) => Promise<void>
   dispose: () => void
   supportsThinking?: () => boolean

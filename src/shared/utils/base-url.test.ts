@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  imageApiBaseUrl,
   isMissingModelCatalogMessage,
   normalizeProviderBaseUrl,
   volcenginePlanKind
@@ -22,6 +23,26 @@ describe('normalizeProviderBaseUrl', () => {
   it('strips trailing slash', () => {
     const r = normalizeProviderBaseUrl('https://api.openai.com/v1/')
     expect(r.url).toBe('https://api.openai.com/v1')
+  })
+})
+
+describe('imageApiBaseUrl', () => {
+  it('reuses the Step Plan OpenAI SDK root', () => {
+    expect(imageApiBaseUrl('https://api.stepfun.com/step_plan/v1')).toBe(
+      'https://api.stepfun.com/step_plan/v1'
+    )
+  })
+
+  it('maps the Step Plan Anthropic SDK root to the shared Images API root', () => {
+    expect(imageApiBaseUrl('https://api.stepfun.com/step_plan')).toBe(
+      'https://api.stepfun.com/step_plan/v1'
+    )
+  })
+
+  it('strips a pasted full Chat Completions address', () => {
+    expect(
+      imageApiBaseUrl('https://api.stepfun.com/step_plan/v1/chat/completions')
+    ).toBe('https://api.stepfun.com/step_plan/v1')
   })
 })
 

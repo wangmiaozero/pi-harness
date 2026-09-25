@@ -760,6 +760,26 @@ export interface NetworkCheckResult {
   latencyMs: number | null
 }
 
+export interface ImageModelRequest {
+  providerKey: string
+  modelId: string
+  prompt: string
+  size: '1024x1024' | '768x1360' | '896x1184' | '1360x768' | '1184x896'
+  sourceImage?: {
+    mimeType: 'image/png' | 'image/jpeg' | 'image/webp'
+    base64: string
+    fileName: string
+  }
+}
+
+export interface ImageModelResult {
+  mimeType: string
+  base64: string
+  revisedPrompt: string | null
+  fallbackModelId?: string
+  fallbackKind?: 'svg'
+}
+
 export interface PiSwitchAPI {
   // system
   system: {
@@ -796,6 +816,7 @@ export interface PiSwitchAPI {
     setEnabled(key: string, enabled: boolean): Promise<ProviderProfile>
     testConnection(input: unknown): Promise<ConnectionTestResult>
     discoverModels(input: ProviderModelDiscoveryInput): Promise<DiscoveredProviderModel[]>
+    revealApiKey(key: string): Promise<string>
   }
   models: {
     list(): Promise<ModelDefinition[]>
@@ -804,6 +825,7 @@ export interface PiSwitchAPI {
     delete(id: string, options?: { overwrite?: boolean }): Promise<void>
     setActive(input: unknown, options?: { overwrite?: boolean }): Promise<ActiveModel>
     getActive(): Promise<ActiveModel>
+    invokeImage(input: ImageModelRequest): Promise<ImageModelResult>
   }
   config: {
     read(): Promise<RawConfig>

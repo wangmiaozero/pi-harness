@@ -3,7 +3,7 @@ import type { JsonStore } from '../services/storage'
 import type { AppSettings } from '@shared/ipc/api-types'
 import type { WorktreeService } from '../git/worktree-service'
 import type { FileAccessService } from '../files/file-access-service'
-import { computeSessionTotalActiveMs, SessionService } from './session-service'
+import { computeSessionTotalActiveMs, entryToUiMessage, SessionService } from './session-service'
 
 describe('SessionService path cache', () => {
   it('drops a cached JSONL path when the file no longer exists', async () => {
@@ -58,5 +58,33 @@ describe('computeSessionTotalActiveMs', () => {
     ]
 
     expect(computeSessionTotalActiveMs(entries)).toBe(7000)
+  })
+})
+
+describe('entryToUiMessage', () => {
+  it('restores a persisted image result as an assistant image message', () => {
+    expect(
+      entryToUiMessage({
+        type: 'message',
+        id: 'image-entry',
+        parentId: 'user-entry',
+        timestamp: '2026-09-25T00:00:00.000Z',
+        message: {
+          role: 'custom',
+          customType: 'pi-harness-image-result',
+          content: [{ type: 'image', data: 'TQ==', mimeType: 'image/png' }],
+          display: true,
+          details: { provider: 'step-plan', model: 'step-image-edit-2' },
+          timestamp: 1
+        }
+      })
+    ).toEqual({
+      role: 'assistant',
+      content: [{ type: 'image', data: 'TQ==', mimeType: 'image/png' }],
+      provider: 'step-plan',
+      model: 'step-image-edit-2',
+      stopReason: 'stop',
+      timestamp: 1
+    })
   })
 })

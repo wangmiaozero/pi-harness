@@ -11,6 +11,7 @@ import type {
   TextContent,
   ToolEntry
 } from '@shared/types/workspace'
+import type { ImageModelRequest } from '@shared/ipc/api-types'
 import {
   INITIAL_STREAMING_STATE,
   assistantHasRenderableContent,
@@ -38,6 +39,7 @@ import {
   rememberComposerCache,
   type ComposerSelection
 } from './composer-cache'
+import { rasterizeSvgImageResult } from '@renderer/utils/svg-rasterize'
 
 export const useAgentStore = defineStore('agent', () => {
   const messages = shallowRef<AgentMessage[]>([])
@@ -369,6 +371,115 @@ export const useAgentStore = defineStore('agent', () => {
     }
   }
 
+  async function sendImage(
+    sessionId: string | null,
+    cwd: string | null,
+    prompt: string,
+    preset: ToolPreset,
+    target: { providerKey: string; modelId: string },
+    sourceImages: AgentImageAttachment[] = []
+  ) {
+    const text = prompt.trim()
+    if (!text || sourceImages.length > 1) return sessionId
+    sending.value = true
+    error.value = null
+    const optimistic: AgentMessage = {
+      role: 'user',
+      content: [
+        { type: 'text', text },
+        ...sourceImages.map((image) => ({
+          type: 'image' as const,
+          data: image.data,
+          mimeType: image.mimeType
+        }))
+      ],
+      timestamp: Date.now()
+    }
+    messages.value = [...messages.value, optimistic]
+    let createdSessionId: string | null = null
+    try {
+      const source = sourceImages[0]
+      const sourceImage: ImageModelRequest['sourceImage'] = source
+        ? {
+            mimeType: source.mimeType as NonNullable<ImageModelRequest['sourceImage']>['mimeType'],
+            base64: source.data,
+            fileName: `source.${imageExtension(source.mimeType)}`
+          }
+        : undefined
+      const invoked = await callApi(() =>
+        getApi().models.invokeImage({
+          providerKey: target.providerKey,
+          modelId: target.modelId,
+          prompt: text,
+          size: '1024x1024',
+          ...(sourceImage ? { sourceImage } : {})
+        })
+      )
+      const result = await rasterizeSvgImageResult(invoked, '1024x1024')
+
+      let activeSessionId = sessionId
+      if (!activeSessionId) {
+        if (!cwd) throw new Error('No project cwd')
+        const started = await callApi(() =>
+          getApi().agent.start({
+            cwd,
+            toolNames: getToolNamesForPreset(preset),
+            ...(thinkingLevel.value !== 'auto'
+              ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value) }
+              : {})
+          })
+        )
+        activeSessionId = started.sessionId
+        loadedSessionId = activeSessionId
+        createdSessionId = activeSessionId
+        transientSessionIds.add(activeSessionId)
+        composerSelections.set(activeSessionId, {
+          thinkingLevel: thinkingLevel.value,
+          toolPreset: preset
+        })
+        useSessionStore().addTransientSession(activeSessionId, started.cwd, text)
+        void useWorkspaceStore().bindCurrentSession(activeSessionId)
+      }
+
+      const persisted = (await callApi(() =>
+        getApi().agent.command(activeSessionId!, {
+          type: 'append_external_image_result',
+          prompt: text,
+          provider: target.providerKey,
+          modelId: result.fallbackModelId ?? target.modelId,
+          sourceImages,
+          resultImage: { type: 'image', data: result.base64, mimeType: result.mimeType }
+        })
+      )) as { userEntryId: string; assistantEntryId: string }
+      const assistant: AgentMessage = {
+        role: 'assistant',
+        content: [{ type: 'image', data: result.base64, mimeType: result.mimeType }],
+        provider: target.providerKey,
+        model: result.fallbackModelId ?? target.modelId,
+        stopReason: 'stop',
+        timestamp: Date.now()
+      }
+      messages.value = [...messages.value, assistant]
+      entryIds.value = [...entryIds.value, persisted.userEntryId, persisted.assistantEntryId]
+      loadedStatsOverride = null
+      refreshLocalStats()
+      completionCount.value += 1
+      await syncPersistedSession(activeSessionId)
+      return activeSessionId
+    } catch (cause) {
+      error.value = getErrorMessage(cause)
+      messages.value = messages.value.slice(0, -1)
+      if (createdSessionId) {
+        transientSessionIds.delete(createdSessionId)
+        composerSelections.delete(createdSessionId)
+        useSessionStore().removeTransientSession(createdSessionId)
+      }
+      return sessionId
+    } finally {
+      sending.value = false
+    }
+  }
+
   async function abort(sessionId: string) {
     await callApi(() => getApi().agent.abort(sessionId))
   }
@@ -534,6 +645,7 @@ export const useAgentStore = defineStore('agent', () => {
     load,
     reconcile,
     send,
+    sendImage,
     abort,
     compact,
     setAutoCompaction,
@@ -548,6 +660,12 @@ export const useAgentStore = defineStore('agent', () => {
     activePreset
   }
 })
+
+function imageExtension(mimeType: string): string {
+  if (mimeType === 'image/jpeg') return 'jpg'
+  if (mimeType === 'image/webp') return 'webp'
+  return 'png'
+}
 
 function flushQueuedCompaction(sessionId: string): void {
   void import('./compaction').then(({ useCompactionStore }) => {

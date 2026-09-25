@@ -29,13 +29,18 @@ const props = withDefaults(
 
 const inputId = useId()
 const open = ref(false)
+const showAllOptions = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
 const panelStyle = ref<Record<string, string>>({})
+const hasOptions = computed(() => props.options.length > 0)
 
 const filtered = computed(() => {
   const hasExactSelection = props.options.some((option) => option.value === model.value)
-  const q = open.value && hasExactSelection ? '' : model.value.trim().toLowerCase()
+  const q =
+    showAllOptions.value || (open.value && hasExactSelection)
+      ? ''
+      : model.value.trim().toLowerCase()
   if (!q) return props.options
   return props.options.filter(
     (o) =>
@@ -56,15 +61,29 @@ function syncPanel() {
   }
 }
 
-function showPanel() {
-  if (props.disabled || props.options.length === 0) return
+function showPanel(showAll = false) {
+  if (props.disabled || !hasOptions.value) return
+  showAllOptions.value = showAll
   syncPanel()
   open.value = true
+}
+
+function showFilteredPanel() {
+  showPanel(false)
+}
+
+function toggleAllOptions() {
+  if (open.value && showAllOptions.value) {
+    open.value = false
+    return
+  }
+  showPanel(true)
 }
 
 function pick(opt: { value: string }) {
   model.value = opt.value
   open.value = false
+  showAllOptions.value = false
   emit('select', opt.value)
 }
 
@@ -72,6 +91,7 @@ function onDocPointer(e: PointerEvent) {
   const t = e.target as Node
   if (rootRef.value?.contains(t) || panelRef.value?.contains(t)) return
   open.value = false
+  showAllOptions.value = false
 }
 
 onMounted(() => {
@@ -92,7 +112,7 @@ watch(open, (v) => {
 const inputClasses = computed(() => {
   const base =
     'h-[var(--height-input)] w-full rounded-[var(--radius-sm)] border border-[var(--control-border)] ' +
-    'bg-[var(--control-bg)] py-0 pl-2.5 pr-7 text-[13px] text-[var(--text-primary)] shadow-[var(--control-shadow)] ' +
+    `bg-[var(--control-bg)] py-0 pl-2.5 ${hasOptions.value ? 'pr-7' : 'pr-2.5'} text-[13px] text-[var(--text-primary)] shadow-[var(--control-shadow)] ` +
     'placeholder:text-[var(--control-placeholder)] ' +
     'transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] ' +
     'hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] ' +
@@ -123,15 +143,16 @@ const inputClasses = computed(() => {
         autocomplete="off"
         class="ui-combobox-trigger"
         :class="inputClasses"
-        @focus="showPanel"
-        @input="showPanel"
+        @focus="showFilteredPanel"
+        @input="showFilteredPanel"
       />
       <button
+        v-if="hasOptions"
         type="button"
         class="absolute right-1.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
         tabindex="-1"
         :disabled="disabled"
-        @mousedown.prevent="open ? (open = false) : showPanel()"
+        @mousedown.prevent="toggleAllOptions"
       >
         <ChevronDown class="size-3" :stroke-width="1.75" />
       </button>

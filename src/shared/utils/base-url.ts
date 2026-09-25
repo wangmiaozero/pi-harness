@@ -19,6 +19,7 @@ const STRIP_SUFFIXES = [
   /\/completions\/?$/i,
   /\/responses\/?$/i,
   /\/messages\/?$/i,
+  /\/images\/(?:generations|edits)\/?$/i,
   /\/models\/?$/i
 ]
 
@@ -39,6 +40,25 @@ export function normalizeProviderBaseUrl(raw: string): BaseUrlNormalizeResult {
   url = url.replace(/\/+$/, '')
   const changed = url !== raw.trim().replace(/\/+$/, '') || stripped != null
   return { url, changed: changed || stripped != null, stripped }
+}
+
+/** Resolve the Images API root from the provider's existing Base URL. */
+export function imageApiBaseUrl(raw: string): string {
+  const normalized = normalizeProviderBaseUrl(raw).url
+  try {
+    const url = new URL(normalized)
+    const path = url.pathname.replace(/\/+$/, '')
+    // Step Plan documents two roots for the same account: OpenAI SDK uses
+    // /step_plan/v1 while Anthropic SDK uses /step_plan and appends /v1/messages.
+    // Images always use the OpenAI-compatible /step_plan/v1 root.
+    if (url.hostname.toLowerCase() === 'api.stepfun.com' && path === '/step_plan') {
+      url.pathname = `${path}/v1`
+      return url.toString().replace(/\/+$/, '')
+    }
+  } catch {
+    return normalized
+  }
+  return normalized
 }
 
 export type VolcenginePlanKind = 'agent-plan' | 'coding-plan'

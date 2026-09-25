@@ -41,6 +41,7 @@ export const IPC_INVOKE = {
   providerSetEnabled: invoke('providers:set-enabled'),
   providerTestConnection: invoke('providers:test-connection'),
   providerDiscoverModels: invoke('providers:discover-models'),
+  providerRevealApiKey: invoke('providers:reveal-api-key'),
 
   // models
   modelList: invoke('models:list'),
@@ -49,6 +50,7 @@ export const IPC_INVOKE = {
   modelDelete: invoke('models:delete'),
   modelSetActive: invoke('models:set-active'),
   modelGetActive: invoke('models:get-active'),
+  modelInvokeImage: invoke('models:invoke-image'),
 
   // config (Pi native config service)
   configRead: invoke('config:read'),

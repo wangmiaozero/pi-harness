@@ -51,6 +51,29 @@ describe('ChatComposer model capabilities', () => {
     expect(wrapper.get('.command-execute-button').attributes('disabled')).toBeDefined()
     expect(wrapper.text()).toContain(String(i18n.global.t('workspace.imageUnsupported')))
   })
+
+  it('routes dedicated image models as image requests from the composer', async () => {
+    const models = useModelsStore()
+    const providers = useProvidersStore()
+    const workspace = useWorkspaceStore()
+    providers.items = [provider()]
+    models.items = [model('step-image-edit-2', false)]
+    models.active = { providerKey: 'provider', modelId: 'step-image-edit-2' }
+    workspace.draft = 'draw a lighthouse'
+
+    const wrapper = mount(ChatComposer, {
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    const attach = wrapper.get(`button[aria-label="${i18n.global.t('workspace.attachImage')}"]`)
+    expect(attach.attributes('disabled')).toBeUndefined()
+
+    await wrapper.get('.command-execute-button').trigger('click')
+
+    expect(wrapper.emitted('send')).toEqual([
+      [{ providerKey: 'provider', modelId: 'step-image-edit-2' }]
+    ])
+  })
 })
 
 describe('ChatComposer compact button', () => {

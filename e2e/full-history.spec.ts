@@ -36,6 +36,10 @@ test('renders full history inside the themed Pi-Harness dialog', async ({
     'src',
     /^data:image\/gif;base64,/
   )
+  await expect(page.locator('[data-message-role="assistant"] img')).toHaveAttribute(
+    'src',
+    /^data:image\/png;base64,/
+  )
 
   const windowCount = electronApp.windows().length
   await page
@@ -49,7 +53,11 @@ test('renders full history inside the themed Pi-Harness dialog', async ({
   await expect(history).toBeVisible()
   await expect(dialog).toContainText('历史弹窗样式验证')
   await expect(dialog.locator('[data-message-role="user"]')).toHaveCount(13)
-  await expect(dialog.locator('[data-message-role="assistant"]')).toHaveCount(12)
+  await expect(dialog.locator('[data-message-role="assistant"]')).toHaveCount(13)
+  await expect(dialog.locator('[data-message-role="assistant"] img')).toHaveAttribute(
+    'src',
+    /^data:image\/png;base64,/
+  )
   await expect(dialog).not.toContainText(`# ${sessionId}`)
   expect(electronApp.windows()).toHaveLength(windowCount)
 
@@ -128,6 +136,26 @@ function seedHistorySession(agentDir: string, cwd: string, sessionId: string): v
     })
     parentId = assistantId
   }
+  entries.push({
+    type: 'message',
+    id: 'history-generated-image',
+    parentId,
+    timestamp,
+    message: {
+      role: 'custom',
+      customType: 'pi-harness-image-result',
+      content: [
+        {
+          type: 'image',
+          data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+          mimeType: 'image/png'
+        }
+      ],
+      display: true,
+      details: { provider: 'step-plan', model: 'step-image-edit-2' },
+      timestamp: Date.parse(timestamp)
+    }
+  })
   fs.mkdirSync(sessionDir, { recursive: true })
   fs.writeFileSync(
     path.join(sessionDir, `2026-09-05T08-00-00-000Z_${sessionId}.jsonl`),

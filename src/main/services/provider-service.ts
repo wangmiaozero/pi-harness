@@ -7,7 +7,7 @@ import type { ProviderForm, ProviderModelDiscoveryInput } from '@shared/schemas/
 import { providerFormSchema, providerModelDiscoverySchema } from '@shared/schemas/domain'
 import type { JsonStore } from '../services/storage'
 import type { AppMetadata } from '../services/metadata-store'
-import { NotFoundError, ValidationError } from '../services/errors'
+import { NetworkError, NotFoundError, ValidationError } from '../services/errors'
 import { secretStore } from '../security/secret-store'
 import type { PiConfigService, WriteOptions } from '../pi/config-service'
 import {
@@ -18,11 +18,22 @@ import {
 } from '../pi/adapter'
 import { randomBytes } from 'node:crypto'
 import type { ConnectionTestResult } from '@shared/ipc/api-types'
+import type { ImageModelResult } from '@shared/ipc/api-types'
+import { imageModelRequestSchema } from '@shared/schemas/domain'
 import { getProtocol, isProtocolId } from '@shared/constants/protocols'
 import type { ProtocolId } from '@shared/constants/protocols'
 import { log, redactSecretText } from '../services/logger'
-import { normalizeProviderBaseUrl, volcenginePlanKind } from '@shared/utils/base-url'
+import {
+  imageApiBaseUrl,
+  normalizeProviderBaseUrl,
+  volcenginePlanKind
+} from '@shared/utils/base-url'
 import type { PiProviderConfig } from '@shared/types/pi'
+import {
+  extractChatCompletionText,
+  sanitizeGeneratedSvg,
+  svgFallbackPrompt
+} from './svg-image-fallback'
 
 export class ProviderService {
   constructor(
@@ -50,6 +61,23 @@ export class ProviderService {
   async get(key: string): Promise<ProviderProfile | null> {
     const all = await this.list()
     return all.find((p) => p.key === key) ?? null
+  }
+
+  /** Resolve a saved credential only for an explicit, trusted renderer reveal action. */
+  async revealApiKey(key: string): Promise<string> {
+    const provider = await this.get(key)
+    if (!provider) throw new NotFoundError(`Provider not found: ${key}`)
+
+    const resolved = await resolveCredentialForTest(provider)
+    if (resolved) return resolved
+
+    // Plaintext credentials imported directly from models.json are deliberately
+    // excluded from ProviderProfile; read them only inside Main for this action.
+    const snapshot = await this.config.read()
+    const raw = snapshot.models.providers[key]?.apiKey?.trim()
+    if (raw && !raw.startsWith('$') && !raw.startsWith('!')) return raw
+
+    throw new ValidationError('Saved API key could not be resolved')
   }
 
   async create(raw: unknown, options?: WriteOptions): Promise<ProviderProfile> {
@@ -525,6 +553,214 @@ export class ProviderService {
     return [...models.values()]
   }
 
+  /** Invoke an OpenAI-compatible Images API without exposing credentials to the renderer. */
+  async invokeImageModel(raw: unknown): Promise<ImageModelResult> {
+    const parsed = imageModelRequestSchema.safeParse(raw)
+    if (!parsed.success) {
+      throw new ValidationError('Invalid image model request', { issues: parsed.error.issues })
+    }
+    const input = parsed.data
+    const provider = await this.get(input.providerKey)
+    if (!provider) throw new NotFoundError(`Provider not found: ${input.providerKey}`)
+
+    const apiKey = await resolveCredentialForTest(provider)
+    if (!apiKey && provider.apiKey) {
+      throw new ValidationError('No API key resolved for this provider. Re-enter the key and save.')
+    }
+
+    const root = imageApiBaseUrl(provider.baseUrl)
+    let endpoint: URL
+    try {
+      endpoint = new URL(`${root}/images/${input.sourceImage ? 'edits' : 'generations'}`)
+    } catch {
+      throw new ValidationError('Base URL must be a valid HTTP(S) URL')
+    }
+    if (!['http:', 'https:'].includes(endpoint.protocol)) {
+      throw new ValidationError('Base URL must use HTTP or HTTPS')
+    }
+
+    const headers: Record<string, string> = { ...provider.headers }
+    setHeaderIfMissing(headers, 'Accept', 'application/json')
+    if (apiKey && provider.authHeader)
+      setHeaderIfMissing(headers, 'Authorization', `Bearer ${apiKey}`)
+
+    let sourceBytes: Uint8Array<ArrayBuffer> | null = null
+    if (input.sourceImage) {
+      sourceBytes = decodeImageBase64(input.sourceImage.base64)
+      removeHeader(headers, 'Content-Type')
+    } else {
+      setHeaderIfMissing(headers, 'Content-Type', 'application/json')
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(
+      () => controller.abort(),
+      Math.min(provider.timeout ?? 120_000, 300_000)
+    )
+    try {
+      for (let attempt = 1; attempt <= IMAGE_REQUEST_MAX_ATTEMPTS; attempt += 1) {
+        const body = input.sourceImage
+          ? createImageEditBody(input, sourceBytes!, isStepPlanImageApi(root))
+          : JSON.stringify({
+              model: input.modelId,
+              prompt: input.prompt,
+              size: input.size,
+              response_format: 'b64_json',
+              ...(isStepPlanImageApi(root) ? stepPlanImageDefaults() : {})
+            })
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body,
+          signal: controller.signal
+        })
+        const text = await response.text()
+        if (!response.ok) {
+          const detail = summarizeErrorBody(text)
+          if (
+            attempt < IMAGE_REQUEST_MAX_ATTEMPTS &&
+            isRetryableImageFailure(response.status, text)
+          ) {
+            const delayMs = imageRetryDelayMs(response.headers.get('retry-after'), attempt)
+            log.provider.warn('image request temporarily unavailable; retrying', {
+              status: response.status,
+              attempt,
+              delayMs
+            })
+            await waitForImageRetry(delayMs, controller.signal)
+            continue
+          }
+          const attempts = attempt > 1 ? ` after ${attempt} attempts` : ''
+          const message = detail
+            ? `Image request failed${attempts} (HTTP ${response.status}): ${detail}`
+            : `Image request failed${attempts} (HTTP ${response.status})`
+          if (isRetryableImageFailure(response.status, text)) throw new NetworkError(message)
+          throw new ValidationError(message)
+        }
+        if (text.length > 40_000_000) throw new ValidationError('Image response is too large')
+
+        let payload: unknown
+        try {
+          payload = JSON.parse(text)
+        } catch {
+          throw new ValidationError('Image endpoint returned invalid JSON')
+        }
+        const item = imageResultItem(payload)
+        if (item.base64) {
+          const bytes = decodeImageBase64(item.base64)
+          return {
+            mimeType: detectImageMimeType(bytes),
+            base64: item.base64,
+            revisedPrompt: item.revisedPrompt
+          }
+        }
+        if (!item.url) throw new ValidationError('Image endpoint returned no image data')
+        const remote = await fetchImageResult(item.url, controller.signal)
+        return { ...remote, revisedPrompt: item.revisedPrompt }
+      }
+      throw new NetworkError('Image request failed after retries')
+    } catch (error) {
+      if ((error as Error).name === 'AbortError')
+        throw new ValidationError('Image request timed out')
+      if (error instanceof NetworkError && !input.sourceImage) {
+        clearTimeout(timer)
+        const fallback = await this.invokeSvgImageFallback(input, provider, apiKey)
+        if (fallback) return fallback
+      }
+      if (error instanceof ValidationError || error instanceof NetworkError) throw error
+      throw new ValidationError(
+        `Image request failed: ${redactSecretText((error as Error).message)}`
+      )
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  private async invokeSvgImageFallback(
+    input: { providerKey: string; prompt: string; size: string },
+    provider: ProviderProfile,
+    apiKey: string | null
+  ): Promise<ImageModelResult | null> {
+    const snapshot = await this.config.read()
+    const configuredModels = new Set(
+      snapshot.models.providers[input.providerKey]?.models?.map((model) => model.id) ?? []
+    )
+    const candidates = ['step-5-preview', 'step-3.7-flash'].filter((id) =>
+      configuredModels.has(id)
+    )
+    if (candidates.length === 0) return null
+
+    const root = imageApiBaseUrl(provider.baseUrl)
+    const endpoint = new URL(`${root}/chat/completions`)
+    const headers: Record<string, string> = { ...provider.headers }
+    setHeaderIfMissing(headers, 'Accept', 'application/json')
+    removeHeader(headers, 'Content-Type')
+    setHeaderIfMissing(headers, 'Content-Type', 'application/json')
+    if (apiKey && provider.authHeader)
+      setHeaderIfMissing(headers, 'Authorization', `Bearer ${apiKey}`)
+
+    const [height, width] = input.size.split('x').map(Number) as [number, number]
+    for (const modelId of candidates) {
+      const controller = new AbortController()
+      const timer = setTimeout(
+        () => controller.abort(),
+        Math.min(provider.timeout ?? 120_000, 180_000)
+      )
+      try {
+        log.provider.warn('image engine unavailable; trying local SVG fallback', { modelId })
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: modelId,
+            stream: false,
+            max_tokens: 16_000,
+            reasoning_effort: 'medium',
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You create safe, self-contained SVG illustrations. Return SVG markup only.'
+              },
+              { role: 'user', content: svgFallbackPrompt(input.prompt, width, height) }
+            ]
+          }),
+          signal: controller.signal
+        })
+        const text = await response.text()
+        if (!response.ok) {
+          log.provider.warn('SVG fallback model request failed', {
+            modelId,
+            status: response.status,
+            detail: summarizeErrorBody(text)
+          })
+          continue
+        }
+        if (text.length > 2_000_000) continue
+
+        const payload = JSON.parse(text) as unknown
+        const generated = extractChatCompletionText(payload)
+        if (!generated) continue
+        const svg = sanitizeGeneratedSvg(generated, width, height)
+        return {
+          mimeType: 'image/svg+xml',
+          base64: Buffer.from(svg, 'utf8').toString('base64'),
+          revisedPrompt: null,
+          fallbackModelId: modelId,
+          fallbackKind: 'svg'
+        }
+      } catch (error) {
+        log.provider.warn('SVG fallback model failed', {
+          modelId,
+          error: redactSecretText((error as Error).message)
+        })
+      } finally {
+        clearTimeout(timer)
+      }
+    }
+    return null
+  }
+
   async testConnection(input: {
     providerKey: string
     modelId?: string
@@ -783,6 +1019,185 @@ export function resolveEnabledProviderKey(
     return activeProviderKey
   }
   return untracked[0] ?? null
+}
+
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024
+const IMAGE_REQUEST_MAX_ATTEMPTS = 4
+const IMAGE_RETRY_DELAYS_MS = [1_000, 2_000, 4_000] as const
+const MAX_IMAGE_RETRY_AFTER_MS = 15_000
+
+function createImageEditBody(
+  input: {
+    modelId: string
+    prompt: string
+    sourceImage?: { mimeType: string; fileName: string }
+  },
+  bytes: Uint8Array<ArrayBuffer>,
+  stepPlan: boolean
+): FormData {
+  const form = new FormData()
+  form.set('model', input.modelId)
+  form.set('prompt', input.prompt)
+  form.set(
+    'image',
+    new Blob([bytes], { type: input.sourceImage!.mimeType }),
+    input.sourceImage!.fileName
+  )
+  form.set('response_format', 'b64_json')
+  if (stepPlan) {
+    for (const [key, value] of Object.entries(stepPlanImageDefaults())) {
+      form.set(key, String(value))
+    }
+  }
+  return form
+}
+
+function isStepPlanImageApi(root: string): boolean {
+  try {
+    const url = new URL(root)
+    return (
+      url.hostname.toLowerCase() === 'api.stepfun.com' &&
+      url.pathname.replace(/\/+$/, '') === '/step_plan/v1'
+    )
+  } catch {
+    return false
+  }
+}
+
+function stepPlanImageDefaults(): {
+  cfg_scale: number
+  steps: number
+  seed: number
+  text_mode: boolean
+} {
+  return {
+    cfg_scale: 1,
+    steps: 8,
+    seed: 1,
+    text_mode: false
+  }
+}
+
+function isRetryableImageFailure(status: number, body: string): boolean {
+  if (![429, 500, 502, 503, 504].includes(status)) return false
+  if (status !== 429) return true
+  return !/(AccountQuotaExceeded|insufficient_quota|quota\s+exceeded|余额不足|配额.*(?:耗尽|超出))/i.test(
+    body
+  )
+}
+
+function imageRetryDelayMs(retryAfter: string | null, attempt: number): number {
+  if (retryAfter) {
+    const seconds = Number(retryAfter)
+    const parsed = Number.isFinite(seconds)
+      ? seconds * 1_000
+      : Date.parse(retryAfter) - Date.now()
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return Math.min(parsed, MAX_IMAGE_RETRY_AFTER_MS)
+    }
+  }
+  return IMAGE_RETRY_DELAYS_MS[attempt - 1] ?? IMAGE_RETRY_DELAYS_MS.at(-1)!
+}
+
+async function waitForImageRetry(delayMs: number, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(done, delayMs)
+    signal.addEventListener('abort', aborted, { once: true })
+
+    function done(): void {
+      signal.removeEventListener('abort', aborted)
+      resolve()
+    }
+
+    function aborted(): void {
+      clearTimeout(timer)
+      reject(new DOMException('Aborted', 'AbortError'))
+    }
+  })
+}
+
+function decodeImageBase64(value: string): Uint8Array<ArrayBuffer> {
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value)) throw new ValidationError('Invalid image data')
+  const buffer = Buffer.from(value, 'base64')
+  if (buffer.length === 0 || buffer.length > MAX_IMAGE_BYTES) {
+    throw new ValidationError('Image must be between 1 byte and 20 MB')
+  }
+  return Uint8Array.from(buffer)
+}
+
+function removeHeader(headers: Record<string, string>, name: string): void {
+  const key = Object.keys(headers).find(
+    (candidate) => candidate.toLowerCase() === name.toLowerCase()
+  )
+  if (key) delete headers[key]
+}
+
+function imageResultItem(payload: unknown): {
+  base64: string | null
+  url: string | null
+  revisedPrompt: string | null
+} {
+  const first = Array.isArray((payload as { data?: unknown })?.data)
+    ? (payload as { data: unknown[] }).data[0]
+    : null
+  if (!first || typeof first !== 'object') {
+    return { base64: null, url: null, revisedPrompt: null }
+  }
+  const item = first as Record<string, unknown>
+  return {
+    base64: typeof item.b64_json === 'string' ? item.b64_json : null,
+    url: typeof item.url === 'string' ? item.url : null,
+    revisedPrompt: typeof item.revised_prompt === 'string' ? item.revised_prompt : null
+  }
+}
+
+function detectImageMimeType(bytes: Uint8Array): string {
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return 'image/png'
+  }
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return 'image/jpeg'
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return 'image/webp'
+  }
+  return 'image/png'
+}
+
+async function fetchImageResult(
+  rawUrl: string,
+  signal: AbortSignal
+): Promise<{ mimeType: string; base64: string }> {
+  let url: URL
+  try {
+    url = new URL(rawUrl)
+  } catch {
+    throw new ValidationError('Image endpoint returned an invalid image URL')
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new ValidationError('Image endpoint returned an unsupported image URL')
+  }
+  const response = await fetch(url, { signal })
+  if (!response.ok)
+    throw new ValidationError(`Failed to download generated image (HTTP ${response.status})`)
+  const declaredLength = Number(response.headers.get('content-length') ?? 0)
+  if (declaredLength > MAX_IMAGE_BYTES) throw new ValidationError('Generated image is too large')
+  const bytes = new Uint8Array(await response.arrayBuffer())
+  if (bytes.byteLength === 0 || bytes.byteLength > MAX_IMAGE_BYTES) {
+    throw new ValidationError('Generated image must be between 1 byte and 20 MB')
+  }
+  return {
+    mimeType: response.headers.get('content-type')?.split(';')[0] || detectImageMimeType(bytes),
+    base64: Buffer.from(bytes).toString('base64')
+  }
 }
 
 async function resolveDiscoveryCredential(

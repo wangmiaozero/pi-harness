@@ -507,10 +507,28 @@ function walkContext(entries: SessionEntry[], leafId?: string | null): SessionCo
   }
 }
 
-function entryToUiMessage(entry: SessionEntry): AgentMessage | null {
+export function entryToUiMessage(entry: SessionEntry): AgentMessage | null {
   switch (entry.type) {
     case 'message': {
       const message = entry.message as AgentMessage | undefined
+      if (message?.role === 'custom' && message.customType === 'pi-harness-image-result') {
+        const details =
+          message.details && typeof message.details === 'object'
+            ? (message.details as { provider?: unknown; model?: unknown })
+            : {}
+        const content = Array.isArray(message.content)
+          ? message.content.filter((block) => block.type === 'image')
+          : []
+        if (!content.length) return null
+        return {
+          role: 'assistant',
+          content,
+          provider: typeof details.provider === 'string' ? details.provider : 'image',
+          model: typeof details.model === 'string' ? details.model : 'image',
+          stopReason: 'stop',
+          timestamp: message.timestamp
+        }
+      }
       return message ? normalizeToolCalls(message) : null
     }
     case 'compaction':

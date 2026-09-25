@@ -102,6 +102,23 @@ export const setActiveModelSchema = z.object({
   modelId: z.string().min(1)
 })
 
+export const imageModelRequestSchema = z
+  .object({
+    providerKey: providerKeySchema,
+    modelId: z.string().trim().min(1).max(256),
+    prompt: z.string().trim().min(1).max(8_000),
+    size: z.enum(['1024x1024', '768x1360', '896x1184', '1360x768', '1184x896']),
+    sourceImage: z
+      .object({
+        mimeType: z.enum(['image/png', 'image/jpeg', 'image/webp']),
+        base64: z.string().min(1).max(28_000_000),
+        fileName: z.string().trim().min(1).max(255)
+      })
+      .strict()
+      .optional()
+  })
+  .strict()
+
 export const backupIdSchema = z
   .string()
   .min(1)

@@ -32,9 +32,20 @@ import {
   MAX_ATTACHED_IMAGES
 } from '@shared/workspace/image-attachments'
 import { ImagePlus, Minimize2, Send, Volume2, VolumeX, Wrench, X } from '@lucide/vue'
+import { isImageGenerationModel } from '@shared/models/image-model'
+
+interface ComposerImageModelTarget {
+  providerKey: string
+  modelId: string
+}
 
 defineProps<{ soundEnabled: boolean }>()
-const emit = defineEmits<{ send: []; abort: []; toggleSound: []; unlockAudio: [] }>()
+const emit = defineEmits<{
+  send: [imageModel: ComposerImageModelTarget | null]
+  abort: []
+  toggleSound: []
+  unlockAudio: []
+}>()
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
 const agent = useAgentStore()
@@ -52,6 +63,7 @@ const previewOpen = ref(false)
 const dragActive = ref(false)
 const pendingImageCount = ref(0)
 const modelSwitching = ref(false)
+const imageModelValue = ref<string | null>(null)
 let dragDepth = 0
 
 const busy = computed(
@@ -106,13 +118,23 @@ const modelOptions = computed(() =>
 
 const modelValue = computed({
   get: () =>
-    agent.state?.model
+    imageModelValue.value ??
+    (agent.state?.model
       ? `${agent.state.model.provider}/${agent.state.model.id}`
-      : `${models.active.providerKey}/${models.active.modelId}`,
+      : `${models.active.providerKey}/${models.active.modelId}`),
   set: async (value: string) => {
     const [provider, ...rest] = value.split('/')
     const modelId = rest.join('/')
     if (!provider || !modelId) return
+    const selected = models.items.find((model) => {
+      const modelProvider = providers.items.find((item) => item.id === model.providerId)
+      return `${modelProvider?.key ?? model.providerId}/${model.modelId}` === value
+    })
+    if (isImageGenerationModel(selected)) {
+      imageModelValue.value = value
+      return
+    }
+    imageModelValue.value = null
     modelSwitching.value = true
     try {
       if (sessions.currentId) await agent.setModel(sessions.currentId, provider, modelId)
@@ -136,17 +158,38 @@ const selectedModel = computed(() =>
     return `${providerKey}/${model.modelId}` === modelValue.value
   })
 )
-const supportsImages = computed(() => selectedModel.value?.vision === true)
+const selectedImageModel = computed(() => isImageGenerationModel(selectedModel.value))
+const supportsImages = computed(
+  () => selectedImageModel.value || selectedModel.value?.vision === true
+)
 const hasUnsupportedImages = computed(
   () => workspace.draftImages.length > 0 && !supportsImages.value
 )
+const hasTooManyImageSources = computed(
+  () => selectedImageModel.value && workspace.draftImages.length > 1
+)
 const canSend = computed(
   () =>
-    Boolean(workspace.draft.trim() || workspace.draftImages.length) && !hasUnsupportedImages.value
+    (selectedImageModel.value
+      ? Boolean(workspace.draft.trim())
+      : Boolean(workspace.draft.trim() || workspace.draftImages.length)) &&
+    !hasUnsupportedImages.value &&
+    !hasTooManyImageSources.value
 )
 
 function warnImageUnsupported() {
   toast.warning(t('workspace.imageUnsupported'))
+}
+
+function emitSend() {
+  const value = modelValue.value
+  const slash = value.indexOf('/')
+  emit(
+    'send',
+    selectedImageModel.value && slash > 0
+      ? { providerKey: value.slice(0, slash), modelId: value.slice(slash + 1) }
+      : null
+  )
 }
 
 const thinkingStops = computed(() =>
@@ -206,7 +249,8 @@ function onKeydown(e: KeyboardEvent) {
   if (shouldSendComposerKey(e)) {
     e.preventDefault()
     if (hasUnsupportedImages.value) warnImageUnsupported()
-    else if (canSend.value) emit('send')
+    else if (hasTooManyImageSources.value) toast.warning(t('workspace.imageLimit', { count: 1 }))
+    else if (canSend.value) emitSend()
   }
   if (e.key === 'Escape' && busy.value) {
     e.preventDefault()
@@ -258,22 +302,26 @@ async function processImageFiles(files: File[]) {
     if (files.length) toast.warning(t('workspace.imageOnly'))
     return
   }
+  const supportedFiles = selectedImageModel.value
+    ? imageFiles.filter((file) => ['image/png', 'image/jpeg', 'image/webp'].includes(file.type))
+    : imageFiles
+  if (supportedFiles.length < imageFiles.length) {
+    toast.warning(t('models.imageUnsupportedType'))
+  }
 
-  const withinSize = imageFiles.filter((file) => file.size <= MAX_ATTACHED_IMAGE_BYTES)
-  if (withinSize.length < imageFiles.length) {
+  const withinSize = supportedFiles.filter((file) => file.size <= MAX_ATTACHED_IMAGE_BYTES)
+  if (withinSize.length < supportedFiles.length) {
     toast.warning(t('workspace.imageTooLarge', { size: MAX_ATTACHED_IMAGE_BYTES / 1024 / 1024 }))
   }
-  const remaining = Math.max(
-    0,
-    MAX_ATTACHED_IMAGES - workspace.draftImages.length - pendingImageCount.value
-  )
+  const imageLimit = selectedImageModel.value ? 1 : MAX_ATTACHED_IMAGES
+  const remaining = Math.max(0, imageLimit - workspace.draftImages.length - pendingImageCount.value)
   if (remaining === 0) {
-    toast.warning(t('workspace.imageLimit', { count: MAX_ATTACHED_IMAGES }))
+    toast.warning(t('workspace.imageLimit', { count: imageLimit }))
     return
   }
   const accepted = withinSize.slice(0, remaining)
   if (accepted.length < withinSize.length) {
-    toast.warning(t('workspace.imageLimit', { count: MAX_ATTACHED_IMAGES }))
+    toast.warning(t('workspace.imageLimit', { count: imageLimit }))
   }
   if (!accepted.length) return
 
@@ -417,6 +465,9 @@ async function onCompact() {
     <p v-if="hasUnsupportedImages" class="mb-2 text-[11px] text-[var(--danger)]">
       {{ $t('workspace.imageUnsupported') }}
     </p>
+    <p v-else-if="hasTooManyImageSources" class="mb-2 text-[11px] text-[var(--danger)]">
+      {{ $t('workspace.imageLimit', { count: 1 }) }}
+    </p>
     <div
       ref="inputBox"
       class="command-console-input relative overflow-hidden rounded-[var(--radius-sm)] transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
@@ -502,7 +553,7 @@ async function onCompact() {
           size="sm"
           :disabled="!canSend"
           :loading="agent.sending"
-          @click="emit('send')"
+          @click="emitSend"
         >
           <Send aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
           {{ $t('workspace.send') }}

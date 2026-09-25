@@ -157,6 +157,68 @@ describe('agent store new-session handshake', () => {
     })
   })
 
+  it('invokes a dedicated image model and persists its result in the Pi session', async () => {
+    const command = vi.fn().mockResolvedValue({
+      userEntryId: 'user-image-entry',
+      assistantEntryId: 'assistant-image-entry'
+    })
+    window.piSwitch = {
+      models: {
+        invokeImage: vi.fn().mockResolvedValue({
+          mimeType: 'image/png',
+          base64: 'TQ==',
+          revisedPrompt: null
+        })
+      },
+      sessions: {
+        list: vi.fn().mockResolvedValue([
+          {
+            path: '/tmp/session-1.jsonl',
+            id: 'session-1',
+            cwd: '/code/project',
+            created: '2026-09-25T00:00:00.000Z',
+            modified: '2026-09-25T00:00:01.000Z',
+            messageCount: 2,
+            firstMessage: 'draw a lighthouse'
+          }
+        ])
+      },
+      agent: { command }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    const result = await agent.sendImage(
+      'session-1',
+      '/code/project',
+      'draw a lighthouse',
+      'default',
+      { providerKey: 'step-plan', modelId: 'step-image-edit-2' }
+    )
+
+    expect(result).toBe('session-1')
+    expect(window.piSwitch.models.invokeImage).toHaveBeenCalledWith({
+      providerKey: 'step-plan',
+      modelId: 'step-image-edit-2',
+      prompt: 'draw a lighthouse',
+      size: '1024x1024'
+    })
+    expect(command).toHaveBeenCalledWith(
+      'session-1',
+      expect.objectContaining({
+        type: 'append_external_image_result',
+        resultImage: { type: 'image', data: 'TQ==', mimeType: 'image/png' }
+      })
+    )
+    expect(agent.messages).toEqual([
+      expect.objectContaining({ role: 'user' }),
+      expect.objectContaining({
+        role: 'assistant',
+        content: [{ type: 'image', data: 'TQ==', mimeType: 'image/png' }]
+      })
+    ])
+    expect(agent.entryIds).toEqual(['user-image-entry', 'assistant-image-entry'])
+  })
+
   it('keeps auto as a UI default without sending an invalid SDK thinking level', async () => {
     const command = vi.fn().mockResolvedValue(null)
     window.piSwitch = { agent: { command } } as unknown as PiSwitchAPI
