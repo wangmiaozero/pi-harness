@@ -62,7 +62,8 @@ const api: PiSwitchAPI = {
     duplicate: (key, options) => invoke(IPC_INVOKE.providerDuplicate, key, options ?? {}),
     setEnabled: (key, enabled) => invoke(IPC_INVOKE.providerSetEnabled, key, enabled),
     testConnection: (input) => invoke(IPC_INVOKE.providerTestConnection, input),
-    discoverModels: (input) => invoke(IPC_INVOKE.providerDiscoverModels, input)
+    discoverModels: (input) => invoke(IPC_INVOKE.providerDiscoverModels, input),
+    revealApiKey: (key) => invoke(IPC_INVOKE.providerRevealApiKey, key)
   },
   models: {
     list: () => invoke(IPC_INVOKE.modelList),
@@ -70,7 +71,8 @@ const api: PiSwitchAPI = {
     update: (id, form, options) => invoke(IPC_INVOKE.modelUpdate, id, form, options ?? {}),
     delete: (id, options) => invoke(IPC_INVOKE.modelDelete, id, options ?? {}),
     setActive: (input, options) => invoke(IPC_INVOKE.modelSetActive, input, options ?? {}),
-    getActive: () => invoke(IPC_INVOKE.modelGetActive)
+    getActive: () => invoke(IPC_INVOKE.modelGetActive),
+    invokeImage: (input) => invoke(IPC_INVOKE.modelInvokeImage, input)
   },
   config: {
     read: () => invoke(IPC_INVOKE.configRead),

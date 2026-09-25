@@ -13,10 +13,19 @@ import {
   Radio,
   Cpu,
   Circle,
-  Zap
+  Zap,
+  Image as ImageIcon,
+  Upload,
+  Download
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import type { ModelDefinition, ConnectionTestResult, ProviderProfile } from '@shared/ipc/api-types'
+import type {
+  ModelDefinition,
+  ConnectionTestResult,
+  ProviderProfile,
+  ImageModelRequest,
+  ImageModelResult
+} from '@shared/ipc/api-types'
 import type { ModelForm, ProviderForm } from '@shared/schemas/domain'
 import { PROTOCOLS } from '@shared/constants/protocols'
 import { findProviderPreset } from '@shared/constants/provider-presets'
@@ -32,9 +41,14 @@ import Switch from '@renderer/components/ui/Switch.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import SearchField from '@renderer/components/ui/SearchField.vue'
+import Textarea from '@renderer/components/ui/Textarea.vue'
 import { useModelsStore } from '@renderer/stores/models'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { formatRelativeTime } from '@renderer/utils/format'
+import { chooseModelCreateProvider } from '@renderer/utils/model-provider-selection'
+import { callApi, getApi } from '@renderer/composables/useApi'
+import { isImageGenerationModel } from '@shared/models/image-model'
+import { rasterizeSvgImageResult } from '@renderer/utils/svg-rasterize'
 
 const { t, locale } = useI18n()
 const modelsStore = useModelsStore()
@@ -48,6 +62,14 @@ const deletingModel = ref<ModelDefinition | null>(null)
 const testingModel = ref<ModelDefinition | null>(null)
 const testResult = ref<ConnectionTestResult | null>(null)
 const testLoading = ref(false)
+const imageOpen = ref(false)
+const imageModel = ref<ModelDefinition | null>(null)
+const imagePrompt = ref('')
+const imageSize = ref<ImageModelRequest['size']>('1024x1024')
+const imageSource = ref<ImageModelRequest['sourceImage']>()
+const imageResult = ref<ImageModelResult | null>(null)
+const imageLoading = ref(false)
+const imageInput = ref<HTMLInputElement | null>(null)
 const saving = ref(false)
 const useProviderProtocol = ref(true)
 const showAdvanced = ref(false)
@@ -196,11 +218,6 @@ const activeModel = computed(
   () => modelsStore.items.find((m) => modelsStore.isActive(m, providerKeyFor(m))) ?? null
 )
 
-/** Heuristic: dedicated image APIs are not usable as Pi chat active models. */
-function looksLikeImageModel(model: ModelDefinition): boolean {
-  return /image|dall|flux|sdxl|imagen|midjourney/i.test(model.modelId)
-}
-
 function protocolLabel(protocol: string): string {
   return PROTOCOLS.find((p) => p.id === protocol)?.label ?? protocol
 }
@@ -228,9 +245,7 @@ function openCreate() {
   useProviderProtocol.value = true
   showAdvanced.value = false
   resetThinkingMap()
-  if (providersStore.items.length > 0) {
-    bindProvider(providersStore.items[0])
-  }
+  bindProvider(chooseModelCreateProvider(providersStore.items, providerFilter.value))
   dialogOpen.value = true
 }
 
@@ -373,6 +388,77 @@ function openTest(model: ModelDefinition) {
   testingModel.value = model
   testResult.value = null
   testOpen.value = true
+}
+
+function openImageModel(model: ModelDefinition) {
+  imageModel.value = model
+  imagePrompt.value = ''
+  imageSize.value = '1024x1024'
+  imageSource.value = undefined
+  imageResult.value = null
+  imageOpen.value = true
+}
+
+async function selectSourceImage(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+    toast.error(t('models.imageUnsupportedType'))
+    return
+  }
+  if (file.size > 20 * 1024 * 1024) {
+    toast.error(t('models.imageTooLarge'))
+    return
+  }
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+  imageSource.value = {
+    mimeType: file.type as NonNullable<ImageModelRequest['sourceImage']>['mimeType'],
+    base64: dataUrl.slice(dataUrl.indexOf(',') + 1),
+    fileName: file.name
+  }
+  imageResult.value = null
+}
+
+async function runImageModel() {
+  const model = imageModel.value
+  const providerKey = model ? providerKeyFor(model) : null
+  if (!model || !providerKey || !imagePrompt.value.trim()) return
+  imageLoading.value = true
+  imageResult.value = null
+  try {
+    const invoked = await callApi(() =>
+      getApi().models.invokeImage({
+        providerKey,
+        modelId: model.modelId,
+        prompt: imagePrompt.value.trim(),
+        size: imageSize.value,
+        sourceImage: imageSource.value
+      })
+    )
+    imageResult.value = await rasterizeSvgImageResult(invoked, imageSize.value)
+    toast.success(t('models.imageCompleted'))
+  } catch (error) {
+    toast.error((error as { message?: string }).message ?? t('common.failed'))
+  } finally {
+    imageLoading.value = false
+  }
+}
+
+function downloadImageResult() {
+  if (!imageResult.value || !imageModel.value) return
+  const extension =
+    imageResult.value.mimeType === 'image/jpeg'
+      ? 'jpg'
+      : imageResult.value.mimeType.split('/')[1] || 'png'
+  const link = document.createElement('a')
+  link.href = `data:${imageResult.value.mimeType};base64,${imageResult.value.base64}`
+  link.download = `${imageModel.value.modelId}-${Date.now()}.${extension}`
+  link.click()
 }
 
 async function runTest() {
@@ -607,7 +693,12 @@ onMounted(() => {
               <Badge v-if="!model.enabled" tone="muted" class="shrink-0">
                 {{ $t('common.disabled') }}
               </Badge>
-              <Badge v-if="looksLikeImageModel(model)" tone="warning" class="shrink-0">
+              <Badge
+                v-if="isImageGenerationModel(model)"
+                tone="warning"
+                class="shrink-0"
+                :title="$t('models.imageModelHint')"
+              >
                 {{ $t('models.imageModelBadge') }}
               </Badge>
             </div>
@@ -683,7 +774,17 @@ onMounted(() => {
             >
               <div class="flex min-w-0 items-center justify-center">
                 <IconButton
-                  v-if="!modelsStore.isActive(model, providerKeyFor(model))"
+                  v-if="isImageGenerationModel(model)"
+                  show-label
+                  class="w-full"
+                  :label="$t('models.imageUse')"
+                  :disabled="!model.enabled"
+                  @click="openImageModel(model)"
+                >
+                  <ImageIcon class="size-3.5 shrink-0" :stroke-width="1.75" />
+                </IconButton>
+                <IconButton
+                  v-else-if="!modelsStore.isActive(model, providerKeyFor(model))"
                   show-label
                   class="w-full"
                   :label="$t('models.setActive')"
@@ -695,6 +796,7 @@ onMounted(() => {
               </div>
               <div class="flex min-w-0 items-center justify-center">
                 <IconButton
+                  v-if="!isImageGenerationModel(model)"
                   show-label
                   class="w-full"
                   :label="$t('common.test')"
@@ -859,6 +961,91 @@ onMounted(() => {
         </Button>
         <Button variant="primary" :disabled="modelIdConflict" :loading="saving" @click="save">
           {{ $t('common.save') }}
+        </Button>
+      </template>
+    </Dialog>
+
+    <Dialog
+      v-model:open="imageOpen"
+      :title="$t('models.imageDialogTitle')"
+      :description="
+        imageModel ? `${providerKeyFor(imageModel) ?? ''} / ${imageModel.modelId}` : undefined
+      "
+      medium
+    >
+      <div class="space-y-3">
+        <Textarea
+          v-model="imagePrompt"
+          :label="$t('models.imagePrompt')"
+          :placeholder="$t('models.imagePromptPlaceholder')"
+          :rows="4"
+        />
+        <Select
+          v-if="!imageSource"
+          v-model="imageSize"
+          :label="$t('models.imageSize')"
+          :options="[
+            { value: '1024x1024', label: '1024 × 1024' },
+            { value: '768x1360', label: '768 × 1360' },
+            { value: '896x1184', label: '896 × 1184' },
+            { value: '1360x768', label: '1360 × 768' },
+            { value: '1184x896', label: '1184 × 896' }
+          ]"
+        />
+        <input
+          ref="imageInput"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          class="hidden"
+          @change="selectSourceImage"
+        />
+        <div
+          class="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2.5"
+        >
+          <div class="min-w-0">
+            <p class="text-[12px] text-[var(--text-primary)]">
+              {{ imageSource ? $t('models.imageEditMode') : $t('models.imageGenerateMode') }}
+            </p>
+            <p class="truncate text-[10.5px] text-[var(--text-tertiary)]">
+              {{ imageSource?.fileName ?? $t('models.imageSourceHint') }}
+            </p>
+          </div>
+          <div class="flex shrink-0 items-center gap-1.5">
+            <Button size="sm" @click="imageInput?.click()">
+              <Upload class="size-3.5" />
+              {{ imageSource ? $t('models.imageReplace') : $t('models.imageSelect') }}
+            </Button>
+            <Button v-if="imageSource" size="sm" variant="ghost" @click="imageSource = undefined">
+              {{ $t('models.imageRemove') }}
+            </Button>
+          </div>
+        </div>
+        <div
+          v-if="imageResult"
+          class="overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+        >
+          <img
+            :src="`data:${imageResult.mimeType};base64,${imageResult.base64}`"
+            :alt="$t('models.imageResult')"
+            class="max-h-[360px] w-full object-contain"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <Button v-if="imageResult" @click="downloadImageResult">
+          <Download class="size-3.5" />
+          {{ $t('models.imageDownload') }}
+        </Button>
+        <Button variant="ghost" @click="imageOpen = false">
+          {{ $t('common.close') }}
+        </Button>
+        <Button
+          variant="primary"
+          :disabled="!imagePrompt.trim()"
+          :loading="imageLoading"
+          @click="runImageModel"
+        >
+          {{ imageSource ? $t('models.imageEdit') : $t('models.imageGenerate') }}
         </Button>
       </template>
     </Dialog>

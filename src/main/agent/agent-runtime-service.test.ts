@@ -80,6 +80,92 @@ describe('AgentRuntimeService', () => {
     expect(inner.agent.state?.systemPrompt).not.toContain('Project A')
   })
 
+  it('uses the Pi 0.87 resource loader when systemPrompt is getter-only', async () => {
+    const manager = createSessionManager()
+    const inner = createAgentSession(manager)
+    let project = 'Project A'
+    let effectivePrompt = ''
+    let override: ((base: string[]) => string[]) | undefined
+    const reload = vi.fn(async () => {
+      effectivePrompt = ['Host prompt', ...(override?.([]) ?? [])].join('\n\n')
+    })
+    Object.defineProperty(inner.agent.state!, 'systemPrompt', {
+      configurable: true,
+      get: () => effectivePrompt
+    })
+    inner.resourceLoader = { reload }
+    loadPiCodingAgent.mockResolvedValue({
+      SessionManager: { create: () => manager },
+      createAgentSessionServices: async (options: Record<string, unknown>) => {
+        override = (
+          options.resourceLoaderOptions as {
+            appendSystemPromptOverride?: (base: string[]) => string[]
+          }
+        ).appendSystemPromptOverride
+        await reload()
+        return { resourceLoader: inner.resourceLoader }
+      },
+      createAgentSessionFromServices: async () => ({ session: inner }),
+      getAgentDir: () => '/tmp/agent'
+    })
+    const sessions = {
+      cachePath: vi.fn(),
+      invalidate: vi.fn(),
+      resolvePath: vi.fn()
+    } as unknown as SessionService
+    const runtime = new AgentRuntimeService(sessions, {
+      getPrompt: () =>
+        `--- BEGIN PI-HARNESS WORKSPACE ---\n${project}\n--- END PI-HARNESS WORKSPACE ---`
+    })
+    const started = await runtime.start({ cwd: '/tmp/project' })
+
+    project = 'Project B'
+    await runtime.prompt(started.sessionId, 'continue')
+
+    expect(reload).toHaveBeenCalled()
+    expect(effectivePrompt).toContain('Project B')
+    expect(effectivePrompt).not.toContain('Project A')
+    expect(inner.prompt).toHaveBeenCalled()
+  })
+
+  it('persists externally generated images with Pi-native message content', async () => {
+    const manager = createSessionManager()
+    manager.appendMessage = vi
+      .fn()
+      .mockReturnValueOnce('user-entry')
+      .mockReturnValueOnce('image-entry')
+    const inner = createAgentSession(manager)
+    inner.refreshContext = vi.fn()
+
+    const result = await new AgentSessionWrapper(inner).send({
+      type: 'append_external_image_result',
+      prompt: 'draw a lighthouse',
+      provider: 'step-plan',
+      modelId: 'step-image-edit-2',
+      sourceImages: [],
+      resultImage: { type: 'image', data: 'TQ==', mimeType: 'image/png' }
+    })
+
+    expect(result).toEqual({ userEntryId: 'user-entry', assistantEntryId: 'image-entry' })
+    expect(manager.appendMessage).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        role: 'user',
+        content: [{ type: 'text', text: 'draw a lighthouse' }]
+      })
+    )
+    expect(manager.appendMessage).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        role: 'custom',
+        customType: 'pi-harness-image-result',
+        details: { provider: 'step-plan', model: 'step-image-edit-2' },
+        content: [{ type: 'image', data: 'TQ==', mimeType: 'image/png' }]
+      })
+    )
+    expect(inner.refreshContext).toHaveBeenCalled()
+  })
+
   it('treats a short-session compaction as a normal no-op', async () => {
     const inner = createAgentSession(createSessionManager())
     inner.compact = vi.fn().mockRejectedValue(new Error('Nothing to compact (session too small)'))

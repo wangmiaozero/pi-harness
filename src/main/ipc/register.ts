@@ -285,6 +285,9 @@ export function registerIpc(services: Services): void {
       )
     )
   )
+  ipcMain.handle(IPC_INVOKE.providerRevealApiKey, (_e, key: unknown) =>
+    wrap(() => providers.revealApiKey(parseInput(providerKeySchema, key, 'Invalid provider key')))
+  )
 
   // ---- models ----
   ipcMain.handle(IPC_INVOKE.modelList, () => wrap(() => models.list()))
@@ -323,6 +326,9 @@ export function registerIpc(services: Services): void {
       )
   )
   ipcMain.handle(IPC_INVOKE.modelGetActive, () => wrap(() => models.getActive()))
+  ipcMain.handle(IPC_INVOKE.modelInvokeImage, (_e, input: unknown) =>
+    wrap(() => providers.invokeImageModel(input))
+  )
 
   // ---- config ----
   ipcMain.handle(IPC_INVOKE.configRead, () =>

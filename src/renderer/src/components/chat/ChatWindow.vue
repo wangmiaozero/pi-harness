@@ -18,6 +18,11 @@ import { callApi, getApi } from '@renderer/composables/useApi'
 import { useCompletionSound } from '@renderer/composables/useCompletionSound'
 import { useStickToBottom } from '@renderer/composables/useStickToBottom'
 
+interface ComposerImageModelTarget {
+  providerKey: string
+  modelId: string
+}
+
 const { locale, t } = useI18n()
 const agent = useAgentStore()
 const sessions = useSessionStore()
@@ -118,7 +123,7 @@ watch(
   }
 )
 
-async function onSend() {
+async function onSend(imageModel: ComposerImageModelTarget | null = null) {
   const text = workspace.draft.trim()
   const draftKey = workspace.draftKey
   const images: AgentImageAttachment[] = workspace.draftImages.map(({ data, mimeType }) => ({
@@ -132,7 +137,16 @@ async function onSend() {
     sessions.currentId ? agent.activePreset() : (settings.settings?.defaultToolPreset ?? 'default')
   ) as ToolPreset
   await completionSound.unlock()
-  const sessionId = await agent.send(sessions.currentId, workspace.currentCwd, text, preset, images)
+  const sessionId = imageModel
+    ? await agent.sendImage(
+        sessions.currentId,
+        workspace.currentCwd,
+        text,
+        preset,
+        imageModel,
+        images
+      )
+    : await agent.send(sessions.currentId, workspace.currentCwd, text, preset, images)
   if (agent.error) return
   workspace.clearDraft(draftKey)
   if (sessionId && sessionId !== sessions.currentId) {

@@ -56,6 +56,17 @@ const SNAPSHOT_WIRE_MIN_INTERVAL_MS = 200
 type EventListener = (event: AgentEvent) => void
 type SessionEventListener = (event: AgentEvent) => void
 
+interface SystemPromptController {
+  forceEmpty: boolean
+  workspacePromptProvider: (() => string | null) | null
+  appliedSignature: string
+  refresh: () => Promise<void>
+}
+
+function systemPromptSignature(controller: SystemPromptController): string {
+  return `${controller.forceEmpty ? 'empty' : 'normal'}\0${controller.workspacePromptProvider?.() ?? ''}`
+}
+
 export class AgentSessionWrapper {
   private listeners: EventListener[] = []
   private unsubscribe: (() => void) | null = null
@@ -69,9 +80,13 @@ export class AgentSessionWrapper {
   private forceEmptySystemPrompt = false
   private workspacePrompt = ''
   private workspacePromptProvider: (() => string | null) | null = null
+  private systemPromptDirty = false
   private _alive = true
 
-  constructor(public inner: AgentSessionLike) {
+  constructor(
+    public inner: AgentSessionLike,
+    private readonly systemPromptController?: SystemPromptController
+  ) {
     installCompactionThinkingGuard(inner)
   }
 
@@ -152,16 +167,21 @@ export class AgentSessionWrapper {
 
   setForceEmptySystemPrompt(force: boolean): void {
     this.forceEmptySystemPrompt = force
+    if (this.systemPromptController) this.systemPromptController.forceEmpty = force
     this.applyForcedEmptySystemPrompt()
   }
 
   setWorkspacePrompt(prompt: string | null): void {
     this.workspacePrompt = prompt ?? ''
+    if (this.systemPromptController) {
+      this.systemPromptController.workspacePromptProvider = () => this.workspacePrompt || null
+    }
     this.applyForcedEmptySystemPrompt()
   }
 
   setWorkspacePromptProvider(provider: (() => string | null) | null): void {
     this.workspacePromptProvider = provider
+    if (this.systemPromptController) this.systemPromptController.workspacePromptProvider = provider
     this.applyForcedEmptySystemPrompt()
   }
 
@@ -204,7 +224,7 @@ export class AgentSessionWrapper {
           }
           this.pendingPromptCount += 1
           this.promptErrorMessage = null
-          this.applyForcedEmptySystemPrompt()
+          await this.refreshSystemPrompt()
           const streamingBehavior = command.streamingBehavior as 'steer' | 'followUp' | undefined
           let prompt: Promise<void>
           try {
@@ -366,9 +386,11 @@ export class AgentSessionWrapper {
             ? toolNames
             : withExtensionTools(this.inner, toolNames)
         this.inner.setActiveToolsByName(nextToolNames)
-        this.applyForcedEmptySystemPrompt()
+        await this.refreshSystemPrompt()
         return null
       }
+      case 'append_external_image_result':
+        return this.appendExternalImageResult(command)
       case 'steer':
         {
           const imageError = validateAgentImages(command.images)
@@ -522,15 +544,82 @@ export class AgentSessionWrapper {
   }
 
   private applyForcedEmptySystemPrompt(): void {
+    this.systemPromptDirty = this.systemPromptController
+      ? systemPromptSignature(this.systemPromptController) !==
+        this.systemPromptController.appliedSignature
+      : true
     if (!this.inner.agent.state) return
-    if (this.forceEmptySystemPrompt) {
-      this.inner.agent.state.systemPrompt = ''
-      return
+    try {
+      if (this.forceEmptySystemPrompt) {
+        this.inner.agent.state.systemPrompt = ''
+        return
+      }
+      this.inner.agent.state.systemPrompt = applyWorkspacePrompt(
+        this.inner.agent.state.systemPrompt,
+        this.workspacePromptProvider?.() ?? (this.workspacePrompt || null)
+      )
+    } catch (error) {
+      if (!(error instanceof TypeError)) throw error
+      // Pi >= 0.87 exposes state.systemPrompt as a getter. The supported
+      // resource-loader override is refreshed just before the next prompt.
     }
-    this.inner.agent.state.systemPrompt = applyWorkspacePrompt(
-      this.inner.agent.state.systemPrompt,
-      this.workspacePromptProvider?.() ?? (this.workspacePrompt || null)
+  }
+
+  private async refreshSystemPrompt(): Promise<void> {
+    this.applyForcedEmptySystemPrompt()
+    if (!this.systemPromptController || !this.systemPromptDirty) return
+    await this.systemPromptController.refresh()
+    this.systemPromptController.appliedSignature = systemPromptSignature(
+      this.systemPromptController
     )
+    this.systemPromptDirty = false
+  }
+
+  private appendExternalImageResult(command: Record<string, unknown>): {
+    userEntryId: string
+    assistantEntryId: string
+  } {
+    const manager = this.inner.sessionManager
+    if (typeof manager.appendMessage !== 'function') {
+      throw new AgentError('Installed Pi version cannot persist generated images')
+    }
+    const prompt = typeof command.prompt === 'string' ? command.prompt.trim() : ''
+    const provider = typeof command.provider === 'string' ? command.provider.trim() : ''
+    const modelId = typeof command.modelId === 'string' ? command.modelId.trim() : ''
+    const sourceImages = Array.isArray(command.sourceImages) ? command.sourceImages : []
+    const resultImage = command.resultImage as AgentImageAttachment | undefined
+    const imageError = validateAgentImages([...sourceImages, ...(resultImage ? [resultImage] : [])])
+    if (!prompt || prompt.length > 8_000) throw new AgentError('Invalid image prompt')
+    if (!provider || provider.length > 128 || !modelId || modelId.length > 256) {
+      throw new AgentError('Invalid image model')
+    }
+    if (sourceImages.length > 1 || imageError || !resultImage) {
+      throw new AgentError(imageError ?? 'Invalid image result')
+    }
+
+    const timestamp = Date.now()
+    const userEntryId = manager.appendMessage({
+      role: 'user',
+      content: [
+        { type: 'text', text: prompt },
+        ...sourceImages.map((image) => ({
+          type: 'image' as const,
+          data: image.data,
+          mimeType: image.mimeType
+        }))
+      ],
+      timestamp
+    })
+    const assistantEntryId = manager.appendMessage({
+      role: 'custom',
+      customType: 'pi-harness-image-result',
+      content: [{ type: 'image', data: resultImage.data, mimeType: resultImage.mimeType }],
+      display: true,
+      details: { provider, model: modelId },
+      timestamp: Date.now()
+    })
+    this.inner.refreshContext?.()
+    return { userEntryId, assistantEntryId }
   }
 }
 
@@ -819,7 +908,11 @@ export class AgentRuntimeService implements AgentRuntime {
       }
       this.sessions.invalidate()
     }
-    if (command.type === 'set_session_name' || command.type === 'compact') {
+    if (
+      command.type === 'set_session_name' ||
+      command.type === 'compact' ||
+      command.type === 'append_external_image_result'
+    ) {
       this.sessions.invalidate()
     }
     return result
@@ -860,11 +953,29 @@ export class AgentRuntimeService implements AgentRuntime {
     }
     const agentDir = sdk.getAgentDir?.() ?? ''
     const settingsManager = sdk.SettingsManager?.create(sessionCwd, agentDir)
+    const systemPromptController: SystemPromptController = {
+      forceEmpty: input.toolNames?.length === 0,
+      workspacePromptProvider: () =>
+        this.workspace?.getPrompt?.(sessionManager.getSessionId()) ?? null,
+      appliedSignature: '',
+      refresh: async () => undefined
+    }
     const services = await sdk.createAgentSessionServices({
       cwd: sessionCwd,
       agentDir,
-      ...(settingsManager ? { settingsManager } : {})
+      ...(settingsManager ? { settingsManager } : {}),
+      resourceLoaderOptions: {
+        appendSystemPromptOverride: (base: string[]) => {
+          if (systemPromptController.forceEmpty) return []
+          const merged = applyWorkspacePrompt(
+            base.join('\n\n'),
+            systemPromptController.workspacePromptProvider?.() ?? null
+          )
+          return merged ? [merged] : []
+        }
+      }
     })
+    systemPromptController.appliedSignature = systemPromptSignature(systemPromptController)
 
     const toolNames = input.toolNames
     const toolsOption =
@@ -891,7 +1002,13 @@ export class AgentRuntimeService implements AgentRuntime {
     }
 
     const realSessionId = inner.sessionId
-    const wrapper = new AgentSessionWrapper(inner)
+    const resourceLoader = (services as { resourceLoader?: AgentSessionLike['resourceLoader'] })
+      .resourceLoader
+    systemPromptController.refresh = async () => {
+      await resourceLoader?.reload?.()
+      inner.setActiveToolsByName(inner.getActiveToolNames())
+    }
+    const wrapper = new AgentSessionWrapper(inner, systemPromptController)
     if (toolNames?.length === 0) wrapper.setForceEmptySystemPrompt(true)
     wrapper.setWorkspacePromptProvider(() => this.workspace?.getPrompt?.(realSessionId) ?? null)
     if (this.workspace?.assertWritable) {

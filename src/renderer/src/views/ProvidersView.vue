@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Plus,
@@ -113,6 +113,9 @@ const defaultForm = (): ProviderForm => ({
 const form = ref<ProviderForm>(defaultForm())
 const apiKeyKind = ref<ApiKeyUiKind>('none')
 const apiKeyValue = ref('')
+const revealedApiKeyValue = ref('')
+const apiKeyRevealed = ref(false)
+const apiKeyRevealLoading = ref(false)
 /** Preserved !command / keychain binding when editing — never shown as plaintext secret. */
 const preservedCommand = ref<string | null>(null)
 const keychainService = ref<string | null>(null)
@@ -218,6 +221,19 @@ const showKeychainPanel = computed(
   () => apiKeyKind.value === 'keychain' || apiKeyKind.value === 'stored'
 )
 
+const apiKeyDisplayValue = computed({
+  get: () => (apiKeyRevealed.value ? revealedApiKeyValue.value : apiKeyValue.value),
+  set: (value: string) => {
+    if (!apiKeyRevealed.value) apiKeyValue.value = value
+  }
+})
+
+const canRevealApiKey = computed(
+  () =>
+    ['literal', 'keychain', 'stored'].includes(apiKeyKind.value) &&
+    Boolean((isEditing.value && form.value.apiKey) || apiKeyValue.value)
+)
+
 const apiKeyPlaceholder = computed(() => {
   if (apiKeyKind.value === 'env') return t('providers.envPlaceholder')
   if (apiKeyKind.value === 'command') return t('providers.commandPlaceholder')
@@ -255,6 +271,47 @@ function isMaskedKey(value: string): boolean {
 function clearKeyMask() {
   if (isMaskedKey(apiKeyValue.value)) apiKeyValue.value = ''
 }
+
+function clearApiKeyReveal() {
+  apiKeyRevealed.value = false
+  revealedApiKeyValue.value = ''
+  apiKeyRevealLoading.value = false
+}
+
+async function toggleApiKeyReveal() {
+  if (apiKeyRevealed.value) {
+    clearApiKeyReveal()
+    return
+  }
+  if (!canRevealApiKey.value) return
+
+  const localValue = isMaskedKey(apiKeyValue.value) ? '' : apiKeyValue.value
+  if (localValue) {
+    revealedApiKeyValue.value = localValue
+    apiKeyRevealed.value = true
+    return
+  }
+  if (!editingKey.value) return
+
+  apiKeyRevealLoading.value = true
+  try {
+    revealedApiKeyValue.value = await getApi().providers.revealApiKey(editingKey.value)
+    apiKeyRevealed.value = true
+  } catch (error) {
+    toast.error(
+      (error as { userMessage?: string; message?: string }).userMessage ??
+        (error as { message?: string }).message ??
+        t('providers.keyRevealFailed')
+    )
+  } finally {
+    apiKeyRevealLoading.value = false
+  }
+}
+
+watch(apiKeyKind, clearApiKeyReveal)
+watch(dialogOpen, (open) => {
+  if (!open) clearApiKeyReveal()
+})
 
 function onBaseUrlBlur() {
   const r = normalizeProviderBaseUrl(form.value.baseUrl)
@@ -1067,25 +1124,37 @@ onMounted(() => {
             <template v-else>{{ $t('providers.storedHint') }}</template>
           </p>
           <Input
-            v-model="apiKeyValue"
+            v-model="apiKeyDisplayValue"
             :label="$t('providers.fieldApiKeyValue')"
             :placeholder="apiKeyPlaceholder"
             type="password"
+            :revealable="canRevealApiKey"
+            :revealed="apiKeyRevealed"
+            :reveal-loading="apiKeyRevealLoading"
+            :reveal-label="$t('providers.keyReveal')"
+            :hide-label="$t('providers.keyHide')"
             mono
             autocomplete="off"
-            @focus="clearKeyMask"
+            @focus="!apiKeyRevealed ? clearKeyMask() : undefined"
+            @reveal-toggle="toggleApiKeyReveal"
           />
         </div>
 
         <template v-else-if="showApiKeyInput">
           <Input
-            v-model="apiKeyValue"
+            v-model="apiKeyDisplayValue"
             :label="$t('providers.fieldApiKeyValue')"
             :placeholder="apiKeyPlaceholder"
             :type="apiKeyKind === 'literal' ? 'password' : 'text'"
+            :revealable="apiKeyKind === 'literal' && canRevealApiKey"
+            :revealed="apiKeyRevealed"
+            :reveal-loading="apiKeyRevealLoading"
+            :reveal-label="$t('providers.keyReveal')"
+            :hide-label="$t('providers.keyHide')"
             mono
             autocomplete="off"
-            @focus="apiKeyKind === 'literal' ? clearKeyMask() : undefined"
+            @focus="apiKeyKind === 'literal' && !apiKeyRevealed ? clearKeyMask() : undefined"
+            @reveal-toggle="toggleApiKeyReveal"
           />
           <p v-if="apiKeyKind === 'command'" class="text-[11px] text-[var(--text-tertiary)]">
             {{ $t('providers.commandHint') }}

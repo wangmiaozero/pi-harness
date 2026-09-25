@@ -65,6 +65,272 @@ describe('ProviderService enabled-state invariant', () => {
   })
 })
 
+describe('ProviderService image models', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  function imageService(fallbackModels: string[] = []) {
+    const config = {
+      read: vi.fn(async () => ({
+        models: {
+          providers: {
+            stepfun: {
+              api: 'openai-completions',
+              baseUrl: 'https://api.stepfun.com/step_plan/v1',
+              authHeader: true,
+              models: [
+                { id: 'step-image-edit-2', name: 'Step Image Edit 2' },
+                ...fallbackModels.map((id) => ({ id, name: id }))
+              ]
+            }
+          }
+        },
+        settings: {},
+        modelsMtime: null,
+        settingsMtime: null
+      }))
+    }
+    const metadata = {
+      read: vi.fn(async () => ({
+        providers: { stepfun: { enabled: true } },
+        models: {},
+        capabilities: {},
+        builtinSkills: { schemaVersion: 1, installed: {} }
+      }))
+    }
+    return new ProviderService(config as never, metadata as never)
+  }
+
+  it('uses the generations endpoint when no source image is supplied', async () => {
+    const fetchMock = vi.fn(
+      async (_input: string | URL | Request, _init?: RequestInit) =>
+        new Response(JSON.stringify({ data: [{ b64_json: 'iVBORw==' }] }), { status: 200 })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await imageService().invokeImageModel({
+      providerKey: 'stepfun',
+      modelId: 'step-image-edit-2',
+      prompt: 'ink landscape',
+      size: '1024x1024'
+    })
+
+    expect(result).toMatchObject({ mimeType: 'image/png', base64: 'iVBORw==' })
+    expect(String(fetchMock.mock.calls[0]![0])).toBe(
+      'https://api.stepfun.com/step_plan/v1/images/generations'
+    )
+    expect(JSON.parse(String(fetchMock.mock.calls[0]![1]?.body))).toMatchObject({
+      model: 'step-image-edit-2',
+      prompt: 'ink landscape',
+      response_format: 'b64_json',
+      cfg_scale: 1,
+      steps: 8,
+      seed: 1,
+      text_mode: false
+    })
+  })
+
+  it('uses multipart image edits when a source image is supplied', async () => {
+    const fetchMock = vi.fn(
+      async (_input: string | URL | Request, _init?: RequestInit) =>
+        new Response(JSON.stringify({ data: [{ b64_json: 'iVBORw==' }] }), { status: 200 })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await imageService().invokeImageModel({
+      providerKey: 'stepfun',
+      modelId: 'step-image-edit-2',
+      prompt: 'add clouds',
+      size: '1024x1024',
+      sourceImage: {
+        mimeType: 'image/png',
+        base64: 'iVBORw==',
+        fileName: 'source.png'
+      }
+    })
+
+    expect(String(fetchMock.mock.calls[0]![0])).toBe(
+      'https://api.stepfun.com/step_plan/v1/images/edits'
+    )
+    const body = fetchMock.mock.calls[0]![1]?.body as FormData
+    expect(body).toBeInstanceOf(FormData)
+    expect(body.get('model')).toBe('step-image-edit-2')
+    expect(body.get('prompt')).toBe('add clouds')
+    expect(body.get('image')).toBeInstanceOf(Blob)
+    expect(body.get('cfg_scale')).toBe('1')
+    expect(body.get('steps')).toBe('8')
+    expect(body.get('seed')).toBe('1')
+    expect(body.get('text_mode')).toBe('false')
+  })
+
+  it('retries temporary image engine failures and re-creates the request', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ error: { message: 'The engine is currently overloaded' } }),
+          { status: 503, headers: { 'Retry-After': '0' } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ error: { message: 'The engine is currently overloaded' } }),
+          { status: 503, headers: { 'Retry-After': '0' } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ data: [{ b64_json: 'iVBORw==' }] }), { status: 200 })
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await imageService().invokeImageModel({
+      providerKey: 'stepfun',
+      modelId: 'step-image-edit-2',
+      prompt: 'ink landscape',
+      size: '1024x1024'
+    })
+
+    expect(result).toMatchObject({ mimeType: 'image/png', base64: 'iVBORw==' })
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not retry quota exhaustion responses', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: { code: 'AccountQuotaExceeded', message: 'You have exceeded the usage quota' }
+          }),
+          { status: 429 }
+        )
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      imageService().invokeImageModel({
+        providerKey: 'stepfun',
+        modelId: 'step-image-edit-2',
+        prompt: 'ink landscape',
+        size: '1024x1024'
+      })
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports a recoverable error after temporary failures exhaust all attempts', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ error: { message: 'The engine is currently overloaded' } }),
+          { status: 503, headers: { 'Retry-After': '0' } }
+        )
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      imageService().invokeImageModel({
+        providerKey: 'stepfun',
+        modelId: 'step-image-edit-2',
+        prompt: 'ink landscape',
+        size: '1024x1024'
+      })
+    ).rejects.toMatchObject({
+      code: 'NETWORK_ERROR',
+      recoverable: true,
+      message:
+        'Image request failed after 4 attempts (HTTP 503): The engine is currently overloaded'
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+  })
+
+  it('falls back to a sanitized SVG from a configured Step reasoning model', async () => {
+    const overloaded = () =>
+      new Response(
+        JSON.stringify({ error: { message: 'The engine is currently overloaded' } }),
+        { status: 503, headers: { 'Retry-After': '0' } }
+      )
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(overloaded())
+      .mockResolvedValueOnce(overloaded())
+      .mockResolvedValueOnce(overloaded())
+      .mockResolvedValueOnce(overloaded())
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content:
+                    '<svg width="10" height="10"><rect width="10" height="10" fill="#123456"/></svg>'
+                }
+              }
+            ]
+          }),
+          { status: 200 }
+        )
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await imageService(['step-5-preview', 'step-3.7-flash']).invokeImageModel({
+      providerKey: 'stepfun',
+      modelId: 'step-image-edit-2',
+      prompt: 'ink landscape',
+      size: '768x1360'
+    })
+
+    expect(result).toMatchObject({
+      mimeType: 'image/svg+xml',
+      fallbackModelId: 'step-5-preview',
+      fallbackKind: 'svg'
+    })
+    const svg = Buffer.from(result.base64, 'base64').toString('utf8')
+    expect(svg).toContain('width="1360"')
+    expect(svg).toContain('height="768"')
+    expect(String(fetchMock.mock.calls[4]![0])).toBe(
+      'https://api.stepfun.com/step_plan/v1/chat/completions'
+    )
+    expect(JSON.parse(String(fetchMock.mock.calls[4]![1]?.body))).toMatchObject({
+      model: 'step-5-preview'
+    })
+  })
+})
+
+describe('ProviderService API key reveal', () => {
+  it('reveals an imported plaintext key without exposing it through provider profiles', async () => {
+    const config = {
+      read: vi.fn(async () => ({
+        models: {
+          providers: {
+            imported: {
+              api: 'openai-completions',
+              baseUrl: 'https://api.example.test/v1',
+              apiKey: 'sk-imported-secret',
+              models: []
+            }
+          }
+        },
+        settings: {},
+        modelsMtime: null,
+        settingsMtime: null
+      }))
+    }
+    const metadata = {
+      read: vi.fn(async () => ({
+        providers: {},
+        models: {},
+        capabilities: {},
+        builtinSkills: { schemaVersion: 1, installed: {} }
+      }))
+    }
+    const service = new ProviderService(config as never, metadata as never)
+
+    await expect(service.revealApiKey('imported')).resolves.toBe('sk-imported-secret')
+    const profile = await service.get('imported')
+    expect(profile?.apiKey?.kind).toBe('literal')
+    expect(profile?.apiKey?.literal).toBeUndefined()
+  })
+})
+
 describe('ProviderService deletion state repair', () => {
   it('returns settings to the unconfigured state after deleting the last provider', async () => {
     const providers: Record<string, PiProviderConfig> = {
