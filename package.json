@@ -58,7 +58,8 @@
     "sync:provider-presets": "node scripts/sync-provider-presets.mjs",
     "sync:builtin-skills": "node scripts/sync-builtin-skills.mjs",
     "check:builtin-skills": "node scripts/sync-builtin-skills.mjs --check",
-    "clean": "rimraf out dist release .vite-node"
+    "clean": "rimraf out dist release .vite-node",
+    "postinstall": "node node_modules/electron/install.js"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",
