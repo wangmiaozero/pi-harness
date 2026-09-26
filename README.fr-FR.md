@@ -26,7 +26,7 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1"><img alt="release v1.7.1" src="https://img.shields.io/badge/release-v1.7.1-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -60,18 +60,18 @@ Native Pi reste toujours dans le chemin d’exécution réel ; Pi-Harness ajoute
 
 ## Télécharger
 
-Téléchargez Pi-Harness v1.7.0 depuis [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0).
+Téléchargez Pi-Harness v1.7.1 depuis [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1).
 
 | Plateforme          | Programme d’installation                                                                                                     |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.7.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.7.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.7.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-Setup-1.7.0.exe) |
-| Linux x64           | [Pi-Harness-1.7.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.7.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.7.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.7.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-Setup-1.7.1.exe) |
+| Linux x64           | [Pi-Harness-1.7.1.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.AppImage)   |
 
-> **Note de mise à niveau Windows :** au premier lancement de l’application v1.7.0 installée, les anciennes données de Pi-Harness — réglages, coffre local d’identifiants, sauvegardes de l’application et caches — sont réinitialisées une seule fois. Reconfigurez ensuite les préférences et identifiants. Le répertoire de données séparé de Pi Agent et les fichiers des projets ne sont pas réinitialisés.
+> **Note de mise à niveau Windows :** la mise à niveau de v1.7.0 vers v1.7.1 ne répète pas la réinitialisation unique des anciennes données. Sur une machine qui n’a jamais lancé l’application v1.7.0 installée, les anciens réglages de Pi-Harness, le coffre local d’identifiants, les sauvegardes de l’application et les caches sont réinitialisés une seule fois. Le répertoire de données séparé de Pi Agent et les fichiers des projets ne sont pas réinitialisés.
 >
-> Les builds communautaires macOS peuvent ne pas être signés. Si macOS bloque le premier lancement, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Consultez les [notes de la v1.7.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0).
+> Les builds communautaires macOS peuvent ne pas être signés. Si macOS bloque le premier lancement, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Consultez les [notes de la v1.7.1](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1).
 
 Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer pnpm. Pi-Harness peut détecter, installer et réparer Node.js, npm, PATH et Pi Coding Agent dans les environnements pris en charge.
 

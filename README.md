@@ -32,7 +32,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1"><img alt="release v1.7.1" src="https://img.shields.io/badge/release-v1.7.1-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -345,18 +345,18 @@ Every agent executes through a real Pi session: orchestration adds coordination,
 
 ## Download
 
-Download Pi-Harness v1.7.0 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0).
+Download Pi-Harness v1.7.1 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1).
 
 | Platform            | Installer                                                                                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.7.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.7.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.7.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-Setup-1.7.0.exe) |
-| Linux x64           | [`Pi-Harness-1.7.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.7.1-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.7.1.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.7.1.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-Setup-1.7.1.exe) |
+| Linux x64           | [`Pi-Harness-1.7.1.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.AppImage)   |
 
-> **Windows upgrade notice:** The first launch of the v1.7.0 installed app resets older Pi-Harness application data once, including app settings, its local credential vault, app backups, and caches. Reconfigure app preferences and credentials afterward. Pi Agent's separate data directory and project files are not reset.
+> **Windows upgrade notice:** Upgrading from v1.7.0 to v1.7.1 does not repeat the one-time legacy app-data reset. A machine that has never launched the v1.7.0 installed app still resets older Pi-Harness settings, its local credential vault, app backups, and caches once. Pi Agent's separate data directory and project files are not reset.
 >
-> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.7.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0).
+> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.7.1 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1).
 
 Packaged users do not need to clone the repository or install pnpm. Pi-Harness can detect, install, and repair Node.js, npm, PATH, and Pi Coding Agent where supported.
 

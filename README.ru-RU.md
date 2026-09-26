@@ -26,7 +26,7 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0"><img alt="release v1.7.0" src="https://img.shields.io/badge/release-v1.7.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1"><img alt="release v1.7.1" src="https://img.shields.io/badge/release-v1.7.1-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -60,18 +60,18 @@ Native Pi всегда остаётся внутри реального пути
 
 ## Скачать
 
-Скачайте Pi-Harness v1.7.0 из [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0).
+Скачайте Pi-Harness v1.7.1 из [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1).
 
 | Платформа           | Установщик                                                                                                                   |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.7.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.7.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.7.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-Setup-1.7.0.exe) |
-| Linux x64           | [Pi-Harness-1.7.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.0/Pi-Harness-1.7.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.7.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.7.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.7.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-Setup-1.7.1.exe) |
+| Linux x64           | [Pi-Harness-1.7.1.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.AppImage)   |
 
-> **Примечание об обновлении Windows:** при первом запуске установленной версии v1.7.0 старые данные приложения Pi-Harness — настройки, локальное хранилище учётных данных, резервные копии и кэш — сбрасываются один раз. После этого заново настройте параметры и учётные данные. Отдельный каталог данных Pi Agent и файлы проектов не сбрасываются.
+> **Примечание об обновлении Windows:** при обновлении с v1.7.0 до v1.7.1 однократный сброс старых данных приложения не повторяется. На компьютере, где установленная версия v1.7.0 ещё ни разу не запускалась, старые настройки Pi-Harness, локальное хранилище учётных данных, резервные копии и кэш сбрасываются один раз. Отдельный каталог данных Pi Agent и файлы проектов не сбрасываются.
 >
-> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.7.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.0).
+> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.7.1](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1).
 
 Пользователям готового приложения не нужно клонировать репозиторий или устанавливать pnpm. Pi-Harness может обнаружить, установить и восстановить Node.js, npm, PATH и Pi Coding Agent в поддерживаемой среде.
 

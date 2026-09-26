@@ -4,13 +4,18 @@ Public release notes contain only released, user-visible additions and fixes.
 
 ## Unreleased
 
+## 1.7.1 — 2026-09-26
+
 ### Added
 
 - Defined Pi-Harness as the operational superset harness for Pi Coding Agent, with Native Pi remaining the execution foundation.
-- Updated the Pi SDK family and desktop dependencies to current compatible stable releases.
+- Added image-model tasks on the Models page: text-to-image, or image editing when a PNG, JPEG, or WebP source up to 20 MB is attached. Results can be downloaded. Image models stay off Pi's active chat model, and SVG results are rasterized before display.
+- Added show and hide for a saved provider API key. Provider Base URL values pasted with chat, messages, or images paths are normalized to the API root Pi expects.
+- Updated the Pi SDK family and desktop dependencies to current compatible stable releases, including Pi SDK 0.87.1.
 
 ### Fixed
 
+- Deleting the last provider now clears a dangling active model.
 - Expanded runtime capability detection so unsupported Pi features degrade cleanly instead of being assumed.
 - Aligned environment checks and CI with the Pi SDK requirement of Node.js 22.19.0 or newer.
 
