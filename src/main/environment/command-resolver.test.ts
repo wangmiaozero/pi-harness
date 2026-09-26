@@ -2,18 +2,26 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { resolveExecutable, resolveLoginShellPath } from './command-resolver'
+
+const execFileP = promisify(execFile)
 
 describe.runIf(process.platform !== 'win32')('login-shell command resolver', () => {
   let sandbox = ''
   const previousShell = process.env.SHELL
   const previousResolved = process.env.PI_HARNESS_TEST_RESOLVED
+  const previousProbeProcessGroupFile = process.env.PI_HARNESS_TEST_PROBE_PGID_FILE
 
   afterEach(async () => {
     vi.unstubAllEnvs()
     process.env.SHELL = previousShell
     if (previousResolved === undefined) delete process.env.PI_HARNESS_TEST_RESOLVED
     else process.env.PI_HARNESS_TEST_RESOLVED = previousResolved
+    if (previousProbeProcessGroupFile === undefined)
+      delete process.env.PI_HARNESS_TEST_PROBE_PGID_FILE
+    else process.env.PI_HARNESS_TEST_PROBE_PGID_FILE = previousProbeProcessGroupFile
     if (sandbox) await fs.rm(sandbox, { recursive: true, force: true })
   })
 
@@ -50,6 +58,37 @@ describe.runIf(process.platform !== 'win32')('login-shell command resolver', () 
     process.env.PI_HARNESS_TEST_RESOLVED = expectedPath
 
     await expect(resolveLoginShellPath()).resolves.toEqual({ shell, path: expectedPath })
+  })
+
+  it('isolates interactive shell probes from the app process group', async () => {
+    sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-shell-session-'))
+    const expectedPath = path.join(sandbox, 'bin')
+    const probeProcessGroupFile = path.join(sandbox, 'probe-pgid')
+    const shell = path.join(sandbox, 'login-shell')
+    await fs.writeFile(
+      shell,
+      [
+        '#!/bin/sh',
+        '[ "$1" = "-ilc" ] || exit 23',
+        'ps -o pgid= -p $$ > "$PI_HARNESS_TEST_PROBE_PGID_FILE"',
+        'printf "__PI_HARNESS_PATH__%s\\n" "$PI_HARNESS_TEST_RESOLVED"'
+      ].join('\n')
+    )
+    await fs.chmod(shell, 0o755)
+    process.env.SHELL = shell
+    process.env.PI_HARNESS_TEST_RESOLVED = expectedPath
+    process.env.PI_HARNESS_TEST_PROBE_PGID_FILE = probeProcessGroupFile
+
+    const { stdout: parentProcessGroup } = await execFileP('ps', [
+      '-o',
+      'pgid=',
+      '-p',
+      String(process.pid)
+    ])
+    await expect(resolveLoginShellPath()).resolves.toEqual({ shell, path: expectedPath })
+
+    const probeProcessGroup = await fs.readFile(probeProcessGroupFile, 'utf8')
+    expect(probeProcessGroup.trim()).not.toBe(String(parentProcessGroup).trim())
   })
 
   it('probes the runtime behind a shell function and copies only manager configuration', async () => {
