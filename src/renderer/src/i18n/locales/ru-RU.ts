@@ -1449,6 +1449,9 @@ export const ruRU: MessageTree = {
     fileChangesPreview: 'Просмотреть изменения в {file}',
     fileChangesMore: 'Показать ещё {count} файл | Показать ещё {count} файла | Показать ещё {count} файлов',
     fileChangesCollapse: 'Показать меньше файлов',
+    fileChangesMissing: 'Изменения файлов не обнаружены',
+    fileChangesMissingHint:
+      'Ответ сообщает об успехе, но модель не выполнила инструмент записи. Содержимое диска не изменилось.',
     branchPlaceholder: 'имя-ветки',
     addWorktree: 'Добавить',
     worktreeCreated: 'Рабочее дерево создано',

@@ -1451,6 +1451,9 @@ export const enUS = {
     fileChangesPreview: 'Review changes in {file}',
     fileChangesMore: 'Show {count} more file | Show {count} more files',
     fileChangesCollapse: 'Show fewer files',
+    fileChangesMissing: 'No file changes detected',
+    fileChangesMissingHint:
+      'The reply claimed completion, but the model did not successfully call a write tool. Disk contents are unchanged.',
     branchPlaceholder: 'branch-name',
     addWorktree: 'Add',
     worktreeCreated: 'Worktree created',

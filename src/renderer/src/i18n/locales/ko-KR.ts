@@ -1449,6 +1449,9 @@ export const koKR: MessageTree = {
     fileChangesPreview: '{file} 변경 사항 확인',
     fileChangesMore: '파일 {count}개 더 표시',
     fileChangesCollapse: '파일 접기',
+    fileChangesMissing: '파일 변경 사항이 감지되지 않음',
+    fileChangesMissingHint:
+      '응답은 완료되었다고 했지만 모델이 쓰기 도구를 성공적으로 호출하지 않았습니다. 디스크 내용은 변경되지 않았습니다.',
     branchPlaceholder: '브랜치명',
     addWorktree: '추가',
     worktreeCreated: '작업 트리가 만들어졌습니다',

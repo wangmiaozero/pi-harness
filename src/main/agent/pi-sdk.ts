@@ -98,6 +98,7 @@ export interface PiModelRuntimeLike {
 export interface PiModelLike {
   id: string
   provider: string
+  api?: string
   input?: Array<'text' | 'image'>
   compat?: { thinkingFormat?: string }
   thinkingLevelMap?: Partial<Record<string, string | null>>
@@ -115,7 +116,10 @@ export interface AgentSessionLike {
   pendingMessageCount?: number
   model: PiModelLike | null
   thinkingLevel?: string
-  agent: { state?: { systemPrompt?: string; thinkingLevel?: string; streamingMessage?: unknown } }
+  agent: {
+    state?: { systemPrompt?: string; thinkingLevel?: string; streamingMessage?: unknown }
+    onPayload?: (payload: unknown, model?: PiModelLike) => unknown | Promise<unknown>
+  }
   modelRuntime: {
     getModel: PiModelRuntimeLike['getModel']
     refresh: (options?: { allowNetwork?: boolean }) => Promise<void>

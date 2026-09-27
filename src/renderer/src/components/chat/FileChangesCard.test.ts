@@ -7,6 +7,7 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 
 const changes: MessageFileChanges = {
   runId: 'run-1',
+  status: 'verified',
   additions: 9,
   deletions: 2,
   files: [
@@ -38,6 +39,24 @@ describe('FileChangesCard', () => {
       filePath: '/repo/src/one.ts'
     })
     expect(workspace.activeDiffPreview).toBe('@@ -1 +1 @@\n-old\n+new')
+  })
+
+  it('shows a verification failure instead of a fabricated file list', () => {
+    const wrapper = mount(FileChangesCard, {
+      props: {
+        changes: {
+          runId: 'run-2',
+          status: 'missing-evidence',
+          additions: 0,
+          deletions: 0,
+          files: []
+        }
+      },
+      global: { mocks: { $t: (key: string) => key } }
+    })
+
+    expect(wrapper.get('[data-testid="message-file-changes-missing"]')).toBeTruthy()
+    expect(wrapper.find('[data-testid^="message-file-change-"]').exists()).toBe(false)
   })
 })
 

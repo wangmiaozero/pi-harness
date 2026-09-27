@@ -1449,6 +1449,9 @@ export const jaJP: MessageTree = {
     fileChangesPreview: '{file} の変更を確認',
     fileChangesMore: 'さらに {count} 件を表示',
     fileChangesCollapse: '表示を減らす',
+    fileChangesMissing: 'ファイル変更を検出できませんでした',
+    fileChangesMissingHint:
+      '応答は完了を報告しましたが、モデルは書き込みツールを正常に呼び出していません。ディスクは変更されていません。',
     branchPlaceholder: 'branch-name',
     addWorktree: '追加',
     worktreeCreated: 'ワークツリーを作成しました',

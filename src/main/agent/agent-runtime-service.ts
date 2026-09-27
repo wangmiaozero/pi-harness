@@ -52,6 +52,13 @@ const IDLE_MS = 10 * 60 * 1000
 const CODING_TOOL_NAMES = ['read', 'bash', 'edit', 'write', 'grep', 'find', 'ls']
 /** Minimum spacing between accumulated-message snapshots relayed on message_update. */
 const SNAPSHOT_WIRE_MIN_INTERVAL_MS = 200
+const FILE_TOOL_ENFORCEMENT_REQUEST_LIMIT = 4
+
+const EXPLICIT_FILE_MUTATION_REQUESTS = [
+  /(?:当前|本|这个|指定).{0,8}目录.{0,48}(?:写|生成|创建|新建|保存|修改|编辑)/s,
+  /(?:写入|生成|创建|新建|保存|修改|编辑).{0,80}(?:文件|页面|代码|\.(?:html?|css|js|jsx|ts|tsx|vue|json|md|py|go|java)\b)/is,
+  /\b(?:create|write|save|modify|update|edit)\b.{0,80}\b(?:file|page|code|html|css|javascript|typescript|vue|json|markdown|python|golang|java)\b/is
+]
 
 type EventListener = (event: AgentEvent) => void
 type SessionEventListener = (event: AgentEvent) => void
@@ -81,6 +88,7 @@ export class AgentSessionWrapper {
   private workspacePrompt = ''
   private workspacePromptProvider: (() => string | null) | null = null
   private systemPromptDirty = false
+  private fileToolEnforcement: { remainingRequests: number } | null = null
   private _alive = true
 
   constructor(
@@ -88,6 +96,7 @@ export class AgentSessionWrapper {
     private readonly systemPromptController?: SystemPromptController
   ) {
     installCompactionThinkingGuard(inner)
+    this.installFileToolEnforcement()
   }
 
   get sessionId(): string {
@@ -121,6 +130,16 @@ export class AgentSessionWrapper {
         if (event.type === 'message_end') {
           this.promptErrorMessage = assistantErrorMessage(event.message)
         }
+        if (event.type === 'tool_execution_end') {
+          const completed = event as { toolName?: string; isError?: boolean }
+          if (
+            (completed.toolName === 'write' || completed.toolName === 'edit') &&
+            completed.isError !== true
+          ) {
+            this.fileToolEnforcement = null
+          }
+        }
+        if (event.type === 'agent_end') this.fileToolEnforcement = null
         if (event.type === 'agent_end') {
           /* session list refresh is triggered by the runtime service */
         }
@@ -224,6 +243,7 @@ export class AgentSessionWrapper {
           }
           this.pendingPromptCount += 1
           this.promptErrorMessage = null
+          this.prepareFileToolEnforcement(String(command.message ?? ''))
           await this.refreshSystemPrompt()
           const streamingBehavior = command.streamingBehavior as 'steer' | 'followUp' | undefined
           let prompt: Promise<void>
@@ -563,6 +583,29 @@ export class AgentSessionWrapper {
       // Pi >= 0.87 exposes state.systemPrompt as a getter. The supported
       // resource-loader override is refreshed just before the next prompt.
     }
+  }
+
+  private installFileToolEnforcement(): void {
+    const previous = this.inner.agent.onPayload
+    this.inner.agent.onPayload = async (payload, model) => {
+      const transformed = (await previous?.(payload, model)) ?? payload
+      const enforcement = this.fileToolEnforcement
+      if (!enforcement || enforcement.remainingRequests <= 0) return transformed
+      const required = requireToolChoice(transformed, model?.api ?? this.inner.model?.api)
+      if (required === transformed) return transformed
+      enforcement.remainingRequests -= 1
+      return required
+    }
+  }
+
+  private prepareFileToolEnforcement(message: string): void {
+    const activeTools = new Set(this.inner.getActiveToolNames())
+    this.fileToolEnforcement =
+      activeTools.has('write') &&
+      activeTools.has('edit') &&
+      EXPLICIT_FILE_MUTATION_REQUESTS.some((pattern) => pattern.test(message))
+        ? { remainingRequests: FILE_TOOL_ENFORCEMENT_REQUEST_LIMIT }
+        : null
   }
 
   private async refreshSystemPrompt(): Promise<void> {
@@ -1072,4 +1115,38 @@ export class AgentRuntimeService implements AgentRuntime {
       log.agent.error('failed to send running ids:', error)
     }
   }
+}
+
+function requireToolChoice(payload: unknown, api: string | undefined): unknown {
+  if (!payload || typeof payload !== 'object') return payload
+  const record = payload as Record<string, unknown>
+  if (
+    api === 'openai-completions' ||
+    api === 'openai-responses' ||
+    api === 'azure-openai-responses' ||
+    api === 'openai-codex-responses'
+  ) {
+    return Array.isArray(record.tools) && record.tools.length
+      ? { ...record, tool_choice: 'required' }
+      : payload
+  }
+  if (api === 'anthropic-messages') {
+    return Array.isArray(record.tools) && record.tools.length
+      ? { ...record, tool_choice: { type: 'any' } }
+      : payload
+  }
+  if (api === 'google-generative-ai' || api === 'google-vertex') {
+    const config = record.config
+    if (!config || typeof config !== 'object') return payload
+    const configRecord = config as Record<string, unknown>
+    if (!Array.isArray(configRecord.tools) || !configRecord.tools.length) return payload
+    return {
+      ...record,
+      config: {
+        ...configRecord,
+        toolConfig: { functionCallingConfig: { mode: 'ANY' } }
+      }
+    }
+  }
+  return payload
 }

@@ -80,6 +80,54 @@ describe('AgentRuntimeService', () => {
     expect(inner.agent.state?.systemPrompt).not.toContain('Project A')
   })
 
+  it('requires a real tool call for explicit file-writing requests on compatible providers', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.model = { id: 'step-3.7-flash', provider: 'step-plan', api: 'openai-responses' }
+    inner.getActiveToolNames = () => ['read', 'write', 'edit']
+    inner.agent.onPayload = vi.fn((payload: unknown) => ({
+      ...(payload as Record<string, unknown>),
+      extensionApplied: true
+    }))
+    let outgoingPayload: unknown
+    inner.prompt = vi.fn(async (_message: string, options?: Record<string, unknown>) => {
+      outgoingPayload = await inner.agent.onPayload?.(
+        { tools: [{ type: 'function', function: { name: 'write' } }] },
+        inner.model ?? undefined
+      )
+      const preflightResult = options?.preflightResult as ((success: boolean) => void) | undefined
+      preflightResult?.(true)
+    })
+
+    await new AgentSessionWrapper(inner).send({
+      type: 'prompt',
+      message: '在本目录生成一个 pelican-bike.html 文件'
+    })
+
+    expect(outgoingPayload).toMatchObject({
+      tool_choice: 'required',
+      extensionApplied: true
+    })
+  })
+
+  it('does not force tool use for an ordinary conversational prompt', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.model = { id: 'step-3.7-flash', provider: 'step-plan', api: 'openai-responses' }
+    inner.getActiveToolNames = () => ['read', 'write', 'edit']
+    let outgoingPayload: unknown
+    inner.prompt = vi.fn(async (_message: string, options?: Record<string, unknown>) => {
+      outgoingPayload = await inner.agent.onPayload?.(
+        { tools: [{ type: 'function', function: { name: 'write' } }] },
+        inner.model ?? undefined
+      )
+      const preflightResult = options?.preflightResult as ((success: boolean) => void) | undefined
+      preflightResult?.(true)
+    })
+
+    await new AgentSessionWrapper(inner).send({ type: 'prompt', message: '解释一下 SVG viewBox' })
+
+    expect(outgoingPayload).not.toHaveProperty('tool_choice')
+  })
+
   it('uses the Pi 0.87 resource loader when systemPrompt is getter-only', async () => {
     const manager = createSessionManager()
     const inner = createAgentSession(manager)
