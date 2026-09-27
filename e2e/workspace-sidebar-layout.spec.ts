@@ -116,6 +116,10 @@ test('workspace project sidebar collapses and resizes within shared limits for e
       const zhangToggle = themedToggle
       const calligraphy = page.getByTestId('ming-workspace-calligraphy')
       const statusScroll = page.getByTestId('ming-sidebar-scroll')
+      const maxim = page.getByTestId('zhang-juzheng-maxim')
+      const vow = page.getByTestId('zhang-juzheng-vow')
+      const workspaceMain = page.getByTestId('workspace-main')
+      const workspaceScene = page.getByTestId('workspace-scene')
 
       await page.screenshot({
         path: path.join(testInfo.outputDir, 'workspace-sidebar-zhang-juzheng-min.png')
@@ -133,12 +137,19 @@ test('workspace project sidebar collapses and resizes within shared limits for e
       const maxSidebarBox = (await zhangSidebar.boundingBox())!
       const maxCalligraphyBox = (await calligraphy.boundingBox())!
       const maxStatusBox = (await statusScroll.boundingBox())!
+      const maxMaximBox = (await maxim.boundingBox())!
+      const maxVowBox = (await vow.boundingBox())!
+      const maxMainBox = (await workspaceMain.boundingBox())!
+      const maxSceneBox = (await workspaceScene.boundingBox())!
+      const maxPortraitRight = maxSceneBox.x + Math.min(maxMainBox.width * 0.62, 820)
       expect(maxSidebarBox.width).toBe(480)
       expect(maxCalligraphyBox.x).toBeCloseTo(maxSidebarBox.x + maxSidebarBox.width + 18, 0)
       expect(maxStatusBox.x + maxStatusBox.width / 2).toBeCloseTo(
         maxSidebarBox.x + maxSidebarBox.width / 2,
         0
       )
+      expect(maxMaximBox.x + maxMaximBox.width).toBeLessThanOrEqual(maxPortraitRight)
+      expect(maxVowBox.x + maxVowBox.width).toBeLessThanOrEqual(maxPortraitRight)
 
       await page.screenshot({
         path: path.join(testInfo.outputDir, 'workspace-sidebar-zhang-juzheng-max.png')
@@ -148,7 +159,19 @@ test('workspace project sidebar collapses and resizes within shared limits for e
       await expect(zhangSidebar).toBeHidden()
       await expect(statusScroll).toBeHidden()
       const collapsedCalligraphyBox = (await calligraphy.boundingBox())!
+      const collapsedMaximBox = (await maxim.boundingBox())!
+      const collapsedVowBox = (await vow.boundingBox())!
+      const collapsedMainBox = (await workspaceMain.boundingBox())!
+      const collapsedSceneBox = (await workspaceScene.boundingBox())!
+      const collapsedPortraitRight =
+        collapsedSceneBox.x + Math.min(collapsedMainBox.width * 0.62, 820)
       expect(collapsedCalligraphyBox.x).toBeCloseTo(maxSidebarBox.x + 18, 0)
+      expect(collapsedMaximBox.x + collapsedMaximBox.width).toBeLessThanOrEqual(
+        collapsedPortraitRight
+      )
+      expect(collapsedVowBox.x + collapsedVowBox.width).toBeLessThanOrEqual(collapsedPortraitRight)
+      expect(collapsedMaximBox.x).toBeLessThan(maxMaximBox.x)
+      expect(collapsedVowBox.x).toBeLessThan(maxVowBox.x)
       await page.screenshot({
         path: path.join(testInfo.outputDir, 'workspace-sidebar-zhang-juzheng-collapsed.png')
       })
