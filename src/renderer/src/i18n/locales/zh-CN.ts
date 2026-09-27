@@ -1415,6 +1415,8 @@ export const zhCN: MessageTree = {
     fileChangesPreview: '查看 {file} 的改动',
     fileChangesMore: '再显示 {count} 个文件',
     fileChangesCollapse: '收起文件',
+    fileChangesMissing: '未检测到文件改动',
+    fileChangesMissingHint: '回复声称已完成，但模型没有成功调用写入工具；磁盘内容未改变。',
     branchPlaceholder: '分支名',
     addWorktree: '添加',
     worktreeCreated: 'Worktree 已创建',

@@ -2,6 +2,19 @@ import type { AgentWorkspace, WorkspaceFolder } from '../types/workspace'
 
 const BEGIN = '--- BEGIN PI-HARNESS WORKSPACE ---'
 const END = '--- END PI-HARNESS WORKSPACE ---'
+const INTEGRITY_BEGIN = '--- BEGIN PI-HARNESS FILE INTEGRITY ---'
+const INTEGRITY_END = '--- END PI-HARNESS FILE INTEGRITY ---'
+
+const FILE_INTEGRITY_PROMPT = [
+  INTEGRITY_BEGIN,
+  'File-change integrity:',
+  '- When the user asks you to create, edit, delete, rename, or save a file, perform the operation with an enabled tool before reporting success.',
+  '- Prefer write for new files and edit for existing files so the application can verify and preview the change.',
+  '- Never claim that a file was created or changed unless the corresponding tool call completed successfully.',
+  '- Use the current working directory or an explicitly attached project path. Never substitute guessed sandbox paths such as /mnt/okcomputer/output.',
+  '- If no enabled tool can complete the requested file operation, state clearly that no file was changed.',
+  INTEGRITY_END
+].join('\n')
 
 export function formatWorkspaceAgentPrompt(workspace: AgentWorkspace): string {
   const main = workspace.folders.find((folder) => folder.role === 'main') ?? workspace.folders[0]
@@ -40,17 +53,25 @@ export function formatWorkspaceAgentPrompt(workspace: AgentWorkspace): string {
 }
 
 export function applyWorkspacePrompt(existing: string | undefined, prompt: string | null): string {
-  const stripped = stripWorkspacePrompt(existing ?? '')
-  if (!prompt) return stripped
-  return stripped ? `${stripped.replace(/\s+$/, '')}\n\n${prompt}` : prompt
+  const stripped = stripManagedBlock(
+    stripWorkspacePrompt(existing ?? ''),
+    INTEGRITY_BEGIN,
+    INTEGRITY_END
+  )
+  const parts = [stripped.replace(/\s+$/, ''), prompt, FILE_INTEGRITY_PROMPT].filter(Boolean)
+  return parts.join('\n\n')
 }
 
 export function stripWorkspacePrompt(existing: string): string {
-  const start = existing.indexOf(BEGIN)
+  return stripManagedBlock(existing, BEGIN, END)
+}
+
+function stripManagedBlock(existing: string, begin: string, endMarker: string): string {
+  const start = existing.indexOf(begin)
   if (start === -1) return existing
-  const end = existing.indexOf(END, start)
+  const end = existing.indexOf(endMarker, start)
   if (end === -1) return existing.slice(0, start).trimEnd()
-  return `${existing.slice(0, start).trimEnd()}${existing.slice(end + END.length)}`.trim()
+  return `${existing.slice(0, start).trimEnd()}${existing.slice(end + endMarker.length)}`.trim()
 }
 
 function formatFolderBlock(folder: WorkspaceFolder, main = false): string {

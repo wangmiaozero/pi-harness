@@ -1450,6 +1450,9 @@ export const deDE: MessageTree = {
     fileChangesPreview: 'Änderungen in {file} prüfen',
     fileChangesMore: '{count} weitere Datei anzeigen | {count} weitere Dateien anzeigen',
     fileChangesCollapse: 'Weniger Dateien anzeigen',
+    fileChangesMissing: 'Keine Dateiänderungen erkannt',
+    fileChangesMissingHint:
+      'Die Antwort meldet Erfolg, aber das Modell hat kein Schreibwerkzeug erfolgreich aufgerufen. Der Datenträger blieb unverändert.',
     branchPlaceholder: 'branch-name',
     addWorktree: 'Hinzufügen',
     worktreeCreated: 'Worktree erstellt',

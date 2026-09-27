@@ -14,10 +14,18 @@ export interface MessageFileChange {
 
 export interface MessageFileChanges {
   runId: string
+  status: 'verified' | 'missing-evidence'
   files: MessageFileChange[]
   additions: number
   deletions: number
 }
+
+const FILE_MUTATION_CLAIMS = [
+  /(?:我)?(?:已|已经|现已|成功)(?:在.{0,48})?(?:创建|生成|写入|保存|修改|更新|编辑|新增)(?:了)?(?:.{0,48})(?:文件|页面|代码|项目)/s,
+  /(?:文件|页面|代码|项目)(?:.{0,48})(?:已|已经|现已|成功)(?:.{0,24})(?:创建|生成|写入|保存|修改|更新|编辑|新增)/s,
+  /\b(?:created|generated|wrote|written|saved|updated|modified|edited)\b.{0,80}\b(?:file|files|page|code|project)\b/is,
+  /\b(?:file|files|page|code|project)\b.{0,80}\b(?:created|generated|written|saved|updated|modified|edited)\b/is
+]
 
 export function buildMessageFileChanges(
   messages: readonly AgentMessage[],
@@ -36,24 +44,44 @@ export function buildMessageFileChanges(
 
   for (const run of runs) {
     if (!run.anchorEntryId) continue
-    const runArtifacts = artifactsByRun.get(run.id)
-    if (!runArtifacts?.length) continue
     const startIndex = entryIds.indexOf(run.anchorEntryId)
     if (startIndex < 0) continue
     const finalAssistantIndex = findFinalAssistantIndex(messages, startIndex)
     const finalEntryId = entryIds[finalAssistantIndex]
     if (!finalEntryId) continue
 
+    const runArtifacts = artifactsByRun.get(run.id) ?? []
     const files = uniqueFiles(runArtifacts.map((artifact) => toFileChange(artifact, run.cwd)))
-    if (!files.length) continue
+    if (!files.length) {
+      const finalMessage = messages[finalAssistantIndex]
+      if (!finalMessage || !claimsFileMutation(finalMessage)) continue
+      result.set(finalEntryId, {
+        runId: run.id,
+        status: 'missing-evidence',
+        files: [],
+        additions: 0,
+        deletions: 0
+      })
+      continue
+    }
     result.set(finalEntryId, {
       runId: run.id,
+      status: 'verified',
       files,
       additions: files.reduce((total, file) => total + file.additions, 0),
       deletions: files.reduce((total, file) => total + file.deletions, 0)
     })
   }
   return result
+}
+
+function claimsFileMutation(message: AgentMessage): boolean {
+  if (message.role !== 'assistant') return false
+  const text = message.content
+    .filter((block) => block.type === 'text')
+    .map((block) => (block.type === 'text' ? block.text : ''))
+    .join('\n')
+  return FILE_MUTATION_CLAIMS.some((pattern) => pattern.test(text))
 }
 
 function findFinalAssistantIndex(messages: readonly AgentMessage[], startIndex: number): number {

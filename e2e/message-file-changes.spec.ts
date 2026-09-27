@@ -4,6 +4,7 @@ import { test as base, expect } from './fixtures'
 
 const sessionId = '01a0ddce-5d0b-75b1-bb98-filechanges'
 const runId = 'h:user-file-changes'
+const missingEvidenceRunId = 'h:user-no-write'
 
 const test = base.extend({
   piAgentDir: async ({ testUserData, workspaceRoot }, use) => {
@@ -68,10 +69,10 @@ test('shows final-response file changes and opens the selected diff preview', as
       }, sessionId)
     )
     .toEqual({
-      runIds: [runId],
+      runIds: [missingEvidenceRunId, runId].sort(),
       artifactIds: ['artifact-app', 'artifact-state', 'artifact-types', 'artifact-view'].sort()
     })
-  const card = page.getByTestId('message-file-changes')
+  const card = page.getByTestId('message-file-changes').first()
   await expect(card).toBeVisible()
   await expect(card).toContainText(/已编辑 4 个文件|Edited 4 files/)
   await expect(card.locator('[data-testid^="message-file-change-"]')).toHaveCount(3)
@@ -82,6 +83,11 @@ test('shows final-response file changes and opens the selected diff preview', as
   const qaDir = process.env.PI_HARNESS_DESIGN_QA_DIR ?? testInfo.outputDir
   fs.mkdirSync(qaDir, { recursive: true })
   await page.screenshot({ path: path.join(qaDir, 'message-file-changes-card.png') })
+
+  const missingEvidence = page.getByTestId('message-file-changes-missing')
+  await expect(missingEvidence).toBeVisible()
+  await expect(missingEvidence).toContainText(/未检测到文件改动|No file changes detected/)
+  await page.screenshot({ path: path.join(qaDir, 'message-file-changes-missing.png') })
 
   await card.getByTestId('message-file-change-artifact-app').click()
   await expect(page.getByTestId('unified-diff-preview')).toBeVisible()
@@ -159,6 +165,35 @@ function seedSession(piAgentDir: string, workspaceRoot: string) {
           stopReason: 'stop',
           content: [{ type: 'text', text: '已完成文件改动预览。' }]
         }
+      },
+      {
+        type: 'message',
+        id: 'user-no-write',
+        parentId: 'assistant-final',
+        timestamp: '2026-09-27T08:00:04.000Z',
+        message: {
+          role: 'user',
+          content: '在当前目录生成 pelican-bike.html',
+          timestamp: Date.parse('2026-09-27T08:00:04.000Z')
+        }
+      },
+      {
+        type: 'message',
+        id: 'assistant-no-write',
+        parentId: 'user-no-write',
+        timestamp: '2026-09-27T08:00:05.000Z',
+        message: {
+          role: 'assistant',
+          model: 'step-3.7-flash',
+          provider: 'step-plan',
+          stopReason: 'stop',
+          content: [
+            {
+              type: 'text',
+              text: '我已经在当前目录下生成了完整页面，文件名为 `pelican-bike.html`。'
+            }
+          ]
+        }
       }
     ]
       .map((entry) => JSON.stringify(entry))
@@ -205,6 +240,42 @@ function seedHarnessData(testUserData: string, workspaceRoot: string) {
             toolFailureCount: 0,
             contextUsage: null,
             result: '已完成文件改动预览。',
+            error: null,
+            budgetExceeded: null,
+            steps: [],
+            checkpointIds: []
+          },
+          {
+            id: missingEvidenceRunId,
+            sessionId,
+            parentRunId: runId,
+            relation: 'original',
+            forkedFromRunId: null,
+            forkedFromEventId: null,
+            forkedFromCheckpointId: null,
+            status: 'success',
+            source: 'history',
+            anchorEntryId: 'user-no-write',
+            cwd: workspaceRoot,
+            agentId: null,
+            taskId: null,
+            orchestrationId: null,
+            startedAt: startedAt + 4_000,
+            finishedAt: startedAt + 5_000,
+            model: 'step-3.7-flash',
+            provider: 'step-plan',
+            prompt: '在当前目录生成 pelican-bike.html',
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+              cachedTokens: 0,
+              totalTokens: 0,
+              estimatedCost: null
+            },
+            toolCallCount: 0,
+            toolFailureCount: 0,
+            contextUsage: null,
+            result: '我已经在当前目录下生成了完整页面，文件名为 pelican-bike.html。',
             error: null,
             budgetExceeded: null,
             steps: [],

@@ -60,6 +60,17 @@ describe('workspace agent context', () => {
     expect(second.startsWith('Host prompt')).toBe(true)
     expect(second).toContain('B')
     expect(second).not.toContain('\nA\n')
-    expect(stripWorkspacePrompt(second)).toBe('Host prompt')
+    expect(second.match(/BEGIN PI-HARNESS FILE INTEGRITY/g)).toHaveLength(1)
+    expect(stripWorkspacePrompt(second)).toContain('File-change integrity:')
+  })
+
+  it('requires successful file tools before reporting a file change', () => {
+    const prompt = applyWorkspacePrompt('Host prompt', null)
+
+    expect(prompt).toContain('perform the operation with an enabled tool before reporting success')
+    expect(prompt).toContain('Never claim that a file was created or changed')
+    expect(prompt).toContain(
+      'Never substitute guessed sandbox paths such as /mnt/okcomputer/output'
+    )
   })
 })

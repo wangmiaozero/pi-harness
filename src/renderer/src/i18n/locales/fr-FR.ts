@@ -1449,6 +1449,9 @@ export const frFR: MessageTree = {
     fileChangesPreview: 'Vérifier les modifications de {file}',
     fileChangesMore: 'Afficher encore {count} fichier | Afficher encore {count} fichiers',
     fileChangesCollapse: 'Afficher moins de fichiers',
+    fileChangesMissing: 'Aucune modification de fichier détectée',
+    fileChangesMissingHint:
+      "La réponse annonce la réussite, mais le modèle n'a appelé aucun outil d'écriture avec succès. Le disque reste inchangé.",
     branchPlaceholder: 'nom-de-branche',
     addWorktree: 'Ajouter',
     worktreeCreated: 'Worktree créé',

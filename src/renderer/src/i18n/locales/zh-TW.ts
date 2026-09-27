@@ -1415,6 +1415,8 @@ export const zhTW: MessageTree = {
     fileChangesPreview: '查看 {file} 的變更',
     fileChangesMore: '再顯示 {count} 個檔案',
     fileChangesCollapse: '收起檔案',
+    fileChangesMissing: '未偵測到檔案變更',
+    fileChangesMissingHint: '回覆聲稱已完成，但模型未成功呼叫寫入工具；磁碟內容未變更。',
     branchPlaceholder: '分支名稱',
     addWorktree: '新增',
     worktreeCreated: 'Worktree 已建立',

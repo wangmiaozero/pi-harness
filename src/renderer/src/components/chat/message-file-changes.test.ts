@@ -41,6 +41,7 @@ describe('buildMessageFileChanges', () => {
     expect(result.has('assistant-tool')).toBe(false)
     expect(result.get('assistant-final')).toEqual({
       runId: 'run-1',
+      status: 'verified',
       additions: 3,
       deletions: 1,
       files: [
@@ -71,6 +72,59 @@ describe('buildMessageFileChanges', () => {
 
     expect([...result.keys()]).toEqual(['assistant-1'])
     expect(result.get('assistant-1')?.files.map((file) => file.displayPath)).toEqual(['a.ts'])
+  })
+
+  it('marks unsupported success claims when no file mutation evidence exists', () => {
+    const messages = [
+      { role: 'user', content: '在当前目录生成一个 HTML 文件' },
+      {
+        role: 'assistant',
+        model: 'step-3.7-flash',
+        provider: 'step-plan',
+        content: [
+          {
+            type: 'text',
+            text: '我已经在当前目录下生成了一个完整 SVG HTML 页面，文件名为 `pelican-bike.html`。'
+          }
+        ]
+      }
+    ] as AgentMessage[]
+    const run = {
+      id: 'run-1',
+      anchorEntryId: 'user-1',
+      cwd: '/repo'
+    } as HarnessRun
+
+    const result = buildMessageFileChanges(messages, ['user-1', 'assistant-final'], [run], [])
+
+    expect(result.get('assistant-final')).toEqual({
+      runId: 'run-1',
+      status: 'missing-evidence',
+      files: [],
+      additions: 0,
+      deletions: 0
+    })
+  })
+
+  it('does not show a warning for plans or explicit non-completion', () => {
+    const messages = [
+      { role: 'user', content: '生成一个文件' },
+      {
+        role: 'assistant',
+        model: 'test',
+        provider: 'test',
+        content: [{ type: 'text', text: '我准备创建文件，但当前没有可用的写入工具。' }]
+      }
+    ] as AgentMessage[]
+    const run = {
+      id: 'run-1',
+      anchorEntryId: 'user-1',
+      cwd: '/repo'
+    } as HarnessRun
+
+    const result = buildMessageFileChanges(messages, ['user-1', 'assistant-final'], [run], [])
+
+    expect(result.size).toBe(0)
   })
 })
 
