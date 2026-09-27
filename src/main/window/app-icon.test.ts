@@ -29,6 +29,13 @@ describe('application icon', () => {
       selectedAppIconPath({ appIcon: 'auto', mascotStyle: 'mingMoon', mascotUnlocked: true })
     ).toMatch(/ming\.png$/)
     expect(
+      selectedAppIconPath({
+        appIcon: 'auto',
+        mascotStyle: 'zhangJuzhengSnow',
+        mascotUnlocked: true
+      })
+    ).toMatch(/ming\.png$/)
+    expect(
       selectedAppIconPath({ appIcon: 'auto', mascotStyle: 'office', mascotUnlocked: true })
     ).toMatch(/classic\.png$/)
     expect(

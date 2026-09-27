@@ -689,6 +689,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(code.locator('.cm-gutterElement')).not.toHaveCount(0)
     await expect(page.getByText(/15 行|15 lines/)).toBeVisible()
 
+    await page.getByTestId('workspace-files-mode-tree').click()
     await page
       .getByTestId('workspace-file-tree')
       .getByRole('button', { name: 'README.md', exact: true })

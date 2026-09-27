@@ -65,6 +65,7 @@ describe('independent maid and office scene assets', () => {
       'src/renderer/src/assets/themes/portraits/moonlit-tea-room.png',
       'src/renderer/src/assets/themes/portraits/noir-study.png',
       'src/renderer/src/assets/themes/ming-dynasty/snow-palace.png',
+      'src/renderer/src/assets/themes/zhang-juzheng-snow/snow-red-palace.png',
       'src/renderer/src/assets/themes/ming-dynasty/moon-city.png'
     ]
     const hashes = scenes.map((filename) =>
@@ -86,14 +87,32 @@ describe('Ming Dynasty scene assets', () => {
   })
 
   it.each([
-    ['mingSnow', 'snow-maiden'],
-    ['mingMoon', 'moon-maiden']
+    ['mingSnow', 'ming-dynasty/snow-maiden'],
+    ['zhangJuzhengSnow', 'zhang-juzheng-snow/zhang-juzheng'],
+    ['mingMoon', 'ming-dynasty/moon-maiden']
   ] as const)('ships %s as a transparent portrait', (style, name) => {
-    const image = readFileSync(
-      path.resolve(`src/renderer/src/assets/themes/ming-dynasty/${name}.png`)
-    )
+    const image = readFileSync(path.resolve(`src/renderer/src/assets/themes/${name}.png`))
     expect(image.readUInt32BE(16)).toBe(PET_MANIFESTS[style].frameWidth)
     expect(image.readUInt32BE(20)).toBe(PET_MANIFESTS[style].frameHeight)
     expect(image.readUInt8(25)).toBe(6)
+  })
+
+  it.each([
+    ['snow-red-palace', 1586, 992, 2],
+    ['titlebar-snow-banner', 1536, 256, 2],
+    ['titlebar-calligraphy-overlay', 1600, 150, 6],
+    ['blank-calligraphy-scroll', 512, 1536, 6],
+    ['calligraphy-scroll-spring', 512, 1536, 6],
+    ['calligraphy-scroll-governance', 512, 1536, 6],
+    ['calligraphy-scroll-minister', 512, 1536, 6],
+    ['status-scroll-wangwei', 1200, 427, 6],
+    ['snow-plum-lantern', 768, 1152, 6]
+  ] as const)('ships the Zhang Juzheng %s asset', (name, width, height, colorType) => {
+    const image = readFileSync(
+      path.resolve(`src/renderer/src/assets/themes/zhang-juzheng-snow/${name}.png`)
+    )
+    expect(image.readUInt32BE(16)).toBe(width)
+    expect(image.readUInt32BE(20)).toBe(height)
+    expect(image.readUInt8(25)).toBe(colorType)
   })
 })

@@ -9,6 +9,7 @@ export const VISUAL_SKINS = {
   noirScholar: { id: 'noir-scholar', appearance: 'dark', portrait: true },
   moonlitMaid: { id: 'moonlit-maid', appearance: 'light', portrait: true },
   mingSnow: { id: 'ming-snow', appearance: 'dark', portrait: true },
+  zhangJuzhengSnow: { id: 'zhang-juzheng-snow', appearance: 'dark', portrait: true },
   mingMoon: { id: 'ming-moon', appearance: 'dark', portrait: true }
 } as const
 
@@ -23,4 +24,8 @@ export function getVisualSkin(style: MascotStyle): VisualSkin | undefined {
 
 export function getSkinAppearance(id: string | undefined): 'dark' | 'light' | undefined {
   return Object.values(VISUAL_SKINS).find((skin) => skin.id === id)?.appearance
+}
+
+export function isMingDynastySkin(id: string | undefined): boolean {
+  return id === 'ming-snow' || id === 'zhang-juzheng-snow' || id === 'ming-moon'
 }

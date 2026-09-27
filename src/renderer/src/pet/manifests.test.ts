@@ -4,8 +4,8 @@ import { resolveMascotStyle } from '@shared/constants/mascot'
 import { PET_MANIFESTS, PET_THEME_ORDER } from './manifests'
 
 describe('built-in pet manifests', () => {
-  it('ships seven independent built-in themes', () => {
-    expect(Object.keys(PET_MANIFESTS)).toHaveLength(7)
+  it('ships eight independent built-in themes', () => {
+    expect(Object.keys(PET_MANIFESTS)).toHaveLength(8)
     expect(PET_THEME_ORDER).toEqual([
       'maidWhite',
       'office',
@@ -13,6 +13,7 @@ describe('built-in pet manifests', () => {
       'noirScholar',
       'moonlitMaid',
       'mingSnow',
+      'zhangJuzhengSnow',
       'mingMoon'
     ])
     expect(PET_MANIFESTS.maidWhite.priority).toBe(true)

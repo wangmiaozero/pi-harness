@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseUnifiedDiff } from './unified-diff'
+import { countUnifiedDiffChanges, parseUnifiedDiff } from './unified-diff'
 
 describe('parseUnifiedDiff', () => {
   it('tracks old and new line numbers across hunks', () => {
@@ -28,5 +28,20 @@ describe('parseUnifiedDiff', () => {
       { kind: 'addition', oldLine: null, newLine: 12 },
       { kind: 'context', oldLine: 12, newLine: 13 }
     ])
+  })
+})
+
+describe('countUnifiedDiffChanges', () => {
+  it('ignores diff headers and counts changed content lines', () => {
+    const patch = [
+      '--- a/demo.ts',
+      '+++ b/demo.ts',
+      '@@ -1,2 +1,3 @@',
+      '-const before = true',
+      '+const after = true',
+      '+const extra = true'
+    ].join('\n')
+
+    expect(countUnifiedDiffChanges(patch)).toEqual({ additions: 2, deletions: 1 })
   })
 })

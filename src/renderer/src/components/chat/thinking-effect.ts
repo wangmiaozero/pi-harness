@@ -18,6 +18,14 @@ const PALETTES: Record<string, ThinkingEffectPalette> = {
     hot: [0.98, 0.86, 0.58],
     particle: [0.93, 0.74, 0.42]
   },
+  'zhang-juzheng-snow': {
+    kind: 'embers',
+    wash: [0.08, 0.06, 0.05, 0.62],
+    deep: [0.49, 0.09, 0.09],
+    mid: [0.71, 0.16, 0.16],
+    hot: [0.82, 0.68, 0.42],
+    particle: [0.93, 0.91, 0.86]
+  },
   'ming-moon': {
     kind: 'embers',
     wash: [0.12, 0.08, 0.08, 0.6],

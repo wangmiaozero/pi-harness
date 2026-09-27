@@ -9,31 +9,36 @@ import PortraitSkinPanel from './PortraitSkinPanel.vue'
 beforeEach(() => setActivePinia(createPinia()))
 
 describe('portrait skin panel', () => {
-  it.each(['maidWhite', 'office', 'noirScholar', 'moonlitMaid', 'mingSnow', 'mingMoon'] as const)(
-    'keeps %s art and status together without changing pet state',
-    async (style) => {
-      const pet = usePetStore()
-      const wrapper = mount(PortraitSkinPanel, {
-        props: { style, showStatus: true },
-        global: { plugins: [i18n] }
-      })
-      expect(wrapper.get('img').attributes('src')).toBe(PET_MANIFESTS[style].sprite)
-      expect(wrapper.get('aside').attributes('aria-hidden')).toBe('true')
-      expect(wrapper.find('.portrait-skin-heading').exists()).toBe(false)
-      expect(wrapper.find('button').exists()).toBe(false)
-      const character = wrapper.get('.portrait-skin-character')
-      expect(character.find('[data-testid="portrait-skin-image"]').exists()).toBe(true)
-      expect(character.find('[data-testid="pet-status-bubble"]').exists()).toBe(true)
-      pet.state = 'thinking'
-      await wrapper.vm.$nextTick()
-      expect(wrapper.get('[data-testid="pet-status-bubble"]').attributes('data-state')).toBe(
-        'thinking'
-      )
-      await wrapper.setProps({ showStatus: false })
-      expect(wrapper.find('[data-testid="pet-status-bubble"]').exists()).toBe(false)
-      expect(pet.state).toBe('thinking')
-    }
-  )
+  it.each([
+    'maidWhite',
+    'office',
+    'noirScholar',
+    'moonlitMaid',
+    'mingSnow',
+    'zhangJuzhengSnow',
+    'mingMoon'
+  ] as const)('keeps %s art and status together without changing pet state', async (style) => {
+    const pet = usePetStore()
+    const wrapper = mount(PortraitSkinPanel, {
+      props: { style, showStatus: true },
+      global: { plugins: [i18n] }
+    })
+    expect(wrapper.get('img').attributes('src')).toBe(PET_MANIFESTS[style].sprite)
+    expect(wrapper.get('aside').attributes('aria-hidden')).toBe('true')
+    expect(wrapper.find('.portrait-skin-heading').exists()).toBe(false)
+    expect(wrapper.find('button').exists()).toBe(false)
+    const character = wrapper.get('.portrait-skin-character')
+    expect(character.find('[data-testid="portrait-skin-image"]').exists()).toBe(true)
+    expect(character.find('[data-testid="pet-status-bubble"]').exists()).toBe(true)
+    pet.state = 'thinking'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('[data-testid="pet-status-bubble"]').attributes('data-state')).toBe(
+      'thinking'
+    )
+    await wrapper.setProps({ showStatus: false })
+    expect(wrapper.find('[data-testid="pet-status-bubble"]').exists()).toBe(false)
+    expect(pet.state).toBe('thinking')
+  })
 
   it('contains missing assets locally and retries when switching skins', async () => {
     const wrapper = mount(PortraitSkinPanel, {

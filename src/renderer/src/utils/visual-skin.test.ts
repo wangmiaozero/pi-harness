@@ -44,6 +44,7 @@ describe('visual skin transitions', () => {
       'moonlitMaid',
       'noirScholar',
       'mingSnow',
+      'zhangJuzhengSnow',
       'mingMoon',
       'starshipCockpit'
     ] as const) {

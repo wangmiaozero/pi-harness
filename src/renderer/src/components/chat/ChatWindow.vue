@@ -12,6 +12,8 @@ import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useModelsStore } from '@renderer/stores/models'
 import { useSettingsStore } from '@renderer/stores/settings'
+import { useHarnessStore } from '@renderer/stores/harness'
+import { buildMessageFileChanges } from './message-file-changes'
 import type { ToolPreset } from '@shared/workspace/tool-presets'
 import type { AgentImageAttachment, SessionDetail } from '@shared/types/workspace'
 import { callApi, getApi } from '@renderer/composables/useApi'
@@ -29,6 +31,7 @@ const sessions = useSessionStore()
 const workspace = useWorkspaceStore()
 const models = useModelsStore()
 const settings = useSettingsStore()
+const harness = useHarnessStore()
 const scroller = ref<HTMLElement | null>(null)
 const scrollContent = ref<HTMLElement | null>(null)
 const composer = ref<InstanceType<typeof ChatComposer> | null>(null)
@@ -75,6 +78,9 @@ const displayMessages = computed(() => {
   const live = agent.streaming.streamingMessage
   return live ? [...agent.messages, live] : agent.messages
 })
+const fileChangesByEntryId = computed(() =>
+  buildMessageFileChanges(agent.messages, agent.entryIds, harness.runs, harness.artifacts)
+)
 
 watch(displayMessages, async () => {
   await nextTick()
@@ -234,6 +240,7 @@ function duration(value: number): string {
             :key="index"
             :message="message"
             :entry-id="agent.entryIds[index]"
+            :file-changes="fileChangesByEntryId.get(agent.entryIds[index])"
             :streaming="
               Boolean(agent.streaming.streamingMessage) && index === displayMessages.length - 1
             "

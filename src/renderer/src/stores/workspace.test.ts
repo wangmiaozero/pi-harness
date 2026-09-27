@@ -114,6 +114,24 @@ describe('workspace tab activation', () => {
   })
 })
 
+describe('workspace diff previews', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('keeps an artifact patch in ephemeral state and clears it with the tab', () => {
+    const workspace = useWorkspaceStore()
+    workspace.openDiffTab('/repo/src/app.ts', 'src/app.ts', {
+      key: 'run-1:artifact-1',
+      patch: '@@ -1 +1 @@\n-old\n+new'
+    })
+
+    expect(workspace.activeDiffPreview).toContain('+new')
+    workspace.closeTab(workspace.activeTabId!)
+    expect(workspace.activeDiffPreview).toBeNull()
+  })
+})
+
 describe('workspace file edit buffers', () => {
   beforeEach(() => {
     setActivePinia(createPinia())

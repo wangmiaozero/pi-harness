@@ -7,6 +7,11 @@ export interface UnifiedDiffLine {
   text: string
 }
 
+export interface UnifiedDiffChangeCount {
+  additions: number
+  deletions: number
+}
+
 const HUNK_HEADER_RE = /^@@\s+-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/
 
 export function parseUnifiedDiff(patch: string): UnifiedDiffLine[] {
@@ -33,4 +38,14 @@ export function parseUnifiedDiff(patch: string): UnifiedDiffLine[] {
 
     return { kind: 'meta', oldLine: null, newLine: null, text }
   })
+}
+
+export function countUnifiedDiffChanges(patch: string): UnifiedDiffChangeCount {
+  let additions = 0
+  let deletions = 0
+  for (const line of patch.split('\n')) {
+    if (line.startsWith('+') && !line.startsWith('+++')) additions += 1
+    else if (line.startsWith('-') && !line.startsWith('---')) deletions += 1
+  }
+  return { additions, deletions }
 }

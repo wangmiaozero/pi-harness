@@ -1,9 +1,11 @@
 import type { BrowserWindow } from 'electron'
 import os from 'node:os'
+import path from 'node:path'
 import { IPC_EVENT } from '@shared/ipc/channels'
 import type { AgentRuntime } from '../agent/runtime'
 import type {
   AgentStateSnapshot,
+  GitFileDiffResponse,
   GitStatusResponse,
   SessionEntry,
   StartAgentSessionInput,
@@ -238,6 +240,7 @@ export class HarnessRuntime implements AgentRuntime {
       getEntries: readEntries,
       getCheckpoints: (sessionId) => this.checkpoints.list(sessionId),
       getGitCommits: (cwd, since, until) => this.gitCommitsFor(cwd, since, until),
+      getFileDiff: (cwd, filePath) => this.gitDiffFor(cwd, filePath),
       emit: (sessionId, event) => this.emit(sessionId, event)
     })
     this.replay = new ReplayService(this.trace, { getEntries: readEntries })
@@ -1069,6 +1072,13 @@ export class HarnessRuntime implements AgentRuntime {
     } catch {
       return null
     }
+  }
+
+  private async gitDiffFor(cwd: string, filePath: string): Promise<GitFileDiffResponse> {
+    if (!this.git) return { supported: false }
+    const primary = await this.git.diff(cwd, filePath).catch(() => ({ supported: false as const }))
+    if (primary.supported || path.dirname(filePath) === cwd) return primary
+    return this.git.diff(path.dirname(filePath), filePath).catch(() => ({ supported: false }))
   }
 
   /** Commits that landed inside a run window (git-commit artifacts). */

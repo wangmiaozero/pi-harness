@@ -22,6 +22,8 @@ export function isMingDynastyTheme(
   mascotEnabled = MASCOT_ENABLED
 ): boolean {
   return (
-    mascotEnabled && mascotUnlocked && (mascotStyle === 'mingSnow' || mascotStyle === 'mingMoon')
+    mascotEnabled &&
+    mascotUnlocked &&
+    (mascotStyle === 'mingSnow' || mascotStyle === 'zhangJuzhengSnow' || mascotStyle === 'mingMoon')
   )
 }

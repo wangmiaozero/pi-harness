@@ -15,6 +15,7 @@ import StarshipCruiser from '@renderer/components/starship/StarshipCruiser.vue'
 import StarshipEngineHud from '@renderer/components/starship/StarshipEngineHud.vue'
 import PetStatus from '@renderer/components/pet/PetStatus.vue'
 import { getActiveVisualSkin, isStarshipCockpitActive } from '@renderer/utils/visual-skin'
+import { isMingDynastySkin } from '@renderer/utils/skin-catalog'
 
 const route = useRoute()
 const settings = useSettingsStore()
@@ -23,6 +24,7 @@ const isWorkspace = computed(() => route.path.startsWith('/workspace'))
 const mascotStyle = computed(() => normalizeMascotStyle(settings.settings?.mascotStyle))
 const starshipCockpitActive = computed(() => isStarshipCockpitActive(settings.settings))
 const visualSkin = computed(() => getActiveVisualSkin(settings.settings))
+const mingDynastyActive = computed(() => isMingDynastySkin(visualSkin.value?.id))
 const pageVisible = ref(document.visibilityState === 'visible')
 const visualAnimationsEnabled = computed(
   () => (settings.settings?.petAnimations ?? true) && pageVisible.value
@@ -44,7 +46,8 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
   >
     <TitleBar
       :starship-cockpit="starshipCockpitActive"
-      :ming-dynasty="visualSkin?.id === 'ming-snow' || visualSkin?.id === 'ming-moon'"
+      :ming-dynasty="mingDynastyActive"
+      :zhang-juzheng="visualSkin?.id === 'zhang-juzheng-snow'"
     />
     <div class="app-body relative z-[2] flex min-h-0 flex-1">
       <Sidebar />
@@ -99,6 +102,6 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
       :animated="visualAnimationsEnabled"
     />
     <StarshipCockpitFrame v-if="starshipCockpitActive" />
-    <MingShellFrame v-if="visualSkin?.id === 'ming-snow' || visualSkin?.id === 'ming-moon'" />
+    <MingShellFrame v-if="mingDynastyActive" />
   </div>
 </template>
