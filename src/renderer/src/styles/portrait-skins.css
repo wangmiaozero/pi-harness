@@ -1597,11 +1597,11 @@
     [data-visual-skin='zhang-juzheng-snow'],
     [data-visual-skin='ming-moon']
   )
-  .workspace-content {
+  :is(.workspace-main, .workspace-content) {
   --ming-portrait-column: min(46cqw, 820px);
 }
 
-:root[data-visual-skin='zhang-juzheng-snow'] .workspace-content {
+:root[data-visual-skin='zhang-juzheng-snow'] :is(.workspace-main, .workspace-content) {
   --ming-portrait-column: min(62cqw, 820px);
 }
 
@@ -1652,8 +1652,7 @@
   position: absolute;
   top: 210px;
   left: calc(
-    var(--workspace-sidebar-current-width, 310px) +
-      (100% - var(--workspace-sidebar-current-width, 310px)) * 0.53
+    var(--workspace-sidebar-current-width, 310px) + var(--ming-portrait-column, 820px) - 84px
   );
   display: flex;
   width: 76px;
@@ -1693,8 +1692,7 @@
   position: absolute;
   top: 500px;
   left: calc(
-    var(--workspace-sidebar-current-width, 310px) +
-      (100% - var(--workspace-sidebar-current-width, 310px)) * 0.47
+    var(--workspace-sidebar-current-width, 310px) + var(--ming-portrait-column, 820px) - 172px
   );
   display: flex;
   height: 156px;

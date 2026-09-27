@@ -377,7 +377,8 @@ async function switchSession(id: string | null) {
   }
   if (id) await workspace.restoreSessionWorkspace(id)
   else await workspace.restoreDraftWorkspace()
-  await Promise.all([agent.load(id), harness.load(id)])
+  await agent.load(id)
+  await harness.load(id)
   if (id) {
     const session = sessions.current
     workspace.ensureChatTab(id, session?.name || session?.firstMessage?.slice(0, 32) || id)

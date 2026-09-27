@@ -11,7 +11,7 @@ const test = base.extend({
     const piAgentDir = path.join(testUserData, 'mock-pi-file-changes')
     fs.cpSync(path.join(root, 'fixtures', 'mock-pi'), piAgentDir, { recursive: true })
     seedSession(piAgentDir, workspaceRoot)
-    seedArtifacts(testUserData, workspaceRoot)
+    seedHarnessData(testUserData, workspaceRoot)
     await use(piAgentDir)
   }
 })
@@ -54,6 +54,23 @@ test('shows final-response file changes and opens the selected diff preview', as
   )
 
   await page.locator('a[href="#/workspace"]').click()
+  await expect
+    .poll(() =>
+      page.evaluate(async (selectedSessionId) => {
+        const [runs, artifacts] = await Promise.all([
+          window.piSwitch.harness.listRuns(selectedSessionId),
+          window.piSwitch.harness.listArtifacts(selectedSessionId)
+        ])
+        return {
+          runIds: runs.map((run) => run.id).sort(),
+          artifactIds: artifacts.map((artifact) => artifact.id).sort()
+        }
+      }, sessionId)
+    )
+    .toEqual({
+      runIds: [runId],
+      artifactIds: ['artifact-app', 'artifact-state', 'artifact-types', 'artifact-view'].sort()
+    })
   const card = page.getByTestId('message-file-changes')
   await expect(card).toBeVisible()
   await expect(card).toContainText(/已编辑 4 个文件|Edited 4 files/)
@@ -149,7 +166,57 @@ function seedSession(piAgentDir: string, workspaceRoot: string) {
   )
 }
 
-function seedArtifacts(testUserData: string, workspaceRoot: string) {
+function seedHarnessData(testUserData: string, workspaceRoot: string) {
+  const startedAt = Date.parse('2026-09-27T08:00:00.000Z')
+  fs.writeFileSync(
+    path.join(testUserData, 'harness-runs.json'),
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        runs: [
+          {
+            id: runId,
+            sessionId,
+            parentRunId: null,
+            relation: 'original',
+            forkedFromRunId: null,
+            forkedFromEventId: null,
+            forkedFromCheckpointId: null,
+            status: 'success',
+            source: 'history',
+            anchorEntryId: 'user-file-changes',
+            cwd: workspaceRoot,
+            agentId: null,
+            taskId: null,
+            orchestrationId: null,
+            startedAt,
+            finishedAt: startedAt + 3_000,
+            model: 'gpt-5',
+            provider: 'openai',
+            prompt: '实现文件改动预览卡片',
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+              cachedTokens: 0,
+              totalTokens: 0,
+              estimatedCost: null
+            },
+            toolCallCount: 1,
+            toolFailureCount: 0,
+            contextUsage: null,
+            result: '已完成文件改动预览。',
+            error: null,
+            budgetExceeded: null,
+            steps: [],
+            checkpointIds: []
+          }
+        ]
+      },
+      null,
+      2
+    )}\n`
+  )
+
   const files = [
     ['artifact-app', 'src/app.ts', 2, 1, 'const answer = 42'],
     ['artifact-state', 'src/state.ts', 8, 2, 'const state = true'],
