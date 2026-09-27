@@ -18,14 +18,14 @@ describe('startup quantum variants', () => {
     ).toEqual(new Set([palette.accent]))
   })
 
-  it('covers all seven unlocked themes with distinct colors and trajectories', () => {
+  it('covers all eight unlocked themes with distinct colors and trajectories', () => {
     const themed = MASCOT_STYLES.filter((style) => style !== 'none')
-    expect(themed).toHaveLength(7)
-    expect(new Set(themed.map((style) => STARTUP_PALETTES[style].background)).size).toBe(7)
+    expect(themed).toHaveLength(8)
+    expect(new Set(themed.map((style) => STARTUP_PALETTES[style].background)).size).toBe(8)
     const origins = themed.map((style) => {
       expect(resolveStartupVariant({ mascotStyle: style, mascotUnlocked: true })).toBe(style)
       return particleOrigin(style, 15, 100, 1200, 800, 0.35, 0.6)
     })
-    expect(new Set(origins.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`)).size).toBe(7)
+    expect(new Set(origins.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`)).size).toBe(8)
   })
 })

@@ -25,7 +25,7 @@ test('mascot gallery fills the page with equal-height previews across skins and 
   const gallery = page.getByTestId('mascot-settings-section')
   const grid = page.getByTestId('mascot-options-grid')
   const options = grid.locator('[data-mascot-option]')
-  await expect(options).toHaveCount(8)
+  await expect(options).toHaveCount(9)
   await grid.locator('img').evaluateAll(async (images) => {
     await Promise.all(images.map((image) => (image as HTMLImageElement).decode()))
   })
@@ -34,6 +34,7 @@ test('mascot gallery fills the page with equal-height previews across skins and 
     ['noirScholar', 'noir-scholar'],
     ['moonlitMaid', 'moonlit-maid'],
     ['mingSnow', 'ming-snow'],
+    ['zhangJuzhengSnow', 'zhang-juzheng-snow'],
     ['mingMoon', 'ming-moon'],
     ['starshipCockpit', 'starship-cockpit'],
     ['none', 'default']

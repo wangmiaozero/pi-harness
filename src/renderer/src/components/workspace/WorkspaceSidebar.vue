@@ -51,6 +51,7 @@ import {
   getSessionContextMenuLabels
 } from '@shared/workspace/context-menu-labels'
 import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
+import { isMingDynastySkin } from '@renderer/utils/skin-catalog'
 import { rendererPlatformHint } from '@renderer/utils/provider-credentials'
 
 type WorkspaceSection = 'sessions' | 'harness' | 'orchestration'
@@ -122,7 +123,7 @@ const activeProviderKey = computed(() => agent.state?.model?.provider ?? models.
 const activeModelId = computed(() => agent.state?.model?.id ?? models.active.modelId)
 const mingDynastyActive = computed(() => {
   const skin = getActiveVisualSkin(settings.settings)?.id
-  return skin === 'ming-snow' || skin === 'ming-moon'
+  return isMingDynastySkin(skin)
 })
 const menuPlatform = computed(
   () =>

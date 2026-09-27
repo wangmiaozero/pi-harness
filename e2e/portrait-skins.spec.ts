@@ -47,6 +47,13 @@ test('scene portrait themes use dedicated backgrounds and palettes', async ({
       sprite: 'snow-maiden'
     },
     {
+      style: 'zhangJuzhengSnow',
+      skin: 'zhang-juzheng-snow',
+      appearance: 'dark',
+      scene: 'snow-red-palace',
+      sprite: 'zhang-juzheng'
+    },
+    {
       style: 'mingMoon',
       skin: 'ming-moon',
       appearance: 'dark',
@@ -152,7 +159,7 @@ test('ming portrait themes render full figures beside parchment conversation sur
       .join('\n') + '\n'
   )
 
-  await page.setViewportSize({ width: 1554, height: 1004 })
+  await page.setViewportSize({ width: 1677, height: 943 })
   await page.locator('a[href="#/settings"]').click()
   await page.getByTestId('settings-section-mascot').click()
   await page.getByTestId('mascot-unlock-answer').fill('1024')
@@ -160,6 +167,7 @@ test('ming portrait themes render full figures beside parchment conversation sur
 
   for (const [style, skin, paper, menuPaper] of [
     ['mingSnow', 'ming-snow', 'rgba(239, 222, 190, 0.96)', 'rgb(246, 232, 204)'],
+    ['zhangJuzhengSnow', 'zhang-juzheng-snow', 'rgba(241, 223, 192, 0.97)', 'rgb(245, 232, 206)'],
     ['mingMoon', 'ming-moon', 'rgba(235, 214, 177, 0.96)', 'rgb(241, 223, 189)']
   ] as const) {
     await page.locator(`[data-mascot-option="${style}"]`).click()
@@ -179,7 +187,55 @@ test('ming portrait themes render full figures beside parchment conversation sur
     const image = page.getByTestId('portrait-skin-image')
     const assistant = page.locator('[data-message-role="assistant"]')
     await expect(page.locator('html')).toHaveAttribute('data-visual-skin', skin)
-    await expect(page.getByTestId('ming-titlebar-calligraphy')).toBeVisible()
+    if (skin === 'zhang-juzheng-snow') {
+      await expect(page.getByTestId('zhang-titlebar-motto')).toBeVisible()
+      await expect(page.getByTestId('zhang-titlebar-calligraphy-image')).toHaveAttribute(
+        'src',
+        /titlebar-calligraphy-overlay/
+      )
+      await expect(page.getByTestId('ming-titlebar-calligraphy')).toHaveCount(0)
+      await expect(page.getByTestId('zhang-juzheng-maxim')).toBeVisible()
+      await expect(page.getByTestId('zhang-juzheng-vow')).toBeVisible()
+      await expect(page.getByTestId('zhang-edge-scroll-top')).toBeVisible()
+      await expect(page.getByTestId('zhang-edge-scroll-bottom')).toBeVisible()
+      await expect(page.getByTestId('zhang-snow-ornament-left')).toBeVisible()
+      await expect(page.getByTestId('zhang-snow-ornament-right')).toBeVisible()
+      await expect(page.getByTestId('zhang-calligraphy-scroll-image')).toHaveAttribute(
+        'src',
+        /calligraphy-scroll-spring/
+      )
+      await expect(page.getByTestId('zhang-edge-scroll-top-image')).toHaveAttribute(
+        'src',
+        /calligraphy-scroll-governance/
+      )
+      await expect(page.getByTestId('zhang-edge-scroll-bottom-image')).toHaveAttribute(
+        'src',
+        /calligraphy-scroll-minister/
+      )
+      await expect(page.getByTestId('zhang-wangwei-scroll-image')).toHaveAttribute(
+        'src',
+        /status-scroll-wangwei/
+      )
+      await expect(page.getByTestId('ming-workspace-calligraphy')).not.toContainText(
+        '忽如一夜春风来'
+      )
+      await expect(page.getByTestId('zhang-edge-scroll-top')).not.toContainText('为天下计')
+      await expect(page.getByTestId('zhang-edge-scroll-bottom')).not.toContainText('居庙堂之高')
+      await expect(page.getByTestId('ming-sidebar-scroll')).not.toContainText('行到水穷处')
+      await expect(page.getByTestId('zhang-titlebar-motto')).not.toContainText('北国风光')
+      const titlebarBanner = await page
+        .locator('.app-titlebar')
+        .evaluate((element) => getComputedStyle(element, '::before').backgroundImage)
+      expect(titlebarBanner).toMatch(/titlebar-snow-banner(?!-calligraphy)/)
+      const titlebarCalligraphyBox = await page
+        .getByTestId('zhang-titlebar-calligraphy-image')
+        .boundingBox()
+      expect(titlebarCalligraphyBox!.width / titlebarCalligraphyBox!.height).toBeGreaterThan(9)
+    } else {
+      await expect(page.getByTestId('ming-titlebar-calligraphy')).toBeVisible()
+      await expect(page.getByTestId('zhang-titlebar-motto')).toHaveCount(0)
+      await expect(page.getByTestId('zhang-juzheng-maxim')).toHaveCount(0)
+    }
     if (process.platform !== 'win32') {
       await expect(page.getByTestId('titlebar-window-controls')).toBeVisible()
     }
@@ -207,7 +263,7 @@ test('ming portrait themes render full figures beside parchment conversation sur
     await expect(assistant).toHaveCSS('background-color', paper)
     await expect(assistant.locator('.tool-call-hud')).toHaveCSS(
       'background-color',
-      'rgb(29, 29, 27)'
+      skin === 'zhang-juzheng-snow' ? 'rgb(21, 20, 18)' : 'rgb(29, 29, 27)'
     )
 
     const [imageBox, assistantBox] = await Promise.all([
@@ -229,6 +285,33 @@ test('ming portrait themes render full figures beside parchment conversation sur
     await statsToggle.click()
     await expect(page.locator('.session-hud')).toBeVisible()
     await page.screenshot({ path: path.join(testInfo.outputDir, `${skin}-conversation.png`) })
+
+    if (skin === 'zhang-juzheng-snow') {
+      await page.setViewportSize({ width: 1677, height: 1084 })
+      await expect(page.getByTestId('zhang-snow-ornament-left')).toHaveCSS('z-index', '22')
+      await expect(page.getByTestId('zhang-snow-ornament-right')).toHaveCSS('z-index', '22')
+      const treeViewport = page.locator(
+        '.workspace-control-panel > .min-h-0.flex-1.overflow-y-auto'
+      )
+      const [treeViewportBox, sidebarScrollBox, leftOrnamentBox, sendButtonBox, rightOrnamentBox] =
+        await Promise.all([
+          treeViewport.boundingBox(),
+          page.getByTestId('ming-sidebar-scroll').boundingBox(),
+          page.getByTestId('zhang-snow-ornament-left').boundingBox(),
+          page.locator('.command-execute-button').boundingBox(),
+          page.getByTestId('zhang-snow-ornament-right').boundingBox()
+        ])
+      await expect(treeViewport).toHaveCSS('z-index', '19')
+      expect(treeViewportBox!.y + treeViewportBox!.height).toBeLessThanOrEqual(
+        sidebarScrollBox!.y + 1
+      )
+      expect(treeViewportBox!.y + treeViewportBox!.height).toBeLessThanOrEqual(leftOrnamentBox!.y)
+      expect(sendButtonBox!.x + sendButtonBox!.width).toBeLessThanOrEqual(rightOrnamentBox!.x)
+      await page.screenshot({
+        path: path.join(testInfo.outputDir, `${skin}-layering-1677x1084.png`)
+      })
+      await page.setViewportSize({ width: 1677, height: 943 })
+    }
 
     await page.getByTestId('workspace-project-0').click({ button: 'right' })
     const projectMenu = page.getByTestId('project-context-menu')
@@ -288,10 +371,54 @@ test('ming portrait themes render full figures beside parchment conversation sur
     await page.setViewportSize({ width: 1200, height: 780 })
     await expect(page.getByTestId('portrait-skin-panel')).toBeVisible()
     await expect(assistant).toBeVisible()
-    await expect(page.getByTestId('ming-titlebar-calligraphy')).toBeVisible()
+    if (skin === 'zhang-juzheng-snow') {
+      await expect(page.getByTestId('zhang-titlebar-motto')).toBeVisible()
+      await expect(page.getByTestId('zhang-titlebar-calligraphy-image')).toBeVisible()
+      await expect(page.getByTestId('zhang-titlebar-motto').locator('span')).toBeHidden()
+      await expect(page.getByTestId('zhang-juzheng-maxim')).toBeHidden()
+      await expect(page.getByTestId('zhang-juzheng-vow')).toBeHidden()
+      await expect(page.getByTestId('zhang-edge-scroll-top')).toBeHidden()
+      await expect(page.getByTestId('zhang-edge-scroll-bottom')).toBeHidden()
+      const responsiveTitlebarBanner = await page
+        .locator('.app-titlebar')
+        .evaluate((element) => getComputedStyle(element, '::before').backgroundImage)
+      expect(responsiveTitlebarBanner).toMatch(/titlebar-snow-banner(?!-calligraphy)/)
+      await expect(page.locator('.command-console-controls')).toHaveCSS('flex-wrap', 'nowrap')
+      await expect(page.locator('.command-console-controls')).toHaveCSS('padding-right', '0px')
+      const [modelBox, toolStripBox, sendButtonBox] = await Promise.all([
+        page.getByTestId('workspace-model-select').boundingBox(),
+        page.locator('.console-tool-strip').boundingBox(),
+        page.locator('.command-execute-button').boundingBox()
+      ])
+      expect(Math.abs(modelBox!.y - toolStripBox!.y)).toBeLessThan(4)
+      expect(Math.abs(modelBox!.y - sendButtonBox!.y)).toBeLessThan(4)
+      await page.screenshot({
+        path: path.join(testInfo.outputDir, `${skin}-responsive-1200x780.png`)
+      })
+    } else {
+      await expect(page.getByTestId('ming-titlebar-calligraphy')).toBeVisible()
+    }
     await expect(page.getByTestId('ming-workspace-calligraphy')).toBeVisible()
     await expect(page.getByTestId('ming-sidebar-scroll')).toBeVisible()
-    await page.setViewportSize({ width: 1554, height: 1004 })
+    if (skin === 'zhang-juzheng-snow') {
+      await page.setViewportSize({ width: 960, height: 640 })
+      await expect(page.getByTestId('zhang-titlebar-calligraphy-image')).toBeVisible()
+      const [controlsBox, modelBox, toolStripBox, sendButtonBox] = await Promise.all([
+        page.locator('.command-console-controls').boundingBox(),
+        page.getByTestId('workspace-model-select').boundingBox(),
+        page.locator('.console-tool-strip').boundingBox(),
+        page.locator('.command-execute-button').boundingBox()
+      ])
+      expect(Math.abs(modelBox!.y - toolStripBox!.y)).toBeLessThan(4)
+      expect(Math.abs(modelBox!.y - sendButtonBox!.y)).toBeLessThan(4)
+      expect(sendButtonBox!.x + sendButtonBox!.width).toBeLessThanOrEqual(
+        controlsBox!.x + controlsBox!.width
+      )
+      await page.screenshot({
+        path: path.join(testInfo.outputDir, `${skin}-minimum-960x640.png`)
+      })
+    }
+    await page.setViewportSize({ width: 1677, height: 943 })
 
     await page.locator('a[href="#/settings"]').click()
     await page.getByTestId('settings-section-mascot').click()

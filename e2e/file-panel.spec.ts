@@ -2,6 +2,20 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { test, expect } from './fixtures'
 
+async function dragFilesPanelToLimit(
+  page: import('@playwright/test').Page,
+  delta: number
+): Promise<void> {
+  const resizer = page.getByTestId('workspace-files-resizer')
+  const box = (await resizer.boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + Math.min(180, box.height / 2))
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 + delta, box.y + Math.min(180, box.height / 2), {
+    steps: 5
+  })
+  await page.mouse.up()
+}
+
 test('file panel keeps navigation and chat visible, isolates sessions, and adapts to narrow windows', async ({
   page,
   workspaceRoot,
@@ -56,7 +70,33 @@ test('file panel keeps navigation and chat visible, isolates sessions, and adapt
   const navigation = page.getByTestId('workspace-session-tree')
   const composer = page.getByTestId('chat-composer')
   const code = page.getByTestId('file-code-view')
+  const resizer = page.getByTestId('workspace-files-resizer')
+  const treeMode = page.getByTestId('workspace-files-mode-tree')
+  const previewMode = page.getByTestId('workspace-files-mode-preview')
+
+  await expect(treeMode).toHaveAttribute('aria-pressed', 'true')
+  await expect(previewMode).toBeDisabled()
+  await dragFilesPanelToLimit(page, -1000)
+  expect((await panel.boundingBox())!.width).toBe(760)
+  await expect(resizer).toHaveAttribute('aria-valuenow', '760')
+  await dragFilesPanelToLimit(page, 1000)
+  expect((await panel.boundingBox())!.width).toBe(360)
+  await expect(resizer).toHaveAttribute('aria-valuenow', '360')
+  if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
+    await page.screenshot({
+      path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'file-panel-min-width.png')
+    })
+  }
+  await resizer.dblclick({ position: { x: 4, y: 120 } })
+
   await tree.getByRole('button', { name: 'a-only.ts', exact: true }).click()
+  await expect(code).toContainText('Conversation A')
+  await expect(tree).toHaveCount(0)
+  await expect(previewMode).toHaveAttribute('aria-pressed', 'true')
+  await treeMode.click()
+  await expect(tree).toBeVisible()
+  await expect(code).toHaveCount(0)
+  await previewMode.click()
   await expect(code).toContainText('Conversation A')
   await expect(navigation).toBeVisible()
   await expect(composer).toBeVisible()
@@ -73,6 +113,7 @@ test('file panel keeps navigation and chat visible, isolates sessions, and adapt
   await expect(composer).toBeVisible()
   await expect(navigation).toBeVisible()
   await expect(code).toBeVisible()
+  await expect(resizer).toBeHidden()
   const [narrowChat, narrowPanel] = await Promise.all([composer.boundingBox(), panel.boundingBox()])
   expect(narrowChat!.y + narrowChat!.height).toBeLessThanOrEqual(narrowPanel!.y + 1)
   expect(narrowPanel!.x + narrowPanel!.width).toBeLessThanOrEqual(900)
@@ -83,6 +124,7 @@ test('file panel keeps navigation and chat visible, isolates sessions, and adapt
   }
 
   await page.setViewportSize({ width: 1440, height: 900 })
+  await expect(resizer).toBeVisible()
   await page
     .getByTestId(`session-row-${sessionB}`)
     .getByRole('button', { name: 'Conversation B', exact: true })

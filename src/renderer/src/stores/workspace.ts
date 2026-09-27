@@ -89,6 +89,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const drafts = ref<Record<string, string>>({})
   const draftImageMap = ref<Record<string, ChatDraftImage[]>>({})
   const fileEditBuffers = ref<Record<string, FileEditBuffer>>({})
+  const diffPreviews = shallowRef<Record<string, string>>({})
   const files = shallowRef<FileTreeEntry[]>([])
   const fileChildren = shallowRef<Record<string, FileTreeEntry[]>>({})
   const gitStatus = shallowRef<GitStatusResponse | null>(null)
@@ -271,6 +272,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   })
   const mainTabs = computed(() => tabs.value.filter((tab) => tab.kind !== 'file'))
   const activeTab = computed(() => mainTabs.value.find((t) => t.id === activeTabId.value) ?? null)
+  const activeDiffPreview = computed<string | null>(() => {
+    const id = activeTabId.value
+    if (!id || !Object.prototype.hasOwnProperty.call(diffPreviews.value, id)) return null
+    return diffPreviews.value[id]
+  })
   const hasSessionWorkspace = computed(
     () =>
       Boolean(sessions.currentId && sessions.current) &&
@@ -386,10 +392,17 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     filePanelOpen.value = true
   }
 
-  function openDiffTab(filePath: string, title: string) {
-    const id = `diff:${filePath}`
+  function openDiffTab(
+    filePath: string,
+    title: string,
+    preview?: { key: string; patch: string | null }
+  ) {
+    const id = `diff:${preview?.key ?? filePath}`
     if (!tabs.value.some((t) => t.id === id)) {
       tabs.value = [...tabs.value, { id, kind: 'diff', title, filePath, closable: true }]
+    }
+    if (preview?.patch !== null && preview?.patch !== undefined) {
+      diffPreviews.value = { ...diffPreviews.value, [id]: preview.patch }
     }
     activeTabId.value = id
   }
@@ -399,6 +412,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (index === -1) return
     const next = tabs.value.filter((t) => t.id !== id)
     tabs.value = next
+    removeDiffPreviews(new Set([id]))
     if (activeTabId.value === id) {
       const fallbackId =
         next
@@ -415,7 +429,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function closeOtherTabs(id: string) {
     const target = tabs.value.find((tab) => tab.id === id)
     if (!target) return
+    const removed = new Set(tabs.value.filter((tab) => tab.id !== id).map((tab) => tab.id))
     tabs.value = [target]
+    removeDiffPreviews(removed)
     activateTab(target.id)
   }
 
@@ -433,10 +449,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function closeAllTabs() {
     tabs.value = []
+    diffPreviews.value = {}
     activeTabId.value = null
   }
 
   function replaceTabs(next: WorkspaceTab[], fallbackId: string) {
+    const nextIds = new Set(next.map((tab) => tab.id))
+    removeDiffPreviews(
+      new Set(tabs.value.filter((tab) => !nextIds.has(tab.id)).map((tab) => tab.id))
+    )
     tabs.value = next
     if (!next.some((tab) => tab.id === activeTabId.value)) {
       const nextActiveId = next.find((tab) => tab.id === fallbackId)?.id ?? next.at(-1)?.id
@@ -847,11 +868,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function removeTabsById(removedTabIds: Set<string>) {
     if (!removedTabIds.size) return
     tabs.value = tabs.value.filter((tab) => !removedTabIds.has(tab.id))
+    removeDiffPreviews(removedTabIds)
     if (activeTabId.value && removedTabIds.has(activeTabId.value)) {
       const fallbackId = mainTabs.value.at(-1)?.id
       if (fallbackId) activateTab(fallbackId)
       else activeTabId.value = null
     }
+  }
+
+  function removeDiffPreviews(tabIds: Set<string>) {
+    if (!tabIds.size) return
+    const next = { ...diffPreviews.value }
+    for (const id of tabIds) delete next[id]
+    diffPreviews.value = next
   }
 
   async function loadGit() {
@@ -1593,6 +1622,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     hasSessionWorkspace,
     activeTabId,
     activeTab,
+    activeDiffPreview,
     drafts,
     draft,
     draftImages,

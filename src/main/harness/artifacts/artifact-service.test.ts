@@ -107,6 +107,11 @@ function service(entries: SessionEntry[], options: { cwd?: string | null } = {})
     getGitCommits: vi.fn(async () => [
       { hash: 'a1b2c3d', subject: 'ship the feature', timestamp: target.startedAt + 1_000 }
     ]),
+    getFileDiff: vi.fn(async () => ({
+      supported: true,
+      status: 'modified' as const,
+      patch: '--- a/src/app.ts\n+++ b/src/app.ts\n@@ -1 +1,2 @@\n-old\n+new\n+next\n'
+    })),
     emit: (_sessionId, event) => {
       emitted.push(event)
     }
@@ -128,6 +133,13 @@ describe('ArtifactService.collectForRun', () => {
     expect(types).toEqual(['build-output', 'file', 'git-commit', 'log', 'test-report'])
     const file = artifacts.find((artifact) => artifact.type === 'file')
     expect(file).toMatchObject({ name: 'app.ts', path: '/repo/src/app.ts' })
+    expect(file?.metadata).toMatchObject({
+      resolvedPath: '/repo/src/app.ts',
+      additions: 2,
+      deletions: 1,
+      patchTruncated: false
+    })
+    expect(file?.metadata.patch).toContain('+next')
     const failedBuild = artifacts.find((artifact) => artifact.type === 'build-output')
     expect(failedBuild?.metadata).toMatchObject({ exitCode: 1, failed: true })
     const commit = artifacts.find((artifact) => artifact.type === 'git-commit')
@@ -148,6 +160,20 @@ describe('ArtifactService.collectForRun', () => {
     ]
     const artifacts = await service(entries, { cwd: null }).collectForRun(run({ cwd: null }))
     expect(artifacts.map((artifact) => artifact.type)).toEqual(['file'])
+  })
+
+  it('resolves relative mutation paths against the run cwd for diff previews', async () => {
+    const entries = [
+      userEntry('2024-01-01T00:00:00.000Z', 'ship it'),
+      writeEntry('entry-2', '2024-01-01T00:00:02.000Z', 'src/app.ts')
+    ]
+    const artifactService = service(entries, { cwd: '/repo' })
+    const artifacts = await artifactService.collectForRun(run({ cwd: '/repo' }))
+
+    expect(artifacts[0]).toMatchObject({
+      path: 'src/app.ts',
+      metadata: { resolvedPath: '/repo/src/app.ts' }
+    })
   })
 
   it('returns nothing and swallows hook failures', async () => {

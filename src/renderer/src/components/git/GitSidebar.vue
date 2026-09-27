@@ -40,6 +40,7 @@ import { toast } from 'vue-sonner'
 import { toNativeMenuLocale } from '@shared/constants/language'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
+import { isMingDynastySkin } from '@renderer/utils/skin-catalog'
 
 type ContextMenuEntry =
   | {
@@ -113,7 +114,7 @@ const stashes = computed(() =>
 const activity = computed(() => overview.value?.activity ?? [])
 const mingDynastyActive = computed(() => {
   const skin = getActiveVisualSkin(settings.settings)?.id
-  return skin === 'ming-snow' || skin === 'ming-moon'
+  return isMingDynastySkin(skin)
 })
 const branchMenuEntries = computed(() => {
   const branch = branchContextMenu.value?.branch

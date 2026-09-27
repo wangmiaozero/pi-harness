@@ -7,6 +7,7 @@ import noirScholarImage from '@renderer/assets/themes/portraits/noir-scholar.png
 import moonlitMaidImage from '@renderer/assets/themes/portraits/moonlit-maid.png'
 import mingSnowImage from '@renderer/assets/themes/ming-dynasty/snow-maiden.png'
 import mingMoonImage from '@renderer/assets/themes/ming-dynasty/moon-maiden.png'
+import zhangJuzhengSnowImage from '@renderer/assets/themes/zhang-juzheng-snow/zhang-juzheng.png'
 
 export const PET_THEME_ORDER: readonly PetThemeId[] = [
   'maidWhite',
@@ -15,6 +16,7 @@ export const PET_THEME_ORDER: readonly PetThemeId[] = [
   'noirScholar',
   'moonlitMaid',
   'mingSnow',
+  'zhangJuzhengSnow',
   'mingMoon'
 ]
 
@@ -75,6 +77,13 @@ export const PET_MANIFESTS: Readonly<Record<PetThemeId, PetManifest>> = {
     'Ming Snow Palace · Flute Scholar',
     mingSnowImage,
     '#bd8b52',
+    true
+  ),
+  zhangJuzhengSnow: manifest(
+    'zhangJuzhengSnow',
+    'Zhang Juzheng · Snowbound Ming',
+    zhangJuzhengSnowImage,
+    '#9e1b1b',
     true
   ),
   mingMoon: manifest('mingMoon', 'Ming Moon City · Scroll Scholar', mingMoonImage, '#b4493f', true),

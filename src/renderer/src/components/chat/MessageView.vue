@@ -6,7 +6,9 @@ import type { AgentMessage, ImageContent } from '@shared/types/workspace'
 import ToolCallView from './ToolCallView.vue'
 import BranchNavigator from './BranchNavigator.vue'
 import StreamingMarkdown from './StreamingMarkdown.vue'
+import FileChangesCard from './FileChangesCard.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
+import type { MessageFileChanges } from './message-file-changes'
 
 const markdownOptions = {
   registerDefaultPlugins: false
@@ -52,6 +54,7 @@ const props = defineProps<{
   message: AgentMessage
   entryId?: string
   streaming?: boolean
+  fileChanges?: MessageFileChanges
 }>()
 const previewSrc = ref<string | null>(null)
 const previewOpen = ref(false)
@@ -215,6 +218,7 @@ const bashText = computed(() => {
       >
         {{ message.errorMessage }}
       </p>
+      <FileChangesCard v-if="fileChanges && !streaming" :changes="fileChanges" />
     </div>
 
     <details

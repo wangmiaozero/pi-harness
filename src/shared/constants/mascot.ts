@@ -6,6 +6,7 @@ export const MASCOT_STYLES = [
   'noirScholar',
   'moonlitMaid',
   'mingSnow',
+  'zhangJuzhengSnow',
   'mingMoon'
 ] as const
 

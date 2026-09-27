@@ -203,6 +203,7 @@ function drawThemeMotif(context: CanvasRenderingContext2D, elapsed: number): voi
       context.fill()
       break
     case 'mingSnow':
+    case 'zhangJuzhengSnow':
       for (let flake = 0; flake < 15; flake++) {
         const x = cx + Math.sin(flake * 2.4) * radius * 1.5
         const y = cy + Math.cos(flake * 1.9 + elapsed * 0.25) * radius * 0.75

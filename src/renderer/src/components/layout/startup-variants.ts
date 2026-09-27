@@ -69,6 +69,14 @@ export const STARTUP_PALETTES: Record<StartupVariant, StartupPalette> = {
     tertiary: '#ae5c4d',
     particles: ['#f7f1e4', '#e4d2a8', '#b5dce8', '#ae5c4d']
   },
+  zhangJuzhengSnow: {
+    background: '#0b0a09',
+    text: '#f1dfc0',
+    accent: '#d1ae6a',
+    secondary: '#9e1b1b',
+    tertiary: '#edeae2',
+    particles: ['#edeae2', '#d1ae6a', '#9e1b1b', '#b58a4a']
+  },
   mingMoon: {
     background: '#210e18',
     text: '#f7ead4',
@@ -117,6 +125,8 @@ export function particleOrigin(
       ]
     case 'mingSnow':
       return [width * t, -height * (0.15 + random * 0.7)]
+    case 'zhangJuzhengSnow':
+      return [width * (1 - t * 0.92), -height * (0.08 + random * 0.56)]
     case 'mingMoon':
       return [
         width * 0.5 + Math.cos(angle) * width * 0.45,

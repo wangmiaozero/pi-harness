@@ -10,13 +10,18 @@ import classicAppIconUrl from '@renderer/assets/app-icon-classic.png?url'
 import mingAppIconUrl from '../../../../../build/app-icons/ming.png?url'
 import quantumAppIconUrl from '../../../../../build/app-icons/quantum.png?url'
 import mingTitlebarCalligraphyUrl from '@renderer/assets/themes/ming-dynasty/titlebar-calligraphy.png?url'
+import zhangTitlebarCalligraphyUrl from '@renderer/assets/themes/zhang-juzheng-snow/titlebar-calligraphy-overlay.png?url'
 
 const router = useRouter()
 const settings = useSettingsStore()
-const props = withDefaults(defineProps<{ starshipCockpit?: boolean; mingDynasty?: boolean }>(), {
-  starshipCockpit: false,
-  mingDynasty: false
-})
+const props = withDefaults(
+  defineProps<{ starshipCockpit?: boolean; mingDynasty?: boolean; zhangJuzheng?: boolean }>(),
+  {
+    starshipCockpit: false,
+    mingDynasty: false,
+    zhangJuzheng: false
+  }
+)
 const isMac = ref(false)
 const isWin = ref(false)
 const showLeadingWindowControls = ref(!navigator.platform.startsWith('Win'))
@@ -136,7 +141,7 @@ async function close() {
     </div>
 
     <img
-      v-if="mingDynasty"
+      v-if="mingDynasty && !zhangJuzheng"
       :src="mingTitlebarCalligraphyUrl"
       alt=""
       class="ming-titlebar-calligraphy pointer-events-none absolute"
@@ -144,6 +149,25 @@ async function close() {
       draggable="false"
       aria-hidden="true"
     />
+
+    <div
+      v-if="zhangJuzheng"
+      class="zhang-titlebar-motto pointer-events-none absolute"
+      data-testid="zhang-titlebar-motto"
+      aria-hidden="true"
+    >
+      <img
+        :src="zhangTitlebarCalligraphyUrl"
+        alt=""
+        class="zhang-titlebar-calligraphy-image"
+        data-testid="zhang-titlebar-calligraphy-image"
+        draggable="false"
+      />
+      <span>
+        经世济民
+        <small>修身 · 齐家 · 治国 · 平天下</small>
+      </span>
+    </div>
 
     <div class="ml-auto flex items-center gap-1">
       <!-- Command palette trigger styled like an NSToolbar search field. -->

@@ -12,5 +12,6 @@ export const MASCOT_IMAGES: Record<MascotStyle, string | null> = {
   noirScholar: PET_MANIFESTS.noirScholar?.sprite ?? null,
   moonlitMaid: PET_MANIFESTS.moonlitMaid?.sprite ?? null,
   mingSnow: PET_MANIFESTS.mingSnow?.sprite ?? null,
+  zhangJuzhengSnow: PET_MANIFESTS.zhangJuzhengSnow?.sprite ?? null,
   mingMoon: PET_MANIFESTS.mingMoon?.sprite ?? null
 }

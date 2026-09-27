@@ -8,9 +8,11 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import path from 'node:path'
 import type { JsonStore } from '../../services/storage'
 import { log, redactSecrets } from '../../services/logger'
-import type { SessionEntry } from '@shared/types/workspace'
+import type { GitFileDiffResponse, SessionEntry } from '@shared/types/workspace'
+import { countUnifiedDiffChanges } from '@shared/workspace/unified-diff'
 import type {
   HarnessArtifact,
   HarnessArtifactType,
@@ -26,6 +28,7 @@ import {
 
 const MAX_PERSISTED_ARTIFACTS = 1000
 const COMMAND_PREVIEW_LENGTH = 200
+const PATCH_PREVIEW_LENGTH = 250_000
 
 export interface ArtifactStoreRecord {
   schemaVersion: 1
@@ -42,6 +45,7 @@ export interface ArtifactHooks {
     since: number,
     until: number
   ) => Promise<Array<{ hash: string; subject: string; timestamp: number }>>
+  getFileDiff?: (cwd: string, filePath: string) => Promise<GitFileDiffResponse>
   emit: (sessionId: string, event: HarnessEvent) => void
 }
 
@@ -120,7 +124,7 @@ export class ArtifactService {
       const entries = await this.hooks.getEntries(run.sessionId)
       const runEntries = sliceRunEntries(entries, run)
       const artifacts: HarnessArtifact[] = [
-        ...this.fileArtifacts(run, runEntries),
+        ...(await this.fileArtifacts(run, runEntries)),
         ...this.commandArtifacts(run, runEntries)
       ]
       artifacts.push(...(await this.checkpointArtifacts(run)))
@@ -143,17 +147,44 @@ export class ArtifactService {
     }
   }
 
-  private fileArtifacts(run: HarnessRun, entries: readonly SessionEntry[]): HarnessArtifact[] {
+  private async fileArtifacts(
+    run: HarnessRun,
+    entries: readonly SessionEntry[]
+  ): Promise<HarnessArtifact[]> {
     const mutations = collectFileMutations(entries)
     const seen = new Set<string>()
     const artifacts: HarnessArtifact[] = []
     for (const filePath of mutations) {
-      if (seen.has(filePath)) continue
-      seen.add(filePath)
+      const resolvedPath = resolveMutationPath(run.cwd, filePath)
+      if (seen.has(resolvedPath)) continue
+      seen.add(resolvedPath)
+      const metadata: Record<string, unknown> = {
+        mutation: 'write/edit',
+        resolvedPath
+      }
+      if (run.cwd && this.hooks.getFileDiff) {
+        try {
+          const diff = await this.hooks.getFileDiff(run.cwd, resolvedPath)
+          if (diff.supported && typeof diff.patch === 'string') {
+            const count = countUnifiedDiffChanges(diff.patch)
+            metadata.additions = count.additions
+            metadata.deletions = count.deletions
+            metadata.patch = diff.patch.slice(0, PATCH_PREVIEW_LENGTH)
+            metadata.patchTruncated = diff.patch.length > PATCH_PREVIEW_LENGTH
+          }
+        } catch {
+          // Diff evidence is best-effort; the file mutation remains authoritative.
+        }
+      }
       artifacts.push(
-        this.artifact(run, 'file', fileName(filePath), filePath, timestampOf(entries, filePath), {
-          mutation: 'write/edit'
-        })
+        this.artifact(
+          run,
+          'file',
+          fileName(filePath),
+          filePath,
+          timestampOf(entries, filePath),
+          metadata
+        )
       )
     }
     return artifacts
@@ -280,6 +311,11 @@ export class ArtifactService {
 function fileName(filePath: string): string {
   const parts = filePath.split(/[/\\]/)
   return parts[parts.length - 1] || filePath
+}
+
+function resolveMutationPath(cwd: string | null, filePath: string): string {
+  if (!cwd || path.isAbsolute(filePath) || path.win32.isAbsolute(filePath)) return filePath
+  return path.resolve(cwd, filePath)
 }
 
 function timestampOf(entries: readonly SessionEntry[], filePath: string): number {
