@@ -7,7 +7,8 @@ test.describe('Providers', () => {
   test('keeps provider actions aligned and fixed to the right', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.setViewportSize({ width: 960, height: 720 })
-    await page.locator('a[href="#/providers"]').click()
+    await page.locator('a[href="#/models"]').click()
+    await page.getByTestId('model-management-tab-providers').click()
 
     const table = page.getByTestId('providers-table-scroll')
     const actionCells = page.getByTestId('provider-action-cell')
@@ -43,7 +44,8 @@ test.describe('Providers', () => {
     })
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 
-    await page.locator('a[href="#/providers"]').click()
+    await page.locator('a[href="#/models"]').click()
+    await page.getByTestId('model-management-tab-providers').click()
     const presetPicker = page.getByPlaceholder(/搜索并选择厂商|Search and select a provider/)
     await presetPicker.fill('DeepSeek')
     await page
@@ -139,7 +141,8 @@ test.describe('Providers', () => {
     try {
       const port = (server.address() as AddressInfo).port
       await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
-      await page.locator('a[href="#/providers"]').click()
+      await page.locator('a[href="#/models"]').click()
+      await page.getByTestId('model-management-tab-providers').click()
       await page.getByRole('button', { name: /新建提供商|New provider/ }).click()
       const dialog = page.getByRole('dialog')
       await dialog.getByLabel(/API 基础 URL|Base URL/).fill(`http://127.0.0.1:${port}/v1`)

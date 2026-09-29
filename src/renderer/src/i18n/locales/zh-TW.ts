@@ -282,6 +282,9 @@ export const zhTW: MessageTree = {
   models: {
     title: '模型',
     subtitle: '設定模型能力並選擇目前模型',
+    managementSubtitle: '統一管理供應商、存取憑證與模型能力',
+    managementTabsLabel: '模型設定分類',
+    providerRequired: '請先設定供應商，再設定模型',
     empty: '暫無模型',
     emptyHint: '在供應商下新增模型。',
     create: '新增模型',

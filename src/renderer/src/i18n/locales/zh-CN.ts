@@ -282,6 +282,9 @@ export const zhCN: MessageTree = {
   models: {
     title: '模型',
     subtitle: '配置模型能力并选择当前模型',
+    managementSubtitle: '统一管理厂商、访问凭证与模型能力',
+    managementTabsLabel: '模型配置分类',
+    providerRequired: '请先配置厂商，再配置模型',
     empty: '暂无模型',
     emptyHint: '在提供商下添加模型。',
     create: '新建模型',

@@ -290,6 +290,9 @@ export const frFR: MessageTree = {
   models: {
     title: 'Modèles',
     subtitle: 'Configurez les capacités des modèles et choisissez le modèle actif',
+    managementSubtitle: 'Gérer les fournisseurs, les identifiants et les capacités des modèles',
+    managementTabsLabel: 'Sections de configuration des modèles',
+    providerRequired: 'Configurez un fournisseur avant de configurer les modèles',
     empty: 'Aucun modèle pour le moment',
     emptyHint: 'Ajoutez un modèle sous un fournisseur.',
     create: 'Nouveau modèle',

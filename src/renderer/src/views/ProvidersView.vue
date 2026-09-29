@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Plus,
   Pencil,
@@ -51,10 +52,16 @@ import {
   type ApiKeyUiKind
 } from '@renderer/utils/provider-credentials'
 
+withDefaults(defineProps<{ embedded?: boolean }>(), {
+  embedded: false
+})
+
 /** Sentinel shown in the password field when a secret already exists (never submitted as a real key). */
 const KEY_MASK = '••••••••••••••••'
 
 const { t, locale } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const providersStore = useProvidersStore()
 const modelsStore = useModelsStore()
 
@@ -813,6 +820,18 @@ async function loadPlatform(): Promise<void> {
   }
 }
 
+watch(
+  () => route.query.action,
+  (action) => {
+    if (action !== 'create') return
+    openCreate()
+    const query = { ...route.query }
+    delete query.action
+    void router.replace({ query })
+  },
+  { immediate: true }
+)
+
 onMounted(() => {
   void providersStore.fetchList()
   void modelsStore.fetchList()
@@ -824,7 +843,7 @@ onMounted(() => {
   <div class="flex h-full min-h-0 flex-col">
     <!-- Page header — compact, single line, page title + description on the
          left, search + primary action on the right. -->
-    <PageHeader>
+    <PageHeader v-if="!embedded">
       <div class="flex min-w-0 flex-col justify-center self-stretch">
         <h1
           class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
@@ -847,6 +866,21 @@ onMounted(() => {
         </Button>
       </div>
     </PageHeader>
+
+    <div
+      v-else
+      class="flex h-[48px] shrink-0 items-center justify-end gap-2 border-b border-[var(--border-subtle)] px-5"
+    >
+      <SearchField
+        v-model="query"
+        :placeholder="$t('providers.filterPlaceholder')"
+        class="w-[220px]"
+      />
+      <Button variant="primary" size="sm" @click="openCreate()">
+        <Plus class="size-3.5" />
+        {{ $t('providers.create') }}
+      </Button>
+    </div>
 
     <!-- Searchable Pi-compatible provider/model presets. -->
     <div

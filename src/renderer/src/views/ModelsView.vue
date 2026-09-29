@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Plus,
   Pencil,
@@ -50,7 +51,13 @@ import { callApi, getApi } from '@renderer/composables/useApi'
 import { isImageGenerationModel } from '@shared/models/image-model'
 import { rasterizeSvgImageResult } from '@renderer/utils/svg-rasterize'
 
+withDefaults(defineProps<{ embedded?: boolean }>(), {
+  embedded: false
+})
+
 const { t, locale } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const modelsStore = useModelsStore()
 const providersStore = useProvidersStore()
 
@@ -483,6 +490,18 @@ async function runTest() {
   }
 }
 
+watch(
+  () => route.query.action,
+  (action) => {
+    if (action !== 'create') return
+    openCreate()
+    const query = { ...route.query }
+    delete query.action
+    void router.replace({ query })
+  },
+  { immediate: true }
+)
+
 onMounted(() => {
   void Promise.all([providersStore.fetchList(), modelsStore.fetchList()])
 })
@@ -490,7 +509,7 @@ onMounted(() => {
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <PageHeader>
+    <PageHeader v-if="!embedded">
       <div class="flex min-w-0 flex-col justify-center self-stretch">
         <h1
           class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
@@ -518,6 +537,26 @@ onMounted(() => {
         </Button>
       </div>
     </PageHeader>
+
+    <div
+      v-else
+      class="flex h-[48px] shrink-0 items-center justify-end gap-2 border-b border-[var(--border-subtle)] px-5"
+    >
+      <SearchField
+        v-model="query"
+        :placeholder="$t('models.filterPlaceholder')"
+        class="w-[220px]"
+      />
+      <Button
+        variant="primary"
+        size="sm"
+        :disabled="providersStore.items.length === 0"
+        @click="openCreate"
+      >
+        <Plus class="size-3.5" />
+        {{ $t('models.create') }}
+      </Button>
+    </div>
 
     <div class="flex-1 overflow-y-auto px-5 pt-4 pb-6 space-y-4">
       <!-- Active Model summary — single line, not a Card. -->

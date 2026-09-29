@@ -7,6 +7,8 @@ describe('navigation order', () => {
     expect(DEFAULT_NAV_ORDER.indexOf('settings')).toBe(DEFAULT_NAV_ORDER.length - 1)
     // Overview moved into Settings and must no longer appear in the rail order.
     expect(DEFAULT_NAV_ORDER).not.toContain('overview')
+    // Provider management is now a tab inside the unified Models page.
+    expect(DEFAULT_NAV_ORDER).not.toContain('providers')
   })
 
   it('fills missing ids and drops unknowns', () => {

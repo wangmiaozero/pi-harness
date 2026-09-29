@@ -288,6 +288,9 @@ export const enUS = {
   models: {
     title: 'Models',
     subtitle: 'Configure model capabilities and choose the active model',
+    managementSubtitle: 'Manage providers, credentials, and model capabilities in one place',
+    managementTabsLabel: 'Model configuration sections',
+    providerRequired: 'Configure a provider before configuring models',
     empty: 'No models yet',
     emptyHint: 'Add a model under a provider.',
     create: 'New model',

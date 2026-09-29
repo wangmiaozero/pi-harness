@@ -290,6 +290,9 @@ export const koKR: MessageTree = {
   models: {
     title: '모델',
     subtitle: '모델 기능을 구성하고 현재 모델을 선택합니다',
+    managementSubtitle: '공급자, 자격 증명 및 모델 기능을 한곳에서 관리합니다',
+    managementTabsLabel: '모델 설정 섹션',
+    providerRequired: '모델을 구성하기 전에 공급자를 구성하세요',
     empty: '아직 모델이 없습니다',
     emptyHint: '제공자 아래에 모델을 추가하세요.',
     create: '새 모델',
