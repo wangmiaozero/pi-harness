@@ -291,6 +291,9 @@ export const deDE: MessageTree = {
   models: {
     title: 'Modelle',
     subtitle: 'Modellfähigkeiten konfigurieren und das aktive Modell wählen',
+    managementSubtitle: 'Anbieter, Zugangsdaten und Modellfunktionen zentral verwalten',
+    managementTabsLabel: 'Modellkonfigurationsbereiche',
+    providerRequired: 'Konfigurieren Sie zuerst einen Anbieter und dann die Modelle',
     empty: 'Noch keine Modelle',
     emptyHint: 'Ein Modell unter einem Anbieter hinzufügen.',
     create: 'Neues Modell',

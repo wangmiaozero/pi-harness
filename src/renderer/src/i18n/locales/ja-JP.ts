@@ -291,6 +291,9 @@ export const jaJP: MessageTree = {
   models: {
     title: 'モデル',
     subtitle: 'モデルの能力を設定し、現在のモデルを選びます',
+    managementSubtitle: 'プロバイダー、認証情報、モデル機能を一元管理します',
+    managementTabsLabel: 'モデル設定セクション',
+    providerRequired: 'モデルを設定する前にプロバイダーを設定してください',
     empty: 'モデルはまだありません',
     emptyHint: 'プロバイダー配下にモデルを追加してください。',
     create: '新規モデル',

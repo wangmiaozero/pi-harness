@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Box, Cpu, Settings, Sparkles, SquareTerminal, GitBranch } from '@lucide/vue'
+import { Cpu, Settings, Sparkles, SquareTerminal, GitBranch } from '@lucide/vue'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { normalizeNavOrder, type NavItemId } from '@shared/constants/navigation'
 import mingPlumBranchUrl from '@renderer/assets/themes/ming-dynasty/plum-branch.png?url'
@@ -22,13 +22,6 @@ const catalog = computed(
       icon: SquareTerminal,
       label: t('nav.workspace'),
       short: t('navShort.workspace')
-    },
-    providers: {
-      name: 'providers',
-      to: '/providers',
-      icon: Box,
-      label: t('nav.providers'),
-      short: t('navShort.providers')
     },
     models: {
       name: 'models',

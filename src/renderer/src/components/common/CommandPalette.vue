@@ -80,7 +80,7 @@ const commands = computed<PaletteCommand[]>(() => {
       label: t('palette.goProviders'),
       group: t('palette.groupNav'),
       run: () => {
-        void router.push('/providers')
+        void router.push({ path: '/models', query: { tab: 'providers' } })
       }
     },
     {
@@ -195,7 +195,7 @@ const commands = computed<PaletteCommand[]>(() => {
       label: t('palette.addProvider'),
       group: t('palette.groupActions'),
       run: () => {
-        void router.push({ path: '/providers', query: { action: 'create' } })
+        void router.push({ path: '/models', query: { tab: 'providers', action: 'create' } })
       }
     },
     {

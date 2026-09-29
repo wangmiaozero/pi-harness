@@ -1,6 +1,26 @@
 import { test, expect } from './fixtures'
 
 test.describe('Models', () => {
+  test('requires a configured provider before models can be managed', async ({ page }) => {
+    await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
+    await page.evaluate(async () => {
+      const providers = (await window.piSwitch?.providers.list()) ?? []
+      for (const provider of providers) {
+        await window.piSwitch?.providers.delete(provider.key, { overwrite: true })
+      }
+    })
+
+    await page.locator('a[href="#/models"]').click()
+    await expect(page.getByTestId('model-management-tab-providers')).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
+    await expect(page.getByTestId('model-management-tab-models')).toBeDisabled()
+    await expect(
+      page.getByText(/请先配置厂商，再配置模型|Configure a provider before/)
+    ).toBeVisible()
+  })
+
   test('keeps model actions aligned and fixed to the right', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.setViewportSize({ width: 960, height: 720 })

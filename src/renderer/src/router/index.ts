@@ -21,14 +21,15 @@ const router = createRouter({
     },
     {
       path: '/providers',
-      name: 'providers',
-      component: () => import('@renderer/views/ProvidersView.vue'),
-      meta: { title: 'Providers', i18nKey: 'nav.providers' }
+      redirect: (to) => ({
+        path: '/models',
+        query: { ...to.query, tab: 'providers' }
+      })
     },
     {
       path: '/models',
       name: 'models',
-      component: () => import('@renderer/views/ModelsView.vue'),
+      component: () => import('@renderer/views/ModelManagementView.vue'),
       meta: { title: 'Models', i18nKey: 'nav.models' }
     },
     {

@@ -1,11 +1,4 @@
-export const NAV_ITEM_IDS = [
-  'workspace',
-  'git',
-  'providers',
-  'models',
-  'skills',
-  'settings'
-] as const
+export const NAV_ITEM_IDS = ['workspace', 'git', 'models', 'skills', 'settings'] as const
 
 export type NavItemId = (typeof NAV_ITEM_IDS)[number]
 

@@ -515,7 +515,11 @@ onMounted(() => {
             <Download class="size-3.5" :stroke-width="1.75" />
             {{ $t('overview.reinstallPi') }}
           </Button>
-          <Button variant="ghost" size="sm" @click="router.push('/providers')">
+          <Button
+            variant="ghost"
+            size="sm"
+            @click="router.push({ path: '/models', query: { tab: 'providers' } })"
+          >
             <Box class="size-3.5" :stroke-width="1.75" />
             {{ $t('overview.manageProviders') }}
           </Button>

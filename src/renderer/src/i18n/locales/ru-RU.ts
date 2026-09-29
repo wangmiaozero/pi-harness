@@ -290,6 +290,9 @@ export const ruRU: MessageTree = {
   models: {
     title: 'Модели',
     subtitle: 'Настройка возможностей моделей и выбор активной',
+    managementSubtitle: 'Управление провайдерами, учетными данными и моделями в одном месте',
+    managementTabsLabel: 'Разделы настройки моделей',
+    providerRequired: 'Сначала настройте провайдера, затем модель',
     empty: 'Моделей пока нет',
     emptyHint: 'Добавьте модель у провайдера.',
     create: 'Новая модель',
