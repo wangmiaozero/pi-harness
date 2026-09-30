@@ -12,6 +12,7 @@ import PathsSettingsSection from '@renderer/components/settings/PathsSettingsSec
 import BackupSettingsSection from '@renderer/components/settings/BackupSettingsSection.vue'
 import UpdatesSettingsSection from '@renderer/components/settings/UpdatesSettingsSection.vue'
 import DeveloperSettingsSection from '@renderer/components/settings/DeveloperSettingsSection.vue'
+import AboutSettingsSection from '@renderer/components/settings/AboutSettingsSection.vue'
 import { useSettingsDraft } from '@renderer/components/settings/useSettingsDraft'
 import { SETTINGS_DRAFT_KEY } from '@renderer/components/settings/draft-key'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
@@ -31,6 +32,7 @@ const SETTINGS_SECTIONS_ALL = [
   'paths',
   'backup',
   'updates',
+  'about',
   'developer'
 ] as const
 const SETTINGS_SECTIONS = MASCOT_ENABLED
@@ -69,6 +71,8 @@ const sectionTitle = computed(() => {
       return t('settings.backup')
     case 'updates':
       return t('settings.updates')
+    case 'about':
+      return t('settings.about')
     case 'developer':
       return t('settings.developer')
     default:
@@ -92,6 +96,8 @@ const sectionSubtitle = computed(() => {
       return t('settings.sectionBackupHint')
     case 'updates':
       return t('settings.sectionUpdatesHint')
+    case 'about':
+      return t('settings.sectionAboutHint')
     case 'developer':
       return t('settings.sectionDeveloperHint')
     default:
@@ -151,6 +157,7 @@ onMounted(() => {
           <PathsSettingsSection v-else-if="section === 'paths'" />
           <BackupSettingsSection v-else-if="section === 'backup'" />
           <UpdatesSettingsSection v-else-if="section === 'updates'" />
+          <AboutSettingsSection v-else-if="section === 'about'" />
           <DeveloperSettingsSection v-else-if="section === 'developer'" />
         </div>
       </div>

@@ -10,6 +10,7 @@ import {
   Download,
   FileCode2,
   FolderOpen,
+  Info,
   LayoutDashboard,
   PanelLeft,
   Settings2,
@@ -61,6 +62,12 @@ const menuItems = computed(() => {
     to: '/settings/updates',
     label: t('settings.updates'),
     icon: Download
+  })
+  items.push({
+    id: 'about',
+    to: '/settings/about',
+    label: t('settings.about'),
+    icon: Info
   })
   if (systemInfoReady.value && !packaged.value) {
     items.push({

@@ -91,6 +91,7 @@ import type {
 import type { MascotStyle } from '../constants/mascot'
 import type { CustomSkinDescriptor, CustomSkinProjectResult } from '../types/custom-skin'
 import type { NavItemId } from '../constants/navigation'
+import type { ProjectLinkTarget } from '../constants'
 import type {
   CapabilityActionResult,
   CapabilityDescriptor,
@@ -794,6 +795,7 @@ export interface PiSwitchAPI {
     checkNetwork(): Promise<NetworkCheckResult>
     openPath(path: string): Promise<void>
     showItem(path: string): Promise<void>
+    openProjectLink(target: ProjectLinkTarget): Promise<void>
   }
   pi: {
     detect(): Promise<PiEnvironment>

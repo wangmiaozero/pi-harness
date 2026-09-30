@@ -28,9 +28,10 @@ describe('desktop-only runtime', () => {
       join(process.cwd(), 'src/main/ipc/register.ts'),
       join(process.cwd(), 'src/main/updater/index.ts')
     ])
-    expect(registerSource.match(/\bopenExternal\b/g)).toHaveLength(2)
+    expect(registerSource.match(/\bopenExternal\b/g)).toHaveLength(3)
     expect(registerSource).toContain('shell.openExternal(NODE_DOWNLOAD_URL)')
     expect(registerSource).toContain('shell.openExternal(definition.sourceUrl)')
+    expect(registerSource).toContain('shell.openExternal(PROJECT_LINK_URLS[target])')
     expect(registerSource).toContain("definition?.sourceUrl?.startsWith('https://github.com/')")
     expect(installConstants).toContain("NODE_DOWNLOAD_URL = 'https://nodejs.org/en/download'")
     expect(updaterSource.match(/\bopenExternal\b/g)).toHaveLength(1)

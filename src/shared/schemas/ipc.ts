@@ -16,6 +16,8 @@ import { providerKeySchema } from './domain'
 import { customSkinSelectionSchema } from './custom-skin'
 import { CHAT_PARTICIPANT_NAME_MAX_LENGTH } from '../constants/chat-participants'
 
+export const projectLinkTargetSchema = z.enum(['author', 'repository'])
+
 export const noArgsSchema = z.tuple([])
 
 export const systemPathSchema = z

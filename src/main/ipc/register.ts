@@ -16,7 +16,7 @@ import { IPC_EVENT, IPC_INVOKE } from '@shared/ipc/channels'
 import { NODE_DOWNLOAD_URL, PI_INSTALL_COMMAND } from '@shared/constants/pi-install'
 import { toErrorPayload } from '../services/errors'
 import { log } from '../services/logger'
-import { APP_VERSION } from '@shared/constants/index'
+import { APP_VERSION, PROJECT_LINK_URLS } from '@shared/constants/index'
 import type { AppSettings, ScreenMotionActivePayload } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
 import type { PiConfigService } from '../pi/config-service'
@@ -76,6 +76,7 @@ import {
   noArgsSchema,
   optionalBooleanSchema,
   overwriteOptionsSchema,
+  projectLinkTargetSchema,
   screenMotionActiveSchema,
   systemPathSchema,
   uiStateSchema
@@ -192,6 +193,12 @@ export function registerIpc(services: Services): void {
     wrap(async () => {
       const requested = parseInput(systemPathSchema, input, 'Invalid path')
       shell.showItemInFolder(await openPathPolicy.authorize(requested))
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.systemOpenProjectLink, (_e, input: unknown) =>
+    wrap(async () => {
+      const target = parseInput(projectLinkTargetSchema, input, 'Invalid project link')
+      await shell.openExternal(PROJECT_LINK_URLS[target])
     })
   )
 

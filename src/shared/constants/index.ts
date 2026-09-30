@@ -3,7 +3,7 @@
  * Keep this module free of platform-specific (Node/DOM) globals.
  */
 
-import { version as packageVersion } from '../../../package.json'
+import { author as packageAuthor, version as packageVersion } from '../../../package.json'
 
 export const APP_NAME = 'Pi-Harness'
 export const APP_PRODUCT_NAME = 'Pi-Harness'
@@ -11,6 +11,13 @@ export const APP_DESCRIPTION = 'Desktop Harness & Control Center for Pi Coding A
 export const APP_ID = 'dev.pi-harness.app'
 export const APP_VERSION = packageVersion
 export const AUTHOR_WATERMARK = 'wangmiao'
+export const APP_AUTHOR = Object.freeze({ ...packageAuthor })
+export const PROJECT_REPOSITORY_URL = 'https://github.com/wangmiaozero/pi-harness'
+export const PROJECT_LINK_URLS = {
+  author: APP_AUTHOR.url,
+  repository: PROJECT_REPOSITORY_URL
+} as const
+export type ProjectLinkTarget = keyof typeof PROJECT_LINK_URLS
 
 /** IPC bridge namespace exposed on window. */
 export const API_NAMESPACE = 'piSwitch'
