@@ -407,9 +407,6 @@ function resources(pkg: PiRegistryPackage | undefined) {
                   {{ formatDate(pkg.publishDate) }}
                 </span>
                 <div class="flex items-center gap-1" @click.stop>
-                  <Button variant="ghost" size="sm" @click="selectPackage(pkg)">
-                    {{ $t('capabilities.details') }}
-                  </Button>
                   <Button
                     v-if="updateFor(pkg)?.updateAvailable"
                     variant="primary"

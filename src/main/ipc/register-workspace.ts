@@ -169,6 +169,12 @@ export function registerWorkspaceIpc(
     })
   )
   ipcMain.handle(IPC_INVOKE.workspaceGetActive, () => wrap(async () => workspaceState.getActive()))
+  ipcMain.handle(IPC_INVOKE.workspaceGetDefaultRoot, () =>
+    wrap(() => workspaceState.getDefaultWorkspaceRoot())
+  )
+  ipcMain.handle(IPC_INVOKE.workspaceEnsureDefault, () =>
+    wrap(() => workspaceState.ensureDefaultWorkspace())
+  )
   ipcMain.handle(IPC_INVOKE.workspaceSync, (_e, input: unknown) =>
     wrap(async () => {
       const parsed = workspaceSyncSchema.safeParse(input)

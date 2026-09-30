@@ -33,7 +33,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1"><img alt="v1.7.1 发布版" src="https://img.shields.io/badge/release-v1.7.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="v1.8.0 发布版" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
   <img alt="支持 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 许可" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -124,29 +124,39 @@ Pi-Harness 可以编辑可读文本文件，支持懒加载语法高亮、行号
 
 ## 当前界面
 
-下面用默认主题与古风主题分别展示同一组主要界面。古风主题工作区包含雪景与月夜两套界面。
+默认主题截图展示主要功能界面。v1.8.0 外观图库按工作区主题和功能界面重新分类。
 
 ### 默认主题
 
-|                    工作区                    |                   Git                    |
-| :------------------------------------------: | :--------------------------------------: |
-|  ![默认主题工作区](docs/默认主题/Work.jpg)   |  ![默认主题 Git](docs/默认主题/Git.jpg)  |
-|                 **Provider**                 |                 **模型**                 |
-| ![默认主题 Provider](docs/默认主题/APIs.jpg) | ![默认主题模型](docs/默认主题/Model.jpg) |
-|                 **能力中心**                 |                 **设置**                 |
-| ![默认主题能力中心](docs/默认主题/Caps.jpg)  | ![默认主题设置](docs/默认主题/Prefs.jpg) |
+|                     工作区                      |                   Git                   |
+| :---------------------------------------------: | :-------------------------------------: |
+|   ![经典主题工作区](docs/经典主题/工作区.jpg)   | ![经典主题 Git](docs/经典主题/Git.jpg)  |
+|                  **能力中心**                   |                **模型**                 |
+| ![经典主题能力中心](docs/经典主题/能力中心.jpg) | ![经典主题模型](docs/经典主题/模型.jpg) |
+|                    **设置**                     |                                         |
+|     ![经典主题设置](docs/经典主题/设置.jpg)     |                                         |
 
-### 古风主题
+### v1.8.0 外观图库
 
-|               工作区（雪景）                |               工作区（月夜）                |
-| :-----------------------------------------: | :-----------------------------------------: |
-| ![古风主题雪景工作区](docs/古风/Work-1.jpg) | ![古风主题月夜工作区](docs/古风/Work-2.jpg) |
-|                     Git                     |                **Provider**                 |
-|     ![古风主题 Git](docs/古风/Git.jpg)      |  ![古风主题 Provider](docs/古风/APIs.jpg)   |
-|                  **模型**                   |                **能力中心**                 |
-|    ![古风主题模型](docs/古风/Model.jpg)     |   ![古风主题能力中心](docs/古风/Caps.jpg)   |
-|                  **设置**                   |                                             |
-|    ![古风主题设置](docs/古风/Prefs.jpg)     |                                             |
+#### 工作区主题
+
+|                              大明·雪境朝臣                              |                          大明·雪夜笛姬                           |
+| :---------------------------------------------------------------------: | :--------------------------------------------------------------: |
+|         ![大明雪境朝臣工作区](docs/主题展示/大明/雪境朝臣.jpg)          |      ![大明雪夜笛姬工作区](docs/主题展示/大明/雪夜笛姬.jpg)      |
+|                            **大明·月城书姬**                            |                          **星舰驾驶舱**                          |
+|         ![大明月城书姬工作区](docs/主题展示/大明/月城书姬.jpg)          |       ![星舰驾驶舱工作区](docs/主题展示/星舰/霜星领航.jpg)       |
+|                         **macOS 27 · 液态以太**                         |                       **声明式自定义皮肤**                       |
+| ![macOS 27 液态以太工作区](docs/主题展示/macOS%2027/Liquid%20Ether.jpg) | ![声明式自定义皮肤工作区](docs/主题展示/自定义皮肤/夏日海岸.jpg) |
+
+#### 功能界面
+
+|                  通用设置                   |                         主题图库                         |
+| :-----------------------------------------: | :------------------------------------------------------: |
+| ![通用外观设置](docs/功能界面/通用设置.jpg) |   ![内置与自定义主题图库](docs/功能界面/主题图库.jpg)    |
+|                **能力中心**                 |                   **Provider 与模型**                    |
+|   ![能力市场](docs/功能界面/能力中心.jpg)   | ![Provider 与模型管理](docs/功能界面/Provider与模型.jpg) |
+|                   **Git**                   |                                                          |
+|    ![Git 工作区](docs/功能界面/Git.jpg)     |                                                          |
 
 ## Pi 与 Pi-Harness
 
@@ -263,18 +273,16 @@ Pi-Harness 已支持 Agents、Teams、Tasks、Dependencies、Handoffs、Review G
 
 ## 下载
 
-从 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1) 下载 Pi-Harness v1.7.1。
+从 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0) 下载 Pi-Harness v1.8.0。
 
 | 平台                | 安装包                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.7.1-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.7.1.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.7.1.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-Setup-1.7.1.exe) |
-| Linux x64           | [`Pi-Harness-1.7.1.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.8.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.8.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.8.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-Setup-1.8.0.exe) |
+| Linux x64           | [`Pi-Harness-1.8.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.AppImage)   |
 
-> **Windows 升级提示：**从 v1.7.0 升级到 v1.7.1 不会再次执行一次性旧版应用数据重置。尚未启动过 v1.7.0 正式安装包的机器，仍会一次性重置旧版 Pi-Harness 应用设置、本地密钥库、应用内备份和缓存。Pi Agent 独立数据目录与项目文件不会被重置。
->
-> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.7.1 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1)。
+> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.8.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0)。
 
 安装包用户不需要 clone 仓库，也不需要安装 pnpm。Pi-Harness 可以在支持的环境中检测、安装和修复 Node.js、npm、PATH 与 Pi Coding Agent。
 

@@ -8,8 +8,10 @@ import {
   shell,
   clipboard,
   app,
-  nativeTheme
+  nativeTheme,
+  dialog
 } from 'electron'
+import type { OpenDialogOptions, SaveDialogOptions } from 'electron'
 import { IPC_EVENT, IPC_INVOKE } from '@shared/ipc/channels'
 import { NODE_DOWNLOAD_URL, PI_INSTALL_COMMAND } from '@shared/constants/pi-install'
 import { toErrorPayload } from '../services/errors'
@@ -57,6 +59,11 @@ import { installAppMenu } from '../window/app-menu'
 import { normalizeNavOrder } from '@shared/constants/navigation'
 import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
 import { normalizeAppIconPreference } from '@shared/constants/app-icon'
+import { normalizeAssistantName, normalizeUserName } from '@shared/constants/chat-participants'
+import {
+  normalizeMacOS27Background,
+  normalizeMacOS27BackgroundImage
+} from '@shared/constants/macos27-background'
 import { providerKeySchema, backupIdSchema, pathSegmentSchema } from '@shared/schemas/domain'
 import {
   appSettingsPatchSchema,
@@ -80,6 +87,7 @@ import { checkNetwork } from '../services/network-check'
 import type { HarnessRuntime } from '../harness/harness-runtime'
 import type { OrchestratorService } from '../harness/orchestrator/orchestrator-service'
 import { registerHarnessIpc } from './register-harness'
+import type { CustomSkinService } from '../skins/custom-skin-service'
 
 export interface Services {
   settingsStore: JsonStore<AppSettings>
@@ -91,6 +99,7 @@ export interface Services {
   skills: SkillsService
   capabilities: CapabilityService
   diagnostics: DiagnosticsService
+  customSkins: CustomSkinService
   environment: EnvironmentManager
   harness: HarnessRuntime
   orchestrator?: OrchestratorService
@@ -137,6 +146,7 @@ export function registerIpc(services: Services): void {
     skills,
     capabilities,
     diagnostics,
+    customSkins,
     environment
   } = services
   const ipcMain = createTrustedIpcMain(electronIpcMain, services.getMainWindow, () =>
@@ -629,6 +639,12 @@ export function registerIpc(services: Services): void {
     wrap(async () => {
       const settings = pickKnownAppSettings(await settingsStore.read())
       settings.theme = normalizeAppTheme(settings.theme)
+      settings.macos27Background = normalizeMacOS27Background(settings.macos27Background)
+      settings.macos27BackgroundImage = normalizeMacOS27BackgroundImage(
+        settings.macos27BackgroundImage
+      )
+      settings.userName = normalizeUserName(settings.userName)
+      settings.assistantName = normalizeAssistantName(settings.assistantName)
       settings.appIcon = normalizeAppIconPreference(settings.appIcon)
       settings.navOrder = normalizeNavOrder(settings.navOrder)
       return settings
@@ -639,6 +655,12 @@ export function registerIpc(services: Services): void {
       const parsedPatch = parseInput(appSettingsPatchSchema, patch, 'Invalid settings')
       const current = pickKnownAppSettings(await settingsStore.read())
       current.theme = normalizeAppTheme(current.theme)
+      current.macos27Background = normalizeMacOS27Background(current.macos27Background)
+      current.macos27BackgroundImage = normalizeMacOS27BackgroundImage(
+        current.macos27BackgroundImage
+      )
+      current.userName = normalizeUserName(current.userName)
+      current.assistantName = normalizeAssistantName(current.assistantName)
       current.appIcon = normalizeAppIconPreference(current.appIcon)
       current.navOrder = normalizeNavOrder(current.navOrder)
       const nextPatch: Partial<AppSettings> = { ...parsedPatch }
@@ -647,8 +669,18 @@ export function registerIpc(services: Services): void {
       if (!mascotUnlocked) {
         nextPatch.mascotUnlocked = false
         nextPatch.mascotStyle = DEFAULT_MASCOT_STYLE
+        nextPatch.customSkinId = null
+      }
+      if (nextPatch.customSkinId && !(await customSkins.has(nextPatch.customSkinId))) {
+        throw new ValidationError('Custom skin is not installed')
       }
       const settings = { ...current, ...nextPatch }
+      settings.macos27Background = normalizeMacOS27Background(settings.macos27Background)
+      settings.macos27BackgroundImage = normalizeMacOS27BackgroundImage(
+        settings.macos27BackgroundImage
+      )
+      settings.userName = normalizeUserName(settings.userName)
+      settings.assistantName = normalizeAssistantName(settings.assistantName)
       settings.navOrder = normalizeNavOrder(settings.navOrder)
       await settingsStore.write(settings)
       nativeTheme.themeSource = themeAppearance(settings.theme)
@@ -669,6 +701,43 @@ export function registerIpc(services: Services): void {
   ipcMain.handle(IPC_INVOKE.uiStateGet, () => wrap(() => uiStateStore.read()))
   ipcMain.handle(IPC_INVOKE.uiStateSet, (_e, state: unknown) =>
     wrap(() => uiStateStore.write(parseInput(uiStateSchema, state, 'Invalid UI state')))
+  )
+
+  // ---- declarative custom skins ----
+  ipcMain.handle(IPC_INVOKE.skinsList, () => wrap(() => customSkins.list()))
+  ipcMain.handle(IPC_INVOKE.skinsImport, () =>
+    wrap(async () => {
+      const window = services.getMainWindow()
+      const options: OpenDialogOptions = {
+        title: '导入 Pi-Harness 皮肤',
+        buttonLabel: '导入皮肤',
+        properties: ['openDirectory']
+      }
+      const result = window
+        ? await dialog.showOpenDialog(window, options)
+        : await dialog.showOpenDialog(options)
+      const selected = result.filePaths[0]
+      return result.canceled || !selected ? null : customSkins.importProject(selected)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.skinsCreateProject, () =>
+    wrap(async () => {
+      const window = services.getMainWindow()
+      const options: SaveDialogOptions = {
+        title: '创建自定义皮肤项目',
+        buttonLabel: '创建项目',
+        defaultPath: customSkins.suggestedProjectPath(),
+        nameFieldLabel: '项目目录'
+      }
+      const result = window
+        ? await dialog.showSaveDialog(window, options)
+        : await dialog.showSaveDialog(options)
+      if (result.canceled || !result.filePath) return null
+      const project = await customSkins.createProject(result.filePath)
+      const error = await shell.openPath(project.path)
+      if (error) throw new FileSystemError('无法打开皮肤项目目录', { error })
+      return project
+    })
   )
 
   // ---- diagnostics ----

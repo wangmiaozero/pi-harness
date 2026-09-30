@@ -7,7 +7,9 @@ export const APP_THEMES = [
   'blue',
   'orange',
   'red',
-  'cyan'
+  'cyan',
+  'macos27-light',
+  'macos27'
 ] as const
 
 export type AppTheme = (typeof APP_THEMES)[number]
@@ -19,5 +21,5 @@ export function normalizeAppTheme(value: unknown): AppTheme {
 
 /** Native controls, toasts and screen overlays only accept light/dark appearances. */
 export function themeAppearance(theme: AppTheme): ThemeAppearance {
-  return theme === 'dark' ? 'dark' : 'light'
+  return theme === 'dark' || theme === 'macos27' ? 'dark' : 'light'
 }

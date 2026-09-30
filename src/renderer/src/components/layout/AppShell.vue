@@ -5,6 +5,7 @@ import { useSettingsStore } from '@renderer/stores/settings'
 import { normalizeMascotStyle } from '@shared/constants/mascot'
 import MascotBackground from './MascotBackground.vue'
 import MingShellFrame from './MingShellFrame.vue'
+import MacOS27OpticsBackdrop from './MacOS27OpticsBackdrop.vue'
 import { usePetStore } from '@renderer/stores/pet'
 import Sidebar from './Sidebar.vue'
 import TitleBar from './TitleBar.vue'
@@ -44,6 +45,7 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
     class="app-shell relative flex h-full flex-col overflow-hidden bg-[var(--bg-window)]"
     :data-visual-skin="visualSkin?.id"
   >
+    <MacOS27OpticsBackdrop />
     <TitleBar
       :starship-cockpit="starshipCockpitActive"
       :ming-dynasty="mingDynastyActive"

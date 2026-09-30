@@ -528,6 +528,23 @@ export class HarnessRuntime implements AgentRuntime {
   // --------------------------------------------------------- artifact surface
 
   async listArtifacts(sessionId: string, runId?: string): Promise<HarnessArtifact[]> {
+    const existing = await this.artifacts.list(sessionId, runId)
+    const fileRunIds = new Set(
+      existing.filter((artifact) => artifact.type === 'file').map((artifact) => artifact.runId)
+    )
+    const runs = runId ? [await this.getRun(sessionId, runId)] : await this.listRuns(sessionId)
+    const missingFileEvidence = runs.filter(
+      (run) =>
+        ['success', 'failed', 'aborted', 'recovered'].includes(run.status) &&
+        run.steps.some(
+          (step) => step.kind === 'tool' && (step.name === 'write' || step.name === 'edit')
+        ) &&
+        !fileRunIds.has(run.id)
+    )
+    if (!missingFileEvidence.length) return existing
+    await Promise.all(
+      missingFileEvidence.map((run) => this.artifacts.ensureFileArtifactsForRun(run))
+    )
     return this.artifacts.list(sessionId, runId)
   }
 

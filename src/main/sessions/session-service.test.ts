@@ -62,6 +62,35 @@ describe('computeSessionTotalActiveMs', () => {
 })
 
 describe('entryToUiMessage', () => {
+  it('hides non-display custom messages from the conversation', () => {
+    expect(
+      entryToUiMessage({
+        type: 'message',
+        id: 'hidden-message',
+        parentId: null,
+        timestamp: '2026-09-25T00:00:00.000Z',
+        message: {
+          role: 'custom',
+          customType: 'plan-mode-context',
+          content: '',
+          display: false
+        }
+      })
+    ).toBeNull()
+
+    expect(
+      entryToUiMessage({
+        type: 'custom_message',
+        id: 'hidden-entry',
+        parentId: null,
+        timestamp: '2026-09-25T00:00:00.000Z',
+        customType: 'plan-mode-context',
+        content: '',
+        display: false
+      })
+    ).toBeNull()
+  })
+
   it('restores a persisted image result as an assistant image message', () => {
     expect(
       entryToUiMessage({

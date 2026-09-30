@@ -2,7 +2,7 @@
 import { computed, inject, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { CircleOff, KeyRound } from '@lucide/vue'
+import { CircleOff, FolderPlus, KeyRound, Upload } from '@lucide/vue'
 import { DEFAULT_MASCOT_STYLE, MASCOT_STYLES, type MascotStyle } from '@shared/constants/mascot'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
@@ -20,6 +20,8 @@ const store = useSettingsStore()
 const unlocking = ref(false)
 const answer = ref('')
 const unlockError = ref('')
+const importingSkin = ref(false)
+const creatingSkinProject = ref(false)
 
 const mascotOptions = computed(() =>
   MASCOT_STYLES.map((style) => ({
@@ -40,6 +42,44 @@ const petSleepMinutesStr = computed({
 
 function selectMascot(style: MascotStyle): void {
   draft.value.mascotStyle = style
+  draft.value.customSkinId = null
+}
+
+function selectCustomSkin(id: string): void {
+  draft.value.mascotStyle = DEFAULT_MASCOT_STYLE
+  draft.value.customSkinId = id
+}
+
+async function importCustomSkin(): Promise<void> {
+  if (importingSkin.value) return
+  importingSkin.value = true
+  try {
+    const imported = await store.importCustomSkin()
+    if (!imported) return
+    selectCustomSkin(imported.id)
+    toast.success(t('settings.customSkinImported', { name: imported.name }))
+  } catch (error) {
+    toast.error(
+      (error as { userMessage?: string; message?: string }).userMessage ?? (error as Error).message
+    )
+  } finally {
+    importingSkin.value = false
+  }
+}
+
+async function createCustomSkinProject(): Promise<void> {
+  if (creatingSkinProject.value) return
+  creatingSkinProject.value = true
+  try {
+    const project = await store.createCustomSkinProject()
+    if (project) toast.success(t('settings.customSkinProjectCreated'))
+  } catch (error) {
+    toast.error(
+      (error as { userMessage?: string; message?: string }).userMessage ?? (error as Error).message
+    )
+  } finally {
+    creatingSkinProject.value = false
+  }
 }
 
 async function unlockMascot(): Promise<void> {
@@ -131,6 +171,33 @@ async function unlockMascot(): Promise<void> {
       <p class="mb-3 text-[11.5px] text-[var(--text-tertiary)]">
         {{ $t('settings.mascotHint') }}
       </p>
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          :loading="importingSkin"
+          :disabled="importingSkin"
+          data-testid="custom-skin-import"
+          @click="importCustomSkin"
+        >
+          <Upload class="size-3.5" :stroke-width="1.75" />
+          {{ $t('settings.customSkinImport') }}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          :loading="creatingSkinProject"
+          :disabled="creatingSkinProject"
+          data-testid="custom-skin-create-project"
+          @click="createCustomSkinProject"
+        >
+          <FolderPlus class="size-3.5" :stroke-width="1.75" />
+          {{ $t('settings.customSkinCreateProject') }}
+        </Button>
+        <span class="text-[10.5px] text-[var(--text-tertiary)]">
+          {{ $t('settings.customSkinHint') }}
+        </span>
+      </div>
       <div class="mascot-options-grid" data-testid="mascot-options-grid">
         <button
           v-for="option in mascotOptions"
@@ -169,6 +236,51 @@ async function unlockMascot(): Promise<void> {
             </div>
             <div class="mt-0.5 line-clamp-2 text-[10.5px] leading-4 text-[var(--text-tertiary)]">
               {{ option.description }}
+            </div>
+          </div>
+        </button>
+        <button
+          v-for="skin in store.customSkins"
+          :key="`custom-${skin.id}`"
+          type="button"
+          class="mascot-option flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-md)] border text-left transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+          :class="
+            draft.customSkinId === skin.id
+              ? 'border-[var(--accent-border)] bg-[var(--accent-tint-soft)]'
+              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
+          "
+          :aria-pressed="draft.customSkinId === skin.id"
+          :data-custom-skin-option="skin.id"
+          @click="selectCustomSkin(skin.id)"
+        >
+          <div class="mascot-option-preview bg-[var(--bg-window)]/45">
+            <img
+              v-if="skin.previewDataUrl || skin.wallpaperDataUrl || skin.portraitDataUrl"
+              :src="skin.previewDataUrl || skin.wallpaperDataUrl || skin.portraitDataUrl || ''"
+              alt=""
+              loading="lazy"
+              class="mascot-option-image"
+            />
+            <div
+              v-else
+              class="custom-skin-swatch size-full"
+              :style="{ background: skin.tokens.workspace }"
+            />
+          </div>
+          <div class="mascot-option-copy border-t border-[var(--border-subtle)] p-3">
+            <div class="flex min-w-0 items-center justify-between gap-2">
+              <div class="truncate text-[12px] font-medium text-[var(--text-primary)]">
+                {{ skin.name }}
+              </div>
+              <span class="shrink-0 text-[9.5px] text-[var(--accent)]">{{
+                $t('settings.customSkinBadge')
+              }}</span>
+            </div>
+            <div class="mt-0.5 line-clamp-2 text-[10.5px] leading-4 text-[var(--text-tertiary)]">
+              {{
+                skin.description ||
+                `${skin.author || $t('settings.customSkinUnknownAuthor')} · v${skin.version}`
+              }}
             </div>
           </div>
         </button>

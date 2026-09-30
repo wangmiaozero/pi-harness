@@ -67,6 +67,7 @@ test('file panel keeps navigation and chat visible, isolates sessions, and adapt
   await page.getByTestId('workspace-toggle-files').click()
   const tree = page.getByTestId('workspace-file-tree')
   const panel = page.getByTestId('workspace-files-panel')
+  await page.getByTestId('workspace-section-workspace').click()
   const navigation = page.getByTestId('workspace-session-tree')
   const composer = page.getByTestId('chat-composer')
   const code = page.getByTestId('file-code-view')
@@ -135,7 +136,7 @@ test('file panel keeps navigation and chat visible, isolates sessions, and adapt
   await tree.getByRole('button', { name: 'b-only.ts', exact: true }).click()
   await expect(code).toContainText('Conversation B')
   await expect(panel).not.toContainText('a-only.ts')
-  await expect(page.getByTestId('workspace-tabs').getByRole('button')).toHaveCount(2)
+  await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
 
   await page
     .getByTestId(`session-row-${sessionA}`)
@@ -147,6 +148,6 @@ test('file panel keeps navigation and chat visible, isolates sessions, and adapt
   await expect(page.getByTestId('workspace-files-unavailable')).toBeVisible()
   await expect(tree).toHaveCount(0)
   await expect(code).toHaveCount(0)
-  await expect(navigation).toBeVisible()
+  await expect(page.getByTestId('workspace-chat-list')).toBeVisible()
   await expect(page.getByTestId('workspace-toggle-files')).toHaveAttribute('aria-expanded', 'true')
 })

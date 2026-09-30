@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { applyTheme } from './theme'
 import { applyVisualSkin, getActiveVisualSkin, isStarshipCockpitActive } from './visual-skin'
-import { VISUAL_SKINS } from './skin-catalog'
+import { setCustomSkinCatalog, VISUAL_SKINS } from './skin-catalog'
 
 const activeSettings = {
   mascotStyle: 'starshipCockpit' as const,
@@ -13,7 +13,9 @@ afterEach(() => {
   delete document.documentElement.dataset.portraitSkin
   delete document.documentElement.dataset.theme
   delete document.documentElement.dataset.appearance
-  document.documentElement.style.colorScheme = ''
+  delete document.documentElement.dataset.customSkin
+  document.documentElement.removeAttribute('style')
+  setCustomSkinCatalog([])
 })
 
 describe('visual skin transitions', () => {
@@ -59,6 +61,28 @@ describe('visual skin transitions', () => {
     expect(document.documentElement.dataset.theme).toBe('green')
   })
 
+  it('keeps both macOS 27 variants isolated from visual skins and restores them afterward', () => {
+    for (const [theme, appearance] of [
+      ['macos27-light', 'light'],
+      ['macos27', 'dark']
+    ] as const) {
+      applyTheme(theme)
+      expect(document.documentElement.dataset.theme).toBe(theme)
+      expect(document.documentElement.dataset.appearance).toBe(appearance)
+
+      applyVisualSkin({ ...activeSettings, mascotStyle: 'maidWhite' })
+      applyTheme(theme)
+      expect(document.documentElement.dataset.theme).toBe('light')
+      expect(document.documentElement.dataset.visualSkin).toBe('maid-white')
+
+      applyVisualSkin({ ...activeSettings, mascotStyle: 'none' })
+      applyTheme(theme)
+      expect(document.documentElement.dataset.visualSkin).toBeUndefined()
+      expect(document.documentElement.dataset.theme).toBe(theme)
+      expect(document.documentElement.dataset.appearance).toBe(appearance)
+    }
+  })
+
   it('keeps maidWhite and office on independent portrait skins', () => {
     applyVisualSkin({ ...activeSettings, mascotStyle: 'maidWhite' })
     applyTheme('dark')
@@ -71,6 +95,35 @@ describe('visual skin transitions', () => {
     expect(document.documentElement.dataset.visualSkin).toBe('office-executive')
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(isStarshipCockpitActive({ ...activeSettings, mascotStyle: 'office' })).toBe(false)
+  })
+
+  it('applies imported declarative tokens and clears them when switching away', () => {
+    setCustomSkinCatalog([
+      {
+        id: 'custom-test',
+        name: 'Custom Test',
+        version: '1.0.0',
+        description: null,
+        author: null,
+        appearance: 'light',
+        tokens: { accent: '#123456', workspace: '#f5f5f5' },
+        previewDataUrl: null,
+        wallpaperDataUrl: 'data:image/png;base64,cG5n',
+        portraitDataUrl: null
+      }
+    ])
+
+    applyVisualSkin({ ...activeSettings, customSkinId: 'custom-test' })
+    expect(document.documentElement.dataset.visualSkin).toBe('custom-custom-test')
+    expect(document.documentElement.dataset.customSkin).toBe('true')
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#123456')
+    expect(document.documentElement.style.getPropertyValue('--custom-skin-wallpaper')).toContain(
+      'data:image/png;base64,cG5n'
+    )
+
+    applyVisualSkin({ ...activeSettings, mascotStyle: 'none', customSkinId: null })
+    expect(document.documentElement.dataset.customSkin).toBeUndefined()
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('')
   })
 })
 

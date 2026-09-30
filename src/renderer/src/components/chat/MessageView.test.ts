@@ -1,7 +1,12 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import MessageView from './MessageView.vue'
-import type { AssistantMessage, ToolResultMessage, UserMessage } from '@shared/types/workspace'
+import type {
+  AgentMessage,
+  AssistantMessage,
+  ToolResultMessage,
+  UserMessage
+} from '@shared/types/workspace'
 
 describe('MessageView', () => {
   it('renders images from Pi-native persisted user messages', () => {
@@ -22,9 +27,23 @@ describe('MessageView', () => {
     })
 
     expect(wrapper.get('.user-message-body p').text()).toBe('看看这个图片信息')
+    expect(wrapper.get('[data-message-role="user"] .message-role-badge').text()).toBe('我')
     expect(wrapper.get('.user-message-body img').attributes('src')).toBe(
       'data:image/png;base64,TQ=='
     )
+  })
+
+  it('uses the configured user display name', () => {
+    const message: AgentMessage = { role: 'user', content: '请继续' }
+    const wrapper = mount(MessageView, {
+      props: { message, userName: '阿明' },
+      global: {
+        mocks: { $t: (key: string) => key },
+        stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true }
+      }
+    })
+
+    expect(wrapper.get('.message-role-badge').text()).toBe('阿明')
   })
 
   it('renders assistant text as safe Markdown', async () => {
@@ -70,6 +89,7 @@ describe('MessageView', () => {
 
     expect(wrapper.get('h2').text()).toBe('核心能力')
     expect(wrapper.get('strong').text()).toBe('读取代码')
+    expect(wrapper.get('[data-message-role="assistant"] .message-role-badge').text()).toBe('助手')
     expect(wrapper.findAll('li').map((item) => item.text())).toEqual(['第一项', '第二项', '已完成'])
     expect(wrapper.get('pre code').text()).toBe('const answer = 42')
     expect(wrapper.get('input[type="checkbox"]').attributes()).toMatchObject({
@@ -77,6 +97,25 @@ describe('MessageView', () => {
       disabled: ''
     })
     expect(wrapper.find('script').exists()).toBe(false)
+  })
+
+  it('uses the configured assistant display name', async () => {
+    const message: AgentMessage = {
+      role: 'assistant',
+      model: 'test-model',
+      provider: 'test-provider',
+      content: [{ type: 'text', text: '已完成' }]
+    }
+    const wrapper = mount(MessageView, {
+      props: { message, assistantName: '小策' },
+      global: {
+        mocks: { $t: (key: string) => key },
+        stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.get('.message-role-badge').text()).toBe('小策')
   })
 
   it('expands tool results by default and allows collapsing them', async () => {
@@ -158,5 +197,62 @@ describe('MessageView', () => {
     })
 
     expect(wrapper.get('[data-testid="assistant-error"]').text()).toBe('404 status code (no body)')
+  })
+
+  it('does not render empty or whitespace-only messages', () => {
+    const messages: AgentMessage[] = [
+      { role: 'user', content: '   \n ' },
+      {
+        role: 'assistant',
+        model: 'test-model',
+        provider: 'test-provider',
+        content: [{ type: 'text', text: '\n  ' }]
+      },
+      { role: 'custom', customType: '', content: '', display: true }
+    ]
+
+    for (const message of messages) {
+      const wrapper = mount(MessageView, {
+        props: { message },
+        global: {
+          mocks: { $t: (key: string) => key },
+          stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true }
+        }
+      })
+      expect(wrapper.find('.message-hud').exists()).toBe(false)
+    }
+  })
+
+  it('keeps a file-change card visible when the assistant text is empty', () => {
+    const message: AssistantMessage = {
+      role: 'assistant',
+      model: 'test-model',
+      provider: 'test-provider',
+      content: []
+    }
+    const wrapper = mount(MessageView, {
+      props: {
+        message,
+        fileChanges: {
+          runId: 'run-1',
+          status: 'verified',
+          files: [],
+          additions: 0,
+          deletions: 0
+        }
+      },
+      global: {
+        mocks: { $t: (key: string) => key },
+        stubs: {
+          BranchNavigator: true,
+          Dialog: true,
+          ToolCallView: true,
+          FileChangesCard: true
+        }
+      }
+    })
+
+    expect(wrapper.find('.message-hud').exists()).toBe(true)
+    expect(wrapper.findComponent({ name: 'FileChangesCard' }).exists()).toBe(true)
   })
 })

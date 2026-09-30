@@ -1,4 +1,4 @@
-import { readFile, realpath, stat } from 'node:fs/promises'
+import { mkdir, readFile, realpath, stat } from 'node:fs/promises'
 import path from 'node:path'
 import type {
   AgentWorkspace,
@@ -76,7 +76,8 @@ export class WorkspaceService {
 
   constructor(
     private readonly access: FileAccessService,
-    private readonly store: JsonStore<WorkspaceStateRecord>
+    private readonly store: JsonStore<WorkspaceStateRecord>,
+    private readonly defaultWorkspaceRoot?: string
   ) {
     this.searcher = new WorkspaceSearchService(access)
   }
@@ -102,6 +103,32 @@ export class WorkspaceService {
 
   getActive(): AgentWorkspace | null {
     return this.active
+  }
+
+  async getDefaultWorkspaceRoot(): Promise<string | null> {
+    if (!this.defaultWorkspaceRoot) return null
+    await mkdir(this.defaultWorkspaceRoot, { recursive: true })
+    const root = await realpath(this.defaultWorkspaceRoot)
+    this.access.allowRoot(root)
+    return root
+  }
+
+  async ensureDefaultWorkspace(): Promise<AgentWorkspace> {
+    const root = await this.getDefaultWorkspaceRoot()
+    if (!root) {
+      throw new ValidationError('Default workspace is unavailable')
+    }
+    return this.sync({
+      folders: [
+        {
+          path: root,
+          resolvedPath: root,
+          name: 'Default Workspace',
+          role: 'main'
+        }
+      ],
+      settings: { 'piHarness.defaultWorkspace': true }
+    })
   }
 
   getPrompt(): string | null {

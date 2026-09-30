@@ -6,8 +6,15 @@ import { MASCOT_STYLES } from '../constants/mascot'
 import { normalizeNavOrder } from '../constants/navigation'
 import { APP_THEMES } from '../constants/theme'
 import { APP_ICON_PREFERENCES } from '../constants/app-icon'
+import {
+  MACOS27_BACKGROUNDS,
+  MAX_MACOS27_BACKGROUND_IMAGE_DATA_URL_LENGTH,
+  isMacOS27BackgroundImageDataUrl
+} from '../constants/macos27-background'
 import { TOOL_PRESET_VALUES } from '../workspace/tool-presets'
 import { providerKeySchema } from './domain'
+import { customSkinSelectionSchema } from './custom-skin'
+import { CHAT_PARTICIPANT_NAME_MAX_LENGTH } from '../constants/chat-participants'
 
 export const noArgsSchema = z.tuple([])
 
@@ -57,9 +64,18 @@ const optionalFilesystemPathSchema = systemPathSchema.nullable()
 const appSettingsFields = {
   language: z.enum(APP_LANGUAGES),
   theme: z.enum(APP_THEMES),
+  macos27Background: z.enum(MACOS27_BACKGROUNDS),
+  macos27BackgroundImage: z
+    .string()
+    .max(MAX_MACOS27_BACKGROUND_IMAGE_DATA_URL_LENGTH)
+    .refine(isMacOS27BackgroundImageDataUrl, 'invalid macOS 27 background image')
+    .nullable(),
+  userName: z.string().max(CHAT_PARTICIPANT_NAME_MAX_LENGTH),
+  assistantName: z.string().max(CHAT_PARTICIPANT_NAME_MAX_LENGTH),
   appIcon: z.enum(APP_ICON_PREFERENCES),
   mascotUnlocked: z.boolean(),
   mascotStyle: z.enum(MASCOT_STYLES),
+  customSkinId: customSkinSelectionSchema,
   petAnimations: z.boolean(),
   petStatusText: z.boolean(),
   petAutoSleep: z.boolean(),

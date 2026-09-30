@@ -4,10 +4,18 @@ import type { MascotStyle } from '@shared/constants/mascot'
 import { getPetManifest } from '@renderer/pet/manifests'
 import { usePetStore } from '@renderer/stores/pet'
 import PetStatus from '@renderer/components/pet/PetStatus.vue'
+import type { CustomSkinDescriptor } from '@shared/types/custom-skin'
 
-const props = defineProps<{ style: MascotStyle; showStatus: boolean }>()
+const props = defineProps<{
+  style: MascotStyle
+  showStatus: boolean
+  customSkin?: CustomSkinDescriptor
+}>()
 const pet = usePetStore()
 const manifest = computed(() => getPetManifest(props.style))
+const portraitSrc = computed(
+  () => props.customSkin?.portraitDataUrl ?? manifest.value?.sprite ?? null
+)
 const failed = ref(false)
 watch(
   () => props.style,
@@ -19,7 +27,7 @@ watch(
 
 <template>
   <aside
-    v-if="manifest"
+    v-if="portraitSrc"
     data-testid="portrait-skin-panel"
     :data-style="style"
     class="portrait-skin-panel pointer-events-none select-none"
@@ -29,7 +37,7 @@ watch(
       <div class="portrait-skin-artwork">
         <img
           v-if="!failed"
-          :src="manifest.sprite"
+          :src="portraitSrc"
           data-testid="portrait-skin-image"
           alt=""
           draggable="false"

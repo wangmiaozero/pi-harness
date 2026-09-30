@@ -97,6 +97,11 @@ export function appUiStatePath(): string {
   return path.join(userData(), 'ui-state.json')
 }
 
+/** Validated, declarative user skins copied from external skin projects. */
+export function customSkinsDir(): string {
+  return path.join(userData(), 'custom-skins')
+}
+
 /** Main-owned directory grants created only by an explicit picker/drop action. */
 export function appAuthorizedRootsPath(): string {
   return path.join(userData(), 'authorized-roots.json')
@@ -105,6 +110,11 @@ export function appAuthorizedRootsPath(): string {
 /** Active multi-root workspace, recents, and session bindings. */
 export function appWorkspaceStatePath(): string {
   return path.join(userData(), 'workspace-state.json')
+}
+
+/** App-managed scratch workspace used when the user has not opened a folder. */
+export function appDefaultWorkspacePath(): string {
+  return path.join(userData(), 'workspaces', 'default')
 }
 
 /** Pi-Harness encrypted secret vault (non-keychain fallback). */

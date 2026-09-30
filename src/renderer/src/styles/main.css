@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './tokens.css';
+@import './macos27.css';
 @import './starship-cockpit.css';
 @import './portrait-skins.css';
 
@@ -178,6 +179,14 @@ body {
   /* Stable baseline. Use em/rem everywhere; only allow .5px steps for true
    * precision (icon positioning). */
   -webkit-text-size-adjust: 100%;
+}
+
+:root[data-custom-skin='true'] .app-shell {
+  background: var(--custom-skin-wallpaper, var(--bg-window)) center / cover no-repeat;
+}
+
+:root[data-custom-skin='true'] :is(.starship-viewport-root, .workspace-primary) {
+  background-color: transparent;
 }
 
 /* Resets stay below component utilities, especially primary button text-white. */

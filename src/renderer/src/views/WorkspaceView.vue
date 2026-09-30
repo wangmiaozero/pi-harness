@@ -40,7 +40,9 @@ const workspaceSidebar = ref<InstanceType<typeof WorkspaceSidebar> | null>(null)
 const chatWindow = ref<InstanceType<typeof ChatWindow> | null>(null)
 const workspaceTabs = ref<InstanceType<typeof WorkspaceTabs> | null>(null)
 const filesPanel = ref<InstanceType<typeof WorkspaceFilesPanel> | null>(null)
-const activeWorkspaceSection = ref<'sessions' | 'harness' | 'orchestration'>('sessions')
+type WorkspaceSection = 'workspace' | 'harness' | 'orchestration'
+
+const activeWorkspaceSection = ref<WorkspaceSection>('workspace')
 const workspaceViewElement = ref<HTMLElement | null>(null)
 const workspaceSidebarCollapsed = ref(readStoredSidebarCollapsed())
 const workspaceSidebarWidth = ref<number | null>(readStoredSidebarWidth())
@@ -51,6 +53,7 @@ let sessionSwitchQueue: Promise<void> = Promise.resolve()
 let stopSidebarResize: (() => void) | null = null
 
 const activeKind = computed(() => workspace.activeTab?.kind ?? 'chat')
+const visibleMainTabs = computed(() => workspace.mainTabs.filter((tab) => tab.kind !== 'chat'))
 const activeVisualSkin = computed(() => getActiveVisualSkin(settings.settings))
 const portraitSkinActive = computed(() => activeVisualSkin.value?.portrait === true)
 const mingDynastyActive = computed(() => isMingDynastySkin(activeVisualSkin.value?.id))
@@ -228,8 +231,12 @@ async function focusComposer() {
   chatWindow.value?.focusComposer()
 }
 
-function startNewSession() {
-  if (!workspace.canChat) return
+async function startNewSession() {
+  if (!workspace.canChat) {
+    await workspace.ensureDefaultWorkspace(t('workspace.defaultWorkspace'))
+  } else if (sessions.currentId) {
+    await workspace.startDraftFromActiveWorkspace()
+  }
   sessions.selectSession(null)
   workspace.ensureChatTab('new', t('workspace.newSession'))
   void focusComposer()
@@ -251,7 +258,7 @@ function saveWorkspace() {
   void workspaceSidebar.value?.saveWorkspace()
 }
 
-function setWorkspaceSection(section: 'sessions' | 'harness' | 'orchestration') {
+function setWorkspaceSection(section: WorkspaceSection) {
   activeWorkspaceSection.value = section
 }
 
@@ -259,14 +266,14 @@ const offNew = registerShortcut({
   id: 'workspace-new-session',
   label: t('workspace.newSession'),
   keys: ['meta+n', 'ctrl+n'],
-  run: startNewSession
+  run: () => void startNewSession()
 })
 const offClose = registerShortcut({
   id: 'workspace-close-tab',
   label: t('workspace.closeTab'),
   keys: ['meta+w', 'ctrl+w'],
   run: () => {
-    if (activeWorkspaceSection.value !== 'sessions') return
+    if (['harness', 'orchestration'].includes(activeWorkspaceSection.value)) return
     if (workspace.filePanelOpen && document.activeElement?.closest('#workspace-files-panel')) {
       filesPanel.value?.closeActiveFile()
       return
@@ -327,7 +334,10 @@ onMounted(() => {
       restoreTabs: settings.settings?.restoreTabs !== false,
       autoOpenLastProject: settings.settings?.autoOpenLastProject !== false
     })
-    if (workspace.canChat && !workspace.tabs.length) {
+    if (!workspace.canChat) {
+      await workspace.ensureDefaultWorkspace(t('workspace.defaultWorkspace'))
+    }
+    if (!workspace.tabs.some((tab) => tab.kind === 'chat')) {
       workspace.ensureChatTab('new', t('workspace.newSession'))
     }
     await Promise.all([workspace.loadFiles(), workspace.loadGit()])
@@ -376,7 +386,13 @@ async function switchSession(id: string | null) {
     return
   }
   if (id) await workspace.restoreSessionWorkspace(id)
-  else await workspace.restoreDraftWorkspace()
+  else {
+    await workspace.restoreDraftWorkspace()
+    if (!workspace.canChat) {
+      await workspace.ensureDefaultWorkspace(t('workspace.defaultWorkspace'))
+    }
+    workspace.ensureChatTab('new', t('workspace.newSession'))
+  }
   await agent.load(id)
   await harness.load(id)
   if (id) {
@@ -481,7 +497,7 @@ watch(
           class="workspace-tabbar flex h-[var(--height-page-header)] min-w-0 shrink-0 items-center"
         >
           <WorkspaceTabs
-            v-if="workspace.mainTabs.length"
+            v-if="visibleMainTabs.length"
             ref="workspaceTabs"
             @focus-composer="focusComposer"
           />
@@ -508,6 +524,7 @@ watch(
           <PortraitSkinPanel
             v-if="portraitSkinActive && settings.settings && !workspace.filePanelOpen"
             :style="settings.settings.mascotStyle"
+            :custom-skin="activeVisualSkin?.custom"
             :show-status="settings.settings.petStatusText"
           />
           <div class="workspace-primary min-h-0 min-w-0 flex-1 overflow-hidden">

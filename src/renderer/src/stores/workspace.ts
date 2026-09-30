@@ -112,6 +112,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const draftFolderMeta = ref<Record<string, FolderMeta>>({})
   const sessionBindings = ref<Record<string, SessionWorkspaceBinding>>({})
   const activeSessionWorkspaceId = ref<string | null>(null)
+  const defaultWorkspaceRoot = ref<string | null>(null)
   const recentWorkspaces = ref<RecentWorkspace[]>([])
   const workspaceSettings = ref<Record<string, unknown>>({})
   const pinnedProjectKeys = ref<string[]>([])
@@ -213,7 +214,17 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         })
     )
     return mergeWorkspaceProjects(importedProjectRoots.value, grouped)
-      .filter((group) => !removedProjectKeys.value.includes(group.projectKey))
+      .filter(
+        (group) =>
+          isDefaultWorkspace(group.projectRoot) ||
+          !removedProjectKeys.value.includes(group.projectKey)
+      )
+      .filter(
+        (group) =>
+          !isDefaultWorkspace(group.projectRoot) ||
+          group.sessions.length > 0 ||
+          (hasDraftSession.value && draftWorkspaceFolders.value[0]?.id === group.projectKey)
+      )
       .map((group) => ({
         ...group,
         name: projectSettings.value[group.projectKey]?.name || group.name,
@@ -221,7 +232,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
           (a, b) => Number(isSessionPinned(b.id)) - Number(isSessionPinned(a.id))
         )
       }))
-      .sort((a, b) => Number(isProjectPinned(b.projectKey)) - Number(isProjectPinned(a.projectKey)))
+      .sort(
+        (a, b) =>
+          Number(isProjectPinned(b.projectKey)) - Number(isProjectPinned(a.projectKey)) ||
+          Number(isDefaultWorkspace(a.projectRoot)) - Number(isDefaultWorkspace(b.projectRoot))
+      )
   })
   // Every source root across all workspace projects, in stable project order.
   const gitRoots = computed(() => {
@@ -230,6 +245,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     for (const group of sessionProjectGroups.value) {
       projectSourceRoots(group.projectRoot).forEach((root, index) => {
         if (!root) return
+        if (isDefaultWorkspace(root)) return
         const id = projectIdentityKey(root)
         if (seen.has(id)) return
         seen.add(id)
@@ -270,6 +286,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       )
     )
   })
+
+  function isDefaultWorkspace(target: string | null | undefined): boolean {
+    return Boolean(
+      target &&
+      defaultWorkspaceRoot.value &&
+      projectIdentityKey(target) === projectIdentityKey(defaultWorkspaceRoot.value)
+    )
+  }
   const mainTabs = computed(() => tabs.value.filter((tab) => tab.kind !== 'file'))
   const activeTab = computed(() => mainTabs.value.find((t) => t.id === activeTabId.value) ?? null)
   const activeDiffPreview = computed<string | null>(() => {
@@ -632,6 +656,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function restore(opts: { restoreTabs: boolean; autoOpenLastProject: boolean }) {
+    if (!defaultWorkspaceRoot.value) {
+      try {
+        defaultWorkspaceRoot.value = await callApi(() => getApi().workspace.getDefaultRoot())
+      } catch {
+        /* older Main builds do not expose the managed workspace identity */
+      }
+    }
     if (hydrated.value) {
       if (sessions.currentId) await restoreSessionWorkspace(sessions.currentId)
       else await restoreDraftWorkspace()
@@ -888,7 +919,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     // Git is workspace-wide: every project in the navigation list is inspected,
     // not just the folders of the currently selected session.
     const roots = gitRoots.value
-    const cwd = currentCwd.value
+    const cwd = isDefaultWorkspace(currentCwd.value) ? null : currentCwd.value
     if (!roots.length && !cwd) {
       gitStatus.value = null
       gitStatuses.value = []
@@ -1300,6 +1331,41 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     )
   }
 
+  async function ensureDefaultWorkspace(name: string) {
+    if (sessions.currentId && activeSessionWorkspaceId.value === sessions.currentId) return
+    const active = await callApi(() => getApi().workspace.ensureDefault())
+    const folder = active.folders[0]
+    if (!folder) return
+    defaultWorkspaceRoot.value = folder.resolvedPath
+    activeSessionWorkspaceId.value = null
+    applyActiveWorkspace(active)
+    pickedCwd.value = folder.resolvedPath
+    listedPath.value = folder.resolvedPath
+    draftProjectRoots.value = [folder.resolvedPath]
+    draftWorkspaceFile.value = null
+    draftFolderMeta.value = {
+      [folder.id]: {
+        name,
+        role: 'main',
+        readonly: false,
+        exists: true
+      }
+    }
+    folderMeta.value = { ...draftFolderMeta.value }
+    draftSessionVisible.value = true
+    projectSettings.value = {
+      ...projectSettings.value,
+      [folder.id]: { name, roots: [folder.resolvedPath] }
+    }
+    importedProjectRoots.value = uniqueProjectRoots([
+      ...importedProjectRoots.value.filter((root) => !isDefaultWorkspace(root)),
+      folder.resolvedPath
+    ])
+    removedProjectKeys.value = removedProjectKeys.value.filter((key) => key !== folder.id)
+    cacheActiveWorkspace()
+    persist()
+  }
+
   async function resetDraftWorkspace(root: string) {
     await resetDraftWorkspaceRoots([root])
   }
@@ -1340,7 +1406,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function rememberImportedProjects(roots: string[]) {
-    importedProjectRoots.value = uniqueProjectRoots([...importedProjectRoots.value, ...roots])
+    const next = uniqueProjectRoots([...importedProjectRoots.value, ...roots])
+    importedProjectRoots.value = [
+      ...next.filter((root) => !isDefaultWorkspace(root)),
+      ...next.filter((root) => isDefaultWorkspace(root))
+    ]
     const keys = new Set(roots.map((root) => projectIdentityKey(root)))
     removedProjectKeys.value = removedProjectKeys.value.filter((key) => !keys.has(key))
     persist()
@@ -1652,6 +1722,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     hasDraftSession,
     sessionBindings,
     activeSessionWorkspaceId,
+    defaultWorkspaceRoot,
     workspaceFile,
     workspaceFolders,
     workspaceName,
@@ -1695,6 +1766,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     removeProject,
     dirtyFilePathsAfterProjectRemoval,
     restore,
+    ensureDefaultWorkspace,
+    isDefaultWorkspace,
     ensureChatTab,
     openFileTab,
     openDiffTab,

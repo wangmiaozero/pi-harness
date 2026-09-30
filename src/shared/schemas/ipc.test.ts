@@ -34,12 +34,50 @@ describe('IPC schemas', () => {
     expect(appSettingsPatchSchema.safeParse({ theme: 'pink' }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ theme: 'purple' }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ theme: 'green' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ theme: 'macos27-light' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ theme: 'macos27' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ macos27Background: 'liquid-ether' }).success).toBe(
+      true
+    )
+    expect(appSettingsPatchSchema.safeParse({ macos27Background: 'lightfall' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ macos27Background: 'lightning' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ macos27Background: 'web-threads' }).success).toBe(
+      true
+    )
+    expect(appSettingsPatchSchema.safeParse({ macos27Background: 'local-image' }).success).toBe(
+      true
+    )
+    expect(
+      appSettingsPatchSchema.safeParse({
+        macos27BackgroundImage: 'data:image/webp;base64,d2VicA=='
+      }).success
+    ).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ macos27BackgroundImage: null }).success).toBe(true)
+    expect(
+      appSettingsPatchSchema.safeParse({ macos27BackgroundImage: 'file:///tmp/background.png' })
+        .success
+    ).toBe(false)
+    expect(
+      appSettingsPatchSchema.safeParse({
+        macos27BackgroundImage: 'data:image/svg+xml;base64,PHN2Zz4='
+      }).success
+    ).toBe(false)
+    expect(appSettingsPatchSchema.safeParse({ macos27Background: 'aurora' }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ theme: 'system' }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ theme: 'neon' }).success).toBe(false)
+    expect(appSettingsPatchSchema.safeParse({ userName: '我' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ userName: '阿明' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ userName: 'x'.repeat(33) }).success).toBe(false)
+    expect(appSettingsPatchSchema.safeParse({ assistantName: '小策' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ assistantName: '' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ assistantName: 'x'.repeat(33) }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ appIcon: 'quantum' }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ appIcon: 'other' }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ unexpected: true }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ petEnabled: true }).success).toBe(false)
+    expect(appSettingsPatchSchema.safeParse({ customSkinId: 'my-skin' }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ customSkinId: null }).success).toBe(true)
+    expect(appSettingsPatchSchema.safeParse({ customSkinId: '../escape' }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ windowMotionEnabled: false }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ screenMotionEnabled: true }).success).toBe(true)
     expect(appSettingsPatchSchema.safeParse({ composerFireEnabled: false }).success).toBe(true)
@@ -50,7 +88,7 @@ describe('IPC schemas', () => {
     expect(appSettingsPatchSchema.safeParse({ language: 'es-ES' }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ navOrder: ['settings'] }).success).toBe(true)
     expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder?.[0]).toBe('settings')
-    expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder).toHaveLength(6)
+    expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder).toHaveLength(5)
     expect(appSettingsPatchSchema.safeParse({ density: 'compact' }).success).toBe(false)
     expect(pickKnownAppSettings({ theme: 'dark', density: 'compact' })).toEqual({ theme: 'dark' })
   })

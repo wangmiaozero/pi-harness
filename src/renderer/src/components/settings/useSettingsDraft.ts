@@ -5,6 +5,13 @@ import type { AppSettings } from '@shared/ipc/api-types'
 import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
 import { DEFAULT_NAV_ORDER, normalizeNavOrder } from '@shared/constants/navigation'
 import { useSettingsStore } from '@renderer/stores/settings'
+import {
+  DEFAULT_ASSISTANT_NAME,
+  DEFAULT_USER_NAME,
+  normalizeAssistantName,
+  normalizeUserName
+} from '@shared/constants/chat-participants'
+import { DEFAULT_MACOS27_BACKGROUND } from '@shared/constants/macos27-background'
 
 /**
  * Debounce window that coalesces rapid setting changes into one IPC write.
@@ -29,10 +36,15 @@ export function useSettingsDraft(): SettingsDraft {
 
   const draft = ref<AppSettings>({
     language: 'auto',
-    theme: 'dark',
+    theme: 'macos27',
+    macos27Background: DEFAULT_MACOS27_BACKGROUND,
+    macos27BackgroundImage: null,
+    userName: DEFAULT_USER_NAME,
+    assistantName: DEFAULT_ASSISTANT_NAME,
     appIcon: 'auto',
     mascotUnlocked: false,
     mascotStyle: DEFAULT_MASCOT_STYLE,
+    customSkinId: null,
     petAnimations: true,
     petStatusText: true,
     petAutoSleep: true,
@@ -66,7 +78,12 @@ export function useSettingsDraft(): SettingsDraft {
     () => store.settings,
     (s) => {
       if (!s) return
-      const incoming = { ...s, navOrder: normalizeNavOrder(s.navOrder) }
+      const incoming = {
+        ...s,
+        userName: normalizeUserName(s.userName),
+        assistantName: normalizeAssistantName(s.assistantName),
+        navOrder: normalizeNavOrder(s.navOrder)
+      }
       const serialized = JSON.stringify(incoming)
       if (serialized === JSON.stringify(draft.value)) {
         // Save echo or no-op: record the snapshot, keep any newer local edits.
@@ -100,8 +117,11 @@ export function useSettingsDraft(): SettingsDraft {
       saveTimer = null
     }
     const patch: AppSettings = { ...draft.value }
+    patch.userName = normalizeUserName(patch.userName)
+    patch.assistantName = normalizeAssistantName(patch.assistantName)
     if (!patch.mascotUnlocked) {
       patch.mascotStyle = DEFAULT_MASCOT_STYLE
+      patch.customSkinId = null
     }
     try {
       const saved = await store.patch(patch)

@@ -113,6 +113,11 @@ export const IPC_INVOKE = {
   uiStateGet: invoke('settings:ui-state-get'),
   uiStateSet: invoke('settings:ui-state-set'),
 
+  // declarative custom skins
+  skinsList: invoke('skins:list'),
+  skinsImport: invoke('skins:import'),
+  skinsCreateProject: invoke('skins:create-project'),
+
   // diagnostics
   diagnosticsGet: invoke('diagnostics:get'),
   diagnosticsCopy: invoke('diagnostics:copy'),
@@ -144,6 +149,8 @@ export const IPC_INVOKE = {
   workspaceProjectContextMenu: invoke('workspace:project-context-menu'),
   workspaceSessionFolderContextMenu: invoke('workspace:session-folder-context-menu'),
   workspaceGetActive: invoke('workspace:get-active'),
+  workspaceGetDefaultRoot: invoke('workspace:get-default-root'),
+  workspaceEnsureDefault: invoke('workspace:ensure-default'),
   workspaceSync: invoke('workspace:sync'),
   workspaceOpenFile: invoke('workspace:open-file'),
   workspaceSave: invoke('workspace:save'),

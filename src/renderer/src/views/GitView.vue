@@ -31,7 +31,7 @@ const settings = useSettingsStore()
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 let unsubWorkspaceChanged: (() => void) | null = null
 
-const hasProjects = computed(() => workspace.sessionProjectGroups.length > 0)
+const hasProjects = computed(() => workspace.gitRoots.length > 0)
 
 // --- Commit review (right pane overlay) -----------------------------------
 const selectedHash = ref<string | null>(null)

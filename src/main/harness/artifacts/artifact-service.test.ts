@@ -89,6 +89,26 @@ function writeEntry(id: string, timestamp: string, filePath: string): SessionEnt
   } as unknown as SessionEntry
 }
 
+function nativeWriteEntry(id: string, timestamp: string, filePath: string): SessionEntry {
+  return {
+    type: 'message',
+    id,
+    parentId: 'entry-1',
+    timestamp,
+    message: {
+      role: 'assistant',
+      content: [
+        {
+          type: 'toolCall',
+          id: `${id}-tc`,
+          name: 'write',
+          arguments: { path: filePath, content: '<!doctype html>' }
+        }
+      ]
+    }
+  } as unknown as SessionEntry
+}
+
 function bashEntry(id: string, timestamp: string, command: string, exitCode: number): SessionEntry {
   return {
     type: 'message',
@@ -174,6 +194,54 @@ describe('ArtifactService.collectForRun', () => {
       path: 'src/app.ts',
       metadata: { resolvedPath: '/repo/src/app.ts' }
     })
+  })
+
+  it('collects native Pi name/arguments tool calls and backfills them once', async () => {
+    const entries = [
+      userEntry('2024-01-01T00:00:00.000Z', 'create a page'),
+      nativeWriteEntry('entry-2', '2024-01-01T00:00:02.000Z', '/repo/pelican-bicycle.html')
+    ]
+    const artifactService = service(entries, { cwd: '/repo' })
+    const targetRun = run({ cwd: '/repo' })
+
+    const first = await artifactService.ensureFileArtifactsForRun(targetRun)
+    const second = await artifactService.ensureFileArtifactsForRun(targetRun)
+
+    expect(first).toHaveLength(1)
+    expect(first[0]).toMatchObject({
+      type: 'file',
+      name: 'pelican-bicycle.html',
+      path: '/repo/pelican-bicycle.html',
+      createdAt: Date.parse('2024-01-01T00:00:02.000Z')
+    })
+    expect(second).toEqual(first)
+    expect(await artifactService.list('s1', targetRun.id)).toHaveLength(1)
+    expect(emitted.filter((event) => event.type === 'artifact.recorded')).toHaveLength(1)
+  })
+
+  it('creates a preview patch from native write content outside a git repository', async () => {
+    const entries = [
+      userEntry('2024-01-01T00:00:00.000Z', 'create a page'),
+      nativeWriteEntry('entry-2', '2024-01-01T00:00:02.000Z', '/repo/page.html')
+    ]
+    const artifactService = new ArtifactService(tempStore(), {
+      getEntries: vi.fn(async () => entries),
+      getCheckpoints: vi.fn(async () => []),
+      getGitCommits: vi.fn(async () => []),
+      getFileDiff: vi.fn(async () => ({ supported: false as const })),
+      emit: () => undefined
+    })
+
+    const artifacts = await artifactService.collectForRun(run({ cwd: '/repo' }))
+
+    expect(artifacts).toHaveLength(1)
+    expect(artifacts[0]?.metadata).toMatchObject({
+      additions: 1,
+      deletions: 0,
+      patchSource: 'tool-write-snapshot',
+      patchTruncated: false
+    })
+    expect(artifacts[0]?.metadata.patch).toContain('+<!doctype html>')
   })
 
   it('returns nothing and swallows hook failures', async () => {

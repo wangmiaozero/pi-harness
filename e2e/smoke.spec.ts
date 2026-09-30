@@ -73,8 +73,17 @@ test.describe('Pi-Harness smoke', () => {
     await page.locator('a[href="#/workspace"]').click()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
     await expect(page.locator('main aside')).toBeVisible()
-    await expect(page.getByTestId('workspace-project-required')).toBeVisible()
-    await expect(page.getByTestId('workspace-new-session')).toBeDisabled()
+    await expect(page.getByTestId('workspace-project-required')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-section-workspace')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    await expect(page.getByTestId('workspace-section-workspace')).toHaveText(/工作区|Workspace/)
+    await expect(page.getByTestId('workspace-section-projects')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-section-sessions')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-draft-session')).toBeVisible()
+    await expect(page.getByTestId('workspace-project-0')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-new-session')).toBeEnabled()
     await expect(page.getByTestId('workspace-import-workspace')).not.toHaveAttribute(
       'aria-haspopup',
       /.+/
@@ -85,12 +94,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByTestId('workspace-toggle-files')).toBeVisible()
     await expect(page.getByTestId('workspace-section-files')).toHaveCount(0)
     await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
-    await expect(page.locator('main textarea')).toHaveCount(0)
-    await expect(
-      page
-        .getByTestId('workspace-project-required')
-        .getByRole('button', { name: /打开项目|Open project/ })
-    ).toBeVisible()
+    await expect(page.locator('main textarea')).toBeVisible()
     const workspaceSidebar = page.getByTestId('workspace-sidebar')
     await workspaceSidebar.evaluate((element) => {
       const transfer = new DataTransfer()
@@ -105,7 +109,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByTestId('workspace-files-unavailable').getByRole('button')).toHaveCount(0)
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({
-        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-no-session.png')
+        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-default.png')
       })
     }
     await workspaceSidebar.getByRole('button', { name: /Harness/ }).click()
@@ -128,13 +132,18 @@ test.describe('Pi-Harness smoke', () => {
         path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-harness-mode.png')
       })
     }
-    await page.getByTestId('workspace-section-sessions').click()
+    await page.getByTestId('workspace-section-workspace').click()
     await expect(page.getByTestId('harness-console')).toHaveCount(0)
-    await expect(page.getByTestId('workspace-project-required')).toBeVisible()
+    await expect(page.getByTestId('chat-window')).toBeVisible()
     await expect(page.getByTestId('workspace-toggle-files')).toBeVisible()
 
-    await page.locator('a[href="#/providers"]').click()
-    await expect(page.locator('h1').filter({ hasText: /提供商|Providers/ })).toBeVisible()
+    await page.locator('a[href="#/models"]').click()
+    await expect(page.locator('a[href="#/providers"]')).toHaveCount(0)
+    await page.getByTestId('model-management-tab-providers').click()
+    await expect(page.getByTestId('model-management-tab-providers')).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
     const providerSwitches = page.locator('main [role="switch"]')
     await expect(providerSwitches).toHaveCount(2)
@@ -146,10 +155,20 @@ test.describe('Pi-Harness smoke', () => {
         )
       )
       .toBe(1)
+    if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
+      await page.screenshot({
+        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'model-management-providers.png')
+      })
+    }
 
-    await page.locator('a[href="#/models"]').click()
+    await page.getByTestId('model-management-tab-models').click()
     await expect(page.locator('h1').filter({ hasText: /模型|Models/ })).toBeVisible()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
+    if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
+      await page.screenshot({
+        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'model-management-models.png')
+      })
+    }
 
     await page.locator('a[href="#/settings"]').click()
     await expect(page.locator('h1').filter({ hasText: /通用|General/ })).toBeVisible()
@@ -184,7 +203,7 @@ test.describe('Pi-Harness smoke', () => {
     expect(consoleErrors).toEqual([])
   })
 
-  test('restores no stale draft, reacts to project import, and hides Git without a session', async ({
+  test('restores the default chat, reacts to project import, and hides Git without a session', async ({
     page,
     electronApp,
     workspaceRoot
@@ -227,13 +246,12 @@ test.describe('Pi-Harness smoke', () => {
     await page.getByTestId('workspace-section-harness').click()
     await expect(page.getByTestId('harness-console')).toBeVisible()
     await expect(page.getByText(/尚未选择会话|No session selected/)).toBeVisible()
-    await page.getByTestId('workspace-section-sessions').click()
+    await page.getByTestId('workspace-section-workspace').click()
     await expect(page.getByTestId('harness-console')).toHaveCount(0)
     const sessionTree = page.getByTestId('workspace-session-tree')
-    await expect(page.getByTestId('workspace-draft-session')).toHaveCount(0)
     await expect(sessionTree.getByText('fixtures', { exact: true })).toHaveCount(0)
-    await expect(sessionTree.getByText(/暂无项目|No projects/)).toBeVisible()
-    await expect(page.getByTestId('workspace-section-sessions')).toHaveText(/项目|Projects/)
+    await expect(page.getByTestId('workspace-project-0')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-section-workspace')).toHaveText(/工作区|Workspace/)
 
     // Git is a standalone route that reads every workspace project.
     await page.locator('a[href="#/git"]').click()
@@ -258,14 +276,16 @@ test.describe('Pi-Harness smoke', () => {
 
     // Explicit project entries survive restart, but cannot restore a phantom session or Git source.
     await page.reload()
+    await page.getByTestId('workspace-section-workspace').click()
     await expect(page.getByTestId('workspace-project-0')).toContainText('explicit-project')
-    await expect(page.getByTestId('workspace-draft-session')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-draft-session')).toBeVisible()
     await page.getByTestId('workspace-toggle-files').click()
     await expect(page.getByTestId('workspace-files-unavailable')).toBeVisible()
     // The imported project shows up in the workspace-wide Git view without a session.
     await page.locator('a[href="#/git"]').click()
     await expect(page.getByTestId('git-repository-sidebar')).toContainText('explicit-project')
     await page.locator('a[href="#/workspace"]').click()
+    await page.getByTestId('workspace-section-workspace').click()
     await electronApp.evaluate(({ Menu }) => {
       Menu.buildFromTemplate = ((template: Electron.MenuItemConstructorOptions[]) =>
         ({
@@ -282,8 +302,7 @@ test.describe('Pi-Harness smoke', () => {
       .getByRole('dialog', { name: /删除项目|Delete project/ })
       .getByRole('button', { name: /删除|Delete/, exact: true })
       .click()
-    await expect(page.getByTestId('workspace-draft-session')).toHaveCount(0)
-    await expect(sessionTree.getByText(/暂无项目|No projects/)).toBeVisible()
+    await expect(page.getByTestId('workspace-project-0')).toHaveCount(0)
     // Removing the workspace project removes it from the Git view as well.
     await page.locator('a[href="#/git"]').click()
     await expect(page.getByTestId('git-no-projects')).toBeVisible()
@@ -327,6 +346,7 @@ test.describe('Pi-Harness smoke', () => {
 
     await page.evaluate(() => localStorage.removeItem('pi-harness.workspace.v1'))
     await page.locator('a[href="#/workspace"]').click()
+    await page.getByTestId('workspace-section-workspace').click()
     const tree = page.getByTestId('workspace-session-tree')
     await expect(tree).toBeVisible()
 
@@ -370,7 +390,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(tree.getByText(`Session ${sessionA1}`)).toBeVisible()
     await expect(tree.getByText(`Session ${sessionB}`)).toBeVisible()
     await expect(tree.getByText(`Session ${sessionC}`)).toBeVisible()
-    await expect(page.getByTestId('workspace-new-session')).toBeDisabled()
+    await expect(page.getByTestId('workspace-new-session')).toBeEnabled()
 
     const projectE = path.join(workspaceRoot, 'import-e')
     fs.mkdirSync(projectE, { recursive: true })
@@ -445,6 +465,7 @@ test.describe('Pi-Harness smoke', () => {
     )
 
     await page.locator('a[href="#/workspace"]').click()
+    await page.getByTestId('workspace-section-workspace').click()
     await page.getByTestId('workspace-refresh').click()
     const sessionRow = page.getByTestId(`session-row-${sessionId}`)
     await expect(sessionRow).toContainText('Multi-project session')
@@ -465,8 +486,11 @@ test.describe('Pi-Harness smoke', () => {
         path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-harness-session.png')
       })
     }
-    await page.getByTestId('workspace-section-sessions').click()
-    await expect(page.getByTestId('workspace-tabs')).toContainText('Multi-project session')
+    await page.getByTestId('workspace-section-workspace').click()
+    await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
+    await expect(page.getByTestId(`session-row-${sessionId}`)).toContainText(
+      'Multi-project session'
+    )
 
     await electronApp.evaluate(({ Menu }) => {
       Menu.buildFromTemplate = ((template: Electron.MenuItemConstructorOptions[]) =>
@@ -515,7 +539,7 @@ test.describe('Pi-Harness smoke', () => {
       )
       .toEqual(['session-primary', 'session-added'])
     await expect(page.locator('main textarea')).toBeVisible()
-    await expect(page.getByTestId('workspace-new-session')).toBeDisabled()
+    await expect(page.getByTestId('workspace-new-session')).toBeEnabled()
     // Session attachments stay under their session; creating another chat cannot promote them to projects.
     await expect(
       page.getByTestId('workspace-session-tree').getByTestId(/^workspace-project-group-/)
@@ -587,6 +611,7 @@ test.describe('Pi-Harness smoke', () => {
     )
 
     await page.locator('a[href="#/workspace"]').click()
+    await page.getByTestId('workspace-section-workspace').click()
     const projectTree = page.getByTestId('workspace-session-tree')
     await expect(projectTree.getByText('fixtures', { exact: true })).toBeVisible()
     await expect(page.getByTestId('workspace-toggle-files')).toBeVisible()
@@ -711,7 +736,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(tabs.getByRole('button')).toHaveCount(1)
     await expect(tabs.getByRole('button', { name: 'code-preview.html', exact: true })).toBeVisible()
     await expect(code.locator('.cm-content')).toContainText('const answer = 42')
-    await expect(page.getByTestId('workspace-tabs').getByRole('button')).toHaveCount(1)
+    await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
     await expect(projectTree).toBeVisible()
     await expect(page.locator('main textarea')).toBeVisible()
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
@@ -839,8 +864,8 @@ test.describe('Pi-Harness smoke', () => {
       )
     }))
     expect(layerOrder.mascot).toBeGreaterThan(layerOrder.cockpit)
-    await expect(page.getByTestId('workspace-new-session')).toBeDisabled()
-    await expect(page.getByTestId('workspace-tabs')).toHaveCSS('height', '44px')
+    await expect(page.getByTestId('workspace-new-session')).toBeEnabled()
+    await expect(page.locator('.workspace-tabbar')).toHaveCSS('height', '44px')
     await expect(
       page.getByTestId('workspace-sidebar').locator('.mission-control-header')
     ).toHaveCSS('height', '44px')

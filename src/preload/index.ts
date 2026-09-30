@@ -138,6 +138,11 @@ const api: PiSwitchAPI = {
     getUiState: () => invoke(IPC_INVOKE.uiStateGet),
     setUiState: (state) => invoke(IPC_INVOKE.uiStateSet, state)
   },
+  skins: {
+    list: () => invoke(IPC_INVOKE.skinsList),
+    import: () => invoke(IPC_INVOKE.skinsImport),
+    createProject: () => invoke(IPC_INVOKE.skinsCreateProject)
+  },
   diagnostics: {
     get: () => invoke(IPC_INVOKE.diagnosticsGet),
     copy: () => invoke(IPC_INVOKE.diagnosticsCopy),
@@ -181,6 +186,8 @@ const api: PiSwitchAPI = {
       return root
     },
     getActive: () => invoke(IPC_INVOKE.workspaceGetActive),
+    getDefaultRoot: () => invoke(IPC_INVOKE.workspaceGetDefaultRoot),
+    ensureDefault: () => invoke(IPC_INVOKE.workspaceEnsureDefault),
     sync: (input) => invoke(IPC_INVOKE.workspaceSync, input),
     openWorkspaceFile: (path) => invoke(IPC_INVOKE.workspaceOpenFile, { path }),
     save: (input) => invoke(IPC_INVOKE.workspaceSave, input),

@@ -32,7 +32,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1"><img alt="release v1.7.1" src="https://img.shields.io/badge/release-v1.7.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="release v1.8.0" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -100,11 +100,21 @@ Pi-Harness
 | Orchestrate       | Agents, Teams, Tasks, Dependencies, Handoffs, Review Gates, Worktree isolation            |
 | Work              | Workspace, Files, Git, Worktrees, Models, Providers, Skills, and Packages                 |
 
+### What's new in v1.8.0
+
+- **macOS 27 Liquid Glass** — New light and dark themes with Liquid Ether, Lightfall, Lightning, Web Threads, and local-image backgrounds. New installations default to macOS 27 Dark with Liquid Ether.
+- **Declarative custom skins** — Create a safe starter project for Codex or Pi, then import its palette, preview, wallpaper, and optional portrait from **Settings → Theme**.
+- **Clearer conversations** — User and assistant messages have distinct surfaces and role badges, and both display names can be customized in General settings.
+- **Faster workspace entry** — Start a standalone chat without selecting a project first. The Workspace sidebar now keeps chats and project sessions together in one structured view.
+- **More reliable run evidence** — File-change cards recover edits from persisted sessions and show useful diffs for newly written files.
+
 ### Startup and appearance
 
 Pi-Harness opens with a startup animation while it checks the npm registry, Node.js, npm, Pi Agent, and the active configuration. The animation remains visible for at least five seconds, uses a monochrome quantum particle effect by default, and follows the selected optional visual theme when one is active.
 
-In **Settings → General**, choose the Classic, Ming, or Quantum app icon—or let Pi-Harness select one automatically—and control the window glow, screen glow, and input flame effect independently. Mascot-free builds keep the default startup animation and these appearance controls without loading optional mascot themes.
+New installations use **macOS 27 Dark** with the **Liquid Ether** background. In **Settings → General**, choose another palette or macOS 27 background, use a local PNG/JPEG/WebP background, customize chat display names, choose the Classic, Ming, or Quantum app icon, and control the window glow, screen glow, and input flame effect independently.
+
+In **Settings → Theme**, the built-in themes remain available alongside declarative custom skins. Pi-Harness can create a constrained skin starter project for Codex or Pi and import its local bitmap assets and color tokens. Mascot-free builds keep the default startup animation and General appearance controls without loading optional portrait themes.
 
 ### Optional methodologies and add-ons
 
@@ -123,29 +133,38 @@ It deliberately does not include LSP/IntelliSense, semantic refactoring, a debug
 
 ## Current screenshots
 
-The same six product surfaces are shown in both the default and Classical Chinese themes. The Classical Chinese theme includes snow and moon workspace variants.
+The classic dark screenshots show the core product surfaces. The v1.8.0 gallery shows the refreshed Ming themes, Starship Cockpit, macOS 27 Liquid Glass, custom skins, and appearance settings.
 
-### Default theme
+### Classic dark theme
 
-|                          Workspace                           |                             Git                              |
-| :----------------------------------------------------------: | :----------------------------------------------------------: |
-|  ![Workspace in the default theme](docs/默认主题/Work.jpg)   |      ![Git in the default theme](docs/默认主题/Git.jpg)      |
-|                        **Providers**                         |                          **Models**                          |
-|  ![Providers in the default theme](docs/默认主题/APIs.jpg)   |   ![Models in the default theme](docs/默认主题/Model.jpg)    |
-|                       **Capabilities**                       |                       **Preferences**                        |
-| ![Capabilities in the default theme](docs/默认主题/Caps.jpg) | ![Preferences in the default theme](docs/默认主题/Prefs.jpg) |
+|                               Workspace                               |                             Git                             |
+| :-------------------------------------------------------------------: | :---------------------------------------------------------: |
+|   ![Workspace in the classic dark theme](docs/经典主题/工作区.jpg)    |   ![Git in the classic dark theme](docs/经典主题/Git.jpg)   |
+|                           **Capabilities**                            |                         **Models**                          |
+| ![Capabilities in the classic dark theme](docs/经典主题/能力中心.jpg) | ![Models in the classic dark theme](docs/经典主题/模型.jpg) |
+|                            **Preferences**                            |                                                             |
+|   ![Preferences in the classic dark theme](docs/经典主题/设置.jpg)    |                                                             |
 
-### Classical Chinese theme
+### v1.8.0 appearance gallery
 
-|                            Workspace (Snow)                            |                            Workspace (Moon)                            |
-| :--------------------------------------------------------------------: | :--------------------------------------------------------------------: |
-| ![Workspace in the Classical Chinese snow theme](docs/古风/Work-1.jpg) | ![Workspace in the Classical Chinese moon theme](docs/古风/Work-2.jpg) |
-|                                  Git                                   |                             **Providers**                              |
-|        ![Git in the Classical Chinese theme](docs/古风/Git.jpg)        |    ![Providers in the Classical Chinese theme](docs/古风/APIs.jpg)     |
-|                               **Models**                               |                            **Capabilities**                            |
-|     ![Models in the Classical Chinese theme](docs/古风/Model.jpg)      |   ![Capabilities in the Classical Chinese theme](docs/古风/Caps.jpg)   |
-|                            **Preferences**                             |                                                                        |
-|   ![Preferences in the Classical Chinese theme](docs/古风/Prefs.jpg)   |                                                                        |
+#### Workspace themes
+
+|                            Ming · Snowbound official                            |                          Ming · Snow flute scholar                          |
+| :-----------------------------------------------------------------------------: | :-------------------------------------------------------------------------: |
+|      ![Ming snowbound official workspace](docs/主题展示/大明/雪境朝臣.jpg)      |    ![Ming snow flute scholar workspace](docs/主题展示/大明/雪夜笛姬.jpg)    |
+|                             **Ming · Moon scholar**                             |                            **Starship Cockpit**                             |
+|         ![Ming moon scholar workspace](docs/主题展示/大明/月城书姬.jpg)         |       ![Starship Cockpit workspace](docs/主题展示/星舰/霜星领航.jpg)        |
+|                           **macOS 27 · Liquid Ether**                           |                            **Declarative skin**                             |
+| ![macOS 27 Liquid Ether workspace](docs/主题展示/macOS%2027/Liquid%20Ether.jpg) | ![Custom declarative skin workspace](docs/主题展示/自定义皮肤/夏日海岸.jpg) |
+
+#### Product interfaces
+
+| **General settings** | **Theme gallery** |
+| ![General appearance settings](docs/功能界面/通用设置.jpg) | ![Built-in and custom theme gallery](docs/功能界面/主题图库.jpg) |
+| **Capabilities** | **Providers and models** |
+| ![Capabilities market](docs/功能界面/能力中心.jpg) | ![Provider and model management](docs/功能界面/Provider与模型.jpg) |
+| **Git** | |
+| ![Git workspace](docs/功能界面/Git.jpg) | |
 
 ## Pi vs Pi-Harness
 
@@ -345,18 +364,16 @@ Every agent executes through a real Pi session: orchestration adds coordination,
 
 ## Download
 
-Download Pi-Harness v1.7.1 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1).
+Download Pi-Harness v1.8.0 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0).
 
 | Platform            | Installer                                                                                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.7.1-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.7.1.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.7.1.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-Setup-1.7.1.exe) |
-| Linux x64           | [`Pi-Harness-1.7.1.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.8.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.8.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.8.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-Setup-1.8.0.exe) |
+| Linux x64           | [`Pi-Harness-1.8.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.AppImage)   |
 
-> **Windows upgrade notice:** Upgrading from v1.7.0 to v1.7.1 does not repeat the one-time legacy app-data reset. A machine that has never launched the v1.7.0 installed app still resets older Pi-Harness settings, its local credential vault, app backups, and caches once. Pi Agent's separate data directory and project files are not reset.
->
-> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.7.1 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1).
+> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.8.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0).
 
 Packaged users do not need to clone the repository or install pnpm. Pi-Harness can detect, install, and repair Node.js, npm, PATH, and Pi Coding Agent where supported.
 

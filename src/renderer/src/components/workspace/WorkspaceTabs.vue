@@ -23,7 +23,9 @@ interface TabMenuState {
 
 const workspace = useWorkspaceStore()
 const visibleTabs = computed(() =>
-  props.scope === 'files' ? workspace.sessionFileTabs : workspace.mainTabs
+  props.scope === 'files'
+    ? workspace.sessionFileTabs
+    : workspace.mainTabs.filter((tab) => tab.kind !== 'chat')
 )
 const selectedId = computed(() =>
   props.scope === 'files' ? workspace.activeFileTab?.id : workspace.activeTabId

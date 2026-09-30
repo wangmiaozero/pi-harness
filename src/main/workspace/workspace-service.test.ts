@@ -83,6 +83,39 @@ describe('WorkspaceService', () => {
     expect(service.getPrompt()).toContain('missing')
   })
 
+  it('creates and activates the app-managed default workspace', async () => {
+    directory = await mkdtemp(path.join(tmpdir(), 'pi-harness-workspace-default-'))
+    const defaultRoot = path.join(directory, 'managed', 'default')
+    const { service, access } = createService(directory, defaultRoot)
+
+    const workspace = await service.ensureDefaultWorkspace()
+
+    expect(workspace.folders).toEqual([
+      expect.objectContaining({
+        name: 'Default Workspace',
+        resolvedPath: await realpath(defaultRoot),
+        role: 'main',
+        exists: true
+      })
+    ])
+    expect(workspace.settings['piHarness.defaultWorkspace']).toBe(true)
+    expect(access.allowRoot).toHaveBeenCalledWith(await realpath(defaultRoot))
+    expect(access.setWorkspaceFolders).toHaveBeenCalled()
+  })
+
+  it('resolves the app-managed default root without activating a workspace', async () => {
+    directory = await mkdtemp(path.join(tmpdir(), 'pi-harness-workspace-default-root-'))
+    const defaultRoot = path.join(directory, 'managed', 'default')
+    const { service, access } = createService(directory, defaultRoot)
+
+    const resolved = await service.getDefaultWorkspaceRoot()
+
+    expect(resolved).toBe(await realpath(defaultRoot))
+    expect(service.getActive()).toBeNull()
+    expect(access.allowRoot).toHaveBeenCalledWith(await realpath(defaultRoot))
+    expect(access.setWorkspaceFolders).not.toHaveBeenCalled()
+  })
+
   it('deduplicates imported source paths while preserving order and read-only restrictions', async () => {
     directory = await mkdtemp(path.join(tmpdir(), 'pi-harness-workspace-dedup-'))
     const server = path.join(directory, 'server')
@@ -181,8 +214,9 @@ describe('WorkspaceService', () => {
   })
 })
 
-function createService(directory: string) {
+function createService(directory: string, defaultWorkspaceRoot?: string) {
   const access = {
+    allowRoot: vi.fn(),
     authorizeRoot: vi.fn(async (root: string) => root),
     assertAllowed: vi.fn(async (target: string) => target),
     setWorkspaceFolders: vi.fn()
@@ -192,5 +226,5 @@ function createService(directory: string) {
     recent: [],
     sessionBindings: {}
   })
-  return { service: new WorkspaceService(access, store), access }
+  return { service: new WorkspaceService(access, store, defaultWorkspaceRoot), access }
 }

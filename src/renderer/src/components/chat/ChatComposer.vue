@@ -170,6 +170,7 @@ const hasTooManyImageSources = computed(
 )
 const canSend = computed(
   () =>
+    workspace.canChat &&
     (selectedImageModel.value
       ? Boolean(workspace.draft.trim())
       : Boolean(workspace.draft.trim() || workspace.draftImages.length)) &&

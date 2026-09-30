@@ -19,6 +19,10 @@ import type { AgentImageAttachment, SessionDetail } from '@shared/types/workspac
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { useCompletionSound } from '@renderer/composables/useCompletionSound'
 import { useStickToBottom } from '@renderer/composables/useStickToBottom'
+import { normalizeAssistantName, normalizeUserName } from '@shared/constants/chat-participants'
+import { hasRenderableMessageContent } from './message-visibility'
+import type { AgentMessage } from '@shared/types/workspace'
+import type { MessageFileChanges } from './message-file-changes'
 
 interface ComposerImageModelTarget {
   providerKey: string
@@ -73,14 +77,41 @@ const contextColor = computed(() => {
   return 'var(--text-tertiary)'
 })
 const autoCompactionEnabled = computed(() => agent.state?.autoCompactionEnabled === true)
+const userName = computed(() => normalizeUserName(settings.settings?.userName))
+const assistantName = computed(() => normalizeAssistantName(settings.settings?.assistantName))
 
-const displayMessages = computed(() => {
-  const live = agent.streaming.streamingMessage
-  return live ? [...agent.messages, live] : agent.messages
-})
 const fileChangesByEntryId = computed(() =>
   buildMessageFileChanges(agent.messages, agent.entryIds, harness.runs, harness.artifacts)
 )
+interface DisplayMessage {
+  key: string
+  message: AgentMessage
+  entryId?: string
+  fileChanges?: MessageFileChanges
+  streaming: boolean
+}
+
+const displayMessages = computed<DisplayMessage[]>(() => {
+  const persisted = agent.messages.flatMap((message, index): DisplayMessage[] => {
+    const entryId = agent.entryIds[index]
+    const fileChanges = entryId ? fileChangesByEntryId.value.get(entryId) : undefined
+    if (!hasRenderableMessageContent(message) && !fileChanges) return []
+    return [
+      {
+        key: entryId ?? `message-${index}`,
+        message,
+        entryId,
+        fileChanges,
+        streaming: false
+      }
+    ]
+  })
+  const live = agent.streaming.streamingMessage
+  if (live && hasRenderableMessageContent(live)) {
+    persisted.push({ key: 'streaming-message', message: live, streaming: true })
+  }
+  return persisted
+})
 
 watch(displayMessages, async () => {
   await nextTick()
@@ -236,14 +267,14 @@ function duration(value: number): string {
             :icon="MessageSquare"
           />
           <MessageView
-            v-for="(message, index) in displayMessages"
-            :key="index"
-            :message="message"
-            :entry-id="agent.entryIds[index]"
-            :file-changes="fileChangesByEntryId.get(agent.entryIds[index])"
-            :streaming="
-              Boolean(agent.streaming.streamingMessage) && index === displayMessages.length - 1
-            "
+            v-for="item in displayMessages"
+            :key="item.key"
+            :message="item.message"
+            :entry-id="item.entryId"
+            :user-name="userName"
+            :assistant-name="assistantName"
+            :file-changes="item.fileChanges"
+            :streaming="item.streaming"
           />
           <p
             v-if="agent.error"
@@ -455,6 +486,8 @@ function duration(value: number): string {
       v-model:open="fullHistoryOpen"
       :detail="fullHistoryDetail"
       :loading="fullHistoryLoading"
+      :user-name="userName"
+      :assistant-name="assistantName"
     />
   </div>
 </template>
