@@ -49,6 +49,60 @@ test.describe('macOS 27 liquid glass themes', () => {
       .poll(() => settingsCard.evaluate((element) => getComputedStyle(element).backdropFilter))
       .toContain('blur(14px)')
 
+    await page.locator('a[href="#/skills"]').click()
+    const capabilitiesTabs = page.locator('.capabilities-tabs')
+    await expect
+      .poll(() => capabilitiesTabs.evaluate((element) => getComputedStyle(element).backgroundColor))
+      .toBe('rgba(22, 18, 55, 0.42)')
+    await expect
+      .poll(() => capabilitiesTabs.evaluate((element) => getComputedStyle(element).backdropFilter))
+      .toContain('blur(20px)')
+
+    const registrySearch = page.locator('.ui-search-field__input')
+    await expect(registrySearch).toBeVisible()
+    await expect
+      .poll(() => registrySearch.evaluate((element) => getComputedStyle(element).backgroundColor))
+      .toBe('rgba(0, 0, 0, 0)')
+    if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
+      await page.screenshot({
+        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'capabilities-macos27-dark.png'),
+        fullPage: true
+      })
+    }
+
+    await page.locator('a[href="#/workspace"]').click()
+    const composerInput = page.getByTestId('chat-composer').locator('textarea')
+    await expect(composerInput).toBeVisible()
+    await expect
+      .poll(() =>
+        composerInput.evaluate((element) => {
+          const style = getComputedStyle(element)
+          return [style.backgroundColor, style.boxShadow]
+        })
+      )
+      .toEqual(['rgba(0, 0, 0, 0)', 'none'])
+    if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
+      await page.screenshot({
+        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-macos27-dark.png'),
+        fullPage: true
+      })
+
+      await page.locator('a[href="#/git"]').click()
+      await page.screenshot({
+        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'git-macos27-dark.png'),
+        fullPage: true
+      })
+
+      await page.locator('a[href="#/models"]').click()
+      await page.screenshot({
+        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'models-macos27-dark.png'),
+        fullPage: true
+      })
+    }
+
+    await page.locator('a[href="#/settings"]').click()
+    await expect(page.locator('h1').filter({ hasText: /通用|General/ })).toBeVisible()
+
     const backgroundSelect = page.getByRole('button', {
       name: /macOS 27.*(?:背景|background)/i,
       exact: true
@@ -124,6 +178,19 @@ test.describe('macOS 27 liquid glass themes', () => {
     await expect
       .poll(() => settingsCard.evaluate((element) => getComputedStyle(element).backgroundColor))
       .toBe('rgba(255, 255, 255, 0.48)')
+
+    await page.locator('a[href="#/skills"]').click()
+    await expect
+      .poll(() => capabilitiesTabs.evaluate((element) => getComputedStyle(element).backgroundColor))
+      .toBe('rgba(248, 249, 255, 0.5)')
+    if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
+      await page.screenshot({
+        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'capabilities-macos27-light.png'),
+        fullPage: true
+      })
+    }
+    await page.locator('a[href="#/settings"]').click()
+    await expect(page.locator('h1').filter({ hasText: /通用|General/ })).toBeVisible()
 
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({

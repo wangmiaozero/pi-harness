@@ -36,7 +36,8 @@ const api: PiSwitchAPI = {
     info: () => invoke(IPC_INVOKE.systemInfo),
     checkNetwork: () => invoke(IPC_INVOKE.systemCheckNetwork),
     openPath: (path) => invoke(IPC_INVOKE.systemOpenPath, path),
-    showItem: (path) => invoke(IPC_INVOKE.systemShowItem, path)
+    showItem: (path) => invoke(IPC_INVOKE.systemShowItem, path),
+    openProjectLink: (target) => invoke(IPC_INVOKE.systemOpenProjectLink, target)
   },
   pi: {
     detect: () => invoke(IPC_INVOKE.piDetect),

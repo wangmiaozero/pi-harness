@@ -267,6 +267,14 @@
   backdrop-filter: blur(20px) saturate(170%);
 }
 
+:root:is([data-theme='macos27'], [data-theme='macos27-light']) .capabilities-tabs {
+  border-color: var(--macos27-rim-soft);
+  background: var(--macos27-glass-chrome);
+  box-shadow: inset 0 1px 0 var(--macos27-highlight);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  backdrop-filter: blur(20px) saturate(170%);
+}
+
 :root:is([data-theme='macos27'], [data-theme='macos27-light'])
   :is(
     .harness-card,
@@ -305,9 +313,7 @@
     .ui-search-field,
     .ui-combobox-trigger,
     .ui-icon-button,
-    .starship-search-trigger,
-    input:not(.ui-search-field__input),
-    textarea
+    .starship-search-trigger
   ) {
   border-color: var(--control-border);
   background: var(--control-bg);

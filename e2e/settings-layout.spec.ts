@@ -1,12 +1,14 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { expect, test } from './fixtures'
+import { IPC_INVOKE } from '../src/shared/ipc/channels'
 
 const { version: APP_VERSION } = JSON.parse(fs.readFileSync('package.json', 'utf8')) as {
   version: string
 }
 
 test('uses a conventional settings sidebar and displays the current application version', async ({
+  electronApp,
   page
 }, testInfo) => {
   await page.setViewportSize({ width: 1712, height: 1006 })
@@ -29,6 +31,45 @@ test('uses a conventional settings sidebar and displays the current application 
   const version = page.getByTestId('settings-version')
   await expect(version).toContainText('Pi-Harness')
   await expect(version).toContainText(APP_VERSION)
+
+  await electronApp.evaluate(({ ipcMain }, channel) => {
+    ipcMain.removeHandler(channel)
+    ipcMain.handle(channel, (_event, target: unknown) => {
+      const state = globalThis as typeof globalThis & { __piHarnessLastProjectLink?: unknown }
+      state.__piHarnessLastProjectLink = target
+      return { ok: true, data: undefined }
+    })
+  }, IPC_INVOKE.systemOpenProjectLink)
+
+  await sidebar.getByTestId('settings-section-about').click()
+  await expect(page.locator('h1').filter({ hasText: /关于|About/ })).toBeVisible()
+  const about = page.getByTestId('about-settings')
+  await expect(about).toContainText('wangmiao')
+  await expect(about).toContainText('tuziling84@gmail.com')
+  await expect(about).toContainText('https://github.com/wangmiaozero')
+  await expect(about).toContainText('https://github.com/wangmiaozero/pi-harness')
+
+  await page.getByTestId('about-author-link').click()
+  await expect
+    .poll(() =>
+      electronApp.evaluate(
+        () =>
+          (globalThis as typeof globalThis & { __piHarnessLastProjectLink?: unknown })
+            .__piHarnessLastProjectLink
+      )
+    )
+    .toBe('author')
+
+  await page.getByTestId('about-star').click()
+  await expect
+    .poll(() =>
+      electronApp.evaluate(
+        () =>
+          (globalThis as typeof globalThis & { __piHarnessLastProjectLink?: unknown })
+            .__piHarnessLastProjectLink
+      )
+    )
+    .toBe('repository')
 
   await page.screenshot({
     path: path.join(

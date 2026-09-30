@@ -12,12 +12,14 @@ Public release notes contain only released, user-visible additions and fixes.
 - Added declarative custom skins: create a constrained starter project for Codex or Pi, then import its palette, preview, wallpaper, and optional portrait.
 - Added customizable user and assistant display names with visually distinct conversation surfaces and role badges.
 - Added standalone chats that do not require selecting a project first, plus unified Workspace navigation for chats and project sessions.
+- Added an About settings page with author contact details, project links, and a GitHub Star action.
 
 ### Fixed
 
 - Restored file-change artifacts and diffs from persisted write/edit tool calls, including older runs and newly written files.
 - Hidden non-display and empty messages no longer leave blank entries in the conversation or full history.
 - Kept project actions on project rows and chat actions on chat rows in the unified Workspace sidebar.
+- Fixed opaque macOS 27 surfaces and nested input chrome so capability tabs and composite fields retain the intended liquid-glass appearance.
 
 ## 1.7.1 — 2026-09-26
 

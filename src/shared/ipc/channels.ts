@@ -15,6 +15,7 @@ export const IPC_INVOKE = {
   systemCheckNetwork: invoke('system:check-network'),
   systemOpenPath: invoke('system:open-path'),
   systemShowItem: invoke('system:show-item'),
+  systemOpenProjectLink: invoke('system:open-project-link'),
 
   // pi environment
   piDetect: invoke('pi:detect'),
