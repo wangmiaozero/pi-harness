@@ -306,7 +306,7 @@
     .ui-combobox-trigger,
     .ui-icon-button,
     .starship-search-trigger,
-    input,
+    input:not(.ui-search-field__input),
     textarea
   ) {
   border-color: var(--control-border);
