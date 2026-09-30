@@ -4,6 +4,21 @@ Public release notes contain only released, user-visible additions and fixes.
 
 ## Unreleased
 
+## 1.8.0 — 2026-09-30
+
+### Added
+
+- Added macOS 27 Light and Dark themes with Liquid Ether, Lightfall, Lightning, Web Threads, and local-image backgrounds. New installations default to macOS 27 Dark with Liquid Ether.
+- Added declarative custom skins: create a constrained starter project for Codex or Pi, then import its palette, preview, wallpaper, and optional portrait.
+- Added customizable user and assistant display names with visually distinct conversation surfaces and role badges.
+- Added standalone chats that do not require selecting a project first, plus unified Workspace navigation for chats and project sessions.
+
+### Fixed
+
+- Restored file-change artifacts and diffs from persisted write/edit tool calls, including older runs and newly written files.
+- Hidden non-display and empty messages no longer leave blank entries in the conversation or full history.
+- Kept project actions on project rows and chat actions on chat rows in the unified Workspace sidebar.
+
 ## 1.7.1 — 2026-09-26
 
 ### Added

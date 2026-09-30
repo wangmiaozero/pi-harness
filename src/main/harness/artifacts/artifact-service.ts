@@ -23,6 +23,7 @@ import type {
 import {
   classifyExecutionCommand,
   collectFileMutations,
+  readFileMutationPath,
   sliceRunEntries
 } from '../evaluation/evaluation-service'
 
@@ -50,6 +51,8 @@ export interface ArtifactHooks {
 }
 
 export class ArtifactService {
+  private readonly fileBackfills = new Map<string, Promise<HarnessArtifact[]>>()
+
   constructor(
     private readonly store: JsonStore<ArtifactStoreRecord>,
     private readonly hooks: ArtifactHooks
@@ -131,18 +134,42 @@ export class ArtifactService {
       artifacts.push(...(await this.gitCommitArtifacts(run)))
       if (!artifacts.length) return []
       const saved = await this.save(artifacts)
-      for (const artifact of saved) {
-        this.hooks.emit(run.sessionId, {
-          type: 'artifact.recorded',
-          timestamp: Date.now(),
-          runId: run.id,
-          artifactId: artifact.id,
-          artifactType: artifact.type
-        })
-      }
+      for (const artifact of saved) this.emitRecorded(run, artifact)
       return saved
     } catch (error) {
       log.harness.warn(`artifact collection failed for run ${run.id}:`, error)
+      return []
+    }
+  }
+
+  /**
+   * Repair file artifacts created before the persisted Pi tool-call shape was
+   * recognized. Loading a conversation only backfills file evidence, so it
+   * cannot duplicate command, checkpoint or commit artifacts.
+   */
+  async ensureFileArtifactsForRun(run: HarnessRun): Promise<HarnessArtifact[]> {
+    const pending = this.fileBackfills.get(run.id)
+    if (pending) return pending
+    const backfill = this.backfillFileArtifacts(run).finally(() => {
+      this.fileBackfills.delete(run.id)
+    })
+    this.fileBackfills.set(run.id, backfill)
+    return backfill
+  }
+
+  private async backfillFileArtifacts(run: HarnessRun): Promise<HarnessArtifact[]> {
+    const existing = await this.list(run.sessionId, run.id)
+    const existingFiles = existing.filter((artifact) => artifact.type === 'file' && artifact.path)
+    if (existingFiles.length) return existingFiles
+    try {
+      const entries = await this.hooks.getEntries(run.sessionId)
+      const artifacts = await this.fileArtifacts(run, sliceRunEntries(entries, run))
+      if (!artifacts.length) return []
+      const saved = await this.save(artifacts)
+      for (const artifact of saved) this.emitRecorded(run, artifact)
+      return saved
+    } catch (error) {
+      log.harness.warn(`file artifact backfill failed for run ${run.id}:`, error)
       return []
     }
   }
@@ -162,9 +189,11 @@ export class ArtifactService {
         mutation: 'write/edit',
         resolvedPath
       }
+      let diffSupported = false
       if (run.cwd && this.hooks.getFileDiff) {
         try {
           const diff = await this.hooks.getFileDiff(run.cwd, resolvedPath)
+          diffSupported = diff.supported
           if (diff.supported && typeof diff.patch === 'string') {
             const count = countUnifiedDiffChanges(diff.patch)
             metadata.additions = count.additions
@@ -174,6 +203,18 @@ export class ArtifactService {
           }
         } catch {
           // Diff evidence is best-effort; the file mutation remains authoritative.
+        }
+      }
+      if (!diffSupported) {
+        const content = writeContentOf(entries, filePath)
+        if (content !== null) {
+          const patch = createAddedFilePatch(patchDisplayPath(run.cwd, resolvedPath), content)
+          const count = countUnifiedDiffChanges(patch)
+          metadata.additions = count.additions
+          metadata.deletions = count.deletions
+          metadata.patch = patch.slice(0, PATCH_PREVIEW_LENGTH)
+          metadata.patchTruncated = patch.length > PATCH_PREVIEW_LENGTH
+          metadata.patchSource = 'tool-write-snapshot'
         }
       }
       artifacts.push(
@@ -298,6 +339,16 @@ export class ArtifactService {
     }
   }
 
+  private emitRecorded(run: HarnessRun, artifact: HarnessArtifact): void {
+    this.hooks.emit(run.sessionId, {
+      type: 'artifact.recorded',
+      timestamp: Date.now(),
+      runId: run.id,
+      artifactId: artifact.id,
+      artifactType: artifact.type
+    })
+  }
+
   private async save(artifacts: HarnessArtifact[]): Promise<HarnessArtifact[]> {
     const record = await this.store.read()
     const next = [...artifacts, ...record.artifacts]
@@ -324,21 +375,66 @@ function timestampOf(entries: readonly SessionEntry[], filePath: string): number
     const message = entry.message as { role?: string; content?: unknown } | undefined
     if (!message || message.role !== 'assistant' || !Array.isArray(message.content)) continue
     for (const block of message.content) {
-      if (!block || typeof block !== 'object') continue
-      const toolCall = block as { type?: string; toolName?: string; input?: unknown }
-      if (toolCall.type !== 'toolCall') continue
-      if (toolCall.toolName !== 'write' && toolCall.toolName !== 'edit') continue
-      const input = toolCall.input as Record<string, unknown> | undefined
-      const target =
-        input && typeof input === 'object'
-          ? (['path', 'file', 'file_path', 'filePath', 'target']
-              .map((key) => input[key])
-              .find((value) => typeof value === 'string' && value) as string | undefined)
-          : undefined
+      const target = readFileMutationPath(block)
       if (target === filePath) return parseTimestamp(entry.timestamp) || 0
     }
   }
   return 0
+}
+
+function writeContentOf(entries: readonly SessionEntry[], filePath: string): string | null {
+  for (let entryIndex = entries.length - 1; entryIndex >= 0; entryIndex -= 1) {
+    const entry = entries[entryIndex]
+    if (entry.type !== 'message') continue
+    const message = entry.message as { role?: string; content?: unknown } | undefined
+    if (!message || message.role !== 'assistant' || !Array.isArray(message.content)) continue
+    for (let blockIndex = message.content.length - 1; blockIndex >= 0; blockIndex -= 1) {
+      const block = message.content[blockIndex]
+      if (readFileMutationPath(block) !== filePath || !block || typeof block !== 'object') continue
+      const toolCall = block as {
+        toolName?: unknown
+        name?: unknown
+        input?: unknown
+        arguments?: unknown
+      }
+      const toolName = typeof toolCall.toolName === 'string' ? toolCall.toolName : toolCall.name
+      if (toolName !== 'write') continue
+      const input =
+        toolCall.input && typeof toolCall.input === 'object'
+          ? toolCall.input
+          : toolCall.arguments && typeof toolCall.arguments === 'object'
+            ? toolCall.arguments
+            : null
+      const content = input ? (input as Record<string, unknown>).content : null
+      if (typeof content === 'string') return content
+    }
+  }
+  return null
+}
+
+function patchDisplayPath(cwd: string | null, resolvedPath: string): string {
+  if (!cwd) return fileName(resolvedPath)
+  const relative = path.relative(cwd, resolvedPath)
+  return relative && !relative.startsWith('..') && !path.isAbsolute(relative)
+    ? relative.replace(/\\/g, '/')
+    : fileName(resolvedPath)
+}
+
+function createAddedFilePatch(filePath: string, content: string): string {
+  const hasTrailingNewline = content.endsWith('\n')
+  const lines = content.split('\n')
+  if (hasTrailingNewline) lines.pop()
+  const body = lines.map((line) => `+${line}`).join('\n')
+  const noNewlineMarker =
+    !hasTrailingNewline && lines.length ? '\n\\ No newline at end of file' : ''
+  return [
+    `diff --git a/${filePath} b/${filePath}`,
+    'new file mode 100644',
+    '--- /dev/null',
+    `+++ b/${filePath}`,
+    `@@ -0,0 +1,${lines.length} @@`,
+    `${body}${noNewlineMarker}`
+  ].join('\n')
 }
 
 function parseTimestamp(value: string | undefined): number {

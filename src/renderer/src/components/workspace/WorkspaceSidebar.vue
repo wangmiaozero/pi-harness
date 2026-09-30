@@ -10,6 +10,7 @@ import {
   Bot,
   Gauge,
   GitBranch,
+  MessageSquare,
   Pin,
   Plus,
   RefreshCw,
@@ -54,7 +55,7 @@ import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
 import { isMingDynastySkin } from '@renderer/utils/skin-catalog'
 import { rendererPlatformHint } from '@renderer/utils/provider-credentials'
 
-type WorkspaceSection = 'sessions' | 'harness' | 'orchestration'
+type WorkspaceSection = 'workspace' | 'harness' | 'orchestration'
 type SidebarMenuEntry =
   | {
       type: 'action'
@@ -66,7 +67,7 @@ type SidebarMenuEntry =
   | { type: 'separator'; id: string }
 
 const props = withDefaults(defineProps<{ activeSection?: WorkspaceSection }>(), {
-  activeSection: 'sessions'
+  activeSection: 'workspace'
 })
 const emit = defineEmits<{
   'focus-composer': []
@@ -104,18 +105,27 @@ const sidebarMenu = ref<
 >(null)
 let dragDepth = 0
 
-const projectGroups = computed(() => workspace.sessionProjectGroups)
+const projectGroups = computed(() =>
+  workspace.sessionProjectGroups.filter((group) => !workspace.isDefaultWorkspace(group.projectRoot))
+)
+const chatSessions = computed(
+  () =>
+    workspace.sessionProjectGroups.find((group) => workspace.isDefaultWorkspace(group.projectRoot))
+      ?.sessions ?? []
+)
+const hasDefaultDraftSession = computed(
+  () =>
+    workspace.hasDraftSession &&
+    workspace.isDefaultWorkspace(workspace.draftWorkspaceFolders[0]?.resolvedPath)
+)
 const newChatActive = computed(
   () => workspace.activeTab?.kind === 'chat' && workspace.activeTab.sessionId === 'new'
 )
 const canStartSessionFromCurrentProject = computed(
-  () =>
-    Boolean(sessions.currentId && sessions.current) &&
-    workspace.activeSessionWorkspaceId === sessions.currentId &&
-    workspace.workspaceFolders.length > 0
+  () => workspace.canChat && workspace.workspaceFolders.length > 0
 )
 const sectionItems = computed(() => [
-  { id: 'sessions' as const, label: t('workspace.projects'), icon: Folder },
+  { id: 'workspace' as const, label: t('workspace.title'), icon: Folder },
   { id: 'harness' as const, label: t('workspace.harness'), icon: Gauge },
   { id: 'orchestration' as const, label: t('orchestration.sidebarLabel'), icon: Bot }
 ])
@@ -218,6 +228,7 @@ async function newSession() {
   if (!(await workspace.startDraftFromActiveWorkspace())) return
   sessions.selectSession(null)
   workspace.ensureChatTab('new', t('workspace.newSession'))
+  emit('section-change', 'workspace')
   emit('focus-composer')
 }
 
@@ -277,6 +288,7 @@ async function removeProject(group: SessionProjectGroup) {
 async function onProjectContextMenu(group: SessionProjectGroup, event: MouseEvent) {
   event.preventDefault()
   event.stopPropagation()
+  if (workspace.isDefaultWorkspace(group.projectRoot)) return
   if (mingDynastyActive.value) {
     sidebarMenu.value = {
       kind: 'project',
@@ -411,6 +423,7 @@ async function openAsMainProject(directories: string[]): Promise<void> {
   }
   sessions.selectSession(null)
   workspace.ensureChatTab('new', t('workspace.newSession'))
+  emit('section-change', 'workspace')
   await Promise.all([workspace.loadFiles(), workspace.loadGit()])
   emit('focus-composer')
 }
@@ -451,6 +464,7 @@ async function importWorkspace(): Promise<boolean> {
     workspace.rememberDraftProject()
     sessions.selectSession(null)
     workspace.ensureChatTab('new', t('workspace.newSession'))
+    emit('section-change', 'workspace')
     await Promise.all([workspace.loadFiles(), workspace.loadGit()])
     toast.success(t('workspace.workspaceOpened'), {
       description: workspaceFile ?? directories[0]
@@ -875,164 +889,251 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
     </div>
 
     <div class="min-h-0 flex-1 overflow-y-auto">
-      <template v-if="section === 'sessions'">
+      <template v-if="section === 'workspace'">
         <div class="px-2 py-2" data-testid="workspace-session-tree">
-          <p class="mb-1 text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
-            {{ $t('workspace.projects') }}
-          </p>
-          <EmptyState
-            v-if="!projectGroups.length"
-            :title="$t('workspace.noProjects')"
-            :description="$t('workspace.dropProjectHint')"
-            :icon="FolderOpen"
-          />
+          <section data-testid="workspace-chat-list">
+            <p
+              data-testid="workspace-sessions-heading"
+              class="mb-1 text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+            >
+              {{ $t('workspace.sessions') }}
+            </p>
+            <EmptyState
+              v-if="!hasDefaultDraftSession && !chatSessions.length"
+              :title="$t('workspace.noSessions')"
+              :description="$t('workspace.noSessionsHint')"
+              :icon="MessageSquare"
+            />
 
-          <div
-            v-for="(group, groupIndex) in projectGroups"
-            :key="group.projectKey"
-            :data-testid="`workspace-project-group-${groupIndex}`"
-            class="mb-2"
-          >
-            <div
-              class="group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
-              :data-testid="`workspace-project-${groupIndex}`"
+            <button
+              v-if="hasDefaultDraftSession"
+              type="button"
+              data-testid="workspace-draft-session"
+              class="mb-1 flex h-8 w-full items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-left text-[12.5px]"
               :class="
-                isProjectActive(group)
+                newChatActive
                   ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
               "
-              @contextmenu="onProjectContextMenu(group, $event)"
+              @click="openDraftSession"
             >
-              <button
-                type="button"
-                class="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left"
-                :title="group.projectRoot"
-                :aria-expanded="
-                  group.sessions.length ? !isProjectCollapsed(group.projectKey) : undefined
-                "
-                @click="openProjectGroup(group)"
-              >
-                <span class="flex size-5 shrink-0 items-center justify-center">
-                  <ChevronRight
-                    v-if="group.sessions.length && isProjectCollapsed(group.projectKey)"
-                    class="size-3"
-                    :stroke-width="1.75"
-                  />
-                  <ChevronDown
-                    v-else-if="group.sessions.length"
-                    class="size-3"
-                    :stroke-width="1.75"
-                  />
-                </span>
-                <Folder class="size-3.5 shrink-0" :stroke-width="1.7" />
-                <span class="min-w-0 flex-1 truncate font-medium">
-                  {{ group.name }}
-                </span>
-              </button>
-              <Pin
-                v-if="workspace.isProjectPinned(group.projectKey)"
-                class="mr-1 size-3 shrink-0 text-[var(--text-tertiary)]"
-                :stroke-width="1.75"
-              />
-              <button
-                type="button"
-                class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] hover:bg-[var(--accent-tint-strong)] hover:text-[var(--accent)]"
-                :title="$t('workspace.newSession')"
-                :aria-label="`${$t('workspace.newSession')}: ${group.name}`"
-                :data-testid="`workspace-new-project-session-${groupIndex}`"
-                @click.stop="newSessionFromProject(group)"
-              >
-                <Plus class="size-3.5" :stroke-width="1.75" />
-              </button>
-            </div>
+              <MessageSquare class="size-3.5 shrink-0" :stroke-width="1.7" />
+              <span class="min-w-0 flex-1 truncate">{{ $t('workspace.newSession') }}</span>
+            </button>
 
-            <div v-if="!isProjectCollapsed(group.projectKey)" class="ml-10 pl-1">
-              <div v-for="session in group.sessions" :key="session.id" class="mb-1">
-                <div
-                  :data-testid="`session-row-${session.id}`"
-                  class="group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
-                  :class="
-                    sessions.currentId === session.id
-                      ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
-                  "
-                  @contextmenu="onContextMenu(session, $event)"
+            <div v-for="session in chatSessions" :key="session.id" class="mb-1">
+              <div
+                :data-testid="`session-row-${session.id}`"
+                class="group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
+                :class="
+                  sessions.currentId === session.id
+                    ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                "
+                @contextmenu="onContextMenu(session, $event)"
+              >
+                <button
+                  v-if="session.transient"
+                  type="button"
+                  class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-70 hover:bg-[var(--bg-hover)] hover:text-[var(--danger)] hover:opacity-100"
+                  :title="$t('common.delete')"
+                  :aria-label="`${$t('common.delete')}: ${sessionTitle(session)}`"
+                  @click.stop="deleteSession(session)"
                 >
-                  <button
-                    v-if="session.transient"
-                    type="button"
-                    class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-70 hover:bg-[var(--bg-hover)] hover:text-[var(--danger)] hover:opacity-100"
-                    :title="$t('common.delete')"
-                    :aria-label="`${$t('common.delete')}: ${sessionTitle(session)}`"
-                    @click.stop="deleteSession(session)"
-                  >
-                    <X class="size-3.5" :stroke-width="1.75" />
-                  </button>
-                  <button
-                    v-if="sessionFolders(session).length > 1"
-                    type="button"
-                    class="flex size-6 shrink-0 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
-                    :aria-label="
-                      isCollapsed(session.id)
-                        ? $t('workspace.expandProject')
-                        : $t('workspace.collapseProject')
-                    "
-                    @click.stop="toggleSession(session.id)"
-                  >
+                  <X class="size-3.5" :stroke-width="1.75" />
+                </button>
+                <button
+                  type="button"
+                  class="flex min-w-0 flex-1 items-center gap-1.5 px-1 py-1 text-left"
+                  :title="sessionTitle(session)"
+                  @click="openSession(session)"
+                >
+                  <GitBranch
+                    v-if="session.worktreeBranch"
+                    class="size-3 shrink-0 text-[var(--text-tertiary)]"
+                    :stroke-width="1.75"
+                  />
+                  <MessageSquare
+                    v-else
+                    class="size-3.5 shrink-0 text-[var(--text-tertiary)]"
+                    :stroke-width="1.7"
+                  />
+                  <span class="min-w-0 flex-1 truncate">{{ sessionTitle(session) }}</span>
+                  <Pin
+                    v-if="workspace.isSessionPinned(session.id)"
+                    class="size-3 shrink-0 text-[var(--text-tertiary)]"
+                    :stroke-width="1.75"
+                  />
+                  <span
+                    v-if="running(session.id)"
+                    class="size-1.5 shrink-0 rounded-full bg-[var(--success)]"
+                  />
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="mt-3 border-t border-[var(--border-subtle)] pt-2">
+            <p
+              data-testid="workspace-projects-heading"
+              class="mb-1 text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+            >
+              {{ $t('workspace.projects') }}
+            </p>
+            <EmptyState
+              v-if="!projectGroups.length"
+              :title="$t('workspace.noProjects')"
+              :description="$t('workspace.dropProjectHint')"
+              :icon="FolderOpen"
+            />
+
+            <div
+              v-for="(group, groupIndex) in projectGroups"
+              :key="group.projectKey"
+              :data-testid="`workspace-project-group-${groupIndex}`"
+              class="mb-2"
+            >
+              <div
+                class="group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
+                :data-testid="`workspace-project-${groupIndex}`"
+                :class="
+                  isProjectActive(group)
+                    ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                "
+                @contextmenu="onProjectContextMenu(group, $event)"
+              >
+                <button
+                  type="button"
+                  class="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left"
+                  :title="group.projectRoot"
+                  :aria-expanded="
+                    group.sessions.length ? !isProjectCollapsed(group.projectKey) : undefined
+                  "
+                  @click="openProjectGroup(group)"
+                >
+                  <span class="flex size-5 shrink-0 items-center justify-center">
                     <ChevronRight
-                      v-if="isCollapsed(session.id)"
+                      v-if="group.sessions.length && isProjectCollapsed(group.projectKey)"
                       class="size-3"
                       :stroke-width="1.75"
                     />
-                    <ChevronDown v-else class="size-3" :stroke-width="1.75" />
-                  </button>
-                  <button
-                    type="button"
-                    class="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left"
-                    :title="sessionTitle(session)"
-                    @click="openSession(session)"
-                  >
-                    <GitBranch
-                      v-if="session.worktreeBranch"
-                      class="size-3 shrink-0 text-[var(--text-tertiary)]"
+                    <ChevronDown
+                      v-else-if="group.sessions.length"
+                      class="size-3"
                       :stroke-width="1.75"
                     />
-                    <span class="min-w-0 flex-1 truncate">{{ sessionTitle(session) }}</span>
-                    <Pin
-                      v-if="workspace.isSessionPinned(session.id)"
-                      class="size-3 shrink-0 text-[var(--text-tertiary)]"
-                      :stroke-width="1.75"
-                    />
-                    <span
-                      v-if="running(session.id)"
-                      class="size-1.5 shrink-0 rounded-full bg-[var(--success)]"
-                    />
-                  </button>
-                </div>
-
-                <div
-                  v-if="sessionFolders(session).length > 1 && !isCollapsed(session.id)"
-                  class="ml-5 border-l border-[var(--border-subtle)] pl-2"
+                  </span>
+                  <Folder class="size-3.5 shrink-0" :stroke-width="1.7" />
+                  <span class="min-w-0 flex-1 truncate font-medium">
+                    {{ group.name }}
+                  </span>
+                </button>
+                <Pin
+                  v-if="workspace.isProjectPinned(group.projectKey)"
+                  class="mr-1 size-3 shrink-0 text-[var(--text-tertiary)]"
+                  :stroke-width="1.75"
+                />
+                <button
+                  type="button"
+                  class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] hover:bg-[var(--accent-tint-strong)] hover:text-[var(--accent)]"
+                  :title="$t('workspace.newSession')"
+                  :aria-label="`${$t('workspace.newSession')}: ${group.name}`"
+                  :data-testid="`workspace-new-project-session-${groupIndex}`"
+                  @click.stop="newSessionFromProject(group)"
                 >
+                  <Plus class="size-3.5" :stroke-width="1.75" />
+                </button>
+              </div>
+
+              <div v-if="!isProjectCollapsed(group.projectKey)" class="ml-10 pl-1">
+                <div v-for="session in group.sessions" :key="session.id" class="mb-1">
                   <div
-                    v-for="(folder, index) in sessionFolders(session)"
-                    :key="folder.id"
-                    :data-testid="`session-project-${session.id}-${index}`"
-                    class="flex h-7 cursor-default items-center gap-1.5 pr-1 text-[11.5px] text-[var(--text-tertiary)]"
-                    @contextmenu="onFolderContextMenu(session, folder, $event)"
+                    :data-testid="`session-row-${session.id}`"
+                    class="group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
+                    :class="
+                      sessions.currentId === session.id
+                        ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                    "
+                    @contextmenu="onContextMenu(session, $event)"
                   >
-                    <Folder class="size-3.5 shrink-0 opacity-80" :stroke-width="1.7" />
-                    <span class="min-w-0 flex-1 truncate" :title="folder.resolvedPath">{{
-                      folder.name
-                    }}</span>
-                    <span v-if="index === 0" class="text-[9.5px] text-[var(--text-tertiary)]">
-                      {{ $t('workspace.primaryProject') }}
-                    </span>
+                    <button
+                      v-if="session.transient"
+                      type="button"
+                      class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-70 hover:bg-[var(--bg-hover)] hover:text-[var(--danger)] hover:opacity-100"
+                      :title="$t('common.delete')"
+                      :aria-label="`${$t('common.delete')}: ${sessionTitle(session)}`"
+                      @click.stop="deleteSession(session)"
+                    >
+                      <X class="size-3.5" :stroke-width="1.75" />
+                    </button>
+                    <button
+                      v-if="sessionFolders(session).length > 1"
+                      type="button"
+                      class="flex size-6 shrink-0 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+                      :aria-label="
+                        isCollapsed(session.id)
+                          ? $t('workspace.expandProject')
+                          : $t('workspace.collapseProject')
+                      "
+                      @click.stop="toggleSession(session.id)"
+                    >
+                      <ChevronRight
+                        v-if="isCollapsed(session.id)"
+                        class="size-3"
+                        :stroke-width="1.75"
+                      />
+                      <ChevronDown v-else class="size-3" :stroke-width="1.75" />
+                    </button>
+                    <button
+                      type="button"
+                      class="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left"
+                      :title="sessionTitle(session)"
+                      @click="openSession(session)"
+                    >
+                      <GitBranch
+                        v-if="session.worktreeBranch"
+                        class="size-3 shrink-0 text-[var(--text-tertiary)]"
+                        :stroke-width="1.75"
+                      />
+                      <span class="min-w-0 flex-1 truncate">{{ sessionTitle(session) }}</span>
+                      <Pin
+                        v-if="workspace.isSessionPinned(session.id)"
+                        class="size-3 shrink-0 text-[var(--text-tertiary)]"
+                        :stroke-width="1.75"
+                      />
+                      <span
+                        v-if="running(session.id)"
+                        class="size-1.5 shrink-0 rounded-full bg-[var(--success)]"
+                      />
+                    </button>
+                  </div>
+
+                  <div
+                    v-if="sessionFolders(session).length > 1 && !isCollapsed(session.id)"
+                    class="ml-5 border-l border-[var(--border-subtle)] pl-2"
+                  >
+                    <div
+                      v-for="(folder, index) in sessionFolders(session)"
+                      :key="folder.id"
+                      :data-testid="`session-project-${session.id}-${index}`"
+                      class="flex h-7 cursor-default items-center gap-1.5 pr-1 text-[11.5px] text-[var(--text-tertiary)]"
+                      @contextmenu="onFolderContextMenu(session, folder, $event)"
+                    >
+                      <Folder class="size-3.5 shrink-0 opacity-80" :stroke-width="1.7" />
+                      <span class="min-w-0 flex-1 truncate" :title="folder.resolvedPath">{{
+                        folder.name
+                      }}</span>
+                      <span v-if="index === 0" class="text-[9.5px] text-[var(--text-tertiary)]">
+                        {{ $t('workspace.primaryProject') }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </template>
       <div v-else-if="section === 'harness'" class="p-3" data-testid="harness-sidebar-status">

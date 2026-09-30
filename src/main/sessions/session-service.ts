@@ -511,6 +511,7 @@ export function entryToUiMessage(entry: SessionEntry): AgentMessage | null {
   switch (entry.type) {
     case 'message': {
       const message = entry.message as AgentMessage | undefined
+      if (message?.role === 'custom' && !message.display) return null
       if (message?.role === 'custom' && message.customType === 'pi-harness-image-result') {
         const details =
           message.details && typeof message.details === 'object'
@@ -549,6 +550,7 @@ export function entryToUiMessage(entry: SessionEntry): AgentMessage | null {
         content: `*The conversation briefly explored another branch and returned with this summary:*\n\n${String(entry.summary)}`
       }
     case 'custom_message': {
+      if (!entry.display) return null
       const content = entry.content
       return {
         role: 'custom',

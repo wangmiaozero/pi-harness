@@ -122,9 +122,18 @@ test('ming portrait themes render full figures beside parchment conversation sur
     [
       { type: 'session', version: 3, id, timestamp, cwd: workspaceRoot },
       {
+        type: 'custom_message',
+        id: 'hidden-context',
+        parentId: null,
+        timestamp,
+        customType: 'plan-mode-context',
+        content: '',
+        display: false
+      },
+      {
         type: 'message',
         id: 'user-1',
-        parentId: null,
+        parentId: 'hidden-context',
         timestamp,
         message: {
           role: 'user',
@@ -185,7 +194,9 @@ test('ming portrait themes render full figures beside parchment conversation sur
       .click()
 
     const image = page.getByTestId('portrait-skin-image')
+    const user = page.locator('[data-message-role="user"]')
     const assistant = page.locator('[data-message-role="assistant"]')
+    await expect(page.locator('[data-message-role="custom"]')).toHaveCount(0)
     await expect(page.locator('html')).toHaveAttribute('data-visual-skin', skin)
     if (skin === 'zhang-juzheng-snow') {
       await expect(page.getByTestId('zhang-titlebar-motto')).toBeVisible()
@@ -266,11 +277,14 @@ test('ming portrait themes render full figures beside parchment conversation sur
       skin === 'zhang-juzheng-snow' ? 'rgb(21, 20, 18)' : 'rgb(29, 29, 27)'
     )
 
-    const [imageBox, assistantBox] = await Promise.all([
+    const [imageBox, userBox, assistantBox] = await Promise.all([
       image.boundingBox(),
+      user.boundingBox(),
       assistant.boundingBox()
     ])
     expect(assistantBox!.x).toBeGreaterThan(imageBox!.x + imageBox!.width * 0.78)
+    expect(userBox!.x).toBeCloseTo(assistantBox!.x, 0)
+    expect(userBox!.width).toBeCloseTo(assistantBox!.width, 0)
     const brandBox = await page.getByTestId('titlebar-brand').boundingBox()
     expect(brandBox!.width).toBeGreaterThanOrEqual(312)
     if (process.platform !== 'win32') {
@@ -285,6 +299,13 @@ test('ming portrait themes render full figures beside parchment conversation sur
     await statsToggle.click()
     await expect(page.locator('.session-hud')).toBeVisible()
     await page.screenshot({ path: path.join(testInfo.outputDir, `${skin}-conversation.png`) })
+    if (skin === 'ming-moon' && process.env.PI_HARNESS_DESIGN_QA_DIR) {
+      await page.setViewportSize({ width: 2048, height: 1324 })
+      await page.screenshot({
+        path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'ming-moon-message-alignment.png')
+      })
+      await page.setViewportSize({ width: 1677, height: 943 })
+    }
 
     if (skin === 'zhang-juzheng-snow') {
       await page.setViewportSize({ width: 1677, height: 1084 })
@@ -313,6 +334,7 @@ test('ming portrait themes render full figures beside parchment conversation sur
       await page.setViewportSize({ width: 1677, height: 943 })
     }
 
+    await page.getByTestId('workspace-section-workspace').click()
     await page.getByTestId('workspace-project-0').click({ button: 'right' })
     const projectMenu = page.getByTestId('project-context-menu')
     await expect(projectMenu).toBeVisible()
@@ -364,7 +386,7 @@ test('ming portrait themes render full figures beside parchment conversation sur
     ])
     expect(harnessConsoleBox).toEqual(workspaceMainBox)
     await page.screenshot({ path: path.join(testInfo.outputDir, `${skin}-harness-mode.png`) })
-    await page.getByTestId('workspace-section-sessions').click()
+    await page.getByTestId('workspace-section-workspace').click()
     await expect(image).toBeVisible()
     await expect(assistant).toBeVisible()
 

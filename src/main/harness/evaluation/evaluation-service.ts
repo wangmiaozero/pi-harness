@@ -487,15 +487,31 @@ export function collectFileMutations(entries: readonly SessionEntry[]): string[]
     const message = entry.message as { role?: string; content?: unknown } | undefined
     if (!message || message.role !== 'assistant' || !Array.isArray(message.content)) continue
     for (const block of message.content) {
-      if (!block || typeof block !== 'object') continue
-      const toolCall = block as { type?: string; toolName?: string; input?: unknown }
-      if (toolCall.type !== 'toolCall') continue
-      if (toolCall.toolName !== 'write' && toolCall.toolName !== 'edit') continue
-      const target = readPath(toolCall.input)
+      const target = readFileMutationPath(block)
       if (target) paths.push(target)
     }
   }
   return [...new Set(paths)]
+}
+
+export function readFileMutationPath(block: unknown): string | null {
+  if (!block || typeof block !== 'object') return null
+  const toolCall = block as {
+    type?: unknown
+    toolName?: unknown
+    name?: unknown
+    input?: unknown
+    arguments?: unknown
+  }
+  if (toolCall.type !== 'toolCall') return null
+  const toolName =
+    typeof toolCall.toolName === 'string'
+      ? toolCall.toolName
+      : typeof toolCall.name === 'string'
+        ? toolCall.name
+        : null
+  if (toolName !== 'write' && toolName !== 'edit') return null
+  return readPath(toolCall.input) ?? readPath(toolCall.arguments)
 }
 
 function readPath(input: unknown): string | null {

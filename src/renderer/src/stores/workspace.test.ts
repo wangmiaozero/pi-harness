@@ -299,6 +299,68 @@ describe('workspace projects', () => {
     expect(workspace.tabs.map((tab) => tab.id)).toEqual(['chat:new'])
   })
 
+  it('activates a managed default workspace without a user-selected folder', async () => {
+    const workspace = useWorkspaceStore()
+    window.piSwitch = workspaceApi({})
+
+    try {
+      await workspace.ensureDefaultWorkspace('默认工作区')
+
+      expect(workspace.canChat).toBe(true)
+      expect(workspace.currentCwd).toBe('/app-data/workspaces/default')
+      expect(workspace.hasDraftSession).toBe(true)
+      expect(workspace.sessionProjectGroups[0]).toMatchObject({
+        name: '默认工作区',
+        projectRoot: '/app-data/workspaces/default',
+        sessions: []
+      })
+      expect(workspace.gitRoots).toEqual([])
+      expect(workspace.isDefaultWorkspace('/app-data/workspaces/default')).toBe(true)
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
+  it('restores managed default-workspace sessions as standalone chats', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    const root = '/app-data/workspaces/default'
+    const sessionInfo = session('default-session', root, '2026-01-01T00:00:00.000Z')
+    const projectKey = projectIdentityKey(root)
+    const bindings: Record<string, SessionWorkspaceBinding> = {
+      [sessionInfo.id]: {
+        workspaceId: `session:${sessionInfo.id}`,
+        mainFolderId: projectKey,
+        folders: [{ id: projectKey, path: root, role: 'main' }]
+      }
+    }
+    sessions.items = [sessionInfo]
+    sessions.selectSession(sessionInfo.id)
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => JSON.stringify({ removedProjectKeys: [projectKey] })),
+      setItem: vi.fn(),
+      removeItem: vi.fn()
+    })
+    window.piSwitch = workspaceApi(bindings)
+
+    try {
+      await workspace.restore({ restoreTabs: false, autoOpenLastProject: false })
+
+      expect(workspace.defaultWorkspaceRoot).toBe(root)
+      expect(workspace.isDefaultWorkspace(root)).toBe(true)
+      expect(workspace.sessionProjectGroups).toEqual([
+        expect.objectContaining({
+          projectKey,
+          projectRoot: root,
+          sessions: [expect.objectContaining({ id: sessionInfo.id })]
+        })
+      ])
+    } finally {
+      delete window.piSwitch
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('prefixes file tabs with the folder name in a multi-root workspace', () => {
     const workspace = useWorkspaceStore()
     selectFileSession(workspace, '/code/AgentDesk')
@@ -1104,6 +1166,26 @@ function workspaceApi(bindings: Record<string, SessionWorkspaceBinding>): PiSwit
   })
   return {
     workspace: {
+      getDefaultRoot: async () => '/app-data/workspaces/default',
+      ensureDefault: async () => ({
+        id: 'default',
+        name: 'Default Workspace',
+        workspaceFile: null,
+        folders: [
+          {
+            id: projectIdentityKey('/app-data/workspaces/default'),
+            name: 'Default Workspace',
+            path: '/app-data/workspaces/default',
+            resolvedPath: '/app-data/workspaces/default',
+            role: 'main',
+            readonly: false,
+            exists: true
+          }
+        ],
+        settings: { 'piHarness.defaultWorkspace': true },
+        createdAt: 1,
+        updatedAt: 1
+      }),
       listSessionBindings: async () => bindings,
       getSessionBinding: async (sessionId: string) => bindings[sessionId] ?? null,
       bindSession: async (

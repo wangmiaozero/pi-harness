@@ -336,6 +336,7 @@ test.describe('Capabilities', () => {
     await search.fill('mcp')
     await expect(page.getByTestId('registry-loading-overlay')).toBeVisible()
     await expect(page.getByTestId('registry-package-pi-mcp-adapter')).toBeVisible()
+    await expect(page.getByRole('button', { name: /详情|Details/, exact: true })).toHaveCount(0)
     await expect(page.getByText('Pi Manifest')).toBeVisible()
 
     await page

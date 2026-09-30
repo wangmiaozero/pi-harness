@@ -26,7 +26,7 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1"><img alt="v1.7.1 發行版" src="https://img.shields.io/badge/release-v1.7.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="v1.8.0 發行版" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
   <img alt="支援 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 授權" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -72,18 +72,16 @@ Native Pi 始終位於真實執行鏈路中；Pi-Harness 包含 Native Pi 的全
 
 ## 下載
 
-從 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1) 下載 Pi-Harness v1.7.1。
+從 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0) 下載 Pi-Harness v1.8.0。
 
 | 平台                | 安裝程式                                                                                                                       |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.7.1-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.7.1.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.7.1.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-Setup-1.7.1.exe) |
-| Linux x64           | [`Pi-Harness-1.7.1.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.8.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.8.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.8.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-Setup-1.8.0.exe) |
+| Linux x64           | [`Pi-Harness-1.8.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.AppImage)   |
 
-> **Windows 升級提示：**從 v1.7.0 升級到 v1.7.1 不會再次執行一次性舊版應用程式資料重設。尚未啟動過 v1.7.0 正式安裝程式的機器，仍會一次性重設舊版 Pi-Harness 應用程式設定、本機憑證庫、應用程式內備份與快取。Pi Agent 的獨立資料目錄與專案檔案不會被重設。
->
-> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v1.7.1 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1)。
+> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v1.8.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0)。
 
 安裝程式使用者不需要 clone 儲存庫，也不需要安裝 pnpm。Pi-Harness 可在支援的環境中偵測、安裝及修復 Node.js、npm、PATH 與 Pi Coding Agent。
 
@@ -127,29 +125,39 @@ Native Pi 始終位於真實執行鏈路中；Pi-Harness 包含 Native Pi 的全
 
 ## 介面預覽
 
-以下以預設主題與古風主題，分別展示相同的主要介面。古風主題工作區包含雪景與月夜兩套畫面。
+預設主題截圖展示主要功能介面。v1.8.0 外觀圖庫依工作區主題與功能介面重新分類。
 
 ### 預設主題
 
-|                    工作區                    |                   Git                    |
-| :------------------------------------------: | :--------------------------------------: |
-|  ![預設主題工作區](docs/默认主题/Work.jpg)   |  ![預設主題 Git](docs/默认主题/Git.jpg)  |
-|                 **Provider**                 |                 **模型**                 |
-| ![預設主題 Provider](docs/默认主题/APIs.jpg) | ![預設主題模型](docs/默认主题/Model.jpg) |
-|                 **能力中心**                 |                 **設定**                 |
-| ![預設主題能力中心](docs/默认主题/Caps.jpg)  | ![預設主題設定](docs/默认主题/Prefs.jpg) |
+|                     工作區                      |                   Git                   |
+| :---------------------------------------------: | :-------------------------------------: |
+|   ![經典主題工作區](docs/经典主题/工作区.jpg)   | ![經典主題 Git](docs/经典主题/Git.jpg)  |
+|                  **能力中心**                   |                **模型**                 |
+| ![經典主題能力中心](docs/经典主题/能力中心.jpg) | ![經典主題模型](docs/经典主题/模型.jpg) |
+|                    **設定**                     |                                         |
+|     ![經典主題設定](docs/经典主题/设置.jpg)     |                                         |
 
-### 古風主題
+### v1.8.0 外觀圖庫
 
-|               工作區（雪景）                |               工作區（月夜）                |
-| :-----------------------------------------: | :-----------------------------------------: |
-| ![古風主題雪景工作區](docs/古风/Work-1.jpg) | ![古風主題月夜工作區](docs/古风/Work-2.jpg) |
-|                     Git                     |                **Provider**                 |
-|     ![古風主題 Git](docs/古风/Git.jpg)      |  ![古風主題 Provider](docs/古风/APIs.jpg)   |
-|                  **模型**                   |                **能力中心**                 |
-|    ![古風主題模型](docs/古风/Model.jpg)     |   ![古風主題能力中心](docs/古风/Caps.jpg)   |
-|                  **設定**                   |                                             |
-|    ![古風主題設定](docs/古风/Prefs.jpg)     |                                             |
+#### 工作區主題
+
+|                              大明·雪境朝臣                              |                         大明·雪夜笛姬                          |
+| :---------------------------------------------------------------------: | :------------------------------------------------------------: |
+|         ![大明雪境朝臣工作區](docs/主题展示/大明/雪境朝臣.jpg)          |     ![大明雪夜笛姬工作區](docs/主题展示/大明/雪夜笛姬.jpg)     |
+|                            **大明·月城書姬**                            |                         **星艦駕駛艙**                         |
+|         ![大明月城書姬工作區](docs/主题展示/大明/月城书姬.jpg)          |      ![星艦駕駛艙工作區](docs/主题展示/星舰/霜星领航.jpg)      |
+|                         **macOS 27 · 液態以太**                         |                       **宣告式自訂外觀**                       |
+| ![macOS 27 液態以太工作區](docs/主题展示/macOS%2027/Liquid%20Ether.jpg) | ![宣告式自訂外觀工作區](docs/主题展示/自定义皮肤/夏日海岸.jpg) |
+
+#### 功能介面
+
+|                  一般設定                   |                         主題圖庫                         |
+| :-----------------------------------------: | :------------------------------------------------------: |
+| ![一般外觀設定](docs/功能界面/通用设置.jpg) |    ![內建與自訂主題圖庫](docs/功能界面/主题图库.jpg)     |
+|                **能力中心**                 |                   **Provider 與模型**                    |
+|   ![能力市場](docs/功能界面/能力中心.jpg)   | ![Provider 與模型管理](docs/功能界面/Provider与模型.jpg) |
+|                   **Git**                   |                                                          |
+|    ![Git 工作區](docs/功能界面/Git.jpg)     |                                                          |
 
 ## 核心能力
 

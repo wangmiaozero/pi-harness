@@ -21,6 +21,8 @@ describe('ChatComposer model capabilities', () => {
     providers.items = [provider()]
     models.items = [model('text-only', false), model('vision', true)]
     models.active = { providerKey: 'provider', modelId: 'text-only' }
+    workspace.projectRoots = ['/code/test']
+    workspace.pickedCwd = '/code/test'
 
     const wrapper = mount(ChatComposer, {
       props: { soundEnabled: false },
@@ -59,6 +61,8 @@ describe('ChatComposer model capabilities', () => {
     providers.items = [provider()]
     models.items = [model('step-image-edit-2', false)]
     models.active = { providerKey: 'provider', modelId: 'step-image-edit-2' }
+    workspace.projectRoots = ['/code/test']
+    workspace.pickedCwd = '/code/test'
     workspace.draft = 'draw a lighthouse'
 
     const wrapper = mount(ChatComposer, {

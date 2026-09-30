@@ -26,7 +26,7 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1"><img alt="release v1.7.1" src="https://img.shields.io/badge/release-v1.7.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="release v1.8.0" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -60,18 +60,16 @@ Native Pi は常に実際の実行経路の内側にあり、Pi-Harness はそ�
 
 ## ダウンロード
 
-[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1) から Pi-Harness v1.7.1 をダウンロードしてください。
+[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0) から Pi-Harness v1.8.0 をダウンロードしてください。
 
 | プラットフォーム    | インストーラー                                                                                                               |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.7.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.7.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.7.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-Setup-1.7.1.exe) |
-| Linux x64           | [Pi-Harness-1.7.1.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.8.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.8.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.8.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-Setup-1.8.0.exe) |
+| Linux x64           | [Pi-Harness-1.8.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.AppImage)   |
 
-> **Windows アップグレード時の注意:** v1.7.0 から v1.7.1 へのアップグレードでは、一度限りの旧アプリデータリセットは再実行されません。v1.7.0 のインストール版を一度も起動していない環境では、旧バージョンの Pi-Harness アプリ設定、ローカル認証情報、アプリ内バックアップ、キャッシュが一度だけリセットされます。Pi Agent の独立したデータディレクトリとプロジェクトファイルはリセットされません。
->
-> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v1.7.1 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1)を参照してください。
+> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v1.8.0 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0)を参照してください。
 
 パッケージ版の利用者は、リポジトリの clone や pnpm のインストールを行う必要はありません。Pi-Harness は、対応環境で Node.js、npm、PATH、Pi Coding Agent を検出し、インストールまたは修復できます。
 
@@ -99,29 +97,39 @@ Native Pi は常に実際の実行経路の内側にあり、Pi-Harness はそ�
 
 ## スクリーンショット
 
-同じ主要画面を、デフォルトテーマと古風テーマの両方で紹介します。古風テーマのワークスペースには雪景色と月夜の 2 種があります。
+デフォルトテーマでは主要機能を紹介します。v1.8.0 の外観ギャラリーは、ワークスペーステーマと機能画面に分類しています。
 
 ### デフォルトテーマ
 
-|                       ワークスペース                        |                         Git                          |
-| :---------------------------------------------------------: | :--------------------------------------------------: |
-| ![デフォルトテーマのワークスペース](docs/默认主题/Work.jpg) |   ![デフォルトテーマの Git](docs/默认主题/Git.jpg)   |
-|                        **Provider**                         |                      **モデル**                      |
-|   ![デフォルトテーマの Provider](docs/默认主题/APIs.jpg)    | ![デフォルトテーマのモデル](docs/默认主题/Model.jpg) |
-|                      **機能センター**                       |                       **設定**                       |
-|  ![デフォルトテーマの機能センター](docs/默认主题/Caps.jpg)  |  ![デフォルトテーマの設定](docs/默认主题/Prefs.jpg)  |
+|                        ワークスペース                         |                         Git                         |
+| :-----------------------------------------------------------: | :-------------------------------------------------: |
+| ![クラシックテーマのワークスペース](docs/经典主题/工作区.jpg) |  ![クラシックテーマの Git](docs/经典主题/Git.jpg)   |
+|                       **機能センター**                        |                     **モデル**                      |
+| ![クラシックテーマの機能センター](docs/经典主题/能力中心.jpg) | ![クラシックテーマのモデル](docs/经典主题/模型.jpg) |
+|                           **設定**                            |                                                     |
+|       ![クラシックテーマの設定](docs/经典主题/设置.jpg)       |                                                     |
 
-### 古風テーマ
+### v1.8.0 外観ギャラリー
 
-|                   ワークスペース（雪）                    |                 ワークスペース（月夜）                  |
-| :-------------------------------------------------------: | :-----------------------------------------------------: |
-| ![古風テーマ雪景色のワークスペース](docs/古风/Work-1.jpg) | ![古風テーマ月夜のワークスペース](docs/古风/Work-2.jpg) |
-|                            Git                            |                      **Provider**                       |
-|          ![古風テーマの Git](docs/古风/Git.jpg)           |      ![古風テーマの Provider](docs/古风/APIs.jpg)       |
-|                        **モデル**                         |                    **機能センター**                     |
-|        ![古風テーマのモデル](docs/古风/Model.jpg)         |     ![古風テーマの機能センター](docs/古风/Caps.jpg)     |
-|                         **設定**                          |                                                         |
-|         ![古風テーマの設定](docs/古风/Prefs.jpg)          |                                                         |
+#### ワークスペーステーマ
+
+|                                  Ming · 雪景の官人                                   |                         Ming · 雪夜の笛奏者                         |
+| :----------------------------------------------------------------------------------: | :-----------------------------------------------------------------: |
+|          ![Ming 雪景の官人ワークスペース](docs/主题展示/大明/雪境朝臣.jpg)           | ![Ming 雪夜の笛奏者ワークスペース](docs/主题展示/大明/雪夜笛姬.jpg) |
+|                                **Ming · 月城の書姫**                                 |                        **Starship Cockpit**                         |
+|          ![Ming 月城の書姫ワークスペース](docs/主题展示/大明/月城书姬.jpg)           | ![Starship Cockpit ワークスペース](docs/主题展示/星舰/霜星领航.jpg) |
+|                             **macOS 27 · Liquid Ether**                              |                      **宣言型カスタムスキン**                       |
+| ![macOS 27 Liquid Ether ワークスペース](docs/主题展示/macOS%2027/Liquid%20Ether.jpg) |   ![宣言型カスタムスキン](docs/主题展示/自定义皮肤/夏日海岸.jpg)    |
+
+#### 機能画面
+
+|                        一般設定                        |                       テーマギャラリー                        |
+| :----------------------------------------------------: | :-----------------------------------------------------------: |
+|      ![一般外観設定](docs/功能界面/通用设置.jpg)       | ![組み込みテーマとカスタムテーマ](docs/功能界面/主题图库.jpg) |
+|                    **機能センター**                    |                     **Provider とモデル**                     |
+| ![Capabilities マーケット](docs/功能界面/能力中心.jpg) |  ![Provider とモデル管理](docs/功能界面/Provider与模型.jpg)   |
+|                        **Git**                         |                                                               |
+|      ![Git ワークスペース](docs/功能界面/Git.jpg)      |                                                               |
 
 ## エディターの範囲
 

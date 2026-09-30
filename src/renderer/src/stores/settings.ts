@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { AppSettings, BackupRecord } from '@shared/ipc/api-types'
+import type { CustomSkinDescriptor } from '@shared/types/custom-skin'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { i18n, resolveLocale } from '@renderer/i18n'
 import { applyTheme } from '@renderer/utils/theme'
@@ -11,10 +12,17 @@ import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { normalizeNavOrder } from '@shared/constants/navigation'
 import { applyVisualSkin } from '@renderer/utils/visual-skin'
 import { toIpcSettingsPatch } from '@renderer/utils/settings-patch'
+import { setCustomSkinCatalog } from '@renderer/utils/skin-catalog'
+import { normalizeAssistantName, normalizeUserName } from '@shared/constants/chat-participants'
+import {
+  normalizeMacOS27Background,
+  normalizeMacOS27BackgroundImage
+} from '@shared/constants/macos27-background'
 
 export const useSettingsStore = defineStore('settings', () => {
   const settings = ref<AppSettings | null>(null)
   const backups = ref<BackupRecord[]>([])
+  const customSkins = ref<CustomSkinDescriptor[]>([])
   const loading = ref(false)
   const backupsLoading = ref(false)
   const error = ref<string | null>(null)
@@ -23,7 +31,12 @@ export const useSettingsStore = defineStore('settings', () => {
     loading.value = true
     error.value = null
     try {
-      const next = await callApi(() => getApi().settings.get())
+      const [next, skins] = await Promise.all([
+        callApi(() => getApi().settings.get()),
+        callApi(() => getApi().skins.list())
+      ])
+      customSkins.value = skins
+      setCustomSkinCatalog(skins)
       normalizeExperienceSettings(next)
       settings.value = next
       applyLocale(settings.value.language)
@@ -50,6 +63,18 @@ export const useSettingsStore = defineStore('settings', () => {
     return unlocked
   }
 
+  async function importCustomSkin(): Promise<CustomSkinDescriptor | null> {
+    const imported = await callApi(() => getApi().skins.import())
+    if (!imported) return null
+    customSkins.value = await callApi(() => getApi().skins.list())
+    setCustomSkinCatalog(customSkins.value)
+    return imported
+  }
+
+  async function createCustomSkinProject() {
+    return callApi(() => getApi().skins.createProject())
+  }
+
   function applyLocale(language: AppSettings['language']) {
     i18n.global.locale.value = resolveLocale(language)
   }
@@ -61,14 +86,22 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function normalizeExperienceSettings(value: AppSettings): void {
     value.theme = normalizeAppTheme(value.theme)
+    value.macos27Background = normalizeMacOS27Background(value.macos27Background)
+    value.macos27BackgroundImage = normalizeMacOS27BackgroundImage(value.macos27BackgroundImage)
+    value.userName = normalizeUserName(value.userName)
+    value.assistantName = normalizeAssistantName(value.assistantName)
     value.appIcon = normalizeAppIconPreference(value.appIcon)
     value.mascotStyle = normalizeMascotStyle(value.mascotStyle)
+    if (value.customSkinId && !customSkins.value.some((skin) => skin.id === value.customSkinId)) {
+      value.customSkinId = null
+    }
     value.petSleepMinutes = Math.min(120, Math.max(1, value.petSleepMinutes))
     value.navOrder = normalizeNavOrder(value.navOrder)
     if (!MASCOT_ENABLED) {
       // Mascot-free builds ship neither the Settings section nor the assets.
       value.mascotUnlocked = false
       value.mascotStyle = 'none'
+      value.customSkinId = null
     } else if (!value.mascotUnlocked) {
       value.mascotStyle = 'none'
     }
@@ -112,12 +145,15 @@ export const useSettingsStore = defineStore('settings', () => {
   return {
     settings,
     backups,
+    customSkins,
     loading,
     backupsLoading,
     error,
     fetch,
     patch,
     unlockMascot,
+    importCustomSkin,
+    createCustomSkinProject,
     fetchBackups,
     createBackup,
     restoreBackup,

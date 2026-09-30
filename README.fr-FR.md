@@ -26,7 +26,7 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1"><img alt="release v1.7.1" src="https://img.shields.io/badge/release-v1.7.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="release v1.8.0" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -60,18 +60,16 @@ Native Pi reste toujours dans le chemin d’exécution réel ; Pi-Harness ajoute
 
 ## Télécharger
 
-Téléchargez Pi-Harness v1.7.1 depuis [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1).
+Téléchargez Pi-Harness v1.8.0 depuis [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0).
 
 | Plateforme          | Programme d’installation                                                                                                     |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.7.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.7.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.7.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-Setup-1.7.1.exe) |
-| Linux x64           | [Pi-Harness-1.7.1.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.7.1/Pi-Harness-1.7.1.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.8.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.8.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.8.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-Setup-1.8.0.exe) |
+| Linux x64           | [Pi-Harness-1.8.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.AppImage)   |
 
-> **Note de mise à niveau Windows :** la mise à niveau de v1.7.0 vers v1.7.1 ne répète pas la réinitialisation unique des anciennes données. Sur une machine qui n’a jamais lancé l’application v1.7.0 installée, les anciens réglages de Pi-Harness, le coffre local d’identifiants, les sauvegardes de l’application et les caches sont réinitialisés une seule fois. Le répertoire de données séparé de Pi Agent et les fichiers des projets ne sont pas réinitialisés.
->
-> Les builds communautaires macOS peuvent ne pas être signés. Si macOS bloque le premier lancement, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Consultez les [notes de la v1.7.1](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.7.1).
+> Les builds communautaires macOS peuvent ne pas être signés. Si macOS bloque le premier lancement, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Consultez les [notes de la v1.8.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0).
 
 Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer pnpm. Pi-Harness peut détecter, installer et réparer Node.js, npm, PATH et Pi Coding Agent dans les environnements pris en charge.
 
@@ -99,29 +97,39 @@ Installer → Configurer le fournisseur → Choisir le modèle → Ouvrir le pro
 
 ## Captures d’écran
 
-Les écrans principaux sont présentés avec le thème par défaut et le thème d’inspiration Ming. L’espace de travail Ming comprend une variante neige et une variante nuit.
+Le thème par défaut présente les fonctions principales. La galerie v1.8.0 est reclassée en thèmes d’espace de travail et écrans fonctionnels.
 
 ### Thème par défaut
 
-|                               Espace de travail                               |                               Git                                |
-| :---------------------------------------------------------------------------: | :--------------------------------------------------------------: |
-|     ![Espace de travail avec le thème par défaut](docs/默认主题/Work.jpg)     |      ![Git avec le thème par défaut](docs/默认主题/Git.jpg)      |
-|                               **Fournisseurs**                                |                           **Modèles**                            |
-|       ![Fournisseurs avec le thème par défaut](docs/默认主题/APIs.jpg)        |   ![Modèles avec le thème par défaut](docs/默认主题/Model.jpg)   |
-|                         **Centre de fonctionnalités**                         |                         **Préférences**                          |
-| ![Centre de fonctionnalités avec le thème par défaut](docs/默认主题/Caps.jpg) | ![Préférences avec le thème par défaut](docs/默认主题/Prefs.jpg) |
+|                                Espace de travail                                 |                            Git                             |
+| :------------------------------------------------------------------------------: | :--------------------------------------------------------: |
+|      ![Espace de travail avec le thème classique](docs/经典主题/工作区.jpg)      |   ![Git avec le thème classique](docs/经典主题/Git.jpg)    |
+|                          **Centre de fonctionnalités**                           |                        **Modèles**                         |
+| ![Centre de fonctionnalités avec le thème classique](docs/经典主题/能力中心.jpg) | ![Modèles avec le thème classique](docs/经典主题/模型.jpg) |
+|                                 **Préférences**                                  |                                                            |
+|          ![Préférences avec le thème classique](docs/经典主题/设置.jpg)          |                                                            |
 
-### Thème d’inspiration Ming
+### Galerie d’apparence v1.8.0
 
-|                      Espace de travail (neige)                      |                      Espace de travail (nuit)                       |
-| :-----------------------------------------------------------------: | :-----------------------------------------------------------------: |
-| ![Espace de travail neige avec le thème Ming](docs/古风/Work-1.jpg) | ![Espace de travail nuit avec le thème Ming](docs/古风/Work-2.jpg)  |
-|                                 Git                                 |                          **Fournisseurs**                           |
-|            ![Git avec le thème Ming](docs/古风/Git.jpg)             |       ![Fournisseurs avec le thème Ming](docs/古风/APIs.jpg)        |
-|                             **Modèles**                             |                    **Centre de fonctionnalités**                    |
-|         ![Modèles avec le thème Ming](docs/古风/Model.jpg)          | ![Centre de fonctionnalités avec le thème Ming](docs/古风/Caps.jpg) |
-|                           **Préférences**                           |                                                                     |
-|       ![Préférences avec le thème Ming](docs/古风/Prefs.jpg)        |                                                                     |
+#### Thèmes d’espace de travail
+
+|                          Ming · dignitaire enneigé                           |                        Ming · musicienne sous la neige                        |
+| :--------------------------------------------------------------------------: | :---------------------------------------------------------------------------: |
+|   ![Espace Ming avec dignitaire enneigé](docs/主题展示/大明/雪境朝臣.jpg)    | ![Espace Ming avec musicienne sous la neige](docs/主题展示/大明/雪夜笛姬.jpg) |
+|                     **Ming · lettrée au clair de lune**                      |                             **Starship Cockpit**                              |
+|       ![Espace Ming au clair de lune](docs/主题展示/大明/月城书姬.jpg)       |          ![Espace Starship Cockpit](docs/主题展示/星舰/霜星领航.jpg)          |
+|                         **macOS 27 · Liquid Ether**                          |                           **Apparence déclarative**                           |
+| ![Espace macOS 27 Liquid Ether](docs/主题展示/macOS%2027/Liquid%20Ether.jpg) | ![Apparence personnalisée déclarative](docs/主题展示/自定义皮肤/夏日海岸.jpg) |
+
+#### Écrans fonctionnels
+
+|                        Réglages généraux                        |                            Galerie de thèmes                             |
+| :-------------------------------------------------------------: | :----------------------------------------------------------------------: |
+| ![Réglages généraux de l’apparence](docs/功能界面/通用设置.jpg) |     ![Thèmes intégrés et personnalisés](docs/功能界面/主题图库.jpg)      |
+|                  **Centre de fonctionnalités**                  |                       **Fournisseurs et modèles**                        |
+|    ![Marché des fonctionnalités](docs/功能界面/能力中心.jpg)    | ![Gestion des fournisseurs et modèles](docs/功能界面/Provider与模型.jpg) |
+|                             **Git**                             |                                                                          |
+|              ![Espace Git](docs/功能界面/Git.jpg)               |                                                                          |
 
 ## Limites de l’éditeur
 

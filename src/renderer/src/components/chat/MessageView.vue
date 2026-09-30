@@ -9,6 +9,8 @@ import StreamingMarkdown from './StreamingMarkdown.vue'
 import FileChangesCard from './FileChangesCard.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import type { MessageFileChanges } from './message-file-changes'
+import { normalizeAssistantName, normalizeUserName } from '@shared/constants/chat-participants'
+import { hasRenderableMessageContent } from './message-visibility'
 
 const markdownOptions = {
   registerDefaultPlugins: false
@@ -55,10 +57,19 @@ const props = defineProps<{
   entryId?: string
   streaming?: boolean
   fileChanges?: MessageFileChanges
+  userName?: string
+  assistantName?: string
 }>()
 const previewSrc = ref<string | null>(null)
 const previewOpen = ref(false)
 const markdownFailed = ref(false)
+const userDisplayName = computed(() => normalizeUserName(props.userName))
+const assistantDisplayName = computed(() => normalizeAssistantName(props.assistantName))
+const hasVisibleContent = computed(
+  () =>
+    hasRenderableMessageContent(props.message) ||
+    (props.message.role === 'assistant' && Boolean(props.fileChanges) && !props.streaming)
+)
 
 onErrorCaptured(() => {
   markdownFailed.value = true
@@ -122,23 +133,22 @@ const bashText = computed(() => {
 </script>
 
 <template>
-  <article class="message-hud mb-3" :data-message-role="message.role">
-    <p
-      v-if="message.role !== 'toolResult'"
-      class="mb-1 text-[10.5px] font-medium uppercase tracking-[0.05em] text-[var(--text-tertiary)]"
-    >
-      <template v-if="message.role === 'user'">{{ $t('workspace.roleUser') }}</template>
-      <template v-else-if="message.role === 'assistant'">
-        {{ $t('workspace.roleAssistant') }}
-        <span v-if="streaming"> · {{ $t('workspace.streaming') }}</span>
-      </template>
-      <template v-else-if="message.role === 'bashExecution'">bash</template>
-      <template v-else>{{ message.customType }}</template>
+  <article v-if="hasVisibleContent" class="message-hud mb-3" :data-message-role="message.role">
+    <p v-if="message.role !== 'toolResult'" class="message-role-label">
+      <span class="message-role-badge">
+        <template v-if="message.role === 'user'">{{ userDisplayName }}</template>
+        <template v-else-if="message.role === 'assistant'">
+          {{ assistantDisplayName }}
+          <span v-if="streaming"> · {{ $t('workspace.streaming') }}</span>
+        </template>
+        <template v-else-if="message.role === 'bashExecution'">bash</template>
+        <template v-else>{{ message.customType }}</template>
+      </span>
     </p>
 
     <div
       v-if="message.role === 'user'"
-      class="user-message-body rounded-[var(--radius-sm)] bg-[var(--bg-surface)] px-3 py-2 text-[13px] text-[var(--text-primary)]"
+      class="user-message-body px-3.5 py-2.5 text-[13px] text-[var(--text-primary)]"
     >
       <p v-if="userText" class="whitespace-pre-wrap">{{ userText }}</p>
       <div v-if="userImages.length" class="flex flex-wrap gap-2" :class="userText ? 'mt-2' : ''">
@@ -259,9 +269,69 @@ const bashText = computed(() => {
 
 <style scoped>
 .message-hud {
+  width: min(96%, 1040px);
   min-width: 0;
   max-width: 100%;
+  margin-inline: auto;
   overflow-wrap: anywhere;
+}
+
+.message-role-label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.message-role-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 21px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-surface-raised) 88%, transparent);
+}
+
+.message-hud[data-message-role='user'] .message-role-label {
+  justify-content: flex-end;
+  color: var(--accent);
+}
+
+.message-hud[data-message-role='user'] .message-role-badge {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border-subtle));
+  background: var(--accent-tint);
+}
+
+.user-message-body {
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border-default));
+  border-radius: var(--radius-md) var(--radius-md) 3px var(--radius-md);
+  background: color-mix(in srgb, var(--accent-tint-strong) 72%, var(--bg-surface));
+  box-shadow:
+    inset -2px 0 0 color-mix(in srgb, var(--accent) 56%, transparent),
+    var(--shadow-sm);
+}
+
+.assistant-message-body {
+  padding: 11px 13px;
+  border: 1px solid var(--border-default);
+  border-left-color: color-mix(in srgb, var(--text-tertiary) 58%, var(--border-default));
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 3px;
+  background: color-mix(in srgb, var(--bg-surface-raised) 90%, transparent);
+  box-shadow:
+    inset 2px 0 0 color-mix(in srgb, var(--text-tertiary) 24%, transparent),
+    var(--shadow-sm);
+}
+
+@media (max-width: 720px) {
+  .message-hud {
+    width: 100%;
+  }
 }
 
 .markdown-content {

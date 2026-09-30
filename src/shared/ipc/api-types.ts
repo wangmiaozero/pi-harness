@@ -17,6 +17,7 @@ import type {
 import type { AppLanguage } from '../constants/language'
 import type { ProtocolId } from '../constants/protocols'
 import type { AppTheme } from '../constants/theme'
+import type { MacOS27Background } from '../constants/macos27-background'
 import type { AppIconPreference } from '../constants/app-icon'
 import type {
   AgentStateSnapshot,
@@ -88,6 +89,7 @@ import type {
   HarnessTool
 } from '../types/harness'
 import type { MascotStyle } from '../constants/mascot'
+import type { CustomSkinDescriptor, CustomSkinProjectResult } from '../types/custom-skin'
 import type { NavItemId } from '../constants/navigation'
 import type {
   CapabilityActionResult,
@@ -655,9 +657,14 @@ export interface DiagnosticsReport {
 export interface AppSettings {
   language: AppLanguage
   theme: AppTheme
+  macos27Background?: MacOS27Background
+  macos27BackgroundImage?: string | null
+  userName: string
+  assistantName: string
   appIcon: AppIconPreference
   mascotUnlocked: boolean
   mascotStyle: MascotStyle
+  customSkinId: string | null
   petAnimations: boolean
   petStatusText: boolean
   petAutoSleep: boolean
@@ -896,6 +903,11 @@ export interface PiSwitchAPI {
     getUiState(): Promise<Record<string, unknown>>
     setUiState(state: Record<string, unknown>): Promise<void>
   }
+  skins: {
+    list(): Promise<CustomSkinDescriptor[]>
+    import(): Promise<CustomSkinDescriptor | null>
+    createProject(): Promise<CustomSkinProjectResult | null>
+  }
   diagnostics: {
     get(): Promise<DiagnosticsReport>
     copy(): Promise<string>
@@ -933,6 +945,8 @@ export interface PiSwitchAPI {
     sessionFolderContextMenu(locale?: 'zh-CN' | 'en-US'): Promise<SessionFolderContextAction | null>
     getPathForFile(file: unknown): Promise<string>
     getActive(): Promise<AgentWorkspace | null>
+    getDefaultRoot(): Promise<string | null>
+    ensureDefault(): Promise<AgentWorkspace>
     sync(input: {
       workspaceFile?: string | null
       folders: Array<{

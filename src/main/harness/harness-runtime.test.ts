@@ -4,8 +4,10 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentStateSnapshot } from '@shared/types/workspace'
 import type {
+  HarnessArtifact,
   HarnessCapabilities,
   HarnessEvent,
+  HarnessRun,
   HarnessState,
   HarnessStats
 } from '@shared/types/harness'
@@ -213,7 +215,94 @@ describe('HarnessRuntime', () => {
     })
     expect(await runtime.listCheckpoints('session-1')).toHaveLength(1)
   })
+
+  it('backfills missing file artifacts when an existing session is loaded', async () => {
+    const { adapter } = createAdapter()
+    const runtime = createRuntime(adapter)
+    const targetRun = completedWriteRun()
+    const artifact = fileArtifact(targetRun)
+    vi.spyOn(runtime, 'listRuns').mockResolvedValue([targetRun])
+    vi.spyOn(runtime.artifacts, 'list').mockResolvedValueOnce([]).mockResolvedValueOnce([artifact])
+    const backfill = vi
+      .spyOn(runtime.artifacts, 'ensureFileArtifactsForRun')
+      .mockResolvedValue([artifact])
+
+    await expect(runtime.listArtifacts('session-1')).resolves.toEqual([artifact])
+    expect(backfill).toHaveBeenCalledWith(targetRun)
+  })
+
+  it('does not scan command-only runs for file artifacts', async () => {
+    const { adapter } = createAdapter()
+    const runtime = createRuntime(adapter)
+    const commandRun = completedWriteRun()
+    commandRun.steps = [
+      { id: 'step-1', kind: 'tool', name: 'bash', status: 'success', startedAt: 1 }
+    ]
+    vi.spyOn(runtime, 'listRuns').mockResolvedValue([commandRun])
+    vi.spyOn(runtime.artifacts, 'list').mockResolvedValue([])
+    const backfill = vi.spyOn(runtime.artifacts, 'ensureFileArtifactsForRun')
+
+    await expect(runtime.listArtifacts('session-1')).resolves.toEqual([])
+    expect(backfill).not.toHaveBeenCalled()
+  })
 })
+
+function completedWriteRun(): HarnessRun {
+  return {
+    id: 'run-write',
+    sessionId: 'session-1',
+    parentRunId: null,
+    relation: 'original',
+    forkedFromRunId: null,
+    forkedFromEventId: null,
+    forkedFromCheckpointId: null,
+    status: 'success',
+    source: 'live',
+    anchorEntryId: 'entry-1',
+    cwd: '/tmp/project',
+    agentId: null,
+    taskId: null,
+    orchestrationId: null,
+    startedAt: 1,
+    finishedAt: 2,
+    model: 'test-model',
+    provider: 'test-provider',
+    prompt: 'create a file',
+    usage: {
+      inputTokens: 0,
+      outputTokens: 0,
+      cachedTokens: 0,
+      totalTokens: 0,
+      estimatedCost: null
+    },
+    toolCallCount: 1,
+    toolFailureCount: 0,
+    contextUsage: null,
+    result: 'done',
+    error: null,
+    budgetExceeded: null,
+    steps: [{ id: 'step-1', kind: 'tool', name: 'write', status: 'success', startedAt: 1 }],
+    checkpointIds: []
+  }
+}
+
+function fileArtifact(run: HarnessRun): HarnessArtifact {
+  return {
+    id: 'artifact-file',
+    runId: run.id,
+    sessionId: run.sessionId,
+    type: 'file',
+    name: 'page.html',
+    path: 'page.html',
+    createdAt: 2,
+    sourceEventId: null,
+    producedByAgentId: null,
+    producedByTaskId: null,
+    consumedByAgentIds: [],
+    consumedByTaskIds: [],
+    metadata: { resolvedPath: '/tmp/project/page.html' }
+  }
+}
 
 function createAdapter() {
   let eventListener: ((event: HarnessEvent) => void) | null = null

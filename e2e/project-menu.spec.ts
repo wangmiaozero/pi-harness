@@ -71,6 +71,7 @@ test('project actions belong to the project row; chats only rename and delete', 
   await page.setViewportSize({ width: 1200, height: 780 })
   await page.evaluate(() => window.piSwitch.settings.set({ theme: 'light' }))
   await page.locator('a[href="#/workspace"]').click()
+  await page.getByTestId('workspace-section-workspace').click()
   await page.getByTestId('workspace-refresh').click()
   await page.evaluate(() => {
     document.documentElement.dataset.theme = 'light'
@@ -130,7 +131,7 @@ test('project actions belong to the project row; chats only rename and delete', 
   await input.press('Enter')
   await expect(rename).toHaveCount(0)
   await expect(session).toContainText('renamed chat')
-  await expect(page.getByTestId('workspace-tabs')).toContainText('renamed chat')
+  await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
 
   await session.click({ button: 'right' })
   await rename.getByTestId('workspace-rename-input').fill('cancelled name')
@@ -170,6 +171,7 @@ test('project menu pin, rename, open, reveal, export, archive and remove are sco
   seedSession(piAgentDir, rootA, idA2, 'second-chat-a')
   seedSession(piAgentDir, rootB, idB, 'only-project-b')
   await page.locator('a[href="#/workspace"]').click()
+  await page.getByTestId('workspace-section-workspace').click()
   await page.getByTestId('workspace-refresh').click()
   const groupA = page
     .getByTestId(/^workspace-project-group-/)
@@ -189,6 +191,7 @@ test('project menu pin, rename, open, reveal, export, archive and remove are sco
   await rename.getByTestId('workspace-rename-save').click()
   await expect(rowA).toContainText('Project Alpha')
   await page.reload()
+  await page.getByTestId('workspace-section-workspace').click()
   await expect(rowA).toContainText('Project Alpha')
   await chooseAction(electronApp, 'open')
   await rowA.click({ button: 'right' })

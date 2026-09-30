@@ -1,5 +1,6 @@
 import type { MascotStyle } from '@shared/constants/mascot'
 import { resolveMascotStyle } from '@shared/constants/mascot'
+import type { CustomSkinDescriptor } from '@shared/types/custom-skin'
 
 /** Visual-only presets; ordinary color preferences are retained when a skin is active. */
 export const VISUAL_SKINS = {
@@ -13,7 +14,12 @@ export const VISUAL_SKINS = {
   mingMoon: { id: 'ming-moon', appearance: 'dark', portrait: true }
 } as const
 
-export type VisualSkin = (typeof VISUAL_SKINS)[keyof typeof VISUAL_SKINS]
+export interface VisualSkin {
+  id: string
+  appearance: 'dark' | 'light'
+  portrait: boolean
+  custom?: CustomSkinDescriptor
+}
 
 export function getVisualSkin(style: MascotStyle): VisualSkin | undefined {
   const resolved = resolveMascotStyle(style)
@@ -22,8 +28,30 @@ export function getVisualSkin(style: MascotStyle): VisualSkin | undefined {
     : undefined
 }
 
+let customSkinCatalog = new Map<string, CustomSkinDescriptor>()
+
+export function setCustomSkinCatalog(skins: CustomSkinDescriptor[]): void {
+  customSkinCatalog = new Map(skins.map((skin) => [skin.id, skin]))
+}
+
+export function getCustomVisualSkin(id: string | null | undefined): VisualSkin | undefined {
+  if (!id) return undefined
+  const custom = customSkinCatalog.get(id)
+  return custom
+    ? {
+        id: `custom-${custom.id}`,
+        appearance: custom.appearance,
+        portrait: Boolean(custom.portraitDataUrl),
+        custom
+      }
+    : undefined
+}
+
 export function getSkinAppearance(id: string | undefined): 'dark' | 'light' | undefined {
-  return Object.values(VISUAL_SKINS).find((skin) => skin.id === id)?.appearance
+  return (
+    Object.values(VISUAL_SKINS).find((skin) => skin.id === id)?.appearance ??
+    [...customSkinCatalog.values()].find((skin) => `custom-${skin.id}` === id)?.appearance
+  )
 }
 
 export function isMingDynastySkin(id: string | undefined): boolean {

@@ -10,9 +10,11 @@ import {
   appUiStatePath,
   appAuthorizedRootsPath,
   appWorkspaceStatePath,
+  appDefaultWorkspacePath,
   userData,
   harnessCheckpointsPath,
-  harnessPolicyPath
+  harnessPolicyPath,
+  customSkinsDir
 } from './services/app-paths'
 import { JsonStore } from './services/storage'
 import { log } from './services/logger'
@@ -33,6 +35,7 @@ import { isChineseLocale, resolveAppLocale } from '@shared/constants/language'
 import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
 import { DEFAULT_NAV_ORDER } from '@shared/constants/navigation'
 import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
+import { DEFAULT_MACOS27_BACKGROUND } from '@shared/constants/macos27-background'
 import { FileAccessService, type AuthorizedRootsState } from './files/file-access-service'
 import { FileService } from './files/file-service'
 import { GitService } from './git/git-service'
@@ -62,13 +65,20 @@ import { applyChromiumGpuWorkarounds } from './window/chromium-flags'
 import { applyAppIcon, selectedAppIconPath } from './window/app-icon'
 import { normalizeAppIconPreference } from '@shared/constants/app-icon'
 import { runWindowsStartupPreflight } from './services/windows-startup-preflight'
+import { CustomSkinService } from './skins/custom-skin-service'
+import { DEFAULT_ASSISTANT_NAME, DEFAULT_USER_NAME } from '@shared/constants/chat-participants'
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'auto',
-  theme: 'dark',
+  theme: 'macos27',
+  macos27Background: DEFAULT_MACOS27_BACKGROUND,
+  macos27BackgroundImage: null,
+  userName: DEFAULT_USER_NAME,
+  assistantName: DEFAULT_ASSISTANT_NAME,
   appIcon: 'auto',
   mascotUnlocked: false,
   mascotStyle: DEFAULT_MASCOT_STYLE,
+  customSkinId: null,
   petAnimations: true,
   petStatusText: true,
   petAutoSleep: true,
@@ -203,6 +213,7 @@ async function bootstrap(): Promise<void> {
   }
 
   const backup = new BackupService(settingsStore)
+  const customSkins = new CustomSkinService(customSkinsDir())
   const config = new PiConfigService(settingsStore, backup)
   backup.attachConfig(config)
   // Establish the conflict baseline eagerly so the first write after launch
@@ -260,7 +271,11 @@ async function bootstrap(): Promise<void> {
   const files = new FileService(access)
   const git = new GitService(access)
   const gitCommitMessages = new GitCommitMessageService(config)
-  const workspaceState = new WorkspaceService(access, workspaceStateStore)
+  const workspaceState = new WorkspaceService(
+    access,
+    workspaceStateStore,
+    appDefaultWorkspacePath()
+  )
   await workspaceState.load().catch((error) => log.app.warn('workspace load failed:', error))
   workspaceState.onFilesChanged((roots) => {
     if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return
@@ -328,6 +343,7 @@ async function bootstrap(): Promise<void> {
     skills,
     capabilities,
     diagnostics,
+    customSkins,
     environment,
     harness,
     orchestrator,

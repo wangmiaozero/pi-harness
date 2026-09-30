@@ -1,0 +1,349 @@
+/*
+ * macOS 27 Liquid Glass
+ *
+ * This layer is intentionally isolated from every existing palette and from
+ * visual skins. The optical canvas supplies real moving detail for backdrop
+ * filters to transmit; the CSS below only defines the glass material.
+ */
+
+:root:is([data-theme='macos27'], [data-theme='macos27-light']) {
+  --radius-xs: 5px;
+  --radius-sm: 9px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+
+  --accent: #0a9cff;
+  --accent-hover: #35adff;
+  --accent-active: #007fe0;
+  --accent-tint: rgb(10 156 255 / 0.18);
+  --accent-tint-soft: rgb(10 156 255 / 0.1);
+  --accent-tint-strong: rgb(10 156 255 / 0.3);
+  --accent-border: rgb(10 156 255 / 0.56);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+
+  --success: #30d158;
+  --success-tint: rgb(48 209 88 / 0.14);
+  --warning: #ffd60a;
+  --warning-tint: rgb(255 214 10 / 0.14);
+  --error: #ff453a;
+  --error-tint: rgb(255 69 58 / 0.14);
+  --info: var(--accent);
+  --info-tint: var(--accent-tint);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --surface-danger: var(--error-tint);
+  --surface-warning: var(--warning-tint);
+  --surface-info: var(--accent-tint-soft);
+
+  --syntax-property: #64d2ff;
+  --syntax-string: #30d158;
+  --syntax-number: #ff9f0a;
+  --syntax-constant: #bf5af2;
+  --syntax-keyword: #0a84ff;
+  --syntax-heading: #66baff;
+  --syntax-emphasis: #d18cff;
+  --syntax-link: #64d2ff;
+
+  --diff-added-bg: rgb(48 209 88 / 0.12);
+  --diff-added-text: rgb(94 231 126 / 0.95);
+  --diff-added-gutter: rgb(48 209 88 / 0.3);
+  --diff-removed-bg: rgb(255 69 58 / 0.12);
+  --diff-removed-text: rgb(255 117 109 / 0.95);
+  --diff-removed-gutter: rgb(255 69 58 / 0.3);
+  --diff-equal-bg: transparent;
+}
+
+:root[data-theme='macos27'] {
+  color-scheme: dark;
+
+  --bg-window: #08071c;
+  --bg-titlebar: rgb(19 16 48 / 0.48);
+  --bg-sidebar: rgb(18 15 45 / 0.44);
+  --bg-workspace: rgb(10 8 31 / 0.18);
+  --bg-surface: rgb(104 88 164 / 0.26);
+  --bg-surface-raised: rgb(50 41 92 / 0.52);
+  --bg-hover: rgb(255 255 255 / 0.12);
+  --bg-selected: rgb(10 156 255 / 0.24);
+  --bg-primary: var(--bg-surface);
+  --bg-input: rgb(15 12 42 / 0.44);
+
+  --color-window: var(--bg-window);
+  --color-sidebar: var(--bg-sidebar);
+  --color-content: var(--bg-workspace);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-surface-raised);
+  --color-hover: var(--bg-hover);
+  --color-selected: var(--bg-selected);
+
+  --border-subtle: rgb(255 255 255 / 0.1);
+  --border-default: rgb(255 255 255 / 0.16);
+  --border-strong: rgb(255 255 255 / 0.25);
+  --color-border: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  --control-bg: rgb(255 255 255 / 0.09);
+  --control-bg-hover: rgb(255 255 255 / 0.15);
+  --control-bg-disabled: rgb(255 255 255 / 0.045);
+  --control-border: rgb(255 255 255 / 0.14);
+  --control-border-hover: rgb(255 255 255 / 0.26);
+  --control-placeholder: rgb(255 255 255 / 0.42);
+  --control-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 2px rgb(0 0 0 / 0.28);
+
+  --text-primary: rgb(255 255 255 / 0.94);
+  --text-secondary: rgb(255 255 255 / 0.7);
+  --text-tertiary: rgb(255 255 255 / 0.47);
+  --text-disabled: rgb(255 255 255 / 0.28);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+
+  --tone-tools-bg: rgb(10 156 255 / 0.16);
+  --tone-tools-text: #76c4ff;
+  --tone-vision-bg: rgb(100 210 255 / 0.14);
+  --tone-vision-text: #78dcff;
+  --tone-reasoning-bg: rgb(191 90 242 / 0.18);
+  --tone-reasoning-text: #dc9bff;
+  --tone-streaming-bg: rgb(255 255 255 / 0.08);
+  --tone-streaming-text: var(--text-secondary);
+
+  --editor-active-line: rgb(255 255 255 / 0.055);
+  --syntax-comment: rgb(255 255 255 / 0.42);
+  --diff-gutter-bg: rgb(255 255 255 / 0.05);
+  --diff-gutter-text: rgb(255 255 255 / 0.38);
+  --scrollbar-thumb: rgb(255 255 255 / 0.16);
+  --scrollbar-thumb-hover: rgb(255 255 255 / 0.28);
+  --scrollbar-thumb-active: rgb(255 255 255 / 0.38);
+
+  --macos27-glass-chrome: rgb(22 18 55 / 0.42);
+  --macos27-glass-regular: rgb(35 28 78 / 0.38);
+  --macos27-glass-raised: rgb(29 24 65 / 0.56);
+  --macos27-rim: rgb(255 255 255 / 0.18);
+  --macos27-rim-soft: rgb(255 255 255 / 0.09);
+  --macos27-highlight: rgb(255 255 255 / 0.25);
+  --macos27-shadow-color: rgb(0 0 0 / 0.48);
+
+  --shadow-popover:
+    inset 0 1px 0 var(--macos27-highlight), inset 0 0 0 1px var(--macos27-rim-soft),
+    0 18px 52px var(--macos27-shadow-color);
+  --shadow-sm:
+    inset 0 1px 0 rgb(255 255 255 / 0.16), inset 0 -1px 0 rgb(255 255 255 / 0.05),
+    0 10px 28px rgb(0 0 0 / 0.28);
+  --shadow-dialog:
+    inset 0 1px 0 var(--macos27-highlight), inset 0 0 0 1px var(--macos27-rim-soft),
+    0 30px 80px rgb(0 0 0 / 0.62);
+  --focus-ring: 0 0 0 1px rgb(10 156 255 / 0.96), 0 0 0 4px rgb(10 156 255 / 0.24);
+}
+
+:root[data-theme='macos27-light'] {
+  color-scheme: light;
+
+  --bg-window: #e6e9f7;
+  --bg-titlebar: rgb(248 249 255 / 0.58);
+  --bg-sidebar: rgb(247 248 255 / 0.52);
+  --bg-workspace: rgb(247 248 255 / 0.2);
+  --bg-surface: rgb(255 255 255 / 0.54);
+  --bg-surface-raised: rgb(255 255 255 / 0.72);
+  --bg-hover: rgb(255 255 255 / 0.48);
+  --bg-selected: rgb(10 132 255 / 0.16);
+  --bg-primary: var(--bg-surface);
+  --bg-input: rgb(255 255 255 / 0.58);
+
+  --color-window: var(--bg-window);
+  --color-sidebar: var(--bg-sidebar);
+  --color-content: var(--bg-workspace);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-surface-raised);
+  --color-hover: var(--bg-hover);
+  --color-selected: var(--bg-selected);
+
+  --border-subtle: rgb(20 18 42 / 0.1);
+  --border-default: rgb(20 18 42 / 0.16);
+  --border-strong: rgb(20 18 42 / 0.25);
+  --color-border: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  --control-bg: rgb(255 255 255 / 0.48);
+  --control-bg-hover: rgb(255 255 255 / 0.7);
+  --control-bg-disabled: rgb(24 22 48 / 0.035);
+  --control-border: rgb(20 18 42 / 0.15);
+  --control-border-hover: rgb(20 18 42 / 0.26);
+  --control-placeholder: rgb(20 18 42 / 0.4);
+  --control-shadow: inset 0 1px 1px rgb(255 255 255 / 0.8), 0 1px 2px rgb(35 26 74 / 0.12);
+
+  --text-primary: rgb(16 14 35 / 0.9);
+  --text-secondary: rgb(16 14 35 / 0.66);
+  --text-tertiary: rgb(16 14 35 / 0.48);
+  --text-disabled: rgb(16 14 35 / 0.3);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+
+  --tone-tools-bg: rgb(10 132 255 / 0.12);
+  --tone-tools-text: #086ac1;
+  --tone-vision-bg: rgb(34 176 208 / 0.12);
+  --tone-vision-text: #08758d;
+  --tone-reasoning-bg: rgb(140 66 190 / 0.12);
+  --tone-reasoning-text: #7535a0;
+  --tone-streaming-bg: rgb(20 18 42 / 0.06);
+  --tone-streaming-text: var(--text-secondary);
+
+  --editor-active-line: rgb(20 18 42 / 0.045);
+  --syntax-comment: rgb(20 18 42 / 0.42);
+  --diff-gutter-bg: rgb(20 18 42 / 0.04);
+  --diff-gutter-text: rgb(20 18 42 / 0.4);
+  --scrollbar-thumb: rgb(20 18 42 / 0.17);
+  --scrollbar-thumb-hover: rgb(20 18 42 / 0.28);
+  --scrollbar-thumb-active: rgb(20 18 42 / 0.38);
+
+  --macos27-glass-chrome: rgb(248 249 255 / 0.5);
+  --macos27-glass-regular: rgb(255 255 255 / 0.48);
+  --macos27-glass-raised: rgb(255 255 255 / 0.68);
+  --macos27-rim: rgb(23 18 51 / 0.18);
+  --macos27-rim-soft: rgb(23 18 51 / 0.09);
+  --macos27-highlight: rgb(255 255 255 / 0.8);
+  --macos27-shadow-color: rgb(40 30 82 / 0.22);
+
+  --shadow-popover:
+    inset 0 1px 1px var(--macos27-highlight), inset 0 0 0 1px var(--macos27-rim-soft),
+    0 18px 52px var(--macos27-shadow-color);
+  --shadow-sm:
+    inset 0 1px 1px rgb(255 255 255 / 0.72), inset 0 -1px 1px rgb(23 18 51 / 0.1),
+    0 10px 28px rgb(40 30 82 / 0.14);
+  --shadow-dialog:
+    inset 0 1px 1px var(--macos27-highlight), inset 0 0 0 1px var(--macos27-rim-soft),
+    0 30px 80px rgb(40 30 82 / 0.28);
+  --focus-ring: 0 0 0 1px rgb(10 132 255 / 0.94), 0 0 0 4px rgb(10 132 255 / 0.2);
+}
+
+.macos27-optics-backdrop {
+  display: none;
+}
+
+:root:is([data-theme='macos27'], [data-theme='macos27-light']) .macos27-optics-backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.macos27-optics-backdrop__canvas,
+.macos27-optics-backdrop__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.macos27-optics-backdrop__image {
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+:root:is([data-theme='macos27'], [data-theme='macos27-light'])
+  :is(.app-shell, .starship-viewport-root) {
+  background-color: transparent !important;
+}
+
+:root:is([data-theme='macos27'], [data-theme='macos27-light']) :is(.app-titlebar, .app-body) {
+  position: relative;
+  z-index: 2;
+}
+
+:root:is([data-theme='macos27'], [data-theme='macos27-light'])
+  :is(.app-titlebar, .app-navigation-rail, .settings-sidebar, .page-header) {
+  border-color: var(--macos27-rim-soft);
+  background: var(--macos27-glass-chrome);
+  box-shadow:
+    inset 0 1px 0 var(--macos27-highlight),
+    inset -1px 0 0 var(--macos27-rim-soft);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  backdrop-filter: blur(20px) saturate(170%);
+}
+
+:root:is([data-theme='macos27'], [data-theme='macos27-light'])
+  :is(
+    .harness-card,
+    .settings-view section[class*='bg-'],
+    .ui-select-menu,
+    .ui-combobox-menu,
+    .ui-context-menu,
+    .composer-option-menu,
+    [role='dialog']
+  ) {
+  border-color: var(--macos27-rim);
+  background: var(--macos27-glass-regular);
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+  backdrop-filter: blur(14px) saturate(170%);
+}
+
+:root:is([data-theme='macos27'], [data-theme='macos27-light'])
+  :is(
+    .ui-select-menu,
+    .ui-combobox-menu,
+    .ui-context-menu,
+    .composer-option-menu,
+    [role='dialog']
+  ) {
+  background: var(--macos27-glass-raised);
+  box-shadow: var(--shadow-popover);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+}
+
+:root:is([data-theme='macos27'], [data-theme='macos27-light'])
+  :is(
+    .ui-button[data-variant='secondary'],
+    .ui-select-trigger,
+    .ui-search-field,
+    .ui-combobox-trigger,
+    .ui-icon-button,
+    .starship-search-trigger,
+    input,
+    textarea
+  ) {
+  border-color: var(--control-border);
+  background: var(--control-bg);
+  box-shadow: var(--control-shadow);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  backdrop-filter: blur(8px) saturate(160%);
+}
+
+:root:is([data-theme='macos27'], [data-theme='macos27-light'])
+  :is(
+    .ui-button[data-variant='secondary'],
+    .ui-select-trigger,
+    .ui-search-field,
+    .ui-combobox-trigger,
+    .ui-icon-button,
+    .starship-search-trigger
+  ):hover:not(:disabled) {
+  border-color: var(--control-border-hover);
+  background: var(--control-bg-hover);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-theme='macos27'] {
+    --macos27-glass-chrome: #19152f;
+    --macos27-glass-regular: #2d2651;
+    --macos27-glass-raised: #252042;
+  }
+
+  :root[data-theme='macos27-light'] {
+    --macos27-glass-chrome: #f0f1f8;
+    --macos27-glass-regular: #f7f7fb;
+    --macos27-glass-raised: #fff;
+  }
+
+  :root:is([data-theme='macos27'], [data-theme='macos27-light']) * {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}

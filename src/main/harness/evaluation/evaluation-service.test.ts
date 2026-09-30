@@ -155,9 +155,23 @@ describe('collectFileMutations', () => {
           ]
         }
       } as unknown as SessionEntry,
+      {
+        ...toolCallEntry('t4', '2024-01-01T00:00:04.000Z', 'write'),
+        message: {
+          role: 'assistant',
+          content: [
+            {
+              type: 'toolCall',
+              id: 'call-native-write',
+              name: 'write',
+              arguments: { path: 'c.html', content: '<!doctype html>' }
+            }
+          ]
+        }
+      } as unknown as SessionEntry,
       toolCallEntry('t3', '2024-01-01T00:00:04.000Z', 'read')
     ]
-    expect(collectFileMutations(entries)).toEqual(['a.ts', 'b.ts'])
+    expect(collectFileMutations(entries)).toEqual(['a.ts', 'b.ts', 'c.html'])
   })
 })
 

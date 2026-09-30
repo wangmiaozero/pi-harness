@@ -6,16 +6,21 @@ import type { SessionDetail } from '@shared/types/workspace'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import MessageView from './MessageView.vue'
+import { hasRenderableMessageContent } from './message-visibility'
 
 const props = defineProps<{
   detail: SessionDetail | null
   loading: boolean
+  userName?: string
+  assistantName?: string
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
 const { t } = useI18n()
 
-const messages = computed(() => props.detail?.context.messages ?? [])
+const messages = computed(() =>
+  (props.detail?.context.messages ?? []).filter(hasRenderableMessageContent)
+)
 const description = computed(() => {
   if (props.loading) return t('common.loading')
   const sessionName = props.detail?.info?.name?.trim()
@@ -57,7 +62,13 @@ const description = computed(() => {
           <History aria-hidden="true" class="size-3.5 shrink-0 text-[var(--accent)]" />
           <span>{{ t('workspace.fullHistoryHint') }}</span>
         </div>
-        <MessageView v-for="(message, index) in messages" :key="index" :message="message" />
+        <MessageView
+          v-for="(message, index) in messages"
+          :key="index"
+          :message="message"
+          :user-name="userName"
+          :assistant-name="assistantName"
+        />
       </div>
     </div>
   </Dialog>
