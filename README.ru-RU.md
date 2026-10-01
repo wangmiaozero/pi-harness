@@ -26,6 +26,10 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
+  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>Создать свою тему</strong></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="release v1.8.0" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
@@ -82,6 +86,16 @@ Native Pi всегда остаётся внутри реального пути
 - **Файлы и Git:** просмотр и загрузка файлов, лёгкий редактор с защитой от конфликтов, Git Diff и Worktree.
 - **Диагностика:** проверка состояния приложения и среды.
 - **Запуск и внешний вид:** при запуске проверяются реестр npm, Node.js, npm, Pi Agent и конфигурация, а одноцветная квантовая анимация частиц отображается не менее пяти секунд. В общих настройках доступны значки Classic, Ming и Quantum, свечение окна и экрана, а также эффект пламени в поле ввода. Сборка без маскота сохраняет стандартную стартовую анимацию и эти настройки, не загружая дополнительные темы маскота.
+
+## Создайте собственную тему
+
+С помощью [шаблона пользовательской темы Pi-Harness](https://github.com/wangmiaozero/pi-harness-skin-starter) можно создать оформление в любом понравившемся стиле.
+
+1. Используйте репозиторий-шаблон либо скачайте и распакуйте его.
+2. Откройте проект в Codex или Pi и опишите желаемый стиль с помощью готового запроса или файла `SKIN_BRIEF.md`.
+3. Импортируйте готовый проект через **Настройки → Тема → Импортировать тему**.
+
+Многоязычный шаблон содержит Schema манифеста, редактируемые цветовые токены, требования к ресурсам и инструкции по проверке превью, фона и необязательного изображения персонажа. Храните тему в отдельном репозитории, чтобы независимо от Pi-Harness управлять версиями, обновлять и распространять её.
 
 ## Как это работает
 

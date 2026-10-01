@@ -26,6 +26,10 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
+  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>Eigenen Skin erstellen</strong></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="release v1.8.0" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
@@ -82,6 +86,16 @@ Nutzer der paketierten App müssen das Repository nicht klonen und pnpm nicht in
 - **Files & Git:** Dateien durchsuchen und hochladen, mit Konfliktschutz bearbeiten sowie Git Diff und Worktrees verwenden.
 - **Diagnostics:** Zustand der Anwendung und Umgebung prüfen.
 - **Start und Erscheinungsbild:** Beim Start prüft Pi-Harness die npm-Registry, Node.js, npm, Pi Agent und die Konfiguration und zeigt mindestens fünf Sekunden lang eine einfarbige Quantenpartikel-Animation. In den allgemeinen Einstellungen lassen sich Classic-, Ming- oder Quantum-App-Symbole, Fenster- und Bildschirmleuchten sowie der Flammeneffekt des Eingabefelds wählen. Die Version ohne Maskottchen behält die Standardanimation und diese Einstellungen bei, ohne optionale Maskottchen-Themen zu laden.
+
+## Eigenen benutzerdefinierten Skin erstellen
+
+Mit dem [Pi-Harness Starter für benutzerdefinierte Skins](https://github.com/wangmiaozero/pi-harness-skin-starter) kannst du einen Skin in jedem gewünschten visuellen Stil erstellen.
+
+1. Verwende das Starter-Repository als Vorlage oder lade es herunter und entpacke es.
+2. Öffne es mit Codex oder Pi und beschreibe den gewünschten Stil im enthaltenen Kopier-Prompt oder in `SKIN_BRIEF.md`.
+3. Importiere das fertige Projekt über **Einstellungen → Thema → Skin importieren**.
+
+Der mehrsprachige Starter enthält das Manifest-Schema, bearbeitbare Farbwerte, Ressourcenanforderungen und Validierungshinweise für Vorschau, Hintergrund und das optionale Charakterbild. Verwalte den Skin in einem eigenen Repository, um ihn unabhängig von Pi-Harness zu versionieren, zu aktualisieren und zu teilen.
 
 ## So funktioniert es
 

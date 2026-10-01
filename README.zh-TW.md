@@ -33,6 +33,7 @@
 
 <p align="center">
   <a href="#下載">下載</a> ·
+  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>建立自訂皮膚</strong></a> ·
   <a href="#工作流程">工作流程</a> ·
   <a href="#介面預覽">介面預覽</a> ·
   <a href="#開發">開發</a>
@@ -174,6 +175,16 @@ Native Pi 始終位於真實執行鏈路中；Pi-Harness 包含 Native Pi 的全
 Pi-Harness 啟動時會顯示動畫，並檢查 npm 軟體源、Node.js、npm、Pi Agent 與目前設定。動畫至少顯示 5 秒；預設使用單色量子粒子效果，啟用特色主題後會跟隨所選主題呈現對應效果。
 
 在「設定 → 一般」中，可以選擇經典、大明或量子應用程式圖示，也可以讓 Pi-Harness 自動選擇；視窗光圈、螢幕光圈與輸入框火焰效果均可獨立控制。無吉祥物版本會保留預設啟動動畫與這些外觀設定，但不會載入可選吉祥物主題。
+
+### 建立你自己的自訂皮膚
+
+使用 [Pi-Harness 自訂皮膚範本](https://github.com/wangmiaozero/pi-harness-skin-starter)，即可製作任何喜愛的視覺風格：
+
+1. 使用範本儲存庫，或下載並解壓縮。
+2. 用 Codex 或 Pi 開啟專案，透過內附的一鍵複製提示詞或 `SKIN_BRIEF.md` 描述你喜歡的風格。
+3. 完成後從「設定 → 主題 → 匯入皮膚」匯入專案。
+
+這個多語言範本包含清單 Schema、可編輯的色彩權杖、資源規範，以及預覽圖、桌布和可選角色圖的驗證說明。你可以將皮膚保存在獨立儲存庫中，與 Pi-Harness 分開進行版本管理、更新和分享。
 
 ### 輕量編輯器，而不是 IDE
 

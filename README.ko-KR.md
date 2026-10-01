@@ -26,6 +26,10 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
+  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>커스텀 스킨 만들기</strong></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="release v1.8.0" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
@@ -82,6 +86,16 @@ Native Pi는 항상 실제 실행 경로 안에 있으며, Pi-Harness는 그 바
 - **Files & Git:** 파일을 탐색·업로드하고, 충돌 보호가 있는 경량 편집기를 사용하며, Git Diff와 Worktree를 확인합니다.
 - **Diagnostics:** 애플리케이션과 환경 상태를 확인합니다.
 - **시작 및 모양:** 시작 시 npm 레지스트리, Node.js, npm, Pi Agent와 설정을 검사하면서 단색 퀀텀 입자 애니메이션을 최소 5초 동안 표시합니다. 일반 설정에서 클래식, Ming, 퀀텀 앱 아이콘과 창·화면 글로우, 입력창 불꽃 효과를 선택할 수 있습니다. 마스코트 없는 빌드도 선택형 마스코트 테마를 로드하지 않고 기본 시작 애니메이션과 모양 설정을 유지합니다.
+
+## 나만의 커스텀 스킨 만들기
+
+[Pi-Harness 커스텀 스킨 스타터](https://github.com/wangmiaozero/pi-harness-skin-starter)를 사용해 원하는 시각 스타일의 스킨을 만들 수 있습니다.
+
+1. 스타터 저장소를 템플릿으로 사용하거나 다운로드하여 압축을 풉니다.
+2. Codex 또는 Pi로 열고 포함된 복사형 프롬프트나 `SKIN_BRIEF.md`에 원하는 스타일을 설명합니다.
+3. 완성된 프로젝트를 **설정 → 테마 → 스킨 가져오기**에서 가져옵니다.
+
+다국어 스타터에는 매니페스트 Schema, 편집 가능한 색상 토큰, 리소스 요구 사항, 미리보기·배경화면·선택형 캐릭터 이미지 검증 지침이 포함되어 있습니다. 스킨을 별도 저장소에서 관리하면 Pi-Harness와 독립적으로 버전을 관리하고 업데이트하거나 공유할 수 있습니다.
 
 ## 사용 흐름
 

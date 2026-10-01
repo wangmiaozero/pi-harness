@@ -27,6 +27,7 @@
 
 <p align="center">
   <a href="#download"><strong>Download Pi-Harness</strong></a> ·
+  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>Create a Custom Skin</strong></a> ·
   <a href="https://github.com/earendil-works/pi">Pi Agent Harness</a> ·
   <a href="#current-screenshots">Screenshots</a>
 </p>
@@ -115,6 +116,16 @@ Pi-Harness opens with a startup animation while it checks the npm registry, Node
 New installations use **macOS 27 Dark** with the **Liquid Ether** background. In **Settings → General**, choose another palette or macOS 27 background, use a local PNG/JPEG/WebP background, customize chat display names, choose the Classic, Ming, or Quantum app icon, and control the window glow, screen glow, and input flame effect independently.
 
 In **Settings → Theme**, the built-in themes remain available alongside declarative custom skins. Pi-Harness can create a constrained skin starter project for Codex or Pi and import its local bitmap assets and color tokens. Mascot-free builds keep the default startup animation and General appearance controls without loading optional portrait themes.
+
+### Create your own custom skin
+
+Use the [Pi-Harness Custom Skin Starter](https://github.com/wangmiaozero/pi-harness-skin-starter) to create a skin in any visual style you like:
+
+1. Use the starter repository as a template or download it.
+2. Open it with Codex or Pi and describe your preferred style using the included copy-and-run prompt or `SKIN_BRIEF.md`.
+3. Import the completed project from **Settings → Theme → Import Skin**.
+
+The multilingual starter includes the manifest schema, editable color tokens, asset requirements, and validation instructions for the preview, wallpaper, and optional portrait. Keep the skin in its own repository to version, update, and share it independently from Pi-Harness.
 
 ### Optional methodologies and add-ons
 
