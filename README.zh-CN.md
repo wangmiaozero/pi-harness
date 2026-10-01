@@ -27,6 +27,7 @@
 
 <p align="center">
   <a href="#下载"><strong>下载 Pi-Harness</strong></a> ·
+  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>创建自定义皮肤</strong></a> ·
   <a href="https://github.com/earendil-works/pi">Pi Agent Harness</a> ·
   <a href="#当前界面">界面预览</a> ·
   <a href="#技术交流">技术交流</a>
@@ -106,6 +107,16 @@ Pi-Harness
 Pi-Harness 启动时会显示动画，并检测 npm 软件源、Node.js、npm、Pi Agent 与当前配置。动画至少显示 5 秒；默认使用单色量子粒子效果，启用特色主题后会跟随所选主题呈现对应效果。
 
 在“设置 → 通用”中，可以选择经典、大明或量子应用图标，也可以让 Pi-Harness 自动选择；窗口光圈、屏幕光圈与输入框火焰效果均可独立控制。无吉祥物版本会保留默认启动动画和这些外观设置，但不会加载可选吉祥物主题。
+
+### 创建你自己的自定义皮肤
+
+使用 [Pi-Harness 自定义皮肤模板](https://github.com/wangmiaozero/pi-harness-skin-starter)，可以制作任意视觉风格的皮肤：
+
+1. 使用模板仓库，或下载并解压它。
+2. 用 Codex 或 Pi 打开项目，通过内置的一键复制提示词或 `SKIN_BRIEF.md` 描述你喜欢的风格。
+3. 完成后从“设置 → 主题 → 导入皮肤”导入项目。
+
+这个多语言模板包含清单 Schema、可编辑的颜色令牌、资源规范，以及预览图、壁纸和可选角色图的校验说明。你可以把皮肤保存在独立仓库中，与 Pi-Harness 分开进行版本管理、更新和分享。
 
 ### 可选方法论与增强能力
 

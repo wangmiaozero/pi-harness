@@ -26,6 +26,10 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
+  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>Créer un thème personnalisé</strong></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="release v1.8.0" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
@@ -82,6 +86,16 @@ Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer 
 - **Fichiers et Git :** parcourir et importer des fichiers, les modifier avec protection contre les conflits, consulter Git Diff et travailler avec les Worktrees.
 - **Diagnostic :** vérifier l’état de l’application et de l’environnement.
 - **Démarrage et apparence :** au lancement, Pi-Harness vérifie le registre npm, Node.js, npm, Pi Agent et la configuration tout en affichant une animation quantique monochrome pendant au moins cinq secondes. Les réglages généraux permettent de choisir les icônes Classique, Ming ou Quantique, ainsi que les halos de fenêtre et d’écran et l’effet de flamme du champ de saisie. La version sans mascotte conserve l’animation et ces réglages sans charger les thèmes de mascotte optionnels.
+
+## Créez votre thème personnalisé
+
+Utilisez le [modèle de thème personnalisé Pi-Harness](https://github.com/wangmiaozero/pi-harness-skin-starter) pour créer l’apparence de votre choix.
+
+1. Utilisez le dépôt comme modèle, ou téléchargez-le et décompressez-le.
+2. Ouvrez-le avec Codex ou Pi et décrivez le style souhaité dans le prompt prêt à copier ou dans `SKIN_BRIEF.md`.
+3. Importez le projet terminé depuis **Paramètres → Thème → Importer un thème**.
+
+Le modèle multilingue contient le Schema du manifeste, des jetons de couleur modifiables, les exigences relatives aux ressources et les instructions de validation pour l’aperçu, le fond et le portrait facultatif. Conservez votre thème dans un dépôt distinct afin de le versionner, le mettre à jour et le partager indépendamment de Pi-Harness.
 
 ## Fonctionnement
 
