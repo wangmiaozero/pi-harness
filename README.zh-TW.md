@@ -157,8 +157,11 @@ Native Pi 始終位於真實執行鏈路中；Pi-Harness 包含 Native Pi 的全
 | ![一般外觀設定](docs/功能界面/通用设置.jpg) |    ![內建與自訂主題圖庫](docs/功能界面/主题图库.jpg)     |
 |                **能力中心**                 |                   **Provider 與模型**                    |
 |   ![能力市場](docs/功能界面/能力中心.jpg)   | ![Provider 與模型管理](docs/功能界面/Provider与模型.jpg) |
-|                   **Git**                   |                                                          |
-|    ![Git 工作區](docs/功能界面/Git.jpg)     |                                                          |
+
+<p align="center">
+  <strong>Git</strong><br>
+  <img src="docs/功能界面/Git.jpg" alt="Git 工作區" width="49%">
+</p>
 
 ## 核心能力
 

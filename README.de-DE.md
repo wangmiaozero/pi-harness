@@ -142,8 +142,11 @@ Das Standardthema zeigt die wichtigsten Funktionen. Die v1.8.0-Galerie ist in Ar
 | ![Allgemeine Erscheinungseinstellungen](docs/功能界面/通用设置.jpg) | ![Integrierte und benutzerdefinierte Designs](docs/功能界面/主题图库.jpg) |
 |                        **Funktionszentrum**                         |                         **Anbieter und Modelle**                          |
 |            ![Funktionsmarkt](docs/功能界面/能力中心.jpg)            |    ![Anbieter- und Modellverwaltung](docs/功能界面/Provider与模型.jpg)    |
-|                               **Git**                               |                                                                           |
-|            ![Git-Arbeitsbereich](docs/功能界面/Git.jpg)             |                                                                           |
+
+<p align="center">
+  <strong>Git</strong><br>
+  <img src="docs/功能界面/Git.jpg" alt="Git-Arbeitsbereich" width="49%">
+</p>
 
 ## Editor-Grenze
 

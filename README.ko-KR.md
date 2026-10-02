@@ -142,8 +142,11 @@ Native Pi는 항상 실제 실행 경로 안에 있으며, Pi-Harness는 그 바
 |  ![일반 외관 설정](docs/功能界面/通用设置.jpg)   | ![기본 및 사용자 테마 갤러리](docs/功能界面/主题图库.jpg)  |
 |                  **기능 센터**                   |                    **Provider 및 모델**                    |
 | ![Capabilities 마켓](docs/功能界面/能力中心.jpg) | ![Provider 및 모델 관리](docs/功能界面/Provider与模型.jpg) |
-|                     **Git**                      |                                                            |
-|     ![Git 작업 공간](docs/功能界面/Git.jpg)      |                                                            |
+
+<p align="center">
+  <strong>Git</strong><br>
+  <img src="docs/功能界面/Git.jpg" alt="Git 작업 공간" width="49%">
+</p>
 
 ## 편집기 범위
 

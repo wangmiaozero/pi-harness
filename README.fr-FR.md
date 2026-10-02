@@ -142,8 +142,11 @@ Le thème par défaut présente les fonctions principales. La galerie v1.8.0 est
 | ![Réglages généraux de l’apparence](docs/功能界面/通用设置.jpg) |     ![Thèmes intégrés et personnalisés](docs/功能界面/主题图库.jpg)      |
 |                  **Centre de fonctionnalités**                  |                       **Fournisseurs et modèles**                        |
 |    ![Marché des fonctionnalités](docs/功能界面/能力中心.jpg)    | ![Gestion des fournisseurs et modèles](docs/功能界面/Provider与模型.jpg) |
-|                             **Git**                             |                                                                          |
-|              ![Espace Git](docs/功能界面/Git.jpg)               |                                                                          |
+
+<p align="center">
+  <strong>Git</strong><br>
+  <img src="docs/功能界面/Git.jpg" alt="Espace Git" width="49%">
+</p>
 
 ## Limites de l’éditeur
 
