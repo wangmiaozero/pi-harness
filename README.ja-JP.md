@@ -142,8 +142,11 @@ Native Pi は常に実際の実行経路の内側にあり、Pi-Harness はそ�
 |      ![一般外観設定](docs/功能界面/通用设置.jpg)       | ![組み込みテーマとカスタムテーマ](docs/功能界面/主题图库.jpg) |
 |                    **機能センター**                    |                     **Provider とモデル**                     |
 | ![Capabilities マーケット](docs/功能界面/能力中心.jpg) |  ![Provider とモデル管理](docs/功能界面/Provider与模型.jpg)   |
-|                        **Git**                         |                                                               |
-|      ![Git ワークスペース](docs/功能界面/Git.jpg)      |                                                               |
+
+<p align="center">
+  <strong>Git</strong><br>
+  <img src="docs/功能界面/Git.jpg" alt="Git ワークスペース" width="49%">
+</p>
 
 ## エディターの範囲
 

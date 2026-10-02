@@ -166,8 +166,11 @@ Pi-Harness 可以编辑可读文本文件，支持懒加载语法高亮、行号
 | ![通用外观设置](docs/功能界面/通用设置.jpg) |   ![内置与自定义主题图库](docs/功能界面/主题图库.jpg)    |
 |                **能力中心**                 |                   **Provider 与模型**                    |
 |   ![能力市场](docs/功能界面/能力中心.jpg)   | ![Provider 与模型管理](docs/功能界面/Provider与模型.jpg) |
-|                   **Git**                   |                                                          |
-|    ![Git 工作区](docs/功能界面/Git.jpg)     |                                                          |
+
+<p align="center">
+  <strong>Git</strong><br>
+  <img src="docs/功能界面/Git.jpg" alt="Git 工作区" width="49%">
+</p>
 
 ## Pi 与 Pi-Harness
 

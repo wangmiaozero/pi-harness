@@ -170,12 +170,16 @@ The classic dark screenshots show the core product surfaces. The v1.8.0 gallery 
 
 #### Product interfaces
 
-| **General settings** | **Theme gallery** |
-| ![General appearance settings](docs/功能界面/通用设置.jpg) | ![Built-in and custom theme gallery](docs/功能界面/主题图库.jpg) |
-| **Capabilities** | **Providers and models** |
-| ![Capabilities market](docs/功能界面/能力中心.jpg) | ![Provider and model management](docs/功能界面/Provider与模型.jpg) |
-| **Git** | |
-| ![Git workspace](docs/功能界面/Git.jpg) | |
+|                       **General settings**                        |                       **Theme gallery**                        |
+| :---------------------------------------------------------------: | :------------------------------------------------------------: |
+| ![General appearance settings](docs/功能界面/通用设置.jpg)        | ![Built-in and custom theme gallery](docs/功能界面/主题图库.jpg) |
+|                         **Capabilities**                          |                    **Providers and models**                    |
+|      ![Capabilities market](docs/功能界面/能力中心.jpg)           | ![Provider and model management](docs/功能界面/Provider与模型.jpg) |
+
+<p align="center">
+  <strong>Git</strong><br>
+  <img src="docs/功能界面/Git.jpg" alt="Git workspace" width="49%">
+</p>
 
 ## Pi vs Pi-Harness
 
