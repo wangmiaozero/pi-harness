@@ -123,7 +123,7 @@ for (const kind of ['folders', 'code-workspace', 'mixed'] as const) {
       )
       .toEqual(names.map((name, index) => ({ name, role: index === 0 ? 'main' : 'reference' })))
     await expect(groups).toHaveCount(1)
-    await expect(page.locator('main textarea')).toBeVisible()
+    await expect(page.getByTestId('composer-editor')).toBeVisible()
     if (!(await page.getByTestId('workspace-files-panel').isVisible())) {
       await page.getByTestId('workspace-toggle-files').click()
     }

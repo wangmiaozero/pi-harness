@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   findActiveSkillMention,
   parseSkillInvocation,
+  removeSkillMention,
   replaceSkillMention,
   resolveSkillMention
 } from './skill-invocation'
@@ -18,6 +19,16 @@ describe('skill invocation helpers', () => {
 
   it('does not treat email addresses as skill mentions', () => {
     expect(findActiveSkillMention('dev@example', 11)).toBeNull()
+  })
+
+  it('removes a selected mention while keeping the surrounding prompt readable', () => {
+    expect(
+      removeSkillMention('review with @apple-design carefully', {
+        start: 12,
+        end: 25,
+        query: 'apple-design'
+      })
+    ).toEqual({ text: 'review with carefully', cursor: 12 })
   })
 
   it('moves a selected mention into Pi native skill command form', () => {

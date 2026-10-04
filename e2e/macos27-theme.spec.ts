@@ -71,7 +71,7 @@ test.describe('macOS 27 liquid glass themes', () => {
     }
 
     await page.locator('a[href="#/workspace"]').click()
-    const composerInput = page.getByTestId('chat-composer').locator('textarea')
+    const composerInput = page.getByTestId('composer-editor')
     await expect(composerInput).toBeVisible()
     await expect
       .poll(() =>

@@ -8,7 +8,7 @@ Public release notes contain only released, user-visible additions and fixes.
 
 ### Added
 
-- Added `@Skill` autocomplete in the Workspace composer with search, keyboard navigation, scope-aware results, and Native Pi skill invocation.
+- Added `@Skill` autocomplete in the Workspace composer with search, keyboard navigation, scope-aware results, removable Skill chips, and Native Pi skill invocation.
 
 ### Fixed
 
