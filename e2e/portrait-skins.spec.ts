@@ -549,12 +549,13 @@ test('switches original portrait skins, persists selection and restores plain th
         )
       }
       // Input controls must remain above the portrait, even where the two overlap.
-      const textarea = composer.locator('textarea')
-      await textarea.click({ position: { x: 12, y: 12 } })
-      await textarea.fill('测试磨砂输入框')
-      await expect(textarea).toBeFocused()
-      await expect(textarea).toHaveValue('测试磨砂输入框')
-      await textarea.fill('')
+      const editor = composer.getByTestId('composer-editor')
+      await editor.click({ position: { x: 12, y: 12 } })
+      await editor.pressSequentially('测试磨砂输入框')
+      await expect(editor).toBeFocused()
+      await expect(editor).toHaveText('测试磨砂输入框')
+      await editor.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A')
+      await editor.press('Backspace')
     }
     const scene = page.getByTestId('app-shell')
     await expect(scene).toHaveCSS('background-size', 'cover')

@@ -87,6 +87,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const activeFileTabId = ref<string | null>(null)
   const filePanelOpen = ref(false)
   const drafts = ref<Record<string, string>>({})
+  const draftSkillMap = ref<Record<string, string>>({})
   const draftImageMap = ref<Record<string, ChatDraftImage[]>>({})
   const fileEditBuffers = ref<Record<string, FileEditBuffer>>({})
   const diffPreviews = shallowRef<Record<string, string>>({})
@@ -322,6 +323,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     get: () => drafts.value[draftKey.value] ?? '',
     set: (value: string) => {
       drafts.value = { ...drafts.value, [draftKey.value]: value }
+    }
+  })
+  const draftSkill = computed<string | null>({
+    get: () => draftSkillMap.value[draftKey.value] ?? null,
+    set: (value: string | null) => {
+      const next = { ...draftSkillMap.value }
+      if (value) next[draftKey.value] = value
+      else delete next[draftKey.value]
+      draftSkillMap.value = next
     }
   })
   const draftImages = computed(() => draftImageMap.value[draftKey.value] ?? [])
@@ -973,6 +983,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const next = { ...drafts.value }
     delete next[sessionId]
     drafts.value = next
+    const nextSkills = { ...draftSkillMap.value }
+    delete nextSkills[sessionId]
+    draftSkillMap.value = nextSkills
     const nextImages = { ...draftImageMap.value }
     delete nextImages[sessionId]
     draftImageMap.value = nextImages
@@ -1695,6 +1708,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeDiffPreview,
     drafts,
     draft,
+    draftSkill,
     draftImages,
     draftKey,
     fileEditBuffers,

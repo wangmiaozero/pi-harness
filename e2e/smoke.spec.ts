@@ -94,7 +94,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByTestId('workspace-toggle-files')).toBeVisible()
     await expect(page.getByTestId('workspace-section-files')).toHaveCount(0)
     await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
-    await expect(page.locator('main textarea')).toBeVisible()
+    await expect(page.getByTestId('composer-editor')).toBeVisible()
     const workspaceSidebar = page.getByTestId('workspace-sidebar')
     await workspaceSidebar.evaluate((element) => {
       const transfer = new DataTransfer()
@@ -357,7 +357,7 @@ test.describe('Pi-Harness smoke', () => {
 
     await pickDirectory(projectA)
     await page.getByTestId('workspace-import-project').click()
-    await expect(page.locator('main textarea')).toBeVisible()
+    await expect(page.getByTestId('composer-editor')).toBeVisible()
     await expect(page.getByTestId('workspace-project-0')).toContainText('import-a')
     await expect(page.getByTestId('workspace-draft-session')).toHaveCount(0)
     const groupA = page.getByTestId('workspace-project-group-0')
@@ -538,7 +538,7 @@ test.describe('Pi-Harness smoke', () => {
         )
       )
       .toEqual(['session-primary', 'session-added'])
-    await expect(page.locator('main textarea')).toBeVisible()
+    await expect(page.getByTestId('composer-editor')).toBeVisible()
     await expect(page.getByTestId('workspace-new-session')).toBeEnabled()
     // Session attachments stay under their session; creating another chat cannot promote them to projects.
     await expect(
@@ -622,7 +622,7 @@ test.describe('Pi-Harness smoke', () => {
         path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-selected-session.png')
       })
     }
-    const composer = page.locator('main textarea')
+    const composer = page.getByTestId('composer-editor')
     await expect(composer).toBeVisible()
     await expect(page.getByTestId('workspace-mascot')).toHaveCount(0)
     await composer.focus()
@@ -696,7 +696,7 @@ test.describe('Pi-Harness smoke', () => {
 
     await page.getByTestId('workspace-toggle-files').click()
     await expect(projectTree).toBeVisible()
-    await expect(page.locator('main textarea')).toBeVisible()
+    await expect(page.getByTestId('composer-editor')).toBeVisible()
     await expect(agentAura).toHaveClass(/opacity-0/)
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({
@@ -738,7 +738,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(code.locator('.cm-content')).toContainText('const answer = 42')
     await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
     await expect(projectTree).toBeVisible()
-    await expect(page.locator('main textarea')).toBeVisible()
+    await expect(page.getByTestId('composer-editor')).toBeVisible()
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({
         path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-file-panel-preview.png')

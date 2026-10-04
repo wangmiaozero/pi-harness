@@ -165,20 +165,32 @@ watch(
 
 async function onSend(imageModel: ComposerImageModelTarget | null = null) {
   const text = workspace.draft.trim()
+  const selectedSkillName = imageModel ? null : workspace.draftSkill
   const skillInvocation = imageModel
     ? null
-    : resolveSkillMention(
-        text,
-        skills.skills.filter((skill) => skill.isValid).map((skill) => skill.name)
-      )
+    : selectedSkillName
+      ? {
+          name: selectedSkillName,
+          prompt: text,
+          runtimeText: text ? `/skill:${selectedSkillName} ${text}` : `/skill:${selectedSkillName}`
+        }
+      : resolveSkillMention(
+          text,
+          skills.skills.filter((skill) => skill.isValid).map((skill) => skill.name)
+        )
   const runtimeText = skillInvocation?.runtimeText ?? text
+  const displayText = selectedSkillName
+    ? text
+      ? `@${selectedSkillName} ${text}`
+      : `@${selectedSkillName}`
+    : text
   const draftKey = workspace.draftKey
   const images: AgentImageAttachment[] = workspace.draftImages.map(({ data, mimeType }) => ({
     type: 'image',
     data,
     mimeType
   }))
-  if (!text && !images.length) return
+  if (!displayText && !images.length) return
   stickToLatest()
   const preset = (
     sessions.currentId ? agent.activePreset() : (settings.settings?.defaultToolPreset ?? 'default')
@@ -193,7 +205,14 @@ async function onSend(imageModel: ComposerImageModelTarget | null = null) {
         imageModel,
         images
       )
-    : await agent.send(sessions.currentId, workspace.currentCwd, runtimeText, preset, images, text)
+    : await agent.send(
+        sessions.currentId,
+        workspace.currentCwd,
+        runtimeText,
+        preset,
+        images,
+        displayText
+      )
   if (agent.error) return
   workspace.clearDraft(draftKey)
   if (sessionId && sessionId !== sessions.currentId) {

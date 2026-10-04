@@ -8,6 +8,12 @@ on:
 permissions:
   contents: write
 
+# Local development uses the China-friendly mirror from .npmrc. GitHub-hosted
+# runners download Electron from the upstream release CDN instead.
+env:
+  npm_config_electron_mirror: https://github.com/electron/electron/releases/download/
+  npm_config_electron_custom_dir: 'v{{ version }}'
+
 jobs:
   macos:
     name: macOS arm64 and x64

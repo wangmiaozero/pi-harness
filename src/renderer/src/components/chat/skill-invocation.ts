@@ -42,6 +42,19 @@ export function replaceSkillMention(
   }
 }
 
+export function removeSkillMention(
+  text: string,
+  mention: ActiveSkillMention
+): { text: string; cursor: number } {
+  const before = text.slice(0, mention.start).trimEnd()
+  const after = text.slice(mention.end).trimStart()
+  const separator = before && after ? ' ' : ''
+  return {
+    text: `${before}${separator}${after}`,
+    cursor: before.length + separator.length
+  }
+}
+
 export function resolveSkillMention(
   text: string,
   skillNames: readonly string[]

@@ -37,7 +37,7 @@ import { AtSign, ImagePlus, Minimize2, Send, Volume2, VolumeX, Wrench, X } from 
 import { isImageGenerationModel } from '@shared/models/image-model'
 import {
   findActiveSkillMention,
-  replaceSkillMention,
+  removeSkillMention,
   type ActiveSkillMention
 } from './skill-invocation'
 
@@ -63,9 +63,9 @@ const settings = useSettingsStore()
 const compaction = useCompactionStore()
 const skills = useSkillsStore()
 const fileInput = ref<HTMLInputElement | null>(null)
-const textarea = ref<HTMLTextAreaElement | null>(null)
+const editor = ref<HTMLElement | null>(null)
 const inputBox = ref<HTMLElement | null>(null)
-const textareaFocused = ref(false)
+const editorFocused = ref(false)
 const previewImage = ref<ChatDraftImage | null>(null)
 const previewOpen = ref(false)
 const dragActive = ref(false)
@@ -99,18 +99,32 @@ const compactTitle = computed(() => {
   return `${t(hintKey)} · ${compactLabel.value}`
 })
 
-function onTextareaFocus() {
-  textareaFocused.value = true
+function onEditorFocus() {
+  editorFocused.value = true
+  ensureEditorTextNode()
+  const selection = window.getSelection()
+  if (!editor.value?.contains(selection?.anchorNode ?? null)) {
+    void nextTick(() => setEditorSelection(workspace.draft.length))
+  }
   updateSkillMention()
 }
 
-function onTextareaBlur() {
-  textareaFocused.value = false
+function onEditorMouseDown(event: MouseEvent) {
+  const target = event.target as Node | null
+  if (target && (editor.value?.contains(target) || (target as Element).closest?.('button'))) return
+  event.preventDefault()
+  editor.value?.focus({ preventScroll: true })
+  setEditorSelection(workspace.draft.length)
+}
+
+function onEditorBlur() {
+  editorFocused.value = false
   skillMention.value = null
 }
 
 function focus() {
-  textarea.value?.focus({ preventScroll: true })
+  editor.value?.focus({ preventScroll: true })
+  void nextTick(() => setEditorSelection(workspace.draft.length))
 }
 
 defineExpose({ focus })
@@ -218,7 +232,7 @@ const canSend = computed(
     workspace.canChat &&
     (selectedImageModel.value
       ? Boolean(workspace.draft.trim())
-      : Boolean(workspace.draft.trim() || workspace.draftImages.length)) &&
+      : Boolean(workspace.draft.trim() || workspace.draftSkill || workspace.draftImages.length)) &&
     !hasUnsupportedImages.value &&
     !hasTooManyImageSources.value
 )
@@ -251,7 +265,7 @@ function skillScopeLabel(skill: SkillInfo): string {
 }
 
 function syncSkillMenu() {
-  const element = textarea.value
+  const element = inputBox.value
   if (!element) return
   const rect = element.getBoundingClientRect()
   const gutter = 8
@@ -268,10 +282,7 @@ function syncSkillMenu() {
   }
 }
 
-function updateSkillMention(
-  value = workspace.draft,
-  cursor = textarea.value?.selectionStart ?? null
-) {
+function updateSkillMention(value = workspace.draft, cursor = editorSelection()?.end ?? null) {
   if (selectedImageModel.value) {
     skillMention.value = null
     return
@@ -280,26 +291,122 @@ function updateSkillMention(
   if (skillMention.value) syncSkillMenu()
 }
 
-function onComposerInput(event: Event) {
-  const element = event.target as HTMLTextAreaElement
-  updateSkillMention(element.value, element.selectionStart)
+function editorTextValue(): string {
+  return editor.value?.textContent?.replace(/\r\n/g, '\n') ?? ''
+}
+
+function syncEditorText() {
+  const element = editor.value
+  if (element && element.textContent !== workspace.draft) element.textContent = workspace.draft
+}
+
+function ensureEditorTextNode(): Text {
+  const element = editor.value
+  if (!element) return document.createTextNode('')
+  const existing = [...element.childNodes].find(
+    (node): node is Text => node.nodeType === Node.TEXT_NODE
+  )
+  if (existing) return existing
+  const text = document.createTextNode('')
+  element.append(text)
+  return text
+}
+
+function offsetWithinDraft(node: Node, offset: number): number {
+  const root = editor.value
+  if (!root) return 0
+  if (!root.contains(node) && node !== root) {
+    return workspace.draft.length
+  }
+  const range = document.createRange()
+  range.selectNodeContents(root)
+  try {
+    range.setEnd(node, offset)
+  } catch {
+    return workspace.draft.length
+  }
+  return range.toString().length
+}
+
+function editorSelection(): { start: number; end: number } | null {
+  const selection = window.getSelection()
+  const root = editor.value
+  if (!selection?.rangeCount || !root) return null
+  const anchor = offsetWithinDraft(selection.anchorNode ?? root, selection.anchorOffset)
+  const focusOffset = offsetWithinDraft(selection.focusNode ?? root, selection.focusOffset)
+  return { start: Math.min(anchor, focusOffset), end: Math.max(anchor, focusOffset) }
+}
+
+function textPosition(offset: number): { node: Node; offset: number } {
+  const root = editor.value
+  const fallback = ensureEditorTextNode()
+  if (!root) return { node: fallback, offset: 0 }
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let remaining = Math.max(0, Math.min(offset, workspace.draft.length))
+  let node = walker.nextNode()
+  while (node) {
+    const length = node.textContent?.length ?? 0
+    if (remaining <= length) return { node, offset: remaining }
+    remaining -= length
+    node = walker.nextNode()
+  }
+  return { node: fallback, offset: fallback.length }
+}
+
+function setEditorSelection(start: number, end = start) {
+  const selection = window.getSelection()
+  if (!selection || !editor.value) return
+  const from = textPosition(start)
+  const to = textPosition(end)
+  const range = document.createRange()
+  range.setStart(from.node, from.offset)
+  range.setEnd(to.node, to.offset)
+  selection.removeAllRanges()
+  selection.addRange(range)
+}
+
+function replaceEditorSelection(text: string) {
+  const selection = editorSelection() ?? {
+    start: workspace.draft.length,
+    end: workspace.draft.length
+  }
+  workspace.draft = `${workspace.draft.slice(0, selection.start)}${text}${workspace.draft.slice(selection.end)}`
+  syncEditorText()
+  const cursor = selection.start + text.length
+  setEditorSelection(cursor)
+  updateSkillMention(workspace.draft, cursor)
+}
+
+function onComposerInput() {
+  workspace.draft = editorTextValue()
+  updateSkillMention(workspace.draft, editorSelection()?.end ?? workspace.draft.length)
 }
 
 function selectSkill(skill: SkillInfo) {
   const mention = skillMention.value
   if (!mention) return
-  const replacement = replaceSkillMention(workspace.draft, mention, skill.name)
+  const replacement = removeSkillMention(workspace.draft, mention)
   workspace.draft = replacement.text
+  workspace.draftSkill = skill.name
   skillMention.value = null
   void nextTick(() => {
-    textarea.value?.focus({ preventScroll: true })
-    textarea.value?.setSelectionRange(replacement.cursor, replacement.cursor)
+    syncEditorText()
+    editor.value?.focus({ preventScroll: true })
+    setEditorSelection(replacement.cursor)
+  })
+}
+
+function removeSelectedSkill() {
+  workspace.draftSkill = null
+  void nextTick(() => {
+    editor.value?.focus({ preventScroll: true })
+    setEditorSelection(0)
   })
 }
 
 function openSkillMention() {
   emit('unlockAudio')
-  const element = textarea.value
+  const element = editor.value
   if (!element) return
   if (skillMention.value) {
     element.focus({ preventScroll: true })
@@ -307,15 +414,17 @@ function openSkillMention() {
     return
   }
 
-  const start = element.selectionStart ?? workspace.draft.length
-  const end = element.selectionEnd ?? start
+  const selection = editorSelection()
+  const start = selection?.start ?? workspace.draft.length
+  const end = selection?.end ?? start
   const prefix = workspace.draft.slice(0, start)
   const insertion = prefix && !/\s$/.test(prefix) ? ' @' : '@'
   workspace.draft = `${prefix}${insertion}${workspace.draft.slice(end)}`
   const cursor = start + insertion.length
   void nextTick(() => {
+    syncEditorText()
     element.focus({ preventScroll: true })
-    element.setSelectionRange(cursor, cursor)
+    setEditorSelection(cursor)
     updateSkillMention(workspace.draft, cursor)
   })
 }
@@ -396,6 +505,22 @@ function onKeydown(e: KeyboardEvent) {
       skillMention.value = null
       return
     }
+  }
+  const selection = editorSelection()
+  if (
+    e.key === 'Backspace' &&
+    workspace.draftSkill &&
+    selection?.start === 0 &&
+    selection.end === 0
+  ) {
+    e.preventDefault()
+    removeSelectedSkill()
+    return
+  }
+  if (e.key === 'Enter' && e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+    e.preventDefault()
+    replaceEditorSelection('\n')
+    return
   }
   if (shouldSendComposerKey(e)) {
     e.preventDefault()
@@ -512,9 +637,9 @@ function onPaste(event: ClipboardEvent) {
     .filter((item) => item.type.startsWith('image/'))
     .map((item) => item.getAsFile())
     .filter((file): file is File => file !== null)
-  if (!files.length) return
   event.preventDefault()
-  void processImageFiles(files)
+  if (files.length) void processImageFiles(files)
+  else replaceEditorSelection(event.clipboardData?.getData('text/plain') ?? '')
 }
 
 function draggedFiles(event: DragEvent): File[] {
@@ -569,6 +694,12 @@ watch(
 )
 
 watch(
+  () => [workspace.draftKey, workspace.draft] as const,
+  () => void nextTick(syncEditorText),
+  { immediate: true }
+)
+
+watch(
   () => skillMention.value?.query,
   () => {
     activeSkillIndex.value = 0
@@ -580,10 +711,14 @@ watch(skillMenuOpen, (open) => {
 })
 
 watch(selectedImageModel, (selected) => {
-  if (selected) skillMention.value = null
+  if (selected) {
+    skillMention.value = null
+    workspace.draftSkill = null
+  }
 })
 
 onMounted(() => {
+  syncEditorText()
   window.addEventListener('resize', syncSkillMenu)
   window.addEventListener('scroll', syncSkillMenu, true)
 })
@@ -659,31 +794,59 @@ onBeforeUnmount(() => {
       :class="
         showComposerFire
           ? 'command-console-input--ultra'
-          : textareaFocused
+          : editorFocused
             ? 'border border-[var(--accent-border)] bg-[var(--control-bg-hover)] shadow-[var(--control-shadow)]'
             : 'border border-[var(--control-border)] bg-[var(--control-bg)] shadow-[var(--control-shadow)] hover:bg-[var(--control-bg-hover)]'
       "
       :aria-busy="busy"
+      @mousedown="onEditorMouseDown"
     >
-      <textarea
-        ref="textarea"
-        v-model="workspace.draft"
-        rows="3"
-        :placeholder="$t('workspace.composerPlaceholder')"
-        :aria-expanded="skillMenuOpen"
-        :aria-controls="skillMenuOpen ? 'composer-skill-listbox' : undefined"
-        :aria-activedescendant="
-          activeMentionSkill ? `composer-skill-${activeSkillIndex}` : undefined
-        "
-        aria-autocomplete="list"
-        class="relative z-10 block w-full resize-none bg-transparent px-2.5 py-2 text-[12.5px] text-[var(--text-primary)] outline-none"
-        @focus="onTextareaFocus"
-        @blur="onTextareaBlur"
-        @keydown="onKeydown"
-        @input="onComposerInput"
-        @click="updateSkillMention()"
-        @paste="onPaste"
-      />
+      <div
+        class="relative z-10 min-h-[68px] w-full cursor-text whitespace-pre-wrap break-words bg-transparent px-2.5 py-2 text-[12.5px] leading-5 text-[var(--text-primary)]"
+      >
+        <span
+          v-if="workspace.draftSkill"
+          data-testid="composer-skill-chip"
+          contenteditable="false"
+          class="mr-1 inline-flex h-6 max-w-[70%] translate-y-[1px] items-center gap-1 rounded-full border border-[var(--accent-border)] bg-[var(--accent-tint)] pl-2 pr-1 align-baseline font-[family-name:var(--font-mono)] text-[11px] font-medium leading-none text-[var(--accent)]"
+        >
+          <span class="truncate">@{{ workspace.draftSkill }}</span>
+          <button
+            type="button"
+            tabindex="-1"
+            class="inline-flex size-4 shrink-0 items-center justify-center rounded-full hover:bg-[var(--bg-hover)]"
+            :title="`${$t('common.delete')} @${workspace.draftSkill}`"
+            :aria-label="`${$t('common.delete')} @${workspace.draftSkill}`"
+            @mousedown.prevent
+            @click.stop="removeSelectedSkill"
+          >
+            <X aria-hidden="true" class="size-2.5" :stroke-width="2" />
+          </button>
+        </span>
+        <span
+          ref="editor"
+          data-testid="composer-editor"
+          role="textbox"
+          contenteditable="plaintext-only"
+          aria-multiline="true"
+          :aria-label="$t('workspace.composerPlaceholder')"
+          :aria-expanded="skillMenuOpen"
+          :aria-controls="skillMenuOpen ? 'composer-skill-listbox' : undefined"
+          :aria-activedescendant="
+            activeMentionSkill ? `composer-skill-${activeSkillIndex}` : undefined
+          "
+          aria-autocomplete="list"
+          :data-placeholder="$t('workspace.composerPlaceholder')"
+          :data-empty="!workspace.draft && !workspace.draftSkill ? 'true' : 'false'"
+          class="composer-editor min-w-[1px] whitespace-pre-wrap break-words outline-none"
+          @focus="onEditorFocus"
+          @blur="onEditorBlur"
+          @keydown="onKeydown"
+          @input="onComposerInput"
+          @click="updateSkillMention()"
+          @paste="onPaste"
+        ></span>
+      </div>
     </div>
     <Teleport to="body">
       <div
@@ -857,5 +1020,18 @@ onBeforeUnmount(() => {
   background: transparent;
   box-shadow: none;
   clip-path: none;
+}
+
+.composer-editor[data-empty='true']::before {
+  color: var(--text-tertiary);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.composer-editor:focus,
+.composer-editor:focus-visible {
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
 }
 </style>

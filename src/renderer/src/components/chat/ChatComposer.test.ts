@@ -41,8 +41,9 @@ describe('ChatComposer skill mentions', () => {
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
     })
-    const input = wrapper.get('textarea')
-    await input.setValue('Please use @apple')
+    const input = wrapper.get('[data-testid="composer-editor"]')
+    input.element.textContent = 'Please use @apple'
+    setContentSelection(input.element, 17)
     await input.trigger('input')
 
     const menu = document.body.querySelector('[data-testid="composer-skill-menu"]')
@@ -50,8 +51,30 @@ describe('ChatComposer skill mentions', () => {
     expect(menu?.textContent).not.toContain('backend-review')
 
     await input.trigger('keydown', { key: 'Enter', keyCode: 13 })
-    expect(workspace.draft).toBe('Please use @apple-design ')
+    expect(workspace.draft).toBe('Please use')
+    expect(workspace.draftSkill).toBe('apple-design')
+    expect(wrapper.get('[data-testid="composer-skill-chip"]').text()).toContain('@apple-design')
     expect(document.body.querySelector('[data-testid="composer-skill-menu"]')).toBeNull()
+
+    await wrapper.get('[data-testid="composer-skill-chip"] button').trigger('click')
+    expect(workspace.draftSkill).toBeNull()
+    expect(wrapper.find('[data-testid="composer-skill-chip"]').exists()).toBe(false)
+  })
+
+  it('removes the selected Skill chip with Backspace at the start of the prompt', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.draftSkill = 'demo-skill'
+
+    const wrapper = mount(ChatComposer, {
+      attachTo: document.body,
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    const input = wrapper.get('[data-testid="composer-editor"]')
+    setContentSelection(input.element, 0)
+    await input.trigger('keydown', { key: 'Backspace' })
+
+    expect(workspace.draftSkill).toBeNull()
   })
 
   it('opens the Skill menu from the toolbar button at the current caret', async () => {
@@ -65,14 +88,25 @@ describe('ChatComposer skill mentions', () => {
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
     })
-    const input = wrapper.get('textarea')
-    ;(input.element as HTMLTextAreaElement).setSelectionRange(11, 11)
+    await wrapper.vm.$nextTick()
+    const input = wrapper.get('[data-testid="composer-editor"]')
+    setContentSelection(input.element, 11)
     await wrapper.get('[data-testid="composer-skill-trigger"]').trigger('click')
 
     expect(workspace.draft).toBe('Review this @')
     expect(document.body.querySelector('[data-testid="composer-skill-menu"]')).not.toBeNull()
   })
 })
+
+function setContentSelection(element: Element, offset: number) {
+  const node = element.firstChild ?? element.appendChild(document.createTextNode(''))
+  const range = document.createRange()
+  range.setStart(node, offset)
+  range.collapse(true)
+  const selection = window.getSelection()
+  selection?.removeAllRanges()
+  selection?.addRange(range)
+}
 
 describe('ChatComposer model capabilities', () => {
   it('only enables image input for models that declare vision support', async () => {
