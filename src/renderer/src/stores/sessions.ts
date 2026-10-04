@@ -4,6 +4,7 @@ import type { SessionInfo, SessionProjectGroup } from '@shared/types/workspace'
 import { buildSessionForkTree, groupSessionsByProject } from '@shared/workspace/session-tree'
 import { projectIdentityKey } from '@shared/workspace/project-identity'
 import { callApi, getApi } from '@renderer/composables/useApi'
+import { formatSkillInvocationSummary } from '@shared/skills/skill-invocation'
 
 export const useSessionStore = defineStore('sessions', () => {
   const items = shallowRef<SessionInfo[]>([])
@@ -26,7 +27,10 @@ export const useSessionStore = defineStore('sessions', () => {
     loading.value = true
     error.value = null
     try {
-      const persisted = await callApi(() => getApi().sessions.list(force))
+      const persisted = (await callApi(() => getApi().sessions.list(force))).map((session) => ({
+        ...session,
+        firstMessage: formatSkillInvocationSummary(session.firstMessage)
+      }))
       const persistedIds = new Set(persisted.map((session) => session.id))
       const transients = items.value.filter(
         (session) => session.transient && !persistedIds.has(session.id)

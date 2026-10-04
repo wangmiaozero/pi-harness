@@ -52,6 +52,7 @@ export const useSkillsStore = defineStore('skills', () => {
   const packageResults = ref<PiPackageActionResult[]>([])
   const builtinSkillResults = ref<BuiltinSkillActionResult[]>([])
   const loading = ref(false)
+  const skillsLoading = ref(false)
   const error = ref<string | null>(null)
   const selectedPath = ref<string | null>(null)
   const detailContent = ref<string>('')
@@ -59,6 +60,8 @@ export const useSkillsStore = defineStore('skills', () => {
   const detailMtime = ref<number | null>(null)
   const detailFilePath = ref<string | null>(null)
   const detailLoading = ref(false)
+  let composerSkillsRequestId = 0
+  let composerSkillsProjectRoot: string | null = null
   const featuredSkills = computed(() => capabilities.value.filter((entry) => entry.featured))
   const installingIds = computed(() =>
     Object.values(capabilityProgress.value)
@@ -123,6 +126,25 @@ export const useSkillsStore = defineStore('skills', () => {
       error.value = (e as { message?: string }).message ?? String(e)
     } finally {
       loading.value = false
+    }
+  }
+
+  async function fetchSkills() {
+    const requestId = ++composerSkillsRequestId
+    const projectRoot = useWorkspaceStore().currentCwd
+    if (projectRoot !== composerSkillsProjectRoot) {
+      skills.value = skills.value.filter((skill) => skill.scope !== 'project')
+      composerSkillsProjectRoot = projectRoot
+    }
+    skillsLoading.value = true
+    try {
+      const result = await callApi(() => getApi().skills.list(projectRoot))
+      if (requestId === composerSkillsRequestId) skills.value = result
+      return result
+    } catch {
+      return skills.value
+    } finally {
+      if (requestId === composerSkillsRequestId) skillsLoading.value = false
     }
   }
 
@@ -489,6 +511,7 @@ export const useSkillsStore = defineStore('skills', () => {
     builtinSkillResults,
     installingIds,
     loading,
+    skillsLoading,
     error,
     selectedPath,
     detailContent,
@@ -496,6 +519,7 @@ export const useSkillsStore = defineStore('skills', () => {
     detailFilePath,
     detailLoading,
     fetchList,
+    fetchSkills,
     refresh,
     loadDetail,
     remove,

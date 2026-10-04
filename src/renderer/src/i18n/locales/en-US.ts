@@ -1347,6 +1347,8 @@ export const enUS = {
     scrollToBottom: 'Scroll to bottom',
     context: 'Context',
     composerPlaceholder: 'Message Pi…',
+    mentionSkill: 'Mention a Skill',
+    noMatchingSkills: 'No matching Skills',
     attachImage: 'Attach image',
     previewImage: 'Preview image',
     removeImage: 'Remove image',

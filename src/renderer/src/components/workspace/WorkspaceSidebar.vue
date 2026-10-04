@@ -811,21 +811,27 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
           MISSION CONTROL
         </span>
       </p>
-      <div class="workspace-command-actions flex items-center">
+      <div
+        data-testid="workspace-command-actions"
+        class="workspace-command-actions workspace-command-actions--compact flex items-center !gap-1"
+      >
         <IconButton
           variant="accent"
           :active="newChatActive"
           :disabled="!canStartSessionFromCurrentProject"
           :label="$t('workspace.newSession')"
           :aria-pressed="newChatActive"
+          class="!size-7 !rounded-[7px]"
           data-testid="workspace-new-session"
           @click="newSession"
         >
           <Plus class="size-3.5" :stroke-width="1.75" />
         </IconButton>
+        <span aria-hidden="true" class="mx-0.5 h-4 w-px bg-[var(--border-subtle)]" />
         <IconButton
           :disabled="refreshing"
           :label="$t('common.refresh')"
+          class="!size-6 !rounded-[6px] !border-0 !bg-transparent !shadow-none"
           data-testid="workspace-refresh"
           @click="refreshWorkspace"
         >
@@ -838,6 +844,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
         <IconButton
           :disabled="importingProject || importingWorkspace"
           :label="$t('workspace.importProject')"
+          class="!size-6 !rounded-[6px] !border-0 !bg-transparent !shadow-none"
           data-testid="workspace-import-project"
           @click="pickProject"
         >
@@ -850,6 +857,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
         <IconButton
           :disabled="importingProject || importingWorkspace"
           :label="$t('workspace.importWorkspace')"
+          class="!size-6 !rounded-[6px] !border-0 !bg-transparent !shadow-none"
           data-testid="workspace-import-workspace"
           @click="importWorkspace"
         >
@@ -1286,3 +1294,12 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
     </Dialog>
   </aside>
 </template>
+
+<style scoped>
+.workspace-command-actions--compact {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  clip-path: none !important;
+}
+</style>

@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="release v1.8.0" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1"><img alt="release v1.8.1" src="https://img.shields.io/badge/release-v1.8.1-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -64,16 +64,16 @@ Native Pi всегда остаётся внутри реального пути
 
 ## Скачать
 
-Скачайте Pi-Harness v1.8.0 из [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0).
+Скачайте Pi-Harness v1.8.1 из [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1).
 
 | Платформа           | Установщик                                                                                                                   |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.8.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.8.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.8.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-Setup-1.8.0.exe) |
-| Linux x64           | [Pi-Harness-1.8.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.8.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.8.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.8.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-Setup-1.8.1.exe) |
+| Linux x64           | [Pi-Harness-1.8.1.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.AppImage)   |
 
-> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.8.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0).
+> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.8.1](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1).
 
 Пользователям готового приложения не нужно клонировать репозиторий или устанавливать pnpm. Pi-Harness может обнаружить, установить и восстановить Node.js, npm, PATH и Pi Coding Agent в поддерживаемой среде.
 
@@ -111,7 +111,7 @@ Native Pi всегда остаётся внутри реального пути
 
 ## Скриншоты
 
-Стандартная тема показывает основные функции. Галерея v1.8.0 разделена на темы рабочей области и функциональные экраны.
+Стандартная тема показывает основные функции. Галерея v1.8.1 разделена на темы рабочей области и функциональные экраны.
 
 ### Стандартная тема
 
@@ -123,7 +123,7 @@ Native Pi всегда остаётся внутри реального пути
 |                             **Настройки**                             |                                                       |
 |       ![Настройки в классической теме](docs/经典主题/设置.jpg)        |                                                       |
 
-### Галерея оформления v1.8.0
+### Галерея оформления v1.8.1
 
 #### Темы рабочей области
 

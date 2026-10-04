@@ -1345,6 +1345,8 @@ export const jaJP: MessageTree = {
     scrollToBottom: '末尾へスクロール',
     context: 'コンテキスト',
     composerPlaceholder: 'Pi にメッセージ…',
+    mentionSkill: 'Skill を参照',
+    noMatchingSkills: '一致する Skill はありません',
     attachImage: '画像を添付',
     previewImage: '画像をプレビュー',
     removeImage: '画像を削除',

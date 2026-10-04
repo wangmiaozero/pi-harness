@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { i18n } from '@renderer/i18n'
 import { useAgentStore } from '@renderer/stores/agent'
 import { useModelsStore } from '@renderer/stores/models'
@@ -8,10 +8,71 @@ import { useProvidersStore } from '@renderer/stores/providers'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
-import type { ModelDefinition, ProviderProfile } from '@shared/ipc/api-types'
+import { useSkillsStore } from '@renderer/stores/skills'
+import type { ModelDefinition, PiSwitchAPI, ProviderProfile } from '@shared/ipc/api-types'
 import ChatComposer from './ChatComposer.vue'
 
-beforeEach(() => setActivePinia(createPinia()))
+beforeEach(() => {
+  setActivePinia(createPinia())
+  window.piSwitch = {
+    on: vi.fn(() => () => undefined),
+    skills: {
+      list: vi.fn(() => Promise.resolve([...useSkillsStore().skills]))
+    }
+  } as unknown as PiSwitchAPI
+})
+
+afterEach(() => {
+  document.body.innerHTML = ''
+  delete window.piSwitch
+})
+
+describe('ChatComposer skill mentions', () => {
+  it('filters installed Skills after @ and selects with the keyboard', async () => {
+    const skills = useSkillsStore()
+    const workspace = useWorkspaceStore()
+    skills.skills = [
+      skill('apple-design', 'Apple platform design guidance'),
+      skill('backend-review', 'Review backend services')
+    ]
+
+    const wrapper = mount(ChatComposer, {
+      attachTo: document.body,
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    const input = wrapper.get('textarea')
+    await input.setValue('Please use @apple')
+    await input.trigger('input')
+
+    const menu = document.body.querySelector('[data-testid="composer-skill-menu"]')
+    expect(menu?.textContent).toContain('@apple-design')
+    expect(menu?.textContent).not.toContain('backend-review')
+
+    await input.trigger('keydown', { key: 'Enter', keyCode: 13 })
+    expect(workspace.draft).toBe('Please use @apple-design ')
+    expect(document.body.querySelector('[data-testid="composer-skill-menu"]')).toBeNull()
+  })
+
+  it('opens the Skill menu from the toolbar button at the current caret', async () => {
+    const skills = useSkillsStore()
+    const workspace = useWorkspaceStore()
+    skills.skills = [skill('demo-skill', 'Demo')]
+    workspace.draft = 'Review this'
+
+    const wrapper = mount(ChatComposer, {
+      attachTo: document.body,
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    const input = wrapper.get('textarea')
+    ;(input.element as HTMLTextAreaElement).setSelectionRange(11, 11)
+    await wrapper.get('[data-testid="composer-skill-trigger"]').trigger('click')
+
+    expect(workspace.draft).toBe('Review this @')
+    expect(document.body.querySelector('[data-testid="composer-skill-menu"]')).not.toBeNull()
+  })
+})
 
 describe('ChatComposer model capabilities', () => {
   it('only enables image input for models that declare vision support', async () => {
@@ -187,5 +248,20 @@ function model(modelId: string, vision: boolean): ModelDefinition {
     metadata: {},
     createdAt: 0,
     updatedAt: 0
+  }
+}
+
+function skill(name: string, description: string) {
+  return {
+    name,
+    description,
+    path: `/skills/${name}`,
+    source: '/skills',
+    isValid: true,
+    issues: [],
+    lastModified: null,
+    hasReadme: true,
+    origin: 'local' as const,
+    scope: 'global' as const
   }
 }

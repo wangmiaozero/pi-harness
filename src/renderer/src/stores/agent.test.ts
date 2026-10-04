@@ -43,6 +43,31 @@ describe('agent store new-session handshake', () => {
     expect(sessions.items[0]).toMatchObject({ id: 'session-new', transient: true })
   })
 
+  it('uses the visible @Skill text for a new session title while sending the native command', async () => {
+    const start = vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' })
+    const prompt = vi.fn().mockResolvedValue(null)
+    window.piSwitch = {
+      agent: { start, prompt }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    const sessions = useSessionStore()
+    await agent.send(
+      null,
+      '/code/project',
+      '/skill:demo-skill review this',
+      'default',
+      [],
+      '@demo-skill review this'
+    )
+
+    expect(prompt).toHaveBeenCalledWith({
+      sessionId: 'session-new',
+      message: '/skill:demo-skill review this'
+    })
+    expect(sessions.items[0]?.firstMessage).toBe('@demo-skill review this')
+  })
+
   it('applies an explicit thinking level when constructing a new session', async () => {
     const start = vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' })
     const prompt = vi.fn().mockResolvedValue(null)

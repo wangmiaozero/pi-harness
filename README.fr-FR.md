@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="release v1.8.0" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1"><img alt="release v1.8.1" src="https://img.shields.io/badge/release-v1.8.1-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -64,16 +64,16 @@ Native Pi reste toujours dans le chemin d’exécution réel ; Pi-Harness ajoute
 
 ## Télécharger
 
-Téléchargez Pi-Harness v1.8.0 depuis [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0).
+Téléchargez Pi-Harness v1.8.1 depuis [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1).
 
 | Plateforme          | Programme d’installation                                                                                                     |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.8.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.8.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.8.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-Setup-1.8.0.exe) |
-| Linux x64           | [Pi-Harness-1.8.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.8.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.8.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.8.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-Setup-1.8.1.exe) |
+| Linux x64           | [Pi-Harness-1.8.1.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.AppImage)   |
 
-> Les builds communautaires macOS peuvent ne pas être signés. Si macOS bloque le premier lancement, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Consultez les [notes de la v1.8.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0).
+> Les builds communautaires macOS peuvent ne pas être signés. Si macOS bloque le premier lancement, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Consultez les [notes de la v1.8.1](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1).
 
 Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer pnpm. Pi-Harness peut détecter, installer et réparer Node.js, npm, PATH et Pi Coding Agent dans les environnements pris en charge.
 
@@ -111,7 +111,7 @@ Installer → Configurer le fournisseur → Choisir le modèle → Ouvrir le pro
 
 ## Captures d’écran
 
-Le thème par défaut présente les fonctions principales. La galerie v1.8.0 est reclassée en thèmes d’espace de travail et écrans fonctionnels.
+Le thème par défaut présente les fonctions principales. La galerie v1.8.1 est reclassée en thèmes d’espace de travail et écrans fonctionnels.
 
 ### Thème par défaut
 
@@ -123,7 +123,7 @@ Le thème par défaut présente les fonctions principales. La galerie v1.8.0 est
 |                                 **Préférences**                                  |                                                            |
 |          ![Préférences avec le thème classique](docs/经典主题/设置.jpg)          |                                                            |
 
-### Galerie d’apparence v1.8.0
+### Galerie d’apparence v1.8.1
 
 #### Thèmes d’espace de travail
 

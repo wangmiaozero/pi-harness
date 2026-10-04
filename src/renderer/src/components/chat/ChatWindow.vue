@@ -13,7 +13,9 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useModelsStore } from '@renderer/stores/models'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useHarnessStore } from '@renderer/stores/harness'
+import { useSkillsStore } from '@renderer/stores/skills'
 import { buildMessageFileChanges } from './message-file-changes'
+import { resolveSkillMention } from './skill-invocation'
 import type { ToolPreset } from '@shared/workspace/tool-presets'
 import type { AgentImageAttachment, SessionDetail } from '@shared/types/workspace'
 import { callApi, getApi } from '@renderer/composables/useApi'
@@ -36,6 +38,7 @@ const workspace = useWorkspaceStore()
 const models = useModelsStore()
 const settings = useSettingsStore()
 const harness = useHarnessStore()
+const skills = useSkillsStore()
 const scroller = ref<HTMLElement | null>(null)
 const scrollContent = ref<HTMLElement | null>(null)
 const composer = ref<InstanceType<typeof ChatComposer> | null>(null)
@@ -162,6 +165,13 @@ watch(
 
 async function onSend(imageModel: ComposerImageModelTarget | null = null) {
   const text = workspace.draft.trim()
+  const skillInvocation = imageModel
+    ? null
+    : resolveSkillMention(
+        text,
+        skills.skills.filter((skill) => skill.isValid).map((skill) => skill.name)
+      )
+  const runtimeText = skillInvocation?.runtimeText ?? text
   const draftKey = workspace.draftKey
   const images: AgentImageAttachment[] = workspace.draftImages.map(({ data, mimeType }) => ({
     type: 'image',
@@ -183,7 +193,7 @@ async function onSend(imageModel: ComposerImageModelTarget | null = null) {
         imageModel,
         images
       )
-    : await agent.send(sessions.currentId, workspace.currentCwd, text, preset, images)
+    : await agent.send(sessions.currentId, workspace.currentCwd, runtimeText, preset, images, text)
   if (agent.error) return
   workspace.clearDraft(draftKey)
   if (sessionId && sessionId !== sessions.currentId) {

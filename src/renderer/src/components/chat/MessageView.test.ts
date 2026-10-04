@@ -46,6 +46,26 @@ describe('MessageView', () => {
     expect(wrapper.get('.message-role-badge').text()).toBe('阿明')
   })
 
+  it('renders expanded Pi skill content as a compact mention', () => {
+    const message: AgentMessage = {
+      role: 'user',
+      content:
+        '<skill name="demo-skill" location="/skills/demo-skill/SKILL.md">\n' +
+        'References are relative to /skills/demo-skill.\n\n# Long instructions\n</skill>\n\nReview this change'
+    }
+    const wrapper = mount(MessageView, {
+      props: { message },
+      global: {
+        mocks: { $t: (key: string) => key },
+        stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true }
+      }
+    })
+
+    expect(wrapper.get('[data-testid="skill-invocation"]').text()).toBe('@demo-skill')
+    expect(wrapper.get('.user-message-body p').text()).toBe('Review this change')
+    expect(wrapper.text()).not.toContain('Long instructions')
+  })
+
   it('renders assistant text as safe Markdown', async () => {
     const message: AssistantMessage = {
       role: 'assistant',

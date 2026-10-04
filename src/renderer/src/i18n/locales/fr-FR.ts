@@ -1345,6 +1345,8 @@ export const frFR: MessageTree = {
     scrollToBottom: 'Défiler vers le bas',
     context: 'Contexte',
     composerPlaceholder: 'Message à Pi…',
+    mentionSkill: 'Mentionner un Skill',
+    noMatchingSkills: 'Aucun Skill correspondant',
     attachImage: 'Joindre une image',
     previewImage: 'Aperçu de l\'image',
     removeImage: 'Retirer l\'image',

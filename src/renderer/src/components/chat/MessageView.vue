@@ -11,6 +11,7 @@ import Dialog from '@renderer/components/ui/Dialog.vue'
 import type { MessageFileChanges } from './message-file-changes'
 import { normalizeAssistantName, normalizeUserName } from '@shared/constants/chat-participants'
 import { hasRenderableMessageContent } from './message-visibility'
+import { parseSkillInvocation } from './skill-invocation'
 
 const markdownOptions = {
   registerDefaultPlugins: false
@@ -105,6 +106,8 @@ const userText = computed(() => {
         .map((b) => (b.type === 'text' ? b.text : ''))
         .join('\n')
 })
+const userSkillInvocation = computed(() => parseSkillInvocation(userText.value))
+const displayedUserText = computed(() => userSkillInvocation.value?.prompt ?? userText.value)
 
 const userImages = computed(() => {
   const msg = props.message
@@ -150,8 +153,19 @@ const bashText = computed(() => {
       v-if="message.role === 'user'"
       class="user-message-body px-3.5 py-2.5 text-[13px] text-[var(--text-primary)]"
     >
-      <p v-if="userText" class="whitespace-pre-wrap">{{ userText }}</p>
-      <div v-if="userImages.length" class="flex flex-wrap gap-2" :class="userText ? 'mt-2' : ''">
+      <div
+        v-if="userSkillInvocation"
+        data-testid="skill-invocation"
+        class="mb-1.5 inline-flex items-center rounded-full border border-[var(--accent-border)] bg-[var(--accent-tint)] px-2 py-0.5 font-[family-name:var(--font-mono)] text-[11px] font-medium text-[var(--accent)]"
+      >
+        @{{ userSkillInvocation.name }}
+      </div>
+      <p v-if="displayedUserText" class="whitespace-pre-wrap">{{ displayedUserText }}</p>
+      <div
+        v-if="userImages.length"
+        class="flex flex-wrap gap-2"
+        :class="displayedUserText || userSkillInvocation ? 'mt-2' : ''"
+      >
         <button
           v-for="(src, index) in userImages"
           :key="index"

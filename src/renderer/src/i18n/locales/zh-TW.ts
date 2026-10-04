@@ -1315,6 +1315,8 @@ export const zhTW: MessageTree = {
     scrollToBottom: '捲動到底部',
     context: '上下文',
     composerPlaceholder: '傳訊息給 Pi…',
+    mentionSkill: '引用 Skill',
+    noMatchingSkills: '沒有相符的 Skill',
     attachImage: '附加圖片',
     previewImage: '預覽圖片',
     removeImage: '移除圖片',

@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0"><img alt="v1.8.0 发布版" src="https://img.shields.io/badge/release-v1.8.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1"><img alt="v1.8.1 发布版" src="https://img.shields.io/badge/release-v1.8.1-4C8DFF?style=flat-square" /></a>
   <img alt="支持 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 许可" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -135,7 +135,7 @@ Pi-Harness 可以编辑可读文本文件，支持懒加载语法高亮、行号
 
 ## 当前界面
 
-默认主题截图展示主要功能界面。v1.8.0 外观图库按工作区主题和功能界面重新分类。
+默认主题截图展示主要功能界面。v1.8.1 外观图库按工作区主题和功能界面重新分类。
 
 ### 默认主题
 
@@ -147,7 +147,7 @@ Pi-Harness 可以编辑可读文本文件，支持懒加载语法高亮、行号
 |                    **设置**                     |                                         |
 |     ![经典主题设置](docs/经典主题/设置.jpg)     |                                         |
 
-### v1.8.0 外观图库
+### v1.8.1 外观图库
 
 #### 工作区主题
 
@@ -287,16 +287,16 @@ Pi-Harness 已支持 Agents、Teams、Tasks、Dependencies、Handoffs、Review G
 
 ## 下载
 
-从 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0) 下载 Pi-Harness v1.8.0。
+从 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1) 下载 Pi-Harness v1.8.1。
 
 | 平台                | 安装包                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.8.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.8.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.8.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-Setup-1.8.0.exe) |
-| Linux x64           | [`Pi-Harness-1.8.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.0/Pi-Harness-1.8.0.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.8.1-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.8.1.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.8.1.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-Setup-1.8.1.exe) |
+| Linux x64           | [`Pi-Harness-1.8.1.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.AppImage)   |
 
-> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.8.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.0)。
+> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.8.1 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1)。
 
 安装包用户不需要 clone 仓库，也不需要安装 pnpm。Pi-Harness 可以在支持的环境中检测、安装和修复 Node.js、npm、PATH 与 Pi Coding Agent。
 
