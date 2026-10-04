@@ -36,7 +36,7 @@ jobs:
           version: 9.12.1
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.19.0
+          node-version: 22.22.2
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:mac:all
@@ -61,7 +61,7 @@ jobs:
           version: 9.12.1
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.19.0
+          node-version: 22.22.2
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:win
@@ -85,7 +85,7 @@ jobs:
           version: 9.12.1
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.19.0
+          node-version: 22.22.2
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:linux

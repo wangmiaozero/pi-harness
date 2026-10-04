@@ -22,7 +22,7 @@
   "main": "./out/main/index.js",
   "type": "module",
   "engines": {
-    "node": ">=22.19.0"
+    "node": ">=22.22.2"
   },
   "packageManager": "pnpm@9.12.1",
   "scripts": {
