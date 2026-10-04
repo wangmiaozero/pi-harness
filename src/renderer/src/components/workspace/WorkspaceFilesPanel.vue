@@ -170,32 +170,38 @@ defineExpose({ closeActiveFile })
       <div class="flex shrink-0 items-center gap-1">
         <div
           v-if="workspace.hasSessionWorkspace"
-          class="flex items-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-sidebar)] p-0.5"
+          data-testid="workspace-files-mode-switch"
+          class="flex items-center gap-0.5 rounded-[7px] border border-[var(--border-subtle)] bg-[var(--bg-sidebar)] p-0.5"
           role="group"
           :aria-label="$t('workspace.filePanelMode')"
         >
           <IconButton
             :label="$t('workspace.fileTreeMode')"
-            show-label
             :active="panelMode === 'tree'"
             :aria-pressed="panelMode === 'tree'"
+            class="!size-6 !rounded-[5px] !border-transparent"
             data-testid="workspace-files-mode-tree"
             @click="panelMode = 'tree'"
           >
-            <FolderTree class="size-3.5" :stroke-width="1.75" />
+            <FolderTree class="size-3.5" :stroke-width="1.8" />
           </IconButton>
           <IconButton
             :label="$t('workspace.filePreviewMode')"
-            show-label
             :active="panelMode === 'preview'"
             :disabled="!workspace.activeFileTab"
             :aria-pressed="panelMode === 'preview'"
+            class="!size-6 !rounded-[5px] !border-transparent"
             data-testid="workspace-files-mode-preview"
             @click="panelMode = 'preview'"
           >
-            <FileText class="size-3.5" :stroke-width="1.75" />
+            <FileText class="size-3.5" :stroke-width="1.8" />
           </IconButton>
         </div>
+        <span
+          v-if="workspace.hasSessionWorkspace"
+          aria-hidden="true"
+          class="mx-0.5 h-4 w-px bg-[var(--border-subtle)]"
+        />
         <IconButton
           :label="$t('workspace.collapseFiles')"
           data-testid="workspace-collapse-files"

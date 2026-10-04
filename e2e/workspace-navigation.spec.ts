@@ -28,6 +28,8 @@ test('combines standalone chats and projects in one workspace section', async ({
   }
 
   const workspaceSection = page.getByTestId('workspace-section-workspace')
+  const commandActions = page.getByTestId('workspace-command-actions')
+  expect((await commandActions.boundingBox())!.width).toBeLessThanOrEqual(124)
   await expect(workspaceSection).toHaveAttribute('aria-pressed', 'true')
   await expect(workspaceSection).toHaveText(/工作区|Workspace/)
   await expect(page.getByTestId('workspace-section-projects')).toHaveCount(0)

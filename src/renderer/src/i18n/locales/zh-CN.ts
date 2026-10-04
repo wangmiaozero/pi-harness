@@ -1315,6 +1315,8 @@ export const zhCN: MessageTree = {
     scrollToBottom: '滚动到底部',
     context: '上下文',
     composerPlaceholder: '给 Pi 发消息…',
+    mentionSkill: '引用 Skill',
+    noMatchingSkills: '没有匹配的 Skill',
     attachImage: '附加图片',
     previewImage: '预览图片',
     removeImage: '移除图片',

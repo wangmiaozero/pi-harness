@@ -72,9 +72,11 @@ test('file panel keeps navigation and chat visible, isolates sessions, and adapt
   const composer = page.getByTestId('chat-composer')
   const code = page.getByTestId('file-code-view')
   const resizer = page.getByTestId('workspace-files-resizer')
+  const modeSwitch = page.getByTestId('workspace-files-mode-switch')
   const treeMode = page.getByTestId('workspace-files-mode-tree')
   const previewMode = page.getByTestId('workspace-files-mode-preview')
 
+  expect((await modeSwitch.boundingBox())!.width).toBeLessThanOrEqual(60)
   await expect(treeMode).toHaveAttribute('aria-pressed', 'true')
   await expect(previewMode).toBeDisabled()
   await dragFilesPanelToLimit(page, -1000)

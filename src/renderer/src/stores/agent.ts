@@ -279,7 +279,8 @@ export const useAgentStore = defineStore('agent', () => {
     cwd: string | null,
     message: string,
     preset: ToolPreset,
-    images: AgentImageAttachment[] = []
+    images: AgentImageAttachment[] = [],
+    displayMessage = message
   ) {
     if (!message.trim() && !images.length) return
     sending.value = true
@@ -320,7 +321,7 @@ export const useAgentStore = defineStore('agent', () => {
         useSessionStore().addTransientSession(
           started.sessionId,
           started.cwd,
-          message.trim() || '[image]'
+          displayMessage.trim() || '[image]'
         )
         void useWorkspaceStore().bindCurrentSession(started.sessionId)
         await callApi(() =>

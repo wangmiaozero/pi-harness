@@ -4,6 +4,17 @@ Public release notes contain only released, user-visible additions and fixes.
 
 ## Unreleased
 
+## 1.8.1 — 2026-10-04
+
+### Added
+
+- Added `@Skill` autocomplete in the Workspace composer with search, keyboard navigation, scope-aware results, and Native Pi skill invocation.
+
+### Fixed
+
+- Kept expanded Skill prompts compact in conversations, full history, and restored session titles.
+- Reduced visual density in Skill suggestions, file-panel view controls, and Workspace toolbar actions.
+
 ## 1.8.0 — 2026-09-30
 
 ### Added

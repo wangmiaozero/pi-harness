@@ -1345,6 +1345,8 @@ export const ruRU: MessageTree = {
     scrollToBottom: 'В конец',
     context: 'Контекст',
     composerPlaceholder: 'Сообщение для Pi…',
+    mentionSkill: 'Упомянуть Skill',
+    noMatchingSkills: 'Подходящие Skills не найдены',
     attachImage: 'Прикрепить изображение',
     previewImage: 'Предпросмотр изображения',
     removeImage: 'Удалить изображение',

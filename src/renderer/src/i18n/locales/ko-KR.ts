@@ -1346,6 +1346,8 @@ export const koKR: MessageTree = {
     scrollToBottom: '맨 아래로 스크롤',
     context: '컨텍스트',
     composerPlaceholder: 'Pi에게 메시지…',
+    mentionSkill: 'Skill 멘션',
+    noMatchingSkills: '일치하는 Skill이 없습니다',
     attachImage: '이미지 첨부',
     previewImage: '이미지 미리 보기',
     removeImage: '이미지 제거',

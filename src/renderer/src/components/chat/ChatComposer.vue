@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import Button from '@renderer/components/ui/Button.vue'
@@ -19,6 +19,8 @@ import { useSessionStore } from '@renderer/stores/sessions'
 import { useModelsStore } from '@renderer/stores/models'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useSettingsStore } from '@renderer/stores/settings'
+import { useSkillsStore } from '@renderer/stores/skills'
+import type { SkillInfo } from '@shared/ipc/api-types'
 import type { ToolPreset } from '@shared/workspace/tool-presets'
 import { useCompactionStore } from '@renderer/stores/compaction'
 import {
@@ -31,8 +33,13 @@ import {
   MAX_ATTACHED_IMAGE_BYTES,
   MAX_ATTACHED_IMAGES
 } from '@shared/workspace/image-attachments'
-import { ImagePlus, Minimize2, Send, Volume2, VolumeX, Wrench, X } from '@lucide/vue'
+import { AtSign, ImagePlus, Minimize2, Send, Volume2, VolumeX, Wrench, X } from '@lucide/vue'
 import { isImageGenerationModel } from '@shared/models/image-model'
+import {
+  findActiveSkillMention,
+  replaceSkillMention,
+  type ActiveSkillMention
+} from './skill-invocation'
 
 interface ComposerImageModelTarget {
   providerKey: string
@@ -54,6 +61,7 @@ const models = useModelsStore()
 const providers = useProvidersStore()
 const settings = useSettingsStore()
 const compaction = useCompactionStore()
+const skills = useSkillsStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const textarea = ref<HTMLTextAreaElement | null>(null)
 const inputBox = ref<HTMLElement | null>(null)
@@ -64,6 +72,9 @@ const dragActive = ref(false)
 const pendingImageCount = ref(0)
 const modelSwitching = ref(false)
 const imageModelValue = ref<string | null>(null)
+const skillMention = ref<ActiveSkillMention | null>(null)
+const activeSkillIndex = ref(0)
+const skillMenuStyle = ref<Record<string, string>>({})
 let dragDepth = 0
 
 const busy = computed(
@@ -90,10 +101,12 @@ const compactTitle = computed(() => {
 
 function onTextareaFocus() {
   textareaFocused.value = true
+  updateSkillMention()
 }
 
 function onTextareaBlur() {
   textareaFocused.value = false
+  skillMention.value = null
 }
 
 function focus() {
@@ -159,6 +172,38 @@ const selectedModel = computed(() =>
   })
 )
 const selectedImageModel = computed(() => isImageGenerationModel(selectedModel.value))
+const mentionSkills = computed(() => {
+  const byName = new Map<string, SkillInfo>()
+  for (const skill of skills.skills.filter((item) => item.isValid)) {
+    const existing = byName.get(skill.name)
+    if (!existing || skillScopeRank(skill) < skillScopeRank(existing)) {
+      byName.set(skill.name, skill)
+    }
+  }
+  return [...byName.values()]
+})
+const filteredMentionSkills = computed(() => {
+  const query = skillMention.value?.query.trim().toLowerCase() ?? ''
+  return mentionSkills.value
+    .filter(
+      (skill) =>
+        !query ||
+        skill.name.toLowerCase().includes(query) ||
+        skill.description.toLowerCase().includes(query)
+    )
+    .sort((a, b) => {
+      const aPrefix = query && a.name.toLowerCase().startsWith(query) ? 0 : 1
+      const bPrefix = query && b.name.toLowerCase().startsWith(query) ? 0 : 1
+      return (
+        aPrefix - bPrefix || skillScopeRank(a) - skillScopeRank(b) || a.name.localeCompare(b.name)
+      )
+    })
+    .slice(0, 6)
+})
+const skillMenuOpen = computed(() => Boolean(skillMention.value) && !selectedImageModel.value)
+const activeMentionSkill = computed(
+  () => filteredMentionSkills.value[activeSkillIndex.value] ?? null
+)
 const supportsImages = computed(
   () => selectedImageModel.value || selectedModel.value?.vision === true
 )
@@ -191,6 +236,88 @@ function emitSend() {
       ? { providerKey: value.slice(0, slash), modelId: value.slice(slash + 1) }
       : null
   )
+}
+
+function skillScopeRank(skill: SkillInfo): number {
+  if (skill.scope === 'project') return 0
+  if (skill.scope === 'global') return 1
+  if (skill.scope === 'shared') return 2
+  return 3
+}
+
+function skillScopeLabel(skill: SkillInfo): string {
+  if (skill.scope === 'project') return t('skills.packageScopeProject')
+  return ''
+}
+
+function syncSkillMenu() {
+  const element = textarea.value
+  if (!element) return
+  const rect = element.getBoundingClientRect()
+  const gutter = 8
+  const availableWidth = Math.max(0, window.innerWidth - gutter * 2)
+  const width = Math.min(Math.max(320, Math.round(rect.width)), 560, availableWidth)
+  const left = Math.min(
+    Math.max(gutter, Math.round(rect.left)),
+    Math.max(gutter, window.innerWidth - width - gutter)
+  )
+  skillMenuStyle.value = {
+    bottom: `${Math.max(gutter, Math.round(window.innerHeight - rect.top + gutter))}px`,
+    left: `${left}px`,
+    width: `${width}px`
+  }
+}
+
+function updateSkillMention(
+  value = workspace.draft,
+  cursor = textarea.value?.selectionStart ?? null
+) {
+  if (selectedImageModel.value) {
+    skillMention.value = null
+    return
+  }
+  skillMention.value = findActiveSkillMention(value, cursor)
+  if (skillMention.value) syncSkillMenu()
+}
+
+function onComposerInput(event: Event) {
+  const element = event.target as HTMLTextAreaElement
+  updateSkillMention(element.value, element.selectionStart)
+}
+
+function selectSkill(skill: SkillInfo) {
+  const mention = skillMention.value
+  if (!mention) return
+  const replacement = replaceSkillMention(workspace.draft, mention, skill.name)
+  workspace.draft = replacement.text
+  skillMention.value = null
+  void nextTick(() => {
+    textarea.value?.focus({ preventScroll: true })
+    textarea.value?.setSelectionRange(replacement.cursor, replacement.cursor)
+  })
+}
+
+function openSkillMention() {
+  emit('unlockAudio')
+  const element = textarea.value
+  if (!element) return
+  if (skillMention.value) {
+    element.focus({ preventScroll: true })
+    syncSkillMenu()
+    return
+  }
+
+  const start = element.selectionStart ?? workspace.draft.length
+  const end = element.selectionEnd ?? start
+  const prefix = workspace.draft.slice(0, start)
+  const insertion = prefix && !/\s$/.test(prefix) ? ' @' : '@'
+  workspace.draft = `${prefix}${insertion}${workspace.draft.slice(end)}`
+  const cursor = start + insertion.length
+  void nextTick(() => {
+    element.focus({ preventScroll: true })
+    element.setSelectionRange(cursor, cursor)
+    updateSkillMention(workspace.draft, cursor)
+  })
 }
 
 const thinkingStops = computed(() =>
@@ -247,6 +374,29 @@ const toolPreset = computed({
 })
 
 function onKeydown(e: KeyboardEvent) {
+  if (skillMenuOpen.value && !e.isComposing && e.keyCode !== 229) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      const count = filteredMentionSkills.value.length
+      if (count) {
+        activeSkillIndex.value =
+          e.key === 'ArrowDown'
+            ? (activeSkillIndex.value + 1) % count
+            : (activeSkillIndex.value - 1 + count) % count
+      }
+      return
+    }
+    if ((e.key === 'Enter' || e.key === 'Tab') && activeMentionSkill.value) {
+      e.preventDefault()
+      selectSkill(activeMentionSkill.value)
+      return
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      skillMention.value = null
+      return
+    }
+  }
   if (shouldSendComposerKey(e)) {
     e.preventDefault()
     if (hasUnsupportedImages.value) warnImageUnsupported()
@@ -256,6 +406,9 @@ function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && busy.value) {
     e.preventDefault()
     emit('abort')
+  }
+  if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+    void nextTick(() => updateSkillMention())
   }
 }
 
@@ -408,6 +561,37 @@ async function onCompact() {
     source: 'workspace'
   })
 }
+
+watch(
+  () => workspace.currentCwd,
+  () => void skills.fetchSkills(),
+  { immediate: true }
+)
+
+watch(
+  () => skillMention.value?.query,
+  () => {
+    activeSkillIndex.value = 0
+  }
+)
+
+watch(skillMenuOpen, (open) => {
+  if (open) void nextTick(syncSkillMenu)
+})
+
+watch(selectedImageModel, (selected) => {
+  if (selected) skillMention.value = null
+})
+
+onMounted(() => {
+  window.addEventListener('resize', syncSkillMenu)
+  window.addEventListener('scroll', syncSkillMenu, true)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', syncSkillMenu)
+  window.removeEventListener('scroll', syncSkillMenu, true)
+})
 </script>
 
 <template>
@@ -486,14 +670,93 @@ async function onCompact() {
         v-model="workspace.draft"
         rows="3"
         :placeholder="$t('workspace.composerPlaceholder')"
+        :aria-expanded="skillMenuOpen"
+        :aria-controls="skillMenuOpen ? 'composer-skill-listbox' : undefined"
+        :aria-activedescendant="
+          activeMentionSkill ? `composer-skill-${activeSkillIndex}` : undefined
+        "
+        aria-autocomplete="list"
         class="relative z-10 block w-full resize-none bg-transparent px-2.5 py-2 text-[12.5px] text-[var(--text-primary)] outline-none"
         @focus="onTextareaFocus"
         @blur="onTextareaBlur"
         @keydown="onKeydown"
+        @input="onComposerInput"
+        @click="updateSkillMention()"
         @paste="onPaste"
       />
     </div>
+    <Teleport to="body">
+      <div
+        v-if="skillMenuOpen"
+        id="composer-skill-listbox"
+        data-testid="composer-skill-menu"
+        role="listbox"
+        class="fixed z-[125] max-h-[224px] overflow-y-auto rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-surface-raised)]/95 p-1 shadow-[var(--shadow-popover)] backdrop-blur-xl"
+        :style="skillMenuStyle"
+        @mousedown.prevent
+      >
+        <p
+          v-if="skills.skillsLoading"
+          class="px-2.5 py-2 text-[11.5px] text-[var(--text-tertiary)]"
+        >
+          {{ $t('common.loading') }}
+        </p>
+        <p
+          v-else-if="!filteredMentionSkills.length"
+          class="px-2.5 py-2 text-[11.5px] text-[var(--text-tertiary)]"
+        >
+          {{ $t('workspace.noMatchingSkills') }}
+        </p>
+        <template v-else>
+          <button
+            v-for="(skill, index) in filteredMentionSkills"
+            :id="`composer-skill-${index}`"
+            :key="skill.name"
+            type="button"
+            role="option"
+            :aria-selected="index === activeSkillIndex"
+            class="flex h-9 w-full items-center gap-2 rounded-[6px] px-2 text-left outline-none"
+            :class="
+              index === activeSkillIndex
+                ? 'bg-[var(--accent-tint)] text-[var(--accent)]'
+                : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+            "
+            @mouseenter="activeSkillIndex = index"
+            @mousedown.prevent="selectSkill(skill)"
+          >
+            <span
+              class="max-w-[48%] shrink-0 truncate font-[family-name:var(--font-mono)] text-[11.5px] font-medium"
+            >
+              @{{ skill.name }}
+            </span>
+            <span
+              v-if="skill.description"
+              class="min-w-0 flex-1 truncate text-[10.5px] text-[var(--text-secondary)]"
+            >
+              {{ skill.description }}
+            </span>
+            <span
+              v-if="skillScopeLabel(skill)"
+              class="shrink-0 rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-[9px] text-[var(--text-tertiary)]"
+            >
+              {{ skillScopeLabel(skill) }}
+            </span>
+          </button>
+        </template>
+      </div>
+    </Teleport>
     <div class="command-console-controls mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
+      <button
+        type="button"
+        data-testid="composer-skill-trigger"
+        class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[8px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+        :disabled="selectedImageModel"
+        :title="$t('workspace.mentionSkill')"
+        :aria-label="$t('workspace.mentionSkill')"
+        @click="openSkillMention"
+      >
+        <AtSign aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
+      </button>
       <button
         type="button"
         class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[8px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
