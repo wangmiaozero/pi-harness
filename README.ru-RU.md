@@ -221,7 +221,7 @@ Pi-Harness — operational superset для Pi Coding Agent. Он сохраня�
 
 Разработка из исходного кода:
 
-- Node.js ≥ 22.19.0
+- Node.js ≥ 22.22.2
 - pnpm 9.12.1
 
 ## Разработка

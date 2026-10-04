@@ -221,7 +221,7 @@ Pi-Harness は Pi Coding Agent の operational superset です。Native Pi の A
 
 ソースから開発する場合：
 
-- Node.js ≥ 22.19.0
+- Node.js ≥ 22.22.2
 - pnpm 9.12.1
 
 ## 開発

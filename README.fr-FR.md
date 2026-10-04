@@ -221,7 +221,7 @@ Application empaquetée :
 
 Développement depuis les sources :
 
-- Node.js ≥ 22.19.0
+- Node.js ≥ 22.22.2
 - pnpm 9.12.1
 
 ## Développement

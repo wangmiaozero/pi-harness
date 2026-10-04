@@ -321,7 +321,7 @@ Pi-Harness 已支持 Agents、Teams、Tasks、Dependencies、Handoffs、Review G
 
 源码开发：
 
-- Node.js ≥ 22.19.0
+- Node.js ≥ 22.22.2
 - pnpm 9.12.1
 
 ## 开发

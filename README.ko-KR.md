@@ -221,7 +221,7 @@ Pi-Harness는 Pi Coding Agent의 operational superset입니다. Native Pi의 Age
 
 소스 개발:
 
-- Node.js ≥ 22.19.0
+- Node.js ≥ 22.22.2
 - pnpm 9.12.1
 
 ## 개발

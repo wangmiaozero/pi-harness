@@ -14,6 +14,7 @@ Public release notes contain only released, user-visible additions and fixes.
 
 - Kept expanded Skill prompts compact in conversations, full history, and restored session titles.
 - Reduced visual density in Skill suggestions, file-panel view controls, and Workspace toolbar actions.
+- Aligned the minimum Node.js requirement with the dependency floor at 22.22.2 so frozen installs and release builds remain reproducible.
 
 ## 1.8.0 — 2026-09-30
 
