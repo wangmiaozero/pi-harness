@@ -1022,7 +1022,24 @@ onBeforeUnmount(() => {
   clip-path: none;
 }
 
+/* Keep the placeholder out of the editable line so Chromium can paint the
+ * native caret at the start of an empty draft. */
+.composer-editor {
+  position: relative;
+  caret-color: var(--text-primary);
+}
+
+.composer-editor:empty {
+  display: inline-block;
+  min-width: 1px;
+  min-height: 1em;
+}
+
 .composer-editor[data-empty='true']::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
   color: var(--text-tertiary);
   content: attr(data-placeholder);
   pointer-events: none;

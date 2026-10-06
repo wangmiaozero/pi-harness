@@ -25,3 +25,29 @@ test('mentions installed Skills from the workspace composer', async ({ page }) =
   await chip.getByRole('button').click()
   await expect(chip).toHaveCount(0)
 })
+
+test('keeps the native caret visible in an empty focused composer', async ({ page }) => {
+  await page.locator('a[href="#/workspace"]').click()
+  const input = page.getByTestId('composer-editor')
+  await input.click()
+  await expect(input).toBeFocused()
+  await expect(input).toHaveCSS('display', 'inline-block')
+  const styles = await input.evaluate((element) => ({
+    caret: getComputedStyle(element).caretColor,
+    text: getComputedStyle(element).color,
+    placeholderPosition: getComputedStyle(element, '::before').position,
+    height: element.getBoundingClientRect().height,
+    hasSelection: element.contains(window.getSelection()?.anchorNode ?? null)
+  }))
+  expect(styles.caret).toBe(styles.text)
+  expect(styles.placeholderPosition).toBe('absolute')
+  expect(styles.height).toBeGreaterThan(0)
+  expect(styles.hasSelection).toBe(true)
+  await input.pressSequentially('hello')
+  await expect(input).toHaveText('hello')
+  await input.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A')
+  await input.press('Backspace')
+  await expect(input).toHaveText('')
+  await expect(input).toBeFocused()
+  await expect(input).toHaveCSS('display', 'inline-block')
+})
