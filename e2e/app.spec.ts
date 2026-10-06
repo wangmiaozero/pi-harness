@@ -7,6 +7,12 @@ test.describe('Application shell', () => {
     await expect(controls).toBeVisible()
     // Transformed no-drag regions can miss native hit testing on macOS.
     await expect(controls).toHaveCSS('transform', 'none')
+    const dragArea = page.getByTestId('titlebar-drag-area')
+    await expect(dragArea).toHaveCSS('-webkit-app-region', 'drag')
+    await expect(page.locator('header.app-titlebar')).toHaveCSS('-webkit-app-region', 'no-drag')
+    const controlBounds = (await controls.boundingBox())!
+    const dragBounds = (await dragArea.boundingBox())!
+    expect(dragBounds.x).toBeGreaterThan(controlBounds.x + controlBounds.width)
     for (const action of ['close', 'minimize', 'maximize']) {
       await expect(page.getByTestId(`titlebar-window-${action}`)).toHaveCSS(
         '-webkit-app-region',

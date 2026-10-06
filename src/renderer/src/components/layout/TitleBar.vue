@@ -62,9 +62,11 @@ async function close() {
 
 <template>
   <header
-    class="app-titlebar drag-region relative flex h-[var(--titlebar-height)] shrink-0 items-center bg-[var(--bg-titlebar)]"
-    :class="isMac ? 'pl-[76px] pr-3' : 'pl-3 pr-1'"
+    class="app-titlebar no-drag relative flex h-[var(--titlebar-height)] shrink-0 items-center bg-[var(--bg-titlebar)]"
+    :class="showLeadingWindowControls ? 'pl-[112px] pr-3' : 'pl-3 pr-1'"
   >
+    <!-- Keep the native drag rectangle physically clear of the window controls. -->
+    <div class="drag-region min-w-0 flex-1 self-stretch" data-testid="titlebar-drag-area" />
     <div
       v-if="showLeadingWindowControls"
       class="titlebar-window-controls titlebar-window-controls--leading no-drag"
