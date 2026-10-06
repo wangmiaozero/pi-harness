@@ -6,6 +6,7 @@ directories:
   buildResources: build
 files:
   - out/**/*
+  - '!out/**/.cache{,/**/*}'
   - package.json
   - '!**/*.{map,d.ts}'
 extraResources:
