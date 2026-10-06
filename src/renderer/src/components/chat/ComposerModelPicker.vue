@@ -98,16 +98,19 @@ function syncModelPanel() {
   const panel = vendorPanel.value
   if (!panel) return
   const rect = panel.getBoundingClientRect()
-  const width = 320
+  const width = Math.min(320, window.innerWidth - 32)
   const gap = 8
   const edge = 16
   const spaceRight = window.innerWidth - rect.right - edge
   const openLeft = spaceRight < width && rect.left - edge > spaceRight
   const left = openLeft ? rect.left - width - gap : rect.right + gap
-  const height = Math.min(420, window.innerHeight - edge * 2)
+  const maxHeight = Math.min(420, window.innerHeight - edge * 2)
+  const height = Math.min(modelPanel.value?.getBoundingClientRect().height ?? maxHeight, maxHeight)
   const top = Math.min(Math.max(edge, rect.bottom - height), window.innerHeight - height - edge)
   modelStyle.value = {
     width: `${width}px`,
+    maxHeight: `${maxHeight}px`,
+    overflowY: 'auto',
     left: `${Math.round(Math.max(edge, Math.min(left, window.innerWidth - width - edge)))}px`,
     top: `${Math.round(top)}px`
   }
@@ -186,6 +189,10 @@ onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown, true)
   window.removeEventListener('resize', syncFloating)
   window.removeEventListener('scroll', syncFloating, true)
+})
+
+watch(filteredModels, () => {
+  if (open.value) void nextTick(syncModelPanel)
 })
 
 watch(open, (value) => {

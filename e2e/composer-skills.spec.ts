@@ -51,3 +51,26 @@ test('keeps the native caret visible in an empty focused composer', async ({ pag
   await expect(input).toBeFocused()
   await expect(input).toHaveCSS('display', 'inline-block')
 })
+
+test('keeps the model submenu adjacent to its vendor panel', async ({ page }) => {
+  await page.locator('a[href="#/workspace"]').click()
+  for (const size of [
+    { width: 1280, height: 900 },
+    { width: 1000, height: 700 }
+  ]) {
+    await page.setViewportSize(size)
+    await page.getByTestId('workspace-model-select').getByRole('button').click()
+    const vendors = page.getByTestId('composer-vendor-panel')
+    const models = page.getByTestId('composer-model-panel')
+    await expect(models).toBeVisible()
+    async function bottomGap() {
+      const vendorBox = (await vendors.boundingBox())!
+      const modelBox = (await models.boundingBox())!
+      return Math.abs(vendorBox.y + vendorBox.height - modelBox.y - modelBox.height)
+    }
+    await expect.poll(bottomGap).toBeLessThanOrEqual(2)
+    await page.getByTestId('composer-model-search').fill('no-matching-model')
+    await expect.poll(bottomGap).toBeLessThanOrEqual(2)
+    await page.keyboard.press('Escape')
+  }
+})
