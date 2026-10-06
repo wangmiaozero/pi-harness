@@ -225,13 +225,16 @@ async function close() {
 }
 
 .titlebar-window-controls--leading {
-  top: 50%;
+  top: 0;
+  bottom: 0;
   left: 14px;
+  height: fit-content;
+  margin-block: auto;
   gap: 9px;
-  transform: translateY(-50%);
 }
 
 .titlebar-window-control {
+  -webkit-app-region: no-drag;
   display: grid;
   width: 13px;
   height: 13px;

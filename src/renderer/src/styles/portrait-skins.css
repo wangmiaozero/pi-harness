@@ -887,6 +887,8 @@
   )
   .titlebar-window-controls--leading {
   top: 7px;
+  bottom: auto;
+  margin-block: 0;
   left: 7px;
   width: 98px;
   height: 56px;
