@@ -1,6 +1,75 @@
 import { test, expect } from './fixtures'
 
 test.describe('Application shell', () => {
+  test('operates the leading window controls', async ({ page, electronApp }) => {
+    test.skip(process.platform === 'win32', 'Windows uses trailing window controls')
+    const controls = page.getByTestId('titlebar-window-controls')
+    await expect(controls).toBeVisible()
+    // Transformed no-drag regions can miss native hit testing on macOS.
+    await expect(controls).toHaveCSS('transform', 'none')
+    for (const action of ['close', 'minimize', 'maximize']) {
+      await expect(page.getByTestId(`titlebar-window-${action}`)).toHaveCSS(
+        '-webkit-app-region',
+        'no-drag'
+      )
+    }
+    await page.getByTestId('titlebar-window-maximize').click()
+    await expect
+      .poll(() =>
+        electronApp.evaluate(({ BrowserWindow }) =>
+          BrowserWindow.getAllWindows()
+            .find((win) => !win.webContents.getURL().includes('overlay.html'))
+            ?.isMaximized()
+        )
+      )
+      .toBe(true)
+    await page.getByTestId('titlebar-window-maximize').click()
+    await expect
+      .poll(() =>
+        electronApp.evaluate(({ BrowserWindow }) =>
+          BrowserWindow.getAllWindows()
+            .find((win) => !win.webContents.getURL().includes('overlay.html'))
+            ?.isMaximized()
+        )
+      )
+      .toBe(false)
+    await page.getByTestId('titlebar-window-minimize').click()
+    await expect
+      .poll(() =>
+        electronApp.evaluate(({ BrowserWindow }) =>
+          BrowserWindow.getAllWindows()
+            .find((win) => !win.webContents.getURL().includes('overlay.html'))
+            ?.isMinimized()
+        )
+      )
+      .toBe(true)
+    await electronApp.evaluate(({ BrowserWindow }) => {
+      const win = BrowserWindow.getAllWindows().find(
+        (win) => !win.webContents.getURL().includes('overlay.html')
+      )!
+      win.restore()
+      win.on('close', (event) => {
+        event.preventDefault()
+        win.setTitle('close-control-invoked')
+      })
+    })
+    await page.getByTestId('titlebar-window-close').click()
+    await expect
+      .poll(() =>
+        electronApp.evaluate(({ BrowserWindow }) =>
+          BrowserWindow.getAllWindows()
+            .find((win) => !win.webContents.getURL().includes('overlay.html'))
+            ?.getTitle()
+        )
+      )
+      .toBe('close-control-invoked')
+    await electronApp.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()
+        .find((win) => !win.webContents.getURL().includes('overlay.html'))
+        ?.removeAllListeners('close')
+    })
+  })
+
   test('shows the particle startup animation on each window load', async ({ page }) => {
     await page.reload()
     await expect(page.getByTestId('startup-animation')).toBeVisible()
