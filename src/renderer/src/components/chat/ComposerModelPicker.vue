@@ -156,6 +156,8 @@ function toggle() {
 function pick(option: ModelOption) {
   emit('interact')
   modelValue.value = option.value
+  close()
+  void nextTick(() => trigger.value?.focus({ preventScroll: true }))
 }
 
 function onPointerDown(event: PointerEvent) {
@@ -299,7 +301,7 @@ watch(open, (value) => {
                 : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
             "
             :aria-selected="option.value === modelValue"
-            @mousedown.prevent="pick(option)"
+            @click="pick(option)"
           >
             <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
             <Check

@@ -74,3 +74,23 @@ test('keeps the model submenu adjacent to its vendor panel', async ({ page }) =>
     await page.keyboard.press('Escape')
   }
 })
+
+test('closes the model picker after mouse or keyboard selection', async ({ page }) => {
+  await page.locator('a[href="#/workspace"]').click()
+  const trigger = page.getByTestId('workspace-model-select').getByRole('button')
+  for (const keyboard of [false, true]) {
+    await trigger.click()
+    const option = page.getByRole('option').first()
+    const modelName = (await option.innerText()).trim()
+    if (keyboard) {
+      await option.focus()
+      await option.press('Enter')
+    } else {
+      await option.click()
+    }
+    await expect(page.getByTestId('composer-model-panel')).toHaveCount(0)
+    await expect(page.getByTestId('composer-vendor-panel')).toHaveCount(0)
+    await expect(trigger).toContainText(modelName)
+    await expect(trigger).toBeFocused()
+  }
+})

@@ -54,7 +54,7 @@ describe('ComposerModelPicker', () => {
     expect(document.body.querySelector('[role="listbox"]')?.textContent).not.toContain('MiniMax M3')
   })
 
-  it('filters models and keeps the panel open after a pick', async () => {
+  it('filters models and closes both panels after a pick, restoring trigger focus', async () => {
     const wrapper = mountPicker()
     await wrapper.get('button').trigger('click')
 
@@ -71,10 +71,12 @@ describe('ComposerModelPicker', () => {
     const option = Array.from(document.body.querySelectorAll<HTMLElement>('[role="option"]')).find(
       (element) => element.textContent?.includes('GLM 5.2')
     )
-    option?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    option?.click()
     await wrapper.vm.$nextTick()
 
     expect(wrapper.emitted('update:model')).toEqual([['nvidia/glm-5.2']])
-    expect(document.body.querySelector('[data-testid="composer-model-panel"]')).toBeTruthy()
+    expect(document.body.querySelector('[data-testid="composer-model-panel"]')).toBeNull()
+    expect(document.body.querySelector('[data-testid="composer-vendor-panel"]')).toBeNull()
+    expect(document.activeElement).toBe(wrapper.get('button').element)
   })
 })
