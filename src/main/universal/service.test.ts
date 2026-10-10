@@ -256,6 +256,93 @@ describe('local history discovery, persistence and isolation', () => {
     )
     expect((await readRecords(legacy)).records).toHaveLength(2)
   })
+  it('imports Codex desktop records containing large inline images as passive references', async () => {
+    const codex = path.join(root, 'codex')
+    await fs.mkdir(codex)
+    const transcript = path.join(codex, 'rollout.jsonl')
+    const original =
+      JSON.stringify({ type: 'session_meta', payload: { id: 'desktop', cwd: '/project' } }) +
+      '\n' +
+      JSON.stringify({
+        type: 'response_item',
+        payload: {
+          type: 'message',
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Desktop history with screenshot' },
+            {
+              type: 'input_image',
+              image_url: `data:image/png;base64,${'a'.repeat(5 * 1024 * 1024)}`
+            }
+          ]
+        }
+      }) +
+      '\n'
+    await fs.writeFile(transcript, original)
+    await service.addSource('codex', codex)
+    expect((await service.sync()).errors).toEqual([])
+    const { sessions } = await service.list({ provider: 'codex' })
+    expect(sessions).toHaveLength(1)
+    const detail = await service.read({ id: sessions[0]!.id })
+    expect(detail.messages[0]?.parts).toEqual([
+      { type: 'text', text: 'Desktop history with screenshot' },
+      { type: 'image-reference', reference: '[embedded image]' }
+    ])
+    expect(await fs.readFile(transcript, 'utf8')).toBe(original)
+  })
+  it.each([false, true])(
+    'accepts growing Codex logs only when their original prefix is unchanged (rewrite=%s)',
+    async (rewrite) => {
+      const codex = path.join(root, 'codex-live')
+      await fs.mkdir(codex)
+      const transcript = path.join(codex, 'rollout.jsonl')
+      const first =
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'message',
+            role: 'user',
+            content: [{ type: 'input_text', text: 'first' }]
+          }
+        }) + '\n'
+      const second =
+        JSON.stringify({
+          type: 'event_msg',
+          payload: { type: 'agent_message', message: 'later answer' }
+        }) + '\n'
+      await fs.writeFile(transcript, first)
+      await service.addSource('codex', codex)
+      const originalStat = fs.stat
+      let reads = 0
+      const stat = vi.spyOn(fs, 'stat').mockImplementation(async (...args) => {
+        if (String(args[0]) === transcript && ++reads === 3) {
+          if (rewrite) await fs.writeFile(transcript, first.replace('first', 'other') + second)
+          else await fs.appendFile(transcript, second)
+        }
+        return originalStat(...args)
+      })
+      try {
+        const result = await service.sync()
+        const { sessions } = await service.list({ provider: 'codex' })
+        if (rewrite) {
+          expect(sessions).toEqual([])
+          expect(result.errors).toContainEqual({
+            provider: 'codex',
+            code: 'SOURCE_CHANGED_DURING_READ'
+          })
+        } else {
+          expect(result.errors).toEqual([])
+          expect(sessions[0]?.messageCount).toBe(1)
+          expect(sessions[0]?.warnings).toContain('SOURCE_APPENDED_DURING_READ')
+        }
+      } finally {
+        stat.mockRestore()
+      }
+      await service.sync()
+      const { sessions } = await service.list({ provider: 'codex' })
+      expect(sessions[0]?.messageCount).toBe(2)
+    }
+  )
   it('rejects corrupt compression and oversized records without crashing the scanner', async () => {
     const corrupt = path.join(root, 'corrupt.jsonl.zst')
     await fs.writeFile(corrupt, 'invalid compressed stream')

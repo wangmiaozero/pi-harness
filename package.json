@@ -77,6 +77,7 @@
     "@earendil-works/pi-ai": "0.87.1",
     "@earendil-works/pi-coding-agent": "0.87.1",
     "@earendil-works/pi-tui": "0.87.1",
+    "@internationalized/date": "3.12.4",
     "@lezer/highlight": "^1.2.4",
     "@lucide/vue": "^1.48.0",
     "@tanstack/vue-query": "^5.103.2",

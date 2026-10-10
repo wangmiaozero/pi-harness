@@ -20,6 +20,7 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import HistoryMessage from '@renderer/components/universal/HistoryMessage.vue'
+import HistoryDatePicker from '@renderer/components/universal/HistoryDatePicker.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -479,16 +480,14 @@ onBeforeUnmount(() => {
             <option v-for="p in projectOptions" :key="p" :value="p">{{ p }}</option>
           </select>
           <div class="flex gap-2">
-            <input
+            <HistoryDatePicker
               v-model="after"
-              type="date"
-              class="history-input min-w-0"
-              :aria-label="t('universal.after')"
-            /><input
+              :label="t('universal.after')"
+              :max="before || undefined"
+            /><HistoryDatePicker
               v-model="before"
-              type="date"
-              class="history-input min-w-0"
-              :aria-label="t('universal.before')"
+              :label="t('universal.before')"
+              :min="after || undefined"
             />
           </div>
           <p class="text-xs text-[var(--text-tertiary)]">

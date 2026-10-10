@@ -464,6 +464,18 @@ describe('CCHV-compatible P0 formats', () => {
     ])
     expect(JSON.stringify(p)).not.toContain('private-value')
   })
+
+  it('processes multi-megabyte tool output while still redacting credentials and dotenv blocks', () => {
+    const output = 'a'.repeat(2 * 1024 * 1024)
+    const result = redact(
+      `${output}\nservice-api_key=fixture-private-value\nContents of .env:\n\u0060\u0060\u0060text\nINTERNAL_HOST=fixture-host\n\u0060\u0060\u0060`
+    )
+    expect(result).toContain(output)
+    expect(result).toContain('service-api_key=[REDACTED]')
+    expect(result).not.toContain('fixture-private-value')
+    expect(result).not.toContain('fixture-host')
+    expect(result).toContain('[REDACTED ENV]')
+  })
   it('reports incompatible format revisions rather than indexing them as a supported conversation', () => {
     expect(() => parse('codex', [{ changed_schema: true }])).toThrow('SOURCE_FORMAT_ERROR')
     expect(

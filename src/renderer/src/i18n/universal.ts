@@ -77,7 +77,11 @@ const en = {
   cacheWrite: 'Cache writes',
   confidencelow: 'Low',
   confidencemedium: 'Medium',
-  confidencehigh: 'High'
+  confidencehigh: 'High',
+  today: 'Today',
+  clearDate: 'Clear date',
+  previousMonth: 'Previous month',
+  nextMonth: 'Next month'
 }
 const zh: Record<keyof typeof en, string> = {
   title: 'AI 会话',
@@ -156,7 +160,11 @@ const zh: Record<keyof typeof en, string> = {
   cacheWrite: '缓存写入',
   confidencelow: '低',
   confidencemedium: '中',
-  confidencehigh: '高'
+  confidencehigh: '高',
+  today: '今天',
+  clearDate: '清除日期',
+  previousMonth: '上个月',
+  nextMonth: '下个月'
 }
 const tw: Record<keyof typeof en, string> = {
   title: 'AI 會話',
@@ -236,7 +244,11 @@ const tw: Record<keyof typeof en, string> = {
   cacheWrite: '快取寫入',
   confidencelow: '低',
   confidencemedium: '中',
-  confidencehigh: '高'
+  confidencehigh: '高',
+  today: '今天',
+  clearDate: '清除日期',
+  previousMonth: '上個月',
+  nextMonth: '下個月'
 }
 const ja: Record<keyof typeof en, string> = {
   title: 'AI セッション',
@@ -317,7 +329,11 @@ const ja: Record<keyof typeof en, string> = {
   cacheWrite: 'キャッシュ書き込み',
   confidencelow: '低',
   confidencemedium: '中',
-  confidencehigh: '高'
+  confidencehigh: '高',
+  today: '今日',
+  clearDate: '日付をクリア',
+  previousMonth: '前の月',
+  nextMonth: '次の月'
 }
 const ko: Record<keyof typeof en, string> = {
   title: 'AI 세션',
@@ -397,7 +413,11 @@ const ko: Record<keyof typeof en, string> = {
   cacheWrite: '캐시 쓰기',
   confidencelow: '낮음',
   confidencemedium: '보통',
-  confidencehigh: '높음'
+  confidencehigh: '높음',
+  today: '오늘',
+  clearDate: '날짜 지우기',
+  previousMonth: '이전 달',
+  nextMonth: '다음 달'
 }
 const de: Record<keyof typeof en, string> = {
   title: 'KI-Sitzungen',
@@ -480,7 +500,11 @@ const de: Record<keyof typeof en, string> = {
   cacheWrite: 'Cache-Schreibvorgänge',
   confidencelow: 'Niedrig',
   confidencemedium: 'Mittel',
-  confidencehigh: 'Hoch'
+  confidencehigh: 'Hoch',
+  today: 'Heute',
+  clearDate: 'Datum löschen',
+  previousMonth: 'Vorheriger Monat',
+  nextMonth: 'Nächster Monat'
 }
 const fr: Record<keyof typeof en, string> = {
   title: 'Sessions IA',
@@ -562,7 +586,11 @@ const fr: Record<keyof typeof en, string> = {
   cacheWrite: 'Écritures du cache',
   confidencelow: 'Faible',
   confidencemedium: 'Moyenne',
-  confidencehigh: 'Élevée'
+  confidencehigh: 'Élevée',
+  today: 'Aujourd’hui',
+  clearDate: 'Effacer la date',
+  previousMonth: 'Mois précédent',
+  nextMonth: 'Mois suivant'
 }
 const ru: Record<keyof typeof en, string> = {
   title: 'Сессии ИИ',
@@ -643,7 +671,11 @@ const ru: Record<keyof typeof en, string> = {
   cacheWrite: 'Запись в кеш',
   confidencelow: 'Низкая',
   confidencemedium: 'Средняя',
-  confidencehigh: 'Высокая'
+  confidencehigh: 'Высокая',
+  today: 'Сегодня',
+  clearDate: 'Очистить дату',
+  previousMonth: 'Предыдущий месяц',
+  nextMonth: 'Следующий месяц'
 }
 export const universalMessages = {
   'en-US': en,
