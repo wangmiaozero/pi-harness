@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { parseSession, hash } from './parsers'
-import { redact, serialized } from './normalize'
+import { redact, serialized, userTaskText } from './normalize'
+import { extractClaims } from './handoff'
 import type { SourceProvider } from '@shared/universal/schema'
 const parse = (provider: SourceProvider, records: unknown[]) =>
   parseSession({
@@ -216,8 +217,18 @@ describe('CCHV-compatible P0 formats', () => {
     expect(JSON.stringify(p)).not.toContain('fixture-second')
   })
   it('uses the actual Codex request as the title rather than injected environment and AGENTS context', () => {
+    const control =
+      '<external_codex_apps_open_page>{"page_id":null}</external_codex_apps_open_page>'
     const p = parse('codex', [
       { type: 'session_meta', payload: { id: 'context', cwd: '/project' } },
+      {
+        type: 'response_item',
+        payload: {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: control }]
+        }
+      },
       {
         type: 'response_item',
         payload: {
@@ -241,7 +252,20 @@ describe('CCHV-compatible P0 formats', () => {
       }
     ])
     expect(p.session.title).toBe('修复登录问题')
-    expect(p.messages).toHaveLength(2)
+    expect(p.messages).toHaveLength(3)
+    expect(p.messages[0]?.parts).toEqual([{ type: 'text', text: control }])
+    expect(extractClaims(p.messages).goal.text).toBe('修复登录问题')
+  })
+  it('keeps user text beside a page control and preserves unknown or quoted markup', () => {
+    const control =
+      '<external_codex_apps_open_page>{"page_id":"fixture-page"}</external_codex_apps_open_page>'
+    expect(userTaskText(`${control}\n修复日期筛选`)).toBe('修复日期筛选')
+    for (const text of [
+      'Explain this XML: ' + control,
+      '<external_codex_apps_open_page>invalid JSON</external_codex_apps_open_page>',
+      '<external_codex_apps_open_page>{"page_id":null,"request":"Keep this request"}</external_codex_apps_open_page>'
+    ])
+      expect(userTaskText(text)).toBe(text)
   })
   it('retains native Pi cache usage and keeps cost-only usage totals unknown', () => {
     const p = parse('pi', [

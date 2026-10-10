@@ -173,16 +173,19 @@ describe('history handoff interaction boundaries', () => {
     }
     try {
       await flushPromises()
-      await clickText('View history')
+      await wrapper
+        .get(`[data-testid="history-session-${items[0]!.id}"]`)
+        .get('.history-session-title')
+        .trigger('click')
+      await flushPromises()
+      expect(preview).not.toHaveBeenCalled()
+      expect(continueTask).not.toHaveBeenCalled()
       await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
       await wrapper.get('textarea').setValue('Continue task a')
       await clickText('Prepare handoff')
       expect(preview).toHaveBeenCalledWith(items[0]!.id, 'Continue task a')
       await wrapper.get('[data-testid="close-preview"]').trigger('click')
-      await wrapper
-        .findAll('button')
-        .filter((b) => b.text() === 'View history')[1]!
-        .trigger('click')
+      await wrapper.get(`[data-testid="history-session-${items[1]!.id}"]`).trigger('click')
       await flushPromises()
       await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
       resolvePreview({

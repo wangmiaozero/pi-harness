@@ -85,6 +85,20 @@ export function usage(value: unknown): UniversalPart[] {
 /** Known CLI-injected context is retained in history, but is not a user's task title/goal. */
 export function userTaskText(value: string): string {
   return value
+    .replace(
+      /^\s*<external_codex_apps_open_page>([\s\S]*?)<\/external_codex_apps_open_page>\s*/,
+      (block, payload: string) => {
+        try {
+          const data = object(JSON.parse(payload))
+          return Object.keys(data).length === 1 &&
+            (data.page_id === null || typeof data.page_id === 'string')
+            ? ''
+            : block
+        } catch {
+          return block
+        }
+      }
+    )
     .replace(/^# AGENTS\.md instructions for[^\n]*\n\s*<INSTRUCTIONS>[\s\S]*?<\/INSTRUCTIONS>/i, '')
     .replace(/<environment_context>[\s\S]*?<\/environment_context>/gi, '')
     .trim()
