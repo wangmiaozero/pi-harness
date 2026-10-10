@@ -28,7 +28,10 @@ export function normalizeNavOrder(value: unknown): NavItemId[] {
     }
   }
   for (const id of NAV_ITEM_IDS) {
-    if (!seen.has(id)) next.push(id)
+    if (seen.has(id)) continue
+    // Older saved orders predate the history page. Add it beside Git rather than at the tail.
+    if (id === 'ai-sessions' && next.includes('git')) next.splice(next.indexOf('git') + 1, 0, id)
+    else next.push(id)
   }
   return next
 }

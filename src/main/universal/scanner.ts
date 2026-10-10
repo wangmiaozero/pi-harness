@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises'
 import { createReadStream } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { createInterface } from 'node:readline'
 import { createZstdDecompress } from 'node:zlib'
 import { Transform } from 'node:stream'
@@ -16,7 +17,7 @@ import { safeSourceFile, walk } from './sources'
 import { parseSourceDatabase } from './sqlite'
 
 // Invalidate derived blobs when format normalization changes; originals remain untouched.
-const PARSER_REVISION = 2
+const PARSER_REVISION = 3
 
 export interface ScanRequest {
   sources: SourceLocation[]
@@ -28,12 +29,19 @@ export interface ScanResult {
   status: UniversalSyncStatus
 }
 export async function readRecords(
-  file: string
-): Promise<{ records: unknown[]; warnings: string[]; recordNumbers?: number[] }> {
+  file: string,
+  options: { maxRecordBytes?: number; snapshotSize?: number } = {}
+): Promise<{
+  records: unknown[]
+  warnings: string[]
+  recordNumbers?: number[]
+  sourceDigest?: string
+}> {
   const records: unknown[] = []
   const warnings: string[] = []
   const recordNumbers: number[] = []
-  if ((await fs.stat(file)).size > 256 * 1024 * 1024) throw new Error('SOURCE_SIZE_LIMIT')
+  const size = (await fs.stat(file)).size
+  if (size > 256 * 1024 * 1024) throw new Error('SOURCE_SIZE_LIMIT')
   if (file.endsWith('.json')) {
     const value = object(JSON.parse(await fs.readFile(file, 'utf8')))
     return {
@@ -43,7 +51,13 @@ export async function readRecords(
       warnings
     }
   }
-  const source = createReadStream(file, { highWaterMark: 64 * 1024 })
+  const snapshotSize = options.snapshotSize ?? size
+  if (!snapshotSize) throw new Error('SOURCE_FORMAT_ERROR')
+  const maxRecordBytes = options.maxRecordBytes ?? 4 * 1024 * 1024
+  // Read a finite prefix even when an active agent keeps appending to its transcript.
+  const source = createReadStream(file, { highWaterMark: 64 * 1024, end: snapshotSize - 1 })
+  const digest = createHash('sha256')
+  source.on('data', (chunk: Buffer) => digest.update(chunk))
   const decoded = file.endsWith('.zst') ? source.pipe(createZstdDecompress()) : source
   let totalBytes = 0
   let lineBytes = 0
@@ -53,7 +67,7 @@ export async function readRecords(
       if (totalBytes > 256 * 1024 * 1024) return done(new Error('SOURCE_SIZE_LIMIT'))
       for (const byte of chunk) {
         lineBytes = byte === 10 ? 0 : lineBytes + 1
-        if (lineBytes > 4 * 1024 * 1024) return done(new Error('SOURCE_RECORD_SIZE_LIMIT'))
+        if (lineBytes > maxRecordBytes) return done(new Error('SOURCE_RECORD_SIZE_LIMIT'))
       }
       done(null, chunk)
     }
@@ -69,7 +83,7 @@ export async function readRecords(
       lineNumber++
       if (lineNumber > 200_000) throw new Error('SOURCE_MESSAGE_LIMIT')
       if (!line.trim()) continue
-      if (line.length > 4 * 1024 * 1024) throw new Error('SOURCE_RECORD_SIZE_LIMIT')
+      if (line.length > maxRecordBytes) throw new Error('SOURCE_RECORD_SIZE_LIMIT')
       try {
         records.push(JSON.parse(line))
         recordNumbers.push(lineNumber)
@@ -85,7 +99,18 @@ export async function readRecords(
     source.destroy()
   }
   if (!records.length) throw new Error('SOURCE_FORMAT_ERROR')
-  return { records, warnings, recordNumbers }
+  return { records, warnings, recordNumbers, sourceDigest: digest.digest('hex') }
+}
+
+async function prefixDigest(file: string, size: number): Promise<string> {
+  const digest = createHash('sha256')
+  let bytes = 0
+  for await (const chunk of createReadStream(file, { end: size - 1 })) {
+    bytes += chunk.length
+    digest.update(chunk)
+  }
+  if (bytes !== size) throw new Error('SOURCE_CHANGED_DURING_READ')
+  return digest.digest('hex')
 }
 function candidate(source: SourceLocation, file: string): boolean {
   const relative = path.relative(source.root, file).replaceAll(path.sep, '/')
@@ -209,6 +234,7 @@ export async function scanSources(
         try {
           await safeSourceFile(source.root, file)
           const st = await fs.stat(file)
+          const stamp = `${file}:${st.size}:${st.mtimeMs}:${st.ctimeMs}`
           const wal = await fileStamp(`${file}-wal`).catch(() => '')
           const metadata =
             source.provider === 'cursor'
@@ -223,7 +249,7 @@ export async function scanSources(
                   ).catch(() => '')
                 : ''
           const fingerprint = hash(
-            `${PARSER_REVISION}\n${await fileStamp(file)}\n${wal}\n${metadata}\n${file.endsWith('.json') && source.provider === 'opencode' ? legacyStamp : ''}`
+            `${PARSER_REVISION}\n${stamp}\n${wal}\n${metadata}\n${file.endsWith('.json') && source.provider === 'opencode' ? legacyStamp : ''}`
           )
           const previous = previousByFile.get(`${source.provider}:${file}`) ?? []
           if (
@@ -245,13 +271,19 @@ export async function scanSources(
             mtime: st.mtime.toISOString()
           }
           let parsed: ParsedSession[]
+          let sourceDigest: string | undefined
           if (source.provider === 'cursor' || file.endsWith('.db')) {
             parsed = await parseSourceDatabase(base, request.storeRoot)
           } else {
             const data =
               source.provider === 'opencode'
                 ? await legacyOpenCode(source.root, file, files)
-                : await readRecords(file)
+                : await readRecords(file, {
+                    snapshotSize: st.size,
+                    // Desktop image/tool records can exceed 4 MiB. Keep a bounded larger limit.
+                    maxRecordBytes: source.provider === 'codex' ? 16 * 1024 * 1024 : undefined
+                  })
+            sourceDigest = 'sourceDigest' in data ? data.sourceDigest : undefined
             let projectPath: string | undefined
             if (source.provider === 'gemini') {
               const rootFile = path.join(path.dirname(path.dirname(file)), '.project_root')
@@ -273,13 +305,22 @@ export async function scanSources(
             }
             parsed = [parseSession({ ...base, projectPath, ...data })]
           }
-          // Source changed during reading: keep the old revision and retry on the next sync.
-          if (
-            (await fileStamp(file)) !== `${file}:${st.size}:${st.mtimeMs}:${st.ctimeMs}` ||
-            (await fileStamp(`${file}-wal`).catch(() => '')) !== wal
-          )
+          const latest = await fs.stat(file)
+          const unchanged = `${file}:${latest.size}:${latest.mtimeMs}:${latest.ctimeMs}` === stamp
+          const appended =
+            !unchanged &&
+            source.provider === 'codex' &&
+            file.endsWith('.jsonl') &&
+            latest.ino === st.ino &&
+            latest.dev === st.dev &&
+            latest.size > st.size &&
+            sourceDigest !== undefined &&
+            (await prefixDigest(file, st.size)) === sourceDigest
+          // Only verified append-only growth is safe; replacements/rewrites retry next sync.
+          if ((!unchanged && !appended) || (await fileStamp(`${file}-wal`).catch(() => '')) !== wal)
             throw new Error('SOURCE_CHANGED_DURING_READ')
           for (const p of parsed) {
+            if (appended) p.session.warnings.push('SOURCE_APPENDED_DURING_READ')
             const prior = request.previous.find((s) => s.id === p.session.id)
             if (prior?.workspacePath) {
               p.session.workspacePath = prior.workspacePath

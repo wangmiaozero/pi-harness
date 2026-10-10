@@ -222,7 +222,21 @@ test('rejects arbitrary read paths and unknown IPC fields and keeps cached histo
         payload: {
           type: 'message',
           role: 'user',
-          content: [{ type: 'input_text', text: 'Codex cached history' }]
+          content: [
+            { type: 'input_text', text: 'Codex cached history' },
+            {
+              type: 'input_image',
+              image_url: `data:image/png;base64,${'a'.repeat(5 * 1024 * 1024)}`
+            }
+          ]
+        }
+      },
+      {
+        type: 'response_item',
+        payload: {
+          type: 'custom_tool_call_output',
+          call_id: 'long-output',
+          output: 'x'.repeat(200_000)
         }
       }
     ]
@@ -277,4 +291,83 @@ test('rejects arbitrary read paths and unknown IPC fields and keeps cached histo
   await expect(page.getByText('Cursor SQLite fixture', { exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: /查看历史|View history/, exact: true }).click()
   await expect(page.getByTestId('history-messages')).toContainText('Codex cached history')
+})
+
+test('keeps history below Git for saved navigation and filters dates with the themed calendar', async ({
+  page,
+  testUserData,
+  workspaceRoot
+}, testInfo) => {
+  const now = new Date()
+  const older = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 3, 12)
+  const isoDay = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  const source = path.join(testUserData, 'history-home', '.codex', 'sessions')
+  fs.mkdirSync(source, { recursive: true })
+  for (const [id, date] of [
+    ['older', older],
+    ['newer', now]
+  ] as const)
+    fs.writeFileSync(
+      path.join(source, `${id}.jsonl`),
+      JSON.stringify({
+        type: 'response_item',
+        timestamp: date.toISOString(),
+        payload: {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: `Calendar history ${id}` }]
+        }
+      }) + '\n'
+    )
+  await page.evaluate(() =>
+    window.piSwitch!.settings.set({
+      theme: 'light',
+      navOrder: ['workspace', 'git', 'models', 'skills', 'settings']
+    })
+  )
+  await page.reload()
+  await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+  const order = await page
+    .getByTestId('app-navigation-rail')
+    .locator('a')
+    .evaluateAll((links) => links.map((link) => link.getAttribute('href')))
+  expect(order.indexOf('#/ai-sessions')).toBe(order.indexOf('#/git') + 1)
+  await page.locator('a[href="#/ai-sessions"]').click()
+  await page.getByTestId('history-provider-codex').click()
+  await expect(page.getByText('Calendar history newer', { exact: true })).toBeVisible()
+  await expect(page.getByText('Calendar history older', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /起始日期|From date/, exact: true }).click()
+  const start = page.getByRole('dialog', { name: /起始日期|From date/, exact: true })
+  await expect(start).toBeVisible()
+  await expect(start).toBeInViewport({ timeout: 5000 })
+  await page.screenshot({ path: path.join(testInfo.outputDir, 'history-calendar-light.png') })
+  if (older.getMonth() !== now.getMonth())
+    await start.getByRole('button', { name: /上个月|Previous month/ }).click()
+  await start.locator(`[data-value="${isoDay(older)}"]:not([data-outside-view])`).click()
+  await expect(start).toBeHidden()
+  await page.getByRole('button', { name: /结束日期|To date/, exact: true }).click()
+  const end = page.getByRole('dialog', { name: /结束日期|To date/, exact: true })
+  if (older.getMonth() !== now.getMonth())
+    await end.getByRole('button', { name: /上个月|Previous month/ }).click()
+  await end.locator(`[data-value="${isoDay(older)}"]:not([data-outside-view])`).click()
+  await expect(page.getByText('Calendar history newer', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Calendar history older', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /结束日期|To date/, exact: true }).click()
+  const selected = end.locator('[data-selected]:not([data-outside-view])')
+  await selected.press('ArrowRight')
+  await page.keyboard.press('Enter')
+  await expect(end).toBeHidden()
+  await page.getByRole('button', { name: /结束日期|To date/, exact: true }).click()
+  await end.getByRole('button', { name: /清除日期|Clear date/ }).click()
+  await expect(page.getByText('Calendar history newer', { exact: true })).toBeVisible()
+  await page.evaluate(() => window.piSwitch!.settings.set({ theme: 'dark' }))
+  await page.reload()
+  await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+  await page.getByRole('button', { name: /起始日期|From date/, exact: true }).click()
+  await expect(start).toBeVisible()
+  await expect(start).toBeInViewport()
+  await page.screenshot({ path: path.join(testInfo.outputDir, 'history-calendar-dark.png') })
+  await page.keyboard.press('Escape')
+  await expect(start).toBeHidden()
 })

@@ -37,7 +37,7 @@ function protectValue(value: unknown, depth = 0): unknown {
 export function redact(value: string): string {
   return value
     .replace(/```(?:env|dotenv|\.env)[^\n]*\n[\s\S]*?```/gi, '[REDACTED ENV]')
-    .replace(/[^\n]*\.env[^\n]*\n```[^\n]*\n[\s\S]*?```/gi, '[REDACTED ENV]')
+    .replace(/^[^\n]*\.env[^\n]*\n```[^\n]*\n[\s\S]*?```/gim, '[REDACTED ENV]')
     .replace(
       /-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z ]+ )?PRIVATE KEY-----/g,
       '[REDACTED PRIVATE KEY]'
@@ -48,7 +48,7 @@ export function redact(value: string): string {
     )
     .replace(/\bBearer\s+[\w.+/=-]+/gi, 'Bearer [REDACTED]')
     .replace(
-      /((?:[\w-]*(?:api[_-]?key|access[_-]?token|refresh[_-]?token|token|authorization|password|secret|credential|cookie|oauth[_-]?token)[\w-]*)["']?\s*[:=]\s*)(?:"[^"\n]*"|'[^'\n]*'|[^\s,}\n]+)/gi,
+      /(?<![\w-])((?:[\w-]*(?:api[_-]?key|access[_-]?token|refresh[_-]?token|token|authorization|password|secret|credential|cookie|oauth[_-]?token)[\w-]*)["']?\s*[:=]\s*)(?:"[^"\n]*"|'[^'\n]*'|[^\s,}\n]+)/gi,
       '$1[REDACTED]'
     )
     .replace(/\beyJ[\w-]+\.[\w-]+\.[\w-]+\b/g, '[REDACTED JWT]')

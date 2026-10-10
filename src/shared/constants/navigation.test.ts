@@ -29,6 +29,14 @@ describe('navigation order', () => {
     expect(normalizeNavOrder(['models', 'models', 'overview'])).not.toContain('overview')
   })
 
+  it('places history below Git for older saved orders and preserves an explicit custom order', () => {
+    expect(normalizeNavOrder(['workspace', 'git', 'models', 'skills', 'settings'])).toEqual(
+      DEFAULT_NAV_ORDER
+    )
+    const custom = ['ai-sessions', 'models', 'workspace', 'settings', 'git', 'skills']
+    expect(normalizeNavOrder(custom)).toEqual(custom)
+  })
+
   it('moves an item within bounds and no-ops otherwise', () => {
     const order = [...NAV_ITEM_IDS]
     expect(moveNavItem(order, 0, 1)[0]).toBe('git')
