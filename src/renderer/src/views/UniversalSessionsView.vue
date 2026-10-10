@@ -2,6 +2,7 @@
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
+import { ChevronRight, FileText, FolderOpen, MessageSquare, Play, ShieldCheck } from '@lucide/vue'
 import {
   SOURCE_PROVIDERS,
   SOURCE_LABELS,
@@ -22,7 +23,7 @@ import Dialog from '@renderer/components/ui/Dialog.vue'
 import HistoryMessage from '@renderer/components/universal/HistoryMessage.vue'
 import HistoryDatePicker from '@renderer/components/universal/HistoryDatePicker.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const workspace = useWorkspaceStore()
@@ -68,7 +69,8 @@ let handoffRevision = 0
 let debounce: ReturnType<typeof setTimeout> | null = null
 let polling: ReturnType<typeof setInterval> | null = null
 let disposed = false
-const listStart = computed(() => Math.max(0, Math.floor(scrollTop.value / 104) - 3))
+const SESSION_ROW_HEIGHT = 112
+const listStart = computed(() => Math.max(0, Math.floor(scrollTop.value / SESSION_ROW_HEIGHT) - 3))
 const visible = computed(() =>
   items.value
     .slice(listStart.value, listStart.value + 24)
@@ -98,6 +100,30 @@ const claimSections = computed(() =>
       ]
     : []
 )
+const dateFormatter = computed(
+  () => new Intl.DateTimeFormat(locale.value, { month: 'short', day: 'numeric' })
+)
+const dateTimeFormatter = computed(
+  () =>
+    new Intl.DateTimeFormat(locale.value, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+)
+const numberFormatter = computed(() => new Intl.NumberFormat(locale.value))
+function formatDate(value?: string, includeTime = false) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return value
+  return (includeTime ? dateTimeFormatter.value : dateFormatter.value).format(date)
+}
+function projectName(session: UniversalSession) {
+  const path = session.workspacePath ?? session.projectPath
+  return path?.replaceAll('\\', '/').split('/').filter(Boolean).at(-1) ?? path ?? '—'
+}
 function failure(e: unknown) {
   error.value = getErrorMessage(e)
 }
@@ -434,7 +460,9 @@ onBeforeUnmount(() => {
       >
       <span v-if="status.running" role="status"
         >{{ t('universal.syncing') }} {{ status.scanned }}</span
-      ><time v-else>{{ t('universal.synced') }}: {{ status.lastSync ?? '—' }}</time>
+      ><time v-else :datetime="status.lastSync"
+        >{{ t('universal.synced') }}: {{ formatDate(status.lastSync, true) }}</time
+      >
       <details v-if="status.errors.length">
         <summary>{{ t('universal.warnings') }} ({{ status.errors.length }})</summary>
         <p v-for="(issue, i) in status.errors" :key="i">
@@ -501,28 +529,52 @@ onBeforeUnmount(() => {
           @scroll="onScroll"
         >
           <p v-if="!items.length && !loading" class="p-4 text-xs">{{ t('universal.empty') }}</p>
-          <div class="relative" :style="{ height: `${items.length * 104}px` }">
-            <article
+          <div class="relative" :style="{ height: `${items.length * SESSION_ROW_HEIGHT}px` }">
+            <button
               v-for="row in visible"
               :key="row.session.id"
-              class="absolute left-0 right-0 h-[104px] border-b border-[var(--border-subtle)] px-3 py-2"
-              :class="{ 'bg-[var(--accent-tint)]': selected?.id === row.session.id }"
-              :style="{ top: `${row.index * 104}px` }"
+              type="button"
+              class="history-session-card"
+              :class="{ active: selected?.id === row.session.id }"
+              :style="{ top: `${row.index * SESSION_ROW_HEIGHT + 4}px` }"
+              :aria-label="`${t('universal.view')}: ${row.session.title}`"
+              :aria-pressed="selected?.id === row.session.id"
               :data-testid="`history-session-${row.session.id}`"
+              @click="view(row.session)"
             >
-              <h2 class="truncate text-sm font-medium" :title="row.session.title">
+              <span class="flex items-center justify-between gap-2 text-[10px]">
+                <span class="history-provider-badge">{{
+                  SOURCE_LABELS[row.session.provider]
+                }}</span>
+                <time
+                  :datetime="row.session.updatedAt"
+                  :title="formatDate(row.session.updatedAt, true)"
+                  >{{ formatDate(row.session.updatedAt) }}</time
+                >
+              </span>
+              <span class="history-session-title" :title="row.session.title">
                 {{ row.session.title }}
-              </h2>
-              <p class="truncate text-[11px] text-[var(--text-tertiary)]">
-                {{ SOURCE_LABELS[row.session.provider] }} · {{ row.session.updatedAt.slice(0, 10) }}
-              </p>
-              <p class="truncate text-[11px] text-[var(--text-secondary)]">
-                {{ row.session.workspacePath ?? row.session.projectPath ?? '—' }}
-              </p>
-              <button class="text-xs text-[var(--accent)]" @click="view(row.session)">
-                {{ t('universal.view') }}
-              </button>
-            </article>
+              </span>
+              <span class="flex min-w-0 items-center gap-1.5 text-[11px]">
+                <FolderOpen class="size-3 shrink-0" aria-hidden="true" />
+                <span
+                  class="min-w-0 flex-1 truncate"
+                  :title="row.session.workspacePath ?? row.session.projectPath"
+                >
+                  {{ projectName(row.session) }}
+                </span>
+                <span
+                  v-if="row.session.source.status !== 'available'"
+                  class="text-[var(--warning)]"
+                >
+                  {{ t('universal.missing') }}
+                </span>
+                <ChevronRight
+                  class="history-session-chevron size-3.5 shrink-0"
+                  aria-hidden="true"
+                />
+              </span>
+            </button>
           </div>
           <Button v-if="items.length < total" :loading="loading" @click="load(false)">{{
             t('universal.more')
@@ -531,9 +583,18 @@ onBeforeUnmount(() => {
       </section>
       <section class="flex min-w-0 flex-1 flex-col" :aria-label="t('universal.view')">
         <template v-if="selected">
-          <header class="border-b border-[var(--border-subtle)] p-4">
-            <div class="flex items-center gap-3">
-              <h2 class="min-w-0 flex-1 truncate font-medium">{{ selected.title }}</h2>
+          <header class="history-detail-header" data-testid="history-detail-header">
+            <div class="flex items-start gap-4">
+              <div class="min-w-0 flex-1">
+                <div class="mb-2 flex flex-wrap items-center gap-2">
+                  <span class="history-provider-badge">{{ SOURCE_LABELS[selected.provider] }}</span>
+                  <span class="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)]">
+                    <ShieldCheck class="size-3" aria-hidden="true" />
+                    {{ t('universal.readOnly') }}
+                  </span>
+                </div>
+                <h2 class="history-detail-title" :title="selected.title">{{ selected.title }}</h2>
+              </div>
               <Button
                 variant="primary"
                 :disabled="
@@ -541,28 +602,54 @@ onBeforeUnmount(() => {
                 "
                 data-testid="history-continue-task"
                 @click="beginHandoff"
-                >{{ t('universal.continue') }}</Button
+                ><Play class="size-3.5" aria-hidden="true" />{{ t('universal.continue') }}</Button
               >
             </div>
-            <p class="mt-1 text-xs text-[var(--text-tertiary)]">
-              {{ SOURCE_LABELS[selected.provider] }} ·
-              {{ t('universal.messages', { count: selected.messageCount }) }} ·
-              {{
+            <div
+              class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-[var(--text-secondary)]"
+            >
+              <span
+                class="flex min-w-0 items-center gap-1.5"
+                :title="selected.workspacePath ?? selected.projectPath"
+              >
+                <FolderOpen class="size-3.5 shrink-0" aria-hidden="true" />
+                <span class="max-w-48 truncate">{{ projectName(selected) }}</span>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <MessageSquare class="size-3.5" aria-hidden="true" />
+                {{
+                  t('universal.messages', { count: numberFormatter.format(selected.messageCount) })
+                }}
+              </span>
+              <span>{{
                 selected.metadata.tokens !== undefined
-                  ? `${t('universal.tokens')}: ${selected.metadata.tokens}`
+                  ? `${t('universal.tokens')}: ${numberFormatter.format(selected.metadata.tokens)}`
                   : t('universal.noTokens')
-              }}
-            </p>
-            <p class="mt-1 break-all text-[11px] text-[var(--text-tertiary)]">
-              {{ selected.source.path }}
-            </p>
+              }}</span>
+              <time :datetime="selected.updatedAt">{{ formatDate(selected.updatedAt, true) }}</time>
+            </div>
+            <div
+              class="mt-3 flex flex-wrap items-start gap-x-4 gap-y-2 text-[11px] text-[var(--text-tertiary)]"
+            >
+              <details class="min-w-0 max-w-full">
+                <summary
+                  class="flex cursor-pointer items-center gap-1.5 hover:text-[var(--text-secondary)]"
+                >
+                  <FileText class="size-3" aria-hidden="true" />{{ t('universal.source') }}
+                  <ChevronRight class="history-source-chevron size-3" aria-hidden="true" />
+                </summary>
+                <p class="mt-2 break-all">{{ selected.source.path }}</p>
+              </details>
+              <details v-if="selected.warnings.length">
+                <summary class="cursor-pointer hover:text-[var(--text-secondary)]">
+                  {{ t('universal.warnings') }}
+                </summary>
+                <p v-for="notice in selected.warnings" :key="notice" class="mt-1">{{ notice }}</p>
+              </details>
+            </div>
             <p v-if="selected.source.status !== 'available'" class="text-xs text-[var(--warning)]">
               {{ t('universal.missing') }}
             </p>
-            <details v-if="selected.warnings.length" class="text-xs">
-              <summary>{{ t('universal.warnings') }}</summary>
-              <p v-for="notice in selected.warnings" :key="notice">{{ notice }}</p>
-            </details>
           </header>
           <div class="min-h-0 flex-1 space-y-3 overflow-y-auto p-4" data-testid="history-messages">
             <p v-if="viewing">{{ t('common.loading') }}</p>
@@ -732,6 +819,89 @@ onBeforeUnmount(() => {
   </main>
 </template>
 <style scoped>
+.history-session-card {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  height: 104px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-tertiary);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+.history-session-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+.history-session-card.active {
+  border-color: var(--accent-border);
+  background: var(--accent-tint);
+  box-shadow: inset 3px 0 var(--accent);
+}
+.history-session-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.history-session-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+.history-provider-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 14px;
+}
+.history-session-card.active .history-provider-badge,
+.history-session-card.active .history-session-chevron {
+  color: var(--accent);
+}
+.history-detail-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+.history-detail-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+}
+details[open] .history-source-chevron {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .history-session-card {
+    transition: none;
+  }
+}
 .history-input {
   width: 100%;
   border: 1px solid var(--border-default);

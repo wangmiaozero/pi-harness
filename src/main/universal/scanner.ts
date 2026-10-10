@@ -17,7 +17,7 @@ import { safeSourceFile, walk } from './sources'
 import { parseSourceDatabase } from './sqlite'
 
 // Invalidate derived blobs when format normalization changes; originals remain untouched.
-const PARSER_REVISION = 3
+const PARSER_REVISION = 4
 
 export interface ScanRequest {
   sources: SourceLocation[]

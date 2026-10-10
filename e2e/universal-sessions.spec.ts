@@ -151,7 +151,7 @@ test('browses without model calls, previews evidence, and continues through the 
     await page.getByTestId('history-provider-claude').click()
     await page.getByRole('textbox', { name: /搜索聊天记录|Search conversations/ }).fill('初步分析')
     await expect(page.getByText('Universal history fixture 中文', { exact: true })).toBeVisible()
-    await page.getByRole('button', { name: /查看历史|View history/, exact: true }).click()
+    await page.getByText('Universal history fixture 中文', { exact: true }).click()
     await expect(page.getByTestId('history-messages')).toContainText('已完成初步分析')
     expect(requests).toHaveLength(0)
     await page.getByTestId('history-continue-task').click()
@@ -270,7 +270,7 @@ test('rejects arbitrary read paths and unknown IPC fields and keeps cached histo
   await page.getByTestId('history-provider-cursor').click()
   await expect(page.getByText('Codex cached history', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Cursor SQLite fixture', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: /查看历史|View history/, exact: true }).click()
+  await page.getByText('Cursor SQLite fixture', { exact: true }).click()
   await expect(page.getByTestId('history-messages')).toContainText('SQLite worker history 中文')
   const denied = await page.evaluate(async () => {
     const result: boolean[] = []
@@ -289,14 +289,13 @@ test('rejects arbitrary read paths and unknown IPC fields and keeps cached histo
   await expect(page.getByText('Codex cached history', { exact: true })).toBeVisible()
   await page.getByTestId('history-provider-codex').click()
   await expect(page.getByText('Cursor SQLite fixture', { exact: true })).toHaveCount(0)
-  await page.getByRole('button', { name: /查看历史|View history/, exact: true }).click()
+  await page.getByText('Codex cached history', { exact: true }).click()
   await expect(page.getByTestId('history-messages')).toContainText('Codex cached history')
 })
 
 test('keeps history below Git for saved navigation and filters dates with the themed calendar', async ({
   page,
-  testUserData,
-  workspaceRoot
+  testUserData
 }, testInfo) => {
   const now = new Date()
   const older = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 3, 12)
@@ -370,4 +369,98 @@ test('keeps history below Git for saved navigation and filters dates with the th
   await page.screenshot({ path: path.join(testInfo.outputDir, 'history-calendar-dark.png') })
   await page.keyboard.press('Escape')
   await expect(start).toBeHidden()
+})
+
+test('opens history from the whole card and keeps continuation separate', async ({
+  page,
+  testUserData,
+  workspaceRoot
+}, testInfo) => {
+  const project = path.join(workspaceRoot, 'pi-harness')
+  fs.mkdirSync(project)
+  const source = path.join(testUserData, 'history-home', '.codex', 'sessions')
+  fs.mkdirSync(source, { recursive: true })
+  const titles = [
+    '优化会话列表，让标题、项目信息和整张卡片的留白都可以点击查看历史，并保持继续任务独立',
+    '修复日期筛选，并适配浅色与深色主题',
+    '整理项目导航与会话来源',
+    '检查会话同步结果'
+  ]
+  const control = '<external_codex_apps_open_page>{"page_id":null}</external_codex_apps_open_page>'
+  for (let i = 0; i < 30; i++) {
+    const title = titles[i] ?? `History archive ${i + 1}`
+    fs.writeFileSync(
+      path.join(source, `card-${i}.jsonl`),
+      [
+        { type: 'session_meta', payload: { id: `card-${i}`, cwd: project } },
+        {
+          type: 'response_item',
+          payload: {
+            type: 'message',
+            role: 'user',
+            content: [{ type: 'input_text', text: control }]
+          }
+        },
+        {
+          type: 'response_item',
+          timestamp: new Date(Date.now() - i * 3600_000).toISOString(),
+          payload: {
+            type: 'message',
+            role: 'user',
+            content: [{ type: 'input_text', text: title }]
+          }
+        },
+        {
+          type: 'response_item',
+          payload: {
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'output_text', text: `Read-only history for card ${i + 1}` }]
+          }
+        }
+      ]
+        .map((record) => JSON.stringify(record))
+        .join('\n') + '\n'
+    )
+  }
+  await page.evaluate(() => window.piSwitch!.settings.set({ theme: 'macos27-light' }))
+  await page.reload()
+  await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+  await page.locator('a[href="#/ai-sessions"]').click()
+  await page.getByTestId('history-provider-codex').click()
+  const list = page.getByTestId('history-session-list')
+  const card = (title: string) =>
+    list.getByRole('button', { name: new RegExp(`^(查看历史|View history): ${title}$`) })
+  const header = page.getByTestId('history-detail-header')
+  await card(titles[0]!).getByText(titles[0]!, { exact: true }).click()
+  await expect(header.getByRole('heading')).toHaveText(titles[0]!)
+  await expect(page.getByTestId('history-messages')).toContainText('Read-only history for card 1')
+  await expect(header).not.toContainText('external_codex_apps_open_page')
+  await expect(card(titles[0]!)).toHaveAttribute('aria-pressed', 'true')
+  await page.screenshot({ path: path.join(testInfo.outputDir, 'history-cards-glass.png') })
+  await card(titles[1]!).getByText('pi-harness', { exact: true }).click()
+  await expect(header.getByRole('heading')).toHaveText(titles[1]!)
+  const third = card(titles[2]!)
+  const bounds = (await third.boundingBox())!
+  await third.click({ position: { x: bounds.width / 2, y: bounds.height - 5 } })
+  await expect(header.getByRole('heading')).toHaveText(titles[2]!)
+  await card(titles[3]!).press('Enter')
+  await expect(header.getByRole('heading')).toHaveText(titles[3]!)
+  await card(titles[2]!).press('Space')
+  await expect(header.getByRole('heading')).toHaveText(titles[2]!)
+  await expect(page.getByRole('dialog')).toBeHidden()
+  await list.evaluate((el) => {
+    el.scrollTop = el.scrollHeight
+  })
+  await card('History archive 30').click()
+  await expect(page.getByTestId('history-messages')).toContainText('Read-only history for card 30')
+  await page.getByTestId('history-continue-task').click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await page.getByRole('button', { name: /取消|Cancel/, exact: true }).click()
+  await page.evaluate(() => window.piSwitch!.settings.set({ theme: 'dark' }))
+  await page.reload()
+  await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+  await card(titles[0]!).click()
+  await expect(header.getByRole('heading')).toHaveText(titles[0]!)
+  await page.screenshot({ path: path.join(testInfo.outputDir, 'history-cards-dark.png') })
 })
