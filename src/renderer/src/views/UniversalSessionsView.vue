@@ -10,6 +10,7 @@ import {
   type UniversalSession,
   type UniversalMessage,
   type SessionHandoff,
+  type UniversalProjectResolution,
   type UniversalSyncStatus,
   type SourceLocation
 } from '@shared/universal/schema'
@@ -58,6 +59,9 @@ const sourcePickerOpen = ref(false)
 const addingSource = ref(false)
 const addedProvider = ref<SourceProvider>('claude')
 const linkPath = ref('')
+const resolvingProject = ref(false)
+const projectResolution = ref<UniversalProjectResolution['status']>('unrecorded')
+const changeProject = ref(false)
 const instruction = ref('')
 const handoff = ref<SessionHandoff | null>(null)
 const scrollTop = ref(0)
@@ -128,30 +132,53 @@ function failure(e: unknown) {
   error.value = getErrorMessage(e)
 }
 async function beginHandoff() {
+  if (!selected.value) return
   const current = ++handoffRevision
+  const id = selected.value.id
   preparing.value = false
+  resolvingProject.value = true
+  changeProject.value = false
+  projectResolution.value = 'unrecorded'
   handoffOpen.value = true
   handoff.value = null
   instruction.value = ''
-  const sourcePath = selected.value?.projectPath
-  // Resolve a recorded subdirectory only inside an already imported project.
-  if (!linkPath.value && sourcePath && isPathWithinProjectRoots(sourcePath, linkedProjects.value)) {
-    try {
-      const git = await getApi().git.status(sourcePath)
-      const matched = linkedProjects.value.find(
-        (p) => projectIdentityKey(p) === projectIdentityKey(git.repositoryRoot ?? '')
-      )
-      if (
-        current === handoffRevision &&
-        !disposed &&
-        handoffOpen.value &&
-        !linkPath.value &&
-        matched
-      )
-        linkPath.value = matched
-    } catch {
-      // Non-Git or unavailable projects still support an explicit user choice.
+  error.value = ''
+  try {
+    const result = await api().resolveProject(id)
+    if (current !== handoffRevision || disposed || !handoffOpen.value || selected.value?.id !== id)
+      return
+    projectResolution.value = result.status
+    linkPath.value = result.status === 'available' ? result.path : ''
+    const sourcePath = linkPath.value
+    // Reuse an imported project's complete source-folder list when cwd is inside its repository.
+    if (
+      !selected.value.workspacePath &&
+      sourcePath &&
+      isPathWithinProjectRoots(sourcePath, linkedProjects.value) &&
+      !linkedProjects.value.some((p) => projectIdentityKey(p) === projectIdentityKey(sourcePath))
+    ) {
+      try {
+        const git = await getApi().git.status(sourcePath)
+        const matched = linkedProjects.value.find(
+          (p) => projectIdentityKey(p) === projectIdentityKey(git.repositoryRoot ?? '')
+        )
+        if (
+          current === handoffRevision &&
+          !disposed &&
+          handoffOpen.value &&
+          selected.value?.id === id &&
+          linkPath.value === sourcePath &&
+          matched
+        )
+          linkPath.value = matched
+      } catch {
+        // A non-Git directory can still be used as the recorded working directory.
+      }
     }
+  } catch (e) {
+    if (current === handoffRevision && !disposed) failure(e)
+  } finally {
+    if (current === handoffRevision) resolvingProject.value = false
   }
 }
 async function load(reset = true) {
@@ -197,6 +224,7 @@ async function sync() {
 }
 async function view(session: UniversalSession, offset = 0) {
   handoffRevision++
+  resolvingProject.value = false
   const current = ++messageRevision
   selected.value = session
   handoff.value = null
@@ -239,11 +267,20 @@ async function chooseSourceFolder() {
   }
 }
 async function browseProject() {
+  const current = handoffRevision
+  const id = selected.value?.id
   try {
     const chosen = await getApi().workspace.pickDirectory()
-    if (chosen) linkPath.value = chosen
+    if (
+      chosen &&
+      current === handoffRevision &&
+      !disposed &&
+      handoffOpen.value &&
+      selected.value?.id === id
+    )
+      linkPath.value = chosen
   } catch (e) {
-    failure(e)
+    if (current === handoffRevision && !disposed) failure(e)
   }
 }
 async function saveLink() {
@@ -252,7 +289,12 @@ async function saveLink() {
   const root = linkPath.value
   const current = messageRevision
   try {
-    const mapped = await api().map(id, root, workspace.projectSourceRoots(root))
+    const roots =
+      selected.value.workspacePath &&
+      projectIdentityKey(selected.value.workspacePath) === projectIdentityKey(root)
+        ? (selected.value.workspaceRoots ?? workspace.projectSourceRoots(root))
+        : workspace.projectSourceRoots(root)
+    const mapped = await api().map(id, root, roots)
     if (
       current === messageRevision &&
       !disposed &&
@@ -271,7 +313,8 @@ async function saveLink() {
   }
 }
 async function prepare() {
-  if (!selected.value || !instruction.value.trim()) return
+  if (!selected.value || !linkPath.value || resolvingProject.value || !instruction.value.trim())
+    return
   const current = ++handoffRevision
   const id = selected.value.id
   const requested = instruction.value
@@ -377,6 +420,7 @@ watch(handoffOpen, (open) => {
   if (!open) {
     handoffRevision++
     preparing.value = false
+    resolvingProject.value = false
   }
 })
 onMounted(async () => {
@@ -703,23 +747,73 @@ onBeforeUnmount(() => {
     <Dialog v-model:open="handoffOpen" :title="t('universal.preview')" large>
       <div class="space-y-3" data-testid="handoff-preview">
         <p class="text-xs text-[var(--text-secondary)]">{{ t('universal.localHint') }}</p>
-        <label class="block text-sm"
-          >{{ t('universal.link')
-          }}<select v-model="linkPath" class="history-input mt-1">
-            <option value="">{{ t('universal.choose') }}</option>
-            <option
-              v-for="p in [...new Set([...linkedProjects, ...(linkPath ? [linkPath] : [])])]"
-              :key="p"
-              :value="p"
-            >
-              {{ p }}
-            </option>
-          </select></label
+        <section
+          class="handoff-project"
+          data-testid="handoff-project"
+          :aria-busy="resolvingProject"
         >
-        <div class="flex gap-2">
-          <Button @click="browseProject">{{ t('universal.browse') }}</Button
-          ><Button :disabled="!linkPath" @click="saveLink">{{ t('universal.saveLink') }}</Button>
-        </div>
+          <div class="flex items-start gap-3">
+            <FolderOpen class="mt-0.5 size-5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+            <div class="min-w-0 flex-1">
+              <p class="text-xs text-[var(--text-secondary)]">
+                {{ t('universal.workingDirectory') }}
+              </p>
+              <p v-if="resolvingProject" class="mt-1 text-sm" role="status">
+                {{ t('common.loading') }}
+              </p>
+              <template v-else-if="linkPath">
+                <p class="mt-1 text-sm font-medium">
+                  {{ linkPath.replaceAll('\\', '/').split('/').filter(Boolean).at(-1) || linkPath }}
+                </p>
+                <p
+                  class="mt-1 break-all text-xs text-[var(--text-secondary)]"
+                  data-testid="handoff-project-path"
+                >
+                  {{ linkPath }}
+                </p>
+                <p class="mt-2 text-xs text-[var(--text-secondary)]">
+                  {{ t('universal.projectReady') }}
+                </p>
+              </template>
+              <p v-else class="mt-1 text-sm text-[var(--warning)]">
+                {{
+                  t(
+                    projectResolution === 'missing'
+                      ? 'universal.projectMissing'
+                      : 'universal.projectUnrecorded'
+                  )
+                }}
+              </p>
+            </div>
+            <Button
+              v-if="linkPath && !resolvingProject"
+              size="sm"
+              @click="changeProject = !changeProject"
+              >{{ t('universal.changeProject') }}</Button
+            >
+          </div>
+          <div
+            v-if="!resolvingProject && (changeProject || !linkPath)"
+            class="mt-3 flex items-end gap-2"
+          >
+            <label class="min-w-0 flex-1 text-xs text-[var(--text-secondary)]"
+              >{{ t('universal.choose')
+              }}<select v-model="linkPath" class="history-input mt-1" :disabled="preparing">
+                <option value="">{{ t('universal.choose') }}</option>
+                <option
+                  v-for="p in [...new Set([...linkedProjects, ...(linkPath ? [linkPath] : [])])]"
+                  :key="p"
+                  :value="p"
+                >
+                  {{ p }}
+                </option>
+              </select></label
+            >
+            <Button :disabled="preparing" @click="browseProject">{{
+              t('universal.browse')
+            }}</Button>
+          </div>
+        </section>
         <label class="block text-sm"
           >{{ t('universal.instruction')
           }}<textarea
@@ -730,7 +824,7 @@ onBeforeUnmount(() => {
           />
         </label>
         <Button
-          :disabled="!linkPath || !instruction.trim()"
+          :disabled="resolvingProject || !linkPath || !instruction.trim()"
           :loading="preparing"
           @click="prepare"
           >{{ t('universal.generate') }}</Button
@@ -819,6 +913,12 @@ onBeforeUnmount(() => {
   </main>
 </template>
 <style scoped>
+.handoff-project {
+  padding: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
 .history-session-card {
   position: absolute;
   left: 12px;

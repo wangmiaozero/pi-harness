@@ -86,6 +86,8 @@ export const universalSessionSchema = z.object({
   blob: id
 })
 export type UniversalSession = z.infer<typeof universalSessionSchema>
+export type UniversalProjectResolution =
+  { status: 'available'; path: string } | { status: 'missing' | 'unrecorded' }
 export const sourceLocationSchema = z.object({
   provider: sourceProviderSchema,
   root: text,
@@ -218,6 +220,7 @@ export interface UniversalSessionsAPI {
   status(): Promise<UniversalSyncStatus>
   setWatch(enabled: boolean): Promise<void>
   map(id: string, workspacePath: string, workspaceRoots?: string[]): Promise<UniversalSession>
+  resolveProject(id: string): Promise<UniversalProjectResolution>
   clear(): Promise<void>
   forget(id: string): Promise<void>
   preview(id: string, instruction: string): Promise<SessionHandoff>

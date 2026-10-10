@@ -44,6 +44,7 @@ const api: PiSwitchAPI = {
     setWatch: (enabled) => invoke(IPC_INVOKE.universalWatch, { enabled }),
     map: (id, workspacePath, workspaceRoots) =>
       invoke(IPC_INVOKE.universalMap, { id, workspacePath, workspaceRoots }),
+    resolveProject: (id) => invoke(IPC_INVOKE.universalResolveProject, { id }),
     clear: () => invoke(IPC_INVOKE.universalClear),
     forget: (id) => invoke(IPC_INVOKE.universalForget, { id }),
     preview: (id, instruction) => invoke(IPC_INVOKE.universalPreview, { id, instruction }),

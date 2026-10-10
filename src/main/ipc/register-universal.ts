@@ -16,6 +16,7 @@ import { ValidationError } from '../services/errors'
 import type { UniversalSessionService } from '../universal/service'
 import type { UniversalHandoffService } from '../universal/handoff'
 import type { FileAccessService } from '../files/file-access-service'
+import { UniversalProjectService } from '../universal/project'
 import type { IpcHandleRegistrar } from './trusted-ipc'
 
 export function registerUniversalIpc(
@@ -25,6 +26,7 @@ export function registerUniversalIpc(
   handoff: UniversalHandoffService,
   access: FileAccessService
 ): void {
+  const projects = new UniversalProjectService(history, access)
   const wrap = <T>(fn: () => Promise<T>) => wrapRequest(async () => fn())
   function parse<T>(schema: z.ZodType<T>, value: unknown): T {
     const result = schema.safeParse(value)
@@ -92,11 +94,11 @@ export function registerUniversalIpc(
   ipc.handle(IPC_INVOKE.universalMap, (_e, input: unknown) =>
     wrap(async () => {
       const { id, workspacePath, workspaceRoots } = parse(universalMapSchema, input)
-      const roots: string[] = []
-      for (const root of [workspacePath, ...(workspaceRoots ?? [])])
-        roots.push(await access.assertAllowed(root, { mustExist: true }))
-      return history.map(id, roots[0]!, roots)
+      return projects.map(id, workspacePath, workspaceRoots)
     })
+  )
+  ipc.handle(IPC_INVOKE.universalResolveProject, (_e, input: unknown) =>
+    wrap(() => projects.resolve(parse(universalIdSchema, input).id))
   )
   ipc.handle(IPC_INVOKE.universalPreview, (_e, input: unknown) =>
     wrap(async () => {

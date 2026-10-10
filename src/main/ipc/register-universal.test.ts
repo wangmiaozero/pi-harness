@@ -13,6 +13,7 @@ describe('typed history IPC validation', () => {
     const sources = vi.fn(async () => [])
     const read = vi.fn(async () => null)
     const map = vi.fn(async () => null)
+    const get = vi.fn(async () => ({ projectPath: '/recorded' }))
     const preview = vi.fn(async () => null)
     const denied = vi.fn(async (_root: string): Promise<string> => {
       throw new Error('PATH_DENIED')
@@ -24,11 +25,11 @@ describe('typed history IPC validation', () => {
     registerUniversalIpc(
       ipc,
       (fn) => fn(),
-      { sources, read, map } as unknown as UniversalSessionService,
+      { sources, read, map, get } as unknown as UniversalSessionService,
       { preview } as unknown as UniversalHandoffService,
       { assertAllowed: denied } as unknown as FileAccessService
     )
-    return { handlers, sources, read, map, preview, denied }
+    return { handlers, sources, read, map, preview, denied, get }
   }
   it('accepts zero arguments and rejects unexpected arguments before scanning', async () => {
     const { handlers, sources } = setup()
@@ -62,6 +63,18 @@ describe('typed history IPC validation', () => {
     ).rejects.toThrow('PATH_DENIED')
     expect(denied).toHaveBeenCalledWith('/unauthorized', { mustExist: true })
     expect(map).not.toHaveBeenCalled()
+  })
+  it('resolves only an indexed session ID and rejects renderer paths before looking it up', async () => {
+    const { handlers, get } = setup()
+    for (const input of [{ id: '../secrets' }, { id: 'a'.repeat(64), path: '/etc' }])
+      await expect(handlers.get(IPC_INVOKE.universalResolveProject)!({}, input)).rejects.toThrow(
+        'Invalid history request'
+      )
+    expect(get).not.toHaveBeenCalled()
+    await expect(
+      handlers.get(IPC_INVOKE.universalResolveProject)!({}, { id: 'a'.repeat(64) })
+    ).resolves.toEqual({ status: 'missing' })
+    expect(get).toHaveBeenCalledExactlyOnceWith('a'.repeat(64))
   })
   it('cannot create or run a handoff with an empty instruction or forged identifier', async () => {
     const { handlers, preview } = setup()
