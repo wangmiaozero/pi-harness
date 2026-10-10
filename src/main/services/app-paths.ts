@@ -117,6 +117,15 @@ export function appDefaultWorkspacePath(): string {
   return path.join(userData(), 'workspaces', 'default')
 }
 
+/** Known app-profile identities for grouping shared Pi sessions; these paths grant no access. */
+export function appDefaultWorkspaceAliases(): string[] {
+  const current = userData()
+  if (!['Pi-Harness', 'Pi-Harness-dev'].includes(path.basename(current))) return []
+  return ['Pi-Harness', 'Pi-Harness-dev'].map((name) =>
+    path.join(path.dirname(current), name, 'workspaces', 'default')
+  )
+}
+
 /** Pi-Harness encrypted secret vault (non-keychain fallback). */
 export function appSecretVaultPath(): string {
   return path.join(userData(), 'secrets.bin')

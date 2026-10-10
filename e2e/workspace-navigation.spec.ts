@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import os from 'node:os'
 import { test, expect } from './fixtures'
 import { projectIdentityKey } from '../src/shared/workspace/project-identity'
 
@@ -71,6 +72,69 @@ test('combines standalone chats and projects in one workspace section', async ({
     })
   }
 })
+
+const profileTest = test.extend({
+  testUserData: async ({}, use) => {
+    const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-profile-e2e-'))
+    const userData = path.join(parent, 'Pi-Harness-dev')
+    fs.mkdirSync(userData)
+    try {
+      await use(userData)
+    } finally {
+      fs.rmSync(parent, { recursive: true, force: true })
+    }
+  }
+})
+
+profileTest(
+  'groups current and older app-profile chats under Sessions while keeping real default projects',
+  async ({ page, testUserData, piAgentDir, workspaceRoot }, testInfo) => {
+    const current = await page.evaluate(() => window.piSwitch.workspace.getDefaultRoot())
+    const legacy = path.join(
+      path.dirname(fs.realpathSync(testUserData)),
+      'Pi-Harness',
+      'workspaces',
+      'default'
+    )
+    const ordinary = path.join(fs.realpathSync(workspaceRoot), 'default')
+    fs.mkdirSync(legacy, { recursive: true })
+    fs.mkdirSync(ordinary)
+    const chats = [
+      { root: legacy, id: '01a126a4-0796-73ff-990a-a2be2198354e', title: 'Older standalone chat' },
+      {
+        root: current!,
+        id: '01a226a4-0796-73ff-990a-a2be2198354e',
+        title: 'Current standalone chat'
+      },
+      {
+        root: ordinary,
+        id: '01a326a4-0796-73ff-990a-a2be2198354e',
+        title: 'Real default project chat'
+      }
+    ]
+    for (const chat of chats) seedSession(piAgentDir, chat.root, chat.id, chat.title)
+    const grants = () => fs.readFileSync(path.join(testUserData, 'authorized-roots.json'), 'utf8')
+    const before = grants()
+    const identities = await page.evaluate(() => window.piSwitch.workspace.getDefaultRoots())
+    expect(identities).toContain(legacy)
+    expect(grants()).toBe(before)
+    await page.reload()
+    await page.locator('a[href="#/workspace"]').click()
+    await page.getByTestId('workspace-refresh').click()
+    const tree = page.getByTestId('workspace-session-tree')
+    const standalone = tree.getByTestId('workspace-chat-list')
+    await expect(standalone.getByText('Older standalone chat', { exact: true })).toBeVisible()
+    await expect(standalone.getByText('Current standalone chat', { exact: true })).toBeVisible()
+    await expect(standalone.getByText('Real default project chat', { exact: true })).toHaveCount(0)
+    const projects = tree.locator('[data-testid^="workspace-project-group-"]')
+    await expect(projects).toHaveCount(1)
+    await expect(projects.getByText('default', { exact: true })).toBeVisible()
+    await expect(projects.getByText('Real default project chat', { exact: true })).toBeVisible()
+    await expect(projects.getByText('Older standalone chat', { exact: true })).toHaveCount(0)
+    await expect(projects.getByText('Current standalone chat', { exact: true })).toHaveCount(0)
+    await page.screenshot({ path: path.join(testInfo.outputDir, 'profile-chats-grouped.png') })
+  }
+)
 
 function seedSession(agentDir: string, cwd: string, sessionId: string, label: string) {
   const safePath = `--${path

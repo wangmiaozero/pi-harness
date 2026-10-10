@@ -206,6 +206,7 @@ const api: PiSwitchAPI = {
     },
     getActive: () => invoke(IPC_INVOKE.workspaceGetActive),
     getDefaultRoot: () => invoke(IPC_INVOKE.workspaceGetDefaultRoot),
+    getDefaultRoots: () => invoke(IPC_INVOKE.workspaceGetDefaultRoots),
     ensureDefault: () => invoke(IPC_INVOKE.workspaceEnsureDefault),
     sync: (input) => invoke(IPC_INVOKE.workspaceSync, input),
     openWorkspaceFile: (path) => invoke(IPC_INVOKE.workspaceOpenFile, { path }),

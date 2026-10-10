@@ -185,7 +185,9 @@ export class UniversalHandoffService {
     handoff.piSessionId = started.sessionId
     await this.save(handoff)
     try {
-      await this.deps.agent.prompt(started.sessionId, prompt)
+      await this.deps.agent.prompt(started.sessionId, prompt, {
+        toolEnforcementText: handoff.instruction
+      })
     } catch (error) {
       // Preserve the link even when the model fails. The user can inspect/retry in the native chat.
       await this.save(handoff)

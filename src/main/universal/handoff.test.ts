@@ -143,6 +143,9 @@ describe('task handoff and native runtime bridge', () => {
     })
     expect(prompt).toHaveBeenCalledOnce()
     expect(prompt.mock.calls[0]?.[1]).toContain('增加回归测试')
+    expect(prompt).toHaveBeenCalledWith('native-pi-session', expect.any(String), {
+      toolEnforcementText: '增加回归测试'
+    })
     expect(bindSession).toHaveBeenCalledWith(
       'native-pi-session',
       expect.objectContaining({ workspaceId: `universal:${preview.id}` })

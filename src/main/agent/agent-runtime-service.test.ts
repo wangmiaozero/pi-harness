@@ -127,6 +127,90 @@ describe('AgentRuntimeService', () => {
 
     expect(outgoingPayload).not.toHaveProperty('tool_choice')
   })
+  it.each([
+    {
+      compat: { thinkingFormat: 'deepseek' },
+      thinking: { type: 'enabled' },
+      toolChoice: 'required',
+      expected: undefined
+    },
+    {
+      compat: undefined,
+      baseUrl: 'https://api.deepseek.com/v1',
+      thinking: undefined,
+      toolChoice: { type: 'function', function: { name: 'write' } },
+      expected: undefined
+    },
+    {
+      compat: { thinkingFormat: 'deepseek' },
+      thinking: { type: 'disabled' },
+      expected: 'required'
+    },
+    {
+      compat: { thinkingFormat: 'deepseek' },
+      thinking: undefined,
+      effort: 'none',
+      expected: 'required'
+    },
+    { compat: { thinkingFormat: 'openai' }, thinking: { type: 'enabled' }, expected: 'required' }
+  ])(
+    'keeps file tools available without forcing a choice rejected by thinking mode: %j',
+    async ({ compat, baseUrl, thinking, effort, toolChoice, expected }) => {
+      const inner = createAgentSession(createSessionManager())
+      inner.model = {
+        id: 'configured-model',
+        provider: 'custom-provider',
+        api: 'openai-completions',
+        compat,
+        baseUrl
+      }
+      inner.getActiveToolNames = () => ['read', 'write', 'edit']
+      const input = {
+        tools: [{ type: 'function', function: { name: 'write' } }],
+        thinking,
+        reasoning_effort: effort,
+        ...(toolChoice ? { tool_choice: toolChoice } : {})
+      }
+      let outgoing: unknown
+      inner.prompt = vi.fn(async (_message, options) => {
+        outgoing = await inner.agent.onPayload?.(input, inner.model ?? undefined)
+        ;(options?.preflightResult as (accepted: boolean) => void)?.(true)
+      })
+      await new AgentSessionWrapper(inner).send({
+        type: 'prompt',
+        message: 'Create a file named example.html'
+      })
+      expect(outgoing).toMatchObject({ tools: input.tools, thinking, reasoning_effort: effort })
+      if (expected) expect(outgoing).toHaveProperty('tool_choice', expected)
+      else expect(outgoing).not.toHaveProperty('tool_choice')
+    }
+  )
+  it('uses only the current instruction for tool enforcement when the prompt includes history', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.model = { id: 'model', provider: 'provider', api: 'openai-completions' }
+    inner.getActiveToolNames = () => ['read', 'write', 'edit']
+    let outgoing: unknown
+    inner.prompt = vi.fn(async (_message, options) => {
+      outgoing = await inner.agent.onPayload?.(
+        { tools: [{ type: 'function', function: { name: 'write' } }] },
+        inner.model ?? undefined
+      )
+      ;(options?.preflightResult as (accepted: boolean) => void)?.(true)
+    })
+    const wrapper = new AgentSessionWrapper(inner)
+    await wrapper.send({
+      type: 'prompt',
+      message: 'Historical request: Create a file named example.html. Current instruction: hi',
+      toolEnforcementText: 'hi'
+    })
+    expect(outgoing).not.toHaveProperty('tool_choice')
+    await wrapper.send({
+      type: 'prompt',
+      message: 'Quoted conversation context',
+      toolEnforcementText: 'Create a file named new.html'
+    })
+    expect(outgoing).toHaveProperty('tool_choice', 'required')
+  })
 
   it('uses the Pi 0.87 resource loader when systemPrompt is getter-only', async () => {
     const manager = createSessionManager()

@@ -172,6 +172,12 @@ export function registerWorkspaceIpc(
   ipcMain.handle(IPC_INVOKE.workspaceGetDefaultRoot, () =>
     wrap(() => workspaceState.getDefaultWorkspaceRoot())
   )
+  ipcMain.handle(IPC_INVOKE.workspaceGetDefaultRoots, (_e, ...args: unknown[]) =>
+    wrap(async () => {
+      if (args.length) throw new ValidationError('Invalid workspace identity request')
+      return workspaceState.getDefaultWorkspaceRoots()
+    })
+  )
   ipcMain.handle(IPC_INVOKE.workspaceEnsureDefault, () =>
     wrap(() => workspaceState.ensureDefaultWorkspace())
   )

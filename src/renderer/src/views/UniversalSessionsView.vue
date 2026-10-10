@@ -294,7 +294,8 @@ async function saveLink() {
       projectIdentityKey(selected.value.workspacePath) === projectIdentityKey(root)
         ? (selected.value.workspaceRoots ?? workspace.projectSourceRoots(root))
         : workspace.projectSourceRoots(root)
-    const mapped = await api().map(id, root, roots)
+    // IPC needs a plain DTO, including when this array came from a reactive saved session.
+    const mapped = await api().map(id, root, [...roots])
     if (
       current === messageRevision &&
       !disposed &&

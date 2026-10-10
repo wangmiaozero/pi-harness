@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent } from 'vue'
+import { defineComponent, isProxy } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
@@ -61,9 +61,10 @@ describe('history handoff interaction boundaries', () => {
       void _path
       return item
     })
-    const map = vi.fn(async (id: string, workspacePath: string) => ({
+    const map = vi.fn(async (id: string, workspacePath: string, workspaceRoots: string[]) => ({
       ...items.find((s) => s.id === id)!,
-      workspacePath
+      workspacePath,
+      workspaceRoots: [...workspaceRoots]
     }))
     const preview = vi.fn(async () => null)
     window.piSwitch = {
@@ -128,6 +129,13 @@ describe('history handoff interaction boundaries', () => {
       await flushPromises()
       expect(map).toHaveBeenCalledExactlyOnceWith(items[0]!.id, '/project/a', ['/project/a'])
       expect(preview).toHaveBeenCalledExactlyOnceWith(items[0]!.id, 'Continue task a')
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text() === 'Prepare handoff')!
+        .trigger('click')
+      await flushPromises()
+      expect(map).toHaveBeenCalledTimes(2)
+      expect(isProxy(map.mock.calls[1]![2])).toBe(false)
     } finally {
       wrapper.unmount()
     }

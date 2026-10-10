@@ -32,6 +32,7 @@ import {
   loadPiCodingAgent,
   peekPiCodingAgent,
   type AgentSessionLike,
+  type PiModelLike,
   type PiSessionManagerLike
 } from './pi-sdk'
 import { AgentEventBatcher, type AgentEventBatch } from './agent-event-batcher'
@@ -46,7 +47,7 @@ import {
 import { wrapWorkspaceWriteTools } from '../workspace/workspace-tool-guard'
 import { getIsDev } from '../services/app-paths'
 import type { SessionService } from '../sessions/session-service'
-import type { AgentRuntime } from './runtime'
+import type { AgentRuntime, AgentPromptOptions } from './runtime'
 
 const IDLE_MS = 10 * 60 * 1000
 const CODING_TOOL_NAMES = ['read', 'bash', 'edit', 'write', 'grep', 'find', 'ls']
@@ -243,7 +244,11 @@ export class AgentSessionWrapper {
           }
           this.pendingPromptCount += 1
           this.promptErrorMessage = null
-          this.prepareFileToolEnforcement(String(command.message ?? ''))
+          this.prepareFileToolEnforcement(
+            typeof command.toolEnforcementText === 'string'
+              ? command.toolEnforcementText
+              : String(command.message ?? '')
+          )
           await this.refreshSystemPrompt()
           const streamingBehavior = command.streamingBehavior as 'steer' | 'followUp' | undefined
           let prompt: Promise<void>
@@ -589,6 +594,19 @@ export class AgentSessionWrapper {
     const previous = this.inner.agent.onPayload
     this.inner.agent.onPayload = async (payload, model) => {
       const transformed = (await previous?.(payload, model)) ?? payload
+      const activeModel = model ?? this.inner.model
+      if (thinkingRejectsForcedToolChoice(transformed, activeModel)) {
+        const record = transformed as Record<string, unknown>
+        if (
+          record.tool_choice === 'required' ||
+          (record.tool_choice && typeof record.tool_choice === 'object')
+        ) {
+          const compatible = { ...record }
+          delete compatible.tool_choice
+          return compatible
+        }
+        return transformed
+      }
       const enforcement = this.fileToolEnforcement
       if (!enforcement || enforcement.remainingRequests <= 0) return transformed
       const required = requireToolChoice(transformed, model?.api ?? this.inner.model?.api)
@@ -910,7 +928,7 @@ export class AgentRuntimeService implements AgentRuntime {
   async prompt(
     sessionId: string,
     message: string,
-    extras: { images?: unknown; streamingBehavior?: 'steer' | 'followUp' } = {}
+    extras: AgentPromptOptions = {}
   ): Promise<unknown> {
     const wrapper = await this.require(sessionId)
     return wrapper.send({
@@ -922,7 +940,8 @@ export class AgentRuntimeService implements AgentRuntime {
             : 'prompt',
       message,
       images: extras.images,
-      streamingBehavior: extras.streamingBehavior
+      streamingBehavior: extras.streamingBehavior,
+      toolEnforcementText: extras.toolEnforcementText
     })
   }
 
@@ -1115,6 +1134,26 @@ export class AgentRuntimeService implements AgentRuntime {
       log.agent.error('failed to send running ids:', error)
     }
   }
+}
+
+function thinkingRejectsForcedToolChoice(
+  payload: unknown,
+  model: PiModelLike | null | undefined
+): boolean {
+  if (model?.api !== 'openai-completions' || !payload || typeof payload !== 'object') return false
+  let deepseekFormat = model.compat?.thinkingFormat === 'deepseek'
+  if (!deepseekFormat && model.baseUrl) {
+    try {
+      deepseekFormat = new URL(model.baseUrl).hostname.toLowerCase() === 'api.deepseek.com'
+    } catch {
+      /* Non-URL endpoints retain their declared compatibility. */
+    }
+  }
+  if (!deepseekFormat) return false
+  const record = payload as Record<string, unknown>
+  const thinking = record.thinking as { type?: unknown } | null | undefined
+  // DeepSeek defaults to enabled even when an older custom model omits the thinking field.
+  return thinking?.type !== 'disabled' && record.reasoning_effort !== 'none'
 }
 
 function requireToolChoice(payload: unknown, api: string | undefined): unknown {

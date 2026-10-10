@@ -113,10 +113,40 @@ test('continues a Codex conversation in its recorded directory without importing
     await dialog
       .getByRole('textbox', { name: /接下来希望 Pi 做什么|What should Pi do next/ })
       .fill('Continue this task in the recorded project. Do not modify files.')
-    await dialog.getByRole('button', { name: /生成任务交接|Prepare handoff/, exact: true }).click()
+    const prepare = dialog.getByRole('button', {
+      name: /生成任务交接|Prepare handoff/,
+      exact: true
+    })
+    const radius = await prepare.evaluate((button) => getComputedStyle(button).borderTopLeftRadius)
+    expect(parseFloat(radius)).toBeGreaterThan(0)
+    await page.keyboard.press('Tab')
+    await prepare.focus()
+    await expect(prepare).toBeFocused()
+    expect(await prepare.evaluate((button) => button.matches(':focus-visible'))).toBe(true)
+    expect(await prepare.evaluate((button) => getComputedStyle(button).borderTopLeftRadius)).toBe(
+      radius
+    )
+    await prepare.press('Enter')
     await expect(dialog.getByTestId('handoff-confirm')).toBeEnabled()
+    expect(await prepare.evaluate((button) => getComputedStyle(button).borderTopLeftRadius)).toBe(
+      radius
+    )
     expect(roots()).toContain(project)
     expect(requests).toHaveLength(0)
+    // Repeat with the now-linked reactive workspaceRoots, including a close/reopen cycle.
+    await prepare.click()
+    await expect(dialog.getByTestId('handoff-confirm')).toBeEnabled()
+    await expect(dialog.getByRole('alert')).toHaveCount(0)
+    await dialog.getByRole('button', { name: /取消|Cancel/, exact: true }).click()
+    await page.getByTestId('history-continue-task').click()
+    await dialog
+      .getByRole('textbox', { name: /接下来希望 Pi 做什么|What should Pi do next/ })
+      .fill('Continue the same task. Do not modify files.')
+    await prepare.click()
+    await expect(dialog.getByTestId('handoff-confirm')).toBeEnabled()
+    await expect(dialog.getByRole('alert')).toHaveCount(0)
+    expect(requests).toHaveLength(0)
+    await page.screenshot({ path: path.join(testInfo.outputDir, 'handoff-repeat-rounded.png') })
     await dialog.getByTestId('handoff-confirm').click()
     await expect(page.getByTestId('chat-window')).toContainText(
       'Recorded project continuation confirmed.',
@@ -126,6 +156,70 @@ test('continues a Codex conversation in its recorded directory without importing
     const sessions = await page.evaluate(() => window.piSwitch!.sessions.list(true))
     const continued = sessions.find((s) => s.cwd === project)!
     expect(continued).toBeDefined()
+    // The same global focus rule affects circular chat controls and shared icon buttons.
+    await page.setViewportSize({ width: 1000, height: 650 })
+    const scroller = page.getByTestId('chat-scroller')
+    for (const theme of ['macos27-light', 'light', 'dark'] as const) {
+      if (theme !== 'macos27-light') {
+        await page.locator('a[href="#/settings"]').click()
+        await page.getByRole('button', { name: /主题|Theme/, exact: true }).click()
+        await page
+          .getByRole('option', {
+            name: theme === 'light' ? /^(?:浅色|Light)$/ : /^(?:深色|Dark)$/
+          })
+          .click()
+        await page.locator('a[href="#/workspace"]').click()
+      }
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      await scroller.evaluate((element) => {
+        element.scrollTop = element.scrollHeight / 2
+      })
+      const circle = page.getByTestId('chat-scroll-top')
+      await expect(circle).toBeVisible()
+      const corners = await circle.evaluate((button) => {
+        const style = getComputedStyle(button)
+        return [
+          style.borderTopLeftRadius,
+          style.borderTopRightRadius,
+          style.borderBottomLeftRadius,
+          style.borderBottomRightRadius
+        ]
+      })
+      expect(parseFloat(corners[0])).toBeGreaterThanOrEqual(14)
+      await page.keyboard.press('Tab')
+      await circle.focus()
+      expect(await circle.evaluate((button) => button.matches(':focus-visible'))).toBe(true)
+      expect(
+        await circle.evaluate((button) => {
+          const style = getComputedStyle(button)
+          return [
+            style.borderTopLeftRadius,
+            style.borderTopRightRadius,
+            style.borderBottomLeftRadius,
+            style.borderBottomRightRadius
+          ]
+        })
+      ).toEqual(corners)
+      const bounds = (await circle.boundingBox())!
+      await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
+      await page.mouse.down()
+      expect(await circle.evaluate((button) => button.matches(':active'))).toBe(true)
+      expect(await circle.evaluate((button) => getComputedStyle(button).borderTopLeftRadius)).toBe(
+        corners[0]
+      )
+      await page.mouse.up()
+      await expect(page.getByTestId('chat-scroll-bottom')).toBeVisible()
+      const refresh = page.getByTestId('workspace-refresh')
+      const iconRadius = await refresh.evaluate(
+        (button) => getComputedStyle(button).borderTopLeftRadius
+      )
+      await page.keyboard.press('Tab')
+      await refresh.focus()
+      expect(await refresh.evaluate((button) => getComputedStyle(button).borderTopLeftRadius)).toBe(
+        iconRadius
+      )
+    }
+    expect(requests).toHaveLength(1)
     const bindings = await page.evaluate(() => window.piSwitch!.workspace.listSessionBindings())
     expect(bindings[continued.id]?.folders.map((folder) => folder.path)).toEqual([project])
     expect(fs.readFileSync(originalPath, 'utf8')).toBe(original)
