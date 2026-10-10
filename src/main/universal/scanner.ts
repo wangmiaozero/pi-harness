@@ -15,6 +15,9 @@ import { object, string, array } from './normalize'
 import { safeSourceFile, walk } from './sources'
 import { parseSourceDatabase } from './sqlite'
 
+// Invalidate derived blobs when format normalization changes; originals remain untouched.
+const PARSER_REVISION = 2
+
 export interface ScanRequest {
   sources: SourceLocation[]
   previous: UniversalSession[]
@@ -220,7 +223,7 @@ export async function scanSources(
                   ).catch(() => '')
                 : ''
           const fingerprint = hash(
-            `${await fileStamp(file)}\n${wal}\n${metadata}\n${file.endsWith('.json') && source.provider === 'opencode' ? legacyStamp : ''}`
+            `${PARSER_REVISION}\n${await fileStamp(file)}\n${wal}\n${metadata}\n${file.endsWith('.json') && source.provider === 'opencode' ? legacyStamp : ''}`
           )
           const previous = previousByFile.get(`${source.provider}:${file}`) ?? []
           if (
@@ -278,7 +281,10 @@ export async function scanSources(
             throw new Error('SOURCE_CHANGED_DURING_READ')
           for (const p of parsed) {
             const prior = request.previous.find((s) => s.id === p.session.id)
-            if (prior?.workspacePath) p.session.workspacePath = prior.workspacePath
+            if (prior?.workspacePath) {
+              p.session.workspacePath = prior.workspacePath
+              p.session.workspaceRoots = prior.workspaceRoots
+            }
             if (
               output.has(p.session.id) &&
               (file.endsWith('.json') || source.provider === 'cursor')

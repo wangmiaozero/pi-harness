@@ -9,6 +9,7 @@ import { FileAccessService } from '../files/file-access-service'
 import { gitExec } from '../git/git-exec'
 import type { AgentRuntime } from '../agent/runtime'
 import type { WorkspaceService } from '../workspace/workspace-service'
+import type { SessionWorkspaceBinding } from '@shared/types/workspace'
 
 describe('task handoff and native runtime bridge', () => {
   let root: string
@@ -16,13 +17,24 @@ describe('task handoff and native runtime bridge', () => {
   let history: UniversalSessionService
   let handoff: UniversalHandoffService
   let id: string
+  let access: FileAccessService
   const start = vi.fn(async () => ({ sessionId: 'native-pi-session', cwd: project }))
   const prompt = vi.fn(async (_sessionId: string, _message: string) => ({ accepted: true }))
   const getActiveModel = vi.fn(async () => ({
     providerKey: 'test-model-provider',
     modelId: 'test-model'
   }))
-  const bindSession = vi.fn(async () => undefined)
+  const bindSession = vi.fn(async (_id: string, _binding: SessionWorkspaceBinding) => undefined)
+  const syncWorkspace = vi.fn(
+    async (input: { folders: Array<{ path: string; role: string; readonly: boolean }> }) => ({
+      folders: input.folders.map((f, index) => ({
+        id: `folder-${index}`,
+        resolvedPath: f.path,
+        role: f.role,
+        readonly: f.readonly
+      }))
+    })
+  )
   beforeEach(async () => {
     vi.clearAllMocks()
     root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'universal-handoff-')))
@@ -78,7 +90,7 @@ describe('task handoff and native runtime bridge', () => {
     await history.sync()
     id = (await history.list()).sessions[0]!.id
     await history.map(id, project)
-    const access = new FileAccessService()
+    access = new FileAccessService()
     await access.authorizeRoot(project)
     handoff = new UniversalHandoffService({
       history,
@@ -86,7 +98,7 @@ describe('task handoff and native runtime bridge', () => {
       config: { getActiveModel },
       agent: { start, prompt } as unknown as AgentRuntime,
       workspace: {
-        sync: async () => ({ folders: [{ id: 'folder-1', resolvedPath: project }] }),
+        sync: syncWorkspace,
         bindSession
       } as unknown as WorkspaceService
     })
@@ -164,6 +176,104 @@ describe('task handoff and native runtime bridge', () => {
   it('detects changed referenced files even when Git status names are unchanged', async () => {
     const preview = await handoff.preview(id, 'continue')
     await fs.writeFile(path.join(project, 'a.ts'), 'export const value = 2')
+    await expect(handoff.continue(preview.id)).rejects.toThrow('referenced file changed')
+    expect(start).not.toHaveBeenCalled()
+  })
+  it('preserves all selected project sources and validates their state before starting Pi', async () => {
+    const extra = path.join(root, 'docs')
+    await fs.mkdir(extra)
+    await gitExec(extra, ['init'])
+    await access.authorizeRoot(extra)
+    await history.map(id, project, [project, extra])
+    const preview = await handoff.preview(id, 'Continue with both project sources')
+    expect(preview.workspaces?.map((w) => w.path)).toEqual([project, extra])
+    expect((await history.get(id)).workspaceRoots).toEqual([project, extra])
+    await handoff.continue(preview.id)
+    expect(syncWorkspace).toHaveBeenCalledWith({
+      folders: [
+        { path: project, role: 'main', readonly: false },
+        { path: extra, role: 'reference', readonly: false }
+      ],
+      settings: {}
+    })
+    expect(bindSession.mock.calls[0]?.[1]).toMatchObject({
+      folders: [
+        { path: project, role: 'main' },
+        { path: extra, role: 'reference' }
+      ]
+    })
+    const next = await handoff.preview(id, 'Continue')
+    await fs.writeFile(path.join(extra, 'changed.md'), 'updated')
+    await expect(handoff.continue(next.id)).rejects.toThrow('Git state changed')
+    expect(start).toHaveBeenCalledOnce()
+  })
+  it('does not trust a previous available index after a failed or cancelled refresh', async () => {
+    const preview = await handoff.preview(id, 'Continue')
+    const sync = vi.spyOn(history, 'sync')
+    for (const status of [
+      { running: false, cancelled: true, scanned: 0, changed: 0, errors: [] },
+      {
+        running: false,
+        cancelled: false,
+        scanned: 0,
+        changed: 0,
+        errors: [{ provider: 'pi' as const, code: 'SYNC_WORKER_FAILED' }]
+      }
+    ]) {
+      sync.mockResolvedValue(status)
+      await expect(handoff.preview(id, 'Continue')).rejects.toThrow('refresh did not finish')
+      await expect(handoff.continue(preview.id)).rejects.toThrow('refresh did not finish')
+    }
+    expect(start).not.toHaveBeenCalled()
+  })
+  it('bounds the entire model payload, including historical claims rather than only the excerpt', async () => {
+    const preview = await handoff.preview(id, 'Continue')
+    preview.completed = Array.from({ length: 20 }, () => ({
+      text: 'x'.repeat(8000),
+      evidence: [],
+      confidence: 'low',
+      verification: 'historical-claim'
+    }))
+    expect(() => handoffPrompt(preview)).toThrow('handoff is too large')
+    expect(start).not.toHaveBeenCalled()
+  })
+  it('rejects a changed attachment mapping and unauthorized secondary folders', async () => {
+    const preview = await handoff.preview(id, 'Continue')
+    const other = path.join(root, 'other')
+    await fs.mkdir(other)
+    await history.map(id, project, [project, other])
+    await expect(handoff.preview(id, 'Continue')).rejects.toThrow()
+    await access.authorizeRoot(other)
+    await expect(handoff.continue(preview.id)).rejects.toThrow('project folders changed')
+    expect(start).not.toHaveBeenCalled()
+  })
+  it('revalidates referenced files in secondary sources even when Git status names stay the same', async () => {
+    const extra = path.join(root, 'reference')
+    await fs.mkdir(extra)
+    await gitExec(extra, ['init'])
+    const referenced = path.join(extra, 'note.md')
+    await fs.writeFile(referenced, 'before')
+    await access.authorizeRoot(extra)
+    await history.map(id, project, [project, extra])
+    await fs.appendFile(
+      (await history.get(id)).source.path,
+      '\n' +
+        JSON.stringify({
+          type: 'assistant',
+          uuid: 'extra-read',
+          message: {
+            role: 'assistant',
+            content: [
+              { type: 'tool_use', id: 'extra', name: 'Read', input: { file_path: referenced } }
+            ]
+          }
+        })
+    )
+    const preview = await handoff.preview(id, 'Continue')
+    expect(preview.relevantFiles).toContainEqual(
+      expect.objectContaining({ path: 'note.md', workspacePath: extra, exists: true })
+    )
+    await fs.writeFile(referenced, 'after')
     await expect(handoff.continue(preview.id)).rejects.toThrow('referenced file changed')
     expect(start).not.toHaveBeenCalled()
   })

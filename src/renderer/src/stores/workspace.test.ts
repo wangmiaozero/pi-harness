@@ -51,6 +51,39 @@ describe('workspace tab activation', () => {
     setActivePinia(createPinia())
   })
 
+  it('restores history project choices without activating a workspace or writing the saved tabs', () => {
+    const getItem = vi.fn(() =>
+      JSON.stringify({
+        importedProjectRoots: ['/project/main'],
+        projectSettings: {
+          '/project/main': { name: 'Combined project', roots: ['/project/main', '/project/docs'] }
+        },
+        tabs: [{ id: 'chat:previous', kind: 'chat', sessionId: 'previous' }],
+        activeTabId: 'chat:previous'
+      })
+    )
+    const setItem = vi.fn()
+    vi.stubGlobal('localStorage', { getItem, setItem, removeItem: vi.fn() })
+    const sync = vi.fn()
+    window.piSwitch = { workspace: { sync } } as unknown as PiSwitchAPI
+    try {
+      const workspace = useWorkspaceStore()
+      workspace.restoreProjectNavigation()
+      expect(workspace.importedProjectRoots).toEqual(['/project/main'])
+      expect(workspace.projectSourceRoots('/project/main')).toEqual([
+        '/project/main',
+        '/project/docs'
+      ])
+      expect(workspace.tabs).toEqual([])
+      expect(workspace.projectRoots).toEqual([])
+      expect(sync).not.toHaveBeenCalled()
+      expect(setItem).not.toHaveBeenCalled()
+    } finally {
+      delete window.piSwitch
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('keeps the selected session in sync with the active chat tab', () => {
     const workspace = useWorkspaceStore()
     const sessions = useSessionStore()

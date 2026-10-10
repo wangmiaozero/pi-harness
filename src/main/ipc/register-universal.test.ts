@@ -14,7 +14,7 @@ describe('typed history IPC validation', () => {
     const read = vi.fn(async () => null)
     const map = vi.fn(async () => null)
     const preview = vi.fn(async () => null)
-    const denied = vi.fn(async () => {
+    const denied = vi.fn(async (_root: string): Promise<string> => {
       throw new Error('PATH_DENIED')
     })
     const ipc = {
@@ -72,5 +72,34 @@ describe('typed history IPC validation', () => {
       handlers.get(IPC_INVOKE.universalContinue)!({}, { id: '../arbitrary' })
     ).rejects.toThrow('Invalid history request')
     expect(preview).not.toHaveBeenCalled()
+  })
+  it('rejects unauthorized secondary project folders before saving any mapping', async () => {
+    const { handlers, map, denied } = setup()
+    denied.mockImplementation(async (root: string) => {
+      if (root === '/project') return root
+      throw new Error('PATH_DENIED')
+    })
+    await expect(
+      handlers.get(IPC_INVOKE.universalMap)!(
+        {},
+        {
+          id: 'a'.repeat(64),
+          workspacePath: '/project',
+          workspaceRoots: ['/project', '/secret']
+        }
+      )
+    ).rejects.toThrow('PATH_DENIED')
+    expect(map).not.toHaveBeenCalled()
+    for (const workspaceRoots of [
+      [],
+      Array.from({ length: 33 }, () => '/project'),
+      ['/project\0invalid']
+    ])
+      await expect(
+        handlers.get(IPC_INVOKE.universalMap)!(
+          {},
+          { id: 'a'.repeat(64), workspacePath: '/project', workspaceRoots }
+        )
+      ).rejects.toThrow('Invalid history request')
   })
 })

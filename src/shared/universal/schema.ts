@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { workspacePathSchema } from '../schemas/workspace'
 
 export const SOURCE_PROVIDERS = [
   'claude',
@@ -37,6 +38,7 @@ export const universalPartSchema = z.discriminatedUnion('type', [
     input: z.number().nonnegative().optional(),
     output: z.number().nonnegative().optional(),
     cached: z.number().nonnegative().optional(),
+    cacheWrite: z.number().nonnegative().optional(),
     reasoning: z.number().nonnegative().optional(),
     total: z.number().nonnegative().optional(),
     cost: z.number().nonnegative().optional()
@@ -62,6 +64,7 @@ export const universalSessionSchema = z.object({
   title: text,
   projectPath: text.optional(),
   workspacePath: text.optional(),
+  workspaceRoots: z.array(workspacePathSchema).min(1).max(32).optional(),
   createdAt: text,
   updatedAt: text,
   model: text.optional(),
@@ -119,7 +122,13 @@ export const universalReadSchema = z
   })
   .strict()
 export const universalIdSchema = z.object({ id }).strict()
-export const universalMapSchema = z.object({ id, workspacePath: text.min(1).max(4096) }).strict()
+export const universalMapSchema = z
+  .object({
+    id,
+    workspacePath: workspacePathSchema,
+    workspaceRoots: z.array(workspacePathSchema).min(1).max(32).optional()
+  })
+  .strict()
 export const universalWatchSchema = z.object({ enabled: z.boolean() }).strict()
 export const universalProviderInputSchema = z.object({ provider: sourceProviderSchema }).strict()
 export const handoffInputSchema = z
@@ -137,6 +146,14 @@ export const handoffClaimSchema = z.object({
   ])
 })
 export type HandoffClaim = z.infer<typeof handoffClaimSchema>
+const workspaceGitSchema = z.object({
+  recordedCommit: text.optional(),
+  currentCommit: text.optional(),
+  hasChanges: z.boolean().optional(),
+  status: text,
+  repositoryRoot: text.optional(),
+  stateFingerprint: text.optional()
+})
 export const sessionHandoffSchema = z.object({
   id,
   schemaVersion: z.literal(1),
@@ -144,6 +161,11 @@ export const sessionHandoffSchema = z.object({
   sourceProvider: sourceProviderSchema,
   sourceFingerprint: id,
   workspacePath: text,
+  workspaces: z
+    .array(z.object({ path: workspacePathSchema, git: workspaceGitSchema }))
+    .min(1)
+    .max(32)
+    .optional(),
   createdAt: text,
   instruction: text,
   goal: handoffClaimSchema,
@@ -153,16 +175,15 @@ export const sessionHandoffSchema = z.object({
   constraints: z.array(handoffClaimSchema),
   unresolvedIssues: z.array(handoffClaimSchema),
   relevantFiles: z.array(
-    z.object({ path: text, exists: z.boolean(), evidence: text, revision: text.optional() })
+    z.object({
+      path: text,
+      workspacePath: text.optional(),
+      exists: z.boolean(),
+      evidence: text,
+      revision: text.optional()
+    })
   ),
-  git: z.object({
-    recordedCommit: text.optional(),
-    currentCommit: text.optional(),
-    hasChanges: z.boolean().optional(),
-    status: text,
-    repositoryRoot: text.optional(),
-    stateFingerprint: text.optional()
-  }),
+  git: workspaceGitSchema,
   verification: z.object({
     contextVerified: z.boolean(),
     filesVerified: z.boolean(),
@@ -196,7 +217,7 @@ export interface UniversalSessionsAPI {
   cancelSync(): Promise<void>
   status(): Promise<UniversalSyncStatus>
   setWatch(enabled: boolean): Promise<void>
-  map(id: string, workspacePath: string): Promise<UniversalSession>
+  map(id: string, workspacePath: string, workspaceRoots?: string[]): Promise<UniversalSession>
   clear(): Promise<void>
   forget(id: string): Promise<void>
   preview(id: string, instruction: string): Promise<SessionHandoff>

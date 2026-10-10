@@ -69,13 +69,25 @@ export function usage(value: unknown): UniversalPart[] {
     input: number(u.input_tokens ?? u.inputTokens ?? u.input),
     output: number(u.output_tokens ?? u.outputTokens ?? u.output),
     cached: number(
-      u.cache_read_input_tokens ?? u.cached_input_tokens ?? u.cached ?? object(u.cache).read
+      u.cache_read_input_tokens ??
+        u.cached_input_tokens ??
+        u.cacheRead ??
+        u.cached ??
+        object(u.cache).read
     ),
+    cacheWrite: number(u.cache_creation_input_tokens ?? u.cacheWrite ?? object(u.cache).write),
     reasoning: number(u.reasoning_tokens ?? u.thoughts ?? u.reasoning),
     total: number(u.total_tokens ?? u.totalTokens ?? u.total),
     cost: number(object(u.cost).total ?? u.cost)
   }
   return Object.entries(p).some(([key, v]) => key !== 'type' && v !== undefined) ? [p] : []
+}
+/** Known CLI-injected context is retained in history, but is not a user's task title/goal. */
+export function userTaskText(value: string): string {
+  return value
+    .replace(/^# AGENTS\.md instructions for[^\n]*\n\s*<INSTRUCTIONS>[\s\S]*?<\/INSTRUCTIONS>/i, '')
+    .replace(/<environment_context>[\s\S]*?<\/environment_context>/gi, '')
+    .trim()
 }
 export function parts(value: unknown): UniversalPart[] {
   if (typeof value === 'string') return value ? [{ type: 'text', text: redact(value) }] : []
@@ -179,7 +191,10 @@ export function parts(value: unknown): UniversalPart[] {
   if (type === 'error')
     return [{ type: 'error', text: serialized(b.message ?? b.text ?? b.content) }]
   if (type === 'step-finish' || type === 'usage')
-    return [...usage(b.tokens ?? b), { type: 'native-event', eventType: type, text: serialized(b) }]
+    return [
+      ...usage(b.tokens ? { ...object(b.tokens), cost: b.cost } : b),
+      { type: 'native-event', eventType: type, text: serialized(b) }
+    ]
   if (
     typeof b.text === 'string' ||
     ['text', 'input_text', 'output_text', 'command_output'].includes(type)

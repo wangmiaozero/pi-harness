@@ -678,13 +678,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       else await restoreDraftWorkspace()
       return
     }
-    let snap: WorkspaceSnapshot | null = null
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      snap = raw ? (JSON.parse(raw) as WorkspaceSnapshot) : null
-    } catch {
-      snap = null
-    }
+    const snap = readSnapshot()
     if (!snap) {
       hydrated.value = true
       try {
@@ -696,14 +690,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return
     }
     const restoredRemovedProjectKeys = stringList(snap.removedProjectKeys)
-    importedProjectRoots.value = uniqueProjectRoots(stringList(snap.importedProjectRoots))
-    projectSettings.value = Object.fromEntries(
-      Object.entries(snap.projectSettings ?? {}).flatMap(([key, value]) => {
-        if (!value || typeof value.name !== 'string') return []
-        const roots = uniqueProjectRoots(stringList(value.roots))
-        return roots.length ? [[key, { name: value.name.slice(0, 256), roots }]] : []
-      })
-    )
+    restoreProjectNavigation(snap)
     // An unsent workspace is an ephemeral new-session draft. Never revive it
     // after startup as if the user had selected a project in this run.
     draftProjectRoots.value = []
@@ -743,6 +730,28 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (sessions.currentId) await restoreSessionWorkspace(sessions.currentId)
     else await replaceActiveWorkspace([], null)
     persist()
+  }
+
+  function readSnapshot(): WorkspaceSnapshot | null {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      return raw ? (JSON.parse(raw) as WorkspaceSnapshot) : null
+    } catch {
+      return null
+    }
+  }
+
+  // History pages need saved project choices without activating any session, files or draft.
+  function restoreProjectNavigation(snap = readSnapshot()) {
+    if (!snap || hydrated.value) return
+    importedProjectRoots.value = uniqueProjectRoots(stringList(snap.importedProjectRoots))
+    projectSettings.value = Object.fromEntries(
+      Object.entries(snap.projectSettings ?? {}).flatMap(([key, value]) => {
+        if (!value || typeof value.name !== 'string') return []
+        const roots = uniqueProjectRoots(stringList(value.roots))
+        return roots.length ? [[key, { name: value.name.slice(0, 256), roots }]] : []
+      })
+    )
   }
 
   watch(
@@ -1780,6 +1789,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     removeProject,
     dirtyFilePathsAfterProjectRemoval,
     restore,
+    restoreProjectNavigation,
     ensureDefaultWorkspace,
     isDefaultWorkspace,
     ensureChatTab,

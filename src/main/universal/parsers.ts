@@ -8,7 +8,18 @@ import {
   type UniversalMessage,
   type UniversalSession
 } from '@shared/universal/schema'
-import { array, iso, object, parts, redact, serialized, string, usage } from './normalize'
+import {
+  array,
+  iso,
+  object,
+  parts,
+  redact,
+  serialized,
+  string,
+  usage,
+  userTaskText
+} from './normalize'
+import { recordedTokens } from '@shared/universal/usage'
 
 export function hash(value: string): string {
   return createHash('sha256').update(value).digest('hex')
@@ -60,9 +71,32 @@ export function parseSession(input: ParseInput): ParsedSession {
   const seen = new Set<string>()
   const sensitiveCalls = new Set<string>()
   const usageByNativeId = new Map<string, UniversalMessage['parts'][number]>()
-  const hasCodexResponses = records.some(
-    (r) => object(r).type === 'response_item' && object(object(r).payload).type === 'message'
-  )
+  const codexMirrors = new Map<number, string>()
+  const consumedMirrors = new Set<number>()
+  const textKey = (role: string, content: unknown) => {
+    const text =
+      typeof content === 'string'
+        ? content
+        : array(content)
+            .filter((p) => ['text', 'input_text', 'output_text'].includes(String(object(p).type)))
+            .map((p) => string(object(p).text) ?? '')
+            .join('\n')
+    // Compare raw text in memory only; distinct secrets may redact to the same display text.
+    return text ? `${role}\0${hash(text)}` : undefined
+  }
+  if (provider === 'codex')
+    records.forEach((raw, index) => {
+      const r = object(raw)
+      const payload = object(r.payload)
+      if (
+        r.type === 'response_item' &&
+        payload.type === 'message' &&
+        ['user', 'assistant'].includes(String(payload.role))
+      ) {
+        const key = textKey(String(payload.role), payload.content)
+        if (key) codexMirrors.set(index, key)
+      }
+    })
   records.forEach((raw, index) => {
     const r = object(raw)
     let m = r
@@ -135,8 +169,20 @@ export function parseSession(input: ParseInput): ParsedSession {
         isMessage = true
       } else if (r.type === 'event_msg') {
         if (['user_message', 'agent_message'].includes(string(m.type) ?? '')) {
-          if (hasCodexResponses) return
           role = m.type === 'user_message' ? 'user' : 'assistant'
+          const key = textKey(role, m.message)
+          // Mirrors are nearby records. Prefer retaining an uncertain duplicate over losing a
+          // genuine request in a later turn; bound the lookup even in highly repetitive logs.
+          for (let candidate = Math.max(0, index - 2); candidate <= index + 2; candidate++) {
+            if (!key || codexMirrors.get(candidate) !== key || consumedMirrors.has(candidate))
+              continue
+            const other = object(records[candidate])
+            const a = iso(r.timestamp ?? m.timestamp)
+            const b = iso(other.timestamp ?? object(other.payload).timestamp)
+            if (a && b && Math.abs(Date.parse(a) - Date.parse(b)) > 2000) continue
+            consumedMirrors.add(candidate)
+            return
+          }
           content = m.message
           isMessage = true
         } else if (m.type === 'token_count') {
@@ -222,11 +268,39 @@ export function parseSession(input: ParseInput): ParsedSession {
     if (seen.has(messageId)) return
     seen.add(messageId)
     const timestamp = iso(r.timestamp ?? m.timestamp ?? r.createdAt ?? object(r.time).created)
-    const normalized = [
-      ...parts(content),
-      ...parts(supplemental),
-      ...usage(m.usage ?? r.usage ?? r.tokens)
-    ]
+    const messageUsage = usage(
+      m.usage ??
+        r.usage ??
+        (r.tokens
+          ? { ...object(r.tokens), cost: r.cost }
+          : r.cost !== undefined
+            ? { cost: r.cost }
+            : undefined)
+    )
+    let contentParts = parts(content)
+    if (provider === 'opencode' && messageUsage[0]?.type === 'usage') {
+      const summary = messageUsage[0]
+      if (recordedTokens(summary) !== undefined)
+        contentParts = contentParts.filter((p) => p.type !== 'usage')
+      else if (
+        summary.cost !== undefined &&
+        Object.entries(summary).every(
+          ([key, value]) => key === 'type' || key === 'cost' || value === undefined
+        )
+      ) {
+        const steps = contentParts.filter((p) => p.type === 'usage')
+        if (steps.length) {
+          steps.forEach((p) => {
+            p.cost = undefined
+          })
+          steps[0]!.cost = summary.cost
+          messageUsage.length = 0
+        }
+      }
+    }
+    const normalized = [...contentParts, ...parts(supplemental), ...messageUsage]
+    if (m.errorMessage || m.error || r.error)
+      normalized.push({ type: 'error', text: serialized(m.errorMessage ?? m.error ?? r.error) })
     for (const p of normalized) {
       if (
         p.type === 'tool-call' &&
@@ -285,11 +359,16 @@ export function parseSession(input: ParseInput): ParsedSession {
     intermediate.sort((a, b) => a.timestamp!.localeCompare(b.timestamp!))
   const messages = intermediate.map((m) => universalMessageSchema.parse({ ...m, sessionId: id }))
   const firstUserText = messages
-    .find((m) => m.role === 'user')
-    ?.parts.find((p) => p.type === 'text')
-  title ??= firstUserText?.type === 'text' ? firstUserText.text.trim().slice(0, 100) : nativeId
+    .filter((m) => m.role === 'user')
+    .flatMap((m) => m.parts.flatMap((p) => (p.type === 'text' ? [userTaskText(p.text)] : [])))
+    .find(Boolean)
+  title ??= firstUserText?.slice(0, 100) || nativeId
   const usages = messages.flatMap((m) => m.parts).filter((p) => p.type === 'usage')
-  const tokens = usages.reduce((sum, u) => sum + (u.total ?? (u.input ?? 0) + (u.output ?? 0)), 0)
+  const tokenCounts = usages.map(recordedTokens)
+  const tokens =
+    tokenCounts.length && tokenCounts.every((n) => n !== undefined)
+      ? tokenCounts.reduce<number>((sum, n) => sum + n!, 0)
+      : undefined
   const costs = usages.filter((u) => u.cost !== undefined)
   const timestamps = messages.flatMap((m) => (m.timestamp ? [m.timestamp] : [])).sort()
   if (messages.some((m) => m.parts.some((p) => p.type === 'native-event')))
@@ -314,7 +393,7 @@ export function parseSession(input: ParseInput): ParsedSession {
       syncedAt: new Date().toISOString()
     },
     metadata: {
-      tokens: usages.length ? tokens : undefined,
+      tokens,
       cost: costs.length ? costs.reduce((sum, u) => sum + (u.cost ?? 0), 0) : undefined,
       hasToolCalls: messages.some((m) => m.parts.some((p) => p.type === 'tool-call'))
     },

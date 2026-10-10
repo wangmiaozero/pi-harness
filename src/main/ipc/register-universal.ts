@@ -91,8 +91,11 @@ export function registerUniversalIpc(
   )
   ipc.handle(IPC_INVOKE.universalMap, (_e, input: unknown) =>
     wrap(async () => {
-      const { id, workspacePath } = parse(universalMapSchema, input)
-      return history.map(id, await access.assertAllowed(workspacePath, { mustExist: true }))
+      const { id, workspacePath, workspaceRoots } = parse(universalMapSchema, input)
+      const roots: string[] = []
+      for (const root of [workspacePath, ...(workspaceRoots ?? [])])
+        roots.push(await access.assertAllowed(root, { mustExist: true }))
+      return history.map(id, roots[0]!, roots)
     })
   )
   ipc.handle(IPC_INVOKE.universalPreview, (_e, input: unknown) =>
