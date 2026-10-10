@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import MessageView from './MessageView.vue'
 import FullHistoryDialog from './FullHistoryDialog.vue'
+import UniversalOrigin from '@renderer/components/universal/UniversalOrigin.vue'
 import ChatComposer from './ChatComposer.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import { ArrowDown, ArrowUp, Check, Copy, Gauge, History, MessageSquare } from '@lucide/vue'
@@ -277,6 +278,7 @@ function duration(value: number): string {
 
 <template>
   <div data-testid="chat-window" class="chat-window flex h-full min-h-0 min-w-0 flex-col">
+    <UniversalOrigin :session-id="sessions.currentId" />
     <div class="relative min-h-0 flex-1">
       <div
         ref="scroller"

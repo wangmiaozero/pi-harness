@@ -1,9 +1,12 @@
 /** 日本語 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
+import { universalMessages } from '../universal'
 
 export const jaJP: MessageTree = {
+  universal: universalMessages['ja-JP'],
   nav: {
+    aiSessions: 'AI 履歴',
     overview: '概要',
     workspace: 'ワークスペース',
     providers: 'プロバイダー',
@@ -16,6 +19,7 @@ export const jaJP: MessageTree = {
   },
   capabilities: capabilityMessages['ja-JP'],
   navShort: {
+    aiSessions: 'AI 履歴',
     overview: 'ホーム',
     workspace: '作業',
     providers: 'API',

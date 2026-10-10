@@ -1,9 +1,12 @@
 /** 繁體中文 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
+import { universalMessages } from '../universal'
 
 export const zhTW: MessageTree = {
+  universal: universalMessages['zh-TW'],
   nav: {
+    aiSessions: 'AI 會話',
     overview: '總覽',
     workspace: '工作區',
     providers: '供應商',
@@ -16,6 +19,7 @@ export const zhTW: MessageTree = {
   },
   capabilities: capabilityMessages['zh-TW'],
   navShort: {
+    aiSessions: 'AI 會話',
     overview: '總覽',
     workspace: '工作區',
     providers: '廠商',

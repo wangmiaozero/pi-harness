@@ -1,9 +1,12 @@
 /** 简体中文 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
+import { universalMessages } from '../universal'
 
 export const zhCN: MessageTree = {
+  universal: universalMessages['zh-CN'],
   nav: {
+    aiSessions: 'AI 会话',
     overview: '概览',
     workspace: '工作区',
     providers: '提供商',
@@ -16,6 +19,7 @@ export const zhCN: MessageTree = {
   },
   capabilities: capabilityMessages['zh-CN'],
   navShort: {
+    aiSessions: 'AI 会话',
     overview: '概览',
     workspace: '工作区',
     providers: '厂商',

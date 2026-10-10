@@ -89,8 +89,13 @@ import type { HarnessRuntime } from '../harness/harness-runtime'
 import type { OrchestratorService } from '../harness/orchestrator/orchestrator-service'
 import { registerHarnessIpc } from './register-harness'
 import type { CustomSkinService } from '../skins/custom-skin-service'
+import { registerUniversalIpc } from './register-universal'
+import type { UniversalSessionService } from '../universal/service'
+import type { UniversalHandoffService } from '../universal/handoff'
 
 export interface Services {
+  universal: UniversalSessionService
+  universalHandoff: UniversalHandoffService
   settingsStore: JsonStore<AppSettings>
   uiStateStore: JsonStore<Record<string, unknown>>
   config: PiConfigService
@@ -809,6 +814,13 @@ export function registerIpc(services: Services): void {
   )
 
   registerWorkspaceIpc(ipcMain, wrap, services.workspace)
+  registerUniversalIpc(
+    ipcMain,
+    wrap,
+    services.universal,
+    services.universalHandoff,
+    services.workspace.access
+  )
   registerHarnessIpc(ipcMain, wrap, services.harness, services.orchestrator)
 
   void app

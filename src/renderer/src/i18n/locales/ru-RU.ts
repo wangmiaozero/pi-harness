@@ -1,9 +1,12 @@
 /** Русский UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
+import { universalMessages } from '../universal'
 
 export const ruRU: MessageTree = {
+  universal: universalMessages['ru-RU'],
   nav: {
+    aiSessions: 'История ИИ',
     overview: 'Обзор',
     workspace: 'Рабочая область',
     providers: 'Провайдеры',
@@ -16,6 +19,7 @@ export const ruRU: MessageTree = {
   },
   capabilities: capabilityMessages['ru-RU'],
   navShort: {
+    aiSessions: 'История ИИ',
     overview: 'Главная',
     workspace: 'Работа',
     providers: 'Сети',

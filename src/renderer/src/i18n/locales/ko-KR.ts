@@ -1,9 +1,12 @@
 /** 한국어 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
+import { universalMessages } from '../universal'
 
 export const koKR: MessageTree = {
+  universal: universalMessages['ko-KR'],
   nav: {
+    aiSessions: 'AI 기록',
     overview: '개요',
     workspace: '작업 영역',
     providers: '제공자',
@@ -16,6 +19,7 @@ export const koKR: MessageTree = {
   },
   capabilities: capabilityMessages['ko-KR'],
   navShort: {
+    aiSessions: 'AI 기록',
     overview: '개요',
     workspace: '작업',
     providers: 'API',

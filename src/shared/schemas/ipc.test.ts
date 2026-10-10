@@ -88,7 +88,7 @@ describe('IPC schemas', () => {
     expect(appSettingsPatchSchema.safeParse({ language: 'es-ES' }).success).toBe(false)
     expect(appSettingsPatchSchema.safeParse({ navOrder: ['settings'] }).success).toBe(true)
     expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder?.[0]).toBe('settings')
-    expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder).toHaveLength(5)
+    expect(appSettingsPatchSchema.parse({ navOrder: ['settings'] }).navOrder).toHaveLength(6)
     expect(appSettingsPatchSchema.safeParse({ density: 'compact' }).success).toBe(false)
     expect(pickKnownAppSettings({ theme: 'dark', density: 'compact' })).toEqual({ theme: 'dark' })
   })

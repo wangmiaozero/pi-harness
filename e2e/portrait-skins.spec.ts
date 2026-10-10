@@ -550,7 +550,7 @@ test('switches original portrait skins, persists selection and restores plain th
       }
       // Input controls must remain above the portrait, even where the two overlap.
       const editor = composer.getByTestId('composer-editor')
-      await editor.click({ position: { x: 12, y: 12 } })
+      await editor.click()
       await editor.pressSequentially('测试磨砂输入框')
       await expect(editor).toBeFocused()
       await expect(editor).toHaveText('测试磨砂输入框')

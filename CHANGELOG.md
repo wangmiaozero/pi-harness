@@ -1,8 +1,12 @@
 # Changelog
 
-Public release notes contain only released, user-visible additions and fixes.
+Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
 ## Unreleased
+
+### Added
+
+- Added local AI conversation history with search and filters, separate history viewing and task continuation, and a handoff preview before starting a new Pi conversation. Original sessions remain read-only; viewing history uses no model tokens.
 
 ## 1.8.1 — 2026-10-04
 

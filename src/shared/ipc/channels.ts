@@ -10,6 +10,20 @@
 const invoke = (name: string) => `pi-harness:${name}` as const
 
 export const IPC_INVOKE = {
+  universalList: invoke('universal:list'),
+  universalOrigin: invoke('universal:origin'),
+  universalRead: invoke('universal:read'),
+  universalSources: invoke('universal:sources'),
+  universalAddSource: invoke('universal:add-source'),
+  universalSync: invoke('universal:sync'),
+  universalCancel: invoke('universal:cancel'),
+  universalStatus: invoke('universal:status'),
+  universalWatch: invoke('universal:watch'),
+  universalMap: invoke('universal:map'),
+  universalClear: invoke('universal:clear'),
+  universalForget: invoke('universal:forget'),
+  universalPreview: invoke('universal:preview'),
+  universalContinue: invoke('universal:continue'),
   // system
   systemInfo: invoke('system:info'),
   systemCheckNetwork: invoke('system:check-network'),

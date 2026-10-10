@@ -17,6 +17,9 @@ import {
   customSkinsDir
 } from './services/app-paths'
 import { JsonStore } from './services/storage'
+import { UniversalSessionService } from './universal/service'
+import { UniversalHandoffService } from './universal/handoff'
+import { defaultSources } from './universal/sources'
 import { log } from './services/logger'
 import { BackupService } from './backup/backup-service'
 import { PiConfigService } from './pi/config-service'
@@ -333,7 +336,51 @@ async function bootstrap(): Promise<void> {
     .ensureBuiltinPresets()
     .catch((error) => log.harness.warn('orchestration presets failed:', error))
 
+  const beforeAgentStart = async (
+    cwd: string | null | undefined,
+    sessionId: string | null | undefined
+  ) => {
+    const sessionInfo = !cwd && sessionId ? (await sessions.get(sessionId)).info : null
+    const projectRoot = cwd ?? sessionInfo?.projectRoot ?? sessionInfo?.cwd ?? null
+    if (sessionId) await workspaceState.activateSession(sessionId, projectRoot)
+    const risky = (await packageManager.list(projectRoot)).filter(
+      (pkg) => pkg.registered && ['missing', 'permission-error', 'corrupted'].includes(pkg.health)
+    )
+    if (risky.length) {
+      throw new PackageHealthError(
+        `Pi package startup preflight failed: ${risky.map((pkg) => `${pkg.name} (${pkg.health})`).join(', ')}. Repair or fully uninstall them in Skills > Packages before starting Pi.`,
+        {
+          packages: risky.map((pkg) => ({
+            id: pkg.id,
+            name: pkg.name,
+            health: pkg.health,
+            scope: pkg.scope
+          }))
+        }
+      )
+    }
+  }
+  const universalHome = process.env.PI_HARNESS_SESSION_HOME
+  const universal = new UniversalSessionService(path.join(userData(), 'universal-sessions'), [
+    ...defaultSources(
+      universalHome,
+      process.platform,
+      universalHome ? { PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR } : process.env
+    ),
+    { provider: 'pi', root: sessions.sessionsRoot(), custom: false }
+  ])
+  const universalHandoff = new UniversalHandoffService({
+    history: universal,
+    access,
+    workspace: workspaceState,
+    agent: harness,
+    config,
+    beforeStart: (cwd) => beforeAgentStart(cwd, null)
+  })
+
   registerIpc({
+    universal,
+    universalHandoff,
     settingsStore,
     uiStateStore,
     config,
@@ -357,28 +404,7 @@ async function bootstrap(): Promise<void> {
       sessionExport,
       agent: harness,
       workspaceState,
-      beforeAgentStart: async (cwd, sessionId) => {
-        const sessionInfo = !cwd && sessionId ? (await sessions.get(sessionId)).info : null
-        const projectRoot = cwd ?? sessionInfo?.projectRoot ?? sessionInfo?.cwd ?? null
-        if (sessionId) await workspaceState.activateSession(sessionId, projectRoot)
-        const risky = (await packageManager.list(projectRoot)).filter(
-          (pkg) =>
-            pkg.registered && ['missing', 'permission-error', 'corrupted'].includes(pkg.health)
-        )
-        if (risky.length) {
-          throw new PackageHealthError(
-            `Pi package startup preflight failed: ${risky.map((pkg) => `${pkg.name} (${pkg.health})`).join(', ')}. Repair or fully uninstall them in Skills > Packages before starting Pi.`,
-            {
-              packages: risky.map((pkg) => ({
-                id: pkg.id,
-                name: pkg.name,
-                health: pkg.health,
-                scope: pkg.scope
-              }))
-            }
-          )
-        }
-      }
+      beforeAgentStart
     },
     getMainWindow: () => mainWindow,
     setAppIcon: (settings) => applyAppIcon(settings, mainWindow),
@@ -439,6 +465,7 @@ async function bootstrap(): Promise<void> {
   })
 
   app.on('before-quit', () => {
+    void universal.close()
     screenMotion.stop()
     stopAutomaticUpdates()
     unsubscribeUpdateState()
