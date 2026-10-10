@@ -4,7 +4,11 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import type { PiSwitchAPI } from '@shared/ipc/api-types'
-import type { SessionHandoff, UniversalSession } from '@shared/universal/schema'
+import type {
+  SessionHandoff,
+  UniversalProjectResolution,
+  UniversalSession
+} from '@shared/universal/schema'
 import { universalMessages } from '../i18n/universal'
 import UniversalSessionsView from './UniversalSessionsView.vue'
 
@@ -50,6 +54,137 @@ afterEach(() => {
 })
 
 describe('history handoff interaction boundaries', () => {
+  function setupProjectResolution(
+    resolveProject: (id: string) => Promise<UniversalProjectResolution>
+  ) {
+    const items = [session('a'), session('b')].map(({ workspacePath: _path, ...item }) => {
+      void _path
+      return item
+    })
+    const map = vi.fn(async (id: string, workspacePath: string) => ({
+      ...items.find((s) => s.id === id)!,
+      workspacePath
+    }))
+    const preview = vi.fn(async () => null)
+    window.piSwitch = {
+      sessions: { list: async () => [] },
+      universal: {
+        list: async () => ({ sessions: items, projects: [], total: 2 }),
+        sources: async () => [],
+        status: async () => ({
+          running: false,
+          cancelled: false,
+          scanned: 0,
+          changed: 0,
+          errors: [],
+          lastSync: '2026-10-01'
+        }),
+        read: async ({ id }: { id: string }) => ({
+          session: items.find((s) => s.id === id),
+          messages: [],
+          total: 1
+        }),
+        resolveProject,
+        map,
+        preview
+      }
+    } as unknown as PiSwitchAPI
+    const wrapper = mount(UniversalSessionsView, {
+      global: {
+        plugins: [
+          createPinia(),
+          createI18n({
+            legacy: false,
+            locale: 'en-US',
+            messages: {
+              'en-US': { universal: universalMessages['en-US'], common: { loading: 'Loading' } }
+            }
+          })
+        ],
+        stubs: { Dialog }
+      }
+    })
+    return { wrapper, items, map, preview }
+  }
+  it('uses an unimported recorded directory automatically without a separate save-link step', async () => {
+    const resolveProject = vi.fn(async () => ({ status: 'available' as const, path: '/project/a' }))
+    const { wrapper, items, map, preview } = setupProjectResolution(resolveProject)
+    try {
+      await flushPromises()
+      await wrapper.get(`[data-testid="history-session-${items[0]!.id}"]`).trigger('click')
+      await flushPromises()
+      expect(resolveProject).not.toHaveBeenCalled()
+      await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.get('[data-testid="handoff-project-path"]').text()).toBe('/project/a')
+      expect(wrapper.text()).not.toContain('Save project link')
+      expect(wrapper.find('[data-testid="handoff-project"] select').exists()).toBe(false)
+      expect(map).not.toHaveBeenCalled()
+      await wrapper.get('textarea').setValue('Continue task a')
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text() === 'Prepare handoff')!
+        .trigger('click')
+      await flushPromises()
+      expect(map).toHaveBeenCalledExactlyOnceWith(items[0]!.id, '/project/a', ['/project/a'])
+      expect(preview).toHaveBeenCalledExactlyOnceWith(items[0]!.id, 'Continue task a')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+  it.each(['missing', 'unrecorded'] as const)(
+    'asks for a replacement only when the directory is %s',
+    async (status) => {
+      const { wrapper, items, map } = setupProjectResolution(async () => ({ status }))
+      try {
+        await flushPromises()
+        await wrapper.get(`[data-testid="history-session-${items[0]!.id}"]`).trigger('click')
+        await flushPromises()
+        await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+        await flushPromises()
+        expect(wrapper.get('[data-testid="handoff-project"]').text()).toContain(
+          universalMessages['en-US'][status === 'missing' ? 'projectMissing' : 'projectUnrecorded']
+        )
+        expect(wrapper.find('[data-testid="handoff-project"] select').exists()).toBe(true)
+        await wrapper.get('textarea').setValue('Continue task a')
+        expect(
+          wrapper
+            .findAll('button')
+            .find((b) => b.text() === 'Prepare handoff')!
+            .attributes('disabled')
+        ).toBeDefined()
+        expect(map).not.toHaveBeenCalled()
+      } finally {
+        wrapper.unmount()
+      }
+    }
+  )
+  it('discards directory resolution after switching conversations', async () => {
+    let finish!: (value: UniversalProjectResolution) => void
+    const { wrapper, items } = setupProjectResolution((id) =>
+      id === 'a'.repeat(64)
+        ? new Promise((resolve) => {
+            finish = resolve
+          })
+        : Promise.resolve({ status: 'available', path: '/project/b' })
+    )
+    try {
+      await flushPromises()
+      await wrapper.get(`[data-testid="history-session-${items[0]!.id}"]`).trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+      await wrapper.get('[data-testid="close-preview"]').trigger('click')
+      await wrapper.get(`[data-testid="history-session-${items[1]!.id}"]`).trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+      await flushPromises()
+      finish({ status: 'available', path: '/project/a' })
+      await flushPromises()
+      expect(wrapper.get('[data-testid="handoff-project-path"]').text()).toBe('/project/b')
+    } finally {
+      wrapper.unmount()
+    }
+  })
   it('waits for rebuilding a cleared index before resolving a continuation source link', async () => {
     const item = session('a')
     route.query = { source: item.id }
@@ -142,6 +277,10 @@ describe('history handoff interaction boundaries', () => {
           total: 1
         }),
         map: async (id: string) => items.find((s) => s.id === id),
+        resolveProject: async (id: string) => ({
+          status: 'available',
+          path: items.find((s) => s.id === id)!.workspacePath
+        }),
         preview,
         continue: continueTask
       }
@@ -181,6 +320,7 @@ describe('history handoff interaction boundaries', () => {
       expect(preview).not.toHaveBeenCalled()
       expect(continueTask).not.toHaveBeenCalled()
       await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+      await flushPromises()
       await wrapper.get('textarea').setValue('Continue task a')
       await clickText('Prepare handoff')
       expect(preview).toHaveBeenCalledWith(items[0]!.id, 'Continue task a')
@@ -188,6 +328,7 @@ describe('history handoff interaction boundaries', () => {
       await wrapper.get(`[data-testid="history-session-${items[1]!.id}"]`).trigger('click')
       await flushPromises()
       await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+      await flushPromises()
       resolvePreview({
         instruction: 'Continue task a',
         goal: { text: 'Wrong old task' }

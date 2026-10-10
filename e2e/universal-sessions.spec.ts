@@ -5,6 +5,136 @@ import { DatabaseSync } from 'node:sqlite'
 import { execFileSync } from 'node:child_process'
 import { test, expect } from './fixtures'
 
+test('continues a Codex conversation in its recorded directory without importing a project', async ({
+  page,
+  testUserData,
+  piAgentDir
+}, testInfo) => {
+  // Outside the fixture's preauthorized workspace: browsing and resolving must not grant access.
+  const project = path.join(fs.realpathSync(testUserData), 'unimported-project')
+  fs.mkdirSync(project)
+  const source = path.join(testUserData, 'history-home', '.codex', 'sessions')
+  fs.mkdirSync(source, { recursive: true })
+  const originalPath = path.join(source, 'recorded-project.jsonl')
+  const original =
+    [
+      { type: 'session_meta', payload: { id: 'recorded-project', cwd: project } },
+      {
+        type: 'response_item',
+        payload: {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Continue in the existing Codex project' }]
+        }
+      }
+    ]
+      .map((r) => JSON.stringify(r))
+      .join('\n') + '\n'
+  fs.writeFileSync(originalPath, original)
+  const requests: unknown[] = []
+  const server = http.createServer(async (request, response) => {
+    let body = ''
+    for await (const chunk of request) body += chunk
+    requests.push(JSON.parse(body))
+    response.writeHead(200, { 'Content-Type': 'text/event-stream' })
+    response.write(
+      `data: ${JSON.stringify({ id: 'chatcmpl-recorded', object: 'chat.completion.chunk', created: 1, model: 'gpt-4o', choices: [{ index: 0, delta: { role: 'assistant', content: 'Recorded project continuation confirmed.' }, finish_reason: null }] })}\n\n`
+    )
+    response.write(
+      `data: ${JSON.stringify({ id: 'chatcmpl-recorded', object: 'chat.completion.chunk', created: 1, model: 'gpt-4o', choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })}\n\n`
+    )
+    response.end('data: [DONE]\n\n')
+  })
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const address = server.address() as { port: number }
+  fs.writeFileSync(
+    path.join(piAgentDir, 'models.json'),
+    JSON.stringify({
+      providers: {
+        'openai-compatible': {
+          api: 'openai-completions',
+          baseUrl: `http://127.0.0.1:${address.port}/v1`,
+          apiKey: 'local-test-placeholder',
+          models: [
+            {
+              id: 'gpt-4o',
+              name: 'Local fixture',
+              reasoning: false,
+              input: ['text'],
+              contextWindow: 128000,
+              maxTokens: 4096
+            }
+          ]
+        }
+      }
+    })
+  )
+  const roots = () =>
+    JSON.parse(fs.readFileSync(path.join(testUserData, 'authorized-roots.json'), 'utf8'))
+      .roots as string[]
+  try {
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    await page.evaluate(() => window.piSwitch!.settings.set({ theme: 'macos27-light' }))
+    await page.reload()
+    await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+    await page.locator('a[href="#/ai-sessions"]').click()
+    await page.getByTestId('history-provider-codex').click()
+    const card = page
+      .getByTestId('history-session-list')
+      .getByRole('button', { name: /Continue in the existing Codex project/ })
+    await card.click()
+    expect(roots()).not.toContain(project)
+    const listed = await page.evaluate(() => window.piSwitch!.universal.list({ provider: 'codex' }))
+    const item = listed.sessions.find((s) => s.nativeSessionId === 'recorded-project')!
+    expect(item.workspacePath).toBeUndefined()
+    await page.getByTestId('history-continue-task').click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByTestId('handoff-project-path')).toHaveText(project)
+    await expect(dialog.getByRole('combobox')).toHaveCount(0)
+    await expect(
+      dialog.getByRole('button', { name: /保存项目关联|Save project link/ })
+    ).toHaveCount(0)
+    expect(roots()).not.toContain(project)
+    expect(requests).toHaveLength(0)
+    await page.screenshot({ path: path.join(testInfo.outputDir, 'recorded-project-ready.png') })
+    // Even a valid history ID cannot grant a different renderer-supplied directory.
+    const denied = await page.evaluate(
+      async ({ id, folder }) => {
+        try {
+          await window.piSwitch!.universal.map(id, folder)
+          return false
+        } catch {
+          return true
+        }
+      },
+      { id: item.id, folder: fs.realpathSync(testUserData) }
+    )
+    expect(denied).toBe(true)
+    await dialog
+      .getByRole('textbox', { name: /接下来希望 Pi 做什么|What should Pi do next/ })
+      .fill('Continue this task in the recorded project. Do not modify files.')
+    await dialog.getByRole('button', { name: /生成任务交接|Prepare handoff/, exact: true }).click()
+    await expect(dialog.getByTestId('handoff-confirm')).toBeEnabled()
+    expect(roots()).toContain(project)
+    expect(requests).toHaveLength(0)
+    await dialog.getByTestId('handoff-confirm').click()
+    await expect(page.getByTestId('chat-window')).toContainText(
+      'Recorded project continuation confirmed.',
+      { timeout: 30_000 }
+    )
+    expect(requests).toHaveLength(1)
+    const sessions = await page.evaluate(() => window.piSwitch!.sessions.list(true))
+    const continued = sessions.find((s) => s.cwd === project)!
+    expect(continued).toBeDefined()
+    const bindings = await page.evaluate(() => window.piSwitch!.workspace.listSessionBindings())
+    expect(bindings[continued.id]?.folders.map((folder) => folder.path)).toEqual([project])
+    expect(fs.readFileSync(originalPath, 'utf8')).toBe(original)
+  } finally {
+    server.closeAllConnections()
+    await new Promise<void>((resolve) => server.close(() => resolve()))
+  }
+})
+
 test('browses without model calls, previews evidence, and continues through the real Pi SDK', async ({
   page,
   testUserData,

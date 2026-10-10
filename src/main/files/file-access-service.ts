@@ -56,7 +56,7 @@ export class FileAccessService {
     return this.workspaceFolders
   }
 
-  /** Persist a root only after an explicit OS picker or native file-drop gesture. */
+  /** Persist roots selected by a native gesture or an explicit task using a Main-indexed cwd. */
   async authorizeRoot(root: string): Promise<string> {
     const resolved = await this.assertDirectory(root)
     this.allowRoot(resolved)

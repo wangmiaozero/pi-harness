@@ -20,6 +20,7 @@ export const IPC_INVOKE = {
   universalStatus: invoke('universal:status'),
   universalWatch: invoke('universal:watch'),
   universalMap: invoke('universal:map'),
+  universalResolveProject: invoke('universal:resolve-project'),
   universalClear: invoke('universal:clear'),
   universalForget: invoke('universal:forget'),
   universalPreview: invoke('universal:preview'),
