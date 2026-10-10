@@ -166,6 +166,7 @@ export const IPC_INVOKE = {
   workspaceSessionFolderContextMenu: invoke('workspace:session-folder-context-menu'),
   workspaceGetActive: invoke('workspace:get-active'),
   workspaceGetDefaultRoot: invoke('workspace:get-default-root'),
+  workspaceGetDefaultRoots: invoke('workspace:get-default-roots'),
   workspaceEnsureDefault: invoke('workspace:ensure-default'),
   workspaceSync: invoke('workspace:sync'),
   workspaceOpenFile: invoke('workspace:open-file'),

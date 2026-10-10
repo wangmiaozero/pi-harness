@@ -108,10 +108,15 @@ let dragDepth = 0
 const projectGroups = computed(() =>
   workspace.sessionProjectGroups.filter((group) => !workspace.isDefaultWorkspace(group.projectRoot))
 )
-const chatSessions = computed(
-  () =>
-    workspace.sessionProjectGroups.find((group) => workspace.isDefaultWorkspace(group.projectRoot))
-      ?.sessions ?? []
+const chatSessions = computed(() =>
+  workspace.sessionProjectGroups
+    .filter((group) => workspace.isDefaultWorkspace(group.projectRoot))
+    .flatMap((group) => group.sessions)
+    .sort(
+      (a, b) =>
+        Number(workspace.isSessionPinned(b.id)) - Number(workspace.isSessionPinned(a.id)) ||
+        b.modified.localeCompare(a.modified)
+    )
 )
 const hasDefaultDraftSession = computed(
   () =>

@@ -950,6 +950,7 @@ export interface PiSwitchAPI {
     getPathForFile(file: unknown): Promise<string>
     getActive(): Promise<AgentWorkspace | null>
     getDefaultRoot(): Promise<string | null>
+    getDefaultRoots(): Promise<string[]>
     ensureDefault(): Promise<AgentWorkspace>
     sync(input: {
       workspaceFile?: string | null

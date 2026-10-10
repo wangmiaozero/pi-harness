@@ -393,6 +393,36 @@ describe('workspace projects', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('recognizes old app-profile scratch sessions without treating unrelated folders named default as chats', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    const current = '/profiles/Pi-Harness-dev/workspaces/default'
+    const legacy = '/profiles/Pi-Harness/workspaces/default'
+    sessions.items = [
+      session('old-chat', legacy, '2026-10-01'),
+      session('new-chat', current, '2026-10-02'),
+      session('project-default', '/code/default', '2026-10-03')
+    ]
+    window.piSwitch = workspaceApi({})
+    window.piSwitch.workspace.getDefaultRoot = async () => current
+    window.piSwitch.workspace.getDefaultRoots = async () => [current, legacy]
+    try {
+      await workspace.restore({ restoreTabs: false, autoOpenLastProject: false })
+      expect(workspace.isDefaultWorkspace(legacy)).toBe(true)
+      expect(workspace.isDefaultWorkspace(current)).toBe(true)
+      expect(workspace.isDefaultWorkspace('/code/default')).toBe(false)
+      expect(
+        workspace.sessionProjectGroups
+          .filter((group) => workspace.isDefaultWorkspace(group.projectRoot))
+          .flatMap((group) => group.sessions.map((s) => s.id))
+          .sort()
+      ).toEqual(['new-chat', 'old-chat'])
+      expect(workspace.projectRoots).toEqual([])
+      expect(workspace.gitRoots.map((root) => root.path)).toEqual(['/code/default'])
+    } finally {
+      delete window.piSwitch
+    }
+  })
 
   it('prefixes file tabs with the folder name in a multi-root workspace', () => {
     const workspace = useWorkspaceStore()
@@ -1200,6 +1230,7 @@ function workspaceApi(bindings: Record<string, SessionWorkspaceBinding>): PiSwit
   return {
     workspace: {
       getDefaultRoot: async () => '/app-data/workspaces/default',
+      getDefaultRoots: async () => ['/app-data/workspaces/default'],
       ensureDefault: async () => ({
         id: 'default',
         name: 'Default Workspace',

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { WorkspaceService } from './workspace-service'
@@ -12,6 +12,24 @@ describe('WorkspaceService', () => {
 
   afterEach(async () => {
     if (directory) await rm(directory, { recursive: true, force: true })
+  })
+  it('resolves configured scratch identities without creating folders, activating a workspace or granting access', async () => {
+    directory = await mkdtemp(path.join(tmpdir(), 'workspace-identities-'))
+    const current = path.join(directory, 'Pi-Harness-dev', 'workspaces', 'default')
+    const legacy = path.join(directory, 'Pi-Harness', 'workspaces', 'default')
+    const store = new JsonStore<WorkspaceStateRecord>(path.join(directory, 'state.json'), {
+      active: null,
+      recent: [],
+      sessionBindings: {}
+    })
+    const access = { allowRoot: vi.fn() } as unknown as FileAccessService
+    const service = new WorkspaceService(access, store, current, [legacy])
+    await expect(service.getDefaultWorkspaceRoots()).resolves.toEqual([current, legacy])
+    expect(service.getActive()).toBeNull()
+    expect(access.allowRoot).not.toHaveBeenCalled()
+    await expect(stat(current)).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(stat(legacy)).rejects.toMatchObject({ code: 'ENOENT' })
+    expect((await store.read()).active).toBeNull()
   })
 
   it('parses a .code-workspace file, preserves unknown settings, and round-trips extras', async () => {

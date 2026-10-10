@@ -280,7 +280,6 @@ select optgroup {
 :focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
-  border-radius: inherit;
 }
 
 /* Composite fields own their focus treatment at the container level. Keep the

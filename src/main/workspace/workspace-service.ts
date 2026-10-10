@@ -77,7 +77,8 @@ export class WorkspaceService {
   constructor(
     private readonly access: FileAccessService,
     private readonly store: JsonStore<WorkspaceStateRecord>,
-    private readonly defaultWorkspaceRoot?: string
+    private readonly defaultWorkspaceRoot?: string,
+    private readonly defaultWorkspaceAliases: string[] = []
   ) {
     this.searcher = new WorkspaceSearchService(access)
   }
@@ -111,6 +112,14 @@ export class WorkspaceService {
     const root = await realpath(this.defaultWorkspaceRoot)
     this.access.allowRoot(root)
     return root
+  }
+
+  async getDefaultWorkspaceRoots(): Promise<string[]> {
+    const configured = [this.defaultWorkspaceRoot, ...this.defaultWorkspaceAliases].filter(
+      (root): root is string => Boolean(root)
+    )
+    const canonical = await Promise.all(configured.map((root) => realpath(root).catch(() => root)))
+    return [...new Set([...configured, ...canonical])]
   }
 
   async ensureDefaultWorkspace(): Promise<AgentWorkspace> {

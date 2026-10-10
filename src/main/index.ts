@@ -11,6 +11,7 @@ import {
   appAuthorizedRootsPath,
   appWorkspaceStatePath,
   appDefaultWorkspacePath,
+  appDefaultWorkspaceAliases,
   userData,
   harnessCheckpointsPath,
   harnessPolicyPath,
@@ -277,7 +278,8 @@ async function bootstrap(): Promise<void> {
   const workspaceState = new WorkspaceService(
     access,
     workspaceStateStore,
-    appDefaultWorkspacePath()
+    appDefaultWorkspacePath(),
+    appDefaultWorkspaceAliases()
   )
   await workspaceState.load().catch((error) => log.app.warn('workspace load failed:', error))
   workspaceState.onFilesChanged((roots) => {

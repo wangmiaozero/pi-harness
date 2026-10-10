@@ -14,10 +14,7 @@ import type {
   HarnessTool
 } from '@shared/types/harness'
 
-export interface HarnessPromptOptions {
-  images?: unknown
-  streamingBehavior?: 'steer' | 'followUp'
-}
+export type HarnessPromptOptions = import('../agent/runtime').AgentPromptOptions
 
 export interface HarnessSessionStartResult {
   sessionId: string

@@ -99,6 +99,7 @@ export interface PiModelLike {
   id: string
   provider: string
   api?: string
+  baseUrl?: string
   input?: Array<'text' | 'image'>
   compat?: { thinkingFormat?: string }
   thinkingLevelMap?: Partial<Record<string, string | null>>

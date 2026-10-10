@@ -114,6 +114,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const sessionBindings = ref<Record<string, SessionWorkspaceBinding>>({})
   const activeSessionWorkspaceId = ref<string | null>(null)
   const defaultWorkspaceRoot = ref<string | null>(null)
+  const defaultWorkspaceRoots = ref<string[]>([])
   const recentWorkspaces = ref<RecentWorkspace[]>([])
   const workspaceSettings = ref<Record<string, unknown>>({})
   const pinnedProjectKeys = ref<string[]>([])
@@ -291,8 +292,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function isDefaultWorkspace(target: string | null | undefined): boolean {
     return Boolean(
       target &&
-      defaultWorkspaceRoot.value &&
-      projectIdentityKey(target) === projectIdentityKey(defaultWorkspaceRoot.value)
+      [defaultWorkspaceRoot.value, ...defaultWorkspaceRoots.value].some(
+        (root) => root && projectIdentityKey(target) === projectIdentityKey(root)
+      )
     )
   }
   const mainTabs = computed(() => tabs.value.filter((tab) => tab.kind !== 'file'))
@@ -666,6 +668,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function restore(opts: { restoreTabs: boolean; autoOpenLastProject: boolean }) {
+    if (!defaultWorkspaceRoots.value.length) {
+      try {
+        defaultWorkspaceRoots.value = await callApi(() => getApi().workspace.getDefaultRoots())
+      } catch {
+        /* Older Main builds still provide the current identity below. */
+      }
+    }
     if (!defaultWorkspaceRoot.value) {
       try {
         defaultWorkspaceRoot.value = await callApi(() => getApi().workspace.getDefaultRoot())

@@ -8,16 +8,19 @@
 
 import type { AgentStateSnapshot, StartAgentSessionInput, ToolEntry } from '@shared/types/workspace'
 
+export interface AgentPromptOptions {
+  images?: unknown
+  streamingBehavior?: 'steer' | 'followUp'
+  /** Main-generated prompts can distinguish the current instruction from quoted history. */
+  toolEnforcementText?: string
+}
+
 export interface AgentRuntime {
   diagnostics(): { implementation: 'pi'; sdkLoaded: boolean }
   listRunning(): string[]
   getState(sessionId: string): Promise<AgentStateSnapshot | null>
   start(input: StartAgentSessionInput): Promise<{ sessionId: string; cwd: string }>
-  prompt(
-    sessionId: string,
-    message: string,
-    extras?: { images?: unknown; streamingBehavior?: 'steer' | 'followUp' }
-  ): Promise<unknown>
+  prompt(sessionId: string, message: string, extras?: AgentPromptOptions): Promise<unknown>
   abort(sessionId: string): Promise<void>
   /** Dispose a live runtime wrapper without changing the persisted session. */
   stop(sessionId: string): Promise<void>
