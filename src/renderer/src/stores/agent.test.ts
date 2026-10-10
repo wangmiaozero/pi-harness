@@ -42,6 +42,28 @@ describe('agent store new-session handshake', () => {
     expect(prompt).toHaveBeenCalledWith({ sessionId: 'session-new', message: 'hello' })
     expect(sessions.items[0]).toMatchObject({ id: 'session-new', transient: true })
   })
+  it('adopts a running Pi continuation before it has a persisted session file', async () => {
+    const get = vi.fn()
+    window.piSwitch = {
+      sessions: { get },
+      agent: {
+        state: async () => null,
+        running: async () => ['continuation'],
+        command: async () => []
+      }
+    } as unknown as PiSwitchAPI
+    const agent = useAgentStore()
+    const sessions = useSessionStore()
+    agent.adoptRunningSession('continuation', '/code/linked-project', 'Read the project')
+    await agent.load('continuation')
+    expect(sessions.items[0]).toMatchObject({
+      id: 'continuation',
+      cwd: '/code/linked-project',
+      transient: true
+    })
+    expect(agent.messages[0]).toMatchObject({ role: 'user', content: 'Read the project' })
+    expect(get).not.toHaveBeenCalled()
+  })
 
   it('uses the visible @Skill text for a new session title while sending the native command', async () => {
     const start = vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' })

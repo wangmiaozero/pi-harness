@@ -5,6 +5,7 @@
  */
 
 import type { AppErrorCode, AppErrorPayload } from '../types/errors'
+import type { UniversalSessionsAPI } from '../universal/schema'
 import type {
   ProviderProfile,
   ModelDefinition,
@@ -789,6 +790,7 @@ export interface ImageModelResult {
 }
 
 export interface PiSwitchAPI {
+  universal: UniversalSessionsAPI
   // system
   system: {
     info(): Promise<SystemInfo>

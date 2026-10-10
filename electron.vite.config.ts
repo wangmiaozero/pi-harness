@@ -16,7 +16,10 @@ export default defineConfig(({ mode }) => {
       define: featureDefines,
       build: {
         rollupOptions: {
-          input: { index: resolve(import.meta.dirname, 'src/main/index.ts') },
+          input: {
+            index: resolve(import.meta.dirname, 'src/main/index.ts'),
+            'universal-worker': resolve(import.meta.dirname, 'src/main/universal/worker.ts')
+          },
           external: [
             'electron',
             'chokidar',

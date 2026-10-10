@@ -1,9 +1,12 @@
 /** Deutsch UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
+import { universalMessages } from '../universal'
 
 export const deDE: MessageTree = {
+  universal: universalMessages['de-DE'],
   nav: {
+    aiSessions: 'KI Verlauf',
     overview: 'Übersicht',
     workspace: 'Arbeitsbereich',
     providers: 'Anbieter',
@@ -16,6 +19,7 @@ export const deDE: MessageTree = {
   },
   capabilities: capabilityMessages['de-DE'],
   navShort: {
+    aiSessions: 'KI Verlauf',
     overview: 'Start',
     workspace: 'Arbeit',
     providers: 'Anb.',

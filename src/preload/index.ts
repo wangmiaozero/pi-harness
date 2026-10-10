@@ -32,6 +32,22 @@ function onEvent(channel: string, listener: IpcEventListener): () => void {
 }
 
 const api: PiSwitchAPI = {
+  universal: {
+    origin: (piSessionId) => invoke(IPC_INVOKE.universalOrigin, piSessionId),
+    list: (input) => invoke(IPC_INVOKE.universalList, input),
+    read: (input) => invoke(IPC_INVOKE.universalRead, input),
+    sources: () => invoke(IPC_INVOKE.universalSources),
+    addSource: (provider) => invoke(IPC_INVOKE.universalAddSource, { provider }),
+    sync: () => invoke(IPC_INVOKE.universalSync),
+    cancelSync: () => invoke(IPC_INVOKE.universalCancel),
+    status: () => invoke(IPC_INVOKE.universalStatus),
+    setWatch: (enabled) => invoke(IPC_INVOKE.universalWatch, { enabled }),
+    map: (id, workspacePath) => invoke(IPC_INVOKE.universalMap, { id, workspacePath }),
+    clear: () => invoke(IPC_INVOKE.universalClear),
+    forget: (id) => invoke(IPC_INVOKE.universalForget, { id }),
+    preview: (id, instruction) => invoke(IPC_INVOKE.universalPreview, { id, instruction }),
+    continue: (id) => invoke(IPC_INVOKE.universalContinue, { id })
+  },
   system: {
     info: () => invoke(IPC_INVOKE.systemInfo),
     checkNetwork: () => invoke(IPC_INVOKE.systemCheckNetwork),

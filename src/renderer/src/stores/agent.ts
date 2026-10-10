@@ -222,6 +222,16 @@ export const useAgentStore = defineStore('agent', () => {
       rememberComposerSelection(sessionId)
     }
   }
+  function adoptRunningSession(sessionId: string, cwd: string, instruction: string) {
+    transientSessionIds.add(sessionId)
+    useSessionStore().addTransientSession(sessionId, cwd, instruction)
+    loadedSessionId = sessionId
+    messages.value = [{ role: 'user', content: instruction, timestamp: Date.now() }]
+    entryIds.value = []
+    entryParents.value = {}
+    loadedDetail = null
+    loadedStatsOverride = null
+  }
 
   async function reconcile(
     sessionId: string | null,
@@ -644,6 +654,7 @@ export const useAgentStore = defineStore('agent', () => {
     sending,
     setupListeners,
     load,
+    adoptRunningSession,
     reconcile,
     send,
     sendImage,

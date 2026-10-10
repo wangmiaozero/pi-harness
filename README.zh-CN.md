@@ -102,6 +102,10 @@ Pi-Harness
 | Orchestrate / 编排 | Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Worktree 隔离                 |
 | Work / 工程工作区  | Workspace、Files、Git、Worktrees、Models、Providers、Skills、Packages                     |
 
+### 本地 AI 历史（开发版，尚未发布）
+
+**AI 会话**可读取本地 Claude Code、Codex、Cursor、Cursor Agent、Gemini CLI、OpenCode 和 Pi 的聊天记录，并按来源、项目、日期和文本筛选。**查看历史**与**继续任务**是独立操作：浏览和生成任务交接预览不消耗模型 Token；确认继续后，才使用当前选定的模型，在关联项目中新建 Pi 会话。原始会话始终只读。
+
 ### 启动与外观
 
 Pi-Harness 启动时会显示动画，并检测 npm 软件源、Node.js、npm、Pi Agent 与当前配置。动画至少显示 5 秒；默认使用单色量子粒子效果，启用特色主题后会跟随所选主题呈现对应效果。

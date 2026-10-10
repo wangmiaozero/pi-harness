@@ -20,6 +20,12 @@ const router = createRouter({
       meta: { title: 'Git', i18nKey: 'nav.git' }
     },
     {
+      path: '/ai-sessions',
+      name: 'ai-sessions',
+      component: () => import('@renderer/views/UniversalSessionsView.vue'),
+      meta: { title: 'AI Sessions', i18nKey: 'nav.aiSessions' }
+    },
+    {
       path: '/providers',
       redirect: (to) => ({
         path: '/models',

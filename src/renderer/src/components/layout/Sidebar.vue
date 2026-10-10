@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Cpu, Settings, Sparkles, SquareTerminal, GitBranch } from '@lucide/vue'
+import { Cpu, Settings, Sparkles, SquareTerminal, GitBranch, History } from '@lucide/vue'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { normalizeNavOrder, type NavItemId } from '@shared/constants/navigation'
 import mingPlumBranchUrl from '@renderer/assets/themes/ming-dynasty/plum-branch.png?url'
@@ -16,6 +16,13 @@ const catalog = computed(
     NavItemId,
     { name: NavItemId; to: string; icon: typeof SquareTerminal; label: string; short: string }
   > => ({
+    'ai-sessions': {
+      name: 'ai-sessions',
+      to: '/ai-sessions',
+      icon: History,
+      label: t('nav.aiSessions'),
+      short: t('navShort.aiSessions')
+    },
     workspace: {
       name: 'workspace',
       to: '/workspace',

@@ -107,6 +107,10 @@ Pi-Harness
 - **Compact Skill history** — Expanded Skill prompts stay concise in conversations, full history, and restored session titles.
 - **Cleaner Workspace controls** — Skill suggestions, file-panel view controls, and sidebar actions use a tighter visual hierarchy with less chrome.
 
+### Local AI history (development build, unreleased)
+
+**AI Sessions** reads local Claude Code, Codex, Cursor, Cursor Agent, Gemini CLI, OpenCode, and Pi conversations, with source, project, date, and text filters. **View history** and **Continue task** are separate actions: browsing and preparing a handoff preview use no model tokens; confirming continuation starts a new Pi conversation in your chosen project using your selected model. Original conversations remain read-only.
+
 ### Startup and appearance
 
 Pi-Harness opens with a startup animation while it checks the npm registry, Node.js, npm, Pi Agent, and the active configuration. The animation remains visible for at least five seconds, uses a monochrome quantum particle effect by default, and follows the selected optional visual theme when one is active.

@@ -5,3 +5,7 @@ Licensed under the GNU Affero General Public License v3.0 only
 (SPDX-License-Identifier: AGPL-3.0-only).
 
 Original source: https://github.com/wangmiaozero/pi-harness
+
+Contains conversation parsing algorithms adapted from Claude Code History Viewer
+Copyright (c) 2025 JaeHyeok Lee
+MIT License; full text and source attribution in THIRD_PARTY_NOTICES.md.

@@ -80,6 +80,7 @@ export const test = base.extend<Fixtures>({
         PI_HARNESS_PI_CONFIG_DIR: piAgentDir,
         PI_CODING_AGENT_DIR: piAgentDir,
         PI_HARNESS_USER_DATA: testUserData,
+        PI_HARNESS_SESSION_HOME: path.join(testUserData, 'history-home'),
         PI_HARNESS_CAPABILITY_FIXTURES_DIR: capabilityFixtures,
         PI_HARNESS_BUILTIN_SKILLS_DIR: path.join(root, 'resources', 'builtin-skills')
       },

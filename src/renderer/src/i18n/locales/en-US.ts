@@ -1,8 +1,11 @@
 /** English (United States) UI messages. Source of truth for the message key shape. */
 import { capabilityMessages } from '../capabilities'
+import { universalMessages } from '../universal'
 
 export const enUS = {
+  universal: universalMessages['en-US'],
   nav: {
+    aiSessions: 'AI Sessions',
     overview: 'Overview',
     workspace: 'Workspace',
     providers: 'Providers',
@@ -15,6 +18,7 @@ export const enUS = {
   },
   capabilities: capabilityMessages['en-US'],
   navShort: {
+    aiSessions: 'AI Sessions',
     overview: 'Home',
     workspace: 'Work',
     providers: 'APIs',
