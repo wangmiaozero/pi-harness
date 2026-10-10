@@ -42,7 +42,8 @@ const api: PiSwitchAPI = {
     cancelSync: () => invoke(IPC_INVOKE.universalCancel),
     status: () => invoke(IPC_INVOKE.universalStatus),
     setWatch: (enabled) => invoke(IPC_INVOKE.universalWatch, { enabled }),
-    map: (id, workspacePath) => invoke(IPC_INVOKE.universalMap, { id, workspacePath }),
+    map: (id, workspacePath, workspaceRoots) =>
+      invoke(IPC_INVOKE.universalMap, { id, workspacePath, workspaceRoots }),
     clear: () => invoke(IPC_INVOKE.universalClear),
     forget: (id) => invoke(IPC_INVOKE.universalForget, { id }),
     preview: (id, instruction) => invoke(IPC_INVOKE.universalPreview, { id, instruction }),

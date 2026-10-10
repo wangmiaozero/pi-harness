@@ -286,6 +286,70 @@ describe('local history discovery, persistence and isolation', () => {
     expect((await service.sync()).changed).toBe(1)
     expect((await service.list({ query: 'updated part' })).total).toBe(1)
   })
+  it('persists project source mappings across incremental scans and accepts only directories', async () => {
+    await service.sync()
+    const project = path.join(root, 'project')
+    const reference = path.join(root, 'reference')
+    await fs.mkdir(project)
+    await fs.mkdir(reference)
+    const id = (await service.list()).sessions[0]!.id
+    await service.map(id, project, [project, reference, project])
+    await fs.appendFile(
+      file,
+      '\n' +
+        JSON.stringify({ type: 'assistant', message: { role: 'assistant', content: 'updated' } })
+    )
+    await service.sync()
+    expect((await service.get(id)).workspaceRoots).toEqual([project, reference])
+    expect((await service.list({ projectPath: reference })).total).toBe(1)
+    await expect(service.map(id, file)).rejects.toThrow('project directory')
+    await service.close()
+    service = new UniversalSessionService(path.join(root, 'cache'), [source], (request) =>
+      scanSources(request)
+    )
+    expect((await service.get(id)).workspaceRoots).toEqual([project, reference])
+  })
+  it('starts watching newly discovered directories and cancels pending refreshes when watching is disabled', async () => {
+    await service.close()
+    const late: SourceLocation = {
+      provider: 'claude',
+      root: path.join(root, 'late'),
+      custom: false
+    }
+    service = new UniversalSessionService(
+      path.join(root, 'cache'),
+      [source, late],
+      (request, progress) => scanSources(request, undefined, progress)
+    )
+    await service.sync()
+    await service.setWatch(true)
+    await fs.mkdir(late.root)
+    const log = path.join(late.root, 'late.jsonl')
+    const row = (uuid: string, content: string) =>
+      JSON.stringify({
+        type: 'user',
+        sessionId: 'late',
+        uuid,
+        message: { role: 'user', content }
+      }) + '\n'
+    await fs.writeFile(log, row('u1', 'late source'))
+    await service.sync()
+    const watcher = (
+      service as unknown as { watcher: { once(event: string, fn: () => void): void } }
+    ).watcher
+    await new Promise<void>((resolve) => watcher.once('ready', resolve))
+    await fs.appendFile(log, row('u2', 'new directory watched'))
+    await vi.waitFor(
+      async () => expect((await service.list({ query: 'new directory watched' })).total).toBe(1),
+      { timeout: 10_000, interval: 100 }
+    )
+    const changed = new Promise<void>((resolve) => watcher.once('all', resolve))
+    await fs.appendFile(log, row('u3', 'disabled pending refresh'))
+    await changed
+    await service.setWatch(false)
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+    expect((await service.list({ query: 'disabled pending refresh' })).total).toBe(0)
+  }, 20_000)
 })
 
 describe('real SQLite provider stores', () => {

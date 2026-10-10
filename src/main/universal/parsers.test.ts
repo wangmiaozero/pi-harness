@@ -85,7 +85,7 @@ describe('CCHV-compatible P0 formats', () => {
     const p = parse('codex', [
       { type: 'session_meta', payload: { id: 'codex-1', cwd: '/project' } },
       { type: 'turn_context', payload: { model: 'gpt-5' } },
-      { type: 'event_msg', payload: { type: 'user_message', message: 'duplicate' } },
+      { type: 'event_msg', payload: { type: 'user_message', message: '修复测试' } },
       {
         type: 'response_item',
         payload: {
@@ -153,6 +153,123 @@ describe('CCHV-compatible P0 formats', () => {
     expect(p.messages[0]?.parts[0]).toMatchObject({ type: 'text', text: '继续任务' })
     expect(p.messages[1]?.parts[1]).toMatchObject({ type: 'tool-result' })
   })
+  it('keeps event-only Codex turns while deduplicating matching response mirrors by occurrence', () => {
+    const response = (role: string, text: string) => ({
+      type: 'response_item',
+      payload: { type: 'message', role, content: [{ type: 'input_text', text }] }
+    })
+    const event = (type: string, message: string) => ({
+      type: 'event_msg',
+      payload: { type, message }
+    })
+    const p = parse('codex', [
+      { type: 'session_meta', payload: { id: 'mixed', cwd: '/project' } },
+      response('user', 'first task'),
+      event('user_message', 'first task'),
+      response('assistant', 'done'),
+      event('agent_message', 'done'),
+      event('user_message', 'follow-up only in event'),
+      event('user_message', 'first task'),
+      event('agent_message', 'event-only answer')
+    ])
+    expect(
+      p.messages
+        .flatMap((m) => m.parts)
+        .filter((p) => p.type === 'text')
+        .map((p) => p.text)
+    ).toEqual(['first task', 'done', 'follow-up only in event', 'first task', 'event-only answer'])
+  })
+  it('keeps a later event-only Codex request even when an older unpaired response has the same text', () => {
+    const p = parse('codex', [
+      {
+        type: 'response_item',
+        timestamp: '2026-10-01T10:00:00Z',
+        payload: {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'continue' }]
+        }
+      },
+      { type: 'event_msg', payload: { type: 'task_complete', last_agent_message: 'done' } },
+      {
+        type: 'event_msg',
+        timestamp: '2026-10-01T11:00:00Z',
+        payload: { type: 'user_message', message: 'continue' }
+      }
+    ])
+    expect(p.messages.filter((m) => m.role === 'user')).toHaveLength(2)
+  })
+  it('does not mistake distinct redacted Codex requests for mirrors', () => {
+    const p = parse('codex', [
+      {
+        type: 'response_item',
+        payload: {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'password=fixture-first' }]
+        }
+      },
+      { type: 'event_msg', payload: { type: 'user_message', message: 'password=fixture-second' } }
+    ])
+    expect(p.messages.filter((m) => m.role === 'user')).toHaveLength(2)
+    expect(JSON.stringify(p)).not.toContain('fixture-first')
+    expect(JSON.stringify(p)).not.toContain('fixture-second')
+  })
+  it('uses the actual Codex request as the title rather than injected environment and AGENTS context', () => {
+    const p = parse('codex', [
+      { type: 'session_meta', payload: { id: 'context', cwd: '/project' } },
+      {
+        type: 'response_item',
+        payload: {
+          type: 'message',
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: '# AGENTS.md instructions for /project\n<INSTRUCTIONS>Must use tests.</INSTRUCTIONS>\n<environment_context>cwd /project</environment_context>'
+            }
+          ]
+        }
+      },
+      {
+        type: 'response_item',
+        payload: {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: '修复登录问题' }]
+        }
+      }
+    ])
+    expect(p.session.title).toBe('修复登录问题')
+    expect(p.messages).toHaveLength(2)
+  })
+  it('retains native Pi cache usage and keeps cost-only usage totals unknown', () => {
+    const p = parse('pi', [
+      { type: 'session', id: 'usage', cwd: '/project' },
+      {
+        type: 'message',
+        id: 'm1',
+        message: {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'cached' }],
+          usage: { input: 2, output: 3, cacheRead: 10, cacheWrite: 4, totalTokens: 19 }
+        }
+      }
+    ])
+    expect(p.messages[0]?.parts.find((p) => p.type === 'usage')).toMatchObject({
+      cached: 10,
+      cacheWrite: 4,
+      total: 19
+    })
+    const cost = parse('claude', [
+      {
+        type: 'assistant',
+        message: { role: 'assistant', content: 'cost only', usage: { cost: 0.01 } }
+      }
+    ])
+    expect(cost.session.metadata.tokens).toBeUndefined()
+    expect(cost.session.metadata.cost).toBe(0.01)
+  })
   it('ports CCHV Gemini JSONL metadata updates, content parts, tool calls and thought tokens', () => {
     const p = parse('gemini', [
       { sessionId: 's-jsonl', projectHash: 'hash-2', startTime: '2026-06-01T00:00:00Z' },
@@ -212,6 +329,16 @@ describe('CCHV-compatible P0 formats', () => {
     })
     expect(p.messages[0]?.parts[2]).toMatchObject({ type: 'tool-result', text: 'changed' })
     expect(p.session.warnings).toContain('NATIVE_EVENTS_RETAINED')
+    expect(p.session.metadata.cost).toBe(0.01)
+  })
+  it('uses OpenCode message-level usage once and keeps step tokens when only message cost is known', () => {
+    const step = { type: 'step-finish', cost: 0.02, tokens: { input: 8, output: 4 } }
+    const summarized = parse('opencode', [
+      { id: 'm', role: 'assistant', cost: 0.07, tokens: { input: 10, output: 5 }, parts: [step] }
+    ])
+    expect(summarized.session.metadata).toMatchObject({ tokens: 15, cost: 0.07 })
+    const costOnly = parse('opencode', [{ id: 'm', role: 'assistant', cost: 0.07, parts: [step] }])
+    expect(costOnly.session.metadata).toMatchObject({ tokens: 12, cost: 0.07 })
   })
   it('reads native Pi JSONL while retaining branch/compaction evidence and references', () => {
     const p = parse('pi', [

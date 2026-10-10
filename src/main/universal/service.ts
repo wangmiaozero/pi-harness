@@ -20,6 +20,7 @@ import {
 import { atomicWriteJson, readJsonFile } from '../services/storage'
 import { ValidationError, NotFoundError } from '../services/errors'
 import { defaultSources, existingSources, contained } from './sources'
+import { projectIdentityKey } from '@shared/workspace/project-identity'
 import type { ScanRequest, ScanResult } from './scanner'
 
 const initialStatus = (): UniversalSyncStatus => ({
@@ -45,6 +46,7 @@ export class UniversalSessionService {
   private syncing: Promise<UniversalSyncStatus> | null = null
   private worker: Worker | null = null
   private watcher: FSWatcher | null = null
+  private watchedRoots: string[] = []
   private timer: ReturnType<typeof setTimeout> | null = null
   private periodic: ReturnType<typeof setInterval> | null = null
   private cancelled = false
@@ -130,13 +132,15 @@ export class UniversalSessionService {
             })
           : this.runWorker(request))
         if (!this.cancelled && !this.closed) {
-          const mappings = new Map(this.index.sessions.map((s) => [s.id, s.workspacePath]))
+          const mappings = new Map(this.index.sessions.map((s) => [s.id, s]))
           this.index.sessions = result.sessions.map((s) => ({
             ...s,
-            workspacePath: mappings.get(s.id) ?? s.workspacePath
+            workspacePath: mappings.get(s.id)?.workspacePath ?? s.workspacePath,
+            workspaceRoots: mappings.get(s.id)?.workspaceRoots ?? s.workspaceRoots
           }))
           this.index.status = result.status
           await this.save()
+          if (this.index.watch) await this.restartWatcher()
         }
       } catch {
         if (!this.cancelled)
@@ -193,7 +197,8 @@ export class UniversalSessionService {
       if (
         q.projectPath &&
         session.projectPath !== q.projectPath &&
-        session.workspacePath !== q.projectPath
+        session.workspacePath !== q.projectPath &&
+        !session.workspaceRoots?.includes(q.projectPath)
       )
         continue
       if ((q.after && session.updatedAt < q.after) || (q.before && session.updatedAt > q.before))
@@ -212,7 +217,9 @@ export class UniversalSessionService {
     const projects = [
       ...new Set(
         this.index.sessions.flatMap((s) =>
-          [s.projectPath, s.workspacePath].filter((p): p is string => Boolean(p))
+          [s.projectPath, s.workspacePath, ...(s.workspaceRoots ?? [])].filter((p): p is string =>
+            Boolean(p)
+          )
         )
       )
     ].sort()
@@ -272,9 +279,24 @@ export class UniversalSessionService {
     }
     return { session, messages, total: session.messageCount }
   }
-  async map(id: string, workspacePath: string): Promise<UniversalSession> {
+  async map(
+    id: string,
+    workspacePath: string,
+    workspaceRoots?: string[]
+  ): Promise<UniversalSession> {
     const session = await this.get(id)
+    const roots = [
+      workspacePath,
+      ...(workspaceRoots ??
+        (session.workspacePath === workspacePath ? (session.workspaceRoots ?? []) : []))
+    ]
+    const unique = [...new Map(roots.map((root) => [projectIdentityKey(root), root])).values()]
+    if (unique.length > 32) throw new ValidationError('Too many linked project folders.')
+    for (const root of unique)
+      if (!(await fs.stat(root)).isDirectory())
+        throw new ValidationError('Choose a project directory.')
     session.workspacePath = workspacePath
+    session.workspaceRoots = unique
     this.index.sessions = this.index.sessions.map((s) => (s.id === id ? session : s))
     await this.save()
     return session
@@ -315,19 +337,26 @@ export class UniversalSessionService {
     await this.restartWatcher()
   }
   private async restartWatcher(): Promise<void> {
+    const roots =
+      this.index.watch && !this.closed
+        ? (await existingSources([...this.candidates, ...this.index.sources]))
+            .map((s) => s.root)
+            .sort()
+        : []
+    if (this.watcher && roots.length && JSON.stringify(roots) === JSON.stringify(this.watchedRoots))
+      return
+    if (this.timer) clearTimeout(this.timer)
+    this.timer = null
     await this.watcher?.close()
     this.watcher = null
+    this.watchedRoots = roots
     if (!this.index.watch || this.closed) return
-    const sources = await existingSources([...this.candidates, ...this.index.sources])
-    this.watcher = watch(
-      sources.map((s) => s.root),
-      {
-        ignoreInitial: true,
-        followSymlinks: false,
-        depth: 12,
-        awaitWriteFinish: { stabilityThreshold: 2000, pollInterval: 200 }
-      }
-    )
+    this.watcher = watch(roots, {
+      ignoreInitial: true,
+      followSymlinks: false,
+      depth: 12,
+      awaitWriteFinish: { stabilityThreshold: 2000, pollInterval: 200 }
+    })
     this.watcher.on('all', () => {
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(() => {

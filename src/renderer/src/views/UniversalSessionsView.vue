@@ -12,7 +12,7 @@ import {
   type UniversalSyncStatus,
   type SourceLocation
 } from '@shared/universal/schema'
-import { projectIdentityKey } from '@shared/workspace/project-identity'
+import { projectIdentityKey, isPathWithinProjectRoots } from '@shared/workspace/project-identity'
 import { getApi, getErrorMessage } from '@renderer/composables/useApi'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useAgentStore } from '@renderer/stores/agent'
@@ -52,13 +52,18 @@ const preparing = ref(false)
 const continuing = ref(false)
 const handoffOpen = ref(false)
 const clearOpen = ref(false)
+const sourcePickerOpen = ref(false)
+const addingSource = ref(false)
+const addedProvider = ref<SourceProvider>('claude')
 const linkPath = ref('')
 const instruction = ref('')
 const handoff = ref<SessionHandoff | null>(null)
 const scrollTop = ref(0)
 const loading = ref(false)
+const listElement = ref<HTMLElement | null>(null)
 let revision = 0
 let messageRevision = 0
+let handoffRevision = 0
 let debounce: ReturnType<typeof setTimeout> | null = null
 let polling: ReturnType<typeof setInterval> | null = null
 let disposed = false
@@ -95,10 +100,32 @@ const claimSections = computed(() =>
 function failure(e: unknown) {
   error.value = getErrorMessage(e)
 }
-function beginHandoff() {
+async function beginHandoff() {
+  const current = ++handoffRevision
+  preparing.value = false
   handoffOpen.value = true
   handoff.value = null
   instruction.value = ''
+  const sourcePath = selected.value?.projectPath
+  // Resolve a recorded subdirectory only inside an already imported project.
+  if (!linkPath.value && sourcePath && isPathWithinProjectRoots(sourcePath, linkedProjects.value)) {
+    try {
+      const git = await getApi().git.status(sourcePath)
+      const matched = linkedProjects.value.find(
+        (p) => projectIdentityKey(p) === projectIdentityKey(git.repositoryRoot ?? '')
+      )
+      if (
+        current === handoffRevision &&
+        !disposed &&
+        handoffOpen.value &&
+        !linkPath.value &&
+        matched
+      )
+        linkPath.value = matched
+    } catch {
+      // Non-Git or unavailable projects still support an explicit user choice.
+    }
+  }
 }
 async function load(reset = true) {
   const current = ++revision
@@ -117,7 +144,10 @@ async function load(reset = true) {
     items.value = reset ? result.sessions : [...items.value, ...result.sessions]
     total.value = result.total
     indexedProjects.value = result.projects
-    if (reset) scrollTop.value = 0
+    if (reset) {
+      scrollTop.value = 0
+      if (listElement.value) listElement.value.scrollTop = 0
+    }
   } catch (e) {
     if (current === revision) failure(e)
   } finally {
@@ -139,6 +169,7 @@ async function sync() {
   }
 }
 async function view(session: UniversalSession, offset = 0) {
+  handoffRevision++
   const current = ++messageRevision
   selected.value = session
   handoff.value = null
@@ -164,12 +195,20 @@ async function view(session: UniversalSession, offset = 0) {
     if (current === messageRevision) viewing.value = false
   }
 }
-async function addSource() {
+function addSource() {
+  addedProvider.value = provider.value || 'claude'
+  sourcePickerOpen.value = true
+}
+async function chooseSourceFolder() {
+  addingSource.value = true
   try {
-    const location = await api().addSource(provider.value || 'claude')
+    const location = await api().addSource(addedProvider.value)
+    sourcePickerOpen.value = false
     if (location) await sync()
   } catch (e) {
     failure(e)
+  } finally {
+    addingSource.value = false
   }
 }
 async function browseProject() {
@@ -181,28 +220,64 @@ async function browseProject() {
   }
 }
 async function saveLink() {
-  if (!selected.value || !linkPath.value) return
+  if (!selected.value || !linkPath.value) return null
+  const id = selected.value.id
+  const root = linkPath.value
+  const current = messageRevision
   try {
-    selected.value = await api().map(selected.value.id, linkPath.value)
-    handoff.value = null
-    await load()
+    const mapped = await api().map(id, root, workspace.projectSourceRoots(root))
+    if (
+      current === messageRevision &&
+      !disposed &&
+      selected.value?.id === id &&
+      linkPath.value === root
+    ) {
+      selected.value = mapped
+      linkPath.value = mapped.workspacePath ?? root
+      handoff.value = null
+      await load()
+    }
+    return mapped
   } catch (e) {
-    failure(e)
+    if (current === messageRevision && !disposed) failure(e)
+    return null
   }
 }
 async function prepare() {
   if (!selected.value || !instruction.value.trim()) return
+  const current = ++handoffRevision
+  const id = selected.value.id
+  const requested = instruction.value
   preparing.value = true
+  handoff.value = null
   error.value = ''
   try {
-    await saveLink()
-    if (error.value) return
-    handoff.value = await api().preview(selected.value.id, instruction.value)
-    instruction.value = handoff.value.instruction
+    const mapped = await saveLink()
+    if (
+      !mapped ||
+      current !== handoffRevision ||
+      disposed ||
+      !handoffOpen.value ||
+      instruction.value !== requested ||
+      selected.value?.id !== id
+    )
+      return
+    const preview = await api().preview(id, requested)
+    if (
+      current !== handoffRevision ||
+      disposed ||
+      !handoffOpen.value ||
+      selected.value?.id !== id ||
+      linkPath.value !== mapped.workspacePath ||
+      instruction.value !== requested
+    )
+      return
+    handoff.value = preview
+    instruction.value = preview.instruction
   } catch (e) {
-    failure(e)
+    if (current === handoffRevision && !disposed) failure(e)
   } finally {
-    preparing.value = false
+    if (current === handoffRevision) preparing.value = false
   }
 }
 async function continueTask() {
@@ -243,6 +318,8 @@ async function toggleWatch(event: Event) {
 async function clearIndex() {
   try {
     await api().clear()
+    messageRevision++
+    handoffRevision++
     selected.value = null
     messages.value = []
     clearOpen.value = false
@@ -269,17 +346,37 @@ watch([provider, project, query, after, before], () => {
     void load()
   }, 200)
 })
+watch(handoffOpen, (open) => {
+  if (!open) {
+    handoffRevision++
+    preparing.value = false
+  }
+})
 onMounted(async () => {
   try {
+    workspace.restoreProjectNavigation()
     await nativeSessions.refresh()
     sources.value = await api().sources()
     status.value = await api().status()
     await load()
-    if (!status.value.lastSync && !status.value.running) void sync()
-    if (typeof route.query.source === 'string' && /^[a-f0-9]{64}$/.test(route.query.source)) {
-      const source = await api().read({ id: route.query.source, limit: 1 })
+    const requestedSource =
+      typeof route.query.source === 'string' && /^[a-f0-9]{64}$/.test(route.query.source)
+        ? route.query.source
+        : null
+    if (requestedSource && !status.value.lastSync) {
+      // A continuation link can survive cache clearing. Rebuild before resolving its source ID.
+      status.value.running = true
+      await api().sync()
+      if (disposed) return
+      status.value = await api().status()
+      sources.value = await api().sources()
+      await load()
+    } else if (!status.value.lastSync && !status.value.running) void sync()
+    if (requestedSource) {
+      const source = await api().read({ id: requestedSource, limit: 1 })
       await view(source.session)
     }
+    if (disposed) return
     polling = setInterval(async () => {
       try {
         const previousSync = status.value.lastSync
@@ -297,6 +394,7 @@ onBeforeUnmount(() => {
   disposed = true
   revision++
   messageRevision++
+  handoffRevision++
   if (debounce) clearTimeout(debounce)
   if (polling) clearInterval(polling)
 })
@@ -398,6 +496,7 @@ onBeforeUnmount(() => {
           </p>
         </div>
         <div
+          ref="listElement"
           class="min-h-0 flex-1 overflow-y-auto"
           data-testid="history-session-list"
           @scroll="onScroll"
@@ -436,9 +535,15 @@ onBeforeUnmount(() => {
           <header class="border-b border-[var(--border-subtle)] p-4">
             <div class="flex items-center gap-3">
               <h2 class="min-w-0 flex-1 truncate font-medium">{{ selected.title }}</h2>
-              <Button variant="primary" data-testid="history-continue-task" @click="beginHandoff">{{
-                t('universal.continue')
-              }}</Button>
+              <Button
+                variant="primary"
+                :disabled="
+                  viewing || selected.source.status !== 'available' || !selected.messageCount
+                "
+                data-testid="history-continue-task"
+                @click="beginHandoff"
+                >{{ t('universal.continue') }}</Button
+              >
             </div>
             <p class="mt-1 text-xs text-[var(--text-tertiary)]">
               {{ SOURCE_LABELS[selected.provider] }} ·
@@ -484,6 +589,22 @@ onBeforeUnmount(() => {
         </p>
       </section>
     </section>
+    <Dialog v-model:open="sourcePickerOpen" :title="t('universal.addSource')">
+      <label class="block text-sm"
+        >{{ t('universal.source') }}
+        <select v-model="addedProvider" class="history-input mt-1">
+          <option v-for="source in SOURCE_PROVIDERS" :key="source" :value="source">
+            {{ SOURCE_LABELS[source] }}
+          </option>
+        </select>
+      </label>
+      <template #footer>
+        <Button @click="sourcePickerOpen = false">{{ t('common.cancel') }}</Button>
+        <Button :loading="addingSource" @click="chooseSourceFolder">{{
+          t('universal.browse')
+        }}</Button>
+      </template>
+    </Dialog>
     <Dialog
       v-model:open="clearOpen"
       :title="t('universal.clearTitle')"
@@ -546,7 +667,7 @@ onBeforeUnmount(() => {
               <p class="whitespace-pre-wrap">{{ claim.text }}</p>
               <p class="text-[var(--text-tertiary)]">
                 {{ t('universal.historicalClaim') }} · {{ t('universal.confidence') }}:
-                {{ claim.confidence }}
+                {{ t(`universal.confidence${claim.confidence}`) }}
               </p>
               <details>
                 <summary>{{ t('universal.evidence') }}</summary>
@@ -558,13 +679,26 @@ onBeforeUnmount(() => {
           </section>
           <h3 class="text-sm font-medium">{{ t('universal.files') }}</h3>
           <p v-for="file in handoff.relevantFiles" :key="file.path" class="text-xs">
-            {{ file.path }} ·
+            {{ file.workspacePath }} / {{ file.path }} ·
             {{ t(file.exists ? 'universal.verifiedFile' : 'universal.missingFile') }}
           </p>
           <h3 class="text-sm font-medium">{{ t('universal.git') }}</h3>
-          <pre class="whitespace-pre-wrap break-all text-xs"
-            >{{ handoff.git.currentCommit ?? '—' }}
-{{ handoff.git.status || t('universal.gitClean') }}</pre>
+          <div
+            v-for="folder in handoff.workspaces ?? [
+              { path: handoff.workspacePath, git: handoff.git }
+            ]"
+            :key="folder.path"
+            class="text-xs"
+          >
+            <p class="break-all">{{ folder.path }}</p>
+            <pre class="whitespace-pre-wrap break-all"
+              >{{ folder.git.currentCommit ?? '—' }}
+{{
+                folder.git.status === 'GIT_UNAVAILABLE'
+                  ? t('universal.gitUnavailable')
+                  : folder.git.status || t('universal.gitClean')
+              }}</pre>
+          </div>
           <p class="text-xs">{{ t('universal.omitted', { count: handoff.omittedMessages }) }}</p>
           <details>
             <summary class="text-sm">{{ t('universal.excerpt') }}</summary>

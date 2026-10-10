@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { UniversalMessage } from '@shared/universal/schema'
 import HistoricalText from './HistoricalText.vue'
+import { useI18n } from 'vue-i18n'
+import { recordedTokens } from '@shared/universal/usage'
 defineProps<{ message: UniversalMessage }>()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -10,7 +13,7 @@ defineProps<{ message: UniversalMessage }>()
     :data-history-role="message.role"
   >
     <header class="mb-2 flex justify-between text-xs text-[var(--text-tertiary)]">
-      <strong>{{ message.role }}</strong
+      <strong>{{ t(`universal.role${message.role}`) }}</strong
       ><time>{{ message.timestamp }}</time>
     </header>
     <template v-for="(part, index) in message.parts" :key="index">
@@ -23,7 +26,7 @@ defineProps<{ message: UniversalMessage }>()
         "
       />
       <details v-else-if="part.type === 'thinking'" class="mb-2">
-        <summary>Thinking / Reasoning</summary>
+        <summary>{{ t('universal.thinking') }}</summary>
         <pre class="history-prose">{{ part.text }}</pre>
       </details>
       <details v-else-if="part.type === 'tool-call'" class="mb-2">
@@ -35,7 +38,7 @@ defineProps<{ message: UniversalMessage }>()
         class="mb-2"
         :class="{ 'text-[var(--error)]': part.isError }"
       >
-        <summary>Tool result · {{ part.callId }}</summary>
+        <summary>{{ t('universal.toolResult') }} · {{ part.callId }}</summary>
         <pre class="history-code">{{ part.text }}</pre>
       </details>
       <pre v-else-if="part.type === 'error'" class="history-prose text-[var(--error)]">{{
@@ -44,13 +47,23 @@ defineProps<{ message: UniversalMessage }>()
       <span
         v-else-if="part.type === 'image-reference'"
         class="block text-xs text-[var(--text-secondary)]"
-        >Image · {{ part.mimeType }} · {{ part.reference }}</span
+        >{{ t('universal.image') }} · {{ part.mimeType }} · {{ part.reference }}</span
       >
       <span v-else-if="part.type === 'file-reference'" class="block text-xs"
-        >File · {{ part.path }}</span
+        >{{ t('universal.file') }} · {{ part.path }}</span
       >
       <span v-else-if="part.type === 'usage'" class="block text-xs text-[var(--text-tertiary)]"
-        >Tokens · {{ part.total ?? (part.input ?? 0) + (part.output ?? 0) }}
+        >{{
+          recordedTokens(part) !== undefined
+            ? `${t('universal.tokens')} · ${recordedTokens(part)}`
+            : t('universal.noTokens')
+        }}
+        <span v-if="part.cached !== undefined">
+          · {{ t('universal.cacheRead') }}: {{ part.cached }}</span
+        >
+        <span v-if="part.cacheWrite !== undefined">
+          · {{ t('universal.cacheWrite') }}: {{ part.cacheWrite }}</span
+        >
         <span v-if="part.cost !== undefined"> · ${{ part.cost }}</span></span
       >
       <details v-else-if="part.type === 'native-event'" class="text-xs text-[var(--text-tertiary)]">
