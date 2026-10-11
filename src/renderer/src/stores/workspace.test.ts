@@ -502,6 +502,31 @@ describe('workspace projects', () => {
     delete window.piSwitch
   })
 
+  it('repairs hidden navigation only for the selected real session primary project', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [session('a', '/old-cwd', '2026-01-01'), session('b', '/code/b', '2026-01-01')]
+    workspace.removedProjectKeys = ['/code/a', '/code/b']
+    window.piSwitch = workspaceApi({ a: binding('a', ['/code/a', '/code/docs']) })
+    try {
+      await workspace.restoreSessionWorkspace('a')
+      expect(workspace.importedProjectRoots).toEqual([])
+      expect(workspace.removedProjectKeys).toEqual(['/code/a', '/code/b'])
+      sessions.selectSession('a')
+      await workspace.restoreSessionWorkspace('a')
+      expect(workspace.importedProjectRoots).toEqual(['/code/a'])
+      expect(workspace.removedProjectKeys).toEqual(['/code/b'])
+      expect(workspace.sessionProjectGroups).toHaveLength(1)
+      expect(workspace.sessionProjectGroups[0]).toMatchObject({
+        projectRoot: '/code/a',
+        sessions: [{ id: 'a' }]
+      })
+      expect(workspace.projectRoots).toEqual(['/code/a', '/code/docs'])
+    } finally {
+      delete window.piSwitch
+    }
+  })
+
   it('creates one draft workspace from multiple imported project folders', async () => {
     const workspace = useWorkspaceStore()
     window.piSwitch = workspaceApi({})

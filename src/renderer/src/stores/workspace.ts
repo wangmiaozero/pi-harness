@@ -1337,6 +1337,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       a.id === binding?.mainFolderId ? -1 : b.id === binding?.mainFolderId ? 1 : 0
     )
     sessionBindings.value = { ...sessionBindings.value, [sessionId]: binding }
+    const primary = ordered[0]
+    if (
+      sessions.currentId === sessionId &&
+      sessions.current &&
+      primary &&
+      !isDefaultWorkspace(primary.path) &&
+      removedProjectKeys.value.includes(projectIdentityKey(primary.path))
+    ) {
+      // A selected real conversation must remain visible under its primary project,
+      // including continuations saved before project navigation was registered.
+      rememberImportedProjects([primary.path])
+    }
     await replaceActiveWorkspace(
       ordered.map((folder) => ({
         path: folder.path,

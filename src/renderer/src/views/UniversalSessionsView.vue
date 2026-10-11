@@ -448,12 +448,20 @@ async function continueTask() {
 async function openPi(sessionId: string) {
   await nativeSessions.refresh(true)
   await workspace.restore({ restoreTabs: true, autoOpenLastProject: false })
+  // Continuation writes bindings in Main while this store may already be hydrated.
+  await workspace.refreshSessionBindings()
   if (!nativeSessions.items.some((s) => s.id === sessionId) && handoff.value)
     useAgentStore().adoptRunningSession(
       sessionId,
       handoff.value.workspacePath,
       handoff.value.instruction
     )
+  const session = nativeSessions.items.find((s) => s.id === sessionId)
+  const primary = session && workspace.sessionFolders(session)[0]
+  if (primary && !workspace.isDefaultWorkspace(primary.resolvedPath)) {
+    // Explicitly opening a continuation also restores a previously removed project.
+    workspace.rememberImportedProjects([primary.resolvedPath])
+  }
   workspace.ensureChatTab(sessionId, selected.value?.title ?? 'Pi')
   handoffOpen.value = false
   await router.push('/workspace')

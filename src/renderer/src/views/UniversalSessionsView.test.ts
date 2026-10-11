@@ -10,6 +10,8 @@ import type {
   UniversalSession
 } from '@shared/universal/schema'
 import { universalMessages } from '../i18n/universal'
+import { useSessionStore } from '../stores/sessions'
+import { useWorkspaceStore } from '../stores/workspace'
 import UniversalSessionsView from './UniversalSessionsView.vue'
 
 const route = vi.hoisted(() => ({ query: {} as Record<string, string> }))
@@ -130,10 +132,11 @@ describe('history handoff interaction boundaries', () => {
         organize
       }
     } as unknown as PiSwitchAPI
+    const pinia = createPinia()
     const wrapper = mount(UniversalSessionsView, {
       global: {
         plugins: [
-          createPinia(),
+          pinia,
           createI18n({
             legacy: false,
             locale: 'en-US',
@@ -145,7 +148,7 @@ describe('history handoff interaction boundaries', () => {
         stubs: { Dialog }
       }
     })
-    return { wrapper, items, map, preview, organize, sync, read }
+    return { wrapper, pinia, items, map, preview, organize, sync, read }
   }
   it('uses an unimported recorded directory automatically without a separate save-link step', async () => {
     const resolveProject = vi.fn(async () => ({ status: 'available' as const, path: '/project/a' }))
@@ -185,6 +188,91 @@ describe('history handoff interaction boundaries', () => {
       wrapper.unmount()
     }
   })
+  it.each([false, true])(
+    'reveals the bound primary project and its continued conversation (persisted: %s)',
+    async (persisted) => {
+      const { wrapper, pinia, items, preview } = setupProjectResolution(async () => ({
+        status: 'available',
+        path: '/project/a'
+      }))
+      const workspace = useWorkspaceStore(pinia)
+      const sessions = useSessionStore(pinia)
+      const native = {
+        id: 'pi-continued',
+        path: '/sessions/continued.jsonl',
+        cwd: '/old-cwd',
+        projectRoot: '/old-cwd',
+        projectKey: '/old-cwd',
+        created: '2026-10-01',
+        modified: '2026-10-01',
+        messageCount: 2,
+        firstMessage: 'Continue task a'
+      }
+      const handoff = { ...localHandoff(items[0]!), piSessionId: native.id }
+      const bindings = {
+        [native.id]: {
+          workspaceId: `universal:${handoff.id}`,
+          mainFolderId: '/project/a',
+          folders: [
+            { id: '/project/docs', path: '/project/docs', role: 'reference' as const },
+            { id: '/project/a', path: '/project/a', role: 'main' as const }
+          ]
+        }
+      }
+      vi.spyOn(workspace, 'restore').mockResolvedValue()
+      const listBindings = vi.fn(async () => bindings)
+      window.piSwitch!.workspace = {
+        listSessionBindings: listBindings
+      } as unknown as PiSwitchAPI['workspace']
+      window.piSwitch!.universal.continue = vi.fn(async () => ({ sessionId: native.id, handoff }))
+      preview.mockResolvedValue(localHandoff(items[0]!))
+      try {
+        await flushPromises()
+        workspace.removedProjectKeys = ['/project/a']
+        workspace.sessionBindings = {
+          [native.id]: {
+            workspaceId: 'stale',
+            mainFolderId: '/old-cwd',
+            folders: [{ id: '/old-cwd', path: '/old-cwd', role: 'main' }]
+          }
+        }
+        window.piSwitch!.sessions.list = vi.fn(async () => (persisted ? [native] : []))
+        await wrapper.get(`[data-testid="history-session-${items[0]!.id}"]`).trigger('click')
+        await flushPromises()
+        await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+        await flushPromises()
+        await wrapper.get('textarea').setValue('Continue task a')
+        await wrapper
+          .findAll('button')
+          .find((b) => b.text() === 'Prepare handoff')!
+          .trigger('click')
+        await flushPromises()
+        // Browsing and preparing do not register a project or reopen a removed project.
+        expect(workspace.importedProjectRoots).toEqual([])
+        expect(workspace.removedProjectKeys).toContain('/project/a')
+        await wrapper.get('[data-testid="handoff-confirm"]').trigger('click')
+        await flushPromises()
+        expect(listBindings).toHaveBeenCalledOnce()
+        expect(workspace.importedProjectRoots).toEqual(['/project/a'])
+        expect(workspace.removedProjectKeys).not.toContain('/project/a')
+        expect(workspace.sessionProjectGroups).toHaveLength(1)
+        expect(workspace.sessionProjectGroups[0]).toMatchObject({
+          projectRoot: '/project/a',
+          sessions: [{ id: native.id }]
+        })
+        expect(workspace.sessionFolders(sessions.current!).map((f) => f.resolvedPath)).toEqual([
+          '/project/a',
+          '/project/docs'
+        ])
+        expect(sessions.currentId).toBe(native.id)
+        expect(sessions.current?.transient === true).toBe(!persisted)
+      } finally {
+        wrapper.unmount()
+        localStorage.removeItem('pi-harness.workspace.v1')
+        vi.restoreAllMocks()
+      }
+    }
+  )
   it('shows a ready preview with a neutral test note and allows continuation', async () => {
     const { wrapper, items, preview } = setupProjectResolution(async () => ({
       status: 'available',

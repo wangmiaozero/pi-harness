@@ -75,6 +75,12 @@ test('continues a Codex conversation in its recorded directory without importing
   try {
     await page.setViewportSize({ width: 1440, height: 1000 })
     await page.evaluate(() => window.piSwitch!.settings.set({ theme: 'macos27-light' }))
+    // A prior navigation removal must not hide an explicitly continued project.
+    await page.evaluate((root) => {
+      const key = 'pi-harness.workspace.v1'
+      const saved = JSON.parse(localStorage.getItem(key) ?? '{}')
+      localStorage.setItem(key, JSON.stringify({ ...saved, removedProjectKeys: [root] }))
+    }, project)
     await page.reload()
     await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
     await page.locator('a[href="#/ai-sessions"]').click()
@@ -159,6 +165,11 @@ test('continues a Codex conversation in its recorded directory without importing
     const sessions = await page.evaluate(() => window.piSwitch!.sessions.list(true))
     const continued = sessions.find((s) => s.cwd === project)!
     expect(continued).toBeDefined()
+    const projectGroup = page.getByTestId('workspace-project-group-0')
+    await expect(
+      projectGroup.getByRole('button', { name: 'unimported-project', exact: true })
+    ).toBeVisible()
+    await expect(projectGroup.getByTestId(`session-row-${continued.id}`)).toBeVisible()
     // The same global focus rule affects circular chat controls and shared icon buttons.
     await page.setViewportSize({ width: 1000, height: 650 })
     const scroller = page.getByTestId('chat-scroller')
@@ -225,6 +236,31 @@ test('continues a Codex conversation in its recorded directory without importing
     expect(requests).toHaveLength(1)
     const bindings = await page.evaluate(() => window.piSwitch!.workspace.listSessionBindings())
     expect(bindings[continued.id]?.folders.map((folder) => folder.path)).toEqual([project])
+    const navigation = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('pi-harness.workspace.v1')!)
+    )
+    expect(navigation.importedProjectRoots).toContain(project)
+    expect(navigation.removedProjectKeys).not.toContain(project)
+    // Repair an older continuation with a saved active chat but missing/hidden navigation.
+    await page.evaluate((root) => {
+      const key = 'pi-harness.workspace.v1'
+      const saved = JSON.parse(localStorage.getItem(key)!)
+      saved.importedProjectRoots = saved.importedProjectRoots.filter((p: string) => p !== root)
+      saved.removedProjectKeys = [...saved.removedProjectKeys, root]
+      localStorage.setItem(key, JSON.stringify(saved))
+    }, project)
+    // Navigation and the real conversation must survive a fresh renderer, with no model request.
+    await page.reload()
+    await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+    await expect(projectGroup.getByTestId(`session-row-${continued.id}`)).toBeVisible()
+    await projectGroup.getByTestId(`session-row-${continued.id}`).getByRole('button').click()
+    await expect(page.getByTestId('chat-window')).toContainText(
+      'Recorded project continuation confirmed.'
+    )
+    const active = await page.evaluate(() => window.piSwitch!.workspace.getActive())
+    expect(active!.folders.map((folder) => folder.resolvedPath)).toEqual([project])
+    expect(requests).toHaveLength(1)
+    await page.screenshot({ path: path.join(testInfo.outputDir, 'continued-project-sidebar.png') })
     expect(fs.readFileSync(originalPath, 'utf8')).toBe(original)
   } finally {
     server.closeAllConnections()
@@ -471,6 +507,10 @@ test('browses without model calls, previews evidence, and continues through the 
     const canonicalWorkspace = fs.realpathSync(projectRoot)
     const continued = sessions.find((s) => s.cwd === canonicalWorkspace)
     expect(continued).toBeDefined()
+    const projectGroup = page.getByTestId('workspace-project-group-0')
+    await expect(page.getByTestId('workspace-project-group-1')).toHaveCount(0)
+    await expect(projectGroup).toContainText('Combined project')
+    await expect(projectGroup.getByTestId(`session-row-${continued!.id}`)).toBeVisible()
     const bindings = await page.evaluate(() => window.piSwitch!.workspace.listSessionBindings())
     expect(bindings[continued!.id]?.folders.map((f) => f.path)).toEqual([
       canonicalWorkspace,
