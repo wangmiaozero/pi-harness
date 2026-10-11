@@ -18,7 +18,7 @@ export const enUS = {
   },
   capabilities: capabilityMessages['en-US'],
   navShort: {
-    aiSessions: 'AI Sessions',
+    aiSessions: 'History',
     overview: 'Home',
     workspace: 'Work',
     providers: 'APIs',

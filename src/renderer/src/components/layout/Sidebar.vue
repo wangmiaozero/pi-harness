@@ -72,7 +72,7 @@ function isActive(path: string): boolean {
 </script>
 
 <template>
-  <!-- 50px icon rail. Labels live in title + sr-only so hover / a11y / e2e still work. -->
+  <!-- Compact labels on the icon rail; full names remain in hover and accessible labels. -->
   <aside
     class="app-navigation-rail relative flex w-[var(--sidebar-width)] shrink-0 flex-col items-center overflow-hidden bg-[var(--bg-sidebar)]"
     data-testid="app-navigation-rail"
@@ -83,6 +83,7 @@ function isActive(path: string): boolean {
         :key="item.name"
         :to="item.to"
         :title="item.label"
+        :aria-label="item.label"
         class="group relative flex w-full flex-col items-center justify-center gap-1.5 rounded-[var(--radius-sm)] py-2.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] no-drag"
         :class="
           isActive(item.to)
@@ -105,7 +106,9 @@ function isActive(path: string): boolean {
           "
         />
         <span
-          class="text-[10px] leading-none tracking-tight"
+          data-testid="app-navigation-label"
+          aria-hidden="true"
+          class="max-w-full whitespace-nowrap px-0.5 text-center text-[10px] leading-none tracking-tight"
           :class="isActive(item.to) ? 'font-medium' : 'font-normal'"
         >
           {{ item.short }}

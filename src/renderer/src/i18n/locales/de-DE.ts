@@ -19,7 +19,7 @@ export const deDE: MessageTree = {
   },
   capabilities: capabilityMessages['de-DE'],
   navShort: {
-    aiSessions: 'KI Verlauf',
+    aiSessions: 'Verlauf',
     overview: 'Start',
     workspace: 'Arbeit',
     providers: 'Anb.',

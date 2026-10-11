@@ -76,6 +76,28 @@ async function expectSidebarLabelsToFit(page: Page): Promise<void> {
   expect(violations).toEqual([])
 }
 
+async function expectNavigationLabelsToFit(page: Page): Promise<void> {
+  const violations = await page.getByTestId('app-navigation-rail').evaluate((rail) => {
+    const failures: string[] = []
+    for (const link of rail.querySelectorAll('a')) {
+      const label = link.querySelector('[data-testid="app-navigation-label"]')!
+      const box = link.getBoundingClientRect()
+      const range = document.createRange()
+      range.selectNodeContents(label)
+      const rects = [...range.getClientRects()]
+      if (rects.length !== 1) failures.push(`${label.textContent}: wraps`)
+      for (const rect of rects) {
+        if (rect.left < box.left + 2 || rect.right > box.right - 2)
+          failures.push(`${label.textContent}: clipped or missing padding`)
+      }
+      if (!link.title || link.getAttribute('aria-label') !== link.title)
+        failures.push(`${label.textContent}: missing full name`)
+    }
+    return failures
+  })
+  expect(violations).toEqual([])
+}
+
 for (const appearance of [
   { theme: 'macos27-light', mascotStyle: 'none' },
   { theme: 'light', mascotStyle: 'none' },
@@ -99,6 +121,7 @@ for (const appearance of [
       await page.reload()
       await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
       await page.locator('a[href="#/workspace"]').click()
+      await expectNavigationLabelsToFit(page)
       const tabs = page.getByTestId('workspace-section-tabs')
       await expect(tabs.getByTestId('workspace-section-workspace')).toHaveText(
         workspaceLabels[language]
@@ -127,6 +150,8 @@ for (const appearance of [
       await resizer.focus()
       await page.keyboard.press('End')
       await expectSidebarLabelsToFit(page)
+      await page.locator('a[href="#/ai-sessions"]').click()
+      await expectNavigationLabelsToFit(page)
     }
   })
 }
