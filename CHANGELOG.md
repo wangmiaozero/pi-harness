@@ -2,11 +2,20 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
-## Unreleased
+## 1.9.0 — Unreleased
 
 ### Added
 
-- Added local AI conversation history with search and filters, separate history viewing and task continuation, and a handoff preview before starting a new Pi conversation. Original sessions remain read-only; viewing history uses no model tokens.
+- Added unified local conversation history for Claude Code, Codex, Cursor, Cursor Agent, Gemini CLI, OpenCode, and Pi, with search, project and date filters, and custom history folders.
+- Added separate history viewing and task continuation with a local handoff preview and an editable next-step instruction. Original sessions remain read-only; browsing, local previews, and scan retries use no model tokens.
+- Added optional AI handoff summaries using the configured model when requested.
+
+### Fixed
+
+- Improved Codex desktop history discovery and added scan retries that preserve previously imported history.
+- Reused conversation project directories when continuing tasks and displayed continued chats under their projects, while keeping default chats under Sessions.
+- Improved clickable history cards, readable conversation titles, date range selection, multilingual navigation labels, and rounded button states.
+- Fixed chat errors with reasoning models, composer caret positioning, window controls, and model picker dismissal after selection.
 
 ## 1.8.1 — 2026-10-04
 
