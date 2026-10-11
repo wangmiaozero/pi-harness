@@ -33,7 +33,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1"><img alt="release v1.8.1" src="https://img.shields.io/badge/release-v1.8.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v1.9.0" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -101,15 +101,19 @@ Pi-Harness
 | Orchestrate       | Agents, Teams, Tasks, Dependencies, Handoffs, Review Gates, Worktree isolation            |
 | Work              | Workspace, Files, Git, Worktrees, Models, Providers, Skills, and Packages                 |
 
-### What's new in v1.8.1
+### What's new in v1.9.0
+
+- **Local AI history** — Browse Claude Code, Codex (including desktop and archived conversations), Cursor, Cursor Agent, Gemini CLI, OpenCode, and Pi in one place. Search and filter by source, project, or date range, and add custom history folders.
+- **View and continue separately** — Click anywhere on a conversation card to view its history. Browsing, local handoff previews, and scan retries use no model tokens. Original conversations always remain read-only.
+- **Continue in the same project** — Reuse the conversation's project directory without importing it again. Review an editable next-step instruction before continuing with your selected model in a new Pi chat, shown under that project. Default chats remain under Sessions.
+- **Optional AI summaries** — Choose **Organize with AI** to refine the handoff with your configured model. This action uses model tokens only when you request it.
+- **Smoother navigation** — Retry scans while keeping imported history, select dates with one range picker, and use clearer titles, multilingual labels, and buttons that keep their rounded shape.
+
+### Skills in conversations
 
 - **`@Skill` in the composer** — Type `@` to search installed Skills, navigate suggestions from the keyboard, and invoke the selected Skill through Native Pi.
 - **Compact Skill history** — Expanded Skill prompts stay concise in conversations, full history, and restored session titles.
 - **Cleaner Workspace controls** — Skill suggestions, file-panel view controls, and sidebar actions use a tighter visual hierarchy with less chrome.
-
-### Local AI history (development build, unreleased)
-
-**AI Sessions** reads local Claude Code, Codex, Cursor, Cursor Agent, Gemini CLI, OpenCode, and Pi conversations, with source, project, date, and text filters. **View history** and **Continue task** are separate actions: browsing and preparing a handoff preview use no model tokens; confirming continuation starts a new Pi conversation in your chosen project using your selected model. Original conversations remain read-only.
 
 ### Startup and appearance
 
@@ -146,7 +150,7 @@ It deliberately does not include LSP/IntelliSense, semantic refactoring, a debug
 
 ## Current screenshots
 
-The classic dark screenshots show the core product surfaces. The v1.8.1 gallery shows the refreshed Ming themes, Starship Cockpit, macOS 27 Liquid Glass, custom skins, and appearance settings.
+The classic dark screenshots show the core product surfaces. The appearance gallery shows the refreshed Ming themes, Starship Cockpit, macOS 27 Liquid Glass, custom skins, and appearance settings.
 
 ### Classic dark theme
 
@@ -158,7 +162,7 @@ The classic dark screenshots show the core product surfaces. The v1.8.1 gallery 
 |                            **Preferences**                            |                                                             |
 |   ![Preferences in the classic dark theme](docs/经典主题/设置.jpg)    |                                                             |
 
-### v1.8.1 appearance gallery
+### Appearance gallery
 
 #### Workspace themes
 
@@ -172,11 +176,11 @@ The classic dark screenshots show the core product surfaces. The v1.8.1 gallery 
 
 #### Product interfaces
 
-|                       **General settings**                        |                       **Theme gallery**                        |
-| :---------------------------------------------------------------: | :------------------------------------------------------------: |
-| ![General appearance settings](docs/功能界面/通用设置.jpg)        | ![Built-in and custom theme gallery](docs/功能界面/主题图库.jpg) |
-|                         **Capabilities**                          |                    **Providers and models**                    |
-|      ![Capabilities market](docs/功能界面/能力中心.jpg)           | ![Provider and model management](docs/功能界面/Provider与模型.jpg) |
+|                    **General settings**                    |                         **Theme gallery**                          |
+| :--------------------------------------------------------: | :----------------------------------------------------------------: |
+| ![General appearance settings](docs/功能界面/通用设置.jpg) |  ![Built-in and custom theme gallery](docs/功能界面/主题图库.jpg)  |
+|                      **Capabilities**                      |                      **Providers and models**                      |
+|     ![Capabilities market](docs/功能界面/能力中心.jpg)     | ![Provider and model management](docs/功能界面/Provider与模型.jpg) |
 
 <p align="center">
   <strong>Git</strong><br>
@@ -381,16 +385,16 @@ Every agent executes through a real Pi session: orchestration adds coordination,
 
 ## Download
 
-Download Pi-Harness v1.8.1 from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1).
+Pi-Harness v1.9.0 is being prepared for release. The installers below become available after publication; find currently published versions on [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
 
 | Platform            | Installer                                                                                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.8.1-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.8.1.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.8.1.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-Setup-1.8.1.exe) |
-| Linux x64           | [`Pi-Harness-1.8.1.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.9.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.9.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.9.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
+| Linux x64           | [`Pi-Harness-1.9.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
 
-> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.8.1 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1).
+> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.9.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0).
 
 Packaged users do not need to clone the repository or install pnpm. Pi-Harness can detect, install, and repair Node.js, npm, PATH, and Pi Coding Agent where supported.
 

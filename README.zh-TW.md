@@ -26,7 +26,7 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1"><img alt="v1.8.1 發行版" src="https://img.shields.io/badge/release-v1.8.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="v1.9.0 版本" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
   <img alt="支援 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 授權" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -73,18 +73,26 @@ Native Pi 始終位於真實執行鏈路中；Pi-Harness 包含 Native Pi 的全
 
 ## 下載
 
-從 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1) 下載 Pi-Harness v1.8.1。
+Pi-Harness v1.9.0 正在準備發行，下方安裝程式連結將於發行後可用。目前已發行版本請前往 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)。
 
 | 平台                | 安裝程式                                                                                                                       |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.8.1-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.8.1.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.8.1.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-Setup-1.8.1.exe) |
-| Linux x64           | [`Pi-Harness-1.8.1.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.9.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.9.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.9.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
+| Linux x64           | [`Pi-Harness-1.9.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
 
-> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v1.8.1 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1)。
+> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v1.9.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0)。
 
 安裝程式使用者不需要 clone 儲存庫，也不需要安裝 pnpm。Pi-Harness 可在支援的環境中偵測、安裝及修復 Node.js、npm、PATH 與 Pi Coding Agent。
+
+## v1.9.0 新增與改善
+
+- **統一瀏覽本機歷史**：集中查看 Claude Code、Codex（含桌面及封存對話）、Cursor、Cursor Agent、Gemini CLI、OpenCode 與 Pi；支援搜尋、來源/專案/日期範圍篩選及自訂歷史目錄。
+- **查看與繼續分開**：點擊整張對話卡片即可查看歷史。瀏覽、本機交接預覽及掃描重試不消耗模型 Token，原始對話始終唯讀。
+- **直接在原專案繼續**：沿用對話的專案目錄，不必重新匯入；確認可編輯的下一步指令後，以所選模型建立 Pi 對話並顯示在該專案下。預設對話仍放在「對話」區。
+- **按需 AI 整理**：只有明確點擊「AI 整理」，才使用已設定的模型改善交接內容並消耗模型 Token。
+- **更順暢的操作**：掃描失敗可重試並保留已匯入歷史；以單一控件選取日期範圍，改善標題、多語言標籤與按鈕圓角狀態。
 
 ## 您可以做什麼
 
@@ -126,7 +134,7 @@ Native Pi 始終位於真實執行鏈路中；Pi-Harness 包含 Native Pi 的全
 
 ## 介面預覽
 
-預設主題截圖展示主要功能介面。v1.8.1 外觀圖庫依工作區主題與功能介面重新分類。
+預設主題截圖展示主要功能介面。外觀圖庫依工作區主題與功能介面重新分類。
 
 ### 預設主題
 
@@ -138,7 +146,7 @@ Native Pi 始終位於真實執行鏈路中；Pi-Harness 包含 Native Pi 的全
 |                    **設定**                     |                                         |
 |     ![經典主題設定](docs/经典主题/设置.jpg)     |                                         |
 
-### v1.8.1 外觀圖庫
+### 外觀圖庫
 
 #### 工作區主題
 

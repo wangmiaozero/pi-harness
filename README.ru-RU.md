@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1"><img alt="release v1.8.1" src="https://img.shields.io/badge/release-v1.8.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v1.9.0" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -64,18 +64,26 @@ Native Pi всегда остаётся внутри реального пути
 
 ## Скачать
 
-Скачайте Pi-Harness v1.8.1 из [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1).
+Pi-Harness v1.9.0 готовится к выпуску. Установщики ниже станут доступны после публикации. Уже выпущенные версии доступны на [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
 
 | Платформа           | Установщик                                                                                                                   |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.8.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.8.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.8.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-Setup-1.8.1.exe) |
-| Linux x64           | [Pi-Harness-1.8.1.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.9.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.9.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.9.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
+| Linux x64           | [Pi-Harness-1.9.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
 
-> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.8.1](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1).
+> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.9.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0).
 
 Пользователям готового приложения не нужно клонировать репозиторий или устанавливать pnpm. Pi-Harness может обнаружить, установить и восстановить Node.js, npm, PATH и Pi Coding Agent в поддерживаемой среде.
+
+## Новое в v1.9.0
+
+- **Общая локальная история:** просматривайте разговоры из Claude Code, Codex (включая настольное приложение и архив), Cursor, Cursor Agent, Gemini CLI, OpenCode и Pi. Доступны поиск, фильтры по источнику, проекту и диапазону дат, а также добавление папок истории.
+- **Просмотр и продолжение отдельно:** нажмите в любом месте карточки, чтобы открыть историю. Просмотр, локальный предпросмотр передачи задачи и повторное сканирование не расходуют токены модели. Исходные разговоры всегда доступны только для чтения.
+- **Продолжение в том же проекте:** используйте каталог разговора без повторного импорта проекта. Проверьте редактируемую следующую инструкцию, прежде чем выбранная модель начнёт новый чат Pi, который появится под этим проектом. Чаты по умолчанию остаются в разделе сессий.
+- **Сводка ИИ по запросу:** настроенная модель уточняет передачу задачи и расходует токены только при явном выборе обработки с помощью ИИ.
+- **Удобнее пользоваться:** повторяйте неудачные сканирования, сохраняя импортированную историю. Диапазон дат выбирается одним элементом; улучшены заголовки, многоязычные подписи и сохранение скруглённых углов кнопок при нажатии.
 
 ## Возможности
 
@@ -111,7 +119,7 @@ Native Pi всегда остаётся внутри реального пути
 
 ## Скриншоты
 
-Стандартная тема показывает основные функции. Галерея v1.8.1 разделена на темы рабочей области и функциональные экраны.
+Стандартная тема показывает основные функции. Галерея оформления разделена на темы рабочей области и функциональные экраны.
 
 ### Стандартная тема
 
@@ -123,7 +131,7 @@ Native Pi всегда остаётся внутри реального пути
 |                             **Настройки**                             |                                                       |
 |       ![Настройки в классической теме](docs/经典主题/设置.jpg)        |                                                       |
 
-### Галерея оформления v1.8.1
+### Галерея оформления
 
 #### Темы рабочей области
 

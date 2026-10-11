@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1"><img alt="release v1.8.1" src="https://img.shields.io/badge/release-v1.8.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v1.9.0" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -64,18 +64,26 @@ Native Pi는 항상 실제 실행 경로 안에 있으며, Pi-Harness는 그 바
 
 ## 다운로드
 
-[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1)에서 Pi-Harness v1.8.1을 다운로드하세요.
+Pi-Harness v1.9.0은 출시 준비 중입니다. 아래 설치 파일은 출시 후 다운로드할 수 있습니다. 현재 출시된 버전은 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)에서 확인하세요.
 
 | 플랫폼              | 설치 파일                                                                                                                    |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.8.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.8.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.8.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-Setup-1.8.1.exe) |
-| Linux x64           | [Pi-Harness-1.8.1.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.9.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.9.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.9.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
+| Linux x64           | [Pi-Harness-1.9.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
 
-> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v1.8.1 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1)를 참고하세요.
+> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v1.9.0 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0)를 참고하세요.
 
 패키지 사용자는 저장소를 clone하거나 pnpm을 설치할 필요가 없습니다. Pi-Harness는 지원되는 환경에서 Node.js, npm, PATH, Pi Coding Agent를 감지하고 설치하거나 복구할 수 있습니다.
+
+## v1.9.0의 새 기능과 개선 사항
+
+- **로컬 대화 기록 통합**: Claude Code, Codex(데스크톱 및 보관된 대화 포함), Cursor, Cursor Agent, Gemini CLI, OpenCode, Pi의 대화를 한곳에서 봅니다. 검색, 출처·프로젝트·날짜 범위 필터와 기록 폴더 추가를 지원합니다.
+- **기록 보기와 작업 계속 분리**: 대화 카드 전체를 클릭해 기록을 볼 수 있습니다. 기록 보기, 로컬 인계 미리보기, 스캔 재시도는 모델 토큰을 소비하지 않으며 원본 대화는 항상 읽기 전용입니다.
+- **같은 프로젝트에서 계속**: 대화의 프로젝트 디렉터리를 다시 가져오지 않고 사용합니다. 수정 가능한 다음 지시를 확인한 뒤 선택한 모델로 새 Pi 대화를 만들고 해당 프로젝트 아래에 표시합니다. 기본 대화는 세션 영역에 표시합니다.
+- **필요할 때 AI로 정리**: AI 정리를 명시적으로 선택할 때만 설정된 모델로 인계 내용을 개선하고 모델 토큰을 소비합니다.
+- **더 편리한 조작**: 가져온 기록을 유지하면서 실패한 스캔을 재시도합니다. 날짜는 하나의 범위 선택기로 지정하며 제목, 다국어 라벨, 클릭 시 버튼의 둥근 모서리를 개선했습니다.
 
 ## 할 수 있는 일
 
@@ -111,7 +119,7 @@ Native Pi는 항상 실제 실행 경로 안에 있으며, Pi-Harness는 그 바
 
 ## 화면 미리보기
 
-기본 테마 스크린샷은 주요 기능 화면을 보여 줍니다. v1.8.1 외관 갤러리는 작업 공간 테마와 기능 화면으로 다시 분류했습니다.
+기본 테마 스크린샷은 주요 기능 화면을 보여 줍니다. 외관 갤러리는 작업 공간 테마와 기능 화면으로 다시 분류했습니다.
 
 ### 기본 테마
 
@@ -123,7 +131,7 @@ Native Pi는 항상 실제 실행 경로 안에 있으며, Pi-Harness는 그 바
 |                       **설정**                       |                                             |
 |     ![클래식 테마 설정](docs/经典主题/设置.jpg)      |                                             |
 
-### v1.8.1 외관 갤러리
+### 외관 갤러리
 
 #### 작업 공간 테마
 

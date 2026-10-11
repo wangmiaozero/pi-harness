@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1"><img alt="release v1.8.1" src="https://img.shields.io/badge/release-v1.8.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v1.9.0" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -64,18 +64,26 @@ Native Pi は常に実際の実行経路の内側にあり、Pi-Harness はそ�
 
 ## ダウンロード
 
-[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1) から Pi-Harness v1.8.1 をダウンロードしてください。
+Pi-Harness v1.9.0 はリリース準備中です。以下のインストーラーは公開後に利用できます。現在公開されているバージョンは [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases) をご覧ください。
 
 | プラットフォーム    | インストーラー                                                                                                               |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.8.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.8.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.8.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-Setup-1.8.1.exe) |
-| Linux x64           | [Pi-Harness-1.8.1.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.9.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.9.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.9.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
+| Linux x64           | [Pi-Harness-1.9.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
 
-> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v1.8.1 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1)を参照してください。
+> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v1.9.0 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0)を参照してください。
 
 パッケージ版の利用者は、リポジトリの clone や pnpm のインストールを行う必要はありません。Pi-Harness は、対応環境で Node.js、npm、PATH、Pi Coding Agent を検出し、インストールまたは修復できます。
+
+## v1.9.0 の新機能と改善
+
+- **ローカル履歴をまとめて表示**：Claude Code、Codex（デスクトップとアーカイブ済みの会話を含む）、Cursor、Cursor Agent、Gemini CLI、OpenCode、Pi の会話を閲覧できます。検索、ソース・プロジェクト・日付範囲での絞り込み、履歴フォルダーの追加に対応します。
+- **閲覧と続行を別々に操作**：会話カードのどこをクリックしても履歴を表示できます。閲覧、ローカルの引き継ぎプレビュー、スキャンの再試行はモデルのトークンを消費しません。元の会話は常に読み取り専用です。
+- **同じプロジェクトで続行**：会話のプロジェクトディレクトリをそのまま使い、再インポートせずに続行できます。編集可能な次の指示を確認すると、選択したモデルで新しい Pi チャットを作成し、そのプロジェクトの下に表示します。デフォルトのチャットはセッション欄に表示します。
+- **必要なときだけ AI で整理**：AI 整理を明示的に選択した場合に限り、設定済みのモデルで引き継ぎ内容を改善し、モデルのトークンを消費します。
+- **操作性の改善**：読み込み済みの履歴を保持したままスキャンを再試行できます。日付は一つの範囲選択で指定し、タイトル、多言語ラベル、クリック時のボタンの角丸も改善しました。
 
 ## できること
 
@@ -111,7 +119,7 @@ Native Pi は常に実際の実行経路の内側にあり、Pi-Harness はそ�
 
 ## スクリーンショット
 
-デフォルトテーマでは主要機能を紹介します。v1.8.1 の外観ギャラリーは、ワークスペーステーマと機能画面に分類しています。
+デフォルトテーマでは主要機能を紹介します。外観ギャラリーは、ワークスペーステーマと機能画面に分類しています。
 
 ### デフォルトテーマ
 
@@ -123,7 +131,7 @@ Native Pi は常に実際の実行経路の内側にあり、Pi-Harness はそ�
 |                           **設定**                            |                                                     |
 |       ![クラシックテーマの設定](docs/经典主题/设置.jpg)       |                                                     |
 
-### v1.8.1 外観ギャラリー
+### 外観ギャラリー
 
 #### ワークスペーステーマ
 

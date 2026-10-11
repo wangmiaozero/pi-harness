@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1"><img alt="release v1.8.1" src="https://img.shields.io/badge/release-v1.8.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v1.9.0" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -64,18 +64,26 @@ Native Pi bleibt immer im realen Ausführungspfad; Pi-Harness ergänzt darum den
 
 ## Download
 
-Lade Pi-Harness v1.8.1 aus den [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1) herunter.
+Pi-Harness v1.9.0 wird für die Veröffentlichung vorbereitet. Die folgenden Installer sind danach verfügbar. Bereits veröffentlichte Versionen findest du unter [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
 
 | Plattform           | Installer                                                                                                                    |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.8.1-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.8.1.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.8.1.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-Setup-1.8.1.exe) |
-| Linux x64           | [Pi-Harness-1.8.1.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-1.9.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-1.9.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-1.9.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
+| Linux x64           | [Pi-Harness-1.9.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
 
-> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v1.8.1](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1).
+> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v1.9.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0).
 
 Nutzer der paketierten App müssen das Repository nicht klonen und pnpm nicht installieren. Pi-Harness kann Node.js, npm, PATH und Pi Coding Agent in unterstützten Umgebungen erkennen, installieren und reparieren.
+
+## Neu in v1.9.0
+
+- **Lokalen Verlauf gemeinsam ansehen:** Unterhaltungen aus Claude Code, Codex (einschließlich Desktop und archivierter Chats), Cursor, Cursor Agent, Gemini CLI, OpenCode und Pi durchsuchen. Filtere nach Quelle, Projekt oder Datumsbereich und füge eigene Verlaufsordner hinzu.
+- **Ansehen und Fortsetzen getrennt:** Klicke auf eine beliebige Stelle der Chat-Karte, um den Verlauf zu öffnen. Ansehen, lokale Übergabevorschauen und erneute Scans verbrauchen keine Modell-Tokens. Die Originalunterhaltungen bleiben schreibgeschützt.
+- **Im selben Projekt fortsetzen:** Verwende das Projektverzeichnis der Unterhaltung ohne erneuten Import. Prüfe die bearbeitbare nächste Anweisung, bevor dein gewähltes Modell einen neuen Pi-Chat unter diesem Projekt startet. Standard-Chats bleiben im Bereich Sitzungen.
+- **KI-Zusammenfassung auf Wunsch:** Nur wenn du die KI-Aufbereitung ausdrücklich auswählst, verbessert das konfigurierte Modell die Übergabe und verbraucht Modell-Tokens.
+- **Einfachere Bedienung:** Wiederhole fehlgeschlagene Scans, ohne importierten Verlauf zu verlieren. Wähle einen Datumsbereich in einem gemeinsamen Kalender; klarere Titel und mehrsprachige Beschriftungen sowie dauerhaft abgerundete Schaltflächen erleichtern die Navigation.
 
 ## Was du tun kannst
 
@@ -111,7 +119,7 @@ Installieren → Provider konfigurieren → Modell wählen → Projekt öffnen �
 
 ## Screenshots
 
-Das Standardthema zeigt die wichtigsten Funktionen. Die v1.8.1-Galerie ist in Arbeitsbereichsdesigns und Funktionsansichten gegliedert.
+Das Standardthema zeigt die wichtigsten Funktionen. Die Erscheinungsgalerie ist in Arbeitsbereichsdesigns und Funktionsansichten gegliedert.
 
 ### Standardthema
 
@@ -123,7 +131,7 @@ Das Standardthema zeigt die wichtigsten Funktionen. Die v1.8.1-Galerie ist in Ar
 |                           **Einstellungen**                           |                                                          |
 |    ![Einstellungen im klassischen Design](docs/经典主题/设置.jpg)     |                                                          |
 
-### Erscheinungsgalerie v1.8.1
+### Erscheinungsgalerie
 
 #### Arbeitsbereichsdesigns
 

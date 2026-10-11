@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1"><img alt="v1.8.1 发布版" src="https://img.shields.io/badge/release-v1.8.1-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="v1.9.0 版本" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
   <img alt="支持 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 许可" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -102,9 +102,13 @@ Pi-Harness
 | Orchestrate / 编排 | Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Worktree 隔离                 |
 | Work / 工程工作区  | Workspace、Files、Git、Worktrees、Models、Providers、Skills、Packages                     |
 
-### 本地 AI 历史（开发版，尚未发布）
+### v1.9.0 新增与改进
 
-**AI 会话**可读取本地 Claude Code、Codex、Cursor、Cursor Agent、Gemini CLI、OpenCode 和 Pi 的聊天记录，并按来源、项目、日期和文本筛选。**查看历史**与**继续任务**是独立操作：浏览和生成任务交接预览不消耗模型 Token；确认继续后，才使用当前选定的模型，在关联项目中新建 Pi 会话。原始会话始终只读。
+- **统一查看本地历史**：集中浏览 Claude Code、Codex（含桌面及归档会话）、Cursor、Cursor Agent、Gemini CLI、OpenCode 和 Pi 的聊天记录；支持搜索、来源/项目/日期范围筛选和自定义会话目录。
+- **查看与继续分开**：点击整张会话卡片即可查看历史。浏览、本地任务交接预览和扫描重试均不消耗模型 Token，原始会话始终只读。
+- **直接在原项目继续**：自动沿用历史会话的项目目录，无需重新导入；确认可编辑的下一步指令后，才使用当前模型新建 Pi 对话。新对话显示在对应项目下，默认对话仍放在“会话”中。
+- **按需 AI 整理**：显式点击“AI 整理”，才使用已配置的模型优化交接内容并消耗模型 Token。
+- **更顺畅的操作**：扫描失败可重试并保留已导入历史；日期筛选合并为一个范围控件，改善标题、多语言标签和按钮圆角状态。
 
 ### 启动与外观
 
@@ -139,7 +143,7 @@ Pi-Harness 可以编辑可读文本文件，支持懒加载语法高亮、行号
 
 ## 当前界面
 
-默认主题截图展示主要功能界面。v1.8.1 外观图库按工作区主题和功能界面重新分类。
+默认主题截图展示主要功能界面。外观图库按工作区主题和功能界面重新分类。
 
 ### 默认主题
 
@@ -151,7 +155,7 @@ Pi-Harness 可以编辑可读文本文件，支持懒加载语法高亮、行号
 |                    **设置**                     |                                         |
 |     ![经典主题设置](docs/经典主题/设置.jpg)     |                                         |
 
-### v1.8.1 外观图库
+### 外观图库
 
 #### 工作区主题
 
@@ -291,16 +295,16 @@ Pi-Harness 已支持 Agents、Teams、Tasks、Dependencies、Handoffs、Review G
 
 ## 下载
 
-从 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1) 下载 Pi-Harness v1.8.1。
+Pi-Harness v1.9.0 正在准备发布，下方安装包链接将在发布后可用。当前已发布版本请前往 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)。
 
 | 平台                | 安装包                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.8.1-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.8.1.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.8.1.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-Setup-1.8.1.exe) |
-| Linux x64           | [`Pi-Harness-1.8.1.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.8.1/Pi-Harness-1.8.1.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-1.9.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-1.9.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-1.9.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
+| Linux x64           | [`Pi-Harness-1.9.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
 
-> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.8.1 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.8.1)。
+> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.9.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0)。
 
 安装包用户不需要 clone 仓库，也不需要安装 pnpm。Pi-Harness 可以在支持的环境中检测、安装和修复 Node.js、npm、PATH 与 Pi Coding Agent。
 
