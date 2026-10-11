@@ -2,7 +2,15 @@
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { ChevronRight, FileText, FolderOpen, MessageSquare, Play, ShieldCheck } from '@lucide/vue'
+import {
+  CheckCircle2,
+  ChevronRight,
+  FileText,
+  FolderOpen,
+  MessageSquare,
+  Play,
+  ShieldCheck
+} from '@lucide/vue'
 import {
   SOURCE_PROVIDERS,
   SOURCE_LABELS,
@@ -832,10 +840,31 @@ onBeforeUnmount(() => {
         >
         <p v-if="error" role="alert" class="text-sm text-[var(--error)]">{{ error }}</p>
         <template v-if="handoff">
-          <p class="text-sm text-[var(--warning)]">{{ t('universal.unverified') }}</p>
+          <div
+            data-testid="handoff-status"
+            role="status"
+            aria-live="polite"
+            class="flex items-start gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4"
+          >
+            <CheckCircle2
+              :size="20"
+              class="mt-0.5 shrink-0 text-[var(--accent)]"
+              aria-hidden="true"
+            />
+            <div>
+              <p class="text-sm font-medium">{{ t('universal.previewReady') }}</p>
+              <p class="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
+                {{ t('universal.unverified') }}
+              </p>
+            </div>
+          </div>
           <h3 class="font-medium">{{ t('universal.goal') }}</h3>
           <p class="text-sm whitespace-pre-wrap">{{ handoff.goal.text }}</p>
-          <section v-for="section in claimSections" :key="section.label">
+          <section
+            v-for="section in claimSections"
+            :key="section.label"
+            data-testid="handoff-claims"
+          >
             <h3 class="text-sm font-medium">{{ section.label }}</h3>
             <p v-if="!section.rows.length" class="text-xs text-[var(--text-tertiary)]">
               {{ t('universal.noClaims') }}

@@ -66,7 +66,7 @@ describe('history handoff interaction boundaries', () => {
       workspacePath,
       workspaceRoots: [...workspaceRoots]
     }))
-    const preview = vi.fn(async () => null)
+    const preview = vi.fn(async (): Promise<SessionHandoff | null> => null)
     window.piSwitch = {
       sessions: { list: async () => [] },
       universal: {
@@ -136,6 +136,59 @@ describe('history handoff interaction boundaries', () => {
       await flushPromises()
       expect(map).toHaveBeenCalledTimes(2)
       expect(isProxy(map.mock.calls[1]![2])).toBe(false)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+  it('shows a ready preview with a neutral test note and allows continuation', async () => {
+    const { wrapper, items, preview } = setupProjectResolution(async () => ({
+      status: 'available',
+      path: '/project/a'
+    }))
+    preview.mockResolvedValue({
+      id: 'c'.repeat(64),
+      schemaVersion: 1,
+      sourceSessionId: items[0]!.id,
+      sourceProvider: 'claude',
+      sourceFingerprint: 'f'.repeat(64),
+      workspacePath: '/project/a',
+      createdAt: '2026-10-01T00:00:00.000Z',
+      instruction: 'Continue task a',
+      goal: {
+        text: 'Fix login',
+        evidence: [],
+        confidence: 'high',
+        verification: 'historical-claim'
+      },
+      completed: [],
+      remaining: [],
+      decisions: [],
+      constraints: [],
+      unresolvedIssues: [],
+      relevantFiles: [],
+      git: { status: '' },
+      verification: { contextVerified: true, filesVerified: false, testsVerified: false },
+      context: '[]',
+      omittedMessages: 0
+    })
+    try {
+      await flushPromises()
+      await wrapper.get(`[data-testid="history-session-${items[0]!.id}"]`).trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+      await flushPromises()
+      await wrapper.get('textarea').setValue('Continue task a')
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text() === 'Prepare handoff')!
+        .trigger('click')
+      await flushPromises()
+      const status = wrapper.get('[data-testid="handoff-status"]')
+      expect(status.attributes('role')).toBe('status')
+      expect(status.text()).toContain('Handoff preview ready')
+      expect(status.text()).toContain('Project tests have not been rerun.')
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+      expect(wrapper.get('[data-testid="handoff-confirm"]').attributes('disabled')).toBeUndefined()
     } finally {
       wrapper.unmount()
     }

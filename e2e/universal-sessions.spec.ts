@@ -318,6 +318,25 @@ test('browses without model calls, previews evidence, and continues through the 
             { type: 'tool_use', id: 'historic-read', name: 'Read', input: { file_path: 'a.ts' } }
           ]
         }
+      },
+      {
+        type: 'system',
+        uuid: 's1',
+        timestamp: '2026-10-01T10:03:00.000Z',
+        message: {
+          role: 'system',
+          content: '- fixture:catalog: Use a completed security scan. Must verify the scan.'
+        }
+      },
+      {
+        type: 'assistant',
+        uuid: 'a3',
+        timestamp: '2026-10-01T10:04:00.000Z',
+        message: {
+          role: 'assistant',
+          content:
+            '> 已完成引用中的任务。\n```text\nCompleted code example.\n```\nThe task is not completed.'
+        }
       }
     ]
       .map((r) => JSON.stringify(r))
@@ -377,15 +396,26 @@ test('browses without model calls, previews evidence, and continues through the 
     await expect(page.getByText('Universal history fixture 中文', { exact: true })).toBeVisible()
     await page.getByText('Universal history fixture 中文', { exact: true }).click()
     await expect(page.getByTestId('history-messages')).toContainText('已完成初步分析')
+    await expect(page.getByTestId('history-messages')).toContainText('fixture:catalog')
     expect(requests).toHaveLength(0)
     await page.getByTestId('history-continue-task').click()
     await page
       .getByRole('textbox', { name: /接下来希望 Pi 做什么|What should Pi do next/ })
       .fill('Read a.ts and explain its contents. Do not change files.')
     await page.getByRole('button', { name: /生成任务交接|Prepare handoff/, exact: true }).click()
-    await expect(page.getByTestId('handoff-preview')).toContainText(
-      /尚未验证当前项目|Current tests have not been verified/
+    const previewStatus = page.getByTestId('handoff-status')
+    await expect(previewStatus).toContainText(/交接预览已生成|Handoff preview ready/)
+    await expect(previewStatus).toContainText(
+      /尚未重新运行项目测试|Project tests have not been rerun/
     )
+    await expect(previewStatus).toHaveAttribute('role', 'status')
+    await expect(page.getByTestId('handoff-confirm')).toBeEnabled()
+    const claims = (await page.getByTestId('handoff-claims').allTextContents()).join('\n')
+    expect(claims).toContain('已完成初步分析')
+    expect(claims).not.toContain('fixture:catalog')
+    expect(claims).not.toContain('已完成引用中的任务')
+    expect(claims).not.toContain('Completed code example')
+    expect(claims).not.toContain('The task is not completed')
     await expect(page.getByTestId('handoff-preview')).toContainText('历史声称已完成')
     await expect(page.getByTestId('handoff-preview')).toContainText(extraRoot)
     expect(requests).toHaveLength(0)

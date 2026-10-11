@@ -4,11 +4,11 @@ import { randomUUID } from 'node:crypto'
 import {
   sessionHandoffSchema,
   type SessionHandoff,
-  type UniversalMessage,
-  type HandoffClaim
+  type UniversalMessage
 } from '@shared/universal/schema'
 import { hash } from './parsers'
-import { redact, userTaskText } from './normalize'
+import { redact } from './normalize'
+import { extractClaims } from './handoff-claims'
 import { contained } from './sources'
 import type { UniversalSessionService } from './service'
 import type { FileAccessService } from '../files/file-access-service'
@@ -20,6 +20,8 @@ import { ValidationError } from '../services/errors'
 import { gitExec } from '../git/git-exec'
 
 const MAX_HANDOFF_PROMPT_CHARS = 128_000
+
+export { extractClaims } from './handoff-claims'
 
 export interface HandoffDependencies {
   history: UniversalSessionService
@@ -220,47 +222,6 @@ export class UniversalHandoffService {
   }
 }
 
-export function extractClaims(
-  messages: UniversalMessage[]
-): Pick<
-  SessionHandoff,
-  'goal' | 'completed' | 'remaining' | 'decisions' | 'constraints' | 'unresolvedIssues'
-> {
-  const rows = messages.flatMap((m) =>
-    m.parts.flatMap((p) =>
-      p.type === 'text'
-        ? (m.role === 'user' ? userTaskText(p.text) : p.text)
-            .split(/\n+|(?<=[。.!?])\s+/)
-            .filter((t) => t.trim())
-            .map((t) => ({ text: t.trim().slice(0, 2000), evidence: [m.sourceRef], role: m.role }))
-        : []
-    )
-  )
-  const goalRow = rows.find((r) => r.role === 'user')
-  const claim = (row: (typeof rows)[number]): HandoffClaim => ({
-    text: row.text,
-    evidence: row.evidence,
-    confidence: row.role === 'user' ? 'high' : 'low',
-    verification: 'historical-claim'
-  })
-  const select = (pattern: RegExp) =>
-    rows
-      .filter((r) => pattern.test(r.text))
-      .slice(-20)
-      .map(claim)
-  return {
-    goal: goalRow
-      ? claim(goalRow)
-      : { text: '', evidence: [], confidence: 'low', verification: 'unverified' },
-    completed: select(
-      /(?:已完成|已实现|已修复|测试通过|\b(?:completed|implemented|fixed|tests? passed)\b)/i
-    ),
-    remaining: select(/(?:待办|剩余|下一步|尚未|未完成|\b(?:todo|remaining|next step|not yet)\b)/i),
-    decisions: select(/(?:决定|采用|选择|\b(?:decided|decision|chosen)\b)/i),
-    constraints: select(/(?:必须|禁止|不得|只读|\b(?:must|never|read.only|constraint)\b)/i),
-    unresolvedIssues: select(/(?:失败|错误|未解决|\b(?:failed|error|unresolved|blocked)\b)/i)
-  }
-}
 export async function inspectGit(root: string): Promise<SessionHandoff['git']> {
   try {
     const readGit = (args: string[]) =>
