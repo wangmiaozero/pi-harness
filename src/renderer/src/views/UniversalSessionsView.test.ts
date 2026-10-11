@@ -161,6 +161,11 @@ describe('history handoff interaction boundaries', () => {
       expect(wrapper.text()).not.toContain('Save project link')
       expect(wrapper.find('[data-testid="handoff-project"] select').exists()).toBe(false)
       expect(map).not.toHaveBeenCalled()
+      expect(wrapper.get('textarea').element.value).toBe(
+        universalMessages['en-US'].defaultInstruction
+      )
+      expect(wrapper.get('textarea').element.value).toContain('Do not modify files, run tests')
+      expect(preview).not.toHaveBeenCalled()
       await wrapper.get('textarea').setValue('Continue task a')
       await wrapper
         .findAll('button')
@@ -644,7 +649,9 @@ describe('history handoff interaction boundaries', () => {
       } as SessionHandoff)
       await flushPromises()
       expect(wrapper.text()).not.toContain('Wrong old task')
-      expect(wrapper.get('textarea').element.value).toBe('')
+      expect(wrapper.get('textarea').element.value).toBe(
+        universalMessages['en-US'].defaultInstruction
+      )
       expect(wrapper.get('[data-testid="handoff-confirm"]').attributes('disabled')).toBeDefined()
       expect(continueTask).not.toHaveBeenCalled()
     } finally {

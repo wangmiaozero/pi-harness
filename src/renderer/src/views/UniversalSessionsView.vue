@@ -31,7 +31,7 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import HistoryMessage from '@renderer/components/universal/HistoryMessage.vue'
-import HistoryDatePicker from '@renderer/components/universal/HistoryDatePicker.vue'
+import HistoryDateRangePicker from '@renderer/components/universal/HistoryDateRangePicker.vue'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -46,8 +46,9 @@ const indexedProjects = ref<string[]>([])
 const provider = ref<SourceProvider | ''>('')
 const project = ref('')
 const query = ref('')
-const after = ref('')
-const before = ref('')
+const dateRange = ref<{ start: string; end: string }>()
+const after = computed(() => dateRange.value?.start ?? '')
+const before = computed(() => dateRange.value?.end ?? '')
 const status = ref<UniversalSyncStatus>({
   running: false,
   cancelled: false,
@@ -162,7 +163,7 @@ async function beginHandoff() {
   projectResolution.value = 'unrecorded'
   handoffOpen.value = true
   handoff.value = null
-  instruction.value = ''
+  instruction.value = t('universal.defaultInstruction')
   error.value = ''
   try {
     const result = await api().resolveProject(id)
@@ -640,17 +641,7 @@ onBeforeUnmount(() => {
             <option value="">{{ t('universal.allProjects') }}</option>
             <option v-for="p in projectOptions" :key="p" :value="p">{{ p }}</option>
           </select>
-          <div class="flex gap-2">
-            <HistoryDatePicker
-              v-model="after"
-              :label="t('universal.after')"
-              :max="before || undefined"
-            /><HistoryDatePicker
-              v-model="before"
-              :label="t('universal.before')"
-              :min="after || undefined"
-            />
-          </div>
+          <HistoryDateRangePicker v-model="dateRange" :label="t('universal.dateRange')" />
           <p class="text-xs text-[var(--text-tertiary)]">
             {{ t('universal.sessions', { count: total }) }}
           </p>
