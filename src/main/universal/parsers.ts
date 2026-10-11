@@ -41,6 +41,23 @@ export interface ParseInput {
   title?: string
   warnings?: string[]
 }
+/** Compaction embeds duplicate runtime context; index its summary and provenance only. */
+export function compactCodexRecord(raw: unknown): unknown {
+  const record = object(raw)
+  if (record.type !== 'compacted') return raw
+  const payload = object(record.payload)
+  return {
+    type: 'compacted',
+    timestamp: record.timestamp,
+    payload: {
+      message: string(payload.message),
+      replacementHistoryCount:
+        payload.replacementHistoryCount ?? array(payload.replacement_history).length,
+      windowId: payload.windowId ?? payload.window_id,
+      previousWindowId: payload.previousWindowId ?? payload.previous_window_id
+    }
+  }
+}
 export function parseSession(input: ParseInput): ParsedSession {
   const { provider, records } = input
   const recognized = records.some((raw) => {
@@ -258,7 +275,7 @@ export function parseSession(input: ParseInput): ParsedSession {
         Object.keys(r).length &&
         !['session_meta', 'turn_context', 'session', 'model_change'].includes(string(r.type) ?? '')
       ) {
-        content = r
+        content = provider === 'codex' ? compactCodexRecord(r) : r
         isMessage = true
       }
     }

@@ -47,6 +47,27 @@ const session = (letter: string): UniversalSession => ({
   warnings: [],
   blob: 'c'.repeat(64)
 })
+const localHandoff = (item: UniversalSession): SessionHandoff => ({
+  id: 'c'.repeat(64),
+  schemaVersion: 1,
+  sourceSessionId: item.id,
+  sourceProvider: 'claude',
+  sourceFingerprint: item.source.fingerprint,
+  workspacePath: item.projectPath!,
+  createdAt: '2026-10-01T00:00:00.000Z',
+  instruction: 'Continue task a',
+  goal: { text: 'Fix login', evidence: [], confidence: 'high', verification: 'historical-claim' },
+  completed: [],
+  remaining: [],
+  decisions: [],
+  constraints: [],
+  unresolvedIssues: [],
+  relevantFiles: [],
+  git: { status: '' },
+  verification: { contextVerified: true, filesVerified: false, testsVerified: false },
+  context: '[]',
+  omittedMessages: 0
+})
 
 afterEach(() => {
   delete window.piSwitch
@@ -55,11 +76,12 @@ afterEach(() => {
 
 describe('history handoff interaction boundaries', () => {
   function setupProjectResolution(
-    resolveProject: (id: string) => Promise<UniversalProjectResolution>
+    resolveProject: (id: string) => Promise<UniversalProjectResolution>,
+    sourceStatus: UniversalSession['source']['status'] = 'available'
   ) {
     const items = [session('a'), session('b')].map(({ workspacePath: _path, ...item }) => {
       void _path
-      return item
+      return { ...item, source: { ...item.source, status: sourceStatus } }
     })
     const map = vi.fn(async (id: string, workspacePath: string, workspaceRoots: string[]) => ({
       ...items.find((s) => s.id === id)!,
@@ -67,10 +89,30 @@ describe('history handoff interaction boundaries', () => {
       workspaceRoots: [...workspaceRoots]
     }))
     const preview = vi.fn(async (): Promise<SessionHandoff | null> => null)
+    const organize = vi.fn(async (): Promise<SessionHandoff | null> => null)
+    const scanStatus = {
+      running: false,
+      cancelled: false,
+      scanned: 0,
+      changed: 0,
+      errors: [],
+      lastSync: '2026-10-01'
+    }
+    const sync = vi.fn(async () => {
+      items.forEach((item) => {
+        item.source.status = 'available'
+      })
+      return scanStatus
+    })
+    const read = vi.fn(async ({ id }: { id: string }) => ({
+      session: structuredClone(items.find((s) => s.id === id)),
+      messages: [],
+      total: 1
+    }))
     window.piSwitch = {
       sessions: { list: async () => [] },
       universal: {
-        list: async () => ({ sessions: items, projects: [], total: 2 }),
+        list: async () => ({ sessions: structuredClone(items), projects: [], total: 2 }),
         sources: async () => [],
         status: async () => ({
           running: false,
@@ -80,14 +122,12 @@ describe('history handoff interaction boundaries', () => {
           errors: [],
           lastSync: '2026-10-01'
         }),
-        read: async ({ id }: { id: string }) => ({
-          session: items.find((s) => s.id === id),
-          messages: [],
-          total: 1
-        }),
+        read,
+        sync,
         resolveProject,
         map,
-        preview
+        preview,
+        organize
       }
     } as unknown as PiSwitchAPI
     const wrapper = mount(UniversalSessionsView, {
@@ -105,7 +145,7 @@ describe('history handoff interaction boundaries', () => {
         stubs: { Dialog }
       }
     })
-    return { wrapper, items, map, preview }
+    return { wrapper, items, map, preview, organize, sync, read }
   }
   it('uses an unimported recorded directory automatically without a separate save-link step', async () => {
     const resolveProject = vi.fn(async () => ({ status: 'available' as const, path: '/project/a' }))
@@ -189,6 +229,214 @@ describe('history handoff interaction boundaries', () => {
       expect(status.text()).toContain('Project tests have not been rerun.')
       expect(wrapper.find('[role="alert"]').exists()).toBe(false)
       expect(wrapper.get('[data-testid="handoff-confirm"]').attributes('disabled')).toBeUndefined()
+    } finally {
+      wrapper.unmount()
+    }
+  })
+  it('retries a failed scan and refreshes the selected detail so continuation is available immediately', async () => {
+    const { wrapper, items, sync, read } = setupProjectResolution(
+      async () => ({ status: 'available', path: '/project/a' }),
+      'error'
+    )
+    try {
+      await flushPromises()
+      await wrapper.get(`[data-testid="history-session-${items[0]!.id}"]`).trigger('click')
+      await flushPromises()
+      expect(wrapper.get('[data-testid="history-source-status"]').text()).toContain('Scan failed')
+      expect(wrapper.get('[data-testid="history-source-status"]').text()).not.toContain(
+        'Source unavailable'
+      )
+      await wrapper.get('[data-testid="history-retry-scan"]').trigger('click')
+      await flushPromises()
+      expect(sync).toHaveBeenCalledOnce()
+      expect(read).toHaveBeenCalledTimes(2)
+      expect(wrapper.find('[data-testid="history-source-status"]').exists()).toBe(false)
+      expect(
+        wrapper.get('[data-testid="history-continue-task"]').attributes('disabled')
+      ).toBeUndefined()
+      await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.get('[data-testid="handoff-project-path"]').text()).toBe('/project/a')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+  it('retries before continuing a failed source without requiring another selection', async () => {
+    const { wrapper, items, sync } = setupProjectResolution(
+      async () => ({ status: 'available', path: '/project/a' }),
+      'error'
+    )
+    try {
+      await flushPromises()
+      await wrapper.get(`[data-testid="history-session-${items[0]!.id}"]`).trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+      await flushPromises()
+      expect(sync).toHaveBeenCalledOnce()
+      expect(wrapper.get('[data-testid="handoff-project-path"]').text()).toBe('/project/a')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+  it('releases detail loading when a retry supersedes an earlier read and ignores its late result', async () => {
+    const { wrapper, items, read } = setupProjectResolution(
+      async () => ({ status: 'available', path: '/project/a' }),
+      'error'
+    )
+    const stale = structuredClone(items[0]!)
+    let release!: (value: Awaited<ReturnType<typeof read>>) => void
+    read.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve
+        })
+    )
+    try {
+      await flushPromises()
+      await wrapper.get(`[data-testid="history-session-${items[0]!.id}"]`).trigger('click')
+      await flushPromises()
+      expect(
+        wrapper.get('[data-testid="history-continue-task"]').attributes('disabled')
+      ).toBeDefined()
+      await wrapper.get('[data-testid="history-retry-scan"]').trigger('click')
+      await flushPromises()
+      expect(
+        wrapper.get('[data-testid="history-continue-task"]').attributes('disabled')
+      ).toBeUndefined()
+      release({ session: stale, messages: [], total: 1 })
+      await flushPromises()
+      expect(wrapper.find('[data-testid="history-source-status"]').exists()).toBe(false)
+      expect(
+        wrapper.get('[data-testid="history-continue-task"]').attributes('disabled')
+      ).toBeUndefined()
+    } finally {
+      wrapper.unmount()
+    }
+  })
+  it('keeps a failed retry visible and distinguishes a genuinely missing original file', async () => {
+    const { wrapper, items, sync } = setupProjectResolution(
+      async () => ({ status: 'available', path: '/project/a' }),
+      'missing'
+    )
+    sync.mockImplementation(async () => ({
+      running: false,
+      cancelled: false,
+      scanned: 1,
+      changed: 0,
+      errors: [],
+      lastSync: '2026-10-01'
+    }))
+    try {
+      await flushPromises()
+      await wrapper.get(`[data-testid="history-session-${items[0]!.id}"]`).trigger('click')
+      await flushPromises()
+      expect(wrapper.get('[data-testid="history-source-status"]').text()).toContain(
+        'Source unavailable'
+      )
+      expect(
+        wrapper.get('[data-testid="history-continue-task"]').attributes('disabled')
+      ).toBeDefined()
+      await wrapper.get('[data-testid="history-retry-scan"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find('[data-testid="history-retry-scan"]').exists()).toBe(true)
+      expect(
+        wrapper.get('[data-testid="history-continue-task"]').attributes('disabled')
+      ).toBeDefined()
+    } finally {
+      wrapper.unmount()
+    }
+  })
+  it('calls AI only on the explicit button and preserves the local preview after a model failure', async () => {
+    const { wrapper, items, preview, organize } = setupProjectResolution(async () => ({
+      status: 'available',
+      path: '/project/a'
+    }))
+    const local = localHandoff(items[0]!)
+    preview.mockResolvedValue(local)
+    organize.mockRejectedValueOnce(new Error('Model unavailable'))
+    organize.mockResolvedValue({
+      ...local,
+      aiSummary: {
+        text: 'AI historical summary',
+        provider: 'configured-provider',
+        modelId: 'configured-model',
+        createdAt: '2026-10-11T00:00:00.000Z'
+      }
+    })
+    try {
+      await flushPromises()
+      await wrapper.get(`[data-testid="history-session-${items[0]!.id}"]`).trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+      await flushPromises()
+      await wrapper.get('textarea').setValue(local.instruction)
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text() === 'Prepare handoff')!
+        .trigger('click')
+      await flushPromises()
+      expect(organize).not.toHaveBeenCalled()
+      await wrapper.get('[data-testid="handoff-ai-organize"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.text()).toContain('Model unavailable')
+      expect(wrapper.get('[data-testid="handoff-status"]').text()).toContain(
+        'Handoff preview ready'
+      )
+      expect(wrapper.get('[data-testid="handoff-confirm"]').attributes('disabled')).toBeUndefined()
+      await wrapper.get('[data-testid="handoff-ai-organize"]').trigger('click')
+      await flushPromises()
+      expect(organize).toHaveBeenCalledTimes(2)
+      expect(organize).toHaveBeenLastCalledWith(local.id)
+      expect(wrapper.get('[data-testid="handoff-ai-summary"]').text()).toContain(
+        'AI historical summary'
+      )
+      expect(wrapper.get('[data-testid="handoff-ai-summary"]').text()).toContain(
+        'configured-provider / configured-model'
+      )
+    } finally {
+      wrapper.unmount()
+    }
+  })
+  it('discards a late AI summary after the preview is closed', async () => {
+    const { wrapper, items, preview, organize } = setupProjectResolution(async () => ({
+      status: 'available',
+      path: '/project/a'
+    }))
+    const local = localHandoff(items[0]!)
+    preview.mockResolvedValue(local)
+    let finish!: (value: SessionHandoff) => void
+    organize.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        })
+    )
+    try {
+      await flushPromises()
+      await wrapper.get(`[data-testid="history-session-${items[0]!.id}"]`).trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-testid="history-continue-task"]').trigger('click')
+      await flushPromises()
+      await wrapper.get('textarea').setValue(local.instruction)
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text() === 'Prepare handoff')!
+        .trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-testid="handoff-ai-organize"]').trigger('click')
+      expect(wrapper.get('[data-testid="handoff-confirm"]').attributes('disabled')).toBeDefined()
+      await wrapper.get('[data-testid="close-preview"]').trigger('click')
+      finish({
+        ...local,
+        aiSummary: {
+          text: 'Wrong late summary',
+          provider: 'test',
+          modelId: 'test',
+          createdAt: '2026-10-11'
+        }
+      })
+      await flushPromises()
+      expect(wrapper.text()).not.toContain('Wrong late summary')
     } finally {
       wrapper.unmount()
     }

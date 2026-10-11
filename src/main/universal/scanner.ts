@@ -11,13 +11,14 @@ import {
   type UniversalSyncStatus
 } from '@shared/universal/schema'
 import { atomicWriteText } from '../services/storage'
-import { parseSession, hash, type ParsedSession } from './parsers'
+import { parseSession, compactCodexRecord, hash, type ParsedSession } from './parsers'
 import { object, string, array } from './normalize'
 import { safeSourceFile, walk } from './sources'
 import { parseSourceDatabase } from './sqlite'
 
 // Invalidate derived blobs when format normalization changes; originals remain untouched.
-const PARSER_REVISION = 4
+const PARSER_REVISION = 5
+const MAX_SOURCE_BYTES = 256 * 1024 * 1024
 
 export interface ScanRequest {
   sources: SourceLocation[]
@@ -30,7 +31,11 @@ export interface ScanResult {
 }
 export async function readRecords(
   file: string,
-  options: { maxRecordBytes?: number; snapshotSize?: number } = {}
+  options: {
+    maxRecordBytes?: number
+    snapshotSize?: number
+    projectRecord?: (record: unknown) => unknown
+  } = {}
 ): Promise<{
   records: unknown[]
   warnings: string[]
@@ -41,7 +46,7 @@ export async function readRecords(
   const warnings: string[] = []
   const recordNumbers: number[] = []
   const size = (await fs.stat(file)).size
-  if (size > 256 * 1024 * 1024) throw new Error('SOURCE_SIZE_LIMIT')
+  if (size > MAX_SOURCE_BYTES) throw new Error('SOURCE_SIZE_LIMIT')
   if (file.endsWith('.json')) {
     const value = object(JSON.parse(await fs.readFile(file, 'utf8')))
     return {
@@ -64,7 +69,7 @@ export async function readRecords(
   const limiter = new Transform({
     transform(chunk: Buffer, _encoding, done) {
       totalBytes += chunk.length
-      if (totalBytes > 256 * 1024 * 1024) return done(new Error('SOURCE_SIZE_LIMIT'))
+      if (totalBytes > MAX_SOURCE_BYTES) return done(new Error('SOURCE_SIZE_LIMIT'))
       for (const byte of chunk) {
         lineBytes = byte === 10 ? 0 : lineBytes + 1
         if (lineBytes > maxRecordBytes) return done(new Error('SOURCE_RECORD_SIZE_LIMIT'))
@@ -85,7 +90,8 @@ export async function readRecords(
       if (!line.trim()) continue
       if (line.length > maxRecordBytes) throw new Error('SOURCE_RECORD_SIZE_LIMIT')
       try {
-        records.push(JSON.parse(line))
+        const record: unknown = JSON.parse(line)
+        records.push(options.projectRecord ? options.projectRecord(record) : record)
         recordNumbers.push(lineNumber)
       } catch {
         warnings.push(`INVALID_RECORD:${lineNumber}`)
@@ -280,8 +286,10 @@ export async function scanSources(
                 ? await legacyOpenCode(source.root, file, files)
                 : await readRecords(file, {
                     snapshotSize: st.size,
-                    // Desktop image/tool records can exceed 4 MiB. Keep a bounded larger limit.
-                    maxRecordBytes: source.provider === 'codex' ? 16 * 1024 * 1024 : undefined
+                    // Compaction can embed an entire context, including multiple inline images.
+                    // The total source/decompression ceiling still bounds every Codex record.
+                    maxRecordBytes: source.provider === 'codex' ? MAX_SOURCE_BYTES : undefined,
+                    projectRecord: source.provider === 'codex' ? compactCodexRecord : undefined
                   })
             sourceDigest = 'sourceDigest' in data ? data.sourceDigest : undefined
             let projectPath: string | undefined

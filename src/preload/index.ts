@@ -48,6 +48,7 @@ const api: PiSwitchAPI = {
     clear: () => invoke(IPC_INVOKE.universalClear),
     forget: (id) => invoke(IPC_INVOKE.universalForget, { id }),
     preview: (id, instruction) => invoke(IPC_INVOKE.universalPreview, { id, instruction }),
+    organize: (id) => invoke(IPC_INVOKE.universalOrganize, { id }),
     continue: (id) => invoke(IPC_INVOKE.universalContinue, { id })
   },
   system: {

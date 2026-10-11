@@ -109,4 +109,7 @@ export function registerUniversalIpc(
   ipc.handle(IPC_INVOKE.universalContinue, (_e, input: unknown) =>
     wrap(() => handoff.continue(parse(universalIdSchema, input).id))
   )
+  ipc.handle(IPC_INVOKE.universalOrganize, (_e, input: unknown) =>
+    wrap(() => handoff.organize(parse(universalIdSchema, input).id))
+  )
 }

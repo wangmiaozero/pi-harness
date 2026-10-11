@@ -156,6 +156,13 @@ const workspaceGitSchema = z.object({
   repositoryRoot: text.optional(),
   stateFingerprint: text.optional()
 })
+export const handoffAiSummarySchema = z.object({
+  text: text.min(1).max(16_000),
+  provider: text.min(1).max(256),
+  modelId: text.min(1).max(256),
+  createdAt: text
+})
+export type HandoffAiSummary = z.infer<typeof handoffAiSummarySchema>
 export const sessionHandoffSchema = z.object({
   id,
   schemaVersion: z.literal(1),
@@ -193,6 +200,7 @@ export const sessionHandoffSchema = z.object({
   }),
   context: text,
   omittedMessages: z.number().int().nonnegative(),
+  aiSummary: handoffAiSummarySchema.optional(),
   piSessionId: text.optional()
 })
 export type SessionHandoff = z.infer<typeof sessionHandoffSchema>
@@ -224,5 +232,6 @@ export interface UniversalSessionsAPI {
   clear(): Promise<void>
   forget(id: string): Promise<void>
   preview(id: string, instruction: string): Promise<SessionHandoff>
+  organize(handoffId: string): Promise<SessionHandoff>
   continue(handoffId: string): Promise<{ sessionId: string; handoff: SessionHandoff }>
 }

@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import {
   sessionHandoffSchema,
   type SessionHandoff,
+  type HandoffAiSummary,
   type UniversalMessage
 } from '@shared/universal/schema'
 import { hash } from './parsers'
@@ -30,10 +31,12 @@ export interface HandoffDependencies {
   agent: AgentRuntime
   config: Pick<PiConfigService, 'getActiveModel'>
   beforeStart?: (cwd: string) => Promise<void>
+  organizeHistory?: (handoff: SessionHandoff) => Promise<HandoffAiSummary>
 }
 export class UniversalHandoffService {
   private pending = new Map<string, Promise<{ sessionId: string; handoff: SessionHandoff }>>()
   private executionQueue: Promise<unknown> = Promise.resolve()
+  private organizing = new Map<string, Promise<SessionHandoff>>()
   constructor(private readonly deps: HandoffDependencies) {}
   async origin(piSessionId: string): Promise<SessionHandoff | null> {
     const root = path.join(this.deps.history.root, 'handoffs')
@@ -108,12 +111,51 @@ export class UniversalHandoffService {
     await this.save(handoff)
     return handoff
   }
+  organize(id: string): Promise<SessionHandoff> {
+    if (this.pending.has(id))
+      return Promise.reject(new ValidationError('This task is already being continued.'))
+    const pending = this.organizing.get(id)
+    if (pending) return pending
+    const work = this.organizePreview(id).finally(() => this.organizing.delete(id))
+    this.organizing.set(id, work)
+    return work
+  }
+  private async organizePreview(id: string): Promise<SessionHandoff> {
+    if (!this.deps.organizeHistory) throw new ValidationError('AI organization is unavailable.')
+    const handoff = sessionHandoffSchema.parse(
+      await readJsonFile(path.join(this.deps.history.root, 'handoffs', `${id}.json`))
+    )
+    if (handoff.piSessionId) throw new ValidationError('This task has already been continued.')
+    await this.refreshHistory()
+    const source = await this.deps.history.get(handoff.sourceSessionId)
+    if (
+      source.source.status !== 'available' ||
+      source.source.fingerprint !== handoff.sourceFingerprint ||
+      source.workspacePath !== handoff.workspacePath
+    )
+      throw new ValidationError('The source changed. Generate a new handoff preview.')
+    handoffPrompt(handoff)
+    await this.authorizedRoots(handoff.workspaces?.map((w) => w.path) ?? [handoff.workspacePath])
+    const summary = await this.deps.organizeHistory(handoff)
+    const latest = sessionHandoffSchema.parse(
+      await readJsonFile(path.join(this.deps.history.root, 'handoffs', `${id}.json`))
+    )
+    if (latest.piSessionId) throw new ValidationError('This task has already been continued.')
+    const result = sessionHandoffSchema.parse({ ...latest, aiSummary: summary })
+    handoffPrompt(result)
+    await this.save(result)
+    return result
+  }
   continue(id: string): Promise<{ sessionId: string; handoff: SessionHandoff }> {
     const pending = this.pending.get(id)
     if (pending) return pending
     const work = this.executionQueue
       .catch(() => undefined)
-      .then(() => this.execute(id))
+      .then(async () => {
+        // Keep the summary and continuation link from overwriting each other's saved revision.
+        await this.organizing.get(id)?.catch(() => undefined)
+        return this.execute(id)
+      })
       .finally(() => this.pending.delete(id))
     this.executionQueue = work
     this.pending.set(id, work)
@@ -343,6 +385,7 @@ export function handoffPrompt(h: SessionHandoff): string {
           constraints: h.constraints,
           unresolvedIssues: h.unresolvedIssues
         },
+        aiSummary: h.aiSummary,
         omittedMessages: h.omittedMessages
       },
       'Verified Workspace State': {

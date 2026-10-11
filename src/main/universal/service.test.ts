@@ -290,6 +290,104 @@ describe('local history discovery, persistence and isolation', () => {
     ])
     expect(await fs.readFile(transcript, 'utf8')).toBe(original)
   })
+  it('recovers a previously failed Codex scan containing a compaction record larger than 16 MiB', async () => {
+    const codex = path.join(root, 'codex-compaction')
+    await fs.mkdir(codex)
+    const transcript = path.join(codex, 'rollout.jsonl')
+    const original =
+      [
+        { type: 'session_meta', payload: { id: 'compaction', cwd: '/project' } },
+        {
+          type: 'response_item',
+          payload: {
+            type: 'message',
+            role: 'user',
+            content: [{ type: 'input_text', text: 'Keep the original task' }]
+          }
+        },
+        {
+          type: 'compacted',
+          payload: {
+            message: 'Historical compaction summary',
+            replacement_history: [
+              {
+                type: 'message',
+                content: [
+                  {
+                    type: 'input_image',
+                    image_url: `data:image/png;base64,${'a'.repeat(17 * 1024 * 1024)}`
+                  }
+                ]
+              }
+            ],
+            window_id: 'window-1'
+          }
+        },
+        {
+          type: 'event_msg',
+          payload: { type: 'agent_message', message: 'Answer after compaction' }
+        }
+      ]
+        .map((record) => JSON.stringify(record))
+        .join('\n') + '\n'
+    await fs.writeFile(transcript, original)
+    await service.addSource('codex', codex)
+    await service.sync()
+    const indexed = (await service.list({ provider: 'codex' })).sessions[0]!
+    const stored = JSON.parse(await fs.readFile(path.join(root, 'cache', 'index.json'), 'utf8'))
+    stored.sessions.find((s: { id: string }) => s.id === indexed.id).source.status = 'error'
+    stored.sessions
+      .find((s: { id: string }) => s.id === indexed.id)
+      .warnings.push('SOURCE_RECORD_SIZE_LIMIT')
+    await service.close()
+    await fs.writeFile(path.join(root, 'cache', 'index.json'), JSON.stringify(stored))
+    service = new UniversalSessionService(
+      path.join(root, 'cache'),
+      [source, { provider: 'codex', root: codex, custom: true }],
+      (request) => scanSources(request)
+    )
+    const result = await service.sync()
+    expect(result.errors).toEqual([])
+    const detail = await service.read({ id: indexed.id })
+    expect(detail.session.source.status).toBe('available')
+    expect(detail.session.warnings).not.toContain('SOURCE_RECORD_SIZE_LIMIT')
+    expect(detail.messages).toHaveLength(3)
+    expect(detail.messages[1]).toMatchObject({
+      sourceRef: `${transcript}#record=3`,
+      parts: [
+        {
+          type: 'native-event',
+          eventType: 'compacted',
+          text: expect.stringContaining('Historical compaction summary')
+        }
+      ]
+    })
+    expect(JSON.stringify(detail.messages)).not.toContain('data:image')
+    expect(JSON.stringify(detail.messages).length).toBeLessThan(4000)
+    expect(detail.messages[2]?.parts[0]).toMatchObject({ text: 'Answer after compaction' })
+    expect(await fs.readFile(transcript, 'utf8')).toBe(original)
+  })
+  it('retries an unchanged source after a transient scan error and clears its failure state', async () => {
+    await service.sync()
+    const id = (await service.list()).sessions[0]!.id
+    const originalStat = fs.stat
+    let failed = false
+    const stat = vi.spyOn(fs, 'stat').mockImplementation(async (...args) => {
+      if (String(args[0]) === file && !failed) {
+        failed = true
+        throw new Error('temporary read failure')
+      }
+      return originalStat(...args)
+    })
+    try {
+      expect((await service.sync()).errors.length).toBeGreaterThan(0)
+      expect((await service.read({ id })).session.source.status).not.toBe('available')
+    } finally {
+      stat.mockRestore()
+    }
+    expect((await service.sync()).errors).toEqual([])
+    expect((await service.read({ id })).session.source.status).toBe('available')
+  })
   it.each([false, true])(
     'accepts growing Codex logs only when their original prefix is unchanged (rewrite=%s)',
     async (rewrite) => {

@@ -20,6 +20,7 @@ import {
 import { JsonStore } from './services/storage'
 import { UniversalSessionService } from './universal/service'
 import { UniversalHandoffService } from './universal/handoff'
+import { UniversalAiSummaryService } from './universal/ai-summary'
 import { defaultSources } from './universal/sources'
 import { log } from './services/logger'
 import { BackupService } from './backup/backup-service'
@@ -377,6 +378,7 @@ async function bootstrap(): Promise<void> {
     workspace: workspaceState,
     agent: harness,
     config,
+    organizeHistory: (handoff) => new UniversalAiSummaryService(config).organize(handoff),
     beforeStart: (cwd) => beforeAgentStart(cwd, null)
   })
 

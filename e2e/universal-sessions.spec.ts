@@ -244,36 +244,48 @@ test('browses without model calls, previews evidence, and continues through the 
   execFileSync('git', ['init', projectRoot], { stdio: 'ignore' })
   fs.writeFileSync(path.join(extraRoot, 'note.md'), 'Extra project source verified\n')
   const requests: Record<string, unknown>[] = []
+  let continuationRequests = 0
   const server = http.createServer(async (request, response) => {
     let body = ''
     for await (const chunk of request) body += chunk
-    requests.push(JSON.parse(body))
+    const parsed = JSON.parse(body)
+    requests.push(parsed)
+    const organizing = JSON.stringify(parsed.messages).includes(
+      'Organize a historical conversation'
+    )
+    if (!organizing) continuationRequests++
     response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' })
-    const tool = requests.length <= 2
-    const delta = tool
+    const tool = !organizing && continuationRequests <= 2
+    const delta = organizing
       ? {
           role: 'assistant',
-          tool_calls: [
-            {
-              index: 0,
-              id: `call-read-${requests.length}`,
-              type: 'function',
-              function: {
-                name: 'read',
-                arguments: JSON.stringify({
-                  path:
-                    requests.length === 1
-                      ? path.join(projectRoot, 'a.ts')
-                      : path.join(extraRoot, 'note.md')
-                })
+          content:
+            'AI summary: historical analysis reported complete; read a.ts next. Current tests have not been rerun.'
+        }
+      : tool
+        ? {
+            role: 'assistant',
+            tool_calls: [
+              {
+                index: 0,
+                id: `call-read-${continuationRequests}`,
+                type: 'function',
+                function: {
+                  name: 'read',
+                  arguments: JSON.stringify({
+                    path:
+                      continuationRequests === 1
+                        ? path.join(projectRoot, 'a.ts')
+                        : path.join(extraRoot, 'note.md')
+                  })
+                }
               }
-            }
-          ]
-        }
-      : {
-          role: 'assistant',
-          content: 'Pi continuation verified: read a.ts from the linked workspace.'
-        }
+            ]
+          }
+        : {
+            role: 'assistant',
+            content: 'Pi continuation verified: read a.ts from the linked workspace.'
+          }
     response.write(
       `data: ${JSON.stringify({ id: 'chatcmpl-local-test', object: 'chat.completion.chunk', created: 1, model: 'gpt-4o', choices: [{ index: 0, delta, finish_reason: null }] })}\n\n`
     )
@@ -398,6 +410,19 @@ test('browses without model calls, previews evidence, and continues through the 
     await expect(page.getByTestId('history-messages')).toContainText('已完成初步分析')
     await expect(page.getByTestId('history-messages')).toContainText('fixture:catalog')
     expect(requests).toHaveLength(0)
+    // Simulate a temporarily unreadable synthetic record, then restore it before an explicit retry.
+    fs.appendFileSync(originalPath, 'x'.repeat(4 * 1024 * 1024 + 1))
+    await page.getByRole('button', { name: /刷新历史|Refresh history/, exact: true }).click()
+    const sourceStatus = page.getByTestId('history-source-status')
+    await expect(sourceStatus).toContainText(/扫描失败|Scan failed/)
+    await expect(page.getByTestId('history-messages')).toContainText('已完成初步分析')
+    expect(requests).toHaveLength(0)
+    await page.screenshot({ path: path.join(testInfo.outputDir, 'history-retry-scan.png') })
+    fs.writeFileSync(originalPath, original)
+    await page.getByTestId('history-retry-scan').click()
+    await expect(sourceStatus).toHaveCount(0)
+    await expect(page.getByTestId('history-continue-task')).toBeEnabled()
+    expect(requests).toHaveLength(0)
     await page.getByTestId('history-continue-task').click()
     await page
       .getByRole('textbox', { name: /接下来希望 Pi 做什么|What should Pi do next/ })
@@ -420,12 +445,23 @@ test('browses without model calls, previews evidence, and continues through the 
     await expect(page.getByTestId('handoff-preview')).toContainText(extraRoot)
     expect(requests).toHaveLength(0)
     await page.screenshot({ path: path.join(testInfo.outputDir, 'universal-handoff.png') })
+    await page.getByTestId('handoff-ai-organize').click()
+    await expect(page.getByTestId('handoff-ai-summary')).toContainText(
+      'AI summary: historical analysis'
+    )
+    await expect(page.getByTestId('handoff-ai-summary')).toContainText('openai-compatible / gpt-4o')
+    await expect(page.getByTestId('handoff-confirm')).toBeEnabled()
+    expect(requests).toHaveLength(1)
+    expect(requests[0]).not.toHaveProperty('tools')
+    expect(requests[0]).not.toHaveProperty('tool_choice')
+    expect(requests[0]).not.toHaveProperty('toolChoice')
+    await page.screenshot({ path: path.join(testInfo.outputDir, 'universal-ai-handoff.png') })
     await page.getByTestId('handoff-confirm').click()
     await expect(page.getByTestId('pi-task-origin')).toContainText('claude', { timeout: 30_000 })
     await expect(page.getByTestId('chat-window')).toContainText('Pi continuation verified', {
       timeout: 30_000
     })
-    expect(requests.length).toBeGreaterThanOrEqual(3)
+    expect(requests.length).toBeGreaterThanOrEqual(4)
     expect(JSON.stringify(requests)).toContain('export const value = 42')
     expect(JSON.stringify(requests)).toContain('Extra project source verified')
     const sessions = await page.evaluate(() => window.piSwitch!.sessions.list(true))
@@ -443,6 +479,7 @@ test('browses without model calls, previews evidence, and continues through the 
       cwd: canonicalWorkspace
     })
     expect(native).toContain('Source Conversation Data')
+    expect(native).toContain('AI summary: historical analysis')
     expect(native).toContain('external-session') // included in native history as traceable source path.
     expect(fs.readFileSync(originalPath, 'utf8')).toBe(original)
     await page.evaluate(() => window.piSwitch!.universal.clear())

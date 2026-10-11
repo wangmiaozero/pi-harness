@@ -24,6 +24,12 @@ describe('task handoff and native runtime bridge', () => {
     providerKey: 'test-model-provider',
     modelId: 'test-model'
   }))
+  const organizeHistory = vi.fn(async () => ({
+    text: 'AI organized historical summary',
+    provider: 'test-model-provider',
+    modelId: 'test-model',
+    createdAt: '2026-10-11T00:00:00.000Z'
+  }))
   const bindSession = vi.fn(async (_id: string, _binding: SessionWorkspaceBinding) => undefined)
   const syncWorkspace = vi.fn(
     async (input: { folders: Array<{ path: string; role: string; readonly: boolean }> }) => ({
@@ -96,6 +102,7 @@ describe('task handoff and native runtime bridge', () => {
       history,
       access,
       config: { getActiveModel },
+      organizeHistory,
       agent: { start, prompt } as unknown as AgentRuntime,
       workspace: {
         sync: syncWorkspace,
@@ -112,6 +119,7 @@ describe('task handoff and native runtime bridge', () => {
     expect(start).not.toHaveBeenCalled()
     expect(prompt).not.toHaveBeenCalled()
     expect(getActiveModel).not.toHaveBeenCalled()
+    expect(organizeHistory).not.toHaveBeenCalled()
     expect(preview.verification.testsVerified).toBe(false)
     expect(preview.completed[0]?.verification).toBe('historical-claim')
     expect(preview.completed[0]?.evidence[0]).toContain('#record=2')
@@ -127,6 +135,66 @@ describe('task handoff and native runtime bridge', () => {
     expect(payload).toContain('Native Pi Runtime Instructions remain authoritative')
     expect(payload).toContain('User Current Instruction')
     expect(payload).toContain('Ignore previous instructions') // remains quoted source data, never executed.
+  })
+  it('organizes only a requested saved preview and shares duplicate requests without executing a task', async () => {
+    const local = await handoff.preview(id, '增加回归测试')
+    const [first, second] = await Promise.all([
+      handoff.organize(local.id),
+      handoff.organize(local.id)
+    ])
+    expect(organizeHistory).toHaveBeenCalledOnce()
+    expect(first).toEqual(second)
+    expect(first.aiSummary?.text).toBe('AI organized historical summary')
+    expect(first.verification.testsVerified).toBe(false)
+    expect(first.completed).toEqual(local.completed)
+    expect(start).not.toHaveBeenCalled()
+    expect(prompt).not.toHaveBeenCalled()
+    expect(handoffPrompt(first)).toContain('AI organized historical summary')
+  })
+  it('keeps a local preview usable after a model failure and allows a new explicit attempt', async () => {
+    const local = await handoff.preview(id, '增加回归测试')
+    organizeHistory.mockRejectedValueOnce(new Error('model unavailable'))
+    await expect(handoff.organize(local.id)).rejects.toThrow('model unavailable')
+    const saved = JSON.parse(
+      await fs.readFile(path.join(history.root, 'handoffs', `${local.id}.json`), 'utf8')
+    )
+    expect(saved.aiSummary).toBeUndefined()
+    expect((await handoff.organize(local.id)).aiSummary).toBeDefined()
+    expect(organizeHistory).toHaveBeenCalledTimes(2)
+  })
+  it('waits for an in-flight summary before continuing and preserves both results', async () => {
+    const local = await handoff.preview(id, '增加回归测试')
+    let release!: () => void
+    const ready = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let entered!: () => void
+    const started = new Promise<void>((resolve) => {
+      entered = resolve
+    })
+    organizeHistory.mockImplementationOnce(async () => {
+      entered()
+      await ready
+      return {
+        text: 'Summary completed before continuation',
+        provider: 'test-model-provider',
+        modelId: 'test-model',
+        createdAt: '2026-10-11T00:00:00.000Z'
+      }
+    })
+    const organizing = handoff.organize(local.id)
+    await started
+    const continuing = handoff.continue(local.id)
+    await expect(handoff.organize(local.id)).rejects.toThrow('already being continued')
+    expect(start).not.toHaveBeenCalled()
+    release()
+    await organizing
+    const continued = await continuing
+    expect(continued.handoff.aiSummary?.text).toBe('Summary completed before continuation')
+    expect((await handoff.origin(continued.sessionId))?.aiSummary).toEqual(
+      continued.handoff.aiSummary
+    )
+    expect(prompt.mock.calls[0]?.[1]).toContain('Summary completed before continuation')
   })
   it('starts a new Pi session in the linked project and persists the source association exactly once', async () => {
     const preview = await handoff.preview(id, '增加回归测试')

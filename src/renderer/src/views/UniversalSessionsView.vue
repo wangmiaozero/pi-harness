@@ -9,6 +9,7 @@ import {
   FolderOpen,
   MessageSquare,
   Play,
+  RefreshCw,
   ShieldCheck
 } from '@lucide/vue'
 import {
@@ -60,6 +61,7 @@ const messages = ref<UniversalMessage[]>([])
 const messageOffset = ref(0)
 const viewing = ref(false)
 const preparing = ref(false)
+const organizing = ref(false)
 const continuing = ref(false)
 const handoffOpen = ref(false)
 const clearOpen = ref(false)
@@ -78,6 +80,7 @@ const listElement = ref<HTMLElement | null>(null)
 let revision = 0
 let messageRevision = 0
 let handoffRevision = 0
+let organizeRevision = 0
 let debounce: ReturnType<typeof setTimeout> | null = null
 let polling: ReturnType<typeof setInterval> | null = null
 let disposed = false
@@ -141,7 +144,17 @@ function failure(e: unknown) {
 }
 async function beginHandoff() {
   if (!selected.value) return
+  const requestedId = selected.value.id
+  if (selected.value.source.status === 'error') await sync()
+  if (
+    disposed ||
+    selected.value?.id !== requestedId ||
+    selected.value.source.status !== 'available'
+  )
+    return
   const current = ++handoffRevision
+  organizeRevision++
+  organizing.value = false
   const id = selected.value.id
   preparing.value = false
   resolvingProject.value = true
@@ -225,13 +238,40 @@ async function sync() {
     status.value = await api().status()
     sources.value = await api().sources()
     await load()
+    await refreshSelected()
   } catch (e) {
     failure(e)
     status.value.running = false
   }
 }
+async function refreshSelected() {
+  if (!selected.value || disposed) return
+  const id = selected.value.id
+  const current = ++messageRevision
+  viewing.value = true
+  try {
+    const result = await api().read({ id, offset: messageOffset.value, limit: 50 })
+    if (disposed || current !== messageRevision || selected.value?.id !== id) return
+    if (
+      handoff.value &&
+      (result.session.source.fingerprint !== handoff.value.sourceFingerprint ||
+        result.session.source.status !== 'available')
+    ) {
+      handoffRevision++
+      organizeRevision++
+      organizing.value = false
+      handoff.value = null
+    }
+    selected.value = result.session
+    messages.value = result.messages
+  } finally {
+    if (current === messageRevision) viewing.value = false
+  }
+}
 async function view(session: UniversalSession, offset = 0) {
   handoffRevision++
+  organizeRevision++
+  organizing.value = false
   resolvingProject.value = false
   const current = ++messageRevision
   selected.value = session
@@ -322,7 +362,13 @@ async function saveLink() {
   }
 }
 async function prepare() {
-  if (!selected.value || !linkPath.value || resolvingProject.value || !instruction.value.trim())
+  if (
+    !selected.value ||
+    !linkPath.value ||
+    organizing.value ||
+    resolvingProject.value ||
+    !instruction.value.trim()
+  )
     return
   const current = ++handoffRevision
   const id = selected.value.id
@@ -359,8 +405,33 @@ async function prepare() {
     if (current === handoffRevision) preparing.value = false
   }
 }
+async function organizeHistory() {
+  if (
+    !handoff.value ||
+    organizing.value ||
+    handoff.value.piSessionId ||
+    instruction.value !== handoff.value.instruction ||
+    linkPath.value !== handoff.value.workspacePath
+  )
+    return
+  const id = handoff.value.id
+  const current = handoffRevision
+  const operation = ++organizeRevision
+  organizing.value = true
+  error.value = ''
+  try {
+    const result = await api().organize(id)
+    if (!disposed && current === handoffRevision && handoffOpen.value && handoff.value?.id === id)
+      handoff.value = result
+  } catch (e) {
+    if (!disposed && current === handoffRevision && handoffOpen.value && handoff.value?.id === id)
+      failure(e)
+  } finally {
+    if (operation === organizeRevision) organizing.value = false
+  }
+}
 async function continueTask() {
-  if (!handoff.value) return
+  if (!handoff.value || organizing.value) return
   continuing.value = true
   error.value = ''
   try {
@@ -427,6 +498,8 @@ watch([provider, project, query, after, before], () => {
 })
 watch(handoffOpen, (open) => {
   if (!open) {
+    organizeRevision++
+    organizing.value = false
     handoffRevision++
     preparing.value = false
     resolvingProject.value = false
@@ -461,7 +534,14 @@ onMounted(async () => {
       try {
         const previousSync = status.value.lastSync
         status.value = await api().status()
-        if (previousSync !== status.value.lastSync) await load()
+        if (
+          !status.value.running &&
+          status.value.lastSync &&
+          previousSync !== status.value.lastSync
+        ) {
+          await load()
+          await refreshSelected()
+        }
       } catch {
         /* Explicit actions surface errors. */
       }
@@ -620,7 +700,13 @@ onBeforeUnmount(() => {
                   v-if="row.session.source.status !== 'available'"
                   class="text-[var(--warning)]"
                 >
-                  {{ t('universal.missing') }}
+                  {{
+                    t(
+                      row.session.source.status === 'error'
+                        ? 'universal.scanFailed'
+                        : 'universal.missing'
+                    )
+                  }}
                 </span>
                 <ChevronRight
                   class="history-session-chevron size-3.5 shrink-0"
@@ -651,7 +737,10 @@ onBeforeUnmount(() => {
               <Button
                 variant="primary"
                 :disabled="
-                  viewing || selected.source.status !== 'available' || !selected.messageCount
+                  viewing ||
+                  status.running ||
+                  selected.source.status === 'missing' ||
+                  !selected.messageCount
                 "
                 data-testid="history-continue-task"
                 @click="beginHandoff"
@@ -700,9 +789,36 @@ onBeforeUnmount(() => {
                 <p v-for="notice in selected.warnings" :key="notice" class="mt-1">{{ notice }}</p>
               </details>
             </div>
-            <p v-if="selected.source.status !== 'available'" class="text-xs text-[var(--warning)]">
-              {{ t('universal.missing') }}
-            </p>
+            <div
+              v-if="selected.source.status !== 'available'"
+              data-testid="history-source-status"
+              role="status"
+              class="mt-3 flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
+            >
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-medium">
+                  {{
+                    t(
+                      selected.source.status === 'error'
+                        ? 'universal.scanFailed'
+                        : 'universal.missing'
+                    )
+                  }}
+                </p>
+                <p class="mt-1 text-xs text-[var(--text-secondary)]">
+                  {{
+                    t(
+                      selected.source.status === 'error'
+                        ? 'universal.scanFailedHint'
+                        : 'universal.sourceMissingHint'
+                    )
+                  }}
+                </p>
+              </div>
+              <Button data-testid="history-retry-scan" :loading="status.running" @click="sync">
+                <RefreshCw class="size-3.5" aria-hidden="true" />{{ t('universal.retryScan') }}
+              </Button>
+            </div>
           </header>
           <div class="min-h-0 flex-1 space-y-3 overflow-y-auto p-4" data-testid="history-messages">
             <p v-if="viewing">{{ t('common.loading') }}</p>
@@ -833,7 +949,7 @@ onBeforeUnmount(() => {
           />
         </label>
         <Button
-          :disabled="resolvingProject || !linkPath || !instruction.trim()"
+          :disabled="organizing || resolvingProject || !linkPath || !instruction.trim()"
           :loading="preparing"
           @click="prepare"
           >{{ t('universal.generate') }}</Button
@@ -858,6 +974,34 @@ onBeforeUnmount(() => {
               </p>
             </div>
           </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <Button
+              data-testid="handoff-ai-organize"
+              :disabled="
+                continuing ||
+                !!handoff.piSessionId ||
+                instruction !== handoff.instruction ||
+                linkPath !== handoff.workspacePath
+              "
+              :loading="organizing"
+              @click="organizeHistory"
+            >
+              {{ t('universal.aiOrganize') }}
+            </Button>
+            <p class="text-xs text-[var(--text-secondary)]">{{ t('universal.aiOrganizeHint') }}</p>
+          </div>
+          <section
+            v-if="handoff.aiSummary"
+            data-testid="handoff-ai-summary"
+            class="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4"
+          >
+            <h3 class="text-sm font-medium">{{ t('universal.aiSummary') }}</h3>
+            <p class="mt-1 text-xs text-[var(--text-secondary)]">
+              {{ handoff.aiSummary.provider }} / {{ handoff.aiSummary.modelId }} ·
+              {{ t('universal.aiSummaryHint') }}
+            </p>
+            <p class="mt-3 whitespace-pre-wrap break-words text-sm">{{ handoff.aiSummary.text }}</p>
+          </section>
           <h3 class="font-medium">{{ t('universal.goal') }}</h3>
           <p class="text-sm whitespace-pre-wrap">{{ handoff.goal.text }}</p>
           <section
@@ -931,7 +1075,10 @@ onBeforeUnmount(() => {
         ><Button
           variant="primary"
           :disabled="
-            !handoff || instruction !== handoff.instruction || linkPath !== handoff.workspacePath
+            organizing ||
+            !handoff ||
+            instruction !== handoff.instruction ||
+            linkPath !== handoff.workspacePath
           "
           :loading="continuing"
           data-testid="handoff-confirm"

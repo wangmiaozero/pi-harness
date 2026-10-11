@@ -24,6 +24,7 @@ export const IPC_INVOKE = {
   universalClear: invoke('universal:clear'),
   universalForget: invoke('universal:forget'),
   universalPreview: invoke('universal:preview'),
+  universalOrganize: invoke('universal:organize'),
   universalContinue: invoke('universal:continue'),
   // system
   systemInfo: invoke('system:info'),

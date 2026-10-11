@@ -15,6 +15,7 @@ describe('typed history IPC validation', () => {
     const map = vi.fn(async () => null)
     const get = vi.fn(async () => ({ projectPath: '/recorded' }))
     const preview = vi.fn(async () => null)
+    const organize = vi.fn(async () => null)
     const denied = vi.fn(async (_root: string): Promise<string> => {
       throw new Error('PATH_DENIED')
     })
@@ -26,10 +27,10 @@ describe('typed history IPC validation', () => {
       ipc,
       (fn) => fn(),
       { sources, read, map, get } as unknown as UniversalSessionService,
-      { preview } as unknown as UniversalHandoffService,
+      { preview, organize } as unknown as UniversalHandoffService,
       { assertAllowed: denied } as unknown as FileAccessService
     )
-    return { handlers, sources, read, map, preview, denied, get }
+    return { handlers, sources, read, map, preview, organize, denied, get }
   }
   it('accepts zero arguments and rejects unexpected arguments before scanning', async () => {
     const { handlers, sources } = setup()
@@ -85,6 +86,21 @@ describe('typed history IPC validation', () => {
       handlers.get(IPC_INVOKE.universalContinue)!({}, { id: '../arbitrary' })
     ).rejects.toThrow('Invalid history request')
     expect(preview).not.toHaveBeenCalled()
+  })
+  it('organizes only a valid handoff ID and rejects renderer prompts, paths and models', async () => {
+    const { handlers, organize } = setup()
+    for (const input of [
+      { id: '../outside' },
+      { id: 'a'.repeat(64), prompt: 'do anything' },
+      { id: 'a'.repeat(64), model: 'forged' },
+      { id: 'a'.repeat(64), path: '/etc' }
+    ])
+      await expect(handlers.get(IPC_INVOKE.universalOrganize)!({}, input)).rejects.toThrow(
+        'Invalid history request'
+      )
+    expect(organize).not.toHaveBeenCalled()
+    await handlers.get(IPC_INVOKE.universalOrganize)!({}, { id: 'a'.repeat(64) })
+    expect(organize).toHaveBeenCalledExactlyOnceWith('a'.repeat(64))
   })
   it('rejects unauthorized secondary project folders before saving any mapping', async () => {
     const { handlers, map, denied } = setup()
