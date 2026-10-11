@@ -806,10 +806,11 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
     @drop.prevent="onDrop"
   >
     <div
-      class="mission-control-header flex h-[var(--height-page-header)] items-center justify-between border-b border-[var(--border-subtle)] px-2.5"
+      class="mission-control-header flex min-h-[var(--height-page-header)] shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-2.5 py-2"
     >
       <p
-        class="flex flex-col text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+        data-testid="workspace-sidebar-title"
+        class="flex min-w-0 flex-1 basis-20 flex-col [overflow-wrap:anywhere] text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
       >
         <span>{{ $t('workspace.title') }}</span>
         <span class="cockpit-only text-[7px] tracking-[0.18em] text-[var(--accent)]">
@@ -818,7 +819,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
       </p>
       <div
         data-testid="workspace-command-actions"
-        class="workspace-command-actions workspace-command-actions--compact flex items-center !gap-1"
+        class="workspace-command-actions workspace-command-actions--compact ml-auto flex shrink-0 items-center !gap-1"
       >
         <IconButton
           variant="accent"
@@ -876,13 +877,14 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
     </div>
 
     <div
-      class="workspace-section-tabs flex gap-1 border-b border-[var(--border-subtle)] px-2 py-1.5"
+      data-testid="workspace-section-tabs"
+      class="workspace-section-tabs grid shrink-0 gap-1 border-b border-[var(--border-subtle)] px-2 py-1.5"
     >
       <button
         v-for="item in sectionItems"
         :key="item.id"
         :data-testid="`workspace-section-${item.id}`"
-        class="workspace-section-tab flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] border py-1.5 text-[11px] transition-colors duration-[var(--motion-fast)]"
+        class="workspace-section-tab flex min-w-0 items-center justify-center rounded-[var(--radius-sm)] border px-2 py-1.5 text-[11px] transition-colors duration-[var(--motion-fast)]"
         :class="
           section === item.id
             ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--text-primary)]'
@@ -897,7 +899,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
           :stroke-width="1.75"
           :class="section === item.id ? 'text-[var(--accent)]' : ''"
         />
-        <span class="truncate">{{ item.label }}</span>
+        <span class="workspace-section-label">{{ item.label }}</span>
       </button>
     </div>
 
@@ -1301,6 +1303,54 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
 </template>
 
 <style scoped>
+.workspace-control-panel {
+  container: workspace-sidebar / inline-size;
+}
+
+.workspace-section-tabs {
+  grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr));
+}
+
+.workspace-section-tab {
+  flex-direction: column;
+  gap: 4px;
+  min-height: 46px;
+}
+
+.workspace-section-label {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+  text-align: center;
+  text-wrap: balance;
+}
+
+@container workspace-sidebar (max-width: 239px) {
+  .workspace-section-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace-section-tab {
+    flex-direction: row;
+    gap: 6px;
+    min-height: 32px;
+  }
+
+  .workspace-section-tab:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@container workspace-sidebar (min-width: 360px) {
+  .workspace-section-tab {
+    flex-direction: row;
+    gap: 6px;
+    min-height: 32px;
+  }
+}
+
 .workspace-command-actions--compact {
   padding: 0 !important;
   border: 0 !important;

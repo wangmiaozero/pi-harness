@@ -495,7 +495,7 @@
 
 :root[data-visual-skin='starship-cockpit'] .workspace-section-tab {
   position: relative;
-  height: 31px;
+  height: auto;
   border: 1px solid transparent;
   border-radius: 2px;
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);

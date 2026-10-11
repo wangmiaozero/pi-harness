@@ -1,5 +1,135 @@
 import path from 'node:path'
 import { test, expect, type Page } from './fixtures'
+import { APP_LANGUAGE_LABELS, type AppLocale } from '../src/shared/constants/language'
+
+const workspaceLabels: Record<AppLocale, string> = {
+  'en-US': 'Workspace',
+  'zh-CN': '工作区',
+  'zh-TW': '工作區',
+  'ja-JP': 'ワークスペース',
+  'ko-KR': '작업 영역',
+  'ru-RU': 'Рабочая область',
+  'fr-FR': 'Espace de travail',
+  'de-DE': 'Arbeitsbereich'
+}
+
+async function expectSidebarLabelsToFit(page: Page): Promise<void> {
+  const violations = await page.getByTestId('workspace-sidebar').evaluate((sidebar) => {
+    const failures: string[] = []
+    const sidebarBox = sidebar.getBoundingClientRect()
+    const tabs = sidebar.querySelector<HTMLElement>('[data-testid="workspace-section-tabs"]')!
+    if (tabs.scrollWidth > tabs.clientWidth + 1) failures.push('tabs overflow')
+    const textRects = (element: Element) => {
+      const range = document.createRange()
+      range.selectNodeContents(element)
+      return [...range.getClientRects()]
+    }
+    const buttons = [...tabs.querySelectorAll<HTMLButtonElement>('button')]
+    for (const [index, button] of buttons.entries()) {
+      const box = button.getBoundingClientRect()
+      const label = button.querySelector('.workspace-section-label')!
+      if (box.left < sidebarBox.left || box.right > sidebarBox.right)
+        failures.push(`${button.textContent}: outside sidebar`)
+      for (const rect of textRects(label)) {
+        if (
+          rect.left < box.left + 5 ||
+          rect.right > box.right - 5 ||
+          rect.top < box.top + 4 ||
+          rect.bottom > box.bottom - 4
+        )
+          failures.push(`${button.textContent}: clipped or missing padding`)
+      }
+      for (const other of buttons.slice(index + 1)) {
+        const otherBox = other.getBoundingClientRect()
+        if (
+          Math.min(box.right, otherBox.right) > Math.max(box.left, otherBox.left) + 1 &&
+          Math.min(box.bottom, otherBox.bottom) > Math.max(box.top, otherBox.top) + 1
+        )
+          failures.push('overlapping tabs')
+      }
+    }
+    const title = sidebar.querySelector('[data-testid="workspace-sidebar-title"] > span')!
+    const header = title.closest('.mission-control-header')!.getBoundingClientRect()
+    const actions = sidebar
+      .querySelector('[data-testid="workspace-command-actions"]')!
+      .getBoundingClientRect()
+    if (actions.right > header.right || actions.left < header.left)
+      failures.push('header actions overflow')
+    for (const rect of textRects(title)) {
+      if (
+        rect.left < header.left ||
+        rect.right > header.right ||
+        rect.top < header.top ||
+        rect.bottom > header.bottom
+      )
+        failures.push('header text overflow')
+      if (
+        rect.right > actions.left &&
+        rect.left < actions.right &&
+        rect.bottom > actions.top &&
+        rect.top < actions.bottom
+      )
+        failures.push('header text overlaps actions')
+    }
+    return failures
+  })
+  expect(violations).toEqual([])
+}
+
+for (const appearance of [
+  { theme: 'macos27-light', mascotStyle: 'none' },
+  { theme: 'light', mascotStyle: 'none' },
+  { theme: 'dark', mascotStyle: 'none' },
+  { theme: 'dark', mascotStyle: 'starshipCockpit' },
+  { theme: 'dark', mascotStyle: 'mingMoon' },
+  { theme: 'dark', mascotStyle: 'zhangJuzhengSnow' }
+] as const) {
+  test(`workspace labels fit every language: ${appearance.theme}/${appearance.mascotStyle}`, async ({
+    page
+  }, testInfo) => {
+    test.setTimeout(120_000)
+    await page.setViewportSize({ width: 1200, height: 780 })
+    if (appearance.mascotStyle !== 'none')
+      await page.evaluate(() => window.piSwitch.settings.unlockMascot('1024'))
+    for (const language of Object.keys(APP_LANGUAGE_LABELS) as AppLocale[]) {
+      await page.evaluate((settings) => window.piSwitch.settings.set(settings), {
+        ...appearance,
+        language
+      })
+      await page.reload()
+      await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+      await page.locator('a[href="#/workspace"]').click()
+      const tabs = page.getByTestId('workspace-section-tabs')
+      await expect(tabs.getByTestId('workspace-section-workspace')).toHaveText(
+        workspaceLabels[language]
+      )
+      await expect(tabs.getByRole('button')).toHaveCount(3)
+      const resizer = page.getByTestId('workspace-sidebar-resizer')
+      await resizer.dblclick({ position: { x: 3, y: 120 } })
+      await expectSidebarLabelsToFit(page)
+      await resizer.focus()
+      await page.keyboard.press('Home')
+      await expectSidebarLabelsToFit(page)
+      if (['en-US', 'de-DE', 'fr-FR', 'ja-JP'].includes(language))
+        await page.screenshot({
+          path: path.join(testInfo.outputDir, `sidebar-${language}-narrow.png`)
+        })
+      for (const button of await tabs.getByRole('button').all()) {
+        const radius = await button.evaluate((element) => getComputedStyle(element).borderRadius)
+        await button.focus()
+        await button.press('Enter')
+        await expect(button).toHaveAttribute('aria-pressed', 'true')
+        expect(await button.evaluate((element) => getComputedStyle(element).borderRadius)).toBe(
+          radius
+        )
+      }
+      await tabs.getByTestId('workspace-section-workspace').click()
+      await resizer.focus()
+      await page.keyboard.press('End')
+      await expectSidebarLabelsToFit(page)
+    }
+  })
+}
 
 async function dragSidebarToLimit(page: Page, delta: number): Promise<void> {
   const resizer = page.getByTestId('workspace-sidebar-resizer')
