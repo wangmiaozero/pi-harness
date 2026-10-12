@@ -10,6 +10,17 @@
 const invoke = (name: string) => `pi-harness:${name}` as const
 
 export const IPC_INVOKE = {
+  intelligenceViewer: invoke('intelligence:viewer'),
+  intelligenceMap: invoke('intelligence:map'),
+  intelligenceAnalyze: invoke('intelligence:analyze'),
+  intelligenceStatus: invoke('intelligence:status'),
+  intelligenceCancel: invoke('intelligence:cancel'),
+  intelligenceHistory: invoke('intelligence:history'),
+  intelligenceSnapshot: invoke('intelligence:snapshot'),
+  intelligenceQuery: invoke('intelligence:query'),
+  intelligenceSource: invoke('intelligence:source'),
+  intelligenceExport: invoke('intelligence:export'),
+  intelligenceClear: invoke('intelligence:clear'),
   universalList: invoke('universal:list'),
   universalOrigin: invoke('universal:origin'),
   universalRead: invoke('universal:read'),
@@ -296,6 +307,7 @@ export const IPC_INVOKE = {
 
 /** Main → renderer push events (one-way, via webContents.send). */
 export const IPC_EVENT = {
+  architectureSelected: 'architecture:selected',
   configChanged: 'pi-harness:event:config-changed',
   piEnvironmentChanged: 'pi-harness:event:pi-env-changed',
   environmentInstallTask: 'pi-harness:event:environment-install-task',

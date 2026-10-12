@@ -18,6 +18,7 @@ import Button from '@renderer/components/ui/Button.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 
 const { t } = useI18n()
+const props = defineProps<{ sourcePath?: string; sourceLine?: number; readonly?: boolean }>()
 const workspace = useWorkspaceStore()
 const preview = ref<FilePreview | null>(null)
 const loading = ref(false)
@@ -30,8 +31,9 @@ let view: EditorView | null = null
 let loadVersion = 0
 let editorVersion = 0
 
-const filePath = computed(() => workspace.activeFileTab?.filePath ?? null)
+const filePath = computed(() => props.sourcePath ?? workspace.activeFileTab?.filePath ?? null)
 const editBuffer = computed(() => {
+  if (props.readonly) return undefined
   const path = filePath.value
   return path ? workspace.fileEditBuffers[path] : undefined
 })
@@ -42,6 +44,7 @@ const currentText = computed(() => {
 const dirty = computed(() => workspace.isFileDirty(filePath.value))
 const editable = computed(
   () =>
+    !props.readonly &&
     preview.value?.kind === 'text' &&
     !preview.value.truncated &&
     Boolean(editBuffer.value) &&
@@ -86,7 +89,7 @@ watch(
     try {
       const next = await callApi(() => getApi().files.read(path))
       if (version !== loadVersion) return
-      if (next.kind === 'text' && !next.truncated && next.revision) {
+      if (!props.readonly && next.kind === 'text' && !next.truncated && next.revision) {
         workspace.ensureFileEditBuffer(next.path, next.text ?? '', next.revision)
       }
       preview.value = next
@@ -121,11 +124,15 @@ watch(
     await nextTick()
     if (version !== editorVersion || preview.value !== next || !host.value) return
 
-    const canEdit = !next.truncated && Boolean(workspace.fileEditBuffers[next.path])
+    const canEdit =
+      !props.readonly && !next.truncated && Boolean(workspace.fileEditBuffers[next.path])
     view = new EditorView({
       parent: host.value,
       state: EditorState.create({
-        doc: workspace.fileEditBuffers[next.path]?.content ?? next.text ?? '',
+        doc:
+          (!props.readonly ? workspace.fileEditBuffers[next.path]?.content : undefined) ??
+          next.text ??
+          '',
         extensions: [
           basicSetup,
           language.extension,
@@ -157,6 +164,13 @@ watch(
         ]
       })
     })
+    if (props.sourceLine && props.sourceLine <= view.state.doc.lines) {
+      const line = view.state.doc.line(props.sourceLine)
+      view.dispatch({
+        selection: { anchor: line.from },
+        effects: EditorView.scrollIntoView(line.from, { y: 'center' })
+      })
+    }
   },
   { flush: 'post' }
 )
@@ -172,6 +186,7 @@ async function loadLanguage(fileName: string): Promise<{ extension: Extension; l
 }
 
 async function saveFile(overwrite = false) {
+  if (props.readonly) return
   const path = filePath.value
   const buffer = path ? workspace.fileEditBuffers[path] : undefined
   if (!path || !buffer || !dirty.value || saving.value) return

@@ -85,6 +85,7 @@ export interface PiModelRuntimeLike {
       temperature?: number
       timeoutMs?: number
       maxRetries?: number
+      signal?: AbortSignal
       reasoning?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
       thinkingBudgets?: Partial<Record<'minimal' | 'low' | 'medium' | 'high', number>>
     }
@@ -96,6 +97,8 @@ export interface PiModelRuntimeLike {
 }
 
 export interface PiModelLike {
+  reasoning?: boolean
+  contextWindow?: number
   id: string
   provider: string
   api?: string

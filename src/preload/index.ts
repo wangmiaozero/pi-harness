@@ -32,6 +32,26 @@ function onEvent(channel: string, listener: IpcEventListener): () => void {
 }
 
 const api: PiSwitchAPI = {
+  intelligence: {
+    map: (input) => invoke(IPC_INVOKE.intelligenceMap, input),
+    viewer: (input) => invoke(IPC_INVOKE.intelligenceViewer, input),
+    analyze: (input) => invoke(IPC_INVOKE.intelligenceAnalyze, input),
+    status: (root) => invoke(IPC_INVOKE.intelligenceStatus, { root }),
+    cancel: (root) => invoke(IPC_INVOKE.intelligenceCancel, { root }),
+    history: (root) => invoke(IPC_INVOKE.intelligenceHistory, { root }),
+    snapshot: (input) => invoke(IPC_INVOKE.intelligenceSnapshot, input),
+    query: (root, query) => invoke(IPC_INVOKE.intelligenceQuery, { root, query }),
+    source: (root, snapshotId, moduleId, path) =>
+      invoke(IPC_INVOKE.intelligenceSource, { root, snapshotId, moduleId, path }),
+    export: (root, snapshotId, format, viewerUrl) =>
+      invoke(IPC_INVOKE.intelligenceExport, {
+        root,
+        snapshotId,
+        format,
+        ...(viewerUrl ? { viewerUrl } : {})
+      }),
+    clear: (root) => invoke(IPC_INVOKE.intelligenceClear, { root })
+  },
   universal: {
     origin: (piSessionId) => invoke(IPC_INVOKE.universalOrigin, piSessionId),
     list: (input) => invoke(IPC_INVOKE.universalList, input),
@@ -412,6 +432,8 @@ const api: PiSwitchAPI = {
     if (event === 'updater-state') return onEvent(IPC_EVENT.updaterState, ipcListener)
     if (event === 'capability-progress') return onEvent(IPC_EVENT.capabilityProgress, ipcListener)
     if (event === 'workspace-changed') return onEvent(IPC_EVENT.workspaceChanged, ipcListener)
+    if (event === 'architecture-selected')
+      return onEvent(IPC_EVENT.architectureSelected, ipcListener)
     return () => {}
   }
 }

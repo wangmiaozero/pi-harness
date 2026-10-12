@@ -6,6 +6,7 @@
 
 import type { AppErrorCode, AppErrorPayload } from '../types/errors'
 import type { UniversalSessionsAPI } from '../universal/schema'
+import type { ProjectIntelligenceAPI } from '../intelligence/schema'
 import type {
   ProviderProfile,
   ModelDefinition,
@@ -791,6 +792,7 @@ export interface ImageModelResult {
 
 export interface PiSwitchAPI {
   universal: UniversalSessionsAPI
+  intelligence: ProjectIntelligenceAPI
   // system
   system: {
     info(): Promise<SystemInfo>
@@ -1241,6 +1243,7 @@ export interface PiSwitchAPI {
     listener: (payload: CapabilityMutationProgress) => void
   ): () => void
   on(event: 'workspace-changed', listener: IpcEventListener): () => void
+  on(event: 'architecture-selected', listener: IpcEventListener): () => void
 }
 
 declare global {

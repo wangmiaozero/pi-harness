@@ -5,6 +5,7 @@ import WorkspaceSidebar from '@renderer/components/workspace/WorkspaceSidebar.vu
 import WorkspaceTabs from '@renderer/components/workspace/WorkspaceTabs.vue'
 import ChatWindow from '@renderer/components/chat/ChatWindow.vue'
 import WorkspaceFilesPanel from '@renderer/components/workspace/WorkspaceFilesPanel.vue'
+import ProjectIntelligencePanel from '@renderer/components/workspace/ProjectIntelligencePanel.vue'
 import PortraitSkinPanel from '@renderer/components/layout/PortraitSkinPanel.vue'
 import MingWorkspaceOrnaments from '@renderer/components/layout/MingWorkspaceOrnaments.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
@@ -12,7 +13,7 @@ import GitDiffView from '@renderer/components/git/GitDiffView.vue'
 import HarnessConsole from '@renderer/features/harness/HarnessConsole.vue'
 import OrchestrationConsole from '@renderer/features/orchestration/OrchestrationConsole.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
-import { FolderOpen, PanelLeftClose, PanelLeftOpen } from '@lucide/vue'
+import { FolderOpen, PanelLeftClose, PanelLeftOpen, Network } from '@lucide/vue'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
@@ -40,6 +41,37 @@ const workspaceSidebar = ref<InstanceType<typeof WorkspaceSidebar> | null>(null)
 const chatWindow = ref<InstanceType<typeof ChatWindow> | null>(null)
 const workspaceTabs = ref<InstanceType<typeof WorkspaceTabs> | null>(null)
 const filesPanel = ref<InstanceType<typeof WorkspaceFilesPanel> | null>(null)
+const architectureOpen = ref(false)
+const architectureProject = ref<string | null>(null)
+const architectureRoot = computed(
+  () =>
+    architectureProject.value ??
+    (workspace.currentCwd &&
+    (workspace.hasSessionWorkspace ||
+      workspace.importedProjectRoots.includes(workspace.currentCwd)) &&
+    !workspace.isDefaultWorkspace(workspace.currentCwd)
+      ? workspace.currentCwd
+      : (workspace.importedProjectRoots[0] ?? null))
+)
+watch(
+  () => workspace.currentCwd,
+  () => {
+    architectureProject.value = null
+  }
+)
+async function explainArchitecture(moduleId?: string): Promise<void> {
+  const root = architectureRoot.value
+  if (!root) return
+  if (workspace.currentCwd !== root) {
+    sessions.selectSession(null)
+    await workspace.resetDraftWorkspaceRoots(workspace.projectSourceRoots(root))
+    workspace.ensureChatTab('new', t('workspace.newSession'))
+  }
+  const prompt = t('intelligence.explainPrompt', { moduleId: moduleId ?? '' })
+  workspace.draft = workspace.draft.trim() ? `${workspace.draft}\n\n${prompt}` : prompt
+  architectureOpen.value = false
+  void nextTick(() => chatWindow.value?.focusComposer())
+}
 type WorkspaceSection = 'workspace' | 'harness' | 'orchestration'
 
 const activeWorkspaceSection = ref<WorkspaceSection>('workspace')
@@ -505,6 +537,15 @@ watch(
             class="ml-auto flex h-full shrink-0 items-center border-b border-[var(--border-subtle)] px-2"
           >
             <IconButton
+              :label="$t('intelligence.architecture')"
+              :active="architectureOpen"
+              show-label
+              data-testid="workspace-architecture"
+              @click="architectureOpen = !architectureOpen"
+            >
+              <Network class="size-3.5" :stroke-width="1.75" />
+            </IconButton>
+            <IconButton
               :label="$t('workspace.files')"
               :active="workspace.filePanelOpen"
               show-label
@@ -528,8 +569,16 @@ watch(
             :show-status="settings.settings.petStatusText"
           />
           <div class="workspace-primary min-h-0 min-w-0 flex-1 overflow-hidden">
+            <ProjectIntelligencePanel
+              v-if="architectureOpen"
+              :root="architectureRoot"
+              :projects="workspace.importedProjectRoots"
+              @select-project="architectureProject = $event"
+              @close="architectureOpen = false"
+              @explain="explainArchitecture"
+            />
             <div
-              v-if="!workspace.canChat"
+              v-else-if="!workspace.canChat"
               data-testid="workspace-project-required"
               class="flex h-full min-h-0 items-center justify-center"
             >

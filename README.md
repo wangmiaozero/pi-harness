@@ -109,6 +109,14 @@ Pi-Harness
 - **Optional AI summaries** — Choose **Organize with AI** to refine the handoff with your configured model. This action uses model tokens only when you request it.
 - **Smoother navigation** — Retry scans while keeping imported history, select dates with one range picker, and use clearer titles, multilingual labels, and buttons that keep their rounded shape.
 
+### Project analysis (development build)
+
+Open **Architecture** in Workspace to analyze an imported project, explore an interactive map, inspect source references, and keep analysis snapshots. Local analysis uses no model tokens; optional AI descriptions use the configured model when selected. Source changes are flagged, and Pi can retrieve relevant project information on demand before reading the current code.
+
+Browse map pages or focus a module and its direct dependencies. Package filters and entrypoints help navigate projects with multiple packages. The analysis panel follows the app language and supports narrow windows.
+
+Analysis has explicit coverage limits. JavaScript, TypeScript, and Vue imports are resolved locally; other supported languages have a file-level index. Export JSON, offline HTML, or the current diagram view as PNG.
+
 ### Skills in conversations
 
 - **`@Skill` in the composer** — Type `@` to search installed Skills, navigate suggestions from the keyboard, and invoke the selected Skill through Native Pi.

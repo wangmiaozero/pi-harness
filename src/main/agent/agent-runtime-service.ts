@@ -832,6 +832,8 @@ export class AgentRuntimeService implements AgentRuntime {
       assertWritable?: (target: string, sessionId: string) => Promise<string>
       /** Last wrap step for agent sessions (policy guard runs after the workspace guard). */
       wrapSessionTools?: (session: AgentSessionLike, sessionId: string) => void
+      customTools?: (cwd: string, sessionId: string) => Promise<unknown[]>
+      architectureHint?: (cwd: string) => Promise<string | null>
     }
   ) {}
 
@@ -1015,6 +1017,7 @@ export class AgentRuntimeService implements AgentRuntime {
     }
     const agentDir = sdk.getAgentDir?.() ?? ''
     const settingsManager = sdk.SettingsManager?.create(sessionCwd, agentDir)
+    const architectureHint = (await this.workspace?.architectureHint?.(sessionCwd)) ?? null
     const systemPromptController: SystemPromptController = {
       forceEmpty: input.toolNames?.length === 0,
       workspacePromptProvider: () =>
@@ -1033,7 +1036,7 @@ export class AgentRuntimeService implements AgentRuntime {
             base.join('\n\n'),
             systemPromptController.workspacePromptProvider?.() ?? null
           )
-          return merged ? [merged] : []
+          return [merged, architectureHint].filter((text): text is string => Boolean(text))
         }
       }
     })
@@ -1052,6 +1055,11 @@ export class AgentRuntimeService implements AgentRuntime {
     const { session: inner } = await sdk.createAgentSessionFromServices({
       services,
       sessionManager,
+      ...(this.workspace?.customTools && toolNames?.length !== 0
+        ? {
+            customTools: await this.workspace.customTools(sessionCwd, sessionManager.getSessionId())
+          }
+        : {}),
       ...(model ? { model } : {}),
       ...(input.thinkingLevel
         ? { thinkingLevel: resolveModelThinkingLevel(input.thinkingLevel, model) }

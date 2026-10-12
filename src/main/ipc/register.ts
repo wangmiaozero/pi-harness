@@ -90,10 +90,15 @@ import type { OrchestratorService } from '../harness/orchestrator/orchestrator-s
 import { registerHarnessIpc } from './register-harness'
 import type { CustomSkinService } from '../skins/custom-skin-service'
 import { registerUniversalIpc } from './register-universal'
+import { registerIntelligenceIpc } from './register-intelligence'
+import type { ProjectIntelligenceService } from '../intelligence/service'
+import type { ArchitectureViewer } from '../intelligence/viewer'
 import type { UniversalSessionService } from '../universal/service'
 import type { UniversalHandoffService } from '../universal/handoff'
 
 export interface Services {
+  intelligence: ProjectIntelligenceService
+  architectureViewer: ArchitectureViewer
   universal: UniversalSessionService
   universalHandoff: UniversalHandoffService
   settingsStore: JsonStore<AppSettings>
@@ -165,6 +170,7 @@ export function registerIpc(services: Services): void {
     skills,
     access: services.workspace.access
   })
+  registerIntelligenceIpc(ipcMain, wrap, services.intelligence, services.architectureViewer)
 
   // ---- system ----
   ipcMain.handle(IPC_INVOKE.systemInfo, () =>

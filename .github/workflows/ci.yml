@@ -66,3 +66,7 @@ jobs:
       - run: ${{ matrix.command }}
       - name: Native environment regression tests
         run: pnpm exec vitest run src/main/environment src/main/pi/node-environment.test.ts src/main/pi/node-runtime.test.ts src/main/pi/environment-checks.test.ts src/main/pi/install-service.test.ts src/main/process/pi-process.test.ts src/main/services/windows-startup-preflight.test.ts
+      - name: Project analysis native regression tests
+        run: pnpm exec vitest run src/main/intelligence src/main/ipc/register-intelligence.test.ts
+      - name: Project analysis Electron smoke
+        run: pnpm exec playwright test e2e/project-intelligence.spec.ts

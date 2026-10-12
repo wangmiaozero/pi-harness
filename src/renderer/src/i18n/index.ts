@@ -8,16 +8,25 @@ import { koKR } from './locales/ko-KR'
 import { ruRU } from './locales/ru-RU'
 import { frFR } from './locales/fr-FR'
 import { deDE } from './locales/de-DE'
+import { intelligenceEn, intelligenceZh } from './intelligence'
+import {
+  intelligenceTw,
+  intelligenceJa,
+  intelligenceKo,
+  intelligenceRu,
+  intelligenceFr,
+  intelligenceDe
+} from './intelligence-locales'
 
 export const messages = {
-  'en-US': enUS,
-  'zh-CN': zhCN,
-  'zh-TW': zhTW,
-  'ja-JP': jaJP,
-  'ko-KR': koKR,
-  'ru-RU': ruRU,
-  'fr-FR': frFR,
-  'de-DE': deDE
+  'en-US': { ...enUS, intelligence: intelligenceEn },
+  'zh-CN': { ...zhCN, intelligence: intelligenceZh },
+  'zh-TW': { ...zhTW, intelligence: intelligenceTw },
+  'ja-JP': { ...jaJP, intelligence: intelligenceJa },
+  'ko-KR': { ...koKR, intelligence: intelligenceKo },
+  'ru-RU': { ...ruRU, intelligence: intelligenceRu },
+  'fr-FR': { ...frFR, intelligence: intelligenceFr },
+  'de-DE': { ...deDE, intelligence: intelligenceDe }
 } as const
 
 export type AppLocale = keyof typeof messages

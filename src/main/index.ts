@@ -2,7 +2,7 @@
  * Electron main process entry.
  */
 
-import { app, BrowserWindow, nativeTheme } from 'electron'
+import { app, BrowserWindow, nativeTheme, protocol } from 'electron'
 import path from 'node:path'
 import {
   initAppPaths,
@@ -22,6 +22,12 @@ import { UniversalSessionService } from './universal/service'
 import { UniversalHandoffService } from './universal/handoff'
 import { UniversalAiSummaryService } from './universal/ai-summary'
 import { defaultSources } from './universal/sources'
+import { ProjectIntelligenceService } from './intelligence/service'
+import { ArchitectureSnapshots } from './intelligence/snapshots'
+import { ArchifyProvider } from './intelligence/archify'
+import { ArchitectureModel } from './intelligence/model'
+import { architectureTools } from './intelligence/tools'
+import { ArchitectureViewer } from './intelligence/viewer'
 import { log } from './services/logger'
 import { BackupService } from './backup/backup-service'
 import { PiConfigService } from './pi/config-service'
@@ -134,6 +140,12 @@ if (!gotLock) {
 }
 
 async function bootstrap(): Promise<void> {
+  protocol.registerSchemesAsPrivileged([
+    {
+      scheme: 'pi-architecture',
+      privileges: { standard: true, secure: true, supportFetchAPI: true }
+    }
+  ])
   initAppPaths(app)
 
   if (process.platform === 'win32') {
@@ -292,7 +304,27 @@ async function bootstrap(): Promise<void> {
     new JsonStore(harnessPolicyPath(), structuredClone(DEFAULT_POLICY_CONFIG))
   )
   const harnessRef: { current: HarnessRuntime | null } = { current: null }
+  const intelligenceModel = new ArchitectureModel(config, policyEngine)
+  const intelligence = new ProjectIntelligenceService(
+    access,
+    new ArchitectureSnapshots(path.join(userData(), 'project-intelligence')),
+    new ArchifyProvider(
+      app.isPackaged
+        ? path.join(process.resourcesPath, 'archify')
+        : path.resolve(import.meta.dirname, '../../resources/archify'),
+      path.join(userData(), 'project-intelligence-render')
+    ),
+    (root, graph, scan, signal, locale) =>
+      intelligenceModel.enrich(root, graph, scan, signal, locale)
+  )
+
   const piAgent = new AgentRuntimeService(sessions, {
+    architectureHint: (cwd) => intelligence.hint(cwd),
+    customTools: async (_cwd, sessionId) =>
+      architectureTools(
+        intelligence,
+        () => workspaceState.getFoldersForSession(sessionId)[0]?.resolvedPath ?? null
+      ),
     getPrompt: (sessionId) => workspaceState.getPromptForSession(sessionId),
     assertWritable: (target, sessionId) => {
       const folders = workspaceState.getFoldersForSession(sessionId)
@@ -383,6 +415,14 @@ async function bootstrap(): Promise<void> {
   })
 
   registerIpc({
+    intelligence,
+    architectureViewer: new ArchitectureViewer(
+      intelligence,
+      app.isPackaged
+        ? path.join(process.resourcesPath, 'archify')
+        : path.resolve(import.meta.dirname, '../../resources/archify'),
+      () => mainWindow
+    ),
     universal,
     universalHandoff,
     settingsStore,
@@ -464,11 +504,13 @@ async function bootstrap(): Promise<void> {
   })
 
   app.on('window-all-closed', () => {
+    void intelligence.cancelAll()
     screenMotion.stop()
     if (process.platform !== 'darwin') app.quit()
   })
 
   app.on('before-quit', () => {
+    void intelligence.close()
     void universal.close()
     screenMotion.stop()
     stopAutomaticUpdates()

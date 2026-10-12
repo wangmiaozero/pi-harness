@@ -2,6 +2,19 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## Unreleased
+
+### Added
+
+- Added project architecture analysis with interactive maps, source references, saved snapshots, and project information available to Pi. Local analysis uses no model tokens; AI descriptions are optional.
+- Added JSON, offline HTML, and current-view PNG exports for project architecture.
+- Added map pages, focused dependency views, package filters, entrypoints, and translated project analysis controls.
+
+### Fixed
+
+- Kept project analysis isolated between projects, with cancellable scans, retries, and stale source checks.
+- Kept excluded analysis paths separate for each project and restored them from saved snapshots.
+
 ## 1.9.0 — Unreleased
 
 ### Added

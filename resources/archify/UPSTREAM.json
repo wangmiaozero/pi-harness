@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/tt-a1i/archify",
+  "commit": "58ab0b98d2d0def8e49dced705c7b566936723ec",
+  "version": "3.0.1",
+  "modifications": [
+    "Optional generated brand catalog replaced with an empty list; project graphs never supply brand URLs."
+  ],
+  "license": "MIT",
+  "font": "JetBrains Mono (SIL OFL 1.1, embedded in upstream template)"
+}

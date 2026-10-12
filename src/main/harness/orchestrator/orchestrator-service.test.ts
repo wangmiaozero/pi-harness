@@ -579,8 +579,11 @@ describe('OrchestratorService dispatch', () => {
       const finalState = await harness.service.getOrchestration(orchestrationId)
       expect(finalState?.status).toBe('completed')
     }, 5000)
-    const evaluation = await harness.store.getEvaluation(orchestrationId)
-    expect(evaluation?.status).toBe('passed')
+    // Completion is published before the evaluation's queued write finishes.
+    await vi.waitFor(async () => {
+      const evaluation = await harness.store.getEvaluation(orchestrationId)
+      expect(evaluation?.status).toBe('passed')
+    }, 5000)
   })
 
   it('fails a task whose reviewer rejects the work, with feedback on retry', async () => {

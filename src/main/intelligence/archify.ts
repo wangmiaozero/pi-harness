@@ -1,0 +1,110 @@
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import type { ArchitectureGraph, ArchitectureLocale } from '@shared/intelligence/schema'
+
+export interface ArchitectureRendererProvider {
+  id: string
+  version?: string
+  render(graph: ArchitectureGraph, signal: AbortSignal, locale: ArchitectureLocale): Promise<string>
+}
+export const VIEWER_CSP =
+  "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; sandbox allow-scripts"
+
+export class ArchifyProvider implements ArchitectureRendererProvider {
+  readonly id = 'archify'
+  readonly version = '3.0.1'
+  constructor(
+    private readonly resources: string,
+    private readonly temporary: string,
+    private readonly executable = process.execPath
+  ) {}
+  async render(
+    graph: ArchitectureGraph,
+    signal: AbortSignal,
+    locale: ArchitectureLocale
+  ): Promise<string> {
+    await fs.mkdir(this.temporary, { recursive: true })
+    const dir = await fs.mkdtemp(path.join(this.temporary, 'render-'))
+    try {
+      // Layout is a provider concern. Context always retains the full graph.
+      const nodes = graph.nodes.slice(0, 48)
+      const ids = new Set(nodes.map((n) => n.id))
+      const input = {
+        schema_version: 1,
+        diagram_type: 'architecture',
+        meta: {
+          output: 'map.html',
+          title: graph.project.name,
+          subtitle: `${nodes.length}/${graph.nodes.length} modules — source index`,
+          locale: locale === 'zh-CN' ? 'zh-CN' : 'en',
+          legend: {
+            mode: 'auto',
+            entries: {
+              backend: { label: locale === 'zh-CN' ? '项目文件' : 'Project files' },
+              frontend: { label: locale === 'zh-CN' ? '界面文件' : 'UI files' },
+              database: {
+                label: locale === 'zh-CN' ? '数据相关文件（推测）' : 'Data-related files (inferred)'
+              }
+            }
+          }
+        },
+        components: nodes.map((n, i) => ({
+          id: n.id,
+          type: n.type === 'ui' ? 'frontend' : n.type === 'data' ? 'database' : 'backend',
+          label: n.name.slice(-44),
+          pos: [40 + (i % 4) * 320, 60 + Math.floor(i / 4) * 190],
+          size: [230, 90]
+        })),
+        connections: graph.edges
+          .filter((e) => ids.has(e.source) && ids.has(e.target))
+          .slice(0, 100)
+          .map((e) => ({ id: e.id, from: e.source, to: e.target, variant: 'dashed' }))
+      }
+      if (!nodes.length) throw new Error('No readable source files were found.')
+      await fs.writeFile(path.join(dir, 'input.json'), JSON.stringify(input))
+      await promisify(execFile)(
+        this.executable,
+        [
+          path.join(this.resources, 'renderers/architecture/render-architecture.mjs'),
+          path.join(dir, 'input.json'),
+          path.join(dir, 'map.html')
+        ],
+        {
+          env: {
+            ...process.env,
+            ELECTRON_RUN_AS_NODE: '1',
+            ARCHIFY_REPO_ROOT: undefined,
+            NODE_OPTIONS: ''
+          },
+          cwd: dir,
+          signal,
+          timeout: 30_000,
+          maxBuffer: 256_000,
+          windowsHide: true
+        }
+      )
+      signal.throwIfAborted()
+      const html = await fs.readFile(path.join(dir, 'map.html'), 'utf8')
+      if (html.length > 3_000_000 || /<script\b[^>]*\bsrc\s*=/i.test(html))
+        throw new Error('Unsupported viewer resources.')
+      return secureViewer(html)
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  }
+}
+
+export function secureViewer(html: string): string {
+  // Trusted upstream template and escaped, verified graph data only. Loaded
+  // artifacts remain sandboxed even if the local snapshot has been tampered with.
+  if (html.includes('data-pi-architecture-bridge')) return html
+  const bridge = `<script data-pi-architecture-bridge>document.addEventListener('click',function(e){const a=e.target.closest('a');if(a)e.preventDefault();const n=e.target.closest('[data-node-id]');if(n)window.architectureSelection?.select(n.dataset.nodeId)});document.addEventListener('keydown',function(e){if(e.key==='Enter'){const n=e.target.closest('[data-node-id]');if(n)window.architectureSelection?.select(n.dataset.nodeId)}});</script>`
+  return html
+    .replace(
+      '<head>',
+      `<head><meta http-equiv="Content-Security-Policy" content="${VIEWER_CSP.replace('; sandbox allow-scripts', '')}">`
+    )
+    .replace('</body>', `${bridge}</body>`)
+}

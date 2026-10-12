@@ -2,6 +2,17 @@
 
 Pi-Harness original code is licensed under the terms in [LICENSE](./LICENSE) and [NOTICE](./NOTICE). Third-party projects and dependencies remain subject to their own licenses.
 
+## Archify
+
+- Project: [tt-a1i/archify](https://github.com/tt-a1i/archify)
+- Version: 3.0.1; commit `58ab0b98d2d0def8e49dced705c7b566936723ec`.
+- Copyright: Copyright (c) 2026 tt-a1i (Archify); Copyright (c) 2025 Cocoon AI.
+- License: MIT; the full license is distributed at `archify/LICENSE` in packaged applications.
+- Used as: the local architecture renderer and interactive HTML viewer. The optional brand icon catalog is omitted; no brand icons are distributed.
+- The embedded JetBrains Mono font is licensed under SIL Open Font License 1.1. Its notice is preserved in the template and at `archify/assets/JetBrainsMono-OFL.txt`.
+
+Project analysis also uses `ignore`, `typebox`, and Vue's SFC compiler under MIT, and TypeScript under Apache-2.0. Their license files are retained with the packaged dependencies.
+
 Pi-Harness is inspired by the following MIT-licensed project:
 
 ## Pi Web

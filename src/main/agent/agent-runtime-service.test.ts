@@ -79,6 +79,37 @@ describe('AgentRuntimeService', () => {
     expect(inner.agent.state?.systemPrompt).toContain('Project B')
     expect(inner.agent.state?.systemPrompt).not.toContain('Project A')
   })
+  it('adds architecture retrieval through Native Pi custom tools without replacing its prompt', async () => {
+    const manager = createSessionManager()
+    const inner = createAgentSession(manager)
+    const customTools = vi.fn(async () => [{ name: 'get_project_architecture' }])
+    const create = vi.fn(async () => ({ session: inner }))
+    const services = vi.fn(async (_options: Record<string, unknown>) => ({}))
+    loadPiCodingAgent.mockResolvedValue({
+      SessionManager: { create: () => manager },
+      createAgentSessionServices: services,
+      createAgentSessionFromServices: create,
+      getAgentDir: () => '/tmp/agent'
+    })
+    const runtime = new AgentRuntimeService({ invalidate: vi.fn() } as unknown as SessionService, {
+      customTools,
+      architectureHint: async () => 'Source-backed architecture is available.'
+    })
+    await runtime.start({ cwd: '/tmp/project' })
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ customTools: [{ name: 'get_project_architecture' }] })
+    )
+    const options = services.mock.calls[0][0] as unknown as {
+      resourceLoaderOptions: { appendSystemPromptOverride: (base: string[]) => string[] }
+    }
+    const prompt = options.resourceLoaderOptions.appendSystemPromptOverride([
+      'Native project instructions'
+    ])
+    expect(prompt[0]).toContain('Native project instructions')
+    expect(prompt[0]).toContain('PI-HARNESS FILE INTEGRITY')
+    expect(prompt[1]).toBe('Source-backed architecture is available.')
+    await runtime.shutdownAll()
+  })
 
   it('requires a real tool call for explicit file-writing requests on compatible providers', async () => {
     const inner = createAgentSession(createSessionManager())

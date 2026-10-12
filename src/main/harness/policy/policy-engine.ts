@@ -186,7 +186,8 @@ export class PolicyEngine {
   async resolveAsk(
     sessionId: string,
     target: string,
-    evaluation: PolicyEvaluation
+    evaluation: PolicyEvaluation,
+    signal?: AbortSignal
   ): Promise<boolean> {
     if (evaluation.decision === 'allow') return true
     if (evaluation.decision === 'deny') return false
@@ -203,12 +204,16 @@ export class PolicyEngine {
       return false
     }
     const options: MessageBoxOptions = {
+      ...(signal ? { signal } : {}),
       type: 'warning',
       buttons: ['Allow once', 'Deny'],
       defaultId: 1,
       cancelId: 1,
       title: 'Harness Policy',
-      message: 'Pi wants to execute a command that requires confirmation',
+      message:
+        evaluation.domain === 'network'
+          ? 'This request needs network access under Harness Policy'
+          : 'Pi wants to execute a command that requires confirmation',
       detail: target.slice(0, 2000),
       noLink: true
     }
