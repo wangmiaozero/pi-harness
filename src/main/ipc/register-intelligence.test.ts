@@ -58,4 +58,16 @@ it('validates every architecture IPC boundary before services or viewer receive 
   expect(status).not.toHaveBeenCalled()
   expect(source).not.toHaveBeenCalled()
   expect(show).not.toHaveBeenCalled()
+  await expect(
+    handlers.get(IPC_INVOKE.intelligenceViewer)!(
+      {},
+      {
+        url: 'pi-architecture://viewer/00000000-0000-4000-8000-000000000000',
+        bounds: { x: 0, y: 0, width: 100, height: 100 },
+        theme: 'light',
+        controls: { range: '1', fullscreen: true, shell: 'bad' }
+      }
+    )
+  ).rejects.toThrow('Invalid')
+  expect(show).not.toHaveBeenCalled()
 })

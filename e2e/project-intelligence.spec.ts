@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import http from 'node:http'
 import { test, expect } from './fixtures'
+import { clickArchitectureControl, expectArchitectureDockToFit } from './architecture-controls'
 import { _electron as electron } from '@playwright/test'
 
 test('explores all map pages, packages, localized controls and project-specific exclusions', async ({
@@ -33,6 +34,7 @@ test('explores all map pages, packages, localized controls and project-specific 
   }, workspaceRoot)
   await page.getByTestId('workspace-import-project').click()
   await page.getByTestId('workspace-architecture').click()
+  await page.getByTestId('architecture-analysis-options-toggle').click()
   const excluded = page.getByTestId('architecture-exclusions')
   await page
     .getByTestId('project-intelligence')
@@ -45,7 +47,7 @@ test('explores all map pages, packages, localized controls and project-specific 
     timeout: 45000
   })
   await expect(page.getByTestId('architecture-module')).toHaveCount(55)
-  await page.getByRole('button', { name: /Next modules|下一组模块/ }).click()
+  await clickArchitectureControl(electronApp, 'next')
   const nativeNodes = () =>
     electronApp.evaluate(async ({ webContents }) => {
       const view = webContents
@@ -78,16 +80,16 @@ test('explores all map pages, packages, localized controls and project-specific 
   const window = await electronApp.browserWindow(page)
   await window.evaluate((w) => w.setSize(1000, 900))
   const copies = [
-    ['en-US', 'Project Intelligence'],
-    ['zh-CN', '项目智能理解'],
-    ['zh-TW', '專案智慧理解'],
-    ['ja-JP', 'プロジェクト分析'],
-    ['ko-KR', '프로젝트 분석'],
-    ['ru-RU', 'Анализ проекта'],
-    ['fr-FR', 'Analyse du projet'],
-    ['de-DE', 'Projektanalyse']
+    ['en-US', 'Project Intelligence', 'Fullscreen'],
+    ['zh-CN', '项目智能理解', '全屏'],
+    ['zh-TW', '專案智慧理解', '全螢幕'],
+    ['ja-JP', 'プロジェクト分析', '全画面'],
+    ['ko-KR', '프로젝트 분석', '전체 화면'],
+    ['ru-RU', 'Анализ проекта', 'Полный экран'],
+    ['fr-FR', 'Analyse du projet', 'Plein écran'],
+    ['de-DE', 'Projektanalyse', 'Vollbild']
   ] as const
-  for (const [language, title] of copies) {
+  for (const [language, title, fullscreenLabel] of copies) {
     await page.evaluate(
       (language) => window.piSwitch!.settings.set({ language, theme: 'light' }),
       language
@@ -96,6 +98,56 @@ test('explores all map pages, packages, localized controls and project-specific 
     await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12000 })
     await page.getByTestId('workspace-architecture').click()
     await expect(page.getByTestId('project-intelligence')).toContainText(title)
+    await expect
+      .poll(() =>
+        electronApp.evaluate(async ({ webContents }) => {
+          const view = webContents
+            .getAllWebContents()
+            .find((view) => view.getURL().startsWith('pi-architecture:'))
+          if (!view) return null
+          return view.executeJavaScript(
+            'document.querySelector("[data-testid=architecture-fullscreen]")?.getAttribute("aria-label")'
+          )
+        })
+      )
+      .toBe(fullscreenLabel)
+    const dockOverflow = await electronApp.evaluate(async ({ webContents }) => {
+      const view = webContents
+        .getAllWebContents()
+        .find((view) => view.getURL().startsWith('pi-architecture:'))!
+      return view.executeJavaScript(`(()=>{
+        const dock=document.querySelector('.diagram-nav');
+        const box=dock.getBoundingClientRect();
+        const label=document.querySelector('[data-testid=architecture-fullscreen] span');
+        const text=document.createRange();text.selectNodeContents(label);
+        return [...dock.querySelectorAll('button')].filter(button=>{
+          if(!button.getClientRects().length)return false;
+          const rect=button.getBoundingClientRect();
+          return rect.left<0||rect.top<0||rect.right>innerWidth+1||rect.bottom>innerHeight+1||rect.right>box.right+1||rect.left<box.left-1;
+        }).length + (text.getClientRects().length!==1?1:0);
+      })()`)
+    })
+    expect(dockOverflow).toBe(0)
+    await expectArchitectureDockToFit(electronApp)
+    await clickArchitectureControl(electronApp, 'fullscreen')
+    await expect
+      .poll(() => page.evaluate(() => document.fullscreenElement?.id))
+      .toBe('pi-architecture-panel')
+    await expect
+      .poll(() =>
+        electronApp.evaluate(async ({ webContents }) => {
+          const view = webContents
+            .getAllWebContents()
+            .find((view) => view.getURL().startsWith('pi-architecture:'))!
+          return view.executeJavaScript(
+            'document.querySelector("[data-testid=architecture-fullscreen]")?.getAttribute("aria-pressed")'
+          )
+        })
+      )
+      .toBe('true')
+    await expectArchitectureDockToFit(electronApp)
+    await clickArchitectureControl(electronApp, 'fullscreen')
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.id ?? null)).toBeNull()
     expect(
       await page
         .getByTestId('project-intelligence')
@@ -466,6 +518,7 @@ test('cancels a configured Pi model request without replacing the successful sna
         JSON.stringify({ defaultProvider: 'local-test', defaultModel: 'architecture-test' })
       )
     }, `http://127.0.0.1:${port}/v1`)
+    await page.getByTestId('architecture-analysis-options-toggle').click()
     await page.getByRole('switch', { name: /Use configured model|使用已配置模型/ }).click()
     await page.getByTestId('analyze-project').click()
     await expect.poll(() => requests, { timeout: 20000 }).toBe(1)
@@ -542,6 +595,7 @@ test('scan errors are retryable and an unavailable model preserves the local ind
     await window.piSwitch!.config.writeRaw('settings', '{}')
     await window.piSwitch!.config.writeRaw('models', '{"providers":{}}')
   })
+  await page.getByTestId('architecture-analysis-options-toggle').click()
   await page.getByRole('switch', { name: /Use configured model|使用已配置模型/ }).click()
   await expect(page.getByTestId('project-intelligence')).toContainText(path.basename(workspaceRoot))
   await page.getByTestId('analyze-project').click()

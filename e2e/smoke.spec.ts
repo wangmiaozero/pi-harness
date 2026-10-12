@@ -112,13 +112,13 @@ test.describe('Pi-Harness smoke', () => {
         path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-default.png')
       })
     }
-    await workspaceSidebar.getByRole('button', { name: /Harness/ }).click()
+    await page.getByTestId('workspace-section-tools').click()
     const harnessConsole = page.getByTestId('harness-console')
     await expect(harnessConsole).toBeVisible()
     await expect(page.getByText(/尚未选择会话|No session selected/)).toBeVisible()
     await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
     await expect(page.getByTestId('workspace-toggle-files')).toHaveCount(0)
-    await expect(page.getByTestId('workspace-section-harness')).toHaveAttribute(
+    await expect(page.getByTestId('workspace-section-tools')).toHaveAttribute(
       'aria-pressed',
       'true'
     )
@@ -126,7 +126,13 @@ test.describe('Pi-Harness smoke', () => {
       page.getByTestId('workspace-main').boundingBox(),
       harnessConsole.boundingBox()
     ])
-    expect(harnessConsoleBox).toEqual(workspaceMainBox)
+    expect(harnessConsoleBox!.x).toBe(workspaceMainBox!.x)
+    expect(harnessConsoleBox!.width).toBe(workspaceMainBox!.width)
+    expect(harnessConsoleBox!.y).toBeGreaterThan(workspaceMainBox!.y)
+    expect(harnessConsoleBox!.y + harnessConsoleBox!.height).toBeCloseTo(
+      workspaceMainBox!.y + workspaceMainBox!.height,
+      0
+    )
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({
         path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-harness-mode.png')
@@ -243,7 +249,7 @@ test.describe('Pi-Harness smoke', () => {
     await page.locator('a[href="#/workspace"]').click()
     await expect(page.getByTestId('harness-console')).toHaveCount(0)
     await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
-    await page.getByTestId('workspace-section-harness').click()
+    await page.getByTestId('workspace-section-tools').click()
     await expect(page.getByTestId('harness-console')).toBeVisible()
     await expect(page.getByText(/尚未选择会话|No session selected/)).toBeVisible()
     await page.getByTestId('workspace-section-workspace').click()
@@ -471,7 +477,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(sessionRow).toContainText('Multi-project session')
     await expect(page.locator(`[data-testid^="session-project-${sessionId}-"]`)).toHaveCount(2)
     await sessionRow.getByRole('button', { name: 'Multi-project session' }).click()
-    await page.getByTestId('workspace-section-harness').click()
+    await page.getByTestId('workspace-section-tools').click()
     const harnessConsole = page.getByTestId('harness-console')
     await expect(harnessConsole).toBeVisible()
     await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
@@ -480,7 +486,13 @@ test.describe('Pi-Harness smoke', () => {
       page.getByTestId('workspace-main').boundingBox(),
       harnessConsole.boundingBox()
     ])
-    expect(harnessConsoleBox).toEqual(workspaceMainBox)
+    expect(harnessConsoleBox!.x).toBe(workspaceMainBox!.x)
+    expect(harnessConsoleBox!.width).toBe(workspaceMainBox!.width)
+    expect(harnessConsoleBox!.y).toBeGreaterThan(workspaceMainBox!.y)
+    expect(harnessConsoleBox!.y + harnessConsoleBox!.height).toBeCloseTo(
+      workspaceMainBox!.y + workspaceMainBox!.height,
+      0
+    )
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({
         path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-harness-session.png')

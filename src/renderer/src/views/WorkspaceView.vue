@@ -13,7 +13,7 @@ import GitDiffView from '@renderer/components/git/GitDiffView.vue'
 import HarnessConsole from '@renderer/features/harness/HarnessConsole.vue'
 import OrchestrationConsole from '@renderer/features/orchestration/OrchestrationConsole.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
-import { FolderOpen, PanelLeftClose, PanelLeftOpen, Network } from '@lucide/vue'
+import { FolderOpen, PanelLeftClose, PanelLeftOpen, Network, Gauge, Bot } from '@lucide/vue'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
@@ -72,9 +72,10 @@ async function explainArchitecture(moduleId?: string): Promise<void> {
   architectureOpen.value = false
   void nextTick(() => chatWindow.value?.focusComposer())
 }
-type WorkspaceSection = 'workspace' | 'harness' | 'orchestration'
+type WorkspaceSection = 'workspace' | 'tools'
 
 const activeWorkspaceSection = ref<WorkspaceSection>('workspace')
+const activeTool = ref<'harness' | 'orchestration'>('harness')
 const workspaceViewElement = ref<HTMLElement | null>(null)
 const workspaceSidebarCollapsed = ref(readStoredSidebarCollapsed())
 const workspaceSidebarWidth = ref<number | null>(readStoredSidebarWidth())
@@ -293,6 +294,22 @@ function saveWorkspace() {
 function setWorkspaceSection(section: WorkspaceSection) {
   activeWorkspaceSection.value = section
 }
+function onToolTabKeydown(event: KeyboardEvent): void {
+  const next =
+    event.key === 'Home'
+      ? 'harness'
+      : event.key === 'End'
+        ? 'orchestration'
+        : event.key === 'ArrowLeft' || event.key === 'ArrowRight'
+          ? activeTool.value === 'harness'
+            ? 'orchestration'
+            : 'harness'
+          : null
+  if (!next) return
+  event.preventDefault()
+  activeTool.value = next
+  void nextTick(() => document.getElementById(`workspace-tool-tab-${next}`)?.focus())
+}
 
 const offNew = registerShortcut({
   id: 'workspace-new-session',
@@ -305,7 +322,7 @@ const offClose = registerShortcut({
   label: t('workspace.closeTab'),
   keys: ['meta+w', 'ctrl+w'],
   run: () => {
-    if (['harness', 'orchestration'].includes(activeWorkspaceSection.value)) return
+    if (activeWorkspaceSection.value === 'tools') return
     if (workspace.filePanelOpen && document.activeElement?.closest('#workspace-files-panel')) {
       filesPanel.value?.closeActiveFile()
       return
@@ -465,6 +482,7 @@ watch(
       ref="workspaceSidebar"
       :style="workspaceSidebarStyle"
       :active-section="activeWorkspaceSection"
+      :active-tool="activeTool"
       @focus-composer="focusComposer"
       @section-change="setWorkspaceSection"
     />
@@ -518,8 +536,51 @@ watch(
       data-testid="workspace-main"
       class="workspace-main flex min-h-0 min-w-0 flex-1 flex-col"
     >
-      <HarnessConsole v-if="activeWorkspaceSection === 'harness'" />
-      <OrchestrationConsole v-else-if="activeWorkspaceSection === 'orchestration'" />
+      <div
+        v-if="activeWorkspaceSection === 'tools'"
+        class="flex min-h-0 flex-1 flex-col"
+        data-testid="workspace-tools"
+      >
+        <div
+          class="flex shrink-0 flex-wrap gap-1 border-b border-[var(--border-subtle)] px-3 py-1.5"
+          role="tablist"
+          :aria-label="$t('workspace.tools')"
+          @keydown="onToolTabKeydown"
+        >
+          <button
+            v-for="tool in [
+              { id: 'harness' as const, label: $t('workspace.harness'), icon: Gauge },
+              { id: 'orchestration' as const, label: $t('orchestration.sidebarLabel'), icon: Bot }
+            ]"
+            :id="`workspace-tool-tab-${tool.id}`"
+            :key="tool.id"
+            type="button"
+            role="tab"
+            :data-testid="`workspace-tool-${tool.id}`"
+            :aria-selected="activeTool === tool.id"
+            :tabindex="activeTool === tool.id ? 0 : -1"
+            :aria-controls="`workspace-tool-panel-${tool.id}`"
+            class="flex min-h-8 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] border px-3 py-1 text-xs"
+            :class="
+              activeTool === tool.id
+                ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+            "
+            @click="activeTool = tool.id"
+          >
+            <component :is="tool.icon" class="size-3.5 shrink-0" />{{ tool.label }}
+          </button>
+        </div>
+        <div
+          :id="`workspace-tool-panel-${activeTool}`"
+          role="tabpanel"
+          :aria-labelledby="`workspace-tool-tab-${activeTool}`"
+          class="min-h-0 flex-1"
+        >
+          <HarnessConsole v-if="activeTool === 'harness'" />
+          <OrchestrationConsole v-else />
+        </div>
+      </div>
       <template v-else>
         <MingWorkspaceOrnaments
           v-if="mingDynastyActive && !workspace.filePanelOpen"

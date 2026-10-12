@@ -28,6 +28,7 @@ import { ArchifyProvider } from './intelligence/archify'
 import { ArchitectureModel } from './intelligence/model'
 import { architectureTools } from './intelligence/tools'
 import { ArchitectureViewer } from './intelligence/viewer'
+import { canUseArchitectureFullscreen } from './intelligence/fullscreen-permission'
 import { log } from './services/logger'
 import { BackupService } from './backup/backup-service'
 import { PiConfigService } from './pi/config-service'
@@ -181,9 +182,11 @@ async function bootstrap(): Promise<void> {
   app.on('web-contents-created', (_event, contents) => {
     contents.on('will-attach-webview', (e) => e.preventDefault())
     contents.setWindowOpenHandler(() => ({ action: 'deny' }))
-    contents.session.setPermissionCheckHandler(() => false)
-    contents.session.setPermissionRequestHandler((_webContents, _permission, callback) => {
-      callback(false)
+    contents.session.setPermissionCheckHandler((requester, permission, _origin, details) =>
+      canUseArchitectureFullscreen(requester, permission, details)
+    )
+    contents.session.setPermissionRequestHandler((requester, permission, callback, details) => {
+      callback(canUseArchitectureFullscreen(requester, permission, details))
     })
   })
 

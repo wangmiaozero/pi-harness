@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Network } from '@lucide/vue'
+import { Network, PanelLeft, ChevronDown } from '@lucide/vue'
 import { getApi, getErrorPayload } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { useSettingsStore } from '@renderer/stores/settings'
@@ -9,6 +9,7 @@ import { themeAppearance } from '@shared/constants/theme'
 import { resolveAppLocale } from '@shared/constants/language'
 import { architectureLabel, architectureWarning } from '@renderer/i18n/intelligence-details'
 import Button from '@renderer/components/ui/Button.vue'
+import IconButton from '@renderer/components/ui/IconButton.vue'
 import Switch from '@renderer/components/ui/Switch.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import FileViewer from '@renderer/components/files/FileViewer.vue'
@@ -52,12 +53,45 @@ const excludes = ref('')
 const excludeDrafts = new Map<string, string>()
 const map = ref<ArchitectureMap | null>(null)
 const mapBusy = ref(false)
+const analysisOptionsOpen = ref(false)
+const moduleListOpen = ref(true)
+const detailsOpen = ref(false)
+const panel = ref<HTMLElement | null>(null)
+const fullscreen = ref(false)
+function onFullscreenChange(): void {
+  fullscreen.value = document.fullscreenElement === panel.value
+  void nextTick(() => viewerMessage())
+}
+document.addEventListener('fullscreenchange', onFullscreenChange)
 let mapVersion = 0
 const viewerUrl = computed(() => map.value?.viewerUrl ?? snapshot.value?.viewerUrl ?? null)
+const visibleWarnings = computed(() =>
+  (snapshot.value?.graph.warnings ?? []).filter(
+    (warning) => !viewerUrl.value || !warning.startsWith('The architecture viewer')
+  )
+)
 const visibleModuleIds = computed(
   () => map.value?.moduleIds ?? snapshot.value?.graph.nodes.slice(0, 48).map((n) => n.id) ?? []
 )
 const mapOffset = computed(() => map.value?.offset ?? 0)
+const viewerControls = computed(() => ({
+  range:
+    snapshot.value && snapshot.value.graph.nodes.length > 48
+      ? `${mapOffset.value + 1}–${Math.min(mapOffset.value + 48, snapshot.value.graph.nodes.length)} / ${snapshot.value.graph.nodes.length}`
+      : '',
+  focused: Boolean(map.value?.focus),
+  previousDisabled: mapBusy.value || mapOffset.value === 0,
+  nextDisabled: mapBusy.value || mapOffset.value + 48 >= (snapshot.value?.graph.nodes.length ?? 0),
+  busy: mapBusy.value,
+  fullscreen: fullscreen.value,
+  labels: {
+    previous: t('intelligence.previousMap'),
+    next: t('intelligence.nextMap'),
+    overview: t('intelligence.overview'),
+    fullscreen: t('intelligence.fullscreen'),
+    exitFullscreen: t('intelligence.exitFullscreen')
+  }
+}))
 const packageFilter = ref('')
 const error = ref<string | null>(null)
 const busy = ref(false)
@@ -123,6 +157,7 @@ async function viewerMessage(id?: string): Promise<void> {
         height: Math.max(0, Math.round(bottom - top))
       },
       theme: theme.value,
+      controls: viewerControls.value,
       ...(id ? { selectedId: id } : {})
     })
   } catch (e) {
@@ -136,6 +171,7 @@ async function showMap(offset = 0, moduleId?: string): Promise<void> {
   const requestVersion = ++mapVersion
   if (!root || !graph) return
   mapBusy.value = true
+  error.value = null
   try {
     const result = await getApi().intelligence.map({
       root,
@@ -156,23 +192,41 @@ async function showMap(offset = 0, moduleId?: string): Promise<void> {
       selectedId.value && result.moduleIds.includes(selectedId.value) ? selectedId.value : undefined
     )
   } catch (e) {
-    if (version === revision && requestVersion === mapVersion)
-      error.value = getErrorPayload(e).message
+    if (version === revision && requestVersion === mapVersion) {
+      const payload = getErrorPayload(e)
+      error.value =
+        payload.code === 'PROCESS_FAILED' ? t('intelligence.renderFailed') : payload.message
+    }
   } finally {
     if (version === revision && requestVersion === mapVersion) mapBusy.value = false
   }
 }
 function select(id: string): void {
   selectedId.value = id
+  detailsOpen.value = true
   if (!visibleModuleIds.value.includes(id)) void showMap(0, id)
   else void viewerMessage(id)
 }
 const unsubscribe = getApi().on('architecture-selected', (input) => {
   const value = input as { url?: unknown; id?: unknown }
   if (value.url !== viewerUrl.value || typeof value.id !== 'string') return
-  if (snapshot.value?.graph.nodes.some((n) => n.id === value.id)) selectedId.value = value.id
+  if (snapshot.value?.graph.nodes.some((n) => n.id === value.id)) {
+    selectedId.value = value.id
+    detailsOpen.value = true
+  }
 })
-watch([theme, sourceOpen, dialogBlocking], () => void viewerMessage())
+const unsubscribeControls = getApi().on('architecture-control', (input) => {
+  const value = input as { url?: unknown; action?: unknown }
+  if (value.url !== viewerUrl.value) return
+  if (value.action === 'fullscreen-error') error.value = t('intelligence.fullscreenError')
+  if (mapBusy.value) return
+  if (value.action === 'previous' && !map.value?.focus && !viewerControls.value.previousDisabled)
+    void showMap(mapOffset.value - 48)
+  if (value.action === 'next' && !map.value?.focus && !viewerControls.value.nextDisabled)
+    void showMap(mapOffset.value + 48)
+  if (value.action === 'overview' && map.value?.focus) void showMap()
+})
+watch([theme, sourceOpen, dialogBlocking, viewerControls], () => void viewerMessage())
 watch(
   viewerUrl,
   async () => {
@@ -351,6 +405,9 @@ async function clear(): Promise<void> {
 }
 
 onBeforeUnmount(() => {
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
+  if (document.fullscreenElement === panel.value)
+    void document.exitFullscreen().catch(() => undefined)
   revision++
   nativeVersion++
   mapVersion++
@@ -359,6 +416,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll, true)
   cancelAnimationFrame(scrollFrame)
   unsubscribe()
+  unsubscribeControls()
   unsubscribeModel()
   void getApi().intelligence.viewer({
     url: null,
@@ -370,14 +428,28 @@ onBeforeUnmount(() => {
 
 <template>
   <section
+    id="pi-architecture-panel"
+    ref="panel"
     class="intelligence flex h-full min-h-0 flex-col overflow-hidden"
+    :class="{ 'intelligence--fullscreen': fullscreen }"
     data-testid="project-intelligence"
   >
     <header
-      class="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--border-subtle)] p-3"
+      class="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-[var(--border-subtle)] px-2 py-1.5 text-xs"
     >
       <Network class="size-4 shrink-0" />
       <h2 class="font-semibold">{{ t('intelligence.title') }}</h2>
+      <IconButton
+        v-if="snapshot"
+        :label="t('intelligence.modules')"
+        :active="moduleListOpen"
+        :aria-expanded="moduleListOpen"
+        aria-controls="architecture-module-browser"
+        data-testid="architecture-toggle-modules"
+        @click="moduleListOpen = !moduleListOpen"
+      >
+        <PanelLeft class="size-3.5" />
+      </IconButton>
       <Button size="sm" @click="emit('close')">{{ t('intelligence.close') }}</Button>
       <Button
         v-if="root"
@@ -402,51 +474,77 @@ onBeforeUnmount(() => {
         t('intelligence.clear')
       }}</Button>
     </header>
-    <div class="shrink-0 space-y-2 border-b border-[var(--border-subtle)] p-3 text-xs">
-      <p class="break-all text-[var(--text-secondary)]">
-        {{ root || t('intelligence.noProject') }}
-      </p>
-      <select
-        v-if="(projects?.length ?? 0) > 1"
-        data-testid="architecture-project"
-        class="w-full rounded-[var(--radius-sm)] bg-[var(--bg-input)] p-2"
-        :aria-label="t('intelligence.project')"
-        :value="root"
-        @change="emit('select-project', ($event.target as HTMLSelectElement).value)"
-      >
-        <option v-for="project in projects" :key="project" :value="project">{{ project }}</option>
-      </select>
-      <p>{{ t('intelligence.localHint') }}</p>
-      <div v-if="root" class="flex flex-wrap items-center gap-2">
-        <Switch v-model="ai" :disabled="running" :label="t('intelligence.ai')" /><span>{{
-          t('intelligence.ai')
-        }}</span
-        ><span class="text-[var(--text-secondary)]"
-          >{{ t('intelligence.model') }}:
-          {{
-            activeModel?.modelId
-              ? `${activeModel.providerKey}/${activeModel.modelId}`
-              : t('intelligence.local')
-          }}</span
+    <div
+      class="architecture-analysisbar shrink-0 border-b border-[var(--border-subtle)] px-2 py-1.5 text-xs"
+    >
+      <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        <select
+          v-if="(projects?.length ?? 0) > 1"
+          data-testid="architecture-project"
+          class="max-w-full rounded-[var(--radius-sm)] bg-[var(--bg-input)] px-2 py-1 sm:max-w-80"
+          :aria-label="t('intelligence.project')"
+          :title="root ?? ''"
+          :value="root"
+          @change="emit('select-project', ($event.target as HTMLSelectElement).value)"
         >
+          <option v-for="project in projects" :key="project" :value="project">{{ project }}</option>
+        </select>
+        <p v-else class="min-w-0 max-w-full truncate font-medium" :title="root ?? ''">
+          {{ root?.split(/[\\/]/).filter(Boolean).at(-1) || t('intelligence.noProject') }}
+        </p>
+        <Button
+          v-if="root"
+          size="sm"
+          :aria-expanded="analysisOptionsOpen"
+          aria-controls="architecture-analysis-options"
+          data-testid="architecture-analysis-options-toggle"
+          @click="analysisOptionsOpen = !analysisOptionsOpen"
+          >{{ t('intelligence.analysisOptions') }}</Button
+        >
+        <p role="status" data-testid="architecture-status" class="text-[var(--text-secondary)]">
+          {{
+            t(
+              state.waiting
+                ? 'intelligence.waiting'
+                : `intelligence.phases.${state.phase === 'idle' && snapshot ? 'completed' : state.phase}`
+            )
+          }}
+          · {{ state.phase === 'idle' && snapshot ? snapshot.graph.coverage.files : state.files }}
+          {{ t('intelligence.files') }}
+        </p>
       </div>
-      <p v-if="ai" class="text-[var(--text-secondary)]">{{ t('intelligence.aiHint') }}</p>
-      <details v-if="root && !running">
-        <summary>{{ t('intelligence.excludes') }}</summary>
-        <textarea
-          v-model="excludes"
-          data-testid="architecture-exclusions"
-          class="mt-2 w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-input)] p-2"
-          :aria-label="t('intelligence.excludes')"
-          @input="root && excludeDrafts.set(root, ($event.target as HTMLTextAreaElement).value)"
-        />
-      </details>
-      <p role="status" data-testid="architecture-status">
-        {{ t(state.waiting ? 'intelligence.waiting' : `intelligence.phases.${state.phase}`) }} ·
-        {{ state.files }}
-        {{ t('intelligence.files') }}
-      </p>
-      <p v-if="error" role="alert" class="text-[var(--error)]">{{ error }}</p>
+      <div
+        v-show="analysisOptionsOpen"
+        id="architecture-analysis-options"
+        class="mt-2 max-h-48 space-y-2 overflow-auto border-t border-[var(--border-subtle)] pt-2"
+      >
+        <p>{{ t('intelligence.localHint') }}</p>
+        <div v-if="root" class="flex flex-wrap items-center gap-2">
+          <Switch v-model="ai" :disabled="running" :label="t('intelligence.ai')" /><span>{{
+            t('intelligence.ai')
+          }}</span>
+          <span class="text-[var(--text-secondary)]"
+            >{{ t('intelligence.model') }}:
+            {{
+              activeModel?.modelId
+                ? `${activeModel.providerKey}/${activeModel.modelId}`
+                : t('intelligence.local')
+            }}</span
+          >
+        </div>
+        <p v-if="ai" class="text-[var(--text-secondary)]">{{ t('intelligence.aiHint') }}</p>
+        <details v-if="root && !running">
+          <summary>{{ t('intelligence.excludes') }}</summary>
+          <textarea
+            v-model="excludes"
+            data-testid="architecture-exclusions"
+            class="mt-1 w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-input)] p-1.5"
+            :aria-label="t('intelligence.excludes')"
+            @input="root && excludeDrafts.set(root, ($event.target as HTMLTextAreaElement).value)"
+          />
+        </details>
+      </div>
+      <p v-if="error" role="alert" class="mt-1 text-[var(--error)]">{{ error }}</p>
     </div>
     <div
       v-if="!snapshot"
@@ -455,7 +553,12 @@ onBeforeUnmount(() => {
       {{ t('intelligence.empty') }}
     </div>
     <div v-else class="architecture-layout min-h-0 flex-1">
-      <aside class="min-h-0 space-y-3 overflow-auto border-r border-[var(--border-subtle)] p-3">
+      <aside
+        v-show="moduleListOpen"
+        id="architecture-module-browser"
+        data-testid="architecture-module-browser"
+        class="architecture-modules min-h-0 space-y-2 overflow-auto border-r border-[var(--border-subtle)] p-2"
+      >
         <input
           v-model="search"
           class="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-input)] p-2 text-xs"
@@ -520,102 +623,103 @@ onBeforeUnmount(() => {
           {{ node.name }}
         </button>
       </aside>
-      <main class="flex min-h-0 min-w-0 flex-col">
-        <div class="shrink-0 space-y-1 border-b border-[var(--border-subtle)] p-3 text-xs">
-          <p
-            :class="
-              snapshot.staleness === 'fresh'
-                ? 'text-[var(--text-secondary)]'
-                : 'text-[var(--warning)]'
-            "
-          >
-            {{
-              t(
-                `intelligence.${snapshot.staleness === 'fresh' ? 'fresh' : snapshot.staleness === 'stale' ? 'stale' : 'unknown'}`
-              )
-            }}
-          </p>
-          <p class="max-h-[120px] overflow-auto" tabindex="0">
-            {{
-              snapshot.graph.revision.modelId
-                ? snapshot.graph.summary
-                : t('intelligence.localSummary', {
-                    files: snapshot.graph.nodes.length,
-                    imports: snapshot.graph.edges.length,
-                    packages: snapshot.graph.project.packages.length
-                  })
-            }}
-          </p>
-          <p>
-            {{ snapshot.graph.project.languages.join(', ') }} ·
-            {{ snapshot.graph.project.frameworks.join(', ') }}
-          </p>
-          <details v-if="snapshot.graph.entrypoints.length">
-            <summary>
-              {{ t('intelligence.entrypoints') }} ({{ snapshot.graph.entrypoints.length }})
-            </summary>
-            <button
-              v-for="entry in snapshot.graph.entrypoints"
-              :key="entry"
-              type="button"
-              class="block max-w-full break-all text-left text-[var(--accent)]"
-              @click="select(snapshot!.graph.nodes.find((n) => n.name === entry)!.id)"
-            >
-              {{ entry }}
-            </button>
-          </details>
-          <p>
-            {{ new Date(snapshot.graph.revision.createdAt).toLocaleString(locale) }} ·
-            {{ snapshot.graph.revision.commit?.slice(0, 12) }} ·
-            {{ snapshot.graph.revision.modelId || t('intelligence.local') }}
-          </p>
-          <details v-if="snapshot.graph.warnings.length">
-            <summary>
-              {{
-                snapshot.graph.coverage.partial
-                  ? t('intelligence.partial')
-                  : t('intelligence.confidence')
-              }}
-              ({{ snapshot.graph.warnings.length }})
-            </summary>
-            <p
-              v-for="warning in snapshot.graph.warnings"
-              :key="warning"
-              class="mt-1 text-[var(--text-secondary)]"
-            >
-              {{ architectureWarning(warning, locale) }}
-            </p>
-          </details>
-        </div>
-        <div
-          v-if="snapshot.graph.nodes.length > 48 || map?.focus"
-          class="flex flex-wrap items-center gap-2 border-b border-[var(--border-subtle)] p-2 text-xs"
-          data-testid="architecture-map-pages"
+      <main class="flex min-h-0 min-w-0 flex-1 flex-col">
+        <details
+          class="architecture-summary shrink-0 border-b border-[var(--border-subtle)] px-2 py-1.5 text-xs"
+          data-testid="architecture-summary"
         >
-          <span>{{
-            map?.focus
-              ? t('intelligence.focusedMap')
-              : `${mapOffset + 1}–${Math.min(mapOffset + 48, snapshot.graph.nodes.length)} / ${snapshot.graph.nodes.length}`
-          }}</span>
-          <Button v-if="map?.focus" size="sm" :disabled="mapBusy" @click="showMap()">{{
-            t('intelligence.overview')
-          }}</Button>
-          <template v-else>
-            <Button
-              size="sm"
-              :disabled="mapBusy || mapOffset === 0"
-              @click="showMap(mapOffset - 48)"
-              >{{ t('intelligence.previousMap') }}</Button
+          <summary class="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-1">
+            <span class="font-medium">{{ t('intelligence.summary') }}</span>
+            <span class="text-[var(--text-secondary)]"
+              >{{ snapshot.graph.nodes.length }} {{ t('intelligence.modules') }} ·
+              {{ snapshot.graph.edges.length }} {{ t('intelligence.relationships') }}</span
             >
-            <Button
-              size="sm"
-              :disabled="mapBusy || mapOffset + 48 >= snapshot.graph.nodes.length"
-              @click="showMap(mapOffset + 48)"
-              >{{ t('intelligence.nextMap') }}</Button
+            <span
+              :title="
+                t(
+                  `intelligence.${snapshot.staleness === 'fresh' ? 'fresh' : snapshot.staleness === 'stale' ? 'stale' : 'unknown'}`
+                )
+              "
+              :class="
+                snapshot.staleness === 'fresh'
+                  ? 'text-[var(--text-secondary)]'
+                  : 'text-[var(--warning)]'
+              "
+              >{{
+                t(
+                  `intelligence.${snapshot.staleness === 'fresh' ? 'fresh' : snapshot.staleness === 'stale' ? 'staleStatus' : 'unknownStatus'}`
+                )
+              }}</span
             >
-          </template>
-          <span v-if="mapBusy" role="status">{{ t('intelligence.phases.rendering') }}</span>
-        </div>
+            <ChevronDown class="ml-auto size-3 shrink-0" />
+          </summary>
+          <div class="max-h-40 space-y-1 overflow-auto py-2">
+            <p
+              :class="
+                snapshot.staleness === 'fresh'
+                  ? 'text-[var(--text-secondary)]'
+                  : 'text-[var(--warning)]'
+              "
+            >
+              {{
+                t(
+                  `intelligence.${snapshot.staleness === 'fresh' ? 'fresh' : snapshot.staleness === 'stale' ? 'stale' : 'unknown'}`
+                )
+              }}
+            </p>
+            <p class="max-h-[120px] overflow-auto" tabindex="0">
+              {{
+                snapshot.graph.revision.modelId
+                  ? snapshot.graph.summary
+                  : t('intelligence.localSummary', {
+                      files: snapshot.graph.nodes.length,
+                      imports: snapshot.graph.edges.length,
+                      packages: snapshot.graph.project.packages.length
+                    })
+              }}
+            </p>
+            <p>
+              {{ snapshot.graph.project.languages.join(', ') }} ·
+              {{ snapshot.graph.project.frameworks.join(', ') }}
+            </p>
+            <details v-if="snapshot.graph.entrypoints.length">
+              <summary>
+                {{ t('intelligence.entrypoints') }} ({{ snapshot.graph.entrypoints.length }})
+              </summary>
+              <button
+                v-for="entry in snapshot.graph.entrypoints"
+                :key="entry"
+                type="button"
+                class="block max-w-full break-all text-left text-[var(--accent)]"
+                @click="select(snapshot!.graph.nodes.find((n) => n.name === entry)!.id)"
+              >
+                {{ entry }}
+              </button>
+            </details>
+            <p>
+              {{ new Date(snapshot.graph.revision.createdAt).toLocaleString(locale) }} ·
+              {{ snapshot.graph.revision.commit?.slice(0, 12) }} ·
+              {{ snapshot.graph.revision.modelId || t('intelligence.local') }}
+            </p>
+            <details v-if="visibleWarnings.length">
+              <summary>
+                {{
+                  snapshot.graph.coverage.partial
+                    ? t('intelligence.partial')
+                    : t('intelligence.confidence')
+                }}
+                ({{ visibleWarnings.length }})
+              </summary>
+              <p
+                v-for="warning in visibleWarnings"
+                :key="warning"
+                class="mt-1 text-[var(--text-secondary)]"
+              >
+                {{ architectureWarning(warning, locale) }}
+              </p>
+            </details>
+          </div>
+        </details>
         <div
           v-if="viewerUrl"
           ref="viewer"
@@ -624,14 +728,30 @@ onBeforeUnmount(() => {
           data-testid="architecture-viewer"
           :aria-label="t('intelligence.architecture')"
         />
-        <p v-else class="p-6 text-sm">{{ t('intelligence.noViewer') }}</p>
+        <div v-else class="space-y-3 p-6 text-sm">
+          <p>{{ t('intelligence.noViewer') }}</p>
+          <Button
+            data-testid="architecture-retry-map"
+            :disabled="mapBusy || running || !snapshot.graph.nodes.length"
+            @click="showMap()"
+            >{{ mapBusy ? t('intelligence.phases.rendering') : t('intelligence.retryMap') }}</Button
+          >
+        </div>
       </main>
       <aside
-        class="min-h-0 space-y-3 overflow-auto border-l border-[var(--border-subtle)] p-3 text-xs"
+        v-if="selected && detailsOpen"
+        data-testid="architecture-module-details"
+        class="architecture-details min-h-0 space-y-2 overflow-auto border-l border-[var(--border-subtle)] p-2 text-xs"
       >
-        <p>{{ t('intelligence.context') }}</p>
+        <div class="flex items-center gap-2">
+          <h3 class="min-w-0 flex-1 break-all font-semibold">{{ selected.name }}</h3>
+          <IconButton
+            :label="t('common.close')"
+            data-testid="architecture-close-details"
+            @click="detailsOpen = false"
+          />
+        </div>
         <template v-if="selected">
-          <h3 class="break-all font-semibold">{{ selected.name }}</h3>
           <p>{{ selected.description }}</p>
           <p>
             {{ t('intelligence.confidence') }}: {{ architectureLabel(selected.evidence, locale) }}
@@ -693,42 +813,54 @@ onBeforeUnmount(() => {
 .intelligence {
   container-type: inline-size;
 }
+.intelligence:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  background: var(--bg-workspace);
+}
+.intelligence--fullscreen > header,
+.intelligence--fullscreen .architecture-analysisbar,
+.intelligence--fullscreen .architecture-modules,
+.intelligence--fullscreen .architecture-details,
+.intelligence--fullscreen .architecture-summary {
+  display: none;
+}
 .intelligence :deep(.ui-button) {
   max-width: 100%;
   height: auto;
-  min-height: var(--height-button);
+  min-height: 26px;
+  font-size: 11px;
   white-space: normal;
   overflow-wrap: anywhere;
   padding-top: 4px;
   padding-bottom: 4px;
 }
 .architecture-layout {
-  display: grid;
-  grid-template-columns: minmax(150px, 20%) minmax(0, 1fr) minmax(180px, 24%);
+  display: flex;
 }
-@container (max-width: 740px) {
-  .architecture-layout {
-    grid-template-columns: 150px minmax(0, 1fr);
-  }
-  .architecture-layout > aside:last-child {
-    grid-column: 1/-1;
-    max-height: 180px;
-    border-top: 1px solid var(--border-subtle);
-  }
+.architecture-modules {
+  width: clamp(150px, 18%, 190px);
+  flex-shrink: 0;
+}
+.architecture-details {
+  width: clamp(180px, 24%, 240px);
+  flex-shrink: 0;
+}
+.architecture-summary > summary {
+  list-style: none;
+}
+.architecture-summary > summary::-webkit-details-marker {
+  display: none;
+}
+.architecture-summary[open] > summary > svg {
+  transform: rotate(180deg);
 }
 @container (max-width: 560px) {
-  .architecture-layout {
-    grid-template-columns: minmax(0, 1fr);
-    overflow: auto;
+  .architecture-modules {
+    width: 140px;
   }
-  .architecture-layout > aside:first-child {
-    max-height: 160px;
-  }
-  .architecture-layout > main {
-    min-height: 500px;
-  }
-  .architecture-layout > aside:last-child {
-    max-height: 240px;
+  .architecture-details {
+    width: 160px;
   }
 }
 </style>

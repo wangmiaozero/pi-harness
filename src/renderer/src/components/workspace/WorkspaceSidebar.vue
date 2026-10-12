@@ -7,7 +7,7 @@ import {
   Folder,
   FolderOpen,
   FolderPlus,
-  Bot,
+  Wrench,
   Gauge,
   GitBranch,
   MessageSquare,
@@ -55,7 +55,7 @@ import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
 import { isMingDynastySkin } from '@renderer/utils/skin-catalog'
 import { rendererPlatformHint } from '@renderer/utils/provider-credentials'
 
-type WorkspaceSection = 'workspace' | 'harness' | 'orchestration'
+type WorkspaceSection = 'workspace' | 'tools'
 type SidebarMenuEntry =
   | {
       type: 'action'
@@ -66,9 +66,13 @@ type SidebarMenuEntry =
     }
   | { type: 'separator'; id: string }
 
-const props = withDefaults(defineProps<{ activeSection?: WorkspaceSection }>(), {
-  activeSection: 'workspace'
-})
+const props = withDefaults(
+  defineProps<{ activeSection?: WorkspaceSection; activeTool?: 'harness' | 'orchestration' }>(),
+  {
+    activeSection: 'workspace',
+    activeTool: 'harness'
+  }
+)
 const emit = defineEmits<{
   'focus-composer': []
   'section-change': [section: WorkspaceSection]
@@ -131,8 +135,7 @@ const canStartSessionFromCurrentProject = computed(
 )
 const sectionItems = computed(() => [
   { id: 'workspace' as const, label: t('workspace.title'), icon: Folder },
-  { id: 'harness' as const, label: t('workspace.harness'), icon: Gauge },
-  { id: 'orchestration' as const, label: t('orchestration.sidebarLabel'), icon: Bot }
+  { id: 'tools' as const, label: t('workspace.tools'), icon: Wrench }
 ])
 const activeProviderKey = computed(() => agent.state?.model?.provider ?? models.active.providerKey)
 const activeModelId = computed(() => agent.state?.model?.id ?? models.active.modelId)
@@ -1151,7 +1154,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
           </section>
         </div>
       </template>
-      <div v-else-if="section === 'harness'" class="p-3" data-testid="harness-sidebar-status">
+      <div v-else-if="activeTool === 'harness'" class="p-3" data-testid="harness-sidebar-status">
         <div
           class="relative overflow-hidden rounded-[var(--radius-md)] border border-[var(--accent-border)] bg-[var(--bg-surface)] p-3 shadow-[0_1px_8px_var(--accent-shadow,transparent)]"
         >
@@ -1308,7 +1311,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
 }
 
 .workspace-section-tabs {
-  grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .workspace-section-tab {
@@ -1336,10 +1339,6 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
     flex-direction: row;
     gap: 6px;
     min-height: 32px;
-  }
-
-  .workspace-section-tab:first-child {
-    grid-column: 1 / -1;
   }
 }
 

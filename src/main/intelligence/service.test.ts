@@ -63,6 +63,36 @@ async function finish(service: ProjectIntelligenceService, root: string) {
   throw new Error('Analysis timeout')
 }
 describe('project intelligence and real Archify', () => {
+  it('retries a failed overview from its saved index and keeps the recovered map after reopening', async () => {
+    let failed = true
+    const render = vi.fn(async () => {
+      if (failed) throw new Error('render failed')
+      return '<html><head></head><body>recovered-map</body></html>'
+    })
+    const f = await setup({ id: 'test', render })
+    await f.service.analyze({ root: f.root })
+    await finish(f.service, f.root)
+    const snapshot = (await f.service.snapshot(f.root))!
+    expect(snapshot.viewerUrl).toBeNull()
+    failed = false
+    // A retry renders the saved source index, even when the source is offline.
+    await fs.rm(f.root, { recursive: true, force: true })
+    const map = await f.service.map({ root: f.root, snapshotId: snapshot.graph.snapshotId })
+    expect(render).toHaveBeenCalledTimes(2)
+    expect(
+      await f.service.viewArtifact(f.root, snapshot.graph.snapshotId, map.viewerUrl)
+    ).toContain('recovered-map')
+    await f.service.close()
+    const reopened = new ProjectIntelligenceService(
+      f.access,
+      new ArchitectureSnapshots(f.home),
+      f.provider
+    )
+    expect((await reopened.snapshot(f.root))!.viewerUrl).toBeTruthy()
+    expect((await reopened.snapshot(f.root))!.graph).toEqual(snapshot.graph)
+    expect(await reopened.history(f.root)).toHaveLength(1)
+    await reopened.close()
+  })
   it('supersedes a slow map projection and closes its renderer without touching snapshots', async () => {
     let slow = false
     let entered = 0

@@ -308,6 +308,7 @@ export const IPC_INVOKE = {
 /** Main → renderer push events (one-way, via webContents.send). */
 export const IPC_EVENT = {
   architectureSelected: 'architecture:selected',
+  architectureControl: 'architecture:control-event',
   configChanged: 'pi-harness:event:config-changed',
   piEnvironmentChanged: 'pi-harness:event:pi-env-changed',
   environmentInstallTask: 'pi-harness:event:environment-install-task',

@@ -1,6 +1,22 @@
 import { test, expect } from './fixtures'
 
 test.describe('Application shell', () => {
+  test('double-clicking the titlebar restores and maximizes the window', async ({
+    page,
+    electronApp
+  }) => {
+    test.skip(process.platform !== 'darwin', 'Native macOS titlebar regression')
+    const window = await electronApp.browserWindow(page)
+    await window.evaluate((window) => {
+      window.unmaximize()
+      window.setSize(1100, 760)
+    })
+    const area = page.getByTestId('titlebar-drag-area')
+    await area.dblclick({ position: { x: 70, y: 16 } })
+    await expect.poll(() => window.evaluate((window) => window.isMaximized())).toBe(true)
+    await area.dblclick({ position: { x: 70, y: 16 } })
+    await expect.poll(() => window.evaluate((window) => window.isMaximized())).toBe(false)
+  })
   test('operates the leading window controls', async ({ page, electronApp }) => {
     test.skip(process.platform === 'win32', 'Windows uses trailing window controls')
     const controls = page.getByTestId('titlebar-window-controls')

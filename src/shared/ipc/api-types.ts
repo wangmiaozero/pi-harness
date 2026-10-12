@@ -1244,6 +1244,7 @@ export interface PiSwitchAPI {
   ): () => void
   on(event: 'workspace-changed', listener: IpcEventListener): () => void
   on(event: 'architecture-selected', listener: IpcEventListener): () => void
+  on(event: 'architecture-control', listener: IpcEventListener): () => void
 }
 
 declare global {

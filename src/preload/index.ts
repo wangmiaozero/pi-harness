@@ -434,6 +434,7 @@ const api: PiSwitchAPI = {
     if (event === 'workspace-changed') return onEvent(IPC_EVENT.workspaceChanged, ipcListener)
     if (event === 'architecture-selected')
       return onEvent(IPC_EVENT.architectureSelected, ipcListener)
+    if (event === 'architecture-control') return onEvent(IPC_EVENT.architectureControl, ipcListener)
     return () => {}
   }
 }

@@ -4,6 +4,37 @@ import os from 'node:os'
 import { test, expect } from './fixtures'
 import { projectIdentityKey } from '../src/shared/workspace/project-identity'
 
+test('opens Tools before switching Harness and Agents without losing the chat draft', async ({
+  page
+}) => {
+  await page.locator('a[href="#/workspace"]').click()
+  const draft = page.getByTestId('composer-editor')
+  await draft.fill('Keep this unsent draft')
+  const sidebar = page.getByTestId('workspace-section-tabs')
+  await expect(sidebar.getByRole('button')).toHaveCount(2)
+  await expect(sidebar.getByRole('button', { name: /Harness|智能体|Agents/ })).toHaveCount(0)
+  await expect(page.getByTestId('workspace-tool-harness')).toHaveCount(0)
+  await page.getByTestId('workspace-section-tools').click()
+  await expect(page.getByTestId('harness-console')).toBeVisible()
+  await page.getByTestId('workspace-tool-orchestration').click()
+  await expect(page.getByTestId('orchestration-console')).toBeVisible()
+  await expect(page.getByTestId('harness-console')).toHaveCount(0)
+  await page.getByTestId('workspace-tool-orchestration').press('ArrowLeft')
+  await expect(page.getByTestId('workspace-tool-harness')).toBeFocused()
+  await expect(page.getByTestId('harness-console')).toBeVisible()
+  await page.getByTestId('workspace-tool-harness').press('End')
+  await expect(page.getByTestId('workspace-tool-orchestration')).toBeFocused()
+  await expect(page.getByTestId('orchestration-console')).toBeVisible()
+  await page.getByTestId('workspace-section-workspace').click()
+  await expect(draft).toHaveText('Keep this unsent draft')
+  await page.getByTestId('workspace-section-tools').click()
+  await expect(page.getByTestId('workspace-tool-orchestration')).toHaveAttribute(
+    'aria-selected',
+    'true'
+  )
+  await expect(page.getByTestId('orchestration-console')).toBeVisible()
+})
+
 test('combines standalone chats and projects in one workspace section', async ({
   page,
   piAgentDir

@@ -174,6 +174,32 @@ export type ArchitectureSnapshot = {
   staleness: 'fresh' | 'stale' | 'unknown'
   viewerUrl: string | null
 }
+export const architectureControlActionSchema = z.enum([
+  'previous',
+  'next',
+  'overview',
+  'fullscreen'
+])
+export const architectureViewerControlsSchema = z
+  .object({
+    range: z.string().max(100),
+    focused: z.boolean(),
+    previousDisabled: z.boolean(),
+    nextDisabled: z.boolean(),
+    busy: z.boolean(),
+    fullscreen: z.boolean(),
+    labels: z
+      .object({
+        previous: z.string().min(1).max(150),
+        next: z.string().min(1).max(150),
+        overview: z.string().min(1).max(150),
+        fullscreen: z.string().min(1).max(150),
+        exitFullscreen: z.string().min(1).max(150)
+      })
+      .strict()
+  })
+  .strict()
+export type ArchitectureViewerControls = z.infer<typeof architectureViewerControlsSchema>
 export interface ProjectIntelligenceAPI {
   map(input: z.input<typeof architectureMapRequestSchema>): Promise<ArchitectureMap>
   viewer(input: {
@@ -181,6 +207,7 @@ export interface ProjectIntelligenceAPI {
     bounds: { x: number; y: number; width: number; height: number }
     theme: 'dark' | 'light'
     selectedId?: string
+    controls?: ArchitectureViewerControls
   }): Promise<void>
   analyze(input: z.input<typeof analysisRequestSchema>): Promise<AnalysisState>
   status(root: string): Promise<AnalysisState>

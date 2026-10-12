@@ -5,6 +5,12 @@ import { z } from 'zod'
 import type { ProjectIntelligenceService } from './service'
 import { VIEWER_CSP } from './archify'
 import { IPC_EVENT } from '@shared/ipc/channels'
+import { setArchitectureFullscreenAllowed } from './fullscreen-permission'
+import {
+  architectureControlActionSchema,
+  architectureViewerControlsSchema
+} from '@shared/intelligence/schema'
+import { ARCHITECTURE_CONTROLS } from './viewer-controls'
 
 // Reuse Archify's presentation mode, with its controls inside the allocated viewport.
 // The exported standalone HTML keeps the upstream page layout.
@@ -34,7 +40,8 @@ export const viewerInputSchema = z
     selectedId: z
       .string()
       .regex(/^n-[a-f0-9]{16}$/)
-      .optional()
+      .optional(),
+    controls: architectureViewerControlsSchema.optional()
   })
   .strict()
 
@@ -45,6 +52,7 @@ export class ArchitectureViewer {
   private loading: Promise<void> | null = null
   private owner: BrowserWindow | null = null
   private version = 0
+  private visible = false
   constructor(
     private readonly service: ProjectIntelligenceService,
     private readonly resources: string,
@@ -59,6 +67,33 @@ export class ArchitectureViewer {
         return
       this.owner?.webContents.send(IPC_EVENT.architectureSelected, { url: this.url, id })
     })
+    ipcMain.on('architecture:control', (event, input: unknown) => {
+      const result = architectureControlActionSchema.safeParse(input)
+      const owner = this.owner
+      if (
+        event.sender !== this.view?.webContents ||
+        !this.visible ||
+        !result.success ||
+        !owner ||
+        owner.isDestroyed()
+      )
+        return
+      const action = result.data
+      if (action === 'fullscreen') {
+        void owner.webContents
+          .executeJavaScript(
+            "(()=>{const panel=document.getElementById('pi-architecture-panel');if(!panel)return;if(document.fullscreenElement===panel)return document.exitFullscreen();return panel.requestFullscreen()})()",
+            true
+          )
+          .catch(() => {
+            if (!owner.isDestroyed())
+              owner.webContents.send(IPC_EVENT.architectureControl, {
+                url: this.url,
+                action: 'fullscreen-error'
+              })
+          })
+      } else owner.webContents.send(IPC_EVENT.architectureControl, { url: this.url, action })
+    })
   }
   async show(input: unknown): Promise<void> {
     const version = ++this.version
@@ -66,6 +101,8 @@ export class ArchitectureViewer {
     const owner = this.getWindow()
     if (!owner || owner.isDestroyed()) return
     if (!request.url) {
+      this.visible = false
+      if (this.owner) setArchitectureFullscreenAllowed(this.owner.webContents, false)
       this.view?.setVisible(false)
       return
     }
@@ -87,6 +124,15 @@ export class ArchitectureViewer {
       this.view = view
       this.owner = owner
       owner.contentView.addChildView(view)
+      // The diagram owns keyboard focus; Escape must exit its parent's fullscreen.
+      view.webContents.on('before-input-event', (event, input) => {
+        if (input.type !== 'keyDown' || input.key !== 'Escape' || owner.isDestroyed()) return
+        void owner.webContents
+          .executeJavaScript(
+            "if(document.fullscreenElement?.id==='pi-architecture-panel')document.exitFullscreen()"
+          )
+          .catch(() => undefined)
+      })
       view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
       view.webContents.on('will-navigate', (event, url) => {
         if (url !== this.url) event.preventDefault()
@@ -121,6 +167,8 @@ export class ArchitectureViewer {
       height: Math.max(0, Math.min(b.height, height - b.y))
     })
     view.setVisible(b.width > 0 && b.height > 0)
+    this.visible = b.width > 0 && b.height > 0
+    setArchitectureFullscreenAllowed(owner.webContents, b.width > 0 && b.height > 0)
     if (this.url !== request.url) {
       this.url = request.url
       this.loading = view.webContents.loadURL(request.url)
@@ -140,10 +188,13 @@ export class ArchitectureViewer {
         style.textContent=${JSON.stringify(EMBEDDED_STYLE)};document.head.append(style)
       }
       document.querySelector('.export-wrap')?.setAttribute('hidden','');
+      ${request.controls ? `${ARCHITECTURE_CONTROLS};window.piArchitectureControls?.update(${JSON.stringify(request.controls)});` : ''}
       ${request.selectedId ? `document.querySelector('[data-node-id="${request.selectedId}"]')?.dispatchEvent(new MouseEvent('click',{bubbles:true}));` : ''}`
     )
   }
   close(invalidate = true): void {
+    this.visible = false
+    if (this.owner) setArchitectureFullscreenAllowed(this.owner.webContents, false)
     if (invalidate) this.version++
     if (this.view) {
       try {

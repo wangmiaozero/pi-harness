@@ -374,7 +374,7 @@ test('ming portrait themes render full figures beside parchment conversation sur
     await page.keyboard.press('Escape')
     await expect(modelMenu).toHaveCount(0)
 
-    await page.getByTestId('workspace-section-harness').click()
+    await page.getByTestId('workspace-section-tools').click()
     const harnessConsole = page.getByTestId('harness-console')
     await expect(harnessConsole).toBeVisible()
     await expect(page.getByTestId('portrait-skin-panel')).toHaveCount(0)
@@ -384,7 +384,13 @@ test('ming portrait themes render full figures beside parchment conversation sur
       page.getByTestId('workspace-main').boundingBox(),
       harnessConsole.boundingBox()
     ])
-    expect(harnessConsoleBox).toEqual(workspaceMainBox)
+    expect(harnessConsoleBox!.x).toBe(workspaceMainBox!.x)
+    expect(harnessConsoleBox!.width).toBe(workspaceMainBox!.width)
+    expect(harnessConsoleBox!.y).toBeGreaterThan(workspaceMainBox!.y)
+    expect(harnessConsoleBox!.y + harnessConsoleBox!.height).toBeCloseTo(
+      workspaceMainBox!.y + workspaceMainBox!.height,
+      0
+    )
     await page.screenshot({ path: path.join(testInfo.outputDir, `${skin}-harness-mode.png`) })
     await page.getByTestId('workspace-section-workspace').click()
     await expect(image).toBeVisible()

@@ -319,6 +319,13 @@ export class ProjectIntelligenceService {
       // Revalidate the grant after rendering; clearing/cancelling aborts this operation.
       await this.root(root, false)
       controller.signal.throwIfAborted()
+      // Repair the missing overview artifact of an older failed render, while
+      // preserving its source graph, revision and analysis-history identity.
+      // Focused maps and later pages never replace the persisted overview.
+      if (!record.html && request.offset === 0 && !request.moduleId) {
+        await this.snapshots.save(graph, html)
+        controller.signal.throwIfAborted()
+      }
       return {
         viewerUrl: this.rememberView(root, request.snapshotId, html, selectionKey),
         moduleIds: [...ids],

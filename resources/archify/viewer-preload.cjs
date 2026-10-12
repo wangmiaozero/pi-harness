@@ -2,6 +2,13 @@
 const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('architectureSelection', {
   select(id) {
-    if (typeof id === 'string' && /^n-[a-f0-9]{16}$/.test(id)) ipcRenderer.send('architecture:select', id)
+    if (typeof id === 'string' && /^n-[a-f0-9]{16}$/.test(id))
+      ipcRenderer.send('architecture:select', id)
+  }
+})
+contextBridge.exposeInMainWorld('architectureControls', {
+  command(action) {
+    if (['previous', 'next', 'overview', 'fullscreen'].includes(action))
+      ipcRenderer.send('architecture:control', action)
   }
 })

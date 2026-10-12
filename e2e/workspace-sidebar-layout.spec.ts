@@ -126,7 +126,7 @@ for (const appearance of [
       await expect(tabs.getByTestId('workspace-section-workspace')).toHaveText(
         workspaceLabels[language]
       )
-      await expect(tabs.getByRole('button')).toHaveCount(3)
+      await expect(tabs.getByRole('button')).toHaveCount(2)
       const resizer = page.getByTestId('workspace-sidebar-resizer')
       await resizer.dblclick({ position: { x: 3, y: 120 } })
       await expectSidebarLabelsToFit(page)
