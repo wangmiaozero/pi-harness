@@ -6,6 +6,8 @@ import { getApi, getErrorPayload } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { themeAppearance } from '@shared/constants/theme'
+import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
+import { readArchitecturePalette } from '@renderer/utils/architecture-palette'
 import { resolveAppLocale } from '@shared/constants/language'
 import { architectureLabel, architectureWarning } from '@renderer/i18n/intelligence-details'
 import Button from '@renderer/components/ui/Button.vue'
@@ -115,7 +117,11 @@ const nodes = computed(
     ) ?? []
 )
 const selected = computed(() => snapshot.value?.graph.nodes.find((n) => n.id === selectedId.value))
-const theme = computed(() => themeAppearance(settings.settings?.theme ?? 'dark'))
+const theme = computed(
+  () =>
+    getActiveVisualSkin(settings.settings)?.appearance ??
+    themeAppearance(settings.settings?.theme ?? 'dark')
+)
 let resize: ResizeObserver | null = null
 let nativeVersion = 0
 let scrollFrame = 0
@@ -157,6 +163,7 @@ async function viewerMessage(id?: string): Promise<void> {
         height: Math.max(0, Math.round(bottom - top))
       },
       theme: theme.value,
+      palette: readArchitecturePalette(),
       controls: viewerControls.value,
       ...(id ? { selectedId: id } : {})
     })
@@ -227,6 +234,11 @@ const unsubscribeControls = getApi().on('architecture-control', (input) => {
   if (value.action === 'overview' && map.value?.focus) void showMap()
 })
 watch([theme, sourceOpen, dialogBlocking, viewerControls], () => void viewerMessage())
+watch(
+  () => settings.settings,
+  () => void viewerMessage(),
+  { flush: 'post' }
+)
 watch(
   viewerUrl,
   async () => {
@@ -811,7 +823,38 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .intelligence {
+  --architecture-surface: color-mix(in srgb, var(--bg-window) 78%, var(--bg-surface-raised));
   container-type: inline-size;
+  background: color-mix(in srgb, var(--architecture-surface) 32%, transparent);
+}
+/* Each reading surface blurs the scene independently, without filtering the native canvas. */
+.intelligence > header,
+.architecture-analysisbar,
+.architecture-modules,
+.architecture-details,
+.architecture-summary {
+  background: color-mix(in srgb, var(--architecture-surface) 86%, transparent);
+  backdrop-filter: blur(24px) saturate(0.85);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .intelligence > header,
+  .architecture-analysisbar,
+  .architecture-modules,
+  .architecture-details,
+  .architecture-summary {
+    background: var(--architecture-surface);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .intelligence > header,
+  .architecture-analysisbar,
+  .architecture-modules,
+  .architecture-details,
+  .architecture-summary {
+    background: var(--architecture-surface);
+    backdrop-filter: none;
+  }
 }
 .intelligence:fullscreen {
   width: 100vw;

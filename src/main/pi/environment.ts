@@ -33,15 +33,13 @@ class PiEnvironmentService {
       detectNodeRuntime()
     ])
 
-    const configDir = getPiConfigDir(override?.configDir)
+    const { configDir, skillsDirs } = await this.skillLocations(override?.configDir)
     const settingsPath = path.join(configDir, PI_FILES.settings)
     const modelsConfigPath = path.join(configDir, PI_FILES.models)
     const modelsStorePath = path.join(configDir, PI_FILES.modelsStore)
     const authPath = path.join(configDir, PI_FILES.auth)
 
     const homeDir = homedir()
-    const skillsDirs = await this.resolveSkillDirs(settingsPath)
-
     const { readable, writable, valid, error } = await this.checkConfig(configDir)
     const piStatus = !cliPath ? 'missing' : version ? 'ready' : 'failed'
     const state = !nodeRuntime.nodeInstalled
@@ -93,6 +91,18 @@ class PiEnvironmentService {
         configWritable: writable,
         skillsDirs
       })
+    }
+  }
+
+  /** File discovery only; reading skill locations never needs executable probes. */
+  async skillLocations(configOverride?: string | null): Promise<{
+    configDir: string
+    skillsDirs: string[]
+  }> {
+    const configDir = getPiConfigDir(configOverride)
+    return {
+      configDir,
+      skillsDirs: await this.resolveSkillDirs(path.join(configDir, PI_FILES.settings))
     }
   }
 

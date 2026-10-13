@@ -139,10 +139,7 @@ export class SkillsService {
 
   async list(projectRoot?: string | null): Promise<SkillInfo[]> {
     const settings = this.settingsStore.peek()
-    const env = await piEnvironment.detect({
-      cliPath: settings.manualCliPath,
-      configDir: settings.manualConfigDir
-    })
+    const env = await piEnvironment.skillLocations(settings.manualConfigDir)
     // PackageManager validates the project root before it is trusted by skill file operations.
     const packages = await this.packageManager.list(projectRoot)
     if (projectRoot) this.knownProjectRoots.add(path.resolve(projectRoot))
@@ -638,10 +635,7 @@ export class SkillsService {
 
   private async allowedRoots(): Promise<string[]> {
     const settings = this.settingsStore.peek()
-    const env = await piEnvironment.detect({
-      cliPath: settings.manualCliPath,
-      configDir: settings.manualConfigDir
-    })
+    const env = await piEnvironment.skillLocations(settings.manualConfigDir)
     return [
       ...env.skillsDirs,
       ...[...this.knownProjectRoots].flatMap((root) => [

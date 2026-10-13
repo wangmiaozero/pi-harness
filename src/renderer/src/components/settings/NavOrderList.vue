@@ -6,6 +6,7 @@ import { moveNavItem, type NavItemId } from '@shared/constants/navigation'
 
 const order = defineModel<NavItemId[]>({ required: true })
 const { t } = useI18n()
+const label = (id: NavItemId): string => t(id === 'ai-sessions' ? 'nav.aiSessions' : `nav.${id}`)
 
 const dragging = ref<number | null>(null)
 const over = ref<number | null>(null)
@@ -63,7 +64,7 @@ function onKeydown(event: KeyboardEvent, index: number): void {
       :data-nav-id="id"
       draggable="true"
       tabindex="0"
-      :aria-label="t(`nav.${id}`)"
+      :aria-label="label(id)"
       :aria-grabbed="dragging === index"
       class="no-drag flex cursor-grab items-center gap-2 px-3 py-[7px] min-h-[30px] text-[12px] text-[var(--text-primary)] outline-none select-none transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] focus-visible:shadow-[var(--focus-ring)]"
       :class="
@@ -89,7 +90,7 @@ function onKeydown(event: KeyboardEvent, index: number): void {
       >
         {{ index + 1 }}
       </span>
-      <span class="min-w-0 flex-1 truncate">{{ t(`nav.${id}`) }}</span>
+      <span class="min-w-0 flex-1 truncate">{{ label(id) }}</span>
     </li>
   </ol>
 </template>

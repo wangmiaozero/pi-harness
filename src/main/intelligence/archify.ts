@@ -175,11 +175,16 @@ export class ArchifyProvider implements ArchitectureRendererProvider {
 export function secureViewer(html: string): string {
   // Trusted upstream template and escaped, verified graph data only. Loaded
   // artifacts remain sandboxed even if the local snapshot has been tampered with.
-  if (!html.includes('data-pi-architecture-gestures'))
+  if (!html.includes('data-pi-architecture-gestures="2"')) {
+    html = html.replace(
+      /<script\b[^>]*\bdata-pi-architecture-gestures(?=[\s=>])[^>]*>[\s\S]*?<\/script>/g,
+      ''
+    )
     html = html.replace(
       '</body>',
-      `<script data-pi-architecture-gestures>${ARCHITECTURE_INTERACTIONS}</script></body>`
+      `<script data-pi-architecture-gestures="2">${ARCHITECTURE_INTERACTIONS}</script></body>`
     )
+  }
   if (html.includes('data-pi-architecture-bridge')) return html
   const bridge = `<script data-pi-architecture-bridge>document.addEventListener('click',function(e){const a=e.target.closest('a');if(a)e.preventDefault();const n=e.target.closest('[data-node-id]');if(n)window.architectureSelection?.select(n.dataset.nodeId)});document.addEventListener('keydown',function(e){if(e.key==='Enter'){const n=e.target.closest('[data-node-id]');if(n)window.architectureSelection?.select(n.dataset.nodeId)}});</script>`
   return html

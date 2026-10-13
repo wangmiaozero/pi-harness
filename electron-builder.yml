@@ -5,10 +5,18 @@ directories:
   output: release
   buildResources: build
 files:
-  - out/**/*
-  - '!out/**/.cache{,/**/*}'
+  - from: out
+    to: out
+    filter:
+      - main/**/*
+      - preload/**/*
+      - renderer/**/*
+  - '!release{,/**/*}'
+  - '!task{,/**/*}'
   - package.json
   - '!**/*.{map,d.ts}'
+  # Keep only the matching macOS Native Pi TUI addon in each package.
+  - '!node_modules/@earendil-works/pi-tui/native/darwin/prebuilds/!(darwin-${arch}){,/**/*}'
 extraResources:
   - from: resources/archify
     to: archify

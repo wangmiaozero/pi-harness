@@ -74,7 +74,7 @@ describe('SkillsService path boundaries', () => {
     skillRoot = path.join(sandbox, 'skills')
     appPathsMock.backupDir = path.join(sandbox, 'backups')
     await fs.mkdir(skillRoot, { recursive: true })
-    vi.spyOn(piEnvironment, 'detect').mockResolvedValue({
+    vi.spyOn(piEnvironment, 'skillLocations').mockResolvedValue({
       configDir: null,
       skillsDirs: [skillRoot]
     } as never)

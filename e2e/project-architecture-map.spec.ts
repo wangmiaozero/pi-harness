@@ -91,13 +91,33 @@ for (const project of projects) {
           modifiers: 2
         })
         const reduced = await view.executeJavaScript('Archify.view.state().scale')
-        return { before, enlarged, reduced, pageZoom: view.zoomFactor }
+        await view.debugger.sendCommand('Input.dispatchMouseEvent', {
+          type: 'mouseWheel',
+          x: 240,
+          y: 180,
+          deltaX: 0,
+          deltaY: -100,
+          modifiers: 0
+        })
+        const wheelEnlarged = await view.executeJavaScript('Archify.view.state().scale')
+        await view.debugger.sendCommand('Input.dispatchMouseEvent', {
+          type: 'mouseWheel',
+          x: 240,
+          y: 180,
+          deltaX: 0,
+          deltaY: 100,
+          modifiers: 0
+        })
+        const wheelReduced = await view.executeJavaScript('Archify.view.state().scale')
+        return { before, enlarged, reduced, wheelEnlarged, wheelReduced, pageZoom: view.zoomFactor }
       } finally {
         if (!attached) view.debugger.detach()
       }
     })
     expect(pinch.enlarged).toBeGreaterThan(pinch.before)
     expect(pinch.reduced).toBeLessThan(pinch.enlarged)
+    expect(pinch.wheelEnlarged).toBeGreaterThan(pinch.reduced)
+    expect(pinch.wheelReduced).toBeLessThan(pinch.wheelEnlarged)
     expect(pinch.pageZoom).toBe(1)
     await expect(page.getByTestId('architecture-fullscreen')).toHaveCount(0)
     await expect(page.getByTestId('architecture-map-pages')).toHaveCount(0)

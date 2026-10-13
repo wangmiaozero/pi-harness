@@ -7,8 +7,10 @@ import type {
   PiLatestInfo
 } from '@shared/ipc/api-types'
 import { callApi, getApi } from '@renderer/composables/useApi'
+import { useSettingsStore } from './settings'
 
 const SUCCESS_TASK_DISMISS_MS = 4_000
+const ENVIRONMENT_FRESH_MS = 30_000
 
 export const usePiStore = defineStore('pi', () => {
   const environment = ref<PiEnvironment | null>(null)
@@ -20,6 +22,23 @@ export const usePiStore = defineStore('pi', () => {
   const lastActionLog = ref<string>('')
   let taskDismissTimer: ReturnType<typeof setTimeout> | null = null
   let detectRequest: Promise<void> | null = null
+  let latestRequest: Promise<void> | null = null
+  let detectedAt: number | null = null
+  let latestAt: number | null = null
+  let detectedSettings: string | null = null
+  let latestSettings: string | null = null
+  let environmentRevision = 0
+
+  function environmentSettings(): string {
+    const settings = useSettingsStore().settings
+    return JSON.stringify([settings?.manualCliPath ?? null, settings?.manualConfigDir ?? null])
+  }
+
+  function invalidate(): void {
+    environmentRevision++
+    detectedAt = null
+    latestAt = null
+  }
 
   const installed = computed(() => environment.value?.installed ?? false)
   const configValid = computed(() => environment.value?.configValid ?? false)
@@ -54,11 +73,20 @@ export const usePiStore = defineStore('pi', () => {
 
     loading.value = true
     error.value = null
+    detectedAt = null
+    const revision = environmentRevision
+    const settings = environmentSettings()
     detectRequest = (async () => {
       try {
-        environment.value = await callApi(() => getApi().pi.detect())
+        const next = await callApi(() => getApi().pi.detect())
+        if (revision === environmentRevision) {
+          environment.value = next
+          detectedAt = Date.now()
+          detectedSettings = settings
+        }
       } catch (e) {
-        error.value = (e as { message?: string }).message ?? String(e)
+        if (revision === environmentRevision)
+          error.value = (e as { message?: string }).message ?? String(e)
       } finally {
         loading.value = false
         detectRequest = null
@@ -67,12 +95,48 @@ export const usePiStore = defineStore('pi', () => {
     return detectRequest
   }
 
-  async function checkLatest() {
-    try {
-      latest.value = await callApi(() => getApi().pi.checkLatest())
-    } catch (e) {
-      // Non-fatal — registry may be unreachable
-      error.value = (e as { message?: string }).message ?? String(e)
+  function checkLatest(): Promise<void> {
+    if (latestRequest) return latestRequest
+    latestAt = null
+    const revision = environmentRevision
+    const settings = environmentSettings()
+    latestRequest = (async () => {
+      try {
+        const next = await callApi(() => getApi().pi.checkLatest())
+        if (revision === environmentRevision) {
+          latest.value = next
+          latestAt = Date.now()
+          latestSettings = settings
+        }
+      } catch (e) {
+        // Non-fatal — registry may be unreachable
+        if (revision === environmentRevision)
+          error.value = (e as { message?: string }).message ?? String(e)
+      } finally {
+        latestRequest = null
+      }
+    })()
+    return latestRequest
+  }
+
+  /** Navigation reuses recent checks; explicit refresh and mutations always detect. */
+  async function ensureFresh(): Promise<void> {
+    const settings = environmentSettings()
+    if (
+      !environment.value ||
+      detectedSettings !== settings ||
+      detectedAt === null ||
+      Date.now() - detectedAt >= ENVIRONMENT_FRESH_MS
+    ) {
+      await detect()
+    }
+    if (
+      !latest.value ||
+      latestSettings !== settings ||
+      latestAt === null ||
+      Date.now() - latestAt >= ENVIRONMENT_FRESH_MS
+    ) {
+      await checkLatest()
     }
   }
 
@@ -176,10 +240,15 @@ export const usePiStore = defineStore('pi', () => {
   function setupListeners() {
     const api = getApi()
     const removeEnvironment = api.on('pi-environment-changed', (payload) => {
+      invalidate()
       const next = payload as PiEnvironment
-      if (next?.nodeRuntime) environment.value = next
-      else void refresh()
+      if (next?.nodeRuntime) {
+        environment.value = next
+        detectedAt = Date.now()
+        detectedSettings = environmentSettings()
+      } else void refresh()
     })
+    const removeConfig = api.on('config-changed', invalidate)
     const removeTask = api.on('environment-install-task', (payload) => {
       setInstallTask(payload)
       if (payload.logs.length) {
@@ -195,6 +264,7 @@ export const usePiStore = defineStore('pi', () => {
         taskDismissTimer = null
       }
       removeEnvironment()
+      removeConfig()
       removeTask()
     }
   }
@@ -214,6 +284,7 @@ export const usePiStore = defineStore('pi', () => {
     detect,
     checkLatest,
     refresh,
+    ensureFresh,
     install,
     bootstrap,
     installNode,

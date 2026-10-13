@@ -104,8 +104,12 @@ const setupWarnings = computed(() => {
   return warnings
 })
 
-async function refreshAll() {
-  await Promise.all([piStore.refresh(), providersStore.fetchList(), modelsStore.fetchList()])
+async function refreshAll(force = true) {
+  await Promise.all([
+    force ? piStore.refresh() : piStore.ensureFresh(),
+    providersStore.fetchList(),
+    modelsStore.fetchList()
+  ])
   toast.success(t('common.refreshed'))
 }
 
@@ -217,7 +221,7 @@ async function reinstallPi() {
 }
 
 onMounted(() => {
-  void refreshAll()
+  void refreshAll(false)
 })
 </script>
 
@@ -234,7 +238,7 @@ onMounted(() => {
           {{ $t('overview.subtitle') }}
         </p>
       </div>
-      <Button variant="ghost" size="sm" :loading="piStore.loading" @click="refreshAll">
+      <Button variant="ghost" size="sm" :loading="piStore.loading" @click="refreshAll()">
         <RefreshCw class="size-3.5" :stroke-width="1.75" />
         {{ $t('common.refresh') }}
       </Button>

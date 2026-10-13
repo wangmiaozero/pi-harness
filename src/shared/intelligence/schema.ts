@@ -200,6 +200,17 @@ export const architectureViewerControlsSchema = z
   })
   .strict()
 export type ArchitectureViewerControls = z.infer<typeof architectureViewerControlsSchema>
+const canvasColorSchema = z.string().regex(/^#[a-fA-F0-9]{6}$/)
+export const architectureCanvasPaletteSchema = z
+  .object({
+    background: canvasColorSchema,
+    surface: canvasColorSchema,
+    foreground: canvasColorSchema,
+    muted: canvasColorSchema,
+    accent: canvasColorSchema
+  })
+  .strict()
+export type ArchitectureCanvasPalette = z.infer<typeof architectureCanvasPaletteSchema>
 export interface ProjectIntelligenceAPI {
   map(input: z.input<typeof architectureMapRequestSchema>): Promise<ArchitectureMap>
   viewer(input: {
@@ -208,6 +219,7 @@ export interface ProjectIntelligenceAPI {
     theme: 'dark' | 'light'
     selectedId?: string
     controls?: ArchitectureViewerControls
+    palette?: ArchitectureCanvasPalette
   }): Promise<void>
   analyze(input: z.input<typeof analysisRequestSchema>): Promise<AnalysisState>
   status(root: string): Promise<AnalysisState>

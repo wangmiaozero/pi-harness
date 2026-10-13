@@ -3,7 +3,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-const processMock = vi.hoisted(() => ({ exec: vi.fn() }))
+const processMock = vi.hoisted(() => ({ exec: vi.fn(), invalidateCache: vi.fn() }))
 const pathsMock = vi.hoisted(() => ({ backupDir: '', configDir: '' }))
 
 vi.mock('../process/pi-process', () => ({ piProcess: processMock }))
@@ -12,7 +12,6 @@ vi.mock('../services/app-paths', () => ({
   getPiConfigDir: () => pathsMock.configDir
 }))
 
-import { piEnvironment } from '../pi/environment'
 import { classifyPackageError, packageId, PiPackageManager } from './package-manager'
 
 describe('PiPackageManager reconciliation and lifecycle', () => {
@@ -29,7 +28,6 @@ describe('PiPackageManager reconciliation and lifecycle', () => {
     pathsMock.backupDir = path.join(sandbox, 'backups')
     pathsMock.configDir = agentDir
     await Promise.all([fs.mkdir(agentDir, { recursive: true }), fs.mkdir(projectRoot)])
-    vi.spyOn(piEnvironment, 'detect').mockResolvedValue({ configDir: agentDir } as never)
     manager = new PiPackageManager({
       peek: () => ({ manualCliPath: null, manualConfigDir: agentDir })
     } as never)

@@ -15,9 +15,8 @@ import type {
 import type { AppMetadata, BuiltinSkillOwnership } from '../services/metadata-store'
 import type { JsonStore } from '../services/storage'
 import type { FileAccessService } from '../files/file-access-service'
-import { piEnvironment } from '../pi/environment'
 import { parseSkillDirectory } from '../capabilities/skill-parser'
-import { builtinSkillsRoot, capabilityBackupDir } from '../services/app-paths'
+import { builtinSkillsRoot, capabilityBackupDir, getPiConfigDir } from '../services/app-paths'
 import { AppError, SkillMutationError, ValidationError } from '../services/errors'
 import { log } from '../services/logger'
 import { findBuiltinSkillBundle } from '@shared/skills/builtin-bundles'
@@ -618,15 +617,9 @@ export class BuiltinSkillService {
 
   private async scopeContexts(projectRoot?: string | null): Promise<ScopeContext[]> {
     const settings = this.settingsStore.peek()
-    const environment = await piEnvironment.detect({
-      cliPath: settings.manualCliPath,
-      configDir: settings.manualConfigDir
-    })
-    if (!environment.configDir) {
-      throw new SkillMutationError('SKILL_PATH_INVALID', 'Pi configuration directory is unknown')
-    }
+    const configDir = getPiConfigDir(settings.manualConfigDir)
     const contexts: ScopeContext[] = [
-      { scope: 'global', projectRoot: null, root: path.join(environment.configDir, 'skills') }
+      { scope: 'global', projectRoot: null, root: path.join(configDir, 'skills') }
     ]
     if (projectRoot) {
       const resolvedProject = path.resolve(projectRoot)

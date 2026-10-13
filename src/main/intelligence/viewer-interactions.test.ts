@@ -32,12 +32,14 @@ function camera() {
   return { state, container }
 }
 describe('diagram gestures', () => {
-  it('zooms continuously around the pointer and leaves ordinary scrolling unchanged', () => {
+  it('zooms with an ordinary wheel or pinch around the pointer', () => {
     const { state, container } = camera()
     const normal = new WheelEvent('wheel', { deltaY: -30, cancelable: true })
     container.dispatchEvent(normal)
-    expect(normal.defaultPrevented).toBe(false)
-    expect(state.scale).toBe(1)
+    expect(normal.defaultPrevented).toBe(true)
+    expect(state.scale).toBeGreaterThan(1)
+    container.dispatchEvent(new WheelEvent('wheel', { deltaY: 30, cancelable: true }))
+    expect(state.scale).toBeCloseTo(1)
     const pinch = new WheelEvent('wheel', {
       deltaY: -30,
       ctrlKey: true,
@@ -64,6 +66,19 @@ describe('diagram gestures', () => {
     expect(state.x).toBeCloseTo(0)
     expect(state.y).toBeCloseTo(0)
   })
+  it('preserves scrolling over tool panels and horizontal canvas navigation', () => {
+    const { state, container } = camera()
+    const panel = document.createElement('div')
+    panel.className = 'node-finder'
+    container.append(panel)
+    const scroll = new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true })
+    panel.dispatchEvent(scroll)
+    expect(scroll.defaultPrevented).toBe(false)
+    const horizontal = new WheelEvent('wheel', { deltaX: 100, deltaY: 10, cancelable: true })
+    container.dispatchEvent(horizontal)
+    expect(horizontal.defaultPrevented).toBe(false)
+    expect(state.scale).toBe(1)
+  })
   it('normalizes wheel units, bounds scale and supports gesture events', () => {
     const { state, container } = camera()
     container.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: -1000, deltaMode: 1 }))
@@ -82,10 +97,11 @@ describe('diagram gestures', () => {
   })
   it('upgrades older saved HTML and installs gesture and selection bridges once', () => {
     const old =
-      '<html><head></head><body><script data-pi-architecture-bridge></script></body></html>'
+      '<html><head></head><body><script data-pi-architecture-gestures>old-gesture-handler</script><script data-pi-architecture-bridge></script></body></html>'
     const upgraded = secureViewer(old)
     expect(upgraded).toContain('data-pi-architecture-gestures')
     expect(secureViewer(upgraded)).toBe(upgraded)
-    expect([...upgraded.matchAll(/<script data-pi-architecture-gestures>/g)]).toHaveLength(1)
+    expect(upgraded).not.toContain('old-gesture-handler')
+    expect([...upgraded.matchAll(/<script data-pi-architecture-gestures="2">/g)]).toHaveLength(1)
   })
 })

@@ -583,7 +583,7 @@ watch(
       </div>
       <template v-else>
         <MingWorkspaceOrnaments
-          v-if="mingDynastyActive && !workspace.filePanelOpen"
+          v-if="mingDynastyActive && !workspace.filePanelOpen && !architectureOpen"
           :zhang-juzheng="zhangJuzhengActive"
         />
         <div
@@ -624,7 +624,12 @@ watch(
           class="workspace-content flex min-h-0 min-w-0 flex-1 overflow-hidden"
         >
           <PortraitSkinPanel
-            v-if="portraitSkinActive && settings.settings && !workspace.filePanelOpen"
+            v-if="
+              portraitSkinActive &&
+              settings.settings &&
+              !workspace.filePanelOpen &&
+              !architectureOpen
+            "
             :style="settings.settings.mascotStyle"
             :custom-skin="activeVisualSkin?.custom"
             :show-status="settings.settings.petStatusText"

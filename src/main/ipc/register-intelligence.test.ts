@@ -70,4 +70,29 @@ it('validates every architecture IPC boundary before services or viewer receive 
     )
   ).rejects.toThrow('Invalid')
   expect(show).not.toHaveBeenCalled()
+  const viewer = {
+    url: 'pi-architecture://viewer/00000000-0000-4000-8000-000000000000',
+    bounds: { x: 0, y: 0, width: 100, height: 100 },
+    theme: 'dark',
+    palette: {
+      background: '#191b1e',
+      surface: '#292323',
+      foreground: '#f4eadd',
+      muted: '#cdb9a8',
+      accent: '#c96958'
+    }
+  }
+  for (const palette of [
+    { ...viewer.palette, background: 'url(https://outside.invalid)' },
+    { ...viewer.palette, accent: '#fff; color:red' },
+    { ...viewer.palette, stylesheet: 'body { display:none }' },
+    { ...viewer.palette, foreground: '#12345' }
+  ]) {
+    await expect(
+      handlers.get(IPC_INVOKE.intelligenceViewer)!({}, { ...viewer, palette })
+    ).rejects.toThrow('Invalid')
+  }
+  expect(show).not.toHaveBeenCalled()
+  await handlers.get(IPC_INVOKE.intelligenceViewer)!({}, viewer)
+  expect(show).toHaveBeenCalledWith(viewer)
 })

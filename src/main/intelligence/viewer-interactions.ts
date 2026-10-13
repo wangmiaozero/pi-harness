@@ -45,10 +45,13 @@ export const ARCHITECTURE_INTERACTIONS = String.raw`(function () {
     );
   }
   container.addEventListener('wheel', function (event) {
-    if (!event.ctrlKey || !Number.isFinite(event.deltaY)) return;
+    if (!Number.isFinite(event.deltaY) || event.deltaY === 0) return;
+    if (event.target.closest && event.target.closest('.diagram-nav,.focus-chip,.route-probe,.node-finder,.node-outline,.semantic-lens,.overview-map,.diagram-guide')) return;
+    if (!event.ctrlKey && (event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY))) return;
     event.preventDefault();
     var delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? svg.clientHeight : 1);
-    zoomAt(cameraState().scale * Math.exp(-Math.max(-100, Math.min(100, delta)) * 0.01), event.clientX, event.clientY);
+    var sensitivity = event.ctrlKey ? 0.01 : 0.0025;
+    zoomAt(cameraState().scale * Math.exp(-Math.max(-100, Math.min(100, delta)) * sensitivity), event.clientX, event.clientY);
   }, { passive: false });
   container.addEventListener('gesturestart', function (event) {
     event.preventDefault();

@@ -82,7 +82,7 @@ import { DEFAULT_ASSISTANT_NAME, DEFAULT_USER_NAME } from '@shared/constants/cha
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'auto',
-  theme: 'macos27',
+  theme: 'dark',
   macos27Background: DEFAULT_MACOS27_BACKGROUND,
   macos27BackgroundImage: null,
   userName: DEFAULT_USER_NAME,

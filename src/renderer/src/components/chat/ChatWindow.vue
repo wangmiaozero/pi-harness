@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import MessageView from './MessageView.vue'
+import MessageHistory from './MessageHistory.vue'
 import FullHistoryDialog from './FullHistoryDialog.vue'
 import UniversalOrigin from '@renderer/components/universal/UniversalOrigin.vue'
 import ChatComposer from './ChatComposer.vue'
@@ -95,8 +96,8 @@ interface DisplayMessage {
   streaming: boolean
 }
 
-const displayMessages = computed<DisplayMessage[]>(() => {
-  const persisted = agent.messages.flatMap((message, index): DisplayMessage[] => {
+const persistedMessages = computed<DisplayMessage[]>(() =>
+  agent.messages.flatMap((message, index): DisplayMessage[] => {
     const entryId = agent.entryIds[index]
     const fileChanges = entryId ? fileChangesByEntryId.value.get(entryId) : undefined
     if (!hasRenderableMessageContent(message) && !fileChanges) return []
@@ -110,14 +111,13 @@ const displayMessages = computed<DisplayMessage[]>(() => {
       }
     ]
   })
+)
+const liveMessage = computed(() => {
   const live = agent.streaming.streamingMessage
-  if (live && hasRenderableMessageContent(live)) {
-    persisted.push({ key: 'streaming-message', message: live, streaming: true })
-  }
-  return persisted
+  return live && hasRenderableMessageContent(live) ? live : null
 })
 
-watch(displayMessages, async () => {
+watch([persistedMessages, liveMessage], async () => {
   await nextTick()
   scheduleScrollSync()
 })
@@ -292,20 +292,23 @@ function duration(value: number): string {
       >
         <div ref="scrollContent" class="chat-scroll-content min-w-0">
           <EmptyState
-            v-if="!displayMessages.length"
+            v-if="!persistedMessages.length && !liveMessage"
             :title="$t('workspace.emptyChat')"
             :description="$t('workspace.emptyChatHint')"
             :icon="MessageSquare"
           />
-          <MessageView
-            v-for="item in displayMessages"
-            :key="item.key"
-            :message="item.message"
-            :entry-id="item.entryId"
+          <MessageHistory
+            :items="persistedMessages"
             :user-name="userName"
             :assistant-name="assistantName"
-            :file-changes="item.fileChanges"
-            :streaming="item.streaming"
+          />
+          <MessageView
+            v-if="liveMessage"
+            key="streaming-message"
+            :message="liveMessage"
+            :user-name="userName"
+            :assistant-name="assistantName"
+            streaming
           />
           <p
             v-if="agent.error"
@@ -544,12 +547,12 @@ function duration(value: number): string {
  * The latest turn (and the optional error line after it) stay fully laid out
  * so streaming height changes are reflected in scrollHeight immediately.
  */
-.chat-scroll-content > * {
+.chat-scroll-content > :deep(*) {
   content-visibility: auto;
   contain-intrinsic-size: auto 120px;
 }
 
-.chat-scroll-content > :nth-last-child(-n + 2) {
+.chat-scroll-content > :deep(:nth-last-child(-n + 2)) {
   content-visibility: visible;
 }
 </style>

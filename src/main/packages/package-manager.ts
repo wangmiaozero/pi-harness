@@ -10,7 +10,6 @@ import type {
 } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
 import { atomicWriteText, readTextFile } from '../services/storage'
-import { piEnvironment } from '../pi/environment'
 import { piProcess } from '../process/pi-process'
 import type { PiConfigService } from '../pi/config-service'
 import type { FileAccessService } from '../files/file-access-service'
@@ -743,12 +742,8 @@ export class PiPackageManager {
 
   private async registryScopes(projectRoot?: string | null): Promise<RegistryScope[]> {
     const settings = this.settingsStore.peek()
-    const environment = await piEnvironment.detect({
-      cliPath: settings.manualCliPath,
-      configDir: settings.manualConfigDir
-    })
-    if (!environment.configDir) return []
-    const scopes: RegistryScope[] = [await readRegistryScope('global', null, environment.configDir)]
+    const configDir = getPiConfigDir(settings.manualConfigDir)
+    const scopes: RegistryScope[] = [await readRegistryScope('global', null, configDir)]
     if (projectRoot) {
       const allowed = this.access
         ? await this.access.assertAllowed(projectRoot, { mustExist: true })
@@ -801,6 +796,7 @@ export class PiPackageManager {
   private async executeCli(command: 'install' | 'remove' | 'update', target: PiPackageTarget) {
     const project = target.scope === 'project'
     const settings = this.settingsStore.peek()
+    piProcess.invalidateCache()
     return piProcess.exec({
       args: [command, target.source, ...(project ? ['--local', '--approve'] : ['--no-approve'])],
       timeoutMs: 5 * 60_000,
@@ -813,6 +809,7 @@ export class PiPackageManager {
   private async executeUpdateAll(scope: PiPackageScope, projectRoot?: string | null) {
     const project = scope === 'project'
     const settings = this.settingsStore.peek()
+    piProcess.invalidateCache()
     return piProcess.exec({
       args: ['update', '--extensions', ...(project ? ['--local', '--approve'] : ['--no-approve'])],
       timeoutMs: 10 * 60_000,

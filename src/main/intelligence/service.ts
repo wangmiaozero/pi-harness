@@ -39,7 +39,7 @@ export class ProjectIntelligenceService {
   >()
   private views = new Map<
     string,
-    { root: string; snapshotId: string; html: string; selectionKey: string }
+    { root: string; snapshotId: string; html: string; selectionKey: string; sourceHash: string }
   >()
   private maps = new Map<string, { controller: AbortController; done: Promise<ArchitectureMap> }>()
   private mapGeneration = new Map<string, number>()
@@ -258,7 +258,9 @@ export class ProjectIntelligenceService {
       )?.[0] ?? randomUUID()
     if (!this.views.has(key) && this.views.size >= 12)
       this.views.delete(this.views.keys().next().value!)
-    this.views.set(key, { root, snapshotId, html: secureViewer(html), selectionKey })
+    const sourceHash = hash(html)
+    if (this.views.get(key)?.sourceHash !== sourceHash)
+      this.views.set(key, { root, snapshotId, html: secureViewer(html), selectionKey, sourceHash })
     return `pi-architecture://viewer/${key}`
   }
   /** Render a bounded projection. The persisted graph and Native Pi index never change. */

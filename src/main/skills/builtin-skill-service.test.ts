@@ -5,7 +5,6 @@ import path from 'node:path'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { JsonStore } from '../services/storage'
 import type { AppMetadata } from '../services/metadata-store'
-import { piEnvironment } from '../pi/environment'
 import { buildBuiltinSkillBundles, BUILTIN_SKILL_BUNDLES } from '@shared/skills/builtin-bundles'
 import {
   BuiltinSkillService,
@@ -153,10 +152,6 @@ describe('BuiltinSkillService lifecycle', () => {
       manualConfigDir: globalConfig
     } as AppSettings)
     await Promise.all([metadata.read(), settings.read()])
-    vi.spyOn(piEnvironment, 'detect').mockResolvedValue({
-      configDir: globalConfig,
-      skillsDirs: [path.join(globalConfig, 'skills')]
-    } as never)
     service = createService()
   })
 

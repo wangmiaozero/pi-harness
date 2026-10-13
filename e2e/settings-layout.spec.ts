@@ -11,6 +11,10 @@ test('uses a conventional settings sidebar and displays the current application 
   electronApp,
   page
 }, testInfo) => {
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  expect(
+    await page.evaluate(() => window.piSwitch.settings.get().then((settings) => settings.theme))
+  ).toBe('dark')
   await page.setViewportSize({ width: 1712, height: 1006 })
   await page.evaluate(() => window.piSwitch.settings.set({ theme: 'dark' }))
   await page.locator('a[href="#/settings"]').click()

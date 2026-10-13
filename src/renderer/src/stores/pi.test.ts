@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import type { EnvironmentInstallTask, PiEnvironment, PiSwitchAPI } from '@shared/ipc/api-types'
 import { usePiStore } from './pi'
+import { useSettingsStore } from './settings'
+import type { AppSettings } from '@shared/ipc/api-types'
 
 describe('Pi store', () => {
   beforeEach(() => {
@@ -74,7 +76,83 @@ describe('Pi store', () => {
     await refresh
     expect(store.environment?.version).toBe('0.84.2')
   })
+
+  it('reuses recent checks on navigation but keeps explicit refresh and expiry fresh', async () => {
+    const api = environmentApiFixture()
+    const store = usePiStore()
+    await Promise.all([store.ensureFresh(), store.ensureFresh()])
+    await store.ensureFresh()
+    expect(api.detect).toHaveBeenCalledTimes(1)
+    expect(api.checkLatest).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(29_999)
+    await store.ensureFresh()
+    expect(api.detect).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(1)
+    await store.ensureFresh()
+    expect(api.detect).toHaveBeenCalledTimes(2)
+    await store.refresh()
+    expect(api.detect).toHaveBeenCalledTimes(3)
+    expect(api.checkLatest).toHaveBeenCalledTimes(3)
+    api.detect.mockRejectedValueOnce(new Error('Refresh failed'))
+    await store.refresh()
+    await store.ensureFresh()
+    expect(api.detect).toHaveBeenCalledTimes(5)
+  })
+
+  it('invalidates navigation checks when manual paths or native config change', async () => {
+    const api = environmentApiFixture()
+    const store = usePiStore()
+    const dispose = store.setupListeners()
+    await store.ensureFresh()
+    useSettingsStore().settings = { manualConfigDir: '/other-config' } as AppSettings
+    await store.ensureFresh()
+    expect(api.detect).toHaveBeenCalledTimes(2)
+    api.listeners.get('config-changed')?.({ at: Date.now() })
+    await store.ensureFresh()
+    expect(api.detect).toHaveBeenCalledTimes(3)
+    dispose()
+  })
+
+  it('does not cache failures or overwrite an installation event with an older check', async () => {
+    const api = environmentApiFixture()
+    const store = usePiStore()
+    api.detect.mockRejectedValueOnce(new Error('Probe failed'))
+    await store.ensureFresh()
+    await store.ensureFresh()
+    expect(api.detect).toHaveBeenCalledTimes(2)
+    expect(store.error).toBeNull()
+    const dispose = store.setupListeners()
+    let resolve: (value: PiEnvironment) => void = () => undefined
+    api.detect.mockImplementationOnce(
+      () =>
+        new Promise<PiEnvironment>((complete) => {
+          resolve = complete
+        })
+    )
+    const pending = store.detect()
+    api.listeners.get('pi-environment-changed')?.({ version: 'new', nodeRuntime: {} })
+    resolve({ version: 'old' } as PiEnvironment)
+    await pending
+    expect(store.environment?.version).toBe('new')
+    await store.ensureFresh()
+    expect(api.detect).toHaveBeenCalledTimes(3)
+    dispose()
+  })
 })
+
+function environmentApiFixture() {
+  const detect = vi.fn(async () => ({ version: '0.87.1', nodeRuntime: {} }) as PiEnvironment)
+  const checkLatest = vi.fn(async () => ({ latestVersion: '0.87.1', updateAvailable: false }))
+  const listeners = new Map<string, (payload: unknown) => void>()
+  window.piSwitch = {
+    pi: { detect, checkLatest, getInstallTask: vi.fn(async () => null) },
+    on: vi.fn((event: string, listener: (payload: unknown) => void) => {
+      listeners.set(event, listener)
+      return () => listeners.delete(event)
+    })
+  } as unknown as PiSwitchAPI
+  return { detect, checkLatest, listeners }
+}
 
 function apiFixture() {
   let taskListener: ((payload: EnvironmentInstallTask) => void) | null = null

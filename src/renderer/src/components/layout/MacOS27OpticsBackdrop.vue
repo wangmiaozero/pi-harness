@@ -295,6 +295,7 @@ let lastRenderAt = 0
 let active = false
 let lightMode = false
 let reducedMotion = false
+let sizeDirty = true
 const pointerTarget = { x: 0.5, y: 0.5 }
 const pointerCurrent = { x: 0.5, y: 0.5 }
 
@@ -376,6 +377,7 @@ function initializeRenderer(): boolean {
 }
 
 function resize(): void {
+  if (!sizeDirty) return
   const element = canvas.value
   if (!element || !gl) return
   const ratio = Math.min(window.devicePixelRatio || 1, 1.25)
@@ -386,10 +388,15 @@ function resize(): void {
     element.height = height
   }
   gl.viewport(0, 0, width, height)
+  sizeDirty = false
+}
+
+function visible(): boolean {
+  return !document.hidden && document.fullscreenElement?.id !== 'pi-architecture-panel'
 }
 
 function render(now = performance.now()): void {
-  if (!active) return
+  if (!active || !visible()) return
   if (!gl && !initializeRenderer()) return
   if (!gl || !bindProgram(effectBackground.value) || !program) return
 
@@ -405,7 +412,7 @@ function render(now = performance.now()): void {
 }
 
 function animate(now: number): void {
-  if (!active || document.hidden || reducedMotion) return
+  if (!active || !visible() || reducedMotion) return
   if (now - lastRenderAt >= FRAME_INTERVAL_MS - 4) {
     lastRenderAt = now
     render(now)
@@ -426,7 +433,7 @@ function syncTheme(): void {
   cancelAnimationFrame(frame)
   if (!active) return
   render()
-  if (!reducedMotion && !document.hidden) frame = requestAnimationFrame(animate)
+  if (!reducedMotion && visible()) frame = requestAnimationFrame(animate)
 }
 
 function onPointerMove(event: PointerEvent): void {
@@ -436,7 +443,10 @@ function onPointerMove(event: PointerEvent): void {
 
 function onVisibilityChange(): void {
   cancelAnimationFrame(frame)
-  if (active && !document.hidden && !reducedMotion) frame = requestAnimationFrame(animate)
+  if (active && visible()) {
+    render()
+    if (!reducedMotion) frame = requestAnimationFrame(animate)
+  }
 }
 
 watch([background, backgroundImage], () => {
@@ -449,11 +459,15 @@ onMounted(() => {
   observer = new MutationObserver(syncTheme)
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
   if (canvas.value) {
-    resizeObserver = new ResizeObserver(() => render())
-    resizeObserver.observe(canvas.value)
+    resizeObserver = new ResizeObserver(() => {
+      sizeDirty = true
+      render()
+    })
+    resizeObserver.observe(canvas.value, { box: 'device-pixel-content-box' })
   }
   window.addEventListener('pointermove', onPointerMove, { passive: true })
   document.addEventListener('visibilitychange', onVisibilityChange)
+  document.addEventListener('fullscreenchange', onVisibilityChange)
   syncTheme()
 })
 
@@ -464,6 +478,7 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   window.removeEventListener('pointermove', onPointerMove)
   document.removeEventListener('visibilitychange', onVisibilityChange)
+  document.removeEventListener('fullscreenchange', onVisibilityChange)
   if (gl && program) gl.deleteProgram(program)
   if (gl && vertexBuffer) gl.deleteBuffer(vertexBuffer)
 })
