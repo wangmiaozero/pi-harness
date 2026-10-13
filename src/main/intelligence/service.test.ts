@@ -9,7 +9,7 @@ import { ArchifyProvider, VIEWER_CSP } from './archify'
 import { architectureTools } from './tools'
 import { workspaceId } from './scanner'
 import type { ArchitectureRendererProvider } from './archify'
-import type { ExtensionContext } from '@earendil-works/pi-coding-agent'
+import type { ExtensionToolContext } from '@earendil-works/pi-coding-agent'
 
 const directories: string[] = []
 afterEach(async () => {
@@ -211,7 +211,7 @@ describe('project intelligence and real Archify', () => {
       { query: 'value' },
       undefined,
       undefined,
-      {} as ExtensionContext
+      {} as ExtensionToolContext
     )
     expect(JSON.parse((result.content[0] as { text: string }).text).modules).toHaveLength(1)
     const related = await restored.query(f.root, 'get_related_modules', {
@@ -230,7 +230,7 @@ describe('project intelligence and real Archify', () => {
       { moduleId: node.id },
       undefined,
       undefined,
-      {} as ExtensionContext
+      {} as ExtensionToolContext
     )
     expect(JSON.parse((details.content[0] as { text: string }).text)).toMatchObject({
       tool: 'get_module_details',
@@ -315,7 +315,7 @@ describe('project intelligence and real Archify', () => {
     const tool = architectureTools(service, () => root)[0]
     root = null
     await expect(
-      tool.execute('call', {}, undefined, undefined, {} as ExtensionContext)
+      tool.execute('call', {}, undefined, undefined, {} as ExtensionToolContext)
     ).rejects.toThrow('No project')
     await service.close()
     await f.service.close()

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { STARTUP_MINIMUM_VISIBLE_MS, startupChecks, startupPhase } from '@renderer/startup'
+import {
+  STARTUP_MINIMUM_VISIBLE_MS,
+  startupAnimationVisible,
+  startupChecks,
+  startupPhase
+} from '@renderer/startup'
 import { useSettingsStore } from '@renderer/stores/settings'
 import {
   particleOrigin,
@@ -29,7 +34,7 @@ const colorVariables = computed(() => ({
   '--startup-accent': palette.value.accent,
   '--startup-secondary': palette.value.secondary
 }))
-const visible = ref(true)
+const visible = startupAnimationVisible
 const leaving = ref(false)
 const status = computed(() => {
   switch (startupPhase.value) {

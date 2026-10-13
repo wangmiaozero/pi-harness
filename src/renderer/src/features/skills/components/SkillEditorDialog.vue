@@ -27,6 +27,7 @@ const emit = defineEmits<{
 
 const editorHost = ref<HTMLElement | null>(null)
 let editorView: EditorView | null = null
+let disposed = false
 
 const name = fieldModel('name')
 const description = fieldModel('description')
@@ -41,11 +42,16 @@ watch(
       return
     }
     await nextTick()
+    if (!props.open || disposed) return
     mountEditor(props.form.content)
-  }
+  },
+  { immediate: true }
 )
 
-onBeforeUnmount(destroyEditor)
+onBeforeUnmount(() => {
+  disposed = true
+  destroyEditor()
+})
 
 function fieldModel<Key extends 'name' | 'description' | 'targetRoot'>(key: Key) {
   return computed({

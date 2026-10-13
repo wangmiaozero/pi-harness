@@ -44,15 +44,6 @@ describe('PiHarnessAdapter', () => {
     })
   })
 
-  it('returns a capability error when an optional Pi API is unavailable', async () => {
-    const { adapter, inner } = createAdapter()
-    inner.steer = undefined
-
-    await expect(adapter.steer('session-1', 'change direction')).rejects.toMatchObject({
-      code: 'CAPABILITY_NOT_SUPPORTED'
-    })
-  })
-
   it('keeps state available when an advertised optional getter fails', async () => {
     const { adapter, inner } = createAdapter()
     inner.getAllTools = () => {
@@ -158,7 +149,7 @@ function createSession(): AgentSessionLike {
     setActiveToolsByName: vi.fn(),
     getAllTools: () => [
       { name: 'read', description: 'Read files' },
-      { name: 'extension_x', description: 'Extension' }
+      { name: 'extension_x', description: 'Extension', parameters: { type: 'object' } }
     ],
     getActiveToolNames: () => ['read'],
     getContextUsage: () => ({ tokens: 64, contextWindow: 128, percent: 50 }),
@@ -170,7 +161,7 @@ function createSession(): AgentSessionLike {
     steer: vi.fn(),
     followUp: vi.fn(),
     dispose: vi.fn()
-  }
+  } as unknown as AgentSessionLike
 }
 
 function createManager(): PiSessionManagerLike {
@@ -188,5 +179,5 @@ function createManager(): PiSessionManagerLike {
     isPersisted: () => true,
     newSession: vi.fn(),
     createBranchedSession: vi.fn()
-  }
+  } as unknown as PiSessionManagerLike
 }

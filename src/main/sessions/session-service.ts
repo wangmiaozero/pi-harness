@@ -19,17 +19,21 @@ import { normalizeToolCalls } from '@shared/workspace/normalize'
 import { loadPiCodingAgent, type PiSessionInfoLike } from '../agent/pi-sdk'
 import type { WorktreeService } from '../git/worktree-service'
 import type { FileAccessService } from '../files/file-access-service'
+import { SessionIndexClient, type SessionIndex } from './session-index-client'
 
 export class SessionService {
   private pathCache = new Map<string, string>()
   private pathToId = new Map<string, string>()
   private listCache: { data: SessionInfo[]; ts: number } | null = null
   private listPromise: Promise<SessionInfo[]> | null = null
+  private listRevision = 0
+  private closed = false
 
   constructor(
     private readonly settingsStore: JsonStore<AppSettings>,
     private readonly worktrees: WorktreeService,
-    private readonly access: FileAccessService
+    private readonly access: FileAccessService,
+    private readonly index: SessionIndex = new SessionIndexClient()
   ) {}
 
   sessionsRoot(): string {
@@ -38,6 +42,7 @@ export class SessionService {
   }
 
   invalidate(): void {
+    this.listRevision++
     this.listCache = null
     this.listPromise = null
     this.pathCache.clear()
@@ -53,19 +58,31 @@ export class SessionService {
   }
 
   async list(force = false): Promise<SessionInfo[]> {
+    if (this.closed) throw new Error('Session service is closed')
     if (force) this.invalidate()
     if (this.listCache && Date.now() - this.listCache.ts < 30_000) return this.listCache.data
     if (this.listPromise) return this.listPromise
 
-    this.listPromise = this.loadAll()
+    const revision = this.listRevision
+    const request = this.loadAll()
       .then((data) => {
+        // A refresh/mutation may have started a newer scan while this one ran.
+        if (revision !== this.listRevision) return this.list()
+        for (const session of data) this.cachePath(session.id, session.path)
         this.listCache = { data, ts: Date.now() }
         return data
       })
       .finally(() => {
-        this.listPromise = null
+        if (this.listPromise === request) this.listPromise = null
       })
-    return this.listPromise
+    this.listPromise = request
+    return request
+  }
+
+  async close(): Promise<void> {
+    this.closed = true
+    this.invalidate()
+    await this.index.close()
   }
 
   async resolvePath(sessionId: string): Promise<string | null> {
@@ -124,7 +141,7 @@ export class SessionService {
     const messages: AgentMessage[] = []
     const entryIds: string[] = []
     for (const entry of entries) {
-      const message = entryToUiMessage(entry)
+      const message = entryToUiMessage({ ...entry })
       if (!message) continue
       messages.push(message)
       entryIds.push(entry.id)
@@ -148,17 +165,8 @@ export class SessionService {
 
   async rename(sessionId: string, name: string): Promise<void> {
     const filePath = await this.requirePath(sessionId)
-    try {
-      const sdk = await loadPiCodingAgent()
-      const sm = sdk.SessionManager.open(filePath)
-      if (typeof sm.appendSessionInfo === 'function') {
-        sm.appendSessionInfo(name)
-      } else {
-        await appendSessionInfoLine(filePath, name)
-      }
-    } catch {
-      await appendSessionInfoLine(filePath, name)
-    }
+    const sdk = await loadPiCodingAgent()
+    sdk.SessionManager.open(filePath).appendSessionInfo(name)
     this.invalidate()
   }
 
@@ -211,33 +219,29 @@ export class SessionService {
   }
 
   async buildContext(entries: SessionEntry[], leafId?: string | null): Promise<SessionContext> {
-    try {
-      const sdk = await loadPiCodingAgent()
-      if (sdk.buildContextEntries && sdk.buildSessionContext) {
-        const byId = new Map(entries.map((e) => [e.id, e]))
-        const contextEntries = sdk.buildContextEntries(entries, leafId, byId) as SessionEntry[]
-        const piCtx = sdk.buildSessionContext(entries, leafId, byId)
-        const messages: AgentMessage[] = []
-        const entryIds: string[] = []
-        for (const entry of contextEntries) {
-          const message = entryToUiMessage(entry)
-          if (message) {
-            messages.push(message)
-            entryIds.push(entry.id)
-          }
-        }
-        return {
-          messages,
-          entryIds,
-          entryParents: Object.fromEntries(entries.map((e) => [e.id, e.parentId])),
-          thinkingLevel: piCtx.thinkingLevel ?? 'off',
-          model: piCtx.model ?? null
-        }
+    const sdk = await loadPiCodingAgent()
+    const nativeEntries = sdk
+      .parseSessionEntries(entries.map((entry) => JSON.stringify(entry)).join('\n'))
+      .filter((entry) => entry.type !== 'session')
+    const byId = new Map(nativeEntries.map((entry) => [entry.id, entry]))
+    const contextEntries = sdk.buildContextEntries(nativeEntries, leafId, byId)
+    const piContext = sdk.buildSessionContext(nativeEntries, leafId, byId)
+    const messages: AgentMessage[] = []
+    const entryIds: string[] = []
+    for (const entry of contextEntries) {
+      const message = entryToUiMessage({ ...entry })
+      if (message) {
+        messages.push(message)
+        entryIds.push(entry.id)
       }
-    } catch (error) {
-      log.session.warn('SDK context builder unavailable, using parentId walk:', error)
     }
-    return walkContext(entries, leafId)
+    return {
+      messages,
+      entryIds,
+      entryParents: Object.fromEntries(entries.map((entry) => [entry.id, entry.parentId])),
+      thinkingLevel: piContext.thinkingLevel,
+      model: piContext.model
+    }
   }
 
   private async requirePath(sessionId: string): Promise<string> {
@@ -247,21 +251,23 @@ export class SessionService {
   }
 
   private async loadAll(): Promise<SessionInfo[]> {
+    let piSessions: PiSessionInfoLike[]
     try {
-      const sdk = await loadPiCodingAgent()
-      const piSessions = await sdk.SessionManager.listAll()
-      const pathToId = new Map(
-        piSessions.map((session) => [sessionPathKey(session.path), session.id] as const)
-      )
-      return this.attachProjects(piSessions.map((session) => this.fromPi(session, pathToId)))
+      piSessions = await this.index.list()
     } catch (error) {
-      log.session.warn('SessionManager.listAll failed, scanning JSONL:', error)
-      return this.attachProjects(await this.scanJsonl())
+      if (this.closed) throw error
+      // The packaged worker can be unavailable; both readers use the same Native SDK.
+      log.session.warn('Background session index unavailable, using Main reader:', error)
+      const sdk = await loadPiCodingAgent()
+      piSessions = await sdk.SessionManager.listAll()
     }
+    const pathToId = new Map(
+      piSessions.map((session) => [sessionPathKey(session.path), session.id] as const)
+    )
+    return this.attachProjects(piSessions.map((session) => this.fromPi(session, pathToId)))
   }
 
   private fromPi(s: PiSessionInfoLike, pathToId: ReadonlyMap<string, string>): SessionInfo {
-    this.cachePath(s.id, s.path)
     return {
       path: s.path,
       id: s.id,
@@ -276,56 +282,6 @@ export class SessionService {
         : undefined,
       transient: false
     }
-  }
-
-  private async scanJsonl(): Promise<SessionInfo[]> {
-    const root = this.sessionsRoot()
-    const results: SessionInfo[] = []
-    const parentPathById = new Map<string, string>()
-    let cwdDirs: string[] = []
-    try {
-      cwdDirs = await readdir(root)
-    } catch {
-      return []
-    }
-    for (const cwdDir of cwdDirs) {
-      const dir = path.join(root, cwdDir)
-      let files: string[] = []
-      try {
-        files = await readdir(dir)
-      } catch {
-        continue
-      }
-      for (const file of files) {
-        if (!file.endsWith('.jsonl')) continue
-        const filePath = path.join(dir, file)
-        try {
-          const header = await readSessionHeader(filePath)
-          if (!header) continue
-          const st = await stat(filePath)
-          const info: SessionInfo = {
-            path: filePath,
-            id: header.id,
-            cwd: header.cwd,
-            created: header.timestamp,
-            modified: st.mtime.toISOString(),
-            messageCount: 0,
-            firstMessage: '(no messages)',
-            parentSessionId: undefined
-          }
-          this.cachePath(header.id, filePath)
-          if (header.parentSession) parentPathById.set(header.id, header.parentSession)
-          results.push(info)
-        } catch {
-          /* skip */
-        }
-      }
-    }
-    for (const item of results) {
-      const parentPath = parentPathById.get(item.id)
-      if (parentPath) item.parentSessionId = this.pathToId.get(sessionPathKey(parentPath))
-    }
-    return results.sort((a, b) => b.modified.localeCompare(a.modified))
   }
 
   private async attachProjects(sessions: SessionInfo[]): Promise<SessionInfo[]> {
@@ -399,25 +355,11 @@ export class SessionService {
   }
 
   private async readEntries(filePath: string): Promise<SessionEntry[]> {
-    try {
-      const sdk = await loadPiCodingAgent()
-      return sdk.SessionManager.open(filePath).getEntries() as SessionEntry[]
-    } catch {
-      const text = await readFile(filePath, 'utf8')
-      const entries: SessionEntry[] = []
-      for (const line of text.split('\n')) {
-        if (!line.trim()) continue
-        try {
-          const parsed = JSON.parse(line) as SessionEntry & { type?: string }
-          if (parsed.type && parsed.type !== 'session' && typeof parsed.id === 'string') {
-            entries.push(parsed)
-          }
-        } catch {
-          /* skip */
-        }
-      }
-      return entries
-    }
+    const sdk = await loadPiCodingAgent()
+    const entries = sdk.parseSessionEntries(await readFile(filePath, 'utf8'))
+    // Native migrations run in memory while browsing; the original JSONL stays unchanged.
+    sdk.migrateSessionEntries(entries)
+    return entries.filter((entry) => entry.type !== 'session').map((entry) => ({ ...entry }))
   }
 }
 
@@ -438,18 +380,6 @@ export async function readSessionHeader(filePath: string): Promise<SessionHeader
   } finally {
     await fh.close()
   }
-}
-
-async function appendSessionInfoLine(filePath: string, name: string): Promise<void> {
-  const line =
-    JSON.stringify({
-      type: 'session_info',
-      id: `info-${Date.now()}`,
-      parentId: null,
-      timestamp: new Date().toISOString(),
-      name
-    }) + '\n'
-  await writeFile(filePath, line, { encoding: 'utf8', flag: 'a' })
 }
 
 function lastEntryId(entries: SessionEntry[]): string | null {
@@ -474,37 +404,6 @@ export function computeSessionTotalActiveMs(entries: readonly SessionEntry[]): n
     previous = timestamp
   }
   return total
-}
-
-function walkContext(entries: SessionEntry[], leafId?: string | null): SessionContext {
-  const byId = new Map(entries.map((e) => [e.id, e]))
-  let current = leafId ?? lastEntryId(entries)
-  const chain: SessionEntry[] = []
-  const seen = new Set<string>()
-  while (current && !seen.has(current)) {
-    seen.add(current)
-    const entry = byId.get(current)
-    if (!entry) break
-    chain.push(entry)
-    current = entry.parentId
-  }
-  chain.reverse()
-  const messages: AgentMessage[] = []
-  const entryIds: string[] = []
-  for (const entry of chain) {
-    const message = entryToUiMessage(entry)
-    if (message) {
-      messages.push(message)
-      entryIds.push(entry.id)
-    }
-  }
-  return {
-    messages,
-    entryIds,
-    entryParents: Object.fromEntries(entries.map((e) => [e.id, e.parentId])),
-    thinkingLevel: 'off',
-    model: null
-  }
 }
 
 export function entryToUiMessage(entry: SessionEntry): AgentMessage | null {

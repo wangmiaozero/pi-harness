@@ -6,6 +6,7 @@ export type StartupPhase = 'settings' | 'services' | 'ready'
 export const STARTUP_MINIMUM_VISIBLE_MS = 5000
 
 export const startupPhase = ref<StartupPhase>('settings')
+export const startupAnimationVisible = ref(true)
 
 export type StartupCheckState = 'checking' | 'healthy' | 'warning' | 'error'
 

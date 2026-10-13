@@ -878,9 +878,10 @@ test.describe('Pi-Harness smoke', () => {
     expect(layerOrder.mascot).toBeGreaterThan(layerOrder.cockpit)
     await expect(page.getByTestId('workspace-new-session')).toBeEnabled()
     await expect(page.locator('.workspace-tabbar')).toHaveCSS('height', '44px')
-    await expect(
-      page.getByTestId('workspace-sidebar').locator('.mission-control-header')
-    ).toHaveCSS('height', '44px')
+    const sidebarHeader = page.getByTestId('workspace-sidebar').locator('.mission-control-header')
+    await expect(sidebarHeader).toHaveCSS('min-height', '44px')
+    // The existing 28px controls + 16px padding also include a 1px bottom border.
+    expect((await sidebarHeader.boundingBox())!.height).toBeLessThanOrEqual(45)
 
     const composerMetrics = await page.getByTestId('chat-composer').evaluate((composer) => {
       const input = composer.querySelector<HTMLElement>('.command-console-input')

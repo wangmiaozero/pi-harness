@@ -26,7 +26,7 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="v1.9.0 版本" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="v2.0.0 版本" src="https://img.shields.io/badge/version-v2.0.0-4C8DFF?style=flat-square" /></a>
   <img alt="支援 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 授權" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -73,18 +73,26 @@ Native Pi 始終位於真實執行鏈路中；Pi-Harness 包含 Native Pi 的全
 
 ## 下載
 
-Pi-Harness v1.9.0 正在準備發行，下方安裝程式連結將於發行後可用。目前已發行版本請前往 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)。
+Pi-Harness v2.0.0 正在準備發行，下方安裝程式連結將於發行後可用。目前已發行版本請前往 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)。
 
 | 平台                | 安裝程式                                                                                                                       |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.9.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.9.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.9.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
-| Linux x64           | [`Pi-Harness-1.9.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-2.0.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-2.0.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-2.0.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-Setup-2.0.0.exe) |
+| Linux x64           | [`Pi-Harness-2.0.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.AppImage)   |
 
-> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v1.9.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0)。
+> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。詳細說明請參閱 [v2.0.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v2.0.0)。
 
 安裝程式使用者不需要 clone 儲存庫，也不需要安裝 pnpm。Pi-Harness 可在支援的環境中偵測、安裝及修復 Node.js、npm、PATH 與 Pi Coding Agent。
+
+## v2.0.0 新增與改善
+
+- **互動式專案架構**：探索模組與相依關係、查看原始碼引用、依套件篩選，並回顧已儲存的分析快照。
+- **讓架構圖成為主角**：支援全螢幕、滑鼠滾輪與觸控板縮放，浮動工具列集中提供模組翻頁與圖表操作。精簡面板與隨主題變化的背景留出更多空間。
+- **工作區工具入口**：點選「工具」後，在內容區切換 Harness 與智慧體，保留對話與未送出的草稿。
+- **更流暢的日常操作**：改善選單切換、歷史載入、檔案預覽與 Skill 編輯的反應速度，保留既有流程與外觀。
+- **預設深色主題**：新安裝採用深色；既有主題與外觀選擇繼續保留。
 
 ## v1.9.0 新增與改善
 

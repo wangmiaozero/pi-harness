@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v1.9.0" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v2.0.0" src="https://img.shields.io/badge/version-v2.0.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -64,18 +64,26 @@ Native Pi всегда остаётся внутри реального пути
 
 ## Скачать
 
-Pi-Harness v1.9.0 готовится к выпуску. Установщики ниже станут доступны после публикации. Уже выпущенные версии доступны на [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
+Pi-Harness v2.0.0 готовится к выпуску. Установщики ниже станут доступны после публикации. Уже выпущенные версии доступны на [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
 
 | Платформа           | Установщик                                                                                                                   |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.9.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.9.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.9.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
-| Linux x64           | [Pi-Harness-1.9.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-2.0.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-2.0.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-2.0.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-Setup-2.0.0.exe) |
+| Linux x64           | [Pi-Harness-2.0.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.AppImage)   |
 
-> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v1.9.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0).
+> Сборки сообщества для macOS могут быть не подписаны. Если система блокирует первый запуск, используйте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**. Подробности — в [примечаниях к v2.0.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v2.0.0).
 
 Пользователям готового приложения не нужно клонировать репозиторий или устанавливать pnpm. Pi-Harness может обнаружить, установить и восстановить Node.js, npm, PATH и Pi Coding Agent в поддерживаемой среде.
+
+## Новое в v2.0.0
+
+- **Интерактивная архитектура проекта** — Исследуйте модули и зависимости, ссылки на исходный код, фильтры пакетов и сохранённые результаты анализа.
+- **Больше места для карты** — Полноэкранный режим, масштабирование колёсиком мыши и трекпадом, переключение страниц на плавающей панели. Компактные панели и фон в стиле выбранной темы помогают сосредоточиться на схеме.
+- **Инструменты рабочей области** — Откройте инструменты для переключения между Harness и агентами с сохранением разговора и неотправленного черновика.
+- **Более плавная работа** — Ускорены переключение меню, загрузка истории, просмотр файлов и редактирование Skills; привычные действия и оформление сохранены.
+- **Тёмная тема по умолчанию** — Новые установки запускаются в тёмной теме; существующие настройки тем и оформления сохраняются.
 
 ## Новое в v1.9.0
 

@@ -251,7 +251,7 @@ function mapStats(
   snapshot: AgentStateSnapshot,
   tools: HarnessTool[]
 ): HarnessStats {
-  const raw = session.getSessionStats?.() ?? {}
+  const raw = { ...session.getSessionStats() }
   const tokens = isRecord(raw.tokens) ? raw.tokens : null
   return {
     sessionId: typeof raw.sessionId === 'string' ? raw.sessionId : snapshot.sessionId,

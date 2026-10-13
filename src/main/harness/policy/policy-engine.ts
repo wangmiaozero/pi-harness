@@ -220,7 +220,7 @@ export class PolicyEngine {
     let allowed = false
     try {
       const result = await dialog.showMessageBox(win, options)
-      allowed = result.response === 0
+      allowed = result.response === 0 && signal?.aborted !== true
     } catch (error) {
       log.harness.warn('policy confirmation dialog failed:', error)
       allowed = false

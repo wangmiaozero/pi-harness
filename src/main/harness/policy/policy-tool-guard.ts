@@ -1,7 +1,7 @@
 /**
  * Policy enforcement at the Pi tool boundary.
  *
- * Wraps the agent session's `bash`, `write` and `edit` tools so every call is
+ * Checks `bash`, `powershell`, `write` and `edit` in Pi's public tool_call hook. Every call is
  * evaluated against the Harness Policy Engine before execution:
  * - `deny` → the tool call fails with a clear policy reason (Pi records it as
  *   a tool error and the agent can adjust).
@@ -11,15 +11,15 @@
  * This composes with (never replaces) the workspace write guard.
  */
 
-import type { AgentSessionLike } from '../../agent/pi-sdk'
 import type { HarnessPolicyDomain } from '@shared/types/harness'
 import type { PolicyEngine, PolicyEvaluation } from './policy-engine'
 import { normalizeCommand } from './policy-defaults'
 
-const POLICY_GUARDED_TOOLS = new Set(['bash', 'write', 'edit'])
+const POLICY_GUARDED_TOOLS = new Set(['bash', 'powershell', 'write', 'edit'])
 
 export interface PolicyGuardContext {
   sessionId: string
+  signal?: AbortSignal
   /** Reports policy decisions back into the Harness timeline / run steps. */
   report: (payload: {
     domain: HarnessPolicyDomain
@@ -30,33 +30,14 @@ export interface PolicyGuardContext {
   }) => void
 }
 
-export function wrapPolicyGuardedTools(
-  session: AgentSessionLike,
-  policy: PolicyEngine,
-  context: PolicyGuardContext
-): void {
-  const tools = session.getAllTools() as Array<Record<string, unknown> & { name: string }>
-  for (const tool of tools) {
-    if (!POLICY_GUARDED_TOOLS.has(tool.name)) continue
-    const key = (['execute', 'handler', 'fn'] as const).find(
-      (name) => typeof tool[name] === 'function'
-    )
-    if (!key) continue
-    const original = tool[key] as (args: unknown) => Promise<unknown>
-    tool[key] = async (args: unknown) => {
-      await assertPolicyAllowed(policy, context, tool.name, args)
-      return original.call(tool, args)
-    }
-  }
-}
-
-async function assertPolicyAllowed(
+export async function assertPolicyToolAllowed(
   policy: PolicyEngine,
   context: PolicyGuardContext,
   toolName: string,
   args: unknown
 ): Promise<void> {
-  if (toolName === 'bash') {
+  if (!POLICY_GUARDED_TOOLS.has(toolName)) return
+  if (toolName === 'bash' || toolName === 'powershell') {
     const command = readStringArg(args, ['command', 'cmd']) ?? ''
     if (!command.trim()) return
     await assertShellAllowed(policy, context, command)
@@ -109,7 +90,7 @@ async function resolve(
     })
     return true
   }
-  const allowed = await policy.resolveAsk(context.sessionId, target, evaluation)
+  const allowed = await policy.resolveAsk(context.sessionId, target, evaluation, context.signal)
   return allowed
 }
 

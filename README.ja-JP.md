@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v1.9.0" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v2.0.0" src="https://img.shields.io/badge/version-v2.0.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -64,18 +64,26 @@ Native Pi は常に実際の実行経路の内側にあり、Pi-Harness はそ�
 
 ## ダウンロード
 
-Pi-Harness v1.9.0 はリリース準備中です。以下のインストーラーは公開後に利用できます。現在公開されているバージョンは [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases) をご覧ください。
+Pi-Harness v2.0.0 はリリース準備中です。以下のインストーラーは公開後に利用できます。現在公開されているバージョンは [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases) をご覧ください。
 
 | プラットフォーム    | インストーラー                                                                                                               |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.9.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.9.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.9.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
-| Linux x64           | [Pi-Harness-1.9.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-2.0.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-2.0.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-2.0.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-Setup-2.0.0.exe) |
+| Linux x64           | [Pi-Harness-2.0.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.AppImage)   |
 
-> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v1.9.0 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0)を参照してください。
+> macOS のコミュニティビルドは署名されていない場合があります。初回起動がブロックされた場合は、**システム設定 → プライバシーとセキュリティ → このまま開く**を使用してください。詳細は [v2.0.0 リリースノート](https://github.com/wangmiaozero/pi-harness/releases/tag/v2.0.0)を参照してください。
 
 パッケージ版の利用者は、リポジトリの clone や pnpm のインストールを行う必要はありません。Pi-Harness は、対応環境で Node.js、npm、PATH、Pi Coding Agent を検出し、インストールまたは修復できます。
+
+## v2.0.0 の新機能と改善
+
+- **対話型のプロジェクト構成図** — モジュールと依存関係を探索し、ソース参照、パッケージフィルター、保存済みの分析を確認できます。
+- **構成図を広く表示** — 全画面、マウスホイールとトラックパッドによる拡大縮小、フローティングツールバーからのページ切り替えに対応。コンパクトなパネルとテーマに合った背景で図を見やすくします。
+- **ワークスペースのツール** — 「ツール」を開くと Harness とエージェントを切り替えられ、会話と未送信の下書きを保持します。
+- **より快適な操作** — メニュー切り替え、履歴の読み込み、ファイルプレビュー、Skill 編集の応答を改善し、従来の操作と外観を維持します。
+- **初期テーマはダーク** — 新規インストールはダークで開始し、既存のテーマとスキンの選択は保持します。
 
 ## v1.9.0 の新機能と改善
 

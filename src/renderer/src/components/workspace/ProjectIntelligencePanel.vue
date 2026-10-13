@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Network, PanelLeft, ChevronDown } from '@lucide/vue'
 import { getApi, getErrorPayload } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { useSettingsStore } from '@renderer/stores/settings'
+import { startupAnimationVisible } from '@renderer/startup'
 import { themeAppearance } from '@shared/constants/theme'
 import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
 import { readArchitecturePalette } from '@renderer/utils/architecture-palette'
@@ -14,12 +15,13 @@ import Button from '@renderer/components/ui/Button.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import Switch from '@renderer/components/ui/Switch.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
-import FileViewer from '@renderer/components/files/FileViewer.vue'
 import type {
   AnalysisState,
   ArchitectureSnapshot,
   ArchitectureMap
 } from '@shared/intelligence/schema'
+
+const FileViewer = defineAsyncComponent(() => import('@renderer/components/files/FileViewer.vue'))
 
 const props = defineProps<{ root: string | null; projects?: string[] }>()
 const emit = defineEmits<{
@@ -155,7 +157,10 @@ async function viewerMessage(id?: string): Promise<void> {
   const version = revision
   try {
     await getApi().intelligence.viewer({
-      url: sourceOpen.value || dialogBlocking.value ? null : viewerUrl.value,
+      url:
+        startupAnimationVisible.value || sourceOpen.value || dialogBlocking.value
+          ? null
+          : viewerUrl.value,
       bounds: {
         x: Math.round(left),
         y: Math.round(top),
@@ -233,7 +238,10 @@ const unsubscribeControls = getApi().on('architecture-control', (input) => {
     void showMap(mapOffset.value + 48)
   if (value.action === 'overview' && map.value?.focus) void showMap()
 })
-watch([theme, sourceOpen, dialogBlocking, viewerControls], () => void viewerMessage())
+watch(
+  [theme, sourceOpen, dialogBlocking, startupAnimationVisible, viewerControls],
+  () => void viewerMessage()
+)
 watch(
   () => settings.settings,
   () => void viewerMessage(),

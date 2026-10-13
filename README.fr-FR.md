@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v1.9.0" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v2.0.0" src="https://img.shields.io/badge/version-v2.0.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -64,18 +64,26 @@ Native Pi reste toujours dans le chemin d’exécution réel ; Pi-Harness ajoute
 
 ## Télécharger
 
-Pi-Harness v1.9.0 est en préparation. Les installateurs ci-dessous seront disponibles après sa publication. Retrouvez les versions déjà publiées sur [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
+Pi-Harness v2.0.0 est en préparation. Les installateurs ci-dessous seront disponibles après sa publication. Retrouvez les versions déjà publiées sur [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
 
 | Plateforme          | Programme d’installation                                                                                                     |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.9.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.9.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.9.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
-| Linux x64           | [Pi-Harness-1.9.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-2.0.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-2.0.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-2.0.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-Setup-2.0.0.exe) |
+| Linux x64           | [Pi-Harness-2.0.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.AppImage)   |
 
-> Les builds communautaires macOS peuvent ne pas être signés. Si macOS bloque le premier lancement, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Consultez les [notes de la v1.9.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0).
+> Les builds communautaires macOS peuvent ne pas être signés. Si macOS bloque le premier lancement, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Consultez les [notes de la v2.0.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v2.0.0).
 
 Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer pnpm. Pi-Harness peut détecter, installer et réparer Node.js, npm, PATH et Pi Coding Agent dans les environnements pris en charge.
+
+## Nouveautés de la v2.0.0
+
+- **Architecture interactive du projet** — Explorez les modules et leurs dépendances, les références au code, les filtres par paquet et les analyses enregistrées.
+- **Plus de place pour la carte** — Plein écran, zoom à la molette ou au pavé tactile et navigation entre les pages dans la barre flottante. Des panneaux compacts et un fond assorti au thème mettent le diagramme en valeur.
+- **Outils de l’espace de travail** — Ouvrez les outils pour passer de Harness aux agents tout en conservant la conversation et le brouillon.
+- **Une utilisation plus fluide** — Navigation, chargement de l’historique, aperçus de fichiers et édition des Skills plus réactifs, avec les mêmes fonctions et le même style.
+- **Thème sombre par défaut** — Les nouvelles installations démarrent en sombre ; les thèmes et habillages déjà choisis sont conservés.
 
 ## Nouveautés de la v1.9.0
 

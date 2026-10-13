@@ -138,7 +138,7 @@ export function toClientAgentEvent(
     }
   }
 
-  if (event.type === 'agent_end') return { type: 'agent_end' }
+  if (event.type === 'agent_end') return { type: 'agent_end', willRetry: event.willRetry === true }
   return event
 }
 

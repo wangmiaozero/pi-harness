@@ -52,7 +52,7 @@ import {
   type ApiKeyUiKind
 } from '@renderer/utils/provider-credentials'
 
-withDefaults(defineProps<{ embedded?: boolean }>(), {
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), {
   embedded: false
 })
 
@@ -833,7 +833,7 @@ watch(
 )
 
 onMounted(() => {
-  void providersStore.fetchList()
+  if (!props.embedded) void providersStore.fetchList()
   void modelsStore.fetchList()
   void loadPlatform()
 })

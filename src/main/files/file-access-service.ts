@@ -25,11 +25,14 @@ export class FileAccessService {
   private cache: { roots: Set<string>; realRoots: Set<string> | null; expiresAt: number } | null =
     null
   private listSessions: () => Promise<SessionInfo[]> = async () => []
+  private rootsLoad: Promise<Set<string>> | null = null
+  private rootsRevision = 0
 
   constructor(private readonly authorizedRootsStore?: JsonStore<AuthorizedRootsState>) {}
 
   attachSessionLister(listSessions: () => Promise<SessionInfo[]>): void {
     this.listSessions = listSessions
+    this.invalidate()
   }
 
   allowRoot(root: string): void {
@@ -82,12 +85,23 @@ export class FileAccessService {
 
   invalidate(): void {
     this.cache = null
+    this.rootsLoad = null
+    this.rootsRevision++
   }
 
   async getAllowedRoots(): Promise<Set<string>> {
     const now = Date.now()
     if (this.cache && this.cache.expiresAt > now) return this.cache.roots
+    if (this.rootsLoad) return this.rootsLoad
 
+    const request = this.loadAllowedRoots(this.rootsRevision, now).finally(() => {
+      if (this.rootsLoad === request) this.rootsLoad = null
+    })
+    this.rootsLoad = request
+    return request
+  }
+
+  private async loadAllowedRoots(revision: number, now: number): Promise<Set<string>> {
     const roots = new Set<string>()
     const sessions = await this.listSessions()
     for (const session of sessions) {
@@ -105,13 +119,16 @@ export class FileAccessService {
       /* home unreadable */
     }
 
-    for (const root of this.additionalRoots) roots.add(root)
     if (this.authorizedRootsStore) {
       const persisted = await this.authorizedRootsStore.read()
       for (const root of persisted.roots) {
         if (typeof root === 'string' && root) roots.add(toSlashPath(root))
       }
     }
+    // A workspace may be granted while disk/session reads are in flight.
+    // Publish only the current scan, including every Main-issued grant.
+    if (revision !== this.rootsRevision) return this.getAllowedRoots()
+    for (const root of this.additionalRoots) roots.add(root)
     this.cache = { roots, realRoots: null, expiresAt: now + 5_000 }
     return roots
   }
@@ -199,7 +216,18 @@ export class FileAccessService {
         { target }
       )
     }
-    return allowed
+    const canonical = await resolveWithMissingParents(allowed)
+    await this.assertAllowed(canonical)
+    const canonicalFolders = await Promise.all(
+      folders.map(async (folder) => ({
+        ...folder,
+        resolvedPath: await resolveWithMissingParents(folder.resolvedPath)
+      }))
+    )
+    if (!isWorkspacePathWritable(canonical, canonicalFolders)) {
+      throw new PathDeniedError('Resolved path escapes writable workspace folders', { target })
+    }
+    return canonical
   }
 
   private async getRealRoots(roots: Set<string>): Promise<Set<string>> {
@@ -228,5 +256,22 @@ export class FileAccessService {
       throw new PathDeniedError('Authorized root must be an existing directory', { target })
     }
     return resolved
+  }
+}
+
+async function resolveWithMissingParents(target: string): Promise<string> {
+  let ancestor = path.resolve(target)
+  const missing: string[] = []
+  while (true) {
+    try {
+      return path.join(await realpath(ancestor), ...missing)
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code !== 'ENOENT' && code !== 'ENOTDIR') throw error
+      const parent = path.dirname(ancestor)
+      if (parent === ancestor) throw error
+      missing.unshift(path.basename(ancestor))
+      ancestor = parent
+    }
   }
 }

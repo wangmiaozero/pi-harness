@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v1.9.0" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v2.0.0" src="https://img.shields.io/badge/version-v2.0.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
 </p>
@@ -64,18 +64,26 @@ Native Pi bleibt immer im realen Ausführungspfad; Pi-Harness ergänzt darum den
 
 ## Download
 
-Pi-Harness v1.9.0 wird für die Veröffentlichung vorbereitet. Die folgenden Installer sind danach verfügbar. Bereits veröffentlichte Versionen findest du unter [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
+Pi-Harness v2.0.0 wird für die Veröffentlichung vorbereitet. Die folgenden Installer sind danach verfügbar. Bereits veröffentlichte Versionen findest du unter [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
 
 | Plattform           | Installer                                                                                                                    |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-1.9.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-1.9.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-1.9.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
-| Linux x64           | [Pi-Harness-1.9.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
+| macOS Apple Silicon | [Pi-Harness-2.0.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0-arm64.dmg) |
+| macOS Intel         | [Pi-Harness-2.0.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.dmg)             |
+| Windows x64         | [Pi-Harness-Setup-2.0.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-Setup-2.0.0.exe) |
+| Linux x64           | [Pi-Harness-2.0.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.AppImage)   |
 
-> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v1.9.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0).
+> macOS-Community-Builds können unsigniert sein. Falls macOS den ersten Start blockiert, verwende **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**. Details stehen in den [Hinweisen zu v2.0.0](https://github.com/wangmiaozero/pi-harness/releases/tag/v2.0.0).
 
 Nutzer der paketierten App müssen das Repository nicht klonen und pnpm nicht installieren. Pi-Harness kann Node.js, npm, PATH und Pi Coding Agent in unterstützten Umgebungen erkennen, installieren und reparieren.
+
+## Neu in v2.0.0
+
+- **Interaktive Projektarchitektur** — Module und Abhängigkeiten erkunden, Quellcode-Verweise öffnen, nach Paketen filtern und gespeicherte Analysen wieder aufrufen.
+- **Mehr Platz für die Karte** — Vollbild, Zoom per Mausrad oder Trackpad und Seitenwechsel in der schwebenden Werkzeugleiste. Kompakte Bereiche und ein zum Theme passender Hintergrund rücken das Diagramm in den Mittelpunkt.
+- **Werkzeuge im Workspace** — Werkzeuge öffnen und zwischen Harness und Agenten wechseln; Gespräch und ungesendeter Entwurf bleiben erhalten.
+- **Flüssigere Bedienung** — Schnellere Menüwechsel, Verlaufsanzeige, Dateivorschau und Skill-Bearbeitung bei unveränderten Abläufen und unverändertem Aussehen.
+- **Dunkles Standard-Theme** — Neue Installationen starten im dunklen Theme; bestehende Theme- und Skin-Einstellungen bleiben erhalten.
 
 ## Neu in v1.9.0
 

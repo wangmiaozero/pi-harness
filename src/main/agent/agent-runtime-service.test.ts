@@ -18,12 +18,14 @@ describe('AgentRuntimeService', () => {
     const manager = createSessionManager()
     const inner = createAgentSession(manager)
     const cachePath = vi.fn()
-    loadPiCodingAgent.mockResolvedValue({
-      SessionManager: { create: () => manager },
-      createAgentSessionServices: async () => ({}),
-      createAgentSessionFromServices: async () => ({ session: inner }),
-      getAgentDir: () => '/tmp/agent'
-    })
+    loadPiCodingAgent.mockResolvedValue(
+      fakeSdk({
+        SessionManager: { create: () => manager },
+        createAgentSessionServices: async () => ({}),
+        createAgentSessionFromServices: async () => ({ session: inner }),
+        getAgentDir: () => '/tmp/agent'
+      })
+    )
     const sessions = {
       cachePath,
       invalidate: vi.fn(),
@@ -43,12 +45,15 @@ describe('AgentRuntimeService', () => {
   it('injects workspace context into the Pi system prompt', async () => {
     const manager = createSessionManager()
     const inner = createAgentSession(manager)
-    loadPiCodingAgent.mockResolvedValue({
-      SessionManager: { create: () => manager },
-      createAgentSessionServices: async () => ({}),
-      createAgentSessionFromServices: async () => ({ session: inner }),
-      getAgentDir: () => '/tmp/agent'
-    })
+    const createServices = vi.fn(async (_options: Record<string, unknown>) => ({}))
+    loadPiCodingAgent.mockResolvedValue(
+      fakeSdk({
+        SessionManager: { create: () => manager },
+        createAgentSessionServices: createServices,
+        createAgentSessionFromServices: async () => ({ session: inner }),
+        getAgentDir: () => '/tmp/agent'
+      })
+    )
     const sessions = {
       cachePath: vi.fn(),
       invalidate: vi.fn(),
@@ -60,44 +65,95 @@ describe('AgentRuntimeService', () => {
         '--- BEGIN PI-HARNESS WORKSPACE ---\nMain Project\n--- END PI-HARNESS WORKSPACE ---'
     }).start({ cwd: '/tmp/project' })
 
-    expect(inner.agent.state?.systemPrompt).toContain('PI-HARNESS WORKSPACE')
-    expect(inner.agent.state?.systemPrompt).toContain('Main Project')
+    const options = createServices.mock.calls[0][0] as {
+      resourceLoaderOptions: { appendSystemPromptOverride: (base: string[]) => string[] }
+    }
+    const prompt = options.resourceLoaderOptions
+      .appendSystemPromptOverride(['Native context'])
+      .join('\n')
+    expect(prompt).toContain('Native context')
+    expect(prompt).toContain('PI-HARNESS WORKSPACE')
+    expect(prompt).toContain('Main Project')
   })
 
-  it('refreshes session project context before every prompt', async () => {
+  it('awaits native extension binding and cleans up when it fails', async () => {
     const inner = createAgentSession(createSessionManager())
-    inner.agent.state!.systemPrompt = 'Host prompt'
-    const wrapper = new AgentSessionWrapper(inner)
-    let project = 'Project A'
-    wrapper.setWorkspacePromptProvider(
-      () => `--- BEGIN PI-HARNESS WORKSPACE ---\n${project}\n--- END PI-HARNESS WORKSPACE ---`
+    inner.bindExtensions = vi.fn().mockRejectedValue(new Error('fixture binding failure'))
+    const shutdown = vi.spyOn(inner.extensionRunner, 'emit')
+    const dispose = vi.spyOn(inner, 'dispose')
+    loadPiCodingAgent.mockResolvedValue(
+      fakeSdk({
+        SessionManager: { create: () => inner.sessionManager },
+        createAgentSessionServices: async () => ({}),
+        createAgentSessionFromServices: async () => ({ session: inner }),
+        getAgentDir: () => '/tmp/agent'
+      })
     )
-
-    project = 'Project B'
-    await wrapper.send({ type: 'prompt', message: 'continue' })
-
-    expect(inner.agent.state?.systemPrompt).toContain('Project B')
-    expect(inner.agent.state?.systemPrompt).not.toContain('Project A')
+    const runtime = new AgentRuntimeService({ invalidate: vi.fn() } as unknown as SessionService)
+    await expect(runtime.start({ cwd: '/tmp/project' })).rejects.toThrow('fixture binding failure')
+    expect(shutdown).toHaveBeenCalledWith({ type: 'session_shutdown', reason: 'quit' })
+    expect(dispose).toHaveBeenCalledOnce()
+    expect(runtime.get(inner.sessionId)).toBeUndefined()
   })
+
+  it('settles in-flight startup during shutdown and refuses subsequent starts', async () => {
+    const inner = createAgentSession(createSessionManager())
+    let bound!: () => void
+    inner.bindExtensions = vi.fn(() => new Promise<void>((resolve) => (bound = resolve)))
+    const dispose = vi.spyOn(inner, 'dispose')
+    loadPiCodingAgent.mockResolvedValue(
+      fakeSdk({
+        SessionManager: { create: () => inner.sessionManager },
+        createAgentSessionServices: async () => ({}),
+        createAgentSessionFromServices: async () => ({ session: inner }),
+        getAgentDir: () => '/tmp/agent'
+      })
+    )
+    const runtime = new AgentRuntimeService({ invalidate: vi.fn() } as unknown as SessionService)
+    const starting = runtime.start({ cwd: '/tmp/project' })
+    const rejected = expect(starting).rejects.toThrow('shutting down')
+    await vi.waitFor(() => expect(inner.bindExtensions).toHaveBeenCalledOnce())
+    const stopping = runtime.shutdownAll()
+    bound()
+    await rejected
+    await stopping
+    expect(dispose).toHaveBeenCalledOnce()
+    await expect(runtime.start({ cwd: '/tmp/project' })).rejects.toThrow('shutting down')
+  })
+
   it('adds architecture retrieval through Native Pi custom tools without replacing its prompt', async () => {
     const manager = createSessionManager()
     const inner = createAgentSession(manager)
-    const customTools = vi.fn(async () => [{ name: 'get_project_architecture' }])
+    const customTools = vi.fn(async () => [
+      {
+        name: 'get_project_architecture',
+        label: 'Architecture',
+        description: 'Read architecture',
+        parameters: { type: 'object' },
+        execute: async () => ({ content: [], details: {} })
+      }
+    ])
     const create = vi.fn(async () => ({ session: inner }))
     const services = vi.fn(async (_options: Record<string, unknown>) => ({}))
-    loadPiCodingAgent.mockResolvedValue({
-      SessionManager: { create: () => manager },
-      createAgentSessionServices: services,
-      createAgentSessionFromServices: create,
-      getAgentDir: () => '/tmp/agent'
-    })
+    loadPiCodingAgent.mockResolvedValue(
+      fakeSdk({
+        SessionManager: { create: () => manager },
+        createAgentSessionServices: services,
+        createAgentSessionFromServices: create,
+        getAgentDir: () => '/tmp/agent'
+      })
+    )
     const runtime = new AgentRuntimeService({ invalidate: vi.fn() } as unknown as SessionService, {
       customTools,
       architectureHint: async () => 'Source-backed architecture is available.'
     })
     await runtime.start({ cwd: '/tmp/project' })
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ customTools: [{ name: 'get_project_architecture' }] })
+      expect.objectContaining({
+        customTools: expect.arrayContaining([
+          expect.objectContaining({ name: 'get_project_architecture' })
+        ])
+      })
     )
     const options = services.mock.calls[0][0] as unknown as {
       resourceLoaderOptions: { appendSystemPromptOverride: (base: string[]) => string[] }
@@ -113,7 +169,9 @@ describe('AgentRuntimeService', () => {
 
   it('requires a real tool call for explicit file-writing requests on compatible providers', async () => {
     const inner = createAgentSession(createSessionManager())
-    inner.model = { id: 'step-3.7-flash', provider: 'step-plan', api: 'openai-responses' }
+    Object.assign(inner, {
+      model: { id: 'step-3.7-flash', provider: 'step-plan', api: 'openai-responses' }
+    })
     inner.getActiveToolNames = () => ['read', 'write', 'edit']
     inner.agent.onPayload = vi.fn((payload: unknown) => ({
       ...(payload as Record<string, unknown>),
@@ -123,10 +181,11 @@ describe('AgentRuntimeService', () => {
     inner.prompt = vi.fn(async (_message: string, options?: Record<string, unknown>) => {
       outgoingPayload = await inner.agent.onPayload?.(
         { tools: [{ type: 'function', function: { name: 'write' } }] },
-        inner.model ?? undefined
+        inner.model!
       )
-      const preflightResult = options?.preflightResult as ((success: boolean) => void) | undefined
-      preflightResult?.(true)
+      const preflightResult = options?.preflightResult as
+        ((disposition: string) => void) | undefined
+      preflightResult?.('started')
     })
 
     await new AgentSessionWrapper(inner).send({
@@ -142,16 +201,19 @@ describe('AgentRuntimeService', () => {
 
   it('does not force tool use for an ordinary conversational prompt', async () => {
     const inner = createAgentSession(createSessionManager())
-    inner.model = { id: 'step-3.7-flash', provider: 'step-plan', api: 'openai-responses' }
+    Object.assign(inner, {
+      model: { id: 'step-3.7-flash', provider: 'step-plan', api: 'openai-responses' }
+    })
     inner.getActiveToolNames = () => ['read', 'write', 'edit']
     let outgoingPayload: unknown
     inner.prompt = vi.fn(async (_message: string, options?: Record<string, unknown>) => {
       outgoingPayload = await inner.agent.onPayload?.(
         { tools: [{ type: 'function', function: { name: 'write' } }] },
-        inner.model ?? undefined
+        inner.model!
       )
-      const preflightResult = options?.preflightResult as ((success: boolean) => void) | undefined
-      preflightResult?.(true)
+      const preflightResult = options?.preflightResult as
+        ((disposition: string) => void) | undefined
+      preflightResult?.('started')
     })
 
     await new AgentSessionWrapper(inner).send({ type: 'prompt', message: '解释一下 SVG viewBox' })
@@ -188,13 +250,15 @@ describe('AgentRuntimeService', () => {
     'keeps file tools available without forcing a choice rejected by thinking mode: %j',
     async ({ compat, baseUrl, thinking, effort, toolChoice, expected }) => {
       const inner = createAgentSession(createSessionManager())
-      inner.model = {
-        id: 'configured-model',
-        provider: 'custom-provider',
-        api: 'openai-completions',
-        compat,
-        baseUrl
-      }
+      Object.assign(inner, {
+        model: {
+          id: 'configured-model',
+          provider: 'custom-provider',
+          api: 'openai-completions',
+          compat,
+          baseUrl
+        }
+      })
       inner.getActiveToolNames = () => ['read', 'write', 'edit']
       const input = {
         tools: [{ type: 'function', function: { name: 'write' } }],
@@ -204,7 +268,7 @@ describe('AgentRuntimeService', () => {
       }
       let outgoing: unknown
       inner.prompt = vi.fn(async (_message, options) => {
-        outgoing = await inner.agent.onPayload?.(input, inner.model ?? undefined)
+        outgoing = await inner.agent.onPayload?.(input, inner.model!)
         ;(options?.preflightResult as (accepted: boolean) => void)?.(true)
       })
       await new AgentSessionWrapper(inner).send({
@@ -218,13 +282,15 @@ describe('AgentRuntimeService', () => {
   )
   it('uses only the current instruction for tool enforcement when the prompt includes history', async () => {
     const inner = createAgentSession(createSessionManager())
-    inner.model = { id: 'model', provider: 'provider', api: 'openai-completions' }
+    Object.assign(inner, {
+      model: { id: 'model', provider: 'provider', api: 'openai-completions' }
+    })
     inner.getActiveToolNames = () => ['read', 'write', 'edit']
     let outgoing: unknown
     inner.prompt = vi.fn(async (_message, options) => {
       outgoing = await inner.agent.onPayload?.(
         { tools: [{ type: 'function', function: { name: 'write' } }] },
-        inner.model ?? undefined
+        inner.model!
       )
       ;(options?.preflightResult as (accepted: boolean) => void)?.(true)
     })
@@ -241,54 +307,6 @@ describe('AgentRuntimeService', () => {
       toolEnforcementText: 'Create a file named new.html'
     })
     expect(outgoing).toHaveProperty('tool_choice', 'required')
-  })
-
-  it('uses the Pi 0.87 resource loader when systemPrompt is getter-only', async () => {
-    const manager = createSessionManager()
-    const inner = createAgentSession(manager)
-    let project = 'Project A'
-    let effectivePrompt = ''
-    let override: ((base: string[]) => string[]) | undefined
-    const reload = vi.fn(async () => {
-      effectivePrompt = ['Host prompt', ...(override?.([]) ?? [])].join('\n\n')
-    })
-    Object.defineProperty(inner.agent.state!, 'systemPrompt', {
-      configurable: true,
-      get: () => effectivePrompt
-    })
-    inner.resourceLoader = { reload }
-    loadPiCodingAgent.mockResolvedValue({
-      SessionManager: { create: () => manager },
-      createAgentSessionServices: async (options: Record<string, unknown>) => {
-        override = (
-          options.resourceLoaderOptions as {
-            appendSystemPromptOverride?: (base: string[]) => string[]
-          }
-        ).appendSystemPromptOverride
-        await reload()
-        return { resourceLoader: inner.resourceLoader }
-      },
-      createAgentSessionFromServices: async () => ({ session: inner }),
-      getAgentDir: () => '/tmp/agent'
-    })
-    const sessions = {
-      cachePath: vi.fn(),
-      invalidate: vi.fn(),
-      resolvePath: vi.fn()
-    } as unknown as SessionService
-    const runtime = new AgentRuntimeService(sessions, {
-      getPrompt: () =>
-        `--- BEGIN PI-HARNESS WORKSPACE ---\n${project}\n--- END PI-HARNESS WORKSPACE ---`
-    })
-    const started = await runtime.start({ cwd: '/tmp/project' })
-
-    project = 'Project B'
-    await runtime.prompt(started.sessionId, 'continue')
-
-    expect(reload).toHaveBeenCalled()
-    expect(effectivePrompt).toContain('Project B')
-    expect(effectivePrompt).not.toContain('Project A')
-    expect(inner.prompt).toHaveBeenCalled()
   })
 
   it('persists externally generated images with Pi-native message content', async () => {
@@ -357,9 +375,32 @@ describe('AgentRuntimeService', () => {
 
   it('keeps extension tools for coding presets and allows exact Harness selections', async () => {
     const inner = createAgentSession(createSessionManager())
+    inner.getActiveToolNames = () => ['read', 'extension_x']
     inner.getAllTools = () => [
-      { name: 'read', description: 'Read' },
-      { name: 'extension_x', description: 'Extension' }
+      {
+        name: 'read',
+        description: 'Read',
+        parameters: { type: 'object' },
+        exposure: 'direct',
+        sourceInfo: {
+          source: 'custom',
+          scope: 'temporary',
+          origin: 'top-level',
+          path: '/tmp/test-extension.ts'
+        }
+      },
+      {
+        name: 'extension_x',
+        description: 'Extension',
+        parameters: { type: 'object' },
+        exposure: 'direct',
+        sourceInfo: {
+          source: 'custom',
+          scope: 'temporary',
+          origin: 'top-level',
+          path: '/tmp/test-extension.ts'
+        }
+      }
     ]
     const wrapper = new AgentSessionWrapper(inner)
 
@@ -377,11 +418,15 @@ describe('AgentRuntimeService', () => {
   it('rejects image prompts when the active model is text-only', async () => {
     const inner = createAgentSession(createSessionManager())
     const refresh = vi.fn(async () => undefined)
-    inner.modelRuntime = {
-      refresh,
-      getModel: () => ({ id: 'unlisted-vision-model', provider: 'provider', input: ['text'] })
-    }
-    inner.model = { id: 'unlisted-vision-model', provider: 'provider', input: ['text'] }
+    Object.assign(inner, {
+      modelRuntime: {
+        refresh,
+        getModel: () => ({ id: 'unlisted-vision-model', provider: 'provider', input: ['text'] })
+      }
+    })
+    Object.assign(inner, {
+      model: { id: 'unlisted-vision-model', provider: 'provider', input: ['text'] }
+    })
     inner.setModel = vi.fn(async () => undefined)
     const image = { type: 'image', data: 'TQ==', mimeType: 'image/png' }
 
@@ -400,12 +445,42 @@ describe('AgentRuntimeService', () => {
     expect(wrapper.isRunning()).toBe(false)
   })
 
+  it('cancels image preparation and waiting prompt admissions before native execution', async () => {
+    const inner = createAgentSession(createSessionManager())
+    const model = {
+      id: 'fixture',
+      provider: 'fixture',
+      api: 'openai-completions',
+      input: ['text', 'image']
+    }
+    let release!: () => void
+    const refresh = vi.fn(() => new Promise<void>((resolve) => (release = resolve)))
+    Object.assign(inner, { model, modelRuntime: { refresh, getModel: () => model } })
+    const wrapper = new AgentSessionWrapper(inner)
+    const first = wrapper.send({
+      type: 'prompt',
+      message: 'image',
+      images: [{ type: 'image', mimeType: 'image/png', data: 'TQ==' }]
+    })
+    const firstRejected = expect(first).rejects.toThrow('Prompt cancelled before execution')
+    const second = wrapper.send({ type: 'prompt', message: 'waiting' })
+    const secondRejected = expect(second).rejects.toThrow('Prompt cancelled before execution')
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledOnce())
+    await wrapper.send({ type: 'abort' })
+    release()
+    await Promise.all([firstRejected, secondRejected])
+    expect(inner.prompt).not.toHaveBeenCalled()
+    wrapper.destroy()
+  })
+
   it('forwards queued images when the active model declares image input', async () => {
     const inner = createAgentSession(createSessionManager())
-    inner.isStreaming = true
-    inner.model = { id: 'multimodal', provider: 'provider', input: ['text', 'image'] }
+    Object.assign(inner, { isStreaming: true })
+    Object.assign(inner, {
+      model: { id: 'multimodal', provider: 'provider', input: ['text', 'image'] }
+    })
     inner.setModel = vi.fn(async () => undefined)
-    inner.steer = vi.fn(async () => undefined)
+    inner.steer = vi.fn(async () => 'queued' as const)
     const image = { type: 'image', data: 'TQ==', mimeType: 'image/png' }
 
     await new AgentSessionWrapper(inner).send({
@@ -420,19 +495,23 @@ describe('AgentRuntimeService', () => {
 
   it('applies current catalog image capability before sending to Pi', async () => {
     const inner = createAgentSession(createSessionManager())
-    inner.modelRuntime = {
-      refresh: vi.fn(async () => undefined),
-      getModel: () => ({
+    Object.assign(inner, {
+      modelRuntime: {
+        refresh: vi.fn(async () => undefined),
+        getModel: () => ({
+          id: 'glm-5.3-flash',
+          provider: 'zhipuai-coding-plan',
+          input: ['text']
+        })
+      }
+    })
+    Object.assign(inner, {
+      model: {
         id: 'glm-5.3-flash',
         provider: 'zhipuai-coding-plan',
         input: ['text']
-      })
-    }
-    inner.model = {
-      id: 'glm-5.3-flash',
-      provider: 'zhipuai-coding-plan',
-      input: ['text']
-    }
+      }
+    })
     inner.setModel = vi.fn(async () => undefined)
     const image = { type: 'image', data: 'TQ==', mimeType: 'image/png' }
 
@@ -453,7 +532,7 @@ describe('AgentRuntimeService', () => {
 
   it('rejects image prompts when Pi image input is globally disabled', async () => {
     const inner = createAgentSession(createSessionManager())
-    inner.settingsManager = { getBlockImages: () => true }
+    Object.assign(inner, { settingsManager: { getBlockImages: () => true } })
     const wrapper = new AgentSessionWrapper(inner)
 
     await expect(
@@ -471,12 +550,14 @@ describe('AgentRuntimeService', () => {
     const inner = createAgentSession(createSessionManager())
     let emitSdkEvent: ((event: { type: string; [key: string]: unknown }) => void) | undefined
     inner.subscribe = (listener) => {
-      emitSdkEvent = listener
+      emitSdkEvent = (event) =>
+        listener(event as import('@earendil-works/pi-coding-agent').AgentSessionEvent)
       return () => undefined
     }
     inner.prompt = vi.fn(async (_message: string, options?: Record<string, unknown>) => {
-      const preflightResult = options?.preflightResult as ((success: boolean) => void) | undefined
-      preflightResult?.(true)
+      const preflightResult = options?.preflightResult as
+        ((disposition: string) => void) | undefined
+      preflightResult?.('started')
       emitSdkEvent?.({
         type: 'message_end',
         message: {
@@ -510,7 +591,8 @@ describe('AgentRuntimeService', () => {
     const inner = createAgentSession(createSessionManager())
     let emitSdkEvent: ((event: { type: string; [key: string]: unknown }) => void) | undefined
     inner.subscribe = (listener) => {
-      emitSdkEvent = listener
+      emitSdkEvent = (event) =>
+        listener(event as import('@earendil-works/pi-coding-agent').AgentSessionEvent)
       return () => undefined
     }
 
@@ -569,10 +651,12 @@ describe('AgentRuntimeService', () => {
   it('refreshes the model catalog before every explicit model switch', async () => {
     const inner = createAgentSession(createSessionManager())
     const model = { id: 'model', provider: 'provider', input: ['text', 'image'] as const }
-    inner.modelRuntime = {
-      refresh: vi.fn(async () => undefined),
-      getModel: () => ({ ...model, input: [...model.input] })
-    }
+    Object.assign(inner, {
+      modelRuntime: {
+        refresh: vi.fn(async () => undefined),
+        getModel: () => ({ ...model, input: [...model.input] })
+      }
+    })
     inner.setModel = vi.fn(async () => undefined)
 
     await new AgentSessionWrapper(inner).send({
@@ -602,11 +686,11 @@ describe('AgentRuntimeService', () => {
     const inner = createAgentSession(createSessionManager())
     inner.agent.state!.thinkingLevel = 'max'
     inner.setThinkingLevel = vi.fn((level: string) => {
-      inner.agent.state!.thinkingLevel = level
+      Object.assign(inner.agent.state, { thinkingLevel: level })
     })
     inner.compact = vi.fn(async () => {
       expect(inner.agent.state?.thinkingLevel).toBe('medium')
-      return { tokensBefore: 12_000 }
+      return { tokensBefore: 12_000, summary: 'summary', firstKeptEntryId: 'entry' }
     })
 
     await new AgentSessionWrapper(inner).send({ type: 'compact' })
@@ -631,13 +715,16 @@ function createSessionManager(): PiSessionManagerLike {
     isPersisted: () => true,
     newSession: () => undefined,
     createBranchedSession: () => null
-  }
+  } as unknown as PiSessionManagerLike
 }
 
 function createAgentSession(manager: PiSessionManagerLike): AgentSessionLike {
+  const state: { thinkingLevel: import('@earendil-works/pi-agent-core').ThinkingLevel } = {
+    thinkingLevel: 'off'
+  }
   const prompt = vi.fn(async (_message: string, options?: Record<string, unknown>) => {
-    const preflightResult = options?.preflightResult as ((success: boolean) => void) | undefined
-    preflightResult?.(true)
+    const preflightResult = options?.preflightResult as ((disposition: string) => void) | undefined
+    preflightResult?.('started')
   })
   return {
     sessionId: 'session-new',
@@ -648,7 +735,7 @@ function createAgentSession(manager: PiSessionManagerLike): AgentSessionLike {
     isCompacting: false,
     autoCompactionEnabled: true,
     model: { id: 'model', provider: 'provider' },
-    agent: { state: { thinkingLevel: 'off' } },
+    agent: { state },
     modelRuntime: { getModel: () => undefined, refresh: async () => undefined },
     subscribe: () => () => undefined,
     prompt,
@@ -660,9 +747,30 @@ function createAgentSession(manager: PiSessionManagerLike): AgentSessionLike {
     setSessionName: () => undefined,
     setAutoCompactionEnabled: () => undefined,
     setActiveToolsByName: vi.fn(),
+    settingsManager: { getBlockImages: () => false },
     getAllTools: () => [],
     getActiveToolNames: () => [],
     getContextUsage: () => null,
+    extensionRunner: { emit: async () => undefined },
+    bindExtensions: async () => undefined,
+    get thinkingLevel() {
+      return state.thinkingLevel
+    },
+    getAvailableThinkingLevels: () => ['off', 'low', 'medium', 'high', 'xhigh', 'max'],
     dispose: () => undefined
+  } as unknown as AgentSessionLike
+}
+
+function fakeSdk<T extends object>(module: T) {
+  return {
+    initTheme: vi.fn(),
+    SettingsManager: { create: vi.fn() },
+    createCodemodeExtension: () => () => undefined,
+    createMcpExtension: () => () => undefined,
+    createToolSearchExtension: () => () => undefined,
+    AgentSessionRuntime: class {
+      setBeforeSessionInvalidate() {}
+    },
+    ...module
   }
 }

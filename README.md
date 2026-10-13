@@ -33,7 +33,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v1.9.0" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v2.0.0" src="https://img.shields.io/badge/version-v2.0.0-4C8DFF?style=flat-square" /></a>
   <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -101,6 +101,14 @@ Pi-Harness
 | Orchestrate       | Agents, Teams, Tasks, Dependencies, Handoffs, Review Gates, Worktree isolation            |
 | Work              | Workspace, Files, Git, Worktrees, Models, Providers, Skills, and Packages                 |
 
+### What's new in v2.0.0
+
+- **Interactive project architecture** — Explore modules and their dependencies, inspect source references, filter by package, and revisit saved analysis snapshots.
+- **More room for the map** — Use fullscreen, mouse-wheel or trackpad zoom, and map paging from the floating toolbar. Compact panels and theme-aware backgrounds keep the diagram in focus.
+- **Workspace tools** — Open **Tools** to switch between Harness and Agents while keeping your conversation and draft available.
+- **Smoother everyday use** — Faster menu switching, history loading, file previews, and Skill editing, with the same workflows and appearance.
+- **Classic Dark by default** — New installations start in Dark. Existing theme and skin selections are preserved.
+
 ### What's new in v1.9.0
 
 - **Local AI history** — Browse Claude Code, Codex (including desktop and archived conversations), Cursor, Cursor Agent, Gemini CLI, OpenCode, and Pi in one place. Search and filter by source, project, or date range, and add custom history folders.
@@ -109,7 +117,7 @@ Pi-Harness
 - **Optional AI summaries** — Choose **Organize with AI** to refine the handoff with your configured model. This action uses model tokens only when you request it.
 - **Smoother navigation** — Retry scans while keeping imported history, select dates with one range picker, and use clearer titles, multilingual labels, and buttons that keep their rounded shape.
 
-### Project analysis (development build)
+### Project architecture
 
 Open **Architecture** in Workspace to analyze an imported project, explore an interactive map, inspect source references, and keep analysis snapshots. Local analysis uses no model tokens; optional AI descriptions use the configured model when selected. Source changes are flagged, and Pi can retrieve relevant project information on demand before reading the current code.
 
@@ -127,7 +135,7 @@ Analysis has explicit coverage limits. JavaScript, TypeScript, and Vue imports a
 
 Pi-Harness opens with a startup animation while it checks the npm registry, Node.js, npm, Pi Agent, and the active configuration. The animation remains visible for at least five seconds, uses a monochrome quantum particle effect by default, and follows the selected optional visual theme when one is active.
 
-New installations use **macOS 27 Dark** with the **Liquid Ether** background. In **Settings → General**, choose another palette or macOS 27 background, use a local PNG/JPEG/WebP background, customize chat display names, choose the Classic, Ming, or Quantum app icon, and control the window glow, screen glow, and input flame effect independently.
+New installations use the **Dark** theme. You can also choose **macOS 27** and its **Liquid Ether** background. In **Settings → General**, choose another palette or macOS 27 background, use a local PNG/JPEG/WebP background, customize chat display names, choose the Classic, Ming, or Quantum app icon, and control the window glow, screen glow, and input flame effect independently.
 
 In **Settings → Theme**, the built-in themes remain available alongside declarative custom skins. Pi-Harness can create a constrained skin starter project for Codex or Pi and import its local bitmap assets and color tokens. Mascot-free builds keep the default startup animation and General appearance controls without loading optional portrait themes.
 
@@ -393,16 +401,16 @@ Every agent executes through a real Pi session: orchestration adds coordination,
 
 ## Download
 
-Pi-Harness v1.9.0 is being prepared for release. The installers below become available after publication; find currently published versions on [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
+Pi-Harness v2.0.0 is being prepared for release. The installers below become available after publication; find currently published versions on [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
 
 | Platform            | Installer                                                                                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.9.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.9.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.9.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
-| Linux x64           | [`Pi-Harness-1.9.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-2.0.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-2.0.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-2.0.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-Setup-2.0.0.exe) |
+| Linux x64           | [`Pi-Harness-2.0.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.AppImage)   |
 
-> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v1.9.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0).
+> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v2.0.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v2.0.0).
 
 Packaged users do not need to clone the repository or install pnpm. Pi-Harness can detect, install, and repair Node.js, npm, PATH, and Pi Coding Agent where supported.
 

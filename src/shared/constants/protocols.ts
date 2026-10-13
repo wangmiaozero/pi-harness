@@ -2,8 +2,8 @@
  * Protocol Registry.
  *
  * Pi Coding Agent's native `models.json` declares the API protocol via the
- * `api` field. Pi supports exactly four protocol values (verified against
- * the installed Pi 0.84.1 docs/docs/models.md):
+ * `api` field. Pi-Harness currently presents these four choices in its
+ * provider forms; this is not an exhaustive list of Native Pi 1.2.0 APIs:
  *
  *   - openai-completions   (OpenAI Chat Completions — most compatible)
  *   - openai-responses      (OpenAI Responses API)

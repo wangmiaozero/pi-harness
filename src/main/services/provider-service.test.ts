@@ -166,16 +166,16 @@ describe('ProviderService image models', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ error: { message: 'The engine is currently overloaded' } }),
-          { status: 503, headers: { 'Retry-After': '0' } }
-        )
+        new Response(JSON.stringify({ error: { message: 'The engine is currently overloaded' } }), {
+          status: 503,
+          headers: { 'Retry-After': '0' }
+        })
       )
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ error: { message: 'The engine is currently overloaded' } }),
-          { status: 503, headers: { 'Retry-After': '0' } }
-        )
+        new Response(JSON.stringify({ error: { message: 'The engine is currently overloaded' } }), {
+          status: 503,
+          headers: { 'Retry-After': '0' }
+        })
       )
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ data: [{ b64_json: 'iVBORw==' }] }), { status: 200 })
@@ -219,10 +219,10 @@ describe('ProviderService image models', () => {
   it('reports a recoverable error after temporary failures exhaust all attempts', async () => {
     const fetchMock = vi.fn(
       async () =>
-        new Response(
-          JSON.stringify({ error: { message: 'The engine is currently overloaded' } }),
-          { status: 503, headers: { 'Retry-After': '0' } }
-        )
+        new Response(JSON.stringify({ error: { message: 'The engine is currently overloaded' } }), {
+          status: 503,
+          headers: { 'Retry-After': '0' }
+        })
     )
     vi.stubGlobal('fetch', fetchMock)
 
@@ -244,10 +244,10 @@ describe('ProviderService image models', () => {
 
   it('falls back to a sanitized SVG from a configured Step reasoning model', async () => {
     const overloaded = () =>
-      new Response(
-        JSON.stringify({ error: { message: 'The engine is currently overloaded' } }),
-        { status: 503, headers: { 'Retry-After': '0' } }
-      )
+      new Response(JSON.stringify({ error: { message: 'The engine is currently overloaded' } }), {
+        status: 503,
+        headers: { 'Retry-After': '0' }
+      })
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(overloaded())
@@ -393,6 +393,28 @@ describe('ProviderService model discovery', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
+
+  it.each(['openrouter.ai', 'us.openrouter.ai', 'eu.openrouter.ai'])(
+    'uses the credential-specific catalog on %s',
+    async (host) => {
+      const fetchMock = vi.fn(
+        async (_url: string | URL) =>
+          new Response(JSON.stringify({ data: [{ id: 'allowed/model' }] }))
+      )
+      vi.stubGlobal('fetch', fetchMock)
+      const service = new ProviderService({} as never, {} as never)
+      const models = await service.discoverModels({
+        protocol: 'openai-completions',
+        baseUrl: `https://${host}/api/v1`,
+        apiKey: { kind: 'literal', literal: 'fixture-key' },
+        headers: {},
+        authHeader: true,
+        timeout: 5000
+      })
+      expect(models.map((model) => model.id)).toEqual(['allowed/model'])
+      expect(String(fetchMock.mock.calls[0][0])).toBe(`https://${host}/api/v1/models/user`)
+    }
+  )
 
   it('fetches and parses an OpenAI-compatible model list with draft credentials', async () => {
     const fetchMock = vi.fn(

@@ -21,7 +21,13 @@ it('avoids repeated presentation work while still checking authorization and app
     isDestroyed: () => false,
     getContentSize: () => [1200, 780],
     contentView: { removeChildView: vi.fn() },
-    webContents: { isDestroyed: () => false, getURL: () => 'file:///app/index.html', send: vi.fn() }
+    removeListener: vi.fn(),
+    webContents: {
+      isDestroyed: () => false,
+      getURL: () => 'file:///app/index.html',
+      send: vi.fn(),
+      removeListener: vi.fn()
+    }
   } as unknown as BrowserWindow
   const viewer = new ArchitectureViewer(
     { viewer: authorize } as unknown as ProjectIntelligenceService,

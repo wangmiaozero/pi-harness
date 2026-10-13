@@ -2,20 +2,28 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
-## Unreleased
+## 2.0.0 — Unreleased
 
 ### Added
 
 - Added project architecture analysis with interactive maps, source references, saved snapshots, and project information available to Pi. Local analysis uses no model tokens; AI descriptions are optional.
 - Added JSON, offline HTML, and current-view PNG exports for project architecture.
 - Added map pages, focused dependency views, package filters, entrypoints, and translated project analysis controls.
+- Added fullscreen architecture maps with mouse-wheel and trackpad zoom, compact panels, and a floating toolbar for map navigation.
+- Added theme-aware architecture backgrounds and frosted panels.
+- Grouped Harness and Agents under Workspace Tools.
 
 ### Fixed
 
+- Improved menu switching, history loading, file previews, and Skill editing responsiveness while preserving existing workflows.
+- Made Dark the default theme for new installations while retaining existing appearance preferences.
+- Fixed title-bar double-click resizing and translated sidebar ordering labels.
+- Fixed access to default-workspace files and viewing stopped Harness sessions.
+- Improved Native Pi compatibility for current models and tools.
 - Kept project analysis isolated between projects, with cancellable scans, retries, and stale source checks.
 - Kept excluded analysis paths separate for each project and restored them from saved snapshots.
 
-## 1.9.0 — Unreleased
+## 1.9.0 — 2026-10-11
 
 ### Added
 

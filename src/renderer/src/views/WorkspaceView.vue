@@ -1,17 +1,22 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
+  ref,
+  watch
+} from 'vue'
 import { useI18n } from 'vue-i18n'
 import WorkspaceSidebar from '@renderer/components/workspace/WorkspaceSidebar.vue'
 import WorkspaceTabs from '@renderer/components/workspace/WorkspaceTabs.vue'
 import ChatWindow from '@renderer/components/chat/ChatWindow.vue'
 import WorkspaceFilesPanel from '@renderer/components/workspace/WorkspaceFilesPanel.vue'
-import ProjectIntelligencePanel from '@renderer/components/workspace/ProjectIntelligencePanel.vue'
 import PortraitSkinPanel from '@renderer/components/layout/PortraitSkinPanel.vue'
 import MingWorkspaceOrnaments from '@renderer/components/layout/MingWorkspaceOrnaments.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import GitDiffView from '@renderer/components/git/GitDiffView.vue'
-import HarnessConsole from '@renderer/features/harness/HarnessConsole.vue'
-import OrchestrationConsole from '@renderer/features/orchestration/OrchestrationConsole.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import { FolderOpen, PanelLeftClose, PanelLeftOpen, Network, Gauge, Bot } from '@lucide/vue'
 import { useSessionStore } from '@renderer/stores/sessions'
@@ -25,6 +30,16 @@ import { getApi } from '@renderer/composables/useApi'
 import type { RecentWorkspace } from '@shared/types/workspace'
 import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
 import { isMingDynastySkin } from '@renderer/utils/skin-catalog'
+
+const ProjectIntelligencePanel = defineAsyncComponent(
+  () => import('@renderer/components/workspace/ProjectIntelligencePanel.vue')
+)
+const HarnessConsole = defineAsyncComponent(
+  () => import('@renderer/features/harness/HarnessConsole.vue')
+)
+const OrchestrationConsole = defineAsyncComponent(
+  () => import('@renderer/features/orchestration/OrchestrationConsole.vue')
+)
 
 const WORKSPACE_SIDEBAR_MIN_WIDTH = 220
 const WORKSPACE_SIDEBAR_MAX_WIDTH = 480
@@ -453,9 +468,13 @@ async function switchSession(id: string | null) {
 
 watch(
   () => sessions.currentId,
-  (id) => {
+  (id, previousId) => {
+    // A continuation may already be selected before this route mounts.
+    // Initial draft restoration remains owned by onMounted above.
+    if (id === null && previousId === undefined) return
     sessionSwitchQueue = sessionSwitchQueue.catch(() => undefined).then(() => switchSession(id))
-  }
+  },
+  { immediate: true }
 )
 
 watch(

@@ -122,11 +122,15 @@ export const useHarnessStore = defineStore('harness', () => {
     }
     loading.value = true
     try {
-      const [nextState, nextSession, nextTimeline] = await Promise.all([
+      const [nextState, nextTimeline] = await Promise.all([
         callApi(() => getApi().harness.state(nextSessionId)),
-        callApi(() => getApi().harness.session(nextSessionId)),
         callApi(() => getApi().harness.timeline(nextSessionId))
       ])
+      if (currentGeneration !== generation || sessionId.value !== nextSessionId) return
+      // Browsing persisted history does not start a Native Pi runtime.
+      const nextSession = nextState
+        ? await callApi(() => getApi().harness.session(nextSessionId))
+        : null
       if (currentGeneration !== generation || sessionId.value !== nextSessionId) return
       applyState(nextState)
       session.value = nextSession
@@ -152,10 +156,9 @@ export const useHarnessStore = defineStore('harness', () => {
     if (!id) return
     const currentGeneration = generation
     try {
-      const [nextState, nextSession] = await Promise.all([
-        callApi(() => getApi().harness.state(id)),
-        callApi(() => getApi().harness.session(id))
-      ])
+      const nextState = await callApi(() => getApi().harness.state(id))
+      if (currentGeneration !== generation || sessionId.value !== id) return
+      const nextSession = nextState ? await callApi(() => getApi().harness.session(id)) : null
       if (currentGeneration !== generation || sessionId.value !== id) return
       applyState(nextState)
       session.value = nextSession

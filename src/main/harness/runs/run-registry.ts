@@ -414,6 +414,8 @@ export class RunRegistry {
       case 'runtime.error': {
         const live = this.active.get(sessionId)
         if (!live) return
+        if (live.settledStatus === 'failed' && live.run.error === event.message.slice(0, 500))
+          return
         live.run.error = event.message.slice(0, 500)
         this.addStep(live, {
           id: `step-${++this.stepCounter}`,

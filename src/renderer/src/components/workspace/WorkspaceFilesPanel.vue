@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue'
 import { FileText, FolderOpen, FolderTree, PanelRightClose } from '@lucide/vue'
 import FileExplorer from '@renderer/components/files/FileExplorer.vue'
-import FileViewer from '@renderer/components/files/FileViewer.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import WorkspaceTabs from './WorkspaceTabs.vue'
+
+const FileViewer = defineAsyncComponent(() => import('@renderer/components/files/FileViewer.vue'))
 
 const FILES_PANEL_MIN_WIDTH = 360
 const FILES_PANEL_MAX_WIDTH = 760

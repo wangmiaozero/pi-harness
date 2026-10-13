@@ -1,15 +1,31 @@
-import { afterEach, describe, expect, it } from 'vitest'
-import { mount, type VueWrapper } from '@vue/test-utils'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { i18n } from '@renderer/i18n'
 import GitActivityDetails from './GitActivityDetails.vue'
+import { echarts, observeThemeChanges } from '@renderer/utils/echarts'
+
+vi.mock('@renderer/utils/echarts', () => ({
+  echarts: { init: vi.fn(() => ({ setOption: vi.fn(), resize: vi.fn(), dispose: vi.fn() })) },
+  chartTooltip: () => ({}),
+  resolveThemeColor: (_name: string, fallback: string) => fallback,
+  observeThemeChanges: vi.fn(() => vi.fn())
+}))
 
 const wrappers: VueWrapper[] = []
 
 afterEach(() => {
   wrappers.splice(0).forEach((wrapper) => wrapper.unmount())
+  vi.clearAllMocks()
 })
 
 describe('GitActivityDetails', () => {
+  it('does not attach charts or listeners after unmount during lazy loading', async () => {
+    const wrapper = mount(GitActivityDetails, { props: { days: [] }, global: { plugins: [i18n] } })
+    wrapper.unmount()
+    await flushPromises()
+    expect(echarts.init).not.toHaveBeenCalled()
+    expect(observeThemeChanges).not.toHaveBeenCalled()
+  })
   it('shows totals, the enlarged heatmap, and the weekly chart host', () => {
     const wrapper = mount(GitActivityDetails, {
       props: {

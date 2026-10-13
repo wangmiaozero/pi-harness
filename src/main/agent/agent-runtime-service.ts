@@ -1,12 +1,17 @@
 /**
  * AgentSession registry + runtime. Runs exclusively in Electron Main.
  *
- * Fork: AgentSession.fork() mutates the wrapper in-place. After fork we
- * destroy the wrapper immediately so the old sessionId cannot resolve to
- * the already-forked inner session.
+ * Native AgentSessionRuntime owns session replacement and its extension hooks.
+ * Host observers detach before Pi disposes the outgoing session.
  */
 
 import { randomUUID } from 'node:crypto'
+import type {
+  AgentSessionServices,
+  SessionStartEvent,
+  ToolDefinition
+} from '@earendil-works/pi-coding-agent'
+import type { ThinkingLevel } from '@earendil-works/pi-agent-core'
 import { BrowserWindow } from 'electron'
 import { log } from '../services/logger'
 import { AgentError } from '../services/errors'
@@ -39,18 +44,17 @@ import { AgentEventBatcher, type AgentEventBatch } from './agent-event-batcher'
 import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 import { applyWorkspacePrompt } from '@shared/workspace/workspace-context'
 import {
-  getSupportedThinkingLevels,
   isKnownHarnessThinkingLevel,
   resolveCompactionThinkingLevel,
   resolveThinkingLevel
 } from '@shared/thinking/levels'
-import { wrapWorkspaceWriteTools } from '../workspace/workspace-tool-guard'
+import { createDesktopExtension, type DesktopSessionContext } from './desktop-extension'
 import { getIsDev } from '../services/app-paths'
 import type { SessionService } from '../sessions/session-service'
 import type { AgentRuntime, AgentPromptOptions } from './runtime'
 
 const IDLE_MS = 10 * 60 * 1000
-const CODING_TOOL_NAMES = ['read', 'bash', 'edit', 'write', 'grep', 'find', 'ls']
+const CODING_TOOL_NAMES = ['read', 'bash', 'powershell', 'edit', 'write', 'grep', 'find', 'ls']
 /** Minimum spacing between accumulated-message snapshots relayed on message_update. */
 const SNAPSHOT_WIRE_MIN_INTERVAL_MS = 200
 const FILE_TOOL_ENFORCEMENT_REQUEST_LIMIT = 4
@@ -64,17 +68,6 @@ const EXPLICIT_FILE_MUTATION_REQUESTS = [
 type EventListener = (event: AgentEvent) => void
 type SessionEventListener = (event: AgentEvent) => void
 
-interface SystemPromptController {
-  forceEmpty: boolean
-  workspacePromptProvider: (() => string | null) | null
-  appliedSignature: string
-  refresh: () => Promise<void>
-}
-
-function systemPromptSignature(controller: SystemPromptController): string {
-  return `${controller.forceEmpty ? 'empty' : 'normal'}\0${controller.workspacePromptProvider?.() ?? ''}`
-}
-
 export class AgentSessionWrapper {
   private listeners: EventListener[] = []
   private unsubscribe: (() => void) | null = null
@@ -85,16 +78,17 @@ export class AgentSessionWrapper {
   private promptAdmissionTail: Promise<void> = Promise.resolve()
   private promptErrorMessage: string | null = null
   private lastSnapshotWireAt = 0
-  private forceEmptySystemPrompt = false
   private workspacePrompt = ''
-  private workspacePromptProvider: (() => string | null) | null = null
-  private systemPromptDirty = false
+  private abortRevision = 0
   private fileToolEnforcement: { remainingRequests: number } | null = null
   private _alive = true
 
   constructor(
     public inner: AgentSessionLike,
-    private readonly systemPromptController?: SystemPromptController
+    private readonly systemPromptController?: DesktopSessionContext,
+    private readonly forkSession?: (
+      entryId: string
+    ) => Promise<{ cancelled: boolean; newSessionId?: string; newSessionFile?: string }>
   ) {
     installCompactionThinkingGuard(inner)
     this.installFileToolEnforcement()
@@ -128,6 +122,7 @@ export class AgentSessionWrapper {
   start(): void {
     this.unsubscribe = this.inner.subscribe((event) => {
       try {
+        if (event.type === 'agent_start') this.promptErrorMessage = null
         if (event.type === 'message_end') {
           this.promptErrorMessage = assistantErrorMessage(event.message)
         }
@@ -140,9 +135,13 @@ export class AgentSessionWrapper {
             this.fileToolEnforcement = null
           }
         }
-        if (event.type === 'agent_end') this.fileToolEnforcement = null
-        if (event.type === 'agent_end') {
-          /* session list refresh is triggered by the runtime service */
+        if (event.type === 'agent_settled') {
+          this.fileToolEnforcement = null
+          // Settlement precedes prompt() resolution. Report a final provider
+          // error first so Harness cannot mark the run successful on idle.
+          if (!event.aborted && this.promptErrorMessage) {
+            this.emit({ type: 'prompt_error', errorMessage: this.promptErrorMessage })
+          }
         }
         if (isIdleResetEvent(event.type)) this.resetIdleTimer()
         this.emit(this.throttleWireSnapshot(event as AgentEvent))
@@ -186,9 +185,7 @@ export class AgentSessionWrapper {
   }
 
   setForceEmptySystemPrompt(force: boolean): void {
-    this.forceEmptySystemPrompt = force
     if (this.systemPromptController) this.systemPromptController.forceEmpty = force
-    this.applyForcedEmptySystemPrompt()
   }
 
   setWorkspacePrompt(prompt: string | null): void {
@@ -196,13 +193,10 @@ export class AgentSessionWrapper {
     if (this.systemPromptController) {
       this.systemPromptController.workspacePromptProvider = () => this.workspacePrompt || null
     }
-    this.applyForcedEmptySystemPrompt()
   }
 
   setWorkspacePromptProvider(provider: (() => string | null) | null): void {
-    this.workspacePromptProvider = provider
     if (this.systemPromptController) this.systemPromptController.workspacePromptProvider = provider
-    this.applyForcedEmptySystemPrompt()
   }
 
   async send(command: Record<string, unknown>): Promise<unknown> {
@@ -210,14 +204,17 @@ export class AgentSessionWrapper {
     const type = command.type as string
     switch (type) {
       case 'prompt': {
+        const revision = this.abortRevision
         const imageError = validateAgentImages(command.images)
         if (imageError) throw new AgentError(imageError)
         const release = await this.acquirePromptAdmission()
         try {
+          this.assertPromptActive(revision)
           if (this.inner.isBashRunning) {
             throw new AgentError('Cannot send a prompt while a shell command is running')
           }
           const images = await this.prepareImages(command.images)
+          this.assertPromptActive(revision)
           let preflightAccepted = false
           let preflightSettled = false
           let promptSettled = false
@@ -249,7 +246,6 @@ export class AgentSessionWrapper {
               ? command.toolEnforcementText
               : String(command.message ?? '')
           )
-          await this.refreshSystemPrompt()
           const streamingBehavior = command.streamingBehavior as 'steer' | 'followUp' | undefined
           let prompt: Promise<void>
           try {
@@ -257,9 +253,7 @@ export class AgentSessionWrapper {
               ...(images?.length ? { images } : {}),
               ...(streamingBehavior ? { streamingBehavior } : {}),
               source: 'rpc',
-              preflightResult: (success: boolean) => {
-                if (success) acceptPreflight()
-              }
+              preflightResult: () => acceptPreflight()
             })
           } catch (error) {
             finishPrompt()
@@ -300,6 +294,7 @@ export class AgentSessionWrapper {
         }
       }
       case 'abort':
+        this.abortRevision++
         await this.inner.abort()
         return null
       case 'get_state':
@@ -325,30 +320,9 @@ export class AgentSessionWrapper {
         if (this.inner.isBashRunning) {
           throw new AgentError('Cannot fork while a shell command is running')
         }
-        const entryId = String(command.entryId ?? '')
-        const sessionManager = this.inner.sessionManager
-        const currentSessionFile = this.inner.sessionFile
-        if (!sessionManager.isPersisted()) return { cancelled: true }
-        if (!currentSessionFile) throw new AgentError('Persisted session is missing a session file')
-        const entry = sessionManager.getEntry(entryId)
-        if (!entry) throw new AgentError('Invalid entry ID for forking')
-        const sessionDir = sessionManager.getSessionDir()
-        const sdk = await loadPiCodingAgent()
-        let newSessionFile: string
-        const typedEntry = entry as { parentId?: string | null }
-        if (!typedEntry.parentId) {
-          const newManager = sdk.SessionManager.create(sessionManager.getCwd(), sessionDir)
-          newManager.newSession({ parentSession: currentSessionFile })
-          newSessionFile = newManager.getSessionFile() as string
-        } else {
-          const sourceManager = sdk.SessionManager.open(currentSessionFile, sessionDir)
-          const forkedPath = sourceManager.createBranchedSession(typedEntry.parentId)
-          if (!forkedPath) throw new AgentError('Failed to create forked session')
-          newSessionFile = forkedPath
-        }
-        const newSessionId = sdk.SessionManager.open(newSessionFile, sessionDir).getSessionId()
-        await this.shutdown()
-        return { cancelled: false, newSessionId, newSessionFile }
+        if (!this.inner.sessionManager.isPersisted()) return { cancelled: true }
+        if (!this.forkSession) throw new AgentError('Native session lifecycle is not bound')
+        return this.forkSession(String(command.entryId ?? ''))
       }
       case 'navigate_tree': {
         if (this.inner.isBashRunning) {
@@ -360,15 +334,8 @@ export class AgentSessionWrapper {
       case 'set_thinking_level': {
         const requested = String(command.level ?? 'off')
         const level = resolveSessionThinkingLevel(this.inner, requested)
-        if (level !== 'auto' && !supportsThinkingLevel(this.inner, level)) return null
+        if (!supportsThinkingLevel(this.inner, level)) return null
         this.inner.setThinkingLevel(level)
-        if (
-          level === 'xhigh' &&
-          this.inner.model?.compat?.thinkingFormat === 'deepseek' &&
-          this.inner.agent?.state
-        ) {
-          this.inner.agent.state.thinkingLevel = 'xhigh'
-        }
         return null
       }
       case 'compact':
@@ -386,7 +353,7 @@ export class AgentSessionWrapper {
           throw new AgentError(runtime.userMessage, { kind: runtime.kind }, { recoverable: true })
         }
       case 'abort_compaction':
-        this.inner.abortCompaction?.()
+        this.inner.abortCompaction()
         return null
       case 'set_session_name': {
         const name = String(command.name ?? '').trim()
@@ -411,7 +378,6 @@ export class AgentSessionWrapper {
             ? toolNames
             : withExtensionTools(this.inner, toolNames)
         this.inner.setActiveToolsByName(nextToolNames)
-        await this.refreshSystemPrompt()
         return null
       }
       case 'append_external_image_result':
@@ -421,7 +387,7 @@ export class AgentSessionWrapper {
           const imageError = validateAgentImages(command.images)
           if (imageError) throw new AgentError(imageError)
         }
-        await this.inner.steer?.(
+        await this.inner.steer(
           String(command.message ?? ''),
           await this.prepareImages(command.images)
         )
@@ -431,14 +397,14 @@ export class AgentSessionWrapper {
           const imageError = validateAgentImages(command.images)
           if (imageError) throw new AgentError(imageError)
         }
-        await this.inner.followUp?.(
+        await this.inner.followUp(
           String(command.message ?? ''),
           await this.prepareImages(command.images)
         )
         return null
       case 'get_session_stats':
         return {
-          ...(this.inner.getSessionStats?.() ?? {}),
+          ...this.inner.getSessionStats(),
           sessionName: this.inner.sessionManager.getSessionName()
         }
       case 'set_auto_compaction':
@@ -451,9 +417,9 @@ export class AgentSessionWrapper {
 
   snapshot(): AgentStateSnapshot {
     const model = this.inner.model
-    const contextUsage = safelyRead(() => this.inner.getContextUsage?.() ?? null, null)
-    const steeringMessages = safelyRead(() => this.inner.getSteeringMessages?.() ?? [], [])
-    const followUpMessages = safelyRead(() => this.inner.getFollowUpMessages?.() ?? [], [])
+    const contextUsage = this.inner.getContextUsage() ?? null
+    const steeringMessages = this.inner.getSteeringMessages()
+    const followUpMessages = this.inner.getFollowUpMessages()
     return {
       sessionId: this.inner.sessionId,
       sessionFile: this.inner.sessionFile ?? '',
@@ -464,7 +430,7 @@ export class AgentSessionWrapper {
       isCompacting: this.inner.isCompacting,
       autoCompactionEnabled: this.inner.autoCompactionEnabled === true,
       model: model ? { id: model.id, provider: model.provider } : undefined,
-      thinkingLevel: this.inner.agent.state?.thinkingLevel ?? 'off',
+      thinkingLevel: this.inner.thinkingLevel,
       contextUsage: contextUsage
         ? {
             percent: contextUsage.percent,
@@ -482,22 +448,32 @@ export class AgentSessionWrapper {
 
   destroy(): void {
     if (!this._alive) return
+    this.detach()
+    this.inner.dispose()
+  }
+
+  /** Native Pi owns disposal during session replacement; only detach host observers here. */
+  detach(): void {
+    if (!this._alive) return
     this._alive = false
+    this.abortRevision++
     if (this.idleTimer) clearTimeout(this.idleTimer)
-    if (this.inner.isBashRunning) this.inner.abortBash?.()
+    if (this.inner.isBashRunning) this.inner.abortBash()
     this.unsubscribe?.()
-    try {
-      this.inner.dispose()
-    } finally {
-      this.onDestroyCallback?.()
-    }
+    this.onDestroyCallback?.()
   }
 
   async shutdown(): Promise<void> {
     if (this.shutdownPromise) return this.shutdownPromise
     if (!this._alive) return
     this.shutdownPromise = (async () => {
-      this.destroy()
+      this.abortRevision++
+      try {
+        await this.inner.abort()
+        await this.inner.extensionRunner.emit({ type: 'session_shutdown', reason: 'quit' })
+      } finally {
+        this.destroy()
+      }
     })()
     return this.shutdownPromise
   }
@@ -524,10 +500,20 @@ export class AgentSessionWrapper {
     return release
   }
 
+  private assertPromptActive(revision: number): void {
+    if (!this._alive || revision !== this.abortRevision) {
+      throw new AgentError(
+        'Prompt cancelled before execution',
+        { kind: 'aborted' },
+        { recoverable: true }
+      )
+    }
+  }
+
   private async prepareImages(value: unknown): Promise<AgentImageAttachment[] | undefined> {
     const images = value as AgentImageAttachment[] | undefined
     if (!images?.length) return undefined
-    if (this.inner.settingsManager?.getBlockImages?.()) {
+    if (this.inner.settingsManager.getBlockImages()) {
       throw new AgentError('Image input is disabled in Pi settings')
     }
 
@@ -568,28 +554,6 @@ export class AgentSessionWrapper {
     }, IDLE_MS)
   }
 
-  private applyForcedEmptySystemPrompt(): void {
-    this.systemPromptDirty = this.systemPromptController
-      ? systemPromptSignature(this.systemPromptController) !==
-        this.systemPromptController.appliedSignature
-      : true
-    if (!this.inner.agent.state) return
-    try {
-      if (this.forceEmptySystemPrompt) {
-        this.inner.agent.state.systemPrompt = ''
-        return
-      }
-      this.inner.agent.state.systemPrompt = applyWorkspacePrompt(
-        this.inner.agent.state.systemPrompt,
-        this.workspacePromptProvider?.() ?? (this.workspacePrompt || null)
-      )
-    } catch (error) {
-      if (!(error instanceof TypeError)) throw error
-      // Pi >= 0.87 exposes state.systemPrompt as a getter. The supported
-      // resource-loader override is refreshed just before the next prompt.
-    }
-  }
-
   private installFileToolEnforcement(): void {
     const previous = this.inner.agent.onPayload
     this.inner.agent.onPayload = async (payload, model) => {
@@ -624,16 +588,6 @@ export class AgentSessionWrapper {
       EXPLICIT_FILE_MUTATION_REQUESTS.some((pattern) => pattern.test(message))
         ? { remainingRequests: FILE_TOOL_ENFORCEMENT_REQUEST_LIMIT }
         : null
-  }
-
-  private async refreshSystemPrompt(): Promise<void> {
-    this.applyForcedEmptySystemPrompt()
-    if (!this.systemPromptController || !this.systemPromptDirty) return
-    await this.systemPromptController.refresh()
-    this.systemPromptController.appliedSignature = systemPromptSignature(
-      this.systemPromptController
-    )
-    this.systemPromptDirty = false
   }
 
   private appendExternalImageResult(command: Record<string, unknown>): {
@@ -679,7 +633,7 @@ export class AgentSessionWrapper {
       details: { provider, model: modelId },
       timestamp: Date.now()
     })
-    this.inner.refreshContext?.()
+    this.inner.refreshContext()
     return { userEntryId, assistantEntryId }
   }
 }
@@ -706,50 +660,25 @@ function sameInputCapabilities(
 function withExtensionTools(session: AgentSessionLike, toolNames: string[]): string[] {
   if (toolNames.length === 0) return []
   const coding = new Set(CODING_TOOL_NAMES)
-  const extensionToolNames = session
-    .getAllTools()
-    .map((t) => t.name)
-    .filter((name) => !coding.has(name))
+  // Preserve Pi's exposure decisions; registered tools can intentionally be inactive.
+  const extensionToolNames = session.getActiveToolNames().filter((name) => !coding.has(name))
   return [...new Set([...toolNames, ...extensionToolNames])]
 }
 
-function safelyRead<T>(read: () => T, fallback: T): T {
-  try {
-    return read()
-  } catch {
-    return fallback
-  }
+function supportsThinkingLevel(session: AgentSessionLike, level: ThinkingLevel): boolean {
+  return session.getAvailableThinkingLevels().includes(level)
 }
 
-function supportsThinkingLevel(session: AgentSessionLike, level: string): boolean {
-  if (typeof session.getAvailableThinkingLevels !== 'function') return true
-  try {
-    const levels = session.getAvailableThinkingLevels()
-    return !Array.isArray(levels) || levels.length === 0 || levels.map(String).includes(level)
-  } catch {
-    return true
-  }
-}
-
-function sessionThinkingSource(session: AgentSessionLike): readonly string[] {
-  const available =
-    typeof session.getAvailableThinkingLevels === 'function'
-      ? session.getAvailableThinkingLevels()
-      : null
-  if (Array.isArray(available) && available.length > 0) return available
-  return getSupportedThinkingLevels(session.model?.thinkingLevelMap)
-}
-
-function resolveSessionThinkingLevel(session: AgentSessionLike, requested: string): string {
+function resolveSessionThinkingLevel(session: AgentSessionLike, requested: string): ThinkingLevel {
   const resolved = resolveThinkingLevel({
     requested,
-    supportedLevels: sessionThinkingSource(session)
+    supportedLevels: session.getAvailableThinkingLevels()
   })
   logThinking('Thinking', requested, resolved, session)
   return resolved
 }
 
-function resolveModelThinkingLevel(requested: string, model: unknown): string {
+function resolveModelThinkingLevel(requested: string, model: unknown): ThinkingLevel {
   const map =
     model && typeof model === 'object'
       ? (model as { thinkingLevelMap?: Partial<Record<string, string | null>> }).thinkingLevelMap
@@ -762,11 +691,11 @@ function resolveModelThinkingLevel(requested: string, model: unknown): string {
 function installCompactionThinkingGuard(session: AgentSessionLike): void {
   const original = session.compact.bind(session)
   session.compact = async (instructions?: string) => {
-    const current = String(session.agent?.state?.thinkingLevel ?? session.thinkingLevel ?? 'off')
+    const current = session.thinkingLevel
     const compactionRequested = resolveCompactionThinkingLevel(current)
     const next = resolveThinkingLevel({
       requested: compactionRequested,
-      supportedLevels: sessionThinkingSource(session)
+      supportedLevels: session.getAvailableThinkingLevels()
     })
     const restore = next !== current && supportsThinkingLevel(session, next)
     if (restore) session.setThinkingLevel(next)
@@ -824,16 +753,24 @@ export class AgentRuntimeService implements AgentRuntime {
     Promise<{ session: AgentSessionWrapper; realSessionId: string }>
   >()
   private getWindow: () => BrowserWindow | null = () => null
+  private closing = false
+  private shutdownPromise: Promise<void> | null = null
 
   constructor(
     private readonly sessions: SessionService,
     private readonly workspace?: {
       getPrompt?: (sessionId: string) => string | null
       assertWritable?: (target: string, sessionId: string) => Promise<string>
-      /** Last wrap step for agent sessions (policy guard runs after the workspace guard). */
-      wrapSessionTools?: (session: AgentSessionLike, sessionId: string) => void
-      customTools?: (cwd: string, sessionId: string) => Promise<unknown[]>
+      /** Policy guard runs after workspace authorization in the public tool pipeline. */
+      assertToolAllowed?: (
+        toolName: string,
+        input: unknown,
+        sessionId: string,
+        signal?: AbortSignal
+      ) => Promise<void>
+      customTools?: (cwd: string, sessionId: string) => Promise<ToolDefinition[]>
       architectureHint?: (cwd: string) => Promise<string | null>
+      prepareSession?: (sessionId: string, cwd: string) => Promise<void>
     }
   ) {}
 
@@ -870,7 +807,9 @@ export class AgentRuntimeService implements AgentRuntime {
   }
 
   async start(input: StartAgentSessionInput): Promise<{ sessionId: string; cwd: string }> {
+    this.assertOpen()
     const sdk = await loadPiCodingAgent()
+    this.assertOpen()
     let sessionManager: PiSessionManagerLike
     let lockKey: string
 
@@ -906,10 +845,15 @@ export class AgentRuntimeService implements AgentRuntime {
       }
     }
 
+    this.assertOpen()
     const starting = this.construct(sdk, sessionManager, input, lockKey)
     this.startLocks.set(lockKey, starting)
     try {
       const started = await starting
+      if (this.closing) {
+        await started.session.shutdown()
+        this.assertOpen()
+      }
       if (input.message?.trim()) {
         try {
           await started.session.send({ type: 'prompt', message: input.message })
@@ -992,7 +936,26 @@ export class AgentRuntimeService implements AgentRuntime {
   }
 
   async shutdownAll(): Promise<void> {
-    await Promise.all([...this.registry.values()].map((w) => w.shutdown()))
+    if (this.shutdownPromise) return this.shutdownPromise
+    this.closing = true
+    this.shutdownPromise = (async () => {
+      const stopping = Promise.allSettled(
+        [...this.registry.values()].map((wrapper) => wrapper.shutdown())
+      )
+      const starting = await Promise.allSettled([...this.startLocks.values()])
+      const shutdowns: Promise<void>[] = []
+      for (const result of starting) {
+        if (result.status === 'fulfilled') shutdowns.push(result.value.session.shutdown())
+      }
+      const results = [...(await stopping), ...(await Promise.allSettled(shutdowns))]
+      const failed = results.find((result) => result.status === 'rejected')
+      if (failed?.status === 'rejected') throw failed.reason
+    })()
+    return this.shutdownPromise
+  }
+
+  private assertOpen(): void {
+    if (this.closing) throw new AgentError('Agent runtime is shutting down')
   }
 
   private async require(sessionId: string): Promise<AgentSessionWrapper> {
@@ -1008,28 +971,62 @@ export class AgentRuntimeService implements AgentRuntime {
     sdk: Awaited<ReturnType<typeof loadPiCodingAgent>>,
     sessionManager: PiSessionManagerLike,
     input: StartAgentSessionInput,
-    lockKey: string
-  ): Promise<{ session: AgentSessionWrapper; realSessionId: string }> {
-    sdk.initTheme?.()
+    lockKey: string,
+    sessionStartEvent?: SessionStartEvent
+  ): Promise<{
+    session: AgentSessionWrapper
+    realSessionId: string
+    services: AgentSessionServices
+  }> {
+    this.assertOpen()
+    sdk.initTheme()
     const sessionCwd = sessionManager.getCwd()
-    if (!sdk.createAgentSessionServices || !sdk.createAgentSessionFromServices) {
-      throw new AgentError('Pi SDK createAgentSessionFromServices is unavailable')
-    }
-    const agentDir = sdk.getAgentDir?.() ?? ''
-    const settingsManager = sdk.SettingsManager?.create(sessionCwd, agentDir)
+    await this.workspace?.prepareSession?.(sessionManager.getSessionId(), sessionCwd)
+    const agentDir = sdk.getAgentDir()
+    const settingsManager = sdk.SettingsManager.create(sessionCwd, agentDir)
     const architectureHint = (await this.workspace?.architectureHint?.(sessionCwd)) ?? null
-    const systemPromptController: SystemPromptController = {
+    const systemPromptController: DesktopSessionContext = {
       forceEmpty: input.toolNames?.length === 0,
       workspacePromptProvider: () =>
-        this.workspace?.getPrompt?.(sessionManager.getSessionId()) ?? null,
-      appliedSignature: '',
-      refresh: async () => undefined
+        this.workspace?.getPrompt?.(sessionManager.getSessionId()) ?? null
     }
     const services = await sdk.createAgentSessionServices({
       cwd: sessionCwd,
       agentDir,
       ...(settingsManager ? { settingsManager } : {}),
       resourceLoaderOptions: {
+        extensionFactories: [
+          {
+            name: 'codemode',
+            factory: sdk.createCodemodeExtension(),
+            builtin: true,
+            replaceable: true
+          },
+          {
+            name: 'tool-search',
+            factory: sdk.createToolSearchExtension(),
+            builtin: true,
+            replaceable: true
+          },
+          { name: 'mcp', factory: sdk.createMcpExtension(), builtin: true, replaceable: true },
+          {
+            name: 'pi-harness-desktop',
+            factory: createDesktopExtension(systemPromptController, {
+              assertWritable: this.workspace?.assertWritable
+                ? (target) => this.workspace!.assertWritable!(target, sessionManager.getSessionId())
+                : undefined,
+              assertToolAllowed: this.workspace?.assertToolAllowed
+                ? (name, args, signal) =>
+                    this.workspace!.assertToolAllowed!(
+                      name,
+                      args,
+                      sessionManager.getSessionId(),
+                      signal
+                    )
+                : undefined
+            })
+          }
+        ],
         appendSystemPromptOverride: (base: string[]) => {
           if (systemPromptController.forceEmpty) return []
           const merged = applyWorkspacePrompt(
@@ -1040,21 +1037,20 @@ export class AgentRuntimeService implements AgentRuntime {
         }
       }
     })
-    systemPromptController.appliedSignature = systemPromptSignature(systemPromptController)
 
     const toolNames = input.toolNames
     const toolsOption =
       toolNames !== undefined ? (toolNames.length === 0 ? [] : undefined) : undefined
 
-    let model: unknown
+    let model: PiModelLike | undefined
     if (input.provider && input.modelId) {
-      const runtime = (services as { modelRuntime?: AgentSessionLike['modelRuntime'] }).modelRuntime
-      model = runtime?.getModel(input.provider, input.modelId)
+      model = services.modelRuntime.getModel(input.provider, input.modelId)
     }
 
     const { session: inner } = await sdk.createAgentSessionFromServices({
       services,
       sessionManager,
+      ...(sessionStartEvent ? { sessionStartEvent } : {}),
       ...(this.workspace?.customTools && toolNames?.length !== 0
         ? {
             customTools: await this.workspace.customTools(sessionCwd, sessionManager.getSessionId())
@@ -1067,26 +1063,46 @@ export class AgentRuntimeService implements AgentRuntime {
       ...(toolsOption !== undefined ? { tools: toolsOption } : {})
     })
 
-    if (toolNames && toolNames.length > 0) {
-      inner.setActiveToolsByName(withExtensionTools(inner, toolNames))
-    }
-
+    const nativeRuntime = new sdk.AgentSessionRuntime(inner, services, async (target) => {
+      const next = await this.construct(
+        sdk,
+        target.sessionManager,
+        {
+          ...input,
+          cwd: target.cwd,
+          sessionId: undefined,
+          message: undefined,
+          provider: inner.model?.provider,
+          modelId: inner.model?.id,
+          thinkingLevel: inner.thinkingLevel,
+          toolNames: inner.getActiveToolNames()
+        },
+        lockKey,
+        target.sessionStartEvent
+      )
+      return {
+        session: next.session.inner,
+        services: next.services,
+        diagnostics: next.services.diagnostics,
+        extensionsResult: next.session.inner.resourceLoader.getExtensions()
+      }
+    })
     const realSessionId = inner.sessionId
-    const resourceLoader = (services as { resourceLoader?: AgentSessionLike['resourceLoader'] })
-      .resourceLoader
-    systemPromptController.refresh = async () => {
-      await resourceLoader?.reload?.()
-      inner.setActiveToolsByName(inner.getActiveToolNames())
-    }
-    const wrapper = new AgentSessionWrapper(inner, systemPromptController)
+    const wrapper = new AgentSessionWrapper(inner, systemPromptController, async (entryId) => {
+      const result = await nativeRuntime.fork(entryId)
+      return {
+        cancelled: result.cancelled,
+        ...(result.cancelled
+          ? {}
+          : {
+              newSessionId: nativeRuntime.session.sessionId,
+              newSessionFile: nativeRuntime.session.sessionFile
+            })
+      }
+    })
+    nativeRuntime.setBeforeSessionInvalidate(() => wrapper.detach())
     if (toolNames?.length === 0) wrapper.setForceEmptySystemPrompt(true)
     wrapper.setWorkspacePromptProvider(() => this.workspace?.getPrompt?.(realSessionId) ?? null)
-    if (this.workspace?.assertWritable) {
-      wrapWorkspaceWriteTools(inner, (target) =>
-        this.workspace!.assertWritable!(target, realSessionId)
-      )
-    }
-    this.workspace?.wrapSessionTools?.(inner, realSessionId)
     wrapper.start()
 
     const realSessionFile = inner.sessionFile
@@ -1109,14 +1125,30 @@ export class AgentRuntimeService implements AgentRuntime {
       if (isRunningStateEvent(event.type)) this.broadcastRunning()
     })
     this.registry.set(realSessionId, wrapper)
-    if (typeof inner.bindExtensions === 'function') {
-      void inner.bindExtensions({ mode: 'rpc' }).catch((error) => {
-        log.agent.warn('bindExtensions failed:', error)
+    try {
+      this.assertOpen()
+      await inner.bindExtensions({
+        mode: 'rpc',
+        onError: (error) => log.agent.error('Pi extension error:', error),
+        commandContextActions: {
+          waitForIdle: () => inner.waitForIdle(),
+          newSession: (options) => nativeRuntime.newSession(options),
+          fork: (entryId, options) => nativeRuntime.fork(entryId, options),
+          switchSession: (file, options) => nativeRuntime.switchSession(file, options),
+          navigateTree: (targetId, options) => inner.navigateTree(targetId, options),
+          reload: () => inner.reload()
+        }
       })
+      if (toolNames && toolNames.length > 0) {
+        inner.setActiveToolsByName(withExtensionTools(inner, toolNames))
+      }
+    } catch (error) {
+      await wrapper.shutdown()
+      throw error
     }
     this.broadcastRunning()
     void lockKey
-    return { session: wrapper, realSessionId }
+    return { session: wrapper, realSessionId, services }
   }
 
   private broadcastEvent(sessionId: string, event: AgentEvent): void {
@@ -1149,7 +1181,8 @@ function thinkingRejectsForcedToolChoice(
   model: PiModelLike | null | undefined
 ): boolean {
   if (model?.api !== 'openai-completions' || !payload || typeof payload !== 'object') return false
-  let deepseekFormat = model.compat?.thinkingFormat === 'deepseek'
+  let deepseekFormat =
+    model.compat && 'thinkingFormat' in model.compat && model.compat.thinkingFormat === 'deepseek'
   if (!deepseekFormat && model.baseUrl) {
     try {
       deepseekFormat = new URL(model.baseUrl).hostname.toLowerCase() === 'api.deepseek.com'

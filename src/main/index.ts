@@ -56,13 +56,15 @@ import { WorktreeService } from './git/worktree-service'
 import { SessionService } from './sessions/session-service'
 import { SessionExportService } from './sessions/session-export-service'
 import { AgentRuntimeService } from './agent/agent-runtime-service'
+import { resolveWorkspaceToolPath } from './workspace/workspace-tool-guard'
 import { WorkspaceService, type WorkspaceStateRecord } from './workspace/workspace-service'
 import { PiHarnessAdapter } from './harness/adapters/pi-harness-adapter'
 import { HarnessRuntime } from './harness/harness-runtime'
 import { createOrchestrator } from './harness/orchestrator/orchestrator-host'
 import { PolicyEngine } from './harness/policy/policy-engine'
 import { DEFAULT_POLICY_CONFIG } from './harness/policy/policy-defaults'
-import { wrapPolicyGuardedTools } from './harness/policy/policy-tool-guard'
+import { projectIdentityKey } from '@shared/workspace/project-identity'
+import { assertPolicyToolAllowed } from './harness/policy/policy-tool-guard'
 import { EMPTY_CHECKPOINT_STORE } from './harness/checkpoint/checkpoint-service'
 import { onUpdateState, startAutomaticUpdates, stopAutomaticUpdates } from './updater'
 import { IPC_EVENT } from '@shared/ipc/channels'
@@ -322,6 +324,24 @@ async function bootstrap(): Promise<void> {
   )
 
   const piAgent = new AgentRuntimeService(sessions, {
+    prepareSession: async (sessionId, cwd) => {
+      if (workspaceState.getFoldersForSession(sessionId).length) return
+      const active = workspaceState.getActive()
+      if (
+        active?.folders.some(
+          (folder) => projectIdentityKey(folder.resolvedPath) === projectIdentityKey(cwd)
+        )
+      ) {
+        await workspaceState.bindActiveToSession(sessionId)
+      } else {
+        const id = projectIdentityKey(cwd)
+        await workspaceState.bindSession(sessionId, {
+          workspaceId: `session:${sessionId}`,
+          mainFolderId: id,
+          folders: [{ id, path: cwd, role: 'main' }]
+        })
+      }
+    },
     architectureHint: (cwd) => intelligence.hint(cwd),
     customTools: async (_cwd, sessionId) =>
       architectureTools(
@@ -334,14 +354,24 @@ async function bootstrap(): Promise<void> {
       if (!folders.length) {
         throw new PathDeniedError('No projects are attached to this session.', { sessionId })
       }
-      return access.assertWritableInFolders(target, folders)
+      const primary = folders.find((folder) => folder.role === 'main') ?? folders[0]
+      return access.assertWritableInFolders(
+        resolveWorkspaceToolPath(target, primary.resolvedPath),
+        folders
+      )
     },
-    wrapSessionTools: (session, sessionId) => {
-      wrapPolicyGuardedTools(session, policyEngine, {
-        sessionId,
-        report: (payload) =>
-          harnessRef.current?.recordPolicyDecision(sessionId, { sessionId, ...payload })
-      })
+    assertToolAllowed: (toolName, input, sessionId, signal) => {
+      return assertPolicyToolAllowed(
+        policyEngine,
+        {
+          sessionId,
+          signal,
+          report: (payload) =>
+            harnessRef.current?.recordPolicyDecision(sessionId, { sessionId, ...payload })
+        },
+        toolName,
+        input
+      )
     }
   })
   const harness = new HarnessRuntime(new PiHarnessAdapter(piAgent), {
@@ -512,16 +542,39 @@ async function bootstrap(): Promise<void> {
     if (process.platform !== 'darwin') app.quit()
   })
 
-  app.on('before-quit', () => {
-    void intelligence.close()
-    void universal.close()
+  let quitCleanup: Promise<void> | null = null
+  let quitCleanupComplete = false
+  app.on('before-quit', (event) => {
+    if (quitCleanupComplete) return
+    event.preventDefault()
+    if (quitCleanup) return
     screenMotion.stop()
     stopAutomaticUpdates()
     unsubscribeUpdateState()
     config.stopWatcher()
     orchestrator.detach()
-    void harness.shutdownAll()
-    void workspaceState.close()
+    quitCleanup = (async () => {
+      // Native shutdown hooks must finish before Electron exits or stores close.
+      try {
+        await harness.shutdownAll()
+      } finally {
+        const results = await Promise.allSettled([
+          sessions.close(),
+          intelligence.close(),
+          universal.close(),
+          workspaceState.close()
+        ])
+        for (const result of results) {
+          if (result.status === 'rejected') log.app.error('shutdown cleanup failed:', result.reason)
+        }
+      }
+    })()
+    void quitCleanup
+      .catch((error) => log.app.error('runtime shutdown failed:', error))
+      .finally(() => {
+        quitCleanupComplete = true
+        app.quit()
+      })
   })
 
   app.on('second-instance', () => {

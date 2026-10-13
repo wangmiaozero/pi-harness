@@ -685,9 +685,7 @@ export class ProviderService {
     const configuredModels = new Set(
       snapshot.models.providers[input.providerKey]?.models?.map((model) => model.id) ?? []
     )
-    const candidates = ['step-5-preview', 'step-3.7-flash'].filter((id) =>
-      configuredModels.has(id)
-    )
+    const candidates = ['step-5-preview', 'step-3.7-flash'].filter((id) => configuredModels.has(id))
     if (candidates.length === 0) return null
 
     const root = imageApiBaseUrl(provider.baseUrl)
@@ -1089,9 +1087,7 @@ function isRetryableImageFailure(status: number, body: string): boolean {
 function imageRetryDelayMs(retryAfter: string | null, attempt: number): number {
   if (retryAfter) {
     const seconds = Number(retryAfter)
-    const parsed = Number.isFinite(seconds)
-      ? seconds * 1_000
-      : Date.parse(retryAfter) - Date.now()
+    const parsed = Number.isFinite(seconds) ? seconds * 1_000 : Date.parse(retryAfter) - Date.now()
     if (Number.isFinite(parsed) && parsed >= 0) {
       return Math.min(parsed, MAX_IMAGE_RETRY_AFTER_MS)
     }
@@ -1275,7 +1271,8 @@ function buildModelListRequest(
     return { url, headers }
   }
 
-  url.pathname = `${path}/models`
+  const isOpenRouter = root.hostname === 'openrouter.ai' || root.hostname.endsWith('.openrouter.ai')
+  url.pathname = `${path}/models${isOpenRouter && apiKey && authHeader ? '/user' : ''}`
   if (protocol === 'google-generative-ai') {
     url.searchParams.set('pageSize', '1000')
     if (apiKey) url.searchParams.set('key', apiKey)

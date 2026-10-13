@@ -62,7 +62,7 @@ export class UniversalAiSummaryService {
       const text = redact(
         response.content
           .filter((part) => part.type === 'text' && typeof part.text === 'string')
-          .map((part) => part.text)
+          .map((part) => (part.type === 'text' ? part.text : ''))
           .join('')
           .replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, '')
           .trim()

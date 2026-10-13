@@ -1,7 +1,10 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { dialog } from 'electron'
+
+vi.mock('electron', () => ({ dialog: { showMessageBox: vi.fn() } }))
 import type { HarnessPolicyConfig, HarnessPolicyDecisionReport } from '@shared/types/harness'
 import { JsonStore } from '../../services/storage'
 import { DEFAULT_POLICY_CONFIG, DANGEROUS_COMMAND_PATTERNS } from './policy-defaults'
@@ -27,6 +30,26 @@ function createEngine(config: Partial<HarnessPolicyConfig> = {}): PolicyEngine {
 }
 
 describe('PolicyEngine', () => {
+  it('rejects late allow responses after cancellation and passes the signal to Electron', async () => {
+    const engine = createEngine()
+    engine.attachWindow(() => ({ isDestroyed: () => false }) as never)
+    const controller = new AbortController()
+    vi.mocked(dialog.showMessageBox).mockImplementationOnce(async () => {
+      controller.abort()
+      return { response: 0, checkboxChecked: false }
+    })
+    const result = await engine.resolveAsk(
+      's1',
+      'fixture',
+      { decision: 'ask', domain: 'shell', rule: 'shell.default' },
+      controller.signal
+    )
+    expect(result).toBe(false)
+    expect(dialog.showMessageBox).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ signal: controller.signal })
+    )
+  })
   it('exposes defaults merged over an empty store', () => {
     const engine = createEngine()
     const config = engine.peek()

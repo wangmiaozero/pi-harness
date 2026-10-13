@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="v1.9.0 版本" src="https://img.shields.io/badge/version-v1.9.0-4C8DFF?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="v2.0.0 版本" src="https://img.shields.io/badge/version-v2.0.0-4C8DFF?style=flat-square" /></a>
   <img alt="支持 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
   <a href="LICENSE"><img alt="AGPL-3.0-only 许可" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
@@ -102,6 +102,14 @@ Pi-Harness
 | Orchestrate / 编排 | Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Worktree 隔离                 |
 | Work / 工程工作区  | Workspace、Files、Git、Worktrees、Models、Providers、Skills、Packages                     |
 
+### v2.0.0 新增与改进
+
+- **交互式项目架构**：浏览模块和依赖关系，查看源码引用、按包筛选，并随时回看已保存的分析快照。
+- **让架构图成为主角**：支持全屏、鼠标滚轮和触摸板缩放；浮动工具栏集中提供模块翻页与图表操作。精简面板与跟随主题皮肤的背景，为架构图留出更多空间。
+- **工作区工具入口**：点击“工具”后，在内容区域切换 Harness 和智能体，保留对话与未发送的草稿。
+- **更流畅的日常操作**：改善菜单切换、历史加载、文件预览和 Skill 编辑的响应速度，保持原有操作流程与界面样式。
+- **默认深色主题**：新安装默认使用“深色”；已有主题和皮肤选择继续保留。
+
 ### v1.9.0 新增与改进
 
 - **统一查看本地历史**：集中浏览 Claude Code、Codex（含桌面及归档会话）、Cursor、Cursor Agent、Gemini CLI、OpenCode 和 Pi 的聊天记录；支持搜索、来源/项目/日期范围筛选和自定义会话目录。
@@ -110,7 +118,7 @@ Pi-Harness
 - **按需 AI 整理**：显式点击“AI 整理”，才使用已配置的模型优化交接内容并消耗模型 Token。
 - **更顺畅的操作**：扫描失败可重试并保留已导入历史；日期筛选合并为一个范围控件，改善标题、多语言标签和按钮圆角状态。
 
-### 项目分析（开发版）
+### 项目架构
 
 在工作区打开“项目架构”，分析已导入的项目、探索交互式架构图、查看源码引用并保存分析快照。本地分析不消耗模型 Token；选择 AI 分析后，才使用已配置的模型补充说明。源码变化会提示快照过期，Pi 可按需检索项目资料，再读取当前代码。
 
@@ -303,16 +311,16 @@ Pi-Harness 已支持 Agents、Teams、Tasks、Dependencies、Handoffs、Review G
 
 ## 下载
 
-Pi-Harness v1.9.0 正在准备发布，下方安装包链接将在发布后可用。当前已发布版本请前往 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)。
+Pi-Harness v2.0.0 正在准备发布，下方安装包链接将在发布后可用。当前已发布版本请前往 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)。
 
 | 平台                | 安装包                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-1.9.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-1.9.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-1.9.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-Setup-1.9.0.exe) |
-| Linux x64           | [`Pi-Harness-1.9.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v1.9.0/Pi-Harness-1.9.0.AppImage)   |
+| macOS Apple Silicon | [`Pi-Harness-2.0.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0-arm64.dmg) |
+| macOS Intel         | [`Pi-Harness-2.0.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.dmg)             |
+| Windows x64         | [`Pi-Harness-Setup-2.0.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-Setup-2.0.0.exe) |
+| Linux x64           | [`Pi-Harness-2.0.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.AppImage)   |
 
-> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v1.9.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v1.9.0)。
+> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v2.0.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v2.0.0)。
 
 安装包用户不需要 clone 仓库，也不需要安装 pnpm。Pi-Harness 可以在支持的环境中检测、安装和修复 Node.js、npm、PATH 与 Pi Coding Agent。
 

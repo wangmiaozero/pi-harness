@@ -13,6 +13,7 @@ import {
 
 const require = createRequire(import.meta.url)
 const electronBinary = require('electron') as string
+const packagedExecutable = process.env.PI_HARNESS_E2E_EXECUTABLE
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
@@ -61,7 +62,7 @@ export const test = base.extend<Fixtures>({
   },
   electronApp: async ({ workspaceRoot, testUserData, piAgentDir }, use, testInfo) => {
     void testInfo
-    if (!fs.existsSync(mainJs)) {
+    if (!packagedExecutable && !fs.existsSync(mainJs)) {
       throw new Error('out/main/index.js missing — run `pnpm compile` before e2e')
     }
     fs.writeFileSync(
@@ -71,8 +72,8 @@ export const test = base.extend<Fixtures>({
     const { ELECTRON_RUN_AS_NODE: _runAsNode, ...restEnv } = process.env
     void _runAsNode
     const app = await electron.launch({
-      executablePath: electronBinary,
-      args: [mainJs],
+      executablePath: packagedExecutable || electronBinary,
+      args: packagedExecutable ? [] : [mainJs],
       env: {
         ...restEnv,
         ELECTRON_RUN_AS_NODE: undefined,

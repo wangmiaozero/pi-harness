@@ -7,6 +7,14 @@ import { mapHarnessSession } from './harness-session'
 import { mapHarnessState } from './harness-state'
 
 describe('Harness mappings', () => {
+  it('settles runs only after native retries finish, and marks aborted settlement', () => {
+    expect(mapAgentEvent({ type: 'agent_end', willRetry: true })).toEqual([])
+    expect(mapAgentEvent({ type: 'agent_end', willRetry: false })).toEqual([])
+    expect(mapAgentEvent({ type: 'agent_settled', aborted: true }, 42)).toEqual([
+      { type: 'runtime.aborted', timestamp: 42 },
+      { type: 'runtime.idle', timestamp: 42 }
+    ])
+  })
   it('detects supported Pi capabilities without assuming optional APIs', () => {
     const session = createSession()
     expect(detectHarnessCapabilities(session)).toEqual({
@@ -30,14 +38,8 @@ describe('Harness mappings', () => {
     })
     expect(getThinkingOptions(session)).toEqual(['off', 'low', 'high'])
 
-    session.steer = undefined
-    session.abortCompaction = undefined
-    session.getSessionStats = undefined
-    expect(detectHarnessCapabilities(session)).toMatchObject({
-      steering: false,
-      abortCompaction: false,
-      stats: false
-    })
+    session.sessionManager.isPersisted = () => false
+    expect(detectHarnessCapabilities(session).sessionFork).toBe(false)
   })
 
   it('maps live state and derives missing context percent from real token values', () => {
@@ -85,7 +87,7 @@ describe('Harness mappings', () => {
         parentId: null,
         type: 'message',
         timestamp: '2026-08-28T00:00:00.000Z',
-        message: { role: 'user', content: 'not exposed' }
+        message: { role: 'user', content: 'not exposed', timestamp: 0 }
       }
     ]
     session.sessionManager.getBranch = session.sessionManager.getEntries
@@ -174,7 +176,7 @@ function createSession(): AgentSessionLike {
     setAutoCompactionEnabled: vi.fn(),
     setAutoRetryEnabled: vi.fn(),
     setActiveToolsByName: vi.fn(),
-    getAllTools: () => [{ name: 'read', description: 'Read' }],
+    getAllTools: () => [{ name: 'read', description: 'Read', parameters: { type: 'object' } }],
     getActiveToolNames: () => ['read'],
     resourceLoader: { getSkills: () => ({ skills: [] }) },
     extensionRunner: { getRegisteredCommands: () => [] },
@@ -183,7 +185,7 @@ function createSession(): AgentSessionLike {
     steer: vi.fn(),
     followUp: vi.fn(),
     dispose: vi.fn()
-  }
+  } as unknown as AgentSessionLike
 }
 
 function createManager(): PiSessionManagerLike {
@@ -201,5 +203,5 @@ function createManager(): PiSessionManagerLike {
     isPersisted: () => true,
     newSession: vi.fn(),
     createBranchedSession: vi.fn()
-  }
+  } as unknown as PiSessionManagerLike
 }

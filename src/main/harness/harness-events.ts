@@ -7,8 +7,12 @@ export function mapAgentEvent(event: AgentEvent, timestamp = Date.now()): Harnes
     case 'agent_start':
       return [{ type: 'runtime.started', timestamp }]
     case 'agent_end':
+      return []
     case 'agent_settled':
-      return [{ type: 'runtime.idle', timestamp }]
+      return [
+        ...(event.aborted === true ? [{ type: 'runtime.aborted' as const, timestamp }] : []),
+        { type: 'runtime.idle', timestamp }
+      ]
     case 'prompt_done':
       return event.success === false
         ? [

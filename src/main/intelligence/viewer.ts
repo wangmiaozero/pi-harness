@@ -61,6 +61,14 @@ export class ArchitectureViewer {
   private version = 0
   private visible = false
   private appliedPresentation: string | null = null
+  private readonly onOwnerNavigation = (details: {
+    isMainFrame: boolean
+    isSameDocument: boolean
+  }): void => {
+    // A native child sits above the host DOM, including its startup overlay.
+    if (details.isMainFrame && !details.isSameDocument) this.close()
+  }
+  private readonly onOwnerClosed = (): void => this.close()
   constructor(
     private readonly service: ProjectIntelligenceService,
     private readonly resources: string,
@@ -131,7 +139,9 @@ export class ArchitectureViewer {
       })
       this.view = view
       this.owner = owner
+      view.setVisible(false)
       owner.contentView.addChildView(view)
+      owner.webContents.on('did-start-navigation', this.onOwnerNavigation)
       // The diagram owns keyboard focus; Escape must exit its parent's fullscreen.
       view.webContents.on('before-input-event', (event, input) => {
         if (input.type !== 'keyDown' || input.key !== 'Escape' || owner.isDestroyed()) return
@@ -163,7 +173,7 @@ export class ArchitectureViewer {
           }
         })
       })
-      owner.once('closed', () => this.close())
+      owner.once('closed', this.onOwnerClosed)
     }
     const view = this.view
     const [width, height] = owner.getContentSize()
@@ -216,7 +226,11 @@ export class ArchitectureViewer {
   }
   close(invalidate = true): void {
     this.visible = false
-    if (this.owner) setArchitectureFullscreenAllowed(this.owner.webContents, false)
+    if (this.owner) {
+      setArchitectureFullscreenAllowed(this.owner.webContents, false)
+      this.owner.webContents.removeListener('did-start-navigation', this.onOwnerNavigation)
+      this.owner.removeListener('closed', this.onOwnerClosed)
+    }
     if (invalidate) this.version++
     if (this.view) {
       try {

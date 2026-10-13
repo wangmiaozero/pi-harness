@@ -51,7 +51,7 @@ import { callApi, getApi } from '@renderer/composables/useApi'
 import { isImageGenerationModel } from '@shared/models/image-model'
 import { rasterizeSvgImageResult } from '@renderer/utils/svg-rasterize'
 
-withDefaults(defineProps<{ embedded?: boolean }>(), {
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), {
   embedded: false
 })
 
@@ -503,7 +503,9 @@ watch(
 )
 
 onMounted(() => {
-  void Promise.all([providersStore.fetchList(), modelsStore.fetchList()])
+  // The containing model page has already refreshed providers before mounting us.
+  if (!props.embedded) void providersStore.fetchList()
+  void modelsStore.fetchList()
 })
 </script>
 

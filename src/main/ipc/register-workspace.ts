@@ -375,7 +375,6 @@ export function registerWorkspaceIpc(
       if (parsed.data.cwd) await access.assertAllowed(parsed.data.cwd, { mustExist: true })
       await beforeAgentStart?.(parsed.data.cwd, parsed.data.sessionId)
       const started = await agent.start(parsed.data)
-      if (!parsed.data.sessionId) await workspaceState.bindActiveToSession(started.sessionId)
       return started
     })
   )

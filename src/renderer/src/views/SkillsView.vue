@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Download,
@@ -55,11 +55,14 @@ import { getApi, getErrorPayload } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { formatRelativeTime } from '@renderer/utils/format'
 import SkillConfirmDialogs from '@renderer/features/skills/components/SkillConfirmDialogs.vue'
-import SkillEditorDialog from '@renderer/features/skills/components/SkillEditorDialog.vue'
 import SkillImportDialog from '@renderer/features/skills/components/SkillImportDialog.vue'
 import SkillMarketDetail from '@renderer/features/skills/components/SkillMarketDetail.vue'
 import OfficialPackageMarket from '@renderer/features/skills/components/OfficialPackageMarket.vue'
 import type { SkillEditorFormState, SkillImportFormState } from '@renderer/features/skills/types'
+
+const SkillEditorDialog = defineAsyncComponent(
+  () => import('@renderer/features/skills/components/SkillEditorDialog.vue')
+)
 
 type ViewMode = 'official-market' | 'skills' | 'packages' | 'market'
 
@@ -82,6 +85,10 @@ const removeKey = ref<string | null>(null)
 
 const deleteOpen = ref(false)
 const editorOpen = ref(false)
+const editorLoaded = ref(false)
+watch(editorOpen, (open) => {
+  if (open) editorLoaded.value = true
+})
 const importOpen = ref(false)
 const packageRemoveOpen = ref(false)
 const importBusy = ref(false)
@@ -2169,6 +2176,7 @@ function resourceGroups(pkg: PiPackageInfo) {
     />
 
     <SkillEditorDialog
+      v-if="editorLoaded"
       :open="editorOpen"
       :editing="editing"
       :form="form"

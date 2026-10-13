@@ -16,6 +16,7 @@ const chartHost = ref<HTMLElement | null>(null)
 let chart: EChartsType | null = null
 let stopThemeObserver: (() => void) | null = null
 let echartsModule: typeof import('@renderer/utils/echarts') | null = null
+let mounted = false
 
 const summary = computed(() => summarizeActivity(props.days))
 const authors = computed(() => summarizeAuthors(props.days))
@@ -112,7 +113,9 @@ function onResize(): void {
 }
 
 onMounted(async () => {
+  mounted = true
   echartsModule = await import('@renderer/utils/echarts')
+  if (!mounted) return
   if (chartHost.value && !chart) chart = echartsModule.echarts.init(chartHost.value)
   renderChart()
   stopThemeObserver = echartsModule.observeThemeChanges(renderChart)
@@ -125,6 +128,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  mounted = false
   stopThemeObserver?.()
   window.removeEventListener('resize', onResize)
   chart?.dispose()
