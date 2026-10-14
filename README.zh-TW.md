@@ -42,6 +42,45 @@ Pi-Harness 將 Pi Coding Agent 帶入 macOS、Windows 和 Linux 桌面工作區�
 
 Native Pi 負責執行智慧體。Pi 工作階段、設定、工具、Skills 與擴充套件保持相容，也可以繼續在桌面應用程式之外使用 Pi。
 
+## 原生 Pi 與 Pi-Harness
+
+Pi-Harness 是 Pi Coding Agent 的操作能力超集：以原生 Pi 能力為基礎，加入觀測、控制、復原、多智慧體編排與視覺化工作區。
+
+| 能力                     | Native Pi | Pi-Harness        |
+| ------------------------ | --------- | ----------------- |
+| Agent Runtime            | 支援      | Native Pi         |
+| Agent Loop               | 支援      | Native Pi         |
+| Sessions                 | 支援      | 支援 + 視覺化管理 |
+| Context                  | 支援      | 支援 + 檢查視圖   |
+| Compaction               | 支援      | 支援 + 視覺化控制 |
+| Steering                 | 支援      | 支援              |
+| Follow-up                | 支援      | 支援              |
+| Models                   | 支援      | 支援 + 管理器     |
+| Thinking                 | 支援      | 支援 + 視覺化控制 |
+| Tools                    | 支援      | 支援 + 選擇與策略 |
+| Skills                   | 支援      | 支援 + 管理器     |
+| Extensions               | 支援      | 支援 + 管理器     |
+| Packages                 | 支援      | 支援 + 管理器     |
+| MCP / Codemode           | 支援      | 支援 + 選擇與策略 |
+| Runs                     | —         | 支援              |
+| Trace                    | —         | 支援              |
+| Replay                   | —         | 支援              |
+| Run Compare              | —         | 支援              |
+| Evaluation               | —         | 支援              |
+| Policy                   | —         | 支援              |
+| Budget                   | —         | 支援              |
+| Checkpoints              | —         | 支援              |
+| Recovery                 | —         | 支援              |
+| Diagnostics              | —         | 支援              |
+| Regression               | —         | 支援              |
+| Artifacts                | —         | 支援              |
+| Multi-Agent              | —         | 支援              |
+| Task DAG                 | —         | 支援              |
+| Handoff                  | —         | 支援              |
+| Review Gates             | —         | 支援              |
+| Worktree isolation       | —         | 支援              |
+| Project architecture map | —         | 支援              |
+
 ## 功能介紹
 
 ### 工作區、檔案與 Git
@@ -106,32 +145,76 @@ Native Pi 負責執行智慧體。Pi 工作階段、設定、工具、Skills 與
 
 ### 經典主題
 
-|                             工作區                              |                        Git                         |
-| :-------------------------------------------------------------: | :------------------------------------------------: |
-|          ![工作區](docs/功能界面/经典主题/工作区.png)           |       ![Git](docs/功能界面/经典主题/Git.png)       |
-|                       **Provider 與模型**                       |                    **能力中心**                    |
-| ![Provider 與模型](docs/功能界面/经典主题/Provider与模型-1.png) | ![能力中心](docs/功能界面/经典主题/能力中心-1.png) |
-|                        **Harness 工具**                         |                    **專案架構**                    |
-|    ![Harness 工具](docs/功能界面/经典主题/工具Harness-1.png)    | ![專案架構](docs/功能界面/经典主题/项目架构-1.png) |
+#### 工作區
+
+[![工作區](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+
+<details>
+<summary>Git · Provider 與模型 · 能力中心 · Harness 工具 · 專案架構</summary>
+
+#### Git
+
+[![Git](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)
+
+#### Provider 與模型
+
+[![Provider 與模型](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)
+
+#### 能力中心
+
+[![能力中心](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)
+
+#### Harness 工具
+
+[![Harness 工具](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
+
+#### 專案架構
+
+[![專案架構](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)
+
+</details>
 
 ### 大明功能介面
 
-|                   一般設定                   |                    主題皮膚庫                    |
-| :------------------------------------------: | :----------------------------------------------: |
-| ![一般設定](docs/功能界面/大明/通用设置.png) | ![主題皮膚庫](docs/功能界面/大明/主题皮肤库.png) |
+<details>
+<summary>一般設定 · 主題皮膚庫</summary>
+
+#### 一般設定
+
+[![一般設定](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)
+
+#### 主題皮膚庫
+
+[![主題皮膚庫](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)
+
+</details>
 
 ### 主題展示
 
-|                   大明·雪境朝臣                   |                   大明·雪夜笛姬                   |
-| :-----------------------------------------------: | :-----------------------------------------------: |
-| ![大明·雪境朝臣](docs/主题展示/大明/雪境朝臣.png) | ![大明·雪夜笛姬](docs/主题展示/大明/雪夜笛姬.png) |
-|                 **大明·月城書姬**                 |                  **星艦駕駛艙**                   |
-| ![大明·月城書姬](docs/主题展示/大明/月城书姬.png) |  ![星艦駕駛艙](docs/主题展示/星舰/霜星领航.png)   |
+<details>
+<summary>大明·雪境朝臣 · 大明·雪夜笛姬 · 大明·月城書姬 · 星艦駕駛艙 · macOS 27 · Liquid Ether</summary>
 
-<p align="center">
-  <strong>macOS 27 · Liquid Ether</strong><br>
-  <img src="docs/主题展示/macOS%2027/Liquid%20Ether.png" alt="macOS 27 · Liquid Ether" width="80%" />
-</p>
+#### 大明·雪境朝臣
+
+[![大明·雪境朝臣](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)
+
+#### 大明·雪夜笛姬
+
+[![大明·雪夜笛姬](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)
+
+#### 大明·月城書姬
+
+[![大明·月城書姬](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)
+
+#### 星艦駕駛艙
+
+[![星艦駕駛艙](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)
+
+#### macOS 27 · Liquid Ether
+
+[![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)
+
+</details>
 
 <a id="download"></a>
 

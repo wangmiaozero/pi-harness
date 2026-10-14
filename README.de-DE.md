@@ -42,6 +42,45 @@ Pi-Harness bringt Pi Coding Agent in einen Desktop-Workspace für macOS, Windows
 
 Native Pi führt die Agenten aus. Pi-Sitzungen, Konfiguration, Werkzeuge, Skills und Erweiterungen bleiben mit Pi kompatibel. Du kannst Pi auch außerhalb der Desktop-App weiter nutzen.
 
+## Native Pi und Pi-Harness
+
+Pi-Harness ist das operative Superset von Pi Coding Agent: Auf den Funktionen von Native Pi bauen Beobachtung, Steuerung, Wiederherstellung, Agentenkoordination und ein visueller Workspace auf.
+
+| Funktion                 | Native Pi | Pi-Harness                   |
+| ------------------------ | --------- | ---------------------------- |
+| Agent Runtime            | Ja        | Native Pi                    |
+| Agent Loop               | Ja        | Native Pi                    |
+| Sessions                 | Ja        | Ja + visuelle Verwaltung     |
+| Context                  | Ja        | Ja + Prüfung                 |
+| Compaction               | Ja        | Ja + visuelle Steuerung      |
+| Steering                 | Ja        | Ja                           |
+| Follow-up                | Ja        | Ja                           |
+| Models                   | Ja        | Ja + Verwaltung              |
+| Thinking                 | Ja        | Ja + visuelle Steuerung      |
+| Tools                    | Ja        | Ja + Auswahl und Richtlinien |
+| Skills                   | Ja        | Ja + Verwaltung              |
+| Extensions               | Ja        | Ja + Verwaltung              |
+| Packages                 | Ja        | Ja + Verwaltung              |
+| MCP / Codemode           | Ja        | Ja + Auswahl und Richtlinien |
+| Runs                     | —         | Ja                           |
+| Trace                    | —         | Ja                           |
+| Replay                   | —         | Ja                           |
+| Run Compare              | —         | Ja                           |
+| Evaluation               | —         | Ja                           |
+| Policy                   | —         | Ja                           |
+| Budget                   | —         | Ja                           |
+| Checkpoints              | —         | Ja                           |
+| Recovery                 | —         | Ja                           |
+| Diagnostics              | —         | Ja                           |
+| Regression               | —         | Ja                           |
+| Artifacts                | —         | Ja                           |
+| Multi-Agent              | —         | Ja                           |
+| Task DAG                 | —         | Ja                           |
+| Handoff                  | —         | Ja                           |
+| Review Gates             | —         | Ja                           |
+| Worktree isolation       | —         | Ja                           |
+| Project architecture map | —         | Ja                           |
+
 ## Funktionen
 
 ### Workspace, Dateien und Git
@@ -106,32 +145,76 @@ Die Funktionsansichten sind nach Theme geordnet. Weitere Ansichten findest du im
 
 ### Klassisches Theme
 
-|                              Workspace                               |                             Git                              |
-| :------------------------------------------------------------------: | :----------------------------------------------------------: |
-|           ![Workspace](docs/功能界面/经典主题/工作区.png)            |            ![Git](docs/功能界面/经典主题/Git.png)            |
-|                       **Anbieter und Modelle**                       |                     **Funktionsbereich**                     |
-| ![Anbieter und Modelle](docs/功能界面/经典主题/Provider与模型-1.png) |  ![Funktionsbereich](docs/功能界面/经典主题/能力中心-1.png)  |
-|                             **Harness**                              |                    **Projektarchitektur**                    |
-|         ![Harness](docs/功能界面/经典主题/工具Harness-1.png)         | ![Projektarchitektur](docs/功能界面/经典主题/项目架构-1.png) |
+#### Workspace
+
+[![Workspace](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+
+<details>
+<summary>Git · Anbieter und Modelle · Funktionsbereich · Harness · Projektarchitektur</summary>
+
+#### Git
+
+[![Git](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)
+
+#### Anbieter und Modelle
+
+[![Anbieter und Modelle](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)
+
+#### Funktionsbereich
+
+[![Funktionsbereich](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)
+
+#### Harness
+
+[![Harness](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
+
+#### Projektarchitektur
+
+[![Projektarchitektur](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)
+
+</details>
 
 ### Ming-Funktionsansichten
 
-|                   Allgemeine Einstellungen                   |                    Themes und Skins                    |
-| :----------------------------------------------------------: | :----------------------------------------------------: |
-| ![Allgemeine Einstellungen](docs/功能界面/大明/通用设置.png) | ![Themes und Skins](docs/功能界面/大明/主题皮肤库.png) |
+<details>
+<summary>Allgemeine Einstellungen · Themes und Skins</summary>
+
+#### Allgemeine Einstellungen
+
+[![Allgemeine Einstellungen](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)
+
+#### Themes und Skins
+
+[![Themes und Skins](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)
+
+</details>
 
 ### Theme-Galerie
 
-|                     Ming · Beamter im Schnee                     |                   Ming · Flötenspielerin in der Schneenacht                   |
-| :--------------------------------------------------------------: | :---------------------------------------------------------------------------: |
-|   ![Ming · Beamter im Schnee](docs/主题展示/大明/雪境朝臣.png)   | ![Ming · Flötenspielerin in der Schneenacht](docs/主题展示/大明/雪夜笛姬.png) |
-|                 **Ming · Gelehrte im Mondlicht**                 |                             **Starship Cockpit**                              |
-| ![Ming · Gelehrte im Mondlicht](docs/主题展示/大明/月城书姬.png) |             ![Starship Cockpit](docs/主题展示/星舰/霜星领航.png)              |
+<details>
+<summary>Ming · Beamter im Schnee · Ming · Flötenspielerin in der Schneenacht · Ming · Gelehrte im Mondlicht · Starship Cockpit · macOS 27 · Liquid Ether</summary>
 
-<p align="center">
-  <strong>macOS 27 · Liquid Ether</strong><br>
-  <img src="docs/主题展示/macOS%2027/Liquid%20Ether.png" alt="macOS 27 · Liquid Ether" width="80%" />
-</p>
+#### Ming · Beamter im Schnee
+
+[![Ming · Beamter im Schnee](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)
+
+#### Ming · Flötenspielerin in der Schneenacht
+
+[![Ming · Flötenspielerin in der Schneenacht](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)
+
+#### Ming · Gelehrte im Mondlicht
+
+[![Ming · Gelehrte im Mondlicht](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)
+
+#### Starship Cockpit
+
+[![Starship Cockpit](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)
+
+#### macOS 27 · Liquid Ether
+
+[![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)
+
+</details>
 
 <a id="download"></a>
 

@@ -42,6 +42,45 @@ Pi-Harness는 Pi Coding Agent를 macOS, Windows, Linux 데스크톱 작업 공�
 
 에이전트는 Native Pi로 실행됩니다. Pi 세션, 설정, 도구, Skills, 확장 기능과의 호환성을 유지하며 데스크톱 앱 밖에서도 Pi를 계속 사용할 수 있습니다.
 
+## Native Pi와 Pi-Harness
+
+Pi-Harness는 Pi Coding Agent의 운영 기능 상위 집합입니다. Native Pi 기능을 기반으로 관측, 제어, 복구, 에이전트 조율, 시각적 작업 공간을 더합니다.
+
+| 기능                     | Native Pi | Pi-Harness         |
+| ------------------------ | --------- | ------------------ |
+| Agent Runtime            | 지원      | Native Pi          |
+| Agent Loop               | 지원      | Native Pi          |
+| Sessions                 | 지원      | 지원 + 시각적 관리 |
+| Context                  | 지원      | 지원 + 확인 화면   |
+| Compaction               | 지원      | 지원 + 시각적 제어 |
+| Steering                 | 지원      | 지원               |
+| Follow-up                | 지원      | 지원               |
+| Models                   | 지원      | 지원 + 관리 화면   |
+| Thinking                 | 지원      | 지원 + 시각적 제어 |
+| Tools                    | 지원      | 지원 + 선택과 정책 |
+| Skills                   | 지원      | 지원 + 관리 화면   |
+| Extensions               | 지원      | 지원 + 관리 화면   |
+| Packages                 | 지원      | 지원 + 관리 화면   |
+| MCP / Codemode           | 지원      | 지원 + 선택과 정책 |
+| Runs                     | —         | 지원               |
+| Trace                    | —         | 지원               |
+| Replay                   | —         | 지원               |
+| Run Compare              | —         | 지원               |
+| Evaluation               | —         | 지원               |
+| Policy                   | —         | 지원               |
+| Budget                   | —         | 지원               |
+| Checkpoints              | —         | 지원               |
+| Recovery                 | —         | 지원               |
+| Diagnostics              | —         | 지원               |
+| Regression               | —         | 지원               |
+| Artifacts                | —         | 지원               |
+| Multi-Agent              | —         | 지원               |
+| Task DAG                 | —         | 지원               |
+| Handoff                  | —         | 지원               |
+| Review Gates             | —         | 지원               |
+| Worktree isolation       | —         | 지원               |
+| Project architecture map | —         | 지원               |
+
 ## 기능
 
 ### 작업 공간, 파일, Git
@@ -106,32 +145,76 @@ Node.js, npm, PATH, Pi Coding Agent, 현재 설정을 확인합니다. 지원 �
 
 ### 클래식 테마
 
-|                            작업 공간                            |                             Git                             |
-| :-------------------------------------------------------------: | :---------------------------------------------------------: |
-|         ![작업 공간](docs/功能界面/经典主题/工作区.png)         |           ![Git](docs/功能界面/经典主题/Git.png)            |
-|                       **Provider와 모델**                       |                        **능력 센터**                        |
-| ![Provider와 모델](docs/功能界面/经典主题/Provider与模型-1.png) |     ![능력 센터](docs/功能界面/经典主题/能力中心-1.png)     |
-|                           **Harness**                           |                    **프로젝트 아키텍처**                    |
-|      ![Harness](docs/功能界面/经典主题/工具Harness-1.png)       | ![프로젝트 아키텍처](docs/功能界面/经典主题/项目架构-1.png) |
+#### 작업 공간
+
+[![작업 공간](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+
+<details>
+<summary>Git · Provider와 모델 · 능력 센터 · Harness · 프로젝트 아키텍처</summary>
+
+#### Git
+
+[![Git](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)
+
+#### Provider와 모델
+
+[![Provider와 모델](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)
+
+#### 능력 센터
+
+[![능력 센터](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)
+
+#### Harness
+
+[![Harness](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
+
+#### 프로젝트 아키텍처
+
+[![프로젝트 아키텍처](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)
+
+</details>
 
 ### Ming 기능 화면
 
-|                   일반 설정                   |                    테마와 스킨                    |
-| :-------------------------------------------: | :-----------------------------------------------: |
-| ![일반 설정](docs/功能界面/大明/通用设置.png) | ![테마와 스킨](docs/功能界面/大明/主题皮肤库.png) |
+<details>
+<summary>일반 설정 · 테마와 스킨</summary>
+
+#### 일반 설정
+
+[![일반 설정](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)
+
+#### 테마와 스킨
+
+[![테마와 스킨](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)
+
+</details>
 
 ### 테마 갤러리
 
-|                   Ming · 눈 속의 관리                   |                   Ming · 눈밤의 피리 연주자                   |
-| :-----------------------------------------------------: | :-----------------------------------------------------------: |
-| ![Ming · 눈 속의 관리](docs/主题展示/大明/雪境朝臣.png) | ![Ming · 눈밤의 피리 연주자](docs/主题展示/大明/雪夜笛姬.png) |
-|                 **Ming · 달빛의 서생**                  |                     **Starship Cockpit**                      |
-| ![Ming · 달빛의 서생](docs/主题展示/大明/月城书姬.png)  |     ![Starship Cockpit](docs/主题展示/星舰/霜星领航.png)      |
+<details>
+<summary>Ming · 눈 속의 관리 · Ming · 눈밤의 피리 연주자 · Ming · 달빛의 서생 · Starship Cockpit · macOS 27 · Liquid Ether</summary>
 
-<p align="center">
-  <strong>macOS 27 · Liquid Ether</strong><br>
-  <img src="docs/主题展示/macOS%2027/Liquid%20Ether.png" alt="macOS 27 · Liquid Ether" width="80%" />
-</p>
+#### Ming · 눈 속의 관리
+
+[![Ming · 눈 속의 관리](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)
+
+#### Ming · 눈밤의 피리 연주자
+
+[![Ming · 눈밤의 피리 연주자](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)
+
+#### Ming · 달빛의 서생
+
+[![Ming · 달빛의 서생](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)
+
+#### Starship Cockpit
+
+[![Starship Cockpit](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)
+
+#### macOS 27 · Liquid Ether
+
+[![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)
+
+</details>
 
 <a id="download"></a>
 

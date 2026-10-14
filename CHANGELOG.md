@@ -4,6 +4,8 @@ Release notes describe user-visible additions and fixes. Entries under Unrelease
 
 ## 2.0.0 — Unreleased
 
+> **Breaking update:** Pi-Harness 2.0.0 adopts Pi 1.2.0’s breaking changes. Review older extensions and native terminal themes before upgrading. [Pi upgrade notes](https://github.com/earendil-works/pi/releases/tag/v1.2.0).
+
 ### Added
 
 - Added project architecture analysis with interactive maps, source references, saved snapshots, and project information available to Pi. Local analysis uses no model tokens; AI descriptions are optional.
@@ -19,7 +21,7 @@ Release notes describe user-visible additions and fixes. Entries under Unrelease
 - Made Dark the default theme for new installations while retaining existing appearance preferences.
 - Fixed title-bar double-click resizing and translated sidebar ordering labels.
 - Fixed access to default-workspace files and viewing stopped Harness sessions.
-- Improved Native Pi compatibility for current models and tools.
+- Improved Pi tool execution, cancellation, session forks, failed-run reporting, and OpenRouter model discovery.
 - Kept project analysis isolated between projects, with cancellable scans, retries, and stale source checks.
 - Kept excluded analysis paths separate for each project and restored them from saved snapshots.
 

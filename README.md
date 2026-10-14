@@ -42,6 +42,45 @@ Pi-Harness brings Pi Coding Agent into a desktop workspace for macOS, Windows, a
 
 Native Pi runs the agent. Your Pi sessions, configuration, tools, Skills, and extensions remain compatible with Pi, and you can continue using Pi outside the desktop app.
 
+## Pi vs Pi-Harness
+
+Pi-Harness is the operational superset of Pi Coding Agent: native Pi capabilities form the foundation, with observation, control, recovery, orchestration, and a visual workspace added around them.
+
+| Capability               | Native Pi | Pi-Harness                 |
+| ------------------------ | --------- | -------------------------- |
+| Agent Runtime            | Yes       | Native Pi                  |
+| Agent Loop               | Yes       | Native Pi                  |
+| Sessions                 | Yes       | Yes + visual management    |
+| Context                  | Yes       | Yes + inspection           |
+| Compaction               | Yes       | Yes + visual control       |
+| Steering                 | Yes       | Yes                        |
+| Follow-up                | Yes       | Yes                        |
+| Models                   | Yes       | Yes + manager              |
+| Thinking                 | Yes       | Yes + visual control       |
+| Tools                    | Yes       | Yes + selection and policy |
+| Skills                   | Yes       | Yes + manager              |
+| Extensions               | Yes       | Yes + manager              |
+| Packages                 | Yes       | Yes + manager              |
+| MCP / Codemode           | Yes       | Yes + selection and policy |
+| Runs                     | —         | Yes                        |
+| Trace                    | —         | Yes                        |
+| Replay                   | —         | Yes                        |
+| Run Compare              | —         | Yes                        |
+| Evaluation               | —         | Yes                        |
+| Policy                   | —         | Yes                        |
+| Budget                   | —         | Yes                        |
+| Checkpoints              | —         | Yes                        |
+| Recovery                 | —         | Yes                        |
+| Diagnostics              | —         | Yes                        |
+| Regression               | —         | Yes                        |
+| Artifacts                | —         | Yes                        |
+| Multi-Agent              | —         | Yes                        |
+| Task DAG                 | —         | Yes                        |
+| Handoff                  | —         | Yes                        |
+| Review Gates             | —         | Yes                        |
+| Worktree isolation       | —         | Yes                        |
+| Project architecture map | —         | Yes                        |
+
 ## Features
 
 ### Workspace, files, and Git
@@ -106,32 +145,76 @@ Product screenshots are grouped by theme. Browse the [complete screenshot index]
 
 ### Classic theme
 
-|                              Workspace                               |                              Git                               |
-| :------------------------------------------------------------------: | :------------------------------------------------------------: |
-|           ![Workspace](docs/功能界面/经典主题/工作区.png)            |             ![Git](docs/功能界面/经典主题/Git.png)             |
-|                       **Providers and models**                       |                        **Capabilities**                        |
-| ![Providers and models](docs/功能界面/经典主题/Provider与模型-1.png) |     ![Capabilities](docs/功能界面/经典主题/能力中心-1.png)     |
-|                             **Harness**                              |                    **Project architecture**                    |
-|         ![Harness](docs/功能界面/经典主题/工具Harness-1.png)         | ![Project architecture](docs/功能界面/经典主题/项目架构-1.png) |
+#### Workspace
+
+[![Workspace](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+
+<details>
+<summary>Git · Providers and models · Capabilities · Harness · Project architecture</summary>
+
+#### Git
+
+[![Git](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)
+
+#### Providers and models
+
+[![Providers and models](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)
+
+#### Capabilities
+
+[![Capabilities](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)
+
+#### Harness
+
+[![Harness](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
+
+#### Project architecture
+
+[![Project architecture](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)
+
+</details>
 
 ### Ming interfaces
 
-|                   General settings                   |                    Theme and skin gallery                    |
-| :--------------------------------------------------: | :----------------------------------------------------------: |
-| ![General settings](docs/功能界面/大明/通用设置.png) | ![Theme and skin gallery](docs/功能界面/大明/主题皮肤库.png) |
+<details>
+<summary>General settings · Theme and skin gallery</summary>
+
+#### General settings
+
+[![General settings](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)
+
+#### Theme and skin gallery
+
+[![Theme and skin gallery](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)
+
+</details>
 
 ### Theme gallery
 
-|                   Ming · Snowbound official                   |                   Ming · Snow flute scholar                   |
-| :-----------------------------------------------------------: | :-----------------------------------------------------------: |
-| ![Ming · Snowbound official](docs/主题展示/大明/雪境朝臣.png) | ![Ming · Snow flute scholar](docs/主题展示/大明/雪夜笛姬.png) |
-|                    **Ming · Moon scholar**                    |                     **Starship Cockpit**                      |
-|    ![Ming · Moon scholar](docs/主题展示/大明/月城书姬.png)    |     ![Starship Cockpit](docs/主题展示/星舰/霜星领航.png)      |
+<details>
+<summary>Ming · Snowbound official · Ming · Snow flute scholar · Ming · Moon scholar · Starship Cockpit · macOS 27 · Liquid Ether</summary>
 
-<p align="center">
-  <strong>macOS 27 · Liquid Ether</strong><br>
-  <img src="docs/主题展示/macOS%2027/Liquid%20Ether.png" alt="macOS 27 · Liquid Ether" width="80%" />
-</p>
+#### Ming · Snowbound official
+
+[![Ming · Snowbound official](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)
+
+#### Ming · Snow flute scholar
+
+[![Ming · Snow flute scholar](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)
+
+#### Ming · Moon scholar
+
+[![Ming · Moon scholar](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)
+
+#### Starship Cockpit
+
+[![Starship Cockpit](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)
+
+#### macOS 27 · Liquid Ether
+
+[![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)
+
+</details>
 
 <a id="download"></a>
 

@@ -42,6 +42,45 @@ Pi-Harness переносит Pi Coding Agent в настольную рабоч
 
 Агентов запускает Native Pi. Сессии, конфигурация, инструменты, Skills и расширения сохраняют совместимость с Pi; им можно пользоваться и вне настольного приложения.
 
+## Native Pi и Pi-Harness
+
+Pi-Harness — операционное надмножество Pi Coding Agent: к возможностям Native Pi добавлены наблюдение, управление, восстановление, координация агентов и визуальная рабочая область.
+
+| Возможность              | Native Pi | Pi-Harness                 |
+| ------------------------ | --------- | -------------------------- |
+| Agent Runtime            | Да        | Native Pi                  |
+| Agent Loop               | Да        | Native Pi                  |
+| Sessions                 | Да        | Да + визуальное управление |
+| Context                  | Да        | Да + просмотр              |
+| Compaction               | Да        | Да + визуальное управление |
+| Steering                 | Да        | Да                         |
+| Follow-up                | Да        | Да                         |
+| Models                   | Да        | Да + менеджер              |
+| Thinking                 | Да        | Да + визуальное управление |
+| Tools                    | Да        | Да + выбор и политики      |
+| Skills                   | Да        | Да + менеджер              |
+| Extensions               | Да        | Да + менеджер              |
+| Packages                 | Да        | Да + менеджер              |
+| MCP / Codemode           | Да        | Да + выбор и политики      |
+| Runs                     | —         | Да                         |
+| Trace                    | —         | Да                         |
+| Replay                   | —         | Да                         |
+| Run Compare              | —         | Да                         |
+| Evaluation               | —         | Да                         |
+| Policy                   | —         | Да                         |
+| Budget                   | —         | Да                         |
+| Checkpoints              | —         | Да                         |
+| Recovery                 | —         | Да                         |
+| Diagnostics              | —         | Да                         |
+| Regression               | —         | Да                         |
+| Artifacts                | —         | Да                         |
+| Multi-Agent              | —         | Да                         |
+| Task DAG                 | —         | Да                         |
+| Handoff                  | —         | Да                         |
+| Review Gates             | —         | Да                         |
+| Worktree isolation       | —         | Да                         |
+| Project architecture map | —         | Да                         |
+
 ## Возможности
 
 ### Рабочая область, файлы и Git
@@ -106,32 +145,76 @@ Pi-Harness переносит Pi Coding Agent в настольную рабоч
 
 ### Классическая тема
 
-|                           Рабочая область                           |                              Git                              |
-| :-----------------------------------------------------------------: | :-----------------------------------------------------------: |
-|        ![Рабочая область](docs/功能界面/经典主题/工作区.png)        |            ![Git](docs/功能界面/经典主题/Git.png)             |
-|                       **Провайдеры и модели**                       |                    **Центр возможностей**                     |
-| ![Провайдеры и модели](docs/功能界面/经典主题/Provider与模型-1.png) | ![Центр возможностей](docs/功能界面/经典主题/能力中心-1.png)  |
-|                             **Harness**                             |                    **Архитектура проекта**                    |
-|        ![Harness](docs/功能界面/经典主题/工具Harness-1.png)         | ![Архитектура проекта](docs/功能界面/经典主题/项目架构-1.png) |
+#### Рабочая область
+
+[![Рабочая область](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+
+<details>
+<summary>Git · Провайдеры и модели · Центр возможностей · Harness · Архитектура проекта</summary>
+
+#### Git
+
+[![Git](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)
+
+#### Провайдеры и модели
+
+[![Провайдеры и модели](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)
+
+#### Центр возможностей
+
+[![Центр возможностей](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)
+
+#### Harness
+
+[![Harness](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
+
+#### Архитектура проекта
+
+[![Архитектура проекта](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)
+
+</details>
 
 ### Интерфейсы Ming
 
-|                   Общие настройки                   |                    Темы и оформление                    |
-| :-------------------------------------------------: | :-----------------------------------------------------: |
-| ![Общие настройки](docs/功能界面/大明/通用设置.png) | ![Темы и оформление](docs/功能界面/大明/主题皮肤库.png) |
+<details>
+<summary>Общие настройки · Темы и оформление</summary>
+
+#### Общие настройки
+
+[![Общие настройки](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)
+
+#### Темы и оформление
+
+[![Темы и оформление](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)
+
+</details>
 
 ### Галерея тем
 
-|                   Ming · Чиновник среди снегов                   |                   Ming · Флейтистка в снежную ночь                   |
-| :--------------------------------------------------------------: | :------------------------------------------------------------------: |
-| ![Ming · Чиновник среди снегов](docs/主题展示/大明/雪境朝臣.png) | ![Ming · Флейтистка в снежную ночь](docs/主题展示/大明/雪夜笛姬.png) |
-|                   **Ming · Книжница при луне**                   |                         **Starship Cockpit**                         |
-|   ![Ming · Книжница при луне](docs/主题展示/大明/月城书姬.png)   |         ![Starship Cockpit](docs/主题展示/星舰/霜星领航.png)         |
+<details>
+<summary>Ming · Чиновник среди снегов · Ming · Флейтистка в снежную ночь · Ming · Книжница при луне · Starship Cockpit · macOS 27 · Liquid Ether</summary>
 
-<p align="center">
-  <strong>macOS 27 · Liquid Ether</strong><br>
-  <img src="docs/主题展示/macOS%2027/Liquid%20Ether.png" alt="macOS 27 · Liquid Ether" width="80%" />
-</p>
+#### Ming · Чиновник среди снегов
+
+[![Ming · Чиновник среди снегов](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)
+
+#### Ming · Флейтистка в снежную ночь
+
+[![Ming · Флейтистка в снежную ночь](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)
+
+#### Ming · Книжница при луне
+
+[![Ming · Книжница при луне](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)
+
+#### Starship Cockpit
+
+[![Starship Cockpit](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)
+
+#### macOS 27 · Liquid Ether
+
+[![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)
+
+</details>
 
 <a id="download"></a>
 
