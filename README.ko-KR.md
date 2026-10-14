@@ -12,253 +12,169 @@
 </p>
 
 <p align="center">
-  <img src="build/icon.png" width="96" alt="Pi-Harness" />
+  <img src="build/icon.png" width="110" alt="Pi-Harness" />
 </p>
 
-<h3 align="center">The Operational Superset of Pi Coding Agent</h3>
+<h3 align="center">Pi Coding Agent의 Operational Superset</h3>
 
 <p align="center">
-  <strong>Native Pi의 모든 기능에 관측, 제어, 복구, 평가, Multi-Agent 오케스트레이션을 더합니다.</strong>
+  <strong>Native Pi에 시각적 작업 공간, 실행 제어, 복구, 에이전트 팀을 더합니다.</strong>
 </p>
-
-<p align="center">Native Pi, 더 강력하게.</p>
 
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>커스텀 스킨 만들기</strong></a>
+  <a href="#download"><strong>다운로드</strong></a> ·
+  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>커스텀 스킨 만들기</strong></a> ·
+  <a href="#screenshots">화면 미리보기</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v2.0.0" src="https://img.shields.io/badge/version-v2.0.0-4C8DFF?style=flat-square" /></a>
-  <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
-  <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="출시 버전" src="https://img.shields.io/github/v/release/wangmiaozero/pi-harness?style=flat-square" /></a>
+  <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
+  <a href="LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
 </p>
 
 ## 왜 Pi-Harness인가요?
 
-Pi-Harness는 Pi Coding Agent의 Operational Superset입니다. Native Pi를 유일한 Agent Runtime으로 유지하고 호환되는 Sessions, Tools, Models, Skills, Extensions, Context, Compaction 위에 Observe, Control, Recovery, Evaluation, Multi-Agent Orchestration을 추가합니다.
+Pi-Harness는 Pi Coding Agent를 macOS, Windows, Linux 데스크톱 작업 공간으로 가져옵니다. 대화, 프로젝트, 파일, Git, 모델, Skills를 한곳에서 관리하고 실행 확인, 예산 제어, 작업 복구, 에이전트 팀 협업 도구를 이용합니다.
 
-> **Pi가 Agent를 실행하고, Pi-Harness가 이를 관측·제어·복구·오케스트레이션 가능한 엔지니어링 시스템으로 만듭니다.**
+에이전트는 Native Pi로 실행됩니다. Pi 세션, 설정, 도구, Skills, 확장 기능과의 호환성을 유지하며 데스크톱 앱 밖에서도 Pi를 계속 사용할 수 있습니다.
 
-Pi-Harness는 Pi의 Agent Runtime을 대체하거나 다시 구현하지 않습니다.
+## 기능
 
-## “Superset”의 의미
+### 작업 공간, 파일, Git
 
-Native Pi는 항상 실제 실행 경로 안에 있으며, Pi-Harness는 그 바깥에 Harness Control Plane과 Visual Engineering Workspace를 추가합니다.
+독립 대화를 시작하거나 프로젝트를 열어 Pi 세션을 이어서 실행합니다. 스트리밍 응답, 사고 과정, 도구 호출, 이미지, 파일 변경을 확인하고 모델, 사고 수준, 도구를 선택하거나 대화 컨텍스트를 압축합니다. 작업 공간 도구에서 Harness와 에이전트를 열어도 대화와 보내지 않은 초안은 유지됩니다.
 
-## Pi와 Pi-Harness 기능 매트릭스
+파일 탐색과 검색, 미디어·문서 미리보기, 구문 강조, 줄 번호, 찾기, 실행 취소/다시 실행, 명시적 저장, 외부 변경 충돌 보호를 갖춘 경량 텍스트 편집을 지원합니다. Git에서는 차이, 이력, 활동 그래프, 커밋, 선택형 AI 커밋 메시지, worktree를 이용합니다.
 
-| 기능                                 | Native Pi | Pi-Harness                 |
-| ------------------------------------ | --------- | -------------------------- |
-| Agent Runtime / Loop                 | 지원      | Native Pi                  |
-| Sessions / Context / Compaction      | 지원      | 지원 + 시각적 관리 및 제어 |
-| Steering / Follow-up / Thinking      | 지원      | 지원 + 시각적 제어         |
-| Models / Tools / Skills / Extensions | 지원      | 지원 + Manager / Policy    |
-| Runs / Trace / Replay / Compare      | —         | 지원                       |
-| Policy / Budget / Evaluation         | —         | 지원                       |
-| Checkpoint / Recovery / Diagnostics  | —         | 지원                       |
-| Regression / Artifacts               | —         | 지원                       |
-| Multi-Agent / Task DAG / Handoff     | —         | 지원                       |
-| Review Gates / Worktree isolation    | —         | 지원                       |
+### Provider와 모델
 
-## 다운로드
+프리셋이나 사용자 지정 주소로 Pi 호환 Provider를 설정하고 인증 정보, 지원 서비스의 모델 목록, 연결 테스트, 대화 모델 선택을 관리합니다. 지원하는 이미지 모델로 텍스트에서 이미지를 생성하거나 이미지를 편집하고 결과를 다운로드합니다.
 
-Pi-Harness v2.0.0은 출시 준비 중입니다. 아래 설치 파일은 출시 후 다운로드할 수 있습니다. 현재 출시된 버전은 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)에서 확인하세요.
+### Skills, 확장 기능, 패키지, MCP
 
-| 플랫폼              | 설치 파일                                                                                                                    |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| macOS Apple Silicon | [Pi-Harness-2.0.0-arm64.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0-arm64.dmg) |
-| macOS Intel         | [Pi-Harness-2.0.0.dmg](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.dmg)             |
-| Windows x64         | [Pi-Harness-Setup-2.0.0.exe](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-Setup-2.0.0.exe) |
-| Linux x64           | [Pi-Harness-2.0.0.AppImage](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.AppImage)   |
+능력 센터에서 내장·로컬 Skills를 찾아 편집하고 Pi 패키지와 확장 기능을 관리합니다. 입력창에서 `@`를 입력해 설치된 Skill을 검색하고 호출합니다. 지원 패키지로 MCP를 연결하며 [Superpowers](https://github.com/obra/superpowers), [Odai](https://github.com/orziz/odai) 등의 선택형 기능을 원할 때 설치, 업데이트, 제거할 수 있습니다.
 
-> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요. 자세한 내용은 [v2.0.0 릴리스 노트](https://github.com/wangmiaozero/pi-harness/releases/tag/v2.0.0)를 참고하세요.
+### Harness: 관측, 제어, 복구
 
-패키지 사용자는 저장소를 clone하거나 pnpm을 설치할 필요가 없습니다. Pi-Harness는 지원되는 환경에서 Node.js, npm, PATH, Pi Coding Agent를 감지하고 설치하거나 복구할 수 있습니다.
+Runs, Trace, Replay, 타임라인, 도구 활동을 확인합니다. 실행을 비교하고 Run Tree에서 분기와 재시도를 추적하며 토큰, 비용, 소요 시간, 결과물, 프로젝트 통계를 살펴봅니다.
 
-## v2.0.0의 새 기능과 개선 사항
+도구 정책과 실행별 예산을 설정하고 체크포인트를 만들어 작업을 재개, 분기, 재시도합니다. 평가, 진단, 회귀 기준선으로 기록된 실행 근거에서 결과와 실패 원인을 확인합니다.
 
-- **대화형 프로젝트 아키텍처** — 모듈과 의존성을 탐색하고 소스 참조, 패키지 필터, 저장된 분석을 확인할 수 있습니다.
-- **아키텍처 맵을 더 넓게** — 전체 화면, 마우스 휠과 트랙패드 확대·축소, 플로팅 도구 모음의 페이지 전환을 지원합니다. 간결한 패널과 테마에 맞는 배경으로 맵에 집중할 수 있습니다.
-- **작업 공간 도구** — 도구를 열어 Harness와 에이전트를 전환하며 대화와 보내지 않은 초안을 유지합니다.
-- **더 부드러운 사용 경험** — 기존 작업 방식과 스타일을 유지하면서 메뉴 전환, 기록 로딩, 파일 미리 보기, Skill 편집의 응답 속도를 개선했습니다.
-- **기본 다크 테마** — 새 설치는 다크 테마로 시작하며 기존 테마와 스킨 선택은 유지됩니다.
+### 에이전트 팀과 작업 조율
 
-## v1.9.0의 새 기능과 개선 사항
+재사용 가능한 팀과 템플릿으로 Pi 에이전트를 조율합니다. 작업의 의존성, 우선순위, 담당자를 설정하고 수동·순차·병렬 실행, 결과와 산출물 인계, 검토 관문을 이용합니다. worktree로 변경을 분리하고 예산, 충돌 알림, 일시 정지, 재개, 중단, 재시도, 건너뛰기, 재할당으로 작업을 관리합니다.
 
-- **로컬 대화 기록 통합**: Claude Code, Codex(데스크톱 및 보관된 대화 포함), Cursor, Cursor Agent, Gemini CLI, OpenCode, Pi의 대화를 한곳에서 봅니다. 검색, 출처·프로젝트·날짜 범위 필터와 기록 폴더 추가를 지원합니다.
-- **기록 보기와 작업 계속 분리**: 대화 카드 전체를 클릭해 기록을 볼 수 있습니다. 기록 보기, 로컬 인계 미리보기, 스캔 재시도는 모델 토큰을 소비하지 않으며 원본 대화는 항상 읽기 전용입니다.
-- **같은 프로젝트에서 계속**: 대화의 프로젝트 디렉터리를 다시 가져오지 않고 사용합니다. 수정 가능한 다음 지시를 확인한 뒤 선택한 모델로 새 Pi 대화를 만들고 해당 프로젝트 아래에 표시합니다. 기본 대화는 세션 영역에 표시합니다.
-- **필요할 때 AI로 정리**: AI 정리를 명시적으로 선택할 때만 설정된 모델로 인계 내용을 개선하고 모델 토큰을 소비합니다.
-- **더 편리한 조작**: 가져온 기록을 유지하면서 실패한 스캔을 재시도합니다. 날짜는 하나의 범위 선택기로 지정하며 제목, 다국어 라벨, 클릭 시 버튼의 둥근 모서리를 개선했습니다.
+### 로컬 대화 기록
 
-## 할 수 있는 일
+Claude Code, Codex(데스크톱과 보관된 대화 포함), Cursor, Cursor Agent, Gemini CLI, OpenCode, Pi 기록을 함께 봅니다. 검색, 출처·프로젝트·날짜 범위 필터와 사용자 지정 기록 폴더를 지원합니다.
 
-- **Workspace:** 실제 프로젝트에서 Pi 세션을 시작하거나 이어서 실행하고, 스트리밍 응답, Thinking, Tool Call, 파일, Git을 함께 확인합니다.
-- **Providers & Models:** Pi 호환 Provider와 모델을 구성하고 연결 테스트 후 활성 모델을 선택합니다.
-- **Skills, Packages & MCP:** 로컬 Skills와 Pi 패키지를 관리하고 지원되는 패키지로 MCP를 연결합니다.
-- **Environment:** Node.js, npm, PATH, Pi를 감지하고 일반적인 설치 문제를 데스크톱 앱에서 해결합니다.
-- **Files & Git:** 파일을 탐색·업로드하고, 충돌 보호가 있는 경량 편집기를 사용하며, Git Diff와 Worktree를 확인합니다.
-- **Diagnostics:** 애플리케이션과 환경 상태를 확인합니다.
-- **시작 및 모양:** 시작 시 npm 레지스트리, Node.js, npm, Pi Agent와 설정을 검사하면서 단색 퀀텀 입자 애니메이션을 최소 5초 동안 표시합니다. 일반 설정에서 클래식, Ming, 퀀텀 앱 아이콘과 창·화면 글로우, 입력창 불꽃 효과를 선택할 수 있습니다. 마스코트 없는 빌드도 선택형 마스코트 테마를 로드하지 않고 기본 시작 애니메이션과 모양 설정을 유지합니다.
+원본 대화는 읽기 전용입니다. 인계 미리보기와 다음 지시를 확인·편집한 뒤 같은 프로젝트의 새 Pi 대화에서 이어갈 수 있습니다. 기록 보기, 로컬 미리보기, 스캔 재시도는 모델 토큰을 소비하지 않습니다. 선택형 AI 요약은 직접 요청할 때만 설정된 모델을 사용합니다.
 
-## 나만의 커스텀 스킨 만들기
+### 프로젝트 아키텍처
 
-[Pi-Harness 커스텀 스킨 스타터](https://github.com/wangmiaozero/pi-harness-skin-starter)를 사용해 원하는 시각 스타일의 스킨을 만들 수 있습니다.
+작업 공간의 Architecture에서 모듈, 의존성, 진입점, 소스 참조를 탐색합니다. 패키지 필터, 모듈 집중 보기, 맵 페이지 전환, 확대·축소, 전체 화면을 지원합니다. 분석 스냅샷을 저장하고 소스 변경 알림을 확인하며 JSON, 오프라인 HTML, 현재 화면의 PNG를 내보냅니다.
 
-1. 스타터 저장소를 템플릿으로 사용하거나 다운로드하여 압축을 풉니다.
-2. Codex 또는 Pi로 열고 포함된 복사형 프롬프트나 `SKIN_BRIEF.md`에 원하는 스타일을 설명합니다.
+로컬 분석은 모델 토큰을 사용하지 않으며 AI 설명은 선택 사항입니다. JavaScript, TypeScript, Vue의 가져오기 관계를 로컬에서 분석하고 다른 지원 언어는 파일 단위 색인을 제공합니다. 분석 범위와 한계도 표시합니다.
+
+### 테마와 커스텀 스킨
+
+클래식 색상, Ming, Starship Cockpit, macOS 27 배경, 가져온 커스텀 스킨을 선택합니다. 새 설치는 다크 테마로 시작합니다. 대화 표시 이름, 앱 아이콘, 로컬 배경 이미지, 창·화면 글로우, 입력창 불꽃 효과를 설정합니다. 환경 검사 중 시작 애니메이션이 표시되며 마스코트 없는 빌드도 일반 모양 설정을 유지합니다.
+
+### 환경과 앱 설정
+
+Node.js, npm, PATH, Pi Coding Agent, 현재 설정을 확인합니다. 지원 환경에서 Pi를 설치, 업데이트, 복구하고 환경 진단, 설정 백업, 앱 업데이트 확인을 이용합니다. 인터페이스는 여덟 언어를 지원합니다.
+
+## 커스텀 스킨 만들기
+
+[Pi-Harness 커스텀 스킨 스타터](https://github.com/wangmiaozero/pi-harness-skin-starter)로 원하는 스타일을 만들 수 있습니다.
+
+1. 스타터 저장소를 템플릿으로 사용하거나 다운로드합니다.
+2. 코딩 에이전트로 열고 포함된 프롬프트에 원하는 스타일을 설명합니다.
 3. 완성된 프로젝트를 **설정 → 테마 → 스킨 가져오기**에서 가져옵니다.
 
-다국어 스타터에는 매니페스트 Schema, 편집 가능한 색상 토큰, 리소스 요구 사항, 미리보기·배경화면·선택형 캐릭터 이미지 검증 지침이 포함되어 있습니다. 스킨을 별도 저장소에서 관리하면 Pi-Harness와 독립적으로 버전을 관리하고 업데이트하거나 공유할 수 있습니다.
+다국어 스타터는 색상, 미리보기, 배경화면, 선택형 캐릭터 이미지 안내를 제공합니다. 스킨은 별도 저장소에서 독립적으로 업데이트하고 공유할 수 있습니다.
 
-## 사용 흐름
-
-1. Pi-Harness를 실행하고 환경 상태를 확인합니다.
-2. Provider를 구성합니다.
-3. 모델을 선택하고 연결을 테스트합니다.
-4. 프로젝트를 엽니다.
-5. Pi 세션을 시작하거나 이어서 실행합니다.
-
-```text
-설치 → Provider 구성 → 모델 선택 → 프로젝트 열기 → Pi 실행
-```
+<a id="screenshots"></a>
 
 ## 화면 미리보기
 
-기본 테마 스크린샷은 주요 기능 화면을 보여 줍니다. 외관 갤러리는 작업 공간 테마와 기능 화면으로 다시 분류했습니다.
+기능 화면은 테마별로 분류했습니다. 추가 화면은 [전체 스크린샷 목록](docs/README.md)에서 확인하세요.
 
-### 기본 테마
+### 클래식 테마
 
-|                      작업 공간                       |                     Git                     |
-| :--------------------------------------------------: | :-----------------------------------------: |
-|  ![클래식 테마 작업 공간](docs/经典主题/工作区.jpg)  |  ![클래식 테마 Git](docs/经典主题/Git.jpg)  |
-|                    **기능 센터**                     |                  **모델**                   |
-| ![클래식 테마 기능 센터](docs/经典主题/能力中心.jpg) | ![클래식 테마 모델](docs/经典主题/模型.jpg) |
-|                       **설정**                       |                                             |
-|     ![클래식 테마 설정](docs/经典主题/设置.jpg)      |                                             |
+|                            작업 공간                            |                             Git                             |
+| :-------------------------------------------------------------: | :---------------------------------------------------------: |
+|         ![작업 공간](docs/功能界面/经典主题/工作区.png)         |           ![Git](docs/功能界面/经典主题/Git.png)            |
+|                       **Provider와 모델**                       |                        **능력 센터**                        |
+| ![Provider와 모델](docs/功能界面/经典主题/Provider与模型-1.png) |     ![능력 센터](docs/功能界面/经典主题/能力中心-1.png)     |
+|                           **Harness**                           |                    **프로젝트 아키텍처**                    |
+|      ![Harness](docs/功能界面/经典主题/工具Harness-1.png)       | ![프로젝트 아키텍처](docs/功能界面/经典主题/项目架构-1.png) |
 
-### 외관 갤러리
+### Ming 기능 화면
 
-#### 작업 공간 테마
+|                   일반 설정                   |                    테마와 스킨                    |
+| :-------------------------------------------: | :-----------------------------------------------: |
+| ![일반 설정](docs/功能界面/大明/通用设置.png) | ![테마와 스킨](docs/功能界面/大明/主题皮肤库.png) |
 
-|                                Ming · 설경 관리                                 |                       Ming · 설야 피리 학자                       |
-| :-----------------------------------------------------------------------------: | :---------------------------------------------------------------: |
-|          ![Ming 설경 관리 작업 공간](docs/主题展示/大明/雪境朝臣.jpg)           | ![Ming 설야 피리 학자 작업 공간](docs/主题展示/大明/雪夜笛姬.jpg) |
-|                             **Ming · 월성 서화가**                              |                       **Starship Cockpit**                        |
-|         ![Ming 월성 서화가 작업 공간](docs/主题展示/大明/月城书姬.jpg)          |  ![Starship Cockpit 작업 공간](docs/主题展示/星舰/霜星领航.jpg)   |
-|                           **macOS 27 · Liquid Ether**                           |                      **선언형 사용자 스킨**                       |
-| ![macOS 27 Liquid Ether 작업 공간](docs/主题展示/macOS%2027/Liquid%20Ether.jpg) |   ![선언형 사용자 스킨](docs/主题展示/自定义皮肤/夏日海岸.jpg)    |
+### 테마 갤러리
 
-#### 기능 화면
-
-|                    일반 설정                     |                        테마 갤러리                         |
-| :----------------------------------------------: | :--------------------------------------------------------: |
-|  ![일반 외관 설정](docs/功能界面/通用设置.jpg)   | ![기본 및 사용자 테마 갤러리](docs/功能界面/主题图库.jpg)  |
-|                  **기능 센터**                   |                    **Provider 및 모델**                    |
-| ![Capabilities 마켓](docs/功能界面/能力中心.jpg) | ![Provider 및 모델 관리](docs/功能界面/Provider与模型.jpg) |
+|                   Ming · 눈 속의 관리                   |                   Ming · 눈밤의 피리 연주자                   |
+| :-----------------------------------------------------: | :-----------------------------------------------------------: |
+| ![Ming · 눈 속의 관리](docs/主题展示/大明/雪境朝臣.png) | ![Ming · 눈밤의 피리 연주자](docs/主题展示/大明/雪夜笛姬.png) |
+|                 **Ming · 달빛의 서생**                  |                     **Starship Cockpit**                      |
+| ![Ming · 달빛의 서생](docs/主题展示/大明/月城书姬.png)  |     ![Starship Cockpit](docs/主题展示/星舰/霜星领航.png)      |
 
 <p align="center">
-  <strong>Git</strong><br>
-  <img src="docs/功能界面/Git.jpg" alt="Git 작업 공간" width="49%">
+  <strong>macOS 27 · Liquid Ether</strong><br>
+  <img src="docs/主题展示/macOS%2027/Liquid%20Ether.png" alt="macOS 27 · Liquid Ether" width="80%" />
 </p>
 
-## 편집기 범위
+<a id="download"></a>
 
-Pi-Harness는 구문 강조, 줄 번호, 실행 취소/다시 실행, 찾기, 명시적 저장, 미저장 상태, 외부 변경 충돌 보호를 갖춘 경량 텍스트 편집기를 제공합니다. 대용량·바이너리·미디어·문서 파일은 읽기 전용으로 미리 봅니다.
+## 다운로드
 
-Pi-Harness는 IDE가 아닙니다. LSP/IntelliSense, 시맨틱 리팩터링, 디버거, 태스크 러너, 통합 터미널, IDE 확장 호환성을 제공하지 않습니다.
+[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)에서 출시된 설치 파일 중 플랫폼에 맞는 파일을 다운로드하세요.
 
-## 아키텍처
+| 플랫폼              | 설치 파일                      |
+| ------------------- | ------------------------------ |
+| macOS Apple Silicon | `.dmg` · `arm64`               |
+| macOS Intel         | `.dmg` · `x64`                 |
+| Windows x64         | `.exe` · Windows 설치 프로그램 |
+| Linux x64           | `.AppImage`                    |
 
-Native Pi는 대체되지 않고 Pi-Harness 실행 아키텍처 내부에 포함됩니다.
+패키지 사용자는 저장소를 복제하거나 pnpm을 설치할 필요가 없습니다. 지원 환경에서는 앱에서 Pi와 실행 환경을 설정할 수 있습니다.
 
-```text
-                         Pi-Harness
-┌─────────────────────────────────────────────────────┐
-│                                                     │
-│                Superset Capabilities                │
-│                                                     │
-│  Observe              Control          Orchestrate  │
-│  ─────────            ─────────        ───────────  │
-│  Runs                 Policy           Agents       │
-│  Trace                Budget           Teams        │
-│  Replay               Checkpoints      Tasks        │
-│  Diagnostics          Recovery         DAG          │
-│  Evaluation           Permissions      Handoffs     │
-│  Regression                            Review Gates │
-│  Artifacts                             Worktrees    │
-│                                                     │
-│  Workspace · Models · Providers · Skills · Git      │
-│                                                     │
-│  ┌───────────────────────────────────────────────┐  │
-│  │                  Native Pi                    │  │
-│  │                                               │  │
-│  │ Agent Runtime · Sessions · Context · Tools    │  │
-│  │ Compaction · Thinking · Skills · Extensions  │  │
-│  └───────────────────────────────────────────────┘  │
-│                                                     │
-└─────────────────────────────────────────────────────┘
-```
+> macOS 커뮤니티 빌드는 서명되지 않았을 수 있습니다. 첫 실행이 차단되면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 사용하세요.
 
-데스크톱 경계는 `Vue Renderer → typed preload API → validated IPC → Main services → Pi compatibility layer → Native Pi SDK`입니다. Session은 <code>~/.pi/agent/sessions/</code>의 Pi CLI JSONL과 호환됩니다.
+## 시작하기
 
-## Harness Control Plane
-
-Runs, Trace, Replay, Run Tree, Run Compare, Policy, Budget, Checkpoints, Recovery, Permissions, Evaluation, Diagnostics, Regression, Artifacts가 출시되었습니다. 데이터는 실제 Pi Event, Session 및 명령 결과를 사용합니다.
-
-## Multi-Agent 오케스트레이션
-
-Agents, Teams, Tasks, Dependencies, Handoffs, Review Gates, Budget, Worktree 격리와 pause, resume, abort, retry, skip, reassign을 지원합니다. 각 Agent는 실제 Pi Session으로 실행됩니다.
-
-## Pi Superset Contract
-
-Pi-Harness는 Pi Coding Agent의 operational superset입니다. Native Pi의 Agent Runtime과 호환성을 유지하면서 관측성, 거버넌스, 오케스트레이션, 복구, 평가 및 시각적 엔지니어링 작업 공간을 추가합니다.
-
-- Native Pi 기능을 의도적으로 줄이지 않으며 기술적으로 가능한 범위에서 Pi 네이티브 형식과 호환됩니다.
-- Native Pi가 항상 실행 Runtime입니다. Agent Loop, Context, Compaction, Tools, Skills 또는 Extensions를 다시 구현하지 않습니다.
-- Pi 네이티브 Session과 설정은 독립적으로 사용할 수 있고 Harness 전용 상태는 별도로 저장합니다.
-- 기능은 기본적으로 추가 방식이며 Pi의 새 기능은 먼저 호환성 계층을 통해 노출합니다.
-- capability detection, graceful degradation 및 best-effort forward compatibility를 사용합니다.
-
-## Roadmap
-
-- Session Tree 시각화와 더 깊은 Context / Queue inspectors
-- 고급 Workspace 권한과 검증 통합
-- Harness Profiles와 더 스마트한 Run Analysis
+1. Pi-Harness를 실행하고 개요에서 환경을 확인합니다.
+2. Provider를 설정하고 연결을 테스트한 뒤 모델을 선택합니다.
+3. 독립 대화를 시작하거나 프로젝트를 엽니다.
+4. Pi 세션을 시작하거나 이어서 실행하며 대화, 파일, Git을 사용합니다.
+5. 실행 제어나 팀 협업에는 작업 공간 도구를 엽니다.
 
 ## 요구 사항
 
-패키지 앱:
-
-- macOS Apple Silicon, macOS Intel 또는 Windows x64
-- 앱에서 설치하거나 복구할 수 있는 Pi Coding Agent
-
-소스 개발:
-
-- Node.js ≥ 22.22.2
-- pnpm 9.12.1
-
-## 개발
-
-```bash
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-일반 확인 명령은 pnpm typecheck, pnpm lint, pnpm test, pnpm compile, pnpm test:e2e:only입니다. 비밀 값은 Renderer 번들에 포함되는 VITE_* 변수에 저장하지 마세요.
+macOS Apple Silicon, macOS Intel, Windows x64, Linux x64를 지원합니다. 지원 환경에서는 앱에서 Pi Coding Agent를 설치하거나 복구할 수 있습니다. 소스에서 실행하려면 Node.js ≥ 22.22.2와 pnpm 9.12.1이 필요합니다.
 
 ## 문서
 
+- [스크린샷 분류 목록](docs/README.md)
 - [변경 기록](CHANGELOG.md)
+
+## 감사의 말과 저자
+
+공식 [Pi Coding Agent와 Pi Agent Harness](https://github.com/earendil-works/pi)를 중심으로 만들었습니다.
+
+제작·유지 관리: [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com).
 
 ## 라이선스
 
-Pi-Harness는 [GNU Affero General Public License v3.0 only](LICENSE)(AGPL-3.0-only)에 따라 배포됩니다.
+Pi-Harness는 [GNU Affero General Public License v3.0 only](LICENSE)(`AGPL-3.0-only`)로 배포됩니다.
 
 Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).
-
-## 저자
-
-[wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com) · [github.com/wangmiaozero/pi-harness](https://github.com/wangmiaozero/pi-harness)

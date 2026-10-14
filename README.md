@@ -18,461 +18,163 @@
 <h3 align="center">The Operational Superset of Pi Coding Agent</h3>
 
 <p align="center">
-  <strong>Everything Pi. More visibility, control, recovery, and orchestration.</strong>
+  <strong>Native Pi with a visual workspace, run controls, recovery, and agent teams.</strong>
 </p>
-
-<p align="center">Native Pi, supercharged.</p>
 
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
-  <a href="#download"><strong>Download Pi-Harness</strong></a> ·
-  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>Create a Custom Skin</strong></a> ·
-  <a href="https://github.com/earendil-works/pi">Pi Agent Harness</a> ·
-  <a href="#current-screenshots">Screenshots</a>
+  <a href="#download"><strong>Download</strong></a> ·
+  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>Create a custom skin</strong></a> ·
+  <a href="#screenshots">Screenshots</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="version v2.0.0" src="https://img.shields.io/badge/version-v2.0.0-4C8DFF?style=flat-square" /></a>
-  <img alt="platform macOS, Windows, and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
-  <a href="LICENSE"><img alt="license AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-  <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
-</p>
-
-<p align="center">
-  ⭐ <a href="https://github.com/wangmiaozero/pi-harness/stargazers">Star Pi-Harness</a> to follow the project.
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="Releases" src="https://img.shields.io/github/v/release/wangmiaozero/pi-harness?style=flat-square" /></a>
+  <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
+  <a href="LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
 </p>
 
 ## Why Pi-Harness?
 
-Pi-Harness is an operational superset of Pi Coding Agent.
+Pi-Harness brings Pi Coding Agent into a desktop workspace for macOS, Windows, and Linux. Manage conversations, projects, files, Git, models, and Skills in one place, with tools to inspect runs, control budgets, recover work, and coordinate agent teams.
 
-It keeps Native Pi as the execution runtime and preserves Pi-compatible sessions, tools, models, Skills, extensions, context, and compaction, while adding a complete Harness engineering layer around it.
+Native Pi runs the agent. Your Pi sessions, configuration, tools, Skills, and extensions remain compatible with Pi, and you can continue using Pi outside the desktop app.
 
-Pi-Harness adds:
+## Features
 
-- **Observe** — Runs, Trace, Replay, Diagnostics, Evaluation, Regression, and Artifacts
-- **Control** — Policy, Budget, Checkpoints, Recovery, Permissions, and tool control
-- **Orchestrate** — Agents, Teams, Tasks, Dependencies, Handoffs, Review Gates, and Worktrees
-- **Work** — Workspace, Files, Git, Models, Providers, Skills, and Packages
+### Workspace, files, and Git
 
-> **Pi runs the agent. Pi-Harness turns Pi into a visible, controllable, recoverable, and orchestratable engineering system.**
+Start a standalone chat or open a project and resume a Pi session. Follow streaming replies, thinking, tool calls, images, and changed files; choose the model, thinking level, and tools, or compact the conversation. Workspace Tools gives you access to Harness and Agents while preserving your conversation and draft.
 
-Pi-Harness does not replace or reimplement Pi's Agent Runtime.
+Browse and search files, preview media and documents, and edit readable text with syntax highlighting, line numbers, find, undo/redo, explicit save, and external-change conflict protection. The lightweight editor keeps file editing focused. Git provides diffs, history, activity graphs, commits, optional AI commit messages, and worktrees.
 
-## What "Superset" Means
+### Providers and models
 
-Native Pi remains inside the real execution path.
+Configure Pi-compatible providers with presets or custom endpoints, manage credentials, discover models where supported, test connections, and choose your chat model. Use supported image models for text-to-image or image editing, then download the results.
 
-```text
-Pi Coding Agent
-├── Agent Runtime
-├── Sessions
-├── Context
-├── Tools
-├── Models
-├── Thinking
-├── Compaction
-├── Skills
-└── Extensions
+### Skills, extensions, packages, and MCP
 
-              ⊂
+Browse built-in and local Skills, edit them, and manage Pi packages and extensions from Capabilities. Type `@` in the composer to search and invoke an installed Skill. Connect MCP through supported packages. Optional add-ons such as [Superpowers](https://github.com/obra/superpowers) and [Odai](https://github.com/orziz/odai) can be installed, updated, or removed when you choose.
 
-Pi-Harness
-├── Everything above through Native Pi
-├── Runs / Trace / Replay
-├── Policy / Budget
-├── Checkpoints / Recovery
-├── Evaluation / Diagnostics
-├── Regression / Artifacts
-├── Multi-Agent Orchestration
-├── Tasks / DAG / Handoffs
-├── Review Gates / Worktrees
-└── Visual Engineering Workspace
-```
+### Harness: observe, control, and recover
 
-## Core Capabilities
+Inspect Runs, Trace, Replay, timelines, and tool activity. Compare runs, follow forks and retries in the Run Tree, review tokens, cost, and duration, and browse artifacts and project statistics.
 
-| Layer             | Capabilities                                                                              |
-| ----------------- | ----------------------------------------------------------------------------------------- |
-| Native Pi Runtime | Agent Runtime, Sessions, Context, Tools, Models, Thinking, Compaction, Skills, Extensions |
-| Observe           | Runs, Trace, Replay, Run Compare, Diagnostics, Evaluation, Regression, Artifacts          |
-| Control           | Policy, Budget, Checkpoints, Recovery, Permissions, tool control, Compaction              |
-| Orchestrate       | Agents, Teams, Tasks, Dependencies, Handoffs, Review Gates, Worktree isolation            |
-| Work              | Workspace, Files, Git, Worktrees, Models, Providers, Skills, and Packages                 |
+Set tool policies and per-run budgets, create checkpoints, and resume, fork, or retry work. Evaluation, Diagnostics, and regression baselines help you check results and investigate failures using recorded run evidence.
 
-### What's new in v2.0.0
+### Agent teams and task orchestration
 
-- **Interactive project architecture** — Explore modules and their dependencies, inspect source references, filter by package, and revisit saved analysis snapshots.
-- **More room for the map** — Use fullscreen, mouse-wheel or trackpad zoom, and map paging from the floating toolbar. Compact panels and theme-aware backgrounds keep the diagram in focus.
-- **Workspace tools** — Open **Tools** to switch between Harness and Agents while keeping your conversation and draft available.
-- **Smoother everyday use** — Faster menu switching, history loading, file previews, and Skill editing, with the same workflows and appearance.
-- **Classic Dark by default** — New installations start in Dark. Existing theme and skin selections are preserved.
+Coordinate Pi agents with reusable teams and templates. Assign tasks with dependencies and priorities, schedule them manually, sequentially, or in parallel, pass results and artifacts to the next task, and use review gates. Worktrees keep agent changes separate; budgets, conflict hints, and pause, resume, abort, retry, skip, and reassign controls help you manage the work.
 
-### What's new in v1.9.0
+### Local conversation history
 
-- **Local AI history** — Browse Claude Code, Codex (including desktop and archived conversations), Cursor, Cursor Agent, Gemini CLI, OpenCode, and Pi in one place. Search and filter by source, project, or date range, and add custom history folders.
-- **View and continue separately** — Click anywhere on a conversation card to view its history. Browsing, local handoff previews, and scan retries use no model tokens. Original conversations always remain read-only.
-- **Continue in the same project** — Reuse the conversation's project directory without importing it again. Review an editable next-step instruction before continuing with your selected model in a new Pi chat, shown under that project. Default chats remain under Sessions.
-- **Optional AI summaries** — Choose **Organize with AI** to refine the handoff with your configured model. This action uses model tokens only when you request it.
-- **Smoother navigation** — Retry scans while keeping imported history, select dates with one range picker, and use clearer titles, multilingual labels, and buttons that keep their rounded shape.
+Browse Claude Code, Codex (including desktop and archived conversations), Cursor, Cursor Agent, Gemini CLI, OpenCode, and Pi history together. Search, filter by source, project, or date range, and add custom history folders.
+
+View the original conversation in read-only mode, preview a handoff, and edit the next instruction before continuing in a new Pi chat under the same project. Browsing, local previews, and scan retries use no model tokens. Optional AI summaries use your configured model only when requested.
 
 ### Project architecture
 
-Open **Architecture** in Workspace to analyze an imported project, explore an interactive map, inspect source references, and keep analysis snapshots. Local analysis uses no model tokens; optional AI descriptions use the configured model when selected. Source changes are flagged, and Pi can retrieve relevant project information on demand before reading the current code.
+Open Architecture in Workspace to explore modules, dependencies, entrypoints, and source references. Filter by package, focus on a module, browse map pages, zoom, or use fullscreen. Save analysis snapshots, see when source changes make them stale, and export JSON, offline HTML, or the current view as PNG.
 
-Browse map pages or focus a module and its direct dependencies. Package filters and entrypoints help navigate projects with multiple packages. The analysis panel follows the app language and supports narrow windows.
+Local analysis uses no model tokens; AI descriptions are optional. JavaScript, TypeScript, and Vue import relationships are analyzed locally, while other supported languages have a file-level index. The analysis shows its coverage and limitations.
 
-Analysis has explicit coverage limits. JavaScript, TypeScript, and Vue imports are resolved locally; other supported languages have a file-level index. Export JSON, offline HTML, or the current diagram view as PNG.
+### Themes and custom skins
 
-### Skills in conversations
+Choose classic palettes, Ming themes, Starship Cockpit, macOS 27 backgrounds, or an imported custom skin. New installations start in Dark. Customize chat display names, app icons, local background images, window and screen glow, and the input flame effect. Startup animation accompanies the environment check; mascot-free builds retain the general appearance controls.
 
-- **`@Skill` in the composer** — Type `@` to search installed Skills, navigate suggestions from the keyboard, and invoke the selected Skill through Native Pi.
-- **Compact Skill history** — Expanded Skill prompts stay concise in conversations, full history, and restored session titles.
-- **Cleaner Workspace controls** — Skill suggestions, file-panel view controls, and sidebar actions use a tighter visual hierarchy with less chrome.
+### Environment and app settings
 
-### Startup and appearance
+Check Node.js, npm, PATH, Pi Coding Agent, and the active configuration. Install, update, or repair Pi where supported, inspect environment diagnostics, manage configuration backups, and check for app updates. The interface is available in eight languages.
 
-Pi-Harness opens with a startup animation while it checks the npm registry, Node.js, npm, Pi Agent, and the active configuration. The animation remains visible for at least five seconds, uses a monochrome quantum particle effect by default, and follows the selected optional visual theme when one is active.
+## Create your own skin
 
-New installations use the **Dark** theme. You can also choose **macOS 27** and its **Liquid Ether** background. In **Settings → General**, choose another palette or macOS 27 background, use a local PNG/JPEG/WebP background, customize chat display names, choose the Classic, Ming, or Quantum app icon, and control the window glow, screen glow, and input flame effect independently.
-
-In **Settings → Theme**, the built-in themes remain available alongside declarative custom skins. Pi-Harness can create a constrained skin starter project for Codex or Pi and import its local bitmap assets and color tokens. Mascot-free builds keep the default startup animation and General appearance controls without loading optional portrait themes.
-
-### Create your own custom skin
-
-Use the [Pi-Harness Custom Skin Starter](https://github.com/wangmiaozero/pi-harness-skin-starter) to create a skin in any visual style you like:
+Use the [Pi-Harness Custom Skin Starter](https://github.com/wangmiaozero/pi-harness-skin-starter) to create the visual style you want.
 
 1. Use the starter repository as a template or download it.
-2. Open it with Codex or Pi and describe your preferred style using the included copy-and-run prompt or `SKIN_BRIEF.md`.
+2. Open it with your coding agent and describe your preferred style using the included prompt.
 3. Import the completed project from **Settings → Theme → Import Skin**.
 
-The multilingual starter includes the manifest schema, editable color tokens, asset requirements, and validation instructions for the preview, wallpaper, and optional portrait. Keep the skin in its own repository to version, update, and share it independently from Pi-Harness.
+The multilingual starter includes guidance for colors, previews, wallpapers, and optional character artwork. Keep your skin in its own repository to update and share it independently.
 
-### Optional methodologies and add-ons
+<a id="screenshots"></a>
 
-Native Pi remains the built-in default runtime and workflow. Pi-Harness does not replace it and does not silently install or enable third-party methodologies.
+## Screenshots
 
-- [Superpowers](https://github.com/obra/superpowers) is the recommended optional add-on: a complete software development methodology for coding agents covering brainstorming, planning, TDD, systematic debugging, Git worktrees, subagent and parallel-agent workflows, code review, and verification. Install it explicitly from Capabilities with `pi install git:github.com/obra/superpowers`.
-- [Odai](https://github.com/orziz/odai) remains an optional governance and adaptive-execution methodology for goal alignment, authorization boundaries, risk awareness, capability routing, evidence, and verification.
+Product screenshots are grouped by theme. Browse the [complete screenshot index](docs/README.md) for additional views.
 
-Both add-ons use the existing trusted capability/package management flows and can be updated or removed independently.
+### Classic theme
 
-### Lightweight editor, not an IDE
+|                              Workspace                               |                              Git                               |
+| :------------------------------------------------------------------: | :------------------------------------------------------------: |
+|           ![Workspace](docs/功能界面/经典主题/工作区.png)            |             ![Git](docs/功能界面/经典主题/Git.png)             |
+|                       **Providers and models**                       |                        **Capabilities**                        |
+| ![Providers and models](docs/功能界面/经典主题/Provider与模型-1.png) |     ![Capabilities](docs/功能界面/经典主题/能力中心-1.png)     |
+|                             **Harness**                              |                    **Project architecture**                    |
+|         ![Harness](docs/功能界面/经典主题/工具Harness-1.png)         | ![Project architecture](docs/功能界面/经典主题/项目架构-1.png) |
 
-Pi-Harness edits readable text with lazy syntax highlighting, line numbers, undo/redo, find, explicit save, unsaved-state indicators, and external-change conflict protection. Oversized, binary, media, and document files use read-only previews.
+### Ming interfaces
 
-It deliberately does not include LSP/IntelliSense, semantic refactoring, a debugger, task runner, integrated terminal, or IDE extension compatibility.
+|                   General settings                   |                    Theme and skin gallery                    |
+| :--------------------------------------------------: | :----------------------------------------------------------: |
+| ![General settings](docs/功能界面/大明/通用设置.png) | ![Theme and skin gallery](docs/功能界面/大明/主题皮肤库.png) |
 
-## Current screenshots
+### Theme gallery
 
-The classic dark screenshots show the core product surfaces. The appearance gallery shows the refreshed Ming themes, Starship Cockpit, macOS 27 Liquid Glass, custom skins, and appearance settings.
-
-### Classic dark theme
-
-|                               Workspace                               |                             Git                             |
-| :-------------------------------------------------------------------: | :---------------------------------------------------------: |
-|   ![Workspace in the classic dark theme](docs/经典主题/工作区.jpg)    |   ![Git in the classic dark theme](docs/经典主题/Git.jpg)   |
-|                           **Capabilities**                            |                         **Models**                          |
-| ![Capabilities in the classic dark theme](docs/经典主题/能力中心.jpg) | ![Models in the classic dark theme](docs/经典主题/模型.jpg) |
-|                            **Preferences**                            |                                                             |
-|   ![Preferences in the classic dark theme](docs/经典主题/设置.jpg)    |                                                             |
-
-### Appearance gallery
-
-#### Workspace themes
-
-|                            Ming · Snowbound official                            |                          Ming · Snow flute scholar                          |
-| :-----------------------------------------------------------------------------: | :-------------------------------------------------------------------------: |
-|      ![Ming snowbound official workspace](docs/主题展示/大明/雪境朝臣.jpg)      |    ![Ming snow flute scholar workspace](docs/主题展示/大明/雪夜笛姬.jpg)    |
-|                             **Ming · Moon scholar**                             |                            **Starship Cockpit**                             |
-|         ![Ming moon scholar workspace](docs/主题展示/大明/月城书姬.jpg)         |       ![Starship Cockpit workspace](docs/主题展示/星舰/霜星领航.jpg)        |
-|                           **macOS 27 · Liquid Ether**                           |                            **Declarative skin**                             |
-| ![macOS 27 Liquid Ether workspace](docs/主题展示/macOS%2027/Liquid%20Ether.jpg) | ![Custom declarative skin workspace](docs/主题展示/自定义皮肤/夏日海岸.jpg) |
-
-#### Product interfaces
-
-|                    **General settings**                    |                         **Theme gallery**                          |
-| :--------------------------------------------------------: | :----------------------------------------------------------------: |
-| ![General appearance settings](docs/功能界面/通用设置.jpg) |  ![Built-in and custom theme gallery](docs/功能界面/主题图库.jpg)  |
-|                      **Capabilities**                      |                      **Providers and models**                      |
-|     ![Capabilities market](docs/功能界面/能力中心.jpg)     | ![Provider and model management](docs/功能界面/Provider与模型.jpg) |
+|                   Ming · Snowbound official                   |                   Ming · Snow flute scholar                   |
+| :-----------------------------------------------------------: | :-----------------------------------------------------------: |
+| ![Ming · Snowbound official](docs/主题展示/大明/雪境朝臣.png) | ![Ming · Snow flute scholar](docs/主题展示/大明/雪夜笛姬.png) |
+|                    **Ming · Moon scholar**                    |                     **Starship Cockpit**                      |
+|    ![Ming · Moon scholar](docs/主题展示/大明/月城书姬.png)    |     ![Starship Cockpit](docs/主题展示/星舰/霜星领航.png)      |
 
 <p align="center">
-  <strong>Git</strong><br>
-  <img src="docs/功能界面/Git.jpg" alt="Git workspace" width="49%">
+  <strong>macOS 27 · Liquid Ether</strong><br>
+  <img src="docs/主题展示/macOS%2027/Liquid%20Ether.png" alt="macOS 27 · Liquid Ether" width="80%" />
 </p>
 
-## Pi vs Pi-Harness
-
-| Capability         | Native Pi | Pi-Harness                 |
-| ------------------ | --------- | -------------------------- |
-| Agent Runtime      | Yes       | Native Pi                  |
-| Agent Loop         | Yes       | Native Pi                  |
-| Sessions           | Yes       | Yes + visual management    |
-| Context            | Yes       | Yes + inspection           |
-| Compaction         | Yes       | Yes + visual control       |
-| Steering           | Yes       | Yes                        |
-| Follow-up          | Yes       | Yes                        |
-| Models             | Yes       | Yes + manager              |
-| Thinking           | Yes       | Yes + visual control       |
-| Tools              | Yes       | Yes + selection and policy |
-| Skills             | Yes       | Yes + manager              |
-| Extensions         | Yes       | Yes + manager              |
-| Runs               | —         | Yes                        |
-| Trace              | —         | Yes                        |
-| Replay             | —         | Yes                        |
-| Evaluation         | —         | Yes                        |
-| Policy             | —         | Yes                        |
-| Budget             | —         | Yes                        |
-| Checkpoint         | —         | Yes                        |
-| Recovery           | —         | Yes                        |
-| Diagnostics        | —         | Yes                        |
-| Regression         | —         | Yes                        |
-| Artifacts          | —         | Yes                        |
-| Multi-Agent        | —         | Yes                        |
-| Task DAG           | —         | Yes                        |
-| Handoff            | —         | Yes                        |
-| Review Gates       | —         | Yes                        |
-| Worktree isolation | —         | Yes                        |
-
-## Architecture
-
-Native Pi is contained within Pi-Harness's execution architecture, not replaced by it.
-
-```text
-                         Pi-Harness
-┌─────────────────────────────────────────────────────┐
-│                                                     │
-│                Superset Capabilities                │
-│                                                     │
-│  Observe              Control          Orchestrate  │
-│  ─────────            ─────────        ───────────  │
-│  Runs                 Policy           Agents       │
-│  Trace                Budget           Teams        │
-│  Replay               Checkpoints      Tasks        │
-│  Diagnostics          Recovery         DAG          │
-│  Evaluation           Permissions      Handoffs     │
-│  Regression                            Review Gates │
-│  Artifacts                             Worktrees    │
-│                                                     │
-│  Workspace · Models · Providers · Skills · Git      │
-│                                                     │
-│  ┌───────────────────────────────────────────────┐  │
-│  │                  Native Pi                    │  │
-│  │                                               │  │
-│  │ Agent Runtime · Sessions · Context · Tools    │  │
-│  │ Compaction · Thinking · Skills · Extensions  │  │
-│  └───────────────────────────────────────────────┘  │
-│                                                     │
-└─────────────────────────────────────────────────────┘
-```
-
-The desktop boundary remains `Vue Renderer → typed preload API → validated IPC → Main services → Pi compatibility layer → Native Pi SDK`. Sessions remain compatible with Pi CLI JSONL under <code>~/.pi/agent/sessions/</code>.
-
-## Harness Control Plane
-
-Pi-Harness has shipped its Harness Control Plane: Runs, Policy, Checkpoints, Evaluation, and a filterable Trace are live in the Harness Console.
-
-Version 1.5 added Run Intelligence & Replay and Multi-Agent Orchestration: every run records a redacted trace you can replay (play/pause, step, 0.5x–4x/instant) and inspect as a span waterfall; forks, retries, and recoveries form a Run Tree; any two runs can be compared metric-by-metric with real diffs; deterministic Diagnostics explain failures with root-cause chains; project baselines flag regressions; artifacts (files, test/lint/build logs, checkpoints, git commits) are tracked per run; and project statistics summarize success, evaluation pass, and recovery rates over time. Agent teams can be coordinated on one plan — tasks with dependencies, priorities, and assignees; manual, sequential, or dependency-based scheduling with parallel dispatch; per-agent worktree isolation; artifact handoffs; review gates; orchestration budgets; and pause/resume/abort with retry, skip, and reassign.
-
-The next phase focuses on session visualization and deeper context inspection without replacing the runtime that Pi already provides.
-
-### Harness Console — shipped panels
-
-```text
-┌──────────────────────────────────────────────┐
-│ HARNESS                                      │
-│                                              │
-│ ● Running                                    │
-│                                              │
-│ Runs                                         │
-│ ───────────────────────────────────────────  │
-│ ▸ #12  ship auth flow        ✓ success       │
-│     74,120 tok · $0.42 · 23 tools · 4m 12s   │
-│ ▸ #11  fix build            ✕ failed         │
-│                                              │
-│ Policy                                       │
-│ ───────────────────────────────────────────  │
-│ Git push         Ask      Budget  ∞ tokens   │
-│ Files delete     Ask      Budget  ∞ cost     │
-│ Shell default    Allow    Dangerous  Confirm │
-│                                              │
-│ Checkpoints                                   │
-│ ───────────────────────────────────────────  │
-│ ▸ pre-run #12   session · main @ a1b2c3d     │
-│                                              │
-│ Evaluation                                   │
-│ ───────────────────────────────────────────  │
-│ ✓ Run completed   ✓ No unhandled errors     │
-│ ✓ Tests passed    ⚠ No lint executed        │
-│ ✓ Git workspace clean                       │
-│                                              │
-│ Run Detail · Replay                          │
-│ ▸ ▶ 0:42/4:12  speed 1x   fork · re-run      │
-│ ! bash exited 1 → shell failure chain        │
-│ ▲ tokens +150% vs baseline (regression)      │
-└──────────────────────────────────────────────┘
-```
-
-### Harness Timeline — shipped with filters
-
-```text
-12:40:03  Session started
-12:40:05  Run started: ship auth flow
-12:40:07  Tool · read · src/auth.ts
-12:40:10  Policy allowed · edit · src/auth.ts
-12:40:23  Compaction started
-12:40:25  Compaction completed
-12:40:31  Run completed: success
-12:40:32  Evaluation completed: passed
-```
-
-Filters: All · Runs · Tools · Policy · System. Every timeline entry derives from real Pi events — no mock UI.
-
-### Run Intelligence — shipped with 1.5
-
-```text
-Run Tree          #12 ── fork ──▶ #13 (new session)
-                  #12 ── retry ─▶ #14
-Waterfall         ▐ model  ████████        3m 02s
-                  ▐ tool   ██              41s
-                  ▐ shell     ███          1m 10s
-Diagnostics       1. bash exited with code 1
-                  2. test stage failed → evaluation failed
-Baseline          tokens +150% · cost +100% · duration ×2  (regression)
-Artifacts         3 files · test-report · build-output · git-commit
-Project · 30d     82% success · 71% eval pass · 45% recovery
-```
-
-All intelligence is deterministic and evidence-based: spans, cause chains, regression findings, and artifacts come from recorded events and real command output — never model guesses.
-
-## Multi-Agent Orchestration
-
-```text
-Team          Architect · Frontend · Backend · QA · Reviewer
-
-Tasks         8 total · 2 running · 1 ready · 1 blocked · 4 done
-
-Agents        Architect   ✓ completed   21,440 tok · $0.11
-              Frontend    ▶ running     64,120 tok · $0.38   worktree
-              Backend     ▶ running     58,301 tok · $0.35   worktree
-              QA          ⏸ waiting on dependencies
-              Reviewer    ⏸ waiting for review gate
-
-Dependencies  design ──┬─▶ frontend ──┬─▶ integrate ─▶ review
-                        └─▶ backend ──┘
-Handoff       architecture.md → Backend
-Conflict      Frontend and Backend both modified src/api.ts
-Budget        $1.24 / $5.00 · pause when exceeded
-Recovery      pause · resume · abort · retry · skip · reassign
-```
-
-Every agent executes through a real Pi session: orchestration adds coordination, not a second runtime.
-
-## Pi Superset Contract
-
-- **Pi Compatibility:** Pi-Harness must not intentionally reduce Native Pi capabilities. Pi sessions, configuration, models, providers, tools, Skills, extensions, packages, context, compaction, Steering, Follow-up, session trees, and Thinking levels remain compatible whenever technically possible.
-- **Pi Is the Runtime:** Native Pi remains the Agent execution runtime. Pi-Harness does not reimplement the Agent Loop, `AgentSession`, context, compaction, tool, Skill, or extension runtimes.
-- **Native Pi Escape Hatch:** Pi-native sessions and configuration remain usable outside Pi-Harness.
-- **Additive by Default:** Harness capabilities enhance Pi without replacing or weakening it.
-- **Shared State:** Pi-Harness uses Pi-native state and formats where possible; Harness-only metadata stays separate.
-- **Upstream First:** New Pi capabilities enter through the compatibility layer first, with capability detection, graceful degradation, and best-effort forward compatibility.
-
-## Roadmap
-
-### Current
-
-- Released desktop capabilities listed above
-- Pi Agent Runtime integration and session controls
-- Native project workspace, Harness Control Plane, and Multi-Agent Orchestration
-
-### Next
-
-- Session Tree visualization
-- Deeper Context and Queue inspectors
-- Run intelligence beyond deterministic rules (opt-in, clearly separated from recorded evidence)
-
-### Later
-
-- Workspace permissions beyond the current file policy
-- Verification and quality-check integrations
-- Harness Profiles
+<a id="download"></a>
 
 ## Download
 
-Pi-Harness v2.0.0 is being prepared for release. The installers below become available after publication; find currently published versions on [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases).
+Download a published installer from [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases) and choose the file for your platform.
 
-| Platform            | Installer                                                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-2.0.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-2.0.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-2.0.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-Setup-2.0.0.exe) |
-| Linux x64           | [`Pi-Harness-2.0.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.AppImage)   |
+| Platform            | Installer                  |
+| ------------------- | -------------------------- |
+| macOS Apple Silicon | `.dmg` · `arm64`           |
+| macOS Intel         | `.dmg` · `x64`             |
+| Windows x64         | `.exe` · Windows installer |
+| Linux x64           | `.AppImage`                |
 
-> macOS community builds may be unsigned. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway**. See the [v2.0.0 installation notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v2.0.0).
+Packaged users do not need to clone the repository or install pnpm. Pi-Harness can help set up Pi and its environment where supported.
 
-Packaged users do not need to clone the repository or install pnpm. Pi-Harness can detect, install, and repair Node.js, npm, PATH, and Pi Coding Agent where supported.
+> macOS community builds may be unsigned. If the first launch is blocked, use **System Settings → Privacy & Security → Open Anyway**.
 
-## How it works
+## Get started
 
-1. Launch Pi-Harness and let Overview check Node.js, npm, PATH, and Pi.
-2. Configure a Pi-compatible provider and choose a model.
-3. Open a project in the native Workspace.
-4. Start or resume a Pi session.
-5. Work with streaming output, Tool Calls, files, and Git in one place.
-
-```text
-Install → Configure provider → Select model → Open project → Run Pi
-```
+1. Launch Pi-Harness and check the environment in Overview.
+2. Configure a provider, test the connection, and select a model.
+3. Start a standalone chat or open a project.
+4. Start or resume a Pi session, then work with conversations, files, and Git.
+5. Open Workspace Tools for Harness controls or agent teams.
 
 ## Requirements
 
-For the packaged app:
+The desktop app supports macOS Apple Silicon, macOS Intel, Windows x64, and Linux x64. Pi Coding Agent can be installed or repaired from the app where supported. Running from source requires Node.js ≥ 22.22.2 and pnpm 9.12.1.
 
-- macOS Apple Silicon, macOS Intel, Windows x64, or Linux x64
-- Pi Coding Agent, which Pi-Harness can install or repair from the app
+## Documentation
 
-For development from source:
-
-- Node.js ≥ 22.22.2
-- pnpm 9.12.1
-
-## Development
-
-```bash
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-Without a local Pi installation, point **Settings → Config directory** at <code>fixtures/mock-pi/</code>, or copy <code>.env.example</code> to <code>.env</code> and set <code>PI_HARNESS_PI_CONFIG_DIR</code> to that fixture. Never store secrets in <code>VITE_*</code> variables; they are bundled into the renderer.
-
-Common checks:
-
-```bash
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm compile
-pnpm test:e2e:only
-```
-
-## Follow the project
-
-Pi-Harness continues to deepen Session Tree visualization, Context and Queue inspection, workspace permissions, verification integrations, and Harness Profiles.
-
-If you want to follow that work, consider giving [Pi-Harness a ⭐](https://github.com/wangmiaozero/pi-harness/stargazers). It helps you find the project again and helps more Pi users discover it.
+- [Screenshot index](docs/README.md)
+- [Changelog](CHANGELOG.md)
 
 ## Credits
 
-Pi-Harness is a desktop project around the official [Pi Coding Agent and Pi Agent Harness](https://github.com/earendil-works/pi).
+Pi-Harness is built around the official [Pi Coding Agent and Pi Agent Harness](https://github.com/earendil-works/pi).
 
 Created and maintained by [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com).
 
-See the [changelog](CHANGELOG.md) for released changes.
-
 ## License
 
-Pi-Harness is free software licensed under the [GNU Affero General Public License v3.0 only](LICENSE) (<code>AGPL-3.0-only</code>). You may use, modify, and redistribute it under the license terms. Modified versions made available over a network must offer their corresponding source to users as required by AGPL v3.
+Pi-Harness is licensed under the [GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`).
 
 Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

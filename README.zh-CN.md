@@ -18,360 +18,154 @@
 <h3 align="center">Pi Coding Agent 的 Operational Superset</h3>
 
 <p align="center">
-  <strong>完整保留 Native Pi，并增加观测、控制、恢复、评估与多 Agent 编排。</strong>
+  <strong>在 Native Pi 之上，提供可视化工作区、运行控制、任务恢复与多智能体协作。</strong>
 </p>
-
-<p align="center">Native Pi，全面增强。</p>
 
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
-  <a href="#下载"><strong>下载 Pi-Harness</strong></a> ·
+  <a href="#download"><strong>下载</strong></a> ·
   <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>创建自定义皮肤</strong></a> ·
-  <a href="https://github.com/earendil-works/pi">Pi Agent Harness</a> ·
-  <a href="#当前界面">界面预览</a> ·
-  <a href="#技术交流">技术交流</a>
+  <a href="#screenshots">界面预览</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="v2.0.0 版本" src="https://img.shields.io/badge/version-v2.0.0-4C8DFF?style=flat-square" /></a>
-  <img alt="支持 macOS、Windows 和 Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
-  <a href="LICENSE"><img alt="AGPL-3.0-only 许可" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="已发布版本" src="https://img.shields.io/github/v/release/wangmiaozero/pi-harness?style=flat-square" /></a>
+  <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
+  <a href="LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
-</p>
-
-<p align="center">
-  ⭐ <a href="https://github.com/wangmiaozero/pi-harness/stargazers">点个 Star</a>，关注 Pi-Harness。
 </p>
 
 ## 为什么是 Pi-Harness？
 
-Pi-Harness 是 Pi Coding Agent 的 Operational Superset。
+Pi-Harness 将 Pi Coding Agent 带入 macOS、Windows 和 Linux 桌面工作区。在同一个应用中管理对话、项目、文件、Git、模型和 Skills，并通过运行观测、预算控制、任务恢复与智能体团队完成工作。
 
-它继续使用 Native Pi 作为唯一 Agent Runtime，并保持对 Pi Session、Tools、Models、Skills、Extensions、Context 与 Compaction 的兼容，同时在 Pi 之上增加完整的 Harness 工程能力。
+Native Pi 负责运行智能体。Pi 会话、配置、工具、Skills 与扩展保持兼容，也可以继续在桌面应用之外使用 Pi。
 
-Pi-Harness 增加：
+## 功能介绍
 
-- **Observe / 观测** — Runs、Trace、Replay、Diagnostics、Evaluation、Regression、Artifacts
-- **Control / 控制** — Policy、Budget、Checkpoints、Recovery、Permissions、工具控制
-- **Orchestrate / 编排** — Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Worktrees
-- **Work / 工程工作区** — Workspace、Files、Git、Models、Providers、Skills、Packages
+### 工作区、文件与 Git
 
-> **Pi 负责运行 Agent；Pi-Harness 让 Pi 变成可观测、可控制、可恢复、可编排的工程系统。**
+可以直接开始独立对话，也可以打开项目并继续 Pi 会话。集中查看流式回复、思考过程、工具调用、图片和文件变更，选择模型、思考级别与工具，或压缩对话上下文。在工作区“工具”中打开 Harness 和智能体时，对话与未发送草稿会保留。
 
-Pi-Harness 不替换，也不重新实现 Pi 的 Agent Runtime。
+支持文件浏览与搜索、媒体和文档预览，以及带语法高亮、行号、查找、撤销/重做、显式保存和外部变更冲突保护的轻量文本编辑。Git 提供差异、提交历史、活动图、提交操作、可选 AI 提交信息和 worktree。
 
-## 什么叫 Superset？
+### Provider 与模型
 
-Native Pi 始终位于真实执行链路中。
+通过预设或自定义地址配置 Pi 兼容 Provider，管理凭证、获取服务支持的模型列表、测试连接并选择聊天模型。支持的图像模型可用于文生图或图片编辑，结果可以下载。
 
-```text
-Pi Coding Agent
-├── Agent Runtime
-├── Session
-├── Context
-├── Tools
-├── Models
-├── Thinking
-├── Compaction
-├── Skills
-└── Extensions
+### Skills、扩展、包与 MCP
 
-              ⊂
+在能力中心浏览内置与本地 Skills、编辑 Skill，并管理 Pi 包和扩展。在输入框键入 `@`，即可搜索并调用已安装的 Skill。通过支持的包连接 MCP；[Superpowers](https://github.com/obra/superpowers) 和 [Odai](https://github.com/orziz/odai) 等可选增强能力可按需安装、更新或卸载。
 
-Pi-Harness
-├── 上述全部 Native Pi 能力
-├── Runs / Trace / Replay
-├── Policy / Budget
-├── Checkpoints / Recovery
-├── Evaluation / Diagnostics
-├── Regression / Artifacts
-├── Multi-Agent Orchestration
-├── Tasks / DAG / Handoffs
-├── Review Gates / Worktrees
-└── Visual Engineering Workspace
-```
+### Harness：观测、控制与恢复
 
-## 核心能力
+查看运行记录、Trace、回放、时间线与工具活动；对比不同运行，在运行树中追踪分支和重试，检查 Token、费用、耗时、产物及项目统计。
 
-| 层级               | 能力                                                                                      |
-| ------------------ | ----------------------------------------------------------------------------------------- |
-| Native Pi Runtime  | Agent Runtime、Sessions、Context、Tools、Models、Thinking、Compaction、Skills、Extensions |
-| Observe / 观测     | Runs、Trace、Replay、Run Compare、Diagnostics、Evaluation、Regression、Artifacts          |
-| Control / 控制     | Policy、Budget、Checkpoints、Recovery、Permissions、工具控制、Compaction                  |
-| Orchestrate / 编排 | Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Worktree 隔离                 |
-| Work / 工程工作区  | Workspace、Files、Git、Worktrees、Models、Providers、Skills、Packages                     |
+设置工具策略与单次运行预算，创建检查点，并恢复、分支或重试任务。评估、诊断和回归基线帮助你依据实际运行记录检查结果、定位失败原因。
 
-### v2.0.0 新增与改进
+### 智能体团队与任务编排
 
-- **交互式项目架构**：浏览模块和依赖关系，查看源码引用、按包筛选，并随时回看已保存的分析快照。
-- **让架构图成为主角**：支持全屏、鼠标滚轮和触摸板缩放；浮动工具栏集中提供模块翻页与图表操作。精简面板与跟随主题皮肤的背景，为架构图留出更多空间。
-- **工作区工具入口**：点击“工具”后，在内容区域切换 Harness 和智能体，保留对话与未发送的草稿。
-- **更流畅的日常操作**：改善菜单切换、历史加载、文件预览和 Skill 编辑的响应速度，保持原有操作流程与界面样式。
-- **默认深色主题**：新安装默认使用“深色”；已有主题和皮肤选择继续保留。
+使用可复用团队和模板协调多个 Pi 智能体，为任务指定依赖、优先级和负责人，支持手动、顺序或并行调度、结果与产物交接、审核关卡。通过 worktree 隔离修改，并使用预算、冲突提示，以及暂停、继续、中止、重试、跳过和重新分配来管理任务。
 
-### v1.9.0 新增与改进
+### 本地会话历史
 
-- **统一查看本地历史**：集中浏览 Claude Code、Codex（含桌面及归档会话）、Cursor、Cursor Agent、Gemini CLI、OpenCode 和 Pi 的聊天记录；支持搜索、来源/项目/日期范围筛选和自定义会话目录。
-- **查看与继续分开**：点击整张会话卡片即可查看历史。浏览、本地任务交接预览和扫描重试均不消耗模型 Token，原始会话始终只读。
-- **直接在原项目继续**：自动沿用历史会话的项目目录，无需重新导入；确认可编辑的下一步指令后，才使用当前模型新建 Pi 对话。新对话显示在对应项目下，默认对话仍放在“会话”中。
-- **按需 AI 整理**：显式点击“AI 整理”，才使用已配置的模型优化交接内容并消耗模型 Token。
-- **更顺畅的操作**：扫描失败可重试并保留已导入历史；日期筛选合并为一个范围控件，改善标题、多语言标签和按钮圆角状态。
+统一浏览 Claude Code、Codex（含桌面及归档会话）、Cursor、Cursor Agent、Gemini CLI、OpenCode 和 Pi 历史，支持搜索、来源/项目/日期范围筛选和自定义历史目录。
+
+原始会话只读；查看交接预览、编辑下一步指令后，可以在同一项目下新建 Pi 对话继续任务。浏览、本地预览和扫描重试不消耗模型 Token；可选 AI 整理只在主动使用时调用已配置的模型。
 
 ### 项目架构
 
-在工作区打开“项目架构”，分析已导入的项目、探索交互式架构图、查看源码引用并保存分析快照。本地分析不消耗模型 Token；选择 AI 分析后，才使用已配置的模型补充说明。源码变化会提示快照过期，Pi 可按需检索项目资料，再读取当前代码。
+在工作区打开“项目架构”，浏览模块、依赖、入口文件和源码引用。支持按包筛选、模块聚焦、地图翻页、缩放与全屏，保存分析快照并提示源码变化，可导出 JSON、离线 HTML 或当前视图 PNG。
 
-支持地图翻页和模块聚焦，可按包筛选模块并查看入口文件。分析面板随应用语言切换，也支持窄窗口。
+本地分析不消耗模型 Token，AI 说明按需使用。JavaScript、TypeScript 和 Vue 提供本地导入关系分析，其他支持语言提供文件级索引，分析结果会标明覆盖范围与限制。
 
-分析会明确显示覆盖范围与限制。JavaScript、TypeScript 和 Vue 的导入关系在本地解析，其他支持语言提供文件级索引。可导出 JSON、离线 HTML 或当前图表视图的 PNG。
+### 主题与自定义皮肤
 
-### 启动与外观
+选择经典配色、大明、星舰驾驶舱、macOS 27 背景或导入自定义皮肤。新安装默认使用深色主题；支持自定义聊天显示名称、应用图标、本地背景图，以及窗口光圈、屏幕光圈和输入框火焰效果。启动动画伴随环境检查，无吉祥物版本保留通用外观设置。
 
-Pi-Harness 启动时会显示动画，并检测 npm 软件源、Node.js、npm、Pi Agent 与当前配置。动画至少显示 5 秒；默认使用单色量子粒子效果，启用特色主题后会跟随所选主题呈现对应效果。
+### 环境与应用设置
 
-在“设置 → 通用”中，可以选择经典、大明或量子应用图标，也可以让 Pi-Harness 自动选择；窗口光圈、屏幕光圈与输入框火焰效果均可独立控制。无吉祥物版本会保留默认启动动画和这些外观设置，但不会加载可选吉祥物主题。
+检查 Node.js、npm、PATH、Pi Coding Agent 和当前配置，在支持的环境中安装、更新或修复 Pi；查看环境诊断、管理配置备份并检查应用更新。界面支持八种语言。
 
-### 创建你自己的自定义皮肤
+## 创建自定义皮肤
 
-使用 [Pi-Harness 自定义皮肤模板](https://github.com/wangmiaozero/pi-harness-skin-starter)，可以制作任意视觉风格的皮肤：
+使用 [Pi-Harness 自定义皮肤模板](https://github.com/wangmiaozero/pi-harness-skin-starter)，制作你喜欢的视觉风格。
 
 1. 使用模板仓库，或下载并解压它。
-2. 用 Codex 或 Pi 打开项目，通过内置的一键复制提示词或 `SKIN_BRIEF.md` 描述你喜欢的风格。
+2. 用编码智能体打开项目，通过内置提示词描述你喜欢的风格。
 3. 完成后从“设置 → 主题 → 导入皮肤”导入项目。
 
-这个多语言模板包含清单 Schema、可编辑的颜色令牌、资源规范，以及预览图、壁纸和可选角色图的校验说明。你可以把皮肤保存在独立仓库中，与 Pi-Harness 分开进行版本管理、更新和分享。
+多语言模板提供配色、预览图、壁纸和可选角色图的制作说明。皮肤可以保存在独立仓库中，单独更新和分享。
 
-### 可选方法论与增强能力
+<a id="screenshots"></a>
 
-Native Pi 始终是内置默认运行时与默认工作流。Pi-Harness 不会替换它，也不会静默安装或启用任何第三方方法论。
+## 界面预览
 
-- [Superpowers](https://github.com/obra/superpowers) 是推荐的可选增强能力：一套面向编码智能体的完整软件开发方法论，覆盖头脑风暴、计划、TDD、系统化调试、Git worktree、子智能体与并行智能体工作流、代码审查和完成前验证。可在能力中心明确确认后通过 `pi install git:github.com/obra/superpowers` 安装。
-- [Odai](https://github.com/orziz/odai) 保留为可选的治理与自适应执行方法论，用于目标对齐、授权边界、风险感知、能力路由、证据留存与验证。
+功能界面按主题分类，更多视图见[完整截图索引](docs/README.md)。
 
-两者都复用现有可信能力/包管理流程，可独立更新或卸载。
+### 经典主题
 
-### 轻量编辑器，不是 IDE
+|                             工作区                              |                        Git                         |
+| :-------------------------------------------------------------: | :------------------------------------------------: |
+|          ![工作区](docs/功能界面/经典主题/工作区.png)           |       ![Git](docs/功能界面/经典主题/Git.png)       |
+|                       **Provider 与模型**                       |                    **能力中心**                    |
+| ![Provider 与模型](docs/功能界面/经典主题/Provider与模型-1.png) | ![能力中心](docs/功能界面/经典主题/能力中心-1.png) |
+|                        **Harness 工具**                         |                    **项目架构**                    |
+|    ![Harness 工具](docs/功能界面/经典主题/工具Harness-1.png)    | ![项目架构](docs/功能界面/经典主题/项目架构-1.png) |
 
-Pi-Harness 可以编辑可读文本文件，支持懒加载语法高亮、行号、撤销/重做、查找、显式保存、未保存状态和外部变更冲突保护。超大文件、二进制、媒体和文档使用只读预览。
+### 大明功能界面
 
-它不提供 LSP/IntelliSense、语义重构、调试器、任务运行器、集成终端或 IDE 扩展兼容。
+|                   通用设置                   |                    主题皮肤库                    |
+| :------------------------------------------: | :----------------------------------------------: |
+| ![通用设置](docs/功能界面/大明/通用设置.png) | ![主题皮肤库](docs/功能界面/大明/主题皮肤库.png) |
 
-## 当前界面
+### 主题展示
 
-默认主题截图展示主要功能界面。外观图库按工作区主题和功能界面重新分类。
-
-### 默认主题
-
-|                     工作区                      |                   Git                   |
-| :---------------------------------------------: | :-------------------------------------: |
-|   ![经典主题工作区](docs/经典主题/工作区.jpg)   | ![经典主题 Git](docs/经典主题/Git.jpg)  |
-|                  **能力中心**                   |                **模型**                 |
-| ![经典主题能力中心](docs/经典主题/能力中心.jpg) | ![经典主题模型](docs/经典主题/模型.jpg) |
-|                    **设置**                     |                                         |
-|     ![经典主题设置](docs/经典主题/设置.jpg)     |                                         |
-
-### 外观图库
-
-#### 工作区主题
-
-|                              大明·雪境朝臣                              |                          大明·雪夜笛姬                           |
-| :---------------------------------------------------------------------: | :--------------------------------------------------------------: |
-|         ![大明雪境朝臣工作区](docs/主题展示/大明/雪境朝臣.jpg)          |      ![大明雪夜笛姬工作区](docs/主题展示/大明/雪夜笛姬.jpg)      |
-|                            **大明·月城书姬**                            |                          **星舰驾驶舱**                          |
-|         ![大明月城书姬工作区](docs/主题展示/大明/月城书姬.jpg)          |       ![星舰驾驶舱工作区](docs/主题展示/星舰/霜星领航.jpg)       |
-|                         **macOS 27 · 液态以太**                         |                       **声明式自定义皮肤**                       |
-| ![macOS 27 液态以太工作区](docs/主题展示/macOS%2027/Liquid%20Ether.jpg) | ![声明式自定义皮肤工作区](docs/主题展示/自定义皮肤/夏日海岸.jpg) |
-
-#### 功能界面
-
-|                  通用设置                   |                         主题图库                         |
-| :-----------------------------------------: | :------------------------------------------------------: |
-| ![通用外观设置](docs/功能界面/通用设置.jpg) |   ![内置与自定义主题图库](docs/功能界面/主题图库.jpg)    |
-|                **能力中心**                 |                   **Provider 与模型**                    |
-|   ![能力市场](docs/功能界面/能力中心.jpg)   | ![Provider 与模型管理](docs/功能界面/Provider与模型.jpg) |
+|                   大明·雪境朝臣                   |                   大明·雪夜笛姬                   |
+| :-----------------------------------------------: | :-----------------------------------------------: |
+| ![大明·雪境朝臣](docs/主题展示/大明/雪境朝臣.png) | ![大明·雪夜笛姬](docs/主题展示/大明/雪夜笛姬.png) |
+|                 **大明·月城书姬**                 |                  **星舰驾驶舱**                   |
+| ![大明·月城书姬](docs/主题展示/大明/月城书姬.png) |  ![星舰驾驶舱](docs/主题展示/星舰/霜星领航.png)   |
 
 <p align="center">
-  <strong>Git</strong><br>
-  <img src="docs/功能界面/Git.jpg" alt="Git 工作区" width="49%">
+  <strong>macOS 27 · Liquid Ether</strong><br>
+  <img src="docs/主题展示/macOS%2027/Liquid%20Ether.png" alt="macOS 27 · Liquid Ether" width="80%" />
 </p>
 
-## Pi 与 Pi-Harness
-
-| 能力          | Native Pi | Pi-Harness           |
-| ------------- | --------- | -------------------- |
-| Agent Runtime | 支持      | Native Pi            |
-| Agent Loop    | 支持      | Native Pi            |
-| Sessions      | 支持      | 支持 + 可视化管理    |
-| Context       | 支持      | 支持 + 检查视图      |
-| Compaction    | 支持      | 支持 + 可视化控制    |
-| Steering      | 支持      | 支持                 |
-| Follow-up     | 支持      | 支持                 |
-| Models        | 支持      | 支持 + 管理器        |
-| Thinking      | 支持      | 支持 + 可视化控制    |
-| Tools         | 支持      | 支持 + 选择与 Policy |
-| Skills        | 支持      | 支持 + 管理器        |
-| Extensions    | 支持      | 支持 + 管理器        |
-| Runs          | —         | 支持                 |
-| Trace         | —         | 支持                 |
-| Replay        | —         | 支持                 |
-| Evaluation    | —         | 支持                 |
-| Policy        | —         | 支持                 |
-| Budget        | —         | 支持                 |
-| Checkpoint    | —         | 支持                 |
-| Recovery      | —         | 支持                 |
-| Diagnostics   | —         | 支持                 |
-| Regression    | —         | 支持                 |
-| Artifacts     | —         | 支持                 |
-| Multi-Agent   | —         | 支持                 |
-| Task DAG      | —         | 支持                 |
-| Handoff       | —         | 支持                 |
-| Review Gates  | —         | 支持                 |
-| Worktree 隔离 | —         | 支持                 |
-
-## 架构
-
-Native Pi 位于 Pi-Harness 的执行架构内部，而不是被 Pi-Harness 替换。
-
-```text
-                         Pi-Harness
-┌─────────────────────────────────────────────────────┐
-│                                                     │
-│                Superset Capabilities                │
-│                                                     │
-│  Observe              Control          Orchestrate  │
-│  ─────────            ─────────        ───────────  │
-│  Runs                 Policy           Agents       │
-│  Trace                Budget           Teams        │
-│  Replay               Checkpoints      Tasks        │
-│  Diagnostics          Recovery         DAG          │
-│  Evaluation           Permissions      Handoffs     │
-│  Regression                            Review Gates │
-│  Artifacts                             Worktrees    │
-│                                                     │
-│  Workspace · Models · Providers · Skills · Git      │
-│                                                     │
-│  ┌───────────────────────────────────────────────┐  │
-│  │                  Native Pi                    │  │
-│  │                                               │  │
-│  │ Agent Runtime · Sessions · Context · Tools    │  │
-│  │ Compaction · Thinking · Skills · Extensions  │  │
-│  └───────────────────────────────────────────────┘  │
-│                                                     │
-└─────────────────────────────────────────────────────┘
-```
-
-桌面边界保持为 `Vue Renderer → typed preload API → validated IPC → Main services → Pi compatibility layer → Native Pi SDK`。Session 与 <code>~/.pi/agent/sessions/</code> 下的 Pi CLI JSONL 保持兼容。
-
-## Harness Control Plane
-
-Pi-Harness 已经提供完整的 Harness Control Plane，包括：
-
-- Runs、Trace、Replay、Run Tree、Run Compare
-- Policy、Budget、Checkpoints、Recovery、Permissions
-- Evaluation、Diagnostics、Regression、Artifacts
-- 可筛选 Timeline 与基于真实证据的运行详情
-
-这些能力来自真实 Pi Event、Session 和命令结果，不是模拟状态或未来功能预览。
-
-## Multi-Agent 编排
-
-Pi-Harness 已支持 Agents、Teams、Tasks、Dependencies、Handoffs、Review Gates、Budget 与 Worktree 隔离，并支持 pause、resume、abort、retry、skip 和 reassign。
-
-每个 Agent 都通过真实 Pi Session 执行；编排层增加协调能力，不引入第二套 Agent Runtime。
-
-## Pi Superset Contract
-
-- **Pi Compatibility：**Pi-Harness 不得主动降低 Native Pi 能力；在技术可行时保持 Session、配置、模型、Provider、工具、Skills、Extensions、Packages、Context、Compaction、Steering、Follow-up、Session Tree 与 Thinking Level 兼容。
-- **Pi Is the Runtime：**Native Pi 始终是 Agent 执行 Runtime。Pi-Harness 不重新实现 Agent Loop、`AgentSession`、Context、Compaction、Tool、Skill 或 Extension Runtime。
-- **Native Pi Escape Hatch：**Pi 原生 Session 与配置仍可脱离 Pi-Harness 直接使用。
-- **Additive by Default：**Harness 能力只在 Pi 之上增强，不替换、不削弱 Pi。
-- **Shared State：**尽量使用 Pi 原生状态与格式；Pi-Harness 自有元数据独立存储。
-- **Upstream First：**Pi 新能力优先经兼容层接入，并通过 capability detection、graceful degradation 与 best-effort forward compatibility 降低版本耦合。
-
-## Roadmap
-
-### 当前
-
-- 上文列出的已发布桌面能力
-- Pi Agent Runtime 集成与 Session 控制
-- 原生项目工作区、Harness Control Plane 与 Multi-Agent 编排
-
-### 下一步
-
-- Session Tree 可视化
-- 更深入的 Context 与 Queue Inspector
-- 超越确定性规则的可选 Run 分析，并与记录证据明确区分
-
-### 后续
-
-- 超越当前文件 Policy 的高级 Workspace Permissions
-- Verification 与质量检查集成
-- Harness Profiles
+<a id="download"></a>
 
 ## 下载
 
-Pi-Harness v2.0.0 正在准备发布，下方安装包链接将在发布后可用。当前已发布版本请前往 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)。
+在 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases) 下载已发布的安装包，选择与你的平台对应的文件。
 
-| 平台                | 安装包                                                                                                                         |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | [`Pi-Harness-2.0.0-arm64.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0-arm64.dmg) |
-| macOS Intel         | [`Pi-Harness-2.0.0.dmg`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.dmg)             |
-| Windows x64         | [`Pi-Harness-Setup-2.0.0.exe`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-Setup-2.0.0.exe) |
-| Linux x64           | [`Pi-Harness-2.0.0.AppImage`](https://github.com/wangmiaozero/pi-harness/releases/download/v2.0.0/Pi-Harness-2.0.0.AppImage)   |
+| 平台                | 安装包                    |
+| ------------------- | ------------------------- |
+| macOS Apple Silicon | `.dmg` · `arm64`          |
+| macOS Intel         | `.dmg` · `x64`            |
+| Windows x64         | `.exe` · Windows 安装程序 |
+| Linux x64           | `.AppImage`               |
 
-> macOS 社区构建可能没有签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。详细说明见 [v2.0.0 Release Notes](https://github.com/wangmiaozero/pi-harness/releases/tag/v2.0.0)。
+安装包用户无需克隆仓库或安装 pnpm。Pi-Harness 可以在支持的环境中协助安装 Pi 并配置运行环境。
 
-安装包用户不需要 clone 仓库，也不需要安装 pnpm。Pi-Harness 可以在支持的环境中检测、安装和修复 Node.js、npm、PATH 与 Pi Coding Agent。
+> macOS 社区构建可能未签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。
 
-## 工作流程
+## 开始使用
 
-1. 启动 Pi-Harness，在概览页检查 Node.js、npm、PATH 与 Pi。
-2. 配置 Pi 兼容 Provider，并选择模型。
-3. 打开项目，进入原生工作区。
-4. 新建或继续 Pi Session。
-5. 在同一个界面中使用流式输出、Tool Call、文件和 Git。
-
-```text
-安装 → 配置 Provider → 选择模型 → 打开项目 → 运行 Pi
-```
+1. 启动 Pi-Harness，在概览页检查运行环境。
+2. 配置 Provider、测试连接并选择模型。
+3. 直接新建对话，或打开项目。
+4. 新建或继续 Pi 会话，在同一个界面中处理对话、文件和 Git。
+5. 需要运行控制或团队协作时，打开工作区“工具”。
 
 ## 环境要求
 
-安装包用户：
+桌面应用支持 macOS Apple Silicon、macOS Intel、Windows x64 和 Linux x64。支持的环境可在应用中安装或修复 Pi Coding Agent。从源码运行需要 Node.js ≥ 22.22.2 和 pnpm 9.12.1。
 
-- macOS Apple Silicon、macOS Intel、Windows x64 或 Linux x64
-- Pi Coding Agent，可直接在 Pi-Harness 中安装或修复
+## 文档
 
-源码开发：
-
-- Node.js ≥ 22.22.2
-- pnpm 9.12.1
-
-## 开发
-
-```bash
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-本机没有 Pi 时，可在“设置 → 配置目录”中指向 <code>fixtures/mock-pi/</code>；也可以把 <code>.env.example</code> 复制为 <code>.env</code>，并将 <code>PI_HARNESS_PI_CONFIG_DIR</code> 指向该 fixture。不要在 <code>VITE_*</code> 变量中存放密钥，它们会被打进 Renderer。
-
-常用检查：
-
-```bash
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm compile
-pnpm test:e2e:only
-```
-
-## 关注项目
-
-Pi-Harness 接下来会继续深化 Session Tree 可视化、Context 与 Queue 检查、Workspace Permissions、Verification 集成和 Harness Profiles。
-
-如果你对这些功能感兴趣，可以给 [Pi-Harness 点一个 ⭐](https://github.com/wangmiaozero/pi-harness/stargazers)，关注后续版本。Star 也能帮助更多 Pi 用户发现这个项目。
+- [截图分类索引](docs/README.md)
+- [更新记录](CHANGELOG.md)
 
 ## 技术交流
 
@@ -380,19 +174,17 @@ Pi-Harness 接下来会继续深化 Session Tree 可视化、Context 与 Queue �
 **QQ群：1109717308**
 
 <p align="center">
-  <img src="docs/qq-group.jpg" width="280" alt="Pi-Harness QQ 群二维码" />
+  <img src="docs/社区/qq-group.jpg" width="280" alt="Pi-Harness QQ 群二维码" />
 </p>
 
-## 致谢
+## 致谢与作者
 
-Pi-Harness 是围绕官方 [Pi Coding Agent 与 Pi Agent Harness](https://github.com/earendil-works/pi) 构建的桌面项目。
+Pi-Harness 围绕官方 [Pi Coding Agent 与 Pi Agent Harness](https://github.com/earendil-works/pi) 构建。
 
-项目由 [wangmiao](https://github.com/wangmiaozero) 创建并维护 · [tuziling84@gmail.com](mailto:tuziling84@gmail.com)。
-
-已发布变更见[更新记录](CHANGELOG.md)。
+由 [wangmiao](https://github.com/wangmiaozero) 创建并维护 · [tuziling84@gmail.com](mailto:tuziling84@gmail.com)。
 
 ## 许可协议
 
-Pi-Harness 采用 [GNU Affero General Public License v3.0 only](LICENSE)（<code>AGPL-3.0-only</code>）发布。你可以在协议条款下使用、修改和再分发；通过网络向用户提供修改版时，必须按 AGPL v3 要求向这些用户提供对应源代码。
+Pi-Harness 采用 [GNU Affero General Public License v3.0 only](LICENSE)（`AGPL-3.0-only`）发布。
 
-Copyright © 2026 [wangmiao](https://github.com/wangmiaozero)。
+Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).
