@@ -27,6 +27,7 @@ export class WorkspaceWatcherService {
         ignoreInitial: true,
         ignored: (watchPath) => this.shouldIgnore(root, watchPath),
         ignorePermissionErrors: true,
+        followSymlinks: false,
         depth: 12,
         awaitWriteFinish: { stabilityThreshold: 250, pollInterval: 100 }
       })
@@ -48,7 +49,16 @@ export class WorkspaceWatcherService {
   private shouldIgnore(root: string, watchPath: string): boolean {
     const relative = path.relative(root, watchPath)
     if (!relative || relative.startsWith('..')) return false
-    return relative.split(path.sep).some((segment) => isIgnoredWorkspaceDirectoryName(segment))
+    const segments = relative.split(path.sep)
+    // Nested agent checkouts multiply the watch scope and can exhaust native
+    // macOS watchers. An explicitly opened checkout is still watched normally.
+    return segments.some(
+      (segment, index) =>
+        isIgnoredWorkspaceDirectoryName(segment) ||
+        segment === '.worktrees' ||
+        (segment === 'worktrees' &&
+          (segments[index - 1] === '.claude' || segments[index - 1] === '.codex'))
+    )
   }
 
   private queue(root: string): void {
