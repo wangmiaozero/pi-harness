@@ -15,7 +15,7 @@ describe('WorkspaceWatcherService', () => {
     if (directory) await rm(directory, { recursive: true, force: true })
   })
 
-  it('keeps nested agent worktrees and linked directory trees outside the live watch scope', async () => {
+  it('keeps nested agent worktrees, build caches, and linked trees outside the live watch scope', async () => {
     directory = await mkdtemp(path.join(tmpdir(), 'workspace-watcher-'))
     const root = path.join(directory, 'project')
     const source = path.join(root, 'src')
@@ -25,7 +25,9 @@ describe('WorkspaceWatcherService', () => {
     const excluded = [
       path.join(root, '.claude', 'worktrees', 'agent', 'src'),
       path.join(root, '.codex', 'worktrees', 'agent', 'src'),
-      path.join(root, '.worktrees', 'agent', 'src')
+      path.join(root, '.worktrees', 'agent', 'src'),
+      path.join(root, '.gocache', 'hash', 'cache'),
+      path.join(root, '.gotmp', 'build', 'cache')
     ]
     await Promise.all(
       [source, skills, ordinaryWorktrees, external, ...excluded].map((folder) =>

@@ -50,11 +50,13 @@ export class WorkspaceWatcherService {
     const relative = path.relative(root, watchPath)
     if (!relative || relative.startsWith('..')) return false
     const segments = relative.split(path.sep)
-    // Nested agent checkouts multiply the watch scope and can exhaust native
+    // Nested agent checkouts and local Go build caches can exhaust native
     // macOS watchers. An explicitly opened checkout is still watched normally.
     return segments.some(
       (segment, index) =>
         isIgnoredWorkspaceDirectoryName(segment) ||
+        segment === '.gocache' ||
+        segment === '.gotmp' ||
         segment === '.worktrees' ||
         (segment === 'worktrees' &&
           (segments[index - 1] === '.claude' || segments[index - 1] === '.codex'))
