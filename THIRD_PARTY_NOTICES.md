@@ -13,6 +13,8 @@ Pi-Harness original code is licensed under the terms in [LICENSE](./LICENSE) and
 
 Project analysis also uses `ignore`, `typebox`, and Vue's SFC compiler under MIT, and TypeScript under Apache-2.0. Their license files are retained with the packaged dependencies.
 
+TOML metadata parsing uses [smol-toml](https://github.com/squirrelchat/smol-toml) 1.9.1 under BSD-3-Clause. Its full license is retained with the packaged dependency.
+
 Pi-Harness is inspired by the following MIT-licensed project:
 
 ## Pi Web
@@ -21,7 +23,7 @@ Pi-Harness is inspired by the following MIT-licensed project:
 - License: MIT
 - Used as: reference implementation for Agent Workspace session lifecycle, streaming events, tool-call normalization, path security, git worktrees, and session JSONL compatibility.
 
-Pi-Harness does not embed the Pi Web Next.js/React application. Agent sessions run in the Electron main process via `@earendil-works/pi-coding-agent`.
+Pi-Harness does not embed the Pi Web Next.js/React application. Agent execution uses the official Pi Coding Agent.
 
 ## Matt Pocock Skills
 
@@ -85,3 +87,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Pi and Node.js distributions
+
+- Pi Coding Agent: [earendil-works/pi](https://github.com/earendil-works/pi), MIT, Copyright (c) 2025 Mario Zechner. The complete license is retained with the distributed Pi files.
+- Node.js: [nodejs/node](https://github.com/nodejs/node), Node.js license and its bundled third-party notices. The complete upstream LICENSE, including npm and other bundled components, is retained with the distributed Node.js files.
+- ZIP extraction uses [unzipper](https://github.com/ZJONSSON/node-unzipper) under MIT; the dependency license is retained in packaged applications.

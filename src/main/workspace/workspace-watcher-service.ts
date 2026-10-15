@@ -1,3 +1,5 @@
+import fs from 'node:fs/promises'
+import ignore, { type Ignore } from 'ignore'
 import { watch, type FSWatcher } from 'chokidar'
 import path from 'node:path'
 import { isIgnoredWorkspaceDirectoryName } from '@shared/workspace/search-ignore'
@@ -23,9 +25,12 @@ export class WorkspaceWatcherService {
     )
     for (const root of next) {
       if (this.watchers.has(root)) continue
+      const excluded = await this.directoryIgnores(root)
       const watcher = watch(root, {
         ignoreInitial: true,
-        ignored: (watchPath) => this.shouldIgnore(root, watchPath),
+        ignored: (watchPath, stat) =>
+          this.shouldIgnore(root, watchPath) ||
+          this.isGitIgnored(root, watchPath, stat?.isDirectory(), excluded),
         ignorePermissionErrors: true,
         depth: 12,
         awaitWriteFinish: { stabilityThreshold: 250, pollInterval: 100 }
@@ -43,6 +48,30 @@ export class WorkspaceWatcherService {
       [...this.watchers.values()].map((watcher) => watcher.close().catch(() => undefined))
     )
     this.watchers.clear()
+  }
+
+  private async directoryIgnores(root: string): Promise<Ignore> {
+    const rules = ignore()
+    try {
+      const file = path.join(root, '.gitignore')
+      const stat = await fs.lstat(file)
+      if (stat.isFile() && !stat.isSymbolicLink() && stat.size <= 64_000)
+        rules.add(await fs.readFile(file, 'utf8'))
+    } catch {
+      /* A workspace does not need a .gitignore. */
+    }
+    return rules
+  }
+
+  private isGitIgnored(
+    root: string,
+    watchPath: string,
+    directory: boolean | undefined,
+    rules: Ignore
+  ): boolean {
+    const relative = path.relative(root, watchPath).split(path.sep).join('/')
+    if (!relative || relative === '..' || relative.startsWith('../')) return false
+    return rules.ignores(relative + (directory !== false ? '/' : ''))
   }
 
   private shouldIgnore(root: string, watchPath: string): boolean {

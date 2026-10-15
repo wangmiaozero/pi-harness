@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { languageCoverageSchema } from './analysis-schema'
 import {
   architectureEdgeSchema,
   architectureGraphSchema,
@@ -17,6 +18,14 @@ const envelope = z.object({
   staleness: z.enum(['fresh', 'stale', 'unknown']),
   source: z.literal('Pi-Harness source-verified index'),
   coverage: architectureGraphSchema.shape.coverage,
+  analysis: z
+    .object({
+      languages: z.array(languageCoverageSchema).max(32),
+      diagnosticCount: z.number().int().nonnegative(),
+      diagnosticsTruncated: z.boolean()
+    })
+    .strict()
+    .optional(),
   warning: z.string().max(1000)
 })
 const page = { total: count, nextOffset: count.nullable() }

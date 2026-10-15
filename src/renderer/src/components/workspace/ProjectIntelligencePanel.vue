@@ -692,7 +692,7 @@ onBeforeUnmount(() => {
                 snapshot.graph.revision.modelId
                   ? snapshot.graph.summary
                   : t('intelligence.localSummary', {
-                      files: snapshot.graph.nodes.length,
+                      files: snapshot.graph.coverage.files,
                       imports: snapshot.graph.edges.length,
                       packages: snapshot.graph.project.packages.length
                     })
@@ -702,6 +702,21 @@ onBeforeUnmount(() => {
               {{ snapshot.graph.project.languages.join(', ') }} ·
               {{ snapshot.graph.project.frameworks.join(', ') }}
             </p>
+            <details v-if="snapshot.graph.analysis" data-testid="architecture-language-coverage">
+              <summary>{{ t('intelligence.coverageLabel') }}</summary>
+              <p v-for="coverage in snapshot.graph.analysis.languages" :key="coverage.language">
+                {{ coverage.language }} · {{ coverage.files }} ·
+                {{
+                  t(
+                    coverage.imports === 'file-index-only' || coverage.imports === 'unknown'
+                      ? 'intelligence.fileIndexOnly'
+                      : 'intelligence.staticDependencies'
+                  )
+                }}
+                · {{ t('intelligence.unresolvedDependencies', { count: coverage.unresolved }) }} ·
+                {{ t('intelligence.callsUnknown') }}
+              </p>
+            </details>
             <details v-if="snapshot.graph.entrypoints.length">
               <summary>
                 {{ t('intelligence.entrypoints') }} ({{ snapshot.graph.entrypoints.length }})

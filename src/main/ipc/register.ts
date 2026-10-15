@@ -1,3 +1,6 @@
+import fs from 'node:fs/promises'
+import type { RuntimeManager } from '../runtime/runtime-manager'
+import { runtimeSwitchSchema, runtimeMaintenanceSchema } from '@shared/runtime/schema'
 /**
  * IPC handler registration — all channels validated; errors become AppErrorPayload.
  */
@@ -97,6 +100,7 @@ import type { UniversalSessionService } from '../universal/service'
 import type { UniversalHandoffService } from '../universal/handoff'
 
 export interface Services {
+  runtimes: RuntimeManager
   intelligence: ProjectIntelligenceService
   architectureViewer: ArchitectureViewer
   universal: UniversalSessionService
@@ -171,6 +175,74 @@ export function registerIpc(services: Services): void {
     access: services.workspace.access
   })
   registerIntelligenceIpc(ipcMain, wrap, services.intelligence, services.architectureViewer)
+  const runtimePathGrants = new Map<string, string>()
+
+  ipcMain.handle(IPC_INVOKE.runtimeDiagnostics, (_event, ...input) =>
+    wrap(async () => {
+      parseInput(noArgsSchema, input, 'Invalid runtime request')
+      return services.runtimes.diagnostics()
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.runtimeSwitch, (_event, input) =>
+    wrap(async () => {
+      const { kind, selection } = parseInput(
+        runtimeSwitchSchema,
+        input,
+        'Invalid runtime selection'
+      )
+      if (selection.source === 'custom') {
+        const current = (await services.runtimes.configuration())[kind]
+        const selectedPath = await fs.realpath(selection.customPath!).catch(() => null)
+        const savedPath =
+          current.source === 'custom' && current.customPath
+            ? await fs.realpath(current.customPath).catch(() => null)
+            : null
+        if (
+          !selectedPath ||
+          (selectedPath !== savedPath && runtimePathGrants.get(kind) !== selectedPath)
+        ) {
+          throw new SecurityError(
+            'Choose the executable with the file picker before applying a custom runtime'
+          )
+        }
+      }
+      const result = await services.runtimes.switchRuntime(kind, selection)
+      piProcess.invalidateCache()
+      return result
+    })
+  )
+  for (const [channel, action] of [
+    [IPC_INVOKE.runtimeVerify, (kind) => services.runtimes.verify(kind)],
+    [IPC_INVOKE.runtimeUpdate, (kind) => environment.maintainRuntime(kind, 'update')],
+    [IPC_INVOKE.runtimeRollback, (kind) => environment.maintainRuntime(kind, 'rollback')]
+  ] as const satisfies ReadonlyArray<
+    readonly [string, (kind: import('@shared/runtime/schema').RuntimeKind) => Promise<unknown>]
+  >) {
+    ipcMain.handle(channel, (_event, input) =>
+      wrap(async () =>
+        action(parseInput(runtimeMaintenanceSchema, input, 'Invalid runtime request').kind)
+      )
+    )
+  }
+  ipcMain.handle(IPC_INVOKE.runtimeCheckUpdates, (_event, ...input) =>
+    wrap(async () => {
+      parseInput(noArgsSchema, input, 'Invalid runtime request')
+      return services.runtimes.checkUpdates()
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.runtimePick, (_event, input) =>
+    wrap(async () => {
+      const { kind } = parseInput(runtimeMaintenanceSchema, input, 'Invalid runtime request')
+      const result = await dialog.showOpenDialog({
+        title: kind === 'pi' ? 'Choose Pi executable' : 'Choose Node.js executable',
+        properties: ['openFile']
+      })
+      if (result.canceled || !result.filePaths[0]) return null
+      const selectedPath = await fs.realpath(result.filePaths[0])
+      runtimePathGrants.set(kind, selectedPath)
+      return selectedPath
+    })
+  )
 
   // ---- system ----
   ipcMain.handle(IPC_INVOKE.systemInfo, () =>

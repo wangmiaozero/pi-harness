@@ -1,3 +1,4 @@
+import { getRuntimeProvider } from '../runtime/active'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
@@ -44,7 +45,7 @@ export class ArchifyProvider implements ArchitectureRendererProvider {
   constructor(
     private readonly resources: string,
     private readonly temporary: string,
-    private readonly executable = process.execPath
+    private readonly executable?: string
   ) {}
   async render(
     graph: ArchitectureGraph,
@@ -129,8 +130,16 @@ export class ArchifyProvider implements ArchitectureRendererProvider {
       if (!nodes.length) throw new Error('No readable source files were found.')
       await fs.writeFile(path.join(dir, 'input.json'), JSON.stringify(input))
       try {
+        const provider = getRuntimeProvider()
+        const runtimeNode = provider ? await provider.resolve('node') : null
+        const executable =
+          this.executable ??
+          (runtimeNode?.valid ? runtimeNode.executablePath : null) ??
+          (!process.versions.electron ? process.execPath : null)
+        if (!executable) throw new Error('The selected Node runtime is unavailable')
+        const environment = provider ? await provider.environment('extension') : process.env
         await promisify(execFile)(
-          this.executable,
+          executable,
           [
             path.join(this.resources, 'renderers/architecture/render-architecture.mjs'),
             path.join(dir, 'input.json'),
@@ -138,8 +147,8 @@ export class ArchifyProvider implements ArchitectureRendererProvider {
           ],
           {
             env: {
-              ...process.env,
-              ELECTRON_RUN_AS_NODE: '1',
+              ...environment,
+              ELECTRON_RUN_AS_NODE: undefined,
               ARCHIFY_REPO_ROOT: undefined,
               NODE_OPTIONS: ''
             },
@@ -165,7 +174,19 @@ export class ArchifyProvider implements ArchitectureRendererProvider {
       const html = await fs.readFile(path.join(dir, 'map.html'), 'utf8')
       if (html.length > 3_000_000 || /<script\b[^>]*\bsrc\s*=/i.test(html))
         throw new Error('Unsupported viewer resources.')
-      return secureViewer(html)
+      const metadata = JSON.stringify({
+        snapshotId: graph.snapshotId,
+        fingerprint: graph.revision.fingerprint,
+        coverage: graph.coverage,
+        analysis: graph.analysis,
+        warnings: graph.warnings
+      }).replaceAll('<', '\\u003c')
+      return secureViewer(
+        html.replace(
+          '</body>',
+          `<script type="application/json" id="pi-architecture-quality">${metadata}</script></body>`
+        )
+      )
     } finally {
       await fs.rm(dir, { recursive: true, force: true })
     }

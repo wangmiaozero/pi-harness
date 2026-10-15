@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "pi": {
+    "version": "1.2.0",
+    "license": "MIT",
+    "baseUrl": "https://github.com/earendil-works/pi/releases/download/v1.2.0/",
+    "checksumsFile": "SHA256SUMS",
+    "checksumsSha256": "f10081e2b39eb51ef69ada805c653f4ebfe4c35a04af86bae6f7e6270934441f",
+    "assets": {
+      "darwin-arm64": {
+        "file": "pi-darwin-arm64.tar.gz",
+        "sha256": "abddf7688b4b6781d9113f63cd578e3c01dcdb87e71f66e7ec1c9ec6c76178d1",
+        "treeSha256": "07f08ee92d89871c05d720c33c7b7d6626380e95e1cf40188abe7fb4b8200b5f"
+      },
+      "darwin-x64": {
+        "file": "pi-darwin-x64.tar.gz",
+        "sha256": "e079ff016ae78279cfbd6c1b4fffe072162f4a7bb879ad61b04e2e43bcc53455",
+        "treeSha256": "6bf03f22b8eac23930b82dfbda3005f35244e97efa9a028b58101dcdd9202739"
+      },
+      "linux-arm64": {
+        "file": "pi-linux-arm64.tar.gz",
+        "sha256": "d8597ee3a2050592d38e67f6b609ab55139deed7e820020d910d84f17bb7abd6",
+        "treeSha256": "3b1589d6e78f4d7698aa492d194dab206b6a74ef2eaa90fc0323f2f5a8b3410e"
+      },
+      "linux-x64": {
+        "file": "pi-linux-x64.tar.gz",
+        "sha256": "00fc36cffdebceea5a48230da62cf3fb463178f8fe185766652f96002a246847",
+        "treeSha256": "9fefca892d98d37e51c05fd29c7f9e8237e077daad3a59856a5bcb426e77b889"
+      },
+      "win32-arm64": {
+        "file": "pi-windows-arm64.zip",
+        "sha256": "54f8c4138d07f0d96b1e054e075cb826a86364ee0a000dd71e844a00000f3c0e",
+        "treeSha256": "586c4ad0547ea8adaf5787f5d0e538478d52cbf63a688f073b9b78896b07dc8d"
+      },
+      "win32-x64": {
+        "file": "pi-windows-x64.zip",
+        "sha256": "bd272b508657ad8d0ac6176e7751913c848a89cfb8cbe21ff319941e6ca140be",
+        "treeSha256": "e6c72d66a1e48f20870c1c8970e921b1a8327370cd3934be8c244b5d3d91fffe"
+      }
+    },
+    "notices": {
+      "LICENSE": {
+        "url": "https://raw.githubusercontent.com/earendil-works/pi/v1.2.0/LICENSE",
+        "sha256": "0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48"
+      }
+    }
+  },
+  "node": {
+    "version": "24.22.0",
+    "npmVersion": "11.19.1",
+    "license": "Node.js and bundled third-party licenses",
+    "baseUrl": "https://nodejs.org/dist/v24.22.0/",
+    "checksumsFile": "SHASUMS256.txt",
+    "checksumsSha256": "8912ada1431af8390bb3e30328d30bca701b59c7a6d5396b491293515c092c46",
+    "assets": {
+      "darwin-arm64": {
+        "file": "node-v24.22.0-darwin-arm64.tar.gz",
+        "sha256": "6a9724d9b50a5f22b4816cded441b5a8d9ddae546191a5e5b7efa5a5e2ee26d5",
+        "treeSha256": "f6f4dc5336fa8de40c8e3314c277fdd907478d3aa1ffde0506be79694729d0d4"
+      },
+      "darwin-x64": {
+        "file": "node-v24.22.0-darwin-x64.tar.gz",
+        "sha256": "495e3f273c645f3c4677d438304cdfc701729ea5dec5728f5c8e76a2dece4b91",
+        "treeSha256": "99d5499e4d05206bd792b332e5ba5a22154a2ac735097525201d4e82383bb690"
+      },
+      "linux-arm64": {
+        "file": "node-v24.22.0-linux-arm64.tar.gz",
+        "sha256": "b7e7991d5407815adfa74a2a9cd4db683552c8ce32ff4a295c22e972849c3f5d",
+        "treeSha256": "900561ceffa873df4148b06253bb88a3a280c33c4f4733811c3c3eeca98c558d"
+      },
+      "linux-x64": {
+        "file": "node-v24.22.0-linux-x64.tar.gz",
+        "sha256": "28ea0a438de9a13bd7891fd758eee6c7819ee8af5442dfd8d45bd65e56d4228c",
+        "treeSha256": "cd0f23e5df8c14764778fdd9d90f8d593ab1c7722ac113a0587dea27c9b7c544"
+      },
+      "win32-arm64": {
+        "file": "node-v24.22.0-win-arm64.zip",
+        "sha256": "3a5c209a5bc59e65b3bc0fa13ed5e166a26bd3d55332847f498b76b037408d61",
+        "treeSha256": "e8d0516b12f26e751eacbb35ebfa56698f667c57f0d8295059826dcd3df574a2"
+      },
+      "win32-x64": {
+        "file": "node-v24.22.0-win-x64.zip",
+        "sha256": "f9683a19877e12a9b167305c8db71040d812876359de21f0d2e97c3f321f80c3",
+        "treeSha256": "5af9c38cdd0178187fc25b3fa3f439e198631f959865e8b0623b8087cd11f14c"
+      }
+    }
+  }
+}

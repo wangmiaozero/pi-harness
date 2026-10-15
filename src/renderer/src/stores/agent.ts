@@ -62,6 +62,7 @@ export const useAgentStore = defineStore('agent', () => {
   const thinkingLevel = ref(lastComposer.thinkingLevel)
   const toolPreset = ref<ToolPreset>(lastComposer.toolPreset)
   const transientSessionIds = new Set<string>()
+  const optimisticUserMessages = new Set<AgentMessage>()
   let unsubEvent: (() => void) | null = null
   let unsubRunning: (() => void) | null = null
 
@@ -149,8 +150,18 @@ export const useAgentStore = defineStore('agent', () => {
             error.value = inspectRuntimeError(stored.errorMessage).userMessage
           }
         } else if (completed?.role === 'user') {
-          const last = messages.value.at(-1)
-          if (!(last?.role === 'user' && userText(last) === userText(completed))) {
+          // Native system/tool messages can arrive after the optimistic user
+          // message, so reconcile the pending message rather than the list tail.
+          const pendingIndex = messages.value.findIndex(
+            (message) =>
+              optimisticUserMessages.has(message) && userText(message) === userText(completed)
+          )
+          if (pendingIndex >= 0) {
+            optimisticUserMessages.delete(messages.value[pendingIndex])
+            messages.value = messages.value.map((message, index) =>
+              index === pendingIndex ? completed : message
+            )
+          } else {
             messages.value = [...messages.value, completed]
           }
         }
@@ -182,6 +193,7 @@ export const useAgentStore = defineStore('agent', () => {
     error.value = null
     streaming.value = INITIAL_STREAMING_STATE
     if (!sessionId) {
+      optimisticUserMessages.clear()
       messages.value = []
       entryIds.value = []
       entryParents.value = {}
@@ -210,6 +222,7 @@ export const useAgentStore = defineStore('agent', () => {
     if (!isCurrentLoad(sessionId, generation)) return
     loadedDetail = detail
     loadedStatsOverride = null
+    optimisticUserMessages.clear()
     messages.value = detail.context.messages
     entryIds.value = detail.context.entryIds
     entryParents.value = detail.context.entryParents ?? {}
@@ -227,6 +240,8 @@ export const useAgentStore = defineStore('agent', () => {
     useSessionStore().addTransientSession(sessionId, cwd, instruction)
     loadedSessionId = sessionId
     messages.value = [{ role: 'user', content: instruction, timestamp: Date.now() }]
+    optimisticUserMessages.clear()
+    optimisticUserMessages.add(messages.value[0])
     entryIds.value = []
     entryParents.value = {}
     loadedDetail = null
@@ -239,6 +254,7 @@ export const useAgentStore = defineStore('agent', () => {
     generation = loadGeneration
   ) {
     if (!sessionId) return
+    const streamAtRequest = streaming.value
     try {
       let snap = await callApi(() => getApi().agent.state(sessionId))
       const running = await callApi(() => getApi().agent.running())
@@ -268,10 +284,13 @@ export const useAgentStore = defineStore('agent', () => {
       }
       if (!isCurrentLoad(sessionId, generation)) return
       state.value = snap
-      if (snap?.isStreaming) {
-        streaming.value = { ...streaming.value, isStreaming: true }
-      } else if (!snap?.isPromptRunning) {
-        streaming.value = INITIAL_STREAMING_STATE
+      // Runtime/tool discovery may finish after newer stream events have arrived.
+      if (streaming.value === streamAtRequest) {
+        if (snap?.isStreaming) {
+          streaming.value = { ...streaming.value, isStreaming: true }
+        } else if (!snap?.isPromptRunning) {
+          streaming.value = INITIAL_STREAMING_STATE
+        }
       }
       if (initializeComposer && !composerSelections.has(sessionId)) {
         if (snap?.thinkingLevel) {
@@ -306,6 +325,7 @@ export const useAgentStore = defineStore('agent', () => {
       content: imageBlocks.length ? [...textBlocks, ...imageBlocks] : message,
       timestamp: Date.now()
     }
+    optimisticUserMessages.add(optimistic)
     messages.value = [...messages.value, optimistic]
     let createdSessionId: string | null = null
     try {
@@ -370,7 +390,8 @@ export const useAgentStore = defineStore('agent', () => {
       return sessionId
     } catch (e) {
       error.value = getErrorMessage(e)
-      messages.value = messages.value.slice(0, -1)
+      optimisticUserMessages.delete(optimistic)
+      messages.value = messages.value.filter((message) => message !== optimistic)
       if (createdSessionId) {
         transientSessionIds.delete(createdSessionId)
         composerSelections.delete(createdSessionId)

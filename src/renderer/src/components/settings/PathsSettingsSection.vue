@@ -1,17 +1,11 @@
 <script setup lang="ts">
+import RuntimeSettingsSection from './RuntimeSettingsSection.vue'
 import { computed, inject } from 'vue'
 import Input from '@renderer/components/ui/Input.vue'
 import InspectorSection from '@renderer/components/ui/InspectorSection.vue'
 import { SETTINGS_DRAFT_KEY } from '@renderer/components/settings/draft-key'
 
 const draft = inject(SETTINGS_DRAFT_KEY)!
-
-const manualCliPath = computed({
-  get: () => draft.value.manualCliPath ?? '',
-  set: (v: string) => {
-    draft.value.manualCliPath = v.trim() || null
-  }
-})
 
 const manualConfigDir = computed({
   get: () => draft.value.manualConfigDir ?? '',
@@ -26,14 +20,7 @@ const manualConfigDir = computed({
     class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
   >
     <div class="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]">
-      <Input
-        v-model="manualCliPath"
-        :label="$t('settings.cliPath')"
-        :hint="$t('settings.cliPathHint')"
-        placeholder="/usr/local/bin/pi"
-        layout="row"
-        mono
-      />
+      <RuntimeSettingsSection />
       <Input
         v-model="manualConfigDir"
         :label="$t('settings.configDir')"

@@ -1,3 +1,4 @@
+import { runtimeEn, runtimeZh } from './runtime'
 import { createI18n } from 'vue-i18n'
 import { resolveAppLocale, type AppLanguage } from '@shared/constants/language'
 import { enUS } from './locales/en-US'
@@ -19,14 +20,14 @@ import {
 } from './intelligence-locales'
 
 export const messages = {
-  'en-US': { ...enUS, intelligence: intelligenceEn },
-  'zh-CN': { ...zhCN, intelligence: intelligenceZh },
-  'zh-TW': { ...zhTW, intelligence: intelligenceTw },
-  'ja-JP': { ...jaJP, intelligence: intelligenceJa },
-  'ko-KR': { ...koKR, intelligence: intelligenceKo },
-  'ru-RU': { ...ruRU, intelligence: intelligenceRu },
-  'fr-FR': { ...frFR, intelligence: intelligenceFr },
-  'de-DE': { ...deDE, intelligence: intelligenceDe }
+  'en-US': { ...enUS, runtime: runtimeEn, intelligence: intelligenceEn },
+  'zh-CN': { ...zhCN, runtime: runtimeZh, intelligence: intelligenceZh },
+  'zh-TW': { ...zhTW, runtime: runtimeEn, intelligence: intelligenceTw },
+  'ja-JP': { ...jaJP, runtime: runtimeEn, intelligence: intelligenceJa },
+  'ko-KR': { ...koKR, runtime: runtimeEn, intelligence: intelligenceKo },
+  'ru-RU': { ...ruRU, runtime: runtimeEn, intelligence: intelligenceRu },
+  'fr-FR': { ...frFR, runtime: runtimeEn, intelligence: intelligenceFr },
+  'de-DE': { ...deDE, runtime: runtimeEn, intelligence: intelligenceDe }
 } as const
 
 export type AppLocale = keyof typeof messages

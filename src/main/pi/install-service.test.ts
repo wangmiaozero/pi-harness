@@ -369,7 +369,7 @@ describe('PiInstallService', () => {
     expect(env.ELECTRON_RUN_AS_NODE).toBeUndefined()
   })
 
-  it('sets ELECTRON_RUN_AS_NODE for a JavaScript CLI entrypoint', async () => {
+  it('uses the resolved external Node for a JavaScript CLI entrypoint', async () => {
     const cliJs = path.join('/tmp', 'npm-global', 'lib', 'node_modules', 'pi', 'dist', 'cli.js')
     piProcessMock.resolveCliPath.mockResolvedValue(cliJs)
     piProcessMock.version.mockResolvedValueOnce('0.84.2').mockResolvedValueOnce('0.85.0')
@@ -384,11 +384,11 @@ describe('PiInstallService', () => {
     await service.update(false)
 
     expect(runCommand).toHaveBeenCalledWith(
-      process.execPath,
+      '/tmp/bin/node',
       [cliJs, 'update', '--self'],
       expect.objectContaining({
         env: expect.objectContaining({
-          ELECTRON_RUN_AS_NODE: '1',
+          ELECTRON_RUN_AS_NODE: undefined,
           PATH: expect.stringContaining('/tmp/bin')
         })
       })

@@ -250,15 +250,19 @@ export class PiInstallService {
     const args = force ? ['update', '--self', '--force'] : ['update', '--self']
     log.pi.info('updating Pi', { cliPath, args })
     const isJavaScript = cliPath.endsWith('.js')
-    const executable = isJavaScript ? process.execPath : cliPath
     const executableArgs = isJavaScript ? [cliPath, ...args] : args
     // The Pi CLI spawns npm by name while running `update --self`, but packaged
     // desktop apps inherit a launch-service PATH without Node. Expose the resolved
     // runtime the same way install() does so the update does not depend on how the
     // app was launched.
     const runtime = await this.dependencies.detectRuntime()
-    const updateEnv = selfUpdateEnvironment(runtime)
-    const env = isJavaScript ? { ...updateEnv, ELECTRON_RUN_AS_NODE: '1' } : updateEnv
+    if (isJavaScript && (!runtime.nodeSupported || !runtime.nodePath))
+      throw new EnvironmentError(
+        'NODE_NOT_FOUND',
+        'An external Node runtime is required for npm Pi'
+      )
+    const executable = isJavaScript ? runtime.nodePath! : cliPath
+    const env = { ...selfUpdateEnvironment(runtime), ELECTRON_RUN_AS_NODE: undefined }
     options.onProgress?.({
       phase: 'running-pi-update',
       progress: 25,

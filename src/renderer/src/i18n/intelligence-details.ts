@@ -2,7 +2,7 @@ import { resolveAppLocale, type AppLocale } from '@shared/constants/language'
 
 // The persisted diagnostic/evidence values stay stable across UI languages.
 const warningPatterns = [
-  /^Static import relationships/,
+  /^Static (?:import relationships|declarations)/,
   /^Scan limit reached/,
   /^AI descriptions/,
   /^AI analysis was unavailable/,

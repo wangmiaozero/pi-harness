@@ -4,6 +4,7 @@ import type { PiSwitchAPI } from '@shared/ipc/api-types'
 import { useAgentStore } from './agent'
 import { useModelsStore } from './models'
 import { useSessionStore } from './sessions'
+import type { AgentMessage } from '@shared/types/workspace'
 describe('agent store new-session handshake', () => {
   beforeEach(() => {
     const data = new Map<string, string>()
@@ -41,6 +42,80 @@ describe('agent store new-session handshake', () => {
     expect(start.mock.calls[0]?.[0]).not.toHaveProperty('message')
     expect(prompt).toHaveBeenCalledWith({ sessionId: 'session-new', message: 'hello' })
     expect(sessions.items[0]).toMatchObject({ id: 'session-new', transient: true })
+  })
+
+  it.each([false, true])(
+    'reconciles the first user message after a native system message (image: %s)',
+    async (withImage) => {
+      let onAgentEvent: ((payload: unknown) => void) | undefined
+      const image = { type: 'image' as const, data: 'TQ==', mimeType: 'image/png' }
+      window.piSwitch = {
+        on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+          if (name === 'agent-event') onAgentEvent = listener
+          return () => undefined
+        }),
+        agent: {
+          start: vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' }),
+          prompt: vi.fn().mockResolvedValue(null)
+        }
+      } as unknown as PiSwitchAPI
+      const agent = useAgentStore()
+      agent.setupListeners()
+      await agent.send(null, '/code/project', 'hello', 'default', withImage ? [image] : [])
+      const completed: AgentMessage = {
+        role: 'user',
+        content: [{ type: 'text', text: 'hello' }, ...(withImage ? [image] : [])],
+        timestamp: 1234
+      }
+
+      onAgentEvent?.([
+        {
+          sessionId: 'session-new',
+          event: { type: 'message_end', message: { role: 'system', content: 'Native prompt' } }
+        },
+        { sessionId: 'session-new', event: { type: 'message_end', message: completed } }
+      ])
+
+      expect(agent.messages.filter((message) => message.role === 'user')).toEqual([completed])
+      expect(agent.sessionStats?.userMessages).toBe(1)
+    }
+  )
+
+  it('keeps separately submitted identical user messages', async () => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      agent: {
+        start: vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' }),
+        prompt: vi.fn().mockResolvedValue(null),
+        state: vi.fn().mockResolvedValue({ isPromptRunning: true })
+      }
+    } as unknown as PiSwitchAPI
+    const agent = useAgentStore()
+    agent.setupListeners()
+    for (const timestamp of [1234, 5678]) {
+      await agent.send(
+        timestamp === 1234 ? null : 'session-new',
+        '/code/project',
+        'hello',
+        'default'
+      )
+      onAgentEvent?.({
+        sessionId: 'session-new',
+        event: {
+          type: 'message_end',
+          message: { role: 'user', content: [{ type: 'text', text: 'hello' }], timestamp }
+        }
+      })
+    }
+
+    expect(agent.messages.filter((message) => message.role === 'user')).toMatchObject([
+      { timestamp: 1234 },
+      { timestamp: 5678 }
+    ])
   })
   it('adopts a running Pi continuation before it has a persisted session file', async () => {
     const get = vi.fn()
@@ -319,6 +394,43 @@ describe('agent store new-session handshake', () => {
       modelId: 'gpt-5'
     })
     expect(agent.state?.model).toEqual({ provider: 'openai', id: 'gpt-5' })
+  })
+
+  it('preserves a new stream when an older idle-state query finishes later', async () => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    let finishQuery!: (value: ReturnType<typeof agentState>) => void
+    const state = vi.fn().mockResolvedValue(agentState('openai', 'gpt-5'))
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      sessions: { get: vi.fn().mockResolvedValue(sessionDetail('medium')) },
+      agent: {
+        state,
+        running: vi.fn().mockResolvedValue([]),
+        command: vi.fn().mockResolvedValue([])
+      }
+    } as unknown as PiSwitchAPI
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.load('session-1')
+    state.mockImplementationOnce(() => new Promise((resolve) => (finishQuery = resolve)))
+    const pending = agent.reconcile('session-1')
+    onAgentEvent?.({ sessionId: 'session-1', event: { type: 'agent_start' } })
+    onAgentEvent?.({
+      sessionId: 'session-1',
+      event: {
+        type: 'message_start',
+        message: { role: 'assistant', content: [{ type: 'text', text: 'New response' }] }
+      }
+    })
+    finishQuery(agentState('openai', 'gpt-5'))
+    await pending
+    expect(agent.streaming.isStreaming).toBe(true)
+    expect(agent.streaming.streamingMessage?.content).toEqual([
+      { type: 'text', text: 'New response' }
+    ])
   })
 
   it('keeps explicit composer selections stable across runtime reconciliation and reload', async () => {

@@ -10,6 +10,8 @@ export default defineConfigWithVueTs([
       'dist/**',
       'runtime/dist/**',
       'release/**',
+      'task/**',
+      '.runtime-cache/**',
       'node_modules/**',
       'build/**',
       'resources/**',

@@ -11,11 +11,13 @@ test('executes native MCP and Codemode over IPC, enforces workspace writes and c
   testUserData
 }) => {
   const pidFile = path.join(workspaceRoot, 'mcp.pid')
+  const runtimeFile = path.join(workspaceRoot, 'mcp-runtime.txt')
   const script = path.join(workspaceRoot, 'mcp.mjs')
   fs.writeFileSync(
     script,
     `import fs from 'node:fs';import readline from 'node:readline';
     fs.writeFileSync(${JSON.stringify(pidFile)},String(process.pid));
+    fs.writeFileSync(${JSON.stringify(runtimeFile)},process.execPath);
     readline.createInterface({input:process.stdin}).on('line',line=>{
       const q=JSON.parse(line);if(q.id===undefined)return;let result;
       if(q.method==='initialize')result={protocolVersion:q.params.protocolVersion,capabilities:{tools:{}},serverInfo:{name:'local',version:'1'}};
@@ -29,7 +31,7 @@ test('executes native MCP and Codemode over IPC, enforces workspace writes and c
     JSON.stringify({
       mcpServers: {
         local: {
-          command: process.execPath,
+          command: 'node',
           args: [script],
           exposure: 'codemode'
         }
@@ -221,6 +223,12 @@ test('executes native MCP and Codemode over IPC, enforces workspace writes and c
     )
     expect(failureDetail.steps.filter((step) => step.kind === 'error')).toHaveLength(1)
     expect(calls).toBe(4)
+    if (process.env.PI_HARNESS_E2E_AGENT_MODE === 'rpc') {
+      const node = await page.evaluate(() =>
+        window.piSwitch.runtimes.diagnostics().then((d) => d.node.executablePath!)
+      )
+      expect(fs.realpathSync(fs.readFileSync(runtimeFile, 'utf8'))).toBe(fs.realpathSync(node))
+    }
     const pid = Number(fs.readFileSync(pidFile, 'utf8'))
     await electronApp.close()
     await expect

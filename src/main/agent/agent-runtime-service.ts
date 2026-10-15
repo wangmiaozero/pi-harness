@@ -594,48 +594,55 @@ export class AgentSessionWrapper {
     userEntryId: string
     assistantEntryId: string
   } {
-    const manager = this.inner.sessionManager
-    if (typeof manager.appendMessage !== 'function') {
-      throw new AgentError('Installed Pi version cannot persist generated images')
-    }
-    const prompt = typeof command.prompt === 'string' ? command.prompt.trim() : ''
-    const provider = typeof command.provider === 'string' ? command.provider.trim() : ''
-    const modelId = typeof command.modelId === 'string' ? command.modelId.trim() : ''
-    const sourceImages = Array.isArray(command.sourceImages) ? command.sourceImages : []
-    const resultImage = command.resultImage as AgentImageAttachment | undefined
-    const imageError = validateAgentImages([...sourceImages, ...(resultImage ? [resultImage] : [])])
-    if (!prompt || prompt.length > 8_000) throw new AgentError('Invalid image prompt')
-    if (!provider || provider.length > 128 || !modelId || modelId.length > 256) {
-      throw new AgentError('Invalid image model')
-    }
-    if (sourceImages.length > 1 || imageError || !resultImage) {
-      throw new AgentError(imageError ?? 'Invalid image result')
-    }
-
-    const timestamp = Date.now()
-    const userEntryId = manager.appendMessage({
-      role: 'user',
-      content: [
-        { type: 'text', text: prompt },
-        ...sourceImages.map((image) => ({
-          type: 'image' as const,
-          data: image.data,
-          mimeType: image.mimeType
-        }))
-      ],
-      timestamp
-    })
-    const assistantEntryId = manager.appendMessage({
-      role: 'custom',
-      customType: 'pi-harness-image-result',
-      content: [{ type: 'image', data: resultImage.data, mimeType: resultImage.mimeType }],
-      display: true,
-      details: { provider, model: modelId },
-      timestamp: Date.now()
-    })
+    const result = persistExternalImageResult(this.inner.sessionManager, command)
     this.inner.refreshContext()
-    return { userEntryId, assistantEntryId }
+    return result
   }
+}
+
+export function persistExternalImageResult(
+  manager: PiSessionManagerLike,
+  command: Record<string, unknown>
+): { userEntryId: string; assistantEntryId: string } {
+  if (typeof manager.appendMessage !== 'function') {
+    throw new AgentError('Installed Pi version cannot persist generated images')
+  }
+  const prompt = typeof command.prompt === 'string' ? command.prompt.trim() : ''
+  const provider = typeof command.provider === 'string' ? command.provider.trim() : ''
+  const modelId = typeof command.modelId === 'string' ? command.modelId.trim() : ''
+  const sourceImages = Array.isArray(command.sourceImages) ? command.sourceImages : []
+  const resultImage = command.resultImage as AgentImageAttachment | undefined
+  const imageError = validateAgentImages([...sourceImages, ...(resultImage ? [resultImage] : [])])
+  if (!prompt || prompt.length > 8_000) throw new AgentError('Invalid image prompt')
+  if (!provider || provider.length > 128 || !modelId || modelId.length > 256) {
+    throw new AgentError('Invalid image model')
+  }
+  if (sourceImages.length > 1 || imageError || !resultImage) {
+    throw new AgentError(imageError ?? 'Invalid image result')
+  }
+
+  const timestamp = Date.now()
+  const userEntryId = manager.appendMessage({
+    role: 'user',
+    content: [
+      { type: 'text', text: prompt },
+      ...sourceImages.map((image) => ({
+        type: 'image' as const,
+        data: image.data,
+        mimeType: image.mimeType
+      }))
+    ],
+    timestamp
+  })
+  const assistantEntryId = manager.appendMessage({
+    role: 'custom',
+    customType: 'pi-harness-image-result',
+    content: [{ type: 'image', data: resultImage.data, mimeType: resultImage.mimeType }],
+    display: true,
+    details: { provider, model: modelId },
+    timestamp: Date.now()
+  })
+  return { userEntryId, assistantEntryId }
 }
 
 function assistantErrorMessage(value: unknown): string | null {

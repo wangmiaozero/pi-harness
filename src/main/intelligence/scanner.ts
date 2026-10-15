@@ -38,6 +38,7 @@ const languages: Record<string, string> = {
   '.php': 'PHP',
   '.svelte': 'Svelte'
 }
+export const sourceLanguage = (file: string): string | undefined => languages[path.extname(file)]
 const sensitive =
   /(?:^|\/)(?:\.env(?:\..*)?|\.ssh|\.aws|\.azure|\.gnupg|\.npmrc|\.pypirc|\.netrc|credentials(?:\..*)?|secrets?(?:\..*)?|auth\.json|id_(?:rsa|ed25519)|.*\.(?:pem|key|p12|pfx|sqlite|db))$/i
 export type ScannedFile = { path: string; text: string; hash: string; lines: number }
@@ -231,6 +232,7 @@ export async function scanProject(
     'yarn.lock',
     'Cargo.toml',
     'go.mod',
+    'go.work',
     'pyproject.toml',
     'pom.xml',
     'build.gradle',
@@ -290,7 +292,7 @@ export async function scanProject(
 function isSource(p: string): boolean {
   return (
     Boolean(languages[path.extname(p)]) ||
-    /(?:^|\/)(?:package\.json|pnpm-lock\.yaml|package-lock\.json|yarn\.lock|Cargo\.toml|go\.mod|pyproject\.toml|requirements\.txt|pom\.xml|build\.gradle(?:\.kts)?|Package\.swift|README[^/]*\.md|[^/]+\.(?:json|yml|yaml|toml))$/i.test(
+    /(?:^|\/)(?:package\.json|pnpm-lock\.yaml|package-lock\.json|yarn\.lock|Cargo\.toml|go\.(?:mod|work)|pyproject\.toml|requirements\.txt|pom\.xml|(?:build|settings)\.gradle(?:\.kts)?|Package\.swift|README[^/]*\.md|[^/]+\.(?:json|yml|yaml|toml))$/i.test(
       p
     )
   )

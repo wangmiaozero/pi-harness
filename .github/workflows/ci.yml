@@ -4,6 +4,7 @@ on:
   push:
     branches: ['**']
   pull_request:
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -15,7 +16,7 @@ permissions:
 jobs:
   quality:
     name: Linux quality and E2E
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -40,18 +41,98 @@ jobs:
           PI_HARNESS_E2E_VARIANT: nomascot
 
   package-smoke:
-    name: Package smoke (${{ matrix.os }})
+    name: Native quality and package execution (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            command: pnpm build:mac
-          - os: windows-latest
-            command: pnpm build:win
+          - os: macos-15
+            arch: arm64
+          - os: macos-15-intel
+            arch: x64
+          - os: windows-2025
+            arch: x64
+          - os: ubuntu-24.04
+            arch: x64
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    timeout-minutes: 45
     env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      PI_HARNESS_EXPECTED_ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Native quality gate
+        if: runner.os != 'Linux'
+        run: pnpm quality --package
+      - name: Native Linux quality gate
+        if: runner.os == 'Linux'
+        run: xvfb-run -a pnpm quality --package
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-${{ matrix.os }}-${{ matrix.arch }}
+          path: out/quality/
+          if-no-files-found: error
+
+  release-readiness:
+    name: Aggregate native release evidence
+    needs: [quality, package-smoke]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: quality-*
+          path: quality-reports
+      - name: Require every native platform
+        run: node scripts/release-readiness.mjs quality-reports/*/quality-*.json > release-readiness.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-readiness
+          path: release-readiness.json
+          if-no-files-found: error
+
+  dual-runtime:
+    name: Standalone runtime execution (${{ matrix.platform }}-${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: darwin
+            arch: arm64
+          - os: macos-15-intel
+            platform: darwin
+            arch: x64
+          - os: windows-2025
+            platform: win32
+            arch: x64
+          - os: windows-11-arm
+            platform: win32
+            arch: arm64
+          - os: ubuntu-24.04
+            platform: linux
+            arch: x64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    env:
+      PI_HARNESS_E2E_AGENT_MODE: rpc
+      PI_HARNESS_E2E_EMPTY_PATH: '1'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v4
@@ -63,10 +144,27 @@ jobs:
           node-version: 22.22.2
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: ${{ matrix.command }}
-      - name: Native environment regression tests
-        run: pnpm exec vitest run src/main/environment src/main/pi/node-environment.test.ts src/main/pi/node-runtime.test.ts src/main/pi/environment-checks.test.ts src/main/pi/install-service.test.ts src/main/process/pi-process.test.ts src/main/services/windows-startup-preflight.test.ts
-      - name: Project analysis native regression tests
-        run: pnpm exec vitest run src/main/intelligence src/main/ipc/register-intelligence.test.ts
-      - name: Project analysis Electron smoke
-        run: pnpm exec playwright test e2e/project-intelligence.spec.ts
+      - uses: actions/cache@v4
+        with:
+          path: .runtime-cache
+          key: runtime-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('src/main/runtime/catalog.json') }}
+      - run: pnpm runtime:prepare
+      - run: pnpm test:runtime
+      - name: Native environment regressions
+        run: pnpm exec vitest run src/main/environment src/main/pi src/main/process
+      - run: pnpm compile
+      - name: Standalone Electron E2E
+        if: runner.os != 'Linux'
+        run: pnpm exec playwright test e2e/dual-runtime.spec.ts e2e/first-message.spec.ts e2e/pi-native-mcp.spec.ts e2e/runtime-compatibility.spec.ts
+      - name: Standalone Linux Electron E2E
+        if: runner.os == 'Linux'
+        run: xvfb-run -a pnpm exec playwright test e2e/dual-runtime.spec.ts e2e/first-message.spec.ts e2e/pi-native-mcp.spec.ts e2e/runtime-compatibility.spec.ts
+      - name: Package native runtimes
+        run: pnpm exec electron-builder --dir --publish never --${{ matrix.platform == 'darwin' && 'mac' || matrix.platform == 'win32' && 'win' || 'linux' }} --${{ matrix.arch }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runtime-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            out/runtime-validation/
+            test-results/

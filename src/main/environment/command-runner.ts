@@ -1,3 +1,4 @@
+import { getRuntimeProvider } from '../runtime/active'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { EnvironmentError } from '../services/errors'
@@ -18,11 +19,20 @@ export interface CommandRunOptions {
   onStderr?: (chunk: string) => void
 }
 
-export function runCommand(
+export async function runCommand(
   executable: string,
   args: string[],
   options: CommandRunOptions = {}
 ): Promise<CommandRunResult> {
+  const provider = getRuntimeProvider()
+  if (provider && /(?:npm|npx)-cli\.js$/i.test(executable)) {
+    const runtime = await provider.resolve('node')
+    if (!runtime.valid || !runtime.executablePath)
+      throw new EnvironmentError('NODE_NOT_FOUND', 'The selected Node runtime is unavailable')
+    args = [executable, ...args]
+    executable = runtime.executablePath
+    options = { ...options, env: await provider.environment('npm', options.env ?? process.env) }
+  }
   return new Promise((resolve, reject) => {
     if (options.signal?.aborted) {
       reject(new EnvironmentError('INSTALL_CANCELLED', 'Installation was cancelled'))

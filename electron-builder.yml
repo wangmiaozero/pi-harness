@@ -18,6 +18,8 @@ files:
   # Keep only the matching macOS Native Pi TUI addon in each package.
   - '!node_modules/@earendil-works/pi-tui/native/darwin/prebuilds/!(darwin-${arch}){,/**/*}'
 extraResources:
+  - from: resources/desktop-extension
+    to: desktop-extension
   - from: resources/archify
     to: archify
   - from: build/app-icons
@@ -30,8 +32,17 @@ extraResources:
     to: THIRD_PARTY_NOTICES.md
   - from: resources/builtin-skills
     to: builtin-skills
+beforePack: scripts/runtime/before-pack.mjs
+afterPack: scripts/runtime/after-pack.mjs
 asarUnpack: []
 mac:
+  extraResources:
+    - from: resources/runtimes/darwin-${arch}
+      to: runtimes
+  # Preserve the checksummed upstream executable bytes. Signature/notarization
+  # eligibility must be validated by the native release gate.
+  signIgnore:
+    - /runtimes/
   category: public.app-category.developer-tools
   # Default: host arch only. Building arm64+x64 leaves two unpacked .app
   # folders under release/ which Spotlight indexes as duplicate apps.
@@ -51,9 +62,6 @@ mac:
     CFBundleDisplayName: Pi-Harness
     CFBundleName: Pi-Harness
 dmg:
-  # 未签名 DMG 安装后可能被 Gatekeeper 标记为「已损坏，无法打开」；
-  # 「修复」App（scripts/prepare-mac-repair-app.mjs 生成）以管理员权限
-  # 移除 quarantine 属性。
   iconSize: 128
   contents:
     - x: 120
@@ -62,14 +70,13 @@ dmg:
       y: 184
       type: link
       path: /Applications
-    - x: 260
-      y: 300
-      type: file
-      path: build/修复.app
   window:
     width: 540
     height: 380
 win:
+  extraResources:
+    - from: resources/runtimes/win32-${arch}
+      to: runtimes
   # Keep local filenames identical to the GitHub upload names.
   artifactName: ${productName}-Setup-${version}.${ext}
   target:
@@ -82,6 +89,9 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
 linux:
+  extraResources:
+    - from: resources/runtimes/linux-${arch}
+      to: runtimes
   target:
     - target: AppImage
       arch:

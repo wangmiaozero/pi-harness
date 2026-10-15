@@ -1,10 +1,11 @@
 import { test, expect } from './fixtures'
 import { IPC_INVOKE } from '../src/shared/ipc/channels'
 
-test('switches menus without rechecking executables and keeps explicit refresh active', async ({
+test('switches menus without rechecking executables and keeps explicit system refresh active', async ({
   page,
   electronApp
 }) => {
+  await page.evaluate(() => window.piSwitch.runtimes.switch('node', { source: 'system' }))
   await page
     .getByRole('button', { name: /^(Refresh|刷新)$/ })
     .first()
@@ -28,7 +29,13 @@ test('switches menus without rechecking executables and keeps explicit refresh a
     child.spawn = new Proxy(child.spawn, {
       apply(target, receiver, args) {
         const argv = Array.isArray(args[1]) ? args[1] : []
-        if (argv.includes('-ilc') || argv.includes('prefix')) state.__navigationPerf.probes++
+        if (
+          argv.includes('-ilc') ||
+          argv.includes('prefix') ||
+          argv.includes('--version') ||
+          argv.includes('-p')
+        )
+          state.__navigationPerf.probes++
         return Reflect.apply(target, receiver, args)
       }
     })

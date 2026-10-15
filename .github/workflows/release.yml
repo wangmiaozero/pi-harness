@@ -15,6 +15,11 @@ env:
   npm_config_electron_custom_dir: 'v{{ version }}'
 
 jobs:
+  quality:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   macos:
     name: macOS arm64 and x64
     runs-on: macos-latest
@@ -107,7 +112,7 @@ jobs:
 
   publish:
     name: Publish GitHub Release
-    needs: [macos, windows, linux]
+    needs: [macos, windows, linux, quality]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { ArchitectureContextResult } from './context-schema'
+import { architectureAnalysisSchema } from './analysis-schema'
 
 export const relativeSourceSchema = z
   .string()
@@ -76,7 +77,7 @@ export const architectureGraphSchema = z
         branch: z.string().optional(),
         fingerprint: z.string(),
         excludes: z.array(relativeSourceSchema).max(30).default([]),
-        analyzerVersion: z.literal(1),
+        analyzerVersion: z.union([z.literal(1), z.literal(2)]),
         archifyVersion: z.string().max(80).nullable(),
         rendererProvider: z.string().max(80).default('archify'),
         rendererVersion: z.string().max(80).nullable().default(null),
@@ -88,6 +89,7 @@ export const architectureGraphSchema = z
     edges: z.array(architectureEdgeSchema).max(1200),
     entrypoints: z.array(relativeSourceSchema).max(50),
     summary: z.string().max(3000),
+    analysis: architectureAnalysisSchema.optional(),
     warnings: z.array(z.string().max(1000)).max(30),
     coverage: z
       .object({

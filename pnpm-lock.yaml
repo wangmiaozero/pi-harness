@@ -104,6 +104,9 @@ importers:
       semver:
         specifier: ^7.8.5
         version: 7.8.5
+      smol-toml:
+        specifier: 1.9.1
+        version: 1.9.1
       tar:
         specifier: ^7.5.22
         version: 7.5.22
@@ -113,6 +116,9 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+      unzipper:
+        specifier: 0.12.5
+        version: 0.12.5
       vue:
         specifier: ^3.5.43
         version: 3.5.43(typescript@6.0.3)
@@ -3547,6 +3553,10 @@ packages:
   simple-update-notifier@2.0.0:
     resolution: {integrity: sha512-a2B9Y0KlNXl9u/vsW6sTIu9vGEpfKu2wRV6l1H3XEas/0gUIzGzBoP/IouTcUQbm9JWZLH3COxyn03TYlFax6w==}
     engines: {node: '>=10'}
+
+  smol-toml@1.9.1:
+    resolution: {integrity: sha512-j7WyPdf0CJoutMzMoPLF/bVXHtKZIT9Rb4eGeEbWw8X2t5oirjPgpL+OpaENZrILYaXqYwnVH+qgUwVbl+pUJQ==}
+    engines: {node: '>= 18'}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -7857,6 +7867,8 @@ snapshots:
   simple-update-notifier@2.0.0:
     dependencies:
       semver: 7.8.5
+
+  smol-toml@1.9.1: {}
 
   source-map-js@1.2.1: {}
 

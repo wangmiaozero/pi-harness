@@ -1,5 +1,11 @@
 import { z } from 'zod'
 import { workspacePathSchema } from '../schemas/workspace'
+import {
+  historicalFileChangeSchema,
+  messageProvenanceSchema,
+  sessionNormalizationSchema,
+  toolInvocationSchema
+} from './evidence-schema'
 
 export const SOURCE_PROVIDERS = [
   'claude',
@@ -53,7 +59,12 @@ export const universalMessageSchema = z.object({
   timestamp: text.optional(),
   parts: z.array(universalPartSchema),
   nativeMessageId: text.optional(),
-  sourceRef: text
+  sourceRef: text,
+  sequence: z.number().int().nonnegative().optional(),
+  model: text.optional(),
+  provenance: messageProvenanceSchema.optional(),
+  toolInvocations: z.array(toolInvocationSchema).optional(),
+  fileChanges: z.array(historicalFileChangeSchema).optional()
 })
 export type UniversalMessage = z.infer<typeof universalMessageSchema>
 export const universalSessionSchema = z.object({
@@ -83,6 +94,7 @@ export const universalSessionSchema = z.object({
     hasToolCalls: z.boolean()
   }),
   warnings: z.array(text),
+  normalization: sessionNormalizationSchema.optional(),
   blob: id
 })
 export type UniversalSession = z.infer<typeof universalSessionSchema>
@@ -169,6 +181,7 @@ export const sessionHandoffSchema = z.object({
   sourceSessionId: id,
   sourceProvider: sourceProviderSchema,
   sourceFingerprint: id,
+  sourceBlob: id.optional(),
   workspacePath: text,
   workspaces: z
     .array(z.object({ path: workspacePathSchema, git: workspaceGitSchema }))
@@ -201,6 +214,7 @@ export const sessionHandoffSchema = z.object({
   context: text,
   omittedMessages: z.number().int().nonnegative(),
   aiSummary: handoffAiSummarySchema.optional(),
+  sourceNormalization: sessionNormalizationSchema.optional(),
   piSessionId: text.optional()
 })
 export type SessionHandoff = z.infer<typeof sessionHandoffSchema>

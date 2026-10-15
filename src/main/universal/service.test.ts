@@ -134,6 +134,7 @@ describe('local history discovery, persistence and isolation', () => {
     expect(await fs.readFile(file)).toEqual(original)
     expect((await fs.stat(file)).mtimeMs).toBe(stat.mtimeMs)
     expect(await fs.readdir(path.join(root, 'cache', 'messages'))).toHaveLength(0)
+    expect(await fs.readdir(path.join(root, 'cache', 'evidence'))).toHaveLength(0)
   })
   it('ignores symlinks and rejects source traversal and oversized IPC pages', async () => {
     const outside = path.join(root, 'outside.jsonl')

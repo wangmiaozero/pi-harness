@@ -1,3 +1,4 @@
+import { getRuntimeProvider } from '../runtime/active'
 import { execFile, type ExecFileOptions } from 'node:child_process'
 import type { Dirent } from 'node:fs'
 import { promisify } from 'node:util'
@@ -78,6 +79,15 @@ async function runCommand(
   args: string[],
   options: CommandOptions
 ): Promise<CommandResult> {
+  const provider = getRuntimeProvider()
+  if (provider && /(?:npm|npx)-cli\.js$/i.test(executable)) {
+    const runtime = await provider.resolve('node')
+    if (!runtime.valid || !runtime.executablePath)
+      throw new SkillMutationError('PROCESS_FAILED', 'The selected Node runtime is unavailable')
+    args = [executable, ...args]
+    executable = runtime.executablePath
+    options = { ...options, env: await provider.environment('npm', options.env) }
+  }
   const isWindowsShim = process.platform === 'win32' && /\.(?:cmd|bat)$/i.test(executable)
   const file = isWindowsShim ? (process.env.ComSpec ?? 'cmd.exe') : executable
   const commandArgs = isWindowsShim ? ['/d', '/s', '/c', executable, ...args] : args

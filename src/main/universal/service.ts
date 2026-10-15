@@ -9,6 +9,7 @@ import {
   universalMessageSchema,
   universalQuerySchema,
   universalReadSchema,
+  sessionHandoffSchema,
   type UniversalIndex,
   type UniversalQuery,
   type UniversalSession,
@@ -22,6 +23,7 @@ import { ValidationError, NotFoundError } from '../services/errors'
 import { defaultSources, existingSources, contained } from './sources'
 import { projectIdentityKey } from '@shared/workspace/project-identity'
 import type { ScanRequest, ScanResult } from './scanner'
+import { log } from '../services/logger'
 
 const initialStatus = (): UniversalSyncStatus => ({
   running: false,
@@ -213,7 +215,7 @@ export class UniversalSessionService {
       }
       filtered.push(session)
     }
-    filtered.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    filtered.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id))
     const projects = [
       ...new Set(
         this.index.sessions.flatMap((s) =>
@@ -319,7 +321,23 @@ export class UniversalSessionService {
   }
   async prune(): Promise<void> {
     const live = new Set(this.index.sessions.map((s) => s.blob))
-    for (const dir of ['messages', 'search']) {
+    // A saved handoff pins its exact evidence revision, even after a source is
+    // updated or forgotten. Origins and their evidence share the same lifetime.
+    const handoffs = path.join(this.root, 'handoffs')
+    for (const file of await fs.readdir(handoffs).catch(() => [] as string[])) {
+      if (!/^[a-f0-9]{64}\.json$/.test(file)) continue
+      try {
+        const handoff = sessionHandoffSchema.safeParse(
+          await readJsonFile(path.join(handoffs, file))
+        )
+        if (!handoff.success) throw new Error('Unsupported handoff')
+        if (handoff.data.sourceBlob) live.add(handoff.data.sourceBlob)
+      } catch {
+        log.session.warn('Cache pruning deferred because a saved handoff could not be validated.')
+        return // Keep potentially referenced evidence until the saved handoff can be recovered.
+      }
+    }
+    for (const dir of ['messages', 'search', 'evidence']) {
       const location = path.join(this.root, dir)
       for (const file of await fs.readdir(location).catch(() => [] as string[])) {
         if (

@@ -1,3 +1,4 @@
+import { getRuntimeProvider } from '../runtime/active'
 /**
  * PiProcessService — runs the Pi Coding Agent CLI safely.
  *
@@ -92,6 +93,11 @@ export class PiProcessService {
 
   /** Find the pi executable path across platforms without relying on `which` alone. */
   async resolveCliPath(override?: string | null): Promise<string | null> {
+    const provider = getRuntimeProvider()
+    if (provider) {
+      const runtime = await provider.resolve('pi')
+      return runtime.valid ? runtime.executablePath : null
+    }
     const now = Date.now()
     if (!override && this.cachedPath && now - this.cachedAt < this.cacheTtlMs)
       return this.cachedPath
@@ -179,6 +185,8 @@ export class PiProcessService {
    * processes work regardless of how the app was launched.
    */
   private async resolveChildEnvironment(cwd?: string): Promise<NodeJS.ProcessEnv> {
+    const provider = getRuntimeProvider()
+    if (provider) return provider.environment('pi')
     const login = await resolveLoginShellPath({ probeNode: true, cwd })
     const env = { ...process.env, ...login.env }
     const directories = await nodeToolDirectories(login.path, env)
@@ -199,11 +207,15 @@ export class PiProcessService {
 
     const isJs = cliPath.endsWith('.js')
     const isWindowsShim = process.platform === 'win32' && /\.(?:cmd|bat)$/i.test(cliPath)
-    const file = isJs
-      ? process.execPath
-      : isWindowsShim
-        ? (process.env.ComSpec ?? 'cmd.exe')
-        : cliPath
+    const selectedNode = isJs
+      ? getRuntimeProvider()
+        ? (await getRuntimeProvider()!.resolve('node')).executablePath
+        : (await resolveExecutable('node', { additionalDirectories: await nodeToolDirectories() }))
+            .path
+      : null
+    if (isJs && !selectedNode)
+      throw new PiCliError('An external Node runtime is required for npm Pi')
+    const file = isJs ? selectedNode! : isWindowsShim ? (process.env.ComSpec ?? 'cmd.exe') : cliPath
     const args = isJs
       ? [cliPath, ...options.args]
       : isWindowsShim
@@ -216,7 +228,7 @@ export class PiProcessService {
       env: {
         ...(await this.resolveChildEnvironment(options.cwd)),
         ...options.env,
-        ...(isJs ? { ELECTRON_RUN_AS_NODE: '1' } : {})
+        ELECTRON_RUN_AS_NODE: undefined
       },
       maxBuffer: 10 * 1024 * 1024,
       windowsHide: true
@@ -263,6 +275,7 @@ export class PiProcessService {
   async version(): Promise<string | null> {
     try {
       const res = await this.exec({ args: ['--version'], timeoutMs: 8000 })
+      if (res.exitCode !== 0) return null
       const v = (res.stdout || res.stderr).trim()
       return v || null
     } catch {

@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -20,6 +21,7 @@ const root = path.resolve(__dirname, '..')
 const mainJs = path.join(root, 'out/main/index.js')
 const fixturesPi = path.join(root, 'fixtures/mock-pi')
 const capabilityFixtures = path.join(root, 'fixtures/capabilities')
+const startupProfiles = new WeakMap<ElectronApplication, { started: number; launchMs: number }>()
 
 function isMainRenderer(page: Page): boolean {
   const url = page.url()
@@ -42,6 +44,7 @@ type Fixtures = {
   workspaceRoot: string
   testUserData: string
   piAgentDir: string
+  startupMetrics: { launchMs: number; readyMs: number }
 }
 
 export const test = base.extend<Fixtures>({
@@ -71,12 +74,58 @@ export const test = base.extend<Fixtures>({
     )
     const { ELECTRON_RUN_AS_NODE: _runAsNode, ...restEnv } = process.env
     void _runAsNode
+    const launchEnvironment = { ...restEnv }
+    if (process.env.PI_HARNESS_E2E_EMPTY_PATH === '1') {
+      for (const key of Object.keys(launchEnvironment))
+        if (key.toLowerCase() === 'path') delete launchEnvironment[key]
+      const toolBin = path.join(testUserData, 'system-tools')
+      fs.mkdirSync(toolBin)
+      const directories = [toolBin]
+      if (process.platform === 'win32') {
+        const systemDirectory = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32')
+        directories.push(systemDirectory)
+        const git = execFileSync(path.join(systemDirectory, 'where.exe'), ['git'], {
+          encoding: 'utf8'
+        })
+          .trim()
+          .split(/\r?\n/)[0]
+        if (git) directories.push(path.dirname(git))
+      } else {
+        for (const [name, file] of [
+          ['git', '/usr/bin/git'],
+          ['sh', '/bin/sh'],
+          ['env', '/usr/bin/env']
+        ]) {
+          if (fs.existsSync(file)) fs.symlinkSync(file, path.join(toolBin, name))
+        }
+      }
+      for (const directory of directories) {
+        for (const name of [
+          'node',
+          'node.exe',
+          'node.cmd',
+          'npm',
+          'npm.cmd',
+          'npx',
+          'npx.cmd',
+          'pi',
+          'pi.exe',
+          'pi.cmd'
+        ]) {
+          if (fs.existsSync(path.join(directory, name)))
+            throw new Error(`Isolated test PATH unexpectedly contains ${name}`)
+        }
+      }
+      launchEnvironment.PATH = directories.join(path.delimiter)
+    }
+    const started = performance.now()
     const app = await electron.launch({
       executablePath: packagedExecutable || electronBinary,
       args: packagedExecutable ? [] : [mainJs],
       env: {
-        ...restEnv,
+        ...launchEnvironment,
         ELECTRON_RUN_AS_NODE: undefined,
+        PI_HARNESS_AGENT_MODE: process.env.PI_HARNESS_E2E_AGENT_MODE ?? 'sdk',
         PI_HARNESS_PI_CLI_PATH: path.join(testUserData, 'missing-pi-cli'),
         PI_HARNESS_PI_CONFIG_DIR: piAgentDir,
         PI_CODING_AGENT_DIR: piAgentDir,
@@ -87,6 +136,7 @@ export const test = base.extend<Fixtures>({
       },
       timeout: 60_000
     })
+    startupProfiles.set(app, { started, launchMs: performance.now() - started })
     await use(app)
     await app.close().catch(() => undefined)
   },
@@ -95,6 +145,11 @@ export const test = base.extend<Fixtures>({
     await page.waitForLoadState('domcontentloaded')
     await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
     await use(page)
+  },
+  startupMetrics: async ({ electronApp, page }, use) => {
+    void page
+    const profile = startupProfiles.get(electronApp)!
+    await use({ launchMs: profile.launchMs, readyMs: performance.now() - profile.started })
   }
 })
 

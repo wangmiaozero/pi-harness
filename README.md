@@ -117,6 +117,8 @@ View the original conversation in read-only mode, preview a handoff, and edit th
 
 Open Architecture in Workspace to explore modules, dependencies, entrypoints, and source references. Filter by package, focus on a module, browse map pages, zoom, or use fullscreen. Save analysis snapshots, see when source changes make them stale, and export JSON, offline HTML, or the current view as PNG.
 
+Maps describe supported static dependencies; they do not establish a complete function-call graph. Local conversation history keeps source sessions read-only, and continuing a task starts a new Pi conversation.
+
 Local analysis uses no model tokens; AI descriptions are optional. JavaScript, TypeScript, and Vue import relationships are analyzed locally, while other supported languages have a file-level index. The analysis shows its coverage and limitations.
 
 ### Themes and custom skins
@@ -229,7 +231,7 @@ Download a published installer from [GitHub Releases](https://github.com/wangmia
 | Windows x64         | `.exe` · Windows installer |
 | Linux x64           | `.AppImage`                |
 
-Packaged users do not need to clone the repository or install pnpm. Pi-Harness can help set up Pi and its environment where supported.
+Packaged users do not need to clone the repository or install pnpm. Follow the environment requirements in the release notes for the installer you download.
 
 > macOS community builds may be unsigned. If the first launch is blocked, use **System Settings → Privacy & Security → Open Anyway**.
 
@@ -243,7 +245,7 @@ Packaged users do not need to clone the repository or install pnpm. Pi-Harness c
 
 ## Requirements
 
-The desktop app supports macOS Apple Silicon, macOS Intel, Windows x64, and Linux x64. Pi Coding Agent can be installed or repaired from the app where supported. Running from source requires Node.js ≥ 22.22.2 and pnpm 9.12.1.
+The desktop app supports macOS Apple Silicon, macOS Intel, Windows x64, and Linux x64. Pi Coding Agent can be installed or repaired from the app where supported. Source development and packaging require Node.js ≥ 22.22.2 and pnpm 9.12.1. These build requirements are separate from the requirements of a published desktop installer.
 
 ## Documentation
 

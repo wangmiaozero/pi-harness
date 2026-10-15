@@ -1,3 +1,4 @@
+import { getRuntimeProvider } from '../runtime/active'
 /**
  * PiEnvironmentService — startup Pi Coding Agent detection.
  *
@@ -26,6 +27,7 @@ class PiEnvironmentService {
   }): Promise<PiEnvironment> {
     const platform = process.platform
     const arch = process.arch
+    getRuntimeProvider()?.invalidate()
     piProcess.invalidateCache()
     const cliPath = await piProcess.resolveCliPath(override?.cliPath ?? undefined)
     const [version, nodeRuntime] = await Promise.all([
@@ -42,17 +44,20 @@ class PiEnvironmentService {
     const homeDir = homedir()
     const { readable, writable, valid, error } = await this.checkConfig(configDir)
     const piStatus = !cliPath ? 'missing' : version ? 'ready' : 'failed'
-    const state = !nodeRuntime.nodeInstalled
-      ? 'node-required'
-      : !nodeRuntime.nodeSupported
-        ? 'node-outdated'
-        : !nodeRuntime.npmInstalled
-          ? 'npm-unavailable'
-          : piStatus === 'ready'
-            ? 'ready'
-            : piStatus === 'failed'
-              ? 'failed'
-              : 'pi-required'
+    const state =
+      getRuntimeProvider() && piStatus === 'ready'
+        ? 'ready'
+        : !nodeRuntime.nodeInstalled
+          ? 'node-required'
+          : !nodeRuntime.nodeSupported
+            ? 'node-outdated'
+            : !nodeRuntime.npmInstalled
+              ? 'npm-unavailable'
+              : piStatus === 'ready'
+                ? 'ready'
+                : piStatus === 'failed'
+                  ? 'failed'
+                  : 'pi-required'
 
     log.pi.info('pi environment detected:', {
       installed: Boolean(cliPath),

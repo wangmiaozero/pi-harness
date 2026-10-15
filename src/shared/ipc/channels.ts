@@ -10,6 +10,13 @@
 const invoke = (name: string) => `pi-harness:${name}` as const
 
 export const IPC_INVOKE = {
+  runtimeDiagnostics: invoke('runtime:diagnostics'),
+  runtimeSwitch: invoke('runtime:switch'),
+  runtimeVerify: invoke('runtime:verify'),
+  runtimeCheckUpdates: invoke('runtime:check-updates'),
+  runtimeUpdate: invoke('runtime:update'),
+  runtimeRollback: invoke('runtime:rollback'),
+  runtimePick: invoke('runtime:pick'),
   intelligenceViewer: invoke('intelligence:viewer'),
   intelligenceMap: invoke('intelligence:map'),
   intelligenceAnalyze: invoke('intelligence:analyze'),

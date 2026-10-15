@@ -32,6 +32,15 @@ function onEvent(channel: string, listener: IpcEventListener): () => void {
 }
 
 const api: PiSwitchAPI = {
+  runtimes: {
+    diagnostics: () => invoke(IPC_INVOKE.runtimeDiagnostics),
+    switch: (kind, selection) => invoke(IPC_INVOKE.runtimeSwitch, { kind, selection }),
+    verify: (kind) => invoke(IPC_INVOKE.runtimeVerify, { kind }),
+    checkUpdates: () => invoke(IPC_INVOKE.runtimeCheckUpdates),
+    update: (kind) => invoke(IPC_INVOKE.runtimeUpdate, { kind }),
+    rollback: (kind) => invoke(IPC_INVOKE.runtimeRollback, { kind }),
+    pick: (kind) => invoke(IPC_INVOKE.runtimePick, { kind })
+  },
   intelligence: {
     map: (input) => invoke(IPC_INVOKE.intelligenceMap, input),
     viewer: (input) => invoke(IPC_INVOKE.intelligenceViewer, input),

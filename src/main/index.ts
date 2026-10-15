@@ -2,10 +2,11 @@
  * Electron main process entry.
  */
 
-import { app, BrowserWindow, nativeTheme, protocol } from 'electron'
+import { app, BrowserWindow, nativeTheme, protocol, net } from 'electron'
 import path from 'node:path'
 import {
   initAppPaths,
+  getPiConfigDir,
   appSettingsPath,
   appUiStatePath,
   appAuthorizedRootsPath,
@@ -55,6 +56,9 @@ import { GitCommitMessageService } from './git/commit-message-service'
 import { WorktreeService } from './git/worktree-service'
 import { SessionService } from './sessions/session-service'
 import { SessionExportService } from './sessions/session-export-service'
+import { RuntimeManager } from './runtime/runtime-manager'
+import { setRuntimeProvider } from './runtime/active'
+import { PiRpcRuntime } from './agent/pi-rpc-runtime'
 import { AgentRuntimeService } from './agent/agent-runtime-service'
 import { resolveWorkspaceToolPath } from './workspace/workspace-tool-guard'
 import { WorkspaceService, type WorkspaceStateRecord } from './workspace/workspace-service'
@@ -323,7 +327,7 @@ async function bootstrap(): Promise<void> {
       intelligenceModel.enrich(root, graph, scan, signal, locale)
   )
 
-  const piAgent = new AgentRuntimeService(sessions, {
+  const desktopHooks: NonNullable<ConstructorParameters<typeof AgentRuntimeService>[1]> = {
     prepareSession: async (sessionId, cwd) => {
       if (workspaceState.getFoldersForSession(sessionId).length) return
       const active = workspaceState.getActive()
@@ -373,13 +377,51 @@ async function bootstrap(): Promise<void> {
         input
       )
     }
+  }
+  const piAgent = new AgentRuntimeService(sessions, desktopHooks)
+  let rpcAgent: PiRpcRuntime | null = null
+  const runtimes = new RuntimeManager({
+    bundledRoot: app.isPackaged
+      ? path.join(process.resourcesPath, 'runtimes')
+      : path.resolve(
+          import.meta.dirname,
+          '../../resources/runtimes',
+          `${process.platform}-${process.arch}`
+        ),
+    userRoot: path.join(userData(), 'runtimes'),
+    stateFile: path.join(userData(), 'runtime-configuration.json'),
+    cache: path.join(userData(), 'runtime-downloads'),
+    fetcher: net.fetch,
+    compatibilityMode: process.env.PI_HARNESS_AGENT_MODE === 'sdk',
+    piConfigDir: () => getPiConfigDir(settingsStore.peek().manualConfigDir),
+    legacyPiPath:
+      process.env.PI_HARNESS_AGENT_MODE === 'sdk'
+        ? (process.env.PI_HARNESS_PI_CLI_PATH ?? settingsStore.peek().manualCliPath)
+        : settingsStore.peek().manualCliPath,
+    busy: () => Boolean(rpcAgent?.isBusy() || piAgent.listRunning().length),
+    activeSessions: () => (rpcAgent?.listRunning().length ?? 0) + piAgent.listRunning().length,
+    stopIdle: async () => {
+      await rpcAgent?.stopIdle()
+    }
   })
-  const harness = new HarnessRuntime(new PiHarnessAdapter(piAgent), {
-    policy: policyEngine,
-    checkpointStore: new JsonStore(harnessCheckpointsPath(), EMPTY_CHECKPOINT_STORE),
-    sessions,
-    git
+  await runtimes.initialize()
+  setRuntimeProvider(runtimes)
+  rpcAgent = new PiRpcRuntime(sessions, runtimes, {
+    extensionPath: app.isPackaged
+      ? path.join(process.resourcesPath, 'desktop-extension/index.mjs')
+      : path.resolve(import.meta.dirname, '../../resources/desktop-extension/index.mjs'),
+    configDir: () => getPiConfigDir(settingsStore.peek().manualConfigDir),
+    workspace: desktopHooks
   })
+  const harness = new HarnessRuntime(
+    process.env.PI_HARNESS_AGENT_MODE === 'sdk' ? new PiHarnessAdapter(piAgent) : rpcAgent,
+    {
+      policy: policyEngine,
+      checkpointStore: new JsonStore(harnessCheckpointsPath(), EMPTY_CHECKPOINT_STORE),
+      sessions,
+      git
+    }
+  )
   harnessRef.current = harness
   const orchestrator = createOrchestrator(harness, workspaceState, worktrees)
 
@@ -390,6 +432,7 @@ async function bootstrap(): Promise<void> {
   })
 
   piAgent.attachWindow(() => mainWindow)
+  rpcAgent.attachWindow(() => mainWindow)
   harness.attachWindow(() => mainWindow)
 
   // Multi-Agent Orchestration — one subscription onto the unified stream.
@@ -448,6 +491,7 @@ async function bootstrap(): Promise<void> {
   })
 
   registerIpc({
+    runtimes,
     intelligence,
     architectureViewer: new ArchitectureViewer(
       intelligence,

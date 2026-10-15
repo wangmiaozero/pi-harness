@@ -82,13 +82,13 @@ describe('PiProcessService environment override', () => {
     }
   })
 
-  it('runs a JavaScript CLI through packaged Electron in Node mode', async () => {
+  it('runs a JavaScript CLI through an external Node without Electron mode', async () => {
     const previous = process.env.PI_HARNESS_PI_CLI_PATH
     const testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-js-cli-'))
     const cliPath = path.join(testDir, 'cli.js')
     await fs.writeFile(
       cliPath,
-      "process.stdout.write(process.env.ELECTRON_RUN_AS_NODE === '1' ? '1.2.3' : 'wrong-mode')\n"
+      "process.stdout.write(!process.versions.electron && !process.env.ELECTRON_RUN_AS_NODE ? '1.2.3' : 'wrong-mode')\n"
     )
     await fs.chmod(cliPath, 0o755)
     process.env.PI_HARNESS_PI_CLI_PATH = cliPath

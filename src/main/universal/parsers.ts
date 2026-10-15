@@ -20,6 +20,8 @@ import {
   userTaskText
 } from './normalize'
 import { recordedTokens } from '@shared/universal/usage'
+import { SESSION_PARSER_REVISION, type RecordEvidence } from '@shared/universal/evidence-schema'
+import { normalizeSessionEvidence, recordDigest, retainRecordEvidence } from './evidence'
 
 export function hash(value: string): string {
   return createHash('sha256').update(value).digest('hex')
@@ -27,6 +29,7 @@ export function hash(value: string): string {
 export interface ParsedSession {
   session: UniversalSession
   messages: UniversalMessage[]
+  evidence?: RecordEvidence[]
 }
 export interface ParseInput {
   provider: SourceProvider
@@ -351,6 +354,14 @@ export function parseSession(input: ParseInput): ParsedSession {
       timestamp,
       parts: normalized,
       nativeMessageId,
+      model,
+      provenance: {
+        parserRevision: SESSION_PARSER_REVISION,
+        recordDigest: recordDigest(raw),
+        sourceRef: `${input.file}#record=${input.recordNumbers?.[index] ?? index + 1}`,
+        representation: 'parsed-record',
+        trust: 'untrusted-history'
+      },
       sourceRef: `${input.file}#record=${input.recordNumbers?.[index] ?? index + 1}`
     })
   })
@@ -374,7 +385,20 @@ export function parseSession(input: ParseInput): ParsedSession {
   // Sorting is stable; mixed/undated logs retain their original event order.
   if (intermediate.every((m) => m.timestamp))
     intermediate.sort((a, b) => a.timestamp!.localeCompare(b.timestamp!))
-  const messages = intermediate.map((m) => universalMessageSchema.parse({ ...m, sessionId: id }))
+  const messages = intermediate.map((m, sequence) =>
+    universalMessageSchema.parse({ ...m, sequence, sessionId: id })
+  )
+  const sensitiveRecords = new Set(
+    messages
+      .filter((message) =>
+        message.parts.some(
+          (part) => part.type === 'tool-result' && part.text === '[REDACTED SENSITIVE TOOL OUTPUT]'
+        )
+      )
+      .map((message) => message.sourceRef)
+  )
+  const evidence = retainRecordEvidence(records, input.file, input.recordNumbers, sensitiveRecords)
+  const normalization = normalizeSessionEvidence(messages, records, evidence)
   const firstUserText = messages
     .filter((m) => m.role === 'user')
     .flatMap((m) => m.parts.flatMap((p) => (p.type === 'text' ? [userTaskText(p.text)] : [])))
@@ -390,6 +414,8 @@ export function parseSession(input: ParseInput): ParsedSession {
   const timestamps = messages.flatMap((m) => (m.timestamp ? [m.timestamp] : [])).sort()
   if (messages.some((m) => m.parts.some((p) => p.type === 'native-event')))
     warnings.push('NATIVE_EVENTS_RETAINED')
+  const blobDigest = createHash('sha256').update(JSON.stringify(messages))
+  for (const record of evidence) blobDigest.update(JSON.stringify(record))
   const session = universalSessionSchema.parse({
     id,
     schemaVersion: 1,
@@ -415,7 +441,8 @@ export function parseSession(input: ParseInput): ParsedSession {
       hasToolCalls: messages.some((m) => m.parts.some((p) => p.type === 'tool-call'))
     },
     warnings: [...new Set(warnings)],
-    blob: hash(JSON.stringify(messages))
+    normalization,
+    blob: blobDigest.digest('hex')
   })
-  return { session, messages }
+  return { session, messages, evidence }
 }

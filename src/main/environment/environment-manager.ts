@@ -1,3 +1,5 @@
+import { getRuntimeProvider } from '../runtime/active'
+import type { RuntimeKind, RuntimeDiagnostics } from '@shared/runtime/schema'
 import { randomUUID } from 'node:crypto'
 import type {
   AppSettings,
@@ -60,8 +62,52 @@ export class EnvironmentManager {
     return this.dependencies.detectEnvironment(this.settingsStore.peek())
   }
 
-  checkLatest() {
+  async checkLatest() {
+    const provider = getRuntimeProvider()
+    if (provider) {
+      const { pi } = await provider.checkUpdates()
+      return {
+        installed: Boolean(pi.installed),
+        installedVersion: pi.installed,
+        latestVersion: pi.available,
+        updateAvailable: pi.managed && pi.installed !== pi.available,
+        packageName: '@earendil-works/pi-coding-agent'
+      }
+    }
     return this.dependencies.piInstaller.checkLatest()
+  }
+
+  async maintainRuntime(
+    kind: RuntimeKind,
+    operation: 'update' | 'rollback'
+  ): Promise<RuntimeDiagnostics> {
+    if (this.active) throw new ValidationError('Another environment operation is in progress')
+    const provider = getRuntimeProvider()
+    if (!provider) throw new ValidationError('Runtime management is unavailable')
+    let diagnostics: RuntimeDiagnostics | undefined
+    await this.runTask(kind, async (signal) => {
+      this.update('preparing-runtime', 10, `Preparing ${kind === 'pi' ? 'Pi' : 'Node.js'}`)
+      this.appendLog(
+        'Acquiring and verifying the selected runtime. Existing files remain available until activation.'
+      )
+      diagnostics =
+        operation === 'update'
+          ? await provider.update(kind, signal, (phase, progress) => {
+              const descriptions: Record<string, string> = {
+                'verifying-source': 'Verifying the download source',
+                'acquiring-runtime': 'Downloading or reading the verified runtime cache',
+                'extracting-runtime': 'Extracting runtime files',
+                'verifying-runtime': 'Verifying runtime integrity'
+              }
+              const message = descriptions[phase] ?? 'Preparing runtime'
+              this.update(phase, progress, message)
+              this.appendLog(message)
+            })
+          : await provider.rollback(kind)
+      this.update('verified-runtime', 98, 'Runtime verification completed')
+      return null
+    })
+    return diagnostics!
   }
 
   getTask(): EnvironmentInstallTask | null {
@@ -69,6 +115,10 @@ export class EnvironmentManager {
   }
 
   async installNode(): Promise<EnvironmentInstallTask> {
+    if (getRuntimeProvider()) {
+      await this.maintainRuntime('node', 'update')
+      return this.getTask()!
+    }
     if (this.active) return this.active
     return this.runTask('node', async (signal) => {
       await this.installOrRepairNode(signal, 0, 100)
@@ -85,6 +135,21 @@ export class EnvironmentManager {
   }
 
   async bootstrap(forcePi = false): Promise<PiInstallResult> {
+    const provider = getRuntimeProvider()
+    if (provider) {
+      const previous = await provider.resolve('pi')
+      if (previous.valid && !forcePi) return alreadyInstalledResult(previous.version)
+      const current = await this.maintainRuntime('pi', 'update')
+      return {
+        ok: current.pi.valid,
+        action: 'install',
+        previousVersion: previous.version,
+        currentVersion: current.pi.version,
+        latestVersion: current.pi.version,
+        message: 'Pi is ready',
+        log: 'Managed runtime verified'
+      }
+    }
     if (this.active) {
       const existing = await this.active
       if (existing.result) return existing.result
@@ -171,6 +236,20 @@ export class EnvironmentManager {
   }
 
   async updatePi(force = false): Promise<PiInstallResult> {
+    const provider = getRuntimeProvider()
+    if (provider) {
+      const previous = await provider.resolve('pi')
+      const current = await this.maintainRuntime('pi', 'update')
+      return {
+        ok: current.pi.valid,
+        action: 'update',
+        previousVersion: previous.version,
+        currentVersion: current.pi.version,
+        latestVersion: current.pi.version,
+        message: 'Pi is ready',
+        log: 'Managed runtime verified'
+      }
+    }
     if (this.active) {
       const existing = await this.active
       if (existing.result) return existing.result

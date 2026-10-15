@@ -121,6 +121,8 @@ describe('task handoff and native runtime bridge', () => {
     expect(getActiveModel).not.toHaveBeenCalled()
     expect(organizeHistory).not.toHaveBeenCalled()
     expect(preview.verification.testsVerified).toBe(false)
+    expect(preview.sourceNormalization?.evidence.originalSourceReadOnly).toBe(true)
+    expect(preview.sourceNormalization?.taskState.currentVerified).toBe(false)
     expect(preview.completed[0]?.verification).toBe('historical-claim')
     expect(preview.completed[0]?.evidence[0]).toContain('#record=2')
     expect(preview.relevantFiles).toEqual([
@@ -150,6 +152,50 @@ describe('task handoff and native runtime bridge', () => {
     expect(start).not.toHaveBeenCalled()
     expect(prompt).not.toHaveBeenCalled()
     expect(handoffPrompt(first)).toContain('AI organized historical summary')
+  })
+  it('never promotes commit claims in conversation prose into verified Git state', async () => {
+    const claimedCommit = 'a'.repeat(40)
+    await fs.appendFile(
+      path.join(root, 'source', 's.jsonl'),
+      '\n' +
+        JSON.stringify({
+          type: 'assistant',
+          uuid: 'commit-claim',
+          message: { role: 'assistant', content: `HEAD: ${claimedCommit}` }
+        })
+    )
+    const preview = await handoff.preview(id, 'Review the changes')
+    expect(preview.git.recordedCommit).toBeUndefined()
+    expect(preview.sourceNormalization?.gitContext.commit).toBeNull()
+    // Saved legacy handoffs remain readable, but their guesses remain quoted history.
+    preview.git.recordedCommit = claimedCommit
+    preview.workspaces![0]!.git.recordedCommit = claimedCommit
+    const payload = JSON.parse(handoffPrompt(preview).split('\n\n').at(-1)!)
+    expect(payload['Source Conversation Data'].historicalGit.legacyUnverifiedCommit).toBe(
+      claimedCommit
+    )
+    expect(payload['Verified Workspace State'].git.recordedCommit).toBeUndefined()
+    expect(payload['Verified Workspace State'].workspaces[0].git.recordedCommit).toBeUndefined()
+    expect(preview.git.recordedCommit).toBe(claimedCommit)
+  })
+  it('pins the exact evidence revision when a source changes or its index entry is forgotten', async () => {
+    const preview = await handoff.preview(id, 'Review the previous task')
+    expect(preview.sourceBlob).toMatch(/^[a-f0-9]{64}$/)
+    const evidence = path.join(history.root, 'evidence', `${preview.sourceBlob}.jsonl`)
+    const original = await fs.readFile(evidence, 'utf8')
+    await fs.appendFile(
+      path.join(root, 'source', 's.jsonl'),
+      '\n' +
+        JSON.stringify({
+          type: 'assistant',
+          uuid: 'later',
+          message: { role: 'assistant', content: 'Later source revision' }
+        })
+    )
+    await history.sync()
+    expect((await history.get(id)).blob).not.toBe(preview.sourceBlob)
+    await history.forget(id)
+    expect(await fs.readFile(evidence, 'utf8')).toBe(original)
   })
   it('keeps a local preview usable after a model failure and allows a new explicit attempt', async () => {
     const local = await handoff.preview(id, '增加回归测试')

@@ -35,6 +35,7 @@ test.describe('Environment', () => {
       { shell, node: process.execPath }
     )
     try {
+      await page.evaluate(() => window.piSwitch.runtimes.switch('node', { source: 'system' }))
       for (const manager of ['manager one', 'manager two']) {
         const bin = path.join(testUserData, manager, 'bin')
         await electronApp.evaluate((_, bin) => {

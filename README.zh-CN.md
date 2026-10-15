@@ -117,6 +117,8 @@ Pi-Harness 是 Pi Coding Agent 的操作能力超集：以原生 Pi 能力为基
 
 在工作区打开“项目架构”，浏览模块、依赖、入口文件和源码引用。支持按包筛选、模块聚焦、地图翻页、缩放与全屏，保存分析快照并提示源码变化，可导出 JSON、离线 HTML 或当前视图 PNG。
 
+架构图展示支持范围内的静态依赖，不代表完整的函数调用关系。AI 会话历史保留原始会话只读，继续任务时会创建新的 Pi 对话。
+
 本地分析不消耗模型 Token，AI 说明按需使用。JavaScript、TypeScript 和 Vue 提供本地导入关系分析，其他支持语言提供文件级索引，分析结果会标明覆盖范围与限制。
 
 ### 主题与自定义皮肤
@@ -229,7 +231,7 @@ Pi-Harness 是 Pi Coding Agent 的操作能力超集：以原生 Pi 能力为基
 | Windows x64         | `.exe` · Windows 安装程序 |
 | Linux x64           | `.AppImage`               |
 
-安装包用户无需克隆仓库或安装 pnpm。Pi-Harness 可以在支持的环境中协助安装 Pi 并配置运行环境。
+安装包用户无需克隆仓库或安装 pnpm。请以所下载版本的发布说明为准，确认该安装包的运行环境要求。
 
 > macOS 社区构建可能未签名。首次启动若被系统拦截，请前往“系统设置 → 隐私与安全性 → 仍要打开”。
 
@@ -243,7 +245,7 @@ Pi-Harness 是 Pi Coding Agent 的操作能力超集：以原生 Pi 能力为基
 
 ## 环境要求
 
-桌面应用支持 macOS Apple Silicon、macOS Intel、Windows x64 和 Linux x64。支持的环境可在应用中安装或修复 Pi Coding Agent。从源码运行需要 Node.js ≥ 22.22.2 和 pnpm 9.12.1。
+桌面应用支持 macOS Apple Silicon、macOS Intel、Windows x64 和 Linux x64。支持的环境可在应用中安装或修复 Pi Coding Agent。源码开发与打包需要 Node.js ≥ 22.22.2 和 pnpm 9.12.1；这与已发布桌面安装包的运行要求分别说明。
 
 ## 文档
 

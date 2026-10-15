@@ -1,3 +1,4 @@
+import { getRuntimeProvider } from '../runtime/active'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { homedir } from 'node:os'
@@ -116,6 +117,42 @@ export function isNodeVersionSupported(version: string | null | undefined): bool
 }
 
 export async function detectNodeRuntime(): Promise<NodeRuntimeInfo> {
+  const provider = getRuntimeProvider()
+  if (provider) {
+    const runtime = await provider.resolve('node')
+    const env = await provider.environment('npm')
+    const source =
+      runtime.source === 'bundled'
+        ? 'managed-runtime'
+        : runtime.source === 'custom'
+          ? 'explicit'
+          : runtime.discoverySource === 'login-shell'
+            ? 'login-shell'
+            : 'process-path'
+    return {
+      nodeInstalled: Boolean(runtime.executablePath && runtime.version),
+      nodePath: runtime.executablePath,
+      nodeVersion: runtime.version ? `v${runtime.version}` : null,
+      nodeSupported: runtime.valid,
+      minimumNodeVersion: MINIMUM_NODE_VERSION,
+      npmInstalled: Boolean(runtime.npm),
+      npmPath: runtime.npm?.cliPath ?? null,
+      npmVersion: runtime.npm?.version ?? null,
+      pnpmInstalled: false,
+      pnpmPath: null,
+      pnpmVersion: null,
+      nodeStatus: runtime.valid ? 'ready' : 'missing',
+      npmStatus: runtime.npm ? 'ready' : 'missing',
+      nodeSource: source,
+      npmSource: runtime.npm ? source : null,
+      pnpmSource: null,
+      npmPrefix: null,
+      npmPrefixWritable: null,
+      npmBinDir: runtime.executablePath ? path.dirname(runtime.executablePath) : null,
+      resolvedPath: env.PATH ?? '',
+      ready: Boolean(runtime.valid && runtime.npm)
+    }
+  }
   // Desktop apps inherit a launch-service PATH that can differ from the user's
   // interactive terminal. Resolve that shell first so version managers and
   // ~/.zshrc PATH changes win over stale Homebrew/system installations.

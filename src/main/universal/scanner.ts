@@ -15,9 +15,10 @@ import { parseSession, compactCodexRecord, hash, type ParsedSession } from './pa
 import { object, string, array } from './normalize'
 import { safeSourceFile, walk } from './sources'
 import { parseSourceDatabase } from './sqlite'
+import { SESSION_PARSER_REVISION } from '@shared/universal/evidence-schema'
 
 // Invalidate derived blobs when format normalization changes; originals remain untouched.
-const PARSER_REVISION = 5
+const PARSER_REVISION = SESSION_PARSER_REVISION
 const MAX_SOURCE_BYTES = 256 * 1024 * 1024
 
 export interface ScanRequest {
@@ -375,6 +376,11 @@ export async function scanSources(
   return { sessions: [...output.values()], status }
 }
 export async function persistParsed(root: string, parsed: ParsedSession): Promise<void> {
+  if (parsed.evidence)
+    await atomicWriteText(
+      path.join(root, 'evidence', `${parsed.session.blob}.jsonl`),
+      parsed.evidence.map((record) => JSON.stringify(record)).join('\n') + '\n'
+    )
   const blob = path.join(root, 'messages', `${parsed.session.blob}.jsonl`)
   await atomicWriteText(blob, parsed.messages.map((m) => JSON.stringify(m)).join('\n') + '\n')
   await atomicWriteText(
