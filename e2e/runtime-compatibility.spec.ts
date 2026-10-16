@@ -161,8 +161,10 @@ test('keeps thinking and tools working after a successful connection probe, with
       })
     } catch (error) {
       const evidence = await electronApp.evaluate(async () => {
-        const { execFile } = await import('node:child_process')
-        const path = await import('node:path')
+        const { execFile } = process.getBuiltinModule(
+          'node:child_process'
+        ) as typeof import('node:child_process')
+        const path = process.getBuiltinModule('node:path') as typeof import('node:path')
         const root = path.resolve(
           path.dirname(process.env.PI_HARNESS_E2E_MAIN!),
           '../../resources/runtimes/win32-x64'
