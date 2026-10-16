@@ -38,8 +38,26 @@ jobs:
       - run: pnpm audit --prod --audit-level high
       - run: pnpm licenses list --prod --json > dependency-licenses.json
       - run: pnpm compile
+      - name: Prepare bundled runtimes for Electron features
+        run: pnpm runtime:prepare
+      - name: Install the Linux window manager
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openbox wmctrl
       - name: Electron regression (SDK compatibility)
-        run: xvfb-run -a pnpm test:e2e:only
+        run: |
+          xvfb-run -a bash -e -c '
+            openbox --sm-disable > /tmp/pi-harness-window-manager.log 2>&1 &
+            for attempt in {1..50}; do
+              if wmctrl -m > /dev/null 2>&1; then
+                pnpm test:e2e:only
+                exit 0
+              fi
+              sleep 0.1
+            done
+            cat /tmp/pi-harness-window-manager.log
+            exit 1
+          '
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
