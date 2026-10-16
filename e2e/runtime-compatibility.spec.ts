@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import http from 'node:http'
-import { test, expect } from './fixtures'
+import { test, expect, startFixtureSession } from './fixtures'
 
 test('keeps thinking and tools working after a successful connection probe, with stable button corners', async ({
   page,
@@ -150,16 +150,12 @@ test('keeps thinking and tools working after a successful connection probe, with
       .getByRole('button', { name: /关闭|Close/, exact: true })
       .last()
       .click()
-    const started = await page.evaluate(
-      (cwd) =>
-        window.piSwitch.agent.start({
-          cwd,
-          provider: 'openai-compatible',
-          modelId: 'gpt-4o',
-          thinkingLevel: 'high'
-        }),
-      fs.realpathSync(workspaceRoot)
-    )
+    const started = await startFixtureSession(page, {
+      cwd: workspaceRoot,
+      provider: 'openai-compatible',
+      modelId: 'gpt-4o',
+      thinkingLevel: 'high'
+    })
     await page.evaluate(
       (sessionId) =>
         window.piSwitch.agent.prompt({

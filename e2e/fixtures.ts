@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
+import type { StartAgentSessionInput } from '../src/shared/types/workspace'
 import {
   test as base,
   expect,
@@ -49,12 +50,14 @@ type Fixtures = {
 
 export const test = base.extend<Fixtures>({
   workspaceRoot: async ({}, use) => {
-    const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-workspace-'))
+    const workspaceRoot = fs.realpathSync(
+      fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-workspace-'))
+    )
     await use(workspaceRoot)
     fs.rmSync(workspaceRoot, { recursive: true, force: true })
   },
   testUserData: async ({}, use) => {
-    const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-'))
+    const userData = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-')))
     fs.writeFileSync(path.join(userData, 'settings.json'), JSON.stringify({ language: 'zh-CN' }))
     await use(userData)
     fs.rmSync(userData, { recursive: true, force: true })
@@ -155,3 +158,13 @@ export const test = base.extend<Fixtures>({
 })
 
 export { expect }
+
+export async function startFixtureSession(page: Page, input: StartAgentSessionInput) {
+  return page.evaluate(async (input) => {
+    try {
+      return await window.piSwitch.agent.start(input)
+    } catch (error) {
+      throw new Error(JSON.stringify(error))
+    }
+  }, input)
+}

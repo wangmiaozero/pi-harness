@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import http from 'node:http'
 import { _electron as electron, type Page } from '@playwright/test'
-import { test, expect } from './fixtures'
+import { test, expect, startFixtureSession } from './fixtures'
 
 test('restores a real Pi session after installed application exit and restart', async ({
   page,
@@ -78,10 +78,11 @@ test('restores a real Pi session after installed application exit and restart', 
       await window.piSwitch.models.list()
       await window.piSwitch.models.setActive({ providerKey: 'fixture', modelId: 'fixture' })
     })
-    const { sessionId } = await page.evaluate(
-      (cwd) => window.piSwitch.agent.start({ cwd, provider: 'fixture', modelId: 'fixture' }),
-      fs.realpathSync(workspaceRoot)
-    )
+    const { sessionId } = await startFixtureSession(page, {
+      cwd: workspaceRoot,
+      provider: 'fixture',
+      modelId: 'fixture'
+    })
     await page.evaluate(
       (id) =>
         window.piSwitch.agent.prompt({

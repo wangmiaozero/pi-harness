@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import http from 'node:http'
-import { test, expect } from './fixtures'
+import { test, expect, startFixtureSession } from './fixtures'
 
 test('executes native MCP and Codemode over IPC, enforces workspace writes and closes child processes', async ({
   page,
@@ -126,10 +126,11 @@ test('executes native MCP and Codemode over IPC, enforces workspace writes and c
     })
   )
   try {
-    const started = await page.evaluate(
-      (cwd) => window.piSwitch.agent.start({ cwd, provider: 'fixture', modelId: 'fixture' }),
-      fs.realpathSync(workspaceRoot)
-    )
+    const started = await startFixtureSession(page, {
+      cwd: workspaceRoot,
+      provider: 'fixture',
+      modelId: 'fixture'
+    })
     const tools = await page.evaluate((id) => window.piSwitch.harness.tools(id), started.sessionId)
     expect(tools).toContainEqual(expect.objectContaining({ name: 'codemode', active: true }))
     await page.evaluate(

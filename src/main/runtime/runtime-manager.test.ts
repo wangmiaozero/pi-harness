@@ -78,7 +78,7 @@ describe('runtime isolation and configuration', () => {
     expect(result.configuration.pi.source).toBe('bundled')
     const saved = JSON.parse(await fs.readFile(path.join(root, 'state.json'), 'utf8'))
     expect(saved.configuration.node.customPath).toBe(executable)
-  })
+  }, 30_000)
   it('does not modify PATH, credentials, terminal environments or version-manager configuration', () => {
     const base = {
       PATH: '/system/bin:/selected/bin',

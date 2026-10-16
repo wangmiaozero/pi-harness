@@ -49,7 +49,7 @@ jobs:
             test-results/
 
   package-smoke:
-    name: Installed community packages (${{ matrix.platform }}-${{ matrix.arch }})
+    name: Installed community packages (${{ matrix.platform == 'win32' && 'Windows' || matrix.platform }}-${{ matrix.arch }})
     strategy:
       fail-fast: false
       matrix:
