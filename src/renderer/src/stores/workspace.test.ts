@@ -897,6 +897,48 @@ describe('workspace projects', () => {
     }
   })
 
+  it.each(['default-first', 'import-first'])(
+    'retains an imported workspace during %s initialization',
+    async (order) => {
+      const workspace = useWorkspaceStore()
+      const api = workspaceApi({})
+      let finishDefault!: () => void
+      const ensureDefault = api.workspace.ensureDefault
+      const delayedDefault = vi.fn(async () => {
+        await new Promise<void>((resolve) => {
+          finishDefault = resolve
+        })
+        return ensureDefault()
+      })
+      api.workspace.ensureDefault = delayedDefault
+      api.workspace.openWorkspaceFile = async (path) =>
+        api.workspace.sync({
+          workspaceFile: path,
+          folders: [{ path: '/code/server' }, { path: '/code/blog' }]
+        })
+      window.piSwitch = api
+      try {
+        if (order === 'default-first') {
+          const initial = workspace.ensureDefaultWorkspace('Default Workspace')
+          await vi.waitFor(() => expect(delayedDefault).toHaveBeenCalledOnce())
+          const imported = workspace.importDraftWorkspaceFile('/code/Combined.code-workspace')
+          finishDefault()
+          await Promise.all([initial, imported])
+        } else {
+          await workspace.importDraftWorkspaceFile('/code/Combined.code-workspace')
+          const initial = workspace.ensureDefaultWorkspace('Default Workspace')
+          await Promise.resolve()
+          finishDefault?.()
+          await initial
+        }
+        expect(workspace.projectRoots).toEqual(['/code/server', '/code/blog'])
+        expect(workspace.currentCwd).toBe('/code/server')
+      } finally {
+        delete window.piSwitch
+      }
+    }
+  )
+
   it('persists workspace project sources and name without restoring a draft, files or Git', async () => {
     const workspace = useWorkspaceStore()
     let snapshot: string | null = null

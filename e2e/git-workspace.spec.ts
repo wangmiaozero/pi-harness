@@ -90,7 +90,18 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
   const graph = page.getByTestId('git-history-graph')
   await expect(graph.locator(':scope > div')).toHaveCount(4)
   await expect(page.getByText(/选择一个变更|Select a change/)).toHaveCount(0)
-  expect((await page.getByTestId('git-workspace-view').boundingBox())?.width).toBeGreaterThan(800)
+  const pane = await page.getByTestId('git-workspace-view').evaluate((element) => {
+    const parent = element.parentElement!
+    const siblings = [...parent.children].filter((child) => child !== element)
+    return {
+      width: element.getBoundingClientRect().width,
+      available:
+        parent.clientWidth -
+        siblings.reduce((sum, child) => sum + child.getBoundingClientRect().width, 0)
+    }
+  })
+  expect(pane.width).toBeGreaterThan(0)
+  expect(Math.abs(pane.width - pane.available)).toBeLessThanOrEqual(2)
 
   await graph.locator('[data-git-ref="feature/graph"]').click()
   await expect(page.getByTestId('git-active-ref-filter')).toContainText('feature/graph')

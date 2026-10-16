@@ -127,6 +127,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let filesLoadVersion = 0
   let fileScopeVersion = 0
   let gitLoadVersion = 0
+  let draftMutation: Promise<unknown> = Promise.resolve()
+
+  function queueDraftMutation<T>(operation: () => Promise<T>): Promise<T> {
+    const pending = draftMutation.catch(() => undefined).then(operation)
+    draftMutation = pending
+    return pending
+  }
 
   const sessions = useSessionStore()
 
@@ -1205,36 +1212,38 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function importDraftWorkspaceFile(path: string, additionalRoots: string[] = []) {
-    activeSessionWorkspaceId.value = null
-    let active = await callApi(() => getApi().workspace.openWorkspaceFile(path))
-    if (additionalRoots.length) {
-      active = await callApi(() =>
-        getApi().workspace.sync({
-          workspaceFile: active.workspaceFile,
-          folders: [
-            ...active.folders.map((folder) => ({
-              path: folder.path,
-              resolvedPath: folder.resolvedPath,
-              name: folder.name,
-              role: folder.role,
-              readonly: folder.readonly
-            })),
-            ...additionalRoots.map((root) => ({ path: root, role: 'reference' as const }))
-          ],
-          settings: active.settings
-        })
-      )
-    }
-    applyActiveWorkspace(active)
-    pickedCwd.value = active.folders[0]?.resolvedPath ?? null
-    listedPath.value = pickedCwd.value
-    files.value = []
-    fileChildren.value = {}
-    cacheActiveWorkspace()
-    draftSessionVisible.value = active.folders.length > 0
-    persist()
-    await Promise.all([loadFiles(), loadGit()])
-    return active
+    return queueDraftMutation(async () => {
+      activeSessionWorkspaceId.value = null
+      let active = await callApi(() => getApi().workspace.openWorkspaceFile(path))
+      if (additionalRoots.length) {
+        active = await callApi(() =>
+          getApi().workspace.sync({
+            workspaceFile: active.workspaceFile,
+            folders: [
+              ...active.folders.map((folder) => ({
+                path: folder.path,
+                resolvedPath: folder.resolvedPath,
+                name: folder.name,
+                role: folder.role,
+                readonly: folder.readonly
+              })),
+              ...additionalRoots.map((root) => ({ path: root, role: 'reference' as const }))
+            ],
+            settings: active.settings
+          })
+        )
+      }
+      applyActiveWorkspace(active)
+      pickedCwd.value = active.folders[0]?.resolvedPath ?? null
+      listedPath.value = pickedCwd.value
+      files.value = []
+      fileChildren.value = {}
+      cacheActiveWorkspace()
+      draftSessionVisible.value = active.folders.length > 0
+      persist()
+      await Promise.all([loadFiles(), loadGit()])
+      return active
+    })
   }
 
   async function saveWorkspaceAs(path: string) {
@@ -1375,38 +1384,42 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function ensureDefaultWorkspace(name: string) {
-    if (sessions.currentId && activeSessionWorkspaceId.value === sessions.currentId) return
-    const active = await callApi(() => getApi().workspace.ensureDefault())
-    const folder = active.folders[0]
-    if (!folder) return
-    defaultWorkspaceRoot.value = folder.resolvedPath
-    activeSessionWorkspaceId.value = null
-    applyActiveWorkspace(active)
-    pickedCwd.value = folder.resolvedPath
-    listedPath.value = folder.resolvedPath
-    draftProjectRoots.value = [folder.resolvedPath]
-    draftWorkspaceFile.value = null
-    draftFolderMeta.value = {
-      [folder.id]: {
-        name,
-        role: 'main',
-        readonly: false,
-        exists: true
+    return queueDraftMutation(async () => {
+      // Initialization may have queued this before the user imported a project.
+      if (canChat.value) return
+      if (sessions.currentId && activeSessionWorkspaceId.value === sessions.currentId) return
+      const active = await callApi(() => getApi().workspace.ensureDefault())
+      const folder = active.folders[0]
+      if (!folder) return
+      defaultWorkspaceRoot.value = folder.resolvedPath
+      activeSessionWorkspaceId.value = null
+      applyActiveWorkspace(active)
+      pickedCwd.value = folder.resolvedPath
+      listedPath.value = folder.resolvedPath
+      draftProjectRoots.value = [folder.resolvedPath]
+      draftWorkspaceFile.value = null
+      draftFolderMeta.value = {
+        [folder.id]: {
+          name,
+          role: 'main',
+          readonly: false,
+          exists: true
+        }
       }
-    }
-    folderMeta.value = { ...draftFolderMeta.value }
-    draftSessionVisible.value = true
-    projectSettings.value = {
-      ...projectSettings.value,
-      [folder.id]: { name, roots: [folder.resolvedPath] }
-    }
-    importedProjectRoots.value = uniqueProjectRoots([
-      ...importedProjectRoots.value.filter((root) => !isDefaultWorkspace(root)),
-      folder.resolvedPath
-    ])
-    removedProjectKeys.value = removedProjectKeys.value.filter((key) => key !== folder.id)
-    cacheActiveWorkspace()
-    persist()
+      folderMeta.value = { ...draftFolderMeta.value }
+      draftSessionVisible.value = true
+      projectSettings.value = {
+        ...projectSettings.value,
+        [folder.id]: { name, roots: [folder.resolvedPath] }
+      }
+      importedProjectRoots.value = uniqueProjectRoots([
+        ...importedProjectRoots.value.filter((root) => !isDefaultWorkspace(root)),
+        folder.resolvedPath
+      ])
+      removedProjectKeys.value = removedProjectKeys.value.filter((key) => key !== folder.id)
+      cacheActiveWorkspace()
+      persist()
+    })
   }
 
   async function resetDraftWorkspace(root: string) {
@@ -1414,17 +1427,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function resetDraftWorkspaceRoots(roots: string[]) {
-    const uniqueRoots = uniqueProjectRoots(roots)
-    draftProjectRoots.value = uniqueRoots
-    draftWorkspaceFile.value = null
-    draftFolderMeta.value = Object.fromEntries(
-      uniqueRoots.map((root, index) => [
-        projectIdentityKey(root),
-        { role: index === 0 ? 'main' : 'reference' } satisfies FolderMeta
-      ])
-    )
-    draftSessionVisible.value = uniqueRoots.length > 0
-    await restoreDraftWorkspace()
+    return queueDraftMutation(async () => {
+      const uniqueRoots = uniqueProjectRoots(roots)
+      draftProjectRoots.value = uniqueRoots
+      draftWorkspaceFile.value = null
+      draftFolderMeta.value = Object.fromEntries(
+        uniqueRoots.map((root, index) => [
+          projectIdentityKey(root),
+          { role: index === 0 ? 'main' : 'reference' } satisfies FolderMeta
+        ])
+      )
+      draftSessionVisible.value = uniqueRoots.length > 0
+      await restoreDraftWorkspace()
+    })
   }
 
   async function startDraftFromActiveWorkspace(): Promise<boolean> {

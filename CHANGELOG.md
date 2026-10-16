@@ -18,6 +18,7 @@ Release notes describe user-visible additions and fixes. Entries under Unrelease
 - Kept early replies visible and restored new conversations after refresh.
 - Preserved Windows settings, workspace access and saved task history during upgrades.
 - Improved navigation label spacing, architecture view resizing and repeated fullscreen transitions.
+- Kept imported project folders active while the workspace opens.
 
 ## 2.0.0 — 2026-10-14
 
