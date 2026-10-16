@@ -31,6 +31,41 @@ function promptEvent(message: string, timestamp: number): HarnessEvent {
 }
 
 describe('RunRegistry', () => {
+  it('keeps the next run active when an aborted run finishes its asynchronous cleanup', async () => {
+    let finishPrevious!: (text: string) => void
+    const previousResult = new Promise<string>((resolve) => {
+      finishPrevious = resolve
+    })
+    const getLastAssistantText = vi
+      .fn()
+      .mockImplementationOnce(() => previousResult)
+      .mockResolvedValue('next answer')
+    const { registry, emitted } = createRegistry({ getLastAssistantText })
+    registry.handleEvent('s1', promptEvent('previous request', 1000))
+    registry.handleEvent('s1', { type: 'runtime.aborted', timestamp: 1100 })
+    await vi.waitFor(() => expect(getLastAssistantText).toHaveBeenCalledTimes(1))
+
+    registry.handleEvent('s1', promptEvent('next request', 2000))
+    registry.handleEvent('s1', { type: 'message.started', timestamp: 2100 })
+    const nextId = registry.getCurrentRun('s1')!.id
+    finishPrevious('previous answer')
+    await vi.waitFor(() => expect(emitted.some((event) => event.type === 'run.aborted')).toBe(true))
+    expect(registry.getCurrentRun('s1')?.id).toBe(nextId)
+
+    registry.handleEvent('s1', {
+      type: 'runtime.error',
+      timestamp: 2200,
+      message: 'next request failed'
+    })
+    await vi.waitFor(() =>
+      expect(emitted).toContainEqual(expect.objectContaining({ type: 'run.failed', runId: nextId }))
+    )
+    expect((await registry.listRuns('s1')).find((run) => run.id === nextId)).toMatchObject({
+      status: 'failed',
+      error: 'next request failed'
+    })
+  })
+
   it('reduces a full run lifecycle and finalizes it through the settlement hook', async () => {
     const settledRuns: HarnessRun[] = []
     const { registry, emitted } = createRegistry({

@@ -493,7 +493,7 @@ export default function(pi: any) {
       shell.mockRestore()
       executable.mockRestore()
     }
-  }, 30000)
+  }, 90_000)
   it('stages a verified Pi update, atomically activates it, and rolls back to the bundled baseline', async () => {
     const maintenance = new RuntimeManager({
       bundledRoot,

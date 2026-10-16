@@ -197,7 +197,7 @@ export class RunRegistry {
     entry.run.status = status ?? entry.settledStatus
     if (error) entry.run.error = error.slice(0, 500)
     entry.finalized = true
-    this.active.delete(sessionId)
+    if (this.active.get(sessionId) === entry) this.active.delete(sessionId)
     this.emitRunVerdict(sessionId, entry.run)
     void this.finalizeRun(entry.run)
     return []
@@ -626,8 +626,9 @@ export class RunRegistry {
   }
 
   private findLive(sessionId: string, runId: string): LiveRun | null {
+    const active = this.active.get(sessionId)
     return (
-      this.active.get(sessionId) ??
+      (active?.run.id === runId ? active : null) ??
       this.sessions.get(sessionId)?.find((entry) => entry.run.id === runId) ??
       null
     )

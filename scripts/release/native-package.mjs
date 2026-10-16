@@ -108,8 +108,27 @@ async function stageInstaller(directory, names, temporary) {
       )
     // NSIS /D must be last; the destination is an isolated absolute directory.
     const installed = path.join(temporary, 'installed')
-    await exec(path.join(directory, names[0]), ['/S', `/D=${installed}`], { timeout: 180_000 })
-    return path.join(installed, 'Pi-Harness.exe')
+    // Wait for the NSIS process tree, including any installer handoff.
+    await exec(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        "$ErrorActionPreference='Stop'; $p=Start-Process -FilePath $env:PI_HARNESS_VALIDATION_INSTALLER -ArgumentList @('/S','/currentuser',('/D='+$env:PI_HARNESS_VALIDATION_TARGET)) -Wait -PassThru; exit $p.ExitCode"
+      ],
+      {
+        timeout: 300_000,
+        env: {
+          ...process.env,
+          PI_HARNESS_VALIDATION_INSTALLER: path.join(directory, names[0]),
+          PI_HARNESS_VALIDATION_TARGET: installed
+        }
+      }
+    )
+    const executable = path.join(installed, 'Pi-Harness.exe')
+    await fs.access(executable)
+    return executable
   }
   const appimage = path.join(directory, names[0])
   await fs.chmod(appimage, 0o755)
