@@ -40,7 +40,7 @@ jobs:
           await fs.appendFile(process.env.GITHUB_ENV,`PI_HARNESS_E2E_MAIN=${path.join(root,'out/main/index.js')}\n`)
           JS
       - name: Run the connection and runtime regression
-        run: pnpm exec playwright test e2e/runtime-compatibility.spec.ts --repeat-each=3 --reporter=line
+        run: pnpm exec playwright test e2e/runtime-compatibility.spec.ts --reporter=line
         env:
           PI_HARNESS_E2E_AGENT_MODE: rpc
           PI_HARNESS_E2E_EMPTY_PATH: '1'
