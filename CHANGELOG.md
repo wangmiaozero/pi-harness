@@ -2,7 +2,7 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
-## 2.1.0 — 2026-10-16
+## 2.1.0 — 2026-10-17
 
 ### Added
 
@@ -17,6 +17,7 @@ Release notes describe user-visible additions and fixes. Entries under Unrelease
 - Fixed duplicate user messages when sending the first message in a new conversation.
 - Kept early replies visible while opening a new conversation.
 - Preserved Windows settings, workspace access and saved task history during upgrades.
+- Improved navigation label spacing and architecture view resizing.
 
 ## 2.0.0 — 2026-10-14
 

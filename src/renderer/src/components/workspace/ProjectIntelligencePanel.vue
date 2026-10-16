@@ -135,6 +135,7 @@ function onScroll(): void {
   })
 }
 window.addEventListener('scroll', onScroll, true)
+window.addEventListener('resize', onScroll)
 async function viewerMessage(id?: string): Promise<void> {
   const element = viewer.value
   const bounds = element?.getBoundingClientRect()
@@ -434,6 +435,7 @@ onBeforeUnmount(() => {
   if (timer) clearTimeout(timer)
   resize?.disconnect()
   window.removeEventListener('scroll', onScroll, true)
+  window.removeEventListener('resize', onScroll)
   cancelAnimationFrame(scrollFrame)
   unsubscribe()
   unsubscribeControls()

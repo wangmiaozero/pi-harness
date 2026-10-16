@@ -43,14 +43,18 @@ test('packaged update recovery offers the manual release download', async ({
   // Use the real compiled Main/Preload. Linux exercises the native module
   // loader; the macOS test Electron is not Developer ID signed and must bypass
   // Squirrel before falling back to the public Release.
-  await electronApp.evaluate(({ app, net, shell }, version) => {
-    Object.defineProperty(app, 'isPackaged', { value: true })
-    net.fetch = async () =>
-      new Response(JSON.stringify({ tag_name: `v${version}`, draft: false, prerelease: false }))
-    shell.openExternal = async (url) => {
-      ;(globalThis as unknown as { openedReleasePage: string }).openedReleasePage = url
-    }
-  }, nextVersion)
+  await electronApp.evaluate(
+    ({ app, net, shell }, { version, currentVersion }) => {
+      Object.defineProperty(app, 'isPackaged', { value: true })
+      app.getVersion = () => currentVersion
+      net.fetch = async () =>
+        new Response(JSON.stringify({ tag_name: `v${version}`, draft: false, prerelease: false }))
+      shell.openExternal = async (url) => {
+        ;(globalThis as unknown as { openedReleasePage: string }).openedReleasePage = url
+      }
+    },
+    { version: nextVersion, currentVersion: APP_VERSION }
+  )
 
   await page.evaluate(() => {
     window.location.hash = '/settings/updates'

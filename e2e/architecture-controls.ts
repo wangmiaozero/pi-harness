@@ -11,13 +11,13 @@ export async function clickArchitectureControl(
         const view = webContents
           .getAllWebContents()
           .find((view) => view.getURL().startsWith('pi-architecture:'))
-        if (!view) return false
+        if (!view) return { matches: false, reason: 'missing viewer' }
         const owner = BrowserWindow.getAllWindows().find((window) =>
           window.contentView.children.some(
             (child) => (child as { webContents?: { id: number } }).webContents?.id === view.id
           )
         )
-        if (!owner) return false
+        if (!owner) return { matches: false, reason: 'missing owner' }
         const host = await owner.webContents.executeJavaScript(`(()=>{
           const box=document.querySelector('[data-testid=architecture-viewer]')?.getBoundingClientRect();
           return box&&{width:Math.round(box.width),height:Math.round(box.height),fullscreen:document.fullscreenElement?.id==='pi-architecture-panel'};
@@ -30,20 +30,23 @@ export async function clickArchitectureControl(
               (process.platform === 'darwin' && owner.isSimpleFullScreen())
             ))
         )
-          return false
+          return { matches: false, reason: 'owner transition', host }
         const frame = await view.executeJavaScript(`(()=>{
           const button=document.querySelector('[data-testid="architecture-${action}"]');
           return {ready:Boolean(button&&!button.disabled&&!button.hidden&&button.getBoundingClientRect().width),width:innerWidth,height:innerHeight,fullscreen:document.querySelector('[data-testid=architecture-fullscreen]')?.getAttribute('aria-pressed')==='true'};
         })()`)
-        return (
-          frame.ready &&
-          Math.abs(frame.width - host.width) <= 1 &&
-          Math.abs(frame.height - host.height) <= 1 &&
-          frame.fullscreen === host.fullscreen
-        )
+        return {
+          host,
+          frame,
+          matches:
+            frame.ready &&
+            Math.abs(frame.width - host.width) <= 1 &&
+            Math.abs(frame.height - host.height) <= 1 &&
+            frame.fullscreen === host.fullscreen
+        }
       }, action)
     )
-    .toBe(true)
+    .toMatchObject({ matches: true })
   await app.evaluate(async ({ webContents }, action) => {
     const view = webContents
       .getAllWebContents()
