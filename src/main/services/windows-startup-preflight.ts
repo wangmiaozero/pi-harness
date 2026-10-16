@@ -16,41 +16,6 @@ const CACHE_DIRECTORIES = [
   'ShaderCache',
   'GrShaderCache'
 ]
-const LEGACY_RESET_MARKER = 'windows-legacy-reset-2026-09.done'
-const LEGACY_STATE_ENTRIES = [
-  'settings.json',
-  'metadata.json',
-  'ui-state.json',
-  'authorized-roots.json',
-  'workspace-state.json',
-  'secrets.bin',
-  'harness-policy.json',
-  'harness-checkpoints.json',
-  'harness-runs.json',
-  'harness-traces.json',
-  'harness-artifacts.json',
-  'harness-evaluations.json',
-  'harness-baselines.json',
-  'harness-store-settings.json',
-  'harness-orchestration.json',
-  'backups',
-  'capability-backups',
-  'environment-downloads',
-  'environment-backups',
-  'startup-repair',
-  'logs',
-  'Local Storage',
-  'Session Storage',
-  'IndexedDB',
-  'Service Worker',
-  'blob_storage',
-  'Network',
-  'WebStorage',
-  'Preferences',
-  'Cookies',
-  'Cookies-journal',
-  ...CACHE_DIRECTORIES
-]
 
 type StartupState = { version: string; running: boolean }
 
@@ -117,36 +82,10 @@ async function repairUiState(userData: string): Promise<boolean> {
 export async function runWindowsStartupPreflight(
   userData: string,
   version: string,
-  defaults: AppSettings,
-  options: { resetLegacyData?: boolean } = {}
+  defaults: AppSettings
 ): Promise<WindowsStartupPreflightResult> {
   const repaired: string[] = []
   const statePath = path.join(userData, 'startup-state.json')
-  const resetMarker = path.join(userData, LEGACY_RESET_MARKER)
-  if (options.resetLegacyData) {
-    const alreadyReset = await fsp.access(resetMarker).then(
-      () => true,
-      () => false
-    )
-    if (!alreadyReset) {
-      const legacyEntries = await Promise.all(
-        LEGACY_STATE_ENTRIES.map(async (name) =>
-          fsp.access(path.join(userData, name)).then(
-            () => name,
-            () => null
-          )
-        )
-      )
-      if (legacyEntries.some(Boolean)) {
-        for (const name of LEGACY_STATE_ENTRIES) {
-          await fsp.rm(path.join(userData, name), { recursive: true, force: true })
-        }
-        repaired.push('legacy-app-data')
-      }
-      await fsp.mkdir(userData, { recursive: true })
-      await fsp.writeFile(resetMarker, version, { flag: 'wx' })
-    }
-  }
   let previous: StartupState | null = null
   try {
     const value = await readBoundedJson(statePath, 4096)

@@ -188,10 +188,12 @@ export const useAgentStore = defineStore('agent', () => {
   }
 
   async function load(sessionId: string | null) {
+    const preserveStream =
+      sessionId !== null && sessionId === loadedSessionId && streaming.value.isStreaming
     const generation = ++loadGeneration
     loadedSessionId = sessionId
     error.value = null
-    streaming.value = INITIAL_STREAMING_STATE
+    if (!preserveStream) streaming.value = INITIAL_STREAMING_STATE
     if (!sessionId) {
       optimisticUserMessages.clear()
       messages.value = []

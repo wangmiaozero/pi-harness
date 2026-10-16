@@ -22,29 +22,34 @@ describe('Windows startup preflight', () => {
     await fs.rm(userData, { recursive: true, force: true })
   })
 
-  it('resets legacy app data once while leaving external Pi and project data intact', async () => {
+  it('preserves settings, workspace grants, credentials and task history on upgrade', async () => {
     const piData = path.join(userData, '..', `${path.basename(userData)}-pi-data`)
     await fs.mkdir(piData)
     await fs.writeFile(path.join(piData, 'session.jsonl'), 'session')
     await fs.writeFile(path.join(userData, 'settings.json'), '{"theme":"light"}')
     await fs.writeFile(path.join(userData, 'secrets.bin'), 'old vault')
+    await fs.writeFile(path.join(userData, 'authorized-roots.json'), '{"roots":["C:/project"]}')
+    await fs.writeFile(path.join(userData, 'harness-runs.json'), '{"runs":[{"id":"saved"}]}')
     await fs.mkdir(path.join(userData, 'Cache'))
     await fs.writeFile(path.join(userData, 'Cache', 'old'), 'cache')
 
     try {
-      const first = await runWindowsStartupPreflight(userData, '1.6.0', defaults, {
-        resetLegacyData: true
-      })
-      expect(first.repaired).toContain('legacy-app-data')
-      await expect(fs.access(path.join(userData, 'secrets.bin'))).rejects.toThrow()
+      const first = await runWindowsStartupPreflight(userData, '1.6.0', defaults)
+      expect(first.repaired).not.toContain('legacy-app-data')
+      await expect(fs.readFile(path.join(userData, 'secrets.bin'), 'utf8')).resolves.toBe(
+        'old vault'
+      )
+      await expect(fs.readFile(path.join(userData, 'authorized-roots.json'), 'utf8')).resolves.toBe(
+        '{"roots":["C:/project"]}'
+      )
+      await expect(fs.readFile(path.join(userData, 'harness-runs.json'), 'utf8')).resolves.toBe(
+        '{"runs":[{"id":"saved"}]}'
+      )
       await expect(fs.access(path.join(userData, 'Cache', 'old'))).rejects.toThrow()
       await expect(fs.readFile(path.join(piData, 'session.jsonl'), 'utf8')).resolves.toBe('session')
       first.markClean()
 
-      await fs.writeFile(path.join(userData, 'settings.json'), '{"theme":"light"}')
-      const second = await runWindowsStartupPreflight(userData, '1.7.0', defaults, {
-        resetLegacyData: true
-      })
+      const second = await runWindowsStartupPreflight(userData, '1.7.0', defaults)
       expect(second.repaired).not.toContain('legacy-app-data')
       expect(JSON.parse(await fs.readFile(path.join(userData, 'settings.json'), 'utf8'))).toEqual({
         ...defaults,

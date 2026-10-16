@@ -160,10 +160,7 @@ async function bootstrap(): Promise<void> {
       const result = await runWindowsStartupPreflight(
         userData(),
         app.getVersion(),
-        DEFAULT_SETTINGS,
-        {
-          resetLegacyData: app.isPackaged
-        }
+        DEFAULT_SETTINGS
       )
       let processFailed = false
       app.on('render-process-gone', (_event, _contents, details) => {

@@ -24,6 +24,57 @@ describe('agent store new-session handshake', () => {
     delete window.piSwitch
   })
 
+  it('keeps an early streamed reply when navigation loads the newly created session', async () => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      agent: {
+        start: vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' }),
+        prompt: vi.fn(async () => {
+          onAgentEvent?.([
+            {
+              sessionId: 'session-new',
+              event: {
+                type: 'message_start',
+                message: { role: 'assistant', model: 'm', provider: 'p', content: [] }
+              }
+            },
+            {
+              sessionId: 'session-new',
+              event: {
+                type: 'message_update',
+                assistantMessageEvent: { type: 'text_start', contentIndex: 0 }
+              }
+            },
+            {
+              sessionId: 'session-new',
+              event: {
+                type: 'message_update',
+                assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: 'Early reply' }
+              }
+            }
+          ])
+        }),
+        state: vi.fn().mockResolvedValue({ isStreaming: true, isPromptRunning: true }),
+        command: vi.fn().mockResolvedValue([]),
+        running: vi.fn().mockResolvedValue(['session-new'])
+      }
+    } as unknown as PiSwitchAPI
+    const agent = useAgentStore()
+    agent.setupListeners()
+    const id = await agent.send(null, '/code/project', 'hello', 'default')
+    if (!id) throw new Error('Expected the new session id')
+    await agent.load(id)
+    expect(agent.streaming.streamingMessage?.content).toEqual([
+      { type: 'text', text: 'Early reply' }
+    ])
+    await agent.load(null)
+    expect(agent.streaming.streamingMessage).toBeNull()
+  })
+
   it('registers the session id before sending the first prompt', async () => {
     const start = vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' })
     const prompt = vi.fn().mockResolvedValue(null)

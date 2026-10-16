@@ -15,6 +15,8 @@ Release notes describe user-visible additions and fixes. Entries under Unrelease
 - Improved startup compatibility for community builds and opened official downloads for manual updates.
 - Fixed task status updates when starting a new request after cancelling the previous one.
 - Fixed duplicate user messages when sending the first message in a new conversation.
+- Kept early replies visible while opening a new conversation.
+- Preserved Windows settings, workspace access and saved task history during upgrades.
 
 ## 2.0.0 — 2026-10-14
 
