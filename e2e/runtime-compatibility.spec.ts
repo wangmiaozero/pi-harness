@@ -9,7 +9,6 @@ test('keeps thinking and tools working after a successful connection probe, with
   piAgentDir,
   workspaceRoot
 }, testInfo) => {
-  test.setTimeout(240_000)
   const requests: Record<string, unknown>[] = []
   let releaseProbe: (() => void) | undefined
   let streamCount = 0
@@ -151,49 +150,6 @@ test('keeps thinking and tools working after a successful connection probe, with
       .getByRole('button', { name: /关闭|Close/, exact: true })
       .last()
       .click()
-    const evidence = await electronApp.evaluate(async () => {
-      const { execFile } = process.getBuiltinModule(
-        'node:child_process'
-      ) as typeof import('node:child_process')
-      const path = process.getBuiltinModule('node:path') as typeof import('node:path')
-      const root = path.resolve(
-        path.dirname(process.env.PI_HARNESS_E2E_MAIN!),
-        '../../resources/runtimes/win32-x64'
-      )
-      const pi = path.join(root, 'pi/pi.exe')
-      const base = { ...process.env, NODE_OPTIONS: undefined, ELECTRON_RUN_AS_NODE: undefined }
-      const selected = { ...base, PATH: path.join(root, 'node') + path.delimiter + base.PATH }
-      const results = []
-      for (const variant of ['original', 'node-path', 'cwd', 'stdin-end']) {
-        const started = Date.now()
-        results.push(
-          await new Promise((resolve) => {
-            const child = execFile(
-              pi,
-              ['--version'],
-              {
-                env: variant === 'node-path' ? selected : base,
-                cwd: variant === 'cwd' ? path.dirname(pi) : process.cwd(),
-                windowsHide: true,
-                timeout: 15000
-              },
-              (error, stdout, stderr) =>
-                resolve({
-                  variant,
-                  elapsedMs: Date.now() - started,
-                  code: error?.code,
-                  killed: error?.killed,
-                  stdout,
-                  stderr
-                })
-            )
-            if (variant === 'stdin-end') child.stdin?.end()
-          })
-        )
-      }
-      return results
-    })
-    console.log('Windows probe comparison:', JSON.stringify(evidence))
     const started = await startFixtureSession(page, {
       cwd: workspaceRoot,
       provider: 'openai-compatible',

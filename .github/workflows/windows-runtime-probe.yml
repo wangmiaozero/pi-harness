@@ -23,6 +23,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm runtime:prepare
       - run: pnpm compile
+      - run: pnpm exec vitest run src/main/process src/main/runtime --maxWorkers=2
       - name: Reproduce the cross-drive installed layout
         shell: bash
         run: |
@@ -40,7 +41,7 @@ jobs:
           await fs.appendFile(process.env.GITHUB_ENV,`PI_HARNESS_E2E_MAIN=${path.join(root,'out/main/index.js')}\n`)
           JS
       - name: Run the connection and runtime regression
-        run: pnpm exec playwright test e2e/runtime-compatibility.spec.ts --reporter=line
+        run: pnpm exec playwright test e2e/runtime-compatibility.spec.ts --repeat-each=3 --reporter=line
         env:
           PI_HARNESS_E2E_AGENT_MODE: rpc
           PI_HARNESS_E2E_EMPTY_PATH: '1'

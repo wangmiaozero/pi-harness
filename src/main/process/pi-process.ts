@@ -274,7 +274,14 @@ export class PiProcessService {
 
   async version(): Promise<string | null> {
     try {
-      const res = await this.exec({ args: ['--version'], timeoutMs: 8000 })
+      const cliPath = await this.resolveCliPath()
+      if (!cliPath) return null
+      const res = await this.exec({
+        args: ['--version'],
+        timeoutMs: 8000,
+        cliPath,
+        cwd: path.dirname(cliPath)
+      })
       if (res.exitCode !== 0) return null
       const v = (res.stdout || res.stderr).trim()
       return v || null

@@ -18,14 +18,14 @@ export async function probe(
   const started = performance.now()
   try {
     const pending = exec(executable, args, {
+      // Metadata checks must not inspect the application's inherited project.
+      cwd: path.dirname(executable),
       env: { ...env, NODE_OPTIONS: undefined },
       shell: false,
       windowsHide: true,
       timeout: 15_000,
       maxBuffer: 1024 * 1024
     })
-    // Version/capability probes are noninteractive. Deliver EOF immediately so
-    // a runtime inspecting piped input cannot wait for input from this process.
     pending.child.stdin?.end()
     const { stdout } = await pending
     return stdout.trim()
