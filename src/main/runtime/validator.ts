@@ -17,13 +17,17 @@ export async function probe(
 ): Promise<string> {
   const started = performance.now()
   try {
-    const { stdout } = await exec(executable, args, {
+    const pending = exec(executable, args, {
       env: { ...env, NODE_OPTIONS: undefined },
       shell: false,
       windowsHide: true,
       timeout: 15_000,
       maxBuffer: 1024 * 1024
     })
+    // Version/capability probes are noninteractive. Deliver EOF immediately so
+    // a runtime inspecting piped input cannot wait for input from this process.
+    pending.child.stdin?.end()
+    const { stdout } = await pending
     return stdout.trim()
   } catch (error) {
     const failure = error as NodeJS.ErrnoException & {
