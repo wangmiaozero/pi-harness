@@ -1,0 +1,47 @@
+name: Windows runtime probe
+on:
+  push:
+    branches: ['codex/windows-runtime-probe']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
+        with:
+          version: 9.12.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.22.2
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm runtime:prepare
+      - run: pnpm compile
+      - name: Reproduce the cross-drive installed layout
+        shell: bash
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs/promises'
+          import path from 'node:path'
+          import os from 'node:os'
+          const root=await fs.mkdtemp(path.join(os.tmpdir(),'pi-runtime-probe-'))
+          await fs.cp('out',path.join(root,'out'),{recursive:true})
+          await fs.mkdir(path.join(root,'resources'),{recursive:true})
+          await fs.cp('resources/runtimes',path.join(root,'resources/runtimes'),{recursive:true})
+          await fs.cp('resources/desktop-extension',path.join(root,'resources/desktop-extension'),{recursive:true})
+          await fs.appendFile(process.env.GITHUB_ENV,`PI_HARNESS_E2E_MAIN=${path.join(root,'out/main/index.js')}\n`)
+          JS
+      - name: Run the connection and runtime regression
+        run: pnpm exec playwright test e2e/runtime-compatibility.spec.ts --reporter=line
+        env:
+          PI_HARNESS_E2E_AGENT_MODE: rpc
+          PI_HARNESS_E2E_EMPTY_PATH: '1'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: windows-runtime-probe
+          overwrite: true
+          path: test-results/

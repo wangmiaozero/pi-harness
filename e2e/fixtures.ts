@@ -20,7 +20,7 @@ const packagedExecutable = process.env.PI_HARNESS_E2E_EXECUTABLE
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
-const mainJs = path.join(root, 'out/main/index.js')
+const mainJs = process.env.PI_HARNESS_E2E_MAIN ?? path.join(root, 'out/main/index.js')
 const fixturesPi = path.join(root, 'fixtures/mock-pi')
 const capabilityFixtures = path.join(root, 'fixtures/capabilities')
 const startupProfiles = new WeakMap<ElectronApplication, { started: number; launchMs: number }>()

@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    branches: ['**', '!codex/windows-runtime-probe']
   pull_request:
   workflow_call:
 
