@@ -4,6 +4,9 @@ on:
     branches: ['codex/windows-runtime-probe']
 permissions:
   contents: read
+concurrency:
+  group: windows-runtime-probe
+  cancel-in-progress: true
 jobs:
   probe:
     runs-on: windows-2025
@@ -29,6 +32,7 @@ jobs:
           import os from 'node:os'
           const root=await fs.mkdtemp(path.join(os.tmpdir(),'pi-runtime-probe-'))
           await fs.cp('out',path.join(root,'out'),{recursive:true})
+          await fs.symlink(path.resolve('node_modules'),path.join(root,'node_modules'),'junction')
           await fs.mkdir(path.join(root,'resources'),{recursive:true})
           await fs.cp('resources/runtimes',path.join(root,'resources/runtimes'),{recursive:true})
           await fs.cp('resources/desktop-extension',path.join(root,'resources/desktop-extension'),{recursive:true})
