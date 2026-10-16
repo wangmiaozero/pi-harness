@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 out/
+/output/
 release/
 .runtime-cache/
 resources/runtimes/
