@@ -8,32 +8,26 @@
  */
 import { createWriteStream } from 'node:fs'
 import { createRequire } from 'node:module'
-import { cp, mkdir, rm, stat } from 'node:fs/promises'
+import { cp, mkdir, rm } from 'node:fs/promises'
 import { spawn, execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import os from 'node:os'
 import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { fileURLToPath } from 'node:url'
+import { createHash } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 
 const execFileAsync = promisify(execFile)
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const SQUASHFS_VERSION = '4.6.1'
 const SQUASHFS_URL = `https://github.com/plougher/squashfs-tools/archive/refs/tags/${SQUASHFS_VERSION}.tar.gz`
+const SQUASHFS_SHA256 = '9c4974e07c61547dae14af4ed1f358b7d04618ae194e54d6be72ee126f0d2f53'
 const require = createRequire(import.meta.url)
 const builderRequire = createRequire(require.resolve('electron-builder'))
 
 export function hostNeedsNativeMksquashfs(platform = process.platform, arch = process.arch) {
   return platform === 'darwin' && arch === 'arm64'
-}
-
-async function fileDescribesX86_64(filePath) {
-  try {
-    const { stdout } = await execFileAsync('/usr/bin/file', ['-b', filePath])
-    return /\bx86_64\b/.test(stdout)
-  } catch {
-    return false
-  }
 }
 
 async function canSpawn(filePath) {
@@ -58,15 +52,20 @@ async function compileNativeMksquashfs(outFile) {
   await mkdir(work, { recursive: true })
   const archive = path.join(work, `squashfs-tools-${SQUASHFS_VERSION}.tar.gz`)
   const sourceDir = path.join(work, `squashfs-tools-${SQUASHFS_VERSION}`, 'squashfs-tools')
-  try {
-    await stat(archive)
-  } catch {
-    const response = await fetch(SQUASHFS_URL)
+  const checksum = async () =>
+    createHash('sha256')
+      .update(await readFile(archive))
+      .digest('hex')
+  if ((await checksum().catch(() => null)) !== SQUASHFS_SHA256) {
+    const response = await fetch(SQUASHFS_URL, { signal: AbortSignal.timeout(180_000) })
     if (!response.ok || !response.body) {
       throw new Error(`failed to download squashfs-tools ${SQUASHFS_VERSION}: ${response.status}`)
     }
     await pipeline(response.body, createWriteStream(archive))
   }
+  if ((await checksum()) !== SQUASHFS_SHA256)
+    throw new Error('squashfs-tools source checksum mismatch')
+  await rm(path.join(work, `squashfs-tools-${SQUASHFS_VERSION}`), { recursive: true, force: true })
   await execFileAsync('/usr/bin/tar', ['-xzf', archive, '-C', work], { cwd: work })
   await execFileAsync(
     '/usr/bin/make',
@@ -85,21 +84,17 @@ async function compileNativeMksquashfs(outFile) {
   await cp(path.join(sourceDir, 'mksquashfs'), outFile)
 }
 
-async function prepareAppImageTools() {
+export async function prepareAppImageTools() {
   if (!hostNeedsNativeMksquashfs()) return process.env
   const source = await findAppImageToolset()
   const staged = path.join(root, 'out', '.cache', 'appimage-darwin-arm64')
   const stagedMksquashfs = path.join(staged, 'darwin', 'mksquashfs')
   const nativeMksquashfs = path.join(root, 'out', '.cache', 'mksquashfs-darwin-arm64')
-  if (!(await canSpawn(nativeMksquashfs))) {
-    process.stdout.write('[linux-builder] compiling native mksquashfs for Apple Silicon\n')
-    await compileNativeMksquashfs(nativeMksquashfs)
-  }
-  if (!(await canSpawn(stagedMksquashfs)) || (await fileDescribesX86_64(stagedMksquashfs))) {
-    await rm(staged, { recursive: true, force: true })
-    await cp(source, staged, { recursive: true, verbatimSymlinks: true })
-    await cp(nativeMksquashfs, stagedMksquashfs)
-  }
+  process.stdout.write('[linux-builder] compiling verified native mksquashfs for Apple Silicon\n')
+  await compileNativeMksquashfs(nativeMksquashfs)
+  await rm(staged, { recursive: true, force: true })
+  await cp(source, staged, { recursive: true, verbatimSymlinks: true })
+  await cp(nativeMksquashfs, stagedMksquashfs)
   if (!(await canSpawn(stagedMksquashfs))) {
     throw new Error(`native mksquashfs still cannot spawn: ${stagedMksquashfs}`)
   }
@@ -123,6 +118,7 @@ async function main() {
       '--publish',
       'never',
       '--linux',
+      '--x64',
       ...parseArgs(process.argv.slice(2))
     ],
     { cwd: root, env, stdio: 'inherit' }

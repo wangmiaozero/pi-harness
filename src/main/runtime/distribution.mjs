@@ -8,6 +8,9 @@ import { Readable } from 'node:stream'
 import * as tar from 'tar'
 import unzipper from 'unzipper'
 import catalog from './catalog.json' with { type: 'json' }
+import { macosContentHash } from './macos-content.mjs'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 
 export { catalog }
 export async function sha256(file) {
@@ -115,9 +118,20 @@ export async function verifyDistribution(root, kind, platform, arch) {
     throw new Error('Runtime provenance does not match the pinned catalog')
   }
   const actual = await inventory(root)
+  const layout = runtimeLayout(kind, platform)
+  if (platform === 'darwin')
+    for (const [file, expected] of Object.entries(asset.signedFileContentSha256 ?? {})) {
+      if (actual[file] === receipt.files[file]) continue
+      const executable = path.join(root, file)
+      await promisify(execFile)('/usr/bin/codesign', ['--verify', '--strict', executable], {
+        timeout: 30_000
+      })
+      if ((await macosContentHash(executable)) !== expected)
+        throw new Error('Signed runtime content does not match the pinned upstream executable')
+      actual[file] = receipt.files[file]
+    }
   if (treeDigest(actual) !== treeDigest(receipt.files) || treeDigest(actual) !== asset.treeSha256)
     throw new Error('Runtime integrity check failed')
-  const layout = runtimeLayout(kind, platform)
   for (const [name, notice] of Object.entries(release.notices ?? {})) {
     if (actual[name] !== notice.sha256)
       throw new Error('Runtime license notice is missing or invalid')
@@ -129,6 +143,32 @@ export async function verifyDistribution(root, kind, platform, arch) {
   if (!identity || identity.platform !== platform || identity.arch !== arch)
     throw new Error('Runtime executable platform or CPU mismatch')
   return receipt
+}
+
+export async function extractRuntimeZip(archive, staging, signal) {
+  const zip = await unzipper.Open.file(archive)
+  let totalSize = 0
+  // Validate the complete directory before writing a single archive entry.
+  for (const entry of zip.files) {
+    assertArchivePath(entry.path)
+    const mode = (entry.externalFileAttributes >>> 16) & 0o170000
+    if (mode && mode !== 0o100000 && mode !== 0o040000)
+      throw new Error('Runtime ZIP links and special files are not supported')
+    totalSize += entry.uncompressedSize
+    if (totalSize > 2 * 1024 * 1024 * 1024)
+      throw new Error('Runtime archive exceeds the extraction limit')
+  }
+  for (const entry of zip.files) {
+    signal?.throwIfAborted()
+    const target = path.join(staging, entry.path)
+    if (entry.type === 'Directory') await fs.mkdir(target, { recursive: true })
+    else {
+      await fs.mkdir(path.dirname(target), { recursive: true })
+      await pipeline(entry.stream(), createWriteStream(target, { flags: 'wx', mode: 0o644 }), {
+        signal
+      })
+    }
+  }
 }
 
 export async function acquireDistribution({
@@ -173,29 +213,7 @@ export async function acquireDistribution({
   await fs.mkdir(staging, { recursive: true, mode: 0o700 })
   try {
     if (asset.file.endsWith('.zip')) {
-      const zip = await unzipper.Open.file(archive)
-      let totalSize = 0
-      // Validate the complete directory before writing a single archive entry.
-      for (const entry of zip.files) {
-        assertArchivePath(entry.path)
-        const mode = (entry.externalFileAttributes >>> 16) & 0o170000
-        if (mode && mode !== 0o100000 && mode !== 0o040000)
-          throw new Error('Runtime ZIP links and special files are not supported')
-        totalSize += entry.uncompressedSize
-        if (totalSize > 2 * 1024 * 1024 * 1024)
-          throw new Error('Runtime archive exceeds the extraction limit')
-      }
-      for (const entry of zip.files) {
-        signal?.throwIfAborted()
-        const target = path.join(staging, entry.path)
-        if (entry.type === 'Directory') await fs.mkdir(target, { recursive: true })
-        else {
-          await fs.mkdir(path.dirname(target), { recursive: true })
-          await pipeline(entry.stream(), createWriteStream(target, { flags: 'wx', mode: 0o644 }), {
-            signal
-          })
-        }
-      }
+      await extractRuntimeZip(archive, staging, signal)
     } else {
       let invalidEntry
       let totalSize = 0

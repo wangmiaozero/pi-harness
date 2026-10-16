@@ -18,6 +18,8 @@ files:
   # Keep only the matching macOS Native Pi TUI addon in each package.
   - '!node_modules/@earendil-works/pi-tui/native/darwin/prebuilds/!(darwin-${arch}){,/**/*}'
 extraResources:
+  - from: resources/release-policy.json
+    to: release-policy.json
   - from: resources/desktop-extension
     to: desktop-extension
   - from: resources/archify
@@ -34,13 +36,13 @@ extraResources:
     to: builtin-skills
 beforePack: scripts/runtime/before-pack.mjs
 afterPack: scripts/runtime/after-pack.mjs
+afterSign: scripts/release/after-sign.mjs
 asarUnpack: []
 mac:
   extraResources:
     - from: resources/runtimes/darwin-${arch}
       to: runtimes
-  # Preserve the checksummed upstream executable bytes. Signature/notarization
-  # eligibility must be validated by the native release gate.
+  # Pi is signed and content-verified by afterPack; retain Node's official signature.
   signIgnore:
     - /runtimes/
   category: public.app-category.developer-tools
@@ -48,15 +50,15 @@ mac:
   # folders under release/ which Spotlight indexes as duplicate apps.
   # Use `pnpm build:mac:all` when you need both DMGs for release.
   target:
-    - target: dmg
-      arch:
-        - arm64
+    - dmg
     # MacUpdater installs from the ZIP payload; DMG remains the manual installer.
-    - target: zip
-      arch:
-        - arm64
+    - zip
   icon: build/icon.icns
   hardenedRuntime: true
+  identity: '-'
+  notarize: false
+  entitlements: build/entitlements.community.plist
+  entitlementsInherit: build/entitlements.community.plist
   gatekeeperAssess: false
   extendInfo:
     CFBundleDisplayName: Pi-Harness
@@ -80,9 +82,7 @@ win:
   # Keep local filenames identical to the GitHub upload names.
   artifactName: ${productName}-Setup-${version}.${ext}
   target:
-    - target: nsis
-      arch:
-        - x64
+    - nsis
   icon: build/icon.ico
 nsis:
   oneClick: false
@@ -93,9 +93,7 @@ linux:
     - from: resources/runtimes/linux-${arch}
       to: runtimes
   target:
-    - target: AppImage
-      arch:
-        - x64
+    - AppImage
   category: Development
   icon: build/icon.png
   maintainer: wangmiao <tuziling84@gmail.com>

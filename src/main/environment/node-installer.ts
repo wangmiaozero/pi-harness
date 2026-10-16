@@ -4,7 +4,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { homedir } from 'node:os'
 import semver from 'semver'
 import { x as extractTar } from 'tar'
-import extractZip from 'extract-zip'
+import { extractRuntimeZip } from '../runtime/distribution.mjs'
 import { environmentDownloadsDir, managedNodeRoot } from '../services/app-paths'
 import { EnvironmentError } from '../services/errors'
 import {
@@ -298,7 +298,7 @@ export class NodeInstaller {
 
   private async extractArchive(archive: string, staging: string): Promise<void> {
     if (this.dependencies.platform === 'win32') {
-      await extractZip(archive, { dir: staging })
+      await extractRuntimeZip(archive, staging)
       return
     }
     await extractTar({ file: archive, cwd: staging, strip: 1, preservePaths: false })

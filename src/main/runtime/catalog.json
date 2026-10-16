@@ -10,12 +10,20 @@
       "darwin-arm64": {
         "file": "pi-darwin-arm64.tar.gz",
         "sha256": "abddf7688b4b6781d9113f63cd578e3c01dcdb87e71f66e7ec1c9ec6c76178d1",
-        "treeSha256": "07f08ee92d89871c05d720c33c7b7d6626380e95e1cf40188abe7fb4b8200b5f"
+        "treeSha256": "07f08ee92d89871c05d720c33c7b7d6626380e95e1cf40188abe7fb4b8200b5f",
+        "signedFileContentSha256": {
+          "native/darwin/prebuilds/darwin-arm64/darwin-platform.node": "f6704c32e9c601f4c8dadc950acb7bceb76ff4a1d01b6d2ff68820fabc45c3f7",
+          "pi": "7069c5c3954ad4e153369c291c43bd82071a168686f50e440f9b56c485fa6170"
+        }
       },
       "darwin-x64": {
         "file": "pi-darwin-x64.tar.gz",
         "sha256": "e079ff016ae78279cfbd6c1b4fffe072162f4a7bb879ad61b04e2e43bcc53455",
-        "treeSha256": "6bf03f22b8eac23930b82dfbda3005f35244e97efa9a028b58101dcdd9202739"
+        "treeSha256": "6bf03f22b8eac23930b82dfbda3005f35244e97efa9a028b58101dcdd9202739",
+        "signedFileContentSha256": {
+          "native/darwin/prebuilds/darwin-x64/darwin-platform.node": "d2c16cc8dc69b8321f4b08cad4ea5bbe16867e4922692562bad51bf9bf677b68",
+          "pi": "c0ca5530cbb2f7b6d583971b63ce68f5af4b1cca757e2866c433f207a905382c"
+        }
       },
       "linux-arm64": {
         "file": "pi-linux-arm64.tar.gz",

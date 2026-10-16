@@ -1,167 +1,105 @@
-name: Release
+name: Release / Build Preview
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
 
-# Local development uses the China-friendly mirror from .npmrc. GitHub-hosted
-# runners download Electron from the upstream release CDN instead.
-env:
-  npm_config_electron_mirror: https://github.com/electron/electron/releases/download/
-  npm_config_electron_custom_dir: 'v{{ version }}'
+concurrency:
+  group: community-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
+  validate:
+    name: Validate release source
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 9.12.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.2
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/release/preflight.mjs
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          GITHUB_TOKEN: ${{ github.token }}
+
   quality:
+    name: Test and package on native runners
+    needs: validate
     uses: ./.github/workflows/ci.yml
     permissions:
       contents: read
 
-  macos:
-    name: macOS arm64 and x64
-    runs-on: macos-latest
-    timeout-minutes: 45
-    env:
-      # Signed builds can use Squirrel.Mac automatic installation. Without
-      # these optional secrets the workflow still produces community builds,
-      # which the app intentionally exposes as manual updates on macOS.
-      CSC_LINK: ${{ secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-      CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+  collect:
+    name: Release readiness and integrity
+    needs: quality
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           version: 9.12.1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.22.2
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Build macOS packages
-        shell: bash
-        run: |
-          # electron-builder treats an empty CSC_LINK as a certificate path.
-          if [ -z "${CSC_LINK:-}" ]; then
-            unset CSC_LINK CSC_KEY_PASSWORD
-          fi
-          pnpm build:mac:all
-      - uses: actions/upload-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: release-macos
-          if-no-files-found: error
+          pattern: packages-*
+          path: package-artifacts
+      - name: Verify native evidence, assets and checksums
+        run: node scripts/release/collect.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: community-release-candidate
           path: |
-            release/*.dmg
-            release/*.zip
-            release/*.blockmap
-            release/latest-mac.yml
-
-  windows:
-    name: Windows x64
-    runs-on: windows-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9.12.1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.2
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build:win
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-windows
+            release-artifacts/
+            release-readiness.json
+            release-notes.md
           if-no-files-found: error
-          path: |
-            release/*.exe
-            release/*.blockmap
-            release/latest.yml
-
-  linux:
-    name: Linux x64
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9.12.1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.2
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build:linux
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-linux
-          if-no-files-found: error
-          path: |
-            release/*.AppImage
-            release/*.blockmap
-            release/latest-linux.yml
 
   publish:
-    name: Publish GitHub Release
-    needs: [macos, windows, linux, quality]
-    runs-on: ubuntu-latest
+    name: Stage, verify and publish a new release
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: collect
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          pattern: release-*
-          path: release-artifacts
-          merge-multiple: true
-      - name: Validate updater artifacts
-        working-directory: release-artifacts
-        shell: bash
-        run: |
-          set -euo pipefail
-          for file in latest-mac.yml latest.yml latest-linux.yml; do
-            test -s "$file" || { echo "Missing required updater metadata: $file" >&2; exit 1; }
-          done
-          for pattern in '*.zip' '*.zip.blockmap' '*.exe' '*.exe.blockmap' '*.AppImage' '*.AppImage.blockmap'; do
-            compgen -G "$pattern" >/dev/null || { echo "Missing required updater payload: $pattern" >&2; exit 1; }
-          done
-          test "$(find . -maxdepth 1 -type f -name '*.dmg' | wc -l | tr -d ' ')" -ge 2 || {
-            echo 'Missing one or more macOS architecture DMGs' >&2
-            exit 1
-          }
-          test "$(find . -maxdepth 1 -type f -name '*.zip' | wc -l | tr -d ' ')" -ge 2 || {
-            echo 'Missing one or more macOS automatic-update ZIPs' >&2
-            exit 1
-          }
-      - name: Generate SHA256SUMS
-        working-directory: release-artifacts
-        run: find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
-      - name: Prepare public release notes
+          fetch-depth: 0
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 9.12.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.2
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: community-release-candidate
+          path: .
+      - name: Recheck tag and historical release protection
+        run: node scripts/release/preflight.mjs
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          version="${RELEASE_TAG#v}"
-          awk -v version="$version" '
-            /^## / {
-              if (capture) exit
-              capture = ($2 == version)
-            }
-            capture { print }
-          ' CHANGELOG.md > release-notes.md
-          test -s release-notes.md || { echo "Missing public changelog for $RELEASE_TAG" >&2; exit 1; }
-          unexpected="$(grep '^### ' release-notes.md | grep -Ev '^### (Added|Fixed)$' || true)"
-          test -z "$unexpected" || { echo "Release notes may contain only Added and Fixed sections" >&2; exit 1; }
-      - name: Create GitHub Release
+      - name: Upload to draft, download and verify every asset, then publish
+        run: node scripts/release/publish.mjs
         env:
-          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" release-artifacts/* --verify-tag --notes-file release-notes.md --title "$RELEASE_TAG"

@@ -9,6 +9,7 @@ import type { SessionService } from '../sessions/session-service'
 import { RuntimeManager } from '../runtime/runtime-manager'
 import { PiRpcRuntime } from './pi-rpc-runtime'
 import { PiRpcClient } from './pi-rpc-client'
+import * as discovery from '../environment/command-resolver'
 import { runtimeLayout, verifyDistribution } from '../runtime/distribution.mjs'
 import type { HarnessEvent } from '@shared/types/harness'
 
@@ -31,7 +32,7 @@ native('official standalone Pi with independent Node', () => {
   const replies: Array<string | { tool: string; args: Record<string, unknown> }> = []
   const paths = new Map<string, string>()
   beforeEach(async () => {
-    root = await fs.mkdtemp(path.join(os.tmpdir(), 'pi RPC 空格 '))
+    root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'pi RPC 空格 ')))
     cwd = path.join(root, 'workspace')
     config = path.join(root, 'agent')
     await fs.mkdir(cwd)
@@ -437,6 +438,62 @@ export default function(pi: any) {
     expect(requests).toHaveLength(2)
     expect(await fs.stat(paths.get(started.sessionId)!)).toBeTruthy()
   }, 60_000)
+  it('executes the real bundled binaries through controlled System and Custom discovery without allowing managed updates', async () => {
+    const pi = await fs.realpath(
+      path.join(bundledRoot, 'pi', runtimeLayout('pi', process.platform).executable)
+    )
+    const node = await fs.realpath(
+      path.join(bundledRoot, 'node', runtimeLayout('node', process.platform).executable)
+    )
+    const shell = vi.spyOn(discovery, 'resolveLoginShellPath').mockResolvedValue({
+      shell: null,
+      path: path.dirname(node),
+      node: { path: node, version: 'v24.22.0' }
+    })
+    const executable = vi.spyOn(discovery, 'resolveExecutable').mockResolvedValue({
+      found: true,
+      command: 'pi',
+      path: pi,
+      version: '1.2.0',
+      source: 'process-path'
+    })
+    const selections = new RuntimeManager({
+      bundledRoot,
+      userRoot: path.join(root, 'selection-managed'),
+      stateFile: path.join(root, 'selections.json'),
+      cache: path.join(root, 'selection-cache')
+    })
+    try {
+      for (const source of ['system', 'custom'] as const) {
+        const selectedNode = await selections.switchNodeRuntime(
+          source === 'system' ? { source } : { source, customPath: node }
+        )
+        expect(selectedNode.node).toMatchObject({
+          source,
+          executablePath: node,
+          valid: true,
+          version: '24.22.0'
+        })
+        const selectedPi = await selections.switchPiRuntime(
+          source === 'system' ? { source } : { source, customPath: pi }
+        )
+        expect(selectedPi.pi).toMatchObject({
+          source,
+          executablePath: pi,
+          valid: true,
+          version: '1.2.0'
+        })
+        await expect(selections.update('pi')).rejects.toThrow('managed by their owner')
+        await expect(selections.update('node')).rejects.toThrow('managed by their owner')
+      }
+      await selections.switchPiRuntime({ source: 'bundled' })
+      await selections.switchNodeRuntime({ source: 'bundled' })
+      expect((await selections.configuration()).pi.source).toBe('bundled')
+    } finally {
+      shell.mockRestore()
+      executable.mockRestore()
+    }
+  }, 30000)
   it('stages a verified Pi update, atomically activates it, and rolls back to the bundled baseline', async () => {
     const maintenance = new RuntimeManager({
       bundledRoot,

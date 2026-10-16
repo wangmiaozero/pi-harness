@@ -2,7 +2,20 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
-## 2.0.0 — Unreleased
+## 2.1.0 — 2026-10-16
+
+### Added
+
+- Bundled Node.js and Pi in community downloads for macOS, Windows, and Linux.
+- Added conservative static dependency analysis for Python, Go, Java, and Rust, with visible coverage limits.
+- Preserved traceable tool outcomes and historical file-change evidence in local task handoffs.
+
+### Fixed
+
+- Improved startup compatibility for community builds and opened official downloads for manual updates.
+- Fixed duplicate user messages when sending the first message in a new conversation.
+
+## 2.0.0 — 2026-10-14
 
 > **Breaking update:** Pi-Harness 2.0.0 adopts Pi 1.2.0’s breaking changes. Review older extensions and native terminal themes before upgrading. [Pi upgrade notes](https://github.com/earendil-works/pi/releases/tag/v1.2.0).
 

@@ -82,3 +82,21 @@ describe('packaged update channels', () => {
     )
   })
 })
+
+describe('native packaging architecture selection', () => {
+  it.each(['electron-builder.yml', 'electron-builder.nomascot.yml'])(
+    'keeps target architectures selectable by the native job in %s',
+    async (file) => {
+      const config = (await getConfig(process.cwd(), file)) as unknown as Record<
+        string,
+        { target: Array<string | { arch?: unknown }> }
+      >
+      for (const platform of ['mac', 'win', 'linux'])
+        expect(
+          config[platform].target.every(
+            (target) => typeof target === 'string' || target.arch === undefined
+          )
+        ).toBe(true)
+    }
+  )
+})

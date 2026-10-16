@@ -231,9 +231,29 @@ Download a published installer from [GitHub Releases](https://github.com/wangmia
 | Windows x64         | `.exe` · Windows installer |
 | Linux x64           | `.AppImage`                |
 
-Packaged users do not need to clone the repository or install pnpm. Follow the environment requirements in the release notes for the installer you download.
+New Community packages from this source include Pi, Node.js, npm and npx: install and launch without separately installing Node.js or Pi. Older downloads may have different setup requirements; follow their release notes. Choose the standard package or the `nomascot` package without mascot artwork. Windows/Linux ARM64 builds remain previews until native validation is complete; check the notes for the exact release you download.
 
-> macOS community builds may be unsigned. If the first launch is blocked, use **System Settings → Privacy & Security → Open Anyway**.
+Community releases are free. macOS packages use Ad-hoc signing without Apple Developer ID or notarization. Windows installers are unsigned and may show SmartScreen warnings. Confirm the official download source and SHA256 checksum before allowing an app to open. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway** for that app.
+
+On macOS, Apple Silicon uses ARM64 and Intel uses x64. Open the DMG and drag Pi-Harness to Applications. On Windows, run the x64 installer and choose an installation directory. On Linux, grant the downloaded AppImage executable permission (`chmod +x Pi-Harness-*.AppImage`) and open it. Linux native validation targets Ubuntu 24.04; other distributions and FUSE/desktop integration need their own checks.
+
+Download `SHA256SUMS` alongside the installer. Calculate the installer hash and compare it with the same filename in the list (replace `VERSION` with your download's version):
+
+```sh
+# macOS
+shasum -a 256 "Pi-Harness-VERSION-arm64.dmg"
+# Linux
+sha256sum "Pi-Harness-VERSION.AppImage"
+```
+
+```powershell
+# Windows
+Get-FileHash ".\Pi-Harness-Setup-VERSION.exe" -Algorithm SHA256
+```
+
+SHA256 checks consistency with the checksum list; it does not independently prove publisher identity. Use the official [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases) page. Report suspected vulnerabilities privately to [tuziling84@gmail.com](mailto:tuziling84@gmail.com).
+
+Community builds check for new versions in the app and open the official Releases page for manual download and installation on all platforms. Automatic installation remains disabled until cross-version installation is verified. Existing installations keep their previous update behavior. See [Community Release](docs/release/community-release.md) and [update details](docs/release/update-strategy.md).
 
 ## Get started
 
@@ -245,7 +265,7 @@ Packaged users do not need to clone the repository or install pnpm. Follow the e
 
 ## Requirements
 
-The desktop app supports macOS Apple Silicon, macOS Intel, Windows x64, and Linux x64. Pi Coding Agent can be installed or repaired from the app where supported. Source development and packaging require Node.js ≥ 22.22.2 and pnpm 9.12.1. These build requirements are separate from the requirements of a published desktop installer.
+Community release validation covers macOS Apple Silicon, macOS Intel, Windows x64 and Linux x64; platform availability is subject to each release's verified results. The bundled Pi and Node runtimes are ready to use, with System and Custom runtime choices available in settings. Source development and packaging require Node.js ≥ 22.22.2 and pnpm 9.12.1; installed users do not need these build tools.
 
 ## Documentation
 

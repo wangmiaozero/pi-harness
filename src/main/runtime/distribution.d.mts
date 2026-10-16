@@ -1,7 +1,11 @@
 export type RuntimeFetcher = (url: string, init?: { signal?: AbortSignal }) => Promise<Response>
 import type { RuntimeKind } from '../../shared/runtime/schema'
 export const catalog: {
-  pi: { version: string; assets: Record<string, { file: string; sha256: string }> }
+  pi: {
+    version: string
+    checksumsFile: string
+    assets: Record<string, { file: string; sha256: string }>
+  }
   node: {
     version: string
     npmVersion: string
@@ -33,3 +37,9 @@ export function acquireDistribution(options: {
   fetcher?: RuntimeFetcher
   onProgress?: (phase: string, progress: number) => void
 }): Promise<unknown>
+
+export function extractRuntimeZip(
+  archive: string,
+  staging: string,
+  signal?: AbortSignal
+): Promise<void>

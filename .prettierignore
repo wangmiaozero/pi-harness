@@ -1,6 +1,6 @@
 out
 dist
-release
+/release
 resources/builtin-skills
 node_modules
 src/renderer/src/i18n/locales

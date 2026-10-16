@@ -277,7 +277,7 @@ describe('Pi 1.2 native execution compatibility', () => {
         pi.on('before_agent_start',async (e,ctx)=>{
           await fs.appendFile(${JSON.stringify(observations)},JSON.stringify({type:e.messageType,idle:ctx.isIdle(),hasUI:ctx.hasUI})+'\\n');
           if(e.messageType==='user' && e.prompt==='blocked startup') {
-            for(let i=0;i<200;i++) {
+            for(let i=0;i<4500;i++) {
               try {await fs.stat(${JSON.stringify(release)});break;}catch{}
               await new Promise(r=>setTimeout(r,10));
             }

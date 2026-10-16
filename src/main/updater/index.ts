@@ -13,6 +13,7 @@ import { gt as isVersionGreater, valid as validVersion } from 'semver'
 import type { AppUpdateState } from '@shared/ipc/api-types'
 import { APP_VERSION } from '@shared/constants/index'
 import { log } from '../services/logger'
+import { communityManualUpdates } from './policy'
 
 type AutoUpdater = typeof import('electron-updater').autoUpdater
 type UpdateStateListener = (state: AppUpdateState) => void
@@ -227,6 +228,7 @@ function reportUpdaterFailure(message: string, error: unknown): AppUpdateState {
 }
 
 function canUseNativeAutoUpdater(): boolean {
+  if (communityManualUpdates()) return false
   if (process.platform !== 'darwin') return true
   if (nativeAutoUpdateSupported != null) return nativeAutoUpdateSupported
 

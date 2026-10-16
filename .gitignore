@@ -5,7 +5,7 @@ node_modules/
 dist/
 out/
 /output/
-release/
+/release/
 .runtime-cache/
 resources/runtimes/
 

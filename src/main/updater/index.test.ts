@@ -16,8 +16,10 @@ const mocks = vi.hoisted(() => ({
   autoUpdater: null as unknown,
   fetch: vi.fn(),
   openExternal: vi.fn(),
-  spawnSync: vi.fn()
+  spawnSync: vi.fn(),
+  communityManual: false
 }))
+vi.mock('./policy', () => ({ communityManualUpdates: () => mocks.communityManual }))
 
 vi.mock('@shared/constants/index', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@shared/constants/index')>()),
@@ -59,6 +61,7 @@ describe('application updater', () => {
 
   beforeEach(() => {
     vi.resetModules()
+    mocks.communityManual = false
     vi.unstubAllGlobals()
     mocks.app.isPackaged = false
     mocks.autoUpdater = new FakeAutoUpdater()
@@ -70,6 +73,22 @@ describe('application updater', () => {
       stdout: '',
       stderr: 'Authority=Developer ID Application: Example\nTeamIdentifier=EXAMPLETEAM\n'
     })
+  })
+
+  it('uses manual release checks for Community packages without initializing an automatic installer', async () => {
+    mocks.app.isPackaged = true
+    mocks.communityManual = true
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ tag_name: `v${versions.newer}` })
+    })
+    const updater = await import('./index')
+    expect(await updater.checkForUpdates()).toMatchObject({
+      status: 'manual-update',
+      available: true
+    })
+    expect((mocks.autoUpdater as FakeAutoUpdater).checkForUpdates).not.toHaveBeenCalled()
+    expect((mocks.autoUpdater as FakeAutoUpdater).downloadUpdate).not.toHaveBeenCalled()
   })
 
   it('compares against the public release API in an unpackaged development build', async () => {

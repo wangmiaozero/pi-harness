@@ -124,7 +124,7 @@ test('keeps thinking and tools working after a successful connection probe, with
     const dialog = page.getByRole('dialog')
     // Loading intentionally hides the label, so retain the same primary button locator.
     const run = dialog.locator('button[data-variant="primary"]')
-    await expect(run).toHaveText(/开始测试|Start test/)
+    await expect(run).toHaveText(/开始测试|运行测试|Start test|Run test/)
     const radius = await run.evaluate((button) => getComputedStyle(button).borderTopLeftRadius)
     expect(parseFloat(radius)).toBeGreaterThan(0)
     await page.keyboard.press('Tab')

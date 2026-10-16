@@ -87,7 +87,7 @@ describe('runtime isolation and configuration', () => {
       NODE_OPTIONS: '--inspect',
       ELECTRON_RUN_AS_NODE: '1'
     }
-    expect(buildRuntimeEnvironment(base, '/selected/bin/node', 'mcp').PATH).toBe(
+    expect(buildRuntimeEnvironment(base, '/selected/bin/node', 'mcp', 'linux').PATH).toBe(
       '/selected/bin:/system/bin'
     )
     expect(buildRuntimeEnvironment(base, '/selected/bin/node', 'extension')).toMatchObject({

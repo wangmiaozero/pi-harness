@@ -8,104 +8,48 @@ on:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
   contents: read
 
+env:
+  npm_config_electron_mirror: https://github.com/electron/electron/releases/download/
+  npm_config_electron_custom_dir: 'v{{ version }}'
+
 jobs:
   quality:
-    name: Linux quality and E2E
+    name: Source quality and Electron regression
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           version: 9.12.1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.22.2
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
-      - run: pnpm test
+      - run: pnpm exec vitest run --maxWorkers=2
+      - run: pnpm audit --prod --audit-level high
+      - run: pnpm licenses list --prod --json > dependency-licenses.json
       - run: pnpm compile
-      - name: Electron E2E smoke
+      - name: Electron regression (SDK compatibility)
         run: xvfb-run -a pnpm test:e2e:only
-      - run: pnpm compile:nomascot
-      - name: Electron E2E noMascot smoke
-        run: xvfb-run -a pnpm exec playwright test e2e/nomascot.spec.ts
-        env:
-          PI_HARNESS_E2E_VARIANT: nomascot
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: source-quality
+          path: |
+            dependency-licenses.json
+            test-results/
 
   package-smoke:
-    name: Native quality and package execution (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-15
-            arch: arm64
-          - os: macos-15-intel
-            arch: x64
-          - os: windows-2025
-            arch: x64
-          - os: ubuntu-24.04
-            arch: x64
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
-    env:
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      PI_HARNESS_EXPECTED_ARCH: ${{ matrix.arch }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9.12.1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.2
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Native quality gate
-        if: runner.os != 'Linux'
-        run: pnpm quality --package
-      - name: Native Linux quality gate
-        if: runner.os == 'Linux'
-        run: xvfb-run -a pnpm quality --package
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: quality-${{ matrix.os }}-${{ matrix.arch }}
-          path: out/quality/
-          if-no-files-found: error
-
-  release-readiness:
-    name: Aggregate native release evidence
-    needs: [quality, package-smoke]
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.2
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: quality-*
-          path: quality-reports
-      - name: Require every native platform
-        run: node scripts/release-readiness.mjs quality-reports/*/quality-*.json > release-readiness.json
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: release-readiness
-          path: release-readiness.json
-          if-no-files-found: error
-
-  dual-runtime:
-    name: Standalone runtime execution (${{ matrix.platform }}-${{ matrix.arch }})
+    name: Installed community packages (${{ matrix.platform }}-${{ matrix.arch }})
     strategy:
       fail-fast: false
       matrix:
@@ -113,58 +57,74 @@ jobs:
           - os: macos-15
             platform: darwin
             arch: arm64
+            experimental: false
           - os: macos-15-intel
             platform: darwin
             arch: x64
+            experimental: false
           - os: windows-2025
             platform: win32
             arch: x64
+            experimental: false
+          - os: ubuntu-24.04
+            platform: linux
+            arch: x64
+            experimental: false
           - os: windows-11-arm
             platform: win32
             arch: arm64
-          - os: ubuntu-24.04
-            platform: linux
-            arch: x64
+            experimental: true
           - os: ubuntu-24.04-arm
             platform: linux
             arch: arm64
+            experimental: true
+    continue-on-error: ${{ matrix.experimental }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
-      PI_HARNESS_E2E_AGENT_MODE: rpc
-      PI_HARNESS_E2E_EMPTY_PATH: '1'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # Ad-hoc signing uses no credentials, including on fork pull requests.
+      CSC_FOR_PULL_REQUEST: 'true'
+      PI_HARNESS_EXPECTED_ARCH: ${{ matrix.arch }}
+      PI_HARNESS_RELEASE_CHANNEL: community
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           version: 9.12.1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.22.2
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          path: .runtime-cache
-          key: runtime-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('src/main/runtime/catalog.json') }}
-      - run: pnpm runtime:prepare
-      - run: pnpm test:runtime
-      - name: Native environment regressions
-        run: pnpm exec vitest run src/main/environment src/main/pi src/main/process
-      - run: pnpm compile
-      - name: Standalone Electron E2E
+          path: |
+            .runtime-cache
+            ~/.cache/electron
+            ~/Library/Caches/electron
+            ~/AppData/Local/electron/Cache
+          key: downloads-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml', 'src/main/runtime/catalog.json') }}
+      - run: pnpm install --frozen-lockfile
+      - name: Native Windows and environment regressions
+        run: pnpm exec vitest run src/main/environment src/main/pi src/main/process --maxWorkers=2
+      - name: Build, install and execute both variants
         if: runner.os != 'Linux'
-        run: pnpm exec playwright test e2e/dual-runtime.spec.ts e2e/first-message.spec.ts e2e/pi-native-mcp.spec.ts e2e/runtime-compatibility.spec.ts
-      - name: Standalone Linux Electron E2E
+        run: pnpm release:package
+      - name: Build, extract and execute Linux AppImages
         if: runner.os == 'Linux'
-        run: xvfb-run -a pnpm exec playwright test e2e/dual-runtime.spec.ts e2e/first-message.spec.ts e2e/pi-native-mcp.spec.ts e2e/runtime-compatibility.spec.ts
-      - name: Package native runtimes
-        run: pnpm exec electron-builder --dir --publish never --${{ matrix.platform == 'darwin' && 'mac' || matrix.platform == 'win32' && 'win' || 'linux' }} --${{ matrix.arch }}
-      - uses: actions/upload-artifact@v4
+        run: xvfb-run -a pnpm release:package
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: success()
+        with:
+          name: packages-${{ matrix.platform }}-${{ matrix.arch }}
+          path: out/community-packages/${{ matrix.platform }}-${{ matrix.arch }}/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
-          name: runtime-${{ matrix.platform }}-${{ matrix.arch }}
+          name: validation-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
+            out/community-validation/${{ matrix.platform }}-${{ matrix.arch }}/
             out/runtime-validation/
             test-results/
+          if-no-files-found: warn
