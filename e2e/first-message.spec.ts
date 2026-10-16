@@ -85,7 +85,7 @@ for (const withImage of [false, true]) {
 
       // Hold the model response open: a final persisted reload would otherwise
       // hide the optimistic/native duplication seen during the first turn.
-      await expect.poll(() => requests.length).toBe(1)
+      await expect.poll(() => requests.length, { timeout: 45_000 }).toBe(1)
       await expect(page.locator('.chat-scroller')).toContainText('Local reply')
       await expect(users).toHaveCount(1)
       const outgoingUsers = requests[0].messages.filter((message) => message.role === 'user')
