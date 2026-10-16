@@ -17,13 +17,17 @@ export async function probe(
 ): Promise<string> {
   const started = performance.now()
   try {
-    const { stdout } = await exec(executable, args, {
+    const pending = exec(executable, args, {
+      // Metadata checks must not inspect the application's inherited project.
+      cwd: path.dirname(executable),
       env: { ...env, NODE_OPTIONS: undefined },
       shell: false,
       windowsHide: true,
       timeout: 15_000,
       maxBuffer: 1024 * 1024
     })
+    pending.child.stdin?.end()
+    const { stdout } = await pending
     return stdout.trim()
   } catch (error) {
     const failure = error as NodeJS.ErrnoException & {

@@ -16,6 +16,22 @@ afterEach(() => vi.restoreAllMocks())
 const describeWindows = process.platform === 'win32' ? describe : describe.skip
 
 describe('PiProcessService environment override', () => {
+  it('discovers the CLI version from its installation directory', async () => {
+    const previous = process.env.PI_HARNESS_PI_CLI_PATH
+    const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'pi-version-cwd-')))
+    const cli = path.join(root, 'cli.js')
+    await fs.writeFile(cli, 'process.stdout.write(process.cwd())')
+    await fs.chmod(cli, 0o755)
+    process.env.PI_HARNESS_PI_CLI_PATH = cli
+    try {
+      await expect(new PiProcessService().version()).resolves.toBe(root)
+    } finally {
+      if (previous === undefined) delete process.env.PI_HARNESS_PI_CLI_PATH
+      else process.env.PI_HARNESS_PI_CLI_PATH = previous
+      await fs.rm(root, { recursive: true, force: true })
+    }
+  })
+
   it('does not fall through to a host Pi when the explicit environment path is missing', async () => {
     const previous = process.env.PI_HARNESS_PI_CLI_PATH
     const missing = path.join(os.tmpdir(), `pi-harness-missing-${Date.now()}`, 'pi')
