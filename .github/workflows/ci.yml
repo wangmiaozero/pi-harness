@@ -50,7 +50,7 @@ jobs:
             openbox --sm-disable > /tmp/pi-harness-window-manager.log 2>&1 &
             for attempt in {1..50}; do
               if wmctrl -m > /dev/null 2>&1; then
-                pnpm test:e2e:only
+                pnpm test:e2e:only --reporter=line
                 exit 0
               fi
               sleep 0.1

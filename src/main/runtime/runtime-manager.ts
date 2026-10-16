@@ -95,9 +95,20 @@ export class RuntimeManager {
     if (!pending) {
       pending = this.resolveUncached(kind, selected)
       this.cache.set(key, pending)
-      // Cache only briefly: custom/system executables can change externally.
-      const timer = setTimeout(() => this.cache.delete(key), 10_000)
-      timer.unref()
+      const request = pending
+      void request.then(
+        () => {
+          if (this.cache.get(key) !== request) return
+          // Share the entire verification before timing its short-lived result.
+          const timer = setTimeout(() => {
+            if (this.cache.get(key) === request) this.cache.delete(key)
+          }, 10_000)
+          timer.unref()
+        },
+        () => {
+          if (this.cache.get(key) === request) this.cache.delete(key)
+        }
+      )
     }
     return structuredClone(await pending)
   }
