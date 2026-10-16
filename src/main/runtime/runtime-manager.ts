@@ -319,7 +319,8 @@ export class RuntimeManager {
     let executable: string | null = selection.customPath ?? null
     if (selection.source === 'system') {
       const login = await resolveLoginShellPath({ probeNode: true })
-      discoverySource = kind === 'node' && login.node ? 'login-shell' : 'process-path'
+      discoverySource =
+        kind === 'node' && login.node && login.shell ? 'login-shell' : 'process-path'
       executable =
         kind === 'node' && login.node
           ? login.node.path

@@ -207,25 +207,7 @@ export async function resolveLoginShellPath(
         const snapshot: LoginShellEnvironment = { shell, path: value }
         const probe = markedShellOutput(stdout, LOGIN_SHELL_NODE_MARKER, false)
         if (options.probeNode && probe) {
-          try {
-            const data = JSON.parse(probe)
-            if (
-              typeof data.path === 'string' &&
-              path.isAbsolute(data.path) &&
-              typeof data.version === 'string' &&
-              /^v\d+\.\d+\.\d+/.test(data.version) &&
-              (await isExecutableFile(data.path))
-            ) {
-              snapshot.node = { path: data.path, version: data.version }
-              snapshot.env = Object.fromEntries(
-                NODE_MANAGER_VARIABLES.filter((key) => typeof data.env?.[key] === 'string').map(
-                  (key) => [key, data.env[key]]
-                )
-              )
-            }
-          } catch {
-            // A broken shim must not discard an otherwise valid shell PATH.
-          }
+          Object.assign(snapshot, await parseNodeProbe(probe))
         }
         if (snapshot.node || !options.probeNode) return snapshot
         fallback ??= snapshot
@@ -234,7 +216,55 @@ export async function resolveLoginShellPath(
       // Try the next supported login shell.
     }
   }
+  if (isWindows && options.probeNode) {
+    const seen = new Set<string>()
+    for (const directory of splitPath(process.env.PATH)) {
+      const executable = await resolveInDirectory(directory, 'node', seen)
+      if (!executable || /\.(?:cmd|bat)$/i.test(executable)) continue
+      try {
+        // PowerShell/profile startup must not hide a usable GUI-process Node.
+        const { stdout } = await execFileP(executable, ['-e', NODE_PROBE], {
+          timeout: LOGIN_SHELL_PROBE_TIMEOUT_MS,
+          windowsHide: true,
+          cwd: options.cwd ?? homedir(),
+          env: { ...process.env, NODE_OPTIONS: undefined, ELECTRON_RUN_AS_NODE: undefined }
+        })
+        const node = await parseNodeProbe(markedShellOutput(stdout, LOGIN_SHELL_NODE_MARKER, false))
+        if (node) return { shell: null, path: fallback?.path ?? process.env.PATH ?? null, ...node }
+      } catch {
+        // Keep checking candidates; existence alone does not establish health.
+      }
+    }
+  }
   return fallback ?? { shell: null, path: isWindows ? (process.env.PATH ?? null) : null }
+}
+
+async function parseNodeProbe(
+  probe: string | null
+): Promise<Pick<LoginShellEnvironment, 'node' | 'env'> | null> {
+  try {
+    if (!probe) return null
+    const data = JSON.parse(probe)
+    if (
+      typeof data.path === 'string' &&
+      path.isAbsolute(data.path) &&
+      typeof data.version === 'string' &&
+      /^v\d+\.\d+\.\d+/.test(data.version) &&
+      (await isExecutableFile(data.path))
+    )
+      return {
+        node: { path: data.path, version: data.version },
+        env: Object.fromEntries(
+          NODE_MANAGER_VARIABLES.filter((key) => typeof data.env?.[key] === 'string').map((key) => [
+            key,
+            data.env[key]
+          ])
+        )
+      }
+  } catch {
+    // A broken shim must not discard an otherwise valid shell PATH.
+  }
+  return null
 }
 
 function windowsRegistryPathRefreshScript(): string {

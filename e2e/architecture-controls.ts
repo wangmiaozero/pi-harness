@@ -7,46 +7,48 @@ export async function clickArchitectureControl(
 ): Promise<void> {
   await expect
     .poll(() =>
-      app.evaluate(async ({ webContents, BrowserWindow }, action) => {
-        const view = webContents
-          .getAllWebContents()
-          .find((view) => view.getURL().startsWith('pi-architecture:'))
-        if (!view) return { matches: false, reason: 'missing viewer' }
-        const owner = BrowserWindow.getAllWindows().find((window) =>
-          window.contentView.children.some(
-            (child) => (child as { webContents?: { id: number } }).webContents?.id === view.id
+      app
+        .evaluate(async ({ webContents, BrowserWindow }, action) => {
+          const view = webContents
+            .getAllWebContents()
+            .find((view) => view.getURL().startsWith('pi-architecture:'))
+          if (!view) return { matches: false, reason: 'missing viewer' }
+          const owner = BrowserWindow.getAllWindows().find((window) =>
+            window.contentView.children.some(
+              (child) => (child as { webContents?: { id: number } }).webContents?.id === view.id
+            )
           )
-        )
-        if (!owner) return { matches: false, reason: 'missing owner' }
-        const host = await owner.webContents.executeJavaScript(`(()=>{
+          if (!owner) return { matches: false, reason: 'missing owner' }
+          const host = await owner.webContents.executeJavaScript(`(()=>{
           const box=document.querySelector('[data-testid=architecture-viewer]')?.getBoundingClientRect();
           return box&&{width:Math.round(box.width),height:Math.round(box.height),fullscreen:document.fullscreenElement?.id==='pi-architecture-panel'};
         })()`)
-        if (
-          !host ||
-          (host.fullscreen &&
-            !(
-              owner.isFullScreen() ||
-              (process.platform === 'darwin' && owner.isSimpleFullScreen())
-            ))
-        )
-          return { matches: false, reason: 'owner transition', host }
-        const frame = await view.executeJavaScript(`(()=>{
+          if (
+            !host ||
+            (host.fullscreen &&
+              !(
+                owner.isFullScreen() ||
+                (process.platform === 'darwin' && owner.isSimpleFullScreen())
+              ))
+          )
+            return { matches: false, reason: 'owner transition', host }
+          const frame = await view.executeJavaScript(`(()=>{
           const button=document.querySelector('[data-testid="architecture-${action}"]');
           return {ready:Boolean(button&&!button.disabled&&!button.hidden&&button.getBoundingClientRect().width),width:innerWidth,height:innerHeight,fullscreen:document.querySelector('[data-testid=architecture-fullscreen]')?.getAttribute('aria-pressed')==='true'};
         })()`)
-        return {
-          host,
-          frame,
-          matches:
-            frame.ready &&
-            Math.abs(frame.width - host.width) <= 1 &&
-            Math.abs(frame.height - host.height) <= 1 &&
-            frame.fullscreen === host.fullscreen
-        }
-      }, action)
+          return {
+            host,
+            frame,
+            matches:
+              frame.ready &&
+              Math.abs(frame.width - host.width) <= 1 &&
+              Math.abs(frame.height - host.height) <= 1 &&
+              frame.fullscreen === host.fullscreen
+          }
+        }, action)
+        .then((state) => (state.matches ? 'ready' : JSON.stringify(state)))
     )
-    .toMatchObject({ matches: true })
+    .toBe('ready')
   await app.evaluate(async ({ webContents }, action) => {
     const view = webContents
       .getAllWebContents()

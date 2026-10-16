@@ -141,6 +141,27 @@ describe.runIf(process.platform !== 'win32')('login-shell command resolver', () 
 })
 
 describe.runIf(process.platform === 'win32')('Windows command resolver', () => {
+  it('uses a verified process-PATH Node when both PowerShell probes fail', async () => {
+    const sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-broken-powershell-'))
+    try {
+      // A native executable rejecting PowerShell flags makes failure deterministic.
+      await Promise.all(
+        ['pwsh.exe', 'powershell.exe'].map((name) =>
+          fs.copyFile(process.execPath, path.join(sandbox, name))
+        )
+      )
+      vi.stubEnv('PATH', [sandbox, path.dirname(process.execPath)].join(path.delimiter))
+      const result = await resolveLoginShellPath({ probeNode: true, refreshWindowsPath: true })
+      expect(result.node).toEqual({ path: process.execPath, version: process.version })
+      expect(result.shell).toBeNull()
+      vi.stubEnv('PATH', sandbox)
+      expect((await resolveLoginShellPath({ probeNode: true })).node).toBeUndefined()
+    } finally {
+      vi.unstubAllEnvs()
+      await fs.rm(sandbox, { recursive: true, force: true })
+    }
+  }, 45_000)
+
   it.each(['cmd', 'bat'])(
     'resolves and executes a .%s shim in a path containing spaces',
     async (extension) => {
