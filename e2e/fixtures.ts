@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
+import { redactSecretText } from '../src/main/services/logger'
 import type { StartAgentSessionInput } from '../src/shared/types/workspace'
 import {
   test as base,
@@ -68,7 +69,6 @@ export const test = base.extend<Fixtures>({
     await use(isolatedPi)
   },
   electronApp: async ({ workspaceRoot, testUserData, piAgentDir }, use, testInfo) => {
-    void testInfo
     if (!packagedExecutable && !fs.existsSync(mainJs)) {
       throw new Error('out/main/index.js missing — run `pnpm compile` before e2e')
     }
@@ -141,8 +141,22 @@ export const test = base.extend<Fixtures>({
       timeout: 60_000
     })
     startupProfiles.set(app, { started, launchMs: performance.now() - started })
+    let applicationLog = ''
+    const capture = (chunk: Buffer) => {
+      applicationLog = (applicationLog + chunk.toString('utf8')).slice(-1024 * 1024)
+    }
+    const child = app.process()
+    child.stdout?.on('data', capture)
+    child.stderr?.on('data', capture)
     await use(app)
     await app.close().catch(() => undefined)
+    child.stdout?.off('data', capture)
+    child.stderr?.off('data', capture)
+    if (testInfo.status !== testInfo.expectedStatus) {
+      const file = testInfo.outputPath('application.log')
+      fs.writeFileSync(file, redactSecretText(applicationLog))
+      await testInfo.attach('application log', { path: file, contentType: 'text/plain' })
+    }
   },
   page: async ({ electronApp }, use) => {
     const page = await waitForMainWindow(electronApp)

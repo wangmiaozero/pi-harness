@@ -39,7 +39,7 @@ export function createMainWindow(iconPath: string): BrowserWindow {
       webSecurity: true,
       allowRunningInsecureContent: false,
       spellcheck: false,
-      disableHtmlFullscreenWindowResize: true
+      disableHtmlFullscreenWindowResize: process.platform === 'darwin'
     }
   })
 

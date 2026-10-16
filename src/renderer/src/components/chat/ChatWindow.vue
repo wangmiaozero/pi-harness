@@ -218,7 +218,9 @@ async function onSend(imageModel: ComposerImageModelTarget | null = null) {
   workspace.clearDraft(draftKey)
   if (sessionId && sessionId !== sessions.currentId) {
     workspace.consumeDraftSession()
-    sessions.selectSession(sessionId)
+    // Persist the selected chat before slower workspace/runtime restoration.
+    // A reload immediately after the first reply must reopen this session.
+    workspace.ensureChatTab(sessionId, displayText.slice(0, 32) || sessionId)
   }
 }
 

@@ -7,6 +7,7 @@ import { promisify } from 'node:util'
 import semver from 'semver'
 import type { ResolvedRuntime, RuntimeKind, RuntimeSource } from '@shared/runtime/schema'
 import { buildRuntimeEnvironment } from './environment'
+import { log } from '../services/logger'
 
 const exec = promisify(execFile)
 export async function probe(
@@ -14,14 +15,34 @@ export async function probe(
   args: string[],
   env: NodeJS.ProcessEnv
 ): Promise<string> {
-  const { stdout } = await exec(executable, args, {
-    env: { ...env, NODE_OPTIONS: undefined },
-    shell: false,
-    windowsHide: true,
-    timeout: 15_000,
-    maxBuffer: 1024 * 1024
-  })
-  return stdout.trim()
+  const started = performance.now()
+  try {
+    const { stdout } = await exec(executable, args, {
+      env: { ...env, NODE_OPTIONS: undefined },
+      shell: false,
+      windowsHide: true,
+      timeout: 15_000,
+      maxBuffer: 1024 * 1024
+    })
+    return stdout.trim()
+  } catch (error) {
+    const failure = error as NodeJS.ErrnoException & {
+      signal?: string
+      killed?: boolean
+      stdout?: string
+      stderr?: string
+    }
+    const reason = failure.killed ? 'timeout' : (failure.code ?? failure.signal ?? 'process exit')
+    log.pi.warn('Runtime version probe failed', {
+      executable: path.basename(executable),
+      elapsedMs: Math.round(performance.now() - started),
+      reason,
+      signal: failure.signal,
+      stdoutBytes: Buffer.byteLength(failure.stdout ?? ''),
+      stderrBytes: Buffer.byteLength(failure.stderr ?? '')
+    })
+    throw new Error(`Runtime version probe failed (${reason})`)
+  }
 }
 
 export { binaryIdentity } from './binary-identity.mjs'
