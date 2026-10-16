@@ -31,6 +31,7 @@ jobs:
           import path from 'node:path'
           import os from 'node:os'
           const root=await fs.mkdtemp(path.join(os.tmpdir(),'pi-runtime-probe-'))
+          await fs.copyFile('package.json',path.join(root,'package.json'))
           await fs.cp('out',path.join(root,'out'),{recursive:true})
           await fs.symlink(path.resolve('node_modules'),path.join(root,'node_modules'),'junction')
           await fs.mkdir(path.join(root,'resources'),{recursive:true})
