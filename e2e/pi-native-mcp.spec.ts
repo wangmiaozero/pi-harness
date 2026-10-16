@@ -10,6 +10,15 @@ test('executes native MCP and Codemode over IPC, enforces workspace writes and c
   workspaceRoot,
   testUserData
 }) => {
+  const settingsFile = path.join(piAgentDir, 'settings.json')
+  fs.writeFileSync(
+    settingsFile,
+    JSON.stringify({
+      ...JSON.parse(fs.readFileSync(settingsFile, 'utf8')),
+      retry: { enabled: false },
+      compaction: { enabled: false }
+    })
+  )
   const pidFile = path.join(workspaceRoot, 'mcp.pid')
   const runtimeFile = path.join(workspaceRoot, 'mcp-runtime.txt')
   const script = path.join(workspaceRoot, 'mcp.mjs')

@@ -275,7 +275,8 @@ export async function readExecutableVersion(
 ): Promise<string | null> {
   const isWindowsShim = process.platform === 'win32' && /\.(?:cmd|bat)$/i.test(executable)
   const file = isWindowsShim ? (process.env.ComSpec ?? 'cmd.exe') : executable
-  const fileArgs = isWindowsShim ? ['/d', '/s', '/c', executable, ...args] : args
+  // A fixed command prefix keeps cmd /s from stripping the quoted shim path.
+  const fileArgs = isWindowsShim ? ['/d', '/s', '/c', '@', executable, ...args] : args
   try {
     const { stdout, stderr } = await execFileP(file, fileArgs, {
       timeout: 8_000,
@@ -359,15 +360,12 @@ async function isExecutableFile(file: string): Promise<boolean> {
 async function resolveFromLoginShell(command: string): Promise<string | null> {
   for (const shell of loginShellCandidates()) {
     try {
-      const { stdout } = await spawnLoginShellProbe(
-        shell,
-        [
-          '-ilc',
-          `candidate=$(command -v -- "$1") || exit $?; printf '\n${LOGIN_SHELL_EXECUTABLE_MARKER}%s\n' "$candidate"`,
-          'pi-harness',
-          command
-        ]
-      )
+      const { stdout } = await spawnLoginShellProbe(shell, [
+        '-ilc',
+        `candidate=$(command -v -- "$1") || exit $?; printf '\n${LOGIN_SHELL_EXECUTABLE_MARKER}%s\n' "$candidate"`,
+        'pi-harness',
+        command
+      ])
       const candidate = markedShellOutput(stdout, LOGIN_SHELL_EXECUTABLE_MARKER)
       if (candidate && path.isAbsolute(candidate) && (await isExecutableFile(candidate))) {
         return candidate

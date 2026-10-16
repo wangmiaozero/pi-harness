@@ -294,15 +294,19 @@ describe('Pi 1.2 native execution compatibility', () => {
     const custom = JSON.parse((await fs.readFile(observations, 'utf8')).trim().split('\n')[0])
     expect(custom).toEqual({ type: 'custom', idle: false, hasUI: false })
     const before = requests.length
-    await runtime.prompt(wrapper.sessionId, 'blocked startup')
+    const starting = runtime.prompt(wrapper.sessionId, 'blocked startup')
     await expect
       .poll(async () => (await fs.readFile(observations, 'utf8')).includes('user'))
       .toBe(true)
     expect(wrapper.isRunning()).toBe(true)
-    await expect(runtime.prompt(wrapper.sessionId, 'duplicate startup')).rejects.toThrow()
+    const duplicate = expect(
+      runtime.prompt(wrapper.sessionId, 'duplicate startup')
+    ).rejects.toThrow()
     const aborting = wrapper.send({ type: 'abort' })
     await fs.writeFile(release, '')
     await aborting
+    await starting
+    await duplicate
     await expect.poll(() => wrapper.isRunning()).toBe(false)
     expect(requests).toHaveLength(before)
     expect(JSON.parse((await fs.readFile(observations, 'utf8')).trim().split('\n')[1]).idle).toBe(

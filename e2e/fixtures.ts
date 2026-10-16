@@ -55,6 +55,7 @@ export const test = base.extend<Fixtures>({
   },
   testUserData: async ({}, use) => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-'))
+    fs.writeFileSync(path.join(userData, 'settings.json'), JSON.stringify({ language: 'zh-CN' }))
     await use(userData)
     fs.rmSync(userData, { recursive: true, force: true })
   },
