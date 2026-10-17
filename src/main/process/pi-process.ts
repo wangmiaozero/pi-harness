@@ -274,6 +274,11 @@ export class PiProcessService {
 
   async version(): Promise<string | null> {
     try {
+      const provider = getRuntimeProvider()
+      if (provider) {
+        const runtime = await provider.resolve('pi')
+        return runtime.valid ? runtime.version : null
+      }
       const cliPath = await this.resolveCliPath()
       if (!cliPath) return null
       const res = await this.exec({

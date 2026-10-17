@@ -19,6 +19,7 @@ describe('runtime verification cache', () => {
 
   beforeEach(async () => {
     root = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-runtime-cache-'))
+    await fs.mkdir(path.join(root, 'pi'))
     manager = new RuntimeManager({
       bundledRoot: root,
       userRoot: root,
@@ -79,5 +80,35 @@ describe('runtime verification cache', () => {
     await vi.advanceTimersByTimeAsync(5_000)
     await manager.resolve('pi')
     expect(verifyDistribution).toHaveBeenCalledTimes(3)
+  })
+
+  it('rechecks all pinned bytes without repeatedly launching unchanged bundled metadata', async () => {
+    await manager.resolve('pi')
+    await vi.advanceTimersByTimeAsync(10_001)
+    await manager.resolve('pi')
+    expect(verifyDistribution).toHaveBeenCalledTimes(2)
+    expect(validateExecutable).toHaveBeenCalledTimes(1)
+    manager.invalidate()
+    vi.mocked(verifyDistribution).mockRejectedValueOnce(new Error('changed payload'))
+    expect(await manager.resolve('pi')).toMatchObject({ valid: false, integrity: 'failed' })
+    expect(validateExecutable).toHaveBeenCalledTimes(1)
+  })
+
+  it('executes metadata again when the user explicitly verifies a runtime', async () => {
+    await manager.resolve('pi')
+    vi.mocked(validateExecutable).mockResolvedValue({
+      source: 'bundled',
+      executablePath: path.join(root, 'pi'),
+      version: null,
+      platform: process.platform,
+      arch: process.arch,
+      valid: false,
+      integrity: 'verified',
+      diagnosticMessages: ['execution failed']
+    })
+    vi.spyOn(manager, 'diagnostics').mockResolvedValue({} as never)
+    await manager.verify('pi')
+    expect(validateExecutable).toHaveBeenCalledTimes(2)
+    expect((await manager.resolve('pi')).valid).toBe(false)
   })
 })
