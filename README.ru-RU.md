@@ -256,6 +256,10 @@ Pi-Harness создан вокруг официальных [Pi Coding Agent и 
 
 Автор и сопровождающий: [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com).
 
+### Участники PR
+
+Спасибо [@HenryArch](https://github.com/HenryArch) за вклад в [PR #8](https://github.com/wangmiaozero/pi-harness/pull/8).
+
 ## Лицензия
 
 Pi-Harness распространяется по лицензии [GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`).

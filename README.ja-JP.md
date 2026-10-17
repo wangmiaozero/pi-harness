@@ -256,6 +256,10 @@ macOS Apple Silicon、macOS Intel、Windows x64、Linux x64 に対応します�
 
 作成・保守：[wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com)。
 
+### PR コントリビューター
+
+[PR #8](https://github.com/wangmiaozero/pi-harness/pull/8) に貢献してくださった [@HenryArch](https://github.com/HenryArch) に感謝します。
+
 ## ライセンス
 
 Pi-Harness は [GNU Affero General Public License v3.0 only](LICENSE)（`AGPL-3.0-only`）で公開されています。

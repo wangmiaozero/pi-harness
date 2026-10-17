@@ -256,6 +256,10 @@ macOS Apple Silicon, macOS Intel, Windows x64, Linux x64를 지원합니다. 지
 
 제작·유지 관리: [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com).
 
+### PR 기여자
+
+[PR #8](https://github.com/wangmiaozero/pi-harness/pull/8)에 기여해 주신 [@HenryArch](https://github.com/HenryArch)님께 감사드립니다.
+
 ## 라이선스
 
 Pi-Harness는 [GNU Affero General Public License v3.0 only](LICENSE)(`AGPL-3.0-only`)로 배포됩니다.

@@ -268,6 +268,10 @@ Pi-Harness 围绕官方 [Pi Coding Agent 与 Pi Agent Harness](https://github.co
 
 由 [wangmiao](https://github.com/wangmiaozero) 创建并维护 · [tuziling84@gmail.com](mailto:tuziling84@gmail.com)。
 
+### PR 贡献者
+
+感谢 [@HenryArch](https://github.com/HenryArch) 通过 [PR #8](https://github.com/wangmiaozero/pi-harness/pull/8) 为项目作出贡献。
+
 ## 许可协议
 
 Pi-Harness 采用 [GNU Affero General Public License v3.0 only](LICENSE)（`AGPL-3.0-only`）发布。
