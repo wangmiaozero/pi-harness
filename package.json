@@ -1,6 +1,6 @@
 {
   "name": "pi-harness",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Operational Superset Harness and Desktop Control Plane for Pi Coding Agent",
   "productName": "Pi-Harness",
   "author": {
@@ -120,7 +120,8 @@
     "@vue/eslint-config-typescript": "^14.9.0",
     "@vue/test-utils": "^2.5.1",
     "electron": "^44.4.5",
-    "electron-builder": "^26.15.3",
+    "electron-builder": "26.15.6",
+    "electron-builder-squirrel-windows": "26.15.6",
     "electron-vite": "^5.0.0",
     "eslint": "^10.11.0",
     "eslint-plugin-vue": "^10.11.1",

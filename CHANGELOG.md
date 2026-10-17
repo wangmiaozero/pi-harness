@@ -2,6 +2,12 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.1.1 — 2026-10-17
+
+### Fixed
+
+- Fixed missing application files after installation on Windows ARM64.
+
 ## 2.1.0 — 2026-10-17
 
 ### Added
