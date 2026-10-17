@@ -20,6 +20,7 @@ it('excludes ignored runtime/cache/package directories before allocating filesys
   fixture.watch.mockReturnValue({ on: fixture.on, close: fixture.close })
   const watcher = new WorkspaceWatcherService()
   await watcher.sync([directory])
+  expect(fixture.watch.mock.calls[0][1].followSymlinks).toBe(false)
   const ignored = fixture.watch.mock.calls[0][1].ignored as (
     file: string,
     stat?: { isDirectory: () => boolean }
