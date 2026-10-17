@@ -110,6 +110,7 @@ test('keeps thinking and tools working after a successful connection probe, with
     })
   )
   try {
+    console.log('GPU features', await electronApp.evaluate(({ app }) => app.getGPUFeatureStatus()))
     await electronApp.evaluate(() => {
       process.env.PI_HARNESS_COMPAT_TEST_KEY = 'local-test-placeholder'
     })

@@ -4,6 +4,9 @@ on:
     branches: ['codex/windows-runtime-probe']
 permissions:
   contents: read
+env:
+  npm_config_electron_mirror: https://github.com/electron/electron/releases/download/
+  npm_config_electron_custom_dir: 'v{{ version }}'
 concurrency:
   group: windows-runtime-probe
   cancel-in-progress: true
@@ -20,6 +23,12 @@ jobs:
         with:
           node-version: 22.22.2
           cache: pnpm
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            .runtime-cache
+            ~/AppData/Local/electron/Cache
+          key: downloads-Windows-x64-${{ hashFiles('pnpm-lock.yaml', 'src/main/runtime/catalog.json') }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm runtime:prepare
       - run: pnpm compile
