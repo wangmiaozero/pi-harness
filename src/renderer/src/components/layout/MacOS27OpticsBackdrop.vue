@@ -10,6 +10,7 @@ import {
 
 const settings = useSettingsStore()
 const canvas = ref<HTMLCanvasElement | null>(null)
+const rendererMode = ref<'pending' | 'full' | 'reduced' | 'static'>('pending')
 const background = computed(() => normalizeMacOS27Background(settings.settings?.macos27Background))
 const backgroundImage = computed(() =>
   normalizeMacOS27BackgroundImage(settings.settings?.macos27BackgroundImage)
@@ -356,14 +357,22 @@ function bindProgram(mode: MacOS27EffectBackground): boolean {
 }
 
 function initializeRenderer(): boolean {
+  if (rendererMode.value === 'static') return false
   const element = canvas.value
   if (!element || /jsdom/i.test(navigator.userAgent)) return false
-  gl = element.getContext('webgl2', {
+  const attributes: WebGLContextAttributes = {
     alpha: false,
     antialias: false,
     powerPreference: 'high-performance'
-  })
-  if (!gl) return false
+  }
+  // Software graphics must not compete with the agent for a full-screen shader.
+  gl = element.getContext('webgl2', { ...attributes, failIfMajorPerformanceCaveat: true })
+  rendererMode.value = gl ? 'full' : 'reduced'
+  if (!gl) gl = element.getContext('webgl2', attributes)
+  if (!gl) {
+    rendererMode.value = 'static'
+    return false
+  }
 
   vertexBuffer = gl.createBuffer()
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
@@ -380,9 +389,14 @@ function resize(): void {
   if (!sizeDirty) return
   const element = canvas.value
   if (!element || !gl) return
-  const ratio = Math.min(window.devicePixelRatio || 1, 1.25)
-  const width = Math.max(Math.round(element.clientWidth * ratio), 1)
-  const height = Math.max(Math.round(element.clientHeight * ratio), 1)
+  const clientWidth = element.clientWidth
+  const clientHeight = element.clientHeight
+  const ratio =
+    rendererMode.value === 'reduced'
+      ? Math.min(1, 320 / Math.max(clientWidth, 1), 240 / Math.max(clientHeight, 1))
+      : Math.min(window.devicePixelRatio || 1, 1.25)
+  const width = Math.max(Math.round(clientWidth * ratio), 1)
+  const height = Math.max(Math.round(clientHeight * ratio), 1)
   if (element.width !== width || element.height !== height) {
     element.width = width
     element.height = height
@@ -412,8 +426,9 @@ function render(now = performance.now()): void {
 }
 
 function animate(now: number): void {
-  if (!active || !visible() || reducedMotion) return
-  if (now - lastRenderAt >= FRAME_INTERVAL_MS - 4) {
+  if (!active || !visible() || reducedMotion || rendererMode.value === 'static') return
+  const interval = rendererMode.value === 'reduced' ? 1000 / 6 : FRAME_INTERVAL_MS
+  if (now - lastRenderAt >= interval - 4) {
     lastRenderAt = now
     render(now)
   }
@@ -433,7 +448,8 @@ function syncTheme(): void {
   cancelAnimationFrame(frame)
   if (!active) return
   render()
-  if (!reducedMotion && visible()) frame = requestAnimationFrame(animate)
+  if (!reducedMotion && visible() && rendererMode.value !== 'static')
+    frame = requestAnimationFrame(animate)
 }
 
 function onPointerMove(event: PointerEvent): void {
@@ -445,7 +461,7 @@ function onVisibilityChange(): void {
   cancelAnimationFrame(frame)
   if (active && visible()) {
     render()
-    if (!reducedMotion) frame = requestAnimationFrame(animate)
+    if (!reducedMotion && rendererMode.value !== 'static') frame = requestAnimationFrame(animate)
   }
 }
 
@@ -489,9 +505,14 @@ onBeforeUnmount(() => {
     class="macos27-optics-backdrop"
     data-testid="macos27-optics-backdrop"
     :data-background="background"
+    :data-renderer="rendererMode"
     aria-hidden="true"
   >
-    <canvas v-show="!localImageActive" ref="canvas" class="macos27-optics-backdrop__canvas" />
+    <canvas
+      v-show="!localImageActive && rendererMode !== 'static'"
+      ref="canvas"
+      class="macos27-optics-backdrop__canvas"
+    />
     <div
       v-if="localImageActive"
       class="macos27-optics-backdrop__image"

@@ -240,6 +240,18 @@
   height: 100%;
 }
 
+.macos27-optics-backdrop[data-renderer='static'] {
+  background:
+    radial-gradient(ellipse at 25% 35%, #6228b5, transparent 65%),
+    radial-gradient(ellipse at 80% 70%, #145c9e, transparent 65%), #100d2a;
+}
+
+:root[data-theme='macos27-light'] .macos27-optics-backdrop[data-renderer='static'] {
+  background:
+    radial-gradient(ellipse at 25% 35%, #ead8fa, transparent 65%),
+    radial-gradient(ellipse at 80% 70%, #b9d8f9, transparent 65%), #e6eafa;
+}
+
 .macos27-optics-backdrop__image {
   background-position: center;
   background-size: cover;

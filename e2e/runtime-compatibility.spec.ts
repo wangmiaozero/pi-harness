@@ -110,36 +110,11 @@ test('keeps thinking and tools working after a successful connection probe, with
     })
   )
   try {
-    console.log('GPU features', await electronApp.evaluate(({ app }) => app.getGPUFeatureStatus()))
     await electronApp.evaluate(() => {
       process.env.PI_HARNESS_COMPAT_TEST_KEY = 'local-test-placeholder'
     })
-    await page.evaluate(
-      (staticBackground) =>
-        window.piSwitch.settings.set({
-          theme: 'macos27-light',
-          ...(staticBackground
-            ? {
-                macos27Background: 'local-image',
-                macos27BackgroundImage:
-                  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/tmcAAAAASUVORK5CYII='
-              }
-            : {})
-        }),
-      process.env.PI_HARNESS_DIAGNOSTIC_STATIC_BACKGROUND === '1'
-    )
+    await page.evaluate(() => window.piSwitch.settings.set({ theme: 'macos27-light' }))
     await page.reload()
-    console.log(
-      'WebGL renderer',
-      await page.evaluate(() => {
-        const canvas = document.querySelector(
-          '.macos27-optics-backdrop__canvas'
-        ) as HTMLCanvasElement
-        const gl = canvas.getContext('webgl2')
-        const info = gl?.getExtension('WEBGL_debug_renderer_info')
-        return info ? gl!.getParameter(info.UNMASKED_RENDERER_WEBGL) : 'unavailable'
-      })
-    )
     await page.locator('a[href="#/models"]').click()
     await expect(page.getByText('Local thinking fixture', { exact: true }).last()).toBeVisible()
     await page

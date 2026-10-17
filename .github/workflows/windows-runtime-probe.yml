@@ -54,7 +54,6 @@ jobs:
         env:
           PI_HARNESS_E2E_AGENT_MODE: rpc
           PI_HARNESS_E2E_EMPTY_PATH: '1'
-          PI_HARNESS_DIAGNOSTIC_STATIC_BACKGROUND: '1'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
