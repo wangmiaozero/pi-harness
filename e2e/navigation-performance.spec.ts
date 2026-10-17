@@ -48,7 +48,7 @@ test('switches menus without rechecking executables and keeps explicit system re
     await page.locator('a[href="#/models"]').click()
     await expect(page.getByTestId('model-management-view')).toBeVisible()
     await page.locator('a[href="#/skills"]').click()
-    await expect(page.getByRole('heading', { name: /Capability|能力/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Capability|能力/, level: 1 })).toBeVisible()
     await page.locator('a[href="#/settings"]').click()
     await page.getByTestId('settings-section-overview').click()
     await expect(page.getByRole('heading', { name: /Overview|概览/ })).toBeVisible()
