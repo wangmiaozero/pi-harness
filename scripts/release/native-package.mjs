@@ -127,7 +127,13 @@ async function stageInstaller(directory, names, temporary) {
       }
     )
     const executable = path.join(installed, 'Pi-Harness.exe')
-    await fs.access(executable)
+    try {
+      await fs.access(executable)
+    } catch (error) {
+      const entries = await fs.readdir(installed).catch(() => [])
+      process.stdout.write(`Installer destination files: ${JSON.stringify(entries)}\n`)
+      throw error
+    }
     return executable
   }
   const appimage = path.join(directory, names[0])

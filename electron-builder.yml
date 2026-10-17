@@ -85,6 +85,7 @@ win:
     - nsis
   icon: build/icon.ico
 nsis:
+  include: build/installer-probe.nsh
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true

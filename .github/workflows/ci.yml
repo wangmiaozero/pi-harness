@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    branches: ['**', '!codex/windows-arm64-installer']
   pull_request:
   workflow_call:
 
