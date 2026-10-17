@@ -3,6 +3,8 @@ import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { randomUUID } from 'node:crypto'
+import { verifySdkMatrix } from './verify-sdk.mjs'
 import {
   acquireDistribution,
   verifyDistribution,
@@ -11,6 +13,7 @@ import {
 } from '../../src/main/runtime/distribution.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+await verifySdkMatrix(root)
 const option = (name, fallback) =>
   process.argv.find((arg) => arg.startsWith(`--${name}=`))?.split('=')[1] ?? fallback
 const platform = option('platform', process.platform)
@@ -21,7 +24,32 @@ const cache = path.resolve(
 const verifyOnly = process.argv.includes('--verify')
 for (const kind of ['pi', 'node']) {
   const destination = path.join(root, 'resources/runtimes', `${platform}-${arch}`, kind)
-  const exists = await fs.stat(destination).catch(() => null)
+  let exists = await fs.stat(destination).catch(() => null)
+  if (exists && !verifyOnly && process.argv.includes('--refresh')) {
+    const candidate = `${destination}.${randomUUID()}.replacement`
+    const backup = `${destination}.${randomUUID()}.previous`
+    try {
+      await acquireDistribution({
+        kind,
+        platform,
+        arch,
+        destination: candidate,
+        cache,
+        offline: process.argv.includes('--offline')
+      })
+      await fs.rename(destination, backup)
+      try {
+        await fs.rename(candidate, destination)
+      } catch (error) {
+        await fs.rename(backup, destination)
+        throw error
+      }
+      await fs.rm(backup, { recursive: true, force: true })
+    } finally {
+      await fs.rm(candidate, { recursive: true, force: true })
+    }
+    exists = await fs.stat(destination)
+  }
   if (!exists && !verifyOnly)
     await acquireDistribution({
       kind,

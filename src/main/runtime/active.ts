@@ -1,6 +1,7 @@
 import type {
   RuntimeConfiguration,
   RuntimeDiagnostics,
+  RuntimeUpdateReport,
   RuntimeKind,
   RuntimeSelection,
   ResolvedRuntime
@@ -21,9 +22,7 @@ export interface RuntimeProvider {
     onProgress?: (phase: string, progress: number) => void
   ): Promise<RuntimeDiagnostics>
   rollback(kind: RuntimeKind): Promise<RuntimeDiagnostics>
-  checkUpdates(): Promise<
-    Record<RuntimeKind, { installed: string | null; available: string; managed: boolean }>
-  >
+  checkUpdates(): Promise<RuntimeUpdateReport>
 }
 let provider: RuntimeProvider | null = null
 export function setRuntimeProvider(value: RuntimeProvider | null): void {

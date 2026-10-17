@@ -10,7 +10,7 @@ import { RuntimeManager } from '../runtime/runtime-manager'
 import { PiRpcRuntime } from './pi-rpc-runtime'
 import { PiRpcClient } from './pi-rpc-client'
 import * as discovery from '../environment/command-resolver'
-import { runtimeLayout, verifyDistribution } from '../runtime/distribution.mjs'
+import { catalog, runtimeLayout, verifyDistribution } from '../runtime/distribution.mjs'
 import type { HarnessEvent } from '@shared/types/harness'
 
 vi.mock('electron', () => ({ BrowserWindow: { getAllWindows: () => [] } }))
@@ -454,7 +454,7 @@ export default function(pi: any) {
       found: true,
       command: 'pi',
       path: pi,
-      version: '1.2.0',
+      version: catalog.pi.version,
       source: 'process-path'
     })
     const selections = new RuntimeManager({
@@ -481,7 +481,7 @@ export default function(pi: any) {
           source,
           executablePath: pi,
           valid: true,
-          version: '1.2.0'
+          version: catalog.pi.version
         })
         await expect(selections.update('pi')).rejects.toThrow('managed by their owner')
         await expect(selections.update('node')).rejects.toThrow('managed by their owner')
@@ -494,6 +494,61 @@ export default function(pi: any) {
       executable.mockRestore()
     }
   }, 90_000)
+  it.each([
+    ['bundled', 'bundled'],
+    ['bundled', 'system'],
+    ['system', 'bundled'],
+    ['system', 'system']
+  ] as const)(
+    'streams a real RPC response with %s Pi and %s Node',
+    async (piSource, nodeSource) => {
+      const pi = await fs.realpath(
+        path.join(bundledRoot, 'pi', runtimeLayout('pi', process.platform).executable)
+      )
+      const systemNode = await fs.realpath(process.execPath)
+      const shell = vi.spyOn(discovery, 'resolveLoginShellPath').mockResolvedValue({
+        shell: null,
+        path: path.dirname(systemNode),
+        node: { path: systemNode, version: process.version }
+      })
+      const executable = vi.spyOn(discovery, 'resolveExecutable').mockResolvedValue({
+        found: true,
+        command: 'pi',
+        path: pi,
+        version: catalog.pi.version,
+        source: 'process-path'
+      })
+      try {
+        await manager.switchNodeRuntime({ source: nodeSource })
+        await manager.switchPiRuntime({ source: piSource })
+        expect((await manager.configuration()).node.source).toBe(nodeSource)
+        const selected = await manager.resolveNodeRuntime()
+        expect(selected.executablePath).toBe(
+          nodeSource === 'system'
+            ? systemNode
+            : await fs.realpath(
+                path.join(bundledRoot, 'node', runtimeLayout('node', process.platform).executable)
+              )
+        )
+        const started = await runtime.startSession({ cwd, provider: 'fixture', modelId: 'fixture' })
+        runtime.subscribe(started.sessionId, (event) => events.push(event))
+        await runtime.prompt(started.sessionId, `${piSource} Pi / ${nodeSource} Node`)
+        await vi.waitFor(
+          () => expect(events.some((event) => event.type === 'prompt.completed')).toBe(true),
+          { timeout: 20_000 }
+        )
+        expect(requests).toHaveLength(1)
+        expect(await fs.readFile(paths.get(started.sessionId)!, 'utf8')).toContain(
+          'Standalone response'
+        )
+        await runtime.stopSession(started.sessionId)
+      } finally {
+        shell.mockRestore()
+        executable.mockRestore()
+      }
+    },
+    60_000
+  )
   it('stages a verified Pi update, atomically activates it, and rolls back to the bundled baseline', async () => {
     const maintenance = new RuntimeManager({
       bundledRoot,
@@ -503,7 +558,11 @@ export default function(pi: any) {
     })
     const before = await maintenance.configuration()
     const upgraded = await maintenance.update('pi')
-    expect(upgraded.pi).toMatchObject({ valid: true, integrity: 'verified', version: '1.2.0' })
+    expect(upgraded.pi).toMatchObject({
+      valid: true,
+      integrity: 'verified',
+      version: catalog.pi.version
+    })
     expect(upgraded.pi.executablePath).toContain(path.join(root, 'managed'))
     expect(upgraded.previous.pi).toBe(true)
     expect(upgraded.configuration.node).toEqual(before.node)

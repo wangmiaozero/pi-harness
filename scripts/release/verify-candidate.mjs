@@ -28,7 +28,7 @@ export async function verifyCandidate(directory, version, revision) {
   for (const line of (await fs.readFile(path.join(directory, 'SHA256SUMS'), 'utf8'))
     .trim()
     .split('\n')) {
-    const match = line.match(/^([a-f0-9]{64})  ([A-Za-z0-9._-]+)$/)
+    const match = line.match(/^([a-f0-9]{64}) {2}([A-Za-z0-9._-]+)$/)
     if (!match || sums.has(match[2])) throw new Error('Invalid checksum inventory')
     sums.set(match[2], match[1])
   }

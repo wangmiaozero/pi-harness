@@ -22,6 +22,26 @@ export const runtimeMaintenanceSchema = z.object({ kind: runtimeKindSchema }).st
 export type RuntimeKind = z.infer<typeof runtimeKindSchema>
 export type RuntimeSelection = z.infer<typeof runtimeSelectionSchema>
 export type RuntimeSource = RuntimeSelection['source']
+export interface RuntimeVersionStatus {
+  component: string
+  installedVersion: string | null
+  bundledVersion: string | null
+  latestStableVersion: string | null
+  updateAvailable: boolean
+  compatible: boolean | null
+  source: string
+  checkedAt: string | null
+  checkState: 'not-checked' | 'current' | 'cached' | 'unavailable'
+}
+export interface RuntimeVersionReport {
+  components: RuntimeVersionStatus[]
+  sdkPackages: RuntimeVersionStatus[]
+  checkedAt: string | null
+}
+export type RuntimeUpdateReport = Record<
+  RuntimeKind,
+  { installed: string | null; available: string; managed: boolean }
+> & { versions?: RuntimeVersionReport }
 export interface RuntimeConfiguration {
   pi: RuntimeSelection
   node: RuntimeSelection
@@ -45,6 +65,7 @@ export interface McpRuntimeCompatibility {
   status: 'available' | 'unavailable' | 'external'
 }
 export interface RuntimeDiagnostics {
+  versions?: RuntimeVersionReport
   mcp: McpRuntimeCompatibility[]
   compatibilityMode: boolean
   configuration: RuntimeConfiguration

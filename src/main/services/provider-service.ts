@@ -812,7 +812,7 @@ export class ProviderService {
     const normalized = normalizeProviderBaseUrl(provider.baseUrl)
     const root = normalized.url.replace(/\/+$/, '')
 
-    let apiKey: string | null = null
+    let apiKey: string | null
     try {
       apiKey = await resolveCredentialForTest(provider)
     } catch (err) {

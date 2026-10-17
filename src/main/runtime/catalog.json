@@ -1,54 +1,54 @@
 {
   "schemaVersion": 1,
   "pi": {
-    "version": "1.2.0",
+    "version": "1.3.0",
     "license": "MIT",
-    "baseUrl": "https://github.com/earendil-works/pi/releases/download/v1.2.0/",
+    "baseUrl": "https://github.com/earendil-works/pi/releases/download/v1.3.0/",
     "checksumsFile": "SHA256SUMS",
-    "checksumsSha256": "f10081e2b39eb51ef69ada805c653f4ebfe4c35a04af86bae6f7e6270934441f",
+    "checksumsSha256": "cc0aa7ab1f2a60eb54fbdccd2d049128b7f2ffdd605e992bdd5b5e0800bacf1f",
     "assets": {
       "darwin-arm64": {
         "file": "pi-darwin-arm64.tar.gz",
-        "sha256": "abddf7688b4b6781d9113f63cd578e3c01dcdb87e71f66e7ec1c9ec6c76178d1",
-        "treeSha256": "07f08ee92d89871c05d720c33c7b7d6626380e95e1cf40188abe7fb4b8200b5f",
+        "sha256": "1f9ae61cdeae04dd68caf1a1e8ab8ec9b292062f6ccb3252e0a9cbe93b5b16f1",
+        "treeSha256": "1afb1a4335ef6dda54413e9b088c2827526eeef499f55d3faf99099a836fa08a",
         "signedFileContentSha256": {
           "native/darwin/prebuilds/darwin-arm64/darwin-platform.node": "f6704c32e9c601f4c8dadc950acb7bceb76ff4a1d01b6d2ff68820fabc45c3f7",
-          "pi": "7069c5c3954ad4e153369c291c43bd82071a168686f50e440f9b56c485fa6170"
+          "pi": "99279788983f3c3ce7b7318bb54d8916b31d88e25c82918e85f9859c10aa0b19"
         }
       },
       "darwin-x64": {
         "file": "pi-darwin-x64.tar.gz",
-        "sha256": "e079ff016ae78279cfbd6c1b4fffe072162f4a7bb879ad61b04e2e43bcc53455",
-        "treeSha256": "6bf03f22b8eac23930b82dfbda3005f35244e97efa9a028b58101dcdd9202739",
+        "sha256": "9ff562e2e439f50971b1f6bd9b62b30946600d9e9baa4ea19635cf630a553066",
+        "treeSha256": "d5b2adc9f2d781469d3a28384956101bc59fb8904d3eb8d84db0882c2a8d50d2",
         "signedFileContentSha256": {
           "native/darwin/prebuilds/darwin-x64/darwin-platform.node": "d2c16cc8dc69b8321f4b08cad4ea5bbe16867e4922692562bad51bf9bf677b68",
-          "pi": "c0ca5530cbb2f7b6d583971b63ce68f5af4b1cca757e2866c433f207a905382c"
+          "pi": "a46ce2e658c5f105047889b97255f9847018c9bde8245354d5a159404c09e41a"
         }
       },
       "linux-arm64": {
         "file": "pi-linux-arm64.tar.gz",
-        "sha256": "d8597ee3a2050592d38e67f6b609ab55139deed7e820020d910d84f17bb7abd6",
-        "treeSha256": "3b1589d6e78f4d7698aa492d194dab206b6a74ef2eaa90fc0323f2f5a8b3410e"
+        "sha256": "7fd2ea14fca390ebf9f47438baaef07c4b3d13db7cc8e459831118391b7ea65b",
+        "treeSha256": "69f4b09827a980f3bea43f31852df86d2bd3c83c531635500f70009c113e4a4f"
       },
       "linux-x64": {
         "file": "pi-linux-x64.tar.gz",
-        "sha256": "00fc36cffdebceea5a48230da62cf3fb463178f8fe185766652f96002a246847",
-        "treeSha256": "9fefca892d98d37e51c05fd29c7f9e8237e077daad3a59856a5bcb426e77b889"
+        "sha256": "24f5be328b66d4da36876296989501974f43ab8434fbb57c35c523a3ea505ded",
+        "treeSha256": "ee9ab70841444401bcd313ff1001639d202fb73c400bad1a7ea41fb29dd43474"
       },
       "win32-arm64": {
         "file": "pi-windows-arm64.zip",
-        "sha256": "54f8c4138d07f0d96b1e054e075cb826a86364ee0a000dd71e844a00000f3c0e",
-        "treeSha256": "586c4ad0547ea8adaf5787f5d0e538478d52cbf63a688f073b9b78896b07dc8d"
+        "sha256": "a349536d76bd83842f7b28db73a6ab89c68015731110aba299e57233539a0ded",
+        "treeSha256": "618cd1f00dfb4388e8d433363c85fcad6edf6d2ef04058ad3c84dbe4eaf22834"
       },
       "win32-x64": {
         "file": "pi-windows-x64.zip",
-        "sha256": "bd272b508657ad8d0ac6176e7751913c848a89cfb8cbe21ff319941e6ca140be",
-        "treeSha256": "e6c72d66a1e48f20870c1c8970e921b1a8327370cd3934be8c244b5d3d91fffe"
+        "sha256": "daf0ef45fd08f13dbb64c62d559e332c2d3d3087f8ae022ec5a1b9b655b59894",
+        "treeSha256": "8b7dfba1efe0774825a2825c9bdc4c51e9ebe624d384196758fd585a97930c5a"
       }
     },
     "notices": {
       "LICENSE": {
-        "url": "https://raw.githubusercontent.com/earendil-works/pi/v1.2.0/LICENSE",
+        "url": "https://raw.githubusercontent.com/earendil-works/pi/v1.3.0/LICENSE",
         "sha256": "0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48"
       }
     }

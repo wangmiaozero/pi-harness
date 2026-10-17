@@ -287,7 +287,7 @@ async function commit() {
   if (!cwd || !value || !staged.value.length || conflicted.value || committing.value) return
   committing.value = true
   const amending = amend.value
-  let toastHash = ''
+  let toastHash: string
   try {
     if (amending) {
       const result = await callApi(() =>

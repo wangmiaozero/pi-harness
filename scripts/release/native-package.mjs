@@ -258,5 +258,8 @@ try {
   report.sourceStable = report.sourceDigest === (await sourceDigest(root))
   if (!report.sourceStable) report.readiness = 'NOT_READY'
   await fs.writeFile(path.join(output, 'evidence.json'), JSON.stringify(report, null, 2) + '\n')
-  if (!report.sourceStable) throw new Error('Source changed during native package validation')
+  if (!report.sourceStable) {
+    process.stderr.write('Source changed during native package validation\n')
+    process.exitCode = 1
+  }
 }

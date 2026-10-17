@@ -7,6 +7,7 @@ const child = spawn(
   [
     path.join(path.dirname(require.resolve('vitest/package.json')), 'vitest.mjs'),
     'run',
+    '--maxWorkers=2',
     'src/main/runtime',
     'src/main/agent/pi-rpc-runtime.test.ts'
   ],

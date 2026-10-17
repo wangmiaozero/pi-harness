@@ -11,7 +11,7 @@ Pi-Harness original code is licensed under the terms in [LICENSE](./LICENSE) and
 - Used as: the local architecture renderer and interactive HTML viewer. The optional brand icon catalog is omitted; no brand icons are distributed.
 - The embedded JetBrains Mono font is licensed under SIL Open Font License 1.1. Its notice is preserved in the template and at `archify/assets/JetBrainsMono-OFL.txt`.
 
-Project analysis also uses `ignore`, `typebox`, and Vue's SFC compiler under MIT, and TypeScript under Apache-2.0. Their license files are retained with the packaged dependencies.
+Project analysis also uses `ignore`, `typebox`, Vue's SFC compiler, Babel's parser and types under MIT, and `jsonc-parser` under MIT. Their license files are retained with the packaged dependencies.
 
 TOML metadata parsing uses [smol-toml](https://github.com/squirrelchat/smol-toml) 1.9.1 under BSD-3-Clause. Its full license is retained with the packaged dependency.
 
@@ -90,6 +90,6 @@ SOFTWARE.
 
 ## Pi and Node.js distributions
 
-- Pi Coding Agent: [earendil-works/pi](https://github.com/earendil-works/pi), MIT, Copyright (c) 2025 Mario Zechner. The complete license is retained with the distributed Pi files.
-- Node.js: [nodejs/node](https://github.com/nodejs/node), Node.js license and its bundled third-party notices. The complete upstream LICENSE, including npm and other bundled components, is retained with the distributed Node.js files.
+- Pi Coding Agent 1.3.0: [earendil-works/pi](https://github.com/earendil-works/pi), MIT, Copyright (c) 2025 Mario Zechner. The complete license is retained with the distributed Pi files.
+- Node.js 24.22.0 (npm and npx 11.19.1): [nodejs/node](https://github.com/nodejs/node), Node.js license and its bundled third-party notices. The complete upstream LICENSE, including npm and other bundled components, is retained with the distributed Node.js files.
 - ZIP extraction uses [unzipper](https://github.com/ZJONSSON/node-unzipper) under MIT; the dependency license is retained in packaged applications.

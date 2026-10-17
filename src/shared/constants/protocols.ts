@@ -3,7 +3,7 @@
  *
  * Pi Coding Agent's native `models.json` declares the API protocol via the
  * `api` field. Pi-Harness currently presents these four choices in its
- * provider forms; this is not an exhaustive list of Native Pi 1.2.0 APIs:
+ * provider forms; this is not an exhaustive list of Native Pi APIs:
  *
  *   - openai-completions   (OpenAI Chat Completions — most compatible)
  *   - openai-responses      (OpenAI Responses API)

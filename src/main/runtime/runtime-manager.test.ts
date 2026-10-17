@@ -204,7 +204,7 @@ describe('runtime isolation and configuration', () => {
         kind: 'pi',
         platform: process.platform,
         arch: process.arch,
-        version: '1.2.0',
+        version: catalog.pi.version,
         archiveSha256: asset.sha256,
         files
       })

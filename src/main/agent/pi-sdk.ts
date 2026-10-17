@@ -1,4 +1,4 @@
-/** Native Pi 1.2.0 boundary. Runtime imports stay lazy and in Main. */
+/** Native Pi SDK boundary. Runtime imports stay lazy and in Main. */
 import type { AgentSession, SessionManager, SessionInfo } from '@earendil-works/pi-coding-agent'
 
 export type AgentSessionLike = AgentSession

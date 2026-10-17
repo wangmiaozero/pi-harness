@@ -33,7 +33,7 @@ for (const failure of ['network', 'timeout', 'http', 'checksum', 'corrupted-arch
         if (failure === 'http') return new Response(null, { status: 503 })
         if (url.endsWith(catalog.pi.checksumsFile))
           return new Response(
-            await fs.readFile(path.resolve('fixtures/runtime/pi-1.2.0-SHA256SUMS'))
+            await fs.readFile(path.resolve(`fixtures/runtime/pi-${catalog.pi.version}-SHA256SUMS`))
           )
         return new Response(failure === 'checksum' ? 'wrong archive' : 'corrupt archive bytes')
       }

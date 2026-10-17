@@ -1,7 +1,15 @@
 import pluginVue from 'eslint-plugin-vue'
-import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+import babelParser from '@babel/eslint-parser'
+import js from '@eslint/js'
+import globals from 'globals'
+import { typeReferences } from './scripts/eslint-typescript.mjs'
 
-export default defineConfigWithVueTs([
+const parserOptions = {
+  requireConfigFile: false,
+  babelOptions: { plugins: ['@babel/plugin-syntax-typescript'] }
+}
+
+export default [
   {
     name: 'pi-harness/ignores',
     ignores: [
@@ -22,7 +30,36 @@ export default defineConfigWithVueTs([
 
   ...pluginVue.configs['flat/recommended'],
 
-  vueTsConfigs.recommended,
+  js.configs.recommended,
+  {
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser, __MASCOT_ENABLED__: 'readonly' }
+    },
+    plugins: { 'typescript-syntax': { rules: { 'type-references': typeReferences } } },
+    rules: { 'typescript-syntax/type-references': 'error' }
+  },
+  {
+    files: ['**/*.ts', '**/*.tsx', '**/*.mts'],
+    languageOptions: { parser: babelParser, parserOptions },
+    rules: { 'no-undef': 'off', 'no-redeclare': 'off' }
+  },
+  {
+    files: ['**/*.vue'],
+    languageOptions: { parserOptions: { ...parserOptions, parser: babelParser } },
+    rules: { 'no-undef': 'off', 'no-redeclare': 'off' }
+  },
+  {
+    files: ['**/*.d.ts', '**/*.d.mts'],
+    languageOptions: {
+      parserOptions: {
+        babelOptions: { plugins: [['@babel/plugin-syntax-typescript', { dts: true }]] }
+      }
+    }
+  },
+  {
+    files: ['e2e/**/*.ts'],
+    rules: { 'no-empty-pattern': ['error', { allowObjectPatternsAsParameters: true }] }
+  },
 
   {
     name: 'pi-harness/rules',
@@ -34,15 +71,9 @@ export default defineConfigWithVueTs([
       'vue/max-attributes-per-line': 'off',
       'vue/multiline-html-element-content-newline': 'off',
       'vue/singleline-html-element-content-newline': 'off',
-      '@typescript-eslint/no-unused-vars': [
-        'warn',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
-      ],
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-empty-object-type': 'off',
-      '@typescript-eslint/no-empty-function': 'off',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'prefer-const': 'warn'
     }
   }
-])
+]

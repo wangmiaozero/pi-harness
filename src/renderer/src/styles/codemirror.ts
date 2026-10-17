@@ -1,13 +1,14 @@
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
 import { EditorView } from '@codemirror/view'
+import type { Extension } from '@codemirror/state'
 
 /**
  * Shared CodeMirror treatment for Pi-Harness's Graphite workspaces.
  * The palette stays quiet: semantic hues are deliberately muted and every
  * editor shares the same typography, selection, gutter, and focus behavior.
  */
-export const graphiteEditorTheme = EditorView.theme(
+export const graphiteEditorTheme: Extension = EditorView.theme(
   {
     '&': {
       height: '100%',
@@ -48,7 +49,7 @@ export const graphiteEditorTheme = EditorView.theme(
   { dark: true }
 )
 
-export const graphiteSyntaxHighlighting = syntaxHighlighting(
+export const graphiteSyntaxHighlighting: Extension = syntaxHighlighting(
   HighlightStyle.define([
     { tag: [tags.propertyName, tags.attributeName], color: 'var(--syntax-property)' },
     { tag: [tags.string, tags.special(tags.string)], color: 'var(--syntax-string)' },

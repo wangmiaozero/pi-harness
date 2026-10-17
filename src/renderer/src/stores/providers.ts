@@ -50,7 +50,7 @@ export const useProvidersStore = defineStore('providers', () => {
       if (resolution === 'reload') {
         await callApi(() => getApi().config.reload())
         await fetchList()
-        throw new Error('reload-requested')
+        throw new Error('reload-requested', { cause: e })
       }
       return await attempt(true)
     }

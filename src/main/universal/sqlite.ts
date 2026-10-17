@@ -9,6 +9,7 @@ import { parseSession, hash, type ParseInput, type ParsedSession } from './parse
 
 function json(value: unknown): Record<string, unknown> {
   const text = value instanceof Uint8Array ? Buffer.from(value).toString('utf8') : String(value)
+  // eslint-disable-next-line no-control-regex -- SQLite payloads may contain JSON-forbidden control bytes.
   return object(JSON.parse(text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ' ')))
 }
 export async function parseDatabase(input: Omit<ParseInput, 'records'>): Promise<ParsedSession[]> {

@@ -55,8 +55,8 @@ export function parseGitSource(source: string): { host: string; packagePath: str
   if (!source.startsWith('git:') && !/^(?:https?|ssh|git):\/\//i.test(value)) return null
   if (/(?:^|[\\/])\.\.(?:[\\/]|$)/.test(value)) return null
   const scp = value.match(/^git@([^:]+):(.+)$/)
-  let host = ''
-  let packagePath = ''
+  let host: string
+  let packagePath: string
   if (scp) {
     host = scp[1] ?? ''
     packagePath = scp[2] ?? ''

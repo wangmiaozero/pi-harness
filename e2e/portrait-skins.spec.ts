@@ -586,7 +586,7 @@ test('switches original portrait skins, persists selection and restores plain th
       await expect(image).toHaveCSS('object-position', '50% 100%')
     }
     const dimensions = await scene.evaluate(async (element) => {
-      const source = getComputedStyle(element).backgroundImage.match(/url\("?([^"\)]+)"?\)/)?.[1]
+      const source = getComputedStyle(element).backgroundImage.match(/url\("?([^")]+)"?\)/)?.[1]
       if (!source) throw new Error('Portrait background is missing')
       const background = new Image()
       background.src = source

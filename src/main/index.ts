@@ -389,6 +389,8 @@ async function bootstrap(): Promise<void> {
     stateFile: path.join(userData(), 'runtime-configuration.json'),
     cache: path.join(userData(), 'runtime-downloads'),
     fetcher: net.fetch,
+    versionFetcher: net.fetch,
+    appVersion: app.getVersion(),
     compatibilityMode: process.env.PI_HARNESS_AGENT_MODE === 'sdk',
     piConfigDir: () => getPiConfigDir(settingsStore.peek().manualConfigDir),
     legacyPiPath:

@@ -460,7 +460,7 @@ export function analyzeLanguageDependencies(scan: Scan): {
       if (compact[index].value !== 'use' || compact[index].kind !== 'word') continue
       const first = compact[index + 1]
       if (!first || first.kind !== 'word') continue
-      let candidates: string[] = []
+      let candidates: string[]
       if (first.value === 'crate') {
         const reachable = (root: string, seen = new Set<string>()): boolean => {
           if (root === file) return true

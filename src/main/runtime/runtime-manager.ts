@@ -18,6 +18,8 @@ import { acquireDistribution, catalog, runtimeLayout, verifyDistribution } from 
 import type { RuntimeFetcher } from './distribution.mjs'
 import { buildRuntimeEnvironment } from './environment'
 import { validateExecutable, probe } from './validator'
+import { RuntimeVersionService } from './runtime-versions'
+import type { RuntimeUpdateReport } from '@shared/runtime/schema'
 
 interface RuntimeState {
   configuration: RuntimeConfiguration
@@ -37,9 +39,12 @@ export interface RuntimeManagerOptions {
   stopIdle?: () => Promise<void>
   environment?: NodeJS.ProcessEnv
   fetcher?: RuntimeFetcher
+  versionFetcher?: RuntimeFetcher
+  appVersion?: string
 }
 
 export class RuntimeManager {
+  private readonly versions: RuntimeVersionService
   private state: RuntimeState | null = null
   private mutation: Promise<unknown> | null = null
   private cache = new Map<string, Promise<ResolvedRuntime>>()
@@ -50,7 +55,13 @@ export class RuntimeManager {
     this.metadataGeneration++
     this.bundledMetadata.clear()
   }
-  constructor(private readonly options: RuntimeManagerOptions) {}
+  constructor(private readonly options: RuntimeManagerOptions) {
+    this.versions = new RuntimeVersionService({
+      cacheFile: `${options.stateFile}.versions.json`,
+      fetcher: options.versionFetcher,
+      appVersion: options.appVersion
+    })
+  }
 
   async initialize(): Promise<void> {
     if (this.state) return
@@ -174,6 +185,7 @@ export class RuntimeManager {
         )
       : null
     return {
+      versions: await this.versions.report({ pi, node }),
       mcp: inspectMcpCompatibility(mcpConfig, node),
       compatibilityMode: this.options.compatibilityMode === true,
       configuration,
@@ -212,11 +224,10 @@ export class RuntimeManager {
     await this.resolve(kind)
     return this.diagnostics()
   }
-  async checkUpdates(): Promise<
-    Record<RuntimeKind, { installed: string | null; available: string; managed: boolean }>
-  > {
+  async checkUpdates(): Promise<RuntimeUpdateReport> {
     const info = await this.diagnostics()
     return {
+      versions: await this.versions.report(info, true),
       pi: {
         installed: info.pi.version,
         available: catalog.pi.version,

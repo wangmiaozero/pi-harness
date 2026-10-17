@@ -178,7 +178,7 @@ export async function startFixtureSession(page: Page, input: StartAgentSessionIn
     try {
       return await window.piSwitch.agent.start(input)
     } catch (error) {
-      throw new Error(JSON.stringify(error))
+      throw new Error(JSON.stringify(error), { cause: error })
     }
   }, input)
 }

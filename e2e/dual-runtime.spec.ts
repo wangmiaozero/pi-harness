@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { _electron as electron } from '@playwright/test'
 import { test, expect } from './fixtures'
+import catalog from '../src/main/runtime/catalog.json' with { type: 'json' }
 
 test.skip(
   process.env.PI_HARNESS_E2E_AGENT_MODE !== 'rpc',
@@ -23,7 +24,13 @@ test('shows independent runtimes in existing settings and rejects invalid select
     }
   }, info.pi.executablePath!)
   expect(rejected).toBe('SECURITY_ERROR')
-  expect(info.pi).toMatchObject({ valid: true, version: '1.2.0', integrity: 'verified' })
+  expect(info.pi).toMatchObject({ valid: true, version: catalog.pi.version, integrity: 'verified' })
+  expect(info.versions?.sdkPackages).toHaveLength(7)
+  expect(
+    info.versions?.sdkPackages.every(
+      (entry) => entry.installedVersion === catalog.pi.version && entry.compatible === true
+    )
+  ).toBe(true)
   expect(info.node).toMatchObject({
     valid: true,
     version: '24.22.0',
@@ -33,7 +40,8 @@ test('shows independent runtimes in existing settings and rejects invalid select
   await page.locator('a[href="#/settings"]').click()
   await page.getByTestId('settings-section-paths').click()
   await expect(page.getByTestId('runtime-settings')).toBeVisible()
-  await expect(page.getByTestId('runtime-pi')).toContainText('1.2.0')
+  await expect(page.getByTestId('runtime-pi')).toContainText(catalog.pi.version)
+  await expect(page.getByTestId('runtime-sdk-versions')).toContainText(catalog.pi.version)
   await expect(page.getByTestId('runtime-node')).toContainText('24.22.0')
   const error = await page.evaluate(
     async (file) => {

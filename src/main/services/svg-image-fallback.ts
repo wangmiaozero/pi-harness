@@ -1,4 +1,4 @@
-import { DOMParser, XMLSerializer } from '@xmldom/xmldom'
+import { DOMParser, XMLSerializer, type Element } from '@xmldom/xmldom'
 import { ValidationError } from './errors'
 
 const MAX_SVG_LENGTH = 1_000_000
@@ -94,9 +94,8 @@ export function sanitizeGeneratedSvg(raw: string, width: number, height: number)
 
   const errors: string[] = []
   const document = new DOMParser({
-    errorHandler: {
-      error: (message) => errors.push(String(message)),
-      fatalError: (message) => errors.push(String(message))
+    onError: (level, message) => {
+      if (level !== 'warning') errors.push(message)
     }
   }).parseFromString(svg, 'image/svg+xml')
   const root = document.documentElement

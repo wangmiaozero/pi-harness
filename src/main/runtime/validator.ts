@@ -45,7 +45,7 @@ export async function probe(
       stdoutBytes: Buffer.byteLength(failure.stdout ?? ''),
       stderrBytes: Buffer.byteLength(failure.stderr ?? '')
     })
-    throw new Error(`Runtime version probe failed (${reason})`)
+    throw new Error(`Runtime version probe failed (${reason})`, { cause: error })
   }
 }
 

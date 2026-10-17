@@ -64,7 +64,7 @@ export const useConfigStore = defineStore('config', () => {
       saving.value = false
       const msg = (e as Error).message
       error.value = msg
-      throw new Error(`Invalid JSON: ${msg}`)
+      throw new Error(`Invalid JSON: ${msg}`, { cause: e })
     }
     try {
       await callApi(() => getApi().config.writeRaw(file.value, draft.value))

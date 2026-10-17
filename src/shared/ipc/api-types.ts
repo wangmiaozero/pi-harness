@@ -1,4 +1,4 @@
-import type { RuntimeDiagnostics, RuntimeKind, RuntimeSelection } from '../runtime/schema'
+import type { RuntimeDiagnostics, RuntimeKind, RuntimeSelection, RuntimeUpdateReport } from '../runtime/schema'
 /**
  * Typed IPC API surface. This is the shape of `window.piSwitch` exposed by the
  * preload bridge. The renderer imports these types and the PiSwitchAPI symbol;
@@ -796,9 +796,7 @@ export interface PiSwitchAPI {
     diagnostics(): Promise<RuntimeDiagnostics>
     switch(kind: RuntimeKind, selection: RuntimeSelection): Promise<RuntimeDiagnostics>
     verify(kind: RuntimeKind): Promise<RuntimeDiagnostics>
-    checkUpdates(): Promise<
-      Record<RuntimeKind, { installed: string | null; available: string; managed: boolean }>
-    >
+    checkUpdates(): Promise<RuntimeUpdateReport>
     update(kind: RuntimeKind): Promise<RuntimeDiagnostics>
     rollback(kind: RuntimeKind): Promise<RuntimeDiagnostics>
     pick(kind: RuntimeKind): Promise<string | null>

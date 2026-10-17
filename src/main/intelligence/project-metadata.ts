@@ -1,5 +1,5 @@
 import path from 'node:path'
-import ts from 'typescript'
+import { parse as parseJsonc, type ParseError } from 'jsonc-parser'
 import type { ArchitectureGraph } from '@shared/intelligence/schema'
 import type { ScannedFile } from './scanner'
 
@@ -134,7 +134,11 @@ export function dependencyResolver(
     if (cache.has(file)) return cache.get(file)!
     if (seen.has(file) || seen.size >= 8) return { aliases: [], evidence: [] }
     seen.add(file)
-    const parsed = ts.parseConfigFileTextToJson(file, files.get(file)?.text ?? '')
+    const errors: ParseError[] = []
+    const parsed = {
+      config: parseJsonc(files.get(file)?.text ?? '', errors, { allowTrailingComma: true }),
+      error: errors.length > 0
+    }
     if (
       parsed.error ||
       !parsed.config ||

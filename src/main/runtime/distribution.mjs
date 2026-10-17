@@ -171,6 +171,40 @@ export async function extractRuntimeZip(archive, staging, signal) {
   }
 }
 
+export async function extractRuntimeArchive(archive, staging, signal) {
+  if (archive.endsWith('.zip')) return extractRuntimeZip(archive, staging, signal)
+  if (!archive.endsWith('.tar.gz')) throw new Error('Unsupported runtime archive format')
+  let invalidEntry
+  let totalSize = 0
+  await tar.t({
+    file: archive,
+    onReadEntry: (entry) => {
+      try {
+        assertArchivePath(entry.path, entry.linkpath, entry.type)
+        totalSize += entry.size ?? 0
+        if (totalSize > 2 * 1024 * 1024 * 1024)
+          throw new Error('Runtime archive exceeds the extraction limit')
+        if (
+          ![
+            'File',
+            'Directory',
+            'SymbolicLink',
+            'Link',
+            'ExtendedHeader',
+            'GlobalExtendedHeader'
+          ].includes(entry.type)
+        )
+          throw new Error('Unsupported archive entry')
+      } catch (error) {
+        invalidEntry ??= error
+      }
+    }
+  })
+  if (invalidEntry) throw invalidEntry
+  signal?.throwIfAborted()
+  await tar.x({ file: archive, cwd: staging, strict: true, preserveOwner: false })
+}
+
 export async function acquireDistribution({
   kind,
   platform,
@@ -212,39 +246,7 @@ export async function acquireDistribution({
   const staging = `${destination}.${randomUUID()}.staging`
   await fs.mkdir(staging, { recursive: true, mode: 0o700 })
   try {
-    if (asset.file.endsWith('.zip')) {
-      await extractRuntimeZip(archive, staging, signal)
-    } else {
-      let invalidEntry
-      let totalSize = 0
-      await tar.t({
-        file: archive,
-        onReadEntry: (entry) => {
-          try {
-            assertArchivePath(entry.path, entry.linkpath, entry.type)
-            totalSize += entry.size ?? 0
-            if (totalSize > 2 * 1024 * 1024 * 1024)
-              throw new Error('Runtime archive exceeds the extraction limit')
-            if (
-              ![
-                'File',
-                'Directory',
-                'SymbolicLink',
-                'Link',
-                'ExtendedHeader',
-                'GlobalExtendedHeader'
-              ].includes(entry.type)
-            )
-              throw new Error('Unsupported archive entry')
-          } catch (error) {
-            invalidEntry ??= error
-          }
-        }
-      })
-      if (invalidEntry) throw invalidEntry
-      signal?.throwIfAborted()
-      await tar.x({ file: archive, cwd: staging, strict: true, preserveOwner: false })
-    }
+    await extractRuntimeArchive(archive, staging, signal)
     const entries = await fs.readdir(staging, { withFileTypes: true })
     const extracted =
       entries.length === 1 && entries[0].isDirectory()

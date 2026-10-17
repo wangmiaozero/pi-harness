@@ -128,7 +128,7 @@ export class WorktreeService {
     if (existsSync(worktreePath)) throw new GitError(`Directory already exists: ${worktreePath}`)
     await mkdir(baseDir, { recursive: true })
 
-    let branchExists = false
+    let branchExists: boolean
     try {
       await gitExec(repoRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${trimmed}`])
       branchExists = true

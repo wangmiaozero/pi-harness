@@ -21,6 +21,8 @@ const message = ref('')
 const error = ref('')
 const task = ref<EnvironmentInstallTask | null>(null)
 const kinds: RuntimeKind[] = ['pi', 'node']
+const version = (component: string) =>
+  diagnostics.value?.versions?.components.find((entry) => entry.component === component)
 const options = computed(() =>
   ['bundled', 'system', 'custom'].map((source) => ({
     value: source,
@@ -69,7 +71,8 @@ async function maintain(
 async function check(): Promise<void> {
   await run(async () => {
     const result = await api.runtimes.checkUpdates()
-    message.value = t('runtime.updates', { pi: result.pi.available, node: result.node.available })
+    if (diagnostics.value && result.versions) diagnostics.value.versions = result.versions
+    message.value = t('runtime.checked')
   })
 }
 onMounted(() => {
@@ -88,6 +91,12 @@ onUnmounted(() => unsubscribe?.())
       <Button size="sm" :disabled="busy" @click="refresh">{{ t('runtime.refresh') }}</Button>
     </div>
     <p class="text-[11px] text-[var(--text-secondary)]">{{ t('runtime.sessionHint') }}</p>
+    <p data-testid="runtime-app-version" class="text-[11px] text-[var(--text-secondary)]">
+      Pi-Harness {{ version('app')?.installedVersion ?? '—' }}
+      <template v-if="version('app')?.latestStableVersion">
+        · {{ t('runtime.latest') }} {{ version('app')?.latestStableVersion }}</template
+      >
+    </p>
     <p v-if="diagnostics?.compatibilityMode" class="text-[11px] text-[var(--warning)]">
       {{ t('runtime.compatibility') }}
     </p>
@@ -125,6 +134,29 @@ onUnmounted(() => unsubscribe?.())
         <dd>{{ t(`runtime.${diagnostics.configuration[kind].source}`) }}</dd>
         <dt>{{ t('runtime.version') }}</dt>
         <dd>{{ diagnostics[kind].version ?? '—' }}</dd>
+        <dt>{{ t('runtime.bundledVersion') }}</dt>
+        <dd>{{ version(kind)?.bundledVersion ?? '—' }}</dd>
+        <dt>{{ t(kind === 'node' ? 'runtime.latestLts' : 'runtime.latest') }}</dt>
+        <dd>{{ version(kind)?.latestStableVersion ?? t('runtime.unknown') }}</dd>
+        <dt>{{ t('runtime.updateStatus') }}</dt>
+        <dd>
+          {{ t(`runtime.versionState.${version(kind)?.checkState ?? 'not-checked'}`) }}
+          <span v-if="version(kind)?.updateAvailable"> · {{ t('runtime.updateAvailable') }}</span>
+        </dd>
+        <dt>{{ t('runtime.checkedAt') }}</dt>
+        <dd>{{ version(kind)?.checkedAt ?? '—' }}</dd>
+        <dt>{{ t('runtime.compatibilityStatus') }}</dt>
+        <dd>
+          {{
+            t(
+              version(kind)?.compatible === true
+                ? 'runtime.matched'
+                : version(kind)?.compatible === false
+                  ? 'runtime.different'
+                  : 'runtime.unknown'
+            )
+          }}
+        </dd>
         <dt>{{ t('runtime.platform') }}</dt>
         <dd>{{ diagnostics[kind].platform }} / {{ diagnostics[kind].arch }}</dd>
         <dt>{{ t('runtime.path') }}</dt>
@@ -170,6 +202,31 @@ onUnmounted(() => unsubscribe?.())
           >
         </template>
       </div>
+    </div>
+    <div
+      v-if="diagnostics?.versions"
+      data-testid="runtime-sdk-versions"
+      class="space-y-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-3 text-[11px]"
+    >
+      <h4 class="text-[12px] font-medium">Pi SDK</h4>
+      <p>
+        {{ t('runtime.compatibilityStatus') }}:
+        {{ t(version('pi-sdk')?.compatible === true ? 'runtime.matched' : 'runtime.different') }}
+      </p>
+      <dl class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1">
+        <template v-for="entry in diagnostics.versions.sdkPackages" :key="entry.component">
+          <dt class="break-all">{{ entry.component.replace('@earendil-works/', '') }}</dt>
+          <dd>{{ entry.installedVersion ?? '—' }}</dd>
+        </template>
+      </dl>
+      <p>
+        {{ t('runtime.latest') }}:
+        {{ version('pi-sdk')?.latestStableVersion ?? t('runtime.unknown') }}
+      </p>
+      <p>
+        {{ t(`runtime.versionState.${version('pi-sdk')?.checkState ?? 'not-checked'}`) }} ·
+        {{ version('pi-sdk')?.checkedAt ?? '—' }}
+      </p>
     </div>
     <Button size="sm" :disabled="busy" @click="check">{{ t('runtime.check') }}</Button>
     <div v-if="diagnostics?.mcp.length" class="space-y-1 text-[11px]">

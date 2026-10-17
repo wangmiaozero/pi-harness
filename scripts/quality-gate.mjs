@@ -23,7 +23,7 @@ async function sourceFingerprint() {
   ).stdout
     .split('\0')
     .filter((file) =>
-      /^(?:src\/|scripts\/|e2e\/|benchmarks\/|resources\/|build\/|\.github\/|package\.json$|pnpm-lock\.yaml$|(?:electron|vitest|playwright|eslint|tsconfig)[^/]*\.(?:ts|mjs|json|yml)$)/.test(
+      /^(?:src\/|scripts\/|patches\/|e2e\/|benchmarks\/|resources\/|build\/|\.github\/|package\.json$|pnpm-lock\.yaml$|(?:electron|vitest|playwright|eslint|tsconfig)[^/]*\.(?:ts|js|mjs|json|yml)$)/.test(
         file
       )
     )

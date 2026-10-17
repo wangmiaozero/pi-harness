@@ -140,7 +140,7 @@ class PiEnvironmentService {
     valid: boolean
     error: string | null
   }> {
-    let readable = false
+    let readable: boolean
     let writable = false
     let valid = true
     let error: string | null = null

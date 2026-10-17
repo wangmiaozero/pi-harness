@@ -159,7 +159,7 @@ async function discoverDeclaredTools(
   for (const extension of extensions) {
     const stat = await lstatOrNull(extension.path)
     if (!stat?.isFile() || stat.size > 1024 * 1024) continue
-    let source = ''
+    let source: string
     try {
       source = (await fs.readFile(extension.path, 'utf8')) || ''
     } catch {
@@ -194,7 +194,7 @@ async function discoverResources(
   for (const rawEntry of entries) {
     if (!rawEntry || rawEntry.startsWith('!') || rawEntry.startsWith('-')) continue
     const entry = rawEntry.startsWith('+') ? rawEntry.slice(1) : rawEntry
-    const prefix = entry.split(/[?*\[]/, 1)[0] || kind
+    const prefix = entry.split(/[?*[]/, 1)[0] || kind
     const target = safeResourcePath(packageRoot, prefix.replace(/[\\/]$/, ''))
     if (!target) continue
     await walk(target, 0, async (itemPath, isDirectory) => {

@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
-import ts from 'typescript'
+import { javascriptImports } from './javascript-imports'
 import { parse as parseVue } from 'vue/compiler-sfc'
 import { architectureGraphSchema, type ArchitectureGraph } from '@shared/intelligence/schema'
 import { hash, workspaceId, type Scan } from './scanner'
@@ -80,65 +80,12 @@ export function extractGraph(root: string, scan: Scan): ArchitectureGraph {
     } else if (/\.(?:ts|tsx|js|jsx|mjs|cjs|mts|cts)$/.test(f.path))
       scripts.push({ text: f.text, offset: 0, tsx: /\.(?:tsx|jsx)$/.test(f.path) })
     for (const script of scripts) {
-      const sourceFile = ts.createSourceFile(
-        f.path,
-        script.text,
-        ts.ScriptTarget.Latest,
-        true,
-        script.tsx ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+      declarations.push(
+        ...javascriptImports(script.text, script.tsx).map((entry) => ({
+          spec: entry.spec,
+          line: script.offset + entry.line
+        }))
       )
-      let shadowedRequire = false
-      function bindings(node: ts.Node): void {
-        if (
-          ((ts.isVariableDeclaration(node) ||
-            ts.isParameter(node) ||
-            ts.isFunctionDeclaration(node) ||
-            ts.isImportClause(node)) &&
-            node.name &&
-            ts.isIdentifier(node.name) &&
-            node.name.text === 'require') ||
-          (ts.isImportSpecifier(node) && node.name.text === 'require')
-        )
-          shadowedRequire = true
-        ts.forEachChild(node, bindings)
-      }
-      bindings(sourceFile)
-      function add(spec: string, node: ts.Node): void {
-        declarations.push({
-          spec,
-          line:
-            script.offset +
-            sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line +
-            1
-        })
-      }
-      function visit(node: ts.Node): void {
-        if (
-          (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
-          node.moduleSpecifier &&
-          ts.isStringLiteral(node.moduleSpecifier)
-        )
-          add(node.moduleSpecifier.text, node)
-        if (
-          ts.isImportEqualsDeclaration(node) &&
-          ts.isExternalModuleReference(node.moduleReference) &&
-          node.moduleReference.expression &&
-          ts.isStringLiteral(node.moduleReference.expression)
-        )
-          add(node.moduleReference.expression.text, node)
-        if (
-          ts.isCallExpression(node) &&
-          node.arguments.length === 1 &&
-          ts.isStringLiteral(node.arguments[0]) &&
-          (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
-            (!shadowedRequire &&
-              ts.isIdentifier(node.expression) &&
-              node.expression.text === 'require'))
-        )
-          add(node.arguments[0].text, node)
-        ts.forEachChild(node, visit)
-      }
-      visit(sourceFile)
     }
     for (const declaration of declarations) {
       const resolved = resolve(f.path, declaration.spec)

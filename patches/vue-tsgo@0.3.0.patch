@@ -1,0 +1,56 @@
+diff --git a/dist/cli.mjs b/dist/cli.mjs
+index 1f53386892abe3b32117bb10afe26976fe2b7da0..a8c08343456961c0fa3d3f9f869062bc4fff9a76 100755
+--- a/dist/cli.mjs
++++ b/dist/cli.mjs
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env node
+ import { n as description, r as version, t as Project } from "./project-hmAxFytF.mjs";
+-import { findTsconfig } from "get-tsconfig";
++import { find } from "tsconfck";
+ import { join, resolve } from "pathe";
+ import { Cli, defineCommand } from "clerc";
+ //#region src/cli/index.ts
+@@ -24,7 +24,7 @@ const tsgo = defineCommand({
+ }, async (context) => {
+ 	let configPath = context.flags.build ?? context.flags.project;
+ 	if (configPath) configPath = resolve(configPath);
+-	else configPath = findTsconfig(join(process.cwd(), "dummy.ts"));
++	else configPath = await find(join(process.cwd(), "dummy.ts")) ?? void 0;
+ 	if (configPath === void 0) {
+ 		console.error("[Vue] Could not find a tsconfig.json file.");
+ 		process.exit(1);
+diff --git a/dist/project-hmAxFytF.mjs b/dist/project-hmAxFytF.mjs
+index bd5edb2e031988fdd6ff3220fe5a82450ebed762..c42bea23638b472a1c596e52c8e26eaf2bc08857 100644
+--- a/dist/project-hmAxFytF.mjs
++++ b/dist/project-hmAxFytF.mjs
+@@ -4,7 +4,7 @@ import { glob, mkdir, readFile, rm, stat, symlink, writeFile } from "node:fs/pro
+ import { pathToFileURL } from "node:url";
+ import { styleText } from "node:util";
+ import * as pkg from "empathic/package";
+-import { getExtendsChain, resolveExtendsChain } from "get-tsconfig";
++import { parse as parseConfig } from "tsconfck";
+ import resolver, { ResolverFactory } from "oxc-resolver";
+ import { basename, dirname, extname, isAbsolute, join, matchesGlob, relative } from "pathe";
+ import { RequestType, StreamMessageReader, StreamMessageWriter, createMessageConnection } from "vscode-jsonrpc/node";
+@@ -3184,8 +3184,10 @@ var Project = class Project {
+ 		return lang === "js" ? "ts" : lang === "jsx" ? "tsx" : lang;
+ 	}
+ 	async initialize() {
+-		this.extends = getExtendsChain(this.configPath);
+-		this.parsed = resolveExtendsChain(this.extends).config;
++		const resolved = await parseConfig(this.configPath);
++		if (!resolved.tsconfigFile) throw new Error("[Vue] Could not resolve the project configuration.");
++		this.extends = (resolved.extended ?? [resolved]).map(({ tsconfigFile, tsconfig }) => ({ path: tsconfigFile, config: tsconfig }));
++		this.parsed = resolved.tsconfig;
+ 		this.references = await Promise.all(this.parsed.references?.map((reference) => join(this.configRoot, reference.path))?.filter((path) => !this.linkedConfigs.has(path))?.map(async (path) => {
+ 			const project = new Project(path, this.linkedConfigs);
+ 			await project.initialize();
+@@ -3324,7 +3326,7 @@ var Project = class Project {
+ 		const outputs = [];
+ 		await runTasks(Iterator.from(projects).flatMap((project) => project.targetToFiles.keys().map((targetPath) => async () => {
+ 			const sourceFile = project.targetToFiles.get(targetPath);
+-			const diagnostics = (await connection.sendRequest(new RequestType("textDocument/diagnostic"), { textDocument: { uri: pathToFileURL(targetPath).href } }).catch(() => void 0))?.items.filter((item) => item.severity === 1) ?? [];
++			const diagnostics = (await connection.sendRequest(new RequestType("textDocument/diagnostic"), { textDocument: { uri: pathToFileURL(targetPath).href } })).items.filter((item) => item.severity === 1);
+ 			if (sourceFile.type === "virtual") {
+ 				if (sourceFile.virtualLang !== "ts" && sourceFile.virtualLang !== "tsx" && project.parsed.compilerOptions?.checkJs !== true) diagnostics.length = 0;
+ 				outer: for (let i = 0; i < diagnostics.length; i++) {

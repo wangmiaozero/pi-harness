@@ -24,7 +24,7 @@ async function withConflictDialog<T>(
     if (resolution === 'cancel') return null
     if (resolution === 'reload') {
       await callApi(() => getApi().config.reload())
-      throw new Error('reload-requested')
+      throw new Error('reload-requested', { cause: e })
     }
     return await attempt(true)
   }

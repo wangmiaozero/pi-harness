@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { parse as parseToml } from 'smol-toml'
-import { DOMParser } from '@xmldom/xmldom'
+import { DOMParser, type Element } from '@xmldom/xmldom'
 import type { ScannedFile } from './scanner'
 import type { ArchitectureAnalysis } from '@shared/intelligence/analysis-schema'
 import { lexDeclarations } from './declaration-lexer'
@@ -196,7 +196,7 @@ export function discoverLanguageMetadata(files: Map<string, ScannedFile>): {
           invalid = true
         }
         const document = new DOMParser({
-          errorHandler: { warning: fail, error: fail, fatalError: fail }
+          onError: fail
         }).parseFromString(file.text, 'text/xml')
         const project = document.documentElement
         if (!project || project.localName !== 'project' || invalid)

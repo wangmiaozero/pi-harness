@@ -50,7 +50,7 @@ export class GitService {
 
     let porcelain: string
     let numstat: string
-    let branch: string | null = null
+    let branch: string | null
     try {
       ;[porcelain, numstat, branch] = await Promise.all([
         gitExec(repositoryRoot, ['status', '--porcelain=v1', '-z', '--untracked-files=all']),
@@ -121,7 +121,7 @@ export class GitService {
   } | null> {
     const realCwd = await this.access.assertAllowed(cwd, { mustExist: true }).catch(() => null)
     if (!realCwd) return null
-    let repositoryRoot: string | null = null
+    let repositoryRoot: string | null
     try {
       repositoryRoot = toNativePath(
         (await gitExec(realCwd, ['rev-parse', '--show-toplevel'])).trim()

@@ -639,6 +639,7 @@ describe('Pi 1.2 native execution compatibility', () => {
     })
     await fs.writeFile(file, original)
     sdk.initTheme('fixture')
+    // eslint-disable-next-line no-control-regex -- Assert the actual ANSI color escape byte.
     const magenta = /\u001b\[38;(?:2;255;0;255|5;201)m/
     expect(sdk.getMarkdownTheme().quote('sample')).toMatch(magenta)
     await fs.writeFile(

@@ -12,7 +12,7 @@ export async function sourceDigest(root) {
   const files = stdout
     .split('\0')
     .filter((file) =>
-      /^(?:src\/|scripts\/|e2e\/|fixtures\/|resources\/|build\/|\.github\/|package\.json$|pnpm-lock\.yaml$|(?:electron|vitest|playwright|eslint|tsconfig)[^/]*\.(?:ts|mjs|json|yml)$)/.test(
+      /^(?:src\/|scripts\/|patches\/|e2e\/|fixtures\/|resources\/|build\/|\.github\/|package\.json$|pnpm-lock\.yaml$|(?:electron|vitest|playwright|eslint|tsconfig)[^/]*\.(?:ts|js|mjs|json|yml)$)/.test(
         file
       )
     )

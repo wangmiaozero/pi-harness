@@ -217,7 +217,7 @@ export class PolicyEngine {
       detail: target.slice(0, 2000),
       noLink: true
     }
-    let allowed = false
+    let allowed: boolean
     try {
       const result = await dialog.showMessageBox(win, options)
       allowed = result.response === 0 && signal?.aborted !== true

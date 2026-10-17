@@ -43,3 +43,8 @@ export function extractRuntimeZip(
   staging: string,
   signal?: AbortSignal
 ): Promise<void>
+export function extractRuntimeArchive(
+  archive: string,
+  staging: string,
+  signal?: AbortSignal
+): Promise<void>

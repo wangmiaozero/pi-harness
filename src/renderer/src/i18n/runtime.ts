@@ -1,4 +1,21 @@
 export const runtimeEn = {
+  checked: 'Version check completed. See each component for its result.',
+  latest: 'Latest stable version',
+  latestLts: 'Latest LTS version',
+  bundledVersion: 'Bundled version',
+  updateStatus: 'Update status',
+  updateAvailable: 'Update available',
+  checkedAt: 'Last checked',
+  compatibilityStatus: 'Version match',
+  matched: 'Matched',
+  different: 'Different or unavailable',
+  unknown: 'Not verified',
+  versionState: {
+    'not-checked': 'Not checked',
+    current: 'Checked online',
+    cached: 'Saved result; check again for the latest',
+    unavailable: 'Unable to check for updates'
+  },
   mcp: 'MCP dependencies',
   mcpAvailable: 'Required runtime available',
   mcpUnavailable: 'Required runtime unavailable',
@@ -40,6 +57,23 @@ export const runtimeEn = {
   cancel: 'Cancel'
 }
 export const runtimeZh = {
+  checked: '版本检查已结束，请查看各组件的结果。',
+  latest: '最新稳定版本',
+  latestLts: '最新 LTS 版本',
+  bundledVersion: '内置版本',
+  updateStatus: '更新状态',
+  updateAvailable: '有可用更新',
+  checkedAt: '上次检查时间',
+  compatibilityStatus: '版本匹配',
+  matched: '匹配',
+  different: '不匹配或不可用',
+  unknown: '尚未验证',
+  versionState: {
+    'not-checked': '尚未检查',
+    current: '已在线检查',
+    cached: '已保存的结果，请重新检查最新版本',
+    unavailable: '暂时无法检查更新'
+  },
   mcp: 'MCP 依赖',
   mcpAvailable: '依赖运行时可用',
   mcpUnavailable: '依赖运行时不可用',

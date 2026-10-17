@@ -40,6 +40,8 @@ jobs:
       - run: pnpm compile
       - name: Prepare bundled runtimes for Electron features
         run: pnpm runtime:prepare
+      - name: Verify pinned SDK and native runtime versions
+        run: pnpm runtime:check --offline --native
       - name: Install the Linux window manager
         run: |
           sudo apt-get update
@@ -129,6 +131,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Native Windows and environment regressions
         run: pnpm exec vitest run src/main/environment src/main/pi src/main/process --maxWorkers=2
+      - name: Verify pinned SDK and native runtime versions
+        run: |
+          pnpm runtime:prepare
+          pnpm runtime:check --offline --native
       - name: Build, install and execute both variants
         if: runner.os != 'Linux'
         run: pnpm release:package
