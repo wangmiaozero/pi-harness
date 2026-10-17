@@ -43,6 +43,13 @@ export class RuntimeManager {
   private state: RuntimeState | null = null
   private mutation: Promise<unknown> | null = null
   private cache = new Map<string, Promise<ResolvedRuntime>>()
+  private bundledMetadata = new Map<string, ResolvedRuntime>()
+  private metadataGeneration = 0
+
+  private resetBundledMetadata(): void {
+    this.metadataGeneration++
+    this.bundledMetadata.clear()
+  }
   constructor(private readonly options: RuntimeManagerOptions) {}
 
   async initialize(): Promise<void> {
@@ -119,10 +126,12 @@ export class RuntimeManager {
     return this.resolve('node')
   }
   validatePiRuntime(selection: RuntimeSelection): Promise<ResolvedRuntime> {
+    this.resetBundledMetadata()
     this.invalidate()
     return this.resolve('pi', selection)
   }
   validateNodeRuntime(selection: RuntimeSelection): Promise<ResolvedRuntime> {
+    this.resetBundledMetadata()
     this.invalidate()
     return this.resolve('node', selection)
   }
@@ -198,6 +207,7 @@ export class RuntimeManager {
   }
 
   async verify(kind: RuntimeKind): Promise<RuntimeDiagnostics> {
+    this.resetBundledMetadata()
     this.invalidate()
     await this.resolve(kind)
     return this.diagnostics()
@@ -400,9 +410,18 @@ export class RuntimeManager {
   }
   private async validateRoot(kind: RuntimeKind, root: string): Promise<ResolvedRuntime> {
     const layout = runtimeLayout(kind, process.platform)
+    const generation = this.metadataGeneration
     try {
+      const canonicalRoot = await fs.realpath(root)
       // Integrity is checked before ANY executable in this directory is launched.
       await verifyDistribution(root, kind, process.platform, process.arch)
+      // A complete pinned-tree match binds the executable and npm/npx bytes to
+      // the metadata already executed in this app. Always recheck that match;
+      // only the redundant process launches are reused. Custom/system runtimes
+      // and explicit verification still execute their metadata checks afresh.
+      const key = JSON.stringify([kind, canonicalRoot, catalog[kind].version])
+      const known = generation === this.metadataGeneration ? this.bundledMetadata.get(key) : null
+      if (known) return structuredClone(known)
       const result = await validateExecutable(
         kind,
         'bundled',
@@ -411,6 +430,12 @@ export class RuntimeManager {
       )
       result.integrity = 'verified'
       if (kind === 'node' && result.valid) await this.addToolchain(result, root)
+      if (
+        generation === this.metadataGeneration &&
+        result.valid &&
+        (kind === 'pi' || (result.npm && result.npx))
+      )
+        this.bundledMetadata.set(key, structuredClone(result))
       return result
     } catch {
       return {

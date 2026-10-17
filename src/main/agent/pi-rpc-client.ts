@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { StringDecoder } from 'node:string_decoder'
 import { AgentError } from '../services/errors'
 import { inspectRuntimeError } from '@shared/workspace/runtime-error'
+import { log } from '../services/logger'
 
 /** Official JSONL RPC transport. Correlation, bounded output and exit cleanup live here. */
 export class PiRpcClient {
@@ -23,6 +24,17 @@ export class PiRpcClient {
   private readonly decoder = new StringDecoder('utf8')
 
   start(executable: string, args: string[], cwd: string, env: NodeJS.ProcessEnv): void {
+    const started = performance.now()
+    const probe = (phase: string, details: Record<string, unknown> = {}) =>
+      log.pi.info('RPC timing', {
+        phase,
+        elapsedMs: Math.round(performance.now() - started),
+        ...details
+      })
+    probe('start', {
+      inspectorOptions: Boolean(env.NODE_OPTIONS),
+      inspectorIpc: Boolean(env.NODE_INSPECTOR_IPC)
+    })
     if (this.child || this.closed) throw new AgentError('Pi process has already been started')
     const child = spawn(executable, args, {
       cwd,
@@ -32,8 +44,13 @@ export class PiRpcClient {
       stdio: ['pipe', 'pipe', 'pipe']
     })
     this.child = child
-    child.stdout.on('data', (data: Buffer) => this.read(this.decoder.write(data)))
+    probe('spawned', { pid: child.pid })
+    child.stdout.on('data', (data: Buffer) => {
+      probe('stdout', { bytes: data.length })
+      this.read(this.decoder.write(data))
+    })
     child.stderr.on('data', (data: Buffer) => {
+      probe('stderr', { bytes: data.length })
       // Retain only a bounded tail. Never log raw extension/provider output.
       this.stderr = (this.stderr + data.toString('utf8')).slice(-8192)
     })
@@ -56,6 +73,13 @@ export class PiRpcClient {
     const id = randomUUID()
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
+        log.pi.info('RPC timeout state', {
+          pid: this.child?.pid,
+          exitCode: this.child?.exitCode,
+          stdoutBytes: Buffer.byteLength(this.buffer),
+          stderrBytes: Buffer.byteLength(this.stderr),
+          command: command.type
+        })
         this.pending.delete(id)
         reject(new AgentError('Pi RPC request timed out'))
       }, timeoutMs)
