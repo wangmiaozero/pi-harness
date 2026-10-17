@@ -258,7 +258,16 @@ macOS Apple Silicon、macOS Intel、Windows x64、Linux x64 に対応します�
 
 ### PR コントリビューター
 
-[PR #8](https://github.com/wangmiaozero/pi-harness/pull/8) に貢献してくださった [@HenryArch](https://github.com/HenryArch) に感謝します。
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/HenryArch"><img src="https://avatars.githubusercontent.com/u/244436357?v=4" width="64" height="64" alt="HenryArch" /><br /><b>HenryArch</b></a><br />
+      <a href="https://github.com/wangmiaozero/pi-harness/pull/8">PR #8</a>
+    </td>
+  </tr>
+</table>
+
+Pi-Harness をより良くする PR を歓迎します。プロジェクトの改善に協力してくださるすべての方に感謝します！
 
 ## ライセンス
 

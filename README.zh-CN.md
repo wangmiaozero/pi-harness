@@ -270,7 +270,16 @@ Pi-Harness 围绕官方 [Pi Coding Agent 与 Pi Agent Harness](https://github.co
 
 ### PR 贡献者
 
-感谢 [@HenryArch](https://github.com/HenryArch) 通过 [PR #8](https://github.com/wangmiaozero/pi-harness/pull/8) 为项目作出贡献。
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/HenryArch"><img src="https://avatars.githubusercontent.com/u/244436357?v=4" width="64" height="64" alt="HenryArch" /><br /><b>HenryArch</b></a><br />
+      <a href="https://github.com/wangmiaozero/pi-harness/pull/8">PR #8</a>
+    </td>
+  </tr>
+</table>
+
+欢迎大家提交 PR，一起完善 Pi-Harness，让项目变得更好。感谢每一位贡献者的支持与付出！
 
 ## 许可协议
 

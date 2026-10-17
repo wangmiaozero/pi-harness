@@ -258,7 +258,16 @@ Pi-Harness создан вокруг официальных [Pi Coding Agent и 
 
 ### Участники PR
 
-Спасибо [@HenryArch](https://github.com/HenryArch) за вклад в [PR #8](https://github.com/wangmiaozero/pi-harness/pull/8).
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/HenryArch"><img src="https://avatars.githubusercontent.com/u/244436357?v=4" width="64" height="64" alt="HenryArch" /><br /><b>HenryArch</b></a><br />
+      <a href="https://github.com/wangmiaozero/pi-harness/pull/8">PR #8</a>
+    </td>
+  </tr>
+</table>
+
+Мы приветствуем PR, которые помогают улучшать Pi-Harness. Спасибо всем участникам за вклад в развитие проекта!
 
 ## Лицензия
 
