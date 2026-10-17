@@ -49,12 +49,18 @@ describe('runtime verification cache', () => {
 
   it('shares a slow in-flight verification and starts its expiry after completion', async () => {
     let finish!: () => void
-    vi.mocked(verifyDistribution).mockReturnValueOnce(
-      new Promise<void>((resolve) => {
+    let entered!: () => void
+    const started = new Promise<void>((resolve) => {
+      entered = resolve
+    })
+    vi.mocked(verifyDistribution).mockImplementationOnce(() => {
+      entered()
+      return new Promise<void>((resolve) => {
         finish = resolve
       })
-    )
+    })
     const first = manager.resolve('pi')
+    await started
     await vi.advanceTimersByTimeAsync(20_000)
     const second = manager.resolve('pi')
     await vi.advanceTimersByTimeAsync(0)
