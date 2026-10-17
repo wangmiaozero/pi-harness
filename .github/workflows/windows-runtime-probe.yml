@@ -8,7 +8,7 @@ env:
   npm_config_electron_mirror: https://github.com/electron/electron/releases/download/
   npm_config_electron_custom_dir: 'v{{ version }}'
 concurrency:
-  group: windows-runtime-probe
+  group: windows-runtime-probe-${{ github.sha }}
   cancel-in-progress: true
 jobs:
   probe:
@@ -54,6 +54,7 @@ jobs:
         env:
           PI_HARNESS_E2E_AGENT_MODE: rpc
           PI_HARNESS_E2E_EMPTY_PATH: '1'
+          PI_HARNESS_DIAGNOSTIC_STATIC_BACKGROUND: '1'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
