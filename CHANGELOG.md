@@ -2,6 +2,17 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.2.0 — 2026-10-17
+
+### Added
+
+- Added installed and latest version information in runtime settings, with manual update checks.
+
+### Fixed
+
+- Updated bundled Pi to 1.3.0 and improved runtime stability.
+- Kept large workspaces responsive when opening projects and watching file changes.
+
 ## 2.1.1 — 2026-10-17
 
 ### Fixed
