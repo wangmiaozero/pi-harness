@@ -158,6 +158,12 @@ test('keeps the animated background responsive without remeasuring its size each
   await page.reload()
   await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12000 })
   const available = await page.evaluate(() => {
+    if (
+      document
+        .querySelector('[data-testid="macos27-optics-backdrop"]')
+        ?.getAttribute('data-renderer') === 'static'
+    )
+      return false
     const canvas = document.querySelector('.macos27-optics-backdrop__canvas') as HTMLCanvasElement
     const context = canvas.getContext('webgl2')
     if (!context) return false
@@ -178,7 +184,17 @@ test('keeps the animated background responsive without remeasuring its size each
     }
     return true
   })
-  test.skip(!available, 'WebGL2 is unavailable; the static theme fallback remains active')
+  const mode = await page.getByTestId('macos27-optics-backdrop').getAttribute('data-renderer')
+  if (!available) {
+    expect(mode).toBe('static')
+    await expect(page.locator('.macos27-optics-backdrop__canvas')).toBeHidden()
+    expect(
+      await page
+        .getByTestId('macos27-optics-backdrop')
+        .evaluate((element) => getComputedStyle(element).backgroundImage)
+    ).not.toBe('none')
+    return
+  }
   await page.waitForTimeout(1000)
   const result = await page.evaluate(
     () =>
@@ -191,7 +207,8 @@ test('keeps the animated background responsive without remeasuring its size each
       path.join('task', `background-${process.env.PI_HARNESS_PERF_LABEL}.json`),
       JSON.stringify(result, null, 2)
     )
-  expect(result.draws).toBeGreaterThan(10)
+  expect(result.draws).toBeGreaterThan(mode === 'reduced' ? 2 : 10)
+  if (mode === 'reduced') expect(result.draws).toBeLessThanOrEqual(8)
   if (process.env.PI_HARNESS_PERF_LABEL !== 'before') expect(result.reads).toBeLessThanOrEqual(4)
   await page.setViewportSize({ width: 1100, height: 760 })
   await expect
@@ -200,8 +217,37 @@ test('keeps the animated background responsive without remeasuring its size each
         const canvas = document.querySelector(
           '.macos27-optics-backdrop__canvas'
         ) as HTMLCanvasElement
-        return canvas.width === Math.round(canvas.clientWidth * Math.min(devicePixelRatio, 1.25))
+        const reduced = canvas.parentElement?.getAttribute('data-renderer') === 'reduced'
+        const ratio = reduced
+          ? Math.min(1, 320 / canvas.clientWidth, 240 / canvas.clientHeight)
+          : Math.min(devicePixelRatio, 1.25)
+        return canvas.width === Math.round(canvas.clientWidth * ratio)
       })
     )
     .toBe(true)
+})
+
+test('keeps glass theme controls usable when graphics initialization is unavailable', async ({
+  page
+}, testInfo) => {
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function (type: string, options?: unknown) {
+      return type === 'webgl2' ? null : original.call(this, type, options)
+    } as typeof original
+  })
+  await page.evaluate(() =>
+    window.piSwitch.settings.set({ theme: 'macos27-light', mascotStyle: 'none' })
+  )
+  await page.reload()
+  const background = page.getByTestId('macos27-optics-backdrop')
+  await expect(background).toHaveAttribute('data-renderer', 'static')
+  await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+  await expect(background.locator('canvas')).toBeHidden()
+  expect(
+    await background.evaluate((element) => getComputedStyle(element).backgroundImage)
+  ).not.toBe('none')
+  await page.locator('a[href="#/models"]').click()
+  await expect(page.getByRole('heading', { name: /模型|Models/, exact: true })).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('static-background.png') })
 })
