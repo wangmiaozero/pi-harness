@@ -8,26 +8,26 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const release = path.join(root, 'release', process.argv.includes('--nomascot') ? 'nomascot' : '')
-
 const UNPACKED = ['mac', 'mac-arm64', 'mac-universal', 'mac-x64']
 
-async function main() {
-  let removed = 0
+export async function cleanUnpackedMac(directory) {
   for (const name of UNPACKED) {
-    const dir = path.join(release, name)
+    const dir = path.join(directory, name)
     try {
-      await fs.rm(dir, { recursive: true, force: true })
-      removed++
-      process.stdout.write(`removed ${path.relative(root, dir)}\n`)
+      await fs.lstat(dir)
     } catch (err) {
-      console.warn(`skip ${name}:`, err instanceof Error ? err.message : err)
+      if (err.code === 'ENOENT') continue
+      throw err
     }
+    await fs.rm(dir, { recursive: true, force: true })
+    process.stdout.write(`removed ${path.relative(root, dir)}\n`)
   }
-  if (removed === 0) process.stdout.write('no unpacked mac apps to clean\n')
 }
 
-main().catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const release = path.join(root, 'release', process.argv.includes('--nomascot') ? 'nomascot' : '')
+  cleanUnpackedMac(release).catch((err) => {
+    console.error(err)
+    process.exitCode = 1
+  })
+}

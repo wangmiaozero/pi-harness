@@ -2,6 +2,12 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.2.1 — 2026-10-18
+
+### Fixed
+
+- Fixed duplicate Pi-Harness entries in macOS app search.
+
 ## 2.2.0 — 2026-10-17
 
 ### Added

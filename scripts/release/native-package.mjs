@@ -152,15 +152,16 @@ try {
     await command(`compile-${variant}`, [variant === 'standard' ? 'compile' : 'compile:nomascot'])
     const target =
       process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'win' : 'linux'
-    const args = [
-      'exec',
-      'electron-builder',
-      '--publish',
-      'never',
-      `--${target}`,
-      `--${process.arch}`
-    ]
-    if (variant === 'nomascot') args.push('--config', 'electron-builder.nomascot.yml')
+    const args =
+      process.platform === 'darwin'
+        ? ['exec', 'node', 'scripts/electron-builder-mac.mjs', `--${process.arch}`]
+        : ['exec', 'electron-builder', '--publish', 'never', `--${target}`, `--${process.arch}`]
+    if (variant === 'nomascot')
+      args.push(
+        ...(process.platform === 'darwin'
+          ? ['--nomascot']
+          : ['--config', 'electron-builder.nomascot.yml'])
+      )
     if (process.platform === 'win32' && process.arch === 'arm64')
       args.push(
         `-c.win.artifactName=Pi-Harness-Setup-\${version}-arm64${variant === 'nomascot' ? '-nomascot' : ''}.\${ext}`
