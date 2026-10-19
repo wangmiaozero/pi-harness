@@ -1,4 +1,9 @@
-import type { RuntimeDiagnostics, RuntimeKind, RuntimeSelection, RuntimeUpdateReport } from '../runtime/schema'
+import type {
+  RuntimeDiagnostics,
+  RuntimeKind,
+  RuntimeSelection,
+  RuntimeUpdateReport
+} from '../runtime/schema'
 /**
  * Typed IPC API surface. This is the shape of `window.piSwitch` exposed by the
  * preload bridge. The renderer imports these types and the PiSwitchAPI symbol;
@@ -728,26 +733,8 @@ export interface SystemInfo {
   packaged: boolean
 }
 
-export type AppUpdateStatus =
-  | 'idle'
-  | 'checking'
-  | 'available'
-  | 'not-available'
-  | 'downloading'
-  | 'downloaded'
-  | 'manual-update'
-  | 'error'
-
-export interface AppUpdateState {
-  /** False for local development; application updates apply only to installed builds. */
-  supported: boolean
-  available: boolean
-  currentVersion: string
-  latestVersion: string | null
-  status: AppUpdateStatus
-  downloaded: boolean
-  downloadProgress: number | null
-}
+export type { AppUpdateState, UpdateStatus as AppUpdateStatus, UpdatePreferences } from '../update'
+import type { AppUpdateState, UpdatePreferences } from '../update'
 
 /** Listener for main→renderer push events. */
 export type IpcEventListener = (payload: unknown) => void
@@ -938,6 +925,11 @@ export interface PiSwitchAPI {
     check(): Promise<AppUpdateState>
     download(): Promise<AppUpdateState>
     install(): Promise<void>
+    cancel(): Promise<AppUpdateState>
+    retry(): Promise<AppUpdateState>
+    defer(): Promise<AppUpdateState>
+    reveal(): Promise<void>
+    preferences(value: UpdatePreferences): Promise<AppUpdateState>
     openReleasePage(): Promise<void>
   }
   window: {

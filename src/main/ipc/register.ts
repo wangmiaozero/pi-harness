@@ -45,12 +45,18 @@ import {
 } from '@shared/schemas/domain'
 import { SecurityError, ValidationError } from '../services/errors'
 import {
+  cancelUpdate,
+  retryUpdate,
+  deferUpdate,
+  revealUpdate,
+  updatePreferences,
   checkForUpdates,
   downloadUpdate,
   getUpdateState,
   installUpdate,
   openReleasePage
 } from '../updater'
+import { updatePreferencesSchema } from '@shared/schemas/update'
 import { registerWorkspaceIpc, type WorkspaceServices } from './register-workspace'
 import { createTrustedIpcMain } from './trusted-ipc'
 import type { CapabilityService } from '../capabilities/capability-service'
@@ -852,14 +858,29 @@ export function registerIpc(services: Services): void {
   )
 
   // ---- updater ----
-  ipcMain.handle(IPC_INVOKE.updaterState, () => wrap(async () => getUpdateState()))
-  ipcMain.handle(IPC_INVOKE.updaterCheck, () => wrap(() => checkForUpdates()))
-  ipcMain.handle(IPC_INVOKE.updaterDownload, () => wrap(() => downloadUpdate()))
-  ipcMain.handle(IPC_INVOKE.updaterInstall, () => wrap(() => installUpdate()))
-  ipcMain.handle(IPC_INVOKE.updaterOpenReleasePage, (_event, ...args: unknown[]) =>
+  for (const [channel, action] of [
+    [IPC_INVOKE.updaterState, async () => getUpdateState()],
+    [IPC_INVOKE.updaterCheck, checkForUpdates],
+    [IPC_INVOKE.updaterDownload, downloadUpdate],
+    [IPC_INVOKE.updaterInstall, installUpdate],
+    [IPC_INVOKE.updaterCancel, cancelUpdate],
+    [IPC_INVOKE.updaterRetry, retryUpdate],
+    [IPC_INVOKE.updaterDefer, async () => deferUpdate()],
+    [IPC_INVOKE.updaterReveal, revealUpdate],
+    [IPC_INVOKE.updaterOpenReleasePage, openReleasePage]
+  ] as const)
+    ipcMain.handle(channel, (_event, ...args: unknown[]) =>
+      wrap(async () => {
+        parseInput(noArgsSchema, args, 'Unexpected update arguments')
+        return action()
+      })
+    )
+  ipcMain.handle(IPC_INVOKE.updaterPreferences, (_event, ...args: unknown[]) =>
     wrap(async () => {
-      parseInput(noArgsSchema, args, 'Unexpected release page arguments')
-      await openReleasePage()
+      if (args.length !== 1) throw new ValidationError('Expected update preferences')
+      return updatePreferences(
+        parseInput(updatePreferencesSchema, args[0], 'Invalid update preferences')
+      )
     })
   )
 

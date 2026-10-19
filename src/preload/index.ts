@@ -206,6 +206,11 @@ const api: PiSwitchAPI = {
     check: () => invoke(IPC_INVOKE.updaterCheck),
     download: () => invoke(IPC_INVOKE.updaterDownload),
     install: () => invoke(IPC_INVOKE.updaterInstall),
+    cancel: () => invoke(IPC_INVOKE.updaterCancel),
+    retry: () => invoke(IPC_INVOKE.updaterRetry),
+    defer: () => invoke(IPC_INVOKE.updaterDefer),
+    reveal: () => invoke(IPC_INVOKE.updaterReveal),
+    preferences: (value) => invoke(IPC_INVOKE.updaterPreferences, value),
     openReleasePage: () => invoke(IPC_INVOKE.updaterOpenReleasePage)
   },
   window: {

@@ -1,474 +1,83 @@
-/**
- * Application updater backed by electron-updater.
- *
- * Installed builds check in the background, download updates automatically,
- * and install them on normal app quit. Users can also install immediately by
- * choosing "Install & Restart" after the download is ready.
- */
-
+/** Main-owned update lifecycle. Network data cannot enable an installer. */
 import { app, net, shell } from 'electron'
-import { spawnSync } from 'node:child_process'
+import fs from 'node:fs/promises'
 import path from 'node:path'
-import { gt as isVersionGreater, valid as validVersion } from 'semver'
-import type { AppUpdateState } from '@shared/ipc/api-types'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { APP_VERSION } from '@shared/constants/index'
-import { log } from '../services/logger'
-import { communityManualUpdates } from './policy'
+import type { AppUpdateState, UpdatePreferences } from '@shared/update'
+import { ReleaseProvider, RELEASE_PAGE as LATEST_RELEASE_URL } from './update-provider'
+import { UpdateDownload } from './update-download'
+import { UpdateManager } from './update-manager'
+import { installVerifiedUpdate } from './update-installer'
+import { readUpdateMode } from './policy'
+import { verifyDistribution, runtimeLayout, catalog } from '../runtime/distribution.mjs'
 
-type AutoUpdater = typeof import('electron-updater').autoUpdater
-type UpdateStateListener = (state: AppUpdateState) => void
-
-const LATEST_RELEASE_API_URL =
-  'https://api.github.com/repos/wangmiaozero/pi-harness/releases/latest'
-const LATEST_RELEASE_URL = 'https://github.com/wangmiaozero/pi-harness/releases/latest'
-const RELEASE_CHECK_TIMEOUT_MS = 8_000
-
-const state: AppUpdateState = {
-  supported: false,
-  available: false,
-  currentVersion: APP_VERSION,
-  latestVersion: null,
-  status: 'idle',
-  downloaded: false,
-  downloadProgress: null
-}
-
-const listeners = new Set<UpdateStateListener>()
-let autoUpdaterLoaded: AutoUpdater | null = null
-let checkInFlight: Promise<AppUpdateState> | null = null
-let automaticCheckTimer: ReturnType<typeof setTimeout> | null = null
-let nativeAutoUpdateSupported: boolean | null = null
-
-function snapshot(): AppUpdateState {
-  return { ...state }
-}
-
-function updateState(patch: Partial<AppUpdateState>): AppUpdateState {
-  Object.assign(state, patch)
-  const next = snapshot()
-  for (const listener of listeners) {
-    try {
-      listener(next)
-    } catch (error) {
-      log.updater.warn('update state listener failed:', error)
-    }
-  }
-  return next
-}
-
-async function getAutoUpdater(): Promise<AutoUpdater | null> {
-  if (autoUpdaterLoaded) return autoUpdaterLoaded
-  if (!app.isPackaged || !canUseNativeAutoUpdater()) return null
-
-  try {
-    // Node's ESM loader does not expose the CommonJS autoUpdater getter as a
-    // named export. Keep this lazy so development never initializes an updater.
-    const { default: updaterModule } = await import('electron-updater')
-    const { autoUpdater } = updaterModule
-    autoUpdater.autoDownload = true
-    autoUpdater.autoInstallOnAppQuit = true
-    autoUpdater.logger = log.updater
-
-    autoUpdater.on('checking-for-update', () => {
-      updateState({
-        supported: true,
-        status: 'checking',
-        downloaded: false,
-        downloadProgress: null
-      })
-    })
-    autoUpdater.on('update-available', (info) => {
-      updateState({
-        supported: true,
-        available: true,
-        latestVersion: info.version,
-        status: 'available',
-        downloaded: false,
-        downloadProgress: 0
-      })
-      log.updater.info('update available:', info.version)
-    })
-    autoUpdater.on('update-not-available', (info) => {
-      updateState({
-        supported: true,
-        available: false,
-        latestVersion: info.version ?? APP_VERSION,
-        status: 'not-available',
-        downloaded: false,
-        downloadProgress: null
-      })
-      log.updater.info('no update available')
-    })
-    autoUpdater.on('download-progress', (progress) => {
-      updateState({
-        supported: true,
-        available: true,
-        status: 'downloading',
-        downloadProgress: Math.max(0, Math.min(100, progress.percent))
-      })
-    })
-    autoUpdater.on('update-downloaded', (info) => {
-      updateState({
-        supported: true,
-        available: true,
-        latestVersion: info.version,
-        status: 'downloaded',
-        downloaded: true,
-        downloadProgress: 100
-      })
-      log.updater.info('update downloaded:', info.version)
-    })
-    autoUpdater.on('error', (error) => {
-      reportUpdaterFailure('updater error:', error)
-    })
-
-    autoUpdaterLoaded = autoUpdater
-    updateState({ supported: true })
-    return autoUpdater
-  } catch (error) {
-    updateState({ supported: true, status: 'error', downloadProgress: null })
-    log.updater.error('electron-updater unavailable:', error)
-    return null
-  }
-}
-
-export function getUpdateState(): AppUpdateState {
-  return snapshot()
-}
-
-export function onUpdateState(listener: UpdateStateListener): () => void {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
-}
-
-export function checkForUpdates(): Promise<AppUpdateState> {
-  if (automaticCheckTimer) {
-    clearTimeout(automaticCheckTimer)
-    automaticCheckTimer = null
-  }
-  if (checkInFlight) return checkInFlight
-  // A second check must not discard an update that is downloading or ready.
-  if (state.downloaded || state.status === 'available' || state.status === 'downloading') {
-    return Promise.resolve(snapshot())
-  }
-  checkInFlight = performUpdateCheck().finally(() => {
-    checkInFlight = null
-  })
-  return checkInFlight
-}
-
-async function performUpdateCheck(): Promise<AppUpdateState> {
-  if (!app.isPackaged) {
-    // Development builds have no app-update.yml. Compare against the public
-    // GitHub Release so "Check for updates" stays meaningful outside installs.
-    return checkLatestReleaseOnly()
-  }
-  if (!canUseNativeAutoUpdater()) {
-    // Squirrel.Mac cannot run from an unsigned/ad-hoc signed app. Avoid
-    // downloading an update that macOS will refuse to install and expose the
-    // stable Release as a manual update instead.
-    return checkLatestReleaseOnly()
-  }
-  updateState({ supported: true, status: 'checking', downloadProgress: null })
-  const autoUpdater = await getAutoUpdater()
-  if (!autoUpdater) return recoverFromUpdaterFailure(new Error('Updater could not be loaded'))
-
-  try {
-    const result = await autoUpdater.checkForUpdates()
-    if (!result) return recoverFromUpdaterFailure(new Error('Updater returned no result'))
-
-    // Automatic download failures happen after checkForUpdates resolves. Handle
-    // the rejection as well as the error event so missing payloads stay actionable.
-    void result.downloadPromise?.catch((error: unknown) => reportDownloadFailure(error))
-
-    const available = result.isUpdateAvailable
-    const latestVersion = result.updateInfo.version ?? null
-    if (!available) {
-      return updateState({
-        available: false,
-        latestVersion,
-        status: 'not-available',
-        downloaded: false,
-        downloadProgress: null
-      })
-    }
-
-    // autoDownload starts as part of checkForUpdates(). Do not overwrite a
-    // newer progress/downloaded event that may already have arrived.
-    if (state.status === 'checking') {
-      updateState({
-        available: true,
-        latestVersion,
-        status: 'available',
-        downloaded: false,
-        downloadProgress: 0
-      })
-    }
-    return snapshot()
-  } catch (error) {
-    log.updater.error('checkForUpdates failed:', error)
-    return recoverFromUpdaterFailure(error)
-  }
-}
-
-function reportDownloadFailure(error: unknown): AppUpdateState {
-  return reportUpdaterFailure('update download failed:', error)
-}
-
-function reportUpdaterFailure(message: string, error: unknown): AppUpdateState {
-  log.updater.error(message, error)
-  // The check already confirmed a newer version. A failed download should not
-  // require another network request just to offer its manual installer. The
-  // same rule applies when Squirrel emits a late error after download.
-  return updateState({
-    status: state.available && state.latestVersion ? 'manual-update' : 'error',
-    downloaded: false,
-    downloadProgress: null
-  })
-}
-
-function canUseNativeAutoUpdater(): boolean {
-  if (communityManualUpdates()) return false
-  if (process.platform !== 'darwin') return true
-  if (nativeAutoUpdateSupported != null) return nativeAutoUpdateSupported
-
-  const executablePath = app.getPath('exe')
-  const appBundlePath = path.resolve(path.dirname(executablePath), '../..')
-  const verification = spawnSync(
-    '/usr/bin/codesign',
-    ['--verify', '--deep', '--strict', appBundlePath],
-    { encoding: 'utf8' }
-  )
-  const signature = spawnSync('/usr/bin/codesign', ['--display', '--verbose=2', appBundlePath], {
-    encoding: 'utf8'
-  })
-  const signatureDetails = `${signature.stdout ?? ''}\n${signature.stderr ?? ''}`
-  nativeAutoUpdateSupported =
-    verification.status === 0 &&
-    signature.status === 0 &&
-    /(?:^|\n)TeamIdentifier=(?!not set(?:\n|$))\S+/m.test(signatureDetails) &&
-    !/(?:^|\n)Signature=adhoc(?:\n|$)/m.test(signatureDetails)
-
-  if (!nativeAutoUpdateSupported) {
-    log.updater.warn('native macOS auto-update disabled because the installed app is not signed', {
-      appBundlePath,
-      verificationStatus: verification.status,
-      signatureStatus: signature.status
-    })
-  }
-  return nativeAutoUpdateSupported
-}
-
-/**
- * electron-updater requires latest*.yml and platform payloads. If a Release is
- * incomplete, fall back to GitHub's stable Release API so the UI can still
- * distinguish "already current" from "new version requires manual install".
- */
-async function recoverFromUpdaterFailure(updaterError: unknown): Promise<AppUpdateState> {
-  try {
-    const latestVersion = await fetchLatestReleaseVersion()
-    const currentVersion = validVersion(APP_VERSION)
-    if (!currentVersion) throw new Error(`Invalid current version: ${APP_VERSION}`)
-
-    if (isVersionGreater(latestVersion, currentVersion)) {
-      log.updater.warn('automatic update metadata unavailable; manual update required', {
+declare const __MASCOT_ENABLED__: boolean
+let manager: UpdateManager | null = null
+function service() {
+  if (manager) return manager
+  const variant = __MASCOT_ENABLED__ ? 'standard' : 'nomascot'
+  const directory = path.join(app.getPath('userData'), 'updates')
+  const currentVersion = app.isPackaged ? app.getVersion() : APP_VERSION
+  const fetcher = (url: string, options?: RequestInit) => net.fetch(url, options)
+  manager = new UpdateManager({
+    currentVersion,
+    platform: process.platform,
+    arch: process.arch,
+    variant,
+    packaged: app.isPackaged,
+    mode: readUpdateMode(),
+    directory,
+    provider: new ReleaseProvider({
+      fetcher,
+      platform: process.platform,
+      arch: process.arch,
+      variant
+    }),
+    downloader: new UpdateDownload({ directory: path.join(directory, 'downloads'), fetcher }),
+    reveal: (file) => shell.showItemInFolder(file),
+    install: (candidate, file) =>
+      installVerifiedUpdate({
+        platform: process.platform,
+        arch: process.arch,
+        variant,
         currentVersion,
-        latestVersion
-      })
-      return updateState({
-        supported: true,
-        available: true,
-        latestVersion,
-        status: 'manual-update',
-        downloaded: false,
-        downloadProgress: null
-      })
+        candidate,
+        file,
+        journal: path.join(directory, 'upgrade.json'),
+        appImage: process.env.APPIMAGE,
+        relaunch: (executable) => app.relaunch(executable ? { execPath: executable } : {}),
+        quit: () => app.quit()
+      }),
+    healthCheck: async () => {
+      await fs.access(app.getPath('userData'))
+      for (const kind of ['node', 'pi'] as const) {
+        const root = path.join(process.resourcesPath, 'runtimes', kind)
+        await verifyDistribution(root, kind, process.platform, process.arch)
+        const result = await promisify(execFile)(
+          path.join(root, runtimeLayout(kind, process.platform).executable),
+          ['--version'],
+          { timeout: 30_000, maxBuffer: 64 * 1024 }
+        )
+        if (!result.stdout.includes(catalog[kind].version))
+          throw new Error('Bundled runtime health check failed')
+      }
     }
-
-    log.updater.info('release API confirms current version:', currentVersion)
-    return updateState({
-      supported: true,
-      available: false,
-      latestVersion,
-      status: 'not-available',
-      downloaded: false,
-      downloadProgress: null
-    })
-  } catch (fallbackError) {
-    log.updater.error('release API fallback failed:', fallbackError, {
-      updaterError
-    })
-    return updateState({
-      supported: true,
-      available: false,
-      latestVersion: null,
-      status: 'error',
-      downloaded: false,
-      downloadProgress: null
-    })
-  }
+  })
+  return manager
 }
-
-/**
- * Version-only check against the public GitHub Release. Used as the primary
- * path in development builds and as the recovery path when electron-updater
- * metadata is missing or incomplete.
- */
-async function checkLatestReleaseOnly(): Promise<AppUpdateState> {
-  try {
-    const latestVersion = await fetchLatestReleaseVersion()
-    const currentVersion = validVersion(APP_VERSION)
-    if (!currentVersion) throw new Error(`Invalid current version: ${APP_VERSION}`)
-
-    if (isVersionGreater(latestVersion, currentVersion)) {
-      return updateState({
-        supported: true,
-        available: true,
-        latestVersion,
-        status: 'manual-update',
-        downloaded: false,
-        downloadProgress: null
-      })
-    }
-
-    return updateState({
-      supported: true,
-      available: false,
-      latestVersion,
-      status: 'not-available',
-      downloaded: false,
-      downloadProgress: null
-    })
-  } catch (error) {
-    log.updater.error('release version check failed:', error)
-    return updateState({
-      supported: true,
-      available: false,
-      latestVersion: null,
-      status: 'error',
-      downloaded: false,
-      downloadProgress: null
-    })
-  }
-}
-
-async function fetchLatestReleaseVersion(): Promise<string> {
-  // Chromium networking follows Electron's system proxy settings. The public
-  // website endpoint remains usable when the unauthenticated API is rate limited.
-  try {
-    return await fetchReleaseApiVersion()
-  } catch (error) {
-    log.updater.warn('release API version check failed:', error)
-  }
-  try {
-    return await fetchReleasePageVersion()
-  } catch (error) {
-    log.updater.warn('release page version check failed:', error)
-  }
-  throw new Error('Latest release could not be checked')
-}
-
-async function fetchReleaseApiVersion(): Promise<string> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), RELEASE_CHECK_TIMEOUT_MS)
-  timer.unref()
-  try {
-    const response = await net.fetch(LATEST_RELEASE_API_URL, {
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': `Pi-Harness/${APP_VERSION}`,
-        'X-GitHub-Api-Version': '2022-11-28'
-      },
-      signal: controller.signal
-    })
-    if (!response.ok) throw new Error(`GitHub Releases API returned HTTP ${response.status}`)
-    const payload: unknown = await response.json()
-    if (!payload || typeof payload !== 'object' || !('tag_name' in payload)) {
-      throw new Error('GitHub Releases returned an invalid response')
-    }
-    if (('draft' in payload && payload.draft) || ('prerelease' in payload && payload.prerelease)) {
-      throw new Error('GitHub Releases returned an unpublished or prerelease version')
-    }
-    const rawTag = typeof payload.tag_name === 'string' ? payload.tag_name.trim() : ''
-    const version = validVersion(rawTag.replace(/^v/i, ''))
-    if (!version) throw new Error('GitHub Releases API returned an invalid tag')
-    return version
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-async function fetchReleasePageVersion(): Promise<string> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), RELEASE_CHECK_TIMEOUT_MS)
-  timer.unref()
-  try {
-    const response = await net.fetch(LATEST_RELEASE_URL, {
-      headers: {
-        Accept: 'text/html',
-        'User-Agent': `Pi-Harness/${APP_VERSION}`
-      },
-      signal: controller.signal
-    })
-    if (!response.ok) throw new Error(`GitHub Releases page returned HTTP ${response.status}`)
-
-    // fetch follows /releases/latest to the stable tag. Read only that trusted
-    // redirect target; the response document is remote content, not app input.
-    const releaseUrl = new URL(response.url)
-    if (releaseUrl.origin !== 'https://github.com') {
-      throw new Error('GitHub Releases redirected to an unexpected origin')
-    }
-    const match = releaseUrl.pathname.match(
-      /^\/wangmiaozero\/pi-harness\/releases\/tag\/v?([^/]+)\/?$/i
-    )
-    const version = match ? validVersion(decodeURIComponent(match[1])) : null
-    if (!version) throw new Error('GitHub Releases page returned an invalid tag URL')
-    return version
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-/** Retained as an explicit retry path; normal downloads start automatically. */
-export async function downloadUpdate(): Promise<AppUpdateState> {
-  if (state.downloaded || state.status === 'downloading') return getUpdateState()
-  const autoUpdater = await getAutoUpdater()
-  if (!autoUpdater) return getUpdateState()
-
-  try {
-    updateState({ supported: true, available: true, status: 'downloading' })
-    await autoUpdater.downloadUpdate()
-  } catch (error) {
-    return reportDownloadFailure(error)
-  }
-  return snapshot()
-}
-
-/** Never accept a renderer-controlled URL or an external Release response URL. */
-export async function openReleasePage(): Promise<void> {
-  await shell.openExternal(LATEST_RELEASE_URL)
-}
-
-export async function installUpdate(): Promise<void> {
-  const autoUpdater = await getAutoUpdater()
-  if (!autoUpdater || !state.downloaded) throw new Error('No downloaded update to install')
-  autoUpdater.quitAndInstall(false, true)
-}
-
-export function startAutomaticUpdates(delayMs = 10_000): void {
-  if (!app.isPackaged || automaticCheckTimer) return
-  automaticCheckTimer = setTimeout(
-    () => {
-      automaticCheckTimer = null
-      void checkForUpdates()
-    },
-    Math.max(0, delayMs)
-  )
-  automaticCheckTimer.unref()
-}
-
-export function stopAutomaticUpdates(): void {
-  if (!automaticCheckTimer) return
-  clearTimeout(automaticCheckTimer)
-  automaticCheckTimer = null
-}
+export const getUpdateState = (): AppUpdateState => service().snapshot()
+export const onUpdateState = (listener: (state: AppUpdateState) => void) =>
+  service().onState(listener)
+export const checkForUpdates = () => service().check()
+export const downloadUpdate = () => service().download()
+export const cancelUpdate = () => service().cancel()
+export const retryUpdate = () => service().retry()
+export const deferUpdate = () => service().defer()
+export const revealUpdate = () => service().reveal()
+export const updatePreferences = (value: UpdatePreferences) => service().preferences(value)
+export const installUpdate = () => service().install()
+export const openReleasePage = () => shell.openExternal(LATEST_RELEASE_URL)
+export const startAutomaticUpdates = (delay = 10_000) => service().start(delay)
+export const stopAutomaticUpdates = () => manager?.stop()

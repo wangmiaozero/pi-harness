@@ -13,6 +13,8 @@ import {
 } from '../../../scripts/release/policy.mjs'
 import { publishRelease } from '../../../scripts/release/publish.mjs'
 import { collect } from '../../../scripts/release/collect.mjs'
+import { createHash } from 'node:crypto'
+import { signingFixture } from '../updater/security/signing-fixture'
 const temporary: string[] = []
 it('uses the builder Linux ARM64 metadata suffix without changing existing feeds', () => {
   expect(metadataName('linux-arm64', 'standard')).toBe('latest-linux-arm64.yml')
@@ -71,6 +73,13 @@ it('validates generated payload bytes and rejects wrong variant or unsafe metada
   await expect(validateMetadata(dir, 'latest.yml', '2.0.1', [file])).rejects.toThrow('integrity')
 })
 function fixtureClient() {
+  const fixture = signingFixture()
+  const assets = new Map<string, Buffer>(
+    fixture.manifest.artifacts.map((item) => [item.file, fixture.payload])
+  )
+  assets.set('checksums.json', fixture.bytes)
+  assets.set('checksums.json.sig', fixture.signature)
+  assets.set('SHA256SUMS', Buffer.from('fixture sums'))
   const state = {
     id: 1,
     draft: true,
@@ -86,6 +95,7 @@ function fixtureClient() {
       state.assets.push(file)
     }),
     hash: vi.fn(async (asset: any) => asset.sha256),
+    read: vi.fn(async (asset: any) => assets.get(asset.name)!),
     publish: vi.fn(async () => {})
   }
   const plan = {
@@ -94,7 +104,14 @@ function fixtureClient() {
     revision: 'revision',
     marker: 'marker',
     notes: 'notes',
-    files: [{ name: 'installer', size: 7, sha256: 'digest' }]
+    files: [...assets].map(([name, bytes]) => ({
+      name,
+      size: bytes.length,
+      sha256: createHash('sha256').update(bytes).digest('hex')
+    })),
+    manifest: fixture.bytes,
+    signature: fixture.signature,
+    trust: fixture.trust
   }
   return { state, client, plan }
 }
@@ -117,11 +134,19 @@ it('refuses existing public or unrelated drafts and resumes matching partial dra
     expect(client.upload).not.toHaveBeenCalled()
   }
   const { client, state, plan } = fixtureClient()
-  state.assets.push(plan.files[0])
+  state.assets.push(...plan.files)
   client.find.mockResolvedValue(state)
   await publishRelease(client, plan)
   expect(client.upload).not.toHaveBeenCalled()
   expect(client.publish).toHaveBeenCalledOnce()
+})
+it('refuses an invalid remote signature even after asset hashes appear to match', async () => {
+  const { client, plan } = fixtureClient()
+  client.read.mockImplementation(async (asset: any) =>
+    asset.name === 'checksums.json' ? plan.manifest : Buffer.from('{}')
+  )
+  await expect(publishRelease(client, plan)).rejects.toThrow('signature')
+  expect(client.publish).not.toHaveBeenCalled()
 })
 it('rejects missing native platform evidence before producing a release candidate', async () => {
   const input = await directory(),

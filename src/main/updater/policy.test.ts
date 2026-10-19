@@ -4,10 +4,10 @@ import { communityManualUpdates } from './policy'
 const mocks = vi.hoisted(() => ({ exists: vi.fn(), read: vi.fn() }))
 vi.mock('node:fs', () => ({ default: { existsSync: mocks.exists, readFileSync: mocks.read } }))
 afterEach(() => vi.unstubAllGlobals())
-it('honors Community manual updates, keeps legacy behavior, and fails closed for damaged policy', () => {
+it('honors Community manual updates and fails closed for missing or damaged policy', () => {
   vi.stubGlobal('process', { ...process, resourcesPath: '/bundle' })
   mocks.exists.mockReturnValue(false)
-  expect(communityManualUpdates()).toBe(false)
+  expect(communityManualUpdates()).toBe(true)
   mocks.exists.mockReturnValue(true)
   mocks.read.mockReturnValue('{"channel":"community","updateMode":"automatic"}')
   expect(communityManualUpdates()).toBe(true)

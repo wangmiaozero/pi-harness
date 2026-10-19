@@ -130,7 +130,7 @@ jobs:
           key: downloads-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml', 'src/main/runtime/catalog.json') }}
       - run: pnpm install --frozen-lockfile
       - name: Native Windows and environment regressions
-        run: pnpm exec vitest run src/main/environment src/main/pi src/main/process --maxWorkers=2
+        run: pnpm exec vitest run src/main/environment src/main/pi src/main/process src/main/updater/security --maxWorkers=2
       - name: Verify pinned SDK and native runtime versions
         run: |
           pnpm runtime:prepare
@@ -157,4 +157,69 @@ jobs:
             out/community-validation/${{ matrix.platform }}-${{ matrix.arch }}/
             out/runtime-validation/
             test-results/
+          if-no-files-found: warn
+
+  update-upgrade:
+    name: Signed download and real manual upgrade (${{ matrix.platform }}-${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: darwin
+            arch: arm64
+            experimental: false
+          - os: macos-15-intel
+            platform: darwin
+            arch: x64
+            experimental: false
+          - os: windows-2025
+            platform: win32
+            arch: x64
+            experimental: false
+          - os: windows-11-arm
+            platform: win32
+            arch: arm64
+            experimental: false
+          - os: ubuntu-24.04
+            platform: linux
+            arch: x64
+            experimental: false
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+            experimental: true
+    continue-on-error: ${{ matrix.experimental }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_FOR_PULL_REQUEST: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 9.12.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.22.2
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm runtime:prepare
+      - name: Signed fixture download, cancellation/resume and real manual upgrade
+        if: runner.os != 'Linux'
+        run: pnpm release:test-upgrade
+      - name: AppImage manual upgrade and retained user profile
+        if: runner.os == 'Linux'
+        run: xvfb-run -a pnpm release:test-upgrade
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: update-upgrade-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/evidence.json
+            out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/upgrade-*.json
+            out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/*.log
           if-no-files-found: warn

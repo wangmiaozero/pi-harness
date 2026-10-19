@@ -70,7 +70,11 @@
     "runtime:check": "node scripts/upgrade/audit.mjs --runtime",
     "runtime:catalog:update": "node scripts/runtime/update-catalog.mjs",
     "deps:check": "node scripts/upgrade/audit.mjs --dependencies",
-    "deps:report": "node scripts/upgrade/audit.mjs --report"
+    "deps:report": "node scripts/upgrade/audit.mjs --report",
+    "release:keygen": "node scripts/release/signing/cli.mjs keygen",
+    "release:sign": "node scripts/release/signing/cli.mjs sign",
+    "release:verify": "node scripts/release/signing/cli.mjs verify",
+    "release:test-upgrade": "node scripts/release/update-upgrade.mjs"
   },
   "dependencies": {
     "@babel/parser": "^8.0.7",

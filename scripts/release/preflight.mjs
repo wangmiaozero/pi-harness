@@ -5,12 +5,18 @@ import { gt, valid } from 'semver'
 const { version } = JSON.parse(await fs.readFile('package.json', 'utf8'))
 const tag = process.env.RELEASE_TAG
 if (process.env.GITHUB_EVENT_NAME === 'push') {
+  if (
+    process.env.GITHUB_REPOSITORY !== 'wangmiaozero/pi-harness' ||
+    process.env.GITHUB_REF_TYPE !== 'tag'
+  )
+    throw new Error('Only official repository tag pushes may sign or publish')
   validateVersion(version, tag)
   const revision = execFileSync('git', ['rev-parse', `${tag}^{commit}`], {
     encoding: 'utf8'
   }).trim()
   if (revision !== process.env.GITHUB_SHA)
     throw new Error('Tag does not resolve to this build commit')
+  execFileSync('git', ['merge-base', '--is-ancestor', revision, 'origin/main'])
   changelogSection(await fs.readFile('CHANGELOG.md', 'utf8'), version)
   const latest = await fetch(
     `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/releases/latest`,

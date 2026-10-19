@@ -1,14 +1,33 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { assetNames, digest, platforms, variants } from './policy.mjs'
-export async function verifyCandidate(directory, version, revision) {
-  const manifest = JSON.parse(await fs.readFile(path.join(directory, 'checksums.json'), 'utf8'))
-  if (
-    manifest.version !== version ||
-    manifest.revision !== revision ||
-    manifest.channel !== 'community'
-  )
-    throw new Error('Candidate version/source/policy mismatch')
+import { parseManifest, verifiedManifest } from '../../src/main/updater/security/manifest.mjs'
+export async function verifyCandidate(
+  directory,
+  version,
+  revision,
+  { requireSignature = false, trust } = {}
+) {
+  for (const name of await fs.readdir(directory)) {
+    if (!(await fs.lstat(path.join(directory, name))).isFile())
+      throw new Error('Candidate assets must be regular files, never symlinks or directories')
+  }
+  const bytes = await fs.readFile(path.join(directory, 'checksums.json'))
+  const signature = await fs.readFile(path.join(directory, 'checksums.json.sig')).catch((error) => {
+    if (error.code !== 'ENOENT') throw error
+    return null
+  })
+  if (requireSignature && !signature) throw new Error('Required release signature is missing')
+  if (signature && !trust)
+    trust = JSON.parse(
+      await fs.readFile(
+        new URL('../../resources/release-public-keys.json', import.meta.url),
+        'utf8'
+      )
+    )
+  const manifest = signature
+    ? verifiedManifest(bytes, signature, trust, version, revision)
+    : parseManifest(bytes, version, revision)
   const expected = platforms.flatMap((platform) =>
     variants.flatMap((variant) => assetNames(version, platform, variant))
   )
@@ -19,7 +38,7 @@ export async function verifyCandidate(directory, version, revision) {
     const target = path.join(directory, name)
     if (
       !item ||
-      (await fs.stat(target)).size !== item.size ||
+      (await fs.lstat(target)).size !== item.size ||
       (await digest(target)) !== item.sha256
     )
       throw new Error(`Candidate integrity mismatch: ${name}`)
@@ -34,8 +53,12 @@ export async function verifyCandidate(directory, version, revision) {
   }
   const allowed = new Set([...expected, ...expected.map((name) => `${name}.blockmap`)])
   for (const name of await fs.readdir(directory)) {
-    if (['checksums.json', 'SHA256SUMS'].includes(name)) continue
-    if (!allowed.has(name) || sums.get(name) !== (await digest(path.join(directory, name))))
+    if (['checksums.json', 'checksums.json.sig', 'SHA256SUMS'].includes(name)) continue
+    if (
+      !(await fs.lstat(path.join(directory, name))).isFile() ||
+      !allowed.has(name) ||
+      sums.get(name) !== (await digest(path.join(directory, name)))
+    )
       throw new Error(`Unexpected or corrupt candidate asset: ${name}`)
     sums.delete(name)
   }

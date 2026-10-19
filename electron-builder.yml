@@ -13,6 +13,8 @@ files:
       - renderer/**/*
   - '!release{,/**/*}'
   - '!task{,/**/*}'
+  - '!**/.release-keys{,/**/*}'
+  - '!**/*.{pem,key,p8,p12,pfx,keystore}'
   - package.json
   - '!**/*.{map,d.ts}'
   # Keep only the matching macOS Native Pi TUI addon in each package.

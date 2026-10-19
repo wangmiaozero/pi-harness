@@ -8,29 +8,17 @@ export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const require = createRequire(import.meta.url)
 const builder = createRequire(require.resolve('electron-builder'))
 export const yaml = builder('js-yaml')
-export const platforms = ['darwin-arm64', 'darwin-x64', 'win32-x64', 'linux-x64']
+export { assetNames } from '../../src/main/updater/security/manifest.mjs'
+import { releasePlatforms, releaseVariants } from '../../src/main/updater/security/manifest.mjs'
+export const platforms = releasePlatforms
 export const experimentalPlatforms = ['win32-arm64', 'linux-arm64']
-export const variants = ['standard', 'nomascot']
+export const variants = releaseVariants
 export const channel = process.env.PI_HARNESS_RELEASE_CHANNEL ?? 'community'
 if (!['community', 'verified'].includes(channel)) throw new Error('Unknown release channel')
 export async function digest(file, algorithm = 'sha256', encoding = 'hex') {
   const hash = createHash(algorithm)
   for await (const chunk of createReadStream(file)) hash.update(chunk)
   return hash.digest(encoding)
-}
-export function assetNames(version, platform, variant) {
-  const [os, arch] = platform.split('-')
-  const suffix = variant === 'nomascot' ? '-nomascot' : ''
-  if (os === 'darwin')
-    return [
-      `Pi-Harness-${version}${arch === 'arm64' || variant === 'nomascot' ? `-${arch}` : ''}${suffix}.dmg`,
-      `Pi-Harness-${version}${arch === 'arm64' || variant === 'nomascot' ? `-${arch}` : ''}${suffix}${variant === 'standard' ? '-mac' : ''}.zip`
-    ]
-  if (os === 'win32')
-    return [`Pi-Harness-Setup-${version}${arch === 'arm64' ? '-arm64' : ''}${suffix}.exe`]
-  return [
-    `Pi-Harness-${version}${arch === 'arm64' || variant === 'nomascot' ? `-${arch === 'x64' ? 'x86_64' : arch}` : ''}${suffix}.AppImage`
-  ]
 }
 export function metadataName(platform, variant) {
   const prefix = variant === 'nomascot' ? 'nomascot' : 'latest'

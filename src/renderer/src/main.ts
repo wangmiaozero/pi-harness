@@ -102,7 +102,8 @@ unsubscribers.push(
   getApi().on('updater-state', (payload) => {
     const state = payload as Partial<AppUpdateState>
     if (
-      state.status !== 'downloaded' ||
+      state.status !== 'ready_to_install' ||
+      !state.canInstall ||
       !state.latestVersion ||
       state.latestVersion === notifiedUpdateVersion
     ) {
