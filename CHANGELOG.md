@@ -2,6 +2,18 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.2.2 — 2026-10-20
+
+### Added
+
+- Added verified update downloads with progress, cancellation, resume, and retry.
+- Added release notes and an option to turn off automatic update checks.
+
+### Fixed
+
+- Kept unverified or incompatible update packages from being offered for installation.
+- Improved guidance for installing downloaded updates manually.
+
 ## 2.2.1 — 2026-10-18
 
 ### Fixed
