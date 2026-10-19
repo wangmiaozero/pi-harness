@@ -215,6 +215,7 @@ test('verifies, cancels, resumes and manually upgrades a real installed package 
     const retainedBytes = retainedPaths.map((file) => fs.readFileSync(file))
     await electronApp.close()
     let newExecutable = nextExecutable!
+    const restartEnvironment = { ...launch.env }
     if (process.platform === 'darwin') {
       const currentApp = path.resolve(launch.executablePath, '../../..')
       const newApp = path.resolve(newExecutable, '../../..')
@@ -267,11 +268,22 @@ test('verifies, cancels, resumes and manually upgrades a real installed package 
           process.env.PI_HARNESS_E2E_VARIANT!
         )
       }
-      await stageAppImage(launch.executablePath, downloaded, candidate)
-      newExecutable = launch.executablePath
+      // execPath belongs to the mounted/extracted image and disappears on exit.
+      // Replace and relaunch the outer container, as the production adapter does.
+      const appImage = launch.env.APPIMAGE
+      if (!appImage) throw new Error('The installed app did not identify its AppImage container')
+      expect(appImage).toBe(fs.realpathSync(process.env.PI_HARNESS_E2E_EXECUTABLE!))
+      const previousHash = hash(appImage)
+      const replacement = await stageAppImage(appImage, downloaded, candidate)
+      expect(hash(replacement.backup)).toBe(previousHash)
+      expect(hash(replacement.target)).toBe(hash(installer))
+      newExecutable = replacement.target
+      // Let the new container establish its own extraction directory and identity.
+      for (const name of ['APPIMAGE', 'APPDIR', 'ARGV0', 'OWD']) delete restartEnvironment[name]
     }
     restarted = await electron.launch({
       ...launch,
+      env: restartEnvironment,
       executablePath: newExecutable,
       args: process.env.PI_HARNESS_E2E_EXECUTABLE ? [] : [path.resolve('out/main/index.js')]
     })
