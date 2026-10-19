@@ -36,11 +36,16 @@ describe('desktop-only runtime', () => {
     expect(installConstants).toContain("NODE_DOWNLOAD_URL = 'https://nodejs.org/en/download'")
     expect(updaterSource.match(/\bopenExternal\b/g)).toHaveLength(1)
     expect(updaterSource).toContain('shell.openExternal(LATEST_RELEASE_URL)')
-    expect(updaterSource).toContain(
-      "LATEST_RELEASE_URL = 'https://github.com/wangmiaozero/pi-harness/releases/latest'"
+    const providerSource = readFileSync(
+      join(process.cwd(), 'src/main/updater/update-provider.ts'),
+      'utf8'
     )
+    expect(providerSource).toContain(
+      "RELEASE_PAGE = 'https://github.com/wangmiaozero/pi-harness/releases/latest'"
+    )
+    expect(updaterSource).toContain('RELEASE_PAGE as LATEST_RELEASE_URL')
     expect(registerSource).toContain(
-      "parseInput(noArgsSchema, args, 'Unexpected release page arguments')"
+      "parseInput(noArgsSchema, args, 'Unexpected update arguments')"
     )
     expect(sources).not.toMatch(/\bwindow\.open\b/)
     expect(sources).not.toMatch(/updater:open-releases/)

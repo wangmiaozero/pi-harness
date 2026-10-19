@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "activeKeyId": "release-2026-01",
+  "keys": [
+    {
+      "keyId": "release-2026-01",
+      "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA1xILZr0uCBmPZDr0CZFEXmsuW+ZTOI+oBBCFSTBFcLg=\n-----END PUBLIC KEY-----\n",
+      "revoked": false
+    }
+  ]
+}

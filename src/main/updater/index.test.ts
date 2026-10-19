@@ -1,411 +1,95 @@
-import { EventEmitter } from 'node:events'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-
-// Keep version comparisons independent of package.json release bumps.
-const versions = vi.hoisted(() => ({
-  current: '1.2.0',
-  older: '1.1.0',
-  newer: '1.2.1'
-}))
-
+// @vitest-environment node
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
-  app: {
-    isPackaged: false,
-    getPath: vi.fn(() => '/Applications/Pi-Harness.app/Contents/MacOS/Pi-Harness')
-  },
-  autoUpdater: null as unknown,
+  directory: '',
   fetch: vi.fn(),
-  openExternal: vi.fn(),
-  spawnSync: vi.fn(),
-  communityManual: false
-}))
-vi.mock('./policy', () => ({ communityManualUpdates: () => mocks.communityManual }))
-
-vi.mock('@shared/constants/index', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@shared/constants/index')>()),
-  APP_VERSION: versions.current
+  open: vi.fn(),
+  reveal: vi.fn(),
+  quit: vi.fn(),
+  relaunch: vi.fn(),
+  getVersion: vi.fn(() => '2.2.1')
 }))
 vi.mock('electron', () => ({
-  app: mocks.app,
+  app: {
+    isPackaged: true,
+    getVersion: mocks.getVersion,
+    getPath: () => mocks.directory,
+    quit: mocks.quit,
+    relaunch: mocks.relaunch
+  },
   net: { fetch: mocks.fetch },
-  shell: { openExternal: mocks.openExternal }
+  shell: { openExternal: mocks.open, showItemInFolder: mocks.reveal }
 }))
-vi.mock('node:child_process', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:child_process')>()
-  return {
-    ...actual,
-    spawnSync: mocks.spawnSync,
-    default: { ...actual, spawnSync: mocks.spawnSync }
-  }
+vi.mock('./policy', () => ({ readUpdateMode: () => 'manual' }))
+beforeEach(async () => {
+  vi.resetModules()
+  vi.clearAllMocks()
+  mocks.directory = await fs.mkdtemp(path.join(os.tmpdir(), 'updater-main-'))
 })
-vi.mock('electron-updater', () => ({
-  // Match Node's real ESM namespace: autoUpdater exists only on default.
-  default: {
-    get autoUpdater() {
-      return mocks.autoUpdater
-    }
-  }
-}))
-
-class FakeAutoUpdater extends EventEmitter {
-  autoDownload = false
-  autoInstallOnAppQuit = false
-  logger: unknown = null
-  checkForUpdates = vi.fn()
-  downloadUpdate = vi.fn()
-  quitAndInstall = vi.fn()
-}
-
-describe('application updater', () => {
-  afterEach(() => vi.restoreAllMocks())
-
-  beforeEach(() => {
-    vi.resetModules()
-    mocks.communityManual = false
-    vi.unstubAllGlobals()
-    mocks.app.isPackaged = false
-    mocks.autoUpdater = new FakeAutoUpdater()
-    mocks.fetch.mockReset()
-    mocks.openExternal.mockReset()
-    mocks.spawnSync.mockReset()
-    mocks.spawnSync.mockReturnValueOnce({ status: 0, stdout: '', stderr: '' }).mockReturnValueOnce({
-      status: 0,
-      stdout: '',
-      stderr: 'Authority=Developer ID Application: Example\nTeamIdentifier=EXAMPLETEAM\n'
-    })
-  })
-
-  it('uses manual release checks for Community packages without initializing an automatic installer', async () => {
-    mocks.app.isPackaged = true
-    mocks.communityManual = true
-    mocks.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ tag_name: `v${versions.newer}` })
-    })
+afterEach(async () => {
+  ;(await import('./index')).stopAutomaticUpdates()
+  await fs.rm(mocks.directory, { recursive: true, force: true })
+})
+it.each(['2.2.0', '2.2.1'])(
+  'reports no newer version for %s without loading an installer',
+  async (version) => {
+    mocks.fetch.mockImplementation(
+      async () => new Response(JSON.stringify({ tag_name: `v${version}` }))
+    )
     const updater = await import('./index')
     expect(await updater.checkForUpdates()).toMatchObject({
-      status: 'manual-update',
-      available: true
-    })
-    expect((mocks.autoUpdater as FakeAutoUpdater).checkForUpdates).not.toHaveBeenCalled()
-    expect((mocks.autoUpdater as FakeAutoUpdater).downloadUpdate).not.toHaveBeenCalled()
-  })
-
-  it('compares against the public release API in an unpackaged development build', async () => {
-    mocks.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: vi.fn().mockResolvedValue({ tag_name: `v${versions.current}` })
-    })
-    const updater = await import('./index')
-    const result = await updater.checkForUpdates()
-
-    expect(result).toMatchObject({
-      supported: true,
-      status: 'not-available',
+      status: 'idle',
       available: false,
-      currentVersion: versions.current,
-      latestVersion: versions.current
+      currentVersion: '2.2.1',
+      latestVersion: version,
+      canInstall: false
     })
-    expect(result).not.toHaveProperty('message')
-    // Development builds never touch electron-updater itself.
-    expect((mocks.autoUpdater as FakeAutoUpdater).checkForUpdates).not.toHaveBeenCalled()
-  })
-
-  it('reports a manual update in development when the public release is newer', async () => {
-    mocks.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: vi.fn().mockResolvedValue({ tag_name: `v${versions.newer}` })
-    })
-    const updater = await import('./index')
-
-    expect(await updater.checkForUpdates()).toMatchObject({
-      supported: true,
-      status: 'manual-update',
-      available: true,
-      latestVersion: versions.newer
-    })
-  })
-
-  it('automatically downloads packaged updates and exposes progress', async () => {
-    const platform = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
-    mocks.app.isPackaged = true
-    const fake = mocks.autoUpdater as FakeAutoUpdater
-    fake.checkForUpdates.mockImplementation(async () => {
-      fake.emit('checking-for-update')
-      fake.emit('update-available', { version: versions.newer })
-      fake.emit('download-progress', { percent: 42.4 })
-      return {
-        isUpdateAvailable: true,
-        updateInfo: { version: versions.newer }
-      }
-    })
-
-    const updater = await import('./index')
-    const result = await updater.checkForUpdates()
-
-    expect(fake.autoDownload).toBe(true)
-    expect(fake.autoInstallOnAppQuit).toBe(true)
-    expect(result).toMatchObject({
-      supported: true,
-      available: true,
-      currentVersion: versions.current,
-      latestVersion: versions.newer,
-      status: 'downloading',
-      downloadProgress: 42.4
-    })
-
-    fake.emit('update-downloaded', { version: versions.newer })
-    expect(updater.getUpdateState()).toMatchObject({
-      status: 'downloaded',
-      downloaded: true,
-      downloadProgress: 100
-    })
-
-    await updater.installUpdate()
-    expect(fake.quitAndInstall).toHaveBeenCalledWith(false, true)
-    platform.mockRestore()
-  })
-
-  it.each([versions.older, versions.current])(
-    'reports no update for Release %s when updater metadata is missing',
-    async (latestVersion) => {
-      mocks.app.isPackaged = true
-      const fake = mocks.autoUpdater as FakeAutoUpdater
-      fake.checkForUpdates.mockRejectedValue(new Error('latest-mac.yml returned HTTP 404'))
-      mocks.fetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: vi.fn().mockResolvedValue({ tag_name: `v${latestVersion}` })
-      })
-
-      const updater = await import('./index')
-      const result = await updater.checkForUpdates()
-
-      expect(result).toMatchObject({
-        supported: true,
-        available: false,
-        currentVersion: versions.current,
-        latestVersion,
-        status: 'not-available',
-        downloaded: false
-      })
-      expect(mocks.fetch).toHaveBeenCalledWith(
-        'https://api.github.com/repos/wangmiaozero/pi-harness/releases/latest',
-        expect.objectContaining({ signal: expect.any(AbortSignal) })
-      )
-    }
+    expect(mocks.quit).not.toHaveBeenCalled()
+  }
+)
+it('keeps unsigned historical versions as manual information and never silently downloads them', async () => {
+  mocks.fetch.mockImplementation(async (url: string) =>
+    url.includes('api.github.com')
+      ? new Response(JSON.stringify({ tag_name: 'v2.2.2' }))
+      : new Response(null, { status: 404 })
   )
-
-  it('reports a manual update when a newer Release lacks updater metadata', async () => {
-    mocks.app.isPackaged = true
-    const fake = mocks.autoUpdater as FakeAutoUpdater
-    fake.checkForUpdates.mockRejectedValue(new Error('latest-mac.yml returned HTTP 404'))
-    mocks.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: vi.fn().mockResolvedValue({ tag_name: `v${versions.newer}` })
-    })
-
-    const updater = await import('./index')
-    const result = await updater.checkForUpdates()
-
-    expect(result).toMatchObject({
-      supported: true,
-      available: true,
-      currentVersion: versions.current,
-      latestVersion: versions.newer,
-      status: 'manual-update',
-      downloaded: false
-    })
+  const updater = await import('./index')
+  expect(await updater.checkForUpdates()).toMatchObject({
+    status: 'manual_fallback',
+    available: true,
+    signature: 'missing',
+    downloaded: false
   })
-
-  it('keeps an actionable error state when both update checks fail', async () => {
-    mocks.app.isPackaged = true
-    const fake = mocks.autoUpdater as FakeAutoUpdater
-    fake.checkForUpdates.mockRejectedValue(new Error('network unavailable'))
-    mocks.fetch.mockRejectedValue(new Error('network unavailable'))
-
-    const updater = await import('./index')
-    const result = await updater.checkForUpdates()
-
-    expect(result).toMatchObject({
-      supported: true,
-      status: 'error',
-      downloaded: false,
-      downloadProgress: null
-    })
+  expect(await updater.downloadUpdate()).toMatchObject({ canInstall: false, downloaded: false })
+  await expect(updater.installUpdate()).rejects.toMatchObject({ code: 'SECURITY_ERROR' })
+  expect(mocks.quit).not.toHaveBeenCalled()
+})
+it('deduplicates simultaneous checks and safely reports complete network failure', async () => {
+  mocks.fetch.mockRejectedValue(new Error('offline'))
+  const updater = await import('./index')
+  const first = updater.checkForUpdates(),
+    second = updater.checkForUpdates()
+  expect(first).toBe(second)
+  expect(await first).toMatchObject({ status: 'failed', available: false, canInstall: false })
+})
+it('opens only the fixed official release page', async () => {
+  await (await import('./index')).openReleasePage()
+  expect(mocks.open).toHaveBeenCalledExactlyOnceWith(
+    'https://github.com/wangmiaozero/pi-harness/releases/latest'
+  )
+})
+it('persists the opt-out and does not install when deferred or stopped', async () => {
+  const updater = await import('./index')
+  await updater.updatePreferences({ autoCheck: false, autoDownload: false })
+  expect(updater.deferUpdate()).toMatchObject({
+    canInstall: false,
+    preferences: { autoCheck: false }
   })
-
-  it('still checks the release when the updater cannot initialize', async () => {
-    mocks.app.isPackaged = true
-    mocks.autoUpdater = undefined
-    mocks.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ tag_name: `v${versions.current}` })
-    })
-
-    const updater = await import('./index')
-    expect(await updater.checkForUpdates()).toMatchObject({ status: 'not-available' })
-    expect(mocks.fetch).toHaveBeenCalledOnce()
-  })
-
-  it('uses the public release endpoint when the API is rate limited', async () => {
-    mocks.app.isPackaged = true
-    ;(mocks.autoUpdater as FakeAutoUpdater).checkForUpdates.mockRejectedValue(new Error('404'))
-    mocks.fetch.mockResolvedValueOnce({ ok: false, status: 403 }).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      url: `https://github.com/wangmiaozero/pi-harness/releases/tag/v${versions.newer}`
-    })
-
-    const updater = await import('./index')
-    expect(await updater.checkForUpdates()).toMatchObject({
-      status: 'manual-update',
-      latestVersion: versions.newer
-    })
-    expect(mocks.fetch).toHaveBeenLastCalledWith(
-      'https://github.com/wangmiaozero/pi-harness/releases/latest',
-      expect.objectContaining({ signal: expect.any(AbortSignal) })
-    )
-  })
-
-  it('uses a manual update on macOS when the installed app is not signed', async () => {
-    const platform = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
-    mocks.app.isPackaged = true
-    mocks.spawnSync.mockReset()
-    mocks.spawnSync
-      .mockReturnValueOnce({ status: 1, stdout: '', stderr: 'code object is not signed at all' })
-      .mockReturnValueOnce({
-        status: 0,
-        stdout: '',
-        stderr: 'Signature=adhoc\nTeamIdentifier=not set\n'
-      })
-    mocks.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ tag_name: `v${versions.newer}` })
-    })
-
-    const updater = await import('./index')
-    expect(await updater.checkForUpdates()).toMatchObject({
-      status: 'manual-update',
-      available: true,
-      latestVersion: versions.newer
-    })
-    expect((mocks.autoUpdater as FakeAutoUpdater).checkForUpdates).not.toHaveBeenCalled()
-    expect(mocks.spawnSync).toHaveBeenNthCalledWith(
-      1,
-      '/usr/bin/codesign',
-      ['--verify', '--deep', '--strict', '/Applications/Pi-Harness.app'],
-      { encoding: 'utf8' }
-    )
-    platform.mockRestore()
-  })
-
-  it.each([
-    null,
-    {},
-    { tag_name: 'not-a-version' },
-    { tag_name: 123 },
-    { tag_name: `v${versions.newer}`, draft: true },
-    { tag_name: `v${versions.newer}`, prerelease: true }
-  ])('rejects an invalid or unpublished release response: %j', async (payload) => {
-    mocks.app.isPackaged = true
-    ;(mocks.autoUpdater as FakeAutoUpdater).checkForUpdates.mockRejectedValue(new Error('404'))
-    mocks.fetch.mockResolvedValue({ ok: true, json: async () => payload })
-
-    const updater = await import('./index')
-    expect(await updater.checkForUpdates()).toMatchObject({ status: 'error', available: false })
-  })
-
-  it('shares concurrent checks and registers the updater listeners once', async () => {
-    mocks.app.isPackaged = true
-    const fake = mocks.autoUpdater as FakeAutoUpdater
-    fake.checkForUpdates.mockResolvedValue({
-      isUpdateAvailable: false,
-      updateInfo: { version: versions.current }
-    })
-
-    const updater = await import('./index')
-    const results = await Promise.all([updater.checkForUpdates(), updater.checkForUpdates()])
-    expect(results[0]).toEqual(results[1])
-    expect(fake.checkForUpdates).toHaveBeenCalledOnce()
-    expect(fake.listenerCount('update-available')).toBe(1)
-  })
-
-  it('preserves a download and the ready-to-install state on repeated checks', async () => {
-    mocks.app.isPackaged = true
-    const fake = mocks.autoUpdater as FakeAutoUpdater
-    fake.checkForUpdates.mockImplementation(async () => {
-      fake.emit('update-available', { version: versions.newer })
-      fake.emit('download-progress', { percent: 35 })
-      return { isUpdateAvailable: true, updateInfo: { version: versions.newer } }
-    })
-
-    const updater = await import('./index')
-    await updater.checkForUpdates()
-    expect(await updater.checkForUpdates()).toMatchObject({
-      status: 'downloading',
-      downloadProgress: 35
-    })
-    fake.emit('update-downloaded', { version: versions.newer })
-    expect(await updater.checkForUpdates()).toMatchObject({
-      status: 'downloaded',
-      downloaded: true
-    })
-    expect(fake.checkForUpdates).toHaveBeenCalledOnce()
-    await updater.installUpdate()
-    expect(fake.quitAndInstall).toHaveBeenCalledOnce()
-  })
-
-  it('handles a missing automatic download payload after the check resolves', async () => {
-    mocks.app.isPackaged = true
-    const fake = mocks.autoUpdater as FakeAutoUpdater
-    let rejectDownload!: (error: Error) => void
-    const downloadPromise = new Promise<never>((_resolve, reject) => {
-      rejectDownload = reject
-    })
-    fake.checkForUpdates.mockImplementation(async () => {
-      fake.emit('update-available', { version: versions.newer })
-      return {
-        isUpdateAvailable: true,
-        updateInfo: { version: versions.newer },
-        downloadPromise
-      }
-    })
-    mocks.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ tag_name: `v${versions.newer}` })
-    })
-
-    const updater = await import('./index')
-    await updater.checkForUpdates()
-    const error = new Error('ZIP payload returned HTTP 404')
-    rejectDownload(error)
-    await vi.waitFor(() => {
-      expect(updater.getUpdateState()).toMatchObject({
-        status: 'manual-update',
-        latestVersion: versions.newer,
-        downloaded: false
-      })
-    })
-    // A later native updater error must not erase the already known version.
-    fake.emit('error', error)
-    expect(updater.getUpdateState()).toMatchObject({
-      status: 'manual-update',
-      latestVersion: versions.newer,
-      downloaded: false
-    })
-    expect(fake.quitAndInstall).not.toHaveBeenCalled()
-  })
-
-  it('opens only the application-owned release page', async () => {
-    const updater = await import('./index')
-    await updater.openReleasePage()
-    expect(mocks.openExternal).toHaveBeenCalledExactlyOnceWith(
-      'https://github.com/wangmiaozero/pi-harness/releases/latest'
-    )
-  })
+  updater.startAutomaticUpdates(0)
+  await new Promise((resolve) => setTimeout(resolve, 10))
+  expect(mocks.fetch).not.toHaveBeenCalled()
+  expect(mocks.quit).not.toHaveBeenCalled()
 })

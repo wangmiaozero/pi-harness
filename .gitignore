@@ -71,3 +71,7 @@ test-results/
 playwright-report/
 blob-report/
 e2e/.auth/
+
+# Local release signing material (public trust is stored as JSON)
+.release-keys/
+*.private.pem

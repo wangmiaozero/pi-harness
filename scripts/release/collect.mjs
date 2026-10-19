@@ -10,7 +10,7 @@ import {
   changelogSection
 } from './policy.mjs'
 import { catalog } from '../../src/main/runtime/distribution.mjs'
-export async function collect(input, output, version, revision) {
+export async function collect(input, output, version, revision, releaseNotes = '') {
   const artifacts = []
   const reports = []
   let expectedSourceDigest
@@ -87,24 +87,25 @@ export async function collect(input, output, version, revision) {
   await fs.writeFile(path.join(output, 'SHA256SUMS'), uploaded.join('\n') + '\n', { flag: 'wx' })
   await fs.writeFile(
     path.join(output, 'checksums.json'),
-    JSON.stringify({ version, channel, revision, artifacts }, null, 2) + '\n',
+    JSON.stringify({ version, channel, revision, artifacts, releaseNotes }, null, 2) + '\n',
     { flag: 'wx' }
   )
   return reports
 }
 if (process.argv[1] === new URL(import.meta.url).pathname) {
   const { version } = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'))
-  const reports = await collect(
-    path.resolve('package-artifacts'),
-    path.resolve('release-artifacts'),
-    version,
-    process.env.GITHUB_SHA
-  )
   const notes =
     process.env.GITHUB_EVENT_NAME === 'workflow_dispatch'
       ? `# Build Preview ${version}\n\nThis is an unpublished test build from ${process.env.GITHUB_SHA}.`
       : changelogSection(await fs.readFile(path.join(root, 'CHANGELOG.md'), 'utf8'), version)
-  const instructions = `\n\nCommunity Release · free distribution.\n\nRuntime versions: Pi ${catalog.pi.version}; Node.js ${catalog.node.version}; npm/npx ${catalog.node.npmVersion}.\n\nSupported platforms: macOS ARM64/x64, Windows x64, Linux x64. Standard and nomascot installers are provided. Windows/Linux ARM64 remain preview targets.\n\nmacOS builds are ad-hoc signed, without Apple Developer ID or notarization. Windows installers are unsigned and may show SmartScreen warnings. Verify the official download source and SHA256SUMS before opening. macOS: use System Settings → Privacy & Security → Open Anyway when blocked. Do not disable system security.\n\nUpdates: check for new versions in the app, download from the official GitHub Releases page and install manually on every Community platform. Automatic installation has not been validated; updater feeds are withheld.\n\nSHA256 proves consistency with this checksum list; it does not independently authenticate the publisher.\n`
+  const reports = await collect(
+    path.resolve('package-artifacts'),
+    path.resolve('release-artifacts'),
+    version,
+    process.env.GITHUB_SHA,
+    notes
+  )
+  const instructions = `\n\nCommunity Release · free distribution.\n\nRuntime versions: Pi ${catalog.pi.version}; Node.js ${catalog.node.version}; npm/npx ${catalog.node.npmVersion}.\n\nSupported platforms: macOS ARM64/x64, Windows x64, Linux x64. Standard and nomascot installers are provided. Windows/Linux ARM64 remain preview targets.\n\nmacOS builds are ad-hoc signed, without Apple Developer ID or notarization. Windows installers are unsigned and may show SmartScreen warnings. Verify the official download source and SHA256SUMS before opening. macOS: use System Settings → Privacy & Security → Open Anyway when blocked. Do not disable system security.\n\nUpdates: check for new versions in the app, download from the official GitHub Releases page and install manually on every Community platform. Automatic installation has not been validated; updater feeds are withheld.\n\nSigned releases include checksums.json.sig: verify its Ed25519 signature using the public key shipped with Pi-Harness, then verify installer size and SHA256. SHA256 alone does not authenticate the publisher. Build previews are unsigned and are not trusted releases.\n`
   await fs.writeFile('release-notes.md', notes + instructions)
   await fs.writeFile(
     'release-readiness.json',

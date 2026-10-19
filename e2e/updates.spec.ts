@@ -26,7 +26,7 @@ test('development builds check the public release API from the always-available 
   }, APP_VERSION)
 
   const result = await page.evaluate(() => window.piSwitch.updater.check())
-  expect(result).toMatchObject({ supported: true, status: 'not-available', available: false })
+  expect(result).toMatchObject({ supported: true, status: 'idle', available: false })
 
   await page.locator('a[href="#/settings"]').click()
   await page.getByTestId('settings-section-updates').click()
@@ -66,7 +66,7 @@ test('packaged update recovery offers the manual release download', async ({
       .first()
   ).toBeVisible()
   expect(await page.evaluate(() => window.piSwitch.updater.state())).toMatchObject({
-    status: 'manual-update',
+    status: 'manual_fallback',
     available: true,
     latestVersion: nextVersion,
     downloaded: false
@@ -78,7 +78,7 @@ test('packaged update recovery offers the manual release download', async ({
     const require = process.getBuiltinModule('module').createRequire(moduleUrl)
     return require('electron-updater').autoUpdater.listenerCount('update-available')
   }, updaterModuleUrl)
-  expect(listenerCount).toBe(process.platform === 'darwin' ? 0 : 1)
+  expect(listenerCount).toBe(0)
 
   await page.getByRole('button', { name: /前往下载|Go to downloads/ }).click()
   await expect
@@ -125,7 +125,52 @@ test('confirms the current version when automatic-update metadata is missing', a
   await page.getByRole('button', { name: /检查更新|Check for updates/ }).click()
   await expect(page.getByText(/已是最新版本|is up to date/).first()).toBeVisible()
   expect(await page.evaluate(() => window.piSwitch.updater.state())).toMatchObject({
-    status: 'not-available',
+    status: 'idle',
     available: false
   })
+})
+
+test('manual download rejects unsigned releases without revealing or installing a package', async ({
+  electronApp,
+  page
+}) => {
+  await electronApp.evaluate(({ app, net, shell }, version) => {
+    Object.defineProperty(app, 'isPackaged', { value: false })
+    net.fetch = async (url) =>
+      String(url).includes('/releases/latest')
+        ? new Response(JSON.stringify({ tag_name: `v${version}`, draft: false, prerelease: false }))
+        : new Response(null, { status: 404 })
+    shell.showItemInFolder = () => {
+      throw new Error('Unverified installer must never be revealed')
+    }
+  }, nextVersion)
+  await page.evaluate(() => {
+    window.location.hash = '/settings/updates'
+  })
+  await page.getByRole('button', { name: /检查更新|Check for updates/ }).click()
+  await expect(page.getByRole('button', { name: /下载安装包|Download installer/ })).toHaveCount(0)
+  await page.evaluate(() => window.piSwitch.updater.download())
+  await expect
+    .poll(() => page.evaluate(() => window.piSwitch.updater.state()))
+    .toMatchObject({
+      status: 'manual_fallback',
+      downloaded: false,
+      downloadProgress: null
+    })
+  await expect(page.getByRole('button', { name: /安装并重启|Install & Restart/ })).toHaveCount(0)
+  const rejected = await electronApp.evaluate(({ ipcMain, BrowserWindow }, channel) => {
+    const handlers = (
+      ipcMain as unknown as {
+        _invokeHandlers: Map<string, (event: unknown, ...args: unknown[]) => unknown>
+      }
+    )._invokeHandlers
+    const contents = BrowserWindow.getAllWindows().find(
+      (window) => !window.webContents.getURL().includes('overlay.html')
+    )!.webContents
+    return handlers.get(channel)!(
+      { sender: contents, senderFrame: contents.mainFrame },
+      { url: 'https://evil.example/install', destination: '/tmp/overwrite' }
+    )
+  }, IPC_INVOKE.updaterDownload)
+  expect(rejected).toMatchObject({ ok: false, error: { code: 'VALIDATION_ERROR' } })
 })

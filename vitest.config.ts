@@ -8,7 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@renderer': resolve(import.meta.dirname, 'src/renderer/src'),
-      '@shared': resolve(import.meta.dirname, 'src/shared')
+      '@shared': resolve(import.meta.dirname, 'src/shared'),
+      '@release-trust': resolve(import.meta.dirname, 'resources/release-public-keys.json')
     }
   },
   test: {

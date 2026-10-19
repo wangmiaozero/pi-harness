@@ -167,6 +167,11 @@ export const IPC_INVOKE = {
   updaterCheck: invoke('updater:check'),
   updaterDownload: invoke('updater:download'),
   updaterInstall: invoke('updater:install'),
+  updaterCancel: invoke('updater:cancel'),
+  updaterRetry: invoke('updater:retry'),
+  updaterDefer: invoke('updater:defer'),
+  updaterReveal: invoke('updater:reveal'),
+  updaterPreferences: invoke('updater:preferences'),
   updaterOpenReleasePage: invoke('updater:open-release-page'),
 
   // window

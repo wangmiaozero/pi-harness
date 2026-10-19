@@ -20,10 +20,13 @@ const archive = path.join(resources, 'app.asar')
 const files = new Set(
   asar.listPackage(archive).map((file) => file.replaceAll('\\', '/').replace(/^\//, ''))
 )
+if (files.has('out/main/update-test-identity.json')) throw new Error('Ephemeral update test identity must never be published')
 for (const file of files) {
   if (
     /^(?:task|scripts|fixtures|e2e|src|\.git|\.codex)\//.test(file) ||
-    /^\.env(?:\.|$)/.test(file)
+    /^\.env(?:\.|$)/.test(file) ||
+    /(?:^|\/)\.release-keys(?:\/|$)/.test(file) ||
+    /\.(?:pem|key|p8|p12|pfx|keystore)$/i.test(file)
   )
     throw new Error(`Private/development file in application archive: ${file}`)
 }

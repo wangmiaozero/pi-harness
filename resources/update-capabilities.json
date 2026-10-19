@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "platforms": {
+    "darwin-arm64": { "readiness": "MANUAL_ONLY", "format": "dmg", "evidence": null },
+    "darwin-x64": { "readiness": "MANUAL_ONLY", "format": "dmg", "evidence": null },
+    "win32-x64": { "readiness": "MANUAL_ONLY", "format": "nsis", "evidence": null },
+    "win32-arm64": { "readiness": "MANUAL_ONLY", "format": "nsis", "evidence": null, "preview": true },
+    "linux-x64": { "readiness": "MANUAL_ONLY", "format": "AppImage", "evidence": null },
+    "linux-arm64": { "readiness": "MANUAL_ONLY", "format": "AppImage", "evidence": null, "preview": true }
+  }
+}

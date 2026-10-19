@@ -21,7 +21,8 @@
     "composite": true,
     "tsBuildInfoFile": ".tsbuildinfo/node.tsbuildinfo",
     "paths": {
-      "@shared/*": ["./src/shared/*"]
+      "@shared/*": ["./src/shared/*"],
+      "@release-trust": ["./resources/release-public-keys.json"]
     }
   },
   "include": ["src/main/**/*", "src/preload/**/*", "src/shared/**/*", "electron.vite.config.ts"]
