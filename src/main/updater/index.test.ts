@@ -93,3 +93,18 @@ it('persists the opt-out and does not install when deferred or stopped', async (
   expect(mocks.fetch).not.toHaveBeenCalled()
   expect(mocks.quit).not.toHaveBeenCalled()
 })
+it('loads persisted startup state before answering a state request', async () => {
+  const updates = path.join(mocks.directory, 'updates')
+  await fs.mkdir(updates)
+  await fs.writeFile(
+    path.join(updates, 'preferences.json'),
+    JSON.stringify({ autoCheck: false, autoDownload: false })
+  )
+  const updater = await import('./index')
+  expect(await updater.getUpdateState()).toMatchObject({
+    status: 'idle',
+    preferences: { autoCheck: false, autoDownload: false },
+    canInstall: false
+  })
+  expect(mocks.fetch).not.toHaveBeenCalled()
+})

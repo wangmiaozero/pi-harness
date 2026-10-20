@@ -63,6 +63,12 @@ export class UpdateManager {
   snapshot(): AppUpdateState {
     return structuredClone(this.state)
   }
+  async readState(): Promise<AppUpdateState> {
+    // Startup recovery verifies the actual installed runtimes. Do not expose the
+    // constructor's idle snapshot as the result of an unfinished state request.
+    await this.initialize()
+    return this.snapshot()
+  }
   onState(listener: (state: AppUpdateState) => void) {
     this.listeners.add(listener)
     return () => {
@@ -114,6 +120,7 @@ export class UpdateManager {
           journal.toVersion === this.options.currentVersion &&
           journal.variant === this.options.variant
         ) {
+          this.set({ status: 'verifying', canInstall: false })
           await this.options.healthCheck()
           await atomicWriteJson(path.join(this.options.directory, 'upgrade.json'), {
             ...journal,

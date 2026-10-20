@@ -247,3 +247,91 @@ it('reports completion only after the target version actually starts and passes 
   expect(manager.snapshot().status).toBe('completed')
   expect(options.healthCheck).toHaveBeenCalledOnce()
 })
+
+it('reports verification while a manual upgrade startup health check is still running', async () => {
+  const { options, directory } = await setup()
+  await fs.writeFile(
+    path.join(directory, 'upgrade.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      fromVersion: '2.2.0',
+      toVersion: options.currentVersion,
+      variant: 'standard',
+      status: 'prepared',
+      mode: 'manual'
+    })
+  )
+  let finish!: () => void
+  const health = new Promise<void>((resolve) => {
+    finish = resolve
+  })
+  options.healthCheck.mockImplementation(() => health)
+  const manager = new UpdateManager(options)
+  const initializing = manager.preferences({ autoCheck: false, autoDownload: false })
+  try {
+    await vi.waitFor(() => expect(options.healthCheck).toHaveBeenCalledOnce())
+    expect(manager.snapshot()).toMatchObject({ status: 'verifying', canInstall: false })
+    expect(JSON.parse(await fs.readFile(path.join(directory, 'upgrade.json'), 'utf8')).status).toBe(
+      'prepared'
+    )
+  } finally {
+    finish()
+    await initializing
+  }
+  expect(manager.snapshot().status).toBe('completed')
+})
+
+it.each(['healthy', 'unhealthy'])(
+  'state requests await the shared %s startup check',
+  async (outcome) => {
+    const { options, directory, fetcher } = await setup()
+    const journal = {
+      schemaVersion: 1,
+      fromVersion: '2.2.0',
+      toVersion: options.currentVersion,
+      variant: 'standard',
+      status: 'prepared',
+      mode: 'manual'
+    }
+    const journalPath = path.join(directory, 'upgrade.json')
+    await fs.writeFile(journalPath, JSON.stringify(journal))
+    let finish!: () => void
+    const health = new Promise<void>((resolve, reject) => {
+      finish = () =>
+        outcome === 'healthy' ? resolve() : reject(new Error('Invalid runtime bytes'))
+    })
+    options.healthCheck.mockImplementation(() => health)
+    const manager = new UpdateManager(options)
+    let delivered = false
+    const first = manager.readState().then((state) => {
+      delivered = true
+      return state
+    })
+    const second = manager.readState()
+    try {
+      await vi.waitFor(() => expect(options.healthCheck).toHaveBeenCalledOnce())
+      expect(delivered).toBe(false)
+      expect(manager.snapshot()).toMatchObject({ status: 'verifying', canInstall: false })
+      expect(JSON.parse(await fs.readFile(journalPath, 'utf8'))).toEqual(journal)
+    } finally {
+      finish()
+      await Promise.all([first, second])
+    }
+    const state = await first
+    expect(state).toEqual(await second)
+    expect(state.canInstall).toBe(false)
+    expect(options.healthCheck).toHaveBeenCalledOnce()
+    expect(fetcher).not.toHaveBeenCalled()
+    const saved = JSON.parse(await fs.readFile(journalPath, 'utf8'))
+    if (outcome === 'healthy') {
+      expect(state.status).toBe('completed')
+      expect(saved.status).toBe('completed')
+    } else {
+      expect(state).toMatchObject({
+        status: 'manual_fallback',
+        error: { code: 'HEALTH_CHECK_FAILED' }
+      })
+      expect(saved).toEqual(journal)
+    }
+  }
+)

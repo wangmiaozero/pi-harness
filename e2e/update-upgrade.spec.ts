@@ -290,9 +290,14 @@ test('verifies, cancels, resumes and manually upgrades a real installed package 
     const reopened = await restarted.firstWindow()
     await reopened.waitForLoadState('domcontentloaded')
     expect(await restarted.evaluate(({ app }) => app.getVersion())).toBe(toVersion)
-    await expect
-      .poll(() => reopened.evaluate(() => window.piSwitch.updater.state()))
-      .toMatchObject({ currentVersion: toVersion, status: 'completed', canInstall: false })
+    // This IPC request awaits the real startup health operation, including full
+    // runtime integrity checks. It is not a renderer-animation polling deadline.
+    // The existing overall native-upgrade test deadline still applies.
+    expect(await reopened.evaluate(() => window.piSwitch.updater.state())).toMatchObject({
+      currentVersion: toVersion,
+      status: 'completed',
+      canInstall: false
+    })
     expect(fs.readFileSync(path.join(piAgentDir, 'models.json'), 'utf8')).toBe(modelsBefore)
     retainedPaths.forEach((file, index) =>
       expect(fs.readFileSync(file)).toEqual(retainedBytes[index])
