@@ -153,11 +153,13 @@ export class PiRpcRuntime implements HarnessAdapter {
     if (!pi.valid || !pi.executablePath) throw new AgentError(pi.diagnosticMessages.join('; '))
     let cwd = input.cwd
     let file: string | null = null
+    let intended = input.provider ? { provider: input.provider, modelId: input.modelId } : null
     if (input.sessionId) {
       file = await this.sessions.resolvePath(input.sessionId)
       if (!file) throw new AgentError('Session not found')
       const detail = await this.sessions.get(input.sessionId)
       cwd = detail.info?.cwd ?? cwd
+      intended ??= detail.context?.model ?? null
       if (!cwd) {
         const handle = await fs.open(file, 'r')
         try {
@@ -168,6 +170,24 @@ export class PiRpcRuntime implements HarnessAdapter {
           await handle.close()
         }
       }
+    }
+    if (!intended) {
+      try {
+        const settings = JSON.parse(
+          await fs.readFile(path.join(this.options.configDir(), 'settings.json'), 'utf8')
+        )
+        intended = { provider: settings.defaultProvider, modelId: settings.defaultModel }
+      } catch {
+        /* Pi handles missing or malformed native settings. */
+      }
+    }
+    if (intended?.provider === 'opencode-free') {
+      const { readState, runtimeModels } =
+        await import('../../../resources/desktop-extension/opencode-state.mjs')
+      if (!runtimeModels(await readState()).some((m) => m.id === intended!.modelId))
+        throw new AgentError(
+          'OpenCode model is unavailable or not verified; select another model explicitly'
+        )
     }
     if (!cwd) throw new AgentError('A workspace is required')
     await this.options.workspace?.prepareSession?.(id, cwd)
@@ -180,6 +200,15 @@ export class PiRpcRuntime implements HarnessAdapter {
     const client = new PiRpcClient()
     let live!: LiveSession
     const bridge = new DesktopBridge(async (method, params) => {
+      if (method === 'opencode_auth') {
+        const { secretStore } = await import('../security/secret-store')
+        const { readState, credentialSlot } =
+          await import('../../../resources/desktop-extension/opencode-state.mjs')
+        const state = await readState()
+        return state.authMode === 'inference' && state.enabled && state.hasCredential
+          ? secretStore.getSecret(credentialSlot(state), { strict: true })
+          : null
+      }
       if (method === 'ready') {
         if (live && typeof params.sessionId === 'string' && params.sessionId !== live.id) {
           const oldId = live.id
@@ -252,14 +281,17 @@ export class PiRpcRuntime implements HarnessAdapter {
     })
     let env: NodeJS.ProcessEnv = {
       ...(await this.runtimes.environment('pi')),
-      PI_CODING_AGENT_DIR: this.options.configDir()
+      PI_CODING_AGENT_DIR: this.options.configDir(),
+      PI_HARNESS_OPENCODE_STATE: process.env.PI_HARNESS_OPENCODE_STATE
     }
     let executable = pi.executablePath
     const args = ['--mode', 'rpc', '--extension', this.options.extensionPath]
     if (file) args.push('--session', file)
     else args.push('--session-id', id)
-    if (input.provider) args.push('--provider', input.provider)
-    if (input.modelId) args.push('--model', input.modelId)
+    if (intended?.provider === 'opencode-free')
+      args.push('--provider', intended.provider, '--model', intended.modelId!)
+    else if (input.provider) args.push('--provider', input.provider)
+    if (input.modelId && intended?.provider !== 'opencode-free') args.push('--model', input.modelId)
     if (input.thinkingLevel && input.thinkingLevel !== 'auto')
       args.push('--thinking', input.thinkingLevel)
     if (input.toolNames?.length === 0) args.push('--no-tools')

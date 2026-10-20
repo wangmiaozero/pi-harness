@@ -16,7 +16,7 @@ export function createDesktopExtension(
     assertToolAllowed?: (toolName: string, input: unknown, signal?: AbortSignal) => Promise<void>
   }
 ): ExtensionFactory {
-  return (pi) => {
+  return async (pi) => {
     pi.on('before_agent_start', (event) => ({
       // Both user and extension-triggered custom runs carry systemPrompt.
       systemPrompt: context.forceEmpty
@@ -37,5 +37,20 @@ export function createDesktopExtension(
       }
       return undefined
     })
+    if (process.env.PI_HARNESS_OPENCODE_STATE) {
+      const { registerOpenCode } =
+        await import('../../../resources/desktop-extension/opencode-provider.mjs')
+      await registerOpenCode(pi, {
+        resolveKey: async () => {
+          const { secretStore } = await import('../security/secret-store')
+          const { readState, credentialSlot } =
+            await import('../../../resources/desktop-extension/opencode-state.mjs')
+          const state = await readState()
+          return state.authMode === 'inference' && state.enabled && state.hasCredential
+            ? ((await secretStore.getSecret(credentialSlot(state), { strict: true })) ?? undefined)
+            : undefined
+        }
+      })
+    }
   }
 }

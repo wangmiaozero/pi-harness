@@ -1054,6 +1054,29 @@ export class AgentRuntimeService implements AgentRuntime {
       model = services.modelRuntime.getModel(input.provider, input.modelId)
     }
 
+    const intended = input.provider
+      ? { provider: input.provider, modelId: input.modelId }
+      : (sessionManager.buildSessionContext().model ?? {
+          provider: settingsManager.getDefaultProvider(),
+          modelId: settingsManager.getDefaultModel()
+        })
+    if (intended.provider === 'opencode-free') {
+      const { readState, runtimeModels } =
+        await import('../../../resources/desktop-extension/opencode-state.mjs')
+      const registered =
+        model ?? services.modelRuntime.getModel('opencode-free', intended.modelId ?? '')
+      if (
+        !runtimeModels(await readState()).some((m) => m.id === intended.modelId) ||
+        !registered ||
+        registered.provider !== 'opencode-free' ||
+        registered.id !== intended.modelId
+      )
+        throw new AgentError(
+          'OpenCode model is unavailable or not verified; select another model explicitly'
+        )
+      model = registered
+    }
+
     const { session: inner } = await sdk.createAgentSessionFromServices({
       services,
       sessionManager,

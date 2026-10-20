@@ -28,7 +28,9 @@ describe('desktop-only runtime', () => {
       join(process.cwd(), 'src/main/ipc/register.ts'),
       join(process.cwd(), 'src/main/updater/index.ts')
     ])
-    expect(registerSource.match(/\bopenExternal\b/g)).toHaveLength(3)
+    expect(registerSource.match(/\bopenExternal\b/g)).toHaveLength(5)
+    expect(registerSource).toContain('shell.openExternal(OPENCODE_DOCS_URL)')
+    expect(registerSource).toContain("shell.openExternal('https://opencode.ai/console/account')")
     expect(registerSource).toContain('shell.openExternal(NODE_DOWNLOAD_URL)')
     expect(registerSource).toContain('shell.openExternal(definition.sourceUrl)')
     expect(registerSource).toContain('shell.openExternal(PROJECT_LINK_URLS[target])')

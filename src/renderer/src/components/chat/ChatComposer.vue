@@ -5,6 +5,12 @@ import { toast } from 'vue-sonner'
 import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import ComposerModelPicker from './ComposerModelPicker.vue'
+import { getApi } from '@renderer/composables/useApi'
+import {
+  openCodeSelectionBlock,
+  showOpenCodeWorkspaceModel,
+  type OpenCodeFreeState
+} from '@shared/providers/opencode-free'
 import ComposerOptionMenu from './ComposerOptionMenu.vue'
 import AgentAuraFireBorder from '@renderer/components/ui/AgentAuraFireBorder.vue'
 import {
@@ -129,19 +135,63 @@ function focus() {
 
 defineExpose({ focus })
 
-const modelOptions = computed(() =>
-  models.items
-    .filter((m) => m.enabled)
+const openCodeState = ref<OpenCodeFreeState | null>(null)
+async function refreshOpenCodeOptions(): Promise<void> {
+  try {
+    openCodeState.value = await getApi().openCodeFree.state()
+  } catch {
+    openCodeState.value = null
+  }
+}
+const modelOptions = computed(() => {
+  const options = models.items
+    .filter((m) => {
+      if (!m.enabled) return false
+      const provider = providers.items.find((p) => p.id === m.providerId)
+      return (
+        (provider?.key ?? m.providerId) !== 'opencode-free' ||
+        showOpenCodeWorkspaceModel(openCodeState.value, m.modelId)
+      )
+    })
     .map((m) => {
       const provider = providers.items.find((p) => p.id === m.providerId)
       const key = provider?.key ?? m.providerId
+      const catalogModel =
+        key === 'opencode-free'
+          ? openCodeState.value?.models.find((item) => item.id === m.modelId)
+          : undefined
+      const reason =
+        key === 'opencode-free'
+          ? catalogModel
+            ? openCodeSelectionBlock(openCodeState.value, catalogModel)
+            : 'NOT_VERIFIED'
+          : null
       return {
         value: `${key}/${m.modelId}`,
         label: m.displayName || m.modelId,
-        group: provider?.displayName || key
+        group: provider?.displayName || key,
+        disabled: Boolean(reason),
+        description: reason ? t(`openCode.errors.${reason}`, t('openCode.notAvailable')) : undefined
       }
     })
-)
+  for (const model of openCodeState.value?.models ?? []) {
+    if (
+      !showOpenCodeWorkspaceModel(openCodeState.value, model.id) ||
+      model.price === 'unknown' ||
+      options.some((o) => o.value === `opencode-free/${model.id}`)
+    )
+      continue
+    const reason = openCodeSelectionBlock(openCodeState.value, model) ?? 'NOT_VERIFIED'
+    options.push({
+      value: `opencode-free/${model.id}`,
+      label: model.name,
+      group: 'OpenCode',
+      disabled: true,
+      description: t(`openCode.errors.${reason}`, t('openCode.notAvailable'))
+    })
+  }
+  return options
+})
 
 const modelValue = computed({
   get: () =>
@@ -152,7 +202,12 @@ const modelValue = computed({
   set: async (value: string) => {
     const [provider, ...rest] = value.split('/')
     const modelId = rest.join('/')
-    if (!provider || !modelId) return
+    if (
+      !provider ||
+      !modelId ||
+      !modelOptions.value.some((option) => option.value === value && !option.disabled)
+    )
+      return
     const selected = models.items.find((model) => {
       const modelProvider = providers.items.find((item) => item.id === model.providerId)
       return `${modelProvider?.key ?? model.providerId}/${model.modelId}` === value
@@ -718,6 +773,7 @@ watch(selectedImageModel, (selected) => {
 })
 
 onMounted(() => {
+  void refreshOpenCodeOptions()
   syncEditorText()
   window.addEventListener('resize', syncSkillMenu)
   window.addEventListener('scroll', syncSkillMenu, true)
@@ -938,6 +994,7 @@ onBeforeUnmount(() => {
         :thinking-levels="thinkingStops"
         :disabled="busy || modelSwitching"
         @interact="emit('unlockAudio')"
+        @open="refreshOpenCodeOptions"
       />
       <div class="console-tool-strip ml-auto flex items-center gap-0.5">
         <ComposerOptionMenu

@@ -1,5 +1,6 @@
 import net from 'node:net'
 import { randomUUID } from 'node:crypto'
+import { registerOpenCode } from './opencode-provider.mjs'
 
 /** Uses Pi's public extension API. No upstream patches or duplicated agent loop. */
 export default async function desktopExtension(pi) {
@@ -29,6 +30,7 @@ export default async function desktopExtension(pi) {
       pending.set(id, { resolve, reject, timer })
       send({ type: 'request', id, method, params })
     })
+  await registerOpenCode(pi, { resolveKey: async () => (await request('opencode_auth')) ?? undefined })
   socket.on('error', () => {})
   socket.on('close', () => {
     for (const item of pending.values()) {

@@ -102,6 +102,21 @@ const api: PiSwitchAPI = {
     copyInstallCommand: () => invoke(IPC_INVOKE.piCopyInstallCommand),
     openNodeDownload: () => invoke(IPC_INVOKE.piOpenNodeDownload)
   },
+  openCodeFree: {
+    setWorkspaceVisibility: (input) => invoke(IPC_INVOKE.openCodeWorkspaceVisibility, input),
+    state: () => invoke(IPC_INVOKE.openCodeState),
+    configure: (input) => invoke(IPC_INVOKE.openCodeConfigure, input),
+    saveCredential: (input) => invoke(IPC_INVOKE.openCodeSaveCredential, input),
+    activateCredential: (id) => invoke(IPC_INVOKE.openCodeActivateCredential, id),
+    deleteCredential: (id) => invoke(IPC_INVOKE.openCodeDeleteCredential, id),
+    revealCredential: (id) => invoke(IPC_INVOKE.openCodeRevealCredential, id),
+    refresh: () => invoke(IPC_INVOKE.openCodeRefresh),
+    test: (id, options) => invoke(IPC_INVOKE.openCodeTest, id, options),
+    cancel: () => invoke(IPC_INVOKE.openCodeCancel),
+    select: (id) => invoke(IPC_INVOKE.openCodeSelect, id),
+    docs: () => invoke(IPC_INVOKE.openCodeDocs),
+    keys: () => invoke(IPC_INVOKE.openCodeKeys)
+  },
   providers: {
     list: () => invoke(IPC_INVOKE.providerList),
     get: (key) => invoke(IPC_INVOKE.providerGet, key),

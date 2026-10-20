@@ -258,7 +258,7 @@ const hasSavedSecret = computed(
 )
 
 const providersWithNoModels = computed(() =>
-  providersStore.items.filter((p) => p.enabled && p.modelCount === 0)
+  providersStore.items.filter((p) => p.key !== 'opencode-free' && p.enabled && p.modelCount === 0)
 )
 
 const baseUrlHint = computed(() => {
@@ -408,11 +408,19 @@ function openCreate(presetId?: string) {
 }
 
 function selectProviderPreset(presetId: string) {
+  if (presetId === 'opencode-free') {
+    void router.replace({ path: '/models', query: { tab: 'opencode' } })
+    return
+  }
   presetSearch.value = ''
   openCreate(presetId)
 }
 
 function openEdit(provider: ProviderProfile) {
+  if (provider.key === 'opencode-free') {
+    void router.replace({ path: '/models', query: { tab: 'opencode' } })
+    return
+  }
   editingKey.value = provider.key
   form.value = {
     key: provider.key,
@@ -757,6 +765,10 @@ async function toggleEnabled(provider: ProviderProfile, enabled: boolean) {
 }
 
 function openTest(provider: ProviderProfile) {
+  if (provider.key === 'opencode-free') {
+    void router.replace({ path: '/models', query: { tab: 'opencode' } })
+    return
+  }
   testingProvider.value = provider
   const firstModel = modelsStore.items.find((m) => m.providerId === provider.id)
   const active = modelsStore.active.providerKey === provider.key ? modelsStore.active.modelId : null
@@ -799,10 +811,14 @@ function protocolLabel(protocol: string): string {
   return PROTOCOLS.find((p) => p.id === protocol)?.label ?? protocol
 }
 
+const standardProviders = computed(() =>
+  providersStore.items.filter((p) => p.key !== 'opencode-free')
+)
+
 const filteredProviders = computed(() => {
   const q = query.value.trim().toLowerCase()
-  if (!q) return providersStore.items
-  return providersStore.items.filter((p) => {
+  if (!q) return standardProviders.value
+  return standardProviders.value.filter((p) => {
     return (
       p.displayName.toLowerCase().includes(q) ||
       p.key.toLowerCase().includes(q) ||
@@ -936,7 +952,7 @@ onMounted(() => {
       </div>
 
       <EmptyState
-        v-else-if="providersStore.items.length === 0"
+        v-else-if="standardProviders.length === 0"
         :title="$t('providers.empty')"
         :description="$t('providers.emptyHint')"
         :icon="Box"
@@ -1076,10 +1092,7 @@ onMounted(() => {
           </div>
         </div>
       </div>
-      <p
-        v-if="providersStore.items.length > 0"
-        class="px-1 text-[11.5px] text-[var(--text-tertiary)]"
-      >
+      <p v-if="standardProviders.length > 0" class="px-1 text-[11.5px] text-[var(--text-tertiary)]">
         {{ $t('providers.exclusiveEnabledHint') }}
       </p>
     </div>

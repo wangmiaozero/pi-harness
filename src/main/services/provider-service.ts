@@ -65,6 +65,8 @@ export class ProviderService {
 
   /** Resolve a saved credential only for an explicit, trusted renderer reveal action. */
   async revealApiKey(key: string): Promise<string> {
+    if (key === 'opencode-free')
+      throw new ValidationError('OpenCode credentials cannot be revealed')
     const provider = await this.get(key)
     if (!provider) throw new NotFoundError(`Provider not found: ${key}`)
 
@@ -82,6 +84,7 @@ export class ProviderService {
 
   async create(raw: unknown, options?: WriteOptions): Promise<ProviderProfile> {
     const form = this.parseForm(raw)
+    if (form.key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const existing = await this.get(form.key)
     if (existing) throw new ValidationError(`Provider key already exists: ${form.key}`)
 
@@ -157,7 +160,9 @@ export class ProviderService {
   }
 
   async update(key: string, raw: unknown, options?: WriteOptions): Promise<ProviderProfile> {
+    if (key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const form = this.parseForm(raw)
+    if (form.key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const current = await this.get(key)
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
 
@@ -282,6 +287,7 @@ export class ProviderService {
   }
 
   async delete(key: string, options?: WriteOptions): Promise<void> {
+    if (key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const current = await this.get(key)
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
     if (current.apiKeyRef) await secretStore.removeSecret(current.apiKeyRef)
@@ -370,6 +376,7 @@ export class ProviderService {
   }
 
   async duplicate(key: string, options?: WriteOptions): Promise<ProviderProfile> {
+    if (key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const src = await this.get(key)
     if (!src) throw new NotFoundError(`Provider not found: ${key}`)
     const snap = await this.config.read()
@@ -411,6 +418,7 @@ export class ProviderService {
    * Enabling also switches Pi's active model to this provider's default / first model.
    */
   async setEnabled(key: string, enabled: boolean): Promise<ProviderProfile> {
+    if (key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const current = await this.get(key)
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
 
@@ -763,6 +771,8 @@ export class ProviderService {
     providerKey: string
     modelId?: string
   }): Promise<ConnectionTestResult> {
+    if (input.providerKey === 'opencode-free')
+      throw new ValidationError('Use OpenCode connection verification')
     const started = Date.now()
     const provider = await this.get(input.providerKey)
     const resolvedModelId =

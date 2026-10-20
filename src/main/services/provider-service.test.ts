@@ -15,6 +15,21 @@ const piProvider = {
 }
 
 describe('ProviderService enabled-state invariant', () => {
+  it('keeps the reserved OpenCode credential and configuration inside its dedicated service', async () => {
+    const read = vi.fn()
+    const service = new ProviderService({ read } as never, {} as never)
+    await expect(service.update('opencode-free', {})).rejects.toThrow('Use OpenCode settings')
+    await expect(service.duplicate('opencode-free')).rejects.toThrow('Use OpenCode settings')
+    await expect(service.delete('opencode-free')).rejects.toThrow('Use OpenCode settings')
+    await expect(service.setEnabled('opencode-free', true)).rejects.toThrow(
+      'Use OpenCode settings'
+    )
+    await expect(service.revealApiKey('opencode-free')).rejects.toThrow('cannot be revealed')
+    await expect(service.testConnection({ providerKey: 'opencode-free' })).rejects.toThrow(
+      'Use OpenCode connection verification'
+    )
+    expect(read).not.toHaveBeenCalled()
+  })
   it('selects at most one provider when metadata has multiple enabled entries', async () => {
     const config = {
       read: vi.fn(async () => ({

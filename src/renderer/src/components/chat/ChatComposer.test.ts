@@ -11,6 +11,7 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useSkillsStore } from '@renderer/stores/skills'
 import type { ModelDefinition, PiSwitchAPI, ProviderProfile } from '@shared/ipc/api-types'
 import ChatComposer from './ChatComposer.vue'
+import ComposerModelPicker from './ComposerModelPicker.vue'
 
 beforeEach(() => {
   setActivePinia(createPinia())
@@ -299,3 +300,108 @@ function skill(name: string, description: string) {
     scope: 'global' as const
   }
 }
+
+describe('ChatComposer OpenCode catalog visibility', () => {
+  it.each([
+    { hasCredential: true, showInWorkspace: undefined, workspaceModelIds: ['big-pickle'] },
+    { hasCredential: true, showInWorkspace: false, workspaceModelIds: ['big-pickle'] },
+    { hasCredential: false, showInWorkspace: true, workspaceModelIds: ['big-pickle'] },
+    { hasCredential: true, showInWorkspace: true, workspaceModelIds: [] }
+  ])(
+    'hides OpenCode native and catalog rows unless explicitly selected with a key: %j',
+    async (preferences) => {
+      useProvidersStore().items = [
+        provider(),
+        { ...provider(), id: 'opencode-free', key: 'opencode-free', displayName: 'OpenCode' }
+      ]
+      useModelsStore().items = [
+        model('normal', false),
+        {
+          ...model('big-pickle', false),
+          id: 'opencode-free:big-pickle',
+          providerId: 'opencode-free'
+        }
+      ]
+      window.piSwitch!.openCodeFree = {
+        state: vi.fn(async () => ({
+          schemaVersion: 2,
+          enabled: true,
+          ...preferences,
+          models: [{ id: 'big-pickle', name: 'Big Pickle', price: 'free' }]
+        }))
+      } as unknown as PiSwitchAPI['openCodeFree']
+      const wrapper = mount(ChatComposer, {
+        attachTo: document.body,
+        props: { soundEnabled: false },
+        global: { plugins: [i18n] }
+      })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      await wrapper.vm.$nextTick()
+      const options = wrapper.getComponent(ComposerModelPicker).props('options')
+      expect(options.map((option) => option.value)).toEqual(['provider/normal'])
+      wrapper.unmount()
+    }
+  )
+  it('shows a restricted OpenCode group even when it has no registered native models', async () => {
+    const setActive = vi.spyOn(useModelsStore(), 'setActive')
+    window.piSwitch!.openCodeFree = {
+      state: vi.fn(async () => ({
+        schemaVersion: 2,
+        enabled: true,
+        hasCredential: true,
+        showInWorkspace: true,
+        workspaceModelIds: ['big-pickle'],
+        authMode: 'inference',
+        credentials: [{ id: 'default', name: 'Personal' }],
+        activeCredentialId: 'default',
+        connectionStatus: 'FREE_TIER_RESTRICTED',
+        httpStatus: 403,
+        authorizedModels: ['big-pickle'],
+        allowedPaidModels: [],
+        selectedModel: null,
+        refreshedAt: Date.now(),
+        error: 'FREE_TIER_RESTRICTED',
+        models: [
+          {
+            id: 'big-pickle',
+            name: 'Big Pickle',
+            price: 'free',
+            available: true,
+            api: 'openai-completions',
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 200000,
+            maxTokens: 32000,
+            input: ['text'],
+            reasoning: true,
+            streaming: 'not_verified',
+            tools: 'not_verified',
+            checkedAt: Date.now(),
+            status: 'restricted',
+            errorCode: 'FREE_TIER_RESTRICTED'
+          },
+          { id: 'not-chosen', name: 'Not chosen', price: 'free', available: true }
+        ]
+      }))
+    } as unknown as PiSwitchAPI['openCodeFree']
+    const wrapper = mount(ChatComposer, {
+      attachTo: document.body,
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await wrapper.vm.$nextTick()
+    await wrapper.getComponent(ComposerModelPicker).get('button').trigger('click')
+    expect(document.body.querySelector('[data-select-cascade-group="OpenCode"]')).toBeTruthy()
+    const option = document.body.querySelector<HTMLButtonElement>('[role="option"]')!
+    expect(option.textContent).toContain('Big Pickle')
+    expect(option.textContent).toContain(
+      String(i18n.global.t('openCode.errors.FREE_TIER_RESTRICTED'))
+    )
+    expect(document.body.querySelector('[role="listbox"]')?.textContent).not.toContain('Not chosen')
+    expect(option.disabled).toBe(true)
+    option.click()
+    await wrapper.vm.$nextTick()
+    expect(setActive).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+})

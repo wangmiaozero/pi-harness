@@ -1,9 +1,11 @@
+import { openCodeMessages } from '../opencode'
 /** 日本語 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
 import { universalMessages } from '../universal'
 
 export const jaJP: MessageTree = {
+  openCode: openCodeMessages['ja-JP'],
   universal: universalMessages['ja-JP'],
   nav: {
     aiSessions: 'AI 履歴',
