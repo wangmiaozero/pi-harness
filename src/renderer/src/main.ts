@@ -4,6 +4,7 @@ import { VueQueryPlugin } from '@tanstack/vue-query'
 import App from './App.vue'
 import router from './router'
 import { i18n } from './i18n'
+import 'vue-sonner/style.css'
 import './styles/main.css'
 
 import { usePiStore } from '@renderer/stores/pi'

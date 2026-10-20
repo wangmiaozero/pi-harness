@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AgentSessionLike, PiSessionManagerLike } from './pi-sdk'
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
 
 const loadPiCodingAgent = vi.hoisted(() => vi.fn())
 
@@ -12,6 +15,57 @@ import type { SessionService } from '../sessions/session-service'
 describe('AgentRuntimeService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('refuses a verified OpenCode reference when native registration is missing instead of choosing a fallback', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'opencode-no-fallback-'))
+    const file = path.join(dir, 'state.json')
+    await fs.writeFile(
+      file,
+      JSON.stringify({
+        schemaVersion: 2,
+        enabled: true,
+        authMode: 'inference',
+        hasCredential: true,
+        refreshedAt: Date.now(),
+        authorizedModels: ['big-pickle'],
+        allowedPaidModels: [],
+        models: [
+          {
+            id: 'big-pickle',
+            available: true,
+            api: 'openai-completions',
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            price: 'free',
+            status: 'ready',
+            streaming: 'verified',
+            tools: 'verified',
+            contextWindow: 200000,
+            maxTokens: 32000
+          }
+        ]
+      })
+    )
+    vi.stubEnv('PI_HARNESS_OPENCODE_STATE', file)
+    const createSession = vi.fn()
+    loadPiCodingAgent.mockResolvedValue(
+      fakeSdk({
+        SessionManager: { create: () => createSessionManager() },
+        createAgentSessionServices: async () => ({ modelRuntime: { getModel: () => undefined } }),
+        createAgentSessionFromServices: createSession,
+        getAgentDir: () => '/tmp/agent'
+      })
+    )
+    try {
+      const runtime = new AgentRuntimeService({ invalidate: vi.fn() } as never)
+      await expect(
+        runtime.start({ cwd: '/tmp/project', provider: 'opencode-free', modelId: 'big-pickle' })
+      ).rejects.toThrow('select another model explicitly')
+      expect(createSession).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllEnvs()
+      await fs.rm(dir, { recursive: true, force: true })
+    }
   })
 
   it('sends the initial message without exposing an unpersisted JSONL path', async () => {
@@ -702,6 +756,7 @@ describe('AgentRuntimeService', () => {
 
 function createSessionManager(): PiSessionManagerLike {
   return {
+    buildSessionContext: () => ({ model: null, messages: [], thinkingLevel: 'off' }),
     getCwd: () => '/tmp/project',
     getSessionFile: () => '/tmp/deferred.jsonl',
     getSessionId: () => 'session-new',
@@ -764,7 +819,12 @@ function createAgentSession(manager: PiSessionManagerLike): AgentSessionLike {
 function fakeSdk<T extends object>(module: T) {
   return {
     initTheme: vi.fn(),
-    SettingsManager: { create: vi.fn() },
+    SettingsManager: {
+      create: vi.fn(() => ({
+        getDefaultProvider: () => undefined,
+        getDefaultModel: () => undefined
+      }))
+    },
     createCodemodeExtension: () => () => undefined,
     createMcpExtension: () => () => undefined,
     createToolSearchExtension: () => () => undefined,

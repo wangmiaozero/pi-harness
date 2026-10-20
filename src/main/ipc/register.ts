@@ -1,3 +1,13 @@
+import {
+  openCodeModelSchema,
+  openCodeConfigureSchema,
+  openCodeTestSchema,
+  openCodeWorkspaceSchema,
+  openCodeCredentialIdSchema,
+  openCodeCredentialSchema,
+  type OpenCodeFreeService
+} from '../services/opencode-free-service'
+import { OPENCODE_DOCS_URL } from '@shared/providers/opencode-free'
 import fs from 'node:fs/promises'
 import type { RuntimeManager } from '../runtime/runtime-manager'
 import { runtimeSwitchSchema, runtimeMaintenanceSchema } from '@shared/runtime/schema'
@@ -114,6 +124,7 @@ export interface Services {
   settingsStore: JsonStore<AppSettings>
   uiStateStore: JsonStore<Record<string, unknown>>
   config: PiConfigService
+  openCodeFree?: OpenCodeFreeService
   providers: ProviderService
   models: ModelService
   backup: BackupService
@@ -325,6 +336,77 @@ export function registerIpc(services: Services): void {
   ipcMain.handle(IPC_INVOKE.piOpenNodeDownload, () =>
     wrap(async () => {
       await shell.openExternal(NODE_DOWNLOAD_URL)
+    })
+  )
+
+  const openCode = () => {
+    if (!services.openCodeFree) throw new ValidationError('OPENCODE_UNAVAILABLE')
+    return services.openCodeFree
+  }
+  ipcMain.handle(IPC_INVOKE.openCodeWorkspaceVisibility, (_e, input: unknown) =>
+    wrap(() =>
+      openCode().setWorkspaceVisibility(
+        parseInput(openCodeWorkspaceSchema, input, 'Invalid workspace visibility')
+      )
+    )
+  )
+  ipcMain.handle(IPC_INVOKE.openCodeState, () => wrap(() => openCode().state()))
+  ipcMain.handle(IPC_INVOKE.openCodeConfigure, (_e, input: unknown) =>
+    wrap(() =>
+      openCode().configure(parseInput(openCodeConfigureSchema, input, 'Invalid OpenCode settings'))
+    )
+  )
+  ipcMain.handle(IPC_INVOKE.openCodeSaveCredential, (_e, input: unknown) =>
+    wrap(() =>
+      openCode().saveCredential(
+        parseInput(openCodeCredentialSchema, input, 'Invalid credential settings')
+      )
+    )
+  )
+  ipcMain.handle(IPC_INVOKE.openCodeActivateCredential, (_e, id: unknown) =>
+    wrap(() =>
+      openCode().activateCredential(
+        parseInput(openCodeCredentialIdSchema, id, 'Invalid credential')
+      )
+    )
+  )
+  ipcMain.handle(IPC_INVOKE.openCodeDeleteCredential, (_e, id: unknown) =>
+    wrap(() =>
+      openCode().deleteCredential(parseInput(openCodeCredentialIdSchema, id, 'Invalid credential'))
+    )
+  )
+  ipcMain.handle(IPC_INVOKE.openCodeRevealCredential, (_e, id: unknown) =>
+    wrap(() =>
+      openCode().revealCredential(parseInput(openCodeCredentialIdSchema, id, 'Invalid credential'))
+    )
+  )
+  ipcMain.handle(IPC_INVOKE.openCodeRefresh, () => wrap(() => openCode().refresh()))
+  ipcMain.handle(IPC_INVOKE.openCodeTest, (_e, id: unknown, options: unknown) =>
+    wrap(() =>
+      openCode().test(
+        parseInput(openCodeModelSchema, id, 'Invalid model'),
+        options === undefined
+          ? undefined
+          : parseInput(openCodeTestSchema, options, 'Inference consent required')
+      )
+    )
+  )
+  ipcMain.handle(IPC_INVOKE.openCodeSelect, (_e, id: unknown) =>
+    wrap(() => openCode().select(parseInput(openCodeModelSchema, id, 'Invalid model')))
+  )
+  ipcMain.handle(IPC_INVOKE.openCodeCancel, () =>
+    wrap(async () => {
+      openCode().cancel()
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.openCodeKeys, () =>
+    wrap(async () => {
+      await shell.openExternal('https://opencode.ai/console/account')
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.openCodeDocs, () =>
+    wrap(async () => {
+      await shell.openExternal(OPENCODE_DOCS_URL)
     })
   )
 

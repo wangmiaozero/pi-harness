@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Cpu, Server } from '@lucide/vue'
+import { Cpu, Server, Cloud } from '@lucide/vue'
 import PageHeader from '@renderer/components/common/PageHeader.vue'
 import ModelsView from '@renderer/views/ModelsView.vue'
 import ProvidersView from '@renderer/views/ProvidersView.vue'
+import OpenCodeFreePanel from '@renderer/components/providers/OpenCodeFreePanel.vue'
 import { useProvidersStore } from '@renderer/stores/providers'
 
-type ManagementTab = 'providers' | 'models'
+type ManagementTab = 'providers' | 'models' | 'opencode'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,7 +16,11 @@ const providersStore = useProvidersStore()
 const providerStateReady = ref(false)
 
 const requestedTab = computed<ManagementTab>(() =>
-  route.query.tab === 'providers' ? 'providers' : 'models'
+  route.query.tab === 'opencode'
+    ? 'opencode'
+    : route.query.tab === 'providers'
+      ? 'providers'
+      : 'models'
 )
 const hasConfiguredProvider = computed(() => providersStore.items.length > 0)
 const activeTab = computed<ManagementTab>(() => {
@@ -27,7 +32,7 @@ const activeTab = computed<ManagementTab>(() => {
 
 function selectTab(tab: ManagementTab): void {
   if (tab === 'models' && !hasConfiguredProvider.value) return
-  void router.replace({ path: '/models', query: tab === 'providers' ? { tab } : {} })
+  void router.replace({ path: '/models', query: tab === 'models' ? {} : { tab } })
 }
 
 function enforceProviderFirst(): void {
@@ -109,8 +114,29 @@ onMounted(async () => {
             class="absolute inset-x-2 bottom-0 h-[2px] rounded-t-full bg-[var(--accent)]"
           />
         </button>
+        <button
+          type="button"
+          role="tab"
+          data-testid="model-management-tab-opencode"
+          class="relative flex h-full items-center gap-1.5 px-3 text-[12px] transition-colors"
+          :class="
+            activeTab === 'opencode'
+              ? 'font-medium text-[var(--text-primary)]'
+              : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+          "
+          :aria-selected="activeTab === 'opencode'"
+          aria-controls="model-management-opencode"
+          @click="selectTab('opencode')"
+        >
+          <Cloud class="size-3.5" :stroke-width="1.75" />
+          OpenCode
+          <span
+            v-if="activeTab === 'opencode'"
+            class="absolute inset-x-2 bottom-0 h-[2px] rounded-t-full bg-[var(--accent)]"
+          />
+        </button>
         <p
-          v-if="providerStateReady && !hasConfiguredProvider"
+          v-if="providerStateReady && !hasConfiguredProvider && activeTab !== 'opencode'"
           id="model-provider-required"
           class="ml-2 self-center text-[11px] text-[var(--warning)]"
         >
@@ -126,7 +152,19 @@ onMounted(async () => {
       </div>
       <div v-else class="h-full min-h-0">
         <ProvidersView v-if="activeTab === 'providers'" embedded />
-        <ModelsView v-else embedded />
+        <ModelsView v-else-if="activeTab === 'models'" embedded />
+        <div
+          v-else
+          id="model-management-opencode"
+          role="tabpanel"
+          aria-label="OpenCode"
+          class="flex h-full min-h-0 flex-col"
+        >
+          <div class="h-[48px] shrink-0 border-b border-[var(--border-subtle)]" />
+          <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-5 pb-6 pt-4">
+            <OpenCodeFreePanel />
+          </div>
+        </div>
       </div>
     </div>
   </div>

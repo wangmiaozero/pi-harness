@@ -24,6 +24,8 @@ extraResources:
     to: release-policy.json
   - from: resources/desktop-extension
     to: desktop-extension
+    filter:
+      - '**/*.mjs'
   - from: resources/archify
     to: archify
   - from: build/app-icons

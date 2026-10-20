@@ -38,6 +38,7 @@ import { ProviderService } from './services/provider-service'
 import { ModelService } from './services/model-service'
 import { SkillsService } from './services/skills-service'
 import { DiagnosticsService } from './services/diagnostics-service'
+import { OpenCodeFreeService } from './services/opencode-free-service'
 import { registerIpc, broadcastConfigChanged, broadcastNotification } from './ipc/register'
 import { createMainWindow } from './window/create-window'
 import { installAppMenu } from './window/app-menu'
@@ -246,6 +247,20 @@ async function bootstrap(): Promise<void> {
   await config.read().catch((err) => log.config.warn('initial config read failed:', err))
   const providers = new ProviderService(config, metadata)
   const models = new ModelService(config, metadata)
+  const openCodeStateFile = path.join(app.getPath('userData'), 'opencode-free.json')
+  process.env.PI_HARNESS_OPENCODE_STATE = openCodeStateFile
+  const openCodeFree = new OpenCodeFreeService(openCodeStateFile, config, metadata)
+  const openCodeInitial = await openCodeFree.state().catch(() => {
+    log.config.warn('OpenCode settings unavailable')
+    return null
+  })
+  if (
+    process.env.PI_HARNESS_E2E !== '1' &&
+    openCodeInitial?.enabled &&
+    openCodeInitial.hasCredential &&
+    openCodeInitial.authMode === 'inference'
+  )
+    void openCodeFree.refresh().catch(() => log.config.warn('OpenCode catalog refresh failed'))
   const access = new FileAccessService(authorizedRootsStore)
   const packageManager = new PiPackageManager(settingsStore, config, access)
   const packageRegistry = new PiPackageRegistry(
@@ -505,6 +520,7 @@ async function bootstrap(): Promise<void> {
     uiStateStore,
     config,
     providers,
+    openCodeFree,
     models,
     backup,
     skills,

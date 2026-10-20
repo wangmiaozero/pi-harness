@@ -66,6 +66,20 @@ export const IPC_INVOKE = {
   piCopyInstallCommand: invoke('pi:copy-install-command'),
   piOpenNodeDownload: invoke('pi:open-node-download'),
 
+  openCodeState: invoke('opencode-free:state'),
+  openCodeWorkspaceVisibility: invoke('opencode-free:workspace-visibility'),
+  openCodeConfigure: invoke('opencode-free:configure'),
+  openCodeRefresh: invoke('opencode-free:refresh'),
+  openCodeTest: invoke('opencode-free:test'),
+  openCodeCancel: invoke('opencode-free:cancel'),
+  openCodeSelect: invoke('opencode-free:select'),
+  openCodeDocs: invoke('opencode-free:docs'),
+  openCodeKeys: invoke('opencode-free:keys'),
+  openCodeSaveCredential: invoke('opencode-free:credential:save'),
+  openCodeActivateCredential: invoke('opencode-free:credential:activate'),
+  openCodeDeleteCredential: invoke('opencode-free:credential:delete'),
+  openCodeRevealCredential: invoke('opencode-free:credential:reveal'),
+
   // providers
   providerList: invoke('providers:list'),
   providerGet: invoke('providers:get'),

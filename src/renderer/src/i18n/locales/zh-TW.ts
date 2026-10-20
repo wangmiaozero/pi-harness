@@ -1,9 +1,11 @@
+import { openCodeMessages } from '../opencode'
 /** 繁體中文 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
 import { universalMessages } from '../universal'
 
 export const zhTW: MessageTree = {
+  openCode: openCodeMessages['zh-TW'],
   universal: universalMessages['zh-TW'],
   nav: {
     aiSessions: 'AI 會話',

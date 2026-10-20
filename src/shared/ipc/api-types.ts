@@ -1,3 +1,4 @@
+import type { OpenCodeFreeState, OpenCodeTestOptions } from '../providers/opencode-free'
 import type {
   RuntimeDiagnostics,
   RuntimeKind,
@@ -815,6 +816,35 @@ export interface PiSwitchAPI {
     update(force?: boolean): Promise<PiInstallResult>
     copyInstallCommand(): Promise<string>
     openNodeDownload(): Promise<void>
+  }
+  openCodeFree: {
+    setWorkspaceVisibility(input: {
+      showInWorkspace: boolean
+      modelIds: string[]
+    }): Promise<OpenCodeFreeState>
+    state(): Promise<OpenCodeFreeState>
+    configure(input: {
+      enabled: boolean
+      authMode: 'inference'
+      removeCredential?: boolean
+      apiKey?: string
+      consent: true
+    }): Promise<OpenCodeFreeState>
+    saveCredential(input: {
+      id?: string
+      name: string
+      apiKey?: string
+      consent: true
+    }): Promise<OpenCodeFreeState>
+    activateCredential(id: string): Promise<OpenCodeFreeState>
+    deleteCredential(id: string): Promise<OpenCodeFreeState>
+    revealCredential(id: string): Promise<string>
+    refresh(): Promise<OpenCodeFreeState>
+    test(id: string, options?: OpenCodeTestOptions): Promise<OpenCodeFreeState>
+    cancel(): Promise<void>
+    select(id: string): Promise<OpenCodeFreeState>
+    docs(): Promise<void>
+    keys(): Promise<void>
   }
   providers: {
     list(): Promise<ProviderProfile[]>

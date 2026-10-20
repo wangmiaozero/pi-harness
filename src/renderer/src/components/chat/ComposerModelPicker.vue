@@ -8,6 +8,8 @@ interface ModelOption {
   value: string
   label: string
   group?: string
+  disabled?: boolean
+  description?: string
 }
 
 interface VendorGroup {
@@ -17,7 +19,7 @@ interface VendorGroup {
 
 const modelValue = defineModel<string>('model', { required: true })
 const thinkingValue = defineModel<string>('thinking', { required: true })
-const emit = defineEmits<{ interact: [] }>()
+const emit = defineEmits<{ interact: []; open: [] }>()
 const props = withDefaults(
   defineProps<{
     options: ModelOption[]
@@ -132,6 +134,7 @@ function revealVendor(label: string) {
 function show() {
   if (props.disabled || !props.options.length) return
   emit('interact')
+  emit('open')
   openVendor.value = selectedVendor()
   search.value = ''
   syncVendorPanel()
@@ -154,6 +157,7 @@ function toggle() {
 }
 
 function pick(option: ModelOption) {
+  if (option.disabled || props.disabled) return
   emit('interact')
   modelValue.value = option.value
   close()
@@ -301,9 +305,19 @@ watch(open, (value) => {
                 : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
             "
             :aria-selected="option.value === modelValue"
+            :disabled="option.disabled"
+            :aria-disabled="option.disabled || undefined"
+            :title="option.description"
             @click="pick(option)"
           >
-            <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate">{{ option.label }}</span>
+              <span
+                v-if="option.description"
+                class="block text-[10px] text-[var(--text-tertiary)] whitespace-normal"
+                >{{ option.description }}</span
+              >
+            </span>
             <Check
               v-if="option.value === modelValue"
               aria-hidden="true"

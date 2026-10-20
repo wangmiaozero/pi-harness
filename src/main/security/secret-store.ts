@@ -98,24 +98,26 @@ class SecretStore {
   }
 
   /** Store a plaintext secret. Returns the secret id used for retrieval. */
-  async setSecret(id: string, plaintext: string): Promise<void> {
+  async setSecret(id: string, plaintext: string, options?: { strict?: boolean }): Promise<void> {
     if (isMac) {
       // Use the macOS keychain via the `security` CLI. Args array — no shell.
       try {
         // -U updates if exists; delete first to avoid duplicate-password prompts.
-        await execFileP(
-          'security',
-          ['delete-generic-password', '-a', process.env.USER ?? '', '-s', keyService(id)],
-          {
-            timeout: 5000
-          }
-        ).catch(() => {
-          /* ignore not-found */
-        })
+        if (!options?.strict)
+          await execFileP(
+            'security',
+            ['delete-generic-password', '-a', process.env.USER ?? '', '-s', keyService(id)],
+            {
+              timeout: 5000
+            }
+          ).catch(() => {
+            /* ignore not-found */
+          })
         await execFileP(
           'security',
           [
             'add-generic-password',
+            ...(options?.strict ? ['-U'] : []),
             '-a',
             process.env.USER ?? '',
             '-s',
@@ -127,6 +129,7 @@ class SecretStore {
         )
         return
       } catch (err) {
+        if (options?.strict) throw new SecurityError('Secure credential storage failed')
         log.security.warn(`keychain write failed for ${id}, falling back to vault:`, err)
         // fall through to vault
       }
@@ -134,6 +137,12 @@ class SecretStore {
     if (!this.isAvailable()) {
       throw new SecurityError('Encrypted storage unavailable on this system')
     }
+    if (
+      options?.strict &&
+      process.platform === 'linux' &&
+      safeStorage.getSelectedStorageBackend() === 'basic_text'
+    )
+      throw new SecurityError('Secure credential storage unavailable')
     const vault = await this.loadVault()
     const buf = safeStorage.encryptString(plaintext)
     vault.entries[id] = buf.toString('base64')
@@ -141,7 +150,7 @@ class SecretStore {
   }
 
   /** Retrieve a plaintext secret (macOS: from keychain; otherwise: decrypt vault). */
-  async getSecret(id: string): Promise<string | null> {
+  async getSecret(id: string, options?: { strict?: boolean }): Promise<string | null> {
     if (isMac) {
       try {
         const { stdout } = await execFileP(
@@ -152,6 +161,8 @@ class SecretStore {
         const v = stdout.trim()
         return v || null
       } catch (err) {
+        if (options?.strict && (err as { code?: number }).code !== 44)
+          throw new SecurityError('Secure credential storage unavailable')
         log.security.debug(`keychain read miss for ${id}:`, err)
         // fall through to vault (may have been written before a keychain failure)
       }
@@ -159,7 +170,13 @@ class SecretStore {
     const vault = await this.loadVault()
     const b64 = vault.entries[id]
     if (!b64) return null
-    if (!this.isAvailable()) throw new SecurityError('Encrypted storage unavailable')
+    if (
+      !this.isAvailable() ||
+      (options?.strict &&
+        process.platform === 'linux' &&
+        safeStorage.getSelectedStorageBackend() === 'basic_text')
+    )
+      throw new SecurityError('Encrypted storage unavailable')
     try {
       return safeStorage.decryptString(Buffer.from(b64, 'base64'))
     } catch (err) {
@@ -168,7 +185,7 @@ class SecretStore {
     }
   }
 
-  async removeSecret(id: string): Promise<void> {
+  async removeSecret(id: string, options?: { strict?: boolean }): Promise<void> {
     if (isMac) {
       await execFileP(
         'security',
@@ -176,7 +193,10 @@ class SecretStore {
         {
           timeout: 5000
         }
-      ).catch(() => {})
+      ).catch((error) => {
+        if (options?.strict && error?.code !== 44)
+          throw new SecurityError('Secure credential removal failed')
+      })
     }
     const vault = await this.loadVault()
     if (id in vault.entries) {

@@ -1,0 +1,712 @@
+{
+  "source": "https://github.com/anomalyco/opencode/blob/40cdf4fbdd9d60316f339113e7f9c9a121aece4a/packages/core/src/models-dev/snapshot.txt",
+  "note": "Declared capabilities only. Runtime availability, endpoint mapping and prices require the live official catalog; streaming and tools require native Pi verification.",
+  "models": [
+    {
+      "id": "mimo-v2-pro-free",
+      "name": "MiMo V2 Pro Free",
+      "input": ["text"],
+      "contextWindow": 1048576,
+      "maxTokens": 64000,
+      "reasoning": true
+    },
+    {
+      "id": "space-bunny-free",
+      "name": "Space Bunny Free",
+      "input": ["text", "image"],
+      "contextWindow": 1048576,
+      "maxTokens": 524288,
+      "reasoning": true
+    },
+    {
+      "id": "mimo-v2-flash-free",
+      "name": "MiMo V2 Flash Free",
+      "input": ["text"],
+      "contextWindow": 262144,
+      "maxTokens": 65536,
+      "reasoning": true
+    },
+    {
+      "id": "longcat-2.0-free",
+      "name": "LongCat-2.0 Free",
+      "input": ["text"],
+      "contextWindow": 1000000,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "kimi-k2.5-free",
+      "name": "Kimi K2.5 Free",
+      "input": ["text", "image"],
+      "contextWindow": 262144,
+      "maxTokens": 262144,
+      "reasoning": true
+    },
+    {
+      "id": "deepseek-v4.1-flash-free",
+      "name": "DeepSeek V4.1 Flash Free",
+      "input": ["text", "image"],
+      "contextWindow": 200000,
+      "maxTokens": 32000,
+      "reasoning": true
+    },
+    {
+      "id": "muse-spark-1.3-contributor-free",
+      "name": "Muse Spark 1.3 Free",
+      "input": ["text", "image"],
+      "contextWindow": 1048576,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "ling-3.1-flash-free",
+      "name": "Ling 3.1 Flash Free",
+      "input": ["text"],
+      "contextWindow": 262144,
+      "maxTokens": 32768,
+      "reasoning": true
+    },
+    {
+      "id": "trinity-large-preview-free",
+      "name": "Trinity Large Preview",
+      "input": ["text"],
+      "contextWindow": 131072,
+      "maxTokens": 131072,
+      "reasoning": false
+    },
+    {
+      "id": "nemotron-3.5-lightning-free",
+      "name": "Nemotron 3.5 Lightning Free",
+      "input": ["text"],
+      "contextWindow": 262144,
+      "maxTokens": 262144,
+      "reasoning": true
+    },
+    {
+      "id": "mimo-v2.5-free",
+      "name": "MiMo V2.5 Free",
+      "input": ["text", "image"],
+      "contextWindow": 200000,
+      "maxTokens": 32000,
+      "reasoning": true
+    },
+    {
+      "id": "big-pickle",
+      "name": "Big Pickle",
+      "input": ["text"],
+      "contextWindow": 200000,
+      "maxTokens": 32000,
+      "reasoning": true
+    },
+    {
+      "id": "ling-3.0-flash-free",
+      "name": "Ling-3.0-flash Free",
+      "input": ["text"],
+      "contextWindow": 262144,
+      "maxTokens": 32768,
+      "reasoning": true
+    },
+    {
+      "id": "glm-4.7-free",
+      "name": "GLM-4.7 Free",
+      "input": ["text"],
+      "contextWindow": 204800,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "ling-2.6-flash-free",
+      "name": "Ling 2.6 Flash Free",
+      "input": ["text"],
+      "contextWindow": 262100,
+      "maxTokens": 32800,
+      "reasoning": false
+    },
+    {
+      "id": "muse-spark-1.2-contributor-free",
+      "name": "Muse Spark 1.2 Free",
+      "input": ["text", "image"],
+      "contextWindow": 1048576,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "x-preview-f-free",
+      "name": "Ox Alpha Free (Unlimited)",
+      "input": ["text", "image"],
+      "contextWindow": 1000000,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "longcat-2.5-preview-free",
+      "name": "LongCat 2.5 Preview Free",
+      "input": ["text", "image"],
+      "contextWindow": 1000000,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "ring-2.6-1t-free",
+      "name": "Ring 2.6 1T Free",
+      "input": ["text"],
+      "contextWindow": 262000,
+      "maxTokens": 66000,
+      "reasoning": true
+    },
+    {
+      "id": "laguna-s-2.1-free",
+      "name": "Laguna S 2.1 Free",
+      "input": ["text"],
+      "contextWindow": 256000,
+      "maxTokens": 32000,
+      "reasoning": true
+    },
+    {
+      "id": "north-mini-code-free",
+      "name": "North Mini Code Free",
+      "input": ["text"],
+      "contextWindow": 256000,
+      "maxTokens": 64000,
+      "reasoning": true
+    },
+    {
+      "id": "ling-3.0-flash-fin-free",
+      "name": "Ling 3.0 Flash Fin Free",
+      "input": ["text"],
+      "contextWindow": 262144,
+      "maxTokens": 32768,
+      "reasoning": true
+    },
+    {
+      "id": "exo-free",
+      "name": "Exo Free",
+      "input": ["text", "image"],
+      "contextWindow": 1048576,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "hy3-preview-free",
+      "name": "Hy3 preview Free",
+      "input": ["text"],
+      "contextWindow": 256000,
+      "maxTokens": 64000,
+      "reasoning": true
+    },
+    {
+      "id": "fledge-alpha-free",
+      "name": "Fledge Alpha Free",
+      "input": ["text", "image"],
+      "contextWindow": 1048576,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "hy3-free",
+      "name": "Hy3 Free",
+      "input": ["text"],
+      "contextWindow": 190000,
+      "maxTokens": 64000,
+      "reasoning": true
+    },
+    {
+      "id": "nemotron-3-super-free",
+      "name": "Nemotron 3 Super Free",
+      "input": ["text"],
+      "contextWindow": 204800,
+      "maxTokens": 128000,
+      "reasoning": true
+    },
+    {
+      "id": "ll-alpha-free",
+      "name": "LL Alpha Free",
+      "input": ["text"],
+      "contextWindow": 262144,
+      "maxTokens": 65536,
+      "reasoning": true
+    },
+    {
+      "id": "minimax-m3.1-flash-free",
+      "name": "MiniMax M3.1 Flash Free",
+      "input": ["text", "image"],
+      "contextWindow": 1000000,
+      "maxTokens": 512000,
+      "reasoning": true
+    },
+    {
+      "id": "nemotron-3.5-super-vl-free",
+      "name": "Nemotron 3.5 Super VL Free",
+      "input": ["text", "image"],
+      "contextWindow": 1048576,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "mimo-v2.6-flash-free",
+      "name": "MiMo-V2.6-Flash Free",
+      "input": ["text", "image"],
+      "contextWindow": 200000,
+      "maxTokens": 32000,
+      "reasoning": true
+    },
+    {
+      "id": "glm-5.3-flash-free",
+      "name": "GLM-5.3-Flash Free",
+      "input": ["text", "image"],
+      "contextWindow": 200000,
+      "maxTokens": 32000,
+      "reasoning": true
+    },
+    {
+      "id": "nemotron-3-ultra-free",
+      "name": "Nemotron 3 Ultra Free",
+      "input": ["text"],
+      "contextWindow": 1000000,
+      "maxTokens": 128000,
+      "reasoning": true
+    },
+    {
+      "id": "step-5-preview-free",
+      "name": "Step 5 Preview Free",
+      "input": ["text", "image"],
+      "contextWindow": 1000000,
+      "maxTokens": 65536,
+      "reasoning": true
+    },
+    {
+      "id": "deepseek-v4-flash-free",
+      "name": "DeepSeek V4 Flash Free",
+      "input": ["text"],
+      "contextWindow": 200000,
+      "maxTokens": 128000,
+      "reasoning": true
+    },
+    {
+      "id": "beam-free",
+      "name": "Beam Free",
+      "input": ["text"],
+      "contextWindow": 1048576,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "mimo-v2-omni-free",
+      "name": "MiMo V2 Omni Free",
+      "input": ["text", "image"],
+      "contextWindow": 262144,
+      "maxTokens": 64000,
+      "reasoning": true
+    },
+    {
+      "id": "grok-code",
+      "name": "Grok Code Fast 1",
+      "input": ["text"],
+      "contextWindow": 256000,
+      "maxTokens": 256000,
+      "reasoning": true
+    },
+    {
+      "id": "cat-jam-free",
+      "name": "Cat Jam Free",
+      "input": ["text"],
+      "contextWindow": 1048576,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "ling-3.0-tiny-free",
+      "name": "Ling-3.0-tiny Free",
+      "input": ["text"],
+      "contextWindow": 262144,
+      "maxTokens": 32768,
+      "reasoning": true
+    },
+    {
+      "id": "glm-5-free",
+      "name": "GLM-5 Free",
+      "input": ["text"],
+      "contextWindow": 204800,
+      "maxTokens": 131072,
+      "reasoning": true
+    },
+    {
+      "id": "glm-5.2",
+      "contextWindow": 1000000,
+      "maxTokens": 131072,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.2-codex",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "minimax-m2.7",
+      "contextWindow": 204800,
+      "maxTokens": 131072,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.4-pro",
+      "contextWindow": 1050000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "kimi-k2-thinking",
+      "contextWindow": 262144,
+      "maxTokens": 262144,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.5-pro",
+      "contextWindow": 1050000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "deepseek-v4-flash-vision-exp",
+      "contextWindow": 1000000,
+      "maxTokens": 384000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.2",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "minimax-m2.5",
+      "contextWindow": 204800,
+      "maxTokens": 131072,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.1-codex-mini",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "grok-4.7",
+      "contextWindow": 500000,
+      "maxTokens": 500000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "minimax-m3",
+      "contextWindow": 512000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "contextWindow": 1000000,
+      "maxTokens": 384000,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5-nano",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "grok-4.6",
+      "contextWindow": 500000,
+      "maxTokens": 500000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.1-codex",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "glm-5.3",
+      "contextWindow": 1000000,
+      "maxTokens": 131072,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "minimax-m2.1",
+      "contextWindow": 204800,
+      "maxTokens": 131072,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "glm-4.6",
+      "contextWindow": 204800,
+      "maxTokens": 131072,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "kimi-k2.5",
+      "contextWindow": 262144,
+      "maxTokens": 65536,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.4-nano",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "qwen3-coder",
+      "contextWindow": 262144,
+      "maxTokens": 65536,
+      "input": ["text"],
+      "reasoning": false
+    },
+    {
+      "id": "glm-5",
+      "contextWindow": 204800,
+      "maxTokens": 131072,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "contextWindow": 1050000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "contextWindow": 1050000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5-codex",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "contextWindow": 1050000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.1-codex-max",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "grok-4.5",
+      "contextWindow": 500000,
+      "maxTokens": 500000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "mistral-large-4",
+      "contextWindow": 524288,
+      "maxTokens": 262144,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-6-luna",
+      "contextWindow": 1050000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "contextWindow": 1000000,
+      "maxTokens": 384000,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "grok-build-0.1",
+      "contextWindow": 256000,
+      "maxTokens": 256000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "contextWindow": 1050000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "kimi-k2",
+      "contextWindow": 262144,
+      "maxTokens": 262144,
+      "input": ["text"],
+      "reasoning": false
+    },
+    {
+      "id": "glm-5.3-flash",
+      "contextWindow": 1000000,
+      "maxTokens": 131072,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "muse-spark-1.3",
+      "contextWindow": 1048576,
+      "maxTokens": 131072,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "glm-4.7",
+      "contextWindow": 204800,
+      "maxTokens": 131072,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.3-codex",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "muse-spark-1.2",
+      "contextWindow": 1048576,
+      "maxTokens": 131072,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-6-astra",
+      "contextWindow": 1050000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "glm-5.1",
+      "contextWindow": 204800,
+      "maxTokens": 131072,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.5",
+      "contextWindow": 1050000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.3-codex-spark",
+      "contextWindow": 128000,
+      "maxTokens": 128000,
+      "input": ["text"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.4",
+      "contextWindow": 1050000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "kimi-k2.7-code",
+      "contextWindow": 262144,
+      "maxTokens": 262144,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "kimi-k3",
+      "contextWindow": 1048576,
+      "maxTokens": 131072,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-5.1",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "kimi-k2.6",
+      "contextWindow": 262144,
+      "maxTokens": 65536,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "qwen3.8-max",
+      "contextWindow": 262144,
+      "maxTokens": 131072,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "deepseek-v4.1-flash",
+      "contextWindow": 1000000,
+      "maxTokens": 384000,
+      "input": ["text", "image"],
+      "reasoning": true
+    },
+    {
+      "id": "gpt-6-sol",
+      "contextWindow": 1050000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "reasoning": true
+    }
+  ]
+}

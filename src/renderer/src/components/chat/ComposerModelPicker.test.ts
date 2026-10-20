@@ -54,6 +54,28 @@ describe('ComposerModelPicker', () => {
     expect(document.body.querySelector('[role="listbox"]')?.textContent).not.toContain('MiniMax M3')
   })
 
+  it('shows unavailable models with a reason but cannot select them', async () => {
+    const wrapper = mountPicker()
+    await wrapper.setProps({
+      options: [
+        {
+          value: 'opencode-free/big-pickle',
+          label: 'Big Pickle',
+          group: 'OpenCode',
+          disabled: true,
+          description: 'Free model access is restricted'
+        }
+      ]
+    })
+    await wrapper.get('button').trigger('click')
+    const option = document.body.querySelector<HTMLButtonElement>('[role="option"]')!
+    expect(option.disabled).toBe(true)
+    expect(option.textContent).toContain('Free model access is restricted')
+    option.click()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.emitted('update:model')).toBeUndefined()
+  })
+
   it('filters models and closes both panels after a pick, restoring trigger focus', async () => {
     const wrapper = mountPicker()
     await wrapper.get('button').trigger('click')

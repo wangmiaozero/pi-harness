@@ -20,7 +20,8 @@ const archive = path.join(resources, 'app.asar')
 const files = new Set(
   asar.listPackage(archive).map((file) => file.replaceAll('\\', '/').replace(/^\//, ''))
 )
-if (files.has('out/main/update-test-identity.json')) throw new Error('Ephemeral update test identity must never be published')
+if (files.has('out/main/update-test-identity.json'))
+  throw new Error('Ephemeral update test identity must never be published')
 for (const file of files) {
   if (
     /^(?:task|scripts|fixtures|e2e|src|\.git|\.codex)\//.test(file) ||
@@ -33,6 +34,9 @@ for (const file of files) {
 for (const resource of [
   'release-policy.json',
   'desktop-extension/index.mjs',
+  'desktop-extension/opencode-provider.mjs',
+  'desktop-extension/opencode-state.mjs',
+  'desktop-extension/opencode-catalog.mjs',
   'builtin-skills',
   'LICENSE',
   'NOTICE'
