@@ -67,7 +67,7 @@ function service() {
   })
   return manager
 }
-export const getUpdateState = (): AppUpdateState => service().snapshot()
+export const getUpdateState = (): Promise<AppUpdateState> => service().readState()
 export const onUpdateState = (listener: (state: AppUpdateState) => void) =>
   service().onState(listener)
 export const checkForUpdates = () => service().check()
