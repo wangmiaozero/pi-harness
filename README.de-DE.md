@@ -25,15 +25,16 @@
 
 <p align="center">
   <a href="#download"><strong>Download</strong></a> ·
-  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>Eigenen Skin erstellen</strong></a> ·
-  <a href="#screenshots">Screenshots</a>
+  <a href="#features">Funktionen</a> ·
+  <a href="#documentation">Dokumentation</a>
 </p>
 
 <p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="Veröffentlichte Versionen" src="https://img.shields.io/github/v/release/wangmiaozero/pi-harness?style=flat-square" /></a>
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
+  <a href="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml"><img alt="CI (main)" src="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
   <a href="LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-  <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
 </p>
 
 ## Warum Pi-Harness?
@@ -80,6 +81,8 @@ Pi-Harness ist das operative Superset von Pi Coding Agent: Auf den Funktionen vo
 | Review Gates             | —         | Ja                           |
 | Worktree isolation       | —         | Ja                           |
 | Project architecture map | —         | Ja                           |
+
+<a id="features"></a>
 
 ## Funktionen
 
@@ -244,6 +247,8 @@ Nutzer der paketierten App müssen das Repository nicht klonen oder pnpm install
 ## Voraussetzungen
 
 Die Desktop-App unterstützt macOS Apple Silicon, macOS Intel, Windows x64 und Linux x64. In unterstützten Umgebungen lässt sich Pi Coding Agent aus der App installieren oder reparieren. Für die Ausführung aus dem Quellcode sind Node.js ≥ 22.22.2 und pnpm 9.12.1 erforderlich.
+
+<a id="documentation"></a>
 
 ## Dokumentation
 

@@ -25,15 +25,16 @@
 
 <p align="center">
   <a href="#download"><strong>下載</strong></a> ·
-  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>建立自訂皮膚</strong></a> ·
-  <a href="#screenshots">介面預覽</a>
+  <a href="#features">功能</a> ·
+  <a href="#documentation">文件</a>
 </p>
 
 <p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="已發行版本" src="https://img.shields.io/github/v/release/wangmiaozero/pi-harness?style=flat-square" /></a>
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
+  <a href="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml"><img alt="CI (main)" src="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
   <a href="LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-  <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
 </p>
 
 ## 為什麼選擇 Pi-Harness？
@@ -80,6 +81,8 @@ Pi-Harness 是 Pi Coding Agent 的操作能力超集：以原生 Pi 能力為基
 | Review Gates             | —         | 支援              |
 | Worktree isolation       | —         | 支援              |
 | Project architecture map | —         | 支援              |
+
+<a id="features"></a>
 
 ## 功能介紹
 
@@ -244,6 +247,8 @@ Pi-Harness 是 Pi Coding Agent 的操作能力超集：以原生 Pi 能力為基
 ## 環境需求
 
 桌面應用程式支援 macOS Apple Silicon、macOS Intel、Windows x64 和 Linux x64。支援的環境可在應用程式中安裝或修復 Pi Coding Agent。從原始碼執行需要 Node.js ≥ 22.22.2 和 pnpm 9.12.1。
+
+<a id="documentation"></a>
 
 ## 文件
 
