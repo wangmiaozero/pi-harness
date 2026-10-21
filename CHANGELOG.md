@@ -2,9 +2,7 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
-## 2.3.0 — 2026-10-21
-
-This version is being prepared and has not been published.
+## 2.2.6 — 2026-10-21
 
 ### Added
 
@@ -18,7 +16,6 @@ This version is being prepared and has not been published.
 
 - Preserved edits typed while an earlier file save is still completing.
 - Restored access to the current app profile’s existing default workspace on startup.
-- Improved macOS community installer validation cleanup when a disk image is temporarily busy.
 
 ## 2.2.5 — 2026-10-21
 

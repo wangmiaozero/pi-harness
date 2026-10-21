@@ -224,7 +224,7 @@ Pi-Harness — операционное надмножество Pi Coding Agent
 
 ## Harness Plugins — Расширение панели управления
 
-Предварительная версия · Plugin SDK v1.0.0. Подписки на события, собственные оценки, экспорт JSON Trace и шаблоны команд. Пока доступно в сборке из исходников, но не в Community Release. Исполняемый код требует явного доверия; отдельный процесс не является защитной песочницей.
+Plugin SDK v1.0.0 · Доступен начиная с Pi-Harness v2.2.6. Подписки на события, собственные оценки, экспорт JSON Trace и шаблоны команд. Исполняемый код требует явного доверия; отдельный процесс не является защитной песочницей.
 
 [Разработка и установка](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security](docs/plugins/security.md) · [Examples](examples/harness-plugins/)
 
