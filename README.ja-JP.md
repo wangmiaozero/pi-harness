@@ -224,7 +224,7 @@ Node.js、npm、PATH、Pi Coding Agent、現在の設定を確認します。対
 
 ## Harness Plugins — コントロールプレーンを拡張
 
-開発版プレビュー · Plugin SDK v1.0.0。イベント購読、カスタム評価、JSON トレース出力、チームテンプレートを提供します。現在はソースビルドが必要で、Community Release にはまだ含まれていません。実行コードには明示的な信頼が必要です。別プロセスは安全なサンドボックスではありません。
+Plugin SDK v1.0.0 · Pi-Harness v2.2.6 以降で利用できます。イベント購読、カスタム評価、JSON トレース出力、チームテンプレートを提供します。実行コードには明示的な信頼が必要です。別プロセスは安全なサンドボックスではありません。
 
 [開発とインストール](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security](docs/plugins/security.md) · [Examples](examples/harness-plugins/)
 

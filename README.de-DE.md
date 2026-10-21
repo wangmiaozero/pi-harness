@@ -224,7 +224,7 @@ Die Funktionsansichten sind nach Theme geordnet. Weitere Ansichten findest du im
 
 ## Harness Plugins — Control Plane erweitern
 
-Entwicklungsvorschau · Plugin SDK v1.0.0. Ereignisabonnements, eigene Auswertungen, JSON-Trace-Exporte und Teamvorlagen. Derzeit im Quellcode-Build verfügbar, noch nicht im Community Release. Ausführbarer Code erfordert ausdrückliches Vertrauen; ein separater Prozess ist keine Sicherheitssandbox.
+Plugin SDK v1.0.0 · Ab Pi-Harness v2.2.6 verfügbar. Ereignisabonnements, eigene Auswertungen, JSON-Trace-Exporte und Teamvorlagen. Ausführbarer Code erfordert ausdrückliches Vertrauen; ein separater Prozess ist keine Sicherheitssandbox.
 
 [Entwicklung und Installation](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security](docs/plugins/security.md) · [Examples](examples/harness-plugins/)
 

@@ -221,7 +221,7 @@ Check Node.js, npm, PATH, Pi Coding Agent, and the active configuration. Install
 
 ## Harness Plugins — Extend the Control Plane
 
-**Development preview · Plugin SDK v1.0.0.** Available in source builds; not yet included in the current Community Release download.
+**Plugin SDK v1.0.0 · Included starting with Pi-Harness v2.2.6.**
 
 | Extension       | Purpose                                             |
 | --------------- | --------------------------------------------------- |

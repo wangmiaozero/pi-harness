@@ -224,7 +224,7 @@ Les interfaces sont classées par thème. Consultez l’[index complet des captu
 
 ## Harness Plugins — Étendre le plan de contrôle
 
-Aperçu de développement · Plugin SDK v1.0.0. Abonnements aux événements, évaluateurs personnalisés, exports JSON et modèles d’équipe. Disponible dans les builds source, pas encore dans la Community Release. Le code exécutable exige une confiance explicite ; le processus séparé n’est pas un bac à sable de sécurité.
+Plugin SDK v1.0.0 · Disponible à partir de Pi-Harness v2.2.6. Abonnements aux événements, évaluateurs personnalisés, exports JSON et modèles d’équipe. Le code exécutable exige une confiance explicite ; le processus séparé n’est pas un bac à sable de sécurité.
 
 [Développer et installer](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security](docs/plugins/security.md) · [Examples](examples/harness-plugins/)
 
