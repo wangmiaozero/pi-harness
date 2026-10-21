@@ -185,11 +185,18 @@ test('continues a Codex conversation in its recorded directory without importing
         await page.locator('a[href="#/workspace"]').click()
       }
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
-      await scroller.evaluate((element) => {
-        element.scrollTop = element.scrollHeight / 2
+      // Real wheel input releases stick-to-bottom before inspecting the controls.
+      // A direct midpoint assignment can race a pending content resize and be pinned back.
+      const distance = await scroller.evaluate((element) => {
+        element.scrollTop = element.scrollHeight
+        return (element.scrollHeight - element.clientHeight) / 2
       })
+      expect(distance).toBeGreaterThan(24)
+      await scroller.hover()
+      await page.mouse.wheel(0, -distance)
       const circle = page.getByTestId('chat-scroll-top')
       await expect(circle).toBeVisible()
+      await expect(page.getByTestId('chat-scroll-bottom')).toBeVisible()
       const corners = await circle.evaluate((button) => {
         const style = getComputedStyle(button)
         return [
