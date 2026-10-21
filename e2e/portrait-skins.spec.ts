@@ -1,6 +1,8 @@
 import path from 'node:path'
 import fs from 'node:fs'
 import { test, expect, type Page } from './fixtures'
+import { IPC_INVOKE } from '../src/shared/ipc/channels'
+import type { AssistantMessage } from '@earendil-works/pi-ai'
 
 async function expectPersistedMascotStyle(page: Page, style: string) {
   await expect
@@ -83,6 +85,7 @@ test('scene portrait themes use dedicated backgrounds and palettes', async ({
         path.resolve(import.meta.dirname, '../fixtures')
       )
       await page.getByTestId('workspace-import-project').click()
+      await expect(page.getByTestId('workspace-import-project')).toBeEnabled()
     }
     await expect(page.getByTestId('portrait-skin-panel')).toBeVisible()
     await expect(page.locator('.portrait-skin-heading')).toHaveCount(0)
@@ -155,13 +158,25 @@ test('ming portrait themes render full figures beside parchment conversation sur
             },
             {
               type: 'toolCall',
-              toolCallId: 'edit-1',
-              toolName: 'edit',
-              input: { edits: [{ oldText: '...', newText: '...' }] }
+              id: 'edit-1',
+              name: 'edit',
+              arguments: { edits: [{ oldText: '...', newText: '...' }] }
             }
           ],
+          api: 'openai-completions',
+          provider: 'openai',
+          model: 'gpt-4o',
+          usage: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+            totalTokens: 0,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
+          },
+          stopReason: 'toolUse',
           timestamp: Date.parse(timestamp)
-        }
+        } satisfies AssistantMessage
       }
     ]
       .map((entry) => JSON.stringify(entry))
@@ -181,13 +196,52 @@ test('ming portrait themes render full figures beside parchment conversation sur
   ] as const) {
     await page.locator(`[data-mascot-option="${style}"]`).click()
     await page.locator('a[href="#/workspace"]').click()
+    if (skin === 'ming-moon') {
+      await electronApp.evaluate(({ ipcMain }, channel) => {
+        const handlers = (
+          ipcMain as unknown as {
+            _invokeHandlers: Map<string, (...args: unknown[]) => Promise<unknown>>
+          }
+        )._invokeHandlers
+        const original = handlers.get(channel)!
+        let release!: () => void
+        const gate = new Promise<void>((resolve) => {
+          release = resolve
+        })
+        ipcMain.removeHandler(channel)
+        ipcMain.handle(channel, async (...args) => {
+          const result = await original(...args)
+          await gate
+          return result
+        })
+        ;(
+          globalThis as typeof globalThis & { releasePortraitImport?: () => void }
+        ).releasePortraitImport = () => {
+          release()
+          ipcMain.removeHandler(channel)
+          ipcMain.handle(channel, original)
+        }
+      }, IPC_INVOKE.workspacePickDirectory)
+    }
     if (await page.getByTestId('workspace-import-project').isVisible()) {
       await electronApp.evaluate(({ dialog }, root) => {
         dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [root] })
       }, workspaceRoot)
       await page.getByTestId('workspace-import-project').click()
+      if (skin === 'ming-moon') {
+        // Hold the real picker reply so selecting before import completion would
+        // deterministically switch this test back to the new-session draft.
+        await expect(page.getByTestId('workspace-import-project')).toBeDisabled()
+        await electronApp.evaluate(() => {
+          const state = globalThis as typeof globalThis & { releasePortraitImport?: () => void }
+          state.releasePortraitImport!()
+          delete state.releasePortraitImport
+        })
+      }
+      await expect(page.getByTestId('workspace-import-project')).toBeEnabled()
     }
     await page.getByTestId('workspace-refresh').click()
+    await expect(page.getByTestId('workspace-refresh')).toBeEnabled()
     await page
       .getByTestId(`session-row-${id}`)
       .getByRole('button', { name: /将风格切换界面升级/, exact: true })
