@@ -11,6 +11,7 @@ import type {
 import type { StartAgentSessionInput } from '@shared/types/workspace'
 import type { RunRelationAnnotation } from '../runs/run-registry'
 import { JsonStore } from '../../services/storage'
+import { log } from '../../services/logger'
 import {
   EMPTY_ORCHESTRATION_STORE,
   OrchestrationStore,
@@ -23,14 +24,12 @@ import {
 } from './orchestrator-service'
 
 const tempDirs: string[] = []
-let activeHarness: Harness | null = null
+const activeServices: OrchestratorService[] = []
 
 afterEach(async () => {
-  if (activeHarness) {
-    await activeHarness.service.waitForSettled()
-    activeHarness.service.detach()
-    activeHarness = null
-  }
+  const services = activeServices.splice(0)
+  for (const service of services) service.detach()
+  await Promise.all(services.map((service) => service.waitForSettled(5000)))
   while (tempDirs.length) {
     const dir = tempDirs.pop()
     if (dir) rmSync(dir, { recursive: true, force: true })
@@ -290,8 +289,8 @@ function createHarness(): Harness {
   const host = new FakeHost()
   const service = new OrchestratorService(store, host)
   service.attach()
-  activeHarness = { service, host, store }
-  return activeHarness
+  activeServices.push(service)
+  return { service, host, store }
 }
 
 async function bootstrapOrchestration(
@@ -364,6 +363,68 @@ async function bootstrapOrchestration(
 }
 
 describe('OrchestratorService lifecycle', () => {
+  it('drains actual event persistence before disposal, and reports a deadline while a write is pending', async () => {
+    const harness = createHarness()
+    const { orchestrationId, agentIds } = await bootstrapOrchestration(harness, {
+      agents: [{ name: 'Dev', role: 'backend' }],
+      tasks: [{ key: 'work' }]
+    })
+    const [task] = await harness.service.listTasks(orchestrationId)
+    await harness.service.reassignTask(task.id, agentIds.Dev)
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const save = harness.store.saveTask.bind(harness.store)
+    const writing = vi.spyOn(harness.store, 'saveTask').mockImplementation(async (record) => {
+      if (record.runIds.length) await gate
+      return save(record)
+    })
+    try {
+      await harness.service.start(orchestrationId)
+      await vi.waitFor(() =>
+        expect(writing.mock.calls.some(([record]) => record.runIds.length)).toBe(true)
+      )
+      await expect(harness.service.waitForSettled(0)).rejects.toThrow('did not settle')
+      const drained = harness.service.waitForSettled(5000)
+      release()
+      await drained
+      expect((await harness.service.getAgent(agentIds.Dev))?.currentRunId).toBe(
+        harness.host.prompts[0].runId
+      )
+    } finally {
+      release()
+      await harness.service.abort(orchestrationId)
+      await harness.service.waitForSettled(5000)
+    }
+  })
+
+  it('reports event persistence failures to both diagnostics and the disposal caller', async () => {
+    const harness = createHarness()
+    const { orchestrationId, agentIds } = await bootstrapOrchestration(harness, {
+      agents: [{ name: 'Dev', role: 'backend' }],
+      tasks: [{ key: 'work' }]
+    })
+    const [task] = await harness.service.listTasks(orchestrationId)
+    await harness.service.reassignTask(task.id, agentIds.Dev)
+    await harness.service.start(orchestrationId)
+    await harness.service.waitForSettled(5000)
+    const failure = new Error('Run evidence unavailable')
+    vi.spyOn(harness.host, 'getRunById').mockRejectedValueOnce(failure)
+    const diagnostic = vi.spyOn(log.harness, 'error').mockImplementation(() => {})
+    try {
+      const [prompt] = harness.host.prompts
+      harness.host.settleRun(prompt.sessionId, prompt.runId)
+      await expect(harness.service.waitForSettled(5000)).rejects.toMatchObject({
+        message: 'Orchestration event operation failed',
+        cause: failure
+      })
+      expect(diagnostic).toHaveBeenCalledWith('Orchestration event operation failed', failure)
+    } finally {
+      diagnostic.mockRestore()
+    }
+  })
+
   it('creates an orchestration with defaults and persists it', async () => {
     const harness = createHarness()
     const orchestration = await harness.service.createOrchestration({
@@ -774,6 +835,7 @@ describe('OrchestratorService failure handling', () => {
     // Simulate restart: fresh service over the same persisted store.
     harness.service.detach()
     const second = new OrchestratorService(harness.store, harness.host)
+    activeServices.push(second)
     second.attach()
     const recovered = await second.recoverAll()
     expect(recovered).toBe(1)

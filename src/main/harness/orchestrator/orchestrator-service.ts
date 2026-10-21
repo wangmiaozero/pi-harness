@@ -43,6 +43,7 @@ import { ConflictService } from './conflict-service'
 import { TaskScheduler, type DispatchCandidate, type SchedulingSnapshot } from './task-scheduler'
 import { TaskContextBuilder, parseReviewVerdict } from './task-context-builder'
 import type { RunRelationAnnotation } from '../runs/run-registry'
+import { log } from '../../services/logger'
 
 const STUCK_THRESHOLD_MS = 10 * 60 * 1000
 const DEFAULT_MAX_CONCURRENT = 3
@@ -156,6 +157,8 @@ export class OrchestratorService {
   private readonly policyViolations = new Map<string, number>()
   private unsubscribe: (() => void) | null = null
   private stuckTimer: ReturnType<typeof setInterval> | null = null
+  private readonly eventOperations = new Set<Promise<void>>()
+  private eventFailure: { error: unknown } | null = null
 
   constructor(
     store: OrchestrationStore,
@@ -189,21 +192,45 @@ export class OrchestratorService {
     this.stuckTimer = null
   }
 
-  /**
-   * Wait until in-flight dispatch chains have settled. Bounded — returns
-n * even if a dispatch is still legitimately running (no event will ever
-   * settle it). Used before shutdown and by tests.
-   */
+  /** Drain event persistence, without waiting for a running Pi turn to finish. */
   async waitForSettled(maxWaitMs = 250): Promise<void> {
     const deadline = Date.now() + maxWaitMs
-    let stable = 0
-    while (Date.now() < deadline && stable < 3) {
-      if (this.sessionDispatches.size > 0) stable = 0
-      else stable += 1
-      await new Promise((resolve) => setTimeout(resolve, 5))
+    while (this.eventOperations.size) {
+      const remaining = deadline - Date.now()
+      if (remaining <= 0) throw new Error('Orchestration event operations did not settle')
+      let timer: ReturnType<typeof setTimeout> | undefined
+      try {
+        await Promise.race([
+          Promise.allSettled([...this.eventOperations]),
+          new Promise<never>((_resolve, reject) => {
+            timer = setTimeout(
+              () => reject(new Error('Orchestration event operations did not settle')),
+              remaining
+            )
+          })
+        ])
+      } finally {
+        if (timer) clearTimeout(timer)
+      }
     }
-    // Final drain for post-settle store writes.
-    await new Promise((resolve) => setTimeout(resolve, 10))
+    if (this.eventFailure) {
+      const { error } = this.eventFailure
+      this.eventFailure = null
+      throw new Error('Orchestration event operation failed', { cause: error })
+    }
+  }
+
+  private trackEventOperation(operation: Promise<void>): void {
+    this.eventOperations.add(operation)
+    void operation.then(
+      () => this.eventOperations.delete(operation),
+      (error: unknown) => {
+        // Keep one failure for the disposal caller as well as the redacted diagnostic.
+        this.eventFailure ??= { error }
+        log.harness.error('Orchestration event operation failed', error)
+        this.eventOperations.delete(operation)
+      }
+    )
   }
 
   // ------------------------------------------------------ orchestration CRUD
@@ -1009,12 +1036,12 @@ n * even if a dispatch is still legitimately running (no event will ever
         if (dispatch.runId) return
         dispatch.runId = event.runId
         this.runDispatches.set(event.runId, dispatch)
-        void this.onRunStarted(dispatch, event.runId)
+        this.trackEventOperation(this.onRunStarted(dispatch, event.runId))
         break
       }
       case 'evaluation.started': {
         if (event.runId !== dispatch.runId) return
-        void this.setTaskVerifying(dispatch)
+        this.trackEventOperation(this.setTaskVerifying(dispatch))
         break
       }
       case 'evaluation.completed': {
@@ -1025,7 +1052,7 @@ n * even if a dispatch is still legitimately running (no event will ever
       case 'run.failed':
       case 'run.aborted': {
         if (event.runId !== dispatch.runId) return
-        void this.settleDispatch(dispatch, event)
+        this.trackEventOperation(this.settleDispatch(dispatch, event))
         break
       }
       case 'policy.denied': {
