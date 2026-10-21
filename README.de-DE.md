@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>Download</strong></a> ·
   <a href="#features">Funktionen</a> ·
+  <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">Dokumentation</a>
 </p>
 
@@ -218,6 +219,14 @@ Die Funktionsansichten sind nach Theme geordnet. Weitere Ansichten findest du im
 [![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)
 
 </details>
+
+<a id="harness-plugins"></a>
+
+## Harness Plugins — Control Plane erweitern
+
+Entwicklungsvorschau · Plugin SDK v1.0.0. Ereignisabonnements, eigene Auswertungen, JSON-Trace-Exporte und Teamvorlagen. Derzeit im Quellcode-Build verfügbar, noch nicht im Community Release. Ausführbarer Code erfordert ausdrückliches Vertrauen; ein separater Prozess ist keine Sicherheitssandbox.
+
+[Entwicklung und Installation](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security](docs/plugins/security.md) · [Examples](examples/harness-plugins/)
 
 <a id="download"></a>
 

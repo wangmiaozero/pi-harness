@@ -2,6 +2,23 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.3.0 — 2026-10-21
+
+This version is being prepared and has not been published.
+
+### Added
+
+- Added local Harness plugins for run metrics, custom evaluations, JSON trace exports and team templates.
+- Added plugin management with explicit trust approval, permission details and diagnostics.
+- Added plugin developer guides, a versioned SDK and three working examples.
+- Updated the project homepage with product previews and clearer installation guidance.
+
+### Fixed
+
+- Preserved edits typed while an earlier file save is still completing.
+- Restored access to the current app profile’s existing default workspace on startup.
+- Improved macOS community installer validation cleanup when a disk image is temporarily busy.
+
 ## 2.2.5 — 2026-10-21
 
 ### Added

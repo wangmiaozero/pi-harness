@@ -23,7 +23,9 @@ export default {
             api.diagnostics.log('Run metrics', {
               runId: run.runId,
               durationMs: Math.max(0, event.timestamp - run.startedAt),
-              toolCalls: run.toolCalls
+              toolCalls: run.toolCalls,
+              telemetry: 'observed-events-only',
+              authoritative: false
             })
             runs.delete(sessionId)
           }

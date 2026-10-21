@@ -16,6 +16,7 @@ import { verifyDistribution, runtimeLayout, catalog } from '../../src/main/runti
 import { binaryIdentity } from '../../src/main/runtime/binary-identity.mjs'
 import { verifyMacBundle } from './after-sign.mjs'
 import { sourceDigest } from './source-digest.mjs'
+import { copyDmgApplication } from './mac-dmg.mjs'
 const exec = promisify(execFile)
 const platform = `${process.platform}-${process.arch}`
 if (process.env.PI_HARNESS_EXPECTED_ARCH && process.env.PI_HARNESS_EXPECTED_ARCH !== process.arch)
@@ -76,21 +77,13 @@ async function stageInstaller(directory, names, temporary) {
   if (process.platform === 'darwin') {
     const mount = path.join(temporary, 'mount')
     await fs.mkdir(mount)
-    await exec('/usr/bin/hdiutil', [
-      'attach',
-      '-readonly',
-      '-nobrowse',
-      '-mountpoint',
-      mount,
-      path.join(directory, names[0])
-    ])
     const installed = path.join(temporary, 'Applications', 'Pi-Harness.app')
-    try {
-      await fs.mkdir(path.dirname(installed), { recursive: true })
-      await exec('/usr/bin/ditto', [path.join(mount, 'Pi-Harness.app'), installed])
-    } finally {
-      await exec('/usr/bin/hdiutil', ['detach', mount])
-    }
+    await copyDmgApplication(
+      path.join(directory, names[0]),
+      mount,
+      installed,
+      path.join(evidenceDirectory, `${names[0]}.mount.json`)
+    )
     await verifyMacBundle(installed, process.arch)
     const zip = path.join(temporary, 'zip')
     await fs.mkdir(zip)
@@ -169,6 +162,7 @@ try {
     await command(`package-${variant}`, args, { CSC_IDENTITY_AUTO_DISCOVERY: 'false' })
     await validateMetadata(directory, metadata, version, names)
     const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-community-install-'))
+    let preserveMount = false
     try {
       const executable = await stageInstaller(directory, names, temporary)
       const identity = await binaryIdentity(executable)
@@ -216,6 +210,9 @@ try {
           'e2e/pi-native-mcp.spec.ts',
           'e2e/runtime-compatibility.spec.ts',
           'e2e/release-session.spec.ts',
+          'e2e/harness-plugins.spec.ts',
+          'e2e/default-workspace-access.spec.ts',
+          'e2e/workspace-file-editing.spec.ts',
           ...(variant === 'nomascot' ? ['e2e/nomascot.spec.ts'] : []),
           '--reporter=list,json'
         ],
@@ -250,8 +247,13 @@ try {
         updateMode: 'manual',
         artifacts
       }
+    } catch (error) {
+      preserveMount = error.mountStillAttached === true
+      throw error
     } finally {
-      await fs.rm(temporary, { recursive: true, force: true })
+      if (preserveMount)
+        process.stderr.write(`Mounted image cleanup failed; retaining ${temporary}\n`)
+      else await fs.rm(temporary, { recursive: true, force: true })
     }
   }
   report.readiness = 'READY'

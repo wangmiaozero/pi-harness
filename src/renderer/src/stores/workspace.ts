@@ -377,9 +377,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function markFileSaved(filePath: string, content: string, revision: string) {
+    const current = fileEditBuffers.value[filePath]
     fileEditBuffers.value = {
       ...fileEditBuffers.value,
-      [filePath]: { content, savedContent: content, revision }
+      // Only the submitted bytes were saved. Typing may continue while Main is writing.
+      [filePath]: { content: current?.content ?? content, savedContent: content, revision }
     }
   }
 

@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>Скачать</strong></a> ·
   <a href="#features">Возможности</a> ·
+  <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">Документация</a>
 </p>
 
@@ -218,6 +219,14 @@ Pi-Harness — операционное надмножество Pi Coding Agent
 [![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)
 
 </details>
+
+<a id="harness-plugins"></a>
+
+## Harness Plugins — Расширение панели управления
+
+Предварительная версия · Plugin SDK v1.0.0. Подписки на события, собственные оценки, экспорт JSON Trace и шаблоны команд. Пока доступно в сборке из исходников, но не в Community Release. Исполняемый код требует явного доверия; отдельный процесс не является защитной песочницей.
+
+[Разработка и установка](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security](docs/plugins/security.md) · [Examples](examples/harness-plugins/)
 
 <a id="download"></a>
 

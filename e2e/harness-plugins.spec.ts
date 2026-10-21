@@ -156,15 +156,23 @@ test('runs all SDK examples through real Electron processes and the native Pi ru
       (id) => window.piSwitch.harness.listRuns(id).then((runs) => runs[0]),
       session.id
     )
-    const result = await page.evaluate(
-      ({ sessionId, runId }) =>
-        window.piSwitch.harnessPlugins.evaluate(
-          'org.pi-harness.quality-evaluator',
-          'quality',
-          sessionId,
-          runId
-        ),
-      { sessionId: session.id, runId: run.id }
+    await page.getByTestId('workspace-section-tools').click()
+    await page.getByRole('button', { name: /Harness 插件|Harness Plugins/, exact: true }).click()
+    const panel = page.getByTestId('harness-plugins-panel')
+    await panel.getByTestId('harness-plugin-run').selectOption(run.id)
+    const quality = panel
+      .getByTestId('harness-plugin-card')
+      .filter({ hasText: 'Quality Evaluator' })
+    await quality.getByRole('button', { name: /^(评估|Evaluate).*quality$/ }).click()
+    await expect(panel.getByRole('status')).toContainText(/评估已完成|Evaluation complete/)
+    const result = await page.evaluate(() =>
+      window.piSwitch.harnessPlugins
+        .list()
+        .then(
+          (list) =>
+            list.find((plugin) => plugin.manifest.id === 'org.pi-harness.quality-evaluator')!
+              .results[0].result
+        )
     )
     expect(result).toMatchObject({ evaluatorId: 'quality', score: 100, status: 'passed' })
     await expect
@@ -174,7 +182,10 @@ test('runs all SDK examples through real Electron processes and the native Pi ru
             .list()
             .then((list) =>
               list[0].diagnostics.some(
-                (d) => d.code === 'PLUGIN_LOG' && d.message.includes('Run metrics')
+                (d) =>
+                  d.code === 'PLUGIN_LOG' &&
+                  d.message.includes('Run metrics') &&
+                  d.message.includes('"authoritative":false')
               )
             )
         )
@@ -184,26 +195,19 @@ test('runs all SDK examples through real Electron processes and the native Pi ru
     await electronApp.evaluate(({ dialog }, output) => {
       dialog.showSaveDialog = async () => ({ canceled: false, filePath: output })
     }, output)
-    expect(
-      await page.evaluate(
-        ({ sessionId, runId }) =>
-          window.piSwitch.harnessPlugins.exportTrace(
-            'org.pi-harness.quality-evaluator',
-            'json-trace',
-            sessionId,
-            runId
-          ),
-        { sessionId: session.id, runId: run.id }
-      )
-    ).toBe(true)
+    await quality.getByRole('button', { name: /JSON.*json-trace/ }).click()
+    await expect(panel.getByRole('status')).toContainText(/JSON.*已导出|JSON trace exported/)
     const trace = JSON.parse(fs.readFileSync(output, 'utf8'))
     expect(trace.trace.runId).toBe(run.id)
     expect(JSON.stringify(trace)).not.toContain('Harmless local plugin test')
     await electronApp.evaluate(({ dialog }, directory) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] })
     }, workspaceRoot)
+    const team = panel.getByTestId('harness-plugin-card').filter({ hasText: 'Team Template' })
+    await team.getByRole('button', { name: /Development, Test and Review/ }).click()
+    await expect(panel.getByRole('status')).toContainText(/已创建团队草稿|Team draft created/)
     const orchestrationId = await page.evaluate(() =>
-      window.piSwitch.harnessPlugins.applyTeam('org.pi-harness.team-template', 'development-review')
+      window.piSwitch.orchestration.list().then(([item]) => item.id)
     )
     const snapshot = await page.evaluate(
       (id) => window.piSwitch.orchestration.snapshot(id!),

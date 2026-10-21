@@ -198,6 +198,24 @@ describe('workspace file edit buffers', () => {
     workspace.discardFileEditBuffer('/code/app.ts')
     expect(workspace.fileEditBuffers['/code/app.ts']).toBeUndefined()
   })
+
+  it('keeps edits typed while a previous save is in flight and advances only the saved baseline', () => {
+    const workspace = useWorkspaceStore()
+    workspace.ensureFileEditBuffer('/code/app.ts', 'initial', 'a'.repeat(64))
+    workspace.updateFileEditBuffer('/code/app.ts', 'submitted')
+    workspace.updateFileEditBuffer('/code/app.ts', 'typed during write')
+    workspace.markFileSaved('/code/app.ts', 'submitted', 'b'.repeat(64))
+    expect(workspace.fileEditBuffers['/code/app.ts']).toEqual({
+      content: 'typed during write',
+      savedContent: 'submitted',
+      revision: 'b'.repeat(64)
+    })
+    expect(workspace.isFileDirty('/code/app.ts')).toBe(true)
+    workspace.ensureFileEditBuffer('/code/app.ts', 'submitted', 'b'.repeat(64))
+    expect(workspace.fileEditBuffers['/code/app.ts'].content).toBe('typed during write')
+    workspace.markFileSaved('/code/app.ts', 'typed during write', 'c'.repeat(64))
+    expect(workspace.isFileDirty('/code/app.ts')).toBe(false)
+  })
 })
 
 describe('conversation file panel', () => {

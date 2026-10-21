@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>다운로드</strong></a> ·
   <a href="#features">기능</a> ·
+  <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">문서</a>
 </p>
 
@@ -218,6 +219,14 @@ Node.js, npm, PATH, Pi Coding Agent, 현재 설정을 확인합니다. 지원 �
 [![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)
 
 </details>
+
+<a id="harness-plugins"></a>
+
+## Harness Plugins — 컨트롤 플레인 확장
+
+개발 버전 미리 보기 · Plugin SDK v1.0.0. 이벤트 구독, 사용자 정의 평가, JSON Trace 내보내기 및 팀 템플릿을 제공합니다. 현재 소스 빌드가 필요하며 Community Release에는 아직 포함되지 않았습니다. 실행 코드는 명시적인 신뢰 승인이 필요하며 별도 프로세스는 보안 샌드박스가 아닙니다.
+
+[개발 및 설치](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security](docs/plugins/security.md) · [Examples](examples/harness-plugins/)
 
 <a id="download"></a>
 

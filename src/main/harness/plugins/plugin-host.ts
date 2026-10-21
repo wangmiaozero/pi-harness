@@ -176,6 +176,7 @@ export class HarnessPluginHost {
       .manifest.contributions.evaluators.find((e) => e.id === evaluatorId)
     if (!definition || !live.process) throw new ValidationError('Evaluator not registered')
     const run = await this.run(sessionId, runId)
+    this.assertCurrent(id, live)
     if (['queued', 'running', 'waiting', 'tool-calling', 'verifying'].includes(run.status))
       throw new ValidationError('Run has not settled')
     const evidence = evidenceSchema.parse({
@@ -222,7 +223,9 @@ export class HarnessPluginHost {
     )
       throw new ValidationError('Exporter not registered')
     await this.run(sessionId, runId)
+    this.assertCurrent(id, live)
     const detail = await this.options.harness.getRunDetail(sessionId, runId)
+    this.assertCurrent(id, live)
     if (!detail.trace) throw new ValidationError('No recorded trace for this run')
     const trace: AuthorizedTrace = traceSchema.parse({
       runId,

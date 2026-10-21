@@ -130,7 +130,7 @@ jobs:
           key: downloads-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml', 'src/main/runtime/catalog.json') }}
       - run: pnpm install --frozen-lockfile
       - name: Native Windows and environment regressions
-        run: pnpm exec vitest run src/main/environment src/main/pi src/main/process src/main/updater/security --maxWorkers=2
+        run: pnpm exec vitest run src/main/environment src/main/pi src/main/process src/main/updater/security src/main/harness/plugins src/shared/harness-plugins src/main/services/mac-dmg.test.ts src/main/services/source-digest.test.ts --maxWorkers=2
       - name: Verify pinned SDK and native runtime versions
         run: |
           pnpm runtime:prepare

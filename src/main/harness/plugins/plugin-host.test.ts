@@ -168,6 +168,119 @@ async function custom(code: string, patch: Record<string, unknown> = {}): Promis
 }
 
 describe('Harness plugin lifecycle and real SDK process execution', () => {
+  it('does not transmit late evidence after disable begins while a core read is pending', async () => {
+    await host.close()
+    const config = options(),
+      methods: string[] = []
+    let release!: (run: HarnessRun) => void
+    config.harness.getRunById = () =>
+      new Promise((resolve) => {
+        release = resolve
+      })
+    config.processFactory = (entry) => {
+      const transport = factory(entry)
+      return {
+        ...transport,
+        send(message) {
+          methods.push((message as { method: string }).method)
+          transport.send(message)
+        }
+      }
+    }
+    host = new HarnessPluginHost(config)
+    await host.initialize()
+    const id = await custom(
+      `export default {
+      activate(api){api.evaluators.register({id:'rule',version:'1.0.0'},()=>({evaluatorId:'rule',version:'1.0.0',score:100,status:'passed',findings:[],metadata:{}}))},
+      deactivate(){return new Promise(resolve=>setTimeout(resolve,200))}
+    }`,
+      {
+        permissions: ['evaluation:read'],
+        contributions: { evaluators: [{ id: 'rule', version: '1.0.0' }] }
+      }
+    )
+    await host.setEnabled(id, true)
+    const pending = host.evaluate(id, 'rule', run.sessionId, run.id)
+    const rejected = expect(pending).rejects.toThrow('PLUGIN_DISABLED')
+    const disabling = host.setEnabled(id, false)
+    await vi.waitFor(() => expect(methods).toContain('deactivate'))
+    release(run)
+    await rejected
+    expect(methods).not.toContain('evaluate')
+    await disabling
+    expect(host.list()[0].status).toBe('disabled')
+  })
+
+  it('isolates one crashing plugin while another keeps receiving events and cleans both independently', async () => {
+    const broken = await custom(
+      'export default {activate(api){api.events.subscribe(["run.started"],()=>process.exit(7))}}',
+      { id: 'org.test.broken' }
+    )
+    const healthy = await custom(
+      'export default {activate(api){api.events.subscribe(["run.started"],()=>api.diagnostics.log("still receiving"))}}',
+      { id: 'org.test.healthy' }
+    )
+    await host.setEnabled(broken, true)
+    await host.setEnabled(healthy, true)
+    emit({ type: 'run.started', timestamp: 10, runId: run.id, prompt: '' })
+    await vi.waitFor(() => {
+      expect(host.list().find((p) => p.manifest.id === broken)?.status).toBe('failed')
+      expect(
+        host
+          .list()
+          .find((p) => p.manifest.id === healthy)
+          ?.diagnostics.some((d) => d.message.includes('still receiving'))
+      ).toBe(true)
+    })
+    expect(listeners.size).toBe(1)
+    await host.uninstall(broken)
+    emit({ type: 'run.started', timestamp: 20, runId: run.id, prompt: '' })
+    await vi.waitFor(() =>
+      expect(
+        host.list()[0].diagnostics.filter((d) => d.message.includes('still receiving'))
+      ).toHaveLength(2)
+    )
+    expect(host.list()[0].status).toBe('active')
+    await host.uninstall(healthy)
+    expect(listeners.size).toBe(0)
+  })
+
+  it('permits retry after an ordinary evaluator/exporter callback failure without mutating the Run', async () => {
+    const id = await custom(
+      `export default {activate(api){
+      let evaluations=0,exports=0;
+      api.evaluators.register({id:'retry',version:'1.0.0'},()=>{
+        if(++evaluations===1) throw new Error('Rule unavailable');
+        return {evaluatorId:'retry',version:'1.0.0',score:50,status:'warning',findings:[],metadata:{}};
+      });
+      api.exporters.register({id:'retry',version:'1.0.0'},()=>{
+        if(++exports===1) throw new Error('Exporter unavailable');
+        return {exported:true};
+      });
+    }}`,
+      {
+        permissions: ['evaluation:read', 'trace:read'],
+        contributions: {
+          evaluators: [{ id: 'retry', version: '1.0.0' }],
+          exporters: [{ id: 'retry', version: '1.0.0' }]
+        }
+      }
+    )
+    const before = structuredClone(run)
+    await host.setEnabled(id, true)
+    await expect(host.evaluate(id, 'retry', run.sessionId, run.id)).rejects.toThrow(
+      'PLUGIN_EXECUTION_FAILED'
+    )
+    expect(host.list()[0].status).toBe('active')
+    expect((await host.evaluate(id, 'retry', run.sessionId, run.id)).score).toBe(50)
+    await expect(host.exportTrace(id, 'retry', run.sessionId, run.id)).rejects.toThrow(
+      'PLUGIN_EXECUTION_FAILED'
+    )
+    expect(await host.exportTrace(id, 'retry', run.sessionId, run.id)).toEqual({ exported: true })
+    expect(host.list()[0].status).toBe('active')
+    expect(run).toEqual(before)
+  })
+
   it('executes Run Metrics through the SDK and cleans listeners over repeated enable/disable and uninstall', async () => {
     const id = await example('run-metrics')
     for (let i = 0; i < 3; i++) {
