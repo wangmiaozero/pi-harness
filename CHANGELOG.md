@@ -2,6 +2,14 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.2.5 — 2026-10-21
+
+### Added
+
+- Added a shared OpenCode Zen / Go setup with named API keys and automatic model loading.
+- Added individual and batch model verification, with explicit permission for paid verification.
+- Added model enablement controls and independently scrolling key and model lists.
+
 ## 2.2.4 — 2026-10-20
 
 ### Added

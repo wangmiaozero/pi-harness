@@ -93,6 +93,8 @@ Browse and search files, preview media and documents, and edit readable text wit
 
 Configure Pi-compatible providers with presets or custom endpoints, manage credentials, discover models where supported, test connections, and choose your chat model. Use supported image models for text-to-image or image editing, then download the results.
 
+Configure OpenCode Zen / Go from the OpenCode tab under Models: save your API key and enable the models you want in the workspace. Models load automatically and can be verified individually or together. Access and charges depend on your official account and selected model; paid verification requires your permission. See [OpenCode's official model information](https://opencode.ai/v2/docs/console/models/) for pricing and data policies.
+
 ### Skills, extensions, packages, and MCP
 
 Browse built-in and local Skills, edit them, and manage Pi packages and extensions from Capabilities. Type `@` in the composer to search and invoke an installed Skill. Connect MCP through supported packages. Optional add-ons such as [Superpowers](https://github.com/obra/superpowers) and [Odai](https://github.com/orziz/odai) can be installed, updated, or removed when you choose.
