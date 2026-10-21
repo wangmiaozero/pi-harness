@@ -25,15 +25,16 @@
 
 <p align="center">
   <a href="#download"><strong>다운로드</strong></a> ·
-  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>커스텀 스킨 만들기</strong></a> ·
-  <a href="#screenshots">화면 미리보기</a>
+  <a href="#features">기능</a> ·
+  <a href="#documentation">문서</a>
 </p>
 
 <p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="출시 버전" src="https://img.shields.io/github/v/release/wangmiaozero/pi-harness?style=flat-square" /></a>
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
+  <a href="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml"><img alt="CI (main)" src="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
   <a href="LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-  <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
 </p>
 
 ## 왜 Pi-Harness인가요?
@@ -80,6 +81,8 @@ Pi-Harness는 Pi Coding Agent의 운영 기능 상위 집합입니다. Native Pi
 | Review Gates             | —         | 지원               |
 | Worktree isolation       | —         | 지원               |
 | Project architecture map | —         | 지원               |
+
+<a id="features"></a>
 
 ## 기능
 
@@ -244,6 +247,8 @@ Node.js, npm, PATH, Pi Coding Agent, 현재 설정을 확인합니다. 지원 �
 ## 요구 사항
 
 macOS Apple Silicon, macOS Intel, Windows x64, Linux x64를 지원합니다. 지원 환경에서는 앱에서 Pi Coding Agent를 설치하거나 복구할 수 있습니다. 소스에서 실행하려면 Node.js ≥ 22.22.2와 pnpm 9.12.1이 필요합니다.
+
+<a id="documentation"></a>
 
 ## 문서
 

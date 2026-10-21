@@ -25,15 +25,16 @@
 
 <p align="center">
   <a href="#download"><strong>Télécharger</strong></a> ·
-  <a href="https://github.com/wangmiaozero/pi-harness-skin-starter"><strong>Créer un habillage</strong></a> ·
-  <a href="#screenshots">Captures d’écran</a>
+  <a href="#features">Fonctionnalités</a> ·
+  <a href="#documentation">Documentation</a>
 </p>
 
 <p align="center">
   <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="Versions publiées" src="https://img.shields.io/github/v/release/wangmiaozero/pi-harness?style=flat-square" /></a>
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
+  <a href="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml"><img alt="CI (main)" src="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
   <a href="LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-  <a href="https://github.com/wangmiaozero/pi-harness/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
+  <a href="https://github.com/wangmiaozero/pi-harness"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
 </p>
 
 ## Pourquoi Pi-Harness ?
@@ -80,6 +81,8 @@ Pi-Harness est un surensemble opérationnel de Pi Coding Agent : aux fonctions d
 | Review Gates             | —         | Oui                           |
 | Worktree isolation       | —         | Oui                           |
 | Project architecture map | —         | Oui                           |
+
+<a id="features"></a>
 
 ## Fonctionnalités
 
@@ -244,6 +247,8 @@ Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer 
 ## Prérequis
 
 L’application prend en charge macOS Apple Silicon, macOS Intel, Windows x64 et Linux x64. Pi Coding Agent peut être installé ou réparé depuis l’application dans les environnements compatibles. L’exécution depuis les sources nécessite Node.js ≥ 22.22.2 et pnpm 9.12.1.
+
+<a id="documentation"></a>
 
 ## Documentation
 
