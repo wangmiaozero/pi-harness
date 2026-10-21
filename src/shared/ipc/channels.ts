@@ -139,6 +139,15 @@ export const IPC_INVOKE = {
   skillDelete: invoke('skills:delete'),
   skillsRefresh: invoke('skills:refresh'),
 
+  // Harness operational plugins (separate from Pi extensions)
+  harnessPluginsList: invoke('harness-plugins:list'),
+  harnessPluginsInstall: invoke('harness-plugins:install-local'),
+  harnessPluginsToggle: invoke('harness-plugins:set-enabled'),
+  harnessPluginsUninstall: invoke('harness-plugins:uninstall'),
+  harnessPluginsEvaluate: invoke('harness-plugins:evaluate'),
+  harnessPluginsExport: invoke('harness-plugins:export-trace'),
+  harnessPluginsApplyTeam: invoke('harness-plugins:apply-team'),
+
   // unified capability layer (trusted catalog mutations only)
   capabilitiesList: invoke('capabilities:list'),
   capabilityOpenHomepage: invoke('capabilities:open-homepage'),

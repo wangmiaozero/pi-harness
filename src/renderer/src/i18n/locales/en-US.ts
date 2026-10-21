@@ -1,9 +1,11 @@
+import { harnessPluginMessages } from '../harness-plugins'
 import { openCodeMessages } from '../opencode'
 /** English (United States) UI messages. Source of truth for the message key shape. */
 import { capabilityMessages } from '../capabilities'
 import { universalMessages } from '../universal'
 
 export const enUS = {
+  harnessPlugins: harnessPluginMessages['en-US'],
   openCode: openCodeMessages['en-US'],
   universal: universalMessages['en-US'],
   nav: {

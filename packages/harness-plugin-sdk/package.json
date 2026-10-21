@@ -1,0 +1,27 @@
+{
+  "name": "@pi-harness/plugin-sdk",
+  "version": "1.0.0",
+  "description": "Typed operational plugin contract for Pi-Harness",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "import": "./index.mjs"
+    },
+    "./manifest": {
+      "types": "./manifest.d.mts",
+      "import": "./manifest.mjs"
+    }
+  },
+  "files": [
+    "index.ts",
+    "index.mjs",
+    "manifest.mjs",
+    "manifest.d.mts"
+  ],
+  "dependencies": {
+    "semver": "^7.8.5",
+    "zod": "^4.6.7"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "org.pi-harness.run-metrics",
+  "name": "Run Metrics",
+  "version": "1.0.0",
+  "apiVersion": "^1.0.0",
+  "description": "Measure run duration and count completed tools using Harness events.",
+  "author": "wangmiao",
+  "entry": "main.mjs",
+  "permissions": ["events:read"],
+  "contributions": {
+    "events": ["run.started", "run.completed", "run.failed", "tool.completed"]
+  }
+}

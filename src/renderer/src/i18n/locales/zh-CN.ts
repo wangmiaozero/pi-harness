@@ -1,3 +1,4 @@
+import { harnessPluginMessages } from '../harness-plugins'
 import { openCodeMessages } from '../opencode'
 /** 简体中文 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
@@ -5,6 +6,7 @@ import { capabilityMessages } from '../capabilities'
 import { universalMessages } from '../universal'
 
 export const zhCN: MessageTree = {
+  harnessPlugins: harnessPluginMessages['zh-CN'],
   openCode: openCodeMessages['zh-CN'],
   universal: universalMessages['zh-CN'],
   nav: {

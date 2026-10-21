@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { Activity, RefreshCw } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
@@ -25,7 +25,10 @@ import HarnessEvaluationPanel from './HarnessEvaluationPanel.vue'
 import { useHarnessStore } from '@renderer/stores/harness'
 import { useSessionStore } from '@renderer/stores/sessions'
 
+const HarnessPluginsPanel = defineAsyncComponent(() => import('./HarnessPluginsPanel.vue'))
+
 type Section =
+  | 'plugins'
   | 'overview'
   | 'runs'
   | 'detail'
@@ -50,6 +53,7 @@ const sessions = useSessionStore()
 const harness = useHarnessStore()
 const section = ref<Section>('overview')
 const sections = computed<Array<{ id: Section; label: string }>>(() => [
+  { id: 'plugins', label: t('harnessPlugins.title') },
   { id: 'overview', label: t('workspace.harnessOverview') },
   { id: 'runs', label: t('workspace.harnessRuns') },
   { id: 'detail', label: t('workspace.harnessRunDetail') },
@@ -69,6 +73,10 @@ const sections = computed<Array<{ id: Section; label: string }>>(() => [
   { id: 'session', label: t('workspace.harnessSession') },
   { id: 'stats', label: t('workspace.harnessStats') }
 ])
+
+const visibleSections = computed(() =>
+  sessions.currentId ? sections.value : sections.value.filter((item) => item.id === 'plugins')
+)
 
 watch(
   () => sessions.currentId,
@@ -123,12 +131,11 @@ async function openRunDetail(runId: string): Promise<void> {
     </header>
 
     <nav
-      v-if="sessions.currentId"
       class="flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--border-subtle)] px-4 py-1.5"
       :aria-label="$t('workspace.harnessSections')"
     >
       <button
-        v-for="item in sections"
+        v-for="item in visibleSections"
         :key="item.id"
         type="button"
         class="rounded-[var(--radius-sm)] border px-2.5 py-1 text-[11px] transition-colors focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
@@ -144,7 +151,10 @@ async function openRunDetail(runId: string): Promise<void> {
       </button>
     </nav>
 
-    <div v-if="!sessions.currentId" class="flex min-h-0 flex-1 items-center justify-center">
+    <div v-if="section === 'plugins'" class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+      <HarnessPluginsPanel />
+    </div>
+    <div v-else-if="!sessions.currentId" class="flex min-h-0 flex-1 items-center justify-center">
       <EmptyState
         :icon="Activity"
         :title="$t('workspace.harnessNoSession')"

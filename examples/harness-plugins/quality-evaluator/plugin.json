@@ -1,0 +1,24 @@
+{
+  "id": "org.pi-harness.quality-evaluator",
+  "name": "Quality Evaluator",
+  "version": "1.0.0",
+  "apiVersion": "^1.0.0",
+  "description": "Evaluate recorded run outcomes and export minimized JSON traces.",
+  "author": "wangmiao",
+  "entry": "main.mjs",
+  "permissions": ["evaluation:read", "trace:read"],
+  "contributions": {
+    "evaluators": [
+      {
+        "id": "quality",
+        "version": "1.0.0"
+      }
+    ],
+    "exporters": [
+      {
+        "id": "json-trace",
+        "version": "1.0.0"
+      }
+    ]
+  }
+}

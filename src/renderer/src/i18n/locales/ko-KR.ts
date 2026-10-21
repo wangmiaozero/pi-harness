@@ -1,3 +1,4 @@
+import { harnessPluginMessages } from '../harness-plugins'
 import { openCodeMessages } from '../opencode'
 /** 한국어 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
@@ -5,6 +6,7 @@ import { capabilityMessages } from '../capabilities'
 import { universalMessages } from '../universal'
 
 export const koKR: MessageTree = {
+  harnessPlugins: harnessPluginMessages['ko-KR'],
   openCode: openCodeMessages['ko-KR'],
   universal: universalMessages['ko-KR'],
   nav: {

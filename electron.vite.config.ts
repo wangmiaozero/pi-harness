@@ -52,6 +52,10 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           input: {
             index: resolve(import.meta.dirname, 'src/main/index.ts'),
+            'plugin-worker': resolve(
+              import.meta.dirname,
+              'src/main/harness/plugins/plugin-worker.ts'
+            ),
             'universal-worker': resolve(import.meta.dirname, 'src/main/universal/worker.ts'),
             'session-index-worker': resolve(
               import.meta.dirname,

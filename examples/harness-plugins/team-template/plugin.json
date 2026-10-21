@@ -1,0 +1,69 @@
+{
+  "id": "org.pi-harness.team-template",
+  "name": "Team Template",
+  "version": "1.0.0",
+  "apiVersion": "^1.0.0",
+  "description": "Create a pending development, test and review workflow using the existing scheduler.",
+  "author": "wangmiao",
+  "entry": null,
+  "permissions": ["teams:contribute"],
+  "contributions": {
+    "teams": [
+      {
+        "id": "development-review",
+        "version": "1.0.0",
+        "name": "Development, Test and Review",
+        "permissions": ["teams:contribute"],
+        "agents": [
+          {
+            "key": "developer",
+            "name": "Developer",
+            "role": "backend",
+            "workspaceMode": "worktree",
+            "isReviewer": false
+          },
+          {
+            "key": "tester",
+            "name": "Tester",
+            "role": "qa",
+            "workspaceMode": "worktree",
+            "isReviewer": false
+          },
+          {
+            "key": "reviewer",
+            "name": "Reviewer",
+            "role": "reviewer",
+            "workspaceMode": "shared",
+            "isReviewer": true
+          }
+        ],
+        "tasks": [
+          {
+            "key": "develop",
+            "title": "Implement the change",
+            "description": "Inspect the project and implement the requested change. Record the result for the next task.",
+            "agent": "developer",
+            "dependencies": [],
+            "reviewRequired": false
+          },
+          {
+            "key": "test",
+            "title": "Test the change",
+            "description": "Inspect the development result, run the relevant checks, and record evidence.",
+            "agent": "tester",
+            "dependencies": ["develop"],
+            "reviewRequired": false
+          },
+          {
+            "key": "review",
+            "title": "Review the change",
+            "description": "Review the implementation and test evidence; record an explicit approval or rejection.",
+            "agent": "reviewer",
+            "dependencies": ["test"],
+            "reviewRequired": true
+          }
+        ]
+      }
+    ]
+  }
+}
