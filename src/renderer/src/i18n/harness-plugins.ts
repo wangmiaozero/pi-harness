@@ -1,5 +1,11 @@
 import type { AppLocale } from '@shared/constants/language'
 const en = {
+  working: 'Working…',
+  emptyHint:
+    'Choose a folder containing plugin.json. Plugin developers can start with the three SDK examples in the repository’s plugin guide.',
+  compatibilityReason: 'Requires API {required}; this app provides {available}.',
+  evaluated: 'Evaluation complete. Expand the results below.',
+  exported: 'JSON trace exported.',
   status_installed: 'Installed',
   status_disabled: 'Disabled',
   status_activating: 'Activating',
@@ -38,6 +44,11 @@ const en = {
 }
 type Copy = Record<keyof typeof en, string>
 const zh: Copy = {
+  working: '正在处理…',
+  emptyHint: '请选择包含 plugin.json 的本地目录。插件开发可从仓库插件指南中的三个 SDK 示例开始。',
+  compatibilityReason: '需要 API {required}；当前应用提供 {available}。',
+  evaluated: '评估已完成，请展开下方结果。',
+  exported: 'JSON Trace 已导出。',
   status_installed: '已安装',
   status_disabled: '已禁用',
   status_activating: '正在激活',
@@ -75,6 +86,11 @@ const zh: Copy = {
 }
 const tw: Copy = {
   ...zh,
+  working: '正在處理…',
+  emptyHint: '請選擇包含 plugin.json 的本機目錄。外掛開發可從儲存庫外掛指南的三個 SDK 範例開始。',
+  compatibilityReason: '需要 API {required}；目前應用程式提供 {available}。',
+  evaluated: '評估已完成，請展開下方結果。',
+  exported: 'JSON Trace 已匯出。',
   status_installed: '已安裝',
   status_disabled: '已停用',
   status_activating: '正在啟用',
@@ -111,6 +127,12 @@ const tw: Copy = {
   results: '外掛評估結果'
 }
 const ja: Copy = {
+  working: '処理中…',
+  emptyHint:
+    'plugin.json を含むフォルダーを選択してください。開発はリポジトリのプラグインガイドにある3つの SDK サンプルから始められます。',
+  compatibilityReason: '必要な API: {required}。アプリの API: {available}。',
+  evaluated: '評価が完了しました。下の結果を開いてください。',
+  exported: 'JSON トレースを出力しました。',
   status_installed: 'インストール済み',
   status_disabled: '無効',
   status_activating: '起動中',
@@ -147,6 +169,12 @@ const ja: Copy = {
   results: 'プラグインの評価結果'
 }
 const ko: Copy = {
+  working: '처리 중…',
+  emptyHint:
+    'plugin.json이 있는 폴더를 선택하세요. 개발은 저장소 플러그인 가이드의 SDK 예제 3개로 시작할 수 있습니다.',
+  compatibilityReason: '필요 API: {required}. 앱 API: {available}.',
+  evaluated: '평가를 완료했습니다. 아래 결과를 펼쳐 확인하세요.',
+  exported: 'JSON Trace를 내보냈습니다.',
   status_installed: '설치됨',
   status_disabled: '비활성',
   status_activating: '활성화 중',
@@ -183,6 +211,12 @@ const ko: Copy = {
   results: '플러그인 평가 결과'
 }
 const de: Copy = {
+  working: 'Wird bearbeitet…',
+  emptyHint:
+    'Wählen Sie einen Ordner mit plugin.json. Die drei SDK-Beispiele im Plugin-Leitfaden des Repositorys helfen beim Entwickeln.',
+  compatibilityReason: 'Benötigt API {required}; die App bietet {available}.',
+  evaluated: 'Auswertung abgeschlossen. Öffnen Sie unten die Ergebnisse.',
+  exported: 'JSON-Trace exportiert.',
   status_installed: 'Installiert',
   status_disabled: 'Deaktiviert',
   status_activating: 'Wird aktiviert',
@@ -219,6 +253,12 @@ const de: Copy = {
   results: 'Plugin-Bewertungen'
 }
 const fr: Copy = {
+  working: 'Traitement…',
+  emptyHint:
+    'Choisissez un dossier contenant plugin.json. Le guide du dépôt propose trois exemples SDK pour développer un plugin.',
+  compatibilityReason: 'API requise : {required} ; API de l’application : {available}.',
+  evaluated: 'Évaluation terminée. Dépliez les résultats ci-dessous.',
+  exported: 'Trace JSON exportée.',
   status_installed: 'Installé',
   status_disabled: 'Désactivé',
   status_activating: 'Activation en cours',
@@ -255,6 +295,12 @@ const fr: Copy = {
   results: 'Résultats des évaluations'
 }
 const ru: Copy = {
+  working: 'Обработка…',
+  emptyHint:
+    'Выберите папку с plugin.json. Для разработки используйте три примера SDK из руководства по плагинам в репозитории.',
+  compatibilityReason: 'Требуется API {required}; приложение предоставляет {available}.',
+  evaluated: 'Оценка завершена. Разверните результаты ниже.',
+  exported: 'JSON Trace экспортирован.',
   status_installed: 'Установлен',
   status_disabled: 'Отключён',
   status_activating: 'Активация',

@@ -17,6 +17,7 @@
   "files": [
     "index.ts",
     "index.mjs",
+    "index.d.mts",
     "manifest.mjs",
     "manifest.d.mts"
   ],

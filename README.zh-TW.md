@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>下載</strong></a> ·
   <a href="#features">功能</a> ·
+  <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">文件</a>
 </p>
 
@@ -218,6 +219,14 @@ Pi-Harness 是 Pi Coding Agent 的操作能力超集：以原生 Pi 能力為基
 [![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)
 
 </details>
+
+<a id="harness-plugins"></a>
+
+## Harness Plugins — 擴充控制平台
+
+開發版預覽 · Plugin SDK v1.0.0。提供事件訂閱、自訂評估、JSON Trace 匯出與團隊範本；目前需從原始碼建置，尚未包含在 Community Release。可執行外掛需明確信任，獨立程序不是安全沙箱。
+
+[外掛開發與安裝](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security](docs/plugins/security.md) · [Examples](examples/harness-plugins/)
 
 <a id="download"></a>
 

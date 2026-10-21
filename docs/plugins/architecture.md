@@ -33,7 +33,7 @@ The process boundary isolates normal plugin exceptions, hangs, and exits. It is 
 
 ## Data flow
 
-The bridge subscribes to `HarnessRuntime.onEvent()` only while an active plugin declares events. The synchronous listener validates/project scalars and appends bounded queue entries. `setImmediate` starts asynchronous delivery; no plugin callback runs on the Agent execution stack. Each plugin has its own process and queue. An exception, invalid reply, timeout, or exit marks the plugin failed, detaches its registrations, and disables it durably. Other plugins and Pi execution continue.
+The bridge subscribes to `HarnessRuntime.onEvent()` only while an active plugin declares events. The synchronous listener validates/project scalars and appends bounded queue entries. `setImmediate` starts asynchronous delivery; no plugin callback runs on the Agent execution stack. Each plugin has its own process and queue. An event callback exception, invalid protocol reply, timeout, or exit marks the plugin failed, detaches its registrations, and disables it durably. Manual evaluator/exporter errors fail the requested operation; an otherwise healthy plugin remains active. Other plugins and Pi execution continue.
 
 A custom evaluator is explicitly invoked against a settled run from the management panel. Its score is supplementary: it cannot alter the core run, built-in evaluation, policy decisions or review verdict. Results are stored separately from native Pi and core Harness data, with at most 200 rows and a one-MiB serialized retention cap.
 

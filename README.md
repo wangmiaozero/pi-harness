@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>Download</strong></a> ·
   <a href="#features">Features</a> ·
+  <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">Documentation</a>
 </p>
 
@@ -215,6 +216,27 @@ Browse and search files, preview media and documents, and edit readable text wit
 ### Environment and app settings
 
 Check Node.js, npm, PATH, Pi Coding Agent, and the active configuration. Install, update, or repair Pi where supported, inspect environment diagnostics, manage configuration backups, and check for app updates. The interface is available in eight languages.
+
+<a id="harness-plugins"></a>
+
+## Harness Plugins — Extend the Control Plane
+
+**Development preview · Plugin SDK v1.0.0.** Available in source builds; not yet included in the current Community Release download.
+
+| Extension       | Purpose                                             |
+| --------------- | --------------------------------------------------- |
+| Pi Extensions   | Extend the Pi agent itself.                         |
+| Skills          | Give the agent instructions and workflow knowledge. |
+| MCP             | Connect the agent to tools and external services.   |
+| Harness Plugins | Extend Pi-Harness operations around the agent.      |
+
+Contribute **Harness Event Subscribers, Custom Evaluators, Trace Exporters, and Agent Team Templates**. Evaluations are supplementary, exports use authorized JSON data, and team templates create pending workflows for you to inspect and start.
+
+Try the maintained SDK examples: [Run Metrics](examples/harness-plugins/run-metrics/plugin.json), [Quality Evaluator](examples/harness-plugins/quality-evaluator/plugin.json), and [Team Template](examples/harness-plugins/team-template/plugin.json).
+
+In a source build, open **Workspace → Tools → Harness → Harness Plugins → Install local plugin**, choose its folder, review permissions and enable it. Installation executes no code. Executable plugins require explicit native trust approval: **the separate process is not a security sandbox; approved Node code can access your computer**. Use declarative templates for untrusted content.
+
+[Develop and install](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security boundary](docs/plugins/security.md)
 
 ## Architecture
 

@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>下载</strong></a> ·
   <a href="#features">功能</a> ·
+  <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">文档</a>
 </p>
 
@@ -221,6 +222,27 @@ Pi Coding Agent 负责智能体循环、会话、上下文、压缩、引导、�
 ### 环境与应用设置
 
 检查 Node.js、npm、PATH、Pi Coding Agent 和当前配置，在支持的环境中安装、更新或修复 Pi；查看环境诊断、管理配置备份并检查应用更新。界面支持八种语言。
+
+<a id="harness-plugins"></a>
+
+## Harness Plugins — 扩展控制平台
+
+**开发版预览 · Plugin SDK v1.0.0。** 当前可通过源码构建使用，尚未包含在现有 Community Release 下载中。
+
+| 扩展类型        | 作用                                    |
+| --------------- | --------------------------------------- |
+| Pi Extensions   | 扩展 Pi Agent 自身能力。                |
+| Skills          | 为 Agent 提供指令和工作流知识。         |
+| MCP             | 为 Agent 连接工具与外部服务。           |
+| Harness Plugins | 扩展围绕 Agent 的 Pi-Harness 运维能力。 |
+
+首版支持 **Harness Event Subscribers、Custom Evaluators、Trace Exporters 和 Agent Team Templates**。自定义评估结果独立保存，Trace 使用经过授权的 JSON 数据，团队模板只创建待执行工作流，由用户检查后启动。
+
+三个维护中的 SDK 示例：[Run Metrics](examples/harness-plugins/run-metrics/plugin.json)、[Quality Evaluator](examples/harness-plugins/quality-evaluator/plugin.json)、[Team Template](examples/harness-plugins/team-template/plugin.json)。
+
+在源码构建中打开 **工作区 → 工具 → Harness → Harness 插件 → 安装本地插件**，选择目录、查看权限后启用。安装不执行代码；可执行插件必须经过原生弹窗的明确代码信任确认。**独立进程不是安全沙箱，获准执行的 Node 代码可访问本机资源**。未经信任的内容请使用声明式模板。
+
+[开发与安装](docs/plugins/getting-started.md) · [架构](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [安全边界](docs/plugins/security.md)
 
 ## 架构
 

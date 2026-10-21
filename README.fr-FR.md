@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>Télécharger</strong></a> ·
   <a href="#features">Fonctionnalités</a> ·
+  <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">Documentation</a>
 </p>
 
@@ -218,6 +219,14 @@ Les interfaces sont classées par thème. Consultez l’[index complet des captu
 [![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)
 
 </details>
+
+<a id="harness-plugins"></a>
+
+## Harness Plugins — Étendre le plan de contrôle
+
+Aperçu de développement · Plugin SDK v1.0.0. Abonnements aux événements, évaluateurs personnalisés, exports JSON et modèles d’équipe. Disponible dans les builds source, pas encore dans la Community Release. Le code exécutable exige une confiance explicite ; le processus séparé n’est pas un bac à sable de sécurité.
+
+[Développer et installer](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security](docs/plugins/security.md) · [Examples](examples/harness-plugins/)
 
 <a id="download"></a>
 

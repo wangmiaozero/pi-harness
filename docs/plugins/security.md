@@ -23,7 +23,7 @@ Executable code runs in an Electron utility process to contain normal exceptions
 
 ## Availability controls
 
-Default operation deadline is two seconds; disposal has at most 500 ms. A failed protocol, callback, timeout or process exit detaches contributions and disables that plugin; no automatic restart loop. Termination has a bounded forced-kill fallback. Event dispatch is scheduled off the synchronous Harness execution path, with 64 queued events per plugin, at most eight active and 64 installed plugins. Overflow drops telemetry and records a counter/warning. It must not be used as an authoritative audit stream.
+Default operation deadline is two seconds; disposal has at most 500 ms. A failed protocol, event callback, timeout or process exit detaches contributions and disables that plugin; no automatic restart loop. A rejected manual evaluator/exporter callback fails that operation; the plugin can remain active unless its process or protocol fails. Termination has a bounded forced-kill fallback. Event dispatch is scheduled off the synchronous Harness execution path, with 64 queued events per plugin, at most eight active and 64 installed plugins. Overflow drops telemetry and records a counter/warning. It must not be used as an authoritative audit stream.
 
 Manifest reads are limited to 64 KiB and executable entries to 512 KiB. Process replies are bounded to 256 KiB, depth 12 and 16,000 visited values. Registrations, spans, logs and persisted supplementary results also have limits. Trusted code could still consume OS resources or attempt oversized native IPC messages; these bounds are defensive protocol limits, not a hostile-code resource sandbox.
 

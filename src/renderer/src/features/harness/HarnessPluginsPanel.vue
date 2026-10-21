@@ -6,6 +6,8 @@ import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { useHarnessStore } from '@renderer/stores/harness'
 import { useSessionStore } from '@renderer/stores/sessions'
 import type { PluginDescriptor } from '@shared/harness-plugins/types'
+import { HARNESS_PLUGIN_API_VERSION } from '../../../../../packages/harness-plugin-sdk'
+import { LoaderCircle } from '@lucide/vue'
 const { t } = useI18n()
 const plugins = ref<PluginDescriptor[]>([]),
   busy = ref(false),
@@ -19,6 +21,7 @@ async function refresh(): Promise<void> {
   plugins.value = await api().list()
 }
 async function action(work: () => Promise<unknown>): Promise<void> {
+  if (busy.value) return
   busy.value = true
   error.value = ''
   notice.value = ''
@@ -53,6 +56,18 @@ async function apply(id: string, key: string): Promise<void> {
 }
 function selectedSession(): string {
   return harness.runs.find((run) => run.id === runId.value)?.sessionId ?? sessions.currentId ?? ''
+}
+async function evaluate(id: string, key: string): Promise<void> {
+  await action(async () => {
+    await api().evaluate(id, key, selectedSession(), runId.value)
+    notice.value = t('harnessPlugins.evaluated')
+  })
+}
+async function exportTrace(id: string, key: string): Promise<void> {
+  await action(async () => {
+    if (await api().exportTrace(id, key, selectedSession(), runId.value))
+      notice.value = t('harnessPlugins.exported')
+  })
 }
 onMounted(() => {
   void action(async () => {})
@@ -91,10 +106,21 @@ onMounted(() => {
         </label>
       </div>
     </div>
+    <p
+      v-if="busy"
+      role="status"
+      class="flex items-center gap-2 text-[12px] text-[var(--text-secondary)]"
+    >
+      <LoaderCircle class="size-3 animate-spin" aria-hidden="true" />
+      {{ t('harnessPlugins.working') }}
+    </p>
     <p v-if="error" role="alert" class="text-[12px] text-[var(--error)]">{{ error }}</p>
-    <p v-if="notice" role="status" class="text-[12px] text-[var(--success)]">{{ notice }}</p>
+    <p v-if="notice && !busy" role="status" class="text-[12px] text-[var(--success)]">
+      {{ notice }}
+    </p>
     <p v-if="!plugins.length" class="text-[12px] text-[var(--text-tertiary)]">
       {{ t('harnessPlugins.empty') }}
+      {{ t('harnessPlugins.emptyHint') }}
     </p>
     <article
       v-for="plugin in plugins"
@@ -121,6 +147,14 @@ onMounted(() => {
         {{ plugin.manifest.id }} · {{ plugin.manifest.author }}
       </p>
       <p class="text-[12px] text-[var(--text-secondary)]">{{ plugin.manifest.description }}</p>
+      <p v-if="!plugin.compatible" class="text-[11px] text-[var(--error)]">
+        {{
+          t('harnessPlugins.compatibilityReason', {
+            required: plugin.manifest.apiVersion,
+            available: HARNESS_PLUGIN_API_VERSION
+          })
+        }}
+      </p>
       <p class="text-[11px] text-[var(--text-secondary)]">
         {{ t(plugin.manifest.entry ? 'harnessPlugins.code' : 'harnessPlugins.declarative') }}
       </p>
@@ -151,9 +185,7 @@ onMounted(() => {
           :key="evaluator.id"
           class="plugin-button"
           :disabled="busy || plugin.status !== 'active' || !runId"
-          @click="
-            action(() => api().evaluate(plugin.manifest.id, evaluator.id, selectedSession(), runId))
-          "
+          @click="evaluate(plugin.manifest.id, evaluator.id)"
         >
           {{ t('harnessPlugins.evaluate') }} · {{ evaluator.id }}
         </button>
@@ -162,11 +194,7 @@ onMounted(() => {
           :key="exporter.id"
           class="plugin-button"
           :disabled="busy || plugin.status !== 'active' || !runId"
-          @click="
-            action(() =>
-              api().exportTrace(plugin.manifest.id, exporter.id, selectedSession(), runId)
-            )
-          "
+          @click="exportTrace(plugin.manifest.id, exporter.id)"
         >
           {{ t('harnessPlugins.export') }} · {{ exporter.id }}
         </button>
