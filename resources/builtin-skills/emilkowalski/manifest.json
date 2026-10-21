@@ -6,8 +6,8 @@
   "author": "Emil Kowalski",
   "repository": "emilkowalski/skills",
   "license": "MIT",
-  "commit": "d23d7f88a2e21c9e4b1418c7abe420f5c1052ba7",
-  "syncedAt": "2026-08-31T12:03:58.477Z",
+  "commit": "2d228630ba1446365f614a108cb8252f1feda202",
+  "syncedAt": "2026-10-21T09:50:06.218Z",
   "skills": [
     {
       "id": "animate",
@@ -15,7 +15,7 @@
       "description": "Build an animation from scratch, making the decisions in the order that determines whether it feels right — should it animate at all, what purpose, which tool, which properties, which curve and duration, how it interrupts, how it exits. Writes the implementation. Use when asked to animate something, add motion, make a component feel alive, or build a transition. For critiquing existing motion use review-animations; for auditing a whole codebase use improve-animations.",
       "category": "engineering",
       "sourcePath": "skills/engineering/animate",
-      "hash": "ab6889bad89310c20ac8a61ebdea3d9720b6faefd3cecb245fc1556a226fc15b",
+      "hash": "7e2be075000beecaf857ef67a99bccc26b5fe20ee43a52b53a8db7758f7ad895",
       "resources": [
         "RECIPES.md",
         "SKILL.md"
@@ -27,9 +27,20 @@
       "description": "Build animations in React Native and Expo, making the decisions in the order that determines whether they feel right — should it animate, which thread it runs on, which properties, spring or timing, how the gesture hands off, how it degrades. Writes the implementation with Reanimated, Gesture Handler, Expo Router and expo-haptics. Use when animating anything in an Expo app, adding gestures, sheets, screen transitions, press feedback or haptics, or fixing motion that stutters on device. For web animation use `animate`.",
       "category": "engineering",
       "sourcePath": "skills/engineering/animate-expo",
-      "hash": "3703425c78e28890666ca6cdcfc21019d062dd62686e258d2ce306106ff87e2e",
+      "hash": "83879713a792d9e1b9e25287f4d59f066ed108f3f5baf5f3dd7fdc4c55e55ece",
       "resources": [
         "RECIPES.md",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "animation-performance",
+      "name": "animation-performance",
+      "description": "Keep web animations inside the frame budget — animate composite-only properties, keep motion off the main thread when the page is busy, and find the cause when an animation drops frames. Covers the layout/paint/composite pipeline, cheaper property swaps, CSS vs WAAPI vs requestAnimationFrame, Framer Motion's hardware-accelerated path, React re-rendering per frame, inherited CSS variable recalculation, blur cost, and when `will-change` actually helps. Use when an animation is janky, choppy, stutters, or drops frames; when choosing which property to animate; when deciding between CSS and JS animation on performance grounds; or when reaching for `will-change` or GPU layers. For choosing easing, duration, or whether to animate at all use animate; for reviewing motion as a whole use review-animations.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/animation-performance",
+      "hash": "d10b128326f65042582cae87149897331957bdb1efe95d34de2044fce127768d",
+      "resources": [
         "SKILL.md"
       ]
     },
@@ -39,7 +50,7 @@
       "description": "Reverse-lookup glossary that turns a vague description of a web animation or motion effect into its exact term (\"the bouncy thing when a popover opens\" → Pop in; \"the iOS rubber-band scroll\" → Rubber-banding). Use when the user asks \"what's it called when…\", or describes a motion effect without knowing its name and wants the right word to prompt an AI or designer with. For naming an effect, not designing or building one.",
       "category": "engineering",
       "sourcePath": "skills/engineering/animation-vocabulary",
-      "hash": "16bfb5a10b42c4c2dfeb15c3705f9a2de774b33bf4ae055305130d4abff4b16b",
+      "hash": "6ac7c5c1cc9a674dc7c3555634bb0090b6b1610ed45047eaf9b5be13220ef339",
       "resources": [
         "SKILL.md"
       ]
@@ -50,7 +61,7 @@
       "description": "Apple's approach to interface design and fluid, physical motion, translated for the web. Use when building or reviewing gesture-driven UI, spring animations, drag/swipe/sheet interactions, momentum and interruptible transitions, translucent materials and depth, typography (optical sizing, tracking, leading), reduced-motion, or the design foundations (feedback, spatial consistency, restraint) behind Apple-style interfaces.",
       "category": "engineering",
       "sourcePath": "skills/engineering/apple-design",
-      "hash": "8d5d6949abe176aed835dc259e91470b6ee219f2bc2af92784a7f072a2e50ed0",
+      "hash": "79b75afd2538d394256f38f54b6b3815bb8e26bd5e3b33dbef8e858fd8ecbebf",
       "resources": [
         "SKILL.md"
       ]
@@ -61,9 +72,21 @@
       "description": "Guide to Sonner, the React toast library — install and wire up the Toaster, pick the right toast() call, promise and loading toasts, updating, dismissing and persisting toasts, styling, theming and icons, positioning and multiple toasters. Use when working with Sonner or troubleshooting it — toasts that don't appear, appear twice, lose their styles, ignore Tailwind classes, sit behind a modal, or don't follow dark mode.",
       "category": "engineering",
       "sourcePath": "skills/engineering/ask-sonner",
-      "hash": "923a4588f0b268dedab5f0477204db492e25d9c85dc520b5ec64469d493135a7",
+      "hash": "3b0a56217f25ec077cdd60e460fa0df0cd08d39d2d4abd6af24d104cdcb25967",
       "resources": [
         "API.md",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "break-ui",
+      "name": "break-ui",
+      "description": "Try to break a piece of UI by feeding it worst-case data — long names, unbreakable emails, one-letter names, missing fields, huge counts, zero items, long labels, non-Latin text, emoji, extreme numbers — then render it behind a \"Demo data / Worst case\" toggle and report everything that broke, with the fix for each. Use when the user asks to stress-test, break, or find edge cases in a component or screen, or to \"try the worst case\". For visual design critique use emil-design-eng; for motion use review-animations.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/break-ui",
+      "hash": "7cfa3cc21210099fa7ab9b2e7968b9f8674cac8f0f495240715f2561b0846883",
+      "resources": [
+        "CATALOG.md",
         "SKILL.md"
       ]
     },
@@ -73,7 +96,7 @@
       "description": "This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, and the invisible details that make software feel great.",
       "category": "engineering",
       "sourcePath": "skills/engineering/emil-design-eng",
-      "hash": "3e4c7e2b34a2fef2f972c1836d3d7925e39875623a76ee1b7a2026a5b32c1454",
+      "hash": "a993a1e593a9ac53e0c72b319ff4ef273dcfe17569a2da510fab68deb070e273",
       "resources": [
         "SKILL.md"
       ]
@@ -84,7 +107,7 @@
       "description": "Search a codebase or UI for places that don't animate but should, and reject everything that shouldn't. Read-only; it proposes motion with exact values, it does not implement it. Use when the user asks \"what could be animated here?\" or wants to \"make this feel more alive\". For fixing existing animations, use improve-animations or review-animations instead.",
       "category": "engineering",
       "sourcePath": "skills/engineering/find-animation-opportunities",
-      "hash": "83a8d4767cad74886eca6f621793a777ae8079018482e25aea1be9254650a961",
+      "hash": "423427212a66d9d1ea2648399c9bd9d7fc7003c196e8c250f9578a8409abd184",
       "resources": [
         "SKILL.md"
       ]
@@ -95,10 +118,21 @@
       "description": "Survey a codebase's animation and motion code as a senior motion advisor, then produce a prioritized audit and self-contained implementation plans for other agents (or cheaper models) to execute. Read-only on source code — it plans improvements, it does not apply them. Use when the user asks to \"improve the animations\", \"audit the motion\", \"make this app feel better\", or wants a roadmap of animation fixes rather than a review of a single diff.",
       "category": "engineering",
       "sourcePath": "skills/engineering/improve-animations",
-      "hash": "2a371396644801d45c708e95cbff02cf1b0f2dca238abbdbb0abb09d5a42974e",
+      "hash": "a2195202b98259e09cd87dce0bdf7a2bee2c156aa03ed66d2d52e7b9d056be74",
       "resources": [
         "AUDIT.md",
         "PLAN-TEMPLATE.md",
+        "SKILL.md"
+      ]
+    },
+    {
+      "id": "mobile-native",
+      "name": "mobile-native",
+      "description": "Make a web app feel native on a phone — the small CSS and meta-tag fixes that separate \"a website in a browser\" from something that feels installed. Covers sticky hover states, tap highlight flashes, the 100vh bug, inputs that zoom the page, laggy taps, pull-to-refresh hijacking scroll, content under the notch, long-press selecting button text, carousels that scroll the wrong way, mismatched status bars, and the rule that you test on real hardware. Use when a web app is being built for or reviewed on mobile, when something \"works in Chrome but feels wrong on my phone\", when building a PWA, a bottom sheet, a carousel, a full-screen layout, or any touch interaction. For motion itself use animate; for React Native use animate-expo.",
+      "category": "engineering",
+      "sourcePath": "skills/engineering/mobile-native",
+      "hash": "952dad47a2f9683f93f3afc47bf24b2d4fd11bbca60432667b18d76383fa07b2",
+      "resources": [
         "SKILL.md"
       ]
     },
@@ -108,7 +142,7 @@
       "description": "Pick the right library for a given frontend task from a curated, opinionated list — numbers, OTP inputs, charts, command menus, virtualization, drag and drop, toasts, state, styling, and more. Only runs when explicitly invoked; it does not trigger on its own.",
       "category": "engineering",
       "sourcePath": "skills/engineering/pick-ui-library",
-      "hash": "033f55aab3e6495ccb703f043215910c043415cd7889ada884e993f7aedaa061",
+      "hash": "2fadb0aa9dc8d11763a161b4360993c70976c1092339e0f50f069481e9cda9f5",
       "resources": [
         "SKILL.md"
       ]
@@ -119,7 +153,7 @@
       "description": "Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual picker so you can flip through them live and promote the one that feels right. Only runs when explicitly invoked; it does not trigger on its own.",
       "category": "engineering",
       "sourcePath": "skills/engineering/prototype",
-      "hash": "58eca2dad19ae8ee5d9bb3116ae2c5a272841cdf4083abb930d7226aa4d0d22b",
+      "hash": "3787e7b2e94c91fe0f80fa362d636c48c1b1fc93a817f71f347edd332a657c71",
       "resources": [
         "PICKER.md",
         "SKILL.md"
@@ -131,7 +165,7 @@
       "description": "Reviews animation and motion code against a high craft bar derived from Emil Kowalski's design engineering philosophy. Default to flagging; approval is earned.",
       "category": "engineering",
       "sourcePath": "skills/engineering/review-animations",
-      "hash": "abe6b4b12653e48de5669c73b46b007855e872458d0ae232e24753c2eca909f2",
+      "hash": "50ba5cd273ab0def08d140fd1329319b23b42bd0165c8f67644c590d3b57bbc6",
       "resources": [
         "SKILL.md",
         "STANDARDS.md"
@@ -143,7 +177,7 @@
       "description": "How to write modern Swift well — modeling with value types, Swift 6 data-race safety and approachable concurrency (@concurrent, main-actor-by-default, actors, task groups), protocols and generics (some vs any), API design, performance and ARC, Swift Testing, macros, and the modern language features agents don't know about yet. Use when writing, reviewing, or migrating Swift, or when a concurrency error, a hang, a data race, a retain cycle, or a performance problem needs fixing.",
       "category": "engineering",
       "sourcePath": "skills/engineering/write-swift",
-      "hash": "a31211b82a1b4248beeaf8dbc9e779ebabb340fcadc2d3673c6c8cbc13e385a1",
+      "hash": "0a46a8bf742e630f5b1ca2ac6ecb9e50dadf944072a70adbef6640621afd3ce1",
       "resources": [
         "SKILL.md"
       ]

@@ -20,21 +20,21 @@ test('role suites share canonical skills and preserve unrelated installations wh
   await expect(collection('emilkowalski-skills')).toContainText(
     'Skills For Designers and Engineers'
   )
-  await expect(collection('emilkowalski-skills')).toContainText('0/12')
+  await expect(collection('emilkowalski-skills')).toContainText('0/15')
 
   await collection('backend-engineer').click()
   const tdd = page.getByTestId('builtin-skill-tdd')
   await tdd.getByRole('button', { name: /安装|Install/, exact: true }).click()
   await expect(collection('backend-engineer')).toContainText('1/7')
   await expect(collection('frontend-engineer')).toContainText('1/7')
-  await expect(collection('mattpocock-skills')).toContainText('1/29')
+  await expect(collection('mattpocock-skills')).toContainText('1/31')
 
   await collection('ui-designer').click()
   await page.getByRole('button', { name: /全部安装|Install all/, exact: true }).click()
   await expect(collection('ui-designer')).toContainText('6/6', { timeout: 45_000 })
   await expect(collection('frontend-engineer')).toContainText('3/7')
   await expect(collection('product-engineer')).toContainText('1/6')
-  await expect(collection('emilkowalski-skills')).toContainText('6/12')
+  await expect(collection('emilkowalski-skills')).toContainText('6/15')
   expect(
     await fs.readFile(path.join(piAgentDir, 'skills', 'prototype', 'PICKER.md'), 'utf8')
   ).toContain('#')
@@ -54,8 +54,17 @@ test('role suites share canonical skills and preserve unrelated installations wh
   await expect(collection('ui-designer')).toContainText('0/6', { timeout: 45_000 })
   await expect(collection('frontend-engineer')).toContainText('1/7')
   await expect(collection('backend-engineer')).toContainText('1/7')
-  await expect(collection('emilkowalski-skills')).toContainText('0/12')
+  await expect(collection('emilkowalski-skills')).toContainText('0/15')
   expect(await fs.readFile(path.join(piAgentDir, 'skills', 'tdd', 'tests.md'), 'utf8')).toContain(
     '#'
   )
+
+  for (const [id, skills] of [
+    ['mattpocock-skills', ['implement-spec', 'pr', 'retro']],
+    ['emilkowalski-skills', ['animation-performance', 'break-ui', 'mobile-native']]
+  ] as const) {
+    await collection(id).click()
+    for (const skill of skills)
+      await expect(page.getByTestId(`builtin-skill-${skill}`)).toBeVisible()
+  }
 })

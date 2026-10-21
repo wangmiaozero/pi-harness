@@ -19,8 +19,11 @@ describe('bundled Matt Pocock source', () => {
   it('bundles all Emil Kowalski skills, references, and the upstream license', async () => {
     const root = path.resolve('resources/builtin-skills/emilkowalski')
     const source = await scanBuiltinSkillSource(root, 'builtin:emilkowalski-skills')
-    expect(source.skills).toHaveLength(12)
+    expect(source.skills).toHaveLength(15)
     expect(source.skills.every((skill) => skill.bundledHealthy)).toBe(true)
+    expect(source.skills.map((skill) => skill.id)).toEqual(
+      expect.arrayContaining(['animation-performance', 'break-ui', 'mobile-native'])
+    )
     expect(source.skills.find((skill) => skill.id === 'animate')?.resources).toContain('RECIPES.md')
     expect(source.skills.find((skill) => skill.id === 'prototype')?.resources).toContain(
       'PICKER.md'
@@ -35,7 +38,11 @@ describe('bundled Matt Pocock source', () => {
       'builtin:mattpocock-skills'
     )
 
-    expect(source.skills).toHaveLength(29)
+    expect(source.skills).toHaveLength(31)
+    expect(source.skills.every((skill) => skill.bundledHealthy)).toBe(true)
+    expect(source.skills.map((skill) => skill.id)).toEqual(
+      expect.arrayContaining(['implement-spec', 'pr', 'retro'])
+    )
     expect(new Set(source.skills.map((skill) => skill.category))).toEqual(
       new Set(['engineering', 'productivity', 'misc'])
     )

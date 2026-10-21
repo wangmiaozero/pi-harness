@@ -11,6 +11,7 @@ This version is being prepared and has not been published.
 - Added local Harness plugins for run metrics, custom evaluations, JSON trace exports and team templates.
 - Added plugin management with explicit trust approval, permission details and diagnostics.
 - Added plugin developer guides, a versioned SDK and three working examples.
+- Refreshed both built-in Skills collections with the latest upstream instructions and resources.
 - Updated the project homepage with product previews and clearer installation guidance.
 
 ### Fixed
