@@ -1,3 +1,4 @@
+import type { HarnessPluginsAPI } from '../harness-plugins/types'
 import type { OpenCodeFreeState, OpenCodeTestOptions } from '../providers/opencode-free'
 import type {
   RuntimeDiagnostics,
@@ -780,6 +781,7 @@ export interface ImageModelResult {
 }
 
 export interface PiSwitchAPI {
+  harnessPlugins: HarnessPluginsAPI
   runtimes: {
     diagnostics(): Promise<RuntimeDiagnostics>
     switch(kind: RuntimeKind, selection: RuntimeSelection): Promise<RuntimeDiagnostics>

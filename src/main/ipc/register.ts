@@ -1,3 +1,5 @@
+import type { HarnessPluginHost } from '../harness/plugins/plugin-host'
+import { registerHarnessPluginsIpc } from './register-harness-plugins'
 import {
   openCodeModelSchema,
   openCodeConfigureSchema,
@@ -134,6 +136,7 @@ export interface Services {
   customSkins: CustomSkinService
   environment: EnvironmentManager
   harness: HarnessRuntime
+  harnessPlugins?: HarnessPluginHost
   orchestrator?: OrchestratorService
   workspace: WorkspaceServices
   getMainWindow: () => BrowserWindow | null
@@ -1003,6 +1006,8 @@ export function registerIpc(services: Services): void {
     services.workspace.access
   )
   registerHarnessIpc(ipcMain, wrap, services.harness, services.orchestrator)
+  if (services.harnessPlugins)
+    registerHarnessPluginsIpc(ipcMain, wrap, services.harnessPlugins, services.workspace.access)
 
   void app
 }

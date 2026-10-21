@@ -25,5 +25,12 @@
       "@release-trust": ["./resources/release-public-keys.json"]
     }
   },
-  "include": ["src/main/**/*", "src/preload/**/*", "src/shared/**/*", "electron.vite.config.ts"]
+  "include": [
+    "src/main/**/*",
+    "src/preload/**/*",
+    "src/shared/**/*",
+    "electron.vite.config.ts",
+    "packages/harness-plugin-sdk/**/*.ts",
+    "packages/harness-plugin-sdk/**/*.mts"
+  ]
 }

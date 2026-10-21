@@ -32,6 +32,18 @@ function onEvent(channel: string, listener: IpcEventListener): () => void {
 }
 
 const api: PiSwitchAPI = {
+  harnessPlugins: {
+    list: () => invoke(IPC_INVOKE.harnessPluginsList),
+    installLocal: () => invoke(IPC_INVOKE.harnessPluginsInstall),
+    setEnabled: (id, enabled) => invoke(IPC_INVOKE.harnessPluginsToggle, { id, enabled }),
+    uninstall: (id) => invoke(IPC_INVOKE.harnessPluginsUninstall, { id }),
+    evaluate: (id, contributionId, sessionId, runId) =>
+      invoke(IPC_INVOKE.harnessPluginsEvaluate, { id, contributionId, sessionId, runId }),
+    exportTrace: (id, contributionId, sessionId, runId) =>
+      invoke(IPC_INVOKE.harnessPluginsExport, { id, contributionId, sessionId, runId }),
+    applyTeam: (id, contributionId) =>
+      invoke(IPC_INVOKE.harnessPluginsApplyTeam, { id, contributionId })
+  },
   runtimes: {
     diagnostics: () => invoke(IPC_INVOKE.runtimeDiagnostics),
     switch: (kind, selection) => invoke(IPC_INVOKE.runtimeSwitch, { kind, selection }),

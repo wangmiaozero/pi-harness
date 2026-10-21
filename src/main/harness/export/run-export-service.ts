@@ -188,3 +188,18 @@ export class RunExportService {
 function sanitize(name: string): string {
   return name.replace(/[/\\:*?"<>|]+/g, '-').slice(0, 80) || 'run'
 }
+
+/** Shared JSON export path. Obtain native user authorization before reading plugin evidence. */
+export async function exportAuthorizedJson(
+  generate: () => Promise<unknown>,
+  defaultPath = 'harness-trace.json'
+): Promise<HarnessExportResult> {
+  const result = await dialog.showSaveDialog({
+    defaultPath,
+    filters: [{ name: 'JSON', extensions: ['json'] }]
+  })
+  if (result.canceled || !result.filePath) return { format: 'json', path: '', cancelled: true }
+  const payload = redactSecrets(await generate())
+  await writeFile(result.filePath, JSON.stringify(payload, null, 2) + '\n', 'utf8')
+  return { format: 'json', path: result.filePath, cancelled: false }
+}

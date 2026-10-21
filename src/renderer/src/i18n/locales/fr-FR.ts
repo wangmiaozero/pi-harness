@@ -1,3 +1,4 @@
+import { harnessPluginMessages } from '../harness-plugins'
 import { openCodeMessages } from '../opencode'
 /** Français UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
@@ -5,6 +6,7 @@ import { capabilityMessages } from '../capabilities'
 import { universalMessages } from '../universal'
 
 export const frFR: MessageTree = {
+  harnessPlugins: harnessPluginMessages['fr-FR'],
   openCode: openCodeMessages['fr-FR'],
   universal: universalMessages['fr-FR'],
   nav: {

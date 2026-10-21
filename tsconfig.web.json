@@ -31,6 +31,8 @@
     "src/renderer/src/**/*.ts",
     "src/renderer/src/**/*.tsx",
     "src/renderer/src/**/*.vue",
-    "src/shared/**/*"
+    "src/shared/**/*",
+    "packages/harness-plugin-sdk/**/*.ts",
+    "packages/harness-plugin-sdk/**/*.mts"
   ]
 }

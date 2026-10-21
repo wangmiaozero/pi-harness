@@ -1,3 +1,7 @@
+import fs from 'node:fs/promises'
+import { HarnessPluginHost } from './harness/plugins/plugin-host'
+import { createElectronPluginProcess } from './harness/plugins/electron-process'
+import { approveHarnessPlugin } from './ipc/register-harness-plugins'
 /**
  * Electron main process entry.
  */
@@ -438,6 +442,20 @@ async function bootstrap(): Promise<void> {
   )
   harnessRef.current = harness
   const orchestrator = createOrchestrator(harness, workspaceState, worktrees)
+  const harnessPlugins = new HarnessPluginHost({
+    directory: path.join(await fs.realpath(app.getPath('userData')), 'harness-plugins'),
+    harness,
+    orchestrator,
+    processFactory: createElectronPluginProcess,
+    approve: (record) =>
+      approveHarnessPlugin(
+        record,
+        isChineseLocale(resolveAppLocale(settingsStore.peek().language, app.getLocale()))
+      )
+  })
+  await harnessPlugins
+    .initialize()
+    .catch((error) => log.harness.warn('Harness plugins unavailable', error))
 
   diagnostics.attachWorkspace({
     sessions,
@@ -530,6 +548,7 @@ async function bootstrap(): Promise<void> {
     environment,
     harness,
     orchestrator,
+    harnessPlugins,
     workspace: {
       access,
       files,
@@ -615,6 +634,7 @@ async function bootstrap(): Promise<void> {
     quitCleanup = (async () => {
       // Native shutdown hooks must finish before Electron exits or stores close.
       try {
+        await harnessPlugins.close()
         await harness.shutdownAll()
       } finally {
         const results = await Promise.allSettled([
