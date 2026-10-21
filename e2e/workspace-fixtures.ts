@@ -16,6 +16,7 @@ export async function verifyFileEditing({
   workspaceRoot: string
   piAgentDir: string
 }) {
+  // The fixture removes this tree after Electron closes its workspace watchers.
   const tempRoot = path.join(workspaceRoot, 'editor')
   const sessionId = '01a026a4-0796-73ff-990a-a2be21983540'
   fs.mkdirSync(tempRoot)
@@ -25,128 +26,121 @@ export async function verifyFileEditing({
   fs.writeFileSync(filePath, 'export const value = 1\n')
   seedWorkspaceSession(piAgentDir, tempRoot, sessionId)
 
-  try {
-    await page.evaluate(
-      async ({ root, selectedSessionId }) => {
-        await window.piSwitch.workspace.allowRoot(root)
-        localStorage.setItem(
-          'pi-harness.workspace.v1',
-          JSON.stringify({
-            projectKey: null,
-            pickedCwd: null,
-            projectRoots: [],
-            tabs: [
-              {
-                id: `chat:${selectedSessionId}`,
-                kind: 'chat',
-                title: 'Editor fixture session',
-                sessionId: selectedSessionId,
-                closable: false
-              }
-            ],
-            activeTabId: `chat:${selectedSessionId}`
-          })
-        )
-      },
-      { root: tempRoot, selectedSessionId: sessionId }
-    )
+  await page.evaluate(
+    async ({ root, selectedSessionId }) => {
+      await window.piSwitch.workspace.allowRoot(root)
+      localStorage.setItem(
+        'pi-harness.workspace.v1',
+        JSON.stringify({
+          projectKey: null,
+          pickedCwd: null,
+          projectRoots: [],
+          tabs: [
+            {
+              id: `chat:${selectedSessionId}`,
+              kind: 'chat',
+              title: 'Editor fixture session',
+              sessionId: selectedSessionId,
+              closable: false
+            }
+          ],
+          activeTabId: `chat:${selectedSessionId}`
+        })
+      )
+    },
+    { root: tempRoot, selectedSessionId: sessionId }
+  )
 
-    await page.locator('a[href="#/workspace"]').click()
-    await page.getByTestId('workspace-toggle-files').click()
-    await expect(page.getByRole('button', { name: 'node_modules', exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: '.env', exact: true })).toBeVisible()
-    await page.getByRole('button', { name: 'editable.ts', exact: true }).click()
+  await page.locator('a[href="#/workspace"]').click()
+  await page.getByTestId('workspace-toggle-files').click()
+  await expect(page.getByRole('button', { name: 'node_modules', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '.env', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'editable.ts', exact: true }).click()
 
-    const editor = page.getByTestId('file-code-view').locator('.cm-content')
-    await expect(editor).toHaveAttribute('contenteditable', 'true')
-    await editor.click()
-    await page.keyboard.press('ControlOrMeta+A')
-    await page.keyboard.insertText('export const value = 2\n')
-    await page.getByTestId('workspace-collapse-files').click()
-    await expect(page.getByTestId('workspace-files-panel')).toHaveCount(0)
-    await page.getByTestId('workspace-toggle-files').click()
-    await expect(editor).toContainText('export const value = 2')
-    const save = page.getByTestId('file-save')
-    await expect(save).toBeEnabled()
-    // Delay the real write reply to reproduce typing before an earlier save completes.
-    await electronApp.evaluate(({ ipcMain }, channel) => {
-      const handlers = (
-        ipcMain as unknown as {
-          _invokeHandlers: Map<string, (...args: unknown[]) => Promise<unknown>>
-        }
-      )._invokeHandlers
-      const original = handlers.get(channel)!
-      let release!: () => void
-      const gate = new Promise<void>((resolve) => {
-        release = resolve
-      })
-      ipcMain.removeHandler(channel)
-      ipcMain.handle(channel, async (...args) => {
-        const result = await original(...args)
-        await gate
-        return result
-      })
-      ;(globalThis as typeof globalThis & { releaseFileWrite?: () => void }).releaseFileWrite =
-        () => {
-          release()
-          ipcMain.removeHandler(channel)
-          ipcMain.handle(channel, original)
-        }
-    }, IPC_INVOKE.filesWrite)
-    await save.click()
-    await expect.poll(() => fs.readFileSync(filePath, 'utf8')).toBe('export const value = 2\n')
-    await expect(save).toBeDisabled()
-
-    await editor.click()
-    await page.keyboard.press('ControlOrMeta+A')
-    await page.keyboard.insertText('export const value = 3\n')
-    await electronApp.evaluate(() => {
-      const state = globalThis as typeof globalThis & { releaseFileWrite?: () => void }
-      state.releaseFileWrite!()
-      delete state.releaseFileWrite
+  const editor = page.getByTestId('file-code-view').locator('.cm-content')
+  await expect(editor).toHaveAttribute('contenteditable', 'true')
+  await editor.click()
+  await page.keyboard.press('ControlOrMeta+A')
+  await page.keyboard.insertText('export const value = 2\n')
+  await page.getByTestId('workspace-collapse-files').click()
+  await expect(page.getByTestId('workspace-files-panel')).toHaveCount(0)
+  await page.getByTestId('workspace-toggle-files').click()
+  await expect(editor).toContainText('export const value = 2')
+  const save = page.getByTestId('file-save')
+  await expect(save).toBeEnabled()
+  // Delay the real write reply to reproduce typing before an earlier save completes.
+  await electronApp.evaluate(({ ipcMain }, channel) => {
+    const handlers = (
+      ipcMain as unknown as {
+        _invokeHandlers: Map<string, (...args: unknown[]) => Promise<unknown>>
+      }
+    )._invokeHandlers
+    const original = handlers.get(channel)!
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
     })
-    await expect(editor).toContainText('export const value = 3')
-    await expect(save).toBeEnabled()
-    const savedPreview = await page.evaluate((path) => window.piSwitch.files.read(path), filePath)
-    expect(savedPreview).toMatchObject({ kind: 'text', text: 'export const value = 2\n' })
-    fs.writeFileSync(filePath, 'external change\n')
-    expect(fs.readFileSync(filePath, 'utf8')).toBe('external change\n')
-    const externalPreview = await page.evaluate(
-      (path) => window.piSwitch.files.read(path),
-      filePath
-    )
-    expect(externalPreview).toMatchObject({ kind: 'text', text: 'external change\n' })
-    expect(externalPreview.revision).not.toBe(savedPreview.revision)
-    const conflict = await page.evaluate(
-      async ({ path, revision }) => {
-        try {
-          const result = await window.piSwitch.files.write(path, 'probe', revision)
-          return { ok: true as const, result }
-        } catch (error) {
-          const ipcError = error as { code?: string; message?: string }
-          return {
-            ok: false as const,
-            code: ipcError.code ?? null,
-            message: ipcError.message ?? null
-          }
+    ipcMain.removeHandler(channel)
+    ipcMain.handle(channel, async (...args) => {
+      const result = await original(...args)
+      await gate
+      return result
+    })
+    ;(globalThis as typeof globalThis & { releaseFileWrite?: () => void }).releaseFileWrite =
+      () => {
+        release()
+        ipcMain.removeHandler(channel)
+        ipcMain.handle(channel, original)
+      }
+  }, IPC_INVOKE.filesWrite)
+  await save.click()
+  await expect.poll(() => fs.readFileSync(filePath, 'utf8')).toBe('export const value = 2\n')
+  await expect(save).toBeDisabled()
+
+  await editor.click()
+  await page.keyboard.press('ControlOrMeta+A')
+  await page.keyboard.insertText('export const value = 3\n')
+  await electronApp.evaluate(() => {
+    const state = globalThis as typeof globalThis & { releaseFileWrite?: () => void }
+    state.releaseFileWrite!()
+    delete state.releaseFileWrite
+  })
+  await expect(editor).toContainText('export const value = 3')
+  await expect(save).toBeEnabled()
+  const savedPreview = await page.evaluate((path) => window.piSwitch.files.read(path), filePath)
+  expect(savedPreview).toMatchObject({ kind: 'text', text: 'export const value = 2\n' })
+  fs.writeFileSync(filePath, 'external change\n')
+  expect(fs.readFileSync(filePath, 'utf8')).toBe('external change\n')
+  const externalPreview = await page.evaluate((path) => window.piSwitch.files.read(path), filePath)
+  expect(externalPreview).toMatchObject({ kind: 'text', text: 'external change\n' })
+  expect(externalPreview.revision).not.toBe(savedPreview.revision)
+  const conflict = await page.evaluate(
+    async ({ path, revision }) => {
+      try {
+        const result = await window.piSwitch.files.write(path, 'probe', revision)
+        return { ok: true as const, result }
+      } catch (error) {
+        const ipcError = error as { code?: string; message?: string }
+        return {
+          ok: false as const,
+          code: ipcError.code ?? null,
+          message: ipcError.message ?? null
         }
-      },
-      { path: filePath, revision: savedPreview.revision! }
-    )
-    expect(conflict).toMatchObject({ ok: false, code: 'FILE_CONFLICT' })
-    await save.click()
+      }
+    },
+    { path: filePath, revision: savedPreview.revision! }
+  )
+  expect(conflict).toMatchObject({ ok: false, code: 'FILE_CONFLICT' })
+  await save.click()
 
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toContainText(/文件已被外部修改|File changed externally/)
-    await dialog.getByRole('button', { name: /取消|Cancel/ }).click()
-    expect(fs.readFileSync(filePath, 'utf8')).toBe('external change\n')
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toContainText(/文件已被外部修改|File changed externally/)
+  await dialog.getByRole('button', { name: /取消|Cancel/ }).click()
+  expect(fs.readFileSync(filePath, 'utf8')).toBe('external change\n')
 
-    await save.click()
-    await dialog.getByRole('button', { name: /覆盖文件|Overwrite file/ }).click()
-    await expect.poll(() => fs.readFileSync(filePath, 'utf8')).toBe('export const value = 3\n')
-  } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true })
-  }
+  await save.click()
+  await dialog.getByRole('button', { name: /覆盖文件|Overwrite file/ }).click()
+  await expect.poll(() => fs.readFileSync(filePath, 'utf8')).toBe('export const value = 3\n')
 }
 
 export function seedWorkspaceSession(
