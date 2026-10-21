@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { WorkspaceService } from './workspace-service'
 import { JsonStore } from '../services/storage'
-import type { FileAccessService } from '../files/file-access-service'
+import { FileAccessService } from '../files/file-access-service'
 import type { WorkspaceStateRecord } from './workspace-service'
 
 describe('WorkspaceService', () => {
@@ -30,6 +30,53 @@ describe('WorkspaceService', () => {
     await expect(stat(current)).rejects.toMatchObject({ code: 'ENOENT' })
     await expect(stat(legacy)).rejects.toMatchObject({ code: 'ENOENT' })
     expect((await store.read()).active).toBeNull()
+  })
+
+  it('restores only the existing current-profile scratch grant on startup without renderer initialization', async () => {
+    directory = await mkdtemp(path.join(tmpdir(), 'workspace-managed-grant-'))
+    const root = path.join(directory, 'Pi-Harness-dev', 'workspaces', 'default')
+    const legacy = path.join(directory, 'Pi-Harness', 'workspaces', 'default')
+    const unknown = path.join(directory, 'unselected')
+    await Promise.all([
+      mkdir(root, { recursive: true }),
+      mkdir(legacy, { recursive: true }),
+      mkdir(unknown)
+    ])
+    const access = new FileAccessService(
+      new JsonStore(path.join(directory, 'grants.json'), { roots: [] })
+    )
+    const store = new JsonStore<WorkspaceStateRecord>(path.join(directory, 'state.json'), {
+      active: null,
+      recent: [],
+      sessionBindings: {}
+    })
+    const service = new WorkspaceService(access, store, root, [legacy])
+    try {
+      await expect(access.restoreRoot(root)).rejects.toMatchObject({ code: 'PATH_DENIED' })
+      await expect(service.load()).resolves.toBeNull()
+      await expect(access.restoreRoot(root)).resolves.toBe(await realpath(root))
+      for (const denied of [legacy, unknown, path.dirname(root)])
+        await expect(access.restoreRoot(denied)).rejects.toMatchObject({ code: 'PATH_DENIED' })
+      expect(service.getActive()).toBeNull()
+      expect(access.getWorkspaceFolders()).toEqual([])
+      expect((await store.read()).active).toBeNull()
+    } finally {
+      await service.close()
+    }
+  })
+
+  it('does not create an unused scratch directory or activate one during startup', async () => {
+    directory = await mkdtemp(path.join(tmpdir(), 'workspace-unused-scratch-'))
+    const root = path.join(directory, 'managed', 'default')
+    const { service, access } = createService(directory, root)
+    try {
+      await service.load()
+      expect(access.allowRoot).not.toHaveBeenCalled()
+      await expect(stat(root)).rejects.toMatchObject({ code: 'ENOENT' })
+      expect(service.getActive()).toBeNull()
+    } finally {
+      await service.close()
+    }
   })
 
   it('parses a .code-workspace file, preserves unknown settings, and round-trips extras', async () => {

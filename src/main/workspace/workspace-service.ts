@@ -88,6 +88,11 @@ export class WorkspaceService {
   }
 
   async load(): Promise<AgentWorkspace | null> {
+    // Managed scratch access must survive Main restarts before any renderer asks
+    // for the default root. Identity aliases remain read-only grouping metadata.
+    if (this.defaultWorkspaceRoot && (await directoryExists(this.defaultWorkspaceRoot))) {
+      this.access.allowRoot(await realpath(this.defaultWorkspaceRoot))
+    }
     const state = await this.store.read()
     this.sessionBindings = { ...state.sessionBindings }
     if (!state.active?.folders.length) {
