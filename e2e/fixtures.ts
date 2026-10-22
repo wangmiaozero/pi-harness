@@ -60,6 +60,14 @@ export const test = base.extend<Fixtures>({
   testUserData: async ({}, use) => {
     const userData = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-')))
     fs.writeFileSync(path.join(userData, 'settings.json'), JSON.stringify({ language: 'zh-CN' }))
+    // Packaged builds schedule an update check during startup. Disable it before
+    // launch so a slow window cannot race the test's local network fixtures.
+    const updates = path.join(userData, 'updates')
+    fs.mkdirSync(updates)
+    fs.writeFileSync(
+      path.join(updates, 'preferences.json'),
+      JSON.stringify({ autoCheck: false, autoDownload: false })
+    )
     await use(userData)
     fs.rmSync(userData, { recursive: true, force: true })
   },

@@ -106,5 +106,10 @@ it('loads persisted startup state before answering a state request', async () =>
     preferences: { autoCheck: false, autoDownload: false },
     canInstall: false
   })
+  updater.startAutomaticUpdates(0)
+  await new Promise((resolve) => setTimeout(resolve, 20))
   expect(mocks.fetch).not.toHaveBeenCalled()
+  mocks.fetch.mockResolvedValue(new Response(JSON.stringify({ tag_name: 'v2.2.1' })))
+  expect(await updater.checkForUpdates()).toMatchObject({ status: 'idle', latestVersion: '2.2.1' })
+  expect(mocks.fetch).toHaveBeenCalledOnce()
 })

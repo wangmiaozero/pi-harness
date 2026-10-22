@@ -39,9 +39,11 @@ test('verifies, cancels, resumes and manually upgrades a real installed package 
       ;(globalThis as unknown as { verifiedInstaller: string }).verifiedInstaller = file
     }
   }, fixtureUrl)
-  await page.evaluate(() =>
-    window.piSwitch.updater.preferences({ autoCheck: false, autoDownload: false })
-  )
+  expect(await page.evaluate(() => window.piSwitch.updater.state())).toMatchObject({
+    status: 'idle',
+    latestVersion: null,
+    preferences: { autoCheck: false, autoDownload: false }
+  })
   expect(await page.evaluate(() => window.piSwitch.updater.check())).toMatchObject({
     currentVersion: fromVersion,
     latestVersion: toVersion,
