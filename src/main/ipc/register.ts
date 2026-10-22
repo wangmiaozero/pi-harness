@@ -111,10 +111,12 @@ import type { OrchestratorService } from '../harness/orchestrator/orchestrator-s
 import { registerHarnessIpc } from './register-harness'
 import type { CustomSkinService } from '../skins/custom-skin-service'
 import { registerUniversalIpc } from './register-universal'
+import { registerUniversalRuntimesIpc } from './register-universal-runtimes'
 import { registerIntelligenceIpc } from './register-intelligence'
 import type { ProjectIntelligenceService } from '../intelligence/service'
 import type { ArchitectureViewer } from '../intelligence/viewer'
 import type { UniversalSessionService } from '../universal/service'
+import type { UniversalRuntimeService } from '../universal-runtime/service'
 import type { UniversalHandoffService } from '../universal/handoff'
 
 export interface Services {
@@ -122,6 +124,7 @@ export interface Services {
   intelligence: ProjectIntelligenceService
   architectureViewer: ArchitectureViewer
   universal: UniversalSessionService
+  universalRuntimes: UniversalRuntimeService
   universalHandoff: UniversalHandoffService
   settingsStore: JsonStore<AppSettings>
   uiStateStore: JsonStore<Record<string, unknown>>
@@ -1005,6 +1008,7 @@ export function registerIpc(services: Services): void {
     services.universalHandoff,
     services.workspace.access
   )
+  registerUniversalRuntimesIpc(ipcMain, wrap, services.universalRuntimes, services.workspace.access)
   registerHarnessIpc(ipcMain, wrap, services.harness, services.orchestrator)
   if (services.harnessPlugins)
     registerHarnessPluginsIpc(ipcMain, wrap, services.harnessPlugins, services.workspace.access)

@@ -14,6 +14,7 @@ import type {
 
 import type { AppErrorCode, AppErrorPayload } from '../types/errors'
 import type { UniversalSessionsAPI } from '../universal/schema'
+import type { UniversalRuntimesAPI } from '../universal-runtime/api'
 import type { ProjectIntelligenceAPI } from '../intelligence/schema'
 import type {
   ProviderProfile,
@@ -792,6 +793,7 @@ export interface PiSwitchAPI {
     pick(kind: RuntimeKind): Promise<string | null>
   }
   universal: UniversalSessionsAPI
+  universalRuntimes: UniversalRuntimesAPI
   intelligence: ProjectIntelligenceAPI
   // system
   system: {
@@ -1279,6 +1281,8 @@ export interface PiSwitchAPI {
   on(event: 'workspace-changed', listener: IpcEventListener): () => void
   on(event: 'architecture-selected', listener: IpcEventListener): () => void
   on(event: 'architecture-control', listener: IpcEventListener): () => void
+  on(event: 'universal-runtime-event', listener: IpcEventListener): () => void
+  on(event: 'universal-runtimes-changed', listener: IpcEventListener): () => void
 }
 
 declare global {

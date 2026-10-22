@@ -337,7 +337,18 @@ export const IPC_INVOKE = {
   worktreeCreate: invoke('worktree:create'),
   worktreeRemove: invoke('worktree:remove'),
 
-  agentAuraSetActive: invoke('agent-aura:set-active')
+  agentAuraSetActive: invoke('agent-aura:set-active'),
+
+  // Universal Runtime Kernel
+  universalRuntimesList: invoke('universal-runtimes:list'),
+  universalRuntimesHealth: invoke('universal-runtimes:health'),
+  universalRuntimesSetEnabled: invoke('universal-runtimes:set-enabled'),
+  universalSessionsList: invoke('universal-runtimes:sessions-list'),
+  universalSessionsCreate: invoke('universal-runtimes:sessions-create'),
+  universalSessionsPrompt: invoke('universal-runtimes:sessions-prompt'),
+  universalSessionsCancel: invoke('universal-runtimes:sessions-cancel'),
+  universalSessionsClose: invoke('universal-runtimes:sessions-close'),
+  universalSessionsRespondPermission: invoke('universal-runtimes:respond-permission')
 } as const
 
 /** Main → renderer push events (one-way, via webContents.send). */
@@ -354,7 +365,9 @@ export const IPC_EVENT = {
   updaterState: 'pi-harness:updater:state',
   capabilityProgress: 'pi-harness:capabilities:mutation-progress',
   agentAuraActive: 'pi-harness:event:agent-aura-active',
-  workspaceChanged: 'pi-harness:event:workspace-changed'
+  workspaceChanged: 'pi-harness:event:workspace-changed',
+  universalRuntimeEvent: 'pi-harness:event:universal-runtime-event',
+  universalRuntimesChanged: 'pi-harness:event:universal-runtimes-changed'
 } as const
 
 export type IpcEventName = (typeof IPC_EVENT)[keyof typeof IPC_EVENT]

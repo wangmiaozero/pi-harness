@@ -61,6 +61,11 @@ import { GitCommitMessageService } from './git/commit-message-service'
 import { WorktreeService } from './git/worktree-service'
 import { SessionService } from './sessions/session-service'
 import { SessionExportService } from './sessions/session-export-service'
+import { UniversalRuntimeRegistry } from './universal-runtime/registry'
+import { UniversalRuntimeService } from './universal-runtime/service'
+import { PiRuntimeAdapter } from './universal-runtime/adapters/pi-runtime-adapter'
+import { DeepSeekRuntimeAdapter } from './universal-runtime/deepseek/deepseek-runtime-adapter'
+import { registerUniversalRuntimesIpc } from './ipc/register-universal-runtimes'
 import { RuntimeManager } from './runtime/runtime-manager'
 import { setRuntimeProvider } from './runtime/active'
 import { PiRpcRuntime } from './agent/pi-rpc-runtime'
@@ -467,6 +472,39 @@ async function bootstrap(): Promise<void> {
   rpcAgent.attachWindow(() => mainWindow)
   harness.attachWindow(() => mainWindow)
 
+  // Universal Runtime Kernel — the Pi engine becomes the first registered
+  // runtime adapter; DeepSeek Harness ships disabled until the user opts in.
+  const universalRuntimeState = new JsonStore<{
+    enabled: Record<string, boolean>
+    customPath: Record<string, string>
+  }>(path.join(userData(), 'universal-runtime-state.json'), { enabled: {}, customPath: {} })
+  await universalRuntimeState.read()
+  const sdkMode = process.env.PI_HARNESS_AGENT_MODE === 'sdk'
+  const activePiRuntime = sdkMode ? piAgent : rpcAgent
+  const runtimeRegistry = new UniversalRuntimeRegistry({
+    dataRoot: userData(),
+    store: universalRuntimeState as JsonStore<{ enabled: Record<string, boolean> }>
+  })
+  runtimeRegistry.register(
+    new PiRuntimeAdapter({
+      runtime: activePiRuntime,
+      listSessions: () => sessions.list(),
+      probe: () => ({
+        sdkLoaded: activePiRuntime.diagnostics().sdkLoaded,
+        version: null
+      })
+    }),
+    { builtin: true }
+  )
+  const deepseekRuntime = new DeepSeekRuntimeAdapter({
+    customPath: () => universalRuntimeState.peek().customPath?.deepseek ?? null
+  })
+  runtimeRegistry.register(deepseekRuntime, { builtin: true })
+  const universalRuntimes = new UniversalRuntimeService(runtimeRegistry, () => mainWindow)
+  void runtimeRegistry
+    .refreshHealthAll()
+    .catch((error) => log.universal.warn('runtime health probe failed', error))
+
   // Multi-Agent Orchestration — one subscription onto the unified stream.
   orchestrator.attach()
   await orchestrator
@@ -534,6 +572,7 @@ async function bootstrap(): Promise<void> {
     ),
     universal,
     universalHandoff,
+    universalRuntimes,
     settingsStore,
     uiStateStore,
     config,
@@ -636,6 +675,7 @@ async function bootstrap(): Promise<void> {
       try {
         await harnessPlugins.close()
         await harness.shutdownAll()
+        await universalRuntimes.shutdown()
       } finally {
         const results = await Promise.allSettled([
           sessions.close(),

@@ -73,6 +73,20 @@ const api: PiSwitchAPI = {
       }),
     clear: (root) => invoke(IPC_INVOKE.intelligenceClear, { root })
   },
+  universalRuntimes: {
+    list: () => invoke(IPC_INVOKE.universalRuntimesList),
+    health: () => invoke(IPC_INVOKE.universalRuntimesHealth),
+    setEnabled: (runtimeId, enabled) =>
+      invoke(IPC_INVOKE.universalRuntimesSetEnabled, { runtimeId, enabled }),
+    listSessions: (filter) => invoke(IPC_INVOKE.universalSessionsList, filter ?? {}),
+    createSession: (input) => invoke(IPC_INVOKE.universalSessionsCreate, input),
+    prompt: (sessionId, message) =>
+      invoke(IPC_INVOKE.universalSessionsPrompt, { sessionId, message }),
+    cancel: (sessionId) => invoke(IPC_INVOKE.universalSessionsCancel, { sessionId }),
+    close: (sessionId) => invoke(IPC_INVOKE.universalSessionsClose, { sessionId }),
+    respondPermission: (requestId, outcome) =>
+      invoke(IPC_INVOKE.universalSessionsRespondPermission, { requestId, outcome })
+  },
   universal: {
     origin: (piSessionId) => invoke(IPC_INVOKE.universalOrigin, piSessionId),
     list: (input) => invoke(IPC_INVOKE.universalList, input),
@@ -476,6 +490,10 @@ const api: PiSwitchAPI = {
     if (event === 'architecture-selected')
       return onEvent(IPC_EVENT.architectureSelected, ipcListener)
     if (event === 'architecture-control') return onEvent(IPC_EVENT.architectureControl, ipcListener)
+    if (event === 'universal-runtime-event')
+      return onEvent(IPC_EVENT.universalRuntimeEvent, ipcListener)
+    if (event === 'universal-runtimes-changed')
+      return onEvent(IPC_EVENT.universalRuntimesChanged, ipcListener)
     return () => {}
   }
 }
