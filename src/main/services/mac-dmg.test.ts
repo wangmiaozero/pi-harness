@@ -97,21 +97,18 @@ it.runIf(process.platform === 'darwin')(
     await fs.mkdir(source, { recursive: true })
     await fs.writeFile(path.join(source, 'marker.txt'), 'real DMG fixture')
     const image = path.join(f.dir, 'fixture.dmg')
+    // Build the fixture directly from files. create -srcfolder first populates
+    // a temporary volume, adding a mount lifecycle before the one under test.
     await exec(
       '/usr/bin/hdiutil',
       [
-        'create',
-        '-size',
-        '16m',
-        '-fs',
-        'HFS+',
-        '-volname',
+        'makehybrid',
+        '-hfs',
+        '-hfs-volume-name',
         'PiHarness-test',
-        '-srcfolder',
-        path.dirname(source),
-        '-format',
-        'UDRO',
-        image
+        '-o',
+        image,
+        path.dirname(source)
       ],
       { timeout: 60000 }
     )
