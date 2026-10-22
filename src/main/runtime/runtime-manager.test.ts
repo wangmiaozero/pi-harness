@@ -13,7 +13,11 @@ const directories: string[] = []
 afterEach(async () => {
   vi.restoreAllMocks()
   await Promise.all(
-    directories.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true }))
+    directories.splice(0).map((dir) =>
+      // Windows can briefly retain a lock on the copied executable after a probe
+      // exits. Retry only fixture cleanup; persistent locks must still fail.
+      fs.rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    )
   )
 })
 async function setup() {
