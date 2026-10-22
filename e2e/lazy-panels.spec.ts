@@ -85,13 +85,20 @@ test('refreshes providers once per menu entry while retaining the provider-first
       () => (globalThis as typeof globalThis & { __providerReads: number }).__providerReads
     )
   await page.locator('a[href="#/models"]').click()
+  await expect(page.getByTestId('model-management-tab-models')).toBeEnabled()
   await expect(page.getByTestId('model-action-cell')).toHaveCount(2)
   expect(await reads()).toBe(1)
   await page.getByTestId('model-management-tab-providers').click()
   await expect(page.getByTestId('provider-action-cell')).toHaveCount(2)
   expect(await reads()).toBe(1)
   await page.locator('a[href="#/workspace"]').click()
+  // Lazy navigation can still be pending when click resolves. Confirm that the
+  // management view unmounted before returning to its cached model rows.
+  await expect(page.getByTestId('workspace-main')).toBeVisible()
+  await expect(page.getByTestId('model-management-view')).toHaveCount(0)
   await page.locator('a[href="#/models"]').click()
+  // Cached rows alone do not establish that the provider refresh has finished.
+  await expect(page.getByTestId('model-management-tab-models')).toBeEnabled()
   await expect(page.getByTestId('model-action-cell')).toHaveCount(2)
   expect(await reads()).toBe(2)
 })
