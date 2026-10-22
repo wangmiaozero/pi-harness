@@ -2,6 +2,12 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.2.8 — 2026-10-22
+
+### Fixed
+
+- Reissued community installers without changes to existing features.
+
 ## 2.2.7 — 2026-10-22
 
 ### Fixed
