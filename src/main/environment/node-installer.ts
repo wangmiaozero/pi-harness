@@ -3,6 +3,7 @@ import path from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { homedir } from 'node:os'
 import semver from 'semver'
+import { nodeSecurityPolicy } from '@shared/runtime/node-security-policy.mjs'
 import { x as extractTar } from 'tar'
 import { extractRuntimeZip } from '../runtime/distribution.mjs'
 import { environmentDownloadsDir, managedNodeRoot } from '../services/app-paths'
@@ -85,11 +86,13 @@ export class NodeInstaller {
     const supported = releases.filter(
       (release) =>
         isNodeVersionSupported(release.version) &&
+        semver.major(normalizeNodeVersion(release.version)!) ===
+          semver.major(nodeSecurityPolicy.recommendedVersion) &&
         !release.version.includes('-') &&
         releaseSupports(release, this.dependencies.platform, this.dependencies.arch)
     )
     const candidates = supported.filter((release) => Boolean(release.lts))
-    const selected = (candidates.length ? candidates : supported).sort((left, right) =>
+    const selected = candidates.sort((left, right) =>
       semver.rcompare(normalizeNodeVersion(left.version)!, normalizeNodeVersion(right.version)!)
     )[0]
     if (!selected) {
@@ -194,7 +197,11 @@ export class NodeInstaller {
         readExecutableVersion(nodePath),
         readExecutableVersion(npmPath)
       ])
-      if (!isNodeVersionSupported(nodeVersion) || !npmVersion) {
+      if (
+        !isNodeVersionSupported(nodeVersion) ||
+        normalizeNodeVersion(nodeVersion) !== normalizeNodeVersion(version) ||
+        !npmVersion
+      ) {
         throw new EnvironmentError('NODE_INSTALL_FAILED', 'Installed Node.js verification failed', {
           nodeVersion,
           npmVersion

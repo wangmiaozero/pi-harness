@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures'
 import { IPC_INVOKE } from '../src/shared/ipc/channels'
+test.use({ isolateSystemRuntime: true })
 
 test('switches menus without rechecking executables and keeps explicit system refresh active', async ({
   page,

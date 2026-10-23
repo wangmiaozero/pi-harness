@@ -1,0 +1,6 @@
+{
+  "reviewedAt": "2026-10-22",
+  "advisory": "https://nodejs.org/en/blog/vulnerability/october-2026-security-releases",
+  "reviews": {},
+  "notes": "Electron 44.9.0 embeds Node 24.22.0. No complete Electron-specific backport evidence has been established for this advisory. Add an exact-version review only after verifying upstream patches and application regressions."
+}

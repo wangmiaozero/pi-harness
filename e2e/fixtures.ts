@@ -41,6 +41,7 @@ async function waitForMainWindow(electronApp: ElectronApplication): Promise<Page
 }
 
 type Fixtures = {
+  isolateSystemRuntime: boolean
   electronApp: ElectronApplication
   page: Page
   workspaceRoot: string
@@ -50,6 +51,7 @@ type Fixtures = {
 }
 
 export const test = base.extend<Fixtures>({
+  isolateSystemRuntime: [false, { option: true }],
   workspaceRoot: async ({}, use) => {
     const workspaceRoot = fs.realpathSync(
       fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-workspace-'))
@@ -76,7 +78,11 @@ export const test = base.extend<Fixtures>({
     fs.cpSync(fixturesPi, isolatedPi, { recursive: true })
     await use(isolatedPi)
   },
-  electronApp: async ({ workspaceRoot, testUserData, piAgentDir }, use, testInfo) => {
+  electronApp: async (
+    { workspaceRoot, testUserData, piAgentDir, isolateSystemRuntime },
+    use,
+    testInfo
+  ) => {
     if (!packagedExecutable && !fs.existsSync(mainJs)) {
       throw new Error('out/main/index.js missing — run `pnpm compile` before e2e')
     }
@@ -87,6 +93,12 @@ export const test = base.extend<Fixtures>({
     const { ELECTRON_RUN_AS_NODE: _runAsNode, ...restEnv } = process.env
     void _runAsNode
     const launchEnvironment = { ...restEnv }
+    if (isolateSystemRuntime && process.platform !== 'win32') {
+      // Probe the test runner's actual Node, independent of the developer's login profiles.
+      const shell = path.join(testUserData, 'runtime-shell')
+      fs.writeFileSync(shell, '#!/bin/sh\nexec /bin/sh -c "$2"\n', { mode: 0o755 })
+      launchEnvironment.SHELL = shell
+    }
     if (process.env.PI_HARNESS_E2E_EMPTY_PATH === '1') {
       for (const key of Object.keys(launchEnvironment))
         if (key.toLowerCase() === 'path') delete launchEnvironment[key]

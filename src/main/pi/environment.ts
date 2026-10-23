@@ -255,11 +255,13 @@ export function buildEnvironmentChecks(input: {
         ? 'Node.js was not found.'
         : nodeRuntime.nodeSupported
           ? `Node.js ${nodeRuntime.nodeVersion ?? ''} is supported.`
-          : `Node.js ${nodeRuntime.nodeVersion ?? 'unknown'} is below ${nodeRuntime.minimumNodeVersion}.`,
+          : `Node.js ${nodeRuntime.nodeVersion ?? 'unknown'}: ${nodeRuntime.nodeSecurity?.reason ?? 'A supported, security-patched version is required.'}`,
       ...(nodeRuntime.nodeSupported
         ? {}
         : {
-            remediation: `Install or upgrade Node.js to version ${nodeRuntime.minimumNodeVersion} or newer.`
+            remediation:
+              nodeRuntime.nodeSecurity?.remediation ??
+              `Install a supported, security-patched Node.js version (functional minimum ${nodeRuntime.minimumNodeVersion}).`
           })
     },
     {

@@ -54,42 +54,42 @@
     }
   },
   "node": {
-    "version": "24.22.0",
+    "version": "24.22.1",
     "npmVersion": "11.19.1",
     "license": "Node.js and bundled third-party licenses",
-    "baseUrl": "https://nodejs.org/dist/v24.22.0/",
+    "baseUrl": "https://nodejs.org/dist/v24.22.1/",
     "checksumsFile": "SHASUMS256.txt",
-    "checksumsSha256": "8912ada1431af8390bb3e30328d30bca701b59c7a6d5396b491293515c092c46",
+    "checksumsSha256": "fdfbffc969c0f604beff0124d409b33a43b53f5c681d6220f80023e0d6df9dc4",
     "assets": {
       "darwin-arm64": {
-        "file": "node-v24.22.0-darwin-arm64.tar.gz",
-        "sha256": "6a9724d9b50a5f22b4816cded441b5a8d9ddae546191a5e5b7efa5a5e2ee26d5",
-        "treeSha256": "f6f4dc5336fa8de40c8e3314c277fdd907478d3aa1ffde0506be79694729d0d4"
+        "file": "node-v24.22.1-darwin-arm64.tar.gz",
+        "sha256": "89c682593d76cd44233fa53b1563264e7de9cbb189cad169135c5b4fadfbc0a7",
+        "treeSha256": "98bc32d74e1432e70713480c2ffa98db5de7c88422f758d0ddf524157f596ac2"
       },
       "darwin-x64": {
-        "file": "node-v24.22.0-darwin-x64.tar.gz",
-        "sha256": "495e3f273c645f3c4677d438304cdfc701729ea5dec5728f5c8e76a2dece4b91",
-        "treeSha256": "99d5499e4d05206bd792b332e5ba5a22154a2ac735097525201d4e82383bb690"
+        "file": "node-v24.22.1-darwin-x64.tar.gz",
+        "sha256": "d132557e7ee2b85af08b0c8c34338e65c6430f2238d01f727728ef42dc83b035",
+        "treeSha256": "89ac3f5c0d2833c4aac3ce75b29d4cb98d43f68030d1417d6eb53d67531557e7"
       },
       "linux-arm64": {
-        "file": "node-v24.22.0-linux-arm64.tar.gz",
-        "sha256": "b7e7991d5407815adfa74a2a9cd4db683552c8ce32ff4a295c22e972849c3f5d",
-        "treeSha256": "900561ceffa873df4148b06253bb88a3a280c33c4f4733811c3c3eeca98c558d"
+        "file": "node-v24.22.1-linux-arm64.tar.gz",
+        "sha256": "33c37be234ba8bee041961047b19160f4d7d0f164e8e246f78bdd10feff148b3",
+        "treeSha256": "dfd04ee35595bb358ae0dcbb694fa74c39f1475aaa07f38b830ef2b9f01ee02e"
       },
       "linux-x64": {
-        "file": "node-v24.22.0-linux-x64.tar.gz",
-        "sha256": "28ea0a438de9a13bd7891fd758eee6c7819ee8af5442dfd8d45bd65e56d4228c",
-        "treeSha256": "cd0f23e5df8c14764778fdd9d90f8d593ab1c7722ac113a0587dea27c9b7c544"
+        "file": "node-v24.22.1-linux-x64.tar.gz",
+        "sha256": "eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c",
+        "treeSha256": "1a2b77bd65f4cb73833574f79ca53ceb432a27077815a74f2b980f0462d2f713"
       },
       "win32-arm64": {
-        "file": "node-v24.22.0-win-arm64.zip",
-        "sha256": "3a5c209a5bc59e65b3bc0fa13ed5e166a26bd3d55332847f498b76b037408d61",
-        "treeSha256": "e8d0516b12f26e751eacbb35ebfa56698f667c57f0d8295059826dcd3df574a2"
+        "file": "node-v24.22.1-win-arm64.zip",
+        "sha256": "a0c807319fede24c4a0d8f84564c82a619bd313b16b10c007c383c2609e99171",
+        "treeSha256": "f5e4e5e937debfd9e0f53592511171c51b3c09cedeb2e13a61b6023528fd143d"
       },
       "win32-x64": {
-        "file": "node-v24.22.0-win-x64.zip",
-        "sha256": "f9683a19877e12a9b167305c8db71040d812876359de21f0d2e97c3f321f80c3",
-        "treeSha256": "5af9c38cdd0178187fc25b3fa3f439e198631f959865e8b0623b8087cd11f14c"
+        "file": "node-v24.22.1-win-x64.zip",
+        "sha256": "d2046d28c2c3dcd211ac5145c0bf30e2047ef9dfb306693c8c6e2eccd8b95fa5",
+        "treeSha256": "b40f6d7aab07639e3535318ecff2f89217c127ccda1657a6755aaf59dfa8e722"
       }
     }
   }

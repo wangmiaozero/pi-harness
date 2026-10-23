@@ -14,8 +14,10 @@ import { homedir } from 'node:os'
 import fs from 'node:fs/promises'
 import { log } from '../services/logger'
 import { PiCliError, PiCliMissingError } from '../services/errors'
-import { nodeToolDirectories } from '../pi/node-environment'
+import { nodeToolDirectories, isNodeVersionSupported } from '../pi/node-environment'
 import { resolveExecutable, resolveLoginShellPath } from '../environment/command-resolver'
+import { assertNodeExecution, assertMcpNodeExecution } from '../runtime/node-execution-guard'
+import { getPiConfigDir } from '../services/app-paths'
 
 const execFileP = promisify(execFile)
 
@@ -202,19 +204,46 @@ export class PiProcessService {
 
   /** Run `pi <args>` safely. Returns captured output. */
   async exec(options: PiExecOptions): Promise<PiExecResult> {
+    const provider = getRuntimeProvider()
+    const operation = options.args[0] ?? ''
+    const source = options.args[1] ?? ''
+    const packageMayRunNode =
+      source.startsWith('npm:') ||
+      (['install', 'update'].includes(operation) &&
+        /^(?:git:|https?:\/\/|ssh:\/\/|git@)/i.test(source)) ||
+      (operation === 'update' && (!source || source.startsWith('-')))
+    if (provider && ['install', 'remove', 'update'].includes(operation) && packageMayRunNode)
+      assertNodeExecution(await provider.resolve('node'))
+    if (provider && options.args[0] === 'mcp')
+      await assertMcpNodeExecution(
+        provider,
+        options.env?.PI_CODING_AGENT_DIR ?? process.env.PI_CODING_AGENT_DIR ?? getPiConfigDir(),
+        options.cwd ?? process.cwd()
+      )
     const cliPath = await this.resolveCliPath(options.cliPath)
     if (!cliPath) throw new PiCliMissingError()
 
-    const isJs = cliPath.endsWith('.js')
+    const isJs = /\.[cm]?js$/i.test(cliPath)
     const isWindowsShim = process.platform === 'win32' && /\.(?:cmd|bat)$/i.test(cliPath)
-    const selectedNode = isJs
-      ? getRuntimeProvider()
-        ? (await getRuntimeProvider()!.resolve('node')).executablePath
-        : (await resolveExecutable('node', { additionalDirectories: await nodeToolDirectories() }))
-            .path
-      : null
+    let selectedNode: string | null = null
+    if (isJs) {
+      const provider = getRuntimeProvider()
+      if (provider) {
+        const runtime = await provider.resolve('node')
+        if (runtime.valid && isNodeVersionSupported(runtime.version))
+          selectedNode = runtime.executablePath
+      } else {
+        const runtime = await resolveExecutable('node', {
+          additionalDirectories: await nodeToolDirectories(),
+          requireVersion: true
+        })
+        if (isNodeVersionSupported(runtime.version)) selectedNode = runtime.path
+      }
+    }
     if (isJs && !selectedNode)
-      throw new PiCliError('An external Node runtime is required for npm Pi')
+      throw new PiCliError(
+        'A supported, security-patched external Node runtime is required for npm Pi'
+      )
     const file = isJs ? selectedNode! : isWindowsShim ? (process.env.ComSpec ?? 'cmd.exe') : cliPath
     const args = isJs
       ? [cliPath, ...options.args]

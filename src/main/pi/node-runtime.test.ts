@@ -20,7 +20,7 @@ beforeEach(() => {
     found: true,
     command,
     path: path.join(os.tmpdir(), 'tools', command),
-    version: command === 'node' ? 'v26.0.0' : '10.0.0',
+    version: command === 'node' ? 'v26.12.1' : '10.0.0',
     source: 'candidate'
   }))
 })
@@ -35,14 +35,14 @@ describe('terminal Node selection', () => {
       vi.mocked(resolveLoginShellPath).mockResolvedValue({
         shell: 'user-shell',
         path: shellBin,
-        node: { path: path.join(nodeBin, 'node'), version: 'v22.19.0' }
+        node: { path: path.join(nodeBin, 'node'), version: 'v22.23.4' }
       })
 
       const runtime = await detectNodeRuntime()
 
       expect(runtime).toMatchObject({
         nodePath: path.join(nodeBin, 'node'),
-        nodeVersion: 'v22.19.0',
+        nodeVersion: 'v22.23.4',
         nodeSupported: true,
         nodeSource: 'login-shell',
         ready: true
@@ -84,7 +84,7 @@ describe('terminal Node selection', () => {
 
   it('falls back to runnable candidates when the terminal cannot launch Node', async () => {
     vi.mocked(resolveLoginShellPath).mockResolvedValue({ shell: null, path: null })
-    expect(await detectNodeRuntime()).toMatchObject({ nodeVersion: 'v26.0.0', ready: true })
+    expect(await detectNodeRuntime()).toMatchObject({ nodeVersion: 'v26.12.1', ready: true })
     expect(resolveExecutable).toHaveBeenCalledWith(
       'node',
       expect.objectContaining({ requireVersion: true })
@@ -147,7 +147,7 @@ describe.runIf(process.platform === 'win32')('Windows terminal PATH refresh', ()
       .mockResolvedValueOnce({
         shell: 'powershell.exe',
         path: path.join(os.tmpdir(), 'current-node'),
-        node: { path: path.join(os.tmpdir(), 'current-node', 'node.exe'), version: 'v24.15.0' }
+        node: { path: path.join(os.tmpdir(), 'current-node', 'node.exe'), version: 'v24.22.1' }
       })
 
     const runtime = await detectNodeRuntime()
@@ -157,7 +157,7 @@ describe.runIf(process.platform === 'win32')('Windows terminal PATH refresh', ()
       refreshWindowsPath: true
     })
     expect(runtime).toMatchObject({
-      nodeVersion: 'v24.15.0',
+      nodeVersion: 'v24.22.1',
       nodeSupported: true,
       nodeStatus: 'ready',
       ready: true

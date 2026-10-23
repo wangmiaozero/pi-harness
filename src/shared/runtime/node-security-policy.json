@@ -1,0 +1,42 @@
+{
+  "reviewedAt": "2026-10-22",
+  "source": "https://nodejs.org/en/blog/vulnerability/october-2026-security-releases",
+  "scheduleSource": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+  "recommendedVersion": "24.22.1",
+  "functionalMinimum": "22.19.0",
+  "lines": {
+    "22": {
+      "minimum": "22.23.4",
+      "end": "2027-04-30",
+      "maintenance": "2025-10-21",
+      "lts": "2024-10-29"
+    },
+    "24": {
+      "minimum": "24.22.1",
+      "end": "2028-04-30",
+      "maintenance": "2026-10-20",
+      "lts": "2025-10-28"
+    },
+    "26": {
+      "minimum": "26.12.1",
+      "end": "2029-04-30",
+      "maintenance": "2027-10-20",
+      "lts": "2026-10-28"
+    }
+  },
+  "endOfLifeMajors": [
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 25
+  ],
+  "cves": [
+    { "id": "CVE-2026-111497", "severity": "high", "lines": [22, 24, 26] },
+    { "id": "CVE-2026-105482", "severity": "high", "lines": [22, 24, 26] },
+    { "id": "CVE-2026-105483", "severity": "high", "lines": [24, 26] },
+    { "id": "CVE-2026-106069", "severity": "high", "lines": [22, 24, 26] },
+    { "id": "CVE-2026-105481", "severity": "medium", "lines": [22, 24, 26] },
+    { "id": "CVE-2026-106072", "severity": "medium", "lines": [22, 24, 26] },
+    { "id": "CVE-2026-106074", "severity": "medium", "lines": [22, 24, 26] },
+    { "id": "CVE-2026-106070", "severity": "low", "lines": [26] },
+    { "id": "CVE-2026-106071", "severity": "low", "lines": [26] },
+    { "id": "CVE-2026-106073", "severity": "low", "lines": [22, 24, 26] }
+  ]
+}

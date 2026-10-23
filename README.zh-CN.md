@@ -327,7 +327,7 @@ Community 版本在应用内检查新版本，并在各平台打开官方 Releas
 
 ### 环境要求
 
-Community 版本验证覆盖 macOS Apple Silicon、macOS Intel、Windows x64 与 Linux x64，具体平台可用性以每个版本的验证结果为准。内置 Pi 与 Node 运行时开箱即用，设置中也提供系统与自定义运行时选项。源码开发与打包需要 Node.js ≥ 22.22.2 和 pnpm 9.12.1；安装包用户无需这些构建工具。
+Community 版本验证覆盖 macOS Apple Silicon、macOS Intel、Windows x64 与 Linux x64，具体平台可用性以每个版本的验证结果为准。内置 Pi 与 Node 运行时开箱即用，设置中也提供系统与自定义运行时选项。源码开发与打包需要 Node.js 24 LTS (≥ 24.22.1) 和 pnpm 9.12.1；安装包用户无需这些构建工具。
 
 <a id="screenshots"></a>
 
@@ -421,7 +421,7 @@ Community 版本验证覆盖 macOS Apple Silicon、macOS Intel、Windows x64 与
 
 ### 本地开发
 
-安装 **Node.js ≥ 22.22.2** 与 **pnpm 9.12.1**，然后执行：
+安装 **Node.js 24 LTS (≥ 24.22.1)** 与 **pnpm 9.12.1**，然后执行：
 
 ```sh
 git clone https://github.com/wangmiaozero/pi-harness.git

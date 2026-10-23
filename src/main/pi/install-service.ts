@@ -6,7 +6,7 @@ import { log } from '../services/logger'
 import { AppError, EnvironmentError, PiCliError, ValidationError } from '../services/errors'
 import type { NodeRuntimeInfo, PiInstallResult, PiLatestInfo } from '@shared/ipc/api-types'
 import { PI_INSTALL_ARGS, PI_INSTALL_COMMAND, PI_NPM_PACKAGE } from '@shared/constants/pi-install'
-import { detectNodeRuntime, MINIMUM_NODE_VERSION } from './node-environment'
+import { detectNodeRuntime } from './node-environment'
 import { displayCommand, runCommand, type CommandRunOptions } from '../environment/command-runner'
 import {
   ensureWritableNpmPrefix,
@@ -119,7 +119,7 @@ export class PiInstallService {
       options.onProgress?.({ phase, progress: value, message })
       options.onLog?.(message, 'info')
     }
-    progress('checking-node', 5, `Checking Node.js >= ${MINIMUM_NODE_VERSION}`)
+    progress('checking-node', 5, `Checking a supported, security-patched Node.js runtime`)
     const runtime = await this.dependencies.detectRuntime()
     if (!runtime.nodeInstalled) {
       throw new EnvironmentError('NODE_NOT_FOUND', 'Node.js is required before installing Pi')
@@ -127,7 +127,7 @@ export class PiInstallService {
     if (!runtime.nodeSupported) {
       throw new EnvironmentError(
         'NODE_VERSION_TOO_LOW',
-        `Pi-Harness requires Node.js >= ${MINIMUM_NODE_VERSION}`,
+        `Pi-Harness requires a supported, security-patched Node.js runtime`,
         { version: runtime.nodeVersion }
       )
     }

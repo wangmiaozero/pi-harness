@@ -33,6 +33,27 @@ async function setup() {
 }
 
 describe('runtime isolation and configuration', () => {
+  it('keeps standalone Pi available while rejecting Node-required work with an unsafe selection', async () => {
+    const { manager } = await setup()
+    vi.spyOn(manager, 'resolve').mockResolvedValue({
+      source: 'custom',
+      executablePath: '/unsafe/node',
+      version: '24.22.0',
+      platform: process.platform,
+      arch: process.arch,
+      valid: false,
+      integrity: 'unmanaged',
+      diagnosticMessages: ['Missing required Node.js security fixes.']
+    })
+    await expect(manager.environment('pi', { PATH: '/native/tools' })).resolves.toMatchObject({
+      PATH: '/native/tools'
+    })
+    await expect(manager.environment('npm')).rejects.toThrow('security fixes')
+    await expect(
+      manager.switchNodeRuntime({ source: 'custom', customPath: '/unsafe/node' })
+    ).rejects.toThrow('security fixes')
+    expect((await manager.configuration()).node).toEqual({ source: 'bundled' })
+  })
   it('defaults Pi and Node independently to bundled and never silently resolves a system fallback', async () => {
     const { manager } = await setup()
     expect(await manager.configuration()).toEqual({

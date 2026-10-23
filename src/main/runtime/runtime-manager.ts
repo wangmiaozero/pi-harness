@@ -20,6 +20,7 @@ import { buildRuntimeEnvironment } from './environment'
 import { validateExecutable, probe } from './validator'
 import { RuntimeVersionService } from './runtime-versions'
 import type { RuntimeUpdateReport } from '@shared/runtime/schema'
+import { assessNodeSecurity } from '@shared/runtime/node-security-policy.mjs'
 
 interface RuntimeState {
   configuration: RuntimeConfiguration
@@ -128,7 +129,17 @@ export class RuntimeManager {
         }
       )
     }
-    return structuredClone(await pending)
+    const resolved = structuredClone(await pending)
+    if (kind === 'node') {
+      resolved.security = assessNodeSecurity(resolved.version)
+      if (resolved.valid && !resolved.security.executionAllowed) {
+        resolved.valid = false
+        resolved.diagnosticMessages.push(
+          `${resolved.security.reason} ${resolved.security.remediation}`
+        )
+      }
+    }
+    return resolved
   }
   resolvePiRuntime(): Promise<ResolvedRuntime> {
     return this.resolve('pi')
@@ -160,6 +171,14 @@ export class RuntimeManager {
     const inherited = base ?? this.options.environment ?? process.env
     if (purpose === 'terminal') return { ...inherited }
     const node = await this.resolve('node')
+    // Pi, native MCP and in-process extensions can operate without external Node.
+    // Explicit Node tool consumers must fail before falling through to inherited PATH.
+    if (purpose === 'npm' && !node.valid)
+      throw new EnvironmentError(
+        'NODE_VERSION_TOO_LOW',
+        node.diagnosticMessages.join('; ') ||
+          'A supported, security-patched Node.js runtime is required'
+      )
     const baseEnvironment = { ...inherited }
     if (node.source === 'system') {
       const login = await resolveLoginShellPath({ probeNode: false })

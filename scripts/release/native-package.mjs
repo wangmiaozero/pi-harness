@@ -134,6 +134,7 @@ async function stageInstaller(directory, names, temporary) {
 }
 try {
   await command('runtime-prepare', ['runtime:prepare'])
+  await command('node-security', ['security:node', '--online'])
   await command('runtime-tests', ['test:runtime'])
   for (const variant of variants) {
     const directory = path.join(root, 'release', ...(variant === 'nomascot' ? ['nomascot'] : []))
@@ -179,7 +180,11 @@ try {
         const file = path.join(runtime, layout.executable)
         const env = { ...process.env, PATH: path.dirname(file), ELECTRON_RUN_AS_NODE: undefined }
         const result = await exec(file, ['--version'], { env, timeout: 30_000 })
-        if (!result.stdout.includes(catalog[kind].version))
+        if (
+          kind === 'node'
+            ? result.stdout.trim() !== `v${catalog.node.version}`
+            : !result.stdout.includes(catalog.pi.version)
+        )
           throw new Error('Installed runtime version mismatch')
         if (kind === 'node')
           for (const tool of ['npm', 'npx']) {
@@ -191,6 +196,12 @@ try {
               throw new Error('Installed npm/npx mismatch')
           }
       }
+      const securityReport = path.join(evidenceDirectory, `node-security-${variant}.json`)
+      await command(`installed-node-security-${variant}`, [
+        'security:node',
+        `--installed-root=${path.join(resources, 'runtimes')}`,
+        `--output=${securityReport}`
+      ])
       const env = {
         PI_HARNESS_E2E_EXECUTABLE: executable,
         PI_HARNESS_E2E_AGENT_MODE: 'rpc',
@@ -237,6 +248,7 @@ try {
       // Metadata remains CI evidence until automatic installation is validated.
       await fs.copyFile(path.join(directory, metadata), path.join(evidenceDirectory, metadata))
       report.variants[variant] = {
+        runtimeSecurity: JSON.parse(await fs.readFile(securityReport, 'utf8')).overall,
         build: 'PASS',
         integrity: 'PASS',
         runtime: 'PASS',

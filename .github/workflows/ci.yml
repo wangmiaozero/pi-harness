@@ -29,9 +29,10 @@ jobs:
           version: 9.12.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22.22.2
+          node-version: 24.22.1
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm security:node --source-only
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm exec vitest run --maxWorkers=2
@@ -41,7 +42,9 @@ jobs:
       - name: Prepare bundled runtimes for Electron features
         run: pnpm runtime:prepare
       - name: Verify pinned SDK and native runtime versions
-        run: pnpm runtime:check --offline --native
+        run: |
+          pnpm runtime:check --offline --native
+          pnpm security:node --online
       - name: Install the Linux window manager
         run: |
           sudo apt-get update
@@ -68,6 +71,7 @@ jobs:
           name: source-quality
           overwrite: true
           path: |
+            out/security/
             dependency-licenses.json
             test-results/
 
@@ -118,7 +122,7 @@ jobs:
           version: 9.12.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22.22.2
+          node-version: 24.22.1
           cache: pnpm
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -129,12 +133,14 @@ jobs:
             ~/AppData/Local/electron/Cache
           key: downloads-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml', 'src/main/runtime/catalog.json') }}
       - run: pnpm install --frozen-lockfile
+      - run: pnpm security:node --source-only
       - name: Native Windows and environment regressions
         run: pnpm exec vitest run src/main/environment src/main/pi src/main/process src/main/updater/security src/main/harness/plugins src/shared/harness-plugins src/main/services/mac-dmg.test.ts src/main/services/source-digest.test.ts --maxWorkers=2
       - name: Verify pinned SDK and native runtime versions
         run: |
           pnpm runtime:prepare
           pnpm runtime:check --offline --native
+          pnpm security:node --online
       - name: Build, install and execute both variants
         if: runner.os != 'Linux'
         run: pnpm release:package
@@ -156,6 +162,7 @@ jobs:
           path: |
             out/community-validation/${{ matrix.platform }}-${{ matrix.arch }}/
             out/runtime-validation/
+            out/security/
             test-results/
           if-no-files-found: warn
 
@@ -204,9 +211,10 @@ jobs:
           version: 9.12.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22.22.2
+          node-version: 24.22.1
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm security:node --source-only
       - run: pnpm runtime:prepare
       - name: Signed fixture download, cancellation/resume and real manual upgrade
         if: runner.os != 'Linux'

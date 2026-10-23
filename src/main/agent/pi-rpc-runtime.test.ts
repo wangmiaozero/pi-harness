@@ -177,7 +177,7 @@ native('official standalone Pi with independent Node', () => {
     const node = await manager.resolveNodeRuntime()
     expect(node).toMatchObject({
       valid: true,
-      version: '24.22.0',
+      version: catalog.node.version,
       npm: { version: '11.19.1' },
       npx: { version: '11.19.1' },
       integrity: 'verified'
@@ -448,7 +448,7 @@ export default function(pi: any) {
     const shell = vi.spyOn(discovery, 'resolveLoginShellPath').mockResolvedValue({
       shell: null,
       path: path.dirname(node),
-      node: { path: node, version: 'v24.22.0' }
+      node: { path: node, version: 'v24.22.1' }
     })
     const executable = vi.spyOn(discovery, 'resolveExecutable').mockResolvedValue({
       found: true,
@@ -472,7 +472,7 @@ export default function(pi: any) {
           source,
           executablePath: node,
           valid: true,
-          version: '24.22.0'
+          version: catalog.node.version
         })
         const selectedPi = await selections.switchPiRuntime(
           source === 'system' ? { source } : { source, customPath: pi }
@@ -599,6 +599,34 @@ export default function(pi: any) {
     expect(recovered.integrity).toBe('verified')
     expect(recovered.diagnosticMessages.join()).toContain('application baseline')
     expect(JSON.parse(await fs.readFile(stateFile, 'utf8')).active.pi).toBe('1.2.0-abcdef')
+  }, 30_000)
+  it('blocks an ordinary Node MCP before it can fall through to inherited Node', async () => {
+    await fs.writeFile(
+      path.join(root, 'runtime.json'),
+      JSON.stringify({
+        configuration: {
+          pi: { source: 'bundled' },
+          node: { source: 'custom', customPath: path.join(root, 'missing-node') }
+        },
+        active: {},
+        previous: {}
+      })
+    )
+    const marker = path.join(root, 'mcp-launched')
+    const script = path.join(root, 'ordinary.cjs')
+    await fs.writeFile(
+      script,
+      `require('node:fs').writeFileSync(${JSON.stringify(marker)}, process.version)`
+    )
+    await fs.writeFile(
+      path.join(config, 'mcp.json'),
+      JSON.stringify({ mcpServers: { ordinary: { command: 'node', args: [script] } } })
+    )
+    await expect(
+      runtime.startSession({ cwd, provider: 'fixture', modelId: 'fixture' })
+    ).rejects.toThrow('Node.js')
+    expect(runtime.listRunning()).toEqual([])
+    expect(await fs.stat(marker).catch(() => null)).toBeNull()
   }, 30_000)
   it('connects and calls a remote MCP without a usable Node runtime, without enumerating resources', async () => {
     await fs.writeFile(

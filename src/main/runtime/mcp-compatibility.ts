@@ -4,13 +4,14 @@ import type { McpRuntimeCompatibility, ResolvedRuntime } from '@shared/runtime/s
 /** Inspect dependency requirements only. Never copy commands, URLs, headers or env into diagnostics. */
 export function inspectMcpCompatibility(
   value: unknown,
-  node: ResolvedRuntime
+  node: ResolvedRuntime,
+  limit = 200
 ): McpRuntimeCompatibility[] {
   if (!value || typeof value !== 'object') return []
   const servers = (value as { mcpServers?: unknown }).mcpServers
   if (!servers || typeof servers !== 'object' || Array.isArray(servers)) return []
   return Object.entries(servers)
-    .slice(0, 200)
+    .slice(0, limit)
     .flatMap(([id, raw]) => {
       if (!raw || typeof raw !== 'object') return []
       const server = raw as { command?: unknown; url?: unknown; enabled?: unknown; env?: unknown }

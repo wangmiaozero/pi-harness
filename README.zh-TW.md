@@ -255,7 +255,7 @@ Plugin SDK v1.0.0 · 自 Pi-Harness v2.2.6 起提供。提供事件訂閱、自�
 
 ## 環境需求
 
-桌面應用程式支援 macOS Apple Silicon、macOS Intel、Windows x64 和 Linux x64。支援的環境可在應用程式中安裝或修復 Pi Coding Agent。從原始碼執行需要 Node.js ≥ 22.22.2 和 pnpm 9.12.1。
+桌面應用程式支援 macOS Apple Silicon、macOS Intel、Windows x64 和 Linux x64。支援的環境可在應用程式中安裝或修復 Pi Coding Agent。從原始碼執行需要 Node.js 24 LTS (≥ 24.22.1) 和 pnpm 9.12.1。
 
 <a id="documentation"></a>
 

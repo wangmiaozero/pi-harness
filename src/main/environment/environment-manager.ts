@@ -11,7 +11,7 @@ import type {
 } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
 import { piEnvironment } from '../pi/environment'
-import { detectNodeRuntime, MINIMUM_NODE_VERSION } from '../pi/node-environment'
+import { detectNodeRuntime } from '../pi/node-environment'
 import { piProcess } from '../process/pi-process'
 import { PiInstallService, type PiInstallProgress } from '../pi/install-service'
 import { NodeInstaller, type NodeInstallProgress } from './node-installer'
@@ -158,11 +158,13 @@ export class EnvironmentManager {
       this.update('checking-environment', 2, 'Checking Node.js, npm, PATH, and Pi Coding Agent')
       let runtime = await this.dependencies.detectRuntime()
       if (!runtime.nodeInstalled) {
-        this.appendLog(`Node.js was not found; installing Node.js >= ${MINIMUM_NODE_VERSION}`)
+        this.appendLog(
+          `Node.js was not found; installing a supported, security-patched Node.js runtime`
+        )
         await this.installOrRepairNode(signal, 4, 55)
       } else if (!runtime.nodeSupported) {
         this.appendLog(
-          `Node.js ${runtime.nodeVersion ?? 'unknown'} is below ${MINIMUM_NODE_VERSION}; upgrading`
+          `Node.js ${runtime.nodeVersion ?? 'unknown'} does not meet the supported security baseline; upgrading`
         )
         await this.installOrRepairNode(signal, 4, 55)
       } else if (!runtime.npmInstalled) {
@@ -183,7 +185,7 @@ export class EnvironmentManager {
       if (!runtime.nodeSupported) {
         throw new EnvironmentError(
           'NODE_VERSION_TOO_LOW',
-          `Node.js ${runtime.nodeVersion ?? 'unknown'} is below ${MINIMUM_NODE_VERSION}`
+          `Node.js ${runtime.nodeVersion ?? 'unknown'} does not meet the supported security baseline`
         )
       }
       if (!runtime.npmInstalled)

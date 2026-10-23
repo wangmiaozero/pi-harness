@@ -38,6 +38,7 @@ import { DesktopBridge } from './desktop-bridge'
 import { AgentEventBatcher } from './agent-event-batcher'
 import { persistExternalImageResult, type AgentRuntimeService } from './agent-runtime-service'
 import { loadPiCodingAgent } from './pi-sdk'
+import { assertMcpNodeExecution } from '../runtime/node-execution-guard'
 
 interface DesktopSnapshot {
   tools: HarnessTool[]
@@ -191,6 +192,7 @@ export class PiRpcRuntime implements HarnessAdapter {
     }
     if (!cwd) throw new AgentError('A workspace is required')
     await this.options.workspace?.prepareSession?.(id, cwd)
+    await assertMcpNodeExecution(this.runtimes, this.options.configDir(), cwd)
     const tools = (await this.options.workspace?.customTools?.(cwd, id)) ?? []
     const toolMap = new Map<string, ToolDefinition>(tools.map((tool) => [tool.name, tool]))
     let ready!: () => void

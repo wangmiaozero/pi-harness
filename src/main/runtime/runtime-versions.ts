@@ -1,5 +1,6 @@
 import { installedSdkVersions } from './sdk-matrix.mjs'
 import semver from 'semver'
+import { assessNodeSecurity } from '@shared/runtime/node-security-policy.mjs'
 import { z } from 'zod'
 import manifest from '../../../package.json'
 import { catalog, type RuntimeFetcher } from './distribution.mjs'
@@ -172,7 +173,7 @@ export class RuntimeVersionService {
         catalog.node.version,
         info.node.source,
         info.node.valid
-          ? Boolean(info.node.version && semver.gte(info.node.version, '22.19.0'))
+          ? assessNodeSecurity(info.node.version).executionAllowed
           : null
       )
     ]

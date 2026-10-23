@@ -171,6 +171,16 @@ onUnmounted(() => unsubscribe?.())
         >
       </dl>
       <p
+        v-if="kind === 'node' && diagnostics?.node.security"
+        data-testid="node-security-status"
+        class="text-[11px] text-[var(--text-secondary)]"
+      >
+        {{ diagnostics.node.security.reason }}
+        <template v-if="!diagnostics.node.security.executionAllowed">{{
+          diagnostics.node.security.remediation
+        }}</template>
+      </p>
+      <p
         v-for="detail in diagnostics?.[kind].diagnosticMessages ?? []"
         :key="detail"
         class="text-[11px] text-[var(--warning)]"
