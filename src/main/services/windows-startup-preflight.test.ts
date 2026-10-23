@@ -6,7 +6,7 @@ import type { AppSettings } from '@shared/ipc/api-types'
 import { runWindowsStartupPreflight } from './windows-startup-preflight'
 
 const defaults = {
-  theme: 'dark',
+  theme: 'soft-light',
   windowMotionEnabled: false,
   screenMotionEnabled: false
 } as AppSettings

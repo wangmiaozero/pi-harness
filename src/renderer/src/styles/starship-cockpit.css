@@ -627,7 +627,7 @@
 
   :root[data-visual-skin='starship-cockpit'] .chat-scroll-content {
     grid-column: 2;
-    width: min(100%, 760px);
+    width: min(100%, var(--chat-content-max-width, 760px));
     margin-left: 0;
   }
 }

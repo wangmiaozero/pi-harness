@@ -64,15 +64,35 @@ test('places user messages on the right and visually separates agent output', as
   await expect(user.locator('.message-role-badge')).toHaveText('我')
   await expect(assistant.locator('.message-role-badge')).toHaveText('助手')
 
-  const [userBox, assistantBox, toolResultBox] = await Promise.all([
+  // The band centers the transcript; user bubbles shrink-wrap and hug the
+  // trailing edge while assistant/tool rows span the full band.
+  const [userBox, assistantBox, toolResultBox, userBodyBox] = await Promise.all([
     user.boundingBox(),
     assistant.boundingBox(),
-    toolResult.boundingBox()
+    toolResult.boundingBox(),
+    user.locator('.user-message-body').boundingBox()
   ])
   expect(userBox!.x).toBeCloseTo(assistantBox!.x, 0)
   expect(userBox!.width).toBeCloseTo(assistantBox!.width, 0)
   expect(toolResultBox!.x).toBeCloseTo(assistantBox!.x, 0)
   expect(toolResultBox!.width).toBeCloseTo(assistantBox!.width, 0)
+  expect(userBodyBox!.x + userBodyBox!.width).toBeCloseTo(
+    assistantBox!.x + assistantBox!.width,
+    0
+  )
+  expect(userBodyBox!.width).toBeLessThan(assistantBox!.width)
+
+  const bandBox = await page.evaluate(() => {
+    const band = document.querySelector<HTMLElement>('[data-chat-band]')
+    if (!band) throw new Error('Chat band not found')
+    const style = getComputedStyle(band)
+    return {
+      width: band.getBoundingClientRect().width,
+      preferredWidth: style.getPropertyValue('--chat-content-max-width').trim()
+    }
+  })
+  expect(bandBox.width).toBeLessThanOrEqual(761)
+  expect(bandBox.preferredWidth).toBe('760px')
 
   const colors = await page.evaluate(() => {
     const userBody = document.querySelector<HTMLElement>('.user-message-body')

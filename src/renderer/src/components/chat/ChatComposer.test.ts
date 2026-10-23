@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { i18n } from '@renderer/i18n'
@@ -171,7 +171,7 @@ describe('ChatComposer model capabilities', () => {
     await wrapper.get('.command-execute-button').trigger('click')
 
     expect(wrapper.emitted('send')).toEqual([
-      [{ providerKey: 'provider', modelId: 'step-image-edit-2' }]
+      [{ providerKey: 'provider', modelId: 'step-image-edit-2' }, 'agent']
     ])
   })
 })
@@ -403,5 +403,119 @@ describe('ChatComposer OpenCode catalog visibility', () => {
     await wrapper.vm.$nextTick()
     expect(setActive).not.toHaveBeenCalled()
     wrapper.unmount()
+  })
+})
+
+describe('ChatComposer paste queue', () => {
+  beforeEach(() => {
+    const models = useModelsStore()
+    const providers = useProvidersStore()
+    const workspace = useWorkspaceStore()
+    providers.items = [provider()]
+    models.items = [model('vision', true)]
+    models.active = { providerKey: 'provider', modelId: 'vision' }
+    workspace.projectRoots = ['/code/test']
+    workspace.pickedCwd = '/code/test'
+  })
+
+  function pngFile(name: string): File {
+    return new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], name, { type: 'image/png' })
+  }
+
+  async function attachPngs(
+    wrapper: VueWrapper,
+    count: number,
+    until?: () => boolean
+  ): Promise<void> {
+    const input = wrapper.get('input[type="file"]')
+    const files = Array.from({ length: count }, (_, index) => pngFile(`shot-${index}.png`))
+    Object.defineProperty(input.element, 'files', { value: files, configurable: true })
+    await input.trigger('change')
+    for (let tick = 0; tick < 100 && !(until?.() ?? false); tick += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      await wrapper.vm.$nextTick()
+    }
+  }
+
+  function mountComposer() {
+    return mount(ChatComposer, {
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+  }
+
+  it('queues pasted images while the agent is busy and sends the whole queue at once', async () => {
+    const workspace = useWorkspaceStore()
+    const agent = useAgentStore()
+    agent.streaming = { ...agent.streaming, isStreaming: true }
+
+    const wrapper = mountComposer()
+    await attachPngs(wrapper, 2, () =>
+      wrapper.find('[data-testid="composer-paste-queue"]').exists()
+    )
+
+    expect(workspace.draftImages).toHaveLength(0)
+    const queue = wrapper.get('[data-testid="composer-paste-queue"]')
+    expect(queue.text()).toContain('2/2')
+
+    await wrapper
+      .get(`button[aria-label="${i18n.global.t('workspace.pasteQueuePrev')}"]`)
+      .trigger('click')
+    expect(queue.text()).toContain('1/2')
+    await wrapper
+      .get(`button[aria-label="${i18n.global.t('workspace.pasteQueueNext')}"]`)
+      .trigger('click')
+    expect(queue.text()).toContain('2/2')
+
+    await wrapper.get('[data-testid="composer-paste-queue-send"]').trigger('click')
+    expect(wrapper.emitted('sendQueue')).toHaveLength(1)
+    const payload = wrapper.emitted('sendQueue')![0][0] as Array<{ type: string; data: string }>
+    expect(payload).toHaveLength(2)
+    expect(payload.every((image) => image.type === 'image' && image.data.length > 0)).toBe(true)
+    expect(wrapper.find('[data-testid="composer-paste-queue"]').exists()).toBe(false)
+  })
+
+  it('keeps idle pastes as direct attachments', async () => {
+    const workspace = useWorkspaceStore()
+
+    const wrapper = mountComposer()
+    await attachPngs(wrapper, 1, () => workspace.draftImages.length === 1)
+
+    expect(workspace.draftImages).toHaveLength(1)
+    expect(wrapper.find('[data-testid="composer-paste-queue"]').exists()).toBe(false)
+  })
+
+  it('moves a queued item back to the attachment drafts with the edit action', async () => {
+    const workspace = useWorkspaceStore()
+    const agent = useAgentStore()
+    agent.streaming = { ...agent.streaming, isStreaming: true }
+
+    const wrapper = mountComposer()
+    await attachPngs(wrapper, 1, () =>
+      wrapper.find('[data-testid="composer-paste-queue"]').exists()
+    )
+
+    await wrapper
+      .get(`button[aria-label="${i18n.global.t('workspace.pasteQueueToDraft')}"]`)
+      .trigger('click')
+    expect(workspace.draftImages).toHaveLength(1)
+    expect(wrapper.find('[data-testid="composer-paste-queue"]').exists()).toBe(false)
+  })
+
+  it('removes the current queue item without touching the drafts', async () => {
+    const workspace = useWorkspaceStore()
+    const agent = useAgentStore()
+    agent.streaming = { ...agent.streaming, isStreaming: true }
+
+    const wrapper = mountComposer()
+    await attachPngs(wrapper, 1, () =>
+      wrapper.find('[data-testid="composer-paste-queue"]').exists()
+    )
+
+    await wrapper
+      .get(`button[aria-label="${i18n.global.t('workspace.pasteQueueRemove')}"]`)
+      .trigger('click')
+    expect(workspace.draftImages).toHaveLength(0)
+    expect(wrapper.find('[data-testid="composer-paste-queue"]').exists()).toBe(false)
   })
 })

@@ -93,7 +93,7 @@ import { DEFAULT_ASSISTANT_NAME, DEFAULT_USER_NAME } from '@shared/constants/cha
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'auto',
-  theme: 'dark',
+  theme: 'soft-light',
   macos27Background: DEFAULT_MACOS27_BACKGROUND,
   macos27BackgroundImage: null,
   userName: DEFAULT_USER_NAME,
@@ -107,6 +107,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   petAutoSleep: true,
   petSleepMinutes: 10,
   petSound: false,
+  chatContentMaxWidth: 760,
   mockMode: false,
   manualCliPath: null,
   manualConfigDir: null,
@@ -114,6 +115,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   backupRetention: 20,
   developerMode: false,
   defaultToolPreset: 'default',
+  defaultPermissionMode: 'auto',
+  defaultAgentMode: 'agent',
   restoreTabs: true,
   autoOpenLastProject: true,
   windowMotionEnabled: false,

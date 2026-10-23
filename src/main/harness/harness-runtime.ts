@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { IPC_EVENT } from '@shared/ipc/channels'
 import type { AgentRuntime } from '../agent/runtime'
+import type { PermissionMode } from '@shared/workspace/permission-mode'
 import type {
   AgentStateSnapshot,
   GitFileDiffResponse,
@@ -918,6 +919,15 @@ export class HarnessRuntime implements AgentRuntime {
     this.observe(sessionId)
     await this.adapter.setThinkingLevel(sessionId, level)
     this.emit(sessionId, { type: 'thinking.changed', timestamp: Date.now(), level })
+  }
+
+  async setPermissionMode(sessionId: string, mode: PermissionMode): Promise<void> {
+    this.observe(sessionId)
+    await this.adapter.setPermissionMode(sessionId, mode)
+  }
+
+  respondPermission(requestId: string, approved: boolean): boolean {
+    return this.adapter.respondPermission(requestId, approved)
   }
 
   async compact(

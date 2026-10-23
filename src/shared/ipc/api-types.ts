@@ -65,6 +65,8 @@ import type {
   WorktreeInfo
 } from '../types/workspace'
 import type { ToolPreset } from '../workspace/tool-presets'
+import type { PermissionMode } from '../workspace/permission-mode'
+import type { AgentMode } from '../workspace/agent-mode'
 import type {
   AgentHandoff,
   AgentTemplate,
@@ -682,6 +684,7 @@ export interface AppSettings {
   petAutoSleep: boolean
   petSleepMinutes: number
   petSound: boolean
+  chatContentMaxWidth: number
   mockMode: boolean
   manualCliPath: string | null
   manualConfigDir: string | null
@@ -689,6 +692,8 @@ export interface AppSettings {
   backupRetention: number
   developerMode: boolean
   defaultToolPreset: ToolPreset
+  defaultPermissionMode: PermissionMode
+  defaultAgentMode: AgentMode
   restoreTabs: boolean
   autoOpenLastProject: boolean
   windowMotionEnabled: boolean
@@ -779,6 +784,39 @@ export interface ImageModelResult {
   revisedPrompt: string | null
   fallbackModelId?: string
   fallbackKind?: 'svg'
+}
+
+export interface PasteSaveFileInput {
+  name?: string
+  mimeType?: string
+  data: ArrayBuffer
+}
+
+export interface PasteSaveInput {
+  sessionId: string | null
+  files: PasteSaveFileInput[]
+}
+
+export interface PasteSavedFile {
+  path: string
+  name: string
+  kind: 'image' | 'text' | 'file'
+}
+
+export interface PasteSaveResult {
+  files: PasteSavedFile[]
+}
+
+export interface AgentPermissionRequest {
+  requestId: string
+  sessionId: string
+  toolName: string
+  summary: string
+}
+
+export interface AgentPermissionDecision {
+  requestId: string
+  approved: boolean
 }
 
 export interface PiSwitchAPI {
@@ -1053,6 +1091,11 @@ export interface PiSwitchAPI {
     state(sessionId: string): Promise<AgentStateSnapshot | null>
     running(): Promise<string[]>
     command(sessionId: string, command: Record<string, unknown>): Promise<unknown>
+    setPermissionMode(sessionId: string, mode: string): Promise<void>
+    respondPermission(requestId: string, approved: boolean): Promise<void>
+  }
+  paste: {
+    save(input: PasteSaveInput): Promise<PasteSaveResult>
   }
   harness: {
     state(sessionId: string): Promise<HarnessState | null>
@@ -1270,6 +1313,7 @@ export interface PiSwitchAPI {
   ): () => void
   on(event: 'notification', listener: IpcEventListener): () => void
   on(event: 'agent-event', listener: IpcEventListener): () => void
+  on(event: 'agent-permission', listener: IpcEventListener): () => void
   on(event: 'agent-running', listener: IpcEventListener): () => void
   on(event: 'harness-event', listener: IpcEventListener): () => void
   on(event: 'updater-state', listener: IpcEventListener): () => void

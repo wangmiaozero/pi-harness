@@ -19,6 +19,7 @@ import type {
 } from '@shared/types/harness'
 import { IPC_EVENT } from '@shared/ipc/channels'
 import { getToolNamesForPreset } from '@shared/workspace/tool-presets'
+import { normalizePermissionMode, type PermissionMode } from '@shared/workspace/permission-mode'
 import {
   toIpcAgentEvent,
   isRunningStateEvent,
@@ -70,6 +71,8 @@ interface LiveSession {
   idleTimer: ReturnType<typeof setTimeout> | null
   queue: { steering: string[]; followUp: string[] }
   commandName: string
+  permissionMode: PermissionMode
+  pendingPermissions: Map<string, (approved: boolean) => void>
 }
 
 /** Pi's own standalone process is the agent runtime; this adapter only translates desktop operations. */
@@ -279,6 +282,20 @@ export class PiRpcRuntime implements HarnessAdapter {
         }
         return null
       }
+      if (method === 'permission_request') {
+        if (!live) return false
+        const toolName = String(params.name ?? 'unknown')
+        const requestId = randomUUID()
+        this.window()?.webContents.send(IPC_EVENT.agentPermission, {
+          requestId,
+          sessionId: live.id,
+          toolName,
+          summary: summarizeToolInput(toolName, params.input)
+        })
+        return new Promise<boolean>((resolve) => {
+          live.pendingPermissions.set(requestId, resolve)
+        })
+      }
       throw new AgentError('Unsupported desktop bridge request')
     })
     let env: NodeJS.ProcessEnv = {
@@ -311,6 +328,8 @@ export class PiRpcRuntime implements HarnessAdapter {
         id,
         cwd,
         client,
+        permissionMode: normalizePermissionMode(input.permissionMode),
+        pendingPermissions: new Map(),
         bridge,
         busy: false,
         error: null,
@@ -363,6 +382,8 @@ export class PiRpcRuntime implements HarnessAdapter {
           toolNames: input.toolNames,
           preserveExtensionTools: true
         })
+      if (live.permissionMode !== 'auto')
+        await bridge.request('set_permission_mode', { mode: live.permissionMode })
       if (input.message?.trim()) await this.prompt(live.id, input.message)
       return { sessionId: live.id, cwd }
     } catch (error) {
@@ -535,6 +556,21 @@ export class PiRpcRuntime implements HarnessAdapter {
       toolNames,
       preserveExtensionTools: options.preserveExtensionTools ?? false
     })
+  }
+  async setPermissionMode(id: string, mode: PermissionMode): Promise<void> {
+    const live = await this.require(id)
+    live.permissionMode = mode
+    await live.bridge.request('set_permission_mode', { mode })
+  }
+  respondPermission(requestId: string, approved: boolean): boolean {
+    for (const live of this.live.values()) {
+      const resolve = live.pendingPermissions.get(requestId)
+      if (!resolve) continue
+      live.pendingPermissions.delete(requestId)
+      resolve(approved)
+      return true
+    }
+    return false
   }
   async setModel(id: string, provider: string, modelId: string): Promise<void> {
     await this.executeAgentCommand(id, { type: 'set_model', provider, modelId })
@@ -792,5 +828,21 @@ export class PiRpcRuntime implements HarnessAdapter {
     const win = this.window()
     if (win && !win.isDestroyed() && !win.webContents.isDestroyed())
       win.webContents.send(IPC_EVENT.agentRunning, { ids: this.listRunning() })
+  }
+}
+
+/** Short human-readable summary of a tool call for the approval card. */
+function summarizeToolInput(toolName: string, input: unknown): string {
+  const record = input && typeof input === 'object' ? (input as Record<string, unknown>) : {}
+  for (const key of ['command', 'file_path', 'path', 'filePath', 'url', 'query', 'pattern']) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) {
+      return `${toolName}: ${value.trim().slice(0, 200)}`
+    }
+  }
+  try {
+    return `${toolName}: ${JSON.stringify(record).slice(0, 200)}`
+  } catch {
+    return toolName
   }
 }

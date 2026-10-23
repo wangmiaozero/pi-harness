@@ -5,10 +5,13 @@ import { toast } from 'vue-sonner'
 import MessageView from './MessageView.vue'
 import MessageHistory from './MessageHistory.vue'
 import FullHistoryDialog from './FullHistoryDialog.vue'
+import ConversationWidthHandles from './ConversationWidthHandles.vue'
 import UniversalOrigin from '@renderer/components/universal/UniversalOrigin.vue'
 import ChatComposer from './ChatComposer.vue'
+import ConversationMinimap from './ConversationMinimap.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
-import { ArrowDown, ArrowUp, Check, Copy, Gauge, History, MessageSquare } from '@lucide/vue'
+import { ArrowDown, ArrowUp, Check, Copy, Gauge, History, MessageSquare, ShieldAlert } from '@lucide/vue'
+import Button from '@renderer/components/ui/Button.vue'
 import { useAgentStore } from '@renderer/stores/agent'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
@@ -18,6 +21,8 @@ import { useHarnessStore } from '@renderer/stores/harness'
 import { useSkillsStore } from '@renderer/stores/skills'
 import { buildMessageFileChanges } from './message-file-changes'
 import { resolveSkillMention } from './skill-invocation'
+import { agentModeDirective, normalizeAgentMode, type AgentMode } from '@shared/workspace/agent-mode'
+import { usePermissionStore } from '@renderer/stores/permission'
 import type { ToolPreset } from '@shared/workspace/tool-presets'
 import type { AgentImageAttachment, SessionDetail } from '@shared/types/workspace'
 import { callApi, getApi } from '@renderer/composables/useApi'
@@ -41,6 +46,8 @@ const models = useModelsStore()
 const settings = useSettingsStore()
 const harness = useHarnessStore()
 const skills = useSkillsStore()
+const permission = usePermissionStore()
+const permissionRequests = computed(() => permission.requestsFor(sessions.currentId))
 const scroller = ref<HTMLElement | null>(null)
 const scrollContent = ref<HTMLElement | null>(null)
 const composer = ref<InstanceType<typeof ChatComposer> | null>(null)
@@ -61,6 +68,7 @@ const {
   onPointerDown: onScrollerPointerDown,
   scrollToEdge,
   stick: stickToLatest,
+  release: releaseFollow,
   scheduleSync: scheduleScrollSync,
   bind: bindChatScroll,
   unbind: unbindChatScroll
@@ -74,6 +82,9 @@ defineExpose({ focusComposer })
 
 const stats = computed(() => agent.sessionStats)
 const contextUsage = computed(() => agent.state?.contextUsage ?? null)
+const chatContentMaxWidth = computed(
+  () => `${settings.settings?.chatContentMaxWidth ?? 760}px`
+)
 const contextPercent = computed(() => contextUsage.value?.percent ?? null)
 const contextColor = computed(() => {
   const percent = contextPercent.value
@@ -164,7 +175,10 @@ watch(
   }
 )
 
-async function onSend(imageModel: ComposerImageModelTarget | null = null) {
+async function onSend(
+  imageModel: ComposerImageModelTarget | null = null,
+  mode?: AgentMode
+) {
   const text = workspace.draft.trim()
   const selectedSkillName = imageModel ? null : workspace.draftSkill
   const skillInvocation = imageModel
@@ -179,7 +193,8 @@ async function onSend(imageModel: ComposerImageModelTarget | null = null) {
           text,
           skills.skills.filter((skill) => skill.isValid).map((skill) => skill.name)
         )
-  const runtimeText = skillInvocation?.runtimeText ?? text
+  const directive = agentModeDirective(normalizeAgentMode(mode))
+  const runtimeText = [directive, skillInvocation?.runtimeText ?? text].filter(Boolean).join('\n\n')
   const displayText = selectedSkillName
     ? text
       ? `@${selectedSkillName} ${text}`
@@ -193,16 +208,21 @@ async function onSend(imageModel: ComposerImageModelTarget | null = null) {
   }))
   if (!displayText && !images.length) return
   stickToLatest()
+  const selectedMode = normalizeAgentMode(mode)
   const preset = (
     sessions.currentId ? agent.activePreset() : (settings.settings?.defaultToolPreset ?? 'default')
   ) as ToolPreset
+  // Plan mode starts brand-new sessions with read-only tools only.
+  const effectivePreset =
+    selectedMode === 'plan' && !sessions.currentId ? ('read-only' as ToolPreset) : preset
+  const permissionMode = permission.modeFor(sessions.currentId)
   await completionSound.unlock()
   const sessionId = imageModel
     ? await agent.sendImage(
         sessions.currentId,
         workspace.currentCwd,
         text,
-        preset,
+        effectivePreset,
         imageModel,
         images
       )
@@ -210,18 +230,30 @@ async function onSend(imageModel: ComposerImageModelTarget | null = null) {
         sessions.currentId,
         workspace.currentCwd,
         runtimeText,
-        preset,
+        effectivePreset,
         images,
-        displayText
+        displayText,
+        permissionMode
       )
   if (agent.error) return
   workspace.clearDraft(draftKey)
+  if (sessionId && !sessions.currentId) permission.setMode(sessionId, permissionMode)
   if (sessionId && sessionId !== sessions.currentId) {
     workspace.consumeDraftSession()
     // Persist the selected chat before slower workspace/runtime restoration.
     // A reload immediately after the first reply must reopen this session.
     workspace.ensureChatTab(sessionId, displayText.slice(0, 32) || sessionId)
   }
+}
+
+async function onSendQueue(images: AgentImageAttachment[]) {
+  if (!images.length) return
+  const preset = (
+    sessions.currentId ? agent.activePreset() : (settings.settings?.defaultToolPreset ?? 'default')
+  ) as ToolPreset
+  await completionSound.unlock()
+  stickToLatest()
+  await agent.send(sessions.currentId, workspace.currentCwd, '', preset, images, '')
 }
 
 async function onAbort() {
@@ -279,7 +311,12 @@ function duration(value: number): string {
 </script>
 
 <template>
-  <div data-testid="chat-window" class="chat-window flex h-full min-h-0 min-w-0 flex-col">
+  <div
+    data-testid="chat-window"
+    data-chat-surface
+    class="chat-window flex h-full min-h-0 min-w-0 flex-col"
+    :style="{ '--chat-content-max-width': chatContentMaxWidth }"
+  >
     <UniversalOrigin :session-id="sessions.currentId" />
     <div class="relative min-h-0 flex-1">
       <div
@@ -292,7 +329,11 @@ function duration(value: number): string {
         @touchmove.passive="onScrollerTouchMove"
         @pointerdown="onScrollerPointerDown"
       >
-        <div ref="scrollContent" class="chat-scroll-content min-w-0">
+        <div
+          ref="scrollContent"
+          data-chat-band
+          class="chat-scroll-content min-w-0"
+        >
           <EmptyState
             v-if="!persistedMessages.length && !liveMessage"
             :title="$t('workspace.emptyChat')"
@@ -320,6 +361,12 @@ function duration(value: number): string {
           </p>
         </div>
       </div>
+      <ConversationMinimap
+        :target="scroller"
+        :messages="persistedMessages"
+        @release-follow="releaseFollow"
+      />
+      <ConversationWidthHandles />
       <div
         v-if="hasScrollOverflow"
         data-testid="chat-scroll-controls"
@@ -349,10 +396,36 @@ function duration(value: number): string {
         </button>
       </div>
     </div>
+    <div
+      v-for="request in permissionRequests"
+      :key="request.requestId"
+      data-testid="permission-card"
+      class="composer-band mb-2 flex items-center gap-3 rounded-[12px] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] px-3.5 py-2.5 shadow-[var(--shadow-sm)]"
+    >
+      <ShieldAlert aria-hidden="true" class="size-4 shrink-0 text-[var(--accent)]" />
+      <div class="min-w-0 flex-1">
+        <p class="text-[12px] font-medium text-[var(--text-primary)]">
+          {{ $t('workspace.permissionCardTitle') }}
+        </p>
+        <p
+          class="truncate font-[family-name:var(--font-mono)] text-[11px] text-[var(--text-secondary)]"
+          :title="request.summary"
+        >
+          {{ request.toolName }} · {{ request.summary }}
+        </p>
+      </div>
+      <Button variant="ghost" size="sm" @click="permission.declineRequest(request)">
+        {{ $t('workspace.permissionDecline') }}
+      </Button>
+      <Button variant="primary" size="sm" @click="permission.acceptRequest(request)">
+        {{ $t('workspace.permissionApprove') }}
+      </Button>
+    </div>
     <ChatComposer
       ref="composer"
       :sound-enabled="completionSound.enabled.value"
       @send="onSend"
+      @send-queue="onSendQueue"
       @abort="onAbort"
       @toggle-sound="toggleCompletionSound"
       @unlock-audio="completionSound.unlock"
@@ -536,6 +609,17 @@ function duration(value: number): string {
    * left the latest turn. We pin to the bottom ourselves while stuck.
    */
   overflow-anchor: none;
+}
+
+/*
+ * Centered chat content band: transcript, empty state, and error line share
+ * one preferred max width (also used by the composer and the resize handles).
+ * The live used width is min(available, preferred), so a narrow window or
+ * workspace split compresses the band without rewriting the preference.
+ */
+.chat-scroll-content {
+  width: min(100%, var(--chat-content-max-width, 760px));
+  margin-inline: auto;
 }
 
 /*

@@ -242,6 +242,10 @@ export const IPC_INVOKE = {
   agentState: invoke('agent:state'),
   agentRunning: invoke('agent:running'),
   agentCommand: invoke('agent:command'),
+  agentSetPermissionMode: invoke('agent:set-permission-mode'),
+  agentRespondPermission: invoke('agent:respond-permission'),
+
+  pasteSave: invoke('paste:save'),
 
   harnessGetState: invoke('harness:get-state'),
   harnessGetTools: invoke('harness:get-tools'),
@@ -349,6 +353,7 @@ export const IPC_EVENT = {
   environmentInstallTask: 'pi-harness:event:environment-install-task',
   notification: 'pi-harness:event:notification',
   agentEvent: 'pi-harness:agent:event',
+  agentPermission: 'pi-harness:agent:permission',
   agentRunning: 'pi-harness:agent:running',
   harnessEvent: 'pi-harness:harness:event',
   updaterState: 'pi-harness:updater:state',

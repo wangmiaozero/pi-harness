@@ -122,7 +122,7 @@ const selected = computed(() => snapshot.value?.graph.nodes.find((n) => n.id ===
 const theme = computed(
   () =>
     getActiveVisualSkin(settings.settings)?.appearance ??
-    themeAppearance(settings.settings?.theme ?? 'dark')
+    themeAppearance(settings.settings?.theme ?? 'soft-light')
 )
 let resize: ResizeObserver | null = null
 let nativeVersion = 0

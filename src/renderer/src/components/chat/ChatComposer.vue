@@ -39,22 +39,67 @@ import {
   MAX_ATTACHED_IMAGE_BYTES,
   MAX_ATTACHED_IMAGES
 } from '@shared/workspace/image-attachments'
-import { AtSign, ImagePlus, Minimize2, Send, Volume2, VolumeX, Wrench, X } from '@lucide/vue'
+import {
+  ArrowDown,
+  ArrowUp,
+  AtSign,
+  Bot,
+  ImagePlus,
+  ListChecks,
+  Minimize2,
+  Pencil,
+  Send,
+  ShieldCheck,
+  Target,
+  Volume2,
+  VolumeX,
+  Wrench,
+  X
+} from '@lucide/vue'
 import { isImageGenerationModel } from '@shared/models/image-model'
+import {
+  AGENT_MODES,
+  normalizeAgentMode,
+  type AgentMode
+} from '@shared/workspace/agent-mode'
+import { PERMISSION_MODES, normalizePermissionMode } from '@shared/workspace/permission-mode'
+import { usePermissionStore } from '@renderer/stores/permission'
 import {
   findActiveSkillMention,
   removeSkillMention,
   type ActiveSkillMention
 } from './skill-invocation'
-
+import type { AgentImageAttachment } from '@shared/types/workspace'
 interface ComposerImageModelTarget {
   providerKey: string
   modelId: string
 }
 
 defineProps<{ soundEnabled: boolean }>()
+interface PasteQueueItem {
+  id: string
+  name: string
+  image: ChatDraftImage
+}
+
+const AGENT_MODE_LABEL_KEYS: Record<AgentMode, string> = {
+  agent: 'workspace.modeAgent',
+  plan: 'workspace.modePlan',
+  goal: 'workspace.modeGoal'
+}
+
+const PERMISSION_MODE_LABEL_KEYS: Record<string, string> = {
+  ask: 'workspace.permissionAsk',
+  'accept-edits': 'workspace.permissionAcceptEdits',
+  auto: 'workspace.permissionAuto'
+}
+
+/** Text pastes beyond this length are saved to the session temp directory. */
+const LARGE_PASTE_THRESHOLD = 8_000
+
 const emit = defineEmits<{
-  send: [imageModel: ComposerImageModelTarget | null]
+  send: [imageModel: ComposerImageModelTarget | null, mode?: AgentMode]
+  sendQueue: [images: AgentImageAttachment[]]
   abort: []
   toggleSound: []
   unlockAudio: []
@@ -77,14 +122,35 @@ const previewOpen = ref(false)
 const dragActive = ref(false)
 const pendingImageCount = ref(0)
 const modelSwitching = ref(false)
+const pasteQueue = ref<PasteQueueItem[]>([])
+const pasteQueueIndex = ref(0)
 const imageModelValue = ref<string | null>(null)
 const skillMention = ref<ActiveSkillMention | null>(null)
 const activeSkillIndex = ref(0)
 const skillMenuStyle = ref<Record<string, string>>({})
 let dragDepth = 0
+const permission = usePermissionStore()
+const agentMode = ref<AgentMode>(
+  normalizeAgentMode(settings.settings?.defaultAgentMode ?? 'agent')
+)
+const agentModeValue = computed({
+  get: () => agentMode.value,
+  set: (value: string) => {
+    agentMode.value = normalizeAgentMode(value)
+  }
+})
+const permissionModeValue = computed({
+  get: () => permission.modeFor(sessions.currentId),
+  set: (value: string) => {
+    permission.setMode(sessions.currentId, normalizePermissionMode(value))
+  }
+})
 
 const busy = computed(
   () => agent.sending || agent.streaming.isStreaming || agent.state?.isPromptRunning === true
+)
+const pasteQueueCurrent = computed(
+  () => pasteQueue.value[Math.min(pasteQueueIndex.value, pasteQueue.value.length - 1)] ?? null
 )
 const compactAvailable = computed(() => canRequestCompaction(sessions.currentId))
 const compactPhase = computed(() => compaction.buttonPhase(sessions.currentId, 'workspace'))
@@ -303,7 +369,8 @@ function emitSend() {
     'send',
     selectedImageModel.value && slash > 0
       ? { providerKey: value.slice(0, slash), modelId: value.slice(slash + 1) }
-      : null
+      : null,
+    agentMode.value
   )
 }
 
@@ -648,7 +715,8 @@ async function processImageFiles(files: File[]) {
     toast.warning(t('workspace.imageTooLarge', { size: MAX_ATTACHED_IMAGE_BYTES / 1024 / 1024 }))
   }
   const imageLimit = selectedImageModel.value ? 1 : MAX_ATTACHED_IMAGES
-  const remaining = Math.max(0, imageLimit - workspace.draftImages.length - pendingImageCount.value)
+  const queuedCount = busy.value ? pasteQueue.value.length : workspace.draftImages.length
+  const remaining = Math.max(0, imageLimit - queuedCount - pendingImageCount.value)
   if (remaining === 0) {
     toast.warning(t('workspace.imageLimit', { count: imageLimit }))
     return
@@ -665,12 +733,65 @@ async function processImageFiles(files: File[]) {
     const images = results.flatMap((result) =>
       result.status === 'fulfilled' ? [result.value] : []
     )
-    if (images.length) workspace.addDraftImages(images)
+    if (images.length) {
+      if (busy.value) enqueuePasteImages(images)
+      else workspace.addDraftImages(images)
+    }
     if (images.length < results.length) toast.error(t('workspace.imageReadFailed'))
   } finally {
     pendingImageCount.value -= accepted.length
   }
 }
+function enqueuePasteImages(images: ChatDraftImage[]) {
+  pasteQueue.value = [
+    ...pasteQueue.value,
+    ...images.map((image) => ({ id: image.id, name: image.name, image }))
+  ]
+  pasteQueueIndex.value = pasteQueue.value.length - 1
+}
+
+function clearPasteQueue() {
+  pasteQueue.value = []
+  pasteQueueIndex.value = 0
+}
+
+function cyclePasteQueue(step: 1 | -1) {
+  if (pasteQueue.value.length < 2) return
+  pasteQueueIndex.value =
+    (pasteQueueIndex.value + step + pasteQueue.value.length) % pasteQueue.value.length
+}
+
+function movePasteQueueItemToDraft() {
+  const current = pasteQueueCurrent.value
+  if (!current) return
+  workspace.addDraftImages([current.image])
+  removePasteQueueItem(current.id)
+}
+
+function removePasteQueueItem(id: string) {
+  const index = pasteQueue.value.findIndex((item) => item.id === id)
+  if (index < 0) return
+  pasteQueue.value = pasteQueue.value.filter((item) => item.id !== id)
+  pasteQueueIndex.value = Math.max(0, Math.min(index, pasteQueue.value.length - 1))
+}
+
+function removePasteQueueCurrent() {
+  const current = pasteQueueCurrent.value
+  if (current) removePasteQueueItem(current.id)
+}
+
+function sendPasteQueue() {
+  if (!pasteQueue.value.length || agent.sending) return
+  const images: AgentImageAttachment[] = pasteQueue.value.map((item) => ({
+    type: 'image' as const,
+    data: item.image.data,
+    mimeType: item.image.mimeType
+  }))
+  clearPasteQueue()
+  emit('unlockAudio')
+  emit('sendQueue', images)
+}
+
 
 function chooseImages() {
   emit('unlockAudio')
@@ -686,15 +807,57 @@ function onFileChange(event: Event) {
   void processImageFiles(Array.from(input.files ?? []))
   input.value = ''
 }
+async function savePastedToSession(files: File[]): Promise<string[] | null> {
+  try {
+    const payload = await Promise.all(
+      files.map(async (file) => ({
+        name: file.name || undefined,
+        mimeType: file.type || undefined,
+        data: await file.arrayBuffer()
+      }))
+    )
+    const result = await getApi().paste.save({ sessionId: sessions.currentId, files: payload })
+    return result.files.map((file) => file.path)
+  } catch {
+    toast.error(t('workspace.pasteSaveFailed'))
+    return null
+  }
+}
 
 function onPaste(event: ClipboardEvent) {
-  const files = Array.from(event.clipboardData?.items ?? [])
+  const items = Array.from(event.clipboardData?.items ?? [])
+  const imageFiles = items
     .filter((item) => item.type.startsWith('image/'))
     .map((item) => item.getAsFile())
     .filter((file): file is File => file !== null)
+  const otherFiles = items
+    .filter((item) => item.kind === 'file' && !item.type.startsWith('image/'))
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => file !== null)
+  const text = event.clipboardData?.getData('text/plain') ?? ''
   event.preventDefault()
-  if (files.length) void processImageFiles(files)
-  else replaceEditorSelection(event.clipboardData?.getData('text/plain') ?? '')
+  if (imageFiles.length) {
+    void processImageFiles(imageFiles)
+    return
+  }
+  if (otherFiles.length) {
+    void savePastedToSession(otherFiles).then((paths) => {
+      if (!paths?.length) return
+      replaceEditorSelection(paths.join('\n'))
+      toast.success(t('workspace.filesPasted', { count: paths.length }))
+    })
+    return
+  }
+  if (Array.from(text).length > LARGE_PASTE_THRESHOLD) {
+    const file = new File([text], `pasted-text-${Date.now()}.txt`, { type: 'text/plain' })
+    void savePastedToSession([file]).then((paths) => {
+      if (!paths?.length) return
+      replaceEditorSelection(paths[0])
+      toast.success(t('workspace.largeTextPasted', { name: paths[0].split(/[\\/]/).pop() }))
+    })
+    return
+  }
+  replaceEditorSelection(text)
 }
 
 function draggedFiles(event: DragEvent): File[] {
@@ -748,6 +911,8 @@ watch(
   { immediate: true }
 )
 
+watch(() => workspace.draftKey, () => clearPasteQueue())
+
 watch(
   () => [workspace.draftKey, workspace.draft] as const,
   () => void nextTick(syncEditorText),
@@ -788,7 +953,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     data-testid="chat-composer"
-    class="command-console relative overflow-visible bg-[var(--bg-surface)] px-3 py-2 transition-colors"
+    class="command-console relative overflow-visible bg-[var(--bg-surface)] px-4 py-2 transition-colors min-[1080px]:pr-[132px]"
     :class="[
       dragActive ? 'bg-[var(--accent-tint)] shadow-[inset_0_0_0_1px_var(--accent)]' : '',
       showComposerFire
@@ -800,6 +965,7 @@ onBeforeUnmount(() => {
     @dragleave="onDragLeave"
     @drop="onDrop"
   >
+    <div class="composer-band">
     <div
       class="cockpit-only command-console-label mb-1 font-[family-name:var(--font-mono)] text-[8px] font-semibold tracking-[0.2em] text-[var(--accent)]"
     >
@@ -844,6 +1010,74 @@ onBeforeUnmount(() => {
     <p v-else-if="hasTooManyImageSources" class="mb-2 text-[11px] text-[var(--danger)]">
       {{ $t('workspace.imageLimit', { count: 1 }) }}
     </p>
+    <div
+      v-if="pasteQueue.length"
+      data-testid="composer-paste-queue"
+      class="mb-2 flex min-w-0 items-center gap-1.5 rounded-[8px] border border-[var(--control-border)] bg-[var(--control-bg)] px-2 py-1.5 shadow-[var(--control-shadow)]"
+      role="group"
+      :aria-label="$t('workspace.pasteQueueLabel')"
+    >
+      <button
+        type="button"
+        class="inline-flex size-6 shrink-0 items-center justify-center rounded-[6px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+        :disabled="pasteQueue.length < 2"
+        :title="$t('workspace.pasteQueuePrev')"
+        :aria-label="$t('workspace.pasteQueuePrev')"
+        @click="cyclePasteQueue(-1)"
+      >
+        <ArrowUp aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
+      </button>
+      <button
+        type="button"
+        class="inline-flex size-6 shrink-0 items-center justify-center rounded-[6px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+        :disabled="pasteQueue.length < 2"
+        :title="$t('workspace.pasteQueueNext')"
+        :aria-label="$t('workspace.pasteQueueNext')"
+        @click="cyclePasteQueue(1)"
+      >
+        <ArrowDown aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
+      </button>
+      <span
+        class="min-w-0 flex-1 truncate font-[family-name:var(--font-mono)] text-[11.5px] text-[var(--text-primary)]"
+        :title="pasteQueueCurrent?.name"
+      >
+        @{{ pasteQueueCurrent?.name ?? $t('workspace.pastedImage') }}
+      </span>
+      <span
+        class="shrink-0 font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
+      >
+        {{ pasteQueueIndex + 1 }}/{{ pasteQueue.length }}
+      </span>
+      <Button
+        data-testid="composer-paste-queue-send"
+        variant="primary"
+        size="sm"
+        :disabled="agent.sending"
+        :loading="agent.sending"
+        :title="$t('workspace.pasteQueueSend')"
+        @click="sendPasteQueue"
+      >
+        {{ $t('workspace.pasteQueueSend') }}
+      </Button>
+      <button
+        type="button"
+        class="inline-flex size-6 shrink-0 items-center justify-center rounded-[6px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+        :title="$t('workspace.pasteQueueToDraft')"
+        :aria-label="$t('workspace.pasteQueueToDraft')"
+        @click="movePasteQueueItemToDraft"
+      >
+        <Pencil aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
+      </button>
+      <button
+        type="button"
+        class="inline-flex size-6 shrink-0 items-center justify-center rounded-[6px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--danger)]"
+        :title="$t('workspace.pasteQueueRemove')"
+        :aria-label="$t('workspace.pasteQueueRemove')"
+        @click="removePasteQueueCurrent"
+      >
+        <X aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
+      </button>
+    </div>
     <div
       ref="inputBox"
       class="command-console-input relative overflow-hidden rounded-[var(--radius-sm)] transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
@@ -996,6 +1230,34 @@ onBeforeUnmount(() => {
         @interact="emit('unlockAudio')"
         @open="refreshOpenCodeOptions"
       />
+      <ComposerOptionMenu
+        v-model="agentModeValue"
+        :label="$t('workspace.agentModeLabel')"
+        :icon="agentMode === 'plan' ? ListChecks : agentMode === 'goal' ? Target : Bot"
+        :options="
+          AGENT_MODES.map((mode) => ({
+            value: mode,
+            label: t(AGENT_MODE_LABEL_KEYS[mode]),
+            description: ''
+          }))
+        "
+        :menu-width="200"
+        @interact="emit('unlockAudio')"
+      />
+      <ComposerOptionMenu
+        v-model="permissionModeValue"
+        :label="$t('workspace.permissionMode')"
+        :icon="ShieldCheck"
+        :options="
+          PERMISSION_MODES.map((mode) => ({
+            value: mode,
+            label: t(PERMISSION_MODE_LABEL_KEYS[mode]),
+            description: ''
+          }))
+        "
+        :menu-width="220"
+        @interact="emit('unlockAudio')"
+      />
       <div class="console-tool-strip ml-auto flex items-center gap-0.5">
         <ComposerOptionMenu
           v-model="toolPreset"
@@ -1064,10 +1326,20 @@ onBeforeUnmount(() => {
         class="max-h-[68vh] w-full object-contain"
       />
     </Dialog>
+    </div>
   </div>
 </template>
 
 <style scoped>
+/*
+ * Composer content shares the transcript's centered band width so the input
+ * lines up with the message column above it.
+ */
+.composer-band {
+  width: min(100%, var(--chat-composer-max-width, var(--chat-content-max-width, 760px)));
+  margin-inline: auto;
+}
+
 .command-console--ultra {
   border-top-color: transparent;
 }

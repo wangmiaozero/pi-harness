@@ -12,6 +12,8 @@ import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { normalizeNavOrder } from '@shared/constants/navigation'
 import { applyVisualSkin } from '@renderer/utils/visual-skin'
 import { toIpcSettingsPatch } from '@renderer/utils/settings-patch'
+import { normalizePermissionMode } from '@shared/workspace/permission-mode'
+import { normalizeAgentMode } from '@shared/workspace/agent-mode'
 import { setCustomSkinCatalog } from '@renderer/utils/skin-catalog'
 import { normalizeAssistantName, normalizeUserName } from '@shared/constants/chat-participants'
 import {
@@ -90,8 +92,10 @@ export const useSettingsStore = defineStore('settings', () => {
     value.macos27BackgroundImage = normalizeMacOS27BackgroundImage(value.macos27BackgroundImage)
     value.userName = normalizeUserName(value.userName)
     value.assistantName = normalizeAssistantName(value.assistantName)
-    value.appIcon = normalizeAppIconPreference(value.appIcon)
     value.mascotStyle = normalizeMascotStyle(value.mascotStyle)
+    value.appIcon = normalizeAppIconPreference(value.appIcon)
+    value.defaultPermissionMode = normalizePermissionMode(value.defaultPermissionMode)
+    value.defaultAgentMode = normalizeAgentMode(value.defaultAgentMode)
     if (value.customSkinId && !customSkins.value.some((skin) => skin.id === value.customSkinId)) {
       value.customSkinId = null
     }

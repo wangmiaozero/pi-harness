@@ -18,15 +18,16 @@ export default async function desktopExtension(pi) {
   let disposing = false
   let context
   let forceEmpty = false
+  let permissionMode = 'auto'
   const pending = new Map()
   const send = (value) => socket.write(JSON.stringify(value) + '\n')
-  const request = (method, params = {}) =>
+  const request = (method, params = {}, options = {}) =>
     new Promise((resolve, reject) => {
       const id = randomUUID()
       const timer = setTimeout(() => {
         pending.delete(id)
         reject(new Error('Desktop host request timed out'))
-      }, 30_000)
+      }, options.timeoutMs ?? 30_000)
       pending.set(id, { resolve, reject, timer })
       send({ type: 'request', id, method, params })
     })
@@ -79,6 +80,11 @@ export default async function desktopExtension(pi) {
     }
     if (method === 'abort_compaction') {
       context.abort()
+      return null
+    }
+    if (method === 'set_permission_mode') {
+      permissionMode =
+        params.mode === 'ask' || params.mode === 'accept-edits' ? params.mode : 'auto'
       return null
     }
     throw new Error('Unsupported desktop extension operation')
@@ -145,6 +151,20 @@ export default async function desktopExtension(pi) {
     try {
       ctx.signal?.throwIfAborted()
       await request('guard', { name: event.toolName, input: event.input })
+      const readOnly = ['read', 'grep', 'find', 'ls'].includes(event.toolName)
+      const edits = event.toolName === 'write' || event.toolName === 'edit'
+      const needsApproval =
+        !readOnly && permissionMode !== 'auto' && (permissionMode === 'ask' || !edits)
+      if (needsApproval) {
+        ctx.signal?.throwIfAborted()
+        const approved = await request(
+          'permission_request',
+          { name: event.toolName, input: event.input },
+          { timeoutMs: 600_000 }
+        )
+        if (approved !== true)
+          return { block: true, reason: 'The user declined this tool call' }
+      }
       return undefined
     } catch {
       return { block: true, reason: 'Tool access was denied by the desktop workspace policy' }
