@@ -9,7 +9,8 @@ const child = spawn(
     'run',
     '--maxWorkers=2',
     'src/main/runtime',
-    'src/main/agent/pi-rpc-runtime.test.ts'
+    'src/main/agent/pi-rpc-runtime.test.ts',
+    'src/main/agent/desktop-bridge.test.ts'
   ],
   {
     stdio: 'inherit',
