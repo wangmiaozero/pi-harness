@@ -4,6 +4,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { PiProcessService } from './pi-process'
 import * as commandResolver from '../environment/command-resolver'
+import * as active from '../runtime/active'
+import type { RuntimeProvider } from '../runtime/active'
 
 beforeEach(() => {
   vi.spyOn(commandResolver, 'resolveLoginShellPath').mockImplementation(async () => ({
@@ -16,6 +18,68 @@ afterEach(() => vi.restoreAllMocks())
 const describeWindows = process.platform === 'win32' ? describe : describe.skip
 
 describe('PiProcessService environment override', () => {
+  it('can remove a Git package through standalone Pi without requiring Node', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-no-node-remove-'))
+    const cli = path.join(root, process.platform === 'win32' ? 'pi.cmd' : 'pi')
+    await fs.writeFile(
+      cli,
+      process.platform === 'win32' ? '@echo off\r\necho removed\r\n' : '#!/bin/sh\necho removed\n',
+      { mode: 0o755 }
+    )
+    vi.spyOn(active, 'getRuntimeProvider').mockReturnValue({
+      resolve: async (kind: string) => ({
+        source: 'custom',
+        executablePath: kind === 'pi' ? cli : null,
+        version: kind === 'pi' ? '1.3.0' : null,
+        valid: kind === 'pi'
+      }),
+      environment: async () => ({ ...process.env })
+    } as unknown as RuntimeProvider)
+    try {
+      expect(
+        (
+          await new PiProcessService().exec({
+            args: ['remove', 'git:https://fixture.invalid/repo']
+          })
+        ).stdout.trim()
+      ).toBe('removed')
+    } finally {
+      await fs.rm(root, { recursive: true, force: true })
+    }
+  })
+  it.each(['.js', '.mjs', '.cjs'])(
+    'rejects an unsafe Node for a cached valid Pi %s entry before execution',
+    async (extension) => {
+      const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-node-security-'))
+      const cli = path.join(root, `cli${extension}`)
+      const marker = path.join(root, 'executed')
+      await fs.writeFile(
+        cli,
+        `import('node:fs').then(fs=>fs.writeFileSync(${JSON.stringify(marker)}, 'executed'))`
+      )
+      const base = {
+        source: 'custom',
+        platform: process.platform,
+        arch: process.arch,
+        integrity: 'unmanaged',
+        diagnosticMessages: []
+      }
+      vi.spyOn(active, 'getRuntimeProvider').mockReturnValue({
+        resolve: async (kind: string) =>
+          kind === 'pi'
+            ? { ...base, executablePath: cli, version: '1.3.0', valid: true }
+            : { ...base, executablePath: process.execPath, version: '24.22.0', valid: false }
+      } as unknown as RuntimeProvider)
+      try {
+        await expect(new PiProcessService().exec({ args: ['--version'] })).rejects.toThrow(
+          'security-patched'
+        )
+        expect(await fs.stat(marker).catch(() => null)).toBeNull()
+      } finally {
+        await fs.rm(root, { recursive: true, force: true })
+      }
+    }
+  )
   it('discovers the CLI version from its installation directory', async () => {
     const previous = process.env.PI_HARNESS_PI_CLI_PATH
     const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'pi-version-cwd-')))
@@ -57,6 +121,14 @@ describe('PiProcessService environment override', () => {
     process.env.PI_HARNESS_PI_CLI_PATH = cliPath
     // Simulate a GUI launch: Finder/Dock apps inherit a minimal system PATH.
     process.env.PATH = ['/usr/bin', '/bin'].join(path.delimiter)
+    // Use this test's verified build Node rather than the developer's version managers.
+    vi.spyOn(commandResolver, 'resolveExecutable').mockResolvedValue({
+      found: true,
+      command: 'node',
+      path: process.execPath,
+      version: process.version,
+      source: 'candidate'
+    })
     try {
       const result = await new PiProcessService().exec({ args: ['--version'] })
       const marker = result.stdout.match(/__PATH__(.*)__END__/)

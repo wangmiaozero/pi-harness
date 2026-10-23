@@ -52,6 +52,10 @@ import { createDesktopExtension, type DesktopSessionContext } from './desktop-ex
 import { getIsDev } from '../services/app-paths'
 import type { SessionService } from '../sessions/session-service'
 import type { AgentRuntime, AgentPromptOptions } from './runtime'
+import { getRuntimeProvider } from '../runtime/active'
+import { assertMcpNodeExecution } from '../runtime/node-execution-guard'
+import { resolveExecutable } from '../environment/command-resolver'
+import { validateExecutable } from '../runtime/validator'
 
 const IDLE_MS = 10 * 60 * 1000
 const CODING_TOOL_NAMES = ['read', 'bash', 'powershell', 'edit', 'write', 'grep', 'find', 'ls']
@@ -991,6 +995,20 @@ export class AgentRuntimeService implements AgentRuntime {
     await this.workspace?.prepareSession?.(sessionManager.getSessionId(), sessionCwd)
     const agentDir = sdk.getAgentDir()
     const settingsManager = sdk.SettingsManager.create(sessionCwd, agentDir)
+    const runtimeProvider = getRuntimeProvider()
+    if (runtimeProvider)
+      await assertMcpNodeExecution(
+        runtimeProvider,
+        agentDir,
+        sessionCwd,
+        settingsManager.isProjectTrusted(),
+        async () => {
+          // Native SDK transports inherit Main's PATH; validating the selected Node alone
+          // cannot establish the identity of the Node they would actually execute.
+          const inherited = await resolveExecutable('node', { env: process.env, loginShell: false })
+          return validateExecutable('node', 'system', inherited.path)
+        }
+      )
     const architectureHint = (await this.workspace?.architectureHint?.(sessionCwd)) ?? null
     const systemPromptController: DesktopSessionContext = {
       forceEmpty: input.toolNames?.length === 0,

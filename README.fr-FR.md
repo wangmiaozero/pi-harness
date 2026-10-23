@@ -255,7 +255,7 @@ Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer 
 
 ## Prérequis
 
-L’application prend en charge macOS Apple Silicon, macOS Intel, Windows x64 et Linux x64. Pi Coding Agent peut être installé ou réparé depuis l’application dans les environnements compatibles. L’exécution depuis les sources nécessite Node.js ≥ 22.22.2 et pnpm 9.12.1.
+L’application prend en charge macOS Apple Silicon, macOS Intel, Windows x64 et Linux x64. Pi Coding Agent peut être installé ou réparé depuis l’application dans les environnements compatibles. L’exécution depuis les sources nécessite Node.js 24 LTS (≥ 24.22.1) et pnpm 9.12.1.
 
 <a id="documentation"></a>
 

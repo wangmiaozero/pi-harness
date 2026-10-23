@@ -3,6 +3,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { homedir } from 'node:os'
 import semver from 'semver'
+import { assessNodeSecurity, nodeSecurityPolicy } from '@shared/runtime/node-security-policy.mjs'
 import type { NodeRuntimeInfo } from '@shared/ipc/api-types'
 import { managedNodeRoot, npmUserPrefix } from '../services/app-paths'
 import {
@@ -12,7 +13,7 @@ import {
 } from '../environment/command-resolver'
 import { inspectNpmPrefix, npmBinDirectory } from '../environment/npm-environment'
 
-export const MINIMUM_NODE_VERSION = '22.19.0'
+export const MINIMUM_NODE_VERSION = nodeSecurityPolicy.functionalMinimum
 
 async function addVersionDirectories(
   directories: Set<string>,
@@ -113,14 +114,15 @@ export function normalizeNodeVersion(version: string | null | undefined): string
 
 export function isNodeVersionSupported(version: string | null | undefined): boolean {
   const normalized = normalizeNodeVersion(version)
-  return Boolean(normalized && semver.gte(normalized, MINIMUM_NODE_VERSION))
+  return assessNodeSecurity(normalized).executionAllowed
 }
 
 export async function detectNodeRuntime(): Promise<NodeRuntimeInfo> {
   const provider = getRuntimeProvider()
   if (provider) {
     const runtime = await provider.resolve('node')
-    const env = await provider.environment('npm')
+    // Detection must remain usable while Node needs repair; standalone Pi is independent.
+    const env = await provider.environment('pi')
     const source =
       runtime.source === 'bundled'
         ? 'managed-runtime'
@@ -134,6 +136,7 @@ export async function detectNodeRuntime(): Promise<NodeRuntimeInfo> {
       nodePath: runtime.executablePath,
       nodeVersion: runtime.version ? `v${runtime.version}` : null,
       nodeSupported: runtime.valid,
+      nodeSecurity: runtime.security ?? assessNodeSecurity(runtime.version),
       minimumNodeVersion: MINIMUM_NODE_VERSION,
       npmInstalled: Boolean(runtime.npm),
       npmPath: runtime.npm?.cliPath ?? null,
@@ -141,7 +144,7 @@ export async function detectNodeRuntime(): Promise<NodeRuntimeInfo> {
       pnpmInstalled: false,
       pnpmPath: null,
       pnpmVersion: null,
-      nodeStatus: runtime.valid ? 'ready' : 'missing',
+      nodeStatus: runtime.valid ? 'ready' : runtime.version ? 'outdated' : 'missing',
       npmStatus: runtime.npm ? 'ready' : 'missing',
       nodeSource: source,
       npmSource: runtime.npm ? source : null,
@@ -231,6 +234,7 @@ export async function detectNodeRuntime(): Promise<NodeRuntimeInfo> {
     pnpmPath: pnpm.path,
     pnpmVersion: pnpm.version,
     nodeSupported,
+    nodeSecurity: assessNodeSecurity(normalizeNodeVersion(node.version)),
     minimumNodeVersion: MINIMUM_NODE_VERSION,
     nodeStatus: !nodeInstalled ? 'missing' : nodeSupported ? 'ready' : 'outdated',
     npmStatus: npmInstalled ? 'ready' : 'missing',
@@ -247,7 +251,11 @@ export async function detectNodeRuntime(): Promise<NodeRuntimeInfo> {
 
 export async function resolveNpmExecutable(): Promise<string> {
   const runtime = await detectNodeRuntime()
-  if (!runtime.nodeSupported) throw new Error(`Node.js >= ${MINIMUM_NODE_VERSION} is required`)
+  if (!runtime.nodeSupported)
+    throw new Error(
+      runtime.nodeSecurity?.remediation ??
+        'A supported, security-patched Node.js runtime is required'
+    )
   if (!runtime.npmInstalled || !runtime.npmPath) throw new Error('npm not found')
   return runtime.npmPath
 }

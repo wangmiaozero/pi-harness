@@ -255,7 +255,7 @@ Plugin SDK v1.0.0 · Pi-Harness v2.2.6 以降で利用できます。イベン�
 
 ## 必要環境
 
-macOS Apple Silicon、macOS Intel、Windows x64、Linux x64 に対応します。対応環境ではアプリから Pi Coding Agent をインストール・修復できます。ソースからの実行には Node.js ≥ 22.22.2 と pnpm 9.12.1 が必要です。
+macOS Apple Silicon、macOS Intel、Windows x64、Linux x64 に対応します。対応環境ではアプリから Pi Coding Agent をインストール・修復できます。ソースからの実行には Node.js 24 LTS (≥ 24.22.1) と pnpm 9.12.1 が必要です。
 
 <a id="documentation"></a>
 

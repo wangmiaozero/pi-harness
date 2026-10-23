@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { NodeSecurityAssessment } from './node-security-policy.mjs'
 
 export const runtimeKindSchema = z.enum(['pi', 'node'])
 export const runtimeSelectionSchema = z
@@ -47,6 +48,7 @@ export interface RuntimeConfiguration {
   node: RuntimeSelection
 }
 export interface ResolvedRuntime {
+  security?: NodeSecurityAssessment
   source: RuntimeSource
   executablePath: string | null
   version: string | null

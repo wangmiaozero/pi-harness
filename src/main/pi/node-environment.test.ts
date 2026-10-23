@@ -9,10 +9,10 @@ import {
 
 describe('Node.js version policy', () => {
   it.each([
-    ['v24.15.0', true],
-    ['v22.19.0', true],
+    ['v24.22.1', true],
+    ['v22.23.4', true],
     ['v22.18.0', false],
-    ['26.1.0', true],
+    ['26.12.1', true],
     ['v20.19.0', false],
     ['v18.20.8', false],
     ['not-a-version', false]

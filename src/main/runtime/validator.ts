@@ -8,6 +8,7 @@ import semver from 'semver'
 import type { ResolvedRuntime, RuntimeKind, RuntimeSource } from '@shared/runtime/schema'
 import { buildRuntimeEnvironment } from './environment'
 import { log } from '../services/logger'
+import { assessNodeSecurity } from '@shared/runtime/node-security-policy.mjs'
 
 const exec = promisify(execFile)
 export async function probe(
@@ -99,7 +100,7 @@ export async function validateExecutable(
           real,
           [
             '-p',
-            'JSON.stringify({version:process.version,platform:process.platform,arch:process.arch,electron:process.versions.electron})'
+            'JSON.stringify({version:process.version,platform:process.platform,arch:process.arch,electron:process.versions.electron,compatible:typeof fetch==="function"&&typeof structuredClone==="function"&&typeof AbortSignal.any==="function"&&typeof require("node:fs").promises.cp==="function"&&typeof require("node:stream").Readable.fromWeb==="function"&&typeof require("node:worker_threads").Worker==="function"})'
           ],
           env
         )
@@ -107,8 +108,12 @@ export async function validateExecutable(
       if (data.electron || data.platform !== process.platform || data.arch !== process.arch)
         throw new Error('Node runtime identity mismatch')
       version = semver.valid(data.version) ?? ''
-      if (!version || semver.lt(version, '22.19.0'))
-        throw new Error('Node.js 22.19.0 or newer is required for tools')
+      result.version = version || null
+      result.security = assessNodeSecurity(version)
+      if (!result.security.executionAllowed)
+        throw new Error(`${result.security.reason} ${result.security.remediation}`)
+      if (semver.major(version) === 26 && data.compatible !== true)
+        throw new Error('This Node.js runtime does not provide the required compatible tool APIs')
     } else {
       // npm Pi entries are validated by the manager using the selected external Node.
       if (/\.[cm]?js$/i.test(real))

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { installedSdkVersions } from '../../src/main/runtime/sdk-matrix.mjs'
 import { PI_SDK_PACKAGES } from '../../src/main/runtime/version-sources.mjs'
 import { catalog } from '../../src/main/runtime/distribution.mjs'
+import { assessNodeSecurity } from '../../src/shared/runtime/node-security-policy.mjs'
 
 export async function verifySdkMatrix(
   root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -23,7 +24,12 @@ export async function verifySdkMatrix(
       throw new Error(`Mixed Pi versions in pnpm lockfile: ${match[1]}`)
   return installed
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url))
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (
+    !process.versions.node.startsWith('24.') ||
+    !assessNodeSecurity(process.versions.node).executionAllowed
+  )
+    throw new Error('Build and runtime preparation require a security-patched Node 24 LTS runtime')
   process.stdout.write(
     JSON.stringify(
       { piBinary: catalog.pi.version, sdk: await verifySdkMatrix(), aligned: true },
@@ -31,3 +37,4 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       2
     ) + '\n'
   )
+}

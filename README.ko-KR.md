@@ -255,7 +255,7 @@ Plugin SDK v1.0.0 · Pi-Harness v2.2.6부터 제공됩니다. 이벤트 구독, 
 
 ## 요구 사항
 
-macOS Apple Silicon, macOS Intel, Windows x64, Linux x64를 지원합니다. 지원 환경에서는 앱에서 Pi Coding Agent를 설치하거나 복구할 수 있습니다. 소스에서 실행하려면 Node.js ≥ 22.22.2와 pnpm 9.12.1이 필요합니다.
+macOS Apple Silicon, macOS Intel, Windows x64, Linux x64를 지원합니다. 지원 환경에서는 앱에서 Pi Coding Agent를 설치하거나 복구할 수 있습니다. 소스에서 실행하려면 Node.js 24 LTS (≥ 24.22.1)와 pnpm 9.12.1이 필요합니다.
 
 <a id="documentation"></a>
 

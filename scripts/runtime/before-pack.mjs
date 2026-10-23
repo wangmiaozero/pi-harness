@@ -1,8 +1,14 @@
 import path from 'node:path'
+import { assessNodeSecurity } from '../../src/shared/runtime/node-security-policy.mjs'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
 export default async function beforePack(context) {
+  if (
+    !assessNodeSecurity(process.versions.node).executionAllowed ||
+    !process.versions.node.startsWith('24.')
+  )
+    throw new Error('Packaging requires security-patched Node 24 LTS')
   const arch = { 1: 'x64', 3: 'arm64' }[context.arch]
   if (!arch) throw new Error('Only official x64 and arm64 runtime distributions can be packaged')
   const args = [

@@ -319,7 +319,7 @@ Community builds check for new versions in the app and open the official Release
 
 ### Requirements
 
-Community release validation covers macOS Apple Silicon, macOS Intel, Windows x64, and Linux x64; platform availability is subject to each release's verified results. The bundled Pi and Node runtimes are ready to use, with System and Custom runtime choices available in settings. Source development and packaging require Node.js ≥ 22.22.2 and pnpm 9.12.1; installed users do not need these build tools.
+Community release validation covers macOS Apple Silicon, macOS Intel, Windows x64, and Linux x64; platform availability is subject to each release's verified results. The bundled Pi and Node runtimes are ready to use, with System and Custom runtime choices available in settings. Source development and packaging require Node.js 24 LTS (≥ 24.22.1) and pnpm 9.12.1; installed users do not need these build tools.
 
 <a id="screenshots"></a>
 
@@ -413,7 +413,7 @@ Product screenshots are grouped by theme. Browse the [complete screenshot index]
 
 ### Local development
 
-Install **Node.js ≥ 22.22.2** and **pnpm 9.12.1**, then run:
+Install **Node.js 24 LTS (≥ 24.22.1)** and **pnpm 9.12.1**, then run:
 
 ```sh
 git clone https://github.com/wangmiaozero/pi-harness.git

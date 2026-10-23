@@ -132,6 +132,7 @@ export class ArchifyProvider implements ArchitectureRendererProvider {
       try {
         const provider = getRuntimeProvider()
         const runtimeNode = provider ? await provider.resolve('node') : null
+        if (provider && !runtimeNode?.valid) throw new Error('The selected Node runtime is unavailable or requires a security update')
         const executable =
           this.executable ??
           (runtimeNode?.valid ? runtimeNode.executablePath : null) ??

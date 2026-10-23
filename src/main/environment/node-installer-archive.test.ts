@@ -12,7 +12,7 @@ vi.mock('./path-manager', () => ({
 }))
 vi.mock('./command-resolver', () => ({
   readExecutableVersion: vi.fn(async (file: string) =>
-    file.endsWith('node.exe') ? '24.22.0' : '11.19.1'
+    file.endsWith('node.exe') ? '24.22.1' : '11.19.1'
   )
 }))
 const directories: string[] = []
@@ -37,10 +37,10 @@ for (const fixture of ['safe', 'symlink', 'leaf-write']) {
       fetch: async (url) => {
         if (String(url).endsWith('index.json'))
           return new Response(
-            JSON.stringify([{ version: 'v24.22.0', lts: 'Krypton', files: ['win-x64-zip'] }])
+            JSON.stringify([{ version: 'v24.22.1', lts: 'Krypton', files: ['win-x64-zip'] }])
           )
         if (String(url).endsWith('SHASUMS256.txt'))
-          return new Response(`${sha256}  node-v24.22.0-win-x64.zip\n`)
+          return new Response(`${sha256}  node-v24.22.1-win-x64.zip\n`)
         return new Response(archive)
       }
     })
@@ -51,7 +51,7 @@ for (const fixture of ['safe', 'symlink', 'leaf-write']) {
     if (fixture === 'safe') {
       await expect(installer.install()).resolves.toMatchObject({
         skipped: false,
-        version: '24.22.0'
+        version: '24.22.1'
       })
       expect(await fs.readFile(path.join(root, 'node.exe'), 'utf8')).toBe('fixture node')
       expect(mocks.persist).toHaveBeenCalledOnce()

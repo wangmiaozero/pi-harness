@@ -255,7 +255,7 @@ Plugin SDK v1.0.0 · Доступен начиная с Pi-Harness v2.2.6. По�
 
 ## Требования
 
-Приложение поддерживает macOS Apple Silicon, macOS Intel, Windows x64 и Linux x64. В поддерживаемых средах Pi Coding Agent можно установить или восстановить из приложения. Для запуска из исходников нужны Node.js ≥ 22.22.2 и pnpm 9.12.1.
+Приложение поддерживает macOS Apple Silicon, macOS Intel, Windows x64 и Linux x64. В поддерживаемых средах Pi Coding Agent можно установить или восстановить из приложения. Для запуска из исходников нужны Node.js 24 LTS (≥ 24.22.1) и pnpm 9.12.1.
 
 <a id="documentation"></a>
 

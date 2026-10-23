@@ -162,6 +162,7 @@ export type EnvironmentState =
   | 'failed'
 
 export interface NodeRuntimeInfo {
+  nodeSecurity?: import('../runtime/node-security-policy.mjs').NodeSecurityAssessment
   nodeInstalled: boolean
   nodePath: string | null
   nodeVersion: string | null
@@ -182,7 +183,7 @@ export interface NodeRuntimeInfo {
   npmPrefixWritable: boolean | null
   npmBinDir: string | null
   resolvedPath: string
-  /** True when Node.js >= the minimum version and npm are executable. */
+  /** True when Node.js meets compatibility/security policy and npm is executable. */
   ready: boolean
 }
 

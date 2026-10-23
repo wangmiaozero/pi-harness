@@ -33,7 +33,7 @@ test('shows independent runtimes in existing settings and rejects invalid select
   ).toBe(true)
   expect(info.node).toMatchObject({
     valid: true,
-    version: '24.22.0',
+    version: '24.22.1',
     npm: { version: '11.19.1' },
     npx: { version: '11.19.1' }
   })
@@ -42,7 +42,7 @@ test('shows independent runtimes in existing settings and rejects invalid select
   await expect(page.getByTestId('runtime-settings')).toBeVisible()
   await expect(page.getByTestId('runtime-pi')).toContainText(catalog.pi.version)
   await expect(page.getByTestId('runtime-sdk-versions')).toContainText(catalog.pi.version)
-  await expect(page.getByTestId('runtime-node')).toContainText('24.22.0')
+  await expect(page.getByTestId('runtime-node')).toContainText('24.22.1')
   const error = await page.evaluate(
     async (file) => {
       try {

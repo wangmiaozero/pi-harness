@@ -255,7 +255,7 @@ Nutzer der paketierten App müssen das Repository nicht klonen oder pnpm install
 
 ## Voraussetzungen
 
-Die Desktop-App unterstützt macOS Apple Silicon, macOS Intel, Windows x64 und Linux x64. In unterstützten Umgebungen lässt sich Pi Coding Agent aus der App installieren oder reparieren. Für die Ausführung aus dem Quellcode sind Node.js ≥ 22.22.2 und pnpm 9.12.1 erforderlich.
+Die Desktop-App unterstützt macOS Apple Silicon, macOS Intel, Windows x64 und Linux x64. In unterstützten Umgebungen lässt sich Pi Coding Agent aus der App installieren oder reparieren. Für die Ausführung aus dem Quellcode sind Node.js 24 LTS (≥ 24.22.1) und pnpm 9.12.1 erforderlich.
 
 <a id="documentation"></a>
 

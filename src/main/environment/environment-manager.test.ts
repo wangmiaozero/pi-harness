@@ -51,7 +51,7 @@ describe('EnvironmentManager', () => {
     expect(fixture.piInstaller.install).toHaveBeenCalledOnce()
   })
 
-  it.each(['v22.19.0', 'v24.15.0', 'v26.7.0'])(
+  it.each(['v22.23.4', 'v24.22.1', 'v26.12.1'])(
     'reuses supported Node %s without downgrading',
     async (version) => {
       const fixture = managerFixture({ nodeVersion: version, piReady: false })
@@ -64,7 +64,7 @@ describe('EnvironmentManager', () => {
   )
 
   it('does not reinstall an already healthy Pi', async () => {
-    const fixture = managerFixture({ nodeVersion: 'v24.15.0', piReady: true })
+    const fixture = managerFixture({ nodeVersion: 'v24.22.1', piReady: true })
 
     const result = await fixture.manager.bootstrap()
 
@@ -77,7 +77,7 @@ describe('EnvironmentManager', () => {
     const gate = new Promise<void>((resolve) => {
       release = resolve
     })
-    const fixture = managerFixture({ nodeVersion: 'v24.15.0', piReady: false })
+    const fixture = managerFixture({ nodeVersion: 'v24.22.1', piReady: false })
     fixture.piInstaller.install.mockImplementation(async (options) => {
       await gate
       fixture.setPiReady(true)
@@ -107,7 +107,7 @@ describe('EnvironmentManager', () => {
   })
 
   it('exposes Pi installation failure and permits a clean retry', async () => {
-    const fixture = managerFixture({ nodeVersion: 'v24.15.0', piReady: false })
+    const fixture = managerFixture({ nodeVersion: 'v24.22.1', piReady: false })
     fixture.piInstaller.install.mockRejectedValueOnce(new Error('npm exited with code 1'))
 
     await expect(fixture.manager.bootstrap()).rejects.toThrow('npm exited with code 1')
@@ -122,7 +122,7 @@ describe('EnvironmentManager', () => {
   })
 
   it('repairs Node.js/npm and retries when npm disappears during installation', async () => {
-    const fixture = managerFixture({ nodeVersion: 'v24.15.0', piReady: false })
+    const fixture = managerFixture({ nodeVersion: 'v24.22.1', piReady: false })
     fixture.piInstaller.install.mockRejectedValueOnce(
       new EnvironmentError('NPM_NOT_FOUND', 'spawn npm ENOENT')
     )
@@ -133,7 +133,7 @@ describe('EnvironmentManager', () => {
   })
 
   it('cancels a running install and leaves an observable cancelled task', async () => {
-    const fixture = managerFixture({ nodeVersion: 'v24.15.0', piReady: false })
+    const fixture = managerFixture({ nodeVersion: 'v24.22.1', piReady: false })
     fixture.piInstaller.install.mockImplementation(
       (options) =>
         new Promise((_resolve, reject) => {
@@ -156,7 +156,7 @@ describe('EnvironmentManager', () => {
   })
 
   it('streams Pi update progress and command output into the environment task', async () => {
-    const fixture = managerFixture({ nodeVersion: 'v24.15.0', piReady: true })
+    const fixture = managerFixture({ nodeVersion: 'v24.22.1', piReady: true })
     fixture.piInstaller.update.mockImplementation(async (_force, options) => {
       options?.onProgress?.({ phase: 'running-pi-update', progress: 25, message: 'Updating Pi' })
       options?.onLog?.('Downloading Pi update', 'stdout')
@@ -192,10 +192,10 @@ function managerFixture(options: { nodeVersion: string | null; piReady: boolean 
         progress: 100,
         message: 'Node ready'
       })
-      nodeVersion = 'v24.15.0'
+      nodeVersion = 'v24.22.1'
       return {
         skipped: false,
-        version: '24.15.0',
+        version: '24.22.1',
         root: '/tmp/node',
         nodePath: '/tmp/node/bin/node',
         npmPath: '/tmp/node/bin/npm'
