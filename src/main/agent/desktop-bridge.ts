@@ -12,6 +12,7 @@ export class DesktopBridge {
   private socket: net.Socket | null = null
   private endpoint = ''
   private directory = ''
+  private closing: Promise<void> | null = null
   private pending = new Map<
     string,
     {
@@ -124,7 +125,10 @@ export class DesktopBridge {
       this.socket!.write(JSON.stringify({ type: 'request', id, method, params }) + '\n')
     })
   }
-  async close(): Promise<void> {
+  close(): Promise<void> {
+    return (this.closing ??= this.closeBridge())
+  }
+  private async closeBridge(): Promise<void> {
     for (const entry of this.pending.values()) {
       clearTimeout(entry.timer)
       entry.reject(new AgentError('Desktop bridge closed'))
@@ -132,6 +136,7 @@ export class DesktopBridge {
     this.pending.clear()
     this.socket?.destroy()
     if (this.server) await new Promise<void>((resolve) => this.server!.close(() => resolve()))
-    if (this.directory) await fs.rm(this.directory, { force: true, recursive: true })
+    if (this.directory)
+      await fs.rm(this.directory, { force: true, recursive: true, maxRetries: 5, retryDelay: 100 })
   }
 }
