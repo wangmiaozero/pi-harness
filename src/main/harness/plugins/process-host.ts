@@ -101,9 +101,12 @@ export class PluginProcessHost {
     })
   }
   async activate(
-    manifest: PluginManifest
+    manifest: PluginManifest,
+    // Activation includes forking the child and importing the worker plus plugin entry, so the
+    // cold-start budget must exceed the per-request timeout used for warm round-trips.
+    timeout = 10000
   ): Promise<{ evaluators: Contribution[]; exporters: Contribution[] }> {
-    const registrations = registrationSchema.parse(await this.request('activate', manifest))
+    const registrations = registrationSchema.parse(await this.request('activate', manifest, timeout))
     for (const name of ['evaluators', 'exporters'] as const) {
       const expected = manifest.contributions[name]
       if (

@@ -369,7 +369,9 @@ describe('Harness plugin lifecycle and real SDK process execution', () => {
     await expect(host.setEnabled(id, true)).rejects.toThrow('PLUGIN_TIMEOUT')
     expect(host.list()[0].status).toBe('failed')
     expect(listeners.size).toBe(0)
-  }, 5000)
+    // The activation bound (10s) covers slow cold starts on loaded machines; the harness timeout
+    // only needs to outlast the bound it asserts.
+  }, 15000)
   it('bounds event queues, keeps the emitting thread responsive and terminates stalled subscribers', async () => {
     await host.close()
     host = new HarnessPluginHost({ ...options(), timeoutMs: 100, eventQueueLimit: 2 })
