@@ -23,7 +23,7 @@ import { installPetRuntimeAdapter } from '@renderer/pet/install-runtime-adapter'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { runtimeStartupChecks, startupChecks, startupPhase } from './startup'
 
-applyTheme('dark')
+applyTheme('soft-light')
 installAuthorWatermark()
 
 /* Windows repaints blur/glass effects far more slowly than macOS. The platform

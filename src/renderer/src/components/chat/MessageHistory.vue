@@ -20,6 +20,7 @@ defineProps<{
   <MessageView
     v-for="item in items"
     :key="item.key"
+    :data-minimap-id="item.key"
     :message="item.message"
     :entry-id="item.entryId"
     :user-name="userName"

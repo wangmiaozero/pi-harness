@@ -13,6 +13,7 @@ import type {
   HarnessStats,
   HarnessTool
 } from '@shared/types/harness'
+import type { PermissionMode } from '@shared/workspace/permission-mode'
 
 export type HarnessPromptOptions = import('../agent/runtime').AgentPromptOptions
 
@@ -51,6 +52,8 @@ export interface HarnessAdapter {
   subscribe(sessionId: string, listener: (event: HarnessEvent) => void): () => void
   executeAgentCommand(sessionId: string, command: Record<string, unknown>): Promise<unknown>
   defaultToolNames(): string[]
+  setPermissionMode(sessionId: string, mode: PermissionMode): Promise<void>
+  respondPermission(requestId: string, approved: boolean): boolean
   shutdownAll(): Promise<void>
 }
 

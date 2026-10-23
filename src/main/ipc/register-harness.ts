@@ -1,4 +1,5 @@
 import { IPC_INVOKE } from '@shared/ipc/channels'
+import { permissionDecisionSchema, permissionModeInputSchema } from '@shared/schemas/ipc'
 import {
   harnessCheckpointActionSchema,
   harnessCompareRunsSchema,
@@ -82,6 +83,19 @@ export function registerHarnessIpc(
     wrap(async () => {
       const value = parse(harnessSetThinkingSchema, input)
       await harness.setThinkingLevel(value.sessionId, value.level)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.agentSetPermissionMode, (_event, input: unknown) =>
+    wrap(async () => {
+      const value = parse(permissionModeInputSchema, input)
+      await harness.setPermissionMode(value.sessionId, value.mode)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.agentRespondPermission, (_event, input: unknown) =>
+    wrap(async () => {
+      const value = parse(permissionDecisionSchema, input)
+      if (!harness.respondPermission(value.requestId, value.approved))
+        throw new Error('Unknown permission request')
     })
   )
   ipcMain.handle(IPC_INVOKE.harnessCompact, (_event, input: unknown) =>

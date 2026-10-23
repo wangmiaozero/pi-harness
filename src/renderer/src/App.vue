@@ -47,7 +47,7 @@ const auraKind = computed(() => agentAuraKindForThinking(agent.thinkingLevel))
 const toasterTheme = computed(() => {
   return (
     getActiveVisualSkin(settings.settings)?.appearance ??
-    themeAppearance(settings.settings?.theme ?? 'dark')
+    themeAppearance(settings.settings?.theme ?? 'soft-light')
   )
 })
 
@@ -60,7 +60,7 @@ watch(
   ],
   () => {
     applyVisualSkin(settings.settings)
-    applyTheme(settings.settings?.theme ?? 'dark')
+    applyTheme(settings.settings?.theme ?? 'soft-light')
   },
   { immediate: true }
 )
@@ -84,7 +84,7 @@ let uninstallShortcuts: (() => void) | null = null
 
 onMounted(() => {
   applyVisualSkin(settings.settings)
-  applyTheme(settings.settings?.theme ?? 'dark')
+  applyTheme(settings.settings?.theme ?? 'soft-light')
   uninstallShortcuts = installShortcutListener()
   registerShortcut({
     id: 'command-palette',

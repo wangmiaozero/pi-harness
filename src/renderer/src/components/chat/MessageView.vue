@@ -283,7 +283,7 @@ const bashText = computed(() => {
 
 <style scoped>
 .message-hud {
-  width: min(96%, 1040px);
+  width: 100%;
   min-width: 0;
   max-width: 100%;
   margin-inline: auto;
@@ -307,9 +307,9 @@ const bashText = computed(() => {
   align-items: center;
   min-height: 21px;
   padding: 2px 8px;
-  border: 1px solid var(--border-subtle);
+  border: none;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bg-surface-raised) 88%, transparent);
+  background: color-mix(in srgb, var(--bg-surface-raised) 78%, transparent);
 }
 
 .message-hud[data-message-role='user'] .message-role-label {
@@ -322,24 +322,34 @@ const bashText = computed(() => {
   background: var(--accent-tint);
 }
 
+/*
+ * User bubbles shrink-wrap their content and hug the trailing edge, like a
+ * chat bubble. `max-content` keeps short prompts compact; the cap keeps long
+ * prompts and image strips inside the readable band.
+ */
+.message-hud[data-message-role='user'] .user-message-body {
+  width: fit-content;
+  max-width: min(100%, 600px);
+  margin-left: auto;
+}
+
 .user-message-body {
-  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border-default));
-  border-radius: var(--radius-md) var(--radius-md) 3px var(--radius-md);
-  background: color-mix(in srgb, var(--accent-tint-strong) 72%, var(--bg-surface));
-  box-shadow:
-    inset -2px 0 0 color-mix(in srgb, var(--accent) 56%, transparent),
-    var(--shadow-sm);
+  border: none;
+  border-radius: 14px 14px 4px 14px;
+  background: color-mix(
+    in oklab,
+    var(--accent) 9%,
+    var(--bg-surface-raised)
+  );
+  box-shadow: var(--shadow-sm);
 }
 
 .assistant-message-body {
   padding: 11px 13px;
-  border: 1px solid var(--border-default);
-  border-left-color: color-mix(in srgb, var(--text-tertiary) 58%, var(--border-default));
-  border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 3px;
-  background: color-mix(in srgb, var(--bg-surface-raised) 90%, transparent);
-  box-shadow:
-    inset 2px 0 0 color-mix(in srgb, var(--text-tertiary) 24%, transparent),
-    var(--shadow-sm);
+  border: none;
+  border-radius: 14px 14px 14px 4px;
+  background: color-mix(in srgb, var(--bg-surface-raised) 84%, transparent);
+  box-shadow: var(--shadow-sm);
 }
 
 @media (max-width: 720px) {

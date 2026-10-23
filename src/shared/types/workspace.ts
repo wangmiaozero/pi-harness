@@ -506,6 +506,7 @@ export interface StartAgentSessionInput {
   provider?: string
   modelId?: string
   thinkingLevel?: string
+  permissionMode?: string
 }
 
 export interface PromptAgentInput {

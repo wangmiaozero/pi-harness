@@ -11,6 +11,7 @@ import type {
 } from '@shared/types/harness'
 import type { AgentRuntimeService, AgentSessionWrapper } from '../../agent/agent-runtime-service'
 import type { AgentSessionLike } from '../../agent/pi-sdk'
+import type { PermissionMode } from '@shared/workspace/permission-mode'
 import { detectHarnessCapabilities, getThinkingOptions } from '../harness-capabilities'
 import { HarnessError } from '../harness-error'
 import { mapAgentEvent } from '../harness-events'
@@ -134,6 +135,13 @@ export class PiHarnessAdapter implements HarnessAdapter {
       if (level !== 'auto' && options.length > 1 && !options.includes(level)) return
     }
     await this.agent.command(sessionId, { type: 'set_thinking_level', level })
+  }
+
+  /** The embedded SDK adapter has no desktop extension bridge; gating stays host-side. */
+  async setPermissionMode(_sessionId: string, _mode: PermissionMode): Promise<void> {}
+
+  respondPermission(_requestId: string, _approved: boolean): boolean {
+    return false
   }
 
   async compact(

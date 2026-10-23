@@ -44,7 +44,9 @@ const { t } = useI18n()
 
 const THEME_LABEL_KEYS: Record<AppTheme, string> = {
   dark: 'themeDark',
+  'soft-dark': 'themeSoftDark',
   light: 'themeLight',
+  'soft-light': 'themeSoftLight',
   pink: 'themePink',
   purple: 'themePurple',
   green: 'themeGreen',

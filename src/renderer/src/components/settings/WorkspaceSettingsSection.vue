@@ -19,8 +19,28 @@ const toolPresetOptions = computed(() => [
   { value: 'full', label: t('workspace.presetFull') }
 ])
 
+const permissionModeOptions = computed(() => [
+  { value: 'ask', label: t('workspace.permissionAsk') },
+  { value: 'accept-edits', label: t('workspace.permissionAcceptEdits') },
+  { value: 'auto', label: t('workspace.permissionAuto') }
+])
+
+const agentModeOptions = computed(() => [
+  { value: 'agent', label: t('workspace.modeAgent') },
+  { value: 'plan', label: t('workspace.modePlan') },
+  { value: 'goal', label: t('workspace.modeGoal') }
+])
+
 function onPresetChange(value: string): void {
   draft.value.defaultToolPreset = value as AppSettings['defaultToolPreset']
+}
+
+function onPermissionModeChange(value: string): void {
+  draft.value.defaultPermissionMode = value as AppSettings['defaultPermissionMode']
+}
+
+function onAgentModeChange(value: string): void {
+  draft.value.defaultAgentMode = value as AppSettings['defaultAgentMode']
 }
 </script>
 
@@ -35,6 +55,20 @@ function onPresetChange(value: string): void {
         :options="toolPresetOptions"
         layout="row"
         @update:model-value="onPresetChange"
+      />
+      <Select
+        :model-value="draft.defaultPermissionMode"
+        :label="$t('settings.defaultPermissionMode')"
+        :options="permissionModeOptions"
+        layout="row"
+        @update:model-value="onPermissionModeChange"
+      />
+      <Select
+        :model-value="draft.defaultAgentMode"
+        :label="$t('settings.defaultAgentMode')"
+        :options="agentModeOptions"
+        layout="row"
+        @update:model-value="onAgentModeChange"
       />
       <PropertyRow :label="$t('settings.restoreTabs')">
         <div class="flex items-center justify-end">

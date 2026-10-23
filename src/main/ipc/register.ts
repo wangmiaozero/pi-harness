@@ -31,7 +31,11 @@ import { IPC_EVENT, IPC_INVOKE } from '@shared/ipc/channels'
 import { NODE_DOWNLOAD_URL, PI_INSTALL_COMMAND } from '@shared/constants/pi-install'
 import { toErrorPayload } from '../services/errors'
 import { log } from '../services/logger'
+import { savePastedFiles } from '../services/paste-store'
+import { pasteSaveSchema } from '@shared/schemas/ipc'
 import { APP_VERSION, PROJECT_LINK_URLS } from '@shared/constants/index'
+import { normalizePermissionMode } from '@shared/workspace/permission-mode'
+import { normalizeAgentMode } from '@shared/workspace/agent-mode'
 import type { AppSettings, ScreenMotionActivePayload } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
 import type { PiConfigService } from '../pi/config-service'
@@ -824,6 +828,8 @@ export function registerIpc(services: Services): void {
       settings.macos27BackgroundImage = normalizeMacOS27BackgroundImage(
         settings.macos27BackgroundImage
       )
+      settings.defaultPermissionMode = normalizePermissionMode(settings.defaultPermissionMode)
+      settings.defaultAgentMode = normalizeAgentMode(settings.defaultAgentMode)
       settings.userName = normalizeUserName(settings.userName)
       settings.assistantName = normalizeAssistantName(settings.assistantName)
       settings.appIcon = normalizeAppIconPreference(settings.appIcon)
@@ -868,6 +874,14 @@ export function registerIpc(services: Services): void {
       services.setAppIcon(settings)
       if (settings.language !== current.language) installAppMenu(settings.language)
       return settings
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.pasteSave, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = parseInput(pasteSaveSchema, input, 'Invalid paste payload')
+      return {
+        files: await savePastedFiles(app.getPath('userData'), parsed.sessionId, parsed.files)
+      }
     })
   )
   ipcMain.handle(IPC_INVOKE.settingsUnlockMascot, (_e, answer: unknown) =>

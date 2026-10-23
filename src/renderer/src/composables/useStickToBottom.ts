@@ -158,6 +158,11 @@ export function useStickToBottom(
     stickToBottom = true
   }
 
+  /** Leave follow mode without a user gesture: minimap jumps call this first. */
+  function release() {
+    stickToBottom = false
+  }
+
   function bind() {
     if (typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver(scheduleSync)
@@ -188,6 +193,7 @@ export function useStickToBottom(
     onPointerDown,
     scrollToEdge,
     stick,
+    release,
     scheduleSync,
     bind,
     unbind,

@@ -12,6 +12,8 @@ import {
   isMacOS27BackgroundImageDataUrl
 } from '../constants/macos27-background'
 import { TOOL_PRESET_VALUES } from '../workspace/tool-presets'
+import { PERMISSION_MODES } from '../workspace/permission-mode'
+import { AGENT_MODES } from '../workspace/agent-mode'
 import { providerKeySchema } from './domain'
 import { customSkinSelectionSchema } from './custom-skin'
 import { CHAT_PARTICIPANT_NAME_MAX_LENGTH } from '../constants/chat-participants'
@@ -87,6 +89,7 @@ const appSettingsFields = {
     .min(1)
     .max(24 * 60),
   petSound: z.boolean(),
+  chatContentMaxWidth: z.number().int().min(560).max(2400),
   mockMode: z.boolean(),
   manualCliPath: optionalFilesystemPathSchema,
   manualConfigDir: optionalFilesystemPathSchema,
@@ -94,6 +97,8 @@ const appSettingsFields = {
   backupRetention: backupRetentionSchema,
   developerMode: z.boolean(),
   defaultToolPreset: z.enum(TOOL_PRESET_VALUES),
+  defaultPermissionMode: z.enum(PERMISSION_MODES),
+  defaultAgentMode: z.enum(AGENT_MODES),
   restoreTabs: z.boolean(),
   autoOpenLastProject: z.boolean(),
   windowMotionEnabled: z.boolean(),
@@ -124,3 +129,35 @@ export const uiStateSchema = z
       context.addIssue({ code: 'custom', message: 'UI state must be JSON serializable' })
     }
   })
+
+export const pasteSaveSchema = z
+  .object({
+    sessionId: z.string().min(1).max(128).nullable(),
+    files: z
+      .array(
+        z.object({
+          name: z.string().max(255).optional(),
+          mimeType: z.string().max(128).optional(),
+          data: z.instanceof(ArrayBuffer)
+        })
+      )
+      .min(1)
+      .max(10)
+  })
+  .strict()
+
+export const permissionModeSchema = z.enum(['ask', 'accept-edits', 'auto'])
+
+export const permissionDecisionSchema = z
+  .object({
+    requestId: z.string().min(1).max(128),
+    approved: z.boolean()
+  })
+  .strict()
+
+export const permissionModeInputSchema = z
+  .object({
+    sessionId: z.string().min(1).max(128),
+    mode: permissionModeSchema
+  })
+  .strict()

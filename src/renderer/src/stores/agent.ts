@@ -30,6 +30,7 @@ import {
   getToolNamesForPreset,
   type ToolPreset
 } from '@shared/workspace/tool-presets'
+import type { PermissionMode } from '@shared/workspace/permission-mode'
 import { useModelsStore } from './models'
 import { useSessionStore } from './sessions'
 import { useWorkspaceStore } from './workspace'
@@ -311,7 +312,8 @@ export const useAgentStore = defineStore('agent', () => {
     message: string,
     preset: ToolPreset,
     images: AgentImageAttachment[] = [],
-    displayMessage = message
+    displayMessage = message,
+    permissionMode?: PermissionMode
   ) {
     if (!message.trim() && !images.length) return
     sending.value = true
@@ -339,7 +341,8 @@ export const useAgentStore = defineStore('agent', () => {
             toolNames: getToolNamesForPreset(preset),
             ...(thinkingLevel.value !== 'auto'
               ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value) }
-              : {})
+              : {}),
+            ...(permissionMode && permissionMode !== 'auto' ? { permissionMode } : {})
           })
         )
         loadedSessionId = started.sessionId

@@ -303,7 +303,14 @@ const api: PiSwitchAPI = {
     abort: (sessionId) => invoke(IPC_INVOKE.agentAbort, sessionId),
     state: (sessionId) => invoke(IPC_INVOKE.agentState, sessionId),
     running: () => invoke(IPC_INVOKE.agentRunning),
-    command: (sessionId, command) => invoke(IPC_INVOKE.agentCommand, { sessionId, ...command })
+    command: (sessionId, command) => invoke(IPC_INVOKE.agentCommand, { sessionId, ...command }),
+    setPermissionMode: (sessionId, mode) =>
+      invoke(IPC_INVOKE.agentSetPermissionMode, { sessionId, mode }),
+    respondPermission: (requestId, approved) =>
+      invoke(IPC_INVOKE.agentRespondPermission, { requestId, approved })
+  },
+  paste: {
+    save: (input) => invoke(IPC_INVOKE.pasteSave, input)
   },
   harness: {
     state: (sessionId) => invoke(IPC_INVOKE.harnessGetState, { sessionId }),
@@ -468,6 +475,7 @@ const api: PiSwitchAPI = {
       return onEvent(IPC_EVENT.environmentInstallTask, ipcListener)
     if (event === 'notification') return onEvent(IPC_EVENT.notification, ipcListener)
     if (event === 'agent-event') return onEvent(IPC_EVENT.agentEvent, ipcListener)
+    if (event === 'agent-permission') return onEvent(IPC_EVENT.agentPermission, ipcListener)
     if (event === 'agent-running') return onEvent(IPC_EVENT.agentRunning, ipcListener)
     if (event === 'harness-event') return onEvent(IPC_EVENT.harnessEvent, ipcListener)
     if (event === 'updater-state') return onEvent(IPC_EVENT.updaterState, ipcListener)

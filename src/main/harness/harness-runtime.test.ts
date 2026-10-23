@@ -322,6 +322,8 @@ function createAdapter() {
     setTools: vi.fn(async () => undefined),
     setModel: vi.fn(async () => undefined),
     setThinkingLevel: vi.fn(async () => undefined),
+    setPermissionMode: vi.fn(async () => undefined),
+    respondPermission: vi.fn(() => false),
     compact: vi.fn(async () => undefined),
     abortCompaction: vi.fn(async () => undefined),
     setAutoCompaction: vi.fn(async () => undefined),
