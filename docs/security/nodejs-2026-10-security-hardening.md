@@ -1,6 +1,6 @@
 # Node.js October 2026 security hardening
 
-Evidence reviewed: 2026-10-23. Outcome: implementation prepared; release verification BLOCKED. No release was published.
+Evidence reviewed: 2026-10-23. Outcome: implementation and merge validation PASS; release verification BLOCKED by missing Electron backport evidence. No release was published.
 
 ## Official sources
 
@@ -34,14 +34,14 @@ Official base URL: `https://nodejs.org/dist/v24.22.1/`. Checksum-list SHA-256: `
 
 Every archive was downloaded from the official Node distribution site, matched against its official checksum entry, safely extracted, checked for platform/architecture and npm version, and inventoried to calculate a new complete tree digest. Old tree digests were not reused.
 
-| Platform     | Archive / tree verification | Native execution                     |
-| ------------ | --------------------------- | ------------------------------------ |
-| darwin-arm64 | PASS                        | PASS: Node/npm/npx                   |
-| darwin-x64   | PASS                        | NOT_VERIFIED: requires native runner |
-| linux-arm64  | PASS                        | NOT_VERIFIED: requires native runner |
-| linux-x64    | PASS                        | NOT_VERIFIED: requires native runner |
-| win32-arm64  | PASS                        | NOT_VERIFIED: requires native runner |
-| win32-x64    | PASS                        | NOT_VERIFIED: requires native runner |
+| Platform     | Archive / tree verification | Native execution                         |
+| ------------ | --------------------------- | ---------------------------------------- |
+| darwin-arm64 | PASS                        | PASS: Node/npm/npx                       |
+| darwin-x64   | PASS                        | PASS: native CI runtime/installer checks |
+| linux-arm64  | PASS                        | PASS: native CI runtime/installer checks |
+| linux-x64    | PASS                        | PASS: native CI runtime/installer checks |
+| win32-arm64  | PASS                        | PASS: native CI runtime/installer checks |
+| win32-x64    | PASS                        | PASS: native CI runtime/installer checks |
 
 | Platform     | Archive SHA-256                                                    | Tree SHA-256                                                       |
 | ------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
@@ -121,33 +121,41 @@ Electron status remains NOT_VERIFIED. `src/shared/runtime/electron-security-revi
 | `pnpm typecheck`                                                         | PASS; repeated after execution-guard changes                                                                                                                                                   |
 | `pnpm lint`                                                              | PASS; repeated after execution-guard changes                                                                                                                                                   |
 | `pnpm compile`                                                           | PASS on the final guard code                                                                                                                                                                   |
-| `pnpm exec vitest run --maxWorkers=2`                                    | 1,544 PASS, 10 platform/variant skips on the final execution-guard code                                                                                                                        |
+| `pnpm exec vitest run --maxWorkers=2`                                    | 1,545 PASS, 10 platform/variant skips on the final code including bridge cleanup                                                                                                               |
 | Guard/runtime/process focused tests                                      | 152 PASS, 3 platform skips in runtime/agent/process focused suites; the final complete run also passes                                                                                         |
 | Real Pi RPC including ordinary-MCP rejection and remote-MCP-without-Node | 17 PASS                                                                                                                                                                                        |
 | `pnpm audit --prod --audit-level high`                                   | PASS: 451 production dependencies, zero reported advisories                                                                                                                                    |
 | `pnpm runtime:prepare --offline` / `pnpm runtime:verify`                 | PASS: Pi 1.3.0, Node 24.22.1, npm/npx 11.19.1                                                                                                                                                  |
-| `pnpm test:runtime`                                                      | PASS on the packaged candidate: 78 passed, 1 platform skip                                                                                                                                     |
+| `pnpm test:runtime`                                                      | PASS on the final local candidate: 79 passed, 1 platform skip; all native CI runtime gates also PASS                                                                                           |
 | `pnpm runtime:check --offline --native`                                  | PASS; pinned SDK matrix and native runtime integrity/execution                                                                                                                                 |
-| `pnpm security:node --all-platforms --online --audit`                    | Node checks and dependency audit PASS; overall NOT_VERIFIED due Electron and foreign native execution                                                                                          |
+| `pnpm security:node --all-platforms --online --audit`                    | Initial local report: Node checks and audit PASS; NOT_VERIFIED for Electron and foreign execution. Later native CI covers all six execution targets; Electron remains NOT_VERIFIED             |
 | Complete existing Electron E2E                                           | 111 PASS, 4 intended variant/installer skips, 1 login-profile fixture failure in the initial full run; corrected navigation fixture and final-build MCP/Provider/session suites all PASS (4/4) |
 | `pnpm release:package` / installed app checks                            | PASS on macOS arm64: standard 12/12 and nomascot 13/13 installed E2E; actual installed Node 24.22.1 integrity/execution PASS; runtime security remains NOT_VERIFIED                            |
-| Windows and other foreign native runners                                 | NOT_VERIFIED; no remote CI run was triggered or claimed                                                                                                                                        |
+| Windows and other foreign native runners                                 | PASS: six native platform package jobs and six retained-profile upgrade jobs in CI run 39876511657                                                                                             |
 
-The first complete E2E attempt found the navigation-performance fixture selecting an unsafe developer login-shell Node. The fixture now uses an isolated shell and the test runner’s actual verified Node, retaining real executable/version probing. This is a test-isolation correction, not a production security bypass. The focused rerun passed on the final compiled build. The complete 30-minute run is retained as 111 passes, 4 expected skips and the one repaired fixture failure; it is not described as an all-green rerun.
+The first complete E2E attempt found the navigation-performance fixture selecting an unsafe developer login-shell Node. The fixture now uses an isolated shell and the test runner’s actual verified Node, retaining real executable/version probing. This is a test-isolation correction, not a production security bypass. The focused rerun passed on the final compiled build. The initial local 30-minute run is retained as 111 passes, 4 expected skips and the one repaired fixture failure. The final Linux CI run then completed the full suite with 111 passes and 5 intended platform/variant skips.
 
 Streaming, Provider registration, images, session persistence/resume, native tool execution, Node/npm/npx MCP, remote MCP, source switching and Pi rollback are covered by existing runtime fixtures using temporary config and local mock servers. Arbitrary third-party extensions/native modules and real paid Provider accounts were not certified.
 
 ## CI, release and rollback
 
-Existing quality, audit, native package and upgrade matrices remain in place. The completed macOS arm64 package evidence has `sourceStable: true` and source digest `ccd646081d201fd4b144ae248ff43570ae572726918b51dfe9c0454f27741a9f`. Both variants report build/installer/runtime/E2E PASS and runtimeSecurity NOT_VERIFIED. `out/community-packages/darwin-arm64/evidence.json` and the per-variant reports under `out/community-validation/darwin-arm64/` retain those results. Package readiness describes local installer verification only; it does not authorize a security release. All setup-node pins and the development pin now select 24.22.1; package engines restrict build/development to Node 24 LTS at or above that patch. Source compilation and packaging reject an unsupported build Node. Native jobs verify real package runtimes and both community variants. Existing signing, checksum collection, historical-release protection and manual-update policy remain intact.
+Existing quality, audit, native package and upgrade matrices remain in place. The initial local macOS arm64 package evidence has `sourceStable: true` and source digest `ccd646081d201fd4b144ae248ff43570ae572726918b51dfe9c0454f27741a9f`. Both variants report build/installer/runtime/E2E PASS and runtimeSecurity NOT_VERIFIED. `out/community-packages/darwin-arm64/evidence.json` and the per-variant reports under `out/community-validation/darwin-arm64/` retain those results. Package readiness describes local installer verification only; it does not authorize a security release. All setup-node pins and the development pin now select 24.22.1; package engines restrict build/development to Node 24 LTS at or above that patch. Source compilation and packaging reject an unsupported build Node. Native jobs verify real package runtimes and both community variants. Existing signing, checksum collection, historical-release protection and manual-update policy remain intact.
 
-Machine reports are written to `out/security/node-runtime.json`. FAIL exits nonzero for unsafe build/catalog Node, bad provenance, wrong actual binary version or integrity failure. Missing external evidence remains NOT_VERIFIED. `--release` also rejects an overall result other than PASS. Build Preview remains available; strict release enforcement applies to formal tag release runs. No tag, signed release, installer upload or historical release overwrite was performed.
+Machine reports are written to `out/security/node-runtime.json`. FAIL exits nonzero for unsafe build/catalog Node, bad provenance, wrong actual binary version or integrity failure. Missing external evidence remains NOT_VERIFIED. `--release` also rejects an overall result other than PASS. Build Preview remains available; strict release enforcement applies to formal tag release runs. Installers were uploaded only as CI workflow artifacts. No tag, public Release publication or historical release overwrite was performed.
 
 Prepared resources use version-specific archive/checksum caches. Real stale-resource verification also rejected a legacy archive copied under the new cache name, preserved the original 24.22.0 directory on failure, and then prepared/verified 24.22.1 from the correct official offline cache. The result is recorded in `out/security/upgrade-transaction.json`. A stale receipt triggers fresh candidate preparation and full verification before directory activation. `--verify` is read-only; `--refresh` forces re-preparation. A failed download, checksum or activation preserves/restores the prior directory. Runtime selection and managed update pointers retain existing atomic writes, idle-session checks and validated rollback. An old known-vulnerable runtime is not authorized merely because its bytes were restored during transaction recovery.
 
-For users: choose Bundled and use the existing verified-runtime install/repair action, or explicitly install a maintained official System/Custom Node patch and verify it in Settings. The app does not silently replace system Node. Preserve user data and use the existing manual application upgrade/rollback route; a complete old-installer → new-installer retained-profile test still needs native evidence.
+For users: choose Bundled and use the existing verified-runtime install/repair action, or explicitly install a maintained official System/Custom Node patch and verify it in Settings. The app does not silently replace system Node. Preserve user data and use the existing manual application upgrade/rollback route; native CI has now completed retained-profile installer upgrades using locally built 2.2.9 → 2.2.10 fixtures on all six platforms. An upgrade from a historical published installer containing Node 24.22.0 remains NOT_VERIFIED. This does not enable automatic installation or grant Electron security approval.
 
 Future maintenance: review the official security advisory and schedule; update the shared branch minima/CVE matrix and exact Electron review; regenerate all official catalog hashes; update CI/development pins together; then run native runtime, installer, retained-profile and MCP regression gates. Do not turn an unavailable audit, missing runner or absent backport statement into PASS.
+
+## Merge verification on 2026-10-23
+
+[CI run 39876511657](https://github.com/wangmiaozero/pi-harness/actions/runs/39876511657) completed successfully for code commit `c75bd702b2f9f2b2c6d8ea8e36f9d542d4ffbb13`: all 13 jobs passed. This includes source quality and full Electron regression, standard/nomascot installed packages on darwin arm64/x64, Windows arm64/x64 and Linux arm64/x64, and real retained-profile manual upgrades using locally built 2.2.9 → 2.2.10 fixtures on those same six native targets. Windows x64 and ARM64 each passed 186 environment/process/plugin regressions with 7 intended platform skips, followed by real runtime and both installed-app variant gates.
+
+The initial Windows native run exposed concurrent bridge cleanup from process exit and explicit session stop, producing `EPERM` when both removed the same temporary directory. Cleanup now shares one promise and uses bounded filesystem retries. A real-socket regression failed before the fix and passed afterward; it is included in every native runtime gate. No runtime security enforcement or native verification was skipped to obtain the successful rerun.
+
+The report-only update following that tested code changes no executable source. Electron October advisory coverage remains NOT_VERIFIED and the formal release gate remains blocked. A successful merge-validation matrix does not establish security release readiness.
 
 ## Changed files
 
@@ -174,8 +182,11 @@ Future maintenance: review the official security advisory and schedule; update t
 - `scripts/runtime/prepared-runtime.mjs`
 - `scripts/runtime/update-node-catalog.mjs`
 - `scripts/runtime/verify-sdk.mjs`
+- `scripts/runtime/test-runtime.mjs`
 - `scripts/security/check-node-runtime.mjs`
 - `src/main/agent/agent-runtime-service.ts`
+- `src/main/agent/desktop-bridge.ts`
+- `src/main/agent/desktop-bridge.test.ts`
 - `src/main/agent/pi-rpc-runtime.test.ts`
 - `src/main/agent/pi-rpc-runtime.ts`
 - `src/main/environment/environment-manager.test.ts`
