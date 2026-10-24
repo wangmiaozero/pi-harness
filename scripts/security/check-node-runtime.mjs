@@ -141,8 +141,11 @@ try {
   )
   report.electron.versions = JSON.parse(stdout.trim())
   const review = electronReviews.reviews[packageJson.version]
+  // PASS: verified upstream backport evidence. ACCEPTED_RISK: a recorded,
+  // maintainer-approved exception that states the accepted gap — never a claim
+  // that the backport exists. Any other status leaves NOT_VERIFIED in place.
   if (
-    review?.status === 'PASS' &&
+    (review?.status === 'PASS' || review?.status === 'ACCEPTED_RISK') &&
     review.node === report.electron.versions.node &&
     review.chromium === report.electron.versions.chrome &&
     Array.isArray(review.sources) &&
@@ -152,7 +155,10 @@ try {
     report.electron = {
       ...report.electron,
       ...review,
-      reason: 'Exact Electron version has a recorded upstream patch and regression review.'
+      reason:
+        review.status === 'PASS'
+          ? 'Exact Electron version has a recorded upstream patch and regression review.'
+          : 'Maintainer-accepted exception recorded for this exact Electron version: the embedded Node runtime predates the recorded advisory. Re-review on the next Electron upgrade.'
     }
   }
 } catch (error) {
