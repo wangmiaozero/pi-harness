@@ -2,6 +2,12 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.2.11 — 2026-10-24
+
+### Fixed
+
+- Removed unused DMG blockmap files from release downloads.
+
 ## 2.2.10 — 2026-10-24
 
 ### Added
