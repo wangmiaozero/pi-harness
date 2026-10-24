@@ -13,7 +13,7 @@ import {
  * cursor along the rail magnifies nearby dashes with a macOS-Dock cosine
  * falloff, the nearest turn shows a preview popover, and clicking jumps to
  * that turn. Dashes grow horizontally only, so magnification never shifts the
- * stack layout. Ported from PI-Desktop's ConversationMinimap. */
+ * stack layout. */
 
 /* Dock magnification: reach of the falloff and peak growth factor. */
 const MAGNIFY_RADIUS = 46

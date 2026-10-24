@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, Server, Pencil, Trash2, Download, Store } from '@lucide/vue'
+import { Plus, Server, Pencil, Trash2, Download, Store, FolderOpen } from '@lucide/vue'
 import { getApi } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import type { McpEntry, McpInput, McpInventory } from '@shared/agent-settings/schema'
@@ -12,15 +12,22 @@ import Dialog from '@renderer/components/ui/Dialog.vue'
 import McpMarket from './McpMarket.vue'
 import McpScanner from './McpScanner.vue'
 import type { McpScanCandidate } from '@shared/agent-settings/schema'
-import ScopePicker from './ScopePicker.vue'
+import { projectDisplayName } from '@shared/workspace/session-tree'
+import { useSessionStore } from '@renderer/stores/sessions'
 import SettingsFeedback from './SettingsFeedback.vue'
 import { useSettingsAction } from './useSettingsAction'
 const { t } = useI18n()
 const { busy, error, message, run } = useSettingsAction()
 const marketOpen = ref(false),
   scanOpen = ref(false)
+const sessions = useSessionStore()
+const projectRoot = ref<string | undefined>(
+  sessions.current?.projectRoot || sessions.current?.cwd || sessions.currentProject?.projectRoot
+)
+const scopeFilter = ref<'all' | 'global' | 'project'>('all')
+const globalInventory = ref<McpInventory | null>(null),
+  projectInventory = ref<McpInventory | null>(null)
 const root = ref<string>(),
-  inventory = ref<McpInventory | null>(null),
   query = ref(''),
   open = ref(false),
   editing = ref(false),
@@ -38,16 +45,77 @@ const blank = () => ({
   headers: '{}'
 })
 const form = ref(blank())
-const entries = computed(
+const inventory = computed({
+  get: () => (root.value ? projectInventory.value : globalInventory.value),
+  set: (value) => {
+    if (root.value) projectInventory.value = value
+    else globalInventory.value = value
+  }
+})
+const counts = computed(() => ({
+  global: globalInventory.value?.entries.length ?? 0,
+  project: projectInventory.value?.entries.length ?? 0,
+  all: (globalInventory.value?.entries.length ?? 0) + (projectInventory.value?.entries.length ?? 0)
+}))
+const groups = computed(() =>
+  [
+    { scope: 'global' as const, root: undefined, inventory: globalInventory.value },
+    ...(projectRoot.value
+      ? [{ scope: 'project' as const, root: projectRoot.value, inventory: projectInventory.value }]
+      : [])
+  ]
+    .filter((group) => scopeFilter.value === 'all' || scopeFilter.value === group.scope)
+    .map((group) => ({
+      ...group,
+      entries:
+        group.inventory?.entries.filter((entry) =>
+          `${entry.id} ${entry.description}`.toLowerCase().includes(query.value.toLowerCase())
+        ) ?? []
+    }))
+)
+const projects = computed(() => [
+  ...new Set([
+    ...(projectRoot.value ? [projectRoot.value] : []),
+    ...sessions.projects.map((project) => project.projectRoot)
+  ])
+])
+const scopeLocked = computed(() => busy.value || open.value || marketOpen.value || scanOpen.value)
+const canAdd = computed(
   () =>
-    inventory.value?.entries.filter((e) =>
-      `${e.id} ${e.description}`.toLowerCase().includes(query.value.toLowerCase())
-    ) ?? []
+    Boolean(globalInventory.value) &&
+    (scopeFilter.value !== 'project' || Boolean(projectRoot.value && projectInventory.value))
 )
 const load = () =>
   run(async () => {
-    inventory.value = await getApi().agentSettings.mcp.list(root.value ? { root: root.value } : {})
+    const selectedRoot = projectRoot.value
+    const [global, project] = await Promise.allSettled([
+      getApi().agentSettings.mcp.list({}),
+      selectedRoot ? getApi().agentSettings.mcp.list({ root: selectedRoot }) : Promise.resolve(null)
+    ])
+    if (global.status === 'fulfilled') globalInventory.value = global.value
+    if (project.status === 'fulfilled' && selectedRoot === projectRoot.value)
+      projectInventory.value = project.value
+    if (global.status === 'rejected') throw global.reason
+    if (project.status === 'rejected') throw project.reason
   })
+function defaultRoot() {
+  return scopeFilter.value === 'project' ? projectRoot.value : undefined
+}
+function openMarket() {
+  root.value = defaultRoot()
+  marketOpen.value = true
+}
+function openScan() {
+  root.value = defaultRoot()
+  scanOpen.value = true
+}
+async function chooseProject() {
+  let selected: string | null = null
+  await run(async () => {
+    selected = await getApi().workspace.pickDirectory()
+  })
+  if (selected) projectRoot.value = selected
+}
 function importCandidate(candidate: McpScanCandidate) {
   scanOpen.value = false
   const template = candidate.template
@@ -66,7 +134,8 @@ function importCandidate(candidate: McpScanCandidate) {
   formError.value = candidate.blocked ? t('mcpMarket.credentialsHint') : ''
   open.value = true
 }
-function edit(entry?: McpEntry) {
+function edit(entry?: McpEntry, entryRoot?: string) {
+  root.value = entry ? entryRoot : defaultRoot()
   formError.value = ''
   editing.value = Boolean(entry)
   form.value = entry
@@ -118,7 +187,8 @@ async function save() {
   )
     open.value = false
 }
-async function toggle(entry: McpEntry, enabled: boolean) {
+async function toggle(entry: McpEntry, enabled: boolean, entryRoot?: string) {
+  root.value = entryRoot
   await run(async () => {
     inventory.value = await getApi().agentSettings.mcp.toggle({
       ...(root.value ? { root: root.value } : {}),
@@ -128,7 +198,8 @@ async function toggle(entry: McpEntry, enabled: boolean) {
     })
   })
 }
-async function remove(entry: McpEntry) {
+async function remove(entry: McpEntry, entryRoot?: string) {
+  root.value = entryRoot
   if (
     !(await askConfirm({
       title: t('agentSettings.deleteTitle'),
@@ -146,9 +217,9 @@ async function remove(entry: McpEntry) {
     })
   })
 }
-watch(root, () => {
-  inventory.value = null
-  marketOpen.value = false
+watch(projectRoot, () => {
+  projectInventory.value = null
+  if (root.value) root.value = projectRoot.value
   void load()
 })
 onMounted(load)
@@ -162,11 +233,44 @@ onMounted(load)
     @installed="inventory = $event"
   />
   <div v-else class="feature-stack">
-    <ScopePicker v-model="root" :disabled="busy" />
     <div class="feature-actions">
-      <Button :disabled="busy || !inventory" @click="scanOpen = true"
+      <div
+        class="flex gap-1 rounded-xl bg-[var(--bg-hover)] p-1"
+        role="group"
+        :aria-label="t('agentSettings.scope')"
+      >
+        <Button
+          v-for="scope in ['all', 'global', 'project'] as const"
+          :key="scope"
+          size="sm"
+          :variant="scopeFilter === scope ? 'primary' : 'ghost'"
+          :aria-pressed="scopeFilter === scope"
+          :disabled="scopeLocked"
+          @click="scopeFilter = scope"
+          >{{ t(`agentSettings.${scope}`) }}
+          <span class="ml-1 text-xs opacity-70">{{ counts[scope] }}</span></Button
+        >
+      </div>
+      <select
+        v-if="projects.length"
+        v-model="projectRoot"
+        class="feature-input !w-auto max-w-xs"
+        :aria-label="t('agentSettings.chooseProject')"
+        :title="projectRoot"
+        :disabled="scopeLocked"
+      >
+        <option v-for="project in projects" :key="project" :value="project">
+          {{ projectDisplayName(project) }}
+        </option>
+      </select>
+      <Button :disabled="scopeLocked" @click="chooseProject"
+        ><FolderOpen class="size-3.5" />{{ t('agentSettings.chooseProject') }}</Button
+      >
+    </div>
+    <div class="feature-actions">
+      <Button :disabled="busy || !canAdd" @click="openScan"
         ><Download class="size-3.5" />{{ t('mcpMarket.scan') }}</Button
-      ><Button :disabled="busy || !inventory" @click="marketOpen = true"
+      ><Button :disabled="busy || !canAdd" @click="openMarket"
         ><Store class="size-3.5" />{{ t('mcpMarket.market') }}</Button
       >
       <input
@@ -174,57 +278,77 @@ onMounted(load)
         class="feature-input max-w-xs"
         :placeholder="t('agentSettings.searchItems')"
         :aria-label="t('agentSettings.searchItems')"
-      /><Button variant="primary" :disabled="busy || !inventory" @click="edit()"
+      /><Button variant="primary" :disabled="busy || !canAdd" @click="edit()"
         ><Plus class="size-3.5" />{{ t('agentSettings.newServer') }}</Button
       ><Button :disabled="busy" @click="load">{{ t('agentSettings.reload') }}</Button>
     </div>
     <SettingsFeedback :busy="busy" :error="error" :message="message" />
-    <p v-if="inventory" class="feature-hint break-all font-mono">{{ inventory.path }}</p>
-    <div
-      v-for="entry in entries"
-      :key="entry.id"
-      class="feature-card flex items-center gap-4"
-      :data-testid="`mcp-server-${entry.id}`"
+    <section
+      v-for="group in groups"
+      :key="group.scope"
+      class="feature-stack"
+      :data-testid="`mcp-scope-${group.scope}`"
     >
-      <Server class="size-6 shrink-0 text-[var(--text-tertiary)]" :stroke-width="1.5" />
-      <div class="min-w-0 flex-1">
-        <h2 class="!mb-1">{{ entry.id }}</h2>
-        <p class="feature-hint truncate">
-          {{ entry.description || (entry.type === 'http' ? entry.url : entry.command) }}
+      <div class="flex items-center justify-between gap-3">
+        <p class="feature-hint min-w-0 break-all">
+          <strong class="mr-2">{{ t(`agentSettings.${group.scope}`) }}</strong
+          ><span class="font-mono">{{ group.inventory?.path }}</span>
         </p>
-        <p class="feature-hint">
-          {{ t(`agentSettings.${entry.type}`) }} · {{ t(`agentSettings.${entry.exposure}`) }}
-        </p>
+        <span
+          class="rounded-full bg-[var(--bg-hover)] px-2 py-0.5 text-xs text-[var(--text-tertiary)]"
+          >{{ group.inventory?.entries.length ?? 0 }}</span
+        >
       </div>
-      <div class="feature-actions">
-        <Switch
-          :model-value="entry.enabled"
-          :label="`${t('agentSettings.enabled')} ${entry.id}`"
-          :disabled="busy"
-          @update:model-value="toggle(entry, $event)"
-        /><Button
-          size="sm"
-          :disabled="busy"
-          :aria-label="`${t('agentSettings.edit')} ${entry.id}`"
-          @click="edit(entry)"
-          ><Pencil class="size-3.5" /></Button
-        ><Button
-          size="sm"
-          :disabled="busy"
-          :aria-label="`${t('agentSettings.remove')} ${entry.id}`"
-          @click="remove(entry)"
-          ><Trash2 class="size-3.5"
-        /></Button>
+      <div
+        v-for="entry in group.entries"
+        :key="entry.id"
+        class="feature-card flex items-center gap-4"
+        :data-testid="`mcp-server-${entry.id}`"
+      >
+        <Server class="size-6 shrink-0 text-[var(--text-tertiary)]" :stroke-width="1.5" />
+        <div class="min-w-0 flex-1">
+          <h2 class="!mb-1">{{ entry.id }}</h2>
+          <p class="feature-hint truncate">
+            {{ entry.description || (entry.type === 'http' ? entry.url : entry.command) }}
+          </p>
+          <p class="feature-hint">
+            {{ t(`agentSettings.${entry.type}`) }} · {{ t(`agentSettings.${entry.exposure}`) }}
+          </p>
+        </div>
+        <div class="feature-actions">
+          <Switch
+            :model-value="entry.enabled"
+            :label="`${t('agentSettings.enabled')} ${entry.id}`"
+            :disabled="busy"
+            @update:model-value="toggle(entry, $event, group.root)"
+          /><Button
+            size="sm"
+            :disabled="busy"
+            :aria-label="`${t('agentSettings.edit')} ${entry.id}`"
+            @click="edit(entry, group.root)"
+            ><Pencil class="size-3.5" /></Button
+          ><Button
+            size="sm"
+            :disabled="busy"
+            :aria-label="`${t('agentSettings.remove')} ${entry.id}`"
+            @click="remove(entry, group.root)"
+            ><Trash2 class="size-3.5"
+          /></Button>
+        </div>
       </div>
-    </div>
-    <div v-if="inventory && !entries.length" class="feature-empty">
-      <Server class="mx-auto mb-3 size-8 opacity-50" />
-      <p>{{ t('mcpMarket.emptyServers') }}</p>
-    </div>
+      <div v-if="group.inventory && !group.entries.length" class="feature-empty">
+        <Server class="mx-auto mb-3 size-8 opacity-50" />
+        <p>{{ t(query ? 'mcpMarket.noServerResults' : 'mcpMarket.emptyServers') }}</p>
+      </div>
+    </section>
+    <p v-if="scopeFilter === 'project' && !projectRoot" class="feature-empty">
+      {{ t('mcpMarket.chooseProjectHint') }}
+    </p>
     <p class="feature-hint">{{ t('agentSettings.newSessionHint') }}</p>
     <McpScanner
       v-if="scanOpen"
       :root="root"
+      :scan-root="projectRoot"
       :inventory="inventory"
       @close="scanOpen = false"
       @import="importCandidate"
@@ -237,6 +361,15 @@ onMounted(load)
       <div class="agent-settings">
         <form class="feature-stack" @submit.prevent="save">
           <fieldset :disabled="busy" class="feature-stack">
+            <label class="feature-field"
+              >{{ t('agentSettings.scope')
+              }}<select v-model="root" class="feature-input" :disabled="editing">
+                <option :value="undefined">{{ t('agentSettings.global') }}</option>
+                <option v-if="projectRoot" :value="projectRoot" :disabled="!projectInventory">
+                  {{ t('agentSettings.project') }} · {{ projectRoot }}
+                </option>
+              </select></label
+            >
             <div class="feature-grid">
               <label class="feature-field"
                 >{{ t('agentSettings.name')

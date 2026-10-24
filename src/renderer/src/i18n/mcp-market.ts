@@ -1,4 +1,6 @@
 export const mcpMarketEn = {
+  chooseProjectHint: 'Choose a project to view its MCP servers.',
+  noServerResults: 'No matching servers in this scope.',
   title: 'MCP marketplace',
   market: 'Marketplace',
   myServers: 'My servers',
@@ -57,6 +59,8 @@ export const mcpMarketEn = {
   }
 }
 export const mcpMarketZh = {
+  chooseProjectHint: '选择项目以查看此项目的 MCP 服务器。',
+  noServerResults: '此作用范围内没有匹配的服务器。',
   title: 'MCP 市场',
   market: '市场',
   myServers: '我的服务器',
