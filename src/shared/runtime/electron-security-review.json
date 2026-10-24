@@ -1,6 +1,22 @@
 {
-  "reviewedAt": "2026-10-22",
+  "reviewedAt": "2026-10-24",
   "advisory": "https://nodejs.org/en/blog/vulnerability/october-2026-security-releases",
-  "reviews": {},
-  "notes": "Electron 44.9.0 embeds Node 24.22.0. No complete Electron-specific backport evidence has been established for this advisory. Add an exact-version review only after verifying upstream patches and application regressions."
+  "reviews": {
+    "44.9.0": {
+      "status": "ACCEPTED_RISK",
+      "advisory": "https://nodejs.org/en/blog/vulnerability/october-2026-security-releases",
+      "node": "24.22.0",
+      "chromium": "152.0.7977.167",
+      "reviewedAt": "2026-10-24",
+      "acceptedBy": "wangmiao <tuziling84@gmail.com> (maintainer), 2026-10-24",
+      "exception": "Embedded Node 24.22.0 predates the October 2026 Node security release; the fixes ship in Node 24.22.1. No stable Electron release vendors Node >= 24.22.1 yet (44.9.0-44.9.3 and 45.0.0 all vendor 24.22.0 from the upstream tag per electron/electron DEPS). The maintainer explicitly accepted shipping one Node security patch behind. Re-review this entry when Electron upgrades its embedded Node runtime; replace with a PASS review once backport evidence exists.",
+      "sources": [
+        "https://nodejs.org/en/blog/vulnerability/october-2026-security-releases",
+        "https://github.com/nodejs/node/releases/tag/v24.22.1",
+        "https://raw.githubusercontent.com/electron/electron/v44.9.0/DEPS",
+        "https://releases.electronjs.org/releases.json"
+      ]
+    }
+  },
+  "notes": "Entries are exact-version reviews keyed by Electron release. status PASS requires verified upstream backport evidence and application regression review. status ACCEPTED_RISK records a maintainer-approved exception with the accepted gap stated; it never claims the backport exists. An external Node update does not patch Electron."
 }
