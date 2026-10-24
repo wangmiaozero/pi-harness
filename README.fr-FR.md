@@ -106,7 +106,7 @@ Parcourez et modifiez les Skills intégrés et locaux, et gérez les paquets et 
 
 ### Réglages des agents
 
-La version actuelle compilée depuis les sources propose sept pages : **AI, voix en temps réel, raccourcis, instructions, MCP, sous-agents et hôtes distants**. Consultez les notes de version pour savoir si elles sont incluses dans l’installateur téléchargé.
+**Disponible à partir de v2.2.10.** Les sept pages de paramètres sont : **AI, voix en temps réel, raccourcis, instructions, MCP, sous-agents et hôtes distants**. Consultez les notes de version pour savoir si elles sont incluses dans l’installateur téléchargé.
 
 Dans **Paramètres → AI**, réglez le niveau de raisonnement par défaut, la compression automatique, les nouvelles tentatives et les préférences de l’espace de travail. Enregistrez des raccourcis pour la palette de commandes, les paramètres, les nouvelles sessions et la fermeture des onglets, ou rétablissez les valeurs par défaut. La page des instructions permet de modifier les consignes globales ou propres à un projet.
 
@@ -313,7 +313,7 @@ Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer 
 
 ### Démarrer une conversation vocale
 
-Dans une version compilée depuis les sources avec la voix en temps réel :
+Pour démarrer une conversation vocale en temps réel :
 
 1. Ouvrez **Paramètres → Voix en temps réel**, activez la voix, choisissez le service et le compte, puis enregistrez.
 2. Revenez à une conversation de l’espace de travail et cliquez sur le bouton en forme d’onde à côté du champ de message.

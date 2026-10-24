@@ -2,7 +2,7 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
-## Unreleased
+## 2.2.10 — 2026-10-24
 
 ### Added
 
@@ -11,7 +11,15 @@ Release notes describe user-visible additions and fixes. Entries under Unrelease
 - Added MCP server management by scope, configuration scanning, 15 built-in templates, and official registry search.
 - Added reusable subagent templates and task launch controls.
 - Added remote host pairing, project and session browsing, conversations, and approval handling.
+- Added workspace agent modes and permission choices, a conversation minimap, and adjustable conversation width.
 - Added multilingual feature guides and refreshed product screenshots.
+
+### Fixed
+
+- Improved startup reliability for Harness plugins.
+- Fixed closing Pi sessions on Windows.
+- Improved detection and repair of outdated runtimes.
+- Kept workspace composer controls compact with voice, agent modes, and permission choices.
 
 ## 2.2.9 — 2026-10-22
 

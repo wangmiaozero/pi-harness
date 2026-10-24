@@ -196,7 +196,7 @@ Browse built-in and local Skills, edit them, and manage Pi packages and extensio
 
 ### Agent Settings
 
-Current source builds include seven settings pages: **AI, Realtime voice, Shortcuts, Instructions, MCP, Subagents, and Remote hosts**. Check the release notes for availability in downloaded installers.
+**Available in v2.2.10 and later.** The seven settings pages are: **AI, Realtime voice, Shortcuts, Instructions, MCP, Subagents, and Remote hosts**. Check the release notes for availability in downloaded installers.
 
 Set default thinking, automatic compaction, retry behavior, and workspace preferences in **Settings → AI**. Record your own shortcuts for the command palette, settings, new sessions, and closing tabs, or restore their defaults. Edit global or project instructions in **Settings → Instructions**.
 
@@ -352,7 +352,7 @@ Community builds check for new versions in the app and open the official Release
 
 ### Start a voice conversation
 
-In a source build with realtime voice:
+To start a realtime voice conversation:
 
 1. Open **Settings → Realtime voice**, enable voice, choose the service and account, and save.
 2. Return to a workspace conversation and click the waveform button beside the composer.

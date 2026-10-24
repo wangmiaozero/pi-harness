@@ -106,7 +106,7 @@ Durchsuche und bearbeite integrierte und lokale Skills und verwalte Pi-Pakete un
 
 ### Agenten-Einstellungen
 
-Aktuelle Builds aus dem Quellcode bieten sieben Einstellungsseiten: **AI, Echtzeit-Sprache, Tastenkürzel, Anweisungen, MCP, Unteragenten und Remote-Hosts**. Welche Funktionen ein heruntergeladener Installer enthält, steht in den zugehörigen Versionshinweisen.
+**Ab v2.2.10 verfügbar.** Die sieben Einstellungsseiten sind: **AI, Echtzeit-Sprache, Tastenkürzel, Anweisungen, MCP, Unteragenten und Remote-Hosts**. Welche Funktionen ein heruntergeladener Installer enthält, steht in den zugehörigen Versionshinweisen.
 
 Unter **Einstellungen → AI** legst du die Denkstufe, automatische Kontextkomprimierung, Wiederholungen bei Fehlern und Workspace-Vorgaben fest. Zeichne Tastenkürzel für Befehlspalette, Einstellungen, neue Sitzungen und das Schließen von Tabs auf oder stelle die Standardwerte wieder her. Auf der Seite für Anweisungen bearbeitest du globale oder projektbezogene Vorgaben.
 
@@ -313,7 +313,7 @@ Nutzer der paketierten App müssen das Repository nicht klonen oder pnpm install
 
 ### Ein Sprachgespräch starten
 
-In einem Build aus dem Quellcode mit Echtzeit-Sprache:
+So startest du ein Sprachgespräch:
 
 1. Öffne **Einstellungen → Echtzeit-Sprache**, aktiviere Sprache, wähle Dienst und Konto und speichere die Einstellungen.
 2. Kehre zu einer Workspace-Unterhaltung zurück und klicke auf die Wellenform-Schaltfläche neben dem Eingabefeld.

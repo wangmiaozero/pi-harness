@@ -38,8 +38,11 @@ test.describe('Pi-Harness smoke', () => {
     })
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await expect
+      .poll(() => page.evaluate(async () => (await window.piSwitch.settings.get()).theme))
+      .toBe('soft-light')
+    await expect
       .poll(() => electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource))
-      .toBe('dark')
+      .toBe('light')
     await page.evaluate(() => window.piSwitch.settings.set({ theme: 'light' }))
     await expect
       .poll(() => electronApp.evaluate(({ nativeTheme }) => nativeTheme.themeSource))

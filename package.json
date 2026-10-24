@@ -1,6 +1,6 @@
 {
   "name": "pi-harness",
-  "version": "2.2.9",
+  "version": "2.2.10",
   "description": "Operational Superset Harness and Desktop Control Plane for Pi Coding Agent",
   "productName": "Pi-Harness",
   "author": {
@@ -155,6 +155,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@earendil-works/pi-coding-agent>undici": "8.12.2",
       "source-map-js": "1.2.2",
       "vue-tsgo>get-tsconfig": "-"
     },

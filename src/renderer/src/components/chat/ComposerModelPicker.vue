@@ -207,7 +207,10 @@ watch(open, (value) => {
 </script>
 
 <template>
-  <div data-testid="workspace-model-select" class="min-w-[190px] max-w-[300px]">
+  <div
+    data-testid="workspace-model-select"
+    class="min-w-[140px] max-w-[300px] flex-1 basis-[140px]"
+  >
     <button
       ref="trigger"
       type="button"
