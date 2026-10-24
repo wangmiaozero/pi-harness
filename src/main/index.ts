@@ -1,3 +1,4 @@
+import { canUseVoiceMicrophone } from './agent-settings/voice-service'
 import fs from 'node:fs/promises'
 import { HarnessPluginHost } from './harness/plugins/plugin-host'
 import { createElectronPluginProcess } from './harness/plugins/electron-process'
@@ -193,11 +194,16 @@ async function bootstrap(): Promise<void> {
   app.on('web-contents-created', (_event, contents) => {
     contents.on('will-attach-webview', (e) => e.preventDefault())
     contents.setWindowOpenHandler(() => ({ action: 'deny' }))
-    contents.session.setPermissionCheckHandler((requester, permission, _origin, details) =>
-      canUseArchitectureFullscreen(requester, permission, details)
+    contents.session.setPermissionCheckHandler(
+      (requester, permission, _origin, details) =>
+        canUseArchitectureFullscreen(requester, permission, details) ||
+        canUseVoiceMicrophone(requester, permission, details)
     )
     contents.session.setPermissionRequestHandler((requester, permission, callback, details) => {
-      callback(canUseArchitectureFullscreen(requester, permission, details))
+      callback(
+        canUseArchitectureFullscreen(requester, permission, details) ||
+          canUseVoiceMicrophone(requester, permission, details)
+      )
     })
   })
 

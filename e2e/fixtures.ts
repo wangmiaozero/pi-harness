@@ -41,6 +41,7 @@ async function waitForMainWindow(electronApp: ElectronApplication): Promise<Page
 }
 
 type Fixtures = {
+  fakeAudio: boolean
   isolateSystemRuntime: boolean
   electronApp: ElectronApplication
   page: Page
@@ -52,6 +53,7 @@ type Fixtures = {
 
 export const test = base.extend<Fixtures>({
   isolateSystemRuntime: [false, { option: true }],
+  fakeAudio: [false, { option: true }],
   workspaceRoot: async ({}, use) => {
     const workspaceRoot = fs.realpathSync(
       fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-workspace-'))
@@ -79,7 +81,7 @@ export const test = base.extend<Fixtures>({
     await use(isolatedPi)
   },
   electronApp: async (
-    { workspaceRoot, testUserData, piAgentDir, isolateSystemRuntime },
+    { workspaceRoot, testUserData, piAgentDir, isolateSystemRuntime, fakeAudio },
     use,
     testInfo
   ) => {
@@ -145,7 +147,10 @@ export const test = base.extend<Fixtures>({
     const started = performance.now()
     const app = await electron.launch({
       executablePath: packagedExecutable || electronBinary,
-      args: packagedExecutable ? [] : [mainJs],
+      args: [
+        ...(packagedExecutable ? [] : [mainJs]),
+        ...(fakeAudio ? ['--use-fake-device-for-media-stream'] : [])
+      ],
       env: {
         ...launchEnvironment,
         ELECTRON_RUN_AS_NODE: undefined,

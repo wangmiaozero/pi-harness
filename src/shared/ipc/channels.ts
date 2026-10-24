@@ -10,6 +10,38 @@
 const invoke = (name: string) => `pi-harness:${name}` as const
 
 export const IPC_INVOKE = {
+  agentSettingsAiGet: invoke('agent-settings:ai:get'),
+  agentSettingsAiSet: invoke('agent-settings:ai:set'),
+  agentSettingsInstructionsRead: invoke('agent-settings:instructions:read'),
+  agentSettingsInstructionsSave: invoke('agent-settings:instructions:save'),
+  agentSettingsMcpList: invoke('agent-settings:mcp:list'),
+  agentSettingsMcpSave: invoke('agent-settings:mcp:save'),
+  agentSettingsMcpToggle: invoke('agent-settings:mcp:toggle'),
+  agentSettingsMcpRemove: invoke('agent-settings:mcp:remove'),
+  voiceSettingsGet: invoke('voice:settings:get'),
+  voiceSettingsSave: invoke('voice:settings:save'),
+  mcpScan: invoke('agent-settings:mcp:scan'),
+  mcpMarket: invoke('agent-settings:mcp:market'),
+  mcpCatalogInstall: invoke('agent-settings:mcp:catalog-install'),
+  voicePrepare: invoke('voice:prepare'),
+  voiceStart: invoke('voice:start'),
+  voiceSignal: invoke('voice:signal'),
+  voiceReview: invoke('voice:review'),
+  voiceStop: invoke('voice:stop'),
+  voiceAudio: invoke('voice:audio'),
+  remoteHostsList: invoke('remote:hosts:list'),
+  remoteHostsPair: invoke('remote:hosts:pair'),
+  remoteHostsConnect: invoke('remote:hosts:connect'),
+  remoteHostsDisconnect: invoke('remote:hosts:disconnect'),
+  remoteHostsRemove: invoke('remote:hosts:remove'),
+  remoteProjects: invoke('remote:projects'),
+  remoteSessions: invoke('remote:sessions'),
+  remoteHistory: invoke('remote:history'),
+  remoteApprove: invoke('remote:approve'),
+  remotePrompt: invoke('remote:prompt'),
+  remoteStop: invoke('remote:stop'),
+  remoteCreate: invoke('remote:create'),
+
   runtimeDiagnostics: invoke('runtime:diagnostics'),
   runtimeSwitch: invoke('runtime:switch'),
   runtimeVerify: invoke('runtime:verify'),
@@ -346,6 +378,7 @@ export const IPC_INVOKE = {
 
 /** Main → renderer push events (one-way, via webContents.send). */
 export const IPC_EVENT = {
+  voiceEvent: 'pi-harness:voice:event',
   architectureSelected: 'architecture:selected',
   architectureControl: 'architecture:control-event',
   configChanged: 'pi-harness:event:config-changed',

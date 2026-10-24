@@ -69,6 +69,55 @@ const router = createRouter({
           meta: { title: 'Diagnostics', i18nKey: 'nav.diagnostics' }
         },
         {
+          path: 'ai',
+          name: 'settings-ai',
+          component: () => import('@renderer/views/AgentSettingsView.vue'),
+          props: { section: 'ai' },
+          meta: { i18nKey: 'agentSettings.ai' }
+        },
+        {
+          path: 'voice',
+          name: 'settings-voice',
+          component: () => import('@renderer/views/AgentSettingsView.vue'),
+          props: { section: 'voice' },
+          meta: { i18nKey: 'agentSettings.voice' }
+        },
+        {
+          path: 'shortcuts',
+          name: 'settings-shortcuts',
+          component: () => import('@renderer/views/AgentSettingsView.vue'),
+          props: { section: 'shortcuts' },
+          meta: { i18nKey: 'agentSettings.shortcuts' }
+        },
+        {
+          path: 'instructions',
+          name: 'settings-instructions',
+          component: () => import('@renderer/views/AgentSettingsView.vue'),
+          props: { section: 'instructions' },
+          meta: { i18nKey: 'agentSettings.instructions' }
+        },
+        {
+          path: 'mcp',
+          name: 'settings-mcp',
+          component: () => import('@renderer/views/AgentSettingsView.vue'),
+          props: { section: 'mcp' },
+          meta: { i18nKey: 'agentSettings.mcp' }
+        },
+        {
+          path: 'subagents',
+          name: 'settings-subagents',
+          component: () => import('@renderer/views/AgentSettingsView.vue'),
+          props: { section: 'subagents' },
+          meta: { i18nKey: 'agentSettings.subagents' }
+        },
+        {
+          path: 'remote',
+          name: 'settings-remote',
+          component: () => import('@renderer/views/AgentSettingsView.vue'),
+          props: { section: 'remote' },
+          meta: { i18nKey: 'agentSettings.remote' }
+        },
+        {
           path: ':section',
           name: 'settings',
           component: () => import('@renderer/views/SettingsView.vue'),

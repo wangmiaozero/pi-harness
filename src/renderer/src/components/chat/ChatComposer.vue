@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import WorkspaceVoiceControl from '@renderer/features/agent-settings/WorkspaceVoiceControl.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import ComposerModelPicker from './ComposerModelPicker.vue'
@@ -1221,6 +1222,7 @@ onBeforeUnmount(() => {
       >
         <ImagePlus aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
       </button>
+      <WorkspaceVoiceControl />
       <ComposerModelPicker
         v-model:model="modelValue"
         v-model:thinking="thinkingValue"

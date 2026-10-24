@@ -4,6 +4,12 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import {
   Activity,
+  Bot,
+  FileText,
+  Globe,
+  Keyboard,
+  Mic,
+  Server,
   AppWindow,
   Archive,
   Code2,
@@ -17,6 +23,7 @@ import {
   SlidersHorizontal,
   Sparkles
 } from '@lucide/vue'
+import Input from '@renderer/components/ui/Input.vue'
 import Badge from '@renderer/components/ui/Badge.vue'
 import { getApi } from '@renderer/composables/useApi'
 import { useSettingsStore } from '@renderer/stores/settings'
@@ -29,6 +36,7 @@ const settings = useSettingsStore()
 const appVersion = ref(APP_VERSION)
 const packaged = ref(false)
 const systemInfoReady = ref(false)
+const query = ref('')
 
 const menuItems = computed(() => {
   const items = [
@@ -44,6 +52,23 @@ const menuItems = computed(() => {
       label: t('settings.general'),
       icon: SlidersHorizontal
     },
+    { id: 'ai', to: '/settings/ai', label: t('agentSettings.ai'), icon: Sparkles },
+    { id: 'voice', to: '/settings/voice', label: t('agentSettings.voice'), icon: Mic },
+    {
+      id: 'shortcuts',
+      to: '/settings/shortcuts',
+      label: t('agentSettings.shortcuts'),
+      icon: Keyboard
+    },
+    {
+      id: 'instructions',
+      to: '/settings/instructions',
+      label: t('agentSettings.instructions'),
+      icon: FileText
+    },
+    { id: 'mcp', to: '/settings/mcp', label: t('agentSettings.mcp'), icon: Server },
+    { id: 'subagents', to: '/settings/subagents', label: t('agentSettings.subagents'), icon: Bot },
+    { id: 'remote', to: '/settings/remote', label: t('agentSettings.remote'), icon: Globe },
     { id: 'nav', to: '/settings/nav', label: t('settings.navOrder'), icon: PanelLeft },
     { id: 'mascot', to: '/settings/mascot', label: t('settings.mascot'), icon: Sparkles },
     { id: 'workspace', to: '/settings/workspace', label: t('settings.workspace'), icon: AppWindow },
@@ -80,6 +105,25 @@ const menuItems = computed(() => {
   return MASCOT_ENABLED ? items : items.filter((item) => item.id !== 'mascot')
 })
 
+const groups = computed(() => {
+  const ids: Record<string, string[]> = {
+    preferences: ['general', 'ai', 'voice', 'shortcuts', 'nav', 'mascot'],
+    agents: ['instructions', 'mcp', 'subagents'],
+    workspace: ['overview', 'workspace'],
+    system: ['remote', 'config', 'paths', 'backup', 'diagnostics', 'updates', 'about', 'developer']
+  }
+  return Object.entries(ids)
+    .map(([id, entries]) => ({
+      id,
+      items: menuItems.value.filter(
+        (item) =>
+          entries.includes(item.id) &&
+          item.label.toLocaleLowerCase().includes(query.value.trim().toLocaleLowerCase())
+      )
+    }))
+    .filter((group) => group.items.length)
+})
+
 onMounted(async () => {
   try {
     const info = await getApi().system.info()
@@ -107,29 +151,44 @@ onMounted(async () => {
         </span>
       </div>
 
+      <div class="relative px-2 pt-3 pb-1">
+        <Input
+          v-model="query"
+          :placeholder="t('agentSettings.search')"
+          :aria-label="t('agentSettings.search')"
+        />
+      </div>
       <nav
         data-testid="settings-home"
         :aria-label="$t('settings.title')"
         class="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2"
       >
-        <RouterLink
-          v-for="item in menuItems"
-          :key="item.id"
-          :to="item.to"
-          :data-testid="`settings-section-${item.id}`"
-          class="group flex h-9 min-w-0 items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 text-[12px] transition-colors focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-          :class="
-            route.path === item.to
-              ? 'bg-[var(--accent-tint)] font-medium text-[var(--accent)]'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
-          "
-        >
-          <component :is="item.icon" class="size-4 shrink-0" :stroke-width="1.75" />
-          <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
-          <Badge v-if="item.id === 'mascot' && !settings.settings?.mascotUnlocked" tone="warning">
-            {{ $t('settings.mascotLocked') }}
-          </Badge>
-        </RouterLink>
+        <p v-if="!groups.length" class="px-2 py-4 text-xs text-[var(--text-tertiary)]">
+          {{ t('agentSettings.noResults') }}
+        </p>
+        <div v-for="group in groups" :key="group.id" class="pb-2">
+          <h2 class="px-2.5 pt-3 pb-1.5 text-[10px] font-semibold text-[var(--text-tertiary)]">
+            {{ t(`agentSettings.${group.id}`) }}
+          </h2>
+          <RouterLink
+            v-for="item in group.items"
+            :key="item.id"
+            :to="item.to"
+            :data-testid="`settings-section-${item.id}`"
+            class="group flex h-9 min-w-0 items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 text-[12px] transition-colors focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+            :class="
+              route.path === item.to
+                ? 'bg-[var(--accent-tint)] font-medium text-[var(--accent)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+            "
+          >
+            <component :is="item.icon" class="size-4 shrink-0" :stroke-width="1.75" />
+            <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
+            <Badge v-if="item.id === 'mascot' && !settings.settings?.mascotUnlocked" tone="warning">
+              {{ $t('settings.mascotLocked') }}
+            </Badge>
+          </RouterLink>
+        </div>
       </nav>
 
       <div

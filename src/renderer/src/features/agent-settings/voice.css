@@ -1,0 +1,202 @@
+.voice-trigger {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--text-secondary);
+}
+.voice-trigger:hover,
+.voice-trigger-active {
+  color: var(--accent);
+  background: var(--accent-tint);
+}
+.voice-preparation {
+  z-index: 110;
+  width: min(360px, calc(100vw - 32px));
+  padding: 20px;
+  background: var(--bg-surface-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 18px;
+  box-shadow: var(--shadow-dialog);
+  outline: none;
+  display: grid;
+  gap: 18px;
+  font-size: 13px;
+}
+.voice-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.voice-heading h2 {
+  font-size: 16px;
+  font-weight: 650;
+}
+.voice-heading button,
+.voice-account button,
+.voice-call-bar > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+.voice-heading button:hover,
+.voice-account button:hover,
+.voice-call-bar > button:hover {
+  background: var(--bg-hover);
+}
+.voice-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.voice-account strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 14px;
+}
+.voice-hint {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.voice-target {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-base);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.voice-target button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+.voice-checkbox {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  cursor: pointer;
+}
+.voice-checkbox input {
+  appearance: auto;
+  -webkit-appearance: checkbox;
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent);
+}
+.voice-start,
+.voice-secondary {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 550;
+}
+.voice-start {
+  background: var(--accent);
+  color: var(--text-on-accent, white);
+}
+.voice-start:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.voice-secondary {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.voice-error {
+  color: var(--danger, #dc4141);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.voice-end {
+  color: var(--danger, #dc4141);
+}
+.voice-call-bar {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 90;
+  max-width: calc(100vw - 48px);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-dialog);
+  color: var(--text-primary);
+}
+.voice-call-bar .voice-call-summary {
+  width: auto;
+  height: auto;
+  border-radius: 6px;
+  display: grid;
+  min-width: 100px;
+  max-width: 180px;
+  text-align: left;
+  justify-content: start;
+}
+.voice-call-summary strong {
+  font-size: 12px;
+}
+.voice-call-summary span {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.voice-details {
+  display: grid;
+  gap: 18px;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.voice-section h3 {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.voice-transcript {
+  display: grid;
+  gap: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.voice-transcript article,
+.voice-operation {
+  padding: 12px;
+  background: var(--bg-base);
+  border-radius: 12px;
+  line-height: 1.6;
+}
+.voice-transcript strong {
+  font-size: 11px;
+  color: var(--accent);
+}
+.voice-operation {
+  margin-bottom: 10px;
+  display: grid;
+  gap: 8px;
+}

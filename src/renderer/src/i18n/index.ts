@@ -1,3 +1,6 @@
+import { mcpMarketEn, mcpMarketZh } from './mcp-market'
+import { liveVoiceEn, liveVoiceZh } from './live-voice'
+import { agentSettingsEn, agentSettingsZh } from './agent-settings'
 import { runtimeEn, runtimeZh } from './runtime'
 import { createI18n } from 'vue-i18n'
 import { resolveAppLocale, type AppLanguage } from '@shared/constants/language'
@@ -20,14 +23,70 @@ import {
 } from './intelligence-locales'
 
 export const messages = {
-  'en-US': { ...enUS, runtime: runtimeEn, intelligence: intelligenceEn },
-  'zh-CN': { ...zhCN, runtime: runtimeZh, intelligence: intelligenceZh },
-  'zh-TW': { ...zhTW, runtime: runtimeEn, intelligence: intelligenceTw },
-  'ja-JP': { ...jaJP, runtime: runtimeEn, intelligence: intelligenceJa },
-  'ko-KR': { ...koKR, runtime: runtimeEn, intelligence: intelligenceKo },
-  'ru-RU': { ...ruRU, runtime: runtimeEn, intelligence: intelligenceRu },
-  'fr-FR': { ...frFR, runtime: runtimeEn, intelligence: intelligenceFr },
-  'de-DE': { ...deDE, runtime: runtimeEn, intelligence: intelligenceDe }
+  'en-US': {
+    ...enUS,
+    agentSettings: agentSettingsEn,
+    liveVoice: liveVoiceEn,
+    mcpMarket: mcpMarketEn,
+    runtime: runtimeEn,
+    intelligence: intelligenceEn
+  },
+  'zh-CN': {
+    ...zhCN,
+    agentSettings: agentSettingsZh,
+    liveVoice: liveVoiceZh,
+    mcpMarket: mcpMarketZh,
+    runtime: runtimeZh,
+    intelligence: intelligenceZh
+  },
+  'zh-TW': {
+    ...zhTW,
+    agentSettings: agentSettingsEn,
+    liveVoice: liveVoiceEn,
+    mcpMarket: mcpMarketEn,
+    runtime: runtimeEn,
+    intelligence: intelligenceTw
+  },
+  'ja-JP': {
+    ...jaJP,
+    agentSettings: agentSettingsEn,
+    liveVoice: liveVoiceEn,
+    mcpMarket: mcpMarketEn,
+    runtime: runtimeEn,
+    intelligence: intelligenceJa
+  },
+  'ko-KR': {
+    ...koKR,
+    agentSettings: agentSettingsEn,
+    liveVoice: liveVoiceEn,
+    mcpMarket: mcpMarketEn,
+    runtime: runtimeEn,
+    intelligence: intelligenceKo
+  },
+  'ru-RU': {
+    ...ruRU,
+    agentSettings: agentSettingsEn,
+    liveVoice: liveVoiceEn,
+    mcpMarket: mcpMarketEn,
+    runtime: runtimeEn,
+    intelligence: intelligenceRu
+  },
+  'fr-FR': {
+    ...frFR,
+    agentSettings: agentSettingsEn,
+    liveVoice: liveVoiceEn,
+    mcpMarket: mcpMarketEn,
+    runtime: runtimeEn,
+    intelligence: intelligenceFr
+  },
+  'de-DE': {
+    ...deDE,
+    agentSettings: agentSettingsEn,
+    liveVoice: liveVoiceEn,
+    mcpMarket: mcpMarketEn,
+    runtime: runtimeEn,
+    intelligence: intelligenceDe
+  }
 } as const
 
 export type AppLocale = keyof typeof messages
