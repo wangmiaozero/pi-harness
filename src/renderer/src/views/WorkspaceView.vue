@@ -9,6 +9,7 @@ import {
   watch
 } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import WorkspaceSidebar from '@renderer/components/workspace/WorkspaceSidebar.vue'
 import WorkspaceTabs from '@renderer/components/workspace/WorkspaceTabs.vue'
 import ChatWindow from '@renderer/components/chat/ChatWindow.vue'
@@ -89,8 +90,13 @@ async function explainArchitecture(moduleId?: string): Promise<void> {
 }
 type WorkspaceSection = 'workspace' | 'tools'
 
-const activeWorkspaceSection = ref<WorkspaceSection>('workspace')
-const activeTool = ref<'harness' | 'orchestration'>('harness')
+const route = useRoute()
+const activeWorkspaceSection = ref<WorkspaceSection>(
+  route.query.tool === 'orchestration' ? 'tools' : 'workspace'
+)
+const activeTool = ref<'harness' | 'orchestration'>(
+  route.query.tool === 'orchestration' ? 'orchestration' : 'harness'
+)
 const workspaceViewElement = ref<HTMLElement | null>(null)
 const workspaceSidebarCollapsed = ref(readStoredSidebarCollapsed())
 const workspaceSidebarWidth = ref<number | null>(readStoredSidebarWidth())

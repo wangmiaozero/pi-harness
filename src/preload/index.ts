@@ -32,6 +32,56 @@ function onEvent(channel: string, listener: IpcEventListener): () => void {
 }
 
 const api: PiSwitchAPI = {
+  agentSettings: {
+    ai: {
+      get: () => invoke(IPC_INVOKE.agentSettingsAiGet),
+      set: (input) => invoke(IPC_INVOKE.agentSettingsAiSet, input)
+    },
+    instructions: {
+      read: (input) => invoke(IPC_INVOKE.agentSettingsInstructionsRead, input),
+      save: (input) => invoke(IPC_INVOKE.agentSettingsInstructionsSave, input)
+    },
+    mcp: {
+      list: (input) => invoke(IPC_INVOKE.agentSettingsMcpList, input),
+      scan: (input) => invoke(IPC_INVOKE.mcpScan, input),
+      market: (input) => invoke(IPC_INVOKE.mcpMarket, input),
+      install: (input) => invoke(IPC_INVOKE.mcpCatalogInstall, input),
+      save: (input) => invoke(IPC_INVOKE.agentSettingsMcpSave, input),
+      toggle: (input) => invoke(IPC_INVOKE.agentSettingsMcpToggle, input),
+      remove: (input) => invoke(IPC_INVOKE.agentSettingsMcpRemove, input)
+    },
+    voice: {
+      get: () => invoke(IPC_INVOKE.voiceSettingsGet),
+      save: (input) => invoke(IPC_INVOKE.voiceSettingsSave, input),
+      prepare: (input) => invoke(IPC_INVOKE.voicePrepare, input ?? {}),
+      start: (callId, offerSdp) =>
+        invoke(IPC_INVOKE.voiceStart, { callId, ...(offerSdp ? { offerSdp } : {}) }),
+      signal: (callId, message) => invoke(IPC_INVOKE.voiceSignal, { callId, message }),
+      review: (callId, operationId, accept) =>
+        invoke(IPC_INVOKE.voiceReview, { callId, operationId, accept }),
+      stop: (callId) => invoke(IPC_INVOKE.voiceStop, { callId }),
+      audio: (callId, data) => invoke(IPC_INVOKE.voiceAudio, { callId, data }),
+      onEvent: (listener) =>
+        onEvent(IPC_EVENT.voiceEvent, (payload) =>
+          listener(payload as import('../shared/agent-settings/schema').VoiceEvent)
+        )
+    },
+    remote: {
+      list: () => invoke(IPC_INVOKE.remoteHostsList),
+      pair: (input) => invoke(IPC_INVOKE.remoteHostsPair, input),
+      connect: (id) => invoke(IPC_INVOKE.remoteHostsConnect, { id }),
+      disconnect: (id) => invoke(IPC_INVOKE.remoteHostsDisconnect, { id }),
+      remove: (id) => invoke(IPC_INVOKE.remoteHostsRemove, { id }),
+      projects: (id) => invoke(IPC_INVOKE.remoteProjects, { id }),
+      sessions: (id) => invoke(IPC_INVOKE.remoteSessions, { id }),
+      history: (id, sessionId) => invoke(IPC_INVOKE.remoteHistory, { id, sessionId }),
+      approve: (input) => invoke(IPC_INVOKE.remoteApprove, input),
+      prompt: (id, sessionId, text) => invoke(IPC_INVOKE.remotePrompt, { id, sessionId, text }),
+      stop: (id, sessionId) => invoke(IPC_INVOKE.remoteStop, { id, sessionId }),
+      create: (id, projectId) => invoke(IPC_INVOKE.remoteCreate, { id, projectId })
+    }
+  },
+
   harnessPlugins: {
     list: () => invoke(IPC_INVOKE.harnessPluginsList),
     installLocal: () => invoke(IPC_INVOKE.harnessPluginsInstall),

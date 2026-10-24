@@ -1,3 +1,4 @@
+import { shortcutOverridesSchema } from '../agent-settings/schema'
 /** Runtime schemas for non-domain IPC inputs. */
 
 import { z } from 'zod'
@@ -66,6 +67,7 @@ export const modelCompositeIdSchema = z
 const optionalFilesystemPathSchema = systemPathSchema.nullable()
 
 const appSettingsFields = {
+  shortcutOverrides: shortcutOverridesSchema,
   language: z.enum(APP_LANGUAGES),
   theme: z.enum(APP_THEMES),
   macos27Background: z.enum(MACOS27_BACKGROUNDS),

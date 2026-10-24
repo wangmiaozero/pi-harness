@@ -11,6 +11,9 @@ import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useSkillsStore } from '@renderer/stores/skills'
 import type { ModelDefinition, PiSwitchAPI, ProviderProfile } from '@shared/ipc/api-types'
 import ChatComposer from './ChatComposer.vue'
+vi.mock('@renderer/features/agent-settings/WorkspaceVoiceControl.vue', () => ({
+  default: { template: '<button aria-label="Realtime voice" />' }
+}))
 import ComposerModelPicker from './ComposerModelPicker.vue'
 
 beforeEach(() => {

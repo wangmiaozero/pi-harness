@@ -1,3 +1,4 @@
+import { setShortcutOverrides } from '@renderer/composables/shortcuts'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { AppSettings, BackupRecord } from '@shared/ipc/api-types'
@@ -82,6 +83,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function applyExperiencePrefs(value: AppSettings) {
+    setShortcutOverrides(value.shortcutOverrides)
     applyVisualSkin(value)
     applyTheme(value.theme)
   }

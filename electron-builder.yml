@@ -65,6 +65,7 @@ mac:
   entitlementsInherit: build/entitlements.community.plist
   gatekeeperAssess: false
   extendInfo:
+    NSMicrophoneUsageDescription: Pi-Harness uses your microphone for realtime voice conversations.
     CFBundleDisplayName: Pi-Harness
     CFBundleName: Pi-Harness
 dmg:

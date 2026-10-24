@@ -1,3 +1,4 @@
+import type { AgentSettingsAPI } from '../agent-settings/schema'
 import type { HarnessPluginsAPI } from '../harness-plugins/types'
 import type { OpenCodeFreeState, OpenCodeTestOptions } from '../providers/opencode-free'
 import type {
@@ -669,6 +670,7 @@ export interface DiagnosticsReport {
 }
 
 export interface AppSettings {
+  shortcutOverrides?: Partial<Record<import('../agent-settings/schema').ShortcutId, string[]>>
   language: AppLanguage
   theme: AppTheme
   macos27Background?: MacOS27Background
@@ -820,6 +822,7 @@ export interface AgentPermissionDecision {
 }
 
 export interface PiSwitchAPI {
+  agentSettings: AgentSettingsAPI
   harnessPlugins: HarnessPluginsAPI
   runtimes: {
     diagnostics(): Promise<RuntimeDiagnostics>

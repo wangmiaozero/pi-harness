@@ -58,14 +58,14 @@ function onAgentModeChange(value: string): void {
       />
       <Select
         :model-value="draft.defaultPermissionMode"
-        :label="$t('settings.defaultPermissionMode')"
+        :label="$t('agentSettings.defaultPermissionMode')"
         :options="permissionModeOptions"
         layout="row"
         @update:model-value="onPermissionModeChange"
       />
       <Select
         :model-value="draft.defaultAgentMode"
-        :label="$t('settings.defaultAgentMode')"
+        :label="$t('agentSettings.defaultAgentMode')"
         :options="agentModeOptions"
         layout="row"
         @update:model-value="onAgentModeChange"

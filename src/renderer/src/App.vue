@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import LiveVoiceHost from '@renderer/features/agent-settings/LiveVoiceHost.vue'
+import '@renderer/features/agent-settings/voice.css'
 import AppShell from '@renderer/components/layout/AppShell.vue'
 import StartupAnimation from '@renderer/components/layout/StartupAnimation.vue'
 import CommandPalette from '@renderer/components/common/CommandPalette.vue'
@@ -113,6 +115,7 @@ onBeforeUnmount(() => {
   <AppShell>
     <RouterView />
   </AppShell>
+  <LiveVoiceHost />
   <StartupAnimation />
   <CommandPalette v-model:open="paletteOpen" />
   <ConflictDialog />

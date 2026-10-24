@@ -1,3 +1,5 @@
+import { createVoiceHost } from '../agent-settings/voice-host'
+import { registerAgentSettingsIpc } from './register-agent-settings'
 import type { HarnessPluginHost } from '../harness/plugins/plugin-host'
 import { registerHarnessPluginsIpc } from './register-harness-plugins'
 import {
@@ -199,6 +201,14 @@ export function registerIpc(services: Services): void {
     access: services.workspace.access
   })
   registerIntelligenceIpc(ipcMain, wrap, services.intelligence, services.architectureViewer)
+  registerAgentSettingsIpc(
+    ipcMain,
+    wrap,
+    config,
+    services.workspace.access,
+    services.getMainWindow,
+    createVoiceHost(config, services.providers, services.workspace)
+  )
   const runtimePathGrants = new Map<string, string>()
 
   ipcMain.handle(IPC_INVOKE.runtimeDiagnostics, (_event, ...input) =>
