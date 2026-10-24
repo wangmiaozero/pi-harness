@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  normalizePermissionMode,
-  toolNeedsApproval
-} from './permission-mode'
+import { normalizePermissionMode, toolNeedsApproval } from './permission-mode'
 
 describe('permission mode', () => {
   it('normalizes unknown values to auto', () => {
@@ -25,16 +22,17 @@ describe('permission mode', () => {
     expect(toolNeedsApproval('write', 'auto')).toBe(false)
   })
 
-  it('accept-edits allows file edits and asks for the rest', () => {
+  it('uses the host guard for built-in file and command tools', () => {
     expect(toolNeedsApproval('write', 'accept-edits')).toBe(false)
     expect(toolNeedsApproval('edit', 'accept-edits')).toBe(false)
-    expect(toolNeedsApproval('bash', 'accept-edits')).toBe(true)
+    expect(toolNeedsApproval('bash', 'accept-edits')).toBe(false)
     expect(toolNeedsApproval('webfetch', 'accept-edits')).toBe(true)
   })
 
-  it('ask gates every non-read-only tool', () => {
-    expect(toolNeedsApproval('write', 'ask')).toBe(true)
-    expect(toolNeedsApproval('bash', 'ask')).toBe(true)
+  it('asks about unclassified tools and delegates known tools to the host', () => {
+    expect(toolNeedsApproval('write', 'ask')).toBe(false)
+    expect(toolNeedsApproval('bash', 'ask')).toBe(false)
+    expect(toolNeedsApproval('custom-tool', 'ask')).toBe(true)
     expect(toolNeedsApproval('read', 'ask')).toBe(false)
   })
 })

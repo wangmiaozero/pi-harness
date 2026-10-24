@@ -5,8 +5,8 @@ export type PermissionMode = (typeof PERMISSION_MODES)[number]
 /** Tools that never require approval: read-only inspection is always safe. */
 export const PERMISSION_READ_ONLY_TOOLS = new Set(['read', 'grep', 'find', 'ls'])
 
-/** Tools covered by the looser "accept edits" tier besides read-only passes. */
-export const PERMISSION_EDIT_TOOLS = new Set(['write', 'edit'])
+/** Built-in tools whose file/network/command risks are evaluated by the host. */
+const HOST_GUARDED_TOOLS = new Set(['write', 'edit', 'bash', 'powershell'])
 
 export function isPermissionMode(value: unknown): value is PermissionMode {
   return typeof value === 'string' && (PERMISSION_MODES as readonly string[]).includes(value)
@@ -19,13 +19,13 @@ export function normalizePermissionMode(value: unknown): PermissionMode {
 /**
  * Whether a tool call needs the user's approval under a mode.
  *
- * - `ask`: every non-read-only tool waits for an explicit approval.
- * - `accept-edits`: file edits run without asking; commands and other tools ask.
- * - `auto`: everything runs (today's default behavior).
+ * The persisted mode names remain compatible with earlier installations.
+ * Built-in file/command tools use the host policy guard; this fallback applies
+ * to tools whose risks the host cannot classify.
  */
 export function toolNeedsApproval(toolName: string, mode: PermissionMode): boolean {
   if (PERMISSION_READ_ONLY_TOOLS.has(toolName)) return false
   if (mode === 'auto') return false
-  if (mode === 'accept-edits') return !PERMISSION_EDIT_TOOLS.has(toolName)
+  if (HOST_GUARDED_TOOLS.has(toolName)) return false
   return true
 }

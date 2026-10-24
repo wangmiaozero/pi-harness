@@ -67,6 +67,7 @@ import { setRuntimeProvider } from './runtime/active'
 import { PiRpcRuntime } from './agent/pi-rpc-runtime'
 import { AgentRuntimeService } from './agent/agent-runtime-service'
 import { resolveWorkspaceToolPath } from './workspace/workspace-tool-guard'
+import { assertAgentFilePermission } from './workspace/agent-file-permission'
 import { WorkspaceService, type WorkspaceStateRecord } from './workspace/workspace-service'
 import { PiHarnessAdapter } from './harness/adapters/pi-harness-adapter'
 import { HarnessRuntime } from './harness/harness-runtime'
@@ -378,23 +379,37 @@ async function bootstrap(): Promise<void> {
         () => workspaceState.getFoldersForSession(sessionId)[0]?.resolvedPath ?? null
       ),
     getPrompt: (sessionId) => workspaceState.getPromptForSession(sessionId),
-    assertWritable: (target, sessionId) => {
+    assertWritable: (target, sessionId, permissionMode, signal) => {
       const folders = workspaceState.getFoldersForSession(sessionId)
       if (!folders.length) {
         throw new PathDeniedError('No projects are attached to this session.', { sessionId })
       }
       const primary = folders.find((folder) => folder.role === 'main') ?? folders[0]
-      return access.assertWritableInFolders(
+      return assertAgentFilePermission(
         resolveWorkspaceToolPath(target, primary.resolvedPath),
-        folders
+        permissionMode,
+        (resolved) => access.assertWritableInFolders(resolved, folders),
+        (resolved) =>
+          policyEngine.resolveAsk(
+            sessionId,
+            resolved,
+            {
+              decision: 'ask',
+              domain: 'file',
+              rule: 'files.outsideWorkspace'
+            },
+            signal
+          ),
+        signal
       )
     },
-    assertToolAllowed: (toolName, input, sessionId, signal) => {
+    assertToolAllowed: (toolName, input, sessionId, signal, permissionMode) => {
       return assertPolicyToolAllowed(
         policyEngine,
         {
           sessionId,
           signal,
+          permissionMode,
           report: (payload) =>
             harnessRef.current?.recordPolicyDecision(sessionId, { sessionId, ...payload })
         },

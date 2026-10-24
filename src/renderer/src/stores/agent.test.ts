@@ -168,6 +168,48 @@ describe('agent store new-session handshake', () => {
       { timestamp: 5678 }
     ])
   })
+  it.each(['看这张截图', ''])('reconciles resized image metadata for prompt %j', async (text) => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      agent: {
+        start: vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' }),
+        prompt: vi.fn().mockResolvedValue(null),
+        state: vi.fn().mockResolvedValue({ isPromptRunning: true })
+      }
+    } as unknown as PiSwitchAPI
+    const agent = useAgentStore()
+    agent.setupListeners()
+    const image = { type: 'image' as const, data: 'aGk=', mimeType: 'image/png' }
+    await agent.send(null, '/code/project', text, 'default', [image])
+    // Pi appends an `[Image: …]` metadata line to the persisted user text.
+    onAgentEvent?.({
+      sessionId: 'session-new',
+      event: {
+        type: 'message_end',
+        message: {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `${text}\n\n[Image: original 100x100, displayed at 50x50. Multiply coordinates by 2 to map to original image.]`
+            },
+            image
+          ],
+          timestamp: 1234
+        }
+      }
+    })
+
+    const userMessages = agent.messages.filter((message) => message.role === 'user')
+    expect(userMessages).toHaveLength(1)
+    expect(userMessages[0]).toMatchObject({ timestamp: 1234 })
+    expect(userMessages[0].content).toContainEqual(image)
+  })
+
   it('adopts a running Pi continuation before it has a persisted session file', async () => {
     const get = vi.fn()
     window.piSwitch = {
@@ -189,6 +231,94 @@ describe('agent store new-session handshake', () => {
     })
     expect(agent.messages[0]).toMatchObject({ role: 'user', content: 'Read the project' })
     expect(get).not.toHaveBeenCalled()
+  })
+
+  it('keeps the task running between messages and ignores an older idle snapshot', async () => {
+    let onEvent: ((payload: unknown) => void) | undefined
+    let finishRunning!: (ids: string[]) => void
+    const running = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<string[]>((resolve) => {
+            finishRunning = resolve
+          })
+      )
+      .mockResolvedValue([])
+    window.piSwitch = {
+      on: (name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onEvent = listener
+        return () => {}
+      },
+      agent: {
+        start: async () => ({ sessionId: 'session-new', cwd: '/code/project' }),
+        prompt: async () => null,
+        state: async () => ({ isStreaming: false, isPromptRunning: false }),
+        running,
+        command: async () => []
+      }
+    } as unknown as PiSwitchAPI
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.send(null, '/code/project', 'hello', 'default')
+    const loading = agent.load('session-new')
+    await vi.waitFor(() => expect(running).toHaveBeenCalled())
+    onEvent?.([
+      { sessionId: 'session-new', event: { type: 'agent_start' } },
+      {
+        sessionId: 'session-new',
+        event: {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [
+              { type: 'toolCall', id: 'tool', name: 'bash', arguments: { command: 'echo hi' } }
+            ]
+          }
+        }
+      }
+    ])
+    expect(agent.streaming.isStreaming).toBe(false)
+    expect(agent.runningIds).toContain('session-new')
+    finishRunning([])
+    await loading
+    expect(agent.runningIds).toContain('session-new')
+    onEvent?.({ sessionId: 'session-new', event: { type: 'agent_settled' } })
+    expect(agent.runningIds).not.toContain('session-new')
+  })
+
+  it('reconciles a queued submission after history refresh without losing it or duplicating its event', async () => {
+    let onEvent: ((payload: unknown) => void) | undefined
+    const first: AgentMessage = { role: 'user', content: 'hello', timestamp: 1 }
+    let persisted: AgentMessage[] = [first]
+    window.piSwitch = {
+      on: (name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onEvent = listener
+        return () => {}
+      },
+      sessions: {
+        get: async () => ({ context: { messages: persisted, entryIds: [], entryParents: {} } })
+      },
+      agent: {
+        start: async () => ({ sessionId: 'existing', cwd: '/code/project' }),
+        prompt: async () => null,
+        state: async () => ({ isPromptRunning: true }),
+        running: async () => ['existing'],
+        command: async () => []
+      }
+    } as unknown as PiSwitchAPI
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.load('existing')
+    await agent.send('existing', '/code/project', 'hello', 'default')
+    await agent.load('existing')
+    expect(agent.messages.filter((message) => message.role === 'user')).toHaveLength(2)
+    const second: AgentMessage = { role: 'user', content: 'hello', timestamp: 2 }
+    persisted = [first, second]
+    await agent.load('existing')
+    onEvent?.({ sessionId: 'existing', event: { type: 'message_end', message: second } })
+    onEvent?.({ sessionId: 'existing', event: { type: 'message_end', message: second } })
+    expect(agent.messages.filter((message) => message.role === 'user')).toEqual([first, second])
   })
 
   it('uses the visible @Skill text for a new session title while sending the native command', async () => {

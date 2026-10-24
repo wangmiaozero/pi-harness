@@ -12,14 +12,18 @@
  */
 
 import type { HarnessPolicyDomain } from '@shared/types/harness'
+import { toolNeedsApproval, type PermissionMode } from '@shared/workspace/permission-mode'
 import type { PolicyEngine, PolicyEvaluation } from './policy-engine'
 import { normalizeCommand } from './policy-defaults'
-
-const POLICY_GUARDED_TOOLS = new Set(['bash', 'powershell', 'write', 'edit'])
 
 export interface PolicyGuardContext {
   sessionId: string
   signal?: AbortSignal
+  /**
+   * Session permission mode. Under `auto` (全自动) every interactive `ask`
+   * decision is auto-allowed — `deny` decisions still deny.
+   */
+  permissionMode?: PermissionMode
   /** Reports policy decisions back into the Harness timeline / run steps. */
   report: (payload: {
     domain: HarnessPolicyDomain
@@ -36,14 +40,32 @@ export async function assertPolicyToolAllowed(
   toolName: string,
   args: unknown
 ): Promise<void> {
-  if (!POLICY_GUARDED_TOOLS.has(toolName)) return
+  context.signal?.throwIfAborted()
+  const toolEvaluation = policy.toolDecision(toolName)
+  if (toolEvaluation.decision !== 'allow') {
+    if (!(await resolve(policy, context, toolName, toolEvaluation))) {
+      throw new Error(`Blocked by Harness Policy (${toolEvaluation.rule}): ${toolName}`)
+    }
+  }
   if (toolName === 'bash' || toolName === 'powershell') {
     const command = readStringArg(args, ['command', 'cmd']) ?? ''
     if (!command.trim()) return
     await assertShellAllowed(policy, context, command)
     return
   }
-  // write / edit tools — File Policy.
+  if (toolName !== 'write' && toolName !== 'edit') {
+    if (
+      context.permissionMode &&
+      toolNeedsApproval(toolName, context.permissionMode) &&
+      toolEvaluation.decision === 'allow'
+    ) {
+      if (!(await resolve(policy, context, toolName, { ...toolEvaluation, decision: 'ask' }))) {
+        throw new Error(`Tool approval declined: ${toolName}`)
+      }
+    }
+    return
+  }
+  // Workspace edits are allowed; external targets are approved by the path guard.
   const target = readStringArg(args, ['path', 'file', 'file_path', 'filePath', 'target'])
   const evaluation = policy.fileDecision('write')
   const allowed = await resolve(
@@ -65,7 +87,21 @@ async function assertShellAllowed(
   command: string
 ): Promise<void> {
   const normalized = normalizeCommand(command)
-  const evaluation = policy.shellCommandDecision(normalized)
+  let evaluation = policy.shellCommandDecision(normalized)
+  // Compound scripts, execution of downloaded code and network mutations need
+  // review in the assisted tier even if the first command looks harmless.
+  if (
+    context.permissionMode === 'accept-edits' &&
+    evaluation.decision !== 'deny' &&
+    /(?:[;&|`<>]|\$\(|\b(?:sudo|chmod|chown)\b|\b(?:curl|wget)\b.*(?:--(?:data|upload-file)|\s-[dTFX]\b))/.test(
+      normalized
+    )
+  ) {
+    evaluation = { decision: 'ask', domain: 'shell', rule: 'shell.riskDetected' }
+  }
+  if (context.permissionMode === 'ask' && evaluation.decision === 'allow') {
+    evaluation = { ...evaluation, decision: 'ask' }
+  }
   const allowed = await resolve(policy, context, normalized, evaluation)
   if (!allowed) {
     throw new Error(
@@ -84,6 +120,24 @@ async function resolve(
     context.report({
       domain: evaluation.domain,
       decision: 'allow',
+      target,
+      rule: evaluation.rule,
+      allowed: true
+    })
+    return true
+  }
+  // 全自动 (permission mode `auto`) means the user pre-approved execution:
+  // interactive asks must not block the run. Hard `deny` rules are still
+  // enforced below (resolveAsk is only reached for ask; deny falls through
+  // to the caller's throw).
+  if (
+    evaluation.decision === 'ask' &&
+    (context.permissionMode === 'auto' ||
+      (context.permissionMode === 'accept-edits' && evaluation.domain === 'network'))
+  ) {
+    context.report({
+      domain: evaluation.domain,
+      decision: 'ask',
       target,
       rule: evaluation.rule,
       allowed: true

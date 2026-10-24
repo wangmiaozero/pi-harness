@@ -215,7 +215,8 @@ async function onSend(
   // Plan mode starts brand-new sessions with read-only tools only.
   const effectivePreset =
     selectedMode === 'plan' && !sessions.currentId ? ('read-only' as ToolPreset) : preset
-  const permissionMode = permission.modeFor(sessions.currentId)
+  const permissionSessionId = sessions.currentId
+  const permissionMode = permission.modeFor(permissionSessionId)
   await completionSound.unlock()
   const sessionId = imageModel
     ? await agent.sendImage(
@@ -237,7 +238,7 @@ async function onSend(
       )
   if (agent.error) return
   workspace.clearDraft(draftKey)
-  if (sessionId && !sessions.currentId) permission.setMode(sessionId, permissionMode)
+  if (sessionId && !permissionSessionId) permission.setMode(sessionId, permissionMode)
   if (sessionId && sessionId !== sessions.currentId) {
     workspace.consumeDraftSession()
     // Persist the selected chat before slower workspace/runtime restoration.
@@ -253,11 +254,11 @@ async function onSendQueue(images: AgentImageAttachment[]) {
   ) as ToolPreset
   await completionSound.unlock()
   stickToLatest()
-  await agent.send(sessions.currentId, workspace.currentCwd, '', preset, images, '')
+  await agent.send(sessions.currentId, workspace.currentCwd, '', preset, images, '', permission.modeFor(sessions.currentId))
 }
 
 async function onAbort() {
-  if (sessions.currentId) await agent.abort(sessions.currentId)
+  await agent.abort(sessions.currentId)
 }
 
 async function viewFullHistory() {

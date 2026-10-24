@@ -18,10 +18,11 @@ export const usePermissionStore = defineStore('permission', () => {
   }
 
   function modeFor(sessionId: string | null): PermissionMode {
-    if (!sessionId || !(sessionId in modes.value)) {
+    const key = sessionId ?? ''
+    if (!(key in modes.value)) {
       return normalizePermissionMode(useSettingsStore().settings?.defaultPermissionMode)
     }
-    return modes.value[sessionId]
+    return modes.value[key]
   }
 
   function setMode(sessionId: string | null, mode: PermissionMode): void {
@@ -33,16 +34,16 @@ export const usePermissionStore = defineStore('permission', () => {
 
   function acceptRequest(request: AgentPermissionRequest): void {
     pending.value = pending.value.filter((item) => item.requestId !== request.requestId)
-    void callApi(() =>
-      getApi().agent.respondPermission(request.requestId, true)
-    ).catch(() => undefined)
+    void callApi(() => getApi().agent.respondPermission(request.requestId, true)).catch(
+      () => undefined
+    )
   }
 
   function declineRequest(request: AgentPermissionRequest): void {
     pending.value = pending.value.filter((item) => item.requestId !== request.requestId)
-    void callApi(() =>
-      getApi().agent.respondPermission(request.requestId, false)
-    ).catch(() => undefined)
+    void callApi(() => getApi().agent.respondPermission(request.requestId, false)).catch(
+      () => undefined
+    )
   }
 
   async function subscribe(): Promise<() => void> {
