@@ -76,10 +76,7 @@ test('places user messages on the right and visually separates agent output', as
   expect(userBox!.width).toBeCloseTo(assistantBox!.width, 0)
   expect(toolResultBox!.x).toBeCloseTo(assistantBox!.x, 0)
   expect(toolResultBox!.width).toBeCloseTo(assistantBox!.width, 0)
-  expect(userBodyBox!.x + userBodyBox!.width).toBeCloseTo(
-    assistantBox!.x + assistantBox!.width,
-    0
-  )
+  expect(userBodyBox!.x + userBodyBox!.width).toBeCloseTo(assistantBox!.x + assistantBox!.width, 0)
   expect(userBodyBox!.width).toBeLessThan(assistantBox!.width)
 
   const bandBox = await page.evaluate(() => {
@@ -102,13 +99,19 @@ test('places user messages on the right and visually separates agent output', as
     const assistantStyle = getComputedStyle(assistantBody)
     return {
       userBackground: userStyle.backgroundColor,
-      userBorder: userStyle.borderRightColor,
+      userTrailingCorner: userStyle.borderBottomRightRadius,
+      userLeadingCorner: userStyle.borderBottomLeftRadius,
       assistantBackground: assistantStyle.backgroundColor,
-      assistantBorder: assistantStyle.borderLeftColor
+      assistantTrailingCorner: assistantStyle.borderBottomRightRadius,
+      assistantLeadingCorner: assistantStyle.borderBottomLeftRadius
     }
   })
   expect(colors.userBackground).not.toBe(colors.assistantBackground)
-  expect(colors.userBorder).not.toBe(colors.assistantBorder)
+  // Borderless bubbles distinguish roles through their fill and opposing tails.
+  expect(parseFloat(colors.userTrailingCorner)).toBeLessThan(parseFloat(colors.userLeadingCorner))
+  expect(parseFloat(colors.assistantLeadingCorner)).toBeLessThan(
+    parseFloat(colors.assistantTrailingCorner)
+  )
 
   const qaDir = process.env.PI_HARNESS_DESIGN_QA_DIR ?? testInfo.outputDir
   fs.mkdirSync(qaDir, { recursive: true })
@@ -207,7 +210,7 @@ function seedSession(piAgentDir: string, workspaceRoot: string): void {
           content: [
             {
               type: 'text',
-              text: '已将用户消息放到右侧，并为用户与 Agent 使用不同的背景、边框和角色标签。\n\n- 用户：强调色气泡\n- Agent：中性面板气泡'
+              text: '已将用户消息放到右侧，并为用户与 Agent 使用不同的背景、气泡形状和角色标签。\n\n- 用户：强调色气泡\n- Agent：中性面板气泡'
             }
           ]
         }

@@ -1,8 +1,8 @@
 # Agent settings / 智能体设置
 
-These features are available in current source builds. For downloaded installers, check the release notes for your version.
+Available in v2.2.10 and later. Older installers may not include every settings page.
 
-以下功能已在当前源码版中提供，下载安装包时请以对应版本的发布说明为准。
+以下功能从 v2.2.10 起提供，旧版安装包可能不包含全部设置页面。
 
 [English README](../README.md#agent-settings) · [简体中文 README](../README.zh-CN.md#agent-settings) · [Screenshots / 截图](README.md)
 
@@ -80,11 +80,11 @@ Start **pi-host** on the target host first. In **Settings → Remote hosts**, en
 
 ## Common questions / 常见问题
 
-| Symptom / 现象                                         | What to check / 检查项                                                                                                                        |
-| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| A settings page is missing / 缺少设置页面              | Check whether your version includes it; current source builds contain all seven pages. / 确认当前版本是否包含该功能；当前源码版提供七个页面。 |
-| Voice start is disabled / 语音开始按钮不可用           | Enable voice, choose a supported account or API key, and save. / 启用语音、配置支持的账号或 API 密钥并保存。                                  |
-| Microphone access fails / 无法使用麦克风               | Check the application's microphone permission and device availability. / 检查应用的麦克风权限及设备是否可用。                                 |
-| An imported MCP server is disabled / 导入的 MCP 未启用 | This is expected; review and complete its configuration before enabling. / 这是预期状态，审阅并补齐配置后再启用。                             |
-| Project servers are missing / 未显示项目服务器         | Select the intended project and check the scope filter. / 选择目标项目并检查范围筛选。                                                        |
-| A remote host cannot connect / 远程主机无法连接        | Check that pi-host is running and reachable, and that the address and token are correct. / 确认 pi-host 正在运行且可连接，地址与令牌正确。    |
+| Symptom / 现象                                         | What to check / 检查项                                                                                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| A settings page is missing / 缺少设置页面              | Check whether your version includes it; v2.2.10 and later contain all seven pages. / 确认当前版本是否包含该功能；v2.2.10 起提供七个页面。  |
+| Voice start is disabled / 语音开始按钮不可用           | Enable voice, choose a supported account or API key, and save. / 启用语音、配置支持的账号或 API 密钥并保存。                               |
+| Microphone access fails / 无法使用麦克风               | Check the application's microphone permission and device availability. / 检查应用的麦克风权限及设备是否可用。                              |
+| An imported MCP server is disabled / 导入的 MCP 未启用 | This is expected; review and complete its configuration before enabling. / 这是预期状态，审阅并补齐配置后再启用。                          |
+| Project servers are missing / 未显示项目服务器         | Select the intended project and check the scope filter. / 选择目标项目并检查范围筛选。                                                     |
+| A remote host cannot connect / 远程主机无法连接        | Check that pi-host is running and reachable, and that the address and token are correct. / 确认 pi-host 正在运行且可连接，地址与令牌正确。 |
