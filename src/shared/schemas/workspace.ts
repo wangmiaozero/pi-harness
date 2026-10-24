@@ -4,6 +4,7 @@
 
 import { z } from 'zod'
 import { TOOL_PRESET_VALUES } from '../workspace/tool-presets'
+import { PERMISSION_MODES } from '../workspace/permission-mode'
 import { PI_THINKING_LEVELS } from '../constants/index'
 import {
   isBase64ImageWithinLimits,
@@ -47,7 +48,8 @@ export const startAgentSessionSchema = z.object({
   toolNames: toolNamesSchema.optional(),
   provider: z.string().min(1).max(128).optional(),
   modelId: z.string().min(1).max(256).optional(),
-  thinkingLevel: thinkingLevelSchema.optional()
+  thinkingLevel: thinkingLevelSchema.optional(),
+  permissionMode: z.enum(PERMISSION_MODES).optional()
 })
 
 export const promptAgentSchema = z

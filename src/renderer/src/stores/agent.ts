@@ -385,7 +385,7 @@ export const useAgentStore = defineStore('agent', () => {
             ...(thinkingLevel.value !== 'auto'
               ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value) }
               : {}),
-            ...(permissionMode && permissionMode !== 'auto' ? { permissionMode } : {})
+            ...(permissionMode ? { permissionMode } : {})
           })
         )
         loadedSessionId = started.sessionId
