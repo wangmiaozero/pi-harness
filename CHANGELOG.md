@@ -2,6 +2,12 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.2.17 — 2026-10-25
+
+### Fixed
+
+- Enforced the selected permission mode in agent sessions so workspace write protection can no longer be bypassed.
+
 ## 2.2.16 — 2026-10-24
 
 ### Fixed
