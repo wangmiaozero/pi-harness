@@ -232,6 +232,10 @@ async function install() {
     <Dialog v-model:open="open" :title="t('mcpMarket.review')" large
       ><div v-if="selected" class="agent-settings feature-stack">
         <p class="feature-hint">{{ t('mcpMarket.reviewHint') }}</p>
+        <p class="feature-hint">
+          {{ t('agentSettings.scope') }} ·
+          {{ root ? t('agentSettings.project') + ' · ' + root : t('agentSettings.global') }}
+        </p>
         <p v-if="selected.notes" class="feature-hint">{{ selected.notes }}</p>
         <div v-if="selected.requiresRoot" class="feature-actions">
           <Button :disabled="busy" @click="pickFolder"

@@ -122,6 +122,76 @@ describe('MCP discovery', () => {
       expect.objectContaining({ args: ['-y', '@modelcontextprotocol/server-filesystem', home] })
     )
   })
+  it('previews official npm packages as immutable configurations and excludes unsafe package specifications', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              servers: [
+                {
+                  server: {
+                    name: 'fixture/npm',
+                    packages: [
+                      {
+                        registryType: 'npm',
+                        identifier: '@fixture/server',
+                        version: '1.2.3',
+                        transport: { type: 'stdio' },
+                        environmentVariables: [{ name: 'FIXTURE_TOKEN', isRequired: true }]
+                      }
+                    ]
+                  }
+                },
+                {
+                  server: {
+                    name: 'fixture/unsafe',
+                    packages: [
+                      {
+                        registryType: 'npm',
+                        identifier: 'https://untrusted.test/script',
+                        version: 'latest',
+                        transport: { type: 'stdio' }
+                      }
+                    ]
+                  }
+                },
+                {
+                  server: {
+                    name: 'fixture/argument',
+                    packages: [
+                      {
+                        registryType: 'npm',
+                        identifier: 'fixture-server',
+                        version: 'latest',
+                        transport: { type: 'stdio' },
+                        runtimeArguments: [{ value: '--eval=unreviewed' }]
+                      }
+                    ]
+                  }
+                }
+              ]
+            })
+          )
+      )
+    )
+    const prefs = fixturePreferences(),
+      service = new McpDiscoveryService(prefs as unknown as AgentPreferencesService, access, home)
+    const result = await service.market('fixture/')
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0].template).toMatchObject({
+      command: 'npx',
+      args: ['-y', '@fixture/server@1.2.3'],
+      env: { FIXTURE_TOKEN: '${FIXTURE_TOKEN}' },
+      enabled: false
+    })
+    expect(prefs.saveMcp).not.toHaveBeenCalled()
+    await service.install({ catalogId: result.entries[0].capability.id, revision: 'a'.repeat(64) })
+    expect(prefs.saveMcp).toHaveBeenCalledWith(
+      expect.objectContaining({ args: ['-y', '@fixture/server@1.2.3'], enabled: false })
+    )
+  })
   it('binds official registry ids to the reviewed endpoint and never fetches a supplied URL', async () => {
     const fetcher = vi.fn(
       async (_url: string | URL) =>

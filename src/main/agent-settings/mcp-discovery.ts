@@ -268,17 +268,50 @@ export class McpDiscoveryService {
                 !String(r.url).includes('{')
             )
           : null
-        if (!name || !remote) continue
-        const id = `registry-${digest(name + JSON.stringify(remote))}`,
-          template: McpTemplate = {
-            id,
-            type: 'http',
-            url: remote.url,
-            enabled: false,
-            exposure: 'codemode',
-            description:
-              typeof server.description === 'string' ? server.description.slice(0, 2000) : ''
-          }
+        const npm = Array.isArray(server.packages)
+          ? server.packages.find((value: unknown) => {
+              const pkg = record(value)
+              return (
+                pkg.registryType === 'npm' &&
+                record(pkg.transport).type === 'stdio' &&
+                typeof pkg.identifier === 'string' &&
+                /^(?:@[a-z0-9._-]+\/)?[a-z0-9][a-z0-9._-]*$/i.test(pkg.identifier) &&
+                typeof pkg.version === 'string' &&
+                /^(?:latest|\d+\.\d+\.\d+(?:-[a-z0-9.-]+)?)$/i.test(pkg.version) &&
+                (!pkg.packageArguments ||
+                  (Array.isArray(pkg.packageArguments) && pkg.packageArguments.length === 0)) &&
+                (!pkg.runtimeArguments ||
+                  (Array.isArray(pkg.runtimeArguments) && pkg.runtimeArguments.length === 0))
+              )
+            })
+          : null
+        if (!name || (!remote && !npm)) continue
+        const id = `registry-${digest(name + JSON.stringify(remote ?? npm))}`
+        const template: McpTemplate = {
+          id,
+          ...(remote
+            ? { type: 'http' as const, url: remote.url }
+            : {
+                type: 'stdio' as const,
+                command: 'npx',
+                args: ['-y', `${npm.identifier}@${npm.version}`],
+                env: Object.fromEntries(
+                  (Array.isArray(npm.environmentVariables) ? npm.environmentVariables : []).flatMap(
+                    (variable: unknown) => {
+                      const v = record(variable)
+                      return typeof v.name === 'string' && /^[A-Za-z_][A-Za-z0-9_]*$/.test(v.name)
+                        ? [[v.name, '${' + v.name + '}']]
+                        : []
+                    }
+                  )
+                )
+              }),
+          enabled: false,
+          exposure: 'codemode',
+          description:
+            typeof server.description === 'string' ? server.description.slice(0, 2000) : ''
+        }
+        if (!mcpSaveSchema.safeParse({ ...template, revision: '0'.repeat(64) }).success) continue
         const entry: McpCatalogEntry = {
           capability: {
             id,

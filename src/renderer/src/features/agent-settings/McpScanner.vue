@@ -7,7 +7,7 @@ import { getApi } from '@renderer/composables/useApi'
 import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import SettingsFeedback from './SettingsFeedback.vue'
-const props = defineProps<{ root?: string; inventory: McpInventory | null }>()
+const props = defineProps<{ root?: string; scanRoot?: string; inventory: McpInventory | null }>()
 const emit = defineEmits<{ close: []; import: [candidate: McpScanCandidate] }>()
 const { t } = useI18n()
 const open = ref(true),
@@ -20,7 +20,9 @@ async function scan() {
   error.value = ''
   result.value = null
   try {
-    result.value = await getApi().agentSettings.mcp.scan(props.root ? { root: props.root } : {})
+    result.value = await getApi().agentSettings.mcp.scan(
+      (props.scanRoot ?? props.root) ? { root: props.scanRoot ?? props.root } : {}
+    )
   } catch {
     error.value = t('mcpMarket.scanError')
   } finally {

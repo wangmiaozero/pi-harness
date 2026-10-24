@@ -196,4 +196,90 @@ test.describe('Workspace voice and MCP market', () => {
     await market.getByRole('button', { name: '我的服务器' }).click()
     await expect(page.getByTestId('mcp-server-memory')).toBeVisible()
   })
+  test('groups global and project servers and edits only the selected scope', async ({
+    page,
+    piAgentDir,
+    workspaceRoot
+  }, testInfo) => {
+    const id = 'mcp-scope-fixture',
+      timestamp = '2026-10-24T06:00:00.000Z'
+    const sessionDir = path.join(
+      piAgentDir,
+      'sessions',
+      `--${path
+        .resolve(workspaceRoot)
+        .replace(/^[/\\]/, '')
+        .replace(/[/\\:]/g, '-')}--`
+    )
+    await fs.mkdir(sessionDir, { recursive: true })
+    await fs.writeFile(
+      path.join(sessionDir, `2026-10-24T06-00-00-000Z_${id}.jsonl`),
+      [
+        { type: 'session', version: 3, id, timestamp, cwd: workspaceRoot },
+        {
+          type: 'message',
+          id: 'mcp-user',
+          parentId: null,
+          timestamp,
+          message: {
+            role: 'user',
+            content: 'MCP project fixture',
+            timestamp: Date.parse(timestamp)
+          }
+        }
+      ]
+        .map((row) => JSON.stringify(row))
+        .join('\n') + '\n'
+    )
+    await page.evaluate(async (root) => {
+      const api = window.piSwitch.agentSettings.mcp
+      const fields = {
+        id: 'shared-config',
+        type: 'stdio' as const,
+        command: 'fixture-disabled-server',
+        args: [],
+        enabled: false,
+        exposure: 'codemode' as const
+      }
+      const global = await api.list({})
+      await api.save({ ...fields, description: 'Global only', revision: global.revision })
+      const project = await api.list({ root })
+      await api.save({ ...fields, description: 'Project only', root, revision: project.revision })
+    }, workspaceRoot)
+    await page.locator('a[href="#/workspace"]').click()
+    await page.getByTestId('workspace-refresh').click()
+    await page
+      .getByTestId('workspace-session-tree')
+      .getByText('MCP project fixture', { exact: true })
+      .click()
+    await page.locator('a[href="#/settings"]').click()
+    await page.getByTestId('settings-section-mcp').click()
+    const global = page.getByTestId('mcp-scope-global'),
+      project = page.getByTestId('mcp-scope-project')
+    await expect(global).toContainText('Global only')
+    await expect(project).toContainText('Project only')
+    await expect(page.getByRole('combobox', { name: '选择项目', exact: true })).toHaveValue(
+      workspaceRoot
+    )
+    await project.getByRole('button', { name: '编辑 shared-config', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '编辑 MCP 服务器' })
+    await expect(dialog.getByRole('combobox', { name: '作用范围', exact: true })).toBeDisabled()
+    await dialog.getByRole('textbox', { name: '描述', exact: true }).fill('Changed project only')
+    await dialog.getByRole('button', { name: '保存更改' }).click()
+    await expect(project).toContainText('Changed project only')
+    await expect(global).toContainText('Global only')
+    const globalFile = JSON.parse(await fs.readFile(path.join(piAgentDir, 'mcp.json'), 'utf8'))
+    const projectFile = JSON.parse(
+      await fs.readFile(path.join(workspaceRoot, '.pi/mcp.json'), 'utf8')
+    )
+    expect(globalFile.mcpServers['shared-config'].description).toBe('Global only')
+    expect(projectFile.mcpServers['shared-config'].description).toBe('Changed project only')
+    const scopes = page.getByRole('group', { name: '作用范围', exact: true })
+    await scopes.getByRole('button', { name: /^全局/ }).click()
+    await expect(project).toHaveCount(0)
+    await expect(global).toBeVisible()
+    await scopes.getByRole('button', { name: /^全部/ }).click()
+    await expect(project).toBeVisible()
+    await page.screenshot({ path: testInfo.outputPath('mcp-global-project-groups.png') })
+  })
 })
