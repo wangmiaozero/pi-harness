@@ -69,6 +69,10 @@ mac:
     CFBundleDisplayName: Pi-Harness
     CFBundleName: Pi-Harness
 dmg:
+  # The DMG is the manual installer; users verify it via SHA256SUMS.
+  # Differential updates use the ZIP payload (Squirrel.Mac), so the
+  # DMG blockmap is dead weight — collect/verify/publish all treat it as optional.
+  writeUpdateInfo: false
   iconSize: 128
   contents:
     - x: 120
