@@ -68,6 +68,7 @@
     "test:runtime": "node scripts/runtime/test-runtime.mjs",
     "release:package": "node scripts/release/native-package.mjs",
     "security:node": "node scripts/security/check-node-runtime.mjs",
+    "security:electron-upstream": "node scripts/security/check-electron-upstream.mjs",
     "runtime:check": "node scripts/upgrade/audit.mjs --runtime",
     "runtime:catalog:update": "node scripts/runtime/update-catalog.mjs",
     "deps:check": "node scripts/upgrade/audit.mjs --dependencies",
