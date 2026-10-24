@@ -2,6 +2,15 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.2.16 — 2026-10-24
+
+### Fixed
+
+- Kept the stop button available while tasks are still running.
+- Fixed duplicate user messages with image attachments during conversations and history reloads.
+- Applied permission choices consistently and removed unnecessary approval prompts in full-access mode.
+- Updated mode and permission menus with descriptions and clearer selection.
+
 ## 2.2.12 — 2026-10-24
 
 ### Fixed
