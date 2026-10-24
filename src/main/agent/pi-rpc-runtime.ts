@@ -136,7 +136,11 @@ export class PiRpcRuntime implements HarnessAdapter {
       throw new AgentError('Pi runtime is unavailable during shutdown or maintenance')
     if (input.sessionId) {
       const existing = this.live.get(input.sessionId)
-      if (existing) return { sessionId: existing.id, cwd: existing.cwd }
+      if (existing) {
+        if (input.permissionMode)
+          await this.setPermissionMode(existing.id, normalizePermissionMode(input.permissionMode))
+        return { sessionId: existing.id, cwd: existing.cwd }
+      }
       const pending = this.starts.get(input.sessionId)
       if (pending) return pending
     }
@@ -245,13 +249,20 @@ export class PiRpcRuntime implements HarnessAdapter {
         const name = String(params.name ?? '')
         if (name === 'write' || name === 'edit') {
           const target = extractToolPath(params.input)
-          if (target) await this.options.workspace?.assertWritable?.(target, live?.id ?? id)
+          if (target)
+            await this.options.workspace?.assertWritable?.(
+              target,
+              live?.id ?? id,
+              live?.permissionMode,
+              live?.controller.signal
+            )
         }
         await this.options.workspace?.assertToolAllowed?.(
           name,
           params.input,
           live?.id ?? id,
-          live?.controller.signal
+          live?.controller.signal,
+          live?.permissionMode
         )
         return null
       }

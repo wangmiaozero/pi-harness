@@ -68,8 +68,13 @@ for (const withImage of [false, true]) {
       const composer = page.getByTestId('chat-composer')
       const editor = composer.getByTestId('composer-editor')
       const users = page.locator('.chat-scroller [data-message-role="user"]')
-      const imageData =
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+      const imageData = await page.evaluate(() => {
+        const canvas = document.createElement('canvas')
+        canvas.width = 2605
+        canvas.height = 1901
+        canvas.getContext('2d')!.fillRect(0, 0, canvas.width, canvas.height)
+        return canvas.toDataURL('image/png').split(',')[1]
+      })
       if (withImage) {
         await composer.locator('input[type="file"]').setInputFiles({
           name: 'pixel.png',
@@ -92,7 +97,7 @@ for (const withImage of [false, true]) {
       expect(outgoingUsers).toHaveLength(1)
       if (withImage) expect(JSON.stringify(outgoingUsers)).toContain('data:image/png;base64,')
       finishResponse!()
-      await expect(composer.getByRole('button', { name: /中止|Abort/, exact: true })).toHaveCount(0)
+      await expect(composer.getByRole('button', { name: /终止|Abort/, exact: true })).toHaveCount(0)
       await expect(page.locator('[data-testid^="session-row-"]')).toHaveCount(1)
       const session = await page.evaluate(() =>
         window.piSwitch.sessions.list(true).then(([item]) => item)
@@ -109,11 +114,14 @@ for (const withImage of [false, true]) {
       )
       expect(nativeUsers).toHaveLength(1)
       if (withImage) {
-        expect(nativeUsers[0].message.content).toContainEqual({
-          type: 'image',
-          data: imageData,
-          mimeType: 'image/png'
-        })
+        expect(nativeUsers[0].message.content).toContainEqual(
+          expect.objectContaining({
+            type: 'image',
+            data: expect.any(String),
+            mimeType: 'image/png'
+          })
+        )
+        expect(JSON.stringify(nativeUsers[0])).toContain('[Image: original 2605x1901, displayed at')
       }
 
       await page.reload()
@@ -126,7 +134,7 @@ for (const withImage of [false, true]) {
       await expect.poll(() => requests.length).toBe(2)
       await expect(users).toHaveCount(2)
       finishResponse!()
-      await expect(composer.getByRole('button', { name: /中止|Abort/, exact: true })).toHaveCount(0)
+      await expect(composer.getByRole('button', { name: /终止|Abort/, exact: true })).toHaveCount(0)
       await expect(users).toHaveCount(2)
 
       await page

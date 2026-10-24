@@ -58,6 +58,7 @@ export const useAgentStore = defineStore('agent', () => {
   let loadedStatsOverride: Partial<SessionStats> | null = null
   let loadedSessionId: string | null = null
   let loadGeneration = 0
+  let activityRevision = 0
   const composerSelections = new Map<string, ComposerSelection>()
   const lastComposer = hydrateComposerSelections(composerSelections)
   const thinkingLevel = ref(lastComposer.thinkingLevel)
@@ -73,11 +74,22 @@ export const useAgentStore = defineStore('agent', () => {
     unsubEvent = getApi().on('agent-event', (payload) => {
       for (const body of normalizeAgentEventEnvelopes(payload)) {
         if (!body.sessionId || !body.event) continue
+        activityRevision += 1
+        if (body.event.type === 'agent_start') {
+          runningIds.value = [...new Set([...runningIds.value, body.sessionId])]
+        } else if (['agent_settled', 'prompt_done', 'prompt_error'].includes(body.event.type)) {
+          runningIds.value = runningIds.value.filter((id) => id !== body.sessionId)
+        }
         if (body.event.type === 'agent_end') void syncPersistedSession(body.sessionId)
         if (isCompactionSettleEvent(body.event.type)) {
           void flushQueuedCompaction(body.sessionId)
         }
         if (body.sessionId !== loadedSessionId) continue
+        if (['agent_settled', 'prompt_done', 'prompt_error'].includes(body.event.type)) {
+          if (state.value)
+            state.value = { ...state.value, isPromptRunning: false, isStreaming: false }
+          streaming.value = { ...streaming.value, isStreaming: false }
+        }
         if (body.event.type === 'prompt_done') {
           const completionError =
             body.event.success === false
@@ -96,6 +108,7 @@ export const useAgentStore = defineStore('agent', () => {
     })
     unsubRunning = getApi().on('agent-running', (payload) => {
       const body = payload as { ids?: string[] }
+      activityRevision += 1
       const previous = runningIds.value
       runningIds.value = body.ids ?? []
       for (const sessionId of previous) {
@@ -154,8 +167,7 @@ export const useAgentStore = defineStore('agent', () => {
           // Native system/tool messages can arrive after the optimistic user
           // message, so reconcile the pending message rather than the list tail.
           const pendingIndex = messages.value.findIndex(
-            (message) =>
-              optimisticUserMessages.has(message) && userText(message) === userText(completed)
+            (message) => optimisticUserMessages.has(message) && sameUserPrompt(message, completed)
           )
           if (pendingIndex >= 0) {
             optimisticUserMessages.delete(messages.value[pendingIndex])
@@ -163,7 +175,19 @@ export const useAgentStore = defineStore('agent', () => {
               index === pendingIndex ? completed : message
             )
           } else {
-            messages.value = [...messages.value, completed]
+            const existingIndex = messages.value.findIndex(
+              (message) =>
+                !optimisticUserMessages.has(message) &&
+                completed.timestamp !== undefined &&
+                message.timestamp === completed.timestamp &&
+                sameUserPrompt(message, completed)
+            )
+            messages.value =
+              existingIndex < 0
+                ? [...messages.value, completed]
+                : messages.value.map((message, index) =>
+                    index === existingIndex ? completed : message
+                  )
           }
         }
         loadedStatsOverride = null
@@ -189,6 +213,15 @@ export const useAgentStore = defineStore('agent', () => {
   }
 
   async function load(sessionId: string | null) {
+    const sameSession = sessionId === loadedSessionId
+    const previousPersisted = new Set(
+      sameSession
+        ? messages.value
+            .filter((message) => message.role === 'user' && !optimisticUserMessages.has(message))
+            .map(userEventKey)
+        : []
+    )
+    if (!sameSession) optimisticUserMessages.clear()
     const preserveStream =
       sessionId !== null && sessionId === loadedSessionId && streaming.value.isStreaming
     const generation = ++loadGeneration
@@ -225,8 +258,17 @@ export const useAgentStore = defineStore('agent', () => {
     if (!isCurrentLoad(sessionId, generation)) return
     loadedDetail = detail
     loadedStatsOverride = null
+    const pending = messages.value.filter((message) => optimisticUserMessages.has(message))
     optimisticUserMessages.clear()
-    messages.value = detail.context.messages
+    // A history refresh can race a queued prompt or its native message_end.
+    // Consume matching pending submissions once, retaining those not persisted yet.
+    for (const persisted of detail.context.messages) {
+      if (previousPersisted.has(userEventKey(persisted))) continue
+      const index = pending.findIndex((message) => sameUserPrompt(message, persisted))
+      if (index >= 0) pending.splice(index, 1)
+    }
+    for (const message of pending) optimisticUserMessages.add(message)
+    messages.value = [...detail.context.messages, ...pending]
     entryIds.value = detail.context.entryIds
     entryParents.value = detail.context.entryParents ?? {}
     if (!savedSelection) {
@@ -258,11 +300,12 @@ export const useAgentStore = defineStore('agent', () => {
   ) {
     if (!sessionId) return
     const streamAtRequest = streaming.value
+    const revision = activityRevision
     try {
       let snap = await callApi(() => getApi().agent.state(sessionId))
       const running = await callApi(() => getApi().agent.running())
       if (!isCurrentLoad(sessionId, generation)) return
-      runningIds.value = running
+      if (revision === activityRevision) runningIds.value = running
       let listed: ToolEntry[] | null = null
       try {
         listed = (await callApi(() =>
@@ -286,9 +329,9 @@ export const useAgentStore = defineStore('agent', () => {
         /* session may not be live yet */
       }
       if (!isCurrentLoad(sessionId, generation)) return
-      state.value = snap
+      if (revision === activityRevision) state.value = snap
       // Runtime/tool discovery may finish after newer stream events have arrived.
-      if (streaming.value === streamAtRequest) {
+      if (revision === activityRevision && streaming.value === streamAtRequest) {
         if (snap?.isStreaming) {
           streaming.value = { ...streaming.value, isStreaming: true }
         } else if (!snap?.isPromptRunning) {
@@ -369,6 +412,9 @@ export const useAgentStore = defineStore('agent', () => {
         return started.sessionId
       }
       const snap = await callApi(() => getApi().agent.state(sessionId))
+      if (permissionMode && (snap?.isStreaming || snap?.isPromptRunning)) {
+        await callApi(() => getApi().agent.setPermissionMode(sessionId, permissionMode))
+      }
       if (snap?.isStreaming || snap?.isPromptRunning) {
         await callApi(() =>
           getApi().agent.prompt({
@@ -382,6 +428,7 @@ export const useAgentStore = defineStore('agent', () => {
         await callApi(() =>
           getApi().agent.start({
             sessionId,
+            ...(permissionMode ? { permissionMode } : {}),
             toolNames: getToolNamesForPreset(toolPreset.value),
             ...(thinkingLevel.value !== 'auto'
               ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value) }
@@ -517,8 +564,9 @@ export const useAgentStore = defineStore('agent', () => {
     }
   }
 
-  async function abort(sessionId: string) {
-    await callApi(() => getApi().agent.abort(sessionId))
+  async function abort(sessionId: string | null) {
+    const target = sessionId ?? loadedSessionId
+    if (target) await callApi(() => getApi().agent.abort(target))
   }
 
   async function compact(sessionId: string, instructions?: string) {
@@ -731,14 +779,45 @@ function isCompactionSettleEvent(type: string): boolean {
   )
 }
 
+/**
+ * Pi appends image resize metadata to persisted prompts. Only ignore that
+ * generated suffix for image messages; ordinary user-authored text is retained.
+ */
+const IMAGE_METADATA_SUFFIX =
+  /(?:\s*\[Image: original \d+x\d+, displayed at \d+x\d+\. Multiply coordinates by [\d.]+ to map to original image\.\])+\s*$/
+
+function userImageCount(message: AgentMessage): number {
+  if (message.role !== 'user') return 0
+  return Array.isArray(message.content)
+    ? message.content.filter((block) => block.type === 'image').length
+    : 0
+}
+
+function sameUserPrompt(left: AgentMessage, right: AgentMessage): boolean {
+  return (
+    left.role === 'user' &&
+    right.role === 'user' &&
+    userText(left) === userText(right) &&
+    userImageCount(left) === userImageCount(right)
+  )
+}
+
+function userEventKey(message: AgentMessage): string | null {
+  return message.role === 'user'
+    ? JSON.stringify([message.timestamp, userText(message), userImageCount(message)])
+    : null
+}
+
 function userText(message: AgentMessage): string {
   if (message.role !== 'user') return ''
-  return typeof message.content === 'string'
-    ? message.content
-    : message.content
-        .filter((b) => b.type === 'text')
-        .map((b) => (b.type === 'text' ? b.text : ''))
-        .join('\n')
+  const raw =
+    typeof message.content === 'string'
+      ? message.content
+      : message.content
+          .filter((b) => b.type === 'text')
+          .map((b) => (b.type === 'text' ? b.text : ''))
+          .join('\n')
+  return (userImageCount(message) ? raw.replace(IMAGE_METADATA_SUFFIX, '') : raw).trim()
 }
 
 function deriveSessionStats(

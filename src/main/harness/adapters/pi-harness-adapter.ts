@@ -137,8 +137,9 @@ export class PiHarnessAdapter implements HarnessAdapter {
     await this.agent.command(sessionId, { type: 'set_thinking_level', level })
   }
 
-  /** The embedded SDK adapter has no desktop extension bridge; gating stays host-side. */
-  async setPermissionMode(_sessionId: string, _mode: PermissionMode): Promise<void> {}
+  async setPermissionMode(sessionId: string, mode: PermissionMode): Promise<void> {
+    await this.agent.setPermissionMode(sessionId, mode)
+  }
 
   respondPermission(_requestId: string, _approved: boolean): boolean {
     return false

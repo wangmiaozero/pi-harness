@@ -18,7 +18,6 @@ export default async function desktopExtension(pi) {
   let disposing = false
   let context
   let forceEmpty = false
-  let permissionMode = 'auto'
   const pending = new Map()
   const send = (value) => socket.write(JSON.stringify(value) + '\n')
   const request = (method, params = {}, options = {}) =>
@@ -31,7 +30,9 @@ export default async function desktopExtension(pi) {
       pending.set(id, { resolve, reject, timer })
       send({ type: 'request', id, method, params })
     })
-  await registerOpenCode(pi, { resolveKey: async () => (await request('opencode_auth')) ?? undefined })
+  await registerOpenCode(pi, {
+    resolveKey: async () => (await request('opencode_auth')) ?? undefined
+  })
   socket.on('error', () => {})
   socket.on('close', () => {
     for (const item of pending.values()) {
@@ -83,8 +84,7 @@ export default async function desktopExtension(pi) {
       return null
     }
     if (method === 'set_permission_mode') {
-      permissionMode =
-        params.mode === 'ask' || params.mode === 'accept-edits' ? params.mode : 'auto'
+      // Permission decisions are made by the host guard using the live session mode.
       return null
     }
     throw new Error('Unsupported desktop extension operation')
@@ -150,21 +150,8 @@ export default async function desktopExtension(pi) {
   pi.on('tool_call', async (event, ctx) => {
     try {
       ctx.signal?.throwIfAborted()
-      await request('guard', { name: event.toolName, input: event.input })
-      const readOnly = ['read', 'grep', 'find', 'ls'].includes(event.toolName)
-      const edits = event.toolName === 'write' || event.toolName === 'edit'
-      const needsApproval =
-        !readOnly && permissionMode !== 'auto' && (permissionMode === 'ask' || !edits)
-      if (needsApproval) {
-        ctx.signal?.throwIfAborted()
-        const approved = await request(
-          'permission_request',
-          { name: event.toolName, input: event.input },
-          { timeoutMs: 600_000 }
-        )
-        if (approved !== true)
-          return { block: true, reason: 'The user declined this tool call' }
-      }
+      await request('guard', { name: event.toolName, input: event.input }, { timeoutMs: 600_000 })
+      ctx.signal?.throwIfAborted()
       return undefined
     } catch {
       return { block: true, reason: 'Tool access was denied by the desktop workspace policy' }

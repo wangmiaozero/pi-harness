@@ -45,12 +45,15 @@ import {
   ArrowUp,
   AtSign,
   Bot,
+  Hand,
   ImagePlus,
   ListChecks,
   Minimize2,
   Pencil,
   Send,
   ShieldCheck,
+  ShieldAlert,
+  SquareTerminal,
   Target,
   Volume2,
   VolumeX,
@@ -147,8 +150,15 @@ const permissionModeValue = computed({
   }
 })
 
+// `runningIds` is push-updated (broadcastRunning) and covers gaps where both the
+// stream snapshot and the state snapshot are stale while a run is executing
+// (e.g. between assistant messages during tool execution).
 const busy = computed(
-  () => agent.sending || agent.streaming.isStreaming || agent.state?.isPromptRunning === true
+  () =>
+    agent.sending ||
+    agent.streaming.isStreaming ||
+    agent.state?.isPromptRunning === true ||
+    agent.runningIds.includes(sessions.currentId ?? '')
 )
 const pasteQueueCurrent = computed(
   () => pasteQueue.value[Math.min(pasteQueueIndex.value, pasteQueue.value.length - 1)] ?? null
@@ -1235,29 +1245,35 @@ onBeforeUnmount(() => {
       <ComposerOptionMenu
         v-model="agentModeValue"
         :label="$t('workspace.agentModeLabel')"
+        :heading="$t('workspace.agentModeHeading')"
         :icon="agentMode === 'plan' ? ListChecks : agentMode === 'goal' ? Target : Bot"
         :options="
           AGENT_MODES.map((mode) => ({
             value: mode,
             label: t(AGENT_MODE_LABEL_KEYS[mode]),
-            description: ''
+            description: t(`${AGENT_MODE_LABEL_KEYS[mode]}Description`),
+            icon: mode === 'plan' ? ListChecks : mode === 'goal' ? Target : Bot
           }))
         "
-        :menu-width="200"
+        :menu-width="390"
         @interact="emit('unlockAudio')"
       />
       <ComposerOptionMenu
         v-model="permissionModeValue"
         :label="$t('workspace.permissionMode')"
+        :heading="$t('workspace.permissionHeading')"
         :icon="ShieldCheck"
         :options="
           PERMISSION_MODES.map((mode) => ({
             value: mode,
             label: t(PERMISSION_MODE_LABEL_KEYS[mode]),
-            description: ''
+            description: t(`${PERMISSION_MODE_LABEL_KEYS[mode]}Description`),
+            icon: mode === 'ask' ? Hand : mode === 'accept-edits' ? SquareTerminal : ShieldAlert,
+            warning: mode === 'auto',
+            triggerLabel: mode === 'auto' ? t('workspace.permissionAutoShort') : undefined
           }))
         "
-        :menu-width="220"
+        :menu-width="390"
         @interact="emit('unlockAudio')"
       />
       <div class="console-tool-strip ml-auto flex items-center gap-0.5">

@@ -33,7 +33,7 @@ describe('workspace tool guard', () => {
   })
 
   it('blocks writes through the public tool_call hook, without mutating metadata', async () => {
-    let toolCall!: (event: ToolCallEvent) => Promise<unknown>
+    let toolCall!: (event: ToolCallEvent, ctx: { signal: AbortSignal }) => Promise<unknown>
     const api = {
       on: (name: string, handler: typeof toolCall) => {
         if (name === 'tool_call') toolCall = handler
@@ -46,13 +46,17 @@ describe('workspace tool guard', () => {
       { forceEmpty: false, workspacePromptProvider: null },
       { assertWritable }
     )(api)
-    const result = await toolCall({
-      type: 'tool_call',
-      toolCallId: 'call',
-      toolName: 'write',
-      input: { path: '/code/ref/a.ts', content: 'blocked' }
-    })
+    const signal = new AbortController().signal
+    const result = await toolCall(
+      {
+        type: 'tool_call',
+        toolCallId: 'call',
+        toolName: 'write',
+        input: { path: '/code/ref/a.ts', content: 'blocked' }
+      },
+      { signal }
+    )
     expect(result).toMatchObject({ block: true })
-    expect(assertWritable).toHaveBeenCalledWith('/code/ref/a.ts')
+    expect(assertWritable).toHaveBeenCalledWith('/code/ref/a.ts', signal)
   })
 })

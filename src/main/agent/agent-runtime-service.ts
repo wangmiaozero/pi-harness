@@ -31,6 +31,7 @@ import {
   toIpcAgentEvent
 } from '@shared/workspace/agent-event-wire'
 import { getToolNamesForPreset } from '@shared/workspace/tool-presets'
+import { normalizePermissionMode, type PermissionMode } from '@shared/workspace/permission-mode'
 import { validateAgentImages } from '@shared/workspace/image-attachments'
 import { resolveModelInput } from '@shared/constants/provider-presets'
 import {
@@ -190,6 +191,10 @@ export class AgentSessionWrapper {
 
   setForceEmptySystemPrompt(force: boolean): void {
     if (this.systemPromptController) this.systemPromptController.forceEmpty = force
+  }
+
+  setPermissionMode(mode: PermissionMode): void {
+    if (this.systemPromptController) this.systemPromptController.permissionMode = mode
   }
 
   setWorkspacePrompt(prompt: string | null): void {
@@ -771,13 +776,19 @@ export class AgentRuntimeService implements AgentRuntime {
     private readonly sessions: SessionService,
     private readonly workspace?: {
       getPrompt?: (sessionId: string) => string | null
-      assertWritable?: (target: string, sessionId: string) => Promise<string>
+      assertWritable?: (
+        target: string,
+        sessionId: string,
+        permissionMode?: PermissionMode,
+        signal?: AbortSignal
+      ) => Promise<string>
       /** Policy guard runs after workspace authorization in the public tool pipeline. */
       assertToolAllowed?: (
         toolName: string,
         input: unknown,
         sessionId: string,
-        signal?: AbortSignal
+        signal?: AbortSignal,
+        permissionMode?: PermissionMode
       ) => Promise<void>
       customTools?: (cwd: string, sessionId: string) => Promise<ToolDefinition[]>
       architectureHint?: (cwd: string) => Promise<string | null>
@@ -817,6 +828,11 @@ export class AgentRuntimeService implements AgentRuntime {
     return wrapper.snapshot()
   }
 
+  async setPermissionMode(sessionId: string, mode: PermissionMode): Promise<void> {
+    const wrapper = await this.require(sessionId)
+    wrapper.setPermissionMode(mode)
+  }
+
   async start(input: StartAgentSessionInput): Promise<{ sessionId: string; cwd: string }> {
     this.assertOpen()
     const sdk = await loadPiCodingAgent()
@@ -827,6 +843,8 @@ export class AgentRuntimeService implements AgentRuntime {
     if (input.sessionId) {
       const existing = this.registry.get(input.sessionId)
       if (existing?.isAlive()) {
+        if (input.permissionMode)
+          existing.setPermissionMode(normalizePermissionMode(input.permissionMode))
         return { sessionId: existing.sessionId, cwd: existing.inner.sessionManager.getCwd() }
       }
       const inflight = this.startLocks.get(input.sessionId)
@@ -1012,6 +1030,7 @@ export class AgentRuntimeService implements AgentRuntime {
     const architectureHint = (await this.workspace?.architectureHint?.(sessionCwd)) ?? null
     const systemPromptController: DesktopSessionContext = {
       forceEmpty: input.toolNames?.length === 0,
+      permissionMode: normalizePermissionMode(input.permissionMode),
       workspacePromptProvider: () =>
         this.workspace?.getPrompt?.(sessionManager.getSessionId()) ?? null
     }
@@ -1038,7 +1057,13 @@ export class AgentRuntimeService implements AgentRuntime {
             name: 'pi-harness-desktop',
             factory: createDesktopExtension(systemPromptController, {
               assertWritable: this.workspace?.assertWritable
-                ? (target) => this.workspace!.assertWritable!(target, sessionManager.getSessionId())
+                ? (target, signal) =>
+                    this.workspace!.assertWritable!(
+                      target,
+                      sessionManager.getSessionId(),
+                      systemPromptController.permissionMode,
+                      signal
+                    )
                 : undefined,
               assertToolAllowed: this.workspace?.assertToolAllowed
                 ? (name, args, signal) =>
@@ -1046,7 +1071,8 @@ export class AgentRuntimeService implements AgentRuntime {
                       name,
                       args,
                       sessionManager.getSessionId(),
-                      signal
+                      signal,
+                      systemPromptController.permissionMode
                     )
                 : undefined
             })
