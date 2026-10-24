@@ -31,7 +31,11 @@ import {
   toIpcAgentEvent
 } from '@shared/workspace/agent-event-wire'
 import { getToolNamesForPreset } from '@shared/workspace/tool-presets'
-import { normalizePermissionMode, type PermissionMode } from '@shared/workspace/permission-mode'
+import {
+  isPermissionMode,
+  normalizePermissionMode,
+  type PermissionMode
+} from '@shared/workspace/permission-mode'
 import { validateAgentImages } from '@shared/workspace/image-attachments'
 import { resolveModelInput } from '@shared/constants/provider-presets'
 import {
@@ -1028,9 +1032,16 @@ export class AgentRuntimeService implements AgentRuntime {
         }
       )
     const architectureHint = (await this.workspace?.architectureHint?.(sessionCwd)) ?? null
+    // An unspecified mode keeps the legacy fail-closed containment: only an
+    // explicitly selected mode (e.g. 全自动) relaxes the workspace guards.
+    const sessionPermissionMode: PermissionMode | undefined = isPermissionMode(
+      input.permissionMode
+    )
+      ? input.permissionMode
+      : undefined
     const systemPromptController: DesktopSessionContext = {
       forceEmpty: input.toolNames?.length === 0,
-      permissionMode: normalizePermissionMode(input.permissionMode),
+      permissionMode: sessionPermissionMode,
       workspacePromptProvider: () =>
         this.workspace?.getPrompt?.(sessionManager.getSessionId()) ?? null
     }

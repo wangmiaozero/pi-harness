@@ -19,7 +19,11 @@ import type {
 } from '@shared/types/harness'
 import { IPC_EVENT } from '@shared/ipc/channels'
 import { getToolNamesForPreset } from '@shared/workspace/tool-presets'
-import { normalizePermissionMode, type PermissionMode } from '@shared/workspace/permission-mode'
+import {
+  isPermissionMode,
+  normalizePermissionMode,
+  type PermissionMode
+} from '@shared/workspace/permission-mode'
 import {
   toIpcAgentEvent,
   isRunningStateEvent,
@@ -71,7 +75,8 @@ interface LiveSession {
   idleTimer: ReturnType<typeof setTimeout> | null
   queue: { steering: string[]; followUp: string[] }
   commandName: string
-  permissionMode: PermissionMode
+  /** Undefined keeps the legacy fail-closed containment for unspecified modes. */
+  permissionMode: PermissionMode | undefined
   pendingPermissions: Map<string, (approved: boolean) => void>
 }
 
@@ -339,7 +344,8 @@ export class PiRpcRuntime implements HarnessAdapter {
         id,
         cwd,
         client,
-        permissionMode: normalizePermissionMode(input.permissionMode),
+        // An unspecified mode must not relax the workspace guards (fail-closed).
+        permissionMode: isPermissionMode(input.permissionMode) ? input.permissionMode : undefined,
         pendingPermissions: new Map(),
         bridge,
         busy: false,
@@ -393,7 +399,7 @@ export class PiRpcRuntime implements HarnessAdapter {
           toolNames: input.toolNames,
           preserveExtensionTools: true
         })
-      if (live.permissionMode !== 'auto')
+      if (live.permissionMode && live.permissionMode !== 'auto')
         await bridge.request('set_permission_mode', { mode: live.permissionMode })
       if (input.message?.trim()) await this.prompt(live.id, input.message)
       return { sessionId: live.id, cwd }
