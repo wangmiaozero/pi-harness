@@ -8,7 +8,9 @@ Updated on 2026-10-24 using the current desktop UI and an isolated demo workspac
 
 截图于 2026-10-24 使用当前桌面界面与独立演示工作区更新。
 
-[English README](../README.md) · [简体中文 README](../README.zh-CN.md)
+[English](../README.md) · [简体中文](../README.zh-CN.md) · [繁體中文](../README.zh-TW.md) · [日本語](../README.ja-JP.md) · [한국어](../README.ko-KR.md) · [Русский](../README.ru-RU.md) · [Français](../README.fr-FR.md) · [Deutsch](../README.de-DE.md)
+
+[Agent settings guide / 智能体设置使用指南](agent-settings.md) · [Changelog / 更新日志](../CHANGELOG.md)
 
 ## Product interfaces / 功能界面
 

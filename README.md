@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>Download</strong></a> ·
   <a href="#features">Features</a> ·
+  <a href="#agent-settings">Agent Settings</a> ·
   <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">Documentation</a>
 </p>
@@ -56,9 +57,9 @@ Keep conversations, project files, and Git close to the work.
 
 ### Harness
 
-Set tool policies and run budgets in the Harness console.
+Inspect session status and queued instructions in the Harness console.
 
-[![Harness — tool policy and run budgets](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
+[![Harness — session status and queued instructions](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
 
 ### Multi-Agent
 
@@ -189,7 +190,39 @@ Configure Pi-compatible providers with presets or custom endpoints, manage crede
 
 Configure OpenCode Zen / Go from the OpenCode tab under Models: save your API key and enable the models you want in the workspace. Models load automatically and can be verified individually or together. Access and charges depend on your official account and selected model; paid verification requires your permission. See [OpenCode's official model information](https://opencode.ai/v2/docs/console/models/) for pricing and data policies.
 
-Browse built-in and local Skills, edit them, and manage Pi packages and extensions from Capabilities. Type `@` in the composer to search and invoke an installed Skill. Connect MCP through supported packages. Optional add-ons such as [Superpowers](https://github.com/obra/superpowers) and [Odai](https://github.com/orziz/odai) can be installed, updated, or removed when you choose.
+Browse built-in and local Skills, edit them, and manage Pi packages and extensions from Capabilities. Type `@` in the composer to search and invoke an installed Skill. Manage MCP servers in **Settings → MCP**. Optional add-ons such as [Superpowers](https://github.com/obra/superpowers) and [Odai](https://github.com/orziz/odai) can be installed, updated, or removed when you choose.
+
+<a id="agent-settings"></a>
+
+### Agent Settings
+
+Current source builds include seven settings pages: **AI, Realtime voice, Shortcuts, Instructions, MCP, Subagents, and Remote hosts**. Check the release notes for availability in downloaded installers.
+
+Set default thinking, automatic compaction, retry behavior, and workspace preferences in **Settings → AI**. Record your own shortcuts for the command palette, settings, new sessions, and closing tabs, or restore their defaults. Edit global or project instructions in **Settings → Instructions**.
+
+Create reusable subagents with a role, instructions, model, thinking level, and tools in **Settings → Subagents**. Choose a shared workspace or an isolated worktree, then start a task or reuse the template in a team.
+
+<a id="realtime-voice"></a>
+
+### Realtime Voice
+
+Configure **OpenAI Realtime, Gemini Live, or Codex Live** in **Settings → Realtime voice**, then open the waveform button beside the workspace composer. Use a supported provider account or a separate API key; Codex Live uses your existing Codex sign-in in Pi. Service availability and charges depend on your account.
+
+Review the target conversation before starting a call. Sharing recent context is off by default; when enabled, it includes only the last six plain-text messages, excluding attachments and tool results. During a call, mute or end it and view transcripts from the floating controls, including when navigating to another page. Review voice work requests before sending them to the work conversation.
+
+<a id="mcp-marketplace"></a>
+
+### MCP Servers and Marketplace
+
+Open **Settings → MCP** to add local-command or HTTP servers, search and filter **All / Global / Project**, choose a project, and edit or enable each server in its own scope. Scan configurations from other tools and review them before importing.
+
+The marketplace includes **15 built-in server templates**, including Memory, Context7, Playwright, Filesystem, and GitHub, plus search and pagination for the official MCP registry. Preview the configuration and destination before saving. Templates are available to install; they are not all enabled by default. Imported and official-registry entries are saved disabled for you to configure before enabling.
+
+<a id="remote-hosts"></a>
+
+### Remote Hosts
+
+Pair a host running **pi-host** from **Settings → Remote hosts** using its address and pairing token. Connect or disconnect hosts, browse their projects and sessions, view conversations, send prompts, and respond to approval requests. The remote host must already be running and reachable.
 
 <a id="themes-and-custom-skins"></a>
 
@@ -317,6 +350,15 @@ Community builds check for new versions in the app and open the official Release
 4. Start or resume a Pi session, then work with conversations, files, and Git.
 5. Open **Workspace → Tools → Harness / Agents** to inspect runs or coordinate a team.
 
+### Start a voice conversation
+
+In a source build with realtime voice:
+
+1. Open **Settings → Realtime voice**, enable voice, choose the service and account, and save.
+2. Return to a workspace conversation and click the waveform button beside the composer.
+3. Review the conversation and optional context sharing, then select **Start realtime voice** and allow microphone access.
+4. Use the call controls to mute, view details, or end the call. Confirm any work request before sending it to the coding agent.
+
 ### Requirements
 
 Community release validation covers macOS Apple Silicon, macOS Intel, Windows x64, and Linux x64; platform availability is subject to each release's verified results. The bundled Pi and Node runtimes are ready to use, with System and Custom runtime choices available in settings. Source development and packaging require Node.js 24 LTS (≥ 24.22.1) and pnpm 9.12.1; installed users do not need these build tools.
@@ -335,6 +377,31 @@ Product screenshots are grouped by theme. Browse the [complete screenshot index]
 #### Workspace
 
 [![Workspace](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+
+<details>
+<summary>AI · Realtime voice · Shortcuts · Instructions · MCP · Subagents · Remote hosts</summary>
+
+#### Workspace voice
+
+Setup and preparation before a call:
+
+[![Workspace voice preparation](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)
+
+#### MCP marketplace
+
+[![MCP marketplace and built-in server templates](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)
+
+| Settings page                   | Screenshot                                                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| AI preferences                  | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/AI.png)                                   |
+| Realtime voice                  | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3.png) |
+| Keyboard shortcuts              | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%BF%AB%E6%8D%B7%E9%94%AE.png)          |
+| Global and project instructions | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%8C%87%E4%BB%A4.png)                   |
+| MCP servers                     | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E6%9C%8D%E5%8A%A1%E5%99%A8.png)       |
+| Subagents                       | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AD%90%E6%99%BA%E8%83%BD%E4%BD%93.png) |
+| Remote host pairing             | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA.png) |
+
+</details>
 
 <details>
 <summary>Git · Providers and models · Capabilities · Harness · Project architecture</summary>
@@ -446,6 +513,7 @@ For changes to key desktop flows, also run `pnpm test:e2e`.
 
 ### Documentation
 
+- [Agent settings guide](docs/agent-settings.md)
 - [Screenshot index](docs/README.md) · [Changelog](CHANGELOG.md)
 - [Community Release](docs/release/community-release.md) · [Troubleshooting](docs/release/troubleshooting.md)
 - [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md)

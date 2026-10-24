@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>下载</strong></a> ·
   <a href="#features">功能</a> ·
+  <a href="#agent-settings">智能体设置</a> ·
   <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">文档</a>
 </p>
@@ -56,9 +57,9 @@ Pi-Harness 是围绕 [Pi Coding Agent](https://github.com/earendil-works/pi) 构
 
 ### Harness · 运行控制
 
-在 Harness 控制台中设置工具策略与单次运行预算。
+在 Harness 控制台中查看会话状态与待处理指令。
 
-[![Harness：工具策略与运行预算](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
+[![Harness：会话状态与待处理指令](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
 
 ### Multi-Agent · 多智能体
 
@@ -195,7 +196,39 @@ Pi Coding Agent 负责智能体循环、会话、上下文、压缩、引导、�
 
 在“模型 → OpenCode”中配置 OpenCode Zen / Go：保存 API Key，启用需要的模型，再在工作区选择使用。模型会自动加载，可单独或批量验证。访问权限与费用取决于官方账号和所选模型；付费验证需经你同意。定价与数据政策见 [OpenCode 官方模型说明](https://opencode.ai/v2/docs/console/models/)。
 
-在能力中心浏览内置与本地 Skills、编辑 Skill，并管理 Pi 包和扩展。在输入框键入 `@`，即可搜索并调用已安装的 Skill。通过支持的包连接 MCP；[Superpowers](https://github.com/obra/superpowers) 和 [Odai](https://github.com/orziz/odai) 等可选增强能力可按需安装、更新或卸载。
+在能力中心浏览内置与本地 Skills、编辑 Skill，并管理 Pi 包和扩展。在输入框键入 `@`，即可搜索并调用已安装的 Skill。在“**设置 → MCP**”中管理 MCP 服务器。[Superpowers](https://github.com/obra/superpowers) 和 [Odai](https://github.com/orziz/odai) 等可选增强能力可按需安装、更新或卸载。
+
+<a id="agent-settings"></a>
+
+### Agent Settings · 智能体设置
+
+当前源码版已提供 **AI、实时语音、快捷键、指令、MCP、子智能体、远程主机**七个设置页面。下载的安装包是否包含这些功能，以对应版本的发布说明为准。
+
+在“**设置 → AI**”中调整默认思考级别、自动压缩、错误重试与工作区偏好。在“快捷键”中录制命令面板、打开设置、新建会话和关闭标签页的组合键，或恢复默认设置。在“**设置 → 指令**”中编辑全局或项目指令。
+
+在“**设置 → 子智能体**”中创建可复用模板，配置角色、指令、模型、思考级别与工具，选择共享工作区或独立 worktree，再启动任务或将模板用于团队。
+
+<a id="realtime-voice"></a>
+
+### Realtime Voice · 工作区实时语音
+
+在“**设置 → 实时语音**”中配置 **OpenAI Realtime、Gemini Live 或 Codex Live**，再点击工作区输入框旁的波形按钮。可选择支持的服务账号或独立 API 密钥；Codex Live 使用你在 Pi 中已有的 Codex 登录账号。服务可用性与费用取决于对应账号。
+
+开始通话前可确认目标工作会话。近期上下文共享默认关闭；主动开启后，只共享最近六条纯文本消息，不包含附件和工具结果。通话期间可通过浮动控件静音、结束通话或查看转写，切换页面后仍可控制通话。语音提出的工作请求需要确认后才会发送到工作会话。
+
+<a id="mcp-marketplace"></a>
+
+### MCP Servers and Marketplace · MCP 服务器与市场
+
+在“**设置 → MCP**”中添加本地命令或 HTTP 服务器，使用“**全部 / 全局 / 项目**”筛选、选择项目，并分别编辑或启用各作用范围内的服务器。也可从其他工具扫描配置，审阅后导入。
+
+市场提供 **15 个内置服务器模板**，包括 Memory、Context7、Playwright、Filesystem、GitHub，并支持官方 MCP 注册表搜索与分页。保存前可预览配置及目标范围。模板供按需安装，不代表已经全部启用；扫描导入和官方注册表条目保存后默认关闭，补齐配置后再启用。
+
+<a id="remote-hosts"></a>
+
+### Remote Hosts · 远程主机
+
+在“**设置 → 远程主机**”中输入运行 **pi-host** 的主机地址与配对令牌。配对后可连接或断开主机、浏览项目和会话、查看对话、发送提示词并处理审批请求。远程主机需要预先运行服务并保持可连接。
 
 <a id="主题与自定义皮肤"></a>
 
@@ -325,6 +358,15 @@ Community 版本在应用内检查新版本，并在各平台打开官方 Releas
 4. 新建或继续 Pi 会话，在同一个界面中处理对话、文件和 Git。
 5. 打开“**工作区 → 工具 → Harness / 智能体**”，查看运行或协调团队。
 
+### 开始语音对话
+
+使用已包含实时语音功能的源码版时：
+
+1. 打开“**设置 → 实时语音**”，启用语音、选择服务与账号并保存。
+2. 返回工作区中的对话，点击输入框旁的波形按钮。
+3. 确认目标会话与可选的上下文共享，点击“**开始实时语音**”并允许使用麦克风。
+4. 使用通话控件静音、查看详情或结束通话；工作请求经确认后再发送给编码智能体。
+
 ### 环境要求
 
 Community 版本验证覆盖 macOS Apple Silicon、macOS Intel、Windows x64 与 Linux x64，具体平台可用性以每个版本的验证结果为准。内置 Pi 与 Node 运行时开箱即用，设置中也提供系统与自定义运行时选项。源码开发与打包需要 Node.js 24 LTS (≥ 24.22.1) 和 pnpm 9.12.1；安装包用户无需这些构建工具。
@@ -343,6 +385,31 @@ Community 版本验证覆盖 macOS Apple Silicon、macOS Intel、Windows x64 与
 #### 工作区
 
 [![工作区](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+
+<details>
+<summary>AI · 实时语音 · 快捷键 · 指令 · MCP · 子智能体 · 远程主机</summary>
+
+#### 工作区语音
+
+设置与通话准备界面：
+
+[![工作区语音准备](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)
+
+#### MCP 市场
+
+[![MCP 市场与内置服务器模板](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)
+
+| 设置页面       | 截图                                                                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| AI 偏好        | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/AI.png)                                   |
+| 实时语音       | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3.png) |
+| 快捷键         | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%BF%AB%E6%8D%B7%E9%94%AE.png)          |
+| 全局与项目指令 | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%8C%87%E4%BB%A4.png)                   |
+| MCP 服务器     | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E6%9C%8D%E5%8A%A1%E5%99%A8.png)       |
+| 子智能体       | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AD%90%E6%99%BA%E8%83%BD%E4%BD%93.png) |
+| 远程主机配对   | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA.png) |
+
+</details>
 
 <details>
 <summary>Git · Provider 与模型 · 能力中心 · Harness 工具 · 项目架构</summary>
@@ -455,6 +522,7 @@ pnpm compile
 
 ### 文档与语言
 
+- [智能体设置使用指南](docs/agent-settings.md)
 - [截图分类索引](docs/README.md) · [更新记录](CHANGELOG.md)
 - [Community Release](docs/release/community-release.md) · [故障排查](docs/release/troubleshooting.md)
 - [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md)

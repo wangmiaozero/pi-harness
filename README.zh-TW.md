@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>下載</strong></a> ·
   <a href="#features">功能</a> ·
+  <a href="#agent-settings">智慧體設定</a> ·
   <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">文件</a>
 </p>
@@ -99,7 +100,39 @@ Pi-Harness 是 Pi Coding Agent 的操作能力超集：以原生 Pi 能力為基
 
 ### Skills、擴充套件、套件與 MCP
 
-在能力中心瀏覽內建與本機 Skills、編輯 Skill，並管理 Pi 套件和擴充套件。在輸入框鍵入 `@`，即可搜尋並呼叫已安裝的 Skill。透過支援的套件連接 MCP；[Superpowers](https://github.com/obra/superpowers) 和 [Odai](https://github.com/orziz/odai) 等可選增強功能可按需安裝、更新或解除安裝。
+在能力中心瀏覽內建與本機 Skills、編輯 Skill，並管理 Pi 套件和擴充套件。在輸入框鍵入 `@`，即可搜尋並呼叫已安裝的 Skill。在「**設定 → MCP**」中管理 MCP 伺服器。[Superpowers](https://github.com/obra/superpowers) 和 [Odai](https://github.com/orziz/odai) 等可選增強功能可按需安裝、更新或解除安裝。
+
+<a id="agent-settings"></a>
+
+### 智慧體設定
+
+目前原始碼版本已提供 **AI、即時語音、快捷鍵、指令、MCP、子智慧體、遠端主機**七個設定頁面。下載的安裝程式是否包含這些功能，請以對應版本的發行說明為準。
+
+在「**設定 → AI**」中調整預設思考層級、自動壓縮、錯誤重試與工作區偏好。「快捷鍵」可錄製命令面板、開啟設定、建立工作階段和關閉分頁的組合鍵，或還原預設值。「**設定 → 指令**」可編輯全域或專案指令。
+
+在「**設定 → 子智慧體**」建立可重複使用的範本，設定角色、指令、模型、思考層級與工具，選擇共用工作區或獨立 worktree，再啟動任務或用於團隊。
+
+<a id="realtime-voice"></a>
+
+### 工作區即時語音
+
+在「**設定 → 即時語音**」設定 **OpenAI Realtime、Gemini Live 或 Codex Live**，再點選工作區輸入框旁的波形按鈕。可選擇支援的服務帳號或獨立 API 金鑰；Codex Live 使用你在 Pi 中既有的 Codex 登入帳號。服務可用性與費用取決於帳號。
+
+開始前請確認目標工作階段。近期內容分享預設關閉；啟用後只分享最近六則純文字訊息，不含附件與工具結果。通話期間可透過浮動控制項靜音、結束或查看轉寫，切換頁面後仍可操作。語音提出的工作請求須確認後才會傳送到工作階段。
+
+<a id="mcp-marketplace"></a>
+
+### MCP 伺服器與市場
+
+在「**設定 → MCP**」新增本機命令或 HTTP 伺服器，以「**全部 / 全域 / 專案**」篩選、選擇專案，並分別編輯或啟用各範圍的伺服器。也可掃描其他工具的設定，審閱後匯入。
+
+市場提供 **15 個內建伺服器範本**，包括 Memory、Context7、Playwright、Filesystem 與 GitHub，並支援官方 MCP 註冊表搜尋及分頁。儲存前可預覽設定和目標範圍。範本供按需安裝，不代表已全部啟用；掃描匯入與官方註冊表項目儲存後預設停用，完成設定後再啟用。
+
+<a id="remote-hosts"></a>
+
+### 遠端主機
+
+在「**設定 → 遠端主機**」輸入執行 **pi-host** 的主機位址與配對權杖。配對後可連線或中斷、瀏覽專案與工作階段、查看對話、傳送提示詞及處理核准請求。遠端服務必須預先啟動並保持可連線。
 
 ### Harness：觀測、控制與復原
 
@@ -152,6 +185,31 @@ Pi-Harness 是 Pi Coding Agent 的操作能力超集：以原生 Pi 能力為基
 #### 工作區
 
 [![工作區](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+
+<details>
+<summary>智慧體設定 · 工作區語音 · MCP</summary>
+
+#### 工作區語音
+
+設定與通話準備畫面：
+
+[![工作區語音](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)
+
+#### MCP 市場
+
+[![MCP 市場](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)
+
+| 設定頁面       | 截圖                                                                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| AI 偏好        | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/AI.png)                                   |
+| 即時語音       | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3.png) |
+| 快捷鍵         | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%BF%AB%E6%8D%B7%E9%94%AE.png)          |
+| 全域與專案指令 | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%8C%87%E4%BB%A4.png)                   |
+| MCP 伺服器     | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E6%9C%8D%E5%8A%A1%E5%99%A8.png)       |
+| 子智慧體       | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AD%90%E6%99%BA%E8%83%BD%E4%BD%93.png) |
+| 遠端主機配對   | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA.png) |
+
+</details>
 
 <details>
 <summary>Git · Provider 與模型 · 能力中心 · Harness 工具 · 專案架構</summary>
@@ -253,6 +311,15 @@ Plugin SDK v1.0.0 · 自 Pi-Harness v2.2.6 起提供。提供事件訂閱、自�
 4. 建立或繼續 Pi 工作階段，在同一介面中處理對話、檔案和 Git。
 5. 需要執行控制或團隊協作時，開啟工作區「工具」。
 
+### 開始語音對話
+
+使用已包含即時語音功能的原始碼版本時：
+
+1. 開啟「**設定 → 即時語音**」，啟用語音、選擇服務與帳號並儲存。
+2. 返回工作區對話，點選輸入框旁的波形按鈕。
+3. 確認目標工作階段與可選的內容分享，點選「**開始即時語音**」並允許使用麥克風。
+4. 使用通話控制項靜音、查看詳情或結束通話；工作請求經確認後再傳送給編碼智慧體。
+
 ## 環境需求
 
 桌面應用程式支援 macOS Apple Silicon、macOS Intel、Windows x64 和 Linux x64。支援的環境可在應用程式中安裝或修復 Pi Coding Agent。從原始碼執行需要 Node.js 24 LTS (≥ 24.22.1) 和 pnpm 9.12.1。
@@ -261,6 +328,7 @@ Plugin SDK v1.0.0 · 自 Pi-Harness v2.2.6 起提供。提供事件訂閱、自�
 
 ## 文件
 
+- [智慧體設定](docs/agent-settings.md)
 - [截圖分類索引](docs/README.md)
 - [更新記錄](CHANGELOG.md)
 

@@ -2,6 +2,8 @@
 
 Read [security](security.md) first. Plugins are local and opt-in. You do not need a remote marketplace or an account.
 
+To connect an MCP server, use **Settings → MCP** and its marketplace. For voice, instructions, subagents, and remote hosts, see the [agent settings guide](../agent-settings.md). Harness Plugins are managed separately under **Workspace → Tools → Harness → Harness Plugins**.
+
 ## Try the examples
 
 The repository includes three self-contained examples:

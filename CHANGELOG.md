@@ -2,6 +2,17 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## Unreleased
+
+### Added
+
+- Added AI preferences, configurable shortcuts, and global or project instructions.
+- Added workspace realtime voice with OpenAI Realtime, Gemini Live, and Codex Live, call controls, transcripts, and optional recent context sharing.
+- Added MCP server management by scope, configuration scanning, 15 built-in templates, and official registry search.
+- Added reusable subagent templates and task launch controls.
+- Added remote host pairing, project and session browsing, conversations, and approval handling.
+- Added multilingual feature guides and refreshed product screenshots.
+
 ## 2.2.9 — 2026-10-22
 
 ### Fixed
