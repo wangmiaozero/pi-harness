@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>Download</strong></a> ·
   <a href="#features">Funktionen</a> ·
+  <a href="#agent-settings">Agenten-Einstellungen</a> ·
   <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">Dokumentation</a>
 </p>
@@ -99,7 +100,39 @@ Richte Pi-kompatible Anbieter mit Vorlagen oder eigenen Endpunkten ein, verwalte
 
 ### Skills, Erweiterungen, Pakete und MCP
 
-Durchsuche und bearbeite integrierte und lokale Skills und verwalte Pi-Pakete und Erweiterungen im Funktionsbereich. Gib `@` im Eingabefeld ein, um einen installierten Skill zu suchen und aufzurufen. Verbinde MCP über unterstützte Pakete. Optionale Ergänzungen wie [Superpowers](https://github.com/obra/superpowers) und [Odai](https://github.com/orziz/odai) kannst du bei Bedarf installieren, aktualisieren oder entfernen.
+Durchsuche und bearbeite integrierte und lokale Skills und verwalte Pi-Pakete und Erweiterungen im Funktionsbereich. Gib `@` im Eingabefeld ein, um einen installierten Skill zu suchen und aufzurufen. Verwalte MCP-Server unter **Einstellungen → MCP**. Optionale Ergänzungen wie [Superpowers](https://github.com/obra/superpowers) und [Odai](https://github.com/orziz/odai) kannst du bei Bedarf installieren, aktualisieren oder entfernen.
+
+<a id="agent-settings"></a>
+
+### Agenten-Einstellungen
+
+Aktuelle Builds aus dem Quellcode bieten sieben Einstellungsseiten: **AI, Echtzeit-Sprache, Tastenkürzel, Anweisungen, MCP, Unteragenten und Remote-Hosts**. Welche Funktionen ein heruntergeladener Installer enthält, steht in den zugehörigen Versionshinweisen.
+
+Unter **Einstellungen → AI** legst du die Denkstufe, automatische Kontextkomprimierung, Wiederholungen bei Fehlern und Workspace-Vorgaben fest. Zeichne Tastenkürzel für Befehlspalette, Einstellungen, neue Sitzungen und das Schließen von Tabs auf oder stelle die Standardwerte wieder her. Auf der Seite für Anweisungen bearbeitest du globale oder projektbezogene Vorgaben.
+
+Unter **Einstellungen → Unteragenten** erstellst du wiederverwendbare Vorlagen mit Rolle, Anweisungen, Modell, Denkstufe und Werkzeugen. Wähle einen gemeinsamen Workspace oder einen isolierten worktree und starte eine Aufgabe oder nutze die Vorlage in einem Team.
+
+<a id="realtime-voice"></a>
+
+### Echtzeit-Sprache im Workspace
+
+Richte **OpenAI Realtime, Gemini Live oder Codex Live** unter **Einstellungen → Echtzeit-Sprache** ein und nutze anschließend die Wellenform-Schaltfläche neben dem Eingabefeld. Verwende ein unterstütztes Dienstkonto oder einen eigenen API-Schlüssel. Codex Live nutzt deine bestehende Codex-Anmeldung in Pi. Verfügbarkeit und Kosten hängen vom Konto ab.
+
+Prüfe vor dem Anruf die Zielunterhaltung. Das Teilen des letzten Gesprächskontexts ist standardmäßig aus. Wenn du es aktivierst, werden nur die letzten sechs reinen Textnachrichten ohne Anhänge und Werkzeugergebnisse geteilt. Über die schwebenden Bedienelemente kannst du das Mikrofon stummschalten, den Anruf beenden und Transkripte ansehen, auch nach einem Seitenwechsel. Bestätige gesprochene Arbeitsaufträge, bevor sie an die Arbeitsunterhaltung gesendet werden.
+
+<a id="mcp-marketplace"></a>
+
+### MCP-Server und Marktplatz
+
+Unter **Einstellungen → MCP** fügst du Server mit lokalem Startbefehl oder HTTP-Adresse hinzu. Filtere nach **Alle / Global / Projekt**, wähle ein Projekt und bearbeite oder aktiviere Server im jeweiligen Bereich. Konfigurationen anderer Werkzeuge lassen sich nach einer Prüfung importieren.
+
+Der Marktplatz enthält **15 integrierte Servervorlagen**, darunter Memory, Context7, Playwright, Filesystem und GitHub, sowie Suche und Seitennavigation für die offizielle MCP-Registry. Prüfe Konfiguration und Zielbereich vor dem Speichern. Die Vorlagen sind zur gezielten Installation verfügbar und nicht alle aktiviert. Importierte Einträge und Einträge der offiziellen Registry werden deaktiviert gespeichert und erst nach deiner Einrichtung aktiviert.
+
+<a id="remote-hosts"></a>
+
+### Remote-Hosts
+
+Gib unter **Einstellungen → Remote-Hosts** die Adresse eines Hosts mit laufendem **pi-host** und dessen Kopplungstoken ein. Verbinde oder trenne Hosts, durchsuche Projekte und Sitzungen, lies Unterhaltungen, sende Prompts und beantworte Genehmigungsanfragen. Der entfernte Dienst muss bereits laufen und erreichbar sein.
 
 ### Harness: beobachten, steuern und wiederherstellen
 
@@ -152,6 +185,31 @@ Die Funktionsansichten sind nach Theme geordnet. Weitere Ansichten findest du im
 #### Workspace
 
 [![Workspace](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+
+<details>
+<summary>Agenten-Einstellungen · Sprache im Workspace · MCP</summary>
+
+#### Sprache im Workspace
+
+Einrichtung und Vorbereitung vor einem Anruf:
+
+[![Sprache im Workspace](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)
+
+#### MCP-Marktplatz
+
+[![MCP-Marktplatz](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)
+
+| Einstellungsseite                       | Screenshot                                                                                                                         |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| AI-Vorgaben                             | [Ansehen](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/AI.png)                                   |
+| Echtzeit-Sprache                        | [Ansehen](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3.png) |
+| Tastenkürzel                            | [Ansehen](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%BF%AB%E6%8D%B7%E9%94%AE.png)          |
+| Globale und projektbezogene Anweisungen | [Ansehen](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%8C%87%E4%BB%A4.png)                   |
+| MCP-Server                              | [Ansehen](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E6%9C%8D%E5%8A%A1%E5%99%A8.png)       |
+| Unteragenten                            | [Ansehen](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AD%90%E6%99%BA%E8%83%BD%E4%BD%93.png) |
+| Kopplung von Remote-Hosts               | [Ansehen](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA.png) |
+
+</details>
 
 <details>
 <summary>Git · Anbieter und Modelle · Funktionsbereich · Harness · Projektarchitektur</summary>
@@ -253,6 +311,15 @@ Nutzer der paketierten App müssen das Repository nicht klonen oder pnpm install
 4. Starte oder setze eine Pi-Sitzung fort und arbeite mit Chats, Dateien und Git.
 5. Öffne die Workspace-Werkzeuge für Harness-Steuerung oder Agenten-Teams.
 
+### Ein Sprachgespräch starten
+
+In einem Build aus dem Quellcode mit Echtzeit-Sprache:
+
+1. Öffne **Einstellungen → Echtzeit-Sprache**, aktiviere Sprache, wähle Dienst und Konto und speichere die Einstellungen.
+2. Kehre zu einer Workspace-Unterhaltung zurück und klicke auf die Wellenform-Schaltfläche neben dem Eingabefeld.
+3. Prüfe die Zielunterhaltung und die optionale Kontextfreigabe, starte den Anruf und erlaube den Mikrofonzugriff.
+4. Nutze die Bedienelemente zum Stummschalten, für Details oder zum Beenden. Bestätige Arbeitsaufträge vor dem Senden an den Coding-Agenten.
+
 ## Voraussetzungen
 
 Die Desktop-App unterstützt macOS Apple Silicon, macOS Intel, Windows x64 und Linux x64. In unterstützten Umgebungen lässt sich Pi Coding Agent aus der App installieren oder reparieren. Für die Ausführung aus dem Quellcode sind Node.js 24 LTS (≥ 24.22.1) und pnpm 9.12.1 erforderlich.
@@ -261,6 +328,7 @@ Die Desktop-App unterstützt macOS Apple Silicon, macOS Intel, Windows x64 und L
 
 ## Dokumentation
 
+- [Agenten-Einstellungen](docs/agent-settings.md)
 - [Screenshot-Verzeichnis](docs/README.md)
 - [Änderungsprotokoll](CHANGELOG.md)
 

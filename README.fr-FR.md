@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#download"><strong>Télécharger</strong></a> ·
   <a href="#features">Fonctionnalités</a> ·
+  <a href="#agent-settings">Réglages des agents</a> ·
   <a href="#harness-plugins">Harness Plugins</a> ·
   <a href="#documentation">Documentation</a>
 </p>
@@ -99,7 +100,39 @@ Configurez des fournisseurs compatibles Pi à partir de préréglages ou d’adr
 
 ### Skills, extensions, paquets et MCP
 
-Parcourez et modifiez les Skills intégrés et locaux, et gérez les paquets et extensions Pi dans le centre de fonctionnalités. Saisissez `@` pour rechercher et invoquer un Skill installé. Connectez MCP via les paquets compatibles. Les compléments [Superpowers](https://github.com/obra/superpowers) et [Odai](https://github.com/orziz/odai) peuvent être installés, mis à jour ou supprimés à votre demande.
+Parcourez et modifiez les Skills intégrés et locaux, et gérez les paquets et extensions Pi dans le centre de fonctionnalités. Saisissez `@` pour rechercher et invoquer un Skill installé. Gérez les serveurs MCP dans **Paramètres → MCP**. Les compléments [Superpowers](https://github.com/obra/superpowers) et [Odai](https://github.com/orziz/odai) peuvent être installés, mis à jour ou supprimés à votre demande.
+
+<a id="agent-settings"></a>
+
+### Réglages des agents
+
+La version actuelle compilée depuis les sources propose sept pages : **AI, voix en temps réel, raccourcis, instructions, MCP, sous-agents et hôtes distants**. Consultez les notes de version pour savoir si elles sont incluses dans l’installateur téléchargé.
+
+Dans **Paramètres → AI**, réglez le niveau de raisonnement par défaut, la compression automatique, les nouvelles tentatives et les préférences de l’espace de travail. Enregistrez des raccourcis pour la palette de commandes, les paramètres, les nouvelles sessions et la fermeture des onglets, ou rétablissez les valeurs par défaut. La page des instructions permet de modifier les consignes globales ou propres à un projet.
+
+Dans **Paramètres → Sous-agents**, créez des modèles réutilisables avec un rôle, des instructions, un modèle IA, un niveau de raisonnement et des outils. Choisissez un espace partagé ou un worktree isolé, puis lancez une tâche ou réutilisez le modèle dans une équipe.
+
+<a id="realtime-voice"></a>
+
+### Voix en temps réel dans l’espace de travail
+
+Configurez **OpenAI Realtime, Gemini Live ou Codex Live** dans **Paramètres → Voix en temps réel**, puis utilisez le bouton en forme d’onde à côté du champ de message. Choisissez un compte compatible ou une clé API distincte. Codex Live utilise votre connexion Codex existante dans Pi. La disponibilité et les tarifs dépendent de votre compte.
+
+Vérifiez la conversation cible avant l’appel. Le partage du contexte récent est désactivé par défaut ; une fois activé, il inclut seulement les six derniers messages en texte brut, sans pièces jointes ni résultats d’outils. Les commandes flottantes permettent de couper le micro, terminer l’appel et lire la transcription, même après un changement de page. Confirmez les demandes de travail vocales avant leur envoi à la conversation de travail.
+
+<a id="mcp-marketplace"></a>
+
+### Serveurs et catalogue MCP
+
+Dans **Paramètres → MCP**, ajoutez des serveurs lancés par une commande locale ou accessibles par HTTP. Filtrez par **Tous / Global / Projet**, choisissez un projet et modifiez ou activez les serveurs dans leur portée respective. Vous pouvez aussi analyser les configurations d’autres outils et les importer après vérification.
+
+Le catalogue propose **15 modèles intégrés**, dont Memory, Context7, Playwright, Filesystem et GitHub, ainsi que la recherche et la pagination du registre officiel MCP. Vérifiez la configuration et sa destination avant l’enregistrement. Ces modèles sont à installer selon vos besoins ; ils ne sont pas tous activés. Les entrées importées et celles du registre officiel sont enregistrées désactivées : configurez-les avant de les activer.
+
+<a id="remote-hosts"></a>
+
+### Hôtes distants
+
+Dans **Paramètres → Hôtes distants**, saisissez l’adresse d’un hôte exécutant **pi-host** et son jeton d’appairage. Connectez ou déconnectez les hôtes, parcourez leurs projets et sessions, consultez les conversations, envoyez des prompts et répondez aux demandes d’approbation. Le service distant doit être lancé et accessible au préalable.
 
 ### Harness : observer, contrôler et récupérer
 
@@ -152,6 +185,31 @@ Les interfaces sont classées par thème. Consultez l’[index complet des captu
 #### Espace de travail
 
 [![Espace de travail](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+
+<details>
+<summary>Réglages des agents · Voix dans l’espace de travail · MCP</summary>
+
+#### Voix dans l’espace de travail
+
+Configuration et préparation avant un appel :
+
+[![Voix dans l’espace de travail](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)
+
+#### Catalogue MCP
+
+[![Catalogue MCP](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)
+
+| Page de paramètres                 | Capture                                                                                                                         |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Préférences AI                     | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/AI.png)                                   |
+| Voix en temps réel                 | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3.png) |
+| Raccourcis                         | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%BF%AB%E6%8D%B7%E9%94%AE.png)          |
+| Instructions globales et du projet | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%8C%87%E4%BB%A4.png)                   |
+| Serveurs MCP                       | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E6%9C%8D%E5%8A%A1%E5%99%A8.png)       |
+| Sous-agents                        | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AD%90%E6%99%BA%E8%83%BD%E4%BD%93.png) |
+| Appairage d’un hôte distant        | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA.png) |
+
+</details>
 
 <details>
 <summary>Git · Fournisseurs et modèles · Fonctionnalités · Harness · Architecture du projet</summary>
@@ -253,6 +311,15 @@ Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer 
 4. Lancez ou reprenez une session Pi pour travailler avec conversations, fichiers et Git.
 5. Ouvrez les outils de l’espace de travail pour les contrôles Harness ou les équipes d’agents.
 
+### Démarrer une conversation vocale
+
+Dans une version compilée depuis les sources avec la voix en temps réel :
+
+1. Ouvrez **Paramètres → Voix en temps réel**, activez la voix, choisissez le service et le compte, puis enregistrez.
+2. Revenez à une conversation de l’espace de travail et cliquez sur le bouton en forme d’onde à côté du champ de message.
+3. Vérifiez la conversation cible et le partage facultatif du contexte, démarrez l’appel et autorisez le microphone.
+4. Utilisez les commandes pour couper le micro, consulter les détails ou terminer l’appel. Confirmez toute demande de travail avant de l’envoyer à l’agent.
+
 ## Prérequis
 
 L’application prend en charge macOS Apple Silicon, macOS Intel, Windows x64 et Linux x64. Pi Coding Agent peut être installé ou réparé depuis l’application dans les environnements compatibles. L’exécution depuis les sources nécessite Node.js 24 LTS (≥ 24.22.1) et pnpm 9.12.1.
@@ -261,6 +328,7 @@ L’application prend en charge macOS Apple Silicon, macOS Intel, Windows x64 et
 
 ## Documentation
 
+- [Réglages des agents](docs/agent-settings.md)
 - [Index des captures](docs/README.md)
 - [Historique des modifications](CHANGELOG.md)
 
