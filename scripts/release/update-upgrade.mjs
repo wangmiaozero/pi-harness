@@ -142,6 +142,10 @@ try {
           ),
           directories: { output: directory },
           extraMetadata: { version },
+          // Validation fixtures are throwaway artifacts that only need to install
+          // and hash-match; skipping compression keeps the four sequential
+          // electron-builder runs (2 variants × 2 versions) inside the CI budget.
+          compression: 'store',
           ...(process.platform === 'win32' && process.arch === 'arm64'
             ? {
                 win: {
