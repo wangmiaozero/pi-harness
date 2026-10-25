@@ -219,6 +219,7 @@ watch(open, (value) => {
       :aria-expanded="open"
       aria-haspopup="dialog"
       :aria-label="$t('workspace.model')"
+      :title="selectedLabel"
       @click="toggle"
     >
       <span class="min-w-0 flex-1 truncate">{{ selectedLabel }}</span>
@@ -234,7 +235,7 @@ watch(open, (value) => {
         v-if="open"
         ref="vendorPanel"
         data-testid="composer-vendor-panel"
-        class="composer-model-picker ui-select-menu pointer-events-auto fixed z-[120] rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
+        class="composer-model-picker ui-select-menu pointer-events-auto fixed z-[120] rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
         :style="vendorStyle"
         @pointerdown.stop
       >
@@ -242,7 +243,7 @@ watch(open, (value) => {
           v-for="vendor in vendors"
           :key="vendor.label"
           type="button"
-          class="flex w-full items-center gap-2 rounded-[6px] px-2 py-1.5 text-left text-[13px] text-[var(--text-primary)] outline-none"
+          class="flex w-full items-center gap-2 rounded-[var(--radius-xs)] px-2 py-1.5 text-left text-[13px] text-[var(--text-primary)] outline-none"
           :class="
             openVendor === vendor.label ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)]'
           "
@@ -270,7 +271,7 @@ watch(open, (value) => {
         ref="modelPanel"
         data-testid="composer-model-panel"
         data-select-cascade-submenu
-        class="composer-model-picker ui-select-menu pointer-events-auto fixed z-[121] flex w-80 flex-col gap-1.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
+        class="composer-model-picker ui-select-menu pointer-events-auto fixed z-[121] flex w-80 flex-col gap-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
         :style="modelStyle"
         @pointerdown.stop
       >
@@ -290,7 +291,7 @@ watch(open, (value) => {
             v-model="search"
             type="search"
             data-testid="composer-model-search"
-            class="h-8 w-full rounded-[6px] border border-[var(--border-default)] bg-[var(--control-bg)] pr-2 pl-7 text-[12.5px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)] focus-visible:shadow-[var(--focus-ring)]"
+            class="h-8 w-full rounded-[var(--radius-xs)] border border-[var(--border-default)] bg-[var(--control-bg)] pr-2 pl-7 text-[12.5px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)] focus-visible:shadow-[var(--focus-ring)]"
             :placeholder="$t('workspace.modelSearchPlaceholder')"
             :aria-label="$t('workspace.modelSearchPlaceholder')"
           />
@@ -301,7 +302,7 @@ watch(open, (value) => {
             :key="option.value"
             type="button"
             role="option"
-            class="ui-select-option flex w-full items-center gap-2 rounded-[6px] px-2 py-1.5 text-left text-[13px] outline-none"
+            class="ui-select-option flex w-full items-center gap-2 rounded-[var(--radius-xs)] px-2 py-1.5 text-left text-[13px] outline-none"
             :class="
               option.value === modelValue
                 ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]'

@@ -23,7 +23,7 @@ const props = withDefaults(
 /* Compact 18-20px pill. No loud colors — semantic tints only when needed. */
 const classes = computed(() => {
   const base =
-    'inline-flex items-center gap-1 rounded-[4px] px-1.5 h-[18px] text-[10.5px] font-medium leading-none ' +
+    'inline-flex items-center gap-1 rounded-[var(--radius-xs)] px-1.5 h-[18px] text-[10.5px] font-medium leading-none ' +
     'border transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] whitespace-nowrap'
   const tones: Record<Tone, string> = {
     default: 'border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)]',

@@ -263,8 +263,8 @@ function clear() {
 }
 .calendar-day[data-selection-start],
 .calendar-day[data-selection-end] {
-  background: var(--accent);
-  color: white;
+  background: var(--accent-solid);
+  color: var(--text-on-accent);
 }
 .calendar-day[data-selection-start]::after,
 .calendar-day[data-selection-end]::after {

@@ -14,7 +14,7 @@ export type PiSessionInfoLike = Pick<
   | 'messageCount'
   | 'firstMessage'
   | 'parentSessionPath'
->
+> & { suggestedTitle?: string }
 export type PiModelLike = NonNullable<AgentSession['model']>
 export type PiCodingAgentModule = typeof import('@earendil-works/pi-coding-agent')
 

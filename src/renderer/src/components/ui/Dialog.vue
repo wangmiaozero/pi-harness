@@ -32,10 +32,10 @@ function preventImplicitClose(event: Event) {
   <DialogRoot v-model:open="open">
     <DialogPortal>
       <DialogOverlay
-        class="fixed inset-0 z-[100] bg-black/45 data-[state=open]:animate-[pi-fade-in_var(--motion-base)_var(--ease-out)] data-[state=closed]:animate-[pi-fade-in_var(--motion-base)_var(--ease-out)_reverse]"
+        class="fixed inset-0 z-[100] bg-[var(--dialog-scrim)] data-[state=open]:animate-[pi-fade-in_var(--motion-base)_var(--ease-out)] data-[state=closed]:animate-[pi-fade-in_var(--motion-base)_var(--ease-out)_reverse]"
       />
       <DialogContent
-        class="fixed left-1/2 top-1/2 z-[101] flex max-h-[85vh] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-dialog)] focus:outline-none data-[state=open]:animate-[pi-pop-in_var(--motion-base)_var(--ease-out)]"
+        class="fixed left-1/2 top-1/2 z-[101] flex max-h-[85vh] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-dialog)] focus:outline-none data-[state=open]:animate-[pi-pop-in_var(--motion-base)_var(--ease-out)]"
         :class="
           large
             ? 'w-[min(820px,92vw)]'

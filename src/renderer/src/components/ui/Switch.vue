@@ -15,12 +15,12 @@ function toggle() {
 
 const trackClasses = computed(() =>
   model.value
-    ? 'bg-[var(--accent)] border-[var(--accent)]'
+    ? 'bg-[var(--accent-solid)] border-[var(--accent-solid)]'
     : 'bg-[var(--bg-surface)] border-[var(--border-strong)]'
 )
 
 const thumbStyle = computed(() => ({
-  transform: model.value ? 'translateX(11px)' : 'translateX(1px)'
+  transform: model.value ? 'translateX(13px)' : 'translateX(1px)'
 }))
 </script>
 
@@ -31,7 +31,7 @@ const thumbStyle = computed(() => ({
     :aria-checked="model"
     :aria-label="label"
     :disabled="disabled"
-    class="relative inline-flex h-[var(--height-switch-track)] w-[28px] shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-45"
+    class="relative inline-flex h-[var(--height-switch-track)] w-[var(--width-switch-track)] shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-45"
     :class="trackClasses"
     @click="toggle"
   >

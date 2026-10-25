@@ -157,7 +157,7 @@ function date(value: string): string {
               class="max-w-32 shrink-0 truncate rounded-full border px-1.5 py-0.5 text-[9px] transition-colors"
               :class="
                 activeRef === shortRef(ref)
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                  ? 'border-[var(--accent-solid)] bg-[var(--accent-solid)] text-white'
                   : 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)] hover:bg-[var(--accent-tint-strong)]'
               "
               :title="$t('workspace.gitFilterRefHint', { ref: shortRef(ref) })"

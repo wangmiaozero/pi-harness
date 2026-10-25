@@ -189,6 +189,7 @@ function normalizeUserNameInput(): void {
         @update:model-value="onLanguageChange"
       />
       <Select
+        data-testid="app-theme-select"
         :model-value="draft.theme"
         :label="$t('settings.theme')"
         :options="themeOptions"
@@ -256,7 +257,7 @@ function normalizeUserNameInput(): void {
           :placeholder="DEFAULT_USER_NAME"
           :aria-label="$t('settings.userName')"
           data-testid="user-name-input"
-          class="ml-auto block h-7 w-full max-w-[280px] rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] px-2.5 text-right text-[12px] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-tertiary)] hover:border-[var(--border-strong)] focus:border-[var(--accent-border)] focus:shadow-[var(--focus-ring)]"
+          class="ml-auto block h-[var(--height-input)] w-full max-w-[280px] rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 text-right text-[12px] text-[var(--text-primary)] shadow-[var(--control-shadow)] outline-none transition-colors placeholder:text-[var(--control-placeholder)] hover:border-[var(--control-border-hover)] focus:border-[var(--accent)] focus:shadow-[var(--focus-ring)]"
           @blur="normalizeUserNameInput"
         />
       </PropertyRow>
@@ -268,11 +269,11 @@ function normalizeUserNameInput(): void {
           :placeholder="DEFAULT_ASSISTANT_NAME"
           :aria-label="$t('settings.assistantName')"
           data-testid="assistant-name-input"
-          class="ml-auto block h-7 w-full max-w-[280px] rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] px-2.5 text-right text-[12px] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-tertiary)] hover:border-[var(--border-strong)] focus:border-[var(--accent-border)] focus:shadow-[var(--focus-ring)]"
+          class="ml-auto block h-[var(--height-input)] w-full max-w-[280px] rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 text-right text-[12px] text-[var(--text-primary)] shadow-[var(--control-shadow)] outline-none transition-colors placeholder:text-[var(--control-placeholder)] hover:border-[var(--control-border-hover)] focus:border-[var(--accent)] focus:shadow-[var(--focus-ring)]"
           @blur="normalizeAssistantNameInput"
         />
       </PropertyRow>
-      <fieldset class="px-3 py-3" data-testid="app-icon-settings">
+      <fieldset class="px-4 py-3" data-testid="app-icon-settings">
         <legend class="sr-only">{{ $t('settings.appIcon') }}</legend>
         <div class="mb-2 text-[11.5px] font-medium text-[var(--text-secondary)]">
           {{ $t('settings.appIcon') }}

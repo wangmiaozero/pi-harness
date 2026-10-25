@@ -1,32 +1,48 @@
-/* =============================================================================
- * Pi-Harness · Timeless Graphite · Design Tokens
- *
- * The whole visual system keys off this file. Components must reference these
- * tokens instead of hard-coded colors / radii. Theme switch = `data-theme` on
- * the root element.
- *
- * Surfaces form a 6-step elevation ladder; the delta between any two adjacent
- * steps is intentionally small (2% – 5% lightness) so the UI reads as one
- * continuous workspace, not as Card-on-Card.
- * ============================================================================= */
+/* Foundation → appearance → accent → component tokens.
+ * Existing aliases remain stable for feature views and declarative skins.
+ * Glass and visual skins are applied after this file and own their overrides.
+ */
+:root {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', system-ui,
+    sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'JetBrains Mono', 'Consolas', monospace;
 
-:root,
-:root[data-theme='dark'] {
-  color-scheme: dark;
+  --sidebar-width: 56px;
+  --titlebar-height: 52px;
+  --inspector-width: 320px;
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-composer: 28px;
+  --radius-pill: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
 
-  /* ---------- Surface ladder (dark) ---------- */
-  --bg-window: #16181b; /* Window — outermost */
-  --bg-titlebar: #181a1d; /* TitleBar */
-  --bg-sidebar: #191b1f; /* Sidebar (a touch darker than Window) */
-  --bg-workspace: #1d1f23; /* Main content background */
-  --bg-surface: #212429; /* Table rows, list rows, inputs */
-  --bg-surface-raised: #25282e; /* Cards, dialogs, popovers */
-  --bg-hover: #292d33; /* Hover state */
-  --bg-selected: #2b3441; /* Selected row / sidebar item (accent tint base) */
+  --height-button: 30px;
+  --height-button-md: 34px;
+  --height-input: 34px;
+  --height-select: 34px;
+  --height-switch-track: 20px;
+  --height-switch-thumb: 16px;
+  --width-switch-track: 32px;
+  --height-row: 38px;
+  --height-row-sm: 32px;
+  --height-toolbar: 40px;
+  --height-page-header: 48px;
+  --motion-fast: 120ms;
+  --motion-base: 160ms;
+  --motion-slow: 220ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  /* Legacy aliases — many components still reference these. Kept stable so
-   * we don't have to re-skin every page in one pass; the new ladder above
-   * is the source of truth. */
   --color-window: var(--bg-window);
   --color-sidebar: var(--bg-sidebar);
   --color-content: var(--bg-workspace);
@@ -34,71 +50,92 @@
   --color-elevated: var(--bg-surface-raised);
   --color-hover: var(--bg-hover);
   --color-selected: var(--bg-selected);
-  /* Input surfaces on the Harness/Orchestration console. These must resolve
-   * to the ladder's input step; leaving them undefined made every referenced
-   * background transparent. */
   --bg-primary: var(--bg-surface);
-  --bg-input: var(--bg-surface);
-
-  /* ---------- Borders ---------- */
-  /* Almost invisible by default. We rely on background deltas, not borders,
-   * for hierarchy. */
-  --border-subtle: rgba(255, 255, 255, 0.055);
-  --border-default: rgba(255, 255, 255, 0.075);
-  --border-strong: rgba(255, 255, 255, 0.11);
+  --bg-input: var(--control-bg);
+  --bg-base: var(--bg-workspace);
+  --bg-inset: var(--bg-window);
+  --text-on-accent: #fff;
+  --accent-shadow: transparent;
   --color-border: var(--border-default);
   --color-border-strong: var(--border-strong);
-
-  /* ---------- Form controls ---------- */
-  --control-bg: rgba(255, 255, 255, 0.025);
-  --control-bg-hover: rgba(255, 255, 255, 0.045);
-  --control-bg-disabled: rgba(255, 255, 255, 0.014);
-  --control-border: rgba(255, 255, 255, 0.1);
-  --control-border-hover: rgba(255, 255, 255, 0.16);
-  --control-placeholder: rgba(255, 255, 255, 0.31);
-  --control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025), 0 1px 1px rgba(0, 0, 0, 0.12);
-
-  /* ---------- Text ---------- */
-  --text-primary: rgba(255, 255, 255, 0.9);
-  --text-secondary: rgba(255, 255, 255, 0.62);
-  --text-tertiary: rgba(255, 255, 255, 0.4);
-  --text-disabled: rgba(255, 255, 255, 0.26);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
-
-  /* ---------- Accent (macOS-like, low saturation) ---------- */
-  --accent: #5b91f5;
-  --accent-hover: #6a9cf7;
-  --accent-active: #4a82e8;
-  --accent-tint: rgba(91, 145, 245, 0.13); /* row tint, sidebar selected bg */
-  --accent-tint-soft: rgba(91, 145, 245, 0.08);
-  --accent-tint-strong: rgba(91, 145, 245, 0.22);
-  --accent-border: rgba(91, 145, 245, 0.32);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
-
-  /* ---------- Semantic (muted, never fluorescent) ---------- */
-  --success: #5abf8a;
-  --success-tint: rgba(90, 191, 138, 0.12);
-  --warning: #d6a85c;
-  --warning-tint: rgba(214, 168, 92, 0.12);
-  --error: #d46a6a;
-  --error-tint: rgba(212, 106, 106, 0.12);
-  --info: var(--accent);
-  --info-tint: var(--accent-tint);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
-
-  /* Subtle semantic surfaces — used for banners / warning zones. */
+  --danger: var(--error);
+  --info: var(--accent);
+  --success-tint: color-mix(in srgb, var(--success) 10%, transparent);
+  --warning-tint: color-mix(in srgb, var(--warning) 10%, transparent);
+  --error-tint: color-mix(in srgb, var(--error) 10%, transparent);
+  --info-tint: var(--accent-tint);
   --surface-danger: var(--error-tint);
   --surface-warning: var(--warning-tint);
   --surface-info: var(--accent-tint-soft);
+  --permission-warning: var(--warning);
+  --accent-tint: color-mix(in srgb, var(--accent) 10%, transparent);
+  --accent-tint-soft: color-mix(in srgb, var(--accent) 5%, transparent);
+  --accent-tint-strong: color-mix(in srgb, var(--accent) 18%, transparent);
+  --accent-border: color-mix(in srgb, var(--accent) 30%, transparent);
+  --accent-hover: color-mix(in srgb, var(--accent) 90%, var(--text-primary));
+  --accent-active: color-mix(in srgb, var(--accent) 80%, var(--text-primary));
+  --accent-solid: var(--accent);
+  --accent-solid-hover: color-mix(in srgb, var(--accent-solid) 90%, #202127);
+  --accent-solid-active: color-mix(in srgb, var(--accent-solid) 80%, #202127);
+  --bg-selected: var(--accent-tint);
+  --focus-ring: 0 0 0 2px var(--accent);
+  --focus-ring-offset: 2px;
+  --radius-sm-old: var(--radius-sm);
+  --radius-md-old: var(--radius-md);
 
+  --composer-bg: var(--bg-surface-raised);
+  --composer-border: var(--border-default);
+  --composer-shadow: var(--shadow-sm), 0 4px 16px rgb(20 22 30 / 0.035);
+  --composer-padding: 18px;
+  --composer-action-size: 42px;
+  --menu-radius: var(--radius-md);
+  --menu-item-radius: var(--radius-xs);
+  --message-radius: var(--radius-lg);
+  --code-bg: color-mix(in srgb, var(--text-primary) 3%, var(--bg-surface));
+  --dialog-scrim: rgb(16 18 24 / 0.32);
+}
+
+/* Neutral graphite is also the pre-bootstrap fallback. */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg-window: #17181b;
+  --bg-titlebar: #1b1c20;
+  --bg-sidebar: #1d1e22;
+  --bg-workspace: #202126;
+  --bg-surface: #292a30;
+  --bg-surface-raised: #303138;
+  --bg-hover: #34353d;
+  --border-subtle: rgb(255 255 255 / 0.045);
+  --border-default: rgb(255 255 255 / 0.075);
+  --border-strong: rgb(255 255 255 / 0.14);
+  --control-bg: #292a30;
+  --control-bg-hover: #303138;
+  --control-bg-disabled: #24252a;
+  --control-border: rgb(255 255 255 / 0.12);
+  --control-border-hover: rgb(255 255 255 / 0.22);
+  --control-placeholder: #858792;
+  --control-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  --text-primary: #ececf0;
+  --text-secondary: #acadb8;
+  --text-tertiary: #9597a2;
+  --text-disabled: #70727c;
+  --accent: #91a9c7;
+  --accent-solid: #536e91;
+  --success: #84bc9b;
+  --warning: #d7aa70;
+  --error: #df9292;
   /* ---------- Capability tints (for model feature badges) ---------- */
-  --tone-tools-bg: rgba(91, 145, 245, 0.1);
-  --tone-tools-text: #8fb4f8;
+  --tone-tools-bg: var(--accent-tint);
+  --tone-tools-text: var(--accent);
   --tone-vision-bg: rgba(80, 178, 178, 0.12);
   --tone-vision-text: #6bb6b6;
   --tone-reasoning-bg: rgba(160, 130, 210, 0.12);
@@ -113,7 +150,7 @@
   --syntax-number: #c99a67;
   --syntax-constant: #a995cf;
   --syntax-keyword: #94a9ce;
-  --syntax-comment: rgba(255, 255, 255, 0.34);
+  --syntax-comment: #9597a2;
   --syntax-heading: #9bb9ec;
   --syntax-emphasis: #b7a4d6;
   --syntax-link: #78adb8;
@@ -135,138 +172,12 @@
   --scrollbar-thumb-active: rgba(255, 255, 255, 0.28);
 
   /* ---------- Shadows (graphite, never colorful) ---------- */
-  --shadow-popover: 0 1px 2px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.14);
-  --shadow-dialog: 0 2px 4px rgba(0, 0, 0, 0.3), 0 16px 32px rgba(0, 0, 0, 0.45);
-
-  /* ---------- Focus ring (1px accent, no glow) ---------- */
-  --focus-ring: 0 0 0 1px var(--accent);
-  --focus-ring-offset: 1px;
+  --shadow-popover: 0 2px 6px rgb(0 0 0 / 0.16), 0 12px 32px rgb(0 0 0 / 0.22);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.12);
+  --shadow-dialog: 0 12px 48px rgb(0 0 0 / 0.32);
 }
 
-/* =============================================================================
- * Soft Dark Theme (柔和深色)
- *
- * Ported from the Codex-style neutral ramp: a calm graphite ladder built on
- * #181818 with white-alpha borders and a muted steel accent, so chrome and
- * content read as one continuous, low-contrast workspace.
- * ============================================================================= */
-:root[data-theme='soft-dark'] {
-  color-scheme: dark;
-
-  --bg-window: #181818;
-  --bg-titlebar: #161616;
-  --bg-sidebar: #111111;
-  --bg-workspace: #181818;
-  --bg-surface: #212121;
-  --bg-surface-raised: #282828;
-  --bg-hover: rgba(255, 255, 255, 0.06);
-  --bg-selected: rgba(255, 255, 255, 0.1);
-
-  --color-window: var(--bg-window);
-  --color-sidebar: var(--bg-sidebar);
-  --color-content: var(--bg-workspace);
-  --color-surface: var(--bg-surface);
-  --color-elevated: var(--bg-surface-raised);
-  --color-hover: var(--bg-hover);
-  --color-selected: var(--bg-selected);
-  --bg-primary: var(--bg-surface);
-  --bg-input: var(--bg-surface);
-
-  --border-subtle: rgba(255, 255, 255, 0.04);
-  --border-default: rgba(255, 255, 255, 0.06);
-  --border-strong: rgba(255, 255, 255, 0.12);
-  --color-border: var(--border-default);
-  --color-border-strong: var(--border-strong);
-
-  --control-bg: rgba(255, 255, 255, 0.04);
-  --control-bg-hover: rgba(255, 255, 255, 0.07);
-  --control-bg-disabled: rgba(255, 255, 255, 0.02);
-  --control-border: rgba(255, 255, 255, 0.08);
-  --control-border-hover: rgba(255, 255, 255, 0.13);
-  --control-placeholder: rgba(255, 255, 255, 0.38);
-  --control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 2px rgba(0, 0, 0, 0.16);
-
-  --text-primary: rgba(255, 255, 255, 0.92);
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --text-tertiary: rgba(255, 255, 255, 0.52);
-  --text-disabled: rgba(255, 255, 255, 0.38);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary: var(--text-tertiary);
-
-  --accent: #7189a6;
-  --accent-hover: #8096b1;
-  --accent-active: #617691;
-  --accent-tint: rgba(113, 137, 166, 0.14);
-  --accent-tint-soft: rgba(113, 137, 166, 0.08);
-  --accent-tint-strong: rgba(113, 137, 166, 0.24);
-  --accent-border: rgba(113, 137, 166, 0.34);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-
-  --success: #40c977;
-  --success-tint: rgba(64, 201, 119, 0.12);
-  --warning: #ff8549;
-  --warning-tint: rgba(255, 133, 73, 0.12);
-  --error: #ff6764;
-  --error-tint: rgba(255, 103, 100, 0.12);
-  --info: var(--accent);
-  --info-tint: var(--accent-tint);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-error: var(--error);
-
-  --surface-danger: var(--error-tint);
-  --surface-warning: var(--warning-tint);
-  --surface-info: var(--accent-tint-soft);
-
-  --tone-tools-bg: rgba(255, 255, 255, 0.08);
-  --tone-tools-text: #c2c9d2;
-  --tone-vision-bg: rgba(80, 178, 178, 0.14);
-  --tone-vision-text: #6bb6b6;
-  --tone-reasoning-bg: rgba(160, 130, 210, 0.14);
-  --tone-reasoning-text: #b49bd8;
-  --tone-streaming-bg: rgba(255, 255, 255, 0.06);
-  --tone-streaming-text: var(--text-secondary);
-
-  --editor-active-line: rgba(255, 255, 255, 0.025);
-  --syntax-property: #a8bdda;
-  --syntax-string: #8cc3a2;
-  --syntax-number: #d3ab7f;
-  --syntax-constant: #b8a6d8;
-  --syntax-keyword: #a4b6d2;
-  --syntax-comment: rgba(255, 255, 255, 0.36);
-  --syntax-heading: #b4c8e6;
-  --syntax-emphasis: #c4b4dd;
-  --syntax-link: #88b4bd;
-
-  --diff-added-bg: rgba(64, 201, 119, 0.1);
-  --diff-added-text: rgba(64, 201, 119, 0.92);
-  --diff-added-gutter: rgba(64, 201, 119, 0.28);
-  --diff-removed-bg: rgba(255, 103, 100, 0.1);
-  --diff-removed-text: rgba(255, 103, 100, 0.92);
-  --diff-removed-gutter: rgba(255, 103, 100, 0.28);
-  --diff-gutter-bg: rgba(255, 255, 255, 0.03);
-  --diff-gutter-text: rgba(255, 255, 255, 0.3);
-
-  --scrollbar-thumb: rgba(255, 255, 255, 0.1);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.18);
-  --scrollbar-thumb-active: rgba(255, 255, 255, 0.26);
-
-  --shadow-popover: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.45);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.28);
-  --shadow-dialog: 0 2px 4px rgba(0, 0, 0, 0.35), 0 16px 48px rgba(0, 0, 0, 0.55);
-
-  --focus-ring: 0 0 0 1px var(--accent);
-  --focus-ring-offset: 1px;
-}
-
-/* =============================================================================
- * Light Theme
- * macOS Neutral Light — never pure SaaS white. We use a warm off-white ladder
- * so the UI sits on a clean desk, not on a hospital floor.
- * ============================================================================= */
+/* All light palettes share neutral surfaces; color belongs to interaction. */
 :root:is(
   [data-theme='light'],
   [data-theme='soft-light'],
@@ -276,77 +187,38 @@
   [data-theme='blue'],
   [data-theme='orange'],
   [data-theme='red'],
-  [data-theme='cyan']
+  [data-theme='cyan'],
+  [data-theme='macos27-light']
 ) {
   color-scheme: light;
-
-  --bg-window: #f2f2f3;
-  --bg-titlebar: #ecedef;
-  --bg-sidebar: #ecedef;
-  --bg-workspace: #f5f5f6;
+  --bg-window: #f7f7f8;
+  --bg-titlebar: #f8f8f9;
+  --bg-sidebar: #f5f5f6;
+  --bg-workspace: #fcfcfd;
   --bg-surface: #ffffff;
   --bg-surface-raised: #ffffff;
-  --bg-hover: #eceef1;
-  --bg-selected: #dce6f4;
-
-  --color-window: var(--bg-window);
-  --color-sidebar: var(--bg-sidebar);
-  --color-content: var(--bg-workspace);
-  --color-surface: var(--bg-surface);
-  --color-elevated: var(--bg-surface-raised);
-  --color-hover: var(--bg-hover);
-  --color-selected: var(--bg-selected);
-
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --border-default: rgba(0, 0, 0, 0.09);
-  --border-strong: rgba(0, 0, 0, 0.15);
-  --color-border: var(--border-default);
-  --color-border-strong: var(--border-strong);
-
-  --control-bg: rgba(255, 255, 255, 0.88);
-  --control-bg-hover: #ffffff;
-  --control-bg-disabled: rgba(0, 0, 0, 0.025);
-  --control-border: rgba(0, 0, 0, 0.13);
-  --control-border-hover: rgba(0, 0, 0, 0.22);
-  --control-placeholder: rgba(0, 0, 0, 0.38);
-  --control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 1px rgba(0, 0, 0, 0.04);
-
-  --text-primary: rgba(0, 0, 0, 0.86);
-  --text-secondary: rgba(0, 0, 0, 0.64);
-  --text-tertiary: rgba(0, 0, 0, 0.48);
-  --text-disabled: rgba(0, 0, 0, 0.3);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary: var(--text-tertiary);
-
-  --accent: #2a6fe0;
-  --accent-hover: #1f5dc9;
-  --accent-active: #1850b5;
-  --accent-tint: rgba(42, 111, 224, 0.1);
-  --accent-tint-soft: rgba(42, 111, 224, 0.06);
-  --accent-tint-strong: rgba(42, 111, 224, 0.2);
-  --accent-border: rgba(42, 111, 224, 0.28);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-
-  --success: #1f9d63;
-  --success-tint: rgba(31, 157, 99, 0.1);
-  --warning: #b07a1f;
-  --warning-tint: rgba(176, 122, 31, 0.1);
-  --error: #c84a4a;
-  --error-tint: rgba(200, 74, 74, 0.1);
-  --info: var(--accent);
-  --info-tint: var(--accent-tint);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-error: var(--error);
-
-  --surface-danger: var(--error-tint);
-  --surface-warning: var(--warning-tint);
-  --surface-info: var(--accent-tint-soft);
-
-  --tone-tools-bg: rgba(42, 111, 224, 0.08);
-  --tone-tools-text: #1f5dc9;
+  --bg-hover: #f2f2f4;
+  --border-subtle: #ededf0;
+  --border-default: #e9e9ed;
+  --border-strong: #dedee4;
+  --control-bg: #ffffff;
+  --control-bg-hover: #fafafb;
+  --control-bg-disabled: #f2f2f4;
+  --control-border: #dedee4;
+  --control-border-hover: #bfc0ca;
+  --control-placeholder: #92949e;
+  --control-shadow: 0 1px 2px rgb(20 22 30 / 0.025);
+  --text-primary: #202127;
+  --text-secondary: #686b76;
+  --text-tertiary: #757783;
+  --text-disabled: #a6a7af;
+  --accent: #626b7b;
+  --accent-solid: var(--accent);
+  --success: #377957;
+  --warning: #a05d25;
+  --error: #b64e55;
+  --tone-tools-bg: var(--accent-tint);
+  --tone-tools-text: var(--accent);
   --tone-vision-bg: rgba(20, 130, 130, 0.1);
   --tone-vision-text: #147e7e;
   --tone-reasoning-bg: rgba(120, 90, 180, 0.1);
@@ -360,7 +232,7 @@
   --syntax-number: #9a602a;
   --syntax-constant: #6e56a1;
   --syntax-keyword: #526d9a;
-  --syntax-comment: rgba(0, 0, 0, 0.4);
+  --syntax-comment: #757783;
   --syntax-heading: #315f9d;
   --syntax-emphasis: #76589e;
   --syntax-link: #2e727d;
@@ -378,292 +250,49 @@
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.28);
   --scrollbar-thumb-active: rgba(0, 0, 0, 0.38);
 
-  --shadow-popover: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.1);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.05);
-  --shadow-dialog: 0 4px 16px rgba(0, 0, 0, 0.16);
-
-  --focus-ring: 0 0 0 1px var(--accent);
-  --focus-ring-offset: 1px;
+  --shadow-popover: 0 2px 6px rgb(20 22 30 / 0.06), 0 12px 32px rgb(20 22 30 / 0.09);
+  --shadow-sm: 0 1px 3px rgb(20 22 30 / 0.04);
+  --shadow-dialog: 0 8px 40px rgb(20 22 30 / 0.13);
 }
 
-/* =============================================================================
- * Soft Light Theme (柔和浅色)
- *
- * Ported from the Codex-style light ramp: white workspace on a #f3f3f3 frame,
- * near-black ink (#1a1c1f), hairline black-alpha borders and a muted steel
- * accent — quiet paper, never SaaS-white glare.
- * ============================================================================= */
 :root[data-theme='soft-light'] {
-  --bg-window: #f3f3f3;
-  --bg-titlebar: #f3f3f3;
-  --bg-sidebar: #f3f3f3;
-  --bg-workspace: #ffffff;
-  --bg-surface: #ffffff;
-  --bg-surface-raised: #ffffff;
-  --bg-hover: rgba(26, 28, 31, 0.05);
-  --bg-selected: rgba(26, 28, 31, 0.08);
-
-  --border-subtle: rgba(26, 28, 31, 0.04);
-  --border-default: rgba(26, 28, 31, 0.06);
-  --border-strong: rgba(26, 28, 31, 0.1);
-
-  --control-bg: #ffffff;
-  --control-bg-hover: #ffffff;
-  --control-bg-disabled: rgba(0, 0, 0, 0.025);
-  --control-border: rgba(26, 28, 31, 0.07);
-  --control-border-hover: rgba(26, 28, 31, 0.14);
-  --control-placeholder: rgba(26, 28, 31, 0.42);
-  --control-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-
-  --text-primary: rgba(26, 28, 31, 0.92);
-  --text-secondary: rgba(26, 28, 31, 0.7);
-  --text-tertiary: rgba(26, 28, 31, 0.52);
-  --text-disabled: rgba(26, 28, 31, 0.38);
-
-  --accent: #48627e;
-  --accent-hover: #3a5269;
-  --accent-active: #2f4459;
-  --accent-tint: rgba(72, 98, 126, 0.1);
-  --accent-tint-soft: rgba(72, 98, 126, 0.06);
-  --accent-tint-strong: rgba(72, 98, 126, 0.2);
-  --accent-border: rgba(72, 98, 126, 0.28);
-
-  --success: #00a240;
-  --success-tint: rgba(0, 162, 64, 0.1);
-  --warning: #e25507;
-  --warning-tint: rgba(226, 85, 7, 0.1);
-  --error: #e02e2a;
-  --error-tint: rgba(224, 46, 42, 0.1);
-
-  --tone-tools-bg: rgba(26, 28, 31, 0.06);
-  --tone-tools-text: #3a5269;
-  --tone-vision-bg: rgba(20, 130, 130, 0.1);
-  --tone-vision-text: #147e7e;
-  --tone-reasoning-bg: rgba(120, 90, 180, 0.1);
-  --tone-reasoning-text: #7757b5;
-  --tone-streaming-bg: rgba(0, 0, 0, 0.04);
-  --tone-streaming-text: var(--text-secondary);
-
-  --editor-active-line: rgba(0, 0, 0, 0.025);
-  --syntax-property: #4a6a94;
-  --syntax-string: #2c7a52;
-  --syntax-number: #96612c;
-  --syntax-constant: #6e56a1;
-  --syntax-keyword: #566e99;
-  --syntax-comment: rgba(26, 28, 31, 0.42);
-  --syntax-heading: #35608f;
-  --syntax-emphasis: #755a9c;
-  --syntax-link: #2e727d;
-
-  --diff-added-bg: rgba(0, 162, 64, 0.08);
-  --diff-added-text: rgba(0, 122, 48, 0.95);
-  --diff-added-gutter: rgba(0, 162, 64, 0.25);
-  --diff-removed-bg: rgba(224, 46, 42, 0.08);
-  --diff-removed-text: rgba(170, 40, 38, 0.95);
-  --diff-removed-gutter: rgba(224, 46, 42, 0.25);
-  --diff-gutter-bg: rgba(0, 0, 0, 0.02);
-  --diff-gutter-text: rgba(0, 0, 0, 0.35);
-
-  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
-  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
-  --scrollbar-thumb-active: rgba(0, 0, 0, 0.35);
-
-  --shadow-popover: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.06);
-  --shadow-dialog: 0 16px 48px rgba(0, 0, 0, 0.12);
+  --bg-workspace: #fdfdfe;
+  --accent: #8351dc;
 }
 
-/* Soft color themes keep the light appearance while tinting the full surface ladder. */
+:root[data-theme='soft-dark'] {
+  --bg-window: #1c1c1f;
+  --bg-titlebar: #202023;
+  --bg-sidebar: #222225;
+  --bg-workspace: #252528;
+  --bg-surface: #2c2c30;
+  --bg-surface-raised: #333338;
+  --bg-hover: #39393f;
+  --control-bg: var(--bg-surface);
+  --control-bg-hover: var(--bg-surface-raised);
+  --accent: #aaa6c2;
+  --accent-solid: #6d6688;
+}
+
+/* Accent-only palettes: no duplication of appearance or component rules. */
 :root[data-theme='pink'] {
-  --bg-window: #f7eff3;
-  --bg-titlebar: #f2e7ed;
-  --bg-sidebar: #f2e7ed;
-  --bg-workspace: #faf4f7;
-  --bg-surface: #fffafb;
-  --bg-surface-raised: #fffafb;
-  --bg-hover: #f3e5ec;
-  --bg-selected: #f4d9e7;
-  --accent: #cf4f8a;
-  --accent-hover: #b93e76;
-  --accent-active: #a93468;
-  --accent-tint: rgba(207, 79, 138, 0.11);
-  --accent-tint-soft: rgba(207, 79, 138, 0.065);
-  --accent-tint-strong: rgba(207, 79, 138, 0.21);
-  --accent-border: rgba(207, 79, 138, 0.3);
-  --tone-tools-bg: rgba(207, 79, 138, 0.09);
-  --tone-tools-text: #ad326b;
+  --accent: #b94c7b;
 }
-
 :root[data-theme='purple'] {
-  --bg-window: #f2eff8;
-  --bg-titlebar: #ebe7f3;
-  --bg-sidebar: #ebe7f3;
-  --bg-workspace: #f6f3fb;
-  --bg-surface: #fbfaff;
-  --bg-surface-raised: #fbfaff;
-  --bg-hover: #eae4f4;
-  --bg-selected: #e5dafa;
-  --accent: #7957d5;
-  --accent-hover: #6743c5;
-  --accent-active: #5835b5;
-  --accent-tint: rgba(121, 87, 213, 0.11);
-  --accent-tint-soft: rgba(121, 87, 213, 0.065);
-  --accent-tint-strong: rgba(121, 87, 213, 0.21);
-  --accent-border: rgba(121, 87, 213, 0.3);
-  --tone-tools-bg: rgba(121, 87, 213, 0.09);
-  --tone-tools-text: #6743c5;
+  --accent: #7955bd;
 }
-
 :root[data-theme='green'] {
-  --bg-window: #edf5f1;
-  --bg-titlebar: #e6f0eb;
-  --bg-sidebar: #e6f0eb;
-  --bg-workspace: #f2f8f5;
-  --bg-surface: #fafffc;
-  --bg-surface-raised: #fafffc;
-  --bg-hover: #e2efe8;
-  --bg-selected: #d7ecdf;
-  --accent: #27845e;
-  --accent-hover: #1d704e;
-  --accent-active: #185f42;
-  --accent-tint: rgba(39, 132, 94, 0.11);
-  --accent-tint-soft: rgba(39, 132, 94, 0.065);
-  --accent-tint-strong: rgba(39, 132, 94, 0.21);
-  --accent-border: rgba(39, 132, 94, 0.3);
-  --tone-tools-bg: rgba(39, 132, 94, 0.09);
-  --tone-tools-text: #1d704e;
+  --accent: #537b61;
 }
-
 :root[data-theme='blue'] {
-  --bg-window: #eef2f8;
-  --bg-titlebar: #e7edf6;
-  --bg-sidebar: #e7edf6;
-  --bg-workspace: #f3f6fb;
-  --bg-surface: #fbfcfe;
-  --bg-surface-raised: #fbfcfe;
-  --bg-hover: #e3eaf4;
-  --bg-selected: #d8e5f5;
-  --accent: #3567a8;
-  --accent-hover: #2b5690;
-  --accent-active: #234778;
-  --accent-tint: rgba(53, 103, 168, 0.11);
-  --accent-tint-soft: rgba(53, 103, 168, 0.065);
-  --accent-tint-strong: rgba(53, 103, 168, 0.21);
-  --accent-border: rgba(53, 103, 168, 0.3);
-  --tone-tools-bg: rgba(53, 103, 168, 0.09);
-  --tone-tools-text: #2b5690;
+  --accent: #4c719c;
 }
-
 :root[data-theme='orange'] {
-  --bg-window: #f8f2ec;
-  --bg-titlebar: #f3ebe1;
-  --bg-sidebar: #f3ebe1;
-  --bg-workspace: #fbf6f0;
-  --bg-surface: #fffdf9;
-  --bg-surface-raised: #fffdf9;
-  --bg-hover: #f4e9dc;
-  --bg-selected: #f7e3cd;
-  --accent: #c26a1f;
-  --accent-hover: #a85a15;
-  --accent-active: #8f4c10;
-  --accent-tint: rgba(194, 106, 31, 0.11);
-  --accent-tint-soft: rgba(194, 106, 31, 0.065);
-  --accent-tint-strong: rgba(194, 106, 31, 0.21);
-  --accent-border: rgba(194, 106, 31, 0.3);
-  --tone-tools-bg: rgba(194, 106, 31, 0.09);
-  --tone-tools-text: #a85a15;
+  --accent: #a5612c;
 }
-
 :root[data-theme='red'] {
-  --bg-window: #f8efef;
-  --bg-titlebar: #f3e7e7;
-  --bg-sidebar: #f3e7e7;
-  --bg-workspace: #fbf5f5;
-  --bg-surface: #fffbfb;
-  --bg-surface-raised: #fffbfb;
-  --bg-hover: #f4e4e4;
-  --bg-selected: #f6dcdc;
-  --accent: #c04a4a;
-  --accent-hover: #a83a3a;
-  --accent-active: #913030;
-  --accent-tint: rgba(192, 74, 74, 0.11);
-  --accent-tint-soft: rgba(192, 74, 74, 0.065);
-  --accent-tint-strong: rgba(192, 74, 74, 0.21);
-  --accent-border: rgba(192, 74, 74, 0.3);
-  --tone-tools-bg: rgba(192, 74, 74, 0.09);
-  --tone-tools-text: #a83a3a;
+  --accent: #b65359;
 }
-
 :root[data-theme='cyan'] {
-  --bg-window: #ecf5f5;
-  --bg-titlebar: #e5efef;
-  --bg-sidebar: #e5efef;
-  --bg-workspace: #f2f9f9;
-  --bg-surface: #f9ffff;
-  --bg-surface-raised: #f9ffff;
-  --bg-hover: #e0efef;
-  --bg-selected: #d5ecec;
-  --accent: #1f8a8a;
-  --accent-hover: #177575;
-  --accent-active: #126161;
-  --accent-tint: rgba(31, 138, 138, 0.11);
-  --accent-tint-soft: rgba(31, 138, 138, 0.065);
-  --accent-tint-strong: rgba(31, 138, 138, 0.21);
-  --accent-border: rgba(31, 138, 138, 0.3);
-  --tone-tools-bg: rgba(31, 138, 138, 0.09);
-  --tone-tools-text: #177575;
-}
-
-/* =============================================================================
- * Layout & Sizing — stable across themes.
- * ============================================================================= */
-:root {
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', system-ui,
-    sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'JetBrains Mono', 'Consolas', monospace;
-
-  --sidebar-width: 56px;
-  --titlebar-height: 52px;
-  --inspector-width: 320px;
-
-  /* Radius scale — never use rounded-xl/rounded-2xl in components. */
-  --radius-xs: 3px;
-  --radius-sm: 5px;
-  --radius-md: 7px;
-  --radius-lg: 9px;
-  --radius-xl: 11px;
-  --radius-pill: 999px;
-
-  /* Spacing — 4pt grid */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 28px;
-  --space-8: 32px;
-
-  /* Component heights */
-  --height-button: 28px; /* default */
-  --height-button-md: 30px;
-  --height-input: 28px;
-  --height-select: 28px;
-  --height-switch-track: 18px;
-  --height-switch-thumb: 14px;
-  --height-row: 34px; /* list / table row (Standard) */
-  --height-row-sm: 30px; /* list / table row (Compact) */
-  --height-toolbar: 36px;
-  --height-page-header: 44px;
-
-  /* Motion */
-  --motion-fast: 100ms;
-  --motion-base: 140ms;
-  --motion-slow: 200ms;
-  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-
-  /* Backwards-compat: a few legacy components still reference these names. */
-  --radius-sm-old: var(--radius-sm);
-  --radius-md-old: var(--radius-md);
+  --accent: #337e80;
 }

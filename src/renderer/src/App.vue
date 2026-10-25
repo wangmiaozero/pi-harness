@@ -62,7 +62,7 @@ watch(
   ],
   () => {
     applyVisualSkin(settings.settings)
-    applyTheme(settings.settings?.theme ?? 'soft-light')
+    if (settings.settings) applyTheme(settings.settings.theme)
   },
   { immediate: true }
 )
@@ -86,7 +86,7 @@ let uninstallShortcuts: (() => void) | null = null
 
 onMounted(() => {
   applyVisualSkin(settings.settings)
-  applyTheme(settings.settings?.theme ?? 'soft-light')
+  if (settings.settings) applyTheme(settings.settings.theme)
   uninstallShortcuts = installShortcutListener()
   registerShortcut({
     id: 'command-palette',

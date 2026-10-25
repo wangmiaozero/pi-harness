@@ -36,9 +36,9 @@ const resolvedTitle = computed(() => {
 
 <template>
   <div
-    class="flex items-center gap-3 px-3 py-[7px] min-h-[30px] border-t border-[var(--border-subtle)] first:border-t-0"
+    class="flex items-center gap-3 px-4 py-2.5 min-h-10 border-t border-[var(--border-subtle)] first:border-t-0"
   >
-    <span class="shrink-0 w-[140px] text-[11.5px] text-[var(--text-tertiary)]">{{ label }}</span>
+    <span class="shrink-0 w-[140px] text-[12px] text-[var(--text-secondary)]">{{ label }}</span>
     <span
       ref="valueEl"
       class="min-w-0 flex-1 truncate text-[12px] text-[var(--text-primary)]"

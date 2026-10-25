@@ -175,7 +175,7 @@ onMounted(async () => {
             :key="item.id"
             :to="item.to"
             :data-testid="`settings-section-${item.id}`"
-            class="group flex h-9 min-w-0 items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 text-[12px] transition-colors focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+            class="group flex h-10 min-w-0 items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 text-[12.5px] transition-colors focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
             :class="
               route.path === item.to
                 ? 'bg-[var(--accent-tint)] font-medium text-[var(--accent)]'

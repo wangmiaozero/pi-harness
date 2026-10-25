@@ -33,7 +33,7 @@ test.describe('macOS 27 liquid glass themes', () => {
       .toBe('dark')
     await expect
       .poll(() => titlebar.evaluate((element) => getComputedStyle(element).backgroundColor))
-      .toBe('rgba(22, 18, 55, 0.42)')
+      .toBe('rgba(28, 30, 37, 0.74)')
     await expect
       .poll(() => titlebar.evaluate((element) => getComputedStyle(element).backdropFilter))
       .toContain('blur(20px)')
@@ -44,7 +44,7 @@ test.describe('macOS 27 liquid glass themes', () => {
       .toEqual([1200, 780])
     await expect
       .poll(() => settingsCard.evaluate((element) => getComputedStyle(element).backgroundColor))
-      .toBe('rgba(35, 28, 78, 0.38)')
+      .toBe('rgba(45, 47, 56, 0.68)')
     await expect
       .poll(() => settingsCard.evaluate((element) => getComputedStyle(element).backdropFilter))
       .toContain('blur(14px)')
@@ -53,7 +53,7 @@ test.describe('macOS 27 liquid glass themes', () => {
     const capabilitiesTabs = page.locator('.capabilities-tabs')
     await expect
       .poll(() => capabilitiesTabs.evaluate((element) => getComputedStyle(element).backgroundColor))
-      .toBe('rgba(22, 18, 55, 0.42)')
+      .toBe('rgba(28, 30, 37, 0.74)')
     await expect
       .poll(() => capabilitiesTabs.evaluate((element) => getComputedStyle(element).backdropFilter))
       .toContain('blur(20px)')
@@ -173,16 +173,16 @@ test.describe('macOS 27 liquid glass themes', () => {
       .toBe('light')
     await expect
       .poll(() => titlebar.evaluate((element) => getComputedStyle(element).backgroundColor))
-      .toBe('rgba(248, 249, 255, 0.5)')
+      .toBe('rgba(248, 249, 252, 0.7)')
     await expect(optics).toBeVisible()
     await expect
       .poll(() => settingsCard.evaluate((element) => getComputedStyle(element).backgroundColor))
-      .toBe('rgba(255, 255, 255, 0.48)')
+      .toBe('rgba(255, 255, 255, 0.72)')
 
     await page.locator('a[href="#/skills"]').click()
     await expect
       .poll(() => capabilitiesTabs.evaluate((element) => getComputedStyle(element).backgroundColor))
-      .toBe('rgba(248, 249, 255, 0.5)')
+      .toBe('rgba(248, 249, 252, 0.7)')
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({
         path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'capabilities-macos27-light.png'),
@@ -205,7 +205,7 @@ test.describe('macOS 27 liquid glass themes', () => {
     await expect(root).toHaveAttribute('data-theme', 'dark')
     await expect
       .poll(() => titlebar.evaluate((element) => getComputedStyle(element).backgroundColor))
-      .toBe('rgb(24, 26, 29)')
+      .toBe('rgb(27, 28, 32)')
     await expect
       .poll(() => titlebar.evaluate((element) => getComputedStyle(element).backdropFilter))
       .toBe('none')

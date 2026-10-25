@@ -8,12 +8,9 @@
   <section class="flex flex-col">
     <header
       v-if="$slots.title || $slots.actions"
-      class="flex items-center justify-between gap-2 px-3 h-[30px]"
+      class="flex items-center justify-between gap-2 px-4 h-10"
     >
-      <h3
-        v-if="$slots.title"
-        class="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
-      >
+      <h3 v-if="$slots.title" class="text-[12px] font-medium text-[var(--text-secondary)]">
         <slot name="title" />
       </h3>
       <div v-else class="flex-1" />

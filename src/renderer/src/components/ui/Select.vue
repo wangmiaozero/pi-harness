@@ -93,7 +93,7 @@ const openGroup = computed(
 
 const fieldClasses = computed(() =>
   props.layout === 'row'
-    ? 'grid grid-cols-[132px_minmax(0,1fr)] items-center gap-x-4 gap-y-1 px-3 py-2'
+    ? 'grid grid-cols-[132px_minmax(0,1fr)] items-center gap-x-4 gap-y-1 px-4 py-2.5'
     : 'flex flex-col gap-1'
 )
 
@@ -474,7 +474,7 @@ watch(
         :id="menuId"
         ref="panelRef"
         role="menu"
-        class="ui-select-menu pointer-events-auto fixed z-[110] rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
+        class="ui-select-menu pointer-events-auto fixed z-[110] rounded-[var(--menu-radius)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
         :style="panelStyle"
         @pointerdown.stop
       >
@@ -493,7 +493,7 @@ watch(
             :data-select-cascade-index="groupIndex"
             :aria-haspopup="true"
             :aria-expanded="openGroupKey === group.label"
-            class="ui-select-option flex w-full items-center justify-between gap-2 rounded-[4px] py-[6px] pl-2 pr-1.5 text-left text-[12.5px] text-[var(--text-primary)] outline-none"
+            class="ui-select-option flex w-full items-center justify-between gap-2 rounded-[var(--radius-xs)] py-[6px] pl-2 pr-1.5 text-left text-[12.5px] text-[var(--text-primary)] outline-none"
             :class="openGroupKey === group.label ? 'ui-select-option--active' : ''"
             @pointerenter="revealCascadeGroup(group, 'group')"
             @mousedown.prevent="revealCascadeGroup(group, 'option')"
@@ -518,7 +518,7 @@ watch(
             role="menuitem"
             tabindex="-1"
             :data-select-index="optionIndex(opt)"
-            class="ui-select-option flex w-full items-center justify-between gap-2 rounded-[4px] py-[6px] pl-2 pr-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none"
+            class="ui-select-option flex w-full items-center justify-between gap-2 rounded-[var(--radius-xs)] py-[6px] pl-2 pr-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none"
             :class="[
               opt.value === model ? 'ui-select-option--selected' : '',
               optionIndex(opt) === activeIndex ? 'ui-select-option--active' : '',
@@ -551,7 +551,7 @@ watch(
         role="listbox"
         :aria-label="openGroup.label ?? undefined"
         data-select-cascade-submenu
-        class="ui-select-menu pointer-events-auto fixed z-[111] rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
+        class="ui-select-menu pointer-events-auto fixed z-[111] rounded-[var(--menu-radius)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
         :style="submenuStyle"
         @pointerdown.stop
         @pointerenter="cascadeFocus = 'option'"
@@ -568,7 +568,7 @@ watch(
             role="option"
             tabindex="-1"
             :data-select-index="optionIndex(opt)"
-            class="ui-select-option flex w-full items-center justify-between gap-2 rounded-[4px] py-[6px] pl-2 pr-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none"
+            class="ui-select-option flex w-full items-center justify-between gap-2 rounded-[var(--radius-xs)] py-[6px] pl-2 pr-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none"
             :class="[
               opt.value === model ? 'ui-select-option--selected' : '',
               optionIndex(opt) === activeIndex && cascadeFocus === 'option'
@@ -602,7 +602,7 @@ watch(
         :id="listboxId"
         ref="panelRef"
         role="listbox"
-        class="ui-select-menu pointer-events-auto fixed z-[110] rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
+        class="ui-select-menu pointer-events-auto fixed z-[110] rounded-[var(--menu-radius)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
         :style="panelStyle"
         @pointerdown.stop
       >
@@ -632,7 +632,7 @@ watch(
               role="option"
               tabindex="-1"
               :data-select-index="optionIndex(opt)"
-              class="ui-select-option flex w-full items-center justify-between gap-2 rounded-[4px] py-[6px] pr-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none"
+              class="ui-select-option flex w-full items-center justify-between gap-2 rounded-[var(--radius-xs)] py-[6px] pr-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none"
               :class="[
                 opt.group ? 'pl-3' : 'pl-2',
                 opt.value === model ? 'ui-select-option--selected' : '',

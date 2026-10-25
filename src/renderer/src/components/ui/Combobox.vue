@@ -169,7 +169,7 @@ const inputClasses = computed(() => {
         v-if="open && filtered.length > 0"
         ref="panelRef"
         data-combobox-panel
-        class="ui-combobox-menu pointer-events-auto fixed z-[110] max-h-[240px] overflow-y-auto rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
+        class="ui-combobox-menu pointer-events-auto fixed z-[110] max-h-[240px] overflow-y-auto rounded-[var(--menu-radius)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
         :style="panelStyle"
         @pointerdown.stop
       >
@@ -177,7 +177,7 @@ const inputClasses = computed(() => {
           v-for="opt in filtered"
           :key="opt.value"
           type="button"
-          class="ui-combobox-option flex w-full items-center justify-between gap-2 rounded-[4px] px-2 py-[6px] text-left text-[12.5px] text-[var(--text-primary)] outline-none hover:bg-[var(--bg-hover)]"
+          class="ui-combobox-option flex w-full items-center justify-between gap-2 rounded-[var(--radius-xs)] px-2 py-[6px] text-left text-[12.5px] text-[var(--text-primary)] outline-none hover:bg-[var(--bg-hover)]"
           :class="opt.value === model ? 'bg-[var(--accent-tint)] text-[var(--accent)]' : ''"
           :aria-selected="opt.value === model"
           @mousedown.prevent="pick(opt)"

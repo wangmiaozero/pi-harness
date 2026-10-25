@@ -388,6 +388,7 @@ export const IPC_EVENT = {
   agentEvent: 'pi-harness:agent:event',
   agentPermission: 'pi-harness:agent:permission',
   agentRunning: 'pi-harness:agent:running',
+  sessionsChanged: 'pi-harness:event:sessions-changed',
   harnessEvent: 'pi-harness:harness:event',
   updaterState: 'pi-harness:updater:state',
   capabilityProgress: 'pi-harness:capabilities:mutation-progress',

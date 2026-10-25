@@ -60,6 +60,7 @@ import { FileService } from './files/file-service'
 import { GitService } from './git/git-service'
 import { GitCommitMessageService } from './git/commit-message-service'
 import { WorktreeService } from './git/worktree-service'
+import { SessionTitleService, createSessionTitleGenerator } from './sessions/session-title-service'
 import { SessionService } from './sessions/session-service'
 import { SessionExportService } from './sessions/session-export-service'
 import { RuntimeManager } from './runtime/runtime-manager'
@@ -318,7 +319,20 @@ async function bootstrap(): Promise<void> {
   })
 
   const worktrees = new WorktreeService(access)
-  const sessions = new SessionService(settingsStore, worktrees, access)
+  const sessionTitleStore = new JsonStore<import('./sessions/session-title-service').SessionTitles>(
+    path.join(userData(), 'session-titles.json'),
+    {}
+  )
+  await sessionTitleStore.read()
+  const sessionTitles = new SessionTitleService(
+    sessionTitleStore,
+    createSessionTitleGenerator(config),
+    (sessionId) => {
+      if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed())
+        mainWindow.webContents.send(IPC_EVENT.sessionsChanged, { sessionId })
+    }
+  )
+  const sessions = new SessionService(settingsStore, worktrees, access, undefined, sessionTitles)
   access.attachSessionLister(() => sessions.list())
   const files = new FileService(access)
   const git = new GitService(access)
