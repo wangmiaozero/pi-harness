@@ -1,6 +1,6 @@
 {
   "name": "pi-harness",
-  "version": "2.2.21",
+  "version": "2.2.22",
   "description": "Operational Superset Harness and Desktop Control Plane for Pi Coding Agent",
   "productName": "Pi-Harness",
   "author": {
