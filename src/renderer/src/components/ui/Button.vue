@@ -30,7 +30,7 @@ const classes = computed(() => {
     'focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] ' +
     'disabled:pointer-events-none ' +
     (props.variant === 'primary'
-      ? 'disabled:bg-[color-mix(in_srgb,var(--accent)_65%,var(--bg-surface))]'
+      ? 'disabled:bg-[color-mix(in_srgb,var(--accent-solid)_55%,var(--bg-surface))]'
       : 'disabled:opacity-45')
 
   const sizes = {
@@ -40,11 +40,10 @@ const classes = computed(() => {
 
   const variants: Record<Variant, string> = {
     primary:
-      'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] ' +
-      'shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
+      'bg-[var(--accent-solid)] text-white hover:bg-[var(--accent-solid-hover)] active:bg-[var(--accent-solid-active)]',
     secondary:
-      'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] ' +
-      'hover:bg-[var(--bg-hover)] hover:border-[var(--border-strong)]',
+      'bg-[var(--control-bg)] text-[var(--text-primary)] border border-[var(--control-border)] shadow-[var(--control-shadow)] ' +
+      'hover:bg-[var(--control-bg-hover)] hover:border-[var(--control-border-hover)]',
     ghost:
       'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
     danger:
@@ -56,7 +55,13 @@ const classes = computed(() => {
 </script>
 
 <template>
-  <button :type="type" :class="classes" :data-variant="variant" :disabled="disabled || loading">
+  <button
+    :type="type"
+    :class="classes"
+    :data-variant="variant"
+    :disabled="disabled || loading"
+    :aria-busy="loading || undefined"
+  >
     <span
       v-if="loading"
       class="absolute inline-block size-3 animate-spin rounded-full border-[1.5px] border-current border-r-transparent"

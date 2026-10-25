@@ -335,21 +335,17 @@ const bashText = computed(() => {
 
 .user-message-body {
   border: none;
-  border-radius: 14px 14px 4px 14px;
-  background: color-mix(
-    in oklab,
-    var(--accent) 9%,
-    var(--bg-surface-raised)
-  );
+  border-radius: var(--message-radius) var(--message-radius) var(--radius-xs) var(--message-radius);
+  background: color-mix(in oklab, var(--accent) 5%, var(--bg-surface-raised));
   box-shadow: var(--shadow-sm);
 }
 
 .assistant-message-body {
-  padding: 11px 13px;
+  padding: 12px 14px;
   border: none;
-  border-radius: 14px 14px 14px 4px;
-  background: color-mix(in srgb, var(--bg-surface-raised) 84%, transparent);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--message-radius) var(--message-radius) var(--message-radius) var(--radius-xs);
+  background: transparent;
+  box-shadow: none;
 }
 
 @media (max-width: 720px) {
@@ -452,8 +448,8 @@ const bashText = computed(() => {
 
 .markdown-content :deep(code) {
   border: 1px solid var(--border-subtle);
-  border-radius: 4px;
-  background: var(--bg-surface-raised);
+  border-radius: var(--radius-xs);
+  background: var(--code-bg);
   padding: 0.08em 0.35em;
   font-family: var(--font-mono);
   font-size: 0.92em;
@@ -463,7 +459,7 @@ const bashText = computed(() => {
   overflow-x: auto;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  background: var(--bg-surface);
+  background: var(--code-bg);
   padding: 10px 12px;
   line-height: 1.55;
 }

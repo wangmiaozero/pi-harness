@@ -109,9 +109,9 @@ onBeforeUnmount(() => {
   <button
     ref="trigger"
     type="button"
-    class="cockpit-control-button inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-[12px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-45"
+    class="cockpit-control-button inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 text-[12px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-45"
     :class="open ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]' : ''"
-    :style="selected?.warning ? { color: 'var(--permission-warning, #ed793a)' } : undefined"
+    :style="selected?.warning ? { color: 'var(--permission-warning)' } : undefined"
     :disabled="disabled"
     :title="label"
     :aria-label="label"
@@ -127,7 +127,9 @@ onBeforeUnmount(() => {
       class="size-3.5"
       :stroke-width="1.8"
     />
-    <span class="composer-option-label whitespace-nowrap">{{ selected?.triggerLabel ?? selected?.label ?? model }}</span>
+    <span class="composer-option-label whitespace-nowrap">{{
+      selected?.triggerLabel ?? selected?.label ?? model
+    }}</span>
   </button>
 
   <Teleport to="body">
@@ -136,7 +138,7 @@ onBeforeUnmount(() => {
       ref="panel"
       role="listbox"
       :aria-label="label"
-      class="composer-option-menu fixed z-[120] overflow-y-auto rounded-[9px] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
+      class="composer-option-menu fixed z-[120] overflow-y-auto rounded-[var(--menu-radius)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
       :style="panelStyle"
       :class="heading ? 'composer-option-menu--detailed' : ''"
       @pointerdown.stop
@@ -150,13 +152,13 @@ onBeforeUnmount(() => {
         :key="option.value"
         type="button"
         role="option"
-        class="composer-option-menu__item grid w-full grid-cols-[12px_minmax(70px,1fr)_auto] items-center gap-2 rounded-[6px] px-2.5 py-2 text-left text-[12px] text-[var(--text-secondary)] outline-none hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+        class="composer-option-menu__item grid w-full grid-cols-[12px_minmax(70px,1fr)_auto] items-center gap-2 rounded-[var(--radius-xs)] px-2.5 py-2 text-left text-[12px] text-[var(--text-secondary)] outline-none hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
         :class="
           option.value === model
             ? 'bg-[var(--bg-hover)] font-medium text-[var(--text-primary)]'
             : ''
         "
-        :style="option.warning ? { color: 'var(--permission-warning, #ed793a)' } : undefined"
+        :style="option.warning ? { color: 'var(--permission-warning)' } : undefined"
         :aria-selected="option.value === model"
         :aria-label="option.label"
         :aria-description="option.description || undefined"
@@ -206,14 +208,14 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .composer-option-menu--detailed {
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   padding: 6px;
 }
 .composer-option-menu--detailed .composer-option-menu__item {
   grid-template-columns: 20px minmax(0, 1fr) 16px;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 11px;
+  border-radius: var(--radius-sm);
 }
 .composer-option-menu__item:focus-visible {
   outline: 2px solid var(--accent);

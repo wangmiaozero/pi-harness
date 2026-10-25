@@ -7,68 +7,26 @@
  */
 
 :root:is([data-theme='macos27'], [data-theme='macos27-light']) {
-  --radius-xs: 5px;
-  --radius-sm: 9px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
-
-  --accent: #0a9cff;
-  --accent-hover: #35adff;
-  --accent-active: #007fe0;
-  --accent-tint: rgb(10 156 255 / 0.18);
-  --accent-tint-soft: rgb(10 156 255 / 0.1);
-  --accent-tint-strong: rgb(10 156 255 / 0.3);
-  --accent-border: rgb(10 156 255 / 0.56);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-
-  --success: #30d158;
-  --success-tint: rgb(48 209 88 / 0.14);
-  --warning: #ffd60a;
-  --warning-tint: rgb(255 214 10 / 0.14);
-  --error: #ff453a;
-  --error-tint: rgb(255 69 58 / 0.14);
-  --info: var(--accent);
-  --info-tint: var(--accent-tint);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-error: var(--error);
-  --surface-danger: var(--error-tint);
-  --surface-warning: var(--warning-tint);
-  --surface-info: var(--accent-tint-soft);
-
-  --syntax-property: #64d2ff;
-  --syntax-string: #30d158;
-  --syntax-number: #ff9f0a;
-  --syntax-constant: #bf5af2;
-  --syntax-keyword: #0a84ff;
-  --syntax-heading: #66baff;
-  --syntax-emphasis: #d18cff;
-  --syntax-link: #64d2ff;
-
-  --diff-added-bg: rgb(48 209 88 / 0.12);
-  --diff-added-text: rgb(94 231 126 / 0.95);
-  --diff-added-gutter: rgb(48 209 88 / 0.3);
-  --diff-removed-bg: rgb(255 69 58 / 0.12);
-  --diff-removed-text: rgb(255 117 109 / 0.95);
-  --diff-removed-gutter: rgb(255 69 58 / 0.3);
-  --diff-equal-bg: transparent;
+  --accent: #86a7cb;
+  --accent-solid: #526f93;
+  --composer-bg: var(--macos27-glass-raised);
+  --composer-border: var(--macos27-rim-soft);
+  --macos27-optics-filter: saturate(0.5) brightness(0.75);
 }
 
 :root[data-theme='macos27'] {
   color-scheme: dark;
 
-  --bg-window: #08071c;
-  --bg-titlebar: rgb(19 16 48 / 0.48);
-  --bg-sidebar: rgb(18 15 45 / 0.44);
-  --bg-workspace: rgb(10 8 31 / 0.18);
-  --bg-surface: rgb(104 88 164 / 0.26);
-  --bg-surface-raised: rgb(50 41 92 / 0.52);
+  --bg-window: #1c1d24;
+  --bg-titlebar: rgb(28 30 37 / 0.74);
+  --bg-sidebar: rgb(28 30 37 / 0.7);
+  --bg-workspace: rgb(28 30 37 / 0.64);
+  --bg-surface: rgb(48 50 60 / 0.68);
+  --bg-surface-raised: rgb(45 47 56 / 0.94);
   --bg-hover: rgb(255 255 255 / 0.12);
-  --bg-selected: rgb(10 156 255 / 0.24);
+  --bg-selected: var(--accent-tint);
   --bg-primary: var(--bg-surface);
-  --bg-input: rgb(15 12 42 / 0.44);
+  --bg-input: rgb(38 40 48 / 0.8);
 
   --color-window: var(--bg-window);
   --color-sidebar: var(--bg-sidebar);
@@ -80,7 +38,7 @@
 
   --border-subtle: rgb(255 255 255 / 0.1);
   --border-default: rgb(255 255 255 / 0.16);
-  --border-strong: rgb(255 255 255 / 0.25);
+  --border-strong: rgb(255 255 255 / 0.15);
   --color-border: var(--border-default);
   --color-border-strong: var(--border-strong);
 
@@ -94,7 +52,7 @@
 
   --text-primary: rgb(255 255 255 / 0.94);
   --text-secondary: rgb(255 255 255 / 0.7);
-  --text-tertiary: rgb(255 255 255 / 0.47);
+  --text-tertiary: rgb(255 255 255 / 0.62);
   --text-disabled: rgb(255 255 255 / 0.28);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
@@ -117,37 +75,39 @@
   --scrollbar-thumb-hover: rgb(255 255 255 / 0.28);
   --scrollbar-thumb-active: rgb(255 255 255 / 0.38);
 
-  --macos27-glass-chrome: rgb(22 18 55 / 0.42);
-  --macos27-glass-regular: rgb(35 28 78 / 0.38);
-  --macos27-glass-raised: rgb(29 24 65 / 0.56);
+  --macos27-glass-chrome: rgb(28 30 37 / 0.74);
+  --macos27-glass-regular: rgb(45 47 56 / 0.68);
+  --macos27-glass-raised: rgb(45 47 56 / 0.94);
   --macos27-rim: rgb(255 255 255 / 0.18);
   --macos27-rim-soft: rgb(255 255 255 / 0.09);
-  --macos27-highlight: rgb(255 255 255 / 0.25);
-  --macos27-shadow-color: rgb(0 0 0 / 0.48);
+  --macos27-highlight: rgb(255 255 255 / 0.15);
+  --macos27-shadow-color: rgb(0 0 0 / 0.24);
 
   --shadow-popover:
     inset 0 1px 0 var(--macos27-highlight), inset 0 0 0 1px var(--macos27-rim-soft),
-    0 18px 52px var(--macos27-shadow-color);
+    0 8px 28px var(--macos27-shadow-color);
   --shadow-sm:
     inset 0 1px 0 rgb(255 255 255 / 0.16), inset 0 -1px 0 rgb(255 255 255 / 0.05),
-    0 10px 28px rgb(0 0 0 / 0.28);
+    0 2px 8px rgb(0 0 0 / 0.28);
   --shadow-dialog:
     inset 0 1px 0 var(--macos27-highlight), inset 0 0 0 1px var(--macos27-rim-soft),
-    0 30px 80px rgb(0 0 0 / 0.62);
-  --focus-ring: 0 0 0 1px rgb(10 156 255 / 0.96), 0 0 0 4px rgb(10 156 255 / 0.24);
+    0 16px 48px rgb(0 0 0 / 0.32);
 }
 
 :root[data-theme='macos27-light'] {
   color-scheme: light;
+  --accent: #4c719c;
+  --accent-solid: var(--accent);
+  --macos27-optics-filter: saturate(0.65);
 
-  --bg-window: #e6e9f7;
-  --bg-titlebar: rgb(248 249 255 / 0.58);
-  --bg-sidebar: rgb(247 248 255 / 0.52);
-  --bg-workspace: rgb(247 248 255 / 0.2);
-  --bg-surface: rgb(255 255 255 / 0.54);
-  --bg-surface-raised: rgb(255 255 255 / 0.72);
-  --bg-hover: rgb(255 255 255 / 0.48);
-  --bg-selected: rgb(10 132 255 / 0.16);
+  --bg-window: #f3f4f8;
+  --bg-titlebar: rgb(248 249 252 / 0.7);
+  --bg-sidebar: rgb(248 249 252 / 0.68);
+  --bg-workspace: rgb(248 249 252 / 0.64);
+  --bg-surface: rgb(255 255 255 / 0.72);
+  --bg-surface-raised: rgb(255 255 255 / 0.9);
+  --bg-hover: rgb(255 255 255 / 0.72);
+  --bg-selected: var(--accent-tint);
   --bg-primary: var(--bg-surface);
   --bg-input: rgb(255 255 255 / 0.58);
 
@@ -165,7 +125,7 @@
   --color-border: var(--border-default);
   --color-border-strong: var(--border-strong);
 
-  --control-bg: rgb(255 255 255 / 0.48);
+  --control-bg: rgb(255 255 255 / 0.72);
   --control-bg-hover: rgb(255 255 255 / 0.7);
   --control-bg-disabled: rgb(24 22 48 / 0.035);
   --control-border: rgb(20 18 42 / 0.15);
@@ -175,7 +135,7 @@
 
   --text-primary: rgb(16 14 35 / 0.9);
   --text-secondary: rgb(16 14 35 / 0.66);
-  --text-tertiary: rgb(16 14 35 / 0.48);
+  --text-tertiary: rgb(16 14 35 / 0.62);
   --text-disabled: rgb(16 14 35 / 0.3);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
@@ -198,24 +158,23 @@
   --scrollbar-thumb-hover: rgb(20 18 42 / 0.28);
   --scrollbar-thumb-active: rgb(20 18 42 / 0.38);
 
-  --macos27-glass-chrome: rgb(248 249 255 / 0.5);
-  --macos27-glass-regular: rgb(255 255 255 / 0.48);
-  --macos27-glass-raised: rgb(255 255 255 / 0.68);
+  --macos27-glass-chrome: rgb(248 249 252 / 0.7);
+  --macos27-glass-regular: rgb(255 255 255 / 0.72);
+  --macos27-glass-raised: rgb(255 255 255 / 0.94);
   --macos27-rim: rgb(23 18 51 / 0.18);
   --macos27-rim-soft: rgb(23 18 51 / 0.09);
   --macos27-highlight: rgb(255 255 255 / 0.8);
-  --macos27-shadow-color: rgb(40 30 82 / 0.22);
+  --macos27-shadow-color: rgb(30 32 45 / 0.12);
 
   --shadow-popover:
     inset 0 1px 1px var(--macos27-highlight), inset 0 0 0 1px var(--macos27-rim-soft),
-    0 18px 52px var(--macos27-shadow-color);
+    0 8px 28px var(--macos27-shadow-color);
   --shadow-sm:
-    inset 0 1px 1px rgb(255 255 255 / 0.72), inset 0 -1px 1px rgb(23 18 51 / 0.1),
-    0 10px 28px rgb(40 30 82 / 0.14);
+    inset 0 1px 1px rgb(255 255 255 / 0.9), inset 0 -1px 1px rgb(23 18 51 / 0.1),
+    0 2px 8px rgb(40 30 82 / 0.14);
   --shadow-dialog:
     inset 0 1px 1px var(--macos27-highlight), inset 0 0 0 1px var(--macos27-rim-soft),
-    0 30px 80px rgb(40 30 82 / 0.28);
-  --focus-ring: 0 0 0 1px rgb(10 132 255 / 0.94), 0 0 0 4px rgb(10 132 255 / 0.2);
+    0 16px 48px rgb(40 30 82 / 0.28);
 }
 
 .macos27-optics-backdrop {
@@ -240,22 +199,32 @@
   height: 100%;
 }
 
+/* Only the generated optical field is softened. Local image backgrounds retain
+ * their original colors and the moving field still supplies detail for glass. */
+.macos27-optics-backdrop__canvas {
+  filter: var(--macos27-optics-filter);
+}
+
 .macos27-optics-backdrop[data-renderer='static'] {
   background:
-    radial-gradient(ellipse at 25% 35%, #6228b5, transparent 65%),
-    radial-gradient(ellipse at 80% 70%, #145c9e, transparent 65%), #100d2a;
+    radial-gradient(ellipse at 25% 35%, #4c455a, transparent 65%),
+    radial-gradient(ellipse at 80% 70%, #334a5c, transparent 65%), #202127;
 }
 
 :root[data-theme='macos27-light'] .macos27-optics-backdrop[data-renderer='static'] {
   background:
-    radial-gradient(ellipse at 25% 35%, #ead8fa, transparent 65%),
-    radial-gradient(ellipse at 80% 70%, #b9d8f9, transparent 65%), #e6eafa;
+    radial-gradient(ellipse at 25% 35%, #e7e2eb, transparent 65%),
+    radial-gradient(ellipse at 80% 70%, #dfe7ee, transparent 65%), #f3f4f8;
 }
 
 .macos27-optics-backdrop__image {
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
+}
+
+:root:is([data-theme='macos27'], [data-theme='macos27-light']) .chat-window {
+  background: var(--bg-workspace);
 }
 
 :root:is([data-theme='macos27'], [data-theme='macos27-light'])
@@ -275,16 +244,16 @@
   box-shadow:
     inset 0 1px 0 var(--macos27-highlight),
     inset -1px 0 0 var(--macos27-rim-soft);
-  -webkit-backdrop-filter: blur(20px) saturate(170%);
-  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  backdrop-filter: blur(20px) saturate(120%);
 }
 
 :root:is([data-theme='macos27'], [data-theme='macos27-light']) .capabilities-tabs {
   border-color: var(--macos27-rim-soft);
   background: var(--macos27-glass-chrome);
   box-shadow: inset 0 1px 0 var(--macos27-highlight);
-  -webkit-backdrop-filter: blur(20px) saturate(170%);
-  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  backdrop-filter: blur(20px) saturate(120%);
 }
 
 :root:is([data-theme='macos27'], [data-theme='macos27-light'])
@@ -300,8 +269,8 @@
   border-color: var(--macos27-rim);
   background: var(--macos27-glass-regular);
   box-shadow: var(--shadow-sm);
-  -webkit-backdrop-filter: blur(14px) saturate(170%);
-  backdrop-filter: blur(14px) saturate(170%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  backdrop-filter: blur(14px) saturate(120%);
 }
 
 :root:is([data-theme='macos27'], [data-theme='macos27-light'])
@@ -314,8 +283,8 @@
   ) {
   background: var(--macos27-glass-raised);
   box-shadow: var(--shadow-popover);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(125%);
+  backdrop-filter: blur(24px) saturate(125%);
 }
 
 :root:is([data-theme='macos27'], [data-theme='macos27-light'])
@@ -330,8 +299,8 @@
   border-color: var(--control-border);
   background: var(--control-bg);
   box-shadow: var(--control-shadow);
-  -webkit-backdrop-filter: blur(8px) saturate(160%);
-  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(115%);
+  backdrop-filter: blur(8px) saturate(115%);
 }
 
 :root:is([data-theme='macos27'], [data-theme='macos27-light'])
@@ -349,9 +318,9 @@
 
 @media (prefers-reduced-transparency: reduce) {
   :root[data-theme='macos27'] {
-    --macos27-glass-chrome: #19152f;
-    --macos27-glass-regular: #2d2651;
-    --macos27-glass-raised: #252042;
+    --macos27-glass-chrome: #202127;
+    --macos27-glass-regular: #2c2e36;
+    --macos27-glass-raised: #30323b;
   }
 
   :root[data-theme='macos27-light'] {

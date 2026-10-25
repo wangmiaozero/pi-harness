@@ -42,7 +42,7 @@ const inputClasses = computed(() => {
 
 const fieldClasses = computed(() =>
   props.layout === 'row'
-    ? 'grid grid-cols-[132px_minmax(0,1fr)] items-center gap-x-4 gap-y-1 px-3 py-2'
+    ? 'grid grid-cols-[132px_minmax(0,1fr)] items-center gap-x-4 gap-y-1 px-4 py-2.5'
     : 'flex flex-col gap-1'
 )
 </script>

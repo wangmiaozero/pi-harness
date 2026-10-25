@@ -19,6 +19,8 @@ import { normalizeToolCalls } from '@shared/workspace/normalize'
 import { loadPiCodingAgent, type PiSessionInfoLike } from '../agent/pi-sdk'
 import type { WorktreeService } from '../git/worktree-service'
 import type { FileAccessService } from '../files/file-access-service'
+import { summarizeSessionTitle } from '@shared/workspace/session-title'
+import type { SessionTitleService } from './session-title-service'
 import { SessionIndexClient, type SessionIndex } from './session-index-client'
 
 export class SessionService {
@@ -33,7 +35,8 @@ export class SessionService {
     private readonly settingsStore: JsonStore<AppSettings>,
     private readonly worktrees: WorktreeService,
     private readonly access: FileAccessService,
-    private readonly index: SessionIndex = new SessionIndexClient()
+    private readonly index: SessionIndex = new SessionIndexClient(),
+    private readonly titles?: SessionTitleService
   ) {}
 
   sessionsRoot(): string {
@@ -81,6 +84,7 @@ export class SessionService {
 
   async close(): Promise<void> {
     this.closed = true
+    this.titles?.close()
     this.invalidate()
     await this.index.close()
   }
@@ -125,8 +129,8 @@ export class SessionService {
     ])
     const resolvedLeaf = leafId ?? lastEntryId(entries)
     const context = await this.buildContext(entries, resolvedLeaf)
-    const info = await this.infoFromHeader(filePath, header, context)
-    return {
+    const info = await this.infoFromHeader(filePath, header, context, latestSessionName(entries))
+    const detail: SessionDetail = {
       sessionId,
       filePath,
       info,
@@ -134,6 +138,8 @@ export class SessionService {
       context,
       totalActiveMs: computeSessionTotalActiveMs(entries)
     }
+    this.titles?.observe(detail)
+    return { ...detail, info: this.withTitle(info, context) }
   }
 
   async getFullHistory(sessionId: string): Promise<SessionDetail> {
@@ -162,7 +168,10 @@ export class SessionService {
     return {
       sessionId,
       filePath,
-      info: await this.infoFromHeader(filePath, header, context),
+      info: this.withTitle(
+        await this.infoFromHeader(filePath, header, context, latestSessionName(entries)),
+        context
+      ),
       leafId: resolvedLeaf,
       context,
       totalActiveMs: computeSessionTotalActiveMs(entries)
@@ -278,7 +287,11 @@ export class SessionService {
       path: s.path,
       id: s.id,
       cwd: s.cwd,
-      name: s.name,
+      name:
+        s.name ||
+        (s.messageCount > 0
+          ? this.titles?.title(s) || s.suggestedTitle || summarizeSessionTitle([s.firstMessage])
+          : undefined),
       created: s.created instanceof Date ? s.created.toISOString() : String(s.created),
       modified: s.modified instanceof Date ? s.modified.toISOString() : String(s.modified),
       messageCount: s.messageCount,
@@ -320,7 +333,8 @@ export class SessionService {
   private async infoFromHeader(
     filePath: string,
     header: SessionHeader | null,
-    context: SessionContext
+    context: SessionContext,
+    name?: string
   ): Promise<SessionInfo | null> {
     if (!header) return null
     let modified = header.timestamp
@@ -349,6 +363,7 @@ export class SessionService {
     return {
       path: filePath,
       id: header.id,
+      name,
       cwd: header.cwd ?? '',
       created: header.timestamp,
       modified,
@@ -358,6 +373,21 @@ export class SessionService {
         ? await this.resolveIdByPath(header.parentSession)
         : undefined
     }
+  }
+
+  private withTitle(info: SessionInfo | null, context: SessionContext): SessionInfo | null {
+    if (!info || info.name || context.messages.length === 0) return info
+    const texts = context.messages
+      .filter((message) => message.role === 'user')
+      .map((message) =>
+        typeof message.content === 'string'
+          ? message.content
+          : message.content
+              .filter((block) => block.type === 'text')
+              .map((block) => (block.type === 'text' ? block.text : ''))
+              .join('\n')
+      )
+    return { ...info, name: this.titles?.title(info) || summarizeSessionTitle(texts) }
   }
 
   private async readEntries(filePath: string): Promise<SessionEntry[]> {
@@ -386,6 +416,11 @@ export async function readSessionHeader(filePath: string): Promise<SessionHeader
   } finally {
     await fh.close()
   }
+}
+
+function latestSessionName(entries: readonly SessionEntry[]): string | undefined {
+  const entry = [...entries].reverse().find((entry) => entry.type === 'session_info')
+  return typeof entry?.name === 'string' ? entry.name.trim() || undefined : undefined
 }
 
 function lastEntryId(entries: SessionEntry[]): string | null {

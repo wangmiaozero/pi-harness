@@ -1318,6 +1318,7 @@ export interface PiSwitchAPI {
   on(event: 'agent-event', listener: IpcEventListener): () => void
   on(event: 'agent-permission', listener: IpcEventListener): () => void
   on(event: 'agent-running', listener: IpcEventListener): () => void
+  on(event: 'sessions-changed', listener: (payload: { sessionId: string }) => void): () => void
   on(event: 'harness-event', listener: IpcEventListener): () => void
   on(event: 'updater-state', listener: IpcEventListener): () => void
   on(

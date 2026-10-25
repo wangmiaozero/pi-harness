@@ -628,8 +628,8 @@ defineExpose({
   padding: 0 3px;
   border: 0.75px solid rgb(255 255 255 / 0.9);
   border-radius: 999px;
-  background: var(--accent);
-  color: #fff;
+  background: var(--accent-solid);
+  color: var(--text-on-accent);
   font-size: 8px;
   font-weight: 700;
   line-height: 12.5px;

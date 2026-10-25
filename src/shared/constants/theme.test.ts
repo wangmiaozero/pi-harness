@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { APP_THEMES, normalizeAppTheme, themeAppearance } from './theme'
 
 describe('app theme', () => {
+  it.each(APP_THEMES)('preserves the %s preference and its native appearance', (theme) => {
+    expect(normalizeAppTheme(theme)).toBe(theme)
+    expect(themeAppearance(theme)).toBe(
+      ['dark', 'soft-dark', 'macos27'].includes(theme) ? 'dark' : 'light'
+    )
+  })
+
   it('keeps supported palettes and rejects unsupported values', () => {
     expect(normalizeAppTheme('pink')).toBe('pink')
     expect(normalizeAppTheme('purple')).toBe('purple')

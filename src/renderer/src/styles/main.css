@@ -7,10 +7,9 @@
 .harness-card {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--bg-surface-raised) 92%, transparent);
+  background: var(--bg-surface-raised);
   padding: 16px;
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(12px);
 }
 
 /* Windows: backdrop blur repaints on scroll are expensive and the tint layers
@@ -187,6 +186,12 @@ body {
 
 :root[data-custom-skin='true'] :is(.starship-viewport-root, .workspace-primary) {
   background-color: transparent;
+}
+
+:root[data-visual-skin] {
+  --accent-solid: var(--accent);
+  --accent-solid-hover: var(--accent-hover);
+  --accent-solid-active: var(--accent-active);
 }
 
 /* Resets stay below component utilities, especially primary button text-white. */
@@ -391,6 +396,61 @@ select optgroup {
 .ui-select-option--selected,
 .ui-select-option[aria-selected='true'] {
   color: var(--accent);
+}
+
+/* Shared floating surfaces, including menus opened from the composer. */
+.composer-more-menu [role='menuitem'][data-highlighted] {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  outline: none;
+}
+
+[data-sonner-toast].pi-harness-toast {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-raised);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-popover);
+}
+
+[data-sonner-toast].pi-harness-toast [data-description] {
+  color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+  }
+
+  html:root *,
+  html:root *::before,
+  html:root *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0ms;
+    scroll-behavior: auto;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-appearance='dark']:not([data-custom-skin='true']) {
+    --bg-surface: #292a30;
+    --bg-surface-raised: #303138;
+    --composer-bg: #303138;
+  }
+
+  :root[data-appearance='light']:not([data-custom-skin='true']) {
+    --bg-surface: #fff;
+    --bg-surface-raised: #fff;
+    --composer-bg: #fff;
+  }
+
+  html:root * {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 /* Backwards-compat .drag-region/.no-drag left in place at top of file. */

@@ -4,9 +4,9 @@ Browse Pi-Harness interfaces by theme, workspace appearances, and community reso
 
 Pi-Harness 截图按功能界面、主题展示和社区资源分类，点击图片链接可查看原图。
 
-Updated on 2026-10-24 using the current desktop UI and an isolated demo workspace.
+Updated on 2026-10-25 using the current desktop UI and an isolated demo workspace.
 
-截图于 2026-10-24 使用当前桌面界面与独立演示工作区更新。
+截图于 2026-10-25 使用当前桌面界面与独立演示工作区更新。
 
 [English](../README.md) · [简体中文](../README.zh-CN.md) · [繁體中文](../README.zh-TW.md) · [日本語](../README.ja-JP.md) · [한국어](../README.ko-KR.md) · [Русский](../README.ru-RU.md) · [Français](../README.fr-FR.md) · [Deutsch](../README.de-DE.md)
 
@@ -39,9 +39,9 @@ The Multi-Agent screenshots show a configured example before execution (idle age
 
 多智能体截图展示尚未启动运行的配置示例：智能体为空闲状态，任务待处理。
 
-Voice screenshots show setup and preparation before a call; MCP and remote host screenshots show configuration examples.
+Voice screenshots show setup and preparation before a call; MCP and remote host screenshots show their settings screens.
 
-语音截图展示通话前的设置与准备界面；MCP 与远程主机截图展示配置示例。
+语音截图展示通话前的设置与准备界面；MCP 与远程主机截图展示对应的设置界面。
 
 ### Ming / 大明
 
@@ -61,6 +61,24 @@ Voice screenshots show setup and preparation before a call; MCP and remote host 
 | Ming / 大明                   | [雪境朝臣](主题展示/大明/雪境朝臣.png) · [雪夜笛姬](主题展示/大明/雪夜笛姬.png) · [月城书姬](主题展示/大明/月城书姬.png) |
 | Starship Cockpit / 星舰驾驶舱 | [霜星领航](主题展示/星舰/霜星领航.png)                                                                                   |
 | macOS 27                      | [Liquid Ether](主题展示/macOS%2027/Liquid%20Ether.png)                                                                   |
+
+### Standard themes / 标准主题
+
+| Theme / 主题          | Screenshot / 截图                                  |
+| --------------------- | -------------------------------------------------- |
+| Dark / 深色           | [查看 / View](主题展示/经典主题/dark.png)          |
+| Soft Dark / 柔和深色  | [查看 / View](主题展示/经典主题/soft-dark.png)     |
+| Light / 浅色          | [查看 / View](主题展示/经典主题/light.png)         |
+| Soft Light / 柔和浅色 | [查看 / View](主题展示/经典主题/soft-light.png)    |
+| Pink / 粉色           | [查看 / View](主题展示/经典主题/pink.png)          |
+| Purple / 紫色         | [查看 / View](主题展示/经典主题/purple.png)        |
+| Green / 绿色          | [查看 / View](主题展示/经典主题/green.png)         |
+| Blue / 蓝色           | [查看 / View](主题展示/经典主题/blue.png)          |
+| Orange / 橙色         | [查看 / View](主题展示/经典主题/orange.png)        |
+| Red / 红色            | [查看 / View](主题展示/经典主题/red.png)           |
+| Cyan / 青色           | [查看 / View](主题展示/经典主题/cyan.png)          |
+| macOS 27 Light / 浅色 | [查看 / View](主题展示/经典主题/macos27-light.png) |
+| macOS 27 Dark / 深色  | [查看 / View](主题展示/经典主题/macos27.png)       |
 
 ## Community / 社区
 

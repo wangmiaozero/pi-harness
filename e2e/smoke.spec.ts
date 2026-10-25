@@ -783,7 +783,7 @@ test.describe('Pi-Harness smoke', () => {
     const fixtureRoot = path.resolve(import.meta.dirname, '../fixtures')
 
     await page.locator('a[href="#/settings"]').click()
-    await expect(page.getByTestId('page-header')).toHaveCSS('height', '44px')
+    await expect(page.getByTestId('page-header')).toHaveCSS('height', '48px')
     const bypass = await page.evaluate(() =>
       window.piSwitch.settings.set({
         mascotUnlocked: true,

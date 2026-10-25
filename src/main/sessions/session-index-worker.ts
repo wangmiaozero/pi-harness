@@ -1,3 +1,4 @@
+import { summarizeSessionTitle } from '@shared/workspace/session-title'
 import { parentPort } from 'node:worker_threads'
 import type { SessionIndexRequest, SessionIndexResponse } from './session-index-client'
 
@@ -15,6 +16,7 @@ port.on('message', (request: SessionIndexRequest) => {
         id: session.id,
         cwd: session.cwd,
         name: session.name,
+        suggestedTitle: summarizeSessionTitle([session.firstMessage, session.allMessagesText]),
         created: session.created,
         modified: session.modified,
         messageCount: session.messageCount,

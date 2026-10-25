@@ -527,6 +527,7 @@ const api: PiSwitchAPI = {
     if (event === 'agent-event') return onEvent(IPC_EVENT.agentEvent, ipcListener)
     if (event === 'agent-permission') return onEvent(IPC_EVENT.agentPermission, ipcListener)
     if (event === 'agent-running') return onEvent(IPC_EVENT.agentRunning, ipcListener)
+    if (event === 'sessions-changed') return onEvent(IPC_EVENT.sessionsChanged, ipcListener)
     if (event === 'harness-event') return onEvent(IPC_EVENT.harnessEvent, ipcListener)
     if (event === 'updater-state') return onEvent(IPC_EVENT.updaterState, ipcListener)
     if (event === 'capability-progress') return onEvent(IPC_EVENT.capabilityProgress, ipcListener)

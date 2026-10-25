@@ -472,8 +472,12 @@ test('ming portrait themes render full figures beside parchment conversation sur
         page.locator('.console-tool-strip').boundingBox(),
         page.locator('.command-execute-button').boundingBox()
       ])
-      expect(Math.abs(modelBox!.y - toolStripBox!.y)).toBeLessThan(4)
-      expect(Math.abs(modelBox!.y - sendButtonBox!.y)).toBeLessThan(4)
+      expect(
+        Math.abs(modelBox!.y + modelBox!.height / 2 - toolStripBox!.y - toolStripBox!.height / 2)
+      ).toBeLessThan(2)
+      expect(
+        Math.abs(modelBox!.y + modelBox!.height / 2 - sendButtonBox!.y - sendButtonBox!.height / 2)
+      ).toBeLessThan(2)
       await page.screenshot({
         path: path.join(testInfo.outputDir, `${skin}-responsive-1200x780.png`)
       })
@@ -491,8 +495,12 @@ test('ming portrait themes render full figures beside parchment conversation sur
         page.locator('.console-tool-strip').boundingBox(),
         page.locator('.command-execute-button').boundingBox()
       ])
-      expect(Math.abs(modelBox!.y - toolStripBox!.y)).toBeLessThan(4)
-      expect(Math.abs(modelBox!.y - sendButtonBox!.y)).toBeLessThan(4)
+      expect(
+        Math.abs(modelBox!.y + modelBox!.height / 2 - toolStripBox!.y - toolStripBox!.height / 2)
+      ).toBeLessThan(2)
+      expect(
+        Math.abs(modelBox!.y + modelBox!.height / 2 - sendButtonBox!.y - sendButtonBox!.height / 2)
+      ).toBeLessThan(2)
       expect(sendButtonBox!.x + sendButtonBox!.width).toBeLessThanOrEqual(
         controlsBox!.x + controlsBox!.width
       )

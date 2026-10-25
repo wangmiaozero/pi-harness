@@ -116,7 +116,7 @@ onBeforeUnmount(() => {
       v-if="open"
       ref="menuElement"
       role="menu"
-      class="ui-context-menu fixed z-[130] overflow-y-auto border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
+      class="ui-context-menu rounded-[var(--menu-radius)] fixed z-[130] overflow-y-auto border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
       :style="menuStyle"
       :aria-label="label"
       :data-testid="testId"
@@ -139,7 +139,7 @@ onBeforeUnmount(() => {
           v-else
           type="button"
           role="menuitem"
-          class="ui-context-menu__item flex min-h-8 w-full items-center gap-2 rounded-[4px] px-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none transition-colors hover:bg-[var(--bg-hover)] focus-visible:bg-[var(--bg-hover)] active:bg-[var(--accent-tint)] disabled:hover:bg-transparent"
+          class="ui-context-menu__item flex min-h-8 w-full items-center gap-2 rounded-[var(--radius-xs)] px-2 text-left text-[12.5px] text-[var(--text-primary)] outline-none transition-colors hover:bg-[var(--bg-hover)] focus-visible:bg-[var(--bg-hover)] active:bg-[var(--accent-tint)] disabled:hover:bg-transparent"
           :class="{
             'ui-context-menu__item--danger': entry.danger,
             'ui-context-menu__item--inset': entry.inset

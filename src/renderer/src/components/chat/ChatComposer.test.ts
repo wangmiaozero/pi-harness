@@ -186,15 +186,22 @@ describe('ChatComposer compact button', () => {
     sessions.addTransientSession('session-1', '/code/project', 'hello')
     sessions.selectSession('session-1')
     agent.sending = true
+    agent.sendingSessionId = 'session-1'
+    agent.runningIds = ['session-1']
     agent.streaming = { ...agent.streaming, isStreaming: true }
 
     const wrapper = mount(ChatComposer, {
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
     })
-    const button = wrapper.get('[data-testid="composer-compact"]')
-    expect(button.attributes('disabled')).toBeUndefined()
-    expect(button.text()).toContain(String(i18n.global.t('workspace.compactAfterTask')))
+    await wrapper.get('[data-testid="composer-more"]').trigger('keydown', { key: 'Enter' })
+    await wrapper.vm.$nextTick()
+    const button = document.querySelector<HTMLButtonElement>('[data-testid="composer-compact"]')
+    expect(button).not.toBeNull()
+    expect(button?.disabled).toBe(false)
+    expect(button?.textContent).toContain(String(i18n.global.t('workspace.compactAfterTask')))
+    await wrapper.get('[data-testid="composer-abort"]').trigger('click')
+    expect(wrapper.emitted('abort')).toHaveLength(1)
   })
 })
 

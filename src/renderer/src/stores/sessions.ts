@@ -4,6 +4,7 @@ import type { SessionInfo, SessionProjectGroup } from '@shared/types/workspace'
 import { buildSessionForkTree, groupSessionsByProject } from '@shared/workspace/session-tree'
 import { projectIdentityKey } from '@shared/workspace/project-identity'
 import { callApi, getApi } from '@renderer/composables/useApi'
+import { summarizeSessionTitle } from '@shared/workspace/session-title'
 import { formatSkillInvocationSummary } from '@shared/skills/skill-invocation'
 
 export const useSessionStore = defineStore('sessions', () => {
@@ -29,6 +30,7 @@ export const useSessionStore = defineStore('sessions', () => {
     try {
       const persisted = (await callApi(() => getApi().sessions.list(force))).map((session) => ({
         ...session,
+        name: session.name || summarizeSessionTitle([session.firstMessage]),
         firstMessage: formatSkillInvocationSummary(session.firstMessage)
       }))
       const persistedIds = new Set(persisted.map((session) => session.id))
@@ -49,6 +51,12 @@ export const useSessionStore = defineStore('sessions', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  function setupListeners() {
+    return getApi().on('sessions-changed', () => {
+      void refresh(true)
+    })
   }
 
   function selectProject(project: SessionProjectGroup) {
@@ -77,6 +85,7 @@ export const useSessionStore = defineStore('sessions', () => {
         modified: timestamp,
         messageCount: 1,
         firstMessage,
+        name: summarizeSessionTitle([firstMessage]),
         projectRoot: cwd,
         projectKey: projectIdentityKey(cwd),
         transient: true
@@ -102,6 +111,7 @@ export const useSessionStore = defineStore('sessions', () => {
     current,
     forkTree,
     refresh,
+    setupListeners,
     selectProject,
     selectProjectKey,
     selectSession,

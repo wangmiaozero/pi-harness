@@ -136,6 +136,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   const sessions = useSessionStore()
+  watch(
+    () => sessions.items,
+    (items) => {
+      for (const tab of tabs.value) {
+        if (tab.kind !== 'chat' || !tab.sessionId) continue
+        const name = items.find((item) => item.id === tab.sessionId)?.name
+        if (name) tab.title = name.slice(0, 28)
+      }
+    }
+  )
 
   const projects = computed(() => {
     const current = activeSessionWorkspaceId.value

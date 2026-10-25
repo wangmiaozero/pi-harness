@@ -11,6 +11,7 @@ import { usePiStore } from '@renderer/stores/pi'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useModelsStore } from '@renderer/stores/models'
 import { useSettingsStore } from '@renderer/stores/settings'
+import { useSessionStore } from '@renderer/stores/sessions'
 import { useAgentStore } from '@renderer/stores/agent'
 import { useHarnessStore } from '@renderer/stores/harness'
 import { getApi } from '@renderer/composables/useApi'
@@ -23,7 +24,8 @@ import { installPetRuntimeAdapter } from '@renderer/pet/install-runtime-adapter'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { runtimeStartupChecks, startupChecks, startupPhase } from './startup'
 
-applyTheme('soft-light')
+// Main sets nativeTheme before creating the window, including a saved dark theme.
+applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'soft-light')
 installAuthorWatermark()
 
 /* Windows repaints blur/glass effects far more slowly than macOS. The platform
@@ -74,6 +76,7 @@ const unsubscribers: Array<() => void> = [
   providersStore.setupListeners(),
   modelsStore.setupListeners(),
   agentStore.setupListeners(),
+  useSessionStore().setupListeners(),
   harnessStore.setupListeners()
 ]
 if (MASCOT_ENABLED) unsubscribers.push(installPetRuntimeAdapter())

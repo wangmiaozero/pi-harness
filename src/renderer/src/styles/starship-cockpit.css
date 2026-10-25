@@ -33,6 +33,7 @@
   --cockpit-text-muted: rgb(148 184 216 / 0.48);
 
   --sidebar-width: 56px;
+  --height-page-header: 44px;
   --starship-workspace-panel-width: 320px;
   --starship-left-dock-width: calc(var(--sidebar-width) + var(--starship-workspace-panel-width));
 
@@ -785,6 +786,7 @@
 
 :root[data-visual-skin='starship-cockpit'] .command-console .command-execute-button {
   margin-left: 6px;
+  border-radius: 0;
   border-color: rgb(103 216 255 / 0.68);
   background:
     linear-gradient(90deg, rgb(45 89 201 / 0.82), rgb(34 158 221 / 0.82)), rgb(11 50 108 / 0.92);
