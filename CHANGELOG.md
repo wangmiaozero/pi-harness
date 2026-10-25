@@ -2,7 +2,7 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
-## 2.2.19 — 2026-10-25
+## 2.2.20 — 2026-10-25
 
 ### Fixed
 
