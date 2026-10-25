@@ -2,6 +2,13 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.2.19 — 2026-10-25
+
+### Fixed
+
+- Kept the composer control bar on a single line, collapsing option buttons to icons when space is tight.
+- Showed the stop button only for the conversation that is actually running a task.
+
 ## 2.2.18 — 2026-10-25
 
 ### Fixed
