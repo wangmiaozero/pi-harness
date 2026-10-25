@@ -41,6 +41,25 @@ export async function readJsonFile<T>(p: string): Promise<T | null> {
   return JSON.parse(text) as T
 }
 
+async function replaceAtomicFile(source: string, target: string): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await fs.rename(source, target)
+      return
+    } catch (error) {
+      // Windows readers/scanners can briefly hold a handle without FILE_SHARE_DELETE.
+      // Retry only that replacement, never unlink the original or repeat a mutation.
+      if (
+        process.platform !== 'win32' ||
+        attempt >= 5 ||
+        !['EPERM', 'EACCES', 'EBUSY'].includes((error as NodeJS.ErrnoException).code ?? '')
+      )
+        throw error
+      await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)))
+    }
+  }
+}
+
 /**
  * Atomic text write: temp sibling file → fsync → rename.
  * Ensures the destination is replaced atomically (same filesystem).
@@ -60,7 +79,7 @@ async function writeAtomicText(filePath: string, content: string): Promise<void>
     } finally {
       await handle.close()
     }
-    await fs.rename(tmpPath, filePath)
+    await replaceAtomicFile(tmpPath, filePath)
     renamed = true
   } finally {
     if (!renamed) await fs.rm(tmpPath, { force: true }).catch(() => undefined)

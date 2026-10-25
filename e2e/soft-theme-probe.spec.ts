@@ -249,12 +249,25 @@ base('keeps focus, placeholders and glass legible with reduced effects', async (
   const composer = page.getByTestId('chat-composer')
   const editor = page.getByTestId('composer-editor')
   await editor.focus()
+  await expect(editor).toBeFocused()
   const placeholder = await editor.evaluate((element) => {
     const style = getComputedStyle(element, '::before')
-    return { content: style.content, width: parseFloat(style.width), color: style.color }
+    const text = element.getAttribute('data-placeholder')!
+    const context = document.createElement('canvas').getContext('2d')!
+    context.font = style.font
+    return {
+      content: style.content,
+      text,
+      width: parseFloat(style.width),
+      textWidth: context.measureText(text).width,
+      color: style.color
+    }
   })
-  expect(placeholder.content.length).toBeGreaterThan(2)
-  expect(placeholder.width).toBeGreaterThan(80)
+  expect(placeholder.text.length).toBeGreaterThan(2)
+  expect(placeholder.content).toBe(JSON.stringify(placeholder.text))
+  // Font fallback differs across operating systems; the full text must still fit.
+  expect(placeholder.width).toBeGreaterThan(0)
+  expect(Math.abs(placeholder.width - placeholder.textWidth)).toBeLessThan(1)
   expect(placeholder.color).not.toBe('rgba(0, 0, 0, 0)')
   await expect(composer.locator('.command-console-input')).not.toHaveCSS('box-shadow', 'none')
   await page.locator('a[href="#/settings"]').click()
