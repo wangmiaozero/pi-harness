@@ -118,10 +118,13 @@ export class SessionService {
   async get(sessionId: string, leafId?: string | null): Promise<SessionDetail> {
     const filePath = await this.resolvePath(sessionId)
     if (!filePath) throw new NotFoundError(`Session not found: ${sessionId}`)
-    const entries = await this.readEntries(filePath)
+    // Header and entry scans read the file independently; run them together.
+    const [entries, header] = await Promise.all([
+      this.readEntries(filePath),
+      readSessionHeader(filePath)
+    ])
     const resolvedLeaf = leafId ?? lastEntryId(entries)
     const context = await this.buildContext(entries, resolvedLeaf)
-    const header = await readSessionHeader(filePath)
     const info = await this.infoFromHeader(filePath, header, context)
     return {
       sessionId,
@@ -135,7 +138,11 @@ export class SessionService {
 
   async getFullHistory(sessionId: string): Promise<SessionDetail> {
     const filePath = await this.requirePath(sessionId)
-    const entries = await this.readEntries(filePath)
+    // Header and entry scans read the file independently; run them together.
+    const [entries, header] = await Promise.all([
+      this.readEntries(filePath),
+      readSessionHeader(filePath)
+    ])
     const resolvedLeaf = lastEntryId(entries)
     const activeContext = await this.buildContext(entries, resolvedLeaf)
     const messages: AgentMessage[] = []
@@ -152,7 +159,6 @@ export class SessionService {
       entryIds,
       entryParents: Object.fromEntries(entries.map((entry) => [entry.id, entry.parentId]))
     }
-    const header = await readSessionHeader(filePath)
     return {
       sessionId,
       filePath,

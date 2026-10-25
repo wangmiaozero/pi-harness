@@ -104,6 +104,7 @@ const workspaceSidebarResizing = ref(false)
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 let unsubWorkspaceChanged: (() => void) | null = null
 let sessionSwitchQueue: Promise<void> = Promise.resolve()
+let sessionSwitchSequence = 0
 let stopSidebarResize: (() => void) | null = null
 
 const activeKind = computed(() => workspace.activeTab?.kind ?? 'chat')
@@ -410,8 +411,7 @@ onMounted(() => {
     if (!workspace.tabs.some((tab) => tab.kind === 'chat')) {
       workspace.ensureChatTab('new', t('workspace.newSession'))
     }
-    await Promise.all([workspace.loadFiles(), workspace.loadGit()])
-    await workspace.refreshRecent()
+    await Promise.all([workspace.loadFiles(), workspace.loadGit(), workspace.refreshRecent()])
   })()
   window.addEventListener('pi-harness:abort-agent', onAbortEvent)
   window.addEventListener('pi-harness:compact-session', onCompactEvent)
@@ -448,26 +448,39 @@ function openRecent(item: RecentWorkspace) {
   void workspaceSidebar.value?.openRecent(item)
 }
 
-async function switchSession(id: string | null) {
+async function switchSession(id: string | null, sequence: number) {
+  // Rapid selections queue several switches. Only the newest one matters;
+  // running a stale switch to completion would re-select an old session at
+  // the end and make the UI bounce back and forth between sessions.
+  if (sequence !== sessionSwitchSequence) return
   if (id && !sessions.items.some((session) => session.id === id)) {
     workspace.pruneUnavailableSessionTabs()
     sessions.selectSession(null)
     await Promise.all([agent.load(null), harness.load(null)])
     return
   }
+  // Session data loads are generation-guarded, so they can overlap the
+  // workspace restore; the newest switch still decides the final state.
+  const sessionLoads = Promise.all([agent.load(id), harness.load(id)])
+  sessionLoads.catch(() => undefined)
   if (id) await workspace.restoreSessionWorkspace(id)
   else {
     await workspace.restoreDraftWorkspace()
     if (!workspace.canChat) {
       await workspace.ensureDefaultWorkspace(t('workspace.defaultWorkspace'))
     }
-    workspace.ensureChatTab('new', t('workspace.newSession'))
   }
-  await agent.load(id)
-  await harness.load(id)
+  if (sequence !== sessionSwitchSequence || sessions.currentId !== id) return
+  await sessionLoads
+  // A newer selection superseded this queued switch while it was awaiting.
+  // Re-activating the stale session here would queue yet another switch and
+  // ping-pong forever, so leave the selection alone instead.
+  if (sequence !== sessionSwitchSequence || sessions.currentId !== id) return
   if (id) {
     const session = sessions.current
     workspace.ensureChatTab(id, session?.name || session?.firstMessage?.slice(0, 32) || id)
+  } else {
+    workspace.ensureChatTab('new', t('workspace.newSession'))
   }
   await Promise.all([workspace.loadFiles(), workspace.loadGit()])
 }
@@ -478,7 +491,10 @@ watch(
     // A continuation may already be selected before this route mounts.
     // Initial draft restoration remains owned by onMounted above.
     if (id === null && previousId === undefined) return
-    sessionSwitchQueue = sessionSwitchQueue.catch(() => undefined).then(() => switchSession(id))
+    const sequence = ++sessionSwitchSequence
+    sessionSwitchQueue = sessionSwitchQueue
+      .catch(() => undefined)
+      .then(() => switchSession(id, sequence))
   },
   { immediate: true }
 )

@@ -677,20 +677,27 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function restore(opts: { restoreTabs: boolean; autoOpenLastProject: boolean }) {
-    if (!defaultWorkspaceRoots.value.length) {
-      try {
-        defaultWorkspaceRoots.value = await callApi(() => getApi().workspace.getDefaultRoots())
-      } catch {
-        /* Older Main builds still provide the current identity below. */
-      }
-    }
-    if (!defaultWorkspaceRoot.value) {
-      try {
-        defaultWorkspaceRoot.value = await callApi(() => getApi().workspace.getDefaultRoot())
-      } catch {
-        /* older Main builds do not expose the managed workspace identity */
-      }
-    }
+    // The two default-root lookups are independent; fetch them together.
+    await Promise.all([
+      defaultWorkspaceRoots.value.length
+        ? Promise.resolve()
+        : callApi(() => getApi().workspace.getDefaultRoots())
+            .then((roots) => {
+              defaultWorkspaceRoots.value = roots
+            })
+            .catch(() => {
+              /* Older Main builds still provide the current identity below. */
+            }),
+      defaultWorkspaceRoot.value
+        ? Promise.resolve()
+        : callApi(() => getApi().workspace.getDefaultRoot())
+            .then((root) => {
+              defaultWorkspaceRoot.value = root
+            })
+            .catch(() => {
+              /* older Main builds do not expose the managed workspace identity */
+            })
+    ])
     if (hydrated.value) {
       if (sessions.currentId) await restoreSessionWorkspace(sessions.currentId)
       else await restoreDraftWorkspace()
@@ -1337,13 +1344,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         folders: [{ id, path: root, role: 'main' }]
       }
     }
-    for (const folder of binding.folders) {
-      try {
-        await callApi(() => getApi().workspace.allowRoot(folder.path))
-      } catch {
-        /* keep missing folders visible */
-      }
-    }
+    await Promise.all(
+      binding.folders.map(async (folder) => {
+        try {
+          await callApi(() => getApi().workspace.allowRoot(folder.path))
+        } catch {
+          /* keep missing folders visible */
+        }
+      })
+    )
     const ordered = [...binding.folders].sort((a, b) =>
       a.id === binding?.mainFolderId ? -1 : b.id === binding?.mainFolderId ? 1 : 0
     )
