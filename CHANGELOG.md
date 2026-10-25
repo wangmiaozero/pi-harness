@@ -2,6 +2,13 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.2.18 — 2026-10-25
+
+### Fixed
+
+- Fixed sessions switching back and forth on their own after rapid switching in the sidebar.
+- Speeded up session switching, opening conversations, and startup.
+
 ## 2.2.17 — 2026-10-25
 
 ### Fixed
