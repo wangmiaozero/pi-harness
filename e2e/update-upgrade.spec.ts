@@ -15,7 +15,11 @@ test('verifies, cancels, resumes and manually upgrades a real installed package 
   workspaceRoot,
   testUserData
 }) => {
-  test.setTimeout(180_000)
+  // The full flow (throttled download, 25s Squirrel probe, a real restart with
+  // full startup health checks and two persisted turns) exceeds three minutes
+  // on the slowest runner (macos-15-intel). Give it generous room instead of
+  // flaking near the deadline.
+  test.setTimeout(420_000)
   const nextExecutable = process.env.PI_HARNESS_UPDATE_TEST_NEW_EXECUTABLE
   test.skip(!nextExecutable, 'Native old/new packages are supplied by release:test-upgrade')
   const fixtureUrl = process.env.PI_HARNESS_UPDATE_FIXTURE_URL!
