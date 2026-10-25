@@ -127,7 +127,7 @@ onBeforeUnmount(() => {
       class="size-3.5"
       :stroke-width="1.8"
     />
-    <span>{{ selected?.triggerLabel ?? selected?.label ?? model }}</span>
+    <span class="composer-option-label whitespace-nowrap">{{ selected?.triggerLabel ?? selected?.label ?? model }}</span>
   </button>
 
   <Teleport to="body">
