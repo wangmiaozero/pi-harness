@@ -302,8 +302,11 @@ export const useAgentStore = defineStore('agent', () => {
     const streamAtRequest = streaming.value
     const revision = activityRevision
     try {
-      let snap = await callApi(() => getApi().agent.state(sessionId))
-      const running = await callApi(() => getApi().agent.running())
+      const [stateSnap, running] = await Promise.all([
+        callApi(() => getApi().agent.state(sessionId)),
+        callApi(() => getApi().agent.running())
+      ])
+      let snap = stateSnap
       if (!isCurrentLoad(sessionId, generation)) return
       if (revision === activityRevision) runningIds.value = running
       let listed: ToolEntry[] | null = null
