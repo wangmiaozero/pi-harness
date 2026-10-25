@@ -54,6 +54,9 @@ export const useAgentStore = defineStore('agent', () => {
   const completionCount = ref(0)
   const error = ref<string | null>(null)
   const sending = ref(false)
+  // Session the in-flight `send()` belongs to, so "busy" UI stays scoped to
+  // that conversation instead of leaking onto whichever session is selected.
+  const sendingSessionId = ref<string | null>(null)
   let loadedDetail: SessionDetail | null = null
   let loadedStatsOverride: Partial<SessionStats> | null = null
   let loadedSessionId: string | null = null
@@ -227,6 +230,13 @@ export const useAgentStore = defineStore('agent', () => {
     const generation = ++loadGeneration
     loadedSessionId = sessionId
     error.value = null
+    if (!sameSession) {
+      // Per-session snapshots belong to the previously loaded conversation;
+      // dropping them keeps busy/streaming UI from leaking across switches.
+      state.value = null
+      tools.value = []
+      sessionStats.value = null
+    }
     if (!preserveStream) streaming.value = INITIAL_STREAMING_STATE
     if (!sessionId) {
       optimisticUserMessages.clear()
@@ -363,6 +373,7 @@ export const useAgentStore = defineStore('agent', () => {
   ) {
     if (!message.trim() && !images.length) return
     sending.value = true
+    sendingSessionId.value = sessionId ?? null
     error.value = null
     const imageBlocks: ImageContent[] = images.map((image) => ({
       type: 'image',
@@ -392,6 +403,7 @@ export const useAgentStore = defineStore('agent', () => {
           })
         )
         loadedSessionId = started.sessionId
+        sendingSessionId.value = started.sessionId
         transientSessionIds.add(started.sessionId)
         composerSelections.set(started.sessionId, {
           thinkingLevel: thinkingLevel.value,
@@ -455,6 +467,7 @@ export const useAgentStore = defineStore('agent', () => {
       return sessionId
     } finally {
       sending.value = false
+      sendingSessionId.value = null
     }
   }
 
@@ -570,6 +583,23 @@ export const useAgentStore = defineStore('agent', () => {
   async function abort(sessionId: string | null) {
     const target = sessionId ?? loadedSessionId
     if (target) await callApi(() => getApi().agent.abort(target))
+  }
+
+  /**
+   * Whether the given conversation is currently executing a task. Global
+   * signals (`sending`, `streaming`, `state`) only describe the loaded
+   * session, so they are gated on `loadedSessionId`; `runningIds` and
+   * `sendingSessionId` are push-maintained per session and cover the rest.
+   */
+  function isBusy(sessionId: string | null): boolean {
+    if (!sessionId) return false
+    if (runningIds.value.includes(sessionId)) return true
+    if (loadedSessionId !== sessionId) return false
+    return (
+      sendingSessionId.value === sessionId ||
+      streaming.value.isStreaming ||
+      state.value?.isPromptRunning === true
+    )
   }
 
   async function compact(sessionId: string, instructions?: string) {
@@ -729,6 +759,7 @@ export const useAgentStore = defineStore('agent', () => {
     completionCount,
     error,
     sending,
+    sendingSessionId,
     setupListeners,
     load,
     adoptRunningSession,
@@ -736,6 +767,7 @@ export const useAgentStore = defineStore('agent', () => {
     send,
     sendImage,
     abort,
+    isBusy,
     compact,
     setAutoCompaction,
     isSessionLoaded,

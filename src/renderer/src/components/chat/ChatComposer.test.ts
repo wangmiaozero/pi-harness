@@ -449,8 +449,11 @@ describe('ChatComposer paste queue', () => {
 
   it('queues pasted images while the agent is busy and sends the whole queue at once', async () => {
     const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
     const agent = useAgentStore()
-    agent.streaming = { ...agent.streaming, isStreaming: true }
+    sessions.addTransientSession('session-1', '/code/project', 'hello')
+    sessions.selectSession('session-1')
+    agent.runningIds = ['session-1']
 
     const wrapper = mountComposer()
     await attachPngs(wrapper, 2, () =>
@@ -490,8 +493,11 @@ describe('ChatComposer paste queue', () => {
 
   it('moves a queued item back to the attachment drafts with the edit action', async () => {
     const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
     const agent = useAgentStore()
-    agent.streaming = { ...agent.streaming, isStreaming: true }
+    sessions.addTransientSession('session-1', '/code/project', 'hello')
+    sessions.selectSession('session-1')
+    agent.runningIds = ['session-1']
 
     const wrapper = mountComposer()
     await attachPngs(wrapper, 1, () =>
@@ -507,8 +513,11 @@ describe('ChatComposer paste queue', () => {
 
   it('removes the current queue item without touching the drafts', async () => {
     const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
     const agent = useAgentStore()
-    agent.streaming = { ...agent.streaming, isStreaming: true }
+    sessions.addTransientSession('session-1', '/code/project', 'hello')
+    sessions.selectSession('session-1')
+    agent.runningIds = ['session-1']
 
     const wrapper = mountComposer()
     await attachPngs(wrapper, 1, () =>

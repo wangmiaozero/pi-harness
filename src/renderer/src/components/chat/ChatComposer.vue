@@ -150,16 +150,10 @@ const permissionModeValue = computed({
   }
 })
 
-// `runningIds` is push-updated (broadcastRunning) and covers gaps where both the
-// stream snapshot and the state snapshot are stale while a run is executing
-// (e.g. between assistant messages during tool execution).
-const busy = computed(
-  () =>
-    agent.sending ||
-    agent.streaming.isStreaming ||
-    agent.state?.isPromptRunning === true ||
-    agent.runningIds.includes(sessions.currentId ?? '')
-)
+// `runningIds` and the loaded-session snapshots are consulted per session via
+// `isBusy`, so a task running in another conversation never marks this one as
+// busy (e.g. showing 终止 on a session that is idle).
+const busy = computed(() => agent.isBusy(sessions.currentId))
 const pasteQueueCurrent = computed(
   () => pasteQueue.value[Math.min(pasteQueueIndex.value, pasteQueue.value.length - 1)] ?? null
 )
@@ -792,7 +786,11 @@ function removePasteQueueCurrent() {
 }
 
 function sendPasteQueue() {
-  if (!pasteQueue.value.length || agent.sending) return
+  if (
+    !pasteQueue.value.length ||
+    (agent.sending && agent.sendingSessionId === sessions.currentId)
+  )
+    return
   const images: AgentImageAttachment[] = pasteQueue.value.map((item) => ({
     type: 'image' as const,
     data: item.image.data,
@@ -1063,8 +1061,8 @@ onBeforeUnmount(() => {
         data-testid="composer-paste-queue-send"
         variant="primary"
         size="sm"
-        :disabled="agent.sending"
-        :loading="agent.sending"
+        :disabled="agent.sending && agent.sendingSessionId === sessions.currentId"
+        :loading="agent.sending && agent.sendingSessionId === sessions.currentId"
         :title="$t('workspace.pasteQueueSend')"
         @click="sendPasteQueue"
       >
@@ -1209,7 +1207,7 @@ onBeforeUnmount(() => {
         </template>
       </div>
     </Teleport>
-    <div class="command-console-controls mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
+    <div class="command-console-controls mt-2 flex min-w-0 items-center gap-1.5">
       <button
         type="button"
         data-testid="composer-skill-trigger"
@@ -1295,7 +1293,7 @@ onBeforeUnmount(() => {
           @click="onCompact"
         >
           <Minimize2 aria-hidden="true" class="size-3.5" />
-          {{ compactLabel }}
+          <span class="composer-compact-label whitespace-nowrap">{{ compactLabel }}</span>
         </Button>
         <button
           type="button"
@@ -1316,11 +1314,11 @@ onBeforeUnmount(() => {
           variant="primary"
           size="sm"
           :disabled="!canSend"
-          :loading="agent.sending"
+          :loading="agent.sending && agent.sendingSessionId === sessions.currentId"
           @click="emitSend"
         >
           <Send aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
-          {{ $t('workspace.send') }}
+          <span class="composer-send-label whitespace-nowrap">{{ $t('workspace.send') }}</span>
         </Button>
       </div>
     </div>
@@ -1356,6 +1354,9 @@ onBeforeUnmount(() => {
 .composer-band {
   width: min(100%, var(--chat-composer-max-width, var(--chat-content-max-width, 760px)));
   margin-inline: auto;
+  /* Enable container queries so the control row can degrade to icon-only
+   * buttons based on the composer band's own width, not the window's. */
+  container-type: inline-size;
 }
 
 .command-console--ultra {
@@ -1397,5 +1398,27 @@ onBeforeUnmount(() => {
   border-radius: 0;
   box-shadow: none;
   outline: none;
+}
+
+/*
+ * The control row never wraps: items keep their natural size, and when the
+ * composer gets narrow the text labels collapse to icon-only buttons instead
+ * of squeezing labels into multi-line text.
+ */
+.command-console-controls > * {
+  flex-shrink: 0;
+}
+
+@container (max-width: 720px) {
+  .command-console-controls :deep(.composer-option-label),
+  .command-console-controls :deep(.composer-compact-label) {
+    display: none;
+  }
+}
+
+@container (max-width: 640px) {
+  .command-console-controls :deep(.composer-send-label) {
+    display: none;
+  }
 }
 </style>
