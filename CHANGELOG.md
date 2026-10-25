@@ -2,6 +2,19 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.2.21 — 2026-10-25
+
+### Added
+
+- Added concise conversation titles based on the discussion, while preserving manually chosen names.
+- Added previews for all standard themes and refreshed interface screenshots.
+
+### Fixed
+
+- Improved readability and consistency across light, dark and colored themes, controls and menus.
+- Improved the conversation input layout and long-message scrolling.
+- Prevented a light appearance from flashing when opening the app with a saved dark theme.
+
 ## 2.2.20 — 2026-10-25
 
 ### Fixed
