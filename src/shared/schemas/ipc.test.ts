@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   appSettingsPatchSchema,
   backupRetentionSchema,
+  clipboardTextSchema,
   externalUrlSchema,
   modelCompositeIdSchema,
   noArgsSchema,
@@ -19,6 +20,11 @@ describe('IPC schemas', () => {
     expect(externalUrlSchema.safeParse('file:///etc/passwd').success).toBe(false)
     expect(externalUrlSchema.safeParse('javascript:alert(1)').success).toBe(false)
     expect(externalUrlSchema.safeParse('not a url').success).toBe(false)
+  })
+
+  it('bounds clipboard text', () => {
+    expect(clipboardTextSchema.safeParse('普通文本').success).toBe(true)
+    expect(clipboardTextSchema.safeParse('x'.repeat(5 * 1024 * 1024 + 1)).success).toBe(false)
   })
   it('rejects arbitrary URLs and options for argument-free actions', () => {
     expect(noArgsSchema.safeParse([]).success).toBe(true)

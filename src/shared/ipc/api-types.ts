@@ -843,6 +843,7 @@ export interface PiSwitchAPI {
     showItem(path: string): Promise<void>
     openProjectLink(target: ProjectLinkTarget): Promise<void>
     openExternal(url: string): Promise<void>
+    copyText(text: string): Promise<void>
   }
   pi: {
     detect(): Promise<PiEnvironment>

@@ -34,6 +34,9 @@ export const externalUrlSchema = z
     }
   }, 'url must be http(s) or mailto')
 
+/** Text the desktop shell may place on the system clipboard. */
+export const clipboardTextSchema = z.string().max(5 * 1024 * 1024)
+
 export const noArgsSchema = z.tuple([])
 
 export const systemPathSchema = z

@@ -10,7 +10,16 @@ import UniversalOrigin from '@renderer/components/universal/UniversalOrigin.vue'
 import ChatComposer from './ChatComposer.vue'
 import ConversationMinimap from './ConversationMinimap.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
-import { ArrowDown, ArrowUp, Check, Copy, Gauge, History, MessageSquare, ShieldAlert } from '@lucide/vue'
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  Copy,
+  Gauge,
+  History,
+  MessageSquare,
+  ShieldAlert
+} from '@lucide/vue'
 import Button from '@renderer/components/ui/Button.vue'
 import { useAgentStore } from '@renderer/stores/agent'
 import { useSessionStore } from '@renderer/stores/sessions'
@@ -21,7 +30,11 @@ import { useHarnessStore } from '@renderer/stores/harness'
 import { useSkillsStore } from '@renderer/stores/skills'
 import { buildMessageFileChanges } from './message-file-changes'
 import { resolveSkillMention } from './skill-invocation'
-import { agentModeDirective, normalizeAgentMode, type AgentMode } from '@shared/workspace/agent-mode'
+import {
+  agentModeDirective,
+  normalizeAgentMode,
+  type AgentMode
+} from '@shared/workspace/agent-mode'
 import { usePermissionStore } from '@renderer/stores/permission'
 import type { ToolPreset } from '@shared/workspace/tool-presets'
 import type { AgentImageAttachment, SessionDetail } from '@shared/types/workspace'
@@ -82,9 +95,7 @@ defineExpose({ focusComposer })
 
 const stats = computed(() => agent.sessionStats)
 const contextUsage = computed(() => agent.state?.contextUsage ?? null)
-const chatContentMaxWidth = computed(
-  () => `${settings.settings?.chatContentMaxWidth ?? 760}px`
-)
+const chatContentMaxWidth = computed(() => `${settings.settings?.chatContentMaxWidth ?? 760}px`)
 const contextPercent = computed(() => contextUsage.value?.percent ?? null)
 const contextColor = computed(() => {
   const percent = contextPercent.value
@@ -175,10 +186,7 @@ watch(
   }
 )
 
-async function onSend(
-  imageModel: ComposerImageModelTarget | null = null,
-  mode?: AgentMode
-) {
+async function onSend(imageModel: ComposerImageModelTarget | null = null, mode?: AgentMode) {
   const text = workspace.draft.trim()
   const selectedSkillName = imageModel ? null : workspace.draftSkill
   const skillInvocation = imageModel
@@ -254,7 +262,15 @@ async function onSendQueue(images: AgentImageAttachment[]) {
   ) as ToolPreset
   await completionSound.unlock()
   stickToLatest()
-  await agent.send(sessions.currentId, workspace.currentCwd, '', preset, images, '', permission.modeFor(sessions.currentId))
+  await agent.send(
+    sessions.currentId,
+    workspace.currentCwd,
+    '',
+    preset,
+    images,
+    '',
+    permission.modeFor(sessions.currentId)
+  )
 }
 
 async function onAbort() {
@@ -287,7 +303,11 @@ async function toggleAutoCompaction() {
 }
 
 async function copyStat(field: 'file' | 'id', value: string) {
-  await navigator.clipboard.writeText(value)
+  try {
+    await callApi(() => getApi().system.copyText(value))
+  } catch {
+    await navigator.clipboard.writeText(value)
+  }
   copiedField.value = field
   window.setTimeout(() => {
     if (copiedField.value === field) copiedField.value = null
@@ -330,11 +350,7 @@ function duration(value: number): string {
         @touchmove.passive="onScrollerTouchMove"
         @pointerdown="onScrollerPointerDown"
       >
-        <div
-          ref="scrollContent"
-          data-chat-band
-          class="chat-scroll-content min-w-0"
-        >
+        <div ref="scrollContent" data-chat-band class="chat-scroll-content min-w-0">
           <EmptyState
             v-if="!persistedMessages.length && !liveMessage"
             :title="$t('workspace.emptyChat')"

@@ -180,7 +180,13 @@ const messageCopyText = computed(() => {
 async function copyMessage(): Promise<void> {
   const text = messageCopyText.value
   if (!text) return
-  await navigator.clipboard.writeText(text)
+  // Electron's renderer clipboard can be unavailable/unfocused; the main
+  // process clipboard is the reliable path, navigator is the dev/test fallback.
+  try {
+    await callApi(() => getApi().system.copyText(text))
+  } catch {
+    await navigator.clipboard.writeText(text)
+  }
   copyState.value = 'copied'
   if (copyResetTimer) clearTimeout(copyResetTimer)
   copyResetTimer = setTimeout(() => {
