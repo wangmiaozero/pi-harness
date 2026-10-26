@@ -1508,6 +1508,7 @@ export const deDE: MessageTree = {
     activeDuration: 'Aktive Zeit',
     copyFile: 'Dateipfad kopieren',
     copyId: 'Sitzungs-ID kopieren',
+    copyMessage: 'Nachricht kopieren',
     messages: 'Nachrichten',
     messageUser: 'Nutzer',
     messageAssistant: 'Assistent',

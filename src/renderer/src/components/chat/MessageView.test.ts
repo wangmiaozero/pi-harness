@@ -1,5 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import MessageView from './MessageView.vue'
 import type {
   AgentMessage,
@@ -31,6 +31,44 @@ describe('MessageView', () => {
     expect(wrapper.get('.user-message-body img').attributes('src')).toBe(
       'data:image/png;base64,TQ=='
     )
+  })
+
+  it('copies user message text from the hover action bar', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { writeText } })
+    const message: AgentMessage = { role: 'user', content: '帮我修复这个问题' }
+    const wrapper = mount(MessageView, {
+      props: { message },
+      global: {
+        mocks: { $t: (key: string) => key },
+        stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true }
+      }
+    })
+    await wrapper.get('[data-testid="copy-user-message"]').trigger('click')
+    expect(writeText).toHaveBeenCalledWith('帮我修复这个问题')
+  })
+
+  it('copies assistant markdown text without tool blocks from the action bar', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { writeText } })
+    const message: AssistantMessage = {
+      role: 'assistant',
+      model: 'test-model',
+      provider: 'test',
+      content: [
+        { type: 'text', text: '**交付摘要**' },
+        { type: 'toolCall', id: 't1', name: 'bash', arguments: {} } as never
+      ]
+    }
+    const wrapper = mount(MessageView, {
+      props: { message },
+      global: {
+        mocks: { $t: (key: string) => key },
+        stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true, StreamingMarkdown: true }
+      }
+    })
+    await wrapper.get('[data-testid="copy-assistant-message"]').trigger('click')
+    expect(writeText).toHaveBeenCalledWith('**交付摘要**')
   })
 
   it('uses the configured user display name', () => {

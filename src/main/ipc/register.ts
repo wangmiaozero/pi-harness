@@ -34,7 +34,7 @@ import { NODE_DOWNLOAD_URL, PI_INSTALL_COMMAND } from '@shared/constants/pi-inst
 import { toErrorPayload } from '../services/errors'
 import { log } from '../services/logger'
 import { savePastedFiles } from '../services/paste-store'
-import { pasteSaveSchema } from '@shared/schemas/ipc'
+import { pasteSaveSchema, externalUrlSchema } from '@shared/schemas/ipc'
 import { APP_VERSION, PROJECT_LINK_URLS } from '@shared/constants/index'
 import { normalizePermissionMode } from '@shared/workspace/permission-mode'
 import { normalizeAgentMode } from '@shared/workspace/agent-mode'
@@ -316,6 +316,12 @@ export function registerIpc(services: Services): void {
     wrap(async () => {
       const target = parseInput(projectLinkTargetSchema, input, 'Invalid project link')
       await shell.openExternal(PROJECT_LINK_URLS[target])
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.systemOpenExternal, (_e, input: unknown) =>
+    wrap(async () => {
+      const url = parseInput(externalUrlSchema, input, 'Invalid external URL')
+      await shell.openExternal(url)
     })
   )
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import security from '@comark/vue/plugins/security'
 import taskList from '@comark/vue/plugins/task-list'
-import { computed, onErrorCaptured, ref } from 'vue'
+import { computed, onErrorCaptured, onBeforeUnmount, ref } from 'vue'
+import { Check, Copy } from '@lucide/vue'
 import type { AgentMessage, ImageContent } from '@shared/types/workspace'
 import ToolCallView from './ToolCallView.vue'
 import BranchNavigator from './BranchNavigator.vue'
@@ -12,6 +13,8 @@ import type { MessageFileChanges } from './message-file-changes'
 import { normalizeAssistantName, normalizeUserName } from '@shared/constants/chat-participants'
 import { hasRenderableMessageContent } from './message-visibility'
 import { parseSkillInvocation } from './skill-invocation'
+import { stripImageMetadataSuffix } from '@shared/workspace/image-attachments'
+import { callApi, getApi } from '@renderer/composables/useApi'
 
 const markdownOptions = {
   registerDefaultPlugins: false
@@ -91,6 +94,26 @@ function openPreview(src: string) {
   previewOpen.value = true
 }
 
+/**
+ * Markdown links must open in the user's browser: the window blocks in-app
+ * navigation and window.open, so intercept anchor clicks and hand the URL to
+ * the shell instead.
+ */
+async function openExternalLink(event: MouseEvent): Promise<void> {
+  const anchor = (event.target as HTMLElement | null)?.closest('a')
+  if (!anchor) return
+  const href = anchor.getAttribute('href')
+  if (!href) return
+  event.preventDefault()
+  event.stopPropagation()
+  if (!/^(https?:|mailto:)/i.test(href)) return
+  try {
+    await callApi(() => getApi().system.openExternal(href))
+  } catch {
+    /* the shell rejects invalid URLs; nothing to show in a chat bubble */
+  }
+}
+
 function openImage(image: ImageContent) {
   const src = imageSource(image)
   if (src) openPreview(src)
@@ -99,12 +122,17 @@ function openImage(image: ImageContent) {
 const userText = computed(() => {
   const msg = props.message
   if (msg.role !== 'user') return ''
-  return typeof msg.content === 'string'
-    ? msg.content
-    : msg.content
-        .filter((b) => b.type === 'text')
-        .map((b) => (b.type === 'text' ? b.text : ''))
-        .join('\n')
+  const hasImages = typeof msg.content !== 'string' && msg.content.some((b) => b.type === 'image')
+  const raw =
+    typeof msg.content === 'string'
+      ? msg.content
+      : msg.content
+          .filter((b) => b.type === 'text')
+          .map((b) => (b.type === 'text' ? b.text : ''))
+          .join('\n')
+  // Pi appends an `[Image: …]` metadata line to persisted image prompts; it is
+  // model-facing context and should never be shown to the user.
+  return stripImageMetadataSuffix(raw, hasImages).trim()
 })
 const userSkillInvocation = computed(() => parseSkillInvocation(userText.value))
 const displayedUserText = computed(() => userSkillInvocation.value?.prompt ?? userText.value)
@@ -133,10 +161,44 @@ const bashText = computed(() => {
   if (msg.role !== 'bashExecution') return ''
   return `$ ${msg.command}\n${msg.output}`
 })
+
+const copyState = ref<'idle' | 'copied'>('idle')
+let copyResetTimer: ReturnType<typeof setTimeout> | null = null
+
+const messageCopyText = computed(() => {
+  const msg = props.message
+  if (msg.role === 'user') return displayedUserText.value
+  if (msg.role !== 'assistant') return ''
+  return typeof msg.content === 'string'
+    ? msg.content
+    : msg.content
+        .filter((b) => b.type === 'text')
+        .map((b) => (b.type === 'text' ? b.text : ''))
+        .join('\n\n')
+})
+
+async function copyMessage(): Promise<void> {
+  const text = messageCopyText.value
+  if (!text) return
+  await navigator.clipboard.writeText(text)
+  copyState.value = 'copied'
+  if (copyResetTimer) clearTimeout(copyResetTimer)
+  copyResetTimer = setTimeout(() => {
+    copyState.value = 'idle'
+  }, 1500)
+}
+
+onBeforeUnmount(() => {
+  if (copyResetTimer) clearTimeout(copyResetTimer)
+})
 </script>
 
 <template>
-  <article v-if="hasVisibleContent" class="message-hud mb-3" :data-message-role="message.role">
+  <article
+    v-if="hasVisibleContent"
+    class="message-hud group mb-3"
+    :data-message-role="message.role"
+  >
     <p v-if="message.role !== 'toolResult'" class="message-role-label">
       <span class="message-role-badge">
         <template v-if="message.role === 'user'">{{ userDisplayName }}</template>
@@ -149,101 +211,136 @@ const bashText = computed(() => {
       </span>
     </p>
 
-    <div
-      v-if="message.role === 'user'"
-      class="user-message-body px-3.5 py-2.5 text-[13px] text-[var(--text-primary)]"
-    >
-      <div
-        v-if="userSkillInvocation"
-        data-testid="skill-invocation"
-        class="mb-1.5 inline-flex items-center rounded-full border border-[var(--accent-border)] bg-[var(--accent-tint)] px-2 py-0.5 font-[family-name:var(--font-mono)] text-[11px] font-medium text-[var(--accent)]"
-      >
-        @{{ userSkillInvocation.name }}
-      </div>
-      <p v-if="displayedUserText" class="whitespace-pre-wrap">{{ displayedUserText }}</p>
-      <div
-        v-if="userImages.length"
-        class="flex flex-wrap gap-2"
-        :class="displayedUserText || userSkillInvocation ? 'mt-2' : ''"
-      >
-        <button
-          v-for="(src, index) in userImages"
-          :key="index"
-          type="button"
-          class="block size-[72px] overflow-hidden rounded-[7px] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-          :title="$t('workspace.previewImage')"
-          @click="openPreview(src)"
+    <template v-if="message.role === 'user'">
+      <div class="user-message-body px-3.5 py-2.5 text-[13px] text-[var(--text-primary)]">
+        <div
+          v-if="userSkillInvocation"
+          data-testid="skill-invocation"
+          class="mb-1.5 inline-flex items-center rounded-full border border-[var(--accent-border)] bg-[var(--accent-tint)] px-2 py-0.5 font-[family-name:var(--font-mono)] text-[11px] font-medium text-[var(--accent)]"
         >
-          <img :src="src" alt="" loading="lazy" class="size-full object-cover" />
-        </button>
+          @{{ userSkillInvocation.name }}
+        </div>
+        <p v-if="displayedUserText" class="whitespace-pre-wrap">{{ displayedUserText }}</p>
+        <div
+          v-if="userImages.length"
+          class="flex flex-wrap gap-2"
+          :class="displayedUserText || userSkillInvocation ? 'mt-2' : ''"
+        >
+          <button
+            v-for="(src, index) in userImages"
+            :key="index"
+            type="button"
+            class="block size-[72px] overflow-hidden rounded-[7px] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+            :title="$t('workspace.previewImage')"
+            @click="openPreview(src)"
+          >
+            <img :src="src" alt="" loading="lazy" class="size-full object-cover" />
+          </button>
+        </div>
       </div>
-    </div>
 
-    <div v-else-if="message.role === 'assistant'" class="assistant-message-body space-y-2">
-      <template v-for="(block, i) in message.content" :key="i">
-        <p
-          v-if="block.type === 'text' && markdownFailed"
-          class="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]"
-        >
-          {{ block.text }}
-        </p>
-        <Suspense v-else-if="block.type === 'text'">
-          <StreamingMarkdown
-            :value="block.text"
-            :options="markdownOptions"
-            :plugins="markdownPlugins"
-            :streaming="streaming"
-            class="markdown-content"
-          />
-          <template #fallback>
-            <p class="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]">
-              {{ block.text }}
-            </p>
-          </template>
-        </Suspense>
-        <details
-          v-else-if="block.type === 'thinking'"
-          open
-          data-testid="thinking-details"
-          class="thinking-hud rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1"
-        >
-          <summary class="cursor-pointer text-[11px] text-[var(--text-tertiary)]">
-            <span
-              class="cockpit-only mr-1 inline font-[family-name:var(--font-mono)] text-[8px] tracking-[0.14em] text-[var(--accent)]"
-            >
-              AI PROCESS HUD ·
-            </span>
-            {{ $t('workspace.thinking') }}
-          </summary>
-          <p class="mt-1 whitespace-pre-wrap text-[12px] text-[var(--text-secondary)]">
-            {{ block.thinking || (block.deferred ? $t('workspace.thinkingDeferred') : '') }}
-          </p>
-        </details>
-        <ToolCallView v-else-if="block.type === 'toolCall'" :block="block" />
-        <button
-          v-else-if="block.type === 'image' && imageSource(block)"
-          type="button"
-          class="block max-w-[320px] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-          :title="$t('workspace.previewImage')"
-          @click="openImage(block)"
-        >
-          <img
-            :src="imageSource(block) ?? ''"
-            alt=""
-            loading="lazy"
-            class="max-h-[280px] w-full object-contain"
-          />
-        </button>
-      </template>
-      <p
-        v-if="message.errorMessage"
-        data-testid="assistant-error"
-        class="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2 text-[12px] text-[var(--danger)]"
+      <div
+        v-if="message.role === 'user'"
+        class="message-actions mt-1 flex items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
       >
-        {{ message.errorMessage }}
-      </p>
-      <FileChangesCard v-if="fileChanges && !streaming" :changes="fileChanges" />
-    </div>
+        <button
+          type="button"
+          class="inline-flex size-6 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:bg-[var(--bg-surface-raised)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+          :title="$t('workspace.copyMessage')"
+          :aria-label="$t('workspace.copyMessage')"
+          data-testid="copy-user-message"
+          @click="copyMessage"
+        >
+          <Check v-if="copyState === 'copied'" class="size-3.5" />
+          <Copy v-else class="size-3.5" />
+        </button>
+      </div>
+    </template>
+
+    <template v-else-if="message.role === 'assistant'">
+      <div class="assistant-message-body space-y-2" @click.capture="openExternalLink">
+        <template v-for="(block, i) in message.content" :key="i">
+          <p
+            v-if="block.type === 'text' && markdownFailed"
+            class="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]"
+          >
+            {{ block.text }}
+          </p>
+          <Suspense v-else-if="block.type === 'text'">
+            <StreamingMarkdown
+              :value="block.text"
+              :options="markdownOptions"
+              :plugins="markdownPlugins"
+              :streaming="streaming"
+              class="markdown-content"
+            />
+            <template #fallback>
+              <p class="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]">
+                {{ block.text }}
+              </p>
+            </template>
+          </Suspense>
+          <details
+            v-else-if="block.type === 'thinking'"
+            open
+            data-testid="thinking-details"
+            class="thinking-hud rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1"
+          >
+            <summary class="cursor-pointer text-[11px] text-[var(--text-tertiary)]">
+              <span
+                class="cockpit-only mr-1 inline font-[family-name:var(--font-mono)] text-[8px] tracking-[0.14em] text-[var(--accent)]"
+              >
+                AI PROCESS HUD ·
+              </span>
+              {{ $t('workspace.thinking') }}
+            </summary>
+            <p class="mt-1 whitespace-pre-wrap text-[12px] text-[var(--text-secondary)]">
+              {{ block.thinking || (block.deferred ? $t('workspace.thinkingDeferred') : '') }}
+            </p>
+          </details>
+          <ToolCallView v-else-if="block.type === 'toolCall'" :block="block" />
+          <button
+            v-else-if="block.type === 'image' && imageSource(block)"
+            type="button"
+            class="block max-w-[320px] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+            :title="$t('workspace.previewImage')"
+            @click="openImage(block)"
+          >
+            <img
+              :src="imageSource(block) ?? ''"
+              alt=""
+              loading="lazy"
+              class="max-h-[280px] w-full object-contain"
+            />
+          </button>
+        </template>
+        <p
+          v-if="message.errorMessage"
+          data-testid="assistant-error"
+          class="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2 text-[12px] text-[var(--danger)]"
+        >
+          {{ message.errorMessage }}
+        </p>
+        <FileChangesCard v-if="fileChanges && !streaming" :changes="fileChanges" />
+      </div>
+
+      <div
+        v-if="!streaming"
+        class="message-actions mt-1 flex items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+      >
+        <button
+          type="button"
+          class="inline-flex size-6 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:bg-[var(--bg-surface-raised)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+          :title="$t('workspace.copyMessage')"
+          :aria-label="$t('workspace.copyMessage')"
+          data-testid="copy-assistant-message"
+          @click="copyMessage"
+        >
+          <Check v-if="copyState === 'copied'" class="size-3.5" />
+          <Copy v-else class="size-3.5" />
+        </button>
+      </div>
+    </template>
 
     <details
       v-else-if="message.role === 'toolResult'"

@@ -1507,6 +1507,7 @@ export const koKR: MessageTree = {
     activeDuration: '활성 시간',
     copyFile: '파일 경로 복사',
     copyId: '세션 ID 복사',
+    copyMessage: '메시지 복사',
     messages: '메시지',
     messageUser: '사용자',
     messageAssistant: '어시스턴트',

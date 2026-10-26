@@ -1509,6 +1509,7 @@ export const enUS = {
     activeDuration: 'Active time',
     copyFile: 'Copy file path',
     copyId: 'Copy session ID',
+    copyMessage: 'Copy message',
     messages: 'Messages',
     messageUser: 'User',
     messageAssistant: 'Assistant',

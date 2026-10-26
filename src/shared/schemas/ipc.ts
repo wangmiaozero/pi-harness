@@ -21,6 +21,19 @@ import { CHAT_PARTICIPANT_NAME_MAX_LENGTH } from '../constants/chat-participants
 
 export const projectLinkTargetSchema = z.enum(['author', 'repository'])
 
+/** URLs the desktop shell may open in the user's browser. */
+export const externalUrlSchema = z
+  .string()
+  .trim()
+  .max(2048)
+  .refine((value) => {
+    try {
+      return ['http:', 'https:', 'mailto:'].includes(new URL(value).protocol)
+    } catch {
+      return false
+    }
+  }, 'url must be http(s) or mailto')
+
 export const noArgsSchema = z.tuple([])
 
 export const systemPathSchema = z

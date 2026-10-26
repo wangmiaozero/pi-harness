@@ -1507,6 +1507,7 @@ export const ruRU: MessageTree = {
     activeDuration: 'Активное время',
     copyFile: 'Копировать путь к файлу',
     copyId: 'Копировать ID сеанса',
+    copyMessage: 'Копировать сообщение',
     messages: 'Сообщения',
     messageUser: 'Пользователь',
     messageAssistant: 'Ассистент',

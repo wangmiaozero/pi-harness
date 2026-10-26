@@ -1507,6 +1507,7 @@ export const frFR: MessageTree = {
     activeDuration: 'Temps actif',
     copyFile: 'Copier le chemin du fichier',
     copyId: 'Copier l\'ID de session',
+    copyMessage: 'Copier le message',
     messages: 'Messages',
     messageUser: 'Utilisateur',
     messageAssistant: 'Assistant',
