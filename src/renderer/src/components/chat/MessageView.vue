@@ -96,8 +96,8 @@ function openPreview(src: string) {
 
 /**
  * Markdown links must open in the user's browser: the window blocks in-app
- * navigation and window.open, so intercept anchor clicks and hand the URL to
- * the shell instead.
+ * navigation and scripted popups, so intercept anchor clicks and hand the URL
+ * to the shell instead.
  */
 async function openExternalLink(event: MouseEvent): Promise<void> {
   const anchor = (event.target as HTMLElement | null)?.closest('a')
