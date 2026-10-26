@@ -2,6 +2,19 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.3.1 — 2026-10-27
+
+### Added
+
+- Added session cleanup in Settings → Workspace: scan the current project, sessions older than 30 or 90 days, or the entire history, preview the exact number of sessions and disk space, and permanently delete them after a two-step confirmation. Running and pinned sessions are always protected.
+
+### Fixed
+
+- New prompts sent while the agent is busy are now queued and sent when the current run finishes instead of being rejected.
+- Links in assistant messages are now clickable and open in the default browser.
+- Fixed message copy not working, and moved the copy button next to the message bubble instead of the edge of the chat area.
+- Image attachment metadata is no longer shown in the conversation.
+
 ## 2.3.0 — 2026-10-26
 
 ### Added
