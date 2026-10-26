@@ -347,7 +347,10 @@ const api: PiSwitchAPI = {
       invoke(IPC_INVOKE.projectExport, { name, sessionIds, format }),
     viewFullHistory: (sessionId) => invoke(IPC_INVOKE.sessionViewHistory, sessionId),
     contextMenu: (sessionId, isWorktree, isPinned, locale) =>
-      invoke(IPC_INVOKE.sessionContextMenu, { sessionId, isWorktree, isPinned, locale })
+      invoke(IPC_INVOKE.sessionContextMenu, { sessionId, isWorktree, isPinned, locale }),
+    previewCleanup: (options) => invoke(IPC_INVOKE.sessionCleanupPreview, options),
+    executeCleanup: (previewToken) =>
+      invoke(IPC_INVOKE.sessionCleanupExecute, { previewToken })
   },
   agent: {
     start: (input) => invoke(IPC_INVOKE.agentStart, input),

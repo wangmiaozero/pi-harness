@@ -20,7 +20,12 @@ const cancelLabel = computed(() => state.cancelLabel || t('common.cancel'))
 </script>
 
 <template>
-  <Dialog v-model:open="open" :title="state.title" :description="state.description || undefined">
+  <Dialog
+    v-model:open="open"
+    :title="state.title"
+    :description="state.description || undefined"
+    close-on-escape
+  >
     <template #footer>
       <Button variant="ghost" @click="resolveConfirm(false)">
         {{ cancelLabel }}

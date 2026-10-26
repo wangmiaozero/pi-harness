@@ -17,6 +17,8 @@ defineProps<{
   large?: boolean
   medium?: boolean
   prominentTitle?: boolean
+  /** Allow Esc to close. Default false: implicit dismissal is blocked. */
+  closeOnEscape?: boolean
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
@@ -25,6 +27,10 @@ const { t } = useI18n()
 
 function preventImplicitClose(event: Event) {
   event.preventDefault()
+}
+
+function onEscapeKeyDown(event: Event, closeOnEscape: boolean | undefined) {
+  if (!closeOnEscape) preventImplicitClose(event)
 }
 </script>
 
@@ -46,7 +52,7 @@ function preventImplicitClose(event: Event) {
                 : 'w-[min(420px,92vw)]'
         "
         @interact-outside="preventImplicitClose"
-        @escape-key-down="preventImplicitClose"
+        @escape-key-down="onEscapeKeyDown($event, closeOnEscape)"
         @open-auto-focus="emit('open-auto-focus', $event)"
       >
         <div class="flex shrink-0 items-start justify-between gap-3 px-4 pb-3 pt-4">

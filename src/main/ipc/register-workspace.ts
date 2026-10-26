@@ -29,6 +29,8 @@ import {
   projectExportSchema,
   sessionIdSchema,
   sessionRenameSchema,
+  sessionCleanupPreviewSchema,
+  sessionCleanupExecuteSchema,
   startAgentSessionSchema,
   workspaceBindSessionSchema,
   workspaceOpenFileSchema,
@@ -50,6 +52,7 @@ import type { GitService } from '../git/git-service'
 import type { GitCommitMessageService } from '../git/commit-message-service'
 import type { WorktreeService } from '../git/worktree-service'
 import type { SessionService } from '../sessions/session-service'
+import type { SessionCleanupService } from '../sessions/session-cleanup-service'
 import type { SessionExportService } from '../sessions/session-export-service'
 import type { AgentRuntime } from '../agent/runtime'
 import type { WorkspaceService } from '../workspace/workspace-service'
@@ -74,6 +77,7 @@ export interface WorkspaceServices {
   gitCommitMessages: GitCommitMessageService
   worktrees: WorktreeService
   sessions: SessionService
+  sessionCleanup: SessionCleanupService
   sessionExport: SessionExportService
   agent: AgentRuntime
   workspaceState: WorkspaceService
@@ -99,6 +103,7 @@ export function registerWorkspaceIpc(
     gitCommitMessages,
     worktrees,
     sessions,
+    sessionCleanup,
     sessionExport,
     agent,
     workspaceState,
@@ -364,6 +369,23 @@ export function registerWorkspaceIpc(
         throw new ValidationError('Invalid menu', { issues: parsed.error.issues })
       const win = BrowserWindow.fromWebContents(e.sender)
       return showSessionMenu(win, parsed.data.locale ?? 'en-US')
+    })
+  )
+
+  ipcMain.handle(IPC_INVOKE.sessionCleanupPreview, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = sessionCleanupPreviewSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid cleanup request', { issues: parsed.error.issues })
+      return sessionCleanup.preview(parsed.data)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.sessionCleanupExecute, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = sessionCleanupExecuteSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid cleanup execution', { issues: parsed.error.issues })
+      return sessionCleanup.execute(parsed.data.previewToken)
     })
   )
 

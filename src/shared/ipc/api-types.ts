@@ -116,6 +116,63 @@ export interface IpcError extends Error {
   payload: AppErrorPayload
 }
 
+/**
+ * Session cleanup scope. Time-based scopes use the session's last activity
+ * time so recently active conversations are never swept.
+ */
+
+export type SessionCleanupScope = 'current-project' | 'older-30d' | 'older-90d' | 'all'
+
+export interface SessionCleanupPreviewOptions {
+  scope: SessionCleanupScope
+  /** Required when scope is `current-project` (project identity key). */
+  projectKey?: string
+  /** Protect pinned sessions. Defaults to true on Main when omitted. */
+  keepPinned?: boolean
+  /** Pinned session ids from the Renderer workspace state; only ever widens protection. */
+  pinnedSessionIds?: string[]
+}
+
+export interface SessionCleanupCandidate {
+  sessionId: string
+  name?: string
+  projectName?: string
+  modified: string
+  /** Real on-disk size of the JSONL session file, measured with fs.stat. */
+  sizeBytes: number
+}
+
+export interface SessionCleanupPreview {
+  previewToken: string
+  scope: SessionCleanupScope
+  candidates: SessionCleanupCandidate[]
+  totalBytes: number
+  affectedProjects: number
+  excludedRunning: number
+  excludedPinned: number
+  excludedUnsafe: number
+  expiresAt: number
+}
+
+export interface SessionCleanupError {
+  sessionId: string
+  message: string
+}
+
+export interface SessionCleanupResult {
+  requested: number
+  deleted: number
+  failed: number
+  /** Real bytes freed by successful unlink calls — never an estimate. */
+  freedBytes: number
+  skippedRunning: number
+  skippedPinned: number
+  skippedChanged: number
+  skippedMissing: number
+  deletedSessionIds: string[]
+  errors: SessionCleanupError[]
+}
+
 export interface PiEnvironment {
   installed: boolean
   cliPath: string | null
@@ -1088,6 +1145,8 @@ export interface PiSwitchAPI {
       isPinned?: boolean,
       locale?: 'zh-CN' | 'en-US'
     ): Promise<SessionContextAction | null>
+    previewCleanup(options: SessionCleanupPreviewOptions): Promise<SessionCleanupPreview>
+    executeCleanup(previewToken: string): Promise<SessionCleanupResult>
   }
   agent: {
     start(input: StartAgentSessionInput): Promise<{ sessionId: string; cwd: string }>

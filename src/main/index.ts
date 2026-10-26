@@ -63,6 +63,7 @@ import { WorktreeService } from './git/worktree-service'
 import { SessionTitleService, createSessionTitleGenerator } from './sessions/session-title-service'
 import { SessionService } from './sessions/session-service'
 import { SessionExportService } from './sessions/session-export-service'
+import { SessionCleanupService } from './sessions/session-cleanup-service'
 import { RuntimeManager } from './runtime/runtime-manager'
 import { setRuntimeProvider } from './runtime/active'
 import { PiRpcRuntime } from './agent/pi-rpc-runtime'
@@ -349,6 +350,13 @@ async function bootstrap(): Promise<void> {
     mainWindow.webContents.send(IPC_EVENT.workspaceChanged, { roots })
   })
   const sessionExport = new SessionExportService(sessions)
+  const sessionCleanup = new SessionCleanupService({
+    listSessions: (force) => sessions.list(force),
+    invalidateSessions: () => sessions.invalidate(),
+    listRunning: () => harness.listRunning(),
+    unbindSession: (id) => workspaceState.unbindSession(id).catch(() => undefined),
+    sessionsRoot: () => sessions.sessionsRoot()
+  })
   const policyEngine = new PolicyEngine(
     new JsonStore(harnessPolicyPath(), structuredClone(DEFAULT_POLICY_CONFIG))
   )
@@ -594,6 +602,7 @@ async function bootstrap(): Promise<void> {
       gitCommitMessages,
       worktrees,
       sessions,
+      sessionCleanup,
       sessionExport,
       agent: harness,
       workspaceState,
