@@ -41,6 +41,7 @@ import {
   type ComposerSelection
 } from './composer-cache'
 import { rasterizeSvgImageResult } from '@renderer/utils/svg-rasterize'
+import { stripImageMetadataSuffix } from '@shared/workspace/image-attachments'
 
 export const useAgentStore = defineStore('agent', () => {
   const messages = shallowRef<AgentMessage[]>([])
@@ -58,6 +59,39 @@ export const useAgentStore = defineStore('agent', () => {
   // that conversation instead of leaking onto whichever session is selected.
   const sendingSessionId = ref<string | null>(null)
   let loadedDetail: SessionDetail | null = null
+
+  /**
+   * Prompt with a safety net for the busy-start race: the state snapshot taken
+   * right before can claim the session is idle while the runtime has already
+   * begun a run (e.g. during `before_agent_start`), which makes a plain
+   * `prompt()` reject with "Agent is already processing". Retry once with
+   * `streamingBehavior: 'followUp'` so the message is queued instead of lost.
+   */
+  async function promptQueuedOrRetry(
+    sessionId: string,
+    message: string,
+    images: AgentImageAttachment[]
+  ): Promise<unknown> {
+    try {
+      return await callApi(() =>
+        getApi().agent.prompt({
+          sessionId,
+          message,
+          ...(images.length ? { images } : {})
+        })
+      )
+    } catch (e) {
+      if (!/already processing|streamingBehavior/i.test(getErrorMessage(e))) throw e
+      return callApi(() =>
+        getApi().agent.prompt({
+          sessionId,
+          message,
+          streamingBehavior: 'followUp',
+          ...(images.length ? { images } : {})
+        })
+      )
+    }
+  }
   let loadedStatsOverride: Partial<SessionStats> | null = null
   let loadedSessionId: string | null = null
   let loadGeneration = 0
@@ -417,20 +451,21 @@ export const useAgentStore = defineStore('agent', () => {
           displayMessage.trim() || '[image]'
         )
         void useWorkspaceStore().bindCurrentSession(started.sessionId)
-        await callApi(() =>
-          getApi().agent.prompt({
-            sessionId: started.sessionId,
-            message,
-            ...(images.length ? { images } : {})
-          })
-        )
+        await promptQueuedOrRetry(started.sessionId, message, images)
         return started.sessionId
       }
       const snap = await callApi(() => getApi().agent.state(sessionId))
-      if (permissionMode && (snap?.isStreaming || snap?.isPromptRunning)) {
+      // `status` also covers the run-start window where `isStreaming` and
+      // `isPromptRunning` are both still false but the runtime refuses new runs.
+      const isBusy =
+        snap?.isStreaming ||
+        snap?.isPromptRunning ||
+        snap?.status === 'running' ||
+        snap?.status === 'compacting'
+      if (permissionMode && isBusy) {
         await callApi(() => getApi().agent.setPermissionMode(sessionId, permissionMode))
       }
-      if (snap?.isStreaming || snap?.isPromptRunning) {
+      if (isBusy) {
         await callApi(() =>
           getApi().agent.prompt({
             sessionId,
@@ -450,9 +485,7 @@ export const useAgentStore = defineStore('agent', () => {
               : {})
           })
         )
-        await callApi(() =>
-          getApi().agent.prompt({ sessionId, message, ...(images.length ? { images } : {}) })
-        )
+        await promptQueuedOrRetry(sessionId, message, images)
       }
       return sessionId
     } catch (e) {
@@ -818,8 +851,6 @@ function isCompactionSettleEvent(type: string): boolean {
  * Pi appends image resize metadata to persisted prompts. Only ignore that
  * generated suffix for image messages; ordinary user-authored text is retained.
  */
-const IMAGE_METADATA_SUFFIX =
-  /(?:\s*\[Image: original \d+x\d+, displayed at \d+x\d+\. Multiply coordinates by [\d.]+ to map to original image\.\])+\s*$/
 
 function userImageCount(message: AgentMessage): number {
   if (message.role !== 'user') return 0
@@ -852,7 +883,7 @@ function userText(message: AgentMessage): string {
           .filter((b) => b.type === 'text')
           .map((b) => (b.type === 'text' ? b.text : ''))
           .join('\n')
-  return (userImageCount(message) ? raw.replace(IMAGE_METADATA_SUFFIX, '') : raw).trim()
+  return (userImageCount(message) ? stripImageMetadataSuffix(raw, true) : raw).trim()
 }
 
 function deriveSessionStats(

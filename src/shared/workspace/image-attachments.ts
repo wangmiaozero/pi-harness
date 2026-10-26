@@ -45,6 +45,20 @@ export function isBase64ImageWithinLimits(value: unknown): value is Base64ImageA
   return bytes !== null && bytes <= MAX_ATTACHED_IMAGE_BYTES
 }
 
+/**
+ * Pi appends image resize metadata (e.g. "[Image: original 3354x2168, displayed at
+ * 2000x1293. Multiply coordinates by 1.68 to map to original image.]") to persisted
+ * prompts that carry images. It is model-facing context, not user-authored text,
+ * so it must never be rendered back to the user.
+ */
+export const IMAGE_METADATA_SUFFIX =
+  /(?:\s*\[Image: original \d+x\d+, displayed at \d+x\d+\. Multiply coordinates by [\d.]+ to map to original image\.\])+\s*$/
+
+/** Strip Pi's generated image metadata suffix from user message text. */
+export function stripImageMetadataSuffix(text: string, hasImages: boolean): string {
+  return hasImages ? text.replace(IMAGE_METADATA_SUFFIX, '') : text
+}
+
 export function validateAgentImages(value: unknown): string | null {
   if (value === undefined) return null
   if (!Array.isArray(value)) return 'images must be an array'

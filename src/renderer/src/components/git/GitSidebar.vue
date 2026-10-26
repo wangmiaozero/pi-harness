@@ -237,6 +237,14 @@ function filterBranches(type: GitBranchInfo['type']): GitBranchInfo[] {
   )
 }
 
+async function openExternal(url: string): Promise<void> {
+  try {
+    await callApi(() => getApi().system.openExternal(url))
+  } catch (e) {
+    console.error('failed to open external link', e)
+  }
+}
+
 async function refresh() {
   const version = ++refreshVersion
   const cwd = selectedRoot()
@@ -811,6 +819,7 @@ watch([repository, () => workspace.gitRevision], () => void refresh())
               target="_blank"
               rel="noreferrer"
               class="git-tree-row"
+              @click.prevent="openExternal(pr.url)"
             >
               <span class="shrink-0 text-[9.5px] text-[var(--accent)]">#{{ pr.number }}</span>
               <span class="min-w-0 flex-1 truncate">{{ pr.title }}</span>

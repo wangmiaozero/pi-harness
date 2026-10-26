@@ -1,4 +1,5 @@
 import type { AgentMessage } from '@shared/types/workspace'
+import { stripImageMetadataSuffix } from '@shared/workspace/image-attachments'
 
 export interface MinimapMessage {
   key: string
@@ -26,6 +27,9 @@ export function messageTextContent(message: AgentMessage): string {
   const content: unknown = (message as { content?: unknown }).content
   if (typeof content === 'string') return content.trim()
   if (!Array.isArray(content)) return ''
+  const hasImages = content.some(
+    (block) => block && typeof block === 'object' && (block as { type?: unknown }).type === 'image'
+  )
   const parts: string[] = []
   for (const block of content) {
     if (
@@ -34,7 +38,7 @@ export function messageTextContent(message: AgentMessage): string {
       (block as { type?: unknown }).type === 'text' &&
       typeof (block as { text?: unknown }).text === 'string'
     ) {
-      const text = (block as { text: string }).text.trim()
+      const text = stripImageMetadataSuffix((block as { text: string }).text, hasImages).trim()
       if (text) parts.push(text)
     }
   }
@@ -63,10 +67,7 @@ export function buildConversationMinimapMarkers(
       markers.push({
         id: entry.key,
         role: 'user',
-        preview: messageTextContent(entry.message).slice(
-          0,
-          CONVERSATION_MINIMAP_PREVIEW_MAX_CHARS
-        )
+        preview: messageTextContent(entry.message).slice(0, CONVERSATION_MINIMAP_PREVIEW_MAX_CHARS)
       })
       assistantMarkerIndex = null
       continue

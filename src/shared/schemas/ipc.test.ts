@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   appSettingsPatchSchema,
   backupRetentionSchema,
+  externalUrlSchema,
   modelCompositeIdSchema,
   noArgsSchema,
   pickKnownAppSettings,
@@ -11,6 +12,14 @@ import {
 import { backupIdSchema } from './domain'
 
 describe('IPC schemas', () => {
+  it('only allows http(s) and mailto external URLs', () => {
+    expect(externalUrlSchema.safeParse('https://github.com/actions').success).toBe(true)
+    expect(externalUrlSchema.safeParse('http://example.com/a?b=1').success).toBe(true)
+    expect(externalUrlSchema.safeParse('mailto:a@b.com').success).toBe(true)
+    expect(externalUrlSchema.safeParse('file:///etc/passwd').success).toBe(false)
+    expect(externalUrlSchema.safeParse('javascript:alert(1)').success).toBe(false)
+    expect(externalUrlSchema.safeParse('not a url').success).toBe(false)
+  })
   it('rejects arbitrary URLs and options for argument-free actions', () => {
     expect(noArgsSchema.safeParse([]).success).toBe(true)
     expect(noArgsSchema.safeParse(['https://example.com']).success).toBe(false)

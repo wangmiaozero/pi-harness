@@ -4,8 +4,24 @@ import {
   getBase64DecodedByteLength,
   isBase64ImageWithinLimits,
   MAX_ATTACHED_IMAGES,
+  stripImageMetadataSuffix,
   validateAgentImages
 } from './image-attachments'
+
+describe('stripImageMetadataSuffix', () => {
+  const suffix =
+    '\n\n[Image: original 3354x2168, displayed at 2000x1293. Multiply coordinates by 1.68 to map to original image.]'
+
+  it('strips the Pi-generated metadata suffix for image messages', () => {
+    expect(stripImageMetadataSuffix(`看看这个${suffix}`, true)).toBe('看看这个')
+    expect(stripImageMetadataSuffix(`a${suffix}${suffix}`, true)).toBe('a')
+  })
+
+  it('keeps user-authored text when the message has no images', () => {
+    expect(stripImageMetadataSuffix(`看看这个${suffix}`, false)).toBe(`看看这个${suffix}`)
+    expect(stripImageMetadataSuffix('普通消息', true)).toBe('普通消息')
+  })
+})
 
 describe('image attachments', () => {
   it('calculates decoded base64 byte lengths and rejects malformed data', () => {

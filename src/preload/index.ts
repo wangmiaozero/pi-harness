@@ -147,7 +147,8 @@ const api: PiSwitchAPI = {
     checkNetwork: () => invoke(IPC_INVOKE.systemCheckNetwork),
     openPath: (path) => invoke(IPC_INVOKE.systemOpenPath, path),
     showItem: (path) => invoke(IPC_INVOKE.systemShowItem, path),
-    openProjectLink: (target) => invoke(IPC_INVOKE.systemOpenProjectLink, target)
+    openProjectLink: (target) => invoke(IPC_INVOKE.systemOpenProjectLink, target),
+    openExternal: (url) => invoke(IPC_INVOKE.systemOpenExternal, url)
   },
   pi: {
     detect: () => invoke(IPC_INVOKE.piDetect),
