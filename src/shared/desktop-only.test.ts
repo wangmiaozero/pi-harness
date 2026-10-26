@@ -13,8 +13,11 @@ function runtimeSources(directory: string): string[] {
 describe('desktop-only runtime', () => {
   it('allows only fixed downloads and trusted catalog homepages', () => {
     const sourcePaths = runtimeSources(join(process.cwd(), 'src'))
+    // Only `shell.openExternal` call sites are restricted: renderer and
+    // preload may reference the bridged `system.openExternal` API, but the
+    // actual shell invocation must stay inside the audited Main files.
     const externalCallSites = sourcePaths.filter((path) =>
-      /\bopenExternal\b/.test(readFileSync(path, 'utf8'))
+      /\bshell\.openExternal\b/.test(readFileSync(path, 'utf8'))
     )
     const sources = sourcePaths.map((path) => readFileSync(path, 'utf8')).join('\n')
     const registerSource = readFileSync(join(process.cwd(), 'src/main/ipc/register.ts'), 'utf8')
@@ -28,7 +31,7 @@ describe('desktop-only runtime', () => {
       join(process.cwd(), 'src/main/ipc/register.ts'),
       join(process.cwd(), 'src/main/updater/index.ts')
     ])
-    expect(registerSource.match(/\bopenExternal\b/g)).toHaveLength(5)
+    expect(registerSource.match(/\bshell\.openExternal\b/g)).toHaveLength(6)
     expect(registerSource).toContain('shell.openExternal(OPENCODE_DOCS_URL)')
     expect(registerSource).toContain("shell.openExternal('https://opencode.ai/console/account')")
     expect(registerSource).toContain('shell.openExternal(NODE_DOWNLOAD_URL)')
