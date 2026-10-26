@@ -2,6 +2,23 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.3.0 — 2026-10-26
+
+### Added
+
+- Updated the built-in Pi engine to 1.4.0, bringing new models such as MiniMax-M3.1-Flash and refreshed defaults for the GitHub Copilot, NVIDIA and Xiaomi providers.
+
+### Fixed
+
+- Conversation compaction and summaries no longer fail when long reasoning uses most of the summary output budget.
+- Parallel codemode scripts now wait for a free worker instead of failing immediately.
+- Fixed sessions breaking after recovering from a response cut off at the output limit.
+- Fixed resumed sessions leaving extension tools inactive when they were installed after the session started.
+- Fixed @ file autocomplete returning no results for queries containing characters like [ or (.
+- Fixed Markdown bold and italic not rendering next to CJK punctuation, including in HTML export.
+- Fixed mcp.json files starting with a UTF-8 BOM being skipped, which removed their MCP servers.
+- Improved Windows shell detection for Microsoft Store aliases and PowerShell installations outside PATH.
+
 ## 2.2.22 — 2026-10-25
 
 ### Added
