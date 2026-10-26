@@ -6,6 +6,7 @@ import Select from '@renderer/components/ui/Select.vue'
 import Switch from '@renderer/components/ui/Switch.vue'
 import InspectorSection from '@renderer/components/ui/InspectorSection.vue'
 import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
+import SessionCleanupSection from '@renderer/components/settings/SessionCleanupSection.vue'
 import { SETTINGS_DRAFT_KEY } from '@renderer/components/settings/draft-key'
 
 const draft = inject(SETTINGS_DRAFT_KEY)!
@@ -82,4 +83,5 @@ function onAgentModeChange(value: string): void {
       </PropertyRow>
     </div>
   </InspectorSection>
+  <SessionCleanupSection />
 </template>

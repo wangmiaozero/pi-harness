@@ -348,3 +348,27 @@ export const workspaceBindSessionSchema = z.object({
 export const workspaceSessionIdSchema = z.object({
   sessionId: sessionIdSchema
 })
+
+export const sessionCleanupScopeSchema = z.enum([
+  'current-project',
+  'older-30d',
+  'older-90d',
+  'all'
+])
+
+export const sessionCleanupPreviewSchema = z
+  .object({
+    scope: sessionCleanupScopeSchema,
+    projectKey: z.string().min(1).max(4096).optional(),
+    keepPinned: z.boolean().optional(),
+    pinnedSessionIds: z.array(sessionIdSchema).max(10_000).optional()
+  })
+  .refine((input) => input.scope !== 'current-project' || Boolean(input.projectKey), {
+    message: 'projectKey is required for current-project scope'
+  })
+
+export const sessionCleanupExecuteSchema = z.object({
+  previewToken: z
+    .string()
+    .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'invalid token')
+})

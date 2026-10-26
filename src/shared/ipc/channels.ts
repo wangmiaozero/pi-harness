@@ -269,6 +269,8 @@ export const IPC_INVOKE = {
   projectExport: invoke('project:export'),
   sessionViewHistory: invoke('session:view-history'),
   sessionContextMenu: invoke('session:context-menu'),
+  sessionCleanupPreview: invoke('session:cleanup:preview'),
+  sessionCleanupExecute: invoke('session:cleanup:execute'),
 
   agentStart: invoke('agent:start'),
   agentPrompt: invoke('agent:prompt'),
