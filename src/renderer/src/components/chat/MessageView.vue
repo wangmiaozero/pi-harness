@@ -426,6 +426,15 @@ onBeforeUnmount(() => {
 }
 
 /*
+ * The user bubble hugs the trailing edge, so its hover actions (copy button)
+ * must follow it; otherwise the button lands at the container's left edge,
+ * visually detached from the bubble and colliding with the next role label.
+ */
+.message-hud[data-message-role='user'] .message-actions {
+  justify-content: flex-end;
+}
+
+/*
  * User bubbles shrink-wrap their content and hug the trailing edge, like a
  * chat bubble. `max-content` keeps short prompts compact; the cap keeps long
  * prompts and image strips inside the readable band.
