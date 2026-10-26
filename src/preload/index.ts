@@ -148,7 +148,8 @@ const api: PiSwitchAPI = {
     openPath: (path) => invoke(IPC_INVOKE.systemOpenPath, path),
     showItem: (path) => invoke(IPC_INVOKE.systemShowItem, path),
     openProjectLink: (target) => invoke(IPC_INVOKE.systemOpenProjectLink, target),
-    openExternal: (url) => invoke(IPC_INVOKE.systemOpenExternal, url)
+    openExternal: (url) => invoke(IPC_INVOKE.systemOpenExternal, url),
+    copyText: (text) => invoke(IPC_INVOKE.systemCopyText, text)
   },
   pi: {
     detect: () => invoke(IPC_INVOKE.piDetect),
