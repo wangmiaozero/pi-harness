@@ -979,6 +979,75 @@ describe('agent store new-session handshake', () => {
     expect(agent.completionCount).toBe(1)
   })
 
+  it.each([false, true])(
+    'restores a persisted length warning only while idle (running: %s)',
+    async (running) => {
+      const detail = sessionDetail('high')
+      Object.assign(detail.context, {
+        messages: [
+          { role: 'user', content: 'continue', timestamp: 1 },
+          {
+            role: 'assistant',
+            content: [{ type: 'thinking', thinking: 'Let' }],
+            stopReason: 'length'
+          }
+        ]
+      })
+      window.piSwitch = {
+        sessions: { get: vi.fn().mockResolvedValue(detail) },
+        agent: {
+          state: vi.fn().mockResolvedValue({ isPromptRunning: running, isStreaming: running }),
+          running: vi.fn().mockResolvedValue(running ? ['session-1'] : []),
+          command: vi.fn().mockResolvedValue([])
+        }
+      } as unknown as PiSwitchAPI
+      const agent = useAgentStore()
+      await agent.load('session-1')
+      if (running) expect(agent.error).toBeNull()
+      else expect(agent.error).toContain('Compact this conversation')
+    }
+  )
+
+  it('keeps a recovery failure when a pending history refresh finds an earlier length stop', async () => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    const detail = sessionDetail('high')
+    Object.assign(detail.context, {
+      messages: [{ role: 'assistant', content: [], stopReason: 'length' }]
+    })
+    const state = vi.fn().mockResolvedValue({ isPromptRunning: false, isStreaming: false })
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      sessions: { get: vi.fn().mockResolvedValue(detail) },
+      agent: {
+        state,
+        running: vi.fn().mockResolvedValue([]),
+        command: vi.fn().mockResolvedValue([])
+      }
+    } as unknown as PiSwitchAPI
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.load('session-1')
+    let resume!: (snapshot: { isPromptRunning: boolean; isStreaming: boolean }) => void
+    state.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resume = resolve
+        })
+    )
+    const refreshing = agent.load('session-1')
+    await vi.waitFor(() => expect(resume).toBeTypeOf('function'))
+    onAgentEvent?.({
+      sessionId: 'session-1',
+      event: { type: 'prompt_error', errorMessage: 'Context overflow recovery failed' }
+    })
+    resume({ isPromptRunning: false, isStreaming: false })
+    await refreshing
+    expect(agent.error).toBe('Context overflow recovery failed')
+  })
+
   it('surfaces assistant stopReason errors from message_end', async () => {
     let onAgentEvent: ((payload: unknown) => void) | undefined
     window.piSwitch = {

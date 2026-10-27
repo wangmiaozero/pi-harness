@@ -1,4 +1,39 @@
-export type RuntimeErrorKind = 'quota' | 'provider' | 'generic'
+export type RuntimeErrorKind = 'quota' | 'provider' | 'truncated' | 'generic'
+
+const TRUNCATED_REPLY_ERROR =
+  'The reply was cut short by the model context or output limit. Compact this conversation or switch to a model with a larger context, then retry.'
+
+/**
+ * A pending outcome, reported only after Native Pi settles its recovery attempts.
+ * Undefined leaves the previous outcome intact (e.g. a tool result after an error).
+ */
+export function runtimeEventError(event: {
+  type: string
+  message?: unknown
+  errorMessage?: unknown
+  aborted?: unknown
+}): string | null | undefined {
+  if (event.type === 'message_end') {
+    const message = event.message as
+      { role?: unknown; stopReason?: unknown; errorMessage?: unknown } | undefined
+    if (message?.role !== 'assistant') return undefined
+    if (typeof message.errorMessage === 'string' && message.errorMessage.trim()) {
+      return inspectRuntimeError(message.errorMessage).userMessage
+    }
+    if (message.stopReason === 'error') return 'Agent error'
+    if (message.stopReason === 'length') return TRUNCATED_REPLY_ERROR
+    return null
+  }
+  if (
+    (event.type === 'compaction_end' || event.type === 'auto_compaction_end') &&
+    event.aborted !== true &&
+    typeof event.errorMessage === 'string' &&
+    event.errorMessage.trim()
+  ) {
+    return inspectRuntimeError(event.errorMessage).userMessage
+  }
+  return undefined
+}
 
 export interface RuntimeErrorInfo {
   kind: RuntimeErrorKind
@@ -11,6 +46,7 @@ const SUMMARIZATION_PREFIX = /^Summarization failed:\s*/i
 
 export function inspectRuntimeError(raw: unknown): RuntimeErrorInfo {
   const text = extractErrorText(raw)
+  if (text === TRUNCATED_REPLY_ERROR) return { kind: 'truncated', userMessage: text }
   const stripped = text.replace(SUMMARIZATION_PREFIX, '').trim()
   const match = stripped.match(PROVIDER_STATUS_JSON)
   if (match) {

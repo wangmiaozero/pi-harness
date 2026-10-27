@@ -24,7 +24,7 @@ import { normalizeAgentEventEnvelopes } from '@shared/workspace/agent-event-wire
 import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
 import { toComposerThinkingLevel } from '@shared/constants/index'
 import { resolveThinkingLevel } from '@shared/thinking/levels'
-import { inspectRuntimeError } from '@shared/workspace/runtime-error'
+import { inspectRuntimeError, runtimeEventError } from '@shared/workspace/runtime-error'
 import {
   getPresetFromTools,
   getToolNamesForPreset,
@@ -320,6 +320,20 @@ export const useAgentStore = defineStore('agent', () => {
     }
     refreshLocalStats()
     await reconcile(sessionId, !savedSelection, generation)
+    if (
+      isCurrentLoad(sessionId, generation) &&
+      !streaming.value.isStreaming &&
+      !runningIds.value.includes(sessionId) &&
+      !state.value?.isPromptRunning &&
+      !state.value?.isStreaming &&
+      !state.value?.isCompacting
+    ) {
+      const persistedError = runtimeEventError({
+        type: 'message_end',
+        message: messages.value.at(-1)
+      })
+      if (persistedError && !error.value) error.value = persistedError
+    }
     if (isCurrentLoad(sessionId, generation) && !composerSelections.has(sessionId)) {
       rememberComposerSelection(sessionId)
     }

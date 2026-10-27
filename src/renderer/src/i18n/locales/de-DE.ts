@@ -1485,6 +1485,9 @@ export const deDE: MessageTree = {
     compactUsageRecommend: 'Verdichten empfohlen',
     compactUsageUrgent: 'Verdichten dringend empfohlen',
     compactUsageUnknown: 'Kontextauslastung unbekannt',
+    replyTruncated:
+      'Die Antwort hat das Kontext- oder Ausgabelimit des Modells erreicht. Verdichten Sie den Chat und versuchen Sie es erneut, oder wählen Sie ein Modell mit größerem Kontext.',
+    enableAutoCompaction: 'Automatisches Verdichten aktivieren',
     autoCompaction: 'Automatisch verdichten',
     compactUnsupported: 'Diese Runtime unterstützt kein Verdichten.',
     compactFailed: 'Verdichten fehlgeschlagen',

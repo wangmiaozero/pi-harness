@@ -1484,6 +1484,9 @@ export const jaJP: MessageTree = {
     compactUsageRecommend: '圧縮をおすすめします',
     compactUsageUrgent: '圧縮を強くおすすめします',
     compactUsageUnknown: 'コンテキスト使用量を計算できません',
+    replyTruncated:
+      'モデルのコンテキストまたは出力の上限に達したため、応答が中断されました。会話を圧縮して再試行するか、コンテキストの大きいモデルに切り替えてください。',
+    enableAutoCompaction: '自動圧縮を有効にする',
     autoCompaction: '自動圧縮',
     compactUnsupported: 'このランタイムは圧縮に対応していません。',
     compactFailed: '圧縮に失敗しました',

@@ -46,7 +46,7 @@ import {
   type PiSessionManagerLike
 } from './pi-sdk'
 import { AgentEventBatcher, type AgentEventBatch } from './agent-event-batcher'
-import { inspectRuntimeError } from '@shared/workspace/runtime-error'
+import { inspectRuntimeError, runtimeEventError } from '@shared/workspace/runtime-error'
 import { applyWorkspacePrompt } from '@shared/workspace/workspace-context'
 import {
   isKnownHarnessThinkingLevel,
@@ -132,9 +132,8 @@ export class AgentSessionWrapper {
     this.unsubscribe = this.inner.subscribe((event) => {
       try {
         if (event.type === 'agent_start') this.promptErrorMessage = null
-        if (event.type === 'message_end') {
-          this.promptErrorMessage = assistantErrorMessage(event.message)
-        }
+        const eventError = runtimeEventError(event)
+        if (eventError !== undefined) this.promptErrorMessage = eventError
         if (event.type === 'tool_execution_end') {
           const completed = event as { toolName?: string; isError?: boolean }
           if (
@@ -656,16 +655,6 @@ export function persistExternalImageResult(
     timestamp: Date.now()
   })
   return { userEntryId, assistantEntryId }
-}
-
-function assistantErrorMessage(value: unknown): string | null {
-  if (!value || typeof value !== 'object') return null
-  const message = value as { role?: unknown; stopReason?: unknown; errorMessage?: unknown }
-  if (message.role !== 'assistant') return null
-  if (message.stopReason !== 'error' && typeof message.errorMessage !== 'string') return null
-  return typeof message.errorMessage === 'string' && message.errorMessage.trim()
-    ? inspectRuntimeError(message.errorMessage).userMessage
-    : 'Agent error'
 }
 
 function sameInputCapabilities(

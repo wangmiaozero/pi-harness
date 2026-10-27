@@ -22,6 +22,7 @@ import {
 } from '@lucide/vue'
 import Button from '@renderer/components/ui/Button.vue'
 import { useAgentStore } from '@renderer/stores/agent'
+import { useCompactionStore } from '@renderer/stores/compaction'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useModelsStore } from '@renderer/stores/models'
@@ -45,6 +46,7 @@ import { normalizeAssistantName, normalizeUserName } from '@shared/constants/cha
 import { hasRenderableMessageContent } from './message-visibility'
 import type { AgentMessage } from '@shared/types/workspace'
 import type { MessageFileChanges } from './message-file-changes'
+import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 
 interface ComposerImageModelTarget {
   providerKey: string
@@ -53,6 +55,7 @@ interface ComposerImageModelTarget {
 
 const { locale, t } = useI18n()
 const agent = useAgentStore()
+const compaction = useCompactionStore()
 const sessions = useSessionStore()
 const workspace = useWorkspaceStore()
 const models = useModelsStore()
@@ -104,6 +107,7 @@ const contextColor = computed(() => {
   return 'var(--text-tertiary)'
 })
 const autoCompactionEnabled = computed(() => agent.state?.autoCompactionEnabled === true)
+const replyTruncated = computed(() => inspectRuntimeError(agent.error).kind === 'truncated')
 const userName = computed(() => normalizeUserName(settings.settings?.userName))
 const assistantName = computed(() => normalizeAssistantName(settings.settings?.assistantName))
 
@@ -370,12 +374,35 @@ function duration(value: number): string {
             :assistant-name="assistantName"
             streaming
           />
-          <p
-            v-if="agent.error"
-            class="mt-2 text-[12px] text-[var(--danger)] [overflow-wrap:anywhere]"
-          >
-            {{ agent.error }}
-          </p>
+          <div v-if="agent.error" role="alert" class="mt-2 text-[12px] [overflow-wrap:anywhere]">
+            <p class="text-[var(--danger)]">
+              {{ replyTruncated ? $t('workspace.replyTruncated') : agent.error }}
+            </p>
+            <div v-if="replyTruncated && sessions.currentId" class="mt-2 flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                data-testid="truncated-reply-compact"
+                @click="
+                  compaction.requestSmartCompaction({
+                    sessionId: sessions.currentId,
+                    source: 'workspace'
+                  })
+                "
+              >
+                {{ $t('workspace.compact') }}
+              </Button>
+              <Button
+                v-if="agent.state && !autoCompactionEnabled"
+                variant="secondary"
+                size="sm"
+                data-testid="truncated-reply-enable-auto"
+                @click="toggleAutoCompaction"
+              >
+                {{ $t('workspace.enableAutoCompaction') }}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
       <ConversationMinimap
