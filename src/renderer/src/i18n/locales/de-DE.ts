@@ -790,6 +790,7 @@ export const deDE: MessageTree = {
     sectionNavHint: 'Seitenleiste neu anordnen',
     sectionMascotHint: 'Hintergrund, Figur und Oberflächenstil',
     sectionWorkspaceHint: 'Werkzeugvorgabe und Registerkarten',
+    sectionSessionCleanupHint: 'Historische Sitzungsdateien bereinigen',
     sectionPathsHint: 'Pi CLI und Konfigurationsverzeichnis',
     sectionBackupHint: 'Automatische Sicherungen und Aufbewahrung',
     sectionUpdatesHint: 'Updates prüfen und installieren',

@@ -789,6 +789,7 @@ export const frFR: MessageTree = {
     sectionNavHint: 'Réordonner la barre latérale',
     sectionMascotHint: 'Arrière-plan, personnage et style d\'interface',
     sectionWorkspaceHint: 'Préréglage d\'outils et onglets',
+    sectionSessionCleanupHint: 'Nettoyer les fichiers de session passés',
     sectionPathsHint: 'Pi CLI et répertoire de config',
     sectionBackupHint: 'Sauvegardes automatiques et rétention',
     sectionUpdatesHint: 'Vérifier et installer les mises à jour',

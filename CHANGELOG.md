@@ -2,6 +2,12 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.3.2 — 2026-10-27
+
+### Added
+
+- Session cleanup now has its own entry in Settings, at the same level as Workspace, instead of being embedded in the Workspace page.
+
 ## 2.3.1 — 2026-10-27
 
 ### Added

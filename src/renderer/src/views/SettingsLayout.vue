@@ -14,6 +14,7 @@ import {
   Archive,
   Code2,
   Download,
+  Eraser,
   FileCode2,
   FolderOpen,
   Info,
@@ -72,6 +73,12 @@ const menuItems = computed(() => {
     { id: 'nav', to: '/settings/nav', label: t('settings.navOrder'), icon: PanelLeft },
     { id: 'mascot', to: '/settings/mascot', label: t('settings.mascot'), icon: Sparkles },
     { id: 'workspace', to: '/settings/workspace', label: t('settings.workspace'), icon: AppWindow },
+    {
+      id: 'session-cleanup',
+      to: '/settings/session-cleanup',
+      label: t('settings.sessionCleanup.title'),
+      icon: Eraser
+    },
     { id: 'config', to: '/settings/config', label: t('nav.config'), icon: FileCode2 },
     { id: 'paths', to: '/settings/paths', label: t('settings.manualPaths'), icon: FolderOpen },
     { id: 'backup', to: '/settings/backup', label: t('settings.backup'), icon: Archive },
@@ -109,7 +116,7 @@ const groups = computed(() => {
   const ids: Record<string, string[]> = {
     preferences: ['general', 'ai', 'voice', 'shortcuts', 'nav', 'mascot'],
     agents: ['instructions', 'mcp', 'subagents'],
-    workspace: ['overview', 'workspace'],
+    workspace: ['overview', 'workspace', 'session-cleanup'],
     system: ['remote', 'config', 'paths', 'backup', 'diagnostics', 'updates', 'about', 'developer']
   }
   return Object.entries(ids)

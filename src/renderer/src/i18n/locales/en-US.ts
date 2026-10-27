@@ -787,6 +787,7 @@ export const enUS = {
     sectionNavHint: 'Reorder the sidebar',
     sectionMascotHint: 'Background, character, and interface style',
     sectionWorkspaceHint: 'Tool preset and tabs',
+    sectionSessionCleanupHint: 'Clean up historical session files',
     sectionPathsHint: 'Pi CLI and config directory',
     sectionBackupHint: 'Automatic backups and retention',
     sectionUpdatesHint: 'Check and install updates',

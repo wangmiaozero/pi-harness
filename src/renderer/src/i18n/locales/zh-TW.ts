@@ -764,6 +764,7 @@ export const zhTW: MessageTree = {
     sectionNavHint: '調整側邊欄導覽順序',
     sectionMascotHint: '背景、角色與介面風格',
     sectionWorkspaceHint: '工具預設與分頁',
+    sectionSessionCleanupHint: '清理歷史會話檔案',
     sectionPathsHint: 'Pi CLI 與配置目錄',
     sectionBackupHint: '自動備份與保留',
     sectionUpdatesHint: '檢查與安裝更新',
