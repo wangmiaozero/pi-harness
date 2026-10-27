@@ -98,6 +98,35 @@ describe('PiPackageManager reconciliation and lifecycle', () => {
     ])
   })
 
+  it('reports a disabled git package as an orphan under its canonical git identity', async () => {
+    // A git clone's origin URL is a plain https URL; the orphan scan must
+    // normalize it to the same `git:host/path` identity the package was
+    // registered with, so disabled packages are recognized instead of
+    // surfacing as foreign https sources.
+    await writeRegistry(agentDir, [])
+    const packageRoot = await writeGitPackage(agentDir, 'github.com/affaan-m/ECC', {
+      name: 'ecc-universal',
+      version: '2.2.3',
+      pi: { extensions: ['.pi/extensions/index.ts'] }
+    })
+    await fs.mkdir(path.join(packageRoot, '.pi', 'extensions'), { recursive: true })
+    await fs.writeFile(path.join(packageRoot, '.pi', 'extensions', 'index.ts'), 'export default function () {}')
+    await fs.mkdir(path.join(packageRoot, '.git'))
+    await fs.writeFile(
+      path.join(packageRoot, '.git', 'config'),
+      '[remote "origin"]\n\turl = https://github.com/affaan-m/ECC.git\n'
+    )
+
+    await expect(manager.list()).resolves.toEqual([
+      expect.objectContaining({
+        source: 'git:github.com/affaan-m/ECC',
+        registered: false,
+        installed: true,
+        health: 'orphaned'
+      })
+    ])
+  })
+
   it('classifies an invalid npm manifest as corrupted', async () => {
     await writeRegistry(agentDir, ['npm:pi-corrupt'])
     const root = packagePath(agentDir, 'pi-corrupt')
