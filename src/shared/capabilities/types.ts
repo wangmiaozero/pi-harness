@@ -76,6 +76,8 @@ export interface CapabilityDefinition {
   install?: CapabilityInstallDefinition
   /** Presets reference other capability ids; they do not create a second runtime. */
   members?: string[]
+  /** Declared functional areas with honest support status; rendered in the UI. */
+  modules?: CapabilityModule[]
   metadata?: Record<string, unknown>
 }
 
@@ -114,6 +116,21 @@ export interface CapabilityDescriptor extends CapabilityDefinition {
 }
 
 export type CapabilityMutationAction = 'install' | 'update' | 'uninstall' | 'enable' | 'disable'
+
+export const CAPABILITY_MODULE_STATUSES = ['supported', 'partial', 'unsupported'] as const
+
+export type CapabilityModuleStatus = (typeof CAPABILITY_MODULE_STATUSES)[number]
+
+/**
+ * Declared, honestly-labeled functional area of a capability pack. The status
+ * must reflect verified reality: `unsupported` marks functionality whose
+ * adaptation has not been integrated into Pi-Harness yet; it must never be
+ * rendered as a working toggle.
+ */
+export interface CapabilityModule {
+  id: string
+  status: CapabilityModuleStatus
+}
 
 export type CapabilityMutationPhase =
   | 'idle'

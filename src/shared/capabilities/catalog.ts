@@ -67,6 +67,54 @@ const catalogSource: readonly CapabilityDefinition[] = [
     }
   },
   {
+    id: 'ecc',
+    type: 'package',
+    name: 'Everything Claude Code',
+    description:
+      'Curated engineering capability pack: skills, prompt commands, session hooks, and portable engineering rules, delivered through the official ECC Pi adapter',
+    version: '2.2.3',
+    source: 'github',
+    sourceUrl: 'https://github.com/affaan-m/ECC',
+    featured: true,
+    recommended: false,
+    optional: true,
+    category: 'development-methodology',
+    integration: 'pi-package',
+    order: 15,
+    tags: ['engineering', 'hooks', 'rules', 'skills', 'testing'],
+    useCases: [
+      'test-driven-development',
+      'code-review',
+      'verification',
+      'planning',
+      'systematic-debugging'
+    ],
+    capabilities: {
+      planning: true,
+      tdd: true,
+      codeReview: true,
+      debugging: true,
+      verification: true,
+      filesystem: true,
+      git: true,
+      terminal: true
+    },
+    modules: [
+      { id: 'skills', status: 'supported' },
+      { id: 'commands', status: 'supported' },
+      { id: 'rules', status: 'partial' },
+      { id: 'hooks', status: 'partial' },
+      { id: 'continuous-learning', status: 'unsupported' },
+      { id: 'memory-vault', status: 'unsupported' },
+      { id: 'agent-shield', status: 'unsupported' }
+    ],
+    install: {
+      strategy: 'pi-package',
+      source: 'git:github.com/affaan-m/ECC',
+      target: 'pi-global'
+    }
+  },
+  {
     id: 'odai',
     type: 'skill',
     name: 'Odai',
@@ -114,7 +162,10 @@ export function normalizeCapabilityDefinition(input: CapabilityDefinition): Capa
       ? [...new Set(parsed.tags.map((tag) => tag.trim().toLowerCase()))].sort()
       : undefined,
     useCases: parsed.useCases ? [...new Set(parsed.useCases)] : undefined,
-    members: parsed.members ? [...new Set(parsed.members)] : undefined
+    members: parsed.members ? [...new Set(parsed.members)] : undefined,
+    modules: parsed.modules
+      ? [...new Map(parsed.modules.map((module) => [module.id, module])).values()]
+      : undefined
   }
 }
 
