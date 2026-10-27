@@ -789,6 +789,7 @@ export const koKR: MessageTree = {
     sectionNavHint: '사이드바 순서 변경',
     sectionMascotHint: '배경, 캐릭터, 인터페이스 스타일',
     sectionWorkspaceHint: '도구 프리셋과 탭',
+    sectionSessionCleanupHint: '이전 세션 파일 정리',
     sectionPathsHint: 'Pi CLI와 구성 디렉터리',
     sectionBackupHint: '자동 백업과 보관',
     sectionUpdatesHint: '업데이트 확인 및 설치',

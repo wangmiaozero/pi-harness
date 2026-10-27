@@ -789,6 +789,7 @@ export const jaJP: MessageTree = {
     sectionNavHint: 'サイドバーを並べ替え',
     sectionMascotHint: '背景、キャラクター、画面のスタイル',
     sectionWorkspaceHint: 'ツールプリセットとタブ',
+    sectionSessionCleanupHint: '過去のセッションファイルを整理',
     sectionPathsHint: 'Pi CLI と構成ディレクトリ',
     sectionBackupHint: '自動バックアップと保持数',
     sectionUpdatesHint: '更新の確認とインストール',

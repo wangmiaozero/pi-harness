@@ -51,7 +51,7 @@ function seedSession(piAgentDir: string, options: SeedOptions): string {
 
 async function openSettingsWorkspace(page: Page): Promise<void> {
   await page.locator('a[href="#/settings"]').click()
-  await page.getByTestId('settings-section-workspace').click()
+  await page.getByTestId('settings-section-session-cleanup').click()
   await expect(page.getByTestId('session-cleanup-scan')).toBeVisible()
 }
 

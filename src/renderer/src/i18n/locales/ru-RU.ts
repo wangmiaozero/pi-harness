@@ -789,6 +789,7 @@ export const ruRU: MessageTree = {
     sectionNavHint: 'Порядок боковой панели',
     sectionMascotHint: 'Фон, персонаж и стиль интерфейса',
     sectionWorkspaceHint: 'Предустановка инструментов и вкладки',
+    sectionSessionCleanupHint: 'Очистка файлов прошлых сессий',
     sectionPathsHint: 'Pi CLI и каталог конфигурации',
     sectionBackupHint: 'Автоматические копии и срок хранения',
     sectionUpdatesHint: 'Проверка и установка обновлений',

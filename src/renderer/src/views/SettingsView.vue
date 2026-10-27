@@ -8,6 +8,7 @@ import GeneralSettingsSection from '@renderer/components/settings/GeneralSetting
 import NavSettingsSection from '@renderer/components/settings/NavSettingsSection.vue'
 import MascotSettingsSection from '@renderer/components/settings/MascotSettingsSection.vue'
 import WorkspaceSettingsSection from '@renderer/components/settings/WorkspaceSettingsSection.vue'
+import SessionCleanupSection from '@renderer/components/settings/SessionCleanupSection.vue'
 import PathsSettingsSection from '@renderer/components/settings/PathsSettingsSection.vue'
 import BackupSettingsSection from '@renderer/components/settings/BackupSettingsSection.vue'
 import UpdatesSettingsSection from '@renderer/components/settings/UpdatesSettingsSection.vue'
@@ -29,6 +30,7 @@ const SETTINGS_SECTIONS_ALL = [
   'nav',
   'mascot',
   'workspace',
+  'session-cleanup',
   'paths',
   'backup',
   'updates',
@@ -65,6 +67,8 @@ const sectionTitle = computed(() => {
       return t('settings.mascot')
     case 'workspace':
       return t('settings.workspace')
+    case 'session-cleanup':
+      return t('settings.sessionCleanup.title')
     case 'paths':
       return t('settings.manualPaths')
     case 'backup':
@@ -90,6 +94,8 @@ const sectionSubtitle = computed(() => {
       return t('settings.sectionMascotHint')
     case 'workspace':
       return t('settings.sectionWorkspaceHint')
+    case 'session-cleanup':
+      return t('settings.sectionSessionCleanupHint')
     case 'paths':
       return t('settings.sectionPathsHint')
     case 'backup':
@@ -154,6 +160,7 @@ onMounted(() => {
           <NavSettingsSection v-else-if="section === 'nav'" />
           <MascotSettingsSection v-else-if="section === 'mascot'" />
           <WorkspaceSettingsSection v-else-if="section === 'workspace'" />
+          <SessionCleanupSection v-else-if="section === 'session-cleanup'" />
           <PathsSettingsSection v-else-if="section === 'paths'" />
           <BackupSettingsSection v-else-if="section === 'backup'" />
           <UpdatesSettingsSection v-else-if="section === 'updates'" />
