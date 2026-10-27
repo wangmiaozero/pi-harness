@@ -267,10 +267,154 @@ describe('CapabilityService Pi package capabilities', () => {
       expect.objectContaining({ action: 'uninstall', phase: 'uninstalling' })
     )
   })
+  it('disables an installed package by unregistering it and keeps the files', async () => {
+    const metadataState = {
+      providers: {},
+      models: {},
+      capabilities: { superpowers: { installPath: installedSuperpowers.path } }
+    }
+    const metadata = {
+      peek: vi.fn(() => metadataState),
+      update: vi.fn(async () => metadataState)
+    }
+    const registry = {
+      findInstalled: vi.fn(async () => installedSuperpowers),
+      list: vi.fn(async () => [superpowersDescriptor]),
+      isDiscoverable: vi.fn(async () => true)
+    }
+    const packageManager = {
+      readRegistryEntry: vi.fn(async () => ({ source: 'git:github.com/obra/superpowers' })),
+      setEnabled: vi.fn(async () => ({ ...successfulPackageResult, action: 'disable' }))
+    }
+    const service = new CapabilityService(
+      metadata as never,
+      registry as never,
+      undefined,
+      packageManager as never
+    )
+
+    await expect(service.setEnabled('superpowers', false)).resolves.toMatchObject({
+      action: 'disable',
+      phase: 'success'
+    })
+    expect(packageManager.setEnabled).toHaveBeenCalledExactlyOnceWith(
+      { source: 'git:github.com/obra/superpowers', scope: 'global', projectRoot: null },
+      false
+    )
+    expect(metadata.update).toHaveBeenLastCalledWith({
+      capabilities: {
+        superpowers: expect.objectContaining({
+          enabled: false,
+          packageRegistryEntry: { source: 'git:github.com/obra/superpowers' }
+        })
+      }
+    })
+  })
+
+  it('re-enables a disabled package with the exact registry entry captured at disable time', async () => {
+    const capturedEntry = { source: 'git:github.com/obra/superpowers', skills: ['tdd'] }
+    const metadataState = {
+      providers: {},
+      models: {},
+      capabilities: {
+        superpowers: { enabled: false, packageRegistryEntry: capturedEntry }
+      }
+    }
+    const metadata = {
+      peek: vi.fn(() => metadataState),
+      update: vi.fn(async () => metadataState)
+    }
+    const registry = {
+      findInstalled: vi.fn(async () => ({
+        ...installedSuperpowers,
+        enabled: false,
+        package: { version: '6.3.0', health: 'orphaned' }
+      })),
+      list: vi.fn(async () => [{ ...superpowersDescriptor, enabled: false }]),
+      isDiscoverable: vi.fn(async () => true)
+    }
+    const packageManager = {
+      setEnabled: vi.fn(async () => ({ ...successfulPackageResult, action: 'enable' }))
+    }
+    const service = new CapabilityService(
+      metadata as never,
+      registry as never,
+      undefined,
+      packageManager as never
+    )
+
+    await expect(service.setEnabled('superpowers', true)).resolves.toMatchObject({
+      action: 'enable',
+      phase: 'success'
+    })
+    expect(packageManager.setEnabled).toHaveBeenCalledExactlyOnceWith(
+      { source: 'git:github.com/obra/superpowers', scope: 'global', projectRoot: null },
+      true,
+      capturedEntry
+    )
+    expect(metadata.update).toHaveBeenLastCalledWith({
+      capabilities: {
+        superpowers: expect.objectContaining({
+          enabled: true,
+          packageRegistryEntry: undefined
+        })
+      }
+    })
+  })
+
+  it('uninstalls a disabled package by deleting its managed files directly', async () => {
+    const metadataState = {
+      providers: {},
+      models: {},
+      capabilities: {
+        superpowers: { enabled: false, packageRegistryEntry: { source: 'git:github.com/obra/superpowers' } }
+      }
+    }
+    const metadata = {
+      peek: vi.fn(() => metadataState),
+      update: vi.fn(async () => metadataState)
+    }
+    const registry = {
+      findInstalled: vi.fn(async () => ({
+        ...installedSuperpowers,
+        enabled: false,
+        package: { version: '6.3.0', health: 'orphaned' }
+      })),
+      list: vi
+        .fn()
+        .mockResolvedValueOnce([{ ...superpowersDescriptor, enabled: false }])
+        .mockResolvedValueOnce([
+          { ...superpowersDescriptor, installed: false, status: 'not-installed' }
+        ])
+    }
+    const packageManager = {
+      deleteOrphan: vi.fn(async () => ({
+        ...successfulPackageResult,
+        action: 'delete-orphan'
+      }))
+    }
+    const service = new CapabilityService(
+      metadata as never,
+      registry as never,
+      undefined,
+      packageManager as never
+    )
+
+    await expect(service.uninstall('superpowers')).resolves.toMatchObject({
+      action: 'uninstall',
+      phase: 'success'
+    })
+    expect(packageManager.deleteOrphan).toHaveBeenCalledExactlyOnceWith({
+      source: 'git:github.com/obra/superpowers',
+      scope: 'global',
+      projectRoot: null
+    })
+    expect(metadata.update).toHaveBeenCalledWith({ capabilities: {} })
+  })
 })
 
 describe('SkillRegistry persisted capability state', () => {
-  it('reports Native Pi and the installed Superpowers package in catalog order', async () => {
+  it('reports Native Pi, Superpowers, ECC, and Odai in catalog order', async () => {
     const registry = new SkillRegistry(
       {} as never,
       {
@@ -294,9 +438,10 @@ describe('SkillRegistry persisted capability state', () => {
 
     const capabilities = await registry.list()
 
-    expect(capabilities.slice(0, 3).map((entry) => entry.id)).toEqual([
+    expect(capabilities.slice(0, 4).map((entry) => entry.id)).toEqual([
       'native-pi',
       'superpowers',
+      'ecc',
       'odai'
     ])
     expect(capabilities[0]).toMatchObject({
@@ -311,6 +456,70 @@ describe('SkillRegistry persisted capability state', () => {
       updateAvailable: true,
       status: 'update-available'
     })
+  })
+
+  it('reports an unregistered ECC installation as a disabled package capability', async () => {
+    const registry = new SkillRegistry(
+      {} as never,
+      {
+        peek: () => ({ providers: {}, models: {}, capabilities: {} })
+      } as never,
+      {
+        list: async () => [],
+        listPackages: async () => [
+          {
+            source: 'git:github.com/affaan-m/ECC',
+            scope: 'global',
+            registered: false,
+            installed: true,
+            health: 'orphaned',
+            available: true,
+            path: '/fixture/git/github.com/affaan-m/ECC',
+            version: '2.2.3'
+          }
+        ]
+      } as never
+    )
+
+    await expect(registry.list()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'ecc',
+          installed: true,
+          enabled: false,
+          status: 'disabled',
+          health: 'warning',
+          installPath: '/fixture/git/github.com/affaan-m/ECC'
+        })
+      ])
+    )
+  })
+
+  it('declares the ECC modules with honest support statuses', async () => {
+    const registry = new SkillRegistry(
+      {} as never,
+      {
+        peek: () => ({ providers: {}, models: {}, capabilities: {} })
+      } as never,
+      { list: async () => [], listPackages: async () => [] } as never
+    )
+
+    await expect(registry.list()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'ecc',
+          modules: [
+            { id: 'skills', status: 'supported' },
+            { id: 'commands', status: 'supported' },
+            { id: 'rules', status: 'partial' },
+            { id: 'hooks', status: 'partial' },
+            { id: 'continuous-learning', status: 'unsupported' },
+            { id: 'memory-vault', status: 'unsupported' },
+            { id: 'agent-shield', status: 'unsupported' }
+          ]
+        })
+      ])
+    )
   })
 
   it('restores a failed catalog status from Harness metadata', async () => {

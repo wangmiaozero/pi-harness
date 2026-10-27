@@ -2,6 +2,13 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## Unreleased
+
+### Added
+
+- New featured capability pack "Everything Claude Code (ECC)" in the skills settings: one-click install, update, and uninstall through the official ECC Pi adapter, with each capability module's real support status shown (Claude Code-only modules are explicitly marked unsupported instead of faked).
+- Installed capability packages (such as Superpowers and ECC) can now be disabled and re-enabled without reinstalling. A disabled package is not loaded into new sessions; disabling keeps its files and the exact registration is restored on re-enable.
+
 ## 2.3.2 — 2026-10-27
 
 ### Added

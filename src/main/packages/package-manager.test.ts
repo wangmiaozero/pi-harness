@@ -375,6 +375,102 @@ describe('PiPackageManager reconciliation and lifecycle', () => {
     expect(processMock.exec).not.toHaveBeenCalled()
   })
 
+  it('disables a registered package by removing only its registry entry', async () => {
+    await writeRegistry(agentDir, [{ source: 'npm:pi-toggle', skills: [] }])
+    await writePackage(agentDir, 'pi-toggle', { pi: { skills: ['skills/demo/SKILL.md'] } })
+
+    const entry = await manager.readRegistryEntry({ source: 'npm:pi-toggle', scope: 'global' })
+    const result = await manager.setEnabled({ source: 'npm:pi-toggle', scope: 'global' }, false)
+
+    expect(result).toMatchObject({ ok: true, action: 'disable', skipped: false })
+    const settings = JSON.parse(await fs.readFile(path.join(agentDir, 'settings.json'), 'utf8'))
+    expect(settings.packages).toEqual([])
+    await expect(fs.stat(packagePath(agentDir, 'pi-toggle'))).resolves.toBeTruthy()
+    expect(entry).toEqual({ source: 'npm:pi-toggle', skills: [] })
+    expect((await manager.list())[0]).toMatchObject({
+      registered: false,
+      installed: true,
+      health: 'orphaned'
+    })
+  })
+
+  it('re-enables a disabled package with its exact previous registry entry', async () => {
+    await writeRegistry(agentDir, [{ source: 'npm:pi-restore', skills: [] }])
+    await writePackage(agentDir, 'pi-restore', { pi: { skills: ['skills/demo/SKILL.md'] } })
+    await manager.setEnabled({ source: 'npm:pi-restore', scope: 'global' }, false)
+
+    const result = await manager.setEnabled(
+      { source: 'npm:pi-restore', scope: 'global' },
+      true,
+      { source: 'npm:pi-restore', skills: [] }
+    )
+
+    expect(result).toMatchObject({ ok: true, action: 'enable', skipped: false })
+    const settings = JSON.parse(await fs.readFile(path.join(agentDir, 'settings.json'), 'utf8'))
+    expect(settings.packages).toEqual([{ source: 'npm:pi-restore', skills: [] }])
+    expect((await manager.list())[0]).toMatchObject({ registered: true, health: 'healthy' })
+  })
+
+  it('falls back to a plain source entry when no snapshot was captured', async () => {
+    await writeRegistry(agentDir, [])
+    await writePackage(agentDir, 'pi-fallback', { pi: { extensions: [] } })
+
+    const result = await manager.setEnabled(
+      { source: 'npm:pi-fallback', scope: 'global' },
+      true
+    )
+
+    expect(result).toMatchObject({ ok: true, action: 'enable' })
+    const settings = JSON.parse(await fs.readFile(path.join(agentDir, 'settings.json'), 'utf8'))
+    expect(settings.packages).toEqual(['npm:pi-fallback'])
+  })
+
+  it('reports skipped results for redundant enable and disable calls', async () => {
+    await writeRegistry(agentDir, ['npm:pi-redundant'])
+    await writePackage(agentDir, 'pi-redundant', { pi: { extensions: [] } })
+
+    await expect(
+      manager.setEnabled({ source: 'npm:pi-redundant', scope: 'global' }, false)
+    ).resolves.toMatchObject({ ok: true, skipped: false })
+    await expect(
+      manager.setEnabled({ source: 'npm:pi-redundant', scope: 'global' }, false)
+    ).resolves.toMatchObject({ ok: true, skipped: true })
+    await expect(
+      manager.setEnabled({ source: 'npm:pi-redundant', scope: 'global' }, true)
+    ).resolves.toMatchObject({ ok: true, skipped: false })
+    await expect(
+      manager.setEnabled({ source: 'npm:pi-redundant', scope: 'global' }, true)
+    ).resolves.toMatchObject({ ok: true, skipped: true })
+  })
+
+  it('refuses to re-register package files that are missing or unmanaged', async () => {
+    await writeRegistry(agentDir, [])
+
+    await expect(
+      manager.setEnabled({ source: 'npm:pi-gone', scope: 'global' }, true)
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+    expect(
+      JSON.parse(await fs.readFile(path.join(agentDir, 'settings.json'), 'utf8')).packages
+    ).toEqual([])
+  })
+
+  it('restores the registry when a disable transaction fails verification', async () => {
+    await writeRegistry(agentDir, ['npm:pi-disable-rollback'])
+    await writePackage(agentDir, 'pi-disable-rollback', { pi: { extensions: [] } })
+    const [before] = await manager.list()
+    vi.spyOn(manager, 'list').mockResolvedValueOnce([before!]).mockResolvedValueOnce([before!])
+
+    const result = await manager.setEnabled(
+      { source: 'npm:pi-disable-rollback', scope: 'global' },
+      false
+    )
+
+    expect(result).toMatchObject({ ok: false, errorCode: 'VERIFY_FAILED' })
+    expect(
+      JSON.parse(await fs.readFile(path.join(agentDir, 'settings.json'), 'utf8')).packages
+    ).toEqual(['npm:pi-disable-rollback'])
+  })
+
   it('classifies npm permission failures without relying on localized UI text', () => {
     expect(classifyPackageError('npm error code EACCES')).toBe('EACCES')
     expect(classifyPackageError('permission denied')).toBe('EACCES')
