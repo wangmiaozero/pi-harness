@@ -46,8 +46,9 @@ export function createMainWindow(iconPath: string): BrowserWindow {
   if (process.platform === 'darwin') win.setWindowButtonVisibility(false)
   installArchitectureFullscreen(win)
   // Native non-client dragging consumes OS pointer events. Handle double-clicks
-  // delivered to Chromium too (e.g. accessibility input), using the live DOM
-  // drag rectangle so controls/search and theme-specific heights stay excluded.
+  // delivered to Chromium too (e.g. accessibility input), matching the live DOM
+  // drag rectangle: the whole titlebar is draggable except .no-drag controls
+  // (brand button, search, window controls), so maximize follows the same rule.
   if (process.platform === 'darwin')
     win.webContents.on('before-mouse-event', (_event, input) => {
       if (
@@ -60,7 +61,7 @@ export function createMainWindow(iconPath: string): BrowserWindow {
         return
       void win.webContents
         .executeJavaScript(
-          `Boolean(document.elementFromPoint(${input.x},${input.y})?.closest('[data-testid="titlebar-drag-area"]'))`
+          `(() => { const el = document.elementFromPoint(${input.x},${input.y}); return Boolean(el?.closest('.app-titlebar') && !el?.closest('.no-drag')) })()`
         )
         .then((isTitlebar) => {
           if (!isTitlebar || win.isDestroyed()) return

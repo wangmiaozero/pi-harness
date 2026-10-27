@@ -25,10 +25,16 @@ test.describe('Application shell', () => {
     await expect(controls).toHaveCSS('transform', 'none')
     const dragArea = page.getByTestId('titlebar-drag-area')
     await expect(dragArea).toHaveCSS('-webkit-app-region', 'drag')
-    await expect(page.locator('header.app-titlebar')).toHaveCSS('-webkit-app-region', 'no-drag')
-    const controlBounds = (await controls.boundingBox())!
-    const dragBounds = (await dragArea.boundingBox())!
-    expect(dragBounds.x).toBeGreaterThan(controlBounds.x + controlBounds.width)
+    // The whole titlebar is one drag region; functional controls opt out via .no-drag.
+    await expect(page.locator('header.app-titlebar')).toHaveCSS('-webkit-app-region', 'drag')
+    await expect(page.locator('.starship-search-trigger')).toHaveCSS(
+      '-webkit-app-region',
+      'no-drag'
+    )
+    await expect(page.locator('.app-titlebar-brand-button')).toHaveCSS(
+      '-webkit-app-region',
+      'no-drag'
+    )
     for (const action of ['close', 'minimize', 'maximize']) {
       await expect(page.getByTestId(`titlebar-window-${action}`)).toHaveCSS(
         '-webkit-app-region',
@@ -90,6 +96,30 @@ test.describe('Application shell', () => {
         .find((win) => !win.webContents.getURL().includes('overlay.html'))
         ?.removeAllListeners('close')
     })
+  })
+
+  test('keeps functional titlebar controls non-draggable on every platform', async ({ page }) => {
+    // The whole titlebar is one drag region; functional controls must opt out.
+    await expect(page.locator('header.app-titlebar')).toHaveCSS('-webkit-app-region', 'drag')
+    await expect(page.locator('.app-titlebar-brand-button')).toHaveCSS(
+      '-webkit-app-region',
+      'no-drag'
+    )
+    await expect(page.locator('.starship-search-trigger')).toHaveCSS(
+      '-webkit-app-region',
+      'no-drag'
+    )
+    // Window controls differ per platform (mac dots vs Windows trailing buttons);
+    // assert that no button inside the titlebar is ever draggable.
+    const draggableButtons = await page
+      .locator('header.app-titlebar button')
+      .evaluateAll(
+        (buttons) =>
+          buttons.filter(
+            (button) => getComputedStyle(button).getPropertyValue('-webkit-app-region') === 'drag'
+          ).length
+      )
+    expect(draggableButtons).toBe(0)
   })
 
   test('shows the particle startup animation on each window load', async ({ page }) => {
