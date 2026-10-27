@@ -10,6 +10,7 @@ import type {
   PiPackageSourceType
 } from '@shared/ipc/api-types'
 import { readTextFile } from '../services/storage'
+import { parseGitSource } from './package-source'
 
 export interface PackageManifest {
   name?: string
@@ -346,7 +347,11 @@ export async function readGitOrigin(packagePath: string): Promise<string | null>
   if (!config) return null
   const remote = config.match(/\[remote "origin"\][\s\S]*?\n\s*url\s*=\s*([^\r\n]+)/)?.[1]?.trim()
   if (!remote) return null
-  return remote.includes('://') ? remote : `git:${remote}`
+  // Normalize to the canonical `git:host/path` identity so an orphaned git
+  // package (e.g. one whose registry entry was removed by disable) reports the
+  // same source string it was registered with, instead of a raw clone URL.
+  const parsed = parseGitSource(remote.includes('://') ? remote : `git:${remote}`)
+  return parsed ? `git:${parsed.host}/${parsed.packagePath}` : remote.includes('://') ? remote : `git:${remote}`
 }
 
 export function resolvePackageHealth(
