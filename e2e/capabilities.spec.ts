@@ -98,11 +98,12 @@ test.describe('Capabilities', () => {
     await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
 
     const cards = page.locator('[data-testid^="featured-capability-"]')
-    await expect(cards).toHaveCount(3)
+    await expect(cards).toHaveCount(4)
     await expect(cards.nth(0)).toContainText('Native Pi')
     await expect(cards.nth(1)).toContainText('Superpowers')
     await expect(cards.nth(1)).toContainText(/推荐|Recommended/)
-    await expect(cards.nth(2)).toContainText('Odai')
+    await expect(cards.nth(2)).toContainText('Everything Claude Code')
+    await expect(cards.nth(3)).toContainText('Odai')
 
     const state = await page.evaluate(async () => {
       const [capabilities, packages] = await Promise.all([
@@ -112,6 +113,7 @@ test.describe('Capabilities', () => {
       return {
         native: capabilities.find((entry) => entry.id === 'native-pi'),
         superpowers: capabilities.find((entry) => entry.id === 'superpowers'),
+        ecc: capabilities.find((entry) => entry.id === 'ecc'),
         odai: capabilities.find((entry) => entry.id === 'odai'),
         superpowersPackage: packages.find((pkg) => pkg.source === 'git:github.com/obra/superpowers')
       }
@@ -121,6 +123,12 @@ test.describe('Capabilities', () => {
       recommended: true,
       optional: true,
       installed: false
+    })
+    expect(state.ecc).toMatchObject({
+      recommended: false,
+      optional: true,
+      installed: false,
+      type: 'package'
     })
     expect(state.odai).toMatchObject({ recommended: false, optional: true, installed: false })
     expect(state.superpowersPackage).toBeUndefined()
@@ -136,6 +144,37 @@ test.describe('Capabilities', () => {
     await confirmation.getByRole('button', { name: /取消|Cancel/, exact: true }).click()
     await expect(confirmation).toHaveCount(0)
     await expect(cards.nth(1)).toContainText(/未安装|Not installed/)
+  })
+
+  test('shows ECC pack details with honest module support statuses', async ({
+    electronApp,
+    page
+  }) => {
+    await mockEmptyRegistry(electronApp)
+    await page.locator('a[href="#/skills"]').click()
+    await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
+
+    await page.getByTestId('featured-capability-ecc').click()
+
+    await expect(
+      page.getByText('pi install git:github.com/affaan-m/ECC')
+    ).toBeVisible()
+    const modules = page.getByText(/能力模块|Capability modules/)
+    await expect(modules).toBeVisible()
+    for (const name of [
+      /^(技能库|Skills library)$/,
+      /^(提示命令|Prompt commands)$/,
+      /^(工程规范|Engineering rules)$/,
+      /^(生命周期钩子|Lifecycle hooks)$/,
+      /^(持续学习|Continuous learning)$/,
+      /^(统一记忆|Unified memory)$/,
+      /^(安全审计|Security audit)$/
+    ]) {
+      await expect(page.getByText(name)).toBeVisible()
+    }
+    await expect(
+      page.getByTestId('featured-capability-install')
+    ).toBeVisible()
   })
 
   test('uses the mocked Registry for search, pagination, filters, details, install and update', async ({

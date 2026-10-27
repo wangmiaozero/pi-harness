@@ -15,6 +15,7 @@ describe('capability catalog', () => {
     expect(CAPABILITY_CATALOG.map((entry) => entry.id)).toEqual([
       'native-pi',
       'superpowers',
+      'ecc',
       'odai'
     ])
     expect(findTrustedCapability('native-pi')).toMatchObject({
@@ -34,6 +35,17 @@ describe('capability catalog', () => {
         target: 'pi-global'
       }
     })
+    expect(findTrustedCapability('ecc')).toMatchObject({
+      type: 'package',
+      recommended: false,
+      optional: true,
+      sourceUrl: 'https://github.com/affaan-m/ECC',
+      install: {
+        strategy: 'pi-package',
+        source: 'git:github.com/affaan-m/ECC',
+        target: 'pi-global'
+      }
+    })
     expect(findTrustedCapability('odai')).toMatchObject({
       type: 'skill',
       recommended: false,
@@ -46,7 +58,7 @@ describe('capability catalog', () => {
   })
 
   it('contains only schema-valid trusted sources', () => {
-    expect(CAPABILITY_CATALOG).toHaveLength(3)
+    expect(CAPABILITY_CATALOG).toHaveLength(4)
     expect(() =>
       normalizeCapabilityDefinition({
         id: 'unsafe',
