@@ -1455,6 +1455,9 @@ export const zhTW: MessageTree = {
     compactUsageRecommend: '建議壓縮',
     compactUsageUrgent: '強烈建議壓縮',
     compactUsageUnknown: '無法計算上下文占用',
+    replyTruncated:
+      '回覆因模型的上下文或輸出長度限制而中斷。請壓縮對話後重試，或切換到上下文更大的模型。',
+    enableAutoCompaction: '開啟自動壓縮',
     autoCompaction: '自動壓縮',
     compactUnsupported: '目前執行階段不支援壓縮。',
     compactFailed: '壓縮失敗',

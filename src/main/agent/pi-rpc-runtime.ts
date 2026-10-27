@@ -30,7 +30,7 @@ import {
   hasAssistantSnapshot
 } from '@shared/workspace/agent-event-wire'
 import { validateAgentImages } from '@shared/workspace/image-attachments'
-import { inspectRuntimeError } from '@shared/workspace/runtime-error'
+import { runtimeEventError } from '@shared/workspace/runtime-error'
 import type { HarnessAdapter, HarnessPromptOptions } from '../harness/harness-types'
 import { mapHarnessState } from '../harness/harness-state'
 import { mapAgentEvent } from '../harness/harness-events'
@@ -803,11 +803,8 @@ export class PiRpcRuntime implements HarnessAdapter {
       live.busy = true
       live.error = null
     }
-    if (event.type === 'message_end') {
-      const message = event.message as { role?: string; errorMessage?: string; stopReason?: string }
-      if (message?.role === 'assistant' && message.stopReason === 'error')
-        live.error = inspectRuntimeError(message.errorMessage ?? 'Agent error').userMessage
-    }
+    const eventError = runtimeEventError(event as AgentEvent)
+    if (eventError !== undefined) live.error = eventError
     if (event.type === 'agent_settled') {
       live.busy = false
       this.armIdle(live)

@@ -1484,6 +1484,9 @@ export const ruRU: MessageTree = {
     compactUsageRecommend: 'Рекомендуется сжать',
     compactUsageUrgent: 'Настоятельно рекомендуется сжать',
     compactUsageUnknown: 'Не удалось оценить заполнение контекста',
+    replyTruncated:
+      'Ответ достиг ограничения контекста или вывода модели. Сожмите беседу и повторите запрос или выберите модель с большим контекстом.',
+    enableAutoCompaction: 'Включить автосжатие',
     autoCompaction: 'Автосжатие',
     compactUnsupported: 'Эта среда выполнения не поддерживает сжатие.',
     compactFailed: 'Не удалось сжать',

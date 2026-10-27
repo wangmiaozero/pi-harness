@@ -640,6 +640,74 @@ describe('AgentRuntimeService', () => {
     })
   })
 
+  it.each([
+    { recovery: 'disabled', success: false },
+    { recovery: 'failed', success: false },
+    { recovery: 'succeeded', success: true }
+  ])(
+    'settles a truncated reply after native recovery is $recovery',
+    async ({ recovery, success }) => {
+      const inner = createAgentSession(createSessionManager())
+      let emitSdkEvent!: (event: { type: string; [key: string]: unknown }) => void
+      inner.subscribe = (listener) => {
+        emitSdkEvent = (event) =>
+          listener(event as import('@earendil-works/pi-coding-agent').AgentSessionEvent)
+        return () => undefined
+      }
+      const events: Array<{ type: string; [key: string]: unknown }> = []
+      inner.prompt = vi.fn(async (_message: string, options?: Record<string, unknown>) => {
+        ;(options?.preflightResult as (disposition: string) => void)?.('started')
+        emitSdkEvent({
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            stopReason: 'length',
+            content: [{ type: 'thinking', thinking: 'Let' }]
+          }
+        })
+        expect(events.some((event) => event.type === 'prompt_error')).toBe(false)
+        if (recovery !== 'disabled') {
+          emitSdkEvent({ type: 'compaction_start', reason: 'overflow' })
+          emitSdkEvent({
+            type: 'compaction_end',
+            reason: 'overflow',
+            aborted: false,
+            willRetry: success,
+            ...(success ? { result: {} } : { errorMessage: 'Context overflow recovery failed' })
+          })
+        }
+        if (success) {
+          emitSdkEvent({ type: 'agent_start' })
+          emitSdkEvent({
+            type: 'message_end',
+            message: { role: 'assistant', stopReason: 'stop', content: [] }
+          })
+        }
+        // Non-assistant messages must not erase the pending failure.
+        emitSdkEvent({ type: 'message_end', message: { role: 'toolResult', content: [] } })
+        emitSdkEvent({ type: 'agent_settled', aborted: false })
+      })
+      const wrapper = new AgentSessionWrapper(inner)
+      wrapper.start()
+      wrapper.onEvent((event) => events.push(event))
+      try {
+        await wrapper.send({ type: 'prompt', message: 'continue' })
+        await vi.waitFor(() =>
+          expect(events.at(-1)).toMatchObject({ type: 'prompt_done', success })
+        )
+        const errors = events.filter((event) => event.type === 'prompt_error')
+        expect(errors).toHaveLength(success ? 0 : 1)
+        if (!success) {
+          expect(events.indexOf(errors[0])).toBeLessThan(
+            events.findIndex((event) => event.type === 'agent_settled')
+          )
+        }
+      } finally {
+        wrapper.destroy()
+      }
+    }
+  )
+
   it('throttles accumulated-message snapshots on streaming deltas', () => {
     vi.useFakeTimers()
     const inner = createAgentSession(createSessionManager())

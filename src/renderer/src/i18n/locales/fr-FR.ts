@@ -1484,6 +1484,9 @@ export const frFR: MessageTree = {
     compactUsageRecommend: 'Compactage recommandé',
     compactUsageUrgent: 'Compactage fortement recommandé',
     compactUsageUnknown: 'Utilisation du contexte inconnue',
+    replyTruncated:
+      'La réponse a atteint la limite de contexte ou de sortie du modèle. Compactez la conversation et réessayez, ou choisissez un modèle avec un contexte plus grand.',
+    enableAutoCompaction: 'Activer le compactage auto',
     autoCompaction: 'Compactage auto',
     compactUnsupported: 'Cette runtime ne prend pas en charge le compactage.',
     compactFailed: 'Échec du compactage',

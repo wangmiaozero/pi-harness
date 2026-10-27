@@ -1485,6 +1485,9 @@ export const koKR: MessageTree = {
     compactUsageRecommend: '압축을 권장합니다',
     compactUsageUrgent: '압축을 강력히 권장합니다',
     compactUsageUnknown: '컨텍스트 사용량을 계산할 수 없습니다',
+    replyTruncated:
+      '모델의 컨텍스트 또는 출력 한도에 도달해 응답이 중단되었습니다. 대화를 압축한 후 다시 시도하거나 컨텍스트가 더 큰 모델로 전환하세요.',
+    enableAutoCompaction: '자동 압축 켜기',
     autoCompaction: '자동 압축',
     compactUnsupported: '이 런타임은 압축을 지원하지 않습니다.',
     compactFailed: '압축에 실패했습니다',
