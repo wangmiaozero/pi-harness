@@ -36,7 +36,7 @@ import type {
   SkillMarketCollection,
   SkillMarketPackage
 } from '@shared/ipc/api-types'
-import type { CapabilityDescriptor } from '@shared/capabilities/types'
+import type { CapabilityDescriptor, CapabilityModuleStatus } from '@shared/capabilities/types'
 import type { SkillForm, SkillImportInput } from '@shared/schemas/domain'
 import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Badge from '@renderer/components/ui/Badge.vue'
@@ -314,6 +314,25 @@ function capabilityErrorCode(capability: CapabilityDescriptor) {
   return store.capabilityErrors[capability.id]?.code ?? capability.lastErrorCode
 }
 
+function capabilityModuleLabel(moduleId: string): string {
+  const suffix = moduleId
+    .split('-')
+    .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
+    .join('')
+  return t(`capabilities.module${suffix}`)
+}
+
+function capabilityModuleStatusLabel(status: string): string {
+  const suffix = `${status[0]?.toUpperCase() ?? ''}${status.slice(1)}`
+  return t(`capabilities.moduleStatus${suffix}`)
+}
+
+function capabilityModuleStatusTone(status: CapabilityModuleStatus): 'success' | 'warning' | 'muted' {
+  if (status === 'supported') return 'success'
+  if (status === 'partial') return 'warning'
+  return 'muted'
+}
+
 function capabilityUseCaseLabel(useCase: string): string {
   const suffix = useCase
     .split('-')
@@ -326,6 +345,7 @@ function capabilityDescription(capability: CapabilityDescriptor): string {
   const keys: Record<string, string> = {
     'native-pi': 'capabilities.nativePiDescription',
     superpowers: 'capabilities.superpowersDescription',
+    ecc: 'capabilities.eccDescription',
     odai: 'capabilities.odaiDescription'
   }
   return keys[capability.id] ? t(keys[capability.id]) : capability.description || '—'
@@ -1621,7 +1641,10 @@ function resourceGroups(pkg: PiPackageInfo) {
                     {{ $t('skills.edit') }}
                   </Button>
                   <Button
-                    v-if="selectedCapability.type === 'skill'"
+                    v-if="
+                      selectedCapability.type === 'skill' ||
+                      selectedCapability.type === 'package'
+                    "
                     variant="secondary"
                     size="sm"
                     :loading="store.installingIds.includes(selectedCapability.id)"
@@ -1646,6 +1669,7 @@ function resourceGroups(pkg: PiPackageInfo) {
                     {{ $t('skills.openFolder') }}
                   </Button>
                   <Button
+                    v-if="!(selectedCapability.type === 'package' && !selectedCapability.enabled)"
                     variant="secondary"
                     size="sm"
                     :loading="store.installingIds.includes(selectedCapability.id)"
@@ -1732,6 +1756,29 @@ function resourceGroups(pkg: PiPackageInfo) {
                     {{ tag }}
                   </Badge>
                 </div>
+              </InspectorSection>
+              <div class="my-1 h-px bg-[var(--border-subtle)]" />
+              <InspectorSection
+                v-if="selectedCapability.modules && selectedCapability.modules.length > 0"
+              >
+                <template #title>{{ $t('capabilities.capabilityModules') }}</template>
+                <ul class="space-y-1 px-3 py-2">
+                  <li
+                    v-for="module in selectedCapability.modules"
+                    :key="module.id"
+                    class="flex items-center justify-between gap-2 py-1"
+                  >
+                    <span class="text-[12px] text-[var(--text-secondary)]">
+                      {{ capabilityModuleLabel(module.id) }}
+                    </span>
+                    <Badge :tone="capabilityModuleStatusTone(module.status)">
+                      {{ capabilityModuleStatusLabel(module.status) }}
+                    </Badge>
+                  </li>
+                </ul>
+                <p class="px-3 pb-3 text-[11px] leading-relaxed text-[var(--text-tertiary)]">
+                  {{ $t('capabilities.moduleStatusHint') }}
+                </p>
               </InspectorSection>
               <div class="my-1 h-px bg-[var(--border-subtle)]" />
               <InspectorSection>

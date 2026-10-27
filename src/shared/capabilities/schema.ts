@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   CAPABILITY_CATEGORIES,
   CAPABILITY_INTEGRATIONS,
+  CAPABILITY_MODULE_STATUSES,
   CAPABILITY_SOURCES,
   CAPABILITY_TYPES
 } from './types'
@@ -62,6 +63,15 @@ export const capabilityDefinitionSchema = z
       .optional(),
     install: capabilityInstallSchema.optional(),
     members: z.array(capabilityIdSchema).max(64).optional(),
+    modules: z
+      .array(
+        z.object({
+          id: capabilityIdSchema,
+          status: z.enum(CAPABILITY_MODULE_STATUSES)
+        })
+      )
+      .max(32)
+      .optional(),
     metadata: z.record(z.string(), z.unknown()).optional()
   })
   .superRefine((definition, context) => {
