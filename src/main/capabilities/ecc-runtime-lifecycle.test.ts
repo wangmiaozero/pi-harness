@@ -449,15 +449,18 @@ describe.skipIf(!RUN_E2E)('ECC real runtime lifecycle (isolated sandbox)', () =>
     const packagesBefore = await readRegistryPackages()
     const healthBefore = (await newManager().list()).find((pkg) => pkg.source === ECC_SOURCE)
 
-    // Fault injection: point the CLI at a nonexistent executable.
-    await settingsStore.update({ manualCliPath: path.join(sandbox, 'no-such-pi-cli') })
+    // Fault injection: point the package's git origin at an unreachable host so
+    // the real `pi update` fails during the git fetch.
+    const gitConfig = path.join(installedRoot, '.git', 'config')
+    const originalConfig = await fs.readFile(gitConfig, 'utf8')
+    await fs.writeFile(gitConfig, originalConfig.replace(/url = .*/, 'url = https://github.invalid/affaan-m/ECC.git'))
     try {
       await capabilityService.update('ecc')
-      throw new Error('update with a missing CLI unexpectedly succeeded')
+      throw new Error('update against an unreachable origin unexpectedly succeeded')
     } catch (error) {
       expect((error as Error).message).not.toContain('unexpectedly succeeded')
     } finally {
-      await settingsStore.update({ manualCliPath: PI_CLI })
+      await fs.writeFile(gitConfig, originalConfig)
     }
 
     // Registry and files are intact; package still healthy.
