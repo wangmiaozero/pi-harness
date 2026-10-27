@@ -144,6 +144,11 @@ export interface CapabilityActionResult {
   stderr: string
 }
 
+/**
+ * Pi-Harness-only snapshot of the exact Pi registry entry captured when a
+ * package capability is disabled. Restored verbatim on re-enable so unknown
+ * Pi-native fields (resource filters, pinned versions) are never lost.
+ */
 export interface CapabilityMetadata {
   enabled?: boolean
   favorite?: boolean
@@ -154,6 +159,7 @@ export interface CapabilityMetadata {
   lastUpdatedAt?: number
   category?: string
   tags?: string[]
+  packageRegistryEntry?: unknown
   lastErrorCode?: AppErrorCode | null
   lastErrorAt?: number | null
   lastErrorAction?: CapabilityMutationAction | null

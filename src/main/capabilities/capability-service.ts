@@ -133,6 +133,22 @@ export class CapabilityService {
       const installed = await this.registry.findInstalled(definition)
       if (!installed) throw new SkillMutationError('SKILL_NOT_FOUND', 'Capability is not installed')
       if (definition.install?.strategy === 'pi-package') {
+        if (installed.kind === 'package' && !installed.enabled) {
+          // Disabled packages are unregistered but still on disk; remove the
+          // managed files directly instead of a Pi CLI call that would no-op.
+          if (!this.packageManager) {
+            throw new AppError('CAPABILITY_NOT_SUPPORTED', 'Pi Package Manager is unavailable')
+          }
+          this.emit({ skillId, action: 'uninstall', phase: 'uninstalling' })
+          const output = await this.packageManager.deleteOrphan({
+            source: definition.install.source,
+            scope: 'global',
+            projectRoot: null
+          })
+          if (!output.ok) throw packageMutationError(output)
+          await this.clearMetadata(skillId)
+          return this.successResult(skillId, 'uninstall', startedAt, packageProcess(output))
+        }
         const output = await this.runPackageMutation(
           definition.install.source,
           'uninstall',
@@ -161,14 +177,52 @@ export class CapabilityService {
     return this.mutate(skillId, action, async (definition, startedAt) => {
       const installed = await this.registry.findInstalled(definition)
       if (!installed) throw new SkillMutationError('SKILL_NOT_FOUND', 'Skill is not installed')
+      this.emit({ skillId, action, phase: 'validating' })
+      if (definition.install?.strategy === 'pi-package') {
+        if (installed.kind !== 'package') {
+          throw new AppError('CAPABILITY_NOT_SUPPORTED', 'Capability is not a Pi package')
+        }
+        if (!this.packageManager) {
+          throw new AppError('CAPABILITY_NOT_SUPPORTED', 'Pi Package Manager is unavailable')
+        }
+        const target: PiPackageTarget = {
+          source: definition.install.source,
+          scope: 'global',
+          projectRoot: null
+        }
+        if (enabled) {
+          const metadata = this.capabilityMetadata(skillId)
+          const result = await this.packageManager.setEnabled(target, true, metadata.packageRegistryEntry)
+          if (!result.ok) throw packageMutationError(result)
+          await this.setMetadata(skillId, {
+            enabled: true,
+            packageRegistryEntry: undefined,
+            lastErrorCode: null,
+            lastErrorAt: null,
+            lastErrorAction: null
+          })
+        } else {
+          const entry = await this.packageManager.readRegistryEntry(target)
+          const result = await this.packageManager.setEnabled(target, false)
+          if (!result.ok) throw packageMutationError(result)
+          await this.setMetadata(skillId, {
+            enabled: false,
+            packageRegistryEntry: entry,
+            lastErrorCode: null,
+            lastErrorAt: null,
+            lastErrorAction: null
+          })
+        }
+        return this.successResult(skillId, action, startedAt, {
+          stdout: '',
+          stderr: '',
+          exitCode: 0
+        })
+      }
       this.assertSkillInstaller(definition)
       if (installed.kind !== 'skill') {
-        throw new AppError(
-          'CAPABILITY_NOT_SUPPORTED',
-          'Pi packages cannot be enabled or disabled independently'
-        )
+        throw new AppError('CAPABILITY_NOT_SUPPORTED', 'Unsupported capability installer')
       }
-      this.emit({ skillId, action, phase: 'validating' })
       const installPath = await this.installer.setEnabled(
         installed.path,
         installed.root,
@@ -261,6 +315,10 @@ export class CapabilityService {
 
   private emit(progress: CapabilityMutationProgress): void {
     this.listeners.forEach((listener) => listener(progress))
+  }
+
+  private capabilityMetadata(skillId: string): CapabilityMetadata {
+    return this.metadataStore.peek().capabilities[skillId] ?? {}
   }
 
   private async setMetadata(skillId: string, patch: CapabilityMetadata): Promise<void> {

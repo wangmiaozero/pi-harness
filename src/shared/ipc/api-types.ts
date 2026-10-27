@@ -607,7 +607,15 @@ export interface BuiltinSkillActionResult {
 export interface PiPackageActionResult {
   source: string
   scope: PiPackageScope
-  action: 'install' | 'repair' | 'register' | 'uninstall' | 'delete-orphan' | 'update'
+  action:
+    | 'install'
+    | 'repair'
+    | 'register'
+    | 'uninstall'
+    | 'delete-orphan'
+    | 'update'
+    | 'enable'
+    | 'disable'
   ok: boolean
   skipped: boolean
   message: string

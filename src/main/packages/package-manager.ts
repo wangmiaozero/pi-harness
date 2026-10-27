@@ -496,6 +496,146 @@ export class PiPackageManager {
     })
   }
 
+  /**
+   * Returns the raw Pi registry entry for a registered package so callers can
+   * restore it verbatim when re-enabling. Returns null when unregistered.
+   */
+  async readRegistryEntry(target: PiPackageTarget): Promise<unknown | null> {
+    const scopes = await this.registryScopes(target.projectRoot)
+    const scope = scopes.find((entry) => entry.scope === target.scope)
+    if (!scope) return null
+    const identity = packageIdentity(target.source, scope.baseDir)
+    const entry = scope.entries.find(
+      (candidate) => packageIdentity(candidate.source, scope.baseDir) === identity
+    )
+    return entry?.raw ?? null
+  }
+
+  /**
+   * Enables or disables a global package by adding or removing its Pi registry
+   * entry while keeping the installed files in place. Pi loads packages from
+   * the registry at session start, so a disabled package is no longer injected
+   * into new sessions. The exact raw entry captured at disable time can be
+   * passed back on enable to preserve unknown Pi-native fields.
+   */
+  async setEnabled(
+    target: PiPackageTarget,
+    enabled: boolean,
+    registryEntry?: unknown
+  ): Promise<PiPackageActionResult> {
+    if (target.scope !== 'global') {
+      throw new ValidationError('Package enable state can only be managed for global packages')
+    }
+    const normalized = await this.normalizeTarget(target)
+    const action: PackageAction = enabled ? 'enable' : 'disable'
+    return this.withMutation(normalized, action, async () => {
+      const logs: PiPackageActionResult['logs'] = [
+        { phase: 'resolve', ok: true, message: `Resolved ${normalized.source}` }
+      ]
+      const before = await this.find(normalized)
+      if (enabled) {
+        if (before?.registered) {
+          return this.result(normalized, action, true, true, 'Package is already enabled', logs)
+        }
+        if (!before?.installed || !before.managed || !before.path) {
+          throw new ValidationError(
+            'Only installed managed package files can be re-registered'
+          )
+        }
+        const entry = this.normalizeRegistryEntry(registryEntry, normalized.source)
+        const snapshot = await this.backupRegistry(normalized, `enable package ${normalized.source}`)
+        logs.push({ phase: 'backup', ok: true, message: 'Registry backup created' })
+        try {
+          await this.registerDirect(normalized, entry)
+        } catch (error) {
+          await this.restoreRegistry(snapshot)
+          const message = error instanceof Error ? error.message : String(error)
+          logs.push({ phase: action, ok: false, message })
+          logs.push({
+            phase: 'rollback',
+            ok: true,
+            message: 'Registry restored from transaction snapshot'
+          })
+          return this.result(normalized, action, false, false, message, logs, undefined, 'PROCESS_FAILED')
+        }
+        logs.push({ phase: action, ok: true, message: 'Package registry entry restored' })
+        await this.reloadConfig()
+        const after = await this.find(normalized)
+        const verified = Boolean(after?.registered && after.installed && after.health === 'healthy')
+        logs.push({
+          phase: 'verify',
+          ok: verified,
+          message: verified ? 'Package is healthy and registered' : 'Package verification failed'
+        })
+        if (!verified) {
+          await this.restoreRegistry(snapshot)
+          logs.push({
+            phase: 'rollback',
+            ok: true,
+            message: 'Registry restored from transaction snapshot'
+          })
+          return this.result(
+            normalized,
+            action,
+            false,
+            false,
+            'Package verification failed',
+            logs,
+            undefined,
+            'VERIFY_FAILED'
+          )
+        }
+        return this.result(normalized, action, true, false, 'Package enabled', logs)
+      }
+      if (!before?.registered) {
+        return this.result(normalized, action, true, true, 'Package is already disabled', logs)
+      }
+      const snapshot = await this.backupRegistry(normalized, `disable package ${normalized.source}`)
+      logs.push({ phase: 'backup', ok: true, message: 'Registry backup created' })
+      try {
+        await this.unregisterDirect(normalized)
+      } catch (error) {
+        await this.restoreRegistry(snapshot)
+        const message = error instanceof Error ? error.message : String(error)
+        logs.push({ phase: action, ok: false, message })
+        logs.push({
+          phase: 'rollback',
+          ok: true,
+          message: 'Registry restored from transaction snapshot'
+        })
+        return this.result(normalized, action, false, false, message, logs, undefined, 'PROCESS_FAILED')
+      }
+      logs.push({ phase: action, ok: true, message: 'Package registry entry removed' })
+      await this.reloadConfig()
+      const after = await this.find(normalized)
+      const verified = Boolean(after?.installed) && !after?.registered
+      logs.push({
+        phase: 'verify',
+        ok: verified,
+        message: verified ? 'Package files kept for later re-enable' : 'Package state is inconsistent'
+      })
+      if (!verified) {
+        await this.restoreRegistry(snapshot)
+        logs.push({
+          phase: 'rollback',
+          ok: true,
+          message: 'Registry restored from transaction snapshot'
+        })
+        return this.result(
+          normalized,
+          action,
+          false,
+          false,
+          'Package disable verification failed',
+          logs,
+          undefined,
+          'VERIFY_FAILED'
+        )
+      }
+      return this.result(normalized, action, true, false, 'Package disabled', logs)
+    })
+  }
+
   async deleteOrphan(target: PiPackageTarget): Promise<PiPackageActionResult> {
     const normalized = await this.normalizeTarget(target)
     return this.withMutation(normalized, 'delete-orphan', async () => {
@@ -875,6 +1015,51 @@ export class PiPackageManager {
     await atomicWriteText(scope.registryPath, JSON.stringify(settings, null, 2) + '\n')
   }
 
+  /** Re-adds a Pi registry entry for an already-installed managed package. */
+  private async registerDirect(target: PiPackageTarget, entry: unknown): Promise<void> {
+    if (target.scope === 'global' && this.config) {
+      await this.config.patchSettings(
+        (settings) => ({
+          ...settings,
+          packages: addRegistryPackage(
+            settings.packages,
+            entry,
+            target.source,
+            getPiConfigDir(this.settingsStore.peek().manualConfigDir)
+          )
+        }),
+        { overwrite: true, reason: `re-register package ${target.source}` }
+      )
+      return
+    }
+    const scopes = await this.registryScopes(target.projectRoot)
+    const scope = scopes.find((candidate) => candidate.scope === target.scope)
+    if (!scope) throw new ValidationError('Package registry could not be resolved')
+    const text = await readTextFile(scope.registryPath)
+    const settings = text ? (JSON.parse(text) as Record<string, unknown>) : {}
+    settings.packages = addRegistryPackage(settings.packages, entry, target.source, scope.baseDir)
+    await fs.mkdir(path.dirname(scope.registryPath), { recursive: true })
+    await atomicWriteText(scope.registryPath, JSON.stringify(settings, null, 2) + '\n')
+  }
+
+  /**
+   * Validates the stored raw registry entry before writing it back into Pi
+   * settings. Falls back to a plain source entry only when no snapshot exists.
+   */
+  private normalizeRegistryEntry(raw: unknown, source: string): unknown {
+    if (raw === undefined || raw === null) return source
+    if (typeof raw === 'string') {
+      if (!raw.trim()) return source
+      return raw
+    }
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const declared = (raw as { source?: unknown }).source
+      if (typeof declared !== 'string' || !declared.trim()) return source
+      return raw
+    }
+    return source
+  }
+
   private async reloadConfig(): Promise<void> {
     await this.config
       ?.read()
@@ -1000,6 +1185,15 @@ function removeRegistryPackage(packages: unknown, source: string, baseDir?: stri
     const value = typeof entry === 'string' ? entry : (entry as { source?: unknown })?.source
     return typeof value !== 'string' || packageIdentity(value, baseDir) !== identity
   })
+}
+
+function addRegistryPackage(
+  packages: unknown,
+  entry: unknown,
+  source: string,
+  baseDir?: string
+): unknown[] {
+  return [...removeRegistryPackage(packages, source, baseDir), entry]
 }
 
 function packageTarget(pkg: PiPackageInfo): PiPackageTarget {
