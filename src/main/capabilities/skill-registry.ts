@@ -27,7 +27,12 @@ export interface InstalledPackageCapability {
   kind: 'package'
   path: string
   root: null
-  enabled: true
+  /**
+   * A package is enabled exactly when its Pi registry entry exists: Pi loads
+   * packages from the registry at session start. Disabled packages keep their
+   * files on disk and can be re-enabled without reinstalling.
+   */
+  enabled: boolean
   package: PiPackageInfo
 }
 
@@ -90,7 +95,6 @@ export class SkillRegistry {
       const match = packages.find(
         (pkg) =>
           pkg.scope === 'global' &&
-          pkg.registered &&
           pkg.installed &&
           packageIdentity(pkg.source) === identity
       )
@@ -99,7 +103,7 @@ export class SkillRegistry {
         kind: 'package',
         path: match.path,
         root: null,
-        enabled: true,
+        enabled: match.registered,
         package: match
       }
     }
@@ -143,7 +147,11 @@ export class SkillRegistry {
     if (definition.builtin) return true
     if (definition.install?.strategy === 'pi-package') {
       const installed = await this.findInstalled(definition)
-      return installed?.kind === 'package' && installed.package.health === 'healthy'
+      return (
+        installed?.kind === 'package' &&
+        installed.enabled &&
+        installed.package.health === 'healthy'
+      )
     }
     const selector =
       definition.install?.strategy === 'skills-cli' ? definition.install.selector : definition.id
@@ -210,7 +218,11 @@ export class SkillRegistry {
     const updateAvailable = this.hasUpdate(definition.version, installedVersion)
     const enabled = installed?.enabled ?? isBuiltin
     const isInstalled = isBuiltin || Boolean(installed)
-    const packageHealthy = !isPackage || installed.package.health === 'healthy'
+    const packageHealthy =
+      !isPackage ||
+      (installed.enabled
+        ? installed.package.health === 'healthy'
+        : Boolean(installed.package.available))
     const managed = Boolean(metadata.installPath)
     return {
       ...definition,
@@ -243,11 +255,12 @@ export class SkillRegistry {
       lastModified: installed?.kind === 'skill' ? installed.parsed.lastModified : null,
       updateAvailable,
       lastErrorCode:
-        metadata.lastErrorCode ?? (isPackage && !packageHealthy ? 'PACKAGE_HEALTH_ERROR' : null),
+        metadata.lastErrorCode ??
+        (isPackage && installed.enabled && !packageHealthy ? 'PACKAGE_HEALTH_ERROR' : null),
       lastErrorAt: metadata.lastErrorAt ?? null,
       lastErrorAction: metadata.lastErrorAction ?? null,
       status:
-        metadata.lastErrorCode || (isPackage && !packageHealthy)
+        metadata.lastErrorCode || (isPackage && installed.enabled && !packageHealthy)
           ? 'failed'
           : !isInstalled
             ? 'not-installed'
