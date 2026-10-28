@@ -24,6 +24,7 @@ const availableAccounts = computed(() =>
 const voiceCall = useVoiceCall()
 const settings = ref<VoicePublicSettings | null>(null),
   apiKey = ref(''),
+  doubaoApiKey = ref(''),
   doubaoAppId = ref(''),
   doubaoToken = ref('')
 const load = () =>
@@ -36,11 +37,15 @@ const load = () =>
 const save = () =>
   run(async () => {
     const s = settings.value!
-    if (
-      s.adapter === 'doubao-realtime' &&
-      Boolean(doubaoAppId.value) !== Boolean(doubaoToken.value)
-    )
-      throw new Error(t('liveVoice.doubaoCredsIncomplete'))
+    const hasKey = Boolean(doubaoApiKey.value)
+    const hasPair = Boolean(doubaoAppId.value) || Boolean(doubaoToken.value)
+    const hasBoth = Boolean(doubaoAppId.value) && Boolean(doubaoToken.value)
+    if (s.adapter === 'doubao-realtime') {
+      if (hasKey && hasPair)
+        // New-console API key and legacy App ID + Token are mutually exclusive.
+        throw new Error(t('liveVoice.doubaoCredsExclusive'))
+      if (hasPair && !hasBoth) throw new Error(t('liveVoice.doubaoCredsIncomplete'))
+    }
     settings.value = await getApi().agentSettings.voice.save({
       enabled: s.enabled,
       ...(s.adapter ? { adapter: s.adapter } : {}),
@@ -51,13 +56,19 @@ const save = () =>
       profile: s.profile,
       ...(apiKey.value
         ? { apiKey: apiKey.value }
-        : s.adapter === 'doubao-realtime' && doubaoAppId.value && doubaoToken.value
-          ? {
-              apiKey: JSON.stringify({ appId: doubaoAppId.value, accessToken: doubaoToken.value })
-            }
-          : {})
+        : s.adapter === 'doubao-realtime' && hasKey
+          ? { apiKey: JSON.stringify({ apiKey: doubaoApiKey.value }) }
+          : s.adapter === 'doubao-realtime' && hasBoth
+            ? {
+                apiKey: JSON.stringify({
+                  appId: doubaoAppId.value,
+                  accessToken: doubaoToken.value
+                })
+              }
+            : {})
     })
     apiKey.value = ''
+    doubaoApiKey.value = ''
     doubaoAppId.value = ''
     doubaoToken.value = ''
     await voiceCall.loadSettings()
@@ -69,7 +80,7 @@ function adapterChanged() {
     settings.value.adapter === 'gemini-live'
       ? 'gemini-3.8-live'
       : settings.value.adapter === 'doubao-realtime'
-        ? '1.2.1.1'
+        ? '1.2.6.1'
         : 'gpt-realtime'
   settings.value.voice =
     settings.value.adapter === 'gemini-live'
@@ -117,6 +128,22 @@ onMounted(load)
           </select></label
         >
         <template v-else-if="settings.adapter === 'doubao-realtime'">
+          <label class="feature-field"
+            >{{ t('liveVoice.doubaoApiKey')
+            }}<input
+              v-model="doubaoApiKey"
+              class="feature-input"
+              type="password"
+              autocomplete="new-password"
+              :placeholder="
+                t(
+                  settings.hasCredential
+                    ? 'agentSettings.credentialSaved'
+                    : 'liveVoice.doubaoApiKeyPlaceholder'
+                )
+              "
+              maxlength="256"
+          /></label>
           <div class="feature-grid">
             <label class="feature-field"
               >{{ t('liveVoice.doubaoAppId')
@@ -124,13 +151,6 @@ onMounted(load)
                 v-model="doubaoAppId"
                 class="feature-input"
                 autocomplete="off"
-                :placeholder="
-                  t(
-                    settings.hasCredential
-                      ? 'agentSettings.credentialSaved'
-                      : 'liveVoice.doubaoAppIdPlaceholder'
-                  )
-                "
                 maxlength="64"
             /></label>
             <label class="feature-field"

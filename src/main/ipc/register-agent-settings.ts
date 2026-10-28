@@ -19,6 +19,7 @@ import {
   voiceReviewSchema,
   callIdSchema,
   voiceAudioSchema,
+  voiceMuteSchema,
   remotePairSchema,
   remoteApprovalResponseSchema
 } from '@shared/agent-settings/schema'
@@ -118,6 +119,7 @@ export function registerAgentSettingsIpc(
   )
   handle(IPC_INVOKE.voiceStop, callIdSchema, ({ callId }) => voice.stop(callId))
   handle(IPC_INVOKE.voiceAudio, voiceAudioSchema, ({ callId, data }) => voice.audio(callId, data))
+  handle(IPC_INVOKE.voiceMute, voiceMuteSchema, ({ callId, muted }) => voice.mute(callId, muted))
   const host = z.strictObject({ id: z.string().uuid() })
   const session = host.extend({ sessionId: z.string().min(1).max(256) })
   handle(IPC_INVOKE.remoteApprove, remoteApprovalResponseSchema, (input) => remote.approve(input))

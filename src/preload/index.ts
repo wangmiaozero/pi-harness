@@ -61,6 +61,7 @@ const api: PiSwitchAPI = {
         invoke(IPC_INVOKE.voiceReview, { callId, operationId, accept }),
       stop: (callId) => invoke(IPC_INVOKE.voiceStop, { callId }),
       audio: (callId, data) => invoke(IPC_INVOKE.voiceAudio, { callId, data }),
+      mute: (callId, muted) => invoke(IPC_INVOKE.voiceMute, { callId, muted }),
       onEvent: (listener) =>
         onEvent(IPC_EVENT.voiceEvent, (payload) =>
           listener(payload as import('../shared/agent-settings/schema').VoiceEvent)

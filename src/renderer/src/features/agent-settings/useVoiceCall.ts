@@ -280,6 +280,13 @@ function createVoiceCall() {
     stream?.getAudioTracks().forEach((track) => {
       track.enabled = !muted.value
     })
+    // Doubao 3.0 treats upstream audio as keep-alive: a silenced mic must announce
+    // itself (input_audio_mute.commit) or the session times out. Main no-ops for
+    // other adapters; failures here are not fatal to the call itself.
+    if (callId)
+      getApi()
+        .agentSettings.voice.mute(callId, muted.value)
+        .catch(() => {})
   }
   async function review(operationId: string, accept: boolean) {
     if (!callId) return

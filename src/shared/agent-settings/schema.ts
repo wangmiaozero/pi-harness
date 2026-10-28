@@ -185,6 +185,7 @@ export const voiceAudioSchema = callIdSchema.extend({
     .max(32768)
     .regex(/^[A-Za-z0-9+/]*={0,2}$/)
 })
+export const voiceMuteSchema = callIdSchema.extend({ muted: z.boolean() })
 
 export const remoteEndpoint = z
   .string()
@@ -286,6 +287,7 @@ export interface AgentSettingsAPI {
     review(callId: string, operationId: string, accept: boolean): Promise<void>
     stop(callId: string): Promise<void>
     audio(callId: string, data: string): Promise<void>
+    mute(callId: string, muted: boolean): Promise<void>
     onEvent(listener: (event: VoiceEvent) => void): () => void
   }
   remote: {

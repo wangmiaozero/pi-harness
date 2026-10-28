@@ -33,12 +33,15 @@ export const liveVoiceEn = {
   accountSource: 'Service account',
   ownKey: 'Use a separate API key',
   codexHint: 'Uses your existing Codex sign-in in Pi.',
-  doubaoAppId: 'Volcano App ID',
+  doubaoApiKey: 'Volcano API Key (new console)',
+  doubaoApiKeyPlaceholder: 'sk-… from console > API Key management',
+  doubaoAppId: 'Volcano App ID (legacy console)',
   doubaoAppIdPlaceholder: 'e.g. 5147266543',
   doubaoToken: 'Access Token',
   doubaoHint:
-    'Both values come from the Volcano Engine console (realtime speech LLM). The model field holds the end-to-end version, e.g. 1.2.1.1.',
-  doubaoCredsIncomplete: 'Fill in both the Volcano App ID and the Access Token.'
+    'Either fill the API Key alone (console > API Key management), or the App ID + Access Token pair (app details page) — not both. Doubao 3.0 uses a fixed model; the voice field takes a timbre id like zh_female_vv_jupiter_bigtts.',
+  doubaoCredsIncomplete: 'Fill in both the Volcano App ID and the Access Token.',
+  doubaoCredsExclusive: 'Use either the API Key or the App ID + Access Token pair, not both.'
 }
 export const liveVoiceZh = {
   prepare: '准备语音',
@@ -74,9 +77,13 @@ export const liveVoiceZh = {
   accountSource: '服务账号',
   ownKey: '使用独立 API 密钥',
   codexHint: '使用你在 Pi 中已有的 Codex 登录账号。',
-  doubaoAppId: '火山 App ID',
+  doubaoApiKey: '火山 API Key（新控制台）',
+  doubaoApiKeyPlaceholder: 'sk-…，来自控制台 → API Key 管理',
+  doubaoAppId: '火山 App ID（旧版鉴权）',
   doubaoAppIdPlaceholder: '例如 5147266543',
   doubaoToken: 'Access Token（访问令牌）',
-  doubaoHint: '两项均来自火山引擎控制台（实时语音大模型）。模型字段填端到端版本号，如 1.2.1.1。',
-  doubaoCredsIncomplete: '请同时填写火山 App ID 和 Access Token。'
+  doubaoHint:
+    '二选一：只填 API Key（控制台 → API Key 管理），或填 App ID + Access Token（应用详情页），不要同时填。豆包 3.0 使用固定模型；音色字段填音色 ID，如 zh_female_vv_jupiter_bigtts。',
+  doubaoCredsIncomplete: '请同时填写火山 App ID 和 Access Token。',
+  doubaoCredsExclusive: 'API Key 与 App ID + Access Token 二选一，不要同时填写。'
 }

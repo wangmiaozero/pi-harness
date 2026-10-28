@@ -16,15 +16,16 @@ import {
 } from './voice-protocol'
 import {
   DOUBAO_PROTOCOL,
-  decodeDoubaoFrame,
-  doubaoAudioFrame,
+  doubaoAudioEvent,
+  doubaoCancelEvent,
+  doubaoCloseEvent,
   doubaoHeaders,
+  doubaoMuteEvent,
   doubaoSetup,
-  encodeDoubaoEvent,
-  mapDoubaoFrame,
+  mapDoubaoEvent,
   parseDoubaoCredentials
 } from './voice-doubao'
-import type { DoubaoFrame } from './voice-doubao'
+import type { DoubaoEvent } from './voice-doubao'
 import type { VoicePreparation, VoiceWorkOperation } from '@shared/agent-settings/schema'
 
 export const DEFAULT_VOICE: VoiceSettings = {
@@ -91,7 +92,6 @@ type Call = {
   interrupted: boolean
   turnTranscript: { user: string; assistant: string }
   pcmCarry: { remainder: Buffer }
-  doubaoSessionId?: string
   requests: Set<string>
   operations: Map<string, VoiceWorkOperation>
   feedback: Map<string, string>
@@ -256,7 +256,6 @@ export class LiveVoiceService {
       if (settings.adapter === 'doubao-realtime') {
         const credentials = parseDoubaoCredentials(auth.key)
         if (this.call !== call) return
-        call.doubaoSessionId = randomUUID()
         const socket = await openSocket(DOUBAO_PROTOCOL.url, doubaoHeaders(credentials))
         if (this.call !== call || call.owner.isDestroyed()) {
           socket.terminate()
@@ -268,7 +267,7 @@ export class LiveVoiceService {
           try {
             this.doubaoMessage(
               call,
-              decodeDoubaoFrame(Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer))
+              Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer)
             )
           } catch {
             this.fail(call, 'Invalid voice response.')
@@ -278,10 +277,10 @@ export class LiveVoiceService {
           if (this.call === call) this.stop(id)
         })
         socket.on('error', () => this.fail(call, 'Voice connection interrupted.'))
-        // Install readiness listeners before the handshake; readiness arrives with
-        // SessionStarted (150), dispatched through doubaoMessage below.
+        // One-shot handshake: session.create doubles as connection setup;
+        // readiness arrives with session.created through doubaoMessage below.
         const confirmed = this.confirmSetup(call, socket)
-        socket.send(encodeDoubaoEvent(DOUBAO_PROTOCOL.client.startConnection, '{}'))
+        socket.send(doubaoSetup(call.settings, call.instructions).payload)
         await confirmed
         return
       }
@@ -497,50 +496,56 @@ export class LiveVoiceService {
         this.candidate(call, fn.id, fn.name, fn.args)
     }
   }
-  // Doubao transport: every inbound WebSocket message is one binary frame.
-  private doubaoMessage(call: Call, frame: DoubaoFrame): void {
-    const incoming = mapDoubaoFrame(frame)
+  // Doubao transport: every inbound WebSocket message is one JSON event frame.
+  private doubaoMessage(call: Call, data: string | Buffer): void {
+    let event: DoubaoEvent
+    try {
+      event = JSON.parse(typeof data === 'string' ? data : data.toString('utf8'))
+    } catch {
+      throw new Error()
+    }
+    if (!event || typeof event !== 'object') throw new Error()
+    const incoming = mapDoubaoEvent(event)
     const emit = (event: Record<string, unknown>) =>
       this.emit({ callId: call.id, ...event } as VoiceEvent)
     switch (incoming.kind) {
-      case 'connected':
-        if (call.socket?.readyState === WebSocket.OPEN && call.doubaoSessionId)
-          call.socket.send(
-            encodeDoubaoEvent(
-              DOUBAO_PROTOCOL.client.startSession,
-              doubaoSetup(call.settings, call.instructions).payload,
-              call.doubaoSessionId
-            )
-          )
-        return
       case 'ready':
         return this.ready(call)
       case 'interrupt':
-        if (call.activeResponse) {
-          call.interruptedResponses.add(call.activeResponse)
-          if (call.interruptedResponses.size > 256)
-            call.interruptedResponses.delete(call.interruptedResponses.values().next().value!)
-        }
+        // Server barge-in on the first recognized syllable; 3.0 asks the client to
+        // confirm with response.cancel so the in-flight response stops generating.
         call.interrupted = true
+        if (call.socket?.readyState === WebSocket.OPEN) call.socket.send(doubaoCancelEvent())
         emit({ kind: 'interrupted' })
         emit({ kind: 'activity', userSpeaking: true, assistantSpeaking: false })
         return
       case 'asr':
-        // Interim results overwrite each other; ASREnded flushes the settled text.
-        call.turnTranscript.user = incoming.text.slice(0, 20000)
+        // Streaming deltas accumulate; transcription.completed carries the settled
+        // full text and is what gets flushed to the UI.
+        call.turnTranscript.user = (call.turnTranscript.user + incoming.text).slice(0, 20000)
         return
       case 'asrEnded': {
-        const text = call.turnTranscript.user
+        const text = incoming.text || call.turnTranscript.user
         call.turnTranscript.user = ''
-        if (text) emit({ kind: 'transcript', role: 'user', text })
+        if (text) emit({ kind: 'transcript', role: 'user', text: text.slice(0, 20000) })
         return
       }
-      case 'assistantText':
-        emit({ kind: 'transcript', role: 'assistant', text: incoming.text.slice(0, 20000) })
+      case 'assistantDelta':
+        call.turnTranscript.assistant = (call.turnTranscript.assistant + incoming.text).slice(
+          0,
+          20000
+        )
         return
+      case 'assistantDone': {
+        const text = incoming.text || call.turnTranscript.assistant
+        call.turnTranscript.assistant = ''
+        if (text) emit({ kind: 'transcript', role: 'assistant', text: text.slice(0, 20000) })
+        return
+      }
       case 'audio': {
-        const data = incoming.data.toString('base64')
-        if (call.ready && data.length <= 512000) emit({ kind: 'audio', data })
+        // The delta payload is already base64 PCM @24 kHz; straight passthrough.
+        if (call.ready && incoming.data.length <= 512000)
+          emit({ kind: 'audio', data: incoming.data })
         return
       }
       case 'ended':
@@ -652,6 +657,15 @@ export class LiveVoiceService {
       this.fail(call, 'Invalid voice response.')
     }
   }
+  // Doubao 3.0 requires explicit mute announcements: the model treats upstream
+  // audio as keep-alive, so a silenced mic would otherwise time out the session.
+  // Other adapters rely on the renderer simply not sending frames; no-op there.
+  mute(id: string, muted: boolean): void {
+    const call = this.call
+    if (!call || call.id !== id || !call.ready) throw new ConfigError('Voice call is not ready.')
+    if (call.settings.adapter !== 'doubao-realtime') return
+    if (call.socket?.readyState === WebSocket.OPEN) call.socket.send(doubaoMuteEvent(muted))
+  }
   audio(id: string, data: string): void {
     const call = this.call
     if (!call || call.id !== id || !call.ready || call.socket?.readyState !== WebSocket.OPEN)
@@ -677,7 +691,7 @@ export class LiveVoiceService {
     }
     call.socket.send(
       call.settings.adapter === 'doubao-realtime'
-        ? doubaoAudioFrame(bytes, call.pcmCarry, call.doubaoSessionId!)
+        ? doubaoAudioEvent(bytes, call.pcmCarry)
         : JSON.stringify(voiceInput(call.settings, bytes, call.pcmCarry))
     )
   }
@@ -689,14 +703,11 @@ export class LiveVoiceService {
     clearTimeout(call.expires)
     call.controller.abort()
     call.cleanupOwner()
-    // Doubao expects a graceful session finish; best-effort only, because terminate
-    // does not guarantee a flush (server-side ContextCanceled is log noise alone).
-    if (call.settings.adapter === 'doubao-realtime' && call.socket && call.doubaoSessionId) {
+    // Doubao expects a graceful session close; best-effort only, because terminate
+    // does not guarantee a flush.
+    if (call.settings.adapter === 'doubao-realtime' && call.socket) {
       try {
-        call.socket.send(
-          encodeDoubaoEvent(DOUBAO_PROTOCOL.client.finishSession, '{}', call.doubaoSessionId)
-        )
-        call.socket.send(encodeDoubaoEvent(DOUBAO_PROTOCOL.client.finishConnection, '{}'))
+        call.socket.send(doubaoCloseEvent())
       } catch {
         // Socket already dead; terminate below is the real teardown.
       }
