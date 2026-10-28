@@ -26,6 +26,7 @@ const settings = useSettingsStore()
 const agent = useAgentStore()
 const router = useRouter()
 const paletteOpen = ref(false)
+let uninstallUiCommand: (() => void) | null = null
 
 const agentMotionActive = computed(() =>
   shouldActivateAgentAuraFrame({
@@ -88,6 +89,10 @@ onMounted(() => {
   applyVisualSkin(settings.settings)
   if (settings.settings) applyTheme(settings.settings.theme)
   uninstallShortcuts = installShortcutListener()
+  uninstallUiCommand = getApi()
+    ?.on('ui-command', (payload) => {
+      if (payload?.type === 'open-settings') void router.push('/settings')
+    })
   registerShortcut({
     id: 'command-palette',
     label: 'Command Palette',
@@ -108,6 +113,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   uninstallShortcuts?.()
+  uninstallUiCommand?.()
 })
 </script>
 

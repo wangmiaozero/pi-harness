@@ -38,6 +38,8 @@ extraResources:
     to: THIRD_PARTY_NOTICES.md
   - from: resources/builtin-skills
     to: builtin-skills
+  - from: resources/petpacks
+    to: petpacks
 beforePack: scripts/runtime/before-pack.mjs
 afterPack: scripts/runtime/after-pack.mjs
 afterSign: scripts/release/after-sign.mjs

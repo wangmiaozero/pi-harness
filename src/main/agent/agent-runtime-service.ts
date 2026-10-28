@@ -757,6 +757,7 @@ function logThinking(
 export class AgentRuntimeService implements AgentRuntime {
   private registry = new Map<string, AgentSessionWrapper>()
   private sessionListeners = new Map<string, Set<SessionEventListener>>()
+  private globalAgentEventListeners = new Set<SessionEventListener>()
   private startLocks = new Map<
     string,
     Promise<{ session: AgentSessionWrapper; realSessionId: string }>
@@ -812,6 +813,14 @@ export class AgentRuntimeService implements AgentRuntime {
     return () => {
       listeners.delete(listener)
       if (!listeners.size) this.sessionListeners.delete(sessionId)
+    }
+  }
+
+  /** Observe every agent event across all sessions (e.g. desktop pet reactions). */
+  onEvent(listener: SessionEventListener): () => void {
+    this.globalAgentEventListeners.add(listener)
+    return () => {
+      this.globalAgentEventListeners.delete(listener)
     }
   }
 
@@ -1188,6 +1197,13 @@ export class AgentRuntimeService implements AgentRuntime {
     })
     wrapper.onEvent((event) => {
       if (event.type === 'agent_end') this.sessions.invalidate()
+      for (const listener of this.globalAgentEventListeners) {
+        try {
+          listener(event)
+        } catch (error) {
+          log.agent.error('failed to deliver runtime agent event:', error)
+        }
+      }
       for (const listener of this.sessionListeners.get(realSessionId) ?? []) {
         try {
           listener(event)

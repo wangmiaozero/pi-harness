@@ -1,7 +1,7 @@
 import path from 'node:path'
 import fs from 'node:fs'
 
-export type PreloadEntry = 'index' | 'overlay'
+export type PreloadEntry = 'index' | 'overlay' | 'pet'
 
 export function resolvePreload(entry: PreloadEntry = 'index'): string {
   const dir = path.join(import.meta.dirname, '../preload')

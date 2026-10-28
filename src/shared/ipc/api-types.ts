@@ -1,5 +1,7 @@
 import type { AgentSettingsAPI } from '../agent-settings/schema'
 import type { HarnessPluginsAPI } from '../harness-plugins/types'
+import type { DesktopPetSettings, PetPackManifest } from '../pet/desktop'
+import type { PetEvent } from '../pet/types'
 import type { OpenCodeFreeState, OpenCodeTestOptions } from '../providers/opencode-free'
 import type {
   RuntimeDiagnostics,
@@ -766,6 +768,7 @@ export interface AppSettings {
   windowMotionEnabled: boolean
   screenMotionEnabled: boolean
   composerFireEnabled: boolean
+  desktopPet: DesktopPetSettings
   navOrder: NavItemId[]
 }
 
@@ -822,6 +825,65 @@ export interface ScreenMotionActivePayload {
 
 export interface PiSwitchOverlayAPI {
   onActive(listener: (payload: ScreenMotionActivePayload) => void): () => void
+}
+
+export interface PetStatePushPayload {
+  /** Normalized pet events since the last push. */
+  events: PetEvent[]
+  /** Number of agent sessions currently running (multi-agent aggregation). */
+  activeAgents: number
+}
+
+export interface PetWindowContextPayload {
+  manifest: PetPackManifest
+  settings: DesktopPetSettings
+  language: AppLanguage
+  /** Logical size of the pet window in CSS px. */
+  width: number
+  height: number
+}
+
+export type PetMenuAction =
+  | 'open-main'
+  | 'open-settings'
+  | 'toggle-always-on-top'
+  | 'reset-position'
+  | 'toggle-reduced-motion'
+  | 'hide'
+  | 'quit'
+
+export interface PetMovePayload {
+  dx: number
+  dy: number
+}
+
+export interface PetDragEndPayload {
+  vx: number
+  vy: number
+}
+
+export interface UiCommandPayload {
+  type: 'open-settings' | 'focus'
+}
+
+export interface PiSwitchMoveResult {
+  /** Resulting window position (screen coordinates, CSS px). */
+  x: number
+  y: number
+  /** Display work area in screen coordinates (CSS px), for client-side bounce physics. */
+  workArea: { x: number; y: number; width: number; height: number }
+}
+
+/** Restricted bridge exposed only inside the desktop pet window. */
+export interface PiSwitchPetAPI {
+  getContext(): Promise<PetWindowContextPayload>
+  onState(listener: (payload: PetStatePushPayload) => void): () => void
+  onConfig(listener: (payload: PetWindowContextPayload) => void): () => void
+  moveBy(payload: PetMovePayload): Promise<PiSwitchMoveResult>
+  endDrag(payload: PetDragEndPayload): Promise<PiSwitchMoveResult | null>
+  setClickThrough(through: boolean): Promise<void>
+  openMain(view?: 'main' | 'settings'): Promise<void>
+  menuAction(action: PetMenuAction): Promise<void>
 }
 
 /**
@@ -1378,6 +1440,7 @@ export interface PiSwitchAPI {
     setActive(input: ScreenMotionActivePayload): Promise<void>
   }
   on(event: 'config-changed', listener: IpcEventListener): () => void
+  on(event: 'ui-command', listener: (payload: UiCommandPayload) => void): () => void
   on(event: 'pi-environment-changed', listener: IpcEventListener): () => void
   on(
     event: 'environment-install-task',
@@ -1403,6 +1466,7 @@ declare global {
   interface Window {
     piSwitch?: PiSwitchAPI
     piSwitchOverlay?: PiSwitchOverlayAPI
+    piSwitchPet?: PiSwitchPetAPI
   }
 }
 

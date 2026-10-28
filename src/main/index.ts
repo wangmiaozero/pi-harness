@@ -48,6 +48,8 @@ import { registerIpc, broadcastConfigChanged, broadcastNotification } from './ip
 import { createMainWindow } from './window/create-window'
 import { installAppMenu } from './window/app-menu'
 import { ScreenMotionOverlayController } from './window/screen-motion-overlay'
+import { PetService, type PetEventAgentSource } from './pet/service'
+import type { AgentEvent } from '@shared/types/workspace'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
 import { isChineseLocale, resolveAppLocale } from '@shared/constants/language'
@@ -55,6 +57,7 @@ import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
 import { DEFAULT_NAV_ORDER } from '@shared/constants/navigation'
 import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
 import { DEFAULT_MACOS27_BACKGROUND } from '@shared/constants/macos27-background'
+import { defaultDesktopPetSettings } from '@shared/pet/desktop'
 import { FileAccessService, type AuthorizedRootsState } from './files/file-access-service'
 import { FileService } from './files/file-service'
 import { GitService } from './git/git-service'
@@ -126,6 +129,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   windowMotionEnabled: false,
   screenMotionEnabled: false,
   composerFireEnabled: true,
+  desktopPet: defaultDesktopPetSettings(),
   navOrder: [...DEFAULT_NAV_ORDER]
 }
 
@@ -165,6 +169,7 @@ async function bootstrap(): Promise<void> {
       privileges: { standard: true, secure: true, supportFetchAPI: true }
     }
   ])
+  PetService.registerScheme()
   initAppPaths(app)
 
   if (process.platform === 'win32') {
@@ -513,6 +518,37 @@ async function bootstrap(): Promise<void> {
   rpcAgent.attachWindow(() => mainWindow)
   harness.attachWindow(() => mainWindow)
 
+  // Desktop pet (BigFish) — attach the active agent runtime and start lazily.
+  const petService = new PetService(settingsStore, {
+    openMain: (view) => {
+      if (!mainWindow || mainWindow.isDestroyed()) openMainWindow()
+      else {
+        if (mainWindow.isMinimized()) mainWindow.restore()
+        mainWindow.show()
+        mainWindow.focus()
+      }
+      if (view === 'settings' && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC_EVENT.uiCommand, { type: 'open-settings' })
+      }
+    },
+    onQuitRequest: () => {
+      app.quit()
+    }
+  })
+  const petAgentRpc = rpcAgent
+  const petAgentSource: PetEventAgentSource | null =
+    process.env.PI_HARNESS_AGENT_MODE === 'sdk'
+      ? piAgent
+      : {
+          onEvent: (listener: (event: AgentEvent) => void) => petAgentRpc.onAgentEvent(listener),
+          listRunning: () => petAgentRpc.listRunning()
+        }
+  petService.attachAgent(
+    petAgentSource,
+    (listener) => petAgentRpc.onPermissionRequest(listener)
+  )
+  void petService.start()
+
   // Multi-Agent Orchestration — one subscription onto the unified stream.
   orchestrator.attach()
   await orchestrator
@@ -610,6 +646,10 @@ async function bootstrap(): Promise<void> {
     },
     getMainWindow: () => mainWindow,
     setAppIcon: (settings) => applyAppIcon(settings, mainWindow),
+    setDesktopPetSettings: (settings, language) => {
+      petService.setLanguage(language)
+      petService.applySettings(settings)
+    },
     setScreenMotionActive: (payload) => {
       const restoreMainWindow = payload.active && mainWindow?.isFocused() === true
       screenMotion.setActive(payload)
@@ -664,6 +704,7 @@ async function bootstrap(): Promise<void> {
   app.on('window-all-closed', () => {
     void intelligence.cancelAll()
     screenMotion.stop()
+    petService.stop()
     if (process.platform !== 'darwin') app.quit()
   })
 
@@ -678,6 +719,7 @@ async function bootstrap(): Promise<void> {
     unsubscribeUpdateState()
     config.stopWatcher()
     orchestrator.detach()
+    petService.stop()
     quitCleanup = (async () => {
       // Native shutdown hooks must finish before Electron exits or stores close.
       try {

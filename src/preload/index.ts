@@ -524,6 +524,8 @@ const api: PiSwitchAPI = {
   on(event, listener) {
     const ipcListener = listener as IpcEventListener
     if (event === 'config-changed') return onEvent(IPC_EVENT.configChanged, ipcListener)
+    if (event === 'ui-command')
+      return onEvent(IPC_EVENT.uiCommand, listener as IpcEventListener)
     if (event === 'pi-environment-changed')
       return onEvent(IPC_EVENT.piEnvironmentChanged, ipcListener)
     if (event === 'environment-install-task')
