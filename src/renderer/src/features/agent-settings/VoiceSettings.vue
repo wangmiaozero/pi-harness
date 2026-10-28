@@ -23,7 +23,9 @@ const availableAccounts = computed(() =>
 )
 const voiceCall = useVoiceCall()
 const settings = ref<VoicePublicSettings | null>(null),
-  apiKey = ref('')
+  apiKey = ref(''),
+  doubaoAppId = ref(''),
+  doubaoToken = ref('')
 const load = () =>
   run(async () => {
     ;[settings.value, accounts.value] = await Promise.all([
@@ -34,6 +36,11 @@ const load = () =>
 const save = () =>
   run(async () => {
     const s = settings.value!
+    if (
+      s.adapter === 'doubao-realtime' &&
+      Boolean(doubaoAppId.value) !== Boolean(doubaoToken.value)
+    )
+      throw new Error(t('liveVoice.doubaoCredsIncomplete'))
     settings.value = await getApi().agentSettings.voice.save({
       enabled: s.enabled,
       ...(s.adapter ? { adapter: s.adapter } : {}),
@@ -42,22 +49,36 @@ const save = () =>
       model: s.model,
       voice: s.voice,
       profile: s.profile,
-      ...(apiKey.value ? { apiKey: apiKey.value } : {})
+      ...(apiKey.value
+        ? { apiKey: apiKey.value }
+        : s.adapter === 'doubao-realtime' && doubaoAppId.value && doubaoToken.value
+          ? {
+              apiKey: JSON.stringify({ appId: doubaoAppId.value, accessToken: doubaoToken.value })
+            }
+          : {})
     })
     apiKey.value = ''
+    doubaoAppId.value = ''
+    doubaoToken.value = ''
     await voiceCall.loadSettings()
   }, true)
 function adapterChanged() {
   if (!settings.value) return
   settings.value.providerKey = undefined
   settings.value.model =
-    settings.value.adapter === 'gemini-live' ? 'gemini-3.8-live' : 'gpt-realtime'
+    settings.value.adapter === 'gemini-live'
+      ? 'gemini-3.8-live'
+      : settings.value.adapter === 'doubao-realtime'
+        ? '1.2.1.1'
+        : 'gpt-realtime'
   settings.value.voice =
     settings.value.adapter === 'gemini-live'
       ? 'Kore'
       : settings.value.adapter === 'codex-live'
         ? 'cove'
-        : 'marin'
+        : settings.value.adapter === 'doubao-realtime'
+          ? 'zh_female_vv_jupiter_bigtts'
+          : 'marin'
 }
 onMounted(load)
 </script>
@@ -81,9 +102,12 @@ onMounted(load)
             <option value="openai-realtime">OpenAI Realtime · API</option>
             <option value="gemini-live">Gemini Live</option>
             <option value="codex-live">Codex Live</option>
+            <option value="doubao-realtime">豆包 · 实时语音</option>
           </select></label
         >
-        <label v-if="settings.adapter !== 'codex-live'" class="feature-field"
+        <label
+          v-if="settings.adapter !== 'codex-live' && settings.adapter !== 'doubao-realtime'"
+          class="feature-field"
           >{{ t('liveVoice.accountSource')
           }}<select v-model="settings.providerKey" class="feature-input">
             <option :value="undefined">{{ t('liveVoice.ownKey') }}</option>
@@ -92,6 +116,35 @@ onMounted(load)
             </option>
           </select></label
         >
+        <template v-else-if="settings.adapter === 'doubao-realtime'">
+          <div class="feature-grid">
+            <label class="feature-field"
+              >{{ t('liveVoice.doubaoAppId')
+              }}<input
+                v-model="doubaoAppId"
+                class="feature-input"
+                autocomplete="off"
+                :placeholder="
+                  t(
+                    settings.hasCredential
+                      ? 'agentSettings.credentialSaved'
+                      : 'liveVoice.doubaoAppIdPlaceholder'
+                  )
+                "
+                maxlength="64"
+            /></label>
+            <label class="feature-field"
+              >{{ t('liveVoice.doubaoToken')
+              }}<input
+                v-model="doubaoToken"
+                class="feature-input"
+                type="password"
+                autocomplete="new-password"
+                maxlength="256"
+            /></label>
+          </div>
+          <p class="feature-hint">{{ t('liveVoice.doubaoHint') }}</p>
+        </template>
         <p v-else class="feature-hint">{{ t('liveVoice.codexHint') }}</p>
         <label
           v-if="
@@ -129,7 +182,11 @@ onMounted(load)
           </select></label
         >
         <label
-          v-if="!settings.providerKey && settings.adapter !== 'codex-live'"
+          v-if="
+            !settings.providerKey &&
+            settings.adapter !== 'codex-live' &&
+            settings.adapter !== 'doubao-realtime'
+          "
           class="feature-field"
           >{{ t('agentSettings.apiKey')
           }}<input

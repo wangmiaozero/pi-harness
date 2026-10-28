@@ -32,7 +32,13 @@ export const liveVoiceEn = {
   adapter: 'Voice service',
   accountSource: 'Service account',
   ownKey: 'Use a separate API key',
-  codexHint: 'Uses your existing Codex sign-in in Pi.'
+  codexHint: 'Uses your existing Codex sign-in in Pi.',
+  doubaoAppId: 'Volcano App ID',
+  doubaoAppIdPlaceholder: 'e.g. 5147266543',
+  doubaoToken: 'Access Token',
+  doubaoHint:
+    'Both values come from the Volcano Engine console (realtime speech LLM). The model field holds the end-to-end version, e.g. 1.2.1.1.',
+  doubaoCredsIncomplete: 'Fill in both the Volcano App ID and the Access Token.'
 }
 export const liveVoiceZh = {
   prepare: '准备语音',
@@ -67,5 +73,10 @@ export const liveVoiceZh = {
   adapter: '语音服务',
   accountSource: '服务账号',
   ownKey: '使用独立 API 密钥',
-  codexHint: '使用你在 Pi 中已有的 Codex 登录账号。'
+  codexHint: '使用你在 Pi 中已有的 Codex 登录账号。',
+  doubaoAppId: '火山 App ID',
+  doubaoAppIdPlaceholder: '例如 5147266543',
+  doubaoToken: 'Access Token（访问令牌）',
+  doubaoHint: '两项均来自火山引擎控制台（实时语音大模型）。模型字段填端到端版本号，如 1.2.1.1。',
+  doubaoCredsIncomplete: '请同时填写火山 App ID 和 Access Token。'
 }
