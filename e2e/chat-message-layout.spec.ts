@@ -55,12 +55,12 @@ test('places user messages on the right and visually separates agent output', as
   await page.locator('a[href="#/workspace"]').click()
   const user = page.locator('[data-message-role="user"]').first()
   const assistant = page.locator('[data-message-role="assistant"]').first()
-  const toolResult = page.locator('[data-message-role="toolResult"]').first()
+  const toolResult = page.getByTestId('message-activity').first()
   await expect(user).toBeVisible()
   await expect(assistant).toBeVisible()
   await expect(toolResult).toBeVisible()
   await expect(page.locator('[data-message-role="assistant"]')).toHaveCount(1)
-  await expect(page.locator('.message-hud')).toHaveCount(3)
+  await expect(page.locator('.message-hud')).toHaveCount(2)
   await expect(user.locator('.message-role-badge')).toHaveText('我')
   await expect(assistant.locator('.message-role-badge')).toHaveText('助手')
 
@@ -74,8 +74,10 @@ test('places user messages on the right and visually separates agent output', as
   ])
   expect(userBox!.x).toBeCloseTo(assistantBox!.x, 0)
   expect(userBox!.width).toBeCloseTo(assistantBox!.width, 0)
-  expect(toolResultBox!.x).toBeCloseTo(assistantBox!.x, 0)
-  expect(toolResultBox!.width).toBeCloseTo(assistantBox!.width, 0)
+  expect(toolResultBox!.x).toBeGreaterThanOrEqual(assistantBox!.x)
+  expect(toolResultBox!.x + toolResultBox!.width).toBeLessThanOrEqual(
+    assistantBox!.x + assistantBox!.width
+  )
   expect(userBodyBox!.x + userBodyBox!.width).toBeCloseTo(assistantBox!.x + assistantBox!.width, 0)
   expect(userBodyBox!.width).toBeLessThan(assistantBox!.width)
 

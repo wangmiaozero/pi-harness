@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import MessageView from './MessageView.vue'
+import { i18n } from '@renderer/i18n'
 import type {
   AgentMessage,
   AssistantMessage,
@@ -21,6 +22,7 @@ describe('MessageView', () => {
     const wrapper = mount(MessageView, {
       props: { message },
       global: {
+        plugins: [i18n],
         mocks: { $t: (key: string) => key },
         stubs: { BranchNavigator: true, Dialog: true }
       }
@@ -40,6 +42,7 @@ describe('MessageView', () => {
     const wrapper = mount(MessageView, {
       props: { message },
       global: {
+        plugins: [i18n],
         mocks: { $t: (key: string) => key },
         stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true }
       }
@@ -63,6 +66,7 @@ describe('MessageView', () => {
     const wrapper = mount(MessageView, {
       props: { message },
       global: {
+        plugins: [i18n],
         mocks: { $t: (key: string) => key },
         stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true, StreamingMarkdown: true }
       }
@@ -76,6 +80,7 @@ describe('MessageView', () => {
     const wrapper = mount(MessageView, {
       props: { message, userName: '阿明' },
       global: {
+        plugins: [i18n],
         mocks: { $t: (key: string) => key },
         stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true }
       }
@@ -94,6 +99,7 @@ describe('MessageView', () => {
     const wrapper = mount(MessageView, {
       props: { message },
       global: {
+        plugins: [i18n],
         mocks: { $t: (key: string) => key },
         stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true }
       }
@@ -135,6 +141,7 @@ describe('MessageView', () => {
     const wrapper = mount(MessageView, {
       props: { message },
       global: {
+        plugins: [i18n],
         mocks: { $t: (key: string) => key },
         stubs: {
           BranchNavigator: true,
@@ -167,6 +174,7 @@ describe('MessageView', () => {
     const wrapper = mount(MessageView, {
       props: { message, assistantName: '小策' },
       global: {
+        plugins: [i18n],
         mocks: { $t: (key: string) => key },
         stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true }
       }
@@ -176,7 +184,7 @@ describe('MessageView', () => {
     expect(wrapper.get('.message-role-badge').text()).toBe('小策')
   })
 
-  it('expands tool results by default and allows collapsing them', async () => {
+  it('collapses tool results by default and exposes output on demand', async () => {
     const message: ToolResultMessage = {
       role: 'toolResult',
       toolCallId: 'tool-1',
@@ -187,6 +195,7 @@ describe('MessageView', () => {
     const wrapper = mount(MessageView, {
       props: { message },
       global: {
+        plugins: [i18n],
         mocks: { $t: (key: string) => (key === 'workspace.roleTool' ? '工具' : key) },
         stubs: {
           BranchNavigator: true,
@@ -196,15 +205,16 @@ describe('MessageView', () => {
     })
 
     const details = wrapper.get('[data-testid="tool-result-details"]')
-    expect(details.attributes('open')).toBe('')
-    expect(details.get('summary').text()).toBe('工具')
-    expect(details.get('pre').text()).toBe('<html>generated output</html>')
+    expect(details.attributes('open')).toBeUndefined()
+    expect(details.get('summary').text()).toContain('Wrote files')
+    expect(details.find('pre').exists()).toBe(false)
 
-    await details.get('summary').trigger('click')
-    expect((details.element as HTMLDetailsElement).open).toBe(false)
+    ;(details.element as HTMLDetailsElement).open = true
+    await details.trigger('toggle')
+    expect(details.get('pre').text()).toBe('<html>generated output</html>')
   })
 
-  it('expands assistant thinking by default and allows collapsing it', async () => {
+  it('collapses assistant thinking by default and allows expanding it', async () => {
     const message: AssistantMessage = {
       role: 'assistant',
       model: 'test-model',
@@ -215,6 +225,7 @@ describe('MessageView', () => {
     const wrapper = mount(MessageView, {
       props: { message },
       global: {
+        plugins: [i18n],
         mocks: { $t: (key: string) => key },
         stubs: {
           BranchNavigator: true,
@@ -225,11 +236,11 @@ describe('MessageView', () => {
     })
 
     const details = wrapper.get('[data-testid="thinking-details"]')
-    expect(details.attributes('open')).toBe('')
+    expect(details.attributes('open')).toBeUndefined()
     expect(details.text()).toContain('分析问题')
 
     await details.get('summary').trigger('click')
-    expect((details.element as HTMLDetailsElement).open).toBe(false)
+    expect((details.element as HTMLDetailsElement).open).toBe(true)
   })
 
   it('shows assistant API errors when the model returns no content', () => {
@@ -245,6 +256,7 @@ describe('MessageView', () => {
     const wrapper = mount(MessageView, {
       props: { message },
       global: {
+        plugins: [i18n],
         mocks: { $t: (key: string) => key },
         stubs: {
           BranchNavigator: true,
@@ -273,6 +285,7 @@ describe('MessageView', () => {
       const wrapper = mount(MessageView, {
         props: { message },
         global: {
+          plugins: [i18n],
           mocks: { $t: (key: string) => key },
           stubs: { BranchNavigator: true, Dialog: true, ToolCallView: true }
         }
@@ -300,6 +313,7 @@ describe('MessageView', () => {
         }
       },
       global: {
+        plugins: [i18n],
         mocks: { $t: (key: string) => key },
         stubs: {
           BranchNavigator: true,
@@ -313,4 +327,25 @@ describe('MessageView', () => {
     expect(wrapper.find('.message-hud').exists()).toBe(true)
     expect(wrapper.findComponent({ name: 'FileChangesCard' }).exists()).toBe(true)
   })
+})
+
+it('collapses native compaction summaries and keeps their raw context out of the initial view', async () => {
+  const wrapper = mount(MessageView, {
+    props: {
+      message: {
+        role: 'custom',
+        customType: 'compaction',
+        display: true,
+        content: 'No prior history.\n\n## Original Request\nLong internal context'
+      }
+    },
+    global: { plugins: [i18n], stubs: { BranchNavigator: true, Dialog: true } }
+  })
+  const details = wrapper.get('[data-testid="compaction-details"]')
+  expect(details.attributes('open')).toBeUndefined()
+  expect(wrapper.find('.message-role-label').exists()).toBe(false)
+  expect(wrapper.text()).not.toContain('Long internal context')
+  ;(details.element as HTMLDetailsElement).open = true
+  await details.trigger('toggle')
+  expect(details.get('pre').text()).toContain('Long internal context')
 })

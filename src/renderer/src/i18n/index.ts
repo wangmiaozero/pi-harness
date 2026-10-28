@@ -1,3 +1,4 @@
+import { chatActivity } from './chat-activity'
 import { mcpMarketEn, mcpMarketZh } from './mcp-market'
 import { liveVoiceEn, liveVoiceZh } from './live-voice'
 import { agentSettingsEn, agentSettingsZh } from './agent-settings'
@@ -25,6 +26,7 @@ import {
 export const messages = {
   'en-US': {
     ...enUS,
+    workspace: { ...enUS.workspace, activity: chatActivity['en-US'] },
     agentSettings: agentSettingsEn,
     liveVoice: liveVoiceEn,
     mcpMarket: mcpMarketEn,
@@ -33,6 +35,7 @@ export const messages = {
   },
   'zh-CN': {
     ...zhCN,
+    workspace: { ...zhCN.workspace, activity: chatActivity['zh-CN'] },
     agentSettings: agentSettingsZh,
     liveVoice: liveVoiceZh,
     mcpMarket: mcpMarketZh,
@@ -41,6 +44,7 @@ export const messages = {
   },
   'zh-TW': {
     ...zhTW,
+    workspace: { ...zhTW.workspace, activity: chatActivity['zh-TW'] },
     agentSettings: agentSettingsEn,
     liveVoice: liveVoiceEn,
     mcpMarket: mcpMarketEn,
@@ -49,6 +53,7 @@ export const messages = {
   },
   'ja-JP': {
     ...jaJP,
+    workspace: { ...jaJP.workspace, activity: chatActivity['ja-JP'] },
     agentSettings: agentSettingsEn,
     liveVoice: liveVoiceEn,
     mcpMarket: mcpMarketEn,
@@ -57,6 +62,7 @@ export const messages = {
   },
   'ko-KR': {
     ...koKR,
+    workspace: { ...koKR.workspace, activity: chatActivity['ko-KR'] },
     agentSettings: agentSettingsEn,
     liveVoice: liveVoiceEn,
     mcpMarket: mcpMarketEn,
@@ -65,6 +71,7 @@ export const messages = {
   },
   'ru-RU': {
     ...ruRU,
+    workspace: { ...ruRU.workspace, activity: chatActivity['ru-RU'] },
     agentSettings: agentSettingsEn,
     liveVoice: liveVoiceEn,
     mcpMarket: mcpMarketEn,
@@ -73,6 +80,7 @@ export const messages = {
   },
   'fr-FR': {
     ...frFR,
+    workspace: { ...frFR.workspace, activity: chatActivity['fr-FR'] },
     agentSettings: agentSettingsEn,
     liveVoice: liveVoiceEn,
     mcpMarket: mcpMarketEn,
@@ -81,6 +89,7 @@ export const messages = {
   },
   'de-DE': {
     ...deDE,
+    workspace: { ...deDE.workspace, activity: chatActivity['de-DE'] },
     agentSettings: agentSettingsEn,
     liveVoice: liveVoiceEn,
     mcpMarket: mcpMarketEn,

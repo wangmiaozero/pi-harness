@@ -326,10 +326,25 @@ test('ming portrait themes render full figures beside parchment conversation sur
       )
     }
     await expect(assistant).toHaveCSS('background-color', paper)
-    await expect(assistant.locator('.tool-call-hud')).toHaveCSS(
+    const activity = assistant.getByTestId('message-activity')
+    await expect(activity).not.toHaveAttribute('open')
+    await activity.locator('summary').first().click()
+    const tool = assistant.locator('.tool-call-hud')
+    await expect(tool).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    await expect(tool).not.toHaveAttribute('open')
+    await tool.locator('summary').click()
+    await expect(tool.locator('.activity-output')).toHaveCSS(
       'background-color',
       skin === 'zhang-juzheng-snow' ? 'rgb(21, 20, 18)' : 'rgb(29, 29, 27)'
     )
+    const iconBox = (await page.getByTestId('titlebar-brand-icon').boundingBox())!
+    const brandButtonBox = (await page.locator('.app-titlebar-brand-button').boundingBox())!
+    expect(iconBox.width).toBe(30)
+    expect(iconBox.height).toBe(30)
+    expect(iconBox.y).toBeGreaterThanOrEqual(brandButtonBox.y)
+    expect(iconBox.y + iconBox.height).toBeLessThanOrEqual(brandButtonBox.y + brandButtonBox.height)
+    await tool.locator('summary').click()
+    await activity.locator('summary').first().click()
 
     const [imageBox, userBox, assistantBox] = await Promise.all([
       image.boundingBox(),
@@ -363,6 +378,33 @@ test('ming portrait themes render full figures beside parchment conversation sur
 
     if (skin === 'zhang-juzheng-snow') {
       await page.setViewportSize({ width: 1677, height: 1084 })
+      const input = page.locator('.command-console-input')
+      const editor = page.getByTestId('composer-editor')
+      await expect(input).toHaveCSS('background-image', 'none')
+      await expect(input).toHaveCSS('background-color', 'rgb(15, 17, 17)')
+      await expect(page.locator('.command-console')).toHaveCSS(
+        'background-color',
+        'rgba(9, 12, 13, 0.88)'
+      )
+      expect(await editor.evaluate((element) => getComputedStyle(element, '::before').color)).toBe(
+        'rgb(210, 189, 152)'
+      )
+      const draft = '输入文字清晰可见，背景保持纯色。Readable draft 123.'
+      await editor.fill(draft)
+      await expect(editor).toBeFocused()
+      await expect(editor).toHaveText(draft)
+      await expect(editor).toHaveCSS('color', 'rgb(241, 223, 192)')
+      await expect(editor).toHaveCSS('caret-color', 'rgb(241, 223, 192)')
+      await expect(input).toHaveCSS('background-image', 'none')
+      await expect(input).toHaveCSS('background-color', 'rgb(15, 17, 17)')
+      await input.screenshot({
+        path: path.join(testInfo.outputDir, `${skin}-readable-draft.png`)
+      })
+      await editor.blur()
+      await expect(editor).toHaveText(draft)
+      await expect(input).toHaveCSS('background-image', 'none')
+      await expect(input).toHaveCSS('background-color', 'rgb(15, 17, 17)')
+      await editor.fill('')
       await expect(page.getByTestId('zhang-snow-ornament-left')).toHaveCSS('z-index', '22')
       await expect(page.getByTestId('zhang-snow-ornament-right')).toHaveCSS('z-index', '22')
       const treeViewport = page.locator(

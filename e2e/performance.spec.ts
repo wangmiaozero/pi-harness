@@ -117,7 +117,7 @@ test('streams into a long transcript without losing history or blocking the comp
     { sessionId: activeSessionId, channel: IPC_EVENT.agentEvent }
   )
   await expect(page.locator('.message-hud').last()).toContainText('chunk-159')
-  await expect(page.locator('.message-hud')).toHaveCount(241)
+  await expect(page.locator('.message-hud')).toHaveCount(240)
   await expect(page.locator('.message-hud').first()).toHaveCSS('content-visibility', 'auto')
   await expect(page.locator('.message-hud').last()).toHaveCSS('content-visibility', 'visible')
   const draft = page.getByTestId('composer-editor')
