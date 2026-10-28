@@ -3,6 +3,7 @@ import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
+import { defaultDesktopPetSettings } from '@shared/pet/desktop'
 import { DEFAULT_NAV_ORDER, normalizeNavOrder } from '@shared/constants/navigation'
 import { useSettingsStore } from '@renderer/stores/settings'
 import {
@@ -65,6 +66,7 @@ export function useSettingsDraft(): SettingsDraft {
     windowMotionEnabled: false,
     screenMotionEnabled: false,
     composerFireEnabled: true,
+    desktopPet: defaultDesktopPetSettings(),
     navOrder: [...DEFAULT_NAV_ORDER]
   })
 

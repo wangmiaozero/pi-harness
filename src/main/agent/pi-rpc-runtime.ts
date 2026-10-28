@@ -85,6 +85,8 @@ export class PiRpcRuntime implements HarnessAdapter {
   private readonly live = new Map<string, LiveSession>()
   private readonly starts = new Map<string, Promise<{ sessionId: string; cwd: string }>>()
   private readonly listeners = new Map<string, Set<(event: HarnessEvent) => void>>()
+  private readonly permissionListeners = new Set<(toolName: string) => void>()
+  private readonly agentEventListeners = new Set<(event: AgentEvent) => void>()
   private window: () => BrowserWindow | null = () => null
   private closing = false
   private maintenance = false
@@ -108,6 +110,22 @@ export class PiRpcRuntime implements HarnessAdapter {
   ) {}
   attachWindow(getWindow: () => BrowserWindow | null): void {
     this.window = getWindow
+  }
+
+  /** Observe permission requests (e.g. desktop pet "waiting for user" state). */
+  onPermissionRequest(listener: (toolName: string) => void): () => void {
+    this.permissionListeners.add(listener)
+    return () => {
+      this.permissionListeners.delete(listener)
+    }
+  }
+
+  /** Observe wire-format agent events (e.g. desktop pet state reactions). */
+  onAgentEvent(listener: (event: AgentEvent) => void): () => void {
+    this.agentEventListeners.add(listener)
+    return () => {
+      this.agentEventListeners.delete(listener)
+    }
   }
   diagnostics(): { implementation: 'pi'; sdkLoaded: boolean } {
     return { implementation: 'pi', sdkLoaded: false }
@@ -302,6 +320,13 @@ export class PiRpcRuntime implements HarnessAdapter {
         if (!live) return false
         const toolName = String(params.name ?? 'unknown')
         const requestId = randomUUID()
+        for (const listener of this.permissionListeners) {
+          try {
+            listener(toolName)
+          } catch {
+            // Listener failures must never break the permission flow.
+          }
+        }
         this.window()?.webContents.send(IPC_EVENT.agentPermission, {
           requestId,
           sessionId: live.id,
@@ -824,6 +849,7 @@ export class PiRpcRuntime implements HarnessAdapter {
     const wire = toIpcAgentEvent(event)
     if (!wire) return
     this.batcher.push({ sessionId: id, event: wire })
+    for (const listener of this.agentEventListeners) listener(wire as AgentEvent)
     for (const mapped of mapAgentEvent(wire as AgentEvent))
       for (const listener of this.listeners.get(id) ?? []) listener(mapped)
   }

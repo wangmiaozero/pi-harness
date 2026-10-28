@@ -37,6 +37,8 @@ import { savePastedFiles } from '../services/paste-store'
 import { pasteSaveSchema, externalUrlSchema, clipboardTextSchema } from '@shared/schemas/ipc'
 import { APP_VERSION, PROJECT_LINK_URLS } from '@shared/constants/index'
 import { normalizePermissionMode } from '@shared/workspace/permission-mode'
+import { normalizeDesktopPetSettings } from '@shared/pet/desktop'
+import type { AppLanguage } from '@shared/constants/language'
 import { normalizeAgentMode } from '@shared/workspace/agent-mode'
 import type { AppSettings, ScreenMotionActivePayload } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
@@ -148,6 +150,7 @@ export interface Services {
   getMainWindow: () => BrowserWindow | null
   setAppIcon: (settings: AppSettings) => void
   setScreenMotionActive: (payload: ScreenMotionActivePayload) => void
+  setDesktopPetSettings: (settings: AppSettings['desktopPet'], language: AppLanguage) => void
 }
 
 function wrap<T>(
@@ -890,10 +893,12 @@ export function registerIpc(services: Services): void {
       )
       settings.userName = normalizeUserName(settings.userName)
       settings.assistantName = normalizeAssistantName(settings.assistantName)
+      settings.desktopPet = normalizeDesktopPetSettings(settings.desktopPet)
       settings.navOrder = normalizeNavOrder(settings.navOrder)
       await settingsStore.write(settings)
       nativeTheme.themeSource = themeAppearance(settings.theme)
       services.setAppIcon(settings)
+      services.setDesktopPetSettings(settings.desktopPet, settings.language)
       if (settings.language !== current.language) installAppMenu(settings.language)
       return settings
     })

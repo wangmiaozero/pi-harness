@@ -25,6 +25,9 @@ export const API_NAMESPACE = 'piSwitch'
 /** Listen-only bridge for the screen-motion overlay window. */
 export const OVERLAY_API_NAMESPACE = 'piSwitchOverlay'
 
+/** Restricted bridge for the desktop pet window. */
+export const PET_API_NAMESPACE = 'piSwitchPet'
+
 /** Default window geometry. */
 export const DEFAULT_WINDOW = {
   width: 1200,

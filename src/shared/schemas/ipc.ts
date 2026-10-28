@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { APP_LANGUAGES } from '../constants/language'
 import { MASCOT_STYLES } from '../constants/mascot'
 import { normalizeNavOrder } from '../constants/navigation'
+import { normalizeDesktopPetSettings } from '../pet/desktop'
 import { APP_THEMES } from '../constants/theme'
 import { APP_ICON_PREFERENCES } from '../constants/app-icon'
 import {
@@ -122,6 +123,7 @@ const appSettingsFields = {
   windowMotionEnabled: z.boolean(),
   screenMotionEnabled: z.boolean(),
   composerFireEnabled: z.boolean(),
+  desktopPet: z.unknown().transform((v) => normalizeDesktopPetSettings(v)),
   navOrder: z.array(z.unknown()).max(32).transform(normalizeNavOrder)
 }
 

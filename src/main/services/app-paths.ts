@@ -43,6 +43,16 @@ export function appSettingsPath(): string {
   return path.join(userData(), 'settings.json')
 }
 
+/** Pi-Harness userData directory — for app-owned companion stores. */
+export function userDataDir(): string {
+  return userData()
+}
+
+/** True when running the packaged app (not `pnpm dev`). */
+export function isAppPackaged(): boolean {
+  return Boolean(app?.isPackaged)
+}
+
 /** Harness Control Plane policy configuration. */
 export function harnessPolicyPath(): string {
   return path.join(userData(), 'harness-policy.json')

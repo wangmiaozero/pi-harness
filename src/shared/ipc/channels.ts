@@ -377,7 +377,14 @@ export const IPC_INVOKE = {
   worktreeCreate: invoke('worktree:create'),
   worktreeRemove: invoke('worktree:remove'),
 
-  agentAuraSetActive: invoke('agent-aura:set-active')
+  agentAuraSetActive: invoke('agent-aura:set-active'),
+
+  petGetContext: invoke('pet:get-context'),
+  petMoveBy: invoke('pet:move-by'),
+  petEndDrag: invoke('pet:end-drag'),
+  petSetClickThrough: invoke('pet:set-click-through'),
+  petOpenMain: invoke('pet:open-main'),
+  petMenuAction: invoke('pet:menu-action')
 } as const
 
 /** Main → renderer push events (one-way, via webContents.send). */
@@ -397,7 +404,10 @@ export const IPC_EVENT = {
   updaterState: 'pi-harness:updater:state',
   capabilityProgress: 'pi-harness:capabilities:mutation-progress',
   agentAuraActive: 'pi-harness:event:agent-aura-active',
-  workspaceChanged: 'pi-harness:event:workspace-changed'
+  workspaceChanged: 'pi-harness:event:workspace-changed',
+  petState: 'pi-harness:pet:state',
+  petConfig: 'pi-harness:pet:config',
+  uiCommand: 'pi-harness:ui:command'
 } as const
 
 export type IpcEventName = (typeof IPC_EVENT)[keyof typeof IPC_EVENT]

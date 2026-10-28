@@ -85,7 +85,8 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           input: {
             index: resolve(import.meta.dirname, 'src/preload/index.ts'),
-            overlay: resolve(import.meta.dirname, 'src/preload/overlay.ts')
+            overlay: resolve(import.meta.dirname, 'src/preload/overlay.ts'),
+            pet: resolve(import.meta.dirname, 'src/preload/pet.ts')
           }
         }
       },
@@ -124,7 +125,8 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           input: {
             index: resolve(import.meta.dirname, 'src/renderer/index.html'),
-            overlay: resolve(import.meta.dirname, 'src/renderer/overlay.html')
+            overlay: resolve(import.meta.dirname, 'src/renderer/overlay.html'),
+            pet: resolve(import.meta.dirname, 'src/renderer/pet.html')
           }
         }
       }

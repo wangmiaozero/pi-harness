@@ -1,0 +1,100 @@
+/**
+ * Persisted desktop pet window state (position + per-launch size).
+ *
+ * Stored as JSON next to the app's other stores via the shared JsonStore so
+ * it is crash-safe and follows the same settings directory as the rest of
+ * the app. Only the pet's own bounds live here; everything user-configurable
+ * belongs to AppSettings.desktopPet.
+ */
+
+import path from 'node:path'
+import { screen } from 'electron'
+import { JsonStore } from '../services/storage'
+import { userDataDir } from '../services/app-paths'
+
+export interface PetWindowState {
+  x: number | null
+  y: number | null
+}
+
+const DEFAULT_PET_WINDOW_STATE: PetWindowState = { x: null, y: null }
+
+export function createPetWindowStateStore(): JsonStore<PetWindowState> {
+  return new JsonStore<PetWindowState>(
+    path.join(userDataDir(), 'pet-window-state.json'),
+    DEFAULT_PET_WINDOW_STATE
+  )
+}
+
+/**
+ * Restore the saved position, clamped into a visible display's work area.
+ * Handles unplugged monitors, docked windows, and first launch (null).
+ */
+export function resolvePetWindowPosition(
+  store: JsonStore<PetWindowState>,
+  width: number,
+  height: number
+): { x: number; y: number } {
+  const state = store.peek()
+  const displays = screen.getAllDisplays()
+  const saved = state.x !== null && state.y !== null ? { x: state.x, y: state.y } : null
+  if (saved) {
+    const home = displays.find(
+      (d) =>
+        saved.x >= d.workArea.x &&
+        saved.y >= d.workArea.y &&
+        saved.x < d.workArea.x + d.workArea.width &&
+        saved.y < d.workArea.y + d.workArea.height
+    )
+    if (home) return saved
+  }
+  // First launch or the saved display disappeared: center on the nearest
+  // display to the saved point, else the primary display.
+  const primary = screen.getPrimaryDisplay()
+  const target = saved
+    ? displays.reduce((best, d) => {
+        const cx = d.workArea.x + d.workArea.width / 2
+        const cy = d.workArea.y + d.workArea.height / 2
+        const bcx = best.workArea.x + best.workArea.width / 2
+        const bcy = best.workArea.y + best.workArea.height / 2
+        return Math.hypot(cx - saved.x, cy - saved.y) < Math.hypot(bcx - saved.x, bcy - saved.y)
+          ? d
+          : best
+      }, primary)
+    : primary
+  const area = target.workArea
+  return {
+    x: Math.round(area.x + Math.max(0, (area.width - width) / 2)),
+    y: Math.round(area.y + Math.max(0, (area.height - height) / 2))
+  }
+}
+
+/**
+ * Clamp a moved window position so the pet can never leave screen space.
+ * Keeps at least 1/4 of the pet on the display it is currently on.
+ */
+export function clampPetPosition(
+  x: number,
+  y: number,
+  width: number,
+  height: number
+): { x: number; y: number } {
+  const workAreas = [screen.getPrimaryDisplay().workArea, ...screen.getAllDisplays().map((d) => d.workArea)]
+  // Pick the work area containing (or nearest to) the pet's center.
+  const centerX = x + width / 2
+  const centerY = y + height / 2
+  const area = workAreas.reduce((best, a) => {
+    const dx = centerX - (a.x + a.width / 2)
+    const dy = centerY - (a.y + a.height / 2)
+    const bd = Math.hypot(centerX - (best.x + best.width / 2), centerY - (best.y + best.height / 2))
+    return Math.hypot(dx, dy) < bd ? a : best
+  }, workAreas[0])
+  const minX = area.x - width / 2
+  const maxX = area.x + area.width - width / 2
+  const minY = area.y - height / 2
+  const maxY = area.y + area.height - height / 2
+  return {
+    x: Math.round(Math.min(maxX, Math.max(minX, x))),
+    y: Math.round(Math.min(maxY, Math.max(minY, y)))
+  }
+}

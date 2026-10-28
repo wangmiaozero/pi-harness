@@ -7,6 +7,7 @@ import { getApi } from '@renderer/composables/useApi'
 import GeneralSettingsSection from '@renderer/components/settings/GeneralSettingsSection.vue'
 import NavSettingsSection from '@renderer/components/settings/NavSettingsSection.vue'
 import MascotSettingsSection from '@renderer/components/settings/MascotSettingsSection.vue'
+import DesktopPetSettingsSection from '@renderer/components/settings/DesktopPetSettingsSection.vue'
 import WorkspaceSettingsSection from '@renderer/components/settings/WorkspaceSettingsSection.vue'
 import SessionCleanupSection from '@renderer/components/settings/SessionCleanupSection.vue'
 import PathsSettingsSection from '@renderer/components/settings/PathsSettingsSection.vue'
@@ -29,6 +30,7 @@ const SETTINGS_SECTIONS_ALL = [
   'general',
   'nav',
   'mascot',
+  'desktop-pet',
   'workspace',
   'session-cleanup',
   'paths',
@@ -65,6 +67,8 @@ const sectionTitle = computed(() => {
       return t('settings.navOrder')
     case 'mascot':
       return t('settings.mascot')
+    case 'desktop-pet':
+      return t('settings.desktopPet')
     case 'workspace':
       return t('settings.workspace')
     case 'session-cleanup':
@@ -92,6 +96,8 @@ const sectionSubtitle = computed(() => {
       return t('settings.sectionNavHint')
     case 'mascot':
       return t('settings.sectionMascotHint')
+    case 'desktop-pet':
+      return t('settings.sectionDesktopPetHint')
     case 'workspace':
       return t('settings.sectionWorkspaceHint')
     case 'session-cleanup':
@@ -159,6 +165,7 @@ onMounted(() => {
           <GeneralSettingsSection v-if="section === 'general'" />
           <NavSettingsSection v-else-if="section === 'nav'" />
           <MascotSettingsSection v-else-if="section === 'mascot'" />
+          <DesktopPetSettingsSection v-else-if="section === 'desktop-pet'" />
           <WorkspaceSettingsSection v-else-if="section === 'workspace'" />
           <SessionCleanupSection v-else-if="section === 'session-cleanup'" />
           <PathsSettingsSection v-else-if="section === 'paths'" />
