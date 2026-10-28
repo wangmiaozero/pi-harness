@@ -108,11 +108,13 @@ function createVoiceCall() {
         const raw = atob(event.data)
         // Odd trailing bytes are dropped; the next chunk realigns on 16-bit frames.
         if (!raw.length || raw.length % 2) return
-        // Some providers (Doubao especially) burst audio faster than realtime,
-        // so the scheduled queue can drift seconds ahead of the clock. Skip to
-        // the newest audio instead of failing the call — the user just hears a
-        // brief jump. Interrupted playback goes through clearAudio() as before.
-        if (nextAudio - ctx.currentTime > 5) clearAudio()
+        // Some providers (Doubao especially) burst a whole reply in seconds, so
+        // the scheduled queue legitimately runs far ahead of the clock — audio
+        // that already arrived must not be dropped or reply openings get skipped.
+        // Interruptions already flush the queue via clearAudio(), so this huge
+        // backlog cap is a bug-guard (e.g. a rate mismatch inflating durations),
+        // not the normal drain path.
+        if (nextAudio - ctx.currentTime > 30) clearAudio()
         const view = new DataView(new ArrayBuffer(raw.length))
         for (let i = 0; i < raw.length; i++) view.setUint8(i, raw.charCodeAt(i))
         const buffer = ctx.createBuffer(1, raw.length / 2, 24000),

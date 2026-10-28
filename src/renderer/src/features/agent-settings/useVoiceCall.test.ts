@@ -101,20 +101,35 @@ describe('voice audio playback resilience', () => {
       dispose: () => voice.dispose()
     }
   }
-  it('skips to the newest audio when a provider bursts past the backlog limit', async () => {
+  it('plays through provider bursts without skipping reply openings', async () => {
     const harness = await startCall()
     try {
-      // Each chunk is 240000 bytes = 5 s of 24 kHz int16; with a frozen clock the
-      // queue passes the 5 s backlog threshold on the second chunk.
+      // Each chunk is 240000 bytes = 5 s of 24 kHz int16; with a frozen clock six
+      // chunks queue 30 s ahead — a normal Doubao burst that must play in full,
+      // because dropping already-arrived audio skips the reply opening.
       const chunk = Buffer.alloc(240000).toString('base64')
+      for (let i = 0; i < 6; i++) harness.emit({ kind: 'audio', data: chunk })
+      await Promise.resolve()
+      expect(harness.voice.error.value).toBe('')
+      expect(harness.voice.phase.value).toBe('listening')
+      expect(harness.scheduled.length).toBe(6)
+      expect(harness.scheduled.filter((source) => source.stopped).length).toBe(0)
+    } finally {
+      harness.dispose()
+    }
+  })
+  it('still skips when the queue is pathologically far ahead', async () => {
+    const harness = await startCall()
+    try {
+      // 25 s chunks overshoot the 30 s bug-guard on the second chunk.
+      const chunk = Buffer.alloc(1200000).toString('base64')
       harness.emit({ kind: 'audio', data: chunk })
       harness.emit({ kind: 'audio', data: chunk })
       harness.emit({ kind: 'audio', data: chunk })
       await Promise.resolve()
       expect(harness.voice.error.value).toBe('')
       expect(harness.voice.phase.value).toBe('listening')
-      // The backlog was dropped; only the newest chunk stays scheduled.
-      expect(harness.scheduled.filter((source) => !source.stopped).length).toBeLessThanOrEqual(1)
+      expect(harness.scheduled.filter((source) => source.stopped).length).toBeGreaterThanOrEqual(1)
     } finally {
       harness.dispose()
     }
