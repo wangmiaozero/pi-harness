@@ -84,14 +84,10 @@ export function voiceSetup(settings: VoiceSettings, instructions: string, work: 
           }
   }
 }
-export function voiceInput(
-  settings: VoiceSettings,
-  pcm24k: Buffer,
-  carry?: { remainder: Buffer }
-): unknown {
-  if (settings.adapter !== 'gemini-live')
-    return { type: 'input_audio_buffer.append', audio: pcm24k.toString('base64') }
-  // Area-weighted 24 kHz -> 16 kHz PCM, preserving duration across pairs of output samples.
+// Area-weighted 24 kHz -> 16 kHz PCM, preserving duration across pairs of output
+// samples. Shared by the Gemini and Doubao transports; `carry.remainder` keeps the
+// tail shorter than one resampling window so streams reassemble losslessly.
+export function downsample24to16(pcm24k: Buffer, carry?: { remainder: Buffer }): Buffer {
   if (carry?.remainder.length) pcm24k = Buffer.concat([carry.remainder, pcm24k])
   if (carry) carry.remainder = pcm24k.subarray(Math.floor(pcm24k.length / 6) * 6)
   const output = Buffer.alloc(Math.floor(pcm24k.length / 6) * 4)
@@ -102,6 +98,16 @@ export function voiceInput(
     output.writeInt16LE(Math.round((a * 2 + b) / 3), o)
     output.writeInt16LE(Math.round((b + c * 2) / 3), o + 2)
   }
+  return output
+}
+export function voiceInput(
+  settings: VoiceSettings,
+  pcm24k: Buffer,
+  carry?: { remainder: Buffer }
+): unknown {
+  if (settings.adapter !== 'gemini-live')
+    return { type: 'input_audio_buffer.append', audio: pcm24k.toString('base64') }
+  const output = downsample24to16(pcm24k, carry)
   return {
     realtimeInput: { audio: { mimeType: 'audio/pcm;rate=16000', data: output.toString('base64') } }
   }
