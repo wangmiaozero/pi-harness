@@ -271,6 +271,13 @@ const api: PiSwitchAPI = {
     import: () => invoke(IPC_INVOKE.skinsImport),
     createProject: () => invoke(IPC_INVOKE.skinsCreateProject)
   },
+  pets: {
+    list: () => invoke(IPC_INVOKE.petListPacks),
+    detail: (id: string) => invoke(IPC_INVOKE.petPackDetail, id),
+    import: (kind: 'zip' | 'directory') => invoke(IPC_INVOKE.petImportPack, kind),
+    remove: (id: string) => invoke(IPC_INVOKE.petRemovePack, id),
+    setActive: (id: string) => invoke(IPC_INVOKE.petSetActivePack, id)
+  },
   diagnostics: {
     get: () => invoke(IPC_INVOKE.diagnosticsGet),
     copy: () => invoke(IPC_INVOKE.diagnosticsCopy),

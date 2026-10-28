@@ -16,6 +16,18 @@ import { isSafeClipDir } from './pack'
 export const PET_PROTOCOL_SCHEME = 'pi-pet'
 export const PET_PROTOCOL_HOST = 'petpack'
 const FRAME_NAME_PATTERN = /^[\w][\w.-]*\.webp$/
+const PREVIEW_NAME_PATTERN = /^[\w][\w.-]*\.(png|webp|jpe?g)$/
+
+const CONTENT_TYPES: Record<string, string> = {
+  '.webp': 'image/webp',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg'
+}
+
+function contentTypeFor(file: string): string {
+  return CONTENT_TYPES[path.extname(file).toLowerCase()] ?? 'application/octet-stream'
+}
 
 /** Register the scheme early (before app ready, alongside other schemes). */
 export function registerPetProtocolScheme(): void {
@@ -36,10 +48,14 @@ export function petFrameUrl(packId: string, clipDir: string, frameFile: string):
 }
 
 /**
- * Parse and validate a `pi-pet://petpack/<packId>/<clip>/<frame>.webp` URL.
+ * Parse and validate a `pi-pet://petpack/<packId>/...` URL.
+ *
+ * Frame requests resolve to `<packRoot>/<packId>/<clipDir>/<frame>.webp`;
+ * preview requests resolve to `<packRoot>/<packId>/<file>` (2 segments).
+ * `packRoots` is searched in order (user packs first, then bundled packs).
  * Returns the absolute file path, or null for anything unexpected.
  */
-export function resolvePetFramePath(packRoot: string, url: string): string | null {
+export function resolvePetResourcePath(packRoots: string[], url: string): string | null {
   let parsed: URL
   try {
     parsed = new URL(url)
@@ -50,25 +66,54 @@ export function resolvePetFramePath(packRoot: string, url: string): string | nul
     return null
   }
   const segments = decodeURIComponent(parsed.pathname).split('/').filter(Boolean)
-  // Either <packId>/<clipDir>/<frame> or <packId>/clips/<clipDir>/<frame>.
-  if (segments.length !== 3 && segments.length !== 4) return null
+  // <packId>/preview.png — or <packId>/<clipDir>/<frame> or <packId>/clips/<clipDir>/<frame>.
+  if (segments.length < 2 || segments.length > 4) return null
   const [packId, ...rest] = segments
+  const file = rest[rest.length - 1]
+  if (!/^[\w-]+$/.test(packId)) return null
   const clipDir = rest.slice(0, -1).join('/')
-  const frameFile = rest[rest.length - 1]
-  if (!/^[\w-]+$/.test(packId) || !isSafeClipDir(clipDir) || !FRAME_NAME_PATTERN.test(frameFile)) {
-    return null
+  if (rest.length >= 2 && (!isSafeClipDir(clipDir) || !FRAME_NAME_PATTERN.test(file))) return null
+  if (rest.length === 1 && !PREVIEW_NAME_PATTERN.test(file)) return null
+  const relative = `${packId}/${rest.join('/')}`
+  for (const packRoot of packRoots) {
+    const resolvedRoot = path.resolve(packRoot)
+    const resolved = path.resolve(resolvedRoot, relative)
+    if (!resolved.startsWith(resolvedRoot + path.sep)) continue
+    return resolved
   }
-  const resolvedRoot = path.resolve(packRoot)
-  const resolved = path.resolve(resolvedRoot, packId, clipDir, frameFile)
-  if (!resolved.startsWith(resolvedRoot + path.sep)) return null
-  return resolved
+  return null
+}
+
+/**
+ * Existence-aware multi-root resolution used by the protocol handler: walks
+ * the roots in order (user packs first, bundled last) and returns the first
+ * root that actually contains the requested regular file. Invalid URLs and
+ * in-root escapes resolve to null immediately.
+ */
+export async function findExistingPetResource(packRoots: string[], url: string): Promise<string | null> {
+  for (const packRoot of packRoots) {
+    const resolvedRoot = path.resolve(packRoot)
+    const candidate = resolvePetResourcePath([resolvedRoot], url)
+    if (!candidate) {
+      // Invalid URL or path escape: no root can ever serve it.
+      if (packRoot === packRoots[0]) return null
+      continue
+    }
+    try {
+      const stat = await fsp.stat(candidate)
+      if (stat.isFile()) return candidate
+    } catch {
+      // Fall through to the next root.
+    }
+  }
+  return null
 }
 
 /** Attach the request handler to the default session (call after app ready). */
-export function installPetProtocolHandler(packRoot: string): void {
-  const root = path.resolve(packRoot)
+export function installPetProtocolHandler(packRoots: string[]): void {
+  const roots = packRoots.map((root) => path.resolve(root))
   protocol.handle(PET_PROTOCOL_SCHEME, async (request) => {
-    const filePath = resolvePetFramePath(root, request.url)
+    const filePath = await findExistingPetResource(roots, request.url)
     if (!filePath) return new Response('not found', { status: 404 })
     try {
       const stat = await fsp.stat(filePath)
@@ -92,7 +137,7 @@ export function installPetProtocolHandler(packRoot: string): void {
       return new Response(body, {
         status: 200,
         headers: {
-          'content-type': 'image/webp',
+          'content-type': contentTypeFor(filePath),
           'content-length': String(size),
           'cache-control': 'no-store'
         }

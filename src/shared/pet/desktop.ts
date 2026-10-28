@@ -37,6 +37,15 @@ export const BIGFISH_CLIPS = [
 
 export type BigFishClip = (typeof BIGFISH_CLIPS)[number]
 
+export const BUNDLED_PACK_ID = 'bigfish'
+/** Pack ids are single path segments used inside `pi-pet://` URLs. */
+export const PACK_ID_PATTERN = /^[\w-]{1,64}$/
+
+/** A pack id is protected when it collides with a bundled pack (case-insensitive). */
+export function isProtectedPackId(id: string): boolean {
+  return id.trim().toLowerCase() === BUNDLED_PACK_ID
+}
+
 export interface PetPackClipInfo {
   dir: string
   frames: number
@@ -61,10 +70,57 @@ export interface PetPackManifest {
   baseHeight: number
   fps: number
   clips: Record<string, PetPackClipInfo>
+  /** Preview image file at the pack root (png/webp/jpg), served via pi-pet://. */
+  preview?: string
+  /** Clip key played when no state-specific clip exists. Defaults to "idle". */
+  defaultAnimation?: string
+  /** Optional agent state → clip key overrides (e.g. { thinking: "ponder" }). */
+  agentStateMapping?: Record<string, string>
+  /** Preferred pet body height in CSS px. */
+  recommendedSize?: number
+}
+
+/** Summary row for the pet management UI (safe: no filesystem paths). */
+export interface PetPackSummary {
+  id: string
+  name: string
+  nameEn: string
+  author: string
+  version: string
+  description?: string
+  license: string
+  bundled: boolean
+  /** False when the manifest loads but clips/frames are broken on disk. */
+  compatible: boolean
+  resourceError?: string
+  clipCount: number
+  baseWidth: number
+  baseHeight: number
+  fps: number
+  preview?: string
+  defaultAnimation?: string
+  recommendedSize?: number
+}
+
+export interface PetPackDetail extends PetPackSummary {
+  clips: Record<string, PetPackClipInfo>
+  agentStateMapping?: Record<string, string>
+  licenseFiles: string[]
+}
+
+export interface PetPackInstallResult {
+  id: string
+  name: string
+  version: string
+  /** True when an existing user pack with the same id was replaced. */
+  updated: boolean
+  previousVersion?: string
 }
 
 export interface DesktopPetSettings {
   enabled: boolean
+  /** Which installed pack is shown (bundled "bigfish" or an imported pack id). */
+  activePackId: string
   alwaysOnTop: boolean
   /** Pet body height in CSS px; width follows the pack aspect ratio. */
   size: number
@@ -94,6 +150,7 @@ export const DESKTOP_PET_SIZE_DEFAULT = 160
 
 export const DEFAULT_DESKTOP_PET_SETTINGS: Readonly<DesktopPetSettings> = Object.freeze({
   enabled: false,
+  activePackId: BUNDLED_PACK_ID,
   alwaysOnTop: true,
   size: DESKTOP_PET_SIZE_DEFAULT,
   opacity: 1,
@@ -121,6 +178,10 @@ export function normalizeDesktopPetSettings(value: unknown): DesktopPetSettings 
   }
   return {
     enabled: typeof raw.enabled === 'boolean' ? raw.enabled : d.enabled,
+    activePackId:
+      typeof raw.activePackId === 'string' && PACK_ID_PATTERN.test(raw.activePackId)
+        ? raw.activePackId
+        : d.activePackId,
     alwaysOnTop: typeof raw.alwaysOnTop === 'boolean' ? raw.alwaysOnTop : d.alwaysOnTop,
     size: Math.round(clamp(raw.size, DESKTOP_PET_SIZE_MIN, DESKTOP_PET_SIZE_MAX, d.size)),
     opacity: clamp(raw.opacity, 0.3, 1, d.opacity),
@@ -156,6 +217,30 @@ export const STATE_CLIP_MAP: Record<string, readonly BigFishClip[]> = {
 
 export function clipForState(state: string): readonly BigFishClip[] {
   return STATE_CLIP_MAP[state] ?? ['idle']
+}
+
+/**
+ * Resolve the clip a given pack should play for a runtime state.
+ *
+ * Order: the pack's declared `agentStateMapping`, the shared state fallback
+ * chain (thinking → working → idle, etc.), the pack's `defaultAnimation`, and
+ * finally "idle". Everything degrades to any playable clip, so third-party
+ * packs with a single animation still work.
+ */
+export function resolveStateClip(manifest: PetPackManifest, state: string): string {
+  const mapped = manifest.agentStateMapping?.[state]
+  if (mapped && manifest.clips[mapped]) return mapped
+  const chain = STATE_CLIP_MAP[state]
+  if (chain) {
+    for (const clip of chain) {
+      if (manifest.clips[clip]) return clip
+    }
+  }
+  if (manifest.defaultAnimation && manifest.clips[manifest.defaultAnimation]) {
+    return manifest.defaultAnimation
+  }
+  if (manifest.clips['idle']) return 'idle'
+  return Object.keys(manifest.clips)[0] ?? 'idle'
 }
 
 /**

@@ -13,13 +13,25 @@
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { BIGFISH_CLIPS, type PetPackManifest } from '@shared/pet/desktop'
+import { BIGFISH_CLIPS, DESKTOP_PET_SIZE_MAX, DESKTOP_PET_SIZE_MIN, PACK_ID_PATTERN, type PetPackManifest } from '@shared/pet/desktop'
 import { isAppPackaged } from '../services/app-paths'
 
 const PACK_MANIFEST_FILE = 'pet-pack.json'
 const MAX_CLIP_NAME_LENGTH = 64
 const MAX_CLIPS = 64
 const MAX_FRAMES_PER_CLIP = 1024
+const PREVIEW_NAME_PATTERN = /^[\w][\w.-]*\.(png|webp|jpe?g)$/
+
+/** Clip keys are single path segments below the pack root. */
+export function isSafeClipKey(name: unknown): name is string {
+  return (
+    typeof name === 'string' &&
+    name.length > 0 &&
+    name.length <= MAX_CLIP_NAME_LENGTH &&
+    /^[\w][\w.-]*$/.test(name) &&
+    !name.includes('..')
+  )
+}
 
 export interface LoadedPetPack {
   root: string
@@ -85,6 +97,47 @@ export function validatePetPackManifest(value: unknown): PetPackManifest {
       throw new Error(`Pet pack manifest is missing "${key}"`)
     }
   }
+  if (!PACK_ID_PATTERN.test(value['id'] as string)) {
+    throw new Error(`Pet pack id "${String(value['id'])}" is not a valid pack id`)
+  }
+  // Optional metadata: preview image, default animation, agent state mapping.
+  const preview = value['preview']
+  if (preview !== undefined && (typeof preview !== 'string' || !PREVIEW_NAME_PATTERN.test(preview))) {
+    throw new Error('Pet pack manifest has an invalid "preview" entry')
+  }
+  let defaultAnimation: string | undefined
+  if (value['defaultAnimation'] !== undefined) {
+    if (!isSafeClipKey(value['defaultAnimation'])) {
+      throw new Error('Pet pack manifest has an invalid "defaultAnimation" entry')
+    }
+    if (!clips[value['defaultAnimation'] as string]) {
+      throw new Error('Pet pack defaultAnimation does not reference a declared clip')
+    }
+    defaultAnimation = value['defaultAnimation'] as string
+  }
+  let agentStateMapping: Record<string, string> | undefined
+  if (value['agentStateMapping'] !== undefined) {
+    if (!isPlainObject(value['agentStateMapping'])) {
+      throw new Error('Pet pack manifest has an invalid "agentStateMapping" entry')
+    }
+    const mapping: Record<string, string> = {}
+    for (const [state, clip] of Object.entries(value['agentStateMapping'])) {
+      if (!isSafeClipKey(state) || !isSafeClipKey(clip) || !clips[clip]) {
+        throw new Error(`Pet pack agentStateMapping entry "${state}" is invalid`)
+      }
+      mapping[state] = clip
+    }
+    agentStateMapping = mapping
+  }
+  let recommendedSize: number | undefined
+  if (value['recommendedSize'] !== undefined) {
+    if (typeof value['recommendedSize'] !== 'number' || !Number.isFinite(value['recommendedSize'])) {
+      throw new Error('Pet pack manifest has an invalid "recommendedSize" entry')
+    }
+    recommendedSize = Math.round(
+      Math.min(DESKTOP_PET_SIZE_MAX, Math.max(DESKTOP_PET_SIZE_MIN, value['recommendedSize']))
+    )
+  }
   return {
     formatVersion: 1,
     id: value['id'] as string,
@@ -101,7 +154,11 @@ export function validatePetPackManifest(value: unknown): PetPackManifest {
     baseWidth,
     baseHeight,
     fps,
-    clips
+    clips,
+    preview,
+    defaultAnimation,
+    agentStateMapping,
+    recommendedSize
   }
 }
 

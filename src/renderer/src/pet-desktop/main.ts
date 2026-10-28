@@ -10,7 +10,7 @@
 
 import type { AppLanguage } from '@shared/constants/language'
 import type { DesktopPetSettings } from '@shared/pet/desktop'
-import { STATE_CLIP_MAP, type PetPackManifest } from '@shared/pet/desktop'
+import { resolveStateClip, type PetPackManifest } from '@shared/pet/desktop'
 import type { PetWindowContextPayload } from '@shared/ipc/api-types'
 import { bubbleMessages, type BubbleMessages } from './bubbles'
 import { FramePlayer } from './frame-player'
@@ -110,6 +110,7 @@ class PetApp {
   }
 
   private applyContext(context: PetWindowContextPayload): void {
+    const previousPackId = this.manifest?.id ?? null
     this.manifest = context.manifest
     this.settings = context.settings
     this.language = context.language
@@ -119,6 +120,14 @@ class PetApp {
         const result = await window.piSwitchPet?.moveBy({ dx, dy })
         return result ? { x: result.x, y: result.y } : null
       })
+    } else if (this.player && context.manifest && previousPackId !== context.manifest.id) {
+      // Live pack switch: tear down cached frames of the old pack and build
+      // a fresh player for the new one.
+      this.player.dispose()
+      this.player = new FramePlayer(context.manifest.id, context.manifest)
+      if (this.fish) this.fish.appendChild(this.player.element)
+      this.interaction = null
+      this.renderState(this.currentState, true)
     }
     if (this.fish) {
       this.fish.style.opacity = String(this.settings?.opacity ?? 1)
@@ -163,16 +172,12 @@ class PetApp {
     root.appendChild(this.fish)
   }
 
-  /** Walk the state clip chain until a clip present in the pack is found. */
+  /** Resolve the clip for a runtime state via the pack's mapping rules. */
   private clipFor(state: PetRuntimeState): string {
     const manifest = this.manifest
     if (!manifest) return 'idle'
-    const chain = STATE_CLIP_MAP[state] ?? ['idle']
-    const player = this.player
-    for (const clip of chain) {
-      if (player?.has(clip)) return clip
-    }
-    return 'idle'
+    const clip = resolveStateClip(manifest, state)
+    return this.player?.has(clip) ? clip : 'idle'
   }
 
   private renderState(state: PetRuntimeState, force = false): void {

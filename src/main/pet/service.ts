@@ -1,23 +1,36 @@
 /**
- * Desktop pet service facade — owns the pack, the window controller, the
- * event bridge and the pet-scoped IPC handlers.
+ * Desktop pet service facade — owns the pack registry, the window controller,
+ * the event bridge and the pet-scoped IPC handlers.
  *
  * IPC discipline: pet window handlers are registered on raw ipcMain with an
  * explicit sender check against the pet window's webContents (NOT the
  * trusted-ipc wrapper, which only allows the main window). Failures inside
  * the pet subsystem are contained: they must never destabilize the host app.
+ *
+ * Lazy by default: the desktop pet ships disabled and no pack is loaded, no
+ * window is created and no frame is read until the user explicitly enables
+ * it. Turning the pet off destroys the window immediately, releases the pack
+ * reference and detaches the agent event bridge.
  */
 
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import path from 'node:path'
-import type { DesktopPetSettings } from '@shared/pet/desktop'
-import { normalizeDesktopPetSettings } from '@shared/pet/desktop'
+import type { DesktopPetSettings, PetPackManifest } from '@shared/pet/desktop'
+import { BUNDLED_PACK_ID, normalizeDesktopPetSettings } from '@shared/pet/desktop'
 import type { AppLanguage } from '@shared/constants/language'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { IPC_INVOKE } from '@shared/ipc/channels'
 import { log } from '../services/logger'
 import type { JsonStore } from '../services/storage'
 import { bundledPetPackRoot, loadPetPack, packCoversRequiredStates, type LoadedPetPack } from './pack'
+import {
+  PetPackRegistry,
+  PetPackError,
+  type PetPackDetail,
+  type PetPackInstallResult,
+  type PetPackInstallSource,
+  type PetPackSummary
+} from './registry'
 import { installPetProtocolHandler, registerPetProtocolScheme } from './protocol'
 import { PetWindowController } from './pet-window'
 import { PetEventBridge, type PetEventAgentSource } from './events'
@@ -48,19 +61,27 @@ export type PetPermissionHook = (
 export class PetService {
   private readonly controller: PetWindowController
   private readonly bridge: PetEventBridge
+  private readonly registry: PetPackRegistry
   private readonly windowState = createPetWindowStateStore()
   private pack: LoadedPetPack | null = null
-  private loadPromise: Promise<void> | null = null
+  /** Pack id currently loaded into `this.pack` (null = nothing loaded). */
+  private loadedPackId: string | null = null
+  /** Serializes enable/disable/switch transitions. */
+  private applyQueue: Promise<void> = Promise.resolve()
   private settings: DesktopPetSettings
   private language: AppLanguage = 'en-US'
   private readonly menuCallbacks: PetMenuCallbacks
   private started = false
+  private agentSource: PetEventAgentSource | null = null
+  private detachPermissionHook: (() => void) | null = null
 
   constructor(
     private readonly settingsStore: JsonStore<AppSettings>,
+    private readonly userPackRoot: string,
     menuCallbacks: PetMenuCallbacks
   ) {
     this.settings = this.readSettings()
+    this.registry = new PetPackRegistry(bundledPetPackRoot(__dirname), userPackRoot)
     this.controller = new PetWindowController({
       getPack: () => this.pack,
       getWindowState: () => this.windowState,
@@ -81,47 +102,83 @@ export class PetService {
     source: PetEventAgentSource | null,
     permissionHook: PetPermissionHook | null
   ): void {
-    if (source) this.bridge.attach(source)
+    this.agentSource = source
+    this.detachPermissionHook?.()
+    this.detachPermissionHook = null
+    if (source && this.settings.enabled) this.bridge.attach(source)
     if (permissionHook) {
-      permissionHook((toolName) => {
+      this.detachPermissionHook = permissionHook((toolName) => {
         this.controller.pushState([{ type: 'WAITING_FOR_USER', waiting: true }], 1)
         log.pet.debug('permission requested:', toolName)
       })
     }
   }
 
-  /** Call after app ready: install protocol, load the pack, apply settings. */
+  /**
+   * Call after app ready: install the protocol handler and apply settings.
+   * With the pet disabled (the default) this loads no pack and creates no
+   * window — the service stays a lightweight settings reader.
+   */
   async start(): Promise<void> {
     if (this.started) return
     this.started = true
     try {
-      installPetProtocolHandler(bundledPetPackRoot(__dirname))
-      await this.loadPack()
-      this.controller.applySettings(this.settings)
+      installPetProtocolHandler([
+        this.registry.userPacksRoot,
+        bundledPetPackRoot(__dirname)
+      ])
       this.registerIpc()
+      await this.applySettings(this.settings)
       log.pet.info('desktop pet service started', { enabled: this.settings.enabled })
     } catch (error) {
       log.pet.error('desktop pet failed to start:', error)
     }
   }
 
+  /** App quit: fully tear down the pet subsystem. */
   stop(): void {
     this.bridge.dispose()
+    this.detachPermissionHook?.()
+    this.detachPermissionHook = null
     this.controller.savePosition()
     this.controller.destroy()
+    this.pack = null
+    this.loadedPackId = null
   }
 
   /** Settings changed (from SettingsView or the pet menu) — re-apply. */
-  applySettings(next: unknown): void {
-    const wasEnabled = this.settings.enabled
-    this.settings = normalizeDesktopPetSettings(next)
-    if (!this.loadPromise) return
-    void this.loadPromise.then(() => {
-      this.controller.applySettings(this.settings)
-      if (wasEnabled !== this.settings.enabled) {
-        log.pet.info('desktop pet toggled', { enabled: this.settings.enabled })
+  async applySettings(next: unknown): Promise<void> {
+    const previous = this.settings
+    const normalized = normalizeDesktopPetSettings(next)
+    this.settings = normalized
+    const run = this.applyQueue.then(async () => {
+      try {
+        if (!normalized.enabled) {
+          // Disabled: destroy window, release pack resources, detach agent
+          // listeners. No animation work happens afterwards.
+          this.pack = null
+          this.loadedPackId = null
+          this.bridge.dispose()
+          this.controller.destroy()
+          return
+        }
+        if (this.agentSource) this.bridge.attach(this.agentSource)
+        const switched = previous.activePackId !== normalized.activePackId || !this.pack
+        if (switched) {
+          const loaded = await this.loadPackById(normalized.activePackId)
+          if (!loaded) return // loadPackById already restored a fallback pack
+        }
+        this.controller.setPack(this.pack)
+        this.controller.applySettings(this.settings)
+        if (previous.enabled !== normalized.enabled) {
+          log.pet.info('desktop pet toggled', { enabled: normalized.enabled })
+        }
+      } catch (error) {
+        log.pet.error('applySettings failed:', error)
       }
     })
+    this.applyQueue = run.catch(() => undefined)
+    await run
   }
 
   setLanguage(language: AppLanguage): void {
@@ -133,24 +190,156 @@ export class PetService {
     this.controller.resetPosition()
   }
 
-  private async loadPack(): Promise<void> {
-    const parent = bundledPetPackRoot(__dirname)
-    const packRoot = path.join(parent, 'bigfish')
+  // ------------------------------------------------------------------
+  // Pack management (main-window IPC surface, see src/main/ipc/register.ts)
+  // ------------------------------------------------------------------
+
+  listPacks(): Promise<PetPackSummary[]> {
+    return this.registry.list()
+  }
+
+  packDetail(id: string): Promise<PetPackDetail | null> {
+    return this.registry.detail(id)
+  }
+
+  /**
+   * Import a pack. Never changes `enabled` — importing while the pet is off
+   * must not create a window or turn the pet on.
+   */
+  async importPack(source: PetPackInstallSource): Promise<PetPackInstallResult> {
+    const result = await this.registry.install(source)
+    log.pet.info('pet pack imported', result)
+    if (this.settings.enabled && this.settings.activePackId === result.id) {
+      // Updating the running pack: drop the in-memory copy so applySettings
+      // reloads the new files from disk (applySettings only reloads when the
+      // active pack id changes).
+      this.pack = null
+      this.loadedPackId = null
+      await this.applySettings({ ...this.settings, activePackId: result.id })
+    }
+    return result
+  }
+
+  /**
+   * Remove a user-installed pack. Removing the active pack falls back to the
+   * bundled pet; the window follows the `enabled` setting.
+   */
+  async removePack(id: string): Promise<void> {
+    await this.registry.remove(id)
+    log.pet.info('pet pack removed', { id })
+    if (this.settings.activePackId === id) {
+      const next = { ...this.settings, activePackId: BUNDLED_PACK_ID }
+      // applySettings first — persistSettings assigns this.settings, and
+      // pre-assigning would defeat applySettings's switch detection (the
+      // bundled pack would never be reloaded).
+      await this.applySettings(next)
+      this.persistSettings(next)
+    }
+  }
+
+  /**
+   * Select the active pack. With the pet enabled this swaps the pack live;
+   * on failure the previous pack keeps running and the error propagates to
+   * the caller (Settings UI) so the user knows nothing broke silently.
+   */
+  async setActivePack(id: string): Promise<PetPackDetail | null> {
+    const detail = await this.registry.detail(id)
+    if (!detail) throw new PetPackError(`Pet pack "${id}" is not installed`)
+    const previous = this.settings
+    if (previous.activePackId === id) return detail
+    const next = { ...previous, activePackId: id }
+    // Do NOT pre-assign this.settings — applySettings detects the switch by
+    // comparing its own previous settings with the patch. Assigning early
+    // made the live load a no-op and the caller see "could not be loaded".
     try {
-      const pack = await loadPetPack(packRoot)
-      if (!packCoversRequiredStates(pack.manifest)) {
-        throw new Error('bundled pack is missing required clips')
+      if (previous.enabled) {
+        await this.applySettings(next)
+        if (!this.pack || this.loadedPackId !== id) {
+          throw new PetPackError(`Pet pack "${id}" could not be loaded`)
+        }
+      }
+      this.persistSettings(next)
+      return detail
+    } catch (error) {
+      // Restore the previous pack so no black pet window is left behind.
+      await this.applySettings(previous)
+      throw error instanceof Error ? error : new PetPackError(String(error))
+    }
+  }
+
+  /** Pack manifest actually running right now (null when disabled/unloaded). */
+  currentManifest(): PetPackManifest | null {
+    return this.pack?.manifest ?? null
+  }
+
+  // ------------------------------------------------------------------
+  // Internals
+  // ------------------------------------------------------------------
+
+  /**
+   * Load the pack with the given id (user packs first, then bundled). Falls
+   * back to the bundled pet when the requested pack is broken, and leaves
+   * the previously running pack untouched on a live-switch failure.
+   */
+  private async loadPackById(id: string): Promise<boolean> {
+    if (this.loadedPackId === id && this.pack) return true
+    const previousPack = this.pack
+    const previousId = this.loadedPackId
+    const root = await this.registry.findPackRoot(id)
+    if (!root) {
+      log.pet.error('pet pack not found:', id)
+      return this.fallbackToBundled(previousPack, previousId, id)
+    }
+    try {
+      const pack = await loadPetPack(root)
+      if (id === BUNDLED_PACK_ID && !packCoversRequiredStates(pack.manifest)) {
+        throw new PetPackError('bundled pack is missing required clips')
       }
       this.pack = pack
-      this.controller.setPack(pack)
+      this.loadedPackId = pack.manifest.id
       log.pet.info('pet pack loaded', {
         id: pack.manifest.id,
         clips: Object.keys(pack.manifest.clips).length
       })
+      return true
     } catch (error) {
-      this.pack = null
-      log.pet.error('pet pack unavailable, desktop pet disabled:', error)
+      log.pet.error(`pet pack "${id}" failed to load:`, error)
+      return this.fallbackToBundled(previousPack, previousId, id)
     }
+  }
+
+  /** Keep the previous pack running, or fall back to the bundled pet. */
+  private async fallbackToBundled(
+    previousPack: LoadedPetPack | null,
+    previousId: string | null,
+    requestedId: string
+  ): Promise<boolean> {
+    if (previousPack && previousId) {
+      this.pack = previousPack
+      this.loadedPackId = previousId
+      this.settings = { ...this.settings, activePackId: previousId }
+      this.persistSettings(this.settings)
+      log.pet.warn(`kept running pack "${previousId}" after failed switch to "${requestedId}"`)
+      return false
+    }
+    if (requestedId !== BUNDLED_PACK_ID) {
+      const root = await this.registry.findPackRoot(BUNDLED_PACK_ID)
+      if (root) {
+        try {
+          const pack = await loadPetPack(root)
+          this.pack = pack
+          this.loadedPackId = BUNDLED_PACK_ID
+          this.settings = { ...this.settings, activePackId: BUNDLED_PACK_ID }
+          this.persistSettings(this.settings)
+          return true
+        } catch (error) {
+          log.pet.error('bundled pet pack unavailable:', error)
+        }
+      }
+    }
+    this.pack = null
+    this.loadedPackId = null
+    return false
   }
 
   private readSettings(): DesktopPetSettings {
@@ -257,4 +446,9 @@ export class PetService {
     }
     this.controller.applySettings(next)
   }
+}
+
+/** Directory used for user-imported packs (kept in sync with registry). */
+export function userPetPacksRoot(userDataDir: string): string {
+  return path.join(userDataDir, 'petpacks')
 }

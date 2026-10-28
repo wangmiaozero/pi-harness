@@ -4,6 +4,7 @@ import Input from '@renderer/components/ui/Input.vue'
 import Switch from '@renderer/components/ui/Switch.vue'
 import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
 import { SETTINGS_DRAFT_KEY } from '@renderer/components/settings/draft-key'
+import PetPackManager from '@renderer/components/settings/PetPackManager.vue'
 
 const draft = inject(SETTINGS_DRAFT_KEY)!
 
@@ -56,6 +57,11 @@ const bubbleTimeoutStr = computed({
       <PropertyRow :label="$t('settings.desktopPetAlwaysOnTop')">
         <Switch v-model="pet.alwaysOnTop" :label="$t('settings.desktopPetAlwaysOnTop')" />
       </PropertyRow>
+    </div>
+
+    <div class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-3">
+      <p class="mb-2 px-1 text-[12px] font-medium">{{ $t('settings.petPackManager') }}</p>
+      <PetPackManager v-model="pet.activePackId" />
     </div>
 
     <div

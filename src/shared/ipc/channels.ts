@@ -384,7 +384,14 @@ export const IPC_INVOKE = {
   petEndDrag: invoke('pet:end-drag'),
   petSetClickThrough: invoke('pet:set-click-through'),
   petOpenMain: invoke('pet:open-main'),
-  petMenuAction: invoke('pet:menu-action')
+  petMenuAction: invoke('pet:menu-action'),
+
+  // pet pack management (main window)
+  petListPacks: invoke('pet:list-packs'),
+  petPackDetail: invoke('pet:pack-detail'),
+  petImportPack: invoke('pet:import-pack'),
+  petRemovePack: invoke('pet:remove-pack'),
+  petSetActivePack: invoke('pet:set-active-pack')
 } as const
 
 /** Main → renderer push events (one-way, via webContents.send). */
