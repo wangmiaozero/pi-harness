@@ -32,6 +32,7 @@ describe('FramePlayer image loading', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     created.length = 0
   })
@@ -41,6 +42,18 @@ describe('FramePlayer image loading', () => {
   it('marks the playback image crossOrigin anonymous so the alpha sampler canvas is not tainted', () => {
     const player = new FramePlayer('testpack', manifest())
     expect(player.element.crossOrigin).toBe('anonymous')
+  })
+
+  it('finishes an interaction even when its pack clip normally loops', () => {
+    vi.useFakeTimers()
+    const player = new FramePlayer('testpack', manifest())
+    const finished = vi.fn()
+    player.play('idle', finished, false)
+    vi.advanceTimersByTime(750)
+    expect(finished).toHaveBeenCalledOnce()
+    vi.advanceTimersByTime(750)
+    expect(finished).toHaveBeenCalledOnce()
+    player.dispose()
   })
 
   it('marks preloaded frames crossOrigin anonymous too', () => {

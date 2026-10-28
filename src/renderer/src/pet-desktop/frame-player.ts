@@ -20,7 +20,11 @@ export function frameFileName(clipDir: string, index: number): string {
 }
 
 export function frameUrl(packId: string, clipDir: string, file: string): string {
-  if (!/^[\w-]+$/.test(packId) || !CLIP_DIR_PATTERN.test(clipDir) || !FRAME_NAME_PATTERN.test(file)) {
+  if (
+    !/^[\w-]+$/.test(packId) ||
+    !CLIP_DIR_PATTERN.test(clipDir) ||
+    !FRAME_NAME_PATTERN.test(file)
+  ) {
     throw new Error('Invalid pet frame reference')
   }
   return `pi-pet://petpack/${packId}/${clipDir}/${file}`
@@ -53,7 +57,10 @@ export class FramePlayer {
 
   onClipEnd: (() => void) | null = null
 
-  constructor(private readonly packId: string, private readonly manifest: PetPackManifest) {
+  constructor(
+    private readonly packId: string,
+    private readonly manifest: PetPackManifest
+  ) {
     this.img = createFrameImage()
     this.sampler = document.createElement('canvas')
     this.sampler.width = manifest.baseWidth
@@ -90,14 +97,14 @@ export class FramePlayer {
     }
   }
 
-  play(clipDir: string, onEnd?: () => void): void {
+  play(clipDir: string, onEnd?: () => void, loop?: boolean): void {
     const info = this.manifest.clips[clipDir]
     if (!info) {
       onEnd?.()
       return
     }
     this.stop()
-    this.current = { info, frame: 0, finished: false }
+    this.current = { info: { ...info, loop: loop ?? info.loop }, frame: 0, finished: false }
     if (onEnd) this.onClipEnd = onEnd
     this.preload(clipDir)
     this.showFrame(0)

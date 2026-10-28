@@ -13,16 +13,21 @@
  * reference and detaches the agent event bridge.
  */
 
-import { ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { app, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import path from 'node:path'
 import type { DesktopPetSettings, PetPackManifest } from '@shared/pet/desktop'
 import { BUNDLED_PACK_ID, normalizeDesktopPetSettings } from '@shared/pet/desktop'
-import type { AppLanguage } from '@shared/constants/language'
+import { resolveAppLocale, type AppLanguage, type AppLocale } from '@shared/constants/language'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { IPC_INVOKE } from '@shared/ipc/channels'
 import { log } from '../services/logger'
 import type { JsonStore } from '../services/storage'
-import { bundledPetPackRoot, loadPetPack, packCoversRequiredStates, type LoadedPetPack } from './pack'
+import {
+  bundledPetPackRoot,
+  loadPetPack,
+  packCoversRequiredStates,
+  type LoadedPetPack
+} from './pack'
 import {
   PetPackRegistry,
   PetPackError,
@@ -50,13 +55,12 @@ const PET_SENDER_CHANNELS = [
 type PetSenderChannel = (typeof PET_SENDER_CHANNELS)[number]
 
 export interface PetMenuCallbacks {
+  onSettingsChanged?: () => void
   openMain: (view: 'main' | 'settings') => void
   onQuitRequest: () => void
 }
 
-export type PetPermissionHook = (
-  listener: (toolName: string) => void
-) => () => void
+export type PetPermissionHook = (listener: (toolName: string) => void) => () => void
 
 export class PetService {
   private readonly controller: PetWindowController
@@ -69,7 +73,7 @@ export class PetService {
   /** Serializes enable/disable/switch transitions. */
   private applyQueue: Promise<void> = Promise.resolve()
   private settings: DesktopPetSettings
-  private language: AppLanguage = 'en-US'
+  private language: AppLocale
   private readonly menuCallbacks: PetMenuCallbacks
   private started = false
   private agentSource: PetEventAgentSource | null = null
@@ -80,6 +84,7 @@ export class PetService {
     private readonly userPackRoot: string,
     menuCallbacks: PetMenuCallbacks
   ) {
+    this.language = resolveAppLocale(settingsStore.peek().language ?? 'auto', app.getLocale())
     this.settings = this.readSettings()
     this.registry = new PetPackRegistry(bundledPetPackRoot(__dirname), userPackRoot)
     this.controller = new PetWindowController({
@@ -98,10 +103,7 @@ export class PetService {
   }
 
   /** Wire the agent runtime the pet reacts to. Call before start(). */
-  attachAgent(
-    source: PetEventAgentSource | null,
-    permissionHook: PetPermissionHook | null
-  ): void {
+  attachAgent(source: PetEventAgentSource | null, permissionHook: PetPermissionHook | null): void {
     this.agentSource = source
     this.detachPermissionHook?.()
     this.detachPermissionHook = null
@@ -123,10 +125,7 @@ export class PetService {
     if (this.started) return
     this.started = true
     try {
-      installPetProtocolHandler([
-        this.registry.userPacksRoot,
-        bundledPetPackRoot(__dirname)
-      ])
+      installPetProtocolHandler([this.registry.userPacksRoot, bundledPetPackRoot(__dirname)])
       this.registerIpc()
       await this.applySettings(this.settings)
       log.pet.info('desktop pet service started', { enabled: this.settings.enabled })
@@ -182,7 +181,7 @@ export class PetService {
   }
 
   setLanguage(language: AppLanguage): void {
-    this.language = language
+    this.language = resolveAppLocale(language, app.getLocale())
     this.controller.pushConfig()
   }
 
@@ -399,8 +398,7 @@ export class PetService {
           return undefined
         }
         case IPC_INVOKE.petMenuAction: {
-          this.handleMenuAction(args[0])
-          return undefined
+          return this.handleMenuAction(args[0])
         }
         default:
           return undefined
@@ -411,8 +409,14 @@ export class PetService {
     }
   }
 
-  private handleMenuAction(action: unknown): void {
+  private async handleMenuAction(action: unknown): Promise<void> {
     switch (action) {
+      case 'open-main':
+        this.menuCallbacks.openMain('main')
+        break
+      case 'open-settings':
+        this.menuCallbacks.openMain('settings')
+        break
       case 'toggle-always-on-top': {
         this.persistSettings({ ...this.settings, alwaysOnTop: !this.settings.alwaysOnTop })
         break
@@ -424,9 +428,12 @@ export class PetService {
       case 'reset-position':
         this.controller.resetPosition()
         break
-      case 'hide':
-        this.persistSettings({ ...this.settings, enabled: false })
+      case 'hide': {
+        const next = { ...this.settings, enabled: false }
+        await this.applySettings(next)
+        this.persistSettings(next)
         break
+      }
       case 'quit':
         this.menuCallbacks.onQuitRequest()
         break
@@ -440,7 +447,10 @@ export class PetService {
     this.settings = next
     try {
       const current = this.settingsStore.peek()
-      void this.settingsStore.write({ ...current, desktopPet: next })
+      void this.settingsStore
+        .write({ ...current, desktopPet: next })
+        .then(() => this.menuCallbacks.onSettingsChanged?.())
+        .catch((error) => log.pet.error('failed to persist pet settings:', error))
     } catch (error) {
       log.pet.error('failed to persist pet settings:', error)
     }

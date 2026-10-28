@@ -246,9 +246,9 @@ async function bootstrap(): Promise<void> {
   let mainWindow: BrowserWindow | null = null
   const screenMotion = new ScreenMotionOverlayController()
 
-  const openMainWindow = (): void => {
+  const openMainWindow = (initialHash?: string): void => {
     const settings = settingsStore.peek()
-    mainWindow = createMainWindow(selectedAppIconPath(settings))
+    mainWindow = createMainWindow(selectedAppIconPath(settings), initialHash)
     applyAppIcon(settings, mainWindow)
     mainWindow.on('closed', () => {
       screenMotion.stop()
@@ -523,20 +523,29 @@ async function bootstrap(): Promise<void> {
     settingsStore,
     userPetPacksRoot(app.getPath('userData')),
     {
-    openMain: (view) => {
-      if (!mainWindow || mainWindow.isDestroyed()) openMainWindow()
-      else {
+      onSettingsChanged: () => {
+        mainWindow?.webContents.send(IPC_EVENT.uiCommand, { type: 'refresh-settings' })
+      },
+      openMain: (view) => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          // A fresh renderer needs its route before mounting; an IPC command
+          // sent while it loads would be lost before the listener subscribes.
+          openMainWindow(view === 'settings' ? '/settings/desktop-pet' : undefined)
+          return
+        }
         if (mainWindow.isMinimized()) mainWindow.restore()
         mainWindow.show()
         mainWindow.focus()
+        if (view === 'settings') {
+          mainWindow.webContents.send(IPC_EVENT.uiCommand, {
+            type: 'open-settings',
+            section: 'desktop-pet'
+          })
+        }
+      },
+      onQuitRequest: () => {
+        app.quit()
       }
-      if (view === 'settings' && mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send(IPC_EVENT.uiCommand, { type: 'open-settings' })
-      }
-    },
-    onQuitRequest: () => {
-      app.quit()
-    }
     }
   )
   const petAgentRpc = rpcAgent
