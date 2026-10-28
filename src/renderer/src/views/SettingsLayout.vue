@@ -16,6 +16,7 @@ import {
   Download,
   Eraser,
   FileCode2,
+  Fish,
   FolderOpen,
   Info,
   LayoutDashboard,
@@ -72,6 +73,12 @@ const menuItems = computed(() => {
     { id: 'remote', to: '/settings/remote', label: t('agentSettings.remote'), icon: Globe },
     { id: 'nav', to: '/settings/nav', label: t('settings.navOrder'), icon: PanelLeft },
     { id: 'mascot', to: '/settings/mascot', label: t('settings.mascot'), icon: Sparkles },
+    {
+      id: 'desktop-pet',
+      to: '/settings/desktop-pet',
+      label: t('settings.desktopPet'),
+      icon: Fish
+    },
     { id: 'workspace', to: '/settings/workspace', label: t('settings.workspace'), icon: AppWindow },
     {
       id: 'session-cleanup',
@@ -114,7 +121,7 @@ const menuItems = computed(() => {
 
 const groups = computed(() => {
   const ids: Record<string, string[]> = {
-    preferences: ['general', 'ai', 'voice', 'shortcuts', 'nav', 'mascot'],
+    preferences: ['general', 'ai', 'voice', 'shortcuts', 'nav', 'mascot', 'desktop-pet'],
     agents: ['instructions', 'mcp', 'subagents'],
     workspace: ['overview', 'workspace', 'session-cleanup'],
     system: ['remote', 'config', 'paths', 'backup', 'diagnostics', 'updates', 'about', 'developer']
