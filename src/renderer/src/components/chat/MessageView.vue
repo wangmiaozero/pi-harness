@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import security from '@comark/vue/plugins/security'
 import taskList from '@comark/vue/plugins/task-list'
-import { computed, onErrorCaptured, onBeforeUnmount, ref } from 'vue'
-import { Check, Copy } from '@lucide/vue'
+import { computed, onErrorCaptured, ref } from 'vue'
+import { Archive, Brain, ChevronRight } from '@lucide/vue'
 import type { AgentMessage, ImageContent } from '@shared/types/workspace'
 import ToolCallView from './ToolCallView.vue'
+import MessageActions from './MessageActions.vue'
 import BranchNavigator from './BranchNavigator.vue'
 import StreamingMarkdown from './StreamingMarkdown.vue'
 import FileChangesCard from './FileChangesCard.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import type { MessageFileChanges } from './message-file-changes'
+import type { ToolResults } from './message-activity'
 import { normalizeAssistantName, normalizeUserName } from '@shared/constants/chat-participants'
 import { hasRenderableMessageContent } from './message-visibility'
 import { parseSkillInvocation } from './skill-invocation'
@@ -63,7 +65,15 @@ const props = defineProps<{
   fileChanges?: MessageFileChanges
   userName?: string
   assistantName?: string
+  toolResults?: ToolResults
+  pendingToolCalls?: ReadonlyMap<string, string>
+  activityRunning?: boolean
+  embedded?: boolean
 }>()
+const compactionOpen = ref(false)
+const isCompaction = computed(
+  () => props.message.role === 'custom' && props.message.customType === 'compaction'
+)
 const previewSrc = ref<string | null>(null)
 const previewOpen = ref(false)
 const markdownFailed = ref(false)
@@ -147,23 +157,46 @@ const userImages = computed(() => {
   })
 })
 
-const toolResultText = computed(() => {
-  const msg = props.message
-  if (msg.role !== 'toolResult') return ''
-  return msg.content
-    .filter((b) => b.type === 'text')
-    .map((b) => (b.type === 'text' ? b.text : ''))
-    .join('\n')
+const hasNarrative = computed(() => {
+  const message = props.message
+  return (
+    message.role !== 'assistant' ||
+    Boolean(message.errorMessage || props.fileChanges) ||
+    message.content.some(
+      (block) => (block.type === 'text' && block.text.trim()) || block.type === 'image'
+    )
+  )
 })
-
-const bashText = computed(() => {
-  const msg = props.message
-  if (msg.role !== 'bashExecution') return ''
-  return `$ ${msg.command}\n${msg.output}`
+const standaloneTool = computed(() => {
+  const message = props.message
+  if (message.role === 'toolResult')
+    return {
+      block: {
+        type: 'toolCall' as const,
+        toolCallId: message.toolCallId,
+        toolName: message.toolName ?? '',
+        input: {}
+      },
+      result: message
+    }
+  if (message.role === 'bashExecution')
+    return {
+      block: {
+        type: 'toolCall' as const,
+        toolCallId: '',
+        toolName: 'bash',
+        input: { command: message.command }
+      },
+      result: {
+        role: 'toolResult' as const,
+        toolCallId: '',
+        toolName: 'bash',
+        content: [{ type: 'text' as const, text: message.output }],
+        isError: message.cancelled || (message.exitCode !== undefined && message.exitCode !== 0)
+      }
+    }
+  return null
 })
-
-const copyState = ref<'idle' | 'copied'>('idle')
-let copyResetTimer: ReturnType<typeof setTimeout> | null = null
 
 const messageCopyText = computed(() => {
   const msg = props.message
@@ -176,43 +209,30 @@ const messageCopyText = computed(() => {
         .map((b) => (b.type === 'text' ? b.text : ''))
         .join('\n\n')
 })
-
-async function copyMessage(): Promise<void> {
-  const text = messageCopyText.value
-  if (!text) return
-  // Electron's renderer clipboard can be unavailable/unfocused; the main
-  // process clipboard is the reliable path, navigator is the dev/test fallback.
-  try {
-    await callApi(() => getApi().system.copyText(text))
-  } catch {
-    await navigator.clipboard.writeText(text)
-  }
-  copyState.value = 'copied'
-  if (copyResetTimer) clearTimeout(copyResetTimer)
-  copyResetTimer = setTimeout(() => {
-    copyState.value = 'idle'
-  }, 1500)
-}
-
-onBeforeUnmount(() => {
-  if (copyResetTimer) clearTimeout(copyResetTimer)
-})
 </script>
 
 <template>
   <article
     v-if="hasVisibleContent"
-    class="message-hud group mb-3"
-    :data-message-role="message.role"
+    :class="embedded ? 'message-part mb-3' : 'message-hud group mb-3'"
+    :data-message-role="embedded ? undefined : message.role"
   >
-    <p v-if="message.role !== 'toolResult'" class="message-role-label">
+    <p
+      v-if="
+        !embedded &&
+        !isCompaction &&
+        hasNarrative &&
+        message.role !== 'toolResult' &&
+        message.role !== 'bashExecution'
+      "
+      class="message-role-label"
+    >
       <span class="message-role-badge">
         <template v-if="message.role === 'user'">{{ userDisplayName }}</template>
         <template v-else-if="message.role === 'assistant'">
           {{ assistantDisplayName }}
           <span v-if="streaming"> · {{ $t('workspace.streaming') }}</span>
         </template>
-        <template v-else-if="message.role === 'bashExecution'">bash</template>
         <template v-else>{{ message.customType }}</template>
       </span>
     </p>
@@ -245,34 +265,19 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div
-        v-if="message.role === 'user'"
-        class="message-actions mt-1 flex items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
-      >
-        <button
-          type="button"
-          class="inline-flex size-6 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:bg-[var(--bg-surface-raised)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-          :title="$t('workspace.copyMessage')"
-          :aria-label="$t('workspace.copyMessage')"
-          data-testid="copy-user-message"
-          @click="copyMessage"
-        >
-          <Check v-if="copyState === 'copied'" class="size-3.5" />
-          <Copy v-else class="size-3.5" />
-        </button>
-      </div>
+      <MessageActions v-if="!embedded" :text="messageCopyText" role="user" />
     </template>
 
     <template v-else-if="message.role === 'assistant'">
       <div class="assistant-message-body space-y-2" @click.capture="openExternalLink">
         <template v-for="(block, i) in message.content" :key="i">
           <p
-            v-if="block.type === 'text' && markdownFailed"
+            v-if="block.type === 'text' && block.text.trim() && markdownFailed"
             class="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]"
           >
             {{ block.text }}
           </p>
-          <Suspense v-else-if="block.type === 'text'">
+          <Suspense v-else-if="block.type === 'text' && block.text.trim()">
             <StreamingMarkdown
               :value="block.text"
               :options="markdownOptions"
@@ -288,23 +293,25 @@ onBeforeUnmount(() => {
           </Suspense>
           <details
             v-else-if="block.type === 'thinking'"
-            open
             data-testid="thinking-details"
-            class="thinking-hud rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1"
+            class="thinking-hud"
           >
-            <summary class="cursor-pointer text-[11px] text-[var(--text-tertiary)]">
-              <span
-                class="cockpit-only mr-1 inline font-[family-name:var(--font-mono)] text-[8px] tracking-[0.14em] text-[var(--accent)]"
-              >
-                AI PROCESS HUD ·
-              </span>
+            <summary class="thinking-summary">
+              <Brain aria-hidden="true" class="size-3.5 shrink-0" />
               {{ $t('workspace.thinking') }}
+              <ChevronRight aria-hidden="true" class="thinking-chevron ml-auto size-3 shrink-0" />
             </summary>
             <p class="mt-1 whitespace-pre-wrap text-[12px] text-[var(--text-secondary)]">
               {{ block.thinking || (block.deferred ? $t('workspace.thinkingDeferred') : '') }}
             </p>
           </details>
-          <ToolCallView v-else-if="block.type === 'toolCall'" :block="block" />
+          <ToolCallView
+            v-else-if="block.type === 'toolCall'"
+            :block="block"
+            :result="toolResults?.get(block.toolCallId)?.message"
+            :result-entry-id="toolResults?.get(block.toolCallId)?.entryId"
+            :running="activityRunning && pendingToolCalls?.has(block.toolCallId)"
+          />
           <button
             v-else-if="block.type === 'image' && imageSource(block)"
             type="button"
@@ -330,50 +337,44 @@ onBeforeUnmount(() => {
         <FileChangesCard v-if="fileChanges && !streaming" :changes="fileChanges" />
       </div>
 
-      <div
-        v-if="!streaming"
-        class="message-actions mt-1 flex items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
-      >
-        <button
-          type="button"
-          class="inline-flex size-6 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:bg-[var(--bg-surface-raised)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-          :title="$t('workspace.copyMessage')"
-          :aria-label="$t('workspace.copyMessage')"
-          data-testid="copy-assistant-message"
-          @click="copyMessage"
-        >
-          <Check v-if="copyState === 'copied'" class="size-3.5" />
-          <Copy v-else class="size-3.5" />
-        </button>
-      </div>
+      <MessageActions
+        v-if="!embedded && !streaming && messageCopyText.trim()"
+        :text="messageCopyText"
+        role="assistant"
+      />
     </template>
 
     <details
-      v-else-if="message.role === 'toolResult'"
-      open
-      data-testid="tool-result-details"
-      class="tool-result-hud rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+      v-else-if="isCompaction"
+      data-testid="compaction-details"
+      class="thinking-hud"
+      @toggle="compactionOpen = ($event.target as HTMLDetailsElement).open"
     >
-      <summary
-        class="cursor-pointer px-2.5 py-1.5 text-[10.5px] font-medium uppercase tracking-[0.05em] text-[var(--text-tertiary)] select-none"
-      >
-        {{ $t('workspace.roleTool') }}
+      <summary class="thinking-summary">
+        <Archive aria-hidden="true" class="size-3.5 shrink-0" />
+        {{ $t('workspace.compactDone') }}
+        <ChevronRight aria-hidden="true" class="thinking-chevron size-3 shrink-0" />
       </summary>
       <pre
-        class="max-h-[32rem] overflow-auto whitespace-pre-wrap border-t border-[var(--border-subtle)] px-3 py-2 font-[family-name:var(--font-mono)] text-[11.5px]"
-        :class="message.isError ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'"
-        v-text="toolResultText"
-      />
+        v-if="compactionOpen"
+        class="max-h-80 overflow-auto whitespace-pre-wrap border-l border-[var(--border-subtle)] pl-3 text-[12px] leading-relaxed text-[var(--text-secondary)]"
+        >{{
+          message.role === 'custom' && typeof message.content === 'string' ? message.content : ''
+        }}</pre>
     </details>
 
-    <pre
-      v-else-if="message.role === 'bashExecution'"
-      class="bash-message-body overflow-x-auto whitespace-pre-wrap rounded-[var(--radius-sm)] bg-[var(--bg-surface)] px-3 py-2 font-[family-name:var(--font-mono)] text-[11.5px] text-[var(--text-secondary)]"
-      v-text="bashText"
+    <ToolCallView
+      v-else-if="standaloneTool"
+      :data-testid="
+        message.role === 'toolResult' ? 'tool-result-details' : 'bash-execution-details'
+      "
+      :block="standaloneTool.block"
+      :result="standaloneTool.result"
+      :hide-input="message.role === 'toolResult'"
     />
 
     <p v-else class="whitespace-pre-wrap text-[13px] text-[var(--text-secondary)]">
-      {{ typeof message.content === 'string' ? message.content : '' }}
+      {{ message.role === 'custom' && typeof message.content === 'string' ? message.content : '' }}
     </p>
 
     <BranchNavigator v-if="entryId" :entry-id="entryId" />
@@ -385,7 +386,8 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.message-hud {
+.message-hud,
+.message-part {
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -393,6 +395,38 @@ onBeforeUnmount(() => {
   overflow-wrap: anywhere;
 }
 
+.thinking-summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+  list-style: none;
+}
+.thinking-summary::-webkit-details-marker {
+  display: none;
+}
+.thinking-summary:hover {
+  color: var(--text-primary);
+}
+.thinking-summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.thinking-hud[open] .thinking-chevron {
+  transform: rotate(90deg);
+}
+.thinking-hud > p {
+  max-height: 20rem;
+  overflow: auto;
+  margin: 3px 0 10px 7px;
+  padding: 6px 13px;
+  border-left: 1px solid var(--border-subtle);
+  line-height: 1.6;
+}
 .message-role-label {
   display: flex;
   align-items: center;

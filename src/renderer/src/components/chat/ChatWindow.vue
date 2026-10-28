@@ -2,7 +2,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import MessageView from './MessageView.vue'
 import MessageHistory from './MessageHistory.vue'
 import FullHistoryDialog from './FullHistoryDialog.vue'
 import ConversationWidthHandles from './ConversationWidthHandles.vue'
@@ -89,6 +88,12 @@ const {
   bind: bindChatScroll,
   unbind: unbindChatScroll
 } = useStickToBottom(scroller, scrollContent)
+
+function onTranscriptClick(event: MouseEvent) {
+  // Opening saved activity is an explicit reading action; keep its row in view
+  // when the disclosure changes the transcript height.
+  if ((event.target as HTMLElement | null)?.closest('summary')) releaseFollow()
+}
 
 function focusComposer() {
   composer.value?.focus()
@@ -354,7 +359,12 @@ function duration(value: number): string {
         @touchmove.passive="onScrollerTouchMove"
         @pointerdown="onScrollerPointerDown"
       >
-        <div ref="scrollContent" data-chat-band class="chat-scroll-content min-w-0">
+        <div
+          ref="scrollContent"
+          data-chat-band
+          class="chat-scroll-content min-w-0"
+          @click.capture="onTranscriptClick"
+        >
           <EmptyState
             v-if="!persistedMessages.length && !liveMessage"
             :title="$t('workspace.emptyChat')"
@@ -362,17 +372,12 @@ function duration(value: number): string {
             :icon="MessageSquare"
           />
           <MessageHistory
+            :key="sessions.currentId ?? 'new-chat'"
             :items="persistedMessages"
             :user-name="userName"
             :assistant-name="assistantName"
-          />
-          <MessageView
-            v-if="liveMessage"
-            key="streaming-message"
-            :message="liveMessage"
-            :user-name="userName"
-            :assistant-name="assistantName"
-            streaming
+            :running="agent.isBusy(sessions.currentId)"
+            :live-message="liveMessage"
           />
           <div v-if="agent.error" role="alert" class="mt-2 text-[12px] [overflow-wrap:anywhere]">
             <p class="text-[var(--danger)]">

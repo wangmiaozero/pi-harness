@@ -10,8 +10,15 @@ function hasImageData(value: unknown): boolean {
 
 export function hasRenderableMessageContent(message: AgentMessage): boolean {
   switch (message.role) {
-    case 'user':
     case 'toolResult':
+      return (
+        hasText(message.toolName) ||
+        hasText(message.toolCallId) ||
+        message.content.some((block) =>
+          block.type === 'text' ? hasText(block.text) : hasImageData(block.data)
+        )
+      )
+    case 'user':
       if (typeof message.content === 'string') return hasText(message.content)
       return message.content.some((block) =>
         block.type === 'text' ? hasText(block.text) : hasImageData(block.data)

@@ -16,6 +16,11 @@ test.describe('Application shell', () => {
     await expect.poll(() => window.evaluate((window) => window.isMaximized())).toBe(true)
     await area.dblclick({ position: { x: 70, y: 16 } })
     await expect.poll(() => window.evaluate((window) => window.isMaximized())).toBe(false)
+    const rightEdge = (await area.boundingBox())!.width - 40
+    await area.dblclick({ position: { x: rightEdge, y: 16 } })
+    await expect.poll(() => window.evaluate((window) => window.isMaximized())).toBe(true)
+    await area.dblclick({ position: { x: (await area.boundingBox())!.width - 40, y: 16 } })
+    await expect.poll(() => window.evaluate((window) => window.isMaximized())).toBe(false)
   })
   test('operates the leading window controls', async ({ page, electronApp }) => {
     test.skip(process.platform === 'win32', 'Windows uses trailing window controls')
@@ -25,8 +30,8 @@ test.describe('Application shell', () => {
     await expect(controls).toHaveCSS('transform', 'none')
     const dragArea = page.getByTestId('titlebar-drag-area')
     await expect(dragArea).toHaveCSS('-webkit-app-region', 'drag')
-    // The whole titlebar is one drag region; functional controls opt out via .no-drag.
-    await expect(page.locator('header.app-titlebar')).toHaveCSS('-webkit-app-region', 'drag')
+    // The header stays non-draggable; only the empty drag area opts in.
+    await expect(page.locator('header.app-titlebar')).not.toHaveCSS('-webkit-app-region', 'drag')
     await expect(page.locator('.starship-search-trigger')).toHaveCSS(
       '-webkit-app-region',
       'no-drag'
@@ -41,6 +46,11 @@ test.describe('Application shell', () => {
         'no-drag'
       )
     }
+    const [dragBox, controlsBox] = await Promise.all([
+      dragArea.boundingBox(),
+      controls.boundingBox()
+    ])
+    expect(dragBox!.x).toBeGreaterThanOrEqual(controlsBox!.x + controlsBox!.width)
     await page.getByTestId('titlebar-window-maximize').click()
     await expect
       .poll(() =>
@@ -99,8 +109,8 @@ test.describe('Application shell', () => {
   })
 
   test('keeps functional titlebar controls non-draggable on every platform', async ({ page }) => {
-    // The whole titlebar is one drag region; functional controls must opt out.
-    await expect(page.locator('header.app-titlebar')).toHaveCSS('-webkit-app-region', 'drag')
+    // Keep all functional controls outside the native drag rectangle.
+    await expect(page.locator('header.app-titlebar')).not.toHaveCSS('-webkit-app-region', 'drag')
     await expect(page.locator('.app-titlebar-brand-button')).toHaveCSS(
       '-webkit-app-region',
       'no-drag'

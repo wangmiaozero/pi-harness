@@ -62,10 +62,12 @@ async function close() {
 
 <template>
   <header
-    class="app-titlebar drag-region relative flex h-[var(--titlebar-height)] shrink-0 items-center bg-[var(--bg-titlebar)]"
-    :class="showLeadingWindowControls ? 'pl-[112px] pr-3' : 'pl-3 pr-1'"
+    class="app-titlebar relative flex h-[var(--titlebar-height)] shrink-0 items-center bg-[var(--bg-titlebar)]"
+    :class="
+      showLeadingWindowControls ? (mingDynasty ? 'pl-[112px] pr-3' : 'pl-[88px] pr-3') : 'pl-3 pr-1'
+    "
   >
-    <!-- Keep the native drag rectangle physically clear of the window controls. -->
+    <!-- Only this empty area is draggable; controls never overlap a native drag region. -->
     <div class="drag-region min-w-0 flex-1 self-stretch" data-testid="titlebar-drag-area" />
     <div
       v-if="showLeadingWindowControls"

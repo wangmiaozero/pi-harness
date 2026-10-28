@@ -2,6 +2,16 @@
 
 Release notes describe user-visible additions and fixes. Entries under Unreleased are available in the development build and have not been published in a release.
 
+## 2.3.4 — 2026-10-28
+
+### Fixed
+
+- Combined assistant replies into one response per prompt, with tool activity and context summaries collapsed until opened.
+- Added two levels of detail for execution activity and kept the reading position when expanding output.
+- Fixed title bar window controls and dragging and double-click resizing in empty title bar areas.
+- Adjusted title bar icon sizing and simplified tool activity styling in portrait themes.
+- Removed distracting input artwork and improved draft text visibility in the snowy palace theme.
+
 ## 2.3.3 — 2026-10-27
 
 ### Added
