@@ -9,6 +9,12 @@ Release notes describe user-visible additions and fixes. Entries under Unrelease
 - Added a BigFish desktop pet: a transparent always-on-top companion that reacts to agent activity (thinking, coding, tool calls, waiting), with drag physics, status bubbles, multi-monitor support and per-monitor position memory. Off by default; enable it in Settings.
 - Added third-party pet pack support: import pet packs as ZIP files or local folders from Settings, switch between installed packs live, and uninstall user packs. Imports are validated (manifest schema, frame counts, WebP integrity, preview images) and installed atomically so a failed import never leaves a broken state. Pack format: see `docs/desktop-pet/PET_PACK_FORMAT.md`.
 
+### Fixed
+
+- Fixed the desktop pet blocking clicks on windows underneath it: pet frames are now served with CORS headers and loaded `crossorigin`, so the alpha hit-test canvas is no longer tainted and transparent areas pass clicks through (only the character body and bubble stay interactive).
+- The desktop pet now appears in the bottom-right corner of the screen on first launch instead of centered over the work area, and a saved position is clamped back on screen when its display disappears.
+- Added the missing Desktop Pet entry to the settings sidebar.
+
 ## 2.3.4 — 2026-10-28
 
 ### Fixed

@@ -34,7 +34,7 @@ export function registerPetProtocolScheme(): void {
   protocol.registerSchemesAsPrivileged([
     {
       scheme: PET_PROTOCOL_SCHEME,
-      privileges: { standard: true, secure: true, supportFetchAPI: true }
+      privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true }
     }
   ])
 }
@@ -139,7 +139,12 @@ export function installPetProtocolHandler(packRoots: string[]): void {
         headers: {
           'content-type': contentTypeFor(filePath),
           'content-length': String(size),
-          'cache-control': 'no-store'
+          'cache-control': 'no-store',
+          // Cross-origin-safe delivery: the pet renderer (file:// / dev http)
+          // draws frames into a canvas for alpha hit-testing; without CORS the
+          // canvas taints and getImageData throws, permanently disabling
+          // click-through (the whole transparent window then swallows clicks).
+          'access-control-allow-origin': '*'
         }
       })
     } catch {

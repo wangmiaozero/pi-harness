@@ -17,7 +17,25 @@ export interface PetWindowState {
   y: number | null
 }
 
-const DEFAULT_PET_WINDOW_STATE: PetWindowState = { x: null, y: null }
+interface WorkArea {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export const DEFAULT_PET_WINDOW_STATE: PetWindowState = { x: null, y: null }
+
+/** Margin kept between the pet window and the work-area edges on first launch. */
+const FIRST_LAUNCH_MARGIN_PX = 24
+
+/** Bottom-right corner of `area` for a window of the given size. */
+function bottomRight(area: WorkArea, width: number, height: number): { x: number; y: number } {
+  return {
+    x: Math.round(area.x + Math.max(0, area.width - width - FIRST_LAUNCH_MARGIN_PX)),
+    y: Math.round(area.y + Math.max(0, area.height - height - FIRST_LAUNCH_MARGIN_PX))
+  }
+}
 
 export function createPetWindowStateStore(): JsonStore<PetWindowState> {
   return new JsonStore<PetWindowState>(
@@ -48,8 +66,10 @@ export function resolvePetWindowPosition(
     )
     if (home) return saved
   }
-  // First launch or the saved display disappeared: center on the nearest
-  // display to the saved point, else the primary display.
+  // First launch: park the pet in the bottom-right corner of the primary
+  // display's work area, matching the upstream reference (dsh-dafeiyu
+  // PetController.restorePosition). A centered transparent window lands on
+  // top of whatever the user is doing — e.g. the settings page.
   const primary = screen.getPrimaryDisplay()
   const target = saved
     ? displays.reduce((best, d) => {
@@ -63,9 +83,16 @@ export function resolvePetWindowPosition(
       }, primary)
     : primary
   const area = target.workArea
+  if (!saved) return bottomRight(area, width, height)
+  // Saved display disappeared: keep the relative position, clamped inside
+  // the nearest display's work area (never negative if the window is larger).
   return {
-    x: Math.round(area.x + Math.max(0, (area.width - width) / 2)),
-    y: Math.round(area.y + Math.max(0, (area.height - height) / 2))
+    x: Math.round(
+      Math.min(Math.max(saved.x, area.x), area.x + Math.max(0, area.width - width))
+    ),
+    y: Math.round(
+      Math.min(Math.max(saved.y, area.y), area.y + Math.max(0, area.height - height))
+    )
   }
 }
 

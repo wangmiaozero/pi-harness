@@ -231,6 +231,7 @@ export class PetWindowController {
     const window = this.window
     if (!window || window.isDestroyed()) return
     try {
+      log.pet.debug(`click-through ${through ? 'on' : 'off'}`)
       window.setIgnoreMouseEvents(through, { forward: true })
     } catch (error) {
       log.pet.error('setClickThrough failed:', error)
