@@ -60,6 +60,7 @@ class PetApp {
   private lastActiveAgents = 0
   private lastClickThroughThrough = false
   private clickThroughAt = 0
+  private alphaSamplingFailed = false
 
   async boot(): Promise<void> {
     const api = window.piSwitchPet
@@ -362,7 +363,19 @@ class PetApp {
     if (now - this.clickThroughAt < CLICK_THROUGH_SAMPLE_MS) return
     this.clickThroughAt = now
     const rect = player.element.getBoundingClientRect()
-    const alpha = player.alphaAt(event.clientX - rect.left, event.clientY - rect.top)
+    let alpha: number
+    try {
+      alpha = player.alphaAt(event.clientX - rect.left, event.clientY - rect.top)
+    } catch (error) {
+      // Fail safe: without pixel data we cannot know if the point is
+      // transparent, so keep the window interactive (the fish stays
+      // draggable) instead of blocking clicks on a wrong guess.
+      if (!this.alphaSamplingFailed) {
+        this.alphaSamplingFailed = true
+        console.error('[pet] alpha sampling failed; click-through disabled', error)
+      }
+      return
+    }
     const through = alpha < ALPHA_THRESHOLD
     if (through !== this.lastClickThroughThrough) {
       this.lastClickThroughThrough = through

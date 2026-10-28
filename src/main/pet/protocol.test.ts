@@ -1,14 +1,22 @@
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   PET_PROTOCOL_HOST,
   PET_PROTOCOL_SCHEME,
   findExistingPetResource,
+  installPetProtocolHandler,
+  registerPetProtocolScheme,
   resolvePetResourcePath
 } from './protocol'
 import { createPackDir } from './test-fixtures'
+
+const protocolMocks = vi.hoisted(() => ({
+  registerSchemesAsPrivileged: vi.fn(),
+  handle: vi.fn()
+}))
+vi.mock('electron', () => ({ protocol: protocolMocks }))
 
 const USER_ROOT = path.resolve('/tmp/pet-user')
 const BUNDLED_ROOT = path.resolve('/tmp/pet-bundled')
@@ -104,5 +112,42 @@ describe('findExistingPetResource', () => {
   it('returns null for invalid URLs regardless of roots', async () => {
     expect(await findExistingPetResource([userRoot, bundledRoot], 'not a url')).toBeNull()
     expect(await findExistingPetResource([userRoot, bundledRoot], url('mypack/manifest.json'))).toBeNull()
+  })
+})
+
+describe('pet protocol CORS support (click-through hit-testing)', () => {
+  beforeEach(() => {
+    protocolMocks.registerSchemesAsPrivileged.mockClear()
+    protocolMocks.handle.mockClear()
+  })
+
+  it('registers the scheme with corsEnabled so frame canvases stay un-tainted', () => {
+    registerPetProtocolScheme()
+    expect(protocolMocks.registerSchemesAsPrivileged).toHaveBeenCalledTimes(1)
+    const schemes = protocolMocks.registerSchemesAsPrivileged.mock.calls[0][0] as Array<{
+      scheme: string
+      privileges: Record<string, unknown>
+    }>
+    expect(Array.isArray(schemes)).toBe(true)
+    const arg = schemes[0]
+    expect(arg.scheme).toBe(PET_PROTOCOL_SCHEME)
+    expect(arg.privileges.corsEnabled).toBe(true)
+  })
+
+  it('serves frames with access-control-allow-origin so alphaAt can read pixels', async () => {
+    const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'petproto-cors-'))
+    try {
+      await createPackDir(tmpRoot, { id: 'corspack', useClipsLayout: false })
+      installPetProtocolHandler([tmpRoot])
+      expect(protocolMocks.handle).toHaveBeenCalledTimes(1)
+      const handler = protocolMocks.handle.mock.calls[0][1] as (
+        request: { url: string }
+      ) => Promise<Response>
+      const response = await handler({ url: url('corspack/idle/idle_001.webp') })
+      expect(response.status).toBe(200)
+      expect(response.headers.get('access-control-allow-origin')).toBe('*')
+    } finally {
+      await fs.rm(tmpRoot, { recursive: true, force: true })
+    }
   })
 })

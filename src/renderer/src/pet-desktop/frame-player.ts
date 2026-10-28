@@ -26,6 +26,15 @@ export function frameUrl(packId: string, clipDir: string, file: string): string 
   return `pi-pet://petpack/${packId}/${clipDir}/${file}`
 }
 
+/** Frames load from `pi-pet://` (cross-origin): CORS-clean for canvas sampling. */
+function createFrameImage(): HTMLImageElement {
+  const image = new Image()
+  image.crossOrigin = 'anonymous'
+  image.draggable = false
+  image.alt = ''
+  return image
+}
+
 interface PlayingClip {
   info: PetPackClipInfo
   frame: number
@@ -45,9 +54,7 @@ export class FramePlayer {
   onClipEnd: (() => void) | null = null
 
   constructor(private readonly packId: string, private readonly manifest: PetPackManifest) {
-    this.img = document.createElement('img')
-    this.img.draggable = false
-    this.img.alt = ''
+    this.img = createFrameImage()
     this.sampler = document.createElement('canvas')
     this.sampler.width = manifest.baseWidth
     this.sampler.height = manifest.baseHeight
@@ -71,7 +78,7 @@ export class FramePlayer {
     if (!info) return
     const images: HTMLImageElement[] = []
     for (let i = 0; i < info.frames; i += 1) {
-      const image = new Image()
+      const image = createFrameImage()
       image.src = frameUrl(this.packId, clipDir, frameFileName(clipDir, i))
       images.push(image)
     }
