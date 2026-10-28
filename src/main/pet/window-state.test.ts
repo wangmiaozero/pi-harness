@@ -23,7 +23,11 @@ vi.mock('electron', () => ({
 }))
 
 import { JsonStore } from '../services/storage'
-import { DEFAULT_PET_WINDOW_STATE, resolvePetWindowPosition } from './window-state'
+import {
+  DEFAULT_PET_WINDOW_STATE,
+  resolvePetWindowPosition,
+  clampPetPosition
+} from './window-state'
 
 async function makeStore(state: { x: number | null; y: number | null }) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'petwinstate-'))
@@ -76,6 +80,25 @@ describe('resolvePetWindowPosition', () => {
     } finally {
       await fs.rm(dir, { recursive: true, force: true })
     }
+  })
+
+  it('repairs an old saved position with the body partly off screen', async () => {
+    const { store, dir } = await makeStore({ x: 1700, y: 1100 })
+    try {
+      expect(resolvePetWindowPosition(store, WINDOW_W, WINDOW_H)).toEqual({
+        x: 1728 - WINDOW_W,
+        y: 1117 - WINDOW_H
+      })
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('keeps the entire window inside each edge and supports negative display coordinates', () => {
+    expect(clampPetPosition(1700, 1100, WINDOW_W, WINDOW_H)).toEqual({ x: 1434, y: 882 })
+    expect(clampPetPosition(-100, -100, WINDOW_W, WINDOW_H)).toEqual({ x: 0, y: 0 })
+    screenMocks.displays.push({ id: 2, workArea: { x: -1200, y: 0, width: 1200, height: 900 } })
+    expect(clampPetPosition(-1300, 850, WINDOW_W, WINDOW_H)).toEqual({ x: -1200, y: 665 })
   })
 
   it('never produces negative coordinates when the window exceeds the work area', async () => {

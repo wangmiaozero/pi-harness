@@ -64,7 +64,7 @@ export function resolvePetWindowPosition(
         saved.x < d.workArea.x + d.workArea.width &&
         saved.y < d.workArea.y + d.workArea.height
     )
-    if (home) return saved
+    if (home) return clampPetPosition(saved.x, saved.y, width, height)
   }
   // First launch: park the pet in the bottom-right corner of the primary
   // display's work area, matching the upstream reference (dsh-dafeiyu
@@ -87,18 +87,14 @@ export function resolvePetWindowPosition(
   // Saved display disappeared: keep the relative position, clamped inside
   // the nearest display's work area (never negative if the window is larger).
   return {
-    x: Math.round(
-      Math.min(Math.max(saved.x, area.x), area.x + Math.max(0, area.width - width))
-    ),
-    y: Math.round(
-      Math.min(Math.max(saved.y, area.y), area.y + Math.max(0, area.height - height))
-    )
+    x: Math.round(Math.min(Math.max(saved.x, area.x), area.x + Math.max(0, area.width - width))),
+    y: Math.round(Math.min(Math.max(saved.y, area.y), area.y + Math.max(0, area.height - height)))
   }
 }
 
 /**
  * Clamp a moved window position so the pet can never leave screen space.
- * Keeps at least 1/4 of the pet on the display it is currently on.
+ * Keeps the complete window visible, including after restoring old positions.
  */
 export function clampPetPosition(
   x: number,
@@ -106,7 +102,10 @@ export function clampPetPosition(
   width: number,
   height: number
 ): { x: number; y: number } {
-  const workAreas = [screen.getPrimaryDisplay().workArea, ...screen.getAllDisplays().map((d) => d.workArea)]
+  const workAreas = [
+    screen.getPrimaryDisplay().workArea,
+    ...screen.getAllDisplays().map((d) => d.workArea)
+  ]
   // Pick the work area containing (or nearest to) the pet's center.
   const centerX = x + width / 2
   const centerY = y + height / 2
@@ -116,10 +115,10 @@ export function clampPetPosition(
     const bd = Math.hypot(centerX - (best.x + best.width / 2), centerY - (best.y + best.height / 2))
     return Math.hypot(dx, dy) < bd ? a : best
   }, workAreas[0])
-  const minX = area.x - width / 2
-  const maxX = area.x + area.width - width / 2
-  const minY = area.y - height / 2
-  const maxY = area.y + area.height - height / 2
+  const minX = area.x
+  const maxX = area.x + Math.max(0, area.width - width)
+  const minY = area.y
+  const maxY = area.y + Math.max(0, area.height - height)
   return {
     x: Math.round(Math.min(maxX, Math.max(minX, x))),
     y: Math.round(Math.min(maxY, Math.max(minY, y)))

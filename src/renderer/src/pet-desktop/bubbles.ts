@@ -4,7 +4,7 @@
  * `pet.bubble.*` keys used by the in-app mascot locales.
  */
 
-import type { AppLanguage, AppLocale } from '@shared/constants/language'
+import { resolveAppLocale, type AppLanguage, type AppLocale } from '@shared/constants/language'
 
 export interface BubbleMessages {
   idle: string
@@ -145,8 +145,7 @@ export const BUBBLE_MESSAGES: Record<AppLocale, BubbleMessages> = {
   }
 }
 
-/** `auto` and unknown locales fall back to English. */
+/** Use the same system-locale resolution as the application UI. */
 export function bubbleMessages(language: AppLanguage): BubbleMessages {
-  if (language === 'auto') return BUBBLE_MESSAGES['en-US']
-  return BUBBLE_MESSAGES[language] ?? BUBBLE_MESSAGES['en-US']
+  return BUBBLE_MESSAGES[resolveAppLocale(language, navigator.language)]
 }

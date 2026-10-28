@@ -865,7 +865,8 @@ export interface PetDragEndPayload {
 export type { PetPackSummary, PetPackDetail, PetPackInstallResult }
 
 export interface UiCommandPayload {
-  type: 'open-settings' | 'focus'
+  type: 'open-settings' | 'focus' | 'refresh-settings'
+  section?: 'desktop-pet'
 }
 
 export interface PiSwitchMoveResult {

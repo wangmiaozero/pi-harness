@@ -97,41 +97,64 @@ class PetApp {
     this.bindPointer(api)
     window.addEventListener('contextmenu', (event) => {
       event.preventDefault()
-      if (!this.settings) return
-      showPetMenu({
-        language: this.language,
-        alwaysOnTop: this.settings.alwaysOnTop,
-        reducedMotion: this.settings.reducedMotion,
-        onAction: (action) => void api.menuAction(action)
-      })
+      this.openMenu()
     })
     window.addEventListener('blur', () => {
+      this.lastClickThroughThrough = false
       void api.setClickThrough(false)
     })
   }
 
+  private openMenu(): void {
+    if (!this.settings) return
+    this.physics?.cancel()
+    this.lastClickThroughThrough = false
+    void window.piSwitchPet?.setClickThrough(false)
+    showPetMenu({
+      language: this.language,
+      alwaysOnTop: this.settings.alwaysOnTop,
+      reducedMotion: this.settings.reducedMotion,
+      onAction: (action) => void window.piSwitchPet?.menuAction(action)
+    })
+  }
+
   private applyContext(context: PetWindowContextPayload): void {
+    const previousLanguage = this.language
     const previousPackId = this.manifest?.id ?? null
+    this.physics?.cancel()
     this.manifest = context.manifest
     this.settings = context.settings
     this.language = context.language
+    document.documentElement.lang = context.language
+    if (previousLanguage !== this.language) {
+      if (this.bubble?.style.display === 'block') this.showBubbleFor(this.currentState)
+      if (document.getElementById('pet-context-menu')) this.openMenu()
+    }
     if (!this.player && context.manifest) {
       this.player = new FramePlayer(context.manifest.id, context.manifest)
-      this.physics = new ReleasePhysics(async (dx, dy) => {
-        const result = await window.piSwitchPet?.moveBy({ dx, dy })
-        return result ? { x: result.x, y: result.y } : null
-      })
+      this.physics = new ReleasePhysics(
+        async (dx, dy) => {
+          const result = await window.piSwitchPet?.moveBy({ dx, dy })
+          return result ? { x: result.x, y: result.y } : null
+        },
+        () => {
+          void window.piSwitchPet?.endDrag({ vx: 0, vy: 0 }).catch(() => {})
+        }
+      )
     } else if (this.player && context.manifest && previousPackId !== context.manifest.id) {
       // Live pack switch: tear down cached frames of the old pack and build
       // a fresh player for the new one.
       this.player.dispose()
       this.player = new FramePlayer(context.manifest.id, context.manifest)
-      if (this.fish) this.fish.appendChild(this.player.element)
+      if (this.fish) this.fish.replaceChildren(this.player.element)
       this.interaction = null
       this.renderState(this.currentState, true)
     }
     if (this.fish) {
-      this.fish.style.opacity = String(this.settings?.opacity ?? 1)
+      this.fish.style.height = `${this.settings.size}px`
+      if (this.player) {
+        this.player.element.style.cssText = `display:block;height:100%;width:auto;max-width:100%;object-fit:contain`
+      }
     }
     if (this.bubble) {
       this.bubble.style.opacity = String(this.settings?.bubbleOpacity ?? 1)
@@ -165,9 +188,12 @@ class PetApp {
     ].join(';')
 
     this.fish = document.createElement('div')
-    this.fish.style.cssText =
-      'flex:1;display:flex;align-items:flex-end;justify-content:center;cursor:grab'
-    if (this.player) this.fish.appendChild(this.player.element)
+    this.fish.style.cssText = `position:absolute;bottom:0;left:0;right:0;height:${this.settings?.size ?? 160}px;display:flex;align-items:flex-end;justify-content:center;cursor:grab;touch-action:none`
+    if (this.player) {
+      this.player.element.style.cssText =
+        'display:block;height:100%;width:auto;max-width:100%;object-fit:contain'
+      this.fish.replaceChildren(this.player.element)
+    }
 
     root.appendChild(this.bubble)
     root.appendChild(this.fish)
@@ -198,7 +224,11 @@ class PetApp {
     if (state === 'idle' && this.settings?.idleVariants && !this.settings?.reducedMotion) {
       // Occasionally splice in an idle variant between loops.
       if (Math.random() < 0.12) {
-        const variant = player.has('idle_stretch') ? 'idle_stretch' : player.has('idle_yawn') ? 'idle_yawn' : null
+        const variant = player.has('idle_stretch')
+          ? 'idle_stretch'
+          : player.has('idle_yawn')
+            ? 'idle_yawn'
+            : null
         if (variant) {
           this.playInteraction({ clip: variant, loop: false })
           return
@@ -212,10 +242,14 @@ class PetApp {
     const player = this.player
     if (!player) return
     this.interaction = clip
-    player.play(clip.clip, () => {
-      this.interaction = null
-      if (!this.dragging) this.playStateClip(this.currentState)
-    })
+    player.play(
+      clip.clip,
+      () => {
+        this.interaction = null
+        if (!this.dragging) this.playStateClip(this.currentState)
+      },
+      clip.loop
+    )
   }
 
   private showBubbleFor(state: PetRuntimeState): void {
@@ -255,22 +289,18 @@ class PetApp {
     if (!fish) return
     let lastMoveAt = 0
     let lastMovePos = { x: 0, y: 0 }
-    const velocity = () => {
-      const now = performance.now()
-      const dt = Math.max(16, now - lastMoveAt)
-      return {
-        vx: ((lastMovePos.x - this.pointerDownPos.x) / dt) * 1000,
-        vy: ((lastMovePos.y - this.pointerDownPos.y) / dt) * 1000
-      }
-    }
+    let releaseVelocity = { x: 0, y: 0 }
+    let dragGeneration = 0
 
     fish.addEventListener('pointerdown', (event) => {
       if (event.button !== 0) return
       event.preventDefault()
       dismissPetMenu()
+      dragGeneration += 1
       this.dragging = false
       this.pointerDownAt = performance.now()
-      this.pointerDownPos = { x: event.clientX, y: event.clientY }
+      this.pointerDownPos = { x: event.screenX, y: event.screenY }
+      releaseVelocity = { x: 0, y: 0 }
       lastMoveAt = this.pointerDownAt
       lastMovePos = { ...this.pointerDownPos }
       this.physics?.cancel()
@@ -279,8 +309,8 @@ class PetApp {
 
     fish.addEventListener('pointermove', (event) => {
       if (this.pointerDownAt === 0) return
-      const dx = event.clientX - this.pointerDownPos.x
-      const dy = event.clientY - this.pointerDownPos.y
+      const dx = event.screenX - this.pointerDownPos.x
+      const dy = event.screenY - this.pointerDownPos.y
       const moved = Math.hypot(dx, dy)
       if (!this.dragging && moved > TAP_MAX_MOVE_PX) {
         this.dragging = true
@@ -288,9 +318,14 @@ class PetApp {
         if (this.player?.has('dragging')) this.playInteraction({ clip: 'dragging', loop: true })
       }
       if (!this.dragging) return
-      lastMoveAt = performance.now()
-      lastMovePos = { x: event.clientX, y: event.clientY }
-      void api.moveBy({ dx: Math.round(event.movementX), dy: Math.round(event.movementY) })
+      const now = performance.now()
+      const stepX = event.screenX - lastMovePos.x
+      const stepY = event.screenY - lastMovePos.y
+      const dt = Math.max(16, now - lastMoveAt)
+      releaseVelocity = { x: (stepX / dt) * 1000, y: (stepY / dt) * 1000 }
+      lastMoveAt = now
+      lastMovePos = { x: event.screenX, y: event.screenY }
+      void api.moveBy({ dx: Math.round(stepX), dy: Math.round(stepY) })
     })
 
     fish.addEventListener('pointerup', (event) => {
@@ -300,30 +335,38 @@ class PetApp {
       this.dragging = false
       this.pointerDownAt = 0
       if (wasDragging) {
-        const v = velocity()
+        const v = performance.now() - lastMoveAt <= 80 ? releaseVelocity : { x: 0, y: 0 }
+        const generation = dragGeneration
+        this.interaction = null
         if (this.player?.has('dragging_release')) {
           this.playInteraction({ clip: 'dragging_release', loop: false })
+        } else {
+          this.playStateClip(this.currentState)
         }
-        if (this.settings?.physics && !this.settings?.reducedMotion) {
-          void api
-            .endDrag({ vx: Math.round(v.vx), vy: Math.round(v.vy) })
-            .then((result) => {
-              // endDrag returns the work area used to anchor release physics.
-              this.physics?.launch({ x: v.vx, y: v.vy }, result?.workArea ?? null)
-            })
-            .catch(() => {
-              this.physics?.launch({ x: v.vx, y: v.vy }, null)
-            })
-        }
+        // Persist every drag, including when motion effects are disabled.
+        void api
+          .endDrag({ vx: Math.round(v.x), vy: Math.round(v.y) })
+          .then(() => {
+            if (generation !== dragGeneration || this.pointerDownAt !== 0) return
+            if (this.settings?.physics && !this.settings.reducedMotion) this.physics?.launch(v)
+          })
+          .catch(() => {
+            /* Keep the released position if the bridge is unavailable. */
+          })
         return
       }
       this.handleTap()
     })
 
     fish.addEventListener('pointercancel', () => {
+      dragGeneration += 1
+      this.physics?.cancel()
+      void api.endDrag({ vx: 0, vy: 0 })
+      this.interaction = null
       this.dragging = false
       this.pointerDownAt = 0
       fish.style.cursor = 'grab'
+      this.playStateClip(this.currentState)
     })
   }
 
@@ -357,8 +400,10 @@ class PetApp {
 
   /** Alpha-sample under the cursor so empty pixels never swallow clicks. */
   private onGlobalMove(event: MouseEvent): void {
+    // The menu is interactive even where the pet image underneath is transparent.
+    if (document.getElementById('pet-context-menu')) return
     const player = this.player
-    if (!player || this.dragging) return
+    if (!player || this.dragging || this.pointerDownAt !== 0) return
     const now = performance.now()
     if (now - this.clickThroughAt < CLICK_THROUGH_SAMPLE_MS) return
     this.clickThroughAt = now

@@ -12,7 +12,7 @@ import { attachRendererGuards } from './renderer-guards'
 import { resolvePreload } from './preload-path'
 import { installArchitectureFullscreen } from './architecture-fullscreen'
 
-export function createMainWindow(iconPath: string): BrowserWindow {
+export function createMainWindow(iconPath: string, initialHash?: string): BrowserWindow {
   const rendererEntry = path.join(import.meta.dirname, '../renderer/index.html')
   const developmentRendererUrl =
     getIsDev() && process.env['ELECTRON_RENDERER_URL'] ? process.env['ELECTRON_RENDERER_URL'] : null
@@ -78,10 +78,14 @@ export function createMainWindow(iconPath: string): BrowserWindow {
   attachRendererGuards(win, rendererUrl)
 
   if (developmentRendererUrl) {
-    void win.loadURL(developmentRendererUrl)
+    void win.loadURL(
+      initialHash
+        ? `${developmentRendererUrl.split('#')[0]}#${initialHash}`
+        : developmentRendererUrl
+    )
     log.app.info('loaded development renderer')
   } else {
-    void win.loadFile(rendererEntry)
+    void win.loadFile(rendererEntry, initialHash ? { hash: initialHash } : undefined)
   }
 
   return win

@@ -112,7 +112,7 @@ const MENU_LABELS: Record<AppLocale, MenuLabel> = {
 }
 
 export function menuLabels(language: AppLanguage): MenuLabel {
-  return MENU_LABELS[resolveAppLocale(language, '')]
+  return MENU_LABELS[resolveAppLocale(language, navigator.language)]
 }
 
 export interface PetMenuOptions {
@@ -145,10 +145,14 @@ export function showPetMenu(options: PetMenuOptions): void {
 
   const menu = document.createElement('div')
   menu.id = 'pet-context-menu'
+  menu.setAttribute('role', 'menu')
   menu.style.cssText = [
     'position:fixed',
     'z-index:2147483647',
     'min-width:180px',
+    'max-height:calc(100vh - 8px)',
+    'overflow-y:auto',
+    'box-sizing:border-box',
     'padding:4px',
     'border-radius:10px',
     'background:rgba(28,28,30,0.94)',
@@ -168,6 +172,7 @@ export function showPetMenu(options: PetMenuOptions): void {
     }
     const row = document.createElement('div')
     row.textContent = item.label
+    row.setAttribute('role', 'menuitem')
     row.style.cssText =
       'padding:6px 12px;border-radius:6px;cursor:default;white-space:nowrap;transition:background 0.12s'
     row.addEventListener('mouseenter', () => {
@@ -178,6 +183,7 @@ export function showPetMenu(options: PetMenuOptions): void {
     })
     const action = item.action
     row.addEventListener('mousedown', (event) => {
+      if (event.button !== 0) return
       event.stopPropagation()
       event.preventDefault()
       dismissPetMenu()

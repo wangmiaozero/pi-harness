@@ -89,10 +89,13 @@ onMounted(() => {
   applyVisualSkin(settings.settings)
   if (settings.settings) applyTheme(settings.settings.theme)
   uninstallShortcuts = installShortcutListener()
-  uninstallUiCommand = getApi()
-    ?.on('ui-command', (payload) => {
-      if (payload?.type === 'open-settings') void router.push('/settings')
-    })
+  uninstallUiCommand = getApi()?.on('ui-command', (payload) => {
+    if (payload?.type === 'refresh-settings') void settings.fetch()
+    if (payload?.type === 'open-settings') {
+      void settings.fetch()
+      void router.push(payload.section === 'desktop-pet' ? '/settings/desktop-pet' : '/settings')
+    }
+  })
   registerShortcut({
     id: 'command-palette',
     label: 'Command Palette',

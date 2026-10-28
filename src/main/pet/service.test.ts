@@ -25,7 +25,8 @@ const petWindowStubs = vi.hoisted(() => ({
   destroy: vi.fn(),
   getWebContents: vi.fn(() => null),
   getWindowSize: vi.fn(() => ({ width: 294, height: 235 })),
-  pushState: vi.fn()
+  pushState: vi.fn(),
+  pushConfig: vi.fn()
 }))
 
 const bridgeStubs = vi.hoisted(() => ({
@@ -74,6 +75,7 @@ vi.mock('./pack', async (importOriginal) => {
 const electronStubs = vi.hoisted(() => ({ userDataPath: '/tmp/pet-service-userdata' }))
 
 vi.mock('electron', () => ({
+  app: { getLocale: () => 'zh-CN' },
   screen: {
     getAllDisplays: () => [],
     getPrimaryDisplay: () => ({ workArea: { x: 0, y: 0, width: 1440, height: 900 } })
@@ -84,6 +86,7 @@ vi.mock('electron', () => ({
   }
 }))
 
+const { PetWindowController } = await import('./pet-window')
 const { PetService } = await import('./service')
 const { PetPackRegistry } = await import('./registry')
 const { initAppPaths } = await import('../services/app-paths')
@@ -231,6 +234,19 @@ describe('PetService pack switching', () => {
     expect(service.currentManifest()).toBeNull()
     expect(persistedDesktopPet()?.activePackId).toBe('samplepet')
     expect(petWindowStubs.setPack).not.toHaveBeenCalled()
+  })
+
+  it('starts with the saved application language and resolves auto against the system locale', async () => {
+    const currentLanguage = () => vi.mocked(PetWindowController).mock.calls.at(-1)![0].getLanguage()
+    expect(currentLanguage()).toBe('zh-CN')
+    service.setLanguage('ja-JP')
+    expect(currentLanguage()).toBe('ja-JP')
+    expect(petWindowStubs.pushConfig).toHaveBeenCalled()
+    service.setLanguage('auto')
+    expect(currentLanguage()).toBe('zh-CN')
+    await settingsStore.write({ ...settingsStore.peek(), language: 'zh-TW' })
+    new PetService(settingsStore, userRoot, { openMain: () => {}, onQuitRequest: () => {} })
+    expect(currentLanguage()).toBe('zh-TW')
   })
 
   it('exposes the registry roots used for pack lookup', () => {
