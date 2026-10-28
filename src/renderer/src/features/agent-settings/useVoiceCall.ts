@@ -31,7 +31,8 @@ function createVoiceCall() {
   let processor: AudioWorkletNode | null = null,
     input: MediaStreamAudioSourceNode | null = null,
     nextAudio = 0,
-    queuedFrames = 0
+    queuedFrames = 0,
+    audioFailures = 0
   const sources = new Set<AudioBufferSourceNode>()
   function clearAudio() {
     for (const source of sources) {
@@ -67,6 +68,7 @@ function createVoiceCall() {
     input?.disconnect()
     input = null
     clearAudio()
+    audioFailures = 0
     const ctx = context
     context = null
     if (ctx && ctx.state !== 'closed') await ctx.close().catch(() => undefined)
@@ -101,12 +103,16 @@ function createVoiceCall() {
     } else if (event.kind === 'transcript')
       transcript.value = [...transcript.value.slice(-99), { role: event.role, text: event.text }]
     else if (event.kind === 'audio' && context) {
+      const ctx = context
       try {
         const raw = atob(event.data)
+        // Odd trailing bytes are dropped; the next chunk realigns on 16-bit frames.
         if (!raw.length || raw.length % 2) return
-        const ctx = context
-        if (nextAudio - ctx.currentTime > 5)
-          throw new Error('Audio playback is too far behind. Start a new call.')
+        // Some providers (Doubao especially) burst audio faster than realtime,
+        // so the scheduled queue can drift seconds ahead of the clock. Skip to
+        // the newest audio instead of failing the call — the user just hears a
+        // brief jump. Interrupted playback goes through clearAudio() as before.
+        if (nextAudio - ctx.currentTime > 5) clearAudio()
         const view = new DataView(new ArrayBuffer(raw.length))
         for (let i = 0; i < raw.length; i++) view.setUint8(i, raw.charCodeAt(i))
         const buffer = ctx.createBuffer(1, raw.length / 2, 24000),
@@ -124,9 +130,15 @@ function createVoiceCall() {
         nextAudio = Math.max(ctx.currentTime + 0.02, nextAudio)
         source.start(nextAudio)
         nextAudio += buffer.duration
-      } catch {
-        error.value = 'Audio playback failed. Start a new call.'
-        void stop()
+        audioFailures = 0
+      } catch (cause) {
+        // A single undecodable chunk is dropped; only systematic failure —
+        // e.g. the provider switched formats mid-call — ends the call.
+        if (++audioFailures >= 8) {
+          audioFailures = 0
+          error.value = 'Audio playback failed. Start a new call.'
+          void stop()
+        } else console.warn('voice: dropped an audio chunk', cause)
       }
     }
   })

@@ -2,8 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   prepare: vi.fn(),
   get: vi.fn(),
+  start: vi.fn(async () => undefined),
   stop: vi.fn(async () => undefined),
-  onEvent: vi.fn(() => () => undefined)
+  onEvent: vi.fn((_listener: unknown) => () => undefined)
 }))
 vi.mock('@renderer/composables/useApi', () => ({
   getApi: () => ({ agentSettings: { voice: mocks } })
@@ -20,6 +21,129 @@ afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
   vi.clearAllMocks()
+})
+
+describe('voice audio playback resilience', () => {
+  // Drives the full non-codex start path with a fake AudioContext whose clock
+  // never advances, then feeds events through the captured onEvent listener.
+  async function startCall() {
+    vi.resetModules()
+    mocks.get.mockResolvedValue(settings)
+    mocks.prepare.mockResolvedValue('fixture-call')
+    mocks.start.mockResolvedValue(undefined)
+    let listener!: (event: Record<string, unknown>) => void
+    mocks.onEvent.mockImplementation((fn: unknown) => {
+      listener = fn as typeof listener
+      return () => undefined
+    })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const clock = { now: 0 }
+    const scheduled: Array<Record<string, unknown>> = []
+    class FakeAudioContext {
+      destination = {}
+      state = 'running'
+      get currentTime() {
+        return clock.now
+      }
+      async resume() {}
+      audioWorklet = { addModule: async () => undefined }
+      createMediaStreamSource = () => ({ connect() {}, disconnect() {} })
+      createBuffer = (_channels: number, length: number, rate: number) => ({
+        duration: length / rate,
+        getChannelData: () => new Float32Array(length)
+      })
+      createBufferSource = () => {
+        const source: Record<string, unknown> = {
+          buffer: null,
+          onended: null,
+          startedAt: 0,
+          connect() {},
+          start(when: number) {
+            source.startedAt = when
+          },
+          stop() {
+            source.stopped = true
+          }
+        }
+        scheduled.push(source)
+        return source
+      }
+      async close() {}
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext)
+    vi.stubGlobal(
+      'AudioWorkletNode',
+      class {
+        port = { onmessage: null }
+        connect() {}
+        disconnect() {}
+      }
+    )
+    vi.stubGlobal('navigator', {
+      mediaDevices: {
+        getUserMedia: async () =>
+          ({
+            getTracks: () => [{ stop() {} }],
+            getAudioTracks: () => [{ enabled: true, stop() {} }]
+          }) as unknown as MediaStream
+      }
+    })
+    const { useVoiceCall } = await import('./useVoiceCall')
+    const voice = useVoiceCall()
+    await voice.start('Microphone denied')
+    await vi.waitFor(() => expect(voice.phase.value).toBe('listening'))
+    return {
+      voice,
+      emit: (event: Record<string, unknown>) => listener({ callId: 'fixture-call', ...event }),
+      warn,
+      scheduled,
+      clock,
+      dispose: () => voice.dispose()
+    }
+  }
+  it('skips to the newest audio when a provider bursts past the backlog limit', async () => {
+    const harness = await startCall()
+    try {
+      // Each chunk is 240000 bytes = 5 s of 24 kHz int16; with a frozen clock the
+      // queue passes the 5 s backlog threshold on the second chunk.
+      const chunk = Buffer.alloc(240000).toString('base64')
+      harness.emit({ kind: 'audio', data: chunk })
+      harness.emit({ kind: 'audio', data: chunk })
+      harness.emit({ kind: 'audio', data: chunk })
+      await Promise.resolve()
+      expect(harness.voice.error.value).toBe('')
+      expect(harness.voice.phase.value).toBe('listening')
+      // The backlog was dropped; only the newest chunk stays scheduled.
+      expect(harness.scheduled.filter((source) => !source.stopped).length).toBeLessThanOrEqual(1)
+    } finally {
+      harness.dispose()
+    }
+  })
+  it('drops a single undecodable chunk without killing the call', async () => {
+    const harness = await startCall()
+    try {
+      const chunk = Buffer.alloc(1920).toString('base64')
+      harness.emit({ kind: 'audio', data: '!!!not-base64!!!' })
+      harness.emit({ kind: 'audio', data: chunk })
+      await Promise.resolve()
+      expect(harness.voice.error.value).toBe('')
+      expect(harness.voice.phase.value).toBe('listening')
+      expect(harness.warn).toHaveBeenCalledOnce()
+    } finally {
+      harness.dispose()
+    }
+  })
+  it('still fails the call after systematic playback failures', async () => {
+    const harness = await startCall()
+    try {
+      for (let i = 0; i < 8; i++) harness.emit({ kind: 'audio', data: '!!!not-base64!!!' })
+      await vi.waitFor(() => expect(harness.voice.phase.value).toBe('ended'))
+      expect(harness.voice.error.value).toBe('Audio playback failed. Start a new call.')
+      expect(mocks.stop).toHaveBeenCalledWith('fixture-call')
+    } finally {
+      harness.dispose()
+    }
+  })
 })
 describe('voice capture ownership', () => {
   it('releases a microphone granted after the user has cancelled the call', async () => {
