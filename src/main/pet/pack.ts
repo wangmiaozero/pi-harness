@@ -13,12 +13,19 @@
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { BIGFISH_CLIPS, DESKTOP_PET_SIZE_MAX, DESKTOP_PET_SIZE_MIN, PACK_ID_PATTERN, type PetPackManifest } from '@shared/pet/desktop'
+import {
+  BIGFISH_CLIPS,
+  DESKTOP_PET_SIZE_MAX,
+  DESKTOP_PET_SIZE_MIN,
+  PACK_ID_PATTERN,
+  type PetPackManifest
+} from '@shared/pet/desktop'
+import { APP_LANGUAGES, type AppLocale } from '@shared/constants/language'
 import { isAppPackaged } from '../services/app-paths'
 
 const PACK_MANIFEST_FILE = 'pet-pack.json'
 const MAX_CLIP_NAME_LENGTH = 64
-const MAX_CLIPS = 64
+const MAX_CLIPS = 128
 const MAX_FRAMES_PER_CLIP = 1024
 const PREVIEW_NAME_PATTERN = /^[\w][\w.-]*\.(png|webp|jpe?g)$/
 
@@ -80,10 +87,43 @@ export function validatePetPackManifest(value: unknown): PetPackManifest {
     if (frames > MAX_FRAMES_PER_CLIP) {
       throw new Error(`Pet pack clip "${name}" exceeds the frame limit`)
     }
+    let frameDurationsMs: number[] | undefined
+    if (raw['frameDurationsMs'] !== undefined) {
+      const durations = raw['frameDurationsMs']
+      if (
+        !Array.isArray(durations) ||
+        durations.length !== frames ||
+        durations.some((d) => typeof d !== 'number' || !Number.isFinite(d) || d < 16 || d > 10000)
+      ) {
+        throw new Error(`Pet pack clip "${name}" has invalid frame durations`)
+      }
+      frameDurationsMs = durations as number[]
+    }
+    let labels: Partial<Record<AppLocale, string>> | undefined
+    if (raw['labels'] !== undefined) {
+      if (!isPlainObject(raw['labels'])) throw new Error('Invalid clip labels')
+      labels = {}
+      for (const [locale, label] of Object.entries(raw['labels'])) {
+        if (
+          locale === 'auto' ||
+          !APP_LANGUAGES.includes(locale as AppLocale) ||
+          typeof label !== 'string' ||
+          !label.trim() ||
+          label.length > 100
+        )
+          throw new Error('Invalid clip label')
+        labels[locale as AppLocale] = label
+      }
+    }
+    if (raw['group'] !== undefined && !isSafeClipKey(raw['group']))
+      throw new Error('Invalid clip group')
     clips[name] = {
       dir,
       frames,
-      loop: raw['loop'] !== false
+      loop: raw['loop'] !== false,
+      frameDurationsMs,
+      labels,
+      group: raw['group'] as string | undefined
     }
   }
   const baseWidth = value['baseWidth']
@@ -102,7 +142,10 @@ export function validatePetPackManifest(value: unknown): PetPackManifest {
   }
   // Optional metadata: preview image, default animation, agent state mapping.
   const preview = value['preview']
-  if (preview !== undefined && (typeof preview !== 'string' || !PREVIEW_NAME_PATTERN.test(preview))) {
+  if (
+    preview !== undefined &&
+    (typeof preview !== 'string' || !PREVIEW_NAME_PATTERN.test(preview))
+  ) {
     throw new Error('Pet pack manifest has an invalid "preview" entry')
   }
   let defaultAnimation: string | undefined
@@ -131,7 +174,10 @@ export function validatePetPackManifest(value: unknown): PetPackManifest {
   }
   let recommendedSize: number | undefined
   if (value['recommendedSize'] !== undefined) {
-    if (typeof value['recommendedSize'] !== 'number' || !Number.isFinite(value['recommendedSize'])) {
+    if (
+      typeof value['recommendedSize'] !== 'number' ||
+      !Number.isFinite(value['recommendedSize'])
+    ) {
       throw new Error('Pet pack manifest has an invalid "recommendedSize" entry')
     }
     recommendedSize = Math.round(
@@ -150,7 +196,9 @@ export function validatePetPackManifest(value: unknown): PetPackManifest {
     licenseFiles: Array.isArray(value['licenseFiles'])
       ? value['licenseFiles'].filter((f): f is string => typeof f === 'string')
       : [],
-    source: isPlainObject(value['source']) ? (value['source'] as PetPackManifest['source']) : undefined,
+    source: isPlainObject(value['source'])
+      ? (value['source'] as PetPackManifest['source'])
+      : undefined,
     baseWidth,
     baseHeight,
     fps,
@@ -198,9 +246,7 @@ export async function loadPetPack(root: string): Promise<LoadedPetPack> {
     }
     const frames = entries.filter((f) => f.endsWith('.webp')).length
     if (frames < clip.frames) {
-      throw new Error(
-        `Pet pack clip "${clip.dir}" is incomplete (${frames}/${clip.frames} frames)`
-      )
+      throw new Error(`Pet pack clip "${clip.dir}" is incomplete (${frames}/${clip.frames} frames)`)
     }
   }
   return { root: resolvedRoot, manifest }

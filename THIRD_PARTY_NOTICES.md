@@ -93,3 +93,10 @@ SOFTWARE.
 - Pi Coding Agent 1.3.0: [earendil-works/pi](https://github.com/earendil-works/pi), MIT, Copyright (c) 2025 Mario Zechner. The complete license is retained with the distributed Pi files.
 - Node.js 24.22.0 (npm and npx 11.19.1): [nodejs/node](https://github.com/nodejs/node), Node.js license and its bundled third-party notices. The complete upstream LICENSE, including npm and other bundled components, is retained with the distributed Node.js files.
 - ZIP extraction uses [unzipper](https://github.com/ZJONSSON/node-unzipper) under MIT; the dependency license is retained in packaged applications.
+
+## BigFish desktop companion
+
+- Projects: [QCYTSN/dsh-dafeiyu](https://github.com/QCYTSN/dsh-dafeiyu), [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet), and [gosomea/dsh-bigfish](https://github.com/gosomea/dsh-bigfish).
+- Used as: desktop pet animation resources and motion references.
+- The upstream MIT license texts and asset notices are retained with the bundled pet pack. Code licenses do not grant rights to underlying third-party character artwork or trademarks.
+- This community integration is not an official DeepSeek product.

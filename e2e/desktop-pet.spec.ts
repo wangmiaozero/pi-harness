@@ -307,3 +307,177 @@ test('every desktop pet menu action performs its advertised operation', async ({
   await clickMenu('退出 Pi-Harness')
   await exited
 })
+
+test('all 101 manual actions play from the context menu and tasks allow only dragging', async ({
+  page,
+  electronApp
+}, testInfo) => {
+  test.setTimeout(180_000)
+  const settings = await page.evaluate(() => window.piSwitch.settings.get())
+  await page.evaluate(
+    (desktopPet) => window.piSwitch.settings.set({ language: 'zh-CN', desktopPet }),
+    {
+      ...settings.desktopPet,
+      enabled: true,
+      size: 240,
+      physics: false,
+      idleVariants: false
+    }
+  )
+  await expect
+    .poll(() => electronApp.windows().some((win) => win.url().includes('/pet.html')))
+    .toBe(true)
+  const pet = electronApp.windows().find((win) => win.url().includes('/pet.html'))!
+  const image = pet.locator('#app img')
+  await expect(image).toBeVisible()
+  const context = await pet.evaluate(() => window.piSwitchPet!.getContext())
+  const clips = Object.entries(context.manifest.clips).filter(([, clip]) => clip.labels)
+  expect(clips).toHaveLength(101)
+  const openMenu = async () => {
+    const box = (await image.boundingBox())!
+    await pet.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { button: 'right' })
+    await expect(pet.getByRole('menu')).toBeVisible()
+  }
+  for (const [clip] of clips) {
+    await openMenu()
+    await pet.getByRole('menuitem', { name: /播放动作/ }).click()
+    await pet.getByRole('searchbox').fill(clip)
+    await pet.locator(`[data-clip="${clip}"]`).click()
+    await expect(image).toHaveAttribute('src', new RegExp(`/clips/${clip}/`))
+    await expect
+      .poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0))
+      .toBe(true)
+    await expect(pet.getByRole('menu')).toHaveCount(0)
+  }
+  // Let one short action finish; it must resolve back to the current runtime state.
+  await openMenu()
+  await pet.getByRole('menuitem', { name: /播放动作/ }).click()
+  await pet.getByRole('searchbox').fill('classic-hug')
+  await pet.locator('[data-clip="classic-hug"]').click()
+  await expect(image).toHaveAttribute('src', /\/clips\/idle\//, { timeout: 6000 })
+
+  const pushActivity = async (activeAgents: number, events: Array<{ type: string }>) => {
+    await electronApp.evaluate(
+      ({ BrowserWindow }, payload) => {
+        BrowserWindow.getAllWindows()
+          .find((win) => win.webContents.getURL().includes('/pet.html'))!
+          .webContents.send('pi-harness:pet:state', payload)
+      },
+      { activeAgents, events }
+    )
+  }
+  // Starting a task dismisses an already-open menu and cancels a manual action.
+  await openMenu()
+  await pet.getByRole('menuitem', { name: /播放动作/ }).click()
+  await pet.getByRole('searchbox').fill('playful-sign-flip')
+  await pet.locator('[data-clip="playful-sign-flip"]').click()
+  await expect(image).toHaveAttribute('src', /\/clips\/playful-sign-flip\//)
+  await openMenu()
+  await pushActivity(2, [{ type: 'TASK_STARTED' }, { type: 'THINKING_STARTED' }])
+  await expect(pet.getByRole('menu')).toHaveCount(0)
+  await expect(image).toHaveAttribute('src', /\/clips\/thinking\//)
+  const box = (await image.boundingBox())!
+  await pet.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { button: 'right' })
+  await expect(pet.getByRole('menu')).toHaveCount(0)
+  await pet.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await expect(image).toHaveAttribute('src', /\/clips\/thinking\//)
+  const position = () =>
+    electronApp.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()
+        .find((win) => win.webContents.getURL().includes('/pet.html'))!
+        .getPosition()
+    )
+  const before = await position()
+  await pet.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await pet.mouse.down()
+  await pet.mouse.move(box.x + box.width / 2 - 40, box.y + box.height / 2 - 30, { steps: 8 })
+  await expect(image).toHaveAttribute('src', /\/clips\/thinking\//)
+  await pet.mouse.up()
+  expect(await position()).not.toEqual(before)
+  await expect(image).toHaveAttribute('src', /\/clips\/thinking\//)
+  await pushActivity(1, [{ type: 'TASK_SUCCEEDED' }])
+  await expect(image).toHaveAttribute('src', /\/clips\/working\//)
+  await pet.evaluate(() => window.dispatchEvent(new MouseEvent('contextmenu')))
+  await expect(pet.getByRole('menu')).toHaveCount(0)
+  // The activity gate remains active even with visual synchronization disabled.
+  await page.evaluate((desktopPet) => window.piSwitch.settings.set({ desktopPet }), {
+    ...context.settings,
+    agentSync: false
+  })
+  await pushActivity(1, [])
+  await pet.evaluate(() => window.dispatchEvent(new MouseEvent('contextmenu')))
+  await expect(pet.getByRole('menu')).toHaveCount(0)
+  await pushActivity(0, [])
+  await openMenu()
+  await pet.screenshot({
+    path: testInfo.outputPath('manual-actions-menu.png'),
+    omitBackground: true
+  })
+  await pet.getByRole('menuitem', { name: /播放动作/ }).click()
+  await expect(pet.locator('[data-clip]')).toHaveCount(101)
+  await pet.screenshot({
+    path: testInfo.outputPath('manual-actions-list.png'),
+    omitBackground: true
+  })
+})
+
+test('pet settings use draggable sliders and omit the pack detail card', async ({
+  page
+}, testInfo) => {
+  await page.locator('a[href="#/settings"]').click()
+  await page.getByTestId('settings-section-desktop-pet').click()
+  const section = page.getByTestId('desktop-pet-section')
+  await expect(section.getByRole('slider')).toHaveCount(4)
+  await expect(page.getByTestId('pet-pack-info')).toHaveCount(0)
+  await expect(page.getByTestId('pet-import-zip')).toBeVisible()
+  await expect(page.getByTestId('pet-import-folder')).toBeVisible()
+
+  const size = section.getByRole('slider', { name: /宠物大小/ })
+  await size.focus()
+  await size.press('End')
+  await expect(size).toHaveValue('320')
+  await size.scrollIntoViewIfNeeded()
+  const box = (await size.boundingBox())!
+  await page.mouse.move(box.x + box.width - 8, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width * 0.4, box.y + box.height / 2, { steps: 8 })
+  await page.mouse.up()
+  const draggedSize = Number(await size.inputValue())
+  expect(draggedSize).toBeGreaterThan(96)
+  expect(draggedSize).toBeLessThan(320)
+  await expect(size).toHaveAttribute('aria-valuetext', `${draggedSize} px`)
+
+  const opacity = section.getByRole('slider', { name: '宠物不透明度（%）', exact: true })
+  await opacity.focus()
+  await opacity.press('Home')
+  await expect(opacity).toHaveValue('30')
+  const timeout = section.getByRole('slider', { name: /气泡停留/ })
+  await timeout.focus()
+  await timeout.press('Home')
+  await expect(timeout).toHaveValue('0')
+  const bubbleOpacity = section.getByRole('slider', { name: '气泡不透明度（%）', exact: true })
+  await bubbleOpacity.focus()
+  await bubbleOpacity.press('Home')
+  await expect(bubbleOpacity).toHaveValue('30')
+  await expect
+    .poll(() =>
+      page
+        .evaluate(() => window.piSwitch.settings.get())
+        .then((s) => ({
+          size: s.desktopPet.size,
+          opacity: s.desktopPet.opacity,
+          timeout: s.desktopPet.bubbleTimeoutSeconds,
+          bubbleOpacity: s.desktopPet.bubbleOpacity
+        }))
+    )
+    .toEqual({ size: draggedSize, opacity: 0.3, timeout: 0, bubbleOpacity: 0.3 })
+
+  await section.getByRole('switch', { name: '状态气泡', exact: true }).click()
+  await expect(timeout).toBeDisabled()
+  await expect(bubbleOpacity).toBeDisabled()
+  await section.getByRole('switch', { name: '状态气泡', exact: true }).click()
+  await expect(timeout).toBeEnabled()
+  await expect(bubbleOpacity).toBeEnabled()
+  await size.scrollIntoViewIfNeeded()
+  await page.screenshot({ path: testInfo.outputPath('pet-settings-sliders.png') })
+})

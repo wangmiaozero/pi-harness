@@ -1,6 +1,12 @@
 import type { AgentSettingsAPI } from '../agent-settings/schema'
 import type { HarnessPluginsAPI } from '../harness-plugins/types'
-import type { DesktopPetSettings, PetPackDetail, PetPackInstallResult, PetPackManifest, PetPackSummary } from '../pet/desktop'
+import type {
+  DesktopPetSettings,
+  PetPackDetail,
+  PetPackInstallResult,
+  PetPackManifest,
+  PetPackSummary
+} from '../pet/desktop'
 import type { PetEvent } from '../pet/types'
 import type { OpenCodeFreeState, OpenCodeTestOptions } from '../providers/opencode-free'
 import type {
@@ -835,6 +841,8 @@ export interface PetStatePushPayload {
 }
 
 export interface PetWindowContextPayload {
+  /** Runtime activity also gates manual interactions when visual sync is disabled. */
+  activeAgents: number
   manifest: PetPackManifest
   settings: DesktopPetSettings
   language: AppLanguage

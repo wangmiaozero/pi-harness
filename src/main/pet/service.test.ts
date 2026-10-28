@@ -14,6 +14,8 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import type { AppSettings } from '@shared/ipc/api-types'
+import { ipcMain } from 'electron'
+import { IPC_INVOKE } from '@shared/ipc/channels'
 import { BIGFISH_CLIPS } from '@shared/pet/desktop'
 import { JsonStore } from '../services/storage'
 import { normalizeDesktopPetSettings } from '@shared/pet/desktop'
@@ -247,6 +249,47 @@ describe('PetService pack switching', () => {
     await settingsStore.write({ ...settingsStore.peek(), language: 'zh-TW' })
     new PetService(settingsStore, userRoot, { openMain: () => {}, onQuitRequest: () => {} })
     expect(currentLanguage()).toBe('zh-TW')
+  })
+
+  it('blocks all menu actions during tasks independently of animation sync and unlocks afterwards', async () => {
+    const openMain = vi.fn()
+    const quit = vi.fn()
+    service = new PetService(settingsStore, userRoot, { openMain, onQuitRequest: quit })
+    await service.start()
+    let running = ['session-a', 'session-b']
+    service.attachAgent({ onEvent: () => () => {}, listRunning: () => running }, null)
+    await service.applySettings({ enabled: true, agentSync: false })
+    const sender = { isDestroyed: () => false }
+    petWindowStubs.getWebContents.mockReturnValue(sender as never)
+    const invoke = vi
+      .mocked(ipcMain.handle)
+      .mock.calls.filter(([channel]) => channel === IPC_INVOKE.petMenuAction)
+      .at(-1)![1]
+    const getContext = vi
+      .mocked(ipcMain.handle)
+      .mock.calls.filter(([channel]) => channel === IPC_INVOKE.petGetContext)
+      .at(-1)![1]
+    expect(await getContext({ sender } as never)).toMatchObject({ activeAgents: 2 })
+    const before = settingsStore.peek()
+    const destroys = petWindowStubs.destroy.mock.calls.length
+    for (const action of [
+      'open-main',
+      'open-settings',
+      'toggle-always-on-top',
+      'toggle-reduced-motion',
+      'reset-position',
+      'hide',
+      'quit'
+    ]) {
+      await invoke({ sender } as never, action)
+    }
+    expect(openMain).not.toHaveBeenCalled()
+    expect(quit).not.toHaveBeenCalled()
+    expect(settingsStore.peek()).toEqual(before)
+    expect(petWindowStubs.destroy).toHaveBeenCalledTimes(destroys)
+    running = []
+    await invoke({ sender } as never, 'open-settings')
+    expect(openMain).toHaveBeenCalledWith('settings')
   })
 
   it('exposes the registry roots used for pack lookup', () => {

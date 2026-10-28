@@ -115,8 +115,21 @@ export function menuLabels(language: AppLanguage): MenuLabel {
   return MENU_LABELS[resolveAppLocale(language, navigator.language)]
 }
 
+const ACTION_MENU_COPY: Record<AppLocale, { play: string; back: string; search: string }> = {
+  'zh-CN': { play: '播放动作', back: '返回', search: '搜索动作…' },
+  'zh-TW': { play: '播放動作', back: '返回', search: '搜尋動作…' },
+  'en-US': { play: 'Play action', back: 'Back', search: 'Search actions…' },
+  'ja-JP': { play: 'アクションを再生', back: '戻る', search: 'アクションを検索…' },
+  'ko-KR': { play: '동작 재생', back: '뒤로', search: '동작 검색…' },
+  'ru-RU': { play: 'Выбрать действие', back: 'Назад', search: 'Поиск действий…' },
+  'fr-FR': { play: 'Jouer une action', back: 'Retour', search: 'Rechercher une action…' },
+  'de-DE': { play: 'Aktion abspielen', back: 'Zurück', search: 'Aktionen suchen…' }
+}
+
 export interface PetMenuOptions {
   language: AppLanguage
+  actions?: Array<{ clip: string; label: string }>
+  onPlayAction?: (clip: string) => void
   alwaysOnTop: boolean
   reducedMotion: boolean
   onAction: (action: PetMenuAction) => void
@@ -190,6 +203,65 @@ export function showPetMenu(options: PetMenuOptions): void {
       options.onAction(action)
     })
     menu.appendChild(row)
+  }
+
+  if (options.actions?.length && options.onPlayAction) {
+    const copy = ACTION_MENU_COPY[resolveAppLocale(options.language, navigator.language)]
+    const play = document.createElement('button')
+    play.type = 'button'
+    play.setAttribute('role', 'menuitem')
+    play.textContent = `${copy.play} (${options.actions.length}) ▸`
+    play.style.cssText =
+      'display:block;width:100%;border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:6px 12px;cursor:pointer'
+    play.addEventListener('mousedown', (event) => {
+      if (event.button !== 0) return
+      event.stopPropagation()
+      event.preventDefault()
+      menu.replaceChildren()
+      const back = document.createElement('button')
+      back.type = 'button'
+      back.textContent = `‹ ${copy.back}`
+      back.style.cssText = play.style.cssText
+      back.addEventListener('mousedown', (event) => {
+        if (event.button !== 0) return
+        event.stopPropagation()
+        showPetMenu(options)
+      })
+      menu.appendChild(back)
+      const search = document.createElement('input')
+      search.type = 'search'
+      search.placeholder = copy.search
+      search.setAttribute('aria-label', copy.search)
+      search.style.cssText =
+        'box-sizing:border-box;width:100%;padding:6px 8px;border:1px solid #777;border-radius:6px;background:#252527;color:inherit;font:inherit'
+      search.addEventListener('mousedown', (event) => event.stopPropagation())
+      menu.appendChild(search)
+      const list = document.createElement('div')
+      menu.appendChild(list)
+      const renderActions = () => {
+        list.replaceChildren()
+        const query = search.value.trim().toLocaleLowerCase()
+        for (const item of options.actions ?? []) {
+          if (query && !`${item.label} ${item.clip}`.toLocaleLowerCase().includes(query)) continue
+          const row = document.createElement('button')
+          row.type = 'button'
+          row.setAttribute('role', 'menuitem')
+          row.dataset.clip = item.clip
+          row.textContent = item.label
+          row.style.cssText = play.style.cssText
+          row.addEventListener('mousedown', (event) => {
+            if (event.button !== 0) return
+            event.stopPropagation()
+            dismissPetMenu()
+            options.onPlayAction?.(item.clip)
+          })
+          list.appendChild(row)
+        }
+      }
+      search.addEventListener('input', renderActions)
+      renderActions()
+    })
+    menu.insertBefore(play, menu.children[2] ?? null)
   }
 
   document.body.appendChild(menu)

@@ -8,7 +8,7 @@
  * validated `pi-pet://` protocol.
  */
 
-import type { AppLanguage } from '@shared/constants/language'
+import { resolveAppLocale, type AppLanguage } from '@shared/constants/language'
 import type { DesktopPetSettings } from '@shared/pet/desktop'
 import { resolveStateClip, type PetPackManifest } from '@shared/pet/desktop'
 import type { PetWindowContextPayload } from '@shared/ipc/api-types'
@@ -53,6 +53,7 @@ class PetApp {
   private bubbleTimer: number | null = null
   private currentState: PetRuntimeState = 'idle'
   private interaction: InteractionClip | null = null
+  private taskActive = false
   private dragging = false
   private pointerDownAt = 0
   private pointerDownPos = { x: 0, y: 0 }
@@ -80,7 +81,11 @@ class PetApp {
     this.renderState(this.currentState, true)
 
     api.onState((payload) => {
-      if (!this.settings?.agentSync) return
+      this.updateTaskActivity(payload.activeAgents)
+      if (!this.settings?.agentSync) {
+        if (this.currentState !== 'idle') this.renderState('idle', true)
+        return
+      }
       this.lastActiveAgents = payload.activeAgents
       this.handleEatToken(payload.events)
       const snapshot = this.reducer.apply(payload.events, payload.activeAgents)
@@ -106,7 +111,7 @@ class PetApp {
   }
 
   private openMenu(): void {
-    if (!this.settings) return
+    if (!this.settings || this.taskActive) return
     this.physics?.cancel()
     this.lastClickThroughThrough = false
     void window.piSwitchPet?.setClickThrough(false)
@@ -114,8 +119,35 @@ class PetApp {
       language: this.language,
       alwaysOnTop: this.settings.alwaysOnTop,
       reducedMotion: this.settings.reducedMotion,
+      actions: this.manifest
+        ? Object.entries(this.manifest.clips)
+            .filter(([, info]) => info.labels)
+            .map(([clip, info]) => ({
+              clip,
+              label:
+                info.labels?.[resolveAppLocale(this.language, navigator.language)] ??
+                info.labels?.['en-US'] ??
+                clip
+            }))
+        : [],
+      onPlayAction: (clip) => {
+        if (!this.taskActive && this.player?.has(clip)) this.playInteraction({ clip, loop: false })
+      },
       onAction: (action) => void window.piSwitchPet?.menuAction(action)
     })
+  }
+
+  private updateTaskActivity(activeAgents: number): void {
+    const wasActive = this.taskActive
+    this.taskActive = activeAgents > 0
+    if (this.taskActive) {
+      dismissPetMenu()
+      this.physics?.cancel()
+      if (!wasActive && this.interaction) {
+        this.interaction = null
+        this.playStateClip(this.currentState)
+      }
+    }
   }
 
   private applyContext(context: PetWindowContextPayload): void {
@@ -124,6 +156,7 @@ class PetApp {
     this.physics?.cancel()
     this.manifest = context.manifest
     this.settings = context.settings
+    this.updateTaskActivity(context.activeAgents)
     this.language = context.language
     document.documentElement.lang = context.language
     if (previousLanguage !== this.language) {
@@ -214,7 +247,7 @@ class PetApp {
     }
     this.currentState = state
     this.showBubbleFor(state)
-    if (!this.dragging && !this.interaction) this.playStateClip(state)
+    if ((!this.dragging || this.taskActive) && !this.interaction) this.playStateClip(state)
   }
 
   private playStateClip(state: PetRuntimeState): void {
@@ -315,7 +348,8 @@ class PetApp {
       if (!this.dragging && moved > TAP_MAX_MOVE_PX) {
         this.dragging = true
         fish.style.cursor = 'grabbing'
-        if (this.player?.has('dragging')) this.playInteraction({ clip: 'dragging', loop: true })
+        if (!this.taskActive && this.player?.has('dragging'))
+          this.playInteraction({ clip: 'dragging', loop: true })
       }
       if (!this.dragging) return
       const now = performance.now()
@@ -338,7 +372,9 @@ class PetApp {
         const v = performance.now() - lastMoveAt <= 80 ? releaseVelocity : { x: 0, y: 0 }
         const generation = dragGeneration
         this.interaction = null
-        if (this.player?.has('dragging_release')) {
+        if (this.taskActive) {
+          // Keep runtime playback unchanged while moving a working pet.
+        } else if (this.player?.has('dragging_release')) {
           this.playInteraction({ clip: 'dragging_release', loop: false })
         } else {
           this.playStateClip(this.currentState)
@@ -348,14 +384,15 @@ class PetApp {
           .endDrag({ vx: Math.round(v.x), vy: Math.round(v.y) })
           .then(() => {
             if (generation !== dragGeneration || this.pointerDownAt !== 0) return
-            if (this.settings?.physics && !this.settings.reducedMotion) this.physics?.launch(v)
+            if (!this.taskActive && this.settings?.physics && !this.settings.reducedMotion)
+              this.physics?.launch(v)
           })
           .catch(() => {
             /* Keep the released position if the bridge is unavailable. */
           })
         return
       }
-      this.handleTap()
+      if (!this.taskActive) this.handleTap()
     })
 
     fish.addEventListener('pointercancel', () => {

@@ -4,10 +4,7 @@
  * events never cause animation jitter.
  */
 
-import {
-  PET_EAT_TOKEN_MIN_INTERVAL_MS,
-  PET_MIN_STATE_DURATION_MS
-} from '@shared/pet/desktop'
+import { PET_EAT_TOKEN_MIN_INTERVAL_MS, PET_MIN_STATE_DURATION_MS } from '@shared/pet/desktop'
 import { PET_SLEEP_TIMEOUT_MS } from '@shared/pet/resolver'
 import type { PetEvent } from '@shared/pet/types'
 
@@ -31,6 +28,7 @@ export interface PetStateSnapshot {
 }
 
 export class PetStateReducer {
+  private activeAgents = 0
   private thinking = false
   private running = false
   private streaming = false
@@ -45,7 +43,8 @@ export class PetStateReducer {
   private lastState: PetRuntimeState = 'idle'
 
   apply(events: readonly PetEvent[], activeAgents: number): PetStateSnapshot | null {
-    let changed = false
+    let changed = this.activeAgents !== activeAgents
+    this.activeAgents = activeAgents
     for (const event of events) {
       switch (event.type) {
         case 'TASK_STARTED':
@@ -87,6 +86,7 @@ export class PetStateReducer {
           }
           break
         case 'TASK_SUCCEEDED':
+          if (activeAgents === 0) this.waiting = false
           this.running = false
           this.thinking = false
           this.streaming = false
@@ -95,6 +95,7 @@ export class PetStateReducer {
           changed = true
           break
         case 'TASK_FAILED':
+          if (activeAgents === 0) this.waiting = false
           this.running = false
           this.thinking = false
           this.streaming = false
@@ -168,13 +169,13 @@ export class PetStateReducer {
   }
 
   private resolve(): PetRuntimeState {
-    if (this.temporary) return this.temporary.state
     if (this.waiting) return 'waiting'
     if (this.hasError) return 'failed'
-    if (Date.now() - this.lastActivityAt > PET_SLEEP_TIMEOUT_MS) return 'sleeping'
     if (this.toolCalling) return 'tool-calling'
     if (this.thinking) return 'thinking'
-    if (this.running || this.streaming) return 'running'
+    if (this.running || this.streaming || this.activeAgents > 0) return 'running'
+    if (this.temporary) return this.temporary.state
+    if (Date.now() - this.lastActivityAt > PET_SLEEP_TIMEOUT_MS) return 'sleeping'
     if (this.hasWarning) return 'warning'
     return 'idle'
   }

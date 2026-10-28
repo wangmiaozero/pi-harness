@@ -108,13 +108,24 @@ export class FramePlayer {
     if (onEnd) this.onClipEnd = onEnd
     this.preload(clipDir)
     this.showFrame(0)
-    const interval = Math.max(PRELOAD_BATCH_MS, Math.round(1000 / Math.max(1, this.manifest.fps)))
-    this.timer = window.setInterval(() => this.advance(), interval)
+    this.scheduleFrame()
+  }
+
+  private scheduleFrame(): void {
+    const clip = this.current
+    if (!clip || clip.finished) return
+    const interval =
+      clip.info.frameDurationsMs?.[clip.frame] ??
+      Math.max(PRELOAD_BATCH_MS, Math.round(1000 / Math.max(1, this.manifest.fps)))
+    this.timer = window.setTimeout(() => {
+      this.advance()
+      if (this.current === clip) this.scheduleFrame()
+    }, interval)
   }
 
   stop(): void {
     if (this.timer !== null) {
-      window.clearInterval(this.timer)
+      window.clearTimeout(this.timer)
       this.timer = null
     }
     this.current = null

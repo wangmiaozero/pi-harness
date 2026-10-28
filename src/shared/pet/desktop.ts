@@ -1,3 +1,5 @@
+import type { AppLocale } from '../constants/language'
+
 /**
  * Shared contract for the desktop pet window (BigFish companion).
  *
@@ -50,6 +52,11 @@ export interface PetPackClipInfo {
   dir: string
   frames: number
   loop: boolean
+  /** Optional per-frame timing for imported action sequences. */
+  frameDurationsMs?: number[]
+  /** Display names for manually playable clips. */
+  labels?: Partial<Record<AppLocale, string>>
+  group?: string
 }
 
 export interface PetPackManifest {
@@ -189,7 +196,9 @@ export function normalizeDesktopPetSettings(value: unknown): DesktopPetSettings 
     physics: typeof raw.physics === 'boolean' ? raw.physics : d.physics,
     agentSync: typeof raw.agentSync === 'boolean' ? raw.agentSync : d.agentSync,
     bubbleEnabled: typeof raw.bubbleEnabled === 'boolean' ? raw.bubbleEnabled : d.bubbleEnabled,
-    bubbleTimeoutSeconds: Math.round(clamp(raw.bubbleTimeoutSeconds, 0, 60, d.bubbleTimeoutSeconds)),
+    bubbleTimeoutSeconds: Math.round(
+      clamp(raw.bubbleTimeoutSeconds, 0, 60, d.bubbleTimeoutSeconds)
+    ),
     bubbleOpacity: clamp(raw.bubbleOpacity, 0.3, 1, d.bubbleOpacity),
     reducedMotion: typeof raw.reducedMotion === 'boolean' ? raw.reducedMotion : d.reducedMotion,
     showAgentCount: typeof raw.showAgentCount === 'boolean' ? raw.showAgentCount : d.showAgentCount
@@ -248,7 +257,8 @@ export function resolveStateClip(manifest: PetPackManifest, state: string): stri
  * runtime state. Highest priority while playing, then the runtime state
  * resumes.
  */
-export type PetInteractionClip = 'head_pat' | 'poke' | 'tail' | 'eat_token' | 'dragging' | 'dragging_release'
+export type PetInteractionClip =
+  'head_pat' | 'poke' | 'tail' | 'eat_token' | 'dragging' | 'dragging_release'
 
 /** Bubble copy: i18n keys under `pet.bubble.*`, resolved in the pet renderer. */
 export const STATE_BUBBLE_KEYS: Record<string, string> = {
