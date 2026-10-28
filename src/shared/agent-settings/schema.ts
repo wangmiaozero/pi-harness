@@ -136,7 +136,7 @@ export const shortcutOverridesSchema = z
 
 export const voiceSettingsSchema = z.strictObject({
   enabled: z.boolean(),
-  adapter: z.enum(['openai-realtime', 'gemini-live', 'codex-live']).optional(),
+  adapter: z.enum(['openai-realtime', 'gemini-live', 'codex-live', 'doubao-realtime']).optional(),
   providerKey: resourceId.optional(),
   endpoint: httpEndpoint,
   model: text.min(1).max(128),

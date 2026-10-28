@@ -14,6 +14,17 @@ import {
   voiceInstructions,
   workArguments
 } from './voice-protocol'
+import {
+  DOUBAO_PROTOCOL,
+  decodeDoubaoFrame,
+  doubaoAudioFrame,
+  doubaoHeaders,
+  doubaoSetup,
+  encodeDoubaoEvent,
+  mapDoubaoFrame,
+  parseDoubaoCredentials
+} from './voice-doubao'
+import type { DoubaoFrame } from './voice-doubao'
 import type { VoicePreparation, VoiceWorkOperation } from '@shared/agent-settings/schema'
 
 export const DEFAULT_VOICE: VoiceSettings = {
@@ -78,8 +89,9 @@ type Call = {
   activeResponse?: string
   interruptedResponses: Set<string>
   interrupted: boolean
-  geminiTranscript: { user: string; assistant: string }
+  turnTranscript: { user: string; assistant: string }
   pcmCarry: { remainder: Buffer }
+  doubaoSessionId?: string
   requests: Set<string>
   operations: Map<string, VoiceWorkOperation>
   feedback: Map<string, string>
@@ -95,7 +107,9 @@ export class LiveVoiceService {
   private credential(settings: VoiceSettings): string {
     return settings.adapter === 'gemini-live'
       ? `${this.credentialSlot}-gemini`
-      : this.credentialSlot
+      : settings.adapter === 'doubao-realtime'
+        ? `${this.credentialSlot}-doubao`
+        : this.credentialSlot
   }
   async settings(): Promise<VoicePublicSettings> {
     const settings = voiceSettingsSchema.parse(await this.store.read())
@@ -143,11 +157,15 @@ export class LiveVoiceService {
       window: Date.now(),
       settings,
       preparation,
-      instructions: voiceInstructions(context, preparation.sessionId),
+      // Doubao has no function calling, so its instructions never promise delegation.
+      instructions: voiceInstructions(
+        context,
+        settings.adapter === 'doubao-realtime' ? undefined : preparation.sessionId
+      ),
       controller: new AbortController(),
       interruptedResponses: new Set(),
       interrupted: false,
-      geminiTranscript: { user: '', assistant: '' },
+      turnTranscript: { user: '', assistant: '' },
       pcmCarry: { remainder: Buffer.alloc(0) },
       requests: new Set(),
       operations: new Map(),
@@ -235,6 +253,38 @@ export class LiveVoiceService {
           clearTimeout(timeout)
         }
       }
+      if (settings.adapter === 'doubao-realtime') {
+        const credentials = parseDoubaoCredentials(auth.key)
+        if (this.call !== call) return
+        call.doubaoSessionId = randomUUID()
+        const socket = await openSocket(DOUBAO_PROTOCOL.url, doubaoHeaders(credentials))
+        if (this.call !== call || call.owner.isDestroyed()) {
+          socket.terminate()
+          return
+        }
+        call.socket = socket
+        socket.on('message', (data) => {
+          if (this.call !== call) return
+          try {
+            this.doubaoMessage(
+              call,
+              decodeDoubaoFrame(Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer))
+            )
+          } catch {
+            this.fail(call, 'Invalid voice response.')
+          }
+        })
+        socket.on('close', () => {
+          if (this.call === call) this.stop(id)
+        })
+        socket.on('error', () => this.fail(call, 'Voice connection interrupted.'))
+        // Install readiness listeners before the handshake; readiness arrives with
+        // SessionStarted (150), dispatched through doubaoMessage below.
+        const confirmed = this.confirmSetup(call, socket)
+        socket.send(encodeDoubaoEvent(DOUBAO_PROTOCOL.client.startConnection, '{}'))
+        await confirmed
+        return
+      }
       const endpoint =
         settings.adapter === 'gemini-live'
           ? new URL(
@@ -272,29 +322,7 @@ export class LiveVoiceService {
       })
       socket.on('error', () => this.fail(call, 'Voice connection interrupted.'))
       // Install readiness listeners before sending setup; no socket-open success shortcut.
-      const confirmed = new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => {
-          cleanup()
-          reject(new ConfigError('Voice setup timed out.'))
-        }, 15000)
-        const check = () => {
-          if (call.ready) {
-            cleanup()
-            resolve()
-          }
-        }
-        const closed = () => {
-          cleanup()
-          reject(new ConfigError('Voice connection ended during setup.'))
-        }
-        const cleanup = () => {
-          clearTimeout(timer)
-          socket.off('message', check)
-          socket.off('close', closed)
-        }
-        socket.on('message', check)
-        socket.once('close', closed)
-      })
+      const confirmed = this.confirmSetup(call, socket)
       socket.send(
         JSON.stringify(voiceSetup(settings, call.instructions, Boolean(call.preparation.sessionId)))
       )
@@ -305,6 +333,33 @@ export class LiveVoiceService {
         ? e
         : new ConfigError('Unable to start realtime voice. Check the account and voice settings.')
     }
+  }
+  // Readiness wait shared by the WS transports: resolve on the first message after
+  // ready flips, reject on timeout or early close.
+  private confirmSetup(call: Call, socket: WebSocket): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        cleanup()
+        reject(new ConfigError('Voice setup timed out.'))
+      }, 15000)
+      const check = () => {
+        if (call.ready) {
+          cleanup()
+          resolve()
+        }
+      }
+      const closed = () => {
+        cleanup()
+        reject(new ConfigError('Voice connection ended during setup.'))
+      }
+      const cleanup = () => {
+        clearTimeout(timer)
+        socket.off('message', check)
+        socket.off('close', closed)
+      }
+      socket.on('message', check)
+      socket.once('close', closed)
+    })
   }
   private ready(call: Call): void {
     if (call.ready || this.call !== call) return
@@ -424,21 +479,76 @@ export class LiveVoiceService {
           }
         }
         if (typeof c.inputTranscription?.text === 'string')
-          call.geminiTranscript.user = (
-            call.geminiTranscript.user + c.inputTranscription.text
-          ).slice(0, 20000)
+          call.turnTranscript.user = (call.turnTranscript.user + c.inputTranscription.text).slice(
+            0,
+            20000
+          )
         if (typeof c.outputTranscription?.text === 'string')
-          call.geminiTranscript.assistant = (
-            call.geminiTranscript.assistant + c.outputTranscription.text
+          call.turnTranscript.assistant = (
+            call.turnTranscript.assistant + c.outputTranscription.text
           ).slice(0, 20000)
         if (c.turnComplete || c.interrupted) {
-          transcript('user', call.geminiTranscript.user)
-          transcript('assistant', call.geminiTranscript.assistant)
-          call.geminiTranscript = { user: '', assistant: '' }
+          transcript('user', call.turnTranscript.user)
+          transcript('assistant', call.turnTranscript.assistant)
+          call.turnTranscript = { user: '', assistant: '' }
         }
       }
       for (const fn of (m.toolCall?.functionCalls ?? []).slice(0, 16))
         this.candidate(call, fn.id, fn.name, fn.args)
+    }
+  }
+  // Doubao transport: every inbound WebSocket message is one binary frame.
+  private doubaoMessage(call: Call, frame: DoubaoFrame): void {
+    const incoming = mapDoubaoFrame(frame)
+    const emit = (event: Record<string, unknown>) =>
+      this.emit({ callId: call.id, ...event } as VoiceEvent)
+    switch (incoming.kind) {
+      case 'connected':
+        if (call.socket?.readyState === WebSocket.OPEN && call.doubaoSessionId)
+          call.socket.send(
+            encodeDoubaoEvent(
+              DOUBAO_PROTOCOL.client.startSession,
+              doubaoSetup(call.settings, call.instructions).payload,
+              call.doubaoSessionId
+            )
+          )
+        return
+      case 'ready':
+        return this.ready(call)
+      case 'interrupt':
+        if (call.activeResponse) {
+          call.interruptedResponses.add(call.activeResponse)
+          if (call.interruptedResponses.size > 256)
+            call.interruptedResponses.delete(call.interruptedResponses.values().next().value!)
+        }
+        call.interrupted = true
+        emit({ kind: 'interrupted' })
+        emit({ kind: 'activity', userSpeaking: true, assistantSpeaking: false })
+        return
+      case 'asr':
+        // Interim results overwrite each other; ASREnded flushes the settled text.
+        call.turnTranscript.user = incoming.text.slice(0, 20000)
+        return
+      case 'asrEnded': {
+        const text = call.turnTranscript.user
+        call.turnTranscript.user = ''
+        if (text) emit({ kind: 'transcript', role: 'user', text })
+        return
+      }
+      case 'assistantText':
+        emit({ kind: 'transcript', role: 'assistant', text: incoming.text.slice(0, 20000) })
+        return
+      case 'audio': {
+        const data = incoming.data.toString('base64')
+        if (call.ready && data.length <= 512000) emit({ kind: 'audio', data })
+        return
+      }
+      case 'ended':
+        return this.stop(call.id)
+      case 'error':
+        return this.fail(call, incoming.message)
+      default:
+        return
     }
   }
   private send(call: Call, message: unknown): void {
@@ -550,7 +660,10 @@ export class LiveVoiceService {
     if (
       !bytes.length ||
       bytes.length % 2 ||
-      bytes.length > (call.settings.adapter === 'gemini-live' ? 4800 : 24000)
+      bytes.length >
+        (call.settings.adapter === 'gemini-live' || call.settings.adapter === 'doubao-realtime'
+          ? 4800
+          : 24000)
     )
       throw new ConfigError('Invalid audio frame.')
     if (Date.now() - call.window >= 1000) {
@@ -562,7 +675,11 @@ export class LiveVoiceService {
       this.stop(id)
       throw new ConfigError('Voice connection cannot keep up. Start a new call.')
     }
-    call.socket.send(JSON.stringify(voiceInput(call.settings, bytes, call.pcmCarry)))
+    call.socket.send(
+      call.settings.adapter === 'doubao-realtime'
+        ? doubaoAudioFrame(bytes, call.pcmCarry, call.doubaoSessionId!)
+        : JSON.stringify(voiceInput(call.settings, bytes, call.pcmCarry))
+    )
   }
   stop(id: string): void {
     if (this.call?.id !== id) return
@@ -572,6 +689,18 @@ export class LiveVoiceService {
     clearTimeout(call.expires)
     call.controller.abort()
     call.cleanupOwner()
+    // Doubao expects a graceful session finish; best-effort only, because terminate
+    // does not guarantee a flush (server-side ContextCanceled is log noise alone).
+    if (call.settings.adapter === 'doubao-realtime' && call.socket && call.doubaoSessionId) {
+      try {
+        call.socket.send(
+          encodeDoubaoEvent(DOUBAO_PROTOCOL.client.finishSession, '{}', call.doubaoSessionId)
+        )
+        call.socket.send(encodeDoubaoEvent(DOUBAO_PROTOCOL.client.finishConnection, '{}'))
+      } catch {
+        // Socket already dead; terminate below is the real teardown.
+      }
+    }
     call.socket?.terminate()
     this.emit({ callId: id, kind: 'ended' })
   }
