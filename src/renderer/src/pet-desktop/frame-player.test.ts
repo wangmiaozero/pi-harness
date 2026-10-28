@@ -56,6 +56,27 @@ describe('FramePlayer image loading', () => {
     player.dispose()
   })
 
+  it('preserves per-frame holds and resumes a fresh clip without duplicate timers', () => {
+    vi.useFakeTimers()
+    const pack = manifest()
+    const player = new FramePlayer('testpack', {
+      ...pack,
+      clips: { idle: { ...pack.clips.idle, frameDurationsMs: [120, 500] } }
+    })
+    const done = vi.fn(() => player.play('idle'))
+    player.play('idle', done, false)
+    vi.advanceTimersByTime(119)
+    expect(player.element.src).toContain('idle_001.webp')
+    vi.advanceTimersByTime(1)
+    expect(player.element.src).toContain('idle_002.webp')
+    vi.advanceTimersByTime(499)
+    expect(done).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(done).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(1)
+    player.dispose()
+  })
+
   it('marks preloaded frames crossOrigin anonymous too', () => {
     const player = new FramePlayer('testpack', manifest())
     expect(created.length).toBe(1) // playback image from the constructor

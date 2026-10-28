@@ -9,7 +9,9 @@
   "license": "MIT",
   "licenseFiles": [
     "LICENSE-MIT.txt",
-    "dsh-pet-LICENSE.txt"
+    "dsh-pet-LICENSE.txt",
+    "dsh-bigfish-LICENSE.txt",
+    "dsh-bigfish-NOTICE.txt"
   ],
   "source": {
     "animationSource": {
@@ -28,6 +30,12 @@
         344
       ],
       "note": "Frames migrated verbatim; see ASSET_LICENSE.md upstream for conversion details."
+    },
+    "manualMotions": {
+      "repository": "https://github.com/gosomea/dsh-bigfish",
+      "commit": "2364af1243b02325afe29c25f902f16a3ee83e9e",
+      "classicActions": 29,
+      "playfulActions": 72
     }
   },
   "baseWidth": 412,
@@ -113,6 +121,2849 @@
       "dir": "clips/idle_yawn",
       "frames": 241,
       "loop": true
+    },
+    "classic-breathe": {
+      "dir": "clips/classic-breathe",
+      "frames": 27,
+      "loop": false,
+      "frameDurationsMs": [
+        126,
+        210,
+        378,
+        210,
+        378,
+        210,
+        210,
+        210,
+        336,
+        252,
+        336,
+        252,
+        168,
+        210,
+        378,
+        168,
+        42,
+        126,
+        168,
+        84,
+        84,
+        126,
+        210,
+        210,
+        378,
+        210,
+        378
+      ],
+      "labels": {
+        "zh-CN": "安静眨眼",
+        "en-US": "Quiet blink"
+      },
+      "group": "classic"
+    },
+    "classic-hug": {
+      "dir": "clips/classic-hug",
+      "frames": 53,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "抱尾撒娇",
+        "en-US": "Hug tail"
+      },
+      "group": "classic"
+    },
+    "classic-read": {
+      "dir": "clips/classic-read",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        1008,
+        336,
+        672,
+        672,
+        672,
+        672
+      ],
+      "labels": {
+        "zh-CN": "阅读翻页",
+        "en-US": "Read and turn page"
+      },
+      "group": "classic"
+    },
+    "classic-type": {
+      "dir": "clips/classic-type",
+      "frames": 9,
+      "loop": false,
+      "frameDurationsMs": [
+        210,
+        210,
+        84,
+        126,
+        210,
+        168,
+        84,
+        336,
+        210
+      ],
+      "labels": {
+        "zh-CN": "交替打字",
+        "en-US": "Alternating typing"
+      },
+      "group": "classic"
+    },
+    "classic-flinch": {
+      "dir": "clips/classic-flinch",
+      "frames": 53,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "缩肩反应",
+        "en-US": "Startled shoulders"
+      },
+      "group": "classic"
+    },
+    "classic-shuffle": {
+      "dir": "clips/classic-shuffle",
+      "frames": 45,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        84,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        126,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        84,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        126,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        84,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        84
+      ],
+      "labels": {
+        "zh-CN": "小碎步赶工",
+        "en-US": "Shuffle"
+      },
+      "group": "classic"
+    },
+    "classic-dodge": {
+      "dir": "clips/classic-dodge",
+      "frames": 24,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "侧躲探头",
+        "en-US": "Dodge and peek"
+      },
+      "group": "classic"
+    },
+    "classic-run": {
+      "dir": "clips/classic-run",
+      "frames": 53,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "跑步赶进度",
+        "en-US": "Run"
+      },
+      "group": "classic"
+    },
+    "classic-wipe": {
+      "dir": "clips/classic-wipe",
+      "frames": 7,
+      "loop": false,
+      "frameDurationsMs": [
+        504,
+        504,
+        504,
+        504,
+        504,
+        504,
+        1008
+      ],
+      "labels": {
+        "zh-CN": "擦汗歇息",
+        "en-US": "Wipe brow"
+      },
+      "group": "classic"
+    },
+    "classic-look-back": {
+      "dir": "clips/classic-look-back",
+      "frames": 24,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "回头看看",
+        "en-US": "Look back"
+      },
+      "group": "classic"
+    },
+    "classic-panic": {
+      "dir": "clips/classic-panic",
+      "frames": 32,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        84,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        84,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        126,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "手忙脚乱",
+        "en-US": "Flustered reaction"
+      },
+      "group": "classic"
+    },
+    "classic-stamp": {
+      "dir": "clips/classic-stamp",
+      "frames": 25,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        84,
+        42,
+        84,
+        336,
+        84,
+        42,
+        84,
+        840,
+        42,
+        84,
+        84,
+        336,
+        84,
+        42,
+        42,
+        882,
+        42,
+        42,
+        84,
+        336,
+        84,
+        84,
+        42,
+        84
+      ],
+      "labels": {
+        "zh-CN": "完成打勾",
+        "en-US": "Check off work"
+      },
+      "group": "classic"
+    },
+    "classic-stumble": {
+      "dir": "clips/classic-stumble",
+      "frames": 96,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "踉跄站稳",
+        "en-US": "Stumble and recover"
+      },
+      "group": "classic"
+    },
+    "classic-peek": {
+      "dir": "clips/classic-peek",
+      "frames": 96,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "左右探头",
+        "en-US": "Peek left and right"
+      },
+      "group": "classic"
+    },
+    "classic-tea": {
+      "dir": "clips/classic-tea",
+      "frames": 96,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "捧杯喝茶",
+        "en-US": "Tea break"
+      },
+      "group": "classic"
+    },
+    "classic-repair": {
+      "dir": "clips/classic-repair",
+      "frames": 5,
+      "loop": false,
+      "frameDurationsMs": [
+        672,
+        336,
+        1008,
+        672,
+        672
+      ],
+      "labels": {
+        "zh-CN": "操作检查",
+        "en-US": "Operate and check"
+      },
+      "group": "classic"
+    },
+    "classic-stretch": {
+      "dir": "clips/classic-stretch",
+      "frames": 5,
+      "loop": false,
+      "frameDurationsMs": [
+        504,
+        504,
+        1512,
+        504,
+        1008
+      ],
+      "labels": {
+        "zh-CN": "伸懒腰",
+        "en-US": "Stretch"
+      },
+      "group": "classic"
+    },
+    "classic-sleep": {
+      "dir": "clips/classic-sleep",
+      "frames": 7,
+      "loop": false,
+      "frameDurationsMs": [
+        126,
+        210,
+        252,
+        1008,
+        252,
+        168,
+        210
+      ],
+      "labels": {
+        "zh-CN": "抱尾打盹",
+        "en-US": "Doze"
+      },
+      "group": "classic"
+    },
+    "classic-wait-sign": {
+      "dir": "clips/classic-wait-sign",
+      "frames": 17,
+      "loop": false,
+      "frameDurationsMs": [
+        168,
+        252,
+        42,
+        378,
+        504,
+        294,
+        294,
+        294,
+        210,
+        420,
+        252,
+        294,
+        252,
+        336,
+        42,
+        420,
+        420
+      ],
+      "labels": {
+        "zh-CN": "胸前举牌",
+        "en-US": "Raise waiting sign"
+      },
+      "group": "classic"
+    },
+    "classic-wave": {
+      "dir": "clips/classic-wave",
+      "frames": 36,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "挥手招呼",
+        "en-US": "Wave hello"
+      },
+      "group": "classic"
+    },
+    "classic-tail-wag": {
+      "dir": "clips/classic-tail-wag",
+      "frames": 96,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "开心摇尾",
+        "en-US": "Tail wiggle"
+      },
+      "group": "classic"
+    },
+    "classic-sigh": {
+      "dir": "clips/classic-sigh",
+      "frames": 18,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        84,
+        126,
+        84,
+        84,
+        126,
+        168,
+        504,
+        126,
+        126,
+        126,
+        84,
+        84,
+        84,
+        1932,
+        84,
+        84,
+        84
+      ],
+      "labels": {
+        "zh-CN": "叹气放松",
+        "en-US": "Sigh"
+      },
+      "group": "classic"
+    },
+    "classic-sign-overhead": {
+      "dir": "clips/classic-sign-overhead",
+      "frames": 108,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "高高举牌",
+        "en-US": "Sign overhead"
+      },
+      "group": "classic"
+    },
+    "classic-sign-peek": {
+      "dir": "clips/classic-sign-peek",
+      "frames": 29,
+      "loop": false,
+      "frameDurationsMs": [
+        84,
+        126,
+        126,
+        126,
+        42,
+        504,
+        168,
+        126,
+        126,
+        126,
+        126,
+        84,
+        126,
+        126,
+        42,
+        462,
+        210,
+        168,
+        126,
+        126,
+        84,
+        126,
+        126,
+        42,
+        126,
+        378,
+        294,
+        168,
+        42
+      ],
+      "labels": {
+        "zh-CN": "牌后探头",
+        "en-US": "Peek behind sign"
+      },
+      "group": "classic"
+    },
+    "classic-sign-tail": {
+      "dir": "clips/classic-sign-tail",
+      "frames": 108,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "抱尾举牌",
+        "en-US": "Cozy tail sign"
+      },
+      "group": "classic"
+    },
+    "classic-sign-bounce": {
+      "dir": "clips/classic-sign-bounce",
+      "frames": 78,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        84,
+        84,
+        168,
+        84,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        84,
+        84,
+        210,
+        84,
+        42,
+        84,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        84,
+        42,
+        42,
+        210,
+        84,
+        42,
+        84,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        84,
+        84,
+        210,
+        84,
+        84,
+        42,
+        42,
+        42,
+        42,
+        42,
+        84,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "小跳摇牌",
+        "en-US": "Bouncy sign"
+      },
+      "group": "classic"
+    },
+    "classic-confirm": {
+      "dir": "clips/classic-confirm",
+      "frames": 5,
+      "loop": false,
+      "frameDurationsMs": [
+        672,
+        672,
+        336,
+        336,
+        672
+      ],
+      "labels": {
+        "zh-CN": "伸手示意",
+        "en-US": "Ask and wait"
+      },
+      "group": "classic"
+    },
+    "classic-celebrate": {
+      "dir": "clips/classic-celebrate",
+      "frames": 24,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ],
+      "labels": {
+        "zh-CN": "挥手跳跃鞠躬",
+        "en-US": "Celebrate and bow"
+      },
+      "group": "classic"
+    },
+    "classic-bow": {
+      "dir": "clips/classic-bow",
+      "frames": 17,
+      "loop": false,
+      "frameDurationsMs": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        84,
+        42,
+        84,
+        84,
+        210,
+        42
+      ],
+      "labels": {
+        "zh-CN": "乖巧鞠躬",
+        "en-US": "Polite bow"
+      },
+      "group": "classic"
+    },
+    "playful-sign-flip": {
+      "dir": "clips/playful-sign-flip",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "牌子拿反了",
+        "en-US": "Sign flip"
+      },
+      "group": "sign"
+    },
+    "playful-sign-stamp": {
+      "dir": "clips/playful-sign-stamp",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "值班鲸鱼盖章",
+        "en-US": "Sign stamp"
+      },
+      "group": "sign"
+    },
+    "playful-sign-tail-stand": {
+      "dir": "clips/playful-sign-tail-stand",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "尾巴当支架",
+        "en-US": "Sign tail stand"
+      },
+      "group": "sign"
+    },
+    "playful-sign-curtain": {
+      "dir": "clips/playful-sign-curtain",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "小幕布揭牌",
+        "en-US": "Sign curtain"
+      },
+      "group": "sign"
+    },
+    "playful-sign-paper-plane": {
+      "dir": "clips/playful-sign-paper-plane",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "纸飞机送信",
+        "en-US": "Sign paper plane"
+      },
+      "group": "sign"
+    },
+    "playful-sign-pop-up": {
+      "dir": "clips/playful-sign-pop-up",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "弹出式请帖",
+        "en-US": "Sign pop up"
+      },
+      "group": "sign"
+    },
+    "playful-tail-polish": {
+      "dir": "clips/playful-tail-polish",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "擦亮尾巴",
+        "en-US": "Tail polish"
+      },
+      "group": "daily"
+    },
+    "playful-biscuit-share": {
+      "dir": "clips/playful-biscuit-share",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "分你半块饼干",
+        "en-US": "Biscuit share"
+      },
+      "group": "daily"
+    },
+    "playful-bubble-chase": {
+      "dir": "clips/playful-bubble-chase",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "追一颗泡泡",
+        "en-US": "Bubble chase"
+      },
+      "group": "daily"
+    },
+    "playful-pillow-nest": {
+      "dir": "clips/playful-pillow-nest",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "给尾巴铺小窝",
+        "en-US": "Pillow nest"
+      },
+      "group": "daily"
+    },
+    "playful-badge-care": {
+      "dir": "clips/playful-badge-care",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "整理鲸鱼徽章",
+        "en-US": "Badge care"
+      },
+      "group": "daily"
+    },
+    "playful-paper-fish": {
+      "dir": "clips/playful-paper-fish",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "折一只纸鱼",
+        "en-US": "Paper fish"
+      },
+      "group": "daily"
+    },
+    "playful-typing-notes": {
+      "dir": "clips/playful-typing-notes",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "便签打字",
+        "en-US": "Typing notes"
+      },
+      "group": "work"
+    },
+    "playful-thinking-puzzle": {
+      "dir": "clips/playful-thinking-puzzle",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "拼起思路",
+        "en-US": "Thinking puzzle"
+      },
+      "group": "work"
+    },
+    "playful-typing-sleeves": {
+      "dir": "clips/playful-typing-sleeves",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "挽袖开工",
+        "en-US": "Typing sleeves"
+      },
+      "group": "work"
+    },
+    "playful-thinking-scratchpad": {
+      "dir": "clips/playful-thinking-scratchpad",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "草稿演算",
+        "en-US": "Thinking scratchpad"
+      },
+      "group": "work"
+    },
+    "playful-typing-tail-rhythm": {
+      "dir": "clips/playful-typing-tail-rhythm",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "尾巴打拍子",
+        "en-US": "Typing tail rhythm"
+      },
+      "group": "work"
+    },
+    "playful-notes-sort": {
+      "dir": "clips/playful-notes-sort",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "整理便签",
+        "en-US": "Notes sort"
+      },
+      "group": "work"
+    },
+    "playful-read-bookmark": {
+      "dir": "clips/playful-read-bookmark",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "阅读夹书签",
+        "en-US": "Read bookmark"
+      },
+      "group": "tools"
+    },
+    "playful-search-magnifier": {
+      "dir": "clips/playful-search-magnifier",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "放大镜找线索",
+        "en-US": "Search magnifier"
+      },
+      "group": "tools"
+    },
+    "playful-edit-pencil": {
+      "dir": "clips/playful-edit-pencil",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "铅笔修改",
+        "en-US": "Edit pencil"
+      },
+      "group": "tools"
+    },
+    "playful-command-lever": {
+      "dir": "clips/playful-command-lever",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "启动小控制台",
+        "en-US": "Command lever"
+      },
+      "group": "tools"
+    },
+    "playful-test-checklist": {
+      "dir": "clips/playful-test-checklist",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "测试巡检",
+        "en-US": "Test checklist"
+      },
+      "group": "tools"
+    },
+    "playful-export-parcel": {
+      "dir": "clips/playful-export-parcel",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "整理交付包",
+        "en-US": "Export parcel"
+      },
+      "group": "tools"
+    },
+    "playful-attention-choice": {
+      "dir": "clips/playful-attention-choice",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "把选择递给你",
+        "en-US": "Attention choice"
+      },
+      "group": "outcome"
+    },
+    "playful-attention-bell": {
+      "dir": "clips/playful-attention-bell",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "轻摆提示铃",
+        "en-US": "Attention bell"
+      },
+      "group": "outcome"
+    },
+    "playful-success-whale-stamp": {
+      "dir": "clips/playful-success-whale-stamp",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "鲸鱼验收章",
+        "en-US": "Success whale stamp"
+      },
+      "group": "outcome"
+    },
+    "playful-success-desk-tidy": {
+      "dir": "clips/playful-success-desk-tidy",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "开心收工",
+        "en-US": "Success desk tidy"
+      },
+      "group": "outcome"
+    },
+    "playful-error-inspect": {
+      "dir": "clips/playful-error-inspect",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "戴眼镜排查",
+        "en-US": "Error inspect"
+      },
+      "group": "outcome"
+    },
+    "playful-retry-reset": {
+      "dir": "clips/playful-retry-reset",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "清理后再试",
+        "en-US": "Retry reset"
+      },
+      "group": "outcome"
+    },
+    "playful-easter-oversized-sign": {
+      "dir": "clips/playful-easter-oversized-sign",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "牌子太大了",
+        "en-US": "Easter oversized sign"
+      },
+      "group": "sign"
+    },
+    "playful-easter-badge-salute": {
+      "dir": "clips/playful-easter-badge-salute",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "小鲸鱼敬礼",
+        "en-US": "Easter badge salute"
+      },
+      "group": "easter"
+    },
+    "playful-easter-chair-spin": {
+      "dir": "clips/playful-easter-chair-spin",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "转椅半圈",
+        "en-US": "Easter chair spin"
+      },
+      "group": "easter"
+    },
+    "playful-near-miss-protect-tea": {
+      "dir": "clips/playful-near-miss-protect-tea",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        140,
+        180,
+        220,
+        220,
+        180,
+        220
+      ],
+      "labels": {
+        "zh-CN": "先保住茶杯",
+        "en-US": "Near miss protect tea"
+      },
+      "group": "reaction"
+    },
+    "playful-near-miss-tail-hide": {
+      "dir": "clips/playful-near-miss-tail-hide",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        140,
+        180,
+        220,
+        220,
+        180,
+        220
+      ],
+      "labels": {
+        "zh-CN": "尾巴先收好",
+        "en-US": "Near miss tail hide"
+      },
+      "group": "reaction"
+    },
+    "playful-near-miss-determined": {
+      "dir": "clips/playful-near-miss-determined",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        140,
+        180,
+        220,
+        220,
+        180,
+        220
+      ],
+      "labels": {
+        "zh-CN": "深吸气再开工",
+        "en-US": "Near miss determined"
+      },
+      "group": "reaction"
+    },
+    "playful-sign-puzzle": {
+      "dir": "clips/playful-sign-puzzle",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "拼出等候牌",
+        "en-US": "Sign puzzle"
+      },
+      "group": "sign"
+    },
+    "playful-sign-calendar": {
+      "dir": "clips/playful-sign-calendar",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "翻到等你这一页",
+        "en-US": "Sign calendar"
+      },
+      "group": "sign"
+    },
+    "playful-sign-origami": {
+      "dir": "clips/playful-sign-origami",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "折叠小横幅",
+        "en-US": "Sign origami"
+      },
+      "group": "sign"
+    },
+    "playful-sign-balloon": {
+      "dir": "clips/playful-sign-balloon",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "气球托起牌",
+        "en-US": "Sign balloon"
+      },
+      "group": "sign"
+    },
+    "playful-sign-chalkboard": {
+      "dir": "clips/playful-sign-chalkboard",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "擦干净再举牌",
+        "en-US": "Sign chalkboard"
+      },
+      "group": "sign"
+    },
+    "playful-sign-pocket": {
+      "dir": "clips/playful-sign-pocket",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "口袋里掏出小牌",
+        "en-US": "Sign pocket"
+      },
+      "group": "sign"
+    },
+    "playful-water-plant": {
+      "dir": "clips/playful-water-plant",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "浇一盆小水草",
+        "en-US": "Water plant"
+      },
+      "group": "daily"
+    },
+    "playful-tail-comb": {
+      "dir": "clips/playful-tail-comb",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "梳梳尾巴边",
+        "en-US": "Tail comb"
+      },
+      "group": "daily"
+    },
+    "playful-knit-scarf": {
+      "dir": "clips/playful-knit-scarf",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "织一条鲸鱼围巾",
+        "en-US": "Knit scarf"
+      },
+      "group": "daily"
+    },
+    "playful-windup-whale": {
+      "dir": "clips/playful-windup-whale",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "上发条小鲸鱼",
+        "en-US": "Windup whale"
+      },
+      "group": "easter"
+    },
+    "playful-shell-juggle": {
+      "dir": "clips/playful-shell-juggle",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "贝壳小把戏",
+        "en-US": "Shell juggle"
+      },
+      "group": "easter"
+    },
+    "playful-leaf-umbrella": {
+      "dir": "clips/playful-leaf-umbrella",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "荷叶小伞",
+        "en-US": "Leaf umbrella"
+      },
+      "group": "daily"
+    },
+    "playful-thinking-abacus": {
+      "dir": "clips/playful-thinking-abacus",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "算盘推演",
+        "en-US": "Thinking abacus"
+      },
+      "group": "work"
+    },
+    "playful-thinking-sandglass": {
+      "dir": "clips/playful-thinking-sandglass",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "观察沙漏",
+        "en-US": "Thinking sandglass"
+      },
+      "group": "work"
+    },
+    "playful-read-books-sort": {
+      "dir": "clips/playful-read-books-sort",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "书堆找答案",
+        "en-US": "Read books sort"
+      },
+      "group": "work"
+    },
+    "playful-thinking-flowchart": {
+      "dir": "clips/playful-thinking-flowchart",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "画一张路线图",
+        "en-US": "Thinking flowchart"
+      },
+      "group": "work"
+    },
+    "playful-thinking-gears": {
+      "dir": "clips/playful-thinking-gears",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "齿轮咔哒转",
+        "en-US": "Thinking gears"
+      },
+      "group": "work"
+    },
+    "playful-writing-ink": {
+      "dir": "clips/playful-writing-ink",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "蘸墨写草稿",
+        "en-US": "Writing ink"
+      },
+      "group": "work"
+    },
+    "playful-web-telescope": {
+      "dir": "clips/playful-web-telescope",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "望远镜看网页",
+        "en-US": "Web telescope"
+      },
+      "group": "tools"
+    },
+    "playful-image-palette": {
+      "dir": "clips/playful-image-palette",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "调色画画",
+        "en-US": "Image palette"
+      },
+      "group": "tools"
+    },
+    "playful-agent-director": {
+      "dir": "clips/playful-agent-director",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "小导演带队",
+        "en-US": "Agent director"
+      },
+      "group": "tools"
+    },
+    "playful-parallel-trays": {
+      "dir": "clips/playful-parallel-trays",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "多任务分篮",
+        "en-US": "Parallel trays"
+      },
+      "group": "tools"
+    },
+    "playful-background-terrarium": {
+      "dir": "clips/playful-background-terrarium",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "看守小生态箱",
+        "en-US": "Background terrarium"
+      },
+      "group": "tools"
+    },
+    "playful-export-suitcase": {
+      "dir": "clips/playful-export-suitcase",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "打包小行李箱",
+        "en-US": "Export suitcase"
+      },
+      "group": "tools"
+    },
+    "playful-success-ribbon": {
+      "dir": "clips/playful-success-ribbon",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "交付小礼物",
+        "en-US": "Success ribbon"
+      },
+      "group": "outcome"
+    },
+    "playful-success-paper-confetti": {
+      "dir": "clips/playful-success-paper-confetti",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "纸花庆祝",
+        "en-US": "Success paper confetti"
+      },
+      "group": "outcome"
+    },
+    "playful-error-cable-check": {
+      "dir": "clips/playful-error-cable-check",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "检查小接线",
+        "en-US": "Error cable check"
+      },
+      "group": "outcome"
+    },
+    "playful-attention-envelope": {
+      "dir": "clips/playful-attention-envelope",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "递来确认信",
+        "en-US": "Attention envelope"
+      },
+      "group": "outcome"
+    },
+    "playful-retry-eraser": {
+      "dir": "clips/playful-retry-eraser",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "擦掉重画",
+        "en-US": "Retry eraser"
+      },
+      "group": "outcome"
+    },
+    "playful-error-question-map": {
+      "dir": "clips/playful-error-question-map",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        550,
+        650,
+        650,
+        900,
+        1200,
+        850
+      ],
+      "labels": {
+        "zh-CN": "困惑地图",
+        "en-US": "Error question map"
+      },
+      "group": "outcome"
+    },
+    "playful-easter-bubble-hat": {
+      "dir": "clips/playful-easter-bubble-hat",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "泡泡落在头上",
+        "en-US": "Easter bubble hat"
+      },
+      "group": "easter"
+    },
+    "playful-easter-shell-listen": {
+      "dir": "clips/playful-easter-shell-listen",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "听听贝壳",
+        "en-US": "Easter shell listen"
+      },
+      "group": "daily"
+    },
+    "playful-easter-self-portrait": {
+      "dir": "clips/playful-easter-self-portrait",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "画一张小自画像",
+        "en-US": "Easter self portrait"
+      },
+      "group": "daily"
+    },
+    "playful-easter-paper-fleet": {
+      "dir": "clips/playful-easter-paper-fleet",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        450,
+        550,
+        600,
+        4800,
+        1800,
+        700
+      ],
+      "labels": {
+        "zh-CN": "纸鱼小船队",
+        "en-US": "Easter paper fleet"
+      },
+      "group": "easter"
+    },
+    "playful-near-miss-glasses": {
+      "dir": "clips/playful-near-miss-glasses",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        140,
+        180,
+        220,
+        220,
+        180,
+        220
+      ],
+      "labels": {
+        "zh-CN": "扶好眼镜再写",
+        "en-US": "Near miss glasses"
+      },
+      "group": "reaction"
+    },
+    "playful-near-miss-startle": {
+      "dir": "clips/playful-near-miss-startle",
+      "frames": 6,
+      "loop": false,
+      "frameDurationsMs": [
+        140,
+        180,
+        220,
+        220,
+        180,
+        220
+      ],
+      "labels": {
+        "zh-CN": "眨眼稳住节奏",
+        "en-US": "Near miss startle"
+      },
+      "group": "reaction"
     }
   }
 }

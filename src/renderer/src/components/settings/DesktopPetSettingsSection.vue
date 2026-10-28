@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
-import Input from '@renderer/components/ui/Input.vue'
+import RangeSlider from '@renderer/components/ui/RangeSlider.vue'
 import Switch from '@renderer/components/ui/Switch.vue'
 import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
 import { SETTINGS_DRAFT_KEY } from '@renderer/components/settings/draft-key'
@@ -10,35 +10,16 @@ const draft = inject(SETTINGS_DRAFT_KEY)!
 
 const pet = computed(() => draft.value.desktopPet)
 
-const sizeStr = computed({
-  get: () => String(pet.value.size),
-  set: (v: string) => {
-    const n = parseInt(v, 10)
-    pet.value.size = Number.isFinite(n) ? Math.min(320, Math.max(96, n)) : 160
+const opacityPercent = computed({
+  get: () => Math.round(pet.value.opacity * 100),
+  set: (value: number) => {
+    pet.value.opacity = value / 100
   }
 })
-
-const opacityPercentStr = computed({
-  get: () => String(Math.round(pet.value.opacity * 100)),
-  set: (v: string) => {
-    const n = parseInt(v, 10)
-    pet.value.opacity = Number.isFinite(n) ? Math.min(100, Math.max(30, n)) / 100 : 1
-  }
-})
-
-const bubbleOpacityPercentStr = computed({
-  get: () => String(Math.round(pet.value.bubbleOpacity * 100)),
-  set: (v: string) => {
-    const n = parseInt(v, 10)
-    pet.value.bubbleOpacity = Number.isFinite(n) ? Math.min(100, Math.max(30, n)) / 100 : 1
-  }
-})
-
-const bubbleTimeoutStr = computed({
-  get: () => String(pet.value.bubbleTimeoutSeconds),
-  set: (v: string) => {
-    const n = parseInt(v, 10)
-    pet.value.bubbleTimeoutSeconds = Number.isFinite(n) ? Math.min(60, Math.max(0, n)) : 6
+const bubbleOpacityPercent = computed({
+  get: () => Math.round(pet.value.bubbleOpacity * 100),
+  set: (value: number) => {
+    pet.value.bubbleOpacity = value / 100
   }
 })
 </script>
@@ -68,10 +49,22 @@ const bubbleTimeoutStr = computed({
       class="divide-y divide-[var(--border-subtle)] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)]"
     >
       <PropertyRow :label="$t('settings.desktopPetSize')">
-        <Input v-model="sizeStr" type="number" min="96" max="320" class="w-20" />
+        <RangeSlider
+          v-model="pet.size"
+          :min="96"
+          :max="320"
+          :label="$t('settings.desktopPetSize')"
+          :value-text="`${pet.size} px`"
+        />
       </PropertyRow>
       <PropertyRow :label="$t('settings.desktopPetOpacity')">
-        <Input v-model="opacityPercentStr" type="number" min="30" max="100" class="w-20" />
+        <RangeSlider
+          v-model="opacityPercent"
+          :min="30"
+          :max="100"
+          :label="$t('settings.desktopPetOpacity')"
+          :value-text="`${opacityPercent}%`"
+        />
       </PropertyRow>
       <PropertyRow :label="$t('settings.desktopPetIdleVariants')">
         <Switch v-model="pet.idleVariants" :label="$t('settings.desktopPetIdleVariants')" />
@@ -91,22 +84,21 @@ const bubbleTimeoutStr = computed({
         <Switch v-model="pet.bubbleEnabled" :label="$t('settings.desktopPetBubble')" />
       </PropertyRow>
       <PropertyRow :label="$t('settings.desktopPetBubbleTimeout')">
-        <Input
-          v-model="bubbleTimeoutStr"
-          type="number"
-          min="0"
-          max="60"
-          class="w-20"
+        <RangeSlider
+          v-model="pet.bubbleTimeoutSeconds"
+          :min="0"
+          :max="60"
+          :label="$t('settings.desktopPetBubbleTimeout')"
           :disabled="!pet.bubbleEnabled"
         />
       </PropertyRow>
       <PropertyRow :label="$t('settings.desktopPetBubbleOpacity')">
-        <Input
-          v-model="bubbleOpacityPercentStr"
-          type="number"
-          min="30"
-          max="100"
-          class="w-20"
+        <RangeSlider
+          v-model="bubbleOpacityPercent"
+          :min="30"
+          :max="100"
+          :label="$t('settings.desktopPetBubbleOpacity')"
+          :value-text="`${bubbleOpacityPercent}%`"
           :disabled="!pet.bubbleEnabled"
         />
       </PropertyRow>

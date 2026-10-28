@@ -5,12 +5,11 @@ import { toast } from 'vue-sonner'
 import Button from '@renderer/components/ui/Button.vue'
 import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
 import Select from '@renderer/components/ui/Select.vue'
-import type { PetPackDetail, PetPackSummary } from '@shared/ipc/api-types'
+import type { PetPackSummary } from '@shared/ipc/api-types'
 
 const { t } = useI18n()
 
 const packs = ref<PetPackSummary[]>([])
-const detail = ref<PetPackDetail | null>(null)
 const loading = ref(false)
 const importing = ref(false)
 const removing = ref(false)
@@ -26,21 +25,11 @@ const packOptions = computed(() =>
   }))
 )
 
-const selectedPack = computed(() => packs.value.find((pack) => pack.id === selectedId.value) ?? null)
-
-const previewUrl = computed(() => {
-  const preview = detail.value?.preview
-  if (!preview || !detail.value?.compatible) return null
-  return `pi-pet://petpack/${detail.value.id}/${preview}`
-})
+const selectedPack = computed(
+  () => packs.value.find((pack) => pack.id === selectedId.value) ?? null
+)
 
 const canRemove = computed(() => Boolean(selectedPack.value && !selectedPack.value.bundled))
-
-function describePack(pack: PetPackSummary): string {
-  return [pack.nameEn, `v${pack.version}`, pack.author, `${t('settings.petPackClips')}: ${pack.clipCount}`]
-    .filter(Boolean)
-    .join(' · ')
-}
 
 async function refresh(): Promise<void> {
   loading.value = true
@@ -50,7 +39,6 @@ async function refresh(): Promise<void> {
     if (!list.some((pack) => pack.id === selectedId.value)) {
       selectedId.value = list[0]?.id ?? 'bigfish'
     }
-    detail.value = (await window.piSwitch?.pets.detail(selectedId.value)) ?? null
   } catch (error) {
     toast.error(t('settings.petPackListFailed'), { description: errorText(error) })
   } finally {
@@ -63,7 +51,7 @@ async function onSelectionChange(id: string): Promise<void> {
   const previous = selectedId.value
   selectedId.value = id
   try {
-    detail.value = (await window.piSwitch?.pets.setActive(id)) ?? null
+    await window.piSwitch?.pets.setActive(id)
   } catch (error) {
     selectedId.value = previous
     toast.error(t('settings.petPackSwitchFailed'), { description: errorText(error) })
@@ -82,7 +70,6 @@ async function importPack(kind: 'zip' | 'directory'): Promise<void> {
     )
     selectedId.value = result.id
     await refresh()
-    detail.value = (await window.piSwitch?.pets.detail(result.id)) ?? null
   } catch (error) {
     toast.error(t('settings.petPackImportFailed'), { description: errorText(error) })
   } finally {
@@ -128,35 +115,21 @@ onMounted(() => {
       />
     </PropertyRow>
 
-    <div
-      v-if="detail"
-      class="flex items-start gap-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-3"
-      data-testid="pet-pack-info"
-    >
-      <img
-        v-if="previewUrl"
-        :src="previewUrl"
-        :alt="$t('settings.petPackPreviewAlt')"
-        class="h-16 w-16 shrink-0 rounded object-contain"
-      />
-      <div class="min-w-0 flex-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
-        <p class="truncate font-medium text-[var(--text-primary)]">{{ detail.name }}</p>
-        <p class="truncate">{{ describePack(detail) }}</p>
-        <p v-if="detail.description" class="mt-1 line-clamp-2">{{ detail.description }}</p>
-        <p class="mt-1 text-[11px] text-[var(--text-tertiary)]">
-          {{ $t('settings.petPackLicense') }}: {{ detail.license }}
-        </p>
-        <p v-if="!detail.compatible" class="mt-1 text-[var(--text-danger)]">
-          {{ detail.resourceError ?? $t('settings.petPackIncompatible') }}
-        </p>
-      </div>
-    </div>
-
     <div class="flex flex-wrap items-center gap-2">
-      <Button size="sm" :loading="importing" data-testid="pet-import-zip" @click="importPack('zip')">
+      <Button
+        size="sm"
+        :loading="importing"
+        data-testid="pet-import-zip"
+        @click="importPack('zip')"
+      >
         {{ $t('settings.petPackImportZip') }}
       </Button>
-      <Button size="sm" :loading="importing" data-testid="pet-import-folder" @click="importPack('directory')">
+      <Button
+        size="sm"
+        :loading="importing"
+        data-testid="pet-import-folder"
+        @click="importPack('directory')"
+      >
         {{ $t('settings.petPackImportFolder') }}
       </Button>
       <Button

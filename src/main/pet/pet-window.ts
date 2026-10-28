@@ -29,6 +29,7 @@ const PET_BODY_FRACTION = 0.68
 const WINDOW_ASPECT = 1.25
 
 export interface PetWindowDeps {
+  getActiveAgents?: () => number
   getPack: () => LoadedPetPack | null
   getWindowState: () => JsonStore<PetWindowState>
   getSettings: () => DesktopPetSettings
@@ -192,7 +193,14 @@ export class PetWindowController {
   }
 
   /** Renderer-driven drag: move by delta, clamp, persist. */
-  moveBy(dx: number, dy: number): { x: number; y: number; workArea: { x: number; y: number; width: number; height: number } } | null {
+  moveBy(
+    dx: number,
+    dy: number
+  ): {
+    x: number
+    y: number
+    workArea: { x: number; y: number; width: number; height: number }
+  } | null {
     const window = this.window
     if (!window || window.isDestroyed()) return null
     try {
@@ -264,6 +272,7 @@ export class PetWindowController {
     const settings = this.deps.getSettings()
     const [width, height] = window.getSize()
     const payload: PetWindowContextPayload = {
+      activeAgents: this.deps.getActiveAgents?.() ?? 0,
       manifest: pack.manifest,
       settings,
       language: normalizeLanguage(this.deps.getLanguage()),
@@ -293,7 +302,7 @@ export class PetWindowController {
       this.pushTimer = null
       const payload = this.pendingPush
       this.pendingPush = null
-      if (!payload || !payload.events.length) return
+      if (!payload) return
       const window = this.window
       if (!window || window.isDestroyed()) return
       this.lastPushAt = Date.now()

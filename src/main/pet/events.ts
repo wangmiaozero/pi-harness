@@ -41,18 +41,13 @@ export class PetEventBridge {
 
   private handleAgentEvent(event: AgentEvent, agent: PetEventAgentSource): void {
     if (!this.controller.isVisible()) return
-    if (!this.getAgentSyncEnabled()) {
-      // Agent sync off: the pet idles. Suppress state reactions entirely.
-      return
-    }
     let petEvents: PetEvent[]
     try {
-      petEvents = adaptAgentEventToPetEvents(event)
+      petEvents = this.getAgentSyncEnabled() ? adaptAgentEventToPetEvents(event) : []
     } catch (error) {
       log.pet.error('failed to adapt agent event for pet:', error)
       return
     }
-    if (!petEvents.length) return
     let activeAgents = 0
     try {
       activeAgents = agent.listRunning().length

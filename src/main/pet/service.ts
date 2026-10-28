@@ -91,7 +91,8 @@ export class PetService {
       getPack: () => this.pack,
       getWindowState: () => this.windowState,
       getSettings: () => this.settings,
-      getLanguage: () => this.language
+      getLanguage: () => this.language,
+      getActiveAgents: () => this.activeAgentCount()
     })
     this.bridge = new PetEventBridge(this.controller, () => this.settings.agentSync)
     this.menuCallbacks = menuCallbacks
@@ -362,6 +363,14 @@ export class PetService {
     }
   }
 
+  private activeAgentCount(): number {
+    try {
+      return this.agentSource?.listRunning().length ?? 0
+    } catch {
+      return 0
+    }
+  }
+
   private handlePetInvoke(channel: PetSenderChannel, args: unknown[]): unknown {
     try {
       switch (channel) {
@@ -370,6 +379,7 @@ export class PetService {
           if (!pack) throw new Error('pet pack unavailable')
           const size = this.controller.getWindowSize()
           return {
+            activeAgents: this.activeAgentCount(),
             manifest: pack.manifest,
             settings: this.settings,
             language: this.language,
@@ -393,6 +403,7 @@ export class PetService {
           this.controller.setClickThrough(args[0] === true)
           return undefined
         case IPC_INVOKE.petOpenMain: {
+          if (this.activeAgentCount() > 0) return undefined
           const view = args[0] === 'settings' ? 'settings' : 'main'
           this.menuCallbacks.openMain(view)
           return undefined
@@ -410,6 +421,7 @@ export class PetService {
   }
 
   private async handleMenuAction(action: unknown): Promise<void> {
+    if (this.activeAgentCount() > 0) return
     switch (action) {
       case 'open-main':
         this.menuCallbacks.openMain('main')

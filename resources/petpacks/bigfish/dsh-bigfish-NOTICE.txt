@@ -1,0 +1,17 @@
+dsh-bigfish is an independent community companion, not an official DeepSeek product.
+The character references were supplied by the user. Original artist/source was
+not identified in the supplied files. Reference screenshots are excluded from
+the installable package. Six derived built-in sprite atlases were generated with the
+built-in image generation tool for this local project on 2026-09-17.
+No ownership of the original character artwork or DeepSeek trademarks is claimed.
+The code MIT license does not license underlying third-party character rights.
+The playful pack adds 24 generated transparent atlases (432 new poses) on
+2026-10-08 and reuses five base fallback sequences. Original source PNGs and
+generation requests are retained in the source repository.
+Full generation prompts and asset provenance: docs/asset-provenance.md.
+Bundled Host schema code: @deepseek-ai/schemastery (MIT), original copyright
+2021-present Shigma. Browser React is supplied by dsh; standalone preview includes
+React (MIT), Copyright (c) Facebook, Inc. and its affiliates.
+
+Host file locking: proper-lockfile 4.1.2 (MIT), copyright 2018 Made With MOXY Lda.
+See docs/third-party-licenses.txt for dependency license notices.
