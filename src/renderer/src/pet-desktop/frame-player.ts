@@ -107,6 +107,18 @@ export class FramePlayer {
     this.onClipEnd = null
   }
 
+  /** Release all cached frames and stop playback (pack switch / teardown). */
+  dispose(): void {
+    this.stop()
+    for (const images of this.preloaded.values()) {
+      for (const image of images) image.src = ''
+    }
+    this.preloaded.clear()
+    this.img.src = ''
+    this.sampler.width = 0
+    this.sampler.height = 0
+  }
+
   /** Sample the alpha channel under a point (CSS px, image-local scale). */
   alphaAt(localX: number, localY: number): number {
     const ctx = this.samplerCtx

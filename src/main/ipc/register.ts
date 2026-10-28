@@ -37,7 +37,8 @@ import { savePastedFiles } from '../services/paste-store'
 import { pasteSaveSchema, externalUrlSchema, clipboardTextSchema } from '@shared/schemas/ipc'
 import { APP_VERSION, PROJECT_LINK_URLS } from '@shared/constants/index'
 import { normalizePermissionMode } from '@shared/workspace/permission-mode'
-import { normalizeDesktopPetSettings } from '@shared/pet/desktop'
+import { normalizeDesktopPetSettings, type PetPackDetail, type PetPackInstallResult, type PetPackSummary } from '@shared/pet/desktop'
+import type { PetPackInstallSource } from '../pet/registry'
 import type { AppLanguage } from '@shared/constants/language'
 import { normalizeAgentMode } from '@shared/workspace/agent-mode'
 import type { AppSettings, ScreenMotionActivePayload } from '@shared/ipc/api-types'
@@ -147,6 +148,11 @@ export interface Services {
   harnessPlugins?: HarnessPluginHost
   orchestrator?: OrchestratorService
   workspace: WorkspaceServices
+  petRemovePack: (id: string) => Promise<void>
+  petSetActivePack: (id: string) => Promise<PetPackDetail | null>
+  petImportPack: (source: PetPackInstallSource) => Promise<PetPackInstallResult>
+  petListPacks: () => Promise<PetPackSummary[]>
+  petPackDetail: (id: string) => Promise<PetPackDetail | null>
   getMainWindow: () => BrowserWindow | null
   setAppIcon: (settings: AppSettings) => void
   setScreenMotionActive: (payload: ScreenMotionActivePayload) => void
@@ -903,6 +909,58 @@ export function registerIpc(services: Services): void {
       return settings
     })
   )
+  // ---- desktop pet pack management (main window) ----
+  ipcMain.handle(IPC_INVOKE.petListPacks, () => wrap(() => services.petListPacks()))
+  ipcMain.handle(IPC_INVOKE.petPackDetail, (_e, id: unknown) =>
+    wrap(() => {
+      if (typeof id !== 'string' || !id) throw new ValidationError('Invalid pet pack id')
+      return services.petPackDetail(id)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.petImportPack, async (_e, kind: unknown) =>
+    wrap(async () => {
+      if (kind !== 'zip' && kind !== 'directory') {
+        throw new ValidationError('Invalid pet pack import kind')
+      }
+      const window = services.getMainWindow()
+      const options: OpenDialogOptions =
+        kind === 'zip'
+          ? {
+              title: 'Import pet pack (ZIP)',
+              buttonLabel: 'Import',
+              properties: ['openFile'],
+              filters: [{ name: 'Pet pack', extensions: ['zip'] }]
+            }
+          : {
+              title: 'Import pet pack (directory)',
+              buttonLabel: 'Import',
+              properties: ['openDirectory']
+            }
+      const result = window
+        ? await dialog.showOpenDialog(window, options)
+        : await dialog.showOpenDialog(options)
+      if (result.canceled || !result.filePaths[0]) return null
+      const selected = result.filePaths[0]
+      if (kind === 'zip') {
+        const data = await fs.readFile(selected)
+        return services.petImportPack({ kind: 'zip', data })
+      }
+      return services.petImportPack({ kind: 'directory', path: selected })
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.petRemovePack, (_e, id: unknown) =>
+    wrap(() => {
+      if (typeof id !== 'string' || !id) throw new ValidationError('Invalid pet pack id')
+      return services.petRemovePack(id)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.petSetActivePack, (_e, id: unknown) =>
+    wrap(() => {
+      if (typeof id !== 'string' || !id) throw new ValidationError('Invalid pet pack id')
+      return services.petSetActivePack(id)
+    })
+  )
+
   ipcMain.handle(IPC_INVOKE.pasteSave, (_e, input: unknown) =>
     wrap(async () => {
       const parsed = parseInput(pasteSaveSchema, input, 'Invalid paste payload')

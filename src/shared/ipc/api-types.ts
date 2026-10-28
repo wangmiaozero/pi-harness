@@ -1,6 +1,6 @@
 import type { AgentSettingsAPI } from '../agent-settings/schema'
 import type { HarnessPluginsAPI } from '../harness-plugins/types'
-import type { DesktopPetSettings, PetPackManifest } from '../pet/desktop'
+import type { DesktopPetSettings, PetPackDetail, PetPackInstallResult, PetPackManifest, PetPackSummary } from '../pet/desktop'
 import type { PetEvent } from '../pet/types'
 import type { OpenCodeFreeState, OpenCodeTestOptions } from '../providers/opencode-free'
 import type {
@@ -862,6 +862,8 @@ export interface PetDragEndPayload {
   vy: number
 }
 
+export type { PetPackSummary, PetPackDetail, PetPackInstallResult }
+
 export interface UiCommandPayload {
   type: 'open-settings' | 'focus'
 }
@@ -1113,6 +1115,14 @@ export interface PiSwitchAPI {
     list(): Promise<CustomSkinDescriptor[]>
     import(): Promise<CustomSkinDescriptor | null>
     createProject(): Promise<CustomSkinProjectResult | null>
+  }
+  pets: {
+    list(): Promise<PetPackSummary[]>
+    detail(id: string): Promise<PetPackDetail | null>
+    /** Opens a native dialog (zip or directory picker) and imports. */
+    import(kind: 'zip' | 'directory'): Promise<PetPackInstallResult | null>
+    remove(id: string): Promise<void>
+    setActive(id: string): Promise<PetPackDetail | null>
   }
   diagnostics: {
     get(): Promise<DiagnosticsReport>

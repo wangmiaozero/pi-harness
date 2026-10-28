@@ -48,7 +48,7 @@ import { registerIpc, broadcastConfigChanged, broadcastNotification } from './ip
 import { createMainWindow } from './window/create-window'
 import { installAppMenu } from './window/app-menu'
 import { ScreenMotionOverlayController } from './window/screen-motion-overlay'
-import { PetService, type PetEventAgentSource } from './pet/service'
+import { PetService, userPetPacksRoot, type PetEventAgentSource } from './pet/service'
 import type { AgentEvent } from '@shared/types/workspace'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
@@ -519,7 +519,10 @@ async function bootstrap(): Promise<void> {
   harness.attachWindow(() => mainWindow)
 
   // Desktop pet (BigFish) — attach the active agent runtime and start lazily.
-  const petService = new PetService(settingsStore, {
+  const petService = new PetService(
+    settingsStore,
+    userPetPacksRoot(app.getPath('userData')),
+    {
     openMain: (view) => {
       if (!mainWindow || mainWindow.isDestroyed()) openMainWindow()
       else {
@@ -534,7 +537,8 @@ async function bootstrap(): Promise<void> {
     onQuitRequest: () => {
       app.quit()
     }
-  })
+    }
+  )
   const petAgentRpc = rpcAgent
   const petAgentSource: PetEventAgentSource | null =
     process.env.PI_HARNESS_AGENT_MODE === 'sdk'
@@ -648,8 +652,13 @@ async function bootstrap(): Promise<void> {
     setAppIcon: (settings) => applyAppIcon(settings, mainWindow),
     setDesktopPetSettings: (settings, language) => {
       petService.setLanguage(language)
-      petService.applySettings(settings)
+      void petService.applySettings(settings)
     },
+    petListPacks: () => petService.listPacks(),
+    petPackDetail: (id) => petService.packDetail(id),
+    petImportPack: (source) => petService.importPack(source),
+    petRemovePack: (id) => petService.removePack(id),
+    petSetActivePack: (id) => petService.setActivePack(id),
     setScreenMotionActive: (payload) => {
       const restoreMainWindow = payload.active && mainWindow?.isFocused() === true
       screenMotion.setActive(payload)

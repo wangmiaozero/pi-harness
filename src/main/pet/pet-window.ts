@@ -41,6 +41,7 @@ export class PetWindowController {
   private lastPushAt = 0
   private pendingPush: PetStatePushPayload | null = null
   private pushTimer: NodeJS.Timeout | null = null
+  private quitHookInstalled = false
 
   constructor(private readonly deps: PetWindowDeps) {}
 
@@ -110,7 +111,16 @@ export class PetWindowController {
   private petWindowSize(size: number): { width: number; height: number } {
     const bodyHeight = size
     const height = Math.round(bodyHeight / PET_BODY_FRACTION)
-    const width = Math.max(WINDOW_MIN_WIDTH, Math.round(height * WINDOW_ASPECT))
+    // Pack-aware width: wide third-party pets need more horizontal room than
+    // the default aspect reserves for the bubble. BigFish keeps its old size.
+    const manifest = this.pack?.manifest
+    const petAspect = manifest ? manifest.baseWidth / Math.max(1, manifest.baseHeight) : 1
+    const petBodyWidth = Math.round(bodyHeight * petAspect)
+    const width = Math.max(
+      WINDOW_MIN_WIDTH,
+      Math.round(height * WINDOW_ASPECT),
+      Math.round(petBodyWidth * 1.15)
+    )
     return { width, height }
   }
 
@@ -149,11 +159,13 @@ export class PetWindowController {
       this.savePosition()
       this.window = null
     })
-    // When the main window minimizes, the pet stays (companion behavior);
-    // when the app quits, ensure cleanup.
-    app.on('before-quit', () => {
-      this.savePosition()
-    })
+    // When the app quits, ensure cleanup (installed once, not per window).
+    if (!this.quitHookInstalled) {
+      this.quitHookInstalled = true
+      app.on('before-quit', () => {
+        this.savePosition()
+      })
+    }
     window.once('ready-to-show', () => {
       if (!window.isDestroyed()) window.showInactive()
     })
