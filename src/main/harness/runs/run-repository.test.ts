@@ -68,6 +68,28 @@ function run(id: string, overrides: Partial<HarnessRun> = {}): HarnessRun {
 }
 
 describe('JsonRunRepository', () => {
+  it('retains simultaneous run completions and concurrent pruning', async () => {
+    const store = tempStore()
+    const repository = new JsonRunRepository(store)
+    const day = 24 * 60 * 60 * 1000
+    await Promise.all(
+      Array.from({ length: 20 }, (_, index) =>
+        repository.save(run(`run-${index}`, { startedAt: 10 * day }))
+      )
+    )
+    expect(await repository.listAll()).toHaveLength(20)
+    await Promise.all([
+      repository.prune(11 * day, 2),
+      repository.save(run('new', { startedAt: 11 * day }))
+    ])
+    expect(await repository.listAll()).toHaveLength(21)
+    expect(
+      await new JsonRunRepository(
+        new JsonStore((store as unknown as { filePath: string }).filePath, EMPTY_RUN_STORE)
+      ).listAll()
+    ).toHaveLength(21)
+  })
+
   it('saves, reads and lists runs by session and cwd', async () => {
     const repository = new JsonRunRepository(tempStore())
     await repository.save(run('run-1', { sessionId: 's1', cwd: '/repo' }))

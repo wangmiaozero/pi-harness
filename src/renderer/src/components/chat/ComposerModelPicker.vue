@@ -112,7 +112,7 @@ function syncModelPanel() {
   modelStyle.value = {
     width: `${width}px`,
     maxHeight: `${maxHeight}px`,
-    overflowY: 'auto',
+    overflow: 'hidden',
     left: `${Math.round(Math.max(edge, Math.min(left, window.innerWidth - width - edge)))}px`,
     top: `${Math.round(top)}px`
   }
@@ -275,12 +275,12 @@ watch(open, (value) => {
         :style="modelStyle"
         @pointerdown.stop
       >
-        <div class="flex items-center justify-between px-2 py-1.5">
+        <div class="flex shrink-0 items-center justify-between px-2 py-1.5">
           <span class="truncate text-[13px] text-[var(--text-secondary)]">
             {{ activeVendor.label }}
           </span>
         </div>
-        <div class="relative mx-1 -mt-0.5 pb-1">
+        <div class="relative mx-1 -mt-0.5 shrink-0 pb-1">
           <Search
             aria-hidden="true"
             class="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-[var(--text-tertiary)]"
@@ -296,7 +296,10 @@ watch(open, (value) => {
             :aria-label="$t('workspace.modelSearchPlaceholder')"
           />
         </div>
-        <div class="flex max-h-[240px] flex-col overflow-y-auto" role="listbox">
+        <div
+          class="flex min-h-0 max-h-[240px] flex-col overflow-x-hidden overflow-y-auto overscroll-contain"
+          role="listbox"
+        >
           <button
             v-for="option in filteredModels"
             :key="option.value"
@@ -318,7 +321,7 @@ watch(open, (value) => {
               <span class="block truncate">{{ option.label }}</span>
               <span
                 v-if="option.description"
-                class="block text-[10px] text-[var(--text-tertiary)] whitespace-normal"
+                class="block text-[10px] text-[var(--text-tertiary)] whitespace-normal [overflow-wrap:anywhere]"
                 >{{ option.description }}</span
               >
             </span>
@@ -336,8 +339,8 @@ watch(open, (value) => {
             {{ $t('workspace.noMatchingModels') }}
           </p>
         </div>
-        <div class="-mx-1 mt-1 h-px bg-[var(--border-default)]" />
-        <div class="relative z-10 flex flex-col px-1 pb-1">
+        <div class="-mx-1 mt-1 h-px shrink-0 bg-[var(--border-default)]" />
+        <div class="relative z-10 flex shrink-0 flex-col px-1 pb-1">
           <span class="relative z-10 px-1 text-[13px] font-medium text-[var(--text-primary)]">
             {{ $t('workspace.thinkingIntensity') }}
             <span class="font-normal">{{ thinkingValue }}</span>

@@ -234,7 +234,8 @@ function onKeydown(event: KeyboardEvent) {
   position: relative;
   z-index: 3;
   isolation: isolate;
-  overflow: visible;
+  /* Rotating decorative rays must not enlarge the menu scrollable area. */
+  overflow: clip;
   padding: 8px 4px 2px;
   text-align: center;
 }

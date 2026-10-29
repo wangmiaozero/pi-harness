@@ -19,6 +19,7 @@ export class PiRpcClient {
   private exitListeners = new Set<() => void>()
   private closed = false
   private buffer = ''
+  private bufferBytes = 0
   private stderr = ''
   private readonly decoder = new StringDecoder('utf8')
 
@@ -60,7 +61,13 @@ export class PiRpcClient {
         reject(new AgentError('Pi RPC request timed out'))
       }, timeoutMs)
       this.pending.set(id, { resolve, reject, timer })
-      this.write({ ...command, id })
+      try {
+        this.write({ ...command, id })
+      } catch (error) {
+        clearTimeout(timer)
+        this.pending.delete(id)
+        reject(error)
+      }
     })
   }
   write(command: Record<string, unknown>): void {
@@ -84,7 +91,8 @@ export class PiRpcClient {
   }
   private read(chunk: string): void {
     this.buffer += chunk
-    if (Buffer.byteLength(this.buffer) > 32 * 1024 * 1024) {
+    this.bufferBytes += Buffer.byteLength(chunk)
+    if (this.bufferBytes > 32 * 1024 * 1024) {
       this.fail(new AgentError('Pi RPC output exceeded the limit'))
       this.child?.kill()
       return
@@ -93,6 +101,7 @@ export class PiRpcClient {
     while ((newline = this.buffer.indexOf('\n')) >= 0) {
       const line = this.buffer.slice(0, newline)
       this.buffer = this.buffer.slice(newline + 1)
+      this.bufferBytes -= Buffer.byteLength(line) + 1
       if (!line.trim()) continue
       let event: Record<string, unknown>
       try {

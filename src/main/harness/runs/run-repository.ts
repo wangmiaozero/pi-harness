@@ -40,13 +40,16 @@ export class JsonRunRepository implements RunRepository {
 
   async saveMany(runs: HarnessRun[]): Promise<void> {
     if (!runs.length) return
-    const record = await this.store.read()
-    const byId = new Map(record.runs.map((existing) => [existing.id, existing]))
-    for (const run of runs) byId.set(run.id, run)
-    const next = [...byId.values()]
-      .sort((a, b) => b.startedAt - a.startedAt)
-      .slice(0, MAX_PERSISTED_RUNS)
-    await this.store.write({ schemaVersion: 1, runs: next })
+    await this.store.mutate({
+      apply(record) {
+        const byId = new Map(record.runs.map((existing) => [existing.id, existing]))
+        for (const run of runs) byId.set(run.id, run)
+        const next = [...byId.values()]
+          .sort((a, b) => b.startedAt - a.startedAt)
+          .slice(0, MAX_PERSISTED_RUNS)
+        return { ...record, schemaVersion: 1, runs: next }
+      }
+    })
   }
 
   async get(runId: string): Promise<HarnessRun | null> {
@@ -77,11 +80,15 @@ export class JsonRunRepository implements RunRepository {
   async prune(now: number, retentionDays: number): Promise<number> {
     if (retentionDays <= 0) return 0
     const cutoff = now - retentionDays * 24 * 60 * 60 * 1000
-    const record = await this.store.read()
-    const kept = record.runs.filter((run) => run.startedAt >= cutoff)
-    if (kept.length === record.runs.length) return 0
-    await this.store.write({ schemaVersion: 1, runs: kept })
-    return record.runs.length - kept.length
+    let removed = 0
+    await this.store.mutate({
+      apply(record) {
+        const kept = record.runs.filter((run) => run.startedAt >= cutoff)
+        removed = record.runs.length - kept.length
+        return { ...record, schemaVersion: 1, runs: kept }
+      }
+    })
+    return removed
   }
 }
 

@@ -90,11 +90,12 @@ export class CheckpointService {
         ...(sessionState.cwd ? { cwd: sessionState.cwd } : {})
       }
     }
-    const record = await this.store.read()
-    const next = [checkpoint, ...record.checkpoints]
-    await this.store.write({
-      schemaVersion: 1,
-      checkpoints: pruneCheckpoints(next, sessionId)
+    await this.store.mutate({
+      apply: (record) => ({
+        ...record,
+        schemaVersion: 1,
+        checkpoints: pruneCheckpoints([checkpoint, ...record.checkpoints], sessionId)
+      })
     })
     this.hooks.emit(sessionId, {
       type: 'checkpoint.created',

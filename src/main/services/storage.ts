@@ -12,6 +12,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { log } from './logger'
+import { ConfigError } from './errors'
 
 const writeQueues = new Map<string, Promise<void>>()
 
@@ -111,6 +112,9 @@ export async function atomicWriteJson(filePath: string, data: unknown): Promise<
 export class JsonStore<T extends object> {
   private cache: T | null = null
   private loaded = false
+  private loading: Promise<T> | null = null
+  private readFailed = false
+  private mutations: Promise<unknown> = Promise.resolve()
 
   constructor(
     private readonly filePath: string,
@@ -119,27 +123,70 @@ export class JsonStore<T extends object> {
 
   async read(): Promise<T> {
     if (this.loaded && this.cache) return this.cache
+    if (this.loading) return this.loading
+    this.loading = this.load()
     try {
-      const data = await readJsonFile<T>(this.filePath)
-      this.cache = data ? { ...this.defaults, ...data } : { ...this.defaults }
+      return await this.loading
+    } finally {
+      this.loading = null
+    }
+  }
+
+  private async load(): Promise<T> {
+    try {
+      const text = await readTextFile(this.filePath)
+      const data: unknown = text === null ? null : JSON.parse(text)
+      if (text !== null && (!data || typeof data !== 'object' || Array.isArray(data))) {
+        throw new ConfigError('Stored configuration must be an object')
+      }
+      this.cache = { ...this.defaults, ...(data as T | null) }
+      this.readFailed = false
     } catch (err) {
       log.config.warn(`store read failed (${this.filePath}), using defaults:`, err)
+      this.readFailed = true
       this.cache = { ...this.defaults }
     }
     this.loaded = true
     return this.cache
   }
 
+  private async assertWritable(): Promise<void> {
+    await this.read()
+    if (this.readFailed) {
+      throw new ConfigError('Configuration could not be read; repair it before saving')
+    }
+  }
+
+  private enqueue<R>(mutation: () => Promise<R>): Promise<R> {
+    const current = this.mutations.catch(() => undefined).then(mutation)
+    this.mutations = current
+    return current
+  }
+
   async write(next: T): Promise<void> {
-    this.cache = next
-    await atomicWriteJson(this.filePath, next)
+    return this.enqueue(async () => {
+      await this.assertWritable()
+      await atomicWriteJson(this.filePath, next)
+      this.cache = next
+      this.loaded = true
+    })
   }
 
   async update(patch: Partial<T>): Promise<T> {
-    const current = await this.read()
-    const next = { ...current, ...patch }
-    await this.write(next)
-    return next
+    return this.mutate({ apply: (current) => ({ ...current, ...patch }) })
+  }
+
+  /** Read, derive and commit as one queued operation. */
+  async mutate(operation: { apply(current: T): T }): Promise<T> {
+    return this.enqueue(async () => {
+      await this.assertWritable()
+      const current = await this.read()
+      const next = operation.apply(current)
+      await atomicWriteJson(this.filePath, next)
+      this.cache = next
+      this.loaded = true
+      return next
+    })
   }
 
   /** Sync peek — returns cache or defaults (never hits disk). */

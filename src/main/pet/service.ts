@@ -233,7 +233,7 @@ export class PetService {
       // pre-assigning would defeat applySettings's switch detection (the
       // bundled pack would never be reloaded).
       await this.applySettings(next)
-      this.persistSettings(next)
+      await this.persistSettings(next)
     }
   }
 
@@ -258,7 +258,7 @@ export class PetService {
           throw new PetPackError(`Pet pack "${id}" could not be loaded`)
         }
       }
-      this.persistSettings(next)
+      await this.persistSettings(next)
       return detail
     } catch (error) {
       // Restore the previous pack so no black pet window is left behind.
@@ -318,7 +318,7 @@ export class PetService {
       this.pack = previousPack
       this.loadedPackId = previousId
       this.settings = { ...this.settings, activePackId: previousId }
-      this.persistSettings(this.settings)
+      await this.persistSettings(this.settings)
       log.pet.warn(`kept running pack "${previousId}" after failed switch to "${requestedId}"`)
       return false
     }
@@ -330,7 +330,7 @@ export class PetService {
           this.pack = pack
           this.loadedPackId = BUNDLED_PACK_ID
           this.settings = { ...this.settings, activePackId: BUNDLED_PACK_ID }
-          this.persistSettings(this.settings)
+          await this.persistSettings(this.settings)
           return true
         } catch (error) {
           log.pet.error('bundled pet pack unavailable:', error)
@@ -430,11 +430,14 @@ export class PetService {
         this.menuCallbacks.openMain('settings')
         break
       case 'toggle-always-on-top': {
-        this.persistSettings({ ...this.settings, alwaysOnTop: !this.settings.alwaysOnTop })
+        await this.persistSettings({ ...this.settings, alwaysOnTop: !this.settings.alwaysOnTop })
         break
       }
       case 'toggle-reduced-motion': {
-        this.persistSettings({ ...this.settings, reducedMotion: !this.settings.reducedMotion })
+        await this.persistSettings({
+          ...this.settings,
+          reducedMotion: !this.settings.reducedMotion
+        })
         break
       }
       case 'reset-position':
@@ -443,7 +446,7 @@ export class PetService {
       case 'hide': {
         const next = { ...this.settings, enabled: false }
         await this.applySettings(next)
-        this.persistSettings(next)
+        await this.persistSettings(next)
         break
       }
       case 'quit':
@@ -455,18 +458,11 @@ export class PetService {
   }
 
   /** Persist pet settings through the shared store so the Settings UI stays in sync. */
-  private persistSettings(next: DesktopPetSettings): void {
+  private async persistSettings(next: DesktopPetSettings): Promise<void> {
+    await this.settingsStore.update({ desktopPet: next })
     this.settings = next
-    try {
-      const current = this.settingsStore.peek()
-      void this.settingsStore
-        .write({ ...current, desktopPet: next })
-        .then(() => this.menuCallbacks.onSettingsChanged?.())
-        .catch((error) => log.pet.error('failed to persist pet settings:', error))
-    } catch (error) {
-      log.pet.error('failed to persist pet settings:', error)
-    }
     this.controller.applySettings(next)
+    this.menuCallbacks.onSettingsChanged?.()
   }
 }
 

@@ -94,3 +94,51 @@ test('closes the model picker after mouse or keyboard selection', async ({ page 
     await expect(trigger).toBeFocused()
   }
 })
+
+test('keeps maximum thinking effects inside the model panel without blank scrolling', async ({
+  page
+}, testInfo) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.locator('a[href="#/workspace"]').click()
+  for (const size of [
+    { width: 1280, height: 900 },
+    { width: 1000, height: 700 }
+  ]) {
+    await page.setViewportSize(size)
+    await page.getByTestId('workspace-model-select').getByRole('button').click()
+    const panel = page.getByTestId('composer-model-panel')
+    const slider = page.getByTestId('composer-thinking-slider')
+    await slider.focus()
+    await slider.press('End')
+    await expect(page.getByTestId('composer-thinking-forbidden')).toBeVisible()
+    await slider.press('ArrowLeft')
+    await expect(page.getByTestId('composer-thinking-forbidden')).toBeVisible()
+    await panel.evaluate(async (element) => {
+      const rays = element.querySelector('.thinking-forbidden__rays')!
+      for (const animation of rays.getAnimations()) {
+        animation.pause()
+        animation.currentTime = 1600
+      }
+      await new Promise(requestAnimationFrame)
+    })
+    const metrics = await panel.evaluate((element) => {
+      const panel = element as HTMLElement
+      panel.scrollTop = 100000
+      panel.scrollLeft = 100000
+      return {
+        x: panel.scrollLeft,
+        y: panel.scrollTop,
+        width: panel.clientWidth,
+        scrollWidth: panel.scrollWidth,
+        height: panel.clientHeight,
+        scrollHeight: panel.scrollHeight
+      }
+    })
+    expect(metrics.x).toBe(0)
+    expect(metrics.y).toBe(0)
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.width + 1)
+    expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.height + 1)
+    await page.screenshot({ path: testInfo.outputPath(`thinking-panel-${size.width}.png`) })
+    await page.keyboard.press('Escape')
+  }
+})

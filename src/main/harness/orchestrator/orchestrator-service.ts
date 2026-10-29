@@ -132,6 +132,7 @@ interface PendingDispatch {
   startedAt: number
   lastEventAt: number
   notifiedStuck: boolean
+  eventQueue?: Promise<void>
 }
 
 const TERMINAL_TASK_STATUSES = new Set(['completed', 'failed', 'cancelled'])
@@ -1036,12 +1037,12 @@ export class OrchestratorService {
         if (dispatch.runId) return
         dispatch.runId = event.runId
         this.runDispatches.set(event.runId, dispatch)
-        this.trackEventOperation(this.onRunStarted(dispatch, event.runId))
+        this.queueDispatchEvent(dispatch, () => this.onRunStarted(dispatch, event.runId))
         break
       }
       case 'evaluation.started': {
         if (event.runId !== dispatch.runId) return
-        this.trackEventOperation(this.setTaskVerifying(dispatch))
+        this.queueDispatchEvent(dispatch, () => this.setTaskVerifying(dispatch))
         break
       }
       case 'evaluation.completed': {
@@ -1052,7 +1053,7 @@ export class OrchestratorService {
       case 'run.failed':
       case 'run.aborted': {
         if (event.runId !== dispatch.runId) return
-        this.trackEventOperation(this.settleDispatch(dispatch, event))
+        this.queueDispatchEvent(dispatch, () => this.settleDispatch(dispatch, event))
         break
       }
       case 'policy.denied': {
@@ -1065,6 +1066,20 @@ export class OrchestratorService {
       default:
         break
     }
+  }
+
+  private queueDispatchEvent(dispatch: PendingDispatch, operation: () => Promise<void>): void {
+    // Runtime events arrive synchronously, while their persistence is asynchronous.
+    // Preserve their order per dispatch so settlement cannot overwrite run identity
+    // with a snapshot read before run.started committed. Different tasks stay independent.
+    const next = (dispatch.eventQueue ?? Promise.resolve())
+      .catch(() => undefined)
+      .then(async () => {
+        if (this.sessionDispatches.get(dispatch.sessionId) !== dispatch) return
+        await operation()
+      })
+    dispatch.eventQueue = next
+    this.trackEventOperation(next)
   }
 
   private async onRunStarted(dispatch: PendingDispatch, runId: string): Promise<void> {
