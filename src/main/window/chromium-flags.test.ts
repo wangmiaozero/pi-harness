@@ -11,12 +11,23 @@ vi.mock('electron', () => ({
 }))
 
 describe('chromium GPU workarounds', () => {
-  it('disables accelerated 2D canvas SharedImage rasterization', () => {
-    applyChromiumGpuWorkarounds()
-    expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('disable-accelerated-2d-canvas')
-    expect(app.commandLine.appendSwitch).toHaveBeenCalledWith(
-      'disable-features',
-      'CanvasOopRasterization'
-    )
-  })
+  it.each(['darwin', 'linux', 'win32'])(
+    'disables accelerated canvas with the %s occlusion policy',
+    (platform) => {
+      const descriptor = Object.getOwnPropertyDescriptor(process, 'platform')!
+      Object.defineProperty(process, 'platform', { value: platform })
+      try {
+        applyChromiumGpuWorkarounds()
+        expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('disable-accelerated-2d-canvas')
+        expect(app.commandLine.appendSwitch).toHaveBeenCalledWith(
+          'disable-features',
+          platform === 'win32'
+            ? 'CanvasOopRasterization,CalculateNativeWinOcclusion'
+            : 'CanvasOopRasterization'
+        )
+      } finally {
+        Object.defineProperty(process, 'platform', descriptor)
+      }
+    }
+  )
 })

@@ -45,3 +45,14 @@ it('delivers a large fragmented RPC event exactly once', () => {
   if (process.env.PI_HARNESS_RPC_BENCHMARK)
     process.stdout.write('RPC fragmented event milliseconds ' + JSON.stringify(times) + '\n')
 })
+
+it('preserves a trailing partial event after multiple complete events in a chunk', () => {
+  const client = new PiRpcClient()
+  const listener = vi.fn()
+  client.onEvent(listener)
+  const read = (client as unknown as { read: (chunk: string) => void }).read.bind(client)
+  read('{"type":"one"}\n\n{"type":"two"}\n{"type":')
+  expect(listener.mock.calls.map(([event]) => event.type)).toEqual(['one', 'two'])
+  read('"three"}\n')
+  expect(listener.mock.calls.map(([event]) => event.type)).toEqual(['one', 'two', 'three'])
+})

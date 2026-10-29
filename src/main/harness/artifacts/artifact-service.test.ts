@@ -192,7 +192,7 @@ describe('ArtifactService.collectForRun', () => {
 
     expect(artifacts[0]).toMatchObject({
       path: 'src/app.ts',
-      metadata: { resolvedPath: '/repo/src/app.ts' }
+      metadata: { resolvedPath: path.resolve('/repo', 'src/app.ts') }
     })
   })
 

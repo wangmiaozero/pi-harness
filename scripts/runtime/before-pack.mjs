@@ -9,6 +9,16 @@ export default async function beforePack(context) {
     !process.versions.node.startsWith('24.')
   )
     throw new Error('Packaging requires security-patched Node 24 LTS')
+  if (context.packager.config.extraMetadata?.piHarnessVariant === 'nomascot') {
+    // electron-builder concatenates inherited extraResources arrays. Filter the
+    // effective list rather than adding another list that retains parent assets.
+    const resources = context.packager.config.extraResources ?? []
+    context.packager.config.extraResources = resources.filter((entry) =>
+      typeof entry === 'string'
+        ? !entry.replaceAll('\\', '/').includes('petpacks')
+        : entry.to !== 'petpacks' && !String(entry.from).replaceAll('\\', '/').includes('petpacks')
+    )
+  }
   const arch = { 1: 'x64', 3: 'arm64' }[context.arch]
   if (!arch) throw new Error('Only official x64 and arm64 runtime distributions can be packaged')
   const args = [

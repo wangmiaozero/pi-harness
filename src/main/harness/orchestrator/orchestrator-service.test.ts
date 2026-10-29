@@ -895,7 +895,8 @@ describe('OrchestratorService failure handling', () => {
       expect(harness.host.prompts).toHaveLength(2)
     }, 5000)
     expect(harness.host.prompts[1].message).toContain('two')
-  })
+    // Two independent 5s event waits plus persisted setup need a larger outer budget.
+  }, 15_000)
 
   it('recovers interrupted orchestrations after a restart', async () => {
     const harness = createHarness()
