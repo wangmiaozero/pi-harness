@@ -12,7 +12,8 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { log } from './logger'
-import { ConfigError } from './errors'
+import { ConfigError, ConfigConflictError } from './errors'
+import { withFileLease } from './file-lease'
 
 const writeQueues = new Map<string, Promise<void>>()
 
@@ -73,7 +74,7 @@ async function writeAtomicText(filePath: string, content: string): Promise<void>
   try {
     // Flush through the same writable handle. Windows rejects fsync on the
     // read-only handle previously used here with EPERM.
-    const handle = await fs.open(tmpPath, 'wx')
+    const handle = await fs.open(tmpPath, 'wx', 0o600)
     try {
       await handle.writeFile(content, 'utf8')
       await handle.sync()
@@ -114,6 +115,7 @@ export class JsonStore<T extends object> {
   private loaded = false
   private loading: Promise<T> | null = null
   private readFailed = false
+  private baseline: string | null = null
   private mutations: Promise<unknown> = Promise.resolve()
 
   constructor(
@@ -140,6 +142,7 @@ export class JsonStore<T extends object> {
         throw new ConfigError('Stored configuration must be an object')
       }
       this.cache = { ...this.defaults, ...(data as T | null) }
+      this.baseline = text
       this.readFailed = false
     } catch (err) {
       log.config.warn(`store read failed (${this.filePath}), using defaults:`, err)
@@ -155,6 +158,12 @@ export class JsonStore<T extends object> {
     if (this.readFailed) {
       throw new ConfigError('Configuration could not be read; repair it before saving')
     }
+    if ((await readTextFile(this.filePath)) !== this.baseline) {
+      this.loaded = false
+      throw new ConfigConflictError(
+        'Configuration changed outside this store; reload before saving'
+      )
+    }
   }
 
   private enqueue<R>(mutation: () => Promise<R>): Promise<R> {
@@ -164,12 +173,15 @@ export class JsonStore<T extends object> {
   }
 
   async write(next: T): Promise<void> {
-    return this.enqueue(async () => {
-      await this.assertWritable()
-      await atomicWriteJson(this.filePath, next)
-      this.cache = next
-      this.loaded = true
-    })
+    return this.enqueue(() =>
+      withFileLease(this.filePath, async () => {
+        await this.assertWritable()
+        await atomicWriteJson(this.filePath, next)
+        this.baseline = JSON.stringify(next, null, 2) + '\n'
+        this.cache = next
+        this.loaded = true
+      })
+    )
   }
 
   async update(patch: Partial<T>): Promise<T> {
@@ -178,15 +190,18 @@ export class JsonStore<T extends object> {
 
   /** Read, derive and commit as one queued operation. */
   async mutate(operation: { apply(current: T): T }): Promise<T> {
-    return this.enqueue(async () => {
-      await this.assertWritable()
-      const current = await this.read()
-      const next = operation.apply(current)
-      await atomicWriteJson(this.filePath, next)
-      this.cache = next
-      this.loaded = true
-      return next
-    })
+    return this.enqueue(() =>
+      withFileLease(this.filePath, async () => {
+        await this.assertWritable()
+        const current = await this.read()
+        const next = operation.apply(current)
+        await atomicWriteJson(this.filePath, next)
+        this.baseline = JSON.stringify(next, null, 2) + '\n'
+        this.cache = next
+        this.loaded = true
+        return next
+      })
+    )
   }
 
   /** Sync peek — returns cache or defaults (never hits disk). */

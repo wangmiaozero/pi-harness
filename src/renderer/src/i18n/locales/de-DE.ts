@@ -293,8 +293,7 @@ export const deDE: MessageTree = {
     discoveredModelHint: 'API',
     existingModelHint: 'Vorhanden',
     headersObjectRequired: 'Header müssen ein JSON-Objekt sein',
-    testModelHint:
-      'Sendet eine echte Chat-Anfrage mit 1 Token (kein GET /models). Damit werden 401 / 429 / Modellfehler sichtbar.'
+    testModelHint: "Sendet eine kurze Nachricht zum Testen des Modells. Der Anbieter kann dafür Gebühren berechnen."
   },
   models: {
     title: 'Modelle',
@@ -801,7 +800,7 @@ export const deDE: MessageTree = {
     desktopPetEnabled: 'Desktop-Haustier aktivieren',
     desktopPetAgentSync: 'Auf Agent-Aktivität reagieren',
     desktopPetAlwaysOnTop: 'Immer im Vordergrund',
-    desktopPetSize: 'Größe des Haustiers (px)',
+    desktopPetSize: 'Größe des Haustiers (%)',
     desktopPetOpacity: 'Deckkraft des Haustiers (%)',
     desktopPetIdleVariants: 'Leerlauf-Varianten',
     desktopPetPhysics: 'Wurfphysik',
@@ -949,6 +948,7 @@ export const deDE: MessageTree = {
     developerMode: 'Entwicklermodus',
     mockMode: 'Simulationsmodus',
     backupCreated: 'Sicherung erstellt',
+    restoreInterrupted: "Eine Wiederherstellung wurde unterbrochen. Stelle die markierte Sicherung erneut wieder her. Extern geänderte Dateien bleiben geschützt.",
     backupRestored: 'Sicherung wiederhergestellt',
     backupDeleted: 'Sicherung gelöscht',
     restoreTitle: 'Sicherung wiederherstellen',

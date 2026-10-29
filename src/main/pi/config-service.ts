@@ -18,6 +18,8 @@
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import chokidar, { type FSWatcher } from 'chokidar'
+import { withFileLease } from '../services/file-lease'
+import { restoreTransaction, contentHash } from '../backup/restore-transaction'
 import { PI_FILES } from '@shared/constants/index'
 import { getPiConfigDir } from '../services/app-paths'
 import { readTextFile, atomicWriteText, fileMtime, type JsonStore } from '../services/storage'
@@ -60,6 +62,8 @@ export interface WriteOptions {
 export class PiConfigService {
   private modelsMtime: number | null = null
   private settingsMtime: number | null = null
+  private modelsLoaded = false
+  private settingsLoaded = false
   private modelsRaw: string | null = null
   private settingsRaw: string | null = null
   private watcher: FSWatcher | null = null
@@ -85,6 +89,10 @@ export class PiConfigService {
 
   /** Read both config files (parsed loosely) with current mtimes. */
   async read(): Promise<ConfigSnapshot> {
+    return this.withConsistentRead(() => this.readSnapshot())
+  }
+
+  private async readSnapshot(): Promise<ConfigSnapshot> {
     const dir = this.dir()
     const modelsPath = path.join(dir, PI_FILES.models)
     const settingsPath = path.join(dir, PI_FILES.settings)
@@ -96,6 +104,8 @@ export class PiConfigService {
     this.settingsRaw = settingsText
     const models = this.parseModelsText(modelsText, modelsPath)
     const settings = this.parseSettingsText(settingsText, settingsPath)
+    this.modelsLoaded = true
+    this.settingsLoaded = true
     this.modelsMtime = await fileMtime(modelsPath)
     this.settingsMtime = await fileMtime(settingsPath)
     return {
@@ -107,12 +117,20 @@ export class PiConfigService {
   }
 
   async readModelsParsed(): Promise<PiModelsConfig> {
+    return this.withConsistentRead(() => this.readModelsUnlocked())
+  }
+
+  private async readModelsUnlocked(): Promise<PiModelsConfig> {
     const p = this.modelsPath()
     const text = await readTextFile(p)
     return this.parseModelsText(text, p)
   }
 
   async readSettingsParsed(): Promise<PiSettingsConfig> {
+    return this.withConsistentRead(() => this.readSettingsUnlocked())
+  }
+
+  private async readSettingsUnlocked(): Promise<PiSettingsConfig> {
     const p = this.settingsPath()
     const text = await readTextFile(p)
     return this.parseSettingsText(text, p)
@@ -165,11 +183,23 @@ export class PiConfigService {
   async readRaw(
     file: 'models' | 'settings'
   ): Promise<{ path: string; content: string; mtime: number | null }> {
+    return this.withConsistentRead(() => this.readRawUnlocked(file))
+  }
+
+  private async readRawUnlocked(
+    file: 'models' | 'settings'
+  ): Promise<{ path: string; content: string; mtime: number | null }> {
     const p = file === 'models' ? this.modelsPath() : this.settingsPath()
-    const content = (await readTextFile(p)) ?? ''
+    const raw = await readTextFile(p)
+    const content = raw ?? ''
     // The raw editor load establishes a new working baseline.
-    if (file === 'models') this.modelsRaw = content
-    else this.settingsRaw = content
+    if (file === 'models') {
+      this.modelsRaw = raw
+      this.modelsLoaded = true
+    } else {
+      this.settingsRaw = raw
+      this.settingsLoaded = true
+    }
     const mtime = await fileMtime(p)
     if (file === 'models') this.modelsMtime = mtime
     else this.settingsMtime = mtime
@@ -220,9 +250,10 @@ export class PiConfigService {
     options: WriteOptions = {}
   ): Promise<void> {
     await this.withWriteLock(async () => {
-      const models = await this.readModelsParsed()
+      const baseline = await readTextFile(this.modelsPath())
+      const models = this.parseModelsText(baseline, this.modelsPath())
       const next = mutate(models)
-      await this.writeModels(next, options)
+      await this.writeModels(next, options, baseline)
     })
   }
 
@@ -276,13 +307,16 @@ export class PiConfigService {
     options: WriteOptions = {}
   ): Promise<void> {
     await this.withWriteLock(async () => {
-      const settings = await this.readSettingsParsed()
+      const baseline = await readTextFile(this.settingsPath())
+      const settings = this.parseSettingsText(baseline, this.settingsPath())
       const next = mutate(settings)
       await this.backupBeforeWrite(
         'settings',
         options.reason ?? 'settings patch',
         options.skipBackup
       )
+      if ((await readTextFile(this.settingsPath())) !== baseline)
+        throw new ConfigConflictError('settings.json changed while preparing the save')
       await this.assertNoConflict('settings', options.overwrite)
       const text = JSON.stringify(next, null, 2) + '\n'
       await atomicWriteText(this.settingsPath(), text)
@@ -315,8 +349,14 @@ export class PiConfigService {
     )
   }
 
-  private async writeModels(models: PiModelsConfig, options: WriteOptions): Promise<void> {
+  private async writeModels(
+    models: PiModelsConfig,
+    options: WriteOptions,
+    baseline: string | null
+  ): Promise<void> {
     await this.backupBeforeWrite('models', options.reason ?? 'models patch', options.skipBackup)
+    if ((await readTextFile(this.modelsPath())) !== baseline)
+      throw new ConfigConflictError('models.json changed while preparing the save')
     await this.assertNoConflict('models', options.overwrite)
     const text = JSON.stringify(models, null, 2) + '\n'
     await atomicWriteText(this.modelsPath(), text)
@@ -331,11 +371,7 @@ export class PiConfigService {
     skip?: boolean
   ): Promise<void> {
     if (skip) return
-    try {
-      await this.backup.createBackupForFile(file, reason)
-    } catch (err) {
-      log.backup.warn('pre-write backup failed (continuing):', err)
-    }
+    await this.backup.createBackupForFile(file, reason)
   }
 
   private async assertNoConflict(file: 'models' | 'settings', overwrite?: boolean): Promise<void> {
@@ -343,7 +379,12 @@ export class PiConfigService {
     const p = file === 'models' ? this.modelsPath() : this.settingsPath()
     const current = await fileMtime(p)
     const last = file === 'models' ? this.modelsMtime : this.settingsMtime
-    if (last !== null && current !== null && current !== last) {
+    const loaded = file === 'models' ? this.modelsLoaded : this.settingsLoaded
+    const baseline = file === 'models' ? this.modelsRaw : this.settingsRaw
+    if (
+      (loaded && (await readTextFile(p)) !== baseline) ||
+      (!loaded && last !== null && current !== last)
+    ) {
       throw new ConfigConflictError(
         `${PI_FILES[file]} was modified externally since it was last read`,
         { file, lastMtime: last, currentMtime: current }
@@ -351,17 +392,41 @@ export class PiConfigService {
     }
   }
 
-  private writing = false
-  private async withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
-    while (this.writing) {
-      await new Promise((r) => setTimeout(r, 10))
-    }
-    this.writing = true
-    try {
-      return await fn()
-    } finally {
-      this.writing = false
-    }
+  /** Cooperating readers share the writer barrier; never expose a partial restore. */
+  withConsistentRead<T>(read: () => Promise<T>): Promise<T> {
+    return this.withWriteLock(read)
+  }
+
+  private writes: Promise<unknown> = Promise.resolve()
+  private async withWriteLock<T>(fn: () => Promise<T>, recoveryKey?: string): Promise<T> {
+    const current = this.writes
+      .catch(() => undefined)
+      .then(() =>
+        withFileLease(
+          path.join(this.dir(), 'config-writer'),
+          async () => {
+            if (!recoveryKey) await this.backup.assertNoUnfinishedRestore()
+            return fn()
+          },
+          recoveryKey
+        )
+      )
+    this.writes = current
+    return current
+  }
+
+  async restoreTransaction(
+    journalPath: string,
+    id: string,
+    prepare: () => Promise<Map<string, string>>
+  ): Promise<void> {
+    await this.withWriteLock(async () => {
+      try {
+        await restoreTransaction(this.dir(), journalPath, id, prepare)
+      } finally {
+        await Promise.all([this.readRawUnlocked('models'), this.readRawUnlocked('settings')])
+      }
+    }, contentHash(journalPath))
   }
 
   startWatcher(onExternalChange: () => void): void {

@@ -284,8 +284,7 @@ export const zhTW: MessageTree = {
     discoveredModelHint: 'API 取得',
     existingModelHint: '已存在',
     headersObjectRequired: '自訂請求標頭必須是 JSON 物件',
-    testModelHint:
-      '會實際送出一則 1 token 的 chat 請求（不是 GET /models），才能揭露 401 / 429 / 模型錯誤。'
+    testModelHint: "傳送一則簡短訊息以檢查模型是否可用，可能產生少量用量。"
   },
   models: {
     title: '模型',
@@ -775,7 +774,7 @@ export const zhTW: MessageTree = {
     desktopPetEnabled: '啟用桌寵',
     desktopPetAgentSync: '回應 Agent 活動',
     desktopPetAlwaysOnTop: '釘選顯示',
-    desktopPetSize: '寵物大小（px）',
+    desktopPetSize: '寵物大小（%）',
     desktopPetOpacity: '寵物不透明度（%）',
     desktopPetIdleVariants: '待機小動作',
     desktopPetPhysics: '拋擲物理效果',
@@ -921,6 +920,7 @@ export const zhTW: MessageTree = {
     developerMode: '開發者模式',
     mockMode: 'Mock 模式',
     backupCreated: '備份已建立',
+    restoreInterrupted: "上次還原未完成。請再次還原標記的備份以繼續；已在外部變更的檔案會受到保護。",
     backupRestored: '備份已還原',
     backupDeleted: '備份已刪除',
     restoreTitle: '還原備份',

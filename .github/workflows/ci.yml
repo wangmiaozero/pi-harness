@@ -5,6 +5,12 @@ on:
     branches: ['**']
   pull_request:
   workflow_call:
+  workflow_dispatch:
+    inputs:
+      performance:
+        description: Run the repeatable desktop performance suite
+        type: boolean
+        default: false
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -37,12 +43,14 @@ jobs:
       - run: pnpm security:node --source-only
       - run: pnpm typecheck
       - run: pnpm lint
+      - name: Prepare native runtime test fixtures
+        run: pnpm runtime:prepare
       - run: pnpm exec vitest run --maxWorkers=2
+        env:
+          PI_HARNESS_REQUIRE_RUNTIME_TESTS: '1'
       - run: pnpm audit --prod --audit-level high
       - run: pnpm licenses list --prod --json > dependency-licenses.json
       - run: pnpm compile
-      - name: Prepare bundled runtimes for Electron features
-        run: pnpm runtime:prepare
       - name: Verify pinned SDK and native runtime versions
         run: |
           pnpm runtime:check --offline --native
@@ -136,13 +144,17 @@ jobs:
           key: downloads-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml', 'src/main/runtime/catalog.json') }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm security:node --source-only
-      - name: Native Windows and environment regressions
-        run: pnpm exec vitest run src/main/environment src/main/pi src/main/process src/main/updater/security src/main/harness/plugins src/shared/harness-plugins src/main/services/mac-dmg.test.ts src/main/services/source-digest.test.ts src/main/services/storage.test.ts --maxWorkers=2
+      - run: pnpm typecheck
+      - run: pnpm lint
       - name: Verify pinned SDK and native runtime versions
         run: |
           pnpm runtime:prepare
           pnpm runtime:check --offline --native
           pnpm security:node --online
+      - name: Native platform unit and integration regressions
+        env:
+          PI_HARNESS_REQUIRE_RUNTIME_TESTS: '1'
+        run: pnpm exec vitest run --maxWorkers=2 --reporter=default --reporter=json --outputFile=out/platform-tests.json
       - name: Build, install and execute both variants
         if: runner.os != 'Linux'
         run: pnpm release:package
@@ -162,6 +174,7 @@ jobs:
           name: validation-${{ matrix.platform }}-${{ matrix.arch }}
           overwrite: true
           path: |
+            out/platform-tests.json
             out/community-validation/${{ matrix.platform }}-${{ matrix.arch }}/
             out/runtime-validation/
             out/security/
@@ -243,3 +256,32 @@ jobs:
             out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/upgrade-*.json
             out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/*.log
           if-no-files-found: warn
+
+  performance:
+    name: Desktop performance samples
+    if: github.event_name == 'workflow_dispatch' && inputs.performance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 9.12.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 24.22.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm compile
+      - run: pnpm runtime:prepare
+      - name: Repeated long-session and startup observations
+        env:
+          PI_HARNESS_PERF_LIFECYCLE: '1'
+        run: xvfb-run -a pnpm benchmark:desktop --no-build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: desktop-performance-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            out/quality/
+            test-results/

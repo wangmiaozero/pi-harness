@@ -24,7 +24,7 @@ test('desktop pet fits its window and stays at a normal drag release', async ({
   await expect
     .poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth))
     .toBeGreaterThan(0)
-  for (const size of [96, 160, 320]) {
+  for (const size of [96, 160, 240]) {
     await page.evaluate((desktopPet) => window.piSwitch.settings.set({ desktopPet }), {
       ...settings.desktopPet,
       enabled: true,
@@ -43,6 +43,21 @@ test('desktop pet fits its window and stays at a normal drag release', async ({
     })
     expect(visible).toBe(true)
   }
+  // At maximum size, the drawn frame should reach both usable screen edges.
+  for (const direction of [-1, 1]) {
+    const edge = await pet.evaluate(async (direction) => {
+      let result: Awaited<ReturnType<NonNullable<typeof window.piSwitchPet>['moveBy']>> = null
+      for (let index = 0; index < 20; index++)
+        result = await window.piSwitchPet!.moveBy({ dx: direction * 400, dy: 0 })
+      await window.piSwitchPet!.endDrag({ vx: 0, vy: 0 })
+      return result
+    }, direction)
+    const frame = await image.boundingBox()
+    expect(frame).not.toBeNull()
+    const physicalEdge = edge!.x + (direction < 0 ? frame!.x : frame!.x + frame!.width)
+    const screenEdge = edge!.workArea.x + (direction < 0 ? 0 : edge!.workArea.width)
+    expect(Math.abs(physicalEdge - screenEdge)).toBeLessThanOrEqual(2)
+  }
   await pet.screenshot({ path: testInfo.outputPath('desktop-pet.png'), omitBackground: true })
   const position = () =>
     electronApp.evaluate(({ BrowserWindow }) =>
@@ -54,7 +69,7 @@ test('desktop pet fits its window and stays at a normal drag release', async ({
     await page.evaluate((desktopPet) => window.piSwitch.settings.set({ desktopPet }), {
       ...settings.desktopPet,
       enabled: true,
-      size: 320,
+      size: 240,
       physics,
       idleVariants: false
     })
@@ -435,7 +450,7 @@ test('pet menus keep dark scrollbars and all entries reachable at every pet size
     .toBe(true)
   const pet = electronApp.windows().find((win) => win.url().includes('/pet.html'))!
   await expect(pet.locator('#app img')).toBeVisible()
-  for (const size of [96, 160, 320]) {
+  for (const size of [96, 160, 240]) {
     await page.evaluate((desktopPet) => window.piSwitch.settings.set({ desktopPet }), {
       ...settings.desktopPet,
       enabled: true,
@@ -506,7 +521,7 @@ test('pet settings use draggable sliders and omit the pack detail card', async (
   const size = section.getByRole('slider', { name: /宠物大小/ })
   await size.focus()
   await size.press('End')
-  await expect(size).toHaveValue('320')
+  await expect(size).toHaveValue('150')
   await size.scrollIntoViewIfNeeded()
   const box = (await size.boundingBox())!
   await page.mouse.move(box.x + box.width - 8, box.y + box.height / 2)
@@ -514,9 +529,9 @@ test('pet settings use draggable sliders and omit the pack detail card', async (
   await page.mouse.move(box.x + box.width * 0.4, box.y + box.height / 2, { steps: 8 })
   await page.mouse.up()
   const draggedSize = Number(await size.inputValue())
-  expect(draggedSize).toBeGreaterThan(96)
-  expect(draggedSize).toBeLessThan(320)
-  await expect(size).toHaveAttribute('aria-valuetext', `${draggedSize} px`)
+  expect(draggedSize).toBeGreaterThan(60)
+  expect(draggedSize).toBeLessThan(150)
+  await expect(size).toHaveAttribute('aria-valuetext', `${draggedSize}%`)
 
   const opacity = section.getByRole('slider', { name: '宠物不透明度（%）', exact: true })
   await opacity.focus()
@@ -541,7 +556,12 @@ test('pet settings use draggable sliders and omit the pack detail card', async (
           bubbleOpacity: s.desktopPet.bubbleOpacity
         }))
     )
-    .toEqual({ size: draggedSize, opacity: 0.3, timeout: 0, bubbleOpacity: 0.3 })
+    .toEqual({
+      size: Math.round((draggedSize / 100) * 160),
+      opacity: 0.3,
+      timeout: 0,
+      bubbleOpacity: 0.3
+    })
 
   await section.getByRole('switch', { name: '状态气泡', exact: true }).click()
   await expect(timeout).toBeDisabled()
@@ -551,4 +571,60 @@ test('pet settings use draggable sliders and omit the pack detail card', async (
   await expect(bubbleOpacity).toBeEnabled()
   await size.scrollIntoViewIfNeeded()
   await page.screenshot({ path: testInfo.outputPath('pet-settings-sliders.png') })
+})
+
+// Simulated display events exercise Main coordinates; this is not a physical DPI test.
+test('reclamps after display changes and releases display listeners on disable', async ({
+  page,
+  electronApp
+}) => {
+  const baseline = await electronApp.evaluate(({ screen }) =>
+    screen.listenerCount('display-metrics-changed')
+  )
+  const settings = await page.evaluate(() => window.piSwitch.settings.get())
+  for (let cycle = 0; cycle < 3; cycle++) {
+    await page.evaluate((desktopPet) => window.piSwitch.settings.set({ desktopPet }), {
+      ...settings.desktopPet,
+      enabled: true,
+      size: 240
+    })
+    await expect
+      .poll(() => electronApp.windows().some((window) => window.url().includes('/pet.html')))
+      .toBe(true)
+    const result = await electronApp.evaluate(({ BrowserWindow, screen }) => {
+      const window = BrowserWindow.getAllWindows().find((window) =>
+        window.webContents.getURL().includes('/pet.html')
+      )!
+      const originalAll = screen.getAllDisplays.bind(screen)
+      const originalPrimary = screen.getPrimaryDisplay.bind(screen)
+      const display = {
+        ...originalPrimary(),
+        workArea: { x: 0, y: 0, width: 800, height: 600 }
+      }
+      screen.getAllDisplays = () => [display]
+      screen.getPrimaryDisplay = () => display
+      try {
+        window.setPosition(800, 700)
+        screen.emit('display-metrics-changed', {}, display, ['workArea', 'scaleFactor'])
+        const bounds = window.getBounds()
+        return { bounds, listeners: screen.listenerCount('display-metrics-changed') }
+      } finally {
+        screen.getAllDisplays = originalAll
+        screen.getPrimaryDisplay = originalPrimary
+        screen.emit('display-metrics-changed', {}, originalPrimary(), ['workArea'])
+      }
+    })
+    expect(result.bounds.x + result.bounds.width).toBeLessThanOrEqual(800)
+    expect(result.bounds.y + result.bounds.height).toBeLessThanOrEqual(600)
+    expect(result.listeners).toBe(baseline + 1)
+    await page.evaluate((desktopPet) => window.piSwitch.settings.set({ desktopPet }), {
+      ...settings.desktopPet,
+      enabled: false
+    })
+    await expect
+      .poll(() =>
+        electronApp.evaluate(({ screen }) => screen.listenerCount('display-metrics-changed'))
+      )
+      .toBe(baseline)
+  }
 })

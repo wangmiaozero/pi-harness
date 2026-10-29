@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onMounted } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { Archive, Eraser, FolderOpen, RotateCcw, Trash2 } from '@lucide/vue'
@@ -18,9 +18,13 @@ const draft = inject(SETTINGS_DRAFT_KEY)!
 
 const { t, locale } = useI18n()
 const store = useSettingsStore()
+const busy = ref(false)
+const loadError = ref('')
 
 onMounted(() => {
-  void store.fetchBackups()
+  void store.fetchBackups().catch((error) => {
+    loadError.value = (error as { message?: string }).message ?? t('common.failed')
+  })
 })
 
 const backupRetentionStr = computed({
@@ -32,11 +36,15 @@ const backupRetentionStr = computed({
 })
 
 async function createBackup(): Promise<void> {
+  if (busy.value) return
+  busy.value = true
   try {
     await store.createBackup('manual')
     toast.success(t('settings.backupCreated'))
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
+  } finally {
+    busy.value = false
   }
 }
 
@@ -48,11 +56,15 @@ async function restoreBackup(id: string): Promise<void> {
     tone: 'danger'
   })
   if (!ok) return
+  if (busy.value) return
+  busy.value = true
   try {
     await store.restoreBackup(id)
     toast.success(t('settings.backupRestored'))
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
+  } finally {
+    busy.value = false
   }
 }
 
@@ -64,11 +76,15 @@ async function deleteBackup(id: string): Promise<void> {
     tone: 'danger'
   })
   if (!ok) return
+  if (busy.value) return
+  busy.value = true
   try {
     await store.deleteBackup(id)
     toast.success(t('settings.backupDeleted'))
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
+  } finally {
+    busy.value = false
   }
 }
 
@@ -86,6 +102,8 @@ async function cleanupBackups(): Promise<void> {
     tone: 'danger'
   })
   if (!ok) return
+  if (busy.value) return
+  busy.value = true
   try {
     const result = await store.pruneBackups(retention)
     toast.success(
@@ -96,6 +114,8 @@ async function cleanupBackups(): Promise<void> {
     )
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
+  } finally {
+    busy.value = false
   }
 }
 </script>
@@ -122,11 +142,11 @@ async function cleanupBackups(): Promise<void> {
     <div
       class="px-3 py-2 flex flex-wrap items-center gap-1.5 border-t border-[var(--border-subtle)]"
     >
-      <Button variant="secondary" size="sm" @click="createBackup">
+      <Button variant="secondary" size="sm" :disabled="busy" @click="createBackup">
         <Archive class="size-3.5" :stroke-width="1.75" />
         {{ $t('settings.createBackup') }}
       </Button>
-      <Button variant="secondary" size="sm" @click="cleanupBackups">
+      <Button variant="secondary" size="sm" :disabled="busy" @click="cleanupBackups">
         <Eraser class="size-3.5" :stroke-width="1.75" />
         {{ $t('settings.cleanupBackups') }}
       </Button>
@@ -137,6 +157,16 @@ async function cleanupBackups(): Promise<void> {
     </div>
     <p class="px-3 pb-2 text-[10.5px] text-[var(--text-tertiary)]">
       {{ $t('settings.cleanupHint', { count: draft.backupRetention }) }}
+    </p>
+    <p v-if="loadError" role="alert" class="px-3 py-2 text-[12px] text-[var(--danger)]">
+      {{ loadError }}
+    </p>
+    <p
+      v-if="store.backups.some((item) => item.recoveryPending)"
+      role="alert"
+      class="px-3 py-2 text-[12px] text-[var(--text-primary)]"
+    >
+      {{ $t('settings.restoreInterrupted') }}
     </p>
     <div class="border-t border-[var(--border-subtle)]">
       <div v-if="store.backupsLoading" class="px-3 py-3 text-[11.5px] text-[var(--text-tertiary)]">
@@ -162,7 +192,9 @@ async function cleanupBackups(): Promise<void> {
               {{ formatDateTime(backup.timestamp, locale) }}
             </div>
             <div class="flex items-center gap-1.5 mt-0.5">
-              <Badge tone="muted">{{ backup.reason }}</Badge>
+              <Badge :tone="backup.recoveryPending ? 'warning' : 'muted'">{{
+                backup.recoveryPending ? $t('common.restore') : backup.reason
+              }}</Badge>
               <span class="text-[10.5px] text-[var(--text-tertiary)] tabular-nums">
                 {{ formatBytes(backup.sizeBytes) }}
               </span>
@@ -171,11 +203,16 @@ async function cleanupBackups(): Promise<void> {
           <div
             class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
           >
-            <IconButton :label="$t('common.restore')" @click="restoreBackup(backup.id)">
+            <IconButton
+              :disabled="busy"
+              :label="$t('common.restore')"
+              @click="restoreBackup(backup.id)"
+            >
               <RotateCcw class="size-3.5" :stroke-width="1.75" />
             </IconButton>
             <IconButton
               variant="danger"
+              :disabled="busy || backup.recoveryPending"
               :label="$t('common.delete')"
               @click="deleteBackup(backup.id)"
             >

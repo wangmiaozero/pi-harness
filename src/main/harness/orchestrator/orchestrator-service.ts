@@ -153,6 +153,8 @@ export class OrchestratorService {
   /** Latest evaluation status per run (before run.completed arrives). */
   private readonly evaluationByRun = new Map<string, 'passed' | 'warning' | 'failed'>()
   /** Retry relation metadata for the next dispatch of a task. */
+  private readonly settlements = new Map<string, Promise<void>>()
+  private readonly retryingTasks = new Set<string>()
   private readonly retryAnnotations = new Map<string, { forkedFromRunId: string | null }>()
   /** policy.denied events counted per orchestration (in-memory; see note in buildFinalEvaluation). */
   private readonly policyViolations = new Map<string, number>()
@@ -754,6 +756,18 @@ export class OrchestratorService {
    * original run (relation: retry) so the run tree keeps the full history.
    */
   async retryTask(input: RetryTaskInput): Promise<HarnessTask> {
+    if (this.retryingTasks.has(input.taskId))
+      throw new HarnessError('ORCHESTRATION_BUSY', 'This task is already being retried.')
+    this.retryingTasks.add(input.taskId)
+    try {
+      await this.settlements.get(input.taskId)
+      return await this.retrySettledTask(input)
+    } finally {
+      this.retryingTasks.delete(input.taskId)
+    }
+  }
+
+  private async retrySettledTask(input: RetryTaskInput): Promise<HarnessTask> {
     const task = await this.requireTask(input.taskId)
     const orchestration = await this.requireOrchestration(task.orchestrationId ?? '')
     if (
@@ -1053,7 +1067,15 @@ export class OrchestratorService {
       case 'run.failed':
       case 'run.aborted': {
         if (event.runId !== dispatch.runId) return
-        this.queueDispatchEvent(dispatch, () => this.settleDispatch(dispatch, event))
+        const settlement = this.queueDispatchEvent(dispatch, () =>
+          this.settleDispatch(dispatch, event)
+        )
+        this.settlements.set(dispatch.taskId, settlement)
+        const clear = () => {
+          if (this.settlements.get(dispatch.taskId) === settlement)
+            this.settlements.delete(dispatch.taskId)
+        }
+        void settlement.then(clear, clear)
         break
       }
       case 'policy.denied': {
@@ -1068,7 +1090,10 @@ export class OrchestratorService {
     }
   }
 
-  private queueDispatchEvent(dispatch: PendingDispatch, operation: () => Promise<void>): void {
+  private queueDispatchEvent(
+    dispatch: PendingDispatch,
+    operation: () => Promise<void>
+  ): Promise<void> {
     // Runtime events arrive synchronously, while their persistence is asynchronous.
     // Preserve their order per dispatch so settlement cannot overwrite run identity
     // with a snapshot read before run.started committed. Different tasks stay independent.
@@ -1080,6 +1105,7 @@ export class OrchestratorService {
       })
     dispatch.eventQueue = next
     this.trackEventOperation(next)
+    return next
   }
 
   private async onRunStarted(dispatch: PendingDispatch, runId: string): Promise<void> {
@@ -1127,6 +1153,17 @@ export class OrchestratorService {
     const task = await this.store.getTask(dispatch.taskId)
     this.clearDispatch(dispatch)
     if (!task) return
+
+    const orchestration = await this.store.getOrchestration(dispatch.orchestrationId)
+    if (orchestration?.status === 'aborted') {
+      if (!TERMINAL_TASK_STATUSES.has(task.status)) await this.cancelTask(task)
+      await this.agents.update(dispatch.agentId, {
+        status: 'aborted',
+        currentTaskId: null,
+        currentRunId: null
+      })
+      return
+    }
 
     if (dispatch.phase === 'review') {
       await this.handleReviewSettled(dispatch, task, event, run)

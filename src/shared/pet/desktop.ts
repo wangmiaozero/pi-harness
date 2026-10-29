@@ -152,7 +152,7 @@ export interface DesktopPetSettings {
 }
 
 export const DESKTOP_PET_SIZE_MIN = 96
-export const DESKTOP_PET_SIZE_MAX = 320
+export const DESKTOP_PET_SIZE_MAX = 240
 export const DESKTOP_PET_SIZE_DEFAULT = 160
 
 export const DEFAULT_DESKTOP_PET_SETTINGS: Readonly<DesktopPetSettings> = Object.freeze({

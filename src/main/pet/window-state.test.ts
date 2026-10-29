@@ -26,7 +26,8 @@ import { JsonStore } from '../services/storage'
 import {
   DEFAULT_PET_WINDOW_STATE,
   resolvePetWindowPosition,
-  clampPetPosition
+  clampPetPosition,
+  petWindowSize
 } from './window-state'
 
 async function makeStore(state: { x: number | null; y: number | null }) {
@@ -113,4 +114,11 @@ describe('resolvePetWindowPosition', () => {
       await fs.rm(dir, { recursive: true, force: true })
     }
   })
+})
+
+it('keeps a maximum-size pet close to the screen edges without a large transparent gutter', () => {
+  const size = petWindowSize(240, 412 / 344)
+  expect(size).toEqual({ width: 287, height: 353 })
+  expect(size.width - (240 * 412) / 344).toBeLessThan(1)
+  expect(clampPetPosition(-500, 0, size.width, size.height).x).toBe(0)
 })

@@ -655,6 +655,7 @@ export interface PiPackageCleanupResult {
 }
 
 export interface BackupRecord {
+  recoveryPending?: boolean
   id: string
   timestamp: number
   reason: string

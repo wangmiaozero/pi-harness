@@ -1,3 +1,4 @@
+import os from 'node:os'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { test, expect } from './fixtures'
@@ -59,7 +60,10 @@ for (let round = 0; round < 3; round++) {
       )
       projectionMs.push(performance.now() - started)
     }
-    const output = path.resolve(`out/quality/gui-${process.platform}-${process.arch}-${round}.json`)
+    const output = path.resolve(
+      process.env.PI_HARNESS_PERF_OUTPUT ?? 'out/quality',
+      `gui-${process.platform}-${process.arch}-${round}.json`
+    )
     await fs.mkdir(path.dirname(output), { recursive: true })
     await fs.writeFile(
       output,
@@ -67,7 +71,16 @@ for (let round = 0; round < 3; round++) {
         {
           schemaVersion: 1,
           round,
-          environment: { platform: process.platform, arch: process.arch, node: process.version },
+          environment: {
+            platform: process.platform,
+            arch: process.arch,
+            node: process.version,
+            os: os.release(),
+            cpu: os.cpus()[0]?.model,
+            application: await electronApp.evaluate(({ app }) => app.getVersion()),
+            electron: await electronApp.evaluate(() => process.versions.electron),
+            mode: 'compiled production bundle, fresh isolated profile'
+          },
           method:
             'Fresh isolated application profile; OS disk caches are not flushed. Renderer reload is not a full warm process launch. Process memory/CPU are observations one second after readiness. Map timings measure generation and IPC, not GPU frame rendering.',
           freshProfileLaunch: startupMetrics,

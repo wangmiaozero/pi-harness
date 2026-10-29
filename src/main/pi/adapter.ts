@@ -9,7 +9,7 @@ import type { ProtocolId } from '@shared/constants/protocols'
 import type { ApiKeySpec, ModelDefinition, ProviderProfile } from '@shared/types/domain'
 import type { PiModelConfig, PiProviderConfig } from '@shared/types/pi'
 import { isProtocolId } from '@shared/constants/protocols'
-import { resolveModelInput } from '@shared/constants/provider-presets'
+import { resolveModelInput, findProviderPreset } from '@shared/constants/provider-presets'
 import type { ModelMeta, ProviderMeta } from '../services/metadata-store'
 import { modelMetaKey } from '../services/metadata-store'
 import { macKeychainCommand, maskKey, secretStore } from '../security/secret-store'
@@ -128,10 +128,13 @@ export function modelToDomain(
   })
   // Current catalog capabilities override stale local entries; custom models keep
   // their explicitly configured Pi input modes.
+  const catalogInput = findProviderPreset({ key: providerKey })?.models.find(
+    (model) => model.id === pi.id
+  )?.input
   const vision = input.includes('image')
-  const tools = meta?.capabilities?.tools ?? true
+  const tools = meta?.capabilities?.tools
   const reasoning = meta?.capabilities?.reasoning ?? pi.reasoning ?? false
-  const streaming = meta?.capabilities?.streaming ?? true
+  const streaming = meta?.capabilities?.streaming
   const now = Date.now()
   return {
     id: `${providerKey}::${pi.id}`,
@@ -142,19 +145,31 @@ export function modelToDomain(
     enabled: meta?.enabled ?? true,
     capabilities: {
       text: true,
-      vision,
+      vision: catalogInput || pi.input ? vision : undefined,
       tools,
-      reasoning,
+      reasoning: meta?.capabilities?.reasoning ?? pi.reasoning,
       streaming
     },
     contextWindow: pi.contextWindow ?? null,
     maxOutputTokens: pi.maxTokens ?? null,
     reasoning,
     vision,
-    tools,
-    streaming,
+    tools: tools ?? false,
+    streaming: streaming ?? false,
     thinkingLevels: pi.thinkingLevelMap ?? null,
-    metadata: {},
+    metadata: {
+      capabilitySources: {
+        vision: catalogInput ? 'catalog' : pi.input ? 'configuration' : 'unknown',
+        reasoning:
+          meta?.capabilities?.reasoning !== undefined
+            ? 'user'
+            : pi.reasoning !== undefined
+              ? 'configuration'
+              : 'unknown',
+        tools: tools === undefined ? 'unknown' : 'user',
+        streaming: streaming === undefined ? 'unknown' : 'user'
+      }
+    },
     createdAt: meta?.createdAt ?? now,
     updatedAt: meta?.updatedAt ?? now
   }

@@ -26,6 +26,11 @@ interface WorkArea {
 
 export const DEFAULT_PET_WINDOW_STATE: PetWindowState = { x: null, y: null }
 
+/** Keep bubble space above the body without a wide transparent horizontal gutter. */
+export function petWindowSize(size: number, aspect: number): { width: number; height: number } {
+  return { width: Math.max(280, Math.round(size * aspect)), height: Math.round(size / 0.68) }
+}
+
 /** Margin kept between the pet window and the work-area edges on first launch. */
 const FIRST_LAUNCH_MARGIN_PX = 24
 

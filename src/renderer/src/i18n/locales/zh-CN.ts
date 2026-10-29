@@ -284,8 +284,7 @@ export const zhCN: MessageTree = {
     discoveredModelHint: 'API 获取',
     existingModelHint: '已存在',
     headersObjectRequired: '自定义请求头必须是 JSON 对象',
-    testModelHint:
-      '会真实打一发 1 token 的 chat 请求（不是 GET /models），才能暴露 401 / 429 / 模型错误。'
+    testModelHint: "发送一条简短消息来检查模型是否可用，可能产生少量用量。"
   },
   models: {
     title: '模型',
@@ -775,7 +774,7 @@ export const zhCN: MessageTree = {
     desktopPetEnabled: '启用桌宠',
     desktopPetAgentSync: '响应 Agent 活动',
     desktopPetAlwaysOnTop: '置顶显示',
-    desktopPetSize: '宠物大小（px）',
+    desktopPetSize: '宠物大小（%）',
     desktopPetOpacity: '宠物不透明度（%）',
     desktopPetIdleVariants: '待机小动作',
     desktopPetPhysics: '抛掷物理效果',
@@ -921,6 +920,7 @@ export const zhCN: MessageTree = {
     developerMode: '开发者模式',
     mockMode: 'Mock 模式',
     backupCreated: '备份已创建',
+    restoreInterrupted: '上次恢复未完成。请再次恢复标记的备份以继续；已在外部更改的文件会受到保护。',
     backupRestored: '备份已恢复',
     backupDeleted: '备份已删除',
     restoreTitle: '恢复备份',

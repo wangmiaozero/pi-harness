@@ -292,8 +292,7 @@ export const ruRU: MessageTree = {
     discoveredModelHint: 'из API',
     existingModelHint: 'Уже есть',
     headersObjectRequired: 'Заголовки должны быть объектом JSON',
-    testModelHint:
-      'Отправляет настоящий чат-запрос на 1 токен (не GET /models). Нужно, чтобы увидеть ошибки 401 / 429 / модели.'
+    testModelHint: "Отправляет короткое сообщение для проверки модели. Провайдер может взимать плату за запрос."
   },
   models: {
     title: 'Модели',
@@ -800,7 +799,7 @@ export const ruRU: MessageTree = {
     desktopPetEnabled: 'Включить питомца на рабочем столе',
     desktopPetAgentSync: 'Реагировать на активность агентов',
     desktopPetAlwaysOnTop: 'Поверх всех окон',
-    desktopPetSize: 'Размер питомца (px)',
+    desktopPetSize: 'Размер питомца (%)',
     desktopPetOpacity: 'Непрозрачность питомца (%)',
     desktopPetIdleVariants: 'Варианты в покое',
     desktopPetPhysics: 'Физика при броске',
@@ -948,6 +947,7 @@ export const ruRU: MessageTree = {
     developerMode: 'Режим разработчика',
     mockMode: 'Режим имитации',
     backupCreated: 'Копия создана',
+    restoreInterrupted: "Предыдущее восстановление прервано. Повторно восстановите отмеченную копию. Файлы, изменённые вне приложения, будут защищены.",
     backupRestored: 'Копия восстановлена',
     backupDeleted: 'Копия удалена',
     restoreTitle: 'Восстановить копию',

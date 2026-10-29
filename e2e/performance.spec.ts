@@ -1,3 +1,4 @@
+import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
 import { test, expect } from './fixtures'
@@ -7,9 +8,15 @@ test('streams into a long transcript without losing history or blocking the comp
   page,
   electronApp,
   piAgentDir,
-  workspaceRoot
+  workspaceRoot,
+  startupMetrics
 }, testInfo) => {
-  test.setTimeout(120000)
+  test.setTimeout(240000)
+  const lifecycle = process.env.PI_HARNESS_PERF_LIFECYCLE === '1'
+  const mixed = process.env.PI_HARNESS_PERF_MIXED === '1'
+  const messageCount = Number(process.env.PI_HARNESS_PERF_MESSAGES ?? 240)
+  if (!Number.isSafeInteger(messageCount) || messageCount < 2 || messageCount > 3000)
+    throw new Error('Invalid stress message count')
   const sessionId = '01a126a4-0796-73ff-990a-a2be2198354e'
   const timestamp = '2026-10-13T01:00:00.000Z'
   const directory = path.join(
@@ -21,7 +28,7 @@ test('streams into a long transcript without losing history or blocking the comp
   const entries: unknown[] = [
     { type: 'session', version: 3, id: sessionId, timestamp, cwd: workspaceRoot }
   ]
-  for (let index = 0; index < 240; index++) {
+  for (let index = 0; index < messageCount; index++) {
     entries.push({
       type: 'message',
       id: `entry-${index}`,
@@ -46,17 +53,95 @@ test('streams into a long transcript without losing history or blocking the comp
             }
     })
   }
+  if (mixed) {
+    if (messageCount % 4) throw new Error('Mixed corpus requires groups of four messages')
+    for (let index = 0; index < messageCount; index++) {
+      const entry = entries[index + 1] as { message: unknown }
+      if (index % 4 === 1)
+        entry.message = {
+          role: 'assistant',
+          content: [
+            {
+              type: 'toolCall',
+              id: `tool-${index}`,
+              name: 'read',
+              arguments: { path: `fixture-${index}.ts` }
+            }
+          ],
+          timestamp: Date.parse(timestamp)
+        }
+      if (index % 4 === 2)
+        entry.message = {
+          role: 'toolResult',
+          toolCallId: `tool-${index - 1}`,
+          toolName: 'read',
+          content: [{ type: 'text', text: `export const fixture = ${index}` }],
+          isError: false,
+          timestamp: Date.parse(timestamp)
+        }
+    }
+  }
+  const expectedRows = mixed ? messageCount / 2 : messageCount
   fs.writeFileSync(
     path.join(directory, `${timestamp.replaceAll(':', '-')}_${sessionId}.jsonl`),
     entries.map((entry) => JSON.stringify(entry)).join('\n') + '\n'
   )
+  if (lifecycle) {
+    const short = structuredClone(entries.slice(0, 3)) as Array<Record<string, unknown>>
+    short[0].id = '01a126a4-0796-73ff-990a-a2be2198354f'
+    ;(short[1].message as { content: string }).content = 'Short lifecycle fixture'
+    fs.writeFileSync(
+      path.join(
+        directory,
+        `${timestamp.replaceAll(':', '-')}_01a126a4-0796-73ff-990a-a2be2198354f.jsonl`
+      ),
+      short.map((entry) => JSON.stringify(entry)).join('\n') + '\n'
+    )
+  }
   await page.evaluate(() => window.piSwitch.settings.set({ theme: 'dark', mascotStyle: 'none' }))
   await page.reload()
   await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12000 })
   await page.locator('a[href="#/workspace"]').click()
   await page.getByTestId('workspace-refresh').click()
+  // Profile initial mounting independently from streaming.
+  await electronApp.evaluate(async ({ BrowserWindow }) => {
+    const contents = BrowserWindow.getAllWindows().find((window) =>
+      window.webContents.getURL().includes('#/workspace')
+    )!.webContents
+    contents.debugger.attach('1.3')
+    await contents.debugger.sendCommand('Profiler.enable')
+    await contents.debugger.sendCommand('Performance.enable')
+    await contents.debugger.sendCommand('Profiler.start')
+  })
+  await page.evaluate(() => {
+    const state = window as typeof window & { __initialTasks: number[] }
+    state.__initialTasks = []
+    new PerformanceObserver((list) =>
+      state.__initialTasks.push(...list.getEntries().map((entry) => entry.duration))
+    ).observe({ type: 'longtask', buffered: false })
+  })
+  const renderStarted = performance.now()
   await page.getByText('Long transcript performance', { exact: true }).first().click()
-  await expect(page.locator('.message-hud')).toHaveCount(240)
+  await expect(page.locator('.message-hud')).toHaveCount(expectedRows)
+  const initialRenderMs = performance.now() - renderStarted
+  const initialProfile = await electronApp.evaluate(async ({ BrowserWindow, app }) => {
+    const contents = BrowserWindow.getAllWindows().find((window) =>
+      window.webContents.getURL().includes('#/workspace')
+    )!.webContents
+    try {
+      const profile = (await contents.debugger.sendCommand('Profiler.stop')).profile
+      const metrics = (await contents.debugger.sendCommand('Performance.getMetrics')).metrics
+      const processes = app
+        .getAppMetrics()
+        .map(({ pid, type, memory, cpu }) => ({ pid, type, memory, cpu }))
+      return { profile, metrics, processes }
+    } finally {
+      contents.debugger.detach()
+    }
+  })
+  const initialTasks = await page.evaluate(
+    () => (window as typeof window & { __initialTasks: number[] }).__initialTasks
+  )
   const activeSessionId = await page.evaluate(
     async () =>
       (await window.piSwitch.sessions.list()).find(
@@ -117,7 +202,7 @@ test('streams into a long transcript without losing history or blocking the comp
     { sessionId: activeSessionId, channel: IPC_EVENT.agentEvent }
   )
   await expect(page.locator('.message-hud').last()).toContainText('chunk-159')
-  await expect(page.locator('.message-hud')).toHaveCount(240)
+  await expect(page.locator('.message-hud')).toHaveCount(expectedRows)
   await expect(page.locator('.message-hud').first()).toHaveCSS('content-visibility', 'auto')
   await expect(page.locator('.message-hud').last()).toHaveCSS('content-visibility', 'visible')
   const draft = page.getByTestId('composer-editor')
@@ -135,6 +220,33 @@ test('streams into a long transcript without losing history or blocking the comp
     samples[name] = (samples[name] ?? 0) + profile.timeDeltas[index] / 1000
   }
   const report = {
+    environment: {
+      os: os.release(),
+      platform: process.platform,
+      arch: process.arch,
+      node: process.version,
+      electron: await electronApp.evaluate(() => process.versions.electron),
+      application: await electronApp.evaluate(({ app }) => app.getVersion()),
+      mode: 'compiled production bundle, isolated test profile, OS cache not flushed'
+    },
+    messageCount,
+    mixed,
+    initialRenderMs,
+    initialProfile,
+    initialTasks,
+    startupMetrics,
+    heap: await page.evaluate(() =>
+      (
+        performance as Performance & {
+          memory?: { usedJSHeapSize: number; totalJSHeapSize: number }
+        }
+      ).memory
+        ? {
+            used: (performance as Performance & { memory: { usedJSHeapSize: number } }).memory
+              .usedJSHeapSize
+          }
+        : null
+    ),
     tasks: await page.evaluate(
       () => (window as typeof window & { __longTasks: number[] }).__longTasks
     ),
@@ -142,12 +254,84 @@ test('streams into a long transcript without losing history or blocking the comp
       .sort((a, b) => b[1] - a[1])
       .slice(0, 25)
   }
-  fs.writeFileSync(testInfo.outputPath('renderer-profile.json'), JSON.stringify(report, null, 2))
-  if (process.env.PI_HARNESS_PERF_LABEL)
-    fs.writeFileSync(
-      path.join('task', `performance-${process.env.PI_HARNESS_PERF_LABEL}.json`),
-      JSON.stringify(report, null, 2)
+  const rail = page.getByTestId('minimap-rail')
+  // Dense rails contain subpixel markers: keyboard activation can select an
+  // exact turn while a physical pointer selects the nearest visible dash.
+  const activate = async (last: boolean) => {
+    const marker = last ? rail.getByRole('button').last() : rail.getByRole('button').first()
+    if (messageCount <= 100) await marker.click()
+    else {
+      await marker.focus()
+      await marker.press('Enter')
+    }
+  }
+  await activate(false)
+  await expect(page.locator('.message-hud').first()).toBeInViewport()
+  await activate(true)
+  await expect(page.locator('.message-hud').last()).toBeInViewport()
+  if (lifecycle) {
+    await electronApp.evaluate(
+      ({ BrowserWindow }, input) => {
+        const contents = BrowserWindow.getAllWindows().find((window) =>
+          window.webContents.getURL().includes('#/workspace')
+        )!.webContents
+        contents.send(input.channel, {
+          sessionId: input.sessionId,
+          event: { type: 'agent_settled' }
+        })
+      },
+      { sessionId: activeSessionId, channel: IPC_EVENT.agentEvent }
     )
+    const topStarted = performance.now()
+    await page.getByTestId('chat-scroll-top').click()
+    await expect(page.locator('.message-hud').first()).toBeInViewport()
+    const topMs = performance.now() - topStarted
+    const short = page
+      .getByTestId('workspace-session-tree')
+      .getByRole('button', { name: 'Short lifecycle fixture', exact: true })
+    const long = page
+      .getByTestId('workspace-session-tree')
+      .getByRole('button', { name: 'Long transcript performance', exact: true })
+    const switching = performance.now()
+    for (let index = 0; index < 20; index++) await (index % 2 ? short : long).click()
+    await expect(page.locator('.message-hud')).toHaveCount(2)
+    await expect(page.locator('.message-hud').first()).toContainText('Short lifecycle fixture')
+    const switchBurstMs = performance.now() - switching
+    await page.getByTestId('workspace-new-session').click()
+    await expect(page.locator('.message-hud')).toHaveCount(0)
+    const releasedHeap = await electronApp.evaluate(async ({ BrowserWindow }) => {
+      const contents = BrowserWindow.getAllWindows().find((window) =>
+        window.webContents.getURL().includes('#/workspace')
+      )!.webContents
+      contents.debugger.attach('1.3')
+      try {
+        await contents.debugger.sendCommand('HeapProfiler.collectGarbage')
+        return await contents.debugger.sendCommand('Runtime.getHeapUsage')
+      } finally {
+        contents.debugger.detach()
+      }
+    })
+    Object.assign(report, {
+      lifecycle: {
+        topMs,
+        switchBurstMs,
+        switches: 20,
+        releasedHeap,
+        method:
+          'Top navigation and 20 rapid switches; heap after unloading into a new draft is a separate forced-GC observation, not a leak-free claim.'
+      }
+    })
+  }
+  fs.writeFileSync(testInfo.outputPath('renderer-profile.json'), JSON.stringify(report, null, 2))
+  const metricsDirectory = process.env.PI_HARNESS_PERF_OUTPUT ?? 'out/quality'
+  fs.mkdirSync(metricsDirectory, { recursive: true })
+  fs.writeFileSync(
+    path.join(
+      metricsDirectory,
+      `long-session-${process.env.PI_HARNESS_PERF_LABEL ?? 'current'}-${messageCount}${mixed ? '-mixed' : ''}.json`
+    ),
+    JSON.stringify(report, null, 2)
+  )
 })
 
 test('keeps the animated background responsive without remeasuring its size each frame', async ({
@@ -202,11 +386,7 @@ test('keeps the animated background responsive without remeasuring its size each
         .__backgroundPerf
   )
   fs.writeFileSync(testInfo.outputPath('background-profile.json'), JSON.stringify(result, null, 2))
-  if (process.env.PI_HARNESS_PERF_LABEL)
-    fs.writeFileSync(
-      path.join('task', `background-${process.env.PI_HARNESS_PERF_LABEL}.json`),
-      JSON.stringify(result, null, 2)
-    )
+
   expect(result.draws).toBeGreaterThan(mode === 'reduced' ? 2 : 10)
   if (mode === 'reduced') expect(result.draws).toBeLessThanOrEqual(8)
   if (process.env.PI_HARNESS_PERF_LABEL !== 'before') expect(result.reads).toBeLessThanOrEqual(4)

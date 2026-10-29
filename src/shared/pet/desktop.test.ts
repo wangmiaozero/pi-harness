@@ -32,6 +32,12 @@ function manifestFor(overrides: Partial<PetPackManifest> = {}): PetPackManifest 
 }
 
 describe('defaultDesktopPetSettings', () => {
+  it('keeps the default size at 100% and reduces legacy oversized values to 150%', () => {
+    expect(defaultDesktopPetSettings().size).toBe(160)
+    expect(normalizeDesktopPetSettings({ size: 320 }).size).toBe(240)
+    expect(normalizeDesktopPetSettings({ size: 96 }).size).toBe(96)
+  })
+
   it('starts disabled on the bundled pack', () => {
     expect(defaultDesktopPetSettings().enabled).toBe(false)
     expect(defaultDesktopPetSettings().activePackId).toBe(BUNDLED_PACK_ID)
@@ -47,7 +53,9 @@ describe('defaultDesktopPetSettings', () => {
   it('falls back to safe defaults for invalid values', () => {
     expect(normalizeDesktopPetSettings(null).enabled).toBe(false)
     expect(normalizeDesktopPetSettings({ enabled: 'yes' }).enabled).toBe(false)
-    expect(normalizeDesktopPetSettings({ activePackId: '../../etc' }).activePackId).toBe(BUNDLED_PACK_ID)
+    expect(normalizeDesktopPetSettings({ activePackId: '../../etc' }).activePackId).toBe(
+      BUNDLED_PACK_ID
+    )
     expect(normalizeDesktopPetSettings({ activePackId: 42 }).activePackId).toBe(BUNDLED_PACK_ID)
   })
 })
@@ -63,7 +71,12 @@ describe('isProtectedPackId', () => {
 describe('STATE_CLIP_MAP fallback chains', () => {
   it('degrades thinking → working → idle', () => {
     expect(clipForState('thinking')).toEqual(['thinking', 'working', 'idle'])
-    expect(clipForState('tool-calling')).toEqual(['working_command', 'working_search', 'working', 'idle'])
+    expect(clipForState('tool-calling')).toEqual([
+      'working_command',
+      'working_search',
+      'working',
+      'idle'
+    ])
   })
 
   it('degrades success/error to idle', () => {

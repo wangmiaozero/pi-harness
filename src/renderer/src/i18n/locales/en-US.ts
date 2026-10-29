@@ -290,8 +290,7 @@ export const enUS = {
     discoveredModelHint: 'API',
     existingModelHint: 'Existing',
     headersObjectRequired: 'Headers must be a JSON object',
-    testModelHint:
-      'Sends a real 1-token chat request (not GET /models). Needed to surface 401 / 429 / model errors.'
+    testModelHint: "Sends a short message to check the model. Your provider may charge for this request."
   },
   models: {
     title: 'Models',
@@ -798,7 +797,7 @@ export const enUS = {
     desktopPetEnabled: 'Enable desktop pet',
     desktopPetAgentSync: 'React to agent activity',
     desktopPetAlwaysOnTop: 'Keep on top',
-    desktopPetSize: 'Pet size (px)',
+    desktopPetSize: 'Pet size (%)',
     desktopPetOpacity: 'Pet opacity (%)',
     desktopPetIdleVariants: 'Idle variants',
     desktopPetPhysics: 'Throw physics',
@@ -946,6 +945,7 @@ export const enUS = {
     developerMode: 'Developer mode',
     mockMode: 'Mock mode',
     backupCreated: 'Backup created',
+    restoreInterrupted: 'A previous restore did not finish. Restore the marked backup again to continue. Files changed outside the app will be protected.',
     backupRestored: 'Backup restored',
     backupDeleted: 'Backup deleted',
     restoreTitle: 'Restore backup',

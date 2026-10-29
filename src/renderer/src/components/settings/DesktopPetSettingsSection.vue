@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
+import {
+  DESKTOP_PET_SIZE_DEFAULT,
+  DESKTOP_PET_SIZE_MIN,
+  DESKTOP_PET_SIZE_MAX
+} from '@shared/pet/desktop'
 import RangeSlider from '@renderer/components/ui/RangeSlider.vue'
 import Switch from '@renderer/components/ui/Switch.vue'
 import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
@@ -9,6 +14,12 @@ import PetPackManager from '@renderer/components/settings/PetPackManager.vue'
 const draft = inject(SETTINGS_DRAFT_KEY)!
 
 const pet = computed(() => draft.value.desktopPet)
+const sizePercent = computed({
+  get: () => Math.round((pet.value.size / DESKTOP_PET_SIZE_DEFAULT) * 100),
+  set: (value: number) => {
+    pet.value.size = Math.round((value / 100) * DESKTOP_PET_SIZE_DEFAULT)
+  }
+})
 
 const opacityPercent = computed({
   get: () => Math.round(pet.value.opacity * 100),
@@ -50,11 +61,11 @@ const bubbleOpacityPercent = computed({
     >
       <PropertyRow :label="$t('settings.desktopPetSize')">
         <RangeSlider
-          v-model="pet.size"
-          :min="96"
-          :max="320"
+          v-model="sizePercent"
+          :min="Math.round((DESKTOP_PET_SIZE_MIN / DESKTOP_PET_SIZE_DEFAULT) * 100)"
+          :max="Math.round((DESKTOP_PET_SIZE_MAX / DESKTOP_PET_SIZE_DEFAULT) * 100)"
           :label="$t('settings.desktopPetSize')"
-          :value-text="`${pet.size} px`"
+          :value-text="`${sizePercent}%`"
         />
       </PropertyRow>
       <PropertyRow :label="$t('settings.desktopPetOpacity')">
