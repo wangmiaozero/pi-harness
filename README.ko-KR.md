@@ -39,6 +39,28 @@
   <a href="https://github.com/wangmiaozero/pi-harness"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
 </p>
 
+<a id="product-preview"></a>
+
+## 화면 미리보기
+
+데모 워크스페이스로 현재 화면을 소개합니다. 이미지를 클릭하면 확대할 수 있습니다.
+
+### 워크스페이스
+
+[![워크스페이스](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+
+### Harness
+
+[![Harness](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-2.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-2.png)
+
+### 멀티 에이전트
+
+실행 전 구성 예시입니다. 에이전트는 대기 중이며 작업은 아직 실행되지 않았습니다.
+
+[![멀티 에이전트](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E5%9B%A2%E9%98%9F.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E5%9B%A2%E9%98%9F.png)
+
+[![멀티 에이전트](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96.png)
+
 ## 왜 Pi-Harness인가요?
 
 Pi-Harness는 Pi Coding Agent를 macOS, Windows, Linux 데스크톱 작업 공간으로 가져옵니다. 대화, 프로젝트, 파일, Git, 모델, Skills를 한곳에서 관리하고 실행 확인, 예산 제어, 작업 복구, 에이전트 팀 협업 도구를 이용합니다.
@@ -101,6 +123,16 @@ Pi-Harness는 Pi Coding Agent의 운영 기능 상위 집합입니다. Native Pi
 ### Skills, 확장 기능, 패키지, MCP
 
 능력 센터에서 내장·로컬 Skills를 찾아 편집하고 Pi 패키지와 확장 기능을 관리합니다. 입력창에서 `@`를 입력해 설치된 Skill을 검색하고 호출합니다. MCP 서버는 **설정 → MCP**에서 관리합니다. [Superpowers](https://github.com/obra/superpowers), [Odai](https://github.com/orziz/odai) 등의 선택형 기능을 원할 때 설치, 업데이트, 제거할 수 있습니다.
+
+<a id="desktop-companion"></a>
+
+### 데스크톱 동반자
+
+**설정 → 데스크톱 펫**에서 BigFish를 활성화하면 생각 중, 도구 실행, 입력 대기, 작업 완료 상태를 데스크톱에서 확인할 수 있습니다. 기본적으로 꺼져 있으며 메인 창을 최소화해도 표시할 수 있습니다.
+
+대기 중에는 검색 가능한 우클릭 메뉴에서 101가지 동작을 선택할 수 있습니다. 작업 중에는 수동 상호작용을 멈추고 드래그해도 작업 애니메이션을 유지합니다. 로컬 펫 팩을 가져오고 크기, 불투명도, 말풍선 설정을 슬라이더로 조절할 수 있습니다.
+
+[![펫 설정 및 슬라이더](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)
 
 <a id="agent-settings"></a>
 
@@ -180,11 +212,25 @@ Node.js, npm, PATH, Pi Coding Agent, 현재 설정을 확인합니다. 지원 �
 
 기능 화면은 테마별로 분류했습니다. 추가 화면은 [전체 스크린샷 목록](docs/README.md)에서 확인하세요.
 
+### 데스크톱 동반자
+
+[![우클릭 메뉴](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%8F%9C%E5%8D%95.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%8F%9C%E5%8D%95.png)
+
+[![동작 검색 및 선택](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E5%8A%A8%E4%BD%9C.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E5%8A%A8%E4%BD%9C.png)
+
+### 대화 기록
+
+[![대화 기록](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E5%8E%86%E5%8F%B2.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E5%8E%86%E5%8F%B2.png)
+
+### 세션 정리
+
+[![세션 정리](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E6%B8%85%E7%90%86.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E6%B8%85%E7%90%86.png)
+
 ### 클래식 테마
 
-#### 작업 공간
+#### 가벼운 파일 편집
 
-[![작업 공간](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+[![가벼운 파일 편집](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BB%A3%E7%A0%81%E7%BC%96%E8%BE%91.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BB%A3%E7%A0%81%E7%BC%96%E8%BE%91.png)
 
 <details>
 <summary>에이전트 설정 · 작업 공간 음성 · MCP</summary>
@@ -274,7 +320,7 @@ Node.js, npm, PATH, Pi Coding Agent, 현재 설정을 확인합니다. 지원 �
 
 #### macOS 27 · Liquid Ether
 
-[![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/macOS%2027/Liquid%20Ether.png)
+[![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/macos27.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/macos27.png)
 
 </details>
 
