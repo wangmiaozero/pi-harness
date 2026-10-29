@@ -100,3 +100,9 @@ SOFTWARE.
 - Used as: desktop pet animation resources and motion references.
 - The upstream MIT license texts and asset notices are retained with the bundled pet pack. Code licenses do not grant rights to underlying third-party character artwork or trademarks.
 - This community integration is not an official DeepSeek product.
+
+### Additional character animations
+
+- Source collection: [MerZlin/dsh-pet-indesktop](https://github.com/MerZlin/dsh-pet-indesktop), with animation sources credited to [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet).
+- Character OC “溟月”: 上善无形. The source collection's asset notice restricts these additional animations to personal, non-commercial use with attribution and source retained; it describes the terms as CC BY-NC-SA-like. Its MIT code license does not replace those asset-specific terms.
+- The original asset notice and project license are retained in the pet pack as `dsh-pet-indesktop-NOTICE.txt` and `dsh-pet-indesktop-LICENSE.txt`.

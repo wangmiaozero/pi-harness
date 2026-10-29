@@ -1,0 +1,1577 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "https://github.com/MerZlin/dsh-pet-indesktop",
+    "commit": "34d810b1eadd98d00e7cb9b3b51428a45b5bf03e",
+    "directory": "assets/characters/shenshen/videos",
+    "importedActions": 92,
+    "reusedActions": 14,
+    "details": "indesktop-motions.json"
+  },
+  "conversion": {
+    "decoder": "libvpx-vp9",
+    "sourceSize": [640, 360],
+    "size": [412, 344],
+    "webpQuality": 84,
+    "alphaFloor": 8,
+    "timing": "Source presentation timestamps; no frame decimation"
+  },
+  "animations": [
+    {
+      "file": "click/点击回应-傲娇生气.webm",
+      "sha256": "6b7176b98408cb649d1d37b6a6222a21aa6b128187e3e0b2d18550d35ab81064",
+      "clip": "indesktop-click-pout",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [202, 60, 430, 334],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3438166
+    },
+    {
+      "file": "click/点击回应-元气挥手.webm",
+      "sha256": "48cd729ccdcf746369942ea954d242e9afdd5643e1dac3827fa5e67450eb8776",
+      "clip": "poke",
+      "reused": true
+    },
+    {
+      "file": "click/点击回应-害羞惊讶.webm",
+      "sha256": "a04968bbc46d1ebea07f81e5dabd93b0b67a9d07f1371e9887b33075134ad00d",
+      "clip": "indesktop-click-shy",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 233,
+      "durationMs": 10042,
+      "alphaBox": [113, 63, 438, 333],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4050570
+    },
+    {
+      "file": "click/点击回应-开心跃动.webm",
+      "sha256": "86dcb0c3dd7b651de9c107e927d57a5c4224599101706dbdcc782fa48bcd0ad7",
+      "clip": "indesktop-click-jump",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 230,
+      "durationMs": 10042,
+      "alphaBox": [183, 16, 459, 335],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4293562
+    },
+    {
+      "file": "click/点击回应-挠痒咯咯笑.webm",
+      "sha256": "f228279219f4084323ca1bfef1604f7c77bb3f505d45a8d1747b5ac3f9f2393b",
+      "clip": "head_pat",
+      "reused": true
+    },
+    {
+      "file": "drag/被鼠标拖拽悬空反馈.webm",
+      "sha256": "31373a86026636eecc890db763760309360310eb095cf5575b13c9ca2a6cc80e",
+      "clip": "dragging",
+      "reused": true
+    },
+    {
+      "file": "events/balance/余额-分文不剩.webm",
+      "sha256": "b232349bdbd962bad7f3a15cfce539c6fadadfd0a286b7f03b03e59cf7aca7a8",
+      "clip": "indesktop-balance-empty",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 228,
+      "durationMs": 10042,
+      "alphaBox": [76, 40, 546, 359],
+      "transform": {
+        "scale": 0.8595744680851064,
+        "left": -61,
+        "top": 31
+      },
+      "bytes": 3943656
+    },
+    {
+      "file": "events/balance/余额-数金皱眉.webm",
+      "sha256": "94a7e0ee8e1012aadec33492301c893c2d1c5df7e36049dbada8c4a264bf1810",
+      "clip": "indesktop-balance-count",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 224,
+      "durationMs": 10042,
+      "alphaBox": [208, 61, 450, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3805934
+    },
+    {
+      "file": "events/balance/余额-袋空如洗.webm",
+      "sha256": "3db780bbc96bb362ced36078fecacfb63b9d292c06b533cfb61797adb553a7f8",
+      "clip": "indesktop-balance-bare",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 226,
+      "durationMs": 10042,
+      "alphaBox": [73, 38, 572, 359],
+      "transform": {
+        "scale": 0.8096192384769539,
+        "left": -55,
+        "top": 49
+      },
+      "bytes": 3565138
+    },
+    {
+      "file": "events/balance/余额-金袋叮当.webm",
+      "sha256": "6fda0c4ae013cf7906afa1cb846717d097db576343dab11006f14ca5c7a9a34f",
+      "clip": "indesktop-balance-jingle",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 234,
+      "durationMs": 10042,
+      "alphaBox": [77, 32, 584, 360],
+      "transform": {
+        "scale": 0.796844181459566,
+        "left": -57,
+        "top": 53
+      },
+      "bytes": 3636902
+    },
+    {
+      "file": "events/balance/余额-钱袋如常.webm",
+      "sha256": "f6cb9aa1c829fcbc62478dbddd0e0fcd7beb47433cea751d18b81ccccbec95d3",
+      "clip": "indesktop-balance-normal",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 226,
+      "durationMs": 10042,
+      "alphaBox": [73, 40, 548, 360],
+      "transform": {
+        "scale": 0.8505263157894737,
+        "left": -58,
+        "top": 34
+      },
+      "bytes": 3864756
+    },
+    {
+      "file": "events/balance/余额-钱袋满溢.webm",
+      "sha256": "dddd6ffc4e763b77360e49c0ccee0987a43c3d253a23e3133c334aabb598b362",
+      "clip": "indesktop-balance-overflow",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 237,
+      "durationMs": 10042,
+      "alphaBox": [82, 32, 584, 352],
+      "transform": {
+        "scale": 0.8047808764940239,
+        "left": -62,
+        "top": 57
+      },
+      "bytes": 4026170
+    },
+    {
+      "file": "idle/待机呼吸休闲.webm",
+      "sha256": "deb965d05a85dacf5ff4a20faa757846f0d11679598c3ec578a5571487660395",
+      "clip": "idle",
+      "reused": true
+    },
+    {
+      "file": "move/左转奔跑.webm",
+      "sha256": "79882aedd7b77caaacce1a34dece68e2f001a3dbfa5f9d049c1ce2fc04518d52",
+      "clip": "indesktop-run-left",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [120, 56, 468, 336],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3725788
+    },
+    {
+      "file": "move/漂浮踏步.webm",
+      "sha256": "7dee1c14672f1f99bebe5e6f1a52d6664b851ed95f9958ac6c12b753a5e5cc81",
+      "clip": "indesktop-floating-step",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 233,
+      "durationMs": 10042,
+      "alphaBox": [211, 59, 433, 335],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3981168
+    },
+    {
+      "file": "move/螃蟹走路.webm",
+      "sha256": "5696b0878be38cc450d6eaace837aef1c1b5834f1382bc6c11c2de582f284673",
+      "clip": "indesktop-crab-walk",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [186, 63, 451, 333],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3921804
+    },
+    {
+      "file": "random/三球抛接.webm",
+      "sha256": "a64c08a4b7e5c3549616faf9dcd418e17f156b4b72d906646e4d57067df70d23",
+      "clip": "indesktop-juggle-balls",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 236,
+      "durationMs": 10042,
+      "alphaBox": [208, 36, 436, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4113344
+    },
+    {
+      "file": "random/下五子棋.webm",
+      "sha256": "0802b6b808f44846b3d194a857fb0ffd38bdea2d7cdb91c9e5e6f311e44f1953",
+      "clip": "indesktop-gomoku",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 229,
+      "durationMs": 10042,
+      "alphaBox": [202, 50, 444, 345],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": -5
+      },
+      "bytes": 3992734
+    },
+    {
+      "file": "random/中秋赏月吃月饼.webm",
+      "sha256": "3f64003262d3f129470721495695ecd231795d859693a748914c02c6e3883a3a",
+      "clip": "indesktop-moon-cake",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 231,
+      "durationMs": 10042,
+      "alphaBox": [196, 49, 585, 332],
+      "transform": {
+        "scale": 1,
+        "left": -177,
+        "top": 0
+      },
+      "bytes": 4403288
+    },
+    {
+      "file": "random/优雅女仆舞.webm",
+      "sha256": "74209c4c668545ab1e2366e0d1c0709b7bea0312eeba7e89b553d5b977bfe649",
+      "clip": "indesktop-maid-dance",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 229,
+      "durationMs": 10042,
+      "alphaBox": [203, 52, 465, 338],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3825648
+    },
+    {
+      "file": "random/偷吃零食被抓住.webm",
+      "sha256": "c3b783351ad38fdd931e80b188ecb12d273f21e4794aed2c41f267bdb75ff897",
+      "clip": "indesktop-snack-caught",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 227,
+      "durationMs": 10042,
+      "alphaBox": [208, 28, 439, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4081620
+    },
+    {
+      "file": "random/写代码.webm",
+      "sha256": "0441287737cdbb993ce90dfa74c67ea4ea3549d8c8ea98946604668464589ed7",
+      "clip": "indesktop-write-code",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 227,
+      "durationMs": 10042,
+      "alphaBox": [210, 59, 432, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3801778
+    },
+    {
+      "file": "random/写福字.webm",
+      "sha256": "7841a47a6997bb7c90d81671d524c44b1afc87ca2e8fceb17d06d99003a67181",
+      "clip": "indesktop-fortune-calligraphy",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 230,
+      "durationMs": 10042,
+      "alphaBox": [170, 57, 435, 335],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3873192
+    },
+    {
+      "file": "random/凭空生花.webm",
+      "sha256": "d1c336bc54c57a282bec180859c7b7b58912b70b5bca7b2f49495cd30cc7d5d6",
+      "clip": "indesktop-flower-magic",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 236,
+      "durationMs": 10042,
+      "alphaBox": [120, 24, 549, 341],
+      "transform": {
+        "scale": 0.9417249417249417,
+        "left": -109,
+        "top": 19
+      },
+      "bytes": 4954860
+    },
+    {
+      "file": "random/动物环绕.webm",
+      "sha256": "814d41e7d619f9a61f38e5494a0cfd703f8bcfd829a14fa921e1c59acf3ce872",
+      "clip": "indesktop-animal-friends",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [77, 28, 548, 345],
+      "transform": {
+        "scale": 0.8577494692144374,
+        "left": -62,
+        "top": 44
+      },
+      "bytes": 6019724
+    },
+    {
+      "file": "random/原地专心玩魔方.webm",
+      "sha256": "ad54da175ba86b19a84b73b3169fb418b2df016560bb274283f200aca351e712",
+      "clip": "indesktop-rubiks-cube",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 230,
+      "durationMs": 10042,
+      "alphaBox": [174, 64, 439, 338],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4031184
+    },
+    {
+      "file": "random/原地小憩沉眠.webm",
+      "sha256": "31d4a6b36a29b2a4fe097384173d3bbeb3fa2f40f526b13191791456bf7507a1",
+      "clip": "indesktop-nap",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [205, 28, 432, 333],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4199700
+    },
+    {
+      "file": "random/原地敲击桌面互动.webm",
+      "sha256": "a40f481e89abcc726c89f30b01d085ca8c17a090e71facdd5e7f747e771093eb",
+      "clip": "indesktop-tap-desk",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 228,
+      "durationMs": 10042,
+      "alphaBox": [201, 63, 429, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3709170
+    },
+    {
+      "file": "random/原地跳跃抓碎头顶物品.webm",
+      "sha256": "ccb906c677c7b739eb0dbf5307160e66583562c2a6caec72a9d3d14a202fcccd",
+      "clip": "indesktop-jump-catch",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [113, 0, 528, 336],
+      "transform": {
+        "scale": 0.9734939759036144,
+        "left": -106,
+        "top": 9
+      },
+      "bytes": 5152396
+    },
+    {
+      "file": "random/原地蹲下玩玩具汽车.webm",
+      "sha256": "3ec9978ce3663d9bc4bfe5f5223f0a4e3d9ea6fcd0a6acdbaa802e0cfba36bf2",
+      "clip": "indesktop-toy-car",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [73, 53, 548, 346],
+      "transform": {
+        "scale": 0.8505263157894737,
+        "left": -58,
+        "top": 46
+      },
+      "bytes": 3607688
+    },
+    {
+      "file": "random/原地重力下蹲压缩.webm",
+      "sha256": "1c8972478a7f347818165db62b468f1624ec11d0862f38aec3078e3870831d24",
+      "clip": "indesktop-gravity-squat",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 222,
+      "durationMs": 10042,
+      "alphaBox": [206, 45, 454, 337],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3143142
+    },
+    {
+      "file": "random/变鸽子.webm",
+      "sha256": "796eba8ebe705e9339035e533e4f913fb8b9810432dcd6e7ae4fc1602e9ce3cf",
+      "clip": "indesktop-dove-magic",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 230,
+      "durationMs": 10042,
+      "alphaBox": [118, 18, 525, 332],
+      "transform": {
+        "scale": 0.9926289926289926,
+        "left": -113,
+        "top": 2
+      },
+      "bytes": 4569394
+    },
+    {
+      "file": "random/可爱宅舞.webm",
+      "sha256": "4f737e44ea67c20368bdce474b951902c87c37991fb0750da8ed7794df6ec55c",
+      "clip": "indesktop-cute-dance",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 227,
+      "durationMs": 10042,
+      "alphaBox": [207, 55, 444, 333],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3947436
+    },
+    {
+      "file": "random/吃Token.webm",
+      "sha256": "d46ef798fb189cd7652f63d03a35e6f314e5a598b4a65f76202ec95852eb719c",
+      "clip": "eat_token",
+      "reused": true
+    },
+    {
+      "file": "random/吃冰淇淋融化.webm",
+      "sha256": "17d73682926d6ce4203ad12d9049527e604d448bcc5c82ac5b12950b4ceb0447",
+      "clip": "indesktop-ice-cream",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [207, 59, 432, 336],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4087370
+    },
+    {
+      "file": "random/吃午餐.webm",
+      "sha256": "e48a70e61d93195c611c2d4041be32a26a114f78c835ff6b2345459ae39a90ce",
+      "clip": "indesktop-lunch",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 231,
+      "durationMs": 10042,
+      "alphaBox": [204, 60, 432, 333],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4017200
+    },
+    {
+      "file": "random/吃大闸蟹.webm",
+      "sha256": "fbd0f445c15fda1f827e6eb485270ddf9025ac29b3edcac28a5eff7d9aa80f46",
+      "clip": "indesktop-eat-crab",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 234,
+      "durationMs": 10042,
+      "alphaBox": [203, 61, 453, 354],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": -14
+      },
+      "bytes": 4242488
+    },
+    {
+      "file": "random/吃年糕.webm",
+      "sha256": "ba0c86988687801a5b19d055d728bb182c8a95a0bdd7071dea16b83c1162135c",
+      "clip": "indesktop-rice-cake",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 233,
+      "durationMs": 10042,
+      "alphaBox": [200, 62, 433, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3910726
+    },
+    {
+      "file": "random/吃早餐.webm",
+      "sha256": "893b61587aeda8ca146e32b596b00903461aab04684a146d84b31965968d60e4",
+      "clip": "indesktop-breakfast",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 230,
+      "durationMs": 10042,
+      "alphaBox": [209, 59, 432, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3863436
+    },
+    {
+      "file": "random/吃晚餐.webm",
+      "sha256": "8902602fb012c29d33392822ab534ed119a136610f6bc2e8c0c51d60afec673a",
+      "clip": "indesktop-dinner",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 239,
+      "durationMs": 10042,
+      "alphaBox": [98, 60, 552, 337],
+      "transform": {
+        "scale": 0.8898678414096917,
+        "left": -83,
+        "top": 36
+      },
+      "bytes": 6170600
+    },
+    {
+      "file": "random/吃汤圆.webm",
+      "sha256": "53a0f93612bb59c7279010f993a1101b033fc01df1998dd9874d8aea175afa6f",
+      "clip": "indesktop-tangyuan",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 228,
+      "durationMs": 10042,
+      "alphaBox": [211, 62, 434, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3882650
+    },
+    {
+      "file": "random/吃白饭.webm",
+      "sha256": "b620413d6fa303a0ed9168dc71453c3bddc10141a0b7edeff87dc2e6e054d502",
+      "clip": "indesktop-eat-rice",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [200, 61, 436, 338],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4084294
+    },
+    {
+      "file": "random/吃粽子.webm",
+      "sha256": "f3af3217674427fdc5609bf50b170f69669c84cf229cd7b44261c00da7876ade",
+      "clip": "indesktop-zongzi",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 233,
+      "durationMs": 10042,
+      "alphaBox": [208, 62, 438, 333],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4059474
+    },
+    {
+      "file": "random/吃糖葫芦.webm",
+      "sha256": "6900468dc166bfb90e1cfb73de9b41a08c62513483ce1300658340cf942be3cd",
+      "clip": "indesktop-candied-hawthorn",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 232,
+      "durationMs": 10042,
+      "alphaBox": [203, 60, 449, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4088158
+    },
+    {
+      "file": "random/吃腊八粥.webm",
+      "sha256": "f821527812875262cc0dda50fe023c603fc89ec566172777c6bff4fa45943011",
+      "clip": "indesktop-laba-porridge",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 232,
+      "durationMs": 10042,
+      "alphaBox": [201, 62, 432, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3910470
+    },
+    {
+      "file": "random/吃西瓜.webm",
+      "sha256": "0dd992fb7fb51d707d6589cb813a450437a2bd54046709f424a73353e2d7f78d",
+      "clip": "indesktop-watermelon",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 228,
+      "durationMs": 10042,
+      "alphaBox": [205, 60, 436, 333],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4039798
+    },
+    {
+      "file": "random/吃重阳糕.webm",
+      "sha256": "d2b6b466fcb1ee689ae130680bf38311e9988d995879ca3b5b1d9aa0b5438058",
+      "clip": "indesktop-chongyang-cake",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 229,
+      "durationMs": 10042,
+      "alphaBox": [211, 60, 436, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3923244
+    },
+    {
+      "file": "random/吃长寿面.webm",
+      "sha256": "2881e1cd4ca31fd56ca578ce2ee73d21222f0006f237c865d9b2dc1ebc436edd",
+      "clip": "indesktop-longevity-noodles",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 228,
+      "durationMs": 10042,
+      "alphaBox": [127, 59, 440, 330],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4024000
+    },
+    {
+      "file": "random/吃青团.webm",
+      "sha256": "0d99393dd64ddf0b1ec4ab4cf392c86092ab5edf58d12f5b72e325035da23606",
+      "clip": "indesktop-qingtuan",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 223,
+      "durationMs": 10042,
+      "alphaBox": [207, 61, 434, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3753702
+    },
+    {
+      "file": "random/吃饺子.webm",
+      "sha256": "a607391c206cb2a1a977d72f318a6b5bfe95aee4da9b11c9de8724bd9981cc06",
+      "clip": "indesktop-dumplings",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 232,
+      "durationMs": 10042,
+      "alphaBox": [192, 35, 452, 342],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": -2
+      },
+      "bytes": 4312150
+    },
+    {
+      "file": "random/吹气球.webm",
+      "sha256": "3258f91b2000d949ba38f34c1f161b0d5fa148ecffb5a95eb8a3e10b5df7fc87",
+      "clip": "indesktop-balloon",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 233,
+      "durationMs": 10042,
+      "alphaBox": [18, 32, 608, 360],
+      "transform": {
+        "scale": 0.6847457627118644,
+        "left": -8,
+        "top": 93
+      },
+      "bytes": 3739648
+    },
+    {
+      "file": "random/吹笛子.webm",
+      "sha256": "9c8b754a3256778cddd88fbb073b649d5b1d2e5f96e70231bc2c3bee06fa7c78",
+      "clip": "indesktop-flute",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 238,
+      "durationMs": 10042,
+      "alphaBox": [72, 23, 545, 336],
+      "transform": {
+        "scale": 0.854122621564482,
+        "left": -57,
+        "top": 48
+      },
+      "bytes": 4980882
+    },
+    {
+      "file": "random/哈欠连天.webm",
+      "sha256": "2b23372e1ff2bc2f9078c09740708c960d4ea021f9fc3cca294d9df11e393ec8",
+      "clip": "idle_yawn",
+      "reused": true
+    },
+    {
+      "file": "random/堆雪人.webm",
+      "sha256": "478bdc31cc60e55e3efa139b81c7d8680a8cf83aca2304495e6da50a20a09cf5",
+      "clip": "indesktop-snowman",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 234,
+      "durationMs": 10042,
+      "alphaBox": [197, 62, 487, 344],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": -4
+      },
+      "bytes": 3828292
+    },
+    {
+      "file": "random/大口吃零食.webm",
+      "sha256": "fdacb534a828b0c669f22a54e8da9bb9b5d731e0132dd5ea946f7badc9229a39",
+      "clip": "indesktop-snack-feast",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 239,
+      "durationMs": 10042,
+      "alphaBox": [32, 42, 592, 360],
+      "transform": {
+        "scale": 0.7214285714285714,
+        "left": -19,
+        "top": 80
+      },
+      "bytes": 4035676
+    },
+    {
+      "file": "random/女仆屈膝礼仪.webm",
+      "sha256": "6536fb519ba73bbc338d30cf7286b14ffde1278b6d469c64573536dc0f896918",
+      "clip": "indesktop-curtsy",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 232,
+      "durationMs": 10042,
+      "alphaBox": [208, 61, 430, 335],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3884074
+    },
+    {
+      "file": "random/小幅度原地360度旋转展示.webm",
+      "sha256": "9f1a927f63c73e3c35ee5f4d2eb58f4a46ac7eca2af69388f320d10cdef8d29c",
+      "clip": "indesktop-turn-around",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 233,
+      "durationMs": 10042,
+      "alphaBox": [190, 47, 468, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3775938
+    },
+    {
+      "file": "random/小提琴演奏.webm",
+      "sha256": "03816be0fcd499b63ed667e8b87c234094e64c59f1cd222455cf6a27ac832d1c",
+      "clip": "indesktop-violin",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [136, 60, 470, 342],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": -2
+      },
+      "bytes": 4261246
+    },
+    {
+      "file": "random/工作状态-原地踱步张望.webm",
+      "sha256": "a56c17ef901fa531324a46a04def2381f65922d319ec83dadde34d2a4669e411",
+      "clip": "waiting",
+      "reused": true
+    },
+    {
+      "file": "random/工作状态-垂头叹气冒汗.webm",
+      "sha256": "ab00c844e62221905574b4c070e0d7b6fa14fb2afa1064c27a160f10e25f7196",
+      "clip": "error",
+      "reused": true
+    },
+    {
+      "file": "random/工作状态-忙碌点按.webm",
+      "sha256": "b5d702e0c04adb7b255ac702001c24da36c8bf95efc891f693f4976986ab2435",
+      "clip": "working",
+      "reused": true
+    },
+    {
+      "file": "random/工作状态-思考冒泡.webm",
+      "sha256": "b4a36cfa28ea5d7089e362a01972c6e880297c6dcd0d39f1994efd889a3c1be5",
+      "clip": "thinking",
+      "reused": true
+    },
+    {
+      "file": "random/工作状态-清点归档.webm",
+      "sha256": "8c84f58f3a9e7b912e1cbfd89f77eb3652053fc9b2844295c8440cb636305d3b",
+      "clip": "working_command",
+      "reused": true
+    },
+    {
+      "file": "random/工作状态-雀跃庆祝.webm",
+      "sha256": "3ff681051a0bb4f152d7535d64b7f3194c30298bf56d41e521216a278f135d3e",
+      "clip": "success",
+      "reused": true
+    },
+    {
+      "file": "random/悠闲哼歌.webm",
+      "sha256": "358905afc2c81a9ed478bcf121a8f2f19276766b1d382d0067456bd57d1d7dbb",
+      "clip": "indesktop-humming",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 231,
+      "durationMs": 10042,
+      "alphaBox": [142, 5, 490, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4363212
+    },
+    {
+      "file": "random/扑克魔术.webm",
+      "sha256": "1d44a7624fb027e5f615c747014ab040ddc497f6bdbcb67194a23a53a5dba78c",
+      "clip": "indesktop-card-magic",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 231,
+      "durationMs": 10042,
+      "alphaBox": [179, 62, 437, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4091442
+    },
+    {
+      "file": "random/打瞌睡被惊醒.webm",
+      "sha256": "7e10c87cfcbd63b20b5a3787be71b0500381d54ea04a5ac0e9d99f59ed49a6d7",
+      "clip": "indesktop-startled-awake",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 231,
+      "durationMs": 10042,
+      "alphaBox": [199, 20, 448, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3916474
+    },
+    {
+      "file": "random/抽陀螺.webm",
+      "sha256": "693689d7b4d02ae8cda53f8d580de5087287fc339360dd20909342f566e969ba",
+      "clip": "indesktop-spinning-top",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [164, 64, 438, 344],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": -4
+      },
+      "bytes": 4152066
+    },
+    {
+      "file": "random/拆礼物.webm",
+      "sha256": "6f781e7eac2b295417c80ff9468902280fdcf3ae5921d59977daa8dab537940c",
+      "clip": "indesktop-unwrap-gift",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 230,
+      "durationMs": 10042,
+      "alphaBox": [157, 44, 470, 340],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3910462
+    },
+    {
+      "file": "random/插茱萸赏菊.webm",
+      "sha256": "4e1ba56724da3663e2f5480001ab1141a82e8618c316e6e81e3dae84998452f3",
+      "clip": "indesktop-chrysanthemums",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 234,
+      "durationMs": 10042,
+      "alphaBox": [207, 62, 440, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4073976
+    },
+    {
+      "file": "random/摇扇纳凉.webm",
+      "sha256": "87d4b9454692484e4809b45071751b2144fc82fd8696fafabb32e19af98350f2",
+      "clip": "indesktop-fan",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 234,
+      "durationMs": 10042,
+      "alphaBox": [153, 52, 472, 333],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4176612
+    },
+    {
+      "file": "random/撸猫.webm",
+      "sha256": "068d84e944dfce17de1c5a2ee2a4bc391e2848dad88a7df4877ebf23cf38bcec",
+      "clip": "indesktop-pet-cat",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 221,
+      "durationMs": 10042,
+      "alphaBox": [209, 61, 433, 330],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3915182
+    },
+    {
+      "file": "random/收红包.webm",
+      "sha256": "a0e7a9a5997aff1357c76eeaaad7a01503c320f7017766dd5a42e643daa505c1",
+      "clip": "indesktop-red-envelope",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 230,
+      "durationMs": 10042,
+      "alphaBox": [207, 63, 440, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3876990
+    },
+    {
+      "file": "random/放孔明灯.webm",
+      "sha256": "cc6540b4651f6603363dd326801921d6ba220ecaaf00828b42d248eb28beeb31",
+      "clip": "indesktop-sky-lantern",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 237,
+      "durationMs": 10042,
+      "alphaBox": [161, 0, 438, 352],
+      "transform": {
+        "scale": 0.9545454545454546,
+        "left": -85,
+        "top": 4
+      },
+      "bytes": 5459528
+    },
+    {
+      "file": "random/放河灯.webm",
+      "sha256": "af744bed1ff20cc1b0492247add45f2b16433fde0b0897c31d6b0579429b788d",
+      "clip": "indesktop-river-lantern",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 235,
+      "durationMs": 10042,
+      "alphaBox": [207, 62, 436, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3870068
+    },
+    {
+      "file": "random/放烟花.webm",
+      "sha256": "539ac09ae29ed0a11bd828df096f3e72f606529b3c59e29a5fcf3b051779a4d0",
+      "clip": "indesktop-fireworks",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 240,
+      "durationMs": 10042,
+      "alphaBox": [21, 0, 620, 360],
+      "transform": {
+        "scale": 0.674457429048414,
+        "left": -10,
+        "top": 97
+      },
+      "bytes": 5902230
+    },
+    {
+      "file": "random/放风筝.webm",
+      "sha256": "9d9ac75871b1c70a77fc4aaa63dd24778d79cbf492c2c5df42167199c7dd2132",
+      "clip": "indesktop-kite",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 231,
+      "durationMs": 10042,
+      "alphaBox": [103, 0, 510, 333],
+      "transform": {
+        "scale": 0.9926289926289926,
+        "left": -98,
+        "top": 4
+      },
+      "bytes": 5949750
+    },
+    {
+      "file": "random/整体换装试色.webm",
+      "sha256": "e8e599b12da7f3437c98425f6b192dd0c81a6b63bbba5e7927f53c22f757b094",
+      "clip": "indesktop-dress-up",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 237,
+      "durationMs": 10042,
+      "alphaBox": [190, 52, 475, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3471312
+    },
+    {
+      "file": "random/是啊，吃什么.webm",
+      "sha256": "94e1d69e05cc66cc1dc8bf6986efc51dfd71fe22fd34166f9efe7ca2d21c1e8c",
+      "clip": "indesktop-what-to-eat",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 234,
+      "durationMs": 10042,
+      "alphaBox": [54, 43, 607, 359],
+      "transform": {
+        "scale": 0.7305605786618445,
+        "left": -35,
+        "top": 78
+      },
+      "bytes": 4400510
+    },
+    {
+      "file": "random/晨间刷牙.webm",
+      "sha256": "017e384e7e13732fb12428d024ef686e79df5b79bfab0d83faa7fa50653d1bc4",
+      "clip": "indesktop-brush-teeth",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 227,
+      "durationMs": 10042,
+      "alphaBox": [185, 60, 437, 348],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": -8
+      },
+      "bytes": 4052996
+    },
+    {
+      "file": "random/涮火锅.webm",
+      "sha256": "f0b345c22cf2841137d215a7b9d50252b8be0ede64887e91fdc9bd09843e3c8f",
+      "clip": "indesktop-hotpot",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 232,
+      "durationMs": 10042,
+      "alphaBox": [201, 61, 437, 352],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": -12
+      },
+      "bytes": 4079964
+    },
+    {
+      "file": "random/深度思考碎碎念.webm",
+      "sha256": "bc18db7a3882388bf77a42b64955fb50cf498c73a795ad20299f0440e0390a1a",
+      "clip": "indesktop-thinking-mutter",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 234,
+      "durationMs": 10042,
+      "alphaBox": [91, 52, 552, 336],
+      "transform": {
+        "scale": 0.8763557483731019,
+        "left": -76,
+        "top": 41
+      },
+      "bytes": 4876912
+    },
+    {
+      "file": "random/照镜子.webm",
+      "sha256": "13dc61c003e500d906b6526765072b7a78c0709491a397d4e70a88ec7ea63310",
+      "clip": "indesktop-mirror",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 231,
+      "durationMs": 10042,
+      "alphaBox": [196, 53, 461, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4048940
+    },
+    {
+      "file": "random/玩水枪.webm",
+      "sha256": "448f732417ac4dcb6ca140cd3d73896aaea7f5dac2876a9a0f7c0776478d7128",
+      "clip": "indesktop-water-pistol",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 230,
+      "durationMs": 10042,
+      "alphaBox": [31, 63, 596, 359],
+      "transform": {
+        "scale": 0.7150442477876107,
+        "left": -18,
+        "top": 83
+      },
+      "bytes": 3194074
+    },
+    {
+      "file": "random/玩游戏气急败坏.webm",
+      "sha256": "8e406bc52cf2a20c9d288867367c4df7c45a5dc78443bc5c2fdc83835ac0b4c3",
+      "clip": "indesktop-game-frustration",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 230,
+      "durationMs": 10042,
+      "alphaBox": [167, 56, 450, 343],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": -3
+      },
+      "bytes": 4398520
+    },
+    {
+      "file": "random/用鲸鱼尾巴拍打地面.webm",
+      "sha256": "e3f92df2cf182fdcb109ad0a865689d66e0a0d10db14c1528e5b3cb2f0bf090d",
+      "clip": "indesktop-tail-slap",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 227,
+      "durationMs": 10042,
+      "alphaBox": [208, 61, 470, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4087056
+    },
+    {
+      "file": "random/碎碎念-发呆碎碎念.webm",
+      "sha256": "02da8cc2194250ae9708b137a3deff43fed2ebd40a7aa4a033b6262c3485eb5b",
+      "clip": "indesktop-daydream-mutter",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 227,
+      "durationMs": 10042,
+      "alphaBox": [204, 48, 433, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3868784
+    },
+    {
+      "file": "random/碎碎念-对屏碎碎念.webm",
+      "sha256": "fda85ca286e173b7cf868c91829c3445e55c395e0c788b6be310a855b9b37973",
+      "clip": "indesktop-screen-mutter",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 225,
+      "durationMs": 10042,
+      "alphaBox": [212, 60, 429, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3873108
+    },
+    {
+      "file": "random/碎碎念-擦桌碎碎念.webm",
+      "sha256": "bfb616a3e6ed7375826d8fd00b41b9476d2e4bd65e10abddfb98f04c734e30e6",
+      "clip": "indesktop-cleaning-mutter",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 228,
+      "durationMs": 10042,
+      "alphaBox": [200, 62, 435, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3909852
+    },
+    {
+      "file": "random/穿针乞巧.webm",
+      "sha256": "cf16647ec4cb5634e4ff022bfc139a2233cd8be82f2391472bc842f7014ddc90",
+      "clip": "indesktop-thread-needle",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 229,
+      "durationMs": 10042,
+      "alphaBox": [181, 46, 538, 333],
+      "transform": {
+        "scale": 1,
+        "left": -130,
+        "top": 0
+      },
+      "bytes": 4406988
+    },
+    {
+      "file": "random/舞狮头.webm",
+      "sha256": "6d2006b4023d44087cf4c7dc055d1d8f2a8cec32e22610807a2dfea7bb0dc367",
+      "clip": "indesktop-lion-dance",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 236,
+      "durationMs": 10042,
+      "alphaBox": [201, 32, 444, 333],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4230192
+    },
+    {
+      "file": "random/荡秋千.webm",
+      "sha256": "f32ea98e9c04553ae39939cd76c469192ebc19d98b90ebf93ec4b88bf95b25c9",
+      "clip": "indesktop-swing",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 236,
+      "durationMs": 10042,
+      "alphaBox": [188, 16, 478, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4408422
+    },
+    {
+      "file": "random/萌化小幽灵.webm",
+      "sha256": "ac2012601d05bf7de7c7cced415b8793b0be3b7cfa569da06c2325f135f7e94f",
+      "clip": "indesktop-little-ghost",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 237,
+      "durationMs": 10042,
+      "alphaBox": [160, 47, 491, 339],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3992986
+    },
+    {
+      "file": "random/蓝鲸现世.webm",
+      "sha256": "ed72f0ede7c6cd9482d44aa31002214d461b833c456f3ea40a52c3a0ddc20230",
+      "clip": "indesktop-blue-whale",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 231,
+      "durationMs": 10042,
+      "alphaBox": [128, 36, 484, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 4206526
+    },
+    {
+      "file": "random/蝴蝶蜜蜂环绕头顶开花.webm",
+      "sha256": "fd286c78001fe57fc093c06a4b79ef077ade2dacd2a77e011d3f393f587707ec",
+      "clip": "indesktop-flower-friends",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 236,
+      "durationMs": 10042,
+      "alphaBox": [4, 7, 632, 337],
+      "transform": {
+        "scale": 0.643312101910828,
+        "left": 1,
+        "top": 118
+      },
+      "bytes": 3810032
+    },
+    {
+      "file": "random/被吓一跳.webm",
+      "sha256": "537dde496e0f776e775dec1bb7bfe3fbc5eebf89112469a1a910ad0433ccde66",
+      "clip": "indesktop-startle",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 226,
+      "durationMs": 10042,
+      "alphaBox": [205, 31, 435, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3999654
+    },
+    {
+      "file": "random/被落叶淹没.webm",
+      "sha256": "91fc8e3dbfcd24546bc30366beb120fb5de7823ed67986dd8032c9c1b29ff079",
+      "clip": "indesktop-fallen-leaves",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 237,
+      "durationMs": 10042,
+      "alphaBox": [31, 32, 616, 360],
+      "transform": {
+        "scale": 0.6905982905982906,
+        "left": -17,
+        "top": 91
+      },
+      "bytes": 4012544
+    },
+    {
+      "file": "random/装点圣诞树.webm",
+      "sha256": "25da448acdbba49c2d4b209d24053b6dd1b79e656273d1f3e659385dc2bc3759",
+      "clip": "indesktop-christmas-tree",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 238,
+      "durationMs": 10042,
+      "alphaBox": [57, 40, 548, 359],
+      "transform": {
+        "scale": 0.8228105906313645,
+        "left": -43,
+        "top": 45
+      },
+      "bytes": 5808566
+    },
+    {
+      "file": "random/讨糖南瓜灯.webm",
+      "sha256": "9535d1a29f780aa2d78ffaabd7ee1765952bf34b2b380e9edc25dc6a3003070b",
+      "clip": "indesktop-halloween",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 226,
+      "durationMs": 10042,
+      "alphaBox": [200, 60, 447, 334],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3826680
+    },
+    {
+      "file": "random/超大伸懒腰.webm",
+      "sha256": "0ac66d918cc5efd49be1273c3830de73eae5f9bdcd5fcb968d1b2f9b487705ad",
+      "clip": "idle_stretch",
+      "reused": true
+    },
+    {
+      "file": "random/踢毽子.webm",
+      "sha256": "68937b619a44e9ca7ccdfe77e5657f7a9bfa238beb33768378b6f254a16f3dbd",
+      "clip": "indesktop-shuttlecock",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 229,
+      "durationMs": 10042,
+      "alphaBox": [192, 28, 450, 333],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3973960
+    },
+    {
+      "file": "random/轻快摇摆舞.webm",
+      "sha256": "c621d00e1b959b991df8fc420e409b569e768fad7f75d1fb489375d101fee630",
+      "clip": "indesktop-swing-dance",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 232,
+      "durationMs": 10042,
+      "alphaBox": [194, 59, 473, 332],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3882716
+    },
+    {
+      "file": "random/轻快记录.webm",
+      "sha256": "1da04162fed5cd52bd4a6a6027a6902f50bda0969d34465bc2d332cf3679bbd5",
+      "clip": "indesktop-take-notes",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 230,
+      "durationMs": 10042,
+      "alphaBox": [192, 59, 436, 331],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3908458
+    },
+    {
+      "file": "random/骑木马.webm",
+      "sha256": "5f54a98ccac97eac000d799043411f4fc0732096dc51a2ad766552737578f313",
+      "clip": "indesktop-rocking-horse",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 236,
+      "durationMs": 10042,
+      "alphaBox": [152, 15, 495, 360],
+      "transform": {
+        "scale": 0.9739130434782609,
+        "left": -92,
+        "top": -11
+      },
+      "bytes": 5581546
+    },
+    {
+      "file": "random/鲸鱼吐泡泡特效.webm",
+      "sha256": "d64d02059dc1602f7de5aa3135d381351363f021b2bceed47655db322cc71db3",
+      "clip": "tail",
+      "reused": true
+    },
+    {
+      "file": "turn/东张西望.webm",
+      "sha256": "a20ed02ccc5e72075a3ca83fabb57d9aac5ded699f52d00ec6de72069799fcd5",
+      "clip": "indesktop-look-around",
+      "reused": false,
+      "sourceFrames": 241,
+      "frames": 232,
+      "durationMs": 10042,
+      "alphaBox": [207, 60, 443, 333],
+      "transform": {
+        "scale": 1,
+        "left": -100,
+        "top": 0
+      },
+      "bytes": 3920008
+    }
+  ]
+}
