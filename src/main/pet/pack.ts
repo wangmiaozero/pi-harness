@@ -25,7 +25,7 @@ import { isAppPackaged } from '../services/app-paths'
 
 const PACK_MANIFEST_FILE = 'pet-pack.json'
 const MAX_CLIP_NAME_LENGTH = 64
-const MAX_CLIPS = 128
+const MAX_CLIPS = 256
 const MAX_FRAMES_PER_CLIP = 1024
 const PREVIEW_NAME_PATTERN = /^[\w][\w.-]*\.(png|webp|jpe?g)$/
 

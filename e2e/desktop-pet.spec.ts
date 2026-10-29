@@ -323,7 +323,7 @@ test('every desktop pet menu action performs its advertised operation', async ({
   await exited
 })
 
-test('all 101 manual actions play from the context menu and tasks allow only dragging', async ({
+test('all manual actions play from the context menu and tasks allow only dragging', async ({
   page,
   electronApp
 }, testInfo) => {
@@ -347,7 +347,8 @@ test('all 101 manual actions play from the context menu and tasks allow only dra
   await expect(image).toBeVisible()
   const context = await pet.evaluate(() => window.piSwitchPet!.getContext())
   const clips = Object.entries(context.manifest.clips).filter(([, clip]) => clip.labels)
-  expect(clips).toHaveLength(101)
+  expect(clips).toHaveLength(193)
+  expect(clips.filter(([key]) => key.startsWith('indesktop-'))).toHaveLength(92)
   const openMenu = async () => {
     const box = (await image.boundingBox())!
     await pet.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { button: 'right' })
@@ -364,6 +365,21 @@ test('all 101 manual actions play from the context menu and tasks allow only dra
       .toBe(true)
     await expect(pet.getByRole('menu')).toHaveCount(0)
   }
+  // Exercise the imported media past its first frame and through completion.
+  await openMenu()
+  await pet.getByRole('menuitem', { name: /播放动作/ }).click()
+  await pet.getByRole('searchbox').fill('舞狮头')
+  await expect(pet.locator('[data-clip]')).toHaveCount(1)
+  await pet.locator('[data-clip="indesktop-lion-dance"]').click()
+  await expect
+    .poll(() =>
+      image
+        .getAttribute('src')
+        .then((src) => Number(src?.match(/lion-dance_(\d+)\.webp/)?.[1] ?? 0))
+    )
+    .toBeGreaterThan(90)
+  await pet.screenshot({ path: testInfo.outputPath('lion-dance.png'), omitBackground: true })
+  await expect(image).toHaveAttribute('src', /\/clips\/idle\//)
   // Let one short action finish; it must resolve back to the current runtime state.
   await openMenu()
   await pet.getByRole('menuitem', { name: /播放动作/ }).click()
@@ -429,7 +445,7 @@ test('all 101 manual actions play from the context menu and tasks allow only dra
     omitBackground: true
   })
   await pet.getByRole('menuitem', { name: /播放动作/ }).click()
-  await expect(pet.locator('[data-clip]')).toHaveCount(101)
+  await expect(pet.locator('[data-clip]')).toHaveCount(193)
   await pet.screenshot({
     path: testInfo.outputPath('manual-actions-list.png'),
     omitBackground: true
@@ -493,7 +509,7 @@ test('pet menus keep dark scrollbars and all entries reachable at every pet size
     await play.click()
     await expect(pet.getByRole('searchbox')).toBeInViewport()
     const actions = menu.locator('[data-clip]')
-    await expect(actions).toHaveCount(101)
+    await expect(actions).toHaveCount(193)
     await menu.hover()
     await pet.mouse.wheel(0, 10000)
     await expect(actions.last()).toBeInViewport()
