@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url'
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import fs from 'node:fs/promises'
@@ -228,10 +229,10 @@ describe('local history discovery, persistence and isolation', () => {
       defaultSources('/home/user', 'darwin', {}).find((s) => s.provider === 'cursor')?.root
     ).toContain('Library/Application Support')
     expect(
-      defaultSources('/home/user', 'win32', { APPDATA: '/roaming' }).find(
+      defaultSources('C:\\home\\user', 'win32', { APPDATA: 'C:\\roaming' }).find(
         (s) => s.provider === 'cursor'
       )?.root
-    ).toBe('/roaming/Cursor/User')
+    ).toBe('C:\\roaming\\Cursor\\User')
     const missing = path.join(root, 'missing')
     expect(await existingSources([{ provider: 'pi', root: missing, custom: false }])).toEqual([])
     await expect(fs.stat(missing)).rejects.toThrow()
@@ -695,7 +696,7 @@ describe('real SQLite provider stores', () => {
     await fs.mkdir(workspace, { recursive: true })
     await fs.writeFile(
       path.join(workspace, 'workspace.json'),
-      JSON.stringify({ folder: 'file:///project/cursor' })
+      JSON.stringify({ folder: pathToFileURL(path.join(root, 'cursor-project')).href })
     )
     const file = path.join(workspace, 'state.vscdb')
     const db = new DatabaseSync(file)
@@ -717,7 +718,7 @@ describe('real SQLite provider stores', () => {
     )
     expect(parsed[0]?.session).toMatchObject({
       title: 'Original name',
-      projectPath: '/project/cursor',
+      projectPath: path.join(root, 'cursor-project'),
       messageCount: 0,
       warnings: ['CURSOR_LEGACY_HEADERS_ONLY']
     })

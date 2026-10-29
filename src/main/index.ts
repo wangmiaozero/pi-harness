@@ -58,6 +58,7 @@ import { DEFAULT_NAV_ORDER } from '@shared/constants/navigation'
 import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
 import { DEFAULT_MACOS27_BACKGROUND } from '@shared/constants/macos27-background'
 import { defaultDesktopPetSettings } from '@shared/pet/desktop'
+import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { FileAccessService, type AuthorizedRootsState } from './files/file-access-service'
 import { FileService } from './files/file-service'
 import { GitService } from './git/git-service'
@@ -519,35 +520,33 @@ async function bootstrap(): Promise<void> {
   harness.attachWindow(() => mainWindow)
 
   // Desktop pet (BigFish) — attach the active agent runtime and start lazily.
-  const petService = new PetService(
-    settingsStore,
-    userPetPacksRoot(app.getPath('userData')),
-    {
-      onSettingsChanged: () => {
-        mainWindow?.webContents.send(IPC_EVENT.uiCommand, { type: 'refresh-settings' })
-      },
-      openMain: (view) => {
-        if (!mainWindow || mainWindow.isDestroyed()) {
-          // A fresh renderer needs its route before mounting; an IPC command
-          // sent while it loads would be lost before the listener subscribes.
-          openMainWindow(view === 'settings' ? '/settings/desktop-pet' : undefined)
-          return
+  const petService = MASCOT_ENABLED
+    ? new PetService(settingsStore, userPetPacksRoot(app.getPath('userData')), {
+        onSettingsChanged: () => {
+          mainWindow?.webContents.send(IPC_EVENT.uiCommand, { type: 'refresh-settings' })
+        },
+        openMain: (view) => {
+          if (!mainWindow || mainWindow.isDestroyed()) {
+            // A fresh renderer needs its route before mounting; an IPC command
+            // sent while it loads would be lost before the listener subscribes.
+            openMainWindow(view === 'settings' ? '/settings/desktop-pet' : undefined)
+            return
+          }
+          if (mainWindow.isMinimized()) mainWindow.restore()
+          mainWindow.show()
+          mainWindow.focus()
+          if (view === 'settings') {
+            mainWindow.webContents.send(IPC_EVENT.uiCommand, {
+              type: 'open-settings',
+              section: 'desktop-pet'
+            })
+          }
+        },
+        onQuitRequest: () => {
+          app.quit()
         }
-        if (mainWindow.isMinimized()) mainWindow.restore()
-        mainWindow.show()
-        mainWindow.focus()
-        if (view === 'settings') {
-          mainWindow.webContents.send(IPC_EVENT.uiCommand, {
-            type: 'open-settings',
-            section: 'desktop-pet'
-          })
-        }
-      },
-      onQuitRequest: () => {
-        app.quit()
-      }
-    }
-  )
+      })
+    : null
   const petAgentRpc = rpcAgent
   const petAgentSource: PetEventAgentSource | null =
     process.env.PI_HARNESS_AGENT_MODE === 'sdk'
@@ -556,11 +555,8 @@ async function bootstrap(): Promise<void> {
           onEvent: (listener: (event: AgentEvent) => void) => petAgentRpc.onAgentEvent(listener),
           listRunning: () => petAgentRpc.listRunning()
         }
-  petService.attachAgent(
-    petAgentSource,
-    (listener) => petAgentRpc.onPermissionRequest(listener)
-  )
-  void petService.start()
+  petService?.attachAgent(petAgentSource, (listener) => petAgentRpc.onPermissionRequest(listener))
+  void petService?.start()
 
   // Multi-Agent Orchestration — one subscription onto the unified stream.
   orchestrator.attach()
@@ -660,14 +656,20 @@ async function bootstrap(): Promise<void> {
     getMainWindow: () => mainWindow,
     setAppIcon: (settings) => applyAppIcon(settings, mainWindow),
     setDesktopPetSettings: (settings, language) => {
-      petService.setLanguage(language)
-      void petService.applySettings(settings)
+      petService?.setLanguage(language)
+      void petService?.applySettings(settings)
     },
-    petListPacks: () => petService.listPacks(),
-    petPackDetail: (id) => petService.packDetail(id),
-    petImportPack: (source) => petService.importPack(source),
-    petRemovePack: (id) => petService.removePack(id),
-    petSetActivePack: (id) => petService.setActivePack(id),
+    petListPacks: () => petService?.listPacks() ?? Promise.resolve([]),
+    petPackDetail: (id) => petService?.packDetail(id) ?? Promise.resolve(null),
+    petImportPack: (source) =>
+      petService?.importPack(source) ??
+      Promise.reject(new Error('Desktop pets are unavailable in this build')),
+    petRemovePack: (id) =>
+      petService?.removePack(id) ??
+      Promise.reject(new Error('Desktop pets are unavailable in this build')),
+    petSetActivePack: (id) =>
+      petService?.setActivePack(id) ??
+      Promise.reject(new Error('Desktop pets are unavailable in this build')),
     setScreenMotionActive: (payload) => {
       const restoreMainWindow = payload.active && mainWindow?.isFocused() === true
       screenMotion.setActive(payload)
@@ -722,7 +724,7 @@ async function bootstrap(): Promise<void> {
   app.on('window-all-closed', () => {
     void intelligence.cancelAll()
     screenMotion.stop()
-    petService.stop()
+    petService?.stop()
     if (process.platform !== 'darwin') app.quit()
   })
 
@@ -737,7 +739,7 @@ async function bootstrap(): Promise<void> {
     unsubscribeUpdateState()
     config.stopWatcher()
     orchestrator.detach()
-    petService.stop()
+    petService?.stop()
     quitCleanup = (async () => {
       // Native shutdown hooks must finish before Electron exits or stores close.
       try {

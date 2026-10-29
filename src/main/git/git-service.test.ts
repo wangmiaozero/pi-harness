@@ -175,5 +175,6 @@ describe('GitService', () => {
     ).toBe(1)
     await service.action({ cwd: directory, action: 'pull' })
     expect(await readFile(path.join(directory, 'remote.ts'), 'utf8')).toContain('remote = true')
-  })
+    // This integration executes init/commit/clone/fetch/pull subprocesses on real disks.
+  }, 30_000)
 })

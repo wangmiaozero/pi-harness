@@ -20,6 +20,12 @@ const archive = path.join(resources, 'app.asar')
 const files = new Set(
   asar.listPackage(archive).map((file) => file.replaceAll('\\', '/').replace(/^\//, ''))
 )
+if (process.env.PI_HARNESS_E2E_VARIANT === 'nomascot') {
+  if (files.has('out/renderer/pet.html') || files.has('out/preload/pet.mjs'))
+    throw new Error('Desktop pet entry points must not ship in nomascot')
+  if (await fs.stat(path.join(resources, 'petpacks')).catch(() => null))
+    throw new Error('Desktop pet artwork must not ship in nomascot')
+}
 if (files.has('out/main/update-test-identity.json'))
   throw new Error('Ephemeral update test identity must never be published')
 for (const file of files) {

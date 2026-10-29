@@ -18,7 +18,7 @@ export class PiRpcClient {
   private listeners = new Set<(event: Record<string, unknown>) => void>()
   private exitListeners = new Set<() => void>()
   private closed = false
-  private buffer = ''
+  private buffer: string[] = []
   private bufferBytes = 0
   private stderr = ''
   private readonly decoder = new StringDecoder('utf8')
@@ -90,18 +90,23 @@ export class PiRpcClient {
     }
   }
   private read(chunk: string): void {
-    this.buffer += chunk
+    if (this.closed || !chunk) return
+    // Search only new input and join fragments once per complete record.
+    // Rescanning/flattening the accumulated string makes long events quadratic.
     this.bufferBytes += Buffer.byteLength(chunk)
     if (this.bufferBytes > 32 * 1024 * 1024) {
       this.fail(new AgentError('Pi RPC output exceeded the limit'))
       this.child?.kill()
       return
     }
+    let start = 0
     let newline: number
-    while ((newline = this.buffer.indexOf('\n')) >= 0) {
-      const line = this.buffer.slice(0, newline)
-      this.buffer = this.buffer.slice(newline + 1)
+    while ((newline = chunk.indexOf('\n', start)) >= 0) {
+      this.buffer.push(chunk.slice(start, newline))
+      const line = this.buffer.join('')
+      this.buffer = []
       this.bufferBytes -= Buffer.byteLength(line) + 1
+      start = newline + 1
       if (!line.trim()) continue
       let event: Record<string, unknown>
       try {
@@ -126,9 +131,12 @@ export class PiRpcClient {
           )
       } else for (const listener of this.listeners) listener(event)
     }
+    this.buffer.push(chunk.slice(start))
   }
   private fail(error: Error): void {
     this.closed = true
+    this.buffer = []
+    this.bufferBytes = 0
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timer)
       pending.reject(error)

@@ -2,7 +2,10 @@ import { expect, test } from './fixtures'
 
 test.skip(process.env.PI_HARNESS_E2E_VARIANT !== 'nomascot', 'Requires pnpm compile:nomascot')
 
-test('keeps the default animation and auto icon without mascot themes', async ({ page }) => {
+test('keeps the default animation and auto icon without mascot themes', async ({
+  page,
+  electronApp
+}) => {
   await page.evaluate(async () => {
     await window.piSwitch.settings.unlockMascot('1024')
     await window.piSwitch.settings.set({ appIcon: 'auto', mascotStyle: 'mingSnow' })
@@ -27,4 +30,20 @@ test('keeps the default animation and auto icon without mascot themes', async ({
   await autoIconLabel.click()
   await expect(page.getByTestId('titlebar-brand-icon')).toHaveAttribute('src', /app-icon-classic/)
   await expect(page.getByTestId('composer-fire-toggle')).toBeVisible()
+  await expect(page.locator('a[href="#/settings/desktop-pet"]')).toHaveCount(0)
+  await page.evaluate(async () => {
+    const settings = await window.piSwitch.settings.get()
+    await window.piSwitch.settings.set({ desktopPet: { ...settings.desktopPet, enabled: true } })
+  })
+  expect(
+    await electronApp.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows().some((window) =>
+        window.webContents.getURL().includes('/pet.html')
+      )
+    )
+  ).toBe(false)
+  await page.evaluate(() => {
+    window.location.hash = '/settings/desktop-pet'
+  })
+  await expect(page.getByTestId('desktop-pet-section')).toHaveCount(0)
 })

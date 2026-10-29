@@ -8,29 +8,30 @@ export function defaultSources(
   platform = process.platform,
   env = process.env
 ): SourceLocation[] {
-  const join = (...segments: string[]) => path.join(home, ...segments)
+  const paths = platform === 'win32' ? path.win32 : path.posix
+  const join = (...segments: string[]) => paths.join(home, ...segments)
   const cursor =
     platform === 'darwin'
       ? join('Library', 'Application Support', 'Cursor', 'User')
       : platform === 'win32'
-        ? path.join(env.APPDATA ?? join('AppData', 'Roaming'), 'Cursor', 'User')
-        : path.join(env.XDG_CONFIG_HOME ?? join('.config'), 'Cursor', 'User')
+        ? paths.join(env.APPDATA ?? join('AppData', 'Roaming'), 'Cursor', 'User')
+        : paths.join(env.XDG_CONFIG_HOME ?? join('.config'), 'Cursor', 'User')
   const codex = env.CODEX_HOME ?? join('.codex')
   const claude = env.CLAUDE_CONFIG_DIR ?? join('.claude')
   const definitions: Array<[SourceProvider, string]> = [
-    ['claude', path.join(claude, 'projects')],
-    ['codex', path.join(codex, 'sessions')],
-    ['codex', path.join(codex, 'archived_sessions')],
+    ['claude', paths.join(claude, 'projects')],
+    ['codex', paths.join(codex, 'sessions')],
+    ['codex', paths.join(codex, 'archived_sessions')],
     ['cursor', env.CURSOR_USER_DIR ?? cursor],
     ['cursor-agent', join('.cursor', 'projects')],
-    ['gemini', path.join(env.GEMINI_CLI_HOME ?? join('.gemini'), 'tmp')],
+    ['gemini', paths.join(env.GEMINI_CLI_HOME ?? join('.gemini'), 'tmp')],
     [
       'opencode',
-      env.OPENCODE_HOME ?? path.join(env.XDG_DATA_HOME ?? join('.local', 'share'), 'opencode')
+      env.OPENCODE_HOME ?? paths.join(env.XDG_DATA_HOME ?? join('.local', 'share'), 'opencode')
     ],
     [
       'pi',
-      path.join(
+      paths.join(
         env.PI_CODING_AGENT_DIR ?? env.PI_HARNESS_PI_CONFIG_DIR ?? join('.pi', 'agent'),
         'sessions'
       )
@@ -38,7 +39,7 @@ export function defaultSources(
   ]
   return definitions.map(([provider, root]) => ({
     provider,
-    root: path.resolve(root),
+    root: paths.resolve(root),
     custom: false
   }))
 }

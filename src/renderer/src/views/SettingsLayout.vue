@@ -116,7 +116,9 @@ const menuItems = computed(() => {
       icon: Code2
     })
   }
-  return MASCOT_ENABLED ? items : items.filter((item) => item.id !== 'mascot')
+  return MASCOT_ENABLED
+    ? items
+    : items.filter((item) => item.id !== 'mascot' && item.id !== 'desktop-pet')
 })
 
 const groups = computed(() => {

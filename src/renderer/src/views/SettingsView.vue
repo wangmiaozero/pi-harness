@@ -42,7 +42,8 @@ const SETTINGS_SECTIONS_ALL = [
 const SETTINGS_SECTIONS = MASCOT_ENABLED
   ? SETTINGS_SECTIONS_ALL
   : SETTINGS_SECTIONS_ALL.filter(
-      (id): id is Exclude<(typeof SETTINGS_SECTIONS_ALL)[number], 'mascot'> => id !== 'mascot'
+      (id): id is Exclude<(typeof SETTINGS_SECTIONS_ALL)[number], 'mascot' | 'desktop-pet'> =>
+        id !== 'mascot' && id !== 'desktop-pet'
     )
 type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]
 
@@ -165,7 +166,7 @@ onMounted(() => {
           <GeneralSettingsSection v-if="section === 'general'" />
           <NavSettingsSection v-else-if="section === 'nav'" />
           <MascotSettingsSection v-else-if="section === 'mascot'" />
-          <DesktopPetSettingsSection v-else-if="section === 'desktop-pet'" />
+          <DesktopPetSettingsSection v-else-if="MASCOT_ENABLED && section === 'desktop-pet'" />
           <WorkspaceSettingsSection v-else-if="section === 'workspace'" />
           <SessionCleanupSection v-else-if="section === 'session-cleanup'" />
           <PathsSettingsSection v-else-if="section === 'paths'" />

@@ -194,8 +194,8 @@ describe('SkillInstallService', () => {
       LANG: 'zh_CN.UTF-8',
       HTTPS_PROXY: 'http://proxy.example.test:8080',
       npm_config_ignore_scripts: 'true',
-      npm_config_userconfig: '/tmp/pi-harness-isolated-home/.npmrc',
-      npm_config_globalconfig: '/tmp/pi-harness-isolated-home/.npm-globalrc'
+      npm_config_userconfig: path.join('/tmp/pi-harness-isolated-home', '.npmrc'),
+      npm_config_globalconfig: path.join('/tmp/pi-harness-isolated-home', '.npm-globalrc')
     })
     expect(env.PATH).toBe(['/opt/node/bin', '/usr/local/bin:/usr/bin'].join(path.delimiter))
   })

@@ -1,4 +1,6 @@
 extends: ./electron-builder.yml
+extraMetadata:
+  piHarnessVariant: nomascot
 directories:
   output: release/nomascot
 mac:

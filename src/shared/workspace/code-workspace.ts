@@ -230,9 +230,9 @@ function matchesMainFolder(
 
 function pathResolver(workspaceFile: string, folderPath: string, platform: NodeJS.Platform) {
   const useWin =
-    platform === 'win32' ||
     isWindowsAbsolutePath(workspaceFile) ||
-    isWindowsAbsolutePath(folderPath)
+    isWindowsAbsolutePath(folderPath) ||
+    (platform === 'win32' && !workspaceFile.startsWith('/') && !folderPath.startsWith('/'))
   return useWin ? path.win32 : path.posix
 }
 

@@ -191,7 +191,16 @@ test('every desktop pet menu action performs its advertised operation', async ({
     // Move over the empty pixels behind the menu before clicking it.
     await item.hover()
     await pet.waitForTimeout(120)
-    await item.click()
+    if (name === '隐藏宠物' || name === '退出 Pi-Harness') {
+      // Destroying this renderer can win the race with the input acknowledgement.
+      // The caller still verifies persisted disabled state or application exit.
+      await Promise.all([
+        pet.waitForEvent('close'),
+        item.click().catch((error) => {
+          if (!pet.isClosed()) throw error
+        })
+      ])
+    } else await item.click()
   }
 
   // Open must restore a minimized/hidden main window.
