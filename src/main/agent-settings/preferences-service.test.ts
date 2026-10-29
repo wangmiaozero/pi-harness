@@ -20,7 +20,8 @@ beforeEach(async () => {
     manualConfigDir: path.join(temp, 'pi')
   } as AppSettings)
   config = new PiConfigService(settings, {
-    createBackupForFile: vi.fn()
+    createBackupForFile: vi.fn(),
+    assertNoUnfinishedRestore: vi.fn()
   } as unknown as BackupService)
   access = new FileAccessService()
   service = new AgentPreferencesService(config, access)

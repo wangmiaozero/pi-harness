@@ -53,6 +53,11 @@ let resizeRaf = 0
 let railResizeRaf = 0
 let contentObserver: ResizeObserver | null = null
 let railObserver: ResizeObserver | null = null
+let jumpTarget: HTMLElement | null = null
+
+function releaseJump() {
+  jumpTarget = null
+}
 
 const markers = computed(() => buildConversationMinimapMarkers(props.messages))
 const markerIdentity = computed(() => markers.value.map((marker) => marker.id).join('\u0000'))
@@ -73,6 +78,7 @@ function scanOffsets(): Array<{ id: string; offset: number }> {
   const el = props.target
   if (!el) return []
   const baseTop = el.getBoundingClientRect().top
+  const boxes = new Map<HTMLElement, number>()
   const markerIds = new Set(markers.value.map((marker) => marker.id))
   const out: Array<{ id: string; offset: number }> = []
   el.querySelectorAll<HTMLElement>('[data-minimap-id]').forEach((node) => {
@@ -80,7 +86,18 @@ function scanOffsets(): Array<{ id: string; offset: number }> {
     if (!markerIds.has(id)) return
     out.push({
       id,
-      offset: node.getBoundingClientRect().top - baseTop + el.scrollTop
+      // Embedded messages live inside content-visibility turn roots. Measuring
+      // the descendants forces all skipped content to render; measure each
+      // outer turn once for passive tracking. A click resolves its exact node.
+      offset: (() => {
+        const root = node.closest<HTMLElement>('.message-hud') ?? node
+        let top = boxes.get(root)
+        if (top === undefined) {
+          top = root.getBoundingClientRect().top - baseTop + el.scrollTop
+          boxes.set(root, top)
+        }
+        return top
+      })()
     })
   })
   return out
@@ -133,9 +150,7 @@ function updateActive() {
 
 function updateOverflow() {
   const el = props.target
-  const nowOverflows = el
-    ? el.scrollHeight - el.clientHeight > OVERFLOW_EPSILON_PX
-    : false
+  const nowOverflows = el ? el.scrollHeight - el.clientHeight > OVERFLOW_EPSILON_PX : false
   if (nowOverflows === overflowsValue) return
   overflowsValue = nowOverflows
   overflows.value = nowOverflows
@@ -151,17 +166,19 @@ function syncLayout() {
 function jumpTo(id: string) {
   const el = props.target
   if (!el) return
-  const target = scanOffsets().find((entry) => entry.id === id)
-  if (!target) return
+  const node = [...el.querySelectorAll<HTMLElement>('[data-minimap-id]')].find(
+    (node) => node.dataset.minimapId === id
+  )
+  if (!node) return
   // Leaving follow mode is part of the jump, not a side effect: a scroll with
   // no input gesture behind it would otherwise be pinned back to the latest
   // message before the reader saw the turn.
   emit('releaseFollow')
-  const reduceMotion =
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-  el.scrollTo({
-    top: Math.max(0, target.offset - 24),
-    behavior: reduceMotion ? 'auto' : 'smooth'
+  jumpTarget = node
+  // Resolve the target after revealing its skipped content-visibility subtree.
+  node.scrollIntoView({
+    block: 'start',
+    behavior: 'auto'
   })
 }
 
@@ -237,9 +254,11 @@ function roleLabel(role: ConversationMinimapMarker['role']): string {
     : t('workspace.minimapAssistantMessage')
 }
 
-function detachTargetListeners() {
-  const el = props.target
+function detachTargetListeners(el = props.target) {
   if (el) el.removeEventListener('scroll', scheduleScroll)
+  for (const event of ['wheel', 'touchstart', 'pointerdown', 'keydown'])
+    el?.removeEventListener(event, releaseJump)
+  releaseJump()
   contentObserver?.disconnect()
   contentObserver = null
 }
@@ -248,6 +267,8 @@ function attachTargetListeners() {
   const el = props.target
   if (!el) return
   el.addEventListener('scroll', scheduleScroll, { passive: true })
+  for (const event of ['wheel', 'touchstart', 'pointerdown', 'keydown'])
+    el.addEventListener(event, releaseJump, { passive: true })
   // Streamed content can change layout between marker identity changes.
   const content = el.firstElementChild
   if (content && typeof ResizeObserver !== 'undefined') {
@@ -270,23 +291,20 @@ function scheduleResize() {
     // The rail's gap is marker-count dependent, so dash centers move without
     // the marker set changing.
     syncLayout()
+    // Revealing skipped turns changes their intrinsic heights. Keep an
+    // explicit navigation target anchored until the next reading gesture.
+    if (jumpTarget?.isConnected) jumpTarget.scrollIntoView({ block: 'start', behavior: 'auto' })
   })
 }
 
-watch(
-  markerIdentity,
-  () => {
-    syncLayout()
-  },
-  { immediate: true, flush: 'post' }
-)
+watch(markerIdentity, scheduleResize, { immediate: true, flush: 'post' })
 
 watch(
   () => props.target,
-  () => {
-    detachTargetListeners()
+  (_target, previous) => {
+    detachTargetListeners(previous)
     attachTargetListeners()
-    syncLayout()
+    scheduleResize()
   },
   { flush: 'post' }
 )
@@ -318,12 +336,17 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(resizeRaf)
   cancelAnimationFrame(railResizeRaf)
   detachTargetListeners()
+  document.removeEventListener('pointerdown', releaseJump, true)
+  document.removeEventListener('keydown', releaseJump, true)
   window.removeEventListener('resize', scheduleResize)
   railObserver?.disconnect()
   railObserver = null
 })
 
 attachTargetListeners()
+// Other navigation controls (for example scroll-to-top) sit outside target.
+document.addEventListener('pointerdown', releaseJump, true)
+document.addEventListener('keydown', releaseJump, true)
 window.addEventListener('resize', scheduleResize)
 </script>
 
@@ -347,6 +370,7 @@ window.addEventListener('resize', scheduleResize)
       :class="[marker.role, { active: marker.id === activeId }]"
       :aria-label="roleLabel(marker.role)"
       :aria-current="marker.id === activeId ? 'true' : undefined"
+      :data-minimap-target="marker.id"
       @focus="onMarkerFocus(marker, $event)"
       @blur="onMarkerBlur"
       @click="jumpTo(marker.id)"
@@ -371,12 +395,12 @@ window.addEventListener('resize', scheduleResize)
  * from JS), so magnification never reflows the stack. */
 .minimap-rail {
   position: absolute;
-  left: 8px;
+  left: 0;
   top: 12px;
   bottom: 16px;
   z-index: 6;
   display: flex;
-  width: 26px;
+  width: 14px;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;

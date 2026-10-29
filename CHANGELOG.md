@@ -2,6 +2,17 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.7 — 2026-10-29
+
+### Fixed
+
+- Improved recovery from interrupted configuration restores and prevented conflicting configuration saves.
+- Reduced memory use in long conversations and improved conversation navigation responsiveness.
+- Fixed cancelled tasks receiving late success updates and duplicate retries.
+- Improved model connection diagnostics and prevented outdated test results from appearing after switching providers.
+- Fixed blank scrolling and horizontal overflow in the model and reasoning menus.
+- Changed desktop pet sizing to percentages, reduced the maximum size, and improved dragging near screen edges.
+
 ## 2.3.6 — 2026-10-29
 
 ### Fixed

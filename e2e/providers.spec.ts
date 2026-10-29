@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { IPC_INVOKE } from '../src/shared/ipc/channels'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { once } from 'node:events'
@@ -185,4 +186,67 @@ test.describe('Providers', () => {
       })
     }
   })
+})
+
+test('ignores an old provider probe after changing dialogs and prevents duplicate probes', async ({
+  page,
+  electronApp
+}) => {
+  await electronApp.evaluate(({ ipcMain }, channel) => {
+    const state = globalThis as typeof globalThis & {
+      probeReplies: Array<(value: unknown) => void>
+    }
+    state.probeReplies = []
+    ipcMain.removeHandler(channel)
+    ipcMain.handle(channel, () => new Promise((resolve) => state.probeReplies.push(resolve)))
+  }, IPC_INVOKE.providerTestConnection)
+  await page.locator('a[href="#/models"]').click()
+  await page.getByTestId('model-management-tab-providers').click()
+  const cells = page.getByTestId('provider-action-cell')
+  await cells
+    .nth(0)
+    .getByRole('button', { name: /^(测试|Test)$/ })
+    .click()
+  let dialog = page.getByRole('dialog')
+  await expect(dialog).toContainText(/可能产生少量用量|may charge/)
+  const start = dialog.getByRole('button', { name: /开始测试|Run test|Start test/ })
+  const startElement = await start.elementHandle()
+  await start.click()
+  await startElement!.evaluate((button) => {
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+  await expect
+    .poll(() =>
+      electronApp.evaluate(
+        () => (globalThis as typeof globalThis & { probeReplies: unknown[] }).probeReplies.length
+      )
+    )
+    .toBe(1)
+  await dialog
+    .getByRole('button', { name: /关闭|Close/, exact: true })
+    .last()
+    .click()
+  await cells
+    .nth(1)
+    .getByRole('button', { name: /^(测试|Test)$/ })
+    .click()
+  dialog = page.getByRole('dialog')
+  await electronApp.evaluate(() => {
+    const state = globalThis as typeof globalThis & {
+      probeReplies: Array<(value: unknown) => void>
+    }
+    state.probeReplies[0]({
+      ok: true,
+      data: {
+        ok: true,
+        status: 'success',
+        httpStatus: 200,
+        latencyMs: 1,
+        message: 'obsolete-probe-result'
+      }
+    })
+  })
+  await expect(dialog).not.toContainText('obsolete-probe-result')
+  await expect(dialog.getByRole('button', { name: /开始测试|Run test|Start test/ })).toBeEnabled()
 })

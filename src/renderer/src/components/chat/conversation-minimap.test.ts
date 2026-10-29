@@ -39,15 +39,9 @@ function toolResult(key: string): MinimapMessage {
 
 describe('conversation minimap markers', () => {
   it('renders the rail only for overflowing transcripts with at least two turns', () => {
-    expect(
-      shouldRenderConversationMinimap({ markerCount: 1, overflows: true })
-    ).toBe(false)
-    expect(
-      shouldRenderConversationMinimap({ markerCount: 3, overflows: false })
-    ).toBe(false)
-    expect(
-      shouldRenderConversationMinimap({ markerCount: 2, overflows: true })
-    ).toBe(true)
+    expect(shouldRenderConversationMinimap({ markerCount: 1, overflows: true })).toBe(false)
+    expect(shouldRenderConversationMinimap({ markerCount: 3, overflows: false })).toBe(false)
+    expect(shouldRenderConversationMinimap({ markerCount: 2, overflows: true })).toBe(true)
   })
 
   it('extracts plain text from strings and text blocks only', () => {
@@ -85,12 +79,7 @@ describe('conversation minimap markers', () => {
     ])
 
     expect(markers.map((marker) => marker.id)).toEqual(['u1', 'a1', 'u2', 'a3'])
-    expect(markers.map((marker) => marker.role)).toEqual([
-      'user',
-      'assistant',
-      'user',
-      'assistant'
-    ])
+    expect(markers.map((marker) => marker.role)).toEqual(['user', 'assistant', 'user', 'assistant'])
     expect(markers[1].preview).toBe('first answer\n\ncontinued')
   })
 
@@ -120,6 +109,7 @@ describe('ConversationMinimap component', () => {
     for (const id of ['u1', 'a1']) {
       const row = document.createElement('article')
       row.dataset.minimapId = id
+      row.scrollIntoView = () => undefined
       content.appendChild(row)
     }
     el.appendChild(content)
@@ -141,6 +131,8 @@ describe('ConversationMinimap component', () => {
 
   it('renders dashes for overflowing transcripts and previews on hover', async () => {
     const wrapper = mountMinimap(stubScroller())
+    await new Promise(requestAnimationFrame)
+    await wrapper.vm.$nextTick()
     const rail = wrapper.get('[data-testid="minimap-rail"]')
     expect(rail.findAll('.minimap-marker')).toHaveLength(2)
     expect(rail.findAll('.minimap-marker.user')).toHaveLength(1)
@@ -155,12 +147,17 @@ describe('ConversationMinimap component', () => {
 
   it('jumps to a turn and asks the transcript to release follow mode', async () => {
     const target = stubScroller()
-    const scrollTo = vi.spyOn(target, 'scrollTo')
+    const scrollTo = vi.spyOn(
+      target.querySelector<HTMLElement>('[data-minimap-id]')!,
+      'scrollIntoView'
+    )
     const wrapper = mountMinimap(target)
+    await new Promise(requestAnimationFrame)
+    await wrapper.vm.$nextTick()
 
     await wrapper.get('button.minimap-marker.user').trigger('click')
     expect(wrapper.emitted('releaseFollow')).toHaveLength(1)
-    expect(scrollTo).toHaveBeenCalledWith({ top: expect.any(Number), behavior: 'smooth' })
+    expect(scrollTo).toHaveBeenCalledWith({ block: 'start', behavior: 'auto' })
   })
 
   it('stays hidden when the transcript does not overflow', async () => {

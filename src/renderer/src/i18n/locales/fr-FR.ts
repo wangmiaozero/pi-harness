@@ -292,8 +292,7 @@ export const frFR: MessageTree = {
     discoveredModelHint: 'API',
     existingModelHint: 'Existant',
     headersObjectRequired: 'Les en-têtes doivent être un objet JSON',
-    testModelHint:
-      'Envoie une vraie requête chat d\'1 jeton (pas GET /models). Nécessaire pour faire apparaître les erreurs 401 / 429 / modèle.'
+    testModelHint: "Envoie un court message pour tester le modèle. Le fournisseur peut facturer cette requête."
   },
   models: {
     title: 'Modèles',
@@ -800,7 +799,7 @@ export const frFR: MessageTree = {
     desktopPetEnabled: 'Activer la mascotte de bureau',
     desktopPetAgentSync: 'Réagir à l’activité des agents',
     desktopPetAlwaysOnTop: 'Toujours au premier plan',
-    desktopPetSize: 'Taille de la mascotte (px)',
+    desktopPetSize: 'Taille de la mascotte (%)',
     desktopPetOpacity: 'Opacité de la mascotte (%)',
     desktopPetIdleVariants: 'Postures au repos',
     desktopPetPhysics: 'Physique de lancer',
@@ -948,6 +947,7 @@ export const frFR: MessageTree = {
     developerMode: 'Mode développeur',
     mockMode: 'Mode simulation',
     backupCreated: 'Sauvegarde créée',
+    restoreInterrupted: "Une restauration a été interrompue. Restaurez à nouveau la sauvegarde signalée pour continuer. Les fichiers modifiés en dehors de l’application seront protégés.",
     backupRestored: 'Sauvegarde restaurée',
     backupDeleted: 'Sauvegarde supprimée',
     restoreTitle: 'Restaurer la sauvegarde',

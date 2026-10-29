@@ -774,13 +774,22 @@ export class ProviderService {
     if (input.providerKey === 'opencode-free')
       throw new ValidationError('Use OpenCode connection verification')
     const started = Date.now()
-    const provider = await this.get(input.providerKey)
+    const snapshot = await this.config.read()
+    const nativeProvider = snapshot.models.providers[input.providerKey]
+    const metadata = await this.metadata.read()
+    const provider = nativeProvider
+      ? providerToDomain(input.providerKey, nativeProvider, metadata.providers[input.providerKey])
+      : null
     const resolvedModelId =
       (input.modelId?.trim() || null) ??
       provider?.defaultModelId ??
-      (await this.firstModelId(input.providerKey))
+      nativeProvider?.models?.[0]?.id ??
+      null
+    const modelApi = nativeProvider?.models?.find((model) => model.id === resolvedModelId)?.api
     const probeProtocol = provider
-      ? await this.resolveModelProtocol(input.providerKey, resolvedModelId, provider.protocol)
+      ? modelApi && isProtocolId(modelApi)
+        ? modelApi
+        : provider.protocol
       : null
     const base = {
       endpoint: null as string | null,
@@ -824,7 +833,10 @@ export class ProviderService {
 
     let apiKey: string | null
     try {
-      apiKey = await resolveCredentialForTest(provider)
+      // Literal Pi credentials are intentionally absent from the Renderer DTO.
+      // Resolve them from native configuration in Main for this explicit probe.
+      const literal = provider.apiKey?.kind === 'literal' ? nativeProvider?.apiKey : undefined
+      apiKey = await resolveCredentialForTest(provider, literal)
     } catch (err) {
       return {
         ok: false,
@@ -904,6 +916,36 @@ export class ProviderService {
             ...base
           }
         }
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(bodyText)
+        } catch {
+          parsed = null
+        }
+        const response =
+          parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? (parsed as Record<string, unknown>)
+            : null
+        const protocol = probeProtocol ?? provider.protocol
+        const field =
+          protocol === 'anthropic-messages'
+            ? 'content'
+            : protocol === 'google-generative-ai'
+              ? 'candidates'
+              : protocol.includes('responses')
+                ? 'output'
+                : 'choices'
+        if (!response || !Array.isArray(response[field]) || !response[field].length) {
+          return {
+            ok: false,
+            status: 'invalid_response',
+            httpStatus: res.status,
+            latencyMs,
+            message:
+              'The endpoint returned an invalid API response. Check the Base URL and protocol.',
+            ...base
+          }
+        }
         return {
           ok: true,
           status: 'success',
@@ -945,7 +987,7 @@ export class ProviderService {
         status: 'network_error',
         httpStatus: null,
         latencyMs,
-        message: redactSecretText((err as Error).message),
+        message: connectionFailureMessage(err),
         ...base
       }
     } finally {
@@ -1594,13 +1636,18 @@ function mapHttpStatus(
  * Resolve a credential for connection tests only (Main process).
  * Never returns values to the renderer. Supports stored / env / command kinds.
  */
-async function resolveCredentialForTest(provider: ProviderProfile): Promise<string | null> {
+async function resolveCredentialForTest(
+  provider: ProviderProfile,
+  literal?: string
+): Promise<string | null> {
   if (provider.apiKeyRef) {
     const secret = await secretStore.getSecret(provider.apiKeyRef)
     if (secret) return secret
   }
   const spec = provider.apiKey
   if (!spec) return null
+  if (spec.kind === 'literal' && literal && !literal.startsWith('$') && !literal.startsWith('!'))
+    return literal
   if (spec.kind === 'env' && spec.envRef) {
     const name = spec.envRef.replace(/^\$\{?/, '').replace(/\}$/, '')
     return process.env[name] ?? null
@@ -1699,4 +1746,22 @@ function mergeDiscoveredModels(
     existingIds.add(id)
   }
   return { ...provider, models }
+}
+
+function connectionFailureMessage(error: unknown): string {
+  const cause = (error as { cause?: { code?: string } })?.cause?.code
+  if (cause === 'ENOTFOUND' || cause === 'EAI_AGAIN')
+    return 'DNS lookup failed. Check the Base URL hostname and network connection.'
+  if (
+    [
+      'CERT_HAS_EXPIRED',
+      'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+      'DEPTH_ZERO_SELF_SIGNED_CERT',
+      'ERR_TLS_CERT_ALTNAME_INVALID'
+    ].includes(cause ?? '')
+  )
+    return 'TLS certificate verification failed. Check system time and the endpoint certificate.'
+  if (cause === 'ECONNREFUSED')
+    return 'Connection refused. Check the Base URL and whether the service is running.'
+  return redactSecretText(error instanceof Error ? error.message : 'Network request failed')
 }

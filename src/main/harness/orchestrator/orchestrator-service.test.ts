@@ -688,6 +688,54 @@ describe('OrchestratorService dispatch', () => {
 })
 
 describe('OrchestratorService failure handling', () => {
+  it('rejects simultaneous retry clicks and dispatches the failed task once', async () => {
+    const harness = createHarness()
+    const { orchestrationId, agentIds } = await bootstrapOrchestration(harness, {
+      agents: [{ name: 'Dev', role: 'backend' }],
+      tasks: [{ key: 'work', assignedAgentId: null }]
+    })
+    const [task] = await harness.service.listTasks(orchestrationId)
+    await harness.service.reassignTask(task.id, agentIds['Dev'])
+    await harness.service.start(orchestrationId)
+    const prompt = harness.host.prompts[0]
+    harness.host.settleRun(prompt.sessionId, prompt.runId, {
+      status: 'failed',
+      error: 'fixture failure'
+    })
+    // Retry while settlement persistence is still queued.
+    const results = await Promise.allSettled([
+      harness.service.retryTask({ taskId: task.id }),
+      harness.service.retryTask({ taskId: task.id })
+    ])
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+    expect(results.find((result) => result.status === 'rejected')).toMatchObject({
+      reason: { code: 'ORCHESTRATION_BUSY' }
+    })
+    await harness.service.waitForSettled(5000)
+    expect(harness.host.prompts).toHaveLength(2)
+    expect((await harness.service.listTasks(orchestrationId))[0].retryCount).toBe(1)
+  })
+
+  it('does not accept success arriving after cancellation was requested', async () => {
+    const harness = createHarness()
+    const { orchestrationId, agentIds } = await bootstrapOrchestration(harness, {
+      agents: [{ name: 'Dev', role: 'backend' }],
+      tasks: [{ key: 'work', assignedAgentId: null }]
+    })
+    const [task] = await harness.service.listTasks(orchestrationId)
+    await harness.service.reassignTask(task.id, agentIds['Dev'])
+    await harness.service.start(orchestrationId)
+    await harness.service.waitForSettled(5000)
+    // Cancellation acknowledgement can race a successfully finishing provider request.
+    harness.host.abortSession = async () => undefined
+    await harness.service.abort(orchestrationId)
+    const prompt = harness.host.prompts[0]
+    harness.host.settleRun(prompt.sessionId, prompt.runId)
+    await harness.service.waitForSettled(5000)
+    expect((await harness.service.listTasks(orchestrationId))[0].status).toBe('cancelled')
+    expect(harness.host.prompts).toHaveLength(1)
+  })
+
   it('preserves run identity through immediate evaluation and duplicate settlement', async () => {
     const harness = createHarness()
     const { orchestrationId, agentIds } = await bootstrapOrchestration(harness, {

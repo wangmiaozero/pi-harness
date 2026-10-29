@@ -76,6 +76,7 @@ const testingProvider = ref<ProviderProfile | null>(null)
 const testModelId = ref('')
 const testResult = ref<ConnectionTestResult | null>(null)
 const testLoading = ref(false)
+let testGeneration = 0
 const saving = ref(false)
 const saveError = ref('')
 const providerTogglePending = ref<string | null>(null)
@@ -769,6 +770,8 @@ function openTest(provider: ProviderProfile) {
     void router.replace({ path: '/models', query: { tab: 'opencode' } })
     return
   }
+  testGeneration++
+  testLoading.value = false
   testingProvider.value = provider
   const firstModel = modelsStore.items.find((m) => m.providerId === provider.id)
   const active = modelsStore.active.providerKey === provider.key ? modelsStore.active.modelId : null
@@ -778,7 +781,8 @@ function openTest(provider: ProviderProfile) {
 }
 
 async function runTest() {
-  if (!testingProvider.value) return
+  if (!testingProvider.value || testLoading.value) return
+  const generation = ++testGeneration
   testLoading.value = true
   testResult.value = null
   try {
@@ -786,13 +790,15 @@ async function runTest() {
       testingProvider.value.key,
       testModelId.value.trim() || undefined
     )
+    if (generation !== testGeneration || !testOpen.value) return
     testResult.value = result
     if (result.ok) toast.success(t('providers.testOk'))
     else toast.error(result.message)
   } catch (e) {
-    toast.error((e as { message?: string }).message ?? t('common.failed'))
+    if (generation === testGeneration && testOpen.value)
+      toast.error((e as { message?: string }).message ?? t('common.failed'))
   } finally {
-    testLoading.value = false
+    if (generation === testGeneration) testLoading.value = false
   }
 }
 
@@ -1321,6 +1327,7 @@ onMounted(() => {
 
     <Dialog
       v-model:open="testOpen"
+      close-on-escape
       :title="$t('providers.testTitle')"
       :description="testingProvider ? testingProvider.key : undefined"
     >

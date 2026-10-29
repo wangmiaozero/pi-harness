@@ -292,8 +292,7 @@ export const koKR: MessageTree = {
     discoveredModelHint: 'API',
     existingModelHint: '기존',
     headersObjectRequired: '헤더는 JSON 객체여야 합니다',
-    testModelHint:
-      '실제 1토큰 대화 요청을 보냅니다(GET /models가 아님). 401 / 429 / 모델 오류를 확인하는 데 필요합니다.'
+    testModelHint: "짧은 메시지를 보내 모델을 확인합니다. 제공업체 이용 요금이 발생할 수 있습니다."
   },
   models: {
     title: '모델',
@@ -800,7 +799,7 @@ export const koKR: MessageTree = {
     desktopPetEnabled: '데스크톱 펫 사용',
     desktopPetAgentSync: '에이전트 활동에 반응',
     desktopPetAlwaysOnTop: '항상 위에 표시',
-    desktopPetSize: '펫 크기(px)',
+    desktopPetSize: '펫 크기(%)',
     desktopPetOpacity: '펫 불투명도(%)',
     desktopPetIdleVariants: '대기 동작 변형',
     desktopPetPhysics: '던지기 물리 효과',
@@ -949,6 +948,7 @@ export const koKR: MessageTree = {
     developerMode: '개발자 모드',
     mockMode: '모의 모드',
     backupCreated: '백업이 만들어졌습니다',
+    restoreInterrupted: "이전 복원이 완료되지 않았습니다. 표시된 백업을 다시 복원해 계속하세요. 앱 외부에서 변경된 파일은 보호됩니다.",
     backupRestored: '백업이 복원되었습니다',
     backupDeleted: '백업이 삭제되었습니다',
     restoreTitle: '백업 복원',

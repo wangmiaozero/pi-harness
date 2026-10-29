@@ -293,8 +293,7 @@ export const jaJP: MessageTree = {
     discoveredModelHint: 'API 取得',
     existingModelHint: '既存',
     headersObjectRequired: 'ヘッダーは JSON オブジェクトである必要があります',
-    testModelHint:
-      '実際の 1 トークンのチャットリクエストを送ります（GET /models ではありません）。401 / 429 / モデルエラーを表面化するために必要です。'
+    testModelHint: "短いメッセージを送信してモデルを確認します。プロバイダーの利用料金が発生する場合があります。"
   },
   models: {
     title: 'モデル',
@@ -800,7 +799,7 @@ export const jaJP: MessageTree = {
     desktopPetEnabled: 'デスクトップペットを有効にする',
     desktopPetAgentSync: 'エージェントの動きに反応',
     desktopPetAlwaysOnTop: '常に手前に表示',
-    desktopPetSize: 'ペットのサイズ（px）',
+    desktopPetSize: 'ペットのサイズ（%）',
     desktopPetOpacity: 'ペットの不透明度（%）',
     desktopPetIdleVariants: '待機バリエーション',
     desktopPetPhysics: '投げたときの物理演算',
@@ -948,6 +947,7 @@ export const jaJP: MessageTree = {
     developerMode: '開発者モード',
     mockMode: 'モックモード',
     backupCreated: 'バックアップを作成しました',
+    restoreInterrupted: "前回の復元が完了していません。印の付いたバックアップを再度復元してください。アプリ外で変更されたファイルは保護されます。",
     backupRestored: 'バックアップを復元しました',
     backupDeleted: 'バックアップを削除しました',
     restoreTitle: 'バックアップを復元',

@@ -181,6 +181,7 @@ function onKeydown(event: KeyboardEvent) {
   event.preventDefault()
   event.stopPropagation()
   close()
+  void nextTick(() => trigger.value?.focus({ preventScroll: true }))
 }
 
 onMounted(() => {

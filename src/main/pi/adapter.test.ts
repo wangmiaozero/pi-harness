@@ -117,6 +117,22 @@ describe('domainModelToPi', () => {
 })
 
 describe('modelToDomain', () => {
+  it('does not advertise undeclared tools or streaming on a custom model', () => {
+    const model = modelToDomain('custom', { id: 'unknown' }, 'openai-completions', undefined)
+    expect(model.capabilities.tools).toBeUndefined()
+    expect(model.capabilities.streaming).toBeUndefined()
+    expect(model.capabilities.vision).toBeUndefined()
+    expect(model.capabilities.reasoning).toBeUndefined()
+    expect(model.metadata.capabilitySources).toMatchObject({
+      tools: 'unknown',
+      vision: 'unknown',
+      streaming: 'unknown',
+      reasoning: 'unknown'
+    })
+    expect(model.tools).toBe(false)
+    expect(model.streaming).toBe(false)
+  })
+
   it('uses Pi input modalities instead of stale metadata for vision support', () => {
     const model = modelToDomain(
       'provider',

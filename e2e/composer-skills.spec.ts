@@ -102,7 +102,8 @@ test('keeps maximum thinking effects inside the model panel without blank scroll
   await page.locator('a[href="#/workspace"]').click()
   for (const size of [
     { width: 1280, height: 900 },
-    { width: 1000, height: 700 }
+    { width: 1000, height: 700 },
+    { width: 800, height: 600 }
   ]) {
     await page.setViewportSize(size)
     await page.getByTestId('workspace-model-select').getByRole('button').click()

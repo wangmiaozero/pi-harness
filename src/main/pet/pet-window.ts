@@ -20,13 +20,12 @@ import { log } from '../services/logger'
 import { resolvePreload } from '../window/preload-path'
 import type { LoadedPetPack } from './pack'
 import type { JsonStore } from '../services/storage'
-import { clampPetPosition, resolvePetWindowPosition, type PetWindowState } from './window-state'
-
-const WINDOW_MIN_WIDTH = 280
-/** Reserve vertical space for the status bubble above the pet body. */
-const PET_BODY_FRACTION = 0.68
-/** Window width as a multiple of window height. */
-const WINDOW_ASPECT = 1.25
+import {
+  clampPetPosition,
+  resolvePetWindowPosition,
+  petWindowSize,
+  type PetWindowState
+} from './window-state'
 
 export interface PetWindowDeps {
   getActiveAgents?: () => number
@@ -43,6 +42,25 @@ export class PetWindowController {
   private pendingPush: PetStatePushPayload | null = null
   private pushTimer: NodeJS.Timeout | null = null
   private quitHookInstalled = false
+  private readonly onDisplayChange = (): void => {
+    const window = this.window
+    if (!window || window.isDestroyed()) return
+    try {
+      const { x, y, width, height } = window.getBounds()
+      const next = clampPetPosition(x, y, width, height)
+      window.setPosition(next.x, next.y, false)
+      this.savePosition()
+      this.pushConfig()
+    } catch (error) {
+      log.pet.error('display change failed:', error)
+    }
+  }
+
+  private detachDisplayListeners(): void {
+    screen.removeListener('display-added', this.onDisplayChange)
+    screen.removeListener('display-removed', this.onDisplayChange)
+    screen.removeListener('display-metrics-changed', this.onDisplayChange)
+  }
 
   constructor(private readonly deps: PetWindowDeps) {}
 
@@ -89,6 +107,7 @@ export class PetWindowController {
   }
 
   destroy(): void {
+    this.detachDisplayListeners()
     if (this.pushTimer) {
       clearTimeout(this.pushTimer)
       this.pushTimer = null
@@ -105,24 +124,23 @@ export class PetWindowController {
   savePosition(): void {
     if (this.window && !this.window.isDestroyed() && this.window.isVisible()) {
       const [x, y] = this.window.getPosition()
-      void this.deps.getWindowState().write({ x, y })
+      this.persistPosition(x, y)
     }
   }
 
+  private persistPosition(x: number, y: number): void {
+    void this.deps
+      .getWindowState()
+      .write({ x, y })
+      .catch((error) => {
+        log.pet.error('position save failed:', error)
+      })
+  }
+
   private petWindowSize(size: number): { width: number; height: number } {
-    const bodyHeight = size
-    const height = Math.round(bodyHeight / PET_BODY_FRACTION)
-    // Pack-aware width: wide third-party pets need more horizontal room than
-    // the default aspect reserves for the bubble. BigFish keeps its old size.
     const manifest = this.pack?.manifest
-    const petAspect = manifest ? manifest.baseWidth / Math.max(1, manifest.baseHeight) : 1
-    const petBodyWidth = Math.round(bodyHeight * petAspect)
-    const width = Math.max(
-      WINDOW_MIN_WIDTH,
-      Math.round(height * WINDOW_ASPECT),
-      Math.round(petBodyWidth * 1.15)
-    )
-    return { width, height }
+    const aspect = manifest ? manifest.baseWidth / Math.max(1, manifest.baseHeight) : 1
+    return petWindowSize(size, aspect)
   }
 
   private createWindow(settings: DesktopPetSettings): void {
@@ -157,6 +175,7 @@ export class PetWindowController {
     window.setAlwaysOnTop(settings.alwaysOnTop, 'floating')
     window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
     window.on('closed', () => {
+      this.detachDisplayListeners()
       this.savePosition()
       this.window = null
     })
@@ -178,6 +197,9 @@ export class PetWindowController {
       log.pet.error('pet window load failed:', error)
     })
     this.window = window
+    screen.on('display-added', this.onDisplayChange)
+    screen.on('display-removed', this.onDisplayChange)
+    screen.on('display-metrics-changed', this.onDisplayChange)
     window.webContents.once('did-finish-load', () => {
       this.pushConfig()
     })
@@ -189,7 +211,7 @@ export class PetWindowController {
     const [x, y] = window.getPosition()
     const clamped = clampPetPosition(x, y, width, height)
     window.setBounds({ x: clamped.x, y: clamped.y, width, height })
-    void this.deps.getWindowState().write({ x: clamped.x, y: clamped.y })
+    this.persistPosition(clamped.x, clamped.y)
   }
 
   /** Renderer-driven drag: move by delta, clamp, persist. */
@@ -257,7 +279,7 @@ export class PetWindowController {
       const x = Math.round(area.x + Math.max(0, (area.width - width) / 2))
       const y = Math.round(area.y + Math.max(0, (area.height - height) / 2))
       window.setPosition(x, y, false)
-      void this.deps.getWindowState().write({ x, y })
+      this.persistPosition(x, y)
       log.pet.info('pet position reset')
     } catch (error) {
       log.pet.error('resetPosition failed:', error)

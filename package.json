@@ -1,6 +1,6 @@
 {
   "name": "pi-harness",
-  "version": "2.3.6",
+  "version": "2.3.7",
   "description": "Operational Superset Harness and Desktop Control Plane for Pi Coding Agent",
   "productName": "Pi-Harness",
   "author": {
@@ -55,6 +55,7 @@
     "test:watch": "vitest",
     "quality": "node scripts/quality-gate.mjs",
     "quality:release": "node scripts/release-readiness.mjs",
+    "benchmark:desktop": "node scripts/performance/desktop.mjs",
     "benchmark:quality": "vitest run --config scripts/quality-benchmark.config.ts",
     "test:e2e": "pnpm compile && playwright test",
     "test:e2e:only": "playwright test",

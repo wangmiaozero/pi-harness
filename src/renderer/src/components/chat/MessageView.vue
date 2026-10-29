@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import security from '@comark/vue/plugins/security'
-import taskList from '@comark/vue/plugins/task-list'
+import { markdownOptions, markdownPlugins } from './message-markdown'
 import { computed, onErrorCaptured, ref } from 'vue'
 import { Archive, Brain, ChevronRight } from '@lucide/vue'
 import type { AgentMessage, ImageContent } from '@shared/types/workspace'
 import ToolCallView from './ToolCallView.vue'
 import MessageActions from './MessageActions.vue'
 import BranchNavigator from './BranchNavigator.vue'
-import StreamingMarkdown from './StreamingMarkdown.vue'
+import DeferredMarkdown from './DeferredMarkdown.vue'
 import FileChangesCard from './FileChangesCard.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import type { MessageFileChanges } from './message-file-changes'
@@ -17,46 +16,6 @@ import { hasRenderableMessageContent } from './message-visibility'
 import { parseSkillInvocation } from './skill-invocation'
 import { stripImageMetadataSuffix } from '@shared/workspace/image-attachments'
 import { callApi, getApi } from '@renderer/composables/useApi'
-
-const markdownOptions = {
-  registerDefaultPlugins: false
-}
-const markdownPlugins = [
-  taskList(),
-  security({
-    allowedTags: [
-      'p',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'ul',
-      'ol',
-      'li',
-      'strong',
-      'em',
-      's',
-      'code',
-      'pre',
-      'blockquote',
-      'hr',
-      'br',
-      'a',
-      'img',
-      'table',
-      'thead',
-      'tbody',
-      'tr',
-      'th',
-      'td',
-      'input'
-    ],
-    allowedProtocols: ['http', 'https', 'mailto'],
-    allowDataImages: false
-  })
-]
 
 const props = defineProps<{
   message: AgentMessage
@@ -278,7 +237,7 @@ const messageCopyText = computed(() => {
             {{ block.text }}
           </p>
           <Suspense v-else-if="block.type === 'text' && block.text.trim()">
-            <StreamingMarkdown
+            <DeferredMarkdown
               :value="block.text"
               :options="markdownOptions"
               :plugins="markdownPlugins"
