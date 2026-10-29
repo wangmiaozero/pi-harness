@@ -1,0 +1,25 @@
+/* This window does not load the main renderer's theme or scrollbar styles. */
+#pet-context-menu {
+  color-scheme: dark;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+  overscroll-behavior: contain;
+}
+
+#pet-context-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+#pet-context-menu::-webkit-scrollbar-track,
+#pet-context-menu::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+#pet-context-menu::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+#pet-context-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
+}

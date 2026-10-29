@@ -7,6 +7,7 @@
 import type { PetMenuAction } from '@shared/ipc/api-types'
 import type { AppLanguage, AppLocale } from '@shared/constants/language'
 import { resolveAppLocale } from '@shared/constants/language'
+import './menu.css'
 
 interface MenuLabel {
   openMain: string
@@ -163,7 +164,9 @@ export function showPetMenu(options: PetMenuOptions): void {
     'position:fixed',
     'z-index:2147483647',
     'min-width:180px',
+    'max-width:calc(100vw - 8px)',
     'max-height:calc(100vh - 8px)',
+    'overflow-x:hidden',
     'overflow-y:auto',
     'box-sizing:border-box',
     'padding:4px',
@@ -260,6 +263,7 @@ export function showPetMenu(options: PetMenuOptions): void {
       }
       search.addEventListener('input', renderActions)
       renderActions()
+      menu.scrollTop = 0
     })
     menu.insertBefore(play, menu.children[2] ?? null)
   }

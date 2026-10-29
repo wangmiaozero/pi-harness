@@ -421,6 +421,77 @@ test('all 101 manual actions play from the context menu and tasks allow only dra
   })
 })
 
+test('pet menus keep dark scrollbars and all entries reachable at every pet size', async ({
+  page,
+  electronApp
+}, testInfo) => {
+  const settings = await page.evaluate(() => window.piSwitch.settings.get())
+  await page.evaluate(
+    (desktopPet) => window.piSwitch.settings.set({ language: 'zh-CN', desktopPet }),
+    { ...settings.desktopPet, enabled: true, size: 160, idleVariants: false }
+  )
+  await expect
+    .poll(() => electronApp.windows().some((win) => win.url().includes('/pet.html')))
+    .toBe(true)
+  const pet = electronApp.windows().find((win) => win.url().includes('/pet.html'))!
+  await expect(pet.locator('#app img')).toBeVisible()
+  for (const size of [96, 160, 320]) {
+    await page.evaluate((desktopPet) => window.piSwitch.settings.set({ desktopPet }), {
+      ...settings.desktopPet,
+      enabled: true,
+      size,
+      idleVariants: false
+    })
+    await expect
+      .poll(() => pet.locator('#app img').evaluate((img) => img.getBoundingClientRect().height))
+      .toBe(size)
+    await pet.evaluate(() => window.dispatchEvent(new MouseEvent('contextmenu')))
+    const menu = pet.getByRole('menu')
+    await expect(menu).toBeVisible()
+    const layout = await menu.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      const style = getComputedStyle(element)
+      return {
+        fits:
+          rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight,
+        colorScheme: style.colorScheme,
+        scrollbarWidth: style.scrollbarWidth,
+        scrollbarColor: style.scrollbarColor,
+        horizontalOverflow: element.scrollWidth > element.clientWidth
+      }
+    })
+    expect(layout).toEqual({
+      fits: true,
+      colorScheme: 'dark',
+      scrollbarWidth: 'thin',
+      scrollbarColor: 'rgba(255, 255, 255, 0.28) rgba(0, 0, 0, 0)',
+      horizontalOverflow: false
+    })
+    if (size === 160)
+      await pet.screenshot({ path: testInfo.outputPath('pet-menu-dark-scrollbar.png') })
+    await menu.hover()
+    await pet.mouse.wheel(0, 1000)
+    await expect(
+      menu.getByRole('menuitem', { name: '退出 Pi-Harness', exact: true })
+    ).toBeInViewport()
+    const play = menu.getByRole('menuitem', { name: /播放动作/ })
+    await play.click()
+    await expect(pet.getByRole('searchbox')).toBeInViewport()
+    const actions = menu.locator('[data-clip]')
+    await expect(actions).toHaveCount(101)
+    await menu.hover()
+    await pet.mouse.wheel(0, 10000)
+    await expect(actions.last()).toBeInViewport()
+    if (size === 160)
+      await pet.screenshot({ path: testInfo.outputPath('pet-actions-dark-scrollbar.png') })
+    // The last action remains selectable after scrolling the complete list.
+    const clip = await actions.last().getAttribute('data-clip')
+    await actions.last().click()
+    await expect(pet.locator('#app img')).toHaveAttribute('src', new RegExp(`/clips/${clip}/`))
+    await expect(menu).toHaveCount(0)
+  }
+})
+
 test('pet settings use draggable sliders and omit the pack detail card', async ({
   page
 }, testInfo) => {

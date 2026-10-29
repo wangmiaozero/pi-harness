@@ -2,6 +2,14 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.6 — 2026-10-29
+
+### Fixed
+
+- Fixed bright scrollbars in the desktop pet menu and action list, keeping menu content within the pet window.
+- Opening the pet action list now returns to the top so the search field is immediately visible.
+- Refreshed interface screenshots and aligned feature descriptions across all eight README languages.
+
 ## 2.3.5 — 2026-10-28
 
 ### Added
