@@ -12,6 +12,55 @@ describe('session store transient sessions', () => {
     delete window.piSwitch
   })
 
+  it('keeps the newest of twenty refreshes when older requests finish last', async () => {
+    const resolvers: Array<(value: unknown) => void> = []
+    window.piSwitch = {
+      sessions: { list: vi.fn(() => new Promise((resolve) => resolvers.push(resolve))) }
+    } as unknown as PiSwitchAPI
+    const store = useSessionStore()
+    const refreshes = Array.from({ length: 20 }, () => store.refresh(true))
+    resolvers[19]([])
+    await refreshes[19]
+    store.selectSession('selected')
+    for (let index = 18; index >= 0; index--) resolvers[index]([])
+    await Promise.all(refreshes)
+    expect(store.currentId).toBe('selected')
+    expect(store.loading).toBe(false)
+  })
+
+  it('does not end a newer refresh or report an obsolete failure', async () => {
+    let rejectOld!: (error: Error) => void
+    let resolveNew!: (value: unknown[]) => void
+    window.piSwitch = {
+      sessions: {
+        list: vi
+          .fn()
+          .mockImplementationOnce(
+            () =>
+              new Promise((_, reject) => {
+                rejectOld = reject
+              })
+          )
+          .mockImplementationOnce(
+            () =>
+              new Promise((resolve) => {
+                resolveNew = resolve
+              })
+          )
+      }
+    } as unknown as PiSwitchAPI
+    const store = useSessionStore()
+    const old = store.refresh()
+    const latest = store.refresh()
+    rejectOld(new Error('obsolete'))
+    await old
+    expect(store.loading).toBe(true)
+    expect(store.error).toBeNull()
+    resolveNew([])
+    await latest
+    expect(store.loading).toBe(false)
+  })
+
   it('places a new in-memory session under its project without duplicates', () => {
     const store = useSessionStore()
 

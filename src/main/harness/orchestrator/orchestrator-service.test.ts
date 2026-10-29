@@ -688,6 +688,34 @@ describe('OrchestratorService dispatch', () => {
 })
 
 describe('OrchestratorService failure handling', () => {
+  it('preserves run identity through immediate evaluation and duplicate settlement', async () => {
+    const harness = createHarness()
+    const { orchestrationId, agentIds } = await bootstrapOrchestration(harness, {
+      agents: [{ name: 'Dev', role: 'backend' }],
+      tasks: [{ key: 'work', assignedAgentId: null }]
+    })
+    const [task] = await harness.service.listTasks(orchestrationId)
+    await harness.service.reassignTask(task.id, agentIds['Dev'])
+    await harness.service.start(orchestrationId)
+    const prompt = harness.host.prompts[0]
+    harness.host.settleRun(prompt.sessionId, prompt.runId, {
+      status: 'failed',
+      evaluation: 'failed',
+      error: 'provider failed'
+    })
+    harness.host.settleRun(prompt.sessionId, prompt.runId, {
+      status: 'failed',
+      evaluation: 'failed',
+      error: 'provider failed'
+    })
+    await harness.service.waitForSettled(5000)
+    const [settled] = await harness.service.listTasks(orchestrationId)
+    expect(settled.status).toBe('failed')
+    expect(settled.lastRunId).toBe(prompt.runId)
+    expect(settled.runIds).toEqual([prompt.runId])
+    expect(harness.host.prompts).toHaveLength(1)
+  })
+
   it('fails the task when the run fails or its evaluation fails', async () => {
     const harness = createHarness()
     const { orchestrationId, agentIds } = await bootstrapOrchestration(harness, {

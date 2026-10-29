@@ -152,3 +152,61 @@ describe('atomicWriteText', () => {
     15_000
   )
 })
+
+describe('JsonStore commit consistency', () => {
+  it('serializes concurrent patches without losing unrelated fields', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-store-'))
+    try {
+      const { JsonStore } = await import('./storage')
+      const target = path.join(dir, 'state.json')
+      const store = new JsonStore(target, { a: 0, b: 0 })
+      await Promise.all([store.update({ a: 1 }), store.update({ b: 2 })])
+      expect(await store.read()).toEqual({ a: 1, b: 2 })
+      expect(JSON.parse(await fs.readFile(target, 'utf8'))).toEqual({ a: 1, b: 2 })
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('keeps the committed cache after a failed write and allows retry', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-store-'))
+    try {
+      const { JsonStore } = await import('./storage')
+      const target = path.join(dir, 'state.json')
+      const store = new JsonStore(target, { a: 0 })
+      await store.write({ a: 1 })
+      const rename = vi.spyOn(fs, 'rename').mockRejectedValueOnce(new Error('disk failure'))
+      await expect(store.update({ a: 2 })).rejects.toThrow('disk failure')
+      expect(store.peek()).toEqual({ a: 1 })
+      expect(JSON.parse(await fs.readFile(target, 'utf8'))).toEqual({ a: 1 })
+      rename.mockRestore()
+      await store.update({ a: 3 })
+      expect(store.peek()).toEqual({ a: 3 })
+    } finally {
+      vi.restoreAllMocks()
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+it.each(['{partial', '', '[]', 'null'])(
+  'does not overwrite unreadable store data: %s',
+  async (content) => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-store-corrupt-'))
+    try {
+      const { JsonStore } = await import('./storage')
+      const target = path.join(dir, 'state.json')
+      await fs.writeFile(target, content)
+      const store = new JsonStore(target, { a: 0 })
+      expect(await store.read()).toEqual({ a: 0 })
+      await expect(store.update({ a: 1 })).rejects.toThrow('repair it before saving')
+      expect(await fs.readFile(target, 'utf8')).toBe(content)
+      await fs.writeFile(target, '{"a":2}')
+      store.invalidate()
+      await store.update({ a: 3 })
+      expect(store.peek()).toEqual({ a: 3 })
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  }
+)

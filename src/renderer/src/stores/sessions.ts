@@ -24,7 +24,10 @@ export const useSessionStore = defineStore('sessions', () => {
     return buildSessionForkTree(project?.sessions ?? items.value)
   })
 
+  let refreshGeneration = 0
+
   async function refresh(force = false) {
+    const generation = ++refreshGeneration
     loading.value = true
     error.value = null
     try {
@@ -33,6 +36,7 @@ export const useSessionStore = defineStore('sessions', () => {
         name: session.name || summarizeSessionTitle([session.firstMessage]),
         firstMessage: formatSkillInvocationSummary(session.firstMessage)
       }))
+      if (generation !== refreshGeneration) return
       const persistedIds = new Set(persisted.map((session) => session.id))
       const transients = items.value.filter(
         (session) => session.transient && !persistedIds.has(session.id)
@@ -47,9 +51,10 @@ export const useSessionStore = defineStore('sessions', () => {
         currentProjectKey.value = items.value[0].projectKey
       }
     } catch (e) {
+      if (generation !== refreshGeneration) return
       error.value = (e as { message?: string }).message ?? String(e)
     } finally {
-      loading.value = false
+      if (generation === refreshGeneration) loading.value = false
     }
   }
 

@@ -135,8 +135,7 @@ describe('PetService pack switching', () => {
     await service.start()
   })
 
-  // write() sets the store cache synchronously; peek() observes it without
-  // racing the async disk flush.
+  // Awaited service mutations publish settings only after the disk commit.
   const persistedDesktopPet = (): AppSettings['desktopPet'] => settingsStore.peek().desktopPet
 
   afterEach(async () => {

@@ -14,6 +14,7 @@ import { PI_FILES, APP_VERSION } from '@shared/constants/index'
 import type { BackupRecord, AppSettings } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
 import type { PiConfigService } from '../pi/config-service'
+import { piModelsConfigSchema, piSettingsConfigSchema } from '@shared/schemas/pi'
 import { backupIdSchema } from '@shared/schemas/domain'
 
 interface BackupManifest {
@@ -129,36 +130,36 @@ export class BackupService {
     const manifest = await readJsonFile<BackupManifest>(path.join(dest, 'manifest.json'))
     if (!manifest) throw new NotFoundError(`Backup not found: ${id}`)
 
-    // Safety: snapshot current config before restore (undo point).
-    await this.create('pre-restore').catch((err) => {
-      log.backup.warn('pre-restore backup failed:', err)
-    })
-
-    // Route through PiConfigService so the write is validated, backed-up-safe,
-    // and — critically — refreshes PiConfigService's mtime/raw baseline. This
-    // closes the stale-baseline window where a restore could silently clobber
-    // an in-flight editor. `overwrite: true` because restore is an explicit
-    // replace; `skipBackup: true` because we already snapshotted above.
+    // Materialize and validate the entire source before taking an undo point.
+    // Creating that point can prune the selected backup (retention may be one).
+    if (!Array.isArray(manifest.files)) throw new BackupError('Invalid backup manifest')
+    const contents = new Map<string, string>()
     for (const name of manifest.files) {
-      if (name !== PI_FILES.models && name !== PI_FILES.settings) {
-        log.backup.warn('ignored unknown file in backup manifest', { id, name })
-        continue
-      }
+      if (name !== PI_FILES.models && name !== PI_FILES.settings) continue
       const text = await readTextFile(path.join(dest, name))
-      if (text === null) continue
-      if (name === PI_FILES.models) {
-        await this.cfg().writeModelsRaw(text, {
-          overwrite: true,
-          skipBackup: true,
-          reason: `restore ${id}`
-        })
-      } else if (name === PI_FILES.settings) {
-        await this.cfg().writeSettingsRaw(text, {
-          overwrite: true,
-          skipBackup: true,
-          reason: `restore ${id}`
-        })
+      if (text === null) throw new BackupError('Backup file is missing')
+      try {
+        const schema = name === PI_FILES.models ? piModelsConfigSchema : piSettingsConfigSchema
+        schema.parse(JSON.parse(text))
+      } catch {
+        throw new BackupError('Backup file is invalid')
       }
+      contents.set(name, text)
+    }
+    if (!contents.size) throw new BackupError('Backup contains no supported configuration')
+
+    const current: Record<string, string> = {}
+    for (const name of [PI_FILES.models, PI_FILES.settings]) {
+      const text = await readTextFile(path.join(this.piDir(), name))
+      if (text !== null) current[name] = text
+    }
+    // Never replace the only current copy when its undo point cannot be saved.
+    if (Object.keys(current).length) await this.create('pre-restore', current)
+
+    for (const [name, text] of contents) {
+      const options = { overwrite: true, skipBackup: true, reason: `restore ${id}` }
+      if (name === PI_FILES.models) await this.cfg().writeModelsRaw(text, options)
+      else await this.cfg().writeSettingsRaw(text, options)
     }
     log.backup.info('backup restored', { id })
   }

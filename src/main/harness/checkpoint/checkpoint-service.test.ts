@@ -53,6 +53,19 @@ function createHooks(overrides: Partial<CheckpointHooks> = {}): {
 }
 
 describe('CheckpointService', () => {
+  it('retains recovery anchors created concurrently for different sessions', async () => {
+    const store = createStore()
+    const service = new CheckpointService(store, createHooks().hooks)
+    const checkpoints = await Promise.all(
+      Array.from({ length: 20 }, (_, index) =>
+        service.create(`session-${index}`, { reason: 'manual' })
+      )
+    )
+    expect((await store.read()).checkpoints).toHaveLength(20)
+    for (const checkpoint of checkpoints)
+      expect(await service.get(checkpoint.id)).toEqual(checkpoint)
+  })
+
   it('creates checkpoints with git state and anchors them to the session leaf', async () => {
     const store = createStore()
     const { hooks, emit } = createHooks()
