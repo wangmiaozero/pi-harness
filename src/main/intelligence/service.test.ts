@@ -334,24 +334,34 @@ describe('project intelligence and real Archify', () => {
     const old = (await f.service.snapshot(f.root))!.graph.snapshotId
     const save = f.store.save.bind(f.store)
     let release: () => void = () => undefined
-    let reached = false
+    let markReached!: () => void
+    const reached = new Promise<void>((resolve) => {
+      markReached = resolve
+    })
     const gate = new Promise<void>((resolve) => {
       release = resolve
     })
     vi.spyOn(f.store, 'save').mockImplementation(async (graph, html) => {
       await save(graph, html)
-      reached = true
+      markReached()
       await gate
     })
-    await f.service.analyze({ root: f.root })
-    await vi.waitFor(() => expect(reached).toBe(true))
-    const cancelled = f.service.cancel(f.root)
-    await vi.waitFor(() => expect(currentSignal?.aborted).toBe(true))
-    release()
-    await cancelled
-    expect((await f.service.status(f.root)).phase).toBe('cancelled')
-    expect((await f.service.history(f.root)).map((record) => record.snapshotId)).toEqual([old])
-    await f.service.close()
+    try {
+      await f.service.analyze({ root: f.root })
+      await reached
+      const aborted = new Promise<void>((resolve) => {
+        currentSignal!.addEventListener('abort', () => resolve(), { once: true })
+      })
+      const cancelled = f.service.cancel(f.root)
+      await aborted
+      release()
+      await cancelled
+      expect((await f.service.status(f.root)).phase).toBe('cancelled')
+      expect((await f.service.history(f.root)).map((record) => record.snapshotId)).toEqual([old])
+    } finally {
+      release()
+      await f.service.close()
+    }
   })
   it('queues excess analyses, cancels waiting work and releases execution slots', async () => {
     const f = await setup()

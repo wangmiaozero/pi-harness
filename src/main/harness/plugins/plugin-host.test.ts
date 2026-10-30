@@ -498,7 +498,8 @@ describe('Harness plugin lifecycle and real SDK process execution', () => {
     const id = await custom(
       `export default {activate(api){
         api.evaluators.register({id:'nested',version:'1.0.0'},()=>{
-          let nested={text:'文'.repeat(16000)};
+          const text='文'.repeat(16000);
+          let nested={text,a:text,b:text,c:text,d:text};
           for(let i=0;i<7;i++) nested={child:nested};
           return {evaluatorId:'nested',version:'1.0.0',score:100,status:'passed',findings:[],metadata:{nested}};
         })
@@ -509,16 +510,17 @@ describe('Harness plugin lifecycle and real SDK process execution', () => {
       }
     )
     await host.setEnabled(id, true)
-    for (let i = 0; i < 30; i++) await host.evaluate(id, 'nested', run.sessionId, `result-${i}`)
+    // Six near-limit UTF-8 results cross the 1 MiB store cap with fewer disk writes.
+    for (let i = 0; i < 6; i++) await host.evaluate(id, 'nested', run.sessionId, `result-${i}`)
     const file = await fs.readFile(path.join(dir, 'installed/results.json'))
     expect(file.length).toBeLessThanOrEqual(1024 * 1024)
     const results = JSON.parse(file.toString()).results
     expect(results.length).toBeGreaterThan(0)
-    expect(results.length).toBeLessThan(30)
+    expect(results.length).toBeLessThan(6)
     await host.close()
     host = new HarnessPluginHost(config)
     await host.initialize()
-    expect(host.list()[0].results.at(-1)?.runId).toBe('result-29')
+    expect(host.list()[0].results.at(-1)?.runId).toBe('result-5')
     expect(host.list()[0].status).toBe('active')
   })
   it('clears trust on uninstall and preserves approved enablement on restart only for verified content', async () => {
