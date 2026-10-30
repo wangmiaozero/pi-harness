@@ -16,7 +16,7 @@ export async function verifyPetArchive(archive, source) {
       const file = path.join(directory, entry.name)
       if (entry.isDirectory()) await visit(file, name)
       else if (entry.isFile()) {
-        const actual = asar.extractFile(archive, `resources/petpacks/${name}`)
+        const actual = asar.extractFile(archive, path.join('resources', 'petpacks', name))
         if (!actual.equals(await fs.readFile(file)))
           throw new Error(`Archived pet resource differs from source: ${name}`)
         count++
