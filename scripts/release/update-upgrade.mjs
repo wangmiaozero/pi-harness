@@ -111,6 +111,8 @@ async function install(directory, destination, version, variant) {
   return appimage
 }
 try {
+  if (process.platform === 'win32')
+    await command('nsis-process-check', ['exec', 'node', 'scripts/release/nsis-process-check.mjs'])
   for (const variant of variants) {
     await command(
       `compile-${variant}`,
@@ -276,7 +278,16 @@ try {
     try {
       await command(
         `upgrade-${variant}`,
-        ['exec', 'playwright', 'test', 'e2e/update-upgrade.spec.ts', '--reporter=list'],
+        [
+          'exec',
+          'playwright',
+          'test',
+          'e2e/update-upgrade.spec.ts',
+          '--reporter=list',
+          '--trace=retain-on-failure',
+          '--output',
+          path.join(output, `playwright-${variant}`)
+        ],
         {
           PI_HARNESS_E2E_EXECUTABLE: executable,
           PI_HARNESS_E2E_VARIANT: variant,
