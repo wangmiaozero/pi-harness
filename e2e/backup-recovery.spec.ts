@@ -13,6 +13,14 @@ test('detects an interrupted restore on reload and continues only after confirma
   testUserData
 }) => {
   const backup = await page.evaluate(() => window.piSwitch.backup.create('manual'))
+  await page.getByRole('link', { name: '备份', exact: true }).click()
+  const heading = page.getByRole('heading', { name: '备份', exact: true })
+  const interrupted = page
+    .getByRole('alert')
+    .filter({ hasText: /上次恢复未完成|previous restore/i })
+  await expect(heading).toBeVisible()
+  await expect(page.getByText('manual', { exact: true })).toBeVisible()
+  await expect(interrupted).toHaveCount(0)
   const files = []
   for (const name of ['models.json', 'settings.json']) {
     const before = await fs.readFile(path.join(piAgentDir, name), 'utf8')
@@ -34,13 +42,10 @@ test('detects an interrupted restore on reload and continues only after confirma
   const damaged = path.join(testUserData, 'backups', '1793250000000-ffffffff')
   await fs.mkdir(damaged)
   await fs.writeFile(path.join(damaged, 'manifest.json'), '{partial')
+  // Reload the already selected route; changing the hash during initial lazy navigation can be lost.
   await page.reload()
-  await page.evaluate(() => {
-    window.location.hash = '/settings/backup'
-  })
-  await expect(
-    page.getByRole('alert').filter({ hasText: /上次恢复未完成|previous restore/i })
-  ).toBeVisible()
+  await expect(heading).toBeVisible()
+  await expect(interrupted).toBeVisible()
   // Ordinary native configuration mutations cannot continue against a mixed version.
   const error = await page.evaluate(async () => {
     try {
@@ -59,16 +64,12 @@ test('detects an interrupted restore on reload and continues only after confirma
   await row.getByRole('button', { name: /恢复|Restore/, exact: true }).click()
   const dialog = page.getByRole('alertdialog').or(page.getByRole('dialog'))
   await expect(dialog).toBeVisible()
+  expect(await fs.readFile(path.join(piAgentDir, 'settings.json'), 'utf8')).toBe(files[1].before)
+  expect(JSON.parse(await fs.readFile(journal, 'utf8')).status).toBe('committing')
   await dialog.getByRole('button', { name: /恢复|Restore/ }).click()
-  await expect
-    .poll(
-      async () =>
-        JSON.parse(await fs.readFile(path.join(piAgentDir, 'settings.json'), 'utf8'))
-          .recoveryFixture
-    )
-    .toBe(2)
-  await expect(
-    page.getByRole('alert').filter({ hasText: /上次恢复未完成|previous restore/i })
-  ).toHaveCount(0)
+  for (const file of files) {
+    await expect.poll(() => fs.readFile(path.join(piAgentDir, file.name), 'utf8')).toBe(file.after)
+  }
+  await expect(interrupted).toHaveCount(0)
   await expect(fs.stat(journal)).rejects.toMatchObject({ code: 'ENOENT' })
 })
