@@ -12,6 +12,9 @@ overrides:
 packageExtensionsChecksum: f4562084cdbf8bb2544251632c8bdbb8
 
 patchedDependencies:
+  '@electron/osx-sign@1.3.3':
+    hash: xumj3x6jhvsokila2wtycos45y
+    path: patches/@electron__osx-sign@1.3.3.patch
   vue-tsgo@0.3.0:
     hash: wvaj53b666pxpdhxnlov4nhavq
     path: patches/vue-tsgo@0.3.0.patch
@@ -5464,7 +5467,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@electron/osx-sign@1.3.3':
+  '@electron/osx-sign@1.3.3(patch_hash=xumj3x6jhvsokila2wtycos45y)':
     dependencies:
       compare-version: 0.1.2
       debug: 4.4.3
@@ -6783,7 +6786,7 @@ snapshots:
       '@electron/fuses': 1.8.0
       '@electron/get': 3.1.0
       '@electron/notarize': 2.5.0
-      '@electron/osx-sign': 1.3.3
+      '@electron/osx-sign': 1.3.3(patch_hash=xumj3x6jhvsokila2wtycos45y)
       '@electron/rebuild': 4.2.0
       '@electron/universal': 2.0.3
       '@malept/flatpak-bundler': 0.4.0
