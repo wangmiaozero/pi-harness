@@ -2,6 +2,24 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.9 — 2026-10-30
+
+### Added
+
+- Added 92 desktop pet actions, including lion dance, musical performances, and seasonal activities.
+
+### Fixed
+
+- Removed desktop pet resources and controls from the nomascot build.
+- Improved responsiveness when receiving large streamed responses.
+- Improved workspace path handling across platforms.
+- Improved recovery from interrupted configuration restores and prevented conflicting configuration saves.
+- Reduced memory use in long conversations and improved conversation navigation responsiveness.
+- Fixed cancelled tasks receiving late success updates and duplicate retries.
+- Improved model connection diagnostics and prevented outdated test results from appearing after switching providers.
+- Fixed blank scrolling and horizontal overflow in the model and reasoning menus.
+- Changed desktop pet sizing to percentages, reduced the maximum size, and improved dragging near screen edges.
+
 ## 2.3.8 — 2026-10-30
 
 ### Added
