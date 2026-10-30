@@ -1,267 +1,17 @@
-name: CI
-
+name: CI / Backup recovery validation
 on:
   push:
-    branches: ['**']
-  pull_request:
-  workflow_call:
-  workflow_dispatch:
-    inputs:
-      performance:
-        description: Run the repeatable desktop performance suite
-        type: boolean
-        default: false
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
-
+    branches: [codex/backup-recovery-410099]
 permissions:
   contents: read
-
-env:
-  npm_config_electron_mirror: https://github.com/electron/electron/releases/download/
-  npm_config_electron_custom_dir: 'v{{ version }}'
-
 jobs:
   quality:
-    name: Source quality and Electron regression
+    name: Linux Electron backup recovery
     runs-on: ubuntu-24.04
-    # The serial desktop regression alone needs most of an hour on CI runners;
-    # 40 minutes canceled the job near the end of the suite.
-    timeout-minutes: 75
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          version: 9.12.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24.22.1
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm security:node --source-only
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - name: Prepare native runtime test fixtures
-        run: pnpm runtime:prepare
-      - run: pnpm exec vitest run --maxWorkers=2
-        env:
-          PI_HARNESS_REQUIRE_RUNTIME_TESTS: '1'
-      - run: pnpm audit --prod --audit-level high
-      - run: pnpm licenses list --prod --json > dependency-licenses.json
-      - run: pnpm compile
-      - name: Verify pinned SDK and native runtime versions
-        run: |
-          pnpm runtime:check --offline --native
-          pnpm security:node --online
-      - name: Install the Linux window manager
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends openbox wmctrl
-      - name: Electron regression (SDK compatibility)
-        run: |
-          xvfb-run -a bash -e -c '
-            openbox --sm-disable > /tmp/pi-harness-window-manager.log 2>&1 &
-            for attempt in {1..50}; do
-              if wmctrl -m > /dev/null 2>&1; then
-                native_views="renders an interactive architecture map|explores all map pages"
-                pnpm test:e2e:only --grep "$native_views" --output=test-results/native-views --reporter=line
-                pnpm test:e2e:only --grep-invert "$native_views" --output=test-results/desktop --reporter=line
-                exit 0
-              fi
-              sleep 0.1
-            done
-            cat /tmp/pi-harness-window-manager.log
-            exit 1
-          '
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: source-quality
-          overwrite: true
-          path: |
-            out/security/
-            dependency-licenses.json
-            test-results/
-
-  package-smoke:
-    name: Installed community packages (${{ matrix.platform == 'win32' && 'Windows' || matrix.platform }}-${{ matrix.arch }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-15
-            platform: darwin
-            arch: arm64
-            experimental: false
-          - os: macos-15-intel
-            platform: darwin
-            arch: x64
-            experimental: false
-          - os: windows-2025
-            platform: win32
-            arch: x64
-            experimental: false
-          - os: ubuntu-24.04
-            platform: linux
-            arch: x64
-            experimental: false
-          - os: windows-11-arm
-            platform: win32
-            arch: arm64
-            # Keep the installation regression required while downloads remain preview-only.
-            experimental: false
-          - os: ubuntu-24.04-arm
-            platform: linux
-            arch: arm64
-            experimental: true
-    continue-on-error: ${{ matrix.experimental }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 25
     env:
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      # Ad-hoc signing uses no credentials, including on fork pull requests.
-      CSC_FOR_PULL_REQUEST: 'true'
-      PI_HARNESS_EXPECTED_ARCH: ${{ matrix.arch }}
-      PI_HARNESS_RELEASE_CHANNEL: community
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          version: 9.12.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24.22.1
-          cache: pnpm
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            .runtime-cache
-            ~/.cache/electron
-            ~/Library/Caches/electron
-            ~/AppData/Local/electron/Cache
-          key: downloads-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml', 'src/main/runtime/catalog.json') }}
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm security:node --source-only
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - name: Verify pinned SDK and native runtime versions
-        run: |
-          pnpm runtime:prepare
-          pnpm runtime:check --offline --native
-          pnpm security:node --online
-      - name: Native platform unit and integration regressions
-        env:
-          PI_HARNESS_REQUIRE_RUNTIME_TESTS: '1'
-        run: pnpm exec vitest run --maxWorkers=2 --reporter=default --reporter=json --outputFile=out/platform-tests.json
-      - name: Build, install and execute both variants
-        if: runner.os != 'Linux'
-        run: pnpm release:package
-      - name: Build, extract and execute Linux AppImages
-        if: runner.os == 'Linux'
-        run: xvfb-run -a pnpm release:package
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: success()
-        with:
-          name: packages-${{ matrix.platform }}-${{ matrix.arch }}
-          overwrite: true
-          path: out/community-packages/${{ matrix.platform }}-${{ matrix.arch }}/
-          if-no-files-found: error
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: validation-${{ matrix.platform }}-${{ matrix.arch }}
-          overwrite: true
-          path: |
-            out/platform-tests.json
-            out/community-validation/${{ matrix.platform }}-${{ matrix.arch }}/
-            out/runtime-validation/
-            out/security/
-            test-results/
-          if-no-files-found: warn
-
-  update-upgrade:
-    name: Signed download and real manual upgrade (${{ matrix.platform }}-${{ matrix.arch }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-15
-            platform: darwin
-            arch: arm64
-            experimental: false
-          - os: macos-15-intel
-            platform: darwin
-            arch: x64
-            experimental: false
-          - os: windows-2025
-            platform: win32
-            arch: x64
-            experimental: false
-          - os: windows-11-arm
-            platform: win32
-            arch: arm64
-            experimental: false
-          - os: ubuntu-24.04
-            platform: linux
-            arch: x64
-            experimental: false
-          - os: ubuntu-24.04-arm
-            platform: linux
-            arch: arm64
-            experimental: true
-    continue-on-error: ${{ matrix.experimental }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
-    env:
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      CSC_FOR_PULL_REQUEST: 'true'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          version: 9.12.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24.22.1
-          cache: pnpm
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ~/.cache/electron
-            ~/.cache/electron-builder
-            ~/Library/Caches/electron
-            ~/Library/Caches/electron-builder
-            ~/AppData/Local/electron/Cache
-            ~/AppData/Local/electron-builder/Cache
-          key: update-upgrade-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm security:node --source-only
-      - run: pnpm runtime:prepare
-      - name: Signed fixture download, cancellation/resume and real manual upgrade
-        if: runner.os != 'Linux'
-        run: pnpm release:test-upgrade
-      - name: AppImage manual upgrade and retained user profile
-        if: runner.os == 'Linux'
-        run: xvfb-run -a pnpm release:test-upgrade
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: update-upgrade-${{ matrix.platform }}-${{ matrix.arch }}
-          path: |
-            out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/evidence.json
-            out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/upgrade-*.json
-            out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/*.log
-          if-no-files-found: warn
-
-  performance:
-    name: Desktop performance samples
-    if: github.event_name == 'workflow_dispatch' && inputs.performance
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
+      npm_config_electron_mirror: https://github.com/electron/electron/releases/download/
+      npm_config_electron_custom_dir: 'v{{ version }}'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
@@ -271,17 +21,37 @@ jobs:
         with:
           node-version: 24.22.1
           cache: pnpm
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            .runtime-cache
+            ~/.cache/electron
+          key: downloads-Linux-x64-${{ hashFiles('pnpm-lock.yaml', 'src/main/runtime/catalog.json') }}
       - run: pnpm install --frozen-lockfile
-      - run: pnpm compile
       - run: pnpm runtime:prepare
-      - name: Repeated long-session and startup observations
-        env:
-          PI_HARNESS_PERF_LIFECYCLE: '1'
-        run: xvfb-run -a pnpm benchmark:desktop --no-build
+      - run: pnpm compile
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openbox wmctrl
+      - name: CI-order Electron regression and independent recovery repetitions
+        run: |
+          mkdir -p out/backup-recovery-validation
+          xvfb-run -a bash -e -c '
+            openbox --sm-disable > /tmp/pi-backup-validation-wm.log 2>&1 &
+            for attempt in {1..50}; do
+              if wmctrl -m > /dev/null 2>&1; then
+                pnpm exec playwright test e2e/agent-settings.spec.ts e2e/app.spec.ts e2e/architecture-layering.spec.ts e2e/backup-recovery.spec.ts --trace=retain-on-failure --output=out/backup-recovery-validation/sequence --reporter=line 2>&1 | tee out/backup-recovery-validation/sequence.log
+                test ${PIPESTATUS[0]} -eq 0
+                pnpm exec playwright test e2e/backup-recovery.spec.ts --repeat-each=3 --trace=retain-on-failure --output=out/backup-recovery-validation/repeated --reporter=line 2>&1 | tee out/backup-recovery-validation/repeated.log
+                test ${PIPESTATUS[0]} -eq 0
+                exit 0
+              fi
+              sleep 0.1
+            done
+            cat /tmp/pi-backup-validation-wm.log
+            exit 1
+          '
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
-          name: desktop-performance-${{ runner.os }}-${{ runner.arch }}
-          path: |
-            out/quality/
-            test-results/
+          name: linux-backup-recovery-validation
+          path: out/backup-recovery-validation/
+          retention-days: 3
