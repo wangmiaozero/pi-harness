@@ -2,6 +2,9 @@ name: CI / Windows installer validation
 on:
   push:
     branches: [codex/windows-upgrade-410336]
+concurrency:
+  group: installer-validation-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

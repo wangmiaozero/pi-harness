@@ -133,6 +133,15 @@ try {
   const find = (override = '') =>
     `${override}\n!insertmacro FIND_PROCESS "${path.basename(busy)}" $R0\n${write}`
   const normal = await compile('find-normal', find())
+  const invalidQueryFile = path.join(work, 'invalid-query.nsh')
+  await fs.writeFile(
+    invalidQueryFile,
+    (await fs.readFile(path.join(include, 'allowOnlyOneInstallerInstance.nsh'), 'utf8')).replaceAll(
+      'Win32_Process -ErrorAction Stop',
+      'PiHarness_NonexistentClass -ErrorAction Stop'
+    )
+  )
+  const invalidQuery = await compile('find-query-error', find(), true, invalidQueryFile)
   const timeout = await compile('find-timeout', find(`StrCpy $PowerShellPath ${quote(hung)}`))
   const failure = await compile('find-error', find(`StrCpy $PowerShellPath ${quote(failed)}`))
   const availability = await compile(
@@ -161,6 +170,7 @@ try {
     await run(normal, /^1:[01]$/, result)
     const first = await start(busy)
     await run(normal, /^0:[01]$/, result)
+    await run(invalidQuery, '0:1', result)
     const second = await start(busy)
     await run(normal, /^0:[01]$/, result)
     await stop(second)

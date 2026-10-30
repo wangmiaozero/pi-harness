@@ -1,5 +1,5 @@
 diff --git a/templates/nsis/include/allowOnlyOneInstallerInstance.nsh b/templates/nsis/include/allowOnlyOneInstallerInstance.nsh
-index 7d08e55f5ddf70e51ebd965803d001561bca6d71..f7ea48232c5cc65e3af125e80b7148ada3e4a9d8 100644
+index 7d08e55f5ddf70e51ebd965803d001561bca6d71..584130109f274d1ce261a1185535807186275304 100644
 --- a/templates/nsis/include/allowOnlyOneInstallerInstance.nsh
 +++ b/templates/nsis/include/allowOnlyOneInstallerInstance.nsh
 @@ -45,12 +45,12 @@
@@ -22,7 +22,7 @@ index 7d08e55f5ddf70e51ebd965803d001561bca6d71..f7ea48232c5cc65e3af125e80b7148ad
  !macro FIND_PROCESS _FILE _RETURN
    ${if} $IsPowerShellAvailable == 0
 -    nsExec::Exec `"$PowerShellPath" -NoProfile -NonInteractive -C "if ((Get-CimInstance -ClassName Win32_Process | ? {$$_.Path -and $$_.Path.StartsWith('$INSTDIR', 'CurrentCultureIgnoreCase')}).Count -gt 0) { exit 0 } else { exit 1 }"`
-+    nsExec::Exec /TIMEOUT=5000 `"$PowerShellPath" -NoProfile -NonInteractive -C "if (@(Get-CimInstance -ClassName Win32_Process | ? {$$_.Path -and $$_.Path.StartsWith('$INSTDIR', 'CurrentCultureIgnoreCase')}).Count -gt 0) { exit 0 } else { exit 1 }"`
++    nsExec::Exec /TIMEOUT=5000 `"$PowerShellPath" -NoProfile -NonInteractive -C "try { if (@(Get-CimInstance -ClassName Win32_Process -ErrorAction Stop | ? {$$_.Path -and $$_.Path.StartsWith('$INSTDIR', 'CurrentCultureIgnoreCase')}).Count -gt 0) { exit 0 } else { exit 1 } } catch { exit 2 }"`
      Pop ${_RETURN}
 -  ${else}
 +    # A failed or timed-out query must never mean that no application is running.
@@ -42,14 +42,13 @@ index 7d08e55f5ddf70e51ebd965803d001561bca6d71..f7ea48232c5cc65e3af125e80b7148ad
 -  ${if} ${_FORCE} == 1
 -    ${if} $IsPowerShellAvailable == 0
 +  ${if} $IsPowerShellAvailable == 0
-+    !if ${_FORCE} == 1
++    ${if} ${_FORCE} == 1
        StrCpy $0 "-Force"
--    ${else}
+     ${else}
 -      StrCpy $0 "/F"
-+    !else
 +      StrCpy $0 ""
-+    !endif
-+    nsExec::Exec /TIMEOUT=5000 `"$PowerShellPath" -NoProfile -NonInteractive -C "Get-CimInstance -ClassName Win32_Process | ? {$$_.Path -and $$_.Path.StartsWith('$INSTDIR', 'CurrentCultureIgnoreCase')} | % { Stop-Process -Id $$_.ProcessId $0 }"`
++    ${endIf}
++    nsExec::Exec /TIMEOUT=5000 `"$PowerShellPath" -NoProfile -NonInteractive -C "try { Get-CimInstance -ClassName Win32_Process -ErrorAction Stop | ? {$$_.Path -and $$_.Path.StartsWith('$INSTDIR', 'CurrentCultureIgnoreCase')} | % { Stop-Process -Id $$_.ProcessId $0 -ErrorAction Stop } } catch { exit 2 }"`
 +    Pop $0
 +    ${if} $0 != 0
 +      StrCpy $IsPowerShellAvailable 1
@@ -62,11 +61,11 @@ index 7d08e55f5ddf70e51ebd965803d001561bca6d71..f7ea48232c5cc65e3af125e80b7148ad
 -    nsExec::Exec `"$PowerShellPath" -NoProfile -NonInteractive -C "Get-CimInstance -ClassName Win32_Process | ? {$$_.Path -and $$_.Path.StartsWith('$INSTDIR', 'CurrentCultureIgnoreCase')} | % { Stop-Process -Id $$_.ProcessId $0 }"`
 -  ${else}
 +  ${if} $IsPowerShellAvailable == 1
-+    !if ${_FORCE} == 1
++    ${if} ${_FORCE} == 1
 +      StrCpy $0 "/F"
-+    !else
++    ${else}
 +      StrCpy $0 ""
-+    !endif
++    ${endIf}
      !ifdef INSTALL_MODE_PER_ALL_USERS
        nsExec::Exec `taskkill /IM "${_FILE}" /FI "PID ne $pid"`
      !else
