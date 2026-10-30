@@ -174,15 +174,23 @@ describe('GitService', () => {
       })
     })
 
-    integrationTest('stashes and restores tracked working-tree edits', async () => {
-      const readme = path.join(directory, 'README.md')
-      await writeFile(readme, '# Repository changed\n')
-      await service.action({ cwd: directory, action: 'stash', message: 'review work' })
-      expect((await service.overview(directory)).stashCount).toBe(1)
-      expect(await readFile(readme, 'utf8')).toBe('# Repository\n')
-      await service.action({ cwd: directory, action: 'stash-pop' })
-      expect(await readFile(readme, 'utf8')).toBe('# Repository changed\n')
-    })
+    for (const autocrlf of [false, true]) {
+      integrationTest(
+        `stashes and restores tracked edits with core.autocrlf=${autocrlf}`,
+        async () => {
+          await git(directory, ['config', 'core.autocrlf', String(autocrlf)])
+          const eol = autocrlf ? '\r\n' : '\n'
+          const readme = path.join(directory, 'README.md')
+          const changed = `# Repository changed${eol}`
+          await writeFile(readme, changed)
+          await service.action({ cwd: directory, action: 'stash', message: 'review work' })
+          expect((await service.overview(directory)).stashCount).toBe(1)
+          expect(await readFile(readme, 'utf8')).toBe(`# Repository${eol}`)
+          await service.action({ cwd: directory, action: 'stash-pop' })
+          expect(await readFile(readme, 'utf8')).toBe(changed)
+        }
+      )
+    }
   })
 
   integrationTest(
