@@ -1,0 +1,60 @@
+diff --git a/dist/cjs/util.js b/dist/cjs/util.js
+index 77e64b56872bc65bcb0f60ecfbec84eb3da02c6f..8b74829cee5279433d414c3f5bceb535143baa63 100644
+--- a/dist/cjs/util.js
++++ b/dist/cjs/util.js
+@@ -149,9 +149,15 @@ exports.validateOptsPlatform = validateOptsPlatform;
+  */
+ async function walkAsync(dirPath) {
+     (0, exports.debugLog)('Walking... ' + dirPath);
++    // Bound file opens across the entire recursive walk, not just one directory.
++    async function mapSeries(entries, visit) {
++        const results = [];
++        for (const entry of entries) results.push(await visit(entry));
++        return results;
++    }
+     async function _walkAsync(dirPath) {
+         const children = await fs.readdir(dirPath);
+-        return await Promise.all(children.map(async (child) => {
++        return await mapSeries(children, async (child) => {
+             const filePath = path.resolve(dirPath, child);
+             const stat = await fs.stat(filePath);
+             if (stat.isFile()) {
+@@ -174,7 +180,7 @@ async function walkAsync(dirPath) {
+                 return walkResult;
+             }
+             return null;
+-        }));
++        });
+     }
+     const allPaths = await _walkAsync(dirPath);
+     return compactFlattenedList(allPaths);
+diff --git a/dist/esm/util.js b/dist/esm/util.js
+index d3f66d54b1a88e7410d78affe17de87302db02a3..5843ca7788981f7d364aa69d3e1e86b159c61298 100644
+--- a/dist/esm/util.js
++++ b/dist/esm/util.js
+@@ -113,9 +113,15 @@ export async function validateOptsPlatform(opts) {
+  */
+ export async function walkAsync(dirPath) {
+     debugLog('Walking... ' + dirPath);
++    // Bound file opens across the entire recursive walk, not just one directory.
++    async function mapSeries(entries, visit) {
++        const results = [];
++        for (const entry of entries) results.push(await visit(entry));
++        return results;
++    }
+     async function _walkAsync(dirPath) {
+         const children = await fs.readdir(dirPath);
+-        return await Promise.all(children.map(async (child) => {
++        return await mapSeries(children, async (child) => {
+             const filePath = path.resolve(dirPath, child);
+             const stat = await fs.stat(filePath);
+             if (stat.isFile()) {
+@@ -138,7 +144,7 @@ export async function walkAsync(dirPath) {
+                 return walkResult;
+             }
+             return null;
+-        }));
++        });
+     }
+     const allPaths = await _walkAsync(dirPath);
+     return compactFlattenedList(allPaths);
