@@ -6,6 +6,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
+import { gitSourceFiles } from './release/source-digest.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const output = path.join(root, 'out', 'quality')
@@ -16,12 +17,7 @@ if (process.env.PI_HARNESS_EXPECTED_ARCH && process.env.PI_HARNESS_EXPECTED_ARCH
 const exec = promisify(execFile)
 const revision = (await exec('git', ['rev-parse', 'HEAD'], { cwd: root })).stdout.trim()
 async function sourceFingerprint() {
-  const files = (
-    await exec('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
-      cwd: root
-    })
-  ).stdout
-    .split('\0')
+  const files = (await gitSourceFiles(root))
     .filter((file) =>
       /^(?:src\/|scripts\/|patches\/|e2e\/|benchmarks\/|resources\/|build\/|\.github\/|package\.json$|pnpm-lock\.yaml$|(?:electron|vitest|playwright|eslint|tsconfig)[^/]*\.(?:ts|js|mjs|json|yml)$)/.test(
         file

@@ -51,6 +51,8 @@ mac:
   # Pi is signed and content-verified by afterPack; retain Node's official signature.
   signIgnore:
     - /runtimes/
+    # WebP frames are data sealed by the outer app's resource signature.
+    - /Contents/Resources/petpacks/.*\.webp$
   category: public.app-category.developer-tools
   # Default: host arch only. Building arm64+x64 leaves two unpacked .app
   # folders under release/ which Spotlight indexes as duplicate apps.
