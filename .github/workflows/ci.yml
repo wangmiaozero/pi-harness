@@ -255,6 +255,7 @@ jobs:
             out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/evidence.json
             out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/upgrade-*.json
             out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/*.log
+            out/update-validation/${{ matrix.platform }}-${{ matrix.arch }}/playwright-*/
           if-no-files-found: warn
 
   performance:
