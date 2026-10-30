@@ -147,7 +147,13 @@ native('official standalone Pi with independent Node', () => {
     await runtime?.shutdownAll()
     server?.closeAllConnections()
     if (server) await new Promise<void>((resolve) => server.close(() => resolve()))
-    await fs.rm(root, { recursive: true, force: true })
+    // Windows may briefly retain directory handles after the owned processes have exited.
+    await fs.rm(root, {
+      recursive: true,
+      force: true,
+      maxRetries: process.platform === 'win32' ? 5 : 0,
+      retryDelay: 100
+    })
   })
   it('starts Pi RPC with no Node, npm or npx on PATH', async () => {
     const client = new PiRpcClient()
@@ -272,7 +278,7 @@ native('official standalone Pi with independent Node', () => {
     const executableFile = path.join(root, 'mcp-executables.jsonl')
     const script = `#!/usr/bin/env node
 import fs from 'node:fs'; import readline from 'node:readline';
-fs.appendFileSync(${JSON.stringify(executableFile)},JSON.stringify({node:process.execPath,args:process.argv})+'\\n');
+fs.appendFileSync(${JSON.stringify(executableFile)},JSON.stringify({node:process.execPath,args:process.argv,pid:process.pid,ppid:process.ppid})+'\\n');
 readline.createInterface({input:process.stdin}).on('line',line=>{const q=JSON.parse(line);if(q.id===undefined)return;let result;
 if(q.method==='initialize')result={protocolVersion:q.params.protocolVersion,capabilities:{tools:{},resources:{}},serverInfo:{name:'local',version:'1'}};
 else if(q.method==='tools/list')result={tools:[{name:'echo',description:'Echo fixture',inputSchema:{type:'object',properties:{value:{type:'string'}},required:['value']}}]};
@@ -335,19 +341,43 @@ else result={};process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:q.id,result
       )
     ).toBe(true)
     const selected = (await manager.resolveNodeRuntime()).executablePath
-    const children = (await fs.readFile(executableFile, 'utf8'))
-      .trim()
-      .split('\n')
-      .map((line) => JSON.parse(line))
+    const readChildren = async (): Promise<Array<{ node: string; pid: number; ppid: number }>> =>
+      (await fs.readFile(executableFile, 'utf8'))
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line))
+    const expectExited = async (children: Awaited<ReturnType<typeof readChildren>>) => {
+      const pids = new Set(children.flatMap((child) => [child.pid, child.ppid]))
+      for (const pid of pids) {
+        expect(Number.isSafeInteger(pid) && pid > 0 && pid !== process.pid).toBe(true)
+      }
+      await vi.waitFor(
+        () => {
+          for (const pid of pids) {
+            // Signal 0 observes liveness; it does not kill a process or conceal a leaked server.
+            expect(() => process.kill(pid, 0), `MCP process ${pid} must exit`).toThrow(
+              expect.objectContaining({ code: 'ESRCH' })
+            )
+          }
+        },
+        { timeout: 5000 }
+      )
+    }
+    const children = await readChildren()
     expect(children).toHaveLength(2)
     for (const child of children) expect(await fs.realpath(child.node)).toBe(selected)
     await runtime.stopSession(started.sessionId)
+    await expectExited(children)
     await runtime.startSession({ sessionId: started.sessionId })
     await vi.waitFor(
       async () =>
         expect((await fs.readFile(executableFile, 'utf8')).trim().split('\n')).toHaveLength(4),
       { timeout: 25_000 }
     )
+    const restarted = (await readChildren()).slice(2)
+    expect(restarted).toHaveLength(2)
+    await runtime.stopSession(started.sessionId)
+    await expectExited(restarted)
   }, 90_000)
   it('loads local TypeScript, Node builtins, an external npm dependency and a provider extension', async () => {
     const extensionRoot = path.join(config, 'extensions')

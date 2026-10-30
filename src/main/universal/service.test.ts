@@ -1,5 +1,5 @@
-import { pathToFileURL } from 'node:url'
 // @vitest-environment node
+import { pathToFileURL } from 'node:url'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -611,33 +611,38 @@ describe('real SQLite provider stores', () => {
   it('reads OpenCode SQL sessions, messages and parts with real field names', async () => {
     const file = path.join(root, 'opencode.db')
     const db = new DatabaseSync(file)
-    db.exec(
-      'CREATE TABLE session(id TEXT, title TEXT, directory TEXT, time_created INTEGER, time_updated INTEGER); CREATE TABLE message(id TEXT, session_id TEXT, data TEXT, time_created INTEGER); CREATE TABLE part(id TEXT, message_id TEXT, data TEXT)'
-    )
-    db.prepare('INSERT INTO session VALUES(?,?,?,?,?)').run(
-      's1',
-      'OpenCode task',
-      '/project',
-      1000,
-      2000
-    )
-    db.prepare('INSERT INTO message VALUES(?,?,?,?)').run(
-      'm1',
-      's1',
-      JSON.stringify({ id: 'm1', role: 'assistant', modelID: 'm', time: { created: 1000 } }),
-      1000
-    )
-    db.prepare('INSERT INTO part VALUES(?,?,?)').run(
-      'p1',
-      'm1',
-      JSON.stringify({
-        type: 'tool',
-        tool: 'read',
-        callID: 't1',
-        state: { input: { filePath: 'a.ts' }, output: 'contents', status: 'completed' }
-      })
-    )
-    db.close()
+    db.exec('BEGIN')
+    try {
+      db.exec(
+        'CREATE TABLE session(id TEXT, title TEXT, directory TEXT, time_created INTEGER, time_updated INTEGER); CREATE TABLE message(id TEXT, session_id TEXT, data TEXT, time_created INTEGER); CREATE TABLE part(id TEXT, message_id TEXT, data TEXT)'
+      )
+      db.prepare('INSERT INTO session VALUES(?,?,?,?,?)').run(
+        's1',
+        'OpenCode task',
+        '/project',
+        1000,
+        2000
+      )
+      db.prepare('INSERT INTO message VALUES(?,?,?,?)').run(
+        'm1',
+        's1',
+        JSON.stringify({ id: 'm1', role: 'assistant', modelID: 'm', time: { created: 1000 } }),
+        1000
+      )
+      db.prepare('INSERT INTO part VALUES(?,?,?)').run(
+        'p1',
+        'm1',
+        JSON.stringify({
+          type: 'tool',
+          tool: 'read',
+          callID: 't1',
+          state: { input: { filePath: 'a.ts' }, output: 'contents', status: 'completed' }
+        })
+      )
+      db.exec('COMMIT')
+    } finally {
+      db.close()
+    }
     const parsed = await parseDatabase({
       provider: 'opencode',
       file,

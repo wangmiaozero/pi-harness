@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -168,17 +169,42 @@ describe('CheckpointService', () => {
     expect(await service.retryLastRun('s1')).toEqual({ retried: false, prompt: null })
   })
 
-  it('prunes checkpoints per session and in total', async () => {
+  it('prunes the oldest checkpoint when a session crosses its retention boundary', async () => {
     const store = createStore()
-    const { hooks } = createHooks({
-      getSessionState: vi.fn(async () => ({ cwd: '/tmp/project', leafId: `entry-${Date.now()}` }))
-    })
-    const service = new CheckpointService(store, hooks)
+    const service = new CheckpointService(store, createHooks().hooks)
+    const template = await service.create('s1', { reason: 'manual' })
+    const seeded = Array.from({ length: 100 }, (_, index) => ({
+      ...template,
+      id: `seed-${index}`,
+      sessionEntryId: `entry-${index}`
+    }))
+    // Seed the boundary in one durable write; create() still performs the real pruning mutation.
+    await store.write({ schemaVersion: 1, checkpoints: seeded })
+    const newest = await service.create('s1', { reason: 'manual' })
+    const retained = await service.list('s1')
+    expect(retained).toHaveLength(100)
+    expect(retained[0]?.id).toBe(newest.id)
+    expect(retained.at(-1)?.id).toBe('seed-98')
+    expect(retained.some((checkpoint) => checkpoint.id === 'seed-99')).toBe(false)
+    expect((await store.read()).checkpoints).toEqual(retained)
+  })
 
-    for (let index = 0; index < 120; index += 1) {
-      await service.create('s1', { reason: 'manual' })
-    }
-    expect(await service.list('s1')).toHaveLength(100)
-    expect((await store.read()).checkpoints).toHaveLength(100)
+  it('prunes globally when a new session crosses the total retention boundary', async () => {
+    const store = createStore()
+    const service = new CheckpointService(store, createHooks().hooks)
+    const template = await service.create('seed', { reason: 'manual' })
+    const seeded = Array.from({ length: 500 }, (_, index) => ({
+      ...template,
+      id: `seed-${index}`,
+      sessionId: `session-${Math.floor(index / 100)}`
+    }))
+    await store.write({ schemaVersion: 1, checkpoints: seeded })
+    const newest = await service.create('new-session', { reason: 'manual' })
+    const retained = (await store.read()).checkpoints
+    expect(retained).toHaveLength(500)
+    expect(retained[0]?.id).toBe(newest.id)
+    expect(retained.at(-1)?.id).toBe('seed-498')
+    expect(retained.some((checkpoint) => checkpoint.id === 'seed-499')).toBe(false)
+    expect(await service.list('new-session')).toEqual([newest])
   })
 })
