@@ -11,7 +11,7 @@ Release notes describe user-visible additions and fixes.
 ### Fixed
 
 - Fixed Windows installers occasionally hanging during installation or upgrade.
-
+- Improved Windows installation and upgrade speed while retaining all desktop pet actions.
 - Removed desktop pet resources and controls from the nomascot build.
 - Improved responsiveness when receiving large streamed responses.
 - Improved workspace path handling across platforms.
