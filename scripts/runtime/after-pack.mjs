@@ -4,6 +4,7 @@ import { verifyDistribution } from '../../src/main/runtime/distribution.mjs'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { binaryIdentity } from '../../src/main/runtime/binary-identity.mjs'
+import { verifyPetArchive } from './pet-archive.mjs'
 
 export default async function afterPack(context) {
   const arch = { 1: 'x64', 3: 'arm64' }[context.arch]
@@ -17,6 +18,14 @@ export default async function afterPack(context) {
       : path.join(context.appOutDir, 'resources')
   for (const kind of ['pi', 'node'])
     await verifyDistribution(path.join(resources, 'runtimes', kind), kind, platform, arch)
+  if (
+    platform === 'win32' &&
+    context.packager.config.extraMetadata?.piHarnessVariant !== 'nomascot'
+  )
+    await verifyPetArchive(
+      path.join(resources, 'app.asar'),
+      path.join(context.packager.projectDir, 'resources/petpacks')
+    )
   if (platform === 'darwin') {
     if (process.platform !== 'darwin') throw new Error('macOS signing requires a native build host')
     const piRoot = path.join(resources, 'runtimes/pi')

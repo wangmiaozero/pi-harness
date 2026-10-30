@@ -7,6 +7,7 @@ import { stageAppImage } from '../src/main/updater/appimage-transaction.mjs'
 import { verifiedManifest, selectInstaller } from '../src/main/updater/security/manifest.mjs'
 import { _electron as electron, type Page } from '@playwright/test'
 import { test, expect, startFixtureSession } from './fixtures'
+import { verifyPetResources } from './pet-resources'
 
 test('verifies, cancels, resumes and manually upgrades a real installed package without losing data', async ({
   page,
@@ -25,6 +26,7 @@ test('verifies, cancels, resumes and manually upgrades a real installed package 
   const fixtureUrl = process.env.PI_HARNESS_UPDATE_FIXTURE_URL!
   const fromVersion = process.env.PI_HARNESS_UPDATE_TEST_FROM!
   const toVersion = process.env.PI_HARNESS_UPDATE_TEST_TO!
+  await verifyPetResources(page, electronApp)
   let squirrel: unknown = { status: 'NOT_VERIFIED' }
   await electronApp.evaluate(({ net, shell }, base) => {
     const fetch = net.fetch.bind(net)
@@ -335,6 +337,7 @@ test('verifies, cancels, resumes and manually upgrades a real installed package 
       )
       .toContain('Persistent reply 2')
     expect(requests).toBe(2)
+    await verifyPetResources(reopened, restarted)
     const result = {
       native: true,
       fromVersion,

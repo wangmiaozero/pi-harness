@@ -217,6 +217,7 @@ try {
           'playwright',
           'test',
           'e2e/dual-runtime.spec.ts',
+          'e2e/packaged-pet.spec.ts',
           'e2e/first-message.spec.ts',
           'e2e/pi-native-mcp.spec.ts',
           'e2e/runtime-compatibility.spec.ts',

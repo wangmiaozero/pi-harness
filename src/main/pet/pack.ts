@@ -213,7 +213,9 @@ export function validatePetPackManifest(value: unknown): PetPackManifest {
 /** Resolve the bundled pack directory without touching the filesystem. */
 export function bundledPetPackRoot(importerDir: string): string {
   // importerDir is the compiled main bundle directory (out/main in dev+prod).
-  if (!isAppPackaged()) {
+  // Windows bundles frames inside app.asar to avoid installing thousands of
+  // separate files. Electron's fs APIs read the archive as a directory.
+  if (!isAppPackaged() || process.platform === 'win32') {
     return path.resolve(importerDir, '../../resources/petpacks')
   }
   return path.join(process.resourcesPath, 'petpacks')
