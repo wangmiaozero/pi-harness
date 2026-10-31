@@ -1,39 +1,9 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { computed } from 'vue'
 import type { HarnessState } from '@shared/types/harness'
-import { useHarnessStore } from '@renderer/stores/harness'
-import { useCompactionStore } from '@renderer/stores/compaction'
 
 const props = defineProps<{ state: HarnessState }>()
-const harness = useHarnessStore()
-const compaction = useCompactionStore()
-const { t } = useI18n()
-const instructions = ref('')
 const percent = computed(() => props.state.context?.percent ?? 0)
-const compactPhase = computed(() => compaction.buttonPhase(harness.sessionId, 'harness'))
-const compactLabel = computed(() => {
-  if (compactPhase.value === 'queued') return t('workspace.compactQueuedLabel')
-  if (compactPhase.value === 'compacting') return t('workspace.compacting')
-  if (compactPhase.value === 'working') return t('workspace.compactAfterTask')
-  return t('workspace.harnessCompactNow')
-})
-
-async function toggleAutoCompaction() {
-  try {
-    await harness.setAutoCompaction(!props.state.compaction.auto)
-  } catch {
-    /* Store exposes the sanitized error. */
-  }
-}
-
-async function compactNow() {
-  await compaction.requestSmartCompaction({
-    sessionId: harness.sessionId,
-    instruction: instructions.value.trim() || undefined,
-    source: 'harness'
-  })
-}
 </script>
 
 <template>
@@ -85,48 +55,6 @@ async function compactNow() {
           }}
         </p>
       </div>
-      <button
-        type="button"
-        role="switch"
-        data-testid="harness-auto-compaction"
-        class="h-7 rounded-full border px-3 text-[11px] font-medium"
-        :class="
-          state.compaction.auto
-            ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)]'
-            : 'border-[var(--border-default)] text-[var(--text-tertiary)]'
-        "
-        :aria-checked="state.compaction.auto"
-        :disabled="harness.mutating || !state.capabilities.autoCompaction"
-        @click="toggleAutoCompaction"
-      >
-        {{ state.compaction.auto ? 'ON' : 'OFF' }}
-      </button>
-    </div>
-
-    <textarea
-      v-model="instructions"
-      class="harness-textarea mt-4"
-      rows="4"
-      :placeholder="$t('workspace.harnessCompactionInstructions')"
-    />
-    <div class="mt-2 flex gap-2">
-      <button
-        type="button"
-        data-testid="harness-compact-now"
-        class="harness-action-button"
-        @click="compactNow"
-      >
-        {{ compactLabel }}
-      </button>
-      <button
-        v-if="state.compaction.running"
-        type="button"
-        class="harness-danger-button"
-        :disabled="harness.mutating"
-        @click="harness.abortCompaction().catch(() => undefined)"
-      >
-        {{ $t('workspace.harnessAbortCompaction') }}
-      </button>
     </div>
   </section>
 </template>

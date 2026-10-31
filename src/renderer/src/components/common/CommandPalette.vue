@@ -143,14 +143,6 @@ const commands = computed<PaletteCommand[]>(() => {
       }
     },
     {
-      id: 'workspace-compact',
-      label: t('palette.compactSession'),
-      group: t('palette.groupActions'),
-      run: () => {
-        window.dispatchEvent(new CustomEvent('pi-harness:compact-session'))
-      }
-    },
-    {
       id: 'workspace-open-folder',
       label: t('palette.openWorkspaceFolder'),
       group: t('palette.groupWorkspace'),

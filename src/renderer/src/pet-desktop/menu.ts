@@ -128,6 +128,7 @@ const ACTION_MENU_COPY: Record<AppLocale, { play: string; back: string; search: 
 }
 
 export interface PetMenuOptions {
+  busy?: boolean
   language: AppLanguage
   actions?: Array<{ clip: string; label: string }>
   onPlayAction?: (clip: string) => void
@@ -139,23 +140,25 @@ export interface PetMenuOptions {
 export function showPetMenu(options: PetMenuOptions): void {
   dismissPetMenu()
   const labels = menuLabels(options.language)
-  const items: Array<{ action: PetMenuAction | null; label: string }> = [
-    { action: 'open-main', label: labels.openMain },
-    { action: 'open-settings', label: labels.openSettings },
-    { action: null, label: '—' },
-    {
-      action: 'toggle-always-on-top',
-      label: options.alwaysOnTop ? labels.alwaysOnTop : labels.alwaysOnTopOff
-    },
-    {
-      action: 'toggle-reduced-motion',
-      label: options.reducedMotion ? labels.reducedMotion : labels.reducedMotionOff
-    },
-    { action: 'reset-position', label: labels.resetPosition },
-    { action: null, label: '—' },
-    { action: 'hide', label: labels.hide },
-    { action: 'quit', label: labels.quit }
-  ]
+  const items: Array<{ action: PetMenuAction | null; label: string }> = options.busy
+    ? [{ action: 'open-main', label: labels.openMain }]
+    : [
+        { action: 'open-main', label: labels.openMain },
+        { action: 'open-settings', label: labels.openSettings },
+        { action: null, label: '—' },
+        {
+          action: 'toggle-always-on-top',
+          label: options.alwaysOnTop ? labels.alwaysOnTop : labels.alwaysOnTopOff
+        },
+        {
+          action: 'toggle-reduced-motion',
+          label: options.reducedMotion ? labels.reducedMotion : labels.reducedMotionOff
+        },
+        { action: 'reset-position', label: labels.resetPosition },
+        { action: null, label: '—' },
+        { action: 'hide', label: labels.hide },
+        { action: 'quit', label: labels.quit }
+      ]
 
   const menu = document.createElement('div')
   menu.id = 'pet-context-menu'
@@ -208,7 +211,7 @@ export function showPetMenu(options: PetMenuOptions): void {
     menu.appendChild(row)
   }
 
-  if (options.actions?.length && options.onPlayAction) {
+  if (!options.busy && options.actions?.length && options.onPlayAction) {
     const copy = ACTION_MENU_COPY[resolveAppLocale(options.language, navigator.language)]
     const play = document.createElement('button')
     play.type = 'button'

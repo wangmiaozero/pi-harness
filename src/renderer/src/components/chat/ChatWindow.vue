@@ -21,7 +21,6 @@ import {
 } from '@lucide/vue'
 import Button from '@renderer/components/ui/Button.vue'
 import { useAgentStore } from '@renderer/stores/agent'
-import { useCompactionStore } from '@renderer/stores/compaction'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useModelsStore } from '@renderer/stores/models'
@@ -52,9 +51,8 @@ interface ComposerImageModelTarget {
   modelId: string
 }
 
-const { locale, t } = useI18n()
+const { locale } = useI18n()
 const agent = useAgentStore()
-const compaction = useCompactionStore()
 const sessions = useSessionStore()
 const workspace = useWorkspaceStore()
 const models = useModelsStore()
@@ -111,7 +109,6 @@ const contextColor = computed(() => {
   if (percent !== null && percent > 70) return 'var(--warning)'
   return 'var(--text-tertiary)'
 })
-const autoCompactionEnabled = computed(() => agent.state?.autoCompactionEnabled === true)
 const replyTruncated = computed(() => inspectRuntimeError(agent.error).kind === 'truncated')
 const userName = computed(() => normalizeUserName(settings.settings?.userName))
 const assistantName = computed(() => normalizeAssistantName(settings.settings?.assistantName))
@@ -195,7 +192,25 @@ watch(
   }
 )
 
+const pendingDrafts = ref(new Set<string>())
+const submitting = computed(() => pendingDrafts.value.has(workspace.draftKey))
+
+async function submitDraft(send: () => Promise<void>) {
+  const key = workspace.draftKey
+  if (pendingDrafts.value.has(key)) return
+  pendingDrafts.value.add(key)
+  try {
+    await send()
+  } finally {
+    pendingDrafts.value.delete(key)
+  }
+}
+
 async function onSend(imageModel: ComposerImageModelTarget | null = null, mode?: AgentMode) {
+  await submitDraft(() => sendDraft(imageModel, mode))
+}
+
+async function sendDraft(imageModel: ComposerImageModelTarget | null, mode?: AgentMode) {
   const text = workspace.draft.trim()
   const selectedSkillName = imageModel ? null : workspace.draftSkill
   const skillInvocation = imageModel
@@ -233,20 +248,14 @@ async function onSend(imageModel: ComposerImageModelTarget | null = null, mode?:
   const effectivePreset =
     selectedMode === 'plan' && !sessions.currentId ? ('read-only' as ToolPreset) : preset
   const permissionSessionId = sessions.currentId
+  const cwd = workspace.currentCwd
   const permissionMode = permission.modeFor(permissionSessionId)
   await completionSound.unlock()
   const sessionId = imageModel
-    ? await agent.sendImage(
-        sessions.currentId,
-        workspace.currentCwd,
-        text,
-        effectivePreset,
-        imageModel,
-        images
-      )
+    ? await agent.sendImage(permissionSessionId, cwd, text, effectivePreset, imageModel, images)
     : await agent.send(
-        sessions.currentId,
-        workspace.currentCwd,
+        permissionSessionId,
+        cwd,
         runtimeText,
         effectivePreset,
         images,
@@ -256,7 +265,7 @@ async function onSend(imageModel: ComposerImageModelTarget | null = null, mode?:
   if (agent.error) return
   workspace.clearDraft(draftKey)
   if (sessionId && !permissionSessionId) permission.setMode(sessionId, permissionMode)
-  if (sessionId && sessionId !== sessions.currentId) {
+  if (sessionId && sessionId !== sessions.currentId && workspace.draftKey === draftKey) {
     workspace.consumeDraftSession()
     // Persist the selected chat before slower workspace/runtime restoration.
     // A reload immediately after the first reply must reopen this session.
@@ -265,21 +274,20 @@ async function onSend(imageModel: ComposerImageModelTarget | null = null, mode?:
 }
 
 async function onSendQueue(images: AgentImageAttachment[]) {
+  await submitDraft(() => sendQueuedImages(images))
+}
+
+async function sendQueuedImages(images: AgentImageAttachment[]) {
   if (!images.length) return
+  const sessionId = sessions.currentId
+  const cwd = workspace.currentCwd
+  const permissionMode = permission.modeFor(sessionId)
   const preset = (
     sessions.currentId ? agent.activePreset() : (settings.settings?.defaultToolPreset ?? 'default')
   ) as ToolPreset
   await completionSound.unlock()
   stickToLatest()
-  await agent.send(
-    sessions.currentId,
-    workspace.currentCwd,
-    '',
-    preset,
-    images,
-    '',
-    permission.modeFor(sessions.currentId)
-  )
+  await agent.send(sessionId, cwd, '', preset, images, '', permissionMode)
 }
 
 async function onAbort() {
@@ -299,15 +307,6 @@ async function viewFullHistory() {
     toast.error((error as Error).message)
   } finally {
     fullHistoryLoading.value = false
-  }
-}
-
-async function toggleAutoCompaction() {
-  if (!sessions.currentId || !agent.state) return
-  try {
-    await agent.setAutoCompaction(sessions.currentId, !autoCompactionEnabled.value)
-  } catch (error) {
-    toast.error((error as Error).message || t('workspace.compactFailed'))
   }
 }
 
@@ -383,30 +382,6 @@ function duration(value: number): string {
             <p class="text-[var(--danger)]">
               {{ replyTruncated ? $t('workspace.replyTruncated') : agent.error }}
             </p>
-            <div v-if="replyTruncated && sessions.currentId" class="mt-2 flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                data-testid="truncated-reply-compact"
-                @click="
-                  compaction.requestSmartCompaction({
-                    sessionId: sessions.currentId,
-                    source: 'workspace'
-                  })
-                "
-              >
-                {{ $t('workspace.compact') }}
-              </Button>
-              <Button
-                v-if="agent.state && !autoCompactionEnabled"
-                variant="secondary"
-                size="sm"
-                data-testid="truncated-reply-enable-auto"
-                @click="toggleAutoCompaction"
-              >
-                {{ $t('workspace.enableAutoCompaction') }}
-              </Button>
-            </div>
           </div>
         </div>
       </div>
@@ -473,6 +448,7 @@ function duration(value: number): string {
     <ChatComposer
       ref="composer"
       :sound-enabled="completionSound.enabled.value"
+      :submitting="submitting"
       @send="onSend"
       @send-queue="onSendQueue"
       @abort="onAbort"
@@ -576,23 +552,6 @@ function duration(value: number): string {
             </dd>
           </template>
         </dl>
-        <button
-          v-if="sessions.currentId && agent.state"
-          type="button"
-          role="switch"
-          data-testid="workspace-auto-compaction"
-          class="mt-3 inline-flex h-7 items-center rounded-full border px-3 text-[11px] font-medium"
-          :class="
-            autoCompactionEnabled
-              ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--accent)]'
-              : 'border-[var(--border-default)] text-[var(--text-tertiary)]'
-          "
-          :aria-checked="autoCompactionEnabled"
-          :title="$t('workspace.autoCompaction')"
-          @click="toggleAutoCompaction"
-        >
-          {{ $t('workspace.autoCompaction') }} · {{ autoCompactionEnabled ? 'ON' : 'OFF' }}
-        </button>
       </section>
     </div>
     <div

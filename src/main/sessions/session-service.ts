@@ -22,6 +22,7 @@ import type { FileAccessService } from '../files/file-access-service'
 import { summarizeSessionTitle } from '@shared/workspace/session-title'
 import type { SessionTitleService } from './session-title-service'
 import { SessionIndexClient, type SessionIndex } from './session-index-client'
+import { atomicWriteText } from '../services/storage'
 
 export class SessionService {
   private pathCache = new Map<string, string>()
@@ -42,6 +43,27 @@ export class SessionService {
   sessionsRoot(): string {
     const settings = this.settingsStore.peek()
     return path.join(getPiConfigDir(settings.manualConfigDir), 'sessions')
+  }
+
+  async createEmpty(cwd: string): Promise<SessionInfo> {
+    if (this.closed) throw new Error('Session service is closed')
+    const sdk = await loadPiCodingAgent()
+    const manager = sdk.SessionManager.create(
+      cwd,
+      path.join(this.sessionsRoot(), '--desktop-chats--')
+    )
+    const header = manager.getHeader()
+    const file = manager.getSessionFile()
+    if (!header || !file) throw new Error('Native session could not be created')
+    // An explicit new-conversation action persists only Pi's own header. No
+    // synthetic user/assistant message or running agent is needed for an empty chat.
+    await atomicWriteText(file, JSON.stringify(header) + '\n')
+    this.invalidate()
+    this.cachePath(header.id, file)
+    const detail = await this.get(header.id)
+    if (!detail.info) throw new Error('Native session header is missing')
+    const [info] = await this.attachProjects([detail.info])
+    return { ...info, transient: false }
   }
 
   invalidate(): void {

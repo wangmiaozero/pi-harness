@@ -44,7 +44,8 @@ import { JsonStore } from './lib/storage.mjs';
 import { withFileLease } from './lib/lease.mjs';
 const target = process.argv[2];
 if (process.argv[3] === 'hold') {
-  await withFileLease(target, async () => { process.send('ready'); await new Promise(() => { setInterval(() => {}, 1000) }); });
+  await withFileLease(target, async () => { process.send('ready'); await new Promise(resolve => { process.on('message', message => { if (message === 'release') resolve(); }); }); });
+  process.disconnect();
 } else {
   const store = new JsonStore(target, { a: 0, b: 0 });
   await store.read(); process.send('ready');
@@ -111,6 +112,28 @@ it('reclaims a provably dead process lease and preserves the committed file', as
   await exited
   await store.update({ a: 3 })
   expect(JSON.parse(await fs.readFile(target, 'utf8'))).toEqual({ a: 3 })
+}, 10000)
+it('lets a consistent reader wait for an active writer without reading its partial state', async () => {
+  const target = path.join(root, 'reader-wait.json')
+  await fs.writeFile(target, '{"a":1}')
+  const child = await writer(target, true)
+  let entered = false
+  const reading = withFileLease(
+    target,
+    async () => {
+      entered = true
+      return fs.readFile(target, 'utf8')
+    },
+    undefined,
+    { waitMs: 1500 }
+  )
+  await new Promise((resolve) => setTimeout(resolve, 60))
+  expect(entered).toBe(false)
+  const exited = once(child, 'exit')
+  child.send('release')
+  await exited
+  await expect(reading).resolves.toBe('{"a":1}')
+  expect(entered).toBe(true)
 }, 10000)
 it('detects stale cache after an external edit and allows explicit reload', async () => {
   const target = path.join(root, 'external.json')

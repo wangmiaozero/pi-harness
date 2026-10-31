@@ -71,6 +71,7 @@ import { SessionCleanupService } from './sessions/session-cleanup-service'
 import { RuntimeManager } from './runtime/runtime-manager'
 import { setRuntimeProvider } from './runtime/active'
 import { PiRpcRuntime } from './agent/pi-rpc-runtime'
+import { activateMainWindow } from './window/activate-main'
 import { AgentRuntimeService } from './agent/agent-runtime-service'
 import { resolveWorkspaceToolPath } from './workspace/workspace-tool-guard'
 import { assertAgentFilePermission } from './workspace/agent-file-permission'
@@ -247,9 +248,13 @@ async function bootstrap(): Promise<void> {
   let mainWindow: BrowserWindow | null = null
   const screenMotion = new ScreenMotionOverlayController()
 
-  const openMainWindow = (initialHash?: string): void => {
+  const openMainWindow = (initialHash?: string, userActivation = false): void => {
     const settings = settingsStore.peek()
     mainWindow = createMainWindow(selectedAppIconPath(settings), initialHash)
+    if (userActivation) {
+      const created = mainWindow
+      created.once('ready-to-show', () => activateMainWindow(created))
+    }
     applyAppIcon(settings, mainWindow)
     mainWindow.on('closed', () => {
       screenMotion.stop()
@@ -529,12 +534,10 @@ async function bootstrap(): Promise<void> {
           if (!mainWindow || mainWindow.isDestroyed()) {
             // A fresh renderer needs its route before mounting; an IPC command
             // sent while it loads would be lost before the listener subscribes.
-            openMainWindow(view === 'settings' ? '/settings/desktop-pet' : undefined)
+            openMainWindow(view === 'settings' ? '/settings/desktop-pet' : undefined, true)
             return
           }
-          if (mainWindow.isMinimized()) mainWindow.restore()
-          mainWindow.show()
-          mainWindow.focus()
+          activateMainWindow(mainWindow)
           if (view === 'settings') {
             mainWindow.webContents.send(IPC_EVENT.uiCommand, {
               type: 'open-settings',
@@ -717,8 +720,8 @@ async function bootstrap(): Promise<void> {
 
   app.on('activate', () => {
     if (!mainWindow || mainWindow.isDestroyed()) {
-      openMainWindow()
-    }
+      openMainWindow(undefined, true)
+    } else activateMainWindow(mainWindow)
   })
 
   app.on('window-all-closed', () => {
@@ -766,10 +769,8 @@ async function bootstrap(): Promise<void> {
   })
 
   app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
-    }
+    if (mainWindow && !mainWindow.isDestroyed()) activateMainWindow(mainWindow)
+    else openMainWindow(undefined, true)
   })
 
   log.app.info(`${APP_NAME} ready`)

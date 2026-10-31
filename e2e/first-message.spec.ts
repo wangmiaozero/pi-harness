@@ -3,14 +3,32 @@ import path from 'node:path'
 import http from 'node:http'
 import { test, expect } from './fixtures'
 
-for (const withImage of [false, true]) {
-  test(`shows the first submitted message once through native streaming and reload (image: ${withImage})`, async ({
+for (const [withImage, precreated] of [
+  [false, false],
+  [true, false],
+  [false, true]
+]) {
+  test(`shows the first submitted message once through native streaming and reload (image: ${withImage}, empty chat: ${precreated})`, async ({
     page,
     electronApp,
     piAgentDir,
     testUserData
   }) => {
     const requests: Array<{ messages: Array<{ role: string; content: unknown }> }> = []
+    const starting = path.join(testUserData, 'submission-starting')
+    const release = path.join(testUserData, 'submission-release')
+    const extensions = path.join(piAgentDir, 'extensions')
+    fs.mkdirSync(extensions, { recursive: true })
+    fs.writeFileSync(
+      path.join(extensions, 'submission-delay.js'),
+      `import fs from 'node:fs';
+      export default function(pi) { pi.on('before_agent_start', async () => {
+        fs.writeFileSync(${JSON.stringify(starting)}, 'ready');
+        const deadline = Date.now() + 15000;
+        while (!fs.existsSync(${JSON.stringify(release)}) && Date.now() < deadline)
+          await new Promise(resolve => setTimeout(resolve, 20));
+      }); }`
+    )
     let finishResponse: (() => void) | undefined
     const provider = http.createServer(async (request, response) => {
       let body = ''
@@ -65,6 +83,15 @@ for (const withImage of [false, true]) {
         await window.piSwitch.models.setActive({ providerKey: 'fixture', modelId: 'fixture' })
       })
       await page.locator('a[href="#/workspace"]').click()
+      if (precreated) {
+        const add = page.getByTestId('workspace-new-session')
+        await add.click()
+        await expect(add).toBeEnabled()
+        await expect(page.locator('[data-testid^="session-row-"]')).toHaveCount(1)
+      }
+      const selectedId = await page.evaluate(() =>
+        window.piSwitch.sessions.list(true).then(([item]) => item?.id)
+      )
       const composer = page.getByTestId('chat-composer')
       const editor = composer.getByTestId('composer-editor')
       const users = page.locator('.chat-scroller [data-message-role="user"]')
@@ -85,6 +112,12 @@ for (const withImage of [false, true]) {
       }
       await editor.fill('Check the first message')
       await editor.press('Enter')
+      await expect.poll(() => fs.existsSync(starting)).toBe(true)
+      await expect(editor).toHaveAttribute('contenteditable', 'false')
+      await expect(composer.getByRole('button', { name: /发送|Send/, exact: true })).toBeDisabled()
+      await editor.pressSequentially('must-not-be-appended')
+      await expect(editor).toHaveText('Check the first message')
+      fs.writeFileSync(release, 'continue')
       await expect(users).toHaveCount(1)
       if (withImage) await expect(users.locator('img')).toHaveCount(1)
 
@@ -92,6 +125,7 @@ for (const withImage of [false, true]) {
       // hide the optimistic/native duplication seen during the first turn.
       await expect.poll(() => requests.length, { timeout: 45_000 }).toBe(1)
       await expect(page.locator('.chat-scroller')).toContainText('Local reply')
+      await expect(editor).toHaveAttribute('contenteditable', 'plaintext-only')
       await expect(users).toHaveCount(1)
       const outgoingUsers = requests[0].messages.filter((message) => message.role === 'user')
       expect(outgoingUsers).toHaveLength(1)
@@ -103,6 +137,7 @@ for (const withImage of [false, true]) {
         window.piSwitch.sessions.list(true).then(([item]) => item)
       )
       const detail = await page.evaluate((id) => window.piSwitch.sessions.get(id), session.id)
+      if (precreated) expect(session.id).toBe(selectedId)
       expect(detail.context.messages.filter((message) => message.role === 'user')).toHaveLength(1)
       const entries = fs
         .readFileSync(detail.filePath, 'utf8')
@@ -164,6 +199,7 @@ for (const withImage of [false, true]) {
         }
       }
     } finally {
+      fs.writeFileSync(release, 'continue')
       provider.closeAllConnections()
       await new Promise<void>((resolve) => provider.close(() => resolve()))
     }

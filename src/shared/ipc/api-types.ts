@@ -1217,6 +1217,7 @@ export interface PiSwitchAPI {
     listSessionBindings(): Promise<Record<string, SessionWorkspaceBinding>>
   }
   sessions: {
+    create(): Promise<SessionInfo>
     list(force?: boolean): Promise<SessionInfo[]>
     get(sessionId: string): Promise<SessionDetail>
     rename(sessionId: string, name: string): Promise<void>

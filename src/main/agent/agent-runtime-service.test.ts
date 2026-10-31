@@ -804,20 +804,19 @@ describe('AgentRuntimeService', () => {
     expect(inner.setThinkingLevel).toHaveBeenLastCalledWith('max')
   })
 
-  it('temporarily lowers session thinking for compaction and restores it', async () => {
+  it('leaves compaction request policy to native extension lifecycle hooks', async () => {
     const inner = createAgentSession(createSessionManager())
     inner.agent.state!.thinkingLevel = 'max'
     inner.setThinkingLevel = vi.fn((level: string) => {
       Object.assign(inner.agent.state, { thinkingLevel: level })
     })
     inner.compact = vi.fn(async () => {
-      expect(inner.agent.state?.thinkingLevel).toBe('medium')
+      expect(inner.agent.state?.thinkingLevel).toBe('max')
       return { tokensBefore: 12_000, summary: 'summary', firstKeptEntryId: 'entry' }
     })
 
     await new AgentSessionWrapper(inner).send({ type: 'compact' })
-    expect(inner.setThinkingLevel).toHaveBeenCalledWith('medium')
-    expect(inner.setThinkingLevel).toHaveBeenLastCalledWith('max')
+    expect(inner.setThinkingLevel).not.toHaveBeenCalled()
     expect(inner.agent.state?.thinkingLevel).toBe('max')
   })
 })

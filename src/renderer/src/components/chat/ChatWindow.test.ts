@@ -16,6 +16,52 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+it.each([false, true])(
+  'unlocks the composer after submission settles (failure: %s)',
+  async (failure) => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      }
+    )
+    Object.defineProperty(HTMLElement.prototype, 'scrollTo', { configurable: true, value: vi.fn() })
+    window.piSwitch = { on: vi.fn(() => () => undefined) } as unknown as PiSwitchAPI
+    setActivePinia(createPinia())
+    const agent = useAgentStore()
+    const sessions = useSessionStore()
+    const workspace = useWorkspaceStore()
+    sessions.addTransientSession('current', '/project', 'Original')
+    sessions.selectSession('current')
+    workspace.draft = 'Original'
+    let finish!: (value: string) => void
+    const send = vi.spyOn(agent, 'send').mockImplementation(
+      () =>
+        new Promise<string>((resolve) => {
+          finish = resolve
+        })
+    )
+    const wrapper = shallowMount(ChatWindow, { global: { plugins: [i18n] } })
+    try {
+      const composer = wrapper.findComponent(ChatComposer)
+      composer.vm.$emit('send')
+      composer.vm.$emit('send')
+      await flushPromises()
+      expect(composer.props('submitting')).toBe(true)
+      expect(send).toHaveBeenCalledTimes(1)
+      expect(workspace.draft).toBe('Original')
+      if (failure) agent.error = 'Fixture send failed'
+      finish('current')
+      await flushPromises()
+      expect(composer.props('submitting')).toBe(false)
+      expect(workspace.draft).toBe(failure ? 'Original' : '')
+    } finally {
+      wrapper.unmount()
+    }
+  }
+)
+
 it('persists the first sent session before asynchronous workspace restoration finishes', async () => {
   const saved = new Map<string, string>()
   vi.stubGlobal('localStorage', {

@@ -111,11 +111,12 @@ class PetApp {
   }
 
   private openMenu(): void {
-    if (!this.settings || this.taskActive) return
+    if (!this.settings) return
     this.physics?.cancel()
     this.lastClickThroughThrough = false
     void window.piSwitchPet?.setClickThrough(false)
     showPetMenu({
+      busy: this.taskActive,
       language: this.language,
       alwaysOnTop: this.settings.alwaysOnTop,
       reducedMotion: this.settings.reducedMotion,
@@ -141,7 +142,7 @@ class PetApp {
     const wasActive = this.taskActive
     this.taskActive = activeAgents > 0
     if (this.taskActive) {
-      dismissPetMenu()
+      if (!wasActive) dismissPetMenu()
       this.physics?.cancel()
       if (!wasActive && this.interaction) {
         this.interaction = null

@@ -193,7 +193,7 @@ for (const value of APP_THEMES) {
         expect(Math.max(...colors.background) - Math.min(...colors.background)).toBeLessThan(5)
       }
       await page.getByTestId('composer-more').click()
-      await expect(page.getByTestId('composer-compact')).toBeVisible()
+      await expect(page.getByTestId('composer-compact')).toHaveCount(0)
       await expect(page.getByTestId('composer-sound-toggle')).toBeVisible()
       await page.keyboard.press('Escape')
       await page.setViewportSize({ width: 960, height: 700 })

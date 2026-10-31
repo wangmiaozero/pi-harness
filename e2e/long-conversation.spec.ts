@@ -3,7 +3,7 @@ import path from 'node:path'
 import http from 'node:http'
 import { test, expect } from './fixtures'
 
-test('recovers a truncated conversation through native compaction without losing its history', async ({
+test('automatically recovers a truncated conversation through native compaction without losing its history', async ({
   page,
   piAgentDir
 }, testInfo) => {
@@ -115,21 +115,12 @@ test('recovers a truncated conversation through native compaction without losing
     await editor.press('Enter')
     await expect(page.getByTestId('chat-scroller')).toContainText('Prior work recorded.')
     await expect(page.getByTestId('composer-abort')).toBeHidden()
+    const sessions = await page.evaluate(() => window.piSwitch.sessions.list())
+    const sessionId = sessions.find((session) => session.messageCount >= 2)!.id
+    const before = await page.evaluate((id) => window.piSwitch.sessions.get(id), sessionId)
     await editor.fill(`Continue the long task\n${'Recent task details. '.repeat(500)}`)
     await editor.press('Enter')
     const warning = page.getByRole('alert').filter({ hasText: '回复因模型' })
-    await expect(warning).toBeVisible()
-    await expect(warning.getByTestId('truncated-reply-compact')).toBeVisible()
-    expect(chatRequests).toBe(2)
-    expect(summaries).toBe(0)
-    const sessions = await page.evaluate(() => window.piSwitch.sessions.list())
-    const sessionId = sessions.find((session) => session.messageCount >= 4)!.id
-    const before = await page.evaluate((id) => window.piSwitch.sessions.get(id), sessionId)
-    await page.screenshot({ path: path.join(testInfo.outputDir, 'truncated-reply-warning.png') })
-    await page.reload()
-    await expect(warning).toBeVisible()
-
-    await warning.getByTestId('truncated-reply-enable-auto').click()
     await expect
       .poll(() =>
         page.evaluate(
@@ -138,13 +129,19 @@ test('recovers a truncated conversation through native compaction without losing
         )
       )
       .toBe(true)
-    await editor.fill('Continue after enabling compaction')
-    await editor.press('Enter')
     await expect(page.getByTestId('chat-scroller')).toContainText('Recovered conversation reply.')
     await expect(page.getByTestId('composer-abort')).toBeHidden()
     await expect(warning).toBeHidden()
     expect(summaries).toBeGreaterThan(0)
     expect(chatRequests).toBe(3)
+    await composer.getByTestId('composer-more').click()
+    await expect(page.getByTestId('composer-compact')).toHaveCount(0)
+    await expect(page.getByTestId('composer-sound-toggle')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await page.screenshot({ path: path.join(testInfo.outputDir, 'automatic-compaction.png') })
+    await page.reload()
+    await expect(page.getByTestId('chat-scroller')).toContainText('Recovered conversation reply.')
+    await expect(warning).toBeHidden()
     const after = await page.evaluate((id) => window.piSwitch.sessions.get(id), sessionId)
     expect(after.filePath).toBe(before.filePath)
     const raw = fs.readFileSync(after.filePath, 'utf8')

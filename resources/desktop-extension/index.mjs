@@ -1,9 +1,11 @@
 import net from 'node:net'
 import { randomUUID } from 'node:crypto'
 import { registerOpenCode } from './opencode-provider.mjs'
+import { installCompactionPolicy } from './compaction.mjs'
 
 /** Uses Pi's public extension API. No upstream patches or duplicated agent loop. */
 export default async function desktopExtension(pi) {
+  installCompactionPolicy(pi)
   const endpoint = process.env.PI_HARNESS_DESKTOP_SOCKET
   const token = process.env.PI_HARNESS_DESKTOP_TOKEN
   if (!endpoint || !token) throw new Error('Desktop extension requires an authenticated host')

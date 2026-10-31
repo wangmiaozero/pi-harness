@@ -179,8 +179,8 @@ describe('ChatComposer model capabilities', () => {
   })
 })
 
-describe('ChatComposer compact button', () => {
-  it('stays clickable for a short or busy session', async () => {
+describe('ChatComposer automatic compaction', () => {
+  it('has no manual compaction action while retaining task controls', async () => {
     const sessions = useSessionStore()
     const agent = useAgentStore()
     sessions.addTransientSession('session-1', '/code/project', 'hello')
@@ -197,11 +197,57 @@ describe('ChatComposer compact button', () => {
     await wrapper.get('[data-testid="composer-more"]').trigger('keydown', { key: 'Enter' })
     await wrapper.vm.$nextTick()
     const button = document.querySelector<HTMLButtonElement>('[data-testid="composer-compact"]')
-    expect(button).not.toBeNull()
-    expect(button?.disabled).toBe(false)
-    expect(button?.textContent).toContain(String(i18n.global.t('workspace.compactAfterTask')))
+    expect(button).toBeNull()
     await wrapper.get('[data-testid="composer-abort"]').trigger('click')
     expect(wrapper.emitted('abort')).toHaveLength(1)
+  })
+})
+
+describe('ChatComposer submission lock', () => {
+  it('blocks editing, paste and duplicate sends until submission settles', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.projectRoots = ['/code/test']
+    workspace.pickedCwd = '/code/test'
+    workspace.draft = 'Original message'
+    const wrapper = mount(ChatComposer, {
+      props: { soundEnabled: false, submitting: true },
+      global: { plugins: [i18n] }
+    })
+    const editor = wrapper.get('[data-testid="composer-editor"]')
+    expect(editor.attributes('contenteditable')).toBe('false')
+    expect(editor.attributes('aria-disabled')).toBe('true')
+    expect(wrapper.get('.command-execute-button').attributes('disabled')).toBeDefined()
+    await editor.trigger('keydown', { key: 'Enter' })
+    await editor.trigger('paste', { clipboardData: { items: [], getData: () => 'late edit' } })
+    expect(workspace.draft).toBe('Original message')
+    expect(wrapper.emitted('send')).toBeUndefined()
+    await wrapper.setProps({ submitting: false })
+    expect(editor.attributes('contenteditable')).toBe('plaintext-only')
+    expect(wrapper.get('.command-execute-button').attributes('disabled')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('scopes a pending agent submission to its conversation', async () => {
+    const sessions = useSessionStore()
+    const agent = useAgentStore()
+    sessions.addTransientSession('sending-chat', '/code/a', 'A')
+    sessions.addTransientSession('other-chat', '/code/b', 'B')
+    sessions.selectSession('sending-chat')
+    agent.sending = true
+    agent.sendingSessionId = 'sending-chat'
+    const wrapper = mount(ChatComposer, {
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    expect(wrapper.get('[data-testid="composer-editor"]').attributes('contenteditable')).toBe(
+      'false'
+    )
+    sessions.selectSession('other-chat')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('[data-testid="composer-editor"]').attributes('contenteditable')).toBe(
+      'plaintext-only'
+    )
+    wrapper.unmount()
   })
 })
 

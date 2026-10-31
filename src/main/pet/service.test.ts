@@ -250,7 +250,7 @@ describe('PetService pack switching', () => {
     expect(currentLanguage()).toBe('zh-TW')
   })
 
-  it('blocks all menu actions during tasks independently of animation sync and unlocks afterwards', async () => {
+  it('allows opening the console while tasks block other pet actions independently of animation sync', async () => {
     const openMain = vi.fn()
     const quit = vi.fn()
     service = new PetService(settingsStore, userRoot, { openMain, onQuitRequest: quit })
@@ -282,7 +282,7 @@ describe('PetService pack switching', () => {
     ]) {
       await invoke({ sender } as never, action)
     }
-    expect(openMain).not.toHaveBeenCalled()
+    expect(openMain).toHaveBeenCalledExactlyOnceWith('main')
     expect(quit).not.toHaveBeenCalled()
     expect(settingsStore.peek()).toEqual(before)
     expect(petWindowStubs.destroy).toHaveBeenCalledTimes(destroys)

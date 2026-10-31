@@ -36,12 +36,6 @@ import { useSettingsStore } from '@renderer/stores/settings'
 import { useSkillsStore } from '@renderer/stores/skills'
 import type { SkillInfo } from '@shared/ipc/api-types'
 import type { ToolPreset } from '@shared/workspace/tool-presets'
-import { useCompactionStore } from '@renderer/stores/compaction'
-import {
-  canRequestCompaction,
-  compactionUsageHint,
-  compactionUsageRatio
-} from '@shared/workspace/compaction'
 import {
   isBase64ImageWithinLimits,
   MAX_ATTACHED_IMAGE_BYTES,
@@ -55,7 +49,6 @@ import {
   Hand,
   ImagePlus,
   ListChecks,
-  Minimize2,
   MoreHorizontal,
   Square,
   Pencil,
@@ -83,7 +76,7 @@ interface ComposerImageModelTarget {
   modelId: string
 }
 
-defineProps<{ soundEnabled: boolean }>()
+const props = defineProps<{ soundEnabled: boolean; submitting?: boolean }>()
 interface PasteQueueItem {
   id: string
   name: string
@@ -119,7 +112,6 @@ const sessions = useSessionStore()
 const models = useModelsStore()
 const providers = useProvidersStore()
 const settings = useSettingsStore()
-const compaction = useCompactionStore()
 const skills = useSkillsStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const editor = ref<HTMLElement | null>(null)
@@ -156,41 +148,26 @@ const permissionModeValue = computed({
 // `isBusy`, so a task running in another conversation never marks this one as
 // busy (e.g. showing 终止 on a session that is idle).
 const busy = computed(() => agent.isBusy(sessions.currentId))
+const inputLocked = computed(
+  () => props.submitting || (agent.sending && agent.sendingSessionId === sessions.currentId)
+)
 const pasteQueueCurrent = computed(
   () => pasteQueue.value[Math.min(pasteQueueIndex.value, pasteQueue.value.length - 1)] ?? null
 )
-const compactAvailable = computed(() => canRequestCompaction(sessions.currentId))
-const compactPhase = computed(() => compaction.buttonPhase(sessions.currentId, 'workspace'))
-const compactLabel = computed(() => {
-  if (compactPhase.value === 'queued') return t('workspace.compactQueuedLabel')
-  if (compactPhase.value === 'compacting') return t('workspace.compacting')
-  if (compactPhase.value === 'working') return t('workspace.compactAfterTask')
-  return t('workspace.compact')
-})
-const compactTitle = computed(() => {
-  const hintKey = {
-    unknown: 'workspace.compactUsageUnknown',
-    low: 'workspace.compactUsageLow',
-    ready: 'workspace.compactUsageReady',
-    recommend: 'workspace.compactUsageRecommend',
-    urgent: 'workspace.compactUsageUrgent'
-  }[compactionUsageHint(compactionUsageRatio(agent.state?.contextUsage))]
-  return `${t(hintKey)} · ${compactLabel.value}`
-})
-
 function onEditorFocus() {
   editorFocused.value = true
   ensureEditorTextNode()
-  const selection = window.getSelection()
-  if (!editor.value?.contains(selection?.anchorNode ?? null)) {
-    void nextTick(() => setEditorSelection(workspace.draft.length))
-  }
   updateSkillMention()
 }
 
 function onEditorMouseDown(event: MouseEvent) {
+  if (inputLocked.value) return
   const target = event.target as Node | null
-  if (target && (editor.value?.contains(target) || (target as Element).closest?.('button'))) return
+  if (
+    target &&
+    (editor.value?.contains(target) || (target as Element).closest?.('button, .composer-text-area'))
+  )
+    return
   event.preventDefault()
   editor.value?.focus({ preventScroll: true })
   setEditorSelection(workspace.draft.length)
@@ -357,6 +334,8 @@ const hasTooManyImageSources = computed(
 )
 const canSend = computed(
   () =>
+    !inputLocked.value &&
+    pendingImageCount.value === 0 &&
     workspace.canChat &&
     (selectedImageModel.value
       ? Boolean(workspace.draft.trim())
@@ -370,6 +349,7 @@ function warnImageUnsupported() {
 }
 
 function emitSend() {
+  if (inputLocked.value) return
   const value = modelValue.value
   const slash = value.indexOf('/')
   emit(
@@ -495,6 +475,7 @@ function setEditorSelection(start: number, end = start) {
 }
 
 function replaceEditorSelection(text: string) {
+  if (inputLocked.value) return
   const selection = editorSelection() ?? {
     start: workspace.draft.length,
     end: workspace.draft.length
@@ -507,6 +488,7 @@ function replaceEditorSelection(text: string) {
 }
 
 function onComposerInput() {
+  if (inputLocked.value) return
   workspace.draft = editorTextValue()
   updateSkillMention(workspace.draft, editorSelection()?.end ?? workspace.draft.length)
 }
@@ -526,6 +508,7 @@ function selectSkill(skill: SkillInfo) {
 }
 
 function removeSelectedSkill() {
+  if (inputLocked.value) return
   workspace.draftSkill = null
   void nextTick(() => {
     editor.value?.focus({ preventScroll: true })
@@ -612,6 +595,10 @@ const toolPreset = computed({
 })
 
 function onKeydown(e: KeyboardEvent) {
+  if (inputLocked.value) {
+    e.preventDefault()
+    return
+  }
   if (skillMenuOpen.value && !e.isComposing && e.keyCode !== 229) {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
@@ -701,6 +688,7 @@ function readImage(file: File): Promise<ChatDraftImage> {
 }
 
 async function processImageFiles(files: File[]) {
+  if (inputLocked.value) return
   if (!supportsImages.value) {
     warnImageUnsupported()
     return
@@ -788,8 +776,7 @@ function removePasteQueueCurrent() {
 }
 
 function sendPasteQueue() {
-  if (!pasteQueue.value.length || (agent.sending && agent.sendingSessionId === sessions.currentId))
-    return
+  if (!pasteQueue.value.length || inputLocked.value) return
   const images: AgentImageAttachment[] = pasteQueue.value.map((item) => ({
     type: 'image' as const,
     data: item.image.data,
@@ -801,6 +788,7 @@ function sendPasteQueue() {
 }
 
 function chooseImages() {
+  if (inputLocked.value) return
   emit('unlockAudio')
   if (!supportsImages.value) {
     warnImageUnsupported()
@@ -832,6 +820,10 @@ async function savePastedToSession(files: File[]): Promise<string[] | null> {
 }
 
 function onPaste(event: ClipboardEvent) {
+  if (inputLocked.value) {
+    event.preventDefault()
+    return
+  }
   const items = Array.from(event.clipboardData?.items ?? [])
   const imageFiles = items
     .filter((item) => item.type.startsWith('image/'))
@@ -896,20 +888,13 @@ function onDrop(event: DragEvent) {
   dragActive.value = false
   if (!files.length) return
   event.preventDefault()
+  if (inputLocked.value) return
   void processImageFiles(files)
 }
 
 function onSoundToggle() {
   emit('unlockAudio')
   emit('toggleSound')
-}
-
-async function onCompact() {
-  if (!compactAvailable.value) return
-  await compaction.requestSmartCompaction({
-    sessionId: sessions.currentId,
-    source: 'workspace'
-  })
 }
 
 watch(
@@ -1006,6 +991,7 @@ onBeforeUnmount(() => {
             class="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-surface-raised)] text-[var(--text-secondary)] shadow-[var(--shadow-sm)] hover:text-[var(--danger)]"
             :title="$t('workspace.removeImage')"
             :aria-label="$t('workspace.removeImage')"
+            :disabled="inputLocked"
             @click="workspace.removeDraftImage(image.id)"
           >
             <X aria-hidden="true" class="size-2.5" :stroke-width="2" />
@@ -1060,8 +1046,8 @@ onBeforeUnmount(() => {
           data-testid="composer-paste-queue-send"
           variant="primary"
           size="sm"
-          :disabled="agent.sending && agent.sendingSessionId === sessions.currentId"
-          :loading="agent.sending && agent.sendingSessionId === sessions.currentId"
+          :disabled="inputLocked"
+          :loading="Boolean(inputLocked)"
           :title="$t('workspace.pasteQueueSend')"
           @click="sendPasteQueue"
         >
@@ -1098,6 +1084,7 @@ onBeforeUnmount(() => {
       >
         <div
           class="composer-text-area relative z-10 w-full cursor-text whitespace-pre-wrap break-words bg-transparent text-[14px] leading-[1.65] text-[var(--text-primary)]"
+          data-testid="composer-text-scroll"
         >
           <span
             v-if="workspace.draftSkill"
@@ -1112,17 +1099,21 @@ onBeforeUnmount(() => {
               class="inline-flex size-4 shrink-0 items-center justify-center rounded-full hover:bg-[var(--bg-hover)]"
               :title="`${$t('common.delete')} @${workspace.draftSkill}`"
               :aria-label="`${$t('common.delete')} @${workspace.draftSkill}`"
+              :disabled="inputLocked"
               @mousedown.prevent
               @click.stop="removeSelectedSkill"
             >
               <X aria-hidden="true" class="size-2.5" :stroke-width="2" />
             </button>
           </span>
-          <span
+          <div
             ref="editor"
             data-testid="composer-editor"
             role="textbox"
-            contenteditable="plaintext-only"
+            :contenteditable="inputLocked ? 'false' : 'plaintext-only'"
+            :aria-disabled="Boolean(inputLocked)"
+            :aria-busy="Boolean(inputLocked)"
+            :tabindex="inputLocked ? -1 : 0"
             aria-multiline="true"
             :aria-label="$t('workspace.composerPlaceholder')"
             :aria-expanded="skillMenuOpen"
@@ -1140,7 +1131,7 @@ onBeforeUnmount(() => {
             @input="onComposerInput"
             @click="updateSkillMention()"
             @paste="onPaste"
-          ></span>
+          ></div>
         </div>
         <Teleport to="body">
           <div
@@ -1208,7 +1199,7 @@ onBeforeUnmount(() => {
               type="button"
               data-testid="composer-skill-trigger"
               class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-              :disabled="selectedImageModel"
+              :disabled="selectedImageModel || inputLocked"
               :title="$t('workspace.mentionSkill')"
               :aria-label="$t('workspace.mentionSkill')"
               @click="openSkillMention"
@@ -1219,7 +1210,7 @@ onBeforeUnmount(() => {
               type="button"
               class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
               :class="workspace.draftImages.length ? 'text-[var(--accent)]' : ''"
-              :disabled="!supportsImages"
+              :disabled="inputLocked || !supportsImages"
               :title="
                 supportsImages ? $t('workspace.attachImage') : $t('workspace.imageUnsupported')
               "
@@ -1305,18 +1296,6 @@ onBeforeUnmount(() => {
                   :collision-padding="8"
                   class="composer-more-menu z-[125] min-w-48 rounded-[var(--menu-radius)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1.5 shadow-[var(--shadow-popover)]"
                 >
-                  <DropdownMenuItem v-if="compactAvailable" as-child>
-                    <Button
-                      data-testid="composer-compact"
-                      variant="ghost"
-                      size="sm"
-                      :title="compactTitle"
-                      @click="onCompact"
-                    >
-                      <Minimize2 aria-hidden="true" class="size-3.5" />
-                      <span class="whitespace-nowrap">{{ compactLabel }}</span>
-                    </Button>
-                  </DropdownMenuItem>
                   <DropdownMenuItem as-child>
                     <button
                       type="button"
@@ -1361,7 +1340,7 @@ onBeforeUnmount(() => {
               :aria-label="$t('workspace.send')"
               :title="$t('workspace.send')"
               :disabled="!canSend"
-              :loading="agent.sending && agent.sendingSessionId === sessions.currentId"
+              :loading="Boolean(inputLocked)"
               @click="emitSend"
             >
               <ArrowUp aria-hidden="true" class="size-[18px]" :stroke-width="2" />
@@ -1421,13 +1400,16 @@ onBeforeUnmount(() => {
  * native caret at the start of an empty draft. */
 .composer-editor {
   position: relative;
+  -webkit-user-select: text;
+  user-select: text;
+  display: block;
+  min-height: 44px;
+  width: 100%;
   caret-color: var(--text-primary);
 }
 
 .composer-editor:empty {
-  display: inline-block;
   min-width: 1px;
-  min-height: 1em;
 }
 
 .composer-editor[data-empty='true']::before {
@@ -1453,6 +1435,9 @@ onBeforeUnmount(() => {
 
 /* The editable region grows naturally, then scrolls without moving the actions. */
 .composer-text-area {
+  -webkit-user-select: text;
+  user-select: text;
+  overscroll-behavior: contain;
   min-height: 76px;
   max-height: min(240px, 32vh);
   overflow-y: auto;

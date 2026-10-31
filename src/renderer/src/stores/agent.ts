@@ -1,3 +1,4 @@
+import { useCompactionStore } from './compaction'
 import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import type {
@@ -836,9 +837,7 @@ function imageExtension(mimeType: string): string {
 }
 
 function flushQueuedCompaction(sessionId: string): void {
-  void import('./compaction').then(({ useCompactionStore }) => {
-    void useCompactionStore().flushPending(sessionId)
-  })
+  void useCompactionStore().flushPending(sessionId)
 }
 
 function resolveActivePiThinking(level: string): string {

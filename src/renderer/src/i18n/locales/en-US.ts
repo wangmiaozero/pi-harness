@@ -1518,7 +1518,7 @@ export const enUS = {
     compactUsageUrgent: 'Compaction strongly recommended',
     compactUsageUnknown: 'Context usage unknown',
     replyTruncated:
-      'The reply reached the model context or output limit. Compact the conversation and retry, or switch to a model with a larger context.',
+      'The response reached the model’s context or output limit. Context is managed automatically; output limits depend on the selected model.',
     enableAutoCompaction: 'Enable auto compaction',
     autoCompaction: 'Auto compaction',
     compactUnsupported: 'This runtime does not support compaction.',

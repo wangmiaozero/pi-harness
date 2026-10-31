@@ -261,6 +261,7 @@ export const IPC_INVOKE = {
   workspaceListSessionBindings: invoke('workspace:list-session-bindings'),
 
   sessionList: invoke('session:list'),
+  sessionCreate: invoke('session:create'),
   sessionGet: invoke('session:get'),
   sessionRename: invoke('session:rename'),
   sessionDelete: invoke('session:delete'),

@@ -130,9 +130,7 @@ const hasDefaultDraftSession = computed(
 const newChatActive = computed(
   () => workspace.activeTab?.kind === 'chat' && workspace.activeTab.sessionId === 'new'
 )
-const canStartSessionFromCurrentProject = computed(
-  () => workspace.canChat && workspace.workspaceFolders.length > 0
-)
+const creatingSession = ref(false)
 const sectionItems = computed(() => [
   { id: 'workspace' as const, label: t('workspace.title'), icon: Folder },
   { id: 'tools' as const, label: t('workspace.tools'), icon: Wrench }
@@ -214,7 +212,11 @@ function running(id: string): boolean {
 }
 
 function sessionTitle(session: SessionInfo): string {
-  return session.name || session.firstMessage || session.id
+  return (
+    session.name ||
+    (session.messageCount === 0 ? t('workspace.newSession') : session.firstMessage) ||
+    session.id
+  )
 }
 
 function sessionFolders(session: SessionInfo): WorkspaceFolder[] {
@@ -232,12 +234,18 @@ async function openSession(session: SessionInfo) {
 }
 
 async function newSession() {
-  if (!canStartSessionFromCurrentProject.value) return
-  if (!(await workspace.startDraftFromActiveWorkspace())) return
-  sessions.selectSession(null)
-  workspace.ensureChatTab('new', t('workspace.newSession'))
-  emit('section-change', 'workspace')
-  emit('focus-composer')
+  if (creatingSession.value) return
+  creatingSession.value = true
+  try {
+    const session = await callApi(() => getApi().sessions.create())
+    sessions.items = [session, ...sessions.items.filter((item) => item.id !== session.id)]
+    await openSession(session)
+    emit('section-change', 'workspace')
+  } catch (error) {
+    toast.error(getErrorPayload(error).message)
+  } finally {
+    creatingSession.value = false
+  }
 }
 
 async function newSessionFromProject(group: SessionProjectGroup) {
@@ -825,19 +833,6 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
         class="workspace-command-actions workspace-command-actions--compact ml-auto flex shrink-0 items-center !gap-1"
       >
         <IconButton
-          variant="accent"
-          :active="newChatActive"
-          :disabled="!canStartSessionFromCurrentProject"
-          :label="$t('workspace.newSession')"
-          :aria-pressed="newChatActive"
-          class="!size-7 !rounded-[7px]"
-          data-testid="workspace-new-session"
-          @click="newSession"
-        >
-          <Plus class="size-3.5" :stroke-width="1.75" />
-        </IconButton>
-        <span aria-hidden="true" class="mx-0.5 h-4 w-px bg-[var(--border-subtle)]" />
-        <IconButton
           :disabled="refreshing"
           :label="$t('common.refresh')"
           class="!size-6 !rounded-[6px] !border-0 !bg-transparent !shadow-none"
@@ -910,12 +905,24 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
       <template v-if="section === 'workspace'">
         <div class="px-2 py-2" data-testid="workspace-session-tree">
           <section data-testid="workspace-chat-list">
-            <p
-              data-testid="workspace-sessions-heading"
-              class="mb-1 text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
-            >
-              {{ $t('workspace.sessions') }}
-            </p>
+            <div class="mb-1 flex items-center justify-between gap-2">
+              <p
+                data-testid="workspace-sessions-heading"
+                class="text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+              >
+                {{ $t('workspace.sessions') }}
+              </p>
+              <IconButton
+                variant="accent"
+                :disabled="creatingSession"
+                :label="$t('workspace.newSession')"
+                class="!size-7 !rounded-[7px]"
+                data-testid="workspace-new-session"
+                @click="newSession"
+              >
+                <Plus class="size-3.5" :stroke-width="1.75" />
+              </IconButton>
+            </div>
             <EmptyState
               v-if="!hasDefaultDraftSession && !chatSessions.length"
               :title="$t('workspace.noSessions')"

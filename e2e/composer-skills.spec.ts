@@ -31,7 +31,7 @@ test('keeps the native caret visible in an empty focused composer', async ({ pag
   const input = page.getByTestId('composer-editor')
   await input.click()
   await expect(input).toBeFocused()
-  await expect(input).toHaveCSS('display', 'inline-block')
+  await expect(input).toHaveCSS('display', 'block')
   const styles = await input.evaluate((element) => ({
     caret: getComputedStyle(element).caretColor,
     text: getComputedStyle(element).color,
@@ -49,7 +49,7 @@ test('keeps the native caret visible in an empty focused composer', async ({ pag
   await input.press('Backspace')
   await expect(input).toHaveText('')
   await expect(input).toBeFocused()
-  await expect(input).toHaveCSS('display', 'inline-block')
+  await expect(input).toHaveCSS('display', 'block')
 })
 
 test('keeps the model submenu adjacent to its vendor panel', async ({ page }) => {

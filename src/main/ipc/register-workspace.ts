@@ -297,6 +297,24 @@ export function registerWorkspaceIpc(
     })
   )
 
+  ipcMain.handle(IPC_INVOKE.sessionCreate, (_e, ...args: unknown[]) =>
+    wrap(async () => {
+      if (args.length) throw new ValidationError('Invalid new conversation request')
+      const active = await workspaceState.ensureDefaultWorkspace()
+      const session = await sessions.createEmpty(active.folders[0].resolvedPath)
+      await workspaceState.bindSession(session.id, {
+        workspaceId: active.id,
+        mainFolderId: active.folders[0].id,
+        folders: active.folders.map((folder) => ({
+          id: folder.id,
+          path: folder.resolvedPath,
+          role: folder.role,
+          readonly: folder.readonly
+        }))
+      })
+      return session
+    })
+  )
   ipcMain.handle(IPC_INVOKE.sessionList, (_e, force: unknown) =>
     wrap(() => {
       const parsed = optionalBooleanSchema.safeParse(force)
