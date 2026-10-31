@@ -158,6 +158,7 @@
   "pnpm": {
     "overrides": {
       "@earendil-works/pi-coding-agent>undici": "8.12.2",
+      "@earendil-works/pi-coding-agent>minimatch": "11.0.1",
       "source-map-js": "1.2.2",
       "vue-tsgo>get-tsconfig": "-"
     },
