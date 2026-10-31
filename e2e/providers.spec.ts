@@ -66,14 +66,14 @@ test.describe('Providers', () => {
       dialog.getByRole('button', { name: /API 密钥类型|API key type/, exact: true })
     ).toContainText(/明文|Literal/)
     await expect(dialog.getByLabel(/API 密钥$|API key$/)).toBeVisible()
-    await expect(dialog.getByLabel(/默认模型 ID|Default model ID/)).toHaveValue('deepseek-v4-flash')
+    await expect(dialog.getByLabel(/默认模型 ID|Default model ID/)).toHaveValue('deepseek-flash')
     await dialog.getByLabel(/默认模型 ID|Default model ID/).click()
-    const deepSeekChat = page
+    const deepSeekPro = page
       .locator('[data-combobox-panel]')
-      .getByRole('button', { name: /DeepSeek Chat/ })
-    await expect(deepSeekChat).toBeVisible()
-    await deepSeekChat.click()
-    await expect(dialog.getByLabel(/默认模型 ID|Default model ID/)).toHaveValue('deepseek-chat')
+      .getByRole('button', { name: /DeepSeek V4 Pro/ })
+    await expect(deepSeekPro).toBeVisible()
+    await deepSeekPro.click()
+    await expect(dialog.getByLabel(/默认模型 ID|Default model ID/)).toHaveValue('deepseek-v4-pro')
     await dialog.getByRole('button', { name: /取消|Cancel/ }).click()
 
     await page.getByRole('button', { name: /新建提供商|New provider/ }).click()
