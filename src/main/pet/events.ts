@@ -22,6 +22,7 @@ export interface PetEventAgentSource {
 
 export class PetEventBridge {
   private detach: (() => void) | null = null
+  private source: PetEventAgentSource | null = null
 
   constructor(
     private readonly controller: PetWindowController,
@@ -29,14 +30,18 @@ export class PetEventBridge {
   ) {}
 
   attach(agent: PetEventAgentSource): void {
-    this.detach?.()
+    if (this.source === agent && this.detach) return
+    this.dispose()
     this.detach = agent.onEvent((event) => this.handleAgentEvent(event, agent))
+    this.source = agent
     log.pet.info('pet event bridge attached')
   }
 
   dispose(): void {
-    this.detach?.()
+    const detach = this.detach
     this.detach = null
+    this.source = null
+    detach?.()
   }
 
   private handleAgentEvent(event: AgentEvent, agent: PetEventAgentSource): void {

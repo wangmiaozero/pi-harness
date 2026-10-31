@@ -42,13 +42,14 @@ export class PetWindowController {
   private pendingPush: PetStatePushPayload | null = null
   private pushTimer: NodeJS.Timeout | null = null
   private quitHookInstalled = false
+  private clickThrough: boolean | null = null
   private readonly onDisplayChange = (): void => {
     const window = this.window
     if (!window || window.isDestroyed()) return
     try {
       const { x, y, width, height } = window.getBounds()
       const next = clampPetPosition(x, y, width, height)
-      window.setPosition(next.x, next.y, false)
+      if (next.x !== x || next.y !== y) window.setPosition(next.x, next.y, false)
       this.savePosition()
       this.pushConfig()
     } catch (error) {
@@ -144,6 +145,7 @@ export class PetWindowController {
   }
 
   private createWindow(settings: DesktopPetSettings): void {
+    this.clickThrough = null
     const { width, height } = this.petWindowSize(settings.size)
     const position = resolvePetWindowPosition(this.deps.getWindowState(), width, height)
     const window = new BrowserWindow({
@@ -229,7 +231,7 @@ export class PetWindowController {
       const [x, y] = window.getPosition()
       const [w, h] = window.getSize()
       const next = clampPetPosition(x + dx, y + dy, w, h)
-      window.setPosition(next.x, next.y, false)
+      if (next.x !== x || next.y !== y) window.setPosition(next.x, next.y, false)
       return { x: next.x, y: next.y, workArea: this.currentWorkArea() }
     } catch (error) {
       log.pet.error('moveBy failed:', error)
@@ -260,9 +262,11 @@ export class PetWindowController {
   setClickThrough(through: boolean): void {
     const window = this.window
     if (!window || window.isDestroyed()) return
+    if (this.clickThrough === through) return
     try {
-      log.pet.debug(`click-through ${through ? 'on' : 'off'}`)
       window.setIgnoreMouseEvents(through, { forward: true })
+      this.clickThrough = through
+      log.pet.debug(`click-through ${through ? 'on' : 'off'}`)
     } catch (error) {
       log.pet.error('setClickThrough failed:', error)
     }
@@ -274,11 +278,12 @@ export class PetWindowController {
     if (!window || window.isDestroyed()) return
     try {
       const [width, height] = window.getSize()
-      const display = screen.getDisplayNearestPoint(window.getBounds())
+      const bounds = window.getBounds()
+      const display = screen.getDisplayNearestPoint(bounds)
       const area = display.workArea
       const x = Math.round(area.x + Math.max(0, (area.width - width) / 2))
       const y = Math.round(area.y + Math.max(0, (area.height - height) / 2))
-      window.setPosition(x, y, false)
+      if (bounds.x !== x || bounds.y !== y) window.setPosition(x, y, false)
       this.persistPosition(x, y)
       log.pet.info('pet position reset')
     } catch (error) {
