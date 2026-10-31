@@ -74,7 +74,7 @@ test.describe('Models', () => {
     )
     await expect(page.getByTestId('model-management-tab-models')).toBeDisabled()
     await expect(
-      page.getByText(/请先配置厂商，再配置模型|Configure a provider before/)
+      page.getByText(/请先添加提供商，再配置模型|Configure a provider before/)
     ).toBeVisible()
   })
 

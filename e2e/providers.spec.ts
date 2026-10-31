@@ -154,7 +154,7 @@ test.describe('Providers', () => {
 
     await page.locator('a[href="#/models"]').click()
     await page.getByTestId('model-management-tab-providers').click()
-    const presetPicker = page.getByPlaceholder(/搜索并选择厂商|Search and select a provider/)
+    const presetPicker = page.getByPlaceholder(/搜索并选择提供商|Search and select a provider/)
     await presetPicker.fill('DeepSeek')
     await page
       .locator('[data-combobox-panel]')
@@ -266,7 +266,7 @@ test.describe('Providers', () => {
       await dialog.getByLabel(/API 基础 URL|Base URL/).fill(`http://127.0.0.1:${port}/empty`)
       await dialog.getByRole('button', { name: /一键获取全部模型|Fetch all models/ }).click()
       await expect(dialog.getByRole('status')).toContainText(
-        /厂商没有返回任何模型|provider returned no models/
+        /提供商没有返回任何模型|provider returned no models/
       )
 
       await dialog.getByLabel(/API 基础 URL|Base URL/).fill(`http://127.0.0.1:${port}/failure`)

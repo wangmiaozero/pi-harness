@@ -86,7 +86,7 @@ onMounted(async () => {
           @click="selectTab('providers')"
         >
           <Server class="size-3.5" :stroke-width="1.75" />
-          {{ $t('navShort.providers') }}
+          {{ $t('nav.providers') }}
           <span
             v-if="activeTab === 'providers'"
             class="absolute inset-x-2 bottom-0 h-[2px] rounded-t-full bg-[var(--accent)]"
