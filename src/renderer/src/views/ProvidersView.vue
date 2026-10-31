@@ -1090,9 +1090,6 @@ onMounted(() => {
           </div>
         </div>
       </div>
-      <p v-if="standardProviders.length > 0" class="px-1 text-[11.5px] text-[var(--text-tertiary)]">
-        {{ $t('providers.exclusiveEnabledHint') }}
-      </p>
     </div>
 
     <Dialog
