@@ -1,3 +1,4 @@
+import { readState, runtimeModels } from '../../../resources/desktop-extension/opencode-state.mjs'
 /**
  * AgentSession registry + runtime. Runs exclusively in Electron Main.
  *
@@ -48,11 +49,7 @@ import {
 import { AgentEventBatcher, type AgentEventBatch } from './agent-event-batcher'
 import { inspectRuntimeError, runtimeEventError } from '@shared/workspace/runtime-error'
 import { applyWorkspacePrompt } from '@shared/workspace/workspace-context'
-import {
-  isKnownHarnessThinkingLevel,
-  resolveCompactionThinkingLevel,
-  resolveThinkingLevel
-} from '@shared/thinking/levels'
+import { isKnownHarnessThinkingLevel, resolveThinkingLevel } from '@shared/thinking/levels'
 import { createDesktopExtension, type DesktopSessionContext } from './desktop-extension'
 import { getIsDev } from '../services/app-paths'
 import type { SessionService } from '../sessions/session-service'
@@ -99,7 +96,7 @@ export class AgentSessionWrapper {
       entryId: string
     ) => Promise<{ cancelled: boolean; newSessionId?: string; newSessionFile?: string }>
   ) {
-    installCompactionThinkingGuard(inner)
+    if (inner.autoCompactionEnabled === false) inner.setAutoCompactionEnabled(true)
     this.installFileToolEnforcement()
   }
 
@@ -697,28 +694,6 @@ function resolveModelThinkingLevel(requested: string, model: unknown): ThinkingL
   return resolved
 }
 
-function installCompactionThinkingGuard(session: AgentSessionLike): void {
-  const original = session.compact.bind(session)
-  session.compact = async (instructions?: string) => {
-    const current = session.thinkingLevel
-    const compactionRequested = resolveCompactionThinkingLevel(current)
-    const next = resolveThinkingLevel({
-      requested: compactionRequested,
-      supportedLevels: session.getAvailableThinkingLevels()
-    })
-    const restore = next !== current && supportsThinkingLevel(session, next)
-    if (restore) session.setThinkingLevel(next)
-    logThinking('Compaction', current, next, session, { sessionThinking: current })
-    try {
-      return await original(instructions)
-    } finally {
-      if (restore && supportsThinkingLevel(session, current)) {
-        session.setThinkingLevel(current)
-      }
-    }
-  }
-}
-
 function isDevLoggingEnabled(): boolean {
   try {
     return getIsDev()
@@ -1032,9 +1007,7 @@ export class AgentRuntimeService implements AgentRuntime {
     const architectureHint = (await this.workspace?.architectureHint?.(sessionCwd)) ?? null
     // An unspecified mode keeps the legacy fail-closed containment: only an
     // explicitly selected mode (e.g. 全自动) relaxes the workspace guards.
-    const sessionPermissionMode: PermissionMode | undefined = isPermissionMode(
-      input.permissionMode
-    )
+    const sessionPermissionMode: PermissionMode | undefined = isPermissionMode(input.permissionMode)
       ? input.permissionMode
       : undefined
     const systemPromptController: DesktopSessionContext = {
@@ -1114,8 +1087,6 @@ export class AgentRuntimeService implements AgentRuntime {
           modelId: settingsManager.getDefaultModel()
         })
     if (intended.provider === 'opencode-free') {
-      const { readState, runtimeModels } =
-        await import('../../../resources/desktop-extension/opencode-state.mjs')
       const registered =
         model ?? services.modelRuntime.getModel('opencode-free', intended.modelId ?? '')
       if (

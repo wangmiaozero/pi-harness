@@ -394,11 +394,15 @@ export class PiConfigService {
 
   /** Cooperating readers share the writer barrier; never expose a partial restore. */
   withConsistentRead<T>(read: () => Promise<T>): Promise<T> {
-    return this.withWriteLock(read)
+    return this.withWriteLock(read, undefined, 1500)
   }
 
   private writes: Promise<unknown> = Promise.resolve()
-  private async withWriteLock<T>(fn: () => Promise<T>, recoveryKey?: string): Promise<T> {
+  private async withWriteLock<T>(
+    fn: () => Promise<T>,
+    recoveryKey?: string,
+    waitMs = 0
+  ): Promise<T> {
     const current = this.writes
       .catch(() => undefined)
       .then(() =>
@@ -408,7 +412,8 @@ export class PiConfigService {
             if (!recoveryKey) await this.backup.assertNoUnfinishedRestore()
             return fn()
           },
-          recoveryKey
+          recoveryKey,
+          { waitMs }
         )
       )
     this.writes = current

@@ -1,3 +1,9 @@
+import { secretStore } from '../security/secret-store'
+import {
+  readState,
+  runtimeModels,
+  credentialSlot
+} from '../../../resources/desktop-extension/opencode-state.mjs'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -213,8 +219,6 @@ export class PiRpcRuntime implements HarnessAdapter {
       }
     }
     if (intended?.provider === 'opencode-free') {
-      const { readState, runtimeModels } =
-        await import('../../../resources/desktop-extension/opencode-state.mjs')
       if (!runtimeModels(await readState()).some((m) => m.id === intended!.modelId))
         throw new AgentError(
           'OpenCode model is unavailable or not verified; select another model explicitly'
@@ -233,9 +237,6 @@ export class PiRpcRuntime implements HarnessAdapter {
     let live!: LiveSession
     const bridge = new DesktopBridge(async (method, params) => {
       if (method === 'opencode_auth') {
-        const { secretStore } = await import('../security/secret-store')
-        const { readState, credentialSlot } =
-          await import('../../../resources/desktop-extension/opencode-state.mjs')
         const state = await readState()
         return state.authMode === 'inference' && state.enabled && state.hasCredential
           ? secretStore.getSecret(credentialSlot(state), { strict: true })
@@ -414,6 +415,8 @@ export class PiRpcRuntime implements HarnessAdapter {
       } finally {
         clearTimeout(readyTimer)
       }
+      // Desktop conversations always retain Pi's automatic context management.
+      await client.request({ type: 'set_auto_compaction', enabled: true })
       live.id = state.sessionId
       if (state.sessionFile) this.sessions.cachePath(state.sessionId, state.sessionFile)
       if (this.closing) throw new AgentError('Pi runtime is shutting down')

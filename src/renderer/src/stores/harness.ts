@@ -1,3 +1,4 @@
+import { useCompactionStore } from './compaction'
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import type {
@@ -163,9 +164,7 @@ export const useHarnessStore = defineStore('harness', () => {
       applyState(nextState)
       session.value = nextSession
       error.value = null
-      void import('./compaction').then(({ useCompactionStore }) => {
-        void useCompactionStore().flushPending(id)
-      })
+      void useCompactionStore().flushPending(id)
     } catch (cause) {
       if (currentGeneration === generation) error.value = errorMessage(cause)
     }

@@ -403,8 +403,8 @@ export class PetService {
           this.controller.setClickThrough(args[0] === true)
           return undefined
         case IPC_INVOKE.petOpenMain: {
-          if (this.activeAgentCount() > 0) return undefined
           const view = args[0] === 'settings' ? 'settings' : 'main'
+          if (this.activeAgentCount() > 0 && view !== 'main') return undefined
           this.menuCallbacks.openMain(view)
           return undefined
         }
@@ -421,7 +421,7 @@ export class PetService {
   }
 
   private async handleMenuAction(action: unknown): Promise<void> {
-    if (this.activeAgentCount() > 0) return
+    if (this.activeAgentCount() > 0 && action !== 'open-main') return
     switch (action) {
       case 'open-main':
         this.menuCallbacks.openMain('main')

@@ -2,53 +2,13 @@ import { catalog } from './distribution.mjs'
 import { binaryIdentity } from './binary-identity.mjs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
 import semver from 'semver'
 import type { ResolvedRuntime, RuntimeKind, RuntimeSource } from '@shared/runtime/schema'
 import { buildRuntimeEnvironment } from './environment'
-import { log } from '../services/logger'
+import { probe } from './version-probe'
 import { assessNodeSecurity } from '@shared/runtime/node-security-policy.mjs'
 
-const exec = promisify(execFile)
-export async function probe(
-  executable: string,
-  args: string[],
-  env: NodeJS.ProcessEnv
-): Promise<string> {
-  const started = performance.now()
-  try {
-    const pending = exec(executable, args, {
-      // Metadata checks must not inspect the application's inherited project.
-      cwd: path.dirname(executable),
-      env: { ...env, NODE_OPTIONS: undefined },
-      shell: false,
-      windowsHide: true,
-      timeout: 15_000,
-      maxBuffer: 1024 * 1024
-    })
-    pending.child.stdin?.end()
-    const { stdout } = await pending
-    return stdout.trim()
-  } catch (error) {
-    const failure = error as NodeJS.ErrnoException & {
-      signal?: string
-      killed?: boolean
-      stdout?: string
-      stderr?: string
-    }
-    const reason = failure.killed ? 'timeout' : (failure.code ?? failure.signal ?? 'process exit')
-    log.pi.warn('Runtime version probe failed', {
-      executable: path.basename(executable),
-      elapsedMs: Math.round(performance.now() - started),
-      reason,
-      signal: failure.signal,
-      stdoutBytes: Buffer.byteLength(failure.stdout ?? ''),
-      stderrBytes: Buffer.byteLength(failure.stderr ?? '')
-    })
-    throw new Error(`Runtime version probe failed (${reason})`, { cause: error })
-  }
-}
+export { probe } from './version-probe'
 
 export { binaryIdentity } from './binary-identity.mjs'
 

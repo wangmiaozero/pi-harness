@@ -31,6 +31,7 @@ native('official standalone Pi with independent Node', () => {
   const events: HarnessEvent[] = []
   const replies: Array<string | { tool: string; args: Record<string, unknown> }> = []
   const paths = new Map<string, string>()
+  let largeUsage = false
   beforeEach(async () => {
     root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'pi RPC 空格 ')))
     cwd = path.join(root, 'workspace')
@@ -39,10 +40,14 @@ native('official standalone Pi with independent Node', () => {
     await fs.mkdir(config)
     requests.length = events.length = replies.length = 0
     paths.clear()
+    largeUsage = false
     server = http.createServer(async (request, response) => {
       let body = ''
       for await (const chunk of request) body += chunk
-      requests.push(JSON.parse(body))
+      const payload = JSON.parse(body)
+      requests.push(payload)
+      const summary = JSON.stringify(payload.messages).includes('<conversation>')
+      const capped = summary && largeUsage && payload.reasoning_effort !== 'low'
       const reply = replies.shift() ?? 'Standalone response'
       const tool = typeof reply !== 'string'
       const delta = tool
@@ -61,10 +66,10 @@ native('official standalone Pi with independent Node', () => {
       response.writeHead(200, { 'Content-Type': 'text/event-stream' })
       for (const part of [
         { delta, finish_reason: null },
-        { delta: {}, finish_reason: tool ? 'tool_calls' : 'stop' }
+        { delta: {}, finish_reason: capped ? 'length' : tool ? 'tool_calls' : 'stop' }
       ])
         response.write(
-          `data: ${JSON.stringify({ id: 'fixture', object: 'chat.completion.chunk', created: 1, model: 'fixture', choices: [{ index: 0, ...part }] })}\n\n`
+          `data: ${JSON.stringify({ id: 'fixture', object: 'chat.completion.chunk', created: 1, model: 'fixture', ...(largeUsage && !summary ? { usage: { prompt_tokens: 120000, completion_tokens: 20, total_tokens: 120020 } } : {}), choices: [{ index: 0, ...part }] })}\n\n`
         )
       response.end('data: [DONE]\n\n')
     })
@@ -190,6 +195,50 @@ native('official standalone Pi with independent Node', () => {
     })
     await verifyDistribution(path.join(bundledRoot, 'pi'), 'pi', process.platform, process.arch)
   }, 45_000)
+  it('enables automatic compaction and preserves reasoning across standalone summaries', async () => {
+    const modelsFile = path.join(config, 'models.json')
+    const models = JSON.parse(await fs.readFile(modelsFile, 'utf8'))
+    Object.assign(models.providers.fixture.models[0], {
+      reasoning: true,
+      compat: { thinkingFormat: 'deepseek' }
+    })
+    await fs.writeFile(modelsFile, JSON.stringify(models))
+    const started = await runtime.startSession({
+      cwd,
+      provider: 'fixture',
+      modelId: 'fixture',
+      thinkingLevel: 'high'
+    })
+    runtime.subscribe(started.sessionId, (event) => events.push(event))
+    expect(
+      JSON.parse(await fs.readFile(path.join(config, 'settings.json'), 'utf8')).compaction.enabled
+    ).toBe(true)
+    async function prompt(message: string) {
+      const before = events.length
+      await runtime.prompt(started.sessionId, message)
+      await vi.waitFor(
+        () =>
+          expect(events.slice(before).some((event) => event.type === 'prompt.completed')).toBe(
+            true
+          ),
+        { timeout: 20000 }
+      )
+    }
+    for (let i = 0; i < 3; i++) await prompt(`history ${i} ` + 'context '.repeat(12000))
+    largeUsage = true
+    await prompt('Continue the existing work')
+    const summaries = requests.filter((request) =>
+      JSON.stringify(request.messages).includes('<conversation>')
+    )
+    expect(summaries.length).toBeGreaterThan(0)
+    expect(summaries.every((request) => request.reasoning_effort === 'low')).toBe(true)
+    expect(events.some((event) => event.type === 'compaction.completed')).toBe(true)
+    expect(await fs.readFile(paths.get(started.sessionId)!, 'utf8')).toContain(
+      '"type":"compaction"'
+    )
+    expect(await runtime.getState(started.sessionId)).toMatchObject({ thinking: { level: 'high' } })
+  }, 60000)
+
   it('streams a model response, preserves native images and resumes its persisted JSONL', async () => {
     const started = await runtime.startSession({ cwd, provider: 'fixture', modelId: 'fixture' })
     runtime.subscribe(started.sessionId, (event) => events.push(event))

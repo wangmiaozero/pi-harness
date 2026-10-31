@@ -3,11 +3,12 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { ConfigConflictError } from './errors'
 
-/** Fail-fast writer lease. Only a provably dead owner can be reclaimed. */
+/** Writers fail fast; consistent readers can wait briefly. Only dead owners can be reclaimed. */
 export async function withFileLease<T>(
   target: string,
   operation: () => Promise<T>,
-  recoveryKey?: string
+  recoveryKey?: string,
+  options: { waitMs?: number } = {}
 ): Promise<T> {
   await fs.mkdir(path.dirname(target), { recursive: true })
   const parent = await fs.realpath(path.dirname(target))
@@ -25,17 +26,24 @@ export async function withFileLease<T>(
     await metadata.close()
   }
   try {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    const deadline = Date.now() + Math.max(0, Math.min(options.waitMs ?? 0, 2000))
+    let reclaimed = false
+    for (;;) {
       try {
         await fs.link(staged, lock)
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
-        if (attempt || !(await reclaimDeadOwner(lock, recoveryKey))) {
-          throw new ConfigConflictError(
-            'Another or interrupted writer owns this file. Close other instances; if a restore was interrupted, reopen its Backups page and restore it again.'
-          )
+        if (!reclaimed && (await reclaimDeadOwner(lock, recoveryKey))) {
+          reclaimed = true
+          continue
         }
-        continue
+        if (Date.now() < deadline) {
+          await new Promise((resolve) => setTimeout(resolve, Math.min(25, deadline - Date.now())))
+          continue
+        }
+        throw new ConfigConflictError(
+          'Another or interrupted writer owns this file. Close other instances; if a restore was interrupted, reopen its Backups page and restore it again.'
+        )
       }
       try {
         return await operation()
@@ -43,7 +51,6 @@ export async function withFileLease<T>(
         await fs.unlink(lock)
       }
     }
-    throw new ConfigConflictError('File writer is unavailable')
   } finally {
     await fs.unlink(staged)
   }

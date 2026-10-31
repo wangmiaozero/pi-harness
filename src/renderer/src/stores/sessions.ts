@@ -33,7 +33,9 @@ export const useSessionStore = defineStore('sessions', () => {
     try {
       const persisted = (await callApi(() => getApi().sessions.list(force))).map((session) => ({
         ...session,
-        name: session.name || summarizeSessionTitle([session.firstMessage]),
+        name:
+          session.name ||
+          (session.messageCount ? summarizeSessionTitle([session.firstMessage]) : undefined),
         firstMessage: formatSkillInvocationSummary(session.firstMessage)
       }))
       if (generation !== refreshGeneration) return

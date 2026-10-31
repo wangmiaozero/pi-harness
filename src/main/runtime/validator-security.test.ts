@@ -7,24 +7,15 @@ const state = vi.hoisted(() => ({ version: '24.22.0', compatible: true }))
 vi.mock('./binary-identity.mjs', () => ({
   binaryIdentity: async () => ({ platform: process.platform, arch: process.arch })
 }))
-vi.mock('node:child_process', async () => {
-  const { promisify } = await import('node:util')
-  const execFile = Object.assign(() => undefined, {
-    [promisify.custom]: () =>
-      Object.assign(
-        Promise.resolve({
-          stdout: JSON.stringify({
-            version: state.version,
-            platform: process.platform,
-            arch: process.arch,
-            compatible: state.compatible
-          })
-        }),
-        { child: { stdin: { end() {} } } }
-      )
-  })
-  return { execFile }
-})
+vi.mock('./version-probe', () => ({
+  probe: async () =>
+    JSON.stringify({
+      version: state.version,
+      platform: process.platform,
+      arch: process.arch,
+      compatible: state.compatible
+    })
+}))
 import { validateExecutable } from './validator'
 const roots: string[] = []
 afterEach(async () => {

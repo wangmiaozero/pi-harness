@@ -344,6 +344,7 @@ const api: PiSwitchAPI = {
     listSessionBindings: () => invoke(IPC_INVOKE.workspaceListSessionBindings)
   },
   sessions: {
+    create: () => invoke(IPC_INVOKE.sessionCreate),
     list: (force) => invoke(IPC_INVOKE.sessionList, force),
     get: (sessionId) => invoke(IPC_INVOKE.sessionGet, sessionId),
     rename: (sessionId, name) => invoke(IPC_INVOKE.sessionRename, { sessionId, name }),
@@ -356,8 +357,7 @@ const api: PiSwitchAPI = {
     contextMenu: (sessionId, isWorktree, isPinned, locale) =>
       invoke(IPC_INVOKE.sessionContextMenu, { sessionId, isWorktree, isPinned, locale }),
     previewCleanup: (options) => invoke(IPC_INVOKE.sessionCleanupPreview, options),
-    executeCleanup: (previewToken) =>
-      invoke(IPC_INVOKE.sessionCleanupExecute, { previewToken })
+    executeCleanup: (previewToken) => invoke(IPC_INVOKE.sessionCleanupExecute, { previewToken })
   },
   agent: {
     start: (input) => invoke(IPC_INVOKE.agentStart, input),
@@ -531,8 +531,7 @@ const api: PiSwitchAPI = {
   on(event, listener) {
     const ipcListener = listener as IpcEventListener
     if (event === 'config-changed') return onEvent(IPC_EVENT.configChanged, ipcListener)
-    if (event === 'ui-command')
-      return onEvent(IPC_EVENT.uiCommand, listener as IpcEventListener)
+    if (event === 'ui-command') return onEvent(IPC_EVENT.uiCommand, listener as IpcEventListener)
     if (event === 'pi-environment-changed')
       return onEvent(IPC_EVENT.piEnvironmentChanged, ipcListener)
     if (event === 'environment-install-task')

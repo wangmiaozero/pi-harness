@@ -27,6 +27,8 @@ describe('Pi 1.2 native execution compatibility', () => {
   const events: AgentEvent[] = []
   let workspace = 'first project'
   let policySignal: AbortSignal | undefined
+  let largeUsage = false
+  let capEverySummary = false
 
   beforeEach(async () => {
     root = await fs.mkdtemp(path.join(os.tmpdir(), 'pi harness native-'))
@@ -38,10 +40,15 @@ describe('Pi 1.2 native execution compatibility', () => {
     replies.length = requests.length = events.length = 0
     workspace = 'first project'
     policySignal = undefined
+    largeUsage = capEverySummary = false
     server = http.createServer(async (request, response) => {
       let body = ''
       for await (const chunk of request) body += chunk
-      requests.push(JSON.parse(body))
+      const payload = JSON.parse(body)
+      requests.push(payload)
+      const summary = JSON.stringify(payload.messages).includes('<conversation>')
+      const capped =
+        summary && (capEverySummary || (largeUsage && payload.reasoning_effort !== 'low'))
       const reply = replies.shift() ?? 'completed'
       if (reply === 'provider-error-fixture') {
         response
@@ -67,7 +74,7 @@ describe('Pi 1.2 native execution compatibility', () => {
       response.writeHead(200, { 'Content-Type': 'text/event-stream' })
       for (const part of [
         { delta, finish_reason: null },
-        { delta: {}, finish_reason: tool ? 'tool_calls' : 'stop' }
+        { delta: {}, finish_reason: capped ? 'length' : tool ? 'tool_calls' : 'stop' }
       ]) {
         response.write(
           `data: ${JSON.stringify({
@@ -75,6 +82,9 @@ describe('Pi 1.2 native execution compatibility', () => {
             object: 'chat.completion.chunk',
             created: 1,
             model: 'fixture',
+            ...(largeUsage && !summary
+              ? { usage: { prompt_tokens: 120000, completion_tokens: 20, total_tokens: 120020 } }
+              : {}),
             choices: [{ index: 0, ...part }]
           })}\n\n`
         )
@@ -743,6 +753,49 @@ describe('Pi 1.2 native execution compatibility', () => {
     expect(await fs.readFile(wrapper.inner.sessionFile!, 'utf8')).toContain(
       'native reasoning retained'
     )
+  }, 60000)
+
+  it('automatically compacts long conversations with low reasoning and restores the user level', async () => {
+    const wrapper = await start()
+    expect(wrapper.inner.autoCompactionEnabled).toBe(true)
+    for (let i = 0; i < 3; i++)
+      await run(wrapper.sessionId, 'completed', `history ${i} ` + 'context '.repeat(12000))
+    largeUsage = true
+    await run(wrapper.sessionId, 'completed', 'Continue the existing work')
+    await expect
+      .poll(() =>
+        events.some((event) => event.type === 'compaction_end' && event.reason === 'threshold')
+      )
+      .toBe(true)
+    const summaries = requests.filter((request) =>
+      JSON.stringify(request.messages).includes('<conversation>')
+    )
+    expect(summaries.length).toBeGreaterThan(0)
+    expect(summaries.every((request) => request.reasoning_effort === 'low')).toBe(true)
+    expect(
+      wrapper.inner.sessionManager.getEntries().some((entry) => entry.type === 'compaction')
+    ).toBe(true)
+    expect(wrapper.inner.thinkingLevel).toBe('high')
+    expect(events.some((event) => event.type === 'prompt_error')).toBe(false)
+  }, 60000)
+
+  it('never persists an incomplete summary after a length stop', async () => {
+    const wrapper = await start()
+    await run(wrapper.sessionId, 'completed')
+    for (let i = 0; i < 30; i++)
+      wrapper.inner.sessionManager.appendMessage({
+        role: 'user',
+        content: `history ${i} ` + 'context '.repeat(2000),
+        timestamp: Date.now()
+      })
+    wrapper.inner.refreshContext()
+    capEverySummary = true
+    await expect(wrapper.send({ type: 'compact' })).rejects.toThrow('summary is incomplete')
+    expect(
+      wrapper.inner.sessionManager.getEntries().some((entry) => entry.type === 'compaction')
+    ).toBe(false)
+    expect(await fs.readFile(wrapper.inner.sessionFile!, 'utf8')).toContain('history 29')
+    expect(wrapper.inner.thinkingLevel).toBe('high')
   }, 60000)
 
   it('settles final provider errors as failed rather than successful idle runs', async () => {

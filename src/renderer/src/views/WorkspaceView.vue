@@ -23,7 +23,6 @@ import { FolderOpen, PanelLeftClose, PanelLeftOpen, Network, Gauge, Bot } from '
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
-import { useCompactionStore } from '@renderer/stores/compaction'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useHarnessStore } from '@renderer/stores/harness'
 import { registerShortcut } from '@renderer/composables/shortcuts'
@@ -357,13 +356,6 @@ function onAbortEvent() {
   if (sessions.currentId) void agent.abort(sessions.currentId)
 }
 
-function onCompactEvent() {
-  void useCompactionStore().requestSmartCompaction({
-    sessionId: sessions.currentId,
-    source: 'command-palette'
-  })
-}
-
 function onOpenFolderEvent() {
   openProject()
 }
@@ -414,7 +406,6 @@ onMounted(() => {
     await Promise.all([workspace.loadFiles(), workspace.loadGit(), workspace.refreshRecent()])
   })()
   window.addEventListener('pi-harness:abort-agent', onAbortEvent)
-  window.addEventListener('pi-harness:compact-session', onCompactEvent)
   window.addEventListener('pi-harness:workspace-open-folder', onOpenFolderEvent)
   window.addEventListener('pi-harness:workspace-open-file', onOpenWorkspaceEvent)
   window.addEventListener('pi-harness:workspace-add-folder', onAddFolderEvent)
@@ -434,7 +425,6 @@ onBeforeUnmount(() => {
   if (refreshTimer) clearTimeout(refreshTimer)
   unsubWorkspaceChanged?.()
   window.removeEventListener('pi-harness:abort-agent', onAbortEvent)
-  window.removeEventListener('pi-harness:compact-session', onCompactEvent)
   window.removeEventListener('pi-harness:workspace-open-folder', onOpenFolderEvent)
   window.removeEventListener('pi-harness:workspace-open-file', onOpenWorkspaceEvent)
   window.removeEventListener('pi-harness:workspace-add-folder', onAddFolderEvent)

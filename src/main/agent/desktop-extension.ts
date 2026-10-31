@@ -1,8 +1,11 @@
+import { secretStore } from '../security/secret-store'
+import { readState, credentialSlot } from '../../../resources/desktop-extension/opencode-state.mjs'
 import type { ExtensionFactory } from '@earendil-works/pi-coding-agent'
 import { applyWorkspacePrompt } from '@shared/workspace/workspace-context'
 import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 import { extractToolPath } from '../workspace/workspace-tool-guard'
 import type { PermissionMode } from '@shared/workspace/permission-mode'
+import { installCompactionPolicy } from '../../../resources/desktop-extension/compaction.mjs'
 
 export interface DesktopSessionContext {
   forceEmpty: boolean
@@ -19,6 +22,7 @@ export function createDesktopExtension(
   }
 ): ExtensionFactory {
   return async (pi) => {
+    installCompactionPolicy(pi)
     pi.on('before_agent_start', (event) => ({
       // Both user and extension-triggered custom runs carry systemPrompt.
       systemPrompt: context.forceEmpty
@@ -44,9 +48,6 @@ export function createDesktopExtension(
         await import('../../../resources/desktop-extension/opencode-provider.mjs')
       await registerOpenCode(pi, {
         resolveKey: async () => {
-          const { secretStore } = await import('../security/secret-store')
-          const { readState, credentialSlot } =
-            await import('../../../resources/desktop-extension/opencode-state.mjs')
           const state = await readState()
           return state.authMode === 'inference' && state.enabled && state.hasCredential
             ? ((await secretStore.getSecret(credentialSlot(state), { strict: true })) ?? undefined)

@@ -23,7 +23,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { randomBytes } from 'node:crypto'
 import fs from 'node:fs/promises'
-import { app, safeStorage } from 'electron'
+import { safeStorage } from 'electron'
 import path from 'node:path'
 import { log } from '../services/logger'
 import { appSecretVaultPath } from '../services/app-paths'
@@ -218,9 +218,6 @@ class SecretStore {
 }
 
 export const secretStore = new SecretStore()
-
-// Touch app import so electron types are surfaced without an unused warning.
-void app
 
 // Touch crypto to avoid tree-shake surprises on the vault nonce path.
 void randomBytes

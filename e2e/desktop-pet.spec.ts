@@ -332,7 +332,7 @@ test('every desktop pet menu action performs its advertised operation', async ({
   await exited
 })
 
-test('all manual actions play from the context menu and tasks allow only dragging', async ({
+test('all manual actions play and tasks retain dragging and opening the console', async ({
   page,
   electronApp
 }, testInfo) => {
@@ -418,7 +418,18 @@ test('all manual actions play from the context menu and tasks allow only draggin
   await expect(image).toHaveAttribute('src', /\/clips\/thinking\//)
   const box = (await image.boundingBox())!
   await pet.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { button: 'right' })
-  await expect(pet.getByRole('menu')).toHaveCount(0)
+  await expect(pet.getByRole('menuitem')).toHaveCount(1)
+  await expect(pet.getByRole('menuitem', { name: '打开 Pi-Harness', exact: true })).toBeVisible()
+  await pet.getByRole('menuitem', { name: '打开 Pi-Harness', exact: true }).click()
+  await expect
+    .poll(() =>
+      electronApp.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows()
+          .find((w) => w.webContents.getURL().includes('/index.html'))!
+          .isFocused()
+      )
+    )
+    .toBe(true)
   await pet.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
   await expect(image).toHaveAttribute('src', /\/clips\/thinking\//)
   const position = () =>
@@ -438,7 +449,8 @@ test('all manual actions play from the context menu and tasks allow only draggin
   await pushActivity(1, [{ type: 'TASK_SUCCEEDED' }])
   await expect(image).toHaveAttribute('src', /\/clips\/working\//)
   await pet.evaluate(() => window.dispatchEvent(new MouseEvent('contextmenu')))
-  await expect(pet.getByRole('menu')).toHaveCount(0)
+  await expect(pet.getByRole('menuitem')).toHaveCount(1)
+  await pet.keyboard.press('Escape')
   // The activity gate remains active even with visual synchronization disabled.
   await page.evaluate((desktopPet) => window.piSwitch.settings.set({ desktopPet }), {
     ...context.settings,
@@ -446,7 +458,8 @@ test('all manual actions play from the context menu and tasks allow only draggin
   })
   await pushActivity(1, [])
   await pet.evaluate(() => window.dispatchEvent(new MouseEvent('contextmenu')))
-  await expect(pet.getByRole('menu')).toHaveCount(0)
+  await expect(pet.getByRole('menuitem')).toHaveCount(1)
+  await pet.keyboard.press('Escape')
   await pushActivity(0, [])
   await openMenu()
   await pet.screenshot({
