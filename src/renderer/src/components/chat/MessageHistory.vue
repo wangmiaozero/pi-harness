@@ -192,7 +192,12 @@ const summaries = computed(() => {
     :revealed="revealed"
     @reveal="revealed.add($event)"
   />
-  <AssistantTurn v-if="liveMessage && !lastTurn" :assistant-name="assistantName" text="" streaming>
-    <MessageView :message="liveMessage" embedded streaming />
+  <AssistantTurn
+    v-if="!lastTurn && (liveMessage || running)"
+    :assistant-name="assistantName"
+    text=""
+    :streaming="running"
+  >
+    <MessageView v-if="liveMessage" :message="liveMessage" embedded :streaming="running" />
   </AssistantTurn>
 </template>

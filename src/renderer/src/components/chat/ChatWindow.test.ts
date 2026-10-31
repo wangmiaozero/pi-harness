@@ -8,6 +8,7 @@ import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import ChatWindow from './ChatWindow.vue'
 import ChatComposer from './ChatComposer.vue'
+import MessageHistory from './MessageHistory.vue'
 import type { ToolPreset } from '@shared/workspace/tool-presets'
 
 afterEach(() => {
@@ -102,12 +103,14 @@ it.each([false, true])(
       composer.vm.$emit('send')
       await flushPromises()
       expect(composer.props('submitting')).toBe(true)
+      expect(wrapper.findComponent(MessageHistory).props('running')).toBe(true)
       expect(send).toHaveBeenCalledTimes(1)
       expect(workspace.draft).toBe('Original')
       if (failure) agent.error = 'Fixture send failed'
       finish('current')
       await flushPromises()
       expect(composer.props('submitting')).toBe(false)
+      expect(wrapper.findComponent(MessageHistory).props('running')).toBe(false)
       expect(workspace.draft).toBe(failure ? 'Original' : '')
     } finally {
       wrapper.unmount()

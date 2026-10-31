@@ -132,6 +132,37 @@ describe('useStickToBottom', () => {
     expect(scroller.scrollTop).toBe(1800)
   })
 
+  it('keeps following when final markdown layout shifts the viewport after the pin guard expires', async () => {
+    const { scroller, api } = setup({ scrollHeight: 800 })
+    await flushFrames()
+    scroller.scrollHeight = 1800
+    api.onScroll()
+    expect(api.atBottom.value).toBe(false)
+    expect(api.isStuck()).toBe(true)
+
+    await flushFrames()
+    expect(scroller.scrollTop).toBe(1400)
+    expect(api.atBottom.value).toBe(true)
+    api.unbind()
+  })
+
+  it.each(['keyboard', 'scrollbar'] as const)(
+    'preserves the reading position after %s navigation',
+    async (gesture) => {
+      const { scroller, api } = setup({ scrollHeight: 800 })
+      await flushFrames()
+      if (gesture === 'keyboard') api.onKeyDown(new KeyboardEvent('keydown', { key: 'PageUp' }))
+      else api.onPointerDown({ clientX: 320 } as PointerEvent)
+      scroller.scrollTop = 100
+      scroller.scrollHeight = 1800
+      api.scheduleSync()
+      await flushFrames()
+      expect(api.isStuck()).toBe(false)
+      expect(scroller.scrollTop).toBe(100)
+      api.unbind()
+    }
+  )
+
   it('unsticks on an upward touch drag without moving the user viewport', async () => {
     const { scroller, api } = setup({ scrollHeight: 900 })
     const startTop = scroller.scrollTop

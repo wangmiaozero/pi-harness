@@ -79,6 +79,7 @@ const {
   onTouchStart: onScrollerTouchStart,
   onTouchMove: onScrollerTouchMove,
   onPointerDown: onScrollerPointerDown,
+  onKeyDown: onScrollerKeyDown,
   scrollToEdge,
   stick: stickToLatest,
   release: releaseFollow,
@@ -145,7 +146,7 @@ const liveMessage = computed(() => {
   return live && hasRenderableMessageContent(live) ? live : null
 })
 
-watch([persistedMessages, liveMessage], async () => {
+watch([persistedMessages, liveMessage, () => agent.isBusy(sessions.currentId)], async () => {
   await nextTick()
   scheduleScrollSync()
 })
@@ -360,6 +361,7 @@ function duration(value: number): string {
         @touchstart.passive="onScrollerTouchStart"
         @touchmove.passive="onScrollerTouchMove"
         @pointerdown="onScrollerPointerDown"
+        @keydown="onScrollerKeyDown"
       >
         <div
           ref="scrollContent"
@@ -368,7 +370,12 @@ function duration(value: number): string {
           @click.capture="onTranscriptClick"
         >
           <EmptyState
-            v-if="!persistedMessages.length && !liveMessage"
+            v-if="
+              !persistedMessages.length &&
+              !liveMessage &&
+              !submitting &&
+              !agent.isBusy(sessions.currentId)
+            "
             :title="$t('workspace.emptyChat')"
             :description="$t('workspace.emptyChatHint')"
             :icon="MessageSquare"
@@ -378,7 +385,7 @@ function duration(value: number): string {
             :items="persistedMessages"
             :user-name="userName"
             :assistant-name="assistantName"
-            :running="agent.isBusy(sessions.currentId)"
+            :running="submitting || agent.isBusy(sessions.currentId)"
             :live-message="liveMessage"
           />
           <div v-if="agent.error" role="alert" class="mt-2 text-[12px] [overflow-wrap:anywhere]">
