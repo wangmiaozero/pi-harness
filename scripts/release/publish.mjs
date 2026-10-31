@@ -1,11 +1,10 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { Readable } from 'node:stream'
 import { createHash } from 'node:crypto'
 import { validateVersion, digest } from './policy.mjs'
 import { verifyCandidate } from './verify-candidate.mjs'
 import { verifiedManifest } from '../../src/main/updater/security/manifest.mjs'
-import { fetchOfficial, readBounded } from '../../src/main/updater/security/transport.mjs'
+import { createReleaseClient } from './github-release-client.mjs'
 
 export async function publishRelease(client, plan) {
   validateVersion(plan.version, plan.tag)
@@ -114,94 +113,6 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
     requireSignature: true
   })
   const trust = JSON.parse(await fs.readFile('resources/release-public-keys.json', 'utf8'))
-  const api = `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}`
-  const headers = {
-    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-    Accept: 'application/vnd.github+json',
-    'Content-Type': 'application/json',
-    'X-GitHub-Api-Version': '2022-11-28'
-  }
-  async function request(url, options = {}) {
-    const response = await fetch(url, {
-      ...options,
-      redirect: 'error',
-      headers: { ...headers, ...options.headers },
-      signal: AbortSignal.timeout(300_000)
-    })
-    if (!response.ok) throw new Error(`GitHub release request failed: HTTP ${response.status}`)
-    return response
-  }
-  async function get(id) {
-    const release = await (await request(`${api}/releases/${id}`)).json()
-    release.assets = []
-    for (let page = 1; ; page++) {
-      const assets = await (
-        await request(`${api}/releases/${id}/assets?per_page=100&page=${page}`)
-      ).json()
-      release.assets.push(...assets)
-      if (assets.length < 100) break
-    }
-    return release
-  }
-  const client = {
-    async find(tag) {
-      const response = await fetch(`${api}/releases/tags/${tag}`, {
-        headers,
-        signal: AbortSignal.timeout(30_000)
-      })
-      if (response.status === 404) return null
-      if (!response.ok) throw new Error(`Release existence check failed: HTTP ${response.status}`)
-      return get((await response.json()).id)
-    },
-    async create(body) {
-      return (
-        await request(`${api}/releases`, { method: 'POST', body: JSON.stringify(body) })
-      ).json()
-    },
-    get,
-    async upload(release, file) {
-      const url = new URL(release.upload_url.split('{')[0])
-      if (url.origin !== 'https://uploads.github.com')
-        throw new Error('Unexpected asset upload host')
-      url.searchParams.set('name', file.name)
-      const { createReadStream } = await import('node:fs')
-      await request(url, {
-        method: 'POST',
-        body: createReadStream(file.path),
-        duplex: 'half',
-        headers: { 'Content-Type': 'application/octet-stream', 'Content-Length': String(file.size) }
-      })
-    },
-    async hash(asset) {
-      const response = await fetchOfficial(`${api}/releases/assets/${asset.id}`, fetch, {
-        headers: { ...headers, Accept: 'application/octet-stream' },
-        signal: AbortSignal.timeout(300_000)
-      })
-      const hash = createHash('sha256')
-      let size = 0
-      for await (const chunk of Readable.fromWeb(response.body)) {
-        size += chunk.length
-        if (size > asset.size) throw new Error('Remote asset exceeds its declared size')
-        hash.update(chunk)
-      }
-      if (size !== asset.size) throw new Error('Remote asset download was truncated')
-      return hash.digest('hex')
-    },
-    async read(asset, limit) {
-      return readBounded(
-        await fetchOfficial(`${api}/releases/assets/${asset.id}`, fetch, {
-          headers: { ...headers, Accept: 'application/octet-stream' }
-        }),
-        limit
-      )
-    },
-    async publish(id) {
-      await request(`${api}/releases/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ draft: false, make_latest: 'true' })
-      })
-    }
-  }
   const files = []
   for (const name of (await fs.readdir('release-artifacts')).sort()) {
     const file = path.resolve('release-artifacts', name)
@@ -209,11 +120,21 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
       throw new Error('Only regular release assets may be uploaded')
     files.push({ name, path: file, size: (await fs.stat(file)).size, sha256: await digest(file) })
   }
+  const marker = `<!-- community-release:${process.env.GITHUB_RUN_ID}:${process.env.GITHUB_SHA} -->`
+  const client = createReleaseClient({
+    repository: process.env.GITHUB_REPOSITORY,
+    token: process.env.GITHUB_TOKEN,
+    marker,
+    revision: process.env.GITHUB_SHA,
+    tag,
+    files,
+    log: (message) => process.stdout.write(`${message}\n`)
+  })
   const url = await publishRelease(client, {
     version,
     tag,
     revision: process.env.GITHUB_SHA,
-    marker: `<!-- community-release:${process.env.GITHUB_RUN_ID}:${process.env.GITHUB_SHA} -->`,
+    marker,
     notes: await fs.readFile('release-notes.md', 'utf8'),
     files,
     manifest: await fs.readFile('release-artifacts/checksums.json'),
