@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ChevronRight, Wrench } from '@lucide/vue'
-import type { AssistantMessage } from '@shared/types/workspace'
-import type { ConversationItem, buildMessagePresentation } from './message-activity'
+import type { ConversationItem, HistoryItem, buildMessagePresentation } from './message-activity'
 import MessageView from './MessageView.vue'
 import AssistantTurn from './AssistantTurn.vue'
 defineProps<{
@@ -9,7 +8,6 @@ defineProps<{
   userName: string
   assistantName: string
   running?: boolean
-  liveMessage?: AssistantMessage | null
   isLast: boolean
   presentation: ReturnType<typeof buildMessagePresentation>
   revealed: Set<string>
@@ -30,6 +28,14 @@ defineProps<{
 const emit = defineEmits<{ reveal: [key: string] }>()
 function toggle(key: string, event: Event) {
   if ((event.target as HTMLDetailsElement).open) emit('reveal', key)
+}
+function activityEntryKey(entry: HistoryItem): string {
+  const message = entry.message
+  const call =
+    message.role === 'assistant'
+      ? message.content.find((block) => block.type === 'toolCall')
+      : undefined
+  return call?.toolCallId ? `call:${call.toolCallId}` : entry.key
 }
 </script>
 <template>
@@ -59,6 +65,7 @@ function toggle(key: string, event: Event) {
         :tool-results="presentation.results.get(item.key)"
         :pending-tool-calls="presentation.pending"
         :activity-running="running"
+        :streaming="item.item.streaming"
         :embedded="item.item.message.role === 'assistant'"
       />
       <details
@@ -95,7 +102,7 @@ function toggle(key: string, event: Event) {
         <div v-if="revealed.has(item.key)" class="activity-group-content">
           <MessageView
             v-for="entry in item.items"
-            :key="entry.key"
+            :key="activityEntryKey(entry)"
             :message="entry.message"
             :entry-id="entry.entryId"
             :user-name="userName"
@@ -103,12 +110,12 @@ function toggle(key: string, event: Event) {
             :tool-results="presentation.results.get(entry.key)"
             :pending-tool-calls="presentation.pending"
             :activity-running="running"
+            :streaming="entry.streaming"
             embedded
           />
         </div>
       </details>
     </template>
-    <MessageView v-if="liveMessage && isLast" :message="liveMessage" embedded streaming />
   </AssistantTurn>
 </template>
 <style scoped>
@@ -118,12 +125,14 @@ function toggle(key: string, event: Event) {
 .activity-group-summary {
   display: flex;
   min-width: 0;
+  min-height: 32px;
   align-items: center;
   gap: 7px;
   padding: 7px 14px;
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   list-style: none;
 }

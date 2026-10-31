@@ -104,6 +104,58 @@ test('shows compact activity with two independent expansion levels', async ({
   }
   await emit({ type: 'agent_start' })
   await expect(chat.getByTestId('assistant-loading')).toBeVisible()
+  // Each streamed command must update the same collapsed row, not briefly
+  // render below it and collapse back after message_end.
+  const activityCount = await chat.getByTestId('message-activity').count()
+  let activityBox: { y: number; height: number } | null = null
+  for (let index = 0; index < 3; index += 1) {
+    const message = {
+      role: 'assistant',
+      model: 'test',
+      provider: 'test',
+      content: [
+        {
+          type: 'toolCall',
+          toolCallId: `stable-command-${index}`,
+          toolName: 'bash',
+          input: { command: `echo ${index} ${'long command argument '.repeat(30)}` }
+        }
+      ]
+    }
+    await emit({ type: 'message_start', message })
+    await expect(chat.getByTestId('message-activity')).toHaveCount(activityCount + 1)
+    const row = chat.getByTestId('message-activity').last()
+    await expect(row.locator('summary').first()).toContainText('正在运行')
+    await expect(chat.locator('.tool-call-hud')).toHaveCount(0)
+    if (!activityBox) {
+      activityBox = (await row.boundingBox())!
+      await row.evaluate((el) => el.setAttribute('data-stability-marker', 'retained'))
+    }
+    for (const event of [
+      { type: 'message_end', message },
+      {
+        type: 'message_end',
+        message: {
+          role: 'toolResult',
+          toolCallId: `stable-command-${index}`,
+          toolName: 'bash',
+          content: [{ type: 'text', text: 'OK' }]
+        }
+      }
+    ]) {
+      await expect(row).toHaveAttribute('data-stability-marker', 'retained')
+      const before = (await row.boundingBox())!
+      expect(Math.abs(before.y - activityBox.y)).toBeLessThanOrEqual(1)
+      expect(Math.abs(before.height - activityBox.height)).toBeLessThanOrEqual(1)
+      await emit(event)
+    }
+    await expect(row.locator('summary').first()).toContainText('已运行命令')
+    await expect(row).not.toHaveAttribute('open')
+    await expect(row).toHaveAttribute('data-stability-marker', 'retained')
+    const after = (await row.boundingBox())!
+    expect(Math.abs(after.y - activityBox.y)).toBeLessThanOrEqual(1)
+    expect(Math.abs(after.height - activityBox.height)).toBeLessThanOrEqual(1)
+  }
   await emit({
     type: 'message_end',
     message: {
@@ -125,7 +177,7 @@ test('shows compact activity with two independent expansion levels', async ({
   await expect(live).not.toHaveAttribute('open')
   await live.locator('summary').first().focus()
   await page.keyboard.press('Enter')
-  const liveTool = live.locator('.tool-call-hud')
+  const liveTool = live.locator('.tool-call-hud').filter({ hasText: 'pnpm check-live' })
   await expect(liveTool).not.toHaveAttribute('open')
   await liveTool.locator('summary').click()
   await emit({

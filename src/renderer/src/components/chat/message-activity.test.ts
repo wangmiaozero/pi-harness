@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildMessagePresentation,
   groupConversationTurns,
+  withLiveMessage,
   type HistoryItem
 } from './message-activity'
 import type { AssistantContentBlock } from '@shared/types/workspace'
@@ -24,6 +25,30 @@ const result = (id = 'read-1'): HistoryItem => ({
 })
 
 describe('message activity presentation', () => {
+  it('appends live activity without mutating history and keeps mixed content in order', () => {
+    const history = buildMessagePresentation([assistant('saved', [call()]), result()])
+    const originalItems = [...history.items]
+    const live = assistant('live', [
+      call('read-live'),
+      { type: 'text', text: 'More information.' },
+      call('read-last')
+    ]).message
+    if (live.role !== 'assistant') throw new Error('Expected assistant fixture')
+    const view = withLiveMessage(history, live)
+    expect(history.items).toEqual(originalItems)
+    expect(history.items[0]).toMatchObject({ items: [{ key: 'saved' }] })
+    expect(view.items.map((item) => item.type)).toEqual(['activity', 'message', 'activity'])
+    expect(view.items[0].key).toBe(history.items[0].key)
+    expect(view.items[0]).toMatchObject({
+      items: [{ key: 'saved' }, { streaming: true }]
+    })
+    expect(view.pending.has('read-live')).toBe(true)
+    expect(view.pending.has('read-last')).toBe(true)
+    expect(history.pending.size).toBe(0)
+    expect(view.results).toBe(history.results)
+    expect(withLiveMessage(history, null)).toBe(history)
+  })
+
   it('groups consecutive activity, pairs results once, and preserves narrative boundaries', () => {
     const inputs = [
       assistant('intro', [{ type: 'text', text: 'I will inspect the files.' }]),

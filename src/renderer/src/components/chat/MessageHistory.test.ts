@@ -33,6 +33,79 @@ async function openDetails(element: Element, open: boolean) {
 }
 
 describe('MessageHistory activities', () => {
+  it('keeps one collapsed activity row from live thinking through successive command results', async () => {
+    const wrapper = mount(MessageHistory, {
+      props: { items: [], userName: 'Me', assistantName: 'Pi', running: true },
+      global
+    })
+    const thinking = {
+      role: 'assistant' as const,
+      model: 'test',
+      provider: 'test',
+      content: [{ type: 'thinking' as const, thinking: 'Checking commands' }]
+    }
+    await wrapper.setProps({ liveMessage: thinking })
+    const row = wrapper.get('[data-testid="message-activity"]').element
+    const history: HistoryItem[] = []
+    for (let index = 1; index <= 3; index += 1) {
+      const message = {
+        ...thinking,
+        content: [
+          {
+            type: 'toolCall' as const,
+            toolCallId: `command-${index}`,
+            toolName: 'bash',
+            input: { command: `echo ${index}` }
+          }
+        ]
+      }
+      await wrapper.setProps({ liveMessage: message })
+      expect(wrapper.findAll('[data-testid="message-activity"]')).toHaveLength(1)
+      expect(wrapper.get('[data-testid="message-activity"]').element).toBe(row)
+      expect(wrapper.find('.tool-call-hud').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="thinking-details"]').exists()).toBe(false)
+      history.push({ key: `saved-${index}`, message })
+      await wrapper.setProps({ items: [...history], liveMessage: null })
+      history.push({
+        key: `result-${index}`,
+        message: {
+          role: 'toolResult',
+          toolCallId: `command-${index}`,
+          content: [{ type: 'text', text: 'done' }]
+        }
+      })
+      await wrapper.setProps({ items: [...history] })
+      expect(wrapper.get('[data-testid="message-activity"]').element).toBe(row)
+      expect((row as HTMLDetailsElement).open).toBe(false)
+    }
+    expect(wrapper.get('summary').text()).toContain('Ran commands · 3')
+    wrapper.unmount()
+  })
+
+  it('preserves a live command disclosure when the command is persisted', async () => {
+    const message = items()[0].message
+    if (message.role !== 'assistant') throw new Error('Expected assistant fixture')
+    const wrapper = mount(MessageHistory, {
+      props: {
+        items: [],
+        userName: 'Me',
+        assistantName: 'Pi',
+        running: true,
+        liveMessage: message
+      },
+      global
+    })
+    const group = wrapper.get('[data-testid="message-activity"]').element
+    await openDetails(group, true)
+    const tool = wrapper.get('.tool-call-hud').element
+    await openDetails(tool, true)
+    await wrapper.setProps({ items: items(), liveMessage: null })
+    expect(wrapper.get('[data-testid="message-activity"]').element).toBe(group)
+    expect(wrapper.get('.tool-call-hud').element).toBe(tool)
+    expect((tool as HTMLDetailsElement).open).toBe(true)
+    wrapper.unmount()
+  })
+
   it('requires two levels of expansion and preserves each level as results arrive', async () => {
     const inputs = items()
     const wrapper = mount(MessageHistory, {

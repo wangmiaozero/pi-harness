@@ -15,4 +15,6 @@ For release, packaging, installation/upgrade, or native CI work, also read `task
 
 These local documents are intentionally excluded from Git. If they are missing or unreadable, report the missing context before making changes or performing release operations; do not silently skip them or invent their contents. Follow the applicable instruction hierarchy and report any conflicting requirement before a consequential action.
 
+The authorship and contributor-credit rules in `task/internal/agents/AGENTS.md` are mandatory for every agent. Apply their metadata checks before committing or pushing; stop and report any conflicting requirement before acting.
+
 Keep local AI rules and incident details under `task/`; never force-add them or create a public `CONTRIBUTING.md`. Historical task records are context, not new authorization.
