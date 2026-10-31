@@ -130,7 +130,13 @@ describe('atomicWriteText', () => {
             expect(await fs.readFile(target, 'utf8')).toBe('original')
             if (!observedLock) {
               observedLock = true
+              // Sending a release request does not mean the handle is closed.
+              // Wait for the real owner to exit before exercising the retry;
+              // PowerShell scheduling on ARM64 can exceed the retry window.
+              const exited = once(locker, 'close')
               locker.stdin.end('release\n')
+              const [code] = await exited
+              expect(code).toBe(0)
             }
             throw error
           }
