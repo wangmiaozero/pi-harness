@@ -42,7 +42,7 @@ describe('workspace tool guard', () => {
     const assertWritable = vi.fn(async (target: string) => {
       throw new Error(`readonly:${target}`)
     })
-    createDesktopExtension(
+    await createDesktopExtension(
       { forceEmpty: false, workspacePromptProvider: null },
       { assertWritable }
     )(api)
