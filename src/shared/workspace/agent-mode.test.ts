@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { agentModeDirective, normalizeAgentMode } from './agent-mode'
+import { agentModeDirective, normalizeAgentMode, toolPresetForAgentMode } from './agent-mode'
+import { TOOL_PRESET_VALUES } from './tool-presets'
 
 describe('agent mode', () => {
+  it.each(TOOL_PRESET_VALUES)(
+    'enforces planning restrictions for %s without enabling tools from off',
+    (preset) => {
+      expect(toolPresetForAgentMode('plan', preset)).toBe(preset === 'none' ? 'none' : 'read-only')
+      expect(toolPresetForAgentMode('agent', preset)).toBe(preset)
+      expect(toolPresetForAgentMode('goal', preset)).toBe(preset)
+    }
+  )
   it('normalizes unknown values to agent', () => {
     expect(normalizeAgentMode('plan')).toBe('plan')
     expect(normalizeAgentMode('goal')).toBe('goal')

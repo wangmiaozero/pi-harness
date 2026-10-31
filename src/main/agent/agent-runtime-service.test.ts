@@ -467,6 +467,40 @@ describe('AgentRuntimeService', () => {
       preserveExtensionTools: false
     })
     expect(inner.setActiveToolsByName).toHaveBeenLastCalledWith(['read'])
+
+    await wrapper.send({ type: 'set_tools', toolNames: ['read', 'grep', 'find', 'ls'] })
+    expect(inner.setActiveToolsByName).toHaveBeenLastCalledWith(['read', 'grep', 'find', 'ls'])
+    await wrapper.send({ type: 'set_tools', toolNames: [] })
+    expect(inner.setActiveToolsByName).toHaveBeenLastCalledWith([])
+  })
+
+  it('restores only previously active extensions after a restricted tool preset', async () => {
+    const inner = createAgentSession(createSessionManager())
+    let active = ['read', 'extension_active']
+    inner.getActiveToolNames = () => active
+    inner.getAllTools = vi
+      .fn()
+      .mockReturnValue(
+        ['read', 'extension_active', 'extension_disabled'].map((name) => ({
+          name,
+          description: name,
+          parameters: { type: 'object' }
+        }))
+      )
+    inner.setActiveToolsByName = vi.fn((names) => {
+      active = [...names]
+    })
+    const wrapper = new AgentSessionWrapper(inner)
+    await wrapper.send({ type: 'set_tools', toolNames: ['read', 'grep', 'find', 'ls'] })
+    expect(active).toEqual(['read', 'grep', 'find', 'ls'])
+    await wrapper.send({ type: 'set_tools', toolNames: [] })
+    expect(active).toEqual([])
+    await wrapper.send({ type: 'set_tools', toolNames: ['read', 'bash', 'edit', 'write'] })
+    expect(active).toContain('extension_active')
+    expect(active).not.toContain('extension_disabled')
+    await wrapper.send({ type: 'set_tools', toolNames: [], preserveExtensionTools: false })
+    await wrapper.send({ type: 'set_tools', toolNames: ['read', 'bash', 'edit', 'write'] })
+    expect(active).not.toContain('extension_active')
   })
 
   it('rejects image prompts when the active model is text-only', async () => {

@@ -11,6 +11,10 @@ test('permission menu controls execution and termination remains available durin
 }, testInfo) => {
   type Reply = string | { tool: string; args: Record<string, unknown> }
   const replies: Reply[] = []
+  const requests: Array<{
+    tools?: Array<{ function: { name: string } }>
+    messages: Array<{ role: string; content: unknown }>
+  }> = []
   let networkCalls = 0
   const server = http.createServer(async (request, response) => {
     if (request.url === '/network-fixture') {
@@ -18,9 +22,9 @@ test('permission menu controls execution and termination remains available durin
       response.end('network fixture')
       return
     }
-    for await (const _chunk of request) {
-      void _chunk
-    }
+    let body = ''
+    for await (const chunk of request) body += chunk
+    requests.push(JSON.parse(body))
     const reply = replies.shift() ?? 'Task complete'
     const tool = typeof reply !== 'string'
     const delta = tool
@@ -94,6 +98,17 @@ test('permission menu controls execution and termination remains available durin
     })
     await page.locator('a[href="#/workspace"]').click()
     const composer = page.getByTestId('chat-composer')
+    const toolPreset = composer.getByRole('button', { name: '更改工具预设', exact: true })
+    await expect(toolPreset).toHaveText('full')
+    await toolPreset.click()
+    const toolMenu = page.getByRole('listbox', { name: '更改工具预设', exact: true })
+    await expect(toolMenu.getByRole('option')).toHaveCount(4)
+    await expect(toolMenu.getByRole('option', { name: 'full', exact: true })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
+    await toolMenu.screenshot({ path: testInfo.outputPath('tool-preset-menu.png') })
+    await toolMenu.getByRole('option', { name: 'full', exact: true }).click()
     const agentMode = composer.getByRole('button', { name: '模式', exact: true })
     await agentMode.click()
     const modes = page.getByRole('listbox', { name: '模式', exact: true })
@@ -164,6 +179,75 @@ test('permission menu controls execution and termination remains available durin
     await editor.press('Enter')
     await expect(page.locator('.chat-scroller')).toContainText('Assisted access complete')
     expect(networkCalls).toBe(2)
+    await permission.click()
+    await menu.getByRole('option', { name: /完全访问权限/ }).click()
+    const builtins = new Set(['bash', 'powershell', 'read', 'edit', 'write', 'grep', 'find', 'ls'])
+    const enabledExtensions = (requests.at(-1)?.tools ?? [])
+      .map((tool) => tool.function.name)
+      .filter((name) => !builtins.has(name))
+    for (const [preset, names] of [
+      ['off', []],
+      ['read-only', ['read', 'grep', 'find', 'ls']],
+      ['default', ['read', 'bash', 'edit', 'write']],
+      ['full', ['bash', 'read', 'edit', 'write', 'grep', 'find', 'ls']]
+    ] as const) {
+      await toolPreset.click()
+      await toolMenu.getByRole('option', { name: preset, exact: true }).click()
+      const target = path.join(testUserData, `${preset}-tool-check.txt`)
+      replies.push(
+        { tool: 'write', args: { path: target, content: preset } },
+        `${preset} profile complete`
+      )
+      const before = requests.length
+      await editor.fill(`Verify ${preset} tools`)
+      await editor.press('Enter')
+      await expect(page.locator('.chat-scroller')).toContainText(`${preset} profile complete`)
+      expect((requests[before].tools ?? []).map((tool) => tool.function.name).sort()).toEqual(
+        [...names, ...(preset === 'default' || preset === 'full' ? enabledExtensions : [])].sort()
+      )
+      expect(fs.existsSync(target)).toBe(preset === 'default' || preset === 'full')
+      await expect(terminate).toHaveCount(0)
+    }
+
+    await agentMode.click()
+    await modes.getByRole('option', { name: '规划', exact: true }).click()
+    const planTarget = path.join(testUserData, 'planning-must-not-write.txt')
+    replies.push(
+      { tool: 'write', args: { path: planTarget, content: 'blocked' } },
+      'Planning profile complete'
+    )
+    const beforePlan = requests.length
+    await editor.fill('Plan a change without writing it')
+    await editor.press('Enter')
+    await expect(page.locator('.chat-scroller')).toContainText('Planning profile complete')
+    expect((requests[beforePlan].tools ?? []).map((tool) => tool.function.name).sort()).toEqual(
+      ['read', 'grep', 'find', 'ls'].sort()
+    )
+    expect(
+      requests[beforePlan].messages.some(
+        (message) =>
+          message.role === 'user' && JSON.stringify(message.content).includes('[Mode: plan]')
+      )
+    ).toBe(true)
+    expect(fs.existsSync(planTarget)).toBe(false)
+
+    await agentMode.click()
+    await modes.getByRole('option', { name: '目标', exact: true }).click()
+    replies.push('Goal directive complete')
+    const beforeGoal = requests.length
+    await editor.fill('Complete the goal in this request')
+    await editor.press('Enter')
+    await expect(page.locator('.chat-scroller')).toContainText('Goal directive complete')
+    expect(
+      requests[beforeGoal].messages.some(
+        (message) =>
+          message.role === 'user' && JSON.stringify(message.content).includes('[Mode: goal]')
+      )
+    ).toBe(true)
+    await agentMode.click()
+    await modes.getByRole('option', { name: '智能体', exact: true }).click()
+    await toolPreset.click()
+    await toolMenu.getByRole('option', { name: 'full', exact: true }).click()
     expect(
       await electronApp.evaluate(
         () => (globalThis as unknown as { permissionDialogs: number }).permissionDialogs

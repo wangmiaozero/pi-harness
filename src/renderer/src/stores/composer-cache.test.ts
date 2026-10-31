@@ -24,6 +24,13 @@ describe('composer cache', () => {
     vi.stubGlobal('localStorage', memoryStorage())
   })
 
+  it('defaults to full while retaining an explicitly selected restricted preset', () => {
+    expect(readComposerCache().toolPreset).toBe('full')
+    expect(readComposerCache('none').toolPreset).toBe('none')
+    rememberComposerCache('restricted', { thinkingLevel: 'auto', toolPreset: 'read-only' })
+    expect(readComposerCache().toolPreset).toBe('read-only')
+  })
+
   it('remembers the last thinking level and tool preset across reloads', () => {
     rememberComposerCache('session-1', { thinkingLevel: 'ultra', toolPreset: 'full' })
 

@@ -27,6 +27,7 @@ import { toComposerThinkingLevel } from '@shared/constants/index'
 import { resolveThinkingLevel } from '@shared/thinking/levels'
 import { inspectRuntimeError, runtimeEventError } from '@shared/workspace/runtime-error'
 import {
+  DEFAULT_TOOL_PRESET,
   getPresetFromTools,
   getToolNamesForPreset,
   type ToolPreset
@@ -35,6 +36,7 @@ import type { PermissionMode } from '@shared/workspace/permission-mode'
 import { useModelsStore } from './models'
 import { useSessionStore } from './sessions'
 import { useWorkspaceStore } from './workspace'
+import { useSettingsStore } from './settings'
 import {
   forgetComposerCache,
   hydrateComposerSelections,
@@ -98,7 +100,9 @@ export const useAgentStore = defineStore('agent', () => {
   let loadGeneration = 0
   let activityRevision = 0
   const composerSelections = new Map<string, ComposerSelection>()
-  const lastComposer = hydrateComposerSelections(composerSelections)
+  const configuredToolPreset = () =>
+    useSettingsStore().settings?.defaultToolPreset ?? DEFAULT_TOOL_PRESET
+  const lastComposer = hydrateComposerSelections(composerSelections, configuredToolPreset())
   const thinkingLevel = ref(lastComposer.thinkingLevel)
   const toolPreset = ref<ToolPreset>(lastComposer.toolPreset)
   const transientSessionIds = new Set<string>()
@@ -290,7 +294,7 @@ export const useAgentStore = defineStore('agent', () => {
     if (savedSelection) applyComposerSelection(savedSelection)
     else {
       thinkingLevel.value = 'auto'
-      toolPreset.value = 'default'
+      toolPreset.value = configuredToolPreset()
     }
     if (transientSessionIds.has(sessionId)) {
       await reconcile(sessionId, !savedSelection, generation)
@@ -494,7 +498,7 @@ export const useAgentStore = defineStore('agent', () => {
           getApi().agent.start({
             sessionId,
             ...(permissionMode ? { permissionMode } : {}),
-            toolNames: getToolNamesForPreset(toolPreset.value),
+            toolNames: getToolNamesForPreset(preset),
             ...(thinkingLevel.value !== 'auto'
               ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value) }
               : {})
@@ -768,7 +772,7 @@ export const useAgentStore = defineStore('agent', () => {
   }
 
   function readLastComposerPrefs(): ComposerSelection {
-    return hydrateComposerSelections(composerSelections)
+    return hydrateComposerSelections(composerSelections, configuredToolPreset())
   }
 
   function forgetComposerSelection(sessionId: string) {

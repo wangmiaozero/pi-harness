@@ -20,6 +20,7 @@ export default async function desktopExtension(pi) {
   let disposing = false
   let context
   let forceEmpty = false
+  let suspendedExtensionTools = null
   const pending = new Map()
   const send = (value) => socket.write(JSON.stringify(value) + '\n')
   const request = (method, params = {}, options = {}) =>
@@ -84,11 +85,24 @@ export default async function desktopExtension(pi) {
     if (method === 'set_tools') {
       forceEmpty = params.toolNames.length === 0
       const coding = new Set(['read', 'bash', 'powershell', 'edit', 'write', 'grep', 'find', 'ls'])
+      const readOnlyTools = ['read', 'grep', 'find', 'ls']
+      const readOnly =
+        params.toolNames.length === readOnlyTools.length &&
+        readOnlyTools.every((name) => params.toolNames.includes(name))
+      const restricted = forceEmpty || readOnly
+      if (!params.preserveExtensionTools) suspendedExtensionTools = null
+      else if (restricted && suspendedExtensionTools === null)
+        suspendedExtensionTools = pi.getActiveTools().filter((name) => !coding.has(name))
+      const registered = new Set(pi.getAllTools().map((tool) => tool.name))
       const preserved =
-        params.preserveExtensionTools && !forceEmpty
-          ? pi.getActiveTools().filter((name) => !coding.has(name))
+        params.preserveExtensionTools && !restricted
+          ? [
+              ...pi.getActiveTools().filter((name) => !coding.has(name)),
+              ...(suspendedExtensionTools ?? []).filter((name) => registered.has(name))
+            ]
           : []
       pi.setActiveTools([...new Set([...params.toolNames, ...preserved])])
+      if (!restricted) suspendedExtensionTools = null
       return null
     }
     if (method === 'abort_compaction') {
