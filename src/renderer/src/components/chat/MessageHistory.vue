@@ -6,6 +6,7 @@ import MessageView from './MessageView.vue'
 import AssistantTurn from './AssistantTurn.vue'
 import HistoryTurn from './HistoryTurn.vue'
 import type { AssistantMessage } from '@shared/types/workspace'
+import { toolOutcome } from './tool-outcome'
 import {
   buildMessagePresentation,
   groupConversationTurns,
@@ -31,16 +32,49 @@ const lastTurn = computed(() =>
   conversation.value.at(-1)?.type === 'turn' ? conversation.value.at(-1)?.key : null
 )
 const summaries = computed(() => {
+  // A normal Native final reply is evidence that execution continued after a
+  // failed step. Neither idle state nor arbitrary assistant text proves this.
+  const finalReplies = new Set(
+    props.items
+      .filter(
+        ({ message }) =>
+          message.role === 'assistant' &&
+          message.stopReason === 'stop' &&
+          !message.errorMessage &&
+          !message.content.some((block) => block.type === 'toolCall') &&
+          message.content.some((block) => block.type === 'text' && block.text.trim())
+      )
+      .map((item) => item.key)
+  )
+  const endedGroups = new Set<string>()
+  for (const turn of conversation.value) {
+    if (turn.type !== 'turn') continue
+    let ended = false
+    for (const item of [...turn.items].reverse()) {
+      if (item.type === 'message' && finalReplies.has(item.key)) ended = true
+      if (item.type === 'activity' && ended) endedGroups.add(item.key)
+    }
+  }
   const summaries = new Map<
     string,
-    { text: string; target: string; icon: typeof Wrench; running: boolean; error: boolean }
+    {
+      text: string
+      target: string
+      icon: typeof Wrench
+      running: boolean
+      error: boolean
+      warning: boolean
+      note: string
+      outcome: string
+    }
   >()
   for (const group of presentation.value.items) {
     if (group.type !== 'activity') continue
     const counts = new Map<ActivityKind, number>()
     let target = ''
     let activeKind: ActivityKind | null = null
-    let error = false
+    let failures = 0
+    let noMatches = 0
     let complete = true
     for (const item of group.items) {
       const message = item.message
@@ -52,7 +86,9 @@ const summaries = computed(() => {
             const kind = toolActivityKind(block.toolName)
             counts.set(kind, (counts.get(kind) ?? 0) + 1)
             const result = presentation.value.results.get(item.key)?.get(block.toolCallId)
-            error ||= result?.message.isError === true
+            const outcome = toolOutcome(block, result?.message)
+            failures += Number(outcome === 'error')
+            noMatches += Number(outcome === 'no-match')
             complete &&= Boolean(result)
             if (props.running && presentation.value.pending.get(block.toolCallId) === item.key) {
               activeKind = kind
@@ -63,14 +99,42 @@ const summaries = computed(() => {
       } else if (message.role === 'toolResult') {
         const kind = toolActivityKind(message.toolName ?? '')
         counts.set(kind, (counts.get(kind) ?? 0) + 1)
-        error ||= message.isError === true
+        const outcome = toolOutcome(undefined, message)
+        failures += Number(outcome === 'error')
+        noMatches += Number(outcome === 'no-match')
       } else if (message.role === 'bashExecution') {
         counts.set('command', (counts.get('command') ?? 0) + 1)
-        error ||=
-          message.cancelled === true || (message.exitCode !== undefined && message.exitCode !== 0)
+        const outcome = toolOutcome(
+          {
+            type: 'toolCall',
+            toolCallId: '',
+            toolName: 'bash',
+            input: { command: message.command }
+          },
+          {
+            role: 'toolResult',
+            toolCallId: '',
+            content: [{ type: 'text', text: message.output }],
+            isError:
+              message.cancelled === true ||
+              (message.exitCode !== undefined && message.exitCode !== 0),
+            details: { exitCode: message.exitCode, cancelled: message.cancelled }
+          }
+        )
+        failures += Number(outcome === 'error')
+        noMatches += Number(outcome === 'no-match')
       }
     }
     if (counts.size > 1) counts.delete('thinking')
+    const warning = failures > 0 && complete && endedGroups.has(group.key)
+    const error = failures > 0 && !warning
+    const note = failures
+      ? warning
+        ? t('workspace.activity.endedWithErrors', { count: failures })
+        : t('workspace.activity.failedSteps', { count: failures })
+      : noMatches
+        ? t('workspace.activity.emptySearches', { count: noMatches })
+        : ''
     const text = activeKind
       ? t(`workspace.activity.running.${activeKind}`)
       : [...counts]
@@ -81,7 +145,7 @@ const summaries = computed(() => {
           .join(' · ')
     const icon = activeKind
       ? LoaderCircle
-      : error
+      : failures
         ? CircleAlert
         : counts.has('command')
           ? Terminal
@@ -90,7 +154,24 @@ const summaries = computed(() => {
             : counts.has('thinking')
               ? Brain
               : Wrench
-    summaries.set(group.key, { text, target, icon, running: Boolean(activeKind), error })
+    summaries.set(group.key, {
+      text,
+      target,
+      icon,
+      running: Boolean(activeKind),
+      error,
+      warning,
+      note,
+      outcome: warning
+        ? 'completed-with-errors'
+        : error
+          ? 'error'
+          : activeKind
+            ? 'running'
+            : noMatches
+              ? 'no-match'
+              : 'success'
+    })
   }
   return summaries
 })

@@ -24,9 +24,10 @@ const props = withDefaults(
   defineProps<{
     options: ModelOption[]
     thinkingLevels?: string[]
+    thinkingLabels?: Record<string, string>
     disabled?: boolean
   }>(),
-  { thinkingLevels: () => composerThinkingLevels(), disabled: false }
+  { thinkingLevels: () => composerThinkingLevels(), thinkingLabels: () => ({}), disabled: false }
 )
 
 const open = ref(false)
@@ -63,7 +64,7 @@ const filteredModels = computed(() => {
   )
 })
 const selectedLabel = computed(() => {
-  const thinking = thinkingValue.value
+  const thinking = props.thinkingLabels?.[thinkingValue.value] ?? thinkingValue.value
   if (!selected.value) return thinking
   const base = selected.value.group
     ? `${selected.value.group} / ${selected.value.label}`
@@ -344,7 +345,7 @@ watch(open, (value) => {
         <div class="relative z-10 flex shrink-0 flex-col px-1 pb-1">
           <span class="relative z-10 px-1 text-[13px] font-medium text-[var(--text-primary)]">
             {{ $t('workspace.thinkingIntensity') }}
-            <span class="font-normal">{{ thinkingValue }}</span>
+            <span class="font-normal">{{ thinkingLabels?.[thinkingValue] ?? thinkingValue }}</span>
           </span>
           <div
             class="relative z-10 flex items-center justify-between px-1 pt-2 pb-1 text-[11.5px] text-[var(--text-secondary)]"
@@ -356,6 +357,7 @@ watch(open, (value) => {
             <ThinkingSlider
               v-model="thinkingValue"
               :levels="thinkingLevels"
+              :labels="thinkingLabels"
               :model-id="modelValue"
             />
           </div>

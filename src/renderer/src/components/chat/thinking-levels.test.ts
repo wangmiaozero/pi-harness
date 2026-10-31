@@ -16,7 +16,7 @@ describe('composer thinking levels', () => {
     expect(COMPOSER_THINKING_LEVELS.at(-1)).toBe('ultra')
   })
 
-  it('keeps Ultra on the slider even when a model only maps Pi levels', () => {
+  it('uses the configured rail instead of adding unsupported levels', () => {
     expect(composerThinkingLevels(resolveAvailableThinkingLevels(null))).toEqual([
       'auto',
       'none',
@@ -36,7 +36,10 @@ describe('composer thinking levels', () => {
           high: 'high'
         })
       )
-    ).toEqual(['auto', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'])
+    ).toEqual(['auto', 'none', 'low', 'high'])
+    expect(
+      composerThinkingLevels(resolveAvailableThinkingLevels({ off: null, low: null, high: null }))
+    ).toEqual(['auto'])
   })
 
   it('maps unknown values to a mid stop and clamps to the current rail', () => {

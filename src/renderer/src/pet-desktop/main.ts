@@ -141,6 +141,7 @@ class PetApp {
   private updateTaskActivity(activeAgents: number): void {
     const wasActive = this.taskActive
     this.taskActive = activeAgents > 0
+    document.documentElement.dataset.taskActive = String(this.taskActive)
     if (this.taskActive) {
       if (!wasActive) dismissPetMenu()
       this.physics?.cancel()

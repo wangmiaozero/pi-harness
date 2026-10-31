@@ -95,10 +95,52 @@ describe('MessageHistory activities', () => {
     })
     const group = wrapper.get('[data-testid="message-activity"]')
     expect(group.attributes('open')).toBeUndefined()
-    expect(group.get('summary').text()).toContain('Failed')
+    expect(group.get('summary').text()).toContain('Failed steps: 1')
     expect(wrapper.find('pre').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('Compile failed')
   })
+
+  it.each(['stop', 'error', 'aborted', 'length'])(
+    'separates failed steps from a later %s reply',
+    async (stopReason) => {
+      const inputs = items()
+      const wrapper = mount(MessageHistory, {
+        props: {
+          items: [
+            ...inputs,
+            {
+              key: 'result',
+              message: {
+                role: 'toolResult',
+                toolCallId: 'bash-1',
+                isError: true,
+                content: [{ type: 'text', text: 'Command exited with code 1' }]
+              }
+            },
+            {
+              key: 'final',
+              message: {
+                role: 'assistant',
+                provider: 'test',
+                model: 'test',
+                stopReason,
+                content: [{ type: 'text', text: 'Finished examining the project.' }]
+              }
+            }
+          ],
+          userName: 'Me',
+          assistantName: 'Pi'
+        },
+        global
+      })
+      const group = wrapper.get('[data-testid="message-activity"]')
+      expect(group.attributes('data-outcome')).toBe(
+        stopReason === 'stop' ? 'completed-with-errors' : 'error'
+      )
+      await openDetails(group.element, true)
+      expect(wrapper.get('.tool-call-hud').attributes('data-outcome')).toBe('error')
+    }
+  )
 })
 
 it('uses one role label and one copy action for the whole assistant turn, including the live continuation', async () => {

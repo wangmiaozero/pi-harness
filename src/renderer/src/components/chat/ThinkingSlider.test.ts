@@ -49,7 +49,7 @@ describe('ThinkingSlider', () => {
     expect(decree.find('.thinking-forbidden__rays').exists()).toBe(true)
     expect(decree.findAll('.thinking-forbidden__spark')).toHaveLength(9)
     expect(peak.get('[data-testid="composer-thinking-slider"]').attributes('aria-valuetext')).toBe(
-      String(i18n.global.t('workspace.thinkingForbiddenPower'))
+      'max'
     )
 
     const ultra = mount(ThinkingSlider, {
@@ -79,7 +79,7 @@ describe('ThinkingSlider', () => {
     )
     expect(
       wrapper.get('[data-testid="composer-thinking-slider"]').attributes('aria-valuetext')
-    ).toBe(String(i18n.global.t('workspace.thinkingDivineAudience')))
+    ).toBe('ultra')
   })
 
   it('keeps the forbidden-power decree for GPT 5.6 on max and for other ultra models', async () => {

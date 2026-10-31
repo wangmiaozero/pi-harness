@@ -72,8 +72,8 @@ describe('current model defaults and saved overrides', () => {
       maxOutputTokens: null
     })
     expect(fallback).toMatchObject({
-      contextWindow: null,
-      maxOutputTokens: null,
+      contextWindow: 1050000,
+      maxOutputTokens: 128000,
       thinkingLevels: { off: null, minimal: null, low: 'low', max: 'max' }
     })
   })

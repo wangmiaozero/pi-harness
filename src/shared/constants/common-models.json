@@ -1,0 +1,845 @@
+{
+  "source": "Pi 1.4.0 native model catalog; compatibility defaults, current verified entries take precedence",
+  "providers": {
+    "openai": [
+      {
+        "id": "gpt-4.1",
+        "name": "GPT-4.1",
+        "contextWindow": 1047576,
+        "maxOutputTokens": 32768,
+        "input": ["text", "image"],
+        "reasoning": false,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": null,
+          "medium": null,
+          "high": null,
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-4.1-mini",
+        "name": "GPT-4.1 mini",
+        "contextWindow": 1047576,
+        "maxOutputTokens": 32768,
+        "input": ["text", "image"],
+        "reasoning": false,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": null,
+          "medium": null,
+          "high": null,
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-4.1-nano",
+        "name": "GPT-4.1 nano",
+        "contextWindow": 1047576,
+        "maxOutputTokens": 32768,
+        "input": ["text", "image"],
+        "reasoning": false,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": null,
+          "medium": null,
+          "high": null,
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-4o",
+        "name": "GPT-4o",
+        "contextWindow": 128000,
+        "maxOutputTokens": 16384,
+        "input": ["text", "image"],
+        "reasoning": false,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": null,
+          "medium": null,
+          "high": null,
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-4o-mini",
+        "name": "GPT-4o mini",
+        "contextWindow": 128000,
+        "maxOutputTokens": 16384,
+        "input": ["text", "image"],
+        "reasoning": false,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": null,
+          "medium": null,
+          "high": null,
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-5",
+        "name": "GPT-5",
+        "contextWindow": 400000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": null,
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-5-mini",
+        "name": "GPT-5 Mini",
+        "contextWindow": 400000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": null,
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-5-nano",
+        "name": "GPT-5 Nano",
+        "contextWindow": 400000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": null,
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-5.1",
+        "name": "GPT-5.1",
+        "contextWindow": 400000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-5.2",
+        "name": "GPT-5.2",
+        "contextWindow": 400000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "xhigh",
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-5.3-codex",
+        "name": "GPT-5.3 Codex",
+        "contextWindow": 400000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "xhigh",
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-5.4",
+        "name": "GPT-5.4",
+        "contextWindow": 272000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "xhigh",
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-5.4-mini",
+        "name": "GPT-5.4 mini",
+        "contextWindow": 400000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "xhigh",
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-5.4-nano",
+        "name": "GPT-5.4 nano",
+        "contextWindow": 400000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "xhigh",
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gpt-5.5",
+        "name": "GPT-5.5",
+        "contextWindow": 272000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "xhigh",
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "o3",
+        "name": "o3",
+        "contextWindow": 200000,
+        "maxOutputTokens": 100000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": null,
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "o3-mini",
+        "name": "o3-mini",
+        "contextWindow": 200000,
+        "maxOutputTokens": 100000,
+        "input": ["text"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": null,
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "o4-mini",
+        "name": "o4-mini",
+        "contextWindow": 200000,
+        "maxOutputTokens": 100000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": null,
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      }
+    ],
+    "anthropic": [
+      {
+        "id": "claude-haiku-4-5",
+        "name": "Claude Haiku 4.5 (latest)",
+        "contextWindow": 200000,
+        "maxOutputTokens": 64000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "claude-haiku-4-5-20251001",
+        "name": "Claude Haiku 4.5",
+        "contextWindow": 200000,
+        "maxOutputTokens": 64000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "claude-opus-4-5",
+        "name": "Claude Opus 4.5 (latest)",
+        "contextWindow": 200000,
+        "maxOutputTokens": 64000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "claude-opus-4-5-20251101",
+        "name": "Claude Opus 4.5",
+        "contextWindow": 200000,
+        "maxOutputTokens": 64000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "claude-opus-4-6",
+        "name": "Claude Opus 4.6",
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": "max"
+        },
+        "recommended": false
+      },
+      {
+        "id": "claude-opus-4-7",
+        "name": "Claude Opus 4.7",
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "xhigh",
+          "max": "max"
+        },
+        "recommended": false
+      },
+      {
+        "id": "claude-opus-4-8",
+        "name": "Claude Opus 4.8",
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "xhigh",
+          "max": "max"
+        },
+        "recommended": false
+      },
+      {
+        "id": "claude-sonnet-4-5",
+        "name": "Claude Sonnet 4.5 (latest)",
+        "contextWindow": 200000,
+        "maxOutputTokens": 64000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "claude-sonnet-4-5-20250929",
+        "name": "Claude Sonnet 4.5",
+        "contextWindow": 200000,
+        "maxOutputTokens": 64000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": "max"
+        },
+        "recommended": false
+      }
+    ],
+    "google": [
+      {
+        "id": "gemini-2.5-flash",
+        "name": "Gemini 2.5 Flash",
+        "contextWindow": 1048576,
+        "maxOutputTokens": 65536,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gemini-2.5-flash-lite",
+        "name": "Gemini 2.5 Flash-Lite",
+        "contextWindow": 1048576,
+        "maxOutputTokens": 65536,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gemini-2.5-pro",
+        "name": "Gemini 2.5 Pro",
+        "contextWindow": 1048576,
+        "maxOutputTokens": 65536,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gemini-3-flash-preview",
+        "name": "Gemini 3 Flash Preview",
+        "contextWindow": 1048576,
+        "maxOutputTokens": 65536,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": null,
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "gemini-3.1-pro-preview",
+        "name": "Gemini 3.1 Pro Preview",
+        "contextWindow": 1048576,
+        "maxOutputTokens": 65536,
+        "input": ["text", "image"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": null,
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      }
+    ],
+    "minimax": [
+      {
+        "id": "MiniMax-M2.7",
+        "name": "MiniMax-M2.7",
+        "contextWindow": 204800,
+        "maxOutputTokens": 131072,
+        "input": ["text"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "MiniMax-M2.7-highspeed",
+        "name": "MiniMax-M2.7-highspeed",
+        "contextWindow": 204800,
+        "maxOutputTokens": 131072,
+        "input": ["text"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      }
+    ],
+    "zhipuai": [
+      {
+        "id": "glm-4.7",
+        "name": "GLM-4.7",
+        "contextWindow": 204800,
+        "maxOutputTokens": 131072,
+        "input": ["text"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "glm-5-turbo",
+        "name": "GLM-5-Turbo",
+        "contextWindow": 200000,
+        "maxOutputTokens": 131072,
+        "input": ["text"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": "minimal",
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false
+      },
+      {
+        "id": "glm-5.2",
+        "name": "GLM-5.2",
+        "contextWindow": 1000000,
+        "maxOutputTokens": 131072,
+        "input": ["text"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": null,
+          "medium": null,
+          "high": "high",
+          "xhigh": null,
+          "max": "max"
+        },
+        "recommended": false
+      }
+    ],
+    "ollama": [
+      {
+        "id": "gpt-oss:20b",
+        "name": "GPT-OSS 20b",
+        "contextWindow": 131072,
+        "maxOutputTokens": 131072,
+        "input": ["text"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": null,
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false,
+        "sources": [
+          "https://developers.openai.com/api/docs/models/gpt-oss-20b",
+          "https://docs.ollama.com/capabilities/thinking"
+        ]
+      },
+      {
+        "id": "gpt-oss:120b",
+        "name": "GPT-OSS 120b",
+        "contextWindow": 131072,
+        "maxOutputTokens": 131072,
+        "input": ["text"],
+        "reasoning": true,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": null,
+          "minimal": null,
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": null,
+          "max": null
+        },
+        "recommended": false,
+        "sources": [
+          "https://developers.openai.com/api/docs/models/gpt-oss-20b",
+          "https://docs.ollama.com/capabilities/thinking"
+        ]
+      },
+      {
+        "id": "ministral-3:14b",
+        "name": "Ministral 3 14B",
+        "contextWindow": 262144,
+        "input": ["text", "image"],
+        "reasoning": false,
+        "tools": true,
+        "streaming": true,
+        "thinkingLevels": {
+          "off": "none",
+          "minimal": null,
+          "low": null,
+          "medium": null,
+          "high": null,
+          "xhigh": null,
+          "max": null
+        },
+        "sources": ["https://ollama.com/library/ministral-3"],
+        "recommended": false
+      }
+    ]
+  }
+}

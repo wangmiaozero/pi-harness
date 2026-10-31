@@ -12,7 +12,12 @@ import { NotFoundError, ValidationError } from '../services/errors'
 import type { PiConfigService, WriteOptions } from '../pi/config-service'
 import { domainModelToPi, modelToDomain, providerProtocolFromPi } from '../pi/adapter'
 import type { PiModelConfig } from '@shared/types/pi'
-import { findModelPreset, findProviderPreset } from '@shared/constants/provider-presets'
+import { PI_THINKING_LEVELS } from '@shared/constants/index'
+import {
+  findModelPreset,
+  findProviderPreset,
+  resolveModelDefaults
+} from '@shared/constants/provider-presets'
 
 export class ModelService {
   constructor(
@@ -36,6 +41,13 @@ export class ModelService {
         out.push({
           ...model,
           tools: modelMeta?.capabilities?.tools ?? defaults?.tools ?? model.tools,
+          thinkingLevels:
+            model.thinkingLevels ??
+            resolveModelDefaults(
+              m.id,
+              findProviderPreset({ key: pkey, protocol, baseUrl: provider.baseUrl })
+            ).thinkingLevels ??
+            null,
           streaming: modelMeta?.capabilities?.streaming ?? defaults?.streaming ?? model.streaming
         })
       }
@@ -51,7 +63,7 @@ export class ModelService {
       providerKey,
       (cur) => {
         if (!cur) throw new NotFoundError(`Provider not found: ${providerKey}`)
-        const defaults = findModelPreset(
+        const defaults = resolveModelDefaults(
           form.modelId,
           findProviderPreset({
             key: providerKey,
@@ -60,9 +72,9 @@ export class ModelService {
           })
         )
         if (defaults) {
-          const supplied = raw as Record<string, unknown>
-          if (!Object.hasOwn(supplied, 'thinkingLevels'))
-            form.thinkingLevels = defaults.thinkingLevels
+          form.contextWindow ??= defaults.contextWindow ?? null
+          form.maxOutputTokens ??= defaults.maxOutputTokens ?? null
+          if (form.thinkingLevels === undefined) form.thinkingLevels = defaults.thinkingLevels
         }
         const models = [...(cur.models ?? [])]
         if (models.some((m) => m.id === form.modelId)) {
@@ -238,7 +250,14 @@ export class ModelService {
   private parseForm(raw: unknown): ModelForm {
     const r = modelFormSchema.safeParse(raw)
     if (!r.success) throw new ValidationError('Invalid model form', { issues: r.error.issues })
-    return r.data
+    const form = r.data
+    if (form.thinkingLevels && Object.keys(form.thinkingLevels).length) {
+      form.thinkingLevels = {
+        ...Object.fromEntries(PI_THINKING_LEVELS.map((level) => [level, null])),
+        ...form.thinkingLevels
+      }
+    }
+    return form
   }
 
   private async writeModelMeta(

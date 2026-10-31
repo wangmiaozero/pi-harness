@@ -15,6 +15,7 @@ import type { ToolCallContent, ToolResultMessage } from '@shared/types/workspace
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import BranchNavigator from './BranchNavigator.vue'
 import { toolActivityKind, toolActivityTarget } from './message-activity'
+import { toolExitCode, toolOutcome } from './tool-outcome'
 
 const props = defineProps<{
   block: ToolCallContent
@@ -28,8 +29,18 @@ const open = ref(false)
 const previewSrc = ref<string | null>(null)
 const previewOpen = ref(false)
 const kind = computed(() => toolActivityKind(props.block.toolName))
+const outcome = computed(() => toolOutcome(props.block, props.result))
+const status = computed(() => {
+  if (outcome.value === 'no-match') return t('workspace.activity.noMatches')
+  if (outcome.value !== 'error') return ''
+  const code = toolExitCode(props.result)
+  return code === undefined
+    ? t('workspace.activity.stepFailed')
+    : t('workspace.activity.failedExit', { code })
+})
 const icon = computed(() => {
-  if (props.result?.isError) return CircleAlert
+  if (outcome.value === 'error') return CircleAlert
+  if (outcome.value === 'no-match') return Search
   if (props.running) return LoaderCircle
   return {
     read: BookOpen,
@@ -80,8 +91,13 @@ function onToggle(event: Event) {
 </script>
 
 <template>
-  <details class="tool-call-hud activity-details" :open="open" @toggle="onToggle">
-    <summary class="activity-line" :class="{ 'activity-error': result?.isError }">
+  <details
+    class="tool-call-hud activity-details"
+    :data-outcome="outcome"
+    :open="open"
+    @toggle="onToggle"
+  >
+    <summary class="activity-line" :class="{ 'activity-error': outcome === 'error' }">
       <component
         :is="icon"
         aria-hidden="true"
@@ -92,7 +108,7 @@ function onToggle(event: Event) {
       <span v-if="target" class="activity-target min-w-0 truncate text-[var(--text-tertiary)]">{{
         target
       }}</span>
-      <span v-if="result?.isError" class="shrink-0">· {{ t('common.failed') }}</span>
+      <span v-if="status" class="shrink-0">· {{ status }}</span>
       <ChevronRight aria-hidden="true" class="activity-chevron size-3 shrink-0" />
     </summary>
     <div v-if="open" class="activity-output">
@@ -100,12 +116,7 @@ function onToggle(event: Event) {
         {{ kind === 'command' ? 'Shell' : block.toolName }}
       </p>
       <pre v-if="!hideInput" class="activity-code" v-text="args" />
-      <pre
-        v-if="output"
-        class="activity-code"
-        :class="{ 'text-[var(--danger)]': result?.isError }"
-        v-text="output"
-      />
+      <pre v-if="output" class="activity-code" v-text="output" />
       <div v-if="images.length" class="flex flex-wrap gap-2 p-2">
         <button
           v-for="src in images"

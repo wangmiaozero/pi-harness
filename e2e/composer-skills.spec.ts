@@ -99,6 +99,19 @@ test('keeps maximum thinking effects inside the model panel without blank scroll
   page
 }, testInfo) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
+  // Configure an adjustable model explicitly; non-reasoning models no longer
+  // advertise an unrestricted rail merely for the visual effect.
+  await page.evaluate(async () => {
+    const active = await window.piSwitch.models.getActive()
+    const model = (await window.piSwitch.models.list()).find(
+      (m) => m.providerId === active.providerKey && m.modelId === active.modelId
+    )!
+    await window.piSwitch.models.update(model.id, {
+      ...model,
+      reasoning: true,
+      thinkingLevels: { off: 'none', low: 'low', high: 'high', xhigh: 'xhigh', max: 'max' }
+    })
+  })
   await page.locator('a[href="#/workspace"]').click()
   for (const size of [
     { width: 1280, height: 900 },
@@ -113,6 +126,8 @@ test('keeps maximum thinking effects inside the model panel without blank scroll
     await slider.press('End')
     await expect(page.getByTestId('composer-thinking-forbidden')).toBeVisible()
     await slider.press('ArrowLeft')
+    await expect(page.getByTestId('composer-thinking-forbidden')).toBeHidden()
+    await slider.press('ArrowRight')
     await expect(page.getByTestId('composer-thinking-forbidden')).toBeVisible()
     await panel.evaluate(async (element) => {
       const rays = element.querySelector('.thinking-forbidden__rays')!

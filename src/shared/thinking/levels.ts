@@ -25,7 +25,7 @@ export function getSupportedThinkingLevels(
       const value = map[level]
       return value != null && String(value).trim() !== ''
     })
-    if (matched.length > 0) return [...matched]
+    if (Object.keys(map).length > 0) return [...matched]
   }
   return [...PI_THINKING_LEVELS]
 }
@@ -42,6 +42,7 @@ export function resolveThinkingLevel(input: {
   supportedLevels?: Partial<Record<string, string | null>> | readonly string[] | null
 }): PiThinkingLevel {
   const supported = getSupportedThinkingLevels(input.supportedLevels)
+  if (!supported.length) return 'off'
   if (input.requested === 'ultra') return highestSupportedThinkingLevel(supported)
   const mapped = toPiThinkingLevel(input.requested) as PiThinkingLevel
   if (supported.includes(mapped)) return mapped

@@ -15,8 +15,9 @@ const props = withDefaults(
   defineProps<{
     levels?: string[]
     modelId?: string
+    labels?: Record<string, string>
   }>(),
-  { levels: () => composerThinkingLevels(), modelId: '' }
+  { levels: () => composerThinkingLevels(), modelId: '', labels: () => ({}) }
 )
 
 const track = ref<HTMLElement | null>(null)
@@ -129,7 +130,7 @@ function onKeydown(event: KeyboardEvent) {
         :aria-valuemin="0"
         :aria-valuemax="last"
         :aria-valuenow="index"
-        :aria-valuetext="isMax ? $t(decreeKey) : model"
+        :aria-valuetext="labels[model] ?? model"
         @pointerdown="onPointerDown"
         @pointermove="onPointerMove"
         @keydown="onKeydown"
