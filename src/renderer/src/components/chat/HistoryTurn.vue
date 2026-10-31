@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
 import { ChevronRight, Wrench } from '@lucide/vue'
 import type { AssistantMessage } from '@shared/types/workspace'
 import type { ConversationItem, buildMessagePresentation } from './message-activity'
@@ -16,11 +15,19 @@ defineProps<{
   revealed: Set<string>
   summaries: Map<
     string,
-    { text: string; target: string; icon: typeof Wrench; running: boolean; error: boolean }
+    {
+      text: string
+      target: string
+      icon: typeof Wrench
+      running: boolean
+      error: boolean
+      warning: boolean
+      note: string
+      outcome: string
+    }
   >
 }>()
 const emit = defineEmits<{ reveal: [key: string] }>()
-const { t } = useI18n()
 function toggle(key: string, event: Event) {
   if ((event.target as HTMLDetailsElement).open) emit('reveal', key)
 }
@@ -58,11 +65,15 @@ function toggle(key: string, event: Event) {
         v-else
         class="activity-group mb-4"
         data-testid="message-activity"
+        :data-outcome="summaries.get(item.key)?.outcome"
         @toggle.self="toggle(item.key, $event)"
       >
         <summary
           class="activity-group-summary"
-          :class="{ 'activity-group-error': summaries.get(item.key)?.error }"
+          :class="{
+            'activity-group-error': summaries.get(item.key)?.error,
+            'activity-group-warning': summaries.get(item.key)?.warning
+          }"
         >
           <component
             :is="summaries.get(item.key)?.icon"
@@ -76,8 +87,8 @@ function toggle(key: string, event: Event) {
             class="min-w-0 truncate text-[var(--text-tertiary)]"
             >{{ summaries.get(item.key)?.target }}</span
           >
-          <span v-if="summaries.get(item.key)?.error" class="shrink-0"
-            >· {{ t('common.failed') }}</span
+          <span v-if="summaries.get(item.key)?.note" class="shrink-0"
+            >· {{ summaries.get(item.key)?.note }}</span
           >
           <ChevronRight aria-hidden="true" class="group-chevron size-3 shrink-0" />
         </summary>
@@ -146,5 +157,8 @@ function toggle(key: string, event: Event) {
 }
 .activity-group-error {
   color: var(--danger);
+}
+.activity-group-warning {
+  color: var(--warning);
 }
 </style>

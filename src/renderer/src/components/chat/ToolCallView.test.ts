@@ -72,4 +72,26 @@ describe('ToolCallView', () => {
     await setOpen(wrapper, true)
     expect(wrapper.get('img').attributes('src')).toBe('data:image/png;base64,TQ==')
   })
+
+  it('shows empty searches neutrally and retains the original exit status on expansion', async () => {
+    const wrapper = mount(ToolCallView, {
+      props: {
+        block: { ...block, input: { command: 'rg -n "missing|absent" src' } },
+        result: {
+          ...result,
+          isError: true,
+          content: [{ type: 'text', text: 'Command exited with code 1' }]
+        }
+      },
+      global
+    })
+    expect(wrapper.get('details').attributes('data-outcome')).toBe('no-match')
+    expect(wrapper.get('summary').text()).toContain('No matches')
+    expect(wrapper.get('summary').classes()).not.toContain('activity-error')
+    await setOpen(wrapper, true)
+    expect(wrapper.findAll('pre').at(-1)?.text()).toBe('Command exited with code 1')
+    await wrapper.setProps({ block })
+    expect(wrapper.get('details').attributes('data-outcome')).toBe('error')
+    expect(wrapper.get('summary').text()).toContain('exit code 1')
+  })
 })

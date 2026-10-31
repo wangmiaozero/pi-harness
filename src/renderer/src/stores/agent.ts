@@ -842,7 +842,10 @@ function flushQueuedCompaction(sessionId: string): void {
 
 function resolveActivePiThinking(level: string): string {
   const models = useModelsStore()
-  const model = models.items.find((item) => item.modelId === models.active.modelId)
+  const model = models.items.find(
+    (item) =>
+      item.modelId === models.active.modelId && item.providerId === models.active.providerKey
+  )
   return resolveThinkingLevel({
     requested: level,
     supportedLevels: model?.thinkingLevels

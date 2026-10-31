@@ -2,6 +2,24 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.12 — 2026-10-31
+
+### Added
+
+- Added updated model presets and automatic parameter defaults for common and custom models.
+- Added independent conversations that can be created directly in the Sessions group.
+
+### Fixed
+
+- Improved automatic recovery when long conversations need summarization.
+- Made reasoning controls follow the selected model's configured levels.
+- Improved tool activity messages to distinguish empty searches and failed steps.
+- Fixed text selection and scrolling in the message composer.
+- Prevented duplicate submissions and preserved drafts when sending fails.
+- Improved opening and focusing the console from the desktop pet and Dock.
+- Removed an empty OpenCode provider filter from the model list.
+- Improved startup detection and handling of concurrent configuration access.
+
 ## 2.3.11 — 2026-10-31
 
 ### Added

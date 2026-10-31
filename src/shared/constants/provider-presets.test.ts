@@ -3,6 +3,7 @@ import { PROTOCOL_IDS } from '@shared/constants/protocols'
 import {
   findProviderPreset,
   findModelPreset,
+  resolveModelDefaults,
   suggestedModelPresets,
   PROVIDER_PRESETS,
   resolveModelInput
@@ -155,5 +156,22 @@ describe('provider preset catalog', () => {
     ).toBeUndefined()
     expect(findModelPreset('kimi-k3.1-pro')).toBeUndefined()
     expect(suggestedModelPresets(findProviderPreset({ key: 'ollama' }))).toEqual([])
+  })
+})
+
+it('supplies complete compatible defaults for common and unlisted models', () => {
+  expect(resolveModelDefaults('private-future-model')).toMatchObject({
+    contextWindow: 128000,
+    maxOutputTokens: 8192,
+    thinkingLevels: { low: 'low', medium: 'medium', high: 'high' }
+  })
+  expect(resolveModelDefaults('o3', findProviderPreset({ key: 'openai' }))).toMatchObject({
+    contextWindow: 200000,
+    maxOutputTokens: 100000,
+    reasoning: true
+  })
+  expect(resolveModelDefaults('gpt-oss:20b', findProviderPreset({ key: 'ollama' }))).toMatchObject({
+    contextWindow: 131072,
+    thinkingLevels: { off: null, low: 'low', medium: 'medium', high: 'high', max: null }
   })
 })

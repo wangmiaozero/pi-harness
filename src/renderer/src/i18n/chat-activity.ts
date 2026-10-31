@@ -1,6 +1,12 @@
 // Compact conversation activity labels, shared by calls and grouped history.
 export const chatActivity = {
   'en-US': {
+    noMatches: 'No matches',
+    stepFailed: 'Step failed',
+    failedExit: 'Failed (exit code {code})',
+    failedSteps: 'Failed steps: {count}',
+    endedWithErrors: 'Finished; failed steps: {count}',
+    emptySearches: 'Searches with no results: {count}',
     running: {
       read: 'Reading file',
       search: 'Searching',
@@ -30,6 +36,12 @@ export const chatActivity = {
     }
   },
   'zh-CN': {
+    noMatches: '未找到结果',
+    stepFailed: '步骤失败',
+    failedExit: '执行失败（退出码 {code}）',
+    failedSteps: '失败步骤：{count}',
+    endedWithErrors: '已结束，部分步骤失败（{count}）',
+    emptySearches: '无结果搜索：{count}',
     running: {
       read: '正在读取',
       search: '正在搜索',
@@ -59,6 +71,12 @@ export const chatActivity = {
     }
   },
   'zh-TW': {
+    noMatches: '未找到結果',
+    stepFailed: '步驟失敗',
+    failedExit: '執行失敗（結束碼 {code}）',
+    failedSteps: '失敗步驟：{count}',
+    endedWithErrors: '已結束，部分步驟失敗（{count}）',
+    emptySearches: '無結果搜尋：{count}',
     running: {
       read: '正在讀取',
       search: '正在搜尋',
@@ -88,6 +106,12 @@ export const chatActivity = {
     }
   },
   'ja-JP': {
+    noMatches: '一致なし',
+    stepFailed: 'ステップ失敗',
+    failedExit: '失敗（終了コード {code}）',
+    failedSteps: '失敗したステップ: {count}',
+    endedWithErrors: '終了・失敗したステップ: {count}',
+    emptySearches: '一致のない検索: {count}',
     running: {
       read: '読み込み中',
       search: '検索中',
@@ -117,6 +141,12 @@ export const chatActivity = {
     }
   },
   'ko-KR': {
+    noMatches: '검색 결과 없음',
+    stepFailed: '단계 실패',
+    failedExit: '실패 (종료 코드 {code})',
+    failedSteps: '실패한 단계: {count}',
+    endedWithErrors: '종료됨 · 실패한 단계: {count}',
+    emptySearches: '결과 없는 검색: {count}',
     running: {
       read: '읽는 중',
       search: '검색 중',
@@ -146,6 +176,12 @@ export const chatActivity = {
     }
   },
   'de-DE': {
+    noMatches: 'Keine Treffer',
+    stepFailed: 'Schritt fehlgeschlagen',
+    failedExit: 'Fehlgeschlagen (Exit-Code {code})',
+    failedSteps: 'Fehlgeschlagene Schritte: {count}',
+    endedWithErrors: 'Beendet; fehlgeschlagene Schritte: {count}',
+    emptySearches: 'Suchen ohne Treffer: {count}',
     running: {
       read: 'Datei wird gelesen',
       search: 'Suche läuft',
@@ -175,6 +211,12 @@ export const chatActivity = {
     }
   },
   'fr-FR': {
+    noMatches: 'Aucun résultat',
+    stepFailed: 'Étape échouée',
+    failedExit: 'Échec (code de sortie {code})',
+    failedSteps: 'Étapes échouées : {count}',
+    endedWithErrors: 'Terminé ; étapes échouées : {count}',
+    emptySearches: 'Recherches sans résultat : {count}',
     running: {
       read: 'Lecture en cours',
       search: 'Recherche en cours',
@@ -204,6 +246,12 @@ export const chatActivity = {
     }
   },
   'ru-RU': {
+    noMatches: 'Совпадений нет',
+    stepFailed: 'Ошибка шага',
+    failedExit: 'Ошибка (код выхода {code})',
+    failedSteps: 'Неудачных шагов: {count}',
+    endedWithErrors: 'Завершено; неудачных шагов: {count}',
+    emptySearches: 'Поисков без результатов: {count}',
     running: {
       read: 'Чтение файла',
       search: 'Поиск',

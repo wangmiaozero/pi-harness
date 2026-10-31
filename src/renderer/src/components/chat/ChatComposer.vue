@@ -542,7 +542,21 @@ function openSkillMention() {
 }
 
 const thinkingStops = computed(() =>
-  composerThinkingLevels(resolveAvailableThinkingLevels(selectedModel.value?.thinkingLevels))
+  composerThinkingLevels(
+    selectedModel.value?.reasoning === false
+      ? ['none']
+      : resolveAvailableThinkingLevels(selectedModel.value?.thinkingLevels)
+  )
+)
+const thinkingLabels = computed(() =>
+  Object.fromEntries(
+    Object.entries(selectedModel.value?.thinkingLevels ?? {})
+      .filter(
+        (entry): entry is [string, string] =>
+          typeof entry[1] === 'string' && Boolean(entry[1].trim())
+      )
+      .map(([level, value]) => [level === 'off' ? 'none' : level, value])
+  )
 )
 
 const thinkingValue = computed({
@@ -1272,6 +1286,7 @@ onBeforeUnmount(() => {
               v-model:thinking="thinkingValue"
               :options="modelOptions"
               :thinking-levels="thinkingStops"
+              :thinking-labels="thinkingLabels"
               :disabled="busy || modelSwitching"
               @interact="emit('unlockAudio')"
               @open="refreshOpenCodeOptions"

@@ -53,26 +53,29 @@ test('shows compact activity with two independent expansion levels', async ({
 
   await group.locator('summary').first().click()
   const tools = group.locator('.tool-call-hud')
-  await expect(tools).toHaveCount(2)
+  await expect(tools).toHaveCount(3)
   await expect(tools.nth(0).getByText('package.json', { exact: true })).toBeVisible()
-  await expect(tools.nth(1).getByText('pnpm typecheck', { exact: true })).toBeVisible()
+  await expect(tools.nth(2).getByText('pnpm typecheck', { exact: true })).toBeVisible()
+  await expect(tools.nth(1)).toHaveAttribute('data-outcome', 'no-match')
+  await expect(tools.nth(1).locator('summary')).toContainText('未找到结果')
+  await expect(group).toHaveAttribute('data-outcome', 'completed-with-errors')
   await expect(chat.locator('pre')).toHaveCount(0)
   await expect(group.getByTestId('thinking-details')).not.toHaveAttribute('open')
   await page.screenshot({ path: testInfo.outputPath('activity-first-level.png') })
 
-  const summaryY = Math.round((await tools.nth(1).locator('summary').boundingBox())!.y)
-  await tools.nth(1).locator('summary').click()
-  await expect(tools.nth(1).locator('pre').last()).toContainText('TS2322: Type mismatch')
+  const summaryY = Math.round((await tools.nth(2).locator('summary').boundingBox())!.y)
+  await tools.nth(2).locator('summary').click()
+  await expect(tools.nth(2).locator('pre').last()).toContainText('TS2322: Type mismatch')
   await expect(tools.nth(0).locator('pre')).toHaveCount(0)
   await expect
-    .poll(async () => Math.round((await tools.nth(1).locator('summary').boundingBox())!.y))
+    .poll(async () => Math.round((await tools.nth(2).locator('summary').boundingBox())!.y))
     .toBe(summaryY)
   await expect(chat.locator('[data-message-role="toolResult"]')).toHaveCount(0)
   await page.screenshot({ path: testInfo.outputPath('activity-second-level.png') })
   await group.locator('summary').first().click()
-  await expect(tools.nth(1).locator('pre').last()).toBeHidden()
+  await expect(tools.nth(2).locator('pre').last()).toBeHidden()
   await group.locator('summary').first().click()
-  await expect(tools.nth(1).locator('pre').last()).toBeVisible()
+  await expect(tools.nth(2).locator('pre').last()).toBeVisible()
 
   // Native tool-result images remain available behind the same disclosure.
   await tools.nth(0).locator('summary').click()
@@ -191,6 +194,26 @@ function seed(directory: string, cwd: string) {
       content: [
         {
           type: 'toolCall',
+          toolCallId: 'empty-search',
+          toolName: 'bash',
+          input: { command: 'rg -n "missing|absent" package.json' }
+        }
+      ]
+    },
+    {
+      role: 'toolResult',
+      toolCallId: 'empty-search',
+      toolName: 'bash',
+      isError: true,
+      content: [{ type: 'text', text: 'Command exited with code 1' }]
+    },
+    {
+      role: 'assistant',
+      model: 'test',
+      provider: 'test',
+      content: [
+        {
+          type: 'toolCall',
           toolCallId: 'typecheck',
           toolName: 'bash',
           input: { command: 'pnpm typecheck' }
@@ -210,6 +233,7 @@ function seed(directory: string, cwd: string) {
       role: 'assistant',
       model: 'test',
       provider: 'test',
+      stopReason: 'stop',
       content: [{ type: 'text', text: '检查完成，请修复示例中的类型错误。' }]
     }
   ]

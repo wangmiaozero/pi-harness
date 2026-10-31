@@ -456,7 +456,12 @@ test('all manual actions play and tasks retain dragging and opening the console'
     ...context.settings,
     agentSync: false
   })
+  // The config event resets the synthetic activity to the host's idle count.
+  // Wait for that context to be applied before sending a new activity snapshot;
+  // otherwise a late snapshot closes the menu immediately after it opens.
+  await expect(pet.locator('html')).toHaveAttribute('data-task-active', 'false')
   await pushActivity(1, [])
+  await expect(pet.locator('html')).toHaveAttribute('data-task-active', 'true')
   await pet.evaluate(() => window.dispatchEvent(new MouseEvent('contextmenu')))
   await expect(pet.getByRole('menuitem')).toHaveCount(1)
   await pet.keyboard.press('Escape')

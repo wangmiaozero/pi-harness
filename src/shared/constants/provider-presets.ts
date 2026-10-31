@@ -1,5 +1,6 @@
 import generatedCatalog from './provider-presets.generated.json'
 import currentCatalog from './current-models.json'
+import commonCatalog from './common-models.json'
 import type { PiThinkingLevel } from './index'
 import type { PiInputType } from './index'
 import type { ProtocolId } from './protocols'
@@ -113,8 +114,14 @@ export function findModelPreset(
     model.id.toLowerCase() === key || model.aliases?.some((alias) => alias.toLowerCase() === key)
   const local =
     provider && (currentCatalog.providers as Record<string, ProviderPresetModel[]>)[provider.id]
-  const exact = (local ?? provider?.models)?.find(matches)
+  const exact = local?.find(matches)
   if (exact) return exact
+  const common =
+    provider &&
+    (commonCatalog.providers as Record<string, ProviderPresetModel[]>)[provider.id]?.find(matches)
+  if (common) return common
+  const configured = provider?.models.find(matches)
+  if (configured) return configured
   const legacy =
     provider &&
     (generatedCatalog.providers as unknown as ProviderPreset[])
@@ -122,9 +129,43 @@ export function findModelPreset(
       ?.models.find(matches)
   if (legacy) return legacy as ProviderPresetModel
   if (provider && !provider.id.endsWith('-compatible')) return undefined
-  return (Object.values(currentCatalog.providers).flat() as ProviderPresetModel[]).find(
-    (model) => !model.providerScoped && matches(model)
-  )
+  return (
+    [
+      ...Object.values(currentCatalog.providers).flat(),
+      ...Object.values(commonCatalog.providers).flat()
+    ] as ProviderPresetModel[]
+  ).find((model) => !model.providerScoped && matches(model))
+}
+
+/** Editable initial values for unlisted endpoints, not a claim about model capacity. */
+export const COMPATIBLE_MODEL_DEFAULTS = {
+  contextWindow: 128000,
+  maxOutputTokens: 8192,
+  thinkingLevels: {
+    off: 'none',
+    minimal: 'minimal',
+    low: 'low',
+    medium: 'medium',
+    high: 'high',
+    xhigh: null,
+    max: null
+  }
+} as const
+
+export function resolveModelDefaults(
+  modelId: string,
+  provider?: ProviderPreset
+): ProviderPresetModel {
+  const model = findModelPreset(modelId, provider)
+  return {
+    ...COMPATIBLE_MODEL_DEFAULTS,
+    ...model,
+    id: modelId,
+    name: model?.name ?? modelId,
+    contextWindow: model?.contextWindow ?? COMPATIBLE_MODEL_DEFAULTS.contextWindow,
+    maxOutputTokens: model?.maxOutputTokens ?? COMPATIBLE_MODEL_DEFAULTS.maxOutputTokens,
+    thinkingLevels: model?.thinkingLevels ?? { ...COMPATIBLE_MODEL_DEFAULTS.thinkingLevels }
+  }
 }
 
 export function suggestedModelPresets(provider?: ProviderPreset): readonly ProviderPresetModel[] {

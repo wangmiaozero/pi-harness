@@ -151,7 +151,8 @@ const standaloneTool = computed(() => {
         toolCallId: '',
         toolName: 'bash',
         content: [{ type: 'text' as const, text: message.output }],
-        isError: message.cancelled || (message.exitCode !== undefined && message.exitCode !== 0)
+        isError: message.cancelled || (message.exitCode !== undefined && message.exitCode !== 0),
+        details: { exitCode: message.exitCode, cancelled: message.cancelled }
       }
     }
   return null

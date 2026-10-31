@@ -30,8 +30,8 @@ import type {
 import type { ModelForm, ProviderForm } from '@shared/schemas/domain'
 import { PROTOCOLS } from '@shared/constants/protocols'
 import {
-  findModelPreset,
   findProviderPreset,
+  resolveModelDefaults,
   suggestedModelPresets
 } from '@shared/constants/provider-presets'
 import { PI_THINKING_LEVELS, type PiThinkingLevel } from '@shared/constants/index'
@@ -170,7 +170,7 @@ let previousDefaults: ModelDefaults | undefined
 
 function selectModelPreset(modelId: string) {
   if (isEditing.value) return
-  const model = findModelPreset(modelId, selectedProviderPreset.value)
+  const model = resolveModelDefaults(modelId, selectedProviderPreset.value)
   const blankThinking = Object.fromEntries(
     PI_THINKING_LEVELS.map((level) => [level, ''])
   ) as Record<PiThinkingLevel, string>
@@ -195,8 +195,10 @@ function selectModelPreset(modelId: string) {
   for (const key of ['displayName', 'vision', 'reasoning', 'tools', 'streaming'] as const) {
     if (form.value[key] === previous[key]) Object.assign(form.value, { [key]: next[key] })
   }
-  if (contextWindowStr.value === previous.contextWindow) contextWindowStr.value = next.contextWindow
-  if (maxOutputStr.value === previous.maxOutputTokens) maxOutputStr.value = next.maxOutputTokens
+  if (!String(contextWindowStr.value).trim() || contextWindowStr.value === previous.contextWindow)
+    contextWindowStr.value = next.contextWindow
+  if (!String(maxOutputStr.value).trim() || maxOutputStr.value === previous.maxOutputTokens)
+    maxOutputStr.value = next.maxOutputTokens
   if (JSON.stringify(thinkingMap.value) === JSON.stringify(previous.thinking)) {
     thinkingMap.value = next.thinking
     form.value.thinkingLevels = model?.thinkingLevels ? { ...model.thinkingLevels } : undefined
@@ -250,6 +252,13 @@ function providerKeyFor(model: ModelDefinition): string | undefined {
 }
 
 const providerFilter = ref<string | 'all'>('all')
+const filterProviders = computed(() =>
+  providersStore.items.filter(
+    (provider) =>
+      provider.key !== 'opencode-free' &&
+      modelsStore.items.some((model) => model.providerId === provider.id)
+  )
+)
 const query = ref('')
 
 const filteredModels = computed(() => {
@@ -666,7 +675,7 @@ onMounted(() => {
           {{ $t('models.filterAll') }}
         </button>
         <button
-          v-for="p in providersStore.items"
+          v-for="p in filterProviders"
           :key="p.id"
           type="button"
           class="h-[26px] rounded-[var(--radius-sm)] px-2 font-[family-name:var(--font-mono)] text-[11px] transition-colors"

@@ -22,14 +22,19 @@ export function thinkingLabelKey(level: string): string {
 }
 
 export function resolveAvailableThinkingLevels(
-  _thinkingLevels?: Partial<Record<string, string | null>> | null
+  thinkingLevels?: Partial<Record<string, string | null>> | null
 ): string[] {
-  return [...DEFAULT_AVAILABLE_THINKING_LEVELS]
+  if (!thinkingLevels || !Object.keys(thinkingLevels).length)
+    return [...DEFAULT_AVAILABLE_THINKING_LEVELS]
+  return ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
+    .filter((level) => typeof thinkingLevels[level] === 'string' && thinkingLevels[level]!.trim())
+    .map((level) => (level === 'off' ? 'none' : level))
 }
 
 export function composerThinkingLevels(available?: readonly string[] | null): string[] {
-  void available
-  return [...COMPOSER_THINKING_LEVELS]
+  return available
+    ? ['auto', ...available.filter((level) => level !== 'auto')]
+    : [...COMPOSER_THINKING_LEVELS]
 }
 
 export function thinkingIndex(level: string, levels: readonly string[]): number {
