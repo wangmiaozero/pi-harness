@@ -146,10 +146,55 @@ test('file panel keeps navigation and chat visible, isolates sessions, and adapt
     .click()
   await expect(code).toContainText('Conversation A')
   await expect(panel).not.toContainText('b-only.ts')
+  const previousIds = await page.evaluate(async () =>
+    (await window.piSwitch.sessions.list(true)).map((session) => session.id)
+  )
   await page.getByTestId('workspace-new-session').click()
-  await expect(page.getByTestId('workspace-files-unavailable')).toBeVisible()
-  await expect(tree).toHaveCount(0)
+  await expect(page.getByTestId('workspace-new-session')).toBeEnabled()
+  const created = await page.evaluate(
+    async (ids) =>
+      (await window.piSwitch.sessions.list(true)).filter((session) => !ids.includes(session.id)),
+    previousIds
+  )
+  expect(created).toHaveLength(1)
+  const defaultRoots = await page.evaluate(() => window.piSwitch.workspace.getDefaultRoots())
+  expect(defaultRoots).toContain(created[0].cwd)
+  await expect(page.getByTestId(`session-row-${created[0].id}`)).toBeVisible()
+  await expect(tree).toBeVisible()
+  await expect(tree.getByRole('button', { name: 'a-only.ts', exact: true })).toHaveCount(0)
+  await expect(tree.getByRole('button', { name: 'b-only.ts', exact: true })).toHaveCount(0)
   await expect(code).toHaveCount(0)
+  await expect(page.getByTestId('workspace-files-unavailable')).toHaveCount(0)
   await expect(page.getByTestId('workspace-chat-list')).toBeVisible()
   await expect(page.getByTestId('workspace-toggle-files')).toHaveAttribute('aria-expanded', 'true')
+})
+
+test('file panel keeps imported project files unavailable before a conversation is created', async ({
+  page,
+  electronApp,
+  workspaceRoot
+}) => {
+  const project = path.join(workspaceRoot, 'draft-project')
+  fs.mkdirSync(project)
+  fs.writeFileSync(path.join(project, 'draft-only.ts'), 'export const draft = true\n')
+  await page.locator('a[href="#/workspace"]').click()
+  await electronApp.evaluate(({ dialog }, directory) => {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] })
+  }, project)
+  await page.getByTestId('workspace-import-project').click()
+  await expect(page.getByTestId('workspace-project-0')).toContainText('draft-project')
+  await page.getByTestId('workspace-toggle-files').click()
+  const panel = page.getByTestId('workspace-files-panel')
+  const unavailable = page.getByTestId('workspace-files-unavailable')
+  await expect(unavailable).toBeVisible()
+  await expect(page.getByTestId('workspace-file-tree')).toHaveCount(0)
+  await expect(page.getByTestId('file-code-view')).toHaveCount(0)
+  await expect(panel).not.toContainText('draft-only.ts')
+  await expect(page.getByTestId('chat-composer')).toBeVisible()
+
+  await page.getByTestId('workspace-refresh').click()
+  await expect(unavailable).toBeVisible()
+  await expect(page.getByTestId('workspace-file-tree')).toHaveCount(0)
+  await expect(page.getByTestId('file-code-view')).toHaveCount(0)
+  expect(await page.evaluate(() => window.piSwitch.sessions.list(true))).toEqual([])
 })
