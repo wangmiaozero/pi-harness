@@ -22,6 +22,7 @@ import type { ImageModelResult } from '@shared/ipc/api-types'
 import { imageModelRequestSchema } from '@shared/schemas/domain'
 import { getProtocol, isProtocolId } from '@shared/constants/protocols'
 import type { ProtocolId } from '@shared/constants/protocols'
+import { findModelPreset, findProviderPreset } from '@shared/constants/provider-presets'
 import { log, redactSecretText } from '../services/logger'
 import {
   imageApiBaseUrl,
@@ -106,7 +107,8 @@ export class ProviderService {
           mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol),
           form.defaultModelId ?? null,
           form.protocol,
-          form.defaultModel ?? null
+          form.defaultModel ?? null,
+          form.key
         )
       },
       { overwrite: options?.overwrite, reason: `create provider ${form.key}` }
@@ -202,7 +204,8 @@ export class ProviderService {
         mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol),
         form.defaultModelId ?? null,
         form.protocol,
-        form.defaultModel ?? null
+        form.defaultModel ?? null,
+        form.key
       )
     }
 
@@ -1681,21 +1684,30 @@ function ensureDefaultModel(
     contextWindow: number | null
     maxOutputTokens: number | null
     input?: ('text' | 'image')[]
-  } | null
+  } | null,
+  providerKey?: string
 ): import('@shared/types/pi').PiProviderConfig {
   const id = defaultModelId?.trim()
   if (!id) return provider
   const models = [...(provider.models ?? [])]
   const catalog = catalogModel?.id === id ? catalogModel : null
+  const defaults = findModelPreset(
+    id,
+    findProviderPreset({ key: providerKey, protocol, baseUrl: provider.baseUrl })
+  )
   const existingIndex = models.findIndex((model) => model.id === id)
   if (existingIndex >= 0) {
     const existing = models[existingIndex]!
     models[existingIndex] = {
       ...existing,
       name: catalog?.name || existing.name || id,
-      contextWindow: catalog?.contextWindow ?? existing.contextWindow,
-      maxTokens: catalog?.maxOutputTokens ?? existing.maxTokens,
-      input: catalog?.input ? [...catalog.input] : existing.input
+      contextWindow: catalog?.contextWindow ?? existing.contextWindow ?? defaults?.contextWindow,
+      maxTokens: catalog?.maxOutputTokens ?? existing.maxTokens ?? defaults?.maxOutputTokens,
+      input: catalog?.input
+        ? [...catalog.input]
+        : (existing.input ?? (defaults?.input ? [...defaults.input] : undefined)),
+      reasoning: existing.reasoning ?? defaults?.reasoning,
+      thinkingLevelMap: existing.thinkingLevelMap ?? defaults?.thinkingLevels
     }
     return { ...provider, models }
   }
@@ -1704,12 +1716,13 @@ function ensureDefaultModel(
       undefined,
       {
         modelId: id,
-        displayName: catalog?.name || id,
+        displayName: catalog?.name || defaults?.name || id,
         protocol,
-        reasoning: false,
-        vision: catalog?.input?.includes('image') ?? false,
-        contextWindow: catalog?.contextWindow ?? null,
-        maxOutputTokens: catalog?.maxOutputTokens ?? null
+        reasoning: defaults?.reasoning ?? false,
+        vision: catalog?.input?.includes('image') ?? defaults?.input?.includes('image') ?? false,
+        contextWindow: catalog?.contextWindow ?? defaults?.contextWindow ?? null,
+        maxOutputTokens: catalog?.maxOutputTokens ?? defaults?.maxOutputTokens ?? null,
+        thinkingLevels: defaults?.thinkingLevels
       },
       protocol
     )

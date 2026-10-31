@@ -12,6 +12,7 @@ import { NotFoundError, ValidationError } from '../services/errors'
 import type { PiConfigService, WriteOptions } from '../pi/config-service'
 import { domainModelToPi, modelToDomain, providerProtocolFromPi } from '../pi/adapter'
 import type { PiModelConfig } from '@shared/types/pi'
+import { findModelPreset, findProviderPreset } from '@shared/constants/provider-presets'
 
 export class ModelService {
   constructor(
@@ -26,7 +27,17 @@ export class ModelService {
     for (const [pkey, provider] of Object.entries(snap.models.providers)) {
       const protocol = providerProtocolFromPi(provider.api)
       for (const m of provider.models ?? []) {
-        out.push(modelToDomain(pkey, m, protocol, meta.models[modelMetaKey(pkey, m.id)]))
+        const modelMeta = meta.models[modelMetaKey(pkey, m.id)]
+        const model = modelToDomain(pkey, m, protocol, modelMeta)
+        const defaults = findModelPreset(
+          m.id,
+          findProviderPreset({ key: pkey, protocol, baseUrl: provider.baseUrl })
+        )
+        out.push({
+          ...model,
+          tools: modelMeta?.capabilities?.tools ?? defaults?.tools ?? model.tools,
+          streaming: modelMeta?.capabilities?.streaming ?? defaults?.streaming ?? model.streaming
+        })
       }
     }
     return out
@@ -40,6 +51,19 @@ export class ModelService {
       providerKey,
       (cur) => {
         if (!cur) throw new NotFoundError(`Provider not found: ${providerKey}`)
+        const defaults = findModelPreset(
+          form.modelId,
+          findProviderPreset({
+            key: providerKey,
+            protocol: providerProtocolFromPi(cur.api),
+            baseUrl: cur.baseUrl
+          })
+        )
+        if (defaults) {
+          const supplied = raw as Record<string, unknown>
+          if (!Object.hasOwn(supplied, 'thinkingLevels'))
+            form.thinkingLevels = defaults.thinkingLevels
+        }
         const models = [...(cur.models ?? [])]
         if (models.some((m) => m.id === form.modelId)) {
           throw new ValidationError(`Model already exists: ${form.modelId}`)

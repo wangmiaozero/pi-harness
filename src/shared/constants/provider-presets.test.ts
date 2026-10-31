@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { PROTOCOL_IDS } from '@shared/constants/protocols'
 import {
   findProviderPreset,
+  findModelPreset,
+  suggestedModelPresets,
   PROVIDER_PRESETS,
   resolveModelInput
 } from '@shared/constants/provider-presets'
@@ -28,7 +30,7 @@ describe('provider preset catalog', () => {
     expect(findProviderPreset({ key: 'deepseek' })).toMatchObject({
       protocol: 'openai-completions',
       defaultBaseUrl: 'https://api.deepseek.com',
-      defaultModelId: 'deepseek-v4-flash'
+      defaultModelId: 'deepseek-flash'
     })
     expect(findProviderPreset({ key: 'anthropic' })).toMatchObject({
       protocol: 'anthropic-messages',
@@ -69,13 +71,12 @@ describe('provider preset catalog', () => {
       findProviderPreset({ key: 'stepfun' })?.models.find((model) => model.id === 'step-3.7-flash')
         ?.input
     ).toEqual(['text', 'image'])
+    expect(findModelPreset('gpt-4o', findProviderPreset({ key: 'openai' }))?.input).toEqual([
+      'text',
+      'image'
+    ])
     expect(
-      findProviderPreset({ key: 'openai' })?.models.find((model) => model.id === 'gpt-4o')?.input
-    ).toEqual(['text', 'image'])
-    expect(
-      findProviderPreset({ key: 'anthropic' })?.models.find(
-        (model) => model.id === 'claude-sonnet-4-5-20250929'
-      )?.input
+      findModelPreset('claude-sonnet-4-5-20250929', findProviderPreset({ key: 'anthropic' }))?.input
     ).toEqual(['text', 'image'])
   })
 
@@ -112,5 +113,47 @@ describe('provider preset catalog', () => {
         configuredInput: ['text', 'image']
       })
     ).toEqual(['text', 'image'])
+  })
+
+  it('suggests current models and resolves older typed ids without recommending them', () => {
+    const openai = findProviderPreset({ key: 'openai' })!
+    expect(suggestedModelPresets(openai).map((m) => m.id)).toEqual([
+      'gpt-6-astra',
+      'gpt-6.1-sol',
+      'gpt-6.1-terra',
+      'gpt-6-luna'
+    ])
+    expect(findModelPreset('gpt-6-astra', openai)).toMatchObject({
+      contextWindow: 1050000,
+      maxOutputTokens: 128000,
+      reasoning: true,
+      tools: true,
+      streaming: true,
+      input: ['text', 'image'],
+      thinkingLevels: { off: null, minimal: null, low: 'low', max: 'max' }
+    })
+    const ark = findProviderPreset({ key: 'ark-code' })!
+    expect(suggestedModelPresets(ark).map((m) => m.id)).not.toContain('kimi-k2.7-code')
+    expect(findModelPreset('kimi-k2.7-code', ark)?.contextWindow).toBe(262144)
+    expect(findModelPreset('KIMI-K3.1-PRO', ark)).toMatchObject({
+      maxOutputTokens: 1048576,
+      thinkingLevels: { off: null, medium: null, low: 'low', max: 'max' }
+    })
+    expect(findModelPreset('glm-5.3', ark)?.thinkingLevels).toMatchObject({
+      off: null,
+      medium: null,
+      low: 'low',
+      high: 'high',
+      max: 'max'
+    })
+    expect(
+      findModelPreset('deepseek-v4.1-flash', findProviderPreset({ key: 'deepseek' }))?.id
+    ).toBe('deepseek-flash')
+    expect(findModelPreset('unknown-model')).toBeUndefined()
+    expect(
+      findModelPreset('kimi-k3.1-pro', findProviderPreset({ key: 'moonshot' }))
+    ).toBeUndefined()
+    expect(findModelPreset('kimi-k3.1-pro')).toBeUndefined()
+    expect(suggestedModelPresets(findProviderPreset({ key: 'ollama' }))).toEqual([])
   })
 })

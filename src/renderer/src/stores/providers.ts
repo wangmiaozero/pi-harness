@@ -1,3 +1,4 @@
+import { useModelsStore } from './models'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type {
@@ -80,7 +81,6 @@ export const useProvidersStore = defineStore('providers', () => {
     )
     await fetchList()
     // Cascade lives in main; refresh models so the Models page drops orphaned rows immediately.
-    const { useModelsStore } = await import('@renderer/stores/models')
     await useModelsStore().fetchList()
   }
 
