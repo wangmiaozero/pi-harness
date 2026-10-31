@@ -169,6 +169,8 @@ export class PiRpcRuntime implements HarnessAdapter {
       if (existing) {
         if (input.permissionMode)
           await this.setPermissionMode(existing.id, normalizePermissionMode(input.permissionMode))
+        if (input.toolNames !== undefined)
+          await this.setTools(existing.id, input.toolNames, { preserveExtensionTools: true })
         return { sessionId: existing.id, cwd: existing.cwd }
       }
       const pending = this.starts.get(input.sessionId)

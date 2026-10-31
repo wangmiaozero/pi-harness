@@ -82,6 +82,7 @@ import { createOrchestrator } from './harness/orchestrator/orchestrator-host'
 import { PolicyEngine } from './harness/policy/policy-engine'
 import { DEFAULT_POLICY_CONFIG } from './harness/policy/policy-defaults'
 import { projectIdentityKey } from '@shared/workspace/project-identity'
+import { DEFAULT_TOOL_PRESET } from '@shared/workspace/tool-presets'
 import { assertPolicyToolAllowed } from './harness/policy/policy-tool-guard'
 import { EMPTY_CHECKPOINT_STORE } from './harness/checkpoint/checkpoint-service'
 import { onUpdateState, startAutomaticUpdates, stopAutomaticUpdates } from './updater'
@@ -123,7 +124,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   autoBackup: true,
   backupRetention: 20,
   developerMode: false,
-  defaultToolPreset: 'default',
+  defaultToolPreset: DEFAULT_TOOL_PRESET,
   defaultPermissionMode: 'auto',
   defaultAgentMode: 'agent',
   restoreTabs: true,

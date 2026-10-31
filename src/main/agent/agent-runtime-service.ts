@@ -31,7 +31,7 @@ import {
   isRunningStateEvent,
   toIpcAgentEvent
 } from '@shared/workspace/agent-event-wire'
-import { getToolNamesForPreset } from '@shared/workspace/tool-presets'
+import { getToolNamesForPreset, isReadOnlyToolPreset } from '@shared/workspace/tool-presets'
 import {
   isPermissionMode,
   normalizePermissionMode,
@@ -87,6 +87,7 @@ export class AgentSessionWrapper {
   private workspacePrompt = ''
   private abortRevision = 0
   private fileToolEnforcement: { remainingRequests: number } | null = null
+  private suspendedExtensionTools: string[] | null = null
   private _alive = true
 
   constructor(
@@ -382,11 +383,20 @@ export class AgentSessionWrapper {
       case 'set_tools': {
         const toolNames = (command.toolNames as string[]) ?? []
         this.setForceEmptySystemPrompt(toolNames.length === 0)
-        const nextToolNames =
-          command.preserveExtensionTools === false
-            ? toolNames
-            : withExtensionTools(this.inner, toolNames)
+        const exact = command.preserveExtensionTools === false
+        const restricted = toolNames.length === 0 || isReadOnlyToolPreset(toolNames)
+        if (exact) this.suspendedExtensionTools = null
+        else if (restricted && this.suspendedExtensionTools === null) {
+          const coding = new Set(CODING_TOOL_NAMES)
+          this.suspendedExtensionTools = this.inner
+            .getActiveToolNames()
+            .filter((name) => !coding.has(name))
+        }
+        const nextToolNames = exact
+          ? toolNames
+          : withExtensionTools(this.inner, toolNames, this.suspendedExtensionTools ?? [])
         this.inner.setActiveToolsByName(nextToolNames)
+        if (!restricted) this.suspendedExtensionTools = null
         return null
       }
       case 'append_external_image_result':
@@ -663,12 +673,23 @@ function sameInputCapabilities(
   )
 }
 
-function withExtensionTools(session: AgentSessionLike, toolNames: string[]): string[] {
-  if (toolNames.length === 0) return []
+function withExtensionTools(
+  session: AgentSessionLike,
+  toolNames: string[],
+  suspended: string[] = []
+): string[] {
+  if (toolNames.length === 0 || isReadOnlyToolPreset(toolNames)) return [...toolNames]
   const coding = new Set(CODING_TOOL_NAMES)
   // Preserve Pi's exposure decisions; registered tools can intentionally be inactive.
   const extensionToolNames = session.getActiveToolNames().filter((name) => !coding.has(name))
-  return [...new Set([...toolNames, ...extensionToolNames])]
+  const registered = new Set(session.getAllTools().map((tool) => tool.name))
+  return [
+    ...new Set([
+      ...toolNames,
+      ...extensionToolNames,
+      ...suspended.filter((name) => registered.has(name))
+    ])
+  ]
 }
 
 function supportsThinkingLevel(session: AgentSessionLike, level: ThinkingLevel): boolean {
@@ -822,6 +843,8 @@ export class AgentRuntimeService implements AgentRuntime {
       if (existing?.isAlive()) {
         if (input.permissionMode)
           existing.setPermissionMode(normalizePermissionMode(input.permissionMode))
+        if (input.toolNames !== undefined)
+          await existing.send({ type: 'set_tools', toolNames: input.toolNames })
         return { sessionId: existing.sessionId, cwd: existing.inner.sessionManager.getCwd() }
       }
       const inflight = this.startLocks.get(input.sessionId)
@@ -1201,7 +1224,7 @@ export class AgentRuntimeService implements AgentRuntime {
         }
       })
       if (toolNames && toolNames.length > 0) {
-        inner.setActiveToolsByName(withExtensionTools(inner, toolNames))
+        await wrapper.send({ type: 'set_tools', toolNames })
       }
     } catch (error) {
       await wrapper.shutdown()

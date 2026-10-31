@@ -45,7 +45,10 @@ import {
   ArrowDown,
   ArrowUp,
   AtSign,
+  BookOpen,
   Bot,
+  Boxes,
+  CircleOff,
   Hand,
   ImagePlus,
   ListChecks,
@@ -100,7 +103,7 @@ const LARGE_PASTE_THRESHOLD = 8_000
 
 const emit = defineEmits<{
   send: [imageModel: ComposerImageModelTarget | null, mode?: AgentMode]
-  sendQueue: [images: AgentImageAttachment[]]
+  sendQueue: [images: AgentImageAttachment[], mode: AgentMode]
   abort: []
   toggleSound: []
   unlockAudio: []
@@ -589,10 +592,15 @@ watch(thinkingStops, (levels) => {
 })
 
 const toolOptions = computed(() => [
-  { value: 'none', label: 'off', description: t('workspace.toolsNone') },
-  { value: 'read-only', label: 'read-only', description: t('workspace.toolsReadOnly') },
-  { value: 'default', label: 'default', description: t('workspace.toolsDefault') },
-  { value: 'full', label: 'full', description: t('workspace.toolsFull') }
+  { value: 'none', label: 'off', description: t('workspace.toolsNone'), icon: CircleOff },
+  {
+    value: 'read-only',
+    label: 'read-only',
+    description: t('workspace.toolsReadOnly'),
+    icon: BookOpen
+  },
+  { value: 'default', label: 'default', description: t('workspace.toolsDefault'), icon: Wrench },
+  { value: 'full', label: 'full', description: t('workspace.toolsFull'), icon: Boxes }
 ])
 
 const toolPreset = computed({
@@ -798,7 +806,7 @@ function sendPasteQueue() {
   }))
   clearPasteQueue()
   emit('unlockAudio')
-  emit('sendQueue', images)
+  emit('sendQueue', images, agentMode.value)
 }
 
 function chooseImages() {
@@ -1236,14 +1244,16 @@ onBeforeUnmount(() => {
             <ComposerOptionMenu
               v-model="toolPreset"
               :label="$t('workspace.changeTools')"
+              :heading="$t('workspace.changeTools')"
               :icon="Wrench"
               :options="toolOptions"
               :disabled="busy"
-              :menu-width="300"
+              :menu-width="390"
               @interact="emit('unlockAudio')"
             />
             <ComposerOptionMenu
               v-model="agentModeValue"
+              :disabled="busy"
               :label="$t('workspace.agentModeLabel')"
               :heading="$t('workspace.agentModeHeading')"
               :icon="agentMode === 'plan' ? ListChecks : agentMode === 'goal' ? Target : Bot"

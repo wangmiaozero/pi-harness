@@ -32,10 +32,10 @@ import { resolveSkillMention } from './skill-invocation'
 import {
   agentModeDirective,
   normalizeAgentMode,
+  toolPresetForAgentMode,
   type AgentMode
 } from '@shared/workspace/agent-mode'
 import { usePermissionStore } from '@renderer/stores/permission'
-import type { ToolPreset } from '@shared/workspace/tool-presets'
 import type { AgentImageAttachment, SessionDetail } from '@shared/types/workspace'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { useCompletionSound } from '@renderer/composables/useCompletionSound'
@@ -241,12 +241,8 @@ async function sendDraft(imageModel: ComposerImageModelTarget | null, mode?: Age
   if (!displayText && !images.length) return
   stickToLatest()
   const selectedMode = normalizeAgentMode(mode)
-  const preset = (
-    sessions.currentId ? agent.activePreset() : (settings.settings?.defaultToolPreset ?? 'default')
-  ) as ToolPreset
-  // Plan mode starts brand-new sessions with read-only tools only.
-  const effectivePreset =
-    selectedMode === 'plan' && !sessions.currentId ? ('read-only' as ToolPreset) : preset
+  const preset = agent.activePreset()
+  const effectivePreset = toolPresetForAgentMode(selectedMode, preset)
   const permissionSessionId = sessions.currentId
   const cwd = workspace.currentCwd
   const permissionMode = permission.modeFor(permissionSessionId)
@@ -273,21 +269,28 @@ async function sendDraft(imageModel: ComposerImageModelTarget | null, mode?: Age
   }
 }
 
-async function onSendQueue(images: AgentImageAttachment[]) {
-  await submitDraft(() => sendQueuedImages(images))
+async function onSendQueue(images: AgentImageAttachment[], mode?: AgentMode) {
+  await submitDraft(() => sendQueuedImages(images, mode))
 }
 
-async function sendQueuedImages(images: AgentImageAttachment[]) {
+async function sendQueuedImages(images: AgentImageAttachment[], mode?: AgentMode) {
   if (!images.length) return
   const sessionId = sessions.currentId
   const cwd = workspace.currentCwd
   const permissionMode = permission.modeFor(sessionId)
-  const preset = (
-    sessions.currentId ? agent.activePreset() : (settings.settings?.defaultToolPreset ?? 'default')
-  ) as ToolPreset
+  const selectedMode = normalizeAgentMode(mode)
+  const preset = toolPresetForAgentMode(selectedMode, agent.activePreset())
   await completionSound.unlock()
   stickToLatest()
-  await agent.send(sessionId, cwd, '', preset, images, '', permissionMode)
+  await agent.send(
+    sessionId,
+    cwd,
+    agentModeDirective(selectedMode) ?? '',
+    preset,
+    images,
+    '',
+    permissionMode
+  )
 }
 
 async function onAbort() {

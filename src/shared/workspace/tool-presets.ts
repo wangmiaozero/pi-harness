@@ -6,6 +6,7 @@ export interface ToolEntry {
 
 export const TOOL_PRESET_VALUES = ['none', 'read-only', 'default', 'full'] as const
 export type ToolPreset = (typeof TOOL_PRESET_VALUES)[number]
+export const DEFAULT_TOOL_PRESET: ToolPreset = 'full'
 
 export const PRESET_NONE: string[] = []
 export const PRESET_READ_ONLY: string[] = ['read', 'grep', 'find', 'ls']
@@ -13,6 +14,14 @@ export const PRESET_DEFAULT: string[] = ['read', 'bash', 'edit', 'write']
 export const PRESET_FULL: string[] = ['bash', 'read', 'edit', 'write', 'grep', 'find', 'ls']
 
 const BUILTIN_TOOL_NAMES = new Set(PRESET_FULL)
+
+/** The read-only preset must not retain additional tools with unknown effects. */
+export function isReadOnlyToolPreset(toolNames: readonly string[]): boolean {
+  return (
+    toolNames.length === PRESET_READ_ONLY.length &&
+    PRESET_READ_ONLY.every((name) => toolNames.includes(name))
+  )
+}
 
 export function isToolPreset(value: unknown): value is ToolPreset {
   return typeof value === 'string' && (TOOL_PRESET_VALUES as readonly string[]).includes(value)

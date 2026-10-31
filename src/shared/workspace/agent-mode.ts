@@ -1,4 +1,6 @@
-/** Composer agent modes. The approximation ships directives, not runtime contracts. */
+import type { ToolPreset } from './tool-presets'
+
+/** Work style directives complement the runtime's enforced tool selection. */
 export const AGENT_MODES = ['agent', 'plan', 'goal'] as const
 export type AgentMode = (typeof AGENT_MODES)[number]
 
@@ -12,7 +14,7 @@ export function normalizeAgentMode(value: unknown): AgentMode {
 
 /**
  * Directive prepended to the user's prompt so the model honors the selected
- * mode. Plan mode additionally starts new sessions with read-only tools.
+ * mode. Plan mode also restricts both new and existing sessions to read-only tools.
  */
 export function agentModeDirective(mode: AgentMode): string | null {
   if (mode === 'plan') {
@@ -29,4 +31,8 @@ export function agentModeDirective(mode: AgentMode): string | null {
     )
   }
   return null
+}
+
+export function toolPresetForAgentMode(mode: AgentMode, preset: ToolPreset): ToolPreset {
+  return mode === 'plan' && preset !== 'none' ? 'read-only' : preset
 }

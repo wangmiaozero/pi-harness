@@ -8,6 +8,7 @@ import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import ChatWindow from './ChatWindow.vue'
 import ChatComposer from './ChatComposer.vue'
+import type { ToolPreset } from '@shared/workspace/tool-presets'
 
 afterEach(() => {
   delete window.piSwitch
@@ -15,6 +16,58 @@ afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
+
+it.each([
+  ['planning', 'full', 'read-only', false],
+  ['planning', 'none', 'none', false],
+  [null, 'none', 'none', false],
+  [null, 'read-only', 'read-only', false],
+  ['planning', 'full', 'read-only', true],
+  ['planning', 'none', 'none', true]
+] as const)(
+  'uses the displayed planning tools for session %s (%s → %s, queued images: %s)',
+  async (sessionId, selected: ToolPreset, effective, queued) => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      }
+    )
+    Object.defineProperty(HTMLElement.prototype, 'scrollTo', { configurable: true, value: vi.fn() })
+    window.piSwitch = { on: vi.fn(() => () => undefined) } as unknown as PiSwitchAPI
+    setActivePinia(createPinia())
+    const agent = useAgentStore()
+    const sessions = useSessionStore()
+    const workspace = useWorkspaceStore()
+    if (sessionId) sessions.addTransientSession(sessionId, '/project', 'Plan')
+    sessions.selectSession(sessionId)
+    workspace.draft = 'Inspect this project'
+    agent.toolPreset = selected
+    const send = vi.spyOn(agent, 'send').mockResolvedValue(sessionId)
+    const wrapper = shallowMount(ChatWindow, { global: { plugins: [i18n] } })
+    try {
+      const images = queued
+        ? [{ type: 'image' as const, data: 'fixture', mimeType: 'image/png' }]
+        : []
+      const composer = wrapper.findComponent(ChatComposer)
+      if (queued) composer.vm.$emit('sendQueue', images, 'plan')
+      else composer.vm.$emit('send', null, 'plan')
+      await flushPromises()
+      expect(send).toHaveBeenCalledWith(
+        sessionId,
+        null,
+        expect.stringContaining('[Mode: plan]'),
+        effective,
+        images,
+        queued ? '' : 'Inspect this project',
+        'auto'
+      )
+    } finally {
+      wrapper.unmount()
+    }
+  }
+)
 
 it.each([false, true])(
   'unlocks the composer after submission settles (failure: %s)',

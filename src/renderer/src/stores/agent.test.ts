@@ -683,7 +683,7 @@ describe('agent store new-session handshake', () => {
     const agent = useAgentStore()
     await agent.setThinking('session-1', 'high')
     await agent.setTools('session-1', 'read-only')
-    await agent.send('session-1', '/code/project', 'hello', 'default')
+    await agent.send('session-1', '/code/project', 'hello', 'read-only')
 
     expect(start).toHaveBeenCalledWith({
       sessionId: 'session-1',

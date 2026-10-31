@@ -1,5 +1,5 @@
 import { toComposerThinkingLevel } from '@shared/constants/index'
-import { isToolPreset, type ToolPreset } from '@shared/workspace/tool-presets'
+import { DEFAULT_TOOL_PRESET, isToolPreset, type ToolPreset } from '@shared/workspace/tool-presets'
 
 export const COMPOSER_CACHE_KEY = 'pi-harness.composer.v1'
 const MAX_SESSION_ENTRIES = 80
@@ -26,7 +26,7 @@ export type ComposerCacheState = ComposerSelection & {
 
 const EMPTY_CACHE: ComposerCacheState = {
   thinkingLevel: 'auto',
-  toolPreset: 'default',
+  toolPreset: DEFAULT_TOOL_PRESET,
   bySession: {}
 }
 
@@ -39,10 +39,12 @@ function storage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null {
   }
 }
 
-export function readComposerCache(): ComposerCacheState {
+export function readComposerCache(
+  defaultPreset: ToolPreset = DEFAULT_TOOL_PRESET
+): ComposerCacheState {
   try {
     const raw = storage()?.getItem(COMPOSER_CACHE_KEY)
-    if (!raw) return { ...EMPTY_CACHE, bySession: {} }
+    if (!raw) return { ...EMPTY_CACHE, toolPreset: defaultPreset, bySession: {} }
     const parsed = JSON.parse(raw) as Partial<ComposerCacheState>
     const bySession: Record<string, ComposerSelection> = {}
     if (parsed.bySession && typeof parsed.bySession === 'object') {
@@ -53,11 +55,11 @@ export function readComposerCache(): ComposerCacheState {
     }
     return {
       thinkingLevel: normalizeThinking(parsed.thinkingLevel),
-      toolPreset: normalizePreset(parsed.toolPreset),
+      toolPreset: isToolPreset(parsed.toolPreset) ? parsed.toolPreset : defaultPreset,
       bySession
     }
   } catch {
-    return { ...EMPTY_CACHE, bySession: {} }
+    return { ...EMPTY_CACHE, toolPreset: defaultPreset, bySession: {} }
   }
 }
 
@@ -91,9 +93,10 @@ export function forgetComposerCache(sessionId: string): void {
 }
 
 export function hydrateComposerSelections(
-  target: Map<string, ComposerSelection>
+  target: Map<string, ComposerSelection>,
+  defaultPreset: ToolPreset = DEFAULT_TOOL_PRESET
 ): ComposerSelection {
-  const cached = readComposerCache()
+  const cached = readComposerCache(defaultPreset)
   target.clear()
   for (const [sessionId, selection] of Object.entries(cached.bySession)) {
     target.set(sessionId, selection)
@@ -126,5 +129,5 @@ function normalizeThinking(value: unknown): string {
 }
 
 function normalizePreset(value: unknown): ToolPreset {
-  return isToolPreset(value) ? value : 'default'
+  return isToolPreset(value) ? value : DEFAULT_TOOL_PRESET
 }

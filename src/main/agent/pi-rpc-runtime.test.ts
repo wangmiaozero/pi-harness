@@ -509,6 +509,34 @@ export default function(pi: any) {
       })
     ).rejects.toThrow('Unsupported command')
   }, 45_000)
+  it('reapplies restricted tools when reusing an official Pi process', async () => {
+    await fs.mkdir(path.join(config, 'extensions'), { recursive: true })
+    await fs.writeFile(
+      path.join(config, 'extensions', 'profile-extra.ts'),
+      `export default function (pi) {
+      pi.registerTool({ name: 'profile_extra', label: 'Profile extra', description: 'Profile fixture',
+        parameters: { type: 'object', properties: {} },
+        async execute() { return { content: [{ type: 'text', text: 'fixture' }], details: {} } }
+      })
+    }`
+    )
+    const started = await runtime.startSession({ cwd, provider: 'fixture', modelId: 'fixture' })
+    expect(
+      (await runtime.getTools(started.sessionId))
+        .filter((tool) => tool.active)
+        .map((tool) => tool.name)
+    ).toContain('profile_extra')
+    for (const tools of [['read', 'grep', 'find', 'ls'], [], ['read', 'bash', 'edit', 'write']]) {
+      await runtime.startSession({ sessionId: started.sessionId, toolNames: tools })
+      expect(
+        (await runtime.getTools(started.sessionId))
+          .filter((tool) => tool.active)
+          .map((tool) => tool.name)
+          .sort()
+      ).toEqual((tools.includes('bash') ? [...tools, 'profile_extra'] : [...tools]).sort())
+    }
+  }, 30_000)
+
   it('forks and navigates native sessions, changes tools and saves generated images without an extra model turn', async () => {
     const started = await runtime.startSession({ cwd, provider: 'fixture', modelId: 'fixture' })
     runtime.subscribe(started.sessionId, (event) => events.push(event))
