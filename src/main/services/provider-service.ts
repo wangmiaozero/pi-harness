@@ -17,6 +17,7 @@ import {
   resolveApiKeyForPi
 } from '../pi/adapter'
 import { randomBytes } from 'node:crypto'
+import { isLocalOllamaEndpoint } from '@shared/providers/local-ollama'
 import type { ConnectionTestResult } from '@shared/ipc/api-types'
 import type { ImageModelResult } from '@shared/ipc/api-types'
 import { imageModelRequestSchema } from '@shared/schemas/domain'
@@ -45,16 +46,10 @@ export class ProviderService {
   async list(): Promise<ProviderProfile[]> {
     const snap = await this.config.read()
     const meta = await this.metadata.read()
-    const providerKeys = Object.keys(snap.models.providers)
-    const enabledKey = resolveEnabledProviderKey(
-      providerKeys,
-      meta.providers,
-      snap.settings.defaultProvider ?? null
-    )
     return Object.entries(snap.models.providers).map(([key, pi]) =>
       providerToDomain(key, pi, {
         ...meta.providers[key],
-        enabled: key === enabledKey
+        enabled: key === 'opencode-free' ? (meta.providers[key]?.enabled ?? false) : true
       })
     )
   }
@@ -91,7 +86,8 @@ export class ProviderService {
 
     const secretId = await this.persistSecret(form.key, form.apiKey)
     const apiKeySpec = secretId ? ({ kind: 'stored' } as const) : form.apiKey
-    const apiKeyValue = await resolveApiKeyForPi(apiKeySpec, secretId)
+    const localNoAuth = form.apiKey === null && isLocalOllamaEndpoint(form.baseUrl)
+    const apiKeyValue = localNoAuth ? 'ollama' : await resolveApiKeyForPi(apiKeySpec, secretId)
 
     await this.config.patchProvider(
       form.key,
@@ -100,7 +96,7 @@ export class ProviderService {
           protocol: form.protocol,
           baseUrl: form.baseUrl,
           headers: form.headers,
-          authHeader: form.authHeader,
+          authHeader: localNoAuth ? false : form.authHeader,
           apiKeyValue
         })
         return ensureDefaultModel(
@@ -117,22 +113,11 @@ export class ProviderService {
     const now = Date.now()
     const meta = await this.metadata.read()
     const providersMeta = { ...meta.providers }
-    if (form.enabled) {
-      for (const k of Object.keys((await this.config.read()).models.providers)) {
-        const prev = providersMeta[k] ?? {}
-        providersMeta[k] = {
-          ...prev,
-          enabled: k === form.key,
-          updatedAt: now,
-          createdAt: prev.createdAt ?? now
-        }
-      }
-    }
     providersMeta[form.key] = {
       ...providersMeta[form.key],
       name: form.name,
       displayName: form.displayName,
-      enabled: form.enabled,
+      enabled: true,
       timeout: form.timeout,
       apiKeyRef: secretId,
       defaultModelId: form.defaultModelId ?? null,
@@ -184,8 +169,10 @@ export class ProviderService {
       secretId = null
     }
 
-    const apiKeyValue =
-      form.apiKey === null
+    const localNoAuth = form.apiKey === null && isLocalOllamaEndpoint(form.baseUrl)
+    const apiKeyValue = localNoAuth
+      ? 'ollama'
+      : form.apiKey === null
         ? ''
         : form.apiKey?.kind === 'literal' && !form.apiKey.literal
           ? undefined // keep existing
@@ -197,7 +184,7 @@ export class ProviderService {
         protocol: form.protocol,
         baseUrl: form.baseUrl,
         headers: form.headers,
-        authHeader: form.authHeader,
+        authHeader: localNoAuth ? false : form.authHeader,
         apiKeyValue
       })
       return ensureDefaultModel(
@@ -257,22 +244,11 @@ export class ProviderService {
       modelsMeta = moved
     }
 
-    if (form.enabled) {
-      for (const k of Object.keys((await this.config.read()).models.providers)) {
-        const prev = providersMeta[k] ?? {}
-        providersMeta[k] = {
-          ...prev,
-          enabled: k === newKey,
-          updatedAt: now,
-          createdAt: prev.createdAt ?? now
-        }
-      }
-    }
     providersMeta[newKey] = {
       ...providersMeta[newKey],
       name: form.name,
       displayName: form.displayName,
-      enabled: form.enabled,
+      enabled: true,
       timeout: form.timeout,
       apiKeyRef: secretId,
       defaultModelId:
@@ -331,7 +307,6 @@ export class ProviderService {
     const snap = await this.config.read()
     const meta = await this.metadata.read()
     let fallback: { providerKey: string; modelId: string } | null = null
-    let enabledFallback: { providerKey: string; modelId: string } | null = null
 
     for (const [pkey, pi] of Object.entries(snap.models.providers)) {
       if (pkey === removedKey) continue
@@ -340,13 +315,10 @@ export class ProviderService {
       if (!modelId) continue
       const candidate = { providerKey: pkey, modelId }
       fallback ??= candidate
-      if (meta.providers[pkey]?.enabled !== false) {
-        enabledFallback = candidate
-        break
-      }
+      break
     }
 
-    const next = enabledFallback ?? fallback
+    const next = fallback
     if (next) {
       await this.config.setActiveModel(next.providerKey, next.modelId, {
         overwrite: options?.overwrite ?? true,
@@ -405,7 +377,7 @@ export class ProviderService {
         [newKey]: {
           ...meta.providers[key],
           displayName: `${src.displayName} Copy`,
-          enabled: false,
+          enabled: true,
           createdAt: now,
           updatedAt: now
         }
@@ -417,58 +389,12 @@ export class ProviderService {
     return dup
   }
 
-  /** Quick enable toggle — at most one provider may be enabled.
-   * Enabling also switches Pi's active model to this provider's default / first model.
-   */
-  async setEnabled(key: string, enabled: boolean): Promise<ProviderProfile> {
+  /** Compatibility for older clients; configured providers are always available. */
+  async setEnabled(key: string, _enabled: boolean): Promise<ProviderProfile> {
     if (key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const current = await this.get(key)
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
-
-    const snap = await this.config.read()
-    const meta = await this.metadata.read()
-    const now = Date.now()
-    const providersMeta = { ...meta.providers }
-
-    if (enabled) {
-      for (const k of Object.keys(snap.models.providers)) {
-        const prev = providersMeta[k] ?? {}
-        providersMeta[k] = {
-          ...prev,
-          enabled: k === key,
-          updatedAt: now,
-          createdAt: prev.createdAt ?? now
-        }
-      }
-    } else {
-      const prev = providersMeta[key] ?? {}
-      providersMeta[key] = {
-        ...prev,
-        enabled: false,
-        updatedAt: now,
-        createdAt: prev.createdAt ?? now
-      }
-    }
-
-    await this.metadata.update({ providers: providersMeta })
-
-    if (enabled) {
-      const modelId = current.defaultModelId?.trim() || (await this.firstModelId(key)) || null
-      if (modelId) {
-        try {
-          await this.config.setActiveModel(key, modelId, {
-            overwrite: true,
-            reason: `enable provider ${key} → active ${key}/${modelId}`
-          })
-        } catch (err) {
-          log.provider.warn('set active model after enable failed:', err)
-        }
-      }
-    }
-
-    const updated = await this.get(key)
-    if (!updated) throw new ValidationError('setEnabled failed')
-    return updated
+    return current
   }
 
   /** Read a provider's model-list endpoint without mutating models.json. */
@@ -1008,12 +934,6 @@ export class ProviderService {
     return { ...data, baseUrl: url }
   }
 
-  private async firstModelId(providerKey: string): Promise<string | null> {
-    const snap = await this.config.read()
-    const models = snap.models.providers[providerKey]?.models ?? []
-    return models[0]?.id ?? null
-  }
-
   /** Pi streams with model.api; provider.api is only the fallback. */
   private async resolveModelProtocol(
     providerKey: string,
@@ -1041,37 +961,6 @@ export class ProviderService {
     }
     return null
   }
-}
-
-/**
- * Provider metadata can briefly lag behind models.json while providers are
- * created, renamed, or added outside Pi-Harness. Resolve that partial state to
- * a deterministic single selection before it reaches the renderer.
- */
-export function resolveEnabledProviderKey(
-  providerKeys: string[],
-  providersMeta: AppMetadata['providers'],
-  activeProviderKey: string | null
-): string | null {
-  const configured = new Set(providerKeys)
-  const explicitlyEnabled = providerKeys.filter((key) => providersMeta[key]?.enabled === true)
-
-  if (explicitlyEnabled.length > 0) {
-    if (activeProviderKey && explicitlyEnabled.includes(activeProviderKey)) {
-      return activeProviderKey
-    }
-    return explicitlyEnabled[0] ?? null
-  }
-
-  const untracked = providerKeys.filter((key) => providersMeta[key]?.enabled === undefined)
-  if (
-    activeProviderKey &&
-    configured.has(activeProviderKey) &&
-    untracked.includes(activeProviderKey)
-  ) {
-    return activeProviderKey
-  }
-  return untracked[0] ?? null
 }
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024

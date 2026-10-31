@@ -64,6 +64,8 @@ export interface ProviderProfile {
   apiKeyRef: string | null
   /** Source spec used when writing to Pi config. */
   apiKey: ApiKeySpec | null
+  /** Main recognizes a keyless local Ollama connection without exposing its placeholder. */
+  localNoAuth?: boolean
   headers: Record<string, string>
   authHeader: boolean
   /** Pi-Harness-only metadata; NOT written to Pi config. */

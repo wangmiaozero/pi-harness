@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ProviderService, resolveEnabledProviderKey } from './provider-service'
+import { ProviderService } from './provider-service'
 import type { PiProviderConfig, PiSettingsConfig } from '@shared/types/pi'
 
 vi.mock('electron', () => ({
@@ -28,53 +28,32 @@ describe('ProviderService enabled-state invariant', () => {
     )
     expect(read).not.toHaveBeenCalled()
   })
-  it('selects at most one provider when metadata has multiple enabled entries', async () => {
+  it.each([
+    {},
+    { nvidia: { enabled: true }, stepfun: { enabled: true } },
+    { nvidia: { enabled: false }, stepfun: { enabled: false } },
+    { nvidia: { enabled: true }, stepfun: { enabled: false } }
+  ])('keeps configured providers available with legacy metadata %j', async (providersMeta) => {
     const config = {
       read: vi.fn(async () => ({
         models: { providers: { nvidia: piProvider, stepfun: piProvider } },
         settings: { defaultProvider: 'stepfun' },
         modelsMtime: null,
         settingsMtime: null
-      }))
+      })),
+      setActiveModel: vi.fn()
     }
     const metadata = {
-      read: vi.fn(async () => ({
-        providers: {
-          nvidia: { enabled: true },
-          stepfun: { enabled: true }
-        },
-        models: {},
-        capabilities: {},
-        builtinSkills: { schemaVersion: 1, installed: {} }
-      }))
+      read: vi.fn(async () => ({ providers: providersMeta, models: {} })),
+      update: vi.fn()
     }
     const service = new ProviderService(config as never, metadata as never)
-
-    const providers = await service.list()
-
     expect(
-      providers.filter((provider) => provider.enabled).map((provider) => provider.key)
-    ).toEqual(['stepfun'])
-  })
-
-  it('uses the active provider while metadata is temporarily missing', () => {
-    expect(resolveEnabledProviderKey(['nvidia', 'stepfun'], {}, 'stepfun')).toBe('stepfun')
-  })
-
-  it('keeps a known enabled provider selected while a new provider has no metadata', () => {
-    expect(
-      resolveEnabledProviderKey(['nvidia', 'stepfun'], { nvidia: { enabled: true } }, 'stepfun')
-    ).toBe('nvidia')
-  })
-
-  it('allows all providers to remain disabled when metadata explicitly disables them', () => {
-    expect(
-      resolveEnabledProviderKey(
-        ['nvidia', 'stepfun'],
-        { nvidia: { enabled: false }, stepfun: { enabled: false } },
-        'stepfun'
-      )
-    ).toBeNull()
+      (await service.list()).filter((provider) => provider.enabled).map((provider) => provider.key)
+    ).toEqual(['nvidia', 'stepfun'])
+    expect((await service.setEnabled('nvidia', false)).enabled).toBe(true)
+    expect(config.setActiveModel).not.toHaveBeenCalled()
+    expect(metadata.update).not.toHaveBeenCalled()
   })
 })
 
