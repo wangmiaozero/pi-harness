@@ -72,6 +72,14 @@ function showFilteredPanel() {
   showPanel(false)
 }
 
+function dismissPanel(event: KeyboardEvent) {
+  if (!open.value) return
+  event.preventDefault()
+  event.stopPropagation()
+  open.value = false
+  showAllOptions.value = false
+}
+
 function toggleAllOptions() {
   if (open.value && showAllOptions.value) {
     open.value = false
@@ -145,6 +153,7 @@ const inputClasses = computed(() => {
         :class="inputClasses"
         @focus="showFilteredPanel"
         @input="showFilteredPanel"
+        @keydown.esc="dismissPanel"
       />
       <button
         v-if="hasOptions"
@@ -172,6 +181,7 @@ const inputClasses = computed(() => {
         class="ui-combobox-menu pointer-events-auto fixed z-[110] max-h-[240px] overflow-y-auto rounded-[var(--menu-radius)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
         :style="panelStyle"
         @pointerdown.stop
+        @keydown.esc="dismissPanel"
       >
         <button
           v-for="opt in filtered"

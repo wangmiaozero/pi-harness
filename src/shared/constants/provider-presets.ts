@@ -1,4 +1,6 @@
 import generatedCatalog from './provider-presets.generated.json'
+import currentCatalog from './current-models.json'
+import type { PiThinkingLevel } from './index'
 import type { PiInputType } from './index'
 import type { ProtocolId } from './protocols'
 
@@ -8,6 +10,14 @@ export interface ProviderPresetModel {
   contextWindow?: number
   maxOutputTokens?: number
   input?: readonly PiInputType[]
+  reasoning?: boolean
+  tools?: boolean
+  streaming?: boolean
+  thinkingLevels?: Partial<Record<PiThinkingLevel, string | null>>
+  sources?: readonly string[]
+  aliases?: readonly string[]
+  recommended?: boolean
+  providerScoped?: boolean
 }
 
 export interface ProviderPreset {
@@ -70,6 +80,13 @@ const CURRENT_MODEL_OVERRIDES = {
 >
 
 function applyCurrentModelOverrides(preset: ProviderPreset): ProviderPreset {
+  const latest = (currentCatalog.providers as Record<string, ProviderPresetModel[]>)[preset.id]
+  if (latest)
+    return {
+      ...preset,
+      defaultModelId: latest[0].id,
+      models: latest.filter((model) => model.recommended !== false)
+    }
   const override = CURRENT_MODEL_OVERRIDES[preset.id as keyof typeof CURRENT_MODEL_OVERRIDES]
   if (!override) return preset
 
@@ -86,6 +103,44 @@ const importedPresets = (generatedCatalog.providers as unknown as ProviderPreset
 )
 
 export const PROVIDER_PRESETS: readonly ProviderPreset[] = [...genericPresets, ...importedPresets]
+
+export function findModelPreset(
+  modelId: string,
+  provider?: ProviderPreset
+): ProviderPresetModel | undefined {
+  const key = modelId.trim().toLowerCase()
+  const matches = (model: ProviderPresetModel) =>
+    model.id.toLowerCase() === key || model.aliases?.some((alias) => alias.toLowerCase() === key)
+  const local =
+    provider && (currentCatalog.providers as Record<string, ProviderPresetModel[]>)[provider.id]
+  const exact = (local ?? provider?.models)?.find(matches)
+  if (exact) return exact
+  const legacy =
+    provider &&
+    (generatedCatalog.providers as unknown as ProviderPreset[])
+      .find((item) => item.id === provider.id)
+      ?.models.find(matches)
+  if (legacy) return legacy as ProviderPresetModel
+  if (provider && !provider.id.endsWith('-compatible')) return undefined
+  return (Object.values(currentCatalog.providers).flat() as ProviderPresetModel[]).find(
+    (model) => !model.providerScoped && matches(model)
+  )
+}
+
+export function suggestedModelPresets(provider?: ProviderPreset): readonly ProviderPresetModel[] {
+  if (provider) {
+    const latest = (currentCatalog.providers as Record<string, ProviderPresetModel[]>)[provider.id]
+    if (latest) return latest.filter((model) => model.recommended !== false)
+    if (!provider.id.endsWith('-compatible')) return []
+  }
+  return [
+    ...new Map(
+      (Object.values(currentCatalog.providers).flat() as ProviderPresetModel[])
+        .filter((model) => model.recommended !== false && !model.providerScoped)
+        .map((model) => [model.id, model])
+    ).values()
+  ]
+}
 
 function normalizeBaseUrl(value: string): string {
   return value.trim().replace(/\/+$/, '').toLowerCase().replace('127.0.0.1', 'localhost')
@@ -118,8 +173,9 @@ export function resolveModelInput(input: {
   modelId: string
   configuredInput?: readonly PiInputType[]
 }): readonly PiInputType[] {
-  const catalogInput = findProviderPreset({ key: input.providerKey })?.models.find(
-    (model) => model.id === input.modelId
+  const catalogInput = findModelPreset(
+    input.modelId,
+    findProviderPreset({ key: input.providerKey })
   )?.input
   return catalogInput ?? input.configuredInput ?? ['text']
 }

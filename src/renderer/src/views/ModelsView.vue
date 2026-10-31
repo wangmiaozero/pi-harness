@@ -29,7 +29,11 @@ import type {
 } from '@shared/ipc/api-types'
 import type { ModelForm, ProviderForm } from '@shared/schemas/domain'
 import { PROTOCOLS } from '@shared/constants/protocols'
-import { findProviderPreset } from '@shared/constants/provider-presets'
+import {
+  findModelPreset,
+  findProviderPreset,
+  suggestedModelPresets
+} from '@shared/constants/provider-presets'
 import { PI_THINKING_LEVELS, type PiThinkingLevel } from '@shared/constants/index'
 import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
@@ -143,7 +147,7 @@ const conflictingModelIds = computed(
 )
 const modelIdConflict = computed(() => conflictingModelIds.value.has(form.value.modelId.trim()))
 const modelPresetOptions = computed(() =>
-  (selectedProviderPreset.value?.models ?? [])
+  suggestedModelPresets(selectedProviderPreset.value)
     .filter((model) => !conflictingModelIds.value.has(model.id))
     .map((model) => ({
       value: model.id,
@@ -152,15 +156,57 @@ const modelPresetOptions = computed(() =>
     }))
 )
 
+type ModelDefaults = {
+  displayName: string
+  vision: boolean
+  reasoning: boolean
+  tools: boolean
+  streaming: boolean
+  contextWindow: string
+  maxOutputTokens: string
+  thinking: Record<PiThinkingLevel, string>
+}
+let previousDefaults: ModelDefaults | undefined
+
 function selectModelPreset(modelId: string) {
   if (isEditing.value) return
-  const model = selectedProviderPreset.value?.models.find((item) => item.id === modelId)
-  if (!model) return
-  form.value.displayName = model.name
-  form.value.vision = model.input?.includes('image') ?? false
-  contextWindowStr.value = model.contextWindow != null ? String(model.contextWindow) : ''
-  maxOutputStr.value = model.maxOutputTokens != null ? String(model.maxOutputTokens) : ''
+  const model = findModelPreset(modelId, selectedProviderPreset.value)
+  const blankThinking = Object.fromEntries(
+    PI_THINKING_LEVELS.map((level) => [level, ''])
+  ) as Record<PiThinkingLevel, string>
+  const previous = previousDefaults ?? {
+    ...defaultForm(),
+    contextWindow: '',
+    maxOutputTokens: '',
+    thinking: blankThinking
+  }
+  const next: ModelDefaults = {
+    displayName: model?.name ?? '',
+    vision: model?.input?.includes('image') ?? false,
+    reasoning: model?.reasoning ?? false,
+    tools: model?.tools ?? false,
+    streaming: model?.streaming ?? true,
+    contextWindow: model?.contextWindow != null ? String(model.contextWindow) : '',
+    maxOutputTokens: model?.maxOutputTokens != null ? String(model.maxOutputTokens) : '',
+    thinking: Object.fromEntries(
+      PI_THINKING_LEVELS.map((level) => [level, model?.thinkingLevels?.[level] ?? ''])
+    ) as Record<PiThinkingLevel, string>
+  }
+  for (const key of ['displayName', 'vision', 'reasoning', 'tools', 'streaming'] as const) {
+    if (form.value[key] === previous[key]) Object.assign(form.value, { [key]: next[key] })
+  }
+  if (contextWindowStr.value === previous.contextWindow) contextWindowStr.value = next.contextWindow
+  if (maxOutputStr.value === previous.maxOutputTokens) maxOutputStr.value = next.maxOutputTokens
+  if (JSON.stringify(thinkingMap.value) === JSON.stringify(previous.thinking)) {
+    thinkingMap.value = next.thinking
+    form.value.thinkingLevels = model?.thinkingLevels ? { ...model.thinkingLevels } : undefined
+  }
+  previousDefaults = next
 }
+
+watch([() => form.value.modelId, selectedProviderPreset], () => {
+  if (dialogOpen.value && !isEditing.value) selectModelPreset(form.value.modelId)
+})
 
 function bindProvider(p: ProviderProfile | undefined) {
   if (!p) return
@@ -236,15 +282,18 @@ function resetThinkingMap(src?: ModelDefinition['thinkingLevels']) {
 }
 
 function buildThinkingLevels(): ModelForm['thinkingLevels'] {
-  const entries = PI_THINKING_LEVELS.map((l) => {
-    const v = thinkingMap.value[l]?.trim()
-    return v ? ([l, v] as const) : null
-  }).filter((x): x is readonly [PiThinkingLevel, string] => x != null)
+  const entries: [PiThinkingLevel, string | null][] = []
+  for (const level of PI_THINKING_LEVELS) {
+    const value = thinkingMap.value[level]?.trim()
+    if (value) entries.push([level, value])
+    else if (form.value.thinkingLevels?.[level] === null) entries.push([level, null])
+  }
   if (entries.length === 0) return undefined
   return Object.fromEntries(entries) as NonNullable<ModelForm['thinkingLevels']>
 }
 
 function openCreate() {
+  previousDefaults = undefined
   editingId.value = null
   form.value = defaultForm()
   contextWindowStr.value = ''
@@ -282,8 +331,8 @@ function openEdit(model: ModelDefinition) {
   dialogOpen.value = true
 }
 
-function parseOptionalInt(value: string): number | null {
-  const trimmed = value.trim()
+function parseOptionalInt(value: string | number): number | null {
+  const trimmed = String(value).trim()
   if (!trimmed) return null
   const n = parseInt(trimmed, 10)
   return Number.isFinite(n) && n > 0 ? n : null
@@ -929,13 +978,13 @@ onMounted(() => {
             v-model="contextWindowStr"
             :label="$t('models.fieldContext')"
             type="number"
-            :placeholder="$t('models.contextPlaceholder')"
+            placeholder="—"
           />
           <Input
             v-model="maxOutputStr"
             :label="$t('models.fieldMaxOutput')"
             type="number"
-            :placeholder="$t('models.maxOutputPlaceholder')"
+            placeholder="—"
           />
         </div>
 

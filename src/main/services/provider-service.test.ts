@@ -21,9 +21,7 @@ describe('ProviderService enabled-state invariant', () => {
     await expect(service.update('opencode-free', {})).rejects.toThrow('Use OpenCode settings')
     await expect(service.duplicate('opencode-free')).rejects.toThrow('Use OpenCode settings')
     await expect(service.delete('opencode-free')).rejects.toThrow('Use OpenCode settings')
-    await expect(service.setEnabled('opencode-free', true)).rejects.toThrow(
-      'Use OpenCode settings'
-    )
+    await expect(service.setEnabled('opencode-free', true)).rejects.toThrow('Use OpenCode settings')
     await expect(service.revealApiKey('opencode-free')).rejects.toThrow('cannot be revealed')
     await expect(service.testConnection({ providerKey: 'opencode-free' })).rejects.toThrow(
       'Use OpenCode connection verification'
@@ -676,6 +674,63 @@ describe('ProviderService model discovery', () => {
     expect(providers.acme?.models?.every((model) => model.api === undefined)).toBe(true)
     expect(providers.acme?.models?.every((model) => model.input?.includes('image'))).toBe(false)
     expect(created.name).toBe('acme')
+  })
+
+  it('initializes a current default model with verified limits and thinking support', async () => {
+    const providers: Record<string, PiProviderConfig> = {}
+    const metadataState = {
+      providers: {},
+      models: {},
+      capabilities: {},
+      builtinSkills: { schemaVersion: 1, installed: {} }
+    }
+    const config = {
+      read: async () => ({
+        models: { providers },
+        settings: {},
+        modelsMtime: null,
+        settingsMtime: null
+      }),
+      patchProvider: async (
+        key: string,
+        update: (cur: PiProviderConfig | undefined) => PiProviderConfig
+      ) => {
+        providers[key] = update(providers[key])
+      },
+      getActiveModel: async () => ({ providerKey: null, modelId: null }),
+      setActiveModel: async () => {}
+    }
+    const metadata = {
+      read: async () => metadataState,
+      update: async (patch: Partial<typeof metadataState>) => Object.assign(metadataState, patch)
+    }
+    const service = new ProviderService(config as never, metadata as never)
+    await service.create(
+      providerForm({
+        key: 'openai',
+        protocol: 'openai-completions',
+        baseUrl: 'https://api.openai.com/v1',
+        defaultModelId: 'gpt-6-astra'
+      })
+    )
+    expect(providers.openai.models).toEqual([
+      expect.objectContaining({
+        id: 'gpt-6-astra',
+        contextWindow: 1050000,
+        maxTokens: 128000,
+        reasoning: true,
+        input: ['text', 'image'],
+        thinkingLevelMap: {
+          off: null,
+          minimal: null,
+          low: 'low',
+          medium: 'medium',
+          high: 'high',
+          xhigh: 'xhigh',
+          max: 'max'
+        }
+      })
+    ])
   })
 })
 
