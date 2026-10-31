@@ -68,11 +68,20 @@ const nodeActionLabel = computed(() =>
 )
 
 const stats = computed(() => ({
-  providers: providersStore.items.length,
-  enabledProviders: providersStore.items.filter((p) => p.enabled).length,
+  providers: providersStore.items.filter((p) => p.key !== 'opencode-free').length,
   models: modelsStore.items.length,
   enabledModels: modelsStore.items.filter((m) => m.enabled).length
 }))
+
+const defaultModelName = computed(
+  () =>
+    modelsStore.items.find((model) =>
+      modelsStore.isActive(
+        model,
+        providersStore.items.find((provider) => provider.id === model.providerId)?.key
+      )
+    )?.displayName
+)
 
 const configStatusLabel = computed(() => {
   if (env.value?.configValid) return t('common.valid')
@@ -359,7 +368,7 @@ onMounted(() => {
           @cancel="piStore.cancelInstall"
         />
 
-        <!-- Current Model — the focal point. Single Surface, no Card. -->
+        <!-- Default model; individual conversations keep their own selection. -->
         <div
           class="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-5 py-4"
         >
@@ -369,6 +378,9 @@ onMounted(() => {
                 class="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
               >
                 {{ $t('overview.currentModel') }}
+              </p>
+              <p class="mt-1 text-[11px] text-[var(--text-secondary)]">
+                {{ $t('overview.defaultModelHint') }}
               </p>
               <template v-if="modelsStore.active.providerKey && modelsStore.active.modelId">
                 <p class="mt-1 flex flex-wrap items-baseline gap-2">
@@ -385,24 +397,10 @@ onMounted(() => {
                   }}</span>
                 </p>
                 <p
-                  v-if="
-                    modelsStore.items.find((m) =>
-                      modelsStore.isActive(
-                        m,
-                        providersStore.items.find((p) => p.id === m.providerId)?.key
-                      )
-                    )?.displayName
-                  "
+                  v-if="defaultModelName && defaultModelName !== modelsStore.active.modelId"
                   class="mt-0.5 text-[12px] text-[var(--text-secondary)]"
                 >
-                  {{
-                    modelsStore.items.find((m) =>
-                      modelsStore.isActive(
-                        m,
-                        providersStore.items.find((p) => p.id === m.providerId)?.key
-                      )
-                    )?.displayName
-                  }}
+                  {{ defaultModelName }}
                 </p>
               </template>
               <EmptyState
@@ -457,8 +455,9 @@ onMounted(() => {
                 {{ $t('overview.providers') }}
               </p>
               <p class="text-[12.5px] text-[var(--text-primary)]">
-                <span class="font-semibold tabular-nums">{{ stats.enabledProviders }}</span>
-                <span class="text-[var(--text-tertiary)]"> / {{ stats.providers }}</span>
+                <span data-testid="overview-provider-count" class="font-semibold tabular-nums">{{
+                  stats.providers
+                }}</span>
               </p>
             </div>
           </div>

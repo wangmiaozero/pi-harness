@@ -39,7 +39,9 @@ test.describe('Models', () => {
     await expect(context).toHaveValue('1050000')
     await context.fill('1050000')
     await dialog.getByRole('button', { name: /保存|Save/ }).click()
-    await expect(page.locator('[data-sonner-toast]')).toContainText(/模型已创建|Model created/)
+    await expect(
+      page.locator('[data-sonner-toast]').filter({ hasText: /模型已创建|Model created/ })
+    ).toBeVisible()
     await expect
       .poll(async () => ({ dialogs: await dialog.count(), errors: pageErrors }))
       .toEqual({ dialogs: 0, errors: [] })

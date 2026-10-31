@@ -30,6 +30,7 @@ import {
   normalizeProviderBaseUrl,
   volcenginePlanKind
 } from '@shared/utils/base-url'
+import { isLocalOllamaEndpoint } from '@shared/providers/local-ollama'
 import { suggestProviderIdentity } from '@shared/utils/provider-identity'
 import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
@@ -79,7 +80,6 @@ const testLoading = ref(false)
 let testGeneration = 0
 const saving = ref(false)
 const saveError = ref('')
-const providerTogglePending = ref<string | null>(null)
 const timeoutStr = ref('')
 const headersJson = ref('')
 const defaultModelIdStr = ref('')
@@ -101,7 +101,7 @@ const modelDiscoveryFeedback = ref<{
 
 /** Name takes leftover width; other columns hug their content so 标识/操作 aren't crushed. */
 const listGrid = {
-  gridTemplateColumns: 'minmax(8rem, 1fr) max-content 2.75rem max-content 2.25rem max-content 19rem'
+  gridTemplateColumns: 'minmax(8rem, 1fr) max-content 2.75rem max-content max-content 19rem'
 } as const
 
 const defaultForm = (): ProviderForm => ({
@@ -121,6 +121,8 @@ const defaultForm = (): ProviderForm => ({
 const form = ref<ProviderForm>(defaultForm())
 const apiKeyKind = ref<ApiKeyUiKind>('none')
 const apiKeyValue = ref('')
+const customLocalAuth = ref(false)
+const savedLocalNoAuth = ref(false)
 const revealedApiKeyValue = ref('')
 const apiKeyRevealed = ref(false)
 const apiKeyRevealLoading = ref(false)
@@ -258,6 +260,25 @@ const hasSavedSecret = computed(
     Boolean(keychainService.value || preservedCommand.value || form.value.apiKey)
 )
 
+const keylessLocalOllama = computed(() => {
+  if (!isLocalOllamaEndpoint(form.value.baseUrl) || customLocalAuth.value) return false
+  try {
+    if (
+      Object.keys(JSON.parse(headersJson.value || '{}')).some((name) =>
+        /^(authorization|x-api-key|api-key)$/i.test(name)
+      )
+    )
+      return false
+  } catch {
+    return false
+  }
+  return (
+    savedLocalNoAuth.value ||
+    apiKeyKind.value === 'none' ||
+    (apiKeyKind.value === 'literal' && !hasSavedSecret.value && !apiKeyValue.value.trim())
+  )
+})
+
 const providersWithNoModels = computed(() =>
   providersStore.items.filter((p) => p.key !== 'opencode-free' && p.enabled && p.modelCount === 0)
 )
@@ -278,6 +299,12 @@ function isMaskedKey(value: string): boolean {
 
 function clearKeyMask() {
   if (isMaskedKey(apiKeyValue.value)) apiKeyValue.value = ''
+}
+
+function configureLocalAuth() {
+  customLocalAuth.value = true
+  apiKeyKind.value = 'literal'
+  form.value.authHeader = true
 }
 
 function clearApiKeyReveal() {
@@ -375,8 +402,8 @@ function uniqueProviderKey(base: string): string {
 function openCreate(presetId?: string) {
   editingKey.value = null
   form.value = defaultForm()
-  // Only auto-enable when nothing else is enabled (single-active rule).
-  form.value.enabled = !providersStore.items.some((p) => p.enabled)
+  customLocalAuth.value = false
+  savedLocalNoAuth.value = false
   apiKeyKind.value = 'none'
   apiKeyValue.value = ''
   preservedCommand.value = null
@@ -423,6 +450,8 @@ function openEdit(provider: ProviderProfile) {
     return
   }
   editingKey.value = provider.key
+  customLocalAuth.value = false
+  savedLocalNoAuth.value = provider.localNoAuth === true
   form.value = {
     key: provider.key,
     name: provider.name,
@@ -491,6 +520,7 @@ function openEdit(provider: ProviderProfile) {
 }
 
 function buildApiKey(): ProviderForm['apiKey'] {
+  if (keylessLocalOllama.value) return null
   const kind = apiKeyKind.value
   const raw = apiKeyValue.value.trim()
   const value = isMaskedKey(raw) ? '' : raw
@@ -740,31 +770,6 @@ async function doDelete() {
   }
 }
 
-async function toggleEnabled(provider: ProviderProfile, enabled: boolean) {
-  if (provider.enabled === enabled || providerTogglePending.value !== null) return
-  providerTogglePending.value = provider.key
-  try {
-    await providersStore.setEnabled(provider.key, enabled)
-    if (enabled) {
-      await modelsStore.fetchList()
-      const active = modelsStore.active
-      const label =
-        active.providerKey && active.modelId
-          ? `${active.providerKey}/${active.modelId}`
-          : provider.displayName
-      toast.success(
-        t('providers.enabledWithModelToast', { name: provider.displayName, model: label })
-      )
-    } else {
-      toast.success(t('providers.disabledToast', { name: provider.displayName }))
-    }
-  } catch (e) {
-    toast.error((e as { message?: string }).message ?? t('common.failed'))
-  } finally {
-    providerTogglePending.value = null
-  }
-}
-
 function openTest(provider: ProviderProfile) {
   if (provider.key === 'opencode-free') {
     void router.replace({ path: '/models', query: { tab: 'opencode' } })
@@ -803,6 +808,7 @@ async function runTest() {
 }
 
 function keyBadge(provider: ProviderProfile): string {
+  if (provider.localNoAuth) return t('providers.noKeyRequired')
   const spec = provider.apiKey
   if (!spec) return t('providers.keyTypeNone')
   if (spec.kind === 'stored') return t('providers.keyTypeStored')
@@ -989,7 +995,6 @@ onMounted(() => {
             <span>{{ $t('providers.colProtocol') }}</span>
             <span class="tabular-nums">{{ $t('providers.colModels') }}</span>
             <span>{{ $t('providers.colKey') }}</span>
-            <span>{{ $t('providers.colEnabled') }}</span>
             <span>{{ $t('providers.colUpdated') }}</span>
             <span
               class="sticky right-0 z-20 flex self-stretch items-center justify-end border-l border-[var(--border-subtle)] bg-[inherit] pl-2 pr-3"
@@ -1001,14 +1006,10 @@ onMounted(() => {
           <div
             v-for="provider in filteredProviders"
             :key="provider.id"
+            data-testid="provider-row"
             class="group relative col-span-full grid grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-[var(--bg-hover)]"
             :style="{ height: 'var(--height-row)' }"
           >
-            <span
-              v-if="provider.enabled"
-              class="pointer-events-none absolute left-0 top-1/2 h-3 w-[2px] -translate-y-1/2 rounded-r-full bg-[var(--accent)]"
-            />
-
             <div class="min-w-0 overflow-hidden">
               <div
                 class="truncate whitespace-nowrap text-[13px] font-medium leading-tight text-[var(--text-primary)]"
@@ -1039,15 +1040,6 @@ onMounted(() => {
               <Badge tone="muted" class="max-w-full" :title="keyBadge(provider)">
                 {{ keyBadge(provider) }}
               </Badge>
-            </div>
-
-            <div class="flex items-center">
-              <Switch
-                :model-value="provider.enabled"
-                :label="$t('providers.colEnabled')"
-                :disabled="providerTogglePending !== null"
-                @update:model-value="(v) => toggleEnabled(provider, v)"
-              />
             </div>
 
             <div
@@ -1154,64 +1146,79 @@ onMounted(() => {
             </Button>
           </div>
         </div>
-        <Select
-          v-model="apiKeyKind"
-          :label="$t('providers.fieldApiKeyType')"
-          :options="apiKeyTypeOptions"
-        />
-
         <div
-          v-if="showKeychainPanel"
+          v-if="keylessLocalOllama"
+          data-testid="ollama-no-key"
           class="space-y-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
         >
-          <p class="text-[12px] text-[var(--text-secondary)]">
-            <template v-if="apiKeyKind === 'keychain'">
-              {{ $t('providers.keychainBound') }}
-              <code
-                v-if="keychainService"
-                class="ml-1 font-[family-name:var(--font-mono)] text-[11px] text-[var(--accent)]"
-              >
-                {{ keychainService }}
-              </code>
-            </template>
-            <template v-else>{{ $t('providers.storedHint') }}</template>
+          <p class="text-[12px] font-medium">{{ $t('providers.localOllamaNoKey') }}</p>
+          <p class="text-[11px] text-[var(--text-secondary)]">
+            {{ $t('providers.localOllamaNoKeyHint') }}
           </p>
-          <Input
-            v-model="apiKeyDisplayValue"
-            :label="$t('providers.fieldApiKeyValue')"
-            :placeholder="apiKeyPlaceholder"
-            type="password"
-            :revealable="canRevealApiKey"
-            :revealed="apiKeyRevealed"
-            :reveal-loading="apiKeyRevealLoading"
-            :reveal-label="$t('providers.keyReveal')"
-            :hide-label="$t('providers.keyHide')"
-            mono
-            autocomplete="off"
-            @focus="!apiKeyRevealed ? clearKeyMask() : undefined"
-            @reveal-toggle="toggleApiKeyReveal"
-          />
+          <Button variant="ghost" size="sm" @click="configureLocalAuth">
+            {{ $t('providers.configureAuth') }}
+          </Button>
         </div>
-
-        <template v-else-if="showApiKeyInput">
-          <Input
-            v-model="apiKeyDisplayValue"
-            :label="$t('providers.fieldApiKeyValue')"
-            :placeholder="apiKeyPlaceholder"
-            :type="apiKeyKind === 'literal' ? 'password' : 'text'"
-            :revealable="apiKeyKind === 'literal' && canRevealApiKey"
-            :revealed="apiKeyRevealed"
-            :reveal-loading="apiKeyRevealLoading"
-            :reveal-label="$t('providers.keyReveal')"
-            :hide-label="$t('providers.keyHide')"
-            mono
-            autocomplete="off"
-            @focus="apiKeyKind === 'literal' && !apiKeyRevealed ? clearKeyMask() : undefined"
-            @reveal-toggle="toggleApiKeyReveal"
+        <template v-else>
+          <Select
+            v-model="apiKeyKind"
+            :label="$t('providers.fieldApiKeyType')"
+            :options="apiKeyTypeOptions"
           />
-          <p v-if="apiKeyKind === 'command'" class="text-[11px] text-[var(--text-tertiary)]">
-            {{ $t('providers.commandHint') }}
-          </p>
+
+          <div
+            v-if="showKeychainPanel"
+            class="space-y-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
+          >
+            <p class="text-[12px] text-[var(--text-secondary)]">
+              <template v-if="apiKeyKind === 'keychain'">
+                {{ $t('providers.keychainBound') }}
+                <code
+                  v-if="keychainService"
+                  class="ml-1 font-[family-name:var(--font-mono)] text-[11px] text-[var(--accent)]"
+                >
+                  {{ keychainService }}
+                </code>
+              </template>
+              <template v-else>{{ $t('providers.storedHint') }}</template>
+            </p>
+            <Input
+              v-model="apiKeyDisplayValue"
+              :label="$t('providers.fieldApiKeyValue')"
+              :placeholder="apiKeyPlaceholder"
+              type="password"
+              :revealable="canRevealApiKey"
+              :revealed="apiKeyRevealed"
+              :reveal-loading="apiKeyRevealLoading"
+              :reveal-label="$t('providers.keyReveal')"
+              :hide-label="$t('providers.keyHide')"
+              mono
+              autocomplete="off"
+              @focus="!apiKeyRevealed ? clearKeyMask() : undefined"
+              @reveal-toggle="toggleApiKeyReveal"
+            />
+          </div>
+
+          <template v-else-if="showApiKeyInput">
+            <Input
+              v-model="apiKeyDisplayValue"
+              :label="$t('providers.fieldApiKeyValue')"
+              :placeholder="apiKeyPlaceholder"
+              :type="apiKeyKind === 'literal' ? 'password' : 'text'"
+              :revealable="apiKeyKind === 'literal' && canRevealApiKey"
+              :revealed="apiKeyRevealed"
+              :reveal-loading="apiKeyRevealLoading"
+              :reveal-label="$t('providers.keyReveal')"
+              :hide-label="$t('providers.keyHide')"
+              mono
+              autocomplete="off"
+              @focus="apiKeyKind === 'literal' && !apiKeyRevealed ? clearKeyMask() : undefined"
+              @reveal-toggle="toggleApiKeyReveal"
+            />
+            <p v-if="apiKeyKind === 'command'" class="text-[11px] text-[var(--text-tertiary)]">
+              {{ $t('providers.commandHint') }}
+            </p>
+          </template>
         </template>
 
         <div class="space-y-2">
@@ -1245,16 +1252,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-3">
-          <div class="min-w-0">
-            <div class="text-[12px] text-[var(--text-secondary)]">{{ $t('common.enabled') }}</div>
-            <p class="mt-0.5 text-[10.5px] text-[var(--text-tertiary)]">
-              {{ $t('providers.exclusiveEnabledHint') }}
-            </p>
-          </div>
-          <Switch v-model="form.enabled" :label="$t('common.enabled')" />
-        </div>
-        <div class="flex items-center justify-between gap-3">
+        <div v-if="!keylessLocalOllama" class="flex items-center justify-between gap-3">
           <span class="text-[12px] text-[var(--text-secondary)]">{{
             $t('providers.fieldAuthHeader')
           }}</span>

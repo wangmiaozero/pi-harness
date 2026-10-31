@@ -9,6 +9,7 @@ import type { ProtocolId } from '@shared/constants/protocols'
 import type { ApiKeySpec, ModelDefinition, ProviderProfile } from '@shared/types/domain'
 import type { PiModelConfig, PiProviderConfig } from '@shared/types/pi'
 import { isProtocolId } from '@shared/constants/protocols'
+import { isLocalOllamaEndpoint, isOllamaPlaceholder } from '@shared/providers/local-ollama'
 import { resolveModelInput, findProviderPreset } from '@shared/constants/provider-presets'
 import type { ModelMeta, ProviderMeta } from '../services/metadata-store'
 import { modelMetaKey } from '../services/metadata-store'
@@ -78,6 +79,11 @@ export function providerToDomain(
 ): ProviderProfile {
   const parsed = parseApiKeyFromPi(pi.apiKey)
   const apiKeyRef = parsed.apiKeyRef ?? meta?.apiKeyRef ?? null
+  const localNoAuth =
+    isLocalOllamaEndpoint(pi.baseUrl ?? '') &&
+    isOllamaPlaceholder(pi.apiKey) &&
+    !apiKeyRef &&
+    !Object.keys(pi.headers ?? {}).some((name) => /^(authorization|x-api-key|api-key)$/i.test(name))
   const apiKey = parsed.apiKey
     ? {
         kind:
@@ -101,7 +107,8 @@ export function providerToDomain(
     protocol,
     baseUrl: pi.baseUrl ?? '',
     apiKeyRef,
-    apiKey,
+    apiKey: localNoAuth ? null : apiKey,
+    localNoAuth,
     headers: pi.headers ?? {},
     authHeader: pi.authHeader ?? true,
     timeout: meta?.timeout ?? null,

@@ -3,6 +3,113 @@ import { IPC_INVOKE } from '../src/shared/ipc/channels'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { once } from 'node:events'
+import fs from 'node:fs'
+import path from 'node:path'
+
+test('keeps all configured providers selectable and handles local Ollama without a visible key', async ({
+  page,
+  piAgentDir
+}, testInfo) => {
+  const active = await page.evaluate(async () => {
+    const api = window.piSwitch!
+    const before = await api.models.getActive()
+    await api.providers.create({
+      key: 'ollama',
+      name: 'ollama',
+      displayName: 'Local Ollama fixture',
+      enabled: false,
+      protocol: 'openai-completions',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+      apiKey: null,
+      headers: {},
+      authHeader: true,
+      timeout: null,
+      defaultModelId: 'fixture-local'
+    })
+    return before
+  })
+  await page.locator('a[href="#/models"]').click()
+  await page.getByTestId('model-management-tab-providers').click()
+  await expect(page.getByTestId('provider-row')).toHaveCount(3)
+  await expect(page.getByRole('switch', { name: '启用', exact: true })).toHaveCount(0)
+  const row = page.getByTestId('provider-row').filter({ hasText: 'Local Ollama fixture' })
+  await expect(row).toContainText('无需密钥')
+  await row.getByRole('button', { name: '编辑', exact: true }).click()
+  let dialog = page.getByRole('dialog')
+  await expect(dialog.getByTestId('ollama-no-key')).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'API 密钥类型', exact: true })).toHaveCount(0)
+  await expect(dialog.getByLabel('API 密钥', { exact: true })).toHaveCount(0)
+  await dialog.screenshot({ path: testInfo.outputPath('local-ollama-no-key.png') })
+  await dialog.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  const saved = JSON.parse(fs.readFileSync(path.join(piAgentDir, 'models.json'), 'utf8'))
+  expect(saved.providers.ollama.apiKey).toBe('ollama')
+  expect(saved.providers.ollama.authHeader).toBe(false)
+  expect(await page.evaluate(() => window.piSwitch!.models.getActive())).toEqual(active)
+  expect(
+    (await page.evaluate(() => window.piSwitch!.providers.list())).every(
+      (provider) => provider.enabled
+    )
+  ).toBe(true)
+
+  await page.locator('a[href="#/workspace"]').click()
+  const picker = page.getByTestId('workspace-model-select').getByRole('button')
+  await picker.click()
+  const vendors = page.getByTestId('composer-vendor-panel')
+  await expect(vendors.getByRole('button')).toHaveCount(3)
+  await expect(
+    vendors.getByRole('button', { name: 'Local Ollama fixture', exact: true })
+  ).toBeVisible()
+  await vendors.getByRole('button', { name: 'Local Ollama fixture', exact: true }).hover()
+  await page
+    .getByTestId('composer-model-panel')
+    .getByRole('option')
+    .filter({ has: page.getByText('fixture-local', { exact: true }) })
+    .click()
+  await expect(picker).toContainText('fixture-local')
+  const other = await page.evaluate(async () => {
+    const providers = await window.piSwitch!.providers.list()
+    const models = await window.piSwitch!.models.list()
+    const model = models.find((item) => item.providerId !== 'ollama' && item.enabled)!
+    return {
+      vendor: providers.find((provider) => provider.id === model.providerId)!.displayName,
+      model: model.displayName
+    }
+  })
+  await picker.click()
+  await vendors.getByRole('button', { name: other.vendor, exact: true }).hover()
+  await page
+    .getByTestId('composer-model-panel')
+    .getByRole('option')
+    .filter({ has: page.getByText(other.model, { exact: true }) })
+    .click()
+  await expect(picker).toContainText(other.model)
+  await page.locator('a[href="#/models"]').click()
+  await page.getByTestId('model-management-tab-providers').click()
+
+  // Authenticated local services retain the normal credential controls.
+  await row.getByRole('button', { name: '编辑', exact: true }).click()
+  dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: '配置身份验证', exact: true }).click()
+  await dialog.getByRole('button', { name: 'API 密钥类型', exact: true }).click()
+  await page.getByRole('option', { name: '环境变量', exact: true }).click()
+  await dialog.getByLabel('API 密钥', { exact: true }).fill('$OLLAMA_FIXTURE_KEY')
+  await dialog.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(row).not.toContainText('无需密钥')
+  const updated = JSON.parse(fs.readFileSync(path.join(piAgentDir, 'models.json'), 'utf8'))
+  expect(updated.providers.ollama.apiKey).toBe('$OLLAMA_FIXTURE_KEY')
+  expect(updated.providers.ollama.authHeader).toBe(true)
+
+  await page.evaluate(() => {
+    window.location.hash = '#/settings/overview'
+  })
+  await expect(page.getByText('默认模型', { exact: true })).toBeVisible()
+  await expect(
+    page.getByText('用于未单独选择模型的会话；已选模型以工作台为准。', { exact: true })
+  ).toBeVisible()
+  await expect(page.getByTestId('overview-provider-count')).toHaveText('3')
+})
 
 test.describe('Providers', () => {
   test('keeps provider actions aligned and fixed to the right', async ({ page }) => {
