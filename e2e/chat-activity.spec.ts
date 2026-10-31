@@ -103,6 +103,7 @@ test('shows compact activity with two independent expansion levels', async ({
     )
   }
   await emit({ type: 'agent_start' })
+  await expect(chat.getByTestId('assistant-loading')).toBeVisible()
   await emit({
     type: 'message_end',
     message: {
@@ -142,6 +143,96 @@ test('shows compact activity with two independent expansion levels', async ({
   await expect(liveTool).toHaveAttribute('open')
   await expect(page.getByTestId('assistant-turn')).toHaveCount(1)
   expect(errors).toEqual([])
+})
+
+test('shows loading before content and follows final output unless the user scrolls up', async ({
+  page,
+  electronApp,
+  piAgentDir,
+  workspaceRoot
+}, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.locator('a[href="#/workspace"]').click()
+  await page
+    .getByTestId(`session-row-${sessionId}`)
+    .getByRole('button', { name: /^检查项目的类型错误/ })
+    .click()
+  const chat = page.getByTestId('chat-scroller')
+  await expect(chat.getByText('检查完成，请修复示例中的类型错误。', { exact: true })).toBeVisible()
+  const directory = path.join(
+    piAgentDir,
+    'sessions',
+    `--${workspaceRoot.replace(/^[/\\]/, '').replace(/[/\\:]/g, '-')}--`
+  )
+  const file = path.join(
+    directory,
+    fs.readdirSync(directory).find((name) => name.endsWith('.jsonl'))!
+  )
+  let parentId = `activity-${fs.readFileSync(file, 'utf8').trim().split('\n').length - 2}`
+  async function emit(event: Record<string, unknown>) {
+    await electronApp.evaluate(
+      ({ BrowserWindow }, payload) => {
+        BrowserWindow.getAllWindows()
+          .find((window) => window.webContents.getURL().includes('#/workspace'))!
+          .webContents.send(payload.channel, { sessionId: payload.sessionId, event: payload.event })
+      },
+      { channel: IPC_EVENT.agentEvent, sessionId, event }
+    )
+  }
+  function persist(message: AgentMessage, id: string) {
+    fs.appendFileSync(
+      file,
+      JSON.stringify({
+        type: 'message',
+        id,
+        parentId,
+        timestamp: new Date().toISOString(),
+        message
+      }) + '\n'
+    )
+    parentId = id
+  }
+  const distance = () => chat.evaluate((el) => el.scrollHeight - el.clientHeight - el.scrollTop)
+  for (const readingHistory of [false, true]) {
+    const user: AgentMessage = { role: 'user', content: `Loading and scrolling ${readingHistory}` }
+    persist(user, `loading-user-${readingHistory}`)
+    await emit({ type: 'agent_start' })
+    await emit({ type: 'message_end', message: user })
+    const spinner = chat.getByTestId('assistant-loading')
+    await expect(spinner).toBeVisible()
+    await expect(spinner).toHaveClass(/animate-spin/)
+    await expect(chat.getByTestId('assistant-turn')).toHaveCount(readingHistory ? 3 : 2)
+    const reply: AgentMessage = {
+      role: 'assistant',
+      model: 'test',
+      provider: 'test',
+      stopReason: 'stop',
+      content: [
+        {
+          type: 'text',
+          text: `| Row | Value |\n| --- | --- |\n${Array.from({ length: 90 }, (_, i) => `| ${i} | Markdown output |`).join('\n')}\n\nFinal output ${readingHistory}`
+        }
+      ]
+    }
+    await emit({ type: 'message_start', message: reply })
+    await expect.poll(distance).toBeLessThanOrEqual(24)
+    if (readingHistory) {
+      await chat.hover()
+      await page.mouse.wheel(0, -650)
+      await expect.poll(distance).toBeGreaterThan(100)
+    }
+    persist(reply, `loading-reply-${readingHistory}`)
+    await emit({ type: 'message_end', message: reply })
+    await emit({ type: 'prompt_done', success: true })
+    await expect(spinner).toHaveCount(0)
+    await expect(chat).toContainText(`Final output ${readingHistory}`)
+    if (readingHistory) await expect.poll(distance).toBeGreaterThan(100)
+    else await expect.poll(distance).toBeLessThanOrEqual(24)
+  }
+  await page.getByRole('button', { name: '滚动到底部', exact: true }).click()
+  await expect.poll(distance).toBeLessThanOrEqual(24)
+  await expect(chat.getByTestId('assistant-turn')).toHaveCount(3)
+  await page.screenshot({ path: testInfo.outputPath('reply-complete-at-bottom.png') })
 })
 
 function seed(directory: string, cwd: string) {

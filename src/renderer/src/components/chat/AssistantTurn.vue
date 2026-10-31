@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { LoaderCircle } from '@lucide/vue'
 import MessageActions from './MessageActions.vue'
 
 defineProps<{ assistantName: string; text: string; streaming?: boolean }>()
@@ -11,8 +12,13 @@ defineProps<{ assistantName: string; text: string; streaming?: boolean }>()
     data-testid="assistant-turn"
   >
     <p class="message-role-label">
-      <span class="message-role-badge"
-        >{{ assistantName }}<span v-if="streaming"> · {{ $t('workspace.streaming') }}</span></span
+      <span class="message-role-badge" :role="streaming ? 'status' : undefined"
+        ><LoaderCircle
+          v-if="streaming"
+          data-testid="assistant-loading"
+          aria-hidden="true"
+          class="size-3 shrink-0 animate-spin motion-reduce:animate-none"
+        />{{ assistantName }}<span v-if="streaming"> · {{ $t('workspace.streaming') }}</span></span
       >
     </p>
     <div class="assistant-turn-content"><slot /></div>
@@ -41,6 +47,7 @@ defineProps<{ assistantName: string; text: string; streaming?: boolean }>()
 .message-role-badge {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   min-height: 21px;
   padding: 2px 8px;
   border-radius: 999px;

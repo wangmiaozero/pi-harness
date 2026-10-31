@@ -189,4 +189,60 @@ it('uses one role label and one copy action for the whole assistant turn, includ
   })
   expect(wrapper.findAll('[data-message-role="assistant"] .message-role-badge')).toHaveLength(1)
   expect(wrapper.get('[data-testid="assistant-turn"]').text()).toContain('More details')
+  expect(wrapper.findAll('[data-testid="assistant-loading"]')).toHaveLength(1)
+  await wrapper.setProps({ running: false, liveMessage: null })
+  expect(wrapper.find('[data-testid="assistant-loading"]').exists()).toBe(false)
+})
+
+it('shows loading before the first token without adding a duplicate assistant turn', async () => {
+  const inputs: HistoryItem[] = [
+    { key: 'old-user', message: { role: 'user', content: 'Previous question' } },
+    {
+      key: 'old-reply',
+      message: {
+        role: 'assistant',
+        model: 'test',
+        provider: 'test',
+        content: [{ type: 'text', text: 'Previous reply' }]
+      }
+    },
+    { key: 'user', message: { role: 'user', content: 'Next question' } }
+  ]
+  const wrapper = mount(MessageHistory, {
+    props: { items: inputs, userName: 'Me', assistantName: 'Pi' },
+    global
+  })
+  expect(wrapper.find('[data-testid="assistant-loading"]').exists()).toBe(false)
+  await wrapper.setProps({ running: true })
+  expect(wrapper.findAll('[data-testid="assistant-turn"]')).toHaveLength(2)
+  expect(wrapper.findAll('[data-testid="assistant-loading"]')).toHaveLength(1)
+  expect(wrapper.get('[role="status"]').text()).toContain('Pi')
+  const reply = {
+    role: 'assistant' as const,
+    model: 'test',
+    provider: 'test',
+    content: [{ type: 'text' as const, text: 'First token' }]
+  }
+  await wrapper.setProps({ liveMessage: reply })
+  expect(wrapper.findAll('[data-testid="assistant-turn"]')).toHaveLength(2)
+  expect(wrapper.text()).toContain('First token')
+  await wrapper.setProps({
+    items: [...inputs, { key: 'reply', message: reply }],
+    running: false,
+    liveMessage: null
+  })
+  expect(wrapper.find('[data-testid="assistant-loading"]').exists()).toBe(false)
+  expect(wrapper.findAll('[data-testid="assistant-turn"]')).toHaveLength(2)
+  wrapper.unmount()
+})
+
+it('clears an empty waiting turn when submission is cancelled or fails', async () => {
+  const wrapper = mount(MessageHistory, {
+    props: { items: [], userName: 'Me', assistantName: 'Pi', running: true },
+    global
+  })
+  expect(wrapper.find('[data-testid="assistant-loading"]').exists()).toBe(true)
+  await wrapper.setProps({ running: false })
+  expect(wrapper.find('[data-testid="assistant-turn"]').exists()).toBe(false)
+  wrapper.unmount()
 })

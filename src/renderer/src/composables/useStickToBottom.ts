@@ -99,7 +99,10 @@ export function useStickToBottom(
   function onScroll() {
     updateState()
     if (programmatic) return
-    stickToBottom = atBottom.value
+    // A late layout/scroll event can arrive after the programmatic guard has
+    // expired. Only explicit gestures should release follow mode.
+    if (atBottom.value) stickToBottom = true
+    else if (stickToBottom) scheduleSync()
   }
 
   function onWheel(event: WheelEvent) {
@@ -125,7 +128,22 @@ export function useStickToBottom(
     const el = scroller.value
     if (!el) return
     const rect = el.getBoundingClientRect()
-    if (event.clientX - rect.left >= el.clientWidth) endProgrammatic()
+    if (event.clientX - rect.left >= el.clientWidth) {
+      endProgrammatic()
+      stickToBottom = false
+    }
+  }
+
+  function onKeyDown(event: KeyboardEvent) {
+    const target = event.target as HTMLElement | null
+    if (target?.closest('input, textarea, [contenteditable="true"]')) return
+    if (
+      !event.defaultPrevented &&
+      (['ArrowUp', 'PageUp', 'Home'].includes(event.key) || (event.key === ' ' && event.shiftKey))
+    ) {
+      endProgrammatic()
+      stickToBottom = false
+    }
   }
 
   function scrollToEdge(edge: 'top' | 'bottom', behavior?: ScrollBehavior) {
@@ -191,6 +209,7 @@ export function useStickToBottom(
     onTouchStart,
     onTouchMove,
     onPointerDown,
+    onKeyDown,
     scrollToEdge,
     stick,
     release,
