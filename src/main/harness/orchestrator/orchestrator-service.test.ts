@@ -362,7 +362,9 @@ async function bootstrapOrchestration(
   return { orchestrationId: orchestration.id, agentIds, taskIds }
 }
 
-describe('OrchestratorService lifecycle', () => {
+// These suites use real atomic JSON writes. Allow persisted setup and cleanup
+// around the bounded 5s event waits, including on slower Windows CI disks.
+describe('OrchestratorService lifecycle', { timeout: 15_000 }, () => {
   it('drains actual event persistence before disposal, and reports a deadline while a write is pending', async () => {
     const harness = createHarness()
     const { orchestrationId, agentIds } = await bootstrapOrchestration(harness, {
@@ -477,7 +479,7 @@ describe('OrchestratorService lifecycle', () => {
   })
 })
 
-describe('OrchestratorService dispatch', () => {
+describe('OrchestratorService dispatch', { timeout: 15_000 }, () => {
   it('runs a dependency chain end-to-end and completes the orchestration', async () => {
     const harness = createHarness()
     const { orchestrationId, agentIds } = await bootstrapOrchestration(harness, {
@@ -687,7 +689,7 @@ describe('OrchestratorService dispatch', () => {
   })
 })
 
-describe('OrchestratorService failure handling', () => {
+describe('OrchestratorService failure handling', { timeout: 15_000 }, () => {
   it('rejects simultaneous retry clicks and dispatches the failed task once', async () => {
     const harness = createHarness()
     const { orchestrationId, agentIds } = await bootstrapOrchestration(harness, {
@@ -895,8 +897,7 @@ describe('OrchestratorService failure handling', () => {
       expect(harness.host.prompts).toHaveLength(2)
     }, 5000)
     expect(harness.host.prompts[1].message).toContain('two')
-    // Two independent 5s event waits plus persisted setup need a larger outer budget.
-  }, 15_000)
+  })
 
   it('recovers interrupted orchestrations after a restart', async () => {
     const harness = createHarness()
