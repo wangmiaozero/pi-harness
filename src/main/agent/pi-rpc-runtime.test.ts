@@ -32,6 +32,7 @@ native('official standalone Pi with independent Node', () => {
   const replies: Array<string | { tool: string; args: Record<string, unknown> }> = []
   const paths = new Map<string, string>()
   let largeUsage = false
+  let summaryMinOutput = 0
   beforeEach(async () => {
     root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'pi RPC 空格 ')))
     cwd = path.join(root, 'workspace')
@@ -41,13 +42,17 @@ native('official standalone Pi with independent Node', () => {
     requests.length = events.length = replies.length = 0
     paths.clear()
     largeUsage = false
+    summaryMinOutput = 0
     server = http.createServer(async (request, response) => {
       let body = ''
       for await (const chunk of request) body += chunk
       const payload = JSON.parse(body)
       requests.push(payload)
-      const summary = JSON.stringify(payload.messages).includes('<conversation>')
-      const capped = summary && largeUsage && payload.reasoning_effort !== 'low'
+      const summary = JSON.stringify(payload.messages).includes('context summarization assistant')
+      const capped =
+        summary &&
+        ((largeUsage && payload.reasoning_effort !== 'low') ||
+          Math.max(payload.max_tokens ?? 0, payload.max_completion_tokens ?? 0) < summaryMinOutput)
       const reply = replies.shift() ?? 'Standalone response'
       const tool = typeof reply !== 'string'
       const delta = tool
@@ -150,6 +155,7 @@ native('official standalone Pi with independent Node', () => {
   })
   afterEach(async () => {
     await runtime?.shutdownAll()
+    vi.restoreAllMocks()
     server?.closeAllConnections()
     if (server) await new Promise<void>((resolve) => server.close(() => resolve()))
     // Windows may briefly retain directory handles after the owned processes have exited.
@@ -195,49 +201,86 @@ native('official standalone Pi with independent Node', () => {
     })
     await verifyDistribution(path.join(bundledRoot, 'pi'), 'pi', process.platform, process.arch)
   }, 45_000)
-  it('enables automatic compaction and preserves reasoning across standalone summaries', async () => {
-    const modelsFile = path.join(config, 'models.json')
-    const models = JSON.parse(await fs.readFile(modelsFile, 'utf8'))
-    Object.assign(models.providers.fixture.models[0], {
-      reasoning: true,
-      compat: { thinkingFormat: 'deepseek' }
-    })
-    await fs.writeFile(modelsFile, JSON.stringify(models))
-    const started = await runtime.startSession({
-      cwd,
-      provider: 'fixture',
-      modelId: 'fixture',
-      thinkingLevel: 'high'
-    })
-    runtime.subscribe(started.sessionId, (event) => events.push(event))
-    expect(
-      JSON.parse(await fs.readFile(path.join(config, 'settings.json'), 'utf8')).compaction.enabled
-    ).toBe(true)
-    async function prompt(message: string) {
-      const before = events.length
-      await runtime.prompt(started.sessionId, message)
-      await vi.waitFor(
-        () =>
-          expect(events.slice(before).some((event) => event.type === 'prompt.completed')).toBe(
-            true
-          ),
-        { timeout: 20000 }
+  it.each([false, true])(
+    'automatically compacts standalone conversations (separate summary budget: %s)',
+    async (knownProfile) => {
+      const nativeErrors: Record<string, unknown>[] = []
+      const onEvent = PiRpcClient.prototype.onEvent
+      vi.spyOn(PiRpcClient.prototype, 'onEvent').mockImplementation(function (
+        this: PiRpcClient,
+        listener
+      ) {
+        return onEvent.call(this, (event) => {
+          if (event.type === 'extension_error') nativeErrors.push(event)
+          listener(event)
+        })
+      })
+      const modelsFile = path.join(config, 'models.json')
+      const models = JSON.parse(await fs.readFile(modelsFile, 'utf8'))
+      Object.assign(models.providers.fixture.models[0], {
+        reasoning: true,
+        compat: knownProfile ? { supportsReasoningEffort: false } : { thinkingFormat: 'deepseek' }
+      })
+      if (knownProfile) {
+        models.providers.fixture.models[0].id = 'kimi-k3.1-pro'
+        models.providers = { 'ark-code': models.providers.fixture }
+        summaryMinOutput = 32768
+      }
+      await fs.writeFile(modelsFile, JSON.stringify(models))
+      const started = await runtime.startSession({
+        cwd,
+        provider: knownProfile ? 'ark-code' : 'fixture',
+        modelId: knownProfile ? 'kimi-k3.1-pro' : 'fixture',
+        thinkingLevel: 'high'
+      })
+      runtime.subscribe(started.sessionId, (event) => events.push(event))
+      expect(
+        JSON.parse(await fs.readFile(path.join(config, 'settings.json'), 'utf8')).compaction.enabled
+      ).toBe(true)
+      async function prompt(message: string) {
+        const before = events.length
+        await runtime.prompt(started.sessionId, message)
+        await vi.waitFor(
+          () =>
+            expect({
+              completed: events.slice(before).some((event) => event.type === 'prompt.completed'),
+              errors: [
+                ...nativeErrors,
+                ...events.slice(before).filter((event) => /error|failed/.test(event.type))
+              ],
+              requests: requests.map((request) => ({
+                model: request.model,
+                limit: request.max_completion_tokens ?? request.max_tokens,
+                effort: request.reasoning_effort
+              }))
+            }).toEqual({ completed: true, errors: [], requests: expect.any(Array) }),
+          { timeout: 20000 }
+        )
+      }
+      for (let i = 0; i < 3; i++) await prompt(`history ${i} ` + 'context '.repeat(12000))
+      largeUsage = true
+      await prompt('Continue the existing work')
+      const summaries = requests.filter((request) =>
+        JSON.stringify(request.messages).includes('<conversation>')
       )
-    }
-    for (let i = 0; i < 3; i++) await prompt(`history ${i} ` + 'context '.repeat(12000))
-    largeUsage = true
-    await prompt('Continue the existing work')
-    const summaries = requests.filter((request) =>
-      JSON.stringify(request.messages).includes('<conversation>')
-    )
-    expect(summaries.length).toBeGreaterThan(0)
-    expect(summaries.every((request) => request.reasoning_effort === 'low')).toBe(true)
-    expect(events.some((event) => event.type === 'compaction.completed')).toBe(true)
-    expect(await fs.readFile(paths.get(started.sessionId)!, 'utf8')).toContain(
-      '"type":"compaction"'
-    )
-    expect(await runtime.getState(started.sessionId)).toMatchObject({ thinking: { level: 'high' } })
-  }, 60000)
+      expect(summaries.length).toBeGreaterThan(0)
+      expect(summaries.every((request) => request.reasoning_effort === 'low')).toBe(true)
+      if (knownProfile) {
+        expect(
+          summaries.map((request) => request.max_completion_tokens ?? request.max_tokens)
+        ).toEqual([16384, 32768])
+        expect(await fs.readFile(modelsFile, 'utf8')).toBe(JSON.stringify(models))
+      }
+      expect(events.some((event) => event.type === 'compaction.completed')).toBe(true)
+      expect(await fs.readFile(paths.get(started.sessionId)!, 'utf8')).toContain(
+        '"type":"compaction"'
+      )
+      expect(await runtime.getState(started.sessionId)).toMatchObject({
+        thinking: { level: 'high' }
+      })
+    },
+    60000
+  )
 
   it('streams a model response, preserves native images and resumes its persisted JSONL', async () => {
     const started = await runtime.startSession({ cwd, provider: 'fixture', modelId: 'fixture' })

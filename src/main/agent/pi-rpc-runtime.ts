@@ -1,4 +1,5 @@
 import { secretStore } from '../security/secret-store'
+import { compactionDefaults } from './compaction-defaults'
 import {
   readState,
   runtimeModels,
@@ -236,6 +237,7 @@ export class PiRpcRuntime implements HarnessAdapter {
     const client = new PiRpcClient()
     let live!: LiveSession
     const bridge = new DesktopBridge(async (method, params) => {
+      if (method === 'summary_defaults') return compactionDefaults(params)
       if (method === 'opencode_auth') {
         const state = await readState()
         return state.authMode === 'inference' && state.enabled && state.hasCredential

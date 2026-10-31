@@ -6,6 +6,8 @@ import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 import { extractToolPath } from '../workspace/workspace-tool-guard'
 import type { PermissionMode } from '@shared/workspace/permission-mode'
 import { installCompactionPolicy } from '../../../resources/desktop-extension/compaction.mjs'
+import { compactionDefaults } from './compaction-defaults'
+import { loadPiCodingAgent } from './pi-sdk'
 
 export interface DesktopSessionContext {
   forceEmpty: boolean
@@ -22,7 +24,8 @@ export function createDesktopExtension(
   }
 ): ExtensionFactory {
   return async (pi) => {
-    installCompactionPolicy(pi)
+    const { compact } = await loadPiCodingAgent()
+    installCompactionPolicy(pi, compactionDefaults, compact)
     pi.on('before_agent_start', (event) => ({
       // Both user and extension-triggered custom runs carry systemPrompt.
       systemPrompt: context.forceEmpty

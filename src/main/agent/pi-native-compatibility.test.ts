@@ -29,6 +29,7 @@ describe('Pi 1.2 native execution compatibility', () => {
   let policySignal: AbortSignal | undefined
   let largeUsage = false
   let capEverySummary = false
+  let summaryMinOutput = 0
 
   beforeEach(async () => {
     root = await fs.mkdtemp(path.join(os.tmpdir(), 'pi harness native-'))
@@ -41,14 +42,18 @@ describe('Pi 1.2 native execution compatibility', () => {
     workspace = 'first project'
     policySignal = undefined
     largeUsage = capEverySummary = false
+    summaryMinOutput = 0
     server = http.createServer(async (request, response) => {
       let body = ''
       for await (const chunk of request) body += chunk
       const payload = JSON.parse(body)
       requests.push(payload)
-      const summary = JSON.stringify(payload.messages).includes('<conversation>')
+      const summary = JSON.stringify(payload.messages).includes('context summarization assistant')
       const capped =
-        summary && (capEverySummary || (largeUsage && payload.reasoning_effort !== 'low'))
+        summary &&
+        (capEverySummary ||
+          (largeUsage && payload.reasoning_effort !== 'low') ||
+          Math.max(payload.max_tokens ?? 0, payload.max_completion_tokens ?? 0) < summaryMinOutput)
       const reply = replies.shift() ?? 'completed'
       if (reply === 'provider-error-fixture') {
         response
@@ -169,11 +174,10 @@ describe('Pi 1.2 native execution compatibility', () => {
     await fs.rm(root, { recursive: true, force: true })
   })
 
-  async function start(toolNames?: string[]) {
+  async function start(toolNames?: string[], model = { provider: 'fixture', modelId: 'fixture' }) {
     const started = await runtime.start({
       cwd,
-      provider: 'fixture',
-      modelId: 'fixture',
+      ...model,
       thinkingLevel: 'high',
       ...(toolNames ? { toolNames } : {})
     })
@@ -779,24 +783,82 @@ describe('Pi 1.2 native execution compatibility', () => {
     expect(events.some((event) => event.type === 'prompt_error')).toBe(false)
   }, 60000)
 
-  it('never persists an incomplete summary after a length stop', async () => {
-    const wrapper = await start()
-    await run(wrapper.sessionId, 'completed')
-    for (let i = 0; i < 30; i++)
-      wrapper.inner.sessionManager.appendMessage({
-        role: 'user',
-        content: `history ${i} ` + 'context '.repeat(2000),
-        timestamp: Date.now()
-      })
-    wrapper.inner.refreshContext()
-    capEverySummary = true
-    await expect(wrapper.send({ type: 'compact' })).rejects.toThrow('summary is incomplete')
+  it('gives native summaries a separate budget and retries a capped summary without changing chat limits', async () => {
+    const file = path.join(agentDir, 'models.json')
+    const config = JSON.parse(await fs.readFile(file, 'utf8'))
+    const provider = config.providers.fixture
+    provider.models[0].id = 'kimi-k3.1-pro'
+    provider.models[0].compat = { supportsReasoningEffort: false }
+    config.providers = { 'ark-code': provider }
+    await fs.writeFile(file, JSON.stringify(config))
+    const wrapper = await start(undefined, { provider: 'ark-code', modelId: 'kimi-k3.1-pro' })
+    for (let i = 0; i < 3; i++)
+      await run(wrapper.sessionId, 'completed', `history ${i} ` + 'context '.repeat(12000))
+    summaryMinOutput = 32768
+    await wrapper.send({ type: 'compact' })
+    const summaries = requests.filter((request) =>
+      JSON.stringify(request.messages).includes('context summarization assistant')
+    )
+    expect(summaries).toHaveLength(2)
+    expect(summaries.map((request) => request.max_completion_tokens ?? request.max_tokens)).toEqual(
+      [16384, 32768]
+    )
+    expect(summaries.every((request) => request.reasoning_effort === 'low')).toBe(true)
+    await run(wrapper.sessionId, 'completed', 'Continue after the complete checkpoint')
+    const normal = requests.filter(
+      (request) => !JSON.stringify(request.messages).includes('context summarization assistant')
+    )
     expect(
-      wrapper.inner.sessionManager.getEntries().some((entry) => entry.type === 'compaction')
-    ).toBe(false)
-    expect(await fs.readFile(wrapper.inner.sessionFile!, 'utf8')).toContain('history 29')
+      normal.every((request) => (request.max_completion_tokens ?? request.max_tokens) === 4096)
+    ).toBe(true)
+    expect(wrapper.inner.model?.maxTokens).toBe(4096)
     expect(wrapper.inner.thinkingLevel).toBe('high')
+    expect(await fs.readFile(file, 'utf8')).toBe(JSON.stringify(config))
+    expect(
+      wrapper.inner.sessionManager.getEntries().filter((entry) => entry.type === 'compaction')
+    ).toHaveLength(1)
   }, 60000)
+
+  it.each([false, true])(
+    'never persists an incomplete summary (separate budget: %s)',
+    async (knownProfile) => {
+      if (knownProfile) {
+        const file = path.join(agentDir, 'models.json')
+        const config = JSON.parse(await fs.readFile(file, 'utf8'))
+        config.providers.fixture.models[0].id = 'kimi-k3.1-pro'
+        config.providers = { 'ark-code': config.providers.fixture }
+        await fs.writeFile(file, JSON.stringify(config))
+      }
+      const wrapper = await start(
+        undefined,
+        knownProfile ? { provider: 'ark-code', modelId: 'kimi-k3.1-pro' } : undefined
+      )
+      await run(wrapper.sessionId, 'completed')
+      for (let i = 0; i < 30; i++)
+        wrapper.inner.sessionManager.appendMessage({
+          role: 'user',
+          content: `history ${i} ` + 'context '.repeat(2000),
+          timestamp: Date.now()
+        })
+      wrapper.inner.refreshContext()
+      capEverySummary = true
+      await expect(wrapper.send({ type: 'compact' })).rejects.toThrow('summary is incomplete')
+      expect(
+        wrapper.inner.sessionManager.getEntries().some((entry) => entry.type === 'compaction')
+      ).toBe(false)
+      if (knownProfile) {
+        const summaries = requests.filter((request) =>
+          JSON.stringify(request.messages).includes('context summarization assistant')
+        )
+        expect(
+          summaries.map((request) => request.max_completion_tokens ?? request.max_tokens)
+        ).toEqual([16384, 32768, 4096])
+      }
+      expect(await fs.readFile(wrapper.inner.sessionFile!, 'utf8')).toContain('history 29')
+      expect(wrapper.inner.thinkingLevel).toBe('high')
+    },
+    60000
+  )
 
   it('settles final provider errors as failed rather than successful idle runs', async () => {
     const wrapper = await start()

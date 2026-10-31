@@ -2,10 +2,10 @@ import net from 'node:net'
 import { randomUUID } from 'node:crypto'
 import { registerOpenCode } from './opencode-provider.mjs'
 import { installCompactionPolicy } from './compaction.mjs'
+import { compact } from '@earendil-works/pi-coding-agent'
 
 /** Uses Pi's public extension API. No upstream patches or duplicated agent loop. */
 export default async function desktopExtension(pi) {
-  installCompactionPolicy(pi)
   const endpoint = process.env.PI_HARNESS_DESKTOP_SOCKET
   const token = process.env.PI_HARNESS_DESKTOP_TOKEN
   if (!endpoint || !token) throw new Error('Desktop extension requires an authenticated host')
@@ -32,6 +32,16 @@ export default async function desktopExtension(pi) {
       pending.set(id, { resolve, reject, timer })
       send({ type: 'request', id, method, params })
     })
+  installCompactionPolicy(
+    pi,
+    (model) =>
+      request('summary_defaults', {
+        provider: model.provider,
+        id: model.id,
+        baseUrl: model.baseUrl
+      }),
+    compact
+  )
   await registerOpenCode(pi, {
     resolveKey: async () => (await request('opencode_auth')) ?? undefined
   })
