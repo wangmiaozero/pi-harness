@@ -75,7 +75,7 @@ jobs:
             cat /tmp/pi-harness-window-manager.log
             exit 1
           '
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: ./.github/actions/upload-artifact-retry
         if: always()
         with:
           name: source-quality
@@ -155,7 +155,7 @@ jobs:
         env:
           PI_HARNESS_REQUIRE_RUNTIME_TESTS: '1'
         run: pnpm exec vitest run --maxWorkers=2 --reporter=default --reporter=json --outputFile=out/platform-tests.json
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: ./.github/actions/upload-artifact-retry
         if: always()
         with:
           name: platform-regressions-${{ matrix.platform }}-${{ matrix.arch }}
@@ -231,7 +231,7 @@ jobs:
       - name: Build, extract and execute Linux AppImages
         if: runner.os == 'Linux'
         run: xvfb-run -a pnpm release:package
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: ./.github/actions/upload-artifact-retry
         if: success()
         with:
           name: packages-${{ matrix.platform }}-${{ matrix.arch }}
@@ -240,7 +240,7 @@ jobs:
           # Installers are already compressed; avoid another expensive archive pass.
           compression-level: 0
           if-no-files-found: error
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: ./.github/actions/upload-artifact-retry
         if: always()
         with:
           name: validation-${{ matrix.platform }}-${{ matrix.arch }}
@@ -318,7 +318,7 @@ jobs:
       - name: AppImage manual upgrade and retained user profile
         if: runner.os == 'Linux'
         run: xvfb-run -a pnpm release:test-upgrade
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: ./.github/actions/upload-artifact-retry
         if: always()
         with:
           name: update-upgrade-${{ matrix.platform }}-${{ matrix.arch }}
@@ -350,7 +350,7 @@ jobs:
         env:
           PI_HARNESS_PERF_LIFECYCLE: '1'
         run: xvfb-run -a pnpm benchmark:desktop --no-build
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      - uses: ./.github/actions/upload-artifact-retry
         if: always()
         with:
           name: desktop-performance-${{ runner.os }}-${{ runner.arch }}

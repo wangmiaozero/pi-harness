@@ -74,7 +74,7 @@ jobs:
       - name: Independently verify signed candidate
         if: github.event_name == 'push' && github.ref_type == 'tag' && github.repository == 'wangmiaozero/pi-harness'
         run: pnpm release:verify --revision "$GITHUB_SHA"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: ./.github/actions/upload-artifact-retry
         with:
           name: community-release-candidate
           overwrite: true
