@@ -2,6 +2,12 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.16 — 2026-11-01
+
+### Fixed
+
+- Fixed chat activity rows jumping as new commands arrive and preserved expanded command details.
+
 ## 2.3.15 — 2026-11-01
 
 ### Added

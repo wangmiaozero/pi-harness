@@ -1,6 +1,7 @@
 import type {
   AgentMessage,
   AssistantContentBlock,
+  AssistantMessage,
   ToolCallContent,
   ToolResultMessage
 } from '@shared/types/workspace'
@@ -11,6 +12,7 @@ export interface HistoryItem {
   message: AgentMessage
   entryId?: string
   fileChanges?: MessageFileChanges
+  streaming?: boolean
 }
 
 export interface ToolResultEntry {
@@ -102,6 +104,7 @@ function splitAssistantItem(item: HistoryItem): HistoryItem[] {
       key,
       entryId: last ? item.entryId : undefined,
       fileChanges: last ? item.fileChanges : undefined,
+      streaming: item.streaming,
       message: {
         ...message,
         content: segment.content,
@@ -146,9 +149,39 @@ export function buildMessagePresentation(items: readonly HistoryItem[]) {
     }
     const previous = presentation.at(-1)
     if (previous?.type === 'activity') previous.items.push(item)
-    else presentation.push({ type: 'activity', key: item.key, items: [item] })
+    else
+      presentation.push({
+        type: 'activity',
+        key: `activity:${previous?.key ?? 'initial'}`,
+        items: [item]
+      })
   }
   return { items: presentation, results, pending }
+}
+
+/** Fold live activity into its existing row without rebuilding persisted history on every delta. */
+export function withLiveMessage(
+  history: ReturnType<typeof buildMessagePresentation>,
+  message: AssistantMessage | null | undefined
+): ReturnType<typeof buildMessagePresentation> {
+  if (!message) return history
+  const live = buildMessagePresentation([{ key: 'live-message', message, streaming: true }])
+  const items = [...history.items]
+  for (const item of live.items) {
+    const previous = items.at(-1)
+    if (item.type === 'activity') {
+      if (previous?.type === 'activity') {
+        items[items.length - 1] = { ...previous, items: [...previous.items, ...item.items] }
+      } else {
+        items.push({ ...item, key: `activity:${previous?.key ?? 'initial'}` })
+      }
+    } else items.push(item)
+  }
+  return {
+    items,
+    results: history.results,
+    pending: new Map([...history.pending, ...live.pending])
+  }
 }
 
 export type ConversationItem =

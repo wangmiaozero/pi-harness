@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BookOpen, Brain, CircleAlert, LoaderCircle, Terminal, Wrench } from '@lucide/vue'
-import MessageView from './MessageView.vue'
 import AssistantTurn from './AssistantTurn.vue'
 import HistoryTurn from './HistoryTurn.vue'
 import type { AssistantMessage } from '@shared/types/workspace'
@@ -10,6 +9,7 @@ import { toolOutcome } from './tool-outcome'
 import {
   buildMessagePresentation,
   groupConversationTurns,
+  withLiveMessage,
   toolActivityKind,
   toolActivityTarget,
   type ActivityKind,
@@ -26,7 +26,8 @@ const props = defineProps<{
 }>()
 const { t } = useI18n()
 const revealed = ref(new Set<string>())
-const presentation = computed(() => buildMessagePresentation(props.items))
+const persistedPresentation = computed(() => buildMessagePresentation(props.items))
+const presentation = computed(() => withLiveMessage(persistedPresentation.value, props.liveMessage))
 const conversation = computed(() => groupConversationTurns(presentation.value.items))
 const lastTurn = computed(() =>
   conversation.value.at(-1)?.type === 'turn' ? conversation.value.at(-1)?.key : null
@@ -185,7 +186,6 @@ const summaries = computed(() => {
     :user-name="userName"
     :assistant-name="assistantName"
     :running="running"
-    :live-message="lastTurn === turn.key ? liveMessage : null"
     :is-last="lastTurn === turn.key"
     :presentation="presentation"
     :summaries="summaries"
@@ -193,11 +193,9 @@ const summaries = computed(() => {
     @reveal="revealed.add($event)"
   />
   <AssistantTurn
-    v-if="!lastTurn && (liveMessage || running)"
+    v-if="!lastTurn && running"
     :assistant-name="assistantName"
     text=""
     :streaming="running"
-  >
-    <MessageView v-if="liveMessage" :message="liveMessage" embedded :streaming="running" />
-  </AssistantTurn>
+  />
 </template>
