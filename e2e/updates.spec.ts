@@ -1,8 +1,10 @@
+import http from 'node:http'
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { test, expect } from './fixtures'
 import { IPC_INVOKE } from '../src/shared/ipc/channels'
+import { routeReleaseNetwork } from './release-network'
 
 const { version: APP_VERSION } = JSON.parse(readFileSync('package.json', 'utf8')) as {
   version: string
@@ -19,11 +21,12 @@ test('development builds check the public release API from the always-available 
 }) => {
   // Development builds have no app-update.yml; the check compares against the
   // public GitHub Release instead. Mock it so the assertion is deterministic.
-  await electronApp.evaluate(({ app, net }, version) => {
+  await electronApp.evaluate(({ app }) => {
     Object.defineProperty(app, 'isPackaged', { value: false })
-    net.fetch = async () =>
-      new Response(JSON.stringify({ tag_name: `v${version}`, draft: false, prerelease: false }))
-  }, APP_VERSION)
+  })
+  await routeReleaseNetwork(electronApp, {
+    latest: { tag_name: `v${APP_VERSION}`, draft: false, prerelease: false }
+  })
 
   const result = await page.evaluate(() => window.piSwitch.updater.check())
   expect(result).toMatchObject({ supported: true, status: 'idle', available: false })
@@ -43,18 +46,16 @@ test('packaged update recovery offers the manual release download', async ({
   // Use the real compiled Main/Preload. Linux exercises the native module
   // loader; the macOS test Electron is not Developer ID signed and must bypass
   // Squirrel before falling back to the public Release.
-  await electronApp.evaluate(
-    ({ app, net, shell }, { version, currentVersion }) => {
-      Object.defineProperty(app, 'isPackaged', { value: true })
-      app.getVersion = () => currentVersion
-      net.fetch = async () =>
-        new Response(JSON.stringify({ tag_name: `v${version}`, draft: false, prerelease: false }))
-      shell.openExternal = async (url) => {
-        ;(globalThis as unknown as { openedReleasePage: string }).openedReleasePage = url
-      }
-    },
-    { version: nextVersion, currentVersion: APP_VERSION }
-  )
+  await electronApp.evaluate(({ app, shell }, currentVersion) => {
+    Object.defineProperty(app, 'isPackaged', { value: true })
+    app.getVersion = () => currentVersion
+    shell.openExternal = async (url) => {
+      ;(globalThis as unknown as { openedReleasePage: string }).openedReleasePage = url
+    }
+  }, APP_VERSION)
+  await routeReleaseNetwork(electronApp, {
+    latest: { tag_name: `v${nextVersion}`, draft: false, prerelease: false }
+  })
 
   await page.evaluate(() => {
     window.location.hash = '/settings/updates'
@@ -115,10 +116,10 @@ test('confirms the current version when automatic-update metadata is missing', a
   electronApp,
   page
 }) => {
-  await electronApp.evaluate(({ app, net }, version) => {
+  await electronApp.evaluate(({ app }) => {
     Object.defineProperty(app, 'isPackaged', { value: true })
-    net.fetch = async () => new Response(JSON.stringify({ tag_name: `v${version}` }))
-  }, APP_VERSION)
+  })
+  await routeReleaseNetwork(electronApp, { latest: { tag_name: `v${APP_VERSION}` } })
   await page.evaluate(() => {
     window.location.hash = '/settings/updates'
   })
@@ -134,16 +135,15 @@ test('manual download rejects unsigned releases without revealing or installing 
   electronApp,
   page
 }) => {
-  await electronApp.evaluate(({ app, net, shell }, version) => {
+  await electronApp.evaluate(({ app, shell }) => {
     Object.defineProperty(app, 'isPackaged', { value: false })
-    net.fetch = async (url) =>
-      String(url).includes('/releases/latest')
-        ? new Response(JSON.stringify({ tag_name: `v${version}`, draft: false, prerelease: false }))
-        : new Response(null, { status: 404 })
     shell.showItemInFolder = () => {
       throw new Error('Unverified installer must never be revealed')
     }
-  }, nextVersion)
+  })
+  await routeReleaseNetwork(electronApp, {
+    latest: { tag_name: `v${nextVersion}`, draft: false, prerelease: false }
+  })
   await page.evaluate(() => {
     window.location.hash = '/settings/updates'
   })
@@ -173,4 +173,34 @@ test('manual download rejects unsigned releases without revealing or installing 
     )
   }, IPC_INVOKE.updaterDownload)
   expect(rejected).toMatchObject({ ok: false, error: { code: 'VALIDATION_ERROR' } })
+})
+
+test('reaches signature verification for release files behind the GitHub CDN redirect', async ({
+  electronApp,
+  page
+}) => {
+  // Unsigned stand-ins: only files that crossed the redirect can fail as invalid rather
+  // than missing, so this guards the real Electron transport on every platform.
+  const assets = http.createServer((request, response) => {
+    const known = ['/checksums.json', '/checksums.json.sig'].includes(request.url!)
+    response.writeHead(known ? 200 : 404)
+    response.end(known ? '{}' : undefined)
+  })
+  await new Promise<void>((resolve) => assets.listen(0, '127.0.0.1', resolve))
+  try {
+    await routeReleaseNetwork(electronApp, {
+      latest: { tag_name: `v${nextVersion}`, draft: false, prerelease: false },
+      assets: `http://127.0.0.1:${(assets.address() as { port: number }).port}`
+    })
+    expect(await page.evaluate(() => window.piSwitch.updater.check())).toMatchObject({
+      status: 'manual_fallback',
+      available: true,
+      signature: 'invalid',
+      error: { code: 'SIGNATURE_INVALID' },
+      canInstall: false
+    })
+  } finally {
+    assets.closeAllConnections()
+    await new Promise<void>((resolve) => assets.close(() => resolve()))
+  }
 })
