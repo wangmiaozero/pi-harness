@@ -8,6 +8,7 @@ import { verifiedManifest, selectInstaller } from '../src/main/updater/security/
 import { _electron as electron, type Page } from '@playwright/test'
 import { test, expect, startFixtureSession } from './fixtures'
 import { verifyPetResources } from './pet-resources'
+import { routeReleaseNetwork } from './release-network'
 
 test('verifies, cancels, resumes and manually upgrades a real installed package without losing data', async ({
   page,
@@ -28,23 +29,15 @@ test('verifies, cancels, resumes and manually upgrades a real installed package 
   const toVersion = process.env.PI_HARNESS_UPDATE_TEST_TO!
   await verifyPetResources(page, electronApp)
   let squirrel: unknown = { status: 'NOT_VERIFIED' }
-  await electronApp.evaluate(({ net, shell }, base) => {
-    const fetch = net.fetch.bind(net)
-    net.fetch = async (input, init) => {
-      const url = String(input)
-      const isApi = url === 'https://api.github.com/repos/wangmiaozero/pi-harness/releases/latest'
-      const isAsset = url.startsWith(
-        'https://github.com/wangmiaozero/pi-harness/releases/download/'
-      )
-      if (!isApi && !isAsset) return fetch(input, init)
-      const file = isApi ? 'latest.json' : new URL(url).pathname.split('/').pop()!
-      const response = await fetch(`${base}/${file}`, init)
-      return new Response(response.body, { status: response.status, headers: response.headers })
-    }
+  await routeReleaseNetwork(electronApp, {
+    latest: await (await fetch(`${fixtureUrl}/latest.json`)).json(),
+    assets: fixtureUrl
+  })
+  await electronApp.evaluate(({ shell }) => {
     shell.showItemInFolder = (file) => {
       ;(globalThis as unknown as { verifiedInstaller: string }).verifiedInstaller = file
     }
-  }, fixtureUrl)
+  })
   expect(await page.evaluate(() => window.piSwitch.updater.state())).toMatchObject({
     status: 'idle',
     latestVersion: null,

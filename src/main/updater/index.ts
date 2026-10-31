@@ -10,6 +10,7 @@ import { ReleaseProvider, RELEASE_PAGE as LATEST_RELEASE_URL } from './update-pr
 import { UpdateDownload } from './update-download'
 import { UpdateManager } from './update-manager'
 import { installVerifiedUpdate } from './update-installer'
+import { createReleaseFetcher } from './release-fetch'
 import { readUpdateMode } from './policy'
 import { verifyDistribution, runtimeLayout, catalog } from '../runtime/distribution.mjs'
 
@@ -20,7 +21,7 @@ function service() {
   const variant = __MASCOT_ENABLED__ ? 'standard' : 'nomascot'
   const directory = path.join(app.getPath('userData'), 'updates')
   const currentVersion = app.isPackaged ? app.getVersion() : APP_VERSION
-  const fetcher = (url: string, options?: RequestInit) => net.fetch(url, options)
+  const fetcher = createReleaseFetcher((options) => net.request(options))
   manager = new UpdateManager({
     currentVersion,
     platform: process.platform,

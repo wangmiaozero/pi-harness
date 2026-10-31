@@ -12,17 +12,20 @@ const mocks = vi.hoisted(() => ({
   relaunch: vi.fn(),
   getVersion: vi.fn(() => '2.2.1')
 }))
-vi.mock('electron', () => ({
-  app: {
-    isPackaged: true,
-    getVersion: mocks.getVersion,
-    getPath: () => mocks.directory,
-    quit: mocks.quit,
-    relaunch: mocks.relaunch
-  },
-  net: { fetch: mocks.fetch },
-  shell: { openExternal: mocks.open, showItemInFolder: mocks.reveal }
-}))
+vi.mock('electron', async () => {
+  const { fakeNetRequest } = await import('./net-request-fixture')
+  return {
+    app: {
+      isPackaged: true,
+      getVersion: mocks.getVersion,
+      getPath: () => mocks.directory,
+      quit: mocks.quit,
+      relaunch: mocks.relaunch
+    },
+    net: { request: fakeNetRequest((url, init) => mocks.fetch(url, init)).request },
+    shell: { openExternal: mocks.open, showItemInFolder: mocks.reveal }
+  }
+})
 vi.mock('./policy', () => ({ readUpdateMode: () => 'manual' }))
 beforeEach(async () => {
   vi.resetModules()
@@ -66,6 +69,32 @@ it('keeps unsigned historical versions as manual information and never silently 
   expect(await updater.downloadUpdate()).toMatchObject({ canInstall: false, downloaded: false })
   await expect(updater.installUpdate()).rejects.toMatchObject({ code: 'SECURITY_ERROR' })
   expect(mocks.quit).not.toHaveBeenCalled()
+})
+it('follows the signed release files through the GitHub CDN redirect', async () => {
+  const cdn = 'https://release-assets.githubusercontent.com/github-production-release-asset/9/'
+  mocks.fetch.mockImplementation(async (url: string) => {
+    if (url.includes('api.github.com')) return new Response(JSON.stringify({ tag_name: 'v2.2.2' }))
+    const file = url.split('/').pop()
+    if (url.startsWith('https://github.com/'))
+      return new Response(null, { status: 302, headers: { location: cdn + file } })
+    return new Response(file === 'checksums.json.sig' ? '{"schemaVersion":1}' : '{}')
+  })
+  const updater = await import('./index')
+  // Reaching signature verification proves both files crossed the redirect; a transport
+  // that fails redirects reports a missing signature instead.
+  expect(await updater.checkForUpdates()).toMatchObject({
+    status: 'manual_fallback',
+    available: true,
+    signature: 'invalid',
+    downloaded: false
+  })
+  expect(mocks.fetch.mock.calls.map(([url]) => url)).toEqual([
+    'https://api.github.com/repos/wangmiaozero/pi-harness/releases/latest',
+    'https://github.com/wangmiaozero/pi-harness/releases/download/v2.2.2/checksums.json.sig',
+    cdn + 'checksums.json.sig',
+    'https://github.com/wangmiaozero/pi-harness/releases/download/v2.2.2/checksums.json',
+    cdn + 'checksums.json'
+  ])
 })
 it('deduplicates simultaneous checks and safely reports complete network failure', async () => {
   mocks.fetch.mockRejectedValue(new Error('offline'))
