@@ -1,14 +1,23 @@
 import fs from 'node:fs/promises'
 import ignore, { type Ignore } from 'ignore'
-import { watch, type FSWatcher } from 'chokidar'
+import { watch } from 'chokidar'
 import path from 'node:path'
 import { isIgnoredWorkspaceDirectoryName } from '@shared/workspace/search-ignore'
+import { log } from '../services/logger'
+import { watchNativeWorkspace } from './native-workspace-watcher'
+
+interface RootWatcher {
+  close(): Promise<void>
+  ready: Promise<void>
+}
 
 export class WorkspaceWatcherService {
-  private watchers = new Map<string, FSWatcher>()
+  private watchers = new Map<string, RootWatcher>()
   private pending = new Set<string>()
   private timer: ReturnType<typeof setTimeout> | null = null
   private listener: ((roots: string[]) => void) | null = null
+
+  constructor(private readonly platform: NodeJS.Platform = process.platform) {}
 
   onChange(listener: ((roots: string[]) => void) | null): void {
     this.listener = listener
@@ -26,6 +35,26 @@ export class WorkspaceWatcherService {
     for (const root of next) {
       if (this.watchers.has(root)) continue
       const excluded = await this.directoryIgnores(root)
+      const failed = (error: unknown) =>
+        log.session.warn('Workspace file watcher failed', {
+          code:
+            error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
+              ? error.code
+              : 'WATCH_ERROR'
+        })
+      if (this.platform === 'darwin') {
+        this.watchers.set(
+          root,
+          watchNativeWorkspace(
+            root,
+            (file, directory) =>
+              this.shouldIgnore(root, file) || this.isGitIgnored(root, file, directory, excluded),
+            () => this.queue(root),
+            failed
+          )
+        )
+        continue
+      }
       const watcher = watch(root, {
         ignoreInitial: true,
         ignored: (watchPath, stat) =>
@@ -37,8 +66,16 @@ export class WorkspaceWatcherService {
         awaitWriteFinish: { stabilityThreshold: 250, pollInterval: 100 }
       })
       watcher.on('all', () => this.queue(root))
-      this.watchers.set(root, watcher)
+      watcher.on('error', failed)
+      this.watchers.set(root, {
+        close: () => watcher.close(),
+        ready: new Promise<void>((resolve) => watcher.once('ready', resolve))
+      })
     }
+  }
+
+  async ready(): Promise<void> {
+    await Promise.all([...this.watchers.values()].map((watcher) => watcher.ready))
   }
 
   async close(): Promise<void> {

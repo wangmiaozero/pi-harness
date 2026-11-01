@@ -1,24 +1,20 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { once } from 'node:events'
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, rename, rm, symlink, unlink, writeFile } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import type { FSWatcher } from 'chokidar'
 import { WorkspaceWatcherService } from './workspace-watcher-service'
 
 describe('WorkspaceWatcherService', () => {
   let directory = ''
   let service: WorkspaceWatcherService | null = null
 
-  async function startWatching(root: string): Promise<FSWatcher> {
+  async function startWatching(root: string): Promise<void> {
     service = new WorkspaceWatcherService()
     await service.sync([root])
-    const watcher = [
-      ...(service as unknown as { watchers: Map<string, FSWatcher> }).watchers.values()
-    ][0]!
-    await once(watcher, 'ready')
-    return watcher
+    await service.ready()
   }
 
   afterEach(async () => {
@@ -55,19 +51,21 @@ describe('WorkspaceWatcherService', () => {
     const file = path.join(source, 'main.ts')
     await writeFile(file, 'before\n')
     const changed = vi.fn()
-    const watcher = await startWatching(root)
+    await startWatching(root)
     service!.onChange(changed)
 
-    const watched = Object.keys(watcher.getWatched())
-    expect(watched).toContain(source)
-    expect(watched).toContain(skills)
-    expect(watched).toContain(ordinaryWorktrees)
-    for (const folder of excluded) expect(watched).not.toContain(folder)
-    expect(watched).not.toContain(path.join(root, 'linked-project', 'source'))
-    expect(watched).not.toContain(external)
+    for (const folder of [...excluded, external])
+      await writeFile(path.join(folder, 'ignored.ts'), 'ignored')
+    await new Promise((resolve) => setTimeout(resolve, 600))
+    expect(changed).not.toHaveBeenCalled()
 
     await writeFile(file, 'after\n')
     await vi.waitFor(() => expect(changed).toHaveBeenCalledWith([root]), { timeout: 3000 })
+    for (const folder of [skills, ordinaryWorktrees]) {
+      changed.mockClear()
+      await writeFile(path.join(folder, 'visible.ts'), 'visible')
+      await vi.waitFor(() => expect(changed).toHaveBeenCalledWith([root]), { timeout: 3000 })
+    }
   })
 
   it.each([
@@ -84,12 +82,49 @@ describe('WorkspaceWatcherService', () => {
     const file = path.join(source, 'main.ts')
     await writeFile(file, 'before\n')
 
-    const watcher = await startWatching(root)
-    expect(Object.keys(watcher.getWatched())).toContain(source)
+    await startWatching(root)
     const changed = vi.fn()
     service!.onChange(changed)
 
     await writeFile(file, 'after\n')
     await vi.waitFor(() => expect(changed).toHaveBeenCalledWith([root]), { timeout: 3000 })
   })
+
+  it.runIf(process.platform === 'darwin')(
+    'keeps descriptors bounded for thousands of assets and still delivers edits, additions, renames and removals',
+    async () => {
+      directory = await mkdtemp(path.join(tmpdir(), 'workspace-assets-'))
+      const assets = path.join(directory, 'resources', 'petpacks')
+      await mkdir(assets, { recursive: true })
+      for (let batch = 0; batch < 32; batch++)
+        await Promise.all(
+          Array.from({ length: 64 }, (_, index) =>
+            writeFile(path.join(assets, `${batch * 64 + index}.webp`), 'fixture')
+          )
+        )
+      const before = (await readdir('/dev/fd')).length
+      await startWatching(directory)
+      const after = (await readdir('/dev/fd')).length
+      expect(after - before).toBeLessThan(32)
+      await expect(promisify(execFile)('/usr/bin/true')).resolves.toMatchObject({ stdout: '' })
+      const changed = vi.fn()
+      service!.onChange(changed)
+      const original = path.join(assets, '0.webp')
+      const added = path.join(assets, 'new.webp')
+      const moved = path.join(assets, 'renamed.webp')
+      for (const operation of [
+        () => writeFile(original, 'updated asset'),
+        () => writeFile(added, 'new asset'),
+        () => rename(added, moved),
+        () => unlink(moved)
+      ]) {
+        changed.mockClear()
+        await operation()
+        await vi.waitFor(() => expect(changed).toHaveBeenCalledWith([directory]), { timeout: 3000 })
+      }
+      await service!.sync([])
+      const closed = (await readdir('/dev/fd')).length
+      expect(closed - before).toBeLessThan(8)
+    }
+  )
 })

@@ -105,6 +105,21 @@ describe('background session titles', () => {
     expect(generate).not.toHaveBeenCalled()
     service.close()
   })
+  it('regenerates a cached Markdown table title as a plain task summary', async () => {
+    const data = await store()
+    await data.update({
+      session: { path: '/sessions/session.jsonl', title: '| **agent-admin** | `/agent-admin` |' }
+    })
+    const changed = vi.fn()
+    const generate = vi.fn().mockResolvedValue('**修复会话切换状态**')
+    const service = new SessionTitleService(data, generate, changed)
+    expect(service.title(detail().info!)).toBeUndefined()
+    service.observe(detail())
+    await vi.waitFor(() => expect(changed).toHaveBeenCalledWith('session'))
+    expect(service.title(detail().info!)).toBe('修复会话切换状态')
+    expect(data.peek().session?.title).toBe('修复会话切换状态')
+    service.close()
+  })
   it('keeps failures quiet and cancels late results during shutdown', async () => {
     const data = await store()
     const changed = vi.fn()

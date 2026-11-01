@@ -33,7 +33,8 @@ function mountPicker(thinking = 'medium') {
 describe('ComposerModelPicker', () => {
   it('opens vendor flyout then searchable models with a thinking slider', async () => {
     const wrapper = mountPicker()
-    expect(wrapper.get('button').text()).toContain('NVIDIA / MiniMax M3 · medium')
+    expect(wrapper.get('button').text()).toContain('MiniMax M3')
+    expect(wrapper.get('button').attributes('title')).toBe('NVIDIA / MiniMax M3 · medium')
 
     await wrapper.get('button').trigger('click')
     const vendors = Array.from(
@@ -52,6 +53,18 @@ describe('ComposerModelPicker', () => {
     await wrapper.vm.$nextTick()
     expect(document.body.querySelector('[role="listbox"]')?.textContent).toContain('GPT-5')
     expect(document.body.querySelector('[role="listbox"]')?.textContent).not.toContain('MiniMax M3')
+  })
+
+  it('shows the current model ID when a historical model is absent from the catalog', async () => {
+    const wrapper = mountPicker()
+    await wrapper.setProps({ model: 'zhipu/glm-5.3-flash', options: [] })
+    expect(wrapper.get('[data-testid="composer-model-name"]').text()).toBe('glm-5.3-flash')
+    expect(wrapper.get('button').attributes('title')).toBe('zhipu / glm-5.3-flash · medium')
+    await wrapper.setProps({ model: 'openrouter/vendor/model' })
+    expect(wrapper.get('[data-testid="composer-model-name"]').text()).toBe('vendor/model')
+    await wrapper.setProps({ model: '' })
+    expect(wrapper.get('button').text()).toBe(i18n.global.t('workspace.model'))
+    expect(wrapper.get('button').text()).not.toContain('medium')
   })
 
   it('shows unavailable models with a reason but cannot select them', async () => {

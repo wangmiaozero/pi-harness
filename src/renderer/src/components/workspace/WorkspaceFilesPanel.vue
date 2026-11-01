@@ -159,12 +159,19 @@ defineExpose({ closeActiveFile })
       @keydown="onResizeKeydown"
     />
     <header
+      data-testid="workspace-files-header"
       class="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-3"
     >
-      <span class="flex min-w-0 items-center gap-2 text-[12px] font-medium">
+      <span class="flex min-w-0 flex-1 items-center gap-2 text-[12px] font-medium">
         <FolderOpen class="size-3.5 shrink-0" />
-        {{ $t('workspace.files') }}
-        <span class="truncate text-[11px] font-normal text-[var(--text-tertiary)]">
+        <span data-testid="workspace-files-label" class="shrink-0 whitespace-nowrap">{{
+          $t('workspace.files')
+        }}</span>
+        <span
+          data-testid="workspace-files-session-title"
+          class="min-w-0 truncate text-[11px] font-normal text-[var(--text-tertiary)]"
+          :title="workspace.hasSessionWorkspace ? sessions.current?.name : undefined"
+        >
           {{ workspace.hasSessionWorkspace ? sessions.current?.name : '' }}
         </span>
       </span>

@@ -26,11 +26,29 @@ describe('session title previews', () => {
     expect(summarizeSessionTitle(['hi'])).toBe('hi')
     expect(summarizeSessionTitle(['请' + '实现项目功能'.repeat(40)]).length).toBeLessThanOrEqual(52)
   })
+  it('summarizes the request after reference tables and removes inline Markdown', () => {
+    expect(
+      summarizeSessionTitle([
+        '| **agent-admin** | `/agent-admin` | 管理端 |\n| --- | --- | --- |\n\n请分析列表查询为什么缓慢，并优化接口性能。'
+      ])
+    ).toBe('分析列表查询为什么缓慢')
+    expect(summarizeSessionTitle(['### **修复 `request_body` 查询**'])).toBe(
+      '修复 request_body 查询'
+    )
+    expect(summarizeSessionTitle(['| **agent-admin** | `/agent-admin` | 管理端 |'])).toBe(
+      'agent-admin /agent-admin 管理端'
+    )
+    expect(summarizeSessionTitle(['如果这张截图来自 **Yosen 智能平台**'])).not.toMatch(/[*`|]/)
+  })
   it('accepts clean model text but rejects paths, URLs, empty or excessive output', () => {
     expect(cleanGeneratedSessionTitle('标题： “修复会话切换”')).toBe('修复会话切换')
     expect(
       cleanGeneratedSessionTitle('<think>private reasoning</think>\nFix session navigation')
     ).toBe('Fix session navigation')
+    expect(cleanGeneratedSessionTitle('**优化 `request_body` 查询**')).toBe(
+      '优化 request_body 查询'
+    )
+    expect(cleanGeneratedSessionTitle('| **agent-admin** | `/agent-admin` |')).toBeNull()
     for (const text of ['', 'x'.repeat(100), 'https://example.com', '/Users/private/project'])
       expect(cleanGeneratedSessionTitle(text)).toBeNull()
   })

@@ -247,11 +247,13 @@ const modelOptions = computed(() => {
 })
 
 const modelValue = computed({
-  get: () =>
-    imageModelValue.value ??
-    (agent.state?.model
-      ? `${agent.state.model.provider}/${agent.state.model.id}`
-      : `${models.active.providerKey}/${models.active.modelId}`),
+  get: () => {
+    if (imageModelValue.value) return imageModelValue.value
+    if (agent.state?.model) return `${agent.state.model.provider}/${agent.state.model.id}`
+    return models.active.providerKey && models.active.modelId
+      ? `${models.active.providerKey}/${models.active.modelId}`
+      : ''
+  },
   set: async (value: string) => {
     const [provider, ...rest] = value.split('/')
     const modelId = rest.join('/')
@@ -1289,7 +1291,7 @@ onBeforeUnmount(() => {
             />
           </div>
           <div
-            class="console-tool-strip ml-auto flex min-w-0 flex-1 items-center justify-end gap-1"
+            class="console-tool-strip ml-auto flex flex-1 flex-wrap items-center justify-end gap-1"
           >
             <ComposerModelPicker
               v-model:model="modelValue"
@@ -1487,8 +1489,14 @@ onBeforeUnmount(() => {
 }
 
 .console-tool-strip :deep([data-testid='workspace-model-select']) {
-  min-width: 100px;
-  max-width: 240px;
+  min-width: 0;
+  max-width: 280px;
+  flex: 0 1 auto;
+}
+
+.console-tool-strip {
+  min-width: min(100%, 320px);
+  flex-basis: 320px;
 }
 
 .console-tool-strip :deep(.ui-select-trigger) {
@@ -1522,6 +1530,31 @@ onBeforeUnmount(() => {
 @container (max-width: 420px) {
   .console-tool-strip {
     flex-basis: 100%;
+  }
+}
+
+@container (max-width: 520px) {
+  .command-console-controls {
+    column-gap: 4px;
+  }
+
+  .composer-tools {
+    gap: 0;
+  }
+
+  .console-tool-strip {
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+
+  .console-tool-strip :deep(.composer-model-label),
+  .console-tool-strip :deep(.composer-model-chevron) {
+    display: none;
+  }
+
+  .console-tool-strip :deep(.ui-select-trigger) {
+    column-gap: 4px;
+    padding-inline: 4px;
   }
 }
 </style>

@@ -2,6 +2,16 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.17 — 2026-11-01
+
+### Fixed
+
+- Improved conversation titles to summarize requests and display clean plain-text fallbacks.
+- Fixed missing model names and excessive spacing in composer controls.
+- Added icons to composer controls with a compact display in narrow windows.
+- Kept file panel headings readable alongside long conversation titles.
+- Fixed command failures when opening large workspaces on macOS.
+
 ## 2.3.16 — 2026-11-01
 
 ### Fixed

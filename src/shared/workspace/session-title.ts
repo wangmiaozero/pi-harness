@@ -13,6 +13,19 @@ const TOPICS = [
   { match: /release|发布|打包|packag/i, zh: '准备项目发布', en: 'Prepare project release' }
 ]
 
+function plainTitleText(value: string): string {
+  return value
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/(\*{1,3}|_{1,3}|~~)(.+?)\1/g, '$2')
+    .replace(/[`*~]/g, '')
+    .replace(/^\s*(?:#{1,6}\s*|>\s*|[-+]\s+|\d+[.、)]\s*)/, '')
+    .replace(/\s*\|\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 /** A local, bounded preview until a conversation has enough context for a model title. */
 export function summarizeSessionTitle(texts: readonly string[]): string {
   const text = texts
@@ -27,14 +40,14 @@ export function summarizeSessionTitle(texts: readonly string[]): string {
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
     .replace(/https?:\/\/\S+/g, '')
     .replace(/(?:[A-Za-z]:[\\/]|\/(?:Users|home|private|tmp|var)\/)[^\s`，。]+/g, '')
-  const candidates = cleaned
-    .split(/[\n。！？!?]+/)
+  const lines = cleaned.split(/[\n。！？!?]+/).filter((line) => !/^\s*\|?\s*:?-{3,}/.test(line))
+  // Tables are usually reference material, not the user's request. Prefer prose;
+  // if a prompt contains only a table, its cells still need a plain-text preview.
+  const prose = lines.filter((line) => (line.match(/\|/g)?.length ?? 0) < 2)
+  const candidates = (prose.some((line) => plainTitleText(line).length > 2) ? prose : lines)
     .map((line) =>
-      line
-        .replace(/^\s*(?:#{1,6}\s*|[-*]\s+|\d+[.、]\s*)/, '')
-        .replace(/^[`\s]+|[`\s]+$/g, '')
+      plainTitleText(line)
         .replace(/^(?:请(?:你)?|帮我|麻烦(?:你)?|能否|可以)(?:帮忙|帮我)?\s*/u, '')
-        .replace(/\s+/g, ' ')
         .trim()
     )
     .filter(
@@ -45,7 +58,7 @@ export function summarizeSessionTitle(texts: readonly string[]): string {
     )
   const candidate =
     candidates.find((line) =>
-      /重构|修复|实现|优化|排查|添加|更新|配置|设计|build|fix|implement|refactor|update|improve/i.test(
+      /重构|修复|实现|优化|排查|添加|更新|配置|设计|分析|解释|总结|查询|对比|检查|审查|build|fix|implement|refactor|update|improve|analy[sz]e|explain|review/i.test(
         line
       )
     ) ?? candidates[0]
@@ -72,6 +85,8 @@ export function summarizeSessionTitle(texts: readonly string[]): string {
 }
 
 export function cleanGeneratedSessionTitle(value: string): string | null {
+  // Reject a generated/cached table row so the service can retry summarization.
+  if (/^\s*\|.*\|/m.test(value)) return null
   const title = value
     .replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, '')
     .replace(/^```(?:\w+)?\s*|\s*```$/g, '')
@@ -88,5 +103,5 @@ export function cleanGeneratedSessionTitle(value: string): string | null {
     /https?:\/\/|(?:\/(?:Users|home|tmp|private)\/)|^[{$<]/i.test(title)
   )
     return null
-  return title
+  return plainTitleText(title) || null
 }

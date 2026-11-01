@@ -55,10 +55,32 @@ test('keeps the native caret visible in an empty focused composer', async ({ pag
 test('keeps the model submenu adjacent to its vendor panel', async ({ page }) => {
   await page.locator('a[href="#/workspace"]').click()
   for (const size of [
+    { width: 1600, height: 900 },
     { width: 1280, height: 900 },
-    { width: 1000, height: 700 }
+    { width: 1000, height: 700 },
+    { width: 800, height: 650 }
   ]) {
     await page.setViewportSize(size)
+    const triggerLayout = await page.getByTestId('workspace-model-select').evaluate((picker) => {
+      const name = picker.querySelector('[data-testid="composer-model-name"]')!
+      const thinking = picker.querySelector('[data-testid="composer-thinking-level"]')!
+      const range = document.createRange()
+      range.selectNodeContents(name)
+      return {
+        nameVisible: name.getBoundingClientRect().width > 0,
+        gap: thinking.getBoundingClientRect().left - range.getBoundingClientRect().right,
+        icons: [...picker.querySelectorAll('svg')].filter(
+          (icon) => icon.getBoundingClientRect().width > 0
+        ).length,
+        tooltip: picker.querySelector('button')!.title
+      }
+    })
+    if (triggerLayout.nameVisible) {
+      expect(triggerLayout.gap).toBeGreaterThanOrEqual(0)
+      expect(triggerLayout.gap).toBeLessThanOrEqual(10)
+    }
+    expect(triggerLayout.icons).toBeGreaterThanOrEqual(2)
+    expect(triggerLayout.tooltip).toBeTruthy()
     await page.getByTestId('workspace-model-select').getByRole('button').click()
     const vendors = page.getByTestId('composer-vendor-panel')
     const models = page.getByTestId('composer-model-panel')

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Check, ChevronDown, ChevronRight, Search } from '@lucide/vue'
+import { Brain, Check, ChevronDown, ChevronRight, Cpu, Search } from '@lucide/vue'
+import { useI18n } from 'vue-i18n'
 import ThinkingSlider from './ThinkingSlider.vue'
 import { composerThinkingLevels } from './thinking-levels'
 
@@ -31,6 +32,7 @@ const props = withDefaults(
 )
 
 const open = ref(false)
+const { t } = useI18n()
 const search = ref('')
 const trigger = ref<HTMLButtonElement | null>(null)
 const vendorPanel = ref<HTMLElement | null>(null)
@@ -63,13 +65,20 @@ const filteredModels = computed(() => {
       option.label.toLowerCase().includes(query) || option.value.toLowerCase().includes(query)
   )
 })
+const thinkingLabel = computed(
+  () => props.thinkingLabels?.[thinkingValue.value] ?? thinkingValue.value
+)
+const modelLabel = computed(() => {
+  if (selected.value?.label.trim()) return selected.value.label
+  const value = modelValue.value.trim()
+  return value.slice(value.indexOf('/') + 1) || t('workspace.model')
+})
 const selectedLabel = computed(() => {
-  const thinking = props.thinkingLabels?.[thinkingValue.value] ?? thinkingValue.value
-  if (!selected.value) return thinking
-  const base = selected.value.group
-    ? `${selected.value.group} / ${selected.value.label}`
-    : selected.value.label
-  return `${base} · ${thinking}`
+  if (!modelValue.value) return t('workspace.model')
+  const group =
+    selected.value?.group || (modelValue.value.includes('/') ? modelValue.value.split('/')[0] : '')
+  const base = group ? `${group} / ${modelLabel.value}` : modelLabel.value
+  return `${base} · ${thinkingLabel.value}`
 })
 
 function selectedVendor(): string | null {
@@ -209,14 +218,11 @@ watch(open, (value) => {
 </script>
 
 <template>
-  <div
-    data-testid="workspace-model-select"
-    class="min-w-[140px] max-w-[300px] flex-1 basis-[140px]"
-  >
+  <div data-testid="workspace-model-select" class="min-w-0 max-w-[300px] shrink">
     <button
       ref="trigger"
       type="button"
-      class="ui-select-trigger inline-flex h-[var(--height-select)] w-full items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 text-left text-[13px] text-[var(--text-primary)] shadow-[var(--control-shadow)] transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] focus:border-[var(--accent)] focus:bg-[var(--control-bg-hover)] focus:outline-none focus:shadow-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-45"
+      class="ui-select-trigger inline-flex h-[var(--height-select)] w-full items-center justify-start gap-2 rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 text-left text-[13px] text-[var(--text-primary)] shadow-[var(--control-shadow)] transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] focus:border-[var(--accent)] focus:bg-[var(--control-bg-hover)] focus:outline-none focus:shadow-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-45"
       :disabled="disabled"
       :aria-expanded="open"
       aria-haspopup="dialog"
@@ -224,10 +230,21 @@ watch(open, (value) => {
       :title="selectedLabel"
       @click="toggle"
     >
-      <span class="min-w-0 flex-1 truncate">{{ selectedLabel }}</span>
+      <Cpu aria-hidden="true" class="size-3.5 shrink-0" :stroke-width="1.75" />
+      <span data-testid="composer-model-name" class="composer-model-label min-w-0 truncate">{{
+        modelLabel
+      }}</span>
+      <span
+        v-if="modelValue"
+        data-testid="composer-thinking-level"
+        class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[var(--text-tertiary)]"
+      >
+        <Brain aria-hidden="true" class="size-3.5 shrink-0" :stroke-width="1.75" />
+        <span class="composer-model-label">{{ thinkingLabel }}</span>
+      </span>
       <ChevronDown
         aria-hidden="true"
-        class="size-3 shrink-0 text-[var(--text-tertiary)]"
+        class="composer-model-chevron size-3 shrink-0 text-[var(--text-tertiary)]"
         :stroke-width="1.75"
       />
     </button>

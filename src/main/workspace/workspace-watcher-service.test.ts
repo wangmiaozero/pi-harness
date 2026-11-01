@@ -17,8 +17,8 @@ it('excludes ignored runtime/cache/package directories before allocating filesys
     path.join(directory, '.gitignore'),
     'resources/runtimes/\n.runtime-cache/\ntask/\nrelease/\n'
   )
-  fixture.watch.mockReturnValue({ on: fixture.on, close: fixture.close })
-  const watcher = new WorkspaceWatcherService()
+  fixture.watch.mockReturnValue({ on: fixture.on, once: fixture.on, close: fixture.close })
+  const watcher = new WorkspaceWatcherService('linux')
   await watcher.sync([directory])
   expect(fixture.watch.mock.calls[0][1].followSymlinks).toBe(false)
   const ignored = fixture.watch.mock.calls[0][1].ignored as (
