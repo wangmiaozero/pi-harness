@@ -64,11 +64,11 @@ export class WorkspaceWatcherService {
         ignoreInitial: true,
         ignored: (watchPath, stat) => {
           const ignored =
-            (watchPath !== root && stat?.isSymbolicLink()) ||
+            (path.resolve(watchPath) !== path.resolve(root) && stat?.isSymbolicLink()) ||
             this.shouldIgnore(root, watchPath) ||
             this.isGitIgnored(root, watchPath, stat?.isDirectory(), excluded)
           if (!ignored && !initialized && stat?.isFile())
-            initialFiles.set(watchPath, fingerprint(stat))
+            initialFiles.set(path.resolve(watchPath), fingerprint(stat))
           return ignored
         },
         ignorePermissionErrors: true,
@@ -80,10 +80,11 @@ export class WorkspaceWatcherService {
       // Do not let those enter the debounce queue and escape after ready.
       watcher.on('all', (event, file, stat) => {
         if (!initialized) return
+        const key = path.resolve(file)
         // Suppress unchanged initialization replays using the scanned file state.
         // Filesystem timestamps and the process clock need not agree on Windows.
-        if (event === 'change' && stat && initialFiles.get(file) === fingerprint(stat)) return
-        initialFiles.delete(file)
+        if (event === 'change' && stat && initialFiles.get(key) === fingerprint(stat)) return
+        initialFiles.delete(key)
         this.queue(root)
       })
       watcher.on('error', failed)
