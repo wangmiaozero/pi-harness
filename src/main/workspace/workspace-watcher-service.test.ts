@@ -29,6 +29,7 @@ it('suppresses initialization events but delivers edits immediately after ready'
     callbacks.get('all')!('add', path.join(directory, 'linked-project'))
     callbacks.get('ready')!()
     await watcher.ready()
+    callbacks.get('all')!('change', path.join(directory, 'main.ts'), { ctimeMs: 0, mtimeMs: 0 })
     await vi.advanceTimersByTimeAsync(600)
     expect(changed).not.toHaveBeenCalled()
     callbacks.get('all')!('change', path.join(directory, 'main.ts'))
@@ -50,17 +51,32 @@ it('excludes ignored runtime/cache/package directories before allocating filesys
   expect(fixture.watch.mock.calls[0][1].followSymlinks).toBe(false)
   const ignored = fixture.watch.mock.calls[0][1].ignored as (
     file: string,
-    stat?: { isDirectory: () => boolean }
+    stat?: { isDirectory: () => boolean; isSymbolicLink?: () => boolean }
   ) => boolean
   expect(ignored(path.join(directory, 'resources', 'runtimes'))).toBe(true)
   expect(ignored(path.join(directory, '.runtime-cache'))).toBe(true)
   expect(ignored(path.join(directory, 'task', 'generated'))).toBe(true)
   expect(ignored(path.join(directory, 'release'))).toBe(true)
   expect(ignored(path.join(directory, 'node_modules'))).toBe(true)
-  expect(ignored(path.join(directory, 'src', 'main.ts'), { isDirectory: () => false })).toBe(false)
   expect(
-    ignored(path.join(directory, 'resources', 'desktop-extension'), { isDirectory: () => true })
+    ignored(path.join(directory, 'src', 'main.ts'), {
+      isDirectory: () => false,
+      isSymbolicLink: () => false
+    })
   ).toBe(false)
+  expect(
+    ignored(path.join(directory, 'resources', 'desktop-extension'), {
+      isDirectory: () => true,
+      isSymbolicLink: () => false
+    })
+  ).toBe(false)
+  expect(
+    ignored(path.join(directory, 'linked-project'), {
+      isDirectory: () => false,
+      isSymbolicLink: () => true
+    })
+  ).toBe(true)
+  expect(ignored(directory, { isDirectory: () => false, isSymbolicLink: () => true })).toBe(false)
   await watcher.close()
   expect(fixture.close).toHaveBeenCalledOnce()
 })

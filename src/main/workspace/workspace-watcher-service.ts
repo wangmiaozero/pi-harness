@@ -55,9 +55,11 @@ export class WorkspaceWatcherService {
         )
         continue
       }
+      const started = performance.timeOrigin + performance.now()
       const watcher = watch(root, {
         ignoreInitial: true,
         ignored: (watchPath, stat) =>
+          (watchPath !== root && stat?.isSymbolicLink()) ||
           this.shouldIgnore(root, watchPath) ||
           this.isGitIgnored(root, watchPath, stat?.isDirectory(), excluded),
         ignorePermissionErrors: true,
@@ -68,8 +70,12 @@ export class WorkspaceWatcherService {
       // Chokidar can emit initial symlink additions despite ignoreInitial.
       // Do not let those enter the debounce queue and escape after ready.
       let initialized = false
-      watcher.on('all', () => {
-        if (initialized) this.queue(root)
+      watcher.on('all', (_event, _file, stat) => {
+        if (!initialized) return
+        // Native backends can replay a pre-subscription write after ready.
+        // Deletions have no stat and must still invalidate the file tree.
+        if (stat && Math.max(stat.ctimeMs, stat.mtimeMs) < started) return
+        this.queue(root)
       })
       watcher.on('error', failed)
       this.watchers.set(root, {
