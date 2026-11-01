@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises'
+import type { Stats } from 'node:fs'
 import ignore, { type Ignore } from 'ignore'
 import { watch } from 'chokidar'
 import path from 'node:path'
@@ -55,13 +56,21 @@ export class WorkspaceWatcherService {
         )
         continue
       }
-      const started = performance.timeOrigin + performance.now()
+      let initialized = false
+      const initialFiles = new Map<string, string>()
+      const fingerprint = (stat: Stats): string =>
+        `${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}:${stat.mode}`
       const watcher = watch(root, {
         ignoreInitial: true,
-        ignored: (watchPath, stat) =>
-          (watchPath !== root && stat?.isSymbolicLink()) ||
-          this.shouldIgnore(root, watchPath) ||
-          this.isGitIgnored(root, watchPath, stat?.isDirectory(), excluded),
+        ignored: (watchPath, stat) => {
+          const ignored =
+            (watchPath !== root && stat?.isSymbolicLink()) ||
+            this.shouldIgnore(root, watchPath) ||
+            this.isGitIgnored(root, watchPath, stat?.isDirectory(), excluded)
+          if (!ignored && !initialized && stat?.isFile())
+            initialFiles.set(watchPath, fingerprint(stat))
+          return ignored
+        },
         ignorePermissionErrors: true,
         followSymlinks: false,
         depth: 12,
@@ -69,12 +78,12 @@ export class WorkspaceWatcherService {
       })
       // Chokidar can emit initial symlink additions despite ignoreInitial.
       // Do not let those enter the debounce queue and escape after ready.
-      let initialized = false
-      watcher.on('all', (_event, _file, stat) => {
+      watcher.on('all', (event, file, stat) => {
         if (!initialized) return
-        // Native backends can replay a pre-subscription write after ready.
-        // Deletions have no stat and must still invalidate the file tree.
-        if (stat && Math.max(stat.ctimeMs, stat.mtimeMs) < started) return
+        // Suppress unchanged initialization replays using the scanned file state.
+        // Filesystem timestamps and the process clock need not agree on Windows.
+        if (event === 'change' && stat && initialFiles.get(file) === fingerprint(stat)) return
+        initialFiles.delete(file)
         this.queue(root)
       })
       watcher.on('error', failed)
