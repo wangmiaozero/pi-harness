@@ -65,11 +65,21 @@ export class WorkspaceWatcherService {
         depth: 12,
         awaitWriteFinish: { stabilityThreshold: 250, pollInterval: 100 }
       })
-      watcher.on('all', () => this.queue(root))
+      // Chokidar can emit initial symlink additions despite ignoreInitial.
+      // Do not let those enter the debounce queue and escape after ready.
+      let initialized = false
+      watcher.on('all', () => {
+        if (initialized) this.queue(root)
+      })
       watcher.on('error', failed)
       this.watchers.set(root, {
         close: () => watcher.close(),
-        ready: new Promise<void>((resolve) => watcher.once('ready', resolve))
+        ready: new Promise<void>((resolve) =>
+          watcher.once('ready', () => {
+            initialized = true
+            resolve()
+          })
+        )
       })
     }
   }
