@@ -198,7 +198,7 @@ Browse built-in and local Skills, edit them, and manage Pi packages and extensio
 
 Enable the optional BigFish companion in **Settings → Desktop Pet** to see thinking, tool activity, waiting, and completion feedback on your desktop. It is off by default and remains available when the main window is minimized.
 
-While idle, choose from 101 actions in a searchable right-click menu. During tasks, manual interactions pause while dragging keeps the task animation intact. Import local pet packs and adjust size, opacity, and bubble settings with sliders.
+While idle, choose from 193 actions in a searchable right-click menu. During tasks, manual interactions pause while dragging keeps the task animation intact. Import local pet packs and adjust size, opacity, and bubble settings with sliders.
 
 [![Desktop pet settings and sliders](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)
 

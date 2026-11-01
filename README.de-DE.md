@@ -130,7 +130,7 @@ Durchsuche und bearbeite integrierte und lokale Skills und verwalte Pi-Pakete un
 
 Aktivieren Sie BigFish unter **Einstellungen → Desktop-Haustier**, um Denkphasen, Werkzeugaufrufe, Wartezustände und abgeschlossene Aufgaben auf dem Desktop zu verfolgen. Standardmäßig ist der Begleiter deaktiviert. Er kann bei minimiertem Hauptfenster sichtbar bleiben.
 
-Im Leerlauf stehen 101 Aktionen in einem durchsuchbaren Kontextmenü bereit. Während Aufgaben laufen, pausieren manuelle Interaktionen; beim Verschieben bleibt die Arbeitsanimation erhalten. Lokale Haustierpakete lassen sich importieren, Größe, Deckkraft und Sprechblasen per Schieberegler anpassen.
+Im Leerlauf stehen 193 Aktionen in einem durchsuchbaren Kontextmenü bereit. Während Aufgaben laufen, pausieren manuelle Interaktionen; beim Verschieben bleibt die Arbeitsanimation erhalten. Lokale Haustierpakete lassen sich importieren, Größe, Deckkraft und Sprechblasen per Schieberegler anpassen.
 
 [![Haustiereinstellungen und Schieberegler](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)
 

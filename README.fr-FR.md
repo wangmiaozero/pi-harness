@@ -130,7 +130,7 @@ Parcourez et modifiez les Skills intégrés et locaux, et gérez les paquets et 
 
 Activez BigFish dans **Réglages → Mascotte de bureau** pour suivre la réflexion, les outils, l’attente et la fin des tâches. Désactivé par défaut, il peut rester visible lorsque la fenêtre principale est réduite.
 
-Au repos, choisissez parmi 101 actions dans un menu contextuel avec recherche. Pendant les tâches, les interactions manuelles sont suspendues et le déplacement conserve l’animation de travail. Importez des packs locaux et réglez la taille, l’opacité et les bulles avec des curseurs.
+Au repos, choisissez parmi 193 actions dans un menu contextuel avec recherche. Pendant les tâches, les interactions manuelles sont suspendues et le déplacement conserve l’animation de travail. Importez des packs locaux et réglez la taille, l’opacité et les bulles avec des curseurs.
 
 [![Réglages du compagnon et curseurs](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)
 

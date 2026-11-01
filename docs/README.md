@@ -4,9 +4,9 @@ Browse the current Pi-Harness interface, desktop companion, themes, and communit
 
 Pi-Harness 截图按功能界面、主题展示和社区资源分类，点击图片链接可查看原图。
 
-Updated on 2026-10-29 using the current desktop UI and an isolated demo workspace.
+Updated on 2026-11-01 using the current desktop UI and an isolated demo workspace.
 
-截图于 2026-10-29 使用当前桌面界面与独立演示工作区更新。
+截图于 2026-11-01 使用当前桌面界面与独立演示工作区更新。
 
 [English](../README.md) · [简体中文](../README.zh-CN.md) · [繁體中文](../README.zh-TW.md) · [日本語](../README.ja-JP.md) · [한국어](../README.ko-KR.md) · [Русский](../README.ru-RU.md) · [Français](../README.fr-FR.md) · [Deutsch](../README.de-DE.md)
 
@@ -22,7 +22,7 @@ Updated on 2026-10-29 using the current desktop UI and an isolated demo workspac
 | File editing / 文件编辑                        | [代码编辑](功能界面/经典主题/代码编辑.png)                                                                                         |
 | Conversation history / 会话历史                | [会话历史](功能界面/经典主题/会话历史.png)                                                                                         |
 | Session cleanup / 会话清理                     | [会话清理](功能界面/经典主题/会话清理.png)                                                                                         |
-| Desktop companion / 桌面伴侣                   | [设置](功能界面/经典主题/桌宠设置.png) · [右键菜单](功能界面/经典主题/桌宠菜单.png) · [101 个动作](功能界面/经典主题/桌宠动作.png) |
+| Desktop companion / 桌面伴侣                   | [设置](功能界面/经典主题/桌宠设置.png) · [右键菜单](功能界面/经典主题/桌宠菜单.png) · [193 个动作](功能界面/经典主题/桌宠动作.png) |
 | Git                                            | [Git](功能界面/经典主题/Git.png)                                                                                                   |
 | Providers and models / Provider 与模型         | [1](功能界面/经典主题/Provider与模型-1.png) · [2](功能界面/经典主题/Provider与模型-2.png)                                          |
 | Capabilities / 能力中心                        | [1](功能界面/经典主题/能力中心-1.png) · [2](功能界面/经典主题/能力中心-2.png) · [3](功能界面/经典主题/能力中心-3.png)              |
@@ -43,9 +43,9 @@ The Multi-Agent screenshots show a configured example before execution (idle age
 
 多智能体截图展示尚未启动运行的配置示例：智能体为空闲状态，任务待处理。
 
-Desktop companion screenshots show settings, the context menu, and the searchable 101-action list. Screenshots are shared by all language editions.
+Desktop companion screenshots show settings, the context menu, and the searchable 193-action list. Screenshots are shared by all language editions.
 
-桌宠截图展示设置、右键菜单与支持搜索的 101 个动作列表；各语言文档共用同一份截图素材。
+桌宠截图展示设置、右键菜单与支持搜索的 193 个动作列表；各语言文档共用同一份截图素材。
 
 Voice screenshots show setup and preparation before a call; MCP and remote host screenshots show their settings screens.
 
