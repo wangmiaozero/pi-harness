@@ -9,7 +9,7 @@ import {
   channel,
   changelogSection
 } from './policy.mjs'
-import { catalog } from '../../src/main/runtime/distribution.mjs'
+import { renderReleaseNotes } from './release-notes.mjs'
 export async function collect(input, output, version, revision, releaseNotes = '') {
   const artifacts = []
   const reports = []
@@ -105,8 +105,14 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
     process.env.GITHUB_SHA,
     notes
   )
-  const instructions = `\n\nCommunity Release · free distribution.\n\nRuntime versions: Pi ${catalog.pi.version}; Node.js ${catalog.node.version}; npm/npx ${catalog.node.npmVersion}.\n\nSupported platforms: macOS ARM64/x64, Windows x64, Linux x64. Standard and nomascot installers are provided. Windows/Linux ARM64 remain preview targets.\n\nmacOS builds are ad-hoc signed, without Apple Developer ID or notarization. Windows installers are unsigned and may show SmartScreen warnings. Verify the official download source and SHA256SUMS before opening. macOS: use System Settings → Privacy & Security → Open Anyway when blocked. Do not disable system security.\n\nUpdates: check for new versions in the app, download from the official GitHub Releases page and install manually on every Community platform. Automatic installation has not been validated; updater feeds are withheld.\n\nSigned releases include checksums.json.sig: verify its Ed25519 signature using the public key shipped with Pi-Harness, then verify installer size and SHA256. SHA256 alone does not authenticate the publisher. Build previews are unsigned and are not trusted releases.\n`
-  await fs.writeFile('release-notes.md', notes + instructions)
+  await fs.writeFile(
+    'release-notes.md',
+    renderReleaseNotes(
+      await fs.readFile(path.join(root, 'CHANGELOG.md'), 'utf8'),
+      version,
+      process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' ? process.env.GITHUB_SHA : undefined
+    )
+  )
   await fs.writeFile(
     'release-readiness.json',
     JSON.stringify({ readiness: 'READY', channel, version, reports }, null, 2) + '\n'

@@ -2,6 +2,34 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.19 — 2026-11-04
+
+This release makes switching pages and returning to long conversations more responsive, keeps drafts and ongoing replies intact while navigating, and updates the built-in Native Pi runtime to 1.5.0. It also fixes the More menu and missed workspace file updates on macOS.
+
+### Added
+
+#### Native Pi 1.5.0
+
+- Updated the built-in Native Pi runtime to 1.5.0.
+
+### Fixed
+
+#### Faster navigation and conversations
+
+- Reduced pauses when switching pages, returning to conversations, and moving between Workspace and Tools.
+- Reduced repeated work while replies stream into long conversations.
+- Preserved unsent drafts and conversation position when navigating away and back.
+
+#### Menus and background activity
+
+- Fixed the More menu not opening on click.
+- Closed conversation menus and dialogs when switching to another page.
+- Improved cleanup of background view activity and delayed updates.
+
+#### Live workspace updates on macOS
+
+- Fixed missed file changes immediately after opening a workspace, including explicitly opened agent worktrees.
+
 ## 2.3.18 — 2026-11-03
 
 ### Added

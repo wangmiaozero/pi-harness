@@ -13,9 +13,27 @@ import {
 } from '../../../scripts/release/policy.mjs'
 import { publishRelease } from '../../../scripts/release/publish.mjs'
 import { collect } from '../../../scripts/release/collect.mjs'
+import { renderReleaseNotes } from '../../../scripts/release/release-notes.mjs'
 import { createHash } from 'node:crypto'
 import { signingFixture } from '../updater/security/signing-fixture'
 const temporary: string[] = []
+it('renders English release summaries and feature sections without weakening changelog checks', () => {
+  const changelog =
+    '## 2.3.19 — 2026-11-04\n\nA user-facing summary.\n\n### Added\n\n#### Native Pi\n\n- Updated Native Pi.\n\n### Fixed\n\n#### Navigation\n\n- Fixed navigation.\n\n## 2.3.18 — 2026-11-03\n\n### Fixed\n- Older release.'
+  const notes = renderReleaseNotes(changelog, '2.3.19')
+  expect(notes).toMatch(/^# v2\.3\.19\n\nA user-facing summary\./)
+  expect(notes).toContain('---\n\n## Added\n\n### Native Pi')
+  expect(notes).toContain('---\n\n## Fixed\n\n### Navigation')
+  expect(notes).not.toContain('Older release')
+  expect(notes).toContain('## Downloads')
+  expect(notes).toContain('Windows/Linux ARM64 remain preview targets')
+  expect(notes).toContain('Automatic installation has not been validated')
+  expect(notes).toContain('checksums.json.sig')
+  expect(() => renderReleaseNotes('## Unreleased\n- Future feature.', '2.3.19')).toThrow()
+  const preview = renderReleaseNotes('', '2.3.19', 'fixture-revision')
+  expect(preview).toMatch(/^# Build Preview 2\.3\.19/)
+  expect(preview).toContain('Build previews are unsigned and are not trusted releases')
+})
 it('uses the builder Linux ARM64 metadata suffix without changing existing feeds', () => {
   expect(metadataName('linux-arm64', 'standard')).toBe('latest-linux-arm64.yml')
   expect(metadataName('linux-arm64', 'nomascot')).toBe('nomascot-linux-arm64.yml')

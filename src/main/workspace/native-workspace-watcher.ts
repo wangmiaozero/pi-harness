@@ -1,5 +1,6 @@
 import { watch, type FSWatcher } from 'node:fs'
-import { lstat } from 'node:fs/promises'
+import { lstat, readdir } from 'node:fs/promises'
+import type { Stats } from 'node:fs'
 import path from 'node:path'
 
 /** macOS recursive fs.watch uses FSEvents rather than a descriptor for every file. */
@@ -13,8 +14,10 @@ export function watchNativeWorkspace(
   let closed = false
   let checking = false
   let timer: ReturnType<typeof setTimeout> | null = null
-  const started = performance.timeOrigin + performance.now()
-  let initializing = true
+  const initial = new Map<string, string>()
+  const fingerprint = (stat: Stats): string =>
+    `${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}:${stat.mode}`
+  let watcher: FSWatcher | null = null
   const pending = new Set<string>()
   const notify = async (): Promise<void> => {
     if (checking) return
@@ -39,24 +42,52 @@ export function watchNativeWorkspace(
             visible = false
             break
           }
-          // FSEvents may deliver a just-created file from before subscription.
-          // Ignore that initial replay, while retaining changes made after start.
-          if (
-            initializing &&
-            index === segments.length - 1 &&
-            stat &&
-            Math.max(stat.ctimeMs, stat.mtimeMs) < started
-          )
-            visible = false
+          // Compare file state, never filesystem time against the process clock.
+          if (index === segments.length - 1) {
+            if (stat && initial.get(relative) === fingerprint(stat)) visible = false
+            else initial.delete(relative)
+          }
         }
         if (visible && !closed) changed()
       }
     } finally {
       checking = false
-      initializing = false
     }
   }
-  const watcher: FSWatcher = watch(root, { recursive }, (_event, filename) => {
+  // Snapshot only the live scope, with bounded metadata I/O and no open file
+  // subscriptions. ready means both the baseline and native stream are installed.
+  const ready = (async () => {
+    const directories = [{ directory: root, depth: 0 }]
+    while (!closed && directories.length) {
+      const { directory, depth } = directories.pop()!
+      if (directory !== root) {
+        const stat = await lstat(directory).catch(() => null)
+        if (!stat?.isDirectory() || stat.isSymbolicLink()) continue
+      }
+      const entries = await readdir(directory, { withFileTypes: true }).catch((error) => {
+        if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') return []
+        throw error
+      })
+      for (let start = 0; !closed && start < entries.length; start += 16) {
+        await Promise.all(
+          entries.slice(start, start + 16).map(async (entry) => {
+            const file = path.join(directory, entry.name)
+            if (entry.isSymbolicLink() || ignored(file, entry.isDirectory())) return
+            const stat = await lstat(file).catch(() => null)
+            if (!stat || stat.isSymbolicLink()) return
+            initial.set(path.relative(root, file), fingerprint(stat))
+            if (recursive && stat.isDirectory() && depth < 12)
+              directories.push({ directory: file, depth: depth + 1 })
+          })
+        )
+      }
+    }
+    if (closed) return
+    watcher = watch(root, { recursive }, onEvent)
+    watcher.on('error', failed)
+  })()
+
+  function onEvent(_event: string, filename: string | null) {
     if (closed) return
     if (!filename) {
       changed()
@@ -71,16 +102,18 @@ export function watchNativeWorkspace(
       timer = null
       void notify().catch(failed)
     }, 250)
-  })
-  watcher.on('error', failed)
+  }
   return {
-    ready: Promise.resolve(),
+    ready,
     async close() {
+      if (closed) return
       closed = true
       if (timer) clearTimeout(timer)
       timer = null
       pending.clear()
-      watcher.close()
+      await ready.catch(() => undefined)
+      initial.clear()
+      watcher?.close()
     }
   }
 }

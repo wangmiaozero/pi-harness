@@ -74,17 +74,22 @@ export class WorkspaceWatcherService {
               : 'WATCH_ERROR'
         })
       if (this.platform === 'darwin') {
-        this.watchers.set(
+        const watcher = watchNativeWorkspace(
           root,
-          watchNativeWorkspace(
-            root,
-            (file, directory) =>
-              shouldIgnore(file) || this.isGitIgnored(root, file, directory, excluded),
-            () => this.queue(root),
-            failed,
-            !shallow
-          )
+          (file, directory) =>
+            shouldIgnore(file) || this.isGitIgnored(root, file, directory, excluded),
+          () => this.queue(root),
+          failed,
+          !shallow
         )
+        this.watchers.set(root, watcher)
+        try {
+          await watcher.ready
+        } catch (error) {
+          this.watchers.delete(root)
+          await watcher.close()
+          throw error
+        }
         continue
       }
       let initialized = false
