@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { BookOpen, Brain, CircleAlert, LoaderCircle, Terminal, Wrench } from '@lucide/vue'
 import AssistantTurn from './AssistantTurn.vue'
 import HistoryTurn from './HistoryTurn.vue'
+import type { HarnessRun } from '@shared/types/harness'
 import type { AssistantMessage } from '@shared/types/workspace'
 import { toolOutcome } from './tool-outcome'
 import {
@@ -18,6 +19,7 @@ import {
 
 // Keep persisted presentation independent of live token deltas.
 const props = defineProps<{
+  runs?: HarnessRun[]
   items: HistoryItem[]
   userName: string
   assistantName: string
@@ -29,6 +31,12 @@ const revealed = ref(new Set<string>())
 const persistedPresentation = computed(() => buildMessagePresentation(props.items))
 const presentation = computed(() => withLiveMessage(persistedPresentation.value, props.liveMessage))
 const conversation = computed(() => groupConversationTurns(presentation.value.items))
+function durationForTurn(key: string): number | null {
+  const run = props.runs?.find((run) => run.anchorEntryId && key === `turn:${run.anchorEntryId}`)
+  return run?.finishedAt != null && run.finishedAt >= run.startedAt
+    ? run.finishedAt - run.startedAt
+    : null
+}
 const lastTurn = computed(() =>
   conversation.value.at(-1)?.type === 'turn' ? conversation.value.at(-1)?.key : null
 )
@@ -183,6 +191,7 @@ const summaries = computed(() => {
     v-for="turn in conversation"
     :key="turn.key"
     :turn="turn"
+    :duration-ms="durationForTurn(turn.key)"
     :user-name="userName"
     :assistant-name="assistantName"
     :running="running"

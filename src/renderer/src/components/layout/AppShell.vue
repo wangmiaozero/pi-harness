@@ -13,7 +13,6 @@ import StarshipCockpitBackdrop from '@renderer/components/starship/StarshipCockp
 import StarshipCockpitFrame from '@renderer/components/starship/StarshipCockpitFrame.vue'
 import StarshipCockpitInterior from '@renderer/components/starship/StarshipCockpitInterior.vue'
 import StarshipCruiser from '@renderer/components/starship/StarshipCruiser.vue'
-import StarshipEngineHud from '@renderer/components/starship/StarshipEngineHud.vue'
 import PetStatus from '@renderer/components/pet/PetStatus.vue'
 import { getActiveVisualSkin, isStarshipCockpitActive } from '@renderer/utils/visual-skin'
 import { isMingDynastySkin } from '@renderer/utils/skin-catalog'
@@ -98,11 +97,6 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisib
         />
       </div>
     </div>
-    <StarshipEngineHud
-      v-if="starshipCockpitActive && isWorkspace"
-      :state="pet.state"
-      :animated="visualAnimationsEnabled"
-    />
     <StarshipCockpitFrame v-if="starshipCockpitActive" />
     <MingShellFrame v-if="mingDynastyActive" />
   </div>

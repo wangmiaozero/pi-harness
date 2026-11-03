@@ -19,6 +19,11 @@ const children = computed(() => tree.childrenOf(props.entry.path))
     <button
       type="button"
       class="flex w-full items-center gap-1.5 rounded-[var(--radius-sm)] px-2 py-1 text-left text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+      :data-file-path="entry.path"
+      :aria-current="tree.isSelected?.(entry.path) ? 'true' : undefined"
+      :class="{
+        'bg-[var(--accent-tint)] text-[var(--text-primary)]': tree.isSelected?.(entry.path)
+      }"
       @click="tree.openEntry(entry)"
     >
       <ChevronDown

@@ -1,21 +1,32 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
 import { RotateCcw } from '@lucide/vue'
-import { DEFAULT_NAV_ORDER } from '@shared/constants/navigation'
+import {
+  normalizeNavOrder,
+  OVERFLOW_NAV_ITEM_IDS,
+  type NavItemId
+} from '@shared/constants/navigation'
 import Button from '@renderer/components/ui/Button.vue'
 import NavOrderList from '@renderer/components/settings/NavOrderList.vue'
 import { SETTINGS_DRAFT_KEY } from '@renderer/components/settings/draft-key'
 
 const draft = inject(SETTINGS_DRAFT_KEY)!
 
-const navOrderIsDefault = computed(
-  () =>
-    draft.value.navOrder.length === DEFAULT_NAV_ORDER.length &&
-    draft.value.navOrder.every((id, index) => id === DEFAULT_NAV_ORDER[index])
+const overflowOrder = computed({
+  get: () =>
+    normalizeNavOrder(draft.value.navOrder).filter((id) => OVERFLOW_NAV_ITEM_IDS.includes(id)),
+  set: (value: NavItemId[]) => {
+    let index = 0
+    draft.value.navOrder = normalizeNavOrder(draft.value.navOrder).map((id) =>
+      OVERFLOW_NAV_ITEM_IDS.includes(id) ? value[index++]! : id
+    )
+  }
+})
+const navOrderIsDefault = computed(() =>
+  overflowOrder.value.every((id, index) => id === OVERFLOW_NAV_ITEM_IDS[index])
 )
-
 function resetNavOrder(): void {
-  draft.value.navOrder = [...DEFAULT_NAV_ORDER]
+  overflowOrder.value = [...OVERFLOW_NAV_ITEM_IDS]
 }
 </script>
 
@@ -37,6 +48,6 @@ function resetNavOrder(): void {
         {{ $t('settings.navOrderReset') }}
       </Button>
     </div>
-    <NavOrderList v-model="draft.navOrder" />
+    <NavOrderList v-model="overflowOrder" />
   </section>
 </template>

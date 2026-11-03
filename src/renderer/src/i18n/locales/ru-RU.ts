@@ -10,6 +10,8 @@ export const ruRU: MessageTree = {
   openCode: openCodeMessages['ru-RU'],
   universal: universalMessages['ru-RU'],
   nav: {
+    home: 'Главная',
+    more: 'Ещё',
     aiSessions: 'История ИИ',
     overview: 'Обзор',
     workspace: 'Рабочая область',
@@ -772,8 +774,8 @@ export const ruRU: MessageTree = {
     windowMotionEnabled: 'Свечение окна',
     screenMotionEnabled: 'Свечение экрана',
     composerFireEnabled: 'Эффект пламени в поле ввода',
-    navOrder: 'Порядок боковой панели',
-    navOrderHint: 'Перетаскивайте или используйте клавиши со стрелками. Вступит в силу после сохранения.',
+    navOrder: 'Порядок меню «Ещё»',
+    navOrderHint: 'Перетаскивайте или используйте стрелки для изменения порядка меню «Ещё».',
     navOrderReset: 'Восстановить по умолчанию',
     sectionGeneralHint: 'Язык, тема, имена в чате и свечение',
     sectionNavHint: 'Порядок боковой панели',
@@ -1015,6 +1017,14 @@ export const ruRU: MessageTree = {
     toolTool: 'Использует инструмент'
   },
   workspace: {
+    viewChanges: "Изменения",
+    revealFile: "Показать файл",
+    undoChanges: "Отменить",
+    undoDone: "Отменено",
+    undoUnavailable: "Отмена недоступна",
+    undoConfirm: "Отменить изменения в {count} файлах? Последующие правки защищены.",
+    turnElapsed: "Время {duration}",
+
     title: 'Рабочая область',
     defaultWorkspace: 'Рабочая область по умолчанию',
     newSession: 'Новый сеанс',

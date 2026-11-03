@@ -10,6 +10,8 @@ export const jaJP: MessageTree = {
   openCode: openCodeMessages['ja-JP'],
   universal: universalMessages['ja-JP'],
   nav: {
+    home: 'ホーム',
+    more: 'その他',
     aiSessions: 'AI 履歴',
     overview: '概要',
     workspace: 'ワークスペース',
@@ -767,8 +769,8 @@ export const jaJP: MessageTree = {
     windowMotionEnabled: 'ウィンドウの光彩',
     screenMotionEnabled: '画面の光彩',
     composerFireEnabled: '入力欄の炎エフェクト',
-    navOrder: 'サイドバーの順序',
-    navOrderHint: 'ドラッグまたは矢印キーで並べ替えます。保存後に反映されます。',
+    navOrder: 'その他メニューの順序',
+    navOrderHint: 'ドラッグまたは矢印キーでその他メニューを並べ替えます。',
     navOrderReset: 'デフォルトに戻す',
     sectionGeneralHint: '言語、テーマ、チャット名、光彩',
     sectionNavHint: 'サイドバーを並べ替え',
@@ -1010,6 +1012,14 @@ export const jaJP: MessageTree = {
     toolTool: 'ツールを使用中'
   },
   workspace: {
+    viewChanges: "変更を表示",
+    revealFile: "ファイルを表示",
+    undoChanges: "元に戻す",
+    undoDone: "元に戻しました",
+    undoUnavailable: "このターンは元に戻せません",
+    undoConfirm: "{count} 個のファイルの変更を元に戻しますか？後から変更したファイルは保護されます。",
+    turnElapsed: "所要時間 {duration}",
+
     title: 'ワークスペース',
     defaultWorkspace: 'デフォルトワークスペース',
     newSession: '新規セッション',

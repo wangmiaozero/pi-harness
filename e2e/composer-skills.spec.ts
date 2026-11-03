@@ -61,6 +61,19 @@ test('keeps the model submenu adjacent to its vendor panel', async ({ page }) =>
     { width: 800, height: 650 }
   ]) {
     await page.setViewportSize(size)
+    const toolbar = await page.locator('.command-console-controls').evaluate((node) => {
+      const row = node.getBoundingClientRect()
+      const boxes = [...node.querySelectorAll('button')]
+        .map((button) => button.getBoundingClientRect())
+        .filter((box) => box.width > 0)
+      const centers = boxes.map((box) => box.y + box.height / 2)
+      return {
+        contained: boxes.every((box) => box.left >= row.left && box.right <= row.right + 1),
+        centerSpread: Math.max(...centers) - Math.min(...centers)
+      }
+    })
+    expect(toolbar.contained).toBe(true)
+    expect(toolbar.centerSpread).toBeLessThan(2)
     const triggerLayout = await page.getByTestId('workspace-model-select').evaluate((picker) => {
       const name = picker.querySelector('[data-testid="composer-model-name"]')!
       const thinking = picker.querySelector('[data-testid="composer-thinking-level"]')!

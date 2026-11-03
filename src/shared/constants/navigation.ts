@@ -11,6 +11,8 @@ export type NavItemId = (typeof NAV_ITEM_IDS)[number]
 
 export const DEFAULT_NAV_ORDER: NavItemId[] = [...NAV_ITEM_IDS]
 
+export const OVERFLOW_NAV_ITEM_IDS: readonly NavItemId[] = ['git', 'ai-sessions', 'skills']
+
 const NAV_ITEM_ID_SET = new Set<string>(NAV_ITEM_IDS)
 
 export function isNavItemId(value: unknown): value is NavItemId {

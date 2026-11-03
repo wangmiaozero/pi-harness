@@ -3,6 +3,7 @@
 @import './macos27.css';
 @import './starship-cockpit.css';
 @import './portrait-skins.css';
+@import './scene-conversation.css';
 
 .harness-card {
   border: 1px solid var(--border-subtle);

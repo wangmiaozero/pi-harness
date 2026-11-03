@@ -1095,3 +1095,10 @@ export interface HarnessEventEnvelope {
   sessionId: string
   event: HarnessEvent
 }
+
+export interface RunFileUndoStatus {
+  available: boolean
+  undone: boolean
+  fileCount: number
+  remainingCount: number
+}

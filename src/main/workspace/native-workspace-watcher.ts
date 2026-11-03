@@ -7,7 +7,8 @@ export function watchNativeWorkspace(
   root: string,
   ignored: (file: string, directory?: boolean) => boolean,
   changed: () => void,
-  failed: (error: NodeJS.ErrnoException) => void
+  failed: (error: NodeJS.ErrnoException) => void,
+  recursive = true
 ): { close(): Promise<void>; ready: Promise<void> } {
   let closed = false
   let checking = false
@@ -55,7 +56,7 @@ export function watchNativeWorkspace(
       initializing = false
     }
   }
-  const watcher: FSWatcher = watch(root, { recursive: true }, (_event, filename) => {
+  const watcher: FSWatcher = watch(root, { recursive }, (_event, filename) => {
     if (closed) return
     if (!filename) {
       changed()

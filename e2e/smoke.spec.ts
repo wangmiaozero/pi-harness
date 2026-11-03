@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import path from 'node:path'
 import fs from 'node:fs'
 import { test, expect } from './fixtures'
@@ -191,7 +192,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByText(/models\.json/i).first()).toBeVisible()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
 
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
 
     await page.locator('a[href="#/settings"]').click()
@@ -257,7 +258,7 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.getByTestId('workspace-section-workspace')).toHaveText(/工作区|Workspace/)
 
     // Git is a standalone route that reads every workspace project.
-    await page.locator('a[href="#/git"]').click()
+    await openOverflowPage(page, 'git')
     await expect(page.getByTestId('git-no-projects')).toBeVisible()
     await page.locator('a[href="#/workspace"]').click()
 
@@ -285,7 +286,7 @@ test.describe('Pi-Harness smoke', () => {
     await page.getByTestId('workspace-toggle-files').click()
     await expect(page.getByTestId('workspace-files-unavailable')).toBeVisible()
     // The imported project shows up in the workspace-wide Git view without a session.
-    await page.locator('a[href="#/git"]').click()
+    await openOverflowPage(page, 'git')
     await expect(page.getByTestId('git-repository-sidebar')).toContainText('explicit-project')
     await page.locator('a[href="#/workspace"]').click()
     await page.getByTestId('workspace-section-workspace').click()
@@ -307,7 +308,7 @@ test.describe('Pi-Harness smoke', () => {
       .click()
     await expect(page.getByTestId('workspace-project-0')).toHaveCount(0)
     // Removing the workspace project removes it from the Git view as well.
-    await page.locator('a[href="#/git"]').click()
+    await openOverflowPage(page, 'git')
     await expect(page.getByTestId('git-no-projects')).toBeVisible()
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({
@@ -972,7 +973,7 @@ test.describe('Pi-Harness smoke', () => {
   test('shows local skills and the curated extension market', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await expect(page.locator('h1').filter({ hasText: /能力中心|Capabilities/ })).toBeVisible()
     await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
     await expect(page.locator('ul').getByText('demo-skill', { exact: true })).toBeVisible()
@@ -996,7 +997,7 @@ test.describe('Pi-Harness smoke', () => {
   })
 
   test('installs, uninstalls, and reinstalls a bundled Matt Pocock Skill', async ({ page }) => {
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await page.getByRole('tab', { name: /精选|Featured/, exact: true }).click()
 
     const collection = page.getByTestId('market-collection-builtin:mattpocock-skills')
@@ -1037,7 +1038,7 @@ test.describe('Pi-Harness smoke', () => {
   })
 
   test('uninstalls a user-authored standalone skill with a backup-first flow', async ({ page }) => {
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
     await page.locator('ul').getByText('demo-skill', { exact: true }).click()
     await page.getByLabel(/卸载技能|Uninstall skill/).click()
@@ -1061,7 +1062,7 @@ test.describe('Pi-Harness smoke', () => {
       })
     })
 
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await page.getByRole('tab', { name: /已安装|Installed/, exact: true }).click()
     const packageRow = page.getByRole('listitem').filter({ hasText: 'pi-e2e-missing' })
     await expect(packageRow).toBeVisible()
@@ -1105,21 +1106,26 @@ test.describe('Pi-Harness smoke', () => {
     }
   })
 
-  test('reorders the sidebar from settings', async ({ page }) => {
+  test('reorders the more menu from settings', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.locator('a[href="#/settings"]').click()
     await expect(page.locator('h1').filter({ hasText: /通用|General/ })).toBeVisible()
     await page.getByTestId('settings-section-nav').click()
 
     const items = page.getByTestId('nav-order-item')
-    await expect(items.first()).toHaveAttribute('data-nav-id', 'workspace')
+    await expect(items).toHaveCount(3)
+    await expect(items.first()).toHaveAttribute('data-nav-id', 'git')
     await items.first().focus()
     await items.first().press('ArrowDown')
-    await expect(items.first()).toHaveAttribute('data-nav-id', 'git')
-
-    const rail = page.locator('[data-testid="app-navigation-rail"] a')
-    await expect(rail.first()).toHaveAttribute('href', '#/git')
-    await expect(rail.nth(1)).toHaveAttribute('href', '#/workspace')
+    await expect(items.first()).toHaveAttribute('data-nav-id', 'ai-sessions')
+    await expect(page.getByTestId('app-navigation-rail').locator('nav a').first()).toHaveAttribute(
+      'href',
+      '#/workspace'
+    )
+    await page.getByTestId('navigation-more').click()
+    const links = page.getByTestId('navigation-more-menu').locator('a')
+    await expect(links.first()).toHaveAttribute('href', '#/ai-sessions')
+    await expect(links.nth(1)).toHaveAttribute('href', '#/git')
   })
 
   test('cleans backups according to the retention count after confirmation', async ({ page }) => {

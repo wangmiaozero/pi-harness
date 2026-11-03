@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { test, expect } from './fixtures'
@@ -42,7 +43,7 @@ test.describe('Agent settings', () => {
     await expect(page.getByTestId('model-management-tab-models')).toBeVisible()
     await page.locator('a[href="#/settings"]').click()
     await expect(page.getByTestId('settings-section-skills')).toHaveCount(0)
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await expect(page.locator('h1')).toContainText(/能力中心|Capabilities/)
   })
   test('saves native AI preferences, instructions and MCP lifecycle through the bridge', async ({

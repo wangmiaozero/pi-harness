@@ -14,6 +14,7 @@ export interface MessageFileChange {
 
 export interface MessageFileChanges {
   runId: string
+  sessionId?: string
   status: 'verified' | 'missing-evidence'
   files: MessageFileChange[]
   additions: number
@@ -57,6 +58,7 @@ export function buildMessageFileChanges(
       if (!finalMessage || !claimsFileMutation(finalMessage)) continue
       result.set(finalEntryId, {
         runId: run.id,
+        sessionId: run.sessionId,
         status: 'missing-evidence',
         files: [],
         additions: 0,
@@ -66,6 +68,7 @@ export function buildMessageFileChanges(
     }
     result.set(finalEntryId, {
       runId: run.id,
+      sessionId: run.sessionId,
       status: 'verified',
       files,
       additions: files.reduce((total, file) => total + file.additions, 0),

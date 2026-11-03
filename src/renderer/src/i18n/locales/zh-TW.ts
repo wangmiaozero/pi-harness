@@ -10,6 +10,8 @@ export const zhTW: MessageTree = {
   openCode: openCodeMessages['zh-TW'],
   universal: universalMessages['zh-TW'],
   nav: {
+    home: '首頁',
+    more: '更多',
     aiSessions: 'AI 會話',
     overview: '總覽',
     workspace: '工作區',
@@ -744,8 +746,8 @@ export const zhTW: MessageTree = {
     windowMotionEnabled: '視窗光暈',
     screenMotionEnabled: '螢幕光暈',
     composerFireEnabled: '輸入框火焰效果',
-    navOrder: '側邊欄順序',
-    navOrderHint: '拖曳或用方向鍵調整，儲存後生效。',
+    navOrder: '更多選單順序',
+    navOrderHint: '拖曳或用方向鍵調整「更多」選單中的順序。',
     navOrderReset: '還原預設',
     sectionGeneralHint: '語言、主題、對話名稱與光暈',
     sectionNavHint: '調整側邊欄導覽順序',
@@ -985,6 +987,14 @@ export const zhTW: MessageTree = {
     toolTool: '正在呼叫工具'
   },
   workspace: {
+    viewChanges: "查看變更",
+    revealFile: "定位到檔案",
+    undoChanges: "復原",
+    undoDone: "已復原",
+    undoUnavailable: "此輪無法復原",
+    undoConfirm: "復原這輪對 {count} 個檔案的修改？後續修改的檔案會受到保護。",
+    turnElapsed: "用時 {duration}",
+
     title: '工作區',
     defaultWorkspace: '預設工作區',
     newSession: '新增工作階段',

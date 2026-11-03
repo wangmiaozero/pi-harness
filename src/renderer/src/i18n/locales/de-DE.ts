@@ -10,6 +10,8 @@ export const deDE: MessageTree = {
   openCode: openCodeMessages['de-DE'],
   universal: universalMessages['de-DE'],
   nav: {
+    home: 'Startseite',
+    more: 'Mehr',
     aiSessions: 'KI Verlauf',
     overview: 'Übersicht',
     workspace: 'Arbeitsbereich',
@@ -773,8 +775,8 @@ export const deDE: MessageTree = {
     windowMotionEnabled: 'Fensterleuchten',
     screenMotionEnabled: 'Bildschirmleuchten',
     composerFireEnabled: 'Flammeneffekt im Eingabefeld',
-    navOrder: 'Seitenleistenreihenfolge',
-    navOrderHint: 'Ziehen oder die Pfeiltasten verwenden. Wirkt nach dem Speichern.',
+    navOrder: 'Reihenfolge im Menü Mehr',
+    navOrderHint: 'Ziehen oder mit den Pfeiltasten das Menü Mehr sortieren.',
     navOrderReset: 'Standard wiederherstellen',
     sectionGeneralHint: 'Sprache, Thema, Chatnamen und Leuchten',
     sectionNavHint: 'Seitenleiste neu anordnen',
@@ -1016,6 +1018,14 @@ export const deDE: MessageTree = {
     toolTool: 'Nutzt Werkzeug'
   },
   workspace: {
+    viewChanges: "Änderungen anzeigen",
+    revealFile: "Datei anzeigen",
+    undoChanges: "Rückgängig",
+    undoDone: "Rückgängig gemacht",
+    undoUnavailable: "Rückgängig nicht verfügbar",
+    undoConfirm: "Änderungen an {count} Dateien rückgängig machen? Spätere Änderungen bleiben geschützt.",
+    turnElapsed: "Dauer {duration}",
+
     title: 'Arbeitsbereich',
     defaultWorkspace: 'Standardarbeitsbereich',
     newSession: 'Neue Sitzung',

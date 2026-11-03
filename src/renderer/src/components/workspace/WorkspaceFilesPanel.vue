@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue'
-import { FileText, FolderOpen, FolderTree, PanelRightClose } from '@lucide/vue'
+import { FileText, FileDiff, FolderOpen, FolderTree, PanelRightClose } from '@lucide/vue'
+import RunChangesPreview from './RunChangesPreview.vue'
 import FileExplorer from '@renderer/components/files/FileExplorer.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
@@ -19,7 +20,9 @@ const workspace = useWorkspaceStore()
 const sessions = useSessionStore()
 const fileTabs = ref<InstanceType<typeof WorkspaceTabs> | null>(null)
 const panelElement = ref<HTMLElement | null>(null)
-const panelMode = ref<'tree' | 'preview'>(workspace.activeFileTab ? 'preview' : 'tree')
+const panelMode = ref<'tree' | 'preview' | 'changes'>(
+  workspace.changePreview ? 'changes' : workspace.activeFileTab ? 'preview' : 'tree'
+)
 const panelWidth = ref<number | null>(readStoredPanelWidth())
 const resizing = ref(false)
 let stopResize: (() => void) | null = null
@@ -35,6 +38,19 @@ watch(
   (activeId, previousId) => {
     if (!activeId) panelMode.value = 'tree'
     else if (activeId !== previousId) panelMode.value = 'preview'
+  }
+)
+
+watch(
+  () => workspace.changePreview,
+  (preview) => {
+    if (preview) panelMode.value = 'changes'
+  }
+)
+watch(
+  () => workspace.fileRevealTarget,
+  (target) => {
+    if (target) panelMode.value = 'tree'
   }
 )
 
@@ -184,6 +200,16 @@ defineExpose({ closeActiveFile })
           :aria-label="$t('workspace.filePanelMode')"
         >
           <IconButton
+            v-if="workspace.changePreview"
+            :label="$t('workspace.viewChanges')"
+            :active="panelMode === 'changes'"
+            data-testid="workspace-files-mode-changes"
+            class="!size-6"
+            @click="panelMode = 'changes'"
+          >
+            <FileDiff class="size-3.5" />
+          </IconButton>
+          <IconButton
             :label="$t('workspace.fileTreeMode')"
             :active="panelMode === 'tree'"
             :aria-pressed="panelMode === 'tree'"
@@ -227,6 +253,7 @@ defineExpose({ closeActiveFile })
       >
         <FileExplorer :key="sessions.currentId!" />
       </div>
+      <RunChangesPreview v-else-if="panelMode === 'changes' && workspace.changePreview" />
       <div
         v-else
         data-testid="workspace-file-preview-pane"

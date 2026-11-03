@@ -72,14 +72,18 @@ export class WorkspaceService {
   private sessionBindings: Record<string, SessionWorkspaceBinding> = {}
   private rawDocument: CodeWorkspaceDocument | null = null
   private readonly searcher: WorkspaceSearchService
-  private readonly watcher = new WorkspaceWatcherService()
+  private readonly watcher: WorkspaceWatcherService
 
   constructor(
     private readonly access: FileAccessService,
     private readonly store: JsonStore<WorkspaceStateRecord>,
     private readonly defaultWorkspaceRoot?: string,
-    private readonly defaultWorkspaceAliases: string[] = []
+    private readonly defaultWorkspaceAliases: string[] = [],
+    excludedWatchDirectories: string[] = []
   ) {
+    this.watcher = new WorkspaceWatcherService(process.platform, {
+      excludedDirectories: excludedWatchDirectories
+    })
     this.searcher = new WorkspaceSearchService(access)
   }
 

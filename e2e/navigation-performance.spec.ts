@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import { test, expect } from './fixtures'
 import { IPC_INVOKE } from '../src/shared/ipc/channels'
 test.use({ isolateSystemRuntime: true })
@@ -48,7 +49,7 @@ test('switches menus without rechecking executables and keeps explicit system re
     await expect(page.getByTestId('workspace-main')).toBeVisible()
     await page.locator('a[href="#/models"]').click()
     await expect(page.getByTestId('model-management-view')).toBeVisible()
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await expect(page.getByRole('heading', { name: /Capability|能力/, level: 1 })).toBeVisible()
     await page.locator('a[href="#/settings"]').click()
     await page.getByTestId('settings-section-overview').click()

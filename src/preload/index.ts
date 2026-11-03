@@ -428,6 +428,10 @@ const api: PiSwitchAPI = {
         sessionId,
         ...(runId ? { runId } : {})
       }),
+    fileUndoStatus: (sessionId, runId) =>
+      invoke(IPC_INVOKE.harnessFileUndoStatus, { sessionId, runId }),
+    undoRunFiles: (sessionId, runId) =>
+      invoke(IPC_INVOKE.harnessUndoRunFiles, { sessionId, runId }),
     listArtifacts: (sessionId, runId) =>
       invoke(IPC_INVOKE.harnessListArtifacts, {
         sessionId,

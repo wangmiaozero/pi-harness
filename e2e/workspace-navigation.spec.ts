@@ -38,7 +38,7 @@ test('opens Tools before switching Harness and Agents without losing the chat dr
 test('combines standalone chats and projects in one workspace section', async ({
   page,
   piAgentDir
-}) => {
+}, testInfo) => {
   const visualQa = Boolean(process.env.PI_HARNESS_DESIGN_QA_DIR)
   await page.setViewportSize(
     visualQa ? { width: 2048, height: 1324 } : { width: 2400, height: 1560 }
@@ -97,6 +97,7 @@ test('combines standalone chats and projects in one workspace section', async ({
   await tree.getByText('Standalone chat', { exact: true }).click()
   await expect(page.getByTestId(`session-row-${sessionId}`)).toHaveClass(/bg-/)
 
+  await page.screenshot({ path: path.join(testInfo.outputDir, 'workspace-sidebar.png') })
   if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
     await page.screenshot({
       path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'workspace-unified-navigation.png')

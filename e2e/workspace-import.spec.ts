@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import fs from 'node:fs'
 import path from 'node:path'
 import { test, expect } from './fixtures'
@@ -76,7 +77,7 @@ for (const kind of ['folders', 'code-workspace', 'mixed'] as const) {
     await page.getByTestId('workspace-toggle-files').click()
     await expect(page.getByTestId('workspace-files-unavailable')).toBeVisible()
     // The imported project appears in the workspace-wide Git view.
-    await page.locator('a[href="#/git"]').click()
+    await openOverflowPage(page, 'git')
     await expect(page.getByTestId('git-repository-sidebar')).toContainText(projectName)
     await page.locator('a[href="#/workspace"]').click()
     await page.getByTestId('workspace-section-workspace').click()
@@ -128,7 +129,7 @@ for (const kind of ['folders', 'code-workspace', 'mixed'] as const) {
       await page.getByTestId('workspace-toggle-files').click()
     }
     await expect(page.getByTestId('workspace-files-unavailable')).toBeVisible()
-    await page.locator('a[href="#/git"]').click()
+    await openOverflowPage(page, 'git')
     await expect(page.getByTestId('git-repository-sidebar')).toContainText(projectName)
     await page.locator('a[href="#/workspace"]').click()
     expect(errors).toEqual([])

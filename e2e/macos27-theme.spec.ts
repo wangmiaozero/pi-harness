@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import path from 'node:path'
 import { expect, test } from './fixtures'
 
@@ -49,7 +50,7 @@ test.describe('macOS 27 liquid glass themes', () => {
       .poll(() => settingsCard.evaluate((element) => getComputedStyle(element).backdropFilter))
       .toContain('blur(14px)')
 
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     const capabilitiesTabs = page.locator('.capabilities-tabs')
     await expect
       .poll(() => capabilitiesTabs.evaluate((element) => getComputedStyle(element).backgroundColor))
@@ -87,7 +88,7 @@ test.describe('macOS 27 liquid glass themes', () => {
         fullPage: true
       })
 
-      await page.locator('a[href="#/git"]').click()
+      await openOverflowPage(page, 'git')
       await page.screenshot({
         path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'git-macos27-dark.png'),
         fullPage: true
@@ -179,7 +180,7 @@ test.describe('macOS 27 liquid glass themes', () => {
       .poll(() => settingsCard.evaluate((element) => getComputedStyle(element).backgroundColor))
       .toBe('rgba(255, 255, 255, 0.72)')
 
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await expect
       .poll(() => capabilitiesTabs.evaluate((element) => getComputedStyle(element).backgroundColor))
       .toBe('rgba(248, 249, 252, 0.7)')

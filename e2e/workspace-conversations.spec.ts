@@ -6,11 +6,11 @@ test('creates independent conversations in the default group and preserves empty
   await page.locator('a[href="#/workspace"]').click()
   const add = page.getByTestId('workspace-new-session')
   await expect(
-    page
-      .getByTestId('workspace-sessions-heading')
-      .locator('..')
-      .getByTestId('workspace-new-session')
+    page.getByTestId('workspace-sidebar').getByTestId('workspace-new-session')
   ).toBeVisible()
+  expect((await add.boundingBox())!.y).toBeLessThan(
+    (await page.getByTestId('workspace-section-tabs').boundingBox())!.y
+  )
   await expect(
     page.getByTestId('workspace-command-actions').getByTestId('workspace-new-session')
   ).toHaveCount(0)

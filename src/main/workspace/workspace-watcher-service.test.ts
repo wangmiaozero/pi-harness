@@ -108,3 +108,51 @@ it('excludes ignored runtime/cache/package directories before allocating filesys
   await watcher.close()
   expect(fixture.close).toHaveBeenCalledOnce()
 })
+
+it.each(['linux', 'win32'] as const)(
+  'bounds home and ancestor subscriptions while keeping explicit projects recursive (%s)',
+  async (platform) => {
+    directory = await fs.mkdtemp(path.join(os.tmpdir(), 'home-watch-'))
+    const home = path.join(directory, 'home')
+    const project = path.join(home, 'project')
+    await fs.mkdir(project, { recursive: true })
+    fixture.watch.mockReturnValue({ on: fixture.on, once: fixture.on, close: fixture.close })
+    const watcher = new WorkspaceWatcherService(platform, { homeDirectory: home })
+    try {
+      await watcher.sync([directory, home, project])
+      expect(fixture.watch.mock.calls.map(([root, options]) => [root, options.depth])).toEqual([
+        [directory, 0],
+        [home, 0],
+        [project, 12]
+      ])
+      const ignored = fixture.watch.mock.calls[1][1].ignored
+      expect(ignored(path.join(home, '.bashrc'))).toBe(false)
+      expect(ignored(path.join(home, 'AppData', 'state.json'))).toBe(true)
+      expect(ignored(path.join(home, '.pi', 'agent', 'sessions', 'session.jsonl'))).toBe(true)
+      expect(fixture.watch.mock.calls[2][1].ignored(path.join(project, 'src', 'main.ts'))).toBe(
+        false
+      )
+    } finally {
+      await watcher.close()
+    }
+  }
+)
+
+it('prunes app state at a custom location without suppressing explicit scratch workspaces', async () => {
+  directory = await fs.mkdtemp(path.join(os.tmpdir(), 'app-state-watch-'))
+  const state = path.join(directory, 'custom-state')
+  const scratch = path.join(state, 'workspaces', 'default')
+  await fs.mkdir(scratch, { recursive: true })
+  fixture.watch.mockReturnValue({ on: fixture.on, once: fixture.on, close: fixture.close })
+  const watcher = new WorkspaceWatcherService('linux', { excludedDirectories: [state] })
+  try {
+    await watcher.sync([directory, scratch])
+    const ignored = fixture.watch.mock.calls[0][1].ignored
+    expect(ignored(state)).toBe(true)
+    expect(ignored(path.join(state, 'settings.json'))).toBe(true)
+    expect(ignored(path.join(directory, 'custom-state-project', 'main.ts'))).toBe(false)
+    expect(fixture.watch.mock.calls[1][1].ignored(path.join(scratch, 'main.ts'))).toBe(false)
+  } finally {
+    await watcher.close()
+  }
+})

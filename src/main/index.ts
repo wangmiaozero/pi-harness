@@ -1,3 +1,4 @@
+import { FileUndoService } from './harness/file-undo/file-undo-service'
 import { canUseVoiceMicrophone } from './agent-settings/voice-service'
 import fs from 'node:fs/promises'
 import { HarnessPluginHost } from './harness/plugins/plugin-host'
@@ -73,7 +74,7 @@ import { setRuntimeProvider } from './runtime/active'
 import { PiRpcRuntime } from './agent/pi-rpc-runtime'
 import { activateMainWindow } from './window/activate-main'
 import { AgentRuntimeService } from './agent/agent-runtime-service'
-import { resolveWorkspaceToolPath } from './workspace/workspace-tool-guard'
+import { extractToolPath, resolveWorkspaceToolPath } from './workspace/workspace-tool-guard'
 import { assertAgentFilePermission } from './workspace/agent-file-permission'
 import { WorkspaceService, type WorkspaceStateRecord } from './workspace/workspace-service'
 import { PiHarnessAdapter } from './harness/adapters/pi-harness-adapter'
@@ -354,7 +355,8 @@ async function bootstrap(): Promise<void> {
     access,
     workspaceStateStore,
     appDefaultWorkspacePath(),
-    appDefaultWorkspaceAliases()
+    appDefaultWorkspaceAliases(),
+    [userData()]
   )
   await workspaceState.load().catch((error) => log.app.warn('workspace load failed:', error))
   workspaceState.onFilesChanged((roots) => {
@@ -387,6 +389,17 @@ async function bootstrap(): Promise<void> {
       intelligenceModel.enrich(root, graph, scan, signal, locale)
   )
 
+  const undoDirectory = path.join(userData(), 'file-undo')
+  await fs.mkdir(undoDirectory, { recursive: true, mode: 0o700 })
+  const fileUndo = new FileUndoService(
+    new JsonStore(path.join(undoDirectory, 'snapshots.json'), { runs: [] }),
+    files,
+    async (sessionId, target) => {
+      const folders = workspaceState.getFoldersForSession(sessionId)
+      if (!folders.length) throw new PathDeniedError('No session workspace')
+      return access.assertWritableInFolders(target, folders)
+    }
+  )
   const desktopHooks: NonNullable<ConstructorParameters<typeof AgentRuntimeService>[1]> = {
     prepareSession: async (sessionId, cwd) => {
       if (workspaceState.getFoldersForSession(sessionId).length) return
@@ -437,8 +450,8 @@ async function bootstrap(): Promise<void> {
         signal
       )
     },
-    assertToolAllowed: (toolName, input, sessionId, signal, permissionMode) => {
-      return assertPolicyToolAllowed(
+    assertToolAllowed: async (toolName, input, sessionId, signal, permissionMode) => {
+      await assertPolicyToolAllowed(
         policyEngine,
         {
           sessionId,
@@ -450,6 +463,19 @@ async function bootstrap(): Promise<void> {
         toolName,
         input
       )
+      const run = harnessRef.current?.runs.getCurrentRun(sessionId)
+      const target = extractToolPath(input)
+      if (run?.cwd && target && (toolName === 'write' || toolName === 'edit')) {
+        await fileUndo
+          .capture(
+            sessionId,
+            run.id,
+            resolveWorkspaceToolPath(target, run.cwd),
+            toolName,
+            input as Record<string, unknown>
+          )
+          .catch(() => undefined)
+      }
     }
   }
   const piAgent = new AgentRuntimeService(sessions, desktopHooks)
@@ -492,6 +518,7 @@ async function bootstrap(): Promise<void> {
   const harness = new HarnessRuntime(
     process.env.PI_HARNESS_AGENT_MODE === 'sdk' ? new PiHarnessAdapter(piAgent) : rpcAgent,
     {
+      fileUndo,
       policy: policyEngine,
       checkpointStore: new JsonStore(harnessCheckpointsPath(), EMPTY_CHECKPOINT_STORE),
       sessions,

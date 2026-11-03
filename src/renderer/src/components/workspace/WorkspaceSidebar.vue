@@ -11,6 +11,8 @@ import {
   Gauge,
   GitBranch,
   MessageSquare,
+  SquarePen,
+  Search,
   Pin,
   Plus,
   RefreshCw,
@@ -41,6 +43,8 @@ import type {
   SessionProjectGroup,
   WorkspaceFolder
 } from '@shared/types/workspace'
+import { usePetStore } from '@renderer/stores/pet'
+import StarshipEngineHud from '@renderer/components/starship/StarshipEngineHud.vue'
 import StarshipModelHud from '@renderer/components/starship/StarshipModelHud.vue'
 import ProjectWorkspaceDialog from './ProjectWorkspaceDialog.vue'
 import RenameDialog from './RenameDialog.vue'
@@ -65,6 +69,8 @@ type SidebarMenuEntry =
       testId?: string
     }
   | { type: 'separator'; id: string }
+
+const pet = usePetStore()
 
 const props = withDefaults(
   defineProps<{ activeSection?: WorkspaceSection; activeTool?: 'harness' | 'orchestration' }>(),
@@ -804,6 +810,10 @@ async function openRecent(item: RecentWorkspace) {
   })
 }
 
+function openSearch(): void {
+  window.dispatchEvent(new CustomEvent('pi-harness:open-palette'))
+}
+
 defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRecent })
 </script>
 
@@ -817,21 +827,30 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
     @drop.prevent="onDrop"
   >
     <div
-      class="mission-control-header flex min-h-[var(--height-page-header)] shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-2.5 py-2"
+      class="mission-control-header flex min-h-[var(--height-page-header)] shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-3"
     >
-      <p
-        data-testid="workspace-sidebar-title"
-        class="flex min-w-0 flex-1 basis-20 flex-col [overflow-wrap:anywhere] text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+      <button
+        type="button"
+        :disabled="creatingSession"
+        data-testid="workspace-new-session"
+        class="flex min-h-9 shrink-0 grow basis-auto items-center gap-2 rounded-[10px] px-1 py-2 text-left text-[13px] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+        @click="newSession"
       >
-        <span>{{ $t('workspace.title') }}</span>
-        <span class="cockpit-only text-[7px] tracking-[0.18em] text-[var(--accent)]">
-          MISSION CONTROL
-        </span>
-      </p>
+        <SquarePen class="size-4 shrink-0" :stroke-width="1.75" aria-hidden="true" />
+        <span class="whitespace-nowrap">{{ $t('workspace.newSession') }}</span>
+      </button>
       <div
         data-testid="workspace-command-actions"
         class="workspace-command-actions workspace-command-actions--compact ml-auto flex shrink-0 items-center !gap-1"
       >
+        <IconButton
+          :label="$t('titlebar.commandPalette')"
+          data-testid="workspace-search"
+          class="!size-6 !rounded-[6px] !border-0 !bg-transparent !shadow-none"
+          @click="openSearch"
+        >
+          <Search class="size-3.5" :stroke-width="1.75" aria-hidden="true" />
+        </IconButton>
         <IconButton
           :disabled="refreshing"
           :label="$t('common.refresh')"
@@ -876,16 +895,16 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
 
     <div
       data-testid="workspace-section-tabs"
-      class="workspace-section-tabs grid shrink-0 gap-1 border-b border-[var(--border-subtle)] px-2 py-1.5"
+      class="workspace-section-tabs grid shrink-0 gap-1 border-b border-[var(--border-subtle)] px-2 pb-2"
     >
       <button
         v-for="item in sectionItems"
         :key="item.id"
         :data-testid="`workspace-section-${item.id}`"
-        class="workspace-section-tab flex min-w-0 items-center justify-center rounded-[var(--radius-sm)] border px-2 py-1.5 text-[11px] transition-colors duration-[var(--motion-fast)]"
+        class="workspace-section-tab flex min-w-0 items-center justify-center rounded-[8px] border border-transparent px-2 py-1.5 text-[12px] transition-colors duration-[var(--motion-fast)]"
         :class="
           section === item.id
-            ? 'border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--text-primary)]'
+            ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]'
             : 'border-transparent text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]'
         "
         :aria-pressed="section === item.id"
@@ -895,7 +914,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
           :is="item.icon"
           class="size-3.5 shrink-0"
           :stroke-width="1.75"
-          :class="section === item.id ? 'text-[var(--accent)]' : ''"
+          aria-hidden="true"
         />
         <span class="workspace-section-label">{{ item.label }}</span>
       </button>
@@ -903,25 +922,15 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
 
     <div class="min-h-0 flex-1 overflow-y-auto">
       <template v-if="section === 'workspace'">
-        <div class="px-2 py-2" data-testid="workspace-session-tree">
+        <div class="px-2 py-3" data-testid="workspace-session-tree">
           <section data-testid="workspace-chat-list">
-            <div class="mb-1 flex items-center justify-between gap-2">
+            <div class="mb-2 flex min-h-6 items-center justify-between gap-2 px-2">
               <p
                 data-testid="workspace-sessions-heading"
-                class="text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+                class="text-[11px] font-medium text-[var(--text-tertiary)]"
               >
                 {{ $t('workspace.sessions') }}
               </p>
-              <IconButton
-                variant="accent"
-                :disabled="creatingSession"
-                :label="$t('workspace.newSession')"
-                class="!size-7 !rounded-[7px]"
-                data-testid="workspace-new-session"
-                @click="newSession"
-              >
-                <Plus class="size-3.5" :stroke-width="1.75" />
-              </IconButton>
             </div>
             <EmptyState
               v-if="!hasDefaultDraftSession && !chatSessions.length"
@@ -937,7 +946,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
               class="mb-1 flex h-8 w-full items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-left text-[12.5px]"
               :class="
                 newChatActive
-                  ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
+                  ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
               "
               @click="openDraftSession"
@@ -949,10 +958,10 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
             <div v-for="session in chatSessions" :key="session.id" class="mb-1">
               <div
                 :data-testid="`session-row-${session.id}`"
-                class="group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
+                class="group flex h-8 items-center rounded-[10px] px-1 text-[13px]"
                 :class="
                   sessions.currentId === session.id
-                    ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
+                    ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                 "
                 @contextmenu="onContextMenu(session, $event)"
@@ -998,10 +1007,10 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
             </div>
           </section>
 
-          <section class="mt-3 border-t border-[var(--border-subtle)] pt-2">
+          <section class="mt-4 pt-1">
             <p
               data-testid="workspace-projects-heading"
-              class="mb-1 text-[10.5px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+              class="mb-1 text-[11px] font-medium text-[var(--text-tertiary)]"
             >
               {{ $t('workspace.projects') }}
             </p>
@@ -1019,25 +1028,25 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
               class="mb-2"
             >
               <div
-                class="group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
+                class="group flex h-8 items-center rounded-[10px] px-1 text-[13px]"
                 :data-testid="`workspace-project-${groupIndex}`"
                 :class="
                   isProjectActive(group)
-                    ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
+                    ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                 "
                 @contextmenu="onProjectContextMenu(group, $event)"
               >
                 <button
                   type="button"
-                  class="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left"
+                  class="relative flex min-w-0 flex-1 items-center gap-2 px-1 py-1 text-left"
                   :title="group.projectRoot"
                   :aria-expanded="
                     group.sessions.length ? !isProjectCollapsed(group.projectKey) : undefined
                   "
                   @click="openProjectGroup(group)"
                 >
-                  <span class="flex size-5 shrink-0 items-center justify-center">
+                  <span class="absolute -left-2 flex size-3 items-center justify-center">
                     <ChevronRight
                       v-if="group.sessions.length && isProjectCollapsed(group.projectKey)"
                       class="size-3"
@@ -1061,7 +1070,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
                 />
                 <button
                   type="button"
-                  class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] hover:bg-[var(--accent-tint-strong)] hover:text-[var(--accent)]"
+                  class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                   :title="$t('workspace.newSession')"
                   :aria-label="`${$t('workspace.newSession')}: ${group.name}`"
                   :data-testid="`workspace-new-project-session-${groupIndex}`"
@@ -1071,14 +1080,14 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
                 </button>
               </div>
 
-              <div v-if="!isProjectCollapsed(group.projectKey)" class="ml-10 pl-1">
+              <div v-if="!isProjectCollapsed(group.projectKey)" class="ml-6 pl-1">
                 <div v-for="session in group.sessions" :key="session.id" class="mb-1">
                   <div
                     :data-testid="`session-row-${session.id}`"
-                    class="group flex h-8 items-center rounded-[var(--radius-sm)] px-1 text-[12.5px]"
+                    class="group flex h-8 items-center rounded-[10px] px-1 text-[13px]"
                     :class="
                       sessions.currentId === session.id
-                        ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
+                        ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                     "
                     @contextmenu="onContextMenu(session, $event)"
@@ -1222,6 +1231,12 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
       </div>
     </div>
 
+    <StarshipEngineHud
+      v-if="getActiveVisualSkin(settings.settings)?.id === 'starship-cockpit'"
+      :state="pet.state"
+      :animated="settings.settings?.petAnimations ?? true"
+    />
+
     <StarshipModelHud
       :provider-key="activeProviderKey"
       :model-id="activeModelId"
@@ -1322,9 +1337,9 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
 }
 
 .workspace-section-tab {
-  flex-direction: column;
-  gap: 4px;
-  min-height: 46px;
+  flex-direction: row;
+  gap: 6px;
+  min-height: 32px;
 }
 
 .workspace-section-label {
@@ -1335,26 +1350,6 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
   line-height: 1.3;
   text-align: center;
   text-wrap: balance;
-}
-
-@container workspace-sidebar (max-width: 239px) {
-  .workspace-section-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .workspace-section-tab {
-    flex-direction: row;
-    gap: 6px;
-    min-height: 32px;
-  }
-}
-
-@container workspace-sidebar (min-width: 360px) {
-  .workspace-section-tab {
-    flex-direction: row;
-    gap: 6px;
-    min-height: 32px;
-  }
 }
 
 .workspace-command-actions--compact {

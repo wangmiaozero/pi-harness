@@ -1217,7 +1217,7 @@ onBeforeUnmount(() => {
             </template>
           </div>
         </Teleport>
-        <div class="command-console-controls flex min-w-0 flex-wrap items-center gap-2">
+        <div class="command-console-controls flex min-w-0 flex-nowrap items-center gap-2">
           <div class="composer-tools flex min-w-0 items-center gap-0.5">
             <button
               type="button"
@@ -1291,7 +1291,7 @@ onBeforeUnmount(() => {
             />
           </div>
           <div
-            class="console-tool-strip ml-auto flex flex-1 flex-wrap items-center justify-end gap-1"
+            class="console-tool-strip ml-auto flex flex-1 flex-nowrap items-center justify-end gap-1"
           >
             <ComposerModelPicker
               v-model:model="modelValue"
@@ -1495,8 +1495,8 @@ onBeforeUnmount(() => {
 }
 
 .console-tool-strip {
-  min-width: min(100%, 320px);
-  flex-basis: 320px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .console-tool-strip :deep(.ui-select-trigger) {
@@ -1516,7 +1516,7 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-pill);
 }
 
-@container (max-width: 720px) {
+@container (max-width: 920px) {
   .command-console-controls :deep(.composer-option-label) {
     display: none;
   }
@@ -1527,13 +1527,7 @@ onBeforeUnmount(() => {
   }
 }
 
-@container (max-width: 420px) {
-  .console-tool-strip {
-    flex-basis: 100%;
-  }
-}
-
-@container (max-width: 520px) {
+@container (max-width: 640px) {
   .command-console-controls {
     column-gap: 4px;
   }
@@ -1555,6 +1549,29 @@ onBeforeUnmount(() => {
   .console-tool-strip :deep(.ui-select-trigger) {
     column-gap: 4px;
     padding-inline: 4px;
+  }
+}
+</style>
+
+<style scoped>
+@container (max-width: 420px) {
+  .command-console-controls {
+    gap: 4px;
+    padding-inline: 8px;
+  }
+  .composer-tools :deep(.cockpit-control-button),
+  .console-tool-strip :deep(.cockpit-control-button) {
+    width: 24px;
+    min-width: 24px;
+    padding-inline: 0;
+  }
+  .console-tool-strip :deep([data-testid='workspace-model-select']) {
+    min-width: 48px;
+  }
+  .command-execute-button,
+  .composer-abort-button {
+    width: 32px;
+    height: 32px;
   }
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, provide, ref, watch } from 'vue'
+import { computed, nextTick, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { ChevronDown, ChevronRight, Folder, LoaderCircle, RefreshCw, Upload } from '@lucide/vue'
@@ -80,7 +80,47 @@ function childrenOf(path: string): FileTreeEntry[] {
   return workspace.fileChildren[path] ?? []
 }
 
-provide<FileTreeApi>(FILE_TREE_API, { isExpanded, childrenOf, openEntry })
+provide<FileTreeApi>(FILE_TREE_API, {
+  isExpanded,
+  childrenOf,
+  openEntry,
+  isSelected: (path) =>
+    workspace.fileRevealTarget?.sessionId === sessions.currentId &&
+    workspace.fileRevealTarget.path === path
+})
+watch(
+  () => workspace.fileRevealTarget,
+  async (target) => {
+    if (!target || target.sessionId !== sessions.currentId) return
+    const folder = workspace.folderForPath(target.path)
+    if (!folder) return
+    const normalize = (value: string) => value.replaceAll('\\', '/').replace(/\/$/, '')
+    const root = normalize(folder.resolvedPath)
+    const destination = normalize(target.path)
+    if (!destination.startsWith(`${root}/`)) return
+    const parts = destination
+      .slice(root.length + 1)
+      .split('/')
+      .slice(0, -1)
+    const separator = folder.resolvedPath.includes('\\') ? '\\' : '/'
+    let current = folder.resolvedPath
+    for (const part of [...parts, null]) {
+      if (workspace.fileRevealTarget !== target || target.sessionId !== sessions.currentId) return
+      expanded.value = [...new Set([...expanded.value, current])]
+      await workspace.loadDirectory(current).catch(() => [])
+      if (part !== null) current = `${current.replace(/[\\/]+$/, '')}${separator}${part}`
+    }
+    await nextTick()
+    if (workspace.fileRevealTarget !== target || target.sessionId !== sessions.currentId) return
+    for (const node of document.querySelectorAll<HTMLElement>('[data-file-path]')) {
+      if (node.dataset.filePath === target.path) {
+        node.scrollIntoView({ block: 'nearest' })
+        break
+      }
+    }
+  },
+  { immediate: true }
+)
 
 async function refreshTree() {
   await workspace.refreshContent()

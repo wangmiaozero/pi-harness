@@ -19,6 +19,7 @@ import { EMPTY_EVALUATION_STORE } from './evaluation/evaluation-service'
 import { EMPTY_ARTIFACT_STORE } from './artifacts/artifact-service'
 import { EMPTY_TRACE_STORE } from './trace/trace-repository'
 import { EMPTY_BASELINE_STORE } from './regression/regression-service'
+import type { FileUndoService } from './file-undo/file-undo-service'
 import { JsonStore } from '../services/storage'
 
 const tempDirs: string[] = []
@@ -36,8 +37,9 @@ function tempStore<T extends object>(name: string, defaults: T): JsonStore<T> {
   return new JsonStore(path.join(dir, name), defaults)
 }
 
-function createRuntime(adapter: HarnessAdapter): HarnessRuntime {
+function createRuntime(adapter: HarnessAdapter, fileUndo?: FileUndoService): HarnessRuntime {
   return new HarnessRuntime(adapter, {
+    fileUndo,
     policyStore: tempStore('policy.json', structuredClone(DEFAULT_POLICY_CONFIG)),
     checkpointStore: tempStore('checkpoints.json', EMPTY_CHECKPOINT_STORE),
     runStore: tempStore('runs.json', { schemaVersion: 1, runs: [] }),
@@ -50,6 +52,31 @@ function createRuntime(adapter: HarnessAdapter): HarnessRuntime {
 }
 
 describe('HarnessRuntime', () => {
+  it('checks turn ownership and active execution before undoing files', async () => {
+    const { adapter } = createAdapter()
+    const undo = {
+      undo: vi.fn(async () => ({
+        available: false,
+        undone: true,
+        fileCount: 1,
+        remainingCount: 0
+      })),
+      status: vi.fn(),
+      seal: vi.fn(async () => undefined)
+    }
+    const runtime = createRuntime(adapter, undo as unknown as FileUndoService)
+    await runtime.start({ sessionId: 'session-1' })
+    await runtime.prompt('session-1', 'edit')
+    const [run] = await runtime.listRuns('session-1')
+    await expect(runtime.undoRunFiles('other-session', run.id)).rejects.toThrow()
+    vi.mocked(adapter.getAgentState).mockResolvedValue({ ...agentState(), status: 'starting' })
+    await expect(runtime.undoRunFiles('session-1', run.id)).rejects.toThrow('Stop the agent')
+    expect(undo.undo).not.toHaveBeenCalled()
+    vi.mocked(adapter.getAgentState).mockResolvedValue(agentState())
+    await expect(runtime.undoRunFiles('session-1', run.id)).resolves.toMatchObject({ undone: true })
+    expect(undo.undo).toHaveBeenCalledExactlyOnceWith('session-1', run.id)
+  })
+
   it('tracks runs in the timeline while delegating execution to Pi', async () => {
     const { adapter, emitAgentEvent } = createAdapter()
     const runtime = createRuntime(adapter)

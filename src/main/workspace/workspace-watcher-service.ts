@@ -3,6 +3,7 @@ import type { Stats } from 'node:fs'
 import ignore, { type Ignore } from 'ignore'
 import { watch } from 'chokidar'
 import path from 'node:path'
+import { homedir } from 'node:os'
 import { isIgnoredWorkspaceDirectoryName } from '@shared/workspace/search-ignore'
 import { log } from '../services/logger'
 import { watchNativeWorkspace } from './native-workspace-watcher'
@@ -12,13 +13,21 @@ interface RootWatcher {
   ready: Promise<void>
 }
 
+interface WatcherOptions {
+  homeDirectory?: string
+  excludedDirectories?: string[]
+}
+
 export class WorkspaceWatcherService {
   private watchers = new Map<string, RootWatcher>()
   private pending = new Set<string>()
   private timer: ReturnType<typeof setTimeout> | null = null
   private listener: ((roots: string[]) => void) | null = null
 
-  constructor(private readonly platform: NodeJS.Platform = process.platform) {}
+  constructor(
+    private readonly platform: NodeJS.Platform = process.platform,
+    private readonly options: WatcherOptions = {}
+  ) {}
 
   onChange(listener: ((roots: string[]) => void) | null): void {
     this.listener = listener
@@ -35,6 +44,27 @@ export class WorkspaceWatcherService {
     )
     for (const root of next) {
       if (this.watchers.has(root)) continue
+      // Home (or a drive/filesystem root above it) is a valid agent cwd, but
+      // recursively subscribing to it can exhaust handles before ready fires.
+      const canonical = async (file: string) => fs.realpath(file).catch(() => path.resolve(file))
+      const [resolvedRoot, home, excludedRoots] = await Promise.all([
+        canonical(root),
+        canonical(this.options.homeDirectory ?? homedir()),
+        Promise.all((this.options.excludedDirectories ?? []).map(canonical))
+      ])
+      const shallow = this.contains(resolvedRoot, home)
+      // Explicitly opened workspaces inside userData (including the default
+      // scratch workspace) remain live; ancestor workspaces must not watch state.
+      const excludedDirectories = excludedRoots.filter((file) => !this.contains(file, resolvedRoot))
+      const shouldIgnore = (file: string) => {
+        const relative = path.relative(root, file)
+        const resolvedFile = path.resolve(resolvedRoot, relative)
+        return (
+          (shallow && relative.split(path.sep).length > 1) ||
+          excludedDirectories.some((directory) => this.contains(directory, resolvedFile)) ||
+          this.shouldIgnore(root, file)
+        )
+      }
       const excluded = await this.directoryIgnores(root)
       const failed = (error: unknown) =>
         log.session.warn('Workspace file watcher failed', {
@@ -49,9 +79,10 @@ export class WorkspaceWatcherService {
           watchNativeWorkspace(
             root,
             (file, directory) =>
-              this.shouldIgnore(root, file) || this.isGitIgnored(root, file, directory, excluded),
+              shouldIgnore(file) || this.isGitIgnored(root, file, directory, excluded),
             () => this.queue(root),
-            failed
+            failed,
+            !shallow
           )
         )
         continue
@@ -65,7 +96,7 @@ export class WorkspaceWatcherService {
         ignored: (watchPath, stat) => {
           const ignored =
             (path.resolve(watchPath) !== path.resolve(root) && stat?.isSymbolicLink()) ||
-            this.shouldIgnore(root, watchPath) ||
+            shouldIgnore(watchPath) ||
             this.isGitIgnored(root, watchPath, stat?.isDirectory(), excluded)
           if (!ignored && !initialized && stat?.isFile())
             initialFiles.set(path.resolve(watchPath), fingerprint(stat))
@@ -73,7 +104,7 @@ export class WorkspaceWatcherService {
         },
         ignorePermissionErrors: true,
         followSymlinks: false,
-        depth: 12,
+        depth: shallow ? 0 : 12,
         awaitWriteFinish: { stabilityThreshold: 250, pollInterval: 100 }
       })
       // Chokidar can emit initial symlink additions despite ignoreInitial.
@@ -152,6 +183,14 @@ export class WorkspaceWatcherService {
         segment === '.worktrees' ||
         (segment === 'worktrees' &&
           (segments[index - 1] === '.claude' || segments[index - 1] === '.codex'))
+    )
+  }
+
+  private contains(parent: string, file: string): boolean {
+    const relative = path.relative(parent, file)
+    return (
+      !relative ||
+      (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
     )
   }
 

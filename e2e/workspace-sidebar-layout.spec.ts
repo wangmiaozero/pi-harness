@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import path from 'node:path'
 import { test, expect, type Page } from './fixtures'
 import { APP_LANGUAGE_LABELS, type AppLocale } from '../src/shared/constants/language'
@@ -48,7 +49,7 @@ async function expectSidebarLabelsToFit(page: Page): Promise<void> {
           failures.push('overlapping tabs')
       }
     }
-    const title = sidebar.querySelector('[data-testid="workspace-sidebar-title"] > span')!
+    const title = sidebar.querySelector('[data-testid="workspace-new-session"] > span')!
     const header = title.closest('.mission-control-header')!.getBoundingClientRect()
     const actions = sidebar
       .querySelector('[data-testid="workspace-command-actions"]')!
@@ -76,22 +77,22 @@ async function expectSidebarLabelsToFit(page: Page): Promise<void> {
   expect(violations).toEqual([])
 }
 
-async function expectNavigationLabelsToFit(page: Page): Promise<void> {
+async function expectNavigationIconsToFit(page: Page): Promise<void> {
   const violations = await page.getByTestId('app-navigation-rail').evaluate((rail) => {
     const failures: string[] = []
     for (const link of rail.querySelectorAll('a')) {
-      const label = link.querySelector('[data-testid="app-navigation-label"]')!
       const box = link.getBoundingClientRect()
-      const range = document.createRange()
-      range.selectNodeContents(label)
-      const rects = [...range.getClientRects()]
-      if (rects.length !== 1) failures.push(`${label.textContent}: wraps`)
-      for (const rect of rects) {
-        if (rect.left < box.left + 2 || rect.right > box.right - 2)
-          failures.push(`${label.textContent}: clipped or missing padding`)
-      }
-      if (!link.title || link.getAttribute('aria-label') !== link.title)
-        failures.push(`${label.textContent}: missing full name`)
+      const icon = link.querySelector('svg')!
+      const iconBox = icon.getBoundingClientRect()
+      if (link.textContent?.trim()) failures.push('rail should contain icons only')
+      if (
+        iconBox.left < box.left ||
+        iconBox.right > box.right ||
+        iconBox.top < box.top ||
+        iconBox.bottom > box.bottom
+      )
+        failures.push(`${link.title}: clipped icon`)
+      if (!link.getAttribute('aria-label')) failures.push('missing full accessible name')
     }
     return failures
   })
@@ -121,7 +122,7 @@ for (const appearance of [
       await page.reload()
       await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
       await page.locator('a[href="#/workspace"]').click()
-      await expectNavigationLabelsToFit(page)
+      await expectNavigationIconsToFit(page)
       const tabs = page.getByTestId('workspace-section-tabs')
       await expect(tabs.getByTestId('workspace-section-workspace')).toHaveText(
         workspaceLabels[language]
@@ -150,8 +151,8 @@ for (const appearance of [
       await resizer.focus()
       await page.keyboard.press('End')
       await expectSidebarLabelsToFit(page)
-      await page.locator('a[href="#/ai-sessions"]').click()
-      await expectNavigationLabelsToFit(page)
+      await openOverflowPage(page, 'ai-sessions')
+      await expectNavigationIconsToFit(page)
     }
   })
 }
@@ -185,6 +186,10 @@ test('workspace project sidebar collapses and resizes within shared limits for e
   await expect(sidebar).toBeVisible()
   await expect(resizer).toBeVisible()
   await expect(toggle).toBeVisible()
+  await expect(page.locator('header').getByTestId('workspace-sidebar-toggle')).toBeVisible()
+  await expect(
+    page.locator('.workspace-sidebar-divider').getByTestId('workspace-sidebar-toggle')
+  ).toHaveCount(0)
   expect((await sidebar.boundingBox())!.width).toBeCloseTo(260, 0)
 
   await dragSidebarToLimit(page, 1000)
@@ -280,10 +285,10 @@ test('workspace project sidebar collapses and resizes within shared limits for e
         path: path.join(testInfo.outputDir, 'workspace-sidebar-zhang-juzheng-min.png')
       })
 
-      const resizerBox = (await zhangResizer.boundingBox())!
+      const titlebarBox = (await page.locator('header.app-titlebar').boundingBox())!
       const toggleBox = (await zhangToggle.boundingBox())!
       expect(toggleBox.y + toggleBox.height / 2).toBeCloseTo(
-        resizerBox.y + resizerBox.height / 2,
+        titlebarBox.y + titlebarBox.height / 2,
         0
       )
 

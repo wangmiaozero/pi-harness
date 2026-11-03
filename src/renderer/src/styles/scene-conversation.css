@@ -1,0 +1,142 @@
+/* One quiet reading surface over scene artwork; message wrappers stay structural. */
+:root:is([data-portrait-skin='true'], [data-visual-skin='starship-cockpit'])
+  .chat-scroll-content:has(.message-hud) {
+  width: min(100%, var(--chat-content-max-width, 860px));
+  padding: clamp(16px, 2.4vw, 28px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-surface) 96%, var(--bg-window));
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.12);
+  backdrop-filter: blur(18px);
+}
+
+:root:is([data-portrait-skin='true'], [data-visual-skin='starship-cockpit'])
+  .chat-scroll-content
+  .message-hud {
+  margin-bottom: 24px;
+  padding: 0;
+  border: 0;
+  border-image: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+  backdrop-filter: none;
+  clip-path: none;
+}
+
+:root:is([data-portrait-skin='true'], [data-visual-skin='starship-cockpit'])
+  .chat-scroll-content
+  .assistant-message-body {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  clip-path: none;
+}
+
+:root:is([data-portrait-skin='true'], [data-visual-skin='starship-cockpit'])
+  .chat-scroll-content
+  .assistant-turn-content {
+  padding: 6px 0 0;
+}
+
+:root:is([data-portrait-skin='true'], [data-visual-skin='starship-cockpit'])
+  .chat-scroll-content
+  .user-message-body {
+  max-width: min(92%, 680px);
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  clip-path: none;
+  line-height: 1.65;
+}
+
+:root:is([data-portrait-skin='true'], [data-visual-skin='starship-cockpit'])
+  .chat-scroll-content
+  .message-role-badge {
+  padding-inline: 0;
+  background: transparent;
+  letter-spacing: 0;
+}
+
+:root[data-visual-skin='starship-cockpit'] .workspace-content {
+  container-type: inline-size;
+  container-name: cockpit-conversation;
+}
+
+:root[data-visual-skin='starship-cockpit'] .chat-scroller {
+  display: block;
+  padding: 20px 20px 24px;
+}
+
+:root[data-visual-skin='starship-cockpit'] .chat-scroll-content:has(.message-hud) {
+  margin-inline: auto;
+  background: rgb(4 13 30 / 0.95);
+}
+
+@container cockpit-conversation (min-width: 900px) {
+  :root[data-visual-skin='starship-cockpit'] .chat-scroller {
+    padding-left: min(32cqw, 440px);
+  }
+}
+
+/* Paper skins keep their ink palette on the whole transcript, including controls. */
+:root:is(
+    [data-visual-skin='ming-snow'],
+    [data-visual-skin='ming-moon'],
+    [data-visual-skin='zhang-juzheng-snow']
+  )
+  :is(.workspace-main, .workspace-content) {
+  --ming-portrait-column: min(36cqw, 520px);
+}
+
+:root:is(
+    [data-visual-skin='ming-snow'],
+    [data-visual-skin='ming-moon'],
+    [data-visual-skin='zhang-juzheng-snow']
+  )
+  .chat-scroll-content:has(.message-hud) {
+  --bg-surface: var(--ming-paper-raised);
+  --bg-surface-raised: #ead5ae;
+  --text-primary: var(--ming-ink);
+  --text-secondary: var(--ming-ink-secondary);
+  --text-tertiary: var(--ming-ink-tertiary);
+  --border-subtle: rgb(83 55 33 / 0.22);
+  --border-default: rgb(83 55 33 / 0.38);
+  --accent: #843a2b;
+  --bg-hover: #dcc49a;
+  margin-inline: auto;
+  border-radius: 6px;
+  background: var(--ming-paper);
+  color: var(--ming-ink);
+  backdrop-filter: none;
+}
+
+@media (max-width: 720px) {
+  :root:is([data-portrait-skin='true'], [data-visual-skin='starship-cockpit'])
+    .chat-scroll-content:has(.message-hud) {
+    padding: 14px;
+    border-radius: 10px;
+  }
+}
+
+/* Keep decorative calligraphy out of the reading band and composer. */
+:root[data-visual-skin='zhang-juzheng-snow'] .zhang-edge-scroll {
+  display: none;
+}
+:root[data-visual-skin='zhang-juzheng-snow'] .zhang-juzheng-vow {
+  top: clamp(250px, 38vh, 380px);
+  height: min(140px, 14vh);
+}
+:root[data-visual-skin='zhang-juzheng-snow'] .zhang-titlebar-motto > span {
+  display: none;
+}
+
+:root[data-visual-skin='zhang-juzheng-snow'] .command-console-controls {
+  padding-right: 10px;
+}

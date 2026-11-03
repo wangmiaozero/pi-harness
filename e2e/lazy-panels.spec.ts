@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import fs from 'node:fs'
 import path from 'node:path'
 import { test, expect } from './fixtures'
@@ -20,7 +21,7 @@ test('loads optional editors on use and keeps skill editing, saving and reopenin
       )
     )
   ).toBe(false)
-  await page.locator('a[href="#/skills"]').click()
+  await openOverflowPage(page, 'skills')
   await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
   const create = page.getByRole('button', { name: /新建技能|New skill|Create skill/ })
   await expect(create).toBeVisible()

@@ -2,6 +2,21 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.18 — 2026-11-03
+
+### Added
+
+- Added turn duration and expandable execution details in conversations.
+- Added file change previews, file-tree navigation, and undo for supported conversation edits.
+
+### Fixed
+
+- Prevented freezes when opening the home directory as a workspace.
+- Simplified sidebar navigation and kept Settings accessible at the bottom.
+- Moved search and workspace controls into compact, easier-to-reach positions.
+- Improved search styling and conversation readability across themes.
+- Fixed overlapping theme decorations and wrapped sidebar labels in narrow layouts.
+
 ## 2.3.17 — 2026-11-01
 
 ### Fixed

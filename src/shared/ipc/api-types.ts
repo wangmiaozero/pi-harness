@@ -1294,6 +1294,14 @@ export interface PiSwitchAPI {
     ): Promise<HarnessExportResult>
     exportDebugBundle(sessionId: string, runId?: string): Promise<HarnessExportResult>
     listArtifacts(sessionId: string, runId?: string): Promise<HarnessArtifact[]>
+    fileUndoStatus(
+      sessionId: string,
+      runId: string
+    ): Promise<import('../types/harness').RunFileUndoStatus>
+    undoRunFiles(
+      sessionId: string,
+      runId: string
+    ): Promise<import('../types/harness').RunFileUndoStatus>
     getStoreSettings(): Promise<HarnessStoreSettings>
     updateStoreSettings(settings: HarnessStoreSettings): Promise<HarnessStoreSettings>
     getPolicy(): Promise<HarnessPolicySnapshot>

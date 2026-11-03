@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { ChevronRight, Wrench } from '@lucide/vue'
 import type { ConversationItem, HistoryItem, buildMessagePresentation } from './message-activity'
 import MessageView from './MessageView.vue'
 import AssistantTurn from './AssistantTurn.vue'
 defineProps<{
+  durationMs?: number | null
   turn: ConversationItem
   userName: string
   assistantName: string
@@ -25,6 +27,11 @@ defineProps<{
     }
   >
 }>()
+const processOpen = ref(false)
+function duration(ms: number): string {
+  const seconds = Math.floor(Math.max(0, ms) / 1000)
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+}
 const emit = defineEmits<{ reveal: [key: string] }>()
 function toggle(key: string, event: Event) {
   if ((event.target as HTMLDetailsElement).open) emit('reveal', key)
@@ -53,6 +60,17 @@ function activityEntryKey(entry: HistoryItem): string {
     :text="turn.text"
     :streaming="running && isLast"
   >
+    <button
+      v-if="durationMs != null"
+      type="button"
+      data-testid="assistant-turn-duration"
+      :aria-expanded="processOpen"
+      class="mb-3 flex w-full items-center gap-2 border-b border-[var(--border-subtle)] pb-2 text-left text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+      @click="processOpen = !processOpen"
+    >
+      {{ $t('workspace.turnElapsed', { duration: duration(durationMs) })
+      }}<ChevronRight class="size-3.5" :class="{ 'rotate-90': processOpen }" />
+    </button>
     <template v-for="item in turn.items" :key="item.key">
       <MessageView
         v-if="item.type === 'message'"
@@ -70,6 +88,8 @@ function activityEntryKey(entry: HistoryItem): string {
       />
       <details
         v-else
+        v-show="durationMs == null || processOpen"
+        :open="durationMs != null && processOpen"
         class="activity-group mb-4"
         data-testid="message-activity"
         :data-outcome="summaries.get(item.key)?.outcome"

@@ -19,7 +19,7 @@ import MingWorkspaceOrnaments from '@renderer/components/layout/MingWorkspaceOrn
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import GitDiffView from '@renderer/components/git/GitDiffView.vue'
 import EmptyState from '@renderer/components/ui/EmptyState.vue'
-import { FolderOpen, PanelLeftClose, PanelLeftOpen, Network, Gauge, Bot } from '@lucide/vue'
+import { FolderOpen, Network, Gauge, Bot } from '@lucide/vue'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
@@ -27,6 +27,7 @@ import { useSettingsStore } from '@renderer/stores/settings'
 import { useHarnessStore } from '@renderer/stores/harness'
 import { registerShortcut } from '@renderer/composables/shortcuts'
 import { getApi } from '@renderer/composables/useApi'
+import { useWorkspaceSidebarState } from '@renderer/composables/useWorkspaceSidebarState'
 import type { RecentWorkspace } from '@shared/types/workspace'
 import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
 import { isMingDynastySkin } from '@renderer/utils/skin-catalog'
@@ -44,7 +45,6 @@ const OrchestrationConsole = defineAsyncComponent(
 const WORKSPACE_SIDEBAR_MIN_WIDTH = 220
 const WORKSPACE_SIDEBAR_MAX_WIDTH = 480
 const WORKSPACE_SIDEBAR_WIDTH_STORAGE_KEY = 'pi-harness.workspace-sidebar-width.v1'
-const WORKSPACE_SIDEBAR_COLLAPSED_STORAGE_KEY = 'pi-harness.workspace-sidebar-collapsed.v1'
 
 const { t } = useI18n()
 const sessions = useSessionStore()
@@ -97,7 +97,7 @@ const activeTool = ref<'harness' | 'orchestration'>(
   route.query.tool === 'orchestration' ? 'orchestration' : 'harness'
 )
 const workspaceViewElement = ref<HTMLElement | null>(null)
-const workspaceSidebarCollapsed = ref(readStoredSidebarCollapsed())
+const { collapsed: workspaceSidebarCollapsed } = useWorkspaceSidebarState()
 const workspaceSidebarWidth = ref<number | null>(readStoredSidebarWidth())
 const workspaceSidebarResizing = ref(false)
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
@@ -177,14 +177,6 @@ function readStoredSidebarWidth(): number | null {
   }
 }
 
-function readStoredSidebarCollapsed(): boolean {
-  try {
-    return localStorage.getItem(WORKSPACE_SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true'
-  } catch {
-    return false
-  }
-}
-
 function persistSidebarWidth(): void {
   try {
     if (workspaceSidebarWidth.value === null) {
@@ -192,17 +184,6 @@ function persistSidebarWidth(): void {
     } else {
       localStorage.setItem(WORKSPACE_SIDEBAR_WIDTH_STORAGE_KEY, String(workspaceSidebarWidth.value))
     }
-  } catch {
-    // Renderer storage can be unavailable in restricted environments.
-  }
-}
-
-function persistSidebarCollapsed(): void {
-  try {
-    localStorage.setItem(
-      WORKSPACE_SIDEBAR_COLLAPSED_STORAGE_KEY,
-      String(workspaceSidebarCollapsed.value)
-    )
   } catch {
     // Renderer storage can be unavailable in restricted environments.
   }
@@ -260,11 +241,6 @@ function startWorkspaceSidebarResize(event: PointerEvent): void {
 function resetWorkspaceSidebarWidth(): void {
   workspaceSidebarWidth.value = null
   persistSidebarWidth()
-}
-
-function toggleWorkspaceSidebar(): void {
-  workspaceSidebarCollapsed.value = !workspaceSidebarCollapsed.value
-  persistSidebarCollapsed()
 }
 
 function onWorkspaceSidebarResizeKeydown(event: KeyboardEvent): void {
@@ -507,6 +483,29 @@ watch(
     ]"
     :style="workspaceViewStyle"
   >
+    <Teleport to="#titlebar-workspace-actions">
+      <div class="flex items-center gap-1">
+        <IconButton
+          :label="$t('intelligence.architecture')"
+          :active="architectureOpen"
+          data-testid="workspace-architecture"
+          @click="architectureOpen = !architectureOpen"
+        >
+          <Network class="size-4" :stroke-width="1.75" />
+        </IconButton>
+        <IconButton
+          :label="$t('workspace.files')"
+          :active="workspace.filePanelOpen"
+          :aria-expanded="workspace.filePanelOpen"
+          aria-controls="workspace-files-panel"
+          data-testid="workspace-toggle-files"
+          @click="workspace.filePanelOpen = !workspace.filePanelOpen"
+        >
+          <FolderOpen class="size-4" :stroke-width="1.75" />
+        </IconButton>
+      </div>
+    </Teleport>
+
     <WorkspaceSidebar
       v-show="!workspaceSidebarCollapsed"
       id="workspace-project-sidebar"
@@ -540,28 +539,6 @@ watch(
         @dblclick="resetWorkspaceSidebarWidth"
         @keydown="onWorkspaceSidebarResizeKeydown"
       />
-      <button
-        type="button"
-        class="workspace-sidebar-toggle"
-        :aria-label="
-          workspaceSidebarCollapsed
-            ? $t('workspace.expandSidebar')
-            : $t('workspace.collapseSidebar')
-        "
-        :title="
-          workspaceSidebarCollapsed
-            ? $t('workspace.expandSidebar')
-            : $t('workspace.collapseSidebar')
-        "
-        :aria-expanded="!workspaceSidebarCollapsed"
-        aria-controls="workspace-project-sidebar"
-        data-testid="workspace-sidebar-toggle"
-        @pointerdown.stop
-        @click="toggleWorkspaceSidebar"
-      >
-        <PanelLeftOpen v-if="workspaceSidebarCollapsed" aria-hidden="true" />
-        <PanelLeftClose v-else aria-hidden="true" />
-      </button>
     </div>
     <section
       data-testid="workspace-main"
@@ -625,30 +602,6 @@ watch(
             ref="workspaceTabs"
             @focus-composer="focusComposer"
           />
-          <div
-            class="ml-auto flex h-full shrink-0 items-center border-b border-[var(--border-subtle)] px-2"
-          >
-            <IconButton
-              :label="$t('intelligence.architecture')"
-              :active="architectureOpen"
-              show-label
-              data-testid="workspace-architecture"
-              @click="architectureOpen = !architectureOpen"
-            >
-              <Network class="size-3.5" :stroke-width="1.75" />
-            </IconButton>
-            <IconButton
-              :label="$t('workspace.files')"
-              :active="workspace.filePanelOpen"
-              show-label
-              :aria-expanded="workspace.filePanelOpen"
-              aria-controls="workspace-files-panel"
-              data-testid="workspace-toggle-files"
-              @click="workspace.filePanelOpen = !workspace.filePanelOpen"
-            >
-              <FolderOpen class="size-3.5" :stroke-width="1.75" />
-            </IconButton>
-          </div>
         </div>
         <div
           data-testid="workspace-scene"
@@ -778,48 +731,6 @@ watch(
   outline: none;
 }
 
-.workspace-sidebar-toggle {
-  position: absolute;
-  z-index: 2;
-  top: 50%;
-  left: 50%;
-  display: grid;
-  width: 22px;
-  height: 30px;
-  place-items: center;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface-raised);
-  box-shadow: var(--shadow-sm);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transform: translate(-50%, -50%);
-  transition:
-    background-color var(--motion-fast) var(--ease-out),
-    color var(--motion-fast) var(--ease-out),
-    box-shadow var(--motion-fast) var(--ease-out);
-}
-
-.workspace-sidebar-toggle:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.workspace-sidebar-toggle:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring), var(--shadow-sm);
-}
-
-.workspace-sidebar-toggle svg {
-  width: 14px;
-  height: 14px;
-  stroke-width: 1.75;
-}
-
-.workspace-sidebar-divider--collapsed .workspace-sidebar-toggle {
-  color: var(--accent);
-}
-
 .workspace-view--resizing,
 .workspace-view--resizing * {
   cursor: col-resize !important;
@@ -828,13 +739,6 @@ watch(
 
 :global(:root[data-visual-skin='starship-cockpit']) .workspace-sidebar-divider {
   background: rgb(4 15 34 / 0.88);
-}
-
-:global(:root[data-visual-skin='starship-cockpit']) .workspace-sidebar-toggle {
-  border-color: rgb(104 220 255 / 0.32);
-  background: rgb(5 18 41 / 0.94);
-  color: #68dcff;
-  box-shadow: 0 0 12px rgb(45 156 240 / 0.24);
 }
 
 :global(
@@ -846,23 +750,6 @@ watch(
   )
   .workspace-sidebar-divider {
   background: var(--ming-lacquer);
-}
-
-:global(
-    :root:is(
-      [data-visual-skin='ming-snow'],
-      [data-visual-skin='zhang-juzheng-snow'],
-      [data-visual-skin='ming-moon']
-    )
-  )
-  .workspace-sidebar-toggle {
-  border-color: var(--ming-gold-soft);
-  border-radius: 2px;
-  background: var(--ming-lacquer-soft);
-  color: #d7b57d;
-  box-shadow:
-    inset 0 0 0 1px rgb(246 215 167 / 0.08),
-    0 3px 8px rgb(0 0 0 / 0.42);
 }
 
 /* On narrow windows keep both conversation and files usable, without covering navigation. */

@@ -312,6 +312,8 @@ export const IPC_INVOKE = {
   harnessExportRun: invoke('harness:export-run'),
   harnessExportDebugBundle: invoke('harness:export-debug-bundle'),
   harnessListArtifacts: invoke('harness:list-artifacts'),
+  harnessFileUndoStatus: invoke('harness:file-undo-status'),
+  harnessUndoRunFiles: invoke('harness:undo-run-files'),
   harnessGetStoreSettings: invoke('harness:get-store-settings'),
   harnessUpdateStoreSettings: invoke('harness:update-store-settings'),
   harnessGetPolicy: invoke('harness:get-policy'),

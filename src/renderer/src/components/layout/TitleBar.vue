@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { Search, Minus, Square, X } from '@lucide/vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Minus, Square, X, PanelLeft } from '@lucide/vue'
 import { getApi } from '@renderer/composables/useApi'
+import { useWorkspaceSidebarState } from '@renderer/composables/useWorkspaceSidebarState'
+import NavigationTooltip from './NavigationTooltip.vue'
 import { APP_VERSION } from '@shared/constants/index'
 import { resolveAppIcon } from '@shared/constants/app-icon'
 import { useSettingsStore } from '@renderer/stores/settings'
@@ -13,6 +15,8 @@ import mingTitlebarCalligraphyUrl from '@renderer/assets/themes/ming-dynasty/tit
 import zhangTitlebarCalligraphyUrl from '@renderer/assets/themes/zhang-juzheng-snow/titlebar-calligraphy-overlay.png?url'
 
 const router = useRouter()
+const route = useRoute()
+const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useWorkspaceSidebarState()
 const settings = useSettingsStore()
 const props = withDefaults(
   defineProps<{ starshipCockpit?: boolean; mingDynasty?: boolean; zhangJuzheng?: boolean }>(),
@@ -22,7 +26,6 @@ const props = withDefaults(
     zhangJuzheng: false
   }
 )
-const isMac = ref(false)
 const isWin = ref(false)
 const showLeadingWindowControls = ref(!navigator.platform.startsWith('Win'))
 const titlebarIconUrl = computed(() => {
@@ -33,21 +36,13 @@ const titlebarIconUrl = computed(() => {
 onMounted(async () => {
   try {
     const info = await getApi().system.info()
-    isMac.value = info.platform === 'darwin'
     isWin.value = info.platform === 'win32'
     showLeadingWindowControls.value = info.platform !== 'win32'
   } catch {
-    isMac.value = navigator.platform.startsWith('Mac')
     isWin.value = navigator.platform.startsWith('Win')
     showLeadingWindowControls.value = !isWin.value
   }
 })
-
-const modKey = computed(() => (isMac.value ? '⌘' : 'Ctrl'))
-
-function openPalette() {
-  window.dispatchEvent(new CustomEvent('pi-harness:open-palette'))
-}
 
 async function minimize() {
   await getApi().window.minimize()
@@ -63,10 +58,31 @@ async function close() {
 <template>
   <header
     class="app-titlebar relative flex h-[var(--titlebar-height)] shrink-0 items-center bg-[var(--bg-titlebar)]"
+    :style="{
+      '--titlebar-leading-end': `${(showLeadingWindowControls ? (mingDynasty ? 112 : 88) : 12) + (route.path.startsWith('/workspace') ? 40 : 0)}px`
+    }"
     :class="
       showLeadingWindowControls ? (mingDynasty ? 'pl-[112px] pr-3' : 'pl-[88px] pr-3') : 'pl-3 pr-1'
     "
   >
+    <NavigationTooltip
+      v-if="route.path.startsWith('/workspace')"
+      :label="sidebarCollapsed ? $t('workspace.expandSidebar') : $t('workspace.collapseSidebar')"
+    >
+      <button
+        type="button"
+        data-testid="workspace-sidebar-toggle"
+        class="no-drag relative z-20 mr-2 flex size-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+        :aria-label="
+          sidebarCollapsed ? $t('workspace.expandSidebar') : $t('workspace.collapseSidebar')
+        "
+        :aria-expanded="!sidebarCollapsed"
+        aria-controls="workspace-project-sidebar"
+        @click="toggleSidebar"
+      >
+        <PanelLeft class="size-[18px]" :stroke-width="1.75" aria-hidden="true" />
+      </button>
+    </NavigationTooltip>
     <!-- Only this empty area is draggable; controls never overlap a native drag region. -->
     <div class="drag-region min-w-0 flex-1 self-stretch" data-testid="titlebar-drag-area" />
     <div
@@ -174,22 +190,7 @@ async function close() {
     </div>
 
     <div class="ml-auto flex items-center gap-1">
-      <!-- Command palette trigger styled like an NSToolbar search field. -->
-      <button
-        type="button"
-        class="starship-search-trigger no-drag flex h-8 w-[200px] items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] pl-2 pr-1.5 text-[11.5px] text-[var(--text-tertiary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:border-[var(--accent)] focus-visible:shadow-[var(--focus-ring)]"
-        :title="$t('titlebar.commandPalette')"
-        @click="openPalette"
-      >
-        <Search class="size-3" :stroke-width="1.75" />
-        <span class="flex-1 text-left">{{ $t('common.search') }}</span>
-        <kbd
-          class="rounded border border-[var(--border-default)] bg-[var(--bg-hover)] px-1 font-[family-name:var(--font-mono)] text-[10px] text-[var(--text-tertiary)]"
-        >
-          {{ modKey }}K
-        </kbd>
-      </button>
-
+      <div id="titlebar-workspace-actions" class="no-drag relative z-20 flex items-center gap-1" />
       <template v-if="isWin">
         <button
           type="button"

@@ -9,6 +9,8 @@ export const enUS = {
   openCode: openCodeMessages['en-US'],
   universal: universalMessages['en-US'],
   nav: {
+    home: 'Home',
+    more: 'More',
     aiSessions: 'AI Sessions',
     overview: 'Overview',
     workspace: 'Workspace',
@@ -770,8 +772,8 @@ export const enUS = {
     windowMotionEnabled: 'Window glow',
     screenMotionEnabled: 'Screen glow',
     composerFireEnabled: 'Input flame effect',
-    navOrder: 'Sidebar order',
-    navOrderHint: 'Drag or use the arrow keys. Takes effect after save.',
+    navOrder: 'More menu order',
+    navOrderHint: 'Drag or use the arrow keys to reorder the More menu.',
     navOrderReset: 'Restore default',
     sectionGeneralHint: 'Language, theme, chat names, and glow',
     sectionNavHint: 'Reorder the sidebar',
@@ -1013,6 +1015,14 @@ export const enUS = {
     toolTool: 'Using tool'
   },
   workspace: {
+    viewChanges: "View changes",
+    revealFile: "Reveal file",
+    undoChanges: "Undo",
+    undoDone: "Undone",
+    undoUnavailable: "Undo is unavailable for this turn",
+    undoConfirm: "Undo changes to {count} files? Files changed afterward will be preserved.",
+    turnElapsed: "Worked for {duration}",
+
     title: 'Workspace',
     defaultWorkspace: 'Default workspace',
     newSession: 'New session',

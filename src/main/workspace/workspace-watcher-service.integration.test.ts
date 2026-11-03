@@ -24,6 +24,70 @@ describe.each(process.platform === 'darwin' ? (['darwin', 'linux'] as const) : [
       if (directory) await rm(directory, { recursive: true, force: true })
     })
 
+    it('keeps home config edits live without subscribing to app state or nested home trees', async () => {
+      directory = await mkdtemp(path.join(tmpdir(), 'workspace-home-'))
+      const home = path.join(directory, 'home')
+      const state = path.join(home, 'AppData', 'Roaming', 'Pi-Harness')
+      const project = path.join(home, 'project', 'src')
+      const pi = path.join(home, '.pi', 'agent', 'sessions')
+      await Promise.all([state, project, pi].map((folder) => mkdir(folder, { recursive: true })))
+      const config = path.join(home, '.bashrc')
+      const nested = [
+        path.join(state, 'settings.json'),
+        path.join(pi, 'session.jsonl'),
+        path.join(project, 'main.ts')
+      ]
+      await Promise.all([config, ...nested].map((file) => writeFile(file, 'before')))
+      service = new WorkspaceWatcherService(platform, {
+        homeDirectory: home,
+        excludedDirectories: [state]
+      })
+      await service.sync([home])
+      await service.ready()
+      const changed = vi.fn()
+      service.onChange(changed)
+      await Promise.all(nested.map((file) => writeFile(file, 'after')))
+      await new Promise((resolve) => setTimeout(resolve, 700))
+      expect(changed).not.toHaveBeenCalled()
+      await writeFile(config, 'updated config')
+      await vi.waitFor(() => expect(changed).toHaveBeenCalledWith([home]), { timeout: 3000 })
+
+      // A separately selected project still gets recursive live updates.
+      const projectRoot = path.dirname(project)
+      await service.sync([projectRoot])
+      await service.ready()
+      changed.mockClear()
+      await writeFile(nested[2]!, 'explicit project edit')
+      await vi.waitFor(() => expect(changed).toHaveBeenCalledWith([projectRoot]), { timeout: 3000 })
+    })
+
+    it('ignores continuous application writes under an ordinary ancestor workspace', async () => {
+      directory = await mkdtemp(path.join(tmpdir(), 'workspace-app-state-'))
+      const state = path.join(directory, 'custom-state')
+      await mkdir(state)
+      const stateFile = path.join(state, 'settings.json')
+      const source = path.join(directory, 'main.ts')
+      await Promise.all([stateFile, source].map((file) => writeFile(file, 'before')))
+      service = new WorkspaceWatcherService(platform, { excludedDirectories: [state] })
+      await service.sync([directory])
+      await service.ready()
+      const changed = vi.fn()
+      service.onChange(changed)
+      // Establish an acknowledged live edit before measuring continuous writes;
+      // native FSEvents may replay directory creation from fixture setup.
+      await writeFile(source, 'watcher live')
+      await vi.waitFor(() => expect(changed).toHaveBeenCalledWith([directory]), { timeout: 3000 })
+      changed.mockClear()
+      for (let index = 0; index < 6; index++) {
+        await writeFile(stateFile, String(index))
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      }
+      await new Promise((resolve) => setTimeout(resolve, 600))
+      expect(changed).not.toHaveBeenCalled()
+      await writeFile(source, 'source edit')
+      await vi.waitFor(() => expect(changed).toHaveBeenCalledWith([directory]), { timeout: 3000 })
+    })
+
     it('keeps nested agent worktrees, build caches, and linked trees outside the live watch scope', async () => {
       directory = await mkdtemp(path.join(tmpdir(), 'workspace-watcher-'))
       const root = path.join(directory, 'project')

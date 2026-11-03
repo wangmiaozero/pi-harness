@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import { test, expect } from './fixtures'
 import { IPC_INVOKE } from '../src/shared/ipc/channels'
 import type { ElectronApplication } from '@playwright/test'
@@ -15,7 +16,7 @@ async function mockEmptyRegistry(electronApp: ElectronApplication) {
 test.describe('Capabilities', () => {
   test('shows and switches the selected capability view tab', async ({ electronApp, page }) => {
     await mockEmptyRegistry(electronApp)
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
 
     const officialTab = page.getByRole('tab', { name: /官方市场|Official Market/, exact: true })
     const skillsTab = page.getByRole('tab', { name: /技能|Skills/, exact: true })
@@ -64,7 +65,7 @@ test.describe('Capabilities', () => {
     page
   }) => {
     await mockEmptyRegistry(electronApp)
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
     const card = page.getByTestId('featured-capability-odai')
     await expect(card).toBeVisible()
@@ -94,7 +95,7 @@ test.describe('Capabilities', () => {
     page
   }) => {
     await mockEmptyRegistry(electronApp)
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
 
     const cards = page.locator('[data-testid^="featured-capability-"]')
@@ -151,7 +152,7 @@ test.describe('Capabilities', () => {
     page
   }) => {
     await mockEmptyRegistry(electronApp)
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
 
     await page.getByTestId('featured-capability-ecc').click()
@@ -337,7 +338,7 @@ test.describe('Capabilities', () => {
       }
     )
 
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await expect(page.getByTestId('official-package-market')).toBeVisible()
     await expect(page.getByTestId('registry-total')).toContainText('51')
 
@@ -419,7 +420,7 @@ test.describe('Capabilities', () => {
     await languageSelect.click()
     await page.getByRole('option', { name: 'English' }).click()
     await expect(page.getByText('Language', { exact: true })).toBeVisible()
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await expect(page.getByRole('heading', { name: 'Capabilities' })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Official Market' })).toBeVisible()
 
@@ -427,7 +428,7 @@ test.describe('Capabilities', () => {
     await page.locator('.ui-select-trigger').first().click()
     await page.getByRole('option', { name: '日本語' }).click()
     await expect(page.getByText('言語', { exact: true })).toBeVisible()
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await expect(page.getByRole('heading', { name: '機能センター' })).toBeVisible()
     await expect(page.getByRole('tab', { name: '公式マーケット' })).toBeVisible()
 
@@ -435,7 +436,7 @@ test.describe('Capabilities', () => {
     await page.locator('.ui-select-trigger').first().click()
     await page.getByRole('option', { name: '简体中文' }).click()
     await expect(page.getByText('语言', { exact: true })).toBeVisible()
-    await page.locator('a[href="#/skills"]').click()
+    await openOverflowPage(page, 'skills')
     await expect(page.getByRole('heading', { name: '能力中心' })).toBeVisible()
     await expect(page.getByRole('tab', { name: '官方市场' })).toBeVisible()
   })

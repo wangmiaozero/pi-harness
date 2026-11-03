@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import fs from 'node:fs'
 import path from 'node:path'
 import http from 'node:http'
@@ -83,7 +84,7 @@ test('continues a Codex conversation in its recorded directory without importing
     }, project)
     await page.reload()
     await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
-    await page.locator('a[href="#/ai-sessions"]').click()
+    await openOverflowPage(page, 'ai-sessions')
     await page.getByTestId('history-provider-codex').click()
     const card = page
       .getByTestId('history-session-list')
@@ -443,7 +444,7 @@ test('browses without model calls, previews evidence, and continues through the 
       },
       { projectRoot, extraRoot }
     )
-    await page.locator('a[href="#/ai-sessions"]').click()
+    await openOverflowPage(page, 'ai-sessions')
     await expect(page.getByText('Universal history fixture 中文', { exact: true })).toBeVisible()
     await page.reload()
     await expect(page.getByText('Universal history fixture 中文', { exact: true })).toBeVisible()
@@ -606,7 +607,7 @@ test('rejects arbitrary read paths and unknown IPC fields and keeps cached histo
   )
   put.run('bubbleId:cursor-fixture:bubble', JSON.stringify({ text: 'SQLite worker history 中文' }))
   cursorDb.close()
-  await page.locator('a[href="#/ai-sessions"]').click()
+  await openOverflowPage(page, 'ai-sessions')
   await expect(page.getByText('Codex cached history', { exact: true })).toBeVisible()
   await page.getByTestId('history-provider-cursor').click()
   await expect(page.getByText('Codex cached history', { exact: true })).toHaveCount(0)
@@ -668,12 +669,13 @@ test('keeps history below Git for saved navigation and filters dates with the th
   )
   await page.reload()
   await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+  await page.getByTestId('navigation-more').click()
   const order = await page
-    .getByTestId('app-navigation-rail')
+    .getByTestId('navigation-more-menu')
     .locator('a')
     .evaluateAll((links) => links.map((link) => link.getAttribute('href')))
   expect(order.indexOf('#/ai-sessions')).toBe(order.indexOf('#/git') + 1)
-  await page.locator('a[href="#/ai-sessions"]').click()
+  await page.getByTestId('navigation-more-menu').locator('a[href="#/ai-sessions"]').click()
   await page.getByTestId('history-provider-codex').click()
   await expect(page.getByText('Calendar history newer', { exact: true })).toBeVisible()
   await expect(page.getByText('Calendar history older', { exact: true })).toBeVisible()
@@ -812,7 +814,7 @@ test('opens history from the whole card and keeps continuation separate', async 
   await page.evaluate(() => window.piSwitch!.settings.set({ theme: 'macos27-light' }))
   await page.reload()
   await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
-  await page.locator('a[href="#/ai-sessions"]').click()
+  await openOverflowPage(page, 'ai-sessions')
   await page.getByTestId('history-provider-codex').click()
   const list = page.getByTestId('history-session-list')
   const card = (title: string) =>

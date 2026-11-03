@@ -383,6 +383,7 @@ function duration(value: number): string {
           <MessageHistory
             :key="sessions.currentId ?? 'new-chat'"
             :items="persistedMessages"
+            :runs="harness.runs"
             :user-name="userName"
             :assistant-name="assistantName"
             :running="submitting || agent.isBusy(sessions.currentId)"

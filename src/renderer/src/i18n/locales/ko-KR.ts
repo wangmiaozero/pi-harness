@@ -10,6 +10,8 @@ export const koKR: MessageTree = {
   openCode: openCodeMessages['ko-KR'],
   universal: universalMessages['ko-KR'],
   nav: {
+    home: '홈',
+    more: '더 보기',
     aiSessions: 'AI 기록',
     overview: '개요',
     workspace: '작업 영역',
@@ -767,8 +769,8 @@ export const koKR: MessageTree = {
     windowMotionEnabled: '창 글로우',
     screenMotionEnabled: '화면 글로우',
     composerFireEnabled: '입력창 불꽃 효과',
-    navOrder: '사이드바 순서',
-    navOrderHint: '드래그하거나 화살표 키를 사용하세요. 저장 후 적용됩니다.',
+    navOrder: '더 보기 메뉴 순서',
+    navOrderHint: '드래그하거나 화살표 키로 더 보기 메뉴 순서를 변경하세요.',
     navOrderReset: '기본값으로 복원',
     sectionGeneralHint: '언어, 테마, 대화 이름, 글로우',
     sectionNavHint: '사이드바 순서 변경',
@@ -1011,6 +1013,14 @@ export const koKR: MessageTree = {
     toolTool: '도구를 사용하는 중'
   },
   workspace: {
+    viewChanges: "변경 보기",
+    revealFile: "파일 위치 보기",
+    undoChanges: "실행 취소",
+    undoDone: "취소됨",
+    undoUnavailable: "이 턴은 취소할 수 없습니다",
+    undoConfirm: "파일 {count}개의 변경을 취소할까요? 이후 변경된 파일은 보호됩니다.",
+    turnElapsed: "소요 시간 {duration}",
+
     title: '작업 영역',
     defaultWorkspace: '기본 작업 영역',
     newSession: '새 세션',

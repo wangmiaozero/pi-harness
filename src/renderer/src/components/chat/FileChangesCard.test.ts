@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import FileChangesCard from './FileChangesCard.vue'
 import type { MessageFileChanges } from './message-file-changes'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
+import { i18n } from '@renderer/i18n'
 
 const changes: MessageFileChanges = {
   runId: 'run-1',
@@ -24,7 +25,7 @@ describe('FileChangesCard', () => {
   it('expands overflow files and opens a saved diff preview', async () => {
     const wrapper = mount(FileChangesCard, {
       props: { changes },
-      global: { mocks: { $t: (key: string) => key } }
+      global: { plugins: [i18n] }
     })
 
     expect(wrapper.findAll('[data-testid^="message-file-change-"]')).toHaveLength(3)
@@ -33,12 +34,13 @@ describe('FileChangesCard', () => {
 
     await wrapper.get('[data-testid="message-file-change-one"]').trigger('click')
     const workspace = useWorkspaceStore()
-    expect(workspace.activeTab).toMatchObject({
-      kind: 'diff',
-      title: 'src/one.ts',
-      filePath: '/repo/src/one.ts'
+    expect(workspace.filePanelOpen).toBe(true)
+    expect(workspace.changePreview).toMatchObject({
+      runId: 'run-1',
+      selectedPath: '/repo/src/one.ts',
+      files: changes.files
     })
-    expect(workspace.activeDiffPreview).toBe('@@ -1 +1 @@\n-old\n+new')
+    expect(workspace.activeTab).toBeNull()
   })
 
   it('shows a verification failure instead of a fabricated file list', () => {
@@ -52,7 +54,7 @@ describe('FileChangesCard', () => {
           files: []
         }
       },
-      global: { mocks: { $t: (key: string) => key } }
+      global: { plugins: [i18n] }
     })
 
     expect(wrapper.get('[data-testid="message-file-changes-missing"]')).toBeTruthy()

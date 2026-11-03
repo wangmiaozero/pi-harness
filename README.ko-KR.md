@@ -1,4 +1,6 @@
-# Pi-Harness
+<p align="center">
+  <img src="docs/assets/pi-harness-logo.gif" width="640" alt="Pi-Harness" />
+</p>
 
 <p align="center">
   <a href="README.md">English</a> ·
@@ -9,10 +11,6 @@
   <a href="README.ru-RU.md">Русский</a> ·
   <a href="README.fr-FR.md">Français</a> ·
   <a href="README.de-DE.md">Deutsch</a>
-</p>
-
-<p align="center">
-  <img src="build/icon.png" width="110" alt="Pi-Harness" />
 </p>
 
 <h3 align="center">Pi Coding Agent의 Operational Superset</h3>

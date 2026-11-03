@@ -10,6 +10,8 @@ export const frFR: MessageTree = {
   openCode: openCodeMessages['fr-FR'],
   universal: universalMessages['fr-FR'],
   nav: {
+    home: 'Accueil',
+    more: 'Plus',
     aiSessions: 'Historique IA',
     overview: 'Vue d\'ensemble',
     workspace: 'Espace de travail',
@@ -772,8 +774,8 @@ export const frFR: MessageTree = {
     windowMotionEnabled: 'Halo de fenêtre',
     screenMotionEnabled: 'Halo d\'écran',
     composerFireEnabled: 'Effet de flamme du champ de saisie',
-    navOrder: 'Ordre de la barre latérale',
-    navOrderHint: 'Glissez ou utilisez les flèches. Prend effet après l\'enregistrement.',
+    navOrder: 'Ordre du menu Plus',
+    navOrderHint: 'Glissez ou utilisez les flèches pour réordonner le menu Plus.',
     navOrderReset: 'Restaurer par défaut',
     sectionGeneralHint: 'Langue, thème, noms du chat et halo',
     sectionNavHint: 'Réordonner la barre latérale',
@@ -1015,6 +1017,14 @@ export const frFR: MessageTree = {
     toolTool: 'Utilisation d\'un outil'
   },
   workspace: {
+    viewChanges: "Voir les modifications",
+    revealFile: "Localiser le fichier",
+    undoChanges: "Annuler",
+    undoDone: "Annulé",
+    undoUnavailable: "Annulation indisponible",
+    undoConfirm: "Annuler les modifications de {count} fichiers ? Les modifications ultérieures sont protégées.",
+    turnElapsed: "Durée {duration}",
+
     title: 'Espace de travail',
     defaultWorkspace: 'Espace de travail par défaut',
     newSession: 'Nouvelle session',

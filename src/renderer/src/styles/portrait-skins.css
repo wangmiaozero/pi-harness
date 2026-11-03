@@ -613,7 +613,7 @@
   [data-visual-skin='ming-moon']
 ) {
   --font-sans: 'Songti SC', STSong, 'Noto Serif CJK SC', 'Times New Roman', serif;
-  --sidebar-width: 80px;
+  --sidebar-width: 52px;
   --titlebar-height: 70px;
   --height-page-header: 56px;
   --radius-xs: 2px;
@@ -648,7 +648,7 @@
 }
 
 :root[data-visual-skin='zhang-juzheng-snow'] {
-  --sidebar-width: 64px;
+  --sidebar-width: 52px;
   --ming-paper: rgb(241 223 192 / 0.97);
   --ming-paper-raised: #f5e8ce;
   --ming-paper-muted: #e8d4a8;
@@ -876,7 +876,7 @@
     [data-visual-skin='ming-moon']
   )
   .app-titlebar-brand {
-  inset-inline: 112px auto;
+  inset-inline: var(--titlebar-leading-end, 112px) auto;
   justify-content: flex-start;
 }
 
@@ -1127,7 +1127,7 @@
   .app-navigation-rail
   nav
   > a {
-  min-height: 76px;
+  min-height: 40px;
   font-size: 12px;
 }
 

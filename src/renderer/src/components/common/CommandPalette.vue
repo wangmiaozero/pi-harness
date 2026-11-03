@@ -382,6 +382,10 @@ function onKey(e: KeyboardEvent) {
 function preventImplicitClose(event: Event) {
   event.preventDefault()
 }
+function closeOnEscape(event: Event) {
+  event.preventDefault()
+  open.value = false
+}
 </script>
 
 <template>
@@ -391,16 +395,18 @@ function preventImplicitClose(event: Event) {
         class="fixed inset-0 z-[60] bg-black/45 data-[state=open]:animate-[pi-fade-in_var(--motion-base)_var(--ease-out)]"
       />
       <DialogContent
-        class="fixed left-1/2 top-[18%] z-[60] w-[min(580px,92vw)] -translate-x-1/2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-dialog)] focus:outline-none data-[state=open]:animate-[pi-pop-in_var(--motion-base)_var(--ease-out)]"
+        class="fixed left-1/2 top-[18%] z-[60] w-[min(640px,92vw)] -translate-x-1/2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-dialog)] focus:outline-none data-[state=open]:animate-[pi-pop-in_var(--motion-base)_var(--ease-out)]"
         @interact-outside="preventImplicitClose"
-        @escape-key-down="preventImplicitClose"
+        @escape-key-down="closeOnEscape"
         @keydown="onKey"
       >
         <DialogTitle class="sr-only">{{ $t('titlebar.commandPalette') }}</DialogTitle>
-        <div class="flex items-center gap-2 border-b border-[var(--border-subtle)] px-3 h-[42px]">
+        <div
+          class="palette-search mx-3 mt-3 mb-2 flex min-h-12 items-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 transition-shadow"
+        >
           <Search
             aria-hidden="true"
-            class="size-3.5 shrink-0 text-[var(--text-tertiary)]"
+            class="size-4 shrink-0 text-[var(--text-tertiary)]"
             :stroke-width="1.75"
           />
           <input
@@ -408,7 +414,9 @@ function preventImplicitClose(event: Event) {
             v-model="query"
             type="text"
             :placeholder="$t('palette.placeholder')"
-            class="min-w-0 flex-1 bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
+            data-testid="palette-input"
+            :aria-label="$t('palette.placeholder')"
+            class="palette-input h-10 min-w-0 flex-1 border-0 bg-transparent text-[14px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
           />
           <DialogClose
             class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
@@ -417,7 +425,9 @@ function preventImplicitClose(event: Event) {
             <X aria-hidden="true" class="size-3" :stroke-width="1.75" />
           </DialogClose>
         </div>
-        <div class="max-h-[360px] overflow-y-auto py-1">
+        <div
+          class="max-h-[min(360px,55vh)] overflow-x-hidden overflow-y-auto border-t border-[var(--border-subtle)] p-2"
+        >
           <template v-if="filtered.length === 0">
             <p class="px-3 py-6 text-center text-[11.5px] text-[var(--text-tertiary)]">
               {{ $t('palette.empty') }}
@@ -427,7 +437,7 @@ function preventImplicitClose(event: Event) {
             v-for="(cmd, i) in filtered"
             :key="cmd.id"
             type="button"
-            class="flex w-full items-center gap-3 px-3 text-left transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)]"
+            class="flex min-w-0 w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)]"
             :class="
               i === activeIndex
                 ? 'bg-[var(--accent-tint)] text-[var(--text-primary)]'
@@ -438,7 +448,7 @@ function preventImplicitClose(event: Event) {
             @click="run(cmd)"
           >
             <span
-              class="w-[88px] shrink-0 truncate text-[10px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+              class="w-14 shrink-0 truncate text-[10px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
               :title="cmd.group"
             >
               {{ cmd.group }}
@@ -448,7 +458,7 @@ function preventImplicitClose(event: Event) {
             }}</span>
             <span
               v-if="cmd.hint"
-              class="shrink-0 truncate font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
+              class="min-w-0 max-w-[35%] shrink truncate font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
               :title="cmd.hint"
             >
               {{ cmd.hint }}
@@ -461,6 +471,16 @@ function preventImplicitClose(event: Event) {
 </template>
 
 <style scoped>
+.palette-search:focus-within {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+.palette-input:focus,
+.palette-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

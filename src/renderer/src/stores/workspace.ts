@@ -86,6 +86,31 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const activeTabId = ref<string | null>(null)
   const activeFileTabId = ref<string | null>(null)
   const filePanelOpen = ref(false)
+  const changePreview = shallowRef<{
+    runId: string
+    files: Array<{
+      path: string
+      displayPath: string
+      patch: string | null
+      additions: number
+      deletions: number
+    }>
+    selectedPath: string
+  } | null>(null)
+  const fileRevealTarget = shallowRef<{ path: string; sessionId: string; token: number } | null>(
+    null
+  )
+  function revealFileInTree(filePath: string): void {
+    if (!hasSessionWorkspace.value || !folderForPath(filePath) || !activeSessionWorkspaceId.value)
+      return
+    filePanelOpen.value = true
+    fileRevealTarget.value = {
+      path: filePath,
+      sessionId: activeSessionWorkspaceId.value,
+      token: (fileRevealTarget.value?.token ?? 0) + 1
+    }
+  }
+
   const drafts = ref<Record<string, string>>({})
   const draftSkillMap = ref<Record<string, string>>({})
   const draftImageMap = ref<Record<string, ChatDraftImage[]>>({})
@@ -113,6 +138,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const draftFolderMeta = ref<Record<string, FolderMeta>>({})
   const sessionBindings = ref<Record<string, SessionWorkspaceBinding>>({})
   const activeSessionWorkspaceId = ref<string | null>(null)
+  watch(
+    activeSessionWorkspaceId,
+    () => {
+      changePreview.value = null
+      fileRevealTarget.value = null
+    },
+    { flush: 'sync' }
+  )
+
   const defaultWorkspaceRoot = ref<string | null>(null)
   const defaultWorkspaceRoots = ref<string[]>([])
   const recentWorkspaces = ref<RecentWorkspace[]>([])
@@ -1768,6 +1802,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeFileTab,
     sessionFileTabs,
     filePanelOpen,
+    changePreview,
+    fileRevealTarget,
+    revealFileInTree,
     hasSessionWorkspace,
     activeTabId,
     activeTab,

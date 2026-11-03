@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { test, expect } from './fixtures'
@@ -6,7 +7,7 @@ test('role suites share canonical skills and preserve unrelated installations wh
   page,
   piAgentDir
 }) => {
-  await page.locator('a[href="#/skills"]').click()
+  await openOverflowPage(page, 'skills')
   await page.getByRole('tab', { name: /精选|Featured/, exact: true }).click()
   const collection = (id: string) => page.getByTestId(`market-collection-builtin:${id}`)
   for (const [id, title] of [

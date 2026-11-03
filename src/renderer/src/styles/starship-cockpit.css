@@ -32,7 +32,7 @@
   --cockpit-text-secondary: rgb(187 216 239 / 0.72);
   --cockpit-text-muted: rgb(148 184 216 / 0.48);
 
-  --sidebar-width: 56px;
+  --sidebar-width: 52px;
   --height-page-header: 44px;
   --starship-workspace-panel-width: 320px;
   --starship-left-dock-width: calc(var(--sidebar-width) + var(--starship-workspace-panel-width));
@@ -183,7 +183,7 @@
 :root[data-visual-skin='starship-cockpit'] .starship-titlebar-identity {
   position: absolute;
   top: 6px;
-  left: 84px;
+  left: var(--titlebar-leading-end, 84px);
   display: flex;
   width: 190px;
   height: 36px;
@@ -372,7 +372,7 @@
 
 :root[data-visual-skin='starship-cockpit'] .app-navigation-rail a {
   width: 100%;
-  min-height: 51px;
+  min-height: 40px;
   padding: 7px 0;
   border: 1px solid transparent;
   border-radius: 2px;
@@ -1213,4 +1213,9 @@
   :root[data-visual-skin='starship-cockpit'] .starship-model-hud__ping {
     animation: none;
   }
+}
+
+:root[data-visual-skin='starship-cockpit'] .workspace-control-panel > .starship-engine-hud {
+  position: absolute;
+  z-index: 12;
 }

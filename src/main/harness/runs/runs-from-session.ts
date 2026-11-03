@@ -53,7 +53,7 @@ export function buildRunsFromEntries(entries: readonly SessionEntry[]): Reconstr
     const timestamp = parseTimestamp(entry.timestamp)
 
     if (message.role === 'user') {
-      if (current) finalizeReconstructed(current, timestamp)
+      if (current) finalizeReconstructed(current)
       current = {
         run: {
           id: `h:${entry.id}`,
@@ -93,6 +93,9 @@ export function buildRunsFromEntries(entries: readonly SessionEntry[]): Reconstr
 
     if (!current) continue
     current.entryIds.push(entry.id)
+    // A later prompt may arrive hours after the reply. Idle time is not execution time.
+    if (timestamp > 0 && timestamp >= current.run.startedAt)
+      current.run.finishedAt = Math.max(current.run.finishedAt ?? 0, timestamp)
 
     if (message.role === 'assistant') {
       if (typeof message.model === 'string' && message.model) current.run.model = message.model
@@ -134,16 +137,12 @@ export function buildRunsFromEntries(entries: readonly SessionEntry[]): Reconstr
     }
   }
 
-  if (current) finalizeReconstructed(current, null)
+  if (current) finalizeReconstructed(current)
   return runs
 }
 
-function finalizeReconstructed(
-  reconstructed: ReconstructedRun,
-  nextTimestamp: number | null
-): void {
+function finalizeReconstructed(reconstructed: ReconstructedRun): void {
   const run = reconstructed.run
-  run.finishedAt = nextTimestamp
   run.status = run.error ? 'failed' : 'success'
 }
 

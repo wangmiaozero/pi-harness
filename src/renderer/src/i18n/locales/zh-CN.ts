@@ -10,6 +10,8 @@ export const zhCN: MessageTree = {
   openCode: openCodeMessages['zh-CN'],
   universal: universalMessages['zh-CN'],
   nav: {
+    home: '首页',
+    more: '更多',
     aiSessions: 'AI 会话',
     overview: '概览',
     workspace: '工作区',
@@ -744,8 +746,8 @@ export const zhCN: MessageTree = {
     windowMotionEnabled: '程序光圈',
     screenMotionEnabled: '屏幕光圈',
     composerFireEnabled: '输入框火焰效果',
-    navOrder: '侧栏顺序',
-    navOrderHint: '拖动或用方向键调整，保存后生效。',
+    navOrder: '更多菜单顺序',
+    navOrderHint: '拖动或用方向键调整“更多”菜单中的顺序。',
     navOrderReset: '恢复默认',
     sectionGeneralHint: '语言、主题、对话名称与光圈',
     sectionNavHint: '调整侧栏导航顺序',
@@ -985,6 +987,14 @@ export const zhCN: MessageTree = {
     toolTool: '正在调用工具'
   },
   workspace: {
+    viewChanges: "查看变更",
+    revealFile: "定位到文件",
+    undoChanges: "撤销",
+    undoDone: "已撤销",
+    undoUnavailable: "此轮无法撤销",
+    undoConfirm: "撤销这轮对 {count} 个文件的修改？后续有改动的文件会受到保护。",
+    turnElapsed: "用时 {duration}",
+
     title: '工作区',
     defaultWorkspace: '默认工作区',
     newSession: '新建会话',

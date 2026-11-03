@@ -1,3 +1,4 @@
+import type { FileUndoService } from './file-undo/file-undo-service'
 import type { BrowserWindow } from 'electron'
 import os from 'node:os'
 import path from 'node:path'
@@ -106,6 +107,7 @@ export const DEFAULT_STORE_SETTINGS: HarnessStoreSettings = {
 type HarnessEventListener = (payload: HarnessEventEnvelope) => void
 
 export interface HarnessRuntimeOptions {
+  fileUndo?: FileUndoService
   /** Shared policy engine (created by the host before the agent runtime). */
   policy?: PolicyEngine
   /** Policy store; used when no engine is injected. Defaults to the app userData policy file. */
@@ -140,6 +142,7 @@ export interface HarnessRuntimeOptions {
  * inspects and controls; it never re-implements agent behavior.
  */
 export class HarnessRuntime implements AgentRuntime {
+  private readonly fileUndo: FileUndoService | undefined
   private readonly timelines = new Map<string, HarnessEvent[]>()
   private readonly observedSessions = new Map<string, () => void>()
   private readonly listeners = new Set<HarnessEventListener>()
@@ -164,6 +167,7 @@ export class HarnessRuntime implements AgentRuntime {
     private readonly adapter: HarnessAdapter,
     options: HarnessRuntimeOptions = {}
   ) {
+    this.fileUndo = options.fileUndo
     const runStore =
       options.runStore ?? new JsonStore(harnessRunsPath(), { schemaVersion: 1, runs: [] })
     const traceStore = options.traceStore ?? new JsonStore(harnessTracesPath(), EMPTY_TRACE_STORE)
@@ -528,6 +532,35 @@ export class HarnessRuntime implements AgentRuntime {
 
   // --------------------------------------------------------- artifact surface
 
+  async fileUndoStatus(sessionId: string, runId: string) {
+    const run = await this.getRun(sessionId, runId)
+    if (run.sessionId !== sessionId)
+      throw new HarnessError('RUN_NOT_FOUND', 'Run does not belong to this session')
+    return (
+      this.fileUndo?.status(sessionId, runId) ?? {
+        available: false,
+        undone: false,
+        fileCount: 0,
+        remainingCount: 0
+      }
+    )
+  }
+  async undoRunFiles(sessionId: string, runId: string) {
+    const run = await this.getRun(sessionId, runId)
+    if (run.sessionId !== sessionId)
+      throw new HarnessError('RUN_NOT_FOUND', 'Run does not belong to this session')
+    const state = await this.adapter.getAgentState(sessionId)
+    if (
+      (state && state.status !== 'idle' && state.status !== 'error') ||
+      state?.isPromptRunning ||
+      state?.isStreaming ||
+      state?.isBashRunning ||
+      state?.isCompacting ||
+      !this.fileUndo
+    )
+      throw new HarnessError('AGENT_RUNNING', 'Stop the agent before undoing file changes')
+    return this.fileUndo.undo(sessionId, runId)
+  }
   async listArtifacts(sessionId: string, runId?: string): Promise<HarnessArtifact[]> {
     const existing = await this.artifacts.list(sessionId, runId)
     const fileRunIds = new Set(
@@ -1038,6 +1071,7 @@ export class HarnessRuntime implements AgentRuntime {
    * collect artifacts from real evidence.
    */
   private async handleRunFinalized(run: HarnessRun): Promise<void> {
+    await this.fileUndo?.seal(run.sessionId, run.id).catch(() => undefined)
     await this.trace.captureRun(run)
     await this.runRepository.save(run)
     await this.artifacts.collectForRun(run)

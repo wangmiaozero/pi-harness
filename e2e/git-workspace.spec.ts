@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -64,7 +65,7 @@ test('stages, commits, and renders the commit graph without horizontal overflow'
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.evaluate(() => window.piSwitch.settings.set({ theme: 'light' }))
   // Git is a standalone route that reads every workspace project, no session selection needed.
-  await page.locator('a[href="#/git"]').click()
+  await openOverflowPage(page, 'git')
   await expect(page.getByTestId('git-view')).toBeVisible()
 
   const commitPanel = page.getByTestId('git-commit-panel')

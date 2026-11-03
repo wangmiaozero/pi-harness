@@ -1,20 +1,28 @@
 <script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import engineRadarImage from '@renderer/assets/themes/starship-cockpit/engine-radar-alpha.png'
 import type { PetState } from '@shared/pet/types'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     state?: PetState
     animated?: boolean
   }>(),
   { state: 'idle', animated: true }
 )
+const pageVisible = ref(document.visibilityState === 'visible')
+const shouldAnimate = computed(() => props.animated && pageVisible.value)
+function syncVisibility() {
+  pageVisible.value = document.visibilityState === 'visible'
+}
+onMounted(() => document.addEventListener('visibilitychange', syncVisibility))
+onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncVisibility))
 </script>
 
 <template>
   <aside
     class="starship-engine-hud pointer-events-none absolute bottom-0 left-0 z-[12] select-none"
-    :data-animated="animated ? 'true' : 'false'"
+    :data-animated="shouldAnimate ? 'true' : 'false'"
     aria-hidden="true"
   >
     <div class="starship-engine-hud__radar">
@@ -46,11 +54,13 @@ withDefaults(
 <style scoped>
 .starship-engine-hud {
   display: flex;
-  width: var(--starship-left-dock-width, 376px);
+  left: 0;
+  width: 100%;
+  max-width: 100%;
   height: 150px;
   align-items: center;
-  gap: 15px;
-  padding: 20px 24px 16px 13px;
+  gap: 10px;
+  padding: 20px 12px 16px 10px;
   border-top: 1px solid rgb(104 220 255 / 0.18);
   background: linear-gradient(108deg, rgb(1 7 19 / 0.96), rgb(3 15 34 / 0.88) 68%, transparent);
   box-shadow:

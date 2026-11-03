@@ -1,3 +1,4 @@
+import { openOverflowPage } from './navigation'
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -148,7 +149,7 @@ test('project actions belong to the project row; chats only rename and delete', 
   await page.getByTestId('workspace-toggle-files').click()
   await expect(page.getByTestId('workspace-files-unavailable')).toBeVisible()
   // Git reads all workspace projects, so the project stays visible without any session.
-  await page.locator('a[href="#/git"]').click()
+  await openOverflowPage(page, 'git')
   await expect(page.getByTestId('git-repository-sidebar')).toContainText('skills')
   await page.locator('a[href="#/workspace"]').click()
 })

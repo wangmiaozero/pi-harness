@@ -214,6 +214,18 @@ export function registerHarnessIpc(
       return harness.exportDebugBundle(value.sessionId, value.runId)
     })
   )
+  ipcMain.handle(IPC_INVOKE.harnessFileUndoStatus, (_event, input: unknown) =>
+    wrap(async () => {
+      const value = parse(harnessRunInputSchema, input)
+      return harness.fileUndoStatus(value.sessionId, value.runId)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.harnessUndoRunFiles, (_event, input: unknown) =>
+    wrap(async () => {
+      const value = parse(harnessRunInputSchema, input)
+      return harness.undoRunFiles(value.sessionId, value.runId)
+    })
+  )
   ipcMain.handle(IPC_INVOKE.harnessListArtifacts, (_event, input: unknown) =>
     wrap(async () => {
       const value = parse(harnessListArtifactsSchema, input)
