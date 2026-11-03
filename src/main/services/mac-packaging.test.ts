@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
 import { Arch, Platform } from 'electron-builder'
-import { buildMac } from '../../../scripts/electron-builder-mac.mjs'
+import { buildMac, buildMacWithCleanup } from '../../../scripts/electron-builder-mac.mjs'
 import { cleanUnpackedMac } from '../../../scripts/clean-unpacked-mac.mjs'
 
 const builder = vi.hoisted(() => ({ build: vi.fn() }))
@@ -95,6 +95,28 @@ it('fails packaging when staging app cleanup fails', async () => {
   vi.spyOn(fs, 'rm').mockRejectedValueOnce(error)
   await expect(buildMac({ projectDir, arches: ['arm64'] })).rejects.toBe(error)
 })
+
+it.each(['standard', 'nomascot'])(
+  'cleans upgrade staging on a failed DMG build without accepting partial artifacts (%s)',
+  async (variant) => {
+    const { projectDir } = await fixture(false)
+    const directory = path.join(projectDir, 'out/update-validation/darwin-x64', variant, '2.3.19')
+    const app = path.join(directory, 'mac/Pi-Harness.app')
+    await fs.mkdir(app, { recursive: true })
+    const zip = path.join(directory, 'Pi-Harness.zip')
+    const options = { config: { directories: { output: directory } } }
+    const error = new Error('Unable to detach device cleanly: Resource busy')
+    builder.build.mockImplementation(async (actual) => {
+      expect(actual).toBe(options)
+      await expect(fs.stat(app)).resolves.toBeTruthy()
+      await fs.writeFile(zip, 'completed ZIP, failed DMG')
+      throw error
+    })
+    await expect(buildMacWithCleanup(options, directory)).rejects.toBe(error)
+    await expect(fs.stat(app)).rejects.toMatchObject({ code: 'ENOENT' })
+    expect(await fs.readFile(zip, 'utf8')).toBe('completed ZIP, failed DMG')
+  }
+)
 
 it('unlinks staging symlinks without deleting their targets and tolerates missing directories', async () => {
   const { projectDir, directory, preserved } = await fixture(false)

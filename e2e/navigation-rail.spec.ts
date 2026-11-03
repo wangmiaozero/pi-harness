@@ -1,5 +1,18 @@
 import path from 'node:path'
 import { test, expect } from './fixtures'
+import { openOverflowPage } from './navigation'
+
+test('overflow navigation accepts an already open menu and waits for selection to finish', async ({
+  page
+}) => {
+  const menu = page.getByTestId('navigation-more-menu')
+  await page.getByTestId('navigation-more').click()
+  await expect(menu).toBeVisible()
+  await openOverflowPage(page, 'git')
+  await expect(page).toHaveURL(/#\/git$/)
+  await openOverflowPage(page, 'ai-sessions')
+  await expect(page).toHaveURL(/#\/ai-sessions$/)
+})
 
 test('Home and Models stay above More while Settings stays at the bottom', async ({
   page

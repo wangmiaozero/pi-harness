@@ -5,6 +5,15 @@ import { cleanUnpackedMac } from './clean-unpacked-mac.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
+export async function buildMacWithCleanup(options, directory) {
+  try {
+    return await build(options)
+  } finally {
+    // Wait for all DMG/ZIP work, including failed builds, before removing staging apps.
+    await cleanUnpackedMac(directory)
+  }
+}
+
 export async function buildMac({
   projectDir = root,
   arches = [process.arch],
@@ -13,17 +22,15 @@ export async function buildMac({
   if (!arches.length || arches.some((arch) => !['arm64', 'x64'].includes(arch)))
     throw new Error('macOS packaging requires arm64 or x64')
   const directory = path.join(projectDir, 'release', ...(nomascot ? ['nomascot'] : []))
-  try {
-    return await build({
+  return buildMacWithCleanup(
+    {
       projectDir,
       targets: Platform.MAC.createTarget(undefined, ...arches.map((arch) => Arch[arch])),
       config: nomascot ? 'electron-builder.nomascot.yml' : 'electron-builder.yml',
       publish: 'never'
-    })
-  } finally {
-    // Wait for all DMG/ZIP work to finish, including failed builds, before removing staging apps.
-    await cleanUnpackedMac(directory)
-  }
+    },
+    directory
+  )
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

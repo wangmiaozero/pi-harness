@@ -79,6 +79,12 @@ dmg:
   writeUpdateInfo: false
   iconSize: 128
   contents:
+    # Copy the volume-wide Spotlight exclusion before the app's many resources.
+    # It belongs to the installer volume, never inside the installed application.
+    - x: 0
+      y: 0
+      type: file
+      path: build/dmg/.metadata_never_index
     - x: 120
       y: 184
     - x: 400

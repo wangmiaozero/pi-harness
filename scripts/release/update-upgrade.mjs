@@ -10,7 +10,7 @@ import { build, Platform, Arch } from 'electron-builder'
 import { root, platforms, variants, assetNames, digest } from './policy.mjs'
 import { sourceDigest } from './source-digest.mjs'
 import { verifyMacBundle } from './after-sign.mjs'
-import { cleanUnpackedMac } from '../clean-unpacked-mac.mjs'
+import { buildMacWithCleanup } from '../electron-builder-mac.mjs'
 const exec = promisify(execFile)
 const target = `${process.platform}-${process.arch}`
 if (
@@ -128,7 +128,9 @@ try {
     const packages = {}
     for (const version of [fromVersion, toVersion]) {
       const directory = path.join(output, variant, version)
-      await build({
+      const buildPackage =
+        process.platform === 'darwin' ? (options) => buildMacWithCleanup(options, directory) : build
+      await buildPackage({
         projectDir: root,
         targets: (process.platform === 'darwin'
           ? Platform.MAC
@@ -157,7 +159,6 @@ try {
             : {})
         }
       })
-      if (process.platform === 'darwin') await cleanUnpackedMac(directory)
       packages[version] = directory
     }
     const directory = packages[toVersion]

@@ -4,10 +4,14 @@ import path from 'node:path'
 import os from 'node:os'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { createRequire } from 'node:module'
 import { afterEach, expect, it, vi } from 'vitest'
 import { copyDmgApplication } from '../../../scripts/release/mac-dmg.mjs'
 
 const exec = promisify(execFile)
+const require = createRequire(import.meta.url)
+const builder = createRequire(require.resolve('electron-builder'))
+const dependencies = createRequire(builder.resolve('app-builder-lib'))
 const temporary: string[] = []
 afterEach(async () => {
   for (const dir of temporary.splice(0)) await fs.rm(dir, { recursive: true, force: true })
@@ -114,6 +118,58 @@ it.runIf(process.platform === 'darwin')(
     )
     await copyDmgApplication(image, f.mount, f.installed, f.diagnostics)
     expect(await fs.readFile(path.join(f.installed, 'marker.txt'), 'utf8')).toBe('real DMG fixture')
+    expect((await fs.stat(f.mount)).dev).toBe((await fs.stat(f.dir)).dev)
+  },
+  90000
+)
+
+it.runIf(process.platform === 'darwin')(
+  'builds a real installer with Spotlight exclusion copied before the application',
+  async () => {
+    const f = await fixture()
+    const source = path.join(f.dir, 'source/Pi-Harness.app')
+    await fs.mkdir(source, { recursive: true })
+    await fs.writeFile(path.join(source, 'marker.txt'), 'signed-resource fixture')
+    const { load } = dependencies('js-yaml')
+    const { dmg } = load(await fs.readFile('electron-builder.yml', 'utf8'))
+    const { customizeDmg } = dependencies('dmg-builder')
+    const settings = path.join(f.dir, 'settings.json')
+    const image = path.join(f.dir, 'installer.dmg')
+    await customizeDmg({
+      appPath: source,
+      artifactPath: image,
+      volumeName: `PiHarness-${path.basename(f.dir)}`,
+      specification: { ...dmg, format: 'UDRO' },
+      packager: {
+        info: { getWorkspaceRoot: async () => process.cwd() },
+        getResource: async () => null,
+        getTempFile: async () => settings,
+        packagerOptions: {}
+      }
+    })
+    // Check the effective input to the pinned tool, not only our YAML text.
+    const effective = JSON.parse(await fs.readFile(settings, 'utf8'))
+    expect(effective.contents[0].path).toBe('build/dmg/.metadata_never_index')
+    expect(effective.contents[1].path).toBe(source)
+    await exec('/usr/bin/hdiutil', ['verify', image], { timeout: 30000 })
+    let inspected = false
+    await copyDmgApplication(image, f.mount, f.installed, f.diagnostics, {
+      run: async (file: string, args: string[], options: object) => {
+        if (file === '/usr/bin/ditto') {
+          expect(await fs.readFile(path.join(f.mount, '.metadata_never_index'), 'utf8')).toBe('')
+          expect(await fs.readlink(path.join(f.mount, 'Applications'))).toBe('/Applications')
+          inspected = true
+        }
+        return exec(file, args, options)
+      }
+    })
+    expect(inspected).toBe(true)
+    expect(await fs.readFile(path.join(f.installed, 'marker.txt'), 'utf8')).toBe(
+      'signed-resource fixture'
+    )
+    await expect(fs.stat(path.join(f.installed, '.metadata_never_index'))).rejects.toMatchObject({
+      code: 'ENOENT'
+    })
     expect((await fs.stat(f.mount)).dev).toBe((await fs.stat(f.dir)).dev)
   },
   90000
