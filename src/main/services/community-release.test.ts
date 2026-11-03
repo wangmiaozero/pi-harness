@@ -21,7 +21,7 @@ it('renders English release summaries and feature sections without weakening cha
   const changelog =
     '## 2.3.19 — 2026-11-04\n\nA user-facing summary.\n\n### Added\n\n#### Native Pi\n\n- Updated Native Pi.\n\n### Fixed\n\n#### Navigation\n\n- Fixed navigation.\n\n## 2.3.18 — 2026-11-03\n\n### Fixed\n- Older release.'
   const notes = renderReleaseNotes(changelog, '2.3.19')
-  expect(notes).toMatch(/^# v2\.3\.19\n\nA user-facing summary\./)
+  expect(notes).toMatch(/^# pi-harness v2\.3\.19\n\nA user-facing summary\./)
   expect(notes).toContain('---\n\n## Added\n\n### Native Pi')
   expect(notes).toContain('---\n\n## Fixed\n\n### Navigation')
   expect(notes).not.toContain('Older release')

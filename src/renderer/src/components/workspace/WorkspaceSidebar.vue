@@ -83,6 +83,15 @@ const emit = defineEmits<{
   'focus-composer': []
   'section-change': [section: WorkspaceSection]
 }>()
+
+// Completing background work must not reclaim focus after the user moved on.
+function captureComposerFocus() {
+  const owner = document.activeElement
+  return () => {
+    if (document.activeElement === owner || document.activeElement === document.body)
+      emit('focus-composer')
+  }
+}
 const { t, locale } = useI18n()
 const sessions = useSessionStore()
 const workspace = useWorkspaceStore()
@@ -233,19 +242,20 @@ function selectSection(next: WorkspaceSection) {
   emit('section-change', next)
 }
 
-async function openSession(session: SessionInfo) {
+async function openSession(session: SessionInfo, focusComposer = captureComposerFocus()) {
   sessions.selectSession(session.id)
   workspace.ensureChatTab(session.id, sessionTitle(session).slice(0, 28))
-  emit('focus-composer')
+  focusComposer()
 }
 
 async function newSession() {
   if (creatingSession.value) return
+  const focusComposer = captureComposerFocus()
   creatingSession.value = true
   try {
     const session = await callApi(() => getApi().sessions.create())
     sessions.items = [session, ...sessions.items.filter((item) => item.id !== session.id)]
-    await openSession(session)
+    await openSession(session, focusComposer)
     emit('section-change', 'workspace')
   } catch (error) {
     toast.error(getErrorPayload(error).message)
@@ -255,11 +265,12 @@ async function newSession() {
 }
 
 async function newSessionFromProject(group: SessionProjectGroup) {
+  const focusComposer = captureComposerFocus()
   try {
     await workspace.startDraftFromProject(group.projectRoot)
     sessions.selectSession(null)
     workspace.ensureChatTab('new', t('workspace.newSession'))
-    emit('focus-composer')
+    focusComposer()
   } catch (error) {
     toast.error(getErrorPayload(error).message)
   }
@@ -267,10 +278,11 @@ async function newSessionFromProject(group: SessionProjectGroup) {
 
 async function openDraftSession() {
   if (!workspace.hasDraftSession) return
+  const focusComposer = captureComposerFocus()
   await workspace.restoreDraftWorkspace()
   sessions.selectSession(null)
   workspace.ensureChatTab('new', t('workspace.newSession'))
-  emit('focus-composer')
+  focusComposer()
 }
 
 function isProjectActive(group: SessionProjectGroup): boolean {
@@ -435,6 +447,7 @@ async function createProjectBranch() {
 }
 
 async function openAsMainProject(directories: string[]): Promise<void> {
+  const focusComposer = captureComposerFocus()
   await sessions.refresh(true)
   if (directories.length === 1) {
     await workspace.resetDraftWorkspace(directories[0])
@@ -447,7 +460,7 @@ async function openAsMainProject(directories: string[]): Promise<void> {
   workspace.ensureChatTab('new', t('workspace.newSession'))
   emit('section-change', 'workspace')
   await Promise.all([workspace.loadFiles(), workspace.loadGit()])
-  emit('focus-composer')
+  focusComposer()
 }
 
 async function pickProject(): Promise<boolean> {
@@ -469,6 +482,7 @@ async function pickProject(): Promise<boolean> {
 
 async function importWorkspace(): Promise<boolean> {
   if (importingProject.value || importingWorkspace.value) return false
+  const focusComposer = captureComposerFocus()
   importingWorkspace.value = true
   try {
     const sources = await callApi(() => getApi().workspace.pickWorkspaceSources())
@@ -491,7 +505,7 @@ async function importWorkspace(): Promise<boolean> {
     toast.success(t('workspace.workspaceOpened'), {
       description: workspaceFile ?? directories[0]
     })
-    emit('focus-composer')
+    focusComposer()
     return true
   } catch (error) {
     toast.error((error as { message?: string }).message ?? t('common.failed'))

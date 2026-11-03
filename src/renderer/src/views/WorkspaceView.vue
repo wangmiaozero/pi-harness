@@ -272,12 +272,15 @@ function onWorkspaceSidebarResizeKeydown(event: KeyboardEvent): void {
   event.preventDefault()
 }
 
-async function focusComposer() {
+async function focusComposer(owner: Element | null = document.activeElement) {
   await nextTick()
+  if (!viewActive.value) return
+  if (document.activeElement !== owner && document.activeElement !== document.body) return
   chatWindow.value?.focusComposer()
 }
 
 async function startNewSession() {
+  const focusOwner = document.activeElement
   if (!workspace.canChat) {
     await workspace.ensureDefaultWorkspace(t('workspace.defaultWorkspace'))
   } else if (sessions.currentId) {
@@ -285,7 +288,7 @@ async function startNewSession() {
   }
   sessions.selectSession(null)
   workspace.ensureChatTab('new', t('workspace.newSession'))
-  void focusComposer()
+  void focusComposer(focusOwner)
 }
 
 function openProject() {

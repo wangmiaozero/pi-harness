@@ -2,6 +2,62 @@ import { openOverflowPage } from './navigation'
 import fs from 'node:fs'
 import path from 'node:path'
 import { test, expect } from './fixtures'
+import { IPC_INVOKE } from '../src/shared/ipc/channels'
+
+test('finishing a project draft does not steal focus from an open navigation menu', async ({
+  page,
+  electronApp,
+  workspaceRoot
+}) => {
+  const project = path.join(workspaceRoot, 'focus-project')
+  fs.mkdirSync(project)
+  await page.locator('a[href="#/workspace"]').click()
+  await electronApp.evaluate(({ dialog }, project) => {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [project] })
+  }, project)
+  const importing = page.getByTestId('workspace-import-project')
+  await importing.click()
+  const row = page.getByTestId('workspace-project-0')
+  await expect(row).toContainText('focus-project')
+  await expect(importing).toBeEnabled()
+  await page.getByTestId('workspace-new-session').click()
+  await expect(page.getByTestId(/^session-row-/)).toHaveCount(1)
+  await expect(row).not.toHaveClass(/(?:^|\s)bg-\[var\(--bg-hover\)\](?=\s|$)/)
+  await electronApp.evaluate(({ ipcMain }, channel) => {
+    const original = (ipcMain as any)._invokeHandlers.get(channel)
+    ipcMain.removeHandler(channel)
+    ipcMain.handle(
+      channel,
+      (...args: any[]) =>
+        new Promise((resolve) => {
+          ;(globalThis as any).__releaseDraft = () => resolve(original(...args))
+        })
+    )
+    ;(globalThis as any).__restoreDraftHandler = () => {
+      ;(globalThis as any).__releaseDraft?.()
+      ipcMain.removeHandler(channel)
+      ipcMain.handle(channel, original)
+    }
+  }, IPC_INVOKE.workspaceAllowRoot)
+  try {
+    await page.getByTestId('workspace-new-project-session-0').click()
+    await expect
+      .poll(() => electronApp.evaluate(() => Boolean((globalThis as any).__releaseDraft)))
+      .toBe(true)
+    await page.getByTestId('navigation-more').click()
+    const menu = page.getByTestId('navigation-more-menu')
+    await expect(menu).toBeVisible()
+    await electronApp.evaluate(() => (globalThis as any).__releaseDraft())
+    // The project becomes active only after the draft operation acknowledges it.
+    await expect(row).toHaveClass(/(?:^|\s)bg-\[var\(--bg-hover\)\](?=\s|$)/)
+    await page.evaluate(() => new Promise(requestAnimationFrame))
+    await expect(menu).toBeVisible()
+    await openOverflowPage(page, 'git')
+    await expect(page.getByTestId('git-repository-sidebar')).toContainText('focus-project')
+  } finally {
+    await electronApp.evaluate(() => (globalThis as any).__restoreDraftHandler())
+  }
+})
 
 for (const kind of ['folders', 'code-workspace', 'mixed'] as const) {
   test(`imports ${kind} as one project with all source folders`, async ({

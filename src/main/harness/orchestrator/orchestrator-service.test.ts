@@ -607,6 +607,8 @@ describe('OrchestratorService dispatch', { timeout: 15_000 }, () => {
     await harness.service.reassignTask(tasks[0].id, agentIds['Dev'])
 
     await harness.service.start(orchestrationId)
+    // Acknowledge run.started persistence before measuring the review phase.
+    await harness.service.waitForSettled(5000)
 
     // Phase 1 — execute.
     expect(harness.host.prompts).toHaveLength(1)
@@ -661,6 +663,7 @@ describe('OrchestratorService dispatch', { timeout: 15_000 }, () => {
     const tasks = await harness.service.listTasks(orchestrationId)
     await harness.service.reassignTask(tasks[0].id, agentIds['Dev'])
     await harness.service.start(orchestrationId)
+    await harness.service.waitForSettled(5000)
 
     harness.host.settleRun(harness.host.prompts[0].sessionId, harness.host.prompts[0].runId, {
       result: 'Built the thing'

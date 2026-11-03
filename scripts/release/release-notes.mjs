@@ -5,7 +5,7 @@ export function renderReleaseNotes(changelog, version, previewRevision) {
   const notes = previewRevision
     ? `# Build Preview ${version}\n\nThis is an unpublished test build from ${previewRevision}.`
     : changelogSection(changelog, version)
-        .replace(/^## [^\n]+/, `# v${version}`)
+        .replace(/^## [^\n]+/, `# pi-harness v${version}`)
         .replace(/^### (Added|Fixed)$/gm, '## $1')
         .replace(/^#### /gm, '### ')
         .replace(/\n\n## (Added|Fixed)/g, '\n\n---\n\n## $1')
