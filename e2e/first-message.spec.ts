@@ -112,11 +112,17 @@ for (const [withImage, precreated] of [
       }
       await editor.fill('Check the first message')
       await editor.press('Enter')
-      await expect.poll(() => fs.existsSync(starting)).toBe(true)
+      // Check the submission lock while the native process is still starting,
+      // then again while its before_agent_start hook holds the prompt. Startup
+      // includes runtime integrity checks plus Pi's bounded RPC/bridge handshake;
+      // the ordinary 15s UI expectation is shorter than that startup path.
       await expect(editor).toHaveAttribute('contenteditable', 'false')
       await expect(composer.getByRole('button', { name: /发送|Send/, exact: true })).toBeDisabled()
       await editor.pressSequentially('must-not-be-appended')
       await expect(editor).toHaveText('Check the first message')
+      await expect.poll(() => fs.existsSync(starting), { timeout: 45_000 }).toBe(true)
+      await expect(editor).toHaveAttribute('contenteditable', 'false')
+      await expect(composer.getByRole('button', { name: /发送|Send/, exact: true })).toBeDisabled()
       fs.writeFileSync(release, 'continue')
       await expect(users).toHaveCount(1)
       if (withImage) await expect(users.locator('img')).toHaveCount(1)

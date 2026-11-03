@@ -326,10 +326,7 @@ test('ming portrait themes render full figures beside parchment conversation sur
       )
     }
     await expect(assistant).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-    await expect(page.locator('.chat-scroll-content')).toHaveCSS(
-      'background-color',
-      paper
-    )
+    await expect(page.locator('.chat-scroll-content')).toHaveCSS('background-color', paper)
     const activity = assistant.getByTestId('message-activity')
     await expect(activity).toBeHidden()
     await assistant.getByTestId('assistant-turn-duration').click()
@@ -481,7 +478,9 @@ test('ming portrait themes render full figures beside parchment conversation sur
     await expect(harnessConsole).toBeVisible()
     await expect(page.getByTestId('portrait-skin-panel')).toHaveCount(0)
     await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
-    await expect(page.getByTestId('workspace-toggle-files')).toHaveCount(0)
+    await expect(
+      page.locator('#titlebar-workspace-actions').getByTestId('workspace-toggle-files')
+    ).toBeVisible()
     const [workspaceMainBox, harnessConsoleBox] = await Promise.all([
       page.getByTestId('workspace-main').boundingBox(),
       harnessConsole.boundingBox()
@@ -514,7 +513,7 @@ test('ming portrait themes render full figures beside parchment conversation sur
         .evaluate((element) => getComputedStyle(element, '::before').backgroundImage)
       expect(responsiveTitlebarBanner).toMatch(/titlebar-snow-banner(?!-calligraphy)/)
       await expect(page.locator('.command-console-controls')).toHaveCSS('flex-wrap', 'nowrap')
-      await expect(page.locator('.command-console-controls')).toHaveCSS('padding-right', '0px')
+      await expect(page.locator('.command-console-controls')).toHaveCSS('padding-right', '10px')
       const [modelBox, toolStripBox, sendButtonBox] = await Promise.all([
         page.getByTestId('workspace-model-select').boundingBox(),
         page.locator('.console-tool-strip').boundingBox(),

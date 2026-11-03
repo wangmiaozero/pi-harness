@@ -109,6 +109,12 @@ test('shows compact activity with two independent expansion levels', async ({
       { channel: IPC_EVENT.agentEvent, sessionId, event }
     )
   }
+  // A new prompt starts a new turn. Reusing the completed turn would attach
+  // its saved duration/disclosure state to this synthetic live activity.
+  await emit({
+    type: 'message_end',
+    message: { role: 'user', content: 'Continue checking the commands.' }
+  })
   await emit({ type: 'agent_start' })
   await expect(chat.getByTestId('assistant-loading')).toBeVisible()
   // Each streamed command must update the same collapsed row, not briefly
@@ -200,7 +206,7 @@ test('shows compact activity with two independent expansion levels', async ({
   await expect(liveTool.locator('pre').last()).toHaveText('Live checks passed')
   await expect(live).toHaveAttribute('open')
   await expect(liveTool).toHaveAttribute('open')
-  await expect(page.getByTestId('assistant-turn')).toHaveCount(1)
+  await expect(page.getByTestId('assistant-turn')).toHaveCount(2)
   expect(errors).toEqual([])
 })
 
