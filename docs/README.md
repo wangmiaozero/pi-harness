@@ -4,9 +4,9 @@ Browse the current Pi-Harness interface, desktop companion, themes, and communit
 
 Pi-Harness 截图按功能界面、主题展示和社区资源分类，点击图片链接可查看原图。
 
-Updated on 2026-11-01 using the current desktop UI and an isolated demo workspace.
+Updated on 2026-11-03 using the current desktop UI and an isolated demo workspace.
 
-截图于 2026-11-01 使用当前桌面界面与独立演示工作区更新。
+截图于 2026-11-03 使用当前桌面界面与独立演示工作区更新。
 
 [English](../README.md) · [简体中文](../README.zh-CN.md) · [繁體中文](../README.zh-TW.md) · [日本語](../README.ja-JP.md) · [한국어](../README.ko-KR.md) · [Русский](../README.ru-RU.md) · [Français](../README.fr-FR.md) · [Deutsch](../README.de-DE.md)
 

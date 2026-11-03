@@ -58,6 +58,8 @@ test('places user messages on the right and visually separates agent output', as
   const toolResult = page.getByTestId('message-activity').first()
   await expect(user).toBeVisible()
   await expect(assistant).toBeVisible()
+  await expect(toolResult).toBeHidden()
+  await assistant.getByTestId('assistant-turn-duration').click()
   await expect(toolResult).toBeVisible()
   await expect(page.locator('[data-message-role="assistant"]')).toHaveCount(1)
   await expect(page.locator('.message-hud')).toHaveCount(2)

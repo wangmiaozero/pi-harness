@@ -32,7 +32,13 @@ test.describe('Application shell', () => {
     await expect(dragArea).toHaveCSS('-webkit-app-region', 'drag')
     // The header stays non-draggable; only the empty drag area opts in.
     await expect(page.locator('header.app-titlebar')).not.toHaveCSS('-webkit-app-region', 'drag')
-    await expect(page.locator('.starship-search-trigger')).toHaveCSS(
+    await page.getByTestId('app-navigation-rail').locator('a[href="#/workspace"]').click()
+    await expect(page.getByTestId('workspace-sidebar-toggle')).toHaveCSS(
+      '-webkit-app-region',
+      'no-drag'
+    )
+    await expect(page.getByTestId('workspace-search')).toBeVisible()
+    await expect(page.getByTestId('workspace-toggle-files')).toHaveCSS(
       '-webkit-app-region',
       'no-drag'
     )
@@ -115,7 +121,13 @@ test.describe('Application shell', () => {
       '-webkit-app-region',
       'no-drag'
     )
-    await expect(page.locator('.starship-search-trigger')).toHaveCSS(
+    await page.getByTestId('app-navigation-rail').locator('a[href="#/workspace"]').click()
+    await expect(page.getByTestId('workspace-sidebar-toggle')).toHaveCSS(
+      '-webkit-app-region',
+      'no-drag'
+    )
+    await expect(page.getByTestId('workspace-search')).toBeVisible()
+    await expect(page.getByTestId('workspace-toggle-files')).toHaveCSS(
       '-webkit-app-region',
       'no-drag'
     )
@@ -146,7 +158,9 @@ test.describe('Application shell', () => {
     await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
   })
 
-  test('keeps the command palette open until its close button is used', async ({ page }) => {
+  test('keeps the command palette open on outside clicks and closes by Escape or its close button', async ({
+    page
+  }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.keyboard.press('Meta+K')
 
@@ -155,6 +169,8 @@ test.describe('Application shell', () => {
     await page.mouse.click(5, 5)
     await expect(palette).toBeVisible()
     await page.keyboard.press('Escape')
+    await expect(palette).toBeHidden()
+    await page.keyboard.press('Meta+K')
     await expect(palette).toBeVisible()
     await palette.getByRole('button', { name: /关闭|Close/ }).click()
     await expect(palette).toBeHidden()

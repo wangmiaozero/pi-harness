@@ -261,8 +261,8 @@ test('ming portrait themes render full figures beside parchment conversation sur
       await expect(page.getByTestId('ming-titlebar-calligraphy')).toHaveCount(0)
       await expect(page.getByTestId('zhang-juzheng-maxim')).toBeVisible()
       await expect(page.getByTestId('zhang-juzheng-vow')).toBeVisible()
-      await expect(page.getByTestId('zhang-edge-scroll-top')).toBeVisible()
-      await expect(page.getByTestId('zhang-edge-scroll-bottom')).toBeVisible()
+      await expect(page.getByTestId('zhang-edge-scroll-top')).toBeHidden()
+      await expect(page.getByTestId('zhang-edge-scroll-bottom')).toBeHidden()
       await expect(page.getByTestId('zhang-snow-ornament-left')).toBeVisible()
       await expect(page.getByTestId('zhang-snow-ornament-right')).toBeVisible()
       await expect(page.getByTestId('zhang-calligraphy-scroll-image')).toHaveAttribute(
@@ -325,10 +325,16 @@ test('ming portrait themes render full figures beside parchment conversation sur
         'rgb(40, 200, 64)'
       )
     }
-    await expect(assistant).toHaveCSS('background-color', paper)
+    await expect(assistant).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    await expect(page.locator('.chat-scroll-content')).toHaveCSS(
+      'background-color',
+      paper
+    )
     const activity = assistant.getByTestId('message-activity')
-    await expect(activity).not.toHaveAttribute('open')
-    await activity.locator('summary').first().click()
+    await expect(activity).toBeHidden()
+    await assistant.getByTestId('assistant-turn-duration').click()
+    await expect(activity).toBeVisible()
+    await expect(activity).toHaveAttribute('open')
     const tool = assistant.locator('.tool-call-hud')
     await expect(tool).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
     await expect(tool).not.toHaveAttribute('open')
@@ -758,12 +764,17 @@ test('switches original portrait skins, persists selection and restores plain th
         .click()
       const assistant = page.locator('[data-message-role="assistant"]')
       await expect(assistant).toContainText('主题背景已就绪')
-      await expect(assistant).toHaveCSS(
+      await expect(assistant).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(page.locator('.chat-scroll-content')).not.toHaveCSS(
         'background-color',
-        style === 'noirScholar' ? 'rgba(21, 19, 16, 0.62)' : 'rgba(255, 253, 255, 0.6)'
+        'rgba(0, 0, 0, 0)'
       )
       {
-        await expect(assistant).toHaveCSS('backdrop-filter', /blur\(16px\)/)
+        await expect(page.locator('.chat-scroll-content')).toHaveCSS(
+          'backdrop-filter',
+          'blur(18px)'
+        )
+        await expect(assistant).toHaveCSS('backdrop-filter', 'none')
         const messageBox = (await assistant.boundingBox())!
         const imageBox = (await image.boundingBox())!
         expect(messageBox.x).toBeGreaterThan(imageBox.x + imageBox.width)

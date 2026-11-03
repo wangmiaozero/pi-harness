@@ -16,11 +16,9 @@ test.describe('Pi-Harness smoke', () => {
     // Overview now lives inside Settings; the icon rail must not offer it.
     await expect(page.locator('a[href="#/"]')).toHaveCount(0)
     await expect(
-      page.locator('a[href="#/workspace"]').filter({ hasText: /工作区|Workspace/ })
+      page.getByTestId('app-navigation-rail').getByRole('link', { name: /首页|Home/ })
     ).toBeVisible()
-    await expect(
-      page.locator('a[href="#/settings"]').filter({ hasText: /设置|Settings/ })
-    ).toBeVisible()
+    await expect(page.getByTestId('navigation-settings')).toBeVisible()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
   })
 
@@ -122,7 +120,9 @@ test.describe('Pi-Harness smoke', () => {
     await expect(harnessConsole).toBeVisible()
     await expect(page.getByText(/尚未选择会话|No session selected/)).toBeVisible()
     await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
-    await expect(page.getByTestId('workspace-toggle-files')).toHaveCount(0)
+    await expect(
+      page.locator('#titlebar-workspace-actions').getByTestId('workspace-toggle-files')
+    ).toBeVisible()
     await expect(page.getByTestId('workspace-section-tools')).toHaveAttribute(
       'aria-pressed',
       'true'
@@ -479,7 +479,9 @@ test.describe('Pi-Harness smoke', () => {
     const harnessConsole = page.getByTestId('harness-console')
     await expect(harnessConsole).toBeVisible()
     await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
-    await expect(page.getByTestId('workspace-toggle-files')).toHaveCount(0)
+    await expect(
+      page.locator('#titlebar-workspace-actions').getByTestId('workspace-toggle-files')
+    ).toBeVisible()
     const [workspaceMainBox, harnessConsoleBox] = await Promise.all([
       page.getByTestId('workspace-main').boundingBox(),
       harnessConsole.boundingBox()
@@ -878,8 +880,20 @@ test.describe('Pi-Harness smoke', () => {
     await expect(page.locator('.workspace-tabbar')).toHaveCSS('height', '44px')
     const sidebarHeader = page.getByTestId('workspace-sidebar').locator('.mission-control-header')
     await expect(sidebarHeader).toHaveCSS('min-height', '44px')
-    // The existing 28px controls + 16px padding also include a 1px bottom border.
-    expect((await sidebarHeader.boundingBox())!.height).toBeLessThanOrEqual(45)
+    // New Session and all four actions stay reachable without splitting their labels.
+    const commands = page.getByTestId('workspace-command-actions')
+    await expect(commands.getByRole('button')).toHaveCount(4)
+    for (const button of await commands.getByRole('button').all())
+      await expect(button).toBeVisible()
+    const headingLines = await page
+      .getByTestId('workspace-new-session')
+      .locator('span')
+      .evaluate((node) => {
+        const range = document.createRange()
+        range.selectNodeContents(node)
+        return range.getClientRects().length
+      })
+    expect(headingLines).toBe(1)
 
     const composerMetrics = await page.getByTestId('chat-composer').evaluate((composer) => {
       const input = composer.querySelector<HTMLElement>('.command-console-input')
