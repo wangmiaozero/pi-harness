@@ -11,6 +11,8 @@ import {
   buildMessagePresentation,
   groupConversationTurns,
   withLiveMessage,
+  withLiveConversation,
+  type ConversationItem,
   toolActivityKind,
   toolActivityTarget,
   type ActivityKind,
@@ -30,37 +32,59 @@ const { t } = useI18n()
 const revealed = ref(new Set<string>())
 const persistedPresentation = computed(() => buildMessagePresentation(props.items))
 const presentation = computed(() => withLiveMessage(persistedPresentation.value, props.liveMessage))
-const conversation = computed(() => groupConversationTurns(presentation.value.items))
-function durationForTurn(key: string): number | null {
-  const run = props.runs?.find((run) => run.anchorEntryId && key === `turn:${run.anchorEntryId}`)
-  return run?.finishedAt != null && run.finishedAt >= run.startedAt
-    ? run.finishedAt - run.startedAt
-    : null
-}
+const persistedConversation = computed(() =>
+  groupConversationTurns(persistedPresentation.value.items)
+)
+const conversation = computed(() =>
+  withLiveConversation(persistedConversation.value, persistedPresentation.value, props.liveMessage)
+)
+const durations = computed(() => {
+  const durations = new Map<string, number | null>()
+  for (const run of props.runs ?? []) {
+    if (!run.anchorEntryId) continue
+    const key = `turn:${run.anchorEntryId}`
+    if (durations.has(key)) continue
+    durations.set(
+      key,
+      run.finishedAt != null && run.finishedAt >= run.startedAt
+        ? run.finishedAt - run.startedAt
+        : null
+    )
+  }
+  return durations
+})
 const lastTurn = computed(() =>
   conversation.value.at(-1)?.type === 'turn' ? conversation.value.at(-1)?.key : null
 )
-const summaries = computed(() => {
-  // A normal Native final reply is evidence that execution continued after a
-  // failed step. Neither idle state nor arbitrary assistant text proves this.
-  const finalReplies = new Set(
-    props.items
-      .filter(
-        ({ message }) =>
-          message.role === 'assistant' &&
-          message.stopReason === 'stop' &&
-          !message.errorMessage &&
-          !message.content.some((block) => block.type === 'toolCall') &&
-          message.content.some((block) => block.type === 'text' && block.text.trim())
-      )
-      .map((item) => item.key)
-  )
+// A normal Native final reply is evidence that execution continued after a
+// failed step. Neither idle state nor arbitrary assistant text proves this.
+const finalReplies = computed(
+  () =>
+    new Set(
+      props.items
+        .filter(
+          ({ message }) =>
+            message.role === 'assistant' &&
+            message.stopReason === 'stop' &&
+            !message.errorMessage &&
+            !message.content.some((block) => block.type === 'toolCall') &&
+            message.content.some((block) => block.type === 'text' && block.text.trim())
+        )
+        .map((item) => item.key)
+    )
+)
+
+function summarize(
+  presentation: ReturnType<typeof buildMessagePresentation>,
+  conversation: readonly ConversationItem[],
+  running: boolean | undefined
+) {
   const endedGroups = new Set<string>()
-  for (const turn of conversation.value) {
+  for (const turn of conversation) {
     if (turn.type !== 'turn') continue
     let ended = false
     for (const item of [...turn.items].reverse()) {
-      if (item.type === 'message' && finalReplies.has(item.key)) ended = true
+      if (item.type === 'message' && finalReplies.value.has(item.key)) ended = true
       if (item.type === 'activity' && ended) endedGroups.add(item.key)
     }
   }
@@ -77,7 +101,7 @@ const summaries = computed(() => {
       outcome: string
     }
   >()
-  for (const group of presentation.value.items) {
+  for (const group of presentation.items) {
     if (group.type !== 'activity') continue
     const counts = new Map<ActivityKind, number>()
     let target = ''
@@ -94,12 +118,12 @@ const summaries = computed(() => {
           } else if (block.type === 'toolCall') {
             const kind = toolActivityKind(block.toolName)
             counts.set(kind, (counts.get(kind) ?? 0) + 1)
-            const result = presentation.value.results.get(item.key)?.get(block.toolCallId)
+            const result = presentation.results.get(item.key)?.get(block.toolCallId)
             const outcome = toolOutcome(block, result?.message)
             failures += Number(outcome === 'error')
             noMatches += Number(outcome === 'no-match')
             complete &&= Boolean(result)
-            if (props.running && presentation.value.pending.get(block.toolCallId) === item.key) {
+            if (running && presentation.pending.get(block.toolCallId) === item.key) {
               activeKind = kind
               target = toolActivityTarget(block) || block.toolName
             }
@@ -183,6 +207,14 @@ const summaries = computed(() => {
     })
   }
   return summaries
+}
+const persistedSummaries = computed(() =>
+  summarize(persistedPresentation.value, persistedConversation.value, props.running)
+)
+const summaries = computed(() => {
+  const last = conversation.value.at(-1)
+  if (!props.liveMessage || last?.type !== 'turn') return persistedSummaries.value
+  return summarize({ ...presentation.value, items: last.items }, [last], props.running)
 })
 </script>
 
@@ -191,13 +223,13 @@ const summaries = computed(() => {
     v-for="turn in conversation"
     :key="turn.key"
     :turn="turn"
-    :duration-ms="durationForTurn(turn.key)"
+    :duration-ms="durations.get(turn.key)"
     :user-name="userName"
     :assistant-name="assistantName"
-    :running="running"
+    :running="running && lastTurn === turn.key"
     :is-last="lastTurn === turn.key"
-    :presentation="presentation"
-    :summaries="summaries"
+    :presentation="lastTurn === turn.key ? presentation : persistedPresentation"
+    :summaries="lastTurn === turn.key ? summaries : persistedSummaries"
     :revealed="revealed"
     @reveal="revealed.add($event)"
   />

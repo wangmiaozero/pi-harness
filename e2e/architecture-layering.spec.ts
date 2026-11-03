@@ -49,4 +49,11 @@ test('keeps native architecture content behind the startup animation during relo
   }
   await expect.poll(nativeVisible).toBe(true)
   await page.screenshot({ path: testInfo.outputPath('architecture-after-startup.png') })
+  // A cached workspace must not leave a native diagram over another route.
+  await page.locator('a[href="#/models"]').click()
+  await expect(page.getByTestId('model-management-view')).toBeVisible()
+  await expect.poll(nativeVisible).toBe(false)
+  await page.locator('a[href="#/workspace"]').click()
+  await expect(page.getByTestId('architecture-viewer')).toBeVisible()
+  await expect.poll(nativeVisible).toBe(true)
 })

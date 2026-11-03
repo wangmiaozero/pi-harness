@@ -167,4 +167,19 @@ describe('ConversationMinimap component', () => {
     const wrapper = mountMinimap(target)
     expect(wrapper.find('[data-testid="minimap-rail"]').exists()).toBe(false)
   })
+
+  it('retains dash elements while detached and resumes without duplicating them', async () => {
+    const target = stubScroller()
+    const wrapper = mountMinimap(target)
+    await new Promise(requestAnimationFrame)
+    await wrapper.vm.$nextTick()
+    const marker = wrapper.get('button.minimap-marker.user').element
+    await wrapper.setProps({ target: null })
+    expect(wrapper.get('[data-testid="minimap-rail"]').isVisible()).toBe(false)
+    await wrapper.setProps({ target })
+    await new Promise(requestAnimationFrame)
+    expect(wrapper.get('button.minimap-marker.user').element).toBe(marker)
+    expect(wrapper.findAll('button.minimap-marker')).toHaveLength(2)
+    wrapper.unmount()
+  })
 })

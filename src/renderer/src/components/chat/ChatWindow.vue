@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { useChatViewActive } from '@renderer/composables/chat-view-activity'
 import MessageHistory from './MessageHistory.vue'
 import FullHistoryDialog from './FullHistoryDialog.vue'
 import ConversationWidthHandles from './ConversationWidthHandles.vue'
@@ -52,6 +53,7 @@ interface ComposerImageModelTarget {
 }
 
 const { locale } = useI18n()
+const active = useChatViewActive()
 const agent = useAgentStore()
 const sessions = useSessionStore()
 const workspace = useWorkspaceStore()
@@ -68,6 +70,7 @@ const statsOpen = ref(false)
 const fullHistoryOpen = ref(false)
 const fullHistoryLoading = ref(false)
 const fullHistoryDetail = ref<SessionDetail | null>(null)
+let fullHistoryGeneration = 0
 const copiedField = ref<'file' | 'id' | null>(null)
 const completionSound = useCompletionSound()
 const {
@@ -125,8 +128,9 @@ interface DisplayMessage {
   streaming: boolean
 }
 
-const persistedMessages = computed<DisplayMessage[]>(() =>
-  agent.messages.flatMap((message, index): DisplayMessage[] => {
+const persistedMessages = computed<DisplayMessage[]>((previous) => {
+  if (!active.value) return previous ?? []
+  return agent.messages.flatMap((message, index): DisplayMessage[] => {
     const entryId = agent.entryIds[index]
     const fileChanges = entryId ? fileChangesByEntryId.value.get(entryId) : undefined
     if (!hasRenderableMessageContent(message) && !fileChanges) return []
@@ -140,23 +144,40 @@ const persistedMessages = computed<DisplayMessage[]>(() =>
       }
     ]
   })
-)
+})
 const liveMessage = computed(() => {
+  if (!active.value) return null
   const live = agent.streaming.streamingMessage
   return live && hasRenderableMessageContent(live) ? live : null
 })
 
 watch([persistedMessages, liveMessage, () => agent.isBusy(sessions.currentId)], async () => {
+  if (!active.value) return
   await nextTick()
-  scheduleScrollSync()
+  if (active.value) scheduleScrollSync()
 })
 
-onMounted(async () => {
-  await nextTick()
-  bindChatScroll()
-})
+let scrollBindingGeneration = 0
+watch(
+  active,
+  async (visible) => {
+    const generation = ++scrollBindingGeneration
+    unbindChatScroll()
+    if (!visible) {
+      fullHistoryGeneration++
+      fullHistoryOpen.value = false
+      fullHistoryDetail.value = null
+      fullHistoryLoading.value = false
+      return
+    }
+    await nextTick()
+    if (active.value && generation === scrollBindingGeneration) bindChatScroll()
+  },
+  { immediate: true, flush: 'post' }
+)
 
 onBeforeUnmount(() => {
+  scrollBindingGeneration++
   unbindChatScroll()
 })
 
@@ -184,12 +205,13 @@ watch(
   () => sessions.currentId,
   async () => {
     statsOpen.value = false
+    fullHistoryGeneration++
     fullHistoryOpen.value = false
     fullHistoryDetail.value = null
     copiedField.value = null
     stickToLatest()
     await nextTick()
-    scrollToEdge('bottom', 'auto')
+    if (active.value) scrollToEdge('bottom', 'auto')
   }
 )
 
@@ -301,16 +323,20 @@ async function onAbort() {
 async function viewFullHistory() {
   const sessionId = sessions.currentId
   if (!sessionId || sessions.current?.transient) return
+  const generation = ++fullHistoryGeneration
   fullHistoryOpen.value = true
   fullHistoryLoading.value = true
   fullHistoryDetail.value = null
   try {
-    fullHistoryDetail.value = await callApi(() => getApi().sessions.viewFullHistory(sessionId))
+    const detail = await callApi(() => getApi().sessions.viewFullHistory(sessionId))
+    if (generation === fullHistoryGeneration) fullHistoryDetail.value = detail
   } catch (error) {
-    fullHistoryOpen.value = false
-    toast.error((error as Error).message)
+    if (generation === fullHistoryGeneration) {
+      fullHistoryOpen.value = false
+      toast.error((error as Error).message)
+    }
   } finally {
-    fullHistoryLoading.value = false
+    if (generation === fullHistoryGeneration) fullHistoryLoading.value = false
   }
 }
 
@@ -386,7 +412,7 @@ function duration(value: number): string {
             :runs="harness.runs"
             :user-name="userName"
             :assistant-name="assistantName"
-            :running="submitting || agent.isBusy(sessions.currentId)"
+            :running="active && (submitting || agent.isBusy(sessions.currentId))"
             :live-message="liveMessage"
           />
           <div v-if="agent.error" role="alert" class="mt-2 text-[12px] [overflow-wrap:anywhere]">
@@ -397,7 +423,7 @@ function duration(value: number): string {
         </div>
       </div>
       <ConversationMinimap
-        :target="scroller"
+        :target="active ? scroller : null"
         :messages="persistedMessages"
         @release-follow="releaseFollow"
       />

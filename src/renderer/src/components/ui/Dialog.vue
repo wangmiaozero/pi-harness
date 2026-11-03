@@ -7,6 +7,7 @@ import {
   DialogRoot,
   DialogTitle
 } from 'reka-ui'
+import { onDeactivated } from 'vue'
 import { X } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 
@@ -24,6 +25,11 @@ defineProps<{
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ 'open-auto-focus': [event: Event] }>()
 const { t } = useI18n()
+
+// Portaled dialogs must close when their cached route leaves the screen.
+onDeactivated(() => {
+  open.value = false
+})
 
 function preventImplicitClose(event: Event) {
   event.preventDefault()

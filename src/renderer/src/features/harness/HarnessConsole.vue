@@ -81,7 +81,7 @@ const visibleSections = computed(() =>
 watch(
   () => sessions.currentId,
   (sessionId) => {
-    void harness.load(sessionId)
+    if (harness.sessionId !== sessionId) void harness.load(sessionId)
   },
   { immediate: true }
 )

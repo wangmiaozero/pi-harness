@@ -1,6 +1,7 @@
 import { useCompactionStore } from './compaction'
 import { defineStore } from 'pinia'
-import { ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
+import { indexBranchSiblings } from '@shared/workspace/session-tree'
 import type {
   AgentEvent,
   AgentImageAttachment,
@@ -50,6 +51,7 @@ export const useAgentStore = defineStore('agent', () => {
   const messages = shallowRef<AgentMessage[]>([])
   const entryIds = shallowRef<string[]>([])
   const entryParents = shallowRef<Record<string, string | null>>({})
+  const branchSiblings = computed(() => indexBranchSiblings(entryParents.value))
   const streaming = shallowRef<StreamingState>(INITIAL_STREAMING_STATE)
   const state = shallowRef<AgentStateSnapshot | null>(null)
   const runningIds = ref<string[]>([])
@@ -801,6 +803,7 @@ export const useAgentStore = defineStore('agent', () => {
     messages,
     entryIds,
     entryParents,
+    branchSiblings,
     streaming,
     state,
     runningIds,

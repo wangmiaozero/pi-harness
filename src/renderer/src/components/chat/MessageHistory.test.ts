@@ -1,8 +1,9 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { defineComponent, h, onUpdated, type PropType } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import { i18n } from '@renderer/i18n'
 import MessageHistory from './MessageHistory.vue'
-import type { HistoryItem } from './message-activity'
+import type { ConversationItem, HistoryItem } from './message-activity'
 
 function items(): HistoryItem[] {
   return [
@@ -317,5 +318,56 @@ it('clears an empty waiting turn when submission is cancelled or fails', async (
   expect(wrapper.find('[data-testid="assistant-loading"]').exists()).toBe(true)
   await wrapper.setProps({ running: false })
   expect(wrapper.find('[data-testid="assistant-turn"]').exists()).toBe(false)
+  wrapper.unmount()
+})
+
+it('isolates completed turns from token updates while updating participant names', async () => {
+  const updates = new Map<string, number>()
+  const history: HistoryItem[] = [
+    { key: 'user-1', message: { role: 'user', content: 'First question' } },
+    {
+      key: 'answer-1',
+      message: {
+        role: 'assistant',
+        model: 'fixture',
+        provider: 'fixture',
+        content: [{ type: 'text', text: 'First reply' }]
+      }
+    },
+    { key: 'user-2', message: { role: 'user', content: 'Continue' } }
+  ]
+  const wrapper = mount(MessageHistory, {
+    props: { items: history, userName: 'Me', assistantName: 'Pi', running: true },
+    global: {
+      plugins: [i18n],
+      stubs: {
+        HistoryTurn: defineComponent({
+          inheritAttrs: false,
+          props: {
+            turn: { type: Object as PropType<ConversationItem>, required: true },
+            assistantName: { type: String, required: true }
+          },
+          setup(props) {
+            onUpdated(() => updates.set(props.turn.key, (updates.get(props.turn.key) ?? 0) + 1))
+            return () => h('p', props.turn.key + props.assistantName)
+          }
+        })
+      }
+    }
+  })
+  for (const text of ['a', 'ab', 'abc']) {
+    await wrapper.setProps({
+      liveMessage: {
+        role: 'assistant',
+        model: 'fixture',
+        provider: 'fixture',
+        content: [{ type: 'text', text }]
+      }
+    })
+  }
+  expect(updates.get('turn:user-1') ?? 0).toBe(0)
+  expect(updates.get('turn:user-2')).toBeGreaterThan(0)
+  await wrapper.setProps({ assistantName: 'Other' })
+  expect(updates.get('turn:user-1')).toBe(1)
   wrapper.unmount()
 })

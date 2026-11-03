@@ -1,6 +1,6 @@
 import { useCompactionStore } from './compaction'
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef } from 'vue'
+import { computed, onScopeDispose, ref, shallowRef } from 'vue'
 import type {
   HarnessArtifact,
   HarnessBaseline,
@@ -68,8 +68,21 @@ export const useHarnessStore = defineStore('harness', () => {
       ) ?? null
   )
 
-  function setupListeners(): () => void {
+  function clearRefreshTimers(): void {
+    if (refreshTimer) clearTimeout(refreshTimer)
+    if (runsRefreshTimer) clearTimeout(runsRefreshTimer)
+    refreshTimer = null
+    runsRefreshTimer = null
+  }
+  function disposeListeners(): void {
+    clearRefreshTimers()
     unsubscribe?.()
+    unsubscribe = null
+  }
+  onScopeDispose(disposeListeners)
+
+  function setupListeners(): () => void {
+    disposeListeners()
     unsubscribe = getApi().on('harness-event', (payload) => {
       const envelope = payload as Partial<HarnessEventEnvelope>
       if (!envelope.sessionId || !envelope.event || envelope.sessionId !== sessionId.value) return
@@ -92,13 +105,11 @@ export const useHarnessStore = defineStore('harness', () => {
       if (envelope.event.type === 'baseline.changed') void refreshBaseline()
       scheduleRefresh()
     })
-    return () => {
-      unsubscribe?.()
-      unsubscribe = null
-    }
+    return disposeListeners
   }
 
   async function load(nextSessionId: string | null): Promise<void> {
+    clearRefreshTimers()
     const currentGeneration = ++generation
     sessionId.value = nextSessionId
     error.value = null
@@ -195,9 +206,12 @@ export const useHarnessStore = defineStore('harness', () => {
   async function loadRunDetail(runId: string): Promise<HarnessRunDetail> {
     const id = sessionId.value
     if (!id) throw new Error('No Harness session selected')
+    const currentGeneration = generation
     const detail = await callApi(() => getApi().harness.getRunDetail(id, runId))
-    runDetail.value = detail
-    currentRunId.value = runId
+    if (currentGeneration === generation && sessionId.value === id) {
+      runDetail.value = detail
+      currentRunId.value = runId
+    }
     return detail
   }
 
@@ -216,10 +230,13 @@ export const useHarnessStore = defineStore('harness', () => {
   async function loadComparison(runIdA: string, runIdB: string): Promise<HarnessRunComparison> {
     const id = sessionId.value
     if (!id) throw new Error('No Harness session selected')
+    const currentGeneration = generation
     const result = await callApi(() => getApi().harness.compareRuns(id, runIdA, runIdB))
-    comparison.value = result
-    compareRunIdA.value = runIdA
-    compareRunIdB.value = runIdB
+    if (currentGeneration === generation && sessionId.value === id) {
+      comparison.value = result
+      compareRunIdA.value = runIdA
+      compareRunIdB.value = runIdB
+    }
     return result
   }
 

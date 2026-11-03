@@ -5,6 +5,9 @@ import {
   nextTick,
   onMounted,
   onBeforeUnmount,
+  onActivated,
+  onDeactivated,
+  provide,
   ref,
   watch
 } from 'vue'
@@ -27,6 +30,7 @@ import { useSettingsStore } from '@renderer/stores/settings'
 import { useHarnessStore } from '@renderer/stores/harness'
 import { registerShortcut } from '@renderer/composables/shortcuts'
 import { getApi } from '@renderer/composables/useApi'
+import { CHAT_VIEW_ACTIVE } from '@renderer/composables/chat-view-activity'
 import { useWorkspaceSidebarState } from '@renderer/composables/useWorkspaceSidebarState'
 import type { RecentWorkspace } from '@shared/types/workspace'
 import { getActiveVisualSkin } from '@renderer/utils/visual-skin'
@@ -106,6 +110,18 @@ let sessionSwitchQueue: Promise<void> = Promise.resolve()
 let sessionSwitchSequence = 0
 let stopSidebarResize: (() => void) | null = null
 
+const viewActive = ref(true)
+let initialized = false
+let inactiveSessionId: string | null = null
+let inactiveModified: string | undefined
+const chatActive = computed(
+  () =>
+    viewActive.value &&
+    activeWorkspaceSection.value === 'workspace' &&
+    activeKind.value === 'chat' &&
+    !architectureOpen.value
+)
+provide(CHAT_VIEW_ACTIVE, chatActive)
 const activeKind = computed(() => workspace.activeTab?.kind ?? 'chat')
 const visibleMainTabs = computed(() => workspace.mainTabs.filter((tab) => tab.kind !== 'chat'))
 const activeVisualSkin = computed(() => getActiveVisualSkin(settings.settings))
@@ -308,25 +324,31 @@ function onToolTabKeydown(event: KeyboardEvent): void {
   void nextTick(() => document.getElementById(`workspace-tool-tab-${next}`)?.focus())
 }
 
-const offNew = registerShortcut({
-  id: 'workspace-new-session',
-  label: t('workspace.newSession'),
-  keys: ['meta+n', 'ctrl+n'],
-  run: () => void startNewSession()
-})
-const offClose = registerShortcut({
-  id: 'workspace-close-tab',
-  label: t('workspace.closeTab'),
-  keys: ['meta+w', 'ctrl+w'],
-  run: () => {
-    if (activeWorkspaceSection.value === 'tools') return
-    if (workspace.filePanelOpen && document.activeElement?.closest('#workspace-files-panel')) {
-      filesPanel.value?.closeActiveFile()
-      return
+let offNew: (() => void) | null = null
+let offClose: (() => void) | null = null
+function installShortcuts() {
+  offNew?.()
+  offClose?.()
+  offNew = registerShortcut({
+    id: 'workspace-new-session',
+    label: t('workspace.newSession'),
+    keys: ['meta+n', 'ctrl+n'],
+    run: () => void startNewSession()
+  })
+  offClose = registerShortcut({
+    id: 'workspace-close-tab',
+    label: t('workspace.closeTab'),
+    keys: ['meta+w', 'ctrl+w'],
+    run: () => {
+      if (activeWorkspaceSection.value === 'tools') return
+      if (workspace.filePanelOpen && document.activeElement?.closest('#workspace-files-panel')) {
+        filesPanel.value?.closeActiveFile()
+        return
+      }
+      if (workspace.activeTabId) void workspaceTabs.value?.requestCloseTab(workspace.activeTabId)
     }
-    if (workspace.activeTabId) void workspaceTabs.value?.requestCloseTab(workspace.activeTabId)
-  }
-})
+  })
+}
 
 function onAbortEvent() {
   if (sessions.currentId) void agent.abort(sessions.currentId)
@@ -354,7 +376,7 @@ function onOpenRecentEvent(event: Event) {
 }
 
 function scheduleContentRefresh() {
-  if (document.visibilityState === 'hidden') return
+  if (!viewActive.value || document.visibilityState === 'hidden') return
   if (refreshTimer) clearTimeout(refreshTimer)
   refreshTimer = setTimeout(() => {
     refreshTimer = null
@@ -380,7 +402,11 @@ onMounted(() => {
       workspace.ensureChatTab('new', t('workspace.newSession'))
     }
     await Promise.all([workspace.loadFiles(), workspace.loadGit(), workspace.refreshRecent()])
+    initialized = true
   })()
+})
+
+function installViewListeners() {
   window.addEventListener('pi-harness:abort-agent', onAbortEvent)
   window.addEventListener('pi-harness:workspace-open-folder', onOpenFolderEvent)
   window.addEventListener('pi-harness:workspace-open-file', onOpenWorkspaceEvent)
@@ -389,17 +415,19 @@ onMounted(() => {
   window.addEventListener('pi-harness:workspace-open-recent', onOpenRecentEvent)
   window.addEventListener('focus', scheduleContentRefresh)
   document.addEventListener('visibilitychange', onVisibilityChange)
-  unsubWorkspaceChanged = getApi().on('workspace-changed', () => {
-    scheduleContentRefresh()
-  })
-})
+  unsubWorkspaceChanged?.()
+  unsubWorkspaceChanged = getApi().on('workspace-changed', scheduleContentRefresh)
+}
 
-onBeforeUnmount(() => {
+function stopViewListeners() {
   stopSidebarResize?.()
-  offNew()
-  offClose()
+  offNew?.()
+  offClose?.()
+  offNew = null
+  offClose = null
   if (refreshTimer) clearTimeout(refreshTimer)
   unsubWorkspaceChanged?.()
+  unsubWorkspaceChanged = null
   window.removeEventListener('pi-harness:abort-agent', onAbortEvent)
   window.removeEventListener('pi-harness:workspace-open-folder', onOpenFolderEvent)
   window.removeEventListener('pi-harness:workspace-open-file', onOpenWorkspaceEvent)
@@ -408,7 +436,36 @@ onBeforeUnmount(() => {
   window.removeEventListener('pi-harness:workspace-open-recent', onOpenRecentEvent)
   window.removeEventListener('focus', scheduleContentRefresh)
   document.removeEventListener('visibilitychange', onVisibilityChange)
+}
+
+onActivated(() => {
+  viewActive.value = true
+  installShortcuts()
+  installViewListeners()
+  if (!initialized) return
+  void (async () => {
+    await sessions.refresh()
+    if (!viewActive.value) return
+    if (
+      sessions.currentId === inactiveSessionId &&
+      sessions.current?.modified !== inactiveModified
+    ) {
+      const sequence = ++sessionSwitchSequence
+      sessionSwitchQueue = sessionSwitchQueue
+        .catch(() => undefined)
+        .then(() => switchSession(sessions.currentId, sequence))
+      await sessionSwitchQueue
+    }
+    if (viewActive.value) scheduleContentRefresh()
+  })()
 })
+onDeactivated(() => {
+  viewActive.value = false
+  inactiveSessionId = sessions.currentId
+  inactiveModified = sessions.current?.modified
+  stopViewListeners()
+})
+onBeforeUnmount(stopViewListeners)
 
 function openRecent(item: RecentWorkspace) {
   void workspaceSidebar.value?.openRecent(item)
@@ -483,7 +540,7 @@ watch(
     ]"
     :style="workspaceViewStyle"
   >
-    <Teleport to="#titlebar-workspace-actions">
+    <Teleport v-if="viewActive" to="#titlebar-workspace-actions">
       <div class="flex items-center gap-1">
         <IconButton
           :label="$t('intelligence.architecture')"
@@ -531,7 +588,7 @@ watch(
         :aria-label="$t('workspace.resizeSidebar')"
         :aria-valuemin="workspaceSidebarMinWidth"
         :aria-valuemax="WORKSPACE_SIDEBAR_MAX_WIDTH"
-        :aria-valuenow="workspaceSidebarCollapsed ? undefined : currentWorkspaceSidebarWidth()"
+        :aria-valuenow="workspaceSidebarCollapsed ? undefined : workspaceSidebarEffectiveWidth"
         :aria-disabled="workspaceSidebarCollapsed"
         :title="$t('common.reset')"
         data-testid="workspace-sidebar-resizer"
@@ -545,7 +602,7 @@ watch(
       class="workspace-main flex min-h-0 min-w-0 flex-1 flex-col"
     >
       <div
-        v-if="activeWorkspaceSection === 'tools'"
+        v-if="viewActive && activeWorkspaceSection === 'tools'"
         class="flex min-h-0 flex-1 flex-col"
         data-testid="workspace-tools"
       >
@@ -589,7 +646,7 @@ watch(
           <OrchestrationConsole v-else />
         </div>
       </div>
-      <template v-else>
+      <div v-show="activeWorkspaceSection === 'workspace'" class="flex min-h-0 flex-1 flex-col">
         <MingWorkspaceOrnaments
           v-if="mingDynastyActive && !workspace.filePanelOpen && !architectureOpen"
           :zhang-juzheng="zhangJuzhengActive"
@@ -619,14 +676,16 @@ watch(
             :show-status="settings.settings.petStatusText"
           />
           <div class="workspace-primary min-h-0 min-w-0 flex-1 overflow-hidden">
-            <ProjectIntelligencePanel
-              v-if="architectureOpen"
-              :root="architectureRoot"
-              :projects="workspace.importedProjectRoots"
-              @select-project="architectureProject = $event"
-              @close="architectureOpen = false"
-              @explain="explainArchitecture"
-            />
+            <div v-if="architectureOpen" class="h-full min-h-0">
+              <ProjectIntelligencePanel
+                v-if="viewActive && activeWorkspaceSection === 'workspace'"
+                :root="architectureRoot"
+                :projects="workspace.importedProjectRoots"
+                @select-project="architectureProject = $event"
+                @close="architectureOpen = false"
+                @explain="explainArchitecture"
+              />
+            </div>
             <div
               v-else-if="!workspace.canChat"
               data-testid="workspace-project-required"
@@ -675,7 +734,7 @@ watch(
           </div>
           <WorkspaceFilesPanel v-if="workspace.filePanelOpen" ref="filesPanel" />
         </div>
-      </template>
+      </div>
     </section>
   </div>
 </template>

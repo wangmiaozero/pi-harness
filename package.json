@@ -77,7 +77,8 @@
     "release:keygen": "node scripts/release/signing/cli.mjs keygen",
     "release:sign": "node scripts/release/signing/cli.mjs sign",
     "release:verify": "node scripts/release/signing/cli.mjs verify",
-    "release:test-upgrade": "node scripts/release/update-upgrade.mjs"
+    "release:test-upgrade": "node scripts/release/update-upgrade.mjs",
+    "benchmark:navigation": "node scripts/performance/navigation.mjs"
   },
   "dependencies": {
     "@babel/parser": "^8.0.7",
@@ -93,10 +94,10 @@
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.14",
     "@comark/vue": "^0.7.0",
-    "@earendil-works/pi-agent-core": "1.4.0",
-    "@earendil-works/pi-ai": "1.4.0",
-    "@earendil-works/pi-coding-agent": "1.4.0",
-    "@earendil-works/pi-tui": "1.4.0",
+    "@earendil-works/pi-agent-core": "1.5.0",
+    "@earendil-works/pi-ai": "1.5.0",
+    "@earendil-works/pi-coding-agent": "1.5.0",
+    "@earendil-works/pi-tui": "1.5.0",
     "@internationalized/date": "3.12.4",
     "@lezer/highlight": "^1.2.5",
     "@lucide/vue": "^1.59.0",
@@ -157,8 +158,6 @@
   },
   "pnpm": {
     "overrides": {
-      "@earendil-works/pi-coding-agent>undici": "8.12.2",
-      "@earendil-works/pi-coding-agent>minimatch": "11.0.1",
       "source-map-js": "1.2.2",
       "vue-tsgo>get-tsconfig": "-"
     },

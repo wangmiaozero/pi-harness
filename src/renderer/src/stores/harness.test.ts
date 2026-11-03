@@ -127,4 +127,61 @@ describe('Harness historical session reads', () => {
     expect(store.loading).toBe(false)
     expect(session).not.toHaveBeenCalled()
   })
+  it('cancels queued event refreshes when listeners stop or the selected session changes', async () => {
+    vi.useFakeTimers()
+    try {
+      let receive!: (payload: unknown) => void
+      const unsubscribe = vi.fn()
+      window.piSwitch!.on = vi.fn((_channel, callback) => {
+        receive = callback as (payload: unknown) => void
+        return unsubscribe
+      })
+      const store = useHarnessStore()
+      await store.load('old')
+      const stop = store.setupListeners()
+      receive({ sessionId: 'old', event: { type: 'run.started' } })
+      expect(vi.getTimerCount()).toBe(2)
+      await store.load(null)
+      expect(vi.getTimerCount()).toBe(0)
+      await store.load('new')
+      receive({ sessionId: 'new', event: { type: 'run.started' } })
+      stop()
+      expect(vi.getTimerCount()).toBe(0)
+      expect(unsubscribe).toHaveBeenCalledOnce()
+      const reads = state.mock.calls.length
+      await vi.runAllTimersAsync()
+      expect(state).toHaveBeenCalledTimes(reads)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('never puts a stale run detail or comparison into the newly selected session', async () => {
+    let detail!: (value: unknown) => void
+    let comparison!: (value: unknown) => void
+    window.piSwitch!.harness.getRunDetail = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          detail = resolve
+        })
+    ) as never
+    window.piSwitch!.harness.compareRuns = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          comparison = resolve
+        })
+    ) as never
+    const store = useHarnessStore()
+    await store.load('old')
+    const oldDetail = store.loadRunDetail('old-run')
+    const oldComparison = store.loadComparison('old-a', 'old-b')
+    await store.load(null)
+    await store.load('new')
+    detail({ run: { id: 'old-run' } })
+    comparison({ runA: { id: 'old-a' } })
+    await Promise.all([oldDetail, oldComparison])
+    expect(store.runDetail).toBeNull()
+    expect(store.comparison).toBeNull()
+    expect(store.currentRunId).toBeNull()
+  })
 })

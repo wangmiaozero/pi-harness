@@ -61,12 +61,13 @@ function releaseJump() {
 
 const markers = computed(() => buildConversationMinimapMarkers(props.messages))
 const markerIdentity = computed(() => markers.value.map((marker) => marker.id).join('\u0000'))
-const visible = computed(() =>
+const hasRail = computed(() =>
   shouldRenderConversationMinimap({
     markerCount: markers.value.length,
     overflows: overflows.value
   })
 )
+const visible = computed(() => Boolean(props.target) && hasRail.value)
 
 function setMarkerEl(id: string, node: unknown) {
   if (node instanceof HTMLElement) markerEls.set(id, node)
@@ -113,6 +114,7 @@ function recomputeOffsets() {
  * the cursor. Measuring once per layout keeps hover off the critical path.
  */
 function measureMagnifyCenters() {
+  if (!props.target) return
   const centers: Array<{ id: string; center: number }> = []
   // Read-only pass: no style writes, so layout is computed at most once.
   for (const [id, btn] of markerEls) {
@@ -286,6 +288,7 @@ function scheduleScroll() {
 }
 
 function scheduleResize() {
+  if (!props.target) return
   cancelAnimationFrame(resizeRaf)
   resizeRaf = requestAnimationFrame(() => {
     // The rail's gap is marker-count dependent, so dash centers move without
@@ -303,6 +306,11 @@ watch(
   () => props.target,
   (_target, previous) => {
     detachTargetListeners(previous)
+    hovered.value = null
+    cancelAnimationFrame(moveRaf)
+    cancelAnimationFrame(scrollRaf)
+    cancelAnimationFrame(resizeRaf)
+    cancelAnimationFrame(railResizeRaf)
     attachTargetListeners()
     scheduleResize()
   },
@@ -311,8 +319,8 @@ watch(
 
 watch(visible, (isVisible) => {
   if (!isVisible) return
-  // Returning from hidden remounts the rail, so re-measure its dash centers.
-  requestAnimationFrame(measureMagnifyCenters)
+  cancelAnimationFrame(railResizeRaf)
+  railResizeRaf = requestAnimationFrame(measureMagnifyCenters)
 })
 
 watch(
@@ -352,7 +360,8 @@ window.addEventListener('resize', scheduleResize)
 
 <template>
   <nav
-    v-if="visible"
+    v-if="hasRail"
+    v-show="visible"
     ref="rail"
     class="minimap-rail"
     :aria-label="$t('workspace.minimapLabel')"

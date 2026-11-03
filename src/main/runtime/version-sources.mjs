@@ -7,7 +7,8 @@ export const PI_SDK_PACKAGES = [
   '@earendil-works/pi-tui',
   '@earendil-works/pi-mcp',
   '@earendil-works/pi-codemode',
-  '@earendil-works/pi-telemetry'
+  '@earendil-works/pi-telemetry',
+  '@earendil-works/pi-schema'
 ]
 export function latestStable(versions) {
   return (

@@ -113,3 +113,19 @@ test('navigation width and bottom Settings remain fixed across skins', async ({ 
     await page.keyboard.press('Escape')
   }
 })
+
+test('More opens on click activation without hover and closes on a second click', async ({
+  page
+}) => {
+  const more = page.getByTestId('navigation-more')
+  const menu = page.getByTestId('navigation-more-menu')
+  await page.mouse.move(600, 400)
+  await more.evaluate((element) => (element as HTMLButtonElement).click())
+  await expect(menu).toBeVisible()
+  await expect(more).toHaveAttribute('aria-expanded', 'true')
+  await more.evaluate((element) => (element as HTMLButtonElement).click())
+  await expect(menu).toBeHidden()
+  await more.click()
+  await openOverflowPage(page, 'git')
+  await expect(more).toHaveAttribute('aria-expanded', 'false')
+})

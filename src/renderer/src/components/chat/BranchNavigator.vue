@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
-import { getSiblingBranchIds } from '@shared/workspace/session-tree'
 import { useAgentStore } from '@renderer/stores/agent'
 import { useSessionStore } from '@renderer/stores/sessions'
 
@@ -9,11 +8,8 @@ const props = defineProps<{ entryId: string }>()
 const agent = useAgentStore()
 const sessions = useSessionStore()
 
-const siblings = computed(() =>
-  getSiblingBranchIds(
-    Object.entries(agent.entryParents).map(([id, parentId]) => ({ id, parentId })),
-    props.entryId
-  )
+const siblings = computed(
+  () => agent.branchSiblings.get(props.entryId) ?? { ids: [props.entryId], index: 0 }
 )
 
 const visible = computed(() => siblings.value.ids.length > 1)

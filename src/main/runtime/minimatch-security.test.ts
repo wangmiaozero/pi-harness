@@ -25,7 +25,7 @@ afterEach(async () => {
 it.each(['**/../a/b', '**/../x/y/'])(
   'bounds Pi dependency preprocessing for repeated %s patterns',
   (segment) => {
-    expect(piRequire('minimatch/package.json').version).toBe('11.0.1')
+    expect(piRequire('minimatch/package.json').version).toBe('11.0.3')
     const matcher = new Minimatch(Array(7).fill(segment).join('/'), {
       optimizationLevel: 2,
       braceExpandMax: 8

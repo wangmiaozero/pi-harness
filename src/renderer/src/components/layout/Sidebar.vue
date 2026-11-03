@@ -111,18 +111,16 @@ function isActive(path: string): boolean {
         </RouterLink>
       </NavigationTooltip>
       <DropdownMenuRoot v-model:open="moreOpen" :modal="false">
-        <DropdownMenuTrigger as-child>
-          <button
-            type="button"
-            data-testid="navigation-more"
-            :aria-label="t('nav.more')"
-            class="flex size-9 max-w-full shrink-0 items-center justify-center rounded-[10px] text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] no-drag focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
-            :class="{
-              'bg-[var(--bg-surface-raised)] text-[var(--text-primary)]': moreOpen || hiddenActive
-            }"
-          >
-            <MoreHorizontal class="size-5" aria-hidden="true" />
-          </button>
+        <DropdownMenuTrigger
+          type="button"
+          data-testid="navigation-more"
+          :aria-label="t('nav.more')"
+          class="flex size-9 max-w-full shrink-0 items-center justify-center rounded-[10px] text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] no-drag focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+          :class="{
+            'bg-[var(--bg-surface-raised)] text-[var(--text-primary)]': moreOpen || hiddenActive
+          }"
+        >
+          <MoreHorizontal class="size-5" aria-hidden="true" />
         </DropdownMenuTrigger>
 
         <DropdownMenuPortal>

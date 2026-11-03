@@ -188,3 +188,26 @@ describe('useStickToBottom', () => {
     expect(api.atBottom.value).toBe(false)
   })
 })
+
+it('releases interrupted smooth-scroll listeners and all animation frames on unbind', () => {
+  const pending = new Map<number, FrameRequestCallback>()
+  let serial = 0
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    pending.set(++serial, callback)
+    return serial
+  })
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => pending.delete(id))
+  const scroller = new FakeScroller()
+  scroller.scrollHeight = 2000
+  const api = useStickToBottom(ref(scroller as unknown as HTMLElement), ref(null))
+  api.bind()
+  api.scrollToEdge('top', 'smooth')
+  expect(scroller.listeners.get('scrollend')?.size).toBe(1)
+  api.scrollToEdge('bottom', 'smooth')
+  expect(scroller.listeners.get('scrollend')?.size).toBe(1)
+  api.scheduleSync()
+  api.unbind()
+  expect(scroller.listeners.get('scrollend')?.size).toBe(0)
+  expect(pending.size).toBe(0)
+  vi.unstubAllGlobals()
+})

@@ -43,11 +43,23 @@ export function buildMessageFileChanges(
     artifactsByRun.set(artifact.runId, grouped)
   }
 
+  // Resolve each anchor and its turn's final assistant once instead of scanning
+  // the complete transcript separately for every run.
+  const positions = new Map<string, number>()
+  const finalAfter = new Int32Array(messages.length).fill(-1)
+  let final = -1
+  for (let index = messages.length - 1; index >= 0; index--) {
+    finalAfter[index] = final
+    const message = messages[index]
+    if (message.role === 'user') final = -1
+    else if (message.role === 'assistant' && final < 0) final = index
+    if (entryIds[index]) positions.set(entryIds[index], index)
+  }
   for (const run of runs) {
     if (!run.anchorEntryId) continue
-    const startIndex = entryIds.indexOf(run.anchorEntryId)
-    if (startIndex < 0) continue
-    const finalAssistantIndex = findFinalAssistantIndex(messages, startIndex)
+    const startIndex = positions.get(run.anchorEntryId)
+    if (startIndex === undefined) continue
+    const finalAssistantIndex = finalAfter[startIndex]
     const finalEntryId = entryIds[finalAssistantIndex]
     if (!finalEntryId) continue
 
@@ -85,16 +97,6 @@ function claimsFileMutation(message: AgentMessage): boolean {
     .map((block) => (block.type === 'text' ? block.text : ''))
     .join('\n')
   return FILE_MUTATION_CLAIMS.some((pattern) => pattern.test(text))
-}
-
-function findFinalAssistantIndex(messages: readonly AgentMessage[], startIndex: number): number {
-  let finalIndex = -1
-  for (let index = startIndex + 1; index < messages.length; index += 1) {
-    const message = messages[index]
-    if (message?.role === 'user') break
-    if (message?.role === 'assistant') finalIndex = index
-  }
-  return finalIndex
 }
 
 function toFileChange(artifact: HarnessArtifact, cwd: string | null): MessageFileChange {

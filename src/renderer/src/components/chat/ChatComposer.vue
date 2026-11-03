@@ -12,6 +12,7 @@ import {
 import WorkspaceVoiceControl from '@renderer/features/agent-settings/WorkspaceVoiceControl.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
+import { useChatViewActive } from '@renderer/composables/chat-view-activity'
 import ComposerModelPicker from './ComposerModelPicker.vue'
 import { getApi } from '@renderer/composables/useApi'
 import {
@@ -109,6 +110,7 @@ const emit = defineEmits<{
   unlockAudio: []
 }>()
 const { t } = useI18n()
+const active = useChatViewActive()
 const workspace = useWorkspaceStore()
 const agent = useAgentStore()
 const sessions = useSessionStore()
@@ -122,6 +124,7 @@ const inputBox = ref<HTMLElement | null>(null)
 const editorFocused = ref(false)
 const previewImage = ref<ChatDraftImage | null>(null)
 const previewOpen = ref(false)
+const moreOpen = ref(false)
 const dragActive = ref(false)
 const pendingImageCount = ref(0)
 const modelSwitching = ref(false)
@@ -324,7 +327,9 @@ const filteredMentionSkills = computed(() => {
     })
     .slice(0, 6)
 })
-const skillMenuOpen = computed(() => Boolean(skillMention.value) && !selectedImageModel.value)
+const skillMenuOpen = computed(
+  () => active.value && Boolean(skillMention.value) && !selectedImageModel.value
+)
 const activeMentionSkill = computed(
   () => filteredMentionSkills.value[activeSkillIndex.value] ?? null
 )
@@ -956,6 +961,13 @@ watch(selectedImageModel, (selected) => {
   }
 })
 
+watch(active, (visible) => {
+  if (visible) return
+  skillMention.value = null
+  previewOpen.value = false
+  moreOpen.value = false
+})
+
 onMounted(() => {
   void refreshOpenCodeOptions()
   syncEditorText()
@@ -1303,7 +1315,7 @@ onBeforeUnmount(() => {
               @interact="emit('unlockAudio')"
               @open="refreshOpenCodeOptions"
             />
-            <DropdownMenuRoot :modal="false">
+            <DropdownMenuRoot v-model:open="moreOpen" :modal="false">
               <DropdownMenuTrigger as-child>
                 <button
                   type="button"

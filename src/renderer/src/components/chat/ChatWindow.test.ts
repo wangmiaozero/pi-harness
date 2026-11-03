@@ -1,6 +1,8 @@
 import { flushPromises, shallowMount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
+import { CHAT_VIEW_ACTIVE } from '@renderer/composables/chat-view-activity'
 import { i18n } from '@renderer/i18n'
 import type { PiSwitchAPI } from '@shared/ipc/api-types'
 import { useAgentStore } from '@renderer/stores/agent'
@@ -169,4 +171,42 @@ it('persists the first sent session before asynchronous workspace restoration fi
   } finally {
     wrapper.unmount()
   }
+})
+
+it('suspends hidden transcript presentation and resumes from the current store without losing tokens', async () => {
+  window.piSwitch = { on: vi.fn(() => () => undefined) } as unknown as PiSwitchAPI
+  setActivePinia(createPinia())
+  const agent = useAgentStore()
+  const active = ref(true)
+  agent.messages = [{ role: 'user', content: 'Original' }]
+  const wrapper = shallowMount(ChatWindow, {
+    global: { plugins: [i18n], provide: { [CHAT_VIEW_ACTIVE as symbol]: active } }
+  })
+  await flushPromises()
+  const history = () => wrapper.findComponent(MessageHistory)
+  const original = history().props('items')
+  active.value = false
+  await flushPromises()
+  agent.messages = [...agent.messages, { role: 'user', content: 'Background persisted message' }]
+  agent.streaming = {
+    ...agent.streaming,
+    isStreaming: true,
+    streamingMessage: {
+      role: 'assistant',
+      model: 'fixture',
+      provider: 'fixture',
+      content: [{ type: 'text', text: 'Complete background stream' }]
+    }
+  }
+  await flushPromises()
+  expect(history().props('items')).toBe(original)
+  expect(history().props('liveMessage')).toBeNull()
+  expect(agent.messages).toHaveLength(2)
+  active.value = true
+  await flushPromises()
+  expect(history().props('items')).toHaveLength(2)
+  expect(history().props('liveMessage')).toMatchObject({
+    content: [{ text: 'Complete background stream' }]
+  })
+  wrapper.unmount()
 })

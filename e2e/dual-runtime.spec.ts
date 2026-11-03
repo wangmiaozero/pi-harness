@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { _electron as electron } from '@playwright/test'
 import { test, expect } from './fixtures'
+import { PI_SDK_PACKAGES } from '../src/main/runtime/version-sources.mjs'
 import catalog from '../src/main/runtime/catalog.json' with { type: 'json' }
 
 test.skip(
@@ -25,7 +26,7 @@ test('shows independent runtimes in existing settings and rejects invalid select
   }, info.pi.executablePath!)
   expect(rejected).toBe('SECURITY_ERROR')
   expect(info.pi).toMatchObject({ valid: true, version: catalog.pi.version, integrity: 'verified' })
-  expect(info.versions?.sdkPackages).toHaveLength(7)
+  expect(info.versions?.sdkPackages).toHaveLength(PI_SDK_PACKAGES.length)
   expect(
     info.versions?.sdkPackages.every(
       (entry) => entry.installedVersion === catalog.pi.version && entry.compatible === true

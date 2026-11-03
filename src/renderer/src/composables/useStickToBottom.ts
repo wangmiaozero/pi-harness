@@ -26,6 +26,8 @@ export function useStickToBottom(
   let syncFrame: number | null = null
   let resizeObserver: ResizeObserver | null = null
   let touchY = 0
+  const guardFrames = new Set<number>()
+  let removeScrollend: (() => void) | null = null
   let scrollendTimer: ReturnType<typeof setTimeout> | null = null
 
   function updateState() {
@@ -38,9 +40,19 @@ export function useStickToBottom(
   }
 
   function clearScrollendTimer() {
+    removeScrollend?.()
+    removeScrollend = null
     if (scrollendTimer === null) return
     clearTimeout(scrollendTimer)
     scrollendTimer = null
+  }
+
+  function afterFrame(callback: () => void) {
+    const frame = requestAnimationFrame(() => {
+      guardFrames.delete(frame)
+      callback()
+    })
+    guardFrames.add(frame)
   }
 
   function beginProgrammatic(until: 'frame' | 'settle' = 'frame') {
@@ -48,8 +60,8 @@ export function useStickToBottom(
     const generation = ++programmaticGeneration
     clearScrollendTimer()
     if (until === 'frame') {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      afterFrame(() => {
+        afterFrame(() => {
           if (generation !== programmaticGeneration) return
           programmatic = false
         })
@@ -60,6 +72,8 @@ export function useStickToBottom(
 
   function endProgrammatic() {
     programmaticGeneration += 1
+    for (const frame of guardFrames) cancelAnimationFrame(frame)
+    guardFrames.clear()
     programmatic = false
     clearScrollendTimer()
   }
@@ -161,13 +175,14 @@ export function useStickToBottom(
 
     const settle = () => {
       if (generation !== programmaticGeneration) return
+      clearScrollendTimer()
       programmatic = false
       updateState()
     }
     el.addEventListener('scrollend', settle, { once: true })
+    removeScrollend = () => el.removeEventListener('scrollend', settle)
     scrollendTimer = setTimeout(() => {
       scrollendTimer = null
-      el.removeEventListener('scrollend', settle)
       settle()
     }, 400)
   }
@@ -182,6 +197,7 @@ export function useStickToBottom(
   }
 
   function bind() {
+    resizeObserver?.disconnect()
     if (typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver(scheduleSync)
       if (scroller.value) resizeObserver.observe(scroller.value)

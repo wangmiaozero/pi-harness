@@ -119,7 +119,7 @@ test.describe('Pi-Harness smoke', () => {
     const harnessConsole = page.getByTestId('harness-console')
     await expect(harnessConsole).toBeVisible()
     await expect(page.getByText(/尚未选择会话|No session selected/)).toBeVisible()
-    await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-tabs')).toBeHidden()
     await expect(
       page.locator('#titlebar-workspace-actions').getByTestId('workspace-toggle-files')
     ).toBeVisible()
@@ -478,7 +478,7 @@ test.describe('Pi-Harness smoke', () => {
     await page.getByTestId('workspace-section-tools').click()
     const harnessConsole = page.getByTestId('harness-console')
     await expect(harnessConsole).toBeVisible()
-    await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
+    await expect(page.getByTestId('workspace-tabs')).toBeHidden()
     await expect(
       page.locator('#titlebar-workspace-actions').getByTestId('workspace-toggle-files')
     ).toBeVisible()

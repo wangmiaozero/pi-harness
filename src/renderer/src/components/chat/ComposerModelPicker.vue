@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Brain, Check, ChevronDown, ChevronRight, Cpu, Search } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
+import { useChatViewActive } from '@renderer/composables/chat-view-activity'
 import ThinkingSlider from './ThinkingSlider.vue'
 import { composerThinkingLevels } from './thinking-levels'
 
@@ -32,6 +33,7 @@ const props = withDefaults(
 )
 
 const open = ref(false)
+const active = useChatViewActive()
 const { t } = useI18n()
 const search = ref('')
 const trigger = ref<HTMLButtonElement | null>(null)
@@ -129,6 +131,7 @@ function syncModelPanel() {
 }
 
 function syncFloating() {
+  if (!active.value || !open.value) return
   syncVendorPanel()
   if (openVendor.value) void nextTick(syncModelPanel)
 }
@@ -214,6 +217,9 @@ watch(filteredModels, () => {
 
 watch(open, (value) => {
   if (value) syncFloating()
+})
+watch(active, (visible) => {
+  if (!visible) close()
 })
 </script>
 

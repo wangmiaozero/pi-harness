@@ -116,3 +116,19 @@ export function getSiblingBranchIds(
   const index = Math.max(0, ids.indexOf(entryId))
   return { ids, index }
 }
+
+/** One index per session snapshot, shared by every message's branch controls. */
+export function indexBranchSiblings(
+  parents: Readonly<Record<string, string | null>>
+): ReadonlyMap<string, BranchSiblings> {
+  const groups = new Map<string | null, string[]>()
+  for (const [id, parent] of Object.entries(parents)) {
+    const siblings = groups.get(parent)
+    if (siblings) siblings.push(id)
+    else groups.set(parent, [id])
+  }
+  const index = new Map<string, BranchSiblings>()
+  for (const ids of groups.values())
+    ids.forEach((id, position) => index.set(id, { ids, index: position }))
+  return index
+}

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, type Component } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
 import { Check } from '@lucide/vue'
+import { useChatViewActive } from '@renderer/composables/chat-view-activity'
 
 const model = defineModel<string>({ required: true })
 const emit = defineEmits<{ interact: [] }>()
@@ -24,6 +25,10 @@ const props = withDefaults(
 )
 
 const open = ref(false)
+const active = useChatViewActive()
+watch(active, (visible) => {
+  if (!visible) open.value = false
+})
 const trigger = ref<HTMLButtonElement | null>(null)
 const panel = ref<HTMLElement | null>(null)
 const panelStyle = ref<Record<string, string>>({})
@@ -95,14 +100,18 @@ function onKeydown(event: KeyboardEvent) {
 onMounted(() => {
   document.addEventListener('pointerdown', onPointerDown, true)
   document.addEventListener('keydown', onKeydown, true)
-  window.addEventListener('resize', syncPanel)
+  window.addEventListener('resize', onResize)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', onPointerDown, true)
   document.removeEventListener('keydown', onKeydown, true)
-  window.removeEventListener('resize', syncPanel)
+  window.removeEventListener('resize', onResize)
 })
+
+function onResize() {
+  if (active.value && open.value) syncPanel()
+}
 </script>
 
 <template>

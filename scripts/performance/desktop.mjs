@@ -44,5 +44,8 @@ for (let round = 1; round <= rounds; round++) {
   }
 }
 await run(['test:e2e:only', 'e2e/quality-performance.spec.ts'])
+await run(['test:e2e:only', 'e2e/interaction-performance.spec.ts'], {
+  PI_HARNESS_NAV_BENCHMARK: '1'
+})
 await summarize(metricsDirectory)
 process.stdout.write(`Desktop performance report: ${metricsDirectory}\n`)

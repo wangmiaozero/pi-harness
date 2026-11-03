@@ -128,3 +128,29 @@ it('merges assistant fragments and activity into one response per user message',
   })
   expect(turns[3]).toMatchObject({ text: 'Continuing.' })
 })
+
+it('keeps completed turn identities while live text, tools and images match full presentation', async () => {
+  const { withLiveConversation } = await import('./message-activity')
+  const inputs: HistoryItem[] = [
+    { key: 'user-1', message: { role: 'user', content: 'First' } },
+    assistant('done', [{ type: 'text', text: 'Done.' }]),
+    { key: 'user-2', message: { role: 'user', content: 'Continue' } },
+    assistant('tools', [call()])
+  ]
+  for (const tail of [inputs, inputs.slice(0, 3), inputs.slice(0, 2), []]) {
+    const persisted = buildMessagePresentation(tail)
+    const grouped = groupConversationTurns(persisted.items)
+    for (const content of [
+      [{ type: 'text' as const, text: 'Next tokens' }],
+      [call('next'), { type: 'text' as const, text: 'Running' }, call('after')],
+      [{ type: 'image' as const, data: 'TQ==', mimeType: 'image/png' }]
+    ]) {
+      const live = { role: 'assistant' as const, model: 'fixture', provider: 'fixture', content }
+      const incremental = withLiveConversation(grouped, persisted, live)
+      expect(incremental).toEqual(groupConversationTurns(withLiveMessage(persisted, live).items))
+      const prefixLength = grouped.length - (grouped.at(-1)?.type === 'turn' ? 1 : 0)
+      for (let i = 0; i < prefixLength; i++) expect(incremental[i]).toBe(grouped[i])
+    }
+    expect(withLiveConversation(grouped, persisted, null)).toBe(grouped)
+  }
+})

@@ -16,7 +16,7 @@ import { RunRegistry } from '../harness/runs/run-registry'
 
 type Reply = { tool: string; args: Record<string, unknown> } | string
 
-describe('Pi 1.2 native execution compatibility', () => {
+describe('Pi 1.5 native execution compatibility', () => {
   let root: string
   let cwd: string
   let agentDir: string
@@ -262,6 +262,50 @@ describe('Pi 1.2 native execution compatibility', () => {
     expect(await fs.readFile(path.join(root, 'shutdown'), 'utf8')).toBe('reload\n')
     await wrapper.shutdown()
     expect(runtime.get(wrapper.sessionId)).toBeUndefined()
+  }, 60000)
+
+  it('validates and coerces plain JSON Schema and legacy TypeBox extension tools through Pi 1.5', async () => {
+    const extension = path.join(agentDir, 'extensions', 'schemas.ts')
+    const observations = path.join(root, 'schema-inputs.jsonl')
+    await fs.mkdir(path.dirname(extension))
+    await fs.writeFile(
+      extension,
+      `
+      import fs from 'node:fs'
+      import { Type } from '@earendil-works/pi-ai'
+      export default function(pi) {
+        const schemas = {
+          fixture_json: { type: 'object', properties: { count: { type: 'number' }, paths: { type: 'array', items: { type: 'string' } } }, required: ['count', 'paths'] },
+          fixture_typebox: Type.Object({ count: Type.Number(), paths: Type.Array(Type.String()) })
+        }
+        for (const [name, parameters] of Object.entries(schemas)) pi.registerTool({ name, label: name, description: name, parameters,
+          execute: async (_id, args) => {
+            fs.appendFileSync(${JSON.stringify(observations)}, JSON.stringify({name, args})+'\\n')
+            return { content: [{type:'text', text: JSON.stringify(args)}], details: {} }
+          }
+        })
+      }
+    `
+    )
+    const wrapper = await start(['read'])
+    for (const tool of ['fixture_json', 'fixture_typebox']) {
+      const valid = await run(wrapper.sessionId, { tool, args: { count: '2', paths: 'file.ts' } })
+      expect(valid).toContainEqual(expect.objectContaining({ toolName: tool, isError: false }))
+      const invalid = await run(wrapper.sessionId, { tool, args: { count: 'invalid', paths: [] } })
+      expect(invalid).toContainEqual(expect.objectContaining({ toolName: tool, isError: true }))
+      expect(JSON.stringify(invalid)).toContain('expected number')
+    }
+    const calls = (await fs.readFile(observations, 'utf8'))
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line))
+    expect(calls).toEqual(
+      ['fixture_json', 'fixture_typebox'].map((name) => ({
+        name,
+        args: { count: 2, paths: ['file.ts'] }
+      }))
+    )
+    expect(await fs.readFile(wrapper.inner.sessionFile!, 'utf8')).toContain('fixture_typebox')
   }, 60000)
 
   it('propagates native cancellation through asynchronous tool permission checks', async () => {

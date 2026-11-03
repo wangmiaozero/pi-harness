@@ -122,7 +122,11 @@ onBeforeUnmount(() => {
 
 <template>
   <AppShell>
-    <RouterView />
+    <RouterView v-slot="{ Component }">
+      <KeepAlive include="WorkspaceView" :max="1">
+        <component :is="Component" />
+      </KeepAlive>
+    </RouterView>
   </AppShell>
   <LiveVoiceHost />
   <StartupAnimation />

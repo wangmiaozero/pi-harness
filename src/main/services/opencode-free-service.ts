@@ -751,7 +751,7 @@ export async function verifyNativeToolRoundtrip(
   const sdk = await loadPiCodingAgent()
   const { createOpenCodeProvider } =
     await import('../../../resources/desktop-extension/opencode-provider.mjs')
-  const { Type } = await import('@earendil-works/pi-ai')
+  const { Type } = await import('typebox')
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-opencode-'))
   let session: import('@earendil-works/pi-coding-agent').AgentSession | undefined
   let executed = 0,

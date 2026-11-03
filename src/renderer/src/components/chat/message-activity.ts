@@ -189,10 +189,13 @@ export type ConversationItem =
   | { type: 'turn'; key: string; items: PresentationItem[]; text: string }
 
 /** One visible assistant response per user turn, retaining the order of all parts. */
-export function groupConversationTurns(items: readonly PresentationItem[]): ConversationItem[] {
+export function groupConversationTurns(
+  items: readonly PresentationItem[],
+  initialUserKey = 'initial'
+): ConversationItem[] {
   const conversation: ConversationItem[] = []
   let turn: Extract<ConversationItem, { type: 'turn' }> | null = null
-  let userKey = 'initial'
+  let userKey = initialUserKey
   for (const item of items) {
     if (item.type === 'message' && item.item.message.role === 'user') {
       conversation.push(item)
@@ -224,4 +227,31 @@ export function groupConversationTurns(items: readonly PresentationItem[]): Conv
     }
   }
   return conversation
+}
+
+/** Rebuild only the unfinished tail; completed turns retain their identity on token updates. */
+export function withLiveConversation(
+  conversation: readonly ConversationItem[],
+  history: ReturnType<typeof buildMessagePresentation>,
+  message: AssistantMessage | null | undefined
+): readonly ConversationItem[] {
+  if (!message) return conversation
+  const last = conversation.at(-1)
+  const tail = last?.type === 'turn' ? last.items : []
+  const live = withLiveMessage({ ...history, items: tail }, message)
+  if (!tail.length && last && live.items[0]?.type === 'activity') {
+    live.items[0] = { ...live.items[0], key: `activity:${last.key}` }
+  }
+  let anchor = last?.type === 'turn' ? last.key.slice('turn:'.length) : 'initial'
+  if (last?.type !== 'turn') {
+    for (let index = conversation.length - 1; index >= 0; index--) {
+      const item = conversation[index]
+      if (item.type === 'message' && item.item.message.role === 'user') {
+        anchor = item.key
+        break
+      }
+    }
+  }
+  const grouped = groupConversationTurns(live.items, anchor)
+  return [...(last?.type === 'turn' ? conversation.slice(0, -1) : conversation), ...grouped]
 }

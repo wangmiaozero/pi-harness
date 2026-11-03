@@ -476,8 +476,10 @@ test('ming portrait themes render full figures beside parchment conversation sur
     await page.getByTestId('workspace-section-tools').click()
     const harnessConsole = page.getByTestId('harness-console')
     await expect(harnessConsole).toBeVisible()
-    await expect(page.getByTestId('portrait-skin-panel')).toHaveCount(0)
-    await expect(page.getByTestId('workspace-tabs')).toHaveCount(0)
+    // The cached chat retains its nodes while Tools owns the visible surface.
+    await expect(page.getByTestId('portrait-skin-panel')).toBeHidden()
+    await expect(page.getByTestId('workspace-tabs')).toBeHidden()
+    await expect(page.getByTestId('chat-window')).toBeHidden()
     await expect(
       page.locator('#titlebar-workspace-actions').getByTestId('workspace-toggle-files')
     ).toBeVisible()

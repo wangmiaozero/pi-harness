@@ -82,3 +82,25 @@ describe('session tree', () => {
     expect(siblings).toEqual({ ids: ['a1', 'a2', 'a3'], index: 1 })
   })
 })
+
+it('indexes branch positions once per snapshot and retains native sibling order', async () => {
+  const { indexBranchSiblings } = await import('./session-tree')
+  const parents = { root: null, left: 'root', right: 'root', leaf: 'left', other: null }
+  const index = indexBranchSiblings(parents)
+  for (const id of Object.keys(parents)) {
+    expect(index.get(id)).toEqual(
+      getSiblingBranchIds(
+        Object.entries(parents).map(([id, parentId]) => ({ id, parentId })),
+        id
+      )
+    )
+  }
+  expect(index.get('left')!.ids).toBe(index.get('right')!.ids)
+  expect(index.get('missing')).toBeUndefined()
+  expect(indexBranchSiblings({ ...parents, next: 'root' }).get('left')!.ids).toEqual([
+    'left',
+    'right',
+    'next'
+  ])
+  expect(index.get('left')!.ids).toEqual(['left', 'right'])
+})
