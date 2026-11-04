@@ -58,6 +58,8 @@ coverage/
 
 # Internal notes & screenshots (local paths / personal config — not for open source)
 task/
+wangmiao-ai-docs/
+wangmiao-task/
 design-qa.md
 
 # Icon intermediate (keep png/ico/icns)
