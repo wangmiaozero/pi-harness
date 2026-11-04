@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -72,22 +73,24 @@ describe('JsonRunRepository', () => {
     const store = tempStore()
     const repository = new JsonRunRepository(store)
     const day = 24 * 60 * 60 * 1000
-    await Promise.all(
-      Array.from({ length: 20 }, (_, index) =>
-        repository.save(run(`run-${index}`, { startedAt: 10 * day }))
-      )
+    const history = Array.from({ length: 20 }, (_, index) =>
+      run(`run-${index}`, { startedAt: 10 * day })
     )
+    // Seed history once; overlapping completions still exercise queued mutations.
+    await repository.saveMany(history.slice(0, 17))
+    await Promise.all(history.slice(17).map((entry) => repository.save(entry)))
     expect(await repository.listAll()).toHaveLength(20)
     await Promise.all([
       repository.prune(11 * day, 2),
       repository.save(run('new', { startedAt: 11 * day }))
     ])
     expect(await repository.listAll()).toHaveLength(21)
-    expect(
-      await new JsonRunRepository(
-        new JsonStore((store as unknown as { filePath: string }).filePath, EMPTY_RUN_STORE)
-      ).listAll()
-    ).toHaveLength(21)
+    const persisted = await new JsonRunRepository(
+      new JsonStore((store as unknown as { filePath: string }).filePath, EMPTY_RUN_STORE)
+    ).listAll()
+    expect(persisted.map((entry) => entry.id).sort()).toEqual(
+      [...history.map((entry) => entry.id), 'new'].sort()
+    )
   })
 
   it('saves, reads and lists runs by session and cwd', async () => {

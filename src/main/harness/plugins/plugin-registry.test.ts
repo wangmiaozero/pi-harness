@@ -3,6 +3,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import os from 'node:os'
 import { beforeEach, afterEach, describe, it, expect } from 'vitest'
+import type { PluginRecord } from '@shared/harness-plugins/types'
 import { PluginRegistry, inspectPlugin } from './plugin-registry'
 let dir: string, registry: PluginRegistry, source: string
 beforeEach(async () => {
@@ -117,22 +118,41 @@ describe('local plugin registry', () => {
       }
     ]
     manifest.permissions.push('teams:contribute')
-    let rejectedId = ''
-    for (let i = 0; i < 32; i++) {
-      manifest.id = `org.test.capacity-${i}`
-      await fs.writeFile(path.join(source, 'plugin.json'), JSON.stringify(manifest))
-      try {
-        await registry.install(source)
-      } catch (error) {
-        expect(String(error)).toContain('storage limit')
-        rejectedId = manifest.id
-        break
+    await fs.writeFile(path.join(source, 'plugin.json'), JSON.stringify(manifest))
+    const inspected = await inspectPlugin(source)
+    const records: PluginRecord[] = []
+    const snapshot = (plugins: PluginRecord[]) =>
+      JSON.stringify({ version: 1, plugins }, null, 2) + '\n'
+    let candidate: PluginRecord
+    // Construct the byte-limit fixture once; only the rejected install needs staging.
+    for (;;) {
+      candidate = {
+        manifest: { ...inspected.manifest, id: `org.test.capacity-${records.length}` },
+        digest: inspected.digest,
+        enabled: false,
+        grants: [],
+        trustedDigest: null,
+        installedAt: Date.now()
       }
+      if (Buffer.byteLength(snapshot([...records, candidate]), 'utf8') > 512 * 1024) break
+      records.push(candidate)
     }
-    expect(rejectedId).not.toBe('')
-    await expect(fs.access(path.join(registry.directory, rejectedId))).rejects.toThrow()
+    expect(records.length).toBeGreaterThan(1)
+    expect(records.length).toBeLessThan(64)
+    expect(Buffer.byteLength(snapshot(records), 'utf8')).toBeLessThanOrEqual(512 * 1024)
+    const before = snapshot(records)
+    await fs.writeFile(path.join(registry.directory, 'registry.json'), before)
+    await registry.initialize()
+    await fs.writeFile(path.join(source, 'plugin.json'), JSON.stringify(candidate.manifest))
+    await expect(registry.install(source)).rejects.toThrow('storage limit')
+    await expect(fs.access(path.join(registry.directory, candidate.manifest.id))).rejects.toThrow()
+    expect(
+      (await fs.readdir(registry.directory)).filter((name) => name.startsWith('.install-'))
+    ).toEqual([])
+    expect(await fs.readFile(path.join(registry.directory, 'registry.json'), 'utf8')).toBe(before)
+    expect(registry.list()).toEqual(records)
     const restored = new PluginRegistry(registry.directory)
     await restored.initialize()
-    expect(restored.list()).toEqual(registry.list())
+    expect(restored.list()).toEqual(records)
   })
 })
