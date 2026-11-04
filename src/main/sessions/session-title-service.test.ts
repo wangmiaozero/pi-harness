@@ -1,3 +1,4 @@
+// @vitest-environment node
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -65,6 +66,13 @@ async function store() {
   await store.read()
   return store
 }
+function changedNotification() {
+  let resolve!: () => void
+  const notified = new Promise<void>((done) => {
+    resolve = done
+  })
+  return { changed: vi.fn(() => resolve()), notified }
+}
 describe('background session titles', () => {
   it('coalesces requests, persists the model title and notifies without changing the transcript', async () => {
     const data = await store()
@@ -75,7 +83,7 @@ describe('background session titles', () => {
           finish = resolve
         })
     )
-    const changed = vi.fn()
+    const { changed, notified } = changedNotification()
     const service = new SessionTitleService(data, generate, changed)
     const transcript = detail()
     const before = JSON.stringify(transcript)
@@ -83,7 +91,9 @@ describe('background session titles', () => {
     service.observe(transcript)
     await vi.waitFor(() => expect(generate).toHaveBeenCalledTimes(1))
     finish('修复会话切换状态')
-    await vi.waitFor(() => expect(changed).toHaveBeenCalledWith('session'))
+    // The notification follows real durable I/O, bounded by the test's deadline.
+    await notified
+    expect(changed).toHaveBeenCalledWith('session')
     expect(service.title(transcript.info!)).toBe('修复会话切换状态')
     expect(JSON.stringify(transcript)).toBe(before)
     service.observe(transcript)
@@ -110,12 +120,13 @@ describe('background session titles', () => {
     await data.update({
       session: { path: '/sessions/session.jsonl', title: '| **agent-admin** | `/agent-admin` |' }
     })
-    const changed = vi.fn()
+    const { changed, notified } = changedNotification()
     const generate = vi.fn().mockResolvedValue('**修复会话切换状态**')
     const service = new SessionTitleService(data, generate, changed)
     expect(service.title(detail().info!)).toBeUndefined()
     service.observe(detail())
-    await vi.waitFor(() => expect(changed).toHaveBeenCalledWith('session'))
+    await notified
+    expect(changed).toHaveBeenCalledWith('session')
     expect(service.title(detail().info!)).toBe('修复会话切换状态')
     expect(data.peek().session?.title).toBe('修复会话切换状态')
     service.close()
