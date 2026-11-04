@@ -2,6 +2,17 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.20 — 2026-11-04
+
+This release keeps navigation menus and your current focus intact when workspace imports or session actions finish in the background.
+
+### Fixed
+
+#### Reliable workspace navigation
+
+- Fixed the More menu closing unexpectedly when an import or project session finishes opening.
+- Prevented delayed workspace actions from moving focus away from the control or page you are using.
+
 ## 2.3.19 — 2026-11-04
 
 This release makes switching pages and returning to long conversations more responsive, keeps drafts and ongoing replies intact while navigating, and updates the built-in Native Pi runtime to 1.5.0. It also fixes the More menu and missed workspace file updates on macOS.
