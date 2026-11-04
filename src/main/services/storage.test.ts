@@ -1,22 +1,33 @@
+// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { once } from 'node:events'
 import { atomicWriteText } from './storage'
 
 describe('atomicWriteText', () => {
   let testDir: string
+  let locker: ChildProcessWithoutNullStreams | undefined
 
   beforeEach(async () => {
+    locker = undefined
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-storage-'))
   })
 
   afterEach(async () => {
-    vi.restoreAllMocks()
-    vi.unstubAllGlobals()
-    await fs.rm(testDir, { recursive: true, force: true })
+    try {
+      if (locker?.pid && locker.exitCode === null && locker.signalCode === null) {
+        const closed = once(locker, 'close')
+        locker.kill()
+        await closed
+      }
+    } finally {
+      vi.restoreAllMocks()
+      vi.unstubAllGlobals()
+      await fs.rm(testDir, { recursive: true, force: true })
+    }
   })
 
   it('durably creates and replaces a file', async () => {
@@ -94,13 +105,16 @@ describe('atomicWriteText', () => {
     expect(await fs.readdir(testDir)).toEqual(['settings.json'])
   })
 
-  it.skipIf(process.platform !== 'win32')(
-    'recovers from a real Windows handle that denies file replacement',
-    async () => {
-      const target = path.join(testDir, 'settings.json')
+  describe.skipIf(process.platform !== 'win32')('real Windows replacement lock', () => {
+    let target: string
+    let owner: ChildProcessWithoutNullStreams
+
+    // Native host startup is fixture setup, not part of the atomic-write deadline.
+    beforeEach(async () => {
+      target = path.join(testDir, 'settings.json')
       await fs.writeFile(target, 'original')
       // ReadWrite permits ordinary readers/writers but deliberately excludes Delete.
-      const locker = spawn(
+      owner = locker = spawn(
         'powershell.exe',
         [
           '-NoProfile',
@@ -110,53 +124,45 @@ describe('atomicWriteText', () => {
         ],
         { env: { ...process.env, PI_HARNESS_LOCK_TARGET: target }, windowsHide: true }
       )
-      try {
-        await new Promise<void>((resolve, reject) => {
-          let output = ''
-          locker.once('error', reject)
-          locker.once('exit', (code) => reject(new Error(`Locker exited early: ${code}`)))
-          locker.stdout.on('data', (chunk) => {
-            output += String(chunk)
-            if (output.includes('LOCKED')) resolve()
-          })
+      await new Promise<void>((resolve, reject) => {
+        let output = ''
+        owner.once('error', reject)
+        owner.once('exit', (code) => reject(new Error(`Locker exited early: ${code}`)))
+        owner.stdout.on('data', (chunk) => {
+          output += String(chunk)
+          if (output.includes('LOCKED')) resolve()
         })
-        const rename = fs.rename.bind(fs)
-        let observedLock = false
-        vi.spyOn(fs, 'rename').mockImplementation(async (...args) => {
-          try {
-            return await rename(...args)
-          } catch (error) {
-            expect(['EPERM', 'EACCES', 'EBUSY']).toContain((error as NodeJS.ErrnoException).code)
-            expect(await fs.readFile(target, 'utf8')).toBe('original')
-            if (!observedLock) {
-              observedLock = true
-              // Sending a release request does not mean the handle is closed.
-              // Wait for the real owner to exit before exercising the retry;
-              // PowerShell scheduling on ARM64 can exceed the retry window.
-              const exited = once(locker, 'close')
-              locker.stdin.end('release\n')
-              const [code] = await exited
-              expect(code).toBe(0)
-            }
-            throw error
+      })
+    }, 30_000)
+
+    it('recovers from a real Windows handle that denies file replacement', async () => {
+      const rename = fs.rename.bind(fs)
+      let observedLock = false
+      vi.spyOn(fs, 'rename').mockImplementation(async (...args) => {
+        try {
+          return await rename(...args)
+        } catch (error) {
+          expect(['EPERM', 'EACCES', 'EBUSY']).toContain((error as NodeJS.ErrnoException).code)
+          expect(await fs.readFile(target, 'utf8')).toBe('original')
+          if (!observedLock) {
+            observedLock = true
+            // A release request is acknowledged only when the native owner closes.
+            const exited = once(owner, 'close')
+            owner.stdin.end('release\n')
+            const [code] = await exited
+            expect(code).toBe(0)
           }
-        })
-
-        await atomicWriteText(target, 'updated')
-
-        expect(observedLock).toBe(true)
-        expect(await fs.readFile(target, 'utf8')).toBe('updated')
-        expect(await fs.readdir(testDir)).toEqual(['settings.json'])
-      } finally {
-        if (locker.pid && locker.exitCode === null) {
-          const exited = once(locker, 'exit')
-          locker.kill()
-          await exited
+          throw error
         }
-      }
-    },
-    15_000
-  )
+      })
+
+      await atomicWriteText(target, 'updated')
+
+      expect(observedLock).toBe(true)
+      expect(await fs.readFile(target, 'utf8')).toBe('updated')
+      expect(await fs.readdir(testDir)).toEqual(['settings.json'])
+    }, 15_000)
+  })
 })
 
 describe('JsonStore commit consistency', () => {
