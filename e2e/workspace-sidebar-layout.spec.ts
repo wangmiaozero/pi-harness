@@ -232,6 +232,7 @@ test('workspace project sidebar collapses and resizes within shared limits for e
     mingSnow: 390,
     zhangJuzhengSnow: 310,
     mingMoon: 390,
+    wallpaperEngine: 220,
     starshipCockpit: 280
   } as const
 
@@ -244,6 +245,7 @@ test('workspace project sidebar collapses and resizes within shared limits for e
     'mingSnow',
     'zhangJuzhengSnow',
     'mingMoon',
+    'wallpaperEngine',
     'starshipCockpit'
   ]) {
     await page.locator(`[data-mascot-option="${style}"]`).click()

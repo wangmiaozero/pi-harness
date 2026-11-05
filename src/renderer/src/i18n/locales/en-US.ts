@@ -870,6 +870,8 @@ export const enUS = {
     mascotZhangJuzhengSnowHint: 'Snowbound imperial halls, cinnabar robes, and a statesman’s resolve',
     mascotMingMoon: 'Ming Moon City · Scroll Scholar',
     mascotMingMoonHint: 'Moonlit rooftops, oxblood silk, and a quiet scholarly air',
+    mascotWallpaperEngine: 'Wallpaper Engine · Hacker Green',
+    mascotWallpaperEngineHint: 'Drifting light wallpaper, DeepSeek portrait, and green glass surfaces',
     petAnimations: 'Animations',
     petStatusText: 'Status text',
     petAutoSleep: 'Auto sleep',

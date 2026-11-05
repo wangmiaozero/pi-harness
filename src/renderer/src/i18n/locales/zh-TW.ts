@@ -844,6 +844,8 @@ export const zhTW: MessageTree = {
     mascotZhangJuzhengSnowHint: '雪中宮闕、硃砂官服與經世濟民之志',
     mascotMingMoon: '大明月夜 · 紅衣書姬',
     mascotMingMoonHint: '明月古城、朱紅金繡與沉靜書卷氣',
+    mascotWallpaperEngine: '壁紙引擎 · 駭客綠',
+    mascotWallpaperEngineHint: '流動光斑壁紙、DeepSeek 立繪與綠色玻璃介面',
     petAnimations: '啟用動畫',
     petStatusText: '顯示狀態文字',
     petAutoSleep: '自動休眠',

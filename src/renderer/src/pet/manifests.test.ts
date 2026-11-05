@@ -4,8 +4,8 @@ import { resolveMascotStyle } from '@shared/constants/mascot'
 import { PET_MANIFESTS, PET_THEME_ORDER } from './manifests'
 
 describe('built-in pet manifests', () => {
-  it('ships eight independent built-in themes', () => {
-    expect(Object.keys(PET_MANIFESTS)).toHaveLength(8)
+  it('ships nine independent built-in themes', () => {
+    expect(Object.keys(PET_MANIFESTS)).toHaveLength(9)
     expect(PET_THEME_ORDER).toEqual([
       'maidWhite',
       'office',
@@ -14,7 +14,8 @@ describe('built-in pet manifests', () => {
       'moonlitMaid',
       'mingSnow',
       'zhangJuzhengSnow',
-      'mingMoon'
+      'mingMoon',
+      'wallpaperEngine'
     ])
     expect(PET_MANIFESTS.maidWhite.priority).toBe(true)
     expect(PET_MANIFESTS.office.priority).toBe(true)
@@ -43,5 +44,12 @@ describe('built-in pet manifests', () => {
       expect(manifest.rows).toBe(1)
       expect(manifest.animations.idle).toBeDefined()
     }
+  })
+
+  it('keeps the wallpaper engine portrait at its source size', () => {
+    expect(PET_MANIFESTS.wallpaperEngine.frameWidth).toBe(330)
+    expect(PET_MANIFESTS.wallpaperEngine.frameHeight).toBe(384)
+    expect(PET_MANIFESTS.wallpaperEngine.sprite).toMatch(/wallpaper-engine\/deepseek\.png$/)
+    expect(PET_MANIFESTS.wallpaperEngine.accent).toBe('#00c800')
   })
 })

@@ -11,7 +11,8 @@ export const VISUAL_SKINS = {
   moonlitMaid: { id: 'moonlit-maid', appearance: 'light', portrait: true },
   mingSnow: { id: 'ming-snow', appearance: 'dark', portrait: true },
   zhangJuzhengSnow: { id: 'zhang-juzheng-snow', appearance: 'dark', portrait: true },
-  mingMoon: { id: 'ming-moon', appearance: 'dark', portrait: true }
+  mingMoon: { id: 'ming-moon', appearance: 'dark', portrait: true },
+  wallpaperEngine: { id: 'wallpaper-engine', appearance: 'dark', portrait: true }
 } as const
 
 export interface VisualSkin {

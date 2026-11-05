@@ -873,6 +873,8 @@ export const deDE: MessageTree = {
     mascotZhangJuzhengSnowHint: 'Verschneite Paläste, zinnoberrote Roben und staatsmännische Entschlossenheit',
     mascotMingMoon: 'Ming-Mondstadt · Schriftrollengelehrte',
     mascotMingMoonHint: 'Dächer im Mondlicht, ochsenblutrote Seide und stille Gelehrsamkeit',
+    mascotWallpaperEngine: 'Wallpaper-Engine · Hackergrün',
+    mascotWallpaperEngineHint: 'Fließende Lichttapete, DeepSeek-Porträt und grüne Glasflächen',
     petAnimations: 'Animationen',
     petStatusText: 'Statustext',
     petAutoSleep: 'Automatischer Schlaf',

@@ -872,6 +872,8 @@ export const ruRU: MessageTree = {
     mascotZhangJuzhengSnowHint: 'Снежный дворец, киноварная мантия и решимость государственного деятеля',
     mascotMingMoon: 'Лунный город Мин · Учёная со свитком',
     mascotMingMoonHint: 'Крыши в лунном свете, багровый шёлк и тихая учёная атмосфера',
+    mascotWallpaperEngine: 'Движок обоев · Хакерский зелёный',
+    mascotWallpaperEngineHint: 'Плывущие блики, портрет DeepSeek и зелёные стеклянные панели',
     petAnimations: 'Анимация',
     petStatusText: 'Текст состояния',
     petAutoSleep: 'Автосон',

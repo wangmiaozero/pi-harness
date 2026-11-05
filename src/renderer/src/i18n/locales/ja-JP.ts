@@ -867,6 +867,8 @@ export const jaJP: MessageTree = {
     mascotZhangJuzhengSnowHint: '雪の宮城、朱砂の官服、経世済民の志',
     mascotMingMoon: '大明の月都 · 巻物の女史',
     mascotMingMoonHint: '月下の瓦屋根、深紅の絹、静かな書斎の趣',
+    mascotWallpaperEngine: '壁紙エンジン · ハッカーグリーン',
+    mascotWallpaperEngineHint: '流れる光の壁紙、DeepSeek の立ち絵、緑のガラス界面',
     petAnimations: 'アニメーション',
     petStatusText: 'ステータス文字',
     petAutoSleep: '自動スリープ',

@@ -16,7 +16,8 @@ describe('portrait skin panel', () => {
     'moonlitMaid',
     'mingSnow',
     'zhangJuzhengSnow',
-    'mingMoon'
+    'mingMoon',
+    'wallpaperEngine'
   ] as const)('keeps %s art and status together without changing pet state', async (style) => {
     const pet = usePetStore()
     const wrapper = mount(PortraitSkinPanel, {

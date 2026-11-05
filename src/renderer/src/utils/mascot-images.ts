@@ -13,5 +13,6 @@ export const MASCOT_IMAGES: Record<MascotStyle, string | null> = {
   moonlitMaid: PET_MANIFESTS.moonlitMaid?.sprite ?? null,
   mingSnow: PET_MANIFESTS.mingSnow?.sprite ?? null,
   zhangJuzhengSnow: PET_MANIFESTS.zhangJuzhengSnow?.sprite ?? null,
-  mingMoon: PET_MANIFESTS.mingMoon?.sprite ?? null
+  mingMoon: PET_MANIFESTS.mingMoon?.sprite ?? null,
+  wallpaperEngine: PET_MANIFESTS.wallpaperEngine?.sprite ?? null
 }

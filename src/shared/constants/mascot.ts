@@ -7,7 +7,8 @@ export const MASCOT_STYLES = [
   'moonlitMaid',
   'mingSnow',
   'zhangJuzhengSnow',
-  'mingMoon'
+  'mingMoon',
+  'wallpaperEngine'
 ] as const
 
 export type MascotStyle = (typeof MASCOT_STYLES)[number]

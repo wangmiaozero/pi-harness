@@ -125,6 +125,38 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+## Wallpaper Engine theme
+
+- Project: [elysia395/dsh-wallpaper-engine](https://github.com/elysia395/dsh-wallpaper-engine)
+- Version: 1.4.0
+- Copyright: Copyright (c) 2026 elysia395
+- License: MIT. The full license text follows.
+- Used as: the “Wallpaper Engine · Hacker Green” theme. The drifting light background is adapted from the bundled default wallpaper, without its clock or title, so it sits behind this app’s existing layout. The character is the factory DeepSeek rope portrait.
+- nomascot builds do not include the portrait.
+- This community integration is not an official DeepSeek product.
+
+MIT License
+
+Copyright (c) 2026 elysia395
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 ## BigFish desktop companion
 
 - Projects: [QCYTSN/dsh-dafeiyu](https://github.com/QCYTSN/dsh-dafeiyu), [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet), and [gosomea/dsh-bigfish](https://github.com/gosomea/dsh-bigfish).

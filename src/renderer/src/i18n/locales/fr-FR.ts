@@ -872,6 +872,8 @@ export const frFR: MessageTree = {
     mascotZhangJuzhengSnowHint: 'Palais enneigés, robe cinabre et résolution d’un grand ministre',
     mascotMingMoon: 'Cité Ming au clair de lune · Lettrée au rouleau',
     mascotMingMoonHint: 'Toits au clair de lune, soie rouge sombre et calme lettré',
+    mascotWallpaperEngine: 'Moteur de fond · Vert hacker',
+    mascotWallpaperEngineHint: 'Fond lumineux mouvant, portrait DeepSeek et surfaces de verre vert',
     petAnimations: 'Animations',
     petStatusText: 'Texte d\'état',
     petAutoSleep: 'Veille automatique',

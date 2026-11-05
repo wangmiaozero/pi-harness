@@ -84,6 +84,14 @@ export const STARTUP_PALETTES: Record<StartupVariant, StartupPalette> = {
     secondary: '#d46b5b',
     tertiary: '#f9e2aa',
     particles: ['#f7ead4', '#efba72', '#d46b5b', '#f9e2aa']
+  },
+  wallpaperEngine: {
+    background: '#0b1020',
+    text: '#f5f5f7',
+    accent: '#00c800',
+    secondary: '#4dd0ff',
+    tertiary: '#b06bff',
+    particles: ['#4dd0ff', '#b06bff', '#69ffc7', '#ff8ad2']
   }
 }
 
@@ -132,6 +140,8 @@ export function particleOrigin(
         width * 0.5 + Math.cos(angle) * width * 0.45,
         height * 0.46 + Math.sin(angle) * height * 0.45
       ]
+    case 'wallpaperEngine':
+      return [width * (0.08 + t * 0.15), height * (0.08 + random * 0.1)]
     case 'none':
     default: {
       const radius = Math.max(width, height) * (0.25 + random2 * 0.6)

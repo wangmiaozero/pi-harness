@@ -8,6 +8,7 @@ import moonlitMaidImage from '@renderer/assets/themes/portraits/moonlit-maid.png
 import mingSnowImage from '@renderer/assets/themes/ming-dynasty/snow-maiden.png'
 import mingMoonImage from '@renderer/assets/themes/ming-dynasty/moon-maiden.png'
 import zhangJuzhengSnowImage from '@renderer/assets/themes/zhang-juzheng-snow/zhang-juzheng.png'
+import wallpaperEngineImage from '@renderer/assets/themes/wallpaper-engine/deepseek.png'
 
 export const PET_THEME_ORDER: readonly PetThemeId[] = [
   'maidWhite',
@@ -17,7 +18,8 @@ export const PET_THEME_ORDER: readonly PetThemeId[] = [
   'moonlitMaid',
   'mingSnow',
   'zhangJuzhengSnow',
-  'mingMoon'
+  'mingMoon',
+  'wallpaperEngine'
 ]
 
 function animations(states: readonly PetState[]): PetManifest['animations'] {
@@ -87,6 +89,17 @@ export const PET_MANIFESTS: Readonly<Record<PetThemeId, PetManifest>> = {
     true
   ),
   mingMoon: manifest('mingMoon', 'Ming Moon City · Scroll Scholar', mingMoonImage, '#b4493f', true),
+  wallpaperEngine: {
+    ...manifest(
+      'wallpaperEngine',
+      'Wallpaper Engine · Hacker Green',
+      wallpaperEngineImage,
+      '#00c800',
+      true
+    ),
+    frameWidth: 330,
+    frameHeight: 384
+  },
   starshipCockpit: {
     ...manifest(
       'starshipCockpit',

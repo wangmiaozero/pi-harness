@@ -228,6 +228,19 @@ function drawThemeMotif(context: CanvasRenderingContext2D, elapsed: number): voi
         }
       }
       break
+    case 'wallpaperEngine':
+      for (const [ox, oy, color] of [
+        [-0.7, -0.45, accent],
+        [0.75, -0.2, secondary],
+        [0.1, 0.55, tertiary]
+      ] as const) {
+        context.fillStyle = color
+        context.globalAlpha = 0.16
+        context.beginPath()
+        context.arc(cx + ox * radius, cy + oy * radius, radius * 0.55, 0, Math.PI * 2)
+        context.fill()
+      }
+      break
     case 'mingMoon':
       context.strokeStyle = tertiary
       for (let ring = 0; ring < 3; ring++) {

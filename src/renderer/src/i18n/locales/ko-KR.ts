@@ -867,6 +867,8 @@ export const koKR: MessageTree = {
     mascotZhangJuzhengSnowHint: '눈 덮인 궁궐, 주사빛 관복, 경세제민의 뜻',
     mascotMingMoon: '대명 월성 · 두루마리 학자',
     mascotMingMoonHint: '달빛 기와집, 짙은 자홍색 비단, 고요한 학구적 분위기',
+    mascotWallpaperEngine: '배경화면 엔진 · 해커 그린',
+    mascotWallpaperEngineHint: '흐르는 빛 배경, DeepSeek 초상, 녹색 유리 표면',
     petAnimations: '애니메이션',
     petStatusText: '상태 텍스트',
     petAutoSleep: '자동 절전',
