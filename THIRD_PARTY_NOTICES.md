@@ -94,6 +94,37 @@ SOFTWARE.
 - Node.js 24.22.0 (npm and npx 11.19.1): [nodejs/node](https://github.com/nodejs/node), Node.js license and its bundled third-party notices. The complete upstream LICENSE, including npm and other bundled components, is retained with the distributed Node.js files.
 - ZIP extraction uses [unzipper](https://github.com/ZJONSSON/node-unzipper) under MIT; the dependency license is retained in packaged applications.
 
+## BigFish startup sequence
+
+- Project: [6shenhonghong9/dsh-startup-screen](https://github.com/6shenhonghong9/dsh-startup-screen)
+- Version: 1.3.0
+- Copyright: Copyright (c) 2026 沈宏宏
+- License: MIT. The full license text follows.
+- Used as: the boot sequence shown when the bundled 大肥鱼 desktop pet is turned on. nomascot builds do not include it.
+- This community integration is not an official DeepSeek product.
+
+MIT License
+
+Copyright (c) 2026 沈宏宏
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 ## BigFish desktop companion
 
 - Projects: [QCYTSN/dsh-dafeiyu](https://github.com/QCYTSN/dsh-dafeiyu), [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet), and [gosomea/dsh-bigfish](https://github.com/gosomea/dsh-bigfish).

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import {
   STARTUP_MINIMUM_VISIBLE_MS,
   startupAnimationVisible,
@@ -7,6 +7,9 @@ import {
   startupPhase
 } from '@renderer/startup'
 import { useSettingsStore } from '@renderer/stores/settings'
+import { usesBigfishStartup } from '@renderer/bigfish-startup/gate'
+import { MASCOT_ENABLED } from '@shared/feature-flags'
+import { themeAppearance } from '@shared/constants/theme'
 import {
   particleOrigin,
   resolveStartupVariant,
@@ -26,6 +29,7 @@ type Star = {
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const settings = useSettingsStore()
+const mode = ref<'hold' | 'particle' | 'fish'>(MASCOT_ENABLED ? 'hold' : 'particle')
 const variant = computed(() => resolveStartupVariant(settings.settings))
 const palette = computed(() => STARTUP_PALETTES[variant.value])
 const colorVariables = computed(() => ({
@@ -58,6 +62,9 @@ let readyTimer: ReturnType<typeof setTimeout> | null = null
 let minimumElapsed = false
 let startedAt = 0
 let leaveStartedAt = 0
+let particleStarted = false
+let startupDecided = false
+let holdFallback: ReturnType<typeof setTimeout> | null = null
 let stars: Star[] = []
 let ambient: Star[] = []
 let width = 0
@@ -301,14 +308,29 @@ function finishWhenReady(): void {
 }
 
 watch(startupPhase, (phase) => {
-  if (phase === 'ready') finishWhenReady()
+  if (mode.value === 'particle' && phase === 'ready') finishWhenReady()
 })
 watch(variant, () => {
-  if (canvas.value && visible.value) buildField()
+  if (canvas.value && visible.value && mode.value === 'particle') buildField()
 })
 
-onMounted(() => {
-  reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function releaseStartupLock(): void {
+  document.documentElement.classList.remove('dsu-lock')
+  document.documentElement.style.overflow = ''
+  document.body.style.overflow = ''
+}
+
+async function beginParticle(): Promise<void> {
+  if (particleStarted || !visible.value) return
+  particleStarted = true
+  mode.value = 'particle'
+  await nextTick()
+  if (!visible.value) return
+  reducedMotion = prefersReducedMotion()
   startedAt = performance.now()
   buildField()
   resizeObserver = new ResizeObserver(buildField)
@@ -323,6 +345,65 @@ onMounted(() => {
     minimumElapsed = true
     finish()
   }, 8000)
+}
+
+async function beginFishStartup(): Promise<void> {
+  mode.value = 'hold'
+  try {
+    const { playBigfishStartup } = await import('@renderer/bigfish-startup/play')
+    const theme = settings.settings ? themeAppearance(settings.settings.theme) : 'light'
+    await playBigfishStartup({
+      theme,
+      onReady: () => {
+        if (visible.value) mode.value = 'fish'
+      }
+    })
+  } catch {
+    releaseStartupLock()
+    await beginParticle()
+    return
+  }
+  if (!visible.value) return
+  if (startupPhase.value === 'ready') {
+    visible.value = false
+    return
+  }
+  await beginParticle()
+}
+
+function considerStartup(): void {
+  if (!MASCOT_ENABLED || startupDecided) return
+  if (settings.settings) {
+    startupDecided = true
+    if (usesBigfishStartup(settings.settings, { reducedMotion: prefersReducedMotion() })) {
+      void beginFishStartup()
+    } else {
+      void beginParticle()
+    }
+    return
+  }
+  if (!settings.loading && settings.error) {
+    startupDecided = true
+    void beginParticle()
+  }
+}
+
+watch(() => [settings.settings, settings.loading, settings.error] as const, considerStartup, {
+  immediate: true
+})
+
+onMounted(() => {
+  if (!MASCOT_ENABLED) {
+    void beginParticle()
+    return
+  }
+  // Settings normally arrive immediately. A hung read must not leave the cover up.
+  holdFallback = setTimeout(() => {
+    if (mode.value === 'hold' && !startupDecided) {
+      startupDecided = true
+      void beginParticle()
+    }
+  }, 8000)
 })
 
 onBeforeUnmount(() => {
@@ -332,12 +413,13 @@ onBeforeUnmount(() => {
   if (fallbackTimer) clearTimeout(fallbackTimer)
   if (exitTimer) clearTimeout(exitTimer)
   if (readyTimer) clearTimeout(readyTimer)
+  if (holdFallback) clearTimeout(holdFallback)
 })
 </script>
 
 <template>
   <div
-    v-if="visible"
+    v-if="visible && mode === 'particle'"
     class="startup-animation"
     :class="{ 'startup-animation--leaving': leaving }"
     :style="colorVariables"
@@ -377,6 +459,14 @@ onBeforeUnmount(() => {
       </dl>
     </div>
   </div>
+  <div
+    v-else-if="visible && mode !== 'fish'"
+    class="startup-animation startup-animation--hold"
+    data-testid="startup-animation"
+    data-startup-variant="pending"
+    role="status"
+    aria-label="正在启动…"
+  />
 </template>
 
 <style scoped>
@@ -392,6 +482,9 @@ onBeforeUnmount(() => {
 .startup-animation--leaving {
   opacity: 0;
   pointer-events: none;
+}
+.startup-animation--hold {
+  background: #000;
 }
 .startup-animation__canvas,
 .startup-animation__vignette {

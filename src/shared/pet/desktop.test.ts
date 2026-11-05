@@ -64,6 +64,9 @@ describe('isProtectedPackId', () => {
   it('protects the bundled id case-insensitively', () => {
     expect(isProtectedPackId('bigfish')).toBe(true)
     expect(isProtectedPackId('BigFish')).toBe(true)
+    expect(isProtectedPackId('tibot-star')).toBe(true)
+    expect(isProtectedPackId('tibot-circle')).toBe(true)
+    expect(isProtectedPackId('Tibot')).toBe(true)
     expect(isProtectedPackId(' other ')).toBe(false)
   })
 })

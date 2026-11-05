@@ -1,4 +1,10 @@
 import type { AppLocale } from '../constants/language'
+import {
+  defaultTibotSettings,
+  normalizeTibotSettings,
+  TIBOT_PACK_IDS,
+  type TibotSettings
+} from './tibot'
 
 /**
  * Shared contract for the desktop pet window (BigFish companion).
@@ -43,9 +49,11 @@ export const BUNDLED_PACK_ID = 'bigfish'
 /** Pack ids are single path segments used inside `pi-pet://` URLs. */
 export const PACK_ID_PATTERN = /^[\w-]{1,64}$/
 
+const PROTECTED_PACK_IDS = new Set([BUNDLED_PACK_ID, 'tibot', ...TIBOT_PACK_IDS])
+
 /** A pack id is protected when it collides with a bundled pack (case-insensitive). */
 export function isProtectedPackId(id: string): boolean {
-  return id.trim().toLowerCase() === BUNDLED_PACK_ID
+  return PROTECTED_PACK_IDS.has(id.trim().toLowerCase())
 }
 
 export interface PetPackClipInfo {
@@ -85,6 +93,11 @@ export interface PetPackManifest {
   agentStateMapping?: Record<string, string>
   /** Preferred pet body height in CSS px. */
   recommendedSize?: number
+  /**
+   * `frames` plays WebP clips. `canvas` draws a procedural pet and does not
+   * ship frame files. Omitted packs stay frame-based.
+   */
+  renderer?: 'frames' | 'canvas'
 }
 
 /** Summary row for the pet management UI (safe: no filesystem paths). */
@@ -149,6 +162,8 @@ export interface DesktopPetSettings {
   reducedMotion: boolean
   /** Show how many agents/runs are active in the bubble. */
   showAgentCount: boolean
+  /** Jelly pet color and motion. The shape is whichever jelly pack is active. */
+  tibot: TibotSettings
 }
 
 export const DESKTOP_PET_SIZE_MIN = 96
@@ -168,12 +183,19 @@ export const DEFAULT_DESKTOP_PET_SETTINGS: Readonly<DesktopPetSettings> = Object
   bubbleTimeoutSeconds: 6,
   bubbleOpacity: 1,
   reducedMotion: false,
-  showAgentCount: false
+  showAgentCount: false,
+  tibot: defaultTibotSettings()
 })
 
 /** A fresh mutable copy for stores that need to own their value. */
 export function defaultDesktopPetSettings(): DesktopPetSettings {
-  return { ...DEFAULT_DESKTOP_PET_SETTINGS }
+  return { ...DEFAULT_DESKTOP_PET_SETTINGS, tibot: defaultTibotSettings() }
+}
+
+/** The retired group pack `tibot` opens as the circle pet. */
+function normalizeActivePackId(value: unknown, fallback: string): string {
+  if (typeof value !== 'string' || !PACK_ID_PATTERN.test(value)) return fallback
+  return value.toLowerCase() === 'tibot' ? 'tibot-circle' : value
 }
 
 export function normalizeDesktopPetSettings(value: unknown): DesktopPetSettings {
@@ -185,10 +207,7 @@ export function normalizeDesktopPetSettings(value: unknown): DesktopPetSettings 
   }
   return {
     enabled: typeof raw.enabled === 'boolean' ? raw.enabled : d.enabled,
-    activePackId:
-      typeof raw.activePackId === 'string' && PACK_ID_PATTERN.test(raw.activePackId)
-        ? raw.activePackId
-        : d.activePackId,
+    activePackId: normalizeActivePackId(raw.activePackId, d.activePackId),
     alwaysOnTop: typeof raw.alwaysOnTop === 'boolean' ? raw.alwaysOnTop : d.alwaysOnTop,
     size: Math.round(clamp(raw.size, DESKTOP_PET_SIZE_MIN, DESKTOP_PET_SIZE_MAX, d.size)),
     opacity: clamp(raw.opacity, 0.3, 1, d.opacity),
@@ -201,7 +220,8 @@ export function normalizeDesktopPetSettings(value: unknown): DesktopPetSettings 
     ),
     bubbleOpacity: clamp(raw.bubbleOpacity, 0.3, 1, d.bubbleOpacity),
     reducedMotion: typeof raw.reducedMotion === 'boolean' ? raw.reducedMotion : d.reducedMotion,
-    showAgentCount: typeof raw.showAgentCount === 'boolean' ? raw.showAgentCount : d.showAgentCount
+    showAgentCount: typeof raw.showAgentCount === 'boolean' ? raw.showAgentCount : d.showAgentCount,
+    tibot: normalizeTibotSettings(raw.tibot)
   }
 }
 

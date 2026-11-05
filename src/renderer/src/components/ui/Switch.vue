@@ -20,7 +20,9 @@ const trackClasses = computed(() =>
 )
 
 const thumbStyle = computed(() => ({
-  transform: model.value ? 'translateX(13px)' : 'translateX(1px)'
+  // Inline transform replaces the class transform, so vertical centering
+  // has to live here or the thumb drops out of the track.
+  transform: model.value ? 'translate(13px, -50%)' : 'translate(1px, -50%)'
 }))
 </script>
 
@@ -36,7 +38,7 @@ const thumbStyle = computed(() => ({
     @click="toggle"
   >
     <span
-      class="pointer-events-none absolute top-1/2 size-[var(--height-switch-thumb)] -translate-y-1/2 rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-transform duration-[var(--motion-base)] ease-[var(--ease-out)]"
+      class="pointer-events-none absolute left-0 top-1/2 size-[var(--height-switch-thumb)] rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-transform duration-[var(--motion-base)] ease-[var(--ease-out)]"
       :style="thumbStyle"
     />
   </button>

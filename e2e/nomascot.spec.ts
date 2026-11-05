@@ -33,8 +33,17 @@ test('keeps the default animation and auto icon without mascot themes', async ({
   await expect(page.locator('a[href="#/settings/desktop-pet"]')).toHaveCount(0)
   await page.evaluate(async () => {
     const settings = await window.piSwitch.settings.get()
-    await window.piSwitch.settings.set({ desktopPet: { ...settings.desktopPet, enabled: true } })
+    await window.piSwitch.settings.set({
+      desktopPet: { ...settings.desktopPet, enabled: true, activePackId: 'bigfish' }
+    })
   })
+  await page.reload()
+  await expect(page.locator('#dsh-startup-root')).toHaveCount(0)
+  await expect(page.getByTestId('startup-animation')).toHaveAttribute(
+    'data-startup-variant',
+    'none'
+  )
+  await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
   expect(
     await electronApp.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows().some((window) =>

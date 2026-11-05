@@ -3,6 +3,8 @@
  * (and vitest.config.ts). Building with `--mode nomascot` sets the mascot flag
  * to `false` and swaps in `pet/manifests-stub` for `pet/manifests-data`, which
  * keeps the mascot module and its sprite assets out of the packaged app.
+ * The same build aliases `@renderer/bigfish-startup/play` to an empty stub so
+ * the 大肥鱼 boot sequence and its audio stay out of nomascot packages.
  */
 declare const __MASCOT_ENABLED__: boolean | undefined
 

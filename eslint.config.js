@@ -24,7 +24,8 @@ export default [
       'build/**',
       'resources/**',
       'src-tauri/**',
-      'src/renderer/src/i18n/locales/**'
+      'src/renderer/src/i18n/locales/**',
+      'src/renderer/src/bigfish-startup/splash.js'
     ]
   },
 

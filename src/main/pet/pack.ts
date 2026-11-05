@@ -206,7 +206,8 @@ export function validatePetPackManifest(value: unknown): PetPackManifest {
     preview,
     defaultAnimation,
     agentStateMapping,
-    recommendedSize
+    recommendedSize,
+    renderer: value['renderer'] === 'canvas' ? 'canvas' : undefined
   }
 }
 
@@ -231,6 +232,10 @@ export async function loadPetPack(root: string): Promise<LoadedPetPack> {
     throw new Error(`Pet pack manifest is unreadable: ${String(error)}`, { cause: error })
   }
   const manifest = validatePetPackManifest(raw)
+
+  // Procedural pets draw themselves. They declare clips for the action menu
+  // but do not ship frame files.
+  if (manifest.renderer === 'canvas') return { root: resolvedRoot, manifest }
 
   // Verify every declared clip directory exists below the pack root with the
   // exact declared frame count. Missing/corrupted clips degrade the whole

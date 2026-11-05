@@ -17,12 +17,18 @@ import { FramePlayer } from './frame-player'
 import { PetStateReducer, type PetRuntimeState } from './state'
 import { ReleasePhysics } from './physics'
 import { showPetMenu, dismissPetMenu } from './menu'
+import { freshTibotCue, tibotShapeFromPackId } from '@shared/pet/tibot'
+import { TibotStage } from './tibot-stage'
 
 const BUBBLE_SHOW_MS = 3600
 const CLICK_THROUGH_SAMPLE_MS = 80
 const TAP_MAX_MOVE_PX = 6
 const DOUBLE_TAP_MS = 380
 const ALPHA_THRESHOLD = 8
+const FRAME_FISH_STYLE = (size: number) =>
+  `position:absolute;bottom:0;left:0;right:0;height:${size}px;display:flex;align-items:flex-end;justify-content:center;cursor:grab;touch-action:none`
+const CANVAS_FISH_STYLE =
+  'position:absolute;inset:0;z-index:1;cursor:grab;touch-action:none'
 
 const BUBBLE_KEY_FOR_STATE: Record<PetRuntimeState, keyof BubbleMessages | null> = {
   idle: 'idle',
@@ -62,6 +68,8 @@ class PetApp {
   private lastClickThroughThrough = false
   private clickThroughAt = 0
   private alphaSamplingFailed = false
+  private stage: TibotStage | null = null
+  private tibotCueAt = 0
 
   async boot(): Promise<void> {
     const api = window.piSwitchPet
@@ -99,6 +107,9 @@ class PetApp {
     }, 1000)
 
     window.addEventListener('mousemove', (event) => this.onGlobalMove(event))
+    window.addEventListener('mouseout', (event) => {
+      if (!event.relatedTarget) this.stage?.clearPointer()
+    })
     this.bindPointer(api)
     window.addEventListener('contextmenu', (event) => {
       event.preventDefault()
@@ -132,7 +143,12 @@ class PetApp {
             }))
         : [],
       onPlayAction: (clip) => {
-        if (!this.taskActive && this.player?.has(clip)) this.playInteraction({ clip, loop: false })
+        if (this.taskActive) return
+        if (this.stage) {
+          this.stage.play(clip)
+          return
+        }
+        if (this.player?.has(clip)) this.playInteraction({ clip, loop: false })
       },
       onAction: (action) => void window.piSwitchPet?.menuAction(action)
     })
@@ -165,8 +181,7 @@ class PetApp {
       if (this.bubble?.style.display === 'block') this.showBubbleFor(this.currentState)
       if (document.getElementById('pet-context-menu')) this.openMenu()
     }
-    if (!this.player && context.manifest) {
-      this.player = new FramePlayer(context.manifest.id, context.manifest)
+    if (!this.physics) {
       this.physics = new ReleasePhysics(
         async (dx, dy) => {
           const result = await window.piSwitchPet?.moveBy({ dx, dy })
@@ -176,21 +191,8 @@ class PetApp {
           void window.piSwitchPet?.endDrag({ vx: 0, vy: 0 }).catch(() => {})
         }
       )
-    } else if (this.player && context.manifest && previousPackId !== context.manifest.id) {
-      // Live pack switch: tear down cached frames of the old pack and build
-      // a fresh player for the new one.
-      this.player.dispose()
-      this.player = new FramePlayer(context.manifest.id, context.manifest)
-      if (this.fish) this.fish.replaceChildren(this.player.element)
-      this.interaction = null
-      this.renderState(this.currentState, true)
     }
-    if (this.fish) {
-      this.fish.style.height = `${this.settings.size}px`
-      if (this.player) {
-        this.player.element.style.cssText = `display:block;height:100%;width:auto;max-width:100%;object-fit:contain`
-      }
-    }
+    this.presentPack(previousPackId !== (context.manifest?.id ?? null))
     if (this.bubble) {
       this.bubble.style.opacity = String(this.settings?.bubbleOpacity ?? 1)
     }
@@ -219,19 +221,83 @@ class PetApp {
       'pointer-events:none',
       'white-space:nowrap',
       'overflow:hidden',
-      'text-overflow:ellipsis'
+      'text-overflow:ellipsis',
+      'position:relative',
+      'z-index:2'
     ].join(';')
 
     this.fish = document.createElement('div')
-    this.fish.style.cssText = `position:absolute;bottom:0;left:0;right:0;height:${this.settings?.size ?? 160}px;display:flex;align-items:flex-end;justify-content:center;cursor:grab;touch-action:none`
-    if (this.player) {
-      this.player.element.style.cssText =
-        'display:block;height:100%;width:auto;max-width:100%;object-fit:contain'
-      this.fish.replaceChildren(this.player.element)
-    }
-
     root.appendChild(this.bubble)
     root.appendChild(this.fish)
+    this.presentPack(false)
+  }
+
+  /** Frame packs use the bottom strip. The jelly stage fills the window. */
+  private presentPack(packChanged: boolean): void {
+    const canvas = this.manifest?.renderer === 'canvas'
+    if (canvas) {
+      if (this.player) {
+        this.player.dispose()
+        this.player = null
+        this.interaction = null
+      }
+      if (!this.fish) return
+      this.fish.style.cssText = CANVAS_FISH_STYLE
+      const created = !this.stage
+      if (created) {
+        this.fish.replaceChildren()
+        this.stage = new TibotStage()
+        this.stage.mount(this.fish)
+      }
+      this.pushTibot()
+      if (created) this.stage?.react(this.currentState)
+      return
+    }
+    if (this.stage) {
+      this.stage.dispose()
+      this.stage = null
+    }
+    const manifest = this.manifest
+    if (!manifest) return
+    if (!this.player) {
+      this.player = new FramePlayer(manifest.id, manifest)
+    } else if (packChanged) {
+      this.player.dispose()
+      this.player = new FramePlayer(manifest.id, manifest)
+      this.interaction = null
+      this.renderState(this.currentState, true)
+    }
+    if (!this.fish || !this.player) return
+    this.fish.style.cssText = FRAME_FISH_STYLE(this.settings?.size ?? 160)
+    this.player.element.style.cssText =
+      'display:block;height:100%;width:auto;max-width:100%;object-fit:contain'
+    if (this.fish.firstChild !== this.player.element) this.fish.replaceChildren(this.player.element)
+  }
+
+  private pushTibot(): void {
+    const stage = this.stage
+    const settings = this.settings
+    if (!stage || !settings) return
+    const reduced = settings.reducedMotion
+    const tibot = settings.tibot
+    stage.apply({
+      shape: tibotShapeFromPackId(settings.activePackId) ?? 'circle',
+      color: tibot.color,
+      energy: tibot.energy,
+      size: settings.size / 2,
+      light: tibot.light,
+      tracking: tibot.tracking,
+      auto: tibot.auto && !reduced,
+      particles: tibot.particles && !reduced,
+      paused: tibot.paused,
+      agentSync: settings.agentSync
+    })
+    const cue = tibot.cue
+    const action = freshTibotCue(cue)
+    if (action && cue && cue.at !== this.tibotCueAt) {
+      this.tibotCueAt = cue.at
+      stage.play(action)
+    }
   }
 
   /** Resolve the clip for a runtime state via the pack's mapping rules. */
@@ -249,6 +315,7 @@ class PetApp {
     }
     this.currentState = state
     this.showBubbleFor(state)
+    this.stage?.react(state)
     if ((!this.dragging || this.taskActive) && !this.interaction) this.playStateClip(state)
   }
 
@@ -331,6 +398,15 @@ class PetApp {
       if (event.button !== 0) return
       event.preventDefault()
       dismissPetMenu()
+      const local = this.localPoint(event)
+      if (this.stage) {
+        const hit = this.stage.hit(local.x, local.y)
+        if (!hit) {
+          this.stage.burst(local.x, local.y)
+          return
+        }
+        if (!this.taskActive) this.stage.play('wobble')
+      }
       dragGeneration += 1
       this.dragging = false
       this.pointerDownAt = performance.now()
@@ -364,6 +440,12 @@ class PetApp {
       void api.moveBy({ dx: Math.round(stepX), dy: Math.round(stepY) })
     })
 
+    fish.addEventListener('dblclick', (event) => {
+      if (!this.stage || this.taskActive) return
+      const local = this.localPoint(event)
+      this.stage.surpriseAt(local.x, local.y)
+    })
+
     fish.addEventListener('pointerup', (event) => {
       if (event.button !== 0 || this.pointerDownAt === 0) return
       fish.style.cursor = 'grab'
@@ -374,6 +456,7 @@ class PetApp {
         const v = performance.now() - lastMoveAt <= 80 ? releaseVelocity : { x: 0, y: 0 }
         const generation = dragGeneration
         this.interaction = null
+        if (this.stage) this.stage.releaseMain()
         if (this.taskActive) {
           // Keep runtime playback unchanged while moving a working pet.
         } else if (this.player?.has('dragging_release')) {
@@ -437,19 +520,41 @@ class PetApp {
     }, BUBBLE_SHOW_MS)
   }
 
+  private localPoint(event: MouseEvent): { x: number; y: number } {
+    const rect = (this.stage?.canvas ?? this.fish)?.getBoundingClientRect()
+    if (!rect) return { x: 0, y: 0 }
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top }
+  }
+
   /** Alpha-sample under the cursor so empty pixels never swallow clicks. */
   private onGlobalMove(event: MouseEvent): void {
+    if (this.stage) {
+      const local = this.localPoint(event)
+      this.stage.setPointer(local.x, local.y)
+    }
     // The menu is interactive even where the pet image underneath is transparent.
     if (document.getElementById('pet-context-menu')) return
+    if (this.dragging || this.pointerDownAt !== 0) return
+    const stage = this.stage
     const player = this.player
-    if (!player || this.dragging || this.pointerDownAt !== 0) return
+    const sampler = stage
+      ? {
+          rect: stage.canvas.getBoundingClientRect(),
+          alphaAt: (x: number, y: number) => stage.alphaAt(x, y)
+        }
+      : player
+        ? {
+            rect: player.element.getBoundingClientRect(),
+            alphaAt: (x: number, y: number) => player.alphaAt(x, y)
+          }
+        : null
+    if (!sampler) return
     const now = performance.now()
     if (now - this.clickThroughAt < CLICK_THROUGH_SAMPLE_MS) return
     this.clickThroughAt = now
-    const rect = player.element.getBoundingClientRect()
     let alpha: number
     try {
-      alpha = player.alphaAt(event.clientX - rect.left, event.clientY - rect.top)
+      alpha = sampler.alphaAt(event.clientX - sampler.rect.left, event.clientY - sampler.rect.top)
     } catch (error) {
       // Fail safe: without pixel data we cannot know if the point is
       // transparent, so keep the window interactive (the fish stays

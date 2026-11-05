@@ -1,0 +1,112 @@
+{
+  "formatVersion": 1,
+  "id": "tibot-rounded",
+  "name": "方圆",
+  "nameEn": "Rounded",
+  "description": "Single rounded jelly pet with live motion and performances.",
+  "author": "Tibot Studio",
+  "version": "4.0.0",
+  "license": "User-provided local artwork",
+  "licenseFiles": [
+    "NOTICE.txt"
+  ],
+  "renderer": "canvas",
+  "baseWidth": 280,
+  "baseHeight": 235,
+  "fps": 60,
+  "recommendedSize": 160,
+  "defaultAnimation": "wobble",
+  "agentStateMapping": {
+    "thinking": "wobble",
+    "running": "dance",
+    "tool-calling": "dash",
+    "waiting": "wink",
+    "success": "celebrate",
+    "failed": "surprise",
+    "warning": "surprise",
+    "sleeping": "sleep"
+  },
+  "clips": {
+    "jump": {
+      "dir": "jump",
+      "frames": 1,
+      "loop": false,
+      "labels": {
+        "en-US": "Jump",
+        "zh-CN": "弹跳"
+      }
+    },
+    "spin": {
+      "dir": "spin",
+      "frames": 1,
+      "loop": false,
+      "labels": {
+        "en-US": "Spin",
+        "zh-CN": "旋转"
+      }
+    },
+    "dance": {
+      "dir": "dance",
+      "frames": 1,
+      "loop": false,
+      "labels": {
+        "en-US": "Dance",
+        "zh-CN": "跳舞"
+      }
+    },
+    "surprise": {
+      "dir": "surprise",
+      "frames": 1,
+      "loop": false,
+      "labels": {
+        "en-US": "Surprise",
+        "zh-CN": "惊讶"
+      }
+    },
+    "sleep": {
+      "dir": "sleep",
+      "frames": 1,
+      "loop": false,
+      "labels": {
+        "en-US": "Sleep",
+        "zh-CN": "睡觉"
+      }
+    },
+    "celebrate": {
+      "dir": "celebrate",
+      "frames": 1,
+      "loop": false,
+      "labels": {
+        "en-US": "Celebrate",
+        "zh-CN": "庆祝"
+      }
+    },
+    "wobble": {
+      "dir": "wobble",
+      "frames": 1,
+      "loop": false,
+      "labels": {
+        "en-US": "Wobble",
+        "zh-CN": "果冻抖动"
+      }
+    },
+    "dash": {
+      "dir": "dash",
+      "frames": 1,
+      "loop": false,
+      "labels": {
+        "en-US": "Dash",
+        "zh-CN": "冲刺"
+      }
+    },
+    "wink": {
+      "dir": "wink",
+      "frames": 1,
+      "loop": false,
+      "labels": {
+        "en-US": "Wink",
+        "zh-CN": "眨眼"
+      }
+    }
+  }
+}

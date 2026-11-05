@@ -107,6 +107,11 @@ export default defineConfig(({ mode }) => {
                 '@renderer/pet/manifests-data': resolve(
                   import.meta.dirname,
                   'src/renderer/src/pet/manifests-stub.ts'
+                ),
+                // Same exclusion for the 大肥鱼 boot sequence and its audio.
+                '@renderer/bigfish-startup/play': resolve(
+                  import.meta.dirname,
+                  'src/renderer/src/bigfish-startup/play-stub.ts'
                 )
               }),
           '@renderer': resolve(import.meta.dirname, 'src/renderer/src'),

@@ -10,6 +10,7 @@ import Switch from '@renderer/components/ui/Switch.vue'
 import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
 import { SETTINGS_DRAFT_KEY } from '@renderer/components/settings/draft-key'
 import PetPackManager from '@renderer/components/settings/PetPackManager.vue'
+import TibotPetSettings from '@renderer/components/settings/TibotPetSettings.vue'
 
 const draft = inject(SETTINGS_DRAFT_KEY)!
 
@@ -55,6 +56,8 @@ const bubbleOpacityPercent = computed({
       <p class="mb-2 px-1 text-[12px] font-medium">{{ $t('settings.petPackManager') }}</p>
       <PetPackManager v-model="pet.activePackId" />
     </div>
+
+    <TibotPetSettings />
 
     <div
       class="divide-y divide-[var(--border-subtle)] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)]"

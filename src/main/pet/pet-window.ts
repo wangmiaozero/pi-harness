@@ -140,6 +140,7 @@ export class PetWindowController {
 
   private petWindowSize(size: number): { width: number; height: number } {
     const manifest = this.pack?.manifest
+    if (manifest?.renderer === 'canvas') return petWindowSize(size, 1)
     const aspect = manifest ? manifest.baseWidth / Math.max(1, manifest.baseHeight) : 1
     return petWindowSize(size, aspect)
   }
