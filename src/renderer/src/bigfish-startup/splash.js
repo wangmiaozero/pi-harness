@@ -186,6 +186,10 @@
     }
   ]
 
+  function spacedBrand(text) {
+    return String(text || '').split('').join(' ')
+  }
+
   function cfg() {
     var raw = (window.__DSH_STARTUP__ && typeof window.__DSH_STARTUP__ === 'object')
       ? window.__DSH_STARTUP__
@@ -517,9 +521,21 @@
   function svgWhale(cls) {
     var ns = 'http://www.w3.org/2000/svg'
     var svg = document.createElementNS(ns, 'svg')
-    svg.setAttribute('viewBox', '0 0 50 50')
     svg.setAttribute('aria-hidden', 'true')
     if (cls) svg.setAttribute('class', cls)
+    var marks = C.logoPaths
+    if (marks && marks.length) {
+      svg.setAttribute('viewBox', C.logoViewBox || '0 0 24 24')
+      svg.setAttribute('fill-rule', 'evenodd')
+      for (var i = 0; i < marks.length; i++) {
+        var mark = document.createElementNS(ns, 'path')
+        mark.setAttribute('d', marks[i])
+        mark.setAttribute('fill-rule', 'evenodd')
+        svg.appendChild(mark)
+      }
+      return svg
+    }
+    svg.setAttribute('viewBox', '0 0 50 50')
     var p = document.createElementNS(ns, 'path')
     p.setAttribute('d', WHALE_PATH)
     p.setAttribute('fill-rule', 'nonzero')
@@ -752,21 +768,30 @@
     var inner = ui.blackInner
     var whale = svgWhale('dsu-whale')
     inner.appendChild(whale)
-    inner.appendChild(el('div', 'dsu-black-zh', C.orgZh))
-    var en = el('div', 'dsu-black-en', C.orgEn)
-    inner.appendChild(en)
+    if (C.orgZh) {
+      var zh = el('div', 'dsu-black-zh', C.orgZh)
+      if (/[A-Za-z]/.test(C.orgZh)) {
+        zh.style.letterSpacing = '0.08em'
+        zh.style.textIndent = '0.08em'
+      }
+      inner.appendChild(zh)
+    }
+    if (C.orgEn) {
+      var en = el('div', 'dsu-black-en', C.orgEn)
+      inner.appendChild(en)
+      ui.blackEn = en
+    }
     inner.appendChild(el('div', 'dsu-black-sub', C.orgSub))
-    ui.blackEn = en
   })()
 
   ;(function logoStage() {
     ui.logo.appendChild(svgWhale())
-    ui.logo.appendChild(el('div', 'dsu-logolabel', 'D E E P S E E K'))
+    ui.logo.appendChild(el('div', 'dsu-logolabel', spacedBrand(C.brand1)))
   })()
 
   ;(function welcomeLogo() {
     ui.w3.appendChild(svgWhale())
-    ui.w3.appendChild(el('span', 'dsu-w3label', 'D E E P S E E K  ·  H A R N E S S'))
+    ui.w3.appendChild(el('span', 'dsu-w3label', spacedBrand(C.brand1) + '  ·  ' + spacedBrand(C.brand3a)))
   })()
 
   ;(function watermark() {
@@ -1424,7 +1449,7 @@
         return wait(240)
       })
       .then(function () {
-        ui.blackEn.classList.add('dsu-tighten')
+        if (ui.blackEn) ui.blackEn.classList.add('dsu-tighten')
         return wait(880)
       })
       .then(function () {

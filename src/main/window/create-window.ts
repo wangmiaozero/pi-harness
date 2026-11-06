@@ -12,7 +12,11 @@ import { attachRendererGuards } from './renderer-guards'
 import { resolvePreload } from './preload-path'
 import { installArchitectureFullscreen } from './architecture-fullscreen'
 
-export function createMainWindow(iconPath: string, initialHash?: string): BrowserWindow {
+export function createMainWindow(
+  iconPath: string,
+  initialHash?: string,
+  showStartup = true
+): BrowserWindow {
   const rendererEntry = path.join(import.meta.dirname, '../renderer/index.html')
   const developmentRendererUrl =
     getIsDev() && process.env['ELECTRON_RENDERER_URL'] ? process.env['ELECTRON_RENDERER_URL'] : null
@@ -78,14 +82,19 @@ export function createMainWindow(iconPath: string, initialHash?: string): Browse
   attachRendererGuards(win, rendererUrl)
 
   if (developmentRendererUrl) {
-    void win.loadURL(
-      initialHash
-        ? `${developmentRendererUrl.split('#')[0]}#${initialHash}`
-        : developmentRendererUrl
-    )
+    const hashIndex = developmentRendererUrl.indexOf('#')
+    const base =
+      hashIndex >= 0 ? developmentRendererUrl.slice(0, hashIndex) : developmentRendererUrl
+    const existingHash = hashIndex >= 0 ? developmentRendererUrl.slice(hashIndex) : ''
+    const query = showStartup ? '' : `${base.includes('?') ? '&' : '?'}startup=0`
+    const hash = initialHash ? `#${initialHash}` : existingHash
+    void win.loadURL(`${base}${query}${hash}`)
     log.app.info('loaded development renderer')
   } else {
-    void win.loadFile(rendererEntry, initialHash ? { hash: initialHash } : undefined)
+    void win.loadFile(rendererEntry, {
+      ...(showStartup ? {} : { query: { startup: '0' } }),
+      ...(initialHash ? { hash: initialHash } : {})
+    })
   }
 
   return win

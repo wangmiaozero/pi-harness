@@ -14,6 +14,7 @@ describe('mascot styles', () => {
     expect(normalizeMascotStyle(undefined)).toBe('none')
     expect(normalizeMascotStyle('unknown')).toBe('none')
     expect(normalizeMascotStyle('longhair')).toBe('none')
+    expect(normalizeMascotStyle('wallpaperEngine')).toBe('ropeDeepseek')
   })
 
   it('accepts every supported style', () => {

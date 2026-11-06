@@ -37,7 +37,12 @@ import { savePastedFiles } from '../services/paste-store'
 import { pasteSaveSchema, externalUrlSchema, clipboardTextSchema } from '@shared/schemas/ipc'
 import { APP_VERSION, PROJECT_LINK_URLS } from '@shared/constants/index'
 import { normalizePermissionMode } from '@shared/workspace/permission-mode'
-import { normalizeDesktopPetSettings, type PetPackDetail, type PetPackInstallResult, type PetPackSummary } from '@shared/pet/desktop'
+import {
+  normalizeDesktopPetSettings,
+  type PetPackDetail,
+  type PetPackInstallResult,
+  type PetPackSummary
+} from '@shared/pet/desktop'
 import type { PetPackInstallSource } from '../pet/registry'
 import type { AppLanguage } from '@shared/constants/language'
 import { normalizeAgentMode } from '@shared/workspace/agent-mode'
@@ -84,7 +89,11 @@ import type { CapabilityService } from '../capabilities/capability-service'
 import { capabilityMutationSchema, capabilityToggleSchema } from '@shared/capabilities/schema'
 import { findTrustedCapability } from '@shared/capabilities/catalog'
 import type { EnvironmentManager } from '../environment/environment-manager'
-import { DEFAULT_MASCOT_STYLE, isMascotUnlockAnswer } from '@shared/constants/mascot'
+import {
+  DEFAULT_MASCOT_STYLE,
+  isMascotUnlockAnswer,
+  normalizeMascotStyle
+} from '@shared/constants/mascot'
 import { installAppMenu } from '../window/app-menu'
 import { normalizeNavOrder } from '@shared/constants/navigation'
 import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
@@ -864,6 +873,7 @@ export function registerIpc(services: Services): void {
       settings.userName = normalizeUserName(settings.userName)
       settings.assistantName = normalizeAssistantName(settings.assistantName)
       settings.appIcon = normalizeAppIconPreference(settings.appIcon)
+      settings.mascotStyle = normalizeMascotStyle(settings.mascotStyle)
       settings.navOrder = normalizeNavOrder(settings.navOrder)
       return settings
     })
@@ -900,6 +910,7 @@ export function registerIpc(services: Services): void {
       settings.userName = normalizeUserName(settings.userName)
       settings.assistantName = normalizeAssistantName(settings.assistantName)
       settings.desktopPet = normalizeDesktopPetSettings(settings.desktopPet)
+      settings.mascotStyle = normalizeMascotStyle(settings.mascotStyle)
       settings.navOrder = normalizeNavOrder(settings.navOrder)
       await settingsStore.write(settings)
       nativeTheme.themeSource = themeAppearance(settings.theme)

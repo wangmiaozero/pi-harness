@@ -8,7 +8,16 @@ export const MASCOT_STYLES = [
   'mingSnow',
   'zhangJuzhengSnow',
   'mingMoon',
-  'wallpaperEngine'
+  'ropeWhale',
+  'ropePhoebe',
+  'ropeClaude',
+  'ropeDeepseek',
+  'ropeGemini',
+  'ropeGpt',
+  'ropeGlm',
+  'ropeGrok',
+  'ropeKimi',
+  'ropeQwen'
 ] as const
 
 export type MascotStyle = (typeof MASCOT_STYLES)[number]
@@ -22,6 +31,7 @@ export function resolveMascotStyle(style: MascotStyle): MascotStyle {
 export const MASCOT_UNLOCK_ANSWER = '1024'
 
 export function normalizeMascotStyle(value: unknown): MascotStyle {
+  if (value === 'wallpaperEngine') return 'ropeDeepseek'
   return MASCOT_STYLES.includes(value as MascotStyle)
     ? (value as MascotStyle)
     : DEFAULT_MASCOT_STYLE

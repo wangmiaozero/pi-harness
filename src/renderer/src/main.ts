@@ -121,18 +121,6 @@ unsubscribers.push(
 )
 
 async function bootstrap() {
-  const networkCheck = getApi()
-    .system.checkNetwork()
-    .then((result) => {
-      startupChecks.network.state = result.reachable ? 'healthy' : 'warning'
-      startupChecks.network.detail = result.reachable
-        ? `已连接 · ${result.latencyMs} ms`
-        : '连接失败'
-    })
-    .catch(() => {
-      startupChecks.network.state = 'error'
-      startupChecks.network.detail = '检测失败'
-    })
   try {
     await settingsStore.fetch()
     startupPhase.value = 'services'
@@ -166,12 +154,7 @@ async function bootstrap() {
             ? '可读取'
             : '未配置'
     })
-    await Promise.all([
-      environmentCheck,
-      providersStore.fetchList(),
-      modelsStore.fetchList(),
-      networkCheck
-    ])
+    await Promise.all([environmentCheck, providersStore.fetchList(), modelsStore.fetchList()])
   } finally {
     startupPhase.value = 'ready'
   }

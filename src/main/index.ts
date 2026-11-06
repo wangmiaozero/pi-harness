@@ -248,11 +248,14 @@ async function bootstrap(): Promise<void> {
   await metadata.read()
 
   let mainWindow: BrowserWindow | null = null
+  let startupWindowOpened = false
   const screenMotion = new ScreenMotionOverlayController()
 
   const openMainWindow = (initialHash?: string, userActivation = false): void => {
     const settings = settingsStore.peek()
-    mainWindow = createMainWindow(selectedAppIconPath(settings), initialHash)
+    const showStartup = !startupWindowOpened
+    startupWindowOpened = true
+    mainWindow = createMainWindow(selectedAppIconPath(settings), initialHash, showStartup)
     if (userActivation) {
       const created = mainWindow
       created.once('ready-to-show', () => activateMainWindow(created))

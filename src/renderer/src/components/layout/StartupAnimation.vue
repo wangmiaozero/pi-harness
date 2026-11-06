@@ -7,7 +7,7 @@ import {
   startupPhase
 } from '@renderer/startup'
 import { useSettingsStore } from '@renderer/stores/settings'
-import { usesBigfishStartup } from '@renderer/bigfish-startup/gate'
+import { usesBigfishStartup, usesPortraitWelcomeStartup } from '@renderer/bigfish-startup/gate'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { themeAppearance } from '@shared/constants/theme'
 import {
@@ -228,7 +228,8 @@ function drawThemeMotif(context: CanvasRenderingContext2D, elapsed: number): voi
         }
       }
       break
-    case 'wallpaperEngine':
+    case 'ropeWhale':
+    case 'ropeDeepseek':
       for (const [ox, oy, color] of [
         [-0.7, -0.45, accent],
         [0.75, -0.2, secondary],
@@ -240,6 +241,15 @@ function drawThemeMotif(context: CanvasRenderingContext2D, elapsed: number): voi
         context.arc(cx + ox * radius, cy + oy * radius, radius * 0.55, 0, Math.PI * 2)
         context.fill()
       }
+      break
+    case 'ropePhoebe':
+    case 'ropeClaude':
+    case 'ropeGemini':
+    case 'ropeGpt':
+    case 'ropeGlm':
+    case 'ropeGrok':
+    case 'ropeKimi':
+    case 'ropeQwen':
       break
     case 'mingMoon':
       context.strokeStyle = tertiary
@@ -367,6 +377,7 @@ async function beginFishStartup(): Promise<void> {
     const theme = settings.settings ? themeAppearance(settings.settings.theme) : 'light'
     await playBigfishStartup({
       theme,
+      mascotStyle: settings.settings?.mascotStyle,
       onReady: () => {
         if (visible.value) mode.value = 'fish'
       }
@@ -385,10 +396,17 @@ async function beginFishStartup(): Promise<void> {
 }
 
 function considerStartup(): void {
-  if (!MASCOT_ENABLED || startupDecided) return
+  if (!visible.value || !MASCOT_ENABLED || startupDecided) return
   if (settings.settings) {
     startupDecided = true
-    if (usesBigfishStartup(settings.settings, { reducedMotion: prefersReducedMotion() })) {
+    const reducedMotion = prefersReducedMotion()
+    const phoebeSelected =
+      settings.settings.mascotUnlocked && settings.settings.mascotStyle === 'ropePhoebe'
+    if (
+      !phoebeSelected &&
+      (usesPortraitWelcomeStartup(settings.settings, { reducedMotion }) ||
+        usesBigfishStartup(settings.settings, { reducedMotion }))
+    ) {
       void beginFishStartup()
     } else {
       void beginParticle()
@@ -406,6 +424,7 @@ watch(() => [settings.settings, settings.loading, settings.error] as const, cons
 })
 
 onMounted(() => {
+  if (!visible.value) return
   if (!MASCOT_ENABLED) {
     void beginParticle()
     return
@@ -457,7 +476,6 @@ onBeforeUnmount(() => {
           <dt>
             {{
               {
-                network: 'npm 软件源',
                 node: 'Node.js',
                 npm: 'npm',
                 pi: 'Pi Agent',

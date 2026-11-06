@@ -85,21 +85,57 @@ export const STARTUP_PALETTES: Record<StartupVariant, StartupPalette> = {
     tertiary: '#f9e2aa',
     particles: ['#f7ead4', '#efba72', '#d46b5b', '#f9e2aa']
   },
-  wallpaperEngine: {
-    background: '#0b1020',
+  ropeWhale: ropePalette('#081426', '#2f6fe0', '#7eb6ff', '#d7e6ff'),
+  ropePhoebe: ropePalette('#1a1408', '#f0c14a', '#ffe7a3', '#fff6d6'),
+  ropeClaude: ropePalette('#1c120c', '#e07a2f', '#ffc089', '#ffe7d2'),
+  ropeDeepseek: ropePalette('#0c1424', '#3aa0ff', '#9fd0ff', '#e7f3ff'),
+  ropeGemini: ropePalette('#120e22', '#7a5cff', '#c4b4ff', '#eee9ff'),
+  ropeGpt: ropePalette('#16181c', '#d7dde8', '#9aa3b2', '#f4f6f8'),
+  ropeGlm: ropePalette('#0e1218', '#7aa2ff', '#b9d0ff', '#eef3ff'),
+  ropeGrok: ropePalette('#1a140c', '#e2b340', '#ffe0a0', '#fff4d8'),
+  ropeKimi: ropePalette('#10141c', '#9aa4ff', '#d5d9ff', '#f3f4ff'),
+  ropeQwen: ropePalette('#0e1620', '#5b8def', '#b7d0ff', '#eaf2ff')
+}
+
+function ropePalette(
+  background: string,
+  accent: string,
+  secondary: string,
+  tertiary: string
+): StartupPalette {
+  return {
+    background,
     text: '#f5f5f7',
-    accent: '#00c800',
-    secondary: '#4dd0ff',
-    tertiary: '#b06bff',
-    particles: ['#4dd0ff', '#b06bff', '#69ffc7', '#ff8ad2']
+    accent,
+    secondary,
+    tertiary,
+    particles: [accent, secondary, tertiary, '#f5f5f7']
   }
 }
+
+const ROPE_PARTICLE_SLOT: Partial<Record<StartupVariant, number>> = {
+  ropeWhale: 0,
+  ropePhoebe: 1,
+  ropeClaude: 2,
+  ropeDeepseek: 3,
+  ropeGemini: 4,
+  ropeGpt: 5,
+  ropeGlm: 6,
+  ropeGrok: 7,
+  ropeKimi: 8,
+  ropeQwen: 9
+}
+
+const DEEPSEEK_ROPE_STARTUP = new Set<MascotStyle>(['ropeDeepseek', 'ropeWhale'])
 
 export function resolveStartupVariant(
   settings: { mascotStyle: MascotStyle; mascotUnlocked: boolean } | null | undefined,
   mascotEnabled = MASCOT_ENABLED
 ): StartupVariant {
   if (!mascotEnabled || !settings?.mascotUnlocked) return 'none'
+  if (settings.mascotStyle.startsWith('rope') && !DEEPSEEK_ROPE_STARTUP.has(settings.mascotStyle)) {
+    return 'none'
+  }
   return Object.hasOwn(STARTUP_PALETTES, settings.mascotStyle) ? settings.mascotStyle : 'none'
 }
 
@@ -140,8 +176,19 @@ export function particleOrigin(
         width * 0.5 + Math.cos(angle) * width * 0.45,
         height * 0.46 + Math.sin(angle) * height * 0.45
       ]
-    case 'wallpaperEngine':
-      return [width * (0.08 + t * 0.15), height * (0.08 + random * 0.1)]
+    case 'ropeWhale':
+    case 'ropePhoebe':
+    case 'ropeClaude':
+    case 'ropeDeepseek':
+    case 'ropeGemini':
+    case 'ropeGpt':
+    case 'ropeGlm':
+    case 'ropeGrok':
+    case 'ropeKimi':
+    case 'ropeQwen': {
+      const slot = ROPE_PARTICLE_SLOT[variant] ?? 0
+      return [width * (0.03 + slot * 0.095) + 7, height * (0.11 + slot * 0.055)]
+    }
     case 'none':
     default: {
       const radius = Math.max(width, height) * (0.25 + random2 * 0.6)

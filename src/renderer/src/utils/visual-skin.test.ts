@@ -48,7 +48,7 @@ describe('visual skin transitions', () => {
       'mingSnow',
       'zhangJuzhengSnow',
       'mingMoon',
-      'wallpaperEngine',
+      'ropeDeepseek',
       'starshipCockpit'
     ] as const) {
       applyVisualSkin({ ...activeSettings, mascotStyle })

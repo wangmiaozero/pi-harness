@@ -121,13 +121,17 @@ describe('IPC schemas', () => {
     'mingSnow',
     'zhangJuzhengSnow',
     'mingMoon',
-    'wallpaperEngine'
-  ])(
-    'accepts the %s skin without changing color preference',
-    (mascotStyle) => {
-      expect(appSettingsPatchSchema.parse({ mascotStyle })).toEqual({ mascotStyle })
-    }
-  )
+    'ropeDeepseek',
+    'ropeWhale'
+  ])('accepts the %s skin without changing color preference', (mascotStyle) => {
+    expect(appSettingsPatchSchema.parse({ mascotStyle })).toEqual({ mascotStyle })
+  })
+
+  it('maps the previous wallpaper theme onto DeepSeek', () => {
+    expect(appSettingsPatchSchema.parse({ mascotStyle: 'wallpaperEngine' })).toEqual({
+      mascotStyle: 'ropeDeepseek'
+    })
+  })
 
   it('accepts only the screen-motion active payload', () => {
     expect(screenMotionActiveSchema.safeParse({ active: true, theme: 'dark' }).success).toBe(true)

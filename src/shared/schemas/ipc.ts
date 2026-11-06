@@ -97,7 +97,10 @@ const appSettingsFields = {
   assistantName: z.string().max(CHAT_PARTICIPANT_NAME_MAX_LENGTH),
   appIcon: z.enum(APP_ICON_PREFERENCES),
   mascotUnlocked: z.boolean(),
-  mascotStyle: z.enum(MASCOT_STYLES),
+  mascotStyle: z.preprocess(
+    (value) => (value === 'wallpaperEngine' ? 'ropeDeepseek' : value),
+    z.enum(MASCOT_STYLES)
+  ),
   customSkinId: customSkinSelectionSchema,
   petAnimations: z.boolean(),
   petStatusText: z.boolean(),

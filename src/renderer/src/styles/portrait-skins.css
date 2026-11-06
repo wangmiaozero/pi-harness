@@ -308,48 +308,79 @@
   --portrait-page-overlay: rgb(11 14 17 / 0.74);
 }
 
-:root[data-visual-skin='wallpaper-engine'] {
-  --bg-window: #0b1020;
-  --bg-titlebar: #10131f;
-  --bg-sidebar: #121826;
-  --bg-workspace: #0b1020;
-  --bg-surface: #161d2c;
-  --bg-surface-raised: #1b2436;
-  --bg-hover: #243044;
-  --bg-selected: #1a3a28;
-  --text-primary: #f5f5f7;
-  --text-secondary: #c5d4c8;
-  --text-tertiary: #8ea398;
-  --text-disabled: #66756c;
-  --accent: #00c800;
-  --accent-hover: #2ee02e;
-  --accent-active: #009e00;
-  --portrait-button-bg: #266d3c;
-  --portrait-button-hover: #2f8550;
-  --portrait-button-active: #1e5530;
-  --accent-border: #3d9a55;
-  --border-subtle: rgb(0 200 0 / 0.12);
-  --border-default: rgb(0 200 0 / 0.22);
-  --border-strong: rgb(0 200 0 / 0.38);
-  --control-bg: #141b28;
-  --control-bg-hover: #1c2636;
-  --control-bg-disabled: #10151f;
-  --control-border: rgb(0 200 0 / 0.24);
-  --control-border-hover: rgb(150 255 0 / 0.42);
-  --control-placeholder: #7d8f84;
-  --syntax-property: #00ff96;
-  --syntax-heading: #96ff00;
+:root[data-visual-skin^='rope-'] {
+  --bg-window: color-mix(in srgb, var(--accent) 34%, #120f0d);
+  --bg-titlebar: color-mix(in srgb, var(--accent) 28%, #161310);
+  --bg-sidebar: color-mix(in srgb, var(--accent) 32%, #161310);
+  --bg-workspace: color-mix(in srgb, var(--accent) 30%, #120f0d);
+  --bg-surface: color-mix(in srgb, var(--accent) 24%, #1c1814);
+  --bg-surface-raised: color-mix(in srgb, var(--accent) 32%, #221c18);
+  --bg-hover: color-mix(in srgb, var(--accent) 42%, #221c18);
+  --bg-selected: color-mix(in srgb, var(--accent) 52%, #221c18);
+  --text-primary: #f7f4f1;
+  --text-secondary: color-mix(in srgb, var(--accent) 24%, #f3efe8);
+  --text-tertiary: color-mix(in srgb, var(--accent) 30%, #a89f94);
+  --text-disabled: color-mix(in srgb, var(--accent) 16%, #756d64);
+  --accent: #7aa2ff;
+  --accent-hover: color-mix(in srgb, var(--accent) 78%, white);
+  --accent-active: color-mix(in srgb, var(--accent) 82%, black);
+  --portrait-button-bg: color-mix(in srgb, var(--accent) 68%, #161310);
+  --portrait-button-hover: color-mix(in srgb, var(--accent) 80%, #161310);
+  --portrait-button-active: color-mix(in srgb, var(--accent) 54%, #161310);
+  --accent-border: color-mix(in srgb, var(--accent) 72%, #161310);
+  --border-subtle: color-mix(in srgb, var(--accent) 22%, transparent);
+  --border-default: color-mix(in srgb, var(--accent) 36%, transparent);
+  --border-strong: color-mix(in srgb, var(--accent) 52%, transparent);
+  --control-bg: color-mix(in srgb, var(--accent) 20%, #1a1612);
+  --control-bg-hover: color-mix(in srgb, var(--accent) 32%, #1a1612);
+  --control-bg-disabled: color-mix(in srgb, var(--accent) 10%, #14110f);
+  --control-border: color-mix(in srgb, var(--accent) 36%, transparent);
+  --control-border-hover: color-mix(in srgb, var(--accent) 56%, transparent);
+  --control-placeholder: color-mix(in srgb, var(--accent) 22%, #a89f94);
+  --syntax-property: color-mix(in srgb, var(--accent) 72%, white);
+  --syntax-heading: color-mix(in srgb, var(--accent) 55%, white);
   --portrait-panel-background: transparent;
   --portrait-scene-image: none;
-  --portrait-glass-chrome: rgb(12 18 28 / 0.72);
-  --portrait-glass-control: rgb(18 28 24 / 0.7);
-  --portrait-glass-message: rgb(14 22 28 / 0.76);
-  --portrait-glass-input: rgb(12 20 18 / 0.68);
-  --portrait-glass-input-focus: rgb(16 28 22 / 0.84);
-  --portrait-glass-highlight: rgb(150 255 0 / 0.08);
+  --portrait-glass-chrome: color-mix(in srgb, var(--accent) 26%, rgb(18 14 12 / 0.78));
+  --portrait-glass-control: color-mix(in srgb, var(--accent) 22%, rgb(22 18 14 / 0.76));
+  --portrait-glass-message: color-mix(in srgb, var(--accent) 20%, rgb(20 16 13 / 0.8));
+  --portrait-glass-input: color-mix(in srgb, var(--accent) 18%, rgb(18 14 12 / 0.74));
+  --portrait-glass-input-focus: color-mix(in srgb, var(--accent) 28%, rgb(24 18 14 / 0.86));
+  --portrait-glass-highlight: color-mix(in srgb, var(--accent) 16%, transparent);
   --portrait-glass-shadow: rgb(0 0 0 / 0.18);
-  --portrait-status-bg: rgb(14 22 20 / 0.86);
-  --portrait-page-overlay: rgb(11 16 32 / 0.72);
+  --portrait-status-bg: color-mix(in srgb, var(--accent) 30%, rgb(18 14 12 / 0.88));
+  --portrait-page-overlay: color-mix(in srgb, var(--accent) 34%, rgb(14 11 9 / 0.8));
+}
+
+:root[data-visual-skin='rope-whale'] {
+  --accent: #2f6fe0;
+}
+:root[data-visual-skin='rope-phoebe'] {
+  --accent: #f0c14a;
+}
+:root[data-visual-skin='rope-claude'] {
+  --accent: #e07a2f;
+}
+:root[data-visual-skin='rope-deepseek'] {
+  --accent: #3aa0ff;
+}
+:root[data-visual-skin='rope-gemini'] {
+  --accent: #7a5cff;
+}
+:root[data-visual-skin='rope-gpt'] {
+  --accent: #d7dde8;
+}
+:root[data-visual-skin='rope-glm'] {
+  --accent: #7aa2ff;
+}
+:root[data-visual-skin='rope-grok'] {
+  --accent: #e2b340;
+}
+:root[data-visual-skin='rope-kimi'] {
+  --accent: #9aa4ff;
+}
+:root[data-visual-skin='rope-qwen'] {
+  --accent: #5b8def;
 }
 
 :root[data-portrait-skin='true'] {
@@ -431,41 +462,55 @@
 }
 
 /* Wallpaper stays behind the existing shell. No clock or title is drawn over the layout. */
-:root[data-visual-skin='wallpaper-engine'] .app-shell {
+:root[data-visual-skin^='rope-'] .app-shell {
   isolation: isolate;
   background: transparent;
 }
 
-:root[data-visual-skin='wallpaper-engine'] .app-shell::before,
-:root[data-visual-skin='wallpaper-engine'] .app-shell::after {
+:root[data-visual-skin^='rope-'] .app-shell::before,
+:root[data-visual-skin^='rope-'] .app-shell::after {
   position: absolute;
   z-index: -1;
   pointer-events: none;
   content: '';
 }
 
-:root[data-visual-skin='wallpaper-engine'] .app-shell::before {
+:root[data-visual-skin^='rope-'] .app-shell::before {
   inset: -30%;
   background:
-    radial-gradient(circle at 18% 12%, rgb(77 208 255 / 0.55), transparent 42%),
-    radial-gradient(circle at 88% 16%, rgb(176 107 255 / 0.5), transparent 40%),
-    radial-gradient(circle at 42% 92%, rgb(105 255 199 / 0.42), transparent 38%),
-    radial-gradient(circle at 78% 78%, rgb(255 138 210 / 0.32), transparent 36%),
+    radial-gradient(
+      circle at 18% 16%,
+      color-mix(in srgb, var(--accent) 62%, transparent),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 84% 12%,
+      color-mix(in srgb, var(--accent) 40%, transparent),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 36% 82%,
+      color-mix(in srgb, var(--accent) 48%, transparent),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 72% 62%,
+      color-mix(in srgb, var(--accent) 30%, transparent),
+      transparent 36%
+    ),
     linear-gradient(
       125deg,
-      #10131f 0%,
-      #1b2439 25%,
-      #20304d 45%,
-      #351b45 70%,
-      #122b3f 90%,
-      #0b1020 100%
+      color-mix(in srgb, var(--accent) 32%, #120f0d) 0%,
+      color-mix(in srgb, var(--accent) 22%, #161310) 42%,
+      color-mix(in srgb, var(--accent) 38%, #1c1612) 68%,
+      color-mix(in srgb, var(--accent) 26%, #120f0d) 100%
     );
   filter: blur(18px);
   opacity: 0.9;
   animation: wallpaper-engine-drift 26s ease-in-out infinite alternate;
 }
 
-:root[data-visual-skin='wallpaper-engine'] .app-shell::after {
+:root[data-visual-skin^='rope-'] .app-shell::after {
   inset: 0;
   opacity: 0.14;
   background-image: radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.6) 1px, transparent 0);
@@ -484,7 +529,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root[data-visual-skin='wallpaper-engine'] .app-shell::before {
+  :root[data-visual-skin^='rope-'] .app-shell::before {
     animation: none;
   }
 }
@@ -655,7 +700,7 @@
     [data-visual-skin='ming-snow'],
     [data-visual-skin='zhang-juzheng-snow'],
     [data-visual-skin='ming-moon'],
-    [data-visual-skin='wallpaper-engine']
+    [data-visual-skin^='rope-']
   )
   .workspace-content {
   --standing-portrait-column: min(32cqw, 440px);
@@ -669,7 +714,7 @@
     [data-visual-skin='ming-snow'],
     [data-visual-skin='zhang-juzheng-snow'],
     [data-visual-skin='ming-moon'],
-    [data-visual-skin='wallpaper-engine']
+    [data-visual-skin^='rope-']
   )
   .portrait-skin-character {
   position: absolute;
@@ -678,6 +723,40 @@
   height: min(68cqh, calc(var(--standing-portrait-column) * 1.5 - 36px));
   aspect-ratio: 2 / 3;
   transform: translateX(-50%);
+}
+
+/* The rope is cut at the top of the artwork, so the figure hangs from the scene edge. */
+:root[data-visual-skin^='rope-'] .workspace-content {
+  --standing-portrait-column: min(400px, 34cqw);
+}
+
+:root[data-visual-skin^='rope-'] .portrait-skin-character {
+  top: -10px;
+  bottom: auto;
+  width: min(320px, calc(var(--standing-portrait-column) - 36px));
+  height: auto;
+  aspect-ratio: 330 / 384;
+}
+
+:root[data-visual-skin='rope-whale'] .portrait-skin-character {
+  width: min(268px, calc(var(--standing-portrait-column) - 52px));
+  aspect-ratio: 384 / 576;
+}
+
+:root[data-visual-skin^='rope-'] .portrait-skin-artwork {
+  align-items: flex-start;
+}
+
+:root[data-visual-skin^='rope-'] .portrait-skin-artwork img {
+  object-position: center top;
+}
+
+:root[data-visual-skin^='rope-'] .portrait-skin-footer {
+  top: 36%;
+  right: -4px;
+  bottom: auto;
+  left: auto;
+  width: max-content;
 }
 
 @container standing-scene (min-width: 821px) {
@@ -702,8 +781,8 @@
   background: rgb(159 41 40 / 0.16);
 }
 
-:root[data-visual-skin='wallpaper-engine'] .user-message-body {
-  background: rgb(0 200 0 / 0.1);
+:root[data-visual-skin^='rope-'] .user-message-body {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 :root:is(
@@ -2557,10 +2636,51 @@
   background: url('../assets/themes/ming-dynasty/moon-city.png') center / cover no-repeat #191b1e;
 }
 
-[data-mascot-option='wallpaperEngine'] .mascot-option-preview {
+[data-mascot-option='ropeWhale'] {
+  --rope-glow: #2f6fe0;
+}
+[data-mascot-option='ropePhoebe'] {
+  --rope-glow: #f0c14a;
+}
+[data-mascot-option='ropeClaude'] {
+  --rope-glow: #e07a2f;
+}
+[data-mascot-option='ropeDeepseek'] {
+  --rope-glow: #3aa0ff;
+}
+[data-mascot-option='ropeGemini'] {
+  --rope-glow: #7a5cff;
+}
+[data-mascot-option='ropeGpt'] {
+  --rope-glow: #d7dde8;
+}
+[data-mascot-option='ropeGlm'] {
+  --rope-glow: #7aa2ff;
+}
+[data-mascot-option='ropeGrok'] {
+  --rope-glow: #e2b340;
+}
+[data-mascot-option='ropeKimi'] {
+  --rope-glow: #9aa4ff;
+}
+[data-mascot-option='ropeQwen'] {
+  --rope-glow: #5b8def;
+}
+
+[data-mascot-option^='rope'] .mascot-option-preview {
   background:
-    radial-gradient(circle at 20% 18%, rgb(77 208 255 / 0.5), transparent 42%),
-    radial-gradient(circle at 82% 16%, rgb(176 107 255 / 0.45), transparent 40%),
-    radial-gradient(circle at 40% 84%, rgb(105 255 199 / 0.38), transparent 38%),
-    linear-gradient(125deg, #10131f, #20304d 45%, #351b45 70%, #0b1020);
+    radial-gradient(
+      circle at 50% 82%,
+      color-mix(in srgb, var(--rope-glow) 46%, transparent),
+      transparent 46%
+    ),
+    linear-gradient(160deg, #1a2230, #0c1018 72%);
+}
+
+[data-mascot-option^='rope'] .mascot-option-image {
+  width: auto;
+  max-width: 72%;
+  height: 88%;
+  object-fit: contain;
+  object-position: center bottom;
 }

@@ -14,5 +14,14 @@ export const MASCOT_IMAGES: Record<MascotStyle, string | null> = {
   mingSnow: PET_MANIFESTS.mingSnow?.sprite ?? null,
   zhangJuzhengSnow: PET_MANIFESTS.zhangJuzhengSnow?.sprite ?? null,
   mingMoon: PET_MANIFESTS.mingMoon?.sprite ?? null,
-  wallpaperEngine: PET_MANIFESTS.wallpaperEngine?.sprite ?? null
+  ropeWhale: PET_MANIFESTS.ropeWhale?.sprite ?? null,
+  ropePhoebe: PET_MANIFESTS.ropePhoebe?.sprite ?? null,
+  ropeClaude: PET_MANIFESTS.ropeClaude?.sprite ?? null,
+  ropeDeepseek: PET_MANIFESTS.ropeDeepseek?.sprite ?? null,
+  ropeGemini: PET_MANIFESTS.ropeGemini?.sprite ?? null,
+  ropeGpt: PET_MANIFESTS.ropeGpt?.sprite ?? null,
+  ropeGlm: PET_MANIFESTS.ropeGlm?.sprite ?? null,
+  ropeGrok: PET_MANIFESTS.ropeGrok?.sprite ?? null,
+  ropeKimi: PET_MANIFESTS.ropeKimi?.sprite ?? null,
+  ropeQwen: PET_MANIFESTS.ropeQwen?.sprite ?? null
 }

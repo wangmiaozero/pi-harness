@@ -18,14 +18,36 @@ describe('startup quantum variants', () => {
     ).toEqual(new Set([palette.accent]))
   })
 
-  it('covers all nine unlocked themes with distinct colors and trajectories', () => {
-    const themed = MASCOT_STYLES.filter((style) => style !== 'none')
-    expect(themed).toHaveLength(9)
-    expect(new Set(themed.map((style) => STARTUP_PALETTES[style].background)).size).toBe(9)
-    const origins = themed.map((style) => {
-      expect(resolveStartupVariant({ mascotStyle: style, mascotUnlocked: true })).toBe(style)
-      return particleOrigin(style, 15, 100, 1200, 800, 0.35, 0.6)
-    })
-    expect(new Set(origins.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`)).size).toBe(9)
+  it('covers every themed startup with distinct colors and trajectories', () => {
+    const themed = MASCOT_STYLES.filter(
+      (style) =>
+        style !== 'none' &&
+        resolveStartupVariant({ mascotStyle: style, mascotUnlocked: true }) === style
+    )
+    expect(themed).toHaveLength(10)
+    expect(new Set(themed.map((style) => STARTUP_PALETTES[style].background)).size).toBe(10)
+    const origins = themed.map((style) => particleOrigin(style, 15, 100, 1200, 800, 0.35, 0.6))
+    expect(new Set(origins.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`)).size).toBe(10)
+  })
+
+  it('keeps the rope startup on the DeepSeek portraits', () => {
+    expect(resolveStartupVariant({ mascotStyle: 'ropeDeepseek', mascotUnlocked: true })).toBe(
+      'ropeDeepseek'
+    )
+    expect(resolveStartupVariant({ mascotStyle: 'ropeWhale', mascotUnlocked: true })).toBe(
+      'ropeWhale'
+    )
+    for (const style of [
+      'ropePhoebe',
+      'ropeClaude',
+      'ropeGemini',
+      'ropeGpt',
+      'ropeGlm',
+      'ropeGrok',
+      'ropeKimi',
+      'ropeQwen'
+    ] as const) {
+      expect(resolveStartupVariant({ mascotStyle: style, mascotUnlocked: true })).toBe('none')
+    }
   })
 })

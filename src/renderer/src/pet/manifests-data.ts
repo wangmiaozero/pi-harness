@@ -8,7 +8,16 @@ import moonlitMaidImage from '@renderer/assets/themes/portraits/moonlit-maid.png
 import mingSnowImage from '@renderer/assets/themes/ming-dynasty/snow-maiden.png'
 import mingMoonImage from '@renderer/assets/themes/ming-dynasty/moon-maiden.png'
 import zhangJuzhengSnowImage from '@renderer/assets/themes/zhang-juzheng-snow/zhang-juzheng.png'
-import wallpaperEngineImage from '@renderer/assets/themes/wallpaper-engine/deepseek.png'
+import ropeWhaleImage from '@renderer/assets/themes/rope/whale.png'
+import ropePhoebeImage from '@renderer/assets/themes/rope/phoebe.png'
+import ropeClaudeImage from '@renderer/assets/themes/rope/claude.png'
+import ropeDeepseekImage from '@renderer/assets/themes/rope/deepseek.png'
+import ropeGeminiImage from '@renderer/assets/themes/rope/gemini.png'
+import ropeGptImage from '@renderer/assets/themes/rope/gpt.png'
+import ropeGlmImage from '@renderer/assets/themes/rope/glm.png'
+import ropeGrokImage from '@renderer/assets/themes/rope/grok.png'
+import ropeKimiImage from '@renderer/assets/themes/rope/kimi.png'
+import ropeQwenImage from '@renderer/assets/themes/rope/qwen.png'
 
 export const PET_THEME_ORDER: readonly PetThemeId[] = [
   'maidWhite',
@@ -19,7 +28,16 @@ export const PET_THEME_ORDER: readonly PetThemeId[] = [
   'mingSnow',
   'zhangJuzhengSnow',
   'mingMoon',
-  'wallpaperEngine'
+  'ropeWhale',
+  'ropePhoebe',
+  'ropeClaude',
+  'ropeDeepseek',
+  'ropeGemini',
+  'ropeGpt',
+  'ropeGlm',
+  'ropeGrok',
+  'ropeKimi',
+  'ropeQwen'
 ]
 
 function animations(states: readonly PetState[]): PetManifest['animations'] {
@@ -34,6 +52,17 @@ const FALLBACK_SINGLE_FRAME_ANIMATIONS = animations([
   'waving',
   'jumping'
 ])
+
+function ropeManifest(
+  id: PetThemeId,
+  name: string,
+  sprite: string,
+  accent: string,
+  frameWidth: number,
+  frameHeight: number
+): PetManifest {
+  return { ...manifest(id, name, sprite, accent, true), frameWidth, frameHeight }
+}
 
 function manifest(
   id: PetThemeId,
@@ -89,17 +118,16 @@ export const PET_MANIFESTS: Readonly<Record<PetThemeId, PetManifest>> = {
     true
   ),
   mingMoon: manifest('mingMoon', 'Ming Moon City · Scroll Scholar', mingMoonImage, '#b4493f', true),
-  wallpaperEngine: {
-    ...manifest(
-      'wallpaperEngine',
-      'Wallpaper Engine · Hacker Green',
-      wallpaperEngineImage,
-      '#00c800',
-      true
-    ),
-    frameWidth: 330,
-    frameHeight: 384
-  },
+  ropeWhale: ropeManifest('ropeWhale', 'DeepSeek Pro', ropeWhaleImage, '#2f6fe0', 384, 576),
+  ropePhoebe: ropeManifest('ropePhoebe', 'Phoebe', ropePhoebeImage, '#f0c14a', 283, 384),
+  ropeClaude: ropeManifest('ropeClaude', 'Claude', ropeClaudeImage, '#e07a2f', 324, 384),
+  ropeDeepseek: ropeManifest('ropeDeepseek', 'DeepSeek', ropeDeepseekImage, '#3aa0ff', 330, 384),
+  ropeGemini: ropeManifest('ropeGemini', 'Gemini', ropeGeminiImage, '#7a5cff', 296, 384),
+  ropeGpt: ropeManifest('ropeGpt', 'GPT', ropeGptImage, '#d7dde8', 320, 384),
+  ropeGlm: ropeManifest('ropeGlm', 'GLM', ropeGlmImage, '#7aa2ff', 308, 384),
+  ropeGrok: ropeManifest('ropeGrok', 'Grok', ropeGrokImage, '#e2b340', 311, 384),
+  ropeKimi: ropeManifest('ropeKimi', 'Kimi', ropeKimiImage, '#9aa4ff', 299, 384),
+  ropeQwen: ropeManifest('ropeQwen', 'Qwen', ropeQwenImage, '#5b8def', 307, 384),
   starshipCockpit: {
     ...manifest(
       'starshipCockpit',

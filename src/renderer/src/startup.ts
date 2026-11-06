@@ -5,13 +5,20 @@ export type StartupPhase = 'settings' | 'services' | 'ready'
 
 export const STARTUP_MINIMUM_VISIBLE_MS = 5000
 
+/** Cold process launch only. A later window in the same process passes startup=0. */
+export function shouldPlayStartupAnimation(search: string): boolean {
+  const query = search.startsWith('?') ? search.slice(1) : search
+  return new URLSearchParams(query).get('startup') !== '0'
+}
+
 export const startupPhase = ref<StartupPhase>('settings')
-export const startupAnimationVisible = ref(true)
+export const startupAnimationVisible = ref(
+  shouldPlayStartupAnimation(typeof location === 'undefined' ? '' : location.search)
+)
 
 export type StartupCheckState = 'checking' | 'healthy' | 'warning' | 'error'
 
 export const startupChecks = reactive({
-  network: { state: 'checking' as StartupCheckState, detail: '检测中…' },
   node: { state: 'checking' as StartupCheckState, detail: '检测中…' },
   npm: { state: 'checking' as StartupCheckState, detail: '检测中…' },
   pi: { state: 'checking' as StartupCheckState, detail: '检测中…' },

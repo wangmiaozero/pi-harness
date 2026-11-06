@@ -33,7 +33,16 @@ describe('MascotBackground', () => {
     'mingSnow',
     'zhangJuzhengSnow',
     'mingMoon',
-    'wallpaperEngine'
+    'ropeWhale',
+    'ropePhoebe',
+    'ropeClaude',
+    'ropeDeepseek',
+    'ropeGemini',
+    'ropeGpt',
+    'ropeGlm',
+    'ropeGrok',
+    'ropeKimi',
+    'ropeQwen'
   ] as const)('keeps the %s portrait static even with pet animations enabled', (style) => {
     const wrapper = mount(MascotBackground, { props: { style, animated: true } })
     expect(wrapper.get('.pet-renderer').classes()).toContain('pet-motion-off')

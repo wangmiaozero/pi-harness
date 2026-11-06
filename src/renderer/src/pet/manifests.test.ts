@@ -4,8 +4,8 @@ import { resolveMascotStyle } from '@shared/constants/mascot'
 import { PET_MANIFESTS, PET_THEME_ORDER } from './manifests'
 
 describe('built-in pet manifests', () => {
-  it('ships nine independent built-in themes', () => {
-    expect(Object.keys(PET_MANIFESTS)).toHaveLength(9)
+  it('ships eighteen independent built-in themes', () => {
+    expect(Object.keys(PET_MANIFESTS)).toHaveLength(18)
     expect(PET_THEME_ORDER).toEqual([
       'maidWhite',
       'office',
@@ -15,7 +15,16 @@ describe('built-in pet manifests', () => {
       'mingSnow',
       'zhangJuzhengSnow',
       'mingMoon',
-      'wallpaperEngine'
+      'ropeWhale',
+      'ropePhoebe',
+      'ropeClaude',
+      'ropeDeepseek',
+      'ropeGemini',
+      'ropeGpt',
+      'ropeGlm',
+      'ropeGrok',
+      'ropeKimi',
+      'ropeQwen'
     ])
     expect(PET_MANIFESTS.maidWhite.priority).toBe(true)
     expect(PET_MANIFESTS.office.priority).toBe(true)
@@ -47,9 +56,11 @@ describe('built-in pet manifests', () => {
   })
 
   it('keeps the wallpaper engine portrait at its source size', () => {
-    expect(PET_MANIFESTS.wallpaperEngine.frameWidth).toBe(330)
-    expect(PET_MANIFESTS.wallpaperEngine.frameHeight).toBe(384)
-    expect(PET_MANIFESTS.wallpaperEngine.sprite).toMatch(/wallpaper-engine\/deepseek\.png$/)
-    expect(PET_MANIFESTS.wallpaperEngine.accent).toBe('#00c800')
+    expect(PET_MANIFESTS.ropeDeepseek.frameWidth).toBe(330)
+    expect(PET_MANIFESTS.ropeDeepseek.frameHeight).toBe(384)
+    expect(PET_MANIFESTS.ropeDeepseek.sprite).toMatch(/rope\/deepseek\.png$/)
+    expect(PET_MANIFESTS.ropeWhale.frameWidth).toBe(384)
+    expect(PET_MANIFESTS.ropeWhale.frameHeight).toBe(576)
+    expect(PET_MANIFESTS.ropeWhale.sprite).toMatch(/rope\/whale\.png$/)
   })
 })

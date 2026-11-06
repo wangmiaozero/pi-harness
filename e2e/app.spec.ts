@@ -148,9 +148,7 @@ test.describe('Application shell', () => {
     await page.reload()
     await expect(page.getByTestId('startup-animation')).toBeVisible()
     await expect(page.getByTestId('startup-animation')).toContainText('检测')
-    await expect(page.getByTestId('startup-check-network')).toContainText(
-      /已连接|连接失败|检测失败/
-    )
+    await expect(page.getByTestId('startup-check-network')).toHaveCount(0)
     await expect(page.getByTestId('startup-check-node')).toContainText(
       /已就绪|未检测到|版本过低|检测失败/
     )

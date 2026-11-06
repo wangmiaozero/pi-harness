@@ -99,11 +99,11 @@ describe('SessionService background list', () => {
     const scan = deferred<PiSessionInfoLike[]>()
     const index = { list: vi.fn(() => scan.promise), close: vi.fn() }
     const service = indexedService(index)
-    const pending = expect(service.list()).rejects.toThrow('closed')
+    const pending = service.list()
     await service.close()
     scan.resolve([session('old')])
-    await pending
-    await expect(service.list()).rejects.toThrow('closed')
+    await expect(pending).resolves.toEqual([])
+    await expect(service.list()).resolves.toEqual([])
     expect(index.close).toHaveBeenCalledTimes(1)
   })
 

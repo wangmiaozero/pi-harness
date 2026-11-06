@@ -17,7 +17,16 @@ describe('portrait skin panel', () => {
     'mingSnow',
     'zhangJuzhengSnow',
     'mingMoon',
-    'wallpaperEngine'
+    'ropeWhale',
+    'ropePhoebe',
+    'ropeClaude',
+    'ropeDeepseek',
+    'ropeGemini',
+    'ropeGpt',
+    'ropeGlm',
+    'ropeGrok',
+    'ropeKimi',
+    'ropeQwen'
   ] as const)('keeps %s art and status together without changing pet state', async (style) => {
     const pet = usePetStore()
     const wrapper = mount(PortraitSkinPanel, {

@@ -83,7 +83,8 @@ export class SessionService {
   }
 
   async list(force = false): Promise<SessionInfo[]> {
-    if (this.closed) throw new Error('Session service is closed')
+    // Quit can overlap a renderer refresh. Return quietly instead of failing the IPC.
+    if (this.closed) return []
     if (force) this.invalidate()
     if (this.listCache && Date.now() - this.listCache.ts < 30_000) return this.listCache.data
     if (this.listPromise) return this.listPromise
@@ -91,6 +92,7 @@ export class SessionService {
     const revision = this.listRevision
     const request = this.loadAll()
       .then((data) => {
+        if (this.closed) return []
         // A refresh/mutation may have started a newer scan while this one ran.
         if (revision !== this.listRevision) return this.list()
         for (const session of data) this.cachePath(session.id, session.path)

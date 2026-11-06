@@ -100,7 +100,8 @@ SOFTWARE.
 - Version: 1.3.0
 - Copyright: Copyright (c) 2026 沈宏宏
 - License: MIT. The full license text follows.
-- Used as: the boot sequence shown when the bundled 大肥鱼 desktop pet is turned on. nomascot builds do not include it.
+- Used as: the boot sequence shown when the bundled 大肥鱼 desktop pet is turned on, and when a rope portrait other than Phoebe is selected. nomascot builds do not include it.
+- The Claude, Gemini, GPT, GLM, Grok, Kimi, and Qwen marks on that sequence are the monochrome icons from [lobehub/lobe-icons](https://github.com/lobehub/lobe-icons) (MIT, Copyright (c) 2023 lobehub). DeepSeek and DeepSeek Pro keep the whale from this sequence.
 - This community integration is not an official DeepSeek product.
 
 MIT License
@@ -131,7 +132,7 @@ SOFTWARE.
 - Version: 1.4.0
 - Copyright: Copyright (c) 2026 elysia395
 - License: MIT. The full license text follows.
-- Used as: the “Wallpaper Engine · Hacker Green” theme. The drifting light background is adapted from the bundled default wallpaper, without its clock or title, so it sits behind this app’s existing layout. The character is the factory DeepSeek rope portrait.
+- Used as: ten rope-portrait themes (DeepSeek Pro, Phoebe, Claude, DeepSeek, Gemini, GPT, GLM, Grok, Kimi, and Qwen). The drifting light background is adapted from the bundled default wallpaper, without its clock or title, so it sits behind this app’s existing layout. Each theme uses one factory rope portrait.
 - nomascot builds do not include the portrait.
 - This community integration is not an official DeepSeek product.
 

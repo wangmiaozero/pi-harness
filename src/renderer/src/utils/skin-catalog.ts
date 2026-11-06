@@ -12,7 +12,16 @@ export const VISUAL_SKINS = {
   mingSnow: { id: 'ming-snow', appearance: 'dark', portrait: true },
   zhangJuzhengSnow: { id: 'zhang-juzheng-snow', appearance: 'dark', portrait: true },
   mingMoon: { id: 'ming-moon', appearance: 'dark', portrait: true },
-  wallpaperEngine: { id: 'wallpaper-engine', appearance: 'dark', portrait: true }
+  ropeWhale: { id: 'rope-whale', appearance: 'dark', portrait: true },
+  ropePhoebe: { id: 'rope-phoebe', appearance: 'dark', portrait: true },
+  ropeClaude: { id: 'rope-claude', appearance: 'dark', portrait: true },
+  ropeDeepseek: { id: 'rope-deepseek', appearance: 'dark', portrait: true },
+  ropeGemini: { id: 'rope-gemini', appearance: 'dark', portrait: true },
+  ropeGpt: { id: 'rope-gpt', appearance: 'dark', portrait: true },
+  ropeGlm: { id: 'rope-glm', appearance: 'dark', portrait: true },
+  ropeGrok: { id: 'rope-grok', appearance: 'dark', portrait: true },
+  ropeKimi: { id: 'rope-kimi', appearance: 'dark', portrait: true },
+  ropeQwen: { id: 'rope-qwen', appearance: 'dark', portrait: true }
 } as const
 
 export interface VisualSkin {
