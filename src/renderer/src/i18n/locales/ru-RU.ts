@@ -882,6 +882,8 @@ export const ruRU: MessageTree = {
     mascotRopeDeepseekHint: 'Синеволосая горничная',
     mascotDeepseekPoster: 'DeepSeek рабочий режим',
     mascotDeepseekPosterHint: 'Стандартные обои чата, крупный план с синими волосами',
+    mascotDeepseekDream: 'DeepSeek глубокий сон',
+    mascotDeepseekDreamHint: 'Обои с китом и медузами на весь экран',
     mascotRopeGemini: 'Gemini',
     mascotRopeGeminiHint: 'Сине-фиолетовые кошачьи уши',
     mascotRopeGpt: 'GPT',

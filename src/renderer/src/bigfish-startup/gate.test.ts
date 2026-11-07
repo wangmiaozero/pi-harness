@@ -40,6 +40,9 @@ describe('bigfish startup gate', () => {
     expect(usesDeepseekVideoStartup({ mascotStyle: 'deepseekPoster', mascotUnlocked: true })).toBe(
       true
     )
+    expect(usesDeepseekVideoStartup({ mascotStyle: 'deepseekDream', mascotUnlocked: true })).toBe(
+      true
+    )
     for (const mascotStyle of ['ropeClaude', 'ropePhoebe', 'ropeQwen', 'none'] as const) {
       expect(usesDeepseekVideoStartup({ mascotStyle, mascotUnlocked: true })).toBe(false)
     }
@@ -56,6 +59,9 @@ describe('bigfish startup gate', () => {
     expect(usesDeepseekVideoSkin({ mascotStyle: 'ropeWhale', mascotUnlocked: true })).toBe(true)
     expect(usesDeepseekVideoSkin({ mascotStyle: 'ropeClaude', mascotUnlocked: true })).toBe(false)
     expect(usesDeepseekVideoSkin({ mascotStyle: 'deepseekPoster', mascotUnlocked: true })).toBe(
+      false
+    )
+    expect(usesDeepseekVideoSkin({ mascotStyle: 'deepseekDream', mascotUnlocked: true })).toBe(
       false
     )
     expect(usesDeepseekVideoSkin({ mascotStyle: 'ropeDeepseek', mascotUnlocked: false })).toBe(
@@ -89,7 +95,8 @@ describe('bigfish startup gate', () => {
       'ropeGrok',
       'ropeKimi',
       'ropeQwen',
-      'deepseekPoster'
+      'deepseekPoster',
+      'deepseekDream'
     ] as const) {
       expect(usesPortraitWelcomeStartup({ mascotStyle, mascotUnlocked: true })).toBe(true)
     }
@@ -156,11 +163,10 @@ describe('bigfish startup gate', () => {
   it('keeps 大肥鱼 off a selected theme and on when no theme is selected', () => {
     const petOn = { ...enabled, mascotUnlocked: true as const }
     expect(usesCinematicStartup({ ...petOn, mascotStyle: 'deepseekPoster' })).toBe(true)
+    expect(usesCinematicStartup({ ...petOn, mascotStyle: 'deepseekDream' })).toBe(true)
     expect(usesCinematicStartup({ ...petOn, mascotStyle: 'ropePhoebe' })).toBe(false)
     expect(usesCinematicStartup({ ...petOn, mascotStyle: 'ropeClaude' })).toBe(true)
-    expect(
-      usesCinematicStartup({ mascotStyle: 'ropeDeepseek', mascotUnlocked: true })
-    ).toBe(true)
+    expect(usesCinematicStartup({ mascotStyle: 'ropeDeepseek', mascotUnlocked: true })).toBe(true)
     expect(usesCinematicStartup({ ...enabled, mascotStyle: 'none', mascotUnlocked: false })).toBe(
       true
     )

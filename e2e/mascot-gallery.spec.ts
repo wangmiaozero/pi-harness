@@ -25,7 +25,7 @@ test('mascot gallery fills the page with equal-height previews across skins and 
   const gallery = page.getByTestId('mascot-settings-section')
   const grid = page.getByTestId('mascot-options-grid')
   const options = grid.locator('[data-mascot-option]')
-  await expect(options).toHaveCount(20)
+  await expect(options).toHaveCount(21)
   await grid.locator('img').evaluateAll(async (images) => {
     await Promise.all(images.map((image) => (image as HTMLImageElement).decode()))
   })

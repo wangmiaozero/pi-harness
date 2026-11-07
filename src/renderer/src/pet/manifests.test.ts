@@ -5,7 +5,7 @@ import { PET_MANIFESTS, PET_THEME_ORDER } from './manifests'
 
 describe('built-in pet manifests', () => {
   it('ships eighteen independent built-in themes', () => {
-    expect(Object.keys(PET_MANIFESTS)).toHaveLength(19)
+    expect(Object.keys(PET_MANIFESTS)).toHaveLength(20)
     expect(PET_THEME_ORDER).toEqual([
       'maidWhite',
       'office',
@@ -20,6 +20,7 @@ describe('built-in pet manifests', () => {
       'ropeClaude',
       'ropeDeepseek',
       'deepseekPoster',
+      'deepseekDream',
       'ropeGemini',
       'ropeGpt',
       'ropeGlm',
@@ -62,6 +63,8 @@ describe('built-in pet manifests', () => {
     expect(PET_MANIFESTS.ropeDeepseek.sprite).toMatch(/rope\/deepseek\.png$/)
     expect(PET_MANIFESTS.ropeWhale.frameWidth).toBe(384)
     expect(PET_MANIFESTS.ropeWhale.frameHeight).toBe(576)
-    expect(PET_MANIFESTS.ropeWhale.sprite).toMatch(/rope\/whale\.png$/)
+    expect(PET_MANIFESTS.deepseekDream.frameWidth).toBe(1290)
+    expect(PET_MANIFESTS.deepseekDream.frameHeight).toBe(725)
+    expect(PET_MANIFESTS.deepseekDream.sprite).toMatch(/deepseek-dream\/wallpaper\.png$/)
   })
 })

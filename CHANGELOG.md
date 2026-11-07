@@ -12,6 +12,7 @@ This release adds portrait themes, a DeepSeek work-mode wallpaper, themed startu
 
 - Added portrait themes for DeepSeek, DeepSeek Pro, Phoebe, Claude, Gemini, GPT, GLM, Grok, Kimi, and Qwen.
 - Added DeepSeek Work Mode, a full-window chat wallpaper that uses the same startup page as DeepSeek and DeepSeek Pro.
+- Added DeepSeek Deep Dream, a full-window whale and jellyfish wallpaper that uses the same startup page.
 - DeepSeek and DeepSeek Pro show a looping video behind the window.
 - DeepSeek, DeepSeek Pro, and DeepSeek Work Mode can open with the startup page, a boot video, or the page followed by a video.
 - The other portrait themes except Phoebe use that startup page with their own name and ending.

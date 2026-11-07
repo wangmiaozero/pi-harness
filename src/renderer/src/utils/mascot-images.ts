@@ -19,6 +19,7 @@ export const MASCOT_IMAGES: Record<MascotStyle, string | null> = {
   ropeClaude: PET_MANIFESTS.ropeClaude?.sprite ?? null,
   ropeDeepseek: PET_MANIFESTS.ropeDeepseek?.sprite ?? null,
   deepseekPoster: PET_MANIFESTS.deepseekPoster?.sprite ?? null,
+  deepseekDream: PET_MANIFESTS.deepseekDream?.sprite ?? null,
   ropeGemini: PET_MANIFESTS.ropeGemini?.sprite ?? null,
   ropeGpt: PET_MANIFESTS.ropeGpt?.sprite ?? null,
   ropeGlm: PET_MANIFESTS.ropeGlm?.sprite ?? null,

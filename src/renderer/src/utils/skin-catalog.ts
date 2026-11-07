@@ -17,6 +17,7 @@ export const VISUAL_SKINS = {
   ropeClaude: { id: 'rope-claude', appearance: 'dark', portrait: true },
   ropeDeepseek: { id: 'rope-deepseek', appearance: 'dark', portrait: true },
   deepseekPoster: { id: 'deepseek-poster', appearance: 'dark', portrait: true },
+  deepseekDream: { id: 'deepseek-dream', appearance: 'dark', portrait: true },
   ropeGemini: { id: 'rope-gemini', appearance: 'dark', portrait: true },
   ropeGpt: { id: 'rope-gpt', appearance: 'dark', portrait: true },
   ropeGlm: { id: 'rope-glm', appearance: 'dark', portrait: true },

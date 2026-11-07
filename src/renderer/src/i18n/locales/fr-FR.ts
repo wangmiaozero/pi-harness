@@ -882,6 +882,8 @@ export const frFR: MessageTree = {
     mascotRopeDeepseekHint: 'Femme de chambre aux cheveux bleus',
     mascotDeepseekPoster: 'DeepSeek mode travail',
     mascotDeepseekPosterHint: 'Fond de discussion par défaut, gros plan aux cheveux bleus',
+    mascotDeepseekDream: 'DeepSeek rêve des abysses',
+    mascotDeepseekDreamHint: 'Fond baleine et méduses derrière l’espace de travail',
     mascotRopeGemini: 'Gemini',
     mascotRopeGeminiHint: 'Oreilles de chat bleu-violet',
     mascotRopeGpt: 'GPT',

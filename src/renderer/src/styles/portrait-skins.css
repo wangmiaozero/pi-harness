@@ -383,7 +383,8 @@
   --accent: #5b8def;
 }
 
-:root[data-visual-skin='deepseek-poster'] {
+:root[data-visual-skin='deepseek-poster'],
+:root[data-visual-skin='deepseek-dream'] {
   --bg-window: color-mix(in srgb, var(--accent) 10%, rgb(8 12 20 / 0.28));
   --bg-titlebar: color-mix(in srgb, var(--accent) 12%, rgb(10 14 22 / 0.4));
   --bg-sidebar: color-mix(in srgb, var(--accent) 12%, rgb(10 14 22 / 0.34));
@@ -417,15 +418,23 @@
   --portrait-glass-shadow: rgb(0 0 0 / 0.22);
 }
 
-:root[data-visual-skin='deepseek-poster'] .app-shell {
+:root[data-visual-skin='deepseek-dream'] {
+  --portrait-scene-image: url('../assets/themes/deepseek-dream/wallpaper.png');
+}
+
+:root[data-visual-skin='deepseek-poster'] .app-shell,
+:root[data-visual-skin='deepseek-dream'] .app-shell {
   background: var(--portrait-scene-image) center / cover no-repeat #070b12;
 }
 
-:root[data-visual-skin='deepseek-poster'] .portrait-skin-panel {
+:root[data-visual-skin='deepseek-poster'] .portrait-skin-panel,
+:root[data-visual-skin='deepseek-dream'] .portrait-skin-panel {
   display: none;
 }
 
 :root[data-visual-skin='deepseek-poster']
+  :is(.starship-viewport-root, .workspace-primary, .workspace-content),
+:root[data-visual-skin='deepseek-dream']
   :is(.starship-viewport-root, .workspace-primary, .workspace-content) {
   background: transparent;
 }
@@ -706,6 +715,18 @@ html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-s
   background: var(--portrait-glass-chrome);
   backdrop-filter: blur(20px) saturate(120%);
   box-shadow: inset 0 1px var(--portrait-glass-highlight);
+}
+
+/* The lower-left of this wallpaper is nearly white, so the shared rail glass hides the gear. */
+:root[data-visual-skin='deepseek-dream'] .app-navigation-rail {
+  background: linear-gradient(to bottom, rgb(8 14 22 / 0.42), rgb(8 12 18 / 0.78));
+}
+
+:root[data-visual-skin='deepseek-dream']
+  .app-navigation-rail
+  [data-testid='navigation-settings'] {
+  background: rgb(8 12 18 / 0.88);
+  color: #f7f4f1;
 }
 
 :root[data-portrait-skin='true'] .workspace-tabbar > div {

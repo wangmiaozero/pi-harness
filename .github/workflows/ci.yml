@@ -200,7 +200,8 @@ jobs:
             experimental: true
     continue-on-error: ${{ matrix.experimental }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    # The standard install uses most of an hour on macOS; nomascot still has to run.
+    timeout-minutes: 90
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       # Ad-hoc signing uses no credentials, including on fork pull requests.

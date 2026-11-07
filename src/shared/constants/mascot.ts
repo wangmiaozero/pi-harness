@@ -13,6 +13,7 @@ export const MASCOT_STYLES = [
   'ropeClaude',
   'ropeDeepseek',
   'deepseekPoster',
+  'deepseekDream',
   'ropeGemini',
   'ropeGpt',
   'ropeGlm',

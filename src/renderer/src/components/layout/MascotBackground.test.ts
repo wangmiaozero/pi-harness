@@ -12,18 +12,21 @@ describe('MascotBackground', () => {
     expect(wrapper.find('img').exists()).toBe(false)
   })
 
-  it('renders no standing portrait for the DeepSeek work-mode wallpaper', () => {
-    const wrapper = mount(MascotBackground, { props: { style: 'deepseekPoster' } })
+  it.each(['deepseekPoster', 'deepseekDream'] as const)(
+    'renders no standing portrait for the %s wallpaper',
+    (style) => {
+      const wrapper = mount(MascotBackground, { props: { style } })
 
-    expect(wrapper.find('[data-testid="page-mascot-background"]').exists()).toBe(false)
-    expect(wrapper.find('img').exists()).toBe(false)
-  })
+      expect(wrapper.find('[data-testid="page-mascot-background"]').exists()).toBe(false)
+      expect(wrapper.find('img').exists()).toBe(false)
+    }
+  )
 
   it('renders every visual style as decorative content', async () => {
     const wrapper = mount(MascotBackground, { props: { style: 'moonlitMaid' } })
 
     for (const style of MASCOT_STYLES.filter(
-      (style) => style !== 'none' && style !== 'deepseekPoster'
+      (style) => style !== 'none' && style !== 'deepseekPoster' && style !== 'deepseekDream'
     )) {
       await wrapper.setProps({ style })
       const background = wrapper.get('[data-testid="page-mascot-background"]')

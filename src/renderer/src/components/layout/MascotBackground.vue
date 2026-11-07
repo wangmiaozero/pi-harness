@@ -21,11 +21,14 @@ const props = withDefaults(
 const manifest = computed(() => getPetManifest(props.style))
 const backgroundStyle = computed(() => resolveMascotStyle(props.style))
 const portrait = computed(() => getVisualSkin(props.style)?.portrait === true)
+const wallpaper = computed(
+  () => props.style === 'deepseekPoster' || props.style === 'deepseekDream'
+)
 </script>
 
 <template>
   <div
-    v-if="manifest && enabled && style !== 'deepseekPoster'"
+    v-if="manifest && enabled && !wallpaper"
     data-testid="page-mascot-background"
     :data-style="style"
     :data-state="state"

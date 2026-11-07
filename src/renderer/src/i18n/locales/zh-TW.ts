@@ -854,6 +854,8 @@ export const zhTW: MessageTree = {
     mascotRopeDeepseekHint: '藍髮女僕立繪',
     mascotDeepseekPoster: 'DeepSeek 工作模式',
     mascotDeepseekPosterHint: '預設聊天壁紙，藍髮特寫鋪滿介面',
+    mascotDeepseekDream: 'DeepSeek 深海夢境',
+    mascotDeepseekDreamHint: '鯨與水母壁紙鋪滿介面',
     mascotRopeGemini: 'Gemini',
     mascotRopeGeminiHint: '藍紫貓耳立繪',
     mascotRopeGpt: 'GPT',

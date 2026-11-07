@@ -854,6 +854,8 @@ export const zhCN: MessageTree = {
     mascotRopeDeepseekHint: '蓝发女仆立绘',
     mascotDeepseekPoster: 'DeepSeek 工作模式',
     mascotDeepseekPosterHint: '默认聊天壁纸，蓝发特写铺满界面',
+    mascotDeepseekDream: 'DeepSeek 深海梦境',
+    mascotDeepseekDreamHint: '鲸与水母壁纸铺满界面',
     mascotRopeGemini: 'Gemini',
     mascotRopeGeminiHint: '蓝紫猫耳立绘',
     mascotRopeGpt: 'GPT',

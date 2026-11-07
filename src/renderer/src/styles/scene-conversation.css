@@ -125,6 +125,11 @@
   }
 }
 
+:root[data-portrait-skin='true'][data-visual-skin='deepseek-dream']
+  .chat-scroll-content:has(.message-hud) {
+  background: rgb(8 14 22 / 0.3);
+}
+
 /* Keep decorative calligraphy out of the reading band and composer. */
 :root[data-visual-skin='zhang-juzheng-snow'] .zhang-edge-scroll {
   display: none;

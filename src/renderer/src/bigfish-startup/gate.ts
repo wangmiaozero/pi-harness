@@ -15,12 +15,13 @@ export interface BigfishStartupSettings {
 
 /**
  * Rope portraits that play the current boot sequence. Phoebe does not.
- * DeepSeek Work Mode uses the same sequence.
+ * DeepSeek Work Mode and DeepSeek Deep Dream use the same sequence.
  */
 const PORTRAIT_WELCOME_STYLES = new Set<MascotStyle>([
   'ropeWhale',
   'ropeDeepseek',
   'deepseekPoster',
+  'deepseekDream',
   'ropeClaude',
   'ropeGemini',
   'ropeGpt',
@@ -108,19 +109,20 @@ export function usesBigfishStartup(
   return pet.activePackId === BUNDLED_PACK_ID
 }
 
-/** Splash and boot clips. DeepSeek Work Mode matches DeepSeek and DeepSeek Pro. */
+/** Splash and boot clips. The two wallpaper themes match DeepSeek and DeepSeek Pro. */
 const DEEPSEEK_BOOT_STYLES = new Set<MascotStyle>([
   'ropeDeepseek',
   'ropeWhale',
-  'deepseekPoster'
+  'deepseekPoster',
+  'deepseekDream'
 ])
-/** Looping chat video. The work-mode theme keeps its own wallpaper. */
+/** Looping chat video. The wallpaper themes keep their own pictures. */
 const DEEPSEEK_VIDEO_SKIN_STYLES = new Set<MascotStyle>(['ropeDeepseek', 'ropeWhale'])
 
 export type DeepseekVideoPlacement = 'after' | 'only'
 export type DeepseekBootClip = 'boot' | 'scan'
 
-/** DeepSeek, DeepSeek Pro, and DeepSeek Work Mode share the video boot. */
+/** DeepSeek, DeepSeek Pro, and the two DeepSeek wallpapers share the video boot. */
 export function usesDeepseekVideoStartup(
   settings: BigfishStartupSettings | null | undefined,
   options?: { mascotEnabled?: boolean; reducedMotion?: boolean }

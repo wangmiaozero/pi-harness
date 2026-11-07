@@ -257,6 +257,7 @@ function drawThemeMotif(context: CanvasRenderingContext2D, elapsed: number): voi
     case 'ropeKimi':
     case 'ropeQwen':
     case 'deepseekPoster':
+    case 'deepseekDream':
       break
     case 'mingMoon':
       context.strokeStyle = tertiary
