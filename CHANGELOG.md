@@ -2,6 +2,13 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.22 — 2026-11-07
+
+### Fixed
+
+- DeepSeek and DeepSeek Pro show the looping video through the reading panel.
+- DeepSeek Work Mode and DeepSeek Deep Dream show the wallpaper through the reading panel.
+
 ## 2.3.21 — 2026-11-07
 
 This release adds portrait themes, a DeepSeek work-mode wallpaper, themed startup pages, and jelly desktop pets.
