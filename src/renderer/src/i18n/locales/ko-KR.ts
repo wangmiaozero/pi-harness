@@ -875,6 +875,8 @@ export const koKR: MessageTree = {
     mascotRopeClaudeHint: '주황 머리와 해바라기',
     mascotRopeDeepseek: 'DeepSeek',
     mascotRopeDeepseekHint: '파란 머리 메이드',
+    mascotDeepseekPoster: 'DeepSeek 작업 모드',
+    mascotDeepseekPosterHint: '기본 채팅 배경. 파란 머리 클로즈업이 화면을 채운다',
     mascotRopeGemini: 'Gemini',
     mascotRopeGeminiHint: '청보라 고양이 귀',
     mascotRopeGpt: 'GPT',

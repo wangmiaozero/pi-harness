@@ -878,6 +878,8 @@ export const enUS = {
     mascotRopeClaudeHint: 'Orange hair and sunflowers',
     mascotRopeDeepseek: 'DeepSeek',
     mascotRopeDeepseekHint: 'Blue-haired maid',
+    mascotDeepseekPoster: 'DeepSeek Work Mode',
+    mascotDeepseekPosterHint: 'Default chat wallpaper, a blue-haired close-up behind the workspace',
     mascotRopeGemini: 'Gemini',
     mascotRopeGeminiHint: 'Blue-violet cat ears',
     mascotRopeGpt: 'GPT',

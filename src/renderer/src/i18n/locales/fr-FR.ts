@@ -880,6 +880,8 @@ export const frFR: MessageTree = {
     mascotRopeClaudeHint: 'Cheveux orange et tournesols',
     mascotRopeDeepseek: 'DeepSeek',
     mascotRopeDeepseekHint: 'Femme de chambre aux cheveux bleus',
+    mascotDeepseekPoster: 'DeepSeek mode travail',
+    mascotDeepseekPosterHint: 'Fond de discussion par défaut, gros plan aux cheveux bleus',
     mascotRopeGemini: 'Gemini',
     mascotRopeGeminiHint: 'Oreilles de chat bleu-violet',
     mascotRopeGpt: 'GPT',

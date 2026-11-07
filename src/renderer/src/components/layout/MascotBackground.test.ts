@@ -12,10 +12,19 @@ describe('MascotBackground', () => {
     expect(wrapper.find('img').exists()).toBe(false)
   })
 
+  it('renders no standing portrait for the DeepSeek work-mode wallpaper', () => {
+    const wrapper = mount(MascotBackground, { props: { style: 'deepseekPoster' } })
+
+    expect(wrapper.find('[data-testid="page-mascot-background"]').exists()).toBe(false)
+    expect(wrapper.find('img').exists()).toBe(false)
+  })
+
   it('renders every visual style as decorative content', async () => {
     const wrapper = mount(MascotBackground, { props: { style: 'moonlitMaid' } })
 
-    for (const style of MASCOT_STYLES.filter((style) => style !== 'none')) {
+    for (const style of MASCOT_STYLES.filter(
+      (style) => style !== 'none' && style !== 'deepseekPoster'
+    )) {
       await wrapper.setProps({ style })
       const background = wrapper.get('[data-testid="page-mascot-background"]')
       expect(background.attributes('data-style')).toBe(style)

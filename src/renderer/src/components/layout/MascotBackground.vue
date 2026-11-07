@@ -25,7 +25,7 @@ const portrait = computed(() => getVisualSkin(props.style)?.portrait === true)
 
 <template>
   <div
-    v-if="manifest && enabled"
+    v-if="manifest && enabled && style !== 'deepseekPoster'"
     data-testid="page-mascot-background"
     :data-style="style"
     :data-state="state"

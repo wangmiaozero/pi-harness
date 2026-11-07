@@ -45,7 +45,8 @@ describe('startup quantum variants', () => {
       'ropeGlm',
       'ropeGrok',
       'ropeKimi',
-      'ropeQwen'
+      'ropeQwen',
+      'deepseekPoster'
     ] as const) {
       expect(resolveStartupVariant({ mascotStyle: style, mascotUnlocked: true })).toBe('none')
     }

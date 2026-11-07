@@ -875,6 +875,8 @@ export const jaJP: MessageTree = {
     mascotRopeClaudeHint: 'オレンジ髪とひまわり',
     mascotRopeDeepseek: 'DeepSeek',
     mascotRopeDeepseekHint: '青い髪のメイド',
+    mascotDeepseekPoster: 'DeepSeek ワークモード',
+    mascotDeepseekPosterHint: '既定のチャット壁紙。青髪のクローズアップが画面全体に広がる',
     mascotRopeGemini: 'Gemini',
     mascotRopeGeminiHint: '青紫の猫耳',
     mascotRopeGpt: 'GPT',

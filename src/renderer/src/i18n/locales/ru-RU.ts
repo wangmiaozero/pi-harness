@@ -880,6 +880,8 @@ export const ruRU: MessageTree = {
     mascotRopeClaudeHint: 'Рыжие волосы и подсолнухи',
     mascotRopeDeepseek: 'DeepSeek',
     mascotRopeDeepseekHint: 'Синеволосая горничная',
+    mascotDeepseekPoster: 'DeepSeek рабочий режим',
+    mascotDeepseekPosterHint: 'Стандартные обои чата, крупный план с синими волосами',
     mascotRopeGemini: 'Gemini',
     mascotRopeGeminiHint: 'Сине-фиолетовые кошачьи уши',
     mascotRopeGpt: 'GPT',

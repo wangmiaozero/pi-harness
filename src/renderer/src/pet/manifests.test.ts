@@ -5,7 +5,7 @@ import { PET_MANIFESTS, PET_THEME_ORDER } from './manifests'
 
 describe('built-in pet manifests', () => {
   it('ships eighteen independent built-in themes', () => {
-    expect(Object.keys(PET_MANIFESTS)).toHaveLength(18)
+    expect(Object.keys(PET_MANIFESTS)).toHaveLength(19)
     expect(PET_THEME_ORDER).toEqual([
       'maidWhite',
       'office',
@@ -19,6 +19,7 @@ describe('built-in pet manifests', () => {
       'ropePhoebe',
       'ropeClaude',
       'ropeDeepseek',
+      'deepseekPoster',
       'ropeGemini',
       'ropeGpt',
       'ropeGlm',
@@ -46,7 +47,7 @@ describe('built-in pet manifests', () => {
 
   it('uses valid single-cell sprite metadata for bundled RGBA assets', () => {
     for (const manifest of Object.values(PET_MANIFESTS)) {
-      expect(manifest.sprite).toMatch(/\.png$/)
+      expect(manifest.sprite).toMatch(manifest.id === 'deepseekPoster' ? /\.jpg$/ : /\.png$/)
       expect(manifest.frameWidth).toBeGreaterThan(0)
       expect(manifest.frameHeight).toBeGreaterThan(0)
       expect(manifest.columns).toBe(1)

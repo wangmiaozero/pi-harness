@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { BUNDLED_PACK_ID } from '@shared/pet/desktop'
 import {
+  deepseekBootClip,
   deepseekVideoPlacement,
   finaleLineKey,
   startupBrandCopy,
   usesBigfishStartup,
+  usesCinematicStartup,
   usesDeepseekVideoSkin,
   usesDeepseekVideoStartup,
   usesPortraitWelcomeStartup
@@ -35,6 +37,9 @@ describe('bigfish startup gate', () => {
       true
     )
     expect(usesDeepseekVideoStartup({ mascotStyle: 'ropeWhale', mascotUnlocked: true })).toBe(true)
+    expect(usesDeepseekVideoStartup({ mascotStyle: 'deepseekPoster', mascotUnlocked: true })).toBe(
+      true
+    )
     for (const mascotStyle of ['ropeClaude', 'ropePhoebe', 'ropeQwen', 'none'] as const) {
       expect(usesDeepseekVideoStartup({ mascotStyle, mascotUnlocked: true })).toBe(false)
     }
@@ -50,6 +55,9 @@ describe('bigfish startup gate', () => {
     expect(usesDeepseekVideoSkin({ mascotStyle: 'ropeDeepseek', mascotUnlocked: true })).toBe(true)
     expect(usesDeepseekVideoSkin({ mascotStyle: 'ropeWhale', mascotUnlocked: true })).toBe(true)
     expect(usesDeepseekVideoSkin({ mascotStyle: 'ropeClaude', mascotUnlocked: true })).toBe(false)
+    expect(usesDeepseekVideoSkin({ mascotStyle: 'deepseekPoster', mascotUnlocked: true })).toBe(
+      false
+    )
     expect(usesDeepseekVideoSkin({ mascotStyle: 'ropeDeepseek', mascotUnlocked: false })).toBe(
       false
     )
@@ -64,6 +72,10 @@ describe('bigfish startup gate', () => {
     expect(deepseekVideoPlacement(0.49)).toBe('only')
     expect(deepseekVideoPlacement(0.5)).toBe('after')
     expect(deepseekVideoPlacement(0.99)).toBe('after')
+    expect(deepseekBootClip(0)).toBe('boot')
+    expect(deepseekBootClip(0.49)).toBe('boot')
+    expect(deepseekBootClip(0.5)).toBe('scan')
+    expect(deepseekBootClip(0.99)).toBe('scan')
   })
 
   it('plays the current boot sequence for every rope portrait except Phoebe', () => {
@@ -76,7 +88,8 @@ describe('bigfish startup gate', () => {
       'ropeGlm',
       'ropeGrok',
       'ropeKimi',
-      'ropeQwen'
+      'ropeQwen',
+      'deepseekPoster'
     ] as const) {
       expect(usesPortraitWelcomeStartup({ mascotStyle, mascotUnlocked: true })).toBe(true)
     }
@@ -138,6 +151,20 @@ describe('bigfish startup gate', () => {
       expect(copy?.orgEn).toBe('')
       expect(copy?.orgZh.toUpperCase()).not.toBe(copy?.brand1)
     }
+  })
+
+  it('keeps 大肥鱼 off a selected theme and on when no theme is selected', () => {
+    const petOn = { ...enabled, mascotUnlocked: true as const }
+    expect(usesCinematicStartup({ ...petOn, mascotStyle: 'deepseekPoster' })).toBe(true)
+    expect(usesCinematicStartup({ ...petOn, mascotStyle: 'ropePhoebe' })).toBe(false)
+    expect(usesCinematicStartup({ ...petOn, mascotStyle: 'ropeClaude' })).toBe(true)
+    expect(
+      usesCinematicStartup({ mascotStyle: 'ropeDeepseek', mascotUnlocked: true })
+    ).toBe(true)
+    expect(usesCinematicStartup({ ...enabled, mascotStyle: 'none', mascotUnlocked: false })).toBe(
+      true
+    )
+    expect(usesCinematicStartup({ mascotStyle: 'none', mascotUnlocked: false })).toBe(false)
   })
 
   it('stays off for nomascot builds and reduced motion', () => {

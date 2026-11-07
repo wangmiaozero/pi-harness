@@ -1,5 +1,7 @@
 import bootUrl from './assets/boot.mp4?url'
+import scanUrl from './assets/whale-girl-scan.mp4?url'
 import bootCss from './video-boot.css?raw'
+import type { DeepseekBootClip } from './gate'
 
 const FADE_MS = 1000
 const SKIP_FADE_MS = 320
@@ -8,10 +10,17 @@ const HOLD_GRACE_MS = 4000
 const NO_FRAME_MS = 12000
 const UNDER_SPLASH_Z = '2147482000'
 
+const CLIP_URL: Record<DeepseekBootClip, string> = {
+  boot: bootUrl,
+  scan: scanUrl
+}
+
 export interface VideoBootOptions {
   /** The clip stays up until this is true and the video has ended. */
   isReady?: () => boolean
   signal?: AbortSignal
+  /** Ignored when a plate was already primed for this launch. */
+  clip?: DeepseekBootClip
 }
 
 interface PrimedBoot {
@@ -21,6 +30,7 @@ interface PrimedBoot {
   fill: HTMLDivElement
   sound: HTMLDivElement
   watch: MutationObserver | null
+  clip: DeepseekBootClip
 }
 
 let primed: PrimedBoot | null = null
@@ -40,7 +50,7 @@ function element(className: string, text?: string): HTMLDivElement {
   return node
 }
 
-function mountBoot(underSplash: boolean): PrimedBoot {
+function mountBoot(underSplash: boolean, clip: DeepseekBootClip): PrimedBoot {
   installStylesheet()
   const root = element('dsvs-boot')
   root.setAttribute('role', 'dialog')
@@ -69,15 +79,15 @@ function mountBoot(underSplash: boolean): PrimedBoot {
   sound.append(element('dsvs-boot-sound-glyph', '🔇'), element('', '开启声音'))
   root.append(video, element('dsvs-boot-veil'), ui, skip, sound)
   document.body.appendChild(root)
-  video.src = bootUrl
+  video.src = CLIP_URL[clip]
   video.addEventListener('loadeddata', () => video.setAttribute('data-shown', '1'), { once: true })
-  return { root, video, hint, fill, sound, watch: null }
+  return { root, video, hint, fill, sound, watch: null, clip }
 }
 
 /** Puts the video plate under the current startup so its fade reveals this frame. */
-export function primeVideoBoot(): void {
+export function primeVideoBoot(clip: DeepseekBootClip = 'boot'): void {
   if (primed) return
-  const boot = mountBoot(true)
+  const boot = mountBoot(true, clip)
   primed = boot
   const begin = () => {
     if (boot.video.paused) void boot.video.play().catch(() => undefined)
@@ -108,7 +118,8 @@ export function cancelVideoBoot(): void {
 
 /** Plays the DeepSeek video boot. Resolves after the fade, a skip, or a failure. */
 export function playVideoBoot(options: VideoBootOptions = {}): Promise<void> {
-  const boot = primed ?? mountBoot(false)
+  const clip = primed?.clip ?? options.clip ?? 'boot'
+  const boot = primed ?? mountBoot(false, clip)
   boot.watch?.disconnect()
   primed = null
   const { root, video, hint, fill, sound } = boot
@@ -194,7 +205,7 @@ export function playVideoBoot(options: VideoBootOptions = {}): Promise<void> {
         return
       }
       video.dataset.retried = '1'
-      video.src = bootUrl
+      video.src = CLIP_URL[clip]
       void video.play().catch(() => markClipDone())
     })
     later(() => {

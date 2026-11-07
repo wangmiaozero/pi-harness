@@ -8,10 +8,11 @@ import {
 } from '@renderer/startup'
 import { useSettingsStore } from '@renderer/stores/settings'
 import {
+  deepseekBootClip,
   deepseekVideoPlacement,
-  usesBigfishStartup,
+  usesCinematicStartup,
   usesDeepseekVideoStartup,
-  usesPortraitWelcomeStartup
+  type DeepseekBootClip
 } from '@renderer/bigfish-startup/gate'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { themeAppearance } from '@shared/constants/theme'
@@ -255,6 +256,7 @@ function drawThemeMotif(context: CanvasRenderingContext2D, elapsed: number): voi
     case 'ropeGrok':
     case 'ropeKimi':
     case 'ropeQwen':
+    case 'deepseekPoster':
       break
     case 'mingMoon':
       context.strokeStyle = tertiary
@@ -375,10 +377,10 @@ async function beginParticle(): Promise<void> {
   }, 8000)
 }
 
-async function playStartupVideo(): Promise<void> {
+async function playStartupVideo(clip: DeepseekBootClip): Promise<void> {
   mode.value = 'fish'
   const { playVideoBoot } = await import('@renderer/bigfish-startup/play')
-  await playVideoBoot({ isReady: () => startupPhase.value === 'ready' })
+  await playVideoBoot({ clip, isReady: () => startupPhase.value === 'ready' })
 }
 
 async function finishCinematic(): Promise<void> {
@@ -390,12 +392,12 @@ async function finishCinematic(): Promise<void> {
   await beginParticle()
 }
 
-async function beginFishStartup(thenVideo: boolean): Promise<void> {
+async function beginFishStartup(thenVideo: boolean, clip: DeepseekBootClip): Promise<void> {
   mode.value = 'hold'
   try {
     const { cancelVideoBoot, playBigfishStartup, primeVideoBoot } =
       await import('@renderer/bigfish-startup/play')
-    if (thenVideo) primeVideoBoot()
+    if (thenVideo) primeVideoBoot(clip)
     const theme = settings.settings ? themeAppearance(settings.settings.theme) : 'light'
     await playBigfishStartup({
       theme,
@@ -404,7 +406,7 @@ async function beginFishStartup(thenVideo: boolean): Promise<void> {
         if (visible.value) mode.value = 'fish'
       }
     })
-    if (thenVideo && visible.value) await playStartupVideo()
+    if (thenVideo && visible.value) await playStartupVideo(clip)
     else if (thenVideo) cancelVideoBoot()
   } catch {
     const { cancelVideoBoot } = await import('@renderer/bigfish-startup/play')
@@ -416,9 +418,9 @@ async function beginFishStartup(thenVideo: boolean): Promise<void> {
   await finishCinematic()
 }
 
-async function beginVideoStartup(): Promise<void> {
+async function beginVideoStartup(clip: DeepseekBootClip): Promise<void> {
   try {
-    await playStartupVideo()
+    await playStartupVideo(clip)
   } catch {
     releaseStartupLock()
     await beginParticle()
@@ -432,18 +434,14 @@ function considerStartup(): void {
   if (settings.settings) {
     startupDecided = true
     const reducedMotion = prefersReducedMotion()
-    const phoebeSelected =
-      settings.settings.mascotUnlocked && settings.settings.mascotStyle === 'ropePhoebe'
     const video = usesDeepseekVideoStartup(settings.settings, { reducedMotion })
-    const fish =
-      !phoebeSelected &&
-      (usesPortraitWelcomeStartup(settings.settings, { reducedMotion }) ||
-        usesBigfishStartup(settings.settings, { reducedMotion }))
+    const fish = usesCinematicStartup(settings.settings, { reducedMotion })
     const placement = video ? deepseekVideoPlacement(Math.random()) : null
+    const clip = deepseekBootClip(video ? Math.random() : 0)
     if (placement === 'only') {
-      void beginVideoStartup()
+      void beginVideoStartup(clip)
     } else if (fish) {
-      void beginFishStartup(placement === 'after')
+      void beginFishStartup(placement === 'after', clip)
     } else {
       void beginParticle()
     }

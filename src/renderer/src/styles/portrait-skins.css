@@ -383,6 +383,53 @@
   --accent: #5b8def;
 }
 
+:root[data-visual-skin='deepseek-poster'] {
+  --bg-window: color-mix(in srgb, var(--accent) 10%, rgb(8 12 20 / 0.28));
+  --bg-titlebar: color-mix(in srgb, var(--accent) 12%, rgb(10 14 22 / 0.4));
+  --bg-sidebar: color-mix(in srgb, var(--accent) 12%, rgb(10 14 22 / 0.34));
+  --bg-workspace: color-mix(in srgb, var(--accent) 8%, rgb(6 10 18 / 0.18));
+  --bg-surface: color-mix(in srgb, var(--accent) 14%, rgb(12 16 24 / 0.46));
+  --bg-surface-raised: color-mix(in srgb, var(--accent) 16%, rgb(14 18 28 / 0.55));
+  --bg-hover: color-mix(in srgb, var(--accent) 22%, rgb(16 22 34 / 0.5));
+  --bg-selected: color-mix(in srgb, var(--accent) 28%, rgb(16 22 34 / 0.58));
+  --text-primary: #f7f4f1;
+  --text-secondary: color-mix(in srgb, var(--accent) 24%, #f3efe8);
+  --text-tertiary: color-mix(in srgb, var(--accent) 30%, #a89f94);
+  --text-disabled: color-mix(in srgb, var(--accent) 16%, #756d64);
+  --accent: #3aa0ff;
+  --accent-hover: color-mix(in srgb, var(--accent) 78%, white);
+  --accent-active: color-mix(in srgb, var(--accent) 82%, black);
+  --accent-border: color-mix(in srgb, var(--accent) 72%, #161310);
+  --border-subtle: color-mix(in srgb, var(--accent) 22%, transparent);
+  --border-default: color-mix(in srgb, var(--accent) 36%, transparent);
+  --border-strong: color-mix(in srgb, var(--accent) 52%, transparent);
+  --control-bg: color-mix(in srgb, var(--accent) 16%, rgb(12 16 24 / 0.4));
+  --control-bg-hover: color-mix(in srgb, var(--accent) 24%, rgb(14 18 28 / 0.5));
+  --control-bg-disabled: color-mix(in srgb, var(--accent) 8%, rgb(10 14 20 / 0.35));
+  --control-border: color-mix(in srgb, var(--accent) 36%, transparent);
+  --control-border-hover: color-mix(in srgb, var(--accent) 56%, transparent);
+  --control-placeholder: color-mix(in srgb, var(--accent) 22%, #a89f94);
+  --portrait-scene-image: url('../assets/themes/deepseek-poster/default-background.jpg');
+  --portrait-glass-chrome: color-mix(in srgb, var(--accent) 14%, rgb(10 14 22 / 0.34));
+  --portrait-glass-message: color-mix(in srgb, var(--accent) 12%, rgb(8 12 20 / 0.36));
+  --portrait-glass-input: color-mix(in srgb, var(--accent) 12%, rgb(8 12 20 / 0.4));
+  --portrait-glass-highlight: color-mix(in srgb, var(--accent) 16%, transparent);
+  --portrait-glass-shadow: rgb(0 0 0 / 0.22);
+}
+
+:root[data-visual-skin='deepseek-poster'] .app-shell {
+  background: var(--portrait-scene-image) center / cover no-repeat #070b12;
+}
+
+:root[data-visual-skin='deepseek-poster'] .portrait-skin-panel {
+  display: none;
+}
+
+:root[data-visual-skin='deepseek-poster']
+  :is(.starship-viewport-root, .workspace-primary, .workspace-content) {
+  background: transparent;
+}
+
 :root[data-portrait-skin='true'] {
   --accent-tint: color-mix(in srgb, var(--accent) 13%, transparent);
   --accent-tint-soft: color-mix(in srgb, var(--accent) 7%, transparent);

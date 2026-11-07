@@ -13,10 +13,14 @@ export interface BigfishStartupSettings {
   }
 }
 
-/** Rope portraits that play the current boot sequence. Phoebe does not. */
+/**
+ * Rope portraits that play the current boot sequence. Phoebe does not.
+ * DeepSeek Work Mode uses the same sequence.
+ */
 const PORTRAIT_WELCOME_STYLES = new Set<MascotStyle>([
   'ropeWhale',
   'ropeDeepseek',
+  'deepseekPoster',
   'ropeClaude',
   'ropeGemini',
   'ropeGpt',
@@ -88,9 +92,10 @@ export function startupBrandCopy(style: MascotStyle | null | undefined): Startup
 }
 
 /**
- * The vendored boot sequence plays only when the bundled 大肥鱼 pack is the
- * active desktop pet and that pet is turned on. nomascot builds and reduced
- * motion keep the short particle startup.
+ * The vendored boot sequence can play when the bundled 大肥鱼 pack is the
+ * active desktop pet and that pet is turned on. A selected theme does not
+ * use this path. nomascot builds and reduced motion keep the short particle
+ * startup.
  */
 export function usesBigfishStartup(
   settings: BigfishStartupSettings | null | undefined,
@@ -103,27 +108,36 @@ export function usesBigfishStartup(
   return pet.activePackId === BUNDLED_PACK_ID
 }
 
-/**
- * The same boot sequence follows the selected rope portrait.
- * Phoebe keeps the short particle startup.
- */
-const DEEPSEEK_VIDEO_STYLES = new Set<MascotStyle>(['ropeDeepseek', 'ropeWhale'])
+/** Splash and boot clips. DeepSeek Work Mode matches DeepSeek and DeepSeek Pro. */
+const DEEPSEEK_BOOT_STYLES = new Set<MascotStyle>([
+  'ropeDeepseek',
+  'ropeWhale',
+  'deepseekPoster'
+])
+/** Looping chat video. The work-mode theme keeps its own wallpaper. */
+const DEEPSEEK_VIDEO_SKIN_STYLES = new Set<MascotStyle>(['ropeDeepseek', 'ropeWhale'])
 
 export type DeepseekVideoPlacement = 'after' | 'only'
+export type DeepseekBootClip = 'boot' | 'scan'
 
-/** DeepSeek and DeepSeek Pro can follow the current startup with the video boot. */
+/** DeepSeek, DeepSeek Pro, and DeepSeek Work Mode share the video boot. */
 export function usesDeepseekVideoStartup(
   settings: BigfishStartupSettings | null | undefined,
   options?: { mascotEnabled?: boolean; reducedMotion?: boolean }
 ): boolean {
   const mascotEnabled = options?.mascotEnabled ?? MASCOT_ENABLED
   if (!mascotEnabled || options?.reducedMotion || !settings?.mascotUnlocked) return false
-  return settings.mascotStyle != null && DEEPSEEK_VIDEO_STYLES.has(settings.mascotStyle)
+  return settings.mascotStyle != null && DEEPSEEK_BOOT_STYLES.has(settings.mascotStyle)
 }
 
 /** Below one half, the video plays by itself. Otherwise it follows the current startup. */
 export function deepseekVideoPlacement(roll: number): DeepseekVideoPlacement {
   return roll < 0.5 ? 'only' : 'after'
+}
+
+/** The two boot clips never play in the same launch. */
+export function deepseekBootClip(roll: number): DeepseekBootClip {
+  return roll < 0.5 ? 'boot' : 'scan'
 }
 
 /** DeepSeek and DeepSeek Pro use the looping chat video as their theme background. */
@@ -140,9 +154,13 @@ export function usesDeepseekVideoSkin(
   ) {
     return false
   }
-  return settings.mascotStyle != null && DEEPSEEK_VIDEO_STYLES.has(settings.mascotStyle)
+  return settings.mascotStyle != null && DEEPSEEK_VIDEO_SKIN_STYLES.has(settings.mascotStyle)
 }
 
+/**
+ * The same boot sequence follows the selected rope portrait and DeepSeek Work Mode.
+ * Phoebe keeps the short particle startup.
+ */
 export function usesPortraitWelcomeStartup(
   settings: BigfishStartupSettings | null | undefined,
   options?: { mascotEnabled?: boolean; reducedMotion?: boolean }
@@ -150,4 +168,19 @@ export function usesPortraitWelcomeStartup(
   const mascotEnabled = options?.mascotEnabled ?? MASCOT_ENABLED
   if (!mascotEnabled || options?.reducedMotion || !settings?.mascotUnlocked) return false
   return settings.mascotStyle != null && PORTRAIT_WELCOME_STYLES.has(settings.mascotStyle)
+}
+
+/**
+ * Theme startup and the desktop pet are separate. A selected theme uses its
+ * own sequence. 大肥鱼 adds the vendored boot only when no theme is selected.
+ */
+export function usesCinematicStartup(
+  settings: BigfishStartupSettings | null | undefined,
+  options?: { mascotEnabled?: boolean; reducedMotion?: boolean }
+): boolean {
+  if (usesPortraitWelcomeStartup(settings, options)) return true
+  if (settings?.mascotUnlocked && settings.mascotStyle && settings.mascotStyle !== 'none') {
+    return false
+  }
+  return usesBigfishStartup(settings, options)
 }

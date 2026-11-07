@@ -134,6 +134,20 @@ SOFTWARE.
 - License: MIT
 - Used as: the video boot that follows, or randomly replaces, the current startup on the DeepSeek and DeepSeek Pro themes, and the looping chat background behind those two themes. nomascot builds do not include either video.
 
+## Whale girl scan boot
+
+- Project: [NativeDog1/dsh-boot-animation](https://github.com/NativeDog1/dsh-boot-animation), packaged by [LeeRolling/dsh-boot-suite](https://github.com/LeeRolling/dsh-boot-suite) template `whale-girl-scan` 1.0.3
+- License: BSD-3-Clause, as declared by the upstream clip library. The original animation author is not named upstream.
+- Used as: one of the two mutually exclusive boot videos on the DeepSeek and DeepSeek Pro themes. It either follows the current startup or plays alone. nomascot builds do not include it.
+
+## DeepSeek work-mode wallpaper
+
+- Project: [LeeRolling/dsh-boot-suite](https://github.com/LeeRolling/dsh-boot-suite)
+- Version: 2.16.11
+- Copyright: Copyright (c) 2026 沈宏宏
+- License: MIT
+- Used as: the DeepSeek Work Mode theme background (`lib/assets/default-background.jpg`).
+
 ## Wallpaper Engine theme
 
 - Project: [elysia395/dsh-wallpaper-engine](https://github.com/elysia395/dsh-wallpaper-engine)

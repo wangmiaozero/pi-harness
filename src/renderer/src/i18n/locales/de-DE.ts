@@ -881,6 +881,8 @@ export const deDE: MessageTree = {
     mascotRopeClaudeHint: 'Oranges Haar und Sonnenblumen',
     mascotRopeDeepseek: 'DeepSeek',
     mascotRopeDeepseekHint: 'Blauhaarige Zofe',
+    mascotDeepseekPoster: 'DeepSeek-Arbeitsmodus',
+    mascotDeepseekPosterHint: 'Standard-Chat-Hintergrund, Nahaufnahme mit blauem Haar',
     mascotRopeGemini: 'Gemini',
     mascotRopeGeminiHint: 'Blauviolette Katzenohren',
     mascotRopeGpt: 'GPT',

@@ -12,6 +12,7 @@ import ropeWhaleImage from '@renderer/assets/themes/rope/whale.png'
 import ropePhoebeImage from '@renderer/assets/themes/rope/phoebe.png'
 import ropeClaudeImage from '@renderer/assets/themes/rope/claude.png'
 import ropeDeepseekImage from '@renderer/assets/themes/rope/deepseek.png'
+import deepseekPosterImage from '@renderer/assets/themes/deepseek-poster/default-background.jpg'
 import ropeGeminiImage from '@renderer/assets/themes/rope/gemini.png'
 import ropeGptImage from '@renderer/assets/themes/rope/gpt.png'
 import ropeGlmImage from '@renderer/assets/themes/rope/glm.png'
@@ -32,6 +33,7 @@ export const PET_THEME_ORDER: readonly PetThemeId[] = [
   'ropePhoebe',
   'ropeClaude',
   'ropeDeepseek',
+  'deepseekPoster',
   'ropeGemini',
   'ropeGpt',
   'ropeGlm',
@@ -122,6 +124,14 @@ export const PET_MANIFESTS: Readonly<Record<PetThemeId, PetManifest>> = {
   ropePhoebe: ropeManifest('ropePhoebe', 'Phoebe', ropePhoebeImage, '#f0c14a', 283, 384),
   ropeClaude: ropeManifest('ropeClaude', 'Claude', ropeClaudeImage, '#e07a2f', 324, 384),
   ropeDeepseek: ropeManifest('ropeDeepseek', 'DeepSeek', ropeDeepseekImage, '#3aa0ff', 330, 384),
+  deepseekPoster: ropeManifest(
+    'deepseekPoster',
+    'DeepSeek Work Mode',
+    deepseekPosterImage,
+    '#3aa0ff',
+    1920,
+    1080
+  ),
   ropeGemini: ropeManifest('ropeGemini', 'Gemini', ropeGeminiImage, '#7a5cff', 296, 384),
   ropeGpt: ropeManifest('ropeGpt', 'GPT', ropeGptImage, '#d7dde8', 320, 384),
   ropeGlm: ropeManifest('ropeGlm', 'GLM', ropeGlmImage, '#7aa2ff', 308, 384),

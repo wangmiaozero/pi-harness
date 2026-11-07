@@ -89,6 +89,7 @@ export const STARTUP_PALETTES: Record<StartupVariant, StartupPalette> = {
   ropePhoebe: ropePalette('#1a1408', '#f0c14a', '#ffe7a3', '#fff6d6'),
   ropeClaude: ropePalette('#1c120c', '#e07a2f', '#ffc089', '#ffe7d2'),
   ropeDeepseek: ropePalette('#0c1424', '#3aa0ff', '#9fd0ff', '#e7f3ff'),
+  deepseekPoster: ropePalette('#071018', '#3aa0ff', '#9fd0ff', '#e7f3ff'),
   ropeGemini: ropePalette('#120e22', '#7a5cff', '#c4b4ff', '#eee9ff'),
   ropeGpt: ropePalette('#16181c', '#d7dde8', '#9aa3b2', '#f4f6f8'),
   ropeGlm: ropePalette('#0e1218', '#7aa2ff', '#b9d0ff', '#eef3ff'),
@@ -127,13 +128,17 @@ const ROPE_PARTICLE_SLOT: Partial<Record<StartupVariant, number>> = {
 }
 
 const DEEPSEEK_ROPE_STARTUP = new Set<MascotStyle>(['ropeDeepseek', 'ropeWhale'])
+const PLAIN_STARTUP = new Set<MascotStyle>(['deepseekPoster'])
 
 export function resolveStartupVariant(
   settings: { mascotStyle: MascotStyle; mascotUnlocked: boolean } | null | undefined,
   mascotEnabled = MASCOT_ENABLED
 ): StartupVariant {
   if (!mascotEnabled || !settings?.mascotUnlocked) return 'none'
-  if (settings.mascotStyle.startsWith('rope') && !DEEPSEEK_ROPE_STARTUP.has(settings.mascotStyle)) {
+  if (
+    PLAIN_STARTUP.has(settings.mascotStyle) ||
+    (settings.mascotStyle.startsWith('rope') && !DEEPSEEK_ROPE_STARTUP.has(settings.mascotStyle))
+  ) {
     return 'none'
   }
   return Object.hasOwn(STARTUP_PALETTES, settings.mascotStyle) ? settings.mascotStyle : 'none'
