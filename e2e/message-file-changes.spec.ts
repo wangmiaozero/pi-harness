@@ -11,15 +11,34 @@ async function settleStartup(page: Page): Promise<void> {
   const video = page.locator('.dsvs-boot')
   await expect(startup).toBeHidden()
   if ((await cinematic.count()) === 0) return
-  await expect(splash.or(video)).toBeVisible()
-  if ((await splash.count()) > 0) {
+  // DeepSeek can show the startup page and the primed boot clip together.
+  // A combined locator is strict and fails when both are attached.
+  await expect.poll(async () => (await splash.count()) + (await video.count())).toBeGreaterThan(0)
+  const dismissSplash = async (): Promise<void> => {
     await page.keyboard.press('Escape')
     await expect(splash).toHaveCount(0)
   }
+  if ((await splash.count()) > 0) await dismissSplash()
   if ((await video.count()) > 0) {
-    await expect(video).toHaveCSS('z-index', '2147483647')
-    await page.keyboard.press('Escape')
-    await expect(video).toHaveCount(0)
+    let phase = 'primed'
+    await expect
+      .poll(async () => {
+        if ((await splash.count()) > 0) phase = 'splash'
+        else if ((await video.count()) === 0) phase = 'clear'
+        else
+          phase =
+            (await video.evaluate((node) => getComputedStyle(node).zIndex)) === '2147483647'
+              ? 'video'
+              : 'primed'
+        return phase
+      })
+      .not.toBe('primed')
+    if (phase === 'splash') await dismissSplash()
+    if ((await video.count()) > 0) {
+      await expect(video).toHaveCSS('z-index', '2147483647')
+      await page.keyboard.press('Escape')
+      await expect(video).toHaveCount(0)
+    }
   }
   await expect(cinematic).toHaveCount(0)
   await expect(startup).toBeHidden()
