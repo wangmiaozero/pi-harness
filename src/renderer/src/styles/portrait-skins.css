@@ -385,14 +385,14 @@
 
 :root[data-visual-skin='deepseek-poster'],
 :root[data-visual-skin='deepseek-dream'] {
-  --bg-window: color-mix(in srgb, var(--accent) 10%, rgb(8 12 20 / 0.28));
-  --bg-titlebar: color-mix(in srgb, var(--accent) 12%, rgb(10 14 22 / 0.4));
-  --bg-sidebar: color-mix(in srgb, var(--accent) 12%, rgb(10 14 22 / 0.34));
-  --bg-workspace: color-mix(in srgb, var(--accent) 8%, rgb(6 10 18 / 0.18));
-  --bg-surface: color-mix(in srgb, var(--accent) 14%, rgb(12 16 24 / 0.46));
-  --bg-surface-raised: color-mix(in srgb, var(--accent) 16%, rgb(14 18 28 / 0.55));
-  --bg-hover: color-mix(in srgb, var(--accent) 22%, rgb(16 22 34 / 0.5));
-  --bg-selected: color-mix(in srgb, var(--accent) 28%, rgb(16 22 34 / 0.58));
+  --bg-window: rgb(8 12 20 / 0.16);
+  --bg-titlebar: rgb(10 14 22 / 0.28);
+  --bg-sidebar: rgb(10 14 22 / 0.24);
+  --bg-workspace: rgb(6 10 18 / 0.1);
+  --bg-surface: rgb(12 16 24 / 0.3);
+  --bg-surface-raised: rgb(14 18 28 / 0.38);
+  --bg-hover: rgb(16 22 34 / 0.44);
+  --bg-selected: rgb(16 22 34 / 0.52);
   --text-primary: #f7f4f1;
   --text-secondary: color-mix(in srgb, var(--accent) 24%, #f3efe8);
   --text-tertiary: color-mix(in srgb, var(--accent) 30%, #a89f94);
@@ -404,18 +404,21 @@
   --border-subtle: color-mix(in srgb, var(--accent) 22%, transparent);
   --border-default: color-mix(in srgb, var(--accent) 36%, transparent);
   --border-strong: color-mix(in srgb, var(--accent) 52%, transparent);
-  --control-bg: color-mix(in srgb, var(--accent) 16%, rgb(12 16 24 / 0.4));
-  --control-bg-hover: color-mix(in srgb, var(--accent) 24%, rgb(14 18 28 / 0.5));
-  --control-bg-disabled: color-mix(in srgb, var(--accent) 8%, rgb(10 14 20 / 0.35));
+  --control-bg: rgb(12 16 24 / 0.28);
+  --control-bg-hover: rgb(14 18 28 / 0.38);
+  --control-bg-disabled: rgb(10 14 20 / 0.22);
   --control-border: color-mix(in srgb, var(--accent) 36%, transparent);
   --control-border-hover: color-mix(in srgb, var(--accent) 56%, transparent);
   --control-placeholder: color-mix(in srgb, var(--accent) 22%, #a89f94);
   --portrait-scene-image: url('../assets/themes/deepseek-poster/default-background.jpg');
-  --portrait-glass-chrome: color-mix(in srgb, var(--accent) 14%, rgb(10 14 22 / 0.34));
-  --portrait-glass-message: color-mix(in srgb, var(--accent) 12%, rgb(8 12 20 / 0.36));
-  --portrait-glass-input: color-mix(in srgb, var(--accent) 12%, rgb(8 12 20 / 0.4));
-  --portrait-glass-highlight: color-mix(in srgb, var(--accent) 16%, transparent);
-  --portrait-glass-shadow: rgb(0 0 0 / 0.22);
+  --portrait-page-overlay: rgb(8 12 18 / 0.2);
+  --portrait-glass-chrome: rgb(10 14 22 / 0.26);
+  --portrait-glass-control: rgb(12 16 24 / 0.3);
+  --portrait-glass-message: rgb(8 12 20 / 0.28);
+  --portrait-glass-input: rgb(8 12 20 / 0.32);
+  --portrait-glass-input-focus: rgb(12 16 22 / 0.42);
+  --portrait-glass-highlight: rgb(255 255 255 / 0.16);
+  --portrait-glass-shadow: rgb(0 0 0 / 0.16);
 }
 
 :root[data-visual-skin='deepseek-dream'] {
@@ -607,15 +610,23 @@ html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-s
 }
 
 html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-skin='rope-whale']) {
-  --bg-window: color-mix(in srgb, var(--accent) 10%, rgb(12 16 22 / 0.22));
-  --bg-titlebar: color-mix(in srgb, var(--accent) 12%, rgb(14 18 26 / 0.34));
-  --bg-sidebar: color-mix(in srgb, var(--accent) 12%, rgb(14 18 26 / 0.28));
-  --bg-workspace: color-mix(in srgb, var(--accent) 8%, rgb(8 12 18 / 0.16));
-  --portrait-glass-chrome: color-mix(in srgb, var(--accent) 14%, rgb(12 16 22 / 0.28));
-  --portrait-glass-control: color-mix(in srgb, var(--accent) 12%, rgb(12 16 22 / 0.32));
-  --portrait-glass-message: color-mix(in srgb, var(--accent) 12%, rgb(10 14 20 / 0.3));
-  --portrait-glass-input: color-mix(in srgb, var(--accent) 12%, rgb(10 14 20 / 0.34));
-  --portrait-glass-input-focus: color-mix(in srgb, var(--accent) 16%, rgb(12 16 22 / 0.42));
+  --bg-window: rgb(12 16 22 / 0.16);
+  --bg-titlebar: rgb(14 18 26 / 0.28);
+  --bg-sidebar: rgb(14 18 26 / 0.24);
+  --bg-workspace: rgb(8 12 18 / 0.1);
+  --bg-surface: rgb(12 16 24 / 0.3);
+  --bg-surface-raised: rgb(14 18 28 / 0.38);
+  --bg-hover: rgb(16 22 34 / 0.44);
+  --bg-selected: rgb(16 22 34 / 0.52);
+  --control-bg: rgb(12 16 24 / 0.28);
+  --control-bg-hover: rgb(14 18 28 / 0.38);
+  --control-bg-disabled: rgb(10 14 20 / 0.22);
+  --portrait-page-overlay: rgb(8 12 18 / 0.2);
+  --portrait-glass-chrome: rgb(12 16 22 / 0.26);
+  --portrait-glass-control: rgb(12 16 22 / 0.3);
+  --portrait-glass-message: rgb(10 14 20 / 0.28);
+  --portrait-glass-input: rgb(10 14 20 / 0.32);
+  --portrait-glass-input-focus: rgb(12 16 22 / 0.42);
 }
 
 html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-skin='rope-whale'])
@@ -719,7 +730,7 @@ html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-s
 
 /* The lower-left of this wallpaper is nearly white, so the shared rail glass hides the gear. */
 :root[data-visual-skin='deepseek-dream'] .app-navigation-rail {
-  background: linear-gradient(to bottom, rgb(8 14 22 / 0.42), rgb(8 12 18 / 0.78));
+  background: linear-gradient(to bottom, rgb(8 14 22 / 0.2), rgb(8 12 18 / 0.46));
 }
 
 :root[data-visual-skin='deepseek-dream']
@@ -791,6 +802,14 @@ html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-s
 :root[data-portrait-skin='true'] .starship-viewport-root:not(:has(.workspace-view)) {
   background: var(--portrait-page-overlay);
   backdrop-filter: blur(16px);
+}
+
+html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-skin='rope-whale'])
+  :is(.settings-sidebar, .settings-view section, .harness-card, .page-header),
+:root:is([data-visual-skin='deepseek-poster'], [data-visual-skin='deepseek-dream'])
+  :is(.settings-sidebar, .settings-view section, .harness-card, .page-header) {
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
 }
 
 /* Standing portraits share geometry while keeping independent scenes and palettes. */

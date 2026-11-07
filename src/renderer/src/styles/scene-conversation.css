@@ -125,9 +125,28 @@
   }
 }
 
-:root[data-portrait-skin='true'][data-visual-skin='deepseek-dream']
+:root[data-portrait-skin='true']:is(
+    [data-visual-skin='deepseek-poster'],
+    [data-visual-skin='deepseek-dream'],
+    [data-visual-skin='rope-deepseek'][data-video-skin='on'],
+    [data-visual-skin='rope-whale'][data-video-skin='on']
+  )
   .chat-scroll-content:has(.message-hud) {
-  background: rgb(8 14 22 / 0.3);
+  background: rgb(8 14 22 / 0.08);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+:root[data-portrait-skin='true']:is(
+    [data-visual-skin='deepseek-poster'],
+    [data-visual-skin='deepseek-dream'],
+    [data-visual-skin='rope-deepseek'][data-video-skin='on'],
+    [data-visual-skin='rope-whale'][data-video-skin='on']
+  )
+  .chat-scroll-content
+  :is(th, td, pre) {
+  background: rgb(8 14 22 / 0.12);
 }
 
 /* Keep decorative calligraphy out of the reading band and composer. */
