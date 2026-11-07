@@ -114,4 +114,18 @@ describe('ComposerModelPicker', () => {
     expect(document.body.querySelector('[data-testid="composer-vendor-panel"]')).toBeNull()
     expect(document.activeElement).toBe(wrapper.get('button').element)
   })
+
+  it('returns focus to the trigger before Escape removes the open panels', async () => {
+    const wrapper = mountPicker()
+    const trigger = wrapper.get('button')
+    await trigger.trigger('click')
+    document.querySelector<HTMLElement>('[data-testid="composer-thinking-slider"]')?.focus()
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    )
+    await wrapper.vm.$nextTick()
+
+    expect(document.body.querySelector('[data-testid="composer-model-panel"]')).toBeNull()
+    expect(document.activeElement).toBe(trigger.element)
+  })
 })

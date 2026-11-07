@@ -158,7 +158,8 @@ function show() {
   })
 }
 
-function close() {
+function close(restoreFocus = false): void {
+  if (restoreFocus) trigger.value?.focus({ preventScroll: true })
   open.value = false
   openVendor.value = null
   search.value = ''
@@ -173,8 +174,7 @@ function pick(option: ModelOption) {
   if (option.disabled || props.disabled) return
   emit('interact')
   modelValue.value = option.value
-  close()
-  void nextTick(() => trigger.value?.focus({ preventScroll: true }))
+  close(true)
 }
 
 function onPointerDown(event: PointerEvent) {
@@ -193,8 +193,7 @@ function onKeydown(event: KeyboardEvent) {
   if (!open.value || event.key !== 'Escape') return
   event.preventDefault()
   event.stopPropagation()
-  close()
-  void nextTick(() => trigger.value?.focus({ preventScroll: true }))
+  close(true)
 }
 
 onMounted(() => {
