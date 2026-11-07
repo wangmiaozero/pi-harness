@@ -4,6 +4,27 @@ import { test as base, expect, type Page } from './fixtures'
 import { MASCOT_STYLES } from '../src/shared/constants/mascot'
 import { APP_THEMES } from '../src/shared/constants/theme'
 
+async function settleStartup(page: Page): Promise<void> {
+  const startup = page.getByTestId('startup-animation')
+  const cinematic = page.locator('html[data-cinematic-startup="on"]')
+  const splash = page.locator('#dsh-startup-root')
+  const video = page.locator('.dsvs-boot')
+  await expect(startup).toBeHidden()
+  if ((await cinematic.count()) === 0) return
+  await expect(splash.or(video)).toBeVisible()
+  if ((await splash.count()) > 0) {
+    await page.keyboard.press('Escape')
+    await expect(splash).toHaveCount(0)
+  }
+  if ((await video.count()) > 0) {
+    await expect(video).toHaveCSS('z-index', '2147483647')
+    await page.keyboard.press('Escape')
+    await expect(video).toHaveCount(0)
+  }
+  await expect(cinematic).toHaveCount(0)
+  await expect(startup).toBeHidden()
+}
+
 const sessionId = '01a0ddce-5d0b-75b1-bb98-filechanges'
 const runId = 'h:user-file-changes'
 const missingEvidenceRunId = 'h:user-no-write'
@@ -104,7 +125,7 @@ test('scene transcripts, titlebar actions and minimum sidebar width stay usable 
       mascotStyle
     )
     await page.reload()
-    await expect(page.getByTestId('startup-animation')).toBeHidden()
+    await settleStartup(page)
     await expect(page.getByTestId('message-file-changes').first()).toBeVisible()
     await page.getByTestId('chat-scroller').dispatchEvent('wheel', { deltaY: -1000 })
     await page.getByTestId('chat-scroller').evaluate((node) => {

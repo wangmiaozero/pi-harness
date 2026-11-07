@@ -355,6 +355,7 @@ function releaseStartupLock(): void {
 }
 
 async function beginParticle(): Promise<void> {
+  setCinematicCover(false)
   if (particleStarted || !visible.value) return
   particleStarted = true
   mode.value = 'particle'
@@ -377,6 +378,11 @@ async function beginParticle(): Promise<void> {
   }, 8000)
 }
 
+function setCinematicCover(active: boolean): void {
+  if (active) document.documentElement.dataset.cinematicStartup = 'on'
+  else delete document.documentElement.dataset.cinematicStartup
+}
+
 async function playStartupVideo(clip: DeepseekBootClip): Promise<void> {
   mode.value = 'fish'
   const { playVideoBoot } = await import('@renderer/bigfish-startup/play')
@@ -384,6 +390,7 @@ async function playStartupVideo(clip: DeepseekBootClip): Promise<void> {
 }
 
 async function finishCinematic(): Promise<void> {
+  setCinematicCover(false)
   if (!visible.value) return
   if (startupPhase.value === 'ready') {
     visible.value = false
@@ -438,6 +445,7 @@ function considerStartup(): void {
     const fish = usesCinematicStartup(settings.settings, { reducedMotion })
     const placement = video ? deepseekVideoPlacement(Math.random()) : null
     const clip = deepseekBootClip(video ? Math.random() : 0)
+    if (placement === 'only' || fish) setCinematicCover(true)
     if (placement === 'only') {
       void beginVideoStartup(clip)
     } else if (fish) {
@@ -473,6 +481,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  setCinematicCover(false)
   cancelAnimationFrame(frameId)
   resizeObserver?.disconnect()
   if (minimumTimer) clearTimeout(minimumTimer)
