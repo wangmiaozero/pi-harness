@@ -2,6 +2,30 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.21 — 2026-11-07
+
+This release adds portrait themes, a DeepSeek work-mode wallpaper, themed startup pages, and jelly desktop pets.
+
+### Added
+
+#### Themes and startup
+
+- Added portrait themes for DeepSeek, DeepSeek Pro, Phoebe, Claude, Gemini, GPT, GLM, Grok, Kimi, and Qwen.
+- Added DeepSeek Work Mode, a full-window chat wallpaper that uses the same startup page as DeepSeek and DeepSeek Pro.
+- DeepSeek and DeepSeek Pro show a looping video behind the window.
+- DeepSeek, DeepSeek Pro, and DeepSeek Work Mode can open with the startup page, a boot video, or the page followed by a video.
+- The other portrait themes except Phoebe use that startup page with their own name and ending.
+- Startup plays once each launch and does not wait on the network.
+
+#### Desktop pets
+
+- Added six jelly desktop pets: Circle, Ghost, Jelly, Rounded, Star, and Triangle.
+- 大肥鱼 keeps its own startup page when no theme is selected.
+
+### Fixed
+
+- Selecting a theme no longer makes that theme's startup follow the desktop pet.
+
 ## 2.3.20 — 2026-11-04
 
 This release keeps navigation menus and your current focus intact when workspace imports or session actions finish in the background.
