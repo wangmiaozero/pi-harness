@@ -2,6 +2,12 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.23 — 2026-11-08
+
+### Fixed
+
+- macOS still reports a workspace edit when the system sends the containing folder or the resolved path.
+
 ## 2.3.22 — 2026-11-07
 
 ### Fixed

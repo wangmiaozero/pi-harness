@@ -1,5 +1,5 @@
 import { watch, type FSWatcher } from 'node:fs'
-import { lstat, readdir } from 'node:fs/promises'
+import { lstat, readdir, realpath } from 'node:fs/promises'
 import type { Stats } from 'node:fs'
 import path from 'node:path'
 
@@ -13,43 +13,134 @@ export function watchNativeWorkspace(
 ): { close(): Promise<void>; ready: Promise<void> } {
   let closed = false
   let checking = false
+  let rerun = false
   let timer: ReturnType<typeof setTimeout> | null = null
   const initial = new Map<string, string>()
   const fingerprint = (stat: Stats): string =>
     `${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}:${stat.mode}`
   let watcher: FSWatcher | null = null
+  // /var and /private/var are the same directory. FSEvents may report either spelling.
+  let canonicalRoot = path.resolve(root)
   const pending = new Set<string>()
+  const schedule = (): void => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      timer = null
+      void notify().catch(failed)
+    }, 250)
+  }
+  const relativeEvent = (filename: string): string | null => {
+    const bases = canonicalRoot === root ? [root] : [root, canonicalRoot]
+    for (const base of bases) {
+      const relative = path.relative(base, path.resolve(base, filename))
+      if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative))
+        continue
+      return relative
+    }
+    return null
+  }
+  // A directory notification does not change the directory inode. The edit is in a child.
+  const descendantsChanged = async (
+    directory: string,
+    relativeDirectory: string
+  ): Promise<boolean> => {
+    const seen = new Set<string>()
+    const listed = new Set<string>()
+    let live = false
+    const directories = [
+      {
+        directory,
+        depth: relativeDirectory ? relativeDirectory.split(path.sep).length : 0
+      }
+    ]
+    while (!closed && directories.length) {
+      const current = directories.pop()!
+      const currentRelative = path.relative(root, current.directory)
+      if (currentRelative.startsWith('..')) continue
+      listed.add(currentRelative === '' ? '' : currentRelative)
+      const entries = await readdir(current.directory, { withFileTypes: true }).catch((error) => {
+        if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') return []
+        throw error
+      })
+      for (let start = 0; !closed && start < entries.length; start += 16) {
+        const found = await Promise.all(
+          entries.slice(start, start + 16).map(async (entry) => {
+            const file = path.join(current.directory, entry.name)
+            if (entry.isSymbolicLink() || ignored(file, entry.isDirectory())) return null
+            const stat = await lstat(file).catch(() => null)
+            if (!stat || stat.isSymbolicLink()) return null
+            const relative = path.relative(root, file)
+            if (!relative || relative.startsWith('..') || relative.split(path.sep).length > 13)
+              return null
+            return { file, relative, stat }
+          })
+        )
+        for (const item of found) {
+          if (!item) continue
+          seen.add(item.relative)
+          const next = fingerprint(item.stat)
+          if (initial.get(item.relative) !== next) {
+            live = true
+            initial.set(item.relative, next)
+          }
+          if (recursive && item.stat.isDirectory() && current.depth < 12)
+            directories.push({ directory: item.file, depth: current.depth + 1 })
+        }
+      }
+    }
+    for (const key of [...initial.keys()]) {
+      if (key === relativeDirectory) continue
+      const parent = path.dirname(key)
+      if (!listed.has(parent === '.' ? '' : parent) || seen.has(key)) continue
+      initial.delete(key)
+      live = true
+    }
+    return live
+  }
   const notify = async (): Promise<void> => {
-    if (checking) return
+    if (checking) {
+      rerun = true
+      return
+    }
     checking = true
     try {
-      while (!closed && pending.size) {
-        const relative = pending.values().next().value!
-        pending.delete(relative)
-        const segments = relative.split(path.sep).filter(Boolean)
-        if (segments.length > 13 || ignored(path.join(root, relative))) continue
-        let current = root
-        let visible = true
-        // Do not follow a linked directory, even if the native backend reports it.
-        for (const [index, segment] of segments.entries()) {
-          current = path.join(current, segment)
-          const stat = await lstat(current).catch(() => null)
-          if (stat?.isSymbolicLink() || ignored(current, stat?.isDirectory())) {
-            visible = false
-            break
+      do {
+        rerun = false
+        while (!closed && pending.size) {
+          const relative = pending.values().next().value!
+          pending.delete(relative)
+          if (!relative) {
+            if (await descendantsChanged(root, '')) changed()
+            continue
           }
-          if (index < segments.length - 1 && stat && !stat.isDirectory()) {
-            visible = false
-            break
+          const segments = relative.split(path.sep).filter(Boolean)
+          if (segments.length > 13 || ignored(path.join(root, relative))) continue
+          let current = root
+          let visible = true
+          // Do not follow a linked directory, even if the native backend reports it.
+          for (const [index, segment] of segments.entries()) {
+            current = path.join(current, segment)
+            const stat = await lstat(current).catch(() => null)
+            if (stat?.isSymbolicLink() || ignored(current, stat?.isDirectory())) {
+              visible = false
+              break
+            }
+            if (index < segments.length - 1 && stat && !stat.isDirectory()) {
+              visible = false
+              break
+            }
+            // Compare file state, never filesystem time against the process clock.
+            if (index === segments.length - 1) {
+              if (stat?.isDirectory()) {
+                if (!(await descendantsChanged(current, relative))) visible = false
+              } else if (!stat) initial.delete(relative)
+              else if (initial.get(relative) === fingerprint(stat)) visible = false
+              else initial.set(relative, fingerprint(stat))
+            }
           }
-          // Compare file state, never filesystem time against the process clock.
-          if (index === segments.length - 1) {
-            if (stat && initial.get(relative) === fingerprint(stat)) visible = false
-            else initial.delete(relative)
-          }
+          if (visible && !closed) changed()
         }
-        if (visible && !closed) changed()
-      }
+      } while (rerun && !closed)
     } finally {
       checking = false
     }
@@ -83,6 +174,7 @@ export function watchNativeWorkspace(
       }
     }
     if (closed) return
+    canonicalRoot = await realpath(root).catch(() => path.resolve(root))
     watcher = watch(root, { recursive }, onEvent)
     watcher.on('error', failed)
   })()
@@ -93,15 +185,11 @@ export function watchNativeWorkspace(
       changed()
       return
     }
-    const relative = path.relative(root, path.resolve(root, filename))
-    if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`)) return
-    if (ignored(path.join(root, relative))) return
+    const relative = relativeEvent(filename)
+    if (relative === null) return
+    if (relative && ignored(path.join(root, relative))) return
     pending.add(relative)
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => {
-      timer = null
-      void notify().catch(failed)
-    }, 250)
+    schedule()
   }
   return {
     ready,

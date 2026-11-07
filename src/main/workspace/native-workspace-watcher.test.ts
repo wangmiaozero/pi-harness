@@ -76,6 +76,42 @@ it('suppresses unchanged startup replays without losing a subsequent edit or rem
   await vi.waitFor(() => expect(changed).toHaveBeenCalledOnce())
 })
 
+it('delivers a child edit when macOS reports only the parent directory', async () => {
+  directory = await fs.mkdtemp(path.join(os.tmpdir(), 'native-watch-dir-'))
+  const source = path.join(directory, 'src')
+  await fs.mkdir(source)
+  const file = path.join(source, 'main.ts')
+  await fs.writeFile(file, 'before\n')
+  fixture.watch.mockReturnValue({ on: vi.fn(), close: fixture.close })
+  const changed = vi.fn()
+  watcher = watchNativeWorkspace(directory, () => false, changed, vi.fn())
+  await watcher.ready
+  const emit = (filename: string) => fixture.watch.mock.calls.at(-1)![2]('change', filename)
+  vi.useFakeTimers()
+  emit('src')
+  await vi.advanceTimersByTimeAsync(250)
+  expect(changed).not.toHaveBeenCalled()
+  await fs.writeFile(file, 'after\n')
+  emit('src')
+  await vi.advanceTimersByTimeAsync(250)
+  expect(changed).toHaveBeenCalledOnce()
+})
+
+it('delivers an edit reported with the resolved filesystem path', async () => {
+  const { file, changed, emit } = await start()
+  await fs.writeFile(file, 'resolved path edit\n')
+  emit(await fs.realpath(file))
+  await vi.advanceTimersByTimeAsync(250)
+  await vi.waitFor(() => expect(changed).toHaveBeenCalledOnce())
+})
+
+it('drops events from outside the workspace', async () => {
+  const { changed, emit } = await start()
+  emit(path.join(path.parse(directory!).root, 'outside.ts'))
+  await vi.advanceTimersByTimeAsync(250)
+  expect(changed).not.toHaveBeenCalled()
+})
+
 it('cancels queued notifications when the native subscription closes', async () => {
   const { file, changed, emit } = await start()
   await fs.writeFile(file, 'queued edit\n')
