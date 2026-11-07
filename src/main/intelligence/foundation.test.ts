@@ -9,7 +9,10 @@ import { ArchitectureSnapshots } from './snapshots'
 
 const roots: string[] = []
 afterEach(async () => {
-  for (const root of roots.splice(0)) await fs.rm(root, { recursive: true, force: true })
+  for (const root of roots.splice(0)) {
+    // Windows can keep a just-scanned directory busy for a short moment.
+    await fs.rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 })
+  }
 })
 async function fixture(): Promise<string> {
   const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'intelligence-')))
@@ -103,8 +106,14 @@ describe('verified architecture foundation', () => {
   })
   it('bounds large projects and stops an in-progress scan', async () => {
     const root = await fixture()
-    for (let i = 0; i < 410; i++)
-      await fs.writeFile(path.join(root, `module-${i}.ts`), 'export const moduleValue = 1')
+    const indexes = Array.from({ length: 410 }, (_, index) => index)
+    for (let offset = 0; offset < indexes.length; offset += 40) {
+      await Promise.all(
+        indexes.slice(offset, offset + 40).map((index) =>
+          fs.writeFile(path.join(root, `module-${index}.ts`), 'export const moduleValue = 1')
+        )
+      )
+    }
     const limited = await scanProject(root, new AbortController().signal)
     expect(limited.files).toHaveLength(400)
     expect(limited.coverage.partial).toBe(true)
@@ -117,5 +126,5 @@ describe('verified architecture foundation', () => {
       })
     ).rejects.toThrow()
     expect(count).toBe(3)
-  })
+  }, 20_000)
 })

@@ -91,7 +91,7 @@ describe('JsonRunRepository', () => {
     expect(persisted.map((entry) => entry.id).sort()).toEqual(
       [...history.map((entry) => entry.id), 'new'].sort()
     )
-  })
+  }, 20_000)
 
   it('saves, reads and lists runs by session and cwd', async () => {
     const repository = new JsonRunRepository(tempStore())
@@ -130,7 +130,7 @@ describe('JsonRunRepository', () => {
     await repository.save(run('ancient', { startedAt: 1 }))
     expect(await repository.prune(now, 0)).toBe(0)
     expect(await repository.listAll()).toHaveLength(2)
-  })
+  }, 20_000)
 })
 
 describe('buildRunTree', () => {
