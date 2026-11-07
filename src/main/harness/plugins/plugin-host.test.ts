@@ -41,9 +41,13 @@ const run = {
   error: 'sk-secret-key-123456789'
 } as HarnessRun
 const factory: PluginProcessFactory = (entry) => {
+  // Match the production transport: an empty env cannot start a Windows child.
+  const env: Record<string, string> = {}
+  for (const key of ['SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'TMPDIR', 'LANG'])
+    if (process.env[key]) env[key] = process.env[key]!
   const child = fork(worker, [entry], {
     stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
-    env: {},
+    env,
     serialization: 'json'
   })
   children.push(child)
@@ -243,7 +247,8 @@ describe('Harness plugin lifecycle and real SDK process execution', () => {
     expect(host.list()[0].status).toBe('active')
     await host.uninstall(healthy)
     expect(listeners.size).toBe(0)
-  })
+    // Each real process may use the 10s activation budget. Two of them cannot fit in the 5s default.
+  }, 25_000)
 
   it('permits retry after an ordinary evaluator/exporter callback failure without mutating the Run', async () => {
     const id = await custom(
