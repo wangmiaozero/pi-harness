@@ -5,6 +5,7 @@ import { BUNDLED_PACK_ID } from '@shared/pet/desktop'
 export interface BigfishStartupSettings {
   mascotStyle?: MascotStyle
   mascotUnlocked?: boolean
+  customSkinId?: string | null
   desktopPet?: {
     enabled?: boolean
     activePackId?: string
@@ -106,6 +107,42 @@ export function usesBigfishStartup(
  * The same boot sequence follows the selected rope portrait.
  * Phoebe keeps the short particle startup.
  */
+const DEEPSEEK_VIDEO_STYLES = new Set<MascotStyle>(['ropeDeepseek', 'ropeWhale'])
+
+export type DeepseekVideoPlacement = 'after' | 'only'
+
+/** DeepSeek and DeepSeek Pro can follow the current startup with the video boot. */
+export function usesDeepseekVideoStartup(
+  settings: BigfishStartupSettings | null | undefined,
+  options?: { mascotEnabled?: boolean; reducedMotion?: boolean }
+): boolean {
+  const mascotEnabled = options?.mascotEnabled ?? MASCOT_ENABLED
+  if (!mascotEnabled || options?.reducedMotion || !settings?.mascotUnlocked) return false
+  return settings.mascotStyle != null && DEEPSEEK_VIDEO_STYLES.has(settings.mascotStyle)
+}
+
+/** Below one half, the video plays by itself. Otherwise it follows the current startup. */
+export function deepseekVideoPlacement(roll: number): DeepseekVideoPlacement {
+  return roll < 0.5 ? 'only' : 'after'
+}
+
+/** DeepSeek and DeepSeek Pro use the looping chat video as their theme background. */
+export function usesDeepseekVideoSkin(
+  settings: BigfishStartupSettings | null | undefined,
+  options?: { mascotEnabled?: boolean; reducedMotion?: boolean }
+): boolean {
+  const mascotEnabled = options?.mascotEnabled ?? MASCOT_ENABLED
+  if (
+    !mascotEnabled ||
+    options?.reducedMotion ||
+    !settings?.mascotUnlocked ||
+    settings.customSkinId
+  ) {
+    return false
+  }
+  return settings.mascotStyle != null && DEEPSEEK_VIDEO_STYLES.has(settings.mascotStyle)
+}
+
 export function usesPortraitWelcomeStartup(
   settings: BigfishStartupSettings | null | undefined,
   options?: { mascotEnabled?: boolean; reducedMotion?: boolean }

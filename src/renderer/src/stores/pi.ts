@@ -77,13 +77,14 @@ export const usePiStore = defineStore('pi', () => {
     const revision = environmentRevision
     const settings = environmentSettings()
     detectRequest = (async () => {
+      let stale = false
       try {
         const next = await callApi(() => getApi().pi.detect())
         if (revision === environmentRevision) {
           environment.value = next
           detectedAt = Date.now()
           detectedSettings = settings
-        }
+        } else stale = true
       } catch (e) {
         if (revision === environmentRevision)
           error.value = (e as { message?: string }).message ?? String(e)
@@ -91,6 +92,9 @@ export const usePiStore = defineStore('pi', () => {
         loading.value = false
         detectRequest = null
       }
+      // A models.json write invalidates the probe without supplying a replacement.
+      // Run it again so startup does not keep the empty result.
+      if (stale && detectedAt === null) await detect()
     })()
     return detectRequest
   }

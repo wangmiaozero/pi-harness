@@ -534,6 +534,39 @@
   }
 }
 
+/* DeepSeek / DeepSeek Pro: the chat video replaces the drifting gradient. */
+html[data-video-skin='on'] {
+  background: #070b12;
+}
+
+html[data-video-skin='on'] body {
+  background: transparent;
+}
+
+html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-skin='rope-whale'])
+  .app-shell::before,
+html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-skin='rope-whale'])
+  .app-shell::after {
+  opacity: 0;
+}
+
+html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-skin='rope-whale']) {
+  --bg-window: color-mix(in srgb, var(--accent) 10%, rgb(12 16 22 / 0.22));
+  --bg-titlebar: color-mix(in srgb, var(--accent) 12%, rgb(14 18 26 / 0.34));
+  --bg-sidebar: color-mix(in srgb, var(--accent) 12%, rgb(14 18 26 / 0.28));
+  --bg-workspace: color-mix(in srgb, var(--accent) 8%, rgb(8 12 18 / 0.16));
+  --portrait-glass-chrome: color-mix(in srgb, var(--accent) 14%, rgb(12 16 22 / 0.28));
+  --portrait-glass-control: color-mix(in srgb, var(--accent) 12%, rgb(12 16 22 / 0.32));
+  --portrait-glass-message: color-mix(in srgb, var(--accent) 12%, rgb(10 14 20 / 0.3));
+  --portrait-glass-input: color-mix(in srgb, var(--accent) 12%, rgb(10 14 20 / 0.34));
+  --portrait-glass-input-focus: color-mix(in srgb, var(--accent) 16%, rgb(12 16 22 / 0.42));
+}
+
+html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-skin='rope-whale'])
+  :is(.starship-viewport-root, .workspace-primary, .workspace-content) {
+  background: var(--bg-workspace);
+}
+
 :root[data-portrait-skin='true'] :is(.starship-viewport-root, .workspace-primary) {
   background: transparent;
 }

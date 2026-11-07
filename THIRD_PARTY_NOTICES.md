@@ -126,6 +126,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+## Video skin boot
+
+- Project: [Something11235/dsh-video-skin](https://github.com/Something11235/dsh-video-skin)
+- Version: 0.1.6
+- Copyright: Copyright (c) 2026 Something11235
+- License: MIT
+- Used as: the video boot that follows, or randomly replaces, the current startup on the DeepSeek and DeepSeek Pro themes, and the looping chat background behind those two themes. nomascot builds do not include either video.
+
 ## Wallpaper Engine theme
 
 - Project: [elysia395/dsh-wallpaper-engine](https://github.com/elysia395/dsh-wallpaper-engine)

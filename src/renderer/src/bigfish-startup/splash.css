@@ -526,8 +526,8 @@
 .dsu-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 14px;
-  padding: 13px 26px;
   border: 1.5px solid var(--dsu-ink);
   background: transparent;
   color: var(--dsu-ink);
@@ -552,8 +552,17 @@
 .dsu-btn:hover .dsu-btn-en { color: var(--dsu-box-ink); opacity: 1; }
 .dsu-btn > * { position: relative; z-index: 1; }
 .dsu-btn:active { transform: translateY(1px); }
-.dsu-btn-zh { font-family: var(--dsu-zh); font-weight: 500; }
-.dsu-btn-en { font-family: var(--dsu-mono); font-size: 11px; letter-spacing: 0.24em; opacity: 0.62; }
+/* 根节点的 * { padding: 0 } 比 .dsu-btn 更具体，内边距必须挂在这里才会生效。 */
+#dsh-startup-root .dsu-btn {
+  padding: 11px 28px;
+}
+.dsu-btn-zh { font-family: var(--dsu-zh); font-weight: 500; letter-spacing: 0.08em; }
+.dsu-btn-en {
+  font-family: var(--dsu-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  opacity: 0.62;
+}
 .dsu-btn.dsu-pulse { animation: dsu-pulse 1.9s ease-in-out infinite; }
 @keyframes dsu-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(255, 117, 0, 0); }

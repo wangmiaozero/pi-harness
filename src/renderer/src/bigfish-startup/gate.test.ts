@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { BUNDLED_PACK_ID } from '@shared/pet/desktop'
 import {
+  deepseekVideoPlacement,
   finaleLineKey,
   startupBrandCopy,
   usesBigfishStartup,
+  usesDeepseekVideoSkin,
+  usesDeepseekVideoStartup,
   usesPortraitWelcomeStartup
 } from './gate'
 
@@ -25,6 +28,42 @@ describe('bigfish startup gate', () => {
     ).toBe(false)
     expect(usesBigfishStartup(null)).toBe(false)
     expect(usesBigfishStartup({})).toBe(false)
+  })
+
+  it('adds the video boot only for DeepSeek and DeepSeek Pro', () => {
+    expect(usesDeepseekVideoStartup({ mascotStyle: 'ropeDeepseek', mascotUnlocked: true })).toBe(
+      true
+    )
+    expect(usesDeepseekVideoStartup({ mascotStyle: 'ropeWhale', mascotUnlocked: true })).toBe(true)
+    for (const mascotStyle of ['ropeClaude', 'ropePhoebe', 'ropeQwen', 'none'] as const) {
+      expect(usesDeepseekVideoStartup({ mascotStyle, mascotUnlocked: true })).toBe(false)
+    }
+    expect(usesDeepseekVideoStartup({ mascotStyle: 'ropeDeepseek', mascotUnlocked: false })).toBe(
+      false
+    )
+    expect(
+      usesDeepseekVideoStartup(
+        { mascotStyle: 'ropeWhale', mascotUnlocked: true },
+        { reducedMotion: true }
+      )
+    ).toBe(false)
+    expect(usesDeepseekVideoSkin({ mascotStyle: 'ropeDeepseek', mascotUnlocked: true })).toBe(true)
+    expect(usesDeepseekVideoSkin({ mascotStyle: 'ropeWhale', mascotUnlocked: true })).toBe(true)
+    expect(usesDeepseekVideoSkin({ mascotStyle: 'ropeClaude', mascotUnlocked: true })).toBe(false)
+    expect(usesDeepseekVideoSkin({ mascotStyle: 'ropeDeepseek', mascotUnlocked: false })).toBe(
+      false
+    )
+    expect(
+      usesDeepseekVideoSkin({
+        mascotStyle: 'ropeDeepseek',
+        mascotUnlocked: true,
+        customSkinId: 'custom-test'
+      })
+    ).toBe(false)
+    expect(deepseekVideoPlacement(0)).toBe('only')
+    expect(deepseekVideoPlacement(0.49)).toBe('only')
+    expect(deepseekVideoPlacement(0.5)).toBe('after')
+    expect(deepseekVideoPlacement(0.99)).toBe('after')
   })
 
   it('plays the current boot sequence for every rope portrait except Phoebe', () => {

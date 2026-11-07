@@ -113,6 +113,26 @@ describe('Pi store', () => {
     dispose()
   })
 
+  it('repeats a probe discarded by a native config change', async () => {
+    const api = environmentApiFixture()
+    const store = usePiStore()
+    const dispose = store.setupListeners()
+    let resolveFirst: (value: PiEnvironment) => void = () => undefined
+    api.detect.mockImplementationOnce(
+      () =>
+        new Promise<PiEnvironment>((complete) => {
+          resolveFirst = complete
+        })
+    )
+    const pending = store.detect()
+    api.listeners.get('config-changed')?.({ at: Date.now() })
+    resolveFirst({ version: 'during-write', nodeRuntime: { ready: true } } as PiEnvironment)
+    await pending
+    expect(store.environment?.version).toBe('0.87.1')
+    expect(api.detect).toHaveBeenCalledTimes(2)
+    dispose()
+  })
+
   it('does not cache failures or overwrite an installation event with an older check', async () => {
     const api = environmentApiFixture()
     const store = usePiStore()

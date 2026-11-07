@@ -1,0 +1,34 @@
+#dsvs-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: #070b12;
+}
+
+#dsvs-backdrop-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+#dsvs-backdrop-video[data-shown='1'] {
+  opacity: 1;
+}
+
+#dsvs-backdrop-veil {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #dsvs-backdrop-video {
+    display: none;
+  }
+}

@@ -19,6 +19,9 @@ import { startupLogo } from './logos'
 import splashCss from './splash.css?raw'
 import splashUrl from './splash.js?url'
 
+export { cancelVideoBoot, playVideoBoot, primeVideoBoot } from './video-boot'
+export { syncDeepseekVideoSkin } from './video-skin'
+
 export interface BigfishStartupPlayOptions {
   theme?: 'light' | 'dark'
   mascotStyle?: MascotStyle
