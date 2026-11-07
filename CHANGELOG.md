@@ -8,6 +8,7 @@ Release notes describe user-visible additions and fixes.
 
 - DeepSeek and DeepSeek Pro show the looping video through the reading panel.
 - DeepSeek Work Mode and DeepSeek Deep Dream show the wallpaper through the reading panel.
+- The architecture module list scrolls inside the panel, so a module below the fold can be opened.
 
 ## 2.3.21 — 2026-11-07
 

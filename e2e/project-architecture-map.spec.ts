@@ -233,7 +233,15 @@ for (const project of projects) {
         node.name.endsWith('renderers/architecture/render-architecture.mjs')
       ) ??
       snapshot!.graph.nodes.find((node) => node.name.length > 44)!
-    await page.getByTestId('architecture-module').filter({ hasText: longName.name }).click()
+    const moduleList = page.getByTestId('architecture-module-browser')
+    if (!(await moduleList.isVisible()))
+      await page.getByTestId('architecture-toggle-modules').click()
+    await moduleList.locator('input').fill(longName.name)
+    const moduleButton = page.getByTestId('architecture-module').filter({ hasText: longName.name })
+    await moduleButton.evaluate((node) =>
+      node.scrollIntoView({ block: 'center', inline: 'nearest' })
+    )
+    await moduleButton.click()
     await page.getByTestId('architecture-focus').click()
     await expect(page.getByTestId('architecture-focus')).toBeEnabled()
     await expect

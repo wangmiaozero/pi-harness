@@ -905,10 +905,14 @@ onBeforeUnmount(() => {
 }
 .architecture-layout {
   display: flex;
+  min-height: 0;
+  overflow: hidden;
 }
 .architecture-modules {
   width: clamp(150px, 18%, 190px);
   flex-shrink: 0;
+  min-height: 0;
+  overflow: auto;
 }
 .architecture-details {
   width: clamp(180px, 24%, 240px);
