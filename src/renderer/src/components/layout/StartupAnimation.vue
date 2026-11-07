@@ -321,7 +321,7 @@ function draw(now: number): void {
 }
 
 function finish(): void {
-  if (!minimumElapsed || leaving.value || !visible.value) return
+  if (mode.value !== 'particle' || !minimumElapsed || leaving.value || !visible.value) return
   leaving.value = true
   leaveStartedAt = performance.now()
   exitTimer = setTimeout(
@@ -333,8 +333,16 @@ function finish(): void {
 }
 
 function finishWhenReady(): void {
-  if (!minimumElapsed || readyTimer) return
+  if (mode.value !== 'particle' || !minimumElapsed || readyTimer) return
   readyTimer = setTimeout(finish, 450)
+}
+
+function armMinimum(): void {
+  if (minimumTimer || minimumElapsed) return
+  minimumTimer = setTimeout(() => {
+    minimumElapsed = true
+    if (startupPhase.value === 'ready') finishWhenReady()
+  }, STARTUP_MINIMUM_VISIBLE_MS)
 }
 
 watch(startupPhase, (phase) => {
@@ -359,6 +367,16 @@ async function beginParticle(): Promise<void> {
   if (particleStarted || !visible.value) return
   particleStarted = true
   mode.value = 'particle'
+  // The hold screen is already the cover. Counting the minimum only after the
+  // field is built adds another 5s on a cold packaged launch.
+  armMinimum()
+  if (minimumElapsed && startupPhase.value === 'ready') finishWhenReady()
+  // A stalled optional service check must not leave the application covered.
+  // Arm this before the canvas build: that build blocks the main thread on software GL.
+  fallbackTimer = setTimeout(() => {
+    minimumElapsed = true
+    finish()
+  }, 8000)
   await nextTick()
   if (!visible.value) return
   reducedMotion = prefersReducedMotion()
@@ -367,15 +385,6 @@ async function beginParticle(): Promise<void> {
   resizeObserver = new ResizeObserver(buildField)
   if (canvas.value) resizeObserver.observe(canvas.value)
   frameId = requestAnimationFrame(draw)
-  minimumTimer = setTimeout(() => {
-    minimumElapsed = true
-    if (startupPhase.value === 'ready') finishWhenReady()
-  }, STARTUP_MINIMUM_VISIBLE_MS)
-  // A stalled optional service check must not leave the application covered.
-  fallbackTimer = setTimeout(() => {
-    minimumElapsed = true
-    finish()
-  }, 8000)
 }
 
 function setCinematicCover(active: boolean): void {
@@ -467,6 +476,7 @@ watch(() => [settings.settings, settings.loading, settings.error] as const, cons
 
 onMounted(() => {
   if (!visible.value) return
+  armMinimum()
   if (!MASCOT_ENABLED) {
     void beginParticle()
     return
