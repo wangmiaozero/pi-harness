@@ -2,6 +2,12 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.3.24 — 2026-11-08
+
+### Fixed
+
+- A Codex worktree opened as the workspace still receives live file updates on macOS.
+
 ## 2.3.23 — 2026-11-08
 
 ### Fixed

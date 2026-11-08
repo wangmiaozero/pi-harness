@@ -73,7 +73,12 @@ export class WorkspaceWatcherService {
               ? error.code
               : 'WATCH_ERROR'
         })
-      if (this.platform === 'darwin') {
+      // Recursive FSEvents reports nothing for an explicitly opened Codex checkout.
+      // Per-directory watches still deliver those edits.
+      const codexCheckout = [root, resolvedRoot].some((file) =>
+        file.split(path.sep).includes('.codex')
+      )
+      if (this.platform === 'darwin' && !codexCheckout) {
         const watcher = watchNativeWorkspace(
           root,
           (file, directory) =>
