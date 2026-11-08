@@ -44,11 +44,11 @@
 
 **Mode de travail.** DeepSeek ouvre l’espace de code. 13 secondes.
 
-<video src="docs/promo/work-mode.mp4" controls playsinline></video>
+https://github.com/user-attachments/assets/942b73c9-ece9-485e-ad82-0e51225a73c1
 
 **Bon retour.** Le compagnon apparaît et l’aperçu de l’espace s’ouvre. 11 secondes.
 
-<video src="docs/promo/welcome-back.mp4" controls playsinline></video>
+https://github.com/user-attachments/assets/98708766-f490-4506-a33f-f1376d41770f
 
 <a id="product-preview"></a>
 

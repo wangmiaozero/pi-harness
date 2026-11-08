@@ -44,11 +44,11 @@
 
 **작업 모드.** DeepSeek가 코딩 작업 공간으로 들어갑니다. 13초.
 
-<video src="docs/promo/work-mode.mp4" controls playsinline></video>
+https://github.com/user-attachments/assets/942b73c9-ece9-485e-ad82-0e51225a73c1
 
 **다시 만나서.** 컴패니언이 나타나고 작업 공간 개요가 열립니다. 11초.
 
-<video src="docs/promo/welcome-back.mp4" controls playsinline></video>
+https://github.com/user-attachments/assets/98708766-f490-4506-a33f-f1376d41770f
 
 <a id="product-preview"></a>
 

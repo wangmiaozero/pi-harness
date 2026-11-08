@@ -48,11 +48,11 @@ Pi-Harness 是围绕 [Pi Coding Agent](https://github.com/earendil-works/pi) 构
 
 **工作模式。** DeepSeek 进入编程工作区。13 秒。
 
-<video src="docs/promo/work-mode.mp4" controls playsinline></video>
+https://github.com/user-attachments/assets/942b73c9-ece9-485e-ad82-0e51225a73c1
 
 **欢迎回来。** 角色亮起，工作区概览打开。11 秒。
 
-<video src="docs/promo/welcome-back.mp4" controls playsinline></video>
+https://github.com/user-attachments/assets/98708766-f490-4506-a33f-f1376d41770f
 
 <a id="product-preview"></a>
 

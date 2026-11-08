@@ -48,11 +48,11 @@ Pi-Harness is the desktop workspace and operational control plane around [Pi Cod
 
 **Work mode.** DeepSeek opens into the coding workspace. 13 seconds.
 
-<video src="docs/promo/work-mode.mp4" controls playsinline></video>
+https://github.com/user-attachments/assets/942b73c9-ece9-485e-ad82-0e51225a73c1
 
 **Welcome back.** The companion appears and the workspace overview opens. 11 seconds.
 
-<video src="docs/promo/welcome-back.mp4" controls playsinline></video>
+https://github.com/user-attachments/assets/98708766-f490-4506-a33f-f1376d41770f
 
 <a id="product-preview"></a>
 

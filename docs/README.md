@@ -14,9 +14,9 @@ Updated on 2026-11-03 using the current desktop UI and an isolated demo workspac
 
 ## Recordings / 实拍
 
-<video src="promo/work-mode.mp4" controls playsinline></video>
+https://github.com/user-attachments/assets/942b73c9-ece9-485e-ad82-0e51225a73c1
 
-<video src="promo/welcome-back.mp4" controls playsinline></video>
+https://github.com/user-attachments/assets/98708766-f490-4506-a33f-f1376d41770f
 
 ## Product interfaces / 功能界面
 
