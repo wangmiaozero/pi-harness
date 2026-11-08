@@ -6,7 +6,7 @@ import path from 'node:path'
 import { homedir } from 'node:os'
 import { isIgnoredWorkspaceDirectoryName } from '@shared/workspace/search-ignore'
 import { log } from '../services/logger'
-import { watchNativeWorkspace } from './native-workspace-watcher'
+import { WATCH_STREAM_SILENT, watchNativeWorkspace } from './native-workspace-watcher'
 
 interface RootWatcher {
   close(): Promise<void>
@@ -73,29 +73,31 @@ export class WorkspaceWatcherService {
               ? error.code
               : 'WATCH_ERROR'
         })
-      // Recursive FSEvents reports nothing for an explicitly opened Codex checkout.
-      // Per-directory watches still deliver those edits.
-      const codexCheckout = [root, resolvedRoot].some((file) =>
-        file.split(path.sep).includes('.codex')
-      )
-      if (this.platform === 'darwin' && !codexCheckout) {
+      if (this.platform === 'darwin') {
         const watcher = watchNativeWorkspace(
           root,
           (file, directory) =>
             shouldIgnore(file) || this.isGitIgnored(root, file, directory, excluded),
           () => this.queue(root),
           failed,
-          !shallow
+          !shallow,
+          { proveDelivery: true }
         )
         this.watchers.set(root, watcher)
         try {
           await watcher.ready
+          continue
         } catch (error) {
           this.watchers.delete(root)
           await watcher.close()
-          throw error
+          if (!(
+            typeof error === 'object' &&
+            error !== null &&
+            'code' in error &&
+            error.code === WATCH_STREAM_SILENT
+          ))
+            throw error
         }
-        continue
       }
       let initialized = false
       const initialFiles = new Map<string, string>()

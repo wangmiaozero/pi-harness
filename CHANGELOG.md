@@ -6,7 +6,7 @@ Release notes describe user-visible additions and fixes.
 
 ### Fixed
 
-- A Codex worktree opened as the workspace still receives live file updates on macOS.
+- macOS still reports workspace file changes when its recursive watcher stays silent.
 
 ## 2.3.23 — 2026-11-08
 

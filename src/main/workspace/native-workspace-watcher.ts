@@ -1,7 +1,10 @@
+import { randomBytes } from 'node:crypto'
 import { watch, type FSWatcher } from 'node:fs'
-import { lstat, readdir, realpath } from 'node:fs/promises'
+import { lstat, readdir, realpath, unlink, writeFile } from 'node:fs/promises'
 import type { Stats } from 'node:fs'
 import path from 'node:path'
+
+export const WATCH_STREAM_SILENT = 'WATCH_SILENT'
 
 /** macOS recursive fs.watch uses FSEvents rather than a descriptor for every file. */
 export function watchNativeWorkspace(
@@ -9,7 +12,8 @@ export function watchNativeWorkspace(
   ignored: (file: string, directory?: boolean) => boolean,
   changed: () => void,
   failed: (error: NodeJS.ErrnoException) => void,
-  recursive = true
+  recursive = true,
+  options: { proveDelivery?: boolean; proveTimeoutMs?: number } = {}
 ): { close(): Promise<void>; ready: Promise<void> } {
   let closed = false
   let checking = false
@@ -19,6 +23,9 @@ export function watchNativeWorkspace(
   const fingerprint = (stat: Stats): string =>
     `${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}:${stat.mode}`
   let watcher: FSWatcher | null = null
+  let proving = false
+  let canaryName = ''
+  let markCanary = () => {}
   // /var and /private/var are the same directory. FSEvents may report either spelling.
   let canonicalRoot = path.resolve(root)
   const pending = new Set<string>()
@@ -177,16 +184,56 @@ export function watchNativeWorkspace(
     canonicalRoot = await realpath(root).catch(() => path.resolve(root))
     watcher = watch(root, { recursive }, onEvent)
     watcher.on('error', failed)
+    if (!options.proveDelivery || closed) return
+    // ready means a later edit cannot land before the stream is delivering.
+    // A stream that never reports the probe is not usable; the caller falls back.
+    canaryName = `.pi-harness-watch-${randomBytes(8).toString('hex')}`
+    const canaryPath = path.join(root, canaryName)
+    let observed = false
+    const seen = new Promise<void>((resolve) => {
+      markCanary = () => {
+        observed = true
+        resolve()
+      }
+    })
+    proving = true
+    try {
+      await writeFile(canaryPath, '')
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          if (closed || observed) resolve()
+          else {
+            reject(
+              Object.assign(new Error('Workspace watcher produced no events'), {
+                code: WATCH_STREAM_SILENT
+              })
+            )
+          }
+        }, options.proveTimeoutMs ?? 1500)
+        void seen.then(() => {
+          clearTimeout(timer)
+          resolve()
+        })
+      })
+    } finally {
+      await unlink(canaryPath).catch(() => undefined)
+      proving = false
+    }
   })()
 
   function onEvent(_event: string, filename: string | null) {
     if (closed) return
     if (!filename) {
-      changed()
+      if (proving) markCanary()
+      else changed()
       return
     }
     const relative = relativeEvent(filename)
     if (relative === null) return
+    if (canaryName && (relative === canaryName || path.basename(relative) === canaryName)) {
+      markCanary()
+      return
+    }
     if (relative && ignored(path.join(root, relative))) return
     pending.add(relative)
     schedule()

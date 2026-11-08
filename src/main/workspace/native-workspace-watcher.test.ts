@@ -122,13 +122,69 @@ it('cancels queued notifications when the native subscription closes', async () 
   expect(fixture.close).toHaveBeenCalledOnce()
 })
 
+it('reports a recursive stream that never delivers and removes the probe file', async () => {
+  directory = await fs.mkdtemp(path.join(os.tmpdir(), 'native-watch-silent-'))
+  fixture.watch.mockReturnValue({ on: vi.fn(), close: fixture.close })
+  const failed = vi.fn()
+  watcher = watchNativeWorkspace(directory, () => false, vi.fn(), failed, true, {
+    proveDelivery: true,
+    proveTimeoutMs: 40
+  })
+  await expect(watcher.ready).rejects.toMatchObject({ code: 'WATCH_SILENT' })
+  expect(await fs.readdir(directory)).not.toEqual(
+    expect.arrayContaining([expect.stringMatching(/^\.pi-harness-watch-/)])
+  )
+  expect(failed).not.toHaveBeenCalled()
+})
+
+it('treats the delivery probe as private and still resolves once it is reported', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'native-watch-probe-'))
+  directory = root
+  let listener: ((event: string, filename: string) => void) | undefined
+  fixture.watch.mockImplementation((_root: string, _options: unknown, onEvent: Function) => {
+    listener = onEvent as (event: string, filename: string) => void
+    return { on: vi.fn(), close: fixture.close }
+  })
+  const changed = vi.fn()
+  watcher = watchNativeWorkspace(root, () => false, changed, vi.fn(), true, {
+    proveDelivery: true,
+    proveTimeoutMs: 1000
+  })
+  await vi.waitFor(async () => {
+    expect((await fs.readdir(root)).some((name) => name.startsWith('.pi-harness-watch-'))).toBe(
+      true
+    )
+  })
+  const canary = (await fs.readdir(root)).find((name) => name.startsWith('.pi-harness-watch-'))
+  listener!('rename', canary!)
+  await watcher.ready
+  expect(changed).not.toHaveBeenCalled()
+  expect((await fs.readdir(root)).some((name) => name.startsWith('.pi-harness-watch-'))).toBe(false)
+})
+
 it('allows a failed native subscription to be retried for the same workspace', async () => {
   directory = await fs.mkdtemp(path.join(os.tmpdir(), 'native-watch-retry-'))
   const error = Object.assign(new Error('fixture watch failure'), { code: 'EMFILE' })
   fixture.watch.mockImplementationOnce(() => {
     throw error
   })
-  fixture.watch.mockReturnValue({ on: vi.fn(), close: fixture.close })
+  fixture.watch.mockImplementation((watched: string, _options: unknown, listener: Function) => {
+    const timer = setInterval(() => {
+      void fs.readdir(watched).then((names) => {
+        const canary = names.find((name) => name.startsWith('.pi-harness-watch-'))
+        if (!canary) return
+        clearInterval(timer)
+        listener('rename', canary)
+      })
+    }, 10)
+    return {
+      on: vi.fn(),
+      close: () => {
+        clearInterval(timer)
+        fixture.close()
+      }
+    }
+  })
   const service = new WorkspaceWatcherService('darwin')
   try {
     await expect(service.sync([directory])).rejects.toBe(error)
