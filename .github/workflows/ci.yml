@@ -61,6 +61,10 @@ jobs:
         with:
           node-version: 24.22.1
           cache: pnpm
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .runtime-cache
+          key: downloads-${{ runner.os }}-x64-${{ hashFiles('pnpm-lock.yaml', 'src/main/runtime/catalog.json') }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm security:node --source-only
       - run: pnpm typecheck
@@ -332,6 +336,10 @@ jobs:
             ~/AppData/Local/electron/Cache
             ~/AppData/Local/electron-builder/Cache
           key: update-upgrade-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .runtime-cache
+          key: downloads-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml', 'src/main/runtime/catalog.json') }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm security:node --source-only
       - run: pnpm runtime:prepare

@@ -11,6 +11,9 @@ import catalog from './catalog.json' with { type: 'json' }
 import { macosContentHash } from './macos-content.mjs'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { setTimeout as delay } from 'node:timers/promises'
+
+const transientHttp = new Set([408, 429, 500, 502, 503, 504])
 
 export { catalog }
 export async function sha256(file) {
@@ -43,22 +46,39 @@ export function assertArchivePath(name, link, type) {
 async function download(url, destination, expected, offline, signal, fetcher = fetch) {
   if ((await sha256(destination).catch(() => null)) === expected) return
   if (offline) throw new Error(`Verified offline cache missing: ${path.basename(destination)}`)
-  const response = await fetcher(url, {
-    signal: signal
-      ? AbortSignal.any([signal, AbortSignal.timeout(180_000)])
-      : AbortSignal.timeout(180_000)
-  })
-  if (!response.ok || !response.body)
-    throw new Error(`Runtime download failed: HTTP ${response.status}`)
-  const temporary = `${destination}.${randomUUID()}.part`
-  try {
-    await pipeline(Readable.fromWeb(response.body), createWriteStream(temporary, { mode: 0o600 }), {
-      signal
-    })
-    if ((await sha256(temporary)) !== expected) throw new Error('Runtime download SHA256 mismatch')
-    await fs.rename(temporary, destination)
-  } finally {
-    await fs.rm(temporary, { force: true })
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    signal?.throwIfAborted()
+    const timeout = AbortSignal.timeout(180_000)
+    let response
+    try {
+      response = await fetcher(url, {
+        signal: signal ? AbortSignal.any([signal, timeout]) : timeout
+      })
+    } catch (error) {
+      if (signal?.aborted || attempt === 3) throw error
+      await delay(250 * attempt, undefined, { signal })
+      continue
+    }
+    if (response.ok && response.body) {
+      const temporary = `${destination}.${randomUUID()}.part`
+      try {
+        await pipeline(
+          Readable.fromWeb(response.body),
+          createWriteStream(temporary, { mode: 0o600 }),
+          { signal }
+        )
+        if ((await sha256(temporary)) !== expected)
+          throw new Error('Runtime download SHA256 mismatch')
+        await fs.rename(temporary, destination)
+        return
+      } finally {
+        await fs.rm(temporary, { force: true })
+      }
+    }
+    await response.body?.cancel().catch(() => {})
+    if (!transientHttp.has(response.status) || attempt === 3)
+      throw new Error(`Runtime download failed: HTTP ${response.status}`)
+    await delay(250 * attempt, undefined, { signal })
   }
 }
 
