@@ -104,7 +104,7 @@ export class AgentPreferencesService {
       return this.safeTarget(root, kind === 'mcp' ? 'mcp.json' : 'AGENTS.md')
     }
     const root = write
-      ? await this.access.assertWritable(scope.root, { mustExist: true })
+      ? await this.access.assertWritableForProjectSettings(scope.root, { mustExist: true })
       : await this.access.assertAllowed(scope.root, { mustExist: true })
     if (!(await fs.stat(root)).isDirectory()) throw new PathDeniedError('Choose a project folder.')
     if (kind === 'instructions') return this.safeTarget(root, 'AGENTS.md')

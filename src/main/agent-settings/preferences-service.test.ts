@@ -87,6 +87,44 @@ describe('native agent settings', () => {
     await expect(service.mcp({ root: project })).rejects.toThrow('Linked')
     expect(await fs.readFile(path.join(outside, 'secret'), 'utf8')).toBe('outside')
   })
+  it('saves project MCP for the open session when another workspace is active', async () => {
+    const active = path.join(temp, 'active')
+    const project = path.join(temp, 'project')
+    await fs.mkdir(active)
+    await fs.mkdir(project)
+    access.allowRoot(active)
+    access.allowRoot(project)
+    access.setWorkspaceFolders([{ resolvedPath: active, readonly: false, exists: true }])
+    access.attachSessionLister(async () => [
+      {
+        path: path.join(project, 'session.jsonl'),
+        id: 'session',
+        cwd: project,
+        name: 'session',
+        created: '2026-01-01T00:00:00.000Z',
+        modified: '2026-01-01T00:00:00.000Z',
+        messageCount: 1,
+        firstMessage: 'fixture',
+        projectRoot: project
+      }
+    ])
+    const listed = await service.mcp({ root: project })
+    const saved = await service.saveMcp({
+      root: project,
+      id: 'shared-config',
+      revision: listed.revision,
+      type: 'stdio',
+      command: 'fixture-disabled-server',
+      args: [],
+      enabled: false,
+      exposure: 'codemode',
+      description: 'Changed project only'
+    })
+    expect(saved.entries[0]?.description).toBe('Changed project only')
+    await expect(access.assertWritable(path.join(project, 'note.txt'))).rejects.toMatchObject({
+      code: 'PATH_DENIED'
+    })
+  })
   it('preserves MCP credentials and advanced settings without exposing them in the inventory', async () => {
     const empty = await service.mcp({})
     const value = {

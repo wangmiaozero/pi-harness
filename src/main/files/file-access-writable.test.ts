@@ -72,5 +72,8 @@ describe('FileAccessService workspace write gate', () => {
     await expect(
       access.assertWritableForGit(path.join(otherProject, 'a.ts'), { mustExist: false })
     ).resolves.toBe(path.join(otherProject, 'a.ts'))
+    await expect(
+      access.assertWritableForProjectSettings(otherProject, { mustExist: true })
+    ).resolves.toBe(await import('node:fs/promises').then((fs) => fs.realpath(otherProject)))
   })
 })

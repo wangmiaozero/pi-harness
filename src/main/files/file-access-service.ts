@@ -173,6 +173,22 @@ export class FileAccessService {
   }
 
   /**
+   * Project MCP and instruction files are edited for the open session, which
+   * may not be the active workspace folder yet.
+   */
+  async assertWritableForProjectSettings(
+    target: string,
+    options: { mustExist?: boolean } = {}
+  ): Promise<string> {
+    try {
+      return await this.assertWritable(target, options)
+    } catch (error) {
+      if (!(error instanceof PathDeniedError)) throw error
+      return this.assertWritableForGit(target, options)
+    }
+  }
+
+  /**
    * Git writes are workspace-wide: the Git page lists every project known to
    * the app, not only the active session's folders. Committing or stashing in
    * any of those projects is allowed even when its session is not active.

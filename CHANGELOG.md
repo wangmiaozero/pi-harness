@@ -7,6 +7,7 @@ Release notes describe user-visible additions and fixes.
 ### Fixed
 
 - macOS still reports a workspace edit when the system sends the containing folder or the resolved path.
+- Project MCP and instruction changes save for the open session.
 
 ## 2.3.22 — 2026-11-07
 
