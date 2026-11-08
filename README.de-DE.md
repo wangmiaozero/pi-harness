@@ -22,6 +22,7 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
+  <a href="#watch"><strong>Video</strong></a> ·
   <a href="#download"><strong>Download</strong></a> ·
   <a href="#features">Funktionen</a> ·
   <a href="#agent-settings">Agenten-Einstellungen</a> ·
@@ -36,6 +37,18 @@
   <a href="LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
   <a href="https://github.com/wangmiaozero/pi-harness"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
 </p>
+
+<a id="watch"></a>
+
+## Video
+
+**Arbeitsmodus.** DeepSeek öffnet den Coding-Workspace. 13 Sekunden.
+
+<video src="docs/promo/work-mode.mp4" controls playsinline></video>
+
+**Willkommen zurück.** Die Begleiterin erscheint, die Workspace-Übersicht öffnet sich. 11 Sekunden.
+
+<video src="docs/promo/welcome-back.mp4" controls playsinline></video>
 
 <a id="product-preview"></a>
 

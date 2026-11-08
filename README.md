@@ -22,6 +22,7 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
+  <a href="#watch"><strong>Watch</strong></a> ·
   <a href="#download"><strong>Download</strong></a> ·
   <a href="#features">Features</a> ·
   <a href="#agent-settings">Agent Settings</a> ·
@@ -40,6 +41,18 @@
 Pi-Harness is the desktop workspace and operational control plane around [Pi Coding Agent](https://github.com/earendil-works/pi). Pi is the native execution engine; Pi-Harness adds visual operations, governance, recovery, evaluation, and multi-agent orchestration. Your Pi sessions, configuration, tools, Skills, and extensions remain compatible, and you can continue using Pi outside the app.
 
 **macOS · Windows · Linux. Community installers bundle Pi and Node.js — no separate runtime installation needed.** [Get started →](#download)
+
+<a id="watch"></a>
+
+## Watch
+
+**Work mode.** DeepSeek opens into the coding workspace. 13 seconds.
+
+<video src="docs/promo/work-mode.mp4" controls playsinline></video>
+
+**Welcome back.** The companion appears and the workspace overview opens. 11 seconds.
+
+<video src="docs/promo/welcome-back.mp4" controls playsinline></video>
 
 <a id="product-preview"></a>
 

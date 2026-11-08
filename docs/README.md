@@ -12,6 +12,12 @@ Updated on 2026-11-03 using the current desktop UI and an isolated demo workspac
 
 [Agent settings guide / 智能体设置使用指南](agent-settings.md) · [Changelog / 更新日志](../CHANGELOG.md)
 
+## Recordings / 实拍
+
+<video src="promo/work-mode.mp4" controls playsinline></video>
+
+<video src="promo/welcome-back.mp4" controls playsinline></video>
+
 ## Product interfaces / 功能界面
 
 ### Classic theme / 经典主题

@@ -22,6 +22,7 @@
 <p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
 
 <p align="center">
+  <a href="#watch"><strong>实拍</strong></a> ·
   <a href="#download"><strong>下载</strong></a> ·
   <a href="#features">功能</a> ·
   <a href="#agent-settings">智能体设置</a> ·
@@ -40,6 +41,18 @@
 Pi-Harness 是围绕 [Pi Coding Agent](https://github.com/earendil-works/pi) 构建的桌面工作区与运维控制平台。Pi 负责原生执行；Pi-Harness 在其周围提供可视化运维、治理、恢复、评估与多智能体编排。Pi 会话、配置、工具、Skills 与扩展保持兼容，也可以继续在桌面应用之外使用 Pi。
 
 **支持 macOS、Windows、Linux。Community 安装包内置 Pi 与 Node.js，无需提前单独安装运行环境。** [开始使用 →](#download)
+
+<a id="watch"></a>
+
+## 实拍
+
+**工作模式。** DeepSeek 进入编程工作区。13 秒。
+
+<video src="docs/promo/work-mode.mp4" controls playsinline></video>
+
+**欢迎回来。** 角色亮起，工作区概览打开。11 秒。
+
+<video src="docs/promo/welcome-back.mp4" controls playsinline></video>
 
 <a id="product-preview"></a>
 
