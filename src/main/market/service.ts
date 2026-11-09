@@ -78,7 +78,9 @@ export class MarketService {
           version.compatible && coerced && semver.satisfies(coerced, version.compatible, { includePrerelease: true })
         )
       }
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (/Refusing|unofficial/.test(message)) return null
       return item
     }
   }

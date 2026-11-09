@@ -4,6 +4,7 @@ import {
   applyVisualSkin,
   getActiveVisualSkin,
   isStarshipCockpitActive,
+  selectedThemePackMissing,
   setInstalledThemeAssets,
   themeCardPreview
 } from './visual-skin'
@@ -158,6 +159,15 @@ describe('starship cockpit visual skin', () => {
     expect(document.documentElement.dataset.theme).toBe('light')
     expect(document.documentElement.dataset.appearance).toBe('light')
     expect(document.documentElement.style.colorScheme).toBe('light')
+  })
+
+  it('reports a selected theme only after its installed pack is gone', () => {
+    expect(selectedThemePackMissing({ mascotStyle: 'ropeClaude' })).toBe(false)
+    setInstalledThemeAssets([])
+    expect(selectedThemePackMissing({ mascotStyle: 'ropeClaude' })).toBe(true)
+    expect(selectedThemePackMissing({ mascotStyle: 'none' })).toBe(false)
+    setInstalledThemeAssets([{ packId: 'claude', styles: ['ropeClaude'] }])
+    expect(selectedThemePackMissing({ mascotStyle: 'ropeClaude' })).toBe(false)
   })
 
   it('shows a missing preview until the theme pack is installed, then the image', () => {

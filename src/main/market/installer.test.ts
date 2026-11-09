@@ -114,11 +114,13 @@ describe('market installer', () => {
           name: '@piharness/theme-deepseek',
           description: 'Official Pi-Harness DeepSeek theme pack',
           license: 'MIT',
+          maintainers: [{ name: 'piharness' }],
           'dist-tags': { latest: '1.0.0' },
           versions: {
             '1.0.0': {
               version: '1.0.0',
               license: 'MIT',
+              _npmUser: { name: 'piharness' },
               piHarness: { compatible: '>=2.4.0' },
               dist: {
                 integrity,
@@ -208,11 +210,13 @@ describe('market installer', () => {
           name: partRequest ? '@piharness/pet-bigfish-2' : '@piharness/pet-bigfish',
           description: 'BigFish',
           license: 'MIT',
+          maintainers: [{ name: 'piharness' }],
           'dist-tags': { latest: '1.0.0' },
           versions: {
             '1.0.0': {
               version: '1.0.0',
               license: 'MIT',
+              _npmUser: { name: 'piharness' },
               piHarness: partRequest
                 ? { compatible: '>=2.4.0', partOf: '@piharness/pet-bigfish' }
                 : { compatible: '>=2.4.0', parts: ['@piharness/pet-bigfish-2'] },

@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { LoaderCircle } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import { getApi } from '@renderer/composables/useApi'
 import { reloadInstalledCatalog } from '@renderer/market/catalog'
 import { useSettingsStore } from '@renderer/stores/settings'
-import { applyVisualSkin } from '@renderer/utils/visual-skin'
+import { applyVisualSkin, selectedThemePackMissing } from '@renderer/utils/visual-skin'
+import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
 import type { MascotStyle } from '@shared/constants/mascot'
 import { marketFileUrl } from '@shared/market/urls'
@@ -27,6 +29,9 @@ const installed = ref<MarketInstalled | null>(null)
 const progress = ref<Record<string, MarketProgress>>({})
 const busy = ref('')
 const error = ref('')
+const loading = ref(false)
+const brokenPreviews = ref<Record<string, boolean>>({})
+let loadGeneration = 0
 
 const visibleTabs = computed(() =>
   MASCOT_ENABLED
@@ -44,6 +49,11 @@ const installedCards = computed(() => {
   return tab.value === 'installed' ? [...installed.value.themes, ...installed.value.pets] : []
 })
 
+function installedPackage(name: string): InstalledMarketPackage | null {
+  const items = [...(installed.value?.themes ?? []), ...(installed.value?.pets ?? [])]
+  return items.find((item) => item.name === name) ?? null
+}
+
 function bytes(value: number | null): string {
   if (!value || value < 0) return '—'
   if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`
@@ -55,18 +65,28 @@ function message(reason: unknown): string {
 }
 
 async function load(refresh = false): Promise<void> {
+  const generation = ++loadGeneration
+  const requested = tab.value
+  loading.value = true
   error.value = ''
+  if (requested !== 'installed') searchResult.value = null
   try {
-    if (tab.value === 'installed' || refresh) {
-      installed.value = refresh
-        ? await getApi().market.refresh()
-        : await getApi().market.installed()
-    }
-    if (tab.value !== 'installed') {
-      searchResult.value = await getApi().market.search(query.value, tab.value, refresh)
+    const installedPromise = refresh ? getApi().market.refresh() : getApi().market.installed()
+    const searchPromise =
+      requested === 'installed' ? null : getApi().market.search(query.value, requested, refresh)
+    const nextInstalled = await installedPromise
+    if (generation !== loadGeneration) return
+    installed.value = nextInstalled
+    if (searchPromise) {
+      const nextSearch = await searchPromise
+      if (generation !== loadGeneration) return
+      searchResult.value = nextSearch
     }
   } catch (reason) {
+    if (generation !== loadGeneration) return
     error.value = message(reason)
+  } finally {
+    if (generation === loadGeneration) loading.value = false
   }
 }
 
@@ -92,8 +112,10 @@ async function uninstall(name: string): Promise<void> {
   try {
     await getApi().market.uninstall(name)
     installed.value = await reloadInstalledCatalog()
+    if (selectedThemePackMissing(store.settings)) {
+      await store.patch({ mascotStyle: DEFAULT_MASCOT_STYLE })
+    }
     toast.success(name)
-    await load(false)
   } catch (reason) {
     error.value = message(reason)
     toast.error(t('settings.marketFailed'), { description: error.value })
@@ -121,8 +143,14 @@ function percent(name: string): string {
   return `${Math.min(100, (current.received / current.total) * 100)}%`
 }
 
-function preview(item: InstalledMarketPackage): string {
-  return marketFileUrl(item.kind, item.packId, 'preview.webp')
+function preview(item: InstalledMarketPackage): string | null {
+  const file = item.manifest?.preview
+  if (!file || brokenPreviews.value[item.name]) return null
+  return marketFileUrl(item.kind, item.packId, file)
+}
+
+function markPreviewBroken(name: string): void {
+  brokenPreviews.value = { ...brokenPreviews.value, [name]: true }
 }
 
 function selectTab(next: 'theme' | 'pet' | 'installed'): void {
@@ -134,6 +162,12 @@ let stopProgress: (() => void) | undefined
 
 onMounted(() => {
   stopProgress = getApi().on('market-progress', (payload) => {
+    if (payload.phase === 'done' || payload.phase === 'cancelled' || payload.phase === 'error') {
+      const next = { ...progress.value }
+      delete next[payload.name]
+      progress.value = next
+      return
+    }
     progress.value = { ...progress.value, [payload.name]: payload }
   })
   void load(false)
@@ -172,7 +206,16 @@ onUnmounted(() => stopProgress?.())
     </p>
     <p v-if="error" class="text-[12px] text-[var(--danger,var(--text-secondary))]">{{ error }}</p>
 
-    <div v-if="tab !== 'installed'" class="space-y-3">
+    <p
+      v-if="loading"
+      class="flex items-center gap-2 text-[12px] text-[var(--text-tertiary)]"
+      data-testid="resource-market-loading"
+    >
+      <LoaderCircle class="size-3.5 animate-spin motion-reduce:animate-none" :stroke-width="1.75" />
+      {{ t('settings.marketLoading') }}
+    </p>
+
+    <div v-else-if="tab !== 'installed'" class="space-y-3">
       <p v-if="cards.length === 0" class="text-[12px] text-[var(--text-tertiary)]">
         {{ t('settings.marketEmpty') }}
       </p>
@@ -187,6 +230,16 @@ onUnmounted(() => stopProgress?.())
             <p class="mt-1 text-[12px] text-[var(--text-secondary)]">{{ item.description }}</p>
           </div>
           <Button
+            v-if="installedPackage(item.name)"
+            size="sm"
+            variant="ghost"
+            :disabled="busy === item.name"
+            @click="uninstall(item.name)"
+          >
+            {{ t('settings.marketUninstall') }}
+          </Button>
+          <Button
+            v-else
             size="sm"
             :disabled="busy === item.name || item.compatible === false"
             @click="install(item.name, item.version || undefined)"
@@ -241,10 +294,11 @@ onUnmounted(() => stopProgress?.())
       >
         <div class="flex gap-3">
           <img
-            :src="preview(item)"
+            v-if="preview(item)"
+            :src="preview(item) ?? undefined"
             alt=""
             class="h-16 w-24 rounded object-cover"
-            loading="lazy"
+            @error="markPreviewBroken(item.name)"
           />
           <div class="min-w-0 flex-1">
             <h2 class="truncate text-[13px] font-medium">{{ item.name }}</h2>

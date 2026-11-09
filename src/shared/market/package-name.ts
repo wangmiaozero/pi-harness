@@ -1,6 +1,8 @@
 /** Official Market packages use the `@piharness` user scope. */
 
 export const OFFICIAL_MARKET_SCOPE = '@piharness'
+/** npm user that owns that scope: https://www.npmjs.com/~piharness */
+export const OFFICIAL_MARKET_USER = 'piharness'
 export const OFFICIAL_REGISTRY = 'https://registry.npmjs.org'
 
 export const MARKET_PACKAGE_NAME =

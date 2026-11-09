@@ -1,4 +1,9 @@
-import { OFFICIAL_REGISTRY, parseMarketPackageName } from '@shared/market/package-name'
+import {
+  OFFICIAL_MARKET_SCOPE,
+  OFFICIAL_MARKET_USER,
+  OFFICIAL_REGISTRY,
+  parseMarketPackageName
+} from '@shared/market/package-name'
 import type { MarketPackageSummary, MarketSearchResult } from '@shared/market/types'
 import semver from 'semver'
 import { MARKET_LIMITS } from './limits'
@@ -46,7 +51,7 @@ export class MarketRegistryClient {
   }
 
   async search(query: string, kind: 'all' | 'theme' | 'pet', refresh = false): Promise<MarketSearchResult> {
-    const text = ['scope:piharness', query.trim()].filter(Boolean).join(' ')
+    const text = query.trim().toLowerCase()
     const key = `${kind}\n${text}`
     if (
       !refresh &&
@@ -56,48 +61,34 @@ export class MarketRegistryClient {
     ) {
       return { ...this.cache.result, fromCache: true }
     }
-    const packages = new Map<string, MarketPackageSummary>()
-    let from = 0
-    let incomplete = false
-    for (let page = 0; page < MARKET_LIMITS.maxSearchPages; page += 1) {
-      const url = new URL('/-/v1/search', this.registry)
-      url.searchParams.set('text', text)
-      url.searchParams.set('size', String(MARKET_LIMITS.searchPageSize))
-      url.searchParams.set('from', String(from))
-      const response = await this.fetcher(url, { signal: AbortSignal.timeout(MARKET_LIMITS.requestTimeoutMs) })
-      if (!response.ok) throw new Error(`Registry search failed: HTTP ${response.status}`)
-      const body = (await response.json()) as {
-        objects?: Array<{ package?: { name?: string; version?: string; description?: string; publisher?: { username?: string }; date?: string } }>
-        total?: number
-      }
-      const objects = Array.isArray(body.objects) ? body.objects : []
-      for (const object of objects) {
-        const parsed = parseMarketPackageName(object.package?.name ?? '')
-        if (!parsed || (kind !== 'all' && parsed.kind !== kind)) continue
-        if (packages.has(parsed.name)) continue
-        packages.set(parsed.name, {
-          name: parsed.name,
-          kind: parsed.kind,
-          version: object.package?.version ?? '',
-          description: object.package?.description ?? '',
-          author: object.package?.publisher?.username ?? '',
-          license: '',
-          unpackedSize: null,
-          deprecated: false,
-          compatible: null
-        })
-      }
-      from += objects.length
-      const total = typeof body.total === 'number' ? body.total : from
-      if (objects.length === 0 || from >= total) {
-        incomplete = false
-        break
-      }
-      incomplete = page === MARKET_LIMITS.maxSearchPages - 1
+    const scope = OFFICIAL_MARKET_SCOPE.slice(1)
+    const url = new URL(`/-/org/${scope}/package`, this.registry)
+    const response = await this.fetcher(url, { signal: AbortSignal.timeout(MARKET_LIMITS.requestTimeoutMs) })
+    if (!response.ok) throw new Error(`Registry search failed: HTTP ${response.status}`)
+    const body = (await response.json()) as unknown
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new Error('Registry search failed: invalid package list')
+    }
+    const packages: MarketPackageSummary[] = []
+    for (const name of Object.keys(body).sort((a, b) => a.localeCompare(b))) {
+      const parsed = parseMarketPackageName(name)
+      if (!parsed || (kind !== 'all' && parsed.kind !== kind)) continue
+      if (text && !parsed.name.toLowerCase().includes(text)) continue
+      packages.push({
+        name: parsed.name,
+        kind: parsed.kind,
+        version: '',
+        description: '',
+        author: '',
+        license: '',
+        unpackedSize: null,
+        deprecated: false,
+        compatible: null
+      })
     }
     const result: MarketSearchResult = {
-      packages: [...packages.values()].sort((a, b) => a.name.localeCompare(b.name)),
-      incomplete,
+      packages,
+      incomplete: false,
       fromCache: false,
       offline: false
     }
@@ -119,10 +110,14 @@ export class MarketRegistryClient {
       description?: string
       author?: { name?: string } | string
       license?: string
+      maintainers?: unknown
       'dist-tags'?: Record<string, string>
       versions?: Record<string, RegistryVersionBody>
     }
     if (body.name !== name) throw new Error('Registry metadata name does not match the request')
+    if (!ownedByOfficialUser(body.maintainers)) {
+      throw new Error(`Refusing package not owned by ${OFFICIAL_MARKET_USER}: ${name}`)
+    }
     const versions = Object.values(body.versions ?? {})
       .map((version) => normalizeVersion(version))
       .filter((version): version is RegistryVersion => version !== null)
@@ -165,14 +160,24 @@ interface RegistryVersionBody {
   deprecated?: string
   license?: string
   scripts?: Record<string, string>
+  _npmUser?: { name?: string }
   piHarness?: { compatible?: string; parts?: unknown; partOf?: unknown }
   dist?: { integrity?: string; tarball?: string; unpackedSize?: number; size?: number }
+}
+
+function ownedByOfficialUser(value: unknown): boolean {
+  if (!Array.isArray(value) || value.length === 0) return false
+  return value.every((item) => {
+    if (!item || typeof item !== 'object') return false
+    return (item as { name?: unknown }).name === OFFICIAL_MARKET_USER
+  })
 }
 
 function normalizeVersion(body: RegistryVersionBody): RegistryVersion | null {
   if (!body.version || !semver.valid(body.version) || !body.dist?.integrity || !body.dist.tarball) {
     return null
   }
+  if (body._npmUser?.name !== OFFICIAL_MARKET_USER) return null
   const scripts = Object.entries(body.scripts ?? {})
     .filter(([, command]) => typeof command === 'string' && command.trim())
     .map(([name]) => name)

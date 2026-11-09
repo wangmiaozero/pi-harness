@@ -23,22 +23,17 @@ async function serve(handler: (url: string) => unknown): Promise<string> {
 }
 
 describe('market registry client', () => {
-  it('keeps only official names and reports an unfinished search', async () => {
+  it('lists official packages from the scope without the search index', async () => {
     const base = await serve((url) => {
-      const from = Number(new URL(url, 'http://127.0.0.1').searchParams.get('from'))
-      if (from === 0) {
-        return {
-          total: 3,
-          objects: [
-            { package: { name: '@piharness/theme-deepseek', version: '1.0.0', description: 'DeepSeek', publisher: { username: 'piharness' } } },
-            { package: { name: '@piharness/pet-bigfish', version: '1.0.0', description: 'BigFish' } },
-            { package: { name: '@piharness/pet-bigfish-2', version: '1.0.0', description: 'part' } },
-            { package: { name: 'left-pad', version: '1.0.0', description: 'no' } },
-            { package: { name: '@piharness/theme-deepseek', version: '1.0.0', description: 'duplicate' } }
-          ]
-        }
+      const parsed = new URL(url, 'http://127.0.0.1')
+      if (parsed.pathname !== '/-/org/piharness/package') return {}
+      return {
+        '@piharness/theme-deepseek': 'read',
+        '@piharness/pet-bigfish': 'read',
+        '@piharness/pet-bigfish-2': 'read',
+        'left-pad': 'read',
+        '@other/theme-deepseek': 'read'
       }
-      return { total: 3, objects: [] }
     })
     const client = new MarketRegistryClient(fetch, base)
     const first = await client.search('', 'theme')
@@ -46,7 +41,7 @@ describe('market registry client', () => {
     expect(first.incomplete).toBe(false)
     const cached = await client.search('', 'theme')
     expect(cached.fromCache).toBe(true)
-    const pets = await client.search('', 'pet')
+    const pets = await client.search('bigfish', 'pet')
     expect(pets.packages.map((item) => item.name)).toEqual([
       '@piharness/pet-bigfish',
       '@piharness/pet-bigfish-2'
@@ -58,13 +53,27 @@ describe('market registry client', () => {
     await expect(client.package('left-pad')).rejects.toThrow(/unofficial/)
   })
 
+  it('rejects a package maintained by anyone except piharness', async () => {
+    const base = await serve(() => ({
+      name: '@piharness/theme-deepseek',
+      maintainers: [{ name: 'piharness' }, { name: 'other' }],
+      'dist-tags': { latest: '1.0.0' },
+      versions: {
+        '1.0.0': version(base, '1.0.0', '>=2.4.0', {})
+      }
+    }))
+    const client = new MarketRegistryClient(fetch, base)
+    await expect(client.package('@piharness/theme-deepseek')).rejects.toThrow(/piharness/)
+  })
+
   it('selects a compatible version and refuses install scripts', async () => {
     const base = await serve(() => ({
       name: '@piharness/theme-deepseek',
+      maintainers: [{ name: 'piharness' }],
       'dist-tags': { latest: '1.2.0' },
       versions: {
         '1.0.0': version(base, '1.0.0', '>=2.4.0', {}),
-        '1.2.0': version(base, '1.2.0', '>=9.0.0', {}),
+        '1.2.0': version(base, '1.2.0', '>=9.0.0', {}, 'other'),
         '1.1.0': version(base, '1.1.0', '>=2.4.0', { postinstall: 'node evil.js' })
       }
     }))
@@ -74,11 +83,18 @@ describe('market registry client', () => {
   })
 })
 
-function version(base: string, name: string, compatible: string, scripts: Record<string, string>) {
+function version(
+  base: string,
+  name: string,
+  compatible: string,
+  scripts: Record<string, string>,
+  publisher = 'piharness'
+) {
   return {
     version: name,
     license: 'MIT',
     scripts,
+    _npmUser: { name: publisher },
     piHarness: { compatible },
     dist: {
       integrity: 'sha512-abc',

@@ -3,8 +3,6 @@ export const MARKET_LIMITS = {
   maxUnpackedBytes: 750 * 1024 * 1024,
   maxEntries: 40_000,
   maxFileBytes: 32 * 1024 * 1024,
-  searchPageSize: 20,
-  maxSearchPages: 10,
   requestTimeoutMs: 20_000,
   cacheTtlMs: 5 * 60 * 1000,
   maxConcurrentInstalls: 2

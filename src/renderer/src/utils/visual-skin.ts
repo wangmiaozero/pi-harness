@@ -44,6 +44,13 @@ export function themeAssetsReady(): boolean {
   return installCatalogReady
 }
 
+export function selectedThemePackMissing(
+  settings: { mascotStyle: MascotStyle } | null | undefined
+): boolean {
+  if (!settings || !themeAssetsReady() || settings.mascotStyle === 'none') return false
+  return !themePackInstalled(settings.mascotStyle)
+}
+
 export function themePackInstalled(style: MascotStyle | null | undefined): boolean {
   if (!installCatalogReady) return true
   const pack = themePackForStyle(style)
