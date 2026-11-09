@@ -62,7 +62,7 @@ describe('market installer', () => {
     await fs.writeFile(
       path.join(source, 'package.json'),
       JSON.stringify({
-        name: '@pi-harness/theme-deepseek',
+        name: '@piharness/theme-deepseek',
         version: '1.0.0',
         piHarness: { compatible: '>=2.4.0' }
       })
@@ -111,7 +111,7 @@ describe('market installer', () => {
       response.setHeader('content-type', 'application/json')
       response.end(
         JSON.stringify({
-          name: '@pi-harness/theme-deepseek',
+          name: '@piharness/theme-deepseek',
           description: 'Official Pi-Harness DeepSeek theme pack',
           license: 'MIT',
           'dist-tags': { latest: '1.0.0' },
@@ -144,12 +144,12 @@ describe('market installer', () => {
       client: new MarketRegistryClient(fetch, base),
       pets: { install: async () => ({ id: 'unused', version: '1.0.0', updated: false }) }
     })
-    const result = await installer.install('@pi-harness/theme-deepseek')
+    const result = await installer.install('@piharness/theme-deepseek')
     expect(result).toMatchObject({ packId: 'deepseek', updated: false })
     await expect(fs.readFile(path.join(root, 'themes', 'deepseek', 'theme-pack.json'), 'utf8')).resolves.toContain(
       '"id":"deepseek"'
     )
-    const again = await installer.install('@pi-harness/theme-deepseek')
+    const again = await installer.install('@piharness/theme-deepseek')
     expect(again.updated).toBe(true)
     await installer.removeTheme('deepseek')
     await expect(fs.access(path.join(root, 'themes', 'deepseek'))).rejects.toThrow()
@@ -168,17 +168,17 @@ describe('market installer', () => {
     await fs.writeFile(
       path.join(main, 'package.json'),
       JSON.stringify({
-        name: '@pi-harness/pet-bigfish',
+        name: '@piharness/pet-bigfish',
         version: '1.0.0',
-        piHarness: { compatible: '>=2.4.0', parts: ['@pi-harness/pet-bigfish-2'] }
+        piHarness: { compatible: '>=2.4.0', parts: ['@piharness/pet-bigfish-2'] }
       })
     )
     await fs.writeFile(
       path.join(part, 'package.json'),
       JSON.stringify({
-        name: '@pi-harness/pet-bigfish-2',
+        name: '@piharness/pet-bigfish-2',
         version: '1.0.0',
-        piHarness: { compatible: '>=2.4.0', partOf: '@pi-harness/pet-bigfish' }
+        piHarness: { compatible: '>=2.4.0', partOf: '@piharness/pet-bigfish' }
       })
     )
     await fs.writeFile(path.join(main, 'pet-pack.json'), JSON.stringify({ id: 'bigfish', license: 'MIT' }))
@@ -205,7 +205,7 @@ describe('market installer', () => {
       response.setHeader('content-type', 'application/json')
       response.end(
         JSON.stringify({
-          name: partRequest ? '@pi-harness/pet-bigfish-2' : '@pi-harness/pet-bigfish',
+          name: partRequest ? '@piharness/pet-bigfish-2' : '@piharness/pet-bigfish',
           description: 'BigFish',
           license: 'MIT',
           'dist-tags': { latest: '1.0.0' },
@@ -214,8 +214,8 @@ describe('market installer', () => {
               version: '1.0.0',
               license: 'MIT',
               piHarness: partRequest
-                ? { compatible: '>=2.4.0', partOf: '@pi-harness/pet-bigfish' }
-                : { compatible: '>=2.4.0', parts: ['@pi-harness/pet-bigfish-2'] },
+                ? { compatible: '>=2.4.0', partOf: '@piharness/pet-bigfish' }
+                : { compatible: '>=2.4.0', parts: ['@piharness/pet-bigfish-2'] },
               dist: {
                 integrity: partRequest ? partIntegrity : mainIntegrity,
                 tarball: `${base}/${partRequest ? 'part' : 'main'}.tgz`,
@@ -245,11 +245,11 @@ describe('market installer', () => {
         }
       }
     })
-    const result = await installer.install('@pi-harness/pet-bigfish')
-    expect(result).toMatchObject({ packId: 'bigfish', name: '@pi-harness/pet-bigfish' })
+    const result = await installer.install('@piharness/pet-bigfish')
+    expect(result).toMatchObject({ packId: 'bigfish', name: '@piharness/pet-bigfish' })
     expect(clipNames.sort()).toEqual(['idle', 'wave'])
-    await expect(installer.install('@pi-harness/pet-bigfish-2')).rejects.toThrow(
-      /Install @pi-harness\/pet-bigfish/
+    await expect(installer.install('@piharness/pet-bigfish-2')).rejects.toThrow(
+      /Install @piharness\/pet-bigfish/
     )
   })
 })

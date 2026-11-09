@@ -3,24 +3,24 @@ import { parseMarketPackageName } from './package-name'
 
 describe('official market package names', () => {
   it.each([
-    '@pi-harness/theme-deepseek',
-    '@pi-harness/theme-maid-white',
-    '@pi-harness/pet-bigfish',
-    '@pi-harness/pet-jelly'
+    '@piharness/theme-deepseek',
+    '@piharness/theme-maid-white',
+    '@piharness/pet-bigfish',
+    '@piharness/pet-jelly'
   ])('accepts %s', (name) => {
     expect(parseMarketPackageName(name)?.name).toBe(name)
   })
 
   it.each([
-    '@pi-harness/theme',
-    '@pi-harness/theme-',
-    '@pi-harness/theme-DeepSeek',
-    '@pi-harness/theme_deepseek',
-    '@pi-harness/other-deepseek',
+    '@piharness/theme',
+    '@piharness/theme-',
+    '@piharness/theme-DeepSeek',
+    '@piharness/theme_deepseek',
+    '@piharness/other-deepseek',
     'pi-harness/theme-deepseek',
-    '@piharness/theme-deepseek',
-    '@pi-harness/theme-deepseek/extra',
-    '@pi-harness/themepack-deepseek'
+    '@pi-harness/theme-deepseek',
+    '@piharness/theme-deepseek/extra',
+    '@piharness/themepack-deepseek'
   ])('rejects %s', (name) => {
     expect(parseMarketPackageName(name)).toBeNull()
   })

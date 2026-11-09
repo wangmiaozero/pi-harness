@@ -30,11 +30,11 @@ describe('market registry client', () => {
         return {
           total: 3,
           objects: [
-            { package: { name: '@pi-harness/theme-deepseek', version: '1.0.0', description: 'DeepSeek', publisher: { username: 'piharness' } } },
-            { package: { name: '@pi-harness/pet-bigfish', version: '1.0.0', description: 'BigFish' } },
-            { package: { name: '@pi-harness/pet-bigfish-2', version: '1.0.0', description: 'part' } },
+            { package: { name: '@piharness/theme-deepseek', version: '1.0.0', description: 'DeepSeek', publisher: { username: 'piharness' } } },
+            { package: { name: '@piharness/pet-bigfish', version: '1.0.0', description: 'BigFish' } },
+            { package: { name: '@piharness/pet-bigfish-2', version: '1.0.0', description: 'part' } },
             { package: { name: 'left-pad', version: '1.0.0', description: 'no' } },
-            { package: { name: '@pi-harness/theme-deepseek', version: '1.0.0', description: 'duplicate' } }
+            { package: { name: '@piharness/theme-deepseek', version: '1.0.0', description: 'duplicate' } }
           ]
         }
       }
@@ -42,14 +42,14 @@ describe('market registry client', () => {
     })
     const client = new MarketRegistryClient(fetch, base)
     const first = await client.search('', 'theme')
-    expect(first.packages.map((item) => item.name)).toEqual(['@pi-harness/theme-deepseek'])
+    expect(first.packages.map((item) => item.name)).toEqual(['@piharness/theme-deepseek'])
     expect(first.incomplete).toBe(false)
     const cached = await client.search('', 'theme')
     expect(cached.fromCache).toBe(true)
     const pets = await client.search('', 'pet')
     expect(pets.packages.map((item) => item.name)).toEqual([
-      '@pi-harness/pet-bigfish',
-      '@pi-harness/pet-bigfish-2'
+      '@piharness/pet-bigfish',
+      '@piharness/pet-bigfish-2'
     ])
   })
 
@@ -60,7 +60,7 @@ describe('market registry client', () => {
 
   it('selects a compatible version and refuses install scripts', async () => {
     const base = await serve(() => ({
-      name: '@pi-harness/theme-deepseek',
+      name: '@piharness/theme-deepseek',
       'dist-tags': { latest: '1.2.0' },
       versions: {
         '1.0.0': version(base, '1.0.0', '>=2.4.0', {}),
@@ -69,7 +69,7 @@ describe('market registry client', () => {
       }
     }))
     const client = new MarketRegistryClient(fetch, base)
-    const metadata = await client.package('@pi-harness/theme-deepseek')
+    const metadata = await client.package('@piharness/theme-deepseek')
     expect(client.selectVersion(metadata, '2.4.0').version).toBe('1.0.0')
   })
 })
@@ -82,7 +82,7 @@ function version(base: string, name: string, compatible: string, scripts: Record
     piHarness: { compatible },
     dist: {
       integrity: 'sha512-abc',
-      tarball: `${base}/@pi-harness/theme-deepseek/-/theme-deepseek-${name}.tgz`,
+      tarball: `${base}/@piharness/theme-deepseek/-/theme-deepseek-${name}.tgz`,
       unpackedSize: 10,
       size: 10
     }

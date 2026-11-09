@@ -46,7 +46,7 @@ export class MarketRegistryClient {
   }
 
   async search(query: string, kind: 'all' | 'theme' | 'pet', refresh = false): Promise<MarketSearchResult> {
-    const text = ['scope:pi-harness', query.trim()].filter(Boolean).join(' ')
+    const text = ['scope:piharness', query.trim()].filter(Boolean).join(' ')
     const key = `${kind}\n${text}`
     if (
       !refresh &&

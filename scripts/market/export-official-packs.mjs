@@ -245,8 +245,8 @@ async function writeTheme(theme) {
     ...(startup ? { startup } : {})
   }
   await writeFile(path.join(dir, 'theme-pack.json'), JSON.stringify(manifest, null, 2) + '\n')
-  await writeFile(path.join(dir, 'package.json'), packageJson(`@pi-harness/theme-${theme.id}`, theme.license, 'theme', theme.name))
-  await writeFile(path.join(dir, 'README.md'), `# @pi-harness/theme-${theme.id}\n\nOfficial Pi-Harness theme pack for ${theme.name}.\n\nInstall it from Pi-Harness Market. This directory is an independent npm package.\n\n\`\`\`bash\ncd ${dir}\nnpm publish --access public\n\`\`\`\n`)
+  await writeFile(path.join(dir, 'package.json'), packageJson(`@piharness/theme-${theme.id}`, theme.license, 'theme', theme.name))
+  await writeFile(path.join(dir, 'README.md'), `# @piharness/theme-${theme.id}\n\nOfficial Pi-Harness theme pack for ${theme.name}.\n\nInstall it from Pi-Harness Market. This directory is an independent npm package.\n\n\`\`\`bash\ncd ${dir}\nnpm publish --access public\n\`\`\`\n`)
   await copyFile(theme.license === 'AGPL-3.0-only' ? path.join(app, 'LICENSE') : path.join(app, 'src/renderer/src/bigfish-startup/LICENSE'), path.join(dir, 'LICENSE'))
   await writeFile(path.join(dir, 'NOTICE'), notice(theme.name, theme.license))
 }
@@ -262,7 +262,7 @@ async function writePets() {
   const { readdir } = await import('node:fs/promises')
   const first = (await readdir(frame)).find((name) => name.endsWith('.webp'))
   if (first) await copyFile(path.join(frame, first), path.join(bigfish, 'preview.webp'))
-  await writeFile(path.join(bigfish, 'package.json'), packageJson('@pi-harness/pet-bigfish', 'SEE LICENSE IN LICENSE', 'pet', 'BigFish'))
+  await writeFile(path.join(bigfish, 'package.json'), packageJson('@piharness/pet-bigfish', 'SEE LICENSE IN LICENSE', 'pet', 'BigFish'))
   await writeFile(path.join(bigfish, 'README.md'), petReadme('pet-bigfish', 'BigFish', bigfish))
   const pets = [
     ['jelly', 'tibot-jelly', 'Jelly'],
@@ -277,7 +277,7 @@ async function writePets() {
     await mkdir(dir, { recursive: true })
     await cp(path.join(app, 'resources/petpacks', id), dir, { recursive: true })
     await writeFile(path.join(dir, 'preview.webp'), await readFile(path.join(bigfish, 'preview.webp')))
-    await writeFile(path.join(dir, 'package.json'), packageJson(`@pi-harness/pet-${slug}`, 'SEE LICENSE IN NOTICE.txt', 'pet', name))
+    await writeFile(path.join(dir, 'package.json'), packageJson(`@piharness/pet-${slug}`, 'SEE LICENSE IN NOTICE.txt', 'pet', name))
     await writeFile(path.join(dir, 'README.md'), petReadme(`pet-${slug}`, name, dir))
   }
 }
@@ -299,7 +299,7 @@ function packageJson(name, license, kind, title) {
 }
 
 function petReadme(dirName, name, dir) {
-  return `# @pi-harness/${dirName}\n\nOfficial Pi-Harness desktop pet pack for ${name}. The pet id inside pet-pack.json is unchanged.\n\n\`\`\`bash\ncd ${dir}\nnpm publish --access public\n\`\`\`\n`
+  return `# @piharness/${dirName}\n\nOfficial Pi-Harness desktop pet pack for ${name}. The pet id inside pet-pack.json is unchanged.\n\n\`\`\`bash\ncd ${dir}\nnpm publish --access public\n\`\`\`\n`
 }
 
 function notice(name, license) {
@@ -328,7 +328,7 @@ async function removeSources() {
 }
 
 async function writeRoots() {
-  await writeFile(path.join(out, 'README.md'), `# Pi-Harness official packs\n\nEach directory is an independent npm package. There is no workspace file and packages do not depend on each other.\n\nDo not run npm publish from this folder. Publish one package at a time after confirming the @pi-harness scope.\n`)
+  await writeFile(path.join(out, 'README.md'), `# Pi-Harness official packs\n\nEach directory is an independent npm package. There is no workspace file and packages do not depend on each other.\n\nDo not run npm publish from this folder. Publish one package at a time after confirming the @piharness scope.\n`)
   await mkdir(path.join(out, 'docs'), { recursive: true })
   await writeFile(path.join(out, 'docs/PACKAGES.md'), `# Independent packages\n\nTheme packs use theme-pack.json formatVersion 1. Pet packs use the existing pet-pack.json format.\n\nPublish:\n\n\`\`\`bash\nnpm publish --access public\n\`\`\`\n\nRun that inside one package directory. Pi-Harness Market installs from the npm registry. It does not read this folder at runtime.\n`)
 }

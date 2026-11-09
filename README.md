@@ -251,7 +251,7 @@ Pair a host running **pi-host** from **Settings → Remote hosts** using its add
 
 Choose classic palettes, Ming themes, Starship Cockpit, macOS 27 backgrounds, or an imported custom skin. New installations start in Dark. Customize chat display names, app icons, local background images, window and screen glow, and the input flame effect. Startup animation accompanies the environment check.
 
-Character themes and desktop pets are optional packs. Open **Settings → Resource Market** to search `@pi-harness` packages, then install, update, or remove one pack at a time. The app starts without a network connection. A previously selected theme or pet is kept when its files are not installed yet, and the workspace falls back to the base appearance until you install that pack. See [docs/market/MARKET.md](docs/market/MARKET.md).
+Character themes and desktop pets are optional packs. Open **Settings → Resource Market** to search `@piharness` packages, then install, update, or remove one pack at a time. The app starts without a network connection. A previously selected theme or pet is kept when its files are not installed yet, and the workspace falls back to the base appearance until you install that pack. See [docs/market/MARKET.md](docs/market/MARKET.md).
 
 #### Create your own skin
 

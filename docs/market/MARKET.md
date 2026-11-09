@@ -5,7 +5,7 @@ Pi-Harness keeps classic color themes in the application. Character themes and d
 Open **Settings → Resource Market**. The market searches only `https://registry.npmjs.org` for packages whose names match:
 
 ```text
-^@pi-harness/(theme|pet)-[a-z0-9][a-z0-9-]*$
+^@piharness/(theme|pet)-[a-z0-9][a-z0-9-]*$
 ```
 
 Each package is installed, updated, and removed on its own. The installer downloads the registry tarball, checks its `sha512` integrity, rejects scripts, symlinks, and path traversal, then commits the files atomically.

@@ -1,10 +1,10 @@
-/** Official Market packages. The account name `piharness` does not imply this scope. */
+/** Official Market packages use the `@piharness` user scope. */
 
-export const OFFICIAL_MARKET_SCOPE = '@pi-harness'
+export const OFFICIAL_MARKET_SCOPE = '@piharness'
 export const OFFICIAL_REGISTRY = 'https://registry.npmjs.org'
 
 export const MARKET_PACKAGE_NAME =
-  /^@pi-harness\/(theme|pet)-[a-z0-9][a-z0-9-]*$/
+  /^@piharness\/(theme|pet)-[a-z0-9][a-z0-9-]*$/
 
 export type MarketPackageKind = 'theme' | 'pet'
 
