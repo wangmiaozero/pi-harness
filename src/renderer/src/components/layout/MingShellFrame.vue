@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import frameCorner from '@renderer/assets/themes/ming-dynasty/frame-corner-v2.png'
-import frameRail from '@renderer/assets/themes/ming-dynasty/frame-rail-v2.png'
+import { computed } from 'vue'
+import { marketFileUrl } from '@shared/market/urls'
+import { themePackForStyle } from '@shared/market/style-packs'
+import { useSettingsStore } from '@renderer/stores/settings'
 
-const frameStyle = {
-  '--ming-frame-corner': `url("${frameCorner}")`,
-  '--ming-frame-rail': `url("${frameRail}")`
-}
+const settings = useSettingsStore()
+const frameStyle = computed(() => {
+  const pack = themePackForStyle(settings.settings?.mascotStyle) ?? 'ming-snow'
+  return {
+    '--ming-frame-corner': `url("${marketFileUrl('theme', pack, 'assets/frame-corner-v2.png')}")`,
+    '--ming-frame-rail': `url("${marketFileUrl('theme', pack, 'assets/frame-rail-v2.png')}")`
+  }
+})
 </script>
 
 <template>

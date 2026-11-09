@@ -15,6 +15,7 @@ import {
   type DeepseekBootClip
 } from '@renderer/bigfish-startup/gate'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
+import { petPackInstalled, themePackInstalled } from '@renderer/utils/visual-skin'
 import { themeAppearance } from '@shared/constants/theme'
 import {
   particleOrigin,
@@ -451,8 +452,11 @@ function considerStartup(): void {
   if (settings.settings) {
     startupDecided = true
     const reducedMotion = prefersReducedMotion()
-    const video = usesDeepseekVideoStartup(settings.settings, { reducedMotion })
-    const fish = usesCinematicStartup(settings.settings, { reducedMotion })
+    const mediaReady = themePackInstalled(settings.settings.mascotStyle)
+    const petReady = petPackInstalled(settings.settings.desktopPet?.activePackId)
+    const video = mediaReady && usesDeepseekVideoStartup(settings.settings, { reducedMotion })
+    const fish =
+      usesCinematicStartup(settings.settings, { reducedMotion }) && (mediaReady || petReady)
     const placement = video ? deepseekVideoPlacement(Math.random()) : null
     const clip = deepseekBootClip(video ? Math.random() : 0)
     if (placement === 'only' || fish) setCinematicCover(true)

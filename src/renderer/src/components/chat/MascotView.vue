@@ -5,6 +5,7 @@ import type { PetState } from '@shared/pet/types'
 import { getPetManifest } from '@renderer/pet/manifests'
 import PetRenderer from '@renderer/components/pet/PetRenderer.vue'
 import PetStatus from '@renderer/components/pet/PetStatus.vue'
+import { installRevision, themePackInstalled } from '@renderer/utils/visual-skin'
 
 const props = withDefaults(
   defineProps<{
@@ -27,11 +28,15 @@ const props = withDefaults(
 )
 
 const manifest = computed(() => getPetManifest(props.style))
+const artworkReady = computed(() => {
+  void installRevision.value
+  return themePackInstalled(props.style)
+})
 </script>
 
 <template>
   <div
-    v-if="manifest && enabled"
+    v-if="manifest && enabled && artworkReady"
     data-testid="workspace-mascot"
     :data-style="style"
     :data-active="active ? 'true' : 'false'"

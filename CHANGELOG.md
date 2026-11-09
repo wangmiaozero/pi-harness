@@ -2,6 +2,13 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.0 — 2026-11-09
+
+### Added
+
+- Resource Market installs official themes and desktop pets from the npm registry. Each pack installs, updates, and uninstalls on its own.
+- A saved theme or pet stays selected when its pack is missing, and the app uses the base appearance until that pack is installed.
+
 ## 2.3.24 — 2026-11-08
 
 ### Fixed

@@ -15,6 +15,7 @@ import BackupSettingsSection from '@renderer/components/settings/BackupSettingsS
 import UpdatesSettingsSection from '@renderer/components/settings/UpdatesSettingsSection.vue'
 import DeveloperSettingsSection from '@renderer/components/settings/DeveloperSettingsSection.vue'
 import AboutSettingsSection from '@renderer/components/settings/AboutSettingsSection.vue'
+import MarketSettingsSection from '@renderer/components/settings/MarketSettingsSection.vue'
 import { useSettingsDraft } from '@renderer/components/settings/useSettingsDraft'
 import { SETTINGS_DRAFT_KEY } from '@renderer/components/settings/draft-key'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
@@ -31,6 +32,7 @@ const SETTINGS_SECTIONS_ALL = [
   'nav',
   'mascot',
   'desktop-pet',
+  'market',
   'workspace',
   'session-cleanup',
   'paths',
@@ -70,6 +72,8 @@ const sectionTitle = computed(() => {
       return t('settings.mascot')
     case 'desktop-pet':
       return t('settings.desktopPet')
+    case 'market':
+      return t('settings.resourceMarket')
     case 'workspace':
       return t('settings.workspace')
     case 'session-cleanup':
@@ -99,6 +103,8 @@ const sectionSubtitle = computed(() => {
       return t('settings.sectionMascotHint')
     case 'desktop-pet':
       return t('settings.sectionDesktopPetHint')
+    case 'market':
+      return t('settings.sectionResourceMarketHint')
     case 'workspace':
       return t('settings.sectionWorkspaceHint')
     case 'session-cleanup':
@@ -167,6 +173,7 @@ onMounted(() => {
           <NavSettingsSection v-else-if="section === 'nav'" />
           <MascotSettingsSection v-else-if="section === 'mascot'" />
           <DesktopPetSettingsSection v-else-if="MASCOT_ENABLED && section === 'desktop-pet'" />
+          <MarketSettingsSection v-else-if="section === 'market'" />
           <WorkspaceSettingsSection v-else-if="section === 'workspace'" />
           <SessionCleanupSection v-else-if="section === 'session-cleanup'" />
           <PathsSettingsSection v-else-if="section === 'paths'" />

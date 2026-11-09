@@ -1,11 +1,36 @@
 <script setup lang="ts">
-import calligraphyScrollUrl from '@renderer/assets/themes/ming-dynasty/calligraphy-scroll.png?url'
-import statusScrollUrl from '@renderer/assets/themes/ming-dynasty/status-scroll.png?url'
-import governanceCalligraphyScrollUrl from '@renderer/assets/themes/zhang-juzheng-snow/calligraphy-scroll-governance.png?url'
-import ministerCalligraphyScrollUrl from '@renderer/assets/themes/zhang-juzheng-snow/calligraphy-scroll-minister.png?url'
-import springCalligraphyScrollUrl from '@renderer/assets/themes/zhang-juzheng-snow/calligraphy-scroll-spring.png?url'
-import snowPlumLanternUrl from '@renderer/assets/themes/zhang-juzheng-snow/snow-plum-lantern.png?url'
-import wangweiStatusScrollUrl from '@renderer/assets/themes/zhang-juzheng-snow/status-scroll-wangwei.png?url'
+import { computed } from 'vue'
+import { marketFileUrl } from '@shared/market/urls'
+import { themePackForStyle } from '@shared/market/style-packs'
+import { useSettingsStore } from '@renderer/stores/settings'
+
+const settings = useSettingsStore()
+const pack = computed(() => themePackForStyle(settings.settings?.mascotStyle) ?? 'ming-snow')
+const calligraphyScrollUrl = computed(() =>
+  marketFileUrl('theme', pack.value, 'assets/calligraphy-scroll.png')
+)
+const statusScrollUrl = computed(() => marketFileUrl('theme', pack.value, 'assets/status-scroll.png'))
+const governanceCalligraphyScrollUrl = marketFileUrl(
+  'theme',
+  'zhang-juzheng',
+  'assets/calligraphy-scroll-governance.png'
+)
+const ministerCalligraphyScrollUrl = marketFileUrl(
+  'theme',
+  'zhang-juzheng',
+  'assets/calligraphy-scroll-minister.png'
+)
+const springCalligraphyScrollUrl = marketFileUrl(
+  'theme',
+  'zhang-juzheng',
+  'assets/calligraphy-scroll-spring.png'
+)
+const snowPlumLanternUrl = marketFileUrl('theme', 'zhang-juzheng', 'assets/snow-plum-lantern.png')
+const wangweiStatusScrollUrl = marketFileUrl(
+  'theme',
+  'zhang-juzheng',
+  'assets/status-scroll-wangwei.png'
+)
 
 withDefaults(defineProps<{ zhangJuzheng?: boolean }>(), { zhangJuzheng: false })
 </script>

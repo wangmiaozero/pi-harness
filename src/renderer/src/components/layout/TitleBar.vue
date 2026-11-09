@@ -11,13 +11,25 @@ import { useSettingsStore } from '@renderer/stores/settings'
 import classicAppIconUrl from '@renderer/assets/app-icon-classic.png?url'
 import mingAppIconUrl from '../../../../../build/app-icons/ming.png?url'
 import quantumAppIconUrl from '../../../../../build/app-icons/quantum.png?url'
-import mingTitlebarCalligraphyUrl from '@renderer/assets/themes/ming-dynasty/titlebar-calligraphy.png?url'
-import zhangTitlebarCalligraphyUrl from '@renderer/assets/themes/zhang-juzheng-snow/titlebar-calligraphy-overlay.png?url'
+import { marketFileUrl } from '@shared/market/urls'
+import { themePackForStyle } from '@shared/market/style-packs'
 
 const router = useRouter()
 const route = useRoute()
 const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useWorkspaceSidebarState()
 const settings = useSettingsStore()
+const mingTitlebarCalligraphyUrl = computed(() =>
+  marketFileUrl(
+    'theme',
+    themePackForStyle(settings.settings?.mascotStyle) ?? 'ming-snow',
+    'assets/titlebar-calligraphy.png'
+  )
+)
+const zhangTitlebarCalligraphyUrl = marketFileUrl(
+  'theme',
+  'zhang-juzheng',
+  'assets/titlebar-calligraphy-overlay.png'
+)
 const props = withDefaults(
   defineProps<{ starshipCockpit?: boolean; mingDynasty?: boolean; zhangJuzheng?: boolean }>(),
   {

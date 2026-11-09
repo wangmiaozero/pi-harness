@@ -278,6 +278,14 @@ const api: PiSwitchAPI = {
     remove: (id: string) => invoke(IPC_INVOKE.petRemovePack, id),
     setActive: (id: string) => invoke(IPC_INVOKE.petSetActivePack, id)
   },
+  market: {
+    search: (query, kind, refresh) => invoke(IPC_INVOKE.marketSearch, { query, kind, refresh }),
+    installed: () => invoke(IPC_INVOKE.marketInstalled),
+    refresh: () => invoke(IPC_INVOKE.marketRefresh),
+    install: (name, version) => invoke(IPC_INVOKE.marketInstall, { name, version }),
+    uninstall: (name) => invoke(IPC_INVOKE.marketUninstall, { name }),
+    cancel: (name) => invoke(IPC_INVOKE.marketCancel, { name })
+  },
   diagnostics: {
     get: () => invoke(IPC_INVOKE.diagnosticsGet),
     copy: () => invoke(IPC_INVOKE.diagnosticsCopy),
@@ -548,6 +556,7 @@ const api: PiSwitchAPI = {
     if (event === 'harness-event') return onEvent(IPC_EVENT.harnessEvent, ipcListener)
     if (event === 'updater-state') return onEvent(IPC_EVENT.updaterState, ipcListener)
     if (event === 'capability-progress') return onEvent(IPC_EVENT.capabilityProgress, ipcListener)
+    if (event === 'market-progress') return onEvent(IPC_EVENT.marketProgress, ipcListener)
     if (event === 'workspace-changed') return onEvent(IPC_EVENT.workspaceChanged, ipcListener)
     if (event === 'architecture-selected')
       return onEvent(IPC_EVENT.architectureSelected, ipcListener)

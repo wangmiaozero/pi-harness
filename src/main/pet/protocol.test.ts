@@ -129,9 +129,12 @@ describe('pet protocol CORS support (click-through hit-testing)', () => {
       privileges: Record<string, unknown>
     }>
     expect(Array.isArray(schemes)).toBe(true)
-    const arg = schemes[0]
-    expect(arg.scheme).toBe(PET_PROTOCOL_SCHEME)
-    expect(arg.privileges.corsEnabled).toBe(true)
+    const arg = schemes.find((scheme) => scheme.scheme === PET_PROTOCOL_SCHEME)
+    expect(arg?.scheme).toBe(PET_PROTOCOL_SCHEME)
+    expect(arg?.privileges.corsEnabled).toBe(true)
+    expect(schemes.some((scheme) => scheme.scheme === 'pi-market' && scheme.privileges.corsEnabled === true)).toBe(
+      true
+    )
   })
 
   it('serves frames with access-control-allow-origin so alphaAt can read pixels', async () => {

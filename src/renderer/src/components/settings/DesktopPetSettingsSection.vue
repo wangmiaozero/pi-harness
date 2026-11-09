@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue'
+import { computed, inject, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import {
   DESKTOP_PET_SIZE_DEFAULT,
   DESKTOP_PET_SIZE_MIN,
@@ -15,6 +16,13 @@ import TibotPetSettings from '@renderer/components/settings/TibotPetSettings.vue
 const draft = inject(SETTINGS_DRAFT_KEY)!
 
 const pet = computed(() => draft.value.desktopPet)
+const petKnown = ref(false)
+const petReady = ref(false)
+
+function onPetReady(ready: boolean): void {
+  petKnown.value = true
+  petReady.value = ready
+}
 const sizePercent = computed({
   get: () => Math.round((pet.value.size / DESKTOP_PET_SIZE_DEFAULT) * 100),
   set: (value: number) => {
@@ -38,7 +46,15 @@ const bubbleOpacityPercent = computed({
 
 <template>
   <section class="space-y-4" data-testid="desktop-pet-section">
+    <p
+      v-if="petKnown && !petReady"
+      class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-3 py-2 text-[12px] text-[var(--text-secondary)]"
+    >
+      {{ $t('settings.marketMissingPet') }}
+      <RouterLink class="ml-1 underline" to="/settings/market">{{ $t('settings.marketOpen') }}</RouterLink>
+    </p>
     <div
+      v-if="petReady"
       class="divide-y divide-[var(--border-subtle)] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)]"
     >
       <PropertyRow :label="$t('settings.desktopPetEnabled')">
@@ -54,12 +70,13 @@ const bubbleOpacityPercent = computed({
 
     <div class="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-3">
       <p class="mb-2 px-1 text-[12px] font-medium">{{ $t('settings.petPackManager') }}</p>
-      <PetPackManager v-model="pet.activePackId" />
+      <PetPackManager v-model="pet.activePackId" @ready="onPetReady" />
     </div>
 
-    <TibotPetSettings />
+    <TibotPetSettings v-if="petReady" />
 
     <div
+      v-if="petReady"
       class="divide-y divide-[var(--border-subtle)] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)]"
     >
       <PropertyRow :label="$t('settings.desktopPetSize')">
@@ -92,6 +109,7 @@ const bubbleOpacityPercent = computed({
     </div>
 
     <div
+      v-if="petReady"
       class="divide-y divide-[var(--border-subtle)] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)]"
     >
       <PropertyRow :label="$t('settings.desktopPetBubble')">

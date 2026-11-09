@@ -1,25 +1,8 @@
 import { PET_STATES, type PetManifest, type PetState, type PetThemeId } from '@shared/pet/types'
 import { singleFrameAnimation } from '@shared/pet/animations'
-import officeImage from '@renderer/assets/mascot/pico-office.png'
-import maidWhiteImage from '@renderer/assets/mascot/pico-maid-white.png'
-import frostNavigatorImage from '@renderer/assets/themes/starship-cockpit/frost-navigator.png'
-import noirScholarImage from '@renderer/assets/themes/portraits/noir-scholar.png'
-import moonlitMaidImage from '@renderer/assets/themes/portraits/moonlit-maid.png'
-import mingSnowImage from '@renderer/assets/themes/ming-dynasty/snow-maiden.png'
-import mingMoonImage from '@renderer/assets/themes/ming-dynasty/moon-maiden.png'
-import zhangJuzhengSnowImage from '@renderer/assets/themes/zhang-juzheng-snow/zhang-juzheng.png'
-import ropeWhaleImage from '@renderer/assets/themes/rope/whale.png'
-import ropePhoebeImage from '@renderer/assets/themes/rope/phoebe.png'
-import ropeClaudeImage from '@renderer/assets/themes/rope/claude.png'
-import ropeDeepseekImage from '@renderer/assets/themes/rope/deepseek.png'
-import deepseekPosterImage from '@renderer/assets/themes/deepseek-poster/default-background.jpg'
-import deepseekDreamImage from '@renderer/assets/themes/deepseek-dream/wallpaper.png'
-import ropeGeminiImage from '@renderer/assets/themes/rope/gemini.png'
-import ropeGptImage from '@renderer/assets/themes/rope/gpt.png'
-import ropeGlmImage from '@renderer/assets/themes/rope/glm.png'
-import ropeGrokImage from '@renderer/assets/themes/rope/grok.png'
-import ropeKimiImage from '@renderer/assets/themes/rope/kimi.png'
-import ropeQwenImage from '@renderer/assets/themes/rope/qwen.png'
+import { marketFileUrl } from '@shared/market/urls'
+import { themePackForStyle } from '@shared/market/style-packs'
+import type { MascotStyle } from '@shared/constants/mascot'
 
 export const PET_THEME_ORDER: readonly PetThemeId[] = [
   'maidWhite',
@@ -57,28 +40,34 @@ const FALLBACK_SINGLE_FRAME_ANIMATIONS = animations([
   'jumping'
 ])
 
+function sprite(style: MascotStyle, file: string): string {
+  const pack = themePackForStyle(style)
+  if (!pack) throw new Error(`Missing theme pack for ${style}`)
+  return marketFileUrl('theme', pack, file)
+}
+
 function ropeManifest(
   id: PetThemeId,
   name: string,
-  sprite: string,
+  file: string,
   accent: string,
   frameWidth: number,
   frameHeight: number
 ): PetManifest {
-  return { ...manifest(id, name, sprite, accent, true), frameWidth, frameHeight }
+  return { ...manifest(id, name, sprite(id, file), accent, true), frameWidth, frameHeight }
 }
 
 function manifest(
   id: PetThemeId,
   name: string,
-  sprite: string,
+  image: string,
   accent: string,
   priority = false
 ): PetManifest {
   return {
     id,
     name,
-    sprite,
+    sprite: image,
     frameWidth: 1024,
     frameHeight: 1536,
     columns: 1,
@@ -89,47 +78,72 @@ function manifest(
   }
 }
 
-/** Built-in manifests. Priority themes expose all state animation entries immediately. */
+/** Built-in manifests. Artwork is loaded from an installed theme pack. */
 export const PET_MANIFESTS: Readonly<Record<PetThemeId, PetManifest>> = {
-  maidWhite: manifest('maidWhite', 'Maid Style (White Stockings)', maidWhiteImage, '#3868bd', true),
-  office: manifest('office', 'Office Style (Black Tights)', officeImage, '#c5a176', true),
+  maidWhite: manifest(
+    'maidWhite',
+    'Maid Style (White Stockings)',
+    sprite('maidWhite', 'assets/pico-maid-white.png'),
+    '#3868bd',
+    true
+  ),
+  office: manifest(
+    'office',
+    'Office Style (Black Tights)',
+    sprite('office', 'assets/pico-office.png'),
+    '#c5a176',
+    true
+  ),
   noirScholar: manifest(
     'noirScholar',
     'Noir Study · Silver Scholar',
-    noirScholarImage,
+    sprite('noirScholar', 'assets/noir-scholar.png'),
     '#b18a50',
     true
   ),
   moonlitMaid: manifest(
     'moonlitMaid',
     'Moonlit Salon · Silver Maid',
-    moonlitMaidImage,
+    sprite('moonlitMaid', 'assets/moonlit-maid.png'),
     '#806284',
     true
   ),
   mingSnow: manifest(
     'mingSnow',
     'Ming Snow Palace · Flute Scholar',
-    mingSnowImage,
+    sprite('mingSnow', 'assets/snow-maiden.png'),
     '#bd8b52',
     true
   ),
   zhangJuzhengSnow: manifest(
     'zhangJuzhengSnow',
     'Zhang Juzheng · Snowbound Ming',
-    zhangJuzhengSnowImage,
+    sprite('zhangJuzhengSnow', 'assets/zhang-juzheng.png'),
     '#9e1b1b',
     true
   ),
-  mingMoon: manifest('mingMoon', 'Ming Moon City · Scroll Scholar', mingMoonImage, '#b4493f', true),
-  ropeWhale: ropeManifest('ropeWhale', 'DeepSeek Pro', ropeWhaleImage, '#2f6fe0', 384, 576),
-  ropePhoebe: ropeManifest('ropePhoebe', 'Phoebe', ropePhoebeImage, '#f0c14a', 283, 384),
-  ropeClaude: ropeManifest('ropeClaude', 'Claude', ropeClaudeImage, '#e07a2f', 324, 384),
-  ropeDeepseek: ropeManifest('ropeDeepseek', 'DeepSeek', ropeDeepseekImage, '#3aa0ff', 330, 384),
+  mingMoon: manifest(
+    'mingMoon',
+    'Ming Moon City · Scroll Scholar',
+    sprite('mingMoon', 'assets/moon-maiden.png'),
+    '#b4493f',
+    true
+  ),
+  ropeWhale: ropeManifest('ropeWhale', 'DeepSeek Pro', 'assets/portraits/whale.png', '#2f6fe0', 384, 576),
+  ropePhoebe: ropeManifest('ropePhoebe', 'Phoebe', 'assets/phoebe.png', '#f0c14a', 283, 384),
+  ropeClaude: ropeManifest('ropeClaude', 'Claude', 'assets/claude.png', '#e07a2f', 324, 384),
+  ropeDeepseek: ropeManifest(
+    'ropeDeepseek',
+    'DeepSeek',
+    'assets/portraits/deepseek.png',
+    '#3aa0ff',
+    330,
+    384
+  ),
   deepseekPoster: ropeManifest(
     'deepseekPoster',
     'DeepSeek Work Mode',
-    deepseekPosterImage,
+    'assets/wallpapers/default-background.jpg',
     '#3aa0ff',
     1920,
     1080
@@ -137,22 +151,22 @@ export const PET_MANIFESTS: Readonly<Record<PetThemeId, PetManifest>> = {
   deepseekDream: ropeManifest(
     'deepseekDream',
     'DeepSeek Deep Dream',
-    deepseekDreamImage,
+    'assets/wallpapers/wallpaper.png',
     '#3aa0ff',
     1290,
     725
   ),
-  ropeGemini: ropeManifest('ropeGemini', 'Gemini', ropeGeminiImage, '#7a5cff', 296, 384),
-  ropeGpt: ropeManifest('ropeGpt', 'GPT', ropeGptImage, '#d7dde8', 320, 384),
-  ropeGlm: ropeManifest('ropeGlm', 'GLM', ropeGlmImage, '#7aa2ff', 308, 384),
-  ropeGrok: ropeManifest('ropeGrok', 'Grok', ropeGrokImage, '#e2b340', 311, 384),
-  ropeKimi: ropeManifest('ropeKimi', 'Kimi', ropeKimiImage, '#9aa4ff', 299, 384),
-  ropeQwen: ropeManifest('ropeQwen', 'Qwen', ropeQwenImage, '#5b8def', 307, 384),
+  ropeGemini: ropeManifest('ropeGemini', 'Gemini', 'assets/gemini.png', '#7a5cff', 296, 384),
+  ropeGpt: ropeManifest('ropeGpt', 'GPT', 'assets/gpt.png', '#d7dde8', 320, 384),
+  ropeGlm: ropeManifest('ropeGlm', 'GLM', 'assets/glm.png', '#7aa2ff', 308, 384),
+  ropeGrok: ropeManifest('ropeGrok', 'Grok', 'assets/grok.png', '#e2b340', 311, 384),
+  ropeKimi: ropeManifest('ropeKimi', 'Kimi', 'assets/kimi.png', '#9aa4ff', 299, 384),
+  ropeQwen: ropeManifest('ropeQwen', 'Qwen', 'assets/qwen.png', '#5b8def', 307, 384),
   starshipCockpit: {
     ...manifest(
       'starshipCockpit',
       'Starship Cockpit · Frost Navigator',
-      frostNavigatorImage,
+      sprite('starshipCockpit', 'assets/frost-navigator.png'),
       '#67d8ff',
       true
     ),

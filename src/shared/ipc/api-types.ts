@@ -1,4 +1,10 @@
 import type { AgentSettingsAPI } from '../agent-settings/schema'
+import type {
+  MarketInstalled,
+  MarketInstallResult,
+  MarketProgress,
+  MarketSearchResult
+} from '../market/types'
 import type { HarnessPluginsAPI } from '../harness-plugins/types'
 import type {
   DesktopPetSettings,
@@ -1134,6 +1140,14 @@ export interface PiSwitchAPI {
     remove(id: string): Promise<void>
     setActive(id: string): Promise<PetPackDetail | null>
   }
+  market: {
+    search(query: string, kind: 'all' | 'theme' | 'pet', refresh?: boolean): Promise<MarketSearchResult>
+    installed(): Promise<MarketInstalled>
+    refresh(): Promise<MarketInstalled>
+    install(name: string, version?: string): Promise<MarketInstallResult>
+    uninstall(name: string): Promise<void>
+    cancel(name: string): Promise<void>
+  }
   diagnostics: {
     get(): Promise<DiagnosticsReport>
     copy(): Promise<string>
@@ -1486,6 +1500,7 @@ export interface PiSwitchAPI {
     event: 'capability-progress',
     listener: (payload: CapabilityMutationProgress) => void
   ): () => void
+  on(event: 'market-progress', listener: (payload: MarketProgress) => void): () => void
   on(event: 'workspace-changed', listener: IpcEventListener): () => void
   on(event: 'architecture-selected', listener: IpcEventListener): () => void
   on(event: 'architecture-control', listener: IpcEventListener): () => void

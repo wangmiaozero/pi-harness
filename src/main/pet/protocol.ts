@@ -33,8 +33,22 @@ function contentTypeFor(file: string): string {
 export function registerPetProtocolScheme(): void {
   protocol.registerSchemesAsPrivileged([
     {
+      scheme: 'pi-architecture',
+      privileges: { standard: true, secure: true, supportFetchAPI: true }
+    },
+    {
       scheme: PET_PROTOCOL_SCHEME,
       privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true }
+    },
+    {
+      scheme: 'pi-market',
+      privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+        corsEnabled: true,
+        stream: true
+      }
     }
   ])
 }

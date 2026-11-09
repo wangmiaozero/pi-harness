@@ -31,7 +31,7 @@
   --syntax-property: #3868bd;
   --syntax-heading: #315fae;
   --portrait-panel-background: transparent;
-  --portrait-scene-image: url('../assets/themes/maid-white/azure-patisserie-atelier-v2.png');
+  --portrait-scene-image: var(--market-scene-maid-white, none);
   --portrait-glass-chrome: rgb(239 246 255 / 0.76);
   --portrait-glass-control: rgb(251 253 255 / 0.78);
   --portrait-glass-message: rgb(247 251 255 / 0.8);
@@ -75,7 +75,7 @@
   --syntax-property: #d1ae82;
   --syntax-heading: #dbc093;
   --portrait-panel-background: transparent;
-  --portrait-scene-image: url('../assets/themes/office-executive/dusk-executive-suite-v2.png');
+  --portrait-scene-image: var(--market-scene-office, none);
   --portrait-glass-chrome: rgb(20 18 20 / 0.72);
   --portrait-glass-control: rgb(35 31 34 / 0.7);
   --portrait-glass-message: rgb(24 22 24 / 0.76);
@@ -119,7 +119,7 @@
   --syntax-property: #d6b989;
   --syntax-heading: #dcc496;
   --portrait-panel-background: transparent;
-  --portrait-scene-image: url('../assets/themes/portraits/noir-study.png');
+  --portrait-scene-image: var(--market-scene-noir, none);
   --portrait-glass-chrome: rgb(30 26 22 / 0.56);
   --portrait-glass-control: rgb(40 34 27 / 0.46);
   --portrait-glass-message: rgb(21 19 16 / 0.62);
@@ -163,7 +163,7 @@
   --syntax-property: #806284;
   --syntax-heading: #806284;
   --portrait-panel-background: transparent;
-  --portrait-scene-image: url('../assets/themes/portraits/moonlit-tea-room.png');
+  --portrait-scene-image: var(--market-scene-moonlit, none);
   --portrait-glass-chrome: rgb(250 247 251 / 0.5);
   --portrait-glass-control: rgb(255 253 255 / 0.52);
   --portrait-glass-message: rgb(255 253 255 / 0.6);
@@ -207,7 +207,7 @@
   --syntax-property: #e0b57d;
   --syntax-heading: #ebc999;
   --portrait-panel-background: transparent;
-  --portrait-scene-image: url('../assets/themes/ming-dynasty/snow-palace.png');
+  --portrait-scene-image: var(--market-scene-ming-snow, none);
   --portrait-glass-chrome: rgb(13 16 18 / 0.76);
   --portrait-glass-control: rgb(30 31 31 / 0.68);
   --portrait-glass-message: rgb(29 28 26 / 0.74);
@@ -251,8 +251,8 @@
   --syntax-property: #d1ae6a;
   --syntax-heading: #e8d4a8;
   --portrait-panel-background: transparent;
-  --portrait-scene-image: url('../assets/themes/zhang-juzheng-snow/snow-red-palace.png');
-  --zhang-titlebar-banner: url('../assets/themes/zhang-juzheng-snow/titlebar-snow-banner.png');
+  --portrait-scene-image: var(--market-scene-zhang, none);
+  --zhang-titlebar-banner: var(--market-zhang-titlebar-banner, none);
   --portrait-glass-chrome: rgb(11 10 9 / 0.82);
   --portrait-glass-control: rgb(24 20 17 / 0.76);
   --portrait-glass-message: rgb(232 212 168 / 0.96);
@@ -296,7 +296,7 @@
   --syntax-property: #d99478;
   --syntax-heading: #e5ad8d;
   --portrait-panel-background: transparent;
-  --portrait-scene-image: url('../assets/themes/ming-dynasty/moon-city.png');
+  --portrait-scene-image: var(--market-scene-ming-moon, none);
   --portrait-glass-chrome: rgb(10 13 15 / 0.78);
   --portrait-glass-control: rgb(29 26 27 / 0.7);
   --portrait-glass-message: rgb(26 23 24 / 0.76);
@@ -410,7 +410,7 @@
   --control-border: color-mix(in srgb, var(--accent) 36%, transparent);
   --control-border-hover: color-mix(in srgb, var(--accent) 56%, transparent);
   --control-placeholder: color-mix(in srgb, var(--accent) 22%, #a89f94);
-  --portrait-scene-image: url('../assets/themes/deepseek-poster/default-background.jpg');
+  --portrait-scene-image: var(--market-scene-deepseek-poster, none);
   --portrait-page-overlay: rgb(8 12 18 / 0.2);
   --portrait-glass-chrome: rgb(10 14 22 / 0.26);
   --portrait-glass-control: rgb(12 16 24 / 0.3);
@@ -422,7 +422,7 @@
 }
 
 :root[data-visual-skin='deepseek-dream'] {
-  --portrait-scene-image: url('../assets/themes/deepseek-dream/wallpaper.png');
+  --portrait-scene-image: var(--market-scene-deepseek-dream, none);
 }
 
 :root[data-visual-skin='deepseek-poster'] .app-shell,
@@ -939,11 +939,11 @@ html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-s
   --ming-gold: #a77a46;
   --ming-gold-soft: rgb(197 151 93 / 0.5);
   --ming-frame: #5d3e25;
-  --ming-panel-frame: url('../assets/themes/ming-dynasty/panel-frame.png');
-  --ming-frame-rail: url('../assets/themes/ming-dynasty/frame-rail-v2.png');
-  --ming-button-wood: url('../assets/themes/ming-dynasty/button-wood-v2.png');
-  --ming-button-parchment: url('../assets/themes/ming-dynasty/button-parchment-v2.png');
-  --ming-button-cinnabar: url('../assets/themes/ming-dynasty/button-cinnabar-v2.png');
+  --ming-panel-frame: var(--market-ming-panel-frame, none);
+  --ming-frame-rail: var(--market-ming-frame-rail, none);
+  --ming-button-wood: var(--market-ming-button-wood, none);
+  --ming-button-parchment: var(--market-ming-button-parchment, none);
+  --ming-button-cinnabar: var(--market-ming-button-cinnabar, none);
   --ming-code: #1d1d1b;
   --ming-code-raised: #25231f;
 }
@@ -2725,35 +2725,31 @@ html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-s
 
 /* Picker geometry is shared by all styles; skins supply only their scene background. */
 [data-mascot-option='maidWhite'] .mascot-option-preview {
-  background: url('../assets/themes/maid-white/azure-patisserie-atelier-v2.png') center / cover
-    no-repeat #edf4ff;
+  background: var(--market-preview-maid-white, none) center / cover no-repeat #edf4ff;
 }
 
 [data-mascot-option='office'] .mascot-option-preview {
-  background: url('../assets/themes/office-executive/dusk-executive-suite-v2.png') center / cover
-    no-repeat #1b191c;
+  background: var(--market-preview-office, none) center / cover no-repeat #1b191c;
 }
 
 [data-mascot-option='noirScholar'] .mascot-option-preview {
-  background: url('../assets/themes/portraits/noir-study.png') center / cover no-repeat #201d19;
+  background: var(--market-preview-noir, none) center / cover no-repeat #201d19;
 }
 
 [data-mascot-option='moonlitMaid'] .mascot-option-preview {
-  background: url('../assets/themes/portraits/moonlit-tea-room.png') center / cover no-repeat
-    #e8e2eb;
+  background: var(--market-preview-moonlit, none) center / cover no-repeat #e8e2eb;
 }
 
 [data-mascot-option='mingSnow'] .mascot-option-preview {
-  background: url('../assets/themes/ming-dynasty/snow-palace.png') center / cover no-repeat #202326;
+  background: var(--market-preview-ming-snow, none) center / cover no-repeat #202326;
 }
 
 [data-mascot-option='zhangJuzhengSnow'] .mascot-option-preview {
-  background: url('../assets/themes/zhang-juzheng-snow/snow-red-palace.png') center / cover
-    no-repeat #181411;
+  background: var(--market-preview-zhang, none) center / cover no-repeat #181411;
 }
 
 [data-mascot-option='mingMoon'] .mascot-option-preview {
-  background: url('../assets/themes/ming-dynasty/moon-city.png') center / cover no-repeat #191b1e;
+  background: var(--market-preview-ming-moon, none) center / cover no-repeat #191b1e;
 }
 
 [data-mascot-option='ropeWhale'] {

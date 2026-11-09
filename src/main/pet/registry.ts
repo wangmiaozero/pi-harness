@@ -17,7 +17,6 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import {
-  isProtectedPackId,
   type PetPackDetail,
   type PetPackInstallResult,
   type PetPackManifest,
@@ -141,6 +140,27 @@ export class PetPackRegistry {
     return path.join(this.userRoot, '.staging')
   }
 
+  /** A bundled copy on disk is immutable. An official id with no bundled files can be installed. */
+  private async bundledCopyExists(id: string): Promise<boolean> {
+    const wanted = id.trim().toLowerCase()
+    let dirs: string[]
+    try {
+      dirs = await fs.readdir(this.bundledRoot)
+    } catch {
+      return false
+    }
+    for (const dir of dirs) {
+      if (dir.toLowerCase() !== wanted && dir.toLowerCase() !== id.toLowerCase()) continue
+      try {
+        const stat = await fs.lstat(path.join(this.bundledRoot, dir, 'pet-pack.json'))
+        if (stat.isFile()) return true
+      } catch {
+        // keep looking
+      }
+    }
+    return false
+  }
+
   /** Locate a pack by id: user packs first, then bundled packs. */
   async findPackRoot(id: string): Promise<string | null> {
     if (!/^[\w-]{1,64}$/.test(id)) return null
@@ -251,7 +271,7 @@ export class PetPackRegistry {
       // convention, WebP magic per frame, and a decodable preview image.
       await validatePackResources(pack)
       const id = pack.manifest.id
-      if (isProtectedPackId(id)) {
+      if (await this.bundledCopyExists(id)) {
         throw new PetPackError(`"${id}" is a built-in pet and cannot be replaced by an import`)
       }
       const existingRoot = path.join(this.userRoot, id)
@@ -293,7 +313,7 @@ export class PetPackRegistry {
 
   /** Remove a user-installed pack. Bundled packs can never be removed. */
   async remove(id: string): Promise<void> {
-    if (isProtectedPackId(id)) {
+    if (await this.bundledCopyExists(id)) {
       throw new PetPackError('The built-in pet cannot be uninstalled')
     }
     if (!/^[\w-]{1,64}$/.test(id)) {

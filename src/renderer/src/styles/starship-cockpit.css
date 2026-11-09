@@ -451,8 +451,7 @@
   left: 0;
   z-index: 0;
   width: 100%;
-  background: url('../assets/themes/starship-cockpit/cockpit-interior-foreground.png') left center /
-    auto 100% no-repeat;
+  background: var(--market-starship-interior, none) left center / auto 100% no-repeat;
   content: '';
   filter: saturate(0.76) brightness(0.7) contrast(1.14) drop-shadow(0 0 16px rgb(45 156 240 / 0.2));
   mask-image: linear-gradient(180deg, transparent, #000 9%, #000 88%, transparent);
@@ -1020,7 +1019,7 @@
 [data-mascot-option='starshipCockpit'] .mascot-option-preview {
   background:
     linear-gradient(180deg, rgb(2 8 21 / 0.12), rgb(2 8 21 / 0.64)),
-    url('../assets/themes/starship-cockpit/deep-space.png') center / cover;
+    var(--market-preview-starship, none) center / cover;
 }
 
 :root[data-visual-skin='starship-cockpit'] [data-mascot-option='starshipCockpit'] img,

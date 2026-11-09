@@ -1,4 +1,4 @@
-import backgroundUrl from './assets/background.mp4?url'
+import { marketFileUrl } from '@shared/market/urls'
 import skinCss from './video-skin.css?raw'
 
 const STYLE_ID = 'dsvs-skin-style'
@@ -60,7 +60,7 @@ export function syncDeepseekVideoSkin(active: boolean): void {
     document.documentElement.dataset.videoSkin = 'on'
   })
   video.addEventListener('error', () => teardown())
-  video.src = backgroundUrl
+  video.src = marketFileUrl('theme', 'deepseek', 'assets/startup/background.mp4')
   void video.play().catch(() => undefined)
   if (!visibilityBound) {
     visibilityBound = true

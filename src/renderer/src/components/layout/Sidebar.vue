@@ -17,11 +17,23 @@ import {
   type NavItemId
 } from '@shared/constants/navigation'
 import NavigationTooltip from './NavigationTooltip.vue'
-import mingPlumBranchUrl from '@renderer/assets/themes/ming-dynasty/plum-branch.png?url'
+import { marketFileUrl } from '@shared/market/urls'
+import { themePackForStyle } from '@shared/market/style-packs'
+import { isMingDynastySkin, getVisualSkin } from '@renderer/utils/skin-catalog'
 
 const route = useRoute()
 const { t } = useI18n()
 const settings = useSettingsStore()
+const mingActive = computed(() =>
+  isMingDynastySkin(getVisualSkin(settings.settings?.mascotStyle ?? 'none')?.id)
+)
+const mingPlumBranchUrl = computed(() =>
+  marketFileUrl(
+    'theme',
+    themePackForStyle(settings.settings?.mascotStyle) ?? 'ming-snow',
+    'assets/plum-branch.png'
+  )
+)
 
 const catalog = computed(
   (): Record<NavItemId, { name: NavItemId; to: string; icon: typeof Home; label: string }> => ({
@@ -168,6 +180,7 @@ function isActive(path: string): boolean {
       </NavigationTooltip>
     </div>
     <img
+      v-if="mingActive"
       :src="mingPlumBranchUrl"
       alt=""
       class="ming-navigation-plum pointer-events-none absolute"

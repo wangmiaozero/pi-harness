@@ -6,6 +6,7 @@ import type { PetState } from '@shared/pet/types'
 import { getPetManifest } from '@renderer/pet/manifests'
 import PetRenderer from '@renderer/components/pet/PetRenderer.vue'
 import { getVisualSkin } from '@renderer/utils/skin-catalog'
+import { installRevision, themePackInstalled } from '@renderer/utils/visual-skin'
 
 const props = withDefaults(
   defineProps<{
@@ -24,11 +25,15 @@ const portrait = computed(() => getVisualSkin(props.style)?.portrait === true)
 const wallpaper = computed(
   () => props.style === 'deepseekPoster' || props.style === 'deepseekDream'
 )
+const artworkReady = computed(() => {
+  void installRevision.value
+  return themePackInstalled(props.style)
+})
 </script>
 
 <template>
   <div
-    v-if="manifest && enabled && !wallpaper"
+    v-if="manifest && enabled && !wallpaper && artworkReady"
     data-testid="page-mascot-background"
     :data-style="style"
     :data-state="state"

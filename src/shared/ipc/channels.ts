@@ -394,7 +394,13 @@ export const IPC_INVOKE = {
   petPackDetail: invoke('pet:pack-detail'),
   petImportPack: invoke('pet:import-pack'),
   petRemovePack: invoke('pet:remove-pack'),
-  petSetActivePack: invoke('pet:set-active-pack')
+  petSetActivePack: invoke('pet:set-active-pack'),
+  marketSearch: invoke('market:search'),
+  marketInstalled: invoke('market:installed'),
+  marketRefresh: invoke('market:refresh'),
+  marketInstall: invoke('market:install'),
+  marketUninstall: invoke('market:uninstall'),
+  marketCancel: invoke('market:cancel')
 } as const
 
 /** Main → renderer push events (one-way, via webContents.send). */
@@ -417,6 +423,7 @@ export const IPC_EVENT = {
   workspaceChanged: 'pi-harness:event:workspace-changed',
   petState: 'pi-harness:pet:state',
   petConfig: 'pi-harness:pet:config',
+  marketProgress: 'pi-harness:market:progress',
   uiCommand: 'pi-harness:ui:command'
 } as const
 

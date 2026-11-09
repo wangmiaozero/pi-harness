@@ -1,5 +1,4 @@
-import bootUrl from './assets/boot.mp4?url'
-import scanUrl from './assets/whale-girl-scan.mp4?url'
+import { marketFileUrl } from '@shared/market/urls'
 import bootCss from './video-boot.css?raw'
 import type { DeepseekBootClip } from './gate'
 
@@ -10,9 +9,9 @@ const HOLD_GRACE_MS = 4000
 const NO_FRAME_MS = 12000
 const UNDER_SPLASH_Z = '2147482000'
 
-const CLIP_URL: Record<DeepseekBootClip, string> = {
-  boot: bootUrl,
-  scan: scanUrl
+function clipUrl(clip: DeepseekBootClip): string {
+  const file = clip === 'boot' ? 'boot.mp4' : 'whale-girl-scan.mp4'
+  return marketFileUrl('theme', 'deepseek', `assets/startup/${file}`)
 }
 
 export interface VideoBootOptions {
@@ -79,7 +78,7 @@ function mountBoot(underSplash: boolean, clip: DeepseekBootClip): PrimedBoot {
   sound.append(element('dsvs-boot-sound-glyph', '🔇'), element('', '开启声音'))
   root.append(video, element('dsvs-boot-veil'), ui, skip, sound)
   document.body.appendChild(root)
-  video.src = CLIP_URL[clip]
+  video.src = clipUrl(clip)
   video.addEventListener('loadeddata', () => video.setAttribute('data-shown', '1'), { once: true })
   return { root, video, hint, fill, sound, watch: null, clip }
 }
@@ -205,7 +204,7 @@ export function playVideoBoot(options: VideoBootOptions = {}): Promise<void> {
         return
       }
       video.dataset.retried = '1'
-      video.src = CLIP_URL[clip]
+      video.src = clipUrl(clip)
       void video.play().catch(() => markClipDone())
     })
     later(() => {

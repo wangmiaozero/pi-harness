@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import engineRadarImage from '@renderer/assets/themes/starship-cockpit/engine-radar-alpha.png'
+import { marketFileUrl } from '@shared/market/urls'
+
+const engineRadarImage = marketFileUrl('theme', 'starship', 'assets/engine-radar-alpha.png')
 import type { PetState } from '@shared/pet/types'
 
 const props = withDefaults(

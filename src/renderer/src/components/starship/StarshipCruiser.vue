@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import scoutShipImage from '@renderer/assets/themes/starship-cockpit/scout-ship-alpha.png'
+import { marketFileUrl } from '@shared/market/urls'
+
+const scoutShipImage = marketFileUrl('theme', 'starship', 'assets/scout-ship-alpha.png')
 
 withDefaults(defineProps<{ animated?: boolean }>(), { animated: true })
 </script>

@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { applyTheme } from './theme'
-import { applyVisualSkin, getActiveVisualSkin, isStarshipCockpitActive } from './visual-skin'
+import {
+  applyVisualSkin,
+  getActiveVisualSkin,
+  isStarshipCockpitActive,
+  setInstalledThemeAssets,
+  themeCardPreview
+} from './visual-skin'
 import { setCustomSkinCatalog, VISUAL_SKINS } from './skin-catalog'
 
 const activeSettings = {
@@ -16,6 +22,7 @@ afterEach(() => {
   delete document.documentElement.dataset.customSkin
   document.documentElement.removeAttribute('style')
   setCustomSkinCatalog([])
+  setInstalledThemeAssets(null)
 })
 
 describe('visual skin transitions', () => {
@@ -151,5 +158,18 @@ describe('starship cockpit visual skin', () => {
     expect(document.documentElement.dataset.theme).toBe('light')
     expect(document.documentElement.dataset.appearance).toBe('light')
     expect(document.documentElement.style.colorScheme).toBe('light')
+  })
+
+  it('shows a missing preview until the theme pack is installed, then the image', () => {
+    expect(themeCardPreview('maidWhite', 'pi-market://theme/maid-white/portrait.png')).toBe('image')
+    setInstalledThemeAssets([])
+    expect(themeCardPreview('maidWhite', 'pi-market://theme/maid-white/portrait.png')).toBe('missing')
+    expect(themeCardPreview('none', null)).toBe('empty')
+    expect(themeCardPreview('maidWhite', 'pi-market://theme/maid-white/portrait.png', true)).toBe(
+      'missing'
+    )
+    setInstalledThemeAssets([{ packId: 'maid-white', styles: ['maidWhite'] }])
+    expect(themeCardPreview('maidWhite', 'pi-market://theme/maid-white/portrait.png')).toBe('image')
+    expect(themeCardPreview('office', 'pi-market://theme/office/portrait.png')).toBe('missing')
   })
 })

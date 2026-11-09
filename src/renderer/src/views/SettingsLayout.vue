@@ -23,7 +23,8 @@ import {
   PanelLeft,
   Settings2,
   SlidersHorizontal,
-  Sparkles
+  Sparkles,
+  Store
 } from '@lucide/vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Badge from '@renderer/components/ui/Badge.vue'
@@ -79,6 +80,12 @@ const menuItems = computed(() => {
       label: t('settings.desktopPet'),
       icon: Fish
     },
+    {
+      id: 'market',
+      to: '/settings/market',
+      label: t('settings.resourceMarket'),
+      icon: Store
+    },
     { id: 'workspace', to: '/settings/workspace', label: t('settings.workspace'), icon: AppWindow },
     {
       id: 'session-cleanup',
@@ -123,7 +130,7 @@ const menuItems = computed(() => {
 
 const groups = computed(() => {
   const ids: Record<string, string[]> = {
-    preferences: ['general', 'ai', 'voice', 'shortcuts', 'nav', 'mascot', 'desktop-pet'],
+    preferences: ['general', 'ai', 'voice', 'shortcuts', 'nav', 'mascot', 'desktop-pet', 'market'],
     agents: ['instructions', 'mcp', 'subagents'],
     workspace: ['overview', 'workspace', 'session-cleanup'],
     system: ['remote', 'config', 'paths', 'backup', 'diagnostics', 'updates', 'about', 'developer']

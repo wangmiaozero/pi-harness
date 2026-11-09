@@ -130,7 +130,7 @@ test.describe('macOS 27 liquid glass themes', () => {
 
     await page
       .getByTestId('macos27-background-image-input')
-      .setInputFiles(path.resolve('src/renderer/src/assets/themes/ming-dynasty/moon-city.png'))
+      .setInputFiles(path.resolve('e2e/fixtures/sample-background.png'))
     await expect(optics).toHaveAttribute('data-background', 'local-image')
     await expect(page.getByTestId('macos27-local-background-image')).toBeVisible()
     await expect(page.getByTestId('macos27-background-image-preview')).toBeVisible()

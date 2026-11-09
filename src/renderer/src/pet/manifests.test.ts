@@ -48,7 +48,9 @@ describe('built-in pet manifests', () => {
 
   it('uses valid single-cell sprite metadata for bundled RGBA assets', () => {
     for (const manifest of Object.values(PET_MANIFESTS)) {
-      expect(manifest.sprite).toMatch(manifest.id === 'deepseekPoster' ? /\.jpg$/ : /\.png$/)
+      expect(manifest.sprite).toMatch(
+        manifest.id === 'deepseekPoster' ? /^pi-market:\/\/theme\/.+\.jpg$/ : /^pi-market:\/\/theme\/.+\.png$/
+      )
       expect(manifest.frameWidth).toBeGreaterThan(0)
       expect(manifest.frameHeight).toBeGreaterThan(0)
       expect(manifest.columns).toBe(1)
@@ -60,11 +62,15 @@ describe('built-in pet manifests', () => {
   it('keeps the wallpaper engine portrait at its source size', () => {
     expect(PET_MANIFESTS.ropeDeepseek.frameWidth).toBe(330)
     expect(PET_MANIFESTS.ropeDeepseek.frameHeight).toBe(384)
-    expect(PET_MANIFESTS.ropeDeepseek.sprite).toMatch(/rope\/deepseek\.png$/)
+    expect(PET_MANIFESTS.ropeDeepseek.sprite).toBe(
+      'pi-market://theme/deepseek/assets/portraits/deepseek.png'
+    )
     expect(PET_MANIFESTS.ropeWhale.frameWidth).toBe(384)
     expect(PET_MANIFESTS.ropeWhale.frameHeight).toBe(576)
     expect(PET_MANIFESTS.deepseekDream.frameWidth).toBe(1290)
     expect(PET_MANIFESTS.deepseekDream.frameHeight).toBe(725)
-    expect(PET_MANIFESTS.deepseekDream.sprite).toMatch(/deepseek-dream\/wallpaper\.png$/)
+    expect(PET_MANIFESTS.deepseekDream.sprite).toBe(
+      'pi-market://theme/deepseek/assets/wallpapers/wallpaper.png'
+    )
   })
 })

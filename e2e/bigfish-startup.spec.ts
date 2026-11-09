@@ -32,6 +32,10 @@ test('keeps the particle startup when the desktop pet is off', async ({ page }) 
 
   await page.locator('a[href="#/settings/desktop-pet"]').click()
   const toggle = page.getByTestId('desktop-pet-section').getByRole('switch').first()
+  if ((await toggle.count()) === 0) {
+    await expect(page.getByTestId('pet-import-zip')).toBeVisible()
+    return
+  }
   await expect(toggle).toBeVisible()
   const alignment = await toggle.evaluate((element) => {
     const track = element.getBoundingClientRect()

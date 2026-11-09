@@ -1,18 +1,5 @@
-import line1 from './assets/line-1.mp3?url'
-import line2 from './assets/line-2.mp3?url'
-import line3 from './assets/line-3.mp3?url'
-import line4 from './assets/line-4.mp3?url'
-import line5 from './assets/line-5.mp3?url'
-import line6 from './assets/line-6.mp3?url'
-import line6Claude from './assets/line-6-claude.mp3?url'
-import line6Gemini from './assets/line-6-gemini.mp3?url'
-import line6Gpt from './assets/line-6-gpt.mp3?url'
-import line6Glm from './assets/line-6-glm.mp3?url'
-import line6Grok from './assets/line-6-grok.mp3?url'
-import line6Kimi from './assets/line-6-kimi.mp3?url'
-import line6Qwen from './assets/line-6-qwen.mp3?url'
-import sfxTick from './assets/sfx-tick.mp3?url'
-import sfxTicksRun from './assets/sfx-ticks-run.mp3?url'
+import { marketFileUrl } from '@shared/market/urls'
+import { themePackForStyle } from '@shared/market/style-packs'
 import type { MascotStyle } from '@shared/constants/mascot'
 import { finaleLineKey, startupBrandCopy } from './gate'
 import { startupLogo } from './logos'
@@ -38,26 +25,10 @@ interface StartupHostWindow extends Window {
   __DSH_STARTUP_FINISHED__?: boolean
 }
 
-const FINALE_LINES: Record<string, string> = {
-  'line-6': line6,
-  'line-6-claude': line6Claude,
-  'line-6-gemini': line6Gemini,
-  'line-6-gpt': line6Gpt,
-  'line-6-glm': line6Glm,
-  'line-6-grok': line6Grok,
-  'line-6-kimi': line6Kimi,
-  'line-6-qwen': line6Qwen
-}
-
-const ASSETS: Record<string, string> = {
-  'line-1': line1,
-  'line-2': line2,
-  'line-3': line3,
-  'line-4': line4,
-  'line-5': line5,
-  'line-6': line6,
-  'sfx-tick': sfxTick,
-  'sfx-ticks-run': sfxTicksRun
+function startupAsset(style: MascotStyle | undefined, file: string): string {
+  const pack = themePackForStyle(style)
+  if (pack && pack !== 'phoebe') return marketFileUrl('theme', pack, `assets/startup/${file}`)
+  return marketFileUrl('pet', 'bigfish', `assets/startup/${file}`)
 }
 
 function installStylesheet(): void {
@@ -93,9 +64,16 @@ export function playBigfishStartup(options: BigfishStartupPlayOptions = {}): Pro
   win.__DSH_STARTUP_SKIP__ = false
   win.__DSH_STARTUP_FAILED__ = false
   win.__DSH_STARTUP_FINISHED__ = false
+  const asset = (file: string) => startupAsset(options.mascotStyle, file)
   win.__DSH_STARTUP_ASSETS__ = {
-    ...ASSETS,
-    'line-6': FINALE_LINES[finaleLineKey(options.mascotStyle)] ?? line6
+    'line-1': asset('line-1.mp3'),
+    'line-2': asset('line-2.mp3'),
+    'line-3': asset('line-3.mp3'),
+    'line-4': asset('line-4.mp3'),
+    'line-5': asset('line-5.mp3'),
+    'line-6': asset(`${finaleLineKey(options.mascotStyle)}.mp3`),
+    'sfx-tick': asset('sfx-tick.mp3'),
+    'sfx-ticks-run': asset('sfx-ticks-run.mp3')
   }
   const logo = startupLogo(options.mascotStyle)
   win.__DSH_STARTUP__ = {

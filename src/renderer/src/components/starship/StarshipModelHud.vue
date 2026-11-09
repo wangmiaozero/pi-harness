@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import radarBaseImage from '@renderer/assets/themes/starship-cockpit/radar-base.png'
+import { marketFileUrl } from '@shared/market/urls'
+
+const radarBaseImage = marketFileUrl('theme', 'starship', 'assets/radar-base.png')
 
 withDefaults(
   defineProps<{

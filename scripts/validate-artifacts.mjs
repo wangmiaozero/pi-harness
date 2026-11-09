@@ -4,8 +4,6 @@ import path from 'node:path'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { metadataName as updateMetadataName } from './release/policy.mjs'
-import { verifyPetArchive } from './runtime/pet-archive.mjs'
-
 const require = createRequire(import.meta.url)
 const builder = createRequire(require.resolve('electron-builder'))
 const dependencies = createRequire(builder.resolve('app-builder-lib'))
@@ -28,11 +26,11 @@ if (process.env.PI_HARNESS_E2E_VARIANT === 'nomascot') {
     throw new Error('Desktop pet artwork must not ship in nomascot')
   if ([...files].some((file) => file.startsWith('resources/petpacks/')))
     throw new Error('Archived desktop pet artwork must not ship in nomascot')
-} else if (process.platform === 'win32') {
-  if (await fs.stat(path.join(resources, 'petpacks')).catch(() => null))
-    throw new Error('Windows built-in pet frames must be archived')
-  await verifyPetArchive(archive, path.resolve('resources/petpacks'))
 }
+if (await fs.stat(path.join(resources, 'petpacks')).catch(() => null))
+  throw new Error('Optional pet artwork must be installed from the resource market')
+if ([...files].some((file) => file.startsWith('resources/petpacks/')))
+  throw new Error('Optional pet artwork must not be archived in the application')
 if (files.has('out/main/update-test-identity.json'))
   throw new Error('Ephemeral update test identity must never be published')
 for (const file of files) {

@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import cockpitInteriorImage from '@renderer/assets/themes/starship-cockpit/cockpit-interior-foreground.png'
+import { marketFileUrl } from '@shared/market/urls'
+
+const cockpitInteriorImage = marketFileUrl('theme', 'starship', 'assets/cockpit-interior-foreground.png')
 
 withDefaults(defineProps<{ animated?: boolean }>(), { animated: true })
 </script>

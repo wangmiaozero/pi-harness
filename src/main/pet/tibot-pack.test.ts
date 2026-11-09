@@ -15,9 +15,9 @@ const NAMES: Record<(typeof TIBOT_SHAPES)[number], string> = {
 
 describe('tibot canvas packs', () => {
   it('loads one jelly pet per shape and no group pack', async () => {
-    await expect(loadPetPack(path.resolve('resources/petpacks/tibot'))).rejects.toThrow()
+    await expect(loadPetPack(path.resolve('src/main/pet/fixtures/tibot'))).rejects.toThrow()
     for (const shape of TIBOT_SHAPES) {
-      const pack = await loadPetPack(path.resolve('resources/petpacks', tibotPackId(shape)))
+      const pack = await loadPetPack(path.resolve('src/main/pet/fixtures', tibotPackId(shape)))
       expect(pack.manifest.renderer).toBe('canvas')
       expect(pack.manifest.id).toBe(tibotPackId(shape))
       expect(pack.manifest.name).toBe(NAMES[shape])

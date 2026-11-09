@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, inject, ref } from 'vue'
+import { computed, inject, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { CircleOff, FolderPlus, KeyRound, Upload } from '@lucide/vue'
@@ -10,6 +11,12 @@ import Switch from '@renderer/components/ui/Switch.vue'
 import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { MASCOT_IMAGES } from '@renderer/utils/mascot-images'
+import {
+  installRevision,
+  themeAssetsReady,
+  themeCardPreview,
+  themePackInstalled
+} from '@renderer/utils/visual-skin'
 import { SETTINGS_DRAFT_KEY } from '@renderer/components/settings/draft-key'
 
 const draft = inject(SETTINGS_DRAFT_KEY)!
@@ -23,14 +30,42 @@ const unlockError = ref('')
 const importingSkin = ref(false)
 const creatingSkinProject = ref(false)
 
-const mascotOptions = computed(() =>
-  MASCOT_STYLES.map((style) => ({
-    value: style,
-    image: MASCOT_IMAGES[style],
-    label: t(`settings.mascot${style[0].toUpperCase()}${style.slice(1)}`),
-    description: t(`settings.mascot${style[0].toUpperCase()}${style.slice(1)}Hint`)
-  }))
+const failedPreviews = ref<Record<string, boolean>>({})
+
+watch(installRevision, () => {
+  failedPreviews.value = {}
+})
+
+const mascotOptions = computed(() => {
+  void installRevision.value
+  return MASCOT_STYLES.map((style) => {
+    const image = MASCOT_IMAGES[style]
+    return {
+      value: style,
+      image,
+      preview: themeCardPreview(style, image, Boolean(failedPreviews.value[style])),
+      label: t(`settings.mascot${style[0].toUpperCase()}${style.slice(1)}`),
+      description: t(`settings.mascot${style[0].toUpperCase()}${style.slice(1)}Hint`)
+    }
+  })
+})
+
+const visibleMascotOptions = computed(() =>
+  mascotOptions.value.filter((option) => option.preview !== 'missing')
 )
+
+const themeControlsVisible = computed(() => {
+  void installRevision.value
+  return draft.value.mascotStyle !== 'none' && themePackInstalled(draft.value.mascotStyle)
+})
+
+const themePackMissing = computed(() => {
+  void installRevision.value
+  if (!themeAssetsReady()) return false
+  const hasInstalledTheme = visibleMascotOptions.value.some((option) => option.value !== 'none')
+  if (!hasInstalledTheme) return true
+  return draft.value.mascotStyle !== 'none' && !themePackInstalled(draft.value.mascotStyle)
+})
 
 const petSleepMinutesStr = computed({
   get: () => String(draft.value.petSleepMinutes),
@@ -171,6 +206,14 @@ async function unlockMascot(): Promise<void> {
       <p class="mb-3 text-[11.5px] text-[var(--text-tertiary)]">
         {{ $t('settings.mascotHint') }}
       </p>
+      <p
+        v-if="themePackMissing"
+        data-testid="mascot-missing-theme"
+        class="mb-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-3 py-2 text-[12px] text-[var(--text-secondary)]"
+      >
+        {{ $t('settings.marketMissingTheme') }}
+        <RouterLink class="ml-1 underline" to="/settings/market">{{ $t('settings.marketOpen') }}</RouterLink>
+      </p>
       <div class="mb-3 flex flex-wrap items-center gap-2">
         <Button
           variant="secondary"
@@ -200,7 +243,7 @@ async function unlockMascot(): Promise<void> {
       </div>
       <div class="mascot-options-grid" data-testid="mascot-options-grid">
         <button
-          v-for="option in mascotOptions"
+          v-for="option in visibleMascotOptions"
           :key="option.value"
           type="button"
           class="mascot-option flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-md)] border text-left transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
@@ -215,11 +258,13 @@ async function unlockMascot(): Promise<void> {
         >
           <div class="mascot-option-preview bg-[var(--bg-window)]/45">
             <img
-              v-if="option.image"
-              :src="option.image"
+              v-if="option.preview === 'image'"
+              :key="`${option.value}:${installRevision}`"
+              :src="option.image || undefined"
               alt=""
               loading="lazy"
               class="mascot-option-image"
+              @error="failedPreviews[option.value] = true"
             />
             <div
               v-else
@@ -286,6 +331,8 @@ async function unlockMascot(): Promise<void> {
         </button>
       </div>
       <div
+        v-if="themeControlsVisible"
+        data-testid="mascot-theme-controls"
         class="mt-3 divide-y divide-[var(--border-subtle)] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)]"
       >
         <PropertyRow :label="$t('settings.petAnimations')">

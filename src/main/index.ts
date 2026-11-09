@@ -8,7 +8,7 @@ import { approveHarnessPlugin } from './ipc/register-harness-plugins'
  * Electron main process entry.
  */
 
-import { app, BrowserWindow, nativeTheme, protocol, net } from 'electron'
+import { app, BrowserWindow, nativeTheme, net } from 'electron'
 import path from 'node:path'
 import {
   initAppPaths,
@@ -50,6 +50,7 @@ import { createMainWindow } from './window/create-window'
 import { installAppMenu } from './window/app-menu'
 import { ScreenMotionOverlayController } from './window/screen-motion-overlay'
 import { PetService, userPetPacksRoot, type PetEventAgentSource } from './pet/service'
+import { MarketService } from './market/service'
 import type { AgentEvent } from '@shared/types/workspace'
 import type { AppSettings } from '@shared/ipc/api-types'
 import { APP_NAME } from '@shared/constants/index'
@@ -167,12 +168,6 @@ if (!gotLock) {
 }
 
 async function bootstrap(): Promise<void> {
-  protocol.registerSchemesAsPrivileged([
-    {
-      scheme: 'pi-architecture',
-      privileges: { standard: true, secure: true, supportFetchAPI: true }
-    }
-  ])
   PetService.registerScheme()
   initAppPaths(app)
 
@@ -647,6 +642,31 @@ async function bootstrap(): Promise<void> {
     beforeStart: (cwd) => beforeAgentStart(cwd, null)
   })
 
+  const registryOverride = process.env.PI_HARNESS_MARKET_REGISTRY
+  const market = new MarketService({
+    userData: app.getPath('userData'),
+    petRoot: userPetPacksRoot(app.getPath('userData')),
+    appVersion: app.getVersion(),
+    registry:
+      !app.isPackaged && registryOverride && /^http:\/\/127\.0\.0\.1:\d+$/.test(registryOverride)
+        ? registryOverride
+        : undefined,
+    pets: {
+      install: (source) =>
+        petService?.importPack(source) ??
+        Promise.reject(new Error('Desktop pets are unavailable in this build')),
+      remove: (id) =>
+        petService?.removePack(id) ??
+        Promise.reject(new Error('Desktop pets are unavailable in this build'))
+    },
+    onProgress: (progress) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.webContents.send(IPC_EVENT.marketProgress, progress)
+      }
+    }
+  })
+  market.start()
+
   registerIpc({
     runtimes,
     intelligence,
@@ -704,6 +724,12 @@ async function bootstrap(): Promise<void> {
     petSetActivePack: (id) =>
       petService?.setActivePack(id) ??
       Promise.reject(new Error('Desktop pets are unavailable in this build')),
+    marketSearch: (query, kind, refresh) => market.search(query, kind, refresh),
+    marketInstalled: () => market.installed(),
+    marketRefresh: () => market.refreshLatest(),
+    marketInstall: (name, version) => market.install(name, version),
+    marketUninstall: (name) => market.uninstall(name),
+    marketCancel: (name) => market.cancel(name),
     setScreenMotionActive: (payload) => {
       const restoreMainWindow = payload.active && mainWindow?.isFocused() === true
       screenMotion.setActive(payload)

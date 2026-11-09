@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import deepSpaceImage from '@renderer/assets/themes/starship-cockpit/deep-space.png'
-import distantPlanetImage from '@renderer/assets/themes/starship-cockpit/distant-planet.png'
+import { marketFileUrl } from '@shared/market/urls'
+
+const deepSpaceImage = marketFileUrl('theme', 'starship', 'assets/deep-space.png')
+const distantPlanetImage = marketFileUrl('theme', 'starship', 'assets/distant-planet.png')
 import StarfieldCanvas from './StarfieldCanvas.vue'
 
 withDefaults(

@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import topLeftImage from '@renderer/assets/themes/starship-cockpit/cockpit-top-left.png'
-import topImage from '@renderer/assets/themes/starship-cockpit/cockpit-top.png'
-import topRightImage from '@renderer/assets/themes/starship-cockpit/cockpit-top-right.png'
-import leftImage from '@renderer/assets/themes/starship-cockpit/cockpit-left.png'
-import rightImage from '@renderer/assets/themes/starship-cockpit/cockpit-right.png'
-import bottomLeftImage from '@renderer/assets/themes/starship-cockpit/cockpit-bottom-left.png'
-import bottomImage from '@renderer/assets/themes/starship-cockpit/cockpit-bottom.png'
-import bottomRightImage from '@renderer/assets/themes/starship-cockpit/cockpit-bottom-right.png'
+import { marketFileUrl } from '@shared/market/urls'
+
+const frame = (name: string) => marketFileUrl('theme', 'starship', `assets/${name}`)
+const topLeftImage = frame('cockpit-top-left.png')
+const topImage = frame('cockpit-top.png')
+const topRightImage = frame('cockpit-top-right.png')
+const leftImage = frame('cockpit-left.png')
+const rightImage = frame('cockpit-right.png')
+const bottomLeftImage = frame('cockpit-bottom-left.png')
+const bottomImage = frame('cockpit-bottom.png')
+const bottomRightImage = frame('cockpit-bottom-right.png')
 
 const frameSegments = [
   { area: 'top-left', image: topLeftImage },

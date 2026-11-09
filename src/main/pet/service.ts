@@ -166,7 +166,10 @@ export class PetService {
         const switched = previous.activePackId !== normalized.activePackId || !this.pack
         if (switched) {
           const loaded = await this.loadPackById(normalized.activePackId)
-          if (!loaded) return // loadPackById already restored a fallback pack
+          if (!loaded) {
+            if (!this.pack) this.controller.destroy()
+            return
+          }
         }
         this.controller.setPack(this.pack)
         this.controller.applySettings(this.settings)
@@ -287,7 +290,7 @@ export class PetService {
     const previousId = this.loadedPackId
     const root = await this.registry.findPackRoot(id)
     if (!root) {
-      log.pet.error('pet pack not found:', id)
+      log.pet.info('pet pack not installed:', id)
       return this.fallbackToBundled(previousPack, previousId, id)
     }
     try {

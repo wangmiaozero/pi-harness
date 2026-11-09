@@ -1,9 +1,9 @@
 # Pet Pack Format
 
 A **pet pack** is a self-contained directory of WebP animation frames plus a
-`pet-pack.json` manifest. Pi-Harness ships one bundled pack (`bigfish`); users
-can install additional packs as ZIP files or local folders via
-**Settings → Desktop Pet → Pet Packs**.
+`pet-pack.json` manifest. Official pets are separate npm packages installed
+from **Settings → Resource Market**. Users can still install additional packs
+as ZIP files or local folders via **Settings → Desktop Pet → Pet Packs**.
 
 Installed user packs live under `<userData>/petpacks/<pack-id>/`. Imports are
 validated and installed **atomically**: a pack is staged in a hidden

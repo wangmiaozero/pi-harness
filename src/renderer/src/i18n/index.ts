@@ -22,9 +22,11 @@ import {
   intelligenceFr,
   intelligenceDe
 } from './intelligence-locales'
+import { resourceMarketEn, resourceMarketTw, resourceMarketZh } from './resource-market'
 
 const enMessages = {
   ...enUS,
+  settings: { ...enUS.settings, ...resourceMarketEn },
   workspace: { ...enUS.workspace, activity: chatActivity['en-US'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,
@@ -35,6 +37,7 @@ const enMessages = {
 
 const zhMessages = {
   ...zhCN,
+  settings: { ...zhCN.settings, ...resourceMarketZh },
   workspace: { ...zhCN.workspace, activity: chatActivity['zh-CN'] },
   agentSettings: agentSettingsZh,
   liveVoice: liveVoiceZh,
@@ -45,6 +48,7 @@ const zhMessages = {
 
 const zhTwMessages = {
   ...zhTW,
+  settings: { ...zhTW.settings, ...resourceMarketTw },
   workspace: { ...zhTW.workspace, activity: chatActivity['zh-TW'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,
@@ -55,6 +59,7 @@ const zhTwMessages = {
 
 const jaMessages = {
   ...jaJP,
+  settings: { ...jaJP.settings, ...resourceMarketEn },
   workspace: { ...jaJP.workspace, activity: chatActivity['ja-JP'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,
@@ -65,6 +70,7 @@ const jaMessages = {
 
 const koMessages = {
   ...koKR,
+  settings: { ...koKR.settings, ...resourceMarketEn },
   workspace: { ...koKR.workspace, activity: chatActivity['ko-KR'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,
@@ -75,6 +81,7 @@ const koMessages = {
 
 const ruMessages = {
   ...ruRU,
+  settings: { ...ruRU.settings, ...resourceMarketEn },
   workspace: { ...ruRU.workspace, activity: chatActivity['ru-RU'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,
@@ -85,6 +92,7 @@ const ruMessages = {
 
 const frMessages = {
   ...frFR,
+  settings: { ...frFR.settings, ...resourceMarketEn },
   workspace: { ...frFR.workspace, activity: chatActivity['fr-FR'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,
@@ -95,6 +103,7 @@ const frMessages = {
 
 const deMessages = {
   ...deDE,
+  settings: { ...deDE.settings, ...resourceMarketEn },
   workspace: { ...deDE.workspace, activity: chatActivity['de-DE'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,

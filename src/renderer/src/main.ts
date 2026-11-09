@@ -23,6 +23,8 @@ import { usePetStore } from '@renderer/stores/pet'
 import { installPetRuntimeAdapter } from '@renderer/pet/install-runtime-adapter'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { runtimeStartupChecks, startupChecks, startupPhase } from './startup'
+import { applyVisualSkin, setInstalledPetIds, setInstalledThemeAssets } from '@renderer/utils/visual-skin'
+import { publishInstalledCatalog } from '@renderer/market/catalog'
 
 // Main sets nativeTheme before creating the window, including a saved dark theme.
 applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'soft-light')
@@ -160,9 +162,19 @@ async function bootstrap() {
   }
 }
 
+setInstalledThemeAssets([])
+setInstalledPetIds([])
 void bootstrap()
-
-app.mount('#app')
+void getApi()
+  .market.installed()
+  .then((installed) => {
+    publishInstalledCatalog(installed)
+    applyVisualSkin(settingsStore.settings)
+  })
+  .catch(() => undefined)
+  .finally(() => {
+    app.mount('#app')
+  })
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {

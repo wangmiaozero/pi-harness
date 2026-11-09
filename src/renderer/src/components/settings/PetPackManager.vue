@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import Button from '@renderer/components/ui/Button.vue'
@@ -8,9 +8,11 @@ import Select from '@renderer/components/ui/Select.vue'
 import type { PetPackSummary } from '@shared/ipc/api-types'
 
 const { t } = useI18n()
+const emit = defineEmits<{ ready: [boolean] }>()
 
 const packs = ref<PetPackSummary[]>([])
 const loading = ref(false)
+const loaded = ref(false)
 const importing = ref(false)
 const removing = ref(false)
 
@@ -31,18 +33,21 @@ const selectedPack = computed(
 
 const canRemove = computed(() => Boolean(selectedPack.value && !selectedPack.value.bundled))
 
+watch([loaded, selectedPack], () => {
+  if (!loaded.value) return
+  emit('ready', Boolean(selectedPack.value))
+})
+
 async function refresh(): Promise<void> {
   loading.value = true
   try {
     const list = (await window.piSwitch?.pets.list()) ?? []
     packs.value = list
-    if (!list.some((pack) => pack.id === selectedId.value)) {
-      selectedId.value = list[0]?.id ?? 'bigfish'
-    }
   } catch (error) {
     toast.error(t('settings.petPackListFailed'), { description: errorText(error) })
   } finally {
     loading.value = false
+    loaded.value = true
   }
 }
 
@@ -104,7 +109,7 @@ onMounted(() => {
 
 <template>
   <div class="space-y-3" data-testid="pet-pack-manager">
-    <PropertyRow :label="$t('settings.petPackActive')">
+    <PropertyRow v-if="packOptions.length" :label="$t('settings.petPackActive')">
       <Select
         :model-value="selectedId"
         :options="packOptions"
@@ -133,6 +138,7 @@ onMounted(() => {
         {{ $t('settings.petPackImportFolder') }}
       </Button>
       <Button
+        v-if="selectedPack"
         size="sm"
         variant="danger"
         :disabled="!canRemove"

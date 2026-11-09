@@ -162,6 +162,19 @@ export interface Services {
   petImportPack: (source: PetPackInstallSource) => Promise<PetPackInstallResult>
   petListPacks: () => Promise<PetPackSummary[]>
   petPackDetail: (id: string) => Promise<PetPackDetail | null>
+  marketSearch: (
+    query: string,
+    kind: 'all' | 'theme' | 'pet',
+    refresh: boolean
+  ) => Promise<import('@shared/market/types').MarketSearchResult>
+  marketInstalled: () => Promise<import('@shared/market/types').MarketInstalled>
+  marketRefresh: () => Promise<import('@shared/market/types').MarketInstalled>
+  marketInstall: (
+    name: string,
+    version?: string
+  ) => Promise<import('@shared/market/types').MarketInstallResult>
+  marketUninstall: (name: string) => Promise<void>
+  marketCancel: (name: string) => void
   getMainWindow: () => BrowserWindow | null
   setAppIcon: (settings: AppSettings) => void
   setScreenMotionActive: (payload: ScreenMotionActivePayload) => void
@@ -969,6 +982,47 @@ export function registerIpc(services: Services): void {
     wrap(() => {
       if (typeof id !== 'string' || !id) throw new ValidationError('Invalid pet pack id')
       return services.petSetActivePack(id)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.marketSearch, (_e, input: unknown) =>
+    wrap(() => {
+      const payload = input as { query?: unknown; kind?: unknown; refresh?: unknown }
+      const kind = payload?.kind
+      if (typeof payload?.query !== 'string' || payload.query.length > 200) {
+        throw new ValidationError('Invalid market query')
+      }
+      if (kind !== 'all' && kind !== 'theme' && kind !== 'pet') {
+        throw new ValidationError('Invalid market kind')
+      }
+      return services.marketSearch(payload.query, kind, payload.refresh === true)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.marketInstalled, () => wrap(() => services.marketInstalled()))
+  ipcMain.handle(IPC_INVOKE.marketRefresh, () => wrap(() => services.marketRefresh()))
+  ipcMain.handle(IPC_INVOKE.marketInstall, (_e, input: unknown) =>
+    wrap(() => {
+      const payload = input as { name?: unknown; version?: unknown }
+      if (typeof payload?.name !== 'string' || payload.name.length > 200) {
+        throw new ValidationError('Invalid market package')
+      }
+      if (payload.version !== undefined && typeof payload.version !== 'string') {
+        throw new ValidationError('Invalid market version')
+      }
+      return services.marketInstall(payload.name, payload.version)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.marketUninstall, (_e, input: unknown) =>
+    wrap(() => {
+      const name = (input as { name?: unknown })?.name
+      if (typeof name !== 'string' || !name) throw new ValidationError('Invalid market package')
+      return services.marketUninstall(name)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.marketCancel, (_e, input: unknown) =>
+    wrap(async () => {
+      const name = (input as { name?: unknown })?.name
+      if (typeof name !== 'string' || !name) throw new ValidationError('Invalid market package')
+      services.marketCancel(name)
     })
   )
 

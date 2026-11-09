@@ -21,6 +21,7 @@ import {
 } from '@renderer/composables/useAgentAuraFrame'
 import { getApi, isBridgeAvailable } from '@renderer/composables/useApi'
 import { usesDeepseekVideoSkin } from '@renderer/bigfish-startup/gate'
+import { themePackInstalled } from '@renderer/utils/visual-skin'
 import { applyVisualSkin, getActiveVisualSkin } from '@renderer/utils/visual-skin'
 
 const settings = useSettingsStore()
@@ -65,9 +66,11 @@ watch(
   () => {
     applyVisualSkin(settings.settings)
     if (settings.settings) applyTheme(settings.settings.theme)
-    const videoSkin = usesDeepseekVideoSkin(settings.settings, {
-      reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    })
+    const videoSkin =
+      themePackInstalled(settings.settings?.mascotStyle) &&
+      usesDeepseekVideoSkin(settings.settings, {
+        reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      })
     void import('@renderer/bigfish-startup/play').then((mod) =>
       mod.syncDeepseekVideoSkin(videoSkin)
     )
