@@ -23,10 +23,10 @@ afterEach(async () => {
     await fs.rm(directory, { recursive: true, force: true })
 })
 
-async function fixture(nomascot: boolean) {
+async function fixture() {
   const projectDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mac-packaging-'))
   temporary.push(projectDir)
-  const directory = path.join(projectDir, 'release', ...(nomascot ? ['nomascot'] : []))
+  const directory = path.join(projectDir, 'release')
   for (const name of unpacked)
     await fs.mkdir(path.join(directory, name, 'Pi-Harness.app'), { recursive: true })
   const preserved = [
@@ -44,10 +44,8 @@ async function fixture(nomascot: boolean) {
   return { projectDir, directory, preserved }
 }
 
-it.each([false, true])(
-  'removes all staging apps only after macOS artifacts finish (nomascot=%s)',
-  async (nomascot) => {
-    const { projectDir, directory, preserved } = await fixture(nomascot)
+it('removes all staging apps only after macOS artifacts finish', async () => {
+    const { projectDir, directory, preserved } = await fixture()
     const artifacts = preserved.filter((file) => /\.(dmg|zip)$/.test(file))
     builder.build.mockImplementation(async (options) => {
       expect(options.targets.get(Platform.MAC)).toEqual(
@@ -56,16 +54,14 @@ it.each([false, true])(
           [Arch.x64, []]
         ])
       )
-      expect(options.config).toBe(
-        nomascot ? 'electron-builder.nomascot.yml' : 'electron-builder.yml'
-      )
+      expect(options.config).toBe('electron-builder.yml')
       for (const name of unpacked)
         await expect(fs.stat(path.join(directory, name, 'Pi-Harness.app'))).resolves.toBeTruthy()
       // Packaging still needs the staging app while it writes the final ZIP.
       await fs.writeFile(artifacts[1], 'completed')
       return artifacts
     })
-    await expect(buildMac({ projectDir, arches: ['arm64', 'x64'], nomascot })).resolves.toEqual(
+    await expect(buildMac({ projectDir, arches: ['arm64', 'x64'] })).resolves.toEqual(
       artifacts
     )
     for (const name of unpacked)
@@ -75,13 +71,11 @@ it.each([false, true])(
   }
 )
 
-it.each([false, true])(
-  'cleans failed macOS builds and preserves the failure (nomascot=%s)',
-  async (nomascot) => {
-    const { projectDir, directory, preserved } = await fixture(nomascot)
+it('cleans failed macOS builds and preserves the failure', async () => {
+    const { projectDir, directory, preserved } = await fixture()
     const error = new Error('DMG creation failed')
     builder.build.mockRejectedValue(error)
-    await expect(buildMac({ projectDir, arches: ['arm64'], nomascot })).rejects.toBe(error)
+    await expect(buildMac({ projectDir, arches: ['arm64'] })).rejects.toBe(error)
     for (const name of unpacked)
       await expect(fs.stat(path.join(directory, name))).rejects.toMatchObject({ code: 'ENOENT' })
     for (const file of preserved) expect(await fs.readFile(file, 'utf8')).toBe('preserve')
@@ -89,18 +83,16 @@ it.each([false, true])(
 )
 
 it('fails packaging when staging app cleanup fails', async () => {
-  const { projectDir } = await fixture(false)
+  const { projectDir } = await fixture()
   builder.build.mockResolvedValue([])
   const error = Object.assign(new Error('Cleanup denied'), { code: 'EACCES' })
   vi.spyOn(fs, 'rm').mockRejectedValueOnce(error)
   await expect(buildMac({ projectDir, arches: ['arm64'] })).rejects.toBe(error)
 })
 
-it.each(['standard', 'nomascot'])(
-  'cleans upgrade staging on a failed DMG build without accepting partial artifacts (%s)',
-  async (variant) => {
-    const { projectDir } = await fixture(false)
-    const directory = path.join(projectDir, 'out/update-validation/darwin-x64', variant, '2.3.19')
+it('cleans upgrade staging on a failed DMG build without accepting partial artifacts', async () => {
+    const { projectDir } = await fixture()
+    const directory = path.join(projectDir, 'out/update-validation/darwin-x64', 'standard', '2.3.19')
     const app = path.join(directory, 'mac/Pi-Harness.app')
     await fs.mkdir(app, { recursive: true })
     const zip = path.join(directory, 'Pi-Harness.zip')
@@ -119,7 +111,7 @@ it.each(['standard', 'nomascot'])(
 )
 
 it('unlinks staging symlinks without deleting their targets and tolerates missing directories', async () => {
-  const { projectDir, directory, preserved } = await fixture(false)
+  const { projectDir, directory, preserved } = await fixture()
   const staging = path.join(directory, 'mac-arm64')
   await fs.rm(staging, { recursive: true })
   await fs.symlink(path.join(projectDir, 'Applications'), staging, 'junction')

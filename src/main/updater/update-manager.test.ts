@@ -60,9 +60,9 @@ async function setup(
 }
 it.each([
   ['darwin', 'arm64', 'standard'],
-  ['darwin', 'x64', 'nomascot'],
+  ['darwin', 'x64', 'standard'],
   ['win32', 'x64', 'standard'],
-  ['linux', 'x64', 'nomascot']
+  ['linux', 'x64', 'standard']
 ])(
   'authenticates %s %s %s before download and exposes a verified manual installer',
   async (platform, arch, variant) => {

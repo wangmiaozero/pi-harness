@@ -36,7 +36,6 @@ it('renders English release summaries and feature sections without weakening cha
 })
 it('uses the builder Linux ARM64 metadata suffix without changing existing feeds', () => {
   expect(metadataName('linux-arm64', 'standard')).toBe('latest-linux-arm64.yml')
-  expect(metadataName('linux-arm64', 'nomascot')).toBe('nomascot-linux-arm64.yml')
   expect(metadataName('darwin-arm64', 'standard')).toBe('latest-mac.yml')
   expect(metadataName('win32-arm64', 'standard')).toBe('latest.yml')
 })
@@ -67,9 +66,7 @@ it('keeps all supported installer names unique across architectures and variants
     'win32-arm64',
     'linux-x64',
     'linux-arm64'
-  ].flatMap((platform) =>
-    ['standard', 'nomascot'].flatMap((variant) => assetNames('2.0.1', platform, variant))
-  )
+  ].flatMap((platform) => assetNames('2.0.1', platform, 'standard'))
   expect(new Set(names).size).toBe(names.length)
   expect(names).toContain('Pi-Harness-Setup-2.0.1.exe')
   expect(names).toContain('Pi-Harness-2.0.1-mac.zip')
@@ -84,9 +81,7 @@ it('validates generated payload bytes and rejects wrong variant or unsafe metada
   }
   await fs.writeFile(path.join(dir, 'latest.yml'), JSON.stringify(metadata))
   await expect(validateMetadata(dir, 'latest.yml', '2.0.1', [file])).resolves.toBeTruthy()
-  await expect(
-    validateMetadata(dir, 'latest.yml', '2.0.1', [file.replace('.exe', '-nomascot.exe')])
-  ).rejects.toThrow()
+  await expect(validateMetadata(dir, 'latest.yml', '2.0.1', ['missing.exe'])).rejects.toThrow()
   await fs.writeFile(path.join(dir, file), 'altered')
   await expect(validateMetadata(dir, 'latest.yml', '2.0.1', [file])).rejects.toThrow('integrity')
 })

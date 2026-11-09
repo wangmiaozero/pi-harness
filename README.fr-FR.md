@@ -139,7 +139,9 @@ Parcourez et modifiez les Skills intégrés et locaux, et gérez les paquets et 
 
 ### Compagnon de bureau
 
-Activez BigFish dans **Réglages → Mascotte de bureau** pour suivre la réflexion, les outils, l’attente et la fin des tâches. Désactivé par défaut, il peut rester visible lorsque la fenêtre principale est réduite.
+Installez séparément les thèmes de personnages et les animaux de bureau officiels dans **Réglages → Marché de ressources**. Ces médias optionnels ne sont pas inclus dans l’application, et l’espace de travail s’ouvre sans réseau. Un thème ou un animal déjà choisi reste sélectionné ; tant que ses fichiers manquent, l’apparence de base est utilisée, puis elle revient après l’installation. Voir [docs/market/MARKET.md](docs/market/MARKET.md).
+
+Activez un animal de bureau installé dans **Réglages → Mascotte de bureau** pour suivre la réflexion, les outils, l’attente et la fin des tâches. Désactivé par défaut, il peut rester visible lorsque la fenêtre principale est réduite.
 
 Au repos, choisissez parmi 193 actions dans un menu contextuel avec recherche. Pendant les tâches, les interactions manuelles sont suspendues et le déplacement conserve l’animation de travail. Importez des packs locaux et réglez la taille, l’opacité et les bulles avec des curseurs.
 
@@ -201,7 +203,7 @@ L’analyse locale ne consomme aucun token de modèle ; les descriptions IA sont
 
 ### Thèmes et habillages personnalisés
 
-Choisissez les palettes classiques, Ming, Starship Cockpit, les fonds macOS 27 ou un habillage importé. Les nouvelles installations démarrent en mode sombre. Personnalisez les noms du chat, l’icône, les images de fond locales, les halos de fenêtre et d’écran et l’effet de flamme du champ de saisie. Une animation accompagne la vérification de l’environnement au démarrage ; les versions sans mascotte conservent les réglages généraux d’apparence.
+Choisissez les palettes classiques, Ming, Starship Cockpit, les fonds macOS 27 ou un habillage importé. Les nouvelles installations démarrent en mode sombre. Personnalisez les noms du chat, l’icône, les images de fond locales, les halos de fenêtre et d’écran et l’effet de flamme du champ de saisie. Une animation accompagne la vérification de l’environnement au démarrage.
 
 ### Environnement et réglages
 
@@ -356,7 +358,7 @@ Téléchargez un installateur publié sur [GitHub Releases](https://github.com/w
 | Windows x64         | `.exe` · Installateur Windows |
 | Linux x64           | `.AppImage`                   |
 
-Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer pnpm. Pi-Harness vous aide à installer Pi et son environnement lorsque cette fonction est disponible.
+Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer pnpm. Les thèmes et les animaux de bureau s’installent depuis le marché de ressources. Pi-Harness vous aide à installer Pi et son environnement lorsque cette fonction est disponible.
 
 > Les builds communautaires macOS peuvent ne pas être signés. Si le premier lancement est bloqué, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**.
 

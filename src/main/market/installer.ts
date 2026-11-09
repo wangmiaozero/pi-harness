@@ -58,6 +58,7 @@ export class MarketInstaller {
       this.progress(name, 'metadata', 0, null)
       const metadata = await this.options.client.package(name)
       const selected = this.options.client.selectVersion(metadata, this.options.appVersion, version)
+      if (selected.partOf) throw new MarketPackageError(`Install ${selected.partOf} to get this pet`)
       if (selected.scripts.length) throw new MarketPackageError('Package install scripts are not allowed')
       const tarball = path.join(staging, 'download.tgz')
       await fs.mkdir(staging, { recursive: true })
@@ -72,6 +73,9 @@ export class MarketInstaller {
       await extractMarketTarball(tarball, extracted)
       const packageRoot = await readPackageRoot(extracted)
       await rejectScripts(packageRoot)
+      if (parsed.kind === 'pet' && selected.parts.length) {
+        await this.mergePetParts(parsed.name, selected, packageRoot, staging, controller.signal)
+      }
       this.progress(name, 'install', 0, null)
       const result =
         parsed.kind === 'theme'
@@ -131,6 +135,32 @@ export class MarketInstaller {
       await fs.rm(staged, { recursive: true, force: true }).catch(() => undefined)
     }
     return { name, version: selected.version, packId: manifest.id, updated: Boolean(previous) }
+  }
+
+  private async mergePetParts(
+    name: string,
+    selected: RegistryVersion,
+    packageRoot: string,
+    staging: string,
+    signal: AbortSignal
+  ): Promise<void> {
+    for (const [index, partName] of selected.parts.entries()) {
+      const metadata = await this.options.client.package(partName)
+      const part = this.options.client.selectVersion(metadata, this.options.appVersion, selected.version)
+      if (part.partOf !== name) throw new MarketPackageError(`${partName} is not a part of ${name}`)
+      if (part.scripts.length) throw new MarketPackageError('Package install scripts are not allowed')
+      const tarball = path.join(staging, `part-${index}.tgz`)
+      await this.download(name, part, tarball, signal)
+      this.progress(name, 'verify', 0, null)
+      const digest = await sha512FileBase64(tarball, signal)
+      if (!integrityMatches(part.integrity, digest)) throw new MarketPackageError('Package integrity check failed')
+      this.progress(name, 'extract', 0, null)
+      const extracted = path.join(staging, `part-${index}`)
+      await extractMarketTarball(tarball, extracted)
+      const partRoot = await readPackageRoot(extracted)
+      await rejectScripts(partRoot)
+      await mergeClipDirectory(partRoot, packageRoot)
+    }
   }
 
   private async commitPet(
@@ -260,6 +290,26 @@ export class MarketInstaller {
 
 function record(name: string, selected: RegistryVersion, packId: string, license: string): IndexRecord {
   return { name, version: selected.version, integrity: selected.integrity, packId, license }
+}
+
+async function mergeClipDirectory(fromRoot: string, intoRoot: string): Promise<void> {
+  const source = path.join(fromRoot, 'clips')
+  const destination = path.join(intoRoot, 'clips')
+  await fs.mkdir(destination, { recursive: true })
+  const entries = await fs.readdir(source, { withFileTypes: true })
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !/^[\w][\w.-]*$/.test(entry.name)) {
+      throw new MarketPackageError(`Pet part clip "${entry.name}" is not a directory`)
+    }
+    const target = path.join(destination, entry.name)
+    try {
+      await fs.access(target)
+      throw new MarketPackageError(`Pet clip already exists: ${entry.name}`)
+    } catch (error) {
+      if (error instanceof MarketPackageError || (error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+    await fs.cp(path.join(source, entry.name), target, { recursive: true, verbatimSymlinks: false })
+  }
 }
 
 async function rejectScripts(packageRoot: string): Promise<void> {

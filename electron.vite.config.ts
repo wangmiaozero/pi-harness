@@ -5,11 +5,7 @@ import { resolve } from 'node:path'
 import { readFileSync } from 'node:fs'
 
 export default defineConfig(({ mode }) => {
-  // `--mode nomascot` compiles the optional theme-art module out of the app:
-  // the Settings section is hidden, the pet runtime is skipped, and the
-  // sprite data module is swapped for an empty stub so its assets never
-  // enter the bundle. Driven by the `*:nomascot` scripts in package.json.
-  const updateFixture = mode === 'update-e2e' || mode === 'update-e2e-nomascot'
+  const updateFixture = mode === 'update-e2e'
   if (updateFixture && process.env.PI_HARNESS_NATIVE_UPDATE_TEST !== '1')
     throw new Error('Update fixtures require an explicit local/native test build')
   const trustFile = updateFixture
@@ -28,8 +24,7 @@ export default defineConfig(({ mode }) => {
     )
       throw new Error('The test identity must contain public keys only')
   }
-  const mascotEnabled = !['nomascot', 'update-e2e-nomascot'].includes(mode)
-  const featureDefines = { __MASCOT_ENABLED__: JSON.stringify(mascotEnabled) }
+  const featureDefines = { __MASCOT_ENABLED__: 'true' }
 
   return {
     main: {
@@ -86,7 +81,7 @@ export default defineConfig(({ mode }) => {
           input: {
             index: resolve(import.meta.dirname, 'src/preload/index.ts'),
             overlay: resolve(import.meta.dirname, 'src/preload/overlay.ts'),
-            ...(mascotEnabled ? { pet: resolve(import.meta.dirname, 'src/preload/pet.ts') } : {})
+            pet: resolve(import.meta.dirname, 'src/preload/pet.ts')
           }
         }
       },
@@ -99,21 +94,6 @@ export default defineConfig(({ mode }) => {
       root: 'src/renderer',
       resolve: {
         alias: {
-          ...(mascotEnabled
-            ? {}
-            : {
-                // Must stay above the generic '@renderer' entry so the exact
-                // match wins and the mascot sprite assets are excluded.
-                '@renderer/pet/manifests-data': resolve(
-                  import.meta.dirname,
-                  'src/renderer/src/pet/manifests-stub.ts'
-                ),
-                // Same exclusion for the 大肥鱼 boot sequence and its audio.
-                '@renderer/bigfish-startup/play': resolve(
-                  import.meta.dirname,
-                  'src/renderer/src/bigfish-startup/play-stub.ts'
-                )
-              }),
           '@renderer': resolve(import.meta.dirname, 'src/renderer/src'),
           '@shared': resolve(import.meta.dirname, 'src/shared')
         }
@@ -131,7 +111,7 @@ export default defineConfig(({ mode }) => {
           input: {
             index: resolve(import.meta.dirname, 'src/renderer/index.html'),
             overlay: resolve(import.meta.dirname, 'src/renderer/overlay.html'),
-            ...(mascotEnabled ? { pet: resolve(import.meta.dirname, 'src/renderer/pet.html') } : {})
+            pet: resolve(import.meta.dirname, 'src/renderer/pet.html')
           }
         }
       }

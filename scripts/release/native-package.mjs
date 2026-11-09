@@ -137,29 +137,21 @@ try {
   await command('node-security', ['security:node', '--online'])
   await command('runtime-tests', ['test:runtime'])
   for (const variant of variants) {
-    const directory = path.join(root, 'release', ...(variant === 'nomascot' ? ['nomascot'] : []))
+    const directory = path.join(root, 'release')
     const names = assetNames(version, platform, variant)
     const metadata = metadataName(platform, variant)
     // Remove only this target's expected files; stale artifacts cannot satisfy a failed build.
     for (const name of [...names, ...names.map((name) => `${name}.blockmap`), metadata])
       await fs.rm(path.join(directory, name), { force: true })
-    await command(`compile-${variant}`, [variant === 'standard' ? 'compile' : 'compile:nomascot'])
+    await command(`compile-${variant}`, ['compile'])
     const target =
       process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'win' : 'linux'
     const args =
       process.platform === 'darwin'
         ? ['exec', 'node', 'scripts/electron-builder-mac.mjs', `--${process.arch}`]
         : ['exec', 'electron-builder', '--publish', 'never', `--${target}`, `--${process.arch}`]
-    if (variant === 'nomascot')
-      args.push(
-        ...(process.platform === 'darwin'
-          ? ['--nomascot']
-          : ['--config', 'electron-builder.nomascot.yml'])
-      )
     if (process.platform === 'win32' && process.arch === 'arm64')
-      args.push(
-        `-c.win.artifactName=Pi-Harness-Setup-\${version}-arm64${variant === 'nomascot' ? '-nomascot' : ''}.\${ext}`
-      )
+      args.push(`-c.win.artifactName=Pi-Harness-Setup-\${version}-arm64.\${ext}`)
     await command(`package-${variant}`, args, { CSC_IDENTITY_AUTO_DISCOVERY: 'false' })
     await validateMetadata(directory, metadata, version, names)
     const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-community-install-'))
@@ -225,7 +217,6 @@ try {
           'e2e/harness-plugins.spec.ts',
           'e2e/default-workspace-access.spec.ts',
           'e2e/workspace-file-editing.spec.ts',
-          ...(variant === 'nomascot' ? ['e2e/nomascot.spec.ts'] : []),
           '--reporter=list,json'
         ],
         env

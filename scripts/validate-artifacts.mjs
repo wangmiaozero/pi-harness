@@ -19,14 +19,6 @@ const archive = path.join(resources, 'app.asar')
 const files = new Set(
   asar.listPackage(archive).map((file) => file.replaceAll('\\', '/').replace(/^\//, ''))
 )
-if (process.env.PI_HARNESS_E2E_VARIANT === 'nomascot') {
-  if (files.has('out/renderer/pet.html') || files.has('out/preload/pet.mjs'))
-    throw new Error('Desktop pet entry points must not ship in nomascot')
-  if (await fs.stat(path.join(resources, 'petpacks')).catch(() => null))
-    throw new Error('Desktop pet artwork must not ship in nomascot')
-  if ([...files].some((file) => file.startsWith('resources/petpacks/')))
-    throw new Error('Archived desktop pet artwork must not ship in nomascot')
-}
 if (await fs.stat(path.join(resources, 'petpacks')).catch(() => null))
   throw new Error('Optional pet artwork must be installed from the resource market')
 if ([...files].some((file) => file.startsWith('resources/petpacks/')))
@@ -67,12 +59,8 @@ for (const file of [
   if (!files.has(file)) throw new Error(`Required packaged resource is missing: ${file}`)
 }
 const release = path.resolve('release')
-const releaseDirectory =
-  process.env.PI_HARNESS_E2E_VARIANT === 'nomascot' ? path.join(release, 'nomascot') : release
-const channelMetadataName = updateMetadataName(
-  `${process.platform}-${process.arch}`,
-  process.env.PI_HARNESS_E2E_VARIANT === 'nomascot' ? 'nomascot' : 'standard'
-)
+const releaseDirectory = release
+const channelMetadataName = updateMetadataName(`${process.platform}-${process.arch}`, 'standard')
 const metadata = yaml.load(
   await fs.readFile(path.join(releaseDirectory, channelMetadataName), 'utf8')
 )

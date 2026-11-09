@@ -139,7 +139,9 @@ Durchsuche und bearbeite integrierte und lokale Skills und verwalte Pi-Pakete un
 
 ### Desktop-Begleiter
 
-Aktivieren Sie BigFish unter **Einstellungen → Desktop-Haustier**, um Denkphasen, Werkzeugaufrufe, Wartezustände und abgeschlossene Aufgaben auf dem Desktop zu verfolgen. Standardmäßig ist der Begleiter deaktiviert. Er kann bei minimiertem Hauptfenster sichtbar bleiben.
+Installieren Sie offizielle Figurendesigns und Desktop-Tiere einzeln unter **Einstellungen → Ressourcenmarkt**. Diese optionalen Medien sind nicht in der App enthalten, und der Arbeitsbereich öffnet sich ohne Netzwerk. Ein zuvor gewähltes Design oder Tier bleibt ausgewählt; fehlen die Dateien, gilt das Grundaussehen, nach der Installation kehrt es zurück. Siehe [docs/market/MARKET.md](docs/market/MARKET.md).
+
+Aktivieren Sie ein installiertes Desktop-Tier unter **Einstellungen → Desktop-Haustier**, um Denkphasen, Werkzeugaufrufe, Wartezustände und abgeschlossene Aufgaben auf dem Desktop zu verfolgen. Standardmäßig ist der Begleiter deaktiviert. Er kann bei minimiertem Hauptfenster sichtbar bleiben.
 
 Im Leerlauf stehen 193 Aktionen in einem durchsuchbaren Kontextmenü bereit. Während Aufgaben laufen, pausieren manuelle Interaktionen; beim Verschieben bleibt die Arbeitsanimation erhalten. Lokale Haustierpakete lassen sich importieren, Größe, Deckkraft und Sprechblasen per Schieberegler anpassen.
 
@@ -201,7 +203,7 @@ Die lokale Analyse verbraucht keine Modell-Tokens; KI-Beschreibungen sind option
 
 ### Themes und eigene Skins
 
-Wähle klassische Farbpaletten, Ming, Starship Cockpit, macOS-27-Hintergründe oder einen importierten Skin. Neue Installationen starten im dunklen Theme. Passe Chatnamen, App-Symbole, lokale Hintergrundbilder, Fenster- und Bildschirmleuchten sowie den Flammeneffekt des Eingabefelds an. Eine Startanimation begleitet die Umgebungsprüfung; Builds ohne Maskottchen behalten die allgemeinen Darstellungsoptionen.
+Wähle klassische Farbpaletten, Ming, Starship Cockpit, macOS-27-Hintergründe oder einen importierten Skin. Neue Installationen starten im dunklen Theme. Passe Chatnamen, App-Symbole, lokale Hintergrundbilder, Fenster- und Bildschirmleuchten sowie den Flammeneffekt des Eingabefelds an. Eine Startanimation begleitet die Umgebungsprüfung.
 
 ### Umgebung und App-Einstellungen
 
@@ -356,7 +358,7 @@ Lade einen veröffentlichten Installer von [GitHub Releases](https://github.com/
 | Windows x64         | `.exe` · Windows-Installer |
 | Linux x64           | `.AppImage`                |
 
-Nutzer der paketierten App müssen das Repository nicht klonen oder pnpm installieren. In unterstützten Umgebungen hilft Pi-Harness bei der Einrichtung von Pi und dessen Laufzeitumgebung.
+Nutzer der paketierten App müssen das Repository nicht klonen oder pnpm installieren. Designs und Desktop-Tiere werden über den Ressourcenmarkt installiert. In unterstützten Umgebungen hilft Pi-Harness bei der Einrichtung von Pi und dessen Laufzeitumgebung.
 
 > macOS-Community-Builds können unsigniert sein. Falls der erste Start blockiert wird, nutze **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen**.
 

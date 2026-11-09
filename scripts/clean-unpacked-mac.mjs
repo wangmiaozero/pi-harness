@@ -25,7 +25,7 @@ export async function cleanUnpackedMac(directory) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const release = path.join(root, 'release', process.argv.includes('--nomascot') ? 'nomascot' : '')
+  const release = path.join(root, 'release')
   cleanUnpackedMac(release).catch((err) => {
     console.error(err)
     process.exitCode = 1

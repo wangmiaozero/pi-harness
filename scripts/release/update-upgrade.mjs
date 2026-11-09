@@ -121,7 +121,7 @@ try {
         'electron-vite',
         'build',
         '--mode',
-        variant === 'standard' ? 'update-e2e' : 'update-e2e-nomascot'
+        'update-e2e'
       ],
       { PI_HARNESS_NATIVE_UPDATE_TEST: '1', PI_HARNESS_UPDATE_TEST_TRUST: trustFile }
     )
@@ -142,18 +142,18 @@ try {
         config: {
           extends: path.join(
             root,
-            variant === 'standard' ? 'electron-builder.yml' : 'electron-builder.nomascot.yml'
+            'electron-builder.yml'
           ),
           directories: { output: directory },
           extraMetadata: { version },
           // Validation fixtures are throwaway artifacts that only need to install
-          // and hash-match; skipping compression keeps the four sequential
-          // electron-builder runs (2 variants × 2 versions) inside the CI budget.
+          // and hash-match; skipping compression keeps the two sequential
+          // electron-builder runs inside the CI budget.
           compression: 'store',
           ...(process.platform === 'win32' && process.arch === 'arm64'
             ? {
                 win: {
-                  artifactName: `Pi-Harness-Setup-\${version}-arm64${variant === 'nomascot' ? '-nomascot' : ''}.\${ext}`
+                  artifactName: `Pi-Harness-Setup-\${version}-arm64.\${ext}`
                 }
               }
             : {})

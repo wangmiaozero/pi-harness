@@ -1,8 +1,8 @@
 # Community Release
 
 Download Pi-Harness from the [official Releases page](https://github.com/wangmiaozero/pi-harness/releases).
-Choose the package for your operating system and architecture. The nomascot variant omits the
-desktop companion.
+Choose the package for your operating system and architecture. Themes and desktop pets are
+installed from the Resource Market.
 
 - macOS: DMG or ZIP. Community builds use ad-hoc signing, not an Apple Developer identity or notarization.
 - Windows: NSIS installer. Community installers are unsigned and may show a SmartScreen warning.

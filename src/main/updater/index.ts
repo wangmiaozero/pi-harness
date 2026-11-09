@@ -14,11 +14,10 @@ import { createReleaseFetcher } from './release-fetch'
 import { readUpdateMode } from './policy'
 import { verifyDistribution, runtimeLayout, catalog } from '../runtime/distribution.mjs'
 
-declare const __MASCOT_ENABLED__: boolean
 let manager: UpdateManager | null = null
 function service() {
   if (manager) return manager
-  const variant = __MASCOT_ENABLED__ ? 'standard' : 'nomascot'
+  const variant = 'standard'
   const directory = path.join(app.getPath('userData'), 'updates')
   const currentVersion = app.isPackaged ? app.getVersion() : APP_VERSION
   const fetcher = createReleaseFetcher((options) => net.request(options))

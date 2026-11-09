@@ -8,8 +8,6 @@ const requiredChecks = [
   'lint',
   'test',
   'compile',
-  'compile-nomascot',
-  'nomascot-e2e',
   'source-stability',
   'dependency-licenses',
   'dependency-audit',

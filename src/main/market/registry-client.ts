@@ -12,6 +12,8 @@ export interface RegistryVersion {
   tarballSize: number | null
   license: string
   compatible: string | null
+  parts: string[]
+  partOf: string | null
   scripts: string[]
 }
 
@@ -163,7 +165,7 @@ interface RegistryVersionBody {
   deprecated?: string
   license?: string
   scripts?: Record<string, string>
-  piHarness?: { compatible?: string }
+  piHarness?: { compatible?: string; parts?: unknown; partOf?: unknown }
   dist?: { integrity?: string; tarball?: string; unpackedSize?: number; size?: number }
 }
 
@@ -174,6 +176,9 @@ function normalizeVersion(body: RegistryVersionBody): RegistryVersion | null {
   const scripts = Object.entries(body.scripts ?? {})
     .filter(([, command]) => typeof command === 'string' && command.trim())
     .map(([name]) => name)
+  const parts = officialPackageNames(body.piHarness?.parts)
+  const partOf = officialPackageName(body.piHarness?.partOf)
+  if (!parts || partOf === undefined || (parts.length > 0 && partOf)) return null
   return {
     version: body.version,
     deprecated: typeof body.deprecated === 'string' && body.deprecated.length > 0,
@@ -183,8 +188,27 @@ function normalizeVersion(body: RegistryVersionBody): RegistryVersion | null {
     tarballSize: typeof body.dist.size === 'number' ? body.dist.size : null,
     license: body.license ?? '',
     compatible: body.piHarness?.compatible ?? null,
+    parts,
+    partOf,
     scripts
   }
+}
+
+function officialPackageName(value: unknown): string | null | undefined {
+  if (value === undefined) return null
+  if (typeof value !== 'string' || !parseMarketPackageName(value)) return undefined
+  return value
+}
+
+function officialPackageNames(value: unknown): string[] | null {
+  if (value === undefined) return []
+  if (!Array.isArray(value) || value.length > 8) return null
+  const names: string[] = []
+  for (const item of value) {
+    if (typeof item !== 'string' || !parseMarketPackageName(item) || names.includes(item)) return null
+    names.push(item)
+  }
+  return names
 }
 
 function versionMatchesApp(version: RegistryVersion, appVersion: string): boolean {

@@ -4,22 +4,22 @@ import { createReadStream } from 'node:fs'
 import fs from 'node:fs/promises'
 
 export const releasePlatforms = ['darwin-arm64', 'darwin-x64', 'win32-x64', 'linux-x64']
-export const releaseVariants = ['standard', 'nomascot']
+export const releaseVariants = ['standard']
 export const stableVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
 export const keyIdentifier = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/
 
 export function assetNames(version, platform, variant) {
   const [os, arch] = platform.split('-')
-  const suffix = variant === 'nomascot' ? '-nomascot' : ''
+  if (variant !== 'standard') throw new Error('Unknown release variant')
   if (os === 'darwin')
     return [
-      `Pi-Harness-${version}${arch === 'arm64' || variant === 'nomascot' ? `-${arch}` : ''}${suffix}.dmg`,
-      `Pi-Harness-${version}${arch === 'arm64' || variant === 'nomascot' ? `-${arch}` : ''}${suffix}${variant === 'standard' ? '-mac' : ''}.zip`
+      `Pi-Harness-${version}${arch === 'arm64' ? `-${arch}` : ''}.dmg`,
+      `Pi-Harness-${version}${arch === 'arm64' ? `-${arch}` : ''}-mac.zip`
     ]
   if (os === 'win32')
-    return [`Pi-Harness-Setup-${version}${arch === 'arm64' ? '-arm64' : ''}${suffix}.exe`]
+    return [`Pi-Harness-Setup-${version}${arch === 'arm64' ? '-arm64' : ''}.exe`]
   return [
-    `Pi-Harness-${version}${arch === 'arm64' || variant === 'nomascot' ? `-${arch === 'x64' ? 'x86_64' : arch}` : ''}${suffix}.AppImage`
+    `Pi-Harness-${version}${arch === 'arm64' ? `-${arch === 'x64' ? 'x86_64' : arch}` : ''}.AppImage`
   ]
 }
 

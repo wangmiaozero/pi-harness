@@ -95,8 +95,7 @@ export function startupBrandCopy(style: MascotStyle | null | undefined): Startup
 /**
  * The vendored boot sequence can play when the bundled 大肥鱼 pack is the
  * active desktop pet and that pet is turned on. A selected theme does not
- * use this path. nomascot builds and reduced motion keep the short particle
- * startup.
+ * use this path. Reduced motion keeps the short particle startup.
  */
 export function usesBigfishStartup(
   settings: BigfishStartupSettings | null | undefined,

@@ -102,25 +102,11 @@ export async function prepareAppImageTools() {
   return { ...process.env, APPIMAGE_TOOLS_PATH: staged }
 }
 
-function parseArgs(argv) {
-  const extra = []
-  if (argv.includes('--nomascot')) extra.push('--config', 'electron-builder.nomascot.yml')
-  return extra
-}
-
 async function main() {
   const env = await prepareAppImageTools()
   const child = spawn(
     'pnpm',
-    [
-      'exec',
-      'electron-builder',
-      '--publish',
-      'never',
-      '--linux',
-      '--x64',
-      ...parseArgs(process.argv.slice(2))
-    ],
+    ['exec', 'electron-builder', '--publish', 'never', '--linux', '--x64'],
     { cwd: root, env, stdio: 'inherit' }
   )
   child.on('error', (error) => {

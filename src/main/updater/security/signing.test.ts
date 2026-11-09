@@ -102,11 +102,9 @@ it.each([
   const bytes = f.encode()
   expect(() => verifiedManifest(bytes, f.seal(bytes), f.trust, '2.0.1')).toThrow()
 })
-it('selects both variants and exact architectures; refuses unsupported or missing packages', () => {
+it('selects the installer for the exact architecture and refuses unsupported or missing packages', () => {
   const f = signingFixture()
-  expect(selectInstaller(f.manifest, 'darwin', 'x64', 'nomascot').file).toBe(
-    'Pi-Harness-2.0.1-x64-nomascot.dmg'
-  )
+  expect(selectInstaller(f.manifest, 'darwin', 'x64', 'standard').file).toBe('Pi-Harness-2.0.1.dmg')
   expect(selectInstaller(f.manifest, 'win32', 'x64', 'standard').file).toBe(
     'Pi-Harness-Setup-2.0.1.exe'
   )

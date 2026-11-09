@@ -6,9 +6,5 @@ export async function verifyPetResources(
   _application: ElectronApplication
 ): Promise<void> {
   const packs = await page.evaluate(async () => await window.piSwitch.pets.list())
-  if (process.env.PI_HARNESS_E2E_VARIANT === 'nomascot') {
-    expect(packs).toEqual([])
-    return
-  }
   expect(packs.some((pack) => pack.id === 'bigfish' && pack.bundled)).toBe(false)
 }

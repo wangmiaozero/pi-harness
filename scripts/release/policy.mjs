@@ -21,7 +21,8 @@ export async function digest(file, algorithm = 'sha256', encoding = 'hex') {
   return hash.digest(encoding)
 }
 export function metadataName(platform, variant) {
-  const prefix = variant === 'nomascot' ? 'nomascot' : 'latest'
+  if (variant !== 'standard') throw new Error('Unknown release variant')
+  const prefix = 'latest'
   return (
     prefix +
     (platform.startsWith('darwin')

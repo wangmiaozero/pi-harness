@@ -14,19 +14,15 @@ export async function buildMacWithCleanup(options, directory) {
   }
 }
 
-export async function buildMac({
-  projectDir = root,
-  arches = [process.arch],
-  nomascot = false
-} = {}) {
+export async function buildMac({ projectDir = root, arches = [process.arch] } = {}) {
   if (!arches.length || arches.some((arch) => !['arm64', 'x64'].includes(arch)))
     throw new Error('macOS packaging requires arm64 or x64')
-  const directory = path.join(projectDir, 'release', ...(nomascot ? ['nomascot'] : []))
+  const directory = path.join(projectDir, 'release')
   return buildMacWithCleanup(
     {
       projectDir,
       targets: Platform.MAC.createTarget(undefined, ...arches.map((arch) => Arch[arch])),
-      config: nomascot ? 'electron-builder.nomascot.yml' : 'electron-builder.yml',
+      config: 'electron-builder.yml',
       publish: 'never'
     },
     directory
@@ -35,14 +31,13 @@ export async function buildMac({
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2)
-  if (args.some((arg) => !['--arm64', '--x64', '--nomascot'].includes(arg))) {
-    process.stderr.write('Usage: electron-builder-mac.mjs [--arm64] [--x64] [--nomascot]\n')
+  if (args.some((arg) => !['--arm64', '--x64'].includes(arg))) {
+    process.stderr.write('Usage: electron-builder-mac.mjs [--arm64] [--x64]\n')
     process.exitCode = 1
   } else {
     const arches = ['arm64', 'x64'].filter((arch) => args.includes(`--${arch}`))
     buildMac({
-      arches: arches.length ? arches : [process.arch],
-      nomascot: args.includes('--nomascot')
+      arches: arches.length ? arches : [process.arch]
     }).catch((error) => {
       console.error(error instanceof Error ? error.message : error)
       process.exitCode = 1

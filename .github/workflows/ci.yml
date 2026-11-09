@@ -226,7 +226,7 @@ jobs:
             experimental: true
     continue-on-error: ${{ matrix.experimental }}
     runs-on: ${{ matrix.os }}
-    # The standard install uses most of an hour on macOS; nomascot still has to run.
+    # The installer build uses most of an hour on macOS.
     timeout-minutes: 90
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
@@ -252,7 +252,7 @@ jobs:
             ~/AppData/Local/electron/Cache
           key: downloads-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('pnpm-lock.yaml', 'src/main/runtime/catalog.json') }}
       - run: pnpm install --frozen-lockfile
-      - name: Build, install and execute both variants
+      - name: Build, install and execute
         if: runner.os != 'Linux'
         run: pnpm release:package
       - name: Build, extract and execute Linux AppImages

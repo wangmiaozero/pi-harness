@@ -18,7 +18,7 @@ export function renderReleaseNotes(changelog, version, previewRevision) {
 
 Community Release · free distribution.
 
-Supported platforms: macOS ARM64/x64, Windows x64, Linux x64. Standard and nomascot installers are provided. Windows/Linux ARM64 remain preview targets.
+Supported platforms: macOS ARM64/x64, Windows x64, Linux x64. Windows/Linux ARM64 remain preview targets.
 
 Runtime versions: Pi ${catalog.pi.version}; Node.js ${catalog.node.version}; npm/npx ${catalog.node.npmVersion}.
 

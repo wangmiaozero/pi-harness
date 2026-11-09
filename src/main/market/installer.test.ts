@@ -154,6 +154,104 @@ describe('market installer', () => {
     await installer.removeTheme('deepseek')
     await expect(fs.access(path.join(root, 'themes', 'deepseek'))).rejects.toThrow()
   })
+
+  it('merges pet part clips into the main package before install', async () => {
+    const dir = await temporary()
+    const main = path.join(dir, 'main')
+    const part = path.join(dir, 'part')
+    await fs.mkdir(path.join(main, 'clips', 'idle'), { recursive: true })
+    await fs.mkdir(path.join(part, 'clips', 'wave'), { recursive: true })
+    await fs.writeFile(path.join(main, 'clips', 'idle', 'idle_001.webp'), PNG)
+    await fs.writeFile(path.join(part, 'clips', 'wave', 'wave_001.webp'), PNG)
+    await fs.writeFile(path.join(main, 'LICENSE'), 'MIT')
+    await fs.writeFile(path.join(part, 'LICENSE'), 'MIT')
+    await fs.writeFile(
+      path.join(main, 'package.json'),
+      JSON.stringify({
+        name: '@pi-harness/pet-bigfish',
+        version: '1.0.0',
+        piHarness: { compatible: '>=2.4.0', parts: ['@pi-harness/pet-bigfish-2'] }
+      })
+    )
+    await fs.writeFile(
+      path.join(part, 'package.json'),
+      JSON.stringify({
+        name: '@pi-harness/pet-bigfish-2',
+        version: '1.0.0',
+        piHarness: { compatible: '>=2.4.0', partOf: '@pi-harness/pet-bigfish' }
+      })
+    )
+    await fs.writeFile(path.join(main, 'pet-pack.json'), JSON.stringify({ id: 'bigfish', license: 'MIT' }))
+    const mainTarball = path.join(dir, 'main.tgz')
+    const partTarball = path.join(dir, 'part.tgz')
+    await createTar({ gzip: true, file: mainTarball, cwd: main }, ['package.json', 'pet-pack.json', 'LICENSE', 'clips/idle/idle_001.webp'])
+    await createTar({ gzip: true, file: partTarball, cwd: part }, ['package.json', 'LICENSE', 'clips/wave/wave_001.webp'])
+    const mainIntegrity = `sha512-${await sha512(mainTarball)}`
+    const partIntegrity = `sha512-${await sha512(partTarball)}`
+    let base = ''
+    const server = createServer((request, response) => {
+      const url = request.url ?? ''
+      if (url.endsWith('/main.tgz')) {
+        response.setHeader('content-type', 'application/octet-stream')
+        createReadStream(mainTarball).pipe(response)
+        return
+      }
+      if (url.endsWith('/part.tgz')) {
+        response.setHeader('content-type', 'application/octet-stream')
+        createReadStream(partTarball).pipe(response)
+        return
+      }
+      const partRequest = url.includes('pet-bigfish-2')
+      response.setHeader('content-type', 'application/json')
+      response.end(
+        JSON.stringify({
+          name: partRequest ? '@pi-harness/pet-bigfish-2' : '@pi-harness/pet-bigfish',
+          description: 'BigFish',
+          license: 'MIT',
+          'dist-tags': { latest: '1.0.0' },
+          versions: {
+            '1.0.0': {
+              version: '1.0.0',
+              license: 'MIT',
+              piHarness: partRequest
+                ? { compatible: '>=2.4.0', partOf: '@pi-harness/pet-bigfish' }
+                : { compatible: '>=2.4.0', parts: ['@pi-harness/pet-bigfish-2'] },
+              dist: {
+                integrity: partRequest ? partIntegrity : mainIntegrity,
+                tarball: `${base}/${partRequest ? 'part' : 'main'}.tgz`,
+                size: 100,
+                unpackedSize: partRequest ? 40 : 60
+              }
+            }
+          }
+        })
+      )
+    })
+    servers.push(server)
+    server.listen(0, '127.0.0.1')
+    await once(server, 'listening')
+    const address = server.address()
+    if (!address || typeof address === 'string') throw new Error('no port')
+    base = `http://127.0.0.1:${address.port}`
+    let clipNames: string[] = []
+    const installer = new MarketInstaller({
+      root: path.join(dir, 'user'),
+      appVersion: '2.4.0',
+      client: new MarketRegistryClient(fetch, base),
+      pets: {
+        install: async (source) => {
+          clipNames = await fs.readdir(path.join(source.path, 'clips'))
+          return { id: 'bigfish', version: '1.1.0', updated: false }
+        }
+      }
+    })
+    const result = await installer.install('@pi-harness/pet-bigfish')
+    expect(result).toMatchObject({ packId: 'bigfish', name: '@pi-harness/pet-bigfish' })
+    expect(clipNames.sort()).toEqual(['idle', 'wave'])
+    await expect(installer.install('@pi-harness/pet-bigfish-2')).rejects.toThrow(
+      /Install @pi-harness\/pet-bigfish/
+    )
+  })
 })
 
 function sha512(file: string): Promise<string> {

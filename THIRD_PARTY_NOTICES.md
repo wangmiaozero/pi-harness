@@ -100,7 +100,7 @@ SOFTWARE.
 - Version: 1.3.0
 - Copyright: Copyright (c) 2026 沈宏宏
 - License: MIT. The full license text follows.
-- Used as: the boot sequence shown when the bundled 大肥鱼 desktop pet is turned on, and when a rope portrait other than Phoebe is selected. nomascot builds do not include it.
+- Used as: the boot sequence shown when the 大肥鱼 desktop pet is turned on, and when a rope portrait other than Phoebe is selected.
 - The Claude, Gemini, GPT, GLM, Grok, Kimi, and Qwen marks on that sequence are the monochrome icons from [lobehub/lobe-icons](https://github.com/lobehub/lobe-icons) (MIT, Copyright (c) 2023 lobehub). DeepSeek and DeepSeek Pro keep the whale from this sequence.
 - This community integration is not an official DeepSeek product.
 
@@ -132,13 +132,13 @@ SOFTWARE.
 - Version: 0.1.6
 - Copyright: Copyright (c) 2026 Something11235
 - License: MIT
-- Used as: the video boot that follows, or randomly replaces, the current startup on the DeepSeek and DeepSeek Pro themes, and the looping chat background behind those two themes. nomascot builds do not include either video.
+- Used as: the video boot that follows, or randomly replaces, the current startup on the DeepSeek and DeepSeek Pro themes, and the looping chat background behind those two themes.
 
 ## Whale girl scan boot
 
 - Project: [NativeDog1/dsh-boot-animation](https://github.com/NativeDog1/dsh-boot-animation), packaged by [LeeRolling/dsh-boot-suite](https://github.com/LeeRolling/dsh-boot-suite) template `whale-girl-scan` 1.0.3
 - License: BSD-3-Clause, as declared by the upstream clip library. The original animation author is not named upstream.
-- Used as: one of the two mutually exclusive boot videos on the DeepSeek and DeepSeek Pro themes. It either follows the current startup or plays alone. nomascot builds do not include it.
+- Used as: one of the two mutually exclusive boot videos on the DeepSeek and DeepSeek Pro themes. It either follows the current startup or plays alone.
 
 ## DeepSeek work-mode wallpaper
 
@@ -155,7 +155,6 @@ SOFTWARE.
 - Copyright: Copyright (c) 2026 elysia395
 - License: MIT. The full license text follows.
 - Used as: ten rope-portrait themes (DeepSeek Pro, Phoebe, Claude, DeepSeek, Gemini, GPT, GLM, Grok, Kimi, and Qwen). The drifting light background is adapted from the bundled default wallpaper, without its clock or title, so it sits behind this app’s existing layout. Each theme uses one factory rope portrait.
-- nomascot builds do not include the portrait.
 - This community integration is not an official DeepSeek product.
 
 MIT License

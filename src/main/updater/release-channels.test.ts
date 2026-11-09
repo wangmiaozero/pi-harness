@@ -13,17 +13,8 @@ const { getConfig } = builderRequire('app-builder-lib/out/util/config/config') a
 
 afterEach(() => vi.unstubAllEnvs())
 
-async function releaseProvider(
-  variant: 'standard' | 'nomascot',
-  platform: 'darwin' | 'win32' | 'linux',
-  missingChannel = false
-) {
-  // Use the actual inherited builder configuration: merging publish arrays can
-  // silently keep the standard feed first in a nomascot app-update.yml.
-  const config = await getConfig(
-    process.cwd(),
-    variant === 'nomascot' ? 'electron-builder.nomascot.yml' : 'electron-builder.yml'
-  )
+async function releaseProvider(platform: 'darwin' | 'win32' | 'linux') {
+  const config = await getConfig(process.cwd(), 'electron-builder.yml')
   const sources = Array.isArray(config.publish) ? config.publish : [config.publish]
   expect(sources).toHaveLength(1)
   vi.stubEnv('TEST_UPDATER_ARCH', 'x64')
@@ -33,10 +24,7 @@ async function releaseProvider(
       return '<feed><entry><title>Release</title><link href="https://github.com/wangmiaozero/pi-harness/releases/tag/v9.0.0"/><content>Update</content></entry></feed>'
     }
     if (pathname.endsWith('/latest')) return JSON.stringify({ tag_name: 'v9.0.0' })
-    if (missingChannel && pathname.includes('/nomascot')) {
-      throw new Error('Channel metadata unavailable')
-    }
-    const file = `Pi-Harness-9.0.0${pathname.includes('/nomascot') ? '-nomascot' : ''}.zip`
+    const file = 'Pi-Harness-9.0.0.zip'
     return JSON.stringify({
       version: '9.0.0',
       files: [{ url: file, sha512: Buffer.alloc(64).toString('base64'), size: 1 }]
@@ -56,14 +44,11 @@ async function releaseProvider(
 
 describe('packaged update channels', () => {
   it.each([
-    ['standard', 'darwin', 'latest-mac.yml'],
-    ['standard', 'win32', 'latest.yml'],
-    ['standard', 'linux', 'latest-linux.yml'],
-    ['nomascot', 'darwin', 'nomascot-mac.yml'],
-    ['nomascot', 'win32', 'nomascot.yml'],
-    ['nomascot', 'linux', 'nomascot-linux.yml']
-  ] as const)('%s on %s reads only %s from the stable release', async (variant, platform, file) => {
-    const { provider, request } = await releaseProvider(variant, platform)
+    ['darwin', 'latest-mac.yml'],
+    ['win32', 'latest.yml'],
+    ['linux', 'latest-linux.yml']
+  ] as const)('%s reads only %s from the stable release', async (platform, file) => {
+    const { provider, request } = await releaseProvider(platform)
     const update = await provider.getLatestVersion()
     expect(update.version).toBe('9.0.0')
     const metadataRequests = request.mock.calls
@@ -71,22 +56,13 @@ describe('packaged update channels', () => {
       .filter((pathname) => pathname?.endsWith('.yml'))
     expect(metadataRequests).toEqual([`/wangmiaozero/pi-harness/releases/download/v9.0.0/${file}`])
     const payload = provider.resolveFiles(update)[0].url.pathname
-    expect(payload.includes('-nomascot.zip')).toBe(variant === 'nomascot')
-  })
-
-  it('does not download the standard variant when nomascot metadata is absent', async () => {
-    const { provider, request } = await releaseProvider('nomascot', 'darwin', true)
-    await expect(provider.getLatestVersion()).rejects.toThrow('Channel metadata unavailable')
-    expect(request.mock.calls.some(([options]) => options.path?.endsWith('/latest-mac.yml'))).toBe(
-      false
-    )
+    expect(payload.endsWith('/Pi-Harness-9.0.0.zip')).toBe(true)
   })
 })
 
 describe('native packaging architecture selection', () => {
-  it.each(['electron-builder.yml', 'electron-builder.nomascot.yml'])(
-    'keeps target architectures selectable by the native job in %s',
-    async (file) => {
+  it('keeps target architectures selectable by the native job', async () => {
+    const file = 'electron-builder.yml'
       const config = (await getConfig(process.cwd(), file)) as unknown as Record<
         string,
         { target: Array<string | { arch?: unknown }> }
@@ -97,6 +73,5 @@ describe('native packaging architecture selection', () => {
             (target) => typeof target === 'string' || target.arch === undefined
           )
         ).toBe(true)
-    }
-  )
+  })
 })

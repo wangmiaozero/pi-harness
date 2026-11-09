@@ -1,7 +1,7 @@
 import { test } from './fixtures'
 import { verifyPetResources } from './pet-resources'
 
-test('preserves bundled actions and renders frames, or excludes pets in nomascot', async ({
+test('does not ship optional pet artwork inside the application', async ({
   page,
   electronApp
 }) => {

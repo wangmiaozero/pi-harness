@@ -173,7 +173,7 @@ describe('bigfish startup gate', () => {
     expect(usesCinematicStartup({ mascotStyle: 'none', mascotUnlocked: false })).toBe(false)
   })
 
-  it('stays off for nomascot builds and reduced motion', () => {
+  it('stays off when the pet is disabled or motion is reduced', () => {
     expect(usesBigfishStartup(enabled, { mascotEnabled: false })).toBe(false)
     expect(usesBigfishStartup(enabled, { reducedMotion: true })).toBe(false)
     expect(usesBigfishStartup({ desktopPet: { ...enabled.desktopPet, reducedMotion: true } })).toBe(

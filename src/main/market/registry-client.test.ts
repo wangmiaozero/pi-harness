@@ -31,6 +31,8 @@ describe('market registry client', () => {
           total: 3,
           objects: [
             { package: { name: '@pi-harness/theme-deepseek', version: '1.0.0', description: 'DeepSeek', publisher: { username: 'piharness' } } },
+            { package: { name: '@pi-harness/pet-bigfish', version: '1.0.0', description: 'BigFish' } },
+            { package: { name: '@pi-harness/pet-bigfish-2', version: '1.0.0', description: 'part' } },
             { package: { name: 'left-pad', version: '1.0.0', description: 'no' } },
             { package: { name: '@pi-harness/theme-deepseek', version: '1.0.0', description: 'duplicate' } }
           ]
@@ -44,6 +46,11 @@ describe('market registry client', () => {
     expect(first.incomplete).toBe(false)
     const cached = await client.search('', 'theme')
     expect(cached.fromCache).toBe(true)
+    const pets = await client.search('', 'pet')
+    expect(pets.packages.map((item) => item.name)).toEqual([
+      '@pi-harness/pet-bigfish',
+      '@pi-harness/pet-bigfish-2'
+    ])
   })
 
   it('rejects a package outside the official scope before reading versions', async () => {

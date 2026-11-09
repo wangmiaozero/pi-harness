@@ -9,7 +9,7 @@ import type {
 } from '@shared/market/types'
 import { MarketInstaller, type PetDirectoryInstaller } from './installer'
 import { installMarketProtocol } from './protocol'
-import { MarketRegistryClient } from './registry-client'
+import { MarketRegistryClient, type RegistryVersion } from './registry-client'
 import { themeManifestAt } from './installer'
 
 export interface MarketServiceOptions {
@@ -51,7 +51,10 @@ export class MarketService {
       return { packages: [], incomplete: false, fromCache: false, offline: true }
     })
     if (result.offline || result.packages.length === 0) return result
-    return { ...result, packages: await Promise.all(result.packages.map((item) => this.detailSummary(item))) }
+    const packages = (
+      await Promise.all(result.packages.map((item) => this.detailSummary(item)))
+    ).filter((item): item is MarketSearchResult['packages'][number] => item !== null)
+    return { ...result, packages }
   }
 
   private async detailSummary(item: MarketSearchResult['packages'][number]) {
@@ -61,9 +64,7 @@ export class MarketService {
         meta.versions.find(
           (entry) => entry.version === meta.distTags.latest && !entry.deprecated && entry.scripts.length === 0
         ) ?? meta.versions.find((entry) => !entry.deprecated && entry.scripts.length === 0)
-      if (!version) {
-        return { ...item, author: meta.author || item.author, license: meta.license, deprecated: true, compatible: false }
-      }
+      if (!version || version.partOf) return null
       const coerced = semver.coerce(this.options.appVersion)
       return {
         ...item,
@@ -71,7 +72,7 @@ export class MarketService {
         description: meta.description || item.description,
         author: meta.author || item.author,
         license: version.license || meta.license,
-        unpackedSize: version.unpackedSize,
+        unpackedSize: await this.unpackedSize(item.name, version),
         deprecated: version.deprecated,
         compatible: Boolean(
           version.compatible && coerced && semver.satisfies(coerced, version.compatible, { includePrerelease: true })
@@ -80,6 +81,20 @@ export class MarketService {
     } catch {
       return item
     }
+  }
+
+  private async unpackedSize(name: string, version: RegistryVersion): Promise<number | null> {
+    if (version.unpackedSize === null) return null
+    let total = version.unpackedSize
+    for (const partName of version.parts) {
+      const metadata = await this.client.package(partName)
+      const part = metadata.versions.find(
+        (entry) => entry.version === version.version && !entry.deprecated && entry.scripts.length === 0
+      )
+      if (!part || part.partOf !== name || part.unpackedSize === null) return version.unpackedSize
+      total += part.unpackedSize
+    }
+    return total
   }
 
   async installed(): Promise<MarketInstalled> {

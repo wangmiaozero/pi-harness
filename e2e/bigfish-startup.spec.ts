@@ -1,7 +1,5 @@
 import { expect, test } from './fixtures'
 
-test.skip(process.env.PI_HARNESS_E2E_VARIANT === 'nomascot', 'nomascot builds omit this sequence')
-
 test('plays the bundled boot sequence when 大肥鱼 is enabled', async ({ page }) => {
   await page.evaluate(async () => {
     const settings = await window.piSwitch.settings.get()

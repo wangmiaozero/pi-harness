@@ -207,7 +207,7 @@ Browse built-in and local Skills, edit them, and manage Pi packages and extensio
 
 ### Desktop Companion
 
-Enable the optional BigFish companion in **Settings → Desktop Pet** to see thinking, tool activity, waiting, and completion feedback on your desktop. It is off by default and remains available when the main window is minimized.
+Enable an installed desktop pet in **Settings → Desktop Pet** to see thinking, tool activity, waiting, and completion feedback on your desktop. It is off by default and remains available when the main window is minimized.
 
 While idle, choose from 193 actions in a searchable right-click menu. During tasks, manual interactions pause while dragging keeps the task animation intact. Import local pet packs and adjust size, opacity, and bubble settings with sliders.
 
@@ -249,7 +249,7 @@ Pair a host running **pi-host** from **Settings → Remote hosts** using its add
 
 ### Custom Themes and Skins
 
-Choose classic palettes, Ming themes, Starship Cockpit, macOS 27 backgrounds, or an imported custom skin. New installations start in Dark. Customize chat display names, app icons, local background images, window and screen glow, and the input flame effect. Startup animation accompanies the environment check; mascot-free builds retain the general appearance controls.
+Choose classic palettes, Ming themes, Starship Cockpit, macOS 27 backgrounds, or an imported custom skin. New installations start in Dark. Customize chat display names, app icons, local background images, window and screen glow, and the input flame effect. Startup animation accompanies the environment check.
 
 Character themes and desktop pets are optional packs. Open **Settings → Resource Market** to search `@pi-harness` packages, then install, update, or remove one pack at a time. The app starts without a network connection. A previously selected theme or pet is kept when its files are not installed yet, and the workspace falls back to the base appearance until you install that pack. See [docs/market/MARKET.md](docs/market/MARKET.md).
 
@@ -320,7 +320,7 @@ Pi owns execution and native sessions. Harness observes runs and applies policie
 
 [**Download from GitHub Releases →**](https://github.com/wangmiaozero/pi-harness/releases)
 
-Community installers include **Pi, Node.js, npm, and npx**. You do not need to install Pi or Node.js beforehand, clone this repository, or install pnpm to use the app. Choose the standard package or `nomascot` without mascot artwork. Follow the notes for the version you download; older packages may have different requirements.
+Community installers include **Pi, Node.js, npm, and npx**. You do not need to install Pi or Node.js beforehand, clone this repository, or install pnpm to use the app. Themes and desktop pets are installed from the Resource Market. Follow the notes for the version you download; older packages may have different requirements.
 
 ### macOS
 

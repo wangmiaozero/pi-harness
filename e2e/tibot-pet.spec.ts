@@ -1,7 +1,6 @@
 import { test, expect } from './fixtures'
 
 test('each jelly shape is one desktop pet', async ({ page, electronApp }) => {
-  test.skip(process.env.PI_HARNESS_E2E_VARIANT === 'nomascot', 'nomascot builds omit desktop pets')
   const settings = await page.evaluate(() => window.piSwitch.settings.get())
   const names = await page.evaluate(() => window.piSwitch.pets.list().then((packs) => packs.map((pack) => pack.name)))
   expect(names).toEqual(expect.arrayContaining(['圆形', '方圆', '软糖', '三角', '星星', '幽灵']))

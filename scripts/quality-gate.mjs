@@ -152,11 +152,6 @@ try {
     'e2e/production-boundary.spec.ts',
     'e2e/quality-performance.spec.ts'
   ])
-  if (await run('compile-nomascot', ['compile:nomascot'])) {
-    await run('nomascot-e2e', ['exec', 'playwright', 'test', 'e2e/nomascot.spec.ts'], {
-      PI_HARNESS_E2E_VARIANT: 'nomascot'
-    })
-  }
   if (packageRequested) {
     const command =
       process.platform === 'darwin'

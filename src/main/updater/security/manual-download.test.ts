@@ -41,9 +41,9 @@ async function setup(platform = 'darwin', arch = 'arm64', variant = 'standard') 
 }
 it.each([
   ['darwin', 'arm64', 'standard'],
-  ['darwin', 'x64', 'nomascot'],
+  ['darwin', 'x64', 'standard'],
   ['win32', 'x64', 'standard'],
-  ['linux', 'x64', 'nomascot']
+  ['linux', 'x64', 'standard']
 ])('downloads and reveals only verified %s %s %s bytes', async (platform, arch, variant) => {
   const { f, options } = await setup(platform, arch, variant)
   const file = await downloadVerifiedInstaller(options)
