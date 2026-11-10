@@ -66,5 +66,16 @@ The existing project commands remain authoritative: `pnpm typecheck`, `pnpm lint
       Pi-Harness 用户通过<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">专属链接</a>注册直接送人民币 5 元：<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">https://infistar.cc/register?aff=S26RFM4B&ref_source=link</a>
     </td>
   </tr>
+  <tr>
+    <td width="420" align="center" valign="middle">
+      <a href="https://cloud.tencent.com/act/cps/redirect?redirect=6871&amp;cps_key=ece2099a1da90c2f7a4a4c437ad623f8&amp;from=console">
+        <img src="../assets/workbuddy-banner.jpg" width="400" alt="腾讯云 WorkBuddy" />
+      </a>
+    </td>
+    <td valign="middle">
+      【腾讯云】WorkBuddy 全场景 AI 办公工作台，团队旗舰版低至198元/月<br>
+      <a href="https://cloud.tencent.com/act/cps/redirect?redirect=6871&amp;cps_key=ece2099a1da90c2f7a4a4c437ad623f8&amp;from=console">https://cloud.tencent.com/act/cps/redirect?redirect=6871&amp;cps_key=ece2099a1da90c2f7a4a4c437ad623f8&amp;from=console</a>
+    </td>
+  </tr>
 </table>
 
