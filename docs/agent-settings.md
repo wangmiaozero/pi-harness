@@ -1,20 +1,3 @@
-<p align="center">
-  <a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">
-    <img src="assets/infistar-banner.png" width="100%" alt="Pi-Harness × Infistar.cc 无限星河" />
-  </a>
-</p>
-
-## 赞助商
-
-<table>
-  <tr>
-    <td>
-      Pi-Harness × Infistar.cc 无限星河｜Claude、GPT、Gemini、Grok、DeepSeek 等，一个 Key，只花官方价的零头，省 99%；低至官方 0.1 折，100% 官方纯血，每个模型都能验真；上千线路安全冗余自动切换，200+ 模型、16 个品牌，一个 Key 搞定。<br>
-      Pi-Harness 用户通过<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">专属链接</a>注册直接送人民币 5 元：<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">https://infistar.cc/register?aff=S26RFM4B&ref_source=link</a>
-    </td>
-  </tr>
-</table>
-
 # Agent settings / 智能体设置
 
 Available in v2.2.10 and later. Older installers may not include every settings page.
@@ -105,3 +88,20 @@ Start **pi-host** on the target host first. In **Settings → Remote hosts**, en
 | An imported MCP server is disabled / 导入的 MCP 未启用 | This is expected; review and complete its configuration before enabling. / 这是预期状态，审阅并补齐配置后再启用。                          |
 | Project servers are missing / 未显示项目服务器         | Select the intended project and check the scope filter. / 选择目标项目并检查范围筛选。                                                     |
 | A remote host cannot connect / 远程主机无法连接        | Check that pi-host is running and reachable, and that the address and token are correct. / 确认 pi-host 正在运行且可连接，地址与令牌正确。 |
+
+## 赞助商
+
+<table>
+  <tr>
+    <td width="420" align="center" valign="middle">
+      <a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">
+        <img src="assets/infistar-banner.png" width="400" alt="Pi-Harness × Infistar.cc 无限星河" />
+      </a>
+    </td>
+    <td valign="middle">
+      Pi-Harness × Infistar.cc 无限星河｜Claude、GPT、Gemini、Grok、DeepSeek 等，一个 Key，只花官方价的零头，省 99%；低至官方 0.1 折，100% 官方纯血，每个模型都能验真；上千线路安全冗余自动切换，200+ 模型、16 个品牌，一个 Key 搞定。<br>
+      Pi-Harness 用户通过<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">专属链接</a>注册直接送人民币 5 元：<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">https://infistar.cc/register?aff=S26RFM4B&ref_source=link</a>
+    </td>
+  </tr>
+</table>
+

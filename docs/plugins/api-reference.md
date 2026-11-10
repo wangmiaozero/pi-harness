@@ -1,20 +1,3 @@
-<p align="center">
-  <a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">
-    <img src="../assets/infistar-banner.png" width="100%" alt="Pi-Harness × Infistar.cc 无限星河" />
-  </a>
-</p>
-
-## 赞助商
-
-<table>
-  <tr>
-    <td>
-      Pi-Harness × Infistar.cc 无限星河｜Claude、GPT、Gemini、Grok、DeepSeek 等，一个 Key，只花官方价的零头，省 99%；低至官方 0.1 折，100% 官方纯血，每个模型都能验真；上千线路安全冗余自动切换，200+ 模型、16 个品牌，一个 Key 搞定。<br>
-      Pi-Harness 用户通过<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">专属链接</a>注册直接送人民币 5 元：<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">https://infistar.cc/register?aff=S26RFM4B&ref_source=link</a>
-    </td>
-  </tr>
-</table>
-
 # Harness Plugin SDK API 1.0
 
 Types are exported by [`@pi-harness/plugin-sdk`](../../packages/harness-plugin-sdk/index.ts). The package is local and is not claimed to be published to a registry. Executable plugins export a default object implementing `HarnessPlugin`:
@@ -97,3 +80,20 @@ The handler receives `AuthorizedTrace`: run ID, recorded/reconstructed source, a
 ## Compatibility
 
 SDK version is `1.0.0`; manifest `apiVersion` uses SemVer range matching. Host and plugin check the protocol handshake before activation. An incompatible API range yields a visible incompatible state and executes no plugin code. Future breaking contracts require a new major API version; contribution version strings are checked independently. MVP updates use uninstall/reinstall, which resets trust and permissions.
+
+## 赞助商
+
+<table>
+  <tr>
+    <td width="420" align="center" valign="middle">
+      <a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">
+        <img src="../assets/infistar-banner.png" width="400" alt="Pi-Harness × Infistar.cc 无限星河" />
+      </a>
+    </td>
+    <td valign="middle">
+      Pi-Harness × Infistar.cc 无限星河｜Claude、GPT、Gemini、Grok、DeepSeek 等，一个 Key，只花官方价的零头，省 99%；低至官方 0.1 折，100% 官方纯血，每个模型都能验真；上千线路安全冗余自动切换，200+ 模型、16 个品牌，一个 Key 搞定。<br>
+      Pi-Harness 用户通过<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">专属链接</a>注册直接送人民币 5 元：<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">https://infistar.cc/register?aff=S26RFM4B&ref_source=link</a>
+    </td>
+  </tr>
+</table>
+

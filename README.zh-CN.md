@@ -1,21 +1,4 @@
 <p align="center">
-  <a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">
-    <img src="docs/assets/infistar-banner.png" width="100%" alt="Pi-Harness × Infistar.cc 无限星河" />
-  </a>
-</p>
-
-## 赞助商
-
-<table>
-  <tr>
-    <td>
-      Pi-Harness × Infistar.cc 无限星河｜Claude、GPT、Gemini、Grok、DeepSeek 等，一个 Key，只花官方价的零头，省 99%；低至官方 0.1 折，100% 官方纯血，每个模型都能验真；上千线路安全冗余自动切换，200+ 模型、16 个品牌，一个 Key 搞定。<br>
-      Pi-Harness 用户通过<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">专属链接</a>注册直接送人民币 5 元：<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">https://infistar.cc/register?aff=S26RFM4B&ref_source=link</a>
-    </td>
-  </tr>
-</table>
-
-<p align="center">
   <img src="docs/assets/pi-harness-logo.gif" width="640" alt="Pi-Harness" />
 </p>
 
@@ -58,6 +41,22 @@
 Pi-Harness 是围绕 [Pi Coding Agent](https://github.com/earendil-works/pi) 构建的桌面工作区与运维控制平台。Pi 负责原生执行；Pi-Harness 在其周围提供可视化运维、治理、恢复、评估与多智能体编排。Pi 会话、配置、工具、Skills 与扩展保持兼容，也可以继续在桌面应用之外使用 Pi。
 
 **支持 macOS、Windows、Linux。Community 安装包内置 Pi 与 Node.js，无需提前单独安装运行环境。** [开始使用 →](#download)
+
+## 赞助商
+
+<table>
+  <tr>
+    <td width="420" align="center" valign="middle">
+      <a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">
+        <img src="docs/assets/infistar-banner.png" width="400" alt="Pi-Harness × Infistar.cc 无限星河" />
+      </a>
+    </td>
+    <td valign="middle">
+      Pi-Harness × Infistar.cc 无限星河｜Claude、GPT、Gemini、Grok、DeepSeek 等，一个 Key，只花官方价的零头，省 99%；低至官方 0.1 折，100% 官方纯血，每个模型都能验真；上千线路安全冗余自动切换，200+ 模型、16 个品牌，一个 Key 搞定。<br>
+      Pi-Harness 用户通过<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">专属链接</a>注册直接送人民币 5 元：<a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">https://infistar.cc/register?aff=S26RFM4B&ref_source=link</a>
+    </td>
+  </tr>
+</table>
 
 <a id="watch"></a>
 
