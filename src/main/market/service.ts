@@ -32,6 +32,7 @@ export class MarketService {
     this.client = new MarketRegistryClient(options.fetcher ?? fetch, options.registry ?? OFFICIAL_REGISTRY)
     this.installer = new MarketInstaller({
       root: this.root,
+      petRoot: options.petRoot,
       appVersion: options.appVersion,
       client: this.client,
       fetcher: options.fetcher,
@@ -64,7 +65,7 @@ export class MarketService {
         meta.versions.find(
           (entry) => entry.version === meta.distTags.latest && !entry.deprecated && entry.scripts.length === 0
         ) ?? meta.versions.find((entry) => !entry.deprecated && entry.scripts.length === 0)
-      if (!version || version.partOf) return null
+      if (!version) return null
       const coerced = semver.coerce(this.options.appVersion)
       return {
         ...item,
@@ -128,7 +129,18 @@ export class MarketService {
       manifest: null,
       petId: record.packId
     }))
-    return { themes, pets }
+    const addons = Object.values(index.addons).map((record) => ({
+      name: record.name,
+      kind: 'pet' as const,
+      version: record.version,
+      packId: record.packId,
+      license: record.license,
+      latest: null,
+      updateAvailable: false,
+      manifest: null,
+      petId: null
+    }))
+    return { themes, pets: [...pets, ...addons] }
   }
 
   async refreshLatest(): Promise<MarketInstalled> {
@@ -158,6 +170,10 @@ export class MarketService {
 
   async uninstall(name: string): Promise<void> {
     const index = await this.installer.readIndex()
+    if (index.addons[name]) {
+      await this.installer.removeAddon(name)
+      return
+    }
     const pet = Object.values(index.pets).find((record) => record.name === name)
     if (pet) {
       await this.options.pets.remove(pet.packId)

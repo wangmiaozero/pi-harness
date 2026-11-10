@@ -325,7 +325,7 @@ onUnmounted(() => stopProgress?.())
                 {{ t('settings.marketApply') }}
               </Button>
               <Button
-                v-else-if="MASCOT_ENABLED"
+                v-else-if="MASCOT_ENABLED && item.petId"
                 size="sm"
                 variant="secondary"
                 @click="enablePet(item)"

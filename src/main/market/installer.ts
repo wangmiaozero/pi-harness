@@ -19,6 +19,7 @@ export interface PetDirectoryInstaller {
 
 export interface MarketInstallerOptions {
   root: string
+  petRoot?: string
   appVersion: string
   client: MarketRegistryClient
   fetcher?: typeof fetch
@@ -34,9 +35,14 @@ interface IndexRecord {
   license: string
 }
 
+interface AddonRecord extends IndexRecord {
+  clips: string[]
+}
+
 interface MarketIndex {
   themes: Record<string, IndexRecord>
   pets: Record<string, IndexRecord>
+  addons: Record<string, AddonRecord>
 }
 
 export class MarketInstaller {
@@ -47,18 +53,33 @@ export class MarketInstaller {
   constructor(private readonly options: MarketInstallerOptions) {}
 
   async install(name: string, version?: string): Promise<MarketInstallResult> {
+    if (!parseMarketPackageName(name)) throw new MarketPackageError(`Refusing unofficial package: ${name}`)
+    await this.acquire()
+    try {
+      return await this.installHeld(name, version)
+    } finally {
+      this.release()
+    }
+  }
+
+  private async installHeld(
+    name: string,
+    version?: string,
+    parent?: AbortSignal
+  ): Promise<MarketInstallResult> {
     const parsed = parseMarketPackageName(name)
     if (!parsed) throw new MarketPackageError(`Refusing unofficial package: ${name}`)
     if (this.jobs.has(name)) throw new MarketPackageError(`Package is already installing: ${name}`)
-    await this.acquire()
     const controller = new AbortController()
+    const abort = () => controller.abort()
+    parent?.addEventListener('abort', abort)
+    if (parent?.aborted) controller.abort()
     this.jobs.set(name, controller)
     const staging = path.join(this.options.root, 'staging', randomBytes(8).toString('hex'))
     try {
       this.progress(name, 'metadata', 0, null)
       const metadata = await this.options.client.package(name)
       const selected = this.options.client.selectVersion(metadata, this.options.appVersion, version)
-      if (selected.partOf) throw new MarketPackageError(`Install ${selected.partOf} to get this pet`)
       if (selected.scripts.length) throw new MarketPackageError('Package install scripts are not allowed')
       const tarball = path.join(staging, 'download.tgz')
       await fs.mkdir(staging, { recursive: true })
@@ -73,6 +94,12 @@ export class MarketInstaller {
       await extractMarketTarball(tarball, extracted)
       const packageRoot = await readPackageRoot(extracted)
       await rejectScripts(packageRoot)
+      if (selected.partOf) {
+        if (parsed.kind !== 'pet') throw new MarketPackageError('Only a pet action pack can be installed on its own')
+        const result = await this.commitPetAddon(name, selected, packageRoot, staging, controller.signal)
+        this.progress(name, 'done', 1, 1)
+        return result
+      }
       if (parsed.kind === 'pet' && selected.parts.length) {
         await this.mergePetParts(parsed.name, selected, packageRoot, staging, controller.signal)
       }
@@ -91,9 +118,9 @@ export class MarketInstaller {
       this.progress(name, 'error', 0, null, error instanceof Error ? error.message : String(error))
       throw error
     } finally {
+      parent?.removeEventListener('abort', abort)
       this.jobs.delete(name)
       await fs.rm(staging, { recursive: true, force: true }).catch(() => undefined)
-      this.release()
     }
   }
 
@@ -163,6 +190,47 @@ export class MarketInstaller {
     }
   }
 
+  private async commitPetAddon(
+    name: string,
+    selected: RegistryVersion,
+    packageRoot: string,
+    staging: string,
+    signal: AbortSignal
+  ): Promise<MarketInstallResult> {
+    if (!selected.partOf) throw new MarketPackageError('Action pack has no main package')
+    if (!this.options.petRoot) throw new MarketPackageError('Pet directory is unavailable')
+    const clips = await readClipPack(packageRoot)
+    let index = await this.readIndex()
+    let main = Object.values(index.pets).find((item) => item.name === selected.partOf)
+    if (!main) {
+      await this.installHeld(selected.partOf, undefined, signal)
+      index = await this.readIndex()
+      main = Object.values(index.pets).find((item) => item.name === selected.partOf)
+    }
+    if (!main) throw new MarketPackageError(`Install ${selected.partOf} before this action pack`)
+    const sourcePet = path.join(this.options.petRoot, main.packId)
+    try {
+      await fs.access(sourcePet)
+    } catch {
+      throw new MarketPackageError(`Install ${selected.partOf} before this action pack`)
+    }
+    const work = path.join(staging, 'merged-pet')
+    await fs.cp(sourcePet, work, { recursive: true, verbatimSymlinks: false })
+    const previous = index.addons[name]
+    if (previous?.packId === main.packId) await removeClipDefinitions(work, previous.clips)
+    await mergeClipDefinitions(work, clips)
+    await mergeClipDirectory(packageRoot, work)
+    const installed = await this.options.pets.install({ kind: 'directory', path: work })
+    if (installed.id !== main.packId) throw new MarketPackageError('Action pack changed the pet id')
+    const latest = await this.readIndex()
+    latest.addons[name] = {
+      ...record(name, selected, installed.id, selected.license || 'MIT'),
+      clips: Object.keys(clips)
+    }
+    await this.writeIndex(latest)
+    return { name, version: selected.version, packId: installed.id, updated: Boolean(previous) }
+  }
+
   private async commitPet(
     name: string,
     selected: RegistryVersion,
@@ -175,6 +243,9 @@ export class MarketInstaller {
     }
     const index = await this.readIndex()
     index.pets[installed.id] = record(name, selected, installed.id, manifest.license ?? selected.license)
+    for (const [addonName, addon] of Object.entries(index.addons)) {
+      if (addon.packId === installed.id) delete index.addons[addonName]
+    }
     await this.writeIndex(index)
     return {
       name,
@@ -189,10 +260,11 @@ export class MarketInstaller {
       const raw = JSON.parse(await fs.readFile(this.indexPath(), 'utf8')) as MarketIndex
       return {
         themes: raw.themes ?? {},
-        pets: raw.pets ?? {}
+        pets: raw.pets ?? {},
+        addons: normalizeAddons(raw.addons)
       }
     } catch {
-      return { themes: {}, pets: {} }
+      return { themes: {}, pets: {}, addons: {} }
     }
   }
 
@@ -220,10 +292,37 @@ export class MarketInstaller {
       await this.removeTheme(theme[0])
       return
     }
+    if (index.addons[name]) {
+      await this.removeAddon(name)
+      return
+    }
     const pet = Object.entries(index.pets).find(([, record]) => record.name === name)
     if (!pet) throw new MarketPackageError(`Package is not installed: ${name}`)
     delete index.pets[pet[0]]
+    for (const [addonName, addon] of Object.entries(index.addons)) {
+      if (addon.packId === pet[0]) delete index.addons[addonName]
+    }
     await this.writeIndex(index)
+  }
+
+  async removeAddon(name: string): Promise<void> {
+    if (!this.options.petRoot) throw new MarketPackageError('Pet directory is unavailable')
+    const index = await this.readIndex()
+    const addon = index.addons[name]
+    if (!addon) throw new MarketPackageError(`Package is not installed: ${name}`)
+    const sourcePet = path.join(this.options.petRoot, addon.packId)
+    const staging = path.join(this.options.root, 'staging', randomBytes(8).toString('hex'))
+    const work = path.join(staging, 'merged-pet')
+    try {
+      await fs.cp(sourcePet, work, { recursive: true, verbatimSymlinks: false })
+      await removeClipDefinitions(work, addon.clips)
+      await this.options.pets.install({ kind: 'directory', path: work })
+      const latest = await this.readIndex()
+      delete latest.addons[name]
+      await this.writeIndex(latest)
+    } finally {
+      await fs.rm(staging, { recursive: true, force: true }).catch(() => undefined)
+    }
   }
 
   private indexPath(): string {
@@ -290,6 +389,90 @@ export class MarketInstaller {
 
 function record(name: string, selected: RegistryVersion, packId: string, license: string): IndexRecord {
   return { name, version: selected.version, integrity: selected.integrity, packId, license }
+}
+
+function normalizeAddons(value: unknown): Record<string, AddonRecord> {
+  if (!value || typeof value !== 'object') return {}
+  const addons: Record<string, AddonRecord> = {}
+  for (const [name, item] of Object.entries(value)) {
+    if (!item || typeof item !== 'object') continue
+    const entry = item as Partial<AddonRecord>
+    if (typeof entry.name !== 'string' || typeof entry.packId !== 'string' || !Array.isArray(entry.clips)) continue
+    addons[name] = {
+      name: entry.name,
+      version: entry.version ?? '',
+      integrity: entry.integrity ?? '',
+      packId: entry.packId,
+      license: entry.license ?? '',
+      clips: entry.clips.filter((clip) => typeof clip === 'string')
+    }
+  }
+  return addons
+}
+
+async function readClipPack(packageRoot: string): Promise<Record<string, unknown>> {
+  let raw: { formatVersion?: unknown; clips?: unknown }
+  try {
+    raw = JSON.parse(await fs.readFile(path.join(packageRoot, 'clip-pack.json'), 'utf8')) as {
+      formatVersion?: unknown
+      clips?: unknown
+    }
+  } catch {
+    throw new MarketPackageError('Action pack is missing clip-pack.json')
+  }
+  if (raw.formatVersion !== 1 || !raw.clips || typeof raw.clips !== 'object' || Array.isArray(raw.clips)) {
+    throw new MarketPackageError('Action pack is missing clip-pack.json')
+  }
+  const clips: Record<string, unknown> = {}
+  for (const [name, clip] of Object.entries(raw.clips)) {
+    if (!/^[\w][\w.-]*$/.test(name) || !clip || typeof clip !== 'object' || Array.isArray(clip)) {
+      throw new MarketPackageError(`Invalid action clip: ${name}`)
+    }
+    const body = clip as { dir?: unknown; frames?: unknown }
+    if (body.dir !== `clips/${name}` || !Number.isInteger(body.frames) || Number(body.frames) < 1) {
+      throw new MarketPackageError(`Invalid action clip: ${name}`)
+    }
+    clips[name] = clip
+  }
+  const onDisk = (await fs.readdir(path.join(packageRoot, 'clips'), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+  if (onDisk.length !== Object.keys(clips).length || onDisk.some((name) => clips[name] === undefined)) {
+    throw new MarketPackageError('Action pack clips do not match clip-pack.json')
+  }
+  return clips
+}
+
+async function mergeClipDefinitions(petDirectory: string, clips: Record<string, unknown>): Promise<void> {
+  const file = path.join(petDirectory, 'pet-pack.json')
+  const manifest = JSON.parse(await fs.readFile(file, 'utf8')) as { clips?: Record<string, unknown> }
+  if (!manifest.clips || typeof manifest.clips !== 'object') throw new MarketPackageError('Pet pack has no clips')
+  for (const [name, clip] of Object.entries(clips)) {
+    if (manifest.clips[name]) throw new MarketPackageError(`Pet clip already exists: ${name}`)
+    manifest.clips[name] = clip
+  }
+  await fs.writeFile(file, `${JSON.stringify(manifest, null, 2)}\n`)
+}
+
+async function removeClipDefinitions(petDirectory: string, names: string[]): Promise<void> {
+  const file = path.join(petDirectory, 'pet-pack.json')
+  const manifest = JSON.parse(await fs.readFile(file, 'utf8')) as {
+    clips?: Record<string, unknown>
+    agentStateMapping?: Record<string, unknown>
+    defaultAnimation?: string
+  }
+  if (!manifest.clips || typeof manifest.clips !== 'object') throw new MarketPackageError('Pet pack has no clips')
+  for (const name of names) {
+    delete manifest.clips[name]
+    await fs.rm(path.join(petDirectory, 'clips', name), { recursive: true, force: true })
+  }
+  if (manifest.agentStateMapping && typeof manifest.agentStateMapping === 'object') {
+    for (const [state, clip] of Object.entries(manifest.agentStateMapping)) {
+      if (typeof clip === 'string' && names.includes(clip)) delete manifest.agentStateMapping[state]
+    }
+  }
+  if (manifest.defaultAnimation && names.includes(manifest.defaultAnimation)) manifest.defaultAnimation = 'idle'
+  await fs.writeFile(file, `${JSON.stringify(manifest, null, 2)}\n`)
 }
 
 async function mergeClipDirectory(fromRoot: string, intoRoot: string): Promise<void> {
