@@ -1,16 +1,14 @@
 import path from 'node:path'
 import semver from 'semver'
-import { OFFICIAL_REGISTRY } from '@shared/market/package-name'
 import type {
   MarketInstalled,
   MarketInstallResult,
   MarketProgress,
   MarketSearchResult
 } from '@shared/market/types'
-import { MarketInstaller, type PetDirectoryInstaller } from './installer'
+import { MarketInstaller, themeManifestAt, type PetDirectoryInstaller } from './installer'
 import { installMarketProtocol } from './protocol'
-import { MarketRegistryClient, type RegistryVersion } from './registry-client'
-import { themeManifestAt } from './installer'
+import { MarketCatalogClient } from './catalog-client'
 
 export interface MarketServiceOptions {
   userData: string
@@ -18,18 +16,25 @@ export interface MarketServiceOptions {
   appVersion: string
   pets: PetDirectoryInstaller & { remove(id: string): Promise<void> }
   fetcher?: typeof fetch
-  registry?: string
+  catalogUrl?: string
+  catalogTtlMs?: number
   onProgress?: (progress: MarketProgress) => void
 }
 
 export class MarketService {
-  private readonly client: MarketRegistryClient
+  private readonly client: MarketCatalogClient
   private readonly installer: MarketInstaller
   readonly root: string
 
   constructor(private readonly options: MarketServiceOptions) {
     this.root = path.join(options.userData, 'market')
-    this.client = new MarketRegistryClient(options.fetcher ?? fetch, options.registry ?? OFFICIAL_REGISTRY)
+    this.client = new MarketCatalogClient({
+      appVersion: options.appVersion,
+      fetcher: options.fetcher,
+      catalogUrl: options.catalogUrl,
+      cacheFile: path.join(this.root, 'catalog-cache.json'),
+      ttlMs: options.catalogTtlMs
+    })
     this.installer = new MarketInstaller({
       root: this.root,
       petRoot: options.petRoot,
@@ -46,58 +51,7 @@ export class MarketService {
   }
 
   async search(query: string, kind: 'all' | 'theme' | 'pet', refresh = false): Promise<MarketSearchResult> {
-    const result = await this.client.search(query, kind, refresh).catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : String(error)
-      if (!/timeout|network|fetch|ECONN|ENOTFOUND|HTTP/i.test(message)) throw error
-      return { packages: [], incomplete: false, fromCache: false, offline: true }
-    })
-    if (result.offline || result.packages.length === 0) return result
-    const packages = (
-      await Promise.all(result.packages.map((item) => this.detailSummary(item)))
-    ).filter((item): item is MarketSearchResult['packages'][number] => item !== null)
-    return { ...result, packages }
-  }
-
-  private async detailSummary(item: MarketSearchResult['packages'][number]) {
-    try {
-      const meta = await this.client.package(item.name)
-      const version =
-        meta.versions.find(
-          (entry) => entry.version === meta.distTags.latest && !entry.deprecated && entry.scripts.length === 0
-        ) ?? meta.versions.find((entry) => !entry.deprecated && entry.scripts.length === 0)
-      if (!version) return null
-      const coerced = semver.coerce(this.options.appVersion)
-      return {
-        ...item,
-        version: version.version,
-        description: meta.description || item.description,
-        author: meta.author || item.author,
-        license: version.license || meta.license,
-        unpackedSize: await this.unpackedSize(item.name, version),
-        deprecated: version.deprecated,
-        compatible: Boolean(
-          version.compatible && coerced && semver.satisfies(coerced, version.compatible, { includePrerelease: true })
-        )
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      if (/Refusing|unofficial/.test(message)) return null
-      return item
-    }
-  }
-
-  private async unpackedSize(name: string, version: RegistryVersion): Promise<number | null> {
-    if (version.unpackedSize === null) return null
-    let total = version.unpackedSize
-    for (const partName of version.parts) {
-      const metadata = await this.client.package(partName)
-      const part = metadata.versions.find(
-        (entry) => entry.version === version.version && !entry.deprecated && entry.scripts.length === 0
-      )
-      if (!part || part.partOf !== name || part.unpackedSize === null) return version.unpackedSize
-      total += part.unpackedSize
-    }
-    return total
+    return this.client.search(query, kind, refresh)
   }
 
   async installed(): Promise<MarketInstalled> {
@@ -148,7 +102,7 @@ export class MarketService {
     const fill = async <T extends MarketInstalled['themes'][number]>(item: T): Promise<T> => {
       try {
         const metadata = await this.client.package(item.name)
-        const latest = metadata.distTags['latest'] ?? metadata.versions[0]?.version ?? null
+        const latest = metadata.version
         return {
           ...item,
           latest,

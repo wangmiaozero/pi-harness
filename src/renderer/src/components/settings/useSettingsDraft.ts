@@ -37,7 +37,7 @@ export function useSettingsDraft(): SettingsDraft {
 
   const draft = ref<AppSettings>({
     language: 'auto',
-    theme: 'macos27',
+    theme: 'soft-light',
     macos27Background: DEFAULT_MACOS27_BACKGROUND,
     macos27BackgroundImage: null,
     userName: DEFAULT_USER_NAME,
@@ -65,7 +65,7 @@ export function useSettingsDraft(): SettingsDraft {
     autoOpenLastProject: true,
     windowMotionEnabled: false,
     screenMotionEnabled: false,
-    composerFireEnabled: true,
+    composerFireEnabled: false,
     desktopPet: defaultDesktopPetSettings(),
     navOrder: [...DEFAULT_NAV_ORDER]
   })

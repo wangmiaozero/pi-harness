@@ -1,7 +1,7 @@
 # Pet Pack Format
 
 A **pet pack** is a self-contained directory of WebP animation frames plus a
-`pet-pack.json` manifest. Official pets are separate npm packages installed
+`pet-pack.json` manifest. Official pets are separate packs installed
 from **Settings → Resource Market**. Users can still install additional packs
 as ZIP files or local folders via **Settings → Desktop Pet → Pet Packs**.
 

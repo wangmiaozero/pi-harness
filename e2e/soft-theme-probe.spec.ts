@@ -9,16 +9,16 @@ import { seedWorkspaceSession } from './workspace-fixtures'
 const sessionId = 'calm-theme-fixture'
 const accents: Record<AppTheme, string> = {
   dark: '#91a9c7',
-  'soft-dark': '#aaa6c2',
+  'soft-dark': '#b3a7e6',
   light: '#626b7b',
-  'soft-light': '#8351dc',
-  pink: '#b94c7b',
-  purple: '#7955bd',
-  green: '#537b61',
-  blue: '#4c719c',
-  orange: '#a5612c',
-  red: '#b65359',
-  cyan: '#337e80',
+  'soft-light': '#7a5bd3',
+  pink: '#a9527b',
+  purple: '#7357b8',
+  green: '#4b7a60',
+  blue: '#486f9f',
+  orange: '#a05d31',
+  red: '#ab4d56',
+  cyan: '#2e7a7e',
   'macos27-light': '#4c719c',
   macos27: '#86a7cb'
 }

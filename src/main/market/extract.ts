@@ -1,9 +1,32 @@
+import { createWriteStream } from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { x as extractTar } from 'tar'
+import { pipeline } from 'node:stream/promises'
+import { createRequire } from 'node:module'
 import { MARKET_BARE_FILES, MARKET_FILE_EXTENSIONS, MARKET_LIMITS } from './limits'
 
+const { Open } = createRequire(import.meta.url)('unzipper') as {
+  Open: {
+    file(file: string): Promise<{
+      files: Array<{
+        path: string
+        type: string
+        uncompressedSize: number
+        externalFileAttributes: number
+        stream(): NodeJS.ReadableStream
+      }>
+    }>
+  }
+}
+
 export class MarketPackageError extends Error {}
+
+export function assertZipEntryMode(externalFileAttributes: number): void {
+  const mode = (externalFileAttributes >>> 16) & 0o170000
+  if (mode && mode !== 0o100000 && mode !== 0o040000) {
+    throw new MarketPackageError(`Rejected archive entry type ${mode.toString(8)}`)
+  }
+}
 
 function assertSafeRelative(name: string): string {
   const normalized = name.replaceAll('\\', '/').replace(/^\.\/+/, '')
@@ -16,64 +39,57 @@ function assertSafeRelative(name: string): string {
   ) {
     throw new MarketPackageError(`Rejected archive path: ${name}`)
   }
-  const stripped = normalized.startsWith('package/') ? normalized.slice('package/'.length) : normalized
-  if (!stripped || stripped.split('/').some((part) => part === '..')) {
-    throw new MarketPackageError(`Rejected archive path: ${name}`)
-  }
-  return stripped
+  return normalized
 }
 
 function allowedFile(relative: string): boolean {
   const base = path.posix.basename(relative).toLowerCase()
   if (MARKET_BARE_FILES.has(base)) return true
-  const extension = path.posix.extname(base)
-  return MARKET_FILE_EXTENSIONS.has(extension)
+  return MARKET_FILE_EXTENSIONS.has(path.posix.extname(base))
 }
 
-export async function extractMarketTarball(tarball: string, destination: string): Promise<void> {
-  await fs.mkdir(destination, { recursive: true })
+export async function extractMarketZip(
+  archive: string,
+  destination: string,
+  expectedUnpacked: number,
+  signal?: AbortSignal
+): Promise<void> {
+  const zip = await Open.file(archive)
   let entries = 0
   let unpacked = 0
-  let rejection: Error | null = null
-  await extractTar({
-    file: tarball,
-    cwd: destination,
-    strict: true,
-    preservePaths: false,
-    unlink: false,
-    filter(entryPath, entry) {
-      if (rejection) return false
-      try {
-        entries += 1
-        if (entries > MARKET_LIMITS.maxEntries) throw new MarketPackageError('Package has too many files')
-        const type = 'type' in entry ? String(entry.type) : 'File'
-        if (type !== 'File' && type !== 'Directory') {
-          throw new MarketPackageError(`Rejected archive entry type ${type}`)
-        }
-        const relative = assertSafeRelative(entryPath)
-        const size = Number(entry.size ?? 0)
-        if (!Number.isFinite(size) || size < 0 || size > MARKET_LIMITS.maxFileBytes) {
-          throw new MarketPackageError(`Rejected archive entry size: ${entryPath}`)
-        }
-        unpacked += size
-        if (unpacked > MARKET_LIMITS.maxUnpackedBytes) {
-          throw new MarketPackageError('Package unpacks beyond the size limit')
-        }
-        if (type === 'File' && !allowedFile(relative)) {
-          throw new MarketPackageError(`Rejected archive file: ${relative}`)
-        }
-        return true
-      } catch (error) {
-        rejection = error instanceof Error ? error : new MarketPackageError(String(error))
-        return false
-      }
+  const files: Array<{ relative: string; entry: (typeof zip.files)[number] }> = []
+  for (const entry of zip.files) {
+    entries += 1
+    if (entries > MARKET_LIMITS.maxEntries) throw new MarketPackageError('Package has too many files')
+    assertZipEntryMode(entry.externalFileAttributes)
+    if (entry.type === 'Directory') continue
+    if (entry.type !== 'File') throw new MarketPackageError(`Rejected archive entry type ${entry.type}`)
+    const relative = assertSafeRelative(entry.path)
+    if (!Number.isInteger(entry.uncompressedSize) || entry.uncompressedSize < 0 || entry.uncompressedSize > MARKET_LIMITS.maxFileBytes) {
+      throw new MarketPackageError(`Rejected archive entry size: ${entry.path}`)
     }
-  })
-  if (rejection) {
-    await fs.rm(destination, { recursive: true, force: true }).catch(() => undefined)
-    throw rejection
+    unpacked += entry.uncompressedSize
+    if (unpacked > MARKET_LIMITS.maxUnpackedBytes) throw new MarketPackageError('Package unpacks beyond the size limit')
+    if (!allowedFile(relative)) throw new MarketPackageError(`Rejected archive file: ${relative}`)
+    files.push({ relative, entry })
   }
-  await assertExtractedTree(destination)
+  if (unpacked !== expectedUnpacked) throw new MarketPackageError('Package unpack size does not match the catalog')
+  await fs.mkdir(destination, { recursive: true })
+  try {
+    for (const file of files) {
+      signal?.throwIfAborted()
+      const target = path.join(destination, file.relative)
+      if (target !== destination && !target.startsWith(destination + path.sep)) {
+        throw new MarketPackageError(`Rejected archive path: ${file.relative}`)
+      }
+      await fs.mkdir(path.dirname(target), { recursive: true })
+      await pipeline(file.entry.stream(), createWriteStream(target, { flags: 'wx', mode: 0o644 }))
+    }
+    await assertExtractedTree(destination)
+  } catch (error) {
+    await fs.rm(destination, { recursive: true, force: true }).catch(() => undefined)
+    throw error
+  }
 }
 
 async function assertExtractedTree(root: string): Promise<void> {
@@ -90,19 +106,17 @@ async function assertExtractedTree(root: string): Promise<void> {
       }
       if (!stat.isFile()) throw new MarketPackageError(`Rejected special file: ${entry.name}`)
       const relative = path.relative(root, full).replaceAll('\\', '/')
-      const unpacked = relative.startsWith('package/') ? relative.slice('package/'.length) : relative
-      if (!allowedFile(unpacked)) throw new MarketPackageError(`Rejected extracted file: ${unpacked}`)
+      if (!allowedFile(relative)) throw new MarketPackageError(`Rejected extracted file: ${relative}`)
     }
   }
 }
 
 export async function readPackageRoot(extracted: string): Promise<string> {
-  const nested = path.join(extracted, 'package')
   try {
-    const stat = await fs.stat(nested)
-    if (stat.isDirectory()) return nested
+    const stat = await fs.stat(path.join(extracted, 'package.json'))
+    if (!stat.isFile()) throw new Error('missing')
   } catch {
-    // A fixture may already be a package root.
+    throw new MarketPackageError('Package archive is missing package.json')
   }
   return extracted
 }

@@ -1,51 +1,36 @@
-<p align="center">
-  <img src="docs/assets/pi-harness-logo.gif" width="640" alt="Pi-Harness" />
-</p>
+<div align="center">
 
-<p align="center">
-  <a href="README.md">English</a> ·
-  <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="README.zh-TW.md">繁體中文</a> ·
-  <a href="README.ja-JP.md">日本語</a> ·
-  <a href="README.ko-KR.md">한국어</a> ·
-  <a href="README.ru-RU.md">Русский</a> ·
-  <a href="README.fr-FR.md">Français</a> ·
-  <a href="README.de-DE.md">Deutsch</a>
-</p>
+<img src="docs/assets/pi-harness-logo.gif" width="520" alt="Pi-Harness">
 
-<h3 align="center">Pi Coding Agent 的 Operational Superset</h3>
+### Pi Coding Agent 的 Operational Superset
 
-<p align="center">
-  <strong>在 Native Pi 之上，提供視覺化工作區、執行控制、任務復原與多智慧體協作。</strong>
-</p>
+**在一個桌面工作區中觀測、控制並編排 Native Pi 智慧體。**<br>
+每個智慧體仍由 Pi 執行。Pi-Harness 在外圍加入工作區、執行記錄、任務復原與智慧體團隊，<br>
+你的 Pi 工作階段、設定、Skills 與擴充套件在應用程式內外都能繼續使用。
 
-<p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
+`Pi Coding Agent ⊂ Pi-Harness`
 
-<p align="center">
-  <a href="#watch"><strong>實拍</strong></a> ·
-  <a href="#download"><strong>下載</strong></a> ·
-  <a href="#features">功能</a> ·
-  <a href="#agent-settings">智慧體設定</a> ·
-  <a href="#harness-plugins">Harness Plugins</a> ·
-  <a href="#documentation">文件</a>
-</p>
+[![Release](https://img.shields.io/github/v/release/wangmiaozero/pi-harness?label=release&color=111111)](https://github.com/wangmiaozero/pi-harness/releases) [![Stars](https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat&color=111111)](https://github.com/wangmiaozero/pi-harness/stargazers) [![CI](https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/license-AGPL--3.0--only-111111)](LICENSE)<br>
+![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white) ![Windows](https://img.shields.io/badge/Windows-0078D4?logo=windows&logoColor=white) ![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
 
-<p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="已發行版本" src="https://img.shields.io/github/v/release/wangmiaozero/pi-harness?style=flat-square" /></a>
-  <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
-  <a href="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml"><img alt="CI (main)" src="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
-  <a href="LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-  <a href="https://github.com/wangmiaozero/pi-harness"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
-</p>
+**[下載](https://github.com/wangmiaozero/pi-harness/releases)** &nbsp;·&nbsp; **[實拍](#watch)** &nbsp;·&nbsp; **[功能](#features)** &nbsp;·&nbsp; **[Harness Plugins](#harness-plugins)** &nbsp;·&nbsp; **[文件](#documentation)** &nbsp;·&nbsp; **[更新記錄](CHANGELOG.md)**
+
+[English](README.md) · [简体中文](README.zh-CN.md) · **繁體中文** · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md)
+
+<br>
+
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png" width="900" alt="Pi-Harness 工作區：對話、專案檔案與 Git 集中在同一個視窗">
+
+</div>
+
+<br>
 
 ## 赞助商
 
 <table>
   <tr>
     <td width="580" align="center" valign="middle">
-      <a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">
         <img src="docs/assets/infistar-banner.png" width="560" alt="Pi-Harness × Infistar.cc 无限星河" />
-      </a>
     </td>
     <td valign="middle">
       Pi-Harness × Infistar.cc 无限星河｜Claude、GPT、Gemini、Grok、DeepSeek 等，一个 Key，只花官方价的零头，省 99%；低至官方 0.1 折，100% 官方纯血，每个模型都能验真；上千线路安全冗余自动切换，200+ 模型、16 个品牌，一个 Key 搞定。<br>
@@ -54,9 +39,7 @@
   </tr>
   <tr>
     <td width="580" align="center" valign="middle">
-      <a href="https://cloud.tencent.com/act/cps/redirect?redirect=6871&amp;cps_key=ece2099a1da90c2f7a4a4c437ad623f8&amp;from=console">
         <img src="docs/assets/workbuddy-banner.jpg" width="560" alt="腾讯云 WorkBuddy" />
-      </a>
     </td>
     <td valign="middle">
       【腾讯云】WorkBuddy 全场景 AI 办公工作台，团队旗舰版低至198元/月<br>
@@ -64,6 +47,19 @@
     </td>
   </tr>
 </table>
+
+## Pi-Harness 適合你嗎？
+
+[Pi Coding Agent](https://github.com/earendil-works/pi) 在終端機中就很好用。但在實際專案裡，你很快會需要更多：看清每次執行到底做了什麼、執行出錯時回到正常狀態，以及把較大的工作分給多個智慧體。Pi-Harness 以同一個 Pi 為基礎，把這些都放進一個桌面應用程式：
+
+- **看清每次執行**：Runs、Trace、Replay 與 Evaluation 顯示工具活動、比較執行結果，並依據記錄的證據調查失敗原因。
+- **讓工作可以復原**：Policy、Budget、Checkpoints 與 Recovery 設定工具權限與花費上限、保留復原點，並可繼續、分支或重試。
+- **協調團隊**：Agent Teams、Task DAG 與 Worktrees 指派有相依關係的任務、在 Pi 智慧體之間傳遞結果，並隔離每個智慧體的修改。
+- **保持 Native Pi**：智慧體迴圈、工作階段、上下文、工具、模型與思考都由 Pi 執行。Pi-Harness 以視覺化方式管理它們，你也可以繼續在應用程式之外使用 Pi。
+
+如果你在實際專案中使用 Pi，並希望在一個視窗中查看、引導與協調它的工作，Pi-Harness 就適合你。如果終端機裡的一個對話就足夠，單獨使用 Pi 即可。
+
+支援 macOS、Windows 和 Linux。社群版安裝程式內建 Pi 與 Node.js，不需要事先安裝其他東西。
 
 <a id="watch"></a>
 
@@ -77,37 +73,77 @@ https://github.com/user-attachments/assets/942b73c9-ece9-485e-ad82-0e51225a73c1
 
 https://github.com/user-attachments/assets/98708766-f490-4506-a33f-f1376d41770f
 
-<a id="product-preview"></a>
+<a id="download"></a>
+<a id="get-started"></a>
 
-## 產品預覽
+## 快速開始
 
-透過示範工作區查看目前介面，點選圖片可查看原圖。
+**1 · 安裝。** 從 **[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)** 下載適合你系統的安裝程式：
 
-### 工作區
+| | |
+| :-- | :-- |
+| **macOS** | Apple Silicon（`arm64`）或 Intel（`x64`）的 `.dmg`。開啟後將 Pi-Harness 拖曳到「應用程式」 |
+| **Windows** | x64 `.exe` 安裝程式。執行後選擇安裝目錄 |
+| **Linux** | x64 `.AppImage`。設定為可執行後開啟 |
 
-[![工作區](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+```sh
+chmod +x "./Pi-Harness-VERSION.AppImage"   # 將 VERSION 換成下載的版本號
+./Pi-Harness-VERSION.AppImage
+```
 
-### Harness
+<sub>安裝程式內含 Pi、Node.js、npm 與 npx：不需要安裝 Pi 或 Node.js，也不需要複製本儲存庫或安裝 pnpm。發行驗證涵蓋 macOS Apple Silicon、macOS Intel、Windows x64 和 Linux x64，每個版本實際提供哪些平台以該版本的驗證結果為準。Linux 驗證以 Ubuntu 24.04 為目標，其他發行版以及 FUSE 或桌面整合需要自行確認。Windows 與 Linux ARM64 為預覽目標。舊版安裝套件的需求可能不同，請依照所下載版本的說明操作。macOS 組建使用 ad-hoc 簽署，Windows 安裝程式未簽署：請見<a href="#verify-your-download">驗證下載檔案</a>。</sub>
 
-[![Harness](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-2.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-2.png)
+**2 · 檢查環境。** 啟動 Pi-Harness，在總覽頁檢查執行環境。
 
-### 多智慧體
+**3 · 新增 Provider。** 設定 Provider、測試連線並選擇模型。使用模型可能需要憑證，並可能產生服務商費用。
 
-示範團隊尚未執行：智慧體處於閒置狀態，任務待處理。
+**4 · 開始工作。** 開始獨立對話或開啟專案，再建立或繼續 Pi 工作階段，在同一個視窗中處理對話、檔案與 Git。開啟「**工作區 → 工具 → Harness / 智慧體**」即可檢查執行或協調團隊。
 
-[![多智慧體](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E5%9B%A2%E9%98%9F.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E5%9B%A2%E9%98%9F.png)
+<a id="verify-your-download"></a>
 
-[![多智慧體](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96.png)
+### 驗證下載檔案
 
-## 為什麼選擇 Pi-Harness？
+社群版免費提供。macOS 安裝套件使用 **ad-hoc 簽署，沒有 Apple Developer ID 簽署或公證**。Windows 安裝程式**未簽署**，可能出現 SmartScreen 警告。允許應用程式開啟前，請確認官方下載來源與校驗值。若 macOS 阻擋首次啟動，請在「**系統設定 → 隱私權與安全性 → 仍要打開**」中為該應用程式放行。請保持系統安全防護開啟。
 
-Pi-Harness 將 Pi Coding Agent 帶入 macOS、Windows 和 Linux 桌面工作區。在同一個應用程式中管理對話、專案、檔案、Git、模型和 Skills，並透過執行觀測、預算控制、任務復原與智慧體團隊完成工作。
+與安裝程式一起下載 `SHA256SUMS`，計算檔案的雜湊值，並與清單中同名檔案的值比對（將 `VERSION` 與架構換成你下載的檔案）：
 
-Native Pi 負責執行智慧體。Pi 工作階段、設定、工具、Skills 與擴充套件保持相容，也可以繼續在桌面應用程式之外使用 Pi。
+```sh
+shasum -a 256 "Pi-Harness-VERSION-arm64.dmg"   # macOS
+sha256sum "Pi-Harness-VERSION.AppImage"        # Linux
+```
 
-## 原生 Pi 與 Pi-Harness
+```powershell
+Get-FileHash ".\Pi-Harness-Setup-VERSION.exe" -Algorithm SHA256   # Windows
+```
 
-Pi-Harness 是 Pi Coding Agent 的操作能力超集：以原生 Pi 能力為基礎，加入觀測、控制、復原、多智慧體編排與視覺化工作區。
+<sub>SHA256 只能確認檔案與校驗清單一致，無法單獨證明發布者身分。請使用官方 <a href="https://github.com/wangmiaozero/pi-harness/releases">GitHub Releases</a> 頁面，疑似安全漏洞請私下回報至 <a href="mailto:tuziling84@gmail.com">tuziling84@gmail.com</a>。社群版會在應用程式內檢查新版本，並在所有平台開啟 Releases 頁面供手動下載與安裝。在跨版本安裝驗證完成前，自動安裝保持停用，現有安裝維持原本的更新行為。請見<a href="docs/release/community-release.md">社群版發行</a>與<a href="docs/release/update-strategy.md">更新說明</a>。</sub>
+
+<a id="architecture"></a>
+
+## 運作方式
+
+Pi 負責執行與原生工作階段。Harness 觀測每次執行，並在外圍套用策略、預算、檢查點、復原與評估。智慧體團隊使用同一個 Pi 執行引擎。對話歷史與專案架構是工作區工具，主題則用來自訂外觀。下圖表示模組之間的關係，而非類別繼承。
+
+```mermaid
+flowchart TD
+    subgraph Desktop["Pi-Harness 桌面版"]
+        W["視覺化工作區"] --> H["Harness 控制平台"]
+        A["Agent Teams / Task DAG"] --> H
+        W --> G["檔案 / Git / Worktrees"]
+        A --> G
+        C["Provider / 模型 / Skills / MCP"]
+    end
+    H --> P["Native Pi Coding Agent"]
+    C --> P
+    P --> M["模型服務商"]
+```
+
+<a id="pi-vs-pi-harness"></a>
+
+<details>
+<summary><b>原生 Pi 與 Pi-Harness</b>：逐項能力比較</summary>
+
+<br>
 
 | 能力                     | Native Pi | Pi-Harness        |
 | ------------------------ | --------- | ----------------- |
@@ -144,301 +180,304 @@ Pi-Harness 是 Pi Coding Agent 的操作能力超集：以原生 Pi 能力為基
 | Worktree isolation       | —         | 支援              |
 | Project architecture map | —         | 支援              |
 
+</details>
+
 <a id="features"></a>
 
 ## 功能介紹
 
 ### 工作區、檔案與 Git
 
-可以直接開始獨立對話，也可以開啟專案並繼續 Pi 工作階段。集中查看串流回覆、思考過程、工具呼叫、圖片與檔案變更，選擇模型、思考等級與工具，或壓縮對話上下文。在工作區「工具」中開啟 Harness 和智慧體時，對話與未送出的草稿會保留。
+可以直接開始獨立對話，也可以開啟專案並繼續 Pi 工作階段。查看串流回覆、思考過程、工具呼叫、圖片與檔案變更；選擇模型、思考等級與工具，或壓縮對話。從工作區「工具」開啟 Harness 或智慧體時，對話與草稿都會保留。
 
-支援檔案瀏覽與搜尋、媒體和文件預覽，以及具備語法高亮、行號、尋找、復原/重做、明確儲存和外部變更衝突保護的輕量文字編輯。Git 提供差異、提交歷史、活動圖、提交操作、可選 AI 提交訊息與 worktree。
+瀏覽與搜尋檔案、預覽媒體和文件，並以語法高亮、行號、尋找、復原/重做、明確儲存和外部變更衝突保護編輯可讀文字。Git 提供差異、提交歷史、活動圖、提交操作、可選的 AI 提交訊息與 worktree。
 
-### Provider 與模型
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BB%A3%E7%A0%81%E7%BC%96%E8%BE%91.png" alt="輕量檔案編輯"><br><sub>輕量檔案編輯</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png" alt="Git 差異、提交歷史與提交"><br><sub>Git</sub></td>
+</tr>
+</table>
 
-透過預設或自訂位址設定 Pi 相容 Provider，管理憑證、取得服務支援的模型清單、測試連線並選擇聊天模型。支援的影像模型可用於文字生圖或圖片編輯，結果可以下載。
+<a id="harness"></a>
 
-### Skills、擴充套件、套件與 MCP
+### Harness 控制平台
 
-在能力中心瀏覽內建與本機 Skills、編輯 Skill，並管理 Pi 套件和擴充套件。在輸入框鍵入 `@`，即可搜尋並呼叫已安裝的 Skill。在「**設定 → MCP**」中管理 MCP 伺服器。[Superpowers](https://github.com/obra/superpowers) 和 [Odai](https://github.com/orziz/odai) 等可選增強功能可按需安裝、更新或解除安裝。
+每次 Pi 執行都會留下可以檢查、比較與復原的記錄。
 
-<a id="desktop-companion"></a>
+| | |
+| :-- | :-- |
+| **觀測** | Runs、Trace、Replay、時間軸與工具活動。比較不同執行，並在 Run Tree 中追蹤分支與重試 |
+| **度量** | 每次執行的 Token、費用與耗時，以及產物和專案統計 |
+| **控制** | 工具策略與單次執行預算。建立檢查點，再繼續、分支或重試工作 |
+| **檢查** | Evaluation、Diagnostics 與回歸基準依據記錄的執行證據檢查結果、調查失敗原因 |
 
-### 桌面夥伴
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-2.png" alt="Harness：工作階段狀態與排隊中的指令"><br><sub>工作階段狀態與排隊中的指令</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png" alt="Harness 控制台"><br><sub>Harness 控制台</sub></td>
+</tr>
+</table>
 
-在「**設定 → 資源市場**」單獨安裝官方人物主題和桌寵。應用程式不內建這些可選媒體，沒有網路也可以進入工作區。已經選過的主題或桌寵會保留；資源還沒安裝時使用基礎外觀，安裝後恢復。說明見 [docs/market/MARKET.md](docs/market/MARKET.md)。
+<a id="multi-agent"></a>
 
-在「**設定 → 桌寵**」啟用已安裝的桌面夥伴，在桌面查看思考、工具執行、等待操作與任務完成的狀態。桌寵預設關閉，主視窗最小化後仍可顯示。
+### 多智慧體編排
 
-閒置時，可透過支援搜尋的右鍵選單選擇 193 個動作。任務執行期間暫停手動互動，拖曳不會中斷任務動畫。支援匯入本機寵物包，並以滑桿調整大小、透明度與氣泡設定。
+開啟「**工作區 → 工具 → 智慧體**」，以可重複使用的團隊與範本協調 Pi 智慧體。為任務指定相依關係與優先順序，以手動、循序或平行方式排程，將結果與產物傳給下一個任務，並加入審核關卡。Worktrees 隔離每個智慧體的修改。預算、衝突提示，以及暫停、繼續、中止、重試、跳過和重新指派等控制項可協助你管理工作。
 
-[![桌寵設定與滑桿調整](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E5%9B%A2%E9%98%9F.png" alt="執行前已設定好的團隊"><br><sub>執行前的示範團隊：三個智慧體處於閒置狀態，所有任務待處理</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96.png" alt="具有相依關係與審核要求的待處理任務"><br><sub>任務相依關係與審核要求</sub></td>
+</tr>
+</table>
 
-<a id="agent-settings"></a>
+<a id="conversation-history"></a>
 
-### 智慧體設定
+### 通用對話歷史
 
-**v2.2.10 及後續版本提供** **AI、即時語音、快捷鍵、指令、MCP、子智慧體、遠端主機**七個設定頁面。下載的安裝程式是否包含這些功能，請以對應版本的發行說明為準。
+統一瀏覽 Claude Code、Codex（含桌面及封存對話）、Cursor、Cursor Agent、Gemini CLI、OpenCode 和 Pi 的歷史。支援搜尋、依來源、專案或日期範圍篩選，並可新增自訂歷史目錄。
 
-在「**設定 → AI**」中調整預設思考層級、自動壓縮、錯誤重試與工作區偏好。「快捷鍵」可錄製命令面板、開啟設定、建立工作階段和關閉分頁的組合鍵，或還原預設值。「**設定 → 指令**」可編輯全域或專案指令。
+以唯讀方式開啟原始對話、預覽交接內容，並在同一專案下的新 Pi 對話中繼續之前編輯下一步指令。瀏覽、本機預覽與掃描重試不消耗模型 Token；可選的 AI 整理只在你主動要求時使用已設定的模型。
 
-在「**設定 → 子智慧體**」建立可重複使用的範本，設定角色、指令、模型、思考層級與工具，選擇共用工作區或獨立 worktree，再啟動任務或用於團隊。
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E5%8E%86%E5%8F%B2.png" alt="對話歷史"><br><sub>對話歷史</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E6%B8%85%E7%90%86.png" alt="對話清理"><br><sub>對話清理</sub></td>
+</tr>
+</table>
 
-<a id="realtime-voice"></a>
+<a id="project-architecture"></a>
 
-### 工作區即時語音
+### 專案架構圖
 
-在「**設定 → 即時語音**」設定 **OpenAI Realtime、Gemini Live 或 Codex Live**，再點選工作區輸入框旁的波形按鈕。可選擇支援的服務帳號或獨立 API 金鑰；Codex Live 使用你在 Pi 中既有的 Codex 登入帳號。服務可用性與費用取決於帳號。
+在工作區開啟「專案架構」，瀏覽模組、相依關係、入口檔案與原始碼引用。可依套件篩選、聚焦單一模組、翻頁、縮放或全螢幕。儲存分析快照，在原始碼變更使快照過期時收到提示，並匯出 JSON、離線 HTML 或目前視圖的 PNG。
 
-開始前請確認目標工作階段。近期內容分享預設關閉；啟用後只分享最近六則純文字訊息，不含附件與工具結果。通話期間可透過浮動控制項靜音、結束或查看轉寫，切換頁面後仍可操作。語音提出的工作請求須確認後才會傳送到工作階段。
+| | |
+| :-- | :-- |
+| **本機優先** | 分析在本機執行，不消耗模型 Token；AI 說明為可選功能 |
+| **涵蓋範圍** | 在本機分析 JavaScript、TypeScript 和 Vue 的匯入關係；其他支援語言提供檔案層級索引。每次分析都會標示涵蓋範圍與限制 |
+| **適用範圍** | 架構圖描述支援的靜態相依關係，並非完整的函式呼叫圖 |
+
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png" width="900" alt="專案架構圖">
+
+<a id="providers-and-models"></a>
+<a id="skills-extensions-packages-and-mcp"></a>
+
+### Provider、模型與 Skills
+
+| | |
+| :-- | :-- |
+| **Provider** | 透過預設或自訂位址設定 Pi 相容 Provider，管理憑證、在支援時取得模型清單、測試連線並選擇聊天模型 |
+| **圖片** | 使用支援的影像模型進行文字生圖或圖片編輯，並下載結果 |
+| **OpenCode Zen / Go** | 在「模型」下的 OpenCode 分頁儲存 API 金鑰並啟用需要的模型。模型會自動載入，可逐一或一次驗證。存取權與費用取決於你的官方帳號與模型；付費驗證會先徵求你的同意。價格與資料政策請見 [OpenCode 的模型資訊](https://opencode.ai/v2/docs/console/models/) |
+| **Skills** | 瀏覽並編輯內建與本機 Skills。在輸入框鍵入 `@` 即可搜尋並呼叫已安裝的 Skill |
+| **套件與擴充套件** | 在能力中心管理 Pi 套件與擴充套件。[Superpowers](https://github.com/obra/superpowers) 等可選增強功能只在你選擇時安裝、更新或解除安裝 |
+
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png" alt="Provider 與模型"><br><sub>Provider 與模型</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png" alt="能力中心"><br><sub>能力中心</sub></td>
+</tr>
+</table>
 
 <a id="mcp-marketplace"></a>
 
 ### MCP 伺服器與市場
 
-在「**設定 → MCP**」新增本機命令或 HTTP 伺服器，以「**全部 / 全域 / 專案**」篩選、選擇專案，並分別編輯或啟用各範圍的伺服器。也可掃描其他工具的設定，審閱後匯入。
+在「**設定 → MCP**」新增本機命令或 HTTP 伺服器，以「**全部 / 全域 / 專案**」篩選、選擇專案，並在各自的範圍中編輯或啟用每個伺服器。也可以掃描其他工具的設定，審閱後再匯入。
 
-市場提供 **15 個內建伺服器範本**，包括 Memory、Context7、Playwright、Filesystem 與 GitHub，並支援官方 MCP 註冊表搜尋及分頁。儲存前可預覽設定和目標範圍。範本供按需安裝，不代表已全部啟用；掃描匯入與官方註冊表項目儲存後預設停用，完成設定後再啟用。
+市場提供 **15 個內建伺服器範本**，包括 Memory、Context7、Playwright、Filesystem 與 GitHub，並支援官方 MCP 註冊表的搜尋與分頁。儲存前可預覽設定與目標位置。範本供你安裝使用，並非全部預設啟用。匯入的項目與註冊表項目儲存後為停用狀態，方便你先完成設定。
+
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png" width="900" alt="MCP 市場與內建伺服器範本">
+
+<a id="agent-settings"></a>
+
+### 智慧體設定
+
+**v2.2.10 及後續版本提供。** 下載的安裝程式是否包含這些功能，請以發行說明為準。
+
+| 頁面 | 可設定的內容 | |
+| :-- | :-- | :-- |
+| **AI** | 預設思考層級、自動壓縮、重試行為與工作區偏好 | [截圖](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/AI.png) |
+| **即時語音** | 工作區通話使用的語音服務與帳號 | [截圖](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3.png) |
+| **快捷鍵** | 命令面板、設定、新工作階段與關閉分頁的自訂快捷鍵，或預設值 | [截圖](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%BF%AB%E6%8D%B7%E9%94%AE.png) |
+| **指令** | 全域或專案指令 | [截圖](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%8C%87%E4%BB%A4.png) |
+| **MCP** | 各範圍的 MCP 伺服器 | [截圖](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E6%9C%8D%E5%8A%A1%E5%99%A8.png) |
+| **子智慧體** | 可重複使用的子智慧體，包含角色、指令、模型、思考層級與工具。選擇共用工作區或獨立 worktree，再啟動任務或在團隊中重複使用範本 | [截圖](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AD%90%E6%99%BA%E8%83%BD%E4%BD%93.png) |
+| **遠端主機** | 執行 pi-host 的主機，以位址與配對權杖配對 | [截圖](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA.png) |
+
+<a id="realtime-voice"></a>
+
+### 即時語音
+
+使用 **OpenAI Realtime、Gemini Live 或 Codex Live** 與工作區對話。可使用支援的服務帳號或獨立 API 金鑰；Codex Live 使用你在 Pi 中既有的 Codex 登入帳號。服務可用性與費用取決於你的帳號。
+
+1. 開啟「**設定 → 即時語音**」，啟用語音、選擇服務與帳號並儲存。
+2. 在工作區對話中，點選輸入框旁的波形按鈕。
+3. 確認目標對話與可選的內容分享，點選「**開始即時語音**」並允許使用麥克風。
+4. 透過浮動控制項靜音、查看轉寫或結束通話，切換到其他頁面後仍可操作。
+
+近期內容分享預設關閉。啟用後只包含最近六則純文字訊息，不含附件與工具結果。通話中提出的工作請求須經你確認後才會傳送到工作對話。
+
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png" width="900" alt="工作區語音：通話前的設定與準備">
 
 <a id="remote-hosts"></a>
 
 ### 遠端主機
 
-在「**設定 → 遠端主機**」輸入執行 **pi-host** 的主機位址與配對權杖。配對後可連線或中斷、瀏覽專案與工作階段、查看對話、傳送提示詞及處理核准請求。遠端服務必須預先啟動並保持可連線。
+在「**設定 → 遠端主機**」輸入執行 **pi-host** 的主機位址與配對權杖進行配對。可連線或中斷主機、瀏覽其專案與工作階段、查看對話、傳送提示詞並回應核准請求。遠端主機必須已在執行且可以連線。
 
-### Harness：觀測、控制與復原
-
-查看執行記錄、Trace、重播、時間軸與工具活動；比較不同執行，在執行樹中追蹤分支與重試，檢查 Token、費用、耗時、產物及專案統計。
-
-設定工具策略與單次執行預算，建立檢查點，並復原、分支或重試任務。評估、診斷和回歸基準協助你依據實際執行記錄檢查結果、找出失敗原因。
-
-### 智慧體團隊與任務編排
-
-使用可重複使用的團隊與範本協調多個 Pi 智慧體，為任務指定相依關係、優先順序與負責人，支援手動、循序或平行排程、結果與產物交接、審核關卡。透過 worktree 隔離修改，並使用預算、衝突提示，以及暫停、繼續、中止、重試、跳過和重新指派來管理任務。
-
-### 本機對話歷史
-
-統一瀏覽 Claude Code、Codex（含桌面及封存對話）、Cursor、Cursor Agent、Gemini CLI、OpenCode 和 Pi 歷史，支援搜尋、來源/專案/日期範圍篩選及自訂歷史目錄。
-
-原始對話唯讀；查看交接預覽、編輯下一步指令後，可以在同一專案下建立 Pi 對話繼續任務。瀏覽、本機預覽和掃描重試不消耗模型 Token；可選 AI 整理只在主動使用時呼叫已設定的模型。
-
-### 專案架構
-
-在工作區開啟「專案架構」，瀏覽模組、相依關係、入口檔案與原始碼引用。支援依套件篩選、模組聚焦、地圖翻頁、縮放與全螢幕，儲存分析快照並提示原始碼變更，可匯出 JSON、離線 HTML 或目前視圖 PNG。
-
-本機分析不消耗模型 Token，AI 說明按需使用。JavaScript、TypeScript 和 Vue 提供本機匯入關係分析，其他支援語言提供檔案層級索引，分析結果會標示涵蓋範圍與限制。
-
-### 主題與自訂皮膚
-
-選擇經典配色、大明、星艦駕駛艙、macOS 27 背景或匯入自訂皮膚。新安裝預設使用深色主題；支援自訂聊天顯示名稱、應用程式圖示、本機背景圖，以及視窗光圈、螢幕光圈和輸入框火焰效果。啟動動畫伴隨環境檢查。
-
-### 環境與應用程式設定
-
-檢查 Node.js、npm、PATH、Pi Coding Agent 和目前設定，在支援的環境中安裝、更新或修復 Pi；查看環境診斷、管理設定備份並檢查應用程式更新。介面支援八種語言。
-
-## 建立自訂皮膚
-
-使用 [Pi-Harness 自訂皮膚範本](https://github.com/wangmiaozero/pi-harness-skin-starter)，製作你喜歡的視覺風格。
-
-1. 使用範本儲存庫，或下載並解壓縮。
-2. 以編碼智慧體開啟專案，透過內建提示詞描述你喜歡的風格。
-3. 完成後從「設定 → 主題 → 匯入皮膚」匯入專案。
-
-多語言範本提供配色、預覽圖、桌布與可選角色圖的製作說明。皮膚可以保存在獨立儲存庫中，單獨更新和分享。
-
-<a id="screenshots"></a>
-
-## 介面預覽
-
-功能介面依主題分類，更多視圖請見[完整截圖索引](docs/README.md)。
+<a id="desktop-companion"></a>
 
 ### 桌面夥伴
 
-[![右鍵選單](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%8F%9C%E5%8D%95.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%8F%9C%E5%8D%95.png)
+在「**設定 → 桌寵**」啟用已安裝的桌寵，即可在桌面查看思考、工具執行、等待與完成的狀態回饋。桌寵預設關閉，主視窗最小化後仍可顯示。
 
-[![動作搜尋與選擇](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E5%8A%A8%E4%BD%9C.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E5%8A%A8%E4%BD%9C.png)
+閒置時，可在支援搜尋的右鍵選單中選擇 193 個動作。任務執行期間會暫停手動互動，拖曳也不會中斷任務動畫。可匯入本機寵物包，並以滑桿調整大小、透明度與氣泡。
 
-### 對話歷史
+<table>
+<tr>
+<td width="33%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png" alt="桌寵設定與滑桿"><br><sub>設定與滑桿</sub></td>
+<td width="33%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%8F%9C%E5%8D%95.png" alt="右鍵選單"><br><sub>右鍵選單</sub></td>
+<td width="33%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E5%8A%A8%E4%BD%9C.png" alt="可搜尋的動作清單"><br><sub>可搜尋的動作</sub></td>
+</tr>
+</table>
 
-[![對話歷史](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E5%8E%86%E5%8F%B2.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E5%8E%86%E5%8F%B2.png)
+<a id="themes-and-custom-skins"></a>
+<a id="screenshots"></a>
 
-### 對話清理
+### 主題與自訂皮膚
 
-[![對話清理](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E6%B8%85%E7%90%86.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E6%B8%85%E7%90%86.png)
+選擇經典配色、大明主題、星艦駕駛艙、macOS 27 背景或匯入的自訂皮膚。新安裝預設使用**柔和淺色**。可自訂聊天顯示名稱、應用程式圖示、本機背景圖、視窗與螢幕光暈，以及輸入框火焰效果。啟動動畫會伴隨環境檢查。
 
-### 經典主題
+人物主題與桌寵是可選的資源包。開啟「**設定 → 資源市場**」，從 GitHub 清單一次安裝一個 `@piharness` 資源包。應用程式不需要網路即可啟動。已經選過的主題或桌寵在檔案尚未安裝時仍會保留，工作區會先使用基礎外觀，直到你安裝該資源包。請見 [docs/market/MARKET.md](docs/market/MARKET.md)。
 
-#### 輕量檔案編輯
+使用 [Pi-Harness 自訂皮膚範本](https://github.com/wangmiaozero/pi-harness-skin-starter)**製作你自己的皮膚**：
 
-[![輕量檔案編輯](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BB%A3%E7%A0%81%E7%BC%96%E8%BE%91.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BB%A3%E7%A0%81%E7%BC%96%E8%BE%91.png)
+1. 以範本儲存庫建立專案，或直接下載。
+2. 以你的編碼智慧體開啟專案，透過內建提示詞描述你想要的風格。
+3. 完成後從「**設定 → 主題 → 匯入皮膚**」匯入專案。
 
-<details>
-<summary>智慧體設定 · 工作區語音 · MCP</summary>
+多語言範本提供配色、預覽圖、桌布與可選角色圖的製作說明。將皮膚保存在獨立儲存庫中，即可單獨更新與分享。
 
-#### 工作區語音
-
-設定與通話準備畫面：
-
-[![工作區語音](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)
-
-#### MCP 市場
-
-[![MCP 市場](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)
-
-| 設定頁面       | 截圖                                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| AI 偏好        | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/AI.png)                                   |
-| 即時語音       | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3.png) |
-| 快捷鍵         | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%BF%AB%E6%8D%B7%E9%94%AE.png)          |
-| 全域與專案指令 | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%8C%87%E4%BB%A4.png)                   |
-| MCP 伺服器     | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E6%9C%8D%E5%8A%A1%E5%99%A8.png)       |
-| 子智慧體       | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AD%90%E6%99%BA%E8%83%BD%E4%BD%93.png) |
-| 遠端主機配對   | [查看](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA.png) |
-
-</details>
-
-<details>
-<summary>Git · Provider 與模型 · 能力中心 · Harness 工具 · 專案架構</summary>
-
-#### Git
-
-[![Git](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)
-
-#### Provider 與模型
-
-[![Provider 與模型](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)
-
-#### 能力中心
-
-[![能力中心](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)
-
-#### Harness 工具
-
-[![Harness 工具](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
-
-#### 專案架構
-
-[![專案架構](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)
-
-</details>
-
-### 大明功能介面
-
-<details>
-<summary>一般設定 · 主題皮膚庫</summary>
-
-#### 一般設定
-
-[![一般設定](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)
-
-#### 主題皮膚庫
-
-[![主題皮膚庫](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)
-
-</details>
-
-### 主題展示
-
-<details>
-<summary>大明·雪境朝臣 · 大明·雪夜笛姬 · 大明·月城書姬 · 星艦駕駛艙 · macOS 27 · Liquid Ether</summary>
-
-#### 大明·雪境朝臣
-
-[![大明·雪境朝臣](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)
-
-#### 大明·雪夜笛姬
-
-[![大明·雪夜笛姬](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)
-
-#### 大明·月城書姬
-
-[![大明·月城書姬](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)
-
-#### 星艦駕駛艙
-
-[![星艦駕駛艙](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)
-
-#### macOS 27 · Liquid Ether
-
-[![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/macos27.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/macos27.png)
-
-</details>
+<table>
+<tr>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png" alt="大明·雪境朝臣"><br><sub>大明·雪境朝臣</sub></td>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png" alt="大明·雪夜笛姬"><br><sub>大明·雪夜笛姬</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png" alt="大明·月城書姬"><br><sub>大明·月城書姬</sub></td>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png" alt="星艦駕駛艙"><br><sub>星艦駕駛艙</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png" alt="大明一般設定"><br><sub>大明·一般設定</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png" alt="主題皮膚庫"><br><sub>大明·主題皮膚庫</sub></td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/macos27.png" alt="macOS 27 · Liquid Ether"><br><sub>macOS 27 · Liquid Ether</sub></td>
+</tr>
+</table>
 
 <a id="harness-plugins"></a>
 
-## Harness Plugins — 擴充控制平台
+### Harness Plugins
 
-Plugin SDK v1.0.0 · 自 Pi-Harness v2.2.6 起提供。提供事件訂閱、自訂評估、JSON Trace 匯出與團隊範本；可執行外掛需明確信任，獨立程序不是安全沙箱。
+**Plugin SDK v1.0.0 · 自 Pi-Harness v2.2.6 起提供。** 外掛擴充的是智慧體外圍的操作，與擴充 Pi 本身的方式並列：
 
-[外掛開發與安裝](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security](docs/plugins/security.md) · [Examples](examples/harness-plugins/)
+| 擴充方式 | 用途 |
+| :-- | :-- |
+| **Pi Extensions** | 擴充 Pi 智慧體本身 |
+| **Skills** | 為智慧體提供指令與工作流程知識 |
+| **MCP** | 將智慧體連接到工具與外部服務 |
+| **Harness Plugins** | 擴充 Pi-Harness 在智慧體外圍的操作 |
 
-<a id="download"></a>
+可提供 **Harness Event Subscribers、Custom Evaluators、Trace Exporters 與 Agent Team Templates**。評估結果僅作補充，匯出使用經授權的 JSON 資料，團隊範本會建立待處理的工作流程，供你檢查後再啟動。可試用維護中的 SDK 範例：[Run Metrics](examples/harness-plugins/run-metrics/plugin.json)、[Quality Evaluator](examples/harness-plugins/quality-evaluator/plugin.json) 與 [Team Template](examples/harness-plugins/team-template/plugin.json)。
 
-## 下載
+在原始碼組建中，開啟「**工作區 → 工具 → Harness → Harness Plugins → 安裝本機外掛**」，選擇外掛資料夾、審閱權限並啟用。安裝過程不會執行任何程式碼。可執行外掛需要明確的原生信任核准：**獨立程序不是安全沙箱；經核准的 Node 程式碼可以存取你的電腦**。不受信任的內容請使用宣告式範本。
 
-在 [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases) 下載已發行的安裝程式，選擇對應平台的檔案。
+[開發與安裝](docs/plugins/getting-started.md) · [架構](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [安全邊界](docs/plugins/security.md)
 
-| 平台                | 安裝程式                  |
-| ------------------- | ------------------------- |
-| macOS Apple Silicon | `.dmg` · `arm64`          |
-| macOS Intel         | `.dmg` · `x64`            |
-| Windows x64         | `.exe` · Windows 安裝程式 |
-| Linux x64           | `.AppImage`               |
+### 其他
 
-安裝程式使用者無需複製儲存庫或安裝 pnpm。主題和桌寵從資源市場安裝。Pi-Harness 可以在支援的環境中協助安裝 Pi 並設定執行環境。
-
-> macOS 社群組建可能未簽署。若系統阻擋首次啟動，請前往「系統設定 → 隱私權與安全性 → 仍要打開」。
-
-## 開始使用
-
-1. 啟動 Pi-Harness，在概覽頁檢查執行環境。
-2. 設定 Provider、測試連線並選擇模型。
-3. 直接建立對話，或開啟專案。
-4. 建立或繼續 Pi 工作階段，在同一介面中處理對話、檔案和 Git。
-5. 需要執行控制或團隊協作時，開啟工作區「工具」。
-
-### 開始語音對話
-
-開始即時語音對話：
-
-1. 開啟「**設定 → 即時語音**」，啟用語音、選擇服務與帳號並儲存。
-2. 返回工作區對話，點選輸入框旁的波形按鈕。
-3. 確認目標工作階段與可選的內容分享，點選「**開始即時語音**」並允許使用麥克風。
-4. 使用通話控制項靜音、查看詳情或結束通話；工作請求經確認後再傳送給編碼智慧體。
-
-## 環境需求
-
-桌面應用程式支援 macOS Apple Silicon、macOS Intel、Windows x64 和 Linux x64。支援的環境可在應用程式中安裝或修復 Pi Coding Agent。從原始碼執行需要 Node.js 24 LTS (≥ 24.22.1) 和 pnpm 9.12.1。
+- **環境檢查**：檢查 Node.js、npm、PATH、Pi Coding Agent 與目前設定；在支援的環境中安裝、更新或修復 Pi，查看診斷並管理設定備份。
+- **執行環境**：內建的 Pi 與 Node 執行環境開箱即用，也可在設定中選擇系統或自訂執行環境。
+- **應用程式更新**：在應用程式內檢查新版本。
+- **八種語言**：English、简体中文、繁體中文、日本語、한국어、Русский、Français 與 Deutsch。
 
 <a id="documentation"></a>
 
 ## 文件
 
-- [智慧體設定](docs/agent-settings.md)
-- [截圖分類索引](docs/README.md)
-- [更新記錄](CHANGELOG.md)
+| | |
+| :-- | :-- |
+| **[智慧體設定指南](docs/agent-settings.md)** | AI、即時語音、快捷鍵、指令、MCP、子智慧體與遠端主機 |
+| **[資源市場](docs/market/MARKET.md)** | 安裝主題與桌寵資源包 |
+| **[Harness Plugins](docs/plugins/getting-started.md)** | 開發與安裝外掛；另請見[架構](docs/plugins/architecture.md)、[SDK API](docs/plugins/api-reference.md) 與[安全邊界](docs/plugins/security.md) |
+| **[社群版發行](docs/release/community-release.md)** | 社群版如何簽署、驗證與[更新](docs/release/update-strategy.md) |
+| **[疑難排解](docs/release/troubleshooting.md)** | 校驗值、安全警告、啟動與更新問題 |
+| **[截圖索引](docs/README.md)** | 依分類列出所有介面與主題 |
+| **[更新記錄](CHANGELOG.md)** | 各版本的變更 |
 
-## 致謝與作者
+## 開發
 
-Pi-Harness 圍繞官方 [Pi Coding Agent 與 Pi Agent Harness](https://github.com/earendil-works/pi) 建立。
+安裝 **Node.js 24 LTS (≥ 24.22.1)** 與 **pnpm 9.12.1**，然後執行：
 
-由 [wangmiao](https://github.com/wangmiaozero) 建立並維護 · [tuziling84@gmail.com](mailto:tuziling84@gmail.com)。
+```sh
+git clone https://github.com/wangmiaozero/pi-harness.git
+cd pi-harness
+pnpm install --frozen-lockfile
+pnpm dev
+```
 
-### PR 貢獻者
+<sub>若不想另外安裝 Pi 進行開發，可使用 <a href="fixtures/README.md">fixtures</a> 中的範例設定：在「設定」中將手動設定目錄指向 <code>fixtures/mock-pi</code> 的絕對路徑。範例設定不提供實際的模型存取；需要時請設定你自己的 Provider。</sub>
+
+送出變更前請執行檢查。若變更涉及主要桌面流程，也請執行 `pnpm test:e2e`。
+
+```sh
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm compile
+```
+
+## 社群
+
+- **[Issues](https://github.com/wangmiaozero/pi-harness/issues)**：回報問題或提出改進建議。請附上應用程式版本、作業系統與重現步驟，並移除憑證與私人對話內容。
+- **[Pull requests](https://github.com/wangmiaozero/pi-harness/pulls)**：說明問題、使用者可見的變更與你的驗證結果。歡迎文件、翻譯、主題與聚焦的修正。
+- **[自訂皮膚](https://github.com/wangmiaozero/pi-harness-skin-starter)**：製作並分享你的皮膚。
+- **QQ 群**：pi-harness · **1109717308**。掃描 QR 碼加入。
+
+<p align="center">
+  <img src="docs/社区/qq-group.jpg" width="240" alt="Pi-Harness QQ 群 QR 碼" />
+</p>
+
+如果 Pi-Harness 讓你使用 Pi 更順手，**給一顆 ⭐ 能幫助更多人找到它。**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangmiaozero/pi-harness&type=Date&theme=dark">
+  <img src="https://api.star-history.com/svg?repos=wangmiaozero/pi-harness&type=Date" width="600" alt="Star 歷史">
+</picture>
+
+## 致謝
+
+Pi-Harness 圍繞官方 [Pi Coding Agent 與 Pi Agent Harness](https://github.com/earendil-works/pi) 建立。由 [wangmiao](https://github.com/wangmiaozero) 建立並維護 · [tuziling84@gmail.com](mailto:tuziling84@gmail.com)。
+
+**PR 貢獻者**
 
 <table>
   <tr>
     <td align="center">
-      <a href="https://github.com/HenryArch"><img src="https://avatars.githubusercontent.com/u/244436357?v=4" width="64" height="64" alt="HenryArch" /><br /><b>HenryArch</b></a><br />
+      <img src="https://avatars.githubusercontent.com/u/244436357?v=4" width="64" height="64" alt="HenryArch" /><br /><a href="https://github.com/HenryArch"><b>HenryArch</b></a><br />
       <a href="https://github.com/wangmiaozero/pi-harness/pull/8">PR #8</a>
     </td>
   </tr>
 </table>
 
-歡迎大家提交 PR，一起完善 Pi-Harness，讓專案變得更好。感謝每一位貢獻者的支持與付出！
+歡迎大家提交 PR，一起完善 Pi-Harness。感謝每一位貢獻者讓專案變得更好！
 
 ## 授權條款
 
-Pi-Harness 採用 [GNU Affero General Public License v3.0 only](LICENSE)（`AGPL-3.0-only`）發佈。
+[GNU Affero General Public License v3.0 only](LICENSE)（`AGPL-3.0-only`）。
 
 Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

@@ -2,12 +2,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { findTrustedCapability } from '@shared/capabilities/catalog'
+import type { CapabilityDefinition } from '@shared/capabilities/types'
 import {
   assertSafeSkillChild,
   buildSkillInstallerEnvironment,
   SkillInstallService
 } from './skill-installer'
+
+const fixtureSkill: CapabilityDefinition = {
+  id: 'fixture-skill',
+  type: 'skill',
+  name: 'Fixture',
+  source: 'github',
+  sourceUrl: 'https://github.com/example/fixture-skill',
+  install: { strategy: 'skills-cli', selector: 'odai', target: 'pi-global' }
+}
 
 describe('SkillInstallService', () => {
   let sandbox = ''
@@ -43,7 +52,7 @@ describe('SkillInstallService', () => {
   }
 
   it('stages, validates, installs, toggles, updates, backs up, and uninstalls a skill', async () => {
-    const definition = findTrustedCapability('odai')!
+    const definition = fixtureSkill
     const installer = service()
     const phases: string[] = []
 
@@ -97,14 +106,14 @@ describe('SkillInstallService', () => {
       expect.objectContaining({ code: 'SKILL_PATH_INVALID' })
     )
     await expect(
-      service().install(findTrustedCapability('odai')!, targetRoot, {
+      service().install(fixtureSkill, targetRoot, {
         replace: true,
         existingPath: path.join(targetRoot, 'nested', 'odai')
       })
     ).rejects.toMatchObject({ code: 'SKILL_PATH_INVALID' })
     await fs.rm(path.join(fixtureRoot, 'odai', 'SKILL.md'))
     await expect(
-      service().install(findTrustedCapability('odai')!, targetRoot, { replace: false })
+      service().install(fixtureSkill, targetRoot, { replace: false })
     ).rejects.toMatchObject({ code: 'SKILL_INVALID' })
   })
 
@@ -144,7 +153,7 @@ describe('SkillInstallService', () => {
       runCommand: run
     })
 
-    await installer.install(findTrustedCapability('odai')!, targetRoot, { replace: false })
+    await installer.install(fixtureSkill, targetRoot, { replace: false })
 
     expect(run).toHaveBeenCalledWith(
       '/tmp/bin/npm',
@@ -156,7 +165,7 @@ describe('SkillInstallService', () => {
         '--',
         'skills',
         'add',
-        'https://github.com/orziz/odai',
+        'https://github.com/example/fixture-skill',
         '--skill',
         'odai',
         '--global',

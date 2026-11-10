@@ -590,7 +590,7 @@ const thinkingValue = computed({
   }
 })
 const showComposerFire = computed(
-  () => thinkingValue.value === 'ultra' && (settings.settings?.composerFireEnabled ?? true)
+  () => thinkingValue.value === 'ultra' && (settings.settings?.composerFireEnabled ?? false)
 )
 
 watch(thinkingStops, (levels) => {

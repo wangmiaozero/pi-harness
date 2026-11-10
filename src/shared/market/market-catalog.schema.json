@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/wangmiaozero/pi-Harness-packages/blob/market-index/catalog.schema.json",
+  "title": "Pi-Harness market catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "packages"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "packages": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/package" }
+    }
+  },
+  "$defs": {
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "kind",
+        "version",
+        "description",
+        "author",
+        "license",
+        "compatible",
+        "partOf",
+        "parts",
+        "downloadUrl",
+        "sha256",
+        "compressedSize",
+        "unpackedSize",
+        "previewUrl"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^@piharness/(theme|pet)-[a-z0-9][a-z0-9-]*$"
+        },
+        "kind": { "enum": ["theme", "pet"] },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "description": { "type": "string" },
+        "author": { "type": "string" },
+        "license": { "type": "string", "minLength": 1 },
+        "compatible": { "type": "string", "minLength": 1 },
+        "partOf": { "type": ["string", "null"] },
+        "parts": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "type": "string", "pattern": "^@piharness/(theme|pet)-[a-z0-9][a-z0-9-]*$" }
+        },
+        "downloadUrl": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "compressedSize": { "type": "integer", "minimum": 1 },
+        "unpackedSize": { "type": "integer", "minimum": 1 },
+        "previewUrl": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,112 @@
+import { flushPromises, mount } from '@vue/test-utils'
+import { describe, expect, it, vi } from 'vitest'
+import type { InstalledMarketPackage } from '@shared/market/types'
+import MarketSettingsSection from './MarketSettingsSection.vue'
+
+function pkg(name: string, kind: 'theme' | 'pet', extra: Partial<InstalledMarketPackage> = {}) {
+  return {
+    name,
+    kind,
+    version: '1.0.0',
+    packId: name.split('/')[1].replace(/^(theme|pet)-/, ''),
+    license: 'MIT',
+    latest: null,
+    updateAvailable: false,
+    manifest: null,
+    petId: null,
+    ...extra
+  } satisfies InstalledMarketPackage
+}
+
+const installed = {
+  themes: [pkg('@piharness/theme-deepseek', 'theme')],
+  pets: [
+    pkg('@piharness/pet-bigfish', 'pet', { petId: 'bigfish' }),
+    pkg('@piharness/pet-bigfish-2', 'pet'),
+    pkg('@piharness/pet-bigfish-1', 'pet')
+  ]
+}
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string, values?: Record<string, unknown>) =>
+      values ? `${key}:${Object.values(values).join(',')}` : key,
+    locale: { value: 'zh-CN' }
+  })
+}))
+vi.mock('vue-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+vi.mock('@renderer/composables/useApi', () => ({
+  getApi: () => ({
+    on: () => () => undefined,
+    market: {
+      installed: vi.fn().mockResolvedValue(installed),
+      search: vi.fn().mockResolvedValue({
+        packages: [
+          {
+            name: '@piharness/theme-deepseek',
+            kind: 'theme',
+            version: '1.0.2',
+            description: '蓝发女仆 / Blue-haired maid',
+            author: 'Pi',
+            license: 'MIT',
+            unpackedSize: 2048,
+            deprecated: false,
+            compatible: true
+          }
+        ],
+        incomplete: false,
+        fromCache: false,
+        offline: false
+      })
+    }
+  })
+}))
+vi.mock('@renderer/stores/settings', () => ({
+  useSettingsStore: () => ({
+    settings: {
+      mascotStyle: 'deepseekDream',
+      customSkinId: null,
+      desktopPet: { enabled: true, activePackId: 'bigfish' }
+    },
+    patch: vi.fn()
+  })
+}))
+
+function mountSection() {
+  return mount(MarketSettingsSection, { global: { mocks: { $t: (key: string) => key } } })
+}
+
+describe('MarketSettingsSection', () => {
+  it('shows catalog cards with readable names and the localized description', async () => {
+    const wrapper = mountSection()
+    await flushPromises()
+    const card = wrapper.get('[data-market-package="@piharness/theme-deepseek"]')
+    expect(card.find('h2').text()).toBe('DeepSeek')
+    expect(card.text()).toContain('蓝发女仆')
+    expect(card.text()).not.toContain('Blue-haired maid')
+    expect(card.text()).toContain('settings.marketKindTheme')
+    expect(card.find('[data-testid="market-in-use"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('groups action packs under their pet and marks packs in use', async () => {
+    const wrapper = mountSection()
+    await flushPromises()
+    await wrapper.get('[data-testid="market-tab-installed"]').trigger('click')
+    await flushPromises()
+    const cards = wrapper.findAll('[data-market-installed]')
+    expect(cards.map((card) => card.attributes('data-market-installed'))).toEqual([
+      '@piharness/theme-deepseek',
+      '@piharness/pet-bigfish'
+    ])
+    expect(cards.every((card) => card.find('[data-testid="market-in-use"]').exists())).toBe(true)
+    const pet = cards[1]
+    expect(pet.find('[data-market-action-pack]').exists()).toBe(false)
+    await pet.get('[data-testid="market-action-packs-toggle"]').trigger('click')
+    expect(pet.findAll('[data-market-action-pack]').map((item) => item.text())).toEqual([
+      expect.stringContaining('settings.marketActionPackName:BigFish,1'),
+      expect.stringContaining('settings.marketActionPackName:BigFish,2')
+    ])
+    wrapper.unmount()
+  })
+})

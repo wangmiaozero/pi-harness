@@ -54,7 +54,6 @@ describe('localized copy', () => {
       'capabilities.methodologySection',
       'capabilities.nativePiDescription',
       'capabilities.superpowersDescription',
-      'capabilities.odaiDescription',
       'capabilities.recommendedBadge',
       'capabilities.phaseUpdating',
       'capabilities.phaseUninstalling',

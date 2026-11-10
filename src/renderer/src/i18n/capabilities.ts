@@ -87,7 +87,6 @@ const zhCN = {
   methodologySection: '方法论与增强能力',
   nativePiDescription: 'Pi Coding Agent 内置运行时与默认工作流',
   superpowersDescription: '面向编码智能体的完整软件开发方法论',
-  odaiDescription: 'Agent 治理与自适应执行',
   eccDescription: '通过 ECC 官方 Pi 适配器接入的工程能力包：技能库、提示命令、会话钩子与工程规范',
   capabilityModules: '能力模块',
   moduleSkills: '技能库',
@@ -315,7 +314,6 @@ const enUS = {
   methodologySection: 'Methodologies & Add-ons',
   nativePiDescription: 'Pi Coding Agent built-in runtime and default workflow',
   superpowersDescription: 'Complete software development methodology for coding agents',
-  odaiDescription: 'Governance & Adaptive Execution',
   eccDescription:
     'Engineering capability pack delivered through the official ECC Pi adapter: skills, prompt commands, session hooks, and engineering rules',
   capabilityModules: 'Capability modules',

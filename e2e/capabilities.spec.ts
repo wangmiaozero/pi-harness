@@ -60,36 +60,6 @@ test.describe('Capabilities', () => {
     await expect(packagesTab).toHaveAttribute('aria-selected', 'false')
   })
 
-  test('installs a featured skill through the trusted capability flow', async ({
-    electronApp,
-    page
-  }) => {
-    await mockEmptyRegistry(electronApp)
-    await openOverflowPage(page, 'skills')
-    await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
-    const card = page.getByTestId('featured-capability-odai')
-    await expect(card).toBeVisible()
-    await expect(card).toContainText('Odai')
-    await expect(card).toContainText(/未安装|Not installed/)
-
-    await card.click()
-    await page.getByTestId('featured-capability-install').click()
-    await expect(card).toContainText(/已安装|Installed/, { timeout: 15_000 })
-
-    const state = await page.evaluate(async () => {
-      const [capabilities, skills] = await Promise.all([
-        window.piSwitch.capabilities.list(),
-        window.piSwitch.skills.refresh()
-      ])
-      return {
-        capability: capabilities.find((entry) => entry.id === 'odai'),
-        discovered: skills.some((skill) => skill.name === 'odai')
-      }
-    })
-    expect(state.capability).toMatchObject({ installed: true, enabled: true, status: 'installed' })
-    expect(state.discovered).toBe(true)
-  })
-
   test('keeps Native Pi default and never auto-installs recommended add-ons', async ({
     electronApp,
     page
@@ -99,12 +69,11 @@ test.describe('Capabilities', () => {
     await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
 
     const cards = page.locator('[data-testid^="featured-capability-"]')
-    await expect(cards).toHaveCount(4)
+    await expect(cards).toHaveCount(3)
     await expect(cards.nth(0)).toContainText('Native Pi')
     await expect(cards.nth(1)).toContainText('Superpowers')
     await expect(cards.nth(1)).toContainText(/推荐|Recommended/)
     await expect(cards.nth(2)).toContainText('Everything Claude Code')
-    await expect(cards.nth(3)).toContainText('Odai')
 
     const state = await page.evaluate(async () => {
       const [capabilities, packages] = await Promise.all([
@@ -115,7 +84,6 @@ test.describe('Capabilities', () => {
         native: capabilities.find((entry) => entry.id === 'native-pi'),
         superpowers: capabilities.find((entry) => entry.id === 'superpowers'),
         ecc: capabilities.find((entry) => entry.id === 'ecc'),
-        odai: capabilities.find((entry) => entry.id === 'odai'),
         superpowersPackage: packages.find((pkg) => pkg.source === 'git:github.com/obra/superpowers')
       }
     })
@@ -131,7 +99,6 @@ test.describe('Capabilities', () => {
       installed: false,
       type: 'package'
     })
-    expect(state.odai).toMatchObject({ recommended: false, optional: true, installed: false })
     expect(state.superpowersPackage).toBeUndefined()
 
     await cards.nth(0).click()
@@ -404,7 +371,7 @@ test.describe('Capabilities', () => {
     await page.getByRole('button', { name: /下一页|Next page/ }).click()
     await expect(page.getByTestId('registry-package-pi-second-page')).toBeVisible()
     await page.getByRole('tab', { name: /技能|Skills/, exact: true }).click()
-    await expect(page.getByTestId('featured-capability-odai')).toBeVisible()
+    await expect(page.getByTestId('featured-capability-superpowers')).toBeVisible()
     await page.getByRole('tab', { name: /精选|Featured/, exact: true }).click()
     await expect(page.getByTestId('market-collection-core-development')).toBeVisible()
   })

@@ -133,7 +133,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   autoOpenLastProject: true,
   windowMotionEnabled: false,
   screenMotionEnabled: false,
-  composerFireEnabled: true,
+  composerFireEnabled: false,
   desktopPet: defaultDesktopPetSettings(),
   navOrder: [...DEFAULT_NAV_ORDER]
 }
@@ -642,14 +642,14 @@ async function bootstrap(): Promise<void> {
     beforeStart: (cwd) => beforeAgentStart(cwd, null)
   })
 
-  const registryOverride = process.env.PI_HARNESS_MARKET_REGISTRY
+  const catalogOverride = process.env.PI_HARNESS_MARKET_CATALOG
   const market = new MarketService({
     userData: app.getPath('userData'),
     petRoot: userPetPacksRoot(app.getPath('userData')),
     appVersion: app.getVersion(),
-    registry:
-      !app.isPackaged && registryOverride && /^http:\/\/127\.0\.0\.1:\d+$/.test(registryOverride)
-        ? registryOverride
+    catalogUrl:
+      !app.isPackaged && catalogOverride && /^http:\/\/127\.0\.0\.1:\d+\/catalog\.json$/.test(catalogOverride)
+        ? catalogOverride
         : undefined,
     pets: {
       install: (source) =>

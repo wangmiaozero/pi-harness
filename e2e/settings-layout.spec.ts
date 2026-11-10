@@ -117,17 +117,17 @@ test('switches among three app icons and follows Ming themes by default', async 
 test('persists the input flame setting from General', async ({ page }) => {
   await page.locator('a[href="#/settings"]').click()
   const toggle = page.getByTestId('composer-fire-toggle')
-  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
 
   await toggle.click()
-  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
   await expect
     .poll(() =>
       page.evaluate(() => window.piSwitch.settings.get().then((s) => s.composerFireEnabled))
     )
-    .toBe(false)
+    .toBe(true)
 
   await page.reload()
   await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
-  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
 })

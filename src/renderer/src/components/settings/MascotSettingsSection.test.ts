@@ -71,4 +71,30 @@ describe('MascotSettingsSection', () => {
     expect(wrapper.find('[data-testid="mascot-missing-theme"]').exists()).toBe(false)
     wrapper.unmount()
   })
+  it('groups the variants of one theme pack into a single card with a variant switcher', async () => {
+    setInstalledThemeAssets([
+      {
+        packId: 'deepseek',
+        styles: ['ropeDeepseek', 'ropeWhale', 'deepseekPoster', 'deepseekDream']
+      }
+    ])
+    const wrapper = mountSection()
+    const cards = wrapper.findAll('[data-mascot-pack]')
+    expect(cards.map((card) => card.attributes('data-mascot-pack'))).toEqual(['none', 'deepseek'])
+    const pack = wrapper.get('[data-mascot-pack="deepseek"]')
+    const chips = pack.findAll('[data-mascot-variant]')
+    expect(chips).toHaveLength(4)
+    expect(pack.get('[data-mascot-option]').attributes('aria-pressed')).toBe('false')
+
+    await pack.get('[data-mascot-variant="deepseekDream"]').trigger('click')
+    expect(pack.get('[data-mascot-option]').attributes('data-mascot-option')).toBe('deepseekDream')
+    expect(pack.get('[data-mascot-option]').attributes('aria-pressed')).toBe('true')
+    expect(pack.get('[data-mascot-variant="deepseekDream"]').attributes('aria-pressed')).toBe('true')
+    expect(pack.find('[data-testid="mascot-selected-badge"]').exists()).toBe(true)
+    expect(wrapper.get('[data-mascot-option="none"]').attributes('aria-pressed')).toBe('false')
+
+    await wrapper.get('[data-mascot-option="none"]').trigger('click')
+    expect(pack.get('[data-mascot-option]').attributes('aria-pressed')).toBe('false')
+    wrapper.unmount()
+  })
 })

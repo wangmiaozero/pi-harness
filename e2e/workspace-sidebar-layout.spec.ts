@@ -270,7 +270,11 @@ test('workspace project sidebar collapses and resizes within shared limits for e
     'ropeQwen',
     'starshipCockpit'
   ]) {
-    await page.locator(`[data-mascot-option="${style}"]`).click()
+    // Variants of one theme pack share a card; non-current variants are chosen from its switcher.
+    await page
+      .locator(`[data-mascot-option="${style}"], [data-mascot-variant="${style}"]`)
+      .first()
+      .click()
     await page.locator('a[href="#/workspace"]').click()
     await expect(page.getByTestId('workspace-sidebar-resizer')).toBeVisible()
     await expect(page.getByTestId('workspace-sidebar-toggle')).toBeVisible()
@@ -363,4 +367,47 @@ test('workspace project sidebar collapses and resizes within shared limits for e
     }
     await openMascotSettings(page)
   }
+})
+
+test('workspace sidebar edge has no divider lines and shows a grip only on hover', async ({
+  page
+}, testInfo) => {
+  await page.setViewportSize({ width: 1200, height: 780 })
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'soft-light')
+  await page.locator('a[href="#/workspace"]').click()
+
+  const sidebar = page.getByTestId('workspace-sidebar')
+  const resizer = page.getByTestId('workspace-sidebar-resizer')
+  await expect(sidebar).toBeVisible()
+  await expect(sidebar).toHaveCSS('border-right-width', '0px')
+  const sidebarBackground = await sidebar.evaluate(
+    (element) => getComputedStyle(element).backgroundColor
+  )
+  await expect(page.locator('.workspace-sidebar-divider')).toHaveCSS(
+    'background-color',
+    sidebarBackground
+  )
+
+  const grip = () =>
+    resizer.evaluate((element) => {
+      const style = getComputedStyle(element, '::before')
+      return { opacity: style.opacity, height: parseFloat(style.height) }
+    })
+  expect((await grip()).opacity).toBe('0')
+  await page.screenshot({ path: path.join(testInfo.outputDir, 'workspace-sidebar-edge-rest.png') })
+
+  await resizer.hover({ position: { x: 3, y: 200 } })
+  await expect.poll(async () => (await grip()).opacity).toBe('1')
+  expect((await grip()).height).toBeLessThan(60)
+  await page.screenshot({ path: path.join(testInfo.outputDir, 'workspace-sidebar-edge-hover.png') })
+
+  await page.getByTestId('workspace-sidebar-toggle').click()
+  await expect(sidebar).toBeHidden()
+  await resizer.hover({ position: { x: 3, y: 200 } })
+  const collapsedGrip = await resizer.evaluate(
+    (element) => getComputedStyle(element, '::before').display
+  )
+  expect(collapsedGrip).toBe('none')
+  await page.getByTestId('workspace-sidebar-toggle').click()
+  await expect(sidebar).toBeVisible()
 })

@@ -8,10 +8,11 @@ import semver from 'semver'
 import { parseMarketPackageName } from '@shared/market/package-name'
 import { validateThemePackManifest, type ThemePackManifest } from '@shared/market/theme-manifest'
 import type { MarketInstallResult, MarketProgress } from '@shared/market/types'
-import { extractMarketTarball, MarketPackageError, readPackageRoot } from './extract'
-import { integrityMatches, sha512FileBase64 } from './hash'
+import type { CatalogPackage } from '@shared/market/catalog'
+import { extractMarketZip, MarketPackageError, readPackageRoot } from './extract'
+import { sha256File } from './hash'
 import { MARKET_LIMITS } from './limits'
-import { MarketRegistryClient, type RegistryVersion } from './registry-client'
+import { MarketCatalogClient } from './catalog-client'
 
 export interface PetDirectoryInstaller {
   install(source: { kind: 'directory'; path: string }): Promise<{ id: string; version: string; updated: boolean }>
@@ -21,7 +22,7 @@ export interface MarketInstallerOptions {
   root: string
   petRoot?: string
   appVersion: string
-  client: MarketRegistryClient
+  client: MarketCatalogClient
   fetcher?: typeof fetch
   pets: PetDirectoryInstaller
   onProgress?: (progress: MarketProgress) => void
@@ -30,7 +31,7 @@ export interface MarketInstallerOptions {
 interface IndexRecord {
   name: string
   version: string
-  integrity: string
+  sha256: string
   packId: string
   license: string
 }
@@ -78,28 +79,26 @@ export class MarketInstaller {
     const staging = path.join(this.options.root, 'staging', randomBytes(8).toString('hex'))
     try {
       this.progress(name, 'metadata', 0, null)
-      const metadata = await this.options.client.package(name)
-      const selected = this.options.client.selectVersion(metadata, this.options.appVersion, version)
-      if (selected.scripts.length) throw new MarketPackageError('Package install scripts are not allowed')
-      const tarball = path.join(staging, 'download.tgz')
+      const selected = await this.options.client.package(name)
+      if (version && version !== selected.version) throw new MarketPackageError(`Package version is not published: ${version}`)
+      const archive = path.join(staging, 'download.zip')
       await fs.mkdir(staging, { recursive: true })
-      await this.download(name, selected, tarball, controller.signal)
+      await this.download(name, selected, archive, controller.signal)
       this.progress(name, 'verify', 0, null)
-      const digest = await sha512FileBase64(tarball, controller.signal)
-      if (!integrityMatches(selected.integrity, digest)) {
-        throw new MarketPackageError('Package integrity check failed')
-      }
+      const digest = await sha256File(archive, controller.signal)
+      if (digest !== selected.sha256) throw new MarketPackageError('Package SHA-256 does not match the catalog')
       this.progress(name, 'extract', 0, null)
       const extracted = path.join(staging, 'extracted')
-      await extractMarketTarball(tarball, extracted)
+      await extractMarketZip(archive, extracted, selected.unpackedSize, controller.signal)
       const packageRoot = await readPackageRoot(extracted)
-      await rejectScripts(packageRoot)
+      await assertPackedMetadata(packageRoot, selected)
       if (selected.partOf) {
         if (parsed.kind !== 'pet') throw new MarketPackageError('Only a pet action pack can be installed on its own')
         const result = await this.commitPetAddon(name, selected, packageRoot, staging, controller.signal)
         this.progress(name, 'done', 1, 1)
         return result
       }
+      if (parsed.kind === 'pet' && !selected.partOf) await this.reapplyAddons(parsed.name, packageRoot)
       if (parsed.kind === 'pet' && selected.parts.length) {
         await this.mergePetParts(parsed.name, selected, packageRoot, staging, controller.signal)
       }
@@ -130,7 +129,7 @@ export class MarketInstaller {
 
   private async commitTheme(
     name: string,
-    selected: RegistryVersion,
+    selected: CatalogPackage,
     packageRoot: string
   ): Promise<MarketInstallResult> {
     const manifest = validateThemePackManifest(
@@ -166,33 +165,32 @@ export class MarketInstaller {
 
   private async mergePetParts(
     name: string,
-    selected: RegistryVersion,
+    selected: CatalogPackage,
     packageRoot: string,
     staging: string,
     signal: AbortSignal
   ): Promise<void> {
     for (const [index, partName] of selected.parts.entries()) {
-      const metadata = await this.options.client.package(partName)
-      const part = this.options.client.selectVersion(metadata, this.options.appVersion, selected.version)
+      const part = await this.options.client.package(partName)
       if (part.partOf !== name) throw new MarketPackageError(`${partName} is not a part of ${name}`)
-      if (part.scripts.length) throw new MarketPackageError('Package install scripts are not allowed')
-      const tarball = path.join(staging, `part-${index}.tgz`)
-      await this.download(name, part, tarball, signal)
+      if (part.version !== selected.version) throw new MarketPackageError(`${partName} version does not match ${name}`)
+      const archive = path.join(staging, `part-${index}.zip`)
+      await this.download(name, part, archive, signal)
       this.progress(name, 'verify', 0, null)
-      const digest = await sha512FileBase64(tarball, signal)
-      if (!integrityMatches(part.integrity, digest)) throw new MarketPackageError('Package integrity check failed')
+      const digest = await sha256File(archive, signal)
+      if (digest !== part.sha256) throw new MarketPackageError('Package SHA-256 does not match the catalog')
       this.progress(name, 'extract', 0, null)
       const extracted = path.join(staging, `part-${index}`)
-      await extractMarketTarball(tarball, extracted)
+      await extractMarketZip(archive, extracted, part.unpackedSize, signal)
       const partRoot = await readPackageRoot(extracted)
-      await rejectScripts(partRoot)
+      await assertPackedMetadata(partRoot, part)
       await mergeClipDirectory(partRoot, packageRoot)
     }
   }
 
   private async commitPetAddon(
     name: string,
-    selected: RegistryVersion,
+    selected: CatalogPackage,
     packageRoot: string,
     staging: string,
     signal: AbortSignal
@@ -222,6 +220,8 @@ export class MarketInstaller {
     await mergeClipDirectory(packageRoot, work)
     const installed = await this.options.pets.install({ kind: 'directory', path: work })
     if (installed.id !== main.packId) throw new MarketPackageError('Action pack changed the pet id')
+    await fs.rm(this.addonPath(name), { recursive: true, force: true })
+    await fs.cp(packageRoot, this.addonPath(name), { recursive: true, verbatimSymlinks: false })
     const latest = await this.readIndex()
     latest.addons[name] = {
       ...record(name, selected, installed.id, selected.license || 'MIT'),
@@ -231,9 +231,22 @@ export class MarketInstaller {
     return { name, version: selected.version, packId: installed.id, updated: Boolean(previous) }
   }
 
+  private async reapplyAddons(name: string, packageRoot: string): Promise<void> {
+    const index = await this.readIndex()
+    const previous = Object.values(index.pets).find((item) => item.name === name)
+    if (!previous) return
+    for (const addon of Object.values(index.addons)) {
+      if (addon.packId !== previous.packId) continue
+      const stored = this.addonPath(addon.name)
+      const clips = await readClipPack(stored)
+      await mergeClipDefinitions(packageRoot, clips)
+      await mergeClipDirectory(stored, packageRoot)
+    }
+  }
+
   private async commitPet(
     name: string,
-    selected: RegistryVersion,
+    selected: CatalogPackage,
     packageRoot: string
   ): Promise<MarketInstallResult> {
     await fs.access(path.join(packageRoot, 'pet-pack.json'))
@@ -243,9 +256,6 @@ export class MarketInstaller {
     }
     const index = await this.readIndex()
     index.pets[installed.id] = record(name, selected, installed.id, manifest.license ?? selected.license)
-    for (const [addonName, addon] of Object.entries(index.addons)) {
-      if (addon.packId === installed.id) delete index.addons[addonName]
-    }
     await this.writeIndex(index)
     return {
       name,
@@ -257,10 +267,11 @@ export class MarketInstaller {
 
   async readIndex(): Promise<MarketIndex> {
     try {
-      const raw = JSON.parse(await fs.readFile(this.indexPath(), 'utf8')) as MarketIndex
+      const raw = JSON.parse(await fs.readFile(this.indexPath(), 'utf8')) as MarketIndex & { schemaVersion?: number }
+      if (raw.schemaVersion !== 1) return { themes: {}, pets: {}, addons: {} }
       return {
-        themes: raw.themes ?? {},
-        pets: raw.pets ?? {},
+        themes: normalizeRecords(raw.themes),
+        pets: normalizeRecords(raw.pets),
         addons: normalizeAddons(raw.addons)
       }
     } catch {
@@ -272,7 +283,7 @@ export class MarketInstaller {
     const file = this.indexPath()
     await fs.mkdir(path.dirname(file), { recursive: true })
     const temporary = `${file}.${randomBytes(4).toString('hex')}.tmp`
-    await fs.writeFile(temporary, JSON.stringify(index, null, 2))
+    await fs.writeFile(temporary, JSON.stringify({ schemaVersion: 1, ...index }, null, 2))
     await fs.rename(temporary, file)
   }
 
@@ -300,7 +311,9 @@ export class MarketInstaller {
     if (!pet) throw new MarketPackageError(`Package is not installed: ${name}`)
     delete index.pets[pet[0]]
     for (const [addonName, addon] of Object.entries(index.addons)) {
-      if (addon.packId === pet[0]) delete index.addons[addonName]
+      if (addon.packId !== pet[0]) continue
+      delete index.addons[addonName]
+      await fs.rm(this.addonPath(addonName), { recursive: true, force: true })
     }
     await this.writeIndex(index)
   }
@@ -320,22 +333,42 @@ export class MarketInstaller {
       const latest = await this.readIndex()
       delete latest.addons[name]
       await this.writeIndex(latest)
+      await fs.rm(this.addonPath(name), { recursive: true, force: true })
     } finally {
       await fs.rm(staging, { recursive: true, force: true }).catch(() => undefined)
     }
   }
 
   private indexPath(): string {
-    return path.join(this.options.root, 'registry.json')
+    return path.join(this.options.root, 'index.json')
   }
 
-  private async download(name: string, selected: RegistryVersion, file: string, signal: AbortSignal): Promise<void> {
+  private addonPath(name: string): string {
+    return path.join(this.options.root, 'addons', encodeURIComponent(name))
+  }
+
+  private async download(name: string, selected: CatalogPackage, file: string, signal: AbortSignal): Promise<void> {
     const fetcher = this.options.fetcher ?? fetch
-    const response = await fetcher(selected.tarball, { signal })
-    if (!response.ok || !response.body) throw new MarketPackageError(`Download failed: HTTP ${response.status}`)
+    this.options.client.assertAssetUrl(selected.downloadUrl)
+    let current = selected.downloadUrl
+    let response: Response | null = null
+    for (let hop = 0; hop < 5; hop += 1) {
+      this.options.client.assertRedirect(current)
+      response = await fetcher(current, { signal, redirect: 'manual' })
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location')
+        if (!location) throw new MarketPackageError('Download redirect is invalid')
+        current = new URL(location, current).href
+        continue
+      }
+      break
+    }
+    if (!response || response.status >= 300 || !response.ok || !response.body) {
+      throw new MarketPackageError(`Download failed: HTTP ${response?.status ?? 0}`)
+    }
     const total = Number(response.headers.get('content-length'))
     const limit = Number.isFinite(total) && total > 0 ? total : MARKET_LIMITS.maxTarballBytes
-    if (limit > MARKET_LIMITS.maxTarballBytes) throw new MarketPackageError('Package tarball exceeds the size limit')
+    if (limit > MARKET_LIMITS.maxTarballBytes) throw new MarketPackageError('Package archive exceeds the size limit')
     let received = 0
     const reader = response.body.getReader()
     const stream = new Readable({
@@ -347,7 +380,7 @@ export class MarketInstaller {
         }
         received += chunk.value.byteLength
         if (received > MARKET_LIMITS.maxTarballBytes) {
-          this.destroy(new MarketPackageError('Package tarball exceeds the size limit'))
+          this.destroy(new MarketPackageError('Package archive exceeds the size limit'))
           return
         }
         this.push(Buffer.from(chunk.value))
@@ -359,6 +392,8 @@ export class MarketInstaller {
     } finally {
       clearInterval(timer)
     }
+    const stat = await fs.stat(file)
+    if (stat.size !== selected.compressedSize) throw new MarketPackageError('Package archive size does not match the catalog')
     this.progress(name, 'download', received, Number.isFinite(total) ? total : received)
   }
 
@@ -387,8 +422,27 @@ export class MarketInstaller {
   }
 }
 
-function record(name: string, selected: RegistryVersion, packId: string, license: string): IndexRecord {
-  return { name, version: selected.version, integrity: selected.integrity, packId, license }
+function record(name: string, selected: CatalogPackage, packId: string, license: string): IndexRecord {
+  return { name, version: selected.version, sha256: selected.sha256, packId, license }
+}
+
+function normalizeRecords(value: unknown): Record<string, IndexRecord> {
+  if (!value || typeof value !== 'object') return {}
+  const records: Record<string, IndexRecord> = {}
+  for (const [id, item] of Object.entries(value)) {
+    if (!item || typeof item !== 'object') continue
+    const entry = item as Partial<IndexRecord>
+    if (typeof entry.name !== 'string' || typeof entry.version !== 'string' || typeof entry.sha256 !== 'string') continue
+    if (typeof entry.packId !== 'string') continue
+    records[id] = {
+      name: entry.name,
+      version: entry.version,
+      sha256: entry.sha256,
+      packId: entry.packId,
+      license: entry.license ?? ''
+    }
+  }
+  return records
 }
 
 function normalizeAddons(value: unknown): Record<string, AddonRecord> {
@@ -397,11 +451,13 @@ function normalizeAddons(value: unknown): Record<string, AddonRecord> {
   for (const [name, item] of Object.entries(value)) {
     if (!item || typeof item !== 'object') continue
     const entry = item as Partial<AddonRecord>
-    if (typeof entry.name !== 'string' || typeof entry.packId !== 'string' || !Array.isArray(entry.clips)) continue
+    if (typeof entry.name !== 'string' || typeof entry.packId !== 'string' || typeof entry.sha256 !== 'string' || !Array.isArray(entry.clips)) {
+      continue
+    }
     addons[name] = {
       name: entry.name,
       version: entry.version ?? '',
-      integrity: entry.integrity ?? '',
+      sha256: entry.sha256,
       packId: entry.packId,
       license: entry.license ?? '',
       clips: entry.clips.filter((clip) => typeof clip === 'string')
@@ -495,12 +551,15 @@ async function mergeClipDirectory(fromRoot: string, intoRoot: string): Promise<v
   }
 }
 
-async function rejectScripts(packageRoot: string): Promise<void> {
+async function assertPackedMetadata(packageRoot: string, selected: CatalogPackage): Promise<void> {
   const raw = JSON.parse(await fs.readFile(path.join(packageRoot, 'package.json'), 'utf8')) as {
     scripts?: Record<string, string>
     name?: string
+    version?: string
   }
-  if (!parseMarketPackageName(raw.name ?? '')) throw new MarketPackageError('Packed name is not an official market package')
+  if (raw.name !== selected.name || raw.version !== selected.version || !parseMarketPackageName(raw.name ?? '')) {
+    throw new MarketPackageError('Packed name does not match the catalog')
+  }
   const scripts = Object.values(raw.scripts ?? {}).filter((command) => command.trim())
   if (scripts.length) throw new MarketPackageError('Package install scripts are not allowed')
 }

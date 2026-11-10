@@ -3,8 +3,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import Button from '@renderer/components/ui/Button.vue'
-import PropertyRow from '@renderer/components/ui/PropertyRow.vue'
-import Select from '@renderer/components/ui/Select.vue'
+import Badge from '@renderer/components/ui/Badge.vue'
+import { Check, PawPrint } from '@lucide/vue'
 import type { PetPackSummary } from '@shared/ipc/api-types'
 
 const { t } = useI18n()
@@ -18,14 +18,6 @@ const removing = ref(false)
 
 const selectedId = defineModel<string>({ default: 'bigfish' })
 
-const packOptions = computed(() =>
-  packs.value.map((pack) => ({
-    value: pack.id,
-    label:
-      (pack.bundled ? `★ ${pack.name}` : pack.name) +
-      (pack.compatible ? '' : ` — ${t('settings.petPackIncompatible')}`)
-  }))
-)
 
 const selectedPack = computed(
   () => packs.value.find((pack) => pack.id === selectedId.value) ?? null
@@ -109,17 +101,53 @@ onMounted(() => {
 
 <template>
   <div class="space-y-3" data-testid="pet-pack-manager">
-    <PropertyRow v-if="packOptions.length" :label="$t('settings.petPackActive')">
-      <Select
-        :model-value="selectedId"
-        :options="packOptions"
-        :aria-label="$t('settings.petPackActive')"
-        layout="row"
-        class="w-56"
-        @update:model-value="onSelectionChange"
-      />
-    </PropertyRow>
-
+    <div
+      v-if="packs.length"
+      role="group"
+      :aria-label="$t('settings.petPackSelect')"
+      class="pet-pack-grid"
+      data-testid="pet-pack-grid"
+    >
+      <button
+        v-for="pack in packs"
+        :key="pack.id"
+        type="button"
+        class="relative flex min-w-0 items-center gap-2.5 rounded-[var(--radius-md)] border p-2.5 text-left transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+        :class="
+          pack.id === selectedId
+            ? 'border-[var(--accent)] bg-[var(--accent-tint-soft)] shadow-[0_0_0_1px_var(--accent)]'
+            : 'border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
+        "
+        :aria-pressed="pack.id === selectedId"
+        :data-pet-pack-option="pack.id"
+        @click="onSelectionChange(pack.id)"
+      >
+        <span
+          class="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--bg-window)]/60 text-[var(--accent)]"
+        >
+          <PawPrint class="size-5" :stroke-width="1.5" />
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-[12px] font-medium text-[var(--text-primary)]">
+            {{ pack.name }}
+          </span>
+          <span class="block truncate text-[10.5px] text-[var(--text-tertiary)]">
+            {{ [pack.author, pack.version ? `v${pack.version}` : ''].filter(Boolean).join(' · ') }}
+          </span>
+          <span v-if="pack.bundled || !pack.compatible" class="mt-1 flex flex-wrap gap-1">
+            <Badge v-if="pack.bundled" tone="muted">{{ $t('settings.petPackBundledBadge') }}</Badge>
+            <Badge v-if="!pack.compatible" tone="warning">
+              {{ $t('settings.petPackIncompatible') }}
+            </Badge>
+          </span>
+        </span>
+        <Check
+          v-if="pack.id === selectedId"
+          class="size-4 shrink-0 text-[var(--accent)]"
+          :stroke-width="2.25"
+        />
+      </button>
+    </div>
     <div class="flex flex-wrap items-center gap-2">
       <Button
         size="sm"
@@ -154,3 +182,11 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.pet-pack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+</style>

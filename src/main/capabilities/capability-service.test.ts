@@ -4,23 +4,6 @@ import { SkillMutationError } from '../services/errors'
 import { CapabilityService } from './capability-service'
 import { SkillRegistry } from './skill-registry'
 
-const descriptor: CapabilityDescriptor = {
-  id: 'odai',
-  type: 'skill',
-  name: 'Odai',
-  source: 'github',
-  sourceUrl: 'https://github.com/orziz/odai',
-  install: { strategy: 'skills-cli', selector: 'odai', target: 'pi-global' },
-  installed: true,
-  enabled: true,
-  health: 'healthy',
-  installPath: '/fixture/skills/odai',
-  installedVersion: null,
-  lastModified: 1,
-  updateAvailable: false,
-  status: 'installed'
-}
-
 const superpowersDescriptor: CapabilityDescriptor = {
   id: 'superpowers',
   type: 'package',
@@ -65,7 +48,7 @@ const successfulPackageResult = {
 }
 
 describe('CapabilityService mutation lock and metadata', () => {
-  it('allows at most one concurrent mutation for the same trusted skill', async () => {
+  it('allows at most one concurrent mutation for the same trusted capability', async () => {
     let release!: () => void
     const gate = new Promise<void>((resolve) => {
       release = resolve
@@ -75,38 +58,36 @@ describe('CapabilityService mutation lock and metadata', () => {
       update: vi.fn(async () => ({ providers: {}, models: {}, capabilities: {} }))
     }
     const registry = {
-      findInstalled: vi.fn(async () => null),
+      findInstalled: vi.fn().mockResolvedValueOnce(null).mockResolvedValue(installedSuperpowers),
       globalRoot: vi.fn(async () => '/fixture/skills'),
-      list: vi.fn(async () => [descriptor]),
+      list: vi.fn(async () => [superpowersDescriptor]),
       isDiscoverable: vi.fn(async () => true)
     }
-    const installer = {
+    const packageManager = {
       install: vi.fn(async () => {
         await gate
-        return {
-          installPath: '/fixture/skills/odai',
-          parsed: {},
-          stdout: '',
-          stderr: '',
-          exitCode: 0,
-          backupPath: null
-        }
+        return successfulPackageResult
       })
     }
-    const service = new CapabilityService(metadata as never, registry as never, installer as never)
+    const service = new CapabilityService(
+      metadata as never,
+      registry as never,
+      undefined,
+      packageManager as never
+    )
 
-    const first = service.install('odai')
-    await vi.waitFor(() => expect(installer.install).toHaveBeenCalledOnce())
-    await expect(service.install('odai')).rejects.toMatchObject({ code: 'SKILL_CONFLICT' })
+    const first = service.install('superpowers')
+    await vi.waitFor(() => expect(packageManager.install).toHaveBeenCalledOnce())
+    await expect(service.install('superpowers')).rejects.toMatchObject({ code: 'SKILL_CONFLICT' })
     release()
     await expect(first).resolves.toMatchObject({ action: 'install', phase: 'success' })
     expect(metadata.update).toHaveBeenCalledWith({
       capabilities: {
-        odai: expect.objectContaining({
+        superpowers: expect.objectContaining({
           enabled: true,
           installSource: 'github',
-          sourceUrl: 'https://github.com/orziz/odai',
-          installPath: '/fixture/skills/odai',
+          sourceUrl: 'https://github.com/obra/superpowers',
+          installPath: '/fixture/git/github.com/obra/superpowers',
           lastErrorCode: null,
           lastErrorAt: null,
           lastErrorAction: null
@@ -124,7 +105,7 @@ describe('CapabilityService mutation lock and metadata', () => {
       findInstalled: vi.fn(async () => null),
       globalRoot: vi.fn(async () => '/fixture/skills')
     }
-    const installer = {
+    const packageManager = {
       install: vi.fn(async () => {
         throw new SkillMutationError('NETWORK_ERROR', 'Install failed', {
           stderr: 'sanitised stderr',
@@ -132,12 +113,17 @@ describe('CapabilityService mutation lock and metadata', () => {
         })
       })
     }
-    const service = new CapabilityService(metadata as never, registry as never, installer as never)
+    const service = new CapabilityService(
+      metadata as never,
+      registry as never,
+      undefined,
+      packageManager as never
+    )
 
-    await expect(service.install('odai')).rejects.toMatchObject({ code: 'NETWORK_ERROR' })
+    await expect(service.install('superpowers')).rejects.toMatchObject({ code: 'NETWORK_ERROR' })
     expect(metadata.update).toHaveBeenCalledWith({
       capabilities: {
-        odai: expect.objectContaining({
+        superpowers: expect.objectContaining({
           lastErrorCode: 'NETWORK_ERROR',
           lastErrorAction: 'install',
           lastErrorAt: expect.any(Number)
@@ -414,7 +400,7 @@ describe('CapabilityService Pi package capabilities', () => {
 })
 
 describe('SkillRegistry persisted capability state', () => {
-  it('reports Native Pi, Superpowers, ECC, and Odai in catalog order', async () => {
+  it('reports Native Pi, Superpowers, and ECC in catalog order', async () => {
     const registry = new SkillRegistry(
       {} as never,
       {
@@ -438,11 +424,10 @@ describe('SkillRegistry persisted capability state', () => {
 
     const capabilities = await registry.list()
 
-    expect(capabilities.slice(0, 4).map((entry) => entry.id)).toEqual([
+    expect(capabilities.slice(0, 3).map((entry) => entry.id)).toEqual([
       'native-pi',
       'superpowers',
-      'ecc',
-      'odai'
+      'ecc'
     ])
     expect(capabilities[0]).toMatchObject({
       installed: true,
@@ -530,7 +515,7 @@ describe('SkillRegistry persisted capability state', () => {
           providers: {},
           models: {},
           capabilities: {
-            odai: {
+            superpowers: {
               lastErrorCode: 'NETWORK_ERROR',
               lastErrorAction: 'install',
               lastErrorAt: 123
@@ -544,7 +529,7 @@ describe('SkillRegistry persisted capability state', () => {
     await expect(registry.list()).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: 'odai',
+          id: 'superpowers',
           installed: false,
           status: 'failed',
           health: 'error',

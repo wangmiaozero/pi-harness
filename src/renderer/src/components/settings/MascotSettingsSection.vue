@@ -3,7 +3,9 @@ import { computed, inject, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { CircleOff, FolderPlus, KeyRound, Upload } from '@lucide/vue'
+import { Check, CircleOff, FolderPlus, KeyRound, Upload } from '@lucide/vue'
+import { themePackForStyle } from '@shared/market/style-packs'
+import { humanizeSlug } from '@renderer/market/display'
 import { DEFAULT_MASCOT_STYLE, MASCOT_STYLES, type MascotStyle } from '@shared/constants/mascot'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
@@ -54,6 +56,41 @@ const visibleMascotOptions = computed(() =>
   mascotOptions.value.filter((option) => option.preview !== 'missing')
 )
 
+type MascotOption = (typeof mascotOptions.value)[number]
+
+interface MascotCard {
+  key: string
+  title: string
+  variants: MascotOption[]
+  current: MascotOption
+}
+
+const mascotCards = computed<MascotCard[]>(() => {
+  const cards: MascotCard[] = []
+  const byPack = new Map<string, MascotCard>()
+  for (const option of visibleMascotOptions.value) {
+    const packId = themePackForStyle(option.value)
+    const existing = packId ? byPack.get(packId) : undefined
+    if (existing) {
+      existing.variants.push(option)
+      continue
+    }
+    const card: MascotCard = {
+      key: packId ?? option.value,
+      title: packId ? humanizeSlug(packId) : option.label,
+      variants: [option],
+      current: option
+    }
+    if (packId) byPack.set(packId, card)
+    cards.push(card)
+  }
+  for (const card of cards) {
+    card.current =
+      card.variants.find((variant) => variant.value === draft.value.mascotStyle) ?? card.variants[0]
+  }
+  return cards
+})
+
 const themeControlsVisible = computed(() => {
   void installRevision.value
   return draft.value.mascotStyle !== 'none' && themePackInstalled(draft.value.mascotStyle)
@@ -75,8 +112,19 @@ const petSleepMinutesStr = computed({
   }
 })
 
-function selectMascot(style: MascotStyle): void {
-  draft.value.mascotStyle = style
+function cardSelected(card: MascotCard): boolean {
+  return !draft.value.customSkinId && card.variants.some((v) => v.value === draft.value.mascotStyle)
+}
+
+/** Variant labels usually repeat the pack name ("DeepSeek Pro"); the chip only needs the rest. */
+function variantLabel(card: MascotCard, variant: MascotOption): string {
+  const rest = variant.label.startsWith(card.title)
+    ? variant.label.slice(card.title.length).trim()
+    : variant.label
+  return rest || variant.label
+}
+
+function selectMascot(style: MascotStyle): void {  draft.value.mascotStyle = style
   draft.value.customSkinId = null
 }
 
@@ -241,96 +289,146 @@ async function unlockMascot(): Promise<void> {
           {{ $t('settings.customSkinHint') }}
         </span>
       </div>
+      <h3 class="mascot-group-title">{{ $t('settings.mascotGalleryThemes') }}</h3>
       <div class="mascot-options-grid" data-testid="mascot-options-grid">
-        <button
-          v-for="option in visibleMascotOptions"
-          :key="option.value"
-          type="button"
-          class="mascot-option flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-md)] border text-left transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-          :class="
-            draft.mascotStyle === option.value
-              ? 'border-[var(--accent-border)] bg-[var(--accent-tint-soft)]'
-              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
-          "
-          :aria-pressed="draft.mascotStyle === option.value"
-          :data-mascot-option="option.value"
-          @click="selectMascot(option.value)"
+        <div
+          v-for="card in mascotCards"
+          :key="card.key"
+          class="mascot-card relative min-w-0"
+          :data-mascot-pack="card.key"
         >
-          <div class="mascot-option-preview bg-[var(--bg-window)]/45">
-            <img
-              v-if="option.preview === 'image'"
-              :key="`${option.value}:${installRevision}`"
-              :src="option.image || undefined"
-              alt=""
-              loading="lazy"
-              class="mascot-option-image"
-              @error="failedPreviews[option.value] = true"
-            />
-            <div
-              v-else
-              class="flex size-full items-center justify-center text-[var(--text-tertiary)]"
+          <button
+            type="button"
+            class="mascot-option flex w-full min-w-0 flex-col overflow-hidden rounded-[var(--radius-md)] border text-left transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+            :class="
+              cardSelected(card)
+                ? 'mascot-option-selected border-[var(--accent)] bg-[var(--accent-tint-soft)]'
+                : 'border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
+            "
+            :aria-pressed="cardSelected(card)"
+            :data-mascot-option="card.current.value"
+            @click="selectMascot(card.current.value)"
+          >
+            <div class="mascot-option-preview bg-[var(--bg-window)]/45">
+              <img
+                v-if="card.current.preview === 'image'"
+                :key="`${card.current.value}:${installRevision}`"
+                :src="card.current.image || undefined"
+                alt=""
+                loading="lazy"
+                class="mascot-option-image"
+                @error="failedPreviews[card.current.value] = true"
+              />
+              <div
+                v-else
+                class="flex size-full items-center justify-center text-[var(--text-tertiary)]"
+              >
+                <CircleOff class="size-10" :stroke-width="1.25" />
+              </div>
+            </div>
+            <div class="mascot-option-copy border-t border-[var(--border-subtle)] p-3">
+              <div class="flex min-w-0 items-center gap-1.5">
+                <div class="truncate text-[12px] font-medium text-[var(--text-primary)]">
+                  {{ card.variants.length > 1 ? card.title : card.current.label }}
+                </div>
+              </div>
+              <div class="mt-0.5 line-clamp-2 text-[10.5px] leading-4 text-[var(--text-tertiary)]">
+                {{
+                  card.variants.length > 1
+                    ? `${card.current.label} · ${card.current.description}`
+                    : card.current.description
+                }}
+              </div>
+            </div>
+          </button>
+          <span
+            v-if="cardSelected(card)"
+            class="mascot-option-check"
+            data-testid="mascot-selected-badge"
+            :title="$t('settings.mascotSelectedBadge')"
+          >
+            <Check class="size-3" :stroke-width="2.5" />
+          </span>
+          <div
+            v-if="card.variants.length > 1"
+            role="group"
+            class="mascot-variant-bar"
+            :aria-label="`${card.title} · ${$t('settings.mascotVariants')}`"
+            data-testid="mascot-variant-switcher"
+          >
+            <button
+              v-for="variant in card.variants"
+              :key="variant.value"
+              type="button"
+              class="mascot-variant-chip"
+              :class="{ 'mascot-variant-chip-active': draft.mascotStyle === variant.value }"
+              :aria-pressed="draft.mascotStyle === variant.value"
+              :title="variant.label"
+              :data-mascot-variant="variant.value"
+              @click="selectMascot(variant.value)"
             >
-              <CircleOff class="size-10" :stroke-width="1.25" />
-            </div>
+              {{ variantLabel(card, variant) }}
+            </button>
           </div>
-          <div class="mascot-option-copy border-t border-[var(--border-subtle)] p-3">
-            <div class="flex min-w-0 items-center gap-1.5">
-              <div class="truncate text-[12px] font-medium text-[var(--text-primary)]">
-                {{ option.label }}
-              </div>
-            </div>
-            <div class="mt-0.5 line-clamp-2 text-[10.5px] leading-4 text-[var(--text-tertiary)]">
-              {{ option.description }}
-            </div>
-          </div>
-        </button>
-        <button
-          v-for="skin in store.customSkins"
-          :key="`custom-${skin.id}`"
-          type="button"
-          class="mascot-option flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-md)] border text-left transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-          :class="
-            draft.customSkinId === skin.id
-              ? 'border-[var(--accent-border)] bg-[var(--accent-tint-soft)]'
-              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
-          "
-          :aria-pressed="draft.customSkinId === skin.id"
-          :data-custom-skin-option="skin.id"
-          @click="selectCustomSkin(skin.id)"
-        >
-          <div class="mascot-option-preview bg-[var(--bg-window)]/45">
-            <img
-              v-if="skin.previewDataUrl || skin.wallpaperDataUrl || skin.portraitDataUrl"
-              :src="skin.previewDataUrl || skin.wallpaperDataUrl || skin.portraitDataUrl || ''"
-              alt=""
-              loading="lazy"
-              class="mascot-option-image"
-            />
-            <div
-              v-else
-              class="custom-skin-swatch size-full"
-              :style="{ background: skin.tokens.workspace }"
-            />
-          </div>
-          <div class="mascot-option-copy border-t border-[var(--border-subtle)] p-3">
-            <div class="flex min-w-0 items-center justify-between gap-2">
-              <div class="truncate text-[12px] font-medium text-[var(--text-primary)]">
-                {{ skin.name }}
-              </div>
-              <span class="shrink-0 text-[9.5px] text-[var(--accent)]">{{
-                $t('settings.customSkinBadge')
-              }}</span>
-            </div>
-            <div class="mt-0.5 line-clamp-2 text-[10.5px] leading-4 text-[var(--text-tertiary)]">
-              {{
-                skin.description ||
-                `${skin.author || $t('settings.customSkinUnknownAuthor')} · v${skin.version}`
-              }}
-            </div>
-          </div>
-        </button>
+        </div>
       </div>
-      <div
+      <template v-if="store.customSkins.length">
+        <h3 class="mascot-group-title mt-4">{{ $t('settings.mascotGalleryCustom') }}</h3>
+        <div class="mascot-options-grid" data-testid="mascot-custom-skins-grid">
+          <div v-for="skin in store.customSkins" :key="`custom-${skin.id}`" class="relative min-w-0">
+            <button
+              type="button"
+              class="mascot-option flex w-full min-w-0 flex-col overflow-hidden rounded-[var(--radius-md)] border text-left transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+              :class="
+                draft.customSkinId === skin.id
+                  ? 'mascot-option-selected border-[var(--accent)] bg-[var(--accent-tint-soft)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
+              "
+              :aria-pressed="draft.customSkinId === skin.id"
+              :data-custom-skin-option="skin.id"
+              @click="selectCustomSkin(skin.id)"
+            >
+              <div class="mascot-option-preview bg-[var(--bg-window)]/45">
+                <img
+                  v-if="skin.previewDataUrl || skin.wallpaperDataUrl || skin.portraitDataUrl"
+                  :src="skin.previewDataUrl || skin.wallpaperDataUrl || skin.portraitDataUrl || ''"
+                  alt=""
+                  loading="lazy"
+                  class="mascot-option-image"
+                />
+                <div
+                  v-else
+                  class="custom-skin-swatch size-full"
+                  :style="{ background: skin.tokens.workspace }"
+                />
+              </div>
+              <div class="mascot-option-copy border-t border-[var(--border-subtle)] p-3">
+                <div class="flex min-w-0 items-center justify-between gap-2">
+                  <div class="truncate text-[12px] font-medium text-[var(--text-primary)]">
+                    {{ skin.name }}
+                  </div>
+                  <span class="shrink-0 text-[9.5px] text-[var(--accent)]">{{
+                    $t('settings.customSkinBadge')
+                  }}</span>
+                </div>
+                <div class="mt-0.5 line-clamp-2 text-[10.5px] leading-4 text-[var(--text-tertiary)]">
+                  {{
+                    skin.description ||
+                    `${skin.author || $t('settings.customSkinUnknownAuthor')} · v${skin.version}`
+                  }}
+                </div>
+              </div>
+            </button>
+            <span
+              v-if="draft.customSkinId === skin.id"
+              class="mascot-option-check"
+              :title="$t('settings.mascotSelectedBadge')"
+            >
+              <Check class="size-3" :stroke-width="2.5" />
+            </span>
+          </div>
+        </div>
+      </template>      <div
         v-if="themeControlsVisible"
         data-testid="mascot-theme-controls"
         class="mt-3 divide-y divide-[var(--border-subtle)] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)]"
@@ -360,8 +458,87 @@ async function unlockMascot(): Promise<void> {
 </template>
 
 <style scoped>
-.mascot-options-grid {
-  display: grid;
+.mascot-group-title {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+
+.mascot-option-selected {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.mascot-option-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--text-on-accent, #fff);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+  pointer-events: none;
+}
+
+/* Sits over the bottom of the 208px preview so card heights stay uniform. */
+.mascot-variant-bar {
+  position: absolute;
+  top: 172px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mascot-variant-chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 50%;
+  height: 26px;
+  overflow: hidden;
+  padding: 0 9px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 999px;
+  background: rgb(10 14 24 / 0.62);
+  color: rgb(255 255 255 / 0.86);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  transition:
+    background-color var(--motion-fast, 120ms),
+    border-color var(--motion-fast, 120ms);
+}
+
+.mascot-variant-chip:hover {
+  background: rgb(10 14 24 / 0.78);
+}
+
+.mascot-variant-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.mascot-variant-chip-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--text-on-accent, #fff);
+}
+
+.mascot-variant-chip-active:hover {
+  background: var(--accent);
+}
+
+.mascot-options-grid {  display: grid;
   grid-template-columns: repeat(var(--mascot-columns, 1), minmax(0, 1fr));
   gap: 14px;
 }

@@ -22,7 +22,16 @@ import {
   intelligenceFr,
   intelligenceDe
 } from './intelligence-locales'
-import { resourceMarketEn, resourceMarketTw, resourceMarketZh } from './resource-market'
+import {
+  resourceMarketDe,
+  resourceMarketEn,
+  resourceMarketFr,
+  resourceMarketJa,
+  resourceMarketKo,
+  resourceMarketRu,
+  resourceMarketTw,
+  resourceMarketZh
+} from './resource-market'
 
 const enMessages = {
   ...enUS,
@@ -59,7 +68,7 @@ const zhTwMessages = {
 
 const jaMessages = {
   ...jaJP,
-  settings: { ...jaJP.settings, ...resourceMarketEn },
+  settings: { ...jaJP.settings, ...resourceMarketJa },
   workspace: { ...jaJP.workspace, activity: chatActivity['ja-JP'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,
@@ -70,7 +79,7 @@ const jaMessages = {
 
 const koMessages = {
   ...koKR,
-  settings: { ...koKR.settings, ...resourceMarketEn },
+  settings: { ...koKR.settings, ...resourceMarketKo },
   workspace: { ...koKR.workspace, activity: chatActivity['ko-KR'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,
@@ -81,7 +90,7 @@ const koMessages = {
 
 const ruMessages = {
   ...ruRU,
-  settings: { ...ruRU.settings, ...resourceMarketEn },
+  settings: { ...ruRU.settings, ...resourceMarketRu },
   workspace: { ...ruRU.workspace, activity: chatActivity['ru-RU'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,
@@ -92,7 +101,7 @@ const ruMessages = {
 
 const frMessages = {
   ...frFR,
-  settings: { ...frFR.settings, ...resourceMarketEn },
+  settings: { ...frFR.settings, ...resourceMarketFr },
   workspace: { ...frFR.workspace, activity: chatActivity['fr-FR'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,
@@ -103,7 +112,7 @@ const frMessages = {
 
 const deMessages = {
   ...deDE,
-  settings: { ...deDE.settings, ...resourceMarketEn },
+  settings: { ...deDE.settings, ...resourceMarketDe },
   workspace: { ...deDE.workspace, activity: chatActivity['de-DE'] },
   agentSettings: agentSettingsEn,
   liveVoice: liveVoiceEn,

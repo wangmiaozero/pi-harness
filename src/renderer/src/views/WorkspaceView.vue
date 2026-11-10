@@ -757,7 +757,7 @@ watch(
   z-index: 40;
   width: 7px;
   flex: 0 0 7px;
-  background: color-mix(in srgb, var(--bg-sidebar) 86%, transparent);
+  background: var(--bg-sidebar);
 }
 
 .workspace-sidebar-resizer {
@@ -767,26 +767,37 @@ watch(
   touch-action: none;
 }
 
+/* No resting line: the sidebar edge comes from the background change; a short grip appears on hover. */
 .workspace-sidebar-resizer::before {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 3px;
-  width: 1px;
-  background: var(--border-default);
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 28px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
   content: '';
+  opacity: 0;
+  transform: translate(-50%, -50%);
   transition:
-    width var(--motion-fast) var(--ease-out),
-    background-color var(--motion-fast) var(--ease-out),
-    box-shadow var(--motion-fast) var(--ease-out);
+    opacity var(--motion-fast) var(--ease-out),
+    height var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out);
 }
 
 .workspace-sidebar-divider:hover .workspace-sidebar-resizer::before,
-.workspace-sidebar-divider--active .workspace-sidebar-resizer::before,
 .workspace-sidebar-resizer:focus-visible::before {
-  width: 2px;
+  opacity: 1;
+}
+
+.workspace-sidebar-divider--active .workspace-sidebar-resizer::before {
+  height: 44px;
   background: var(--accent);
-  box-shadow: 0 0 8px var(--accent-tint-strong);
+  opacity: 1;
+}
+
+.workspace-sidebar-divider--collapsed .workspace-sidebar-resizer::before {
+  display: none;
 }
 
 .workspace-sidebar-resizer:focus-visible {

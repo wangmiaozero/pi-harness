@@ -254,6 +254,8 @@ describe('ChatComposer submission lock', () => {
 describe('ChatComposer ultra fire border', () => {
   it('puts BURNING BORDER on the input box only in ultra', async () => {
     const agent = useAgentStore()
+    const settings = useSettingsStore()
+    settings.settings = { composerFireEnabled: true } as NonNullable<typeof settings.settings>
     const wrapper = mount(ChatComposer, {
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
@@ -272,17 +274,31 @@ describe('ChatComposer ultra fire border', () => {
     expect(fire.element.parentElement?.querySelector('.command-console-input')).toBeTruthy()
   })
 
+  it('keeps the flame off by default in ultra', () => {
+    const agent = useAgentStore()
+    agent.thinkingLevel = 'ultra'
+    const wrapper = mount(ChatComposer, {
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    expect(wrapper.find('[data-testid="agent-aura-fire-border"]').exists()).toBe(false)
+    expect(wrapper.get('.command-console-input').classes()).not.toContain(
+      'command-console-input--ultra'
+    )
+  })
+
   it('removes the flame and restores the normal input style when disabled', async () => {
     const agent = useAgentStore()
     const settings = useSettingsStore()
     agent.thinkingLevel = 'ultra'
+    settings.settings = { composerFireEnabled: true } as NonNullable<typeof settings.settings>
     const wrapper = mount(ChatComposer, {
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
     })
     expect(wrapper.find('[data-testid="agent-aura-fire-border"]').exists()).toBe(true)
 
-    settings.settings = { composerFireEnabled: false } as NonNullable<typeof settings.settings>
+    settings.settings.composerFireEnabled = false
     await wrapper.vm.$nextTick()
     expect(wrapper.find('[data-testid="agent-aura-fire-border"]').exists()).toBe(false)
     expect(wrapper.get('.command-console-input').classes()).not.toContain(

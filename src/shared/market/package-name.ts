@@ -1,9 +1,6 @@
-/** Official Market packages use the `@piharness` user scope. */
+/** Official Market packages use the `@piharness` scope as their stable id. */
 
 export const OFFICIAL_MARKET_SCOPE = '@piharness'
-/** npm user that owns that scope: https://www.npmjs.com/~piharness */
-export const OFFICIAL_MARKET_USER = 'piharness'
-export const OFFICIAL_REGISTRY = 'https://registry.npmjs.org'
 
 export const MARKET_PACKAGE_NAME =
   /^@piharness\/(theme|pet)-[a-z0-9][a-z0-9-]*$/

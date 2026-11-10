@@ -834,7 +834,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
 <template>
   <aside
     data-testid="workspace-sidebar"
-    class="workspace-control-panel relative flex w-[260px] shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-sidebar)]"
+    class="workspace-control-panel relative flex w-[260px] shrink-0 flex-col bg-[var(--bg-sidebar)]"
     @dragenter.prevent="onDragEnter"
     @dragover.prevent="onDragOver"
     @dragleave.prevent="onDragLeave"

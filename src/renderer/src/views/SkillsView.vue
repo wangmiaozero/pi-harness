@@ -345,8 +345,7 @@ function capabilityDescription(capability: CapabilityDescriptor): string {
   const keys: Record<string, string> = {
     'native-pi': 'capabilities.nativePiDescription',
     superpowers: 'capabilities.superpowersDescription',
-    ecc: 'capabilities.eccDescription',
-    odai: 'capabilities.odaiDescription'
+    ecc: 'capabilities.eccDescription'
   }
   return keys[capability.id] ? t(keys[capability.id]) : capability.description || '—'
 }

@@ -113,44 +113,6 @@ const catalogSource: readonly CapabilityDefinition[] = [
       source: 'git:github.com/affaan-m/ECC',
       target: 'pi-global'
     }
-  },
-  {
-    id: 'odai',
-    type: 'skill',
-    name: 'Odai',
-    description: 'Governance & Adaptive Execution',
-    source: 'github',
-    sourceUrl: 'https://github.com/orziz/odai',
-    featured: true,
-    recommended: false,
-    optional: true,
-    category: 'governance-methodology',
-    integration: 'pi-skill',
-    order: 20,
-    tags: ['governance', 'risk-awareness', 'adaptive-execution'],
-    useCases: [
-      'goal-alignment',
-      'authorization-boundaries',
-      'risk-awareness',
-      'capability-routing',
-      'evidence',
-      'verification',
-      'adaptive-execution'
-    ],
-    capabilities: {
-      planning: true,
-      codeReview: true,
-      debugging: true,
-      filesystem: true,
-      git: true,
-      terminal: true,
-      search: true
-    },
-    install: {
-      strategy: 'skills-cli',
-      selector: 'odai',
-      target: 'pi-global'
-    }
   }
 ]
 

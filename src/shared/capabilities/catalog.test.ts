@@ -15,8 +15,7 @@ describe('capability catalog', () => {
     expect(CAPABILITY_CATALOG.map((entry) => entry.id)).toEqual([
       'native-pi',
       'superpowers',
-      'ecc',
-      'odai'
+      'ecc'
     ])
     expect(findTrustedCapability('native-pi')).toMatchObject({
       type: 'preset',
@@ -46,19 +45,10 @@ describe('capability catalog', () => {
         target: 'pi-global'
       }
     })
-    expect(findTrustedCapability('odai')).toMatchObject({
-      type: 'skill',
-      recommended: false,
-      optional: true,
-      category: 'governance-methodology',
-      source: 'github',
-      sourceUrl: 'https://github.com/orziz/odai',
-      install: { strategy: 'skills-cli', selector: 'odai', target: 'pi-global' }
-    })
   })
 
   it('contains only schema-valid trusted sources', () => {
-    expect(CAPABILITY_CATALOG).toHaveLength(4)
+    expect(CAPABILITY_CATALOG).toHaveLength(3)
     expect(() =>
       normalizeCapabilityDefinition({
         id: 'unsafe',

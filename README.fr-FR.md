@@ -1,51 +1,36 @@
-<p align="center">
-  <img src="docs/assets/pi-harness-logo.gif" width="640" alt="Pi-Harness" />
-</p>
+<div align="center">
 
-<p align="center">
-  <a href="README.md">English</a> ·
-  <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="README.zh-TW.md">繁體中文</a> ·
-  <a href="README.ja-JP.md">日本語</a> ·
-  <a href="README.ko-KR.md">한국어</a> ·
-  <a href="README.ru-RU.md">Русский</a> ·
-  <a href="README.fr-FR.md">Français</a> ·
-  <a href="README.de-DE.md">Deutsch</a>
-</p>
+<img src="docs/assets/pi-harness-logo.gif" width="520" alt="Pi-Harness">
 
-<h3 align="center">L’Operational Superset de Pi Coding Agent</h3>
+### L’Operational Superset de Pi Coding Agent
 
-<p align="center">
-  <strong>Native Pi avec un espace de travail visuel, le contrôle des exécutions, la récupération et des équipes d’agents.</strong>
-</p>
+**Observez, contrôlez et orchestrez des agents Native Pi dans un seul espace de travail de bureau.**<br>
+Pi exécute toujours chaque agent. Pi-Harness y ajoute l’espace de travail, l’historique des exécutions, la récupération et les équipes d’agents,<br>
+et vos sessions, configurations, Skills et extensions Pi continuent de fonctionner dans l’application comme en dehors.
 
-<p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
+`Pi Coding Agent ⊂ Pi-Harness`
 
-<p align="center">
-  <a href="#watch"><strong>Vidéo</strong></a> ·
-  <a href="#download"><strong>Télécharger</strong></a> ·
-  <a href="#features">Fonctionnalités</a> ·
-  <a href="#agent-settings">Réglages des agents</a> ·
-  <a href="#harness-plugins">Harness Plugins</a> ·
-  <a href="#documentation">Documentation</a>
-</p>
+[![Release](https://img.shields.io/github/v/release/wangmiaozero/pi-harness?label=release&color=111111)](https://github.com/wangmiaozero/pi-harness/releases) [![Stars](https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat&color=111111)](https://github.com/wangmiaozero/pi-harness/stargazers) [![CI](https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/license-AGPL--3.0--only-111111)](LICENSE)<br>
+![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white) ![Windows](https://img.shields.io/badge/Windows-0078D4?logo=windows&logoColor=white) ![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
 
-<p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="Versions publiées" src="https://img.shields.io/github/v/release/wangmiaozero/pi-harness?style=flat-square" /></a>
-  <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
-  <a href="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml"><img alt="CI (main)" src="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
-  <a href="LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-  <a href="https://github.com/wangmiaozero/pi-harness"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
-</p>
+**[Télécharger](https://github.com/wangmiaozero/pi-harness/releases)** &nbsp;·&nbsp; **[Vidéo](#watch)** &nbsp;·&nbsp; **[Fonctionnalités](#features)** &nbsp;·&nbsp; **[Harness Plugins](#harness-plugins)** &nbsp;·&nbsp; **[Documentation](#documentation)** &nbsp;·&nbsp; **[Historique des versions](CHANGELOG.md)**
+
+[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · **Français** · [Deutsch](README.de-DE.md)
+
+<br>
+
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png" width="900" alt="L’espace de travail Pi-Harness : conversations, fichiers du projet et Git dans une seule fenêtre">
+
+</div>
+
+<br>
 
 ## 赞助商
 
 <table>
   <tr>
     <td width="580" align="center" valign="middle">
-      <a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">
         <img src="docs/assets/infistar-banner.png" width="560" alt="Pi-Harness × Infistar.cc 无限星河" />
-      </a>
     </td>
     <td valign="middle">
       Pi-Harness × Infistar.cc 无限星河｜Claude、GPT、Gemini、Grok、DeepSeek 等，一个 Key，只花官方价的零头，省 99%；低至官方 0.1 折，100% 官方纯血，每个模型都能验真；上千线路安全冗余自动切换，200+ 模型、16 个品牌，一个 Key 搞定。<br>
@@ -54,9 +39,7 @@
   </tr>
   <tr>
     <td width="580" align="center" valign="middle">
-      <a href="https://cloud.tencent.com/act/cps/redirect?redirect=6871&amp;cps_key=ece2099a1da90c2f7a4a4c437ad623f8&amp;from=console">
         <img src="docs/assets/workbuddy-banner.jpg" width="560" alt="腾讯云 WorkBuddy" />
-      </a>
     </td>
     <td valign="middle">
       【腾讯云】WorkBuddy 全场景 AI 办公工作台，团队旗舰版低至198元/月<br>
@@ -64,6 +47,19 @@
     </td>
   </tr>
 </table>
+
+## Pi-Harness est-il fait pour vous ?
+
+[Pi Coding Agent](https://github.com/earendil-works/pi) fonctionne bien dans un terminal. Sur de vrais projets, on en veut vite davantage : voir ce que chaque exécution a réellement fait, revenir à un état sain quand une exécution tourne mal et répartir un travail plus important entre plusieurs agents. Pi-Harness réunit tout cela dans une application de bureau, au-dessus du même Pi :
+
+- **Voir chaque exécution** : Runs, Trace, Replay et Evaluation montrent l’activité des outils, comparent les résultats et permettent d’analyser les échecs à partir des données enregistrées.
+- **Garder le travail récupérable** : Policy, Budget, Checkpoints et Recovery définissent les autorisations des outils et les limites de dépenses, conservent des points de récupération et permettent de reprendre, créer une branche ou relancer.
+- **Coordonner une équipe** : Agent Teams, Task DAG et Worktrees affectent des tâches dépendantes, transmettent les résultats entre agents Pi et séparent les modifications de chaque agent.
+- **Rester sur Native Pi** : Pi gère la boucle d’agent, les sessions, le contexte, les outils, les modèles et le raisonnement. Pi-Harness les gère visuellement, et vous pouvez continuer à utiliser Pi en dehors de l’application.
+
+Pi-Harness est fait pour vous si vous utilisez Pi sur de vrais projets et voulez voir, piloter et coordonner son travail depuis une seule fenêtre. Si une conversation dans un terminal vous suffit, Pi seul suffit.
+
+Fonctionne sur macOS, Windows et Linux. Les installateurs communautaires incluent Pi et Node.js : rien d’autre à installer au préalable.
 
 <a id="watch"></a>
 
@@ -77,37 +73,77 @@ https://github.com/user-attachments/assets/942b73c9-ece9-485e-ad82-0e51225a73c1
 
 https://github.com/user-attachments/assets/98708766-f490-4506-a33f-f1376d41770f
 
-<a id="product-preview"></a>
+<a id="download"></a>
+<a id="get-started"></a>
 
-## Aperçu du produit
+## Démarrage rapide
 
-Découvrez l’interface actuelle dans un projet de démonstration. Cliquez sur une image pour l’agrandir.
+**1 · Installer.** Téléchargez l’installateur adapté à votre système sur **[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)** :
 
-### Espace de travail
+| | |
+| :-- | :-- |
+| **macOS** | Le `.dmg` pour Apple Silicon (`arm64`) ou Intel (`x64`). Ouvrez-le et faites glisser Pi-Harness dans Applications |
+| **Windows** | L’installateur `.exe` x64. Lancez-le et choisissez un dossier d’installation |
+| **Linux** | Le `.AppImage` x64. Rendez-le exécutable, puis ouvrez-le |
 
-[![Espace de travail](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+```sh
+chmod +x "./Pi-Harness-VERSION.AppImage"   # remplacez VERSION par la version téléchargée
+./Pi-Harness-VERSION.AppImage
+```
 
-### Harness
+<sub>Les installateurs incluent Pi, Node.js, npm et npx : inutile d’installer Pi ou Node.js, de cloner ce dépôt ou d’installer pnpm. La validation des versions couvre macOS Apple Silicon, macOS Intel, Windows x64 et Linux x64, et les résultats vérifiés de chaque version déterminent les plateformes pour lesquelles elle est publiée. La validation Linux cible Ubuntu 24.04 ; les autres distributions ainsi que FUSE et l’intégration au bureau doivent être vérifiés séparément. Windows et Linux ARM64 sont des cibles en préversion. Les anciens paquets peuvent avoir d’autres exigences : suivez les notes de la version que vous téléchargez. Les builds macOS ont une signature ad hoc et les installateurs Windows ne sont pas signés : voir <a href="#verify-your-download">Vérifier le téléchargement</a>.</sub>
 
-[![Harness](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-2.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-2.png)
+**2 · Vérifier l’environnement.** Lancez Pi-Harness et vérifiez l’environnement dans la vue d’ensemble.
 
-### Plusieurs agents
+**3 · Ajouter un fournisseur.** Configurez un fournisseur, testez la connexion et choisissez un modèle. L’accès aux modèles peut nécessiter des identifiants et entraîner des frais auprès du fournisseur.
 
-Exemple de configuration avant exécution : les agents sont inactifs et les tâches sont en attente.
+**4 · Commencer à travailler.** Commencez une conversation indépendante ou ouvrez un projet, puis lancez ou reprenez une session Pi et travaillez avec conversations, fichiers et Git dans une seule fenêtre. Ouvrez **Espace de travail → Outils → Harness / Agents** pour examiner les exécutions ou coordonner une équipe.
 
-[![Plusieurs agents](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E5%9B%A2%E9%98%9F.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E5%9B%A2%E9%98%9F.png)
+<a id="verify-your-download"></a>
 
-[![Plusieurs agents](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96.png)
+### Vérifier le téléchargement
 
-## Pourquoi Pi-Harness ?
+Les versions communautaires sont gratuites. Les paquets macOS utilisent une **signature ad hoc, sans Apple Developer ID ni notarisation**. Les installateurs Windows ne sont **pas signés** et peuvent afficher des avertissements SmartScreen. Vérifiez la source officielle du téléchargement et la somme de contrôle avant d’autoriser l’ouverture de l’application. Si macOS bloque le premier lancement, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même** pour cette application. Laissez les protections de sécurité du système activées.
 
-Pi-Harness propose Pi Coding Agent dans un espace de travail de bureau pour macOS, Windows et Linux. Gérez conversations, projets, fichiers, Git, modèles et Skills au même endroit, avec des outils pour examiner les exécutions, contrôler les budgets, reprendre le travail et coordonner des équipes d’agents.
+Téléchargez `SHA256SUMS` avec l’installateur, calculez l’empreinte de votre fichier et comparez-la avec celle du même nom de fichier dans la liste (remplacez `VERSION` et l’architecture par les valeurs de votre téléchargement) :
 
-Native Pi exécute les agents. Vos sessions, configurations, outils, Skills et extensions restent compatibles avec Pi, que vous pouvez aussi utiliser en dehors de l’application.
+```sh
+shasum -a 256 "Pi-Harness-VERSION-arm64.dmg"   # macOS
+sha256sum "Pi-Harness-VERSION.AppImage"        # Linux
+```
 
-## Native Pi et Pi-Harness
+```powershell
+Get-FileHash ".\Pi-Harness-Setup-VERSION.exe" -Algorithm SHA256   # Windows
+```
 
-Pi-Harness est un surensemble opérationnel de Pi Coding Agent : aux fonctions de Native Pi s’ajoutent observation, contrôle, récupération, orchestration et espace de travail visuel.
+<sub>SHA256 vérifie la cohérence avec la liste des sommes de contrôle ; il ne prouve pas à lui seul l’identité de l’éditeur. Utilisez la page officielle <a href="https://github.com/wangmiaozero/pi-harness/releases">GitHub Releases</a> et signalez en privé toute vulnérabilité présumée à <a href="mailto:tuziling84@gmail.com">tuziling84@gmail.com</a>. Les builds communautaires recherchent les nouvelles versions dans l’application et ouvrent la page Releases pour un téléchargement et une installation manuels sur toutes les plateformes. L’installation automatique reste désactivée tant que l’installation entre versions n’est pas vérifiée, et les installations existantes conservent leur comportement de mise à jour. Voir <a href="docs/release/community-release.md">Community Release</a> et les <a href="docs/release/update-strategy.md">détails des mises à jour</a>.</sub>
+
+<a id="architecture"></a>
+
+## Comment tout s’articule
+
+Pi gère l’exécution et les sessions natives. Harness observe chaque exécution et applique autour d’elle politiques, budgets, points de contrôle, récupération et évaluation. Les équipes d’agents utilisent le même moteur d’exécution Pi. L’historique des conversations et l’architecture du projet sont des outils de l’espace de travail, et les thèmes personnalisent l’apparence. Le diagramme montre les relations entre modules, pas un héritage de classes.
+
+```mermaid
+flowchart TD
+    subgraph Desktop["Pi-Harness Desktop"]
+        W["Espace de travail visuel"] --> H["Harness Control Plane"]
+        A["Agent Teams / Task DAG"] --> H
+        W --> G["Fichiers / Git / Worktrees"]
+        A --> G
+        C["Fournisseurs / Modèles / Skills / MCP"]
+    end
+    H --> P["Native Pi Coding Agent"]
+    C --> P
+    P --> M["Fournisseurs de modèles"]
+```
+
+<a id="pi-vs-pi-harness"></a>
+
+<details>
+<summary><b>Native Pi et Pi-Harness</b>, fonction par fonction</summary>
+
+<br>
 
 | Fonction                 | Native Pi | Pi-Harness                    |
 | ------------------------ | --------- | ----------------------------- |
@@ -144,292 +180,295 @@ Pi-Harness est un surensemble opérationnel de Pi Coding Agent : aux fonctions d
 | Worktree isolation       | —         | Oui                           |
 | Project architecture map | —         | Oui                           |
 
+</details>
+
 <a id="features"></a>
 
 ## Fonctionnalités
 
 ### Espace de travail, fichiers et Git
 
-Commencez une conversation indépendante ou ouvrez un projet pour reprendre une session Pi. Consultez les réponses en streaming, le raisonnement, les appels d’outils, les images et les fichiers modifiés ; choisissez modèle, niveau de raisonnement et outils, ou compactez la conversation. Les outils de l’espace de travail donnent accès à Harness et aux agents en conservant la conversation et le brouillon.
+Commencez une conversation indépendante ou ouvrez un projet pour reprendre une session Pi. Suivez les réponses en streaming, le raisonnement, les appels d’outils, les images et les fichiers modifiés ; choisissez le modèle, le niveau de raisonnement et les outils, ou compactez la conversation. Ouvrir Harness ou Agents depuis les outils de l’espace de travail conserve la conversation et le brouillon.
 
-Parcourez et recherchez les fichiers, prévisualisez médias et documents, et modifiez le texte avec coloration syntaxique, numéros de ligne, recherche, annuler/rétablir, enregistrement explicite et protection contre les conflits de modifications externes. Git propose différences, historique, graphiques d’activité, commits, messages de commit IA facultatifs et worktrees.
+Parcourez et recherchez les fichiers, prévisualisez médias et documents, et modifiez le texte lisible avec coloration syntaxique, numéros de ligne, recherche, annuler/rétablir, enregistrement explicite et protection contre les conflits de modifications externes. Git propose différences, historique, graphiques d’activité, commits, messages de commit IA facultatifs et worktrees.
 
-### Fournisseurs et modèles
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BB%A3%E7%A0%81%E7%BC%96%E8%BE%91.png" alt="Édition légère de fichiers"><br><sub>Édition légère de fichiers</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png" alt="Différences, historique et commits Git"><br><sub>Git</sub></td>
+</tr>
+</table>
 
-Configurez des fournisseurs compatibles Pi à partir de préréglages ou d’adresses personnalisées. Gérez les identifiants, récupérez les modèles lorsque le service le permet, testez la connexion et choisissez le modèle de conversation. Les modèles d’image compatibles permettent de générer ou modifier des images, puis de télécharger les résultats.
+<a id="harness"></a>
 
-### Skills, extensions, paquets et MCP
+### Plan de contrôle Harness
 
-Parcourez et modifiez les Skills intégrés et locaux, et gérez les paquets et extensions Pi dans le centre de fonctionnalités. Saisissez `@` pour rechercher et invoquer un Skill installé. Gérez les serveurs MCP dans **Paramètres → MCP**. Les compléments [Superpowers](https://github.com/obra/superpowers) et [Odai](https://github.com/orziz/odai) peuvent être installés, mis à jour ou supprimés à votre demande.
+Chaque exécution Pi laisse une trace que vous pouvez examiner, comparer et utiliser pour récupérer le travail.
 
-<a id="desktop-companion"></a>
+| | |
+| :-- | :-- |
+| **Observer** | Runs, Trace, Replay, chronologies et activité des outils. Comparez les exécutions et suivez les branches et les nouvelles tentatives dans Run Tree |
+| **Mesurer** | Tokens, coût et durée de chaque exécution, ainsi qu’artefacts et statistiques du projet |
+| **Contrôler** | Politiques des outils et budgets par exécution. Créez des points de contrôle, puis reprenez, créez une branche ou relancez le travail |
+| **Vérifier** | Evaluation, Diagnostics et références de régression vérifient les résultats et aident à analyser les échecs à partir des données d’exécution enregistrées |
 
-### Compagnon de bureau
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-2.png" alt="Harness : état de la session et instructions en file d’attente"><br><sub>État de la session et instructions en file d’attente</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png" alt="Console Harness"><br><sub>Console Harness</sub></td>
+</tr>
+</table>
 
-Installez séparément les thèmes de personnages et les animaux de bureau officiels dans **Réglages → Marché de ressources**. Ces médias optionnels ne sont pas inclus dans l’application, et l’espace de travail s’ouvre sans réseau. Un thème ou un animal déjà choisi reste sélectionné ; tant que ses fichiers manquent, l’apparence de base est utilisée, puis elle revient après l’installation. Voir [docs/market/MARKET.md](docs/market/MARKET.md).
+<a id="multi-agent"></a>
 
-Activez un animal de bureau installé dans **Réglages → Mascotte de bureau** pour suivre la réflexion, les outils, l’attente et la fin des tâches. Désactivé par défaut, il peut rester visible lorsque la fenêtre principale est réduite.
+### Orchestration multi-agents
 
-Au repos, choisissez parmi 193 actions dans un menu contextuel avec recherche. Pendant les tâches, les interactions manuelles sont suspendues et le déplacement conserve l’animation de travail. Importez des packs locaux et réglez la taille, l’opacité et les bulles avec des curseurs.
+Ouvrez **Espace de travail → Outils → Agents** pour coordonner les agents Pi avec des équipes et modèles réutilisables. Affectez des tâches avec dépendances et priorités, planifiez-les manuellement, en séquence ou en parallèle, transmettez résultats et artefacts à la tâche suivante et ajoutez des étapes de revue. Les worktrees séparent les modifications de chaque agent. Budgets, alertes de conflit et commandes de pause, reprise, arrêt, nouvelle tentative, saut et réaffectation vous aident à gérer le travail.
 
-[![Réglages du compagnon et curseurs](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E5%9B%A2%E9%98%9F.png" alt="Une équipe configurée avant exécution"><br><sub>Exemple d’équipe avant exécution : trois agents inactifs, toutes les tâches en attente</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96.png" alt="Tâches en attente avec dépendances et revue obligatoire"><br><sub>Dépendances entre tâches et revue obligatoire</sub></td>
+</tr>
+</table>
 
-<a id="agent-settings"></a>
+<a id="conversation-history"></a>
 
-### Réglages des agents
+### Historique universel des conversations
 
-**Disponible à partir de v2.2.10.** Les sept pages de paramètres sont : **AI, voix en temps réel, raccourcis, instructions, MCP, sous-agents et hôtes distants**. Consultez les notes de version pour savoir si elles sont incluses dans l’installateur téléchargé.
+Consultez ensemble les historiques de Claude Code, Codex (bureau et archives compris), Cursor, Cursor Agent, Gemini CLI, OpenCode et Pi. Recherchez, filtrez par source, projet ou période, et ajoutez vos propres dossiers d’historique.
 
-Dans **Paramètres → AI**, réglez le niveau de raisonnement par défaut, la compression automatique, les nouvelles tentatives et les préférences de l’espace de travail. Enregistrez des raccourcis pour la palette de commandes, les paramètres, les nouvelles sessions et la fermeture des onglets, ou rétablissez les valeurs par défaut. La page des instructions permet de modifier les consignes globales ou propres à un projet.
+Ouvrez la conversation originale en lecture seule, prévisualisez la transmission et modifiez la prochaine instruction avant de continuer dans un nouveau chat Pi du même projet. Consultation, aperçus locaux et nouvelles tentatives de scan ne consomment aucun token de modèle ; les synthèses IA facultatives utilisent votre modèle configuré uniquement à votre demande.
 
-Dans **Paramètres → Sous-agents**, créez des modèles réutilisables avec un rôle, des instructions, un modèle IA, un niveau de raisonnement et des outils. Choisissez un espace partagé ou un worktree isolé, puis lancez une tâche ou réutilisez le modèle dans une équipe.
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E5%8E%86%E5%8F%B2.png" alt="Historique des conversations"><br><sub>Historique des conversations</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E6%B8%85%E7%90%86.png" alt="Nettoyage des sessions"><br><sub>Nettoyage des sessions</sub></td>
+</tr>
+</table>
 
-<a id="realtime-voice"></a>
+<a id="project-architecture"></a>
 
-### Voix en temps réel dans l’espace de travail
+### Carte de l’architecture du projet
 
-Configurez **OpenAI Realtime, Gemini Live ou Codex Live** dans **Paramètres → Voix en temps réel**, puis utilisez le bouton en forme d’onde à côté du champ de message. Choisissez un compte compatible ou une clé API distincte. Codex Live utilise votre connexion Codex existante dans Pi. La disponibilité et les tarifs dépendent de votre compte.
+Ouvrez Architecture dans l’espace de travail pour explorer modules, dépendances, points d’entrée et références au code. Filtrez par paquet, ciblez un module, parcourez la carte page par page, zoomez ou passez en plein écran. Enregistrez des instantanés d’analyse, repérez ceux que des changements dans les sources ont rendus obsolètes et exportez en JSON, en HTML hors ligne ou la vue actuelle en PNG.
 
-Vérifiez la conversation cible avant l’appel. Le partage du contexte récent est désactivé par défaut ; une fois activé, il inclut seulement les six derniers messages en texte brut, sans pièces jointes ni résultats d’outils. Les commandes flottantes permettent de couper le micro, terminer l’appel et lire la transcription, même après un changement de page. Confirmez les demandes de travail vocales avant leur envoi à la conversation de travail.
+| | |
+| :-- | :-- |
+| **Local d’abord** | L’analyse s’exécute localement et ne consomme aucun token de modèle ; les descriptions IA sont facultatives |
+| **Couverture** | Les imports JavaScript, TypeScript et Vue sont analysés localement ; les autres langages compatibles disposent d’un index par fichier. Chaque analyse indique sa couverture et ses limites |
+| **Portée** | Les cartes décrivent les dépendances statiques prises en charge ; ce n’est pas un graphe complet des appels de fonctions |
+
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png" width="900" alt="Carte de l’architecture du projet">
+
+<a id="providers-and-models"></a>
+<a id="skills-extensions-packages-and-mcp"></a>
+
+### Fournisseurs, modèles et Skills
+
+| | |
+| :-- | :-- |
+| **Fournisseurs** | Configurez des fournisseurs compatibles Pi à partir de préréglages ou d’adresses personnalisées, gérez les identifiants, récupérez les modèles lorsque le service le permet, testez la connexion et choisissez votre modèle de conversation |
+| **Images** | Utilisez les modèles d’image compatibles pour générer ou modifier des images, puis téléchargez les résultats |
+| **OpenCode Zen / Go** | Dans l’onglet OpenCode de Modèles, enregistrez votre clé API et activez les modèles souhaités. Les modèles se chargent automatiquement et peuvent être vérifiés un par un ou tous ensemble. L’accès et les frais dépendent de votre compte officiel et du modèle ; une vérification payante demande d’abord votre autorisation. Consultez les [informations sur les modèles d’OpenCode](https://opencode.ai/v2/docs/console/models/) pour les tarifs et les règles sur les données |
+| **Skills** | Parcourez et modifiez les Skills intégrés et locaux. Saisissez `@` dans le champ de message pour rechercher et invoquer un Skill installé |
+| **Paquets et extensions** | Gérez les paquets et extensions Pi depuis le centre de capacités. Les compléments facultatifs tels que [Superpowers](https://github.com/obra/superpowers) ne s’installent, ne se mettent à jour ou ne se désinstallent qu’à votre demande |
+
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png" alt="Fournisseurs et modèles"><br><sub>Fournisseurs et modèles</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png" alt="Centre de capacités"><br><sub>Centre de capacités</sub></td>
+</tr>
+</table>
 
 <a id="mcp-marketplace"></a>
 
 ### Serveurs et catalogue MCP
 
-Dans **Paramètres → MCP**, ajoutez des serveurs lancés par une commande locale ou accessibles par HTTP. Filtrez par **Tous / Global / Projet**, choisissez un projet et modifiez ou activez les serveurs dans leur portée respective. Vous pouvez aussi analyser les configurations d’autres outils et les importer après vérification.
+Ouvrez **Paramètres → MCP** pour ajouter des serveurs lancés par une commande locale ou accessibles par HTTP, filtrer par **Tous / Global / Projet**, choisir un projet, et modifier ou activer chaque serveur dans sa propre portée. Analysez les configurations d’autres outils et vérifiez-les avant de les importer.
 
-Le catalogue propose **15 modèles intégrés**, dont Memory, Context7, Playwright, Filesystem et GitHub, ainsi que la recherche et la pagination du registre officiel MCP. Vérifiez la configuration et sa destination avant l’enregistrement. Ces modèles sont à installer selon vos besoins ; ils ne sont pas tous activés. Les entrées importées et celles du registre officiel sont enregistrées désactivées : configurez-les avant de les activer.
+Le catalogue propose **15 modèles de serveurs intégrés**, dont Memory, Context7, Playwright, Filesystem et GitHub, ainsi que la recherche et la pagination du registre officiel MCP. Vérifiez la configuration et sa destination avant l’enregistrement. Les modèles sont là pour être installés ; ils ne sont pas tous activés par défaut. Les entrées importées et celles du registre sont enregistrées désactivées, pour que vous puissiez d’abord terminer leur configuration.
+
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png" width="900" alt="Catalogue MCP et modèles de serveurs intégrés">
+
+<a id="agent-settings"></a>
+
+### Réglages des agents
+
+**Disponible à partir de v2.2.10.** Consultez les notes de version pour savoir si ces réglages sont inclus dans l’installateur téléchargé.
+
+| Page | Ce que vous réglez | |
+| :-- | :-- | :-- |
+| **AI** | Niveau de raisonnement par défaut, compactage automatique, nouvelles tentatives et préférences de l’espace de travail | [Capture](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/AI.png) |
+| **Voix en temps réel** | Le service vocal et le compte pour les appels dans l’espace de travail | [Capture](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3.png) |
+| **Raccourcis** | Vos propres raccourcis pour la palette de commandes, les paramètres, les nouvelles sessions et la fermeture des onglets, ou les valeurs par défaut | [Capture](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%BF%AB%E6%8D%B7%E9%94%AE.png) |
+| **Instructions** | Instructions globales ou propres à un projet | [Capture](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%8C%87%E4%BB%A4.png) |
+| **MCP** | Les serveurs MCP de chaque portée | [Capture](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E6%9C%8D%E5%8A%A1%E5%99%A8.png) |
+| **Sous-agents** | Sous-agents réutilisables avec un rôle, des instructions, un modèle, un niveau de raisonnement et des outils. Choisissez un espace partagé ou un worktree isolé, puis lancez une tâche ou réutilisez le modèle dans une équipe | [Capture](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AD%90%E6%99%BA%E8%83%BD%E4%BD%93.png) |
+| **Hôtes distants** | Hôtes exécutant pi-host, appairés avec une adresse et un jeton d’appairage | [Capture](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA.png) |
+
+<a id="realtime-voice"></a>
+
+### Voix en temps réel
+
+Parlez à votre espace de travail avec **OpenAI Realtime, Gemini Live ou Codex Live**. Utilisez un compte de fournisseur compatible ou une clé API distincte ; Codex Live utilise votre connexion Codex existante dans Pi. La disponibilité du service et les frais dépendent de votre compte.
+
+1. Ouvrez **Paramètres → Voix en temps réel**, activez la voix, choisissez le service et le compte, puis enregistrez.
+2. Dans une conversation de l’espace de travail, cliquez sur le bouton en forme d’onde à côté du champ de message.
+3. Vérifiez la conversation cible et le partage facultatif du contexte, sélectionnez **Démarrer la voix en temps réel** et autorisez l’accès au microphone.
+4. Coupez le micro, consultez la transcription ou terminez l’appel depuis les commandes flottantes, même après être passé à une autre page.
+
+Le partage du contexte récent est désactivé par défaut. Une fois activé, il inclut seulement les six derniers messages en texte brut, sans pièces jointes ni résultats d’outils. Les demandes de travail issues d’un appel ne sont envoyées à la conversation de travail qu’après votre vérification.
+
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png" width="900" alt="Voix dans l’espace de travail : configuration et préparation avant un appel">
 
 <a id="remote-hosts"></a>
 
 ### Hôtes distants
 
-Dans **Paramètres → Hôtes distants**, saisissez l’adresse d’un hôte exécutant **pi-host** et son jeton d’appairage. Connectez ou déconnectez les hôtes, parcourez leurs projets et sessions, consultez les conversations, envoyez des prompts et répondez aux demandes d’approbation. Le service distant doit être lancé et accessible au préalable.
+Appairez un hôte exécutant **pi-host** depuis **Paramètres → Hôtes distants** avec son adresse et son jeton d’appairage. Connectez ou déconnectez les hôtes, parcourez leurs projets et sessions, consultez les conversations, envoyez des prompts et répondez aux demandes d’approbation. L’hôte distant doit déjà être lancé et accessible.
 
-### Harness : observer, contrôler et récupérer
-
-Examinez Runs, Trace, Replay, les chronologies et l’activité des outils. Comparez les exécutions, suivez les branches et les nouvelles tentatives dans Run Tree, et consultez tokens, coût, durée, artefacts et statistiques du projet.
-
-Définissez les politiques des outils et les budgets d’exécution, créez des points de contrôle, puis reprenez, créez une branche ou relancez le travail. Évaluation, diagnostic et références de régression aident à vérifier les résultats et à expliquer les échecs à partir des données enregistrées.
-
-### Équipes d’agents et orchestration des tâches
-
-Coordonnez les agents Pi avec des équipes et modèles réutilisables. Affectez dépendances, priorités et responsables, lancez les tâches manuellement, en séquence ou en parallèle, transmettez résultats et artefacts et utilisez des étapes de revue. Les worktrees séparent les modifications ; budgets, alertes de conflit, pause, reprise, arrêt, nouvelle tentative, saut et réaffectation permettent de gérer le travail.
-
-### Historique local des conversations
-
-Consultez ensemble les historiques de Claude Code, Codex (bureau et archives compris), Cursor, Cursor Agent, Gemini CLI, OpenCode et Pi. Recherchez, filtrez par source, projet ou dates, et ajoutez vos dossiers d’historique.
-
-La conversation originale reste en lecture seule. Vérifiez l’aperçu de transmission et modifiez la prochaine instruction avant de continuer dans un nouveau chat Pi du même projet. Consultation, aperçus locaux et nouvelles tentatives de scan ne consomment aucun token de modèle. Les synthèses IA facultatives utilisent votre modèle configuré uniquement à votre demande.
-
-### Architecture du projet
-
-Ouvrez Architecture dans l’espace de travail pour explorer modules, dépendances, points d’entrée et références au code. Filtrez par paquet, ciblez un module, changez de page, zoomez ou passez en plein écran. Enregistrez les analyses, repérez les changements des sources et exportez JSON, HTML hors ligne ou la vue actuelle en PNG.
-
-L’analyse locale ne consomme aucun token de modèle ; les descriptions IA sont facultatives. Les imports JavaScript, TypeScript et Vue sont analysés localement ; les autres langages compatibles disposent d’un index par fichier. L’analyse indique sa couverture et ses limites.
-
-### Thèmes et habillages personnalisés
-
-Choisissez les palettes classiques, Ming, Starship Cockpit, les fonds macOS 27 ou un habillage importé. Les nouvelles installations démarrent en mode sombre. Personnalisez les noms du chat, l’icône, les images de fond locales, les halos de fenêtre et d’écran et l’effet de flamme du champ de saisie. Une animation accompagne la vérification de l’environnement au démarrage.
-
-### Environnement et réglages
-
-Vérifiez Node.js, npm, PATH, Pi Coding Agent et la configuration active. Installez, mettez à jour ou réparez Pi dans les environnements compatibles ; consultez le diagnostic, gérez les sauvegardes de configuration et vérifiez les mises à jour de l’application. L’interface est disponible en huit langues.
-
-## Créer votre habillage
-
-Utilisez le [modèle d’habillage Pi-Harness](https://github.com/wangmiaozero/pi-harness-skin-starter) pour créer le style souhaité.
-
-1. Utilisez le dépôt comme modèle ou téléchargez-le.
-2. Ouvrez-le avec votre agent de programmation et décrivez le style dans le prompt fourni.
-3. Importez le projet terminé depuis **Paramètres → Thème → Importer un thème**.
-
-Le modèle multilingue propose des indications pour les couleurs, aperçus, fonds et portraits facultatifs. Conservez l’habillage dans son propre dépôt pour le mettre à jour et le partager indépendamment.
-
-<a id="screenshots"></a>
-
-## Captures d’écran
-
-Les interfaces sont classées par thème. Consultez l’[index complet des captures](docs/README.md) pour les autres vues.
+<a id="desktop-companion"></a>
 
 ### Compagnon de bureau
 
-[![Menu contextuel](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%8F%9C%E5%8D%95.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%8F%9C%E5%8D%95.png)
+Activez un animal de bureau installé dans **Paramètres → Mascotte de bureau** pour suivre sur votre bureau la réflexion, l’activité des outils, l’attente et la fin des tâches. Il est désactivé par défaut et reste disponible lorsque la fenêtre principale est réduite.
 
-[![Recherche et choix des actions](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E5%8A%A8%E4%BD%9C.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E5%8A%A8%E4%BD%9C.png)
+Au repos, choisissez parmi 193 actions dans un menu contextuel avec recherche. Pendant les tâches, les interactions manuelles sont suspendues et le déplacement conserve l’animation de travail. Importez des packs locaux et réglez la taille, l’opacité et les bulles avec des curseurs.
 
-### Historique des conversations
+<table>
+<tr>
+<td width="33%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png" alt="Réglages de l’animal de bureau et curseurs"><br><sub>Réglages et curseurs</sub></td>
+<td width="33%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%8F%9C%E5%8D%95.png" alt="Menu contextuel"><br><sub>Menu contextuel</sub></td>
+<td width="33%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E5%8A%A8%E4%BD%9C.png" alt="Liste d’actions avec recherche"><br><sub>Actions avec recherche</sub></td>
+</tr>
+</table>
 
-[![Historique des conversations](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E5%8E%86%E5%8F%B2.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E5%8E%86%E5%8F%B2.png)
+<a id="themes-and-custom-skins"></a>
+<a id="screenshots"></a>
 
-### Nettoyage des sessions
+### Thèmes et habillages personnalisés
 
-[![Nettoyage des sessions](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E6%B8%85%E7%90%86.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E6%B8%85%E7%90%86.png)
+Choisissez les palettes classiques, les thèmes Ming, Starship Cockpit, les fonds macOS 27 ou un habillage personnalisé importé. Les nouvelles installations démarrent en **Clair doux**. Personnalisez les noms affichés dans le chat, les icônes de l’application, les images de fond locales, les halos de fenêtre et d’écran et l’effet de flamme du champ de saisie. Une animation de démarrage accompagne la vérification de l’environnement.
 
-### Thème classique
+Les thèmes de personnages et les animaux de bureau sont des packs facultatifs. Ouvrez **Paramètres → Marché de ressources** pour installer un pack `@piharness` à la fois depuis le catalogue GitHub. L’application démarre sans connexion réseau. Un thème ou un animal déjà choisi reste sélectionné tant que ses fichiers ne sont pas installés, et l’espace de travail utilise l’apparence de base jusqu’à l’installation du pack. Voir [docs/market/MARKET.md](docs/market/MARKET.md).
 
-#### Édition légère de fichiers
+**Créez votre propre habillage** avec le [modèle d’habillage Pi-Harness](https://github.com/wangmiaozero/pi-harness-skin-starter) :
 
-[![Édition légère de fichiers](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BB%A3%E7%A0%81%E7%BC%96%E8%BE%91.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BB%A3%E7%A0%81%E7%BC%96%E8%BE%91.png)
+1. Utilisez le dépôt comme modèle ou téléchargez-le.
+2. Ouvrez-le avec votre agent de programmation et décrivez le style souhaité dans le prompt fourni.
+3. Importez le projet terminé depuis **Paramètres → Thème → Importer un thème**.
 
-<details>
-<summary>Réglages des agents · Voix dans l’espace de travail · MCP</summary>
+Le modèle multilingue propose des indications pour les couleurs, aperçus, fonds d’écran et illustrations de personnages facultatives. Conservez l’habillage dans son propre dépôt pour le mettre à jour et le partager indépendamment.
 
-#### Voix dans l’espace de travail
-
-Configuration et préparation avant un appel :
-
-[![Voix dans l’espace de travail](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)
-
-#### Catalogue MCP
-
-[![Catalogue MCP](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)
-
-| Page de paramètres                 | Capture                                                                                                                         |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Préférences AI                     | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/AI.png)                                   |
-| Voix en temps réel                 | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3.png) |
-| Raccourcis                         | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%BF%AB%E6%8D%B7%E9%94%AE.png)          |
-| Instructions globales et du projet | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%8C%87%E4%BB%A4.png)                   |
-| Serveurs MCP                       | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E6%9C%8D%E5%8A%A1%E5%99%A8.png)       |
-| Sous-agents                        | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AD%90%E6%99%BA%E8%83%BD%E4%BD%93.png) |
-| Appairage d’un hôte distant        | [Voir](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA.png) |
-
-</details>
-
-<details>
-<summary>Git · Fournisseurs et modèles · Fonctionnalités · Harness · Architecture du projet</summary>
-
-#### Git
-
-[![Git](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)
-
-#### Fournisseurs et modèles
-
-[![Fournisseurs et modèles](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)
-
-#### Fonctionnalités
-
-[![Fonctionnalités](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)
-
-#### Harness
-
-[![Harness](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
-
-#### Architecture du projet
-
-[![Architecture du projet](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)
-
-</details>
-
-### Interfaces Ming
-
-<details>
-<summary>Réglages généraux · Thèmes et habillages</summary>
-
-#### Réglages généraux
-
-[![Réglages généraux](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)
-
-#### Thèmes et habillages
-
-[![Thèmes et habillages](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)
-
-</details>
-
-### Galerie de thèmes
-
-<details>
-<summary>Ming · Dignitaire enneigé · Ming · Musicienne sous la neige · Ming · Lettrée au clair de lune · Starship Cockpit · macOS 27 · Liquid Ether</summary>
-
-#### Ming · Dignitaire enneigé
-
-[![Ming · Dignitaire enneigé](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)
-
-#### Ming · Musicienne sous la neige
-
-[![Ming · Musicienne sous la neige](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)
-
-#### Ming · Lettrée au clair de lune
-
-[![Ming · Lettrée au clair de lune](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)
-
-#### Starship Cockpit
-
-[![Starship Cockpit](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)
-
-#### macOS 27 · Liquid Ether
-
-[![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/macos27.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/macos27.png)
-
-</details>
+<table>
+<tr>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png" alt="Ming · Dignitaire enneigé"><br><sub>Ming · Dignitaire enneigé</sub></td>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png" alt="Ming · Musicienne sous la neige"><br><sub>Ming · Musicienne sous la neige</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png" alt="Ming · Lettrée au clair de lune"><br><sub>Ming · Lettrée au clair de lune</sub></td>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png" alt="Starship Cockpit"><br><sub>Starship Cockpit</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png" alt="Réglages généraux Ming"><br><sub>Ming · Réglages généraux</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png" alt="Galerie de thèmes et d’habillages"><br><sub>Ming · Galerie de thèmes et d’habillages</sub></td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/macos27.png" alt="macOS 27 · Liquid Ether"><br><sub>macOS 27 · Liquid Ether</sub></td>
+</tr>
+</table>
 
 <a id="harness-plugins"></a>
 
-## Harness Plugins — Étendre le plan de contrôle
+### Harness Plugins
 
-Plugin SDK v1.0.0 · Disponible à partir de Pi-Harness v2.2.6. Abonnements aux événements, évaluateurs personnalisés, exports JSON et modèles d’équipe. Le code exécutable exige une confiance explicite ; le processus séparé n’est pas un bac à sable de sécurité.
+**Plugin SDK v1.0.0 · Inclus à partir de Pi-Harness v2.2.6.** Les plugins étendent les opérations autour de l’agent, en complément des moyens d’étendre Pi lui-même :
 
-[Développer et installer](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security](docs/plugins/security.md) · [Examples](examples/harness-plugins/)
+| Extension | Rôle |
+| :-- | :-- |
+| **Pi Extensions** | Étendre l’agent Pi lui-même |
+| **Skills** | Donner à l’agent des instructions et des connaissances sur les workflows |
+| **MCP** | Connecter l’agent à des outils et des services externes |
+| **Harness Plugins** | Étendre les opérations de Pi-Harness autour de l’agent |
 
-<a id="download"></a>
+Contribuez des **Harness Event Subscribers, Custom Evaluators, Trace Exporters et Agent Team Templates**. Les évaluations sont complémentaires, les exports utilisent des données JSON autorisées et les modèles d’équipe créent des workflows en attente que vous examinez et lancez vous-même. Essayez les exemples maintenus du SDK : [Run Metrics](examples/harness-plugins/run-metrics/plugin.json), [Quality Evaluator](examples/harness-plugins/quality-evaluator/plugin.json) et [Team Template](examples/harness-plugins/team-template/plugin.json).
 
-## Télécharger
+Dans un build depuis les sources, ouvrez **Espace de travail → Outils → Harness → Harness Plugins → Install local plugin**, choisissez son dossier, vérifiez les autorisations et activez-le. L’installation n’exécute aucun code. Les plugins exécutables exigent une approbation de confiance native explicite : **le processus séparé n’est pas un bac à sable de sécurité ; le code Node approuvé peut accéder à votre ordinateur**. Utilisez des modèles déclaratifs pour les contenus non fiables.
 
-Téléchargez un installateur publié sur [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases) en choisissant le fichier adapté à votre plateforme.
+[Développer et installer](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Limites de sécurité](docs/plugins/security.md)
 
-| Plateforme          | Installateur                  |
-| ------------------- | ----------------------------- |
-| macOS Apple Silicon | `.dmg` · `arm64`              |
-| macOS Intel         | `.dmg` · `x64`                |
-| Windows x64         | `.exe` · Installateur Windows |
-| Linux x64           | `.AppImage`                   |
+### Et aussi
 
-Avec l’application empaquetée, inutile de cloner le dépôt ou d’installer pnpm. Les thèmes et les animaux de bureau s’installent depuis le marché de ressources. Pi-Harness vous aide à installer Pi et son environnement lorsque cette fonction est disponible.
-
-> Les builds communautaires macOS peuvent ne pas être signés. Si le premier lancement est bloqué, utilisez **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**.
-
-## Premiers pas
-
-1. Lancez Pi-Harness et vérifiez l’environnement dans la vue d’ensemble.
-2. Configurez un fournisseur, testez la connexion et choisissez un modèle.
-3. Commencez une conversation indépendante ou ouvrez un projet.
-4. Lancez ou reprenez une session Pi pour travailler avec conversations, fichiers et Git.
-5. Ouvrez les outils de l’espace de travail pour les contrôles Harness ou les équipes d’agents.
-
-### Démarrer une conversation vocale
-
-Pour démarrer une conversation vocale en temps réel :
-
-1. Ouvrez **Paramètres → Voix en temps réel**, activez la voix, choisissez le service et le compte, puis enregistrez.
-2. Revenez à une conversation de l’espace de travail et cliquez sur le bouton en forme d’onde à côté du champ de message.
-3. Vérifiez la conversation cible et le partage facultatif du contexte, démarrez l’appel et autorisez le microphone.
-4. Utilisez les commandes pour couper le micro, consulter les détails ou terminer l’appel. Confirmez toute demande de travail avant de l’envoyer à l’agent.
-
-## Prérequis
-
-L’application prend en charge macOS Apple Silicon, macOS Intel, Windows x64 et Linux x64. Pi Coding Agent peut être installé ou réparé depuis l’application dans les environnements compatibles. L’exécution depuis les sources nécessite Node.js 24 LTS (≥ 24.22.1) et pnpm 9.12.1.
+- **Vérification de l’environnement** : vérifiez Node.js, npm, PATH, Pi Coding Agent et la configuration active ; installez, mettez à jour ou réparez Pi dans les environnements compatibles, consultez le diagnostic et gérez les sauvegardes de configuration.
+- **Environnements d’exécution** : les environnements Pi et Node intégrés fonctionnent immédiatement, avec les choix Système et Personnalisé dans les paramètres.
+- **Mises à jour de l’application** : recherchez les nouvelles versions depuis l’application.
+- **Huit langues** : English, 简体中文, 繁體中文, 日本語, 한국어, Русский, Français et Deutsch.
 
 <a id="documentation"></a>
 
 ## Documentation
 
-- [Réglages des agents](docs/agent-settings.md)
-- [Index des captures](docs/README.md)
-- [Historique des modifications](CHANGELOG.md)
+| | |
+| :-- | :-- |
+| **[Guide des réglages des agents](docs/agent-settings.md)** | AI, voix en temps réel, raccourcis, instructions, MCP, sous-agents et hôtes distants |
+| **[Marché de ressources](docs/market/MARKET.md)** | Installer des packs de thèmes et d’animaux de bureau |
+| **[Harness Plugins](docs/plugins/getting-started.md)** | Développer et installer des plugins ; voir aussi [architecture](docs/plugins/architecture.md), [SDK API](docs/plugins/api-reference.md) et [limites de sécurité](docs/plugins/security.md) |
+| **[Community Release](docs/release/community-release.md)** | Comment les builds communautaires sont signés, vérifiés et [mis à jour](docs/release/update-strategy.md) |
+| **[Dépannage](docs/release/troubleshooting.md)** | Problèmes de somme de contrôle, d’avertissement de sécurité, de lancement et de mise à jour |
+| **[Index des captures](docs/README.md)** | Toutes les interfaces et tous les thèmes, par catégorie |
+| **[Historique des versions](CHANGELOG.md)** | Les changements de chaque version |
 
-## Remerciements et auteur
+## Développement
 
-Pi-Harness est construit autour des projets officiels [Pi Coding Agent et Pi Agent Harness](https://github.com/earendil-works/pi).
+Installez **Node.js 24 LTS (≥ 24.22.1)** et **pnpm 9.12.1**, puis exécutez :
 
-Créé et maintenu par [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com).
+```sh
+git clone https://github.com/wangmiaozero/pi-harness.git
+cd pi-harness
+pnpm install --frozen-lockfile
+pnpm dev
+```
 
-### Contributeurs aux PR
+<sub>Pour développer sans installation séparée de Pi, utilisez la configuration d’exemple dans <a href="fixtures/README.md">fixtures</a> : dans les paramètres, faites pointer le dossier de configuration manuel vers le chemin absolu de <code>fixtures/mock-pi</code>. La configuration d’exemple ne donne pas accès à de vrais modèles ; configurez votre propre fournisseur si nécessaire.</sub>
+
+Avant de proposer une modification, lancez les vérifications. Pour les modifications des parcours essentiels de l’application, lancez aussi `pnpm test:e2e`.
+
+```sh
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm compile
+```
+
+## Communauté
+
+- **[Issues](https://github.com/wangmiaozero/pi-harness/issues)** : signalez un bug ou proposez une amélioration. Indiquez la version de l’application, le système d’exploitation et les étapes pour reproduire le problème, et retirez identifiants et contenus de conversation privés.
+- **[Pull requests](https://github.com/wangmiaozero/pi-harness/pulls)** : décrivez le problème, le changement visible pour l’utilisateur et vos résultats de validation. Documentation, traductions, thèmes et corrections ciblées sont les bienvenus.
+- **[Habillages personnalisés](https://github.com/wangmiaozero/pi-harness-skin-starter)** : créez un habillage et partagez-le.
+- **Groupe QQ** : pi-harness · **1109717308**. Scannez le code pour rejoindre le groupe.
+
+<p align="center">
+  <img src="docs/社区/qq-group.jpg" width="240" alt="QR code du groupe QQ Pi-Harness" />
+</p>
+
+Si Pi-Harness vous simplifie le travail avec Pi, **une ⭐ aide d’autres personnes à le découvrir.**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangmiaozero/pi-harness&type=Date&theme=dark">
+  <img src="https://api.star-history.com/svg?repos=wangmiaozero/pi-harness&type=Date" width="600" alt="Historique des étoiles">
+</picture>
+
+## Remerciements
+
+Pi-Harness est construit autour des projets officiels [Pi Coding Agent et Pi Agent Harness](https://github.com/earendil-works/pi). Créé et maintenu par [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com).
+
+**Contributeurs aux PR**
 
 <table>
   <tr>
     <td align="center">
-      <a href="https://github.com/HenryArch"><img src="https://avatars.githubusercontent.com/u/244436357?v=4" width="64" height="64" alt="HenryArch" /><br /><b>HenryArch</b></a><br />
+      <img src="https://avatars.githubusercontent.com/u/244436357?v=4" width="64" height="64" alt="HenryArch" /><br /><a href="https://github.com/HenryArch"><b>HenryArch</b></a><br />
       <a href="https://github.com/wangmiaozero/pi-harness/pull/8">PR #8</a>
     </td>
   </tr>
@@ -439,6 +478,6 @@ Les PR pour améliorer Pi-Harness sont les bienvenues. Merci à toutes les perso
 
 ## Licence
 
-Pi-Harness est distribué sous [GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`).
+[GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`).
 
 Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

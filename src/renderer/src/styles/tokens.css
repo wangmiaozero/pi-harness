@@ -255,44 +255,88 @@
   --shadow-dialog: 0 8px 40px rgb(20 22 30 / 0.13);
 }
 
+/* Soft and colored light palettes keep a neutral window and tint only the chrome
+ * (sidebar, hover, borders) from the accent so each palette reads as one family. */
+:root:is(
+  [data-theme='soft-light'],
+  [data-theme='pink'],
+  [data-theme='purple'],
+  [data-theme='green'],
+  [data-theme='blue'],
+  [data-theme='orange'],
+  [data-theme='red'],
+  [data-theme='cyan']
+) {
+  --bg-titlebar: color-mix(in srgb, var(--accent) 2%, #f8f8f9);
+  --bg-sidebar: color-mix(in srgb, var(--accent) 3.5%, #f4f4f6);
+  --bg-hover: color-mix(in srgb, var(--accent) 6%, #f1f1f4);
+  --border-subtle: color-mix(in srgb, var(--accent) 5%, #ececf0);
+  --border-default: color-mix(in srgb, var(--accent) 7%, #e7e7ec);
+  --border-strong: color-mix(in srgb, var(--accent) 10%, #dadae1);
+  --control-bg-hover: color-mix(in srgb, var(--accent) 2.5%, #ffffff);
+  --control-border: color-mix(in srgb, var(--accent) 9%, #dcdce3);
+  --control-border-hover: color-mix(in srgb, var(--accent) 24%, #c4c5ce);
+  --shadow-sm: 0 1px 2px rgb(24 22 40 / 0.04), 0 1px 3px rgb(24 22 40 / 0.03);
+  --shadow-popover: 0 4px 10px rgb(24 22 40 / 0.06), 0 16px 40px rgb(24 22 40 / 0.1);
+  --shadow-dialog: 0 12px 48px rgb(24 22 40 / 0.14);
+  --composer-shadow:
+    0 1px 2px rgb(24 22 40 / 0.04), 0 8px 24px color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
 :root[data-theme='soft-light'] {
-  --bg-workspace: #fdfdfe;
-  --accent: #8351dc;
+  --bg-window: #f6f5f9;
+  --bg-workspace: #fcfcfe;
+  --text-primary: #1f1d2b;
+  --text-secondary: #5d5a6e;
+  --text-tertiary: #716e84;
+  --control-placeholder: #8e8ba0;
+  --accent: #7a5bd3;
 }
 
 :root[data-theme='soft-dark'] {
-  --bg-window: #1c1c1f;
-  --bg-titlebar: #202023;
-  --bg-sidebar: #222225;
-  --bg-workspace: #252528;
-  --bg-surface: #2c2c30;
-  --bg-surface-raised: #333338;
-  --bg-hover: #39393f;
+  --bg-window: #1a1a1f;
+  --bg-titlebar: #1d1d23;
+  --bg-sidebar: #1f1f25;
+  --bg-workspace: #232329;
+  --bg-surface: #2a2a31;
+  --bg-surface-raised: #313139;
+  --bg-hover: #37373f;
+  --border-subtle: rgb(232 228 255 / 0.05);
+  --border-default: rgb(232 228 255 / 0.08);
+  --border-strong: rgb(232 228 255 / 0.15);
   --control-bg: var(--bg-surface);
   --control-bg-hover: var(--bg-surface-raised);
-  --accent: #aaa6c2;
-  --accent-solid: #6d6688;
+  --control-border: rgb(232 228 255 / 0.12);
+  --control-border-hover: rgb(232 228 255 / 0.22);
+  --text-primary: #e9e8f0;
+  --text-secondary: #b0aec0;
+  --text-tertiary: #9a98ab;
+  --accent: #b3a7e6;
+  --accent-solid: #6b5ca8;
+  --success: #8fc4a4;
+  --warning: #dcb07a;
+  --error: #e39a9c;
 }
 
-/* Accent-only palettes: no duplication of appearance or component rules. */
+/* Muted accents: each keeps white button text and accent text on white at 4.5:1 or more. */
 :root[data-theme='pink'] {
-  --accent: #b94c7b;
+  --accent: #a9527b;
 }
 :root[data-theme='purple'] {
-  --accent: #7955bd;
+  --accent: #7357b8;
 }
 :root[data-theme='green'] {
-  --accent: #537b61;
+  --accent: #4b7a60;
 }
 :root[data-theme='blue'] {
-  --accent: #4c719c;
+  --accent: #486f9f;
 }
 :root[data-theme='orange'] {
-  --accent: #a5612c;
+  --accent: #a05d31;
 }
 :root[data-theme='red'] {
-  --accent: #b65359;
+  --accent: #ab4d56;
 }
 :root[data-theme='cyan'] {
-  --accent: #337e80;
+  --accent: #2e7a7e;
 }

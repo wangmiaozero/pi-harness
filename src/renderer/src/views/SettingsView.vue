@@ -166,7 +166,9 @@ onMounted(() => {
           :class="
             section === 'mascot' && draft.mascotUnlocked
               ? 'settings-mascot-gallery'
-              : 'max-w-[720px]'
+              : section === 'market'
+                ? 'max-w-[1180px]'
+                : 'max-w-[720px]'
           "
         >
           <GeneralSettingsSection v-if="section === 'general'" />

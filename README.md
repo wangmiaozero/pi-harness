@@ -1,55 +1,36 @@
-<p align="center">
-  <img src="docs/assets/pi-harness-logo.gif" width="640" alt="Pi-Harness" />
-</p>
+<div align="center">
 
-<p align="center">
-  <a href="README.md">English</a> ·
-  <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="README.zh-TW.md">繁體中文</a> ·
-  <a href="README.ja-JP.md">日本語</a> ·
-  <a href="README.ko-KR.md">한국어</a> ·
-  <a href="README.ru-RU.md">Русский</a> ·
-  <a href="README.fr-FR.md">Français</a> ·
-  <a href="README.de-DE.md">Deutsch</a>
-</p>
+<img src="docs/assets/pi-harness-logo.gif" width="520" alt="Pi-Harness">
 
-<h3 align="center">The Operational Superset of Pi Coding Agent</h3>
+### The Operational Superset of Pi Coding Agent
 
-<p align="center">
-  <strong>Observe, control, and orchestrate native Pi agents in one desktop workspace.</strong>
-</p>
+**Observe, control, and orchestrate native Pi agents in one desktop workspace.**<br>
+Pi still runs every agent. Pi-Harness adds the workspace, run history, recovery and agent teams around it,<br>
+and your Pi sessions, configuration, Skills and extensions keep working inside and outside the app.
 
-<p align="center"><code>Pi Coding Agent ⊂ Pi-Harness</code></p>
+`Pi Coding Agent ⊂ Pi-Harness`
 
-<p align="center">
-  <a href="#watch"><strong>Watch</strong></a> ·
-  <a href="#download"><strong>Download</strong></a> ·
-  <a href="#features">Features</a> ·
-  <a href="#agent-settings">Agent Settings</a> ·
-  <a href="#harness-plugins">Harness Plugins</a> ·
-  <a href="#documentation">Documentation</a>
-</p>
+[![Release](https://img.shields.io/github/v/release/wangmiaozero/pi-harness?label=release&color=111111)](https://github.com/wangmiaozero/pi-harness/releases) [![Stars](https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat&color=111111)](https://github.com/wangmiaozero/pi-harness/stargazers) [![CI](https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/license-AGPL--3.0--only-111111)](LICENSE)<br>
+![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white) ![Windows](https://img.shields.io/badge/Windows-0078D4?logo=windows&logoColor=white) ![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
 
-<p align="center">
-  <a href="https://github.com/wangmiaozero/pi-harness/releases"><img alt="Releases" src="https://img.shields.io/github/v/release/wangmiaozero/pi-harness?style=flat-square" /></a>
-  <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6B7280?style=flat-square" />
-  <a href="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml"><img alt="CI (main)" src="https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
-  <a href="LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-663399?style=flat-square" /></a>
-  <a href="https://github.com/wangmiaozero/pi-harness"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat-square" /></a>
-</p>
+**[Download](https://github.com/wangmiaozero/pi-harness/releases)** &nbsp;·&nbsp; **[Watch](#watch)** &nbsp;·&nbsp; **[Features](#features)** &nbsp;·&nbsp; **[Harness Plugins](#harness-plugins)** &nbsp;·&nbsp; **[Docs](#documentation)** &nbsp;·&nbsp; **[Changelog](CHANGELOG.md)**
 
-Pi-Harness is the desktop workspace and operational control plane around [Pi Coding Agent](https://github.com/earendil-works/pi). Pi is the native execution engine; Pi-Harness adds visual operations, governance, recovery, evaluation, and multi-agent orchestration. Your Pi sessions, configuration, tools, Skills, and extensions remain compatible, and you can continue using Pi outside the app.
+**English** · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md)
 
-**macOS · Windows · Linux. Community installers bundle Pi and Node.js — no separate runtime installation needed.** [Get started →](#download)
+<br>
+
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png" width="900" alt="The Pi-Harness workspace: conversations, project files and Git in one window">
+
+</div>
+
+<br>
 
 ## 赞助商
 
 <table>
   <tr>
     <td width="580" align="center" valign="middle">
-      <a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">
         <img src="docs/assets/infistar-banner.png" width="560" alt="Pi-Harness × Infistar.cc 无限星河" />
-      </a>
     </td>
     <td valign="middle">
       Pi-Harness × Infistar.cc 无限星河｜Claude、GPT、Gemini、Grok、DeepSeek 等，一个 Key，只花官方价的零头，省 99%；低至官方 0.1 折，100% 官方纯血，每个模型都能验真；上千线路安全冗余自动切换，200+ 模型、16 个品牌，一个 Key 搞定。<br>
@@ -58,9 +39,7 @@ Pi-Harness is the desktop workspace and operational control plane around [Pi Cod
   </tr>
   <tr>
     <td width="580" align="center" valign="middle">
-      <a href="https://cloud.tencent.com/act/cps/redirect?redirect=6871&amp;cps_key=ece2099a1da90c2f7a4a4c437ad623f8&amp;from=console">
         <img src="docs/assets/workbuddy-banner.jpg" width="560" alt="腾讯云 WorkBuddy" />
-      </a>
     </td>
     <td valign="middle">
       【腾讯云】WorkBuddy 全场景 AI 办公工作台，团队旗舰版低至198元/月<br>
@@ -68,6 +47,19 @@ Pi-Harness is the desktop workspace and operational control plane around [Pi Cod
     </td>
   </tr>
 </table>
+
+## Is Pi-Harness for you?
+
+[Pi Coding Agent](https://github.com/earendil-works/pi) works well in a terminal. On real projects you soon want more: to see what each run actually did, to get back to a good state when a run goes wrong, and to split a bigger job across several agents. Pi-Harness puts all of that in one desktop app, on top of the same Pi:
+
+- **See every run**: Runs, Trace, Replay and Evaluation show tool activity, compare outcomes, and let you investigate failures from recorded evidence.
+- **Keep work recoverable**: Policy, Budget, Checkpoints and Recovery set tool permissions and spending limits, keep recovery points, and let you resume, fork or retry.
+- **Coordinate a team**: Agent Teams, Task DAG and Worktrees assign dependent tasks, pass results between Pi agents, and keep each agent's changes separate.
+- **Stay on native Pi**: Pi runs the agent loop, sessions, context, tools, models and thinking. Pi-Harness manages them visually, and you can keep using Pi outside the app.
+
+It's for you if you use Pi on real projects and want to see, steer and coordinate its work from one window. If one chat in a terminal is all you need, Pi on its own is enough.
+
+Runs on macOS, Windows and Linux. Community installers bundle Pi and Node.js, so there is nothing else to install first.
 
 <a id="watch"></a>
 
@@ -81,67 +73,77 @@ https://github.com/user-attachments/assets/942b73c9-ece9-485e-ad82-0e51225a73c1
 
 https://github.com/user-attachments/assets/98708766-f490-4506-a33f-f1376d41770f
 
-<a id="product-preview"></a>
+<a id="download"></a>
+<a id="get-started"></a>
 
-## Product Preview
+## Quick start
 
-Real screenshots from this repository. Click an image to view it at full size.
+**1 · Install.** Download the installer for your system from **[GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases)**:
 
-### Workspace
+| | |
+| :-- | :-- |
+| **macOS** | The `.dmg` for Apple Silicon (`arm64`) or Intel (`x64`). Open it and drag Pi-Harness to Applications |
+| **Windows** | The x64 `.exe` installer. Run it and choose an installation directory |
+| **Linux** | The x64 `.AppImage`. Make it executable, then open it |
 
-Keep conversations, project files, and Git close to the work.
+```sh
+chmod +x "./Pi-Harness-VERSION.AppImage"   # replace VERSION with the downloaded version
+./Pi-Harness-VERSION.AppImage
+```
 
-[![Workspace — conversations and project files](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png)
+<sub>Installers include Pi, Node.js, npm and npx: you don't need to install Pi or Node.js, clone this repository or install pnpm. Release validation covers macOS Apple Silicon, macOS Intel, Windows x64 and Linux x64, and each release's verified results decide which platforms it ships for. Linux validation targets Ubuntu 24.04; other distributions and FUSE or desktop integration need their own checks. Windows and Linux ARM64 are preview targets. Older packages may have different requirements, so follow the notes for the version you download. macOS builds are ad-hoc signed and Windows installers are unsigned: see <a href="#verify-your-download">Verify your download</a>.</sub>
 
-### Harness
+**2 · Check the environment.** Launch Pi-Harness and check the environment in Overview.
 
-Inspect session status and queued instructions in the Harness console.
+**3 · Add a provider.** Configure a provider, test the connection and select a model. Model access may require credentials and incur provider charges.
 
-[![Harness — session status and queued instructions](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-2.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-2.png)
+**4 · Start working.** Start a standalone chat or open a project, then start or resume a Pi session and work with conversations, files and Git in one window. Open **Workspace → Tools → Harness / Agents** to inspect runs or coordinate a team.
 
-### Multi-Agent
+<a id="verify-your-download"></a>
 
-Open **Workspace → Tools → Agents** to coordinate teams, task dependencies, handoffs, review gates, and isolated worktrees. [Explore multi-agent orchestration →](#multi-agent)
+### Verify your download
 
-A sample team configured in the desktop app, before execution: three agents are idle and all tasks are pending.
+Community releases are free. macOS packages use **ad-hoc signing without Apple Developer ID or notarization**. Windows installers are **unsigned** and may show SmartScreen warnings. Verify the official download source and checksum before allowing the app to open. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway** for that app. Keep system security protections enabled.
 
-[![Multi-Agent — configured team before execution](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E5%9B%A2%E9%98%9F.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E5%9B%A2%E9%98%9F.png)
+Download `SHA256SUMS` alongside the installer, calculate the hash of your file and compare it with the same filename in the list (replace `VERSION` and the architecture with your download's values):
 
-<details>
-<summary>View task dependencies and review settings</summary>
+```sh
+shasum -a 256 "Pi-Harness-VERSION-arm64.dmg"   # macOS
+sha256sum "Pi-Harness-VERSION.AppImage"        # Linux
+```
 
-[![Multi-Agent — pending tasks with dependencies and a review requirement](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96.png)
+```powershell
+Get-FileHash ".\Pi-Harness-Setup-VERSION.exe" -Algorithm SHA256   # Windows
+```
 
-</details>
+<sub>SHA256 checks consistency with the checksum list; it does not independently prove publisher identity. Use the official <a href="https://github.com/wangmiaozero/pi-harness/releases">GitHub Releases</a> page, and report suspected vulnerabilities privately to <a href="mailto:tuziling84@gmail.com">tuziling84@gmail.com</a>. Community builds check for new versions in the app and open the Releases page for manual download and installation on all platforms. Automatic installation stays disabled until cross-version installation is verified, and existing installations keep their previous update behavior. See <a href="docs/release/community-release.md">Community Release</a> and <a href="docs/release/update-strategy.md">update details</a>.</sub>
 
-[More interfaces and themes →](#screenshots) · [Complete screenshot index](docs/README.md)
+<a id="architecture"></a>
 
-## Why Pi-Harness
+## How it fits together
 
-### Observe — understand each run
+Pi owns execution and native sessions. Harness observes each run and applies policies, budgets, checkpoints, recovery and evaluation around it. Agent teams use the same Pi execution engine. Conversation history and project architecture are workspace tools, and themes customize the look. The diagram shows module relationships, not class inheritance.
 
-Inspect **Runs, Trace, Replay, and Evaluation** to see tool activity, compare outcomes, and investigate failures from recorded evidence.
-
-### Control — keep work recoverable
-
-Use **Policy, Budget, Checkpoints, and Recovery** to set tool permissions and spending limits, preserve recovery points, and resume, fork, or retry work.
-
-### Orchestrate — coordinate a team
-
-Use **Agent Teams, Task DAG, and Worktrees** to assign dependent tasks, pass results between Pi agents, and keep their changes separate.
-
-<a id="features"></a>
-
-## Key Features
-
-### Native Pi Runtime
-
-Pi Coding Agent runs the agent loop, sessions, context, compaction, steering, follow-up, tools, models, and thinking. Pi-Harness provides visual management around those native capabilities.
+```mermaid
+flowchart TD
+    subgraph Desktop["Pi-Harness Desktop"]
+        W["Visual Workspace"] --> H["Harness Control Plane"]
+        A["Agent Teams / Task DAG"] --> H
+        W --> G["Files / Git / Worktrees"]
+        A --> G
+        C["Providers / Models / Skills / MCP"]
+    end
+    H --> P["Native Pi Coding Agent"]
+    C --> P
+    P --> M["Model Providers"]
+```
 
 <a id="pi-vs-pi-harness"></a>
 
 <details>
-<summary>Native Pi and Pi-Harness: full capability overview</summary>
+<summary><b>Native Pi and Pi-Harness</b>, capability by capability</summary>
+
+<br>
 
 | Capability               | Native Pi | Pi-Harness                 |
 | ------------------------ | --------- | -------------------------- |
@@ -180,369 +182,244 @@ Pi Coding Agent runs the agent loop, sessions, context, compaction, steering, fo
 
 </details>
 
+<a id="features"></a>
+
+## What it does
+
+### Workspace, files and Git
+
+Start a standalone chat, or open a project and resume a Pi session. Follow streaming replies, thinking, tool calls, images and changed files; choose the model, thinking level and tools, or compact the conversation. Opening Harness or Agents from Workspace Tools keeps your conversation and draft.
+
+Browse and search files, preview media and documents, and edit readable text with syntax highlighting, line numbers, find, undo/redo, explicit save and external-change conflict protection. Git gives you diffs, history, activity graphs, commits, optional AI commit messages and worktrees.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BB%A3%E7%A0%81%E7%BC%96%E8%BE%91.png" alt="Lightweight file editing"><br><sub>Lightweight file editing</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png" alt="Git diffs, history and commits"><br><sub>Git</sub></td>
+</tr>
+</table>
+
 <a id="harness"></a>
 
-<a id="harness-observe-control-and-recover"></a>
+### Harness control plane
 
-### Agent Harness Control Plane
+Every Pi run leaves a record you can inspect, compare and recover from.
 
-Inspect Runs, Trace, Replay, timelines, and tool activity. Compare runs, follow forks and retries in the Run Tree, review tokens, cost, and duration, and browse artifacts and project statistics.
+| | |
+| :-- | :-- |
+| **Observe** | Runs, Trace, Replay, timelines and tool activity. Compare runs and follow forks and retries in the Run Tree |
+| **Measure** | Tokens, cost and duration for each run, plus artifacts and project statistics |
+| **Control** | Tool policies and per-run budgets. Create checkpoints, then resume, fork or retry work |
+| **Check** | Evaluation, Diagnostics and regression baselines check results and investigate failures from recorded run evidence |
 
-Set tool policies and per-run budgets, create checkpoints, and resume, fork, or retry work. Evaluation, Diagnostics, and regression baselines help you check results and investigate failures using recorded run evidence.
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-2.png" alt="Harness: session status and queued instructions"><br><sub>Session status and queued instructions</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png" alt="Harness console"><br><sub>Harness console</sub></td>
+</tr>
+</table>
 
 <a id="multi-agent"></a>
 
-<a id="agent-teams-and-task-orchestration"></a>
+### Multi-agent orchestration
 
-### Multi-Agent Orchestration
+Open **Workspace → Tools → Agents** to coordinate Pi agents with reusable teams and templates. Assign tasks with dependencies and priorities, schedule them manually, sequentially or in parallel, pass results and artifacts to the next task, and add review gates. Worktrees keep each agent's changes separate. Budgets, conflict hints, and pause, resume, abort, retry, skip and reassign controls help you manage the work.
 
-Coordinate Pi agents with reusable teams and templates. Assign tasks with dependencies and priorities, schedule them manually, sequentially, or in parallel, pass results and artifacts to the next task, and use review gates. Worktrees keep agent changes separate; budgets, conflict hints, and pause, resume, abort, retry, skip, and reassign controls help you manage the work.
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E5%9B%A2%E9%98%9F.png" alt="A configured team before execution"><br><sub>A sample team before execution: three idle agents, all tasks pending</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93-%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96.png" alt="Pending tasks with dependencies and a review requirement"><br><sub>Task dependencies and a review requirement</sub></td>
+</tr>
+</table>
 
 <a id="conversation-history"></a>
 
-<a id="local-conversation-history"></a>
+### Universal conversation history
 
-### Universal Conversation History
+Browse Claude Code, Codex (including desktop and archived conversations), Cursor, Cursor Agent, Gemini CLI, OpenCode and Pi history together. Search, filter by source, project or date range, and add custom history folders.
 
-Browse Claude Code, Codex (including desktop and archived conversations), Cursor, Cursor Agent, Gemini CLI, OpenCode, and Pi history together. Search, filter by source, project, or date range, and add custom history folders.
+Open the original conversation read-only, preview a handoff, and edit the next instruction before continuing in a new Pi chat under the same project. Browsing, local previews and scan retries use no model tokens; optional AI summaries use your configured model only when you ask for them.
 
-View the original conversation in read-only mode, preview a handoff, and edit the next instruction before continuing in a new Pi chat under the same project. Browsing, local previews, and scan retries use no model tokens. Optional AI summaries use your configured model only when requested.
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E5%8E%86%E5%8F%B2.png" alt="Conversation history"><br><sub>Conversation history</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E6%B8%85%E7%90%86.png" alt="Session cleanup"><br><sub>Session cleanup</sub></td>
+</tr>
+</table>
 
 <a id="project-architecture"></a>
 
-### Project Architecture Visualization
+### Project architecture map
 
-Open Architecture in Workspace to explore modules, dependencies, entrypoints, and source references. Filter by package, focus on a module, browse map pages, zoom, or use fullscreen. Save analysis snapshots, see when source changes make them stale, and export JSON, offline HTML, or the current view as PNG.
+Open Architecture in Workspace to explore modules, dependencies, entrypoints and source references. Filter by package, focus on a module, page through the map, zoom or go fullscreen. Save analysis snapshots, see when source changes make them stale, and export JSON, offline HTML or the current view as PNG.
 
-Maps describe supported static dependencies; they do not establish a complete function-call graph.
+| | |
+| :-- | :-- |
+| **Local first** | Analysis runs locally and uses no model tokens; AI descriptions are optional |
+| **Coverage** | JavaScript, TypeScript and Vue imports are analyzed locally; other supported languages get a file-level index. Each analysis shows its coverage and limits |
+| **Scope** | Maps describe supported static dependencies; they are not a complete function-call graph |
 
-Local analysis uses no model tokens; AI descriptions are optional. JavaScript, TypeScript, and Vue import relationships are analyzed locally, while other supported languages have a file-level index. The analysis shows its coverage and limitations.
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png" width="900" alt="Project architecture map">
 
 <a id="providers-and-models"></a>
-
 <a id="skills-extensions-packages-and-mcp"></a>
 
-### Providers / Models / Skills / MCP
+### Providers, models and Skills
 
-Configure Pi-compatible providers with presets or custom endpoints, manage credentials, discover models where supported, test connections, and choose your chat model. Use supported image models for text-to-image or image editing, then download the results.
+| | |
+| :-- | :-- |
+| **Providers** | Configure Pi-compatible providers with presets or custom endpoints, manage credentials, discover models where supported, test connections and choose your chat model |
+| **Images** | Use supported image models for text-to-image or image editing, then download the results |
+| **OpenCode Zen / Go** | In the OpenCode tab under Models, save your API key and enable the models you want. Models load automatically and can be verified one by one or together. Access and charges depend on your official account and model; paid verification asks for your permission first. See [OpenCode's model information](https://opencode.ai/v2/docs/console/models/) for pricing and data policies |
+| **Skills** | Browse built-in and local Skills and edit them. Type `@` in the composer to search and invoke an installed Skill |
+| **Packages and extensions** | Manage Pi packages and extensions from Capabilities. Optional add-ons such as [Superpowers](https://github.com/obra/superpowers) install, update or uninstall only when you choose |
 
-Configure OpenCode Zen / Go from the OpenCode tab under Models: save your API key and enable the models you want in the workspace. Models load automatically and can be verified individually or together. Access and charges depend on your official account and selected model; paid verification requires your permission. See [OpenCode's official model information](https://opencode.ai/v2/docs/console/models/) for pricing and data policies.
-
-Browse built-in and local Skills, edit them, and manage Pi packages and extensions from Capabilities. Type `@` in the composer to search and invoke an installed Skill. Manage MCP servers in **Settings → MCP**. Optional add-ons such as [Superpowers](https://github.com/obra/superpowers) and [Odai](https://github.com/orziz/odai) can be installed, updated, or removed when you choose.
-
-<a id="desktop-companion"></a>
-
-### Desktop Companion
-
-Enable an installed desktop pet in **Settings → Desktop Pet** to see thinking, tool activity, waiting, and completion feedback on your desktop. It is off by default and remains available when the main window is minimized.
-
-While idle, choose from 193 actions in a searchable right-click menu. During tasks, manual interactions pause while dragging keeps the task animation intact. Import local pet packs and adjust size, opacity, and bubble settings with sliders.
-
-[![Desktop pet settings and sliders](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png)
-
-<a id="agent-settings"></a>
-
-### Agent Settings
-
-**Available in v2.2.10 and later.** The seven settings pages are: **AI, Realtime voice, Shortcuts, Instructions, MCP, Subagents, and Remote hosts**. Check the release notes for availability in downloaded installers.
-
-Set default thinking, automatic compaction, retry behavior, and workspace preferences in **Settings → AI**. Record your own shortcuts for the command palette, settings, new sessions, and closing tabs, or restore their defaults. Edit global or project instructions in **Settings → Instructions**.
-
-Create reusable subagents with a role, instructions, model, thinking level, and tools in **Settings → Subagents**. Choose a shared workspace or an isolated worktree, then start a task or reuse the template in a team.
-
-<a id="realtime-voice"></a>
-
-### Realtime Voice
-
-Configure **OpenAI Realtime, Gemini Live, or Codex Live** in **Settings → Realtime voice**, then open the waveform button beside the workspace composer. Use a supported provider account or a separate API key; Codex Live uses your existing Codex sign-in in Pi. Service availability and charges depend on your account.
-
-Review the target conversation before starting a call. Sharing recent context is off by default; when enabled, it includes only the last six plain-text messages, excluding attachments and tool results. During a call, mute or end it and view transcripts from the floating controls, including when navigating to another page. Review voice work requests before sending them to the work conversation.
+<table>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png" alt="Providers and models"><br><sub>Providers and models</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png" alt="Capabilities"><br><sub>Capabilities</sub></td>
+</tr>
+</table>
 
 <a id="mcp-marketplace"></a>
 
-### MCP Servers and Marketplace
+### MCP servers and marketplace
 
-Open **Settings → MCP** to add local-command or HTTP servers, search and filter **All / Global / Project**, choose a project, and edit or enable each server in its own scope. Scan configurations from other tools and review them before importing.
+Open **Settings → MCP** to add local-command or HTTP servers, filter by **All / Global / Project**, choose a project, and edit or enable each server in its own scope. Scan configurations from other tools and review them before importing.
 
-The marketplace includes **15 built-in server templates**, including Memory, Context7, Playwright, Filesystem, and GitHub, plus search and pagination for the official MCP registry. Preview the configuration and destination before saving. Templates are available to install; they are not all enabled by default. Imported and official-registry entries are saved disabled for you to configure before enabling.
+The marketplace has **15 built-in server templates**, including Memory, Context7, Playwright, Filesystem and GitHub, plus search and pagination for the official MCP registry. Preview the configuration and destination before saving. Templates are there to install; they are not all enabled by default. Imported and registry entries are saved disabled, so you can finish configuring them first.
+
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png" width="900" alt="MCP marketplace and built-in server templates">
+
+<a id="agent-settings"></a>
+
+### Agent settings
+
+**Available in v2.2.10 and later.** Check the release notes for availability in downloaded installers.
+
+| Page | What you set | |
+| :-- | :-- | :-- |
+| **AI** | Default thinking, automatic compaction, retry behavior and workspace preferences | [Screenshot](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/AI.png) |
+| **Realtime voice** | The voice service and account for workspace calls | [Screenshot](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3.png) |
+| **Shortcuts** | Your own shortcuts for the command palette, settings, new sessions and closing tabs, or the defaults | [Screenshot](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%BF%AB%E6%8D%B7%E9%94%AE.png) |
+| **Instructions** | Global or project instructions | [Screenshot](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%8C%87%E4%BB%A4.png) |
+| **MCP** | MCP servers in each scope | [Screenshot](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E6%9C%8D%E5%8A%A1%E5%99%A8.png) |
+| **Subagents** | Reusable subagents with a role, instructions, model, thinking level and tools. Choose a shared workspace or an isolated worktree, then start a task or reuse the template in a team | [Screenshot](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AD%90%E6%99%BA%E8%83%BD%E4%BD%93.png) |
+| **Remote hosts** | Hosts running pi-host, paired with an address and pairing token | [Screenshot](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA.png) |
+
+<a id="realtime-voice"></a>
+
+### Realtime voice
+
+Talk to your workspace with **OpenAI Realtime, Gemini Live or Codex Live**. Use a supported provider account or a separate API key; Codex Live uses your existing Codex sign-in in Pi. Service availability and charges depend on your account.
+
+1. Open **Settings → Realtime voice**, enable voice, choose the service and account, and save.
+2. In a workspace conversation, click the waveform button beside the composer.
+3. Review the target conversation and optional context sharing, select **Start realtime voice** and allow microphone access.
+4. Mute, view transcripts or end the call from the floating controls, even after you move to another page.
+
+Sharing recent context is off by default. When you turn it on, it includes only the last six plain-text messages, without attachments or tool results. Work requests from a call are sent to the work conversation only after you review them.
+
+<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png" width="900" alt="Workspace voice: setup and preparation before a call">
 
 <a id="remote-hosts"></a>
 
-### Remote Hosts
+### Remote hosts
 
-Pair a host running **pi-host** from **Settings → Remote hosts** using its address and pairing token. Connect or disconnect hosts, browse their projects and sessions, view conversations, send prompts, and respond to approval requests. The remote host must already be running and reachable.
+Pair a host running **pi-host** from **Settings → Remote hosts** with its address and pairing token. Connect or disconnect hosts, browse their projects and sessions, view conversations, send prompts and respond to approval requests. The remote host must already be running and reachable.
+
+<a id="desktop-companion"></a>
+
+### Desktop companion
+
+Enable an installed desktop pet in **Settings → Desktop Pet** to see thinking, tool activity, waiting and completion feedback on your desktop. It is off by default and stays available when the main window is minimized.
+
+While idle, choose from 193 actions in a searchable right-click menu. During tasks, manual interactions pause, and dragging keeps the task animation going. Import local pet packs and adjust size, opacity and bubbles with sliders.
+
+<table>
+<tr>
+<td width="33%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%AE%BE%E7%BD%AE.png" alt="Desktop pet settings and sliders"><br><sub>Settings and sliders</sub></td>
+<td width="33%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%8F%9C%E5%8D%95.png" alt="Context menu"><br><sub>Context menu</sub></td>
+<td width="33%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E5%8A%A8%E4%BD%9C.png" alt="Searchable action list"><br><sub>Searchable actions</sub></td>
+</tr>
+</table>
 
 <a id="themes-and-custom-skins"></a>
+<a id="screenshots"></a>
 
-### Custom Themes and Skins
+### Themes and custom skins
 
-Choose classic palettes, Ming themes, Starship Cockpit, macOS 27 backgrounds, or an imported custom skin. New installations start in Dark. Customize chat display names, app icons, local background images, window and screen glow, and the input flame effect. Startup animation accompanies the environment check.
+Choose classic palettes, Ming themes, Starship Cockpit, macOS 27 backgrounds or an imported custom skin. New installations start in **Soft Light**. Customize chat display names, app icons, local background images, window and screen glow, and the input flame effect. A startup animation accompanies the environment check.
 
-Character themes and desktop pets are optional packs. Open **Settings → Resource Market** to search `@piharness` packages, then install, update, or remove one pack at a time. The app starts without a network connection. A previously selected theme or pet is kept when its files are not installed yet, and the workspace falls back to the base appearance until you install that pack. See [docs/market/MARKET.md](docs/market/MARKET.md).
+Character themes and desktop pets are optional packs. Open **Settings → Resource Market** to install one `@piharness` pack at a time from the GitHub catalog. The app starts without a network connection. A previously selected theme or pet is kept while its files are not installed yet, and the workspace uses the base appearance until you install that pack. See [docs/market/MARKET.md](docs/market/MARKET.md).
 
-#### Create your own skin
+**Create your own skin** with the [Pi-Harness Custom Skin Starter](https://github.com/wangmiaozero/pi-harness-skin-starter):
 
-Use the [Pi-Harness Custom Skin Starter](https://github.com/wangmiaozero/pi-harness-skin-starter) to create the visual style you want.
+1. Use the starter repository as a template, or download it.
+2. Open it with your coding agent and describe the style you want with the included prompt.
+3. Import the finished project from **Settings → Theme → Import Skin**.
 
-1. Use the starter repository as a template or download it.
-2. Open it with your coding agent and describe your preferred style using the included prompt.
-3. Import the completed project from **Settings → Theme → Import Skin**.
+The multilingual starter includes guidance for colors, previews, wallpapers and optional character artwork. Keep your skin in its own repository to update and share it on its own.
 
-The multilingual starter includes guidance for colors, previews, wallpapers, and optional character artwork. Keep your skin in its own repository to update and share it independently.
-
-### Workspace, files, and Git
-
-Start a standalone chat or open a project and resume a Pi session. Follow streaming replies, thinking, tool calls, images, and changed files; choose the model, thinking level, and tools, or compact the conversation. Workspace Tools gives you access to Harness and Agents while preserving your conversation and draft.
-
-Browse and search files, preview media and documents, and edit readable text with syntax highlighting, line numbers, find, undo/redo, explicit save, and external-change conflict protection. The lightweight editor keeps file editing focused. Git provides diffs, history, activity graphs, commits, optional AI commit messages, and worktrees.
-
-### Environment and app settings
-
-Check Node.js, npm, PATH, Pi Coding Agent, and the active configuration. Install, update, or repair Pi where supported, inspect environment diagnostics, manage configuration backups, and check for app updates. The interface is available in eight languages.
+<table>
+<tr>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png" alt="Ming · Snowbound official"><br><sub>Ming · Snowbound official</sub></td>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png" alt="Ming · Snow flute scholar"><br><sub>Ming · Snow flute scholar</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png" alt="Ming · Moon scholar"><br><sub>Ming · Moon scholar</sub></td>
+<td width="50%"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png" alt="Starship Cockpit"><br><sub>Starship Cockpit</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png" alt="Ming general settings"><br><sub>Ming · General settings</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png" alt="Theme and skin gallery"><br><sub>Ming · Theme and skin gallery</sub></td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/macos27.png" alt="macOS 27 · Liquid Ether"><br><sub>macOS 27 · Liquid Ether</sub></td>
+</tr>
+</table>
 
 <a id="harness-plugins"></a>
 
-## Harness Plugins — Extend the Control Plane
+### Harness plugins
 
-**Plugin SDK v1.0.0 · Included starting with Pi-Harness v2.2.6.**
+**Plugin SDK v1.0.0 · Included starting with Pi-Harness v2.2.6.** Plugins extend the operations around the agent, next to the ways Pi itself is extended:
 
-| Extension       | Purpose                                             |
-| --------------- | --------------------------------------------------- |
-| Pi Extensions   | Extend the Pi agent itself.                         |
-| Skills          | Give the agent instructions and workflow knowledge. |
-| MCP             | Connect the agent to tools and external services.   |
-| Harness Plugins | Extend Pi-Harness operations around the agent.      |
+| Extension | Purpose |
+| :-- | :-- |
+| **Pi Extensions** | Extend the Pi agent itself |
+| **Skills** | Give the agent instructions and workflow knowledge |
+| **MCP** | Connect the agent to tools and external services |
+| **Harness Plugins** | Extend Pi-Harness operations around the agent |
 
-Contribute **Harness Event Subscribers, Custom Evaluators, Trace Exporters, and Agent Team Templates**. Evaluations are supplementary, exports use authorized JSON data, and team templates create pending workflows for you to inspect and start.
-
-Try the maintained SDK examples: [Run Metrics](examples/harness-plugins/run-metrics/plugin.json), [Quality Evaluator](examples/harness-plugins/quality-evaluator/plugin.json), and [Team Template](examples/harness-plugins/team-template/plugin.json).
+Contribute **Harness Event Subscribers, Custom Evaluators, Trace Exporters and Agent Team Templates**. Evaluations are supplementary, exports use authorized JSON data, and team templates create pending workflows for you to inspect and start. Try the maintained SDK examples: [Run Metrics](examples/harness-plugins/run-metrics/plugin.json), [Quality Evaluator](examples/harness-plugins/quality-evaluator/plugin.json) and [Team Template](examples/harness-plugins/team-template/plugin.json).
 
 In a source build, open **Workspace → Tools → Harness → Harness Plugins → Install local plugin**, choose its folder, review permissions and enable it. Installation executes no code. Executable plugins require explicit native trust approval: **the separate process is not a security sandbox; approved Node code can access your computer**. Use declarative templates for untrusted content.
 
 [Develop and install](docs/plugins/getting-started.md) · [Architecture](docs/plugins/architecture.md) · [SDK API](docs/plugins/api-reference.md) · [Security boundary](docs/plugins/security.md)
 
-## Architecture
-
-Pi-Harness surrounds the native Pi runtime with a workspace and operational controls. Agent teams use the same Pi execution engine; the diagram shows module relationships, not class inheritance.
-
-```mermaid
-flowchart TD
-    subgraph Desktop["Pi-Harness Desktop"]
-        W["Visual Workspace"] --> H["Harness Control Plane"]
-        A["Agent Teams / Task DAG"] --> H
-        W --> G["Files / Git / Worktrees"]
-        A --> G
-        C["Providers / Models / Skills / MCP"]
-    end
-    H --> P["Native Pi Coding Agent"]
-    C --> P
-    P --> M["Model Providers"]
-```
-
-Pi owns execution and native sessions. Harness observes runs and applies policies, budgets, checkpoints, recovery, and evaluation around that execution. Conversation history and project architecture analysis are workspace tools; themes customize the visual experience.
-
-<a id="download"></a>
-
-## Quick Start
-
-[**Download from GitHub Releases →**](https://github.com/wangmiaozero/pi-harness/releases)
-
-Community installers include **Pi, Node.js, npm, and npx**. You do not need to install Pi or Node.js beforehand, clone this repository, or install pnpm to use the app. Themes and desktop pets are installed from the Resource Market. Follow the notes for the version you download; older packages may have different requirements.
-
-### macOS
-
-Choose the `.dmg` for **Apple Silicon (`arm64`)** or **Intel (`x64`)**, open it, and drag Pi-Harness to Applications.
-
-### Windows
-
-Download the **x64 `.exe` installer**, run it, and choose an installation directory.
-
-### Linux
-
-Download the **x64 `.AppImage`**, grant it executable permission, and open it:
-
-```sh
-chmod +x "./Pi-Harness-VERSION.AppImage"
-./Pi-Harness-VERSION.AppImage
-```
-
-Replace `VERSION` with the downloaded version. Linux native validation targets Ubuntu 24.04; other distributions and FUSE/desktop integration need their own checks. Windows/Linux ARM64 remain preview targets; check the release notes for availability and validation results.
-
-### Community Release signing and verification
-
-Community releases are free. macOS packages use **ad-hoc signing without Apple Developer ID or notarization**. Windows installers are **unsigned** and may show SmartScreen warnings. Verify the official download source and checksum before allowing the app to open. If macOS blocks first launch, use **System Settings → Privacy & Security → Open Anyway** for that app. Keep system security protections enabled.
-
-Download `SHA256SUMS` alongside the installer. Calculate its hash and compare it with the same filename in the list (replace `VERSION` and the architecture with your download's values):
-
-```sh
-# macOS
-shasum -a 256 "Pi-Harness-VERSION-arm64.dmg"
-# Linux
-sha256sum "Pi-Harness-VERSION.AppImage"
-```
-
-```powershell
-# Windows
-Get-FileHash ".\Pi-Harness-Setup-VERSION.exe" -Algorithm SHA256
-```
-
-SHA256 checks consistency with the checksum list; it does not independently prove publisher identity. Use the official [GitHub Releases](https://github.com/wangmiaozero/pi-harness/releases) page. Report suspected vulnerabilities privately to [tuziling84@gmail.com](mailto:tuziling84@gmail.com).
-
-Community builds check for new versions in the app and open the official Releases page for manual download and installation on all platforms. Automatic installation remains disabled until cross-version installation is verified. Existing installations keep their previous update behavior. See [Community Release](docs/release/community-release.md) and [update details](docs/release/update-strategy.md).
-
-<a id="get-started"></a>
-
-### Your first Pi session
-
-1. Launch Pi-Harness and check the environment in Overview.
-2. Configure a provider, test the connection, and select a model. Model access may require credentials and incur provider charges.
-3. Start a standalone chat or open a project.
-4. Start or resume a Pi session, then work with conversations, files, and Git.
-5. Open **Workspace → Tools → Harness / Agents** to inspect runs or coordinate a team.
-
-### Start a voice conversation
-
-To start a realtime voice conversation:
-
-1. Open **Settings → Realtime voice**, enable voice, choose the service and account, and save.
-2. Return to a workspace conversation and click the waveform button beside the composer.
-3. Review the conversation and optional context sharing, then select **Start realtime voice** and allow microphone access.
-4. Use the call controls to mute, view details, or end the call. Confirm any work request before sending it to the coding agent.
-
-### Requirements
-
-Community release validation covers macOS Apple Silicon, macOS Intel, Windows x64, and Linux x64; platform availability is subject to each release's verified results. The bundled Pi and Node runtimes are ready to use, with System and Custom runtime choices available in settings. Source development and packaging require Node.js 24 LTS (≥ 24.22.1) and pnpm 9.12.1; installed users do not need these build tools.
-
-<a id="screenshots"></a>
-
-## Screenshots
-
-Product screenshots are grouped by theme. Browse the [complete screenshot index](docs/README.md) for additional views.
-
-<details>
-<summary>Browse interfaces and themes</summary>
-
-### Desktop Companion
-
-[![Context menu](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%8F%9C%E5%8D%95.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E8%8F%9C%E5%8D%95.png)
-
-[![Searchable action list](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E5%8A%A8%E4%BD%9C.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%A1%8C%E5%AE%A0%E5%8A%A8%E4%BD%9C.png)
-
-### Conversation history
-
-[![Conversation history](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E5%8E%86%E5%8F%B2.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E5%8E%86%E5%8F%B2.png)
-
-### Session cleanup
-
-[![Session cleanup](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E6%B8%85%E7%90%86.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BC%9A%E8%AF%9D%E6%B8%85%E7%90%86.png)
-
-### Classic theme
-
-#### Lightweight file editing
-
-[![Lightweight file editing](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BB%A3%E7%A0%81%E7%BC%96%E8%BE%91.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E4%BB%A3%E7%A0%81%E7%BC%96%E8%BE%91.png)
-
-<details>
-<summary>AI · Realtime voice · Shortcuts · Instructions · MCP · Subagents · Remote hosts</summary>
-
-#### Workspace voice
-
-Setup and preparation before a call:
-
-[![Workspace voice preparation](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA%E8%AF%AD%E9%9F%B3.png)
-
-#### MCP marketplace
-
-[![MCP marketplace and built-in server templates](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E5%B8%82%E5%9C%BA.png)
-
-| Settings page                   | Screenshot                                                                                                                      |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| AI preferences                  | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/AI.png)                                   |
-| Realtime voice                  | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AE%9E%E6%97%B6%E8%AF%AD%E9%9F%B3.png) |
-| Keyboard shortcuts              | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%BF%AB%E6%8D%B7%E9%94%AE.png)          |
-| Global and project instructions | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E6%8C%87%E4%BB%A4.png)                   |
-| MCP servers                     | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/MCP%E6%9C%8D%E5%8A%A1%E5%99%A8.png)       |
-| Subagents                       | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%AD%90%E6%99%BA%E8%83%BD%E4%BD%93.png) |
-| Remote host pairing             | [View](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA.png) |
-
-</details>
-
-<details>
-<summary>Git · Providers and models · Capabilities · Harness · Project architecture</summary>
-
-#### Git
-
-[![Git](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Git.png)
-
-<a id="providers-and-models-1"></a>
-
-#### Providers and models
-
-[![Providers and models](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png)
-
-#### Capabilities
-
-[![Capabilities](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png)
-
-#### Harness
-
-[![Harness](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E5%85%B7Harness-1.png)
-
-<a id="project-architecture-1"></a>
-
-#### Project architecture
-
-[![Project architecture](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84-1.png)
-
-</details>
-
-### Ming interfaces
-
-<details>
-<summary>General settings · Theme and skin gallery</summary>
-
-#### General settings
-
-[![General settings](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E9%80%9A%E7%94%A8%E8%AE%BE%E7%BD%AE.png)
-
-#### Theme and skin gallery
-
-[![Theme and skin gallery](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)](docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E5%A4%A7%E6%98%8E/%E4%B8%BB%E9%A2%98%E7%9A%AE%E8%82%A4%E5%BA%93.png)
-
-</details>
-
-### Theme gallery
-
-<details>
-<summary>Ming · Snowbound official · Ming · Snow flute scholar · Ming · Moon scholar · Starship Cockpit · macOS 27 · Liquid Ether</summary>
-
-#### Ming · Snowbound official
-
-[![Ming · Snowbound official](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A2%83%E6%9C%9D%E8%87%A3.png)
-
-#### Ming · Snow flute scholar
-
-[![Ming · Snow flute scholar](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E9%9B%AA%E5%A4%9C%E7%AC%9B%E5%A7%AC.png)
-
-#### Ming · Moon scholar
-
-[![Ming · Moon scholar](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E5%A4%A7%E6%98%8E/%E6%9C%88%E5%9F%8E%E4%B9%A6%E5%A7%AC.png)
-
-#### Starship Cockpit
-
-[![Starship Cockpit](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E6%98%9F%E8%88%B0/%E9%9C%9C%E6%98%9F%E9%A2%86%E8%88%AA.png)
-
-#### macOS 27 · Liquid Ether
-
-[![macOS 27 · Liquid Ether](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/macos27.png)](docs/%E4%B8%BB%E9%A2%98%E5%B1%95%E7%A4%BA/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/macos27.png)
-
-</details>
-
-</details>
-
-## Developers & Community
-
-### Local development
+### Also
+
+- **Environment checks**: check Node.js, npm, PATH, Pi Coding Agent and the active configuration; install, update or repair Pi where supported, inspect diagnostics and manage configuration backups.
+- **Runtimes**: the bundled Pi and Node runtimes work out of the box, with System and Custom runtime choices in settings.
+- **App updates**: check for new versions from inside the app.
+- **Eight languages**: English, 简体中文, 繁體中文, 日本語, 한국어, Русский, Français and Deutsch.
+
+<a id="documentation"></a>
+
+## Documentation
+
+| | |
+| :-- | :-- |
+| **[Agent settings guide](docs/agent-settings.md)** | AI, realtime voice, shortcuts, instructions, MCP, subagents and remote hosts |
+| **[Resource Market](docs/market/MARKET.md)** | Install theme and desktop pet packs |
+| **[Harness plugins](docs/plugins/getting-started.md)** | Develop and install plugins; see also [architecture](docs/plugins/architecture.md), [SDK API](docs/plugins/api-reference.md) and [security boundary](docs/plugins/security.md) |
+| **[Community Release](docs/release/community-release.md)** | How community builds are signed, verified and [updated](docs/release/update-strategy.md) |
+| **[Troubleshooting](docs/release/troubleshooting.md)** | Checksum, security warning, launch and update problems |
+| **[Screenshot index](docs/README.md)** | Every interface and theme, by category |
+| **[Changelog](CHANGELOG.md)** | What changed in each release |
+
+## Development
 
 Install **Node.js 24 LTS (≥ 24.22.1)** and **pnpm 9.12.1**, then run:
 
@@ -553,9 +430,9 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-For development without a separate Pi installation, use the sample configuration in [fixtures](fixtures/README.md). In Settings, point the manual configuration directory at the absolute path to `fixtures/mock-pi`. Sample configuration does not provide live model access; configure your own provider when needed.
+<sub>To develop without a separate Pi installation, use the sample configuration in <a href="fixtures/README.md">fixtures</a>: in Settings, point the manual configuration directory at the absolute path to <code>fixtures/mock-pi</code>. Sample configuration does not provide live model access; configure your own provider when needed.</sub>
 
-### Checks
+Before sending a change, run the checks. For changes to key desktop flows, also run `pnpm test:e2e`.
 
 ```sh
 pnpm typecheck
@@ -564,36 +441,34 @@ pnpm test
 pnpm compile
 ```
 
-For changes to key desktop flows, also run `pnpm test:e2e`.
+## Community
 
-### Participate
+- **[Issues](https://github.com/wangmiaozero/pi-harness/issues)**: report a bug or suggest an improvement. Include your app version, operating system and steps to reproduce, and remove credentials and private conversation content.
+- **[Pull requests](https://github.com/wangmiaozero/pi-harness/pulls)**: describe the problem, the user-visible change and your validation results. Documentation, translations, themes and focused fixes are welcome.
+- **[Custom skins](https://github.com/wangmiaozero/pi-harness-skin-starter)**: create a skin and share it.
+- **QQ group**: pi-harness · **1109717308**. Scan the code to join.
 
-- [Report a bug or suggest an improvement](https://github.com/wangmiaozero/pi-harness/issues). Include your app version, operating system, and steps to reproduce; remove credentials and private conversation content.
-- [Open a pull request](https://github.com/wangmiaozero/pi-harness/pulls) with the problem, user-visible change, and validation results. Documentation, translations, themes, and focused fixes are welcome.
-- [Create and share a custom skin](https://github.com/wangmiaozero/pi-harness-skin-starter).
-- [Community QQ group: pi-harness · 1109717308](docs/社区/qq-group.jpg).
+<p align="center">
+  <img src="docs/社区/qq-group.jpg" width="240" alt="Pi-Harness QQ group QR code" />
+</p>
 
-<a id="documentation"></a>
+If Pi-Harness makes your work with Pi easier, **a ⭐ helps others find it.**
 
-### Documentation
-
-- [Agent settings guide](docs/agent-settings.md)
-- [Screenshot index](docs/README.md) · [Changelog](CHANGELOG.md)
-- [Community Release](docs/release/community-release.md) · [Troubleshooting](docs/release/troubleshooting.md)
-- [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangmiaozero/pi-harness&type=Date&theme=dark">
+  <img src="https://api.star-history.com/svg?repos=wangmiaozero/pi-harness&type=Date" width="600" alt="Star history">
+</picture>
 
 ## Credits
 
-Pi-Harness is built around the official [Pi Coding Agent and Pi Agent Harness](https://github.com/earendil-works/pi).
+Pi-Harness is built around the official [Pi Coding Agent and Pi Agent Harness](https://github.com/earendil-works/pi). Created and maintained by [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com).
 
-Created and maintained by [wangmiao](https://github.com/wangmiaozero) · [tuziling84@gmail.com](mailto:tuziling84@gmail.com).
-
-### PR contributors
+**PR contributors**
 
 <table>
   <tr>
     <td align="center">
-      <a href="https://github.com/HenryArch"><img src="https://avatars.githubusercontent.com/u/244436357?v=4" width="64" height="64" alt="HenryArch" /><br /><b>HenryArch</b></a><br />
+      <img src="https://avatars.githubusercontent.com/u/244436357?v=4" width="64" height="64" alt="HenryArch" /><br /><a href="https://github.com/HenryArch"><b>HenryArch</b></a><br />
       <a href="https://github.com/wangmiaozero/pi-harness/pull/8">PR #8</a>
     </td>
   </tr>
@@ -603,6 +478,6 @@ We welcome pull requests that improve Pi-Harness. Thank you to every contributor
 
 ## License
 
-Pi-Harness is licensed under the [GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`).
+[GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`).
 
 Copyright © 2026 [wangmiao](https://github.com/wangmiaozero).

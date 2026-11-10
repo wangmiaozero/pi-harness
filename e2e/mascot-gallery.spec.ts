@@ -48,7 +48,7 @@ test('mascot gallery fills the page with equal-height previews across skins and 
     await option.focus()
     await option.press('Space')
     await expect(option).toHaveAttribute('aria-pressed', 'true')
-    await expect(grid.locator('[aria-pressed="true"]')).toHaveCount(1)
+    await expect(grid.locator('[data-mascot-option][aria-pressed="true"]')).toHaveCount(1)
 
     await expectPersistedMascotStyle(page, style)
 
