@@ -42,9 +42,9 @@
 
 <table>
   <tr>
-    <td width="420" align="center" valign="middle">
+    <td width="580" align="center" valign="middle">
       <a href="https://infistar.cc/register?aff=S26RFM4B&ref_source=link">
-        <img src="docs/assets/infistar-banner.png" width="400" alt="Pi-Harness × Infistar.cc 无限星河" />
+        <img src="docs/assets/infistar-banner.png" width="560" alt="Pi-Harness × Infistar.cc 无限星河" />
       </a>
     </td>
     <td valign="middle">
@@ -53,9 +53,9 @@
     </td>
   </tr>
   <tr>
-    <td width="420" align="center" valign="middle">
+    <td width="580" align="center" valign="middle">
       <a href="https://cloud.tencent.com/act/cps/redirect?redirect=6871&amp;cps_key=ece2099a1da90c2f7a4a4c437ad623f8&amp;from=console">
-        <img src="docs/assets/workbuddy-banner.jpg" width="400" alt="腾讯云 WorkBuddy" />
+        <img src="docs/assets/workbuddy-banner.jpg" width="560" alt="腾讯云 WorkBuddy" />
       </a>
     </td>
     <td valign="middle">
