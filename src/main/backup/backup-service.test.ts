@@ -97,7 +97,8 @@ it('uses one config writer lease and commits both real configuration files', asy
   ).toBe(2)
   await real.patchSettings((current) => ({ ...current, futureField: true }))
   expect((await real.readSettingsParsed()).futureField).toBe(true)
-})
+  // Several fsynced writes. Windows-x64 CI disk flush can exceed Vitest's default 5s.
+}, 20_000)
 it('does not write native config if its pre-write backup fails', async () => {
   const real = new PiConfigService(
     new JsonStore(path.join(dir, 'real-app.json'), {} as AppSettings),
