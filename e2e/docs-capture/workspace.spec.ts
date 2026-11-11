@@ -68,6 +68,14 @@ const test = base.extend({
   piAgentDir: async ({ testUserData }, use) => {
     const agentDir = path.join(testUserData, 'mock-pi')
     fs.cpSync(path.resolve('fixtures/mock-pi'), agentDir, { recursive: true })
+    const modelsPath = path.join(agentDir, 'models.json')
+    fs.writeFileSync(
+      modelsPath,
+      fs
+        .readFileSync(modelsPath, 'utf8')
+        .replace('$OPENAI_API_KEY', 'docs-fixture-key')
+        .replace('$ANTHROPIC_API_KEY', 'docs-fixture-key')
+    )
     writeProfileSettings(testUserData)
     ensureAuroraWorkspace()
     for (const conversation of conversations) {
@@ -99,7 +107,10 @@ async function nativeShot(
 ) {
   const target = await shot(page, docsRelativePath)
   const nativeWindow = await electronApp.browserWindow(page)
-  await nativeWindow.evaluate((window) => window.setContentSize(VIEWPORT.width, VIEWPORT.height))
+  await nativeWindow.evaluate(
+    (window, size) => window.setContentSize(size.width, size.height),
+    VIEWPORT
+  )
   await expect.poll(() => page.evaluate(() => [innerWidth, innerHeight])).toEqual([
     VIEWPORT.width,
     VIEWPORT.height
@@ -131,7 +142,7 @@ test('capture conversation history cleanup and Git', async ({ page }) => {
   await openOverflowPage(page, 'ai-sessions')
   await expect(page.getByTestId('universal-sessions')).toBeVisible()
   const historySession = page.getByRole('button', {
-    name: /View: Design a clean, comfortable desktop workspace/
+    name: /View history: Design a clean, comfortable desktop workspace/
   })
   await expect(historySession).toBeVisible({ timeout: 30_000 })
   await historySession.click()
@@ -196,6 +207,7 @@ test('capture Harness and multi-agent orchestration', async ({ page }) => {
   await page.getByTestId('workspace-section-tools').click()
   const consolePanel = page.getByTestId('harness-console')
   await expect(consolePanel).toBeVisible()
+  await consolePanel.getByRole('button', { name: 'Refresh', exact: true }).click()
   await expect(consolePanel).toContainText(sessionId)
   await expect(consolePanel).toContainText('openai-compatible / gpt-4o')
   await expect(consolePanel).toContainText('idle')
@@ -329,11 +341,27 @@ test('capture project architecture views', async ({ page, electronApp }) => {
 })
 
 test('capture desktop pet settings menu and actions', async ({ page, electronApp, testUserData }) => {
-  fs.cpSync(
-    '/Users/tree/codes/my-codes/pi-Harness-packages/pet-bigfish',
-    path.join(testUserData, 'petpacks', 'bigfish'),
-    { recursive: true }
-  )
+  const packagesRoot = '/Users/tree/codes/my-codes/pi-Harness-packages'
+  const petRoot = path.join(testUserData, 'petpacks', 'bigfish')
+  fs.cpSync(path.join(packagesRoot, 'pet-bigfish'), petRoot, { recursive: true })
+  const manifestPath = path.join(petRoot, 'pet-pack.json')
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as {
+    clips: Record<string, unknown>
+  }
+  for (let index = 2; index <= 20; index += 1) {
+    const actionPack = path.join(packagesRoot, `pet-bigfish-${index}`)
+    const clipPack = JSON.parse(fs.readFileSync(path.join(actionPack, 'clip-pack.json'), 'utf8')) as {
+      clips: Record<string, unknown>
+    }
+    Object.assign(manifest.clips, clipPack.clips)
+    fs.cpSync(path.join(actionPack, 'clips'), path.join(petRoot, 'clips'), { recursive: true })
+  }
+  expect(
+    Object.values(manifest.clips).filter(
+      (clip) => typeof clip === 'object' && clip !== null && 'labels' in clip
+    )
+  ).toHaveLength(193)
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
   await page.setViewportSize(VIEWPORT)
   const settings = await page.evaluate(() => window.piSwitch.settings.get())
   await page.evaluate(

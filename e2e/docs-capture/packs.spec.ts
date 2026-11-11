@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { test as base, expect, type Page } from '../fixtures'
+import { test as base, expect } from '../fixtures'
+import type { ElectronApplication, Page } from '@playwright/test'
 import { IPC_INVOKE } from '../../src/shared/ipc/channels'
 import { openOverflowPage } from '../navigation'
 import {
@@ -101,35 +102,44 @@ const test = base.extend({
 })
 
 async function activateSkin(page: Page, style: CaptureSkin, skinId?: string) {
-  await page.evaluate(
-    (mascotStyle) => window.piSwitch.settings.set({ mascotStyle, mascotUnlocked: true }),
-    style
-  )
+  const destination = page.url().includes('#/workspace')
+    ? 'workspace'
+    : page.url().includes('#/git')
+      ? 'git'
+      : page.url().includes('#/models')
+        ? 'models'
+        : 'settings'
+
+  await page.locator('a[href="#/settings"]').click()
+  await page.getByTestId('settings-section-mascot').click()
+  const option = page.locator(`[data-mascot-option="${style}"]`)
+  await expect(option).toBeVisible()
+  await option.click()
   await expect
     .poll(() => page.evaluate(() => window.piSwitch.settings.get().then((s) => s.mascotStyle)))
     .toBe(style)
-  await page.reload()
-  await page.waitForLoadState('domcontentloaded')
-  await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
-  const workspace = page.url().includes('#/workspace')
   if (style === 'none') {
     await expect(page.locator('html')).not.toHaveAttribute('data-visual-skin')
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'soft-light')
-    return
+  } else {
+    await expect(page.locator('html')).toHaveAttribute('data-visual-skin', skinId!)
   }
-  await expect(page.locator('html')).toHaveAttribute('data-visual-skin', skinId!)
-  if (workspace) {
-    // Remount the workspace so its session restore runs after the reload.
-    await page.locator('a[href="#/settings"]').click()
+
+  if (destination === 'workspace') {
     await openSession(page, {
       cwd: AURORA,
       sessionId,
       title: 'Designing a calm desktop workspace'
     })
-    await shot(page, 'debug/reloaded-workspace.png')
     await expect(page.getByTestId('chat-composer')).toBeVisible()
     await expect(page.locator('.assistant-message-body pre code')).toContainText('Aurora Studio')
+  } else if (destination === 'git') {
+    await openOverflowPage(page, 'git')
+  } else if (destination === 'models') {
+    await page.locator('a[href="#/models"]').click()
   }
+
+  if (style === 'none') return
   if (style === 'starshipCockpit') {
     const backdrop = page.getByTestId('starship-cockpit-backdrop')
     const interior = page.getByTestId('starship-cockpit-interior')
@@ -151,12 +161,11 @@ async function activateSkin(page: Page, style: CaptureSkin, skinId?: string) {
       image.src = source
       await image.decode()
     })
-    if (workspace) {
+    if (destination === 'workspace') {
       const portrait = page.getByTestId('portrait-skin-image')
       await expect(portrait).toBeVisible()
       await portrait.evaluate(async (image) => (image as HTMLImageElement).decode())
       await expect(page.getByTestId('ming-workspace-ornaments')).toBeVisible()
-      await expect(page.locator('.assistant-message-body pre code')).toContainText('Aurora Studio')
     }
   }
   await page.evaluate(() => document.fonts.ready)
@@ -169,6 +178,28 @@ async function openDemoSession(page: Page) {
   await expect(page.locator('.assistant-message-body')).toBeVisible()
   await expect(page.locator('.assistant-message-body pre code')).toContainText('Aurora Studio')
   await expect(page.locator('[data-sonner-toast]:visible')).toHaveCount(0)
+}
+
+/** BrowserWindow.capturePage includes the native architecture WebContentsView. */
+async function nativeShot(
+  page: Page,
+  electronApp: ElectronApplication,
+  docsRelativePath: string
+) {
+  const target = await shot(page, docsRelativePath)
+  const nativeWindow = await electronApp.browserWindow(page)
+  await nativeWindow.evaluate(
+    (window, size) => window.setContentSize(size.width, size.height),
+    VIEWPORT
+  )
+  await expect.poll(() => page.evaluate(() => [innerWidth, innerHeight])).toEqual([
+    VIEWPORT.width,
+    VIEWPORT.height
+  ])
+  const png = await nativeWindow.evaluate(
+    async (window) => (await window.capturePage()).toPNG().toString('base64')
+  )
+  fs.writeFileSync(target, Buffer.from(png, 'base64'))
 }
 
 test('capture Ming and Starship workspaces', async ({ page }) => {
@@ -200,6 +231,12 @@ test('capture Ming functional pages', async ({ page, electronApp }) => {
   await openOverflowPage(page, 'git')
   await expect(page.getByTestId('git-view')).toBeVisible()
   await expect(page.getByTestId('git-history-graph').locator(':scope > div')).toHaveCount(3)
+  await expect(
+    page.getByTestId('git-history-graph').getByText('Refine theme tokens', { exact: true })
+  ).toBeVisible()
+  await expect(
+    page.getByTestId('git-repository-sidebar').locator('[data-git-branch="main"]')
+  ).toBeVisible()
   await expect(page.getByTestId('git-commit-panel')).toBeVisible()
   await shot(page, '功能界面/大明/Git.png')
 
@@ -248,14 +285,31 @@ test('capture Ming project architecture', async ({ page, electronApp }) => {
           .getAllWebContents()
           .find((candidate) => candidate.getURL().startsWith('pi-architecture:'))
         if (!view) return 0
-        return view.executeJavaScript(
-          'document.querySelectorAll("[data-node-id]").length'
-        )
+        return view.executeJavaScript(`(() =>
+          [...document.querySelectorAll('[data-node-id]')].filter((node) => {
+            const box = node.getBoundingClientRect()
+            const style = getComputedStyle(node)
+            const animations = node.getAnimations({ subtree: true })
+            return box.width > 0 && box.height > 0 &&
+              box.right > 0 && box.bottom > 0 &&
+              box.left < innerWidth && box.top < innerHeight &&
+              style.visibility !== 'hidden' && Number(style.opacity) > 0.9 &&
+              animations.every((animation) => animation.playState === 'finished')
+          }).length
+        )()`)
       })
     )
-    .toBeGreaterThan(0)
+    .toBe(4)
+  await electronApp.evaluate(async ({ webContents }) => {
+    const view = webContents
+      .getAllWebContents()
+      .find((candidate) => candidate.getURL().startsWith('pi-architecture:'))!
+    await view.executeJavaScript(
+      'new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
+    )
+  })
   await expect(page.getByTestId('architecture-module').filter({ hasText: 'main.ts' })).toBeVisible()
-  await shot(page, '功能界面/大明/项目架构.png')
+  await nativeShot(page, electronApp, '功能界面/大明/项目架构.png')
 })
 
 test('capture Ming and classic theme galleries', async ({ page }) => {
