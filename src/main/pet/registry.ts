@@ -29,9 +29,19 @@ export type { PetPackDetail, PetPackInstallResult, PetPackSummary }
 
 export type PetPackInstallSource =
   | { kind: 'zip'; data: Buffer }
-  | { kind: 'directory'; path: string }
+  | {
+      kind: 'directory'
+      path: string
+      /** Official market installs are already bounded by the catalog limits. */
+      budget?: { maxEntries: number; maxTotalBytes: number }
+    }
 
-export class PetPackError extends Error {}
+export class PetPackError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'PetPackError'
+  }
+}
 
 function toSummary(manifest: PetPackManifest, bundled: boolean, compatible = true, resourceError?: string): PetPackSummary {
   return {
@@ -264,7 +274,7 @@ export class PetPackRegistry {
       if (source.kind === 'zip') {
         await this.extractZipInto(source.data, staging)
       } else {
-        await this.copyDirectoryInto(source.path, staging)
+        await this.copyDirectoryInto(source.path, staging, source.budget)
       }
       const pack = await loadPetPack(staging)
       // Full resource validation on every import: frame count by naming
@@ -352,7 +362,13 @@ export class PetPackRegistry {
     })
   }
 
-  private async copyDirectoryInto(sourcePath: string, staging: string): Promise<void> {
+  private async copyDirectoryInto(
+    sourcePath: string,
+    staging: string,
+    budget?: { maxEntries: number; maxTotalBytes: number }
+  ): Promise<void> {
+    const maxEntries = budget?.maxEntries ?? ZIP_LIMITS.maxEntries
+    const maxTotalBytes = budget?.maxTotalBytes ?? ZIP_LIMITS.maxTotalBytes
     const sourceRoot = path.resolve(sourcePath)
     let stat: Awaited<ReturnType<typeof fs.stat>>
     try {
@@ -385,7 +401,7 @@ export class PetPackRegistry {
           throw new PetPackError('The pet directory contains special files, which are not allowed')
         }
         fileCount += 1
-        if (fileCount > ZIP_LIMITS.maxEntries) {
+        if (fileCount > maxEntries) {
           throw new PetPackError('The pet directory contains too many files')
         }
         const fileStat = await fs.stat(childPath)
@@ -393,7 +409,7 @@ export class PetPackRegistry {
           throw new PetPackError(`File "${relative}" exceeds the size limit`)
         }
         totalBytes += fileStat.size
-        if (totalBytes > ZIP_LIMITS.maxTotalBytes) {
+        if (totalBytes > maxTotalBytes) {
           throw new PetPackError('The pet directory exceeds the total size limit')
         }
         const target = assertDirectoryWithin(staging, path.join(staging, relative))

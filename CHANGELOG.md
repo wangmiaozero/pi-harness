@@ -2,6 +2,15 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.3 — 2026-11-11
+
+The BigFish pet and its action packs install from the Resource Market. A failed install shows the reason.
+
+### Fixed
+
+- The BigFish pet and its action packs install from the Resource Market.
+- A failed resource install shows the reason.
+
 ## 2.4.2 — 2026-11-11
 
 Themes and desktop pets install from the Resource Market. Startup closes itself, a saved conversation opens with its project, and a saved theme stays selected when its pack is missing.

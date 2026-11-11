@@ -8,7 +8,7 @@ import Input from '@renderer/components/ui/Input.vue'
 import MarketPackageCard from '@renderer/components/settings/MarketPackageCard.vue'
 import { actionPackInfo, compareMarketPackageNames, localizedText, packageDisplayName } from '@renderer/market/display'
 import { themePackForStyle } from '@shared/market/style-packs'
-import { getApi } from '@renderer/composables/useApi'
+import { getApi, getErrorMessage } from '@renderer/composables/useApi'
 import { reloadInstalledCatalog } from '@renderer/market/catalog'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { applyVisualSkin, selectedThemePackMissing } from '@renderer/utils/visual-skin'
@@ -145,7 +145,7 @@ function bytes(value: number | null): string {
 }
 
 function message(reason: unknown): string {
-  return reason instanceof Error ? reason.message : String(reason)
+  return getErrorMessage(reason)
 }
 
 async function load(refresh = false): Promise<void> {

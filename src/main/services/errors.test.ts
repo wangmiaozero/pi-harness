@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { MarketPackageError } from '../market/extract'
+import { PetPackError } from '../pet/registry'
 import { AppError, toErrorPayload } from './errors'
 
 describe('IPC error payload redaction', () => {
@@ -48,6 +50,20 @@ describe('IPC error payload redaction', () => {
     })
     expect(payload.userMessage).toContain('quota is exhausted')
     expect(payload.userMessage).not.toMatch(/[{}]/)
+  })
+
+  it('keeps market and pet install failures readable', () => {
+    for (const error of [
+      new MarketPackageError('Package SHA-256 does not match the catalog'),
+      new PetPackError('The pet directory contains too many files')
+    ]) {
+      expect(toErrorPayload(error)).toMatchObject({
+        code: 'APP_ERROR',
+        message: error.message,
+        userMessage: error.message,
+        recoverable: true
+      })
+    }
   })
 
   it('marks conflicts as recoverable while preserving the legacy details field', () => {

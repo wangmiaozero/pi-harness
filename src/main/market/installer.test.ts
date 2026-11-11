@@ -308,7 +308,12 @@ describe('market installer', () => {
       catalogUrl: `${base}/catalog.json`,
       catalogTtlMs: 0,
       pets: {
-        install: async (source) => {
+        install: async (source: {
+          kind: 'directory'
+          path: string
+          budget?: { maxEntries: number; maxTotalBytes: number }
+        }) => {
+          expect(source.budget).toEqual({ maxEntries: 40_000, maxTotalBytes: 750 * 1024 * 1024 })
           const manifest = JSON.parse(await fs.readFile(path.join(source.path, 'pet-pack.json'), 'utf8')) as { id: string }
           const destination = path.join(petRoot, manifest.id)
           await fs.rm(destination, { recursive: true, force: true })

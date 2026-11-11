@@ -14,8 +14,18 @@ import { sha256File } from './hash'
 import { MARKET_LIMITS } from './limits'
 import { MarketCatalogClient } from './catalog-client'
 
+/** Catalog packages are already capped; the pet importer's zip budget is for local imports. */
+const OFFICIAL_PET_BUDGET = {
+  maxEntries: MARKET_LIMITS.maxEntries,
+  maxTotalBytes: MARKET_LIMITS.maxUnpackedBytes
+} as const
+
 export interface PetDirectoryInstaller {
-  install(source: { kind: 'directory'; path: string }): Promise<{ id: string; version: string; updated: boolean }>
+  install(source: {
+    kind: 'directory'
+    path: string
+    budget?: { maxEntries: number; maxTotalBytes: number }
+  }): Promise<{ id: string; version: string; updated: boolean }>
 }
 
 export interface MarketInstallerOptions {
@@ -218,7 +228,11 @@ export class MarketInstaller {
     if (previous?.packId === main.packId) await removeClipDefinitions(work, previous.clips)
     await mergeClipDefinitions(work, clips)
     await mergeClipDirectory(packageRoot, work)
-    const installed = await this.options.pets.install({ kind: 'directory', path: work })
+    const installed = await this.options.pets.install({
+      kind: 'directory',
+      path: work,
+      budget: OFFICIAL_PET_BUDGET
+    })
     if (installed.id !== main.packId) throw new MarketPackageError('Action pack changed the pet id')
     await fs.rm(this.addonPath(name), { recursive: true, force: true })
     await fs.cp(packageRoot, this.addonPath(name), { recursive: true, verbatimSymlinks: false })
@@ -250,7 +264,11 @@ export class MarketInstaller {
     packageRoot: string
   ): Promise<MarketInstallResult> {
     await fs.access(path.join(packageRoot, 'pet-pack.json'))
-    const installed = await this.options.pets.install({ kind: 'directory', path: packageRoot })
+    const installed = await this.options.pets.install({
+      kind: 'directory',
+      path: packageRoot,
+      budget: OFFICIAL_PET_BUDGET
+    })
     const manifest = JSON.parse(await fs.readFile(path.join(packageRoot, 'pet-pack.json'), 'utf8')) as {
       license?: string
     }
@@ -329,7 +347,7 @@ export class MarketInstaller {
     try {
       await fs.cp(sourcePet, work, { recursive: true, verbatimSymlinks: false })
       await removeClipDefinitions(work, addon.clips)
-      await this.options.pets.install({ kind: 'directory', path: work })
+      await this.options.pets.install({ kind: 'directory', path: work, budget: OFFICIAL_PET_BUDGET })
       const latest = await this.readIndex()
       delete latest.addons[name]
       await this.writeIndex(latest)

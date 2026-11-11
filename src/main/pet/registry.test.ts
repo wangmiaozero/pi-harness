@@ -188,6 +188,24 @@ describe('PetPackRegistry.install', () => {
     await expect(makeRegistry().install({ kind: 'zip', data: zip })).rejects.toThrow(/symlink or special file/)
   })
 
+  it('uses the caller budget for an official directory install', async () => {
+    const fixture = await createPackDir(tmpRoot, { id: 'budgetpack', useClipsLayout: false })
+    await expect(
+      makeRegistry().install({
+        kind: 'directory',
+        path: fixture.root,
+        budget: { maxEntries: 1, maxTotalBytes: 1024 * 1024 }
+      })
+    ).rejects.toThrow(/too many files/)
+    expect(await fs.readdir(userRoot)).toEqual([])
+    const result = await makeRegistry().install({
+      kind: 'directory',
+      path: fixture.root,
+      budget: { maxEntries: 40_000, maxTotalBytes: 750 * 1024 * 1024 }
+    })
+    expect(result.id).toBe('budgetpack')
+  })
+
   it('rejects directory imports containing symlinks', async () => {
     const fixture = await createPackDir(tmpRoot, { id: 'dirlink', useClipsLayout: false })
     await fs.symlink('/etc/passwd', path.join(fixture.root, 'evil'))

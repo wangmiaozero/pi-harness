@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
+import { toast } from 'vue-sonner'
 import type { InstalledMarketPackage } from '@shared/market/types'
 import MarketSettingsSection from './MarketSettingsSection.vue'
 
@@ -36,10 +37,26 @@ vi.mock('vue-i18n', () => ({
 }))
 vi.mock('vue-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 vi.mock('@renderer/composables/useApi', () => ({
+  getErrorMessage: (error: unknown) => {
+    if (error && typeof error === 'object' && 'userMessage' in error) {
+      const text = (error as { userMessage?: unknown }).userMessage
+      if (typeof text === 'string' && text.trim()) return text.trim()
+    }
+    if (error && typeof error === 'object' && 'message' in error) {
+      const text = (error as { message?: unknown }).message
+      if (typeof text === 'string' && text.trim()) return text.trim()
+    }
+    return error instanceof Error ? error.message : String(error)
+  },
   getApi: () => ({
     on: () => () => undefined,
     market: {
       installed: vi.fn().mockResolvedValue(installed),
+      install: vi.fn().mockRejectedValue({
+        code: 'APP_ERROR',
+        message: 'The pet directory contains too many files',
+        userMessage: 'The pet directory contains too many files'
+      }),
       search: vi.fn().mockResolvedValue({
         packages: [
           {
@@ -50,6 +67,17 @@ vi.mock('@renderer/composables/useApi', () => ({
             author: 'Pi',
             license: 'MIT',
             unpackedSize: 2048,
+            deprecated: false,
+            compatible: true
+          },
+          {
+            name: '@piharness/pet-bigfish-12',
+            kind: 'pet',
+            version: '1.0.3',
+            description: '大肥鱼动作包 12：给大肥鱼桌宠添加 10 个新动作 / BigFish action pack 12',
+            author: 'wangmiao',
+            license: 'MIT',
+            unpackedSize: 41378912,
             deprecated: false,
             compatible: true
           }
@@ -107,6 +135,19 @@ describe('MarketSettingsSection', () => {
       expect.stringContaining('settings.marketActionPackName:BigFish,1'),
       expect.stringContaining('settings.marketActionPackName:BigFish,2')
     ])
+    wrapper.unmount()
+  })
+
+  it('shows the install error instead of an object', async () => {
+    const wrapper = mountSection()
+    await flushPromises()
+    await wrapper.get('[data-market-package="@piharness/pet-bigfish-12"] button').trigger('click')
+    await flushPromises()
+    expect(toast.error).toHaveBeenCalledWith('settings.marketFailed', {
+      description: 'The pet directory contains too many files'
+    })
+    expect(wrapper.text()).toContain('The pet directory contains too many files')
+    expect(wrapper.text()).not.toContain('[object Object]')
     wrapper.unmount()
   })
 })

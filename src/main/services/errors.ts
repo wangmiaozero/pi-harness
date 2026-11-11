@@ -257,11 +257,12 @@ export function toErrorPayload(err: unknown): AppErrorPayload {
         details: { name: err.name, kind: runtime.kind }
       }
     }
+    const operational = err.name === 'MarketPackageError' || err.name === 'PetPackError'
     return {
       code: 'APP_ERROR',
       message: redactSecretText(err.message),
-      userMessage: 'An unexpected application error occurred.',
-      recoverable: false,
+      userMessage: operational ? redactSecretText(err.message) : 'An unexpected application error occurred.',
+      recoverable: operational,
       details: { name: err.name }
     }
   }

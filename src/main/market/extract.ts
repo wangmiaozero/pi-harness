@@ -19,7 +19,12 @@ const { Open } = createRequire(import.meta.url)('unzipper') as {
   }
 }
 
-export class MarketPackageError extends Error {}
+export class MarketPackageError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'MarketPackageError'
+  }
+}
 
 export function assertZipEntryMode(externalFileAttributes: number): void {
   const mode = (externalFileAttributes >>> 16) & 0o170000
