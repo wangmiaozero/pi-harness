@@ -331,13 +331,13 @@ describe('conversation file panel', () => {
       b: binding('b', ['/code/b'])
     })
     let finishOlder!: () => void
-    api.workspace.sync = vi.fn(async (input) => {
+    api.workspace.sync = vi.fn(async (input: Parameters<PiSwitchAPI['workspace']['sync']>[0]) => {
       const path = input.folders[0]?.path
       const synced = {
         id: 'active',
         name: 'Session projects',
         workspaceFile: null,
-        folders: (input.folders ?? []).map((folder, index) => ({
+        folders: input.folders.map((folder, index) => ({
           id: projectIdentityKey(folder.path),
           name: folder.path.split('/').at(-1) ?? folder.path,
           path: folder.path,
