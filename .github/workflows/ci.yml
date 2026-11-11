@@ -83,8 +83,46 @@ jobs:
           pnpm security:node --online
       - name: Install the Linux window manager
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends openbox wmctrl
+          # The runner mirror list keeps sending apt to azure.archive.ubuntu.com
+          # after that name stops resolving. Each entry below is a separate
+          # archive, not another try of the same mirror.
+          . /etc/os-release
+          install_window_manager() {
+            sudo rm -rf /var/lib/apt/lists/*
+            sudo apt-get update && sudo apt-get install -y --no-install-recommends openbox wmctrl
+          }
+          use_archive() {
+            local archive="$1"
+            local security="$2"
+            echo "Using apt archive ${archive}"
+            sudo tee /etc/apt/sources.list.d/ubuntu.sources >/dev/null <<EOF
+          Types: deb
+          URIs: ${archive}
+          Suites: ${VERSION_CODENAME} ${VERSION_CODENAME}-updates ${VERSION_CODENAME}-backports
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+          Types: deb
+          URIs: ${security}
+          Suites: ${VERSION_CODENAME}-security
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          EOF
+          }
+          echo "Using the runner apt mirror"
+          if install_window_manager; then
+            exit 0
+          fi
+          use_archive "http://archive.ubuntu.com/ubuntu" "http://security.ubuntu.com/ubuntu"
+          if install_window_manager; then
+            exit 0
+          fi
+          use_archive "http://mirrors.kernel.org/ubuntu" "http://mirrors.kernel.org/ubuntu"
+          if install_window_manager; then
+            exit 0
+          fi
+          use_archive "http://mirror.csclub.uwaterloo.ca/ubuntu" "http://mirror.csclub.uwaterloo.ca/ubuntu"
+          install_window_manager
       - name: Electron regression (SDK compatibility)
         run: |
           xvfb-run -a bash -e -c '
