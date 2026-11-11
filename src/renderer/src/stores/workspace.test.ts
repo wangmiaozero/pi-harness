@@ -318,6 +318,55 @@ describe('conversation file panel', () => {
     expect(workspace.hasSessionWorkspace).toBe(true)
     expect(workspace.projectRoots).toEqual(['/code/b'])
   })
+
+  it('keeps the newer session workspace when an older sync finishes later', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = [
+      session('a', '/code/a', '2026-08-30T00:00:00.000Z'),
+      session('b', '/code/b', '2026-08-30T00:00:01.000Z')
+    ]
+    const api = workspaceApi({
+      a: binding('a', ['/code/a']),
+      b: binding('b', ['/code/b'])
+    })
+    let finishOlder!: () => void
+    api.workspace.sync = vi.fn(async (input) => {
+      const path = input.folders[0]?.path
+      const synced = {
+        id: 'active',
+        name: 'Session projects',
+        workspaceFile: null,
+        folders: (input.folders ?? []).map((folder, index) => ({
+          id: projectIdentityKey(folder.path),
+          name: folder.path.split('/').at(-1) ?? folder.path,
+          path: folder.path,
+          resolvedPath: folder.path,
+          role: index === 0 ? ('main' as const) : ('reference' as const),
+          readonly: false,
+          exists: true
+        })),
+        settings: {},
+        createdAt: 1,
+        updatedAt: 1
+      }
+      if (path === '/code/a') {
+        return new Promise<typeof synced>((resolve) => {
+          finishOlder = () => resolve(synced)
+        })
+      }
+      return synced
+    })
+    window.piSwitch = api
+    const older = workspace.restoreSessionWorkspace('a')
+    await vi.waitFor(() => expect(api.workspace.sync).toHaveBeenCalled())
+    await workspace.restoreSessionWorkspace('b')
+    expect(workspace.projectRoots).toEqual(['/code/b'])
+    finishOlder()
+    await older
+    expect(workspace.projectRoots).toEqual(['/code/b'])
+    expect(workspace.activeSessionWorkspaceId).toBe('b')
+  })
 })
 
 describe('workspace projects', () => {
@@ -1154,6 +1203,49 @@ describe('workspace projects', () => {
 
       expect(workspace.tabs.map((tab) => tab.id)).toEqual(['chat:session-a'])
       expect(workspace.activeTabId).toBe('chat:session-a')
+      expect(sessions.currentId).toBe('session-a')
+      expect(workspace.projectRoots).toEqual(['/code/a'])
+    } finally {
+      delete window.piSwitch
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('opens a saved session when the session index reports it after startup', async () => {
+    const workspace = useWorkspaceStore()
+    const sessions = useSessionStore()
+    sessions.items = []
+    const snapshot = JSON.stringify({
+      projectKey: null,
+      pickedCwd: null,
+      projectRoots: [],
+      tabs: [
+        {
+          id: 'chat:session-a',
+          kind: 'chat',
+          title: 'Session A',
+          sessionId: 'session-a',
+          closable: true
+        }
+      ],
+      activeTabId: 'chat:session-a'
+    })
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => snapshot),
+      setItem: vi.fn(),
+      removeItem: vi.fn()
+    })
+    window.piSwitch = workspaceApi({})
+
+    try {
+      await workspace.restore({ restoreTabs: true, autoOpenLastProject: true })
+      expect(workspace.tabs).toEqual([])
+      expect(workspace.projectRoots).toEqual([])
+
+      sessions.items = [session('session-a', '/code/a', '2026-01-01T00:00:00.000Z')]
+      for (let step = 0; step < 20; step += 1) await Promise.resolve()
+
+      expect(workspace.tabs.map((tab) => tab.id)).toEqual(['chat:session-a'])
       expect(sessions.currentId).toBe('session-a')
       expect(workspace.projectRoots).toEqual(['/code/a'])
     } finally {

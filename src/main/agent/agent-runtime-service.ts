@@ -74,6 +74,18 @@ const EXPLICIT_FILE_MUTATION_REQUESTS = [
 type EventListener = (event: AgentEvent) => void
 type SessionEventListener = (event: AgentEvent) => void
 
+function readSessionStats(session: AgentSessionLike): Record<string, unknown> {
+  try {
+    return { ...session.getSessionStats() }
+  } catch (error) {
+    // Pi totals every assistant message's usage, including entries saved without one.
+    if (error instanceof TypeError && error.message.includes("reading 'input'")) {
+      return { sessionId: session.sessionId }
+    }
+    throw error
+  }
+}
+
 export class AgentSessionWrapper {
   private listeners: EventListener[] = []
   private unsubscribe: (() => void) | null = null
@@ -423,7 +435,7 @@ export class AgentSessionWrapper {
         return null
       case 'get_session_stats':
         return {
-          ...this.inner.getSessionStats(),
+          ...readSessionStats(this.inner),
           sessionName: this.inner.sessionManager.getSessionName()
         }
       case 'set_auto_compaction':

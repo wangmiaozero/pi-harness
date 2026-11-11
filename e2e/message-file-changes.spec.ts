@@ -139,6 +139,7 @@ test('scene transcripts, titlebar actions and minimum sidebar width stay usable 
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.evaluate(() => window.piSwitch.settings.unlockMascot('1024'))
   await openFixture(page, workspaceRoot)
+  await expect(page.getByTestId('message-file-changes').first()).toBeVisible()
   for (const mascotStyle of MASCOT_STYLES) {
     await page.evaluate(
       (mascotStyle) => window.piSwitch.settings.set({ mascotStyle, theme: 'dark' }),
@@ -288,6 +289,7 @@ test('Zhang decorations stay outside the transcript and composer', async ({
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.evaluate(() => window.piSwitch.settings.unlockMascot('1024'))
   await openFixture(page, workspaceRoot)
+  await expect(page.getByTestId('message-file-changes').first()).toBeVisible()
   await page.evaluate(() => window.piSwitch.settings.set({ mascotStyle: 'zhangJuzhengSnow' }))
   await page.reload()
   await expect(page.getByTestId('startup-animation')).toBeHidden()

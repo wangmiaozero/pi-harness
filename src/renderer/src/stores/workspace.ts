@@ -160,6 +160,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const hydrated = ref(false)
   let filesLoadVersion = 0
   let fileScopeVersion = 0
+  let workspaceSyncGeneration = 0
   let gitLoadVersion = 0
   let draftMutation: Promise<unknown> = Promise.resolve()
 
@@ -170,6 +171,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   const sessions = useSessionStore()
+  // A startup session scan can finish after the saved tabs are filtered.
+  // Hold the missing chat tabs until that scan reports them.
+  let deferredSessionTabs: WorkspaceTab[] = []
+  let deferredActiveTabId: string | null = null
   watch(
     () => sessions.items,
     (items) => {
@@ -178,6 +183,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         const name = items.find((item) => item.id === tab.sessionId)?.name
         if (name) tab.title = name.slice(0, 28)
       }
+      if (!items.length || !deferredSessionTabs.length) return
+      const available = new Set(items.map((item) => item.id))
+      const ready = deferredSessionTabs.filter((tab) => available.has(tab.sessionId ?? ''))
+      if (!ready.length) return
+      deferredSessionTabs = deferredSessionTabs.filter(
+        (tab) => !available.has(tab.sessionId ?? '')
+      )
+      const missing = ready.filter((tab) => !tabs.value.some((current) => current.id === tab.id))
+      if (missing.length) tabs.value = [...tabs.value, ...missing]
+      const preferred =
+        ready.find((tab) => tab.id === deferredActiveTabId) ?? (canChat.value ? undefined : ready[0])
+      if (!preferred?.sessionId || canChat.value) return
+      activateTab(preferred.id)
+      void restoreSessionWorkspace(preferred.sessionId)
     }
   )
 
@@ -780,6 +799,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (opts.restoreTabs && snap.tabs?.length) {
       const archived = new Set(archivedSessionIds.value)
       const availableSessionIds = new Set(sessions.items.map((session) => session.id))
+      deferredActiveTabId = snap.activeTabId ?? null
+      deferredSessionTabs = snap.tabs.filter(
+        (tab): tab is WorkspaceTab =>
+          tab.kind === 'chat' &&
+          Boolean(tab.sessionId) &&
+          tab.sessionId !== 'new' &&
+          !archived.has(tab.sessionId!) &&
+          !availableSessionIds.has(tab.sessionId!)
+      )
       tabs.value = snap.tabs.filter(
         (tab): tab is WorkspaceTab =>
           tab.kind !== 'harness' &&
@@ -1220,8 +1248,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }>,
     ownerId: string | null,
     nextWorkspaceFile: string | null = null
-  ) {
+  ): Promise<boolean> {
     // The new owner must not observe the previous session's roots while sync is pending.
+    const generation = ++workspaceSyncGeneration
     activeSessionWorkspaceId.value = null
     fileScopeVersion += 1
     filesLoadVersion += 1
@@ -1241,6 +1270,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         settings: {}
       })
     )
+    // A startup restore can sync an empty workspace before the session index
+    // arrives. That older result must not clear the workspace selected later.
+    if (generation !== workspaceSyncGeneration) return false
     applyActiveWorkspace(active)
     activeSessionWorkspaceId.value = ownerId
     pickedCwd.value = active.folders[0]?.resolvedPath ?? null
@@ -1249,7 +1281,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     fileChildren.value = {}
     cacheActiveWorkspace()
     persist()
-    return active
+    return true
   }
 
   async function openWorkspaceFile(path: string) {
@@ -1413,7 +1445,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       // including continuations saved before project navigation was registered.
       rememberImportedProjects([primary.path])
     }
-    await replaceActiveWorkspace(
+    const applied = await replaceActiveWorkspace(
       ordered.map((folder) => ({
         path: folder.path,
         role: folder.role,
@@ -1422,7 +1454,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       sessionId,
       binding.workspaceId.endsWith('.code-workspace') ? binding.workspaceId : null
     )
-    await bindCurrentSession(sessionId)
+    if (applied) await bindCurrentSession(sessionId)
   }
 
   async function restoreDraftWorkspace() {
@@ -1444,6 +1476,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       if (canChat.value) return
       if (sessions.currentId && activeSessionWorkspaceId.value === sessions.currentId) return
       const active = await callApi(() => getApi().workspace.ensureDefault())
+      if (canChat.value) return
+      if (sessions.currentId && activeSessionWorkspaceId.value === sessions.currentId) return
       const folder = active.folders[0]
       if (!folder) return
       defaultWorkspaceRoot.value = folder.resolvedPath

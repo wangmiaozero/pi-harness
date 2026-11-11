@@ -567,6 +567,7 @@ test('pet settings use draggable sliders and omit the pack detail card', async (
   await size.focus()
   await size.press('End')
   await expect(size).toHaveValue('150')
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0)
   await size.scrollIntoViewIfNeeded()
   const box = (await size.boundingBox())!
   await page.mouse.move(box.x + box.width - 8, box.y + box.height / 2)

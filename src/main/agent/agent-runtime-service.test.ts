@@ -274,6 +274,18 @@ describe('AgentRuntimeService', () => {
 
     expect(outgoingPayload).not.toHaveProperty('tool_choice')
   })
+
+  it('returns session stats when a saved assistant message has no usage', async () => {
+    const inner = createAgentSession(createSessionManager())
+    inner.getSessionStats = () => {
+      throw new TypeError("Cannot read properties of undefined (reading 'input')")
+    }
+
+    await expect(new AgentSessionWrapper(inner).send({ type: 'get_session_stats' })).resolves.toMatchObject({
+      sessionId: inner.sessionId
+    })
+  })
+
   it.each([
     {
       compat: { thinkingFormat: 'deepseek' },

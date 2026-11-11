@@ -14,6 +14,7 @@ Release notes describe user-visible additions and fixes.
 
 - Capabilities no longer lists Odai.
 - Starship cockpit artwork loads only while that theme is selected.
+- A saved conversation opens after startup instead of asking for a project.
 
 ## 2.3.24 — 2026-11-08
 
