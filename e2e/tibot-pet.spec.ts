@@ -1,5 +1,7 @@
 import { test, expect } from './fixtures'
 
+test.use({ petPacks: true })
+
 test('each jelly shape is one desktop pet', async ({ page, electronApp }) => {
   const settings = await page.evaluate(() => window.piSwitch.settings.get())
   const names = await page.evaluate(() => window.piSwitch.pets.list().then((packs) => packs.map((pack) => pack.name)))

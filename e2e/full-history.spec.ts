@@ -2,6 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { test, expect } from './fixtures'
 
+test.use({ themePacks: true })
+
 test('renders full history inside the themed Pi-Harness dialog', async ({
   page,
   electronApp,

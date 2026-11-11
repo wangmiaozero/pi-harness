@@ -4,6 +4,8 @@ import fs from 'node:fs'
 import { test, expect } from './fixtures'
 import { seedWorkspaceSession as seedSession, verifyFileEditing } from './workspace-fixtures'
 
+test.use({ themePacks: true })
+
 const { version: APP_VERSION } = JSON.parse(fs.readFileSync('package.json', 'utf8')) as {
   version: string
 }

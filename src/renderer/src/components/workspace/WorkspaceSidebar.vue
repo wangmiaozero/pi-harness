@@ -1252,6 +1252,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
     />
 
     <StarshipModelHud
+      v-if="getActiveVisualSkin(settings.settings)?.id === 'starship-cockpit'"
       :provider-key="activeProviderKey"
       :model-id="activeModelId"
       :thinking-level="agent.thinkingLevel"

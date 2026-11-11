@@ -5,6 +5,7 @@ import os from 'node:os'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { redactSecretText } from '../src/main/services/logger'
+import { installPetFixtures, installThemeFixtures } from './installed-packs'
 import type { StartAgentSessionInput } from '../src/shared/types/workspace'
 import {
   test as base,
@@ -43,6 +44,8 @@ async function waitForMainWindow(electronApp: ElectronApplication): Promise<Page
 type Fixtures = {
   fakeAudio: boolean
   isolateSystemRuntime: boolean
+  themePacks: boolean
+  petPacks: boolean
   electronApp: ElectronApplication
   page: Page
   workspaceRoot: string
@@ -54,6 +57,8 @@ type Fixtures = {
 export const test = base.extend<Fixtures>({
   isolateSystemRuntime: [false, { option: true }],
   fakeAudio: [false, { option: true }],
+  themePacks: [false, { option: true }],
+  petPacks: [false, { option: true }],
   workspaceRoot: async ({}, use) => {
     const workspaceRoot = fs.realpathSync(
       fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-workspace-'))
@@ -61,9 +66,11 @@ export const test = base.extend<Fixtures>({
     await use(workspaceRoot)
     fs.rmSync(workspaceRoot, { recursive: true, force: true })
   },
-  testUserData: async ({}, use) => {
+  testUserData: async ({ themePacks, petPacks }, use) => {
     const userData = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-')))
     fs.writeFileSync(path.join(userData, 'settings.json'), JSON.stringify({ language: 'zh-CN' }))
+    if (themePacks) installThemeFixtures(userData)
+    if (petPacks) installPetFixtures(userData)
     // Packaged builds schedule an update check during startup. Disable it before
     // launch so a slow window cannot race the test's local network fixtures.
     const updates = path.join(userData, 'updates')

@@ -2,7 +2,7 @@
 
 Release notes describe user-visible additions and fixes.
 
-## 2.4.0 — 2026-11-10
+## 2.4.0 — 2026-11-11
 
 ### Added
 
@@ -13,6 +13,7 @@ Release notes describe user-visible additions and fixes.
 ### Fixed
 
 - Capabilities no longer lists Odai.
+- Starship cockpit artwork loads only while that theme is selected.
 
 ## 2.3.24 — 2026-11-08
 

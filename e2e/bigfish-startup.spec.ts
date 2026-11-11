@@ -1,5 +1,7 @@
 import { expect, test } from './fixtures'
 
+test.use({ petPacks: true })
+
 test('plays the bundled boot sequence when 大肥鱼 is enabled', async ({ page }) => {
   await page.evaluate(async () => {
     const settings = await window.piSwitch.settings.get()

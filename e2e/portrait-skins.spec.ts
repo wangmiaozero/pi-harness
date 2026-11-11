@@ -4,6 +4,8 @@ import { test, expect, type Page } from './fixtures'
 import { IPC_INVOKE } from '../src/shared/ipc/channels'
 import type { AssistantMessage } from '@earendil-works/pi-ai'
 
+test.use({ themePacks: true })
+
 async function expectPersistedMascotStyle(page: Page, style: string) {
   await expect
     .poll(() =>

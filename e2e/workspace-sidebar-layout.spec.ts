@@ -3,6 +3,8 @@ import path from 'node:path'
 import { test, expect, type Page } from './fixtures'
 import { APP_LANGUAGE_LABELS, type AppLocale } from '../src/shared/constants/language'
 
+test.use({ themePacks: true })
+
 const workspaceLabels: Record<AppLocale, string> = {
   'en-US': 'Workspace',
   'zh-CN': '工作区',

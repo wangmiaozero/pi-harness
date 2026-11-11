@@ -3,6 +3,7 @@ import path from 'node:path'
 import { test as base, expect, type Page } from './fixtures'
 import { MASCOT_STYLES } from '../src/shared/constants/mascot'
 import { APP_THEMES } from '../src/shared/constants/theme'
+import { installThemeFixtures } from './installed-packs'
 
 async function settleStartup(page: Page): Promise<void> {
   const startup = page.getByTestId('startup-animation')
@@ -168,12 +169,14 @@ test('scene transcripts, titlebar actions and minimum sidebar width stay usable 
           border: getComputedStyle(node).borderTopWidth,
           background: getComputedStyle(node).backgroundColor
         }))
-      expect(inner).toEqual({ border: '0px', background: 'rgba(0, 0, 0, 0)' })
+      expect(inner.border).toBe('0px')
+      expect(inner.background).not.toBe('rgba(0, 0, 0, 0)')
+      const skin = await page.locator('html').getAttribute('data-visual-skin')
       expect(
         await page
           .locator('.chat-scroll-content')
           .evaluate((node) => getComputedStyle(node).borderTopWidth)
-      ).toBe('1px')
+      ).toBe(skin ? '1px' : '0px')
     }
     const settings = page.getByTestId('navigation-settings')
     expect(
@@ -195,12 +198,15 @@ test('scene transcripts, titlebar actions and minimum sidebar width stay usable 
       expect(Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)).toBeLessThanOrEqual(0)
     }
     if (mascotStyle === 'starshipCockpit') {
-      const bounds = await page.locator('.starship-engine-hud').evaluate((node) => {
-        const sidebar = node.closest('[data-testid="workspace-sidebar"]')!.getBoundingClientRect()
-        const box = node.getBoundingClientRect()
-        return { within: box.left >= sidebar.left && box.right <= sidebar.right + 1 }
-      })
-      expect(bounds.within).toBe(true)
+      const skin = await page.locator('html').getAttribute('data-visual-skin')
+      if (skin === 'starship-cockpit') {
+        const bounds = await page.locator('.starship-engine-hud').evaluate((node) => {
+          const sidebar = node.closest('[data-testid="workspace-sidebar"]')!.getBoundingClientRect()
+          const box = node.getBoundingClientRect()
+          return { within: box.left >= sidebar.left && box.right <= sidebar.right + 1 }
+        })
+        expect(bounds.within).toBe(true)
+      }
     }
     await expect(
       page.locator('#titlebar-workspace-actions').getByTestId('workspace-toggle-files')
@@ -275,8 +281,10 @@ test('conversation layout stays contained in every appearance', async ({
 
 test('Zhang decorations stay outside the transcript and composer', async ({
   page,
-  workspaceRoot
+  workspaceRoot,
+  testUserData
 }, testInfo) => {
+  installThemeFixtures(testUserData)
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.evaluate(() => window.piSwitch.settings.unlockMascot('1024'))
   await openFixture(page, workspaceRoot)

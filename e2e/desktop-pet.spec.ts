@@ -3,6 +3,8 @@ import path from 'node:path'
 import { test, expect } from './fixtures'
 import { resolveAppLocale } from '../src/shared/constants/language'
 
+test.use({ petPacks: true })
+
 test('desktop pet fits its window and stays at a normal drag release', async ({
   page,
   electronApp,
@@ -356,8 +358,8 @@ test('all manual actions play and tasks retain dragging and opening the console'
   await expect(image).toBeVisible()
   const context = await pet.evaluate(() => window.piSwitchPet!.getContext())
   const clips = Object.entries(context.manifest.clips).filter(([, clip]) => clip.labels)
-  expect(clips).toHaveLength(193)
-  expect(clips.filter(([key]) => key.startsWith('indesktop-'))).toHaveLength(92)
+  expect(clips).toHaveLength(3)
+  expect(clips.filter(([key]) => key.startsWith('indesktop-'))).toHaveLength(1)
   const openMenu = async () => {
     const box = (await image.boundingBox())!
     await pet.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { button: 'right' })
@@ -472,7 +474,7 @@ test('all manual actions play and tasks retain dragging and opening the console'
     omitBackground: true
   })
   await pet.getByRole('menuitem', { name: /播放动作/ }).click()
-  await expect(pet.locator('[data-clip]')).toHaveCount(193)
+  await expect(pet.locator('[data-clip]')).toHaveCount(3)
   await pet.screenshot({
     path: testInfo.outputPath('manual-actions-list.png'),
     omitBackground: true
@@ -536,7 +538,7 @@ test('pet menus keep dark scrollbars and all entries reachable at every pet size
     await play.click()
     await expect(pet.getByRole('searchbox')).toBeInViewport()
     const actions = menu.locator('[data-clip]')
-    await expect(actions).toHaveCount(193)
+    await expect(actions).toHaveCount(3)
     await menu.hover()
     await pet.mouse.wheel(0, 10000)
     await expect(actions.last()).toBeInViewport()

@@ -3,6 +3,8 @@ import path from 'node:path'
 import { test, expect } from './fixtures'
 import { expectArchitectureDockToFit } from './architecture-controls'
 
+test.use({ themePacks: true })
+
 test('architecture surfaces stay readable over scene skins and follow the active appearance', async ({
   page,
   electronApp,

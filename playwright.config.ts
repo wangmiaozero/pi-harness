@@ -6,6 +6,8 @@ import { defineConfig } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './e2e',
+  // Local screenshot capture reads this machine's pack checkout. CI does not.
+  testIgnore: process.env.PI_HARNESS_DOCS_CAPTURE === '1' ? undefined : '**/docs-capture/**',
   timeout: 90_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,

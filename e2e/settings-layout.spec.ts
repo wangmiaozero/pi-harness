@@ -3,6 +3,8 @@ import path from 'node:path'
 import { expect, test } from './fixtures'
 import { IPC_INVOKE } from '../src/shared/ipc/channels'
 
+test.use({ themePacks: true })
+
 const { version: APP_VERSION } = JSON.parse(fs.readFileSync('package.json', 'utf8')) as {
   version: string
 }
