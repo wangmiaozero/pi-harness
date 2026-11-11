@@ -319,13 +319,16 @@ function draw(now: number): void {
     context.fill()
   }
   context.globalAlpha = 1
-  if (!reducedMotion) frameId = requestAnimationFrame(draw)
+  if (!reducedMotion && !leaving.value) frameId = requestAnimationFrame(draw)
 }
 
 function finish(): void {
   if (mode.value !== 'particle' || !minimumElapsed || leaving.value || !visible.value) return
   leaving.value = true
   leaveStartedAt = performance.now()
+  // The fade is CSS. Another canvas frame on software GL can block the timer that removes the cover.
+  cancelAnimationFrame(frameId)
+  frameId = 0
   exitTimer = setTimeout(
     () => {
       visible.value = false

@@ -2,6 +2,12 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.1 — 2026-11-11
+
+### Fixed
+
+- The startup screen closes after the environment check finishes.
+
 ## 2.4.0 — 2026-11-11
 
 ### Added
