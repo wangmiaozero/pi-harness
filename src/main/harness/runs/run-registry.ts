@@ -156,8 +156,8 @@ export class RunRegistry {
     )
 
     const all = [
-      ...(activeRun ? [{ ...activeRun.run, steps: [...activeRun.run.steps] }] : []),
-      ...live.map((entry) => ({ ...entry.run, steps: [...entry.run.steps] })),
+      ...(activeRun ? [this.snapshot(activeRun)] : []),
+      ...live.map((entry) => this.snapshot(entry)),
       ...persisted,
       ...filteredHistory
     ]
@@ -170,10 +170,21 @@ export class RunRegistry {
 
   async getRun(sessionId: string, runId: string): Promise<HarnessRun | null> {
     const activeRun = this.active.get(sessionId)
-    if (activeRun && activeRun.run.id === runId) return { ...activeRun.run }
+    if (activeRun && activeRun.run.id === runId) return this.snapshot(activeRun)
     const live = this.sessions.get(sessionId)?.find((entry) => entry.run.id === runId)
-    if (live) return { ...live.run }
+    if (live) return this.snapshot(live)
     return (await this.listRuns(sessionId)).find((run) => run.id === runId) ?? null
+  }
+
+  /**
+   * Settlement publishes the terminal status before engineering evaluation
+   * finishes. Callers must keep seeing `verifying` until the verdict is final,
+   * otherwise an evaluation starts against a run that is about to leave `success`.
+   */
+  private snapshot(entry: LiveRun): HarnessRun {
+    const run = { ...entry.run, steps: [...entry.run.steps] }
+    if (entry.settled && !entry.finalized) run.status = 'verifying'
+    return run
   }
 
   /** Mark the run as passing through engineering evaluation before its verdict. */

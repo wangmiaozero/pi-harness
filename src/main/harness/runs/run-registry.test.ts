@@ -230,6 +230,10 @@ describe('RunRegistry', () => {
     })
     const runId = registry.getCurrentRun('s1')?.id
     expect(runId).toBeTruthy()
+    expect(registry.getCurrentRun('s1')?.status).toBe('success')
+    expect((await registry.listRuns('s1')).find((item) => item.id === runId)?.status).toBe(
+      'verifying'
+    )
     registry.markEvaluating('s1', runId!)
     expect(registry.getCurrentRun('s1')?.status).toBe('verifying')
 

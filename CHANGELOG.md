@@ -2,6 +2,12 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.2 — 2026-11-11
+
+### Fixed
+
+- Quality evaluation runs after a finished turn instead of reporting that the run has not settled.
+
 ## 2.4.1 — 2026-11-11
 
 ### Fixed
