@@ -4,29 +4,22 @@ Release notes describe user-visible additions and fixes.
 
 ## 2.4.2 — 2026-11-11
 
-### Fixed
-
-- Quality evaluation runs after a finished turn instead of reporting that the run has not settled.
-
-## 2.4.1 — 2026-11-11
-
-### Fixed
-
-- The startup screen closes after the environment check finishes.
-
-## 2.4.0 — 2026-11-11
+Themes and desktop pets install from the Resource Market. Startup closes itself, a saved conversation opens with its project, and a saved theme stays selected when its pack is missing.
 
 ### Added
 
 - Resource Market installs official themes and desktop pets from the GitHub catalog. Each pack installs, updates, and uninstalls on its own.
-- A saved theme or pet stays selected when its pack is missing, and the app uses the base appearance until that pack is installed.
 - Each supported platform has one installer.
 
 ### Fixed
 
-- Capabilities no longer lists Odai.
-- Starship cockpit artwork loads only while that theme is selected.
+- A saved theme or pet stays selected when its pack is missing, including at startup. The app uses the base appearance until that pack is installed.
+- The startup screen closes after the environment check finishes.
 - A saved conversation opens after startup instead of asking for a project.
+- Workspace actions and file saving keep working after reload.
+- Starship cockpit artwork loads only while that theme is selected.
+- Quality evaluation runs after a finished turn instead of reporting that the run has not settled.
+- Capabilities no longer lists Odai.
 
 ## 2.3.24 — 2026-11-08
 

@@ -23,10 +23,8 @@ import { usePetStore } from '@renderer/stores/pet'
 import { installPetRuntimeAdapter } from '@renderer/pet/install-runtime-adapter'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { runtimeStartupChecks, startupChecks, startupPhase } from './startup'
-import { DEFAULT_MASCOT_STYLE } from '@shared/constants/mascot'
 import {
   applyVisualSkin,
-  selectedThemePackMissing,
   setInstalledPetIds,
   setInstalledThemeAssets
 } from '@renderer/utils/visual-skin'
@@ -173,12 +171,8 @@ setInstalledPetIds([])
 void bootstrap()
 void getApi()
   .market.installed()
-  .then(async (installed) => {
+  .then((installed) => {
     publishInstalledCatalog(installed)
-    if (selectedThemePackMissing(settingsStore.settings)) {
-      await settingsStore.patch({ mascotStyle: DEFAULT_MASCOT_STYLE })
-      return
-    }
     applyVisualSkin(settingsStore.settings)
   })
   .catch(() => undefined)
