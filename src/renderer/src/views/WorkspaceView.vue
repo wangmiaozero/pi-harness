@@ -543,7 +543,7 @@ watch(
     ]"
     :style="workspaceViewStyle"
   >
-    <Teleport v-if="viewActive" to="#titlebar-workspace-actions">
+    <Teleport v-if="viewActive" defer to="#titlebar-workspace-actions">
       <div class="flex items-center gap-1">
         <IconButton
           :label="$t('intelligence.architecture')"

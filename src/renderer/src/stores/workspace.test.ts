@@ -319,7 +319,7 @@ describe('conversation file panel', () => {
     expect(workspace.projectRoots).toEqual(['/code/b'])
   })
 
-  it('keeps the newer session workspace when an older sync finishes later', async () => {
+  it('applies session workspaces in request order so the newer selection wins', async () => {
     const workspace = useWorkspaceStore()
     const sessions = useSessionStore()
     sessions.items = [
@@ -359,11 +359,13 @@ describe('conversation file panel', () => {
     })
     window.piSwitch = api
     const older = workspace.restoreSessionWorkspace('a')
-    await vi.waitFor(() => expect(api.workspace.sync).toHaveBeenCalled())
-    await workspace.restoreSessionWorkspace('b')
-    expect(workspace.projectRoots).toEqual(['/code/b'])
+    await vi.waitFor(() => expect(api.workspace.sync).toHaveBeenCalledTimes(1))
+    const newer = workspace.restoreSessionWorkspace('b')
+    for (let step = 0; step < 20; step += 1) await Promise.resolve()
+    expect(api.workspace.sync).toHaveBeenCalledTimes(1)
     finishOlder()
-    await older
+    await Promise.all([older, newer])
+    expect(api.workspace.sync).toHaveBeenCalledTimes(2)
     expect(workspace.projectRoots).toEqual(['/code/b'])
     expect(workspace.activeSessionWorkspaceId).toBe('b')
   })
