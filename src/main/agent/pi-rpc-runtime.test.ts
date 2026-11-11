@@ -727,7 +727,9 @@ export default function(pi: any) {
     cancelled.abort()
     await expect(maintenance.update('pi', cancelled.signal)).rejects.toThrow()
     expect((await maintenance.resolvePiRuntime()).executablePath).toBe(restored.pi.executablePath)
-  }, 60_000)
+    // Official archive extract plus three full-tree hashes. arm64 CI finishes in
+    // about 6s; macos-15-intel runs the same Pi tests about 10x slower.
+  }, 180_000)
   it('recovers the verified application baseline when an optional version is no longer usable', async () => {
     const stateFile = path.join(root, 'old-version.json')
     await fs.writeFile(
