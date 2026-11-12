@@ -2,6 +2,14 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.4 — 2026-11-12
+
+The startup screen closes as soon as the app is ready.
+
+### Fixed
+
+- The startup screen closes instead of staying up when its fade cannot finish.
+
 ## 2.4.3 — 2026-11-11
 
 The BigFish pet and its action packs install from the Resource Market. A failed install shows the reason.

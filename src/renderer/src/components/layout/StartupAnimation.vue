@@ -64,7 +64,6 @@ let frameId = 0
 let resizeObserver: ResizeObserver | null = null
 let minimumTimer: ReturnType<typeof setTimeout> | null = null
 let fallbackTimer: ReturnType<typeof setTimeout> | null = null
-let exitTimer: ReturnType<typeof setTimeout> | null = null
 let readyTimer: ReturnType<typeof setTimeout> | null = null
 let minimumElapsed = false
 let startedAt = 0
@@ -85,6 +84,7 @@ function easeOut(t: number): number {
 }
 
 function buildField(): void {
+  if (leaving.value || !visible.value) return
   const element = canvas.value
   if (!element) return
   const bounds = element.getBoundingClientRect()
@@ -326,15 +326,13 @@ function finish(): void {
   if (mode.value !== 'particle' || !minimumElapsed || leaving.value || !visible.value) return
   leaving.value = true
   leaveStartedAt = performance.now()
-  // The fade is CSS. Another canvas frame on software GL can block the timer that removes the cover.
   cancelAnimationFrame(frameId)
   frameId = 0
-  exitTimer = setTimeout(
-    () => {
-      visible.value = false
-    },
-    reducedMotion ? 0 : 500
-  )
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  // Drop the cover in this turn. A later fade timer does not run when software GL
+  // is blocked reading the full-screen canvas back.
+  visible.value = false
 }
 
 function finishWhenReady(): void {
@@ -504,7 +502,6 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   if (minimumTimer) clearTimeout(minimumTimer)
   if (fallbackTimer) clearTimeout(fallbackTimer)
-  if (exitTimer) clearTimeout(exitTimer)
   if (readyTimer) clearTimeout(readyTimer)
   if (holdFallback) clearTimeout(holdFallback)
 })
