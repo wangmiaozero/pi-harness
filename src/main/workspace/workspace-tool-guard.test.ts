@@ -1,4 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('../agent/pi-sdk', () => ({
+  loadPiCodingAgent: async () => ({
+    compact: async () => ({ summary: '', details: undefined })
+  })
+}))
+
 import { extractToolPath, resolveWorkspaceToolPath } from './workspace-tool-guard'
 import { createDesktopExtension } from '../agent/desktop-extension'
 import type { ExtensionAPI, ToolCallEvent } from '@earendil-works/pi-coding-agent'

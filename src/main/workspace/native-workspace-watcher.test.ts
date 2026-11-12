@@ -94,7 +94,7 @@ it('delivers a child edit when macOS reports only the parent directory', async (
   await fs.writeFile(file, 'after\n')
   emit('src')
   await vi.advanceTimersByTimeAsync(250)
-  expect(changed).toHaveBeenCalledOnce()
+  await vi.waitFor(() => expect(changed).toHaveBeenCalledOnce())
 })
 
 it('delivers an edit reported with the resolved filesystem path', async () => {
