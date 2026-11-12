@@ -1,3 +1,6 @@
+import { ChatGptAccounts } from './services/chatgpt-accounts'
+import { LocalAccountDiscovery } from './services/local-account-discovery'
+import { ProviderQuota } from './services/provider-quota'
 import { FileUndoService } from './harness/file-undo/file-undo-service'
 import { canUseVoiceMicrophone } from './agent-settings/voice-service'
 import fs from 'node:fs/promises'
@@ -273,6 +276,10 @@ async function bootstrap(): Promise<void> {
   // installed — missing files yield null mtimes (no false conflicts).
   await config.read().catch((err) => log.config.warn('initial config read failed:', err))
   const providers = new ProviderService(config, metadata)
+  const chatGpt = new ChatGptAccounts(path.join(userData(), 'chatgpt-accounts.json'))
+  const localAccounts = new LocalAccountDiscovery()
+  const providerQuota = new ProviderQuota(providers)
+  void localAccounts.list()
   const models = new ModelService(config, metadata)
   const openCodeStateFile = path.join(app.getPath('userData'), 'opencode-free.json')
   process.env.PI_HARNESS_OPENCODE_STATE = openCodeStateFile
@@ -476,7 +483,7 @@ async function bootstrap(): Promise<void> {
       }
     }
   }
-  const piAgent = new AgentRuntimeService(sessions, desktopHooks)
+  const piAgent = new AgentRuntimeService(sessions, desktopHooks, chatGpt)
   let rpcAgent: PiRpcRuntime | null = null
   const runtimes = new RuntimeManager({
     bundledRoot: app.isPackaged
@@ -511,6 +518,7 @@ async function bootstrap(): Promise<void> {
       ? path.join(process.resourcesPath, 'desktop-extension/index.mjs')
       : path.resolve(import.meta.dirname, '../../resources/desktop-extension/index.mjs'),
     configDir: () => getPiConfigDir(settingsStore.peek().manualConfigDir),
+    chatGpt,
     workspace: desktopHooks
   })
   const harness = new HarnessRuntime(
@@ -648,7 +656,9 @@ async function bootstrap(): Promise<void> {
     petRoot: userPetPacksRoot(app.getPath('userData')),
     appVersion: app.getVersion(),
     catalogUrl:
-      !app.isPackaged && catalogOverride && /^http:\/\/127\.0\.0\.1:\d+\/catalog\.json$/.test(catalogOverride)
+      !app.isPackaged &&
+      catalogOverride &&
+      /^http:\/\/127\.0\.0\.1:\d+\/catalog\.json$/.test(catalogOverride)
         ? catalogOverride
         : undefined,
     pets: {
@@ -683,6 +693,9 @@ async function bootstrap(): Promise<void> {
     uiStateStore,
     config,
     providers,
+    chatGpt,
+    localAccounts,
+    providerQuota,
     openCodeFree,
     models,
     backup,
@@ -798,6 +811,9 @@ async function bootstrap(): Promise<void> {
     stopAutomaticUpdates()
     unsubscribeUpdateState()
     config.stopWatcher()
+    localAccounts.close()
+    providerQuota.close()
+    chatGpt.close()
     orchestrator.detach()
     petService?.stop()
     quitCleanup = (async () => {

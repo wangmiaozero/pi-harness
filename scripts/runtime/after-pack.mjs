@@ -38,7 +38,12 @@ export default async function afterPack(context) {
   }
   const extension = path.join(resources, 'desktop-extension/index.mjs')
   await fs.access(extension)
-  for (const name of ['opencode-provider.mjs', 'opencode-catalog.mjs', 'opencode-state.mjs'])
+  for (const name of [
+    'opencode-provider.mjs',
+    'opencode-catalog.mjs',
+    'opencode-state.mjs',
+    'chatgpt-provider.mjs'
+  ])
     await fs.access(path.join(resources, 'desktop-extension', name))
   const treeSize = async (dir) => {
     let size = 0

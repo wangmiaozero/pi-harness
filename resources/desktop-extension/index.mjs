@@ -2,6 +2,7 @@ import net from 'node:net'
 import { randomUUID } from 'node:crypto'
 import { registerOpenCode } from './opencode-provider.mjs'
 import { installCompactionPolicy } from './compaction.mjs'
+import { chatGptProviderSync } from './chatgpt-provider.mjs'
 import { compact } from '@earendil-works/pi-coding-agent'
 
 /** Uses Pi's public extension API. No upstream patches or duplicated agent loop. */
@@ -46,6 +47,12 @@ export default async function desktopExtension(pi) {
   await registerOpenCode(pi, {
     resolveKey: async () => (await request('opencode_auth')) ?? undefined
   })
+  const syncChatGpt = chatGptProviderSync(
+    (provider) => pi.registerProvider(provider),
+    (id) => pi.unregisterProvider(id),
+    async () => (await request('chatgpt_accounts')) ?? [],
+    (id, modelId) => request('chatgpt_access', { id, modelId })
+  )
   socket.on('error', () => {})
   socket.on('close', () => {
     for (const item of pending.values()) {
@@ -60,6 +67,7 @@ export default async function desktopExtension(pi) {
   })
   async function handle(method, params) {
     if (!context) throw new Error('Desktop extension is not ready')
+    if (method === 'chatgpt_sync') return syncChatGpt()
     if (method === 'snapshot')
       return {
         tools: pi.getAllTools().map((tool) => ({
@@ -150,6 +158,7 @@ export default async function desktopExtension(pi) {
         )
     }
   })
+  await syncChatGpt()
   const definitions = await request('tools')
   for (const tool of definitions)
     pi.registerTool({

@@ -1,3 +1,6 @@
+import { CHATGPT_PROVIDER_PREFIX } from '@shared/providers/account-management'
+import { chatGptVerifySchema } from '@shared/schemas/ipc'
+import type { ChatGptAccounts } from '../services/chatgpt-accounts'
 import { secretStore } from '../security/secret-store'
 import { compactionDefaults } from './compaction-defaults'
 import {
@@ -112,6 +115,7 @@ export class PiRpcRuntime implements HarnessAdapter {
     private readonly options: {
       extensionPath: string
       configDir: () => string
+      chatGpt?: ChatGptAccounts
       workspace?: ConstructorParameters<typeof AgentRuntimeService>[1]
     }
   ) {}
@@ -221,6 +225,15 @@ export class PiRpcRuntime implements HarnessAdapter {
         /* Pi handles missing or malformed native settings. */
       }
     }
+    const chatGptSelected =
+      typeof intended?.provider === 'string' &&
+      intended.provider.startsWith(CHATGPT_PROVIDER_PREFIX)
+    if (
+      chatGptSelected &&
+      (!intended?.modelId ||
+        !(await this.options.chatGpt?.hasVerifiedModel(intended.provider, intended.modelId)))
+    )
+      throw new AgentError('ChatGPT model is unavailable. Select another model to continue.')
     if (intended?.provider === 'opencode-free') {
       if (!runtimeModels(await readState()).some((m) => m.id === intended!.modelId))
         throw new AgentError(
@@ -240,6 +253,13 @@ export class PiRpcRuntime implements HarnessAdapter {
     let live!: LiveSession
     const bridge = new DesktopBridge(async (method, params) => {
       if (method === 'summary_defaults') return compactionDefaults(params)
+      if (method === 'chatgpt_accounts') return this.options.chatGpt?.list() ?? []
+      if (method === 'chatgpt_access') {
+        const input = chatGptVerifySchema.safeParse(params)
+        if (!this.options.chatGpt || !input.success)
+          throw new AgentError('ChatGPT authorization is unavailable')
+        return this.options.chatGpt.resolve(input.data.id, input.data.modelId)
+      }
       if (method === 'opencode_auth') {
         const state = await readState()
         return state.authMode === 'inference' && state.enabled && state.hasCredential
@@ -353,10 +373,11 @@ export class PiRpcRuntime implements HarnessAdapter {
     const args = ['--mode', 'rpc', '--extension', this.options.extensionPath]
     if (file) args.push('--session', file)
     else args.push('--session-id', id)
-    if (intended?.provider === 'opencode-free')
-      args.push('--provider', intended.provider, '--model', intended.modelId!)
+    if (chatGptSelected || intended?.provider === 'opencode-free')
+      args.push('--provider', intended!.provider, '--model', intended!.modelId!)
     else if (input.provider) args.push('--provider', input.provider)
-    if (input.modelId && intended?.provider !== 'opencode-free') args.push('--model', input.modelId)
+    if (input.modelId && !chatGptSelected && intended?.provider !== 'opencode-free')
+      args.push('--model', input.modelId)
     if (input.thinkingLevel && input.thinkingLevel !== 'auto')
       args.push('--thinking', input.thinkingLevel)
     if (input.toolNames?.length === 0) args.push('--no-tools')
@@ -404,7 +425,15 @@ export class PiRpcRuntime implements HarnessAdapter {
       const state = (await client.request({ type: 'get_state' })) as {
         sessionId: string
         sessionFile?: string
+        model?: { provider: string; id: string }
       }
+      if (
+        chatGptSelected &&
+        (state.model?.provider !== intended?.provider || state.model?.id !== intended?.modelId)
+      )
+        throw new AgentError(
+          'Pi could not select the ChatGPT model. Select another model to continue.'
+        )
       let readyTimer: ReturnType<typeof setTimeout> | undefined
       try {
         await Promise.race([
@@ -728,6 +757,12 @@ export class PiRpcRuntime implements HarnessAdapter {
     }
   }
   async executeAgentCommand(id: string, command: Record<string, unknown>): Promise<unknown> {
+    if (command.type === 'set_model' && !this.live.has(id))
+      await this.startSession({
+        sessionId: id,
+        provider: String(command.provider),
+        modelId: String(command.modelId)
+      })
     const live = await this.require(id)
     switch (command.type) {
       case 'get_state':
@@ -784,6 +819,8 @@ export class PiRpcRuntime implements HarnessAdapter {
         })
       }
       case 'set_model':
+        if (String(command.provider ?? '').startsWith(CHATGPT_PROVIDER_PREFIX))
+          await live.bridge.request('chatgpt_sync')
         return live.client.request({
           type: 'set_model',
           provider: String(command.provider ?? ''),

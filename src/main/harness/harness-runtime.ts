@@ -1,3 +1,5 @@
+import { summarizeUsage } from './runs/usage-report'
+import type { UsageRange } from '@shared/providers/account-management'
 import type { FileUndoService } from './file-undo/file-undo-service'
 import type { BrowserWindow } from 'electron'
 import os from 'node:os'
@@ -316,6 +318,18 @@ export class HarnessRuntime implements AgentRuntime {
       .filter((run) => run.orchestrationId === orchestrationId)
     const seen = new Set(persisted.map((run) => run.id))
     return [...persisted, ...live.filter((run) => !seen.has(run.id))]
+  }
+
+  async usageReport(range: UsageRange) {
+    const { runs, clearedAt } = await this.runRepository.usageSnapshot()
+    return summarizeUsage([...runs, ...this.runs.listAllLiveRuns()], {
+      ...range,
+      start: Math.max(range.start, clearedAt)
+    })
+  }
+
+  async clearUsageHistory(): Promise<void> {
+    await this.runRepository.clearUsage(Date.now())
   }
 
   // ------------------------------------------------------------- run surface

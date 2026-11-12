@@ -184,7 +184,11 @@ export function suggestedModelPresets(provider?: ProviderPreset): readonly Provi
 }
 
 function normalizeBaseUrl(value: string): string {
-  return value.trim().replace(/\/+$/, '').toLowerCase().replace('127.0.0.1', 'localhost')
+  const url = URL.parse(value.trim())
+  if (!url) return value.trim().replace(/\/+$/, '')
+  if (url.hostname === '127.0.0.1') url.hostname = 'localhost'
+  if (url.username || url.password) return url.href
+  return url.origin + url.pathname.replace(/\/+$/, '') + url.search + url.hash
 }
 
 export function findProviderPreset(input: {

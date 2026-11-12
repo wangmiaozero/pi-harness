@@ -69,6 +69,20 @@ function run(id: string, overrides: Partial<HarnessRun> = {}): HarnessRun {
 }
 
 describe('JsonRunRepository', () => {
+  it('clears usage breakdowns while preserving the run totals and rejecting late historical writes', async () => {
+    const store = tempStore()
+    const repository = new JsonRunRepository(store)
+    const original = run('past')
+    original.usage.byModel = {}
+    await repository.save(original)
+    await repository.clearUsage(2_000)
+    await repository.save(original)
+    const snapshot = await new JsonRunRepository(store).usageSnapshot()
+    expect(snapshot.clearedAt).toBe(2_000)
+    expect(snapshot.runs[0].usage.byModel).toBeUndefined()
+    expect(snapshot.runs[0].usage.estimatedCost).toBe(original.usage.estimatedCost)
+    expect(snapshot.runs[0].usage.totalTokens).toBe(original.usage.totalTokens)
+  })
   it('retains simultaneous run completions and concurrent pruning', async () => {
     const store = tempStore()
     const repository = new JsonRunRepository(store)

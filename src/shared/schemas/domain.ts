@@ -130,11 +130,14 @@ export const pathSegmentSchema = z
   .max(1024)
   .refine((s) => !s.includes('\0'), 'no null bytes')
 
-export const testConnectionSchema = z.object({
-  providerKey: z.string().min(1),
-  /** Optional — falls back to provider defaultModelId / first registered model. */
-  modelId: z.string().max(256).optional().default('')
-})
+export const testConnectionSchema = z
+  .strictObject({
+    providerKey: providerKeySchema.optional(),
+    /** Optional — falls back to provider defaultModelId / first registered model. */
+    modelId: z.string().max(256).optional().default(''),
+    draft: providerModelDiscoverySchema.optional()
+  })
+  .refine(({ providerKey, draft }) => Boolean(providerKey) !== Boolean(draft))
 
 const skillNameRegex = /^[a-z0-9][a-z0-9._-]{0,63}$/
 

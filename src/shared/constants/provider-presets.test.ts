@@ -10,6 +10,31 @@ import {
 } from '@shared/constants/provider-presets'
 
 describe('provider preset catalog', () => {
+  it('covers the supported hosted, local and compatible provider families', () => {
+    const ids = [
+      'openai',
+      'anthropic',
+      'google',
+      'deepseek',
+      'moonshot',
+      'zhipuai',
+      'minimax',
+      'qwen',
+      'openrouter',
+      'siliconflow',
+      'groq',
+      'together-ai',
+      'fireworks',
+      'xai',
+      'mistral-ai',
+      'ollama',
+      'lm-studio',
+      'openai-compatible',
+      'anthropic-compatible'
+    ]
+    expect(PROVIDER_PRESETS.map(({ id }) => id)).toEqual(expect.arrayContaining(ids))
+    expect(findProviderPreset({ baseUrl: 'http://127.0.0.1:11434/v1/' })?.id).toBe('ollama')
+  })
   it('contains the merged Pi-compatible provider/model catalog', () => {
     const imported = PROVIDER_PRESETS.filter((preset) => !preset.sources.includes('Pi-Harness'))
     const modelCount = imported.reduce((total, preset) => total + preset.models.length, 0)

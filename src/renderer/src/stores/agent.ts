@@ -24,6 +24,7 @@ import { normalizeToolCalls } from '@shared/workspace/normalize'
 import type { ClientAssistantMessageEvent } from '@shared/workspace/agent-event-wire'
 import { normalizeAgentEventEnvelopes } from '@shared/workspace/agent-event-wire'
 import { callApi, getApi, getErrorMessage } from '@renderer/composables/useApi'
+import { i18n } from '@renderer/i18n'
 import { toComposerThinkingLevel } from '@shared/constants/index'
 import { resolveThinkingLevel } from '@shared/thinking/levels'
 import { inspectRuntimeError, runtimeEventError } from '@shared/workspace/runtime-error'
@@ -35,6 +36,7 @@ import {
 } from '@shared/workspace/tool-presets'
 import type { PermissionMode } from '@shared/workspace/permission-mode'
 import { useModelsStore } from './models'
+import { useChatGptAccounts } from './chatgpt-accounts'
 import { useSessionStore } from './sessions'
 import { useWorkspaceStore } from './workspace'
 import { useSettingsStore } from './settings'
@@ -447,9 +449,18 @@ export const useAgentStore = defineStore('agent', () => {
     try {
       if (!sessionId) {
         if (!cwd) throw new Error('No project cwd')
+        const accountSelection = useChatGptAccounts()
+        if (accountSelection.useAccountDefault && !accountSelection.draftModel && getApi().accounts)
+          await accountSelection.load()
+        let accountModel = accountSelection.draftModel
+        if (!accountModel && accountSelection.effectiveDraftModel) {
+          accountModel = await getApi().accounts.routeDefault()
+          if (!accountModel) throw new Error(i18n.global.t('providerAccounts.defaultChanged'))
+        }
         const started = await callApi(() =>
           getApi().agent.start({
             cwd,
+            ...accountModel,
             toolNames: getToolNamesForPreset(preset),
             ...(thinkingLevel.value !== 'auto'
               ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value) }

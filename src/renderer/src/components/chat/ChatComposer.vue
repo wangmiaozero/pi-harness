@@ -31,6 +31,7 @@ import { shouldSendComposerKey } from './composer-keys'
 import { useWorkspaceStore, type ChatDraftImage } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
 import { useSessionStore } from '@renderer/stores/sessions'
+import { useChatGptAccounts } from '@renderer/stores/chatgpt-accounts'
 import { useModelsStore } from '@renderer/stores/models'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useSettingsStore } from '@renderer/stores/settings'
@@ -115,6 +116,7 @@ const workspace = useWorkspaceStore()
 const agent = useAgentStore()
 const sessions = useSessionStore()
 const models = useModelsStore()
+const chatGpt = useChatGptAccounts()
 const providers = useProvidersStore()
 const settings = useSettingsStore()
 const skills = useSkillsStore()
@@ -246,6 +248,18 @@ const modelOptions = computed(() => {
       description: t(`openCode.errors.${reason}`, t('openCode.notAvailable'))
     })
   }
+  for (const account of chatGpt.items) {
+    for (const model of account.models) {
+      if (!model.verified || model.disabled || model.unsupported) continue
+      options.push({
+        value: `${account.id}/${model.id}`,
+        label: model.name,
+        group: `ChatGPT · ${account.label}`,
+        disabled: false,
+        description: account.status === 'expired' ? t('providerAccounts.expired') : undefined
+      })
+    }
+  }
   return options
 })
 
@@ -253,6 +267,8 @@ const modelValue = computed({
   get: () => {
     if (imageModelValue.value) return imageModelValue.value
     if (agent.state?.model) return `${agent.state.model.provider}/${agent.state.model.id}`
+    if (!sessions.currentId && chatGpt.effectiveDraftModel)
+      return `${chatGpt.effectiveDraftModel.provider}/${chatGpt.effectiveDraftModel.modelId}`
     return models.active.providerKey && models.active.modelId
       ? `${models.active.providerKey}/${models.active.modelId}`
       : ''
@@ -278,7 +294,13 @@ const modelValue = computed({
     modelSwitching.value = true
     try {
       if (sessions.currentId) await agent.setModel(sessions.currentId, provider, modelId)
-      else await models.setActive(provider, modelId)
+      else if (chatGpt.items.some((account) => account.id === provider))
+        chatGpt.draftModel = { provider, modelId }
+      else {
+        await models.setActive(provider, modelId)
+        chatGpt.draftModel = null
+        chatGpt.useAccountDefault = false
+      }
     } catch (cause) {
       const message =
         cause && typeof cause === 'object' && 'message' in cause
@@ -299,6 +321,12 @@ const selectedModel = computed(() =>
   })
 )
 const selectedImageModel = computed(() => isImageGenerationModel(selectedModel.value))
+const selectedChatGptModel = computed(
+  () =>
+    chatGpt.items
+      .flatMap((account) => account.models.map((model) => ({ account, model })))
+      .find(({ account, model }) => `${account.id}/${model.id}` === modelValue.value)?.model
+)
 const mentionSkills = computed(() => {
   const byName = new Map<string, SkillInfo>()
   for (const skill of skills.skills.filter((item) => item.isValid)) {
@@ -334,7 +362,9 @@ const activeMentionSkill = computed(
   () => filteredMentionSkills.value[activeSkillIndex.value] ?? null
 )
 const supportsImages = computed(
-  () => selectedImageModel.value || selectedModel.value?.vision === true
+  () =>
+    selectedImageModel.value ||
+    (selectedModel.value?.vision ?? selectedChatGptModel.value?.vision) === true
 )
 const hasUnsupportedImages = computed(
   () => workspace.draftImages.length > 0 && !supportsImages.value
@@ -553,7 +583,7 @@ function openSkillMention() {
 
 const thinkingStops = computed(() =>
   composerThinkingLevels(
-    selectedModel.value?.reasoning === false
+    (selectedModel.value?.reasoning ?? selectedChatGptModel.value?.reasoning) === false
       ? ['none']
       : resolveAvailableThinkingLevels(selectedModel.value?.thinkingLevels)
   )
@@ -970,6 +1000,7 @@ watch(active, (visible) => {
 
 onMounted(() => {
   void refreshOpenCodeOptions()
+  void chatGpt.load().catch(() => {})
   syncEditorText()
   window.addEventListener('resize', syncSkillMenu)
   window.addEventListener('scroll', syncSkillMenu, true)

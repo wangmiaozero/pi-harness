@@ -100,6 +100,7 @@ function mapMessageEnd(event: AgentEvent, timestamp: number): HarnessEvent[] {
         role?: string
         model?: string
         provider?: string
+        stopReason?: string
         usage?: {
           input?: unknown
           output?: unknown
@@ -111,25 +112,36 @@ function mapMessageEnd(event: AgentEvent, timestamp: number): HarnessEvent[] {
     | undefined
   if (!message || message.role !== 'assistant') return []
   const usage = message.usage
-  if (!usage) return [{ type: 'message.completed', timestamp }]
   const number = (value: unknown): number =>
     typeof value === 'number' && Number.isFinite(value) ? value : 0
   const cost =
-    typeof usage.cost?.total === 'number' && Number.isFinite(usage.cost.total)
-      ? usage.cost.total
+    typeof usage?.cost?.total === 'number' && Number.isFinite(usage?.cost.total)
+      ? usage?.cost.total
       : null
   return [
     {
       type: 'message.completed',
       timestamp,
-      usage: {
-        input: number(usage.input),
-        output: number(usage.output),
-        cacheRead: number(usage.cacheRead),
-        cacheWrite: number(usage.cacheWrite),
-        total: number(usage.input) + number(usage.output) + number(usage.cacheRead),
-        cost
-      },
+      outcome:
+        message.stopReason === 'error'
+          ? 'failed'
+          : message.stopReason === 'aborted'
+            ? 'aborted'
+            : 'succeeded',
+      usage: usage
+        ? {
+            input: number(usage?.input),
+            output: number(usage?.output),
+            cacheRead: number(usage?.cacheRead),
+            cacheWrite: number(usage?.cacheWrite),
+            total:
+              number(usage?.input) +
+              number(usage?.output) +
+              number(usage?.cacheRead) +
+              number(usage?.cacheWrite),
+            cost
+          }
+        : undefined,
       ...(typeof message.model === 'string' && message.model ? { model: message.model } : {}),
       ...(typeof message.provider === 'string' && message.provider
         ? { provider: message.provider }

@@ -181,6 +181,22 @@ const api: PiSwitchAPI = {
     docs: () => invoke(IPC_INVOKE.openCodeDocs),
     keys: () => invoke(IPC_INVOKE.openCodeKeys)
   },
+  accounts: {
+    local: (input) => invoke(IPC_INVOKE.localAccounts, input),
+    chatGpt: () => invoke(IPC_INVOKE.chatGptAccounts),
+    connect: () => invoke(IPC_INVOKE.chatGptConnect),
+    cancel: () => invoke(IPC_INVOKE.chatGptCancel),
+    verify: (input) => invoke(IPC_INVOKE.chatGptVerify, input),
+    refreshCatalog: (id) => invoke(IPC_INVOKE.chatGptCatalogRefresh, id),
+    setModelEnabled: (input) => invoke(IPC_INVOKE.chatGptModelEnabled, input),
+    setDefaultModel: (input) => invoke(IPC_INVOKE.chatGptDefaultModel, input),
+    setFallback: (input) => invoke(IPC_INVOKE.chatGptFallback, input),
+    routeDefault: () => invoke(IPC_INVOKE.chatGptRouteDefault),
+    disconnect: (id) => invoke(IPC_INVOKE.chatGptDisconnect, id),
+    quota: (provider) => invoke(IPC_INVOKE.providerQuota, provider),
+    usage: (range) => invoke(IPC_INVOKE.providerUsage, range),
+    clearUsage: () => invoke(IPC_INVOKE.providerUsageClear)
+  },
   providers: {
     list: () => invoke(IPC_INVOKE.providerList),
     get: (key) => invoke(IPC_INVOKE.providerGet, key),

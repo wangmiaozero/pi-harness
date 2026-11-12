@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import type { PiSwitchAPI } from '@shared/ipc/api-types'
 import { useAgentStore } from './agent'
+import { useChatGptAccounts } from './chatgpt-accounts'
 import { useModelsStore } from './models'
 import { useSessionStore } from './sessions'
 import type { AgentMessage } from '@shared/types/workspace'
@@ -22,6 +23,28 @@ describe('agent store new-session handshake', () => {
 
   afterEach(() => {
     delete window.piSwitch
+  })
+
+  it('passes an account draft model to Pi without changing the native default model', async () => {
+    const start = vi.fn(async (_input: Parameters<PiSwitchAPI['agent']['start']>[0]) => ({
+      sessionId: 'account-session',
+      cwd: '/code/project'
+    }))
+    const setActive = vi.fn()
+    window.piSwitch = {
+      agent: { start, prompt: vi.fn(async () => undefined) },
+      models: { setActive }
+    } as unknown as PiSwitchAPI
+    const provider = 'chatgpt-account-493957de-923a-4681-b5b6-d8de350c293a'
+    useChatGptAccounts().draftModel = { provider, modelId: 'fixture-model' }
+    await useAgentStore().send(null, '/code/project', 'hello', 'default')
+    expect(start).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        provider,
+        modelId: 'fixture-model'
+      })
+    )
+    expect(setActive).not.toHaveBeenCalled()
   })
 
   it('keeps an early streamed reply when navigation loads the newly created session', async () => {

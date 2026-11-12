@@ -290,3 +290,64 @@ function sessionMessage(
 ): SessionEntry {
   return { type: 'message', id, parentId, timestamp, message } as unknown as SessionEntry
 }
+
+it('counts confirmed request outcomes per account and includes cache writes in the budget', async () => {
+  const { registry } = createRegistry({
+    getBudget: () => ({ ...unlimitedBudget, maxTokens: 15 })
+  })
+  const { summarizeUsage } = await import('./usage-report')
+  registry.handleEvent('s1', promptEvent('private prompt', 1_000))
+  registry.handleEvent('s1', {
+    type: 'message.completed',
+    timestamp: 1_001,
+    provider: 'account-one',
+    model: 'fixture',
+    outcome: 'failed'
+  })
+  registry.handleEvent('s1', {
+    type: 'message.completed',
+    timestamp: 1_002,
+    provider: 'account-one',
+    model: 'fixture',
+    outcome: 'succeeded',
+    usage: { input: 5, output: 4, cacheRead: 3, cacheWrite: 4, total: 16, cost: 0.00021 }
+  })
+  registry.handleEvent('s2', promptEvent('other', 1_003))
+  registry.handleEvent('s2', {
+    type: 'message.completed',
+    timestamp: 1_004,
+    provider: 'account-two',
+    model: 'fixture',
+    outcome: 'aborted'
+  })
+  const runs = registry.listAllLiveRuns()
+  expect(runs[0].budgetExceeded).toBeTruthy()
+  const report = summarizeUsage([runs[0], ...runs], { start: 1, end: 2000, timeZone: 'UTC' })
+  expect(report.total).toMatchObject({
+    requests: 3,
+    succeeded: 1,
+    failed: 1,
+    aborted: 1,
+    input: 5,
+    cacheWrite: 4,
+    estimatedCost: 0.00021
+  })
+  expect(report.providers.map(({ id, usage }) => [id, usage.requests])).toEqual([
+    ['account-one', 2],
+    ['account-two', 1]
+  ])
+  expect(JSON.stringify(report)).not.toContain('private prompt')
+  const selected = summarizeUsage(runs, {
+    start: 1,
+    end: 2000,
+    timeZone: 'UTC',
+    provider: 'account-two',
+    modelId: 'fixture'
+  })
+  expect(selected.retainedRuns).toBe(1)
+  expect(selected.total).toMatchObject({ requests: 1, aborted: 1, input: 0, estimatedCost: null })
+  expect(selected.availableModels).toEqual([
+    { provider: 'account-one', id: 'fixture' },
+    { provider: 'account-two', id: 'fixture' }
+  ])
+})

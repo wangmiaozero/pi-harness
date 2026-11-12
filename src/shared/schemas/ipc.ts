@@ -2,6 +2,7 @@ import { shortcutOverridesSchema } from '../agent-settings/schema'
 /** Runtime schemas for non-domain IPC inputs. */
 
 import { z } from 'zod'
+import { CHATGPT_MODEL_ID } from '../providers/account-management'
 import { APP_LANGUAGES } from '../constants/language'
 import { MASCOT_STYLES } from '../constants/mascot'
 import { normalizeNavOrder } from '../constants/navigation'
@@ -184,3 +185,37 @@ export const permissionModeInputSchema = z
     mode: permissionModeSchema
   })
   .strict()
+
+export const chatGptAccountIdSchema = z
+  .string()
+  .regex(/^chatgpt-account-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+export const chatGptVerifySchema = z.strictObject({
+  id: chatGptAccountIdSchema,
+  modelId: z.string().regex(CHATGPT_MODEL_ID)
+})
+export const chatGptModelEnabledSchema = chatGptVerifySchema.extend({ enabled: z.boolean() })
+export const chatGptFallbackSchema = z.strictObject({
+  id: chatGptAccountIdSchema,
+  enabled: z.boolean()
+})
+export const localAccountsInputSchema = z.strictObject({ refresh: z.boolean() })
+export const usageRangeSchema = z
+  .strictObject({
+    start: z.number().int().min(0).max(8_640_000_000_000_000),
+    end: z.number().int().min(0).max(8_640_000_000_000_000),
+    provider: providerKeySchema.optional(),
+    modelId: z.string().min(1).max(256).optional(),
+    timeZone: z
+      .string()
+      .min(1)
+      .max(80)
+      .refine((value) => {
+        try {
+          new Intl.DateTimeFormat('en', { timeZone: value })
+          return true
+        } catch {
+          return false
+        }
+      })
+  })
+  .refine(({ start, end }) => start < end)

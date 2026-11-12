@@ -826,3 +826,50 @@ describe('ProviderService protocol updates', () => {
     )
   })
 })
+
+it('blocks saved credentials on a changed model catalog origin and redacts echoed draft keys', async () => {
+  const config = {
+    read: async () => ({
+      models: {
+        providers: {
+          saved: {
+            api: 'openai-completions',
+            baseUrl: 'https://api.original.test/v1',
+            apiKey: 'old-key'
+          }
+        }
+      }
+    })
+  }
+  const metadata = { read: async () => ({ providers: { saved: { apiKeyRef: 'fixture' } } }) }
+  const service = new ProviderService(config as never, metadata as never)
+  const fetcher = vi.fn<typeof fetch>()
+  vi.stubGlobal('fetch', fetcher)
+  try {
+    const input = {
+      existingProviderKey: 'saved',
+      protocol: 'openai-completions' as const,
+      baseUrl: 'https://api.other.test/v1',
+      headers: {},
+      authHeader: true,
+      timeout: null
+    }
+    await expect(service.discoverModels({ ...input, apiKey: { kind: 'stored' } })).rejects.toThrow(
+      'Enter a credential for the new endpoint'
+    )
+    expect(fetcher).not.toHaveBeenCalled()
+    fetcher.mockResolvedValue(Response.json({ data: [{ id: 'draft-secret' }, { id: 'regular' }] }))
+    expect(
+      await service.discoverModels({
+        ...input,
+        apiKey: { kind: 'literal', literal: 'draft-secret' }
+      })
+    ).toEqual([{ id: 'regular', name: 'regular' }])
+    expect(fetcher).toHaveBeenCalledExactlyOnceWith(
+      expect.any(URL),
+      expect.objectContaining({ redirect: 'error' })
+    )
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})

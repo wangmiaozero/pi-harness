@@ -1,3 +1,4 @@
+import { emptyUsage } from './usage-report'
 /**
  * Harness Run Registry.
  *
@@ -182,7 +183,11 @@ export class RunRegistry {
    * otherwise an evaluation starts against a run that is about to leave `success`.
    */
   private snapshot(entry: LiveRun): HarnessRun {
-    const run = { ...entry.run, steps: [...entry.run.steps] }
+    const run = {
+      ...entry.run,
+      usage: structuredClone(entry.run.usage),
+      steps: [...entry.run.steps]
+    }
     if (entry.settled && !entry.finalized) run.status = 'verifying'
     return run
   }
@@ -262,6 +267,7 @@ export class RunRegistry {
           provider: null,
           prompt: (event.message ?? '').slice(0, PROMPT_PREVIEW_LENGTH),
           usage: {
+            byModel: {},
             inputTokens: 0,
             outputTokens: 0,
             cachedTokens: 0,
@@ -311,10 +317,31 @@ export class RunRegistry {
           live.run.usage.inputTokens += event.usage.input
           live.run.usage.outputTokens += event.usage.output
           live.run.usage.cachedTokens += event.usage.cacheRead
+          live.run.usage.cacheWriteTokens =
+            (live.run.usage.cacheWriteTokens ?? 0) + event.usage.cacheWrite
           live.run.usage.totalTokens +=
-            event.usage.input + event.usage.output + event.usage.cacheRead
+            event.usage.input + event.usage.output + event.usage.cacheRead + event.usage.cacheWrite
           if (event.usage.cost !== null && Number.isFinite(event.usage.cost)) {
             live.run.usage.estimatedCost = (live.run.usage.estimatedCost ?? 0) + event.usage.cost
+          }
+        }
+        if (event.provider && event.model && live.run.usage.byModel) {
+          const key = JSON.stringify([event.provider, event.model])
+          const bucket = (live.run.usage.byModel[key] ??= {
+            provider: event.provider,
+            model: event.model,
+            usage: emptyUsage()
+          })
+          const usage = bucket.usage
+          usage.requests++
+          usage[event.outcome ?? 'succeeded']++
+          if (event.usage) {
+            usage.input += event.usage.input
+            usage.output += event.usage.output
+            usage.cacheRead += event.usage.cacheRead
+            usage.cacheWrite += event.usage.cacheWrite
+            if (event.usage.cost !== null && Number.isFinite(event.usage.cost))
+              usage.estimatedCost = (usage.estimatedCost ?? 0) + event.usage.cost
           }
         }
         if (event.model && !live.run.model) live.run.model = event.model

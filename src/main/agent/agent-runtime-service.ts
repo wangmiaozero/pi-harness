@@ -13,6 +13,8 @@ import type {
   ToolDefinition
 } from '@earendil-works/pi-coding-agent'
 import type { ThinkingLevel } from '@earendil-works/pi-agent-core'
+import { CHATGPT_PROVIDER_PREFIX } from '@shared/providers/account-management'
+import type { ChatGptAccounts } from '../services/chatgpt-accounts'
 import { BrowserWindow } from 'electron'
 import { log } from '../services/logger'
 import { AgentError } from '../services/errors'
@@ -107,7 +109,8 @@ export class AgentSessionWrapper {
     private readonly systemPromptController?: DesktopSessionContext,
     private readonly forkSession?: (
       entryId: string
-    ) => Promise<{ cancelled: boolean; newSessionId?: string; newSessionFile?: string }>
+    ) => Promise<{ cancelled: boolean; newSessionId?: string; newSessionFile?: string }>,
+    private readonly syncChatGpt?: () => Promise<void>
   ) {
     if (inner.autoCompactionEnabled === false) inner.setAutoCompactionEnabled(true)
     this.installFileToolEnforcement()
@@ -325,6 +328,7 @@ export class AgentSessionWrapper {
         const provider = String(command.provider ?? '')
         const modelId = String(command.modelId ?? '')
         await this.inner.modelRuntime.refresh({ allowNetwork: false })
+        if (provider.startsWith(CHATGPT_PROVIDER_PREFIX)) await this.syncChatGpt?.()
         const model = this.inner.modelRuntime.getModel(provider, modelId)
         if (!model) throw new AgentError(`Model not found: ${provider}/${modelId}`)
         const resolvedInput = resolveModelInput({
@@ -795,7 +799,8 @@ export class AgentRuntimeService implements AgentRuntime {
       customTools?: (cwd: string, sessionId: string) => Promise<ToolDefinition[]>
       architectureHint?: (cwd: string) => Promise<string | null>
       prepareSession?: (sessionId: string, cwd: string) => Promise<void>
-    }
+    },
+    private readonly chatGpt?: ChatGptAccounts
   ) {}
 
   diagnostics(): { implementation: 'pi'; sdkLoaded: boolean } {
@@ -943,6 +948,12 @@ export class AgentRuntimeService implements AgentRuntime {
   }
 
   async command(sessionId: string, command: Record<string, unknown>): Promise<unknown> {
+    if (command.type === 'set_model' && !this.registry.get(sessionId)?.isAlive())
+      await this.start({
+        sessionId,
+        provider: String(command.provider),
+        modelId: String(command.modelId)
+      })
     const wrapper = await this.require(sessionId)
     const result = await wrapper.send(command)
     if (
@@ -1106,6 +1117,33 @@ export class AgentRuntimeService implements AgentRuntime {
       }
     })
 
+    const chatGpt = this.chatGpt
+    let syncRegistered: (() => Promise<void>) | undefined
+    const syncChatGpt = chatGpt
+      ? async () => {
+          if (!syncRegistered) {
+            const accounts = await chatGpt.list()
+            if (
+              !accounts.some((account) =>
+                account.models.some(
+                  (model) => model.verified && !model.disabled && !model.unsupported
+                )
+              )
+            )
+              return
+            const { chatGptProviderSync } =
+              await import('../../../resources/desktop-extension/chatgpt-provider.mjs')
+            syncRegistered ??= chatGptProviderSync(
+              (provider) => services.modelRuntime.registerNativeProvider(provider),
+              (id) => services.modelRuntime.unregisterProvider(id),
+              () => chatGpt.list(),
+              (id, modelId) => chatGpt.resolve(id, modelId)
+            )
+          }
+          await syncRegistered()
+        }
+      : undefined
+    await syncChatGpt?.()
     const toolNames = input.toolNames
     const toolsOption =
       toolNames !== undefined ? (toolNames.length === 0 ? [] : undefined) : undefined
@@ -1121,6 +1159,11 @@ export class AgentRuntimeService implements AgentRuntime {
           provider: settingsManager.getDefaultProvider(),
           modelId: settingsManager.getDefaultModel()
         })
+    if (intended.provider?.startsWith(CHATGPT_PROVIDER_PREFIX)) {
+      model = services.modelRuntime.getModel(intended.provider, intended.modelId ?? '')
+      if (!model || !(await chatGpt?.hasVerifiedModel(intended.provider, model.id)))
+        throw new AgentError('ChatGPT model is unavailable. Select another model to continue.')
+    }
     if (intended.provider === 'opencode-free') {
       const registered =
         model ?? services.modelRuntime.getModel('opencode-free', intended.modelId ?? '')
@@ -1177,18 +1220,23 @@ export class AgentRuntimeService implements AgentRuntime {
       }
     })
     const realSessionId = inner.sessionId
-    const wrapper = new AgentSessionWrapper(inner, systemPromptController, async (entryId) => {
-      const result = await nativeRuntime.fork(entryId)
-      return {
-        cancelled: result.cancelled,
-        ...(result.cancelled
-          ? {}
-          : {
-              newSessionId: nativeRuntime.session.sessionId,
-              newSessionFile: nativeRuntime.session.sessionFile
-            })
-      }
-    })
+    const wrapper = new AgentSessionWrapper(
+      inner,
+      systemPromptController,
+      async (entryId) => {
+        const result = await nativeRuntime.fork(entryId)
+        return {
+          cancelled: result.cancelled,
+          ...(result.cancelled
+            ? {}
+            : {
+                newSessionId: nativeRuntime.session.sessionId,
+                newSessionFile: nativeRuntime.session.sessionFile
+              })
+        }
+      },
+      syncChatGpt
+    )
     nativeRuntime.setBeforeSessionInvalidate(() => wrapper.detach())
     if (toolNames?.length === 0) wrapper.setForceEmptySystemPrompt(true)
     wrapper.setWorkspacePromptProvider(() => this.workspace?.getPrompt?.(realSessionId) ?? null)

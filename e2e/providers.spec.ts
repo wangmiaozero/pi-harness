@@ -163,6 +163,9 @@ test.describe('Providers', () => {
 
     let dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
+    await expect(dialog.getByLabel(/API 基础 URL|API Base URL/)).toBeHidden()
+    await expect(dialog.getByLabel(/API 密钥$|API key$/)).toBeVisible()
+    await dialog.getByTestId('provider-advanced-options').click()
     await expect(dialog.getByLabel(/提供商标识|Provider key/)).toHaveValue('deepseek')
     await expect(dialog.getByLabel(/显示名称|Display name/)).toHaveValue('DeepSeek')
     await expect(dialog.getByLabel(/内部名称|Internal name/)).toHaveValue('deepseek')
@@ -356,4 +359,119 @@ test('ignores an old provider probe after changing dialogs and prevents duplicat
   })
   await expect(dialog).not.toContainText('obsolete-probe-result')
   await expect(dialog.getByRole('button', { name: /开始测试|Run test|Start test/ })).toBeEnabled()
+})
+
+test('opens local accounts and usage without querying subscription models', async ({
+  page,
+  electronApp
+}) => {
+  await electronApp.evaluate(({ ipcMain }, channel) => {
+    ipcMain.removeHandler(channel)
+    ipcMain.handle(channel, (_event, provider: string) => ({
+      ok: true,
+      data: {
+        provider,
+        source: 'minimax',
+        kind: 'subscription',
+        status: 'ok',
+        checkedAt: Date.now(),
+        windows: [
+          {
+            model: 'Fixture plan',
+            window: 'current',
+            remainingPercent: 52.25,
+            resetAt: Date.now() + 60_000
+          },
+          { model: 'Fixture plan', window: 'weekly' }
+        ]
+      }
+    }))
+  }, IPC_INVOKE.providerQuota)
+  await page.locator('a[href="#/models"]').click()
+  await page.getByTestId('model-management-tab-providers').click()
+  await page.getByTestId('provider-tab-local').click()
+  const local = page.getByTestId('provider-local-accounts')
+  await expect(local.getByTestId('chatgpt-connect')).toBeVisible()
+  await expect(local.getByText('无法查询登录状态', { exact: true })).toHaveCount(3)
+  await page.getByTestId('provider-tab-usage').click()
+  const usage = page.getByTestId('provider-usage-quota')
+  await expect(usage.getByText('已记录请求', { exact: true })).toBeVisible()
+  const balanceHeading = usage.getByRole('heading', { name: 'API 余额' })
+  await expect(balanceHeading).toBeVisible()
+  await expect(usage.getByRole('heading', { name: '订阅额度' })).toBeVisible()
+  await usage.getByRole('button', { name: '提供商', exact: true }).click()
+  await page.getByRole('option').first().click()
+  const balance = usage.locator('section').filter({ has: balanceHeading })
+  await balance.getByRole('button', { name: '刷新', exact: true }).click()
+  await expect(usage.getByText('MiniMax Token Plan', { exact: false })).toBeVisible()
+  const windows = usage.getByRole('listitem').filter({ hasText: 'Fixture plan' })
+  await expect(windows).toHaveCount(2)
+  await expect(windows.first()).toContainText('52.25%')
+  await expect(windows.last()).toContainText('重置时间 —')
+  await page.getByTestId('provider-tab-providers').click()
+  await expect(page.getByTestId('provider-row')).toHaveCount(2)
+})
+
+test('shows the account catalogue and manages the default and allowed fallback', async ({
+  page,
+  electronApp
+}) => {
+  await electronApp.evaluate(
+    ({ ipcMain }, channels) => {
+      const model = { id: 'fixture-model', name: 'Account model', verified: true }
+      const accounts = ['primary', 'backup'].map((id) => ({
+        id,
+        label: id,
+        status: 'authorized',
+        catalogUpdatedAt: Date.now(),
+        defaultModelId: undefined as string | undefined,
+        fallbackRank: undefined as number | undefined,
+        models: [{ ...model, disabled: false }]
+      }))
+      const respond = (channel: string, run: (input: never) => unknown) => {
+        ipcMain.removeHandler(channel)
+        ipcMain.handle(channel, (_event, input) => ({ ok: true, data: run(input as never) }))
+      }
+      respond(channels.list, () => accounts)
+      respond(channels.refresh, (id: string) => {
+        accounts.find((account) => account.id === id)!.models[0].name = 'Refreshed account model'
+      })
+      respond(channels.defaultModel, (input: { id: string; modelId: string }) => {
+        accounts.find((account) => account.id === input.id)!.defaultModelId = input.modelId
+      })
+      respond(channels.fallback, (input: { id: string; enabled: boolean }) => {
+        accounts.find((account) => account.id === input.id)!.fallbackRank = input.enabled
+          ? 1
+          : undefined
+      })
+      respond(channels.enabled, (input: { id: string; enabled: boolean }) => {
+        accounts.find((account) => account.id === input.id)!.models[0].disabled = !input.enabled
+      })
+    },
+    {
+      list: IPC_INVOKE.chatGptAccounts,
+      refresh: IPC_INVOKE.chatGptCatalogRefresh,
+      defaultModel: IPC_INVOKE.chatGptDefaultModel,
+      fallback: IPC_INVOKE.chatGptFallback,
+      enabled: IPC_INVOKE.chatGptModelEnabled
+    }
+  )
+
+  await page.locator('a[href="#/models"]').click()
+  await page.getByTestId('model-management-tab-providers').click()
+  await page.getByTestId('provider-tab-local').click()
+  const accounts = page.getByTestId('provider-local-accounts').locator('article')
+  const primary = accounts.filter({ hasText: 'ChatGPT · primary' })
+  const backup = accounts.filter({ hasText: 'ChatGPT · backup' })
+  await primary.getByRole('button', { name: '刷新模型' }).click()
+  await expect(primary).toContainText('Refreshed account model')
+  await primary.getByRole('button', { name: '设为默认' }).click()
+  await expect(primary).toContainText('新对话默认模型')
+  await backup.getByRole('button', { name: '允许作为备用账户' }).click()
+  await expect(backup).toContainText('备用顺序 1')
+  await primary.getByRole('button', { name: '停用模型' }).click()
+  await expect(primary.getByRole('button', { name: '验证模型' })).toBeDisabled()
+  await expect(primary.getByRole('button', { name: '启用模型' })).toBeVisible()
+  await backup.getByRole('button', { name: '移除备用账户' }).click()
+  await expect(backup.getByRole('button', { name: '允许作为备用账户' })).toBeVisible()
 })

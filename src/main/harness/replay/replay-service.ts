@@ -176,7 +176,10 @@ export class ReplayService {
                   cacheWrite: usage.cacheWrite ?? 0,
                   total:
                     usage.total ??
-                    (usage.input ?? 0) + (usage.output ?? 0) + (usage.cacheRead ?? 0),
+                    (usage.input ?? 0) +
+                      (usage.output ?? 0) +
+                      (usage.cacheRead ?? 0) +
+                      (usage.cacheWrite ?? 0),
                   cost: typeof usage.cost?.total === 'number' ? usage.cost.total : null
                 }
               }

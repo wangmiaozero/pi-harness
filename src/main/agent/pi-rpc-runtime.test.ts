@@ -12,6 +12,9 @@ import { PiRpcClient } from './pi-rpc-client'
 import * as discovery from '../environment/command-resolver'
 import { catalog, runtimeLayout, verifyDistribution } from '../runtime/distribution.mjs'
 import type { HarnessEvent } from '@shared/types/harness'
+import type { ChatGptAccount } from '@shared/providers/account-management'
+import type { ChatGptAccounts } from '../services/chatgpt-accounts'
+import { openaiProvider } from '@earendil-works/pi-ai/providers/openai'
 
 vi.mock('electron', () => ({ BrowserWindow: { getAllWindows: () => [] } }))
 const bundledRoot = path.resolve('resources/runtimes', `${process.platform}-${process.arch}`)
@@ -33,6 +36,7 @@ native('official standalone Pi with independent Node', () => {
   const paths = new Map<string, string>()
   let largeUsage = false
   let summaryMinOutput = 0
+  let accounts: ChatGptAccount[] = []
   beforeEach(async () => {
     root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'pi RPC 空格 ')))
     cwd = path.join(root, 'workspace')
@@ -43,6 +47,7 @@ native('official standalone Pi with independent Node', () => {
     paths.clear()
     largeUsage = false
     summaryMinOutput = 0
+    accounts = []
     server = http.createServer(async (request, response) => {
       let body = ''
       for await (const chunk of request) body += chunk
@@ -144,6 +149,14 @@ native('official standalone Pi with independent Node', () => {
     runtime = new PiRpcRuntime(sessions, manager, {
       configDir: () => config,
       extensionPath: path.resolve('resources/desktop-extension/index.mjs'),
+      chatGpt: {
+        list: async () => accounts,
+        hasVerifiedModel: async (id: string, modelId: string) =>
+          accounts.some(
+            (item) =>
+              item.id === id && item.models.some((model) => model.id === modelId && model.verified)
+          )
+      } as ChatGptAccounts,
       workspace: {
         assertWritable: async (file) => {
           if (!file.startsWith(cwd + path.sep)) throw new Error('fixture policy denied')
@@ -152,6 +165,28 @@ native('official standalone Pi with independent Node', () => {
         getPrompt: () => 'Desktop workspace context fixture'
       }
     })
+  })
+  it('loads verified account models in standalone Pi and keeps the saved API provider available', async () => {
+    const id = 'chatgpt-account-493957de-923a-4681-b5b6-d8de350c293a'
+    const fixture = openaiProvider()
+      .getModels()
+      .find((model) => model.api === 'openai-responses')!
+    const model = {
+      id: fixture.id,
+      name: fixture.name,
+      reasoning: fixture.reasoning,
+      vision: false,
+      verified: true
+    }
+    accounts = [{ id, label: '293a', status: 'authorized', models: [model] }]
+    const { sessionId } = await runtime.startSession({ cwd, provider: id, modelId: model.id })
+    const chosen = await runtime.getAgentState(sessionId)
+    expect(chosen?.model).toMatchObject({ provider: id, id: model.id })
+    await runtime.setModel(sessionId, 'fixture', 'fixture')
+    expect((await runtime.getAgentState(sessionId))?.model?.provider).toBe('fixture')
+    expect(requests).toHaveLength(0)
+    accounts = []
+    await expect(runtime.setModel(sessionId, id, model.id)).rejects.toThrow()
   })
   afterEach(async () => {
     await runtime?.shutdownAll()

@@ -157,3 +157,30 @@ it('keeps the endpoint and literal credential bound to one configuration snapsho
   )
   expect(read).toHaveBeenCalledOnce()
 })
+
+it('probes an unsaved provider without saving its credentials or reflecting them in failures', async () => {
+  const literal = 'fixture-unpublished-secret'
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(
+      Response.json({ error: { message: 'Invalid credential ' + literal } }, { status: 401 })
+    )
+  vi.stubGlobal('fetch', fetcher)
+  const result = await service().testConnection({
+    modelId: 'candidate',
+    draft: {
+      baseUrl: 'https://fixture.invalid/v1',
+      protocol: 'openai-completions',
+      apiKey: { kind: 'literal', literal },
+      headers: {},
+      authHeader: true,
+      timeout: null
+    }
+  })
+  expect(result.status).toBe('auth_error')
+  expect(JSON.stringify(result)).not.toContain(literal)
+  expect(fetcher).toHaveBeenCalledExactlyOnceWith(
+    'https://fixture.invalid/v1/chat/completions',
+    expect.objectContaining({ redirect: 'error' })
+  )
+})

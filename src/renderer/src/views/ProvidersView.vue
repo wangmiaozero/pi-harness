@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, defineAsyncComponent, onDeactivated, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -66,6 +66,17 @@ const router = useRouter()
 const providersStore = useProvidersStore()
 const modelsStore = useModelsStore()
 
+const LocalAccountsPanel = defineAsyncComponent(
+  () => import('@renderer/components/providers/LocalAccountsPanel.vue')
+)
+const ProviderUsagePanel = defineAsyncComponent(
+  () => import('@renderer/components/providers/ProviderUsagePanel.vue')
+)
+const section = ref<'providers' | 'local' | 'usage'>('providers')
+onDeactivated(() => {
+  section.value = 'providers'
+})
+
 const dialogOpen = ref(false)
 const deleteOpen = ref(false)
 const duplicateOpen = ref(false)
@@ -78,6 +89,7 @@ const testModelId = ref('')
 const testResult = ref<ConnectionTestResult | null>(null)
 const testLoading = ref(false)
 let testGeneration = 0
+const draftTesting = ref(false)
 const saving = ref(false)
 const saveError = ref('')
 const timeoutStr = ref('')
@@ -86,6 +98,11 @@ const defaultModelIdStr = ref('')
 const query = ref('')
 const presetSearch = ref('')
 const activePreset = ref<ProviderPreset | null>(null)
+const advancedProviderOptions = ref(false)
+const hasPresetEndpoint = computed(() => !!activePreset.value?.defaultBaseUrl)
+const showProviderOptions = computed(
+  () => !hasPresetEndpoint.value || advancedProviderOptions.value
+)
 const platform = ref(
   rendererPlatformHint(typeof navigator === 'undefined' ? undefined : navigator.platform)
 )
@@ -135,9 +152,21 @@ const providerPresetOptions = computed(() =>
   PROVIDER_PRESETS.map((preset) => ({
     value: preset.id,
     label: preset.name,
-    hint: t('providers.presetModelCount', { count: preset.models.length })
+    hint: [
+      t(`providerAccounts.category.${presetCategory(preset)}`),
+      providersStore.items.some((provider) => provider.key === preset.id)
+        ? t('providerAccounts.configured')
+        : t('providers.presetModelCount', { count: preset.models.length })
+    ].join(' · ')
   }))
 )
+
+function presetCategory(preset: ProviderPreset): 'compatible' | 'local' | 'remote' {
+  if (preset.id.endsWith('-compatible')) return 'compatible'
+  return /^http:\/\/(?:localhost|127\.0\.0\.1)(?=[:/]|$)/.test(preset.defaultBaseUrl)
+    ? 'local'
+    : 'remote'
+}
 const currentDiscoveredModels = computed(() =>
   discoveredSource.value === modelDiscoverySource() ? discoveredModels.value : []
 )
@@ -302,6 +331,7 @@ function clearKeyMask() {
 }
 
 function configureLocalAuth() {
+  advancedProviderOptions.value = true
   customLocalAuth.value = true
   apiKeyKind.value = 'literal'
   form.value.authHeader = true
@@ -400,6 +430,7 @@ function uniqueProviderKey(base: string): string {
 }
 
 function openCreate(presetId?: string) {
+  advancedProviderOptions.value = false
   editingKey.value = null
   form.value = defaultForm()
   customLocalAuth.value = false
@@ -441,10 +472,17 @@ function selectProviderPreset(presetId: string) {
     return
   }
   presetSearch.value = ''
+  const configured = providersStore.items.find((provider) => provider.key === presetId)
+  const preset = PROVIDER_PRESETS.find((item) => item.id === presetId)
+  if (configured && preset?.defaultBaseUrl) {
+    openEdit(configured)
+    return
+  }
   openCreate(presetId)
 }
 
 function openEdit(provider: ProviderProfile) {
+  advancedProviderOptions.value = false
   if (provider.key === 'opencode-free') {
     void router.replace({ path: '/models', query: { tab: 'opencode' } })
     return
@@ -633,6 +671,31 @@ async function discoverProviderModels() {
     toast.error(message)
   } finally {
     discoveringModels.value = false
+  }
+}
+
+async function testDraft() {
+  if (draftTesting.value) return
+  draftTesting.value = true
+  try {
+    const result = await getApi().providers.testConnection({
+      modelId: defaultModelIdStr.value.trim(),
+      draft: {
+        existingProviderKey: editingKey.value,
+        protocol: form.value.protocol,
+        baseUrl: normalizeProviderBaseUrl(form.value.baseUrl).url,
+        apiKey: buildApiKey(),
+        headers: parseHeadersJson(),
+        authHeader: form.value.authHeader,
+        timeout: parseTimeout()
+      }
+    })
+    if (result.ok) toast.success(result.message)
+    else toast.error(result.message)
+  } catch {
+    toast.error(t('providerAccounts.actionFailed'))
+  } finally {
+    draftTesting.value = false
   }
 }
 
@@ -882,7 +945,7 @@ onMounted(() => {
           {{ $t('providers.subtitle') }}
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div v-if="section === 'providers'" class="flex items-center gap-2">
         <SearchField
           v-model="query"
           :placeholder="$t('providers.filterPlaceholder')"
@@ -899,20 +962,22 @@ onMounted(() => {
       v-else
       class="flex h-[48px] shrink-0 items-center justify-end gap-2 border-b border-[var(--border-subtle)] px-5"
     >
-      <SearchField
-        v-model="query"
-        :placeholder="$t('providers.filterPlaceholder')"
-        class="w-[220px]"
-      />
-      <Button variant="primary" size="sm" @click="openCreate()">
-        <Plus class="size-3.5" />
-        {{ $t('providers.create') }}
-      </Button>
+      <template v-if="section === 'providers'">
+        <SearchField
+          v-model="query"
+          :placeholder="$t('providers.filterPlaceholder')"
+          class="w-[220px]"
+        />
+        <Button variant="primary" size="sm" @click="openCreate()">
+          <Plus class="size-3.5" />
+          {{ $t('providers.create') }}
+        </Button>
+      </template>
     </div>
 
     <!-- Searchable Pi-compatible provider/model presets. -->
     <div
-      v-if="PROVIDER_PRESETS.length > 0"
+      v-if="section === 'providers' && PROVIDER_PRESETS.length > 0"
       class="flex shrink-0 items-center gap-2 px-5 h-[48px] border-b border-[var(--border-subtle)]"
     >
       <span
@@ -929,7 +994,26 @@ onMounted(() => {
       />
     </div>
 
-    <div class="flex-1 overflow-y-auto px-5 pt-4 pb-6 space-y-4">
+    <nav
+      class="flex shrink-0 gap-2 border-b border-[var(--border-subtle)] px-5 py-2"
+      :aria-label="$t('providers.title')"
+    >
+      <Button
+        v-for="value in ['providers', 'local', 'usage'] as const"
+        :key="value"
+        :data-testid="'provider-tab-' + value"
+        size="sm"
+        :variant="section === value ? 'secondary' : 'ghost'"
+        :aria-pressed="section === value"
+        @click="section = value"
+        >{{ $t(value === 'providers' ? 'providers.title' : 'providerAccounts.' + value) }}</Button
+      >
+    </nav>
+    <div v-if="section !== 'providers'" class="min-h-0 flex-1 overflow-y-auto">
+      <LocalAccountsPanel v-if="section === 'local'" />
+      <ProviderUsagePanel v-else />
+    </div>
+    <div v-else class="flex-1 overflow-y-auto px-5 pt-4 pb-6 space-y-4">
       <div
         v-if="providersWithNoModels.length > 0"
         class="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--warning)]/30 bg-[var(--warning-tint)] px-3 py-2.5"
@@ -1098,7 +1182,18 @@ onMounted(() => {
       wide
     >
       <div class="space-y-3">
-        <div class="grid grid-cols-2 gap-3">
+        <div v-if="hasPresetEndpoint" class="flex items-center justify-between gap-2">
+          <strong class="text-sm">{{ form.displayName }}</strong>
+          <Button
+            size="sm"
+            :aria-expanded="advancedProviderOptions"
+            data-testid="provider-advanced-options"
+            @click="advancedProviderOptions = !advancedProviderOptions"
+          >
+            {{ $t('providerAccounts.advancedOptions') }}
+          </Button>
+        </div>
+        <div v-if="showProviderOptions" class="grid grid-cols-2 gap-3">
           <Input
             v-model="form.key"
             :label="$t('providers.fieldKey')"
@@ -1113,16 +1208,18 @@ onMounted(() => {
           />
         </div>
         <Input
+          v-if="showProviderOptions"
           v-model="form.name"
           :label="$t('providers.fieldInternalName')"
           :placeholder="$t('providers.internalNamePlaceholder')"
         />
         <Select
+          v-if="showProviderOptions"
           v-model="form.protocol"
           :label="$t('providers.fieldProtocol')"
           :options="protocolOptions"
         />
-        <div class="space-y-2">
+        <div v-if="showProviderOptions" class="space-y-2">
           <Input
             v-model="form.baseUrl"
             :label="$t('providers.fieldBaseUrl')"
@@ -1158,6 +1255,7 @@ onMounted(() => {
         </div>
         <template v-else>
           <Select
+            v-if="showProviderOptions"
             v-model="apiKeyKind"
             :label="$t('providers.fieldApiKeyType')"
             :options="apiKeyTypeOptions"
@@ -1239,6 +1337,15 @@ onMounted(() => {
             <Button
               variant="secondary"
               size="sm"
+              :loading="draftTesting"
+              :disabled="!form.baseUrl.trim() || !defaultModelIdStr.trim()"
+              data-testid="provider-test-draft"
+              @click="testDraft"
+              >{{ $t('providerAccounts.testConnection') }}</Button
+            >
+            <Button
+              variant="secondary"
+              size="sm"
               :loading="discoveringModels"
               :disabled="!form.baseUrl.trim()"
               @click="discoverProviderModels"
@@ -1249,19 +1356,24 @@ onMounted(() => {
           </div>
         </div>
 
-        <div v-if="!keylessLocalOllama" class="flex items-center justify-between gap-3">
+        <div
+          v-if="showProviderOptions && !keylessLocalOllama"
+          class="flex items-center justify-between gap-3"
+        >
           <span class="text-[12px] text-[var(--text-secondary)]">{{
             $t('providers.fieldAuthHeader')
           }}</span>
           <Switch v-model="form.authHeader" :label="$t('providers.fieldAuthHeader')" />
         </div>
         <Input
+          v-if="showProviderOptions"
           v-model="timeoutStr"
           :label="$t('providers.fieldTimeout')"
           :placeholder="$t('providers.timeoutPlaceholder')"
           mono
         />
         <Textarea
+          v-if="showProviderOptions"
           v-model="headersJson"
           :label="$t('providers.fieldHeaders')"
           :placeholder="$t('providers.headersPlaceholder')"

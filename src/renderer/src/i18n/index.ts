@@ -1,3 +1,4 @@
+import { providerAccountsEn, providerAccountsZh } from './provider-accounts'
 import { chatActivity } from './chat-activity'
 import { mcpMarketEn, mcpMarketZh } from './mcp-market'
 import { liveVoiceEn, liveVoiceZh } from './live-voice'
@@ -35,6 +36,7 @@ import {
 
 const enMessages = {
   ...enUS,
+  providerAccounts: providerAccountsEn,
   settings: { ...enUS.settings, ...resourceMarketEn },
   workspace: { ...enUS.workspace, activity: chatActivity['en-US'] },
   agentSettings: agentSettingsEn,
@@ -46,6 +48,7 @@ const enMessages = {
 
 const zhMessages = {
   ...zhCN,
+  providerAccounts: providerAccountsZh,
   settings: { ...zhCN.settings, ...resourceMarketZh },
   workspace: { ...zhCN.workspace, activity: chatActivity['zh-CN'] },
   agentSettings: agentSettingsZh,
@@ -57,6 +60,7 @@ const zhMessages = {
 
 const zhTwMessages = {
   ...zhTW,
+  providerAccounts: providerAccountsEn,
   settings: { ...zhTW.settings, ...resourceMarketTw },
   workspace: { ...zhTW.workspace, activity: chatActivity['zh-TW'] },
   agentSettings: agentSettingsEn,
@@ -68,6 +72,7 @@ const zhTwMessages = {
 
 const jaMessages = {
   ...jaJP,
+  providerAccounts: providerAccountsEn,
   settings: { ...jaJP.settings, ...resourceMarketJa },
   workspace: { ...jaJP.workspace, activity: chatActivity['ja-JP'] },
   agentSettings: agentSettingsEn,
@@ -79,6 +84,7 @@ const jaMessages = {
 
 const koMessages = {
   ...koKR,
+  providerAccounts: providerAccountsEn,
   settings: { ...koKR.settings, ...resourceMarketKo },
   workspace: { ...koKR.workspace, activity: chatActivity['ko-KR'] },
   agentSettings: agentSettingsEn,
@@ -90,6 +96,7 @@ const koMessages = {
 
 const ruMessages = {
   ...ruRU,
+  providerAccounts: providerAccountsEn,
   settings: { ...ruRU.settings, ...resourceMarketRu },
   workspace: { ...ruRU.workspace, activity: chatActivity['ru-RU'] },
   agentSettings: agentSettingsEn,
@@ -101,6 +108,7 @@ const ruMessages = {
 
 const frMessages = {
   ...frFR,
+  providerAccounts: providerAccountsEn,
   settings: { ...frFR.settings, ...resourceMarketFr },
   workspace: { ...frFR.workspace, activity: chatActivity['fr-FR'] },
   agentSettings: agentSettingsEn,
@@ -112,6 +120,7 @@ const frMessages = {
 
 const deMessages = {
   ...deDE,
+  providerAccounts: providerAccountsEn,
   settings: { ...deDE.settings, ...resourceMarketDe },
   workspace: { ...deDE.workspace, activity: chatActivity['de-DE'] },
   agentSettings: agentSettingsEn,

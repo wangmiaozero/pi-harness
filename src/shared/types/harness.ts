@@ -1,3 +1,4 @@
+import type { UsageTotals } from '../providers/account-management'
 /** Stable desktop DTOs for inspecting and controlling Pi Agent Harness. */
 
 export type HarnessRuntimeStatus = 'idle' | 'running' | 'compacting' | 'stopped'
@@ -173,6 +174,8 @@ export interface HarnessRunUsage {
   inputTokens: number
   outputTokens: number
   cachedTokens: number
+  cacheWriteTokens?: number
+  byModel?: Record<string, { provider: string; model: string; usage: UsageTotals }>
   totalTokens: number
   /** Estimated cost in USD. Pi-reported when available — never an official bill. */
   estimatedCost: number | null
@@ -912,6 +915,7 @@ export type HarnessEvent =
       }
       model?: string
       provider?: string
+      outcome?: 'succeeded' | 'failed' | 'aborted'
     })
   | (HarnessEventBase & {
       type: 'tool.started' | 'tool.completed'

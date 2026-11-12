@@ -114,6 +114,22 @@ export const IPC_INVOKE = {
   openCodeDeleteCredential: invoke('opencode-free:credential:delete'),
   openCodeRevealCredential: invoke('opencode-free:credential:reveal'),
 
+  // provider accounts and usage
+  localAccounts: invoke('accounts:local'),
+  chatGptAccounts: invoke('accounts:chatgpt'),
+  chatGptConnect: invoke('accounts:chatgpt-connect'),
+  chatGptCancel: invoke('accounts:chatgpt-cancel'),
+  chatGptCatalogRefresh: invoke('accounts:chatgpt-catalog-refresh'),
+  chatGptModelEnabled: invoke('accounts:chatgpt-model-enabled'),
+  chatGptDefaultModel: invoke('accounts:chatgpt-default-model'),
+  chatGptFallback: invoke('accounts:chatgpt-fallback'),
+  chatGptRouteDefault: invoke('accounts:chatgpt-route-default'),
+  chatGptVerify: invoke('accounts:chatgpt-verify'),
+  chatGptDisconnect: invoke('accounts:chatgpt-disconnect'),
+  providerQuota: invoke('providers:quota'),
+  providerUsage: invoke('providers:usage'),
+  providerUsageClear: invoke('providers:usage-clear'),
+
   // providers
   providerList: invoke('providers:list'),
   providerGet: invoke('providers:get'),

@@ -14,6 +14,13 @@ import type {
   PetPackSummary
 } from '../pet/desktop'
 import type { PetEvent } from '../pet/types'
+import type {
+  ChatGptAccount,
+  LocalAccount,
+  QuotaReading,
+  UsageRange,
+  UsageReport
+} from '../providers/account-management'
 import type { OpenCodeFreeState, OpenCodeTestOptions } from '../providers/opencode-free'
 import type {
   RuntimeDiagnostics,
@@ -1037,6 +1044,22 @@ export interface PiSwitchAPI {
     docs(): Promise<void>
     keys(): Promise<void>
   }
+  accounts: {
+    local(input: { refresh: boolean }): Promise<LocalAccount[]>
+    chatGpt(): Promise<ChatGptAccount[]>
+    connect(): Promise<void>
+    cancel(): Promise<void>
+    verify(input: { id: string; modelId: string }): Promise<void>
+    refreshCatalog(id: string): Promise<void>
+    setModelEnabled(input: { id: string; modelId: string; enabled: boolean }): Promise<void>
+    setDefaultModel(input: { id: string; modelId: string } | null): Promise<void>
+    setFallback(input: { id: string; enabled: boolean }): Promise<void>
+    routeDefault(): Promise<{ provider: string; modelId: string } | null>
+    disconnect(id: string): Promise<{ revoked: boolean }>
+    quota(provider: string): Promise<QuotaReading>
+    usage(range: UsageRange): Promise<UsageReport>
+    clearUsage(): Promise<void>
+  }
   providers: {
     list(): Promise<ProviderProfile[]>
     get(key: string): Promise<ProviderProfile | null>
@@ -1141,7 +1164,11 @@ export interface PiSwitchAPI {
     setActive(id: string): Promise<PetPackDetail | null>
   }
   market: {
-    search(query: string, kind: 'all' | 'theme' | 'pet', refresh?: boolean): Promise<MarketSearchResult>
+    search(
+      query: string,
+      kind: 'all' | 'theme' | 'pet',
+      refresh?: boolean
+    ): Promise<MarketSearchResult>
     installed(): Promise<MarketInstalled>
     refresh(): Promise<MarketInstalled>
     install(name: string, version?: string): Promise<MarketInstallResult>

@@ -126,6 +126,10 @@ import { FileSystemError } from '../services/errors'
 import { checkNetwork } from '../services/network-check'
 import type { HarnessRuntime } from '../harness/harness-runtime'
 import type { OrchestratorService } from '../harness/orchestrator/orchestrator-service'
+import { registerProviderAccounts } from './register-provider-accounts'
+import type { ChatGptAccounts } from '../services/chatgpt-accounts'
+import type { LocalAccountDiscovery } from '../services/local-account-discovery'
+import type { ProviderQuota } from '../services/provider-quota'
 import { registerHarnessIpc } from './register-harness'
 import type { CustomSkinService } from '../skins/custom-skin-service'
 import { registerUniversalIpc } from './register-universal'
@@ -146,6 +150,9 @@ export interface Services {
   config: PiConfigService
   openCodeFree?: OpenCodeFreeService
   providers: ProviderService
+  chatGpt?: ChatGptAccounts
+  localAccounts?: LocalAccountDiscovery
+  providerQuota?: ProviderQuota
   models: ModelService
   backup: BackupService
   skills: SkillsService
@@ -469,6 +476,17 @@ export function registerIpc(services: Services): void {
       await shell.openExternal(OPENCODE_DOCS_URL)
     })
   )
+
+  if (services.chatGpt && services.localAccounts && services.providerQuota)
+    registerProviderAccounts(
+      ipcMain,
+      wrap,
+      services.chatGpt,
+      services.localAccounts,
+      services.providerQuota,
+      services.harness,
+      (authorizationUrl) => shell.openExternal(authorizationUrl)
+    )
 
   // ---- providers ----
   ipcMain.handle(IPC_INVOKE.providerList, () => wrap(() => providers.list()))

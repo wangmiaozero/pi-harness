@@ -9,6 +9,7 @@ import type { JsonStore } from '../services/storage'
 import type { AppMetadata } from '../services/metadata-store'
 import { NetworkError, NotFoundError, ValidationError } from '../services/errors'
 import { secretStore } from '../security/secret-store'
+import { readBoundedText } from './bounded-json'
 import type { PiConfigService, WriteOptions } from '../pi/config-service'
 import {
   domainProviderToPi,
@@ -76,6 +77,19 @@ export class ProviderService {
     if (raw && !raw.startsWith('$') && !raw.startsWith('!')) return raw
 
     throw new ValidationError('Saved API key could not be resolved')
+  }
+
+  /** Resolve only non-command credentials, after binding to the current API endpoint. */
+  async readBalanceApiKey(key: string, baseUrl: string): Promise<string | null> {
+    const snapshot = await this.config.read()
+    const raw = snapshot.models.providers[key]
+    if (!raw || raw.baseUrl !== baseUrl) return null
+    const meta = (await this.metadata.read()).providers[key]
+    if (meta?.apiKeyRef) return secretStore.getSecret(meta.apiKeyRef, { strict: true })
+    const value = raw.apiKey?.trim()
+    if (!value || value.startsWith('!')) return null
+    const env = /^\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?$/.exec(value)
+    return env ? (process.env[env[1]] ?? null) : value.startsWith('$') ? null : value
   }
 
   async create(raw: unknown, options?: WriteOptions): Promise<ProviderProfile> {
@@ -411,12 +425,12 @@ export class ProviderService {
     } catch {
       throw new ValidationError('Base URL must be a valid HTTP(S) URL')
     }
-    if (!['http:', 'https:'].includes(root.protocol)) {
+    if (!['http:', 'https:'].includes(root.protocol) || root.username || root.password) {
       throw new ValidationError('Base URL must use HTTP or HTTPS')
     }
 
     const existing = input.existingProviderKey ? await this.get(input.existingProviderKey) : null
-    const apiKey = await resolveDiscoveryCredential(input.apiKey, existing)
+    const apiKey = await resolveDiscoveryCredential(input.apiKey, existing, root)
     const candidates = buildModelListCandidates(input.protocol, root, apiKey, input.authHeader)
 
     const controller = new AbortController()
@@ -432,8 +446,13 @@ export class ProviderService {
         let reachedCatalog = false
 
         for (let page = 0; page < 20 && models.size < 2_000; page++) {
-          const response = await fetch(url, { method: 'GET', headers, signal: controller.signal })
-          const text = await response.text()
+          const response = await fetch(url, {
+            method: 'GET',
+            headers,
+            signal: controller.signal,
+            redirect: 'error'
+          })
+          const text = await readBoundedText(response, 2_000_000)
           if (!response.ok) {
             const planRoot = volcenginePlanKind(normalized.url)
             if (
@@ -443,7 +462,7 @@ export class ProviderService {
               catalogMissing = true
               break
             }
-            const detail = summarizeErrorBody(text)
+            const detail = summarizeErrorBody(apiKey ? text.replaceAll(apiKey, '[redacted]') : text)
             throw new ValidationError(
               detail
                 ? `Model discovery failed (HTTP ${response.status}): ${detail}`
@@ -452,9 +471,6 @@ export class ProviderService {
           }
           reachedCatalog = true
           catalogMissing = false
-          if (text.length > 2_000_000) {
-            throw new ValidationError('Model discovery response is too large')
-          }
 
           let payload: unknown
           try {
@@ -463,6 +479,7 @@ export class ProviderService {
             throw new ValidationError('Model discovery endpoint returned invalid JSON')
           }
           for (const model of parseDiscoveredModels(payload)) {
+            if (apiKey && (model.id.includes(apiKey) || model.name.includes(apiKey))) continue
             if (!models.has(model.id)) models.set(model.id, model)
             if (models.size >= 2_000) break
           }
@@ -697,24 +714,29 @@ export class ProviderService {
   }
 
   async testConnection(input: {
-    providerKey: string
+    providerKey?: string
     modelId?: string
+    draft?: ProviderModelDiscoveryInput
   }): Promise<ConnectionTestResult> {
-    if (input.providerKey === 'opencode-free')
+    const providerKey = input.providerKey ?? input.draft?.existingProviderKey ?? ''
+    if (providerKey === 'opencode-free')
       throw new ValidationError('Use OpenCode connection verification')
     const started = Date.now()
     const snapshot = await this.config.read()
-    const nativeProvider = snapshot.models.providers[input.providerKey]
+    const nativeProvider = snapshot.models.providers[providerKey]
     const metadata = await this.metadata.read()
-    const provider = nativeProvider
-      ? providerToDomain(input.providerKey, nativeProvider, metadata.providers[input.providerKey])
+    const existing = nativeProvider
+      ? providerToDomain(providerKey, nativeProvider, metadata.providers[providerKey])
       : null
+    const provider = input.draft ? { ...input.draft, defaultModelId: null } : existing
     const resolvedModelId =
       (input.modelId?.trim() || null) ??
       provider?.defaultModelId ??
       nativeProvider?.models?.[0]?.id ??
       null
-    const modelApi = nativeProvider?.models?.find((model) => model.id === resolvedModelId)?.api
+    const modelApi = input.draft
+      ? null
+      : nativeProvider?.models?.find((model) => model.id === resolvedModelId)?.api
     const probeProtocol = provider
       ? modelApi && isProtocolId(modelApi)
         ? modelApi
@@ -765,7 +787,14 @@ export class ProviderService {
       // Literal Pi credentials are intentionally absent from the Renderer DTO.
       // Resolve them from native configuration in Main for this explicit probe.
       const literal = provider.apiKey?.kind === 'literal' ? nativeProvider?.apiKey : undefined
-      apiKey = await resolveCredentialForTest(provider, literal)
+      if (input.draft) {
+        const url = new URL(root)
+        if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password)
+          throw new ValidationError('Base URL must be an HTTP(S) endpoint')
+        apiKey = await resolveDiscoveryCredential(input.draft.apiKey, existing, url)
+      } else {
+        apiKey = existing ? await resolveCredentialForTest(existing, literal) : null
+      }
     } catch (err) {
       return {
         ok: false,
@@ -810,16 +839,21 @@ export class ProviderService {
     }
 
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), provider.timeout ?? 30_000)
+    const timer = setTimeout(
+      () => controller.abort(),
+      Math.min(provider.timeout ?? 30_000, 120_000)
+    )
     try {
       const res = await fetch(probe.url, {
         method: 'POST',
         headers,
         body: JSON.stringify(probe.body),
+        redirect: 'error',
         signal: controller.signal
       })
       const latencyMs = Date.now() - started
-      const bodyText = await res.text().catch(() => '')
+      const responseText = await res.text().catch(() => '')
+      const bodyText = apiKey ? responseText.replaceAll(apiKey, '[redacted]') : responseText
       const bodySnippet = summarizeErrorBody(bodyText)
 
       const mapped = mapHttpStatus(res.status, proto?.label ?? provider.protocol, bodySnippet)
@@ -1142,9 +1176,16 @@ async function fetchImageResult(
 
 async function resolveDiscoveryCredential(
   draft: ProviderForm['apiKey'],
-  existing: ProviderProfile | null
+  existing: ProviderProfile | null,
+  url: URL
 ): Promise<string | null> {
   if (!draft) return null
+  const usesSavedKey =
+    draft.kind === 'stored' ||
+    draft.kind === 'command' ||
+    (draft.kind === 'literal' && !draft.literal?.trim())
+  if (usesSavedKey && existing && url.origin !== URL.parse(existing.baseUrl)?.origin)
+    throw new ValidationError('Enter a credential for the new endpoint')
   if (draft.kind === 'literal') {
     const literal = draft.literal?.trim()
     return literal || (existing ? resolveCredentialForTest(existing) : null)

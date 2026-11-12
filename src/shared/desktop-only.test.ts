@@ -31,7 +31,14 @@ describe('desktop-only runtime', () => {
       join(process.cwd(), 'src/main/ipc/register.ts'),
       join(process.cwd(), 'src/main/updater/index.ts')
     ])
-    expect(registerSource.match(/\bshell\.openExternal\b/g)).toHaveLength(6)
+    expect(registerSource.match(/\bshell\.openExternal\b/g)).toHaveLength(7)
+    expect(registerSource).toContain('(authorizationUrl) => shell.openExternal(authorizationUrl)')
+    const chatGpt = readFileSync(
+      join(process.cwd(), 'src/main/services/chatgpt-accounts.ts'),
+      'utf8'
+    )
+    expect(chatGpt).toContain("const origin = 'https://auth.openai.com'")
+    expect(chatGpt).toContain("url.pathname !== '/api/accounts/authorize'")
     expect(registerSource).toContain('shell.openExternal(OPENCODE_DOCS_URL)')
     expect(registerSource).toContain("shell.openExternal('https://opencode.ai/console/account')")
     expect(registerSource).toContain('shell.openExternal(NODE_DOWNLOAD_URL)')

@@ -16,6 +16,7 @@ const MAX_PERSISTED_RUNS = 500
 export interface RunStoreRecord {
   schemaVersion: 1
   runs: HarnessRun[]
+  usageClearedAt?: number
 }
 
 export const EMPTY_RUN_STORE: RunStoreRecord = { schemaVersion: 1, runs: [] }
@@ -25,6 +26,8 @@ export interface RunRepository {
   saveMany(runs: HarnessRun[]): Promise<void>
   get(runId: string): Promise<HarnessRun | null>
   listAll(): Promise<HarnessRun[]>
+  usageSnapshot(): Promise<{ runs: HarnessRun[]; clearedAt: number }>
+  clearUsage(clearedAt: number): Promise<void>
   listBySession(sessionId: string): Promise<HarnessRun[]>
   listByCwd(cwd: string): Promise<HarnessRun[]>
   listByOrchestration(orchestrationId: string): Promise<HarnessRun[]>
@@ -43,7 +46,11 @@ export class JsonRunRepository implements RunRepository {
     await this.store.mutate({
       apply(record) {
         const byId = new Map(record.runs.map((existing) => [existing.id, existing]))
-        for (const run of runs) byId.set(run.id, run)
+        for (const run of runs)
+          byId.set(
+            run.id,
+            run.startedAt < (record.usageClearedAt ?? 0) ? withoutUsageDetails(run) : run
+          )
         const next = [...byId.values()]
           .sort((a, b) => b.startedAt - a.startedAt)
           .slice(0, MAX_PERSISTED_RUNS)
@@ -60,6 +67,24 @@ export class JsonRunRepository implements RunRepository {
   async listAll(): Promise<HarnessRun[]> {
     const record = await this.store.read()
     return record.runs.map(normalizeRun)
+  }
+
+  async usageSnapshot(): Promise<{ runs: HarnessRun[]; clearedAt: number }> {
+    const record = await this.store.read()
+    return { runs: record.runs, clearedAt: record.usageClearedAt ?? 0 }
+  }
+
+  async clearUsage(clearedAt: number): Promise<void> {
+    await this.store.mutate({
+      apply(record) {
+        const cutoff = Math.max(record.usageClearedAt ?? 0, clearedAt)
+        return {
+          ...record,
+          usageClearedAt: cutoff,
+          runs: record.runs.map((run) => (run.startedAt < cutoff ? withoutUsageDetails(run) : run))
+        }
+      }
+    })
   }
 
   async listBySession(sessionId: string): Promise<HarnessRun[]> {
@@ -90,6 +115,12 @@ export class JsonRunRepository implements RunRepository {
     })
     return removed
   }
+}
+
+function withoutUsageDetails(run: HarnessRun): HarnessRun {
+  if (!run.usage.byModel) return run
+  const { byModel: _byModel, ...usage } = run.usage
+  return { ...run, usage }
 }
 
 /** Merge multi-agent binding defaults into runs persisted before v1.5. */

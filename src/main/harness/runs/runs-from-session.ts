@@ -109,7 +109,9 @@ export function buildRunsFromEntries(entries: readonly SessionEntry[]): Reconstr
         current.run.usage.inputTokens += input
         current.run.usage.outputTokens += output
         current.run.usage.cachedTokens += cached
-        current.run.usage.totalTokens += input + output + cached
+        const cacheWrite = numberOrZero(usage.cacheWrite)
+        current.run.usage.cacheWriteTokens = (current.run.usage.cacheWriteTokens ?? 0) + cacheWrite
+        current.run.usage.totalTokens += input + output + cached + cacheWrite
         const cost = usage.cost?.total
         if (typeof cost === 'number' && Number.isFinite(cost)) {
           current.run.usage.estimatedCost = (current.run.usage.estimatedCost ?? 0) + cost
