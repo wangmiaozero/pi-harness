@@ -16,6 +16,7 @@ defineProps<{
   description?: string
   wide?: boolean
   large?: boolean
+  sheet?: boolean
   medium?: boolean
   prominentTitle?: boolean
   /** Allow Esc to close. Default false: implicit dismissal is blocked. */
@@ -49,8 +50,10 @@ function onEscapeKeyDown(event: Event, closeOnEscape: boolean | undefined) {
       <DialogContent
         class="fixed left-1/2 top-1/2 z-[101] flex max-h-[85vh] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] shadow-[var(--shadow-dialog)] focus:outline-none data-[state=open]:animate-[pi-pop-in_var(--motion-base)_var(--ease-out)]"
         :class="
-          large
-            ? 'w-[min(820px,92vw)]'
+          sheet
+            ? 'w-[min(1080px,94vw)]'
+            : large
+              ? 'w-[min(820px,92vw)]'
             : medium
               ? 'w-[min(520px,92vw)]'
               : wide

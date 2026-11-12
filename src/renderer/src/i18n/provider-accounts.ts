@@ -1,6 +1,36 @@
 export const providerAccountsEn = {
   copySavedKey: 'Copy saved API key',
   local: 'Local accounts',
+  addTitle: 'Add a provider',
+  findProvider: 'Find a provider',
+  noCatalogMatch: 'No provider matches that search.',
+  catalogBack: 'All providers',
+  useApiPreset: 'Configure the API key',
+  subscriptionAccounts: 'Subscriptions',
+  catalogGroup: {
+    partner: 'Partners',
+    subscription: 'Subscriptions',
+    vendor: 'Vendors',
+    relay: 'Relays',
+    local: 'On this machine',
+    custom: 'Custom'
+  },
+  catalogHint: {
+    partner: 'Sponsors with a preset this app can configure',
+    subscription: 'Sign in, no key',
+    vendor: 'The makers’ own APIs',
+    relay: 'One key, many models',
+    local: 'Running on this machine',
+    custom: 'An OpenAI or Anthropic compatible URL'
+  },
+  subscriptionLimit: {
+    claude:
+      'A Claude Code login is not an Anthropic API key, and this app does not reuse that subscription for Pi calls. The status below is only the local CLI. Use an Anthropic API key to call Claude.',
+    gemini:
+      'A Gemini CLI login is not reused here. The status below is only whether the CLI is installed. Use a Gemini API key to call Gemini.',
+    copilot:
+      'GitHub Copilot subscription sign-in is not available. This app does not start a Copilot device login or reuse a Copilot plan.'
+  },
   advancedOptions: 'Advanced settings',
   testConnection: 'Test connection',
   configured: 'Configured',
@@ -129,6 +159,35 @@ export const providerAccountsEn = {
 export const providerAccountsZh: typeof providerAccountsEn = {
   copySavedKey: '复制已保存的 API 密钥',
   local: '本地账户',
+  addTitle: '添加提供商',
+  findProvider: '查找提供商',
+  noCatalogMatch: '没有匹配的提供商。',
+  catalogBack: '全部提供商',
+  useApiPreset: '改用 API 密钥',
+  subscriptionAccounts: '订阅账户',
+  catalogGroup: {
+    partner: '合作伙伴',
+    subscription: '订阅',
+    vendor: '供应商',
+    relay: '中转',
+    local: '本机',
+    custom: '自定义'
+  },
+  catalogHint: {
+    partner: '能在这里完成配置的赞助预设',
+    subscription: '登录即可，无需密钥',
+    vendor: '模型厂商的 API',
+    relay: '一个密钥，多家模型',
+    local: '跑在这台机器上',
+    custom: 'OpenAI 或 Anthropic 兼容地址'
+  },
+  subscriptionLimit: {
+    claude:
+      'Claude Code 的登录不能当作 Anthropic API Key，也不能直接拿来给 Pi 调用。下面只显示本机 CLI 状态。要调用 Claude，请配置 Anthropic API 密钥。',
+    gemini:
+      'Gemini CLI 的登录目前不能在这里复用。下面只显示 CLI 是否安装。要调用 Gemini，请配置 Gemini API 密钥。',
+    copilot: '当前不能登录或复用 GitHub Copilot 订阅。这里没有 Copilot 设备码授权。'
+  },
   advancedOptions: '高级设置',
   testConnection: '测试连接',
   configured: '已配置',

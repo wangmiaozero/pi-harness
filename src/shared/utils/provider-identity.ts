@@ -92,3 +92,17 @@ export function suggestProviderIdentity(baseUrl: string): ProviderIdentitySugges
 
   return { key, displayName, internalName: key }
 }
+
+/** A URL is complete enough to name a provider, not a half-typed host. */
+export function providerIdentityUrlReady(baseUrl: string): boolean {
+  if (!suggestProviderIdentity(baseUrl)) return false
+  let host: string
+  try {
+    host = new URL(baseUrl.trim()).hostname.toLowerCase()
+  } catch {
+    return false
+  }
+  if (host === 'localhost' || /^\d+(\.\d+){3}$/.test(host)) return true
+  const suffix = host.split('.').filter(Boolean).at(-1) ?? ''
+  return host.includes('.') && suffix.length >= 2
+}

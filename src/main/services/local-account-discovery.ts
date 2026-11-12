@@ -104,8 +104,13 @@ export class LocalAccountDiscovery {
         loginShell: false,
         requireVersion: true,
         additionalDirectories: [
-          path.join(home, '.local', 'bin'),
-          path.join(home, 'bin'),
+        path.join(home, '.local', 'bin'),
+        path.join(home, 'bin'),
+        path.join(home, '.npm-global', 'bin'),
+        path.join(home, '.pnpm', 'bin'),
+        path.join(home, '.volta', 'bin'),
+        path.join(home, '.local', 'share', 'mise', 'shims'),
+        path.join(home, '.fnm', 'aliases', 'default', 'bin'),
           ...(process.platform === 'darwin' ? ['/opt/homebrew/bin', '/usr/local/bin'] : []),
           ...(process.platform === 'win32' && process.env.APPDATA
             ? [path.join(process.env.APPDATA, 'npm')]

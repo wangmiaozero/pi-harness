@@ -40,13 +40,18 @@ describe('local account status', () => {
   })
 
   it('coalesces discovery and distinguishes absent and unsupported CLI', async () => {
-    const resolve = vi.fn(async (command: string): ReturnType<typeof resolveExecutable> => ({
-      command,
-      found: command === 'gemini',
-      path: command === 'gemini' ? '/fixture/gemini' : null,
-      source: command === 'gemini' ? 'process-path' : null,
-      version: null
-    }))
+    const resolve = vi.fn(
+      async (
+        command: string,
+        _options?: Parameters<typeof resolveExecutable>[1]
+      ): ReturnType<typeof resolveExecutable> => ({
+        command,
+        found: command === 'gemini',
+        path: command === 'gemini' ? '/fixture/gemini' : null,
+        source: command === 'gemini' ? 'process-path' : null,
+        version: null
+      })
+    )
     const readShell = vi.fn(async (_options?: { cwd?: string }) => ({ shell: null, path: null }))
     const discovery = new LocalAccountDiscovery(resolve, undefined, readShell)
     const result = discovery.list()
@@ -58,6 +63,13 @@ describe('local account status', () => {
     ])
     expect(await discovery.list()).toEqual(await result)
     expect(resolve).toHaveBeenCalledTimes(3)
+    const directories = resolve.mock.calls.flatMap((call) => call[1]?.additionalDirectories ?? [])
+    expect(directories.every((entry) => path.isAbsolute(String(entry)))).toBe(true)
+    expect(
+      directories.some((entry) =>
+        String(entry).endsWith(`${path.sep}.fnm${path.sep}aliases${path.sep}default${path.sep}bin`)
+      )
+    ).toBe(true)
     await discovery.list(true)
     expect(resolve).toHaveBeenCalledTimes(6)
     discovery.close()

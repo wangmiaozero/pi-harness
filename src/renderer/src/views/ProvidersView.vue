@@ -31,7 +31,7 @@ import {
   volcenginePlanKind
 } from '@shared/utils/base-url'
 import { isLocalOllamaEndpoint } from '@shared/providers/local-ollama'
-import { suggestProviderIdentity } from '@shared/utils/provider-identity'
+import { providerIdentityUrlReady, suggestProviderIdentity } from '@shared/utils/provider-identity'
 import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
@@ -46,6 +46,9 @@ import SearchField from '@renderer/components/ui/SearchField.vue'
 import Combobox from '@renderer/components/ui/Combobox.vue'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useModelsStore } from '@renderer/stores/models'
+import { useChatGptAccounts } from '@renderer/stores/chatgpt-accounts'
+import type { AddCatalogSubscriptionId } from '@shared/providers/add-catalog'
+import AddProviderCatalog from '@renderer/components/providers/AddProviderCatalog.vue'
 import { formatRelativeTime } from '@renderer/utils/format'
 import {
   apiKeyKindsForPlatform,
@@ -66,13 +69,17 @@ const router = useRouter()
 const providersStore = useProvidersStore()
 const modelsStore = useModelsStore()
 
-const LocalAccountsPanel = defineAsyncComponent(
-  () => import('@renderer/components/providers/LocalAccountsPanel.vue')
-)
 const ProviderUsagePanel = defineAsyncComponent(
   () => import('@renderer/components/providers/ProviderUsagePanel.vue')
 )
-const section = ref<'providers' | 'local' | 'usage'>('providers')
+const section = ref<'providers' | 'usage'>('providers')
+const catalogOpen = ref(false)
+const catalogDetail = ref<AddCatalogSubscriptionId | null>(null)
+const chatGptAccounts = useChatGptAccounts()
+const configuredCatalogIds = computed(() => [
+  ...providersStore.items.map((provider) => provider.key),
+  ...(chatGptAccounts.items.length > 0 ? ['chatgpt'] : [])
+])
 onDeactivated(() => {
   section.value = 'providers'
 })
@@ -96,8 +103,8 @@ const timeoutStr = ref('')
 const headersJson = ref('')
 const defaultModelIdStr = ref('')
 const query = ref('')
-const presetSearch = ref('')
 const activePreset = ref<ProviderPreset | null>(null)
+const identityPreset = ref<ProviderPreset | null>(null)
 const advancedProviderOptions = ref(false)
 const hasPresetEndpoint = computed(() => !!activePreset.value?.defaultBaseUrl)
 const showProviderOptions = computed(
@@ -147,25 +154,6 @@ const preservedCommand = ref<string | null>(null)
 const keychainService = ref<string | null>(null)
 
 const protocolOptions = computed(() => PROTOCOLS.map((p) => ({ value: p.id, label: p.label })))
-const providerPresetOptions = computed(() =>
-  PROVIDER_PRESETS.map((preset) => ({
-    value: preset.id,
-    label: preset.name,
-    hint: [
-      t(`providerAccounts.category.${presetCategory(preset)}`),
-      providersStore.items.some((provider) => provider.key === preset.id)
-        ? t('providerAccounts.configured')
-        : t('providers.presetModelCount', { count: preset.models.length })
-    ].join(' · ')
-  }))
-)
-
-function presetCategory(preset: ProviderPreset): 'compatible' | 'local' | 'remote' {
-  if (preset.id.endsWith('-compatible')) return 'compatible'
-  return /^http:\/\/(?:localhost|127\.0\.0\.1)(?=[:/]|$)/.test(preset.defaultBaseUrl)
-    ? 'local'
-    : 'remote'
-}
 const currentDiscoveredModels = computed(() =>
   discoveredSource.value === modelDiscoverySource() ? discoveredModels.value : []
 )
@@ -187,7 +175,7 @@ const modelDiscoveryFeedbackClass = computed(() => {
 })
 const modelOptions = computed(() => {
   const options = new Map<string, { value: string; label: string; hint?: string }>()
-  for (const model of activePreset.value?.models ?? []) {
+  for (const model of (identityPreset.value ?? activePreset.value)?.models ?? []) {
     options.set(model.id, {
       value: model.id,
       label: model.name,
@@ -218,7 +206,9 @@ const modelOptions = computed(() => {
 })
 const selectedDefaultModel = computed(() => {
   const id = defaultModelIdStr.value.trim()
-  const preset = activePreset.value?.models.find((model) => model.id === id)
+  const preset =
+    identityPreset.value?.models.find((model) => model.id === id) ??
+    activePreset.value?.models.find((model) => model.id === id)
   if (preset) return preset
   const existing = modelsStore.items.find(
     (model) => model.providerId === editingKey.value && model.modelId === id
@@ -346,9 +336,125 @@ async function copySavedApiKey() {
 }
 
 watch(apiKeyKind, clearApiKeyReveal)
+
+let identityTimer: ReturnType<typeof setTimeout> | null = null
+let appliedIdentityUrl = ''
+let seededIdentity: { key: string; displayName: string; name: string } | null = null
+let generatedIdentity: { key: string; displayName: string; name: string } | null = null
+let generatedModelId: string | null = null
+
+function identitySnapshot(): { key: string; displayName: string; name: string } {
+  return {
+    key: form.value.key,
+    displayName: form.value.displayName,
+    name: form.value.name
+  }
+}
+
+function sameIdentity(
+  left: { key: string; displayName: string; name: string } | null,
+  right: { key: string; displayName: string; name: string } | null
+): boolean {
+  return (
+    !!left &&
+    !!right &&
+    left.key === right.key &&
+    left.displayName === right.displayName &&
+    left.name === right.name
+  )
+}
+
+function identityUntouched(): boolean {
+  const current = identitySnapshot()
+  return sameIdentity(current, seededIdentity) || sameIdentity(current, generatedIdentity)
+}
+
+function rememberSeededIdentity(): void {
+  seededIdentity = identitySnapshot()
+  generatedIdentity = null
+  appliedIdentityUrl = ''
+  generatedModelId = null
+  identityPreset.value = null
+}
+
+function recognizedPreset(baseUrl: string, key: string): ProviderPreset | undefined {
+  const byUrl = findProviderPreset({ baseUrl })
+  if (byUrl && !byUrl.id.endsWith('-compatible')) return byUrl
+  return PROVIDER_PRESETS.find((preset) => preset.id === key && preset.defaultModelId.trim())
+}
+
+function canFillModelId(): boolean {
+  const current = defaultModelIdStr.value.trim()
+  return current === '' || current === generatedModelId
+}
+
 watch(dialogOpen, (open) => {
-  if (!open) clearApiKeyReveal()
+  if (!open) {
+    clearApiKeyReveal()
+    if (identityTimer) clearTimeout(identityTimer)
+    identityTimer = null
+    appliedIdentityUrl = ''
+    seededIdentity = null
+    generatedIdentity = null
+    generatedModelId = null
+    identityPreset.value = null
+  }
 })
+
+function applyProviderIdentity(manual: boolean): void {
+  const normalized = normalizeProviderBaseUrl(form.value.baseUrl)
+  const suggestion = suggestProviderIdentity(normalized.url)
+  if (!suggestion) {
+    if (manual) toast.error(t('providers.identityInvalidUrl'))
+    return
+  }
+  const preset = recognizedPreset(normalized.url, suggestion.key)
+  const key = uniqueProviderKey(preset?.id ?? suggestion.key)
+  const displayName = preset?.name ?? suggestion.displayName
+  const name = preset?.id ?? suggestion.internalName
+  const modelId = preset?.defaultModelId.trim() || preset?.models[0]?.id || ''
+  const same =
+    form.value.baseUrl === normalized.url &&
+    form.value.key === key &&
+    form.value.displayName === displayName &&
+    form.value.name === name
+  if (!manual && !identityUntouched()) return
+  if (manual || (normalized.url !== appliedIdentityUrl && !same)) {
+    form.value.baseUrl = normalized.url
+    form.value.key = key
+    form.value.displayName = displayName
+    form.value.name = name
+    generatedIdentity = { key, displayName, name }
+    appliedIdentityUrl = normalized.url
+    toast.success(t('providers.identityGenerated'))
+  } else {
+    appliedIdentityUrl = normalized.url
+  }
+  identityPreset.value = preset ?? null
+  if (modelId && canFillModelId()) {
+    generatedModelId = modelId
+    defaultModelIdStr.value = modelId
+  }
+}
+
+watch(
+  () => form.value.baseUrl,
+  () => {
+    scheduleProviderIdentity()
+  }
+)
+
+function scheduleProviderIdentity(): void {
+  if (identityTimer) clearTimeout(identityTimer)
+  identityTimer = null
+  if (isEditing.value || !providerIdentityUrlReady(form.value.baseUrl)) return
+  identityTimer = setTimeout(() => {
+    identityTimer = null
+    if (!isEditing.value && providerIdentityUrlReady(form.value.baseUrl)) {
+      applyProviderIdentity(false)
+    }
+  }, 400)
+}
 
 function onBaseUrlBlur() {
   const r = normalizeProviderBaseUrl(form.value.baseUrl)
@@ -356,25 +462,13 @@ function onBaseUrlBlur() {
     form.value.baseUrl = r.url
     toast.info(t('providers.baseUrlNormalized'))
   }
+  if (identityTimer) clearTimeout(identityTimer)
+  identityTimer = null
+  if (!isEditing.value && providerIdentityUrlReady(form.value.baseUrl)) applyProviderIdentity(false)
 }
 
 function modelDiscoverySource(): string {
   return `${form.value.protocol}\0${normalizeProviderBaseUrl(form.value.baseUrl).url}`
-}
-
-function generateProviderIdentity() {
-  const normalized = normalizeProviderBaseUrl(form.value.baseUrl)
-  const suggestion = suggestProviderIdentity(normalized.url)
-  if (!suggestion) {
-    toast.error(t('providers.identityInvalidUrl'))
-    return
-  }
-  const preset = findProviderPreset({ baseUrl: normalized.url })
-  form.value.baseUrl = normalized.url
-  form.value.key = uniqueProviderKey(preset?.id ?? suggestion.key)
-  form.value.displayName = preset?.name ?? suggestion.displayName
-  form.value.name = preset?.id ?? suggestion.internalName
-  toast.success(t('providers.identityGenerated'))
 }
 
 /** Suggest a provider key from free text. Preserves case; only sanitizes. */
@@ -435,7 +529,18 @@ function openCreate(presetId?: string) {
     }
     defaultModelIdStr.value = preset.defaultModelId || preset.models[0]?.id || ''
   }
+  rememberSeededIdentity()
   dialogOpen.value = true
+}
+
+function openCatalog(detail: AddCatalogSubscriptionId | null = null) {
+  catalogDetail.value = detail
+  catalogOpen.value = true
+}
+
+function chooseCatalogPreset(presetId: string) {
+  catalogOpen.value = false
+  selectProviderPreset(presetId)
 }
 
 function selectProviderPreset(presetId: string) {
@@ -443,7 +548,6 @@ function selectProviderPreset(presetId: string) {
     void router.replace({ path: '/models', query: { tab: 'opencode' } })
     return
   }
-  presetSearch.value = ''
   const configured = providersStore.items.find((provider) => provider.key === presetId)
   const preset = PROVIDER_PRESETS.find((item) => item.id === presetId)
   if (configured && preset?.defaultBaseUrl) {
@@ -526,6 +630,7 @@ function openEdit(provider: ProviderProfile) {
   }
   timeoutStr.value = provider.timeout != null ? String(provider.timeout) : ''
   headersJson.value = JSON.stringify(provider.headers ?? {}, null, 2)
+  rememberSeededIdentity()
   dialogOpen.value = true
 }
 
@@ -887,7 +992,7 @@ watch(
   () => route.query.action,
   (action) => {
     if (action !== 'create') return
-    openCreate()
+    openCatalog()
     const query = { ...route.query }
     delete query.action
     void router.replace({ query })
@@ -899,6 +1004,7 @@ onMounted(() => {
   if (!props.embedded) void providersStore.fetchList()
   void modelsStore.fetchList()
   void loadPlatform()
+  void chatGptAccounts.load()
 })
 </script>
 
@@ -923,7 +1029,7 @@ onMounted(() => {
           :placeholder="$t('providers.filterPlaceholder')"
           class="w-[220px]"
         />
-        <Button variant="primary" size="sm" @click="openCreate()">
+        <Button variant="primary" size="sm" data-testid="add-provider" @click="openCatalog()">
           <Plus class="size-3.5" />
           {{ $t('providers.create') }}
         </Button>
@@ -940,30 +1046,11 @@ onMounted(() => {
           :placeholder="$t('providers.filterPlaceholder')"
           class="w-[220px]"
         />
-        <Button variant="primary" size="sm" @click="openCreate()">
+        <Button variant="primary" size="sm" data-testid="add-provider" @click="openCatalog()">
           <Plus class="size-3.5" />
           {{ $t('providers.create') }}
         </Button>
       </template>
-    </div>
-
-    <!-- Searchable Pi-compatible provider/model presets. -->
-    <div
-      v-if="section === 'providers' && PROVIDER_PRESETS.length > 0"
-      class="flex shrink-0 items-center gap-2 px-5 h-[48px] border-b border-[var(--border-subtle)]"
-    >
-      <span
-        class="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)] pr-1"
-      >
-        {{ $t('providers.presetsLabel') }}
-      </span>
-      <Combobox
-        v-model="presetSearch"
-        class="w-[340px]"
-        :placeholder="$t('providers.presetPlaceholder')"
-        :options="providerPresetOptions"
-        @select="selectProviderPreset"
-      />
     </div>
 
     <nav
@@ -971,21 +1058,38 @@ onMounted(() => {
       :aria-label="$t('providers.title')"
     >
       <Button
-        v-for="value in ['providers', 'local', 'usage'] as const"
+        v-for="value in ['providers', 'usage'] as const"
         :key="value"
         :data-testid="'provider-tab-' + value"
         size="sm"
         :variant="section === value ? 'secondary' : 'ghost'"
         :aria-pressed="section === value"
         @click="section = value"
-        >{{ $t(value === 'providers' ? 'providers.title' : 'providerAccounts.' + value) }}</Button
+        >{{ $t(value === 'providers' ? 'providers.title' : 'providerAccounts.usage') }}</Button
       >
     </nav>
-    <div v-if="section !== 'providers'" class="min-h-0 flex-1 overflow-y-auto">
-      <LocalAccountsPanel v-if="section === 'local'" />
-      <ProviderUsagePanel v-else />
+    <div v-if="section === 'usage'" class="min-h-0 flex-1 overflow-y-auto">
+      <ProviderUsagePanel />
     </div>
     <div v-else class="flex-1 overflow-y-auto px-5 pt-4 pb-6 space-y-4">
+      <div class="flex flex-wrap items-center gap-2" data-testid="subscription-providers">
+        <Button
+          size="sm"
+          data-testid="open-subscription-chatgpt"
+          @click="openCatalog('chatgpt')"
+        >
+          ChatGPT
+          <span v-if="chatGptAccounts.items.length" class="tabular-nums">
+            {{ chatGptAccounts.items.length }}
+          </span>
+        </Button>
+        <Button size="sm" data-testid="open-subscription-claude" @click="openCatalog('claude')">
+          Claude
+        </Button>
+        <Button size="sm" data-testid="open-subscription-gemini" @click="openCatalog('gemini')">
+          Gemini CLI
+        </Button>
+      </div>
       <div
         v-if="providersWithNoModels.length > 0"
         class="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--warning)]/30 bg-[var(--warning-tint)] px-3 py-2.5"
@@ -1025,7 +1129,7 @@ onMounted(() => {
         :description="$t('providers.emptyHint')"
         :icon="Box"
       >
-        <Button variant="primary" size="sm" class="mt-3" @click="openCreate()">
+        <Button variant="primary" size="sm" class="mt-3" data-testid="add-provider" @click="openCatalog()">
           {{ $t('providers.createShort') }}
         </Button>
       </EmptyState>
@@ -1149,6 +1253,20 @@ onMounted(() => {
     </div>
 
     <Dialog
+      v-model:open="catalogOpen"
+      :title="$t('providerAccounts.addTitle')"
+      sheet
+      close-on-escape
+    >
+      <AddProviderCatalog
+        :presets="PROVIDER_PRESETS"
+        :configured-ids="configuredCatalogIds"
+        :initial-detail="catalogDetail"
+        @select-preset="chooseCatalogPreset"
+      />
+    </Dialog>
+
+    <Dialog
       v-model:open="dialogOpen"
       :title="isEditing ? $t('providers.edit') : $t('providers.create')"
       wide
@@ -1205,7 +1323,7 @@ onMounted(() => {
               variant="secondary"
               size="sm"
               :disabled="!form.baseUrl.trim()"
-              @click="generateProviderIdentity"
+              @click="applyProviderIdentity(true)"
             >
               <Sparkles class="size-3.5" :stroke-width="1.75" />
               {{ $t('providers.generateIdentity') }}

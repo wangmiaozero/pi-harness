@@ -16,6 +16,10 @@ import Dialog from '@renderer/components/ui/Dialog.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Combobox from '@renderer/components/ui/Combobox.vue'
 
+const props = withDefaults(defineProps<{ focus?: 'chatgpt' | 'claude' | 'gemini' }>(), {
+  focus: 'chatgpt'
+})
+const emit = defineEmits<{ 'configure-api': [] }>()
 const { t, locale } = useI18n()
 const accounts = useChatGptAccounts()
 const local = shallowRef<LocalAccount[]>([])
@@ -29,6 +33,10 @@ const confirmation = ref<{ id: string; kind: 'verify' | 'disconnect'; modelId?: 
   null
 )
 const names = { codex: 'Codex', claude: 'Claude Code', gemini: 'Gemini CLI' }
+const cliSource = computed(() =>
+  props.focus === 'claude' ? 'claude' : props.focus === 'gemini' ? 'gemini' : 'codex'
+)
+const focusedLocal = computed(() => local.value.find((item) => item.source === cliSource.value))
 const primary = computed(() => accounts.items.find((account) => account.defaultModelId))
 const hasFallback = computed(() => accounts.items.some((account) => account.fallbackRank))
 
@@ -219,27 +227,34 @@ onMounted(() => void refresh())
 </script>
 
 <template>
-  <section class="space-y-4 p-5" data-testid="provider-local-accounts">
+  <section class="space-y-4" data-testid="provider-local-accounts" :data-provider-focus="focus">
     <div class="flex items-center justify-between gap-2">
-      <h2 class="text-sm font-semibold">{{ $t('providerAccounts.local') }}</h2>
+      <h2 class="text-sm font-semibold">{{ names[cliSource] }}</h2>
       <Button size="sm" :loading="scanning" @click="refresh(true)">
         {{ $t('providerAccounts.refresh') }}
       </Button>
     </div>
     <div
-      v-for="item in local"
-      :key="item.source"
+      v-if="focusedLocal"
       class="flex items-center justify-between gap-3 rounded-lg border border-[var(--border-subtle)] px-3 py-2"
     >
       <div>
-        <strong class="text-sm">{{ names[item.source] }}</strong>
-        <p v-if="item.status === 'detected'" class="text-xs text-[var(--text-secondary)]">
-          {{ $t(`providerAccounts.detectedHint.${item.source}`) }}
+        <strong class="text-sm">{{ names[focusedLocal.source] }}</strong>
+        <p v-if="focusedLocal.status === 'detected'" class="text-xs text-[var(--text-secondary)]">
+          {{ $t(`providerAccounts.detectedHint.${focusedLocal.source}`) }}
         </p>
       </div>
-      <Badge tone="muted">{{ $t(`providerAccounts.localStatus.${item.status}`) }}</Badge>
+      <Badge tone="muted">{{ $t(`providerAccounts.localStatus.${focusedLocal.status}`) }}</Badge>
     </div>
-    <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
+    <template v-if="focus !== 'chatgpt'">
+      <p class="text-xs text-[var(--text-secondary)]">
+        {{ $t(`providerAccounts.subscriptionLimit.${focus}`) }}
+      </p>
+      <Button size="sm" data-testid="subscription-use-api" @click="emit('configure-api')">
+        {{ $t('providerAccounts.useApiPreset') }}
+      </Button>
+    </template>
+    <div v-if="focus === 'chatgpt'" class="flex flex-wrap items-center justify-between gap-2 pt-2">
       <h2 class="text-sm font-semibold">{{ $t('providerAccounts.chatGpt') }}</h2>
       <Button v-if="connecting" size="sm" @click="getApi().accounts.cancel()">
         {{ $t('common.cancel') }}
@@ -248,6 +263,7 @@ onMounted(() => void refresh())
         {{ $t('providerAccounts.connect') }}
       </Button>
     </div>
+    <template v-if="focus === 'chatgpt'">
     <p class="text-xs text-[var(--text-secondary)]">{{ $t('providerAccounts.chatGptHint') }}</p>
     <p v-if="primary" class="text-xs text-[var(--text-secondary)]">
       {{ $t('providerAccounts.fallbackHint') }}
@@ -476,5 +492,6 @@ onMounted(() => void refresh())
         }}</Button>
       </template>
     </Dialog>
+    </template>
   </section>
 </template>
