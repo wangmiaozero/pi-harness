@@ -6,25 +6,15 @@ on:
     # Docs, READMEs and promo media do not change the app. Skills under
     # resources/ stay on this workflow because they ship in the package.
     paths-ignore:
-      - 'README.md'
-      - 'README.*.md'
-      - 'CHANGELOG.md'
-      - 'AGENTS.md'
-      - 'CLAUDE.md'
+      - '*.md'
       - 'LICENSE'
       - 'NOTICE'
-      - 'THIRD_PARTY_NOTICES.md'
       - 'docs/**'
   pull_request:
     paths-ignore:
-      - 'README.md'
-      - 'README.*.md'
-      - 'CHANGELOG.md'
-      - 'AGENTS.md'
-      - 'CLAUDE.md'
+      - '*.md'
       - 'LICENSE'
       - 'NOTICE'
-      - 'THIRD_PARTY_NOTICES.md'
       - 'docs/**'
   workflow_call:
   workflow_dispatch:

@@ -39,6 +39,18 @@ und deine Pi-Sitzungen, Konfiguration, Skills und Erweiterungen funktionieren in
   </tr>
   <tr>
     <td width="580" align="center" valign="middle">
+        <a href="https://tokenarmy.shop/r/TA-7FBJU-NUSUC" style="color:transparent;background-color:transparent;text-decoration:none;border:none;"><img src="docs/assets/tokenarmy-banner.png" width="560" alt="Pi-Harness × TokenArmy" style="color:transparent;background-color:transparent;text-decoration:none;border:none;" /></a>
+    </td>
+    <td valign="middle">
+      <strong>Pi-Harness × TokenArmy</strong><br>
+      <strong>Claude Pro 日租</strong> · 独享账号，低至 $1.34/天<br>
+      <strong>Claude API 按量计费</strong> · 低至官方价格 1.25 折，失败不扣费<br>
+      <a href="https://tokenarmy.shop/r/TA-7FBJU-NUSUC">Pi-Harness 用户专属注册链接</a><br>
+      <em>价格与服务以 TokenArmy 平台规则为准，账号仍有封禁风险。</em>
+    </td>
+  </tr>
+  <tr>
+    <td width="580" align="center" valign="middle">
         <a href="https://cloud.tencent.com/act/cps/redirect?redirect=6871&amp;cps_key=ece2099a1da90c2f7a4a4c437ad623f8&amp;from=console" style="color:transparent;background-color:transparent;text-decoration:none;border:none;"><img src="docs/assets/workbuddy-banner.jpg" width="560" alt="腾讯云 WorkBuddy" style="color:transparent;background-color:transparent;text-decoration:none;border:none;" /></a>
     </td>
     <td valign="middle">
