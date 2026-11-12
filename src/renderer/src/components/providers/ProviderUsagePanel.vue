@@ -183,7 +183,7 @@ onBeforeUnmount(() => {
           :options="providerOptions"
         />
         <Button size="sm" :disabled="!provider" :loading="reading" @click="readQuota">{{
-          $t('providerAccounts.refresh')
+          $t('providerAccounts.refreshQuota')
         }}</Button>
         <label class="flex items-center gap-2 text-xs">
           <Switch v-model="auto" :label="$t('providerAccounts.auto')" />{{

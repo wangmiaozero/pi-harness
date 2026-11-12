@@ -53,7 +53,8 @@ export const providerAccountsEn = {
   defaultChanged: 'The default ChatGPT model changed. Select a model again.',
   authorized: 'Authorized',
   expired: 'Access token expired',
-  balance: 'API balance',
+  balance: 'API balance and limits',
+  refreshQuota: 'Refresh quota',
   auto: 'Refresh every 15 minutes',
   quotaSource: {
     deepseek: 'DeepSeek API',
@@ -169,7 +170,8 @@ export const providerAccountsZh: typeof providerAccountsEn = {
   defaultChanged: 'ChatGPT 默认模型已更改，请重新选择模型。',
   authorized: '已授权',
   expired: '访问令牌已过期',
-  balance: 'API 余额',
+  balance: 'API 余额与额度',
+  refreshQuota: '刷新额度',
   auto: '每 15 分钟刷新',
   quotaSource: {
     deepseek: 'DeepSeek API',
