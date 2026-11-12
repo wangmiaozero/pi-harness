@@ -43,10 +43,10 @@ Pi 세션, 설정, Skills, 확장 기능은 앱 안과 밖에서 그대로 동�
     </td>
     <td valign="middle">
       <strong>Pi-Harness × TokenArmy</strong><br>
-      <strong>Claude Pro 日租</strong> · 独享账号，低至 $1.34/天<br>
+      <strong>Claude Pro 日租</strong> · 独享账号，低至 $1.34/天，不封号<br>
       <strong>Claude API 按量计费</strong> · 低至官方价格 1.25 折，失败不扣费<br>
       <a href="https://tokenarmy.shop/r/TA-7FBJU-NUSUC">Pi-Harness 用户专属注册链接</a><br>
-      <em>价格与服务以 TokenArmy 平台规则为准，账号仍有封禁风险。</em>
+      <em>价格与服务以 TokenArmy 平台规则为准。</em>
     </td>
   </tr>
   <tr>
