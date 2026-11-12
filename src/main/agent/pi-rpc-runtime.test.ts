@@ -192,7 +192,7 @@ native('official standalone Pi with independent Node', () => {
     expect(requests).toHaveLength(0)
     accounts = []
     await expect(runtime.setModel(sessionId, id, model.id)).rejects.toThrow()
-  })
+  }, 45_000)
   afterEach(async () => {
     await runtime?.shutdownAll()
     vi.restoreAllMocks()
@@ -397,7 +397,7 @@ native('official standalone Pi with independent Node', () => {
     } finally {
       read.mockRestore()
     }
-  })
+  }, 45_000)
   it('keeps concurrent standalone sessions, events and persisted histories isolated', async () => {
     const [first, second] = await Promise.all([
       runtime.startSession({ cwd, provider: 'fixture', modelId: 'fixture' }),

@@ -401,7 +401,8 @@ test('opens local accounts and usage without querying subscription models', asyn
   await expect(catalog.getByTestId('add-provider-subscription-copilot')).toBeVisible()
   await expect(catalog.getByTestId('add-provider-preset-deepseek')).toBeVisible()
   await expect(catalog.getByTestId('add-provider-preset-openai')).toBeVisible()
-  await catalog.getByRole('searchbox', { name: '查找提供商' }).fill('deepseek')
+  const providerSearch = page.getByRole('searchbox', { name: '查找提供商' })
+  await providerSearch.fill('deepseek')
   await expect(catalog.getByTestId('add-provider-preset-deepseek')).toBeVisible()
   await expect(catalog.getByTestId('add-provider-subscription-chatgpt')).toHaveCount(0)
   await page.evaluate(() => {
@@ -412,7 +413,7 @@ test('opens local accounts and usage without querying subscription models', asyn
     document.documentElement.dataset.theme = 'light'
   })
   await expect(catalog).toBeVisible()
-  await catalog.getByRole('searchbox', { name: '查找提供商' }).fill('')
+  await providerSearch.fill('')
   await catalog.getByTestId('add-provider-subscription-chatgpt').click()
   await expect(catalog.getByTestId('chatgpt-connect')).toBeVisible()
   await catalog.getByTestId('add-provider-back').click()
