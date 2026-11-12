@@ -15,6 +15,8 @@ import type { HarnessEvent } from '@shared/types/harness'
 import type { ChatGptAccount } from '@shared/providers/account-management'
 import type { ChatGptAccounts } from '../services/chatgpt-accounts'
 import { openaiProvider } from '@earendil-works/pi-ai/providers/openai'
+import { managedProviderApiKey, secretStore } from '../security/secret-store'
+import { loadManagedProviderKeys } from '../pi/managed-provider-keys'
 
 vi.mock('electron', () => ({ BrowserWindow: { getAllWindows: () => [] } }))
 const bundledRoot = path.resolve('resources/runtimes', `${process.platform}-${process.arch}`)
@@ -31,6 +33,7 @@ native('official standalone Pi with independent Node', () => {
   let runtime: PiRpcRuntime
   let manager: RuntimeManager
   const requests: Record<string, unknown>[] = []
+  const authorization: (string | undefined)[] = []
   const events: HarnessEvent[] = []
   const replies: Array<string | { tool: string; args: Record<string, unknown> }> = []
   const paths = new Map<string, string>()
@@ -44,6 +47,7 @@ native('official standalone Pi with independent Node', () => {
     await fs.mkdir(cwd)
     await fs.mkdir(config)
     requests.length = events.length = replies.length = 0
+    authorization.length = 0
     paths.clear()
     largeUsage = false
     summaryMinOutput = 0
@@ -53,6 +57,7 @@ native('official standalone Pi with independent Node', () => {
       for await (const chunk of request) body += chunk
       const payload = JSON.parse(body)
       requests.push(payload)
+      authorization.push(request.headers.authorization)
       const summary = JSON.stringify(payload.messages).includes('context summarization assistant')
       const capped =
         summary &&
@@ -329,6 +334,7 @@ native('official standalone Pi with independent Node', () => {
     await vi.waitFor(() => expect(events.some((e) => e.type === 'prompt.completed')).toBe(true), {
       timeout: 20_000
     })
+
     expect(requests.length).toBe(1)
     expect(JSON.stringify(requests)).toContain('Desktop workspace context fixture')
     const file = paths.get(started.sessionId)!
@@ -348,6 +354,50 @@ native('official standalone Pi with independent Node', () => {
     ).toBe(true)
     await runtime.abort(started.sessionId)
   }, 60_000)
+
+  it('resolves a vault reference in both native Pi entry points without writing the key to JSON', async () => {
+    const file = path.join(config, 'models.json')
+    const models = JSON.parse(await fs.readFile(file, 'utf8'))
+    const ref = 'prov-fixture-12345678'
+    const key = '!fixture-$literal-secret'
+    models.providers.fixture.apiKey = managedProviderApiKey(ref)
+    await fs.writeFile(file, JSON.stringify(models))
+    const read = vi
+      .spyOn(secretStore, 'getProviderSecret')
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue(key)
+    try {
+      const input = { cwd, provider: 'fixture', modelId: 'fixture' }
+      await expect(runtime.startSession(input)).rejects.toThrow('saved API key is unavailable')
+      expect(authorization).toEqual([])
+      const started = await runtime.startSession(input)
+      runtime.subscribe(started.sessionId, (event) => events.push(event))
+      await runtime.prompt(started.sessionId, 'Use the stored key')
+      await vi.waitFor(() =>
+        expect(events.some((event) => event.type === 'prompt.completed')).toBe(true)
+      )
+      expect(read).toHaveBeenLastCalledWith(ref, models.providers.fixture.baseUrl, true)
+      expect(authorization).toEqual(['Bearer ' + key])
+      expect(await fs.readFile(file, 'utf8')).not.toContain(key)
+      expect(await fs.readFile(paths.get(started.sessionId)!, 'utf8')).not.toContain(key)
+      const { ModelRuntime } = await import('@earendil-works/pi-coding-agent')
+      const modelRuntime = await ModelRuntime.create({
+        authPath: path.join(config, 'auth.json'),
+        modelsPath: file
+      })
+      await expect(loadManagedProviderKeys(modelRuntime, config)).resolves.toEqual(new Set())
+      const model = modelRuntime.getModel('fixture', 'fixture')!
+      const result = await modelRuntime.completeSimple(model, {
+        messages: [
+          { role: 'user', content: 'Use the stored key via the SDK', timestamp: Date.now() }
+        ]
+      })
+      expect(result.stopReason).toBe('stop')
+      expect(authorization).toEqual(['Bearer ' + key, 'Bearer ' + key])
+    } finally {
+      read.mockRestore()
+    }
+  })
   it('keeps concurrent standalone sessions, events and persisted histories isolated', async () => {
     const [first, second] = await Promise.all([
       runtime.startSession({ cwd, provider: 'fixture', modelId: 'fixture' }),

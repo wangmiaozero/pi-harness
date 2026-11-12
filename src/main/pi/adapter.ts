@@ -13,7 +13,12 @@ import { isLocalOllamaEndpoint, isOllamaPlaceholder } from '@shared/providers/lo
 import { resolveModelInput, findProviderPreset } from '@shared/constants/provider-presets'
 import type { ModelMeta, ProviderMeta } from '../services/metadata-store'
 import { modelMetaKey } from '../services/metadata-store'
-import { macKeychainCommand, maskKey, secretStore } from '../security/secret-store'
+import {
+  macKeychainCommand,
+  managedProviderApiKey,
+  managedProviderSecretId,
+  maskKey
+} from '../security/secret-store'
 
 export function serialiseApiKey(
   spec: ApiKeySpec | null,
@@ -29,23 +34,12 @@ export function serialiseApiKey(
       return spec.command
     case 'stored':
       if (!secretId) return undefined
-      // macOS prefers !command; non-mac resolves later via secretStore.serialisedApiKeyValue
-      if (process.platform === 'darwin') return macKeychainCommand(secretId)
-      return undefined // caller must resolve asynchronously
+      return process.platform === 'darwin'
+        ? macKeychainCommand(secretId)
+        : managedProviderApiKey(secretId)
     default:
       return undefined
   }
-}
-
-export async function resolveApiKeyForPi(
-  spec: ApiKeySpec | null,
-  secretId: string | null
-): Promise<string | undefined> {
-  if (!spec) return undefined
-  if (spec.kind === 'stored' && secretId) {
-    return secretStore.serialisedApiKeyValue(secretId)
-  }
-  return serialiseApiKey(spec, secretId)
 }
 
 export function parseApiKeyFromPi(raw: string | undefined): {
@@ -53,6 +47,8 @@ export function parseApiKeyFromPi(raw: string | undefined): {
   apiKeyRef: string | null
 } {
   if (!raw) return { apiKey: null, apiKeyRef: null }
+  const managed = managedProviderSecretId(raw)
+  if (managed) return { apiKey: { kind: 'stored' }, apiKeyRef: managed }
   if (raw.startsWith('!')) {
     // Pi-Harness managed keychain
     const m = raw.match(/-s\s+"pi-harness-([^"]+)"/)
@@ -78,7 +74,8 @@ export function providerToDomain(
   meta: ProviderMeta | undefined
 ): ProviderProfile {
   const parsed = parseApiKeyFromPi(pi.apiKey)
-  const apiKeyRef = parsed.apiKeyRef ?? meta?.apiKeyRef ?? null
+  const apiKeyRef =
+    parsed.apiKeyRef ?? (parsed.apiKey?.kind === 'literal' ? meta?.apiKeyRef : null) ?? null
   const localNoAuth =
     isLocalOllamaEndpoint(pi.baseUrl ?? '') &&
     isOllamaPlaceholder(pi.apiKey) &&

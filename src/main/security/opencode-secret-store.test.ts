@@ -99,4 +99,21 @@ describe('OpenCode strict credential storage (mock OS only)', () => {
     expect(h.write.mock.calls[0][1]).not.toContain('test-only-key')
     expect(h.write.mock.calls[0][1]).toContain(Buffer.from('encrypted-value').toString('base64'))
   })
+  it('binds a saved provider key to its origin and never writes the raw key to the vault', async () => {
+    h.available.mockReturnValue(true)
+    h.encrypt.mockReturnValue(Buffer.from('encrypted-provider'))
+    const secrets = await store('win32')
+    const id = 'prov-fixture-12345678'
+    const key = 'provider-test-key'
+    await secrets.setProviderSecret(id, key, 'https://example.test/v1')
+    expect(h.write.mock.calls[0][1]).not.toContain(key)
+    const encryptedPayload = h.encrypt.mock.calls[0] as unknown as [string]
+    h.decrypt.mockReturnValue(encryptedPayload[0])
+    await expect(secrets.getProviderSecret(id, 'https://example.test/v2', true)).resolves.toBe(key)
+    await expect(
+      secrets.getProviderSecret(id, 'https://example.test.evil/v1', true)
+    ).resolves.toBeNull()
+    h.decrypt.mockReturnValue(key)
+    await expect(secrets.getProviderSecret(id, 'https://example.test/v1', true)).resolves.toBeNull()
+  })
 })

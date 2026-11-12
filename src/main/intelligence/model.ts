@@ -1,3 +1,4 @@
+import { loadManagedProviderKeys } from '../pi/managed-provider-keys'
 import { z } from 'zod'
 import type { ArchitectureGraph, ArchitectureLocale } from '@shared/intelligence/schema'
 import type { PiConfigService } from '../pi/config-service'
@@ -45,10 +46,9 @@ export class ArchitectureModel {
       throw new Error('Model access is restricted by Harness Policy.')
     const sdk = await loadPiCodingAgent()
     if (!sdk.createAgentSessionServices) throw new Error('Pi model services are unavailable.')
-    const { modelRuntime } = await sdk.createAgentSessionServices({
-      cwd: root,
-      agentDir: sdk.getAgentDir?.() ?? ''
-    })
+    const agentDir = sdk.getAgentDir?.() ?? ''
+    const { modelRuntime } = await sdk.createAgentSessionServices({ cwd: root, agentDir })
+    await loadManagedProviderKeys(modelRuntime, agentDir)
     const model = modelRuntime.getModel(active.providerKey, active.modelId)
     if (!model) throw new Error('The configured model is unavailable. Local analysis is preserved.')
     const samples = graph.nodes.slice(0, 40).map((n) => ({

@@ -8,14 +8,19 @@ import { providerFormSchema, providerModelDiscoverySchema } from '@shared/schema
 import type { JsonStore } from '../services/storage'
 import type { AppMetadata } from '../services/metadata-store'
 import { NetworkError, NotFoundError, ValidationError } from '../services/errors'
-import { secretStore } from '../security/secret-store'
+import {
+  managedProviderApiKey,
+  managedProviderSecretId,
+  secretStore
+} from '../security/secret-store'
 import { readBoundedText } from './bounded-json'
 import type { PiConfigService, WriteOptions } from '../pi/config-service'
 import {
   domainProviderToPi,
   domainModelToPi,
+  parseApiKeyFromPi,
   providerToDomain,
-  resolveApiKeyForPi
+  serialiseApiKey
 } from '../pi/adapter'
 import { randomBytes } from 'node:crypto'
 import { isLocalOllamaEndpoint } from '@shared/providers/local-ollama'
@@ -60,7 +65,7 @@ export class ProviderService {
     return all.find((p) => p.key === key) ?? null
   }
 
-  /** Resolve a saved credential only for an explicit, trusted renderer reveal action. */
+  /** Resolve a saved credential for Main consumers and an explicit clipboard action. */
   async revealApiKey(key: string): Promise<string> {
     if (key === 'opencode-free')
       throw new ValidationError('OpenCode credentials cannot be revealed')
@@ -85,11 +90,50 @@ export class ProviderService {
     const raw = snapshot.models.providers[key]
     if (!raw || raw.baseUrl !== baseUrl) return null
     const meta = (await this.metadata.read()).providers[key]
-    if (meta?.apiKeyRef) return secretStore.getSecret(meta.apiKeyRef, { strict: true })
+    const profile = providerToDomain(key, raw, meta)
+    if (profile.apiKeyRef)
+      return secretStore.getProviderSecret(
+        profile.apiKeyRef,
+        baseUrl,
+        !!managedProviderSecretId(raw.apiKey)
+      )
     const value = raw.apiKey?.trim()
     if (!value || value.startsWith('!')) return null
     const env = /^\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?$/.exec(value)
     return env ? (process.env[env[1]] ?? null) : value.startsWith('$') ? null : value
+  }
+
+  /** Migrate only literals that still match the application's encrypted copy. */
+  async migrateManagedPlaintextKeys(): Promise<void> {
+    const { models } = await this.config.read()
+    const { providers } = await this.metadata.read()
+    const updates = new Map<string, { previous: string; reference: string }>()
+    for (const [id, entry] of Object.entries(models.providers)) {
+      const previous = entry.apiKey
+      const secretId = providers[id]?.apiKeyRef
+      if (!previous || !secretId || parseApiKeyFromPi(previous).apiKey?.kind !== 'literal') continue
+      if (
+        !entry.baseUrl ||
+        previous !==
+          (await secretStore.getProviderSecret(secretId, entry.baseUrl).catch(() => null))
+      )
+        continue
+      await secretStore.setProviderSecret(secretId, previous, entry.baseUrl)
+      updates.set(id, { previous, reference: managedProviderApiKey(secretId) })
+    }
+    if (!updates.size) return
+    await this.config.patchModels(
+      (current) => {
+        const next = { ...current.providers }
+        for (const [id, { previous, reference }] of updates) {
+          if (next[id]?.apiKey !== previous)
+            throw new ValidationError('Provider credentials changed during migration')
+          next[id] = { ...next[id], apiKey: reference }
+        }
+        return { ...current, providers: next }
+      },
+      { skipBackup: true, reason: 'secure stored provider keys' }
+    )
   }
 
   async create(raw: unknown, options?: WriteOptions): Promise<ProviderProfile> {
@@ -98,10 +142,10 @@ export class ProviderService {
     const existing = await this.get(form.key)
     if (existing) throw new ValidationError(`Provider key already exists: ${form.key}`)
 
-    const secretId = await this.persistSecret(form.key, form.apiKey)
+    const secretId = await this.persistSecret(form)
     const apiKeySpec = secretId ? ({ kind: 'stored' } as const) : form.apiKey
     const localNoAuth = form.apiKey === null && isLocalOllamaEndpoint(form.baseUrl)
-    const apiKeyValue = localNoAuth ? 'ollama' : await resolveApiKeyForPi(apiKeySpec, secretId)
+    const apiKeyValue = localNoAuth ? 'ollama' : serialiseApiKey(apiKeySpec, secretId)
 
     await this.config.patchProvider(
       form.key,
@@ -166,6 +210,25 @@ export class ProviderService {
     if (form.key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const current = await this.get(key)
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
+    const preservesCredential =
+      form.apiKey?.kind === 'stored' ||
+      (form.apiKey?.kind === 'literal' && !form.apiKey.literal) ||
+      (form.apiKey?.kind === 'command' && form.apiKey.command === current.apiKey?.command) ||
+      (form.apiKey?.kind === 'env' && form.apiKey.envRef === current.apiKey?.envRef)
+    if (URL.parse(current.baseUrl)?.origin !== URL.parse(form.baseUrl)?.origin) {
+      if (current.apiKey && preservesCredential)
+        throw new ValidationError('Enter a credential for the new endpoint')
+      const savedAuthHeaders = new Headers(current.headers)
+      for (const [name, value] of Object.entries(form.headers)) {
+        if (
+          /^(authorization|x-api-key|api-key)$/i.test(name) &&
+          savedAuthHeaders.get(name) === value
+        )
+          throw new ValidationError(
+            'Replace or remove the authentication header for the new endpoint'
+          )
+      }
+    }
 
     const newKey = form.key
     if (newKey !== key) {
@@ -175,11 +238,13 @@ export class ProviderService {
 
     let secretId = current.apiKeyRef
     if (form.apiKey?.kind === 'literal' && form.apiKey.literal) {
-      secretId = secretId ?? `prov-${key}-${randomBytes(4).toString('hex')}`
-      await secretStore.setSecret(secretId, form.apiKey.literal)
+      secretId = await this.persistSecret(form)
       form.apiKey = { kind: 'stored' }
-    } else if (form.apiKey === null && secretId) {
-      await secretStore.removeSecret(secretId)
+    } else if (
+      form.apiKey?.kind === 'env' ||
+      form.apiKey?.kind === 'command' ||
+      form.apiKey === null
+    ) {
       secretId = null
     }
 
@@ -190,7 +255,7 @@ export class ProviderService {
         ? ''
         : form.apiKey?.kind === 'literal' && !form.apiKey.literal
           ? undefined // keep existing
-          : await resolveApiKeyForPi(form.apiKey, secretId)
+          : serialiseApiKey(form.apiKey, secretId)
 
     const applyPi = (cur: PiProviderConfig | undefined) => {
       if (!cur) throw new NotFoundError(`Provider not found: ${key}`)
@@ -273,6 +338,8 @@ export class ProviderService {
       createdAt: providersMeta[newKey]?.createdAt ?? now
     }
     await this.metadata.write({ ...meta, providers: providersMeta, models: modelsMeta })
+    if (current.apiKeyRef && current.apiKeyRef !== secretId)
+      await this.removeUnusedSecret(current.apiKeyRef)
 
     const updated = await this.get(newKey)
     if (!updated) throw new ValidationError('Provider update failed')
@@ -283,8 +350,6 @@ export class ProviderService {
     if (key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const current = await this.get(key)
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
-    if (current.apiKeyRef) await secretStore.removeSecret(current.apiKeyRef)
-
     // Cascade: deleting the provider entry also removes every nested model in models.json.
     await this.config.patchProvider(key, () => undefined, {
       overwrite: options?.overwrite,
@@ -311,6 +376,16 @@ export class ProviderService {
       if (k === key || k.startsWith(`${key}::`)) delete models[k]
     }
     await this.metadata.write({ ...meta, providers, models })
+    if (current.apiKeyRef) await this.removeUnusedSecret(current.apiKeyRef)
+  }
+
+  private async removeUnusedSecret(id: string): Promise<void> {
+    try {
+      if ((await this.list()).some((provider) => provider.apiKeyRef === id)) return
+      await secretStore.removeSecret(id, { strict: true })
+    } catch {
+      log.security.warn('Could not remove an unused provider key')
+    }
   }
 
   /** Pick another provider/model for settings.json, or clear active if none left. */
@@ -378,7 +453,17 @@ export class ProviderService {
       newKey = `${key}-copy-${n++}`
     }
 
-    await this.config.patchProvider(newKey, () => ({ ...structuredClone(pi) }), {
+    const duplicate = structuredClone(pi)
+    let apiKeyRef = src.apiKeyRef
+    if (!src.localNoAuth && pi.apiKey && parseApiKeyFromPi(pi.apiKey).apiKey?.kind === 'literal') {
+      apiKeyRef = await this.persistSecret({
+        key: newKey,
+        baseUrl: src.baseUrl,
+        apiKey: { kind: 'literal', literal: pi.apiKey }
+      })
+      duplicate.apiKey = serialiseApiKey({ kind: 'stored' }, apiKeyRef)
+    }
+    await this.config.patchProvider(newKey, () => duplicate, {
       overwrite: options?.overwrite,
       reason: `duplicate provider ${key} → ${newKey}`
     })
@@ -390,6 +475,7 @@ export class ProviderService {
         ...meta.providers,
         [newKey]: {
           ...meta.providers[key],
+          apiKeyRef,
           displayName: `${src.displayName} Copy`,
           enabled: true,
           createdAt: now,
@@ -982,16 +1068,15 @@ export class ProviderService {
     return api && isProtocolId(api) ? api : fallback
   }
 
-  private async persistSecret(key: string, apiKey: ProviderForm['apiKey']): Promise<string | null> {
-    if (!apiKey) return null
-    if (apiKey.kind === 'literal' && apiKey.literal) {
+  private async persistSecret({
+    key,
+    apiKey,
+    baseUrl
+  }: Pick<ProviderForm, 'key' | 'apiKey' | 'baseUrl'>): Promise<string | null> {
+    if (apiKey?.kind === 'literal' && apiKey.literal) {
       const id = `prov-${key}-${randomBytes(4).toString('hex')}`
-      await secretStore.setSecret(id, apiKey.literal)
+      await secretStore.setProviderSecret(id, apiKey.literal, baseUrl)
       return id
-    }
-    if (apiKey.kind === 'stored') {
-      // already stored — no new id
-      return null
     }
     return null
   }
@@ -1574,7 +1659,7 @@ async function resolveCredentialForTest(
   literal?: string
 ): Promise<string | null> {
   if (provider.apiKeyRef) {
-    const secret = await secretStore.getSecret(provider.apiKeyRef)
+    const secret = await secretStore.getProviderSecret(provider.apiKeyRef, provider.baseUrl)
     if (secret) return secret
   }
   const spec = provider.apiKey

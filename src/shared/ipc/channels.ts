@@ -112,7 +112,7 @@ export const IPC_INVOKE = {
   openCodeSaveCredential: invoke('opencode-free:credential:save'),
   openCodeActivateCredential: invoke('opencode-free:credential:activate'),
   openCodeDeleteCredential: invoke('opencode-free:credential:delete'),
-  openCodeRevealCredential: invoke('opencode-free:credential:reveal'),
+  openCodeCopyCredential: invoke('opencode-free:credential:copy'),
 
   // provider accounts and usage
   localAccounts: invoke('accounts:local'),
@@ -123,7 +123,8 @@ export const IPC_INVOKE = {
   chatGptModelEnabled: invoke('accounts:chatgpt-model-enabled'),
   chatGptDefaultModel: invoke('accounts:chatgpt-default-model'),
   chatGptFallback: invoke('accounts:chatgpt-fallback'),
-  chatGptRouteDefault: invoke('accounts:chatgpt-route-default'),
+  chatGptRoutingMode: invoke('accounts:chatgpt-routing-mode'),
+  chatGptLabel: invoke('accounts:chatgpt-label'),
   chatGptVerify: invoke('accounts:chatgpt-verify'),
   chatGptDisconnect: invoke('accounts:chatgpt-disconnect'),
   providerQuota: invoke('providers:quota'),
@@ -140,7 +141,7 @@ export const IPC_INVOKE = {
   providerSetEnabled: invoke('providers:set-enabled'),
   providerTestConnection: invoke('providers:test-connection'),
   providerDiscoverModels: invoke('providers:discover-models'),
-  providerRevealApiKey: invoke('providers:reveal-api-key'),
+  providerCopyApiKey: invoke('providers:copy-api-key'),
 
   // models
   modelList: invoke('models:list'),

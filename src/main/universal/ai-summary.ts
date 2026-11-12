@@ -1,3 +1,4 @@
+import { loadManagedProviderKeys } from '../pi/managed-provider-keys'
 import type { HandoffAiSummary, SessionHandoff } from '@shared/universal/schema'
 import { handoffAiSummarySchema } from '@shared/universal/schema'
 import { inspectRuntimeError } from '@shared/workspace/runtime-error'
@@ -28,6 +29,7 @@ export class UniversalAiSummaryService {
       agentDir,
       ...(settingsManager ? { settingsManager } : {})
     })
+    await loadManagedProviderKeys(modelRuntime, agentDir)
     let model = modelRuntime.getModel(providerKey, modelId)
     if (!model) {
       await modelRuntime.refresh({ allowNetwork: false })

@@ -94,7 +94,7 @@ async function setup(state = current()) {
     ),
     refresh: vi.fn(async () => state),
     cancel: vi.fn(async () => undefined),
-    revealCredential: vi.fn(async () => 'fixture-saved-key'),
+    copyCredential: vi.fn(async (_id: string) => undefined),
     saveCredential: vi.fn(async () => state),
     activateCredential: vi.fn(async (id: string) => {
       state = { ...state, activeCredentialId: id, enabled: true }
@@ -605,49 +605,17 @@ describe('OpenCode keys and model verification UI (mock IPC)', () => {
       })
     )
   })
-  it('reveals a saved key only on request and clears it when hidden or closed', async () => {
+  it('copies the selected saved key without putting it in the editing field', async () => {
     const { api } = await setup()
-    expect(api.revealCredential).not.toHaveBeenCalled()
+    expect(api.copyCredential).not.toHaveBeenCalled()
+    const copy = String(i18n.global.t('providerAccounts.copySavedKey'))
+    button(`${copy} Personal`).click()
+    await flushPromises()
+    expect(api.copyCredential).toHaveBeenCalledExactlyOnceWith('default')
     button(`${t('editKey')} Personal`).click()
-    await flushPromises()
-    const input = document.body.querySelector<HTMLInputElement>(
-      '[role="dialog"] input[type="password"]'
-    )!
-    expect(input.value).toBe('')
-    button(t('show')).click()
-    await flushPromises()
-    expect(api.revealCredential).toHaveBeenCalledWith('default')
-    expect(input.value).toBe('fixture-saved-key')
-    expect(input.type).toBe('text')
-    button(t('hide')).click()
-    await flushPromises()
-    expect(input.value).toBe('')
-    button(t('cancel')).click()
-    await flushPromises()
-    expect(document.body.textContent).not.toContain('fixture-saved-key')
-  })
-  it('discards a saved-key response after its dialog closes and reopens', async () => {
-    const { api } = await setup()
-    let resolve!: (key: string) => void
-    api.revealCredential.mockImplementationOnce(
-      () =>
-        new Promise((r) => {
-          resolve = r
-        })
-    )
-    button(`${t('show')} Personal`).click()
-    await flushPromises()
-    button(t('cancel')).click()
-    await flushPromises()
-    button(t('addKey')).click()
-    await flushPromises()
-    resolve('fixture-late-key')
     await flushPromises()
     expect(
       document.body.querySelector<HTMLInputElement>('[role="dialog"] input[type="password"]')?.value
     ).toBe('')
-    expect(
-      document.body.querySelector('[role="dialog"] input[type="text"][autocomplete="off"]')
-    ).toBeNull()
   })
 })

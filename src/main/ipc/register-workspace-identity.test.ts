@@ -6,6 +6,49 @@ import type { IpcHandleRegistrar } from './trusted-ipc'
 vi.mock('electron', () => ({ BrowserWindow: {}, Menu: {}, dialog: {} }))
 
 describe('managed workspace identity IPC', () => {
+  it('routes only a new chat and passes the physical provider to the agent runtime', async () => {
+    const handlers = new Map<string, (...args: unknown[]) => Promise<unknown>>()
+    const input = { id: 'chatgpt-account-493957de-923a-4681-b5b6-d8de350c293a', modelId: 'gpt-5' }
+    const start = vi.fn(async (_input: { cwd?: string; provider?: string; modelId?: string }) => ({
+      sessionId: 'session',
+      cwd: '/managed/default'
+    }))
+    const assertAllowed = vi.fn(async (_cwd: string) => {})
+    const routeDefault = vi.fn(async (_input: { id: string; modelId: string }) => ({
+      provider: 'allowed-backup',
+      modelId: 'gpt-5'
+    }))
+    registerWorkspaceIpc(
+      {
+        handle: (channel: string, handler: (...args: unknown[]) => Promise<unknown>) =>
+          handlers.set(channel, handler)
+      } as unknown as IpcHandleRegistrar,
+      async (fn) => ({ ok: true, data: await fn() }),
+      { access: { assertAllowed }, agent: { start } } as unknown as WorkspaceServices,
+      { routeDefault }
+    )
+    const dispatch = handlers.get(IPC_INVOKE.agentStart)!
+    const request = { cwd: '/managed/default', chatGptDefault: input }
+    await expect(dispatch(null, { ...request, sessionId: 'old-session' })).rejects.toThrow(
+      'Invalid start'
+    )
+    await expect(dispatch(null, { ...request, provider: 'different-provider' })).rejects.toThrow(
+      'Invalid start'
+    )
+    await expect(
+      dispatch(null, { ...request, chatGptDefault: { ...input, endpoint: 'http://localhost' } })
+    ).rejects.toThrow('Invalid start')
+    expect(routeDefault).not.toHaveBeenCalled()
+    expect(start).not.toHaveBeenCalled()
+    await dispatch(null, request)
+    expect(routeDefault).toHaveBeenCalledExactlyOnceWith(input)
+    expect(start).toHaveBeenCalledExactlyOnceWith({
+      cwd: request.cwd,
+      provider: 'allowed-backup',
+      modelId: 'gpt-5'
+    })
+  })
+
   it('creates chats in the managed default workspace without accepting a renderer path', async () => {
     const handlers = new Map<string, (...args: unknown[]) => Promise<unknown>>()
     const folders = [

@@ -55,6 +55,7 @@ import type { SessionService } from '../sessions/session-service'
 import type { SessionCleanupService } from '../sessions/session-cleanup-service'
 import type { SessionExportService } from '../sessions/session-export-service'
 import type { AgentRuntime } from '../agent/runtime'
+import type { ChatGptAccounts } from '../services/chatgpt-accounts'
 import type { WorkspaceService } from '../workspace/workspace-service'
 import type {
   ProjectContextAction,
@@ -94,7 +95,8 @@ type Wrap = <T>(
 export function registerWorkspaceIpc(
   ipcMain: IpcHandleRegistrar,
   wrap: Wrap,
-  services: WorkspaceServices
+  services: WorkspaceServices,
+  chatGpt?: Pick<ChatGptAccounts, 'routeDefault'>
 ): void {
   const {
     access,
@@ -407,15 +409,19 @@ export function registerWorkspaceIpc(
     })
   )
 
-  ipcMain.handle(IPC_INVOKE.agentStart, (_e, input: unknown) =>
+  ipcMain.handle(IPC_INVOKE.agentStart, (_e, request: unknown) =>
     wrap(async () => {
-      const parsed = startAgentSessionSchema.safeParse(input)
+      const parsed = startAgentSessionSchema.safeParse(request)
       if (!parsed.success)
         throw new ValidationError('Invalid start', { issues: parsed.error.issues })
-      if (parsed.data.cwd) await access.assertAllowed(parsed.data.cwd, { mustExist: true })
-      await beforeAgentStart?.(parsed.data.cwd, parsed.data.sessionId)
-      const started = await agent.start(parsed.data)
-      return started
+      const { chatGptDefault, ...input } = parsed.data
+      if (input.cwd) await access.assertAllowed(input.cwd, { mustExist: true })
+      await beforeAgentStart?.(input.cwd, input.sessionId)
+      if (!chatGptDefault) return agent.start(input)
+      const model = await chatGpt?.routeDefault(chatGptDefault)
+      if (!model)
+        throw new ValidationError('The default ChatGPT model changed. Select a model again.')
+      return agent.start({ ...input, ...model })
     })
   )
   ipcMain.handle(IPC_INVOKE.agentPrompt, (_e, input: unknown) =>

@@ -417,7 +417,12 @@ test('shows the account catalogue and manages the default and allowed fallback',
 }) => {
   await electronApp.evaluate(
     ({ ipcMain }, channels) => {
-      const model = { id: 'fixture-model', name: 'Account model', verified: true }
+      const model = {
+        id: 'fixture-model',
+        name: 'Account model',
+        verified: true,
+        contextWindow: 128_000
+      }
       const accounts = ['primary', 'backup'].map((id) => ({
         id,
         label: id,
@@ -425,6 +430,7 @@ test('shows the account catalogue and manages the default and allowed fallback',
         catalogUpdatedAt: Date.now(),
         defaultModelId: undefined as string | undefined,
         fallbackRank: undefined as number | undefined,
+        routingMode: 'ordered',
         models: [{ ...model, disabled: false }]
       }))
       const respond = (channel: string, run: (input: never) => unknown) => {
@@ -446,13 +452,21 @@ test('shows the account catalogue and manages the default and allowed fallback',
       respond(channels.enabled, (input: { id: string; enabled: boolean }) => {
         accounts.find((account) => account.id === input.id)!.models[0].disabled = !input.enabled
       })
+      respond(channels.routing, (mode: string) => {
+        accounts.find((account) => account.defaultModelId)!.routingMode = mode
+      })
+      respond(channels.label, (input: { id: string; label: string }) => {
+        accounts.find((account) => account.id === input.id)!.label = input.label
+      })
     },
     {
       list: IPC_INVOKE.chatGptAccounts,
       refresh: IPC_INVOKE.chatGptCatalogRefresh,
       defaultModel: IPC_INVOKE.chatGptDefaultModel,
       fallback: IPC_INVOKE.chatGptFallback,
-      enabled: IPC_INVOKE.chatGptModelEnabled
+      enabled: IPC_INVOKE.chatGptModelEnabled,
+      routing: IPC_INVOKE.chatGptRoutingMode,
+      label: IPC_INVOKE.chatGptLabel
     }
   )
 
@@ -464,13 +478,69 @@ test('shows the account catalogue and manages the default and allowed fallback',
   const backup = accounts.filter({ hasText: 'ChatGPT · backup' })
   await primary.getByRole('button', { name: '刷新模型' }).click()
   await expect(primary).toContainText('Refreshed account model')
+  await primary.getByLabel('账户模型').fill('refreshed')
+  await page
+    .locator('[data-combobox-panel]')
+    .getByRole('button', { name: /Refreshed account model/ })
+    .click()
+  await expect(primary).toContainText('上下文 128,000 token')
   await primary.getByRole('button', { name: '设为默认' }).click()
   await expect(primary).toContainText('新对话默认模型')
   await backup.getByRole('button', { name: '允许作为备用账户' }).click()
   await expect(backup).toContainText('备用顺序 1')
+  const routing = page.getByRole('button', { name: '新对话账户路由', exact: true })
+  await routing.click()
+  await page.getByRole('option', { name: '在允许的账户之间轮转' }).click()
+  await expect(routing).toContainText('在允许的账户之间轮转')
   await primary.getByRole('button', { name: '停用模型' }).click()
   await expect(primary.getByRole('button', { name: '验证模型' })).toBeDisabled()
   await expect(primary.getByRole('button', { name: '启用模型' })).toBeVisible()
   await backup.getByRole('button', { name: '移除备用账户' }).click()
   await expect(backup.getByRole('button', { name: '允许作为备用账户' })).toBeVisible()
+  await backup.getByRole('button', { name: '重命名账户' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('账户名称').fill('Work account')
+  await dialog.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(accounts.filter({ hasText: 'ChatGPT · Work account' })).toBeVisible()
+})
+
+test('copies a saved provider key in Main without revealing it to the editor', async ({
+  page,
+  piAgentDir,
+  electronApp
+}) => {
+  const fixtureKey = 'fixture-imported-provider-key'
+  const file = path.join(piAgentDir, 'models.json')
+  const models = JSON.parse(fs.readFileSync(file, 'utf8'))
+  models.providers['openai-compatible'].apiKey = fixtureKey
+  fs.writeFileSync(file, JSON.stringify(models))
+  await electronApp.evaluate(({ clipboard }) => {
+    const state = globalThis as typeof globalThis & { copiedFixtureKey?: string }
+    clipboard.writeText = (text) => {
+      state.copiedFixtureKey = text
+    }
+  })
+  await page.locator('a[href="#/models"]').click()
+  await page.getByTestId('model-management-tab-providers').click()
+  const row = page.getByTestId('provider-row').filter({ hasText: 'OpenAI' })
+  await row.getByRole('button', { name: '编辑', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: '复制已保存的 API 密钥' }).click()
+  await expect
+    .poll(() =>
+      electronApp.evaluate(
+        () => (globalThis as typeof globalThis & { copiedFixtureKey?: string }).copiedFixtureKey
+      )
+    )
+    .toBe(fixtureKey)
+  await expect(dialog.getByLabel('API 密钥', { exact: true })).not.toHaveValue(fixtureKey)
+  const rejected = await page.evaluate(async () => {
+    try {
+      await window.piSwitch!.providers.copyApiKey('../invalid')
+      return false
+    } catch {
+      return true
+    }
+  })
+  expect(rejected).toBe(true)
 })

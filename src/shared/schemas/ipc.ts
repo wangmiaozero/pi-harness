@@ -2,7 +2,7 @@ import { shortcutOverridesSchema } from '../agent-settings/schema'
 /** Runtime schemas for non-domain IPC inputs. */
 
 import { z } from 'zod'
-import { CHATGPT_MODEL_ID } from '../providers/account-management'
+import { CHATGPT_MODEL_ID, CHATGPT_ROUTING_MODES } from '../providers/account-management'
 import { APP_LANGUAGES } from '../constants/language'
 import { MASCOT_STYLES } from '../constants/mascot'
 import { normalizeNavOrder } from '../constants/navigation'
@@ -197,6 +197,16 @@ export const chatGptModelEnabledSchema = chatGptVerifySchema.extend({ enabled: z
 export const chatGptFallbackSchema = z.strictObject({
   id: chatGptAccountIdSchema,
   enabled: z.boolean()
+})
+export const chatGptRoutingModeSchema = z.enum(CHATGPT_ROUTING_MODES)
+export const chatGptLabelSchema = z.strictObject({
+  id: chatGptAccountIdSchema,
+  label: z
+    .string()
+    .trim()
+    .min(1)
+    .max(60)
+    .regex(/^[^\p{Cc}\p{Cf}]+$/u)
 })
 export const localAccountsInputSchema = z.strictObject({ refresh: z.boolean() })
 export const usageRangeSchema = z

@@ -140,9 +140,8 @@ const apiKeyKind = ref<ApiKeyUiKind>('none')
 const apiKeyValue = ref('')
 const customLocalAuth = ref(false)
 const savedLocalNoAuth = ref(false)
-const revealedApiKeyValue = ref('')
 const apiKeyRevealed = ref(false)
-const apiKeyRevealLoading = ref(false)
+const copyingApiKey = ref(false)
 /** Preserved !command / keychain binding when editing — never shown as plaintext secret. */
 const preservedCommand = ref<string | null>(null)
 const keychainService = ref<string | null>(null)
@@ -260,19 +259,6 @@ const showKeychainPanel = computed(
   () => apiKeyKind.value === 'keychain' || apiKeyKind.value === 'stored'
 )
 
-const apiKeyDisplayValue = computed({
-  get: () => (apiKeyRevealed.value ? revealedApiKeyValue.value : apiKeyValue.value),
-  set: (value: string) => {
-    if (!apiKeyRevealed.value) apiKeyValue.value = value
-  }
-})
-
-const canRevealApiKey = computed(
-  () =>
-    ['literal', 'keychain', 'stored'].includes(apiKeyKind.value) &&
-    Boolean((isEditing.value && form.value.apiKey) || apiKeyValue.value)
-)
-
 const apiKeyPlaceholder = computed(() => {
   if (apiKeyKind.value === 'env') return t('providers.envPlaceholder')
   if (apiKeyKind.value === 'command') return t('providers.commandPlaceholder')
@@ -339,37 +325,23 @@ function configureLocalAuth() {
 
 function clearApiKeyReveal() {
   apiKeyRevealed.value = false
-  revealedApiKeyValue.value = ''
-  apiKeyRevealLoading.value = false
 }
 
-async function toggleApiKeyReveal() {
-  if (apiKeyRevealed.value) {
-    clearApiKeyReveal()
-    return
-  }
-  if (!canRevealApiKey.value) return
+function toggleApiKeyReveal() {
+  if (apiKeyValue.value && !isMaskedKey(apiKeyValue.value))
+    apiKeyRevealed.value = !apiKeyRevealed.value
+}
 
-  const localValue = isMaskedKey(apiKeyValue.value) ? '' : apiKeyValue.value
-  if (localValue) {
-    revealedApiKeyValue.value = localValue
-    apiKeyRevealed.value = true
-    return
-  }
-  if (!editingKey.value) return
-
-  apiKeyRevealLoading.value = true
+async function copySavedApiKey() {
+  if (!editingKey.value || !hasSavedSecret.value || copyingApiKey.value) return
+  copyingApiKey.value = true
   try {
-    revealedApiKeyValue.value = await getApi().providers.revealApiKey(editingKey.value)
-    apiKeyRevealed.value = true
-  } catch (error) {
-    toast.error(
-      (error as { userMessage?: string; message?: string }).userMessage ??
-        (error as { message?: string }).message ??
-        t('providers.keyRevealFailed')
-    )
+    await getApi().providers.copyApiKey(editingKey.value)
+    toast.success(t('diagnostics.copied'))
+  } catch {
+    toast.error(t('providers.keyRevealFailed'))
   } finally {
-    apiKeyRevealLoading.value = false
+    copyingApiKey.value = false
   }
 }
 
@@ -1278,13 +1250,12 @@ onMounted(() => {
               <template v-else>{{ $t('providers.storedHint') }}</template>
             </p>
             <Input
-              v-model="apiKeyDisplayValue"
+              v-model="apiKeyValue"
               :label="$t('providers.fieldApiKeyValue')"
               :placeholder="apiKeyPlaceholder"
               type="password"
-              :revealable="canRevealApiKey"
+              :revealable="!!apiKeyValue && !isMaskedKey(apiKeyValue)"
               :revealed="apiKeyRevealed"
-              :reveal-loading="apiKeyRevealLoading"
               :reveal-label="$t('providers.keyReveal')"
               :hide-label="$t('providers.keyHide')"
               mono
@@ -1296,13 +1267,12 @@ onMounted(() => {
 
           <template v-else-if="showApiKeyInput">
             <Input
-              v-model="apiKeyDisplayValue"
+              v-model="apiKeyValue"
               :label="$t('providers.fieldApiKeyValue')"
               :placeholder="apiKeyPlaceholder"
               :type="apiKeyKind === 'literal' ? 'password' : 'text'"
-              :revealable="apiKeyKind === 'literal' && canRevealApiKey"
+              :revealable="apiKeyKind === 'literal' && !!apiKeyValue && !isMaskedKey(apiKeyValue)"
               :revealed="apiKeyRevealed"
-              :reveal-loading="apiKeyRevealLoading"
               :reveal-label="$t('providers.keyReveal')"
               :hide-label="$t('providers.keyHide')"
               mono
@@ -1314,6 +1284,10 @@ onMounted(() => {
               {{ $t('providers.commandHint') }}
             </p>
           </template>
+          <Button v-if="hasSavedSecret" size="sm" :loading="copyingApiKey" @click="copySavedApiKey">
+            <Copy class="size-3.5 shrink-0" :stroke-width="1.75" />
+            {{ $t('providerAccounts.copySavedKey') }}
+          </Button>
         </template>
 
         <div class="space-y-2">

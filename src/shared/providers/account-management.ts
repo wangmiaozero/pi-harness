@@ -1,6 +1,10 @@
 export const CHATGPT_PROVIDER_PREFIX = 'chatgpt-account-'
 export const CHATGPT_MODEL_ID = /^[A-Za-z0-9._:-]{1,128}$/
 
+export const CHATGPT_ROUTING_MODES = ['ordered', 'roundRobin'] as const
+export type ChatGptRoutingMode = (typeof CHATGPT_ROUTING_MODES)[number]
+export type ChatGptModelSelection = { id: string; modelId: string }
+
 export interface LocalAccount {
   source: 'codex' | 'claude' | 'gemini'
   status: 'missing' | 'signedOut' | 'detected' | 'unsupported' | 'failed'
@@ -11,15 +15,20 @@ export interface ChatGptAccount {
   id: string
   label: string
   status: 'authorized' | 'expired'
+  lastUsedAt?: number
   catalogUpdatedAt?: number
   catalogFailed?: boolean
   defaultModelId?: string
+  routingMode?: ChatGptRoutingMode
   fallbackRank?: number
   models: {
     id: string
     name: string
     reasoning: boolean
     vision: boolean
+    contextWindow?: number
+    maxOutputTokens?: number
+    thinkingLevels?: string[]
     verified: boolean
     disabled?: boolean
     unsupported?: boolean

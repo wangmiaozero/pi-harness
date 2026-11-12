@@ -12,11 +12,8 @@
  *
  *   other  — encrypt the secret with Electron `safeStorage` (DPAPI on Windows,
  *            Secret Service/libsecret on Linux) and hold the ciphertext in a
- *            vault file under userData. The value written to Pi's models.json
- *            is the resolved literal (Pi's native field).
- *
- * Pi-Harness never persists its own secrets as plaintext JSON, and the
- * renderer never holds plaintext keys — it only sees a masked display string.
+ *            vault file under userData. The desktop Pi runtime resolves
+ *            the provider's stored reference and passes the key in memory.
  */
 
 import { execFile } from 'node:child_process'
@@ -45,6 +42,23 @@ export function macKeychainCommand(id: string): string {
   return `!security find-generic-password -a "$USER" -s "${keyService(id)}" -w`
 }
 
+const managedProviderReference = /^prov-[A-Za-z0-9][A-Za-z0-9._+-]{0,127}-[0-9a-f]{8}$/
+const vaultPrefix = '$PI_HARNESS_VAULT_'
+const providerPayloadPrefix = 'pi-harness-provider-v1:'
+
+export function managedProviderApiKey(id: string): string {
+  if (!managedProviderReference.test(id)) throw new SecurityError('Invalid provider key reference')
+  return vaultPrefix + Buffer.from(id).toString('hex')
+}
+
+export function managedProviderSecretId(value: string | undefined): string | null {
+  if (!value?.startsWith(vaultPrefix)) return null
+  const encoded = value.slice(vaultPrefix.length)
+  if (!/^(?:[0-9a-f]{2}){14,142}$/.test(encoded)) return null
+  const id = Buffer.from(encoded, 'hex').toString()
+  return managedProviderReference.test(id) ? id : null
+}
+
 /** A masked display string safe to show in the UI. */
 export function maskKey(key: string | null | undefined): string {
   if (!key) return ''
@@ -61,6 +75,8 @@ interface Vault {
 
 class SecretStore {
   private vaultCache: Vault | null = null
+  private vaultLoading: Promise<Vault> | null = null
+  private vaultWrites: Promise<unknown> = Promise.resolve()
 
   private async vaultPath(): Promise<string> {
     return appSecretVaultPath()
@@ -68,6 +84,16 @@ class SecretStore {
 
   private async loadVault(): Promise<Vault> {
     if (this.vaultCache) return this.vaultCache
+    if (this.vaultLoading) return this.vaultLoading
+    this.vaultLoading = this.readVault()
+    try {
+      return await this.vaultLoading
+    } finally {
+      this.vaultLoading = null
+    }
+  }
+
+  private async readVault(): Promise<Vault> {
     const p = await this.vaultPath()
     try {
       const raw = await fs.readFile(p, 'utf8')
@@ -86,6 +112,20 @@ class SecretStore {
     const text = JSON.stringify(vault, null, 2)
     await atomicWriteText(p, text)
     await fs.chmod(p, 0o600).catch(() => {})
+  }
+
+  private updateVault(change: (entries: Vault['entries']) => boolean): Promise<void> {
+    const pending = this.vaultWrites
+      .catch(() => {})
+      .then(async () => {
+        const current = await this.loadVault()
+        const next = { ...current, entries: { ...current.entries } }
+        if (!change(next.entries)) return
+        await this.saveVault(next)
+        this.vaultCache = next
+      })
+    this.vaultWrites = pending
+    return pending
   }
 
   /** Whether OS-backed encryption is available (safeStorage.isEncryptionAvailable). */
@@ -143,10 +183,11 @@ class SecretStore {
       safeStorage.getSelectedStorageBackend() === 'basic_text'
     )
       throw new SecurityError('Secure credential storage unavailable')
-    const vault = await this.loadVault()
     const buf = safeStorage.encryptString(plaintext)
-    vault.entries[id] = buf.toString('base64')
-    await this.saveVault(vault)
+    await this.updateVault((entries) => {
+      entries[id] = buf.toString('base64')
+      return true
+    })
   }
 
   /** Retrieve a plaintext secret (macOS: from keychain; otherwise: decrypt vault). */
@@ -198,22 +239,38 @@ class SecretStore {
           throw new SecurityError('Secure credential removal failed')
       })
     }
-    const vault = await this.loadVault()
-    if (id in vault.entries) {
-      delete vault.entries[id]
-      await this.saveVault(vault)
-    }
+    await this.updateVault((entries) => {
+      if (!(id in entries)) return false
+      delete entries[id]
+      return true
+    })
   }
 
-  /**
-   * The value to write into Pi's models.json `apiKey` for a secret identified
-   * by `id`. macOS: a `!command`. Other platforms: the resolved literal.
-   */
-  async serialisedApiKeyValue(id: string): Promise<string> {
-    if (isMac) return macKeychainCommand(id)
-    const secret = await this.getSecret(id)
-    if (secret === null) throw new SecurityError(`Secret not found: ${id}`)
-    return secret
+  async setProviderSecret(id: string, apiKey: string, baseUrl: string): Promise<void> {
+    const origin = URL.parse(baseUrl)?.origin
+    if (!origin || origin === 'null') throw new SecurityError('Invalid provider endpoint')
+    const value = isMac ? apiKey : providerPayloadPrefix + JSON.stringify({ origin, apiKey })
+    await this.setSecret(id, value, { strict: true })
+  }
+
+  async getProviderSecret(
+    id: string,
+    baseUrl: string,
+    requireBinding = false
+  ): Promise<string | null> {
+    const value = await this.getSecret(id, { strict: true })
+    if (!value?.startsWith(providerPayloadPrefix)) return requireBinding ? null : value
+    const bound = JSON.parse(value.slice(providerPayloadPrefix.length)) as {
+      origin?: unknown
+      apiKey?: unknown
+    }
+    const origin = URL.parse(baseUrl)?.origin
+    return origin &&
+      origin !== 'null' &&
+      bound.origin === origin &&
+      typeof bound.apiKey === 'string'
+      ? bound.apiKey
+      : null
   }
 }
 

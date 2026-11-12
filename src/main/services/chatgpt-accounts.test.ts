@@ -83,6 +83,11 @@ it('keeps registrations isolated, serializes refresh and removes disconnected gr
   ])
   expect(mocks.refresh).toHaveBeenCalledTimes(1)
   expect(await accounts.resolve(first.id, 'fixture-model')).toBe('fixture-access-rotated')
+  await accounts.setLabel(first.id, 'Work account')
+  expect((await accounts.list())[0]).toMatchObject({
+    label: 'Work account',
+    lastUsedAt: Date.now()
+  })
   expect(await accounts.hasVerifiedModel(second.id, 'fixture-model')).toBe(false)
   expect(await new ChatGptAccounts(file).hasVerifiedModel(first.id, 'fixture-model')).toBe(true)
   const serialized = await readFile(file, 'utf8')
@@ -205,6 +210,14 @@ it('routes new chats only to explicitly allowed and verified accounts in order',
     2
   ])
   await expect(accounts.routeDefault()).resolves.toEqual({ provider: primary.id, modelId })
+  await expect(accounts.routeDefault({ id: backup.id, modelId })).rejects.toThrow('model changed')
+  await accounts.setRoutingMode('roundRobin')
+  const routed = await Promise.all(
+    Array.from({ length: 3 }, () => accounts.routeDefault({ id: primary.id, modelId }))
+  )
+  expect(routed.map((item) => item?.provider)).toEqual([primary.id, backup.id, last.id])
+  expect((await new ChatGptAccounts(file).list())[0].routingMode).toBe('roundRobin')
+  await accounts.setRoutingMode('ordered')
   await accounts.setModelEnabled(primary.id, modelId, false)
   await expect(accounts.routeDefault()).resolves.toEqual({ provider: backup.id, modelId })
   await accounts.setFallbackAccount(backup.id, false)

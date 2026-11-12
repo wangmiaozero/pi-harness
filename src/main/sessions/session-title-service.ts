@@ -1,3 +1,4 @@
+import { loadManagedProviderKeys } from '../pi/managed-provider-keys'
 import { createHash } from 'node:crypto'
 import type { SessionDetail, SessionInfo } from '@shared/types/workspace'
 import { cleanGeneratedSessionTitle } from '@shared/workspace/session-title'
@@ -132,6 +133,7 @@ export function createSessionTitleGenerator(config: Pick<PiConfigService, 'getAc
       cwd: detail.info?.cwd || process.cwd(),
       agentDir
     })
+    await loadManagedProviderKeys(modelRuntime, agentDir)
     const model = modelRuntime.getModel(active.provider, active.modelId)
     if (!model) return null
     const response = await modelRuntime.completeSimple(

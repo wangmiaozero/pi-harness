@@ -173,7 +173,7 @@ const api: PiSwitchAPI = {
     saveCredential: (input) => invoke(IPC_INVOKE.openCodeSaveCredential, input),
     activateCredential: (id) => invoke(IPC_INVOKE.openCodeActivateCredential, id),
     deleteCredential: (id) => invoke(IPC_INVOKE.openCodeDeleteCredential, id),
-    revealCredential: (id) => invoke(IPC_INVOKE.openCodeRevealCredential, id),
+    copyCredential: (id) => invoke(IPC_INVOKE.openCodeCopyCredential, id),
     refresh: () => invoke(IPC_INVOKE.openCodeRefresh),
     test: (id, options) => invoke(IPC_INVOKE.openCodeTest, id, options),
     cancel: () => invoke(IPC_INVOKE.openCodeCancel),
@@ -191,7 +191,8 @@ const api: PiSwitchAPI = {
     setModelEnabled: (input) => invoke(IPC_INVOKE.chatGptModelEnabled, input),
     setDefaultModel: (input) => invoke(IPC_INVOKE.chatGptDefaultModel, input),
     setFallback: (input) => invoke(IPC_INVOKE.chatGptFallback, input),
-    routeDefault: () => invoke(IPC_INVOKE.chatGptRouteDefault),
+    setRoutingMode: (mode) => invoke(IPC_INVOKE.chatGptRoutingMode, mode),
+    setLabel: (input) => invoke(IPC_INVOKE.chatGptLabel, input),
     disconnect: (id) => invoke(IPC_INVOKE.chatGptDisconnect, id),
     quota: (provider) => invoke(IPC_INVOKE.providerQuota, provider),
     usage: (range) => invoke(IPC_INVOKE.providerUsage, range),
@@ -207,7 +208,7 @@ const api: PiSwitchAPI = {
     setEnabled: (key, enabled) => invoke(IPC_INVOKE.providerSetEnabled, key, enabled),
     testConnection: (input) => invoke(IPC_INVOKE.providerTestConnection, input),
     discoverModels: (input) => invoke(IPC_INVOKE.providerDiscoverModels, input),
-    revealApiKey: (key) => invoke(IPC_INVOKE.providerRevealApiKey, key)
+    copyApiKey: (key) => invoke(IPC_INVOKE.providerCopyApiKey, key)
   },
   models: {
     list: () => invoke(IPC_INVOKE.modelList),

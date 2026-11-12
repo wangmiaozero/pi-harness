@@ -159,6 +159,12 @@ export default async function desktopExtension(pi) {
     }
   })
   await syncChatGpt()
+  for (const { provider, baseUrl, apiKey } of await request('managed_provider_keys')) {
+    if (!apiKey || !baseUrl) continue
+    // Pi's config values interpolate dollar signs and treat a leading ! as a command.
+    const literal = apiKey.replaceAll('$', () => '$$').replace(/^!/, () => '$!')
+    pi.registerProvider(provider, { apiKey: literal, baseUrl })
+  }
   const definitions = await request('tools')
   for (const tool of definitions)
     pi.registerTool({

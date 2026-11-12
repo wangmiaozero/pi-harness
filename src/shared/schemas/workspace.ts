@@ -12,6 +12,7 @@ import {
   MAX_ATTACHED_IMAGES
 } from '../workspace/image-attachments'
 import { TEXT_EDIT_MAX_BYTES } from '../workspace/file-types'
+import { chatGptVerifySchema } from './ipc'
 
 export const sessionIdSchema = z.string().min(1).max(128)
 
@@ -41,16 +42,23 @@ export const agentImageSchema = z.object({
   mimeType: z.string().min(1).max(128).startsWith('image/')
 })
 
-export const startAgentSessionSchema = z.object({
-  sessionId: sessionIdSchema.optional(),
-  cwd: cwdSchema.optional(),
-  message: z.string().max(200_000).optional(),
-  toolNames: toolNamesSchema.optional(),
-  provider: z.string().min(1).max(128).optional(),
-  modelId: z.string().min(1).max(256).optional(),
-  thinkingLevel: thinkingLevelSchema.optional(),
-  permissionMode: z.enum(PERMISSION_MODES).optional()
-})
+export const startAgentSessionSchema = z
+  .object({
+    sessionId: sessionIdSchema.optional(),
+    cwd: cwdSchema.optional(),
+    message: z.string().max(200_000).optional(),
+    toolNames: toolNamesSchema.optional(),
+    provider: z.string().min(1).max(128).optional(),
+    modelId: z.string().min(1).max(256).optional(),
+    thinkingLevel: thinkingLevelSchema.optional(),
+    permissionMode: z.enum(PERMISSION_MODES).optional(),
+    chatGptDefault: chatGptVerifySchema.optional()
+  })
+  .refine(
+    ({ chatGptDefault, sessionId, cwd, provider, modelId }) =>
+      !chatGptDefault || (!!cwd && !sessionId && !provider && !modelId),
+    'ChatGPT default routing is only available for a new session'
+  )
 
 export const promptAgentSchema = z
   .object({

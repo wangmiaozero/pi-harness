@@ -5,7 +5,9 @@ import { z } from 'zod'
 import {
   CHATGPT_MODEL_ID,
   CHATGPT_PROVIDER_PREFIX,
-  type ChatGptAccount
+  type ChatGptAccount,
+  type ChatGptModelSelection,
+  type ChatGptRoutingMode
 } from '@shared/providers/account-management'
 import { readBoundedJson } from './bounded-json'
 import { AppError, ValidationError } from './errors'
@@ -16,6 +18,7 @@ type AccountRecord = {
   ciphertext: string
   expires: number
   verified: string[]
+  lastUsedAt?: number
   disabled?: string[]
   catalog?: { models: { id: string; name: string }[]; updatedAt: number }
 }
@@ -23,8 +26,9 @@ type AccountRecord = {
 type AccountStore = {
   deviceId: string | null
   accounts: Record<string, AccountRecord>
-  defaultModel?: { id: string; modelId: string }
+  defaultModel?: ChatGptModelSelection
   fallbackAccountIds?: string[]
+  routingMode?: ChatGptRoutingMode
 }
 
 const origin = 'https://auth.openai.com'
@@ -68,22 +72,29 @@ export class ChatGptAccounts {
   private loginController: AbortController | null = null
   private readonly catalogRefreshes = new Map<string, Promise<void>>()
   private readonly catalogFailures = new Set<string>()
+  private rotation = { pool: '', next: 0 }
 
   constructor(file: string) {
     this.store = new JsonStore(file, defaults)
   }
 
   async list(): Promise<ChatGptAccount[]> {
-    const { accounts, defaultModel, fallbackAccountIds } = await this.store.read()
+    const { accounts, defaultModel, fallbackAccountIds, routingMode } = await this.store.read()
     if (!Object.keys(accounts).length) return []
-    const native = new Map((await loadOpenAI()).getModels().map((model) => [model.id, model]))
+    const [provider, { getSupportedThinkingLevels }] = await Promise.all([
+      loadOpenAI(),
+      import('@earendil-works/pi-ai')
+    ])
+    const native = new Map(provider.getModels().map((model) => [model.id, model]))
     return Object.entries(accounts).map(([id, record]) => ({
       id,
       label: record.label,
       status: record.expires > Date.now() ? 'authorized' : 'expired',
+      lastUsedAt: record.lastUsedAt,
       catalogUpdatedAt: record.catalog?.updatedAt,
       catalogFailed: this.catalogFailures.has(id),
       defaultModelId: defaultModel?.id === id ? defaultModel.modelId : undefined,
+      routingMode: defaultModel?.id === id ? (routingMode ?? 'ordered') : undefined,
       fallbackRank: (fallbackAccountIds?.indexOf(id) ?? -1) + 1 || undefined,
       models: (record.catalog?.models ?? [...native.values()]).map(({ id: modelId, name }) => {
         const model = native.get(modelId)
@@ -92,6 +103,9 @@ export class ChatGptAccounts {
           name,
           reasoning: model?.reasoning ?? false,
           vision: model?.input.includes('image') ?? false,
+          contextWindow: model?.contextWindow,
+          maxOutputTokens: model?.maxTokens,
+          thinkingLevels: model?.reasoning ? getSupportedThinkingLevels(model) : undefined,
           verified: record.verified.includes(modelId),
           disabled: record.disabled?.includes(modelId),
           unsupported: !model
@@ -258,28 +272,61 @@ export class ChatGptAccounts {
     )
   }
 
-  async setDefaultModel(defaultModel: { id: string; modelId: string } | null): Promise<void> {
+  async setLabel(id: string, label: string): Promise<void> {
     await this.store.mutate({
       apply: (current) => {
-        if (!defaultModel) return { ...current, defaultModel: undefined, fallbackAccountIds: [] }
+        const account = current.accounts[id]
+        if (!account) throw credentialError()
+        return { ...current, accounts: { ...current.accounts, [id]: { ...account, label } } }
+      }
+    })
+  }
+
+  async setDefaultModel(defaultModel: ChatGptModelSelection | null): Promise<void> {
+    await this.store.mutate({
+      apply: (current) => {
+        if (!defaultModel)
+          return {
+            ...current,
+            defaultModel: undefined,
+            fallbackAccountIds: [],
+            routingMode: undefined
+          }
         const { id, modelId } = defaultModel
         const account = current.accounts[id]
         if (!account || !account.verified.includes(modelId) || !permitsModel(account, modelId))
           throw new ValidationError('Select a verified and enabled ChatGPT model')
-        return { ...current, defaultModel, fallbackAccountIds: [] }
+        if (current.defaultModel?.id === id && current.defaultModel.modelId === modelId)
+          return current
+        return { ...current, defaultModel, fallbackAccountIds: [], routingMode: undefined }
       }
     })
+    this.rotation = { pool: '', next: 0 }
+  }
+
+  async setRoutingMode(routingMode: ChatGptRoutingMode): Promise<void> {
+    await this.store.mutate({
+      apply: (current) => {
+        if (!current.defaultModel || !current.fallbackAccountIds?.length)
+          throw new ValidationError('Add an allowed fallback account before changing routing')
+        return { ...current, routingMode }
+      }
+    })
+    this.rotation = { pool: '', next: 0 }
   }
 
   async setFallbackAccount(id: string, enabled: boolean): Promise<void> {
     await this.store.mutate({
       apply: (current) => {
         const fallbackAccountIds = current.fallbackAccountIds ?? []
-        if (!enabled)
+        if (!enabled) {
+          const remaining = fallbackAccountIds.filter((entry) => entry !== id)
           return {
             ...current,
-            fallbackAccountIds: fallbackAccountIds.filter((entry) => entry !== id)
+            fallbackAccountIds: remaining,
+            routingMode: remaining.length ? current.routingMode : undefined
           }
+        }
         if (fallbackAccountIds.includes(id)) return current
         const primary = current.defaultModel
         const account = current.accounts[id]
@@ -300,25 +347,41 @@ export class ChatGptAccounts {
     })
   }
 
-  async routeDefault(): Promise<{ provider: string; modelId: string } | null> {
-    const { defaultModel, fallbackAccountIds } = await this.store.read()
+  async routeDefault(
+    expected?: ChatGptModelSelection
+  ): Promise<{ provider: string; modelId: string } | null> {
+    const {
+      defaultModel,
+      fallbackAccountIds = [],
+      routingMode = 'ordered'
+    } = await this.store.read()
+    if (expected && (defaultModel?.id !== expected.id || defaultModel.modelId !== expected.modelId))
+      throw new ValidationError('The default ChatGPT model changed. Select a model again.')
     if (!defaultModel) return null
     const { id, modelId } = defaultModel
-    if (!fallbackAccountIds?.length) return { provider: id, modelId }
+    if (!fallbackAccountIds.length) {
+      if (await this.hasVerifiedModel(id, modelId)) return { provider: id, modelId }
+      throw new ValidationError('No authorized account is available for the default ChatGPT model')
+    }
 
-    // Only a new conversation can consult fallbacks, before any inference or tool execution.
+    const candidates = [id, ...fallbackAccountIds]
+    if (routingMode === 'roundRobin') {
+      const pool = JSON.stringify([modelId, ...candidates])
+      const index = this.rotation.pool === pool ? this.rotation.next : 0
+      this.rotation = { pool, next: (index + 1) % candidates.length }
+      candidates.push(...candidates.splice(0, index))
+    }
     const signal = AbortSignal.any([this.shutdown.signal, AbortSignal.timeout(12_000)])
-    for (const candidate of [id, ...fallbackAccountIds]) {
+    for (const candidate of candidates) {
       if (signal.aborted) break
-      const usable = await this.serial(candidate, async () => {
-        signal.throwIfAborted()
-        if (!(await this.hasVerifiedModel(candidate, modelId))) return false
-        await this.accessToken(candidate, signal)
-        return true
-      }).catch(() => false)
+      const usable = await this.checkRoute(candidate, modelId, signal)
       if (usable && !signal.aborted) {
         const current = await this.store.read()
-        if (current.defaultModel?.id !== id || current.defaultModel.modelId !== modelId)
+        if (
+          current.defaultModel?.id !== id ||
+          current.defaultModel.modelId !== modelId ||
+          (current.routingMode ?? 'ordered') !== routingMode
+        )
           throw new ValidationError('The default ChatGPT model changed. Select a model again.')
         const account = current.accounts[candidate]
         if (
@@ -330,6 +393,27 @@ export class ChatGptAccounts {
       }
     }
     throw new ValidationError('No authorized account is available for the default ChatGPT model')
+  }
+
+  private async checkRoute(id: string, modelId: string, signal: AbortSignal): Promise<boolean> {
+    if (signal.aborted) return false
+    const candidateSignal = AbortSignal.any([signal, AbortSignal.timeout(3_000)])
+    let abort: () => void = () => {}
+    const deadline = new Promise<false>((resolve) => {
+      abort = () => resolve(false)
+      candidateSignal.addEventListener('abort', abort, { once: true })
+    })
+    try {
+      const check = this.serial(id, async () => {
+        candidateSignal.throwIfAborted()
+        if (!(await this.hasVerifiedModel(id, modelId))) return false
+        await this.accessToken(id, candidateSignal)
+        return true
+      }).catch(() => false)
+      return await Promise.race([check, deadline])
+    } finally {
+      candidateSignal.removeEventListener('abort', abort)
+    }
   }
 
   async verify(id: string, modelId: string): Promise<void> {
@@ -376,10 +460,28 @@ export class ChatGptAccounts {
   resolve(id: string, modelId: string): Promise<string> {
     return this.serial(id, async () => {
       if (!(await this.hasVerifiedModel(id, modelId))) throw credentialError()
-      return this.accessToken(
+      const token = await this.accessToken(
         id,
         AbortSignal.any([this.shutdown.signal, AbortSignal.timeout(15_000)])
       )
+      const now = Date.now()
+      const account = (await this.store.read()).accounts[id]
+      if (account && (account.lastUsedAt ?? 0) < now - 60_000) {
+        await this.store
+          .mutate({
+            apply: (current) => {
+              const entry = current.accounts[id]
+              return entry
+                ? {
+                    ...current,
+                    accounts: { ...current.accounts, [id]: { ...entry, lastUsedAt: now } }
+                  }
+                : current
+            }
+          })
+          .catch(() => {})
+      }
+      return token
     })
   }
 
@@ -423,6 +525,7 @@ export class ChatGptAccounts {
             ...current,
             accounts,
             defaultModel: current.defaultModel?.id === id ? undefined : current.defaultModel,
+            routingMode: current.defaultModel?.id === id ? undefined : current.routingMode,
             fallbackAccountIds:
               current.defaultModel?.id === id
                 ? []
@@ -448,7 +551,7 @@ export class ChatGptAccounts {
             ...current,
             accounts: {
               ...current.accounts,
-              [id]: { ...record, ciphertext, expires: credential.expires }
+              [id]: { ...current.accounts[id], ciphertext, expires: credential.expires }
             }
           })
         })

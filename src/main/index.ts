@@ -276,6 +276,10 @@ async function bootstrap(): Promise<void> {
   // installed — missing files yield null mtimes (no false conflicts).
   await config.read().catch((err) => log.config.warn('initial config read failed:', err))
   const providers = new ProviderService(config, metadata)
+  if (process.platform !== 'darwin')
+    void providers
+      .migrateManagedPlaintextKeys()
+      .catch(() => log.config.warn('Stored provider key migration was not completed'))
   const chatGpt = new ChatGptAccounts(path.join(userData(), 'chatgpt-accounts.json'))
   const localAccounts = new LocalAccountDiscovery()
   const providerQuota = new ProviderQuota(providers)

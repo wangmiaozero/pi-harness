@@ -1,3 +1,4 @@
+import { loadManagedProviderKeys } from '../pi/managed-provider-keys'
 import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 import { AgentError, ValidationError } from '../services/errors'
 import type { PiConfigService } from '../pi/config-service'
@@ -39,6 +40,7 @@ export class GitCommitMessageService {
       agentDir,
       ...(settingsManager ? { settingsManager } : {})
     })
+    await loadManagedProviderKeys(services.modelRuntime, agentDir)
     let model = services.modelRuntime.getModel(providerKey, modelId)
     if (!model) {
       await services.modelRuntime.refresh({ allowNetwork: false })

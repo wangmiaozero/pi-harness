@@ -4,7 +4,9 @@ import { providerKeySchema } from '@shared/schemas/domain'
 import {
   chatGptAccountIdSchema,
   chatGptFallbackSchema,
+  chatGptLabelSchema,
   chatGptModelEnabledSchema,
+  chatGptRoutingModeSchema,
   chatGptVerifySchema,
   localAccountsInputSchema,
   usageRangeSchema
@@ -54,7 +56,10 @@ export function registerProviderAccounts(
   route(IPC_INVOKE.chatGptFallback, chatGptFallbackSchema, ({ id, enabled }) =>
     chatGpt.setFallbackAccount(id, enabled)
   )
-  route(IPC_INVOKE.chatGptRouteDefault, z.undefined(), () => chatGpt.routeDefault())
+  route(IPC_INVOKE.chatGptRoutingMode, chatGptRoutingModeSchema, (mode) =>
+    chatGpt.setRoutingMode(mode)
+  )
+  route(IPC_INVOKE.chatGptLabel, chatGptLabelSchema, ({ id, label }) => chatGpt.setLabel(id, label))
   route(IPC_INVOKE.chatGptDisconnect, chatGptAccountIdSchema, (id) => chatGpt.disconnect(id))
   route(IPC_INVOKE.providerQuota, providerKeySchema, (key) => quota.read(key))
   route(IPC_INVOKE.providerUsage, usageRangeSchema, (range) => harness.usageReport(range))

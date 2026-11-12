@@ -4,11 +4,17 @@ import { useI18n } from 'vue-i18n'
 import { getApi } from '@renderer/composables/useApi'
 import { useChatGptAccounts } from '@renderer/stores/chatgpt-accounts'
 import { formatDateTime } from '@renderer/utils/format'
-import type { ChatGptAccount, LocalAccount } from '@shared/providers/account-management'
+import type {
+  ChatGptAccount,
+  ChatGptRoutingMode,
+  LocalAccount
+} from '@shared/providers/account-management'
 import Button from '@renderer/components/ui/Button.vue'
 import Badge from '@renderer/components/ui/Badge.vue'
 import Select from '@renderer/components/ui/Select.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
+import Input from '@renderer/components/ui/Input.vue'
+import Combobox from '@renderer/components/ui/Combobox.vue'
 
 const { t, locale } = useI18n()
 const accounts = useChatGptAccounts()
@@ -18,11 +24,44 @@ const scanning = ref(false)
 const connecting = ref(false)
 const busy = ref('')
 const feedback = ref('')
+const renaming = ref<{ id: string; label: string } | null>(null)
 const confirmation = ref<{ id: string; kind: 'verify' | 'disconnect'; modelId?: string } | null>(
   null
 )
 const names = { codex: 'Codex', claude: 'Claude Code', gemini: 'Gemini CLI' }
 const primary = computed(() => accounts.items.find((account) => account.defaultModelId))
+const hasFallback = computed(() => accounts.items.some((account) => account.fallbackRank))
+
+async function changeRouting(mode: ChatGptRoutingMode) {
+  if (!primary.value || busy.value || mode === primary.value.routingMode) return
+  busy.value = primary.value.id
+  feedback.value = ''
+  try {
+    await getApi().accounts.setRoutingMode(mode)
+    await accounts.load(true)
+  } catch {
+    feedback.value = t('providerAccounts.actionFailed')
+  } finally {
+    busy.value = ''
+  }
+}
+
+async function renameAccount() {
+  const account = renaming.value
+  if (!account?.label.trim() || busy.value) return
+  busy.value = account.id
+  feedback.value = ''
+  try {
+    await getApi().accounts.setLabel({ id: account.id, label: account.label.trim() })
+    renaming.value = null
+    await accounts.load(true)
+  } catch {
+    feedback.value = t('providerAccounts.actionFailed')
+    renaming.value = null
+  } finally {
+    busy.value = ''
+  }
+}
 
 function canFallback(account: ChatGptAccount) {
   return (
@@ -82,9 +121,10 @@ async function connect() {
 }
 
 function selectedModel(account: ChatGptAccount) {
-  const selected = model.value[account.id] ?? account.defaultModelId
+  const typed = model.value[account.id]
+  if (typed !== undefined) return account.models.find((item) => item.id === typed)
   return (
-    account.models.find((item) => item.id === selected) ??
+    account.models.find((item) => item.id === account.defaultModelId) ??
     account.models.find((item) => !item.unsupported && !item.disabled)
   )
 }
@@ -212,6 +252,18 @@ onMounted(() => void refresh())
     <p v-if="primary" class="text-xs text-[var(--text-secondary)]">
       {{ $t('providerAccounts.fallbackHint') }}
     </p>
+    <Select
+      v-if="primary && hasFallback"
+      class="max-w-xs"
+      :label="$t('providerAccounts.routingMode')"
+      :model-value="primary.routingMode ?? 'ordered'"
+      :disabled="!!busy"
+      :options="[
+        { value: 'ordered', label: $t('providerAccounts.routingOrdered') },
+        { value: 'roundRobin', label: $t('providerAccounts.routingRoundRobin') }
+      ]"
+      @update:model-value="changeRouting($event === 'roundRobin' ? 'roundRobin' : 'ordered')"
+    />
     <p v-if="feedback" role="status" class="text-xs text-[var(--text-secondary)]">{{ feedback }}</p>
     <article
       v-for="account in accounts.items"
@@ -245,6 +297,13 @@ onMounted(() => void refresh())
           class="ml-auto"
           size="sm"
           :disabled="!!busy"
+          @click="renaming = { id: account.id, label: account.label }"
+        >
+          {{ $t('providerAccounts.renameAccount') }}
+        </Button>
+        <Button
+          size="sm"
+          :disabled="!!busy"
           @click="confirmation = { id: account.id, kind: 'disconnect' }"
         >
           {{ $t('providerAccounts.disconnect') }}
@@ -259,10 +318,14 @@ onMounted(() => void refresh())
               : $t('providerAccounts.catalogUnconfirmed')
         }}
       </p>
+      <p v-if="account.lastUsedAt" class="text-xs text-[var(--text-secondary)]">
+        {{ $t('providerAccounts.lastUsed', { date: formatDateTime(account.lastUsedAt, locale) }) }}
+      </p>
       <div class="flex flex-wrap items-end gap-2">
-        <Select
+        <Combobox
           class="min-w-48 flex-1"
-          :model-value="selectedModel(account)?.id"
+          :model-value="model[account.id] ?? selectedModel(account)?.id ?? ''"
+          :placeholder="$t('common.search')"
           :label="
             $t(
               account.catalogUpdatedAt
@@ -284,7 +347,7 @@ onMounted(() => void refresh())
               )}`
             }))
           "
-          @update:model-value="model[account.id] = String($event)"
+          @update:model-value="model[account.id] = $event"
         />
         <Button
           size="sm"
@@ -332,7 +395,62 @@ onMounted(() => void refresh())
           }}
         </Button>
       </div>
+      <div
+        v-if="selectedModel(account)"
+        class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--text-secondary)]"
+      >
+        <span>{{ selectedModel(account)?.name }}</span>
+        <span v-if="selectedModel(account)?.contextWindow">
+          {{
+            $t('providerAccounts.contextWindow', {
+              count: selectedModel(account)?.contextWindow?.toLocaleString(locale)
+            })
+          }}
+        </span>
+        <span v-if="selectedModel(account)?.maxOutputTokens">
+          {{
+            $t('providerAccounts.outputLimit', {
+              count: selectedModel(account)?.maxOutputTokens?.toLocaleString(locale)
+            })
+          }}
+        </span>
+        <span v-if="selectedModel(account)?.thinkingLevels?.length">
+          {{
+            $t('providerAccounts.thinkingLevels', {
+              levels: selectedModel(account)?.thinkingLevels?.join(' / ')
+            })
+          }}
+        </span>
+        <span v-if="selectedModel(account)?.vision">{{ $t('providerAccounts.vision') }}</span>
+      </div>
     </article>
+    <Dialog
+      :open="!!renaming"
+      :title="$t('providerAccounts.renameAccount')"
+      @update:open="
+        (open) => {
+          if (!open) renaming = null
+        }
+      "
+    >
+      <Input
+        v-if="renaming"
+        v-model="renaming.label"
+        :label="$t('providerAccounts.accountName')"
+        :maxlength="60"
+      />
+      <template #footer>
+        <Button size="sm" @click="renaming = null">{{ $t('common.cancel') }}</Button>
+        <Button
+          size="sm"
+          variant="primary"
+          :disabled="!renaming?.label.trim() || !!busy"
+          @click="renameAccount"
+        >
+          {{ $t('common.save') }}
+        </Button>
+      </template>
+    </Dialog>
     <Dialog
       :open="!!confirmation"
       :title="$t('providerAccounts.confirm')"

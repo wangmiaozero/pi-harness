@@ -1,3 +1,4 @@
+import { loadManagedProviderKeys } from '../pi/managed-provider-keys'
 import { readState, runtimeModels } from '../../../resources/desktop-extension/opencode-state.mjs'
 /**
  * AgentSession registry + runtime. Runs exclusively in Electron Main.
@@ -1117,6 +1118,7 @@ export class AgentRuntimeService implements AgentRuntime {
       }
     })
 
+    const unavailableKeys = await loadManagedProviderKeys(services.modelRuntime, agentDir)
     const chatGpt = this.chatGpt
     let syncRegistered: (() => Promise<void>) | undefined
     const syncChatGpt = chatGpt
@@ -1159,6 +1161,8 @@ export class AgentRuntimeService implements AgentRuntime {
           provider: settingsManager.getDefaultProvider(),
           modelId: settingsManager.getDefaultModel()
         })
+    if (intended.provider && unavailableKeys.has(intended.provider))
+      throw new AgentError('The saved API key is unavailable for the selected provider')
     if (intended.provider?.startsWith(CHATGPT_PROVIDER_PREFIX)) {
       model = services.modelRuntime.getModel(intended.provider, intended.modelId ?? '')
       if (!model || !(await chatGpt?.hasVerifiedModel(intended.provider, model.id)))

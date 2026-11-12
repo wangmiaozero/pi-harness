@@ -6,6 +6,7 @@ import type { HarnessRuntime } from '../harness/harness-runtime'
 import type { ChatGptAccounts } from '../services/chatgpt-accounts'
 import type { LocalAccountDiscovery } from '../services/local-account-discovery'
 import type { ProviderQuota } from '../services/provider-quota'
+import type { ChatGptRoutingMode } from '@shared/providers/account-management'
 
 it('validates account, model, refresh and date range payloads before service calls', async () => {
   const handlers = new Map<string, (event: unknown, input?: unknown) => Promise<unknown>>()
@@ -19,7 +20,8 @@ it('validates account, model, refresh and date range payloads before service cal
   )
   const setDefaultModel = vi.fn(async (_model: { id: string; modelId: string } | null) => undefined)
   const setFallbackAccount = vi.fn(async (_id: string, _enabled: boolean) => undefined)
-  const routeDefault = vi.fn(async () => null)
+  const setRoutingMode = vi.fn(async (_mode: ChatGptRoutingMode) => undefined)
+  const setLabel = vi.fn(async (_id: string, _label: string) => undefined)
   const list = vi.fn(async (_refresh: boolean) => [])
   const read = vi.fn(async (_key: string) => null)
   const usageReport = vi.fn(
@@ -35,7 +37,8 @@ it('validates account, model, refresh and date range payloads before service cal
       setModelEnabled,
       setDefaultModel,
       setFallbackAccount,
-      routeDefault
+      setRoutingMode,
+      setLabel
     } as unknown as ChatGptAccounts,
     { list } as unknown as LocalAccountDiscovery,
     { read } as unknown as ProviderQuota,
@@ -66,9 +69,14 @@ it('validates account, model, refresh and date range payloads before service cal
   await expect(dispatch(IPC_INVOKE.chatGptFallback, { id, enabled: 'true' })).rejects.toThrow(
     'Invalid provider account request'
   )
-  await expect(dispatch(IPC_INVOKE.chatGptRouteDefault)).resolves.toBeNull()
-  expect(routeDefault).toHaveBeenCalledTimes(1)
-  await expect(dispatch(IPC_INVOKE.chatGptRouteDefault, { id })).rejects.toThrow(
+  await dispatch(IPC_INVOKE.chatGptRoutingMode, 'roundRobin')
+  expect(setRoutingMode).toHaveBeenCalledExactlyOnceWith('roundRobin')
+  await expect(dispatch(IPC_INVOKE.chatGptRoutingMode, 'cheapest')).rejects.toThrow(
+    'Invalid provider account request'
+  )
+  await dispatch(IPC_INVOKE.chatGptLabel, { id, label: '  Work  ' })
+  expect(setLabel).toHaveBeenCalledExactlyOnceWith(id, 'Work')
+  await expect(dispatch(IPC_INVOKE.chatGptLabel, { id, label: 'Work\nKey' })).rejects.toThrow(
     'Invalid provider account request'
   )
   await expect(

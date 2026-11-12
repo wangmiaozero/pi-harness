@@ -1036,7 +1036,7 @@ export interface PiSwitchAPI {
     }): Promise<OpenCodeFreeState>
     activateCredential(id: string): Promise<OpenCodeFreeState>
     deleteCredential(id: string): Promise<OpenCodeFreeState>
-    revealCredential(id: string): Promise<string>
+    copyCredential(id: string): Promise<void>
     refresh(): Promise<OpenCodeFreeState>
     test(id: string, options?: OpenCodeTestOptions): Promise<OpenCodeFreeState>
     cancel(): Promise<void>
@@ -1054,7 +1054,10 @@ export interface PiSwitchAPI {
     setModelEnabled(input: { id: string; modelId: string; enabled: boolean }): Promise<void>
     setDefaultModel(input: { id: string; modelId: string } | null): Promise<void>
     setFallback(input: { id: string; enabled: boolean }): Promise<void>
-    routeDefault(): Promise<{ provider: string; modelId: string } | null>
+    setRoutingMode(
+      mode: import('../providers/account-management').ChatGptRoutingMode
+    ): Promise<void>
+    setLabel(input: { id: string; label: string }): Promise<void>
     disconnect(id: string): Promise<{ revoked: boolean }>
     quota(provider: string): Promise<QuotaReading>
     usage(range: UsageRange): Promise<UsageReport>
@@ -1070,7 +1073,7 @@ export interface PiSwitchAPI {
     setEnabled(key: string, enabled: boolean): Promise<ProviderProfile>
     testConnection(input: unknown): Promise<ConnectionTestResult>
     discoverModels(input: ProviderModelDiscoveryInput): Promise<DiscoveredProviderModel[]>
-    revealApiKey(key: string): Promise<string>
+    copyApiKey(key: string): Promise<void>
   }
   models: {
     list(): Promise<ModelDefinition[]>
@@ -1281,7 +1284,11 @@ export interface PiSwitchAPI {
     executeCleanup(previewToken: string): Promise<SessionCleanupResult>
   }
   agent: {
-    start(input: StartAgentSessionInput): Promise<{ sessionId: string; cwd: string }>
+    start(
+      input: StartAgentSessionInput & {
+        chatGptDefault?: import('../providers/account-management').ChatGptModelSelection
+      }
+    ): Promise<{ sessionId: string; cwd: string }>
     prompt(input: PromptAgentInput): Promise<unknown>
     abort(sessionId: string): Promise<void>
     state(sessionId: string): Promise<AgentStateSnapshot | null>

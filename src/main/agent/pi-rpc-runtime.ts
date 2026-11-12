@@ -2,6 +2,7 @@ import { CHATGPT_PROVIDER_PREFIX } from '@shared/providers/account-management'
 import { chatGptVerifySchema } from '@shared/schemas/ipc'
 import type { ChatGptAccounts } from '../services/chatgpt-accounts'
 import { secretStore } from '../security/secret-store'
+import { readManagedProviderKeys } from '../pi/managed-provider-keys'
 import { compactionDefaults } from './compaction-defaults'
 import {
   readState,
@@ -193,6 +194,7 @@ export class PiRpcRuntime implements HarnessAdapter {
     input: StartAgentSessionInput,
     id: string
   ): Promise<{ sessionId: string; cwd: string }> {
+    const agentDir = this.options.configDir()
     const pi = await this.runtimes.resolve('pi')
     if (!pi.valid || !pi.executablePath) throw new AgentError(pi.diagnosticMessages.join('; '))
     let cwd = input.cwd
@@ -217,9 +219,7 @@ export class PiRpcRuntime implements HarnessAdapter {
     }
     if (!intended) {
       try {
-        const settings = JSON.parse(
-          await fs.readFile(path.join(this.options.configDir(), 'settings.json'), 'utf8')
-        )
+        const settings = JSON.parse(await fs.readFile(path.join(agentDir, 'settings.json'), 'utf8'))
         intended = { provider: settings.defaultProvider, modelId: settings.defaultModel }
       } catch {
         /* Pi handles missing or malformed native settings. */
@@ -242,7 +242,10 @@ export class PiRpcRuntime implements HarnessAdapter {
     }
     if (!cwd) throw new AgentError('A workspace is required')
     await this.options.workspace?.prepareSession?.(id, cwd)
-    await assertMcpNodeExecution(this.runtimes, this.options.configDir(), cwd)
+    await assertMcpNodeExecution(this.runtimes, agentDir, cwd)
+    const managedKeys = await readManagedProviderKeys(agentDir)
+    if (managedKeys.some(({ provider, apiKey }) => provider === intended?.provider && !apiKey))
+      throw new AgentError('The saved API key is unavailable for the selected provider')
     const tools = (await this.options.workspace?.customTools?.(cwd, id)) ?? []
     const toolMap = new Map<string, ToolDefinition>(tools.map((tool) => [tool.name, tool]))
     let ready!: () => void
@@ -254,6 +257,7 @@ export class PiRpcRuntime implements HarnessAdapter {
     const bridge = new DesktopBridge(async (method, params) => {
       if (method === 'summary_defaults') return compactionDefaults(params)
       if (method === 'chatgpt_accounts') return this.options.chatGpt?.list() ?? []
+      if (method === 'managed_provider_keys') return managedKeys
       if (method === 'chatgpt_access') {
         const input = chatGptVerifySchema.safeParse(params)
         if (!this.options.chatGpt || !input.success)
@@ -366,7 +370,7 @@ export class PiRpcRuntime implements HarnessAdapter {
     })
     let env: NodeJS.ProcessEnv = {
       ...(await this.runtimes.environment('pi')),
-      PI_CODING_AGENT_DIR: this.options.configDir(),
+      PI_CODING_AGENT_DIR: agentDir,
       PI_HARNESS_OPENCODE_STATE: process.env.PI_HARNESS_OPENCODE_STATE
     }
     let executable = pi.executablePath

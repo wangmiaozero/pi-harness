@@ -95,9 +95,9 @@ test('OpenCode has a shared Zen and Go key form and preserves the current provid
         api.openCodeFree.configure({ enabled: true, authMode: 'anonymous', consent: true } as never)
       ),
       attempt(() => api.openCodeFree.select('big-pickle')),
-      attempt(() => api.providers.revealApiKey('opencode-free')),
-      attempt(() => api.openCodeFree.revealCredential('../invalid')),
-      attempt(() => api.openCodeFree.revealCredential('11111111-1111-1111-1111-111111111111')),
+      attempt(() => api.providers.copyApiKey('opencode-free')),
+      attempt(() => api.openCodeFree.copyCredential('../invalid')),
+      attempt(() => api.openCodeFree.copyCredential('11111111-1111-1111-1111-111111111111')),
       attempt(() =>
         api.openCodeFree.setWorkspaceVisibility({ showInWorkspace: true, modelIds: [] })
       ),
@@ -184,7 +184,10 @@ test('named keys and paid model verification work through the preload bridge (mo
         })
         return ok(state)
       },
-      [channels.openCodeRevealCredential]: (_e, id: string) => ok(secrets.get(id)),
+      [channels.openCodeCopyCredential]: (_e, id: string) => {
+        ;(globalThis as any).__openCodeCopiedFixture = secrets.get(id)
+        return ok(undefined)
+      },
       [channels.openCodeSaveCredential]: (_e, form) => {
         const id = form.id ?? '11111111-1111-1111-1111-111111111111'
         const existing = state.credentials.find((c) => c.id === id)
@@ -334,13 +337,11 @@ test('named keys and paid model verification work through the preload bridge (mo
   await expect(failureToast).toBeVisible()
   await expect(failureToast).toContainText('Paid fixture · HTTP 403')
   await expect(panel.getByRole('status')).toHaveCount(0)
-  await panel.getByRole('button', { name: '显示 Personal', exact: true }).click()
-  const key = dialog.getByLabel('官方 API Key', { exact: true })
-  await expect(key).toHaveValue('fixture-personal-key')
-  await expect(key).toHaveAttribute('type', 'text')
-  await dialog.getByRole('button', { name: '隐藏', exact: true }).click()
-  await expect(key).toHaveValue('')
-  await dialog.getByRole('button', { name: '取消', exact: true }).click()
+  await panel.getByRole('button', { name: '复制已保存的 API 密钥 Personal', exact: true }).click()
+  await expect
+    .poll(() => electronApp.evaluate(() => (globalThis as any).__openCodeCopiedFixture))
+    .toBe('fixture-personal-key')
+  await expect(dialog).toHaveCount(0)
   await panel.getByRole('button', { name: '添加 Key', exact: true }).click()
   await dialog.getByLabel('Key 名称', { exact: true }).fill('Work')
   await dialog.getByLabel('官方 API Key', { exact: true }).fill('fixture-work-key')

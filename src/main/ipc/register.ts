@@ -442,10 +442,11 @@ export function registerIpc(services: Services): void {
       openCode().deleteCredential(parseInput(openCodeCredentialIdSchema, id, 'Invalid credential'))
     )
   )
-  ipcMain.handle(IPC_INVOKE.openCodeRevealCredential, (_e, id: unknown) =>
-    wrap(() =>
-      openCode().revealCredential(parseInput(openCodeCredentialIdSchema, id, 'Invalid credential'))
-    )
+  ipcMain.handle(IPC_INVOKE.openCodeCopyCredential, (_e, id: unknown) =>
+    wrap(async () => {
+      const credential = parseInput(openCodeCredentialIdSchema, id, 'Invalid credential')
+      clipboard.writeText(await openCode().revealCredential(credential))
+    })
   )
   ipcMain.handle(IPC_INVOKE.openCodeRefresh, () => wrap(() => openCode().refresh()))
   ipcMain.handle(IPC_INVOKE.openCodeTest, (_e, id: unknown, options: unknown) =>
@@ -551,8 +552,11 @@ export function registerIpc(services: Services): void {
       )
     )
   )
-  ipcMain.handle(IPC_INVOKE.providerRevealApiKey, (_e, key: unknown) =>
-    wrap(() => providers.revealApiKey(parseInput(providerKeySchema, key, 'Invalid provider key')))
+  ipcMain.handle(IPC_INVOKE.providerCopyApiKey, (_e, key: unknown) =>
+    wrap(async () => {
+      const provider = parseInput(providerKeySchema, key, 'Invalid provider key')
+      clipboard.writeText(await providers.revealApiKey(provider))
+    })
   )
 
   // ---- models ----
@@ -1179,7 +1183,7 @@ export function registerIpc(services: Services): void {
     })
   )
 
-  registerWorkspaceIpc(ipcMain, wrap, services.workspace)
+  registerWorkspaceIpc(ipcMain, wrap, services.workspace, services.chatGpt)
   registerUniversalIpc(
     ipcMain,
     wrap,

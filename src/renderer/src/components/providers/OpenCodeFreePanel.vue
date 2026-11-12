@@ -9,7 +9,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem
 } from 'reka-ui'
-import { Eye, Pencil, Plus, Trash2 } from '@lucide/vue'
+import { Copy, Pencil, Plus, Trash2 } from '@lucide/vue'
 import { getApi, getErrorPayload } from '@renderer/composables/useApi'
 import type {
   OpenCodeCredential,
@@ -55,9 +55,7 @@ const editingId = ref<string | undefined>()
 const credentialName = ref('')
 const credentialValue = ref('')
 const revealed = ref(false)
-const revealedStored = ref(false)
-const revealing = ref(false)
-let revealGeneration = 0
+const copyingCredential = ref(false)
 const dataConsent = ref(false)
 const deleteTarget = ref<OpenCodeCredential | null>(null)
 const deleteDialog = ref(false)
@@ -320,46 +318,18 @@ async function confirmBatchVerification(): Promise<void> {
   }
 }
 function editCredential(profile?: OpenCodeCredential): void {
-  revealGeneration++
-  revealing.value = false
   editingId.value = profile?.id
   credentialName.value = profile?.name ?? `OpenCode ${credentials.value.length + 1}`
   credentialValue.value = ''
   revealed.value = false
-  revealedStored.value = false
   dataConsent.value = Boolean(profile)
   credentialDialog.value = true
 }
-async function toggleReveal(): Promise<void> {
-  if (revealed.value) {
-    revealed.value = false
-    if (revealedStored.value) credentialValue.value = ''
-    revealedStored.value = false
-    return
-  }
-  if (!credentialValue.value && editingId.value) {
-    revealing.value = true
-    const generation = ++revealGeneration
-    const id = editingId.value
-    try {
-      const value = await getApi().openCodeFree.revealCredential(id)
-      // A closed or changed dialog must not receive a late credential response.
-      if (!credentialDialog.value || generation !== revealGeneration || id !== editingId.value)
-        return
-      credentialValue.value = value
-      revealedStored.value = true
-    } catch {
-      if (generation === revealGeneration) toast.error(t('openCode.failed'))
-      return
-    } finally {
-      if (generation === revealGeneration) revealing.value = false
-    }
-  }
-  revealed.value = true
+function toggleReveal(): void {
+  if (credentialValue.value) revealed.value = !revealed.value
 }
 async function saveCredential(): Promise<void> {
-  const replacement =
-    !revealedStored.value && credentialValue.value ? credentialValue.value : undefined
+  const replacement = credentialValue.value || undefined
   const refreshActive =
     !state.value?.activeCredentialId ||
     (editingId.value === state.value.activeCredentialId && Boolean(replacement))
@@ -371,7 +341,6 @@ async function saveCredential(): Promise<void> {
   }
   credentialValue.value = ''
   revealed.value = false
-  revealedStored.value = false
   await run(
     async () => {
       state.value = await getApi().openCodeFree.saveCredential(form)
@@ -381,9 +350,17 @@ async function saveCredential(): Promise<void> {
     refreshActive ? 'refresh' : undefined
   )
 }
-async function showCredential(profile: OpenCodeCredential): Promise<void> {
-  editCredential(profile)
-  await toggleReveal()
+async function copyCredential(profile: OpenCodeCredential): Promise<void> {
+  if (copyingCredential.value) return
+  copyingCredential.value = true
+  try {
+    await getApi().openCodeFree.copyCredential(profile.id)
+    toast.success(t('diagnostics.copied'))
+  } catch {
+    toast.error(t('openCode.failed'))
+  } finally {
+    copyingCredential.value = false
+  }
 }
 function blockReason(model: OpenCodeModel): string | null {
   return openCodeVerificationBlock(state.value, model)
@@ -451,11 +428,8 @@ async function removeCredential(): Promise<void> {
 }
 watch(credentialDialog, (open) => {
   if (!open) {
-    revealGeneration++
-    revealing.value = false
     credentialValue.value = ''
     revealed.value = false
-    revealedStored.value = false
   }
 })
 onBeforeUnmount(() => {
@@ -464,7 +438,6 @@ onBeforeUnmount(() => {
     void cancelOperation()
     if (batchToast !== undefined) toast.dismiss(batchToast)
   }
-  revealGeneration++
   credentialValue.value = ''
 })
 onMounted(async () => {
@@ -573,11 +546,11 @@ onMounted(async () => {
               <button
                 type="button"
                 class="rounded p-1.5 hover:bg-[var(--bg-hover)] disabled:opacity-40"
-                :disabled="busy"
-                :aria-label="`${t('openCode.show')} ${profile.name}`"
-                @click="showCredential(profile)"
+                :disabled="busy || copyingCredential"
+                :aria-label="`${t('providerAccounts.copySavedKey')} ${profile.name}`"
+                @click="copyCredential(profile)"
               >
-                <Eye class="size-3.5" />
+                <Copy class="size-3.5" />
               </button>
               <button
                 type="button"
@@ -843,23 +816,17 @@ onMounted(async () => {
           maxlength="80"
         />
         <Input
-          :model-value="credentialValue"
+          v-model="credentialValue"
           :label="t('openCode.credential')"
           :aria-label="t('openCode.credential')"
           :placeholder="editingId ? t('openCode.saved') : t('openCode.credential')"
-          revealable
+          type="password"
+          :revealable="!!credentialValue"
           :revealed="revealed"
-          :reveal-loading="revealing || busy"
           :reveal-label="t('openCode.show')"
           :hide-label="t('openCode.hide')"
           autocomplete="off"
           :disabled="busy"
-          @update:model-value="
-            (value) => {
-              credentialValue = value
-              revealedStored = false
-            }
-          "
           @reveal-toggle="toggleReveal"
         />
         <div class="flex items-center gap-2">
@@ -875,7 +842,6 @@ onMounted(async () => {
         ><Button
           :disabled="
             busy ||
-            revealing ||
             !dataConsent ||
             !credentialName.trim() ||
             (!editingId && !credentialValue.trim())

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ProviderService } from './provider-service'
-import type { PiProviderConfig, PiSettingsConfig } from '@shared/types/pi'
+import type { PiModelsConfig, PiProviderConfig, PiSettingsConfig } from '@shared/types/pi'
+import { managedProviderApiKey, secretStore } from '../security/secret-store'
 
 vi.mock('electron', () => ({
   app: {},
@@ -13,6 +14,67 @@ const piProvider = {
   api: 'openai-completions' as const,
   models: []
 }
+
+it('migrates only unchanged application-managed keys and preserves unknown Pi fields', async () => {
+  const id = 'prov-managed-12345678'
+  const baseUrl = 'https://api.example.test/v1'
+  const legacy = 'fixture-old-managed-value'
+  const models = {
+    providers: {
+      managed: { ...piProvider, baseUrl, apiKey: legacy, extraField: 'keep' },
+      external: { ...piProvider, baseUrl, apiKey: 'external-value' },
+      mismatch: { ...piProvider, baseUrl, apiKey: 'replaced-outside-the-app' }
+    }
+  }
+  const read = vi.spyOn(secretStore, 'getProviderSecret').mockResolvedValue(legacy)
+  const bind = vi.spyOn(secretStore, 'setProviderSecret').mockResolvedValue(undefined)
+  let migrated: PiModelsConfig | undefined
+  const config = {
+    read: async () => ({ models }),
+    patchModels: vi.fn(async (update: (input: PiModelsConfig) => PiModelsConfig) => {
+      migrated = update(models)
+    })
+  }
+  const metadata = {
+    read: async () => ({
+      providers: { managed: { apiKeyRef: id }, mismatch: { apiKeyRef: 'prov-mismatch-12345678' } }
+    })
+  }
+  try {
+    const service = new ProviderService(config as never, metadata as never)
+    await service.migrateManagedPlaintextKeys()
+    expect(bind).toHaveBeenCalledExactlyOnceWith(id, legacy, baseUrl)
+    expect(migrated).toEqual({
+      providers: {
+        ...models.providers,
+        managed: { ...models.providers.managed, apiKey: managedProviderApiKey(id) }
+      }
+    })
+    expect(config.patchModels).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ skipBackup: true })
+    )
+    await expect(
+      service.update('managed', {
+        ...models.providers.managed,
+        key: 'managed',
+        name: 'managed',
+        displayName: 'Managed',
+        enabled: true,
+        protocol: 'openai-completions',
+        baseUrl: 'https://another.test/v1',
+        apiKey: { kind: 'stored' },
+        headers: {},
+        authHeader: true,
+        timeout: null
+      })
+    ).rejects.toThrow('Enter a credential for the new endpoint')
+    expect(config.patchModels).toHaveBeenCalledTimes(1)
+  } finally {
+    read.mockRestore()
+    bind.mockRestore()
+  }
+})
 
 describe('ProviderService enabled-state invariant', () => {
   it('keeps the reserved OpenCode credential and configuration inside its dedicated service', async () => {
