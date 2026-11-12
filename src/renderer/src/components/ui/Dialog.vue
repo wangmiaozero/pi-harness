@@ -64,7 +64,10 @@ function onEscapeKeyDown(event: Event, closeOnEscape: boolean | undefined) {
         @escape-key-down="onEscapeKeyDown($event, closeOnEscape)"
         @open-auto-focus="emit('open-auto-focus', $event)"
       >
-        <div class="flex shrink-0 items-start justify-between gap-3 px-4 pb-3 pt-4">
+        <div
+          class="flex shrink-0 gap-3 px-4"
+          :class="$slots.toolbar ? 'items-center py-3' : 'items-start pb-3 pt-4'"
+        >
           <div class="min-w-0">
             <DialogTitle
               class="font-semibold text-[var(--text-primary)]"
@@ -76,12 +79,15 @@ function onEscapeKeyDown(event: Event, closeOnEscape: boolean | undefined) {
               {{ description }}
             </p>
           </div>
-          <DialogClose
-            class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
-            :aria-label="t('common.close')"
-          >
-            <X class="size-3" aria-hidden="true" :stroke-width="1.75" />
-          </DialogClose>
+          <div class="ml-auto flex shrink-0 items-center gap-2">
+            <slot name="toolbar" />
+            <DialogClose
+              class="flex size-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+              :aria-label="t('common.close')"
+            >
+              <X class="size-3" aria-hidden="true" :stroke-width="1.75" />
+            </DialogClose>
+          </div>
         </div>
         <div v-if="$slots.default" class="overflow-y-auto px-4 pb-4">
           <slot />

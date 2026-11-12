@@ -75,6 +75,7 @@ const ProviderUsagePanel = defineAsyncComponent(
 const section = ref<'providers' | 'usage'>('providers')
 const catalogOpen = ref(false)
 const catalogDetail = ref<AddCatalogSubscriptionId | null>(null)
+const catalogQuery = ref('')
 const chatGptAccounts = useChatGptAccounts()
 const configuredCatalogIds = computed(() => [
   ...providersStore.items.map((provider) => provider.key),
@@ -534,6 +535,7 @@ function openCreate(presetId?: string) {
 }
 
 function openCatalog(detail: AddCatalogSubscriptionId | null = null) {
+  catalogQuery.value = ''
   catalogDetail.value = detail
   catalogOpen.value = true
 }
@@ -1258,10 +1260,20 @@ onMounted(() => {
       sheet
       close-on-escape
     >
+      <template v-if="!catalogDetail" #toolbar>
+        <SearchField
+          v-model="catalogQuery"
+          class="w-[220px]"
+          data-testid="add-provider-search"
+          :placeholder="$t('providerAccounts.findProvider')"
+        />
+      </template>
       <AddProviderCatalog
         :presets="PROVIDER_PRESETS"
         :configured-ids="configuredCatalogIds"
         :initial-detail="catalogDetail"
+        :query="catalogQuery"
+        @update:detail="catalogDetail = $event"
         @select-preset="chooseCatalogPreset"
       />
     </Dialog>

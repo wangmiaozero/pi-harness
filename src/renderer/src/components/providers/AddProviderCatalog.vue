@@ -7,7 +7,6 @@ import {
   buildAddCatalog,
   type AddCatalogSubscriptionId
 } from '@shared/providers/add-catalog'
-import SearchField from '@renderer/components/ui/SearchField.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import LocalAccountsPanel from '@renderer/components/providers/LocalAccountsPanel.vue'
 
@@ -63,10 +62,13 @@ const props = defineProps<{
   partnerIds?: readonly string[]
   configuredIds?: readonly string[]
   initialDetail?: AddCatalogSubscriptionId | null
+  query?: string
 }>()
-const emit = defineEmits<{ 'select-preset': [id: string] }>()
+const emit = defineEmits<{
+  'select-preset': [id: string]
+  'update:detail': [id: AddCatalogSubscriptionId | null]
+}>()
 const { t } = useI18n()
-const query = ref('')
 const detail = ref<AddCatalogSubscriptionId | null>(props.initialDetail ?? null)
 
 watch(
@@ -75,8 +77,11 @@ watch(
     detail.value = value ?? null
   }
 )
+watch(detail, (value) => emit('update:detail', value))
 
-const sections = computed(() => buildAddCatalog(props.presets, query.value, props.partnerIds ?? []))
+const sections = computed(() =>
+  buildAddCatalog(props.presets, props.query ?? '', props.partnerIds ?? [])
+)
 const subscription = computed(() =>
   ADD_CATALOG_SUBSCRIPTIONS.find((item) => item.id === detail.value)
 )
@@ -119,14 +124,6 @@ function configureApi() {
       </p>
     </div>
     <template v-else>
-      <div class="flex justify-end pb-1">
-        <SearchField
-          v-model="query"
-          class="w-[220px]"
-          data-testid="add-provider-search"
-          :placeholder="t('providerAccounts.findProvider')"
-        />
-      </div>
       <p
         v-if="sections.length === 0"
         class="py-3 text-xs text-[var(--text-secondary)]"
@@ -134,8 +131,8 @@ function configureApi() {
       >
         {{ t('providerAccounts.noCatalogMatch') }}
       </p>
-      <section v-for="section in sections" :key="section.group">
-        <div class="flex items-baseline gap-2 px-2 pb-1.5 pt-5">
+      <section v-for="section in sections" :key="section.group" class="pt-5 first:pt-1">
+        <div class="flex items-baseline gap-2 px-2 pb-1.5">
           <h3 class="text-[13px] font-semibold text-[var(--text-primary)]">
             {{ t(`providerAccounts.catalogGroup.${section.group}`) }}
           </h3>

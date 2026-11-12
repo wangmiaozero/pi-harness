@@ -2,6 +2,22 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.5 — 2026-11-12
+
+Providers, ChatGPT accounts, and quota are managed together.
+
+### Added
+
+- New providers are chosen from one list: subscriptions, vendors, relays, local models, and custom endpoints.
+- Entering an API URL fills the provider name and a default model. Both can still be edited.
+- ChatGPT accounts sign in from the provider list. A verified account can be the default for new chats, with other accounts allowed as fallback.
+- Usage and quota for a provider can be refreshed from the providers page.
+
+### Fixed
+
+- A saved API key can be copied without showing it in the provider form.
+- Claude, Gemini CLI, and GitHub Copilot show what this app can and cannot use from a local login.
+
 ## 2.4.4 — 2026-11-12
 
 The startup screen closes as soon as the app is ready.
