@@ -253,6 +253,12 @@ function resetIn(at?: number): string {
   return t('providerAccounts.resetInDays', { count: Math.round(hours / 24) })
 }
 
+function resetCards(accountId: string): { expiresAt?: number }[] {
+  const resets = allowances.value[accountId]?.resets
+  if (resets?.cards?.length) return resets.cards
+  return resets?.expiresAt ? [{ expiresAt: resets.expiresAt }] : []
+}
+
 function validUntil(at?: number): string {
   if (!at) return ''
   const when = new Intl.DateTimeFormat(locale.value, {
@@ -269,12 +275,6 @@ function accountTitle(account: ChatGptAccount): string {
   const email = allowances.value[account.id]?.email
   if (email && !accounts.maskAccounts) return email
   return `ChatGPT · ${accounts.displayLabel(account)}`
-}
-
-function resetAutoText(account: ChatGptAccount): string {
-  if (account.resetPolicy?.expiring) return t('providerAccounts.resetExpiring')
-  if (account.resetPolicy?.week) return t('providerAccounts.resetWeek')
-  return t('providerAccounts.resetNotAuto')
 }
 
 function allowanceWindows(accountId: string) {
@@ -734,19 +734,6 @@ onMounted(() => void refresh())
             {{ chatGptPlanLabel(allowances[account.id]?.plan ?? '') }}
           </Badge>
           <span
-            v-if="allowances[account.id]?.resets.count"
-            class="text-xs text-[var(--text-secondary)]"
-          >
-            {{
-              $t('providerAccounts.resetCount', {
-                count: allowances[account.id]?.resets.count ?? 0
-              })
-            }}
-            <template v-if="allowances[account.id]?.resets.expiresAt">
-              · {{ validUntil(allowances[account.id]?.resets.expiresAt) }}
-            </template>
-          </span>
-          <span
             v-for="(usageWindow, index) in allowanceWindows(account.id)"
             :key="usageWindow.seconds + '-' + index"
             class="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]"
@@ -851,14 +838,25 @@ onMounted(() => void refresh())
               @change="onResetLead(account, $event)"
             />
           </label>
-          <Button
-            size="sm"
-            :disabled="!!busy"
-            data-testid="chatgpt-use-reset"
-            @click="resetConfirm = account.id"
-          >
-            {{ $t('providerAccounts.resetUse') }}
-          </Button>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Button
+              size="sm"
+              :disabled="!!busy"
+              data-testid="chatgpt-use-reset"
+              @click="resetConfirm = account.id"
+            >
+              {{ $t('providerAccounts.resetUse') }}
+            </Button>
+            <span
+              v-for="(card, index) in resetCards(account.id)"
+              :key="(card.expiresAt ?? 'open') + '-' + index"
+              class="text-xs text-[var(--text-secondary)]"
+            >
+              {{
+                card.expiresAt ? validUntil(card.expiresAt) : $t('providerAccounts.resetNoExpiry')
+              }}
+            </span>
+          </div>
         </div>
         <p v-if="localUsage[account.id]" role="status" class="text-xs text-[var(--text-secondary)]">
           {{

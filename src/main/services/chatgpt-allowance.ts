@@ -278,18 +278,22 @@ export async function readChatGptAllowance(
           ]
         : []
   )
-  const soonest = (credits.credits ?? [])
+  const cards = (credits.credits ?? [])
     .filter((credit) => credit.status === 'available')
-    .map((credit) => creditExpiry(credit.expires_at))
-    .filter((time): time is number => time !== undefined)
-    .sort((a, b) => a - b)[0]
+    .map((credit) => ({ expiresAt: creditExpiry(credit.expires_at) }))
+    .sort(
+      (left, right) =>
+        (left.expiresAt ?? Number.POSITIVE_INFINITY) - (right.expiresAt ?? Number.POSITIVE_INFINITY)
+    )
   return {
     email: identity.email,
     plan: usage.plan_type || identity.plan || '',
     windows,
     resets: {
-      count: credits.available_count ?? usage.rate_limit_reset_credits?.available_count ?? 0,
-      expiresAt: soonest
+      count:
+        credits.available_count ?? usage.rate_limit_reset_credits?.available_count ?? cards.length,
+      expiresAt: cards.find((card) => card.expiresAt)?.expiresAt,
+      cards
     }
   }
 }

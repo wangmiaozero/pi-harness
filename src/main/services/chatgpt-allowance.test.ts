@@ -50,8 +50,12 @@ it('reads usage windows and the soonest reset card', async () => {
       })
     }
     return Response.json({
-      available_count: 1,
-      credits: [{ id: 'card-1', status: 'available', expires_at: '2033-12-13T04:39:00Z' }]
+      available_count: 2,
+      credits: [
+        { id: 'card-later', status: 'available', expires_at: '2034-01-02T08:00:00Z' },
+        { id: 'card-soon', status: 'available', expires_at: '2033-12-13T04:39:00Z' },
+        { id: 'card-spent', status: 'redeemed', expires_at: '2030-01-01T00:00:00Z' }
+      ]
     })
   })
   const allowance = await readChatGptAllowance(
@@ -71,7 +75,14 @@ it('reads usage windows and the soonest reset card', async () => {
     [18000, 100],
     [604800, 67]
   ])
-  expect(allowance?.resets).toEqual({ count: 1, expiresAt: Date.parse('2033-12-13T04:39:00Z') })
+  expect(allowance?.resets).toEqual({
+    count: 2,
+    expiresAt: Date.parse('2033-12-13T04:39:00Z'),
+    cards: [
+      { expiresAt: Date.parse('2033-12-13T04:39:00Z') },
+      { expiresAt: Date.parse('2034-01-02T08:00:00Z') }
+    ]
+  })
   const headers = new Headers(fetcher.mock.calls[0]?.[1]?.headers)
   expect(headers.get('chatgpt-account-id')).toBe('acct_fixture')
   expect(headers.get('user-agent')).toMatch(/^codex_cli_rs\//)

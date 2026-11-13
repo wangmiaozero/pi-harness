@@ -2,6 +2,15 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.7 — 2026-11-14
+
+### Added
+
+- A signed-in ChatGPT account shows its email, plan, usage, and when each reset card expires.
+- Signed-in accounts appear on the provider list.
+- One reset card can be used from the account. The app can also use a card when the weekly allowance is used up, or shortly before a card expires.
+- Sponsor Pi-Harness from the provider list and from Settings.
+
 ## 2.4.6 — 2026-11-13
 
 ### Added

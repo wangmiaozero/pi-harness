@@ -75,17 +75,25 @@ function allowanceLine(accountId: string): string {
 
 function resetLine(accountId: string): string {
   const resets = allowances.value[accountId]?.resets
-  if (!resets || (!resets.count && !resets.expiresAt)) return ''
+  const cards = resets?.cards?.length
+    ? resets.cards
+    : resets?.expiresAt
+      ? [{ expiresAt: resets.expiresAt }]
+      : []
+  if (!resets || (!resets.count && !cards.length)) return ''
   const count = t('providerAccounts.resetCount', { count: resets.count })
-  if (!resets.expiresAt) return count
-  const when = new Intl.DateTimeFormat(locale.value, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23'
-  }).format(new Date(resets.expiresAt))
-  return `${count} · ${t('providerAccounts.resetValidUntil', { when })}`
+  const times = cards.map((card) => {
+    if (!card.expiresAt) return t('providerAccounts.resetNoExpiry')
+    const when = new Intl.DateTimeFormat(locale.value, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23'
+    }).format(new Date(card.expiresAt))
+    return t('providerAccounts.resetValidUntil', { when })
+  })
+  return [count, ...times].join(' · ')
 }
 </script>
 

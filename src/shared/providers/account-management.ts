@@ -97,7 +97,7 @@ export interface ChatGptAllowance {
   email?: string
   plan: string
   windows: { seconds: number; usedPercent: number; resetAt?: number }[]
-  resets: { count: number; expiresAt?: number }
+  resets: { count: number; expiresAt?: number; cards?: { expiresAt?: number }[] }
 }
 
 export interface ChatGptResetPolicy {
