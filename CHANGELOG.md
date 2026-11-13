@@ -15,6 +15,7 @@ Providers, ChatGPT accounts, and quota are managed together.
 
 ### Fixed
 
+- A new chat starts in the installed app.
 - A saved API key can be copied without showing it in the provider form.
 - Claude, Gemini CLI, and GitHub Copilot show what this app can and cannot use from a local login.
 

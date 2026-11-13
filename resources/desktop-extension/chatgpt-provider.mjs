@@ -1,5 +1,13 @@
 import { createAssistantMessageEventStream, normalizeContext } from '@earendil-works/pi-ai'
-import { openaiProvider } from '@earendil-works/pi-ai/providers/openai'
+import { builtinProviders } from '@earendil-works/pi-ai/providers/all'
+
+// The bundled Pi executable resolves this entry from inside the binary.
+let nativeProvider
+function openaiProvider() {
+  nativeProvider ??= builtinProviders().find((provider) => provider.id === 'openai')
+  if (!nativeProvider) throw new Error('OpenAI provider is unavailable')
+  return nativeProvider
+}
 
 const prefix = 'chatgpt-account-'
 const validId = /^chatgpt-account-[0-9a-f-]{36}$/
