@@ -1,9 +1,40 @@
 import net from 'node:net'
+import http from 'node:http'
+import { Readable } from 'node:stream'
 import { randomUUID } from 'node:crypto'
-import { registerOpenCode } from './opencode-provider.mjs'
 import { installCompactionPolicy } from './compaction.mjs'
+import { installProviderSettings } from './provider-settings.mjs'
 import { chatGptProviderSync } from './chatgpt-provider.mjs'
 import { compact } from '@earendil-works/pi-coding-agent'
+
+function postToHost(url, token, headers, init) {
+  const body = Buffer.from(init?.body ?? '')
+  // Use a direct socket to the authenticated desktop host.
+  return new Promise((resolve, reject) => {
+    const outgoing = http.request(
+      url,
+      {
+        method: 'POST',
+        agent: false,
+        signal: init?.signal,
+        headers: { ...headers, authorization: `Bearer ${token}`, 'content-length': body.length }
+      },
+      (incoming) => {
+        const status = incoming.statusCode
+        const empty = status === 204 || status === 205 || status === 304
+        if (empty) incoming.resume()
+        resolve(
+          new Response(empty ? null : Readable.toWeb(incoming), {
+            status,
+            headers: incoming.headers
+          })
+        )
+      }
+    )
+    outgoing.on('error', reject)
+    outgoing.end(body)
+  })
+}
 
 /** Uses Pi's public extension API. No upstream patches or duplicated agent loop. */
 export default async function desktopExtension(pi) {
@@ -44,14 +75,68 @@ export default async function desktopExtension(pi) {
       }),
     compact
   )
-  await registerOpenCode(pi, {
-    resolveKey: async () => (await request('opencode_auth')) ?? undefined
-  })
+  let providerTransport
+  const startProviderSettings = installProviderSettings(
+    pi,
+    (provider, baseUrl) => request('provider_settings', { provider, baseUrl }),
+    {
+      googleBaseUrl: (provider, baseUrl) => request('provider_google_base', { provider, baseUrl }),
+      async list() {
+        const [providers, keys] = await Promise.all([
+          request('provider_list'),
+          request('managed_provider_keys')
+        ])
+        return providers.map((provider) => {
+          const entry = keys.find((item) => item.provider === provider.key && item.apiKey)
+          if (!entry) return provider
+          const apiKey = entry.apiKey.replaceAll('$', () => '$$').replace(/^!/, () => '$!')
+          return { ...provider, apiKey, baseUrl: entry.baseUrl }
+        })
+      },
+      async fetch(provider, baseUrl, input, init) {
+        providerTransport ??= await request('chatgpt_transport')
+        const url = new URL('/provider', providerTransport.url)
+        const headers = {
+          'x-provider-key': provider,
+          'x-provider-base': baseUrl,
+          'x-provider-target': String(input),
+          'x-provider-headers': Buffer.from(
+            JSON.stringify([...new Headers(init?.headers)])
+          ).toString('base64url')
+        }
+        return postToHost(url, providerTransport.token, headers, init)
+      },
+      async acquire(provider, baseUrl, signal) {
+        signal?.throwIfAborted()
+        const id = randomUUID()
+        const release = () => request('provider_release', { id }).catch(() => {})
+        const cancel = () => void release()
+        signal?.addEventListener('abort', cancel, { once: true })
+        try {
+          await request('provider_acquire', { provider, baseUrl, id }, { timeoutMs: 3_601_000 })
+          signal?.throwIfAborted()
+          return async () => {
+            signal?.removeEventListener('abort', cancel)
+            await release()
+          }
+        } catch (error) {
+          signal?.removeEventListener('abort', cancel)
+          await release()
+          throw error
+        }
+      }
+    }
+  )
+  let chatGptTransport
   const syncChatGpt = chatGptProviderSync(
     (provider) => pi.registerProvider(provider),
     (id) => pi.unregisterProvider(id),
     async () => (await request('chatgpt_accounts')) ?? [],
-    (id, modelId) => request('chatgpt_access', { id, modelId })
+    async (id, modelId, init) => {
+      chatGptTransport ??= await request('chatgpt_transport')
+      const { url, token } = chatGptTransport
+      return postToHost(url, token, { 'x-chatgpt-account': id, 'x-chatgpt-model': modelId }, init)
+    }
   )
   socket.on('error', () => {})
   socket.on('close', () => {
@@ -165,6 +250,7 @@ export default async function desktopExtension(pi) {
     const literal = apiKey.replaceAll('$', () => '$$').replace(/^!/, () => '$!')
     pi.registerProvider(provider, { apiKey: literal, baseUrl })
   }
+  await startProviderSettings()
   const definitions = await request('tools')
   for (const tool of definitions)
     pi.registerTool({

@@ -16,7 +16,7 @@ export const ADD_CATALOG_SUBSCRIPTIONS = [
   { id: 'chatgpt', name: 'ChatGPT', cli: 'codex', support: 'oauth', apiPresetId: 'openai' },
   { id: 'openrouter', name: 'OpenRouter', support: 'oauth', apiPresetId: 'openrouter' },
   { id: 'claude', name: 'Claude', cli: 'claude', support: 'cli', apiPresetId: 'anthropic' },
-  { id: 'gemini', name: 'Gemini CLI', cli: 'gemini', support: 'cli', apiPresetId: 'google' },
+  { id: 'gemini', name: 'Gemini', cli: 'gemini', support: 'cli', apiPresetId: 'google' },
   { id: 'copilot', name: 'GitHub Copilot', support: 'unsupported' }
 ] as const
 

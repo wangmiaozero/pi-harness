@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ProviderService } from './provider-service'
 import type { PiModelsConfig, PiProviderConfig, PiSettingsConfig } from '@shared/types/pi'
 import { managedProviderApiKey, secretStore } from '../security/secret-store'
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
 
 vi.mock('electron', () => ({
   app: {},
@@ -14,6 +17,49 @@ const piProvider = {
   api: 'openai-completions' as const,
   models: []
 }
+
+it('removes the retired OpenCode connection, its dedicated credentials and catalog', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-retired-provider-'))
+  const file = path.join(directory, 'opencode-free.json')
+  const id = '36f17357-d813-4e8f-8589-4dc81bc7316d'
+  const service = new ProviderService(
+    {
+      read: async () => ({
+        models: {
+          providers: {
+            'opencode-free': { ...piProvider, baseUrl: 'https://opencode.ai/inference/openai/v1' },
+            'opencode-go': { ...piProvider, baseUrl: 'https://opencode.ai/inference/go/openai/v1' },
+            'opencode-zen': { ...piProvider, baseUrl: 'https://opencode.ai/inference/v1' },
+            custom: { ...piProvider, baseUrl: 'https://opencode.ai/inference/openai/v1' }
+          }
+        }
+      })
+    } as never,
+    {} as never
+  )
+  const removeProvider = vi.spyOn(service, 'delete').mockResolvedValue(undefined)
+  const removeSecret = vi.spyOn(secretStore, 'removeSecret').mockResolvedValue(undefined)
+  try {
+    await fs.writeFile(file, JSON.stringify({ credentials: [{ id }, { id: 'unrelated' }] }))
+    await fs.writeFile(`${file}.single-key.bak`, '{}')
+    await fs.writeFile(`${file}.v1.bak`, '{}')
+    await service.removeRetiredOpenCodeProvider(file)
+    expect(removeProvider.mock.calls.map(([key]) => key)).toEqual([
+      'opencode-free',
+      'opencode-go',
+      'opencode-zen'
+    ])
+    expect(removeSecret.mock.calls.map(([slot]) => slot)).toEqual([
+      'opencode-free-official',
+      `opencode-key-${id}`
+    ])
+    expect(await fs.readdir(directory)).toEqual([])
+  } finally {
+    removeProvider.mockRestore()
+    removeSecret.mockRestore()
+    await fs.rm(directory, { recursive: true, force: true })
+  }
+})
 
 it('migrates only unchanged application-managed keys and preserves unknown Pi fields', async () => {
   const id = 'prov-managed-12345678'
@@ -77,19 +123,6 @@ it('migrates only unchanged application-managed keys and preserves unknown Pi fi
 })
 
 describe('ProviderService enabled-state invariant', () => {
-  it('keeps the reserved OpenCode credential and configuration inside its dedicated service', async () => {
-    const read = vi.fn()
-    const service = new ProviderService({ read } as never, {} as never)
-    await expect(service.update('opencode-free', {})).rejects.toThrow('Use OpenCode settings')
-    await expect(service.duplicate('opencode-free')).rejects.toThrow('Use OpenCode settings')
-    await expect(service.delete('opencode-free')).rejects.toThrow('Use OpenCode settings')
-    await expect(service.setEnabled('opencode-free', true)).rejects.toThrow('Use OpenCode settings')
-    await expect(service.revealApiKey('opencode-free')).rejects.toThrow('cannot be revealed')
-    await expect(service.testConnection({ providerKey: 'opencode-free' })).rejects.toThrow(
-      'Use OpenCode connection verification'
-    )
-    expect(read).not.toHaveBeenCalled()
-  })
   it.each([
     {},
     { nvidia: { enabled: true }, stepfun: { enabled: true } },

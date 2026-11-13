@@ -17,6 +17,7 @@
 
 import type { ProtocolId } from '../constants/protocols'
 import type { PiInputType, PiThinkingLevel } from '../constants/index'
+import type { ProviderAdvancedSettings } from '../providers/advanced-settings'
 
 /** Optional capability metadata. Unknown ≠ unsupported. */
 export interface ModelCapabilities {
@@ -70,6 +71,7 @@ export interface ProviderProfile {
   authHeader: boolean
   /** Pi-Harness-only metadata; NOT written to Pi config. */
   timeout: number | null
+  advanced?: ProviderAdvancedSettings
   /** Preferred model id for connection tests / first-run bootstrap. */
   defaultModelId: string | null
   /** Number of models under this provider (denormalised for list views). */
@@ -123,4 +125,5 @@ export interface ProviderModelDiscoveryInput {
   headers: Record<string, string>
   authHeader: boolean
   timeout: number | null
+  advanced?: ProviderAdvancedSettings
 }

@@ -63,7 +63,6 @@ test('keeps model controls and dialog keyboard focus usable across zoom and view
   )
   await page.setViewportSize({ width: 1000, height: 700 })
   await page.locator('a[href="#/models"]').click()
-  await page.getByTestId('model-management-tab-providers').click()
   await page
     .getByTestId('provider-action-cell')
     .first()

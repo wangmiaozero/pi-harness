@@ -29,7 +29,6 @@ test('keeps all configured providers selectable and handles local Ollama without
     return before
   })
   await page.locator('a[href="#/models"]').click()
-  await page.getByTestId('model-management-tab-providers').click()
   await expect(page.getByTestId('provider-row')).toHaveCount(3)
   await expect(page.getByRole('switch', { name: '启用', exact: true })).toHaveCount(0)
   const row = page.getByTestId('provider-row').filter({ hasText: 'Local Ollama fixture' })
@@ -56,6 +55,7 @@ test('keeps all configured providers selectable and handles local Ollama without
   const picker = page.getByTestId('workspace-model-select').getByRole('button')
   await picker.click()
   const vendors = page.getByTestId('composer-vendor-panel')
+  await page.getByTestId('composer-model-panel').getByRole('button', { name: '全部提供商' }).click()
   await expect(vendors.getByRole('button')).toHaveCount(3)
   await expect(
     vendors.getByRole('button', { name: 'Local Ollama fixture', exact: true })
@@ -77,6 +77,7 @@ test('keeps all configured providers selectable and handles local Ollama without
     }
   })
   await picker.click()
+  await page.getByTestId('composer-model-panel').getByRole('button', { name: '全部提供商' }).click()
   await vendors.getByRole('button', { name: other.vendor, exact: true }).hover()
   await page
     .getByTestId('composer-model-panel')
@@ -85,7 +86,6 @@ test('keeps all configured providers selectable and handles local Ollama without
     .click()
   await expect(picker).toContainText(other.model)
   await page.locator('a[href="#/models"]').click()
-  await page.getByTestId('model-management-tab-providers').click()
 
   // Authenticated local services retain the normal credential controls.
   await row.getByRole('button', { name: '编辑', exact: true }).click()
@@ -112,11 +112,102 @@ test('keeps all configured providers selectable and handles local Ollama without
 })
 
 test.describe('Providers', () => {
+  test('persists advanced settings and sends them to a local upstream', async ({
+    page,
+    electronApp
+  }) => {
+    const calls: { authorization?: string; key?: string; payload: unknown }[] = []
+    const server = createServer(async (request, response) => {
+      const chunks: Buffer[] = []
+      for await (const chunk of request) chunks.push(Buffer.from(chunk))
+      calls.push({
+        authorization: request.headers.authorization,
+        key: String(request.headers['x-api-key']),
+        payload: JSON.parse(Buffer.concat(chunks).toString())
+      })
+      response.writeHead(200, { 'content-type': 'application/json' })
+      response.end(JSON.stringify({ choices: [{ message: { content: 'OK' } }] }))
+    })
+    server.listen(0, '127.0.0.1')
+    await once(server, 'listening')
+    try {
+      const baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/v1`
+      await page.locator('a[href="#/models"]').click()
+      await page.getByTestId('add-provider').click()
+      await page.getByTestId('add-provider-preset-openai-compatible').click()
+      const dialog = page.getByRole('dialog')
+      await dialog.getByLabel('API 基础 URL').fill(baseUrl)
+      await dialog.getByLabel('提供商标识').fill('fixture-gateway')
+      await dialog.getByLabel('显示名称').fill('Fixture Gateway')
+      await dialog.getByLabel('默认模型 ID').fill('fixture-chat')
+      await dialog.getByLabel('额外请求体').fill('{"fixture_flag":true}')
+      await dialog.getByLabel('上下文窗口', { exact: true }).fill('200K')
+      await dialog.getByLabel('最大输出', { exact: true }).fill('32K')
+      await dialog.getByRole('button', { name: '保存', exact: true }).click()
+      await expect(dialog).toHaveCount(0)
+      const result = await page.evaluate(async () => {
+        const api = window.piSwitch!
+        const provider = (await api.providers.list()).find(
+          (item) => item.displayName === 'Fixture Gateway'
+        )!
+        const model = (await api.models.list()).find((item) => item.providerId === provider.id)
+        const result = await api.providers.testConnection({
+          providerKey: provider.key,
+          modelId: 'fixture-chat'
+        })
+        return { provider, model, result }
+      })
+      expect(result.provider.advanced?.extraBody).toEqual({ fixture_flag: true })
+      expect(result.model).toMatchObject({ contextWindow: 200_000, maxOutputTokens: 32_000 })
+      expect(result.result.ok).toBe(true)
+      expect(calls).toEqual([
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            fixture_flag: true,
+            model: 'fixture-chat'
+          })
+        })
+      ])
+      await electronApp.evaluate(({ clipboard }) => {
+        const fixture = globalThis as typeof globalThis & { gatewayFixtureKey?: string }
+        clipboard.writeText = (value) => {
+          fixture.gatewayFixtureKey = value
+        }
+      })
+      await page.getByTestId('open-local-gateway').click()
+      await page.getByRole('button', { name: '启动网关' }).click()
+      const gateway = page.getByTestId('provider-local-gateway')
+      await expect(gateway.getByRole('status')).toHaveText('网关运行中')
+      await page.getByRole('button', { name: '复制网关密钥' }).click()
+      await expect(gateway).toContainText('已复制网关密钥')
+      const apiKey = await electronApp.evaluate(
+        () => (globalThis as typeof globalThis & { gatewayFixtureKey?: string }).gatewayFixtureKey
+      )
+      const gatewayUrl = await gateway.locator('code').textContent()
+      expect(await fetch(`${gatewayUrl}/models`).then((response) => response.status)).toBe(401)
+      const headers = { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }
+      const response = await fetch(`${gatewayUrl}/chat/completions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: `${result.provider.key}/fixture-chat`,
+          messages: [{ role: 'user', content: 'hello' }]
+        })
+      })
+      expect(response.status).toBe(200)
+      expect(await response.text()).toContain('OK')
+      expect(calls.at(-1)?.payload).toMatchObject({ model: 'fixture-chat', fixture_flag: true })
+      await page.getByRole('button', { name: '停止网关' }).click()
+      await expect(page.getByRole('button', { name: '启动网关' })).toBeVisible()
+    } finally {
+      server.closeAllConnections()
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
   test('keeps provider actions aligned and fixed to the right', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.setViewportSize({ width: 960, height: 720 })
     await page.locator('a[href="#/models"]').click()
-    await page.getByTestId('model-management-tab-providers').click()
 
     const table = page.getByTestId('providers-table-scroll')
     const actionCells = page.getByTestId('provider-action-cell')
@@ -153,7 +244,6 @@ test.describe('Providers', () => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 
     await page.locator('a[href="#/models"]').click()
-    await page.getByTestId('model-management-tab-providers').click()
     await page.getByTestId('add-provider').click()
     await page.getByTestId('add-provider-preset-deepseek').click()
 
@@ -255,9 +345,8 @@ test.describe('Providers', () => {
       const port = (server.address() as AddressInfo).port
       await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
       await page.locator('a[href="#/models"]').click()
-      await page.getByTestId('model-management-tab-providers').click()
       await page.getByRole('button', { name: /新建提供商|New provider/ }).click()
-    await page.getByTestId('add-provider-preset-openai-compatible').click()
+      await page.getByTestId('add-provider-preset-openai-compatible').click()
       const dialog = page.getByRole('dialog')
       await dialog.getByLabel(/API 基础 URL|Base URL/).fill(`http://127.0.0.1:${port}/v1`)
       await dialog.getByRole('button', { name: /一键获取全部模型|Fetch all models/ }).click()
@@ -314,7 +403,6 @@ test('ignores an old provider probe after changing dialogs and prevents duplicat
     ipcMain.handle(channel, () => new Promise((resolve) => state.probeReplies.push(resolve)))
   }, IPC_INVOKE.providerTestConnection)
   await page.locator('a[href="#/models"]').click()
-  await page.getByTestId('model-management-tab-providers').click()
   const cells = page.getByTestId('provider-action-cell')
   await cells
     .nth(0)
@@ -391,7 +479,6 @@ test('opens local accounts and usage without querying subscription models', asyn
     }))
   }, IPC_INVOKE.providerQuota)
   await page.locator('a[href="#/models"]').click()
-  await page.getByTestId('model-management-tab-providers').click()
   await expect(page.getByTestId('provider-tab-local')).toHaveCount(0)
   await page.getByTestId('add-provider').click()
   const catalog = page.getByTestId('add-provider-catalog')
@@ -472,18 +559,23 @@ test('shows the account catalogue and manages the default and allowed fallback',
       const model = {
         id: 'fixture-model',
         name: 'Account model',
-        verified: true,
+        verified: false,
         contextWindow: 128_000
       }
+      const recommended = [
+        { ...model, id: 'gpt-6.1-terra', name: 'GPT-6.1 Terra' },
+        { ...model, id: 'gpt-6-astra', name: 'GPT-6 Astra' },
+        { ...model, id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol' }
+      ]
       const accounts = ['primary', 'backup'].map((id) => ({
         id,
         label: id,
-        status: 'authorized',
+        status: id === 'backup' ? 'expired' : 'authorized',
         catalogUpdatedAt: Date.now(),
         defaultModelId: undefined as string | undefined,
         fallbackRank: undefined as number | undefined,
         routingMode: 'ordered',
-        models: [{ ...model, disabled: false }]
+        models: [model, ...recommended].map((entry) => ({ ...entry, disabled: false }))
       }))
       const respond = (channel: string, run: (input: never) => unknown) => {
         ipcMain.removeHandler(channel)
@@ -504,11 +596,41 @@ test('shows the account catalogue and manages the default and allowed fallback',
       respond(channels.enabled, (input: { id: string; enabled: boolean }) => {
         accounts.find((account) => account.id === input.id)!.models[0].disabled = !input.enabled
       })
+      respond(channels.selection, (input: { id: string; mode: string; modelIds: string[] }) => {
+        const account = accounts.find((entry) => entry.id === input.id)!
+        for (const model of account.models)
+          model.disabled = input.mode !== 'catalog' && !input.modelIds.includes(model.id)
+      })
+      respond(channels.usage, (input: { provider: string; start: number; end: number }) => ({
+        total: {
+          requests: input.provider === 'primary' && input.end - input.start === 18_000_000 ? 2 : 7
+        }
+      }))
       respond(channels.routing, (mode: string) => {
         accounts.find((account) => account.defaultModelId)!.routingMode = mode
       })
       respond(channels.label, (input: { id: string; label: string }) => {
         accounts.find((account) => account.id === input.id)!.label = input.label
+      })
+      ipcMain.removeHandler(channels.verify)
+      ipcMain.handle(channels.verify, (_event, input: { modelId: string }) =>
+        input.modelId === 'gpt-6-astra'
+          ? {
+              ok: false,
+              error: {
+                code: 'VALIDATION_ERROR',
+                message: 'Fixture',
+                details: { reason: 'http', status: 403 }
+              }
+            }
+          : { ok: true }
+      )
+      respond(channels.disconnect, (id: string) => {
+        accounts.splice(
+          accounts.findIndex((account) => account.id === id),
+          1
+        )
+        return { revoked: false }
       })
     },
     {
@@ -517,19 +639,67 @@ test('shows the account catalogue and manages the default and allowed fallback',
       defaultModel: IPC_INVOKE.chatGptDefaultModel,
       fallback: IPC_INVOKE.chatGptFallback,
       enabled: IPC_INVOKE.chatGptModelEnabled,
+      selection: IPC_INVOKE.chatGptModelSelection,
+      usage: IPC_INVOKE.providerUsage,
+      verify: IPC_INVOKE.chatGptVerify,
+      disconnect: IPC_INVOKE.chatGptDisconnect,
       routing: IPC_INVOKE.chatGptRoutingMode,
       label: IPC_INVOKE.chatGptLabel
     }
   )
 
   await page.locator('a[href="#/models"]').click()
-  await page.getByTestId('model-management-tab-providers').click()
+  const mask = page.getByTestId('mask-provider-accounts')
+  await mask.click()
+  await expect(mask).toHaveAttribute('aria-pressed', 'true')
   await page.getByTestId('open-subscription-chatgpt').click()
   const accounts = page.getByTestId('provider-local-accounts').locator('article')
+  await expect(accounts.filter({ hasText: 'ChatGPT · •••• mary' })).toBeVisible()
+  await expect(accounts.filter({ hasText: 'ChatGPT · primary' })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(mask).toBeVisible()
+  await mask.click()
+  await page.getByTestId('open-subscription-chatgpt').click()
   const primary = accounts.filter({ hasText: 'ChatGPT · primary' })
   const backup = accounts.filter({ hasText: 'ChatGPT · backup' })
+  await primary.getByRole('button', { name: 'Pi-Harness 本地用量', exact: true }).click()
+  await expect(primary).toContainText('最近 5 小时 2 次 · 最近 7 天 7 次')
+  const picks = backup.getByTestId('chatgpt-model-preferences')
+  const sol = picks.getByRole('button', { name: 'GPT-6.1 Sol', exact: true })
+  await expect(sol).toHaveAttribute('aria-pressed', 'true')
+  await picks.getByRole('button', { name: '全不选' }).click()
+  await expect(sol).toHaveAttribute('aria-pressed', 'false')
+  await picks.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(picks.getByRole('button', { name: '保存', exact: true })).toHaveCount(0)
+  await expect(backup.getByRole('button', { name: '测试模型' })).toBeDisabled()
+  await picks.getByRole('button', { name: '全选', exact: true }).click()
+  await picks.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(picks.getByRole('button', { name: '保存', exact: true })).toHaveCount(0)
+  await expect(sol).toHaveAttribute('aria-pressed', 'true')
+  await expect(backup).not.toContainText('访问令牌已过期')
+  await expect(primary.getByLabel('账户模型')).toHaveValue('gpt-6.1-sol')
+  await primary.getByLabel('账户模型').click()
+  const modelMenu = page.locator('[data-combobox-panel]')
+  await expect(modelMenu.getByRole('button')).toHaveText([
+    'GPT-6.1 Sol',
+    'GPT-6 Astra',
+    'GPT-6.1 Terra',
+    'Account model'
+  ])
+  await page.keyboard.press('Escape')
+  await primary.getByRole('button', { name: '测试模型' }).click()
+  const modelTest = page.getByRole('dialog', { name: '测试模型', exact: true })
+  await modelTest.getByRole('button', { name: '确认', exact: true }).click()
+  await expect(modelTest.getByRole('status')).toHaveText('模型测试成功')
+  await modelTest.getByRole('button', { name: '关闭', exact: true }).last().click()
+  await primary.getByLabel('账户模型').click()
+  await modelMenu.getByRole('button', { name: 'GPT-6 Astra' }).click()
+  await primary.getByRole('button', { name: '测试模型' }).click()
+  await modelTest.getByRole('button', { name: '确认', exact: true }).click()
+  await expect(modelTest.getByRole('alert')).toHaveText('模型测试失败')
+  await expect(modelTest).toContainText('HTTP 403')
+  await modelTest.getByRole('button', { name: '关闭', exact: true }).last().click()
   await primary.getByRole('button', { name: '刷新模型' }).click()
-  await expect(primary).toContainText('Refreshed account model')
   await primary.getByLabel('账户模型').fill('refreshed')
   await page
     .locator('[data-combobox-panel]')
@@ -545,7 +715,7 @@ test('shows the account catalogue and manages the default and allowed fallback',
   await page.getByRole('option', { name: '在允许的账户之间轮转' }).click()
   await expect(routing).toContainText('在允许的账户之间轮转')
   await primary.getByRole('button', { name: '停用模型' }).click()
-  await expect(primary.getByRole('button', { name: '验证模型' })).toBeDisabled()
+  await expect(primary.getByRole('button', { name: '测试模型' })).toBeDisabled()
   await expect(primary.getByRole('button', { name: '启用模型' })).toBeVisible()
   await backup.getByRole('button', { name: '移除备用账户' }).click()
   await expect(backup.getByRole('button', { name: '允许作为备用账户' })).toBeVisible()
@@ -554,6 +724,43 @@ test('shows the account catalogue and manages the default and allowed fallback',
   await dialog.getByLabel('账户名称').fill('Work account')
   await dialog.getByRole('button', { name: '保存', exact: true }).click()
   await expect(accounts.filter({ hasText: 'ChatGPT · Work account' })).toBeVisible()
+  await dialog.getByRole('button', { name: '关闭', exact: true }).click()
+  await page.locator('a[href="#/workspace"]').click()
+  const picker = page.getByTestId('workspace-model-select').getByRole('button')
+  await picker.click()
+  const modelPanel = page.getByTestId('composer-model-panel')
+  await expect(modelPanel).toHaveAttribute('data-recommended', 'true')
+  await expect(modelPanel.getByRole('button', { name: /默认/ })).toBeVisible()
+  await modelPanel.getByRole('button', { name: '全部提供商' }).click()
+  await page
+    .getByTestId('composer-vendor-panel')
+    .getByRole('button', { name: 'ChatGPT · Work account' })
+    .hover()
+  const chatOptions = page.getByTestId('composer-model-panel').getByRole('option')
+  await expect(page.getByTestId('composer-model-panel')).not.toContainText('访问令牌已过期')
+  await expect(chatOptions).toHaveText([
+    'GPT-6.1 Sol',
+    'GPT-6 Astra',
+    'GPT-6.1 Terra',
+    'Account model'
+  ])
+  await chatOptions.getByText('GPT-6.1 Sol').click()
+  await expect(picker).toContainText('GPT-6.1 Sol')
+  await picker.click()
+  await expect(modelPanel.getByRole('option').first()).toHaveText('GPT-6.1 Sol')
+  await page.keyboard.press('Escape')
+  await page.locator('a[href="#/models"]').click()
+  await page.getByTestId('open-subscription-chatgpt').click()
+  await accounts
+    .filter({ hasText: 'ChatGPT · Work account' })
+    .getByRole('button', { name: '解除关联' })
+    .click()
+  await page
+    .getByRole('dialog', { name: '确认', exact: true })
+    .getByRole('button', { name: '确认', exact: true })
+    .click()
+  await expect(accounts.filter({ hasText: 'ChatGPT · Work account' })).toHaveCount(0)
+  await expect(primary).toBeVisible()
 })
 
 test('copies a saved provider key in Main without revealing it to the editor', async ({
@@ -573,7 +780,6 @@ test('copies a saved provider key in Main without revealing it to the editor', a
     }
   })
   await page.locator('a[href="#/models"]').click()
-  await page.getByTestId('model-management-tab-providers').click()
   const row = page.getByTestId('provider-row').filter({ hasText: 'OpenAI' })
   await row.getByRole('button', { name: '编辑', exact: true }).click()
   const dialog = page.getByRole('dialog')

@@ -254,20 +254,14 @@ test('capture instructions, MCP, subagents, and remote hosts', async ({ page }) 
 })
 
 test('capture provider and model management', async ({ page }) => {
-  await go(page, '#/models?tab=providers')
-  await expect(page.getByTestId('model-management-tab-providers')).toHaveAttribute(
-    'aria-selected',
-    'true'
-  )
+  await go(page, '#/models')
   await expect(page.getByTestId('provider-row')).toHaveCount(2)
-  await expect(page.getByTestId('provider-row').filter({ hasText: 'openai-compatible' })).toBeVisible()
+  await expect(
+    page.getByTestId('provider-row').filter({ hasText: 'openai-compatible' })
+  ).toBeVisible()
   await cleanShot(page, 'Provider与模型-1')
 
-  await page.getByTestId('model-management-tab-models').click()
-  await expect(page.getByTestId('model-management-tab-models')).toHaveAttribute(
-    'aria-selected',
-    'true'
-  )
+  await page.getByTestId('provider-tab-models').click()
   await expect(page.getByTestId('model-action-cell')).toHaveCount(2)
   await expect(page.getByText('Claude Sonnet 4', { exact: true })).toBeVisible()
   await cleanShot(page, 'Provider与模型-2')

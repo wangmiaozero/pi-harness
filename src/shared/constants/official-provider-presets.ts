@@ -179,19 +179,6 @@ const relays: readonly CompatiblePreset[] = [
     keyUrl: 'https://console.gmicloud.ai'
   },
   {
-    id: 'opencode-go',
-    name: 'OpenCode Go',
-    defaultBaseUrl: 'https://opencode.ai/inference/go/openai/v1',
-    keyUrl: 'https://opencode.ai/console/account',
-    modelId: 'glm-5.3-flash'
-  },
-  {
-    id: 'opencode-zen',
-    name: 'OpenCode Zen',
-    defaultBaseUrl: 'https://opencode.ai/inference/v1',
-    keyUrl: 'https://opencode.ai/console/account'
-  },
-  {
     id: 'kilo',
     name: 'Kilo Gateway',
     defaultBaseUrl: 'https://api.kilo.ai/api/openrouter',

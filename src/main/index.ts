@@ -1,4 +1,5 @@
 import { ChatGptAccounts } from './services/chatgpt-accounts'
+import { LocalProviderGateway } from './services/local-provider-gateway'
 import { OpenRouterAuthorization } from './services/openrouter-authorization'
 import { LocalAccountDiscovery } from './services/local-account-discovery'
 import { ProviderQuota } from './services/provider-quota'
@@ -48,7 +49,6 @@ import { ProviderService } from './services/provider-service'
 import { ModelService } from './services/model-service'
 import { SkillsService } from './services/skills-service'
 import { DiagnosticsService } from './services/diagnostics-service'
-import { OpenCodeFreeService } from './services/opencode-free-service'
 import { registerIpc, broadcastConfigChanged, broadcastNotification } from './ipc/register'
 import { createMainWindow } from './window/create-window'
 import { installAppMenu } from './window/app-menu'
@@ -79,6 +79,7 @@ import { setRuntimeProvider } from './runtime/active'
 import { PiRpcRuntime } from './agent/pi-rpc-runtime'
 import { activateMainWindow } from './window/activate-main'
 import { AgentRuntimeService } from './agent/agent-runtime-service'
+import { ChatGptResponsesBridge } from './agent/chatgpt-responses-bridge'
 import { extractToolPath, resolveWorkspaceToolPath } from './workspace/workspace-tool-guard'
 import { assertAgentFilePermission } from './workspace/agent-file-permission'
 import { WorkspaceService, type WorkspaceStateRecord } from './workspace/workspace-service'
@@ -277,6 +278,9 @@ async function bootstrap(): Promise<void> {
   // installed — missing files yield null mtimes (no false conflicts).
   await config.read().catch((err) => log.config.warn('initial config read failed:', err))
   const providers = new ProviderService(config, metadata)
+  await providers
+    .removeRetiredOpenCodeProvider(path.join(userData(), 'opencode-free.json'))
+    .catch(() => log.config.warn('Could not remove retired provider configuration'))
   if (process.platform !== 'darwin')
     void providers
       .migrateManagedPlaintextKeys()
@@ -284,23 +288,10 @@ async function bootstrap(): Promise<void> {
   const chatGpt = new ChatGptAccounts(path.join(userData(), 'chatgpt-accounts.json'))
   const openRouter = new OpenRouterAuthorization(providers)
   const localAccounts = new LocalAccountDiscovery()
+  const providerGateway = new LocalProviderGateway(providers, chatGpt)
   const providerQuota = new ProviderQuota(providers)
   void localAccounts.list()
   const models = new ModelService(config, metadata)
-  const openCodeStateFile = path.join(app.getPath('userData'), 'opencode-free.json')
-  process.env.PI_HARNESS_OPENCODE_STATE = openCodeStateFile
-  const openCodeFree = new OpenCodeFreeService(openCodeStateFile, config, metadata)
-  const openCodeInitial = await openCodeFree.state().catch(() => {
-    log.config.warn('OpenCode settings unavailable')
-    return null
-  })
-  if (
-    process.env.PI_HARNESS_E2E !== '1' &&
-    openCodeInitial?.enabled &&
-    openCodeInitial.hasCredential &&
-    openCodeInitial.authMode === 'inference'
-  )
-    void openCodeFree.refresh().catch(() => log.config.warn('OpenCode catalog refresh failed'))
   const access = new FileAccessService(authorizedRootsStore)
   const packageManager = new PiPackageManager(settingsStore, config, access)
   const packageRegistry = new PiPackageRegistry(
@@ -411,7 +402,25 @@ async function bootstrap(): Promise<void> {
       return access.assertWritableInFolders(target, folders)
     }
   )
+  const sdkProviderGateway =
+    process.env.PI_HARNESS_AGENT_MODE === 'sdk'
+      ? new ChatGptResponsesBridge(undefined, (key, baseUrl, input, init) =>
+          providers.runtimeFetch(key, baseUrl, input, init)
+        )
+      : undefined
   const desktopHooks: NonNullable<ConstructorParameters<typeof AgentRuntimeService>[1]> = {
+    providerSettings: (key, baseUrl) =>
+      key.startsWith('chatgpt-account-')
+        ? chatGpt.runtimeSettings(key, baseUrl)
+        : providers.runtimeSettings(key, baseUrl),
+    providerNetwork: {
+      googleBaseUrl: sdkProviderGateway
+        ? (key, baseUrl) => sdkProviderGateway.googleBaseUrl(key, baseUrl)
+        : undefined,
+      list: () => providers.runtimeProviders(),
+      fetch: (key, baseUrl, input, init) => providers.runtimeFetch(key, baseUrl, input, init),
+      acquire: (key, baseUrl, signal) => providers.runtimeAcquire(key, baseUrl, signal)
+    },
     prepareSession: async (sessionId, cwd) => {
       if (workspaceState.getFoldersForSession(sessionId).length) return
       const active = workspaceState.getActive()
@@ -533,6 +542,14 @@ async function bootstrap(): Promise<void> {
       fileUndo,
       policy: policyEngine,
       checkpointStore: new JsonStore(harnessCheckpointsPath(), EMPTY_CHECKPOINT_STORE),
+      providerUsageSettings: async () => ({
+        ...Object.fromEntries(
+          Object.entries((await metadata.read()).providers).flatMap(([key, provider]) =>
+            provider.advanced ? [[key, provider.advanced]] : []
+          )
+        ),
+        ...(await chatGpt.usageSettings())
+      }),
       sessions,
       git
     }
@@ -699,11 +716,11 @@ async function bootstrap(): Promise<void> {
     uiStateStore,
     config,
     providers,
+    providerGateway,
     chatGpt,
     openRouter,
     localAccounts,
     providerQuota,
-    openCodeFree,
     models,
     backup,
     skills,
@@ -828,6 +845,8 @@ async function bootstrap(): Promise<void> {
       // Native shutdown hooks must finish before Electron exits or stores close.
       try {
         await harnessPlugins.close()
+        await providerGateway.stop()
+        await sdkProviderGateway?.close()
         await harness.shutdownAll()
       } finally {
         const results = await Promise.allSettled([

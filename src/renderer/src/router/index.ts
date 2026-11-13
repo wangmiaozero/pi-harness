@@ -26,13 +26,6 @@ const router = createRouter({
       meta: { title: 'AI Sessions', i18nKey: 'nav.aiSessions' }
     },
     {
-      path: '/providers',
-      redirect: (to) => ({
-        path: '/models',
-        query: { ...to.query, tab: 'providers' }
-      })
-    },
-    {
       path: '/models',
       name: 'models',
       component: () => import('@renderer/views/ModelManagementView.vue'),

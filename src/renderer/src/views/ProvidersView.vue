@@ -9,10 +9,14 @@ import {
   Trash2,
   Zap,
   Box,
+  Cpu,
+  Gauge,
   Search,
   Circle,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  EyeOff
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { getApi } from '@renderer/composables/useApi'
@@ -36,6 +40,12 @@ import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
+import ProviderAdvancedFields from '@renderer/components/providers/ProviderAdvancedFields.vue'
+import LocalGatewayDialog from '@renderer/components/providers/LocalGatewayDialog.vue'
+import {
+  advancedProviderDraft,
+  parseAdvancedProviderDraft
+} from '@renderer/components/providers/advanced-provider-draft'
 import Select from '@renderer/components/ui/Select.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import Badge from '@renderer/components/ui/Badge.vue'
@@ -49,16 +59,14 @@ import { useModelsStore } from '@renderer/stores/models'
 import { useChatGptAccounts } from '@renderer/stores/chatgpt-accounts'
 import type { AddCatalogSubscriptionId } from '@shared/providers/add-catalog'
 import AddProviderCatalog from '@renderer/components/providers/AddProviderCatalog.vue'
+import SignedInAccountList from '@renderer/components/providers/SignedInAccountList.vue'
+import ModelsView from './ModelsView.vue'
 import { formatRelativeTime } from '@renderer/utils/format'
 import {
   apiKeyKindsForPlatform,
   rendererPlatformHint,
   type ApiKeyUiKind
 } from '@renderer/utils/provider-credentials'
-
-const props = withDefaults(defineProps<{ embedded?: boolean }>(), {
-  embedded: false
-})
 
 /** Sentinel shown in the password field when a secret already exists (never submitted as a real key). */
 const KEY_MASK = '••••••••••••••••'
@@ -73,6 +81,19 @@ const ProviderUsagePanel = defineAsyncComponent(
   () => import('@renderer/components/providers/ProviderUsagePanel.vue')
 )
 const section = ref<'providers' | 'usage'>('providers')
+const modelScope = ref<string | null>(null)
+const modelCreate = ref(false)
+
+function openSection(value: typeof section.value) {
+  section.value = value
+  modelScope.value = null
+}
+
+function openModels(provider = 'all', create = false) {
+  section.value = 'providers'
+  modelCreate.value = create
+  modelScope.value = provider
+}
 const catalogOpen = ref(false)
 const catalogDetail = ref<AddCatalogSubscriptionId | null>(null)
 const catalogQuery = ref('')
@@ -90,9 +111,11 @@ const configuredCatalogIds = computed(() => [
 ])
 onDeactivated(() => {
   section.value = 'providers'
+  modelScope.value = null
 })
 
 const dialogOpen = ref(false)
+const gatewayOpen = ref(false)
 const deleteOpen = ref(false)
 const duplicateOpen = ref(false)
 const testOpen = ref(false)
@@ -109,6 +132,7 @@ const saving = ref(false)
 const saveError = ref('')
 const timeoutStr = ref('')
 const headersJson = ref('')
+const advancedDraft = ref(advancedProviderDraft())
 const defaultModelIdStr = ref('')
 const query = ref('')
 const activePreset = ref<ProviderPreset | null>(null)
@@ -293,7 +317,7 @@ const keylessLocalOllama = computed(() => {
 })
 
 const providersWithNoModels = computed(() =>
-  providersStore.items.filter((p) => p.key !== 'opencode-free' && p.enabled && p.modelCount === 0)
+  providersStore.items.filter((p) => p.enabled && p.modelCount === 0)
 )
 
 const baseUrlHint = computed(() => {
@@ -515,6 +539,7 @@ function openCreate(presetId?: string) {
   keychainService.value = null
   timeoutStr.value = ''
   headersJson.value = ''
+  advancedDraft.value = advancedProviderDraft()
   defaultModelIdStr.value = ''
   discoveredModels.value = []
   discoveredSource.value = ''
@@ -566,10 +591,6 @@ async function openPresetKeyPage(url: string) {
 }
 
 function selectProviderPreset(presetId: string) {
-  if (presetId === 'opencode-free') {
-    void router.replace({ path: '/models', query: { tab: 'opencode' } })
-    return
-  }
   const configured = providersStore.items.find((provider) => provider.key === presetId)
   const preset = PROVIDER_PRESETS.find((item) => item.id === presetId)
   if (configured && preset?.defaultBaseUrl) {
@@ -581,10 +602,6 @@ function selectProviderPreset(presetId: string) {
 
 function openEdit(provider: ProviderProfile) {
   advancedProviderOptions.value = false
-  if (provider.key === 'opencode-free') {
-    void router.replace({ path: '/models', query: { tab: 'opencode' } })
-    return
-  }
   editingKey.value = provider.key
   customLocalAuth.value = false
   savedLocalNoAuth.value = provider.localNoAuth === true
@@ -652,6 +669,7 @@ function openEdit(provider: ProviderProfile) {
   }
   timeoutStr.value = provider.timeout != null ? String(provider.timeout) : ''
   headersJson.value = JSON.stringify(provider.headers ?? {}, null, 2)
+  advancedDraft.value = advancedProviderDraft(provider.advanced)
   rememberSeededIdentity()
   dialogOpen.value = true
 }
@@ -744,6 +762,7 @@ async function discoverProviderModels() {
       apiKey: buildApiKey(),
       headers: parseHeadersJson(),
       authHeader: form.value.authHeader,
+      advanced: parseAdvancedProviderDraft(advancedDraft.value),
       timeout: parseTimeout()
     })
     discoveredModels.value = models
@@ -786,6 +805,7 @@ async function testDraft() {
         apiKey: buildApiKey(),
         headers: parseHeadersJson(),
         authHeader: form.value.authHeader,
+        advanced: parseAdvancedProviderDraft(advancedDraft.value),
         timeout: parseTimeout()
       }
     })
@@ -848,6 +868,7 @@ async function save() {
       name: form.value.name || form.value.displayName || nextKey,
       apiKey: buildApiKey(),
       headers,
+      advanced: parseAdvancedProviderDraft(advancedDraft.value),
       timeout,
       defaultModelId: defaultModelIdStr.value.trim() || null,
       defaultModel: selectedDefaultModel.value
@@ -933,10 +954,6 @@ async function doDelete() {
 }
 
 function openTest(provider: ProviderProfile) {
-  if (provider.key === 'opencode-free') {
-    void router.replace({ path: '/models', query: { tab: 'opencode' } })
-    return
-  }
   testGeneration++
   testLoading.value = false
   testingProvider.value = provider
@@ -985,9 +1002,7 @@ function protocolLabel(protocol: string): string {
   return PROTOCOLS.find((p) => p.id === protocol)?.label ?? protocol
 }
 
-const standardProviders = computed(() =>
-  providersStore.items.filter((p) => p.key !== 'opencode-free')
-)
+const standardProviders = computed(() => providersStore.items)
 
 const filteredProviders = computed(() => {
   const q = query.value.trim().toLowerCase()
@@ -1013,8 +1028,10 @@ async function loadPlatform(): Promise<void> {
 watch(
   () => route.query.action,
   (action) => {
-    if (action !== 'create') return
-    openCatalog()
+    if (action === 'create-provider') openCatalog()
+    else if (action === 'create-model') openModels('all', true)
+    else if (action === 'manage-models') openModels()
+    else return
     const query = { ...route.query }
     delete query.action
     void router.replace({ query })
@@ -1023,7 +1040,7 @@ watch(
 )
 
 onMounted(() => {
-  if (!props.embedded) void providersStore.fetchList()
+  void providersStore.fetchList()
   void modelsStore.fetchList()
   void loadPlatform()
   void chatGptAccounts.load()
@@ -1034,23 +1051,36 @@ onMounted(() => {
   <div class="flex h-full min-h-0 flex-col">
     <!-- Page header — compact, single line, page title + description on the
          left, search + primary action on the right. -->
-    <PageHeader v-if="!embedded">
+    <PageHeader>
       <div class="flex min-w-0 flex-col justify-center self-stretch">
         <h1
           class="text-[15px] font-semibold leading-[18px] tracking-tight text-[var(--text-primary)]"
         >
-          {{ $t('providers.title') }}
+          {{ $t('models.title') }}
         </h1>
         <p class="mt-[3px] text-[11.5px] leading-[14px] text-[var(--text-tertiary)]">
-          {{ $t('providers.subtitle') }}
+          {{ $t('models.managementSubtitle') }}
         </p>
       </div>
-      <div v-if="section === 'providers'" class="flex items-center gap-2">
+      <div v-if="section === 'providers' && !modelScope" class="flex items-center gap-2">
         <SearchField
           v-model="query"
           :placeholder="$t('providers.filterPlaceholder')"
           class="w-[220px]"
         />
+        <Button
+          size="sm"
+          :aria-pressed="chatGptAccounts.maskAccounts"
+          data-testid="mask-provider-accounts"
+          @click="chatGptAccounts.toggleMaskAccounts()"
+        >
+          <component
+            :is="chatGptAccounts.maskAccounts ? EyeOff : Eye"
+            class="size-3.5"
+            aria-hidden="true"
+          />
+          {{ $t('providerAccounts.maskAccounts') }}
+        </Button>
         <Button variant="primary" size="sm" data-testid="add-provider" @click="openCatalog()">
           <Plus class="size-3.5" />
           {{ $t('providers.create') }}
@@ -1058,48 +1088,62 @@ onMounted(() => {
       </div>
     </PageHeader>
 
-    <div
-      v-else
-      class="flex h-[48px] shrink-0 items-center justify-end gap-2 border-b border-[var(--border-subtle)] px-5"
-    >
-      <template v-if="section === 'providers'">
-        <SearchField
-          v-model="query"
-          :placeholder="$t('providers.filterPlaceholder')"
-          class="w-[220px]"
-        />
-        <Button variant="primary" size="sm" data-testid="add-provider" @click="openCatalog()">
-          <Plus class="size-3.5" />
-          {{ $t('providers.create') }}
-        </Button>
-      </template>
-    </div>
-
     <nav
       class="flex shrink-0 gap-2 border-b border-[var(--border-subtle)] px-5 py-2"
       :aria-label="$t('providers.title')"
     >
       <Button
-        v-for="value in ['providers', 'usage'] as const"
+        v-for="value in ['providers', 'models', 'usage'] as const"
         :key="value"
         :data-testid="'provider-tab-' + value"
         size="sm"
-        :variant="section === value ? 'secondary' : 'ghost'"
-        :aria-pressed="section === value"
-        @click="section = value"
-        >{{ $t(value === 'providers' ? 'providers.title' : 'providerAccounts.usage') }}</Button
+        :variant="
+          (value === 'models' ? !!modelScope : section === value && !modelScope)
+            ? 'primary'
+            : 'ghost'
+        "
+        :aria-pressed="value === 'models' ? !!modelScope : section === value && !modelScope"
+        @click="value === 'models' ? openModels() : openSection(value)"
       >
+        <component
+          :is="value === 'providers' ? Box : value === 'models' ? Cpu : Gauge"
+          class="size-3.5"
+          :stroke-width="1.75"
+          aria-hidden="true"
+        />
+        {{
+          $t(
+            value === 'providers'
+              ? 'providers.title'
+              : value === 'models'
+                ? 'models.title'
+                : 'providerAccounts.usage'
+          )
+        }}
+      </Button>
+      <span
+        v-if="modelScope && modelScope !== 'all'"
+        class="self-center text-xs text-[var(--text-secondary)]"
+        aria-current="page"
+      >
+        {{ providersStore.items.find((item) => item.id === modelScope)?.displayName }}
+      </span>
     </nav>
     <div v-if="section === 'usage'" class="min-h-0 flex-1 overflow-y-auto">
       <ProviderUsagePanel />
     </div>
+    <ModelsView
+      v-else-if="modelScope"
+      :key="modelScope"
+      embedded
+      :scope="modelScope"
+      :create-on-open="modelCreate"
+      class="min-h-0 flex-1"
+    />
     <div v-else class="flex-1 overflow-y-auto px-5 pt-4 pb-6 space-y-4">
+      <SignedInAccountList @open="openCatalog('chatgpt')" />
       <div class="flex flex-wrap items-center gap-2" data-testid="subscription-providers">
-        <Button
-          size="sm"
-          data-testid="open-subscription-chatgpt"
-          @click="openCatalog('chatgpt')"
-        >
+        <Button size="sm" data-testid="open-subscription-chatgpt" @click="openCatalog('chatgpt')">
           ChatGPT
           <span v-if="chatGptAccounts.items.length" class="tabular-nums">
             {{ chatGptAccounts.items.length }}
@@ -1109,9 +1153,18 @@ onMounted(() => {
           Claude
         </Button>
         <Button size="sm" data-testid="open-subscription-gemini" @click="openCatalog('gemini')">
-          Gemini CLI
+          Gemini
+        </Button>
+        <Button size="sm" data-testid="open-local-gateway" @click="gatewayOpen = true">
+          {{ $t('providerAdvanced.gateway') }}
         </Button>
       </div>
+      <p
+        v-if="!providersStore.loading && !standardProviders.length"
+        class="text-xs text-[var(--text-secondary)]"
+      >
+        {{ $t('models.providerRequired') }}
+      </p>
       <div
         v-if="providersWithNoModels.length > 0"
         class="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--warning)]/30 bg-[var(--warning-tint)] px-3 py-2.5"
@@ -1133,7 +1186,11 @@ onMounted(() => {
             {{ $t('providers.zeroModelsHint') }}
           </p>
         </div>
-        <Button variant="secondary" size="sm" @click="$router.push('/models')">
+        <Button
+          variant="secondary"
+          size="sm"
+          @click="openModels(providersWithNoModels[0]?.id, true)"
+        >
           {{ $t('providers.goAddModels') }}
         </Button>
       </div>
@@ -1151,7 +1208,13 @@ onMounted(() => {
         :description="$t('providers.emptyHint')"
         :icon="Box"
       >
-        <Button variant="primary" size="sm" class="mt-3" data-testid="add-provider" @click="openCatalog()">
+        <Button
+          variant="primary"
+          size="sm"
+          class="mt-3"
+          data-testid="add-provider"
+          @click="openCatalog()"
+        >
           {{ $t('providers.createShort') }}
         </Button>
       </EmptyState>
@@ -1192,20 +1255,25 @@ onMounted(() => {
             class="group relative col-span-full grid grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-[var(--bg-hover)]"
             :style="{ height: 'var(--height-row)' }"
           >
-            <div class="min-w-0 overflow-hidden">
-              <div
-                class="truncate whitespace-nowrap text-[13px] font-medium leading-tight text-[var(--text-primary)]"
+            <button
+              type="button"
+              class="min-w-0 overflow-hidden text-left hover:underline focus-visible:outline-[var(--accent)]"
+              data-testid="provider-manage-models"
+              @click="openModels(provider.id)"
+            >
+              <span
+                class="block truncate whitespace-nowrap text-[13px] font-medium leading-tight text-[var(--text-primary)]"
                 :title="provider.displayName"
               >
                 {{ provider.displayName }}
-              </div>
-              <div
-                class="truncate whitespace-nowrap font-[family-name:var(--font-mono)] text-[10.5px] leading-tight text-[var(--text-tertiary)]"
+              </span>
+              <span
+                class="block truncate whitespace-nowrap font-[family-name:var(--font-mono)] text-[10.5px] leading-tight text-[var(--text-tertiary)]"
                 :title="provider.baseUrl || $t('common.unknown')"
               >
                 {{ provider.baseUrl || $t('common.unknown') }}
-              </div>
-            </div>
+              </span>
+            </button>
 
             <div
               class="whitespace-nowrap text-[12px] text-[var(--text-secondary)]"
@@ -1274,6 +1342,7 @@ onMounted(() => {
       </div>
     </div>
 
+    <LocalGatewayDialog v-if="gatewayOpen" @close="gatewayOpen = false" />
     <Dialog
       v-model:open="catalogOpen"
       :title="$t('providerAccounts.addTitle')"
@@ -1296,6 +1365,7 @@ onMounted(() => {
         @update:detail="catalogDetail = $event"
         @select-preset="chooseCatalogPreset"
         @openrouter-connected="openAuthorizedProvider"
+        @edit-provider="openAuthorizedProvider"
       />
     </Dialog>
 
@@ -1435,18 +1505,28 @@ onMounted(() => {
               {{ $t('providers.commandHint') }}
             </p>
           </template>
-          <Button v-if="hasSavedSecret" size="sm" :loading="copyingApiKey" @click="copySavedApiKey">
-            <Copy class="size-3.5 shrink-0" :stroke-width="1.75" />
-            {{ $t('providerAccounts.copySavedKey') }}
-          </Button>
-          <Button
-            v-if="activePreset?.keyUrl"
-            size="sm"
-            data-testid="provider-key-page"
-            @click="openPresetKeyPage(activePreset.keyUrl)"
+          <div
+            v-if="hasSavedSecret || activePreset?.keyUrl"
+            class="flex flex-wrap items-center gap-2"
           >
-            {{ $t('providerAccounts.getApiKey') }}
-          </Button>
+            <Button
+              v-if="hasSavedSecret"
+              size="sm"
+              :loading="copyingApiKey"
+              @click="copySavedApiKey"
+            >
+              <Copy class="size-3.5 shrink-0" :stroke-width="1.75" />
+              {{ $t('providerAccounts.copySavedKey') }}
+            </Button>
+            <Button
+              v-if="activePreset?.keyUrl"
+              size="sm"
+              data-testid="provider-key-page"
+              @click="openPresetKeyPage(activePreset.keyUrl)"
+            >
+              {{ $t('providerAccounts.getApiKey') }}
+            </Button>
+          </div>
         </template>
 
         <div class="space-y-2">
@@ -1513,6 +1593,11 @@ onMounted(() => {
           :hint="$t('providers.headersHint')"
           :rows="3"
           mono
+        />
+        <ProviderAdvancedFields
+          v-if="showProviderOptions"
+          v-model="advancedDraft"
+          :protocol="form.protocol"
         />
       </div>
       <template #footer>

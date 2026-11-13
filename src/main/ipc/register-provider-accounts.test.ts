@@ -8,6 +8,10 @@ import type { ChatGptAccounts } from '../services/chatgpt-accounts'
 import type { LocalAccountDiscovery } from '../services/local-account-discovery'
 import type { ProviderQuota } from '../services/provider-quota'
 import type { ChatGptRoutingMode } from '@shared/providers/account-management'
+import type { ChatGptModelPreferences } from '@shared/providers/account-management'
+
+const dialogs = vi.hoisted(() => ({ showOpenDialog: vi.fn(), showSaveDialog: vi.fn() }))
+vi.mock('electron', () => ({ BrowserWindow: { fromWebContents: () => null }, dialog: dialogs }))
 
 it('validates account, model, refresh and date range payloads before service calls', async () => {
   const handlers = new Map<string, (event: unknown, input?: unknown) => Promise<unknown>>()
@@ -20,9 +24,14 @@ it('validates account, model, refresh and date range payloads before service cal
     async (_id: string, _modelId: string, _enabled: boolean) => undefined
   )
   const setDefaultModel = vi.fn(async (_model: { id: string; modelId: string } | null) => undefined)
+  const setModelSelection = vi.fn(async (_input: ChatGptModelPreferences) => undefined)
+  const exportAccount = vi.fn(async (_id: string, _file: string, _password: string) => undefined)
+  const importAccount = vi.fn(async (_file: string, _password: string) => undefined)
   const setFallbackAccount = vi.fn(async (_id: string, _enabled: boolean) => undefined)
   const setRoutingMode = vi.fn(async (_mode: ChatGptRoutingMode) => undefined)
   const setLabel = vi.fn(async (_id: string, _label: string) => undefined)
+  const gatewaySettings = vi.fn(async () => ({ maxAccounts: 2 }))
+  const setGatewaySettings = vi.fn(async () => {})
   const list = vi.fn(async (_refresh: boolean) => [])
   const read = vi.fn(async (_key: string) => null)
   const usageReport = vi.fn(
@@ -39,10 +48,15 @@ it('validates account, model, refresh and date range payloads before service cal
       verify,
       refreshCatalog,
       setModelEnabled,
+      setModelSelection,
+      exportAccount,
+      importAccount,
       setDefaultModel,
       setFallbackAccount,
       setRoutingMode,
-      setLabel
+      setLabel,
+      gatewaySettings,
+      setGatewaySettings
     } as unknown as ChatGptAccounts,
     { list } as unknown as LocalAccountDiscovery,
     { read } as unknown as ProviderQuota,
@@ -51,10 +65,38 @@ it('validates account, model, refresh and date range payloads before service cal
     { connect: openRouterConnect, cancel: openRouterCancel }
   )
   const id = 'chatgpt-account-493957de-923a-4681-b5b6-d8de350c293a'
-  const dispatch = (channel: string, input?: unknown) => handlers.get(channel)!(null, input)
+  const dispatch = (channel: string, input?: unknown) =>
+    handlers.get(channel)!({ sender: {} }, input)
   await expect(
     dispatch(IPC_INVOKE.openRouterConnect, { endpoint: 'http://localhost' })
   ).rejects.toThrow('Invalid provider account request')
+  const selection = { id, mode: 'selected', modelIds: ['gpt-5'], addedModelIds: [] }
+  await dispatch(IPC_INVOKE.chatGptModelSelection, selection)
+  expect(setModelSelection).toHaveBeenCalledExactlyOnceWith(selection)
+  await expect(
+    dispatch(IPC_INVOKE.chatGptModelSelection, { ...selection, modelIds: ['../secret'] })
+  ).rejects.toThrow('Invalid provider account request')
+  await expect(
+    dispatch(IPC_INVOKE.chatGptModelSelection, { ...selection, mode: 'invalid' })
+  ).rejects.toThrow('Invalid provider account request')
+  const password = 'fixture-password'
+  await expect(
+    dispatch(IPC_INVOKE.chatGptImportAccount, { password, file: '/untrusted' })
+  ).rejects.toThrow('Invalid provider account request')
+  await expect(
+    dispatch(IPC_INVOKE.chatGptExportAccount, { id, password: 'short' })
+  ).rejects.toThrow('Invalid provider account request')
+  expect(dialogs.showOpenDialog).not.toHaveBeenCalled()
+  expect(dialogs.showSaveDialog).not.toHaveBeenCalled()
+  dialogs.showSaveDialog.mockResolvedValueOnce({ canceled: false, filePath: '/chosen.pihaccount' })
+  dialogs.showOpenDialog.mockResolvedValueOnce({
+    canceled: false,
+    filePaths: ['/chosen.pihaccount']
+  })
+  await expect(dispatch(IPC_INVOKE.chatGptExportAccount, { id, password })).resolves.toBe(true)
+  expect(exportAccount).toHaveBeenCalledExactlyOnceWith(id, '/chosen.pihaccount', password)
+  await expect(dispatch(IPC_INVOKE.chatGptImportAccount, { password })).resolves.toBe(true)
+  expect(importAccount).toHaveBeenCalledExactlyOnceWith('/chosen.pihaccount', password)
   expect(openRouterConnect).not.toHaveBeenCalled()
   await expect(dispatch(IPC_INVOKE.openRouterConnect)).resolves.toBe('openrouter-id')
   expect(openRouterConnect).toHaveBeenCalledExactlyOnceWith(openAuthorization)
@@ -102,6 +144,12 @@ it('validates account, model, refresh and date range payloads before service cal
   await expect(dispatch(IPC_INVOKE.chatGptDisconnect, '../auth.json')).rejects.toThrow(
     'Invalid provider account request'
   )
+  await expect(dispatch(IPC_INVOKE.chatGptGatewaySettings)).resolves.toEqual({ maxAccounts: 2 })
+  await expect(dispatch(IPC_INVOKE.chatGptSetGatewaySettings, { maxAccounts: 21 })).rejects.toThrow(
+    'Invalid provider account request'
+  )
+  await dispatch(IPC_INVOKE.chatGptSetGatewaySettings, { maxAccounts: 2, queueLimit: 0 })
+  expect(setGatewaySettings).toHaveBeenCalledExactlyOnceWith({ maxAccounts: 2, queueLimit: 0 })
   await expect(dispatch(IPC_INVOKE.localAccounts, { refresh: 'true' })).rejects.toThrow(
     'Invalid provider account request'
   )

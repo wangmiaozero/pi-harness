@@ -109,6 +109,7 @@ export function providerToDomain(
     headers: pi.headers ?? {},
     authHeader: pi.authHeader ?? true,
     timeout: meta?.timeout ?? null,
+    advanced: meta?.advanced,
     defaultModelId: meta?.defaultModelId ?? pi.models?.[0]?.id ?? null,
     modelCount: pi.models?.length ?? 0,
     createdAt: meta?.createdAt ?? now,

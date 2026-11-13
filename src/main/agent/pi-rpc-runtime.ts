@@ -1,14 +1,8 @@
 import { CHATGPT_PROVIDER_PREFIX } from '@shared/providers/account-management'
-import { chatGptVerifySchema } from '@shared/schemas/ipc'
 import type { ChatGptAccounts } from '../services/chatgpt-accounts'
-import { secretStore } from '../security/secret-store'
+import { ChatGptResponsesBridge } from './chatgpt-responses-bridge'
 import { readManagedProviderKeys } from '../pi/managed-provider-keys'
 import { compactionDefaults } from './compaction-defaults'
-import {
-  readState,
-  runtimeModels,
-  credentialSlot
-} from '../../../resources/desktop-extension/opencode-state.mjs'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -101,6 +95,7 @@ export class PiRpcRuntime implements HarnessAdapter {
   private window: () => BrowserWindow | null = () => null
   private closing = false
   private maintenance = false
+  private readonly chatGptBridge?: ChatGptResponsesBridge
   private readonly commands = new Map<
     string,
     { resolve: (value: unknown) => void; reject: (error: Error) => void }
@@ -116,10 +111,16 @@ export class PiRpcRuntime implements HarnessAdapter {
     private readonly options: {
       extensionPath: string
       configDir: () => string
-      chatGpt?: ChatGptAccounts
+      chatGpt?: Pick<ChatGptAccounts, 'list' | 'hasSelectableModel' | 'fetchResponses'>
       workspace?: ConstructorParameters<typeof AgentRuntimeService>[1]
     }
-  ) {}
+  ) {
+    if (options.chatGpt || options.workspace?.providerNetwork)
+      this.chatGptBridge = new ChatGptResponsesBridge(
+        options.chatGpt,
+        options.workspace?.providerNetwork?.fetch
+      )
+  }
   attachWindow(getWindow: () => BrowserWindow | null): void {
     this.window = getWindow
   }
@@ -231,15 +232,9 @@ export class PiRpcRuntime implements HarnessAdapter {
     if (
       chatGptSelected &&
       (!intended?.modelId ||
-        !(await this.options.chatGpt?.hasVerifiedModel(intended.provider, intended.modelId)))
+        !(await this.options.chatGpt?.hasSelectableModel(intended.provider, intended.modelId)))
     )
       throw new AgentError('ChatGPT model is unavailable. Select another model to continue.')
-    if (intended?.provider === 'opencode-free') {
-      if (!runtimeModels(await readState()).some((m) => m.id === intended!.modelId))
-        throw new AgentError(
-          'OpenCode model is unavailable or not verified; select another model explicitly'
-        )
-    }
     if (!cwd) throw new AgentError('A workspace is required')
     await this.options.workspace?.prepareSession?.(id, cwd)
     await assertMcpNodeExecution(this.runtimes, agentDir, cwd)
@@ -254,21 +249,69 @@ export class PiRpcRuntime implements HarnessAdapter {
     })
     const client = new PiRpcClient()
     let live!: LiveSession
+    type ProviderSlot = { controller: AbortController; release?: () => void | Promise<void> }
+    const providerSlots = new Map<string, ProviderSlot>()
+    const releaseProviderSlots = () => {
+      for (const slot of providerSlots.values()) {
+        slot.controller.abort()
+        void slot.release?.()
+      }
+      providerSlots.clear()
+    }
     const bridge = new DesktopBridge(async (method, params) => {
       if (method === 'summary_defaults') return compactionDefaults(params)
+      if (
+        method === 'provider_settings' &&
+        typeof params.provider === 'string' &&
+        typeof params.baseUrl === 'string'
+      )
+        return this.options.workspace?.providerSettings?.(params.provider, params.baseUrl)
+      if (method === 'provider_list') return this.options.workspace?.providerNetwork?.list() ?? []
+      if (
+        method === 'provider_acquire' &&
+        typeof params.id === 'string' &&
+        typeof params.provider === 'string' &&
+        typeof params.baseUrl === 'string'
+      ) {
+        const { id, provider, baseUrl } = params
+        if (providerSlots.has(id)) throw new AgentError('Provider slot already requested')
+        const slot: ProviderSlot = { controller: new AbortController() }
+        providerSlots.set(id, slot)
+        try {
+          slot.release = await this.options.workspace?.providerNetwork?.acquire(
+            provider,
+            baseUrl,
+            slot.controller.signal
+          )
+          if (slot.controller.signal.aborted) await slot.release?.()
+          return null
+        } catch (error) {
+          providerSlots.delete(id)
+          throw error
+        }
+      }
+      if (method === 'provider_release' && typeof params.id === 'string') {
+        const slot = providerSlots.get(params.id)
+        providerSlots.delete(params.id)
+        slot?.controller.abort()
+        await slot?.release?.()
+        return null
+      }
       if (method === 'chatgpt_accounts') return this.options.chatGpt?.list() ?? []
       if (method === 'managed_provider_keys') return managedKeys
-      if (method === 'chatgpt_access') {
-        const input = chatGptVerifySchema.safeParse(params)
-        if (!this.options.chatGpt || !input.success)
-          throw new AgentError('ChatGPT authorization is unavailable')
-        return this.options.chatGpt.resolve(input.data.id, input.data.modelId)
-      }
-      if (method === 'opencode_auth') {
-        const state = await readState()
-        return state.authMode === 'inference' && state.enabled && state.hasCredential
-          ? secretStore.getSecret(credentialSlot(state), { strict: true })
-          : null
+      if (method === 'chatgpt_transport') return this.chatGptBridge?.start() ?? null
+      if (
+        method === 'provider_google_base' &&
+        typeof params.provider === 'string' &&
+        typeof params.baseUrl === 'string'
+      ) {
+        const settings = await this.options.workspace?.providerSettings?.(
+          params.provider,
+          params.baseUrl
+        )
+        if (!settings?.proxy || !this.chatGptBridge)
+          throw new AgentError('Provider proxy is unavailable')
+        return this.chatGptBridge.googleBaseUrl(params.provider, params.baseUrl)
       }
       if (method === 'ready') {
         if (live && typeof params.sessionId === 'string' && params.sessionId !== live.id) {
@@ -370,18 +413,15 @@ export class PiRpcRuntime implements HarnessAdapter {
     })
     let env: NodeJS.ProcessEnv = {
       ...(await this.runtimes.environment('pi')),
-      PI_CODING_AGENT_DIR: agentDir,
-      PI_HARNESS_OPENCODE_STATE: process.env.PI_HARNESS_OPENCODE_STATE
+      PI_CODING_AGENT_DIR: agentDir
     }
     let executable = pi.executablePath
     const args = ['--mode', 'rpc', '--extension', this.options.extensionPath]
     if (file) args.push('--session', file)
     else args.push('--session-id', id)
-    if (chatGptSelected || intended?.provider === 'opencode-free')
-      args.push('--provider', intended!.provider, '--model', intended!.modelId!)
+    if (chatGptSelected) args.push('--provider', intended!.provider, '--model', intended!.modelId!)
     else if (input.provider) args.push('--provider', input.provider)
-    if (input.modelId && !chatGptSelected && intended?.provider !== 'opencode-free')
-      args.push('--model', input.modelId)
+    if (input.modelId && !chatGptSelected) args.push('--model', input.modelId)
     if (input.thinkingLevel && input.thinkingLevel !== 'auto')
       args.push('--thinking', input.thinkingLevel)
     if (input.toolNames?.length === 0) args.push('--no-tools')
@@ -414,6 +454,7 @@ export class PiRpcRuntime implements HarnessAdapter {
       }
       client.onEvent((event) => this.event(live, event))
       client.onExit(() => {
+        releaseProviderSlots()
         if (this.live.get(live.id) === live) this.live.delete(live.id)
         if (!live.stopping)
           this.emit(live.id, {
@@ -469,6 +510,7 @@ export class PiRpcRuntime implements HarnessAdapter {
       if (input.message?.trim()) await this.prompt(live.id, input.message)
       return { sessionId: live.id, cwd }
     } catch (error) {
+      releaseProviderSlots()
       if (live) {
         live.stopping = true
         this.live.delete(live.id)
@@ -543,6 +585,7 @@ export class PiRpcRuntime implements HarnessAdapter {
     this.closing = true
     await Promise.allSettled([...this.starts.values()])
     await Promise.all([...this.live.keys()].map((id) => this.stopSession(id)))
+    await this.chatGptBridge?.close()
     this.batcher.flush()
     this.batcher.dispose()
   }

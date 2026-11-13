@@ -2,7 +2,11 @@ import { shortcutOverridesSchema } from '../agent-settings/schema'
 /** Runtime schemas for non-domain IPC inputs. */
 
 import { z } from 'zod'
-import { CHATGPT_MODEL_ID, CHATGPT_ROUTING_MODES } from '../providers/account-management'
+import {
+  CHATGPT_MODEL_ID,
+  CHATGPT_MODEL_MODES,
+  CHATGPT_ROUTING_MODES
+} from '../providers/account-management'
 import { APP_LANGUAGES } from '../constants/language'
 import { MASCOT_STYLES } from '../constants/mascot'
 import { normalizeNavOrder } from '../constants/navigation'
@@ -194,11 +198,28 @@ export const chatGptVerifySchema = z.strictObject({
   modelId: z.string().regex(CHATGPT_MODEL_ID)
 })
 export const chatGptModelEnabledSchema = chatGptVerifySchema.extend({ enabled: z.boolean() })
+export const chatGptModelSelectionSchema = z.strictObject({
+  id: chatGptAccountIdSchema,
+  modelIds: z.array(chatGptVerifySchema.shape.modelId).max(1000),
+  mode: z.enum(CHATGPT_MODEL_MODES),
+  addedModelIds: z.array(chatGptVerifySchema.shape.modelId).max(1000),
+  routingOnly: z.boolean().optional()
+})
+export const chatGptImportAccountSchema = z.strictObject({ password: z.string().min(12).max(128) })
+export const chatGptExportAccountSchema = chatGptImportAccountSchema.extend({
+  id: chatGptAccountIdSchema
+})
 export const chatGptFallbackSchema = z.strictObject({
   id: chatGptAccountIdSchema,
   enabled: z.boolean()
 })
 export const chatGptRoutingModeSchema = z.enum(CHATGPT_ROUTING_MODES)
+export const chatGptResetPolicySchema = z.strictObject({
+  id: chatGptAccountIdSchema,
+  week: z.boolean(),
+  expiring: z.boolean(),
+  leadMinutes: z.number().int().min(5).max(1440)
+})
 export const chatGptLabelSchema = z.strictObject({
   id: chatGptAccountIdSchema,
   label: z

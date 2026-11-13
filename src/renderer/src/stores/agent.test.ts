@@ -47,6 +47,39 @@ describe('agent store new-session handshake', () => {
     expect(setActive).not.toHaveBeenCalled()
   })
 
+  it('starts a new chat with the recommended untested model for a connected account', async () => {
+    const start = vi.fn<PiSwitchAPI['agent']['start']>().mockResolvedValue({
+      sessionId: 'account-session',
+      cwd: '/code/project'
+    })
+    const provider = 'chatgpt-account-493957de-923a-4681-b5b6-d8de350c293a'
+    const model = {
+      id: 'gpt-6.1-sol',
+      name: 'GPT-6.1 Sol',
+      verified: false,
+      reasoning: true,
+      vision: true
+    }
+    const chatGpt = vi.fn<PiSwitchAPI['accounts']['chatGpt']>().mockResolvedValue([
+      {
+        id: provider,
+        label: 'Account',
+        status: 'authorized',
+        recommendedModelId: model.id,
+        models: [model]
+      }
+    ])
+    window.piSwitch = {
+      agent: { start, prompt: vi.fn(async () => undefined) },
+      accounts: { chatGpt }
+    } as unknown as PiSwitchAPI
+    await useAgentStore().send(null, '/code/project', 'hello', 'default')
+    expect(start).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ provider, modelId: model.id })
+    )
+    expect(start.mock.calls[0][0]).not.toHaveProperty('chatGptDefault')
+  })
+
   it('keeps an early streamed reply when navigation loads the newly created session', async () => {
     let onAgentEvent: ((payload: unknown) => void) | undefined
     window.piSwitch = {

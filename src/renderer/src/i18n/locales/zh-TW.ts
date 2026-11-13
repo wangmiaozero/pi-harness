@@ -1,5 +1,4 @@
 import { harnessPluginMessages } from '../harness-plugins'
-import { openCodeMessages } from '../opencode'
 /** 繁體中文 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
@@ -7,7 +6,6 @@ import { universalMessages } from '../universal'
 
 export const zhTW: MessageTree = {
   harnessPlugins: harnessPluginMessages['zh-TW'],
-  openCode: openCodeMessages['zh-TW'],
   universal: universalMessages['zh-TW'],
   nav: {
     home: '首頁',
@@ -284,7 +282,6 @@ export const zhTW: MessageTree = {
     title: '模型',
     subtitle: '設定模型能力並選擇目前模型',
     managementSubtitle: '統一管理供應商、存取憑證與模型能力',
-    managementTabsLabel: '模型設定分類',
     providerRequired: '請先新增供應商，再設定模型',
     empty: '暫無模型',
     emptyHint: '在供應商下新增模型。',
@@ -906,6 +903,8 @@ export const zhTW: MessageTree = {
     aboutRepository: '專案儲存庫',
     aboutStarHint: '如果 Pi-Harness 對你有幫助，歡迎在 GitHub 上點一個 Star。',
     aboutStarAction: '為專案點 Star',
+    aboutSponsorHint: '贊助 Pi-Harness，或打開現有贊助商。',
+    aboutSponsorAction: '我要贊助',
     currentVersion: '目前版本',
     updatesHint: '在背景檢查新版本。下載安裝程式後，手動開啟安裝。',
     checkUpdates: '檢查更新',

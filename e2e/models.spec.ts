@@ -1,6 +1,20 @@
 import { test, expect } from './fixtures'
 
 test.describe('Models', () => {
+  test('manages models from their provider in the unified page', async ({ page }) => {
+    await page.locator('a[href="#/models"]').click()
+    await expect(page.getByRole('button', { name: 'OpenCode', exact: true })).toHaveCount(0)
+    const provider = page.getByTestId('provider-manage-models').first()
+    const name = await provider.locator('span').first().textContent()
+    await provider.click()
+    await expect(
+      page.locator('[aria-current="page"]').filter({ hasText: name!.trim() })
+    ).toBeVisible()
+    await expect(page.getByTestId('model-action-cell')).toHaveCount(1)
+    await page.getByTestId('provider-tab-providers').click()
+    await expect(page.getByTestId('provider-row')).toHaveCount(2)
+  })
+
   test('fills current model defaults on typing and selection while preserving manual values', async ({
     page
   }) => {
@@ -10,6 +24,7 @@ test.describe('Models', () => {
       if (message.type() === 'error') pageErrors.push(message.text())
     })
     await page.locator('a[href="#/models"]').click()
+    await page.getByTestId('provider-tab-models').click()
     await page.getByRole('button', { name: /新建模型|New model/ }).click()
     const dialog = page.getByRole('dialog')
     const id = dialog.getByLabel(/模型 ID|Model ID/)
@@ -68,11 +83,8 @@ test.describe('Models', () => {
     })
 
     await page.locator('a[href="#/models"]').click()
-    await expect(page.getByTestId('model-management-tab-providers')).toHaveAttribute(
-      'aria-selected',
-      'true'
-    )
-    await expect(page.getByTestId('model-management-tab-models')).toBeDisabled()
+    await page.getByTestId('provider-tab-models').click()
+    await expect(page.getByTestId('provider-tab-models')).toHaveAttribute('aria-pressed', 'true')
     await expect(
       page.getByText(/请先添加提供商，再配置模型|Configure a provider before/)
     ).toBeVisible()
@@ -82,6 +94,8 @@ test.describe('Models', () => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.setViewportSize({ width: 960, height: 720 })
     await page.locator('a[href="#/models"]').click()
+
+    await page.getByTestId('provider-tab-models').click()
 
     const table = page.getByTestId('models-table-scroll')
     const actionCells = page.getByTestId('model-action-cell')
@@ -116,6 +130,7 @@ test.describe('Models', () => {
 
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
     await page.locator('a[href="#/models"]').click()
+    await page.getByTestId('provider-tab-models').click()
     await page.getByRole('button', { name: /新建模型|New model/ }).click()
 
     const dialog = page.getByRole('dialog')

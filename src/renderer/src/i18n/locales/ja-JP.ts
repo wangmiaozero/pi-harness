@@ -1,5 +1,4 @@
 import { harnessPluginMessages } from '../harness-plugins'
-import { openCodeMessages } from '../opencode'
 /** 日本語 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
@@ -7,7 +6,6 @@ import { universalMessages } from '../universal'
 
 export const jaJP: MessageTree = {
   harnessPlugins: harnessPluginMessages['ja-JP'],
-  openCode: openCodeMessages['ja-JP'],
   universal: universalMessages['ja-JP'],
   nav: {
     home: 'ホーム',
@@ -291,7 +289,6 @@ export const jaJP: MessageTree = {
     title: 'モデル',
     subtitle: 'モデルの能力を設定し、現在のモデルを選びます',
     managementSubtitle: 'プロバイダー、認証情報、モデル機能を一元管理します',
-    managementTabsLabel: 'モデル設定セクション',
     providerRequired: 'モデルを設定する前にプロバイダーを設定してください',
     empty: 'モデルはまだありません',
     emptyHint: 'プロバイダー配下にモデルを追加してください。',
@@ -930,6 +927,8 @@ export const jaJP: MessageTree = {
     aboutRepository: 'リポジトリ',
     aboutStarHint: 'Pi-Harness が役立ったら、GitHub で Star をお願いします。',
     aboutStarAction: 'GitHub で Star',
+    aboutSponsorHint: 'Pi-Harness をスポンサーするか、既存のスポンサーを開きます。',
+    aboutSponsorAction: 'スポンサーになる',
     currentVersion: '現在のバージョン',
     updatesHint: '新しいバージョンをバックグラウンドで確認します。インストーラーをダウンロードし、手動で開いてインストールしてください。',
     checkUpdates: '更新を確認',

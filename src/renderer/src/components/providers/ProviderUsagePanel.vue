@@ -46,7 +46,7 @@ const usageProviderOptions = computed(() => [
     return {
       value: id,
       label: account
-        ? `ChatGPT · ${account.label}`
+        ? `ChatGPT · ${accounts.displayLabel(account)}`
         : (providers.items.find((item) => item.key === id)?.displayName ?? id)
     }
   })

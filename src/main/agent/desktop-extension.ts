@@ -1,5 +1,3 @@
-import { secretStore } from '../security/secret-store'
-import { readState, credentialSlot } from '../../../resources/desktop-extension/opencode-state.mjs'
 import type { ExtensionFactory } from '@earendil-works/pi-coding-agent'
 import { applyWorkspacePrompt } from '@shared/workspace/workspace-context'
 import { inspectRuntimeError } from '@shared/workspace/runtime-error'
@@ -8,10 +6,17 @@ import type { PermissionMode } from '@shared/workspace/permission-mode'
 import { installCompactionPolicy } from '../../../resources/desktop-extension/compaction.mjs'
 import { compactionDefaults } from './compaction-defaults'
 import { loadPiCodingAgent } from './pi-sdk'
+import type { ProviderAdvancedSettings } from '@shared/providers/advanced-settings'
+import { installProviderSettings } from '../../../resources/desktop-extension/provider-settings.mjs'
 
 export interface DesktopSessionContext {
   forceEmpty: boolean
   workspacePromptProvider: (() => string | null) | null
+  providerSettings?: (
+    provider: string,
+    baseUrl: string
+  ) => Promise<ProviderAdvancedSettings | undefined>
+  providerNetwork?: Parameters<typeof installProviderSettings>[2]
   permissionMode?: PermissionMode
 }
 
@@ -26,6 +31,8 @@ export function createDesktopExtension(
   return async (pi) => {
     const { compact } = await loadPiCodingAgent()
     installCompactionPolicy(pi, compactionDefaults, compact)
+    if (context.providerSettings && context.providerNetwork)
+      await installProviderSettings(pi, context.providerSettings, context.providerNetwork)()
     pi.on('before_agent_start', (event) => ({
       // Both user and extension-triggered custom runs carry systemPrompt.
       systemPrompt: context.forceEmpty
@@ -46,17 +53,5 @@ export function createDesktopExtension(
       }
       return undefined
     })
-    if (process.env.PI_HARNESS_OPENCODE_STATE) {
-      const { registerOpenCode } =
-        await import('../../../resources/desktop-extension/opencode-provider.mjs')
-      await registerOpenCode(pi, {
-        resolveKey: async () => {
-          const state = await readState()
-          return state.authMode === 'inference' && state.enabled && state.hasCredential
-            ? ((await secretStore.getSecret(credentialSlot(state), { strict: true })) ?? undefined)
-            : undefined
-        }
-      })
-    }
   }
 }

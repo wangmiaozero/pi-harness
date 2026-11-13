@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
 import {
   Plus,
   Pencil,
@@ -55,13 +54,16 @@ import { callApi, getApi } from '@renderer/composables/useApi'
 import { isImageGenerationModel } from '@shared/models/image-model'
 import { rasterizeSvgImageResult } from '@renderer/utils/svg-rasterize'
 
-const props = withDefaults(defineProps<{ embedded?: boolean }>(), {
-  embedded: false
-})
+const props = withDefaults(
+  defineProps<{ embedded?: boolean; scope?: string; createOnOpen?: boolean }>(),
+  {
+    embedded: false,
+    scope: 'all',
+    createOnOpen: false
+  }
+)
 
 const { t, locale } = useI18n()
-const route = useRoute()
-const router = useRouter()
 const modelsStore = useModelsStore()
 const providersStore = useProvidersStore()
 
@@ -251,12 +253,10 @@ function providerKeyFor(model: ModelDefinition): string | undefined {
   return providersStore.items.find((p) => p.id === model.providerId)?.key
 }
 
-const providerFilter = ref<string | 'all'>('all')
+const providerFilter = ref(props.scope)
 const filterProviders = computed(() =>
-  providersStore.items.filter(
-    (provider) =>
-      provider.key !== 'opencode-free' &&
-      modelsStore.items.some((model) => model.providerId === provider.id)
+  providersStore.items.filter((provider) =>
+    modelsStore.items.some((model) => model.providerId === provider.id)
   )
 )
 const query = ref('')
@@ -548,22 +548,11 @@ async function runTest() {
   }
 }
 
-watch(
-  () => route.query.action,
-  (action) => {
-    if (action !== 'create') return
-    openCreate()
-    const query = { ...route.query }
-    delete query.action
-    void router.replace({ query })
-  },
-  { immediate: true }
-)
-
-onMounted(() => {
-  // The containing model page has already refreshed providers before mounting us.
-  if (!props.embedded) void providersStore.fetchList()
-  void modelsStore.fetchList()
+onMounted(async () => {
+  if (!props.embedded || (props.createOnOpen && !providersStore.items.length))
+    await providersStore.fetchList()
+  if (props.createOnOpen && providersStore.items.length) openCreate()
+  await modelsStore.fetchList()
 })
 </script>
 
@@ -600,75 +589,78 @@ onMounted(() => {
 
     <div
       v-else
-      class="flex h-[48px] shrink-0 items-center justify-end gap-2 border-b border-[var(--border-subtle)] px-5"
+      class="flex h-[48px] shrink-0 items-center gap-3 border-b border-[var(--border-subtle)] px-5"
     >
-      <SearchField
-        v-model="query"
-        :placeholder="$t('models.filterPlaceholder')"
-        class="w-[220px]"
-      />
-      <Button
-        variant="primary"
-        size="sm"
-        :disabled="providersStore.items.length === 0"
-        @click="openCreate"
+      <div
+        v-if="modelsStore.items.length > 0"
+        class="flex min-w-0 flex-1 items-center gap-2"
+        data-testid="active-model-summary"
       >
-        <Plus class="size-3.5" />
-        {{ $t('models.create') }}
-      </Button>
+        <span
+          class="shrink-0 text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+        >
+          {{ $t('models.active') }}
+        </span>
+        <template v-if="activeModel">
+          <span
+            class="truncate font-[family-name:var(--font-mono)] text-[12.5px] text-[var(--text-primary)]"
+            :title="`${providerKeyFor(activeModel)} / ${activeModel.modelId}`"
+          >
+            {{ providerKeyFor(activeModel) }}
+            <span class="text-[var(--text-tertiary)]"> / </span>
+            {{ activeModel.modelId }}
+          </span>
+          <span
+            class="hidden truncate text-[11.5px] text-[var(--text-tertiary)] min-[1100px]:inline"
+            :title="activeModel.displayName"
+          >
+            — {{ activeModel.displayName }}
+          </span>
+        </template>
+        <span v-else class="truncate text-[12px] text-[var(--text-tertiary)]">
+          {{ $t('models.noActiveHint') }}
+        </span>
+        <span class="ml-auto shrink-0 text-[11.5px] text-[var(--text-tertiary)]">
+          <span class="font-medium tabular-nums text-[var(--text-primary)]">{{
+            filteredModels.length
+          }}</span>
+          <span> / {{ modelsStore.items.length }} {{ $t('models.colModel') }}</span>
+        </span>
+      </div>
+      <div
+        class="flex shrink-0 items-center gap-2"
+        :class="{ 'ml-auto': modelsStore.items.length === 0 }"
+      >
+        <SearchField
+          v-model="query"
+          :placeholder="$t('models.filterPlaceholder')"
+          class="w-[220px]"
+        />
+        <Button
+          variant="primary"
+          size="sm"
+          :disabled="providersStore.items.length === 0"
+          @click="openCreate"
+        >
+          <Plus class="size-3.5" :stroke-width="1.75" />
+          {{ $t('models.create') }}
+        </Button>
+      </div>
     </div>
 
     <div class="flex-1 overflow-y-auto px-5 pt-4 pb-6 space-y-4">
-      <!-- Active Model summary — single line, not a Card. -->
-      <div
-        v-if="modelsStore.items.length > 0"
-        class="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2.5"
-      >
-        <div class="flex items-center gap-2 min-w-0">
-          <span
-            class="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
-          >
-            {{ $t('models.active') }}
-          </span>
-          <template v-if="activeModel">
-            <span
-              class="font-[family-name:var(--font-mono)] text-[12.5px] text-[var(--text-primary)]"
-              :title="`${providerKeyFor(activeModel)} / ${activeModel.modelId}`"
-            >
-              {{ providerKeyFor(activeModel) }}
-              <span class="text-[var(--text-tertiary)]"> / </span>
-              {{ activeModel.modelId }}
-            </span>
-            <span
-              class="truncate text-[11.5px] text-[var(--text-tertiary)]"
-              :title="activeModel.displayName"
-            >
-              — {{ activeModel.displayName }}
-            </span>
-          </template>
-          <span v-else class="text-[12px] text-[var(--text-tertiary)]">
-            {{ $t('models.noActiveHint') }}
-          </span>
-        </div>
-        <div class="ml-auto flex items-center gap-3 text-[11.5px] text-[var(--text-tertiary)]">
-          <span>
-            <span class="tabular-nums text-[var(--text-primary)] font-medium">{{
-              filteredModels.length
-            }}</span>
-            <span> / {{ modelsStore.items.length }} {{ $t('models.colModel') }}</span>
-          </span>
-        </div>
-      </div>
-
       <!-- Provider filter chips -->
-      <div v-if="modelsStore.items.length > 0" class="flex flex-wrap items-center gap-1">
+      <div
+        v-if="scope === 'all' && modelsStore.items.length > 0"
+        class="flex flex-wrap items-center gap-1"
+      >
         <button
           type="button"
-          class="h-[26px] rounded-[var(--radius-sm)] px-2 text-[11.5px] transition-colors"
+          class="h-[26px] rounded-[8px] px-2 text-[11.5px] transition-colors"
           :class="
             providerFilter === 'all'
-              ? 'bg-[var(--accent-tint)] text-[var(--accent)]'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+              ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]'
+              : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]'
           "
           @click="providerFilter = 'all'"
         >
@@ -678,11 +670,11 @@ onMounted(() => {
           v-for="p in filterProviders"
           :key="p.id"
           type="button"
-          class="h-[26px] rounded-[var(--radius-sm)] px-2 font-[family-name:var(--font-mono)] text-[11px] transition-colors"
+          class="h-[26px] rounded-[8px] px-2 font-[family-name:var(--font-mono)] text-[11px] transition-colors"
           :class="
             providerFilter === p.id
-              ? 'bg-[var(--accent-tint)] text-[var(--accent)]'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+              ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]'
+              : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]'
           "
           @click="providerFilter = p.id"
         >
@@ -698,7 +690,9 @@ onMounted(() => {
       </div>
 
       <EmptyState
-        v-else-if="modelsStore.items.length === 0"
+        v-else-if="
+          modelsStore.items.every((model) => scope !== 'all' && model.providerId !== scope)
+        "
         :title="$t('models.empty')"
         :description="$t('models.emptyHint')"
         :icon="Cpu"

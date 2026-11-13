@@ -14,6 +14,15 @@ import {
   secretStore
 } from '../security/secret-store'
 import { readBoundedText } from './bounded-json'
+import { fetchProvider, resolveWebSocketProxy } from './provider-network'
+import { fetchResponsesWebSocket } from './responses-websocket'
+import { ProviderRequestQueue, releaseOnResponseClose } from './provider-request-queue'
+import {
+  applyProviderBody,
+  maskProviderPrompt,
+  applyProviderHeaders,
+  modelLimit
+} from '../../../resources/desktop-extension/provider-settings.mjs'
 import type { PiConfigService, WriteOptions } from '../pi/config-service'
 import {
   domainProviderToPi,
@@ -23,6 +32,7 @@ import {
   serialiseApiKey
 } from '../pi/adapter'
 import { randomBytes } from 'node:crypto'
+import fs from 'node:fs/promises'
 import { isLocalOllamaEndpoint } from '@shared/providers/local-ollama'
 import type { ConnectionTestResult } from '@shared/ipc/api-types'
 import type { ImageModelResult } from '@shared/ipc/api-types'
@@ -30,6 +40,7 @@ import { imageModelRequestSchema } from '@shared/schemas/domain'
 import { getProtocol, isProtocolId } from '@shared/constants/protocols'
 import type { ProtocolId } from '@shared/constants/protocols'
 import { findModelPreset, findProviderPreset } from '@shared/constants/provider-presets'
+import { getOfficialModelGroup, officialModelGroups } from '@shared/providers/official-model-groups'
 import { log, redactSecretText } from '../services/logger'
 import {
   imageApiBaseUrl,
@@ -44,6 +55,7 @@ import {
 } from './svg-image-fallback'
 
 export class ProviderService {
+  private readonly queues = new Map<string, ProviderRequestQueue>()
   constructor(
     private readonly config: PiConfigService,
     private readonly metadata: JsonStore<AppMetadata>
@@ -55,7 +67,7 @@ export class ProviderService {
     return Object.entries(snap.models.providers).map(([key, pi]) =>
       providerToDomain(key, pi, {
         ...meta.providers[key],
-        enabled: key === 'opencode-free' ? (meta.providers[key]?.enabled ?? false) : true
+        enabled: true
       })
     )
   }
@@ -65,10 +77,281 @@ export class ProviderService {
     return all.find((p) => p.key === key) ?? null
   }
 
+  async removeRetiredOpenCodeProvider(stateFile: string): Promise<void> {
+    const { models } = await this.config.read()
+    const endpoints = {
+      'opencode-free': 'https://opencode.ai/inference/openai/v1',
+      'opencode-go': 'https://opencode.ai/inference/go/openai/v1',
+      'opencode-zen': 'https://opencode.ai/inference/v1'
+    }
+    for (const [key, endpoint] of Object.entries(endpoints)) {
+      const provider = models.providers[key]
+      if (provider?.baseUrl === endpoint && (key !== 'opencode-free' || !provider.apiKey))
+        await this.delete(key)
+    }
+
+    let size: number
+    try {
+      size = (await fs.stat(stateFile)).size
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      return
+    }
+
+    const slots = new Set(['opencode-free-official'])
+    if (size <= 2 * 1024 * 1024) {
+      const raw = await fs.readFile(stateFile, 'utf8')
+      let credentials: unknown
+      try {
+        credentials = JSON.parse(raw)?.credentials
+      } catch {
+        // A damaged catalog can still be removed along with the default credential.
+      }
+      if (Array.isArray(credentials)) {
+        for (const entry of credentials) {
+          const id: unknown = entry?.id
+          if (typeof id === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id))
+            slots.add(`opencode-key-${id}`)
+        }
+      }
+    }
+    await Promise.all([...slots].map((slot) => secretStore.removeSecret(slot, { strict: true })))
+    await Promise.all([
+      fs.rm(`${stateFile}.single-key.bak`, { force: true }),
+      fs.rm(`${stateFile}.v1.bak`, { force: true })
+    ])
+    await fs.rm(stateFile, { force: true })
+  }
+
+  async runtimeSettings(key: string, baseUrl: string) {
+    const { models } = await this.config.read()
+    const configured = models.providers[key]?.baseUrl
+    if (!configured || configured.replace(/\/+$/, '') !== baseUrl.replace(/\/+$/, '')) return
+    return (await this.metadata.read()).providers[key]?.advanced
+  }
+
+  requestSlot(key: string, settings: ProviderProfile['advanced'], signal: AbortSignal) {
+    if (!settings?.concurrency && !settings?.requestsPerMinute) return
+    const queue = this.queues.get(key) ?? new ProviderRequestQueue()
+    this.queues.set(key, queue)
+    return queue.acquire(settings, signal)
+  }
+
+  async runtimeProviders() {
+    return (await this.list())
+      .filter((provider) => {
+        const settings = provider.advanced
+        return (
+          settings &&
+          (settings.authMode ||
+            settings.proxy ||
+            settings.concurrency ||
+            settings.requestsPerMinute ||
+            settings.responsesWebSocket ||
+            settings.sendUserAgent === false)
+        )
+      })
+      .map(({ key, protocol }) => ({ key, protocol }))
+  }
+
+  async runtimeFetch(
+    key: string,
+    baseUrl: string,
+    input: Parameters<typeof fetch>[0],
+    init?: RequestInit,
+    savedSettings?: NonNullable<ProviderProfile['advanced']>
+  ) {
+    const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url)
+    const root = new URL(baseUrl)
+    const rootPath = root.pathname.replace(/\/+$/, '')
+    const relative = url.pathname.slice(rootPath.length)
+    if (
+      !['http:', 'https:'].includes(url.protocol) ||
+      url.origin !== root.origin ||
+      url.username ||
+      url.password ||
+      !url.pathname.startsWith(rootPath) ||
+      !/^\/(?:chat\/completions|responses(?:\/compact)?|v1\/messages|messages|models\/[^/]+:(?:streamGenerateContent|generateContent))$/.test(
+        relative
+      )
+    )
+      throw new ValidationError('Provider request does not match the configured endpoint')
+    const settings = savedSettings ?? (await this.runtimeSettings(key, baseUrl))
+    if (!settings) throw new ValidationError('Provider network configuration changed')
+    const signal = init?.signal ?? new AbortController().signal
+    const release = await this.requestSlot(key, settings, signal)
+    try {
+      const payload =
+        settings.responsesWebSocket &&
+        relative === '/responses' &&
+        (typeof init?.body === 'string' || init?.body instanceof Uint8Array)
+          ? asRecord(
+              JSON.parse(
+                typeof init.body === 'string' ? init.body : new TextDecoder().decode(init.body)
+              )
+            )
+          : undefined
+      const response =
+        payload?.stream === true
+          ? await fetchResponsesWebSocket(
+              url,
+              init?.headers,
+              payload,
+              signal,
+              await resolveWebSocketProxy(url, settings.proxy)
+            )
+          : await fetchProvider(url.href, { ...init, redirect: 'error', signal }, settings.proxy)
+      const headers = new Headers()
+      for (const name of [
+        'content-type',
+        'retry-after',
+        'request-id',
+        'x-request-id',
+        ...(settings.responseHeaders ?? [])
+      ]) {
+        const value = response.headers.get(name)
+        if (value) headers.set(name, value)
+      }
+      const stream = new Response(response.body, { status: response.status, headers })
+      return release ? releaseOnResponseClose(stream, release, signal) : stream
+    } catch (error) {
+      release?.()
+      throw error
+    }
+  }
+
+  async runtimeAcquire(key: string, baseUrl: string, signal?: AbortSignal) {
+    return this.requestSlot(
+      key,
+      await this.runtimeSettings(key, baseUrl),
+      signal ?? new AbortController().signal
+    )
+  }
+
+  async gatewayModels() {
+    const { models } = await this.config.read()
+    const meta = await this.metadata.read()
+    return Object.entries(models.providers).flatMap(([key, provider]) => {
+      if (!provider.baseUrl) return []
+      return (provider.models ?? []).flatMap((model) => {
+        const api = model.api ?? provider.api ?? 'openai-completions'
+        return ['openai-completions', 'openai-responses', 'anthropic-messages'].includes(api) &&
+          meta.models[`${key}::${model.id}`]?.enabled !== false
+          ? [
+              {
+                id: `${key}/${model.id}`,
+                provider: key,
+                model: model.id,
+                api,
+                baseUrl: provider.baseUrl!
+              }
+            ]
+          : []
+      })
+    })
+  }
+
+  async gatewayRequest(
+    protocol: ProtocolId,
+    payload: Record<string, unknown>,
+    inbound: Headers,
+    signal: AbortSignal,
+    compact = false
+  ): Promise<Response> {
+    const id = typeof payload.model === 'string' ? payload.model : ''
+    const separator = id.indexOf('/')
+    const key = id.slice(0, separator)
+    const modelId = id.slice(separator + 1)
+    const snapshot = await this.config.read()
+    const meta = await this.metadata.read()
+    const native = Object.hasOwn(snapshot.models.providers, key)
+      ? snapshot.models.providers[key]
+      : undefined
+    const model = native?.models?.find((item) => item.id === modelId)
+    if (
+      !native ||
+      !model ||
+      separator < 1 ||
+      (model.api ?? native.api ?? 'openai-completions') !== protocol ||
+      meta.models[`${key}::${modelId}`]?.enabled === false
+    )
+      throw new ValidationError('Use a model from the gateway list that supports this endpoint')
+    const provider = providerToDomain(key, native, meta.providers[key])
+    const root = new URL(provider.baseUrl)
+    const rootPath = root.pathname.replace(/\/+$/, '')
+    if (
+      !['http:', 'https:'].includes(root.protocol) ||
+      root.username ||
+      root.password ||
+      root.search ||
+      root.hash
+    )
+      throw new ValidationError('Provider endpoint is invalid')
+    // A gateway cannot be used as its own upstream.
+    if (
+      ['127.0.0.1', 'localhost', '[::1]'].includes(root.hostname) &&
+      root.port === inbound.get('host')?.split(':').at(-1)
+    )
+      throw new ValidationError('The gateway endpoint cannot be its own upstream')
+    const apiKey = provider.localNoAuth
+      ? null
+      : await resolveCredentialForTest(provider, native.apiKey)
+    if (provider.apiKey && !apiKey)
+      throw new ValidationError('The provider credential is unavailable')
+    if (compact && !provider.advanced?.nativeCompaction)
+      throw new ValidationError('Enable native Responses compaction for this provider first')
+    const path =
+      protocol === 'anthropic-messages'
+        ? rootPath.endsWith('/v1')
+          ? '/messages'
+          : '/v1/messages'
+        : protocol === 'openai-responses'
+          ? compact
+            ? '/responses/compact'
+            : '/responses'
+          : '/chat/completions'
+    const url = `${root.origin}${rootPath}${path}`
+    const headers: Record<string, string> = {
+      ...provider.headers,
+      'content-type': 'application/json'
+    }
+    if (protocol === 'anthropic-messages') {
+      setHeaderIfMissing(headers, 'anthropic-version', '2023-06-01')
+      if (apiKey) headers['x-api-key'] = apiKey
+    }
+    if (apiKey && (provider.authHeader || protocol !== 'anthropic-messages'))
+      headers.authorization = `Bearer ${apiKey}`
+    for (const name of provider.advanced?.requestHeaders ?? []) {
+      const value = inbound.get(name)
+      if (value) headers[name] = value
+    }
+    if (provider.advanced?.sendUserAgent !== false && inbound.get('user-agent'))
+      headers['user-agent'] = inbound.get('user-agent')!
+    const outgoing = applyProviderHeaders(headers, provider.advanced, protocol)
+    const extended = applyProviderBody(
+      { ...payload, model: modelId },
+      compact ? undefined : provider.advanced?.extraBody,
+      inbound.get('x-session-id')?.slice(0, 200)
+    )
+    const body = provider.advanced?.redactSecrets ? maskProviderPrompt(extended) : extended
+    return this.runtimeFetch(
+      provider.key,
+      provider.baseUrl,
+      url,
+      {
+        method: 'POST',
+        headers: Object.entries(outgoing).filter(
+          (entry): entry is [string, string] => entry[1] !== null
+        ),
+        body: JSON.stringify(body),
+        signal
+      },
+      provider.advanced ?? {}
+    )
+  }
+
   /** Resolve a saved credential for Main consumers and an explicit clipboard action. */
   async revealApiKey(key: string): Promise<string> {
-    if (key === 'opencode-free')
-      throw new ValidationError('OpenCode credentials cannot be revealed')
     const provider = await this.get(key)
     if (!provider) throw new NotFoundError(`Provider not found: ${key}`)
 
@@ -138,7 +421,6 @@ export class ProviderService {
 
   async create(raw: unknown, options?: WriteOptions): Promise<ProviderProfile> {
     const form = this.parseForm(raw)
-    if (form.key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const existing = await this.get(form.key)
     if (existing) throw new ValidationError(`Provider key already exists: ${form.key}`)
 
@@ -157,12 +439,18 @@ export class ProviderService {
           authHeader: localNoAuth ? false : form.authHeader,
           apiKeyValue
         })
-        return ensureDefaultModel(
-          mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol),
-          form.defaultModelId ?? null,
-          form.protocol,
-          form.defaultModel ?? null,
-          form.key
+        return applyProviderModelLimits(
+          seedOfficialModels(
+            ensureDefaultModel(
+              mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol),
+              form.defaultModelId ?? null,
+              form.protocol,
+              form.defaultModel ?? null,
+              form.key
+            ),
+            form
+          ),
+          form.advanced
         )
       },
       { overwrite: options?.overwrite, reason: `create provider ${form.key}` }
@@ -177,6 +465,7 @@ export class ProviderService {
       displayName: form.displayName,
       enabled: true,
       timeout: form.timeout,
+      advanced: form.advanced,
       apiKeyRef: secretId,
       defaultModelId: form.defaultModelId ?? null,
       createdAt: providersMeta[form.key]?.createdAt ?? now,
@@ -205,9 +494,7 @@ export class ProviderService {
   }
 
   async update(key: string, raw: unknown, options?: WriteOptions): Promise<ProviderProfile> {
-    if (key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const form = this.parseForm(raw)
-    if (form.key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const current = await this.get(key)
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
     const preservesCredential =
@@ -266,12 +553,16 @@ export class ProviderService {
         authHeader: localNoAuth ? false : form.authHeader,
         apiKeyValue
       })
-      return ensureDefaultModel(
-        mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol),
-        form.defaultModelId ?? null,
-        form.protocol,
-        form.defaultModel ?? null,
-        form.key
+      return applyProviderModelLimits(
+        ensureDefaultModel(
+          mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol),
+          form.defaultModelId ?? null,
+          form.protocol,
+          form.defaultModel ?? null,
+          form.key
+        ),
+        form.advanced ?? current.advanced,
+        current.advanced
       )
     }
 
@@ -329,6 +620,7 @@ export class ProviderService {
       displayName: form.displayName,
       enabled: true,
       timeout: form.timeout,
+      advanced: form.advanced ?? providersMeta[newKey]?.advanced,
       apiKeyRef: secretId,
       defaultModelId:
         form.defaultModelId !== undefined
@@ -347,7 +639,6 @@ export class ProviderService {
   }
 
   async delete(key: string, options?: WriteOptions): Promise<void> {
-    if (key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const current = await this.get(key)
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
     // Cascade: deleting the provider entry also removes every nested model in models.json.
@@ -440,7 +731,6 @@ export class ProviderService {
   }
 
   async duplicate(key: string, options?: WriteOptions): Promise<ProviderProfile> {
-    if (key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const src = await this.get(key)
     if (!src) throw new NotFoundError(`Provider not found: ${key}`)
     const snap = await this.config.read()
@@ -491,7 +781,6 @@ export class ProviderService {
 
   /** Compatibility for older clients; configured providers are always available. */
   async setEnabled(key: string, _enabled: boolean): Promise<ProviderProfile> {
-    if (key === 'opencode-free') throw new ValidationError('Use OpenCode settings')
     const current = await this.get(key)
     if (!current) throw new NotFoundError(`Provider not found: ${key}`)
     return current
@@ -532,12 +821,21 @@ export class ProviderService {
         let reachedCatalog = false
 
         for (let page = 0; page < 20 && models.size < 2_000; page++) {
-          const response = await fetch(url, {
-            method: 'GET',
-            headers,
-            signal: controller.signal,
-            redirect: 'error'
-          })
+          const outgoing = applyProviderHeaders({ ...headers }, input.advanced, input.protocol)
+          const response = await fetchProvider(
+            url,
+            {
+              method: 'GET',
+              headers: Object.fromEntries(
+                Object.entries(outgoing).filter(
+                  (entry): entry is [string, string] => entry[1] !== null
+                )
+              ),
+              signal: controller.signal,
+              redirect: 'error'
+            },
+            input.advanced?.proxy
+          )
           const text = await readBoundedText(response, 2_000_000)
           if (!response.ok) {
             const planRoot = volcenginePlanKind(normalized.url)
@@ -805,8 +1103,6 @@ export class ProviderService {
     draft?: ProviderModelDiscoveryInput
   }): Promise<ConnectionTestResult> {
     const providerKey = input.providerKey ?? input.draft?.existingProviderKey ?? ''
-    if (providerKey === 'opencode-free')
-      throw new ValidationError('Use OpenCode connection verification')
     const started = Date.now()
     const snapshot = await this.config.read()
     const nativeProvider = snapshot.models.providers[providerKey]
@@ -872,7 +1168,7 @@ export class ProviderService {
     try {
       // Literal Pi credentials are intentionally absent from the Renderer DTO.
       // Resolve them from native configuration in Main for this explicit probe.
-      const literal = provider.apiKey?.kind === 'literal' ? nativeProvider?.apiKey : undefined
+      const literal = nativeProvider?.apiKey
       if (input.draft) {
         const url = new URL(root)
         if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password)
@@ -929,14 +1225,29 @@ export class ProviderService {
       () => controller.abort(),
       Math.min(provider.timeout ?? 30_000, 120_000)
     )
+    let release: (() => void) | undefined
     try {
-      const res = await fetch(probe.url, {
-        method: 'POST',
+      release = await this.requestSlot(providerKey, provider.advanced, controller.signal)
+      if (provider.advanced?.authMode && apiKey && probeProtocol !== 'google-generative-ai')
+        setHeaderIfMissing(headers, 'x-api-key', apiKey)
+      const outgoing = applyProviderHeaders(
         headers,
-        body: JSON.stringify(probe.body),
-        redirect: 'error',
-        signal: controller.signal
-      })
+        provider.advanced,
+        probeProtocol ?? provider.protocol
+      )
+      const res = await fetchProvider(
+        probe.url,
+        {
+          method: 'POST',
+          headers: Object.fromEntries(
+            Object.entries(outgoing).filter((entry): entry is [string, string] => entry[1] !== null)
+          ),
+          body: JSON.stringify(applyProviderBody(probe.body, provider.advanced?.extraBody)),
+          redirect: 'error',
+          signal: controller.signal
+        },
+        provider.advanced?.proxy
+      )
       const latencyMs = Date.now() - started
       const responseText = await res.text().catch(() => '')
       const bodyText = apiKey ? responseText.replaceAll(apiKey, '[redacted]') : responseText
@@ -1040,6 +1351,7 @@ export class ProviderService {
         ...base
       }
     } finally {
+      release?.()
       clearTimeout(timer)
     }
   }
@@ -1495,6 +1807,35 @@ function setHeaderIfMissing(headers: Record<string, string>, name: string, value
   }
 }
 
+function applyProviderModelLimits(
+  provider: PiProviderConfig,
+  next: ProviderProfile['advanced'],
+  previous?: ProviderProfile['advanced']
+): PiProviderConfig {
+  if (
+    !next?.contextWindows &&
+    !next?.outputLimits &&
+    !previous?.contextWindows &&
+    !previous?.outputLimits
+  )
+    return provider
+  const modelOverrides = { ...provider.modelOverrides }
+  for (const model of provider.models ?? []) {
+    const override = { ...modelOverrides[model.id] }
+    const contextWindow = modelLimit(next?.contextWindows, model.id)
+    const maxTokens = modelLimit(next?.outputLimits, model.id)
+    if (contextWindow !== undefined) override.contextWindow = contextWindow
+    else if (override.contextWindow === modelLimit(previous?.contextWindows, model.id))
+      delete override.contextWindow
+    if (maxTokens !== undefined) override.maxTokens = maxTokens
+    else if (override.maxTokens === modelLimit(previous?.outputLimits, model.id))
+      delete override.maxTokens
+    if (Object.keys(override).length) modelOverrides[model.id] = override
+    else delete modelOverrides[model.id]
+  }
+  return { ...provider, modelOverrides }
+}
+
 function buildChatProbe(
   protocol: string,
   root: string,
@@ -1659,7 +2000,11 @@ async function resolveCredentialForTest(
   literal?: string
 ): Promise<string | null> {
   if (provider.apiKeyRef) {
-    const secret = await secretStore.getProviderSecret(provider.apiKeyRef, provider.baseUrl)
+    const secret = await secretStore.getProviderSecret(
+      provider.apiKeyRef,
+      provider.baseUrl,
+      !!managedProviderSecretId(literal)
+    )
     if (secret) return secret
   }
   const spec = provider.apiKey
@@ -1743,6 +2088,38 @@ function ensureDefaultModel(
     )
   )
   return { ...provider, models }
+}
+
+function seedOfficialModels(provider: PiProviderConfig, form: ProviderForm): PiProviderConfig {
+  const group = getOfficialModelGroup(form)
+  if (!group || !form.defaultModelId) return provider
+  const existing = new Set(provider.models?.map((model) => model.id))
+  const recommended = officialModelGroups[group].preset.models
+  if (!recommended.some((model) => model.id === form.defaultModelId)) return provider
+  return {
+    ...provider,
+    models: [
+      ...(provider.models ?? []),
+      ...recommended
+        .filter((model) => !existing.has(model.id))
+        .map((model) =>
+          domainModelToPi(
+            undefined,
+            {
+              modelId: model.id,
+              displayName: model.name,
+              protocol: form.protocol,
+              reasoning: model.reasoning ?? false,
+              vision: model.input?.includes('image') ?? false,
+              contextWindow: model.contextWindow ?? null,
+              maxOutputTokens: model.maxOutputTokens ?? null,
+              thinkingLevels: model.thinkingLevels
+            },
+            form.protocol
+          )
+        )
+    ]
+  }
 }
 
 function mergeDiscoveredModels(

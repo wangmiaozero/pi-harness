@@ -2,16 +2,6 @@ import { createVoiceHost } from '../agent-settings/voice-host'
 import { registerAgentSettingsIpc } from './register-agent-settings'
 import type { HarnessPluginHost } from '../harness/plugins/plugin-host'
 import { registerHarnessPluginsIpc } from './register-harness-plugins'
-import {
-  openCodeModelSchema,
-  openCodeConfigureSchema,
-  openCodeTestSchema,
-  openCodeWorkspaceSchema,
-  openCodeCredentialIdSchema,
-  openCodeCredentialSchema,
-  type OpenCodeFreeService
-} from '../services/opencode-free-service'
-import { OPENCODE_DOCS_URL } from '@shared/providers/opencode-free'
 import fs from 'node:fs/promises'
 import type { RuntimeManager } from '../runtime/runtime-manager'
 import { runtimeSwitchSchema, runtimeMaintenanceSchema } from '@shared/runtime/schema'
@@ -128,6 +118,8 @@ import type { HarnessRuntime } from '../harness/harness-runtime'
 import type { OrchestratorService } from '../harness/orchestrator/orchestrator-service'
 import { registerProviderAccounts } from './register-provider-accounts'
 import type { ChatGptAccounts } from '../services/chatgpt-accounts'
+import type { LocalProviderGateway } from '../services/local-provider-gateway'
+import { registerLocalProviderGateway } from './register-local-provider-gateway'
 import type { LocalAccountDiscovery } from '../services/local-account-discovery'
 import type { ProviderQuota } from '../services/provider-quota'
 import { registerHarnessIpc } from './register-harness'
@@ -148,8 +140,8 @@ export interface Services {
   settingsStore: JsonStore<AppSettings>
   uiStateStore: JsonStore<Record<string, unknown>>
   config: PiConfigService
-  openCodeFree?: OpenCodeFreeService
   providers: ProviderService
+  providerGateway?: LocalProviderGateway
   chatGpt?: ChatGptAccounts
   openRouter?: import('../services/openrouter-authorization').OpenRouterAuthorization
   localAccounts?: LocalAccountDiscovery
@@ -407,78 +399,6 @@ export function registerIpc(services: Services): void {
     })
   )
 
-  const openCode = () => {
-    if (!services.openCodeFree) throw new ValidationError('OPENCODE_UNAVAILABLE')
-    return services.openCodeFree
-  }
-  ipcMain.handle(IPC_INVOKE.openCodeWorkspaceVisibility, (_e, input: unknown) =>
-    wrap(() =>
-      openCode().setWorkspaceVisibility(
-        parseInput(openCodeWorkspaceSchema, input, 'Invalid workspace visibility')
-      )
-    )
-  )
-  ipcMain.handle(IPC_INVOKE.openCodeState, () => wrap(() => openCode().state()))
-  ipcMain.handle(IPC_INVOKE.openCodeConfigure, (_e, input: unknown) =>
-    wrap(() =>
-      openCode().configure(parseInput(openCodeConfigureSchema, input, 'Invalid OpenCode settings'))
-    )
-  )
-  ipcMain.handle(IPC_INVOKE.openCodeSaveCredential, (_e, input: unknown) =>
-    wrap(() =>
-      openCode().saveCredential(
-        parseInput(openCodeCredentialSchema, input, 'Invalid credential settings')
-      )
-    )
-  )
-  ipcMain.handle(IPC_INVOKE.openCodeActivateCredential, (_e, id: unknown) =>
-    wrap(() =>
-      openCode().activateCredential(
-        parseInput(openCodeCredentialIdSchema, id, 'Invalid credential')
-      )
-    )
-  )
-  ipcMain.handle(IPC_INVOKE.openCodeDeleteCredential, (_e, id: unknown) =>
-    wrap(() =>
-      openCode().deleteCredential(parseInput(openCodeCredentialIdSchema, id, 'Invalid credential'))
-    )
-  )
-  ipcMain.handle(IPC_INVOKE.openCodeCopyCredential, (_e, id: unknown) =>
-    wrap(async () => {
-      const credential = parseInput(openCodeCredentialIdSchema, id, 'Invalid credential')
-      clipboard.writeText(await openCode().revealCredential(credential))
-    })
-  )
-  ipcMain.handle(IPC_INVOKE.openCodeRefresh, () => wrap(() => openCode().refresh()))
-  ipcMain.handle(IPC_INVOKE.openCodeTest, (_e, id: unknown, options: unknown) =>
-    wrap(() =>
-      openCode().test(
-        parseInput(openCodeModelSchema, id, 'Invalid model'),
-        options === undefined
-          ? undefined
-          : parseInput(openCodeTestSchema, options, 'Inference consent required')
-      )
-    )
-  )
-  ipcMain.handle(IPC_INVOKE.openCodeSelect, (_e, id: unknown) =>
-    wrap(() => openCode().select(parseInput(openCodeModelSchema, id, 'Invalid model')))
-  )
-  ipcMain.handle(IPC_INVOKE.openCodeCancel, () =>
-    wrap(async () => {
-      openCode().cancel()
-    })
-  )
-  ipcMain.handle(IPC_INVOKE.openCodeKeys, () =>
-    wrap(async () => {
-      await shell.openExternal('https://opencode.ai/console/account')
-    })
-  )
-  ipcMain.handle(IPC_INVOKE.openCodeDocs, () =>
-    wrap(async () => {
-      await shell.openExternal(OPENCODE_DOCS_URL)
-    })
-  )
-
   if (services.chatGpt && services.localAccounts && services.providerQuota)
     registerProviderAccounts(
       ipcMain,
@@ -492,6 +412,10 @@ export function registerIpc(services: Services): void {
     )
 
   // ---- providers ----
+  if (services.providerGateway)
+    registerLocalProviderGateway(ipcMain, wrap, services.providerGateway, (value) =>
+      clipboard.writeText(value)
+    )
   ipcMain.handle(IPC_INVOKE.providerList, () => wrap(() => providers.list()))
   ipcMain.handle(IPC_INVOKE.providerGet, (_e, key: unknown) =>
     wrap(() => providers.get(parseInput(providerKeySchema, key, 'Invalid provider key')))

@@ -25,7 +25,7 @@ describe('managed workspace identity IPC', () => {
       } as unknown as IpcHandleRegistrar,
       async (fn) => ({ ok: true, data: await fn() }),
       { access: { assertAllowed }, agent: { start } } as unknown as WorkspaceServices,
-      { routeDefault }
+      { routeDefault, isRoutingOnly: async () => false }
     )
     const dispatch = handlers.get(IPC_INVOKE.agentStart)!
     const request = { cwd: '/managed/default', chatGptDefault: input }

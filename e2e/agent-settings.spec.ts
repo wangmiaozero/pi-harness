@@ -40,7 +40,7 @@ test.describe('Agent settings', () => {
     }
     await expect(page.getByTestId('settings-section-models')).toHaveCount(0)
     await page.locator('a[href="#/models"]').click()
-    await expect(page.getByTestId('model-management-tab-models')).toBeVisible()
+    await expect(page.getByTestId('provider-tab-models')).toBeVisible()
     await page.locator('a[href="#/settings"]').click()
     await expect(page.getByTestId('settings-section-skills')).toHaveCount(0)
     await openOverflowPage(page, 'skills')

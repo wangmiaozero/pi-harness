@@ -21,7 +21,6 @@ import type {
   UsageRange,
   UsageReport
 } from '../providers/account-management'
-import type { OpenCodeFreeState, OpenCodeTestOptions } from '../providers/opencode-free'
 import type {
   RuntimeDiagnostics,
   RuntimeKind,
@@ -1015,35 +1014,6 @@ export interface PiSwitchAPI {
     copyInstallCommand(): Promise<string>
     openNodeDownload(): Promise<void>
   }
-  openCodeFree: {
-    setWorkspaceVisibility(input: {
-      showInWorkspace: boolean
-      modelIds: string[]
-    }): Promise<OpenCodeFreeState>
-    state(): Promise<OpenCodeFreeState>
-    configure(input: {
-      enabled: boolean
-      authMode: 'inference'
-      removeCredential?: boolean
-      apiKey?: string
-      consent: true
-    }): Promise<OpenCodeFreeState>
-    saveCredential(input: {
-      id?: string
-      name: string
-      apiKey?: string
-      consent: true
-    }): Promise<OpenCodeFreeState>
-    activateCredential(id: string): Promise<OpenCodeFreeState>
-    deleteCredential(id: string): Promise<OpenCodeFreeState>
-    copyCredential(id: string): Promise<void>
-    refresh(): Promise<OpenCodeFreeState>
-    test(id: string, options?: OpenCodeTestOptions): Promise<OpenCodeFreeState>
-    cancel(): Promise<void>
-    select(id: string): Promise<OpenCodeFreeState>
-    docs(): Promise<void>
-    keys(): Promise<void>
-  }
   accounts: {
     local(input: { refresh: boolean }): Promise<LocalAccount[]>
     chatGpt(): Promise<ChatGptAccount[]>
@@ -1055,18 +1025,40 @@ export interface PiSwitchAPI {
     cancelOpenRouter(): Promise<void>
     refreshCatalog(id: string): Promise<void>
     setModelEnabled(input: { id: string; modelId: string; enabled: boolean }): Promise<void>
+    setModelSelection(
+      input: import('../providers/account-management').ChatGptModelPreferences
+    ): Promise<void>
+    exportChatGptAccount(input: { id: string; password: string }): Promise<boolean>
+    importChatGptAccount(input: { password: string }): Promise<boolean>
     setDefaultModel(input: { id: string; modelId: string } | null): Promise<void>
     setFallback(input: { id: string; enabled: boolean }): Promise<void>
     setRoutingMode(
       mode: import('../providers/account-management').ChatGptRoutingMode
     ): Promise<void>
     setLabel(input: { id: string; label: string }): Promise<void>
+    allowance(
+      id: string
+    ): Promise<import('../providers/account-management').ChatGptAllowance | null>
+    setResetPolicy(
+      input: { id: string } & import('../providers/account-management').ChatGptResetPolicy
+    ): Promise<void>
+    useReset(id: string): Promise<boolean>
     disconnect(id: string): Promise<{ revoked: boolean }>
+    gatewaySettings(): Promise<import('../providers/advanced-settings').ChatGptGatewaySettings>
+    setGatewaySettings(
+      input: import('../providers/advanced-settings').ChatGptGatewaySettings
+    ): Promise<void>
     quota(provider: string): Promise<QuotaReading>
     usage(range: UsageRange): Promise<UsageReport>
     clearUsage(): Promise<void>
   }
   providers: {
+    gatewayState(): Promise<import('../providers/gateway').LocalGatewayState>
+    startGateway(input: {
+      port: number
+    }): Promise<import('../providers/gateway').LocalGatewayConnection>
+    stopGateway(): Promise<void>
+    copyGatewayKey(): Promise<void>
     list(): Promise<ProviderProfile[]>
     get(key: string): Promise<ProviderProfile | null>
     create(form: unknown, options?: { overwrite?: boolean }): Promise<ProviderProfile>

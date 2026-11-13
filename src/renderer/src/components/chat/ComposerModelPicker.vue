@@ -12,6 +12,7 @@ interface ModelOption {
   group?: string
   disabled?: boolean
   description?: string
+  recommendationRank?: number
 }
 
 interface VendorGroup {
@@ -25,11 +26,17 @@ const emit = defineEmits<{ interact: []; open: [] }>()
 const props = withDefaults(
   defineProps<{
     options: ModelOption[]
+    defaultModel?: string
     thinkingLevels?: string[]
     thinkingLabels?: Record<string, string>
     disabled?: boolean
   }>(),
-  { thinkingLevels: () => composerThinkingLevels(), thinkingLabels: () => ({}), disabled: false }
+  {
+    defaultModel: '',
+    thinkingLevels: () => composerThinkingLevels(),
+    thinkingLabels: () => ({}),
+    disabled: false
+  }
 )
 
 const open = ref(false)
@@ -43,6 +50,7 @@ const searchInput = ref<HTMLInputElement | null>(null)
 const vendorStyle = ref<Record<string, string>>({})
 const modelStyle = ref<Record<string, string>>({})
 const openVendor = ref<string | null>(null)
+const showRecommended = ref(false)
 
 const selected = computed(() => props.options.find((option) => option.value === modelValue.value))
 const vendors = computed<VendorGroup[]>(() => {
@@ -58,9 +66,32 @@ const vendors = computed<VendorGroup[]>(() => {
 const activeVendor = computed(
   () => vendors.value.find((vendor) => vendor.label === openVendor.value) ?? null
 )
+const recommendedVendor = computed(() => {
+  const preferred = vendors.value.filter((vendor) =>
+    vendor.options.some((option) => option.recommendationRank !== undefined)
+  )
+  return (
+    preferred.find(vendorHasSelected) ??
+    preferred.find((vendor) =>
+      vendor.options.some((option) => option.value === props.defaultModel)
+    ) ??
+    preferred[0]
+  )
+})
+const recommendations = computed(() =>
+  [...(recommendedVendor.value?.options ?? [])].sort(
+    (a, b) => (a.recommendationRank ?? Infinity) - (b.recommendationRank ?? Infinity)
+  )
+)
+const defaultChoice = computed(
+  () =>
+    recommendations.value.find(
+      (option) => option.value === props.defaultModel && !option.disabled
+    ) ?? recommendations.value.find((option) => !option.disabled)
+)
 const filteredModels = computed(() => {
   const query = search.value.trim().toLowerCase()
-  const rows = activeVendor.value?.options ?? []
+  const rows = showRecommended.value ? recommendations.value : (activeVendor.value?.options ?? [])
   if (!query) return rows
   return rows.filter(
     (option) =>
@@ -109,6 +140,23 @@ function syncVendorPanel() {
 }
 
 function syncModelPanel() {
+  if (showRecommended.value && trigger.value) {
+    const rect = trigger.value.getBoundingClientRect()
+    const width = Math.min(300, window.innerWidth - 32)
+    const height = modelPanel.value?.getBoundingClientRect().height ?? 420
+    const above = rect.top - 24
+    const below = window.innerHeight - rect.bottom - 24
+    const openUp = above >= height || above > below
+    const maxHeight = Math.min(460, Math.max(0, openUp ? above : below))
+    modelStyle.value = {
+      width: `${width}px`,
+      maxHeight: `${maxHeight}px`,
+      left: `${Math.max(16, Math.min(rect.right - width, window.innerWidth - width - 16))}px`,
+      top: `${openUp ? rect.top - 8 : rect.bottom + 8}px`,
+      transform: openUp ? 'translateY(-100%)' : 'none'
+    }
+    return
+  }
   const panel = vendorPanel.value
   if (!panel) return
   const rect = panel.getBoundingClientRect()
@@ -133,7 +181,7 @@ function syncModelPanel() {
 function syncFloating() {
   if (!active.value || !open.value) return
   syncVendorPanel()
-  if (openVendor.value) void nextTick(syncModelPanel)
+  if (showRecommended.value || openVendor.value) void nextTick(syncModelPanel)
 }
 
 function revealVendor(label: string) {
@@ -148,14 +196,23 @@ function show() {
   if (props.disabled || !props.options.length) return
   emit('interact')
   emit('open')
+  showRecommended.value = Boolean(recommendedVendor.value)
   openVendor.value = selectedVendor()
   search.value = ''
   syncVendorPanel()
   open.value = true
   void nextTick(() => {
     syncModelPanel()
-    searchInput.value?.focus()
+    if (showRecommended.value) modelPanel.value?.focus({ preventScroll: true })
+    else searchInput.value?.focus()
   })
+}
+
+function browseProviders() {
+  showRecommended.value = false
+  openVendor.value = null
+  syncVendorPanel()
+  void nextTick(() => vendorPanel.value?.querySelector('button')?.focus())
 }
 
 function close(restoreFocus = false): void {
@@ -210,6 +267,10 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', syncFloating, true)
 })
 
+watch(recommendedVendor, (vendor) => {
+  if (open.value && !vendor && showRecommended.value) browseProviders()
+})
+
 watch(filteredModels, () => {
   if (open.value) void nextTick(syncModelPanel)
 })
@@ -256,7 +317,7 @@ watch(active, (visible) => {
 
     <Teleport to="body">
       <div
-        v-if="open"
+        v-if="open && !showRecommended"
         ref="vendorPanel"
         data-testid="composer-vendor-panel"
         class="composer-model-picker ui-select-menu pointer-events-auto fixed z-[120] rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
@@ -275,6 +336,7 @@ watch(active, (visible) => {
           :data-vendor="vendor.label"
           @pointerenter="revealVendor(vendor.label)"
           @mousedown.prevent="revealVendor(vendor.label)"
+          @click="revealVendor(vendor.label)"
         >
           <span class="min-w-0 flex-1 truncate">{{ vendor.label }}</span>
           <span
@@ -291,20 +353,30 @@ watch(active, (visible) => {
       </div>
 
       <div
-        v-if="open && activeVendor"
+        v-if="open && (showRecommended || activeVendor)"
         ref="modelPanel"
         data-testid="composer-model-panel"
-        data-select-cascade-submenu
+        :data-select-cascade-submenu="showRecommended ? undefined : ''"
+        :data-recommended="showRecommended || undefined"
+        tabindex="-1"
         class="composer-model-picker ui-select-menu pointer-events-auto fixed z-[121] flex w-80 flex-col gap-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
         :style="modelStyle"
         @pointerdown.stop
       >
-        <div class="flex shrink-0 items-center justify-between px-2 py-1.5">
+        <div class="flex shrink-0 items-center justify-between gap-2 px-2 py-1.5">
           <span class="truncate text-[13px] text-[var(--text-secondary)]">
-            {{ activeVendor.label }}
+            {{ showRecommended ? $t('providerAccounts.chooseModel') : activeVendor?.label }}
           </span>
+          <button
+            v-if="showRecommended"
+            type="button"
+            class="shrink-0 rounded px-1.5 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+            @click="browseProviders"
+          >
+            {{ $t('providerAccounts.browseProviders') }}
+          </button>
         </div>
-        <div class="relative mx-1 -mt-0.5 shrink-0 pb-1">
+        <div v-if="!showRecommended" class="relative mx-1 -mt-0.5 shrink-0 pb-1">
           <Search
             aria-hidden="true"
             class="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-[var(--text-tertiary)]"
@@ -320,8 +392,23 @@ watch(active, (visible) => {
             :aria-label="$t('workspace.modelSearchPlaceholder')"
           />
         </div>
+        <button
+          v-if="showRecommended && defaultChoice"
+          type="button"
+          class="flex shrink-0 items-center gap-2 rounded-[var(--radius-xs)] px-2 py-1 text-left text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+          :title="defaultChoice.label"
+          @click="pick(defaultChoice)"
+        >
+          <span class="flex flex-col">
+            <span class="font-medium">{{ $t('providerAccounts.defaultChoice') }}</span>
+            <span class="text-xs text-[var(--text-secondary)]">{{
+              $t('providerAccounts.recommendedModels')
+            }}</span>
+          </span>
+        </button>
         <div
           class="flex min-h-0 max-h-[240px] flex-col overflow-x-hidden overflow-y-auto overscroll-contain"
+          :class="{ 'max-h-[294px]': showRecommended }"
           role="listbox"
         >
           <button

@@ -40,6 +40,8 @@ export class ModelService {
         )
         out.push({
           ...model,
+          contextWindow: provider.modelOverrides?.[m.id]?.contextWindow ?? model.contextWindow,
+          maxOutputTokens: provider.modelOverrides?.[m.id]?.maxTokens ?? model.maxOutputTokens,
           tools: modelMeta?.capabilities?.tools ?? defaults?.tools ?? model.tools,
           thinkingLevels:
             model.thinkingLevels ??

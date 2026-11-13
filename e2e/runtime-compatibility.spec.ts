@@ -116,6 +116,7 @@ test('keeps thinking and tools working after a successful connection probe, with
     await page.evaluate(() => window.piSwitch.settings.set({ theme: 'macos27-light' }))
     await page.reload()
     await page.locator('a[href="#/models"]').click()
+    await page.getByTestId('provider-tab-models').click()
     await expect(page.getByText('Local thinking fixture', { exact: true }).last()).toBeVisible()
     await page
       .getByTestId('model-action-cell')

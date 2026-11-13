@@ -1,5 +1,9 @@
 import type { HarnessRun } from '@shared/types/harness'
 import type { UsageRange, UsageReport, UsageTotals } from '@shared/providers/account-management'
+import {
+  providerCostMultiplier,
+  type ProviderAdvancedSettings
+} from '@shared/providers/advanced-settings'
 
 export function emptyUsage(): UsageTotals {
   return {
@@ -28,7 +32,11 @@ function add(target: UsageTotals, usage: UsageTotals): void {
     target.estimatedCost = (target.estimatedCost ?? 0) + usage.estimatedCost
 }
 
-export function summarizeUsage(runs: readonly HarnessRun[], range: UsageRange): UsageReport {
+export function summarizeUsage(
+  runs: readonly HarnessRun[],
+  range: UsageRange,
+  settings?: Readonly<Record<string, ProviderAdvancedSettings>>
+): UsageReport {
   const availableModels = new Map<string, UsageReport['availableModels'][number]>()
   const filtered = !!(range.provider || range.modelId)
   const byId = new Map(runs.map((run) => [run.id, run]))
@@ -58,7 +66,22 @@ export function summarizeUsage(runs: readonly HarnessRun[], range: UsageRange): 
         }
     if (!run.usage.byModel) legacyRuns++
     for (const bucket of Object.values(run.usage.byModel ?? {})) {
-      const { provider, model, usage } = bucket
+      const { provider, model } = bucket
+      const preference =
+        settings && Object.hasOwn(settings, provider) ? settings[provider] : undefined
+      const rawCost = bucket.usage.estimatedCost
+      const estimatedCost =
+        preference && rawCost !== null
+          ? rawCost * providerCostMultiplier(preference, run.startedAt)
+          : rawCost
+      const usage = { ...bucket.usage, estimatedCost }
+      if (
+        !filtered &&
+        rawCost !== null &&
+        estimatedCost !== null &&
+        runUsage.estimatedCost !== null
+      )
+        runUsage.estimatedCost += estimatedCost - rawCost
       const key = JSON.stringify([provider, model])
       availableModels.set(key, { provider, id: model })
       if (

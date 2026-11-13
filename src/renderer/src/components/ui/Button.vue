@@ -21,17 +21,13 @@ const props = withDefaults(
   }
 )
 
-/* Mac-style button. Compact, low-saturation, no shadows. Hover only changes
- * background + foreground — never scale, never bounce. */
+/* Resting buttons keep a visible fill and border so they read as controls on white. */
 const classes = computed(() => {
   const base =
-    'ui-button relative inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-sm)] font-medium select-none whitespace-nowrap ' +
+    'ui-button relative inline-flex items-center justify-center gap-1.5 align-middle rounded-[8px] border font-medium select-none whitespace-nowrap ' +
     'transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] ' +
     'focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] ' +
-    'disabled:pointer-events-none ' +
-    (props.variant === 'primary'
-      ? 'disabled:bg-[color-mix(in_srgb,var(--accent-solid)_55%,var(--bg-surface))]'
-      : 'disabled:opacity-45')
+    'disabled:pointer-events-none disabled:opacity-45'
 
   const sizes = {
     sm: 'h-[var(--height-button)] px-2 text-[12px]',
@@ -40,15 +36,13 @@ const classes = computed(() => {
 
   const variants: Record<Variant, string> = {
     primary:
-      'bg-[var(--accent-solid)] text-white hover:bg-[var(--accent-solid-hover)] active:bg-[var(--accent-solid-active)]',
+      'border-[color-mix(in_srgb,var(--text-primary)_22%,var(--bg-surface))] bg-[color-mix(in_srgb,var(--text-primary)_14%,var(--bg-surface))] text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_20%,var(--bg-surface))]',
     secondary:
-      'bg-[var(--control-bg)] text-[var(--text-primary)] border border-[var(--control-border)] shadow-[var(--control-shadow)] ' +
-      'hover:bg-[var(--control-bg-hover)] hover:border-[var(--control-border-hover)]',
+      'border-[color-mix(in_srgb,var(--text-primary)_16%,var(--bg-surface))] bg-[color-mix(in_srgb,var(--text-primary)_6%,var(--bg-surface))] text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_10%,var(--bg-surface))]',
     ghost:
-      'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
+      'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,var(--bg-surface))] hover:text-[var(--text-primary)]',
     danger:
-      'bg-[var(--error-tint)] text-[var(--error)] border border-[var(--error)]/30 ' +
-      'hover:bg-[var(--error)]/20 hover:border-[var(--error)]/45'
+      'border-transparent bg-[var(--error-tint)] text-[var(--error)] hover:bg-[color-mix(in_srgb,var(--error)_14%,var(--bg-surface))]'
   }
   return [base, sizes[props.size], variants[props.variant]].join(' ')
 })
@@ -71,3 +65,11 @@ const classes = computed(() => {
     </span>
   </button>
 </template>
+
+<style scoped>
+.ui-button[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--text-primary) 22%, var(--bg-surface));
+  background: color-mix(in srgb, var(--text-primary) 14%, var(--bg-surface));
+  color: var(--text-primary);
+}
+</style>

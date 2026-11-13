@@ -282,7 +282,6 @@ Durchsuche gemeinsam die Verläufe von Claude Code, Codex (einschließlich Deskt
 | :-- | :-- |
 | **Anbieter** | Richte Pi-kompatible Anbieter mit Vorlagen oder eigenen Endpunkten ein, verwalte Zugangsdaten, lade Modelllisten, wo unterstützt, teste Verbindungen und wähle dein Chatmodell |
 | **Bilder** | Nutze unterstützte Bildmodelle, um Bilder aus Text zu erzeugen oder zu bearbeiten, und lade die Ergebnisse herunter |
-| **OpenCode Zen / Go** | Speichere im OpenCode-Tab unter Modelle deinen API-Schlüssel und aktiviere die gewünschten Modelle. Modelle werden automatisch geladen und lassen sich einzeln oder gemeinsam prüfen. Zugriff und Kosten hängen von deinem offiziellen Konto und dem Modell ab; eine kostenpflichtige Prüfung fragt vorher nach deiner Zustimmung. Preise und Datenrichtlinien findest du in den [Modellinformationen von OpenCode](https://opencode.ai/v2/docs/console/models/) |
 | **Skills** | Durchsuche und bearbeite integrierte und lokale Skills. Gib `@` im Eingabefeld ein, um einen installierten Skill zu suchen und aufzurufen |
 | **Pakete und Erweiterungen** | Verwalte Pi-Pakete und Erweiterungen unter Fähigkeiten. Optionale Ergänzungen wie [Superpowers](https://github.com/obra/superpowers) werden nur auf deinen Wunsch installiert, aktualisiert oder deinstalliert |
 

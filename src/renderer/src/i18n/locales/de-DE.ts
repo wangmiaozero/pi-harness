@@ -1,5 +1,4 @@
 import { harnessPluginMessages } from '../harness-plugins'
-import { openCodeMessages } from '../opencode'
 /** Deutsch UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
@@ -7,7 +6,6 @@ import { universalMessages } from '../universal'
 
 export const deDE: MessageTree = {
   harnessPlugins: harnessPluginMessages['de-DE'],
-  openCode: openCodeMessages['de-DE'],
   universal: universalMessages['de-DE'],
   nav: {
     home: 'Startseite',
@@ -294,7 +292,6 @@ export const deDE: MessageTree = {
     title: 'Modelle',
     subtitle: 'Modellfähigkeiten konfigurieren und das aktive Modell wählen',
     managementSubtitle: 'Anbieter, Zugangsdaten und Modellfunktionen zentral verwalten',
-    managementTabsLabel: 'Modellkonfigurationsbereiche',
     providerRequired: 'Konfigurieren Sie zuerst einen Anbieter und dann die Modelle',
     empty: 'Noch keine Modelle',
     emptyHint: 'Ein Modell unter einem Anbieter hinzufügen.',
@@ -936,6 +933,8 @@ export const deDE: MessageTree = {
     aboutRepository: 'Repository',
     aboutStarHint: 'Wenn Pi-Harness hilfreich ist, gib dem Projekt bitte einen Star auf GitHub.',
     aboutStarAction: 'Star auf GitHub',
+    aboutSponsorHint: 'Pi-Harness sponsern oder einen aktuellen Sponsor öffnen.',
+    aboutSponsorAction: 'Sponsor werden',
     currentVersion: 'Aktuelle Version',
     updatesHint: 'Sucht im Hintergrund nach neuen Versionen. Laden Sie den Installer herunter und öffnen Sie ihn zur manuellen Installation.',
     checkUpdates: 'Nach Updates suchen',

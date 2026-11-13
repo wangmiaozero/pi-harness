@@ -451,8 +451,10 @@ export const useAgentStore = defineStore('agent', () => {
         const accountSelection = useChatGptAccounts()
         if (accountSelection.useAccountDefault && !accountSelection.draftModel && getApi().accounts)
           await accountSelection.load()
-        const accountModel = accountSelection.draftModel
-        const accountDefault = accountModel ? null : accountSelection.effectiveDraftModel
+        const accountDefault = accountSelection.draftModel
+          ? null
+          : accountSelection.defaultDraftModel
+        const accountModel = accountDefault ? null : accountSelection.effectiveDraftModel
         const started = await callApi(() =>
           getApi().agent.start({
             cwd,

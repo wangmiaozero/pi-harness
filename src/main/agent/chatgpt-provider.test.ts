@@ -24,7 +24,7 @@ const account: ChatGptAccount = {
       name: nativeModel.name,
       reasoning: nativeModel.reasoning,
       vision: false,
-      verified: true
+      verified: false
     }
   ]
 }
@@ -57,10 +57,10 @@ it('runs the Pi Responses streaming and tool-call path on the account model', as
       }
     }
   ]
-  const fetcher = vi.fn<typeof fetch>(async (url, init) => {
-    expect(String(url)).toBe('https://api.openai.com/v1/responses')
-    expect(new Headers(init?.headers).get('authorization')).toBe('Bearer fixture-chatgpt-access')
-    expect(init?.redirect).toBe('error')
+  const fetcher = vi.fn<Parameters<typeof createChatGptProvider>[1]>(async (id, modelId, init) => {
+    expect(id).toBe(account.id)
+    expect(modelId).toBe(nativeModel.id)
+    expect(new Headers(init?.headers).get('authorization')).toBe('Bearer pi-harness-chatgpt')
     const body = JSON.parse(String(init?.body))
     expect(body).toMatchObject({ model: nativeModel.id, stream: true, store: false })
     expect(body).not.toHaveProperty('max_output_tokens')
@@ -71,8 +71,7 @@ it('runs the Pi Responses streaming and tool-call path on the account model', as
       }
     )
   })
-  vi.stubGlobal('fetch', fetcher)
-  const provider = createChatGptProvider(account, async () => 'fixture-chatgpt-access')
+  const provider = createChatGptProvider(account, fetcher)
   const runtime = await ModelRuntime.create({
     modelsPath: null,
     refreshOnCreate: false,
@@ -113,15 +112,17 @@ it('runs the Pi Responses streaming and tool-call path on the account model', as
   expect(fetcher).toHaveBeenCalledTimes(1)
 })
 
-it('registers only verified account models and unregisters revoked accounts', async () => {
+it('registers selectable account models without a test and unregisters revoked accounts', async () => {
   const register = vi.fn()
   const unregister = vi.fn()
-  let accounts = [{ ...account, models: [{ ...account.models[0], verified: false }] }]
+  let accounts: ChatGptAccount[] = [
+    { ...account, models: [{ ...account.models[0], disabled: true }] }
+  ]
   const sync = chatGptProviderSync(
     register,
     unregister,
     async () => accounts,
-    async () => 'fixture'
+    async () => new Response()
   )
   await sync()
   expect(register).not.toHaveBeenCalled()
@@ -133,12 +134,15 @@ it('registers only verified account models and unregisters revoked accounts', as
   await sync()
   expect(unregister).toHaveBeenCalledExactlyOnceWith(account.id)
 
-  const provider = createChatGptProvider(account, async () => {
-    throw new Error('private token')
-  })
+  const provider = createChatGptProvider(account, async () =>
+    Response.json(
+      { error: { code: 'model_not_found', message: 'Model unavailable for this plan' } },
+      { status: 404 }
+    )
+  )
   const result = await provider
     .streamSimple(provider.getModels()[0], normalizeContext({ messages: [] }))
     .result()
   expect(result).toMatchObject({ provider: account.id, stopReason: 'error' })
-  expect(result.errorMessage).not.toContain('private token')
+  expect(result.errorMessage).toContain('Model unavailable for this plan')
 })

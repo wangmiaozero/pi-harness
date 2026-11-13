@@ -282,7 +282,6 @@ Ouvrez Architecture dans l’espace de travail pour explorer modules, dépendanc
 | :-- | :-- |
 | **Fournisseurs** | Configurez des fournisseurs compatibles Pi à partir de préréglages ou d’adresses personnalisées, gérez les identifiants, récupérez les modèles lorsque le service le permet, testez la connexion et choisissez votre modèle de conversation |
 | **Images** | Utilisez les modèles d’image compatibles pour générer ou modifier des images, puis téléchargez les résultats |
-| **OpenCode Zen / Go** | Dans l’onglet OpenCode de Modèles, enregistrez votre clé API et activez les modèles souhaités. Les modèles se chargent automatiquement et peuvent être vérifiés un par un ou tous ensemble. L’accès et les frais dépendent de votre compte officiel et du modèle ; une vérification payante demande d’abord votre autorisation. Consultez les [informations sur les modèles d’OpenCode](https://opencode.ai/v2/docs/console/models/) pour les tarifs et les règles sur les données |
 | **Skills** | Parcourez et modifiez les Skills intégrés et locaux. Saisissez `@` dans le champ de message pour rechercher et invoquer un Skill installé |
 | **Paquets et extensions** | Gérez les paquets et extensions Pi depuis le centre de capacités. Les compléments facultatifs tels que [Superpowers](https://github.com/obra/superpowers) ne s’installent, ne se mettent à jour ou ne se désinstallent qu’à votre demande |
 

@@ -1,5 +1,4 @@
 import { harnessPluginMessages } from '../harness-plugins'
-import { openCodeMessages } from '../opencode'
 /** 한국어 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
@@ -7,7 +6,6 @@ import { universalMessages } from '../universal'
 
 export const koKR: MessageTree = {
   harnessPlugins: harnessPluginMessages['ko-KR'],
-  openCode: openCodeMessages['ko-KR'],
   universal: universalMessages['ko-KR'],
   nav: {
     home: '홈',
@@ -290,7 +288,6 @@ export const koKR: MessageTree = {
     title: '모델',
     subtitle: '모델 기능을 구성하고 현재 모델을 선택합니다',
     managementSubtitle: '제공자, 자격 증명 및 모델 기능을 한곳에서 관리합니다',
-    managementTabsLabel: '모델 설정 섹션',
     providerRequired: '모델을 구성하기 전에 제공자를 추가하세요',
     empty: '아직 모델이 없습니다',
     emptyHint: '제공자 아래에 모델을 추가하세요.',
@@ -930,6 +927,8 @@ export const koKR: MessageTree = {
     aboutRepository: '프로젝트 저장소',
     aboutStarHint: 'Pi-Harness가 도움이 되었다면 GitHub에서 Star를 눌러 주세요.',
     aboutStarAction: 'GitHub Star',
+    aboutSponsorHint: 'Pi-Harness를 후원하거나 기존 후원사를 엽니다.',
+    aboutSponsorAction: '후원하기',
     currentVersion: '현재 버전',
     updatesHint: '백그라운드에서 새 버전을 확인합니다. 설치 프로그램을 다운로드한 후 직접 실행하세요.',
     checkUpdates: '업데이트 확인',

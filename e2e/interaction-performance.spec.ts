@@ -204,7 +204,7 @@ test('profiles repeated desktop navigation with and without streaming', async ({
       name: 'models',
       selector: 'a[href="#/models"]',
       route: '/models',
-      ready: '[data-testid="model-action-cell"]'
+      ready: '[data-testid="provider-action-cell"]'
     },
     {
       name: 'capabilities',

@@ -7,8 +7,12 @@ import {
   buildAddCatalog,
   type AddCatalogSubscriptionId
 } from '@shared/providers/add-catalog'
+import { showSponsorSection, SPONSOR_MAIL, sponsorsForQuery } from '@shared/providers/sponsors'
+import { Heart } from '@lucide/vue'
 import Button from '@renderer/components/ui/Button.vue'
+import Dialog from '@renderer/components/ui/Dialog.vue'
 import LocalAccountsPanel from '@renderer/components/providers/LocalAccountsPanel.vue'
+import SignedInAccountList from '@renderer/components/providers/SignedInAccountList.vue'
 import { getApi } from '@renderer/composables/useApi'
 
 const iconFiles = import.meta.glob('../../assets/provider-icons/*.svg', {
@@ -69,11 +73,13 @@ const emit = defineEmits<{
   'select-preset': [id: string]
   'update:detail': [id: AddCatalogSubscriptionId | null]
   'openrouter-connected': [key: string]
+  'edit-provider': [key: string]
 }>()
 const { t } = useI18n()
 const detail = ref<AddCatalogSubscriptionId | null>(props.initialDetail ?? null)
 const openRouterPending = ref(false)
 const openRouterFailed = ref(false)
+const openRouterConfirm = ref(false)
 onBeforeUnmount(() => {
   if (openRouterPending.value) void cancelOpenRouter()
 })
@@ -89,6 +95,8 @@ watch(detail, (value) => emit('update:detail', value))
 const sections = computed(() =>
   buildAddCatalog(props.presets, props.query ?? '', props.partnerIds ?? [])
 )
+const sponsors = computed(() => sponsorsForQuery(props.query ?? ''))
+const sponsorSection = computed(() => showSponsorSection(props.query ?? ''))
 const subscription = computed(() =>
   ADD_CATALOG_SUBSCRIPTIONS.find((item) => item.id === detail.value)
 )
@@ -111,6 +119,7 @@ function configureApi() {
 }
 
 async function connectOpenRouter() {
+  openRouterConfirm.value = false
   openRouterPending.value = true
   openRouterFailed.value = false
   try {
@@ -130,6 +139,14 @@ async function cancelOpenRouter() {
     .accounts.cancelOpenRouter()
     .catch(() => {})
 }
+
+function becomeSponsor() {
+  void getApi().system.openExternal(SPONSOR_MAIL)
+}
+
+function openSponsor(url: string) {
+  void getApi().system.openExternal(url)
+}
 </script>
 
 <template>
@@ -148,13 +165,20 @@ async function cancelOpenRouter() {
         v-if="detail === 'chatgpt' || detail === 'claude' || detail === 'gemini'"
         :focus="detail"
         @configure-api="configureApi"
+        @edit-provider="emit('edit-provider', $event)"
       />
       <div v-else-if="detail === 'openrouter'" class="space-y-3">
         <p class="text-sm text-[var(--text-secondary)]">
           {{ t('providerAccounts.openRouter.hint') }}
         </p>
         <div class="flex flex-wrap gap-2">
-          <Button size="sm" :loading="openRouterPending" @click="connectOpenRouter">
+          <Button
+            size="sm"
+            variant="primary"
+            :loading="openRouterPending"
+            data-testid="openrouter-connect"
+            @click="openRouterConfirm = true"
+          >
             {{ t('providerAccounts.openRouter.connect') }}
           </Button>
           <Button v-if="openRouterPending" size="sm" @click="cancelOpenRouter">
@@ -164,6 +188,30 @@ async function cancelOpenRouter() {
             {{ t('providerAccounts.useApiPreset') }}
           </Button>
         </div>
+        <Dialog
+          :open="openRouterConfirm"
+          :title="t('providerAccounts.authorizeTitle', { name: 'OpenRouter' })"
+          @update:open="
+            (open) => {
+              if (!open) openRouterConfirm = false
+            }
+          "
+        >
+          <p class="text-sm text-[var(--text-secondary)]">
+            {{ t('providerAccounts.authorizeHint', { name: 'OpenRouter' }) }}
+          </p>
+          <template #footer>
+            <Button size="sm" @click="openRouterConfirm = false">{{ t('common.cancel') }}</Button>
+            <Button
+              size="sm"
+              variant="primary"
+              data-testid="openrouter-connect-confirm"
+              @click="connectOpenRouter"
+            >
+              {{ t('providerAccounts.authorizeContinue') }}
+            </Button>
+          </template>
+        </Dialog>
         <p v-if="openRouterPending || openRouterFailed" role="status" class="text-xs">
           {{
             t(openRouterPending ? 'providerAccounts.browser' : 'providerAccounts.openRouter.failed')
@@ -179,8 +227,49 @@ async function cancelOpenRouter() {
       </p>
     </div>
     <template v-else>
+      <SignedInAccountList @open="detail = 'chatgpt'" />
+      <section v-if="sponsorSection" class="pt-1" data-testid="sponsor-section">
+        <div class="flex items-center gap-2 px-2 pb-1.5">
+          <h3 class="text-[13px] font-semibold text-[var(--text-primary)]">
+            {{ t('providerAccounts.catalogGroup.partner') }}
+          </h3>
+          <p class="text-[12px] text-[var(--text-tertiary)]">
+            {{ t('providerAccounts.catalogHint.partner') }}
+          </p>
+          <Button size="sm" class="ml-auto" data-testid="become-sponsor" @click="becomeSponsor">
+            <Heart class="size-3.5" :stroke-width="1.75" />
+            {{ t('providerAccounts.becomeSponsor') }}
+          </Button>
+        </div>
+        <div
+          v-if="sponsors.length"
+          class="grid gap-x-3 gap-y-px"
+          style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))"
+        >
+          <button
+            v-for="sponsor in sponsors"
+            :key="sponsor.id"
+            type="button"
+            class="flex h-[34px] min-w-0 items-center gap-2.5 rounded-lg px-2 text-left hover:bg-[var(--bg-hover)]"
+            :data-testid="'sponsor-' + sponsor.id"
+            :title="t(`providerAccounts.sponsorNote.${sponsor.id}`)"
+            @click="openSponsor(sponsor.url)"
+          >
+            <span
+              class="grid size-[18px] shrink-0 place-items-center rounded bg-[var(--bg-hover)] text-[10px] text-[var(--text-secondary)]"
+              >{{ sponsor.name.slice(0, 1) }}</span
+            >
+            <span class="min-w-0 flex-1 truncate text-[13px] text-[var(--text-primary)]">{{
+              sponsor.name
+            }}</span>
+            <span class="shrink-0 text-[11px] text-[var(--text-tertiary)]">{{
+              t('providerAccounts.sponsored')
+            }}</span>
+          </button>
+        </div>
+      </section>
       <p
-        v-if="sections.length === 0"
+        v-if="sections.length === 0 && sponsors.length === 0"
         class="py-3 text-xs text-[var(--text-secondary)]"
         data-testid="add-provider-empty"
       >

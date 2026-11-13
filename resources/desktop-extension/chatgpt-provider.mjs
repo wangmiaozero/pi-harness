@@ -13,18 +13,16 @@ const prefix = 'chatgpt-account-'
 const validId = /^chatgpt-account-[0-9a-f-]{36}$/
 
 /** The Pi Responses transport sees the native OpenAI model and the transcript keeps the account ID. */
-export function createChatGptProvider(account, resolve) {
+export function createChatGptProvider(account, fetchResponses) {
   const native = openaiProvider()
+  const nativeModels = new Map(native.getModels().map((model) => [model.id, model]))
   const allowed = new Map(
-    native
-      .getModels()
-      .filter((model) =>
-        account.models.some(
-          (entry) =>
-            entry.verified && !entry.disabled && !entry.unsupported && entry.id === model.id
-        )
-      )
-      .map((model) => [model.id, model])
+    account.models
+      .filter((entry) => !entry.disabled && !entry.unsupported && nativeModels.has(entry.id))
+      .map((entry) => {
+        const model = nativeModels.get(entry.id)
+        return [entry.id, { ...model, contextWindow: entry.contextWindow ?? model.contextWindow }]
+      })
   )
   const models = [...allowed.values()].map((model) => ({ ...model, provider: account.id }))
   const stream = (mode, model, context, options = {}) => {
@@ -34,9 +32,6 @@ export function createChatGptProvider(account, resolve) {
         options.signal?.throwIfAborted()
         const canonical = allowed.get(model.id)
         if (!canonical) throw new Error('ChatGPT model is unavailable')
-        const apiKey = await resolve(account.id, canonical.id)
-        options.signal?.throwIfAborted()
-        // Only Pi's built-in OpenAI endpoint receives the OAuth credential.
         const {
           headers: _headers,
           env: _env,
@@ -56,14 +51,16 @@ export function createChatGptProvider(account, resolve) {
         })
         for await (const event of native[mode](canonical, transcript, {
           ...request,
-          apiKey,
-          fetch: (input, init) => fetch(input, { ...init, redirect: 'error' })
+          apiKey: 'pi-harness-chatgpt',
+          fetch: (input, init) => {
+            if (String(input) !== 'https://api.openai.com/v1/responses')
+              throw new Error('Unexpected ChatGPT request endpoint')
+            return fetchResponses(account.id, canonical.id, init)
+          }
         })) {
           const message = event.partial ?? event.message ?? event.error
           if (message) {
             message.provider = account.id
-            if (typeof message.errorMessage === 'string')
-              message.errorMessage = message.errorMessage.replaceAll(apiKey, '[redacted]')
           }
           output.push(event)
         }
@@ -105,7 +102,7 @@ export function createChatGptProvider(account, resolve) {
     name: `ChatGPT · ${account.label}`,
     baseUrl: native.baseUrl,
     // Pi's availability check needs a configured provider. The actual grant is
-    // resolved for the verified model immediately before the native request.
+    // resolved by the desktop host immediately before the native request.
     auth: {
       apiKey: {
         name: 'ChatGPT',
@@ -124,7 +121,7 @@ export function createChatGptProvider(account, resolve) {
   }
 }
 
-export function chatGptProviderSync(register, unregister, list, resolve) {
+export function chatGptProviderSync(register, unregister, list, fetchResponses) {
   let active = new Map()
   let pending = Promise.resolve()
   return () => {
@@ -134,12 +131,14 @@ export function chatGptProviderSync(register, unregister, list, resolve) {
         const next = new Map()
         for (const account of await list()) {
           if (!validId.test(account.id)) continue
-          const verified = account.models.filter(
-            (model) => model.verified && !model.disabled && !model.unsupported
-          )
-          if (!verified.length) continue
-          const stamp = JSON.stringify(verified.map((model) => model.id))
-          if (active.get(account.id) !== stamp) register(createChatGptProvider(account, resolve))
+          const models = account.models.filter((model) => !model.disabled && !model.unsupported)
+          if (!models.length) continue
+          const stamp = JSON.stringify([
+            account.label,
+            ...models.map((model) => [model.id, model.contextWindow])
+          ])
+          if (active.get(account.id) !== stamp)
+            register(createChatGptProvider(account, fetchResponses))
           next.set(account.id, stamp)
         }
         for (const id of active.keys()) {

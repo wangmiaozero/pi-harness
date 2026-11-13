@@ -152,11 +152,6 @@ test.describe('Pi-Harness smoke', () => {
 
     await page.locator('a[href="#/models"]').click()
     await expect(page.locator('a[href="#/providers"]')).toHaveCount(0)
-    await page.getByTestId('model-management-tab-providers').click()
-    await expect(page.getByTestId('model-management-tab-providers')).toHaveAttribute(
-      'aria-selected',
-      'true'
-    )
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
     // Every configured provider stays selectable, so the list has no enable switches.
     await expect(page.getByTestId('provider-row')).toHaveCount(2)
@@ -167,7 +162,7 @@ test.describe('Pi-Harness smoke', () => {
       })
     }
 
-    await page.getByTestId('model-management-tab-models').click()
+    await page.getByTestId('provider-tab-models').click()
     await expect(page.locator('h1').filter({ hasText: /模型|Models/ })).toBeVisible()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
@@ -642,9 +637,14 @@ test.describe('Pi-Harness smoke', () => {
     await composer.focus()
     const modelSelect = page.getByTestId('workspace-model-select').getByRole('button')
     await modelSelect.click()
+    const pickerPanel = page.getByTestId('composer-model-panel')
+    await expect(pickerPanel).toHaveAttribute('data-recommended', 'true')
+    await expect(pickerPanel.getByRole('listbox')).toBeVisible()
+    await pickerPanel.getByRole('button', { name: '全部提供商' }).click()
     const vendorMenu = page.locator('[data-select-cascade-group]').first()
     const modelPanel = page.getByRole('listbox')
     await expect(vendorMenu).toBeVisible()
+    await vendorMenu.hover()
     await expect(modelPanel).toBeVisible()
     const vendorPanel = page
       .locator('.ui-select-menu')

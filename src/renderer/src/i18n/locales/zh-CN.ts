@@ -1,5 +1,4 @@
 import { harnessPluginMessages } from '../harness-plugins'
-import { openCodeMessages } from '../opencode'
 /** 简体中文 UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
@@ -7,7 +6,6 @@ import { universalMessages } from '../universal'
 
 export const zhCN: MessageTree = {
   harnessPlugins: harnessPluginMessages['zh-CN'],
-  openCode: openCodeMessages['zh-CN'],
   universal: universalMessages['zh-CN'],
   nav: {
     home: '首页',
@@ -284,7 +282,6 @@ export const zhCN: MessageTree = {
     title: '模型',
     subtitle: '配置模型能力并选择当前模型',
     managementSubtitle: '统一管理提供商、访问凭证与模型能力',
-    managementTabsLabel: '模型配置分类',
     providerRequired: '请先添加提供商，再配置模型',
     empty: '暂无模型',
     emptyHint: '在提供商下添加模型。',
@@ -906,6 +903,8 @@ export const zhCN: MessageTree = {
     aboutRepository: '项目仓库',
     aboutStarHint: '如果 Pi-Harness 对你有帮助，欢迎在 GitHub 上点一个 Star。',
     aboutStarAction: '给项目点 Star',
+    aboutSponsorHint: '赞助 Pi-Harness，或打开现有赞助商。',
+    aboutSponsorAction: '我要赞助',
     currentVersion: '当前版本',
     updatesHint: '后台检查新版本。下载安装包后，手动打开安装。',
     checkUpdates: '检查更新',

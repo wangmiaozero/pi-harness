@@ -1,5 +1,6 @@
 import { BrowserWindow, Menu, dialog, type OpenDialogOptions } from 'electron'
 import { IPC_INVOKE } from '@shared/ipc/channels'
+import { CHATGPT_PROVIDER_PREFIX } from '@shared/providers/account-management'
 import {
   allowRootSchema,
   agentCommandSchema,
@@ -96,7 +97,7 @@ export function registerWorkspaceIpc(
   ipcMain: IpcHandleRegistrar,
   wrap: Wrap,
   services: WorkspaceServices,
-  chatGpt?: Pick<ChatGptAccounts, 'routeDefault'>
+  chatGpt?: Pick<ChatGptAccounts, 'routeDefault' | 'isRoutingOnly'>
 ): void {
   const {
     access,
@@ -415,6 +416,13 @@ export function registerWorkspaceIpc(
       if (!parsed.success)
         throw new ValidationError('Invalid start', { issues: parsed.error.issues })
       const { chatGptDefault, ...input } = parsed.data
+      if (
+        !chatGptDefault &&
+        !input.sessionId &&
+        input.provider?.startsWith(CHATGPT_PROVIDER_PREFIX) &&
+        (await chatGpt?.isRoutingOnly(input.provider))
+      )
+        throw new ValidationError('This ChatGPT account is only available as a fallback.')
       if (input.cwd) await access.assertAllowed(input.cwd, { mustExist: true })
       await beforeAgentStart?.(input.cwd, input.sessionId)
       if (!chatGptDefault) return agent.start(input)

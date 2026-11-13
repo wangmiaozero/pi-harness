@@ -72,9 +72,9 @@ describe('ComposerModelPicker', () => {
     await wrapper.setProps({
       options: [
         {
-          value: 'opencode-free/big-pickle',
-          label: 'Big Pickle',
-          group: 'OpenCode',
+          value: 'vendor-restricted/model',
+          label: 'Restricted model',
+          group: 'Local provider',
           disabled: true,
           description: 'Free model access is restricted'
         }

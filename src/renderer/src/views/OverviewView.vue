@@ -68,7 +68,7 @@ const nodeActionLabel = computed(() =>
 )
 
 const stats = computed(() => ({
-  providers: providersStore.items.filter((p) => p.key !== 'opencode-free').length,
+  providers: providersStore.items.length,
   models: modelsStore.items.length,
   enabledModels: modelsStore.items.filter((m) => m.enabled).length
 }))
@@ -518,11 +518,7 @@ onMounted(() => {
             <Download class="size-3.5" :stroke-width="1.75" />
             {{ $t('overview.reinstallPi') }}
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            @click="router.push({ path: '/models', query: { tab: 'providers' } })"
-          >
+          <Button variant="ghost" size="sm" @click="router.push('/models')">
             <Box class="size-3.5" :stroke-width="1.75" />
             {{ $t('overview.manageProviders') }}
           </Button>

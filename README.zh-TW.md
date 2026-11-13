@@ -282,7 +282,6 @@ flowchart TD
 | :-- | :-- |
 | **Provider** | 透過預設或自訂位址設定 Pi 相容 Provider，管理憑證、在支援時取得模型清單、測試連線並選擇聊天模型 |
 | **圖片** | 使用支援的影像模型進行文字生圖或圖片編輯，並下載結果 |
-| **OpenCode Zen / Go** | 在「模型」下的 OpenCode 分頁儲存 API 金鑰並啟用需要的模型。模型會自動載入，可逐一或一次驗證。存取權與費用取決於你的官方帳號與模型；付費驗證會先徵求你的同意。價格與資料政策請見 [OpenCode 的模型資訊](https://opencode.ai/v2/docs/console/models/) |
 | **Skills** | 瀏覽並編輯內建與本機 Skills。在輸入框鍵入 `@` 即可搜尋並呼叫已安裝的 Skill |
 | **套件與擴充套件** | 在能力中心管理 Pi 套件與擴充套件。[Superpowers](https://github.com/obra/superpowers) 等可選增強功能只在你選擇時安裝、更新或解除安裝 |
 

@@ -37,9 +37,7 @@ for (const file of files) {
 for (const resource of [
   'release-policy.json',
   'desktop-extension/index.mjs',
-  'desktop-extension/opencode-provider.mjs',
-  'desktop-extension/opencode-state.mjs',
-  'desktop-extension/opencode-catalog.mjs',
+  'desktop-extension/provider-settings.mjs',
   'builtin-skills',
   'LICENSE',
   'NOTICE'

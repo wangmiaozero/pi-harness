@@ -1,12 +1,10 @@
 import { harnessPluginMessages } from '../harness-plugins'
-import { openCodeMessages } from '../opencode'
 /** English (United States) UI messages. Source of truth for the message key shape. */
 import { capabilityMessages } from '../capabilities'
 import { universalMessages } from '../universal'
 
 export const enUS = {
   harnessPlugins: harnessPluginMessages['en-US'],
-  openCode: openCodeMessages['en-US'],
   universal: universalMessages['en-US'],
   nav: {
     home: 'Home',
@@ -291,7 +289,6 @@ export const enUS = {
     title: 'Models',
     subtitle: 'Configure model capabilities and choose the active model',
     managementSubtitle: 'Manage providers, credentials, and model capabilities in one place',
-    managementTabsLabel: 'Model configuration sections',
     providerRequired: 'Configure a provider before configuring models',
     empty: 'No models yet',
     emptyHint: 'Add a model under a provider.',
@@ -933,6 +930,8 @@ export const enUS = {
     aboutRepository: 'Repository',
     aboutStarHint: 'If Pi-Harness helps you, please consider starring it on GitHub.',
     aboutStarAction: 'Star on GitHub',
+    aboutSponsorHint: 'Sponsor Pi-Harness, or open a current sponsor.',
+    aboutSponsorAction: 'Become a sponsor',
     currentVersion: 'Current version',
     updatesHint: 'Checks for new versions in the background. Download an installer and open it to install manually.',
     checkUpdates: 'Check for updates',

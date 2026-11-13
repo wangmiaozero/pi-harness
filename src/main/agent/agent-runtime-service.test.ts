@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AgentSessionLike, PiSessionManagerLike } from './pi-sdk'
-import fs from 'node:fs/promises'
-import os from 'node:os'
-import path from 'node:path'
 
 const loadPiCodingAgent = vi.hoisted(() => vi.fn())
 
@@ -15,57 +12,6 @@ import type { SessionService } from '../sessions/session-service'
 describe('AgentRuntimeService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  it('refuses a verified OpenCode reference when native registration is missing instead of choosing a fallback', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'opencode-no-fallback-'))
-    const file = path.join(dir, 'state.json')
-    await fs.writeFile(
-      file,
-      JSON.stringify({
-        schemaVersion: 2,
-        enabled: true,
-        authMode: 'inference',
-        hasCredential: true,
-        refreshedAt: Date.now(),
-        authorizedModels: ['big-pickle'],
-        allowedPaidModels: [],
-        models: [
-          {
-            id: 'big-pickle',
-            available: true,
-            api: 'openai-completions',
-            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-            price: 'free',
-            status: 'ready',
-            streaming: 'verified',
-            tools: 'verified',
-            contextWindow: 200000,
-            maxTokens: 32000
-          }
-        ]
-      })
-    )
-    vi.stubEnv('PI_HARNESS_OPENCODE_STATE', file)
-    const createSession = vi.fn()
-    loadPiCodingAgent.mockResolvedValue(
-      fakeSdk({
-        SessionManager: { create: () => createSessionManager() },
-        createAgentSessionServices: async () => ({ modelRuntime: { getModel: () => undefined } }),
-        createAgentSessionFromServices: createSession,
-        getAgentDir: () => '/tmp/agent'
-      })
-    )
-    try {
-      const runtime = new AgentRuntimeService({ invalidate: vi.fn() } as never)
-      await expect(
-        runtime.start({ cwd: '/tmp/project', provider: 'opencode-free', modelId: 'big-pickle' })
-      ).rejects.toThrow('select another model explicitly')
-      expect(createSession).not.toHaveBeenCalled()
-    } finally {
-      vi.unstubAllEnvs()
-      await fs.rm(dir, { recursive: true, force: true })
-    }
   })
 
   it('sends the initial message without exposing an unpersisted JSONL path', async () => {
@@ -281,7 +227,9 @@ describe('AgentRuntimeService', () => {
       throw new TypeError("Cannot read properties of undefined (reading 'input')")
     }
 
-    await expect(new AgentSessionWrapper(inner).send({ type: 'get_session_stats' })).resolves.toMatchObject({
+    await expect(
+      new AgentSessionWrapper(inner).send({ type: 'get_session_stats' })
+    ).resolves.toMatchObject({
       sessionId: inner.sessionId
     })
   })
@@ -490,15 +438,13 @@ describe('AgentRuntimeService', () => {
     const inner = createAgentSession(createSessionManager())
     let active = ['read', 'extension_active']
     inner.getActiveToolNames = () => active
-    inner.getAllTools = vi
-      .fn()
-      .mockReturnValue(
-        ['read', 'extension_active', 'extension_disabled'].map((name) => ({
-          name,
-          description: name,
-          parameters: { type: 'object' }
-        }))
-      )
+    inner.getAllTools = vi.fn().mockReturnValue(
+      ['read', 'extension_active', 'extension_disabled'].map((name) => ({
+        name,
+        description: name,
+        parameters: { type: 'object' }
+      }))
+    )
     inner.setActiveToolsByName = vi.fn((names) => {
       active = [...names]
     })

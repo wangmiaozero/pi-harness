@@ -34,7 +34,7 @@ describe('add provider catalog', () => {
     expect(vendors?.find((preset) => preset.id === 'qwencloud-cn-beijing')?.defaultBaseUrl).toBe(
       'https://cn-beijing.maas.qwencloudapi.com/compatible-mode/v1'
     )
-    expect(relays?.map((preset) => preset.id)).toContain('opencode-go')
+    expect(relays?.map((preset) => preset.id)).not.toContain('opencode-go')
     expect(new Set(PROVIDER_PRESETS.map((preset) => preset.id)).size).toBe(PROVIDER_PRESETS.length)
   })
 

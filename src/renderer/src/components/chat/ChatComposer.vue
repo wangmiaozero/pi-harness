@@ -15,11 +15,6 @@ import Dialog from '@renderer/components/ui/Dialog.vue'
 import { useChatViewActive } from '@renderer/composables/chat-view-activity'
 import ComposerModelPicker from './ComposerModelPicker.vue'
 import { getApi } from '@renderer/composables/useApi'
-import {
-  openCodeSelectionBlock,
-  showOpenCodeWorkspaceModel,
-  type OpenCodeFreeState
-} from '@shared/providers/opencode-free'
 import ComposerOptionMenu from './ComposerOptionMenu.vue'
 import AgentAuraFireBorder from '@renderer/components/ui/AgentAuraFireBorder.vue'
 import {
@@ -32,6 +27,8 @@ import { useWorkspaceStore, type ChatDraftImage } from '@renderer/stores/workspa
 import { useAgentStore } from '@renderer/stores/agent'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useChatGptAccounts } from '@renderer/stores/chatgpt-accounts'
+import { isSelectableChatGptModel, orderChatGptModels } from '@shared/providers/account-management'
+import { getOfficialModelGroup, officialModelRank } from '@shared/providers/official-model-groups'
 import { useModelsStore } from '@renderer/stores/models'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useSettingsStore } from '@renderer/stores/settings'
@@ -193,70 +190,30 @@ function focus() {
 
 defineExpose({ focus })
 
-const openCodeState = ref<OpenCodeFreeState | null>(null)
-async function refreshOpenCodeOptions(): Promise<void> {
-  try {
-    openCodeState.value = await getApi().openCodeFree.state()
-  } catch {
-    openCodeState.value = null
-  }
-}
 const modelOptions = computed(() => {
   const options = models.items
-    .filter((m) => {
-      if (!m.enabled) return false
-      const provider = providers.items.find((p) => p.id === m.providerId)
-      return (
-        (provider?.key ?? m.providerId) !== 'opencode-free' ||
-        showOpenCodeWorkspaceModel(openCodeState.value, m.modelId)
-      )
-    })
-    .map((m) => {
-      const provider = providers.items.find((p) => p.id === m.providerId)
-      const key = provider?.key ?? m.providerId
-      const catalogModel =
-        key === 'opencode-free'
-          ? openCodeState.value?.models.find((item) => item.id === m.modelId)
-          : undefined
-      const reason =
-        key === 'opencode-free'
-          ? catalogModel
-            ? openCodeSelectionBlock(openCodeState.value, catalogModel)
-            : 'NOT_VERIFIED'
-          : null
+    .filter((model) => model.enabled)
+    .map((model) => {
+      const provider = providers.items.find((item) => item.id === model.providerId)
+      const key = provider?.key ?? model.providerId
+      const official = provider && getOfficialModelGroup(provider)
       return {
-        value: `${key}/${m.modelId}`,
-        label: m.displayName || m.modelId,
+        value: `${key}/${model.modelId}`,
+        label: model.displayName || model.modelId,
         group: provider?.displayName || key,
-        disabled: Boolean(reason),
-        description: reason ? t(`openCode.errors.${reason}`, t('openCode.notAvailable')) : undefined
+        recommendationRank:
+          official && provider.enabled ? officialModelRank(official, model.modelId) : undefined
       }
     })
-  for (const model of openCodeState.value?.models ?? []) {
-    if (
-      !showOpenCodeWorkspaceModel(openCodeState.value, model.id) ||
-      model.price === 'unknown' ||
-      options.some((o) => o.value === `opencode-free/${model.id}`)
-    )
-      continue
-    const reason = openCodeSelectionBlock(openCodeState.value, model) ?? 'NOT_VERIFIED'
-    options.push({
-      value: `opencode-free/${model.id}`,
-      label: model.name,
-      group: 'OpenCode',
-      disabled: true,
-      description: t(`openCode.errors.${reason}`, t('openCode.notAvailable'))
-    })
-  }
   for (const account of chatGpt.items) {
-    for (const model of account.models) {
-      if (!model.verified || model.disabled || model.unsupported) continue
+    if (account.routingOnly) continue
+    for (const [rank, model] of orderChatGptModels(account.models).entries()) {
+      if (!isSelectableChatGptModel(model)) continue
       options.push({
         value: `${account.id}/${model.id}`,
         label: model.name,
-        group: `ChatGPT · ${account.label}`,
-        disabled: false,
-        description: account.status === 'expired' ? t('providerAccounts.expired') : undefined
+        group: `ChatGPT · ${chatGpt.displayLabel(account)}`,
+        recommendationRank: rank
       })
     }
   }
@@ -276,11 +233,7 @@ const modelValue = computed({
   set: async (value: string) => {
     const [provider, ...rest] = value.split('/')
     const modelId = rest.join('/')
-    if (
-      !provider ||
-      !modelId ||
-      !modelOptions.value.some((option) => option.value === value && !option.disabled)
-    )
+    if (!provider || !modelId || !modelOptions.value.some((option) => option.value === value))
       return
     const selected = models.items.find((model) => {
       const modelProvider = providers.items.find((item) => item.id === model.providerId)
@@ -311,6 +264,13 @@ const modelValue = computed({
       modelSwitching.value = false
     }
   }
+})
+
+const recommendedDefault = computed(() => {
+  const account = chatGpt.items.find((entry) => entry.defaultModelId)
+  if (account && chatGpt.useAccountDefault) return `${account.id}/${account.defaultModelId}`
+  const { providerKey, modelId } = models.active
+  return providerKey && modelId ? `${providerKey}/${modelId}` : ''
 })
 
 const selectedModel = computed(() =>
@@ -1007,7 +967,6 @@ watch(active, (visible) => {
 })
 
 onMounted(() => {
-  void refreshOpenCodeOptions()
   void chatGpt.load().catch(() => {})
   syncEditorText()
   window.addEventListener('resize', syncSkillMenu)
@@ -1194,9 +1153,7 @@ onBeforeUnmount(() => {
             :aria-expanded="skillMenuOpen"
             :aria-controls="skillMenuOpen ? 'composer-skill-listbox' : undefined"
             :aria-activedescendant="
-              skillMenuOpen && activeMentionSkill
-                ? `composer-skill-${activeSkillIndex}`
-                : undefined
+              skillMenuOpen && activeMentionSkill ? `composer-skill-${activeSkillIndex}` : undefined
             "
             aria-autocomplete="list"
             :data-placeholder="$t('workspace.composerPlaceholder')"
@@ -1350,11 +1307,11 @@ onBeforeUnmount(() => {
               v-model:model="modelValue"
               v-model:thinking="thinkingValue"
               :options="modelOptions"
+              :default-model="recommendedDefault"
               :thinking-levels="thinkingStops"
               :thinking-labels="thinkingLabels"
               :disabled="busy || modelSwitching"
               @interact="emit('unlockAudio')"
-              @open="refreshOpenCodeOptions"
             />
             <DropdownMenuRoot v-model:open="moreOpen" :modal="false">
               <DropdownMenuTrigger as-child>
@@ -1362,8 +1319,8 @@ onBeforeUnmount(() => {
                   type="button"
                   data-testid="composer-more"
                   class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
-                  :aria-label="$t('openCode.moreActions')"
-                  :title="$t('openCode.moreActions')"
+                  :aria-label="$t('nav.more')"
+                  :title="$t('nav.more')"
                 >
                   <MoreHorizontal aria-hidden="true" class="size-4" />
                 </button>

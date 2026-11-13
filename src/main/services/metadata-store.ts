@@ -6,6 +6,7 @@
 import { appMetadataPath } from './app-paths'
 import { JsonStore } from './storage'
 import type { CapabilityMetadata } from '@shared/capabilities/types'
+import type { ProviderAdvancedSettings } from '@shared/providers/advanced-settings'
 import type { BuiltinSkillCategory, PiPackageScope } from '@shared/ipc/api-types'
 
 export interface ProviderMeta {
@@ -14,6 +15,7 @@ export interface ProviderMeta {
   displayName?: string
   enabled?: boolean
   timeout?: number | null
+  advanced?: ProviderAdvancedSettings
   apiKeyRef?: string | null
   /** Preferred model id used for connection tests and bootstrap. */
   defaultModelId?: string | null

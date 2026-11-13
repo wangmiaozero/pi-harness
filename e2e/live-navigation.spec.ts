@@ -138,7 +138,7 @@ test('keeps navigation responsive during a real native Pi stream and persists th
       {
         selector: 'a[href="#/models"]',
         route: '/models',
-        ready: '[data-testid="model-action-cell"]'
+        ready: '[data-testid="provider-action-cell"]'
       },
       {
         selector: 'a[href="#/workspace"]',

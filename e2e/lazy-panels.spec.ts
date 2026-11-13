@@ -86,10 +86,10 @@ test('refreshes providers once per menu entry while retaining the provider-first
       () => (globalThis as typeof globalThis & { __providerReads: number }).__providerReads
     )
   await page.locator('a[href="#/models"]').click()
-  await expect(page.getByTestId('model-management-tab-models')).toBeEnabled()
+  await page.getByTestId('provider-tab-models').click()
   await expect(page.getByTestId('model-action-cell')).toHaveCount(2)
   expect(await reads()).toBe(1)
-  await page.getByTestId('model-management-tab-providers').click()
+  await page.getByTestId('provider-tab-providers').click()
   await expect(page.getByTestId('provider-action-cell')).toHaveCount(2)
   expect(await reads()).toBe(1)
   await page.locator('a[href="#/workspace"]').click()
@@ -99,7 +99,7 @@ test('refreshes providers once per menu entry while retaining the provider-first
   await expect(page.getByTestId('model-management-view')).toHaveCount(0)
   await page.locator('a[href="#/models"]').click()
   // Cached rows alone do not establish that the provider refresh has finished.
-  await expect(page.getByTestId('model-management-tab-models')).toBeEnabled()
+  await page.getByTestId('provider-tab-models').click()
   await expect(page.getByTestId('model-action-cell')).toHaveCount(2)
   expect(await reads()).toBe(2)
 })

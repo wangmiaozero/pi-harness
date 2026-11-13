@@ -5,6 +5,7 @@ import path from 'node:path'
 import type { OAuthCredential } from '@earendil-works/pi-ai'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ChatGptAccounts } from './chatgpt-accounts'
+import { latestChatGptModels } from '@shared/providers/account-management'
 
 const mocks = vi.hoisted(() => ({
   login: vi.fn(),
@@ -49,6 +50,174 @@ async function fixture() {
   const file = path.join(dir, 'accounts.json')
   return { file, accounts: new ChatGptAccounts(file) }
 }
+
+it('persists model visibility and rejects unsupported additions without changing the selection', async () => {
+  const { accounts, file } = await fixture()
+  mocks.login.mockResolvedValueOnce(grant('selection'))
+  await accounts.connect(openAuthorization)
+  const [{ id }] = await accounts.list()
+  await accounts.setDefaultModel({ id, modelId: 'fixture-model' })
+  const empty = { id, mode: 'usage' as const, modelIds: [], addedModelIds: [] }
+  await accounts.setModelSelection(empty)
+  const [disabled] = await new ChatGptAccounts(file).list()
+  expect(disabled).toMatchObject({ modelMode: 'usage', models: [{ disabled: true }] })
+  expect(disabled.defaultModelId).toBeUndefined()
+  await expect(accounts.resolve(id, 'fixture-model')).rejects.toThrow('Reconnect')
+  await expect(
+    accounts.setModelSelection({ ...empty, mode: 'selected', addedModelIds: ['unsupported'] })
+  ).rejects.toThrow('catalog')
+  expect((await accounts.list())[0].modelMode).toBe('usage')
+  await accounts.setModelSelection({ ...empty, mode: 'latest' })
+  expect(await accounts.hasSelectableModel(id, 'fixture-model')).toBe(true)
+  await accounts.setModelSelection({ ...empty, mode: 'catalog', routingOnly: true })
+  await expect(accounts.isRoutingOnly(id)).resolves.toBe(true)
+  await expect(accounts.setDefaultModel({ id, modelId: 'fixture-model' })).rejects.toThrow(
+    'available ChatGPT model'
+  )
+  const response = await accounts.gatewayRequest(
+    id,
+    'fixture-model',
+    {},
+    new AbortController().signal
+  )
+  expect(response.status).toBe(404)
+})
+
+it('uses the newest version of each model family and preserves the recommended order', () => {
+  const ids = [
+    'gpt-5.6-terra',
+    'gpt-6.1-sol',
+    'gpt-6-astra',
+    'gpt-6-sol',
+    'gpt-6.1-terra',
+    'gpt-5.6-luna',
+    'gpt-6-luna'
+  ]
+  expect(latestChatGptModels(ids.map((id) => ({ id }))).map(({ id }) => id)).toEqual([
+    'gpt-6.1-sol',
+    'gpt-6-astra',
+    'gpt-6.1-terra',
+    'gpt-6-luna'
+  ])
+})
+
+it('uses saved ChatGPT context limits and masks secrets on actual request bodies', async () => {
+  const { accounts } = await fixture()
+  mocks.login.mockResolvedValueOnce(grant('advanced'))
+  await accounts.connect(openAuthorization)
+  const [{ id }] = await accounts.list()
+  await accounts.setGatewaySettings({
+    contextWindows: { '*': 128000 },
+    redactSecrets: true,
+    billing: 'metered',
+    priceMultiplier: 2
+  })
+  expect((await accounts.list())[0].models[0].contextWindow).toBe(128000)
+  expect((await accounts.usageSettings())[id]).toMatchObject({
+    billing: 'metered',
+    priceMultiplier: 2
+  })
+  const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => new Response('fixture'))
+  vi.stubGlobal('fetch', fetcher)
+  const privateKey = 'sk-' + 'x'.repeat(40)
+  const result = await accounts.fetchResponses(id, 'fixture-model', {
+    body: JSON.stringify({ input: [{ role: 'user', content: privateKey }] })
+  })
+  expect(await result.text()).toBe('fixture')
+  expect(fetcher.mock.calls[0]?.[1]?.body).not.toContain(privateKey)
+})
+
+it('spends one weekly reset card and retries the request once', async () => {
+  const { accounts } = await fixture()
+  const payload = Buffer.from(
+    JSON.stringify({
+      email: 'owner@example.com',
+      'https://api.openai.com/auth': {
+        chatgpt_account_id: 'acct_fixture',
+        chatgpt_plan_type: 'plus'
+      }
+    })
+  ).toString('base64url')
+  mocks.login.mockResolvedValueOnce({ ...grant('reset'), access: `e30.${payload}.sig` })
+  await accounts.connect(openAuthorization)
+  const [{ id }] = await accounts.list()
+  await accounts.setResetPolicy(id, { week: true, expiring: false, leadMinutes: 30 })
+  let responses = 0
+  let consumed = 0
+  let allow = false
+  vi.stubGlobal(
+    'fetch',
+    vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = String(input)
+      if (url.endsWith('/v1/responses')) {
+        responses += 1
+        if (allow) {
+          allow = false
+          return new Response('ok')
+        }
+        return Response.json(
+          { error: { code: 'rate_limit_exceeded', message: 'limit' } },
+          { status: 429 }
+        )
+      }
+      if (url.endsWith('/wham/usage')) {
+        return Response.json({
+          plan_type: 'plus',
+          rate_limit: {
+            secondary_window: {
+              used_percent: 100,
+              limit_window_seconds: 604800,
+              reset_at: 2_000_000_000
+            }
+          }
+        })
+      }
+      if (url.endsWith('/consume')) {
+        consumed += 1
+        allow = true
+        return Response.json({ code: 'reset' })
+      }
+      if (url.includes('rate-limit-reset-credits')) {
+        return Response.json({
+          available_count: 1,
+          credits: [{ id: 'credit-1', status: 'available', expires_at: '2033-01-01T00:00:00Z' }]
+        })
+      }
+      return new Response('unused', { status: 404 })
+    })
+  )
+  const first = await accounts.fetchResponses(id, 'fixture-model', { body: '{"input":"hello"}' })
+  expect(await first.text()).toBe('ok')
+  expect(responses).toBe(2)
+  expect(consumed).toBe(1)
+  const second = await accounts.fetchResponses(id, 'fixture-model', { body: '{"input":"hello"}' })
+  expect(second.status).toBe(429)
+  expect(consumed).toBe(1)
+})
+
+it('transfers an encrypted account without replacing a destination registration', async () => {
+  const source = await fixture()
+  const target = await fixture()
+  const backup = source.file + '.pihaccount'
+  const password = 'fixture-transfer-password'
+  mocks.login.mockResolvedValueOnce({ ...grant('transfer'), clientId: 'oaiapp_fixture' })
+  await source.accounts.connect(openAuthorization)
+  const [{ id, label }] = await source.accounts.list()
+  await source.accounts.exportAccount(id, backup, password)
+  const encrypted = await readFile(backup, 'utf8')
+  expect(encrypted).not.toContain('fixture-access-transfer')
+  expect(encrypted).not.toContain('oaiapp_fixture')
+  await expect(target.accounts.importAccount(backup, 'wrong-password')).rejects.toThrow(
+    'Incorrect password'
+  )
+  expect(await target.accounts.list()).toEqual([])
+  await target.accounts.importAccount(backup, password)
+  const [imported] = await target.accounts.list()
+  expect(imported.id).not.toBe(id)
+  expect(imported.label).toBe(label)
+  await expect(target.accounts.importAccount(backup, password)).rejects.toThrow('already connected')
+  expect(await target.accounts.list()).toHaveLength(1)
+})
 function grant(label: string, expires = Date.now() + 3_600_000): OAuthCredential {
   return {
     type: 'oauth',
@@ -76,7 +245,7 @@ it('keeps registrations isolated, serializes refresh and removes disconnected gr
   expect(first.id).not.toBe(second.id)
   expect(first.status).toBe('expired')
   expect(first.models[0].verified).toBe(false)
-  await expect(accounts.resolve(first.id, 'fixture-model')).rejects.toThrow('Reconnect')
+  await expect(accounts.resolve(first.id, 'fixture-model')).resolves.toBe('fixture-access-rotated')
   await Promise.all([
     accounts.verify(first.id, 'fixture-model'),
     accounts.verify(first.id, 'fixture-model')
@@ -88,8 +257,8 @@ it('keeps registrations isolated, serializes refresh and removes disconnected gr
     label: 'Work account',
     lastUsedAt: Date.now()
   })
-  expect(await accounts.hasVerifiedModel(second.id, 'fixture-model')).toBe(false)
-  expect(await new ChatGptAccounts(file).hasVerifiedModel(first.id, 'fixture-model')).toBe(true)
+  expect(await accounts.hasSelectableModel(second.id, 'fixture-model')).toBe(true)
+  expect(await new ChatGptAccounts(file).hasSelectableModel(first.id, 'fixture-model')).toBe(true)
   const serialized = await readFile(file, 'utf8')
   expect(serialized).not.toContain('fixture-access')
   expect(serialized).not.toContain('fixture-renew')
@@ -133,7 +302,7 @@ it('fails closed without secure storage and with failed model authorization', as
   const [item] = await accounts.list()
   await expect(accounts.verify(item.id, 'not-in-catalog')).rejects.toThrow('catalog')
   await expect(accounts.verify(item.id, 'fixture-model')).rejects.toThrow('could not verify')
-  expect(await accounts.hasVerifiedModel(item.id, 'fixture-model')).toBe(false)
+  expect(await accounts.hasSelectableModel(item.id, 'fixture-model')).toBe(true)
 })
 
 it('discovers only listed account models and preserves verification across disable and refresh', async () => {
@@ -158,7 +327,7 @@ it('discovers only listed account models and preserves verification across disab
     'https://api.openai.com/v1/models',
     expect.objectContaining({
       redirect: 'error',
-      headers: { authorization: 'Bearer fixture-access-catalog' }
+      headers: { authorization: 'Bearer fixture-access-catalog', accept: 'application/json' }
     })
   )
   expect(item.catalogUpdatedAt).toBeDefined()
@@ -172,31 +341,105 @@ it('discovers only listed account models and preserves verification across disab
   await accounts.setModelEnabled(item.id, 'fixture-model', false)
   await expect(accounts.resolve(item.id, 'fixture-model')).rejects.toThrow('Reconnect')
   await expect(accounts.setDefaultModel({ id: item.id, modelId: 'fixture-model' })).rejects.toThrow(
-    'verified and enabled'
+    'available ChatGPT model'
   )
   expect((await new ChatGptAccounts(file).list())[0].models[0]).toMatchObject({
     verified: true,
     disabled: true
   })
   await accounts.setModelEnabled(item.id, 'fixture-model', true)
-  expect(await accounts.hasVerifiedModel(item.id, 'fixture-model')).toBe(true)
+  expect(await accounts.hasSelectableModel(item.id, 'fixture-model')).toBe(true)
   fetcher.mockResolvedValueOnce(Response.json({ models: [] }))
   await Promise.all([accounts.refreshCatalog(item.id), accounts.refreshCatalog(item.id)])
   expect(fetcher).toHaveBeenCalledTimes(2)
   expect((await accounts.list())[0].models).toEqual([])
-  expect(await accounts.hasVerifiedModel(item.id, 'fixture-model')).toBe(false)
+  expect(await accounts.hasSelectableModel(item.id, 'fixture-model')).toBe(false)
   fetcher.mockResolvedValueOnce(new Response(null, { status: 503 }))
   await expect(accounts.refreshCatalog(item.id)).rejects.toThrow('could not refresh')
   expect((await accounts.list())[0]).toMatchObject({
     models: [],
     catalogFailed: true,
+    catalogIssue: { reason: 'http', status: 503 },
     defaultModelId: 'fixture-model'
   })
   await accounts.setDefaultModel(null)
   expect((await accounts.list())[0].defaultModelId).toBeUndefined()
 })
 
-it('routes new chats only to explicitly allowed and verified accounts in order', async () => {
+it('accepts model list variants without exposing explicitly hidden entries', async () => {
+  const { accounts } = await fixture()
+  mocks.login.mockResolvedValueOnce(grant('variants'))
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(
+      Response.json({
+        models: [
+          { slug: 'fixture-model' },
+          { slug: 'hidden', visibility: 'list' },
+          { slug: 'hidden', visibility: 'hide' },
+          { slug: 42 }
+        ]
+      })
+    )
+    .mockResolvedValueOnce(Response.json({ object: 'list', data: [{ id: 'fixture-model' }] }))
+    .mockResolvedValueOnce(Response.json({ models: [{ slug: 42 }] }))
+  vi.stubGlobal('fetch', fetcher)
+  await accounts.connect(openAuthorization)
+  const [account] = await accounts.list()
+  expect(account.models.map(({ id, name }) => ({ id, name }))).toEqual([
+    { id: 'fixture-model', name: 'Fixture' }
+  ])
+  await accounts.refreshCatalog(account.id)
+  await expect(accounts.refreshCatalog(account.id)).rejects.toMatchObject({
+    details: { reason: 'format' }
+  })
+  const [refreshed] = await accounts.list()
+  expect(refreshed.models).toEqual(account.models)
+  expect(refreshed.catalogIssue?.reason).toBe('format')
+})
+
+it('sends inference to the fixed Responses endpoint and reports transport and upstream failures', async () => {
+  const { accounts } = await fixture()
+  mocks.login.mockResolvedValueOnce(grant('responses'))
+  await accounts.connect(openAuthorization)
+  const [account] = await accounts.list()
+  const modelId = 'fixture-model'
+  const body = JSON.stringify({ model: modelId, input: 'Hello', stream: true, store: false })
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockRejectedValueOnce(new Error('ECONNREFUSED'))
+    .mockResolvedValueOnce(
+      Response.json(
+        {
+          error: {
+            code: 'model_not_found',
+            message: 'Model unavailable for fixture-access-responses'
+          }
+        },
+        { status: 404 }
+      )
+    )
+  vi.stubGlobal('fetch', fetcher)
+  const failure = await accounts.fetchResponses(account.id, modelId, { body })
+  expect(failure.status).toBe(502)
+  expect(await failure.text()).toContain('could not connect to OpenAI')
+  const rejected = await accounts.fetchResponses(account.id, modelId, { body })
+  expect(rejected.status).toBe(404)
+  expect(await rejected.json()).toEqual({
+    error: { code: 'model_not_found', message: 'Model unavailable for [redacted]' }
+  })
+  expect(fetcher).toHaveBeenCalledWith(
+    'https://api.openai.com/v1/responses',
+    expect.objectContaining({
+      body,
+      redirect: 'error',
+      headers: expect.objectContaining({ authorization: 'Bearer fixture-access-responses' })
+    })
+  )
+  expect(mocks.streamSimple).not.toHaveBeenCalled()
+})
+
+it('routes new chats only to explicitly allowed accounts without testing each model', async () => {
   const { accounts, file } = await fixture()
   mocks.login
     .mockResolvedValueOnce(grant('primary'))
@@ -207,16 +450,12 @@ it('routes new chats only to explicitly allowed and verified accounts in order',
     result: async () => ({ stopReason: 'stop', content: [{ type: 'text', text: 'OK' }] })
   })
   for (let count = 0; count < 4; count++) await accounts.connect(openAuthorization)
-  const [primary, backup, unverified, last] = await accounts.list()
+  const [primary, backup, excluded, last] = await accounts.list()
   const modelId = 'fixture-model'
-  for (const account of [primary, backup, last]) await accounts.verify(account.id, modelId)
+  await accounts.setModelEnabled(excluded.id, modelId, false)
   await accounts.setDefaultModel({ id: primary.id, modelId })
-  await expect(accounts.setFallbackAccount(unverified.id, true)).rejects.toThrow(
-    'verified and enabled'
-  )
-  await expect(accounts.setFallbackAccount(primary.id, true)).rejects.toThrow(
-    'verified and enabled'
-  )
+  await expect(accounts.setFallbackAccount(excluded.id, true)).rejects.toThrow('same enabled model')
+  await expect(accounts.setFallbackAccount(primary.id, true)).rejects.toThrow('same enabled model')
   await accounts.setFallbackAccount(backup.id, true)
   await accounts.setFallbackAccount(last.id, true)
   expect((await new ChatGptAccounts(file).list()).map((account) => account.fallbackRank)).toEqual([
@@ -240,7 +479,7 @@ it('routes new chats only to explicitly allowed and verified accounts in order',
   await expect(accounts.routeDefault()).resolves.toEqual({ provider: last.id, modelId })
   await accounts.setModelEnabled(last.id, modelId, false)
   await expect(accounts.routeDefault()).rejects.toThrow('No authorized account')
-  expect(mocks.streamSimple).toHaveBeenCalledTimes(3)
+  expect(mocks.streamSimple).not.toHaveBeenCalled()
   await accounts.setDefaultModel(null)
   await expect(accounts.routeDefault()).resolves.toBeNull()
   expect((await accounts.list()).every((account) => !account.fallbackRank)).toBe(true)

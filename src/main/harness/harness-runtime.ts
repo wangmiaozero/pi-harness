@@ -1,5 +1,6 @@
 import { summarizeUsage } from './runs/usage-report'
 import type { UsageRange } from '@shared/providers/account-management'
+import type { ProviderAdvancedSettings } from '@shared/providers/advanced-settings'
 import type { FileUndoService } from './file-undo/file-undo-service'
 import type { BrowserWindow } from 'electron'
 import os from 'node:os'
@@ -136,6 +137,7 @@ export interface HarnessRuntimeOptions {
   appVersion?: string
   /** Pi SDK version, stamped into debug bundles. */
   piVersion?: string | null
+  providerUsageSettings?: () => Promise<Record<string, ProviderAdvancedSettings>>
 }
 
 /**
@@ -144,6 +146,7 @@ export interface HarnessRuntimeOptions {
  * inspects and controls; it never re-implements agent behavior.
  */
 export class HarnessRuntime implements AgentRuntime {
+  private readonly providerUsageSettings: HarnessRuntimeOptions['providerUsageSettings']
   private readonly fileUndo: FileUndoService | undefined
   private readonly timelines = new Map<string, HarnessEvent[]>()
   private readonly observedSessions = new Map<string, () => void>()
@@ -169,6 +172,7 @@ export class HarnessRuntime implements AgentRuntime {
     private readonly adapter: HarnessAdapter,
     options: HarnessRuntimeOptions = {}
   ) {
+    this.providerUsageSettings = options.providerUsageSettings
     this.fileUndo = options.fileUndo
     const runStore =
       options.runStore ?? new JsonStore(harnessRunsPath(), { schemaVersion: 1, runs: [] })
@@ -322,10 +326,14 @@ export class HarnessRuntime implements AgentRuntime {
 
   async usageReport(range: UsageRange) {
     const { runs, clearedAt } = await this.runRepository.usageSnapshot()
-    return summarizeUsage([...runs, ...this.runs.listAllLiveRuns()], {
-      ...range,
-      start: Math.max(range.start, clearedAt)
-    })
+    return summarizeUsage(
+      [...runs, ...this.runs.listAllLiveRuns()],
+      {
+        ...range,
+        start: Math.max(range.start, clearedAt)
+      },
+      await this.providerUsageSettings?.()
+    )
   }
 
   async clearUsageHistory(): Promise<void> {

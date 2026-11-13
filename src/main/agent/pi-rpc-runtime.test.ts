@@ -17,6 +17,7 @@ import type { ChatGptAccounts } from '../services/chatgpt-accounts'
 import { openaiProvider } from '@earendil-works/pi-ai/providers/openai'
 import { managedProviderApiKey, secretStore } from '../security/secret-store'
 import { loadManagedProviderKeys } from '../pi/managed-provider-keys'
+import type { ProviderAdvancedSettings } from '@shared/providers/advanced-settings'
 
 vi.mock('electron', () => ({ BrowserWindow: { getAllWindows: () => [] } }))
 const bundledRoot = path.resolve('resources/runtimes', `${process.platform}-${process.arch}`)
@@ -40,6 +41,16 @@ native('official standalone Pi with independent Node', () => {
   let largeUsage = false
   let summaryMinOutput = 0
   let accounts: ChatGptAccount[] = []
+  let advanced: ProviderAdvancedSettings | undefined
+  const fetchResponses = vi.fn<ChatGptAccounts['fetchResponses']>()
+  const forward = vi.fn(
+    async (
+      _provider: string,
+      _baseUrl: string,
+      input: Parameters<typeof fetch>[0],
+      init?: RequestInit
+    ) => fetch(input, init)
+  )
   beforeEach(async () => {
     root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'pi RPC 空格 ')))
     cwd = path.join(root, 'workspace')
@@ -52,6 +63,9 @@ native('official standalone Pi with independent Node', () => {
     largeUsage = false
     summaryMinOutput = 0
     accounts = []
+    advanced = undefined
+    fetchResponses.mockReset()
+    forward.mockClear()
     server = http.createServer(async (request, response) => {
       let body = ''
       for await (const chunk of request) body += chunk
@@ -156,13 +170,20 @@ native('official standalone Pi with independent Node', () => {
       extensionPath: path.resolve('resources/desktop-extension/index.mjs'),
       chatGpt: {
         list: async () => accounts,
-        hasVerifiedModel: async (id: string, modelId: string) =>
+        fetchResponses,
+        hasSelectableModel: async (id: string, modelId: string) =>
           accounts.some(
             (item) =>
-              item.id === id && item.models.some((model) => model.id === modelId && model.verified)
+              item.id === id && item.models.some((model) => model.id === modelId && !model.disabled)
           )
-      } as ChatGptAccounts,
+      },
       workspace: {
+        providerSettings: async (key) => (key === 'fixture' ? advanced : undefined),
+        providerNetwork: {
+          list: async () => (advanced ? [{ key: 'fixture', protocol: 'openai-completions' }] : []),
+          acquire: async () => undefined,
+          fetch: forward
+        },
         assertWritable: async (file) => {
           if (!file.startsWith(cwd + path.sep)) throw new Error('fixture policy denied')
           return file
@@ -171,7 +192,33 @@ native('official standalone Pi with independent Node', () => {
       }
     })
   })
-  it('loads verified account models in standalone Pi and keeps the saved API provider available', async () => {
+  it('sends a Pi chat through the provider gateway with advanced request settings', async () => {
+    advanced = {
+      proxy: { mode: 'direct' },
+      authMode: 'api-key',
+      extraBody: { fixture_id: '${sessionId}' }
+    }
+    const { sessionId } = await runtime.startSession({
+      cwd,
+      provider: 'fixture',
+      modelId: 'fixture'
+    })
+    let unsubscribe!: () => void
+    const completed = new Promise<void>((resolve, reject) => {
+      unsubscribe = runtime.subscribe(sessionId, (event) => {
+        if (event.type === 'prompt.completed') resolve()
+        if (event.type === 'runtime.error') reject(new Error(event.message))
+      })
+    })
+    await runtime.prompt(sessionId, 'Hello from the gateway')
+    await completed.finally(unsubscribe)
+    expect(forward).toHaveBeenCalledTimes(1)
+    expect(requests[0]).toMatchObject({ fixture_id: sessionId, model: 'fixture' })
+    expect(authorization).toEqual([undefined])
+    expect(new Headers(forward.mock.calls[0][3]?.headers).get('x-api-key')).toBe('local-fixture')
+    expect(await fs.readFile(paths.get(sessionId)!, 'utf8')).toContain('Standalone response')
+  }, 45_000)
+  it('streams an untested ChatGPT model through Main in standalone Pi', async () => {
     const id = 'chatgpt-account-493957de-923a-4681-b5b6-d8de350c293a'
     const fixture = openaiProvider()
       .getModels()
@@ -181,12 +228,70 @@ native('official standalone Pi with independent Node', () => {
       name: fixture.name,
       reasoning: fixture.reasoning,
       vision: false,
-      verified: true
+      verified: false
     }
     accounts = [{ id, label: '293a', status: 'authorized', models: [model] }]
     const { sessionId } = await runtime.startSession({ cwd, provider: id, modelId: model.id })
     const chosen = await runtime.getAgentState(sessionId)
     expect(chosen?.model).toMatchObject({ provider: id, id: model.id })
+    const text = { type: 'output_text', text: 'ChatGPT through Main', annotations: [] }
+    const message = {
+      type: 'message',
+      id: 'msg_fixture',
+      role: 'assistant',
+      status: 'completed',
+      content: [text]
+    }
+    fetchResponses.mockResolvedValueOnce(
+      new Response(
+        [
+          {
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: { ...message, content: [] }
+          },
+          {
+            type: 'response.content_part.added',
+            output_index: 0,
+            content_index: 0,
+            part: { ...text, text: '' }
+          },
+          {
+            type: 'response.output_text.delta',
+            output_index: 0,
+            content_index: 0,
+            delta: text.text
+          },
+          { type: 'response.output_item.done', output_index: 0, item: message },
+          {
+            type: 'response.completed',
+            response: { id: 'resp_fixture', status: 'completed', output: [message] }
+          }
+        ]
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join(''),
+        {
+          headers: { 'content-type': 'text/event-stream' }
+        }
+      )
+    )
+    let unsubscribe!: () => void
+    const completed = new Promise<void>((resolve, reject) => {
+      unsubscribe = runtime.subscribe(sessionId, (event) => {
+        if (event.type === 'prompt.completed') resolve()
+        if (event.type === 'runtime.error') reject(new Error(event.message))
+      })
+    })
+    await runtime.prompt(sessionId, 'Hello ChatGPT')
+    await completed.finally(unsubscribe)
+    expect(fetchResponses).toHaveBeenCalledExactlyOnceWith(
+      id,
+      model.id,
+      expect.objectContaining({
+        body: expect.any(Uint8Array)
+      })
+    )
+    expect(await fs.readFile(paths.get(sessionId)!, 'utf8')).toContain(text.text)
     await runtime.setModel(sessionId, 'fixture', 'fixture')
     expect((await runtime.getAgentState(sessionId))?.model?.provider).toBe('fixture')
     expect(requests).toHaveLength(0)

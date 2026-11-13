@@ -1,5 +1,4 @@
 import { loadManagedProviderKeys } from '../pi/managed-provider-keys'
-import { readState, runtimeModels } from '../../../resources/desktop-extension/opencode-state.mjs'
 /**
  * AgentSession registry + runtime. Runs exclusively in Electron Main.
  *
@@ -800,6 +799,8 @@ export class AgentRuntimeService implements AgentRuntime {
       customTools?: (cwd: string, sessionId: string) => Promise<ToolDefinition[]>
       architectureHint?: (cwd: string) => Promise<string | null>
       prepareSession?: (sessionId: string, cwd: string) => Promise<void>
+      providerSettings?: DesktopSessionContext['providerSettings']
+      providerNetwork?: DesktopSessionContext['providerNetwork']
     },
     private readonly chatGpt?: ChatGptAccounts
   ) {}
@@ -1060,6 +1061,8 @@ export class AgentRuntimeService implements AgentRuntime {
     const systemPromptController: DesktopSessionContext = {
       forceEmpty: input.toolNames?.length === 0,
       permissionMode: sessionPermissionMode,
+      providerSettings: this.workspace?.providerSettings,
+      providerNetwork: this.workspace?.providerNetwork,
       workspacePromptProvider: () =>
         this.workspace?.getPrompt?.(sessionManager.getSessionId()) ?? null
     }
@@ -1127,9 +1130,7 @@ export class AgentRuntimeService implements AgentRuntime {
             const accounts = await chatGpt.list()
             if (
               !accounts.some((account) =>
-                account.models.some(
-                  (model) => model.verified && !model.disabled && !model.unsupported
-                )
+                account.models.some((model) => !model.disabled && !model.unsupported)
               )
             )
               return
@@ -1139,7 +1140,7 @@ export class AgentRuntimeService implements AgentRuntime {
               (provider) => services.modelRuntime.registerNativeProvider(provider),
               (id) => services.modelRuntime.unregisterProvider(id),
               () => chatGpt.list(),
-              (id, modelId) => chatGpt.resolve(id, modelId)
+              (id, modelId, init) => chatGpt.fetchResponses(id, modelId, init)
             )
           }
           await syncRegistered()
@@ -1165,24 +1166,9 @@ export class AgentRuntimeService implements AgentRuntime {
       throw new AgentError('The saved API key is unavailable for the selected provider')
     if (intended.provider?.startsWith(CHATGPT_PROVIDER_PREFIX)) {
       model = services.modelRuntime.getModel(intended.provider, intended.modelId ?? '')
-      if (!model || !(await chatGpt?.hasVerifiedModel(intended.provider, model.id)))
+      if (!model || !(await chatGpt?.hasSelectableModel(intended.provider, model.id)))
         throw new AgentError('ChatGPT model is unavailable. Select another model to continue.')
     }
-    if (intended.provider === 'opencode-free') {
-      const registered =
-        model ?? services.modelRuntime.getModel('opencode-free', intended.modelId ?? '')
-      if (
-        !runtimeModels(await readState()).some((m) => m.id === intended.modelId) ||
-        !registered ||
-        registered.provider !== 'opencode-free' ||
-        registered.id !== intended.modelId
-      )
-        throw new AgentError(
-          'OpenCode model is unavailable or not verified; select another model explicitly'
-        )
-      model = registered
-    }
-
     const { session: inner } = await sdk.createAgentSessionFromServices({
       services,
       sessionManager,

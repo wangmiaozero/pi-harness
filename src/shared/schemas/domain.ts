@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod'
+import { providerAdvancedSchema } from '../providers/advanced-settings'
 import { piApiTypeSchema, piInputTypeSchema, piThinkingLevelSchema } from './pi'
 
 /**
@@ -51,6 +52,7 @@ export const providerFormSchema = z.object({
   headers: headerMapSchema,
   authHeader: z.boolean(),
   timeout: z.number().int().positive().nullable(),
+  advanced: providerAdvancedSchema.optional(),
   /** Optional default model id — auto-created under the provider if missing. */
   defaultModelId: z.string().min(1).max(256).nullable().optional(),
   /** Optional catalog metadata used when auto-creating the selected default model. */
@@ -76,7 +78,8 @@ export const providerModelDiscoverySchema = z
     apiKey: apiKeySpecSchema.nullable(),
     headers: headerMapSchema,
     authHeader: z.boolean(),
-    timeout: z.number().int().positive().nullable()
+    timeout: z.number().int().positive().nullable(),
+    advanced: providerAdvancedSchema.optional()
   })
   .strict()
 

@@ -10,7 +10,15 @@ let depth = 0
 let installed: Fetch | undefined
 let saved: Fetch | undefined
 let systemFetchImpl: Promise<Fetch | undefined> | undefined
+let capturedIdToken: string | undefined
 const exchange = new AsyncLocalStorage<string>()
+
+/** The ID token from the latest OpenAI token response, if that response had one. */
+export function takeCapturedIdToken(): string | undefined {
+  const token = capturedIdToken
+  capturedIdToken = undefined
+  return token
+}
 
 export class OAuthExchangeError extends Error {
   constructor(
@@ -44,7 +52,16 @@ async function fetchToken(via: Fetch, input: Parameters<Fetch>[0], init?: Reques
   const signal = init?.signal ? AbortSignal.any([init.signal, deadline]) : deadline
   try {
     const response = await via(input, { ...init, redirect: 'error', signal })
-    if (response.ok) return response
+    if (response.ok) {
+      const body = await response.clone().text().catch(() => '')
+      try {
+        const idToken = (JSON.parse(body) as { id_token?: unknown }).id_token
+        if (typeof idToken === 'string' && idToken) capturedIdToken = idToken
+      } catch {
+        // A successful token response is JSON. Anything else is left for the caller.
+      }
+      return response
+    }
 
     const payload = await readBoundedJson(response, 8_192).catch(() => null)
     const error = (payload as { error?: { code?: unknown } | string } | null)?.error

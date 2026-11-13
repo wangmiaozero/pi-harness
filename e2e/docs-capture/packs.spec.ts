@@ -242,7 +242,6 @@ test('capture Ming functional pages', async ({ page, electronApp }) => {
 
   await activateSkin(page, 'mingMoon', 'ming-moon')
   await page.locator('a[href="#/models"]').click()
-  await page.getByTestId('model-management-tab-providers').click()
   await expect(page.getByTestId('provider-row')).toHaveCount(2)
   await expect(page.getByTestId('providers-table-scroll')).toBeVisible()
   await shot(page, '功能界面/大明/Provider与模型.png')

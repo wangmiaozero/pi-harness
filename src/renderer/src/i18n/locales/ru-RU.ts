@@ -1,5 +1,4 @@
 import { harnessPluginMessages } from '../harness-plugins'
-import { openCodeMessages } from '../opencode'
 /** Русский UI messages. Keys must match locales/en-US.ts (MessageTree). */
 import type { MessageTree } from './en-US'
 import { capabilityMessages } from '../capabilities'
@@ -7,7 +6,6 @@ import { universalMessages } from '../universal'
 
 export const ruRU: MessageTree = {
   harnessPlugins: harnessPluginMessages['ru-RU'],
-  openCode: openCodeMessages['ru-RU'],
   universal: universalMessages['ru-RU'],
   nav: {
     home: 'Главная',
@@ -293,7 +291,6 @@ export const ruRU: MessageTree = {
     title: 'Модели',
     subtitle: 'Настройка возможностей моделей и выбор активной',
     managementSubtitle: 'Управление провайдерами, учетными данными и моделями в одном месте',
-    managementTabsLabel: 'Разделы настройки моделей',
     providerRequired: 'Сначала настройте провайдера, затем модель',
     empty: 'Моделей пока нет',
     emptyHint: 'Добавьте модель у провайдера.',
@@ -935,6 +932,8 @@ export const ruRU: MessageTree = {
     aboutRepository: 'Репозиторий проекта',
     aboutStarHint: 'Если Pi-Harness вам полезен, поставьте проекту звезду на GitHub.',
     aboutStarAction: 'Поставить звезду',
+    aboutSponsorHint: 'Станьте спонсором Pi-Harness или откройте страницу текущего спонсора.',
+    aboutSponsorAction: 'Стать спонсором',
     currentVersion: 'Текущая версия',
     updatesHint: 'Новые версии проверяются в фоне. Скачайте установщик и запустите его для ручной установки.',
     checkUpdates: 'Проверить обновления',

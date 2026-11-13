@@ -282,7 +282,6 @@ Open Architecture in Workspace to explore modules, dependencies, entrypoints and
 | :-- | :-- |
 | **Providers** | Configure Pi-compatible providers with presets or custom endpoints, manage credentials, discover models where supported, test connections and choose your chat model |
 | **Images** | Use supported image models for text-to-image or image editing, then download the results |
-| **OpenCode Zen / Go** | In the OpenCode tab under Models, save your API key and enable the models you want. Models load automatically and can be verified one by one or together. Access and charges depend on your official account and model; paid verification asks for your permission first. See [OpenCode's model information](https://opencode.ai/v2/docs/console/models/) for pricing and data policies |
 | **Skills** | Browse built-in and local Skills and edit them. Type `@` in the composer to search and invoke an installed Skill |
 | **Packages and extensions** | Manage Pi packages and extensions from Capabilities. Optional add-ons such as [Superpowers](https://github.com/obra/superpowers) install, update or uninstall only when you choose |
 
