@@ -12,10 +12,12 @@ Providers, ChatGPT accounts, and quota are managed together.
 - Entering an API URL fills the provider name and a default model. Both can still be edited.
 - ChatGPT accounts sign in from the provider list. A verified account can be the default for new chats, with other accounts allowed as fallback.
 - Usage and quota for a provider can be refreshed from the providers page.
+- The built-in Pi runtime is 1.5.2.
 
 ### Fixed
 
 - A new chat starts in the installed app.
+- Text typed into a new chat stays in the composer while that chat opens.
 - A saved API key can be copied without showing it in the provider form.
 - Claude, Gemini CLI, and GitHub Copilot show what this app can and cannot use from a local login.
 

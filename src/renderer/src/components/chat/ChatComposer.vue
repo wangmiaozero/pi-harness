@@ -444,9 +444,17 @@ function editorTextValue(): string {
   return editor.value?.textContent?.replace(/\r\n/g, '\n') ?? ''
 }
 
+let appliedDraft = ''
 function syncEditorText() {
   const element = editor.value
-  if (element && element.textContent !== workspace.draft) element.textContent = workspace.draft
+  if (!element) return
+  const draft = workspace.draft
+  // A session switch can flush a stale sync while the focused editor already
+  // holds newer text that has not reached the store yet.
+  if (document.activeElement === element && appliedDraft === draft && editorTextValue() !== draft)
+    return
+  if (element.textContent !== draft) element.textContent = draft
+  appliedDraft = draft
 }
 
 function ensureEditorTextNode(): Text {
@@ -1186,7 +1194,9 @@ onBeforeUnmount(() => {
             :aria-expanded="skillMenuOpen"
             :aria-controls="skillMenuOpen ? 'composer-skill-listbox' : undefined"
             :aria-activedescendant="
-              activeMentionSkill ? `composer-skill-${activeSkillIndex}` : undefined
+              skillMenuOpen && activeMentionSkill
+                ? `composer-skill-${activeSkillIndex}`
+                : undefined
             "
             aria-autocomplete="list"
             :data-placeholder="$t('workspace.composerPlaceholder')"

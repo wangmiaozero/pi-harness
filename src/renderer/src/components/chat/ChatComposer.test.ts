@@ -249,6 +249,31 @@ describe('ChatComposer submission lock', () => {
     )
     wrapper.unmount()
   })
+
+  it('keeps text typed into the focused editor across a session switch', async () => {
+    const sessions = useSessionStore()
+    const workspace = useWorkspaceStore()
+    sessions.addTransientSession('chat-a', '/code/a', 'A')
+    sessions.addTransientSession('chat-b', '/code/b', 'B')
+    sessions.selectSession('chat-a')
+    const wrapper = mount(ChatComposer, {
+      attachTo: document.body,
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    const editor = wrapper.get('[data-testid="composer-editor"]')
+    ;(editor.element as HTMLElement).focus()
+    editor.element.textContent = 'Check the first message'
+    sessions.selectSession('chat-b')
+    sessions.selectSession('chat-a')
+    await wrapper.vm.$nextTick()
+    expect(editor.element.textContent).toBe('Check the first message')
+    workspace.draft = 'from the store'
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    expect(editor.element.textContent).toBe('from the store')
+    wrapper.unmount()
+  })
 })
 
 describe('ChatComposer ultra fire border', () => {

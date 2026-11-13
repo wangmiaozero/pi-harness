@@ -111,6 +111,7 @@ for (const [withImage, precreated] of [
         await expect(composer.locator('img')).toHaveCount(1)
       }
       await editor.fill('Check the first message')
+      await expect(editor).toHaveText('Check the first message')
       await editor.press('Enter')
       // Check the submission lock while the native process is still starting,
       // then again while its before_agent_start hook holds the prompt. Startup
