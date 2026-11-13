@@ -5,6 +5,7 @@
 
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import { IPC_EVENT, IPC_INVOKE } from '../shared/ipc/channels'
+import { readChatGptConnectProgress } from '../shared/providers/connect-progress'
 import type { PiSwitchAPI, IpcEventListener } from '../shared/ipc/api-types'
 import type { AppErrorPayload } from '../shared/types/errors'
 import { API_NAMESPACE } from '../shared/constants/index'
@@ -185,7 +186,13 @@ const api: PiSwitchAPI = {
     local: (input) => invoke(IPC_INVOKE.localAccounts, input),
     chatGpt: () => invoke(IPC_INVOKE.chatGptAccounts),
     connect: () => invoke(IPC_INVOKE.chatGptConnect),
+    onConnectProgress: (listener) =>
+      onEvent(IPC_EVENT.chatGptConnectProgress, (payload) => {
+        if (readChatGptConnectProgress(payload)) listener()
+      }),
     cancel: () => invoke(IPC_INVOKE.chatGptCancel),
+    connectOpenRouter: () => invoke(IPC_INVOKE.openRouterConnect),
+    cancelOpenRouter: () => invoke(IPC_INVOKE.openRouterCancel),
     verify: (input) => invoke(IPC_INVOKE.chatGptVerify, input),
     refreshCatalog: (id) => invoke(IPC_INVOKE.chatGptCatalogRefresh, id),
     setModelEnabled: (input) => invoke(IPC_INVOKE.chatGptModelEnabled, input),

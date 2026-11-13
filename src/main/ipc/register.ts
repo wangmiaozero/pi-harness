@@ -151,6 +151,7 @@ export interface Services {
   openCodeFree?: OpenCodeFreeService
   providers: ProviderService
   chatGpt?: ChatGptAccounts
+  openRouter?: import('../services/openrouter-authorization').OpenRouterAuthorization
   localAccounts?: LocalAccountDiscovery
   providerQuota?: ProviderQuota
   models: ModelService
@@ -486,7 +487,8 @@ export function registerIpc(services: Services): void {
       services.localAccounts,
       services.providerQuota,
       services.harness,
-      (authorizationUrl) => shell.openExternal(authorizationUrl)
+      (authorizationUrl) => shell.openExternal(authorizationUrl),
+      services.openRouter
     )
 
   // ---- providers ----

@@ -1,6 +1,7 @@
 import generatedCatalog from './provider-presets.generated.json'
 import currentCatalog from './current-models.json'
 import commonCatalog from './common-models.json'
+import { OFFICIAL_PROVIDER_PRESETS } from './official-provider-presets'
 import type { PiThinkingLevel } from './index'
 import type { PiInputType } from './index'
 import type { ProtocolId } from './protocols'
@@ -27,6 +28,8 @@ export interface ProviderPreset {
   protocol: ProtocolId
   defaultBaseUrl: string
   placeholderApiKey: string
+  keyUrl?: string
+  catalogGroup?: 'relay'
   authHeader: boolean
   defaultModelId: string
   documentation: string
@@ -99,11 +102,25 @@ function applyCurrentModelOverrides(preset: ProviderPreset): ProviderPreset {
   }
 }
 
-const importedPresets = (generatedCatalog.providers as unknown as ProviderPreset[]).map(
-  applyCurrentModelOverrides
+const existingKeyPages: Record<string, string> = {
+  deepseek: 'https://platform.deepseek.com/api_keys',
+  openai: 'https://platform.openai.com/api-keys',
+  anthropic: 'https://console.anthropic.com/settings/keys',
+  google: 'https://aistudio.google.com/apikey',
+  xai: 'https://console.x.ai/',
+  openrouter: 'https://openrouter.ai/settings/keys',
+  'kimi-for-coding': 'https://www.kimi.com/code/console'
+}
+
+const importedPresets = (generatedCatalog.providers as unknown as ProviderPreset[]).map((preset) =>
+  applyCurrentModelOverrides({ ...preset, keyUrl: existingKeyPages[preset.id] })
 )
 
-export const PROVIDER_PRESETS: readonly ProviderPreset[] = [...genericPresets, ...importedPresets]
+export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
+  ...genericPresets,
+  ...importedPresets,
+  ...OFFICIAL_PROVIDER_PRESETS
+]
 
 export function findModelPreset(
   modelId: string,

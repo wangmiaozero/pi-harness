@@ -1048,8 +1048,11 @@ export interface PiSwitchAPI {
     local(input: { refresh: boolean }): Promise<LocalAccount[]>
     chatGpt(): Promise<ChatGptAccount[]>
     connect(): Promise<void>
+    onConnectProgress(listener: () => void): () => void
     cancel(): Promise<void>
     verify(input: { id: string; modelId: string }): Promise<void>
+    connectOpenRouter(): Promise<string>
+    cancelOpenRouter(): Promise<void>
     refreshCatalog(id: string): Promise<void>
     setModelEnabled(input: { id: string; modelId: string; enabled: boolean }): Promise<void>
     setDefaultModel(input: { id: string; modelId: string } | null): Promise<void>

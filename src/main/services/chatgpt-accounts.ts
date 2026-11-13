@@ -12,6 +12,7 @@ import {
 import { readBoundedJson } from './bounded-json'
 import { AppError, ValidationError } from './errors'
 import { JsonStore } from './storage'
+import { OAuthExchangeError, systemFetch, withSystemProxyFetch } from './system-fetch'
 
 type AccountRecord = {
   label: string
@@ -114,7 +115,10 @@ export class ChatGptAccounts {
     }))
   }
 
-  async connect(openAuthorization: (url: string) => Promise<void>): Promise<void> {
+  async connect(
+    openAuthorization: (url: string) => Promise<void>,
+    onExchange?: () => void
+  ): Promise<void> {
     if (this.loginController) throw new ValidationError('ChatGPT sign-in is already in progress')
     const callbackHost = process.env.PI_OAUTH_CALLBACK_HOST
     if (callbackHost && callbackHost !== '127.0.0.1')
@@ -127,6 +131,7 @@ export class ChatGptAccounts {
       controller.signal,
       AbortSignal.timeout(3 * 60_000)
     ])
+    let phase = 'prepare'
     try {
       const state = await this.store.mutate({
         apply: (current) => {
@@ -136,35 +141,48 @@ export class ChatGptAccounts {
         }
       })
       const oauth = (await loadOpenAI()).auth.oauth!
-      const credential = await oauth.login(
-        {
-          signal,
-          notify: (event) => {
-            if (event.type !== 'auth_url') return
-            const url = URL.parse(event.url)
-            if (
-              url?.origin !== origin ||
-              url.pathname !== '/api/accounts/authorize' ||
-              url.username ||
-              url.password
-            ) {
-              controller.abort()
-              return
-            }
-            void openAuthorization(event.url).catch(() => controller.abort())
+      phase = 'authorize'
+      let reported = false
+      const credential = await withSystemProxyFetch(() =>
+        oauth.login(
+          {
+            signal,
+            notify: (event) => {
+              if (event.type === 'progress') {
+                if (!reported) {
+                  reported = true
+                  phase = 'exchange'
+                  onExchange?.()
+                }
+                return
+              }
+              if (event.type !== 'auth_url') return
+              const url = URL.parse(event.url)
+              if (
+                url?.origin !== origin ||
+                url.pathname !== '/api/accounts/authorize' ||
+                url.username ||
+                url.password
+              ) {
+                controller.abort()
+                return
+              }
+              void openAuthorization(event.url).catch(() => controller.abort())
+            },
+            // Only the SDK's state-checked loopback callback is accepted.
+            prompt: ({ signal: promptSignal }) =>
+              new Promise((_, reject) => {
+                const combined = AbortSignal.any([signal, ...(promptSignal ? [promptSignal] : [])])
+                const cancel = () => reject(new Error('Authorization ended'))
+                if (combined.aborted) cancel()
+                else combined.addEventListener('abort', cancel, { once: true })
+              })
           },
-          // Only the SDK's state-checked loopback callback is accepted.
-          prompt: ({ signal: promptSignal }) =>
-            new Promise((_, reject) => {
-              const combined = AbortSignal.any([signal, ...(promptSignal ? [promptSignal] : [])])
-              const cancel = () => reject(new Error('Authorization ended'))
-              if (combined.aborted) cancel()
-              else combined.addEventListener('abort', cancel, { once: true })
-            })
-        },
-        { agentName: 'Pi-Harness', getDeviceId: () => state.deviceId! }
+          { agentName: 'Pi-Harness', getDeviceId: () => state.deviceId! }
+        )
       )
       signal.throwIfAborted()
+      phase = 'save'
       const id = CHATGPT_PROVIDER_PREFIX + randomUUID()
       const record: AccountRecord = {
         label: id.slice(-8),
@@ -176,8 +194,19 @@ export class ChatGptAccounts {
         apply: (current) => ({ ...current, accounts: { ...current.accounts, [id]: record } })
       })
       await this.refreshCatalog(id).catch(() => {})
-    } catch {
-      throw new ValidationError('ChatGPT sign-in did not complete')
+    } catch (error) {
+      if (signal.aborted) {
+        throw new ValidationError('ChatGPT sign-in did not complete', {
+          reason: signal.reason?.name === 'TimeoutError' ? 'timeout' : 'cancelled'
+        })
+      }
+      const failure = error instanceof OAuthExchangeError ? error : undefined
+      throw new ValidationError('ChatGPT sign-in did not complete', {
+        phase,
+        reason: failure?.reason ?? phase,
+        status: failure?.status,
+        upstreamCode: failure?.upstreamCode
+      })
     } finally {
       this.loginController = null
     }
@@ -205,7 +234,7 @@ export class ChatGptAccounts {
       const signal = AbortSignal.any([this.shutdown.signal, AbortSignal.timeout(15_000)])
       try {
         const apiKey = await this.accessToken(id, signal)
-        const response = await fetch(catalogEndpoint, {
+        const response = await systemFetch(catalogEndpoint, {
           headers: { authorization: `Bearer ${apiKey}` },
           redirect: 'error',
           signal
@@ -434,7 +463,11 @@ export class ChatGptAccounts {
             normalizeContext({
               messages: [{ role: 'user', content: 'Reply with OK.', timestamp: Date.now() }]
             }),
-            { apiKey, signal, fetch: (input, init) => fetch(input, { ...init, redirect: 'error' }) }
+            {
+              apiKey,
+              signal,
+              fetch: (input, init) => systemFetch(input, { ...init, redirect: 'error' })
+            }
           )
           .result()
         if (
@@ -493,14 +526,14 @@ export class ChatGptAccounts {
       try {
         const credential = this.decrypt(record)
         const signal = AbortSignal.any([this.shutdown.signal, AbortSignal.timeout(10_000)])
-        const discovery = await fetch(origin + '/.well-known/openid-configuration', {
+        const discovery = await systemFetch(origin + '/.well-known/openid-configuration', {
           redirect: 'error',
           signal
         })
         if (discovery.ok) {
           const { revocation_endpoint: endpoint } = await discovery.json()
           if (typeof endpoint === 'string' && new URL(endpoint).origin === origin) {
-            const response = await fetch(endpoint, {
+            const response = await systemFetch(endpoint, {
               method: 'POST',
               redirect: 'error',
               signal,
@@ -544,7 +577,8 @@ export class ChatGptAccounts {
       if (!record) throw credentialError()
       let credential = this.decrypt(record)
       if (credential.expires <= Date.now() + 60_000) {
-        credential = await (await loadOpenAI()).auth.oauth!.refresh(credential, signal)
+        const refresh = (await loadOpenAI()).auth.oauth!.refresh
+        credential = await withSystemProxyFetch(() => refresh(credential, signal))
         const ciphertext = this.encrypt(credential)
         await this.store.mutate({
           apply: (current) => ({

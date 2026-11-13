@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ProviderPreset } from '@shared/constants/provider-presets'
 import {
@@ -9,6 +9,7 @@ import {
 } from '@shared/providers/add-catalog'
 import Button from '@renderer/components/ui/Button.vue'
 import LocalAccountsPanel from '@renderer/components/providers/LocalAccountsPanel.vue'
+import { getApi } from '@renderer/composables/useApi'
 
 const iconFiles = import.meta.glob('../../assets/provider-icons/*.svg', {
   eager: true,
@@ -67,9 +68,15 @@ const props = defineProps<{
 const emit = defineEmits<{
   'select-preset': [id: string]
   'update:detail': [id: AddCatalogSubscriptionId | null]
+  'openrouter-connected': [key: string]
 }>()
 const { t } = useI18n()
 const detail = ref<AddCatalogSubscriptionId | null>(props.initialDetail ?? null)
+const openRouterPending = ref(false)
+const openRouterFailed = ref(false)
+onBeforeUnmount(() => {
+  if (openRouterPending.value) void cancelOpenRouter()
+})
 
 watch(
   () => props.initialDetail,
@@ -102,12 +109,39 @@ function configureApi() {
   const presetId = current && 'apiPresetId' in current ? current.apiPresetId : undefined
   if (presetId) emit('select-preset', presetId)
 }
+
+async function connectOpenRouter() {
+  openRouterPending.value = true
+  openRouterFailed.value = false
+  try {
+    const key = await getApi().accounts.connectOpenRouter()
+    openRouterPending.value = false
+    emit('openrouter-connected', key)
+  } catch (error) {
+    const details = (error as { details?: { reason?: string } })?.details
+    openRouterFailed.value = details?.reason !== 'cancelled'
+  } finally {
+    openRouterPending.value = false
+  }
+}
+
+async function cancelOpenRouter() {
+  await getApi()
+    .accounts.cancelOpenRouter()
+    .catch(() => {})
+}
 </script>
 
 <template>
   <div data-testid="add-provider-catalog">
     <div v-if="detail" class="space-y-3">
-      <Button size="sm" class="self-start" data-testid="add-provider-back" @click="detail = null">
+      <Button
+        size="sm"
+        class="self-start"
+        data-testid="add-provider-back"
+        :disabled="openRouterPending"
+        @click="detail = null"
+      >
         {{ t('providerAccounts.catalogBack') }}
       </Button>
       <LocalAccountsPanel
@@ -115,6 +149,27 @@ function configureApi() {
         :focus="detail"
         @configure-api="configureApi"
       />
+      <div v-else-if="detail === 'openrouter'" class="space-y-3">
+        <p class="text-sm text-[var(--text-secondary)]">
+          {{ t('providerAccounts.openRouter.hint') }}
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <Button size="sm" :loading="openRouterPending" @click="connectOpenRouter">
+            {{ t('providerAccounts.openRouter.connect') }}
+          </Button>
+          <Button v-if="openRouterPending" size="sm" @click="cancelOpenRouter">
+            {{ t('common.cancel') }}
+          </Button>
+          <Button v-else size="sm" @click="configureApi">
+            {{ t('providerAccounts.useApiPreset') }}
+          </Button>
+        </div>
+        <p v-if="openRouterPending || openRouterFailed" role="status" class="text-xs">
+          {{
+            t(openRouterPending ? 'providerAccounts.browser' : 'providerAccounts.openRouter.failed')
+          }}
+        </p>
+      </div>
       <p
         v-else
         class="text-xs text-[var(--text-secondary)]"

@@ -104,6 +104,22 @@ it('keeps registrations isolated, serializes refresh and removes disconnected gr
   expect((await accounts.list()).map(({ id }) => id)).toEqual([second.id])
 })
 
+it('reports browser completion once, before the account is stored', async () => {
+  const { accounts } = await fixture()
+  const events: string[] = []
+  mocks.login.mockImplementationOnce(
+    async (interaction: { notify: (event: { type: string }) => void }) => {
+      interaction.notify({ type: 'progress' })
+      interaction.notify({ type: 'progress' })
+      events.push('login-returned')
+      return grant('saved')
+    }
+  )
+  await accounts.connect(openAuthorization, () => events.push('exchange'))
+  expect(events).toEqual(['exchange', 'login-returned'])
+  expect(await accounts.list()).toHaveLength(1)
+})
+
 it('fails closed without secure storage and with failed model authorization', async () => {
   const { accounts } = await fixture()
   mocks.available.mockReturnValueOnce(false)

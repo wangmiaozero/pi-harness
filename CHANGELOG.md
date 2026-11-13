@@ -2,6 +2,17 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.6 — 2026-11-13
+
+### Added
+
+- Connect an OpenRouter account in the browser or enter an API key.
+- Add more provider presets, including regional endpoints and coding plans. Open the provider’s key page directly from setup where available.
+
+### Fixed
+
+- ChatGPT sign-in uses the system proxy to exchange tokens and reports timeouts, OpenAI refusals, and account save failures.
+
 ## 2.4.5 — 2026-11-12
 
 Providers, ChatGPT accounts, and quota are managed together.

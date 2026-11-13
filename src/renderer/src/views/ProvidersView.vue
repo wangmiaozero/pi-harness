@@ -78,7 +78,14 @@ const catalogDetail = ref<AddCatalogSubscriptionId | null>(null)
 const catalogQuery = ref('')
 const chatGptAccounts = useChatGptAccounts()
 const configuredCatalogIds = computed(() => [
-  ...providersStore.items.map((provider) => provider.key),
+  ...providersStore.items.flatMap((provider) => [
+    provider.key,
+    findProviderPreset({
+      key: provider.key,
+      baseUrl: provider.baseUrl,
+      protocol: provider.protocol
+    })?.id ?? provider.key
+  ]),
   ...(chatGptAccounts.items.length > 0 ? ['chatgpt'] : [])
 ])
 onDeactivated(() => {
@@ -543,6 +550,19 @@ function openCatalog(detail: AddCatalogSubscriptionId | null = null) {
 function chooseCatalogPreset(presetId: string) {
   catalogOpen.value = false
   selectProviderPreset(presetId)
+}
+
+async function openAuthorizedProvider(key: string) {
+  catalogOpen.value = false
+  await Promise.all([providersStore.fetchList(), modelsStore.fetchList()])
+  const provider = providersStore.items.find((item) => item.key === key)
+  if (provider) openEdit(provider)
+}
+
+async function openPresetKeyPage(url: string) {
+  await getApi()
+    .system.openExternal(url)
+    .catch(() => toast.error(t('common.failed')))
 }
 
 function selectProviderPreset(presetId: string) {
@@ -1275,6 +1295,7 @@ onMounted(() => {
         :query="catalogQuery"
         @update:detail="catalogDetail = $event"
         @select-preset="chooseCatalogPreset"
+        @openrouter-connected="openAuthorizedProvider"
       />
     </Dialog>
 
@@ -1417,6 +1438,14 @@ onMounted(() => {
           <Button v-if="hasSavedSecret" size="sm" :loading="copyingApiKey" @click="copySavedApiKey">
             <Copy class="size-3.5 shrink-0" :stroke-width="1.75" />
             {{ $t('providerAccounts.copySavedKey') }}
+          </Button>
+          <Button
+            v-if="activePreset?.keyUrl"
+            size="sm"
+            data-testid="provider-key-page"
+            @click="openPresetKeyPage(activePreset.keyUrl)"
+          >
+            {{ $t('providerAccounts.getApiKey') }}
           </Button>
         </template>
 

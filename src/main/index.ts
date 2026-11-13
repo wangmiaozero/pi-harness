@@ -1,4 +1,5 @@
 import { ChatGptAccounts } from './services/chatgpt-accounts'
+import { OpenRouterAuthorization } from './services/openrouter-authorization'
 import { LocalAccountDiscovery } from './services/local-account-discovery'
 import { ProviderQuota } from './services/provider-quota'
 import { FileUndoService } from './harness/file-undo/file-undo-service'
@@ -281,6 +282,7 @@ async function bootstrap(): Promise<void> {
       .migrateManagedPlaintextKeys()
       .catch(() => log.config.warn('Stored provider key migration was not completed'))
   const chatGpt = new ChatGptAccounts(path.join(userData(), 'chatgpt-accounts.json'))
+  const openRouter = new OpenRouterAuthorization(providers)
   const localAccounts = new LocalAccountDiscovery()
   const providerQuota = new ProviderQuota(providers)
   void localAccounts.list()
@@ -698,6 +700,7 @@ async function bootstrap(): Promise<void> {
     config,
     providers,
     chatGpt,
+    openRouter,
     localAccounts,
     providerQuota,
     openCodeFree,
@@ -818,6 +821,7 @@ async function bootstrap(): Promise<void> {
     localAccounts.close()
     providerQuota.close()
     chatGpt.close()
+    openRouter.close()
     orchestrator.detach()
     petService?.stop()
     quitCleanup = (async () => {

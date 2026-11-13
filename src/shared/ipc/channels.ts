@@ -119,6 +119,8 @@ export const IPC_INVOKE = {
   chatGptAccounts: invoke('accounts:chatgpt'),
   chatGptConnect: invoke('accounts:chatgpt-connect'),
   chatGptCancel: invoke('accounts:chatgpt-cancel'),
+  openRouterConnect: invoke('accounts:openrouter-connect'),
+  openRouterCancel: invoke('accounts:openrouter-cancel'),
   chatGptCatalogRefresh: invoke('accounts:chatgpt-catalog-refresh'),
   chatGptModelEnabled: invoke('accounts:chatgpt-model-enabled'),
   chatGptDefaultModel: invoke('accounts:chatgpt-default-model'),
@@ -441,7 +443,8 @@ export const IPC_EVENT = {
   petState: 'pi-harness:pet:state',
   petConfig: 'pi-harness:pet:config',
   marketProgress: 'pi-harness:market:progress',
-  uiCommand: 'pi-harness:ui:command'
+  uiCommand: 'pi-harness:ui:command',
+  chatGptConnectProgress: 'pi-harness:accounts:chatgpt-connect-progress'
 } as const
 
 export type IpcEventName = (typeof IPC_EVENT)[keyof typeof IPC_EVENT]

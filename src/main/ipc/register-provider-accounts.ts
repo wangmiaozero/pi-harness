@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { IPC_INVOKE } from '@shared/ipc/channels'
+import { IPC_EVENT, IPC_INVOKE } from '@shared/ipc/channels'
+import { chatGptConnectProgressSchema } from '@shared/providers/connect-progress'
 import { providerKeySchema } from '@shared/schemas/domain'
 import {
   chatGptAccountIdSchema,
@@ -15,6 +16,7 @@ import type { HarnessRuntime } from '../harness/harness-runtime'
 import type { ChatGptAccounts } from '../services/chatgpt-accounts'
 import type { LocalAccountDiscovery } from '../services/local-account-discovery'
 import type { ProviderQuota } from '../services/provider-quota'
+import type { OpenRouterAuthorization } from '../services/openrouter-authorization'
 import { ValidationError } from '../services/errors'
 import type { IpcHandleRegistrar } from './trusted-ipc'
 
@@ -27,7 +29,8 @@ export function registerProviderAccounts(
   local: LocalAccountDiscovery,
   quota: ProviderQuota,
   harness: HarnessRuntime,
-  openAuthorization: (url: string) => Promise<void>
+  openAuthorization: (url: string) => Promise<void>,
+  openRouter?: Pick<OpenRouterAuthorization, 'connect' | 'cancel'>
 ): void {
   const route = <T, R>(channel: string, schema: z.ZodType<T>, run: (input: T) => R) =>
     ipc.handle(channel, (_event, input: unknown) =>
@@ -39,8 +42,24 @@ export function registerProviderAccounts(
     )
   route(IPC_INVOKE.localAccounts, localAccountsInputSchema, ({ refresh }) => local.list(refresh))
   route(IPC_INVOKE.chatGptAccounts, z.undefined(), () => chatGpt.list())
-  route(IPC_INVOKE.chatGptConnect, z.undefined(), () => chatGpt.connect(openAuthorization))
+  ipc.handle(IPC_INVOKE.chatGptConnect, (event, input: unknown) =>
+    wrap(async () => {
+      if (!z.undefined().safeParse(input).success)
+        throw new ValidationError('Invalid provider account request')
+      return chatGpt.connect(openAuthorization, () => {
+        if (event.sender.isDestroyed()) return
+        event.sender.send(
+          IPC_EVENT.chatGptConnectProgress,
+          chatGptConnectProgressSchema.parse({ phase: 'exchange' })
+        )
+      })
+    })
+  )
   route(IPC_INVOKE.chatGptCancel, z.undefined(), () => chatGpt.cancelLogin())
+  if (openRouter) {
+    route(IPC_INVOKE.openRouterConnect, z.undefined(), () => openRouter.connect(openAuthorization))
+    route(IPC_INVOKE.openRouterCancel, z.undefined(), () => openRouter.cancel())
+  }
   route(IPC_INVOKE.chatGptVerify, chatGptVerifySchema, ({ id, modelId }) =>
     chatGpt.verify(id, modelId)
   )

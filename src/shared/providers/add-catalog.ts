@@ -14,6 +14,7 @@ export type AddCatalogGroup = (typeof ADD_CATALOG_GROUPS)[number]
 
 export const ADD_CATALOG_SUBSCRIPTIONS = [
   { id: 'chatgpt', name: 'ChatGPT', cli: 'codex', support: 'oauth', apiPresetId: 'openai' },
+  { id: 'openrouter', name: 'OpenRouter', support: 'oauth', apiPresetId: 'openrouter' },
   { id: 'claude', name: 'Claude', cli: 'claude', support: 'cli', apiPresetId: 'anthropic' },
   { id: 'gemini', name: 'Gemini CLI', cli: 'gemini', support: 'cli', apiPresetId: 'google' },
   { id: 'copilot', name: 'GitHub Copilot', support: 'unsupported' }
@@ -84,7 +85,7 @@ const RELAY_IDS = new Set([
 const LOCAL_IDS = new Set(['ollama', 'lm-studio', 'lmstudio'])
 
 export function classifyAddPreset(
-  preset: Pick<ProviderPreset, 'id' | 'defaultBaseUrl'>,
+  preset: Pick<ProviderPreset, 'id' | 'defaultBaseUrl' | 'catalogGroup'>,
   partnerIds: readonly string[] = []
 ): AddCatalogGroup {
   if (partnerIds.includes(preset.id)) return 'partner'
@@ -94,7 +95,7 @@ export function classifyAddPreset(
     /^https?:\/\/(?:localhost|127\.0\.0\.1)(?=[:/]|$)/.test(preset.defaultBaseUrl)
   )
     return 'local'
-  if (RELAY_IDS.has(preset.id)) return 'relay'
+  if (preset.catalogGroup || RELAY_IDS.has(preset.id)) return 'relay'
   if (VENDOR_IDS.has(preset.id)) return 'vendor'
   return preset.defaultBaseUrl ? 'vendor' : 'custom'
 }

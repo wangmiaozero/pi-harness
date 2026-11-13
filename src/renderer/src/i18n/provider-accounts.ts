@@ -6,6 +6,12 @@ export const providerAccountsEn = {
   noCatalogMatch: 'No provider matches that search.',
   catalogBack: 'All providers',
   useApiPreset: 'Configure the API key',
+  getApiKey: 'Open API key page',
+  openRouter: {
+    hint: 'Authorize OpenRouter to create an API key for this app.',
+    connect: 'Continue with OpenRouter',
+    failed: 'OpenRouter could not be connected. Try again or enter an API key.'
+  },
   subscriptionAccounts: 'Subscriptions',
   catalogGroup: {
     partner: 'Partners',
@@ -17,7 +23,7 @@ export const providerAccountsEn = {
   },
   catalogHint: {
     partner: 'Sponsors with a preset this app can configure',
-    subscription: 'Sign in, no key',
+    subscription: 'Account sign-in and subscription options',
     vendor: 'The makers’ own APIs',
     relay: 'One key, many models',
     local: 'Running on this machine',
@@ -55,6 +61,15 @@ export const providerAccountsEn = {
     'Verified models appear in the chat model picker. Each account uses its own ChatGPT plan.',
   connect: 'Continue with ChatGPT',
   browser: 'Complete authorization in your browser.',
+  connectSaving: 'Browser authorization finished. Saving the account.',
+  connectProblem: {
+    timeout: 'ChatGPT authorization timed out. Check your network and try again.',
+    network: 'Pi-Harness could not reach OpenAI. Check the app or system proxy and try again.',
+    rejected: 'OpenAI rejected the token exchange (HTTP {status}).',
+    region:
+      'OpenAI rejected the token exchange because of the connection’s region (HTTP {status}).',
+    save: 'ChatGPT was authorized, but the account could not be saved on this device.'
+  },
   connectFailed: 'ChatGPT authorization did not complete.',
   actionFailed: 'The request failed. Check your account and try again.',
   disconnect: 'Disconnect',
@@ -164,6 +179,12 @@ export const providerAccountsZh: typeof providerAccountsEn = {
   noCatalogMatch: '没有匹配的提供商。',
   catalogBack: '全部提供商',
   useApiPreset: '改用 API 密钥',
+  getApiKey: '打开 API 密钥页面',
+  openRouter: {
+    hint: '授权 OpenRouter 为此应用创建 API 密钥。',
+    connect: '通过 OpenRouter 继续',
+    failed: '无法关联 OpenRouter。请重试或输入 API 密钥。'
+  },
   subscriptionAccounts: '订阅账户',
   catalogGroup: {
     partner: '合作伙伴',
@@ -175,7 +196,7 @@ export const providerAccountsZh: typeof providerAccountsEn = {
   },
   catalogHint: {
     partner: '能在这里完成配置的赞助预设',
-    subscription: '登录即可，无需密钥',
+    subscription: '账户登录与订阅接入',
     vendor: '模型厂商的 API',
     relay: '一个密钥，多家模型',
     local: '跑在这台机器上',
@@ -211,6 +232,14 @@ export const providerAccountsZh: typeof providerAccountsEn = {
   chatGptHint: '验证通过的模型会出现在对话模型选择器中。每个账户使用各自的 ChatGPT 订阅。',
   connect: '通过 ChatGPT 继续',
   browser: '请在浏览器中完成授权。',
+  connectSaving: '浏览器授权已完成，正在保存账户。',
+  connectProblem: {
+    timeout: 'ChatGPT 授权超时。请检查网络后重试。',
+    network: 'Pi-Harness 无法连接 OpenAI。请检查应用或系统代理后重试。',
+    rejected: 'OpenAI 拒绝了令牌交换（HTTP {status}）。',
+    region: 'OpenAI 因连接所在地区拒绝了令牌交换（HTTP {status}）。',
+    save: 'ChatGPT 已授权，但无法在本机保存账户。'
+  },
   connectFailed: 'ChatGPT 授权未完成。',
   actionFailed: '请求失败。请检查账户后重试。',
   disconnect: '解除关联',

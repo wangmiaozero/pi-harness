@@ -1,5 +1,6 @@
 import { expect, it, vi } from 'vitest'
-import { IPC_INVOKE } from '@shared/ipc/channels'
+import { IPC_EVENT, IPC_INVOKE } from '@shared/ipc/channels'
+import { readChatGptConnectProgress } from '@shared/providers/connect-progress'
 import { registerProviderAccounts } from './register-provider-accounts'
 import type { IpcHandleRegistrar } from './trusted-ipc'
 import type { HarnessRuntime } from '../harness/harness-runtime'
@@ -28,6 +29,9 @@ it('validates account, model, refresh and date range payloads before service cal
     async (_range: { start: number; end: number; timeZone: string }) => ({})
   )
   const clearUsageHistory = vi.fn(async () => undefined)
+  const openRouterConnect = vi.fn(async (_open: (url: string) => Promise<void>) => 'openrouter-id')
+  const openRouterCancel = vi.fn(() => {})
+  const openAuthorization = async () => {}
   registerProviderAccounts(
     ipc,
     (run) => run(),
@@ -43,10 +47,23 @@ it('validates account, model, refresh and date range payloads before service cal
     { list } as unknown as LocalAccountDiscovery,
     { read } as unknown as ProviderQuota,
     { usageReport, clearUsageHistory } as unknown as HarnessRuntime,
-    async () => {}
+    openAuthorization,
+    { connect: openRouterConnect, cancel: openRouterCancel }
   )
   const id = 'chatgpt-account-493957de-923a-4681-b5b6-d8de350c293a'
   const dispatch = (channel: string, input?: unknown) => handlers.get(channel)!(null, input)
+  await expect(
+    dispatch(IPC_INVOKE.openRouterConnect, { endpoint: 'http://localhost' })
+  ).rejects.toThrow('Invalid provider account request')
+  expect(openRouterConnect).not.toHaveBeenCalled()
+  await expect(dispatch(IPC_INVOKE.openRouterConnect)).resolves.toBe('openrouter-id')
+  expect(openRouterConnect).toHaveBeenCalledExactlyOnceWith(openAuthorization)
+  await expect(dispatch(IPC_INVOKE.openRouterCancel, null)).rejects.toThrow(
+    'Invalid provider account request'
+  )
+  expect(openRouterCancel).not.toHaveBeenCalled()
+  await dispatch(IPC_INVOKE.openRouterCancel)
+  expect(openRouterCancel).toHaveBeenCalledOnce()
   await dispatch(IPC_INVOKE.chatGptVerify, { id, modelId: 'gpt-5' })
   expect(verify).toHaveBeenCalledWith(id, 'gpt-5')
   await dispatch(IPC_INVOKE.chatGptCatalogRefresh, id)
@@ -107,4 +124,41 @@ it('validates account, model, refresh and date range payloads before service cal
   )
   await dispatch(IPC_INVOKE.providerUsageClear)
   expect(clearUsageHistory).toHaveBeenCalledTimes(1)
+})
+
+it('publishes the exchange event for a real connect and drops anything else', async () => {
+  const handlers = new Map<string, (event: unknown, input?: unknown) => Promise<unknown>>()
+  const ipc = {
+    handle: (channel: string, run: never) => handlers.set(channel, run)
+  } as IpcHandleRegistrar
+  const connect = vi.fn(async (_open: (url: string) => Promise<void>, onExchange?: () => void) => {
+    onExchange?.()
+  })
+  registerProviderAccounts(
+    ipc,
+    (run) => run(),
+    { connect } as unknown as ChatGptAccounts,
+    { list: vi.fn() } as unknown as LocalAccountDiscovery,
+    { read: vi.fn() } as unknown as ProviderQuota,
+    { usageReport: vi.fn(), clearUsageHistory: vi.fn() } as unknown as HarnessRuntime,
+    async () => {}
+  )
+  const send = vi.fn()
+  const event = { sender: { isDestroyed: () => false, send } }
+  await handlers.get(IPC_INVOKE.chatGptConnect)!(event, undefined)
+  expect(send).toHaveBeenCalledExactlyOnceWith(IPC_EVENT.chatGptConnectProgress, {
+    phase: 'exchange'
+  })
+  expect(readChatGptConnectProgress(send.mock.calls[0][1])).toEqual({ phase: 'exchange' })
+  send.mockClear()
+  const destroyed = { sender: { isDestroyed: () => true, send } }
+  await handlers.get(IPC_INVOKE.chatGptConnect)!(destroyed, undefined)
+  expect(send).not.toHaveBeenCalled()
+  await expect(
+    handlers.get(IPC_INVOKE.chatGptConnect)!(event, { url: 'http://localhost' })
+  ).rejects.toThrow('Invalid provider account request')
+  expect(connect).toHaveBeenCalledTimes(2)
+  expect(readChatGptConnectProgress({ phase: 'exchange', token: 'secret' })).toBeNull()
+  expect(readChatGptConnectProgress({ phase: 'done' })).toBeNull()
+  expect(readChatGptConnectProgress(null)).toBeNull()
 })

@@ -117,13 +117,41 @@ async function refresh(refresh = false) {
 async function connect() {
   connecting.value = true
   feedback.value = t('providerAccounts.browser')
+  const stop = getApi().accounts.onConnectProgress(() => {
+    feedback.value = t('providerAccounts.connectSaving')
+  })
   try {
     await getApi().accounts.connect()
     await accounts.load(true)
     feedback.value = ''
-  } catch {
-    feedback.value = t('providerAccounts.connectFailed')
+  } catch (error) {
+    const details = (
+      error as {
+        details?: { reason?: string; status?: number; upstreamCode?: string }
+      }
+    )?.details
+    switch (details?.reason) {
+      case 'cancelled':
+        feedback.value = ''
+        break
+      case 'rejected':
+        feedback.value = t(
+          details.upstreamCode === 'unsupported_country_region_territory'
+            ? 'providerAccounts.connectProblem.region'
+            : 'providerAccounts.connectProblem.rejected',
+          { status: details.status }
+        )
+        break
+      case 'timeout':
+      case 'network':
+      case 'save':
+        feedback.value = t(`providerAccounts.connectProblem.${details.reason}`)
+        break
+      default:
+        feedback.value = t('providerAccounts.connectFailed')
+    }
   } finally {
+    stop()
     connecting.value = false
   }
 }
