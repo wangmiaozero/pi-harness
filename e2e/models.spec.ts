@@ -88,6 +88,9 @@ test.describe('Models', () => {
     await expect(
       page.getByText(/请先添加提供商，再配置模型|Configure a provider before/)
     ).toBeVisible()
+    await expect(page.getByRole('button', { name: /新建模型|New model/ })).toBeDisabled()
+    await page.getByRole('button', { name: /新建提供商|New provider/ }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
   })
 
   test('keeps model actions aligned and fixed to the right', async ({ page }) => {
@@ -100,6 +103,16 @@ test.describe('Models', () => {
     const table = page.getByTestId('models-table-scroll')
     const actionCells = page.getByTestId('model-action-cell')
     await expect(actionCells).toHaveCount(2)
+    const summary = page.getByTestId('active-model-summary')
+    const create = page.getByRole('button', { name: /新建模型|New model/ })
+    await expect(summary).toContainText('2 / 2')
+    await expect(create).toHaveCSS('border-top-width', '0px')
+    const [summaryBox, createBox] = await Promise.all([summary.boundingBox(), create.boundingBox()])
+    expect(summaryBox!.x + summaryBox!.width).toBeLessThan(createBox!.x)
+    expect(summaryBox!.y + summaryBox!.height / 2).toBeCloseTo(
+      createBox!.y + createBox!.height / 2,
+      0
+    )
 
     const before = await actionCells.evaluateAll((cells) =>
       cells.map((cell) => cell.getBoundingClientRect().left)

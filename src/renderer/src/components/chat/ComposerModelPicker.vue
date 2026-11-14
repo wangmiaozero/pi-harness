@@ -30,6 +30,7 @@ const props = withDefaults(
     thinkingLevels?: string[]
     thinkingLabels?: Record<string, string>
     disabled?: boolean
+    switching?: boolean
   }>(),
   {
     defaultModel: '',
@@ -193,7 +194,7 @@ function revealVendor(label: string) {
 }
 
 function show() {
-  if (props.disabled || !props.options.length) return
+  if (props.disabled || props.switching || !props.options.length) return
   emit('interact')
   emit('open')
   showRecommended.value = Boolean(recommendedVendor.value)
@@ -228,7 +229,7 @@ function toggle() {
 }
 
 function pick(option: ModelOption) {
-  if (option.disabled || props.disabled) return
+  if (option.disabled || props.disabled || props.switching) return
   emit('interact')
   modelValue.value = option.value
   close(true)
@@ -290,6 +291,7 @@ watch(active, (visible) => {
       type="button"
       class="ui-select-trigger inline-flex h-[var(--height-select)] w-full items-center justify-start gap-2 rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2.5 text-left text-[13px] text-[var(--text-primary)] shadow-[var(--control-shadow)] transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:border-[var(--control-border-hover)] hover:bg-[var(--control-bg-hover)] focus:border-[var(--accent)] focus:bg-[var(--control-bg-hover)] focus:outline-none focus:shadow-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-45"
       :disabled="disabled"
+      :aria-disabled="switching || undefined"
       :aria-expanded="open"
       aria-haspopup="dialog"
       :aria-label="$t('workspace.model')"
@@ -370,6 +372,7 @@ watch(active, (visible) => {
           <button
             v-if="showRecommended"
             type="button"
+            data-testid="composer-browse-providers"
             class="shrink-0 rounded px-1.5 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
             @click="browseProviders"
           >

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, defineAsyncComponent, onDeactivated, onMounted, watch } from 'vue'
+import { ref, computed, defineAsyncComponent, onDeactivated, onMounted, provide, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -38,6 +38,7 @@ import { isLocalOllamaEndpoint } from '@shared/providers/local-ollama'
 import { providerIdentityUrlReady, suggestProviderIdentity } from '@shared/utils/provider-identity'
 import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
+import { flatButtonStyle } from '@renderer/components/ui/button-style'
 import Input from '@renderer/components/ui/Input.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
 import ProviderAdvancedFields from '@renderer/components/providers/ProviderAdvancedFields.vue'
@@ -76,6 +77,7 @@ const route = useRoute()
 const router = useRouter()
 const providersStore = useProvidersStore()
 const modelsStore = useModelsStore()
+provide(flatButtonStyle, true)
 
 const ProviderUsagePanel = defineAsyncComponent(
   () => import('@renderer/components/providers/ProviderUsagePanel.vue')
@@ -1139,6 +1141,7 @@ onMounted(() => {
       :scope="modelScope"
       :create-on-open="modelCreate"
       class="min-h-0 flex-1"
+      @add-provider="openCatalog()"
     />
     <div v-else class="flex-1 overflow-y-auto px-5 pt-4 pb-6 space-y-4">
       <SignedInAccountList @open="openCatalog('chatgpt')" />

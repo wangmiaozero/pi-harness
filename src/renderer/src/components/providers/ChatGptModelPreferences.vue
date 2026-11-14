@@ -145,24 +145,19 @@ async function commit() {
       }}</Button>
     </div>
     <div class="flex max-h-44 flex-wrap gap-1.5 overflow-y-auto py-0.5">
-      <button
+      <Button
         v-for="item in entries"
         :key="item.id"
-        type="button"
+        size="sm"
+        variant="ghost"
         :aria-pressed="selected.has(item.id)"
         :disabled="item.unsupported"
         :title="item.unsupported ? $t('providerAccounts.modelUnsupported') : item.id"
-        class="inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs focus-visible:outline focus-visible:outline-[var(--accent)] disabled:opacity-40"
-        :class="
-          selected.has(item.id)
-            ? 'border-[var(--accent)] bg-[var(--bg-selected)] text-[var(--text-primary)]'
-            : 'border-dashed border-[var(--border-default)] text-[var(--text-secondary)]'
-        "
         @click="toggle(item.id)"
       >
         <Check v-if="selected.has(item.id)" class="size-3" aria-hidden="true" />
         {{ item.name }}
-      </button>
+      </Button>
     </div>
     <div class="flex flex-wrap items-end gap-2">
       <Input

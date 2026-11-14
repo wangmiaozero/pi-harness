@@ -289,7 +289,7 @@
 
 :root:is([data-theme='macos27'], [data-theme='macos27-light'])
   :is(
-    .ui-button[data-variant='secondary'],
+    .ui-button[data-variant='secondary']:not([data-flat]),
     .ui-select-trigger,
     .ui-search-field,
     .ui-combobox-trigger,
@@ -305,7 +305,7 @@
 
 :root:is([data-theme='macos27'], [data-theme='macos27-light'])
   :is(
-    .ui-button[data-variant='secondary'],
+    .ui-button[data-variant='secondary']:not([data-flat]),
     .ui-select-trigger,
     .ui-search-field,
     .ui-combobox-trigger,

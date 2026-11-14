@@ -244,11 +244,16 @@ test.describe('Providers', () => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
 
     await page.locator('a[href="#/models"]').click()
+    await expect(page.getByTestId('mask-provider-accounts')).toHaveCSS('border-top-width', '0px')
     await page.getByTestId('add-provider').click()
     await page.getByTestId('add-provider-preset-deepseek').click()
 
     let dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
+    await expect(dialog.locator('button[data-variant="primary"]')).toHaveCSS(
+      'border-top-width',
+      '0px'
+    )
     await expect(dialog.getByLabel(/API 基础 URL|API Base URL/)).toBeHidden()
     await expect(dialog.getByLabel(/API 密钥$|API key$/)).toBeVisible()
     await dialog.getByTestId('provider-advanced-options').click()

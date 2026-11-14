@@ -1310,7 +1310,8 @@ onBeforeUnmount(() => {
               :default-model="recommendedDefault"
               :thinking-levels="thinkingStops"
               :thinking-labels="thinkingLabels"
-              :disabled="busy || modelSwitching"
+              :disabled="busy"
+              :switching="modelSwitching"
               @interact="emit('unlockAudio')"
             />
             <DropdownMenuRoot v-model:open="moreOpen" :modal="false">

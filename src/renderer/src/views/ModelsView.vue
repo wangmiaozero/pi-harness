@@ -62,6 +62,7 @@ const props = withDefaults(
     createOnOpen: false
   }
 )
+const emit = defineEmits<{ addProvider: [] }>()
 
 const { t, locale } = useI18n()
 const modelsStore = useModelsStore()
@@ -589,11 +590,11 @@ onMounted(async () => {
 
     <div
       v-else
-      class="flex h-[48px] shrink-0 items-center gap-3 border-b border-[var(--border-subtle)] px-5"
+      class="flex min-h-[48px] shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-[var(--border-subtle)] px-5 py-1.5"
     >
       <div
         v-if="modelsStore.items.length > 0"
-        class="flex min-w-0 flex-1 items-center gap-2"
+        class="flex min-w-[min(18rem,100%)] flex-1 items-center gap-2"
         data-testid="active-model-summary"
       >
         <span
@@ -627,14 +628,11 @@ onMounted(async () => {
           <span> / {{ modelsStore.items.length }} {{ $t('models.colModel') }}</span>
         </span>
       </div>
-      <div
-        class="flex shrink-0 items-center gap-2"
-        :class="{ 'ml-auto': modelsStore.items.length === 0 }"
-      >
+      <div class="ml-auto flex max-w-full items-center gap-2">
         <SearchField
           v-model="query"
           :placeholder="$t('models.filterPlaceholder')"
-          class="w-[220px]"
+          class="w-[220px] min-w-0"
         />
         <Button
           variant="primary"
@@ -683,11 +681,22 @@ onMounted(async () => {
       </div>
 
       <div
-        v-if="modelsStore.loading"
+        v-if="modelsStore.loading || providersStore.loading"
         class="py-12 text-center text-[11.5px] text-[var(--text-tertiary)]"
       >
         {{ $t('common.loading') }}
       </div>
+
+      <EmptyState
+        v-else-if="providersStore.items.length === 0"
+        :title="$t('models.providerRequired')"
+        :icon="Cpu"
+      >
+        <Button variant="primary" size="sm" class="mt-3" @click="emit('addProvider')">
+          <Plus class="size-3.5" :stroke-width="1.75" />
+          {{ $t('providers.create') }}
+        </Button>
+      </EmptyState>
 
       <EmptyState
         v-else-if="

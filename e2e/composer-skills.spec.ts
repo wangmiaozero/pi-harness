@@ -97,6 +97,13 @@ test('keeps the model submenu adjacent to its vendor panel', async ({ page }) =>
     await page.getByTestId('workspace-model-select').getByRole('button').click()
     const vendors = page.getByTestId('composer-vendor-panel')
     const models = page.getByTestId('composer-model-panel')
+    const recommended = models.locator('[data-testid="composer-browse-providers"]')
+    await expect(models).toBeVisible()
+    if (await recommended.isVisible()) {
+      await recommended.click()
+      await vendors.locator('[data-select-cascade-group]').first().click()
+    }
+    await expect(vendors).toBeVisible()
     await expect(models).toBeVisible()
     async function bottomGap() {
       const vendorBox = (await vendors.boundingBox())!
@@ -113,18 +120,27 @@ test('keeps the model submenu adjacent to its vendor panel', async ({ page }) =>
 test('closes the model picker after mouse or keyboard selection', async ({ page }) => {
   await page.locator('a[href="#/workspace"]').click()
   const trigger = page.getByTestId('workspace-model-select').getByRole('button')
-  for (const keyboard of [false, true]) {
+  const panel = page.getByTestId('composer-model-panel')
+  const vendors = page.getByTestId('composer-vendor-panel')
+  for (const [modelName, keyboard] of [
+    ['Claude Sonnet 4', false],
+    ['GPT-4o', true]
+  ] as const) {
     await trigger.click()
-    const option = page.getByRole('option').first()
-    const modelName = (await option.innerText()).trim()
+    await expect(panel).toBeVisible()
+    const browse = panel.getByTestId('composer-browse-providers')
+    if (await browse.isVisible()) await browse.click()
+    await vendors.getByRole('button', { name: keyboard ? /openai/i : /anthropic/i }).click()
+    const option = panel.getByRole('option', { name: modelName, exact: true })
+    await expect(option).toHaveAttribute('aria-selected', 'false')
     if (keyboard) {
       await option.focus()
       await option.press('Enter')
     } else {
       await option.click()
     }
-    await expect(page.getByTestId('composer-model-panel')).toHaveCount(0)
-    await expect(page.getByTestId('composer-vendor-panel')).toHaveCount(0)
+    await expect(panel).toHaveCount(0)
+    await expect(vendors).toHaveCount(0)
     await expect(trigger).toContainText(modelName)
     await expect(trigger).toBeFocused()
   }
