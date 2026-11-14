@@ -30,7 +30,8 @@ it('removes the retired OpenCode connection, its dedicated credentials and catal
             'opencode-free': { ...piProvider, baseUrl: 'https://opencode.ai/inference/openai/v1' },
             'opencode-go': { ...piProvider, baseUrl: 'https://opencode.ai/inference/go/openai/v1' },
             'opencode-zen': { ...piProvider, baseUrl: 'https://opencode.ai/inference/v1' },
-            custom: { ...piProvider, baseUrl: 'https://opencode.ai/inference/openai/v1' }
+            custom: { ...piProvider, baseUrl: 'https://opencode.ai/inference/openai/v1' },
+            'pi-harness-free': { ...piProvider, baseUrl: 'http://127.0.0.1:9/v1', apiKey: 'internal' }
           }
         }
       })
@@ -49,6 +50,7 @@ it('removes the retired OpenCode connection, its dedicated credentials and catal
       'opencode-go',
       'opencode-zen'
     ])
+    expect(removeProvider.mock.calls.map(([key]) => key)).not.toContain('pi-harness-free')
     expect(removeSecret.mock.calls.map(([slot]) => slot)).toEqual([
       'opencode-free-official',
       `opencode-key-${id}`

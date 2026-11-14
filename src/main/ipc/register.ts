@@ -41,6 +41,7 @@ import type { JsonStore } from '../services/storage'
 import type { PiConfigService } from '../pi/config-service'
 import type { ProviderService } from '../services/provider-service'
 import type { ModelService } from '../services/model-service'
+import { registerFreeModelHandlers } from '../services/free-models/free-model-service'
 import type { BackupService } from '../backup/backup-service'
 import type { SkillsService } from '../services/skills-service'
 import type { DiagnosticsService } from '../services/diagnostics-service'
@@ -146,6 +147,7 @@ export interface Services {
   openRouter?: import('../services/openrouter-authorization').OpenRouterAuthorization
   localAccounts?: LocalAccountDiscovery
   providerQuota?: ProviderQuota
+  freeModels?: import('../services/free-models/free-model-service').FreeModelService
   models: ModelService
   backup: BackupService
   skills: SkillsService
@@ -416,6 +418,7 @@ export function registerIpc(services: Services): void {
     registerLocalProviderGateway(ipcMain, wrap, services.providerGateway, (value) =>
       clipboard.writeText(value)
     )
+  if (services.freeModels) registerFreeModelHandlers(ipcMain, wrap, services.freeModels)
   ipcMain.handle(IPC_INVOKE.providerList, () => wrap(() => providers.list()))
   ipcMain.handle(IPC_INVOKE.providerGet, (_e, key: unknown) =>
     wrap(() => providers.get(parseInput(providerKeySchema, key, 'Invalid provider key')))

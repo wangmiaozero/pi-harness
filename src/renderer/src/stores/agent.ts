@@ -1,3 +1,4 @@
+import { FREE_PROVIDER_KEY } from '@shared/providers/free-models'
 import { useCompactionStore } from './compaction'
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
@@ -449,22 +450,27 @@ export const useAgentStore = defineStore('agent', () => {
       if (!sessionId) {
         if (!cwd) throw new Error('No project cwd')
         const accountSelection = useChatGptAccounts()
-        if (accountSelection.useAccountDefault && !accountSelection.draftModel && getApi().accounts)
+        const freeModel = useModelsStore().draftFreeModel
+        if (
+          !freeModel &&
+          accountSelection.useAccountDefault &&
+          !accountSelection.draftModel &&
+          getApi().accounts
+        )
           await accountSelection.load()
-        const accountDefault = accountSelection.draftModel
-          ? null
-          : accountSelection.defaultDraftModel
+        const accountDefault =
+          freeModel || accountSelection.draftModel ? null : accountSelection.defaultDraftModel
         const accountModel = accountDefault ? null : accountSelection.effectiveDraftModel
         const started = await callApi(() =>
           getApi().agent.start({
             cwd,
-            ...accountModel,
+            ...(freeModel ? { provider: FREE_PROVIDER_KEY, modelId: freeModel } : accountModel),
             ...(accountDefault
               ? { chatGptDefault: { id: accountDefault.provider, modelId: accountDefault.modelId } }
               : {}),
             toolNames: getToolNamesForPreset(preset),
             ...(thinkingLevel.value !== 'auto'
-              ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value) }
+              ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value, Boolean(freeModel)) }
               : {}),
             ...(permissionMode ? { permissionMode } : {})
           })
@@ -514,7 +520,12 @@ export const useAgentStore = defineStore('agent', () => {
             ...(permissionMode ? { permissionMode } : {}),
             toolNames: getToolNamesForPreset(preset),
             ...(thinkingLevel.value !== 'auto'
-              ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value) }
+              ? {
+                  thinkingLevel: resolveActivePiThinking(
+                    thinkingLevel.value,
+                    snap?.model?.provider === FREE_PROVIDER_KEY
+                  )
+                }
               : {})
           })
         )
@@ -859,7 +870,8 @@ function flushQueuedCompaction(sessionId: string): void {
   void useCompactionStore().flushPending(sessionId)
 }
 
-function resolveActivePiThinking(level: string): string {
+function resolveActivePiThinking(level: string, useFreeModel = false): string {
+  if (useFreeModel) return resolveThinkingLevel({ requested: level })
   const models = useModelsStore()
   const model = models.items.find(
     (item) =>

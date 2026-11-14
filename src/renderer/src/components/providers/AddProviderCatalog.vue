@@ -12,7 +12,6 @@ import { Heart } from '@lucide/vue'
 import Button from '@renderer/components/ui/Button.vue'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import LocalAccountsPanel from '@renderer/components/providers/LocalAccountsPanel.vue'
-import SignedInAccountList from '@renderer/components/providers/SignedInAccountList.vue'
 import { getApi } from '@renderer/composables/useApi'
 
 const iconFiles = import.meta.glob('../../assets/provider-icons/*.svg', {
@@ -227,7 +226,6 @@ function openSponsor(url: string) {
       </p>
     </div>
     <template v-else>
-      <SignedInAccountList @open="detail = 'chatgpt'" />
       <section v-if="sponsorSection" class="pt-1" data-testid="sponsor-section">
         <div class="flex items-center gap-2 px-2 pb-1.5">
           <h3 class="text-[13px] font-semibold text-[var(--text-primary)]">

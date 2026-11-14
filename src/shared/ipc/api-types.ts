@@ -1014,6 +1014,14 @@ export interface PiSwitchAPI {
     copyInstallCommand(): Promise<string>
     openNodeDownload(): Promise<void>
   }
+  freeModels: {
+    snapshot(): Promise<import('../providers/free-models').FreeModelSnapshot>
+    refresh(): Promise<import('../providers/free-models').FreeModelSnapshot>
+    acceptPrivacy(): Promise<import('../providers/free-models').FreeModelSnapshot>
+    onChange(
+      listener: (snapshot: import('../providers/free-models').FreeModelSnapshot) => void
+    ): () => void
+  }
   accounts: {
     local(input: { refresh: boolean }): Promise<LocalAccount[]>
     chatGpt(): Promise<ChatGptAccount[]>

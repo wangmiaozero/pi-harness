@@ -5,6 +5,7 @@
 import type { DiscoveredProviderModel, ProviderProfile } from '@shared/types/domain'
 import type { ProviderForm, ProviderModelDiscoveryInput } from '@shared/schemas/domain'
 import { providerFormSchema, providerModelDiscoverySchema } from '@shared/schemas/domain'
+import { FREE_PROVIDER_KEY } from '@shared/providers/free-models'
 import type { JsonStore } from '../services/storage'
 import type { AppMetadata } from '../services/metadata-store'
 import { NetworkError, NotFoundError, ValidationError } from '../services/errors'
@@ -64,12 +65,14 @@ export class ProviderService {
   async list(): Promise<ProviderProfile[]> {
     const snap = await this.config.read()
     const meta = await this.metadata.read()
-    return Object.entries(snap.models.providers).map(([key, pi]) =>
-      providerToDomain(key, pi, {
-        ...meta.providers[key],
-        enabled: true
-      })
-    )
+    return Object.entries(snap.models.providers)
+      .filter(([key]) => key !== FREE_PROVIDER_KEY)
+      .map(([key, pi]) =>
+        providerToDomain(key, pi, {
+          ...meta.providers[key],
+          enabled: true
+        })
+      )
   }
 
   async get(key: string): Promise<ProviderProfile | null> {

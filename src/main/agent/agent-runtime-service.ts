@@ -1,3 +1,5 @@
+import { FREE_PROVIDER_KEY } from '@shared/providers/free-models'
+import type { FreeModelService } from '../services/free-models/free-model-service'
 import { loadManagedProviderKeys } from '../pi/managed-provider-keys'
 /**
  * AgentSession registry + runtime. Runs exclusively in Electron Main.
@@ -110,7 +112,8 @@ export class AgentSessionWrapper {
     private readonly forkSession?: (
       entryId: string
     ) => Promise<{ cancelled: boolean; newSessionId?: string; newSessionFile?: string }>,
-    private readonly syncChatGpt?: () => Promise<void>
+    private readonly syncChatGpt?: () => Promise<void>,
+    private readonly syncFreeModels?: (modelId?: string) => Promise<void>
   ) {
     if (inner.autoCompactionEnabled === false) inner.setAutoCompactionEnabled(true)
     this.installFileToolEnforcement()
@@ -329,6 +332,7 @@ export class AgentSessionWrapper {
         const modelId = String(command.modelId ?? '')
         await this.inner.modelRuntime.refresh({ allowNetwork: false })
         if (provider.startsWith(CHATGPT_PROVIDER_PREFIX)) await this.syncChatGpt?.()
+        if (provider === FREE_PROVIDER_KEY) await this.syncFreeModels?.(modelId)
         const model = this.inner.modelRuntime.getModel(provider, modelId)
         if (!model) throw new AgentError(`Model not found: ${provider}/${modelId}`)
         const resolvedInput = resolveModelInput({
@@ -802,7 +806,8 @@ export class AgentRuntimeService implements AgentRuntime {
       providerSettings?: DesktopSessionContext['providerSettings']
       providerNetwork?: DesktopSessionContext['providerNetwork']
     },
-    private readonly chatGpt?: ChatGptAccounts
+    private readonly chatGpt?: ChatGptAccounts,
+    private readonly freeModels?: FreeModelService
   ) {}
 
   diagnostics(): { implementation: 'pi'; sdkLoaded: boolean } {
@@ -1147,6 +1152,19 @@ export class AgentRuntimeService implements AgentRuntime {
         }
       : undefined
     await syncChatGpt?.()
+    const freeModels = this.freeModels
+    let registeredFreeModels = ''
+    const syncFreeModels = freeModels
+      ? async (id?: string, restore = false) => {
+          if (id && !restore) await freeModels.assertSelectable(id)
+          const registration = await freeModels.registration(restore ? id : undefined)
+          const stamp = JSON.stringify(registration)
+          if (registration && stamp !== registeredFreeModels) {
+            services.modelRuntime.registerProvider(FREE_PROVIDER_KEY, registration)
+            registeredFreeModels = stamp
+          }
+        }
+      : undefined
     const toolNames = input.toolNames
     const toolsOption =
       toolNames !== undefined ? (toolNames.length === 0 ? [] : undefined) : undefined
@@ -1164,6 +1182,11 @@ export class AgentRuntimeService implements AgentRuntime {
         })
     if (intended.provider && unavailableKeys.has(intended.provider))
       throw new AgentError('The saved API key is unavailable for the selected provider')
+    if (intended.provider === FREE_PROVIDER_KEY) {
+      await syncFreeModels?.(intended.modelId, Boolean(input.sessionId))
+      model = services.modelRuntime.getModel(FREE_PROVIDER_KEY, intended.modelId ?? '')
+      if (!model) throw new AgentError('Pi could not restore the free model.')
+    }
     if (intended.provider?.startsWith(CHATGPT_PROVIDER_PREFIX)) {
       model = services.modelRuntime.getModel(intended.provider, intended.modelId ?? '')
       if (!model || !(await chatGpt?.hasSelectableModel(intended.provider, model.id)))
@@ -1225,7 +1248,8 @@ export class AgentRuntimeService implements AgentRuntime {
               })
         }
       },
-      syncChatGpt
+      syncChatGpt,
+      syncFreeModels
     )
     nativeRuntime.setBeforeSessionInvalidate(() => wrapper.detach())
     if (toolNames?.length === 0) wrapper.setForceEmptySystemPrompt(true)

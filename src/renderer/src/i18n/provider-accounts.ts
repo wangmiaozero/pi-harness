@@ -37,12 +37,9 @@ export const providerAccountsEn = {
     custom: 'An OpenAI or Anthropic compatible URL'
   },
   subscriptionLimit: {
-    claude:
-      'A Claude Code login is not an Anthropic API key, and this app does not reuse that subscription for Pi calls. The status below is only the local CLI. Use an Anthropic API key to call Claude.',
-    gemini:
-      'A Gemini CLI login is not reused here. The status below is only whether the CLI is installed. Use a Gemini API key to call Gemini.',
-    copilot:
-      'GitHub Copilot subscription sign-in is not available. This app does not start a Copilot device login or reuse a Copilot plan.'
+    claude: 'Configure an Anthropic API key to use Claude in Pi conversations.',
+    gemini: 'Configure a Gemini API key to use Gemini in Pi conversations.',
+    copilot: 'Pi-Harness does not currently support GitHub Copilot subscription sign-in.'
   },
   advancedOptions: 'Advanced settings',
   testConnection: 'Test connection',
@@ -105,6 +102,29 @@ export const providerAccountsEn = {
   allowanceLoading: 'Reading this account’s allowance and reset times.',
   allowanceUnread: 'This account’s allowance and reset times could not be read.',
   signedInAccount: 'Signed in as {email} · {count} models',
+  freeModels: 'Free Models',
+  freeEmpty: 'No free model with tool support is listed.',
+  freeLoading: 'Loading the Kilo catalog…',
+  freeBlocked: 'The listed free models are temporarily unavailable.',
+  freeRetryAt: 'Try again after {time}',
+  freeOffline: 'Could not load the Kilo catalog. Check your connection and refresh.',
+  freeRefresh: 'Refresh',
+  freePrivacyTitle: 'Free models may keep prompts',
+  freePrivacy:
+    'These models are reached without an API key. Kilo and the model provider may retain prompts, files, and tool results to operate or improve the free service. Continue only with text you are willing to send there.',
+  freePrivacyContinue: 'Continue',
+  freeThinking: 'thinking',
+  freeNoTools: 'cannot call tools',
+  freeStatus: {
+    unverified: 'listed, not yet tried',
+    available: 'recently verified',
+    cached: 'cached list',
+    region: 'may be blocked in this region',
+    limited: 'rate limited',
+    quota: 'free quota exhausted',
+    upstream: 'upstream unavailable',
+    unavailable: 'unavailable'
+  },
   disconnect: 'Disconnect',
   disconnectHint: 'Disconnect this ChatGPT account and remove its models?',
   revocationUnconfirmed: 'Account removed locally. Check ChatGPT settings to confirm revocation.',
@@ -300,11 +320,9 @@ export const providerAccountsZh: typeof providerAccountsEn = {
     custom: 'OpenAI 或 Anthropic 兼容地址'
   },
   subscriptionLimit: {
-    claude:
-      'Claude Code 的登录不能当作 Anthropic API Key，也不能直接拿来给 Pi 调用。下面只显示本机 CLI 状态。要调用 Claude，请配置 Anthropic API 密钥。',
-    gemini:
-      'Gemini CLI 的登录目前不能在这里复用。下面只显示 CLI 是否安装。要调用 Gemini，请配置 Gemini API 密钥。',
-    copilot: '当前不能登录或复用 GitHub Copilot 订阅。这里没有 Copilot 设备码授权。'
+    claude: '配置 Anthropic API 密钥后，即可在 Pi 对话中使用 Claude。',
+    gemini: '配置 Gemini API 密钥后，即可在 Pi 对话中使用 Gemini。',
+    copilot: 'Pi-Harness 暂未接入 GitHub Copilot 订阅登录。'
   },
   advancedOptions: '高级设置',
   testConnection: '测试连接',
@@ -365,6 +383,29 @@ export const providerAccountsZh: typeof providerAccountsEn = {
   allowanceLoading: '正在读取这个账户的额度和重置时间。',
   allowanceUnread: '还没有读到这个账户的额度和重置时间。',
   signedInAccount: '已登录 {email} · {count} 个模型',
+  freeModels: '免费模型',
+  freeEmpty: '当前目录没有支持工具调用的免费模型。',
+  freeLoading: '正在读取 Kilo 模型目录…',
+  freeBlocked: '列表中的免费模型暂不可用。',
+  freeRetryAt: '{time} 后可重试',
+  freeOffline: '无法读取 Kilo 目录，请检查网络后刷新。',
+  freeRefresh: '刷新',
+  freePrivacyTitle: '免费模型可能会保留提示词',
+  freePrivacy:
+    '这些模型不需要 API Key。Kilo 和模型提供方可能会保留提示词、文件和工具结果，用于运营或改进免费服务。只发送你愿意交给对方的内容。',
+  freePrivacyContinue: '继续',
+  freeThinking: '可思考',
+  freeNoTools: '不能调用工具',
+  freeStatus: {
+    unverified: '已列出，尚未试过',
+    available: '近期验证可用',
+    cached: '上次的列表',
+    region: '当前地区可能不可用',
+    limited: '请求暂时受限',
+    quota: '免费额度已用完',
+    upstream: '上游暂不可用',
+    unavailable: '不可用'
+  },
   disconnect: '解除关联',
   disconnectHint: '解除此 ChatGPT 账户关联并移除其模型？',
   revocationUnconfirmed: '已解除本机关联。请在 ChatGPT 设置中确认授权是否已撤销。',

@@ -1,3 +1,5 @@
+import { FREE_PROVIDER_KEY } from '@shared/providers/free-models'
+import type { FreeModelService } from '../services/free-models/free-model-service'
 import { CHATGPT_PROVIDER_PREFIX } from '@shared/providers/account-management'
 import type { ChatGptAccounts } from '../services/chatgpt-accounts'
 import { ChatGptResponsesBridge } from './chatgpt-responses-bridge'
@@ -112,6 +114,7 @@ export class PiRpcRuntime implements HarnessAdapter {
       extensionPath: string
       configDir: () => string
       chatGpt?: Pick<ChatGptAccounts, 'list' | 'hasSelectableModel' | 'fetchResponses'>
+      freeModels?: FreeModelService
       workspace?: ConstructorParameters<typeof AgentRuntimeService>[1]
     }
   ) {
@@ -235,6 +238,8 @@ export class PiRpcRuntime implements HarnessAdapter {
         !(await this.options.chatGpt?.hasSelectableModel(intended.provider, intended.modelId)))
     )
       throw new AgentError('ChatGPT model is unavailable. Select another model to continue.')
+    const freeSelected = intended?.provider === FREE_PROVIDER_KEY
+    if (freeSelected && !file) await this.options.freeModels?.assertSelectable(intended?.modelId)
     if (!cwd) throw new AgentError('A workspace is required')
     await this.options.workspace?.prepareSession?.(id, cwd)
     await assertMcpNodeExecution(this.runtimes, agentDir, cwd)
@@ -297,6 +302,12 @@ export class PiRpcRuntime implements HarnessAdapter {
         await slot?.release?.()
         return null
       }
+      if (method === 'free_models')
+        return (
+          this.options.freeModels?.registration(
+            freeSelected && file ? intended?.modelId : undefined
+          ) ?? null
+        )
       if (method === 'chatgpt_accounts') return this.options.chatGpt?.list() ?? []
       if (method === 'managed_provider_keys') return managedKeys
       if (method === 'chatgpt_transport') return this.chatGptBridge?.start() ?? null
@@ -419,9 +430,10 @@ export class PiRpcRuntime implements HarnessAdapter {
     const args = ['--mode', 'rpc', '--extension', this.options.extensionPath]
     if (file) args.push('--session', file)
     else args.push('--session-id', id)
-    if (chatGptSelected) args.push('--provider', intended!.provider, '--model', intended!.modelId!)
+    if (chatGptSelected || freeSelected)
+      args.push('--provider', intended!.provider, '--model', intended!.modelId!)
     else if (input.provider) args.push('--provider', input.provider)
-    if (input.modelId && !chatGptSelected) args.push('--model', input.modelId)
+    if (input.modelId && !chatGptSelected && !freeSelected) args.push('--model', input.modelId)
     if (input.thinkingLevel && input.thinkingLevel !== 'auto')
       args.push('--thinking', input.thinkingLevel)
     if (input.toolNames?.length === 0) args.push('--no-tools')
@@ -473,11 +485,13 @@ export class PiRpcRuntime implements HarnessAdapter {
         model?: { provider: string; id: string }
       }
       if (
-        chatGptSelected &&
+        (chatGptSelected || freeSelected) &&
         (state.model?.provider !== intended?.provider || state.model?.id !== intended?.modelId)
       )
         throw new AgentError(
-          'Pi could not select the ChatGPT model. Select another model to continue.'
+          freeSelected
+            ? 'Pi could not restore the free model.'
+            : 'Pi could not select the ChatGPT model. Select another model to continue.'
         )
       let readyTimer: ReturnType<typeof setTimeout> | undefined
       try {
@@ -866,6 +880,10 @@ export class PiRpcRuntime implements HarnessAdapter {
         })
       }
       case 'set_model':
+        if (command.provider === FREE_PROVIDER_KEY) {
+          await this.options.freeModels?.assertSelectable(String(command.modelId ?? ''))
+          await live.bridge.request('free_models_sync')
+        }
         if (String(command.provider ?? '').startsWith(CHATGPT_PROVIDER_PREFIX))
           await live.bridge.request('chatgpt_sync')
         return live.client.request({

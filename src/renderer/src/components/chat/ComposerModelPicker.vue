@@ -22,7 +22,7 @@ interface VendorGroup {
 
 const modelValue = defineModel<string>('model', { required: true })
 const thinkingValue = defineModel<string>('thinking', { required: true })
-const emit = defineEmits<{ interact: []; open: [] }>()
+const emit = defineEmits<{ interact: []; open: []; refresh: [] }>()
 const props = withDefaults(
   defineProps<{
     options: ModelOption[]
@@ -31,12 +31,17 @@ const props = withDefaults(
     thinkingLabels?: Record<string, string>
     disabled?: boolean
     switching?: boolean
+    refreshGroup?: string
+    refreshLabel?: string
+    refreshing?: boolean
   }>(),
   {
     defaultModel: '',
     thinkingLevels: () => composerThinkingLevels(),
     thinkingLabels: () => ({}),
-    disabled: false
+    disabled: false,
+    refreshGroup: '',
+    refreshLabel: ''
   }
 )
 
@@ -209,6 +214,11 @@ function show() {
   })
 }
 
+function browseFree() {
+  showRecommended.value = false
+  revealVendor(props.refreshGroup)
+}
+
 function browseProviders() {
   showRecommended.value = false
   openVendor.value = null
@@ -245,6 +255,33 @@ function onPointerDown(event: PointerEvent) {
     return
   }
   close()
+}
+
+function onModelKeydown(event: KeyboardEvent) {
+  if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) return
+  const options = [
+    ...(modelPanel.value?.querySelectorAll<HTMLButtonElement>(
+      'button[role="option"]:not(:disabled)'
+    ) ?? [])
+  ]
+  const index = options.indexOf(document.activeElement as HTMLButtonElement)
+  if (event.key === 'Enter') {
+    if (event.target === searchInput.value) {
+      event.preventDefault()
+      options[0]?.click()
+    }
+    return
+  }
+  if (event.target !== searchInput.value && index < 0) return
+  event.preventDefault()
+  const next =
+    event.key === 'ArrowDown'
+      ? Math.min(index + 1, options.length - 1)
+      : index < 0
+        ? options.length - 1
+        : index - 1
+  if (next < 0) searchInput.value?.focus()
+  else options[next]?.focus()
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -364,11 +401,22 @@ watch(active, (visible) => {
         class="composer-model-picker ui-select-menu pointer-events-auto fixed z-[121] flex w-80 flex-col gap-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
         :style="modelStyle"
         @pointerdown.stop
+        @keydown="onModelKeydown"
       >
         <div class="flex shrink-0 items-center justify-between gap-2 px-2 py-1.5">
           <span class="truncate text-[13px] text-[var(--text-secondary)]">
             {{ showRecommended ? $t('providerAccounts.chooseModel') : activeVendor?.label }}
           </span>
+          <button
+            v-if="refreshLabel && activeVendor?.label === refreshGroup"
+            type="button"
+            class="shrink-0 rounded px-1.5 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+            data-testid="composer-free-refresh"
+            :disabled="refreshing"
+            @click="emit('refresh')"
+          >
+            {{ refreshLabel }}
+          </button>
           <button
             v-if="showRecommended"
             type="button"
@@ -395,6 +443,24 @@ watch(active, (visible) => {
             :aria-label="$t('workspace.modelSearchPlaceholder')"
           />
         </div>
+        <button
+          v-if="
+            showRecommended &&
+            refreshGroup &&
+            vendors.some((vendor) => vendor.label === refreshGroup)
+          "
+          type="button"
+          data-testid="composer-free-group"
+          class="flex w-full items-center gap-2 rounded-[var(--radius-xs)] px-2 py-1.5 text-left text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+          @click="browseFree"
+        >
+          <span class="min-w-0 flex-1 truncate">{{ refreshGroup }}</span>
+          <ChevronRight
+            aria-hidden="true"
+            class="size-3.5 shrink-0 text-[var(--text-tertiary)]"
+            :stroke-width="1.75"
+          />
+        </button>
         <button
           v-if="showRecommended && defaultChoice"
           type="button"

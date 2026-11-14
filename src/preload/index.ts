@@ -167,6 +167,12 @@ const api: PiSwitchAPI = {
     copyInstallCommand: () => invoke(IPC_INVOKE.piCopyInstallCommand),
     openNodeDownload: () => invoke(IPC_INVOKE.piOpenNodeDownload)
   },
+  freeModels: {
+    snapshot: () => invoke(IPC_INVOKE.freeModelsSnapshot),
+    refresh: () => invoke(IPC_INVOKE.freeModelsRefresh),
+    acceptPrivacy: () => invoke(IPC_INVOKE.freeModelsAcceptPrivacy),
+    onChange: (listener) => onEvent(IPC_EVENT.freeModelsChanged, listener as IpcEventListener)
+  },
   accounts: {
     local: (input) => invoke(IPC_INVOKE.localAccounts, input),
     chatGpt: () => invoke(IPC_INVOKE.chatGptAccounts),

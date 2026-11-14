@@ -1,4 +1,8 @@
 import { ChatGptAccounts } from './services/chatgpt-accounts'
+import {
+  FreeModelService,
+  removeLegacyFreeModelGateway
+} from './services/free-models/free-model-service'
 import { LocalProviderGateway } from './services/local-provider-gateway'
 import { OpenRouterAuthorization } from './services/openrouter-authorization'
 import { LocalAccountDiscovery } from './services/local-account-discovery'
@@ -292,6 +296,13 @@ async function bootstrap(): Promise<void> {
   const providerQuota = new ProviderQuota(providers)
   void localAccounts.list()
   const models = new ModelService(config, metadata)
+  const freeModels = new FreeModelService(path.join(userData(), 'free-models'), (snapshot) => {
+    if (mainWindow && !mainWindow.isDestroyed())
+      mainWindow.webContents.send(IPC_EVENT.freeModelsChanged, snapshot)
+  })
+  void removeLegacyFreeModelGateway(config).catch(() =>
+    log.config.warn('Could not remove retired built-in free model gateway')
+  )
   const access = new FileAccessService(authorizedRootsStore)
   const packageManager = new PiPackageManager(settingsStore, config, access)
   const packageRegistry = new PiPackageRegistry(
@@ -498,7 +509,7 @@ async function bootstrap(): Promise<void> {
       }
     }
   }
-  const piAgent = new AgentRuntimeService(sessions, desktopHooks, chatGpt)
+  const piAgent = new AgentRuntimeService(sessions, desktopHooks, chatGpt, freeModels)
   let rpcAgent: PiRpcRuntime | null = null
   const runtimes = new RuntimeManager({
     bundledRoot: app.isPackaged
@@ -534,6 +545,7 @@ async function bootstrap(): Promise<void> {
       : path.resolve(import.meta.dirname, '../../resources/desktop-extension/index.mjs'),
     configDir: () => getPiConfigDir(settingsStore.peek().manualConfigDir),
     chatGpt,
+    freeModels,
     workspace: desktopHooks
   })
   const harness = new HarnessRuntime(
@@ -721,6 +733,7 @@ async function bootstrap(): Promise<void> {
     openRouter,
     localAccounts,
     providerQuota,
+    freeModels,
     models,
     backup,
     skills,
@@ -838,6 +851,7 @@ async function bootstrap(): Promise<void> {
     localAccounts.close()
     providerQuota.close()
     chatGpt.close()
+    const stopFreeModels = freeModels.stop()
     openRouter.close()
     orchestrator.detach()
     petService?.stop()
@@ -850,6 +864,7 @@ async function bootstrap(): Promise<void> {
         await harness.shutdownAll()
       } finally {
         const results = await Promise.allSettled([
+          stopFreeModels,
           sessions.close(),
           intelligence.close(),
           universal.close(),

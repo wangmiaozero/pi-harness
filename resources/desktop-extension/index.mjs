@@ -138,6 +138,15 @@ export default async function desktopExtension(pi) {
       return postToHost(url, token, { 'x-chatgpt-account': id, 'x-chatgpt-model': modelId }, init)
     }
   )
+  let freeModelsStamp
+  async function syncFreeModels() {
+    const definition = await request('free_models')
+    const stamp = JSON.stringify(definition)
+    if (definition && stamp !== freeModelsStamp) {
+      pi.registerProvider('pi-harness-free', definition)
+      freeModelsStamp = stamp
+    }
+  }
   socket.on('error', () => {})
   socket.on('close', () => {
     for (const item of pending.values()) {
@@ -152,6 +161,7 @@ export default async function desktopExtension(pi) {
   })
   async function handle(method, params) {
     if (!context) throw new Error('Desktop extension is not ready')
+    if (method === 'free_models_sync') return syncFreeModels()
     if (method === 'chatgpt_sync') return syncChatGpt()
     if (method === 'snapshot')
       return {
@@ -244,6 +254,7 @@ export default async function desktopExtension(pi) {
     }
   })
   await syncChatGpt()
+  await syncFreeModels()
   for (const { provider, baseUrl, apiKey } of await request('managed_provider_keys')) {
     if (!apiKey || !baseUrl) continue
     // Pi's config values interpolate dollar signs and treat a leading ! as a command.

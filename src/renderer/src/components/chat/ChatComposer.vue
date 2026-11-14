@@ -28,6 +28,11 @@ import { useAgentStore } from '@renderer/stores/agent'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useChatGptAccounts } from '@renderer/stores/chatgpt-accounts'
 import { isSelectableChatGptModel, orderChatGptModels } from '@shared/providers/account-management'
+import {
+  FREE_PROVIDER_KEY,
+  type FreeModelSnapshot,
+  type FreeModelStatus
+} from '@shared/providers/free-models'
 import { getOfficialModelGroup, officialModelRank } from '@shared/providers/official-model-groups'
 import { useModelsStore } from '@renderer/stores/models'
 import { useProvidersStore } from '@renderer/stores/providers'
@@ -190,8 +195,65 @@ function focus() {
 
 defineExpose({ focus })
 
+const freeSnapshot = ref<FreeModelSnapshot>({
+  models: [],
+  fetchedAt: null,
+  stale: false,
+  refreshing: false,
+  privacyAccepted: false,
+  catalog: 'loading'
+})
+const pendingFreeModel = ref<{ value: string; sessionId: string | null } | null>(null)
+let stopFreeModels: (() => void) | undefined
+
+function loadFreeSnapshot() {
+  void getApi()
+    .freeModels?.snapshot()
+    .then((snapshot) => {
+      freeSnapshot.value = snapshot
+    })
+    .catch(() => {
+      freeSnapshot.value.catalog = 'offline'
+    })
+}
+
+onMounted(() => {
+  const api = getApi().freeModels
+  stopFreeModels = api?.onChange((snapshot) => {
+    freeSnapshot.value = snapshot
+  })
+  loadFreeSnapshot()
+})
+onBeforeUnmount(() => stopFreeModels?.())
+
+async function refreshFreeModels() {
+  try {
+    freeSnapshot.value = await getApi().freeModels.refresh()
+  } catch {
+    toast.error(t('providerAccounts.freeEmpty'))
+  }
+}
+
+async function acceptFreePrivacy() {
+  const selection = pendingFreeModel.value
+  pendingFreeModel.value = null
+  try {
+    freeSnapshot.value = await getApi().freeModels.acceptPrivacy()
+  } catch {
+    return
+  }
+  if (selection && selection.sessionId === sessions.currentId) modelValue.value = selection.value
+}
+
 const modelOptions = computed(() => {
-  const options = models.items
+  const options: Array<{
+    value: string
+    label: string
+    group: string
+    description?: string
+    disabled?: boolean
+    recommendationRank?: number
+  }> = models.items
     .filter((model) => model.enabled)
     .map((model) => {
       const provider = providers.items.find((item) => item.id === model.providerId)
@@ -217,6 +279,49 @@ const modelOptions = computed(() => {
       })
     }
   }
+  const group = t('providerAccounts.freeModels')
+  const freeRows = [...freeSnapshot.value.models].sort((a, b) => {
+    const rank = (row: typeof a) => (row.tools ? (row.status === 'available' ? 0 : 1) : 2)
+    return rank(a) - rank(b)
+  })
+  for (const row of freeRows) {
+    const status: FreeModelStatus =
+      row.retryAt && row.retryAt <= Date.now() ? 'unverified' : row.status
+    options.push({
+      value: `${FREE_PROVIDER_KEY}/${row.id}`,
+      label: row.name,
+      group,
+      description: [
+        row.source,
+        t(`providerAccounts.freeStatus.${status}`),
+        ['limited', 'quota'].includes(status) && row.retryAt
+          ? t('providerAccounts.freeRetryAt', { time: new Date(row.retryAt).toLocaleTimeString() })
+          : '',
+        freeSnapshot.value.stale ? t('providerAccounts.freeStatus.cached') : '',
+        row.reasoning ? t('providerAccounts.freeThinking') : '',
+        row.tools ? '' : t('providerAccounts.freeNoTools')
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      disabled: !row.tools || ['region', 'limited', 'quota', 'unavailable'].includes(status)
+    })
+  }
+  if (!options.some((option) => option.group === group && !option.disabled)) {
+    options.unshift({
+      value: `${FREE_PROVIDER_KEY}/__none__`,
+      label: t(
+        freeSnapshot.value.catalog === 'loading'
+          ? 'providerAccounts.freeLoading'
+          : freeSnapshot.value.catalog === 'offline'
+            ? 'providerAccounts.freeOffline'
+            : freeRows.some((row) => row.tools)
+              ? 'providerAccounts.freeBlocked'
+              : 'providerAccounts.freeEmpty'
+      ),
+      group,
+      disabled: true
+    })
+  }
   return options
 })
 
@@ -224,6 +329,8 @@ const modelValue = computed({
   get: () => {
     if (imageModelValue.value) return imageModelValue.value
     if (agent.state?.model) return `${agent.state.model.provider}/${agent.state.model.id}`
+    if (!sessions.currentId && models.draftFreeModel)
+      return `${FREE_PROVIDER_KEY}/${models.draftFreeModel}`
     if (!sessions.currentId && chatGpt.effectiveDraftModel)
       return `${chatGpt.effectiveDraftModel.provider}/${chatGpt.effectiveDraftModel.modelId}`
     return models.active.providerKey && models.active.modelId
@@ -233,8 +340,16 @@ const modelValue = computed({
   set: async (value: string) => {
     const [provider, ...rest] = value.split('/')
     const modelId = rest.join('/')
-    if (!provider || !modelId || !modelOptions.value.some((option) => option.value === value))
+    if (
+      !provider ||
+      !modelId ||
+      !modelOptions.value.some((option) => option.value === value && !option.disabled)
+    )
       return
+    if (provider === FREE_PROVIDER_KEY && !freeSnapshot.value.privacyAccepted) {
+      pendingFreeModel.value = { value, sessionId: sessions.currentId }
+      return
+    }
     const selected = models.items.find((model) => {
       const modelProvider = providers.items.find((item) => item.id === model.providerId)
       return `${modelProvider?.key ?? model.providerId}/${model.modelId}` === value
@@ -247,10 +362,12 @@ const modelValue = computed({
     modelSwitching.value = true
     try {
       if (sessions.currentId) await agent.setModel(sessions.currentId, provider, modelId)
-      else if (chatGpt.items.some((account) => account.id === provider))
+      else if (provider === FREE_PROVIDER_KEY) models.draftFreeModel = modelId
+      else if (chatGpt.items.some((account) => account.id === provider)) {
+        models.draftFreeModel = null
         chatGpt.draftModel = { provider, modelId }
-      else {
-        await models.setActive(provider, modelId)
+      } else {
+        if (await models.setActive(provider, modelId)) models.draftFreeModel = null
         chatGpt.draftModel = null
         chatGpt.useAccountDefault = false
       }
@@ -279,6 +396,12 @@ const selectedModel = computed(() =>
     const providerKey = provider?.key ?? model.providerId
     return `${providerKey}/${model.modelId}` === modelValue.value
   })
+)
+const selectedFreeModel = computed(() =>
+  freeSnapshot.value.models.find((model) => `${FREE_PROVIDER_KEY}/${model.id}` === modelValue.value)
+)
+const selectedThinkingLevels = computed(
+  () => selectedFreeModel.value?.thinkingLevels ?? selectedModel.value?.thinkingLevels
 )
 const selectedImageModel = computed(() => isImageGenerationModel(selectedModel.value))
 const selectedChatGptModel = computed(
@@ -324,7 +447,9 @@ const activeMentionSkill = computed(
 const supportsImages = computed(
   () =>
     selectedImageModel.value ||
-    (selectedModel.value?.vision ?? selectedChatGptModel.value?.vision) === true
+    (selectedFreeModel.value?.vision ??
+      selectedModel.value?.vision ??
+      selectedChatGptModel.value?.vision) === true
 )
 const hasUnsupportedImages = computed(
   () => workspace.draftImages.length > 0 && !supportsImages.value
@@ -551,14 +676,16 @@ function openSkillMention() {
 
 const thinkingStops = computed(() =>
   composerThinkingLevels(
-    (selectedModel.value?.reasoning ?? selectedChatGptModel.value?.reasoning) === false
+    (selectedFreeModel.value?.reasoning ??
+      selectedModel.value?.reasoning ??
+      selectedChatGptModel.value?.reasoning) === false
       ? ['none']
-      : resolveAvailableThinkingLevels(selectedModel.value?.thinkingLevels)
+      : resolveAvailableThinkingLevels(selectedThinkingLevels.value)
   )
 )
 const thinkingLabels = computed(() =>
   Object.fromEntries(
-    Object.entries(selectedModel.value?.thinkingLevels ?? {})
+    Object.entries(selectedFreeModel.value ? {} : (selectedThinkingLevels.value ?? {}))
       .filter(
         (entry): entry is [string, string] =>
           typeof entry[1] === 'string' && Boolean(entry[1].trim())
@@ -1312,6 +1439,11 @@ onBeforeUnmount(() => {
               :thinking-labels="thinkingLabels"
               :disabled="busy"
               :switching="modelSwitching"
+              :refresh-group="$t('providerAccounts.freeModels')"
+              :refresh-label="$t('providerAccounts.freeRefresh')"
+              :refreshing="freeSnapshot.refreshing"
+              @open="loadFreeSnapshot"
+              @refresh="refreshFreeModels"
               @interact="emit('unlockAudio')"
             />
             <DropdownMenuRoot v-model:open="moreOpen" :modal="false">
@@ -1398,6 +1530,28 @@ onBeforeUnmount(() => {
       </div>
 
       <AgentAuraFireBorder v-if="showComposerFire" :active="true" :target="inputBox" />
+      <Dialog
+        :open="pendingFreeModel !== null"
+        :title="$t('providerAccounts.freePrivacyTitle')"
+        :description="$t('providerAccounts.freePrivacy')"
+        close-on-escape
+        @update:open="
+          (open: boolean) => {
+            if (!open) pendingFreeModel = null
+          }
+        "
+      >
+        <div class="flex justify-end gap-2 px-4 pb-4">
+          <button
+            type="button"
+            class="rounded-[var(--radius-sm)] bg-[var(--accent)] px-3 py-1.5 text-[13px] text-white"
+            data-testid="free-model-privacy-continue"
+            @click="acceptFreePrivacy"
+          >
+            {{ $t('providerAccounts.freePrivacyContinue') }}
+          </button>
+        </div>
+      </Dialog>
       <Dialog v-model:open="previewOpen" wide :title="$t('workspace.previewImage')">
         <img
           v-if="previewImage"

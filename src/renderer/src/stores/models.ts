@@ -33,6 +33,7 @@ async function withConflictDialog<T>(
 export const useModelsStore = defineStore('models', () => {
   const items = ref<ModelDefinition[]>([])
   const active = ref<ActiveModel>({ providerKey: null, modelId: null })
+  const draftFreeModel = ref<string | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -119,6 +120,7 @@ export const useModelsStore = defineStore('models', () => {
   return {
     items,
     active,
+    draftFreeModel,
     activeLabel,
     loading,
     error,

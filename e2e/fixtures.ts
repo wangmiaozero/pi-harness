@@ -42,6 +42,7 @@ async function waitForMainWindow(electronApp: ElectronApplication): Promise<Page
 }
 
 type Fixtures = {
+  freeModelsTest: string
   fakeAudio: boolean
   isolateSystemRuntime: boolean
   themePacks: boolean
@@ -55,6 +56,7 @@ type Fixtures = {
 }
 
 export const test = base.extend<Fixtures>({
+  freeModelsTest: ['off', { option: true }],
   isolateSystemRuntime: [false, { option: true }],
   fakeAudio: [false, { option: true }],
   themePacks: [false, { option: true }],
@@ -88,7 +90,7 @@ export const test = base.extend<Fixtures>({
     await use(isolatedPi)
   },
   electronApp: async (
-    { workspaceRoot, testUserData, piAgentDir, isolateSystemRuntime, fakeAudio },
+    { workspaceRoot, testUserData, piAgentDir, isolateSystemRuntime, fakeAudio, freeModelsTest },
     use,
     testInfo
   ) => {
@@ -167,6 +169,7 @@ export const test = base.extend<Fixtures>({
         PI_CODING_AGENT_DIR: piAgentDir,
         PI_HARNESS_USER_DATA: testUserData,
         PI_HARNESS_DISABLE_ACCOUNT_DISCOVERY: '1',
+        PI_HARNESS_FREE_MODELS_TEST: freeModelsTest,
         PI_HARNESS_SESSION_HOME: path.join(testUserData, 'history-home'),
         PI_HARNESS_CAPABILITY_FIXTURES_DIR: capabilityFixtures,
         PI_HARNESS_BUILTIN_SKILLS_DIR: path.join(root, 'resources', 'builtin-skills')
