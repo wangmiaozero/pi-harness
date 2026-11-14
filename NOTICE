@@ -9,3 +9,7 @@ Original source: https://github.com/wangmiaozero/pi-harness
 Contains conversation parsing algorithms adapted from Claude Code History Viewer
 Copyright (c) 2025 JaeHyeok Lee
 MIT License; full text and source attribution in THIRD_PARTY_NOTICES.md.
+
+Contains anonymous free-model request code adapted from Our Free Model
+Copyright (c) 2026 Ebony-Vinyl
+MIT License; full text and source attribution in THIRD_PARTY_NOTICES.md.

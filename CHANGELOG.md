@@ -2,6 +2,14 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.8 — 2026-11-14
+
+### Added
+
+#### Free Models
+
+- Choose a free Kilo model directly from the chat model picker without signing in or entering an API key.
+
 ## 2.4.7 — 2026-11-14
 
 ### Added
