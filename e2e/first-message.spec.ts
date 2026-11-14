@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import http from 'node:http'
+import { IPC_INVOKE } from '../src/shared/ipc/channels'
 import { test, expect } from './fixtures'
 
 for (const [withImage, precreated] of [
@@ -82,9 +83,34 @@ for (const [withImage, precreated] of [
         await window.piSwitch.models.list()
         await window.piSwitch.models.setActive({ providerKey: 'fixture', modelId: 'fixture' })
       })
+      if (precreated) {
+        await electronApp.evaluate(({ ipcMain }, channel) => {
+          let release!: () => void
+          const restoreGate = new Promise<void>((resolve) => {
+            release = resolve
+          })
+          Object.assign(globalThis, { releaseFirstMessageRestore: release })
+          ipcMain.removeHandler(channel)
+          ipcMain.handle(channel, async () => {
+            await restoreGate
+            return { ok: true, data: {} }
+          })
+        }, IPC_INVOKE.workspaceListSessionBindings)
+      }
       await page.locator('a[href="#/workspace"]').click()
       if (precreated) {
         const add = page.getByTestId('workspace-new-session')
+        try {
+          await expect(add).toBeDisabled()
+        } finally {
+          await electronApp.evaluate(() => {
+            const state = globalThis as typeof globalThis & {
+              releaseFirstMessageRestore: () => void
+            }
+            state.releaseFirstMessageRestore()
+          })
+        }
+        await expect(add).toBeEnabled()
         await add.click()
         await expect(add).toBeEnabled()
         await expect(page.locator('[data-testid^="session-row-"]')).toHaveCount(1)

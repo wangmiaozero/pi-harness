@@ -111,6 +111,7 @@ let sessionSwitchSequence = 0
 let stopSidebarResize: (() => void) | null = null
 
 const viewActive = ref(true)
+const initializingWorkspace = ref(true)
 let initialized = false
 let inactiveSessionId: string | null = null
 let inactiveModified: string | undefined
@@ -280,6 +281,7 @@ async function focusComposer(owner: Element | null = document.activeElement) {
 }
 
 async function startNewSession() {
+  if (initializingWorkspace.value) return
   const focusOwner = document.activeElement
   if (!workspace.canChat) {
     await workspace.ensureDefaultWorkspace(t('workspace.defaultWorkspace'))
@@ -393,16 +395,20 @@ function onVisibilityChange() {
 
 onMounted(() => {
   void (async () => {
-    await sessions.refresh()
-    await workspace.restore({
-      restoreTabs: settings.settings?.restoreTabs !== false,
-      autoOpenLastProject: settings.settings?.autoOpenLastProject !== false
-    })
-    if (!workspace.canChat) {
-      await workspace.ensureDefaultWorkspace(t('workspace.defaultWorkspace'))
-    }
-    if (!workspace.tabs.some((tab) => tab.kind === 'chat')) {
-      workspace.ensureChatTab('new', t('workspace.newSession'))
+    try {
+      await sessions.refresh()
+      await workspace.restore({
+        restoreTabs: settings.settings?.restoreTabs !== false,
+        autoOpenLastProject: settings.settings?.autoOpenLastProject !== false
+      })
+      if (!workspace.canChat) {
+        await workspace.ensureDefaultWorkspace(t('workspace.defaultWorkspace'))
+      }
+      if (!workspace.tabs.some((tab) => tab.kind === 'chat')) {
+        workspace.ensureChatTab('new', t('workspace.newSession'))
+      }
+    } finally {
+      initializingWorkspace.value = false
     }
     await Promise.all([workspace.loadFiles(), workspace.loadGit(), workspace.refreshRecent()])
     initialized = true
@@ -573,6 +579,7 @@ watch(
       :style="workspaceSidebarStyle"
       :active-section="activeWorkspaceSection"
       :active-tool="activeTool"
+      :initializing="initializingWorkspace"
       @focus-composer="focusComposer"
       @section-change="setWorkspaceSection"
     />

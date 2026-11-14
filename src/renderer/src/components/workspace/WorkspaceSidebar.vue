@@ -73,7 +73,11 @@ type SidebarMenuEntry =
 const pet = usePetStore()
 
 const props = withDefaults(
-  defineProps<{ activeSection?: WorkspaceSection; activeTool?: 'harness' | 'orchestration' }>(),
+  defineProps<{
+    activeSection?: WorkspaceSection
+    activeTool?: 'harness' | 'orchestration'
+    initializing?: boolean
+  }>(),
   {
     activeSection: 'workspace',
     activeTool: 'harness'
@@ -249,7 +253,7 @@ async function openSession(session: SessionInfo, focusComposer = captureComposer
 }
 
 async function newSession() {
-  if (creatingSession.value) return
+  if (props.initializing || creatingSession.value) return
   const focusComposer = captureComposerFocus()
   creatingSession.value = true
   try {
@@ -845,7 +849,7 @@ defineExpose({ pickProject, addFolder, openWorkspaceFile, saveWorkspace, openRec
     >
       <button
         type="button"
-        :disabled="creatingSession"
+        :disabled="initializing || creatingSession"
         data-testid="workspace-new-session"
         class="flex min-h-9 shrink-0 grow basis-auto items-center gap-2 rounded-[10px] px-1 py-2 text-left text-[13px] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
         @click="newSession"
