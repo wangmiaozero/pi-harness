@@ -107,7 +107,7 @@ chmod +x "./Pi-Harness-VERSION.AppImage"   # VERSION durch die heruntergeladene 
 
 **2 · Umgebung prüfen.** Starte Pi-Harness und prüfe die Umgebung in der Übersicht.
 
-**3 · Anbieter hinzufügen.** Richte einen Anbieter ein, teste die Verbindung und wähle ein Modell. Der Modellzugriff kann Zugangsdaten erfordern und Kosten beim Anbieter verursachen.
+**3 · Modell auswählen.** Öffne **Free Models** in der Modellauswahl im Chat, um Kilo auszuprobieren. Für dein ChatGPT-Abonnement öffne **Modelle → Neuer Anbieter → ChatGPT** und melde dich im Browser an. Du kannst einen Anbieter auch mit einem API-Schlüssel einrichten.
 
 **4 · Loslegen.** Starte einen eigenständigen Chat oder öffne ein Projekt, starte oder setze dann eine Pi-Sitzung fort und arbeite mit Chats, Dateien und Git in einem Fenster. Öffne **Arbeitsbereich → Werkzeuge → Harness / Agenten**, um Ausführungen zu prüfen oder ein Team zu koordinieren.
 
@@ -281,6 +281,8 @@ Durchsuche gemeinsam die Verläufe von Claude Code, Codex (einschließlich Deskt
 | | |
 | :-- | :-- |
 | **Anbieter** | Richte Pi-kompatible Anbieter mit Vorlagen oder eigenen Endpunkten ein, verwalte Zugangsdaten, lade Modelllisten, wo unterstützt, teste Verbindungen und wähle dein Chatmodell |
+| **Mit ChatGPT anmelden** | Verbinde dein ChatGPT-Abonnement im Browser und wähle die Modelle des Kontos im Chat aus. Auf der Anbieterseite siehst du das verbundene Konto, den Tarif und verfügbare Nutzungsdaten. |
+| **Kostenlose Modelle** | Wähle ein Kilo-Modell direkt in der Modellauswahl im Chat. Ein Konto oder API-Schlüssel ist nicht erforderlich. Verfügbarkeit und Nutzungslimits hängen von Kilo ab. Bei der ersten Auswahl erscheint ein Datenschutzhinweis. |
 | **Bilder** | Nutze unterstützte Bildmodelle, um Bilder aus Text zu erzeugen oder zu bearbeiten, und lade die Ergebnisse herunter |
 | **Skills** | Durchsuche und bearbeite integrierte und lokale Skills. Gib `@` im Eingabefeld ein, um einen installierten Skill zu suchen und aufzurufen |
 | **Pakete und Erweiterungen** | Verwalte Pi-Pakete und Erweiterungen unter Fähigkeiten. Optionale Ergänzungen wie [Superpowers](https://github.com/obra/superpowers) werden nur auf deinen Wunsch installiert, aktualisiert oder deinstalliert |
@@ -289,6 +291,10 @@ Durchsuche gemeinsam die Verläufe von Claude Code, Codex (einschließlich Deskt
 <tr>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png" alt="Anbieter und Modelle"><br><sub>Anbieter und Modelle</sub></td>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png" alt="Fähigkeiten"><br><sub>Fähigkeiten</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/ChatGPT%E6%8E%88%E6%9D%83.png" alt="Mit ChatGPT anmelden"><br><sub>Mit ChatGPT anmelden</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%85%8D%E8%B4%B9%E6%A8%A1%E5%9E%8B.png" alt="Kostenlose Modelle"><br><sub>Kostenlose Modelle</sub></td>
 </tr>
 </table>
 
@@ -460,7 +466,7 @@ pnpm compile
 - **QQ-Gruppe**: pi-harness · **1109717308**. Scanne den Code, um beizutreten.
 
 <p align="center">
-  <img src="docs/社区/qq-group.jpg" width="240" alt="QR-Code der Pi-Harness-QQ-Gruppe" />
+  <img src="docs/社区/qq-group-card.jpg" width="240" alt="QR-Code der Pi-Harness-QQ-Gruppe" />
 </p>
 
 Wenn Pi-Harness dir die Arbeit mit Pi erleichtert, **hilft ein ⭐ anderen, es zu finden.**

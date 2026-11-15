@@ -13,7 +13,7 @@
 [![Release](https://img.shields.io/github/v/release/wangmiaozero/pi-harness?label=release&color=111111)](https://github.com/wangmiaozero/pi-harness/releases) [![Stars](https://img.shields.io/github/stars/wangmiaozero/pi-harness?style=flat&color=111111)](https://github.com/wangmiaozero/pi-harness/stargazers) [![CI](https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/wangmiaozero/pi-harness/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/license-AGPL--3.0--only-111111)](LICENSE)<br>
 ![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white) ![Windows](https://img.shields.io/badge/Windows-0078D4?logo=windows&logoColor=white) ![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
 
-**[下载](https://github.com/wangmiaozero/pi-harness/releases)** &nbsp;·&nbsp; **[实拍](#watch)** &nbsp;·&nbsp; **[功能](#features)** &nbsp;·&nbsp; **[Harness Plugins](#harness-plugins)** &nbsp;·&nbsp; **[文档](#documentation)** &nbsp;·&nbsp; **[更新记录](CHANGELOG.md)**
+**[下载](https://github.com/wangmiaozero/pi-harness/releases)** &nbsp;·&nbsp; **[实拍](#watch)** &nbsp;·&nbsp; **[功能](#features)** &nbsp;·&nbsp; **[Harness Plugins](#harness-plugins)** &nbsp;·&nbsp; **[文档](#documentation)** &nbsp;·&nbsp; **[更新记录](CHANGELOG.md)** &nbsp;·&nbsp; **[支持作者](#support)**
 
 [English](README.md) · **简体中文** · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md)
 
@@ -107,7 +107,7 @@ chmod +x "./Pi-Harness-VERSION.AppImage"   # 将 VERSION 替换为下载的版�
 
 **2 · 检查环境。** 启动 Pi-Harness，在概览页检查运行环境。
 
-**3 · 添加 Provider。** 配置 Provider、测试连接并选择模型。模型访问可能需要凭证，并产生对应服务商费用。
+**3 · 选择模型。** 打开聊天模型选择器中的「**免费模型**」，即可试用 Kilo。使用 ChatGPT 订阅时，打开「**模型 → 新建提供商 → ChatGPT**」，在浏览器中完成授权。也可使用 API Key 配置 Provider。
 
 **4 · 开始工作。** 直接新建对话或打开项目，新建或继续 Pi 会话，在同一个窗口中处理对话、文件和 Git。打开“**工作区 → 工具 → Harness / 智能体**”，查看运行或协调团队。
 
@@ -281,6 +281,8 @@ flowchart TD
 | | |
 | :-- | :-- |
 | **Provider** | 通过预设或自定义地址配置 Pi 兼容 Provider，管理凭证、获取服务支持的模型列表、测试连接并选择聊天模型 |
+| **ChatGPT 授权** | 在浏览器中关联 ChatGPT 订阅，然后在聊天中选择该账户的模型。提供商页面可查看已关联账户、套餐及可获取的用量。 |
+| **免费模型** | 直接在聊天模型选择器中选择 Kilo 模型，无需注册或填写 API Key。可用模型和额度以 Kilo 为准。首次选择时会显示隐私提示。 |
 | **图像** | 支持的图像模型可用于文生图或图片编辑，结果可以下载 |
 | **Skills** | 浏览并编辑内置与本地 Skills。在输入框键入 `@`，即可搜索并调用已安装的 Skill |
 | **包与扩展** | 在能力中心管理 Pi 包和扩展。[Superpowers](https://github.com/obra/superpowers) 等可选增强能力只在你选择时安装、更新或卸载 |
@@ -289,6 +291,10 @@ flowchart TD
 <tr>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png" alt="Provider 与模型"><br><sub>Provider 与模型</sub></td>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png" alt="能力中心"><br><sub>能力中心</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/ChatGPT%E6%8E%88%E6%9D%83.png" alt="ChatGPT 授权"><br><sub>ChatGPT 授权</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%85%8D%E8%B4%B9%E6%A8%A1%E5%9E%8B.png" alt="免费模型"><br><sub>免费模型</sub></td>
 </tr>
 </table>
 
@@ -457,10 +463,20 @@ pnpm compile
 - **[Issues](https://github.com/wangmiaozero/pi-harness/issues)**：报告问题或提出建议。请附上应用版本、操作系统和复现步骤，并移除凭证与私密会话内容。
 - **[Pull Requests](https://github.com/wangmiaozero/pi-harness/pulls)**：说明问题、用户可见的变化及验证结果。欢迎文档、翻译、主题和针对性修复。
 - **[自定义皮肤](https://github.com/wangmiaozero/pi-harness-skin-starter)**：制作并分享你的皮肤。
-- **QQ 群**：pi-harness · **1109717308**，扫码加入，交流使用与开发问题。
+
+添加微信或 QQ 好友时，请在验证消息中注明来源，例如 `GitHub`、`B站`、`抖音` 或 `小红书`。
+
+<table align="center">
+  <tr>
+    <td align="center"><a href="docs/社区/wechat-contact.png"><img src="docs/社区/wechat-contact.png" width="240" alt="扫码添加微信好友" /></a></td>
+    <td align="center"><a href="docs/社区/qq-contact.png"><img src="docs/社区/qq-contact.png" width="240" alt="扫码添加 QQ 好友" /></a></td>
+  </tr>
+</table>
+
+欢迎加入 Pi-Harness QQ 交流群（**1109717308**），聊聊使用心得和开发问题。
 
 <p align="center">
-  <img src="docs/社区/qq-group.jpg" width="240" alt="Pi-Harness QQ 群二维码" />
+  <a href="docs/社区/qq-group-card.jpg"><img src="docs/社区/qq-group-card.jpg" width="320" alt="扫码加入 Pi-Harness QQ 交流群 1109717308" /></a>
 </p>
 
 如果 Pi-Harness 让你用 Pi 更顺手，**点一个 ⭐ 能帮更多人发现它。**
@@ -469,6 +485,16 @@ pnpm compile
   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangmiaozero/pi-harness&type=Date&theme=dark">
   <img src="https://api.star-history.com/svg?repos=wangmiaozero/pi-harness&type=Date" width="600" alt="Star 趋势">
 </picture>
+
+<a id="support"></a>
+
+## 请作者喝杯咖啡
+
+如果 Pi-Harness 帮你省下了时间，欢迎用微信扫码请我喝杯咖啡。金额随心，每一份支持都能帮我继续维护项目、改进功能和修复问题。谢谢你支持这个开源项目！
+
+<p align="center">
+  <a href="docs/社区/wechat-pay.png"><img src="docs/社区/wechat-pay.png" width="280" alt="微信赞赏二维码，请作者喝杯咖啡" /></a>
+</p>
 
 ## 致谢与作者
 

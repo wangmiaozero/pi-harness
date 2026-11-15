@@ -107,7 +107,7 @@ chmod +x "./Pi-Harness-VERSION.AppImage"   # replace VERSION with the downloaded
 
 **2 · Check the environment.** Launch Pi-Harness and check the environment in Overview.
 
-**3 · Add a provider.** Configure a provider, test the connection and select a model. Model access may require credentials and incur provider charges.
+**3 · Choose a model.** Open **Free Models** in the chat model picker to try Kilo. To use your ChatGPT subscription, open **Models → New provider → ChatGPT** and sign in through your browser. You can also configure a provider with an API key.
 
 **4 · Start working.** Start a standalone chat or open a project, then start or resume a Pi session and work with conversations, files and Git in one window. Open **Workspace → Tools → Harness / Agents** to inspect runs or coordinate a team.
 
@@ -281,6 +281,8 @@ Open Architecture in Workspace to explore modules, dependencies, entrypoints and
 | | |
 | :-- | :-- |
 | **Providers** | Configure Pi-compatible providers with presets or custom endpoints, manage credentials, discover models where supported, test connections and choose your chat model |
+| **Sign in with ChatGPT** | Connect your ChatGPT subscription in the browser and choose its models in chat. The Providers page shows the connected account, plan and usage when available. |
+| **Free Models** | Choose a Kilo model directly in the chat model picker. No account or API key is required. Availability and limits depend on Kilo. The first selection shows a privacy notice. |
 | **Images** | Use supported image models for text-to-image or image editing, then download the results |
 | **Skills** | Browse built-in and local Skills and edit them. Type `@` in the composer to search and invoke an installed Skill |
 | **Packages and extensions** | Manage Pi packages and extensions from Capabilities. Optional add-ons such as [Superpowers](https://github.com/obra/superpowers) install, update or uninstall only when you choose |
@@ -289,6 +291,10 @@ Open Architecture in Workspace to explore modules, dependencies, entrypoints and
 <tr>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png" alt="Providers and models"><br><sub>Providers and models</sub></td>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png" alt="Capabilities"><br><sub>Capabilities</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/ChatGPT%E6%8E%88%E6%9D%83.png" alt="Sign in with ChatGPT"><br><sub>Sign in with ChatGPT</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%85%8D%E8%B4%B9%E6%A8%A1%E5%9E%8B.png" alt="Free Models"><br><sub>Free Models</sub></td>
 </tr>
 </table>
 
@@ -460,7 +466,7 @@ pnpm compile
 - **QQ group**: pi-harness · **1109717308**. Scan the code to join.
 
 <p align="center">
-  <img src="docs/社区/qq-group.jpg" width="240" alt="Pi-Harness QQ group QR code" />
+  <img src="docs/社区/qq-group-card.jpg" width="240" alt="Pi-Harness QQ group QR code" />
 </p>
 
 If Pi-Harness makes your work with Pi easier, **a ⭐ helps others find it.**

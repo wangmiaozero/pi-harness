@@ -107,7 +107,7 @@ chmod +x "./Pi-Harness-VERSION.AppImage"   # remplacez VERSION par la version t�
 
 **2 · Vérifier l’environnement.** Lancez Pi-Harness et vérifiez l’environnement dans la vue d’ensemble.
 
-**3 · Ajouter un fournisseur.** Configurez un fournisseur, testez la connexion et choisissez un modèle. L’accès aux modèles peut nécessiter des identifiants et entraîner des frais auprès du fournisseur.
+**3 · Choisir un modèle.** Ouvrez **Free Models** dans le sélecteur du chat pour essayer Kilo. Pour utiliser votre abonnement ChatGPT, ouvrez **Modèles → Nouveau fournisseur → ChatGPT**, puis connectez-vous dans votre navigateur. Vous pouvez aussi configurer un fournisseur avec une clé API.
 
 **4 · Commencer à travailler.** Commencez une conversation indépendante ou ouvrez un projet, puis lancez ou reprenez une session Pi et travaillez avec conversations, fichiers et Git dans une seule fenêtre. Ouvrez **Espace de travail → Outils → Harness / Agents** pour examiner les exécutions ou coordonner une équipe.
 
@@ -281,6 +281,8 @@ Ouvrez Architecture dans l’espace de travail pour explorer modules, dépendanc
 | | |
 | :-- | :-- |
 | **Fournisseurs** | Configurez des fournisseurs compatibles Pi à partir de préréglages ou d’adresses personnalisées, gérez les identifiants, récupérez les modèles lorsque le service le permet, testez la connexion et choisissez votre modèle de conversation |
+| **Se connecter avec ChatGPT** | Associez votre abonnement ChatGPT dans le navigateur, puis choisissez les modèles du compte dans le chat. La page des fournisseurs affiche le compte associé, le forfait et les données d’utilisation disponibles. |
+| **Modèles gratuits** | Sélectionnez un modèle Kilo directement dans le sélecteur du chat. Aucun compte ni clé API n’est nécessaire. La disponibilité et les limites dépendent de Kilo. Un avis de confidentialité s’affiche lors de la première sélection. |
 | **Images** | Utilisez les modèles d’image compatibles pour générer ou modifier des images, puis téléchargez les résultats |
 | **Skills** | Parcourez et modifiez les Skills intégrés et locaux. Saisissez `@` dans le champ de message pour rechercher et invoquer un Skill installé |
 | **Paquets et extensions** | Gérez les paquets et extensions Pi depuis le centre de capacités. Les compléments facultatifs tels que [Superpowers](https://github.com/obra/superpowers) ne s’installent, ne se mettent à jour ou ne se désinstallent qu’à votre demande |
@@ -289,6 +291,10 @@ Ouvrez Architecture dans l’espace de travail pour explorer modules, dépendanc
 <tr>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png" alt="Fournisseurs et modèles"><br><sub>Fournisseurs et modèles</sub></td>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png" alt="Centre de capacités"><br><sub>Centre de capacités</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/ChatGPT%E6%8E%88%E6%9D%83.png" alt="Se connecter avec ChatGPT"><br><sub>Se connecter avec ChatGPT</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%85%8D%E8%B4%B9%E6%A8%A1%E5%9E%8B.png" alt="Modèles gratuits"><br><sub>Modèles gratuits</sub></td>
 </tr>
 </table>
 
@@ -460,7 +466,7 @@ pnpm compile
 - **Groupe QQ** : pi-harness · **1109717308**. Scannez le code pour rejoindre le groupe.
 
 <p align="center">
-  <img src="docs/社区/qq-group.jpg" width="240" alt="QR code du groupe QQ Pi-Harness" />
+  <img src="docs/社区/qq-group-card.jpg" width="240" alt="QR code du groupe QQ Pi-Harness" />
 </p>
 
 Si Pi-Harness vous simplifie le travail avec Pi, **une ⭐ aide d’autres personnes à le découvrir.**

@@ -107,7 +107,7 @@ chmod +x "./Pi-Harness-VERSION.AppImage"   # VERSION을 다운로드한 버전�
 
 **2 · 환경 확인.** Pi-Harness를 실행하고 개요에서 환경을 확인합니다.
 
-**3 · 제공자 추가.** 제공자를 설정하고 연결을 테스트한 뒤 모델을 선택합니다. 모델을 사용하려면 인증 정보가 필요하거나 제공자 요금이 발생할 수 있습니다.
+**3 · 모델 선택.** 대화의 모델 선택 메뉴에서 **Free Models** 메뉴를 열어 Kilo를 사용해 보세요. ChatGPT 구독을 사용하려면 **모델 → 새 제공자 → ChatGPT**를 열고 브라우저에서 로그인하세요. API 키로 제공자를 설정할 수도 있습니다.
 
 **4 · 작업 시작.** 독립 대화를 시작하거나 프로젝트를 연 뒤, Pi 세션을 시작하거나 이어서 대화, 파일, Git을 한 창에서 사용합니다. 실행을 확인하거나 팀을 조율하려면 **작업 영역 → 도구 → Harness / 에이전트**를 엽니다.
 
@@ -281,6 +281,8 @@ Claude Code, Codex(데스크톱과 보관된 대화 포함), Cursor, Cursor Agen
 | | |
 | :-- | :-- |
 | **제공자** | 프리셋이나 사용자 지정 엔드포인트로 Pi 호환 제공자를 설정하고, 인증 정보를 관리하며, 지원되는 경우 모델 목록을 불러오고, 연결을 테스트하고, 대화 모델을 선택합니다 |
+| **ChatGPT로 로그인** | 브라우저에서 ChatGPT 구독을 연결하고 대화에서 해당 계정의 모델을 선택하세요. 제공자 페이지에서 연결된 계정, 요금제 및 확인 가능한 사용량을 볼 수 있습니다. |
+| **무료 모델** | 대화의 모델 선택 메뉴에서 Kilo 모델을 바로 선택할 수 있습니다. 계정이나 API 키가 필요하지 않습니다. 모델의 제공 여부와 사용 한도는 Kilo에 따라 달라집니다. 처음 선택하면 개인정보 처리 안내가 표시됩니다. |
 | **이미지** | 지원하는 이미지 모델로 텍스트에서 이미지를 만들거나 이미지를 편집하고 결과를 다운로드합니다 |
 | **Skills** | 내장 및 로컬 Skills를 찾아보고 편집합니다. 입력창에 `@`를 입력해 설치된 Skill을 검색하고 호출합니다 |
 | **패키지와 확장 기능** | 기능 센터에서 Pi 패키지와 확장 기능을 관리합니다. [Superpowers](https://github.com/obra/superpowers) 같은 선택형 추가 기능은 원할 때만 설치, 업데이트, 제거됩니다 |
@@ -289,6 +291,10 @@ Claude Code, Codex(데스크톱과 보관된 대화 포함), Cursor, Cursor Agen
 <tr>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png" alt="제공자와 모델"><br><sub>제공자와 모델</sub></td>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png" alt="기능 센터"><br><sub>기능 센터</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/ChatGPT%E6%8E%88%E6%9D%83.png" alt="ChatGPT로 로그인"><br><sub>ChatGPT로 로그인</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%85%8D%E8%B4%B9%E6%A8%A1%E5%9E%8B.png" alt="무료 모델"><br><sub>무료 모델</sub></td>
 </tr>
 </table>
 
@@ -460,7 +466,7 @@ pnpm compile
 - **QQ 그룹**: pi-harness · **1109717308**. 코드를 스캔해 참여하세요.
 
 <p align="center">
-  <img src="docs/社区/qq-group.jpg" width="240" alt="Pi-Harness QQ 그룹 QR 코드" />
+  <img src="docs/社区/qq-group-card.jpg" width="240" alt="Pi-Harness QQ 그룹 QR 코드" />
 </p>
 
 Pi-Harness가 Pi 작업을 더 편하게 해 준다면 **⭐ 하나가 다른 사람들이 찾는 데 도움이 됩니다.**

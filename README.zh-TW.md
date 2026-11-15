@@ -107,7 +107,7 @@ chmod +x "./Pi-Harness-VERSION.AppImage"   # 將 VERSION 換成下載的版本�
 
 **2 · 檢查環境。** 啟動 Pi-Harness，在總覽頁檢查執行環境。
 
-**3 · 新增 Provider。** 設定 Provider、測試連線並選擇模型。使用模型可能需要憑證，並可能產生服務商費用。
+**3 · 選擇模型。** 開啟聊天模型選擇器中的「**Free Models**」，即可試用 Kilo。使用 ChatGPT 訂閱時，開啟「**模型 → 新增供應商 → ChatGPT**」，在瀏覽器中完成授權。也可以使用 API Key 設定 Provider。
 
 **4 · 開始工作。** 開始獨立對話或開啟專案，再建立或繼續 Pi 工作階段，在同一個視窗中處理對話、檔案與 Git。開啟「**工作區 → 工具 → Harness / 智慧體**」即可檢查執行或協調團隊。
 
@@ -281,6 +281,8 @@ flowchart TD
 | | |
 | :-- | :-- |
 | **Provider** | 透過預設或自訂位址設定 Pi 相容 Provider，管理憑證、在支援時取得模型清單、測試連線並選擇聊天模型 |
+| **ChatGPT 授權** | 在瀏覽器中連結 ChatGPT 訂閱，然後在聊天中選擇該帳戶的模型。供應商頁面可查看已連結帳戶、方案及可取得的用量。 |
+| **免費模型** | 直接在聊天模型選擇器中選擇 Kilo 模型，無需註冊或輸入 API Key。可用模型和額度以 Kilo 為準。首次選擇時會顯示隱私提示。 |
 | **圖片** | 使用支援的影像模型進行文字生圖或圖片編輯，並下載結果 |
 | **Skills** | 瀏覽並編輯內建與本機 Skills。在輸入框鍵入 `@` 即可搜尋並呼叫已安裝的 Skill |
 | **套件與擴充套件** | 在能力中心管理 Pi 套件與擴充套件。[Superpowers](https://github.com/obra/superpowers) 等可選增強功能只在你選擇時安裝、更新或解除安裝 |
@@ -289,6 +291,10 @@ flowchart TD
 <tr>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png" alt="Provider 與模型"><br><sub>Provider 與模型</sub></td>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png" alt="能力中心"><br><sub>能力中心</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/ChatGPT%E6%8E%88%E6%9D%83.png" alt="ChatGPT 授權"><br><sub>ChatGPT 授權</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%85%8D%E8%B4%B9%E6%A8%A1%E5%9E%8B.png" alt="免費模型"><br><sub>免費模型</sub></td>
 </tr>
 </table>
 
@@ -460,7 +466,7 @@ pnpm compile
 - **QQ 群**：pi-harness · **1109717308**。掃描 QR 碼加入。
 
 <p align="center">
-  <img src="docs/社区/qq-group.jpg" width="240" alt="Pi-Harness QQ 群 QR 碼" />
+  <img src="docs/社区/qq-group-card.jpg" width="240" alt="Pi-Harness QQ 群 QR 碼" />
 </p>
 
 如果 Pi-Harness 讓你使用 Pi 更順手，**給一顆 ⭐ 能幫助更多人找到它。**

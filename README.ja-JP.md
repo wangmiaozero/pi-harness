@@ -107,7 +107,7 @@ chmod +x "./Pi-Harness-VERSION.AppImage"   # VERSION をダウンロードした
 
 **2 · 環境を確認。** Pi-Harness を起動し、概要で環境を確認します。
 
-**3 · Provider を追加。** Provider を設定して接続をテストし、モデルを選択します。モデルの利用には認証情報が必要な場合があり、Provider の料金が発生することがあります。
+**3 · モデルを選択。** チャットのモデル選択メニューで「**Free Models**」を開くと Kilo を利用できます。ChatGPT のサブスクリプションを使うには「**モデル → 新規プロバイダー → ChatGPT**」を開き、ブラウザーで認証します。API キーで Provider を設定することもできます。
 
 **4 · 作業を開始。** 単独のチャットを開始するかプロジェクトを開き、Pi セッションを開始・再開して、会話、ファイル、Git をひとつのウィンドウで操作します。実行の確認やチームの連携には「**ワークスペース → ツール → Harness / エージェント**」を開きます。
 
@@ -281,6 +281,8 @@ Claude Code、Codex（デスクトップとアーカイブを含む）、Cursor�
 | | |
 | :-- | :-- |
 | **Provider** | プリセットや独自の接続先で Pi 互換 Provider を設定し、認証情報を管理し、対応している場合はモデルを取得し、接続をテストしてチャットモデルを選択します |
+| **ChatGPT でサインイン** | ブラウザーで ChatGPT のサブスクリプションを連携し、そのアカウントのモデルをチャットで選択します。Provider 画面では連携したアカウント、プラン、取得できる使用量を確認できます。 |
+| **無料モデル** | チャットのモデル選択メニューから Kilo のモデルを選べます。アカウントや API キーは不要です。利用できるモデルと利用上限は Kilo によって変わります。初回の選択時にはプライバシーに関する案内が表示されます。 |
 | **画像** | 対応する画像モデルで、テキストからの画像生成や画像編集を行い、結果をダウンロードできます |
 | **Skills** | 組み込みとローカルの Skills を閲覧・編集できます。入力欄で `@` を入力すると、インストール済みの Skill を検索して呼び出せます |
 | **パッケージと拡張機能** | 機能センターで Pi のパッケージと拡張機能を管理します。[Superpowers](https://github.com/obra/superpowers) などの任意のアドオンは、選択したときだけインストール、更新、削除されます |
@@ -289,6 +291,10 @@ Claude Code、Codex（デスクトップとアーカイブを含む）、Cursor�
 <tr>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/Provider%E4%B8%8E%E6%A8%A1%E5%9E%8B-1.png" alt="Provider とモデル"><br><sub>Provider とモデル</sub></td>
 <td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E8%83%BD%E5%8A%9B%E4%B8%AD%E5%BF%83-1.png" alt="機能センター"><br><sub>機能センター</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/ChatGPT%E6%8E%88%E6%9D%83.png" alt="ChatGPT でサインイン"><br><sub>ChatGPT でサインイン</sub></td>
+<td width="50%"><img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%85%8D%E8%B4%B9%E6%A8%A1%E5%9E%8B.png" alt="無料モデル"><br><sub>無料モデル</sub></td>
 </tr>
 </table>
 
@@ -460,7 +466,7 @@ pnpm compile
 - **QQ グループ**：pi-harness · **1109717308**。コードをスキャンして参加できます。
 
 <p align="center">
-  <img src="docs/社区/qq-group.jpg" width="240" alt="Pi-Harness QQ グループの QR コード" />
+  <img src="docs/社区/qq-group-card.jpg" width="240" alt="Pi-Harness QQ グループの QR コード" />
 </p>
 
 Pi-Harness で Pi での作業が楽になったら、**⭐ を付けていただくと、ほかの人が見つけやすくなります。**
