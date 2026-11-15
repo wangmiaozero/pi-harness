@@ -463,11 +463,7 @@ pnpm compile
 - **[Issues](https://github.com/wangmiaozero/pi-harness/issues)**: 버그를 신고하거나 개선을 제안합니다. 앱 버전, 운영체제, 재현 단계를 포함하고 인증 정보와 개인 대화 내용은 지워 주세요.
 - **[Pull requests](https://github.com/wangmiaozero/pi-harness/pulls)**: 문제, 사용자에게 보이는 변경, 검증 결과를 설명해 주세요. 문서, 번역, 테마, 범위가 명확한 수정을 환영합니다.
 - **[커스텀 스킨](https://github.com/wangmiaozero/pi-harness-skin-starter)**: 스킨을 만들고 공유하세요.
-- **QQ 그룹**: pi-harness · **1109717308**. 코드를 스캔해 참여하세요.
-
-<p align="center">
-  <img src="docs/社区/qq-group-card.jpg" width="240" alt="Pi-Harness QQ 그룹 QR 코드" />
-</p>
+- **QQ 그룹**: pi-harness · **1109717308**
 
 Pi-Harness가 Pi 작업을 더 편하게 해 준다면 **⭐ 하나가 다른 사람들이 찾는 데 도움이 됩니다.**
 

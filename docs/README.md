@@ -97,9 +97,7 @@ Voice screenshots show setup and preparation before a call; MCP and remote host 
 
 ## Community / 社区
 
-| Resource / 资源  | Image / 图片                                 |
-| ---------------- | -------------------------------------------- |
-| QQ group / QQ 群 | [pi-harness · 1109717308](社区/qq-group-card.jpg) |
+[Community / 社区联系方式](../README.zh-CN.md#社区)
 
 ## 赞助商
 
