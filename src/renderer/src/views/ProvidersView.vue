@@ -16,7 +16,10 @@ import {
   Sparkles,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  ChevronRight,
+  Network,
+  UserRound
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { getApi } from '@renderer/composables/useApi'
@@ -60,7 +63,8 @@ import { useModelsStore } from '@renderer/stores/models'
 import { useChatGptAccounts } from '@renderer/stores/chatgpt-accounts'
 import type { AddCatalogSubscriptionId } from '@shared/providers/add-catalog'
 import AddProviderCatalog from '@renderer/components/providers/AddProviderCatalog.vue'
-import SignedInAccountList from '@renderer/components/providers/SignedInAccountList.vue'
+import ProviderMark from '@renderer/components/providers/ProviderMark.vue'
+import { useChatGptAccountSummaries } from '@renderer/components/providers/use-chatgpt-account-summaries'
 import ModelsView from './ModelsView.vue'
 import { formatRelativeTime } from '@renderer/utils/format'
 import {
@@ -98,8 +102,16 @@ function openModels(provider = 'all', create = false) {
 }
 const catalogOpen = ref(false)
 const catalogDetail = ref<AddCatalogSubscriptionId | null>(null)
+const catalogAccountId = ref<string>()
 const catalogQuery = ref('')
 const chatGptAccounts = useChatGptAccounts()
+const chatGptSummaries = useChatGptAccountSummaries()
+const subscriptionShortcuts = [
+  { id: 'chatgpt', name: 'ChatGPT' },
+  { id: 'claude', name: 'Claude' },
+  { id: 'gemini', name: 'Gemini' },
+  { id: 'gateway', name: null }
+] as const
 const configuredCatalogIds = computed(() => [
   ...providersStore.items.flatMap((provider) => [
     provider.key,
@@ -157,9 +169,10 @@ const modelDiscoveryFeedback = ref<{
   source: string
 } | null>(null)
 
-/** Name takes leftover width; other columns hug their content so 标识/操作 aren't crushed. */
+/** Share column widths across rows; leave room for the name and its icon. */
 const listGrid = {
-  gridTemplateColumns: 'minmax(8rem, 1fr) max-content 2.75rem max-content max-content 19rem'
+  gridTemplateColumns:
+    'minmax(10rem, 1fr) minmax(9rem, max-content) max-content max-content max-content minmax(9.5rem, max-content)'
 } as const
 
 const defaultForm = (): ProviderForm => ({
@@ -568,10 +581,16 @@ function openCreate(presetId?: string) {
   dialogOpen.value = true
 }
 
-function openCatalog(detail: AddCatalogSubscriptionId | null = null) {
+function openCatalog(detail: AddCatalogSubscriptionId | null = null, accountId?: string) {
   catalogQuery.value = ''
   catalogDetail.value = detail
+  catalogAccountId.value = accountId
   catalogOpen.value = true
+}
+
+function setCatalogDetail(detail: AddCatalogSubscriptionId | null) {
+  catalogDetail.value = detail
+  if (detail !== 'chatgpt') catalogAccountId.value = undefined
 }
 
 function chooseCatalogPreset(presetId: string) {
@@ -1004,19 +1023,38 @@ function protocolLabel(protocol: string): string {
   return PROTOCOLS.find((p) => p.id === protocol)?.label ?? protocol
 }
 
-const standardProviders = computed(() => providersStore.items)
+const providerRows = computed(() => [
+  ...providersStore.items.map((provider) => ({
+    id: provider.id,
+    key: `provider:${provider.id}`,
+    provider,
+    name: provider.displayName,
+    iconId: findProviderPreset(provider)?.id ?? provider.key,
+    subtitle: provider.baseUrl || t('common.unknown'),
+    protocol: protocolLabel(provider.protocol),
+    modelCount: provider.modelCount,
+    badge: keyBadge(provider),
+    reconnect: false,
+    updatedAt: provider.updatedAt,
+    searchTerms: [provider.displayName, provider.key, provider.baseUrl ?? '', provider.protocol]
+  })),
+  ...chatGptSummaries.value.map((account) => ({
+    ...account,
+    key: `account:${account.id}`,
+    provider: null,
+    name: 'Codex',
+    iconId: 'chatgpt',
+    protocol: protocolLabel('openai-responses'),
+    searchTerms: ['Codex', 'openai-responses', ...account.searchTerms]
+  }))
+])
 
-const filteredProviders = computed(() => {
+const filteredRows = computed(() => {
   const q = query.value.trim().toLowerCase()
-  if (!q) return standardProviders.value
-  return standardProviders.value.filter((p) => {
-    return (
-      p.displayName.toLowerCase().includes(q) ||
-      p.key.toLowerCase().includes(q) ||
-      (p.baseUrl ?? '').toLowerCase().includes(q) ||
-      p.protocol.toLowerCase().includes(q)
-    )
-  })
+  if (!q) return providerRows.value
+  return providerRows.value.filter((row) =>
+    row.searchTerms.some((term) => term.toLowerCase().includes(q))
+  )
 })
 
 async function loadPlatform(): Promise<void> {
@@ -1143,27 +1181,39 @@ onMounted(() => {
       class="min-h-0 flex-1"
       @add-provider="openCatalog()"
     />
-    <div v-else class="flex-1 overflow-y-auto px-5 pt-4 pb-6 space-y-4">
-      <SignedInAccountList @open="openCatalog('chatgpt')" />
-      <div class="flex flex-wrap items-center gap-2" data-testid="subscription-providers">
-        <Button size="sm" data-testid="open-subscription-chatgpt" @click="openCatalog('chatgpt')">
-          ChatGPT
-          <span v-if="chatGptAccounts.items.length" class="tabular-nums">
+    <div v-else class="flex-1 space-y-5 overflow-y-auto px-5 pt-5 pb-6">
+      <div class="grid grid-cols-2 gap-2.5 md:grid-cols-4" data-testid="subscription-providers">
+        <button
+          v-for="shortcut in subscriptionShortcuts"
+          :key="shortcut.id"
+          type="button"
+          :data-testid="
+            shortcut.id === 'gateway' ? 'open-local-gateway' : 'open-subscription-' + shortcut.id
+          "
+          class="group flex min-h-14 min-w-0 items-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 text-left shadow-[var(--shadow-sm)] transition-colors hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+          @click="shortcut.id === 'gateway' ? (gatewayOpen = true) : openCatalog(shortcut.id)"
+        >
+          <ProviderMark :provider-id="shortcut.id" :name="shortcut.name ?? ''">
+            <Network class="size-4" :stroke-width="1.75" />
+          </ProviderMark>
+          <span class="min-w-0 truncate text-[13px] font-semibold text-[var(--text-primary)]">
+            {{ shortcut.name ?? $t('providerAdvanced.gateway') }}
+          </span>
+          <span
+            v-if="shortcut.id === 'chatgpt' && chatGptAccounts.items.length"
+            class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent-tint)] px-1 text-[10.5px] font-semibold tabular-nums text-[var(--text-secondary)]"
+          >
             {{ chatGptAccounts.items.length }}
           </span>
-        </Button>
-        <Button size="sm" data-testid="open-subscription-claude" @click="openCatalog('claude')">
-          Claude
-        </Button>
-        <Button size="sm" data-testid="open-subscription-gemini" @click="openCatalog('gemini')">
-          Gemini
-        </Button>
-        <Button size="sm" data-testid="open-local-gateway" @click="gatewayOpen = true">
-          {{ $t('providerAdvanced.gateway') }}
-        </Button>
+          <ChevronRight
+            class="ml-auto size-3.5 shrink-0 text-[var(--text-tertiary)] group-hover:text-[var(--accent)]"
+            :stroke-width="1.75"
+            aria-hidden="true"
+          />
+        </button>
       </div>
       <p
-        v-if="!providersStore.loading && !standardProviders.length"
+        v-if="!providersStore.loading && !providerRows.length"
         class="text-xs text-[var(--text-secondary)]"
       >
         {{ $t('models.providerRequired') }}
@@ -1206,7 +1256,7 @@ onMounted(() => {
       </div>
 
       <EmptyState
-        v-else-if="standardProviders.length === 0"
+        v-else-if="providerRows.length === 0"
         :title="$t('providers.empty')"
         :description="$t('providers.emptyHint')"
         :icon="Box"
@@ -1223,126 +1273,151 @@ onMounted(() => {
       </EmptyState>
 
       <EmptyState
-        v-else-if="filteredProviders.length === 0"
+        v-else-if="filteredRows.length === 0"
         :title="$t('providers.filterEmpty')"
         :description="$t('providers.filterEmptyHint')"
         :icon="Search"
       />
 
-      <!-- One parent grid + subgrid rows: shared tracks, reserved action column. -->
-      <div
-        v-else
-        data-testid="providers-table-scroll"
-        class="overflow-x-auto overflow-y-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
-      >
-        <div class="grid min-w-[1000px] gap-x-2" :style="listGrid">
-          <div
-            class="col-span-full grid h-[30px] grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3 text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+      <section v-else aria-labelledby="configured-providers-title">
+        <div class="mb-2.5 flex items-baseline gap-2">
+          <h2
+            id="configured-providers-title"
+            class="text-[13px] font-semibold text-[var(--text-primary)]"
           >
-            <span class="min-w-0 truncate">{{ $t('providers.colName') }}</span>
-            <span>{{ $t('providers.colProtocol') }}</span>
-            <span class="tabular-nums">{{ $t('providers.colModels') }}</span>
-            <span>{{ $t('providers.colKey') }}</span>
-            <span>{{ $t('providers.colUpdated') }}</span>
-            <span
-              class="sticky right-0 z-20 flex self-stretch items-center justify-end border-l border-[var(--border-subtle)] bg-[inherit] pl-2 pr-3"
+            {{ $t('providerAccounts.configured') }}
+          </h2>
+          <span class="text-[11px] tabular-nums text-[var(--text-tertiary)]">
+            {{ filteredRows.length }}
+          </span>
+        </div>
+        <!-- The shared grid keeps the sticky action column aligned across every row. -->
+        <div
+          data-testid="providers-table-scroll"
+          class="overflow-x-auto overflow-y-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-[var(--shadow-sm)]"
+        >
+          <div class="grid min-w-[800px] gap-x-3" :style="listGrid">
+            <div
+              class="col-span-full grid h-9 grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--bg-window)_72%,var(--bg-surface))] pl-3.5 text-[11px] font-semibold text-[var(--text-secondary)]"
             >
-              {{ $t('common.actions') }}
-            </span>
-          </div>
-
-          <div
-            v-for="provider in filteredProviders"
-            :key="provider.id"
-            data-testid="provider-row"
-            class="group relative col-span-full grid grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-[var(--bg-hover)]"
-            :style="{ height: 'var(--height-row)' }"
-          >
-            <button
-              type="button"
-              class="min-w-0 overflow-hidden text-left hover:underline focus-visible:outline-[var(--accent)]"
-              data-testid="provider-manage-models"
-              @click="openModels(provider.id)"
-            >
+              <span class="min-w-0 truncate">{{ $t('providers.colName') }}</span>
+              <span>{{ $t('providers.colProtocol') }}</span>
+              <span class="px-1 text-center">{{ $t('providers.colModels') }}</span>
+              <span>{{ $t('providers.colKey') }}</span>
+              <span>{{ $t('providers.colUpdated') }}</span>
               <span
-                class="block truncate whitespace-nowrap text-[13px] font-medium leading-tight text-[var(--text-primary)]"
-                :title="provider.displayName"
+                class="sticky right-0 z-20 flex self-stretch items-center justify-end border-l border-[var(--border-subtle)] bg-[inherit] px-3.5"
               >
-                {{ provider.displayName }}
+                {{ $t('common.actions') }}
               </span>
-              <span
-                class="block truncate whitespace-nowrap font-[family-name:var(--font-mono)] text-[10.5px] leading-tight text-[var(--text-tertiary)]"
-                :title="provider.baseUrl || $t('common.unknown')"
-              >
-                {{ provider.baseUrl || $t('common.unknown') }}
-              </span>
-            </button>
-
-            <div
-              class="whitespace-nowrap text-[12px] text-[var(--text-secondary)]"
-              :title="protocolLabel(provider.protocol)"
-            >
-              {{ protocolLabel(provider.protocol) }}
-            </div>
-
-            <div class="tabular-nums text-[12px] text-[var(--text-secondary)]">
-              {{ provider.modelCount }}
-            </div>
-
-            <div>
-              <Badge tone="muted" class="max-w-full" :title="keyBadge(provider)">
-                {{ keyBadge(provider) }}
-              </Badge>
             </div>
 
             <div
-              class="whitespace-nowrap text-[11.5px] text-[var(--text-tertiary)]"
-              :title="formatRelativeTime(provider.updatedAt, locale)"
+              v-for="row in filteredRows"
+              :key="row.key"
+              data-testid="provider-row"
+              :data-provider-kind="row.provider ? 'api' : 'account'"
+              class="group relative col-span-full grid min-h-[54px] grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-[var(--bg-hover)] focus-within:bg-[var(--bg-hover)]"
             >
-              {{ formatRelativeTime(provider.updatedAt, locale) }}
-            </div>
+              <button
+                type="button"
+                class="group/name flex min-w-0 items-center gap-2.5 rounded-[var(--radius-sm)] py-1.5 text-left focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+                :data-testid="row.provider ? 'provider-manage-models' : 'provider-manage-account'"
+                @click="row.provider ? openModels(row.id) : openCatalog('chatgpt', row.id)"
+              >
+                <ProviderMark :provider-id="row.iconId" :name="row.name" />
+                <span class="min-w-0">
+                  <span
+                    class="block truncate text-[13px] font-semibold leading-tight text-[var(--text-primary)] group-hover/name:underline"
+                    :title="row.name"
+                  >
+                    {{ row.name }}
+                  </span>
+                  <span
+                    class="mt-0.5 block truncate font-[family-name:var(--font-mono)] text-[11px] leading-tight text-[var(--text-tertiary)]"
+                    :title="row.subtitle"
+                  >
+                    {{ row.subtitle }}
+                  </span>
+                </span>
+              </button>
 
-            <div
-              data-testid="provider-action-cell"
-              class="sticky right-0 z-10 grid h-full grid-cols-4 items-center border-l border-[var(--border-subtle)] bg-[inherit] pl-2 pr-3"
-            >
-              <IconButton
-                show-label
-                class="w-full"
-                :label="$t('common.test')"
-                @click="openTest(provider)"
+              <div
+                class="whitespace-nowrap text-[12px] text-[var(--text-secondary)]"
+                :title="row.protocol"
               >
-                <Zap class="size-3.5 shrink-0" :stroke-width="1.75" />
-              </IconButton>
-              <IconButton
-                show-label
-                class="w-full"
-                :label="$t('common.edit')"
-                @click="openEdit(provider)"
+                {{ row.protocol }}
+              </div>
+
+              <div
+                class="text-center text-[12px] font-medium tabular-nums text-[var(--text-primary)]"
               >
-                <Pencil class="size-3.5 shrink-0" :stroke-width="1.75" />
-              </IconButton>
-              <IconButton
-                show-label
-                class="w-full"
-                :label="$t('common.duplicate')"
-                @click="confirmDuplicate(provider)"
+                {{ row.modelCount }}
+              </div>
+
+              <div class="flex">
+                <Badge
+                  :tone="row.reconnect ? 'warning' : 'muted'"
+                  class="max-w-full"
+                  :title="row.badge"
+                >
+                  <span
+                    v-if="row.reconnect"
+                    class="size-1.5 rounded-full bg-current"
+                    aria-hidden="true"
+                  />
+                  {{ row.badge }}
+                </Badge>
+              </div>
+
+              <div
+                class="whitespace-nowrap text-[11.5px] tabular-nums text-[var(--text-tertiary)]"
+                :title="formatRelativeTime(row.updatedAt, locale)"
               >
-                <Copy class="size-3.5 shrink-0" :stroke-width="1.75" />
-              </IconButton>
-              <IconButton
-                show-label
-                class="w-full"
-                variant="danger"
-                :label="$t('common.delete')"
-                @click="confirmDelete(provider)"
+                {{ formatRelativeTime(row.updatedAt, locale) }}
+              </div>
+
+              <div
+                data-testid="provider-action-cell"
+                class="sticky right-0 z-10 flex self-stretch items-center justify-end gap-1.5 border-l border-[var(--border-subtle)] bg-[inherit] pl-2 pr-3"
               >
-                <Trash2 class="size-3.5 shrink-0" :stroke-width="1.75" />
-              </IconButton>
+                <template v-if="row.provider">
+                  <IconButton show-label :label="$t('common.test')" @click="openTest(row.provider)">
+                    <Zap class="size-3.5 shrink-0" :stroke-width="1.75" />
+                  </IconButton>
+                  <IconButton show-label :label="$t('common.edit')" @click="openEdit(row.provider)">
+                    <Pencil class="size-3.5 shrink-0" :stroke-width="1.75" />
+                  </IconButton>
+                  <IconButton
+                    show-label
+                    :label="$t('common.duplicate')"
+                    @click="confirmDuplicate(row.provider)"
+                  >
+                    <Copy class="size-3.5 shrink-0" :stroke-width="1.75" />
+                  </IconButton>
+                  <IconButton
+                    show-label
+                    variant="danger"
+                    :label="$t('common.delete')"
+                    @click="confirmDelete(row.provider)"
+                  >
+                    <Trash2 class="size-3.5 shrink-0" :stroke-width="1.75" />
+                  </IconButton>
+                </template>
+                <IconButton
+                  v-else
+                  show-label
+                  :variant="row.reconnect ? 'accent' : 'default'"
+                  :label="$t('providerAccounts.manageAccount')"
+                  @click="openCatalog('chatgpt', row.id)"
+                >
+                  <UserRound class="size-3.5 shrink-0" :stroke-width="1.75" />
+                </IconButton>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
 
     <LocalGatewayDialog v-if="gatewayOpen" @close="gatewayOpen = false" />
@@ -1364,8 +1439,9 @@ onMounted(() => {
         :presets="PROVIDER_PRESETS"
         :configured-ids="configuredCatalogIds"
         :initial-detail="catalogDetail"
+        :account-id="catalogAccountId"
         :query="catalogQuery"
-        @update:detail="catalogDetail = $event"
+        @update:detail="setCatalogDetail"
         @select-preset="chooseCatalogPreset"
         @openrouter-connected="openAuthorizedProvider"
         @edit-provider="openAuthorizedProvider"

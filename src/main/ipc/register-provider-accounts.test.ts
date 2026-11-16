@@ -30,6 +30,7 @@ it('validates account, model, refresh and date range payloads before service cal
   const setFallbackAccount = vi.fn(async (_id: string, _enabled: boolean) => undefined)
   const setRoutingMode = vi.fn(async (_mode: ChatGptRoutingMode) => undefined)
   const setLabel = vi.fn(async (_id: string, _label: string) => undefined)
+  const useReset = vi.fn(async (_id: string) => 'nothingToReset' as const)
   const gatewaySettings = vi.fn(async () => ({ maxAccounts: 2 }))
   const setGatewaySettings = vi.fn(async () => {})
   const list = vi.fn(async (_refresh: boolean) => [])
@@ -55,6 +56,7 @@ it('validates account, model, refresh and date range payloads before service cal
       setFallbackAccount,
       setRoutingMode,
       setLabel,
+      useReset,
       gatewaySettings,
       setGatewaySettings
     } as unknown as ChatGptAccounts,
@@ -144,6 +146,11 @@ it('validates account, model, refresh and date range payloads before service cal
   await expect(dispatch(IPC_INVOKE.chatGptDisconnect, '../auth.json')).rejects.toThrow(
     'Invalid provider account request'
   )
+  await expect(dispatch(IPC_INVOKE.chatGptUseReset, { id })).rejects.toThrow(
+    'Invalid provider account request'
+  )
+  await expect(dispatch(IPC_INVOKE.chatGptUseReset, id)).resolves.toBe('nothingToReset')
+  expect(useReset).toHaveBeenCalledExactlyOnceWith(id)
   await expect(dispatch(IPC_INVOKE.chatGptGatewaySettings)).resolves.toEqual({ maxAccounts: 2 })
   await expect(dispatch(IPC_INVOKE.chatGptSetGatewaySettings, { maxAccounts: 21 })).rejects.toThrow(
     'Invalid provider account request'

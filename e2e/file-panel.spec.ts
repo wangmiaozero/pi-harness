@@ -94,6 +94,18 @@ test('file panel keeps navigation and chat visible, isolates sessions, and adapt
 
   await tree.getByRole('button', { name: 'a-only.ts', exact: true }).click()
   await expect(code).toContainText('Conversation A')
+  await expect(page.locator('html')).toHaveAttribute('data-appearance', 'light')
+  const editor = code.getByRole('textbox')
+  await editor.focus()
+  await page.keyboard.press('ControlOrMeta+a')
+  const selection = code.locator('.cm-selectionBackground').first()
+  const themeSelection = await code.evaluate(
+    (element) => getComputedStyle(element, '::selection').backgroundColor
+  )
+  await expect(editor).toBeFocused()
+  await expect(selection).toHaveCSS('background-color', themeSelection)
+  await editor.blur()
+  await expect(selection).toHaveCSS('background-color', themeSelection)
   await expect(tree).toHaveCount(0)
   await expect(previewMode).toHaveAttribute('aria-pressed', 'true')
   await treeMode.click()

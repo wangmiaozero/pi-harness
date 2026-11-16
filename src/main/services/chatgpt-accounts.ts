@@ -12,6 +12,7 @@ import {
   type ChatGptAccount,
   type ChatGptAllowance,
   type ChatGptResetPolicy,
+  type ChatGptResetOutcome,
   type ChatGptCatalogIssue,
   type ChatGptModelSelection,
   type ChatGptModelMode,
@@ -32,15 +33,7 @@ import {
   takeCapturedIdToken,
   withSystemProxyFetch
 } from './system-fetch'
-import {
-  codexAccountFetch,
-  codexUserAgent,
-  consumeChatGptReset,
-  quotaExhausted,
-  readChatGptAllowance,
-  tokenIdentity
-} from './chatgpt-allowance'
-import { readCodexSignIn } from './codex-sign-in'
+import { consumeChatGptReset, quotaExhausted, readChatGptAllowance } from './chatgpt-allowance'
 import { log, redactSecretText } from './logger'
 import {
   AccountRequestQueue,
@@ -54,7 +47,7 @@ import {
   modelLimit
 } from '../../../resources/desktop-extension/provider-settings.mjs'
 
-type StoredCredential = OAuthCredential & { idToken?: string; identityChecked?: boolean }
+type StoredCredential = OAuthCredential & { idToken?: string }
 
 type AccountRecord = {
   label: string
@@ -174,7 +167,13 @@ function permitsModel(
 }
 const defaults: AccountStore = { deviceId: null, accounts: {} }
 const credentialError = () =>
-  new AppError('VALIDATION_ERROR', 'ChatGPT authorization is unavailable. Reconnect your account.')
+  new AppError(
+    'VALIDATION_ERROR',
+    'ChatGPT authorization is unavailable. Reconnect your account.',
+    {
+      reason: 'authorization'
+    }
+  )
 
 let openAI:
   | Promise<ReturnType<typeof import('@earendil-works/pi-ai/providers/openai').openaiProvider>>
@@ -190,6 +189,7 @@ export class ChatGptAccounts {
   private readonly store: JsonStore<AccountStore>
   private readonly shutdown = new AbortController()
   private readonly operations = new Map<string, Promise<unknown>>()
+  private readonly manualResets = new Map<string, Promise<ChatGptResetOutcome>>()
   private loginController: AbortController | null = null
   private readonly catalogRefreshes = new Map<string, Promise<void>>()
   private readonly catalogFailures = new Map<string, ChatGptCatalogIssue>()
@@ -532,7 +532,8 @@ export class ChatGptAccounts {
 
   async allowance(id: string): Promise<ChatGptAllowance | null> {
     const signal = AbortSignal.timeout(20_000)
-    return this.readAllowance(id, signal)
+    const credential = await this.serial(id, () => this.credentialFor(id, signal))
+    return readChatGptAllowance(credential.access, systemFetch, signal, credential.idToken)
   }
 
   async setResetPolicy(id: string, policy: ChatGptResetPolicy): Promise<void> {
@@ -548,10 +549,19 @@ export class ChatGptAccounts {
     })
   }
 
-  async useReset(id: string): Promise<boolean> {
-    const signal = AbortSignal.timeout(20_000)
-    const credential = await this.credentialFor(id, signal, true)
-    return consumeChatGptReset(credential.access, codexAccountFetch, signal, credential.idToken)
+  useReset(id: string): Promise<ChatGptResetOutcome> {
+    const pending = this.manualResets.get(id)
+    if (pending) return pending
+
+    const signal = AbortSignal.any([this.shutdown.signal, AbortSignal.timeout(20_000)])
+    const request = this.serial(id, async () => {
+      const credential = await this.credentialFor(id, signal)
+      return consumeChatGptReset(credential.access, systemFetch, signal, credential.idToken)
+    }).finally(() => {
+      this.manualResets.delete(id)
+    })
+    this.manualResets.set(id, request)
+    return request
   }
 
   async setDefaultModel(defaultModel: ChatGptModelSelection | null): Promise<void> {
@@ -1051,104 +1061,67 @@ export class ChatGptAccounts {
     })
   }
 
-  private async spendWeekReset(id: string, signal: AbortSignal): Promise<boolean> {
-    const record = (await this.store.read()).accounts[id]
-    if (!record?.resetPolicy?.week || (record.resetSpentWeekUntil ?? 0) > Date.now()) return false
-    const { access, allowance } = await this.readAllowanceParts(id, signal)
-    if (!allowance || !quotaExhausted('week', allowance.windows) || allowance.resets.count < 1)
-      return false
-    if (!(await consumeChatGptReset(access, systemFetch, signal))) return false
-    const week = [...allowance.windows].sort((left, right) => right.seconds - left.seconds)[0]
-    const until =
-      week?.resetAt && week.resetAt > Date.now()
-        ? week.resetAt
-        : Date.now() + 7 * 24 * 60 * 60 * 1000
-    await this.store.mutate({
-      apply: (current) => {
-        const entry = current.accounts[id]
-        return entry
-          ? {
-              ...current,
-              accounts: {
-                ...current.accounts,
-                [id]: { ...entry, resetSpentWeekUntil: until }
+  private spendWeekReset(id: string, signal: AbortSignal): Promise<boolean> {
+    return this.serial(id, async () => {
+      const record = (await this.store.read()).accounts[id]
+      if (!record?.resetPolicy?.week || (record.resetSpentWeekUntil ?? 0) > Date.now()) return false
+      const { access, idToken } = await this.credentialFor(id, signal)
+      const allowance = await readChatGptAllowance(access, systemFetch, signal, idToken)
+      if (!allowance || !quotaExhausted('week', allowance.windows) || allowance.resets.count < 1)
+        return false
+      const outcome = await consumeChatGptReset(access, systemFetch, signal, idToken)
+      if (outcome !== 'reset' && outcome !== 'alreadyRedeemed') return false
+      const week = [...allowance.windows].sort((left, right) => right.seconds - left.seconds)[0]
+      const until =
+        week?.resetAt && week.resetAt > Date.now()
+          ? week.resetAt
+          : Date.now() + 7 * 24 * 60 * 60 * 1000
+      await this.store.mutate({
+        apply: (current) => {
+          const entry = current.accounts[id]
+          return entry
+            ? {
+                ...current,
+                accounts: {
+                  ...current.accounts,
+                  [id]: { ...entry, resetSpentWeekUntil: until }
+                }
               }
-            }
-          : current
-      }
+            : current
+        }
+      })
+      return true
     })
-    return true
   }
 
-  private async spendExpiringReset(
+  private spendExpiringReset(
     id: string,
     leadMinutes: number,
     signal: AbortSignal
   ): Promise<boolean> {
-    const { access, allowance } = await this.readAllowanceParts(id, signal)
-    const expires = allowance?.resets.expiresAt
-    const lead = Math.min(1440, Math.max(5, leadMinutes)) * 60_000
-    if (!allowance || allowance.resets.count < 1 || !expires || expires <= Date.now()) return false
-    if (expires - Date.now() > lead) return false
-    return consumeChatGptReset(access, systemFetch, signal)
-  }
-
-  private async readAllowance(id: string, signal: AbortSignal): Promise<ChatGptAllowance | null> {
-    return (await this.readAllowanceParts(id, signal)).allowance
-  }
-
-  private async readAllowanceParts(
-    id: string,
-    signal: AbortSignal
-  ): Promise<{ access: string; allowance: ChatGptAllowance | null }> {
-    const credential = await this.credentialFor(id, signal, true)
-    const own = await readChatGptAllowance(
-      credential.access,
-      codexAccountFetch,
-      signal,
-      credential.idToken
-    )
-    return { access: credential.access, allowance: await this.codexAllowance(own, signal) }
-  }
-
-  /** The same ChatGPT account signed in to Codex, when this grant cannot read its allowance. */
-  private async codexAllowance(
-    own: ChatGptAllowance | null,
-    signal: AbortSignal
-  ): Promise<ChatGptAllowance | null> {
-    if (own?.windows.length) return own
-    const codex = await readCodexSignIn().catch(() => null)
-    if (!codex) return own
-    const read = await readChatGptAllowance(
-      codex.access,
-      codexAccountFetch,
-      signal,
-      codex.idToken,
-      codex.accountId
-    ).catch(() => null)
-    if (!read?.windows.length && !read?.resets.expiresAt && !read?.plan) return own
-    const same =
-      !!own?.email &&
-      !!read?.email &&
-      own.email.localeCompare(read.email, undefined, { sensitivity: 'accent' }) === 0
-    if (own?.email && !same) return own
-    return read ? { ...read, email: own?.email || read.email } : own
+    return this.serial(id, async () => {
+      const { access, idToken } = await this.credentialFor(id, signal)
+      const lead = Math.min(1440, Math.max(5, leadMinutes)) * 60_000
+      const outcome = await consumeChatGptReset(
+        access,
+        systemFetch,
+        signal,
+        idToken,
+        Date.now() + lead
+      )
+      return outcome === 'reset' || outcome === 'alreadyRedeemed'
+    })
   }
 
   private async accessToken(id: string, signal: AbortSignal): Promise<string> {
-    return (await this.credentialFor(id, signal, false)).access
+    return (await this.credentialFor(id, signal)).access
   }
 
-  private async credentialFor(
-    id: string,
-    signal: AbortSignal,
-    withIdentity: boolean
-  ): Promise<StoredCredential> {
+  private async credentialFor(id: string, signal: AbortSignal): Promise<StoredCredential> {
     try {
       const record = (await this.store.read()).accounts[id]
       if (!record) throw credentialError()
       let credential = this.decrypt(record)
-      const named = tokenIdentity(credential.access)
       if (credential.expires <= Date.now() + 60_000) {
         const kept = credential.idToken
         const refresh = (await loadOpenAI()).auth.oauth!.refresh
@@ -1158,84 +1131,12 @@ export class ChatGptAccounts {
           idToken: takeCapturedIdToken() ?? kept
         }
         await this.saveCredential(id, credential)
-      } else if (withIdentity && !credential.idToken && (!named.accountId || !named.plan)) {
-        credential = await this.refreshIdentity(id, credential, signal).catch(() => credential)
       }
       signal.throwIfAborted()
       return credential
     } catch {
       throw credentialError()
     }
-  }
-
-  private async refreshIdentity(
-    id: string,
-    credential: StoredCredential,
-    signal: AbortSignal
-  ): Promise<StoredCredential> {
-    try {
-      return await this.exchangeIdentity(id, credential, signal)
-    } catch {
-      return credential
-    } finally {
-      takeCapturedIdToken()
-    }
-  }
-
-  private async exchangeIdentity(
-    id: string,
-    credential: StoredCredential,
-    signal: AbortSignal
-  ): Promise<StoredCredential> {
-    const clientId = credential.clientId
-    if (typeof clientId !== 'string' || !credential.refresh) return credential
-    const response = await codexAccountFetch('https://auth.openai.com/api/accounts/oauth/token', {
-      method: 'POST',
-      redirect: 'error',
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-        originator: 'codex_cli_rs',
-        'user-agent': codexUserAgent()
-      },
-      body: JSON.stringify({
-        client_id: clientId,
-        grant_type: 'refresh_token',
-        refresh_token: credential.refresh,
-        refresh_reason: 'forced'
-      }),
-      signal
-    })
-    const captured = takeCapturedIdToken()
-    if (!response.ok) {
-      log.provider.warn('ChatGPT identity refresh failed', { status: response.status })
-      return credential
-    }
-    const body = (await response.json().catch(() => null)) as {
-      access_token?: unknown
-      refresh_token?: unknown
-      expires_in?: unknown
-      id_token?: unknown
-    } | null
-    const access = typeof body?.access_token === 'string' ? body.access_token : ''
-    if (!access) return credential
-    const idToken =
-      (typeof body?.id_token === 'string' ? body.id_token : undefined) ??
-      captured ??
-      credential.idToken
-    const next: StoredCredential = {
-      ...credential,
-      access,
-      refresh: typeof body?.refresh_token === 'string' ? body.refresh_token : credential.refresh,
-      expires:
-        typeof body?.expires_in === 'number' && body.expires_in > 0
-          ? Date.now() + body.expires_in * 1000 - 180_000
-          : credential.expires,
-      idToken,
-      identityChecked: !idToken
-    }
-    await this.saveCredential(id, next)
-    return next
   }
 
   private async saveCredential(id: string, credential: StoredCredential): Promise<void> {

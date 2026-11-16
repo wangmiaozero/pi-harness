@@ -127,6 +127,41 @@ it('uses saved ChatGPT context limits and masks secrets on actual request bodies
   expect(fetcher.mock.calls[0]?.[1]?.body).not.toContain(privateKey)
 })
 
+it('coalesces duplicate manual resets and reads updated quota with the same grant', async () => {
+  const { accounts } = await fixture()
+  mocks.login.mockResolvedValueOnce(grant('manual-reset'))
+  await accounts.connect(openAuthorization)
+  const [{ id }] = await accounts.list()
+  let reset = false
+  const fetcher = vi.fn<typeof fetch>(async (input, init) => {
+    expect(new Headers(init?.headers).get('authorization')).toBe(
+      'Bearer fixture-access-manual-reset'
+    )
+    if (String(input).endsWith('/consume')) {
+      reset = true
+      return Response.json({ code: 'reset', windows_reset: 2 })
+    }
+    if (String(input).endsWith('/usage')) {
+      return Response.json({
+        rate_limit: {
+          primary_window: { used_percent: reset ? 0 : 23, limit_window_seconds: 18000 }
+        }
+      })
+    }
+    return Response.json({ available_count: reset ? 0 : 1 })
+  })
+  vi.stubGlobal('fetch', fetcher)
+  await expect(Promise.all([accounts.useReset(id), accounts.useReset(id)])).resolves.toEqual([
+    'reset',
+    'reset'
+  ])
+  expect(fetcher.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1)
+  await expect(accounts.allowance(id)).resolves.toMatchObject({
+    resets: { count: 0 },
+    windows: [{ seconds: 18_000, usedPercent: 0 }]
+  })
+})
+
 it('spends one weekly reset card and retries the request once', async () => {
   const { accounts } = await fixture()
   const payload = Buffer.from(
@@ -245,7 +280,11 @@ it('keeps registrations isolated, serializes refresh and removes disconnected gr
   expect(first.id).not.toBe(second.id)
   expect(first.status).toBe('expired')
   expect(first.models[0].verified).toBe(false)
-  await expect(accounts.resolve(first.id, 'fixture-model')).resolves.toBe('fixture-access-rotated')
+  const [access] = await Promise.all([
+    accounts.resolve(first.id, 'fixture-model'),
+    accounts.allowance(first.id)
+  ])
+  expect(access).toBe('fixture-access-rotated')
   await Promise.all([
     accounts.verify(first.id, 'fixture-model'),
     accounts.verify(first.id, 'fixture-model')
@@ -270,6 +309,10 @@ it('keeps registrations isolated, serializes refresh and removes disconnected gr
   vi.stubGlobal('fetch', fetcher)
   expect(await accounts.disconnect(first.id)).toEqual({ revoked: true })
   await expect(accounts.resolve(first.id, 'fixture-model')).rejects.toThrow('Reconnect')
+  await expect(accounts.allowance(first.id)).rejects.toMatchObject({
+    code: 'VALIDATION_ERROR',
+    details: { reason: 'authorization' }
+  })
   expect((await accounts.list()).map(({ id }) => id)).toEqual([second.id])
 })
 

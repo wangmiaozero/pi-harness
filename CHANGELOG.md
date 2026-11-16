@@ -2,6 +2,26 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.9 — 2026-11-16
+
+### Added
+
+#### Provider list
+
+- Manage each connected Codex account from its own row alongside API providers.
+- Open ChatGPT, Claude, Gemini, and the local gateway from redesigned shortcuts.
+
+### Fixed
+
+#### ChatGPT usage
+
+- The provider list and account details show remaining ChatGPT allowance.
+- Using a reset card reports the result and refreshes the account’s allowance and card count.
+
+#### File editor
+
+- Selected text stays readable in light and dark themes.
+
 ## 2.4.8 — 2026-11-14
 
 ### Added

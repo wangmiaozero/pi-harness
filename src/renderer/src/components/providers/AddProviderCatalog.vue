@@ -14,58 +14,14 @@ import Dialog from '@renderer/components/ui/Dialog.vue'
 import LocalAccountsPanel from '@renderer/components/providers/LocalAccountsPanel.vue'
 import { getApi } from '@renderer/composables/useApi'
 
-const iconFiles = import.meta.glob('../../assets/provider-icons/*.svg', {
-  eager: true,
-  query: '?url',
-  import: 'default'
-}) as Record<string, string>
-
-const ICON_NAME: Record<string, string> = {
-  chatgpt: 'openai',
-  claude: 'claude-color',
-  gemini: 'geminicli-color',
-  copilot: 'githubcopilot',
-  anthropic: 'claude-color',
-  openai: 'openai',
-  google: 'gemini-color',
-  deepseek: 'deepseek-color',
-  xai: 'xai',
-  moonshot: 'kimi',
-  'moonshot-ai': 'kimi',
-  'kimi-for-coding': 'kimi',
-  zhipuai: 'zhipu-color',
-  'zhipuai-coding-plan': 'zhipu-color',
-  zai: 'zai',
-  'zai-coding-plan': 'zai',
-  minimax: 'minimax-color',
-  'minimax-cn': 'minimax-color',
-  'minimax-anthropic': 'minimax-color',
-  'minimax-coding-plan': 'minimax-color',
-  'minimax-cn-coding-plan': 'minimax-color',
-  stepfun: 'stepfun-color',
-  'step-plan': 'stepfun-color',
-  xiaomi: 'mimocode',
-  qwen: 'qwen-color',
-  'mistral-ai': 'mistral-color',
-  groq: 'groq',
-  openrouter: 'openrouter',
-  'together-ai': 'together-color',
-  fireworks: 'fireworks-color',
-  siliconflow: 'siliconcloud-color',
-  'siliconflow-com': 'siliconcloud-color',
-  nvidia: 'nvidia-color',
-  modelscope: 'modelscope-color',
-  aihubmix: 'aihubmix-color',
-  'vercel-ai-gateway': 'vercel',
-  ollama: 'ollama',
-  'lm-studio': 'lmstudio'
-}
+import { providerIcon } from './provider-icons'
 
 const props = defineProps<{
   presets: readonly ProviderPreset[]
   partnerIds?: readonly string[]
   configuredIds?: readonly string[]
   initialDetail?: AddCatalogSubscriptionId | null
+  accountId?: string
   query?: string
 }>()
 const emit = defineEmits<{
@@ -99,13 +55,6 @@ const sponsorSection = computed(() => showSponsorSection(props.query ?? ''))
 const subscription = computed(() =>
   ADD_CATALOG_SUBSCRIPTIONS.find((item) => item.id === detail.value)
 )
-
-function iconUrl(id: string): string {
-  const name = ICON_NAME[id]
-  if (!name) return ''
-  const suffix = `/${name}.svg`
-  return Object.entries(iconFiles).find(([path]) => path.endsWith(suffix))?.[1] ?? ''
-}
 
 function configured(id: string): boolean {
   return props.configuredIds?.includes(id) ?? false
@@ -163,6 +112,7 @@ function openSponsor(url: string) {
       <LocalAccountsPanel
         v-if="detail === 'chatgpt' || detail === 'claude' || detail === 'gemini'"
         :focus="detail"
+        :account-id="detail === 'chatgpt' ? accountId : undefined"
         @configure-api="configureApi"
         @edit-provider="emit('edit-provider', $event)"
       />
@@ -295,8 +245,8 @@ function openSponsor(url: string) {
             @click="detail = item.id"
           >
             <img
-              v-if="iconUrl(item.id)"
-              :src="iconUrl(item.id)"
+              v-if="providerIcon(item.id)?.url"
+              :src="providerIcon(item.id)?.url"
               alt=""
               class="size-[18px] shrink-0"
             />
@@ -318,8 +268,8 @@ function openSponsor(url: string) {
             @click="emit('select-preset', preset.id)"
           >
             <img
-              v-if="iconUrl(preset.id)"
-              :src="iconUrl(preset.id)"
+              v-if="providerIcon(preset.id)?.url"
+              :src="providerIcon(preset.id)?.url"
               alt=""
               class="size-[18px] shrink-0"
             />

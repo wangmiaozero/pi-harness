@@ -1050,7 +1050,7 @@ export interface PiSwitchAPI {
     setResetPolicy(
       input: { id: string } & import('../providers/account-management').ChatGptResetPolicy
     ): Promise<void>
-    useReset(id: string): Promise<boolean>
+    useReset(id: string): Promise<import('../providers/account-management').ChatGptResetOutcome>
     disconnect(id: string): Promise<{ revoked: boolean }>
     gatewaySettings(): Promise<import('../providers/advanced-settings').ChatGptGatewaySettings>
     setGatewaySettings(

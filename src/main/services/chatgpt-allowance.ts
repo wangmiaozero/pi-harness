@@ -1,13 +1,11 @@
 import { z } from 'zod'
-import type { ChatGptAllowance } from '@shared/providers/account-management'
+import type { ChatGptAllowance, ChatGptResetOutcome } from '@shared/providers/account-management'
 import { readBoundedJson } from './bounded-json'
 import { log } from './logger'
-import { systemFetch } from './system-fetch'
 
 const usageUrl = 'https://chatgpt.com/backend-api/wham/usage'
 const creditsUrl = 'https://chatgpt.com/backend-api/wham/rate-limit-reset-credits'
 const consumeUrl = 'https://chatgpt.com/backend-api/wham/rate-limit-reset-credits/consume'
-const accountsUrl = 'https://chatgpt.com/backend-api/accounts/check/v4-2023-04-27'
 
 const windowSchema = z.object({
   used_percent: z.number().nullish(),
@@ -23,7 +21,9 @@ const usageSchema = z.object({
       secondary_window: windowSchema.nullish()
     })
     .optional(),
-  rate_limit_reset_credits: z.object({ available_count: z.number().int().optional() }).optional()
+  rate_limit_reset_credits: z
+    .object({ available_count: z.number().int().nonnegative().optional() })
+    .optional()
 })
 const creditSchema = z.object({
   id: z.string().optional(),
@@ -31,10 +31,13 @@ const creditSchema = z.object({
   expires_at: z.union([z.string(), z.number()]).nullable().optional()
 })
 const creditsSchema = z.object({
-  available_count: z.number().int().optional(),
+  available_count: z.number().int().nonnegative().optional(),
   credits: z.array(creditSchema).max(100).optional()
 })
-const consumeSchema = z.object({ code: z.string() })
+const consumeSchema = z.object({
+  code: z.enum(['reset', 'already_redeemed', 'nothing_to_reset', 'no_credit']),
+  windows_reset: z.number().int().nonnegative().optional()
+})
 
 export type ResetScope = 'off' | 'week' | 'both'
 
@@ -97,23 +100,6 @@ function identityFrom(
   }
 }
 
-export function codexUserAgent(): string {
-  const os =
-    process.platform === 'darwin'
-      ? 'Mac OS 15.0.0'
-      : process.platform === 'win32'
-        ? 'Windows 10.0.26100'
-        : 'Linux'
-  const arch = process.arch === 'arm64' ? 'arm64' : 'x86_64'
-  const term =
-    process.platform === 'darwin'
-      ? 'Apple_Terminal/455'
-      : process.platform === 'win32'
-        ? 'WindowsTerminal'
-        : 'xterm-256color'
-  return `codex_cli_rs/0.98.0 (${os}; ${arch}) ${term}`
-}
-
 export function quotaExhausted(
   scope: ResetScope,
   windows: readonly { seconds: number; usedPercent: number }[]
@@ -133,57 +119,12 @@ function creditExpiry(value: string | number | null | undefined): number | undef
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
-function requestUrl(input: Parameters<typeof fetch>[0]): string {
-  if (typeof input === 'string') return input
-  if (input instanceof URL) return input.href
-  return input.url
-}
-
-/** Account calls keep the Codex user agent. The default Electron fetch replaces that header. */
-export async function codexAccountFetch(
-  input: Parameters<typeof fetch>[0],
-  init?: RequestInit
-): Promise<Response> {
-  const url = requestUrl(input)
-  try {
-    const { session } = await import('electron')
-    if (typeof session?.fromPartition !== 'function') return systemFetch(url, init)
-    const partition = session.fromPartition('chatgpt-account', { cache: false })
-    partition.setUserAgent(codexUserAgent())
-    if (typeof partition.setProxy === 'function') {
-      const resolved = await session.defaultSession.resolveProxy(url).catch(() => '')
-      const proxy = /^(?:PROXY|HTTPS)\s+(\S+)/.exec(resolved.split(';')[0]?.trim() ?? '')
-      await partition.setProxy(
-        proxy
-          ? {
-              mode: 'fixed_servers',
-              proxyRules: `http://${proxy[1]}`,
-              proxyBypassRules: '<-loopback>'
-            }
-          : { mode: 'system' }
-      )
-    }
-    return partition.fetch(url, init)
-  } catch (error) {
-    log.provider.warn('ChatGPT account request fell back to the system fetch', {
-      reason: error instanceof Error ? error.name : 'unknown'
-    })
-    return systemFetch(url, init)
-  }
-}
-
-function headers(access: string, accountId: string): HeadersInit {
+function headers(access: string, accountId?: string): HeadersInit {
   return {
     authorization: `Bearer ${access}`,
     accept: 'application/json',
-    originator: 'codex_cli_rs',
-    'user-agent': codexUserAgent(),
-    'chatgpt-account-id': accountId
+    ...(accountId ? { 'chatgpt-account-id': accountId } : {})
   }
-}
-
-function blankAllowance(identity: { email?: string; plan?: string }): ChatGptAllowance {
-  return { email: identity.email, plan: identity.plan ?? '', windows: [], resets: { count: 0 } }
 }
 
 async function readJson(response: Response): Promise<unknown> {
@@ -195,80 +136,33 @@ export async function readChatGptAllowance(
   access: string,
   fetchImpl: typeof fetch,
   signal: AbortSignal,
-  idToken?: string,
-  accountIdHint?: string
+  idToken?: string
 ): Promise<ChatGptAllowance | null> {
   const identity = identityFrom(access, idToken)
-  let accountId = identity.accountId ?? accountIdHint
-  if (!accountId) {
-    const checked = await fetchImpl(accountsUrl, {
-      headers: {
-        authorization: `Bearer ${access}`,
-        accept: 'application/json',
-        originator: 'codex_cli_rs',
-        'user-agent': codexUserAgent()
-      },
-      redirect: 'error',
-      signal
-    })
-    if (!checked.ok) {
-      log.provider.warn('ChatGPT account check failed', { status: checked.status })
-      return identity.email || identity.plan ? blankAllowance(identity) : null
-    }
-    const body = z
-      .object({
-        accounts: z.record(
-          z.string(),
-          z
-            .object({
-              account: z
-                .object({
-                  account_id: z.string().optional(),
-                  plan_type: z.string().optional()
-                })
-                .optional()
-            })
-            .passthrough()
-        )
-      })
-      .safeParse(await readBoundedJson(checked, 65_536))
-    const first = body.success ? Object.entries(body.data.accounts)[0] : undefined
-    accountId = first?.[1].account?.account_id ?? first?.[0]
-    identity.plan ??= first?.[1].account?.plan_type
+  const readOptions: RequestInit = {
+    headers: headers(access, identity.accountId),
+    redirect: 'error',
+    cache: 'no-store',
+    signal
   }
-  if (!accountId) return identity.email || identity.plan ? blankAllowance(identity) : null
-  let usage: z.infer<typeof usageSchema>
-  try {
-    usage = usageSchema.parse(
-      await readJson(
-        await fetchImpl(usageUrl, {
-          headers: headers(access, accountId),
-          redirect: 'error',
-          signal
-        })
-      )
-    )
-  } catch (error) {
-    log.provider.warn('ChatGPT allowance was not read', {
-      status: error instanceof Error ? error.message : 'unknown'
-    })
-    return identity.email || identity.plan ? blankAllowance(identity) : null
-  }
-  const credits = await readJson(
-    await fetchImpl(creditsUrl, { headers: headers(access, accountId), redirect: 'error', signal })
-  )
-    .then((body) => creditsSchema.parse(body))
-    .catch(() => ({
-      available_count: usage.rate_limit_reset_credits?.available_count,
-      credits: []
-    }))
-  const windows = [usage.rate_limit?.primary_window, usage.rate_limit?.secondary_window].flatMap(
+  const [usage, credits] = await Promise.all([
+    fetchImpl(usageUrl, readOptions)
+      .then(readJson)
+      .then((body) => usageSchema.parse(body))
+      .catch(() => null),
+    fetchImpl(creditsUrl, readOptions)
+      .then(readJson)
+      .then((body) => creditsSchema.parse(body))
+      .catch(() => null)
+  ])
+  if (!usage && !credits && !identity.email && !identity.plan) return null
+  const windows = [usage?.rate_limit?.primary_window, usage?.rate_limit?.secondary_window].flatMap(
     (window) =>
-      window?.limit_window_seconds
+      window?.limit_window_seconds && window.used_percent != null
         ? [
             {
               seconds: window.limit_window_seconds,
-              usedPercent: Math.min(100, Math.max(0, window.used_percent ?? 0)),
+              usedPercent: Math.min(100, Math.max(0, window.used_percent)),
               resetAt: window.reset_at
                 ? window.reset_at * 1000
                 : window.reset_after_seconds
@@ -278,20 +172,24 @@ export async function readChatGptAllowance(
           ]
         : []
   )
-  const cards = (credits.credits ?? [])
+  const cards = (credits?.credits ?? [])
     .filter((credit) => credit.status === 'available')
     .map((credit) => ({ expiresAt: creditExpiry(credit.expires_at) }))
     .sort(
       (left, right) =>
         (left.expiresAt ?? Number.POSITIVE_INFINITY) - (right.expiresAt ?? Number.POSITIVE_INFINITY)
     )
+  const count =
+    credits?.available_count ??
+    usage?.rate_limit_reset_credits?.available_count ??
+    (credits?.credits ? cards.length : undefined)
   return {
     email: identity.email,
-    plan: usage.plan_type || identity.plan || '',
+    plan: usage?.plan_type || identity.plan || '',
     windows,
     resets: {
-      count:
-        credits.available_count ?? usage.rate_limit_reset_credits?.available_count ?? cards.length,
+      count: count ?? 0,
+      ...(count === undefined ? { unavailable: true } : {}),
       expiresAt: cards.find((card) => card.expiresAt)?.expiresAt,
       cards
     }
@@ -302,38 +200,65 @@ export async function consumeChatGptReset(
   access: string,
   fetchImpl: typeof fetch,
   signal: AbortSignal,
-  idToken?: string
-): Promise<boolean> {
-  const identity = identityFrom(access, idToken)
-  const accountId = identity.accountId
-  if (!accountId) return false
-  const listed = creditsSchema.parse(
-    await readJson(
-      await fetchImpl(creditsUrl, {
-        headers: headers(access, accountId),
-        redirect: 'error',
-        signal
-      })
-    )
-  )
-  const credit = (listed.credits ?? [])
-    .filter((item) => item.status === 'available' && item.id)
-    .sort((a, b) => {
-      const left = creditExpiry(a.expires_at) ?? Number.POSITIVE_INFINITY
-      const right = creditExpiry(b.expires_at) ?? Number.POSITIVE_INFINITY
-      return left - right
-    })[0]
-  if (!credit?.id) return false
-  const consumed = consumeSchema.parse(
-    await readJson(
-      await fetchImpl(consumeUrl, {
-        method: 'POST',
-        headers: { ...headers(access, accountId), 'content-type': 'application/json' },
-        body: JSON.stringify({ credit_id: credit.id, redeem_request_id: crypto.randomUUID() }),
-        redirect: 'error',
-        signal
-      })
-    )
-  )
-  return consumed.code === 'reset'
+  idToken?: string,
+  expiringBefore?: number
+): Promise<ChatGptResetOutcome> {
+  const requestHeaders = headers(access, identityFrom(access, idToken).accountId)
+  let creditId: string | undefined
+  try {
+    // A manual reset lets the service pick the next card. Expiry rules must name a card
+    // that actually qualifies for the rule.
+    if (expiringBefore !== undefined) {
+      const listed = creditsSchema.parse(
+        await readJson(
+          await fetchImpl(creditsUrl, {
+            headers: requestHeaders,
+            redirect: 'error',
+            cache: 'no-store',
+            signal
+          })
+        )
+      )
+      const now = Date.now()
+      creditId = (listed.credits ?? [])
+        .flatMap((card) => {
+          const expiresAt = creditExpiry(card.expires_at)
+          return card.status === 'available' &&
+            card.id &&
+            expiresAt &&
+            expiresAt > now &&
+            expiresAt <= expiringBefore
+            ? [{ id: card.id, expiresAt }]
+            : []
+        })
+        .sort((a, b) => a.expiresAt - b.expiresAt)[0]?.id
+      if (!creditId) return 'noCredit'
+    }
+
+    const response = await fetchImpl(consumeUrl, {
+      method: 'POST',
+      headers: { ...requestHeaders, 'content-type': 'application/json' },
+      body: JSON.stringify({ redeem_request_id: crypto.randomUUID(), credit_id: creditId }),
+      redirect: 'error',
+      signal
+    })
+    if ([401, 403, 404].includes(response.status)) return 'unavailable'
+    const { code, windows_reset } = consumeSchema.parse(await readJson(response))
+    switch (code) {
+      case 'reset':
+        return windows_reset === 0 ? 'unconfirmed' : 'reset'
+      case 'already_redeemed':
+        return 'alreadyRedeemed'
+      case 'nothing_to_reset':
+        return 'nothingToReset'
+      case 'no_credit':
+        return 'noCredit'
+    }
+  } catch (error) {
+    // A failed response can follow a successful debit. Never send another POST here.
+    log.provider.warn('ChatGPT reset result could not be confirmed', {
+      reason: error instanceof Error ? error.name : 'unknown'
+    })
+    return 'unconfirmed'
+  }
 }

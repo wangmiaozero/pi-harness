@@ -97,7 +97,19 @@ export interface ChatGptAllowance {
   email?: string
   plan: string
   windows: { seconds: number; usedPercent: number; resetAt?: number }[]
-  resets: { count: number; expiresAt?: number; cards?: { expiresAt?: number }[] }
+  resets: {
+    count: number
+    unavailable?: boolean
+    expiresAt?: number
+    cards?: { expiresAt?: number }[]
+  }
+}
+
+export type ChatGptResetOutcome =
+  'reset' | 'alreadyRedeemed' | 'nothingToReset' | 'noCredit' | 'unavailable' | 'unconfirmed'
+
+export function chatGptRemainingPercent(usedPercent: number): number {
+  return 100 - Math.round(Math.min(100, Math.max(0, usedPercent)))
 }
 
 export interface ChatGptResetPolicy {

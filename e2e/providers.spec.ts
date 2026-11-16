@@ -207,7 +207,7 @@ test.describe('Providers', () => {
   })
   test('keeps provider actions aligned and fixed to the right', async ({ page }) => {
     await expect(page.getByText('Pi-Harness').first()).toBeVisible({ timeout: 30_000 })
-    await page.setViewportSize({ width: 960, height: 720 })
+    await page.setViewportSize({ width: 820, height: 720 })
     await page.locator('a[href="#/models"]').click()
 
     const table = page.getByTestId('providers-table-scroll')
@@ -219,6 +219,16 @@ test.describe('Providers', () => {
     )
     expect(new Set(before.map(Math.round)).size).toBe(1)
 
+    expect(
+      await table.evaluate((element) => element.scrollWidth - element.clientWidth)
+    ).toBeGreaterThan(0)
+    const [tableBefore, actionsBefore] = await Promise.all([
+      table.boundingBox(),
+      actionCells.first().boundingBox()
+    ])
+    expect(
+      Math.abs(actionsBefore!.x + actionsBefore!.width - tableBefore!.x - tableBefore!.width)
+    ).toBeLessThan(3)
     await table.evaluate((element) => {
       element.scrollLeft = element.scrollWidth
     })
@@ -607,6 +617,38 @@ test('shows the account catalogue and manages the default and allowed fallback',
         ipcMain.handle(channel, (_event, input) => ({ ok: true, data: run(input as never) }))
       }
       respond(channels.list, () => accounts)
+      let resetApplied = false
+      respond(channels.useReset, (id: string) => {
+        if (id !== 'primary' || resetApplied) return 'noCredit'
+        resetApplied = true
+        return 'reset'
+      })
+      const allowanceCalls: string[] = []
+      Object.assign(globalThis, { fixtureAllowanceCalls: allowanceCalls })
+      ipcMain.removeHandler(channels.allowance)
+      ipcMain.handle(channels.allowance, (_event, id: string) => {
+        allowanceCalls.push(id)
+        return id === 'primary'
+          ? {
+              ok: true,
+              data: {
+                plan: 'plus',
+                windows: [
+                  { seconds: 18_000, usedPercent: resetApplied ? 0 : 23 },
+                  { seconds: 604_800, usedPercent: resetApplied ? 0 : 18 }
+                ],
+                resets: { count: resetApplied ? 0 : 1 }
+              }
+            }
+          : {
+              ok: false,
+              error: {
+                code: 'VALIDATION_ERROR',
+                message: 'Reconnect your account.',
+                details: { reason: 'authorization' }
+              }
+            }
+      })
       respond(channels.refresh, (id: string) => {
         accounts.find((account) => account.id === id)!.models[0].name = 'Refreshed account model'
       })
@@ -660,6 +702,8 @@ test('shows the account catalogue and manages the default and allowed fallback',
     },
     {
       list: IPC_INVOKE.chatGptAccounts,
+      allowance: IPC_INVOKE.chatGptAllowance,
+      useReset: IPC_INVOKE.chatGptUseReset,
       refresh: IPC_INVOKE.chatGptCatalogRefresh,
       defaultModel: IPC_INVOKE.chatGptDefaultModel,
       fallback: IPC_INVOKE.chatGptFallback,
@@ -677,10 +721,26 @@ test('shows the account catalogue and manages the default and allowed fallback',
   const mask = page.getByTestId('mask-provider-accounts')
   await mask.click()
   await expect(mask).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByTestId('signed-in-accounts')).toBeVisible()
+  const table = page.getByTestId('providers-table-scroll')
+  const accountRows = table
+    .getByTestId('provider-row')
+    .and(page.locator('[data-provider-kind="account"]'))
+  await expect(table.getByTestId('provider-row')).toHaveCount(4)
+  await expect(accountRows).toHaveCount(2)
+  await expect(accountRows.first()).toContainText('Codex')
+  await expect(accountRows.first()).toContainText('•••• mary')
+  await expect(accountRows.first()).toContainText('OpenAI Responses')
+  await expect(accountRows.first()).toContainText('ChatGPT Plus')
+  await expect(accountRows.first()).toContainText('剩余 77%')
+  await expect(accountRows.first()).toContainText('剩余 82%')
+  await expect(accountRows.last()).toContainText('需要授权')
+  const filter = page.getByRole('searchbox', { name: '筛选提供商…' })
+  await filter.fill('primary')
+  await expect(accountRows).toHaveCount(0)
+  await filter.clear()
   await page.getByTestId('add-provider').click()
   const catalog = page.getByTestId('add-provider-catalog')
-  await expect(catalog.getByTestId('signed-in-accounts')).toHaveCount(0)
+  await expect(catalog.getByTestId('provider-row')).toHaveCount(0)
   await catalog.getByTestId('add-provider-subscription-chatgpt').click()
   const accounts = page.getByTestId('provider-local-accounts').locator('article')
   await expect(accounts.filter({ hasText: 'ChatGPT · •••• mary' })).toBeVisible()
@@ -688,9 +748,33 @@ test('shows the account catalogue and manages the default and allowed fallback',
   await page.keyboard.press('Escape')
   await expect(mask).toBeVisible()
   await mask.click()
-  await page.getByTestId('open-subscription-chatgpt').click()
+  await filter.fill('backup')
+  await expect(table.getByTestId('provider-row')).toHaveCount(1)
+  await expect(accountRows).toHaveCount(1)
+  await accountRows.getByRole('button', { name: '管理账户', exact: true }).click()
   const primary = accounts.filter({ hasText: 'ChatGPT · primary' })
   const backup = accounts.filter({ hasText: 'ChatGPT · backup' })
+  await expect(accounts.first()).toContainText('ChatGPT · backup')
+  await expect(backup).toContainText('请重新连接 ChatGPT 账户。')
+  expect(
+    await electronApp.evaluate(
+      () =>
+        (globalThis as typeof globalThis & { fixtureAllowanceCalls: string[] })
+          .fixtureAllowanceCalls
+    )
+  ).toEqual(['primary', 'backup'])
+  await expect(primary).toContainText('剩余 77%')
+  await expect(primary).toContainText('剩余 82%')
+  await expect(primary).toContainText('1 张重置卡')
+  await primary.getByTestId('chatgpt-use-reset').click()
+  const resetDialog = page.getByRole('dialog', { name: '使用一张重置卡？', exact: true })
+  await resetDialog.getByRole('button', { name: '取消', exact: true }).click()
+  await expect(primary).toContainText('1 张重置卡')
+  await primary.getByTestId('chatgpt-use-reset').click()
+  await resetDialog.getByTestId('chatgpt-use-reset-confirm').click()
+  await expect(primary).toContainText('已使用一张重置卡')
+  await expect(primary).toContainText('0 张重置卡')
+  await expect(primary.getByText('剩余 100%', { exact: true })).toHaveCount(2)
   await primary.getByRole('button', { name: 'Pi-Harness 本地用量', exact: true }).click()
   await expect(primary).toContainText('最近 5 小时 2 次 · 最近 7 天 7 次')
   const picks = backup.getByTestId('chatgpt-model-preferences')

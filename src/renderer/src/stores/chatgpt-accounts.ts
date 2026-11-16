@@ -1,10 +1,21 @@
 import { computed, ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
-import { getApi } from '@renderer/composables/useApi'
-import { isSelectableChatGptModel, type ChatGptAccount } from '@shared/providers/account-management'
+import { getApi, getErrorPayload } from '@renderer/composables/useApi'
+import {
+  isSelectableChatGptModel,
+  type ChatGptAccount,
+  type ChatGptAllowance
+} from '@shared/providers/account-management'
+
+type AllowanceReading = {
+  data: ChatGptAllowance | null
+  status: 'loading' | 'ready' | 'failed' | 'authorization'
+}
 
 export const useChatGptAccounts = defineStore('chatgpt-accounts', () => {
   const items = shallowRef<ChatGptAccount[]>([])
+  const allowances = shallowRef<Record<string, AllowanceReading>>({})
+  const pendingAllowances = new Map<string, Promise<void>>()
   const draftModel = shallowRef<{ provider: string; modelId: string } | null>(null)
   const useAccountDefault = ref(true)
   const maskAccounts = ref(localStorage.getItem('pi-harness.accounts.masked') === 'true')
@@ -37,6 +48,55 @@ export const useChatGptAccounts = defineStore('chatgpt-accounts', () => {
   let loaded = false
   let pending: Promise<void> | null = null
 
+  function setAllowance(id: string, reading: AllowanceReading) {
+    if (items.value.some((account) => account.id === id))
+      allowances.value = { ...allowances.value, [id]: reading }
+  }
+
+  function loadAllowance(
+    id: string,
+    refresh: boolean,
+    keepPrevious = true
+  ): Promise<void> | undefined {
+    const inFlight = pendingAllowances.get(id)
+    if (inFlight) return inFlight
+    const previous = allowances.value[id]
+    if (previous && !refresh) return
+
+    const data = keepPrevious ? (previous?.data ?? null) : null
+    setAllowance(id, { data, status: 'loading' })
+    const request = getApi()
+      .accounts.allowance(id)
+      .then((result) => {
+        setAllowance(id, { data: result ?? data, status: result || data ? 'ready' : 'failed' })
+      })
+      .catch((error: unknown) => {
+        const details = getErrorPayload(error).details as { reason?: string } | undefined
+        setAllowance(
+          id,
+          details?.reason === 'authorization'
+            ? { data: null, status: 'authorization' }
+            : { data, status: data ? 'ready' : 'failed' }
+        )
+      })
+      .finally(() => {
+        pendingAllowances.delete(id)
+      })
+
+    pendingAllowances.set(id, request)
+    return request
+  }
+
+  async function loadAllowances(refresh = false): Promise<void> {
+    await Promise.all(items.value.map(({ id }) => loadAllowance(id, refresh)))
+  }
+
+  async function refreshAllowance(id: string): Promise<void> {
+    // A request started before the reset cannot supply the result after it.
+    await pendingAllowances.get(id)
+    if (items.value.some((account) => account.id === id)) await loadAllowance(id, true, false)
+  }
+
   async function load(refresh = false): Promise<void> {
     if (pending) {
       if (!refresh) return pending
@@ -47,6 +107,10 @@ export const useChatGptAccounts = defineStore('chatgpt-accounts', () => {
       .accounts.chatGpt()
       .then((result) => {
         items.value = result
+        const ids = new Set(result.map(({ id }) => id))
+        allowances.value = Object.fromEntries(
+          Object.entries(allowances.value).filter(([id]) => ids.has(id))
+        )
         if (
           draftModel.value &&
           !result.some(
@@ -69,6 +133,9 @@ export const useChatGptAccounts = defineStore('chatgpt-accounts', () => {
 
   return {
     items,
+    allowances,
+    loadAllowances,
+    refreshAllowance,
     draftModel,
     defaultDraftModel,
     effectiveDraftModel,

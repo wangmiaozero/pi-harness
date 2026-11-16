@@ -35,7 +35,8 @@ export const graphiteEditorTheme: Extension = EditorView.theme(
     },
     '.cm-content': { caretColor: 'var(--accent)' },
     '&.cm-focused .cm-cursor': { borderLeftColor: 'var(--accent)' },
-    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
+    // Match the specificity of CodeMirror's default focused selection.
+    '&.cm-editor > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
       backgroundColor: 'var(--accent-tint-strong)'
     },
     '.cm-tooltip': {

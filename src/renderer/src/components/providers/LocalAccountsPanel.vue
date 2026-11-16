@@ -1,21 +1,22 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getApi } from '@renderer/composables/useApi'
+import { getApi, getErrorPayload } from '@renderer/composables/useApi'
 import { useChatGptAccounts } from '@renderer/stores/chatgpt-accounts'
 import { useModelsStore } from '@renderer/stores/models'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { formatDateTime } from '@renderer/utils/format'
 import {
   chatGptPlanLabel,
+  chatGptRemainingPercent,
   isSelectableChatGptModel,
   orderChatGptModels
 } from '@shared/providers/account-management'
 import type {
   ChatGptAccount,
-  ChatGptAllowance,
   ChatGptModelPreferences,
   ChatGptResetPolicy,
+  ChatGptResetOutcome,
   ChatGptRoutingMode,
   LocalAccount,
   UsageTotals
@@ -37,9 +38,10 @@ import AccountModelTest from './AccountModelTest.vue'
 import ChatGptModelPreferencesPanel from './ChatGptModelPreferences.vue'
 import ChatGptAdvancedSettings from './ChatGptAdvancedSettings.vue'
 
-const props = withDefaults(defineProps<{ focus?: 'chatgpt' | 'claude' | 'gemini' }>(), {
-  focus: 'chatgpt'
-})
+const props = withDefaults(
+  defineProps<{ focus?: 'chatgpt' | 'claude' | 'gemini'; accountId?: string }>(),
+  { focus: 'chatgpt', accountId: undefined }
+)
 const emit = defineEmits<{ 'configure-api': []; 'edit-provider': [key: string] }>()
 const { t, locale } = useI18n()
 const accounts = useChatGptAccounts()
@@ -55,8 +57,7 @@ const feedback = ref('')
 const renaming = ref<{ id: string; label: string } | null>(null)
 const disconnecting = ref<string | null>(null)
 const resetConfirm = ref<string | null>(null)
-const allowances = ref<Record<string, ChatGptAllowance | null>>({})
-const allowanceState = ref<Record<string, 'loading' | 'ready' | 'failed'>>({})
+const resetResult = ref<{ id: string; outcome: ChatGptResetOutcome | 'applying' } | null>(null)
 const transfer = ref<{ mode: 'import' | 'export'; id?: string } | null>(null)
 const transferPassword = ref('')
 const localUsage = ref<Record<string, { recent: UsageTotals; weekly: UsageTotals }>>({})
@@ -78,6 +79,12 @@ const cliSource = computed(() =>
 const focusedLocal = computed(() => local.value.find((item) => item.source === cliSource.value))
 const primary = computed(() => accounts.items.find((account) => account.defaultModelId))
 const hasFallback = computed(() => accounts.items.some((account) => account.fallbackRank))
+const displayedAccounts = computed(() => {
+  const selected = accounts.items.find(({ id }) => id === props.accountId)
+  return selected
+    ? [selected, ...accounts.items.filter(({ id }) => id !== selected.id)]
+    : accounts.items
+})
 const official = computed(() =>
   props.focus === 'chatgpt' ? null : officialModelGroups[props.focus]
 )
@@ -201,39 +208,12 @@ async function refresh(refresh = false) {
         : Promise.all([providers.fetchList(), models.fetchList()])
     ])
     local.value = result
-    if (props.focus === 'chatgpt') void loadAllowances()
+    if (props.focus === 'chatgpt') void accounts.loadAllowances(refresh)
   } catch {
     feedback.value = t('providerAccounts.loadFailed')
   } finally {
     scanning.value = false
   }
-}
-
-async function loadAllowances() {
-  const pending = accounts.items.filter((account) => !allowances.value[account.id])
-  if (pending.length) {
-    allowanceState.value = {
-      ...allowanceState.value,
-      ...Object.fromEntries(pending.map((account) => [account.id, 'loading']))
-    }
-  }
-  const entries = await Promise.all(
-    accounts.items.map(async (account) => {
-      try {
-        return [account.id, await getApi().accounts.allowance(account.id)] as const
-      } catch {
-        return [account.id, null] as const
-      }
-    })
-  )
-  const next = { ...allowances.value }
-  const states = { ...allowanceState.value }
-  for (const [id, allowance] of entries) {
-    if (allowance) next[id] = allowance
-    states[id] = allowance ? 'ready' : next[id] ? 'ready' : 'failed'
-  }
-  allowances.value = next
-  allowanceState.value = states
 }
 
 function windowLabel(seconds: number): string {
@@ -254,7 +234,7 @@ function resetIn(at?: number): string {
 }
 
 function resetCards(accountId: string): { expiresAt?: number }[] {
-  const resets = allowances.value[accountId]?.resets
+  const resets = accounts.allowances[accountId]?.data?.resets
   if (resets?.cards?.length) return resets.cards
   return resets?.expiresAt ? [{ expiresAt: resets.expiresAt }] : []
 }
@@ -272,13 +252,13 @@ function validUntil(at?: number): string {
 }
 
 function accountTitle(account: ChatGptAccount): string {
-  const email = allowances.value[account.id]?.email
+  const email = accounts.allowances[account.id]?.data?.email
   if (email && !accounts.maskAccounts) return email
   return `ChatGPT · ${accounts.displayLabel(account)}`
 }
 
 function allowanceWindows(accountId: string) {
-  return [...(allowances.value[accountId]?.windows ?? [])].sort(
+  return [...(accounts.allowances[accountId]?.data?.windows ?? [])].sort(
     (left, right) => left.seconds - right.seconds
   )
 }
@@ -305,15 +285,20 @@ function onResetLead(account: ChatGptAccount, event: Event) {
 
 async function useReset() {
   const id = resetConfirm.value
+  if (!id || busy.value) return
   resetConfirm.value = null
-  if (!id) return
   busy.value = id
+  resetResult.value = { id, outcome: 'applying' }
   try {
-    const used = await getApi().accounts.useReset(id)
-    feedback.value = t(used ? 'providerAccounts.resetUsed' : 'providerAccounts.resetFailed')
-    await loadAllowances()
-  } catch {
-    feedback.value = t('providerAccounts.resetFailed')
+    const outcome = await getApi().accounts.useReset(id)
+    resetResult.value = { id, outcome }
+    await accounts.refreshAllowance(id)
+  } catch (error) {
+    const details = getErrorPayload(error).details as { reason?: string } | undefined
+    resetResult.value = {
+      id,
+      outcome: details?.reason === 'authorization' ? 'unavailable' : 'unconfirmed'
+    }
   } finally {
     busy.value = ''
   }
@@ -329,7 +314,7 @@ async function connect() {
   try {
     await getApi().accounts.connect()
     await accounts.load(true)
-    void loadAllowances()
+    void accounts.loadAllowances()
     feedback.value = ''
   } catch (error) {
     const details = (
@@ -724,14 +709,14 @@ onMounted(() => void refresh())
         {{ feedback }}
       </p>
       <article
-        v-for="account in accounts.items"
+        v-for="account in displayedAccounts"
         :key="account.id"
         class="space-y-2 rounded-lg border border-[var(--border-subtle)] p-3"
       >
         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
           <strong class="text-sm">{{ accountTitle(account) }}</strong>
-          <Badge v-if="allowances[account.id]?.plan" tone="muted">
-            {{ chatGptPlanLabel(allowances[account.id]?.plan ?? '') }}
+          <Badge v-if="accounts.allowances[account.id]?.data?.plan" tone="muted">
+            {{ chatGptPlanLabel(accounts.allowances[account.id]?.data?.plan ?? '') }}
           </Badge>
           <span
             v-for="(usageWindow, index) in allowanceWindows(account.id)"
@@ -742,12 +727,12 @@ onMounted(() => void refresh())
             <span class="h-1 w-14 overflow-hidden rounded bg-[var(--bg-hover)]">
               <span
                 class="block h-full bg-[var(--text-secondary)]"
-                :style="{ width: Math.min(100, usageWindow.usedPercent) + '%' }"
+                :style="{ width: chatGptRemainingPercent(usageWindow.usedPercent) + '%' }"
               />
             </span>
             <span>{{
-              $t('providerAccounts.allowanceUsed', {
-                percent: Math.round(usageWindow.usedPercent)
+              $t('providerAccounts.allowanceRemaining', {
+                percent: chatGptRemainingPercent(usageWindow.usedPercent)
               })
             }}</span>
             <span v-if="usageWindow.resetAt">{{ resetIn(usageWindow.resetAt) }}</span>
@@ -759,9 +744,11 @@ onMounted(() => void refresh())
           >
             {{
               $t(
-                allowanceState[account.id] === 'loading'
-                  ? 'providerAccounts.allowanceLoading'
-                  : 'providerAccounts.allowanceUnread'
+                accounts.allowances[account.id]?.status === 'authorization'
+                  ? 'providerAccounts.reconnectAccount'
+                  : accounts.allowances[account.id]?.status === 'loading'
+                    ? 'providerAccounts.allowanceLoading'
+                    : 'providerAccounts.allowanceUnread'
               )
             }}
           </span>
@@ -847,6 +834,16 @@ onMounted(() => void refresh())
             >
               {{ $t('providerAccounts.resetUse') }}
             </Button>
+            <span class="text-xs text-[var(--text-secondary)]">
+              {{
+                accounts.allowances[account.id]?.data?.resets &&
+                !accounts.allowances[account.id]?.data?.resets.unavailable
+                  ? $t('providerAccounts.resetCount', {
+                      count: accounts.allowances[account.id]?.data?.resets.count
+                    })
+                  : $t('providerAccounts.resetCountUnavailable')
+              }}
+            </span>
             <span
               v-for="(card, index) in resetCards(account.id)"
               :key="(card.expiresAt ?? 'open') + '-' + index"
@@ -857,6 +854,13 @@ onMounted(() => void refresh())
               }}
             </span>
           </div>
+          <p
+            v-if="resetResult?.id === account.id"
+            role="status"
+            class="text-xs text-[var(--text-secondary)]"
+          >
+            {{ $t(`providerAccounts.resetResult.${resetResult.outcome}`) }}
+          </p>
         </div>
         <p v-if="localUsage[account.id]" role="status" class="text-xs text-[var(--text-secondary)]">
           {{
