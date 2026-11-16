@@ -112,8 +112,16 @@ async function stop(child) {
   await exited
 }
 async function run(file, expected, result) {
+  await fs.rm(result, { force: true })
   const began = Date.now()
-  await exec(file, ['/S'], { timeout: 15_000 })
+  try {
+    await exec(file, ['/S'], { timeout: 15_000 })
+  } catch (error) {
+    throw new Error(
+      `${path.basename(file)} failed after ${Date.now() - began} ms (exit ${error.code ?? 'none'}, signal ${error.signal ?? 'none'})`,
+      { cause: error }
+    )
+  }
   const actual = (await fs.readFile(result, 'utf8')).trim()
   if (typeof expected === 'string') assert.equal(actual, expected)
   else assert.match(actual, expected)
@@ -143,6 +151,10 @@ try {
   )
   const invalidQuery = await compile('find-query-error', find(), true, invalidQueryFile)
   const timeout = await compile('find-timeout', find(`StrCpy $PowerShellPath ${quote(hung)}`))
+  const stalledFallback = await compile(
+    'find-stalled-fallback',
+    find(`StrCpy $IsPowerShellAvailable 1\nStrCpy $CmdPath ${quote(hung)}`)
+  )
   const failure = await compile('find-error', find(`StrCpy $PowerShellPath ${quote(failed)}`))
   const availability = await compile(
     'availability-timeout',
@@ -168,8 +180,10 @@ try {
   }
   if (!compileOnly) {
     await run(normal, /^1:[01]$/, result)
+    await run(stalledFallback, '1:1', result)
     const first = await start(busy)
     await run(normal, /^0:[01]$/, result)
+    await run(stalledFallback, '0:1', result)
     await run(invalidQuery, '0:1', result)
     const second = await start(busy)
     await run(normal, /^0:[01]$/, result)

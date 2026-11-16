@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import os from 'node:os'
 import { createRequire } from 'node:module'
+import { finished } from 'node:stream/promises'
 import { afterEach, expect, it } from 'vitest'
 // @ts-expect-error Packaging helpers execute as Node ESM without declarations.
 import { verifyPetArchive } from '../../../scripts/runtime/pet-archive.mjs'
@@ -31,7 +32,7 @@ it('preserves nested frame bytes and licenses and rejects missing or changed arc
   await fs.writeFile(frame, Buffer.from('RIFF\x00\x01\x02\x03WEBPframe'))
   await fs.writeFile(path.join(source, 'bigfish/LICENSE'), 'Fixture license')
   const archive = path.join(directory, 'app.asar')
-  await asar.createPackage(path.join(directory, 'app'), archive)
+  await finished(await asar.createPackage(path.join(directory, 'app'), archive), { cleanup: true })
   expect(await verifyPetArchive(archive, source)).toBe(2)
   await fs.writeFile(frame, Buffer.from('RIFFdifferentWEBP'))
   await expect(verifyPetArchive(archive, source)).rejects.toThrow('differs from source')

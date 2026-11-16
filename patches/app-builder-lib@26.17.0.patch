@@ -1,5 +1,5 @@
 diff --git a/templates/nsis/include/allowOnlyOneInstallerInstance.nsh b/templates/nsis/include/allowOnlyOneInstallerInstance.nsh
-index 7d08e55f5ddf70e51ebd965803d001561bca6d71..584130109f274d1ce261a1185535807186275304 100644
+index 7d08e55f5ddf70e51ebd965803d001561bca6d71..bc36609145bb7a4061397403a9ba8ad012195efd 100644
 --- a/templates/nsis/include/allowOnlyOneInstallerInstance.nsh
 +++ b/templates/nsis/include/allowOnlyOneInstallerInstance.nsh
 @@ -45,12 +45,12 @@
@@ -17,7 +17,7 @@ index 7d08e55f5ddf70e51ebd965803d001561bca6d71..584130109f274d1ce261a11855358071
      Pop $0
    ${endIf}
  
-@@ -63,9 +63,15 @@
+@@ -63,44 +63,65 @@
  
  !macro FIND_PROCESS _FILE _RETURN
    ${if} $IsPowerShellAvailable == 0
@@ -25,6 +25,13 @@ index 7d08e55f5ddf70e51ebd965803d001561bca6d71..584130109f274d1ce261a11855358071
 +    nsExec::Exec /TIMEOUT=5000 `"$PowerShellPath" -NoProfile -NonInteractive -C "try { if (@(Get-CimInstance -ClassName Win32_Process -ErrorAction Stop | ? {$$_.Path -and $$_.Path.StartsWith('$INSTDIR', 'CurrentCultureIgnoreCase')}).Count -gt 0) { exit 0 } else { exit 1 } } catch { exit 2 }"`
      Pop ${_RETURN}
 -  ${else}
+-    !ifdef INSTALL_MODE_PER_ALL_USERS
+-      # exact match via findstr anchored to the start of each CSV line
+-      nsExec::Exec `"$CmdPath" /C tasklist /FI "IMAGENAME eq ${_FILE}" /FO CSV /NH | "$SYSDIR\findstr.exe" /B /I /C:"\"${_FILE}\""`
+-      Pop ${_RETURN}
+-    !else
+-      # find process owned by current user — anchored exact match
+-      nsExec::Exec `"$CmdPath" /C tasklist /FI "USERNAME eq %USERNAME%" /FI "IMAGENAME eq ${_FILE}" /FO CSV /NH | "$SYSDIR\findstr.exe" /B /I /C:"\"${_FILE}\""`
 +    # A failed or timed-out query must never mean that no application is running.
 +    ${if} ${_RETURN} != 0
 +    ${andIf} ${_RETURN} != 1
@@ -32,10 +39,27 @@ index 7d08e55f5ddf70e51ebd965803d001561bca6d71..584130109f274d1ce261a11855358071
 +    ${endIf}
 +  ${endIf}
 +  ${if} $IsPowerShellAvailable == 1
-     !ifdef INSTALL_MODE_PER_ALL_USERS
-       # exact match via findstr anchored to the start of each CSV line
-       nsExec::Exec `"$CmdPath" /C tasklist /FI "IMAGENAME eq ${_FILE}" /FO CSV /NH | "$SYSDIR\findstr.exe" /B /I /C:"\"${_FILE}\""`
-@@ -80,27 +86,33 @@
++    # A native name check can rule out a match without starting another shell.
++    ${nsProcess::FindProcess} "${_FILE}" ${_RETURN}
++    ${if} ${_RETURN} == 603
++      StrCpy ${_RETURN} 1
++    ${else}
++      !ifdef INSTALL_MODE_PER_ALL_USERS
++        # exact match via findstr anchored to the start of each CSV line
++        nsExec::Exec /TIMEOUT=5000 `"$CmdPath" /C tasklist /FI "IMAGENAME eq ${_FILE}" /FO CSV /NH | "$SYSDIR\findstr.exe" /B /I /C:"\"${_FILE}\""`
++      !else
++        # find process owned by current user — anchored exact match
++        nsExec::Exec /TIMEOUT=5000 `"$CmdPath" /C tasklist /FI "USERNAME eq %USERNAME%" /FI "IMAGENAME eq ${_FILE}" /FO CSV /NH | "$SYSDIR\findstr.exe" /B /I /C:"\"${_FILE}\""`
++      !endif
+       Pop ${_RETURN}
+-    !endif
++      # On error, keep the running-app guard in place.
++      ${if} ${_RETURN} != 1
++        StrCpy ${_RETURN} 0
++      ${endIf}
++    ${endIf}
+   ${endIf}
+ !macroend
  
  !macro KILL_PROCESS _FILE _FORCE
    Push $0

@@ -22,6 +22,10 @@ Release notes describe user-visible additions and fixes.
 
 - Selected text stays readable in light and dark themes.
 
+#### Windows installer
+
+- Prevented the installer from hanging while checking whether Pi-Harness is running.
+
 ## 2.4.8 — 2026-11-14
 
 ### Added
