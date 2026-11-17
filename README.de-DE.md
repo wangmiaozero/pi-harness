@@ -280,8 +280,9 @@ Durchsuche gemeinsam die Verläufe von Claude Code, Codex (einschließlich Deskt
 
 | | |
 | :-- | :-- |
-| **Anbieter** | Richte Pi-kompatible Anbieter mit Vorlagen oder eigenen Endpunkten ein, verwalte Zugangsdaten, lade Modelllisten, wo unterstützt, teste Verbindungen und wähle dein Chatmodell |
-| **Mit ChatGPT anmelden** | Verbinde dein ChatGPT-Abonnement im Browser und wähle die Modelle des Kontos im Chat aus. Auf der Anbieterseite siehst du das verbundene Konto, den Tarif und verfügbare Nutzungsdaten. |
+| **Anbieter** | Richte Pi-kompatible Anbieter mit Vorlagen oder eigenen Endpunkten ein, verwalte Zugangsdaten, lade Modelllisten, wo unterstützt, teste Verbindungen und wähle dein Chatmodell. Der Anbieter-Tab bietet Schnellzugriffe auf ChatGPT, Claude, Gemini und das lokale Gateway. |
+| **Mit ChatGPT anmelden** | Verbinde dein ChatGPT-Abonnement im Browser und wähle die Modelle des Kontos im Chat aus. Verwalte jedes verbundene Codex-Konto in der Liste der API-Anbieter, sieh das verbleibende Kontingent ein und nutze eine verfügbare Reset-Karte. |
+| **Modelle, Nutzung und Kontingente** | Filtere konfigurierte Modelle nach Anbieter, wähle das Standardmodell und prüfe aufgezeichnete Anfragen und den Tokenverbrauch. Auf der Nutzungsseite siehst du auch verfügbare API-Guthaben und Abonnementkontingente. |
 | **Kostenlose Modelle** | Wähle ein Kilo-Modell direkt in der Modellauswahl im Chat. Ein Konto oder API-Schlüssel ist nicht erforderlich. Verfügbarkeit und Nutzungslimits hängen von Kilo ab. Bei der ersten Auswahl erscheint ein Datenschutzhinweis. |
 | **Bilder** | Nutze unterstützte Bildmodelle, um Bilder aus Text zu erzeugen oder zu bearbeiten, und lade die Ergebnisse herunter |
 | **Skills** | Durchsuche und bearbeite integrierte und lokale Skills. Gib `@` im Eingabefeld ein, um einen installierten Skill zu suchen und aufzurufen |

@@ -280,8 +280,9 @@ Ouvrez Architecture dans l’espace de travail pour explorer modules, dépendanc
 
 | | |
 | :-- | :-- |
-| **Fournisseurs** | Configurez des fournisseurs compatibles Pi à partir de préréglages ou d’adresses personnalisées, gérez les identifiants, récupérez les modèles lorsque le service le permet, testez la connexion et choisissez votre modèle de conversation |
-| **Se connecter avec ChatGPT** | Associez votre abonnement ChatGPT dans le navigateur, puis choisissez les modèles du compte dans le chat. La page des fournisseurs affiche le compte associé, le forfait et les données d’utilisation disponibles. |
+| **Fournisseurs** | Configurez des fournisseurs compatibles Pi à partir de préréglages ou d’adresses personnalisées, gérez les identifiants, récupérez les modèles lorsque le service le permet, testez la connexion et choisissez votre modèle de conversation. L’onglet des fournisseurs propose des raccourcis vers ChatGPT, Claude, Gemini et la passerelle locale. |
+| **Se connecter avec ChatGPT** | Associez votre abonnement ChatGPT dans le navigateur, puis choisissez les modèles du compte dans le chat. Gérez chaque compte Codex associé dans la liste des fournisseurs API, consultez son quota restant et utilisez une carte de réinitialisation si elle est disponible. |
+| **Modèles, utilisation et quotas** | Filtrez les modèles configurés par fournisseur, choisissez le modèle par défaut et consultez les requêtes enregistrées ainsi que les jetons utilisés. La page d’utilisation affiche aussi les soldes API et les quotas d’abonnement disponibles. |
 | **Modèles gratuits** | Sélectionnez un modèle Kilo directement dans le sélecteur du chat. Aucun compte ni clé API n’est nécessaire. La disponibilité et les limites dépendent de Kilo. Un avis de confidentialité s’affiche lors de la première sélection. |
 | **Images** | Utilisez les modèles d’image compatibles pour générer ou modifier des images, puis téléchargez les résultats |
 | **Skills** | Parcourez et modifiez les Skills intégrés et locaux. Saisissez `@` dans le champ de message pour rechercher et invoquer un Skill installé |

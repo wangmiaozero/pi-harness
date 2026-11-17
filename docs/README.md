@@ -4,9 +4,9 @@ Browse the current Pi-Harness interface, desktop companion, themes, and communit
 
 Pi-Harness 截图按功能界面、主题展示和社区资源分类，点击图片链接可查看原图。
 
-The provider, ChatGPT sign-in, and Free Models screenshots were refreshed on 2026-11-15 using Pi-Harness 2.4.8. The account and usage figures are examples.
+The Models page screenshots were refreshed on 2026-11-17 using Pi-Harness 2.4.10. The ChatGPT sign-in and Free Models screenshots are from 2.4.8. Account and usage figures are examples.
 
-提供商、ChatGPT 授权和免费模型截图于 2026-11-15 使用 Pi-Harness 2.4.8 更新。截图中的账户和用量为示例。
+「模型」页截图于 2026-11-17 使用 Pi-Harness 2.4.10 更新。ChatGPT 授权和免费模型截图来自 2.4.8。截图中的账户和用量为示例。
 
 [English](../README.md) · [简体中文](../README.zh-CN.md) · [繁體中文](../README.zh-TW.md) · [日本語](../README.ja-JP.md) · [한국어](../README.ko-KR.md) · [Русский](../README.ru-RU.md) · [Français](../README.fr-FR.md) · [Deutsch](../README.de-DE.md)
 

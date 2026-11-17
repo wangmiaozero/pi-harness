@@ -287,8 +287,9 @@ Open Architecture in Workspace to explore modules, dependencies, entrypoints and
 
 | | |
 | :-- | :-- |
-| **Providers** | Configure Pi-compatible providers with presets or custom endpoints, manage credentials, discover models where supported, test connections and choose your chat model |
-| **Sign in with ChatGPT** | Connect your ChatGPT subscription in the browser and choose its models in chat. The Providers page shows the connected account, plan and usage when available. |
+| **Providers** | Configure Pi-compatible providers with presets or custom endpoints, manage credentials, discover models where supported, test connections and choose your chat model. The Providers tab has shortcuts for ChatGPT, Claude, Gemini and the local gateway. |
+| **Sign in with ChatGPT** | Connect your ChatGPT subscription in the browser and choose its models in chat. Manage each connected Codex account alongside API providers, see its remaining allowance and use a reset card when available. |
+| **Models, usage and quota** | Filter configured models by provider, choose the default model and review recorded requests and token usage. The usage page also shows available API balances and subscription quotas. |
 | **Free Models** | Choose a Kilo model directly in the chat model picker. No account or API key is required. Availability and limits depend on Kilo. The first selection shows a privacy notice. |
 | **Images** | Use supported image models for text-to-image or image editing, then download the results |
 | **Skills** | Browse built-in and local Skills and edit them. Type `@` in the composer to search and invoke an installed Skill |
