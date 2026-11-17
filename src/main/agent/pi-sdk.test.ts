@@ -1,9 +1,9 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest'
+import * as sdk from '@earendil-works/pi-coding-agent'
 
 describe('Pi SDK compatibility surface', () => {
-  it('exposes the Native Pi services used by the compatibility layer', async () => {
-    const sdk = await import('@earendil-works/pi-coding-agent')
-
+  it('exposes the Native Pi services used by the compatibility layer', () => {
     expectFunctions(sdk, [
       'createAgentSessionServices',
       'createAgentSessionFromServices',
