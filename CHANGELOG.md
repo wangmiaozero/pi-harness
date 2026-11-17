@@ -2,7 +2,7 @@
 
 Release notes describe user-visible additions and fixes.
 
-## 2.4.9 — 2026-11-16
+## 2.4.10 — 2026-11-17
 
 ### Added
 
