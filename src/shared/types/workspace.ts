@@ -503,6 +503,7 @@ export interface StartAgentSessionInput {
   cwd?: string
   message?: string
   toolNames?: string[]
+  customToolNames?: string[]
   provider?: string
   modelId?: string
   thinkingLevel?: string

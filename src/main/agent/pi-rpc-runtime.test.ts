@@ -727,6 +727,62 @@ export default function(pi: any) {
     }
   }, 30_000)
 
+  it('applies an exact custom loadout and restores it after native reload and restart', async () => {
+    const extensions = path.join(config, 'extensions')
+    await fs.mkdir(extensions, { recursive: true })
+    await fs.writeFile(
+      path.join(extensions, 'custom-tools.ts'),
+      `
+      export default function (pi) {
+        for (const name of ['custom_echo', 'custom_disabled']) {
+          pi.registerTool({ name, description: name, label: name, parameters: { type: 'object' },
+            async execute() { return { content: [{ type: 'text', text: name }] } }
+          })
+        }
+        pi.registerCommand('reload_fixture', { description: 'Reload fixture extensions', handler: (_, ctx) => ctx.reload() })
+      }`
+    )
+    const started = await runtime.startSession({
+      cwd,
+      provider: 'fixture',
+      modelId: 'fixture',
+      toolNames: []
+    })
+    const { sessionId } = started
+    const activeNames = async () =>
+      (await runtime.getTools(sessionId)).filter((tool) => tool.active).map((tool) => tool.name)
+    expect(await activeNames()).toEqual([])
+    expect((await runtime.getTools(sessionId)).map((tool) => tool.name)).toEqual(
+      expect.arrayContaining(['write', 'custom_echo', 'custom_disabled'])
+    )
+    await expect(runtime.setTools(sessionId, ['unregistered'], { custom: true })).rejects.toThrow(
+      'no longer available'
+    )
+    await runtime.setTools(sessionId, ['read', 'custom_echo'], { custom: true })
+    expect(await activeNames()).toEqual(['read', 'custom_echo'])
+    await runtime.prompt(sessionId, '/reload_fixture')
+    expect((await activeNames()).sort()).toEqual(['custom_echo', 'read'])
+
+    const complete = new Promise<void>((resolve) => {
+      const unsubscribe = runtime.subscribe(sessionId, (event) => {
+        if (event.type !== 'prompt.completed') return
+        unsubscribe()
+        resolve()
+      })
+    })
+    await runtime.prompt(sessionId, 'Persist the custom tool test')
+    await complete
+    await runtime.stopSession(sessionId)
+    await expect(runtime.setTools(sessionId, ['read'], { custom: true })).rejects.toThrow(
+      'unavailable'
+    )
+    await runtime.startSession({
+      sessionId,
+      customToolNames: ['read', 'custom_echo', 'temporarily_missing']
+    })
+    expect((await activeNames()).sort()).toEqual(['custom_echo', 'read'])
+  }, 30_000)
+
   it('forks and navigates native sessions, changes tools and saves generated images without an extra model turn', async () => {
     const started = await runtime.startSession({ cwd, provider: 'fixture', modelId: 'fixture' })
     runtime.subscribe(started.sessionId, (event) => events.push(event))

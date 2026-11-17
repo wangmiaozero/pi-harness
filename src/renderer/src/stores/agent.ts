@@ -58,6 +58,13 @@ export const useAgentStore = defineStore('agent', () => {
   const state = shallowRef<AgentStateSnapshot | null>(null)
   const runningIds = ref<string[]>([])
   const tools = shallowRef<ToolEntry[]>([])
+  const customToolNames = shallowRef<string[]>([])
+  const toolsError = ref<string | null>(null)
+  const toolsLoading = ref(false)
+  const toolsKnown = ref(false)
+  const toolUpdates = shallowRef(new Set<string>())
+  let toolsRequest = 0
+  const isApplyingTools = (sessionId: string | null) => toolUpdates.value.has(sessionId ?? '')
   const sessionStats = shallowRef<SessionStats | null>(null)
   const completionCount = ref(0)
   const error = ref<string | null>(null)
@@ -278,6 +285,10 @@ export const useAgentStore = defineStore('agent', () => {
       // dropping them keeps busy/streaming UI from leaking across switches.
       state.value = null
       tools.value = []
+      customToolNames.value = []
+      toolsError.value = null
+      toolsLoading.value = false
+      toolsKnown.value = false
       sessionStats.value = null
     }
     if (!preserveStream) streaming.value = INITIAL_STREAMING_STATE
@@ -301,7 +312,7 @@ export const useAgentStore = defineStore('agent', () => {
       toolPreset.value = configuredToolPreset()
     }
     if (transientSessionIds.has(sessionId)) {
-      await reconcile(sessionId, !savedSelection, generation)
+      await reconcile(sessionId, !savedSelection, generation, !sameSession)
       if (isCurrentLoad(sessionId, generation) && !composerSelections.has(sessionId)) {
         rememberComposerSelection(sessionId)
       }
@@ -328,7 +339,7 @@ export const useAgentStore = defineStore('agent', () => {
       thinkingLevel.value = toComposerThinkingLevel(detail.context.thinkingLevel)
     }
     refreshLocalStats()
-    await reconcile(sessionId, !savedSelection, generation)
+    await reconcile(sessionId, !savedSelection, generation, !sameSession)
     if (
       isCurrentLoad(sessionId, generation) &&
       !streaming.value.isStreaming &&
@@ -363,7 +374,8 @@ export const useAgentStore = defineStore('agent', () => {
   async function reconcile(
     sessionId: string | null,
     initializeComposer = false,
-    generation = loadGeneration
+    generation = loadGeneration,
+    enteringSession = false
   ) {
     if (!sessionId) return
     const streamAtRequest = streaming.value
@@ -378,11 +390,32 @@ export const useAgentStore = defineStore('agent', () => {
       if (revision === activityRevision) runningIds.value = running
       let listed: ToolEntry[] | null = null
       try {
-        listed = (await callApi(() =>
-          getApi().agent.command(sessionId, { type: 'get_tools' })
-        )) as ToolEntry[]
+        const saved = composerSelections.get(sessionId)
+        if (
+          saved?.toolPreset === 'custom' &&
+          saved.customToolNames &&
+          (enteringSession || !snap) &&
+          !isBusy(sessionId) &&
+          !toolUpdates.value.has(sessionId)
+        ) {
+          await callApi(() =>
+            getApi().agent.start({ sessionId, customToolNames: saved.customToolNames })
+          )
+        }
+        if (
+          saved?.toolPreset &&
+          saved.toolPreset !== 'custom' &&
+          !snap &&
+          enteringSession &&
+          loadedDetail?.context.messages.length === 0 &&
+          !toolUpdates.value.has(sessionId)
+        ) {
+          const toolNames = getToolNamesForPreset(saved.toolPreset)
+          await callApi(() => getApi().agent.start({ sessionId, toolNames }))
+        }
         if (!isCurrentLoad(sessionId, generation)) return
-        tools.value = listed
+        listed = await refreshTools(sessionId)
+        if (!isCurrentLoad(sessionId, generation)) return
         const stats = (await callApi(() =>
           getApi().agent.command(sessionId, { type: 'get_session_stats' })
         )) as Partial<SessionStats>
@@ -395,8 +428,9 @@ export const useAgentStore = defineStore('agent', () => {
           loadedStatsOverride
         )
         if (!snap) snap = await callApi(() => getApi().agent.state(sessionId))
-      } catch {
-        /* session may not be live yet */
+      } catch (cause) {
+        if (isCurrentLoad(sessionId, generation) && !listed)
+          toolsError.value = getErrorMessage(cause)
       }
       if (!isCurrentLoad(sessionId, generation)) return
       if (revision === activityRevision) state.value = snap
@@ -408,12 +442,15 @@ export const useAgentStore = defineStore('agent', () => {
           streaming.value = INITIAL_STREAMING_STATE
         }
       }
-      if (initializeComposer && !composerSelections.has(sessionId)) {
-        if (snap?.thinkingLevel) {
-          thinkingLevel.value = toComposerThinkingLevel(snap.thinkingLevel)
-        }
-        if (listed) toolPreset.value = getPresetFromTools(listed)
-      }
+      const saved = composerSelections.get(sessionId)
+      if (initializeComposer && !saved && snap?.thinkingLevel)
+        thinkingLevel.value = toComposerThinkingLevel(snap.thinkingLevel)
+      if (
+        listed &&
+        ((initializeComposer && !saved) ||
+          (saved?.toolPreset === 'custom' && !saved.customToolNames))
+      )
+        toolPreset.value = getPresetFromTools(listed)
     } catch {
       if (isCurrentLoad(sessionId, generation)) state.value = null
     }
@@ -428,7 +465,7 @@ export const useAgentStore = defineStore('agent', () => {
     displayMessage = message,
     permissionMode?: PermissionMode
   ) {
-    if (!message.trim() && !images.length) return
+    if ((!message.trim() && !images.length) || toolUpdates.value.has(sessionId ?? '')) return
     sending.value = true
     sendingSessionId.value = sessionId ?? null
     error.value = null
@@ -468,7 +505,7 @@ export const useAgentStore = defineStore('agent', () => {
             ...(accountDefault
               ? { chatGptDefault: { id: accountDefault.provider, modelId: accountDefault.modelId } }
               : {}),
-            toolNames: getToolNamesForPreset(preset),
+            toolNames: getToolNamesForPreset(preset === 'custom' ? configuredToolPreset() : preset),
             ...(thinkingLevel.value !== 'auto'
               ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value, Boolean(freeModel)) }
               : {}),
@@ -514,11 +551,16 @@ export const useAgentStore = defineStore('agent', () => {
           })
         )
       } else {
+        const chosenTools = composerSelections.get(sessionId)?.customToolNames
         await callApi(() =>
           getApi().agent.start({
             sessionId,
             ...(permissionMode ? { permissionMode } : {}),
-            toolNames: getToolNamesForPreset(preset),
+            ...(preset === 'custom'
+              ? chosenTools
+                ? { customToolNames: chosenTools }
+                : {}
+              : { toolNames: getToolNamesForPreset(preset) }),
             ...(thinkingLevel.value !== 'auto'
               ? {
                   thinkingLevel: resolveActivePiThinking(
@@ -600,7 +642,7 @@ export const useAgentStore = defineStore('agent', () => {
         const started = await callApi(() =>
           getApi().agent.start({
             cwd,
-            toolNames: getToolNamesForPreset(preset),
+            toolNames: getToolNamesForPreset(preset === 'custom' ? configuredToolPreset() : preset),
             ...(thinkingLevel.value !== 'auto'
               ? { thinkingLevel: resolveActivePiThinking(thinkingLevel.value) }
               : {})
@@ -737,32 +779,108 @@ export const useAgentStore = defineStore('agent', () => {
     }
   }
 
-  async function setTools(sessionId: string, preset: ToolPreset) {
-    const previous = composerSelections.get(sessionId) ?? {
-      thinkingLevel: thinkingLevel.value,
-      toolPreset: toolPreset.value
-    }
-    toolPreset.value = preset
-    rememberComposerSelection(sessionId)
+  async function refreshTools(sessionId: string, reconnect = false): Promise<ToolEntry[] | null> {
+    const generation = loadGeneration
+    const request = isCurrentLoad(sessionId, generation) ? ++toolsRequest : -1
+    const current = () => toolsRequest === request && isCurrentLoad(sessionId, generation)
+    if (current()) toolsLoading.value = true
     try {
-      await callApi(() =>
-        getApi().agent.command(sessionId, {
-          type: 'set_tools',
-          toolNames: getToolNamesForPreset(preset)
-        })
-      )
+      if (reconnect) await restoreCustomRuntime(sessionId)
       const listed = (await callApi(() =>
         getApi().agent.command(sessionId, { type: 'get_tools' })
       )) as ToolEntry[]
-      if (loadedSessionId === sessionId) tools.value = listed
+      if (current()) {
+        tools.value = listed
+        toolsKnown.value = true
+        toolsError.value = null
+      }
+      return listed
     } catch (cause) {
-      composerSelections.set(sessionId, previous)
-      if (loadedSessionId === sessionId) applyComposerSelection(previous)
-      throw cause
+      if (current()) {
+        toolsKnown.value = false
+        toolsError.value = getErrorMessage(cause)
+      }
+      return null
+    } finally {
+      if (current()) toolsLoading.value = false
     }
   }
 
+  async function setTools(sessionId: string, preset: ToolPreset, names?: string[]) {
+    if (toolUpdates.value.has(sessionId)) return
+    toolUpdates.value = new Set(toolUpdates.value).add(sessionId)
+    try {
+      const previous = composerSelections.get(sessionId)
+      let savedCustom = previous?.customToolNames
+      let applied: ToolEntry[] | void = undefined
+      if (preset === 'custom') {
+        const listed = await refreshTools(sessionId)
+        if (!listed) return
+        if (loadedSessionId !== sessionId) return
+        if (names) {
+          savedCustom = [...new Set(names)]
+        } else {
+          savedCustom ??= listed.filter((tool) => tool.active).map((tool) => tool.name)
+        }
+        const available = new Set(
+          listed.filter((tool) => tool.available !== false).map((tool) => tool.name)
+        )
+        const selected = savedCustom.filter(
+          (name) => available.has(name) || !previous?.customToolNames?.includes(name)
+        )
+        applied = await callApi(() =>
+          getApi().harness.setTools(sessionId, selected, { custom: true })
+        )
+      } else {
+        await callApi(() =>
+          getApi().agent.command(sessionId, {
+            type: 'set_tools',
+            toolNames: getToolNamesForPreset(preset)
+          })
+        )
+      }
+
+      const next = {
+        thinkingLevel: composerSelections.get(sessionId)?.thinkingLevel ?? thinkingLevel.value,
+        toolPreset: preset,
+        ...(savedCustom ? { customToolNames: savedCustom } : {})
+      }
+      composerSelections.set(sessionId, next)
+      rememberComposerCache(sessionId, next)
+      if (loadedSessionId === sessionId) {
+        applyComposerSelection(next)
+        if (applied) {
+          ++toolsRequest
+          tools.value = applied
+          toolsKnown.value = true
+          toolsLoading.value = false
+          toolsError.value = null
+        } else await refreshTools(sessionId)
+      }
+    } catch (cause) {
+      if (loadedSessionId === sessionId) {
+        await refreshTools(sessionId)
+        if (loadedSessionId === sessionId) toolsError.value = getErrorMessage(cause)
+      }
+    } finally {
+      const pending = new Set(toolUpdates.value)
+      pending.delete(sessionId)
+      toolUpdates.value = pending
+    }
+  }
+
+  async function restoreCustomRuntime(sessionId: string) {
+    const saved = composerSelections.get(sessionId)
+    if (saved?.toolPreset !== 'custom' || !saved.customToolNames) return
+    const runtime = await callApi(() => getApi().agent.state(sessionId))
+    if (!runtime)
+      await callApi(() =>
+        getApi().agent.start({ sessionId, customToolNames: saved.customToolNames })
+      )
+  }
+
   async function setModel(sessionId: string, provider: string, modelId: string) {
+    await restoreCustomRuntime(sessionId)
     await callApi(() => getApi().agent.command(sessionId, { type: 'set_model', provider, modelId }))
     const snapshot = await callApi(() => getApi().agent.state(sessionId))
     if (loadedSessionId === sessionId) state.value = snapshot
@@ -785,15 +903,23 @@ export const useAgentStore = defineStore('agent', () => {
   function rememberComposerSelection(sessionId: string | null) {
     const selection = {
       thinkingLevel: thinkingLevel.value,
-      toolPreset: toolPreset.value
+      toolPreset: toolPreset.value,
+      customToolNames: sessionId ? composerSelections.get(sessionId)?.customToolNames : undefined
     }
     if (sessionId) composerSelections.set(sessionId, selection)
+    rememberComposerCache(sessionId, selection)
+  }
+
+  function initializeNewSession(sessionId: string) {
+    const selection = { thinkingLevel: thinkingLevel.value, toolPreset: configuredToolPreset() }
+    composerSelections.set(sessionId, selection)
     rememberComposerCache(sessionId, selection)
   }
 
   function applyComposerSelection(selection: ComposerSelection) {
     thinkingLevel.value = selection.thinkingLevel
     toolPreset.value = selection.toolPreset
+    customToolNames.value = selection.customToolNames ?? []
   }
 
   function readLastComposerPrefs(): ComposerSelection {
@@ -831,6 +957,12 @@ export const useAgentStore = defineStore('agent', () => {
     state,
     runningIds,
     tools,
+    customToolNames,
+    toolsError,
+    isApplyingTools,
+    toolsLoading,
+    toolsKnown,
+    refreshTools,
     thinkingLevel,
     toolPreset,
     sessionStats,
@@ -841,6 +973,7 @@ export const useAgentStore = defineStore('agent', () => {
     setupListeners,
     load,
     adoptRunningSession,
+    initializeNewSession,
     reconcile,
     send,
     sendImage,

@@ -16,6 +16,7 @@ import { useChatViewActive } from '@renderer/composables/chat-view-activity'
 import ComposerModelPicker from './ComposerModelPicker.vue'
 import { getApi } from '@renderer/composables/useApi'
 import ComposerOptionMenu from './ComposerOptionMenu.vue'
+import ComposerToolList from './ComposerToolList.vue'
 import AgentAuraFireBorder from '@renderer/components/ui/AgentAuraFireBorder.vue'
 import {
   clampThinkingLevel,
@@ -39,7 +40,7 @@ import { useProvidersStore } from '@renderer/stores/providers'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useSkillsStore } from '@renderer/stores/skills'
 import type { SkillInfo } from '@shared/ipc/api-types'
-import type { ToolPreset } from '@shared/workspace/tool-presets'
+import { isToolPreset } from '@shared/workspace/tool-presets'
 import {
   isBase64ImageWithinLimits,
   MAX_ATTACHED_IMAGE_BYTES,
@@ -158,8 +159,12 @@ const permissionModeValue = computed({
 // `isBusy`, so a task running in another conversation never marks this one as
 // busy (e.g. showing 终止 on a session that is idle).
 const busy = computed(() => agent.isBusy(sessions.currentId))
+const toolsApplying = computed(() => agent.isApplyingTools(sessions.currentId))
 const inputLocked = computed(
-  () => props.submitting || (agent.sending && agent.sendingSessionId === sessions.currentId)
+  () =>
+    props.submitting ||
+    toolsApplying.value ||
+    (agent.sending && agent.sendingSessionId === sessions.currentId)
 )
 const pasteQueueCurrent = computed(
   () => pasteQueue.value[Math.min(pasteQueueIndex.value, pasteQueue.value.length - 1)] ?? null
@@ -723,6 +728,10 @@ watch(thinkingStops, (levels) => {
   if (next !== agent.thinkingLevel) thinkingValue.value = next
 })
 
+const toolsMenuOpen = ref(false)
+const customToolsOpen = ref(false)
+const toolsMenu = ref<InstanceType<typeof ComposerOptionMenu> | null>(null)
+const customToolList = ref<InstanceType<typeof ComposerToolList> | null>(null)
 const toolOptions = computed(() => [
   { value: 'none', label: 'off', description: t('workspace.toolsNone'), icon: CircleOff },
   {
@@ -732,18 +741,70 @@ const toolOptions = computed(() => [
     icon: BookOpen
   },
   { value: 'default', label: 'default', description: t('workspace.toolsDefault'), icon: Wrench },
-  { value: 'full', label: 'full', description: t('workspace.toolsFull'), icon: Boxes }
+  { value: 'full', label: 'full', description: t('workspace.toolsFull'), icon: Boxes },
+  {
+    value: 'custom',
+    label: t('workspace.toolsCustom'),
+    description: t(
+      sessions.currentId ? 'workspace.toolsCustomDescription' : 'workspace.toolsCustomNeedsSession'
+    ),
+    icon: ListChecks,
+    disabled: !sessions.currentId
+  }
 ])
+
+async function refreshToolList(): Promise<boolean> {
+  const sessionId = sessions.currentId
+  return !!sessionId && (await agent.refreshTools(sessionId, true)) !== null
+}
+
+function setCustomTools(names: string[]) {
+  if (sessions.currentId) void agent.setTools(sessions.currentId, 'custom', names)
+}
+
+function openCustomTools() {
+  if (!sessions.currentId) return
+  customToolsOpen.value = true
+  void agent.setTools(sessions.currentId, 'custom')
+}
+
+function focusCustomToolSearch(event: Event) {
+  if (!customToolList.value) return
+  event.preventDefault()
+  customToolList.value.focusSearch()
+}
+
+function restoreToolMenuFocus(event: Event) {
+  event.preventDefault()
+  if (active.value) toolsMenu.value?.focus()
+}
+
+watch(
+  () => sessions.currentId,
+  () => {
+    toolsMenuOpen.value = false
+    customToolsOpen.value = false
+  }
+)
+watch(
+  () => agent.toolsError,
+  (error) => {
+    if (error && !customToolsOpen.value) toast.error(error)
+  }
+)
 
 const toolPreset = computed({
   get: () => (sessions.currentId ? agent.activePreset() : agent.toolPreset),
   set: async (value: string) => {
-    const preset = value as ToolPreset
-    if (sessions.currentId) await agent.setTools(sessions.currentId, preset)
-    else {
-      agent.toolPreset = preset
+    if (!isToolPreset(value)) return
+    if (value === 'custom') {
+      openCustomTools()
+    } else if (sessions.currentId) {
+      await agent.setTools(sessions.currentId, value)
+    } else {
+      agent.toolPreset = value
       agent.rememberComposerSelection(null)
-      await settings.patch({ defaultToolPreset: preset })
+      await settings.patch({ defaultToolPreset: value })
     }
   }
 })
@@ -1090,6 +1151,7 @@ watch(active, (visible) => {
   if (visible) return
   skillMention.value = null
   previewOpen.value = false
+  customToolsOpen.value = false
   moreOpen.value = false
 })
 
@@ -1381,13 +1443,16 @@ onBeforeUnmount(() => {
               <ImagePlus aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
             </button>
             <ComposerOptionMenu
+              ref="toolsMenu"
               v-model="toolPreset"
+              v-model:open="toolsMenuOpen"
               :label="$t('workspace.changeTools')"
               :heading="$t('workspace.changeTools')"
               :icon="Wrench"
               :options="toolOptions"
-              :disabled="busy"
+              :disabled="busy || toolsApplying"
               :menu-width="390"
+              @reselect="(value) => value === 'custom' && openCustomTools()"
               @interact="emit('unlockAudio')"
             />
             <ComposerOptionMenu
@@ -1530,6 +1595,30 @@ onBeforeUnmount(() => {
       </div>
 
       <AgentAuraFireBorder v-if="showComposerFire" :active="true" :target="inputBox" />
+      <Dialog
+        v-model:open="customToolsOpen"
+        wide
+        prominent-title
+        compact-header
+        close-on-escape
+        body-class="flex min-h-0"
+        :title="$t('workspace.sessionTools')"
+        @open-auto-focus="focusCustomToolSearch"
+        @close-auto-focus="restoreToolMenuFocus"
+      >
+        <ComposerToolList
+          ref="customToolList"
+          :tools="agent.tools"
+          :saved="agent.customToolNames"
+          :loading="agent.toolsLoading"
+          :ready="agent.toolsKnown"
+          :applying="toolsApplying"
+          :busy="busy"
+          :error="agent.toolsError"
+          :refresh="refreshToolList"
+          @apply="setCustomTools"
+        />
+      </Dialog>
       <Dialog
         :open="pendingFreeModel !== null"
         :title="$t('providerAccounts.freePrivacyTitle')"

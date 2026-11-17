@@ -3,6 +3,7 @@ import { applyWorkspacePrompt } from '@shared/workspace/workspace-context'
 import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 import { extractToolPath } from '../workspace/workspace-tool-guard'
 import type { PermissionMode } from '@shared/workspace/permission-mode'
+import type { ToolSelection } from '../../../resources/desktop-extension/tool-selection.mjs'
 import { installCompactionPolicy } from '../../../resources/desktop-extension/compaction.mjs'
 import { compactionDefaults } from './compaction-defaults'
 import { loadPiCodingAgent } from './pi-sdk'
@@ -11,6 +12,7 @@ import { installProviderSettings } from '../../../resources/desktop-extension/pr
 
 export interface DesktopSessionContext {
   forceEmpty: boolean
+  toolSelection?: ToolSelection
   workspacePromptProvider: (() => string | null) | null
   providerSettings?: (
     provider: string,
@@ -33,13 +35,20 @@ export function createDesktopExtension(
     installCompactionPolicy(pi, compactionDefaults, compact)
     if (context.providerSettings && context.providerNetwork)
       await installProviderSettings(pi, context.providerSettings, context.providerNetwork)()
-    pi.on('before_agent_start', (event) => ({
-      // Both user and extension-triggered custom runs carry systemPrompt.
-      systemPrompt: context.forceEmpty
-        ? ''
-        : applyWorkspacePrompt(event.systemPrompt, context.workspacePromptProvider?.() ?? null)
-    }))
+    pi.on('session_start', () => context.toolSelection?.refresh())
+    pi.on('turn_end', () => context.toolSelection?.refresh())
+    pi.on('before_agent_start', (event) => {
+      context.toolSelection?.refresh()
+      // Pi builds this event's prompt before extensions run.
+      return {
+        systemPrompt: context.forceEmpty
+          ? ''
+          : applyWorkspacePrompt(event.systemPrompt, context.workspacePromptProvider?.() ?? null)
+      }
+    })
     pi.on('tool_call', async (event, ctx) => {
+      if (context.toolSelection?.allows(event.toolName) === false)
+        return { block: true, reason: 'Tool is disabled for this session' }
       try {
         if (event.toolName === 'write' || event.toolName === 'edit') {
           const target = extractToolPath(event.input)

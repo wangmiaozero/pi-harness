@@ -85,7 +85,7 @@ import type {
   WorkspaceFolderSnapshot,
   WorktreeInfo
 } from '../types/workspace'
-import type { ToolPreset } from '../workspace/tool-presets'
+import type { FixedToolPreset } from '../workspace/tool-presets'
 import type { PermissionMode } from '../workspace/permission-mode'
 import type { AgentMode } from '../workspace/agent-mode'
 import type {
@@ -779,7 +779,7 @@ export interface AppSettings {
   autoBackup: boolean
   backupRetention: number
   developerMode: boolean
-  defaultToolPreset: ToolPreset
+  defaultToolPreset: FixedToolPreset
   defaultPermissionMode: PermissionMode
   defaultAgentMode: AgentMode
   restoreTabs: boolean
@@ -1307,6 +1307,11 @@ export interface PiSwitchAPI {
     state(sessionId: string): Promise<HarnessState | null>
     tools(sessionId: string): Promise<HarnessTool[]>
     setTools(sessionId: string, toolNames: string[]): Promise<void>
+    setTools(
+      sessionId: string,
+      toolNames: string[],
+      options: { custom: true }
+    ): Promise<HarnessTool[]>
     setModel(sessionId: string, provider: string, modelId: string): Promise<void>
     setThinkingLevel(sessionId: string, level: string): Promise<void>
     compact(sessionId: string, instructions?: string): Promise<HarnessCompactionResult | unknown>

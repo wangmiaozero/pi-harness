@@ -718,6 +718,85 @@ describe('agent store new-session handshake', () => {
     expect(agent.thinkingLevel).toBe('auto')
   })
 
+  it('saves confirmed custom choices per session, blocks overlapping edits and restores on restart', async () => {
+    const registry = new Map([
+      [
+        'session-1',
+        [{ name: 'extension_echo', description: 'Echo', active: true }, ...toolEntries(['read'])]
+      ],
+      ['session-2', toolEntries(['read', 'bash', 'edit', 'write'])]
+    ])
+    const apply = (id: string, names: string[]) => {
+      const tools = registry
+        .get(id)!
+        .map((tool) => ({ ...tool, active: names.includes(tool.name) }))
+      registry.set(id, tools)
+      return tools
+    }
+    type SetTools = PiSwitchAPI['harness']['setTools']
+    const custom = vi.fn<(...args: Parameters<SetTools>) => ReturnType<SetTools>>(
+      async (id, names) => apply(id, names)
+    )
+    const start = vi.fn<PiSwitchAPI['agent']['start']>(async (input) => {
+      if (input.customToolNames) apply(input.sessionId!, input.customToolNames)
+      return { sessionId: input.sessionId!, cwd: '/code/project' }
+    })
+    window.piSwitch = {
+      sessions: { get: vi.fn().mockResolvedValue(sessionDetail('off')) },
+      agent: {
+        state: vi.fn().mockResolvedValue(null),
+        running: vi.fn().mockResolvedValue([]),
+        start,
+        prompt: vi.fn().mockResolvedValue(null),
+        command: vi.fn<PiSwitchAPI['agent']['command']>(async (id, input) => {
+          if (input.type === 'get_tools') return registry.get(id)
+          if (input.type === 'set_tools') apply(id, input.toolNames as string[])
+          return {}
+        })
+      },
+      harness: { setTools: custom }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    await agent.load('session-1')
+    expect(agent.activePreset()).toBe('custom')
+    expect(agent.tools.filter((tool) => tool.active).map((tool) => tool.name)).toEqual([
+      'extension_echo',
+      'read'
+    ])
+    await agent.send('session-1', '/code/project', 'Resume the historic session', 'custom')
+    expect(start).toHaveBeenLastCalledWith({ sessionId: 'session-1', thinkingLevel: 'off' })
+    const first = agent.setTools('session-1', 'custom', ['extension_echo'])
+    await agent.setTools('session-1', 'custom', ['write'])
+    await first
+    expect(custom).toHaveBeenCalledTimes(1)
+    expect(agent.customToolNames).toEqual(['extension_echo'])
+
+    custom.mockRejectedValueOnce(new Error('Runtime rejected tools'))
+    await agent.setTools('session-1', 'custom', ['write'])
+    expect(agent.toolsError).toContain('Runtime rejected tools')
+    expect(agent.customToolNames).toEqual(['extension_echo'])
+
+    await agent.setTools('session-1', 'default')
+    registry.set('session-1', toolEntries(['read', 'bash', 'edit', 'write']))
+    await agent.setTools('session-1', 'custom')
+    expect(agent.customToolNames).toEqual(['extension_echo'])
+    expect(agent.tools.filter((tool) => tool.active)).toEqual([])
+
+    await agent.load('session-2')
+    expect(agent.activePreset()).toBe('default')
+    expect(agent.customToolNames).toEqual([])
+    setActivePinia(createPinia())
+    const restored = useAgentStore()
+    await restored.load('session-1')
+    expect(start).toHaveBeenCalledWith({
+      sessionId: 'session-1',
+      customToolNames: ['extension_echo']
+    })
+    expect(restored.activePreset()).toBe('custom')
+    expect(restored.customToolNames).toEqual(['extension_echo'])
+  })
+
   it('reapplies composer selections when an existing session runtime is restarted', async () => {
     const start = vi.fn().mockResolvedValue({ sessionId: 'session-1', cwd: '/code/project' })
     const prompt = vi.fn().mockResolvedValue(null)

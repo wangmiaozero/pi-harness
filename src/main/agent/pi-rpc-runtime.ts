@@ -1,3 +1,4 @@
+import type { ToolSelectionOptions } from '../../../resources/desktop-extension/tool-selection.mjs'
 import { FREE_PROVIDER_KEY } from '@shared/providers/free-models'
 import type { FreeModelService } from '../services/free-models/free-model-service'
 import { CHATGPT_PROVIDER_PREFIX } from '@shared/providers/account-management'
@@ -74,6 +75,7 @@ interface LiveSession {
   cwd: string
   client: PiRpcClient
   bridge: DesktopBridge
+  toolSelection?: { toolNames: string[]; options: ToolSelectionOptions }
   busy: boolean
   error: string | null
   stopping: boolean
@@ -178,12 +180,16 @@ export class PiRpcRuntime implements HarnessAdapter {
       if (existing) {
         if (input.permissionMode)
           await this.setPermissionMode(existing.id, normalizePermissionMode(input.permissionMode))
-        if (input.toolNames !== undefined)
-          await this.setTools(existing.id, input.toolNames, { preserveExtensionTools: true })
+        await this.applyStartupTools(existing, input)
         return { sessionId: existing.id, cwd: existing.cwd }
       }
       const pending = this.starts.get(input.sessionId)
-      if (pending) return pending
+      if (pending) {
+        const started = await pending
+        const live = this.live.get(started.sessionId)
+        if (live) await this.applyStartupTools(live, input)
+        return started
+      }
     }
     const key = input.sessionId ?? randomUUID()
     const promise = this.construct(input, key)
@@ -328,12 +334,13 @@ export class PiRpcRuntime implements HarnessAdapter {
         if (live && typeof params.sessionId === 'string' && params.sessionId !== live.id) {
           const oldId = live.id
           live.id = params.sessionId
+          live.toolSelection = undefined
           this.live.delete(oldId)
           this.live.set(live.id, live)
           await this.options.workspace?.prepareSession?.(live.id, live.cwd)
         }
         ready()
-        return null
+        return live?.toolSelection
       }
       if (method === 'tools')
         return tools.map(
@@ -436,8 +443,6 @@ export class PiRpcRuntime implements HarnessAdapter {
     if (input.modelId && !chatGptSelected && !freeSelected) args.push('--model', input.modelId)
     if (input.thinkingLevel && input.thinkingLevel !== 'auto')
       args.push('--thinking', input.thinkingLevel)
-    if (input.toolNames?.length === 0) args.push('--no-tools')
-    else if (input.toolNames) args.push('--tools', input.toolNames.join(','))
     if (/\.[cm]?js$/i.test(executable)) {
       const node = await this.runtimes.resolve('node')
       if (!node.valid || !node.executablePath)
@@ -514,11 +519,7 @@ export class PiRpcRuntime implements HarnessAdapter {
       if (this.closing) throw new AgentError('Pi runtime is shutting down')
       this.live.set(live.id, live)
       this.armIdle(live)
-      if (input.toolNames)
-        await bridge.request('set_tools', {
-          toolNames: input.toolNames,
-          preserveExtensionTools: true
-        })
+      await this.applyStartupTools(live, input, true)
       if (live.permissionMode && live.permissionMode !== 'auto')
         await bridge.request('set_permission_mode', { mode: live.permissionMode })
       if (input.message?.trim()) await this.prompt(live.id, input.message)
@@ -683,19 +684,49 @@ export class PiRpcRuntime implements HarnessAdapter {
     }
   }
   async getTools(id: string): Promise<HarnessTool[]> {
-    return ((await (await this.require(id)).bridge.request('snapshot')) as DesktopSnapshot).tools
+    return (await (await this.require(id)).bridge.request('tools')) as HarnessTool[]
   }
+
+  private async applyStartupTools(
+    live: LiveSession,
+    input: StartAgentSessionInput,
+    initial = false
+  ) {
+    if (input.customToolNames !== undefined) {
+      await this.applyTools(live, input.customToolNames, { custom: true, restore: true })
+    } else if (input.toolNames !== undefined) {
+      await this.applyTools(live, input.toolNames, { preserveExtensionTools: true, initial })
+    }
+  }
+
   async setTools(
     id: string,
     toolNames: string[],
-    options: { preserveExtensionTools?: boolean } = {}
-  ): Promise<void> {
-    const live = await this.require(id)
-    await live.bridge.request('set_tools', {
-      toolNames,
-      preserveExtensionTools: options.preserveExtensionTools ?? false
-    })
+    options: ToolSelectionOptions = {}
+  ): Promise<HarnessTool[] | void> {
+    const live = options.custom ? this.live.get(id) : await this.require(id)
+    if (!live) throw new AgentError('Pi session is unavailable')
+    return this.applyTools(live, toolNames, options)
   }
+
+  private async applyTools(
+    live: LiveSession,
+    toolNames: string[],
+    options: ToolSelectionOptions
+  ): Promise<HarnessTool[] | void> {
+    if (live.stopping || this.live.get(live.id) !== live)
+      throw new AgentError('Pi session is unavailable')
+    if (live.busy) throw new AgentError('Wait for the current run to finish before changing tools')
+    const applied = (await live.bridge.request('set_tools', { toolNames, ...options })) as {
+      tools?: HarnessTool[]
+      suspension: string[] | null
+    }
+    if (live.stopping || this.live.get(live.id) !== live)
+      throw new AgentError('Pi session is unavailable')
+    live.toolSelection = { toolNames, options: { ...options, suspension: applied.suspension } }
+    return applied.tools
+  }
+
   async setPermissionMode(id: string, mode: PermissionMode): Promise<void> {
     const live = await this.require(id)
     live.permissionMode = mode

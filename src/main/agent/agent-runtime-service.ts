@@ -1,3 +1,8 @@
+import {
+  createToolSelection,
+  listTools,
+  type ToolSelection
+} from '../../../resources/desktop-extension/tool-selection.mjs'
 import { FREE_PROVIDER_KEY } from '@shared/providers/free-models'
 import type { FreeModelService } from '../services/free-models/free-model-service'
 import { loadManagedProviderKeys } from '../pi/managed-provider-keys'
@@ -35,7 +40,7 @@ import {
   isRunningStateEvent,
   toIpcAgentEvent
 } from '@shared/workspace/agent-event-wire'
-import { getToolNamesForPreset, isReadOnlyToolPreset } from '@shared/workspace/tool-presets'
+import { getToolNamesForPreset } from '@shared/workspace/tool-presets'
 import {
   isPermissionMode,
   normalizePermissionMode,
@@ -64,7 +69,13 @@ import { resolveExecutable } from '../environment/command-resolver'
 import { validateExecutable } from '../runtime/validator'
 
 const IDLE_MS = 10 * 60 * 1000
-const CODING_TOOL_NAMES = ['read', 'bash', 'powershell', 'edit', 'write', 'grep', 'find', 'ls']
+function toolRegistry(session: AgentSessionLike) {
+  return {
+    getAllTools: () => session.getAllTools(),
+    getActiveTools: () => session.getActiveToolNames(),
+    setActiveTools: (names: string[]) => session.setActiveToolsByName(names)
+  }
+}
 /** Minimum spacing between accumulated-message snapshots relayed on message_update. */
 const SNAPSHOT_WIRE_MIN_INTERVAL_MS = 200
 const FILE_TOOL_ENFORCEMENT_REQUEST_LIMIT = 4
@@ -103,7 +114,7 @@ export class AgentSessionWrapper {
   private workspacePrompt = ''
   private abortRevision = 0
   private fileToolEnforcement: { remainingRequests: number } | null = null
-  private suspendedExtensionTools: string[] | null = null
+  private readonly toolSelection: ToolSelection
   private _alive = true
 
   constructor(
@@ -115,6 +126,8 @@ export class AgentSessionWrapper {
     private readonly syncChatGpt?: () => Promise<void>,
     private readonly syncFreeModels?: (modelId?: string) => Promise<void>
   ) {
+    this.toolSelection = createToolSelection(toolRegistry(inner))
+    if (systemPromptController) systemPromptController.toolSelection = this.toolSelection
     if (inner.autoCompactionEnabled === false) inner.setAutoCompactionEnabled(true)
     this.installFileToolEnforcement()
   }
@@ -391,33 +404,23 @@ export class AgentSessionWrapper {
         this.inner.setSessionName(name)
         return null
       }
-      case 'get_tools': {
-        const all = this.inner.getAllTools()
-        const active = new Set(this.inner.getActiveToolNames())
-        return all.map((t) => ({
-          name: t.name,
-          description: t.description,
-          active: active.has(t.name)
-        }))
-      }
+      case 'get_tools':
+        if (!this.isRunning()) this.toolSelection.refresh()
+        return listTools(toolRegistry(this.inner))
       case 'set_tools': {
+        if (!this.isAlive() || this.shutdownPromise)
+          throw new AgentError('Pi session is unavailable')
+        if (this.isRunning())
+          throw new AgentError('Wait for the current run to finish before changing tools')
         const toolNames = (command.toolNames as string[]) ?? []
+        this.toolSelection.apply(toolNames, {
+          preserveExtensionTools: command.preserveExtensionTools !== false,
+          custom: command.custom === true,
+          restore: command.restore === true,
+          initial: command.initial === true
+        })
         this.setForceEmptySystemPrompt(toolNames.length === 0)
-        const exact = command.preserveExtensionTools === false
-        const restricted = toolNames.length === 0 || isReadOnlyToolPreset(toolNames)
-        if (exact) this.suspendedExtensionTools = null
-        else if (restricted && this.suspendedExtensionTools === null) {
-          const coding = new Set(CODING_TOOL_NAMES)
-          this.suspendedExtensionTools = this.inner
-            .getActiveToolNames()
-            .filter((name) => !coding.has(name))
-        }
-        const nextToolNames = exact
-          ? toolNames
-          : withExtensionTools(this.inner, toolNames, this.suspendedExtensionTools ?? [])
-        this.inner.setActiveToolsByName(nextToolNames)
-        if (!restricted) this.suspendedExtensionTools = null
-        return null
+        return command.custom ? listTools(toolRegistry(this.inner)) : null
       }
       case 'append_external_image_result':
         return this.appendExternalImageResult(command)
@@ -693,25 +696,6 @@ function sameInputCapabilities(
   )
 }
 
-function withExtensionTools(
-  session: AgentSessionLike,
-  toolNames: string[],
-  suspended: string[] = []
-): string[] {
-  if (toolNames.length === 0 || isReadOnlyToolPreset(toolNames)) return [...toolNames]
-  const coding = new Set(CODING_TOOL_NAMES)
-  // Preserve Pi's exposure decisions; registered tools can intentionally be inactive.
-  const extensionToolNames = session.getActiveToolNames().filter((name) => !coding.has(name))
-  const registered = new Set(session.getAllTools().map((tool) => tool.name))
-  return [
-    ...new Set([
-      ...toolNames,
-      ...extensionToolNames,
-      ...suspended.filter((name) => registered.has(name))
-    ])
-  ]
-}
-
 function supportsThinkingLevel(session: AgentSessionLike, level: ThinkingLevel): boolean {
   return session.getAvailableThinkingLevels().includes(level)
 }
@@ -867,13 +851,13 @@ export class AgentRuntimeService implements AgentRuntime {
       if (existing?.isAlive()) {
         if (input.permissionMode)
           existing.setPermissionMode(normalizePermissionMode(input.permissionMode))
-        if (input.toolNames !== undefined)
-          await existing.send({ type: 'set_tools', toolNames: input.toolNames })
+        await this.applyStartupTools(existing, input)
         return { sessionId: existing.sessionId, cwd: existing.inner.sessionManager.getCwd() }
       }
       const inflight = this.startLocks.get(input.sessionId)
       if (inflight) {
         const started = await inflight
+        await this.applyStartupTools(started.session, input)
         return {
           sessionId: started.realSessionId,
           cwd: started.session.inner.sessionManager.getCwd()
@@ -892,6 +876,7 @@ export class AgentRuntimeService implements AgentRuntime {
     const inflight = this.startLocks.get(lockKey)
     if (inflight) {
       const started = await inflight
+      await this.applyStartupTools(started.session, input)
       return {
         sessionId: started.realSessionId,
         cwd: started.session.inner.sessionManager.getCwd()
@@ -961,7 +946,11 @@ export class AgentRuntimeService implements AgentRuntime {
         provider: String(command.provider),
         modelId: String(command.modelId)
       })
-    const wrapper = await this.require(sessionId)
+    const wrapper =
+      command.type === 'set_tools' && command.custom
+        ? this.registry.get(sessionId)
+        : await this.require(sessionId)
+    if (!wrapper?.isAlive()) throw new AgentError('Pi session is unavailable')
     const result = await wrapper.send(command)
     if (
       command.type === 'fork' &&
@@ -1026,6 +1015,28 @@ export class AgentRuntimeService implements AgentRuntime {
     return wrapper
   }
 
+  private async applyStartupTools(
+    wrapper: AgentSessionWrapper,
+    input: StartAgentSessionInput,
+    initial = false
+  ) {
+    if (input.customToolNames !== undefined) {
+      await wrapper.send({
+        type: 'set_tools',
+        toolNames: input.customToolNames,
+        preserveExtensionTools: false,
+        custom: true,
+        restore: true
+      })
+    } else if (input.toolNames !== undefined) {
+      await wrapper.send({
+        type: 'set_tools',
+        toolNames: input.toolNames,
+        initial: initial && input.toolNames.length === 0
+      })
+    }
+  }
+
   private async construct(
     sdk: Awaited<ReturnType<typeof loadPiCodingAgent>>,
     sessionManager: PiSessionManagerLike,
@@ -1064,7 +1075,7 @@ export class AgentRuntimeService implements AgentRuntime {
       ? input.permissionMode
       : undefined
     const systemPromptController: DesktopSessionContext = {
-      forceEmpty: input.toolNames?.length === 0,
+      forceEmpty: (input.customToolNames ?? input.toolNames)?.length === 0,
       permissionMode: sessionPermissionMode,
       providerSettings: this.workspace?.providerSettings,
       providerNetwork: this.workspace?.providerNetwork,
@@ -1165,10 +1176,6 @@ export class AgentRuntimeService implements AgentRuntime {
           }
         }
       : undefined
-    const toolNames = input.toolNames
-    const toolsOption =
-      toolNames !== undefined ? (toolNames.length === 0 ? [] : undefined) : undefined
-
     let model: PiModelLike | undefined
     if (input.provider && input.modelId) {
       model = services.modelRuntime.getModel(input.provider, input.modelId)
@@ -1196,7 +1203,7 @@ export class AgentRuntimeService implements AgentRuntime {
       services,
       sessionManager,
       ...(sessionStartEvent ? { sessionStartEvent } : {}),
-      ...(this.workspace?.customTools && toolNames?.length !== 0
+      ...(this.workspace?.customTools
         ? {
             customTools: await this.workspace.customTools(sessionCwd, sessionManager.getSessionId())
           }
@@ -1204,8 +1211,7 @@ export class AgentRuntimeService implements AgentRuntime {
       ...(model ? { model } : {}),
       ...(input.thinkingLevel
         ? { thinkingLevel: resolveModelThinkingLevel(input.thinkingLevel, model) }
-        : {}),
-      ...(toolsOption !== undefined ? { tools: toolsOption } : {})
+        : {})
     })
 
     const nativeRuntime = new sdk.AgentSessionRuntime(inner, services, async (target) => {
@@ -1220,6 +1226,7 @@ export class AgentRuntimeService implements AgentRuntime {
           provider: inner.model?.provider,
           modelId: inner.model?.id,
           thinkingLevel: inner.thinkingLevel,
+          customToolNames: undefined,
           toolNames: inner.getActiveToolNames()
         },
         lockKey,
@@ -1252,7 +1259,6 @@ export class AgentRuntimeService implements AgentRuntime {
       syncFreeModels
     )
     nativeRuntime.setBeforeSessionInvalidate(() => wrapper.detach())
-    if (toolNames?.length === 0) wrapper.setForceEmptySystemPrompt(true)
     wrapper.setWorkspacePromptProvider(() => this.workspace?.getPrompt?.(realSessionId) ?? null)
     wrapper.start()
 
@@ -1297,9 +1303,7 @@ export class AgentRuntimeService implements AgentRuntime {
           reload: () => inner.reload()
         }
       })
-      if (toolNames && toolNames.length > 0) {
-        await wrapper.send({ type: 'set_tools', toolNames })
-      }
+      await this.applyStartupTools(wrapper, input, true)
     } catch (error) {
       await wrapper.shutdown()
       throw error

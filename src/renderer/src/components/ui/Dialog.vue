@@ -19,12 +19,17 @@ defineProps<{
   sheet?: boolean
   medium?: boolean
   prominentTitle?: boolean
+  compactHeader?: boolean
+  bodyClass?: string
   /** Allow Esc to close. Default false: implicit dismissal is blocked. */
   closeOnEscape?: boolean
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
-const emit = defineEmits<{ 'open-auto-focus': [event: Event] }>()
+const emit = defineEmits<{
+  'open-auto-focus': [event: Event]
+  'close-auto-focus': [event: Event]
+}>()
 const { t } = useI18n()
 
 // Portaled dialogs must close when their cached route leaves the screen.
@@ -54,19 +59,23 @@ function onEscapeKeyDown(event: Event, closeOnEscape: boolean | undefined) {
             ? 'w-[min(1080px,94vw)]'
             : large
               ? 'w-[min(820px,92vw)]'
-            : medium
-              ? 'w-[min(520px,92vw)]'
-              : wide
-                ? 'w-[min(560px,92vw)]'
-                : 'w-[min(420px,92vw)]'
+              : medium
+                ? 'w-[min(520px,92vw)]'
+                : wide
+                  ? 'w-[min(560px,92vw)]'
+                  : 'w-[min(420px,92vw)]'
         "
         @interact-outside="preventImplicitClose"
         @escape-key-down="onEscapeKeyDown($event, closeOnEscape)"
         @open-auto-focus="emit('open-auto-focus', $event)"
+        @close-auto-focus="emit('close-auto-focus', $event)"
       >
         <div
           class="flex shrink-0 gap-3 px-4"
-          :class="$slots.toolbar ? 'items-center py-3' : 'items-start pb-3 pt-4'"
+          :class="[
+            $slots.toolbar ? 'items-center pt-3' : 'items-start pt-4',
+            compactHeader ? 'pb-2' : 'pb-3'
+          ]"
         >
           <div class="min-w-0">
             <DialogTitle
@@ -89,7 +98,7 @@ function onEscapeKeyDown(event: Event, closeOnEscape: boolean | undefined) {
             </DialogClose>
           </div>
         </div>
-        <div v-if="$slots.default" class="overflow-y-auto px-4 pb-4">
+        <div v-if="$slots.default" class="px-4 pb-4" :class="bodyClass ?? 'overflow-y-auto'">
           <slot />
         </div>
         <footer

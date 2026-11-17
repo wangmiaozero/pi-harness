@@ -1,3 +1,4 @@
+import { listTools } from '../../../../resources/desktop-extension/tool-selection.mjs'
 import type { AgentStateSnapshot, StartAgentSessionInput } from '@shared/types/workspace'
 import type {
   HarnessCapabilities,
@@ -101,19 +102,27 @@ export class PiHarnessAdapter implements HarnessAdapter {
   async setTools(
     sessionId: string,
     toolNames: string[],
-    options: { preserveExtensionTools?: boolean } = {}
-  ): Promise<void> {
-    const wrapper = await this.requireCapability(sessionId, 'tools')
+    options: { preserveExtensionTools?: boolean; custom?: boolean } = {}
+  ): Promise<HarnessTool[] | void> {
+    const wrapper = options.custom
+      ? this.requireLive(sessionId)
+      : await this.requireCapability(sessionId, 'tools')
     const known = new Set(wrapper.inner.getAllTools().map((tool) => tool.name))
-    const missing = toolNames.find((name) => !known.has(name))
+    const missing = toolNames.find(
+      (name) =>
+        !known.has(name) &&
+        !(options.preserveExtensionTools && name === 'bash' && known.has('powershell'))
+    )
     if (missing) {
       throw new HarnessError('TOOL_NOT_FOUND', `Tool not found: ${missing}`, { toolName: missing })
     }
-    await this.agent.command(sessionId, {
+    const applied = await this.agent.command(sessionId, {
       type: 'set_tools',
       toolNames,
-      preserveExtensionTools: options.preserveExtensionTools ?? false
+      preserveExtensionTools: options.preserveExtensionTools ?? false,
+      ...(options.custom ? { custom: true } : {})
     })
+    if (options.custom) return applied as HarnessTool[]
   }
 
   async setModel(sessionId: string, provider: string, modelId: string): Promise<void> {
@@ -247,12 +256,10 @@ export class PiHarnessAdapter implements HarnessAdapter {
 }
 
 function mapTools(session: AgentSessionLike): HarnessTool[] {
-  const active = new Set(session.getActiveToolNames())
-  return session.getAllTools().map((tool) => ({
-    name: tool.name,
-    description: tool.description,
-    active: active.has(tool.name)
-  }))
+  return listTools({
+    getActiveTools: () => session.getActiveToolNames(),
+    getAllTools: () => session.getAllTools()
+  })
 }
 
 function mapStats(

@@ -70,7 +70,7 @@ export function registerHarnessIpc(
   ipcMain.handle(IPC_INVOKE.harnessSetTools, (_event, input: unknown) =>
     wrap(async () => {
       const value = parse(harnessSetToolsSchema, input)
-      await harness.setTools(value.sessionId, value.toolNames)
+      return harness.setTools(value.sessionId, value.toolNames, false, value.custom)
     })
   )
   ipcMain.handle(IPC_INVOKE.harnessSetModel, (_event, input: unknown) =>

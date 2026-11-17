@@ -953,15 +953,21 @@ export class HarnessRuntime implements AgentRuntime {
   async setTools(
     sessionId: string,
     toolNames: string[],
-    preserveExtensionTools = false
-  ): Promise<void> {
+    preserveExtensionTools = false,
+    custom = false
+  ): Promise<ToolEntry[] | void> {
     this.observe(sessionId)
-    await this.adapter.setTools(sessionId, toolNames, { preserveExtensionTools })
+    const applied = await this.adapter.setTools(sessionId, toolNames, {
+      preserveExtensionTools,
+      ...(custom ? { custom } : {})
+    })
     this.emit(sessionId, {
       type: 'tools.changed',
       timestamp: Date.now(),
-      active: (await this.adapter.getTools(sessionId)).filter((tool) => tool.active).length
+      active: (applied ?? (await this.adapter.getTools(sessionId))).filter((tool) => tool.active)
+        .length
     })
+    return applied
   }
 
   async setModel(sessionId: string, provider: string, modelId: string): Promise<void> {

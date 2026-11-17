@@ -18,6 +18,20 @@ describe('Harness IPC schemas', () => {
     ).toBe(true)
   })
 
+  it('validates custom tool writes while accepting the legacy request', () => {
+    const body = { sessionId: 'session-1', toolNames: ['mcp__server__inspect'] }
+    expect(harnessSetToolsSchema.safeParse({ ...body, custom: true }).success).toBe(true)
+    expect(
+      harnessSetToolsSchema.safeParse({ ...body, custom: true, toolNames: ['bad\0name'] }).success
+    ).toBe(false)
+    expect(
+      harnessSetToolsSchema.safeParse({ ...body, custom: true, toolNames: ['two names'] }).success
+    ).toBe(false)
+    expect(harnessSetToolsSchema.safeParse({ ...body, custom: true, restore: true }).success).toBe(
+      false
+    )
+  })
+
   it('rejects unknown fields and oversized or empty queue messages', () => {
     expect(
       harnessSessionInputSchema.safeParse({ sessionId: 'session-1', command: 'bash' }).success

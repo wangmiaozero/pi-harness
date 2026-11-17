@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { installCompactionPolicy } from './compaction.mjs'
 import { installProviderSettings } from './provider-settings.mjs'
 import { chatGptProviderSync } from './chatgpt-provider.mjs'
+import { createToolSelection, listTools, ToolSelectionError } from './tool-selection.mjs'
 import { compact } from '@earendil-works/pi-coding-agent'
 
 function postToHost(url, token, headers, init) {
@@ -52,7 +53,7 @@ export default async function desktopExtension(pi) {
   let disposing = false
   let context
   let forceEmpty = false
-  let suspendedExtensionTools = null
+  const toolSelection = createToolSelection(pi)
   const pending = new Map()
   const send = (value) => socket.write(JSON.stringify(value) + '\n')
   const request = (method, params = {}, options = {}) =>
@@ -163,13 +164,13 @@ export default async function desktopExtension(pi) {
     if (!context) throw new Error('Desktop extension is not ready')
     if (method === 'free_models_sync') return syncFreeModels()
     if (method === 'chatgpt_sync') return syncChatGpt()
+    if (method === 'tools' || method === 'snapshot') {
+      if (context.isIdle()) toolSelection.refresh()
+      if (method === 'tools') return listTools(pi)
+    }
     if (method === 'snapshot')
       return {
-        tools: pi.getAllTools().map((tool) => ({
-          name: tool.name,
-          description: tool.description,
-          active: pi.getActiveTools().includes(tool.name)
-        })),
+        tools: listTools(pi),
         contextUsage: context.getContextUsage() ?? null,
         idle: context.isIdle(),
         entries: context.sessionManager.getEntries().map((entry) => ({
@@ -186,27 +187,14 @@ export default async function desktopExtension(pi) {
         sessionName: pi.getSessionName()
       }
     if (method === 'set_tools') {
+      if (!context.isIdle())
+        throw new ToolSelectionError('Wait for the current run to finish before changing tools')
+      toolSelection.apply(params.toolNames, params)
       forceEmpty = params.toolNames.length === 0
-      const coding = new Set(['read', 'bash', 'powershell', 'edit', 'write', 'grep', 'find', 'ls'])
-      const readOnlyTools = ['read', 'grep', 'find', 'ls']
-      const readOnly =
-        params.toolNames.length === readOnlyTools.length &&
-        readOnlyTools.every((name) => params.toolNames.includes(name))
-      const restricted = forceEmpty || readOnly
-      if (!params.preserveExtensionTools) suspendedExtensionTools = null
-      else if (restricted && suspendedExtensionTools === null)
-        suspendedExtensionTools = pi.getActiveTools().filter((name) => !coding.has(name))
-      const registered = new Set(pi.getAllTools().map((tool) => tool.name))
-      const preserved =
-        params.preserveExtensionTools && !restricted
-          ? [
-              ...pi.getActiveTools().filter((name) => !coding.has(name)),
-              ...(suspendedExtensionTools ?? []).filter((name) => registered.has(name))
-            ]
-          : []
-      pi.setActiveTools([...new Set([...params.toolNames, ...preserved])])
-      if (!restricted) suspendedExtensionTools = null
-      return null
+      return {
+        ...(params.custom ? { tools: listTools(pi) } : {}),
+        suspension: toolSelection.suspension()
+      }
     }
     if (method === 'abort_compaction') {
       context.abort()
@@ -249,7 +237,15 @@ export default async function desktopExtension(pi) {
       } else if (msg.type === 'request')
         void handle(msg.method, msg.params).then(
           (data) => send({ type: 'response', id: msg.id, data }),
-          () => send({ type: 'response', id: msg.id, error: 'Desktop extension operation failed' })
+          (error) =>
+            send({
+              type: 'response',
+              id: msg.id,
+              error:
+                error instanceof ToolSelectionError
+                  ? error.message
+                  : 'Desktop extension operation failed'
+            })
         )
     }
   })
@@ -275,9 +271,15 @@ export default async function desktopExtension(pi) {
     })
   pi.on('session_start', async (_event, ctx) => {
     context = ctx
-    await request('ready', { sessionId: ctx.sessionManager.getSessionId() })
+    const saved = await request('ready', { sessionId: ctx.sessionManager.getSessionId() })
+    if (saved) {
+      toolSelection.apply(saved.toolNames, { ...saved.options, restore: true })
+      forceEmpty = saved.toolNames.length === 0
+    }
   })
+  pi.on('turn_end', () => toolSelection.refresh())
   pi.on('before_agent_start', async (event) => {
+    toolSelection.refresh()
     const data = await request('context')
     return {
       systemPrompt: forceEmpty
@@ -286,6 +288,8 @@ export default async function desktopExtension(pi) {
     }
   })
   pi.on('tool_call', async (event, ctx) => {
+    if (!toolSelection.allows(event.toolName))
+      return { block: true, reason: 'Tool is disabled for this session' }
     try {
       ctx.signal?.throwIfAborted()
       await request('guard', { name: event.toolName, input: event.input }, { timeoutMs: 600_000 })
@@ -309,8 +313,16 @@ export default async function desktopExtension(pi) {
       }
     }
   })
-  pi.on('session_shutdown', () => {
+  pi.on('session_shutdown', async (event) => {
     disposing = true
-    socket.end()
+    if (event.reason === 'reload' && !socket.destroyed) {
+      // Pi loads the replacement extension immediately after this hook.
+      await new Promise((resolve) => {
+        socket.once('close', resolve)
+        socket.end()
+      })
+    } else {
+      socket.end()
+    }
   })
 }

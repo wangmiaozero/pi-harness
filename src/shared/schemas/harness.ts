@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   agentImageSchema,
+  customToolNamesSchema,
   sessionIdSchema,
   thinkingLevelSchema,
   toolNamesSchema
@@ -10,10 +11,16 @@ export const harnessSessionInputSchema = z.strictObject({
   sessionId: sessionIdSchema
 })
 
-export const harnessSetToolsSchema = z.strictObject({
-  sessionId: sessionIdSchema,
-  toolNames: toolNamesSchema
-})
+export const harnessSetToolsSchema = z
+  .strictObject({
+    sessionId: sessionIdSchema,
+    toolNames: toolNamesSchema,
+    custom: z.literal(true).optional()
+  })
+  .refine(
+    ({ custom, toolNames }) => !custom || customToolNamesSchema.safeParse(toolNames).success,
+    'Invalid custom tool selection'
+  )
 
 export const harnessSetModelSchema = z.strictObject({
   sessionId: sessionIdSchema,

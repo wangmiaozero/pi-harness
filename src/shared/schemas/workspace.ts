@@ -29,6 +29,19 @@ export const thinkingLevelSchema = z.enum(PI_THINKING_LEVELS)
 export const toolPresetSchema = z.enum(TOOL_PRESET_VALUES)
 
 export const toolNamesSchema = z.array(z.string().min(1).max(128)).max(256)
+export const customToolNamesSchema = z
+  .array(
+    z
+      .string()
+      .min(1)
+      .max(128)
+      .refine(
+        (name) =>
+          !/\s/u.test(name) && [...name].every((char) => char >= ' ' && char.charCodeAt(0) !== 127),
+        'invalid tool name'
+      )
+  )
+  .max(256)
 
 export const agentImageSchema = z.object({
   type: z.literal('image'),
@@ -48,12 +61,18 @@ export const startAgentSessionSchema = z
     cwd: cwdSchema.optional(),
     message: z.string().max(200_000).optional(),
     toolNames: toolNamesSchema.optional(),
+    customToolNames: customToolNamesSchema.optional(),
     provider: z.string().min(1).max(128).optional(),
     modelId: z.string().min(1).max(256).optional(),
     thinkingLevel: thinkingLevelSchema.optional(),
     permissionMode: z.enum(PERMISSION_MODES).optional(),
     chatGptDefault: chatGptVerifySchema.optional()
   })
+  .refine(
+    ({ toolNames, customToolNames, sessionId }) =>
+      customToolNames === undefined || (!!sessionId && toolNames === undefined),
+    'Custom tools require an existing session and a single tool selection'
+  )
   .refine(
     ({ chatGptDefault, sessionId, cwd, provider, modelId }) =>
       !chatGptDefault || (!!cwd && !sessionId && !provider && !modelId),
@@ -71,10 +90,16 @@ export const promptAgentSchema = z
     message: 'message or image is required'
   })
 
-export const agentCommandSchema = z.looseObject({
-  sessionId: sessionIdSchema,
-  type: z.string().min(1).max(64)
-})
+export const agentCommandSchema = z
+  .looseObject({
+    sessionId: sessionIdSchema,
+    type: z.string().min(1).max(64)
+  })
+  .refine(
+    (command) =>
+      command.type !== 'set_tools' || toolNamesSchema.safeParse(command.toolNames).success,
+    'Invalid tool selection'
+  )
 
 export const sessionRenameSchema = z.object({
   sessionId: sessionIdSchema,

@@ -2,6 +2,7 @@
 /* macOS-style compact search field — used by the titlebar command palette
  * trigger and by inline page filters. */
 import { Search } from '@lucide/vue'
+import { ref } from 'vue'
 
 defineProps<{
   modelValue: string
@@ -10,6 +11,9 @@ defineProps<{
   size?: 'sm' | 'md'
   ariaLabel?: string
 }>()
+
+const input = ref<HTMLInputElement | null>(null)
+defineExpose({ focus: () => input.value?.focus() })
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
@@ -27,6 +31,7 @@ const emit = defineEmits<{
       :stroke-width="1.75"
     />
     <input
+      ref="input"
       type="search"
       :value="modelValue"
       :placeholder="placeholder"

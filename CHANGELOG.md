@@ -2,6 +2,16 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.11 — 2026-11-17
+
+### Added
+
+#### Session tools
+
+- Search and manage the tools available in the current Pi session from the chat composer.
+- Save a custom tool selection for each conversation and restore it when reopening the app.
+- See progress and the result when refreshing the tool list.
+
 ## 2.4.10 — 2026-11-17
 
 ### Added

@@ -4,7 +4,7 @@ import { Check } from '@lucide/vue'
 import { useChatViewActive } from '@renderer/composables/chat-view-activity'
 
 const model = defineModel<string>({ required: true })
-const emit = defineEmits<{ interact: [] }>()
+const emit = defineEmits<{ interact: []; reselect: [value: string] }>()
 const props = withDefaults(
   defineProps<{
     label: string
@@ -16,6 +16,7 @@ const props = withDefaults(
       icon?: Component
       warning?: boolean
       triggerLabel?: string
+      disabled?: boolean
     }>
     heading?: string
     disabled?: boolean
@@ -24,13 +25,14 @@ const props = withDefaults(
   { icon: undefined, heading: undefined, disabled: false, menuWidth: 280 }
 )
 
-const open = ref(false)
+const open = defineModel<boolean>('open', { default: false })
 const active = useChatViewActive()
 watch(active, (visible) => {
   if (!visible) open.value = false
 })
 const trigger = ref<HTMLButtonElement | null>(null)
 const panel = ref<HTMLElement | null>(null)
+defineExpose({ focus: () => trigger.value?.focus() })
 const panelStyle = ref<Record<string, string>>({})
 const selected = computed(() => props.options.find((option) => option.value === model.value))
 
@@ -58,9 +60,10 @@ function toggle() {
 
 function pick(value: string) {
   emit('interact')
-  model.value = value
   open.value = false
   trigger.value?.focus()
+  if (value === model.value) emit('reselect', value)
+  else model.value = value
 }
 
 async function navigate(event: KeyboardEvent) {
@@ -72,7 +75,9 @@ async function navigate(event: KeyboardEvent) {
     panel.value?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus()
     return
   }
-  const options = [...(panel.value?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? [])]
+  const options = [
+    ...(panel.value?.querySelectorAll<HTMLButtonElement>('[role="option"]:not(:disabled)') ?? [])
+  ]
   const index = options.indexOf(document.activeElement as HTMLButtonElement)
   const next =
     event.key === 'Home'
@@ -161,13 +166,14 @@ function onResize() {
         :key="option.value"
         type="button"
         role="option"
-        class="composer-option-menu__item grid w-full grid-cols-[12px_minmax(70px,1fr)_auto] items-center gap-2 rounded-[var(--radius-xs)] px-2.5 py-2 text-left text-[12px] text-[var(--text-secondary)] outline-none hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+        class="composer-option-menu__item grid w-full grid-cols-[12px_minmax(70px,1fr)_auto] items-center gap-2 rounded-[var(--radius-xs)] px-2.5 py-2 text-left text-[12px] text-[var(--text-secondary)] outline-none disabled:opacity-45 hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
         :class="
           option.value === model
             ? 'bg-[var(--bg-hover)] font-medium text-[var(--text-primary)]'
             : ''
         "
         :style="option.warning ? { color: 'var(--permission-warning)' } : undefined"
+        :disabled="option.disabled"
         :aria-selected="option.value === model"
         :aria-label="option.label"
         :aria-description="option.description || undefined"

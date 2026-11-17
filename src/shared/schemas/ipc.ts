@@ -18,7 +18,7 @@ import {
   MAX_MACOS27_BACKGROUND_IMAGE_DATA_URL_LENGTH,
   isMacOS27BackgroundImageDataUrl
 } from '../constants/macos27-background'
-import { TOOL_PRESET_VALUES } from '../workspace/tool-presets'
+import { FIXED_TOOL_PRESET_VALUES } from '../workspace/tool-presets'
 import { PERMISSION_MODES } from '../workspace/permission-mode'
 import { AGENT_MODES } from '../workspace/agent-mode'
 import { providerKeySchema } from './domain'
@@ -123,7 +123,7 @@ const appSettingsFields = {
   autoBackup: z.boolean(),
   backupRetention: backupRetentionSchema,
   developerMode: z.boolean(),
-  defaultToolPreset: z.enum(TOOL_PRESET_VALUES),
+  defaultToolPreset: z.enum(FIXED_TOOL_PRESET_VALUES),
   defaultPermissionMode: z.enum(PERMISSION_MODES),
   defaultAgentMode: z.enum(AGENT_MODES),
   restoreTabs: z.boolean(),

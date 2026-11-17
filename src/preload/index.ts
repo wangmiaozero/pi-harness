@@ -8,6 +8,7 @@ import { IPC_EVENT, IPC_INVOKE } from '../shared/ipc/channels'
 import { readChatGptConnectProgress } from '../shared/providers/connect-progress'
 import type { PiSwitchAPI, IpcEventListener } from '../shared/ipc/api-types'
 import type { AppErrorPayload } from '../shared/types/errors'
+import type { HarnessTool } from '../shared/types/harness'
 import { API_NAMESPACE } from '../shared/constants/index'
 
 type IpcResult<T> = { ok: true; data: T } | { ok: false; error: AppErrorPayload }
@@ -24,6 +25,16 @@ async function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
     throw result.error
   }
   return result.data
+}
+
+function setHarnessTools(sessionId: string, toolNames: string[]): Promise<void>
+function setHarnessTools(
+  sessionId: string,
+  toolNames: string[],
+  options: { custom: true }
+): Promise<HarnessTool[]>
+function setHarnessTools(sessionId: string, toolNames: string[], options?: { custom: true }) {
+  return invoke(IPC_INVOKE.harnessSetTools, { sessionId, toolNames, custom: options?.custom })
 }
 
 function onEvent(channel: string, listener: IpcEventListener): () => void {
@@ -412,8 +423,7 @@ const api: PiSwitchAPI = {
   harness: {
     state: (sessionId) => invoke(IPC_INVOKE.harnessGetState, { sessionId }),
     tools: (sessionId) => invoke(IPC_INVOKE.harnessGetTools, { sessionId }),
-    setTools: (sessionId, toolNames) =>
-      invoke(IPC_INVOKE.harnessSetTools, { sessionId, toolNames }),
+    setTools: setHarnessTools,
     setModel: (sessionId, provider, modelId) =>
       invoke(IPC_INVOKE.harnessSetModel, { sessionId, provider, modelId }),
     setThinkingLevel: (sessionId, level) =>

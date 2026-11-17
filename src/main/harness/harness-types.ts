@@ -38,8 +38,8 @@ export interface HarnessAdapter {
   setTools(
     sessionId: string,
     toolNames: string[],
-    options?: { preserveExtensionTools?: boolean }
-  ): Promise<void>
+    options?: { preserveExtensionTools?: boolean; custom?: boolean }
+  ): Promise<HarnessTool[] | void>
   setModel(sessionId: string, provider: string, modelId: string): Promise<void>
   setThinkingLevel(sessionId: string, level: string): Promise<void>
   compact(sessionId: string, instructions?: string): Promise<HarnessCompactionResult | unknown>

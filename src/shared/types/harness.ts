@@ -50,11 +50,7 @@ export interface HarnessCapabilities {
   stats: boolean
 }
 
-export interface HarnessTool {
-  name: string
-  description: string
-  active: boolean
-}
+export type HarnessTool = import('../workspace/tool-presets').ToolEntry
 
 export interface HarnessStats {
   sessionId: string

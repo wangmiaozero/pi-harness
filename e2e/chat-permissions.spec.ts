@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import http from 'node:http'
+import { _electron as electron } from '@playwright/test'
 import { test, expect } from './fixtures'
 
 test('permission menu controls execution and termination remains available during tool approval', async ({
@@ -75,6 +76,20 @@ test('permission menu controls execution and termination remains available durin
       }
     })
   )
+  const extensions = path.join(piAgentDir, 'extensions')
+  fs.mkdirSync(extensions, { recursive: true })
+  fs.writeFileSync(
+    path.join(extensions, 'custom-echo.ts'),
+    `
+    export default function (pi) {
+      pi.registerTool({
+        name: 'custom_echo', label: 'Custom Echo', description: 'Echo fixture', defaultActive: false,
+        parameters: { type: 'object', properties: {} },
+        async execute() { return { content: [{ type: 'text', text: 'Custom extension ran' }] } }
+      })
+    }
+  `
+  )
   try {
     await electronApp.evaluate(({ dialog }) => {
       const state = globalThis as unknown as { permissionDialogs: number }
@@ -102,7 +117,7 @@ test('permission menu controls execution and termination remains available durin
     await expect(toolPreset).toHaveText('full')
     await toolPreset.click()
     const toolMenu = page.getByRole('listbox', { name: '更改工具预设', exact: true })
-    await expect(toolMenu.getByRole('option')).toHaveCount(4)
+    await expect(toolMenu.getByRole('option')).toHaveCount(5)
     await expect(toolMenu.getByRole('option', { name: 'full', exact: true })).toHaveAttribute(
       'aria-selected',
       'true'
@@ -209,6 +224,111 @@ test('permission menu controls execution and termination remains available durin
       await expect(terminate).toHaveCount(0)
     }
 
+    await toolPreset.click()
+    await toolMenu.getByRole('option', { name: '自定义', exact: true }).click()
+    const sessionTools = page.getByRole('dialog', { name: '当前会话工具' })
+    await expect(sessionTools).toBeVisible()
+    await expect(toolMenu).toHaveCount(0)
+    await expect(sessionTools.getByRole('searchbox')).toBeFocused()
+    const sessionId = await page.evaluate(async () => {
+      const sessions = await window.piSwitch.sessions.list(true)
+      return sessions.find((session) => session.messageCount > 0)!.id
+    })
+    const runtimeTools = () => page.evaluate((id) => window.piSwitch.harness.tools(id), sessionId)
+    const manageable = (await runtimeTools())
+      .filter((tool) => tool.available !== false)
+      .map((tool) => tool.name)
+      .sort()
+    const selectedTools = async () =>
+      (await runtimeTools())
+        .filter((tool) => tool.active)
+        .map((tool) => tool.name)
+        .sort()
+    await sessionTools.getByRole('button', { name: '全选', exact: true }).click()
+    await expect(sessionTools.getByRole('status').first()).toHaveText(
+      `已启用 ${manageable.length} 项`
+    )
+    expect(await selectedTools()).toEqual(manageable)
+
+    const readDescription = sessionTools.getByRole('button', { name: 'read 的说明', exact: true })
+    await expect(readDescription).toHaveAttribute('aria-expanded', 'false')
+    await readDescription.click()
+    await expect(readDescription).toHaveAttribute('aria-expanded', 'true')
+    await expect(sessionTools.getByRole('checkbox', { name: 'read', exact: true })).toBeChecked()
+    await readDescription.click()
+    await expect(readDescription).toHaveAttribute('aria-expanded', 'false')
+
+    await page.evaluate(
+      (id) => window.piSwitch.harness.setTools(id, ['read'], { custom: true }),
+      sessionId
+    )
+    await sessionTools.getByRole('button', { name: '从 Pi 刷新' }).click()
+    await expect(sessionTools.getByRole('button', { name: '已刷新', exact: true })).toBeVisible()
+    await expect(sessionTools.getByRole('status').first()).toHaveText('已启用 1 项')
+    await expect(sessionTools.getByRole('checkbox', { name: 'read', exact: true })).toBeChecked()
+    await sessionTools.screenshot({ path: testInfo.outputPath('session-tools-dialog.png') })
+
+    await sessionTools.getByRole('button', { name: '清空选择' }).click()
+    await expect(sessionTools.getByRole('status').first()).toHaveText('已启用 0 项')
+    expect(await selectedTools()).toEqual([])
+    const toolSearch = sessionTools.getByRole('searchbox')
+    await toolSearch.fill('tool-that-does-not-exist')
+    await expect(sessionTools.getByRole('checkbox')).toHaveCount(0)
+    await toolSearch.fill('write')
+    const writeTool = sessionTools.getByRole('checkbox', { name: 'write', exact: true })
+    await expect(writeTool).not.toBeChecked()
+    await writeTool.click()
+    await expect(writeTool).toBeChecked()
+    await writeTool.press('Space')
+    await expect(writeTool).not.toBeChecked()
+    await expect(writeTool).toBeFocused()
+    expect(await selectedTools()).toEqual([])
+    await writeTool.click()
+    await expect(writeTool).toBeChecked()
+    await toolSearch.fill('custom_echo')
+    const extensionTool = sessionTools.getByRole('checkbox', { name: 'custom_echo', exact: true })
+    await extensionTool.click()
+    await expect(extensionTool).toBeChecked()
+    await sessionTools.getByRole('button', { name: '关闭', exact: true }).click()
+    await expect(sessionTools).toBeHidden()
+    await expect(toolPreset).toBeFocused()
+    await toolPreset.click()
+    await toolMenu.getByRole('option', { name: 'full', exact: true }).click()
+    await expect(toolPreset).toHaveText('full')
+    await toolPreset.click()
+    await toolMenu.getByRole('option', { name: '自定义', exact: true }).click()
+    await expect(sessionTools.getByRole('checkbox', { name: 'write', exact: true })).toBeChecked()
+    await expect(sessionTools.getByRole('status').first()).toHaveText('已启用 2 项')
+    await sessionTools.getByRole('searchbox').press('Escape')
+    await expect(sessionTools).toBeHidden()
+
+    const customBefore = requests.length
+    replies.push(
+      { tool: 'custom_echo', args: {} },
+      { tool: 'write', args: { path: externalFile, content: 'Custom write fixture' } },
+      'Custom profile complete'
+    )
+    await editor.fill('Verify the custom selection')
+    await editor.press('Enter')
+    await expect(page.locator('.chat-scroller')).toContainText('Custom profile complete')
+    expect((requests[customBefore].tools ?? []).map((tool) => tool.function.name).sort()).toEqual([
+      'custom_echo',
+      'write'
+    ])
+    expect(JSON.stringify(requests[customBefore + 1].messages)).toContain('Custom extension ran')
+    expect(fs.readFileSync(externalFile, 'utf8')).toBe('Custom write fixture')
+
+    await page.reload()
+    await expect(toolPreset).toHaveText('自定义')
+    await toolPreset.click()
+    await toolMenu.getByRole('option', { name: '自定义', exact: true }).click()
+    await expect(sessionTools.getByRole('status').first()).toHaveText('已启用 2 项')
+    await expect(extensionTool).toBeChecked()
+    await sessionTools.getByRole('searchbox').press('Escape')
+    await expect(sessionTools).toBeHidden()
+
+    await toolPreset.click()
+    await toolMenu.getByRole('option', { name: 'full', exact: true }).click()
     await agentMode.click()
     await modes.getByRole('option', { name: '规划', exact: true }).click()
     const planTarget = path.join(testUserData, 'planning-must-not-write.txt')
@@ -271,9 +391,59 @@ test('permission menu controls execution and termination remains available durin
       )
       .toBe(1)
     await expect(terminate).toBeVisible()
+    const busyToolError = await page.evaluate(async () => {
+      const [sessionId] = await window.piSwitch.agent.running()
+      try {
+        await window.piSwitch.harness.setTools(sessionId, ['read'], { custom: true })
+        return null
+      } catch (error) {
+        return (error as { message: string }).message
+      }
+    })
+    expect(busyToolError).toContain('Wait for the current run to finish')
     await terminate.click()
     await expect(terminate).toHaveCount(0)
     expect(networkCalls).toBe(2)
+
+    await toolPreset.click()
+    await toolMenu.getByRole('option', { name: '自定义', exact: true }).click()
+    await expect(sessionTools.getByRole('status').first()).toHaveText('已启用 2 项')
+    const { spawnfile, spawnargs } = electronApp.process()
+    await electronApp.close()
+    const restarted = await electron.launch({
+      executablePath: spawnfile,
+      args: spawnargs.slice(1),
+      env: {
+        ...process.env,
+        ELECTRON_RUN_AS_NODE: undefined,
+        PI_HARNESS_AGENT_MODE: process.env.PI_HARNESS_E2E_AGENT_MODE ?? 'sdk',
+        PI_HARNESS_USER_DATA: testUserData,
+        PI_HARNESS_PI_CLI_PATH: path.join(testUserData, 'missing-pi-cli'),
+        PI_HARNESS_PI_CONFIG_DIR: piAgentDir,
+        PI_CODING_AGENT_DIR: piAgentDir,
+        PI_HARNESS_SESSION_HOME: path.join(testUserData, 'history-home'),
+        PI_HARNESS_DISABLE_ACCOUNT_DISCOVERY: '1',
+        PI_HARNESS_CAPABILITY_FIXTURES_DIR: path.resolve('fixtures/capabilities'),
+        PI_HARNESS_BUILTIN_SKILLS_DIR: path.resolve('resources/builtin-skills')
+      }
+    })
+    try {
+      const reopened = await restarted.firstWindow()
+      await reopened.locator('a[href="#/workspace"]').click()
+      await reopened.getByTestId(`session-row-${sessionId}`).click()
+      const reopenedTools = reopened.getByRole('button', { name: '更改工具预设', exact: true })
+      await expect(reopenedTools).toHaveText('自定义')
+      await reopenedTools.click()
+      await reopened.getByRole('option', { name: '自定义', exact: true }).click()
+      const reopenedList = reopened.getByRole('dialog', { name: '当前会话工具' })
+      await expect(reopenedList.getByRole('status').first()).toHaveText('已启用 2 项')
+      await expect(reopenedList.getByRole('checkbox', { name: 'write', exact: true })).toBeChecked()
+      await expect(
+        reopenedList.getByRole('checkbox', { name: 'custom_echo', exact: true })
+      ).toBeChecked()
+    } finally {
+      await restarted.close()
+    }
   } finally {
     server.closeAllConnections()
     await new Promise<void>((resolve) => server.close(() => resolve()))

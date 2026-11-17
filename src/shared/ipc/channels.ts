@@ -306,6 +306,7 @@ export const IPC_INVOKE = {
 
   harnessGetState: invoke('harness:get-state'),
   harnessGetTools: invoke('harness:get-tools'),
+  // Exact tool selection, including the workspace custom preset.
   harnessSetTools: invoke('harness:set-tools'),
   harnessSetModel: invoke('harness:set-model'),
   harnessSetThinkingLevel: invoke('harness:set-thinking-level'),

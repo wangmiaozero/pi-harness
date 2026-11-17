@@ -258,6 +258,7 @@ async function newSession() {
   creatingSession.value = true
   try {
     const session = await callApi(() => getApi().sessions.create())
+    agent.initializeNewSession(session.id)
     sessions.items = [session, ...sessions.items.filter((item) => item.id !== session.id)]
     await openSession(session, focusComposer)
     emit('section-change', 'workspace')

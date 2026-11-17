@@ -22,6 +22,7 @@ test('executes native MCP and Codemode over IPC, enforces workspace writes and c
   const pidFile = path.join(workspaceRoot, 'mcp.pid')
   const runtimeFile = path.join(workspaceRoot, 'mcp-runtime.txt')
   const script = path.join(workspaceRoot, 'mcp.mjs')
+  const callLog = path.join(workspaceRoot, 'mcp-calls.txt')
   fs.writeFileSync(
     script,
     `import fs from 'node:fs';import readline from 'node:readline';
@@ -31,7 +32,7 @@ test('executes native MCP and Codemode over IPC, enforces workspace writes and c
       const q=JSON.parse(line);if(q.id===undefined)return;let result;
       if(q.method==='initialize')result={protocolVersion:q.params.protocolVersion,capabilities:{tools:{}},serverInfo:{name:'local',version:'1'}};
       else if(q.method==='tools/list')result={tools:[{name:'echo',description:'Echo JSON',inputSchema:{type:'object',properties:{value:{}},required:['value']}}]};
-      else result={content:[{type:'text',text:'MCP called'}],structuredContent:q.params.arguments.value};
+      else {fs.appendFileSync(${JSON.stringify(callLog)},'called\\n');result={content:[{type:'text',text:'MCP called'}],structuredContent:q.params.arguments.value};}
       process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:q.id,result})+'\\n');
     });`
   )
@@ -76,7 +77,7 @@ test('executes native MCP and Codemode over IPC, enforces workspace writes and c
                 arguments: JSON.stringify({
                   code:
                     calls === 3
-                      ? `await tools.write({path:'cancelled.txt',content:'must remain unwritten'})`
+                      ? `try { await tools.mcp__local__echo({value:'disabled'}); } catch {} await tools.write({path:'cancelled.txt',content:'must remain unwritten'})`
                       : `const values=[{ok:true},[1,2],"string",42,true,null];const actual=[]; for(const value of values)actual.push((await tools.mcp__local__echo({value})).structuredContent);if(JSON.stringify(actual)!==JSON.stringify(values))throw new Error('shapes changed');text('native MCP verified');try{await tools.write({path:${JSON.stringify(denied)},content:'blocked'});throw new Error('write should be denied')}catch(e){if(e.message==='write should be denied')throw e;text('workspace guard verified')}await tools.write({path:'native-mcp.txt',content:'Native Pi completed'})`
                 })
               }
@@ -150,10 +151,21 @@ test('executes native MCP and Codemode over IPC, enforces workspace writes and c
         )
       )
       .toBe(false)
+    const registered = await page.evaluate(
+      (id) => window.piSwitch.harness.tools(id),
+      started.sessionId
+    )
+    expect(registered).toContainEqual(
+      expect.objectContaining({ name: 'mcp__local__echo', active: false })
+    )
     const detail = await page.evaluate((id) => window.piSwitch.sessions.get(id), started.sessionId)
     expect(JSON.stringify(detail.context.messages)).toContain('native MCP verified')
     expect(JSON.stringify(detail.context.messages)).toContain('workspace guard verified')
     expect(calls).toBe(2)
+    await page.evaluate(
+      (id) => window.piSwitch.harness.setTools(id, ['codemode', 'write'], { custom: true }),
+      started.sessionId
+    )
     await page.evaluate(async () => {
       const policy = await window.piSwitch.harness.getPolicy()
       await window.piSwitch.harness.setPolicy({
@@ -193,6 +205,7 @@ test('executes native MCP and Codemode over IPC, enforces workspace writes and c
       .toBe(false)
     expect(fs.existsSync(path.join(workspaceRoot, 'cancelled.txt'))).toBe(false)
     expect(calls).toBe(3)
+    expect(fs.readFileSync(callLog, 'utf8').trim().split('\n')).toHaveLength(6)
     await page.evaluate(
       (sessionId) =>
         window.piSwitch.agent.prompt({ sessionId, message: 'Final provider failure fixture' }),

@@ -18,6 +18,7 @@ const THINKING_LEVELS = new Set<string>([
 export type ComposerSelection = {
   thinkingLevel: string
   toolPreset: ToolPreset
+  customToolNames?: string[]
 }
 
 export type ComposerCacheState = ComposerSelection & {
@@ -55,7 +56,10 @@ export function readComposerCache(
     }
     return {
       thinkingLevel: normalizeThinking(parsed.thinkingLevel),
-      toolPreset: isToolPreset(parsed.toolPreset) ? parsed.toolPreset : defaultPreset,
+      toolPreset:
+        isToolPreset(parsed.toolPreset) && parsed.toolPreset !== 'custom'
+          ? parsed.toolPreset
+          : defaultPreset,
       bySession
     }
   } catch {
@@ -67,18 +71,20 @@ export function rememberComposerCache(
   sessionId: string | null,
   selection: ComposerSelection
 ): ComposerCacheState {
+  const current = readComposerCache()
+  const normalized = normalizeSelection(selection)!
   const next: ComposerCacheState = {
-    thinkingLevel: normalizeThinking(selection.thinkingLevel),
-    toolPreset: normalizePreset(selection.toolPreset),
-    bySession: { ...readComposerCache().bySession }
+    thinkingLevel: normalized.thinkingLevel,
+    toolPreset: normalized.toolPreset === 'custom' ? current.toolPreset : normalized.toolPreset,
+    bySession: { ...current.bySession }
   }
   if (sessionId) {
     const { [sessionId]: _removed, ...rest } = next.bySession
     next.bySession = {
       ...rest,
-      [sessionId]: { thinkingLevel: next.thinkingLevel, toolPreset: next.toolPreset }
+      [sessionId]: normalized
     }
-    const ids = Object.keys(next.bySession)
+    const ids = Object.keys(next.bySession).filter((id) => !next.bySession[id]?.customToolNames)
     if (ids.length > MAX_SESSION_ENTRIES) delete next.bySession[ids[0] ?? '']
   }
   writeComposerCache(next)
@@ -117,7 +123,11 @@ function normalizeSelection(value: unknown): ComposerSelection | null {
   const record = value as Partial<ComposerSelection>
   return {
     thinkingLevel: normalizeThinking(record.thinkingLevel),
-    toolPreset: normalizePreset(record.toolPreset)
+    toolPreset: normalizePreset(record.toolPreset),
+    ...(Array.isArray(record.customToolNames) &&
+    record.customToolNames.every((name) => typeof name === 'string')
+      ? { customToolNames: record.customToolNames }
+      : {})
   }
 }
 

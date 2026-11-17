@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { sessionCleanupExecuteSchema, sessionCleanupPreviewSchema, startAgentSessionSchema } from './workspace'
+import {
+  sessionCleanupExecuteSchema,
+  sessionCleanupPreviewSchema,
+  startAgentSessionSchema
+} from './workspace'
 
 describe('startAgentSessionSchema', () => {
   it('passes the selected permission mode through to the agent runtime', () => {
@@ -12,6 +16,15 @@ describe('startAgentSessionSchema', () => {
     })
     expect(parsed.success).toBe(true)
     if (parsed.success) expect(parsed.data.permissionMode).toBe('ask')
+  })
+
+  it('restores an exact custom selection only for an existing session', () => {
+    const input = { sessionId: 'session-1', customToolNames: ['read', 'plugin_echo'] }
+    expect(startAgentSessionSchema.parse(input)).toEqual(input)
+    expect(startAgentSessionSchema.safeParse({ cwd: '/tmp', customToolNames: [] }).success).toBe(
+      false
+    )
+    expect(startAgentSessionSchema.safeParse({ ...input, toolNames: ['read'] }).success).toBe(false)
   })
 
   it('leaves the permission mode undefined when the caller did not choose one', () => {
