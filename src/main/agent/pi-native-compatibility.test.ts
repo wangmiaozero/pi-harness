@@ -554,6 +554,10 @@ describe('Pi 1.5 native execution compatibility', () => {
 
   it('uses native HTTP MCP discovery, deferred tools, request timeout and reconnect', async () => {
     let initializations = 0
+    let markHungCall!: () => void
+    const hungCall = new Promise<void>((resolve) => {
+      markHungCall = resolve
+    })
     const web = http.createServer(async (request, response) => {
       if (request.method !== 'POST') {
         response.writeHead(405).end()
@@ -585,7 +589,10 @@ describe('Pi 1.5 native execution compatibility', () => {
           ]
         }
       else if (call.method === 'tools/call') {
-        if (call.params.arguments.hang) return
+        if (call.params.arguments.hang) {
+          markHungCall()
+          return
+        }
         result = { content: [{ type: 'text', text: 'HTTP native result' }], structuredContent: 42 }
       } else result = {}
       response
@@ -608,6 +615,9 @@ describe('Pi 1.5 native execution compatibility', () => {
       })
     )
     try {
+      // Pi applies the same deadline to initialize, tools/list and tools/call.
+      // Let real HTTP discovery finish before advancing the deliberately hung call's deadline.
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
       const wrapper = await start(['read'])
       expect(wrapper.inner.getActiveToolNames()).toContain('tool_search')
       expect(wrapper.inner.getActiveToolNames()).not.toContain('mcp__web__echo')
@@ -616,14 +626,19 @@ describe('Pi 1.5 native execution compatibility', () => {
       expect(wrapper.inner.getActiveToolNames()).toContain('mcp__web__echo')
       const called = await run(wrapper.sessionId, { tool: 'mcp__web__echo', args: {} })
       expect(JSON.stringify(called)).toContain('HTTP native result')
-      const timeout = await run(wrapper.sessionId, { tool: 'mcp__web__echo', args: { hang: true } })
+      const pending = run(wrapper.sessionId, { tool: 'mcp__web__echo', args: { hang: true } })
+      await hungCall
+      await vi.advanceTimersByTimeAsync(100)
+      const timeout = await pending
       expect(timeout).toContainEqual(
         expect.objectContaining({ toolName: 'mcp__web__echo', isError: true })
       )
+      expect(JSON.stringify(timeout)).toContain('MCP request timed out after 100ms')
       await runtime.prompt(wrapper.sessionId, '/mcp reconnect web')
       await expect.poll(() => initializations).toBe(2)
       await wrapper.shutdown()
     } finally {
+      vi.useRealTimers()
       web.closeAllConnections()
       await new Promise<void>((resolve) => web.close(() => resolve()))
     }
