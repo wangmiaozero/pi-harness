@@ -36,6 +36,7 @@ export const useModelsStore = defineStore('models', () => {
   const draftFreeModel = ref<string | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const fastMode = ref(false)
 
   const activeLabel = computed(() => {
     if (!active.value.providerKey || !active.value.modelId) return null
@@ -105,6 +106,24 @@ export const useModelsStore = defineStore('models', () => {
     return result
   }
 
+  async function setVisibility(entries: { id: string; enabled: boolean }[]) {
+    if (entries.length) items.value = await callApi(() => getApi().models.setVisibility(entries))
+  }
+
+  async function loadFastMode() {
+    fastMode.value = await callApi(() => getApi().models.fastMode())
+  }
+
+  async function setFastMode(enabled: boolean) {
+    fastMode.value = enabled
+    try {
+      fastMode.value = await callApi(() => getApi().models.setFastMode(enabled))
+    } catch (error) {
+      fastMode.value = !enabled
+      throw error
+    }
+  }
+
   function isActive(model: ModelDefinition, providerKey: string | undefined): boolean {
     if (!providerKey) return false
     return active.value.providerKey === providerKey && active.value.modelId === model.modelId
@@ -129,6 +148,10 @@ export const useModelsStore = defineStore('models', () => {
     update,
     remove,
     setActive,
+    setVisibility,
+    fastMode,
+    loadFastMode,
+    setFastMode,
     isActive,
     setupListeners
   }

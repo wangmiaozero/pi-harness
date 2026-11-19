@@ -1,6 +1,6 @@
-import { test, expect } from './fixtures'
+import { test, expect, startFixtureSession } from './fixtures'
 import { IPC_INVOKE } from '../src/shared/ipc/channels'
-import { createServer } from 'node:http'
+import { createServer, request as httpRequest } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { once } from 'node:events'
 import fs from 'node:fs'
@@ -464,7 +464,7 @@ test('ignores an old provider probe after changing dialogs and prevents duplicat
       }
     })
   })
-  await expect(dialog).not.toContainText('obsolete-probe-result')
+  await expect(dialog.getByTestId('provider-connection-diagnostics')).toHaveCount(0)
   await expect(dialog.getByRole('button', { name: /开始测试|Run test|Start test/ })).toBeEnabled()
 })
 
@@ -914,4 +914,385 @@ test('copies a saved provider key in Main without revealing it to the editor', a
     }
   })
   expect(rejected).toBe(true)
+})
+
+test('reports actual proxy routes and copies safe diagnostics for gateway providers', async ({
+  page,
+  electronApp,
+  workspaceRoot
+}) => {
+  const upstreamPaths: string[] = []
+  const proxyPaths: string[] = []
+  const upstream = createServer((request, response) => {
+    upstreamPaths.push(request.url ?? '')
+    response.writeHead(401, { 'content-type': 'application/json' })
+    response.end(JSON.stringify({ error: { message: 'fixture-private-response-string' } }))
+  })
+  upstream.listen(0, '127.0.0.1')
+  await once(upstream, 'listening')
+  const baseUrl = `http://127.0.0.1:${(upstream.address() as AddressInfo).port}/v1`
+  const automaticBaseUrl = 'http://proxy-only.invalid/v1'
+  const proxy = createServer((request, response) => {
+    proxyPaths.push(request.url ?? '')
+    const target = new URL(request.url ?? '')
+    expect([new URL(baseUrl).origin, new URL(automaticBaseUrl).origin]).toContain(target.origin)
+    const forwarded = httpRequest(
+      new URL(target.pathname, baseUrl),
+      { method: request.method, headers: request.headers },
+      (upstreamResponse) => {
+        response.writeHead(upstreamResponse.statusCode ?? 502, upstreamResponse.headers)
+        upstreamResponse.pipe(response)
+      }
+    )
+    forwarded.on('error', () => response.writeHead(502).end())
+    request.pipe(forwarded)
+  })
+  proxy.listen(0, '127.0.0.1')
+  await once(proxy, 'listening')
+  const proxyUrl = `http://127.0.0.1:${(proxy.address() as AddressInfo).port}`
+  const close = (server: typeof proxy) =>
+    new Promise<void>((resolve) => {
+      server.close(() => resolve())
+      server.closeAllConnections()
+    })
+  try {
+    await electronApp.evaluate(async ({ session }, proxyUrl) => {
+      for (const key of Object.keys(process.env))
+        if (/^(?:https?|all|no)_proxy$/i.test(key)) delete process.env[key]
+      process.env.PI_HARNESS_E2E_PROXY_KEY = 'fixture-auto-proxy-key'
+      await session.defaultSession.setProxy({
+        mode: 'fixed_servers',
+        proxyRules: `${proxyUrl},direct://`,
+        proxyBypassRules: '<-loopback>'
+      })
+    }, proxyUrl)
+    const results = await page.evaluate(
+      async ({ baseUrl, automaticBaseUrl }) => {
+        const api = window.piSwitch!
+        const common = {
+          baseUrl,
+          protocol: 'openai-responses' as const,
+          apiKey: null,
+          headers: {},
+          authHeader: true,
+          timeout: 5000
+        }
+        await api.providers.create({
+          ...common,
+          key: 'fixture-proxy',
+          name: 'Fixture Proxy',
+          displayName: 'Fixture Proxy',
+          enabled: true,
+          defaultModelId: 'fixture-model',
+          baseUrl: automaticBaseUrl,
+          apiKey: { kind: 'env', envRef: '$PI_HARNESS_E2E_PROXY_KEY' }
+        })
+        const modelId = 'fixture-model'
+        const auto = await api.providers.testConnection({
+          modelId,
+          draft: { ...common, baseUrl: automaticBaseUrl }
+        })
+        const local = await api.providers.testConnection({ modelId, draft: common })
+        const system = await api.providers.testConnection({
+          modelId,
+          draft: { ...common, advanced: { proxy: { mode: 'system' } } }
+        })
+        const direct = await api.providers.testConnection({
+          modelId,
+          draft: { ...common, advanced: { proxy: { mode: 'direct' } } }
+        })
+        return { auto, local, system, direct }
+      },
+      { baseUrl, automaticBaseUrl }
+    )
+    expect(results.auto).toMatchObject({
+      status: 'auth_error',
+      httpStatus: 401,
+      network: {
+        proxyMode: 'auto',
+        transport: 'electron_fetch',
+        automaticProxySource: 'system',
+        proxyRoute: proxyUrl
+      }
+    })
+    expect(results.local).toMatchObject({
+      status: 'auth_error',
+      network: { proxyMode: 'auto', transport: 'electron_fetch', proxyRoute: 'DIRECT' }
+    })
+    expect(results.system).toMatchObject({
+      status: 'auth_error',
+      httpStatus: 401,
+      network: { proxyMode: 'system', transport: 'electron_fetch', proxyRoute: proxyUrl }
+    })
+    expect(results.direct).toMatchObject({
+      status: 'auth_error',
+      network: { proxyMode: 'direct', transport: 'electron_fetch', proxyRoute: 'DIRECT' }
+    })
+    expect(proxyPaths).toEqual([`${automaticBaseUrl}/responses`, `${baseUrl}/responses`])
+    await electronApp.evaluate(({ clipboard }) => {
+      const state = globalThis as typeof globalThis & { fixtureClipboard?: string }
+      clipboard.writeText = (text) => {
+        state.fixtureClipboard = text
+      }
+    })
+    await page.locator('a[href="#/models"]').click()
+    const row = page.getByTestId('provider-row').filter({ hasText: 'Fixture Proxy' })
+    await row.getByRole('button', { name: '编辑', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '编辑提供商' })
+    await dialog.getByTestId('provider-test-draft').click()
+    const diagnostics = dialog.getByTestId('provider-connection-diagnostics')
+    await expect(diagnostics).toContainText('HTTP 401')
+    await expect(diagnostics).toContainText('系统代理')
+    await expect(diagnostics).toContainText('Electron Fetch')
+    await diagnostics.locator('summary').click()
+    await expect(diagnostics).toContainText(proxyUrl)
+    await diagnostics.getByRole('button', { name: '复制诊断信息' }).click()
+    const copied = await electronApp.evaluate(
+      () => (globalThis as typeof globalThis & { fixtureClipboard?: string }).fixtureClipboard
+    )
+    expect(copied).toBeDefined()
+    expect(copied).not.toMatch(/fixture-private-response-string|fixture-auto-proxy-key/)
+    expect(JSON.parse(copied!)).toMatchObject({
+      providerKey: 'fixture-proxy',
+      protocol: 'openai-responses',
+      modelId: 'fixture-model',
+      endpoint: `${automaticBaseUrl}/responses`,
+      status: 'auth_error',
+      latencyMs: expect.any(Number)
+    })
+    expect(proxyPaths.slice(2)).toEqual([`${automaticBaseUrl}/responses`])
+    await dialog.getByRole('button', { name: '取消', exact: true }).last().click()
+    await page.getByTestId('open-local-gateway').click()
+    await page.getByRole('button', { name: '启动网关' }).click()
+    const gateway = page.getByTestId('provider-local-gateway')
+    await expect(gateway.getByRole('status')).toHaveText('网关运行中')
+    const models = gateway.getByTestId('local-gateway-models')
+    await models.locator('summary').click()
+    const gatewayModel = models
+      .getByRole('listitem')
+      .filter({ hasText: 'fixture-proxy/fixture-model' })
+    await expect(gatewayModel).toContainText('openai-responses')
+    await page.getByRole('button', { name: '复制网关密钥' }).click()
+    await expect(gateway).toContainText('已复制网关密钥')
+    const key = await electronApp.evaluate(
+      () => (globalThis as typeof globalThis & { fixtureClipboard?: string }).fixtureClipboard
+    )
+    const gatewayUrl = await gateway.locator('code').textContent()
+    const response = await fetch(`${gatewayUrl}/responses`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'fixture-proxy/fixture-model', input: 'ping' })
+    })
+    expect(response.status).toBe(401)
+    await response.body?.cancel()
+    expect(proxyPaths.slice(3)).toEqual([`${automaticBaseUrl}/responses`])
+    expect(upstreamPaths).toEqual(Array(6).fill('/v1/responses'))
+
+    const { sessionId } = await startFixtureSession(page, {
+      cwd: workspaceRoot,
+      provider: 'fixture-proxy',
+      modelId: 'fixture-model'
+    })
+    await page.evaluate(
+      (id) =>
+        window.piSwitch.agent.prompt({
+          sessionId: id,
+          message: 'Fixture model request through the automatic proxy'
+        }),
+      sessionId
+    )
+    await expect.poll(() => proxyPaths.slice(4)).toEqual([`${automaticBaseUrl}/responses`])
+    await expect
+      .poll(() =>
+        page.evaluate(
+          (id) => window.piSwitch.agent.running().then((ids) => ids.includes(id)),
+          sessionId
+        )
+      )
+      .toBe(false)
+
+    await close(proxy)
+    const failures = await page.evaluate(
+      async ({ baseUrl, proxyUrl }) => {
+        const api = window.piSwitch!
+        return Promise.all([
+          api.providers.testConnection({ providerKey: 'fixture-proxy' }),
+          api.providers.testConnection({
+            modelId: 'fixture-model',
+            draft: {
+              baseUrl,
+              protocol: 'openai-responses',
+              apiKey: null,
+              headers: {},
+              authHeader: true,
+              timeout: 5000,
+              advanced: { proxy: { mode: 'custom', url: proxyUrl } }
+            }
+          }),
+          api.providers.testConnection({
+            modelId: 'fixture-model',
+            draft: {
+              baseUrl,
+              protocol: 'openai-responses',
+              apiKey: null,
+              headers: {},
+              authHeader: true,
+              timeout: 5000,
+              advanced: { proxy: { mode: 'system' } }
+            }
+          })
+        ])
+      },
+      { baseUrl, proxyUrl }
+    )
+    for (const failure of failures)
+      expect(failure).toMatchObject({
+        status: 'proxy_error',
+        httpStatus: null,
+        errorCode: 'ERR_PROXY_CONNECTION_FAILED'
+      })
+    expect(upstreamPaths).toHaveLength(7)
+  } finally {
+    await Promise.all([close(upstream), close(proxy)])
+  }
+})
+
+test('cancels an in-flight provider probe from its connection dialog', async ({ page }) => {
+  let notifyRequest!: () => void
+  let notifyClose!: () => void
+  const requestStarted = new Promise<void>((resolve) => {
+    notifyRequest = resolve
+  })
+  const requestClosed = new Promise<void>((resolve) => {
+    notifyClose = resolve
+  })
+  const upstream = createServer((request, response) => {
+    response.once('close', notifyClose)
+    request.resume()
+    notifyRequest()
+  })
+  upstream.listen(0, '127.0.0.1')
+  await once(upstream, 'listening')
+  try {
+    const baseUrl = `http://127.0.0.1:${(upstream.address() as AddressInfo).port}/v1`
+    await page.evaluate(
+      (baseUrl) =>
+        window.piSwitch!.providers.create({
+          key: 'fixture-cancel',
+          name: 'Fixture Cancel',
+          displayName: 'Fixture Cancel',
+          enabled: true,
+          protocol: 'openai-completions',
+          baseUrl,
+          apiKey: null,
+          headers: {},
+          authHeader: true,
+          timeout: null,
+          defaultModelId: 'fixture-model'
+        }),
+      baseUrl
+    )
+    await page.locator('a[href="#/models"]').click()
+    const row = page.getByTestId('provider-row').filter({ hasText: 'Fixture Cancel' })
+    await row.getByRole('button', { name: /^(测试|Test)$/ }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('button', { name: '开始测试' }).click()
+    await requestStarted
+    await dialog.getByRole('button', { name: '取消', exact: true }).click()
+    await requestClosed
+    await expect(dialog.getByTestId('provider-connection-diagnostics')).toContainText(
+      '连接测试已取消'
+    )
+    await expect(dialog.getByRole('button', { name: '开始测试' })).toBeEnabled()
+  } finally {
+    await new Promise<void>((resolve) => {
+      upstream.close(() => resolve())
+      upstream.closeAllConnections()
+    })
+  }
+})
+
+test('shows rejected request parameters in the provider editor without leaking the upstream response', async ({
+  page,
+  electronApp
+}) => {
+  const upstream = createServer((request, response) => {
+    request.resume()
+    response.writeHead(400, { 'content-type': 'application/json' })
+    response.end(
+      JSON.stringify({
+        error: {
+          code: 'unsupported_parameter',
+          param: 'max_tokens',
+          message: 'fixture-private-upstream-message'
+        }
+      })
+    )
+  })
+  upstream.listen(0, '127.0.0.1')
+  await once(upstream, 'listening')
+  try {
+    const baseUrl = `http://127.0.0.1:${(upstream.address() as AddressInfo).port}/v1`
+    await page.evaluate(
+      (url) =>
+        window.piSwitch!.providers.create({
+          key: 'fixture-rejected-param',
+          name: 'Fixture Rejected Parameter',
+          displayName: 'Fixture Rejected Parameter',
+          enabled: true,
+          protocol: 'openai-completions',
+          baseUrl: url,
+          apiKey: null,
+          headers: {},
+          authHeader: true,
+          timeout: null,
+          defaultModelId: 'fixture-model'
+        }),
+      baseUrl
+    )
+    await electronApp.evaluate(({ clipboard }) => {
+      const state = globalThis as typeof globalThis & { fixtureDiagnosticClipboard?: string }
+      clipboard.writeText = (text) => {
+        state.fixtureDiagnosticClipboard = text
+      }
+    })
+    await page.locator('a[href="#/models"]').click()
+    const row = page.getByTestId('provider-row').filter({ hasText: 'Fixture Rejected Parameter' })
+    await row.getByRole('button', { name: '编辑', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '编辑提供商' })
+    await dialog.getByTestId('provider-test-draft').click()
+    const diagnostics = dialog.getByTestId('provider-connection-diagnostics')
+    await expect(diagnostics).toContainText('HTTP 400')
+    await expect(diagnostics).toContainText('上游拒绝了请求')
+    await expect(diagnostics).toContainText('max_tokens')
+    await diagnostics.locator('summary').click()
+    await expect(diagnostics).toContainText('unsupported_parameter')
+    await expect(diagnostics).not.toContainText('fixture-private-upstream-message')
+    await diagnostics.getByRole('button', { name: '复制诊断信息' }).click()
+    await expect
+      .poll(() =>
+        electronApp.evaluate(
+          () =>
+            (globalThis as typeof globalThis & { fixtureDiagnosticClipboard?: string })
+              .fixtureDiagnosticClipboard
+        )
+      )
+      .toContain('unsupported_parameter')
+    const copied = await electronApp.evaluate(
+      () =>
+        (globalThis as typeof globalThis & { fixtureDiagnosticClipboard?: string })
+          .fixtureDiagnosticClipboard
+    )
+    expect(JSON.parse(copied!)).toMatchObject({
+      status: 'request_error',
+      httpStatus: 400,
+      upstreamError: { code: 'unsupported_parameter', parameter: 'max_tokens' }
+    })
+    expect(copied).not.toContain('fixture-private-upstream-message')
+  } finally {
+    await new Promise<void>((resolve) => {
+      upstream.close(() => resolve())
+      upstream.closeAllConnections()
+    })
+  }
 })

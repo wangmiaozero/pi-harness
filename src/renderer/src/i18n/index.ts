@@ -1,3 +1,4 @@
+import { providerDiagnostics } from './provider-diagnostics'
 import { providerAccountsEn, providerAccountsZh } from './provider-accounts'
 import { providerAdvancedEn, providerAdvancedZh } from './provider-advanced'
 import { chatActivity } from './chat-activity'
@@ -37,6 +38,7 @@ import {
 
 const enMessages = {
   ...enUS,
+  providerDiagnostics: providerDiagnostics['en-US'],
   providerAccounts: providerAccountsEn,
   providerAdvanced: providerAdvancedEn,
   settings: { ...enUS.settings, ...resourceMarketEn },
@@ -50,6 +52,7 @@ const enMessages = {
 
 const zhMessages = {
   ...zhCN,
+  providerDiagnostics: providerDiagnostics['zh-CN'],
   providerAccounts: providerAccountsZh,
   providerAdvanced: providerAdvancedZh,
   settings: { ...zhCN.settings, ...resourceMarketZh },
@@ -63,6 +66,7 @@ const zhMessages = {
 
 const zhTwMessages = {
   ...zhTW,
+  providerDiagnostics: providerDiagnostics['zh-TW'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,
   settings: { ...zhTW.settings, ...resourceMarketTw },
@@ -76,6 +80,7 @@ const zhTwMessages = {
 
 const jaMessages = {
   ...jaJP,
+  providerDiagnostics: providerDiagnostics['ja-JP'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,
   settings: { ...jaJP.settings, ...resourceMarketJa },
@@ -89,6 +94,7 @@ const jaMessages = {
 
 const koMessages = {
   ...koKR,
+  providerDiagnostics: providerDiagnostics['ko-KR'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,
   settings: { ...koKR.settings, ...resourceMarketKo },
@@ -102,6 +108,7 @@ const koMessages = {
 
 const ruMessages = {
   ...ruRU,
+  providerDiagnostics: providerDiagnostics['ru-RU'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,
   settings: { ...ruRU.settings, ...resourceMarketRu },
@@ -115,6 +122,7 @@ const ruMessages = {
 
 const frMessages = {
   ...frFR,
+  providerDiagnostics: providerDiagnostics['fr-FR'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,
   settings: { ...frFR.settings, ...resourceMarketFr },
@@ -128,6 +136,7 @@ const frMessages = {
 
 const deMessages = {
   ...deDE,
+  providerDiagnostics: providerDiagnostics['de-DE'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,
   settings: { ...deDE.settings, ...resourceMarketDe },

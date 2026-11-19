@@ -55,6 +55,31 @@ describe('ComposerModelPicker', () => {
     expect(document.body.querySelector('[role="listbox"]')?.textContent).not.toContain('MiniMax M3')
   })
 
+  it('offers Fast only on models that support it and reports the toggle', async () => {
+    const wrapper = mountPicker()
+    const fastButton = () =>
+      document.body.querySelector<HTMLButtonElement>('[data-testid="composer-fast-mode"]')
+    await wrapper.get('button').trigger('click')
+    expect(fastButton()).toBeNull()
+
+    await wrapper.setProps({
+      model: 'openai/gpt-5',
+      options: OPTIONS.map((option) =>
+        option.value === 'openai/gpt-5' ? { ...option, fast: true } : option
+      )
+    })
+    expect(fastButton()?.getAttribute('aria-pressed')).toBe('false')
+    fastButton()!.click()
+    expect(wrapper.emitted('update:fast')).toEqual([[true]])
+
+    await wrapper.setProps({ fast: true })
+    expect(fastButton()?.getAttribute('aria-pressed')).toBe('true')
+    expect(wrapper.find('[data-testid="composer-fast-indicator"]').exists()).toBe(true)
+    expect(wrapper.get('button').attributes('title')).toContain(
+      String(i18n.global.t('workspace.fastMode'))
+    )
+  })
+
   it('shows the current model ID when a historical model is absent from the catalog', async () => {
     const wrapper = mountPicker()
     await wrapper.setProps({ model: 'zhipu/glm-5.3-flash', options: [] })

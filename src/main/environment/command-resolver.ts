@@ -35,7 +35,8 @@ const NODE_PROBE = `process.stdout.write("\\n${LOGIN_SHELL_NODE_MARKER}"+JSON.st
 function spawnLoginShellProbe(
   shell: string,
   args: string[],
-  cwd?: string
+  cwd?: string,
+  timeoutMs = LOGIN_SHELL_PROBE_TIMEOUT_MS
 ): Promise<{ stdout: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn(shell, args, {
@@ -71,7 +72,7 @@ function spawnLoginShellProbe(
     const timeout = setTimeout(() => {
       kill()
       finish(() => reject(new Error('Login shell probe timed out')))
-    }, LOGIN_SHELL_PROBE_TIMEOUT_MS)
+    }, timeoutMs)
 
     child.stdout?.on('data', (chunk: Buffer | string) => {
       if (settled) return
@@ -237,6 +238,36 @@ export async function resolveLoginShellPath(
     }
   }
   return fallback ?? { shell: null, path: isWindows ? (process.env.PATH ?? null) : null }
+}
+
+const PROXY_ENV_KEYS = [
+  'HTTPS_PROXY',
+  'https_proxy',
+  'HTTP_PROXY',
+  'http_proxy',
+  'ALL_PROXY',
+  'all_proxy',
+  'NO_PROXY',
+  'no_proxy'
+] as const
+
+export async function resolveLoginShellProxyEnvironment(): Promise<NodeJS.ProcessEnv> {
+  if (process.platform === 'win32') return {}
+  const marker = '__PI_HARNESS_PROXY__'
+  // Only these fixed variables are read. Do not collect the full login environment.
+  const script = PROXY_ENV_KEYS.map((key) => `printf '\n${marker}${key}=%s\n' "$${key}"`).join('\n')
+  const shell = loginShellCandidates()[0]
+  try {
+    const { stdout } = await spawnLoginShellProbe(shell, ['-ilc', script], homedir(), 2_000)
+    return Object.fromEntries(
+      PROXY_ENV_KEYS.map((key) => [
+        key,
+        markedShellOutput(stdout, `${marker}${key}=`, false) ?? undefined
+      ])
+    )
+  } catch {
+    return {}
+  }
 }
 
 async function parseNodeProbe(

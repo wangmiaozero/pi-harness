@@ -14,10 +14,27 @@ import {
   managedProviderSecretId,
   secretStore
 } from '../security/secret-store'
-import { readBoundedText } from './bounded-json'
-import { fetchProvider, resolveWebSocketProxy } from './provider-network'
-import { fetchResponsesWebSocket } from './responses-websocket'
-import { ProviderRequestQueue, releaseOnResponseClose } from './provider-request-queue'
+import { readBoundedJson, readBoundedText } from './bounded-json'
+import { fetchProvider } from './provider-network'
+import { sendChatThroughGateway, type ChatGatewayRoute } from './provider-chat-gateway'
+import { providerOffersFastMode, withFastServiceTier } from '@shared/providers/fast-mode'
+import {
+  classifyConnectionError,
+  classifyConnectionHttp,
+  classifyProbeBody,
+  upstreamProbeDiagnostic
+} from './provider-connection-diagnostics'
+import {
+  connectionHints,
+  type ConnectionTestStatus,
+  type ProviderNetworkDiagnostic,
+  type ProviderUpstreamDiagnostic
+} from '@shared/providers/connection-diagnostics'
+import {
+  ProviderQueueError,
+  ProviderRequestQueue,
+  releaseOnResponseClose
+} from './provider-request-queue'
 import {
   applyProviderBody,
   maskProviderPrompt,
@@ -38,7 +55,7 @@ import { isLocalOllamaEndpoint } from '@shared/providers/local-ollama'
 import type { ConnectionTestResult } from '@shared/ipc/api-types'
 import type { ImageModelResult } from '@shared/ipc/api-types'
 import { imageModelRequestSchema } from '@shared/schemas/domain'
-import { getProtocol, isProtocolId } from '@shared/constants/protocols'
+import { isProtocolId } from '@shared/constants/protocols'
 import type { ProtocolId } from '@shared/constants/protocols'
 import { findModelPreset, findProviderPreset } from '@shared/constants/provider-presets'
 import { getOfficialModelGroup, officialModelGroups } from '@shared/providers/official-model-groups'
@@ -48,6 +65,8 @@ import {
   normalizeProviderBaseUrl,
   volcenginePlanKind
 } from '@shared/utils/base-url'
+import { gatewayAccountKey } from '@shared/providers/gateway'
+import { GatewayModelError, gatewayEndpoint, gatewayModel } from './gateway-models'
 import type { PiProviderConfig } from '@shared/types/pi'
 import {
   extractChatCompletionText,
@@ -55,8 +74,11 @@ import {
   svgFallbackPrompt
 } from './svg-image-fallback'
 
+const OPENAI_API_ORIGIN = 'https://api.openai.com'
+
 export class ProviderService {
   private readonly queues = new Map<string, ProviderRequestQueue>()
+  private readonly chatRoutes = new Map<string, ChatGatewayRoute>()
   constructor(
     private readonly config: PiConfigService,
     private readonly metadata: JsonStore<AppMetadata>
@@ -128,9 +150,11 @@ export class ProviderService {
 
   async runtimeSettings(key: string, baseUrl: string) {
     const { models } = await this.config.read()
-    const configured = models.providers[key]?.baseUrl
+    const configured = Object.hasOwn(models.providers, key)
+      ? models.providers[key]?.baseUrl
+      : undefined
     if (!configured || configured.replace(/\/+$/, '') !== baseUrl.replace(/\/+$/, '')) return
-    return (await this.metadata.read()).providers[key]?.advanced
+    return (await this.metadata.read()).providers[key]?.advanced ?? {}
   }
 
   requestSlot(key: string, settings: ProviderProfile['advanced'], signal: AbortSignal) {
@@ -141,20 +165,12 @@ export class ProviderService {
   }
 
   async runtimeProviders() {
-    return (await this.list())
-      .filter((provider) => {
-        const settings = provider.advanced
-        return (
-          settings &&
-          (settings.authMode ||
-            settings.proxy ||
-            settings.concurrency ||
-            settings.requestsPerMinute ||
-            settings.responsesWebSocket ||
-            settings.sendUserAgent === false)
-        )
-      })
-      .map(({ key, protocol }) => ({ key, protocol }))
+    const { models } = await this.config.read()
+    return Object.entries(models.providers).flatMap(([key, provider]) => {
+      if (key === FREE_PROVIDER_KEY || !provider.baseUrl) return []
+      const protocol = provider.api ?? provider.models?.[0]?.api
+      return protocol && isProtocolId(protocol) ? [{ key, protocol }] : []
+    })
   }
 
   async runtimeFetch(
@@ -184,6 +200,17 @@ export class ProviderService {
     const signal = init?.signal ?? new AbortController().signal
     const release = await this.requestSlot(key, settings, signal)
     try {
+      if (
+        (relative === '/chat/completions' || relative === '/responses') &&
+        (typeof init?.body === 'string' || init?.body instanceof Uint8Array) &&
+        providerOffersFastMode({ key, baseUrl }) &&
+        (await this.fastMode())
+      ) {
+        const fast = withFastServiceTier(
+          typeof init.body === 'string' ? init.body : new TextDecoder().decode(init.body)
+        )
+        if (fast) init = { ...init, body: fast }
+      }
       const payload =
         settings.responsesWebSocket &&
         relative === '/responses' &&
@@ -194,16 +221,31 @@ export class ProviderService {
               )
             )
           : undefined
-      const response =
-        payload?.stream === true
-          ? await fetchResponsesWebSocket(
-              url,
-              init?.headers,
-              payload,
-              signal,
-              await resolveWebSocketProxy(url, settings.proxy)
+      const requestInit: RequestInit = { ...init, redirect: 'error', signal }
+      const chat =
+        relative === '/chat/completions' &&
+        (typeof init?.body === 'string' || init?.body instanceof Uint8Array) &&
+        (await this.metadata.read()).providers[key]?.gateway === true
+          ? parseRecord(
+              typeof init.body === 'string' ? init.body : new TextDecoder().decode(init.body)
             )
-          : await fetchProvider(url.href, { ...init, redirect: 'error', signal }, settings.proxy)
+          : undefined
+      const response = chat
+        ? await sendChatThroughGateway({
+            url,
+            init: requestInit,
+            payload: chat,
+            routes: this.chatRoutes,
+            routeKey: `${key}\0${String(chat.model ?? '')}`,
+            send: (target, next) => fetchProvider(target, next, settings.proxy)
+          })
+        : await fetchProvider(
+            url.href,
+            requestInit,
+            settings.proxy,
+            undefined,
+            payload?.stream === true ? payload : undefined
+          )
       const headers = new Headers()
       for (const name of [
         'content-type',
@@ -231,25 +273,23 @@ export class ProviderService {
     )
   }
 
-  async gatewayModels() {
+  async gatewayModels(gatewayBaseUrl?: string) {
     const { models } = await this.config.read()
     const meta = await this.metadata.read()
     return Object.entries(models.providers).flatMap(([key, provider]) => {
-      if (!provider.baseUrl) return []
+      if (!key || key.includes('/') || gatewayAccountKey.test(key)) return []
+      const endpoint = gatewayEndpoint(provider.baseUrl, gatewayBaseUrl)
+      const seen = new Set<string>()
       return (provider.models ?? []).flatMap((model) => {
-        const api = model.api ?? provider.api ?? 'openai-completions'
-        return ['openai-completions', 'openai-responses', 'anthropic-messages'].includes(api) &&
-          meta.models[`${key}::${model.id}`]?.enabled !== false
-          ? [
-              {
-                id: `${key}/${model.id}`,
-                provider: key,
-                model: model.id,
-                api,
-                baseUrl: provider.baseUrl!
-              }
-            ]
-          : []
+        if (!model.id || seen.has(model.id)) return []
+        seen.add(model.id)
+        return gatewayModel(
+          key,
+          model,
+          provider,
+          meta.models[`${key}::${model.id}`]?.enabled === false,
+          endpoint.unavailable
+        )
       })
     })
   }
@@ -259,7 +299,8 @@ export class ProviderService {
     payload: Record<string, unknown>,
     inbound: Headers,
     signal: AbortSignal,
-    compact = false
+    compact = false,
+    gatewayBaseUrl?: string
   ): Promise<Response> {
     const id = typeof payload.model === 'string' ? payload.model : ''
     const separator = id.indexOf('/')
@@ -271,38 +312,44 @@ export class ProviderService {
       ? snapshot.models.providers[key]
       : undefined
     const model = native?.models?.find((item) => item.id === modelId)
-    if (
-      !native ||
-      !model ||
-      separator < 1 ||
-      (model.api ?? native.api ?? 'openai-completions') !== protocol ||
-      meta.models[`${key}::${modelId}`]?.enabled === false
+    if (!native || !model || separator < 1 || !modelId || gatewayAccountKey.test(key))
+      throw new GatewayModelError(
+        'model_not_found',
+        'Use a provider/model ID from the gateway list'
+      )
+    const endpoint = gatewayEndpoint(native.baseUrl, gatewayBaseUrl)
+    const entry = gatewayModel(
+      key,
+      model,
+      native,
+      meta.models[`${key}::${modelId}`]?.enabled === false,
+      endpoint.unavailable
     )
-      throw new ValidationError('Use a model from the gateway list that supports this endpoint')
+    if (entry.unavailable === 'unsupported_protocol' || entry.protocol !== protocol)
+      throw new GatewayModelError(
+        'unsupported_protocol',
+        'The selected model does not support this gateway endpoint'
+      )
+    if (!endpoint.url || entry.unavailable) {
+      const message =
+        entry.unavailable === 'recursive_upstream'
+          ? 'The gateway endpoint cannot be its own upstream'
+          : 'The selected gateway model is unavailable'
+      throw new GatewayModelError(entry.unavailable ?? 'model_unavailable', message)
+    }
     const provider = providerToDomain(key, native, meta.providers[key])
-    const root = new URL(provider.baseUrl)
+    const root = endpoint.url
     const rootPath = root.pathname.replace(/\/+$/, '')
-    if (
-      !['http:', 'https:'].includes(root.protocol) ||
-      root.username ||
-      root.password ||
-      root.search ||
-      root.hash
-    )
-      throw new ValidationError('Provider endpoint is invalid')
-    // A gateway cannot be used as its own upstream.
-    if (
-      ['127.0.0.1', 'localhost', '[::1]'].includes(root.hostname) &&
-      root.port === inbound.get('host')?.split(':').at(-1)
-    )
-      throw new ValidationError('The gateway endpoint cannot be its own upstream')
     const apiKey = provider.localNoAuth
       ? null
-      : await resolveCredentialForTest(provider, native.apiKey)
+      : await resolveCredentialForTest(provider, native.apiKey, signal)
     if (provider.apiKey && !apiKey)
       throw new ValidationError('The provider credential is unavailable')
     if (compact && !provider.advanced?.nativeCompaction)
-      throw new ValidationError('Enable native Responses compaction for this provider first')
+      throw new GatewayModelError(
+        'unsupported_protocol',
+        'Enable native Responses compaction for this provider first'
+      )
     const path =
       protocol === 'anthropic-messages'
         ? rootPath.endsWith('/v1')
@@ -331,11 +378,20 @@ export class ProviderService {
     if (provider.advanced?.sendUserAgent !== false && inbound.get('user-agent'))
       headers['user-agent'] = inbound.get('user-agent')!
     const outgoing = applyProviderHeaders(headers, provider.advanced, protocol)
-    const extended = applyProviderBody(
+    const extended: Record<string, unknown> = applyProviderBody(
       { ...payload, model: modelId },
       compact ? undefined : provider.advanced?.extraBody,
       inbound.get('x-session-id')?.slice(0, 200)
     )
+    if (
+      protocol === 'openai-completions' &&
+      root.origin === OPENAI_API_ORIGIN &&
+      Object.hasOwn(extended, 'max_tokens')
+    ) {
+      if (!Object.hasOwn(extended, 'max_completion_tokens'))
+        extended.max_completion_tokens = extended.max_tokens
+      delete extended.max_tokens
+    }
     const body = provider.advanced?.redactSecrets ? maskProviderPrompt(extended) : extended
     return this.runtimeFetch(
       provider.key,
@@ -347,7 +403,12 @@ export class ProviderService {
           (entry): entry is [string, string] => entry[1] !== null
         ),
         body: JSON.stringify(body),
-        signal
+        signal: provider.timeout
+          ? AbortSignal.any([
+              signal,
+              AbortSignal.timeout(Math.min(provider.timeout, 2_147_483_647))
+            ])
+          : signal
       },
       provider.advanced ?? {}
     )
@@ -789,6 +850,28 @@ export class ProviderService {
     return current
   }
 
+  async fastMode(): Promise<boolean> {
+    return (await this.metadata.read()).fastMode === true
+  }
+
+  async setFastMode(enabled: boolean): Promise<boolean> {
+    await this.metadata.update({ fastMode: enabled })
+    return enabled
+  }
+
+  async setGateway(key: string, enabled: boolean): Promise<ProviderProfile> {
+    if (!(await this.get(key))) throw new NotFoundError(`Provider not found: ${key}`)
+    const meta = await this.metadata.read()
+    await this.metadata.update({
+      providers: { ...meta.providers, [key]: { ...meta.providers[key], gateway: enabled } }
+    })
+    for (const route of this.chatRoutes.keys())
+      if (route.startsWith(`${key}\0`)) this.chatRoutes.delete(route)
+    const updated = await this.get(key)
+    if (!updated) throw new NotFoundError(`Provider not found: ${key}`)
+    return updated
+  }
+
   /** Read a provider's model-list endpoint without mutating models.json. */
   async discoverModels(raw: ProviderModelDiscoveryInput): Promise<DiscoveredProviderModel[]> {
     const parsed = providerModelDiscoverySchema.safeParse(raw)
@@ -1100,262 +1183,196 @@ export class ProviderService {
     return null
   }
 
-  async testConnection(input: {
-    providerKey?: string
-    modelId?: string
-    draft?: ProviderModelDiscoveryInput
-  }): Promise<ConnectionTestResult> {
+  async testConnection(
+    input: {
+      providerKey?: string
+      modelId?: string
+      draft?: ProviderModelDiscoveryInput
+    },
+    cancellation?: AbortSignal
+  ): Promise<ConnectionTestResult> {
     const providerKey = input.providerKey ?? input.draft?.existingProviderKey ?? ''
-    const started = Date.now()
+    const started = performance.now()
     const snapshot = await this.config.read()
-    const nativeProvider = snapshot.models.providers[providerKey]
+    const nativeProvider = Object.hasOwn(snapshot.models.providers, providerKey)
+      ? snapshot.models.providers[providerKey]
+      : undefined
     const metadata = await this.metadata.read()
     const existing = nativeProvider
       ? providerToDomain(providerKey, nativeProvider, metadata.providers[providerKey])
       : null
     const provider = input.draft ? { ...input.draft, defaultModelId: null } : existing
-    const resolvedModelId =
-      (input.modelId?.trim() || null) ??
-      provider?.defaultModelId ??
-      nativeProvider?.models?.[0]?.id ??
-      null
+    const modelId =
+      input.modelId?.trim() || provider?.defaultModelId || nativeProvider?.models?.[0]?.id
     const modelApi = input.draft
       ? null
-      : nativeProvider?.models?.find((model) => model.id === resolvedModelId)?.api
-    const probeProtocol = provider
-      ? modelApi && isProtocolId(modelApi)
-        ? modelApi
-        : provider.protocol
-      : null
-    const base = {
-      endpoint: null as string | null,
-      protocol: probeProtocol,
-      modelId: resolvedModelId
+      : (nativeProvider?.models?.find((model) => model.id === modelId)?.api ?? nativeProvider?.api)
+    const protocol = modelApi && isProtocolId(modelApi) ? modelApi : (provider?.protocol ?? null)
+    const network: ProviderNetworkDiagnostic = {
+      proxyMode: provider?.advanced?.proxy?.mode ?? 'auto',
+      transport: null
     }
-    if (!provider) {
-      return {
-        ok: false,
-        status: 'unknown_error',
-        httpStatus: null,
-        latencyMs: 0,
-        message: `Provider not found: ${input.providerKey}`,
-        ...base
+    let endpoint: string | null = null
+    let httpStatus: number | null = null
+    let upstreamError: ProviderUpstreamDiagnostic | undefined
+    const secrets = new Set<string>()
+    const safe = (value: string) => {
+      for (const secret of secrets) {
+        if (!secret) continue
+        value = value
+          .replaceAll(secret, '[redacted]')
+          .replaceAll(encodeURIComponent(secret), '[redacted]')
       }
+      return redactSecretText(value)
     }
-    if (!provider.baseUrl) {
-      return {
-        ok: false,
-        status: 'endpoint_error',
-        httpStatus: null,
-        latencyMs: Date.now() - started,
-        message: 'Base URL is empty',
-        ...base
-      }
-    }
-    if (!resolvedModelId) {
-      return {
-        ok: false,
-        status: 'model_not_found',
-        httpStatus: null,
-        latencyMs: Date.now() - started,
-        message: 'Model ID required — enter a model id to run a real chat probe',
-        ...base
-      }
-    }
+    const result = (status: ConnectionTestStatus, errorCode?: string): ConnectionTestResult => ({
+      ok: status === 'success',
+      status,
+      providerKey: providerKey ? safe(providerKey) : null,
+      modelId: modelId ? safe(modelId) : null,
+      protocol,
+      endpoint: endpoint ? safe(endpoint) : null,
+      network,
+      httpStatus,
+      latencyMs: Math.round(performance.now() - started),
+      message: connectionHints[status],
+      ...(errorCode ? { errorCode } : {}),
+      ...(upstreamError ? { upstreamError } : {})
+    })
+    if (cancellation?.aborted) return result('cancelled')
+    if (!provider || !protocol) return result('unknown_error')
+    if (modelApi && !isProtocolId(modelApi)) return result('protocol_error')
+    if (!modelId) return result('model_not_found')
 
-    const proto = getProtocol(probeProtocol ?? provider.protocol)
-    const normalized = normalizeProviderBaseUrl(provider.baseUrl)
-    const root = normalized.url.replace(/\/+$/, '')
+    const root = URL.parse(provider.baseUrl)
+    if (!root || !['http:', 'https:'].includes(root.protocol) || root.username || root.password)
+      return result('endpoint_error')
 
-    let apiKey: string | null
-    try {
-      // Literal Pi credentials are intentionally absent from the Renderer DTO.
-      // Resolve them from native configuration in Main for this explicit probe.
-      const literal = nativeProvider?.apiKey
-      if (input.draft) {
-        const url = new URL(root)
-        if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password)
-          throw new ValidationError('Base URL must be an HTTP(S) endpoint')
-        apiKey = await resolveDiscoveryCredential(input.draft.apiKey, existing, url)
-      } else {
-        apiKey = existing ? await resolveCredentialForTest(existing, literal) : null
-      }
-    } catch (err) {
-      return {
-        ok: false,
-        status: 'auth_error',
-        httpStatus: null,
-        latencyMs: Date.now() - started,
-        message: `Credential resolve failed: ${redactSecretText((err as Error).message)}`,
-        ...base
+    for (const [name, value] of Object.entries(provider.headers)) {
+      if (/(?:authorization|cookie|key|token|secret|password)/i.test(name)) {
+        secrets.add(value)
+        secrets.add(value.replace(/^Bearer\s+/i, ''))
       }
     }
-
-    if (!apiKey && provider.apiKey) {
-      return {
-        ok: false,
-        status: 'auth_error',
-        httpStatus: null,
-        latencyMs: Date.now() - started,
-        message: 'No API key resolved for this provider. Re-enter the key and save.',
-        ...base
-      }
-    }
-
+    if (nativeProvider?.apiKey) secrets.add(nativeProvider.apiKey)
+    if (input.draft?.apiKey?.literal) secrets.add(input.draft.apiKey.literal)
+    const configuredQuery = new URLSearchParams(root.search)
+    root.search = ''
+    root.hash = ''
+    const baseUrl = normalizeProviderBaseUrl(root.href).url
+    const savedChatCompatibility = [
+      nativeProvider?.modelOverrides?.[modelId]?.compat?.maxTokensField,
+      nativeProvider?.models?.find((model) => model.id === modelId)?.compat?.maxTokensField,
+      nativeProvider?.compat?.maxTokensField
+    ].find((field) => field === 'max_tokens' || field === 'max_completion_tokens')
+    const maxTokensField =
+      existing && URL.parse(existing.baseUrl)?.origin === root.origin && savedChatCompatibility
+        ? savedChatCompatibility
+        : root.origin === OPENAI_API_ORIGIN
+          ? 'max_completion_tokens'
+          : 'max_tokens'
+    const websocket =
+      protocol === 'openai-responses' && provider.advanced?.responsesWebSocket === true
     const probe = buildChatProbe(
-      probeProtocol ?? provider.protocol,
-      root,
-      resolvedModelId,
-      apiKey,
-      provider.authHeader
+      protocol,
+      baseUrl,
+      modelId,
+      null,
+      provider.authHeader,
+      maxTokensField
     )
-    base.endpoint = redactSecretText(probe.url)
+    const target = new URL(probe.url)
+    if (websocket) target.protocol = target.protocol === 'https:' ? 'wss:' : 'ws:'
+    endpoint = target.href
 
-    const headers: Record<string, string> = {
-      ...provider.headers,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...probe.headers
-    }
-    // Probe already set Authorization / x-api-key when needed. Only fill Bearer
-    // as a last resort for protocols that didn't set auth themselves.
-    if (apiKey && provider.authHeader && !headers.Authorization && !headers['x-api-key']) {
-      headers.Authorization = `Bearer ${apiKey}`
-    }
-
-    const controller = new AbortController()
-    const timer = setTimeout(
-      () => controller.abort(),
-      Math.min(provider.timeout ?? 30_000, 120_000)
-    )
+    const deadline = AbortSignal.timeout(Math.min(provider.timeout ?? 30_000, 120_000))
+    const signal = cancellation ? AbortSignal.any([cancellation, deadline]) : deadline
     let release: (() => void) | undefined
     try {
-      release = await this.requestSlot(providerKey, provider.advanced, controller.signal)
-      if (provider.advanced?.authMode && apiKey && probeProtocol !== 'google-generative-ai')
-        setHeaderIfMissing(headers, 'x-api-key', apiKey)
-      const outgoing = applyProviderHeaders(
-        headers,
-        provider.advanced,
-        probeProtocol ?? provider.protocol
+      let apiKey: string | null
+      try {
+        apiKey = input.draft
+          ? await resolveDiscoveryCredential(
+              input.draft.apiKey,
+              existing,
+              root,
+              nativeProvider?.apiKey,
+              signal
+            )
+          : existing && !existing.localNoAuth
+            ? await resolveCredentialForTest(existing, nativeProvider?.apiKey, signal)
+            : null
+      } catch {
+        signal.throwIfAborted()
+        return result('auth_error')
+      }
+      signal.throwIfAborted()
+      if (apiKey) secrets.add(apiKey)
+      if (!apiKey && provider.apiKey) return result('auth_error')
+
+      const authorized = buildChatProbe(
+        protocol,
+        baseUrl,
+        modelId,
+        apiKey,
+        provider.authHeader,
+        maxTokensField
       )
-      const res = await fetchProvider(
-        probe.url,
+      const requestUrl = new URL(authorized.url)
+      for (const [key, value] of requestUrl.searchParams) configuredQuery.set(key, value)
+      requestUrl.search = configuredQuery.toString()
+      const headers = {
+        ...provider.headers,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...authorized.headers
+      }
+      if (provider.advanced?.authMode && apiKey && protocol !== 'google-generative-ai')
+        setHeaderIfMissing(headers, 'x-api-key', apiKey)
+      const outgoing = applyProviderHeaders(headers, provider.advanced, protocol)
+      const body = applyProviderBody(authorized.body, provider.advanced?.extraBody)
+      release = await this.requestSlot(providerKey, provider.advanced, signal)
+      const response = await fetchProvider(
+        requestUrl.href,
         {
           method: 'POST',
           headers: Object.fromEntries(
             Object.entries(outgoing).filter((entry): entry is [string, string] => entry[1] !== null)
           ),
-          body: JSON.stringify(applyProviderBody(probe.body, provider.advanced?.extraBody)),
+          body: JSON.stringify(body),
           redirect: 'error',
-          signal: controller.signal
+          signal
         },
-        provider.advanced?.proxy
+        provider.advanced?.proxy,
+        network,
+        websocket ? { ...body, stream: true } : undefined
       )
-      const latencyMs = Date.now() - started
-      const responseText = await res.text().catch(() => '')
-      const bodyText = apiKey ? responseText.replaceAll(apiKey, '[redacted]') : responseText
-      const bodySnippet = summarizeErrorBody(bodyText)
-
-      const mapped = mapHttpStatus(res.status, proto?.label ?? provider.protocol, bodySnippet)
-      if (mapped) {
-        let message = mapped.message
-        if (normalized.changed) {
-          message +=
-            ' Tip: Base URL should be the API root (e.g. …/v1), not …/chat/completions — Pi appends the path.'
-        }
-        return { ...mapped, latencyMs, message, ...base }
+      const upgraded = websocket && response.headers.get('content-type') === 'text/event-stream'
+      httpStatus = upgraded ? 101 : response.status
+      if (websocket && response.ok && !upgraded) {
+        await response.body?.cancel().catch(() => {})
+        return result('protocol_error')
       }
-
-      // 2xx — verify it looks like a chat response (not an HTML login page etc.)
-      if (res.status >= 200 && res.status < 300) {
-        const errInBody = extractApiError(bodyText)
-        if (errInBody) {
-          return {
-            ok: false,
-            status: 'model_error',
-            httpStatus: res.status,
-            latencyMs,
-            message: errInBody,
-            ...base
-          }
-        }
-        let parsed: unknown
-        try {
-          parsed = JSON.parse(bodyText)
-        } catch {
-          parsed = null
-        }
-        const response =
-          parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-            ? (parsed as Record<string, unknown>)
-            : null
-        const protocol = probeProtocol ?? provider.protocol
-        const field =
-          protocol === 'anthropic-messages'
-            ? 'content'
-            : protocol === 'google-generative-ai'
-              ? 'candidates'
-              : protocol.includes('responses')
-                ? 'output'
-                : 'choices'
-        if (!response || !Array.isArray(response[field]) || !response[field].length) {
-          return {
-            ok: false,
-            status: 'invalid_response',
-            httpStatus: res.status,
-            latencyMs,
-            message:
-              'The endpoint returned an invalid API response. Check the Base URL and protocol.',
-            ...base
-          }
-        }
-        return {
-          ok: true,
-          status: 'success',
-          httpStatus: res.status,
-          latencyMs,
-          message: normalized.changed
-            ? `Chat OK (${latencyMs}ms). Note: Base URL was normalized — save the provider to persist.`
-            : `Chat OK (${latencyMs}ms) — model responded`,
-          ...base
-        }
+      if (!response.ok) {
+        if (
+          [400, 403, 404, 422, 429].includes(response.status) &&
+          /\bjson\b/i.test(response.headers.get('content-type') ?? '')
+        ) {
+          const payload = await readBoundedJson(response, 16 * 1024).catch(() => undefined)
+          signal.throwIfAborted()
+          upstreamError = upstreamProbeDiagnostic(payload)
+        } else await response.body?.cancel().catch(() => {})
+        return result(classifyConnectionHttp(response.status, upstreamError))
       }
-
-      return {
-        ok: false,
-        status: 'endpoint_error',
-        httpStatus: res.status,
-        latencyMs,
-        message: bodySnippet
-          ? `HTTP ${res.status}: ${bodySnippet}`
-          : `HTTP ${res.status} from ${proto?.label ?? provider.protocol}`,
-        ...base
-      }
-    } catch (err) {
-      const latencyMs = Date.now() - started
-      const name = (err as Error).name
-      if (name === 'AbortError') {
-        return {
-          ok: false,
-          status: 'timeout',
-          httpStatus: null,
-          latencyMs,
-          message: 'Request timed out',
-          ...base
-        }
-      }
-      log.provider.warn('connection test failed:', err)
-      return {
-        ok: false,
-        status: 'network_error',
-        httpStatus: null,
-        latencyMs,
-        message: connectionFailureMessage(err),
-        ...base
-      }
+      const responseText = await readBoundedText(response, 512 * 1024)
+      return result(classifyProbeBody(responseText, protocol, websocket))
+    } catch (error) {
+      if (error instanceof ProviderQueueError) return result('rate_limited')
+      const failure = classifyConnectionError(error, signal, deadline)
+      httpStatus ??= failure.httpStatus ?? null
+      return result(failure.status, failure.errorCode)
     } finally {
       release?.()
-      clearTimeout(timer)
     }
   }
 
@@ -1577,7 +1594,9 @@ async function fetchImageResult(
 async function resolveDiscoveryCredential(
   draft: ProviderForm['apiKey'],
   existing: ProviderProfile | null,
-  url: URL
+  url: URL,
+  savedLiteral?: string,
+  signal?: AbortSignal
 ): Promise<string | null> {
   if (!draft) return null
   const usesSavedKey =
@@ -1588,7 +1607,7 @@ async function resolveDiscoveryCredential(
     throw new ValidationError('Enter a credential for the new endpoint')
   if (draft.kind === 'literal') {
     const literal = draft.literal?.trim()
-    return literal || (existing ? resolveCredentialForTest(existing) : null)
+    return literal || (existing ? resolveCredentialForTest(existing, savedLiteral, signal) : null)
   }
   if (draft.kind === 'env') {
     const name = draft.envRef
@@ -1602,7 +1621,7 @@ async function resolveDiscoveryCredential(
   }
   if (draft.kind === 'stored') {
     if (!existing) throw new ValidationError('Save the API key before discovering models')
-    return resolveCredentialForTest(existing)
+    return resolveCredentialForTest(existing, savedLiteral, signal)
   }
   if (draft.kind === 'command') {
     if (
@@ -1614,7 +1633,7 @@ async function resolveDiscoveryCredential(
         'Save the provider before using a command credential to discover models'
       )
     }
-    return resolveCredentialForTest(existing)
+    return resolveCredentialForTest(existing, savedLiteral, signal)
   }
   return null
 }
@@ -1804,6 +1823,14 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined
 }
 
+function parseRecord(text: string) {
+  try {
+    return asRecord(JSON.parse(text))
+  } catch {
+    return undefined
+  }
+}
+
 function setHeaderIfMissing(headers: Record<string, string>, name: string, value: string): void {
   if (!Object.keys(headers).some((key) => key.toLowerCase() === name.toLowerCase())) {
     headers[name] = value
@@ -1844,7 +1871,8 @@ function buildChatProbe(
   root: string,
   modelId: string,
   apiKey: string | null,
-  authHeader: boolean
+  authHeader: boolean,
+  maxTokensField: 'max_tokens' | 'max_completion_tokens'
 ): { url: string; body: Record<string, unknown>; headers: Record<string, string> } {
   const headers: Record<string, string> = {}
 
@@ -1859,7 +1887,7 @@ function buildChatProbe(
       if (authHeader) headers.Authorization = `Bearer ${apiKey}`
     }
     return {
-      url: `${root}/v1/messages`,
+      url: `${root}${root.endsWith('/v1') ? '/messages' : '/v1/messages'}`,
       headers,
       body: {
         model: modelId,
@@ -1876,7 +1904,7 @@ function buildChatProbe(
       headers,
       body: {
         model: modelId,
-        max_output_tokens: 1,
+        max_output_tokens: 16,
         input: 'ping'
       }
     }
@@ -1902,7 +1930,7 @@ function buildChatProbe(
     headers,
     body: {
       model: modelId,
-      max_tokens: 1,
+      [maxTokensField]: maxTokensField === 'max_completion_tokens' ? 32 : 1,
       stream: false,
       messages: [{ role: 'user', content: 'ping' }]
     }
@@ -1925,82 +1953,14 @@ function summarizeErrorBody(text: string): string {
   return redactSecretText(trimmed.replace(/\s+/g, ' ').slice(0, 240))
 }
 
-function extractApiError(text: string): string | null {
-  const snippet = summarizeErrorBody(text)
-  if (!snippet) return null
-  try {
-    const json = JSON.parse(text) as { error?: unknown }
-    if (json.error) return snippet
-  } catch {
-    return null
-  }
-  return null
-}
-
-function mapHttpStatus(
-  status: number,
-  protocolLabel: string,
-  bodySnippet = ''
-): Omit<ConnectionTestResult, 'latencyMs' | 'endpoint' | 'protocol' | 'modelId'> | null {
-  const detail = bodySnippet ? `: ${bodySnippet}` : ''
-  if (status === 401) {
-    return {
-      ok: false,
-      status: 'auth_error',
-      httpStatus: status,
-      message: `401 Unauthorized — API key invalid or missing${detail}`
-    }
-  }
-  if (status === 403) {
-    return {
-      ok: false,
-      status: 'forbidden',
-      httpStatus: status,
-      message: `403 Forbidden — key lacks access to this model/endpoint${detail}`
-    }
-  }
-  if (status === 404) {
-    return {
-      ok: false,
-      status: 'model_not_found',
-      httpStatus: status,
-      message: `404 Not Found — wrong endpoint or model id${detail}`
-    }
-  }
-  if (status === 429) {
-    return {
-      ok: false,
-      status: 'rate_limited',
-      httpStatus: status,
-      message: `429 Rate limited — quota exhausted or too many requests${detail}`
-    }
-  }
-  if (status >= 500) {
-    return {
-      ok: false,
-      status: 'endpoint_error',
-      httpStatus: status,
-      message: `Upstream error HTTP ${status} (${protocolLabel})${detail}`
-    }
-  }
-  if (status >= 400) {
-    return {
-      ok: false,
-      status: 'endpoint_error',
-      httpStatus: status,
-      message: `HTTP ${status} from ${protocolLabel}${detail}`
-    }
-  }
-  return null
-}
-
 /**
  * Resolve a credential for connection tests only (Main process).
  * Never returns values to the renderer. Supports stored / env / command kinds.
  */
 async function resolveCredentialForTest(
   provider: ProviderProfile,
-  literal?: string
+  literal?: string,
+  signal?: AbortSignal
 ): Promise<string | null> {
   if (provider.apiKeyRef) {
     const secret = await secretStore.getProviderSecret(
@@ -2029,6 +1989,7 @@ async function resolveCredentialForTest(
     const [bin, ...args] = parts
     const { stdout } = await execFileP(bin!, args, {
       timeout: 8000,
+      signal,
       env: process.env,
       maxBuffer: 64 * 1024
     })
@@ -2154,22 +2115,4 @@ function mergeDiscoveredModels(
     existingIds.add(id)
   }
   return { ...provider, models }
-}
-
-function connectionFailureMessage(error: unknown): string {
-  const cause = (error as { cause?: { code?: string } })?.cause?.code
-  if (cause === 'ENOTFOUND' || cause === 'EAI_AGAIN')
-    return 'DNS lookup failed. Check the Base URL hostname and network connection.'
-  if (
-    [
-      'CERT_HAS_EXPIRED',
-      'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
-      'DEPTH_ZERO_SELF_SIGNED_CERT',
-      'ERR_TLS_CERT_ALTNAME_INVALID'
-    ].includes(cause ?? '')
-  )
-    return 'TLS certificate verification failed. Check system time and the endpoint certificate.'
-  if (cause === 'ECONNREFUSED')
-    return 'Connection refused. Check the Base URL and whether the service is running.'
-  return redactSecretText(error instanceof Error ? error.message : 'Network request failed')
 }

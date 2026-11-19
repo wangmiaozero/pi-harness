@@ -25,7 +25,7 @@ et vos sessions, configurations, Skills et extensions Pi continuent de fonctionn
 
 <br>
 
-## 赞助商
+## Sponsors
 
 <table>
   <tr>
@@ -200,7 +200,7 @@ flowchart TD
 
 ### Espace de travail, fichiers et Git
 
-Commencez une conversation indépendante ou ouvrez un projet pour reprendre une session Pi. Suivez les réponses en streaming, le raisonnement, les appels d’outils, les images et les fichiers modifiés ; choisissez le modèle, le niveau de raisonnement et les outils, ou compactez la conversation. Ouvrir Harness ou Agents depuis les outils de l’espace de travail conserve la conversation et le brouillon.
+Commencez une conversation indépendante ou ouvrez un projet pour reprendre une session Pi. Suivez les réponses en streaming, le raisonnement, les appels d’outils, les images et les fichiers modifiés ; choisissez le modèle, le niveau de raisonnement et les outils, ou compactez la conversation. Ouvrir Harness ou Agents depuis les outils de l’espace de travail conserve la conversation et le brouillon. Chaque conversation mémorise sa sélection d’outils.
 
 Parcourez et recherchez les fichiers, prévisualisez médias et documents, et modifiez le texte lisible avec coloration syntaxique, numéros de ligne, recherche, annuler/rétablir, enregistrement explicite et protection contre les conflits de modifications externes. Git propose différences, historique, graphiques d’activité, commits, messages de commit IA facultatifs et worktrees.
 
@@ -280,9 +280,9 @@ Ouvrez Architecture dans l’espace de travail pour explorer modules, dépendanc
 
 | | |
 | :-- | :-- |
-| **Fournisseurs** | Configurez des fournisseurs compatibles Pi à partir de préréglages ou d’adresses personnalisées, gérez les identifiants, récupérez les modèles lorsque le service le permet, testez la connexion et choisissez votre modèle de conversation. L’onglet des fournisseurs propose des raccourcis vers ChatGPT, Claude, Gemini et la passerelle locale. |
-| **Se connecter avec ChatGPT** | Associez votre abonnement ChatGPT dans le navigateur, puis choisissez les modèles du compte dans le chat. Gérez chaque compte Codex associé dans la liste des fournisseurs API, consultez son quota restant et utilisez une carte de réinitialisation si elle est disponible. |
-| **Modèles, utilisation et quotas** | Filtrez les modèles configurés par fournisseur, choisissez le modèle par défaut et consultez les requêtes enregistrées ainsi que les jetons utilisés. La page d’utilisation affiche aussi les soldes API et les quotas d’abonnement disponibles. |
+| **Fournisseurs** | Configurez des fournisseurs compatibles Pi à partir de préréglages ou d’adresses personnalisées, gérez les identifiants, récupérez les modèles lorsque le service le permet, testez la connexion et choisissez votre modèle de conversation. L’onglet des fournisseurs propose des raccourcis vers ChatGPT, Claude, Gemini et la passerelle locale. Activez la **Passerelle** dans la liste lorsqu’un fournisseur ne peut pas combiner outils et raisonnement. Un test de connexion échoué indique la cause et la marche à suivre, et le proxy automatique utilise aussi celui défini dans votre shell. |
+| **Se connecter avec ChatGPT** | Associez votre abonnement ChatGPT dans le navigateur, puis choisissez les modèles du compte dans le chat. Gérez chaque compte Codex associé dans la liste des fournisseurs API, consultez son quota restant et utilisez une carte de réinitialisation si elle est disponible. Activez **⚡ Rapide** dans la ligne de raisonnement du sélecteur de modèle pour des réponses plus rapides sur les modèles GPT compatibles. |
+| **Modèles, utilisation et quotas** | Filtrez les modèles configurés par fournisseur, choisissez le modèle par défaut et consultez les requêtes enregistrées ainsi que les jetons utilisés. La page d’utilisation affiche aussi les soldes API et les quotas d’abonnement disponibles. Choisissez avec **Affiché** les modèles visibles dans le sélecteur du chat, ou utilisez **Afficher les derniers modèles** pour ne garder que les modèles les plus récents de chaque fournisseur. |
 | **Modèles gratuits** | Sélectionnez un modèle Kilo directement dans le sélecteur du chat. Aucun compte ni clé API n’est nécessaire. La disponibilité et les limites dépendent de Kilo. Un avis de confidentialité s’affiche lors de la première sélection. |
 | **Images** | Utilisez les modèles d’image compatibles pour générer ou modifier des images, puis téléchargez les résultats |
 | **Skills** | Parcourez et modifiez les Skills intégrés et locaux. Saisissez `@` dans le champ de message pour rechercher et invoquer un Skill installé |

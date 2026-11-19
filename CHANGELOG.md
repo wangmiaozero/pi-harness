@@ -2,6 +2,38 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.13 — 2026-11-19
+
+### Added
+
+#### Provider gateway
+
+- Turn on Gateway for a provider in the provider list so models that cannot combine tools with reasoning keep working in chat.
+
+#### Fast mode
+
+- Turn on Fast in the model picker's thinking row for faster replies on supported GPT models.
+
+#### Model list
+
+- Choose which models appear in the chat model picker.
+- Show only each provider's latest models in one click.
+
+#### Local gateway
+
+- See the models the local gateway serves and whether each one is available.
+
+### Fixed
+
+#### Provider connections
+
+- Failed connection tests explain the cause and what to try next.
+- The automatic proxy also uses the proxy set in your shell.
+
+#### Model list
+
+- The actions column stays readable when the list scrolls sideways on a selected or hovered row.
+
 ## 2.4.12 — 2026-11-18
 
 ### Added

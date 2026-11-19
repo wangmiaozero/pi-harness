@@ -19,6 +19,7 @@ import {
   type ChatGptModelPreferences,
   type ChatGptRoutingMode
 } from '@shared/providers/account-management'
+import { isFastModelId, withFastServiceTier } from '@shared/providers/fast-mode'
 import { readBoundedJson } from './bounded-json'
 import { AppError, ValidationError } from './errors'
 import { atomicWriteText, JsonStore } from './storage'
@@ -197,8 +198,14 @@ export class ChatGptAccounts {
   private readonly requestSlots = new ProviderRequestQueue()
   private rotation = { pool: '', next: 0 }
 
+  private fastMode: () => Promise<boolean> = async () => false
+
   constructor(file: string) {
     this.store = new JsonStore(file, defaults)
+  }
+
+  useFastMode(read: () => Promise<boolean>) {
+    this.fastMode = read
   }
 
   async list(): Promise<ChatGptAccount[]> {
@@ -793,6 +800,16 @@ export class ChatGptAccounts {
   async fetchResponses(id: string, modelId: string, init?: RequestInit): Promise<Response> {
     const signal = AbortSignal.any([this.shutdown.signal, ...(init?.signal ? [init.signal] : [])])
     signal.throwIfAborted()
+    if (
+      (typeof init?.body === 'string' || init?.body instanceof Uint8Array) &&
+      isFastModelId(modelId) &&
+      (await this.fastMode())
+    ) {
+      const fast = withFastServiceTier(
+        typeof init.body === 'string' ? init.body : new TextDecoder().decode(init.body)
+      )
+      if (fast) init = { ...init, body: fast }
+    }
     const settings = await this.gatewaySettings()
     const releaseAccount = settings.maxAccounts
       ? await this.gatewaySlots.acquire(
@@ -893,9 +910,7 @@ export class ChatGptAccounts {
 
   private async fetchWithProxy(url: string, init: RequestInit, settings?: ChatGptGatewaySettings) {
     const { proxy } = settings ?? (await this.gatewaySettings())
-    return proxy && proxy.mode !== 'system'
-      ? fetchProvider(url, init, proxy)
-      : systemFetch(url, init)
+    return proxy ? fetchProvider(url, init, proxy) : systemFetch(url, init)
   }
 
   private async requestResponses(

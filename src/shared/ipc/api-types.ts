@@ -799,19 +799,11 @@ export interface NotificationEvent {
 
 export interface ConnectionTestResult {
   ok: boolean
-  status:
-    | 'success'
-    | 'auth_error'
-    | 'forbidden'
-    | 'rate_limited'
-    | 'network_error'
-    | 'endpoint_error'
-    | 'timeout'
-    | 'model_not_found'
-    | 'model_error'
-    | 'protocol_error'
-    | 'invalid_response'
-    | 'unknown_error'
+  status: import('../providers/connection-diagnostics').ConnectionTestStatus
+  providerKey?: string | null
+  network?: import('../providers/connection-diagnostics').ProviderNetworkDiagnostic
+  upstreamError?: import('../providers/connection-diagnostics').ProviderUpstreamDiagnostic
+  errorCode?: string
   httpStatus: number | null
   latencyMs: number
   message: string
@@ -1061,7 +1053,7 @@ export interface PiSwitchAPI {
     clearUsage(): Promise<void>
   }
   providers: {
-    gatewayState(): Promise<import('../providers/gateway').LocalGatewayState>
+    gatewayState(): Promise<import('../providers/gateway').LocalGatewayStatus>
     startGateway(input: {
       port: number
     }): Promise<import('../providers/gateway').LocalGatewayConnection>
@@ -1074,7 +1066,11 @@ export interface PiSwitchAPI {
     delete(key: string, options?: { overwrite?: boolean }): Promise<void>
     duplicate(key: string, options?: { overwrite?: boolean }): Promise<ProviderProfile>
     setEnabled(key: string, enabled: boolean): Promise<ProviderProfile>
-    testConnection(input: unknown): Promise<ConnectionTestResult>
+    setGateway(key: string, enabled: boolean): Promise<ProviderProfile>
+    testConnection(
+      input: import('../schemas/domain').TestConnectionInput
+    ): Promise<ConnectionTestResult>
+    cancelConnectionTest(requestId: string): Promise<void>
     discoverModels(input: ProviderModelDiscoveryInput): Promise<DiscoveredProviderModel[]>
     copyApiKey(key: string): Promise<void>
   }
@@ -1085,6 +1081,9 @@ export interface PiSwitchAPI {
     delete(id: string, options?: { overwrite?: boolean }): Promise<void>
     setActive(input: unknown, options?: { overwrite?: boolean }): Promise<ActiveModel>
     getActive(): Promise<ActiveModel>
+    setVisibility(entries: { id: string; enabled: boolean }[]): Promise<ModelDefinition[]>
+    fastMode(): Promise<boolean>
+    setFastMode(enabled: boolean): Promise<boolean>
     invokeImage(input: ImageModelRequest): Promise<ImageModelResult>
   }
   config: {

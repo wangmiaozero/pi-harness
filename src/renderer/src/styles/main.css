@@ -454,4 +454,12 @@ select optgroup {
   }
 }
 
+/* Sticky table cells cover scrolled columns; surfaces can be translucent, so paint an opaque base. */
+.table-sticky-cell {
+  background:
+    linear-gradient(var(--row-tint, transparent), var(--row-tint, transparent)),
+    linear-gradient(var(--bg-surface), var(--bg-surface)),
+    var(--bg-window);
+}
+
 /* Backwards-compat .drag-region/.no-drag left in place at top of file. */

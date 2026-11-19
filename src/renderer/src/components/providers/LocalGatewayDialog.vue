@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { LocalGatewayState } from '@shared/providers/gateway'
+import type { LocalGatewayStatus } from '@shared/providers/gateway'
 import { getApi, getErrorPayload } from '@renderer/composables/useApi'
 import Dialog from '@renderer/components/ui/Dialog.vue'
 import Button from '@renderer/components/ui/Button.vue'
@@ -9,7 +9,7 @@ import Input from '@renderer/components/ui/Input.vue'
 
 const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
-const state = ref<LocalGatewayState>({ running: false })
+const state = ref<LocalGatewayStatus>({ running: false, models: [] })
 const port = ref('0')
 const pending = ref(false)
 const error = ref('')
@@ -34,15 +34,17 @@ async function run(action: () => Promise<void>) {
 async function start() {
   await run(async () => {
     const result = await getApi().providers.startGateway({ port: Number(port.value) })
-    state.value = { running: true, baseUrl: result.baseUrl }
+    state.value = { ...state.value, ...result }
+    state.value = await getApi().providers.gatewayState()
   })
 }
 
 async function stop() {
   await run(async () => {
     await getApi().providers.stopGateway()
-    state.value = { running: false }
+    state.value = { running: false, models: state.value.models }
     copied.value = false
+    state.value = await getApi().providers.gatewayState()
   })
 }
 
@@ -103,6 +105,30 @@ onMounted(
       </template>
       <p v-if="error" role="alert" class="text-sm text-[var(--error)]">{{ error }}</p>
       <p v-if="copied" role="status" class="text-sm">{{ t('providerAdvanced.gatewayCopied') }}</p>
+      <details
+        class="border-t border-[var(--border-subtle)] pt-3"
+        data-testid="local-gateway-models"
+      >
+        <summary class="cursor-pointer text-sm">{{ t('providerDiagnostics.models') }}</summary>
+        <p v-if="!state.models.length" class="mt-2 text-xs text-[var(--text-secondary)]">
+          {{ t('providerDiagnostics.noModels') }}
+        </p>
+        <ul v-else class="mt-2 max-h-56 divide-y divide-[var(--border-subtle)] overflow-y-auto">
+          <li v-for="model in state.models" :key="model.id" class="py-2 text-xs">
+            <span class="break-all font-[family-name:var(--font-mono)]">{{ model.id }}</span>
+            <div class="mt-0.5 text-[var(--text-secondary)]">
+              <span v-if="model.protocol">{{ model.protocol }}</span>
+              <span v-if="model.unavailable"
+                >{{ model.protocol ? ' · ' : ''
+                }}{{ t(`providerDiagnostics.${model.unavailable}`) }}</span
+              >
+              <span v-else-if="model.streamingOnly">
+                · {{ t('providerDiagnostics.streamingOnly') }}</span
+              >
+            </div>
+          </li>
+        </ul>
+      </details>
       <details class="border-t border-[var(--border-subtle)] pt-3">
         <summary class="cursor-pointer text-sm">{{ t('providerAdvanced.gatewayChatGpt') }}</summary>
         <div class="mt-2 grid grid-cols-3 gap-2">

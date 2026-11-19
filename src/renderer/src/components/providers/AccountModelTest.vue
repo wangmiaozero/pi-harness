@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getErrorPayload } from '@renderer/composables/useApi'
 import type { ConnectionTestResult } from '@shared/ipc/api-types'
 import Button from '@renderer/components/ui/Button.vue'
@@ -11,6 +12,7 @@ const props = defineProps<{
   run: () => Promise<ConnectionTestResult | void>
 }>()
 const emit = defineEmits<{ close: [] }>()
+const { t } = useI18n()
 const running = ref(false)
 const result = ref<{ ok: boolean; message?: string; reason?: string; status?: number } | null>(null)
 
@@ -22,7 +24,7 @@ async function executeTest() {
     result.value = test
       ? {
           ok: test.ok,
-          message: test.ok ? undefined : test.message,
+          message: test.ok ? undefined : t(`providerDiagnostics.hints.${test.status}`),
           status: test.httpStatus ?? undefined
         }
       : { ok: true }

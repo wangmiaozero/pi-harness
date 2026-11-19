@@ -35,6 +35,7 @@ import {
   type FreeModelStatus
 } from '@shared/providers/free-models'
 import { getOfficialModelGroup, officialModelRank } from '@shared/providers/official-model-groups'
+import { supportsFastMode } from '@shared/providers/fast-mode'
 import { useModelsStore } from '@renderer/stores/models'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useSettingsStore } from '@renderer/stores/settings'
@@ -228,6 +229,14 @@ onMounted(() => {
     freeSnapshot.value = snapshot
   })
   loadFreeSnapshot()
+  void models.loadFastMode().catch(() => {})
+})
+
+const fastValue = computed({
+  get: () => models.fastMode,
+  set: (enabled: boolean) => {
+    void models.setFastMode(enabled).catch(() => toast.error(t('common.failed')))
+  }
 })
 onBeforeUnmount(() => stopFreeModels?.())
 
@@ -258,6 +267,7 @@ const modelOptions = computed(() => {
     description?: string
     disabled?: boolean
     recommendationRank?: number
+    fast?: boolean
   }> = models.items
     .filter((model) => model.enabled)
     .map((model) => {
@@ -269,7 +279,8 @@ const modelOptions = computed(() => {
         label: model.displayName || model.modelId,
         group: provider?.displayName || key,
         recommendationRank:
-          official && provider.enabled ? officialModelRank(official, model.modelId) : undefined
+          official && provider.enabled ? officialModelRank(official, model.modelId) : undefined,
+        fast: supportsFastMode({ key, baseUrl: provider?.baseUrl }, model.modelId)
       }
     })
   for (const account of chatGpt.items) {
@@ -280,7 +291,8 @@ const modelOptions = computed(() => {
         value: `${account.id}/${model.id}`,
         label: model.name,
         group: `ChatGPT · ${chatGpt.displayLabel(account)}`,
-        recommendationRank: rank
+        recommendationRank: rank,
+        fast: supportsFastMode({ key: account.id }, model.id)
       })
     }
   }
@@ -1498,6 +1510,7 @@ onBeforeUnmount(() => {
             <ComposerModelPicker
               v-model:model="modelValue"
               v-model:thinking="thinkingValue"
+              v-model:fast="fastValue"
               :options="modelOptions"
               :default-model="recommendedDefault"
               :thinking-levels="thinkingStops"

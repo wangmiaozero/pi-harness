@@ -210,6 +210,9 @@ export const frFR: MessageTree = {
     colProtocol: 'Protocole',
     colModels: 'Modèles',
     colUpdated: 'Mis à jour',
+    colGateway: 'Passerelle',
+    gatewayHint:
+      'Si le fournisseur refuse les outils avec le raisonnement, réessayer via son API Responses',
     fieldKey: 'Clé du fournisseur',
     keyPlaceholder: 'nvidia-m3',
     fieldKeyHint:
@@ -338,6 +341,13 @@ export const frFR: MessageTree = {
     colProvider: 'Fournisseur',
     colProtocol: 'Protocole',
     colCapabilities: 'Capacités',
+    colVisible: 'Affiché',
+    colVisibleHint: 'Un modèle masqué reste configuré mais quitte le sélecteur de modèles',
+    showLatest: 'Afficher les derniers modèles',
+    showLatestHint:
+      "N'afficher que les derniers modèles de chaque fournisseur et masquer les autres ; chacun peut être réaffiché",
+    latestShown: '{count} derniers modèles affichés',
+    latestUnavailable: "Aucune liste de derniers modèles n'est disponible pour ces fournisseurs",
     colUpdated: 'Mis à jour',
     fieldProvider: 'Fournisseur',
     fieldProviderKeyHint:
@@ -1579,6 +1589,9 @@ export const frFR: MessageTree = {
     thinkingIntensity: 'Intensité de raisonnement',
     thinkingFaster: 'Plus rapide',
     thinkingDeeper: 'Plus approfondi',
+    fastMode: 'Rapide',
+    fastModeOn: 'Mode rapide activé : environ 1,5 fois plus vite, consomme davantage de quota',
+    fastModeOff: 'Activer le mode rapide : environ 1,5 fois plus vite, consomme davantage de quota',
     thinking: 'Réflexion',
     tools: 'Outils',
     presetNone: 'Aucun',

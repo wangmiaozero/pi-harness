@@ -72,6 +72,7 @@ export interface ProviderProfile {
   /** Pi-Harness-only metadata; NOT written to Pi config. */
   timeout: number | null
   advanced?: ProviderAdvancedSettings
+  gateway?: boolean
   /** Preferred model id for connection tests / first-run bootstrap. */
   defaultModelId: string | null
   /** Number of models under this provider (denormalised for list views). */

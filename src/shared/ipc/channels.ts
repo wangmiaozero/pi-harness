@@ -142,7 +142,9 @@ export const IPC_INVOKE = {
   providerDelete: invoke('providers:delete'),
   providerDuplicate: invoke('providers:duplicate'),
   providerSetEnabled: invoke('providers:set-enabled'),
+  providerSetGateway: invoke('providers:set-gateway'),
   providerTestConnection: invoke('providers:test-connection'),
+  providerCancelConnectionTest: invoke('providers:cancel-connection-test'),
   providerDiscoverModels: invoke('providers:discover-models'),
   providerCopyApiKey: invoke('providers:copy-api-key'),
 
@@ -153,6 +155,9 @@ export const IPC_INVOKE = {
   modelDelete: invoke('models:delete'),
   modelSetActive: invoke('models:set-active'),
   modelGetActive: invoke('models:get-active'),
+  modelSetVisibility: invoke('models:set-visibility'),
+  modelFastMode: invoke('models:fast-mode'),
+  modelSetFastMode: invoke('models:set-fast-mode'),
   modelInvokeImage: invoke('models:invoke-image'),
 
   // config (Pi native config service)

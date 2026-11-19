@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Brain, Check, ChevronDown, ChevronRight, Cpu, Search } from '@lucide/vue'
+import { Brain, Check, ChevronDown, ChevronRight, Cpu, Search, Zap } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import { useChatViewActive } from '@renderer/composables/chat-view-activity'
 import ThinkingSlider from './ThinkingSlider.vue'
@@ -13,6 +13,7 @@ interface ModelOption {
   disabled?: boolean
   description?: string
   recommendationRank?: number
+  fast?: boolean
 }
 
 interface VendorGroup {
@@ -22,6 +23,7 @@ interface VendorGroup {
 
 const modelValue = defineModel<string>('model', { required: true })
 const thinkingValue = defineModel<string>('thinking', { required: true })
+const fastValue = defineModel<boolean>('fast', { default: false })
 const emit = defineEmits<{ interact: []; open: []; refresh: [] }>()
 const props = withDefaults(
   defineProps<{
@@ -59,6 +61,7 @@ const openVendor = ref<string | null>(null)
 const showRecommended = ref(false)
 
 const selected = computed(() => props.options.find((option) => option.value === modelValue.value))
+const fastActive = computed(() => fastValue.value && selected.value?.fast === true)
 const vendors = computed<VendorGroup[]>(() => {
   const groups = new Map<string, VendorGroup>()
   for (const option of props.options) {
@@ -117,7 +120,8 @@ const selectedLabel = computed(() => {
   const group =
     selected.value?.group || (modelValue.value.includes('/') ? modelValue.value.split('/')[0] : '')
   const base = group ? `${group} / ${modelLabel.value}` : modelLabel.value
-  return `${base} · ${thinkingLabel.value}`
+  const label = `${base} · ${thinkingLabel.value}`
+  return fastActive.value ? `${label} · ${t('workspace.fastMode')}` : label
 })
 
 function selectedVendor(): string | null {
@@ -346,6 +350,13 @@ watch(active, (visible) => {
       >
         <Brain aria-hidden="true" class="size-3.5 shrink-0" :stroke-width="1.75" />
         <span class="composer-model-label">{{ thinkingLabel }}</span>
+        <Zap
+          v-if="fastActive"
+          data-testid="composer-fast-indicator"
+          aria-hidden="true"
+          class="size-3.5 shrink-0 text-[var(--accent)]"
+          :stroke-width="1.75"
+        />
       </span>
       <ChevronDown
         aria-hidden="true"
@@ -521,10 +532,32 @@ watch(active, (visible) => {
         </div>
         <div class="-mx-1 mt-1 h-px shrink-0 bg-[var(--border-default)]" />
         <div class="relative z-10 flex shrink-0 flex-col px-1 pb-1">
-          <span class="relative z-10 px-1 text-[13px] font-medium text-[var(--text-primary)]">
-            {{ $t('workspace.thinkingIntensity') }}
-            <span class="font-normal">{{ thinkingLabels?.[thinkingValue] ?? thinkingValue }}</span>
-          </span>
+          <div class="relative z-10 flex items-center justify-between gap-2 px-1">
+            <span class="text-[13px] font-medium text-[var(--text-primary)]">
+              {{ $t('workspace.thinkingIntensity') }}
+              <span class="font-normal">{{
+                thinkingLabels?.[thinkingValue] ?? thinkingValue
+              }}</span>
+            </span>
+            <button
+              v-if="selected?.fast"
+              type="button"
+              data-testid="composer-fast-mode"
+              class="inline-flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-xs)] transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+              :class="fastValue ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'"
+              :aria-pressed="fastValue"
+              :aria-label="$t('workspace.fastMode')"
+              :title="$t(fastValue ? 'workspace.fastModeOn' : 'workspace.fastModeOff')"
+              @click="fastValue = !fastValue"
+            >
+              <Zap
+                aria-hidden="true"
+                class="size-3.5"
+                :class="{ 'fill-current': fastValue }"
+                :stroke-width="1.75"
+              />
+            </button>
+          </div>
           <div
             class="relative z-10 flex items-center justify-between px-1 pt-2 pb-1 text-[11.5px] text-[var(--text-secondary)]"
           >

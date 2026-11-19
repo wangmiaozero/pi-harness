@@ -2,6 +2,12 @@ import WebSocket from 'ws'
 import { Agent as HttpAgent } from 'node:http'
 import { Agent as HttpsAgent } from 'node:https'
 
+export class ResponsesWebSocketError extends Error {
+  constructor(readonly kind: 'invalid_response' | 'model_error' | 'connection_timeout') {
+    super(kind)
+  }
+}
+
 export function fetchResponsesWebSocket(
   url: URL,
   headers: HeadersInit | undefined,
@@ -15,7 +21,7 @@ export function fetchResponsesWebSocket(
     address.protocol = address.protocol === 'https:' ? 'wss:' : 'ws:'
     const agent = proxy
       ? new (address.protocol === 'wss:' ? HttpsAgent : HttpAgent)({
-          proxyEnv: { HTTPS_PROXY: proxy, HTTP_PROXY: proxy }
+          proxyEnv: proxy === 'direct' ? {} : { HTTPS_PROXY: proxy, HTTP_PROXY: proxy }
         })
       : undefined
     const outgoing = new Headers(headers)
@@ -46,20 +52,20 @@ export function fetchResponsesWebSocket(
     }
     const abort = () => stop(signal.reason)
     signal.addEventListener('abort', abort, { once: true })
-    ws.on('error', stop)
-    ws.on('close', () => stop(new Error('Responses WebSocket closed before completion')))
-    ws.on('unexpected-response', (_request, response) => {
-      resolve(
-        new Response(
-          JSON.stringify({
-            error: { message: `WebSocket handshake returned HTTP ${response.statusCode}` }
-          }),
-          {
-            status: response.statusCode ?? 502,
-            headers: { 'content-type': 'application/json' }
-          }
-        )
+    ws.on('error', (error) =>
+      stop(
+        error.message === 'Opening handshake has timed out'
+          ? new ResponsesWebSocketError('connection_timeout')
+          : error
       )
+    )
+    ws.on('close', () => stop(new ResponsesWebSocketError('invalid_response')))
+    ws.on('unexpected-response', (_request, response) => {
+      const status = response.statusCode ?? 502
+      const body = [204, 205, 304].includes(status)
+        ? null
+        : JSON.stringify({ error: { message: `WebSocket handshake returned HTTP ${status}` } })
+      resolve(new Response(body, { status, headers: { 'content-type': 'application/json' } }))
       response.resume()
       stop()
     })
@@ -86,12 +92,14 @@ export function fetchResponsesWebSocket(
       let event: { type?: string; error?: { message?: string } }
       try {
         event = JSON.parse(text)
+        if (!event || typeof event.type !== 'string')
+          throw new Error('Invalid Responses WebSocket event')
       } catch {
-        stop(new Error('Invalid Responses WebSocket event'))
+        stop(new ResponsesWebSocketError('invalid_response'))
         return
       }
       if (event.type === 'error') {
-        stop(new Error('The Responses WebSocket rejected the request'))
+        stop(new ResponsesWebSocketError('model_error'))
         return
       }
       controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))

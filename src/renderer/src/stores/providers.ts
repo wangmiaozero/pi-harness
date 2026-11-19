@@ -97,11 +97,17 @@ export const useProvidersStore = defineStore('providers', () => {
     await fetchList()
   }
 
+  async function setGateway(key: string, enabled: boolean) {
+    const updated = await callApi(() => getApi().providers.setGateway(key, enabled))
+    items.value = items.value.map((provider) => (provider.key === key ? updated : provider))
+  }
+
   async function testConnection(
     providerKey: string,
-    modelId?: string
+    modelId?: string,
+    requestId?: string
   ): Promise<ConnectionTestResult> {
-    return callApi(() => getApi().providers.testConnection({ providerKey, modelId }))
+    return callApi(() => getApi().providers.testConnection({ providerKey, modelId, requestId }))
   }
 
   async function discoverModels(
@@ -127,6 +133,7 @@ export const useProvidersStore = defineStore('providers', () => {
     remove,
     duplicate,
     setEnabled,
+    setGateway,
     testConnection,
     discoverModels,
     setupListeners

@@ -16,6 +16,8 @@ export interface ProviderMeta {
   enabled?: boolean
   timeout?: number | null
   advanced?: ProviderAdvancedSettings
+  /** Recover chat requests the upstream refuses (tools + reasoning) through its Responses API. */
+  gateway?: boolean
   apiKeyRef?: string | null
   /** Preferred model id used for connection tests and bootstrap. */
   defaultModelId?: string | null
@@ -63,6 +65,8 @@ export interface AppMetadata {
   capabilities: Record<string, CapabilityMetadata>
   /** Ownership only; Pi still discovers installed standalone Skills from the filesystem. */
   builtinSkills: BuiltinSkillOwnershipManifest
+  /** Codex's Fast: priority processing on the models that offer it. */
+  fastMode?: boolean
 }
 
 const DEFAULTS: AppMetadata = {

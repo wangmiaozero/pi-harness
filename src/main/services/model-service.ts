@@ -231,6 +231,27 @@ export class ModelService {
     await this.metadata.write({ ...meta, models })
   }
 
+  /** Shows or hides models in the model picker; hidden models stay configured in Pi. */
+  async setVisibility(entries: { id: string; enabled: boolean }[]): Promise<ModelDefinition[]> {
+    const known = new Set((await this.list()).map((model) => model.id))
+    const unknown = entries.find((entry) => !known.has(entry.id))
+    if (unknown) throw new NotFoundError(`Model not found: ${unknown.id}`)
+    const now = Date.now()
+    await this.metadata.mutate({
+      apply: (meta) => {
+        const models = { ...meta.models }
+        for (const { id, enabled } of entries) {
+          const [providerKey, ...rest] = id.split('::')
+          const key = modelMetaKey(providerKey!, rest.join('::'))
+          if ((models[key]?.enabled ?? true) === enabled) continue
+          models[key] = { ...models[key], enabled, updatedAt: now }
+        }
+        return { ...meta, models }
+      }
+    })
+    return this.list()
+  }
+
   async getActive(): Promise<ActiveModel> {
     return this.config.getActiveModel()
   }

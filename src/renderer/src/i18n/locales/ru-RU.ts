@@ -210,6 +210,9 @@ export const ruRU: MessageTree = {
     colProtocol: 'Протокол',
     colModels: 'Модели',
     colUpdated: 'Обновлено',
+    colGateway: 'Шлюз',
+    gatewayHint:
+      'Если провайдер отклоняет инструменты с рассуждением, повторить запрос через его Responses API',
     fieldKey: 'Ключ провайдера',
     keyPlaceholder: 'nvidia-m3',
     fieldKeyHint:
@@ -338,6 +341,13 @@ export const ruRU: MessageTree = {
     colProvider: 'Провайдер',
     colProtocol: 'Протокол',
     colCapabilities: 'Возможности',
+    colVisible: 'Показ',
+    colVisibleHint: 'Скрытая модель остаётся настроенной, но не видна в выборе модели',
+    showLatest: 'Показать новые модели',
+    showLatestHint:
+      'Показать только новейшие модели каждого поставщика и скрыть остальные; любую можно вернуть',
+    latestShown: 'Показано новых моделей: {count}',
+    latestUnavailable: 'Для этих провайдеров нет списка новейших моделей',
     colUpdated: 'Обновлено',
     fieldProvider: 'Провайдер',
     fieldProviderKeyHint:
@@ -1579,6 +1589,9 @@ export const ruRU: MessageTree = {
     thinkingIntensity: 'Интенсивность рассуждения',
     thinkingFaster: 'Быстрее',
     thinkingDeeper: 'Глубже',
+    fastMode: 'Быстро',
+    fastModeOn: 'Быстрый режим включён: примерно в 1,5 раза быстрее, расходует больше лимита',
+    fastModeOff: 'Включить быстрый режим: примерно в 1,5 раза быстрее, расходует больше лимита',
     thinking: 'Рассуждение',
     tools: 'Инструменты',
     presetNone: 'Нет',

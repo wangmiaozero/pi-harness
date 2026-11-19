@@ -1,16 +1,20 @@
 export const CHATGPT_PROVIDER_PREFIX = 'chatgpt-account-'
 export const CHATGPT_MODEL_ID = /^[A-Za-z0-9._:-]{1,128}$/
 
-const recommendedChatGptModels = [
+/** Codex's recommended model set, newest first. */
+export const CODEX_RECOMMENDED_MODELS = [
+  'gpt-6.2-sol',
+  'gpt-6.2-astra',
+  'gpt-6.1-terra',
   'gpt-6.1-sol',
   'gpt-6-astra',
-  'gpt-6.1-terra',
   'gpt-6-sol',
   'gpt-6-luna',
   'gpt-5.6-sol',
   'gpt-5.6-terra',
   'gpt-5.6-luna'
-]
+] as const
+const recommendedChatGptModels: readonly string[] = CODEX_RECOMMENDED_MODELS
 
 export function orderChatGptModels<T extends { id: string }>(models: readonly T[]): T[] {
   const rank = (id: string) => {

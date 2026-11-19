@@ -4,7 +4,11 @@ import os from 'node:os'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { resolveExecutable, resolveLoginShellPath } from './command-resolver'
+import {
+  resolveExecutable,
+  resolveLoginShellPath,
+  resolveLoginShellProxyEnvironment
+} from './command-resolver'
 
 const execFileP = promisify(execFile)
 
@@ -58,6 +62,31 @@ describe.runIf(process.platform !== 'win32')('login-shell command resolver', () 
     process.env.PI_HARNESS_TEST_RESOLVED = expectedPath
 
     await expect(resolveLoginShellPath()).resolves.toEqual({ shell, path: expectedPath })
+  })
+
+  it('reads only proxy variables from the login shell', async () => {
+    sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-harness-shell-proxy-'))
+    const shell = path.join(sandbox, 'login-shell')
+    await fs.writeFile(
+      shell,
+      [
+        '#!/bin/sh',
+        '[ "$1" = "-ilc" ] || exit 23',
+        'printf "fixture startup banner\n"',
+        'export HTTPS_PROXY="http://127.0.0.1:7890"',
+        'export no_proxy="localhost,.internal.test"',
+        'export PI_HARNESS_TEST_PRIVATE="fixture-private-value"',
+        'exec /bin/sh -c "$2"'
+      ].join('\n'),
+      { mode: 0o755 }
+    )
+    vi.stubEnv('SHELL', shell)
+    const environment = await resolveLoginShellProxyEnvironment()
+    expect(environment).toMatchObject({
+      HTTPS_PROXY: 'http://127.0.0.1:7890',
+      no_proxy: 'localhost,.internal.test'
+    })
+    expect(JSON.stringify(environment)).not.toContain('fixture-private-value')
   })
 
   it('isolates interactive shell probes from the app process group', async () => {

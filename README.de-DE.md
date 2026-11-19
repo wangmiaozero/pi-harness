@@ -25,7 +25,7 @@ und deine Pi-Sitzungen, Konfiguration, Skills und Erweiterungen funktionieren in
 
 <br>
 
-## 赞助商
+## Sponsoren
 
 <table>
   <tr>
@@ -200,7 +200,7 @@ flowchart TD
 
 ### Workspace, Dateien und Git
 
-Starte einen eigenständigen Chat oder öffne ein Projekt und setze eine Pi-Sitzung fort. Verfolge Streaming-Antworten, Denkprozesse, Werkzeugaufrufe, Bilder und Dateiänderungen; wähle Modell, Denkstufe und Werkzeuge oder komprimiere den Gesprächskontext. Wenn du Harness oder Agenten über die Workspace-Werkzeuge öffnest, bleiben Chat und Entwurf erhalten.
+Starte einen eigenständigen Chat oder öffne ein Projekt und setze eine Pi-Sitzung fort. Verfolge Streaming-Antworten, Denkprozesse, Werkzeugaufrufe, Bilder und Dateiänderungen; wähle Modell, Denkstufe und Werkzeuge oder komprimiere den Gesprächskontext. Wenn du Harness oder Agenten über die Workspace-Werkzeuge öffnest, bleiben Chat und Entwurf erhalten. Jedes Gespräch merkt sich seine Werkzeugauswahl.
 
 Durchsuche Dateien, zeige Medien und Dokumente in der Vorschau an und bearbeite lesbaren Text mit Syntaxhervorhebung, Zeilennummern, Suche, Rückgängig/Wiederholen, ausdrücklichem Speichern und Schutz vor Konflikten durch externe Änderungen. Git bietet Diffs, Verlauf, Aktivitätsgrafiken, Commits, optionale KI-Commit-Nachrichten und Worktrees.
 
@@ -280,9 +280,9 @@ Durchsuche gemeinsam die Verläufe von Claude Code, Codex (einschließlich Deskt
 
 | | |
 | :-- | :-- |
-| **Anbieter** | Richte Pi-kompatible Anbieter mit Vorlagen oder eigenen Endpunkten ein, verwalte Zugangsdaten, lade Modelllisten, wo unterstützt, teste Verbindungen und wähle dein Chatmodell. Der Anbieter-Tab bietet Schnellzugriffe auf ChatGPT, Claude, Gemini und das lokale Gateway. |
-| **Mit ChatGPT anmelden** | Verbinde dein ChatGPT-Abonnement im Browser und wähle die Modelle des Kontos im Chat aus. Verwalte jedes verbundene Codex-Konto in der Liste der API-Anbieter, sieh das verbleibende Kontingent ein und nutze eine verfügbare Reset-Karte. |
-| **Modelle, Nutzung und Kontingente** | Filtere konfigurierte Modelle nach Anbieter, wähle das Standardmodell und prüfe aufgezeichnete Anfragen und den Tokenverbrauch. Auf der Nutzungsseite siehst du auch verfügbare API-Guthaben und Abonnementkontingente. |
+| **Anbieter** | Richte Pi-kompatible Anbieter mit Vorlagen oder eigenen Endpunkten ein, verwalte Zugangsdaten, lade Modelllisten, wo unterstützt, teste Verbindungen und wähle dein Chatmodell. Der Anbieter-Tab bietet Schnellzugriffe auf ChatGPT, Claude, Gemini und das lokale Gateway. Schalte in der Liste das **Gateway** ein, wenn ein Anbieter Werkzeuge und Denkprozess nicht zusammen nutzen kann. Fehlgeschlagene Verbindungstests nennen Ursache und Lösungsweg, und der automatische Proxy nutzt auch den in deiner Shell gesetzten Proxy. |
+| **Mit ChatGPT anmelden** | Verbinde dein ChatGPT-Abonnement im Browser und wähle die Modelle des Kontos im Chat aus. Verwalte jedes verbundene Codex-Konto in der Liste der API-Anbieter, sieh das verbleibende Kontingent ein und nutze eine verfügbare Reset-Karte. Schalte **⚡ Schnell** in der Denkstufen-Zeile der Modellauswahl ein, damit unterstützte GPT-Modelle schneller antworten. |
+| **Modelle, Nutzung und Kontingente** | Filtere konfigurierte Modelle nach Anbieter, wähle das Standardmodell und prüfe aufgezeichnete Anfragen und den Tokenverbrauch. Auf der Nutzungsseite siehst du auch verfügbare API-Guthaben und Abonnementkontingente. Lege mit **Angezeigt** fest, welche Modelle in der Modellauswahl im Chat erscheinen, oder behalte mit **Neueste Modelle zeigen** nur die neuesten Modelle jedes Anbieters. |
 | **Kostenlose Modelle** | Wähle ein Kilo-Modell direkt in der Modellauswahl im Chat. Ein Konto oder API-Schlüssel ist nicht erforderlich. Verfügbarkeit und Nutzungslimits hängen von Kilo ab. Bei der ersten Auswahl erscheint ein Datenschutzhinweis. |
 | **Bilder** | Nutze unterstützte Bildmodelle, um Bilder aus Text zu erzeugen oder zu bearbeiten, und lade die Ergebnisse herunter |
 | **Skills** | Durchsuche und bearbeite integrierte und lokale Skills. Gib `@` im Eingabefeld ein, um einen installierten Skill zu suchen und aufzurufen |

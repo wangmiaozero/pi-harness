@@ -5,7 +5,14 @@ import type { ReadableStream as NodeReadableStream } from 'node:stream/web'
 import { pipeline } from 'node:stream/promises'
 import { isIP } from 'node:net'
 import WebSocket, { WebSocketServer } from 'ws'
-import type { LocalGatewayConnection, LocalGatewayState } from '@shared/providers/gateway'
+import {
+  gatewayAccountKey,
+  type GatewayModel,
+  type LocalGatewayConnection,
+  type LocalGatewayStatus,
+  type LocalGatewayState
+} from '@shared/providers/gateway'
+import { GatewayModelError } from './gateway-models'
 import type { ProviderService } from './provider-service'
 import type { ChatGptAccounts } from './chatgpt-accounts'
 import { isSelectableChatGptModel } from '@shared/providers/account-management'
@@ -62,6 +69,37 @@ export class LocalProviderGateway {
       : { running: false }
   }
 
+  async status(): Promise<LocalGatewayStatus> {
+    const models = await this.models(this.connection?.baseUrl)
+    return { ...this.state(), models }
+  }
+
+  private async models(baseUrl?: string): Promise<GatewayModel[]> {
+    const [models, accounts] = await Promise.all([
+      this.providers.gatewayModels(baseUrl),
+      this.chatGpt?.list()
+    ])
+    return [
+      ...models,
+      ...(accounts ?? []).flatMap((account) =>
+        account.models.map((model): GatewayModel => ({
+          id: `${account.id}/${model.id}`,
+          provider: account.id,
+          model: model.id,
+          protocol: 'openai-responses',
+          streamingOnly: true,
+          unavailable: account.routingOnly
+            ? 'fallback_only'
+            : model.disabled
+              ? 'disabled'
+              : !isSelectableChatGptModel(model)
+                ? 'unverified'
+                : undefined
+        }))
+      )
+    ]
+  }
+
   copyKey(copy: (value: string) => void) {
     if (!this.connection || !this.apiKey) throw new ValidationError('Start the local gateway first')
     copy(this.apiKey)
@@ -85,6 +123,7 @@ export class LocalProviderGateway {
               : 502
         this.json(res, status, {
           error: {
+            ...(error instanceof GatewayModelError ? { code: error.gatewayCode } : {}),
             message: status === 502 ? 'The upstream request could not be completed' : error.message
           }
         })
@@ -157,22 +196,17 @@ export class LocalProviderGateway {
       return
     }
     if (request.method === 'GET' && request.url === '/v1/models') {
-      const models = await this.providers.gatewayModels()
-      const accounts = (await this.chatGpt?.list()) ?? []
-      const accountModels = accounts
-        .filter((account) => !account.routingOnly)
-        .flatMap((account) =>
-          account.models
-            .filter(isSelectableChatGptModel)
-            .map((model) => ({ id: `${account.id}/${model.id}`, provider: account.id }))
-        )
+      const models = await this.models(this.connection?.baseUrl)
       this.json(response, 200, {
         object: 'list',
-        data: [...models, ...accountModels].map((model) => ({
-          id: model.id,
-          object: 'model',
-          owned_by: model.provider
-        }))
+        data: models
+          .filter((model) => !model.unavailable)
+          .map((model) => ({
+            id: model.id,
+            object: 'model',
+            owned_by: model.provider,
+            supported_protocols: [model.protocol]
+          }))
       })
       return
     }
@@ -232,23 +266,39 @@ export class LocalProviderGateway {
     signal: AbortSignal,
     compact = false
   ) {
-    const match =
-      typeof payload.model === 'string' &&
-      /^(chatgpt-account-[0-9a-f-]{36})\/([A-Za-z0-9._:-]{1,128})$/.exec(payload.model)
-    if (match && this.chatGpt) {
+    const id = typeof payload.model === 'string' ? payload.model : ''
+    const separator = id.indexOf('/')
+    const provider = id.slice(0, separator)
+    const model = id.slice(separator + 1)
+    if (
+      separator > 0 &&
+      gatewayAccountKey.test(provider) &&
+      /^[A-Za-z0-9._:-]{1,128}$/.test(model) &&
+      this.chatGpt
+    ) {
       if (protocol !== 'openai-responses' || compact || payload.stream !== true)
-        throw new ValidationError('ChatGPT accounts require streaming Responses requests')
-      return this.chatGpt.gatewayRequest(match[1], match[2], payload, signal)
+        throw new GatewayModelError(
+          'unsupported_protocol',
+          'ChatGPT accounts require streaming Responses requests'
+        )
+      return this.chatGpt.gatewayRequest(provider, model, payload, signal)
     }
-    return this.providers.gatewayRequest(protocol, payload, headers, signal, compact)
+    return this.providers.gatewayRequest(
+      protocol,
+      payload,
+      headers,
+      signal,
+      compact,
+      this.connection?.baseUrl
+    )
   }
 
   private handleSocket(client: WebSocket, request: IncomingMessage) {
     const abort = new AbortController()
     let busy = false
-    const report = (message: string, status = 400) => {
+    const report = (message: string, status = 400, code?: string) => {
       if (client.readyState === WebSocket.OPEN)
-        client.send(JSON.stringify({ type: 'error', status, error: { message } }))
+        client.send(JSON.stringify({ type: 'error', status, error: { message, code } }))
     }
     client.on('error', () => abort.abort())
     client.on('close', () => abort.abort())
@@ -299,6 +349,7 @@ export class LocalProviderGateway {
       })()
         .catch((error) => {
           if (error instanceof ProviderQueueError) report(error.message, 429)
+          else if (error instanceof GatewayModelError) report(error.message, 400, error.gatewayCode)
           else if (error instanceof AppError && error.code === 'VALIDATION_ERROR')
             report(error.message)
           else if (error instanceof SyntaxError)

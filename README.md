@@ -25,7 +25,7 @@ and your Pi sessions, configuration, Skills and extensions keep working inside a
 
 <br>
 
-## 赞助商
+## Sponsors
 
 <table>
   <tr>
@@ -207,7 +207,7 @@ flowchart TD
 
 ### Workspace, files and Git
 
-Start a standalone chat, or open a project and resume a Pi session. Follow streaming replies, thinking, tool calls, images and changed files; choose the model, thinking level and tools, or compact the conversation. Opening Harness or Agents from Workspace Tools keeps your conversation and draft.
+Start a standalone chat, or open a project and resume a Pi session. Follow streaming replies, thinking, tool calls, images and changed files; choose the model, thinking level and tools, or compact the conversation. Opening Harness or Agents from Workspace Tools keeps your conversation and draft. Each conversation remembers its tool selection.
 
 Browse and search files, preview media and documents, and edit readable text with syntax highlighting, line numbers, find, undo/redo, explicit save and external-change conflict protection. Git gives you diffs, history, activity graphs, commits, optional AI commit messages and worktrees.
 
@@ -287,9 +287,9 @@ Open Architecture in Workspace to explore modules, dependencies, entrypoints and
 
 | | |
 | :-- | :-- |
-| **Providers** | Configure Pi-compatible providers with presets or custom endpoints, manage credentials, discover models where supported, test connections and choose your chat model. The Providers tab has shortcuts for ChatGPT, Claude, Gemini and the local gateway. |
-| **Sign in with ChatGPT** | Connect your ChatGPT subscription in the browser and choose its models in chat. Manage each connected Codex account alongside API providers, see its remaining allowance and use a reset card when available. |
-| **Models, usage and quota** | Filter configured models by provider, choose the default model and review recorded requests and token usage. The usage page also shows available API balances and subscription quotas. |
+| **Providers** | Configure Pi-compatible providers with presets or custom endpoints, manage credentials, discover models where supported, test connections and choose your chat model. The Providers tab has shortcuts for ChatGPT, Claude, Gemini and the local gateway. Turn on **Gateway** in the provider list when a provider cannot use tools and reasoning together. Failed connection tests explain the cause and what to try, and the automatic proxy also uses the proxy set in your shell. |
+| **Sign in with ChatGPT** | Connect your ChatGPT subscription in the browser and choose its models in chat. Manage each connected Codex account alongside API providers, see its remaining allowance and use a reset card when available. Turn on **⚡ Fast** in the thinking row of the model picker for faster replies on supported GPT models. |
+| **Models, usage and quota** | Filter configured models by provider, choose the default model and review recorded requests and token usage. The usage page also shows available API balances and subscription quotas. Choose which models appear in the chat model picker with **Shown**, or use **Show latest models** to keep only each provider's newest models. |
 | **Free Models** | Choose a Kilo model directly in the chat model picker. No account or API key is required. Availability and limits depend on Kilo. The first selection shows a privacy notice. |
 | **Images** | Use supported image models for text-to-image or image editing, then download the results |
 | **Skills** | Browse built-in and local Skills and edit them. Type `@` in the composer to search and invoke an installed Skill |

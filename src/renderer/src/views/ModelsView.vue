@@ -16,7 +16,8 @@ import {
   Zap,
   Image as ImageIcon,
   Upload,
-  Download
+  Download,
+  Sparkles
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import type {
@@ -36,6 +37,7 @@ import {
 import { PI_THINKING_LEVELS, type PiThinkingLevel } from '@shared/constants/index'
 import PageHeader from '@renderer/components/common/PageHeader.vue'
 import Button from '@renderer/components/ui/Button.vue'
+import ProviderConnectionDetails from '@renderer/components/providers/ProviderConnectionDetails.vue'
 import Input from '@renderer/components/ui/Input.vue'
 import Select from '@renderer/components/ui/Select.vue'
 import Combobox from '@renderer/components/ui/Combobox.vue'
@@ -52,6 +54,7 @@ import { formatRelativeTime } from '@renderer/utils/format'
 import { chooseModelCreateProvider } from '@renderer/utils/model-provider-selection'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { isImageGenerationModel } from '@shared/models/image-model'
+import { latestModelIds } from '@shared/providers/latest-models'
 import { rasterizeSvgImageResult } from '@renderer/utils/svg-rasterize'
 
 const props = withDefaults(
@@ -92,7 +95,7 @@ const providerKeyDraft = ref('')
 
 const listGrid = {
   gridTemplateColumns:
-    '20px minmax(8rem, 1.2fr) minmax(6rem, 1fr) max-content max-content 4.75rem max-content 19rem'
+    '20px minmax(8rem, 1.2fr) minmax(6rem, 1fr) max-content max-content 4.75rem max-content max-content 19rem'
 } as const
 
 const defaultForm = (): ModelForm => ({
@@ -280,6 +283,53 @@ const filteredModels = computed(() => {
 const activeModel = computed(
   () => modelsStore.items.find((m) => modelsStore.isActive(m, providerKeyFor(m))) ?? null
 )
+
+const savingVisibility = ref(false)
+async function saveVisibility(entries: { id: string; enabled: boolean }[]) {
+  savingVisibility.value = true
+  try {
+    await modelsStore.setVisibility(entries)
+  } finally {
+    savingVisibility.value = false
+  }
+}
+
+async function setVisible(model: ModelDefinition, enabled: boolean) {
+  try {
+    await saveVisibility([{ id: model.id, enabled }])
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
+async function showLatestModels() {
+  const scoped = providersStore.items.filter(
+    (provider) => providerFilter.value === 'all' || provider.id === providerFilter.value
+  )
+  const entries: { id: string; enabled: boolean }[] = []
+  let shown = 0
+  for (const provider of scoped) {
+    const latest = latestModelIds(provider)
+    const owned = modelsStore.items.filter((model) => model.providerId === provider.id)
+    if (!latest || !owned.some((model) => latest.has(model.modelId.toLowerCase()))) continue
+    for (const model of owned) {
+      const enabled =
+        latest.has(model.modelId.toLowerCase()) || modelsStore.isActive(model, provider.key)
+      if (enabled) shown++
+      if (model.enabled !== enabled) entries.push({ id: model.id, enabled })
+    }
+  }
+  if (!shown) {
+    toast.info(t('models.latestUnavailable'))
+    return
+  }
+  try {
+    await saveVisibility(entries)
+    toast.success(t('models.latestShown', { count: shown }))
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
 
 function protocolLabel(protocol: string): string {
   return PROTOCOLS.find((p) => p.id === protocol)?.label ?? protocol
@@ -529,7 +579,7 @@ function downloadImageResult() {
 
 async function runTest() {
   const model = testingModel.value
-  if (!model) return
+  if (!model || testLoading.value) return
   const key = providerKeyFor(model)
   if (!key) {
     toast.error(t('models.providerMissing'))
@@ -541,7 +591,7 @@ async function runTest() {
     const result = await providersStore.testConnection(key, model.modelId)
     testResult.value = result
     if (result.ok) toast.success(t('providers.testOk'))
-    else toast.error(result.message)
+    else toast.error(t(`providerDiagnostics.hints.${result.status}`))
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
   } finally {
@@ -634,6 +684,16 @@ onMounted(async () => {
           :placeholder="$t('models.filterPlaceholder')"
           class="w-[220px] min-w-0"
         />
+        <Button
+          size="sm"
+          data-testid="models-show-latest"
+          :title="$t('models.showLatestHint')"
+          :disabled="modelsStore.items.length === 0 || savingVisibility"
+          @click="showLatestModels"
+        >
+          <Sparkles class="size-3.5" :stroke-width="1.75" />
+          {{ $t('models.showLatest') }}
+        </Button>
         <Button
           variant="primary"
           size="sm"
@@ -729,7 +789,7 @@ onMounted(async () => {
         data-testid="models-table-scroll"
         class="overflow-x-auto overflow-y-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
       >
-        <div class="grid min-w-[1150px] gap-x-2" :style="listGrid">
+        <div class="grid min-w-[1210px] gap-x-2" :style="listGrid">
           <div
             class="col-span-full grid h-[30px] grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3 text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
           >
@@ -739,9 +799,12 @@ onMounted(async () => {
             <span class="min-w-0 truncate">{{ $t('models.colProvider') }}</span>
             <span class="min-w-0 truncate">{{ $t('models.colProtocol') }}</span>
             <span class="min-w-0 truncate">{{ $t('models.colCapabilities') }}</span>
+            <span class="min-w-0 truncate text-center" :title="$t('models.colVisibleHint')">
+              {{ $t('models.colVisible') }}
+            </span>
             <span class="min-w-0 truncate">{{ $t('models.colUpdated') }}</span>
             <span
-              class="sticky right-0 z-20 flex self-stretch items-center justify-end border-l border-[var(--border-subtle)] bg-[inherit] pl-2 pr-3"
+              class="sticky right-0 z-20 flex self-stretch items-center justify-end border-l border-[var(--border-subtle)] table-sticky-cell pl-2 pr-3"
             >
               {{ $t('common.actions') }}
             </span>
@@ -750,10 +813,10 @@ onMounted(async () => {
           <div
             v-for="model in filteredModels"
             :key="model.id"
-            class="group relative col-span-full grid grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-[var(--bg-hover)]"
+            class="group relative col-span-full grid grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-[var(--bg-hover)] hover:[--row-tint:var(--bg-hover)]"
             :class="
               modelsStore.isActive(model, providerKeyFor(model))
-                ? '!bg-[var(--bg-selected)] hover:!bg-[var(--bg-hover)]'
+                ? '!bg-[var(--bg-selected)] [--row-tint:var(--bg-selected)] hover:!bg-[var(--bg-hover)] hover:[--row-tint:var(--bg-hover)]'
                 : ''
             "
             :style="{ height: 'var(--height-row)' }"
@@ -863,6 +926,16 @@ onMounted(async () => {
               </span>
             </div>
 
+            <div class="flex justify-center">
+              <Switch
+                data-testid="model-visible-switch"
+                :model-value="model.enabled"
+                :disabled="savingVisibility"
+                :label="`${$t('models.colVisible')} · ${model.displayName}`"
+                @update:model-value="setVisible(model, $event)"
+              />
+            </div>
+
             <div
               class="whitespace-nowrap text-[10.5px] text-[var(--text-tertiary)]"
               :title="formatRelativeTime(model.updatedAt, locale)"
@@ -872,7 +945,7 @@ onMounted(async () => {
 
             <div
               data-testid="model-action-cell"
-              class="sticky right-0 z-10 grid h-full grid-cols-[6rem_3.5rem_3.5rem_3.5rem] items-center border-l border-[var(--border-subtle)] bg-[inherit] pl-2 pr-3"
+              class="sticky right-0 z-10 grid h-full grid-cols-[6rem_3.5rem_3.5rem_3.5rem] items-center border-l border-[var(--border-subtle)] table-sticky-cell pl-2 pr-3"
             >
               <div class="flex min-w-0 items-center justify-center">
                 <IconButton
@@ -1178,69 +1251,7 @@ onMounted(async () => {
         <p class="text-[12px] text-[var(--text-secondary)]">
           {{ $t('providers.testModelHint') }}
         </p>
-        <div
-          v-if="testResult"
-          class="space-y-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2.5"
-        >
-          <div class="flex flex-wrap items-center gap-1.5">
-            <Badge
-              :tone="
-                testResult.ok
-                  ? 'success'
-                  : testResult.status === 'rate_limited'
-                    ? 'warning'
-                    : 'error'
-              "
-            >
-              {{
-                testResult.ok
-                  ? $t('providers.testSuccess')
-                  : testResult.status === 'rate_limited'
-                    ? $t('providers.testRateLimited')
-                    : testResult.status === 'auth_error'
-                      ? $t('providers.testUnauthorized')
-                      : testResult.status === 'forbidden'
-                        ? $t('providers.testForbidden')
-                        : $t('providers.testFailed')
-              }}
-            </Badge>
-            <Badge v-if="testResult.httpStatus != null" tone="muted">
-              HTTP {{ testResult.httpStatus }}
-            </Badge>
-          </div>
-          <p class="text-[12px] text-[var(--text-secondary)]">{{ testResult.message }}</p>
-          <dl
-            class="grid grid-cols-[80px_1fr] gap-x-3 gap-y-1 text-[10.5px] text-[var(--text-tertiary)]"
-          >
-            <dt>{{ $t('providers.testStatus') }}</dt>
-            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
-              {{ testResult.status }}
-            </dd>
-            <dt>{{ $t('providers.testHttp') }}</dt>
-            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
-              {{ testResult.httpStatus ?? '—' }}
-            </dd>
-            <dt>{{ $t('providers.testLatency') }}</dt>
-            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
-              {{ testResult.latencyMs }} ms
-            </dd>
-            <dt>{{ $t('providers.testProtocol') }}</dt>
-            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
-              {{ testResult.protocol ?? '—' }}
-            </dd>
-            <dt>{{ $t('providers.testEndpoint') }}</dt>
-            <dd
-              class="truncate font-[family-name:var(--font-mono)] text-[var(--text-secondary)]"
-              :title="testResult.endpoint ?? ''"
-            >
-              {{ testResult.endpoint ?? '—' }}
-            </dd>
-            <dt>{{ $t('providers.testModel') }}</dt>
-            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
-              {{ testResult.modelId ?? '—' }}
-            </dd>
-          </dl>
-        </div>
+        <ProviderConnectionDetails v-if="testResult" :result="testResult" />
       </div>
       <template #footer>
         <Button variant="ghost" @click="testOpen = false">

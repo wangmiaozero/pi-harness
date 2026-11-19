@@ -28,22 +28,29 @@ const tokenLimit = z.number().int().min(1).max(100_000_000)
 const modelLimits = z.record(z.string().min(1).max(256), tokenLimit).optional()
 const time = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/)
 const multiplier = z.number().min(0).max(1000)
+export function parseProviderProxyUrl(value: string): URL | null {
+  const url = URL.parse(value)
+  if (
+    !url ||
+    !['http:', 'https:', 'socks4:', 'socks5:'].includes(url.protocol) ||
+    !/^(?:[a-z0-9._-]+|\[[\da-f:.]+\])$/i.test(url.hostname) ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    (url.pathname !== '/' && url.pathname !== '')
+  )
+    return null
+  return url
+}
+
 const proxyUrl = z
   .string()
   .max(512)
-  .refine((value) => {
-    const url = URL.parse(value)
-    return (
-      !!url &&
-      ['http:', 'https:', 'socks4:', 'socks5:'].includes(url.protocol) &&
-      !!url.hostname &&
-      !url.username &&
-      !url.password &&
-      !url.search &&
-      !url.hash &&
-      (url.pathname === '/' || url.pathname === '')
-    )
-  }, 'Enter an HTTP, HTTPS, SOCKS4 or SOCKS5 proxy URL without credentials')
+  .refine(
+    (value) => parseProviderProxyUrl(value) !== null,
+    'Enter an HTTP, HTTPS, SOCKS4 or SOCKS5 proxy URL without credentials'
+  )
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 const json: z.ZodType<JsonValue> = z.json()

@@ -9,13 +9,13 @@ const startInput = z.strictObject({ port: z.number().int().min(0).max(65535) })
 export function registerLocalProviderGateway(
   ipc: IpcHandleRegistrar,
   wrap: <T>(run: () => Promise<T>) => Promise<unknown>,
-  gateway: Pick<LocalProviderGateway, 'state' | 'start' | 'stop' | 'copyKey'>,
+  gateway: Pick<LocalProviderGateway, 'status' | 'start' | 'stop' | 'copyKey'>,
   copy: (value: string) => void
 ): void {
   ipc.handle(IPC_INVOKE.providerGatewayState, (_event, input) =>
     wrap(async () => {
       if (input !== undefined) throw new ValidationError('Invalid gateway status request')
-      return gateway.state()
+      return gateway.status()
     })
   )
   ipc.handle(IPC_INVOKE.providerGatewayStart, (_event, input) =>

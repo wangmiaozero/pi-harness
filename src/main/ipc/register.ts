@@ -1,3 +1,6 @@
+import { registerProviderConnection } from './register-provider-connection'
+import { registerProviderGatewaySwitch } from './register-provider-gateway-switch'
+import { registerModelPreferences } from './register-model-preferences'
 import { createVoiceHost } from '../agent-settings/voice-host'
 import { registerAgentSettingsIpc } from './register-agent-settings'
 import type { HarnessPluginHost } from '../harness/plugins/plugin-host'
@@ -56,7 +59,6 @@ import {
   piPackageTargetSchema,
   piPackageTargetsSchema,
   providerModelDiscoverySchema,
-  testConnectionSchema,
   skillFormSchema,
   skillImportSchema
 } from '@shared/schemas/domain'
@@ -467,13 +469,9 @@ export function registerIpc(services: Services): void {
       )
     )
   )
-  ipcMain.handle(IPC_INVOKE.providerTestConnection, (_e, input: unknown) =>
-    wrap(async () => {
-      const r = testConnectionSchema.safeParse(input)
-      if (!r.success) throw new ValidationError('Invalid test input', { issues: r.error.issues })
-      return providers.testConnection(r.data)
-    })
-  )
+  registerProviderConnection(ipcMain, wrap, providers)
+  registerProviderGatewaySwitch(ipcMain, wrap, providers)
+  registerModelPreferences(ipcMain, wrap, models, providers)
   ipcMain.handle(IPC_INVOKE.providerDiscoverModels, (_e, input: unknown) =>
     wrap(() =>
       providers.discoverModels(

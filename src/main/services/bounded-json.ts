@@ -1,3 +1,9 @@
+export class ResponseSizeError extends Error {
+  constructor() {
+    super('Response exceeds size limit')
+  }
+}
+
 export async function readBoundedText(response: Response, maxBytes: number): Promise<string> {
   const reader = response.body?.getReader()
   if (!reader) return ''
@@ -9,7 +15,7 @@ export async function readBoundedText(response: Response, maxBytes: number): Pro
       const chunk = await reader.read()
       if (chunk.done) break
       bytes += chunk.value.length
-      if (bytes > maxBytes) throw new Error('Response exceeds size limit')
+      if (bytes > maxBytes) throw new ResponseSizeError()
       body += decoder.decode(chunk.value, { stream: true })
     }
     return body + decoder.decode()

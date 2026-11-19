@@ -94,9 +94,9 @@ it('uses the newest version of each model family and preserves the recommended o
     'gpt-6-luna'
   ]
   expect(latestChatGptModels(ids.map((id) => ({ id }))).map(({ id }) => id)).toEqual([
+    'gpt-6.1-terra',
     'gpt-6.1-sol',
     'gpt-6-astra',
-    'gpt-6.1-terra',
     'gpt-6-luna'
   ])
 })

@@ -17,8 +17,7 @@ it('protects the local model list and forwards HTTP and WebSocket streams', asyn
         id: 'fixture/model',
         provider: 'fixture',
         model: 'model',
-        api: 'openai-responses',
-        baseUrl: 'http://example.test'
+        protocol: 'openai-responses'
       }
     ],
     gatewayRequest
@@ -33,7 +32,14 @@ it('protects the local model list and forwards HTTP and WebSocket streams', asyn
     expect(await fetch(`${baseUrl}/models`).then((res) => res.status)).toBe(401)
     expect(await fetch(`${baseUrl}/models`, { headers }).then((res) => res.json())).toEqual({
       object: 'list',
-      data: [{ id: 'fixture/model', object: 'model', owned_by: 'fixture' }]
+      data: [
+        {
+          id: 'fixture/model',
+          object: 'model',
+          owned_by: 'fixture',
+          supported_protocols: ['openai-responses']
+        }
+      ]
     })
     const http = await fetch(`${baseUrl}/responses`, {
       method: 'POST',
@@ -58,7 +64,8 @@ it('protects the local model list and forwards HTTP and WebSocket streams', asyn
       },
       expect.any(Headers),
       expect.any(AbortSignal),
-      false
+      false,
+      baseUrl
     )
   } finally {
     await gateway.stop()

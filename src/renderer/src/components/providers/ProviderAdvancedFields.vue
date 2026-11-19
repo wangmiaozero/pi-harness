@@ -83,12 +83,13 @@ function toggleDay(window: AdvancedDraft['rateWindows'][number], day: number) {
       />
       <Select
         v-model="draft.proxyMode"
-        :label="t('providerAdvanced.proxy')"
+        :label="t('providerDiagnostics.proxy')"
+        :hint="draft.proxyMode === '' && !chatGpt ? t('providerDiagnostics.autoHint') : undefined"
         :options="[
-          { value: '', label: t('providerAdvanced.automatic') },
-          { value: 'system', label: t('providerAdvanced.system') },
-          { value: 'direct', label: t('providerAdvanced.direct') },
-          { value: 'custom', label: t('providerAdvanced.custom') }
+          { value: '', label: t('providerDiagnostics.modes.auto') },
+          { value: 'system', label: t('providerDiagnostics.modes.system') },
+          { value: 'direct', label: t('providerDiagnostics.modes.direct') },
+          { value: 'custom', label: t('providerDiagnostics.modes.custom') }
         ]"
       />
       <Input

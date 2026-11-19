@@ -326,8 +326,7 @@ export class PiRpcRuntime implements HarnessAdapter {
           params.provider,
           params.baseUrl
         )
-        if (!settings?.proxy || !this.chatGptBridge)
-          throw new AgentError('Provider proxy is unavailable')
+        if (!settings || !this.chatGptBridge) throw new AgentError('Provider proxy is unavailable')
         return this.chatGptBridge.googleBaseUrl(params.provider, params.baseUrl)
       }
       if (method === 'ready') {

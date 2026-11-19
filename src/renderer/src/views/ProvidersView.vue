@@ -45,6 +45,7 @@ import { flatButtonStyle } from '@renderer/components/ui/button-style'
 import Input from '@renderer/components/ui/Input.vue'
 import Textarea from '@renderer/components/ui/Textarea.vue'
 import ProviderAdvancedFields from '@renderer/components/providers/ProviderAdvancedFields.vue'
+import ProviderConnectionDetails from '@renderer/components/providers/ProviderConnectionDetails.vue'
 import LocalGatewayDialog from '@renderer/components/providers/LocalGatewayDialog.vue'
 import {
   advancedProviderDraft,
@@ -141,6 +142,9 @@ const testModelId = ref('')
 const testResult = ref<ConnectionTestResult | null>(null)
 const testLoading = ref(false)
 let testGeneration = 0
+let testRequestId: string | undefined
+let draftRequestId: string | undefined
+const draftTestResult = ref<ConnectionTestResult | null>(null)
 const draftTesting = ref(false)
 const saving = ref(false)
 const saveError = ref('')
@@ -172,7 +176,7 @@ const modelDiscoveryFeedback = ref<{
 /** Share column widths across rows; leave room for the name and its icon. */
 const listGrid = {
   gridTemplateColumns:
-    'minmax(10rem, 1fr) minmax(9rem, max-content) max-content max-content max-content minmax(9.5rem, max-content)'
+    'minmax(10rem, 1fr) minmax(9rem, max-content) max-content max-content max-content max-content minmax(9.5rem, max-content)'
 } as const
 
 const defaultForm = (): ProviderForm => ({
@@ -437,6 +441,10 @@ function canFillModelId(): boolean {
 
 watch(dialogOpen, (open) => {
   if (!open) {
+    if (draftRequestId) void cancelTest(draftRequestId)
+    draftRequestId = undefined
+    draftTesting.value = false
+    draftTestResult.value = null
     clearApiKeyReveal()
     if (identityTimer) clearTimeout(identityTimer)
     identityTimer = null
@@ -813,11 +821,28 @@ async function discoverProviderModels() {
   }
 }
 
+async function cancelTest(requestId: string | undefined) {
+  if (!requestId) return
+  try {
+    await getApi().providers.cancelConnectionTest(requestId)
+  } catch {
+    toast.error(t('common.failed'))
+  }
+}
+
+watch(testOpen, (open) => {
+  if (!open && testRequestId) void cancelTest(testRequestId)
+})
+
 async function testDraft() {
   if (draftTesting.value) return
   draftTesting.value = true
+  draftTestResult.value = null
+  const requestId = crypto.randomUUID()
+  draftRequestId = requestId
   try {
     const result = await getApi().providers.testConnection({
+      requestId,
       modelId: defaultModelIdStr.value.trim(),
       draft: {
         existingProviderKey: editingKey.value,
@@ -830,12 +855,18 @@ async function testDraft() {
         timeout: parseTimeout()
       }
     })
-    if (result.ok) toast.success(result.message)
-    else toast.error(result.message)
+    if (draftRequestId !== requestId) return
+    draftTestResult.value = result
+    if (result.ok) toast.success(t('providers.testOk'))
+    else if (result.status !== 'cancelled')
+      toast.error(t(`providerDiagnostics.hints.${result.status}`))
   } catch {
-    toast.error(t('providerAccounts.actionFailed'))
+    if (draftRequestId === requestId) toast.error(t('providerAccounts.actionFailed'))
   } finally {
-    draftTesting.value = false
+    if (draftRequestId === requestId) {
+      draftRequestId = undefined
+      draftTesting.value = false
+    }
   }
 }
 
@@ -941,6 +972,18 @@ async function save() {
   }
 }
 
+const switchingGateway = ref<string | null>(null)
+async function setGateway(provider: ProviderProfile, enabled: boolean) {
+  switchingGateway.value = provider.key
+  try {
+    await providersStore.setGateway(provider.key, enabled)
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('common.failed'))
+  } finally {
+    switchingGateway.value = null
+  }
+}
+
 async function duplicateProvider() {
   if (!duplicatingProvider.value) return
   try {
@@ -988,21 +1031,26 @@ function openTest(provider: ProviderProfile) {
 async function runTest() {
   if (!testingProvider.value || testLoading.value) return
   const generation = ++testGeneration
+  const requestId = crypto.randomUUID()
+  testRequestId = requestId
   testLoading.value = true
   testResult.value = null
   try {
     const result = await providersStore.testConnection(
       testingProvider.value.key,
-      testModelId.value.trim() || undefined
+      testModelId.value.trim() || undefined,
+      requestId
     )
     if (generation !== testGeneration || !testOpen.value) return
     testResult.value = result
     if (result.ok) toast.success(t('providers.testOk'))
-    else toast.error(result.message)
+    else if (result.status !== 'cancelled')
+      toast.error(t(`providerDiagnostics.hints.${result.status}`))
   } catch (e) {
     if (generation === testGeneration && testOpen.value)
       toast.error((e as { message?: string }).message ?? t('common.failed'))
   } finally {
+    if (testRequestId === requestId) testRequestId = undefined
     if (generation === testGeneration) testLoading.value = false
   }
 }
@@ -1304,9 +1352,12 @@ onMounted(() => {
               <span>{{ $t('providers.colProtocol') }}</span>
               <span class="px-1 text-center">{{ $t('providers.colModels') }}</span>
               <span>{{ $t('providers.colKey') }}</span>
+              <span class="text-center" :title="$t('providers.gatewayHint')">
+                {{ $t('providers.colGateway') }}
+              </span>
               <span>{{ $t('providers.colUpdated') }}</span>
               <span
-                class="sticky right-0 z-20 flex self-stretch items-center justify-end border-l border-[var(--border-subtle)] bg-[inherit] px-3.5"
+                class="sticky right-0 z-20 flex self-stretch items-center justify-end border-l border-[var(--border-subtle)] table-sticky-cell px-3.5"
               >
                 {{ $t('common.actions') }}
               </span>
@@ -1317,7 +1368,7 @@ onMounted(() => {
               :key="row.key"
               data-testid="provider-row"
               :data-provider-kind="row.provider ? 'api' : 'account'"
-              class="group relative col-span-full grid min-h-[54px] grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-[var(--bg-hover)] focus-within:bg-[var(--bg-hover)]"
+              class="group relative col-span-full grid min-h-[54px] grid-cols-subgrid items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] pl-3.5 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] last:border-b-0 hover:bg-[var(--bg-hover)] focus-within:bg-[var(--bg-hover)] hover:[--row-tint:var(--bg-hover)] focus-within:[--row-tint:var(--bg-hover)]"
             >
               <button
                 type="button"
@@ -1370,6 +1421,18 @@ onMounted(() => {
                 </Badge>
               </div>
 
+              <div class="flex justify-center" :title="$t('providers.gatewayHint')">
+                <Switch
+                  v-if="row.provider"
+                  data-testid="provider-gateway-switch"
+                  :model-value="row.provider.gateway === true"
+                  :disabled="switchingGateway === row.provider.key"
+                  :label="`${$t('providers.colGateway')} · ${row.name}`"
+                  @update:model-value="setGateway(row.provider, $event)"
+                />
+                <span v-else class="text-[12px] text-[var(--text-tertiary)]">—</span>
+              </div>
+
               <div
                 class="whitespace-nowrap text-[11.5px] tabular-nums text-[var(--text-tertiary)]"
                 :title="formatRelativeTime(row.updatedAt, locale)"
@@ -1379,7 +1442,7 @@ onMounted(() => {
 
               <div
                 data-testid="provider-action-cell"
-                class="sticky right-0 z-10 flex self-stretch items-center justify-end gap-1.5 border-l border-[var(--border-subtle)] bg-[inherit] pl-2 pr-3"
+                class="sticky right-0 z-10 flex self-stretch items-center justify-end gap-1.5 border-l border-[var(--border-subtle)] table-sticky-cell pl-2 pr-3"
               >
                 <template v-if="row.provider">
                   <IconButton show-label :label="$t('common.test')" @click="openTest(row.provider)">
@@ -1627,6 +1690,14 @@ onMounted(() => {
               {{ visibleModelDiscoveryFeedback?.message ?? '' }}
             </span>
             <Button
+              v-if="draftTesting"
+              variant="ghost"
+              size="sm"
+              @click="cancelTest(draftRequestId)"
+            >
+              {{ $t('common.cancel') }}
+            </Button>
+            <Button
               variant="secondary"
               size="sm"
               :loading="draftTesting"
@@ -1646,6 +1717,7 @@ onMounted(() => {
               {{ $t('providers.discoverAllModels') }}
             </Button>
           </div>
+          <ProviderConnectionDetails v-if="draftTestResult" :result="draftTestResult" />
         </div>
 
         <div
@@ -1743,73 +1815,14 @@ onMounted(() => {
           :hint="$t('providers.testModelHint')"
           mono
         />
-        <div
-          v-if="testResult"
-          class="space-y-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2.5"
-        >
-          <div class="flex flex-wrap items-center gap-1.5">
-            <Badge
-              :tone="
-                testResult.ok
-                  ? 'success'
-                  : testResult.status === 'rate_limited'
-                    ? 'warning'
-                    : 'error'
-              "
-            >
-              {{
-                testResult.ok
-                  ? $t('providers.testSuccess')
-                  : testResult.status === 'rate_limited'
-                    ? $t('providers.testRateLimited')
-                    : testResult.status === 'auth_error'
-                      ? $t('providers.testUnauthorized')
-                      : testResult.status === 'forbidden'
-                        ? $t('providers.testForbidden')
-                        : $t('providers.testFailed')
-              }}
-            </Badge>
-            <Badge v-if="testResult.httpStatus != null" tone="muted">
-              HTTP {{ testResult.httpStatus }}
-            </Badge>
-          </div>
-          <p class="text-[12px] text-[var(--text-secondary)]">{{ testResult.message }}</p>
-          <dl
-            class="grid grid-cols-[80px_1fr] gap-x-3 gap-y-1 text-[10.5px] text-[var(--text-tertiary)]"
-          >
-            <dt>{{ $t('providers.testStatus') }}</dt>
-            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
-              {{ testResult.status }}
-            </dd>
-            <dt>{{ $t('providers.testHttp') }}</dt>
-            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
-              {{ testResult.httpStatus ?? '—' }}
-            </dd>
-            <dt>{{ $t('providers.testLatency') }}</dt>
-            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
-              {{ testResult.latencyMs }} ms
-            </dd>
-            <dt>{{ $t('providers.testProtocol') }}</dt>
-            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
-              {{ testResult.protocol ?? '—' }}
-            </dd>
-            <dt>{{ $t('providers.testEndpoint') }}</dt>
-            <dd
-              class="truncate font-[family-name:var(--font-mono)] text-[var(--text-secondary)]"
-              :title="testResult.endpoint ?? ''"
-            >
-              {{ testResult.endpoint ?? '—' }}
-            </dd>
-            <dt>{{ $t('providers.testModel') }}</dt>
-            <dd class="font-[family-name:var(--font-mono)] text-[var(--text-secondary)]">
-              {{ testResult.modelId ?? '—' }}
-            </dd>
-          </dl>
-        </div>
+        <ProviderConnectionDetails v-if="testResult" :result="testResult" />
       </div>
       <template #footer>
         <Button variant="ghost" @click="testOpen = false">
           {{ $t('common.close') }}
+        </Button>
+        <Button v-if="testLoading" variant="secondary" @click="cancelTest(testRequestId)">
+          {{ $t('common.cancel') }}
         </Button>
         <Button variant="primary" :loading="testLoading" @click="runTest">
           {{ $t('providers.testRun') }}

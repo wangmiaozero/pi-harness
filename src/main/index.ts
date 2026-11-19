@@ -290,6 +290,7 @@ async function bootstrap(): Promise<void> {
       .migrateManagedPlaintextKeys()
       .catch(() => log.config.warn('Stored provider key migration was not completed'))
   const chatGpt = new ChatGptAccounts(path.join(userData(), 'chatgpt-accounts.json'))
+  chatGpt.useFastMode(() => providers.fastMode())
   const openRouter = new OpenRouterAuthorization(providers)
   const localAccounts = new LocalAccountDiscovery()
   const providerGateway = new LocalProviderGateway(providers, chatGpt)

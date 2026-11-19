@@ -208,6 +208,9 @@ export const enUS = {
     colProtocol: 'Protocol',
     colModels: 'Models',
     colUpdated: 'Updated',
+    colGateway: 'Gateway',
+    gatewayHint:
+      "When the provider refuses tools with reasoning, retry through its Responses API",
     fieldKey: 'Provider key',
     keyPlaceholder: 'nvidia-m3',
     fieldKeyHint:
@@ -336,6 +339,13 @@ export const enUS = {
     colProvider: 'Provider',
     colProtocol: 'Protocol',
     colCapabilities: 'Capabilities',
+    colVisible: 'Shown',
+    colVisibleHint: 'Hidden models stay configured but leave the model picker',
+    showLatest: 'Show latest models',
+    showLatestHint:
+      "Show only each vendor's latest models and hide the rest; any model can be shown again",
+    latestShown: 'Showing {count} latest models',
+    latestUnavailable: 'No latest model list is available for these providers',
     colUpdated: 'Updated',
     fieldProvider: 'Provider',
     fieldProviderKeyHint:
@@ -1581,6 +1591,9 @@ export const enUS = {
     thinkingIntensity: 'Effort',
     thinkingFaster: 'Faster',
     thinkingDeeper: 'Smarter',
+    fastMode: 'Fast',
+    fastModeOn: 'Fast is on: about 1.5x speed, uses more of your allowance',
+    fastModeOff: 'Turn on Fast: about 1.5x speed, uses more of your allowance',
     thinking: 'Thinking',
     tools: 'Tools',
     presetNone: 'None',

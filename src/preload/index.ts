@@ -227,7 +227,9 @@ const api: PiSwitchAPI = {
     delete: (key, options) => invoke(IPC_INVOKE.providerDelete, key, options ?? {}),
     duplicate: (key, options) => invoke(IPC_INVOKE.providerDuplicate, key, options ?? {}),
     setEnabled: (key, enabled) => invoke(IPC_INVOKE.providerSetEnabled, key, enabled),
+    setGateway: (key, enabled) => invoke(IPC_INVOKE.providerSetGateway, key, enabled),
     testConnection: (input) => invoke(IPC_INVOKE.providerTestConnection, input),
+    cancelConnectionTest: (requestId) => invoke(IPC_INVOKE.providerCancelConnectionTest, requestId),
     discoverModels: (input) => invoke(IPC_INVOKE.providerDiscoverModels, input),
     copyApiKey: (key) => invoke(IPC_INVOKE.providerCopyApiKey, key)
   },
@@ -238,6 +240,9 @@ const api: PiSwitchAPI = {
     delete: (id, options) => invoke(IPC_INVOKE.modelDelete, id, options ?? {}),
     setActive: (input, options) => invoke(IPC_INVOKE.modelSetActive, input, options ?? {}),
     getActive: () => invoke(IPC_INVOKE.modelGetActive),
+    setVisibility: (entries) => invoke(IPC_INVOKE.modelSetVisibility, entries),
+    fastMode: () => invoke(IPC_INVOKE.modelFastMode),
+    setFastMode: (enabled) => invoke(IPC_INVOKE.modelSetFastMode, enabled),
     invokeImage: (input) => invoke(IPC_INVOKE.modelInvokeImage, input)
   },
   config: {

@@ -211,6 +211,9 @@ export const deDE: MessageTree = {
     colProtocol: 'Protokoll',
     colModels: 'Modelle',
     colUpdated: 'Aktualisiert',
+    colGateway: 'Gateway',
+    gatewayHint:
+      'Lehnt der Anbieter Tools mit Reasoning ab, wird über seine Responses-API erneut angefragt',
     fieldKey: 'Anbieterschlüssel',
     keyPlaceholder: 'nvidia-m3',
     fieldKeyHint:
@@ -339,6 +342,13 @@ export const deDE: MessageTree = {
     colProvider: 'Anbieter',
     colProtocol: 'Protokoll',
     colCapabilities: 'Fähigkeiten',
+    colVisible: 'Angezeigt',
+    colVisibleHint: 'Ausgeblendete Modelle bleiben konfiguriert, erscheinen aber nicht in der Auswahl',
+    showLatest: 'Neueste Modelle zeigen',
+    showLatestHint:
+      'Nur die neuesten Modelle jedes Anbieters zeigen und die übrigen ausblenden; jedes lässt sich wieder einblenden',
+    latestShown: '{count} neueste Modelle angezeigt',
+    latestUnavailable: 'Für diese Anbieter gibt es keine Liste neuester Modelle',
     colUpdated: 'Aktualisiert',
     fieldProvider: 'Anbieter',
     fieldProviderKeyHint:
@@ -1580,6 +1590,9 @@ export const deDE: MessageTree = {
     thinkingIntensity: 'Schlussfolgerungsstärke',
     thinkingFaster: 'Schneller',
     thinkingDeeper: 'Gründlicher',
+    fastMode: 'Schnell',
+    fastModeOn: 'Schnell ist an: etwa 1,5-fache Geschwindigkeit, höherer Verbrauch',
+    fastModeOff: 'Schnell einschalten: etwa 1,5-fache Geschwindigkeit, höherer Verbrauch',
     thinking: 'Nachdenken',
     tools: 'Werkzeuge',
     presetNone: 'Keine',

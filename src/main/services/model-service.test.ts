@@ -78,3 +78,46 @@ describe('current model defaults and saved overrides', () => {
     })
   })
 })
+
+it('shows and hides models without touching Pi config or other model metadata', async () => {
+  const providers: Record<string, PiProviderConfig> = {
+    openai: {
+      api: 'openai-completions',
+      baseUrl: 'https://api.openai.com/v1',
+      models: [{ id: 'gpt-6.2-sol' }, { id: 'gpt-4.1' }]
+    }
+  }
+  const before = JSON.stringify(providers)
+  let meta = {
+    providers: {},
+    models: { 'openai::gpt-6.2-sol': { displayName: 'Sol', enabled: false, createdAt: 1 } },
+    capabilities: {},
+    builtinSkills: { schemaVersion: 1, installed: {} }
+  } as AppMetadata
+  const service = new ModelService(
+    { read: async () => ({ models: { providers }, settings: {} }) } as never,
+    {
+      read: async () => meta,
+      mutate: async ({ apply }: { apply: (current: AppMetadata) => AppMetadata }) =>
+        (meta = apply(meta))
+    } as never
+  )
+
+  await expect(service.setVisibility([{ id: 'openai::missing', enabled: true }])).rejects.toThrow(
+    'Model not found'
+  )
+  const listed = await service.setVisibility([
+    { id: 'openai::gpt-6.2-sol', enabled: true },
+    { id: 'openai::gpt-4.1', enabled: false }
+  ])
+  expect(listed.map(({ modelId, enabled }) => [modelId, enabled])).toEqual([
+    ['gpt-6.2-sol', true],
+    ['gpt-4.1', false]
+  ])
+  expect(meta.models['openai::gpt-6.2-sol']).toMatchObject({
+    displayName: 'Sol',
+    enabled: true,
+    createdAt: 1
+  })
+  expect(JSON.stringify(providers)).toBe(before)
+})

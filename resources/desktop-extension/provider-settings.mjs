@@ -174,17 +174,11 @@ export function installProviderSettings(pi, load, network) {
                   headers: applyProviderHeaders(headers, settings, model.api, options.sessionId)
                 })
               if (!settings) return invoke()
-              if (model.api === 'google-generative-ai' && settings.proxy && network.googleBaseUrl) {
+              if (model.api === 'google-generative-ai' && network.googleBaseUrl) {
                 const target = await network.googleBaseUrl(model.provider, model.baseUrl)
                 return invoke(undefined, target)
               }
-              if (
-                model.api !== 'google-generative-ai' &&
-                (settings.proxy ||
-                  settings.concurrency ||
-                  settings.requestsPerMinute ||
-                  settings.responsesWebSocket)
-              )
+              if (model.api !== 'google-generative-ai')
                 return invoke((input, init) =>
                   network.fetch(model.provider, model.baseUrl, input, init)
                 )
