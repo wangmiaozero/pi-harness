@@ -790,13 +790,13 @@ test('shows the account catalogue and manages the default and allowed fallback',
   await expect(picks.getByRole('button', { name: '保存', exact: true })).toHaveCount(0)
   await expect(sol).toHaveAttribute('aria-pressed', 'true')
   await expect(backup).not.toContainText('访问令牌已过期')
-  await expect(primary.getByLabel('账户模型')).toHaveValue('gpt-6.1-sol')
+  await expect(primary.getByLabel('账户模型')).toHaveValue('gpt-6.1-terra')
   await primary.getByLabel('账户模型').click()
   const modelMenu = page.locator('[data-combobox-panel]')
   await expect(modelMenu.getByRole('button')).toHaveText([
+    'GPT-6.1 Terra',
     'GPT-6.1 Sol',
     'GPT-6 Astra',
-    'GPT-6.1 Terra',
     'Account model'
   ])
   await page.keyboard.press('Escape')
@@ -852,15 +852,15 @@ test('shows the account catalogue and manages the default and allowed fallback',
   const chatOptions = page.getByTestId('composer-model-panel').getByRole('option')
   await expect(page.getByTestId('composer-model-panel')).not.toContainText('访问令牌已过期')
   await expect(chatOptions).toHaveText([
+    'GPT-6.1 Terra',
     'GPT-6.1 Sol',
     'GPT-6 Astra',
-    'GPT-6.1 Terra',
     'Account model'
   ])
-  await chatOptions.getByText('GPT-6.1 Sol').click()
-  await expect(picker).toContainText('GPT-6.1 Sol')
+  await chatOptions.getByText('GPT-6.1 Terra').click()
+  await expect(picker).toContainText('GPT-6.1 Terra')
   await picker.click()
-  await expect(modelPanel.getByRole('option').first()).toHaveText('GPT-6.1 Sol')
+  await expect(modelPanel.getByRole('option').first()).toHaveText('GPT-6.1 Terra')
   await page.keyboard.press('Escape')
   await page.locator('a[href="#/models"]').click()
   await page.getByTestId('open-subscription-chatgpt').click()

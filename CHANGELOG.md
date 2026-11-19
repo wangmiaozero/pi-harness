@@ -30,6 +30,10 @@ Release notes describe user-visible additions and fixes.
 - Failed connection tests explain the cause and what to try next.
 - The automatic proxy also uses the proxy set in your shell.
 
+#### Chat
+
+- A message sent right after a reply finishes stays in the conversation with its loading indicator.
+
 #### Model list
 
 - The actions column stays readable when the list scrolls sideways on a selected or hovered row.

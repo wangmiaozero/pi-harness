@@ -153,9 +153,15 @@ test.describe('Pi-Harness smoke', () => {
     await page.locator('a[href="#/models"]').click()
     await expect(page.locator('a[href="#/providers"]')).toHaveCount(0)
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
-    // Every configured provider stays selectable, so the list has no enable switches.
+    // Every configured provider stays selectable, so the only switches are the gateway toggles.
     await expect(page.getByTestId('provider-row')).toHaveCount(2)
-    await expect(page.locator('main [role="switch"]')).toHaveCount(0)
+    const gatewaySwitches = page.getByTestId('provider-gateway-switch')
+    await expect(gatewaySwitches).toHaveCount(2)
+    await expect(gatewaySwitches.first()).toHaveAttribute('aria-checked', 'false')
+    await expect(gatewaySwitches.last()).toHaveAttribute('aria-checked', 'false')
+    await expect(
+      page.locator('main [role="switch"]:not([data-testid="provider-gateway-switch"])')
+    ).toHaveCount(0)
     if (process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.screenshot({
         path: path.join(process.env.PI_HARNESS_DESIGN_QA_DIR, 'model-management-providers.png')

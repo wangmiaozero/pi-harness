@@ -318,10 +318,20 @@ export const useAgentStore = defineStore('agent', () => {
       }
       return
     }
+    const before = new Set(sameSession ? messages.value : [])
     const detail = await callApi(() => getApi().sessions.get(sessionId))
     if (!isCurrentLoad(sessionId, generation)) return
     loadedDetail = detail
     loadedStatsOverride = null
+    // Native events can land while the snapshot is read; keep those the snapshot missed.
+    const arrived = sameSession
+      ? messages.value.filter(
+          (message) =>
+            !before.has(message) &&
+            !optimisticUserMessages.has(message) &&
+            !detail.context.messages.some((persisted) => sameMessage(persisted, message))
+        )
+      : []
     const pending = messages.value.filter((message) => optimisticUserMessages.has(message))
     optimisticUserMessages.clear()
     // A history refresh can race a queued prompt or its native message_end.
@@ -332,7 +342,7 @@ export const useAgentStore = defineStore('agent', () => {
       if (index >= 0) pending.splice(index, 1)
     }
     for (const message of pending) optimisticUserMessages.add(message)
-    messages.value = [...detail.context.messages, ...pending]
+    messages.value = [...detail.context.messages, ...arrived, ...pending]
     entryIds.value = detail.context.entryIds
     entryParents.value = detail.context.entryParents ?? {}
     if (!savedSelection) {
@@ -1046,6 +1056,15 @@ function sameUserPrompt(left: AgentMessage, right: AgentMessage): boolean {
     userText(left) === userText(right) &&
     userImageCount(left) === userImageCount(right)
   )
+}
+
+function sameMessage(left: AgentMessage, right: AgentMessage): boolean {
+  if (left.role === 'user' || right.role === 'user')
+    return userEventKey(left) === userEventKey(right)
+  if (left.role !== right.role) return false
+  if (left.timestamp !== undefined && right.timestamp !== undefined)
+    return left.timestamp === right.timestamp
+  return JSON.stringify(left) === JSON.stringify(right)
 }
 
 function userEventKey(message: AgentMessage): string | null {

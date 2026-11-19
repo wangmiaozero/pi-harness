@@ -377,6 +377,87 @@ describe('agent store new-session handshake', () => {
     expect(agent.messages.filter((message) => message.role === 'user')).toEqual([first, second])
   })
 
+  it('keeps native messages that arrive while a history refresh reads an older snapshot', async () => {
+    let onEvent: ((payload: unknown) => void) | undefined
+    const first: AgentMessage = { role: 'user', content: 'first', timestamp: 1 }
+    const reply: AgentMessage = {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'done' }],
+      timestamp: 2
+    } as AgentMessage
+    const next: AgentMessage = { role: 'user', content: 'next', timestamp: 3 }
+    let releaseSnapshot: (messages: AgentMessage[]) => void = () => {}
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce({ context: { messages: [first, reply], entryIds: [], entryParents: {} } })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            releaseSnapshot = (messages) =>
+              resolve({ context: { messages, entryIds: [], entryParents: {} } })
+          })
+      )
+    window.piSwitch = {
+      on: (name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onEvent = listener
+        return () => {}
+      },
+      sessions: { get },
+      agent: {
+        state: async () => ({ isPromptRunning: false }),
+        running: async () => [],
+        command: async () => []
+      }
+    } as unknown as PiSwitchAPI
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.load('existing')
+    const refreshing = agent.load('existing')
+    await vi.waitFor(() => expect(get).toHaveBeenCalledTimes(2))
+    onEvent?.({ sessionId: 'existing', event: { type: 'message_end', message: next } })
+    releaseSnapshot([first, reply])
+    await refreshing
+    expect(agent.messages).toEqual([first, reply, next])
+  })
+
+  it('does not duplicate a native message the refreshed snapshot already contains', async () => {
+    let onEvent: ((payload: unknown) => void) | undefined
+    const first: AgentMessage = { role: 'user', content: 'first', timestamp: 1 }
+    const next: AgentMessage = { role: 'user', content: 'next', timestamp: 3 }
+    let releaseSnapshot: (messages: AgentMessage[]) => void = () => {}
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce({ context: { messages: [first], entryIds: [], entryParents: {} } })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            releaseSnapshot = (messages) =>
+              resolve({ context: { messages, entryIds: [], entryParents: {} } })
+          })
+      )
+    window.piSwitch = {
+      on: (name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onEvent = listener
+        return () => {}
+      },
+      sessions: { get },
+      agent: {
+        state: async () => ({ isPromptRunning: false }),
+        running: async () => [],
+        command: async () => []
+      }
+    } as unknown as PiSwitchAPI
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.load('existing')
+    const refreshing = agent.load('existing')
+    await vi.waitFor(() => expect(get).toHaveBeenCalledTimes(2))
+    onEvent?.({ sessionId: 'existing', event: { type: 'message_end', message: next } })
+    releaseSnapshot([first, { ...next }])
+    await refreshing
+    expect(agent.messages).toEqual([first, next])
+  })
+
   it('uses the visible @Skill text for a new session title while sending the native command', async () => {
     const start = vi.fn().mockResolvedValue({ sessionId: 'session-new', cwd: '/code/project' })
     const prompt = vi.fn().mockResolvedValue(null)
