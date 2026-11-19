@@ -152,7 +152,7 @@ flowchart TD
 
 <a id="pi-vs-pi-harness"></a>
 
-<details>
+<details open>
 <summary><b>Native Pi und Pi-Harness</b>, Funktion für Funktion</summary>
 
 <br>

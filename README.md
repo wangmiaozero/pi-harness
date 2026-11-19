@@ -159,7 +159,7 @@ flowchart TD
 
 <a id="pi-vs-pi-harness"></a>
 
-<details>
+<details open>
 <summary><b>Native Pi and Pi-Harness</b>, capability by capability</summary>
 
 <br>

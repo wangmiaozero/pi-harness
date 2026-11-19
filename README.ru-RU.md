@@ -152,7 +152,7 @@ flowchart TD
 
 <a id="pi-vs-pi-harness"></a>
 
-<details>
+<details open>
 <summary><b>Native Pi и Pi-Harness</b>: сравнение по возможностям</summary>
 
 <br>

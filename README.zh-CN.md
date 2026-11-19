@@ -152,7 +152,7 @@ flowchart TD
 
 <a id="pi-vs-pi-harness"></a>
 
-<details>
+<details open>
 <summary><b>原生 Pi 与 Pi-Harness</b>：逐项能力对比</summary>
 
 <br>
