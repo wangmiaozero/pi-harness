@@ -66,6 +66,7 @@ test('packaged update recovery offers the manual release download', async ({
       .getByText(new RegExp(`发现新版本 ${nextVersion}|Update ${nextVersion} is available`))
       .first()
   ).toBeVisible()
+  await page.getByTestId('update-remind-later').click()
   expect(await page.evaluate(() => window.piSwitch.updater.state())).toMatchObject({
     status: 'manual_fallback',
     available: true,

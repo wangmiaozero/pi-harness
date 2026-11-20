@@ -24,6 +24,7 @@ import { AGENT_MODES } from '../workspace/agent-mode'
 import { providerKeySchema } from './domain'
 import { customSkinSelectionSchema } from './custom-skin'
 import { CHAT_PARTICIPANT_NAME_MAX_LENGTH } from '../constants/chat-participants'
+import { normalizeSmartCompaction } from '../workspace/smart-compaction'
 
 export const projectLinkTargetSchema = z.enum(['author', 'repository'])
 
@@ -117,6 +118,7 @@ const appSettingsFields = {
     .max(24 * 60),
   petSound: z.boolean(),
   chatContentMaxWidth: z.number().int().min(560).max(2400),
+  smartCompaction: z.unknown().transform((value) => normalizeSmartCompaction(value)),
   mockMode: z.boolean(),
   manualCliPath: optionalFilesystemPathSchema,
   manualConfigDir: optionalFilesystemPathSchema,

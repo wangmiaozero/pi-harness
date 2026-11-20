@@ -111,6 +111,11 @@ import { normalizeAppIconPreference } from '@shared/constants/app-icon'
 import { runWindowsStartupPreflight } from './services/windows-startup-preflight'
 import { CustomSkinService } from './skins/custom-skin-service'
 import { DEFAULT_ASSISTANT_NAME, DEFAULT_USER_NAME } from '@shared/constants/chat-participants'
+import {
+  DEFAULT_SMART_COMPACTION,
+  normalizeSmartCompaction
+} from '@shared/workspace/smart-compaction'
+import { smartCompactionGate } from './agent/smart-compaction-gate'
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'auto',
@@ -129,6 +134,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   petSleepMinutes: 10,
   petSound: false,
   chatContentMaxWidth: 760,
+  smartCompaction: { ...DEFAULT_SMART_COMPACTION },
   mockMode: false,
   manualCliPath: null,
   manualConfigDir: null,
@@ -513,6 +519,9 @@ async function bootstrap(): Promise<void> {
       }
     }
   }
+  smartCompactionGate.configure(() =>
+    normalizeSmartCompaction(settingsStore.peek().smartCompaction)
+  )
   const piAgent = new AgentRuntimeService(sessions, desktopHooks, chatGpt, freeModels)
   let rpcAgent: PiRpcRuntime | null = null
   const runtimes = new RuntimeManager({

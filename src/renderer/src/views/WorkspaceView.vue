@@ -774,7 +774,17 @@ watch(
   touch-action: none;
 }
 
-/* No resting line: the sidebar edge comes from the background change; a short grip appears on hover. */
+.workspace-sidebar-divider::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-subtle);
+  content: '';
+}
+
+/* A short grip appears on hover, on top of the resting edge. */
 .workspace-sidebar-resizer::before {
   position: absolute;
   top: 50%;

@@ -20,3 +20,15 @@ export function latestModelIds(provider: {
     models.flatMap((model) => [model.id, ...(model.aliases ?? [])]).map((id) => id.toLowerCase())
   )
 }
+
+/** The one model that stays visible: most recently added, then most recently updated. */
+export function pickNewestModel<
+  T extends { id: string; createdAt: number; updatedAt: number }
+>(models: readonly T[]): T | undefined {
+  if (!models.length) return undefined
+  return models.reduce((best, model) => {
+    if (model.createdAt !== best.createdAt) return model.createdAt > best.createdAt ? model : best
+    if (model.updatedAt !== best.updatedAt) return model.updatedAt > best.updatedAt ? model : best
+    return model.id < best.id ? model : best
+  })
+}

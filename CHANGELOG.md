@@ -2,6 +2,34 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.15 — 2026-11-20
+
+### Added
+
+#### Long conversations
+
+- Compact a long conversation automatically before the next message, using the current model's context window, then continue the same work.
+- Turn smart compaction on or off, and choose the trigger ratio and token cap, in workspace settings.
+- See when a conversation is compacting, and the size before and after.
+
+#### Model list
+
+- Keep only the newest model visible. At least one model stays shown, and the others can be turned back on.
+
+#### Updates
+
+- A newer version opens a reminder. Closing it does not skip the reminder; the next launch asks again until you update.
+
+### Fixed
+
+#### Chat
+
+- A tokens-per-minute limit is shown as a rate limit. The conversation stays intact.
+
+#### Workspace
+
+- Vertical lines separate the navigation rail, the session list, and the conversation.
+
 ## 2.4.14 — 2026-11-20
 
 ### Added

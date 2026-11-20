@@ -52,6 +52,7 @@ export function useSettingsDraft(): SettingsDraft {
     petSleepMinutes: 10,
     petSound: false,
     chatContentMaxWidth: 760,
+    smartCompaction: { enabled: true, ratio: 0.8, maxTokens: 256_000 },
     mockMode: false,
     manualCliPath: null,
     manualConfigDir: null,

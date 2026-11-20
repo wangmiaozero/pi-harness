@@ -95,7 +95,7 @@ function isActive(path: string): boolean {
 
 <template>
   <aside
-    class="app-navigation-rail relative flex w-[var(--sidebar-width)] shrink-0 flex-col items-center bg-[var(--bg-sidebar)]"
+    class="app-navigation-rail relative flex w-[var(--sidebar-width)] shrink-0 flex-col items-center border-r border-[var(--border-subtle)] bg-[var(--bg-sidebar)]"
     data-testid="app-navigation-rail"
   >
     <nav

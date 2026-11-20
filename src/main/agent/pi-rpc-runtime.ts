@@ -52,10 +52,13 @@ import { AgentEventBatcher } from './agent-event-batcher'
 import { persistExternalImageResult, type AgentRuntimeService } from './agent-runtime-service'
 import { loadPiCodingAgent } from './pi-sdk'
 import { assertMcpNodeExecution } from '../runtime/node-execution-guard'
+import { smartCompactionGate } from './smart-compaction-gate'
 
 interface DesktopSnapshot {
   tools: HarnessTool[]
   contextUsage: AgentStateSnapshot['contextUsage']
+  reserveTokens?: number
+  contextWindow?: number | null
   idle: boolean
   entries: Array<{
     id: string
@@ -70,6 +73,8 @@ interface DesktopSnapshot {
   sessionId: string
   sessionName?: string
 }
+
+const DEFAULT_RESERVE_TOKENS = 16_384
 interface LiveSession {
   id: string
   cwd: string
@@ -555,6 +560,7 @@ export class PiRpcRuntime implements HarnessAdapter {
     }
     this.broadcastRunning()
     try {
+      await this.ensureSmartCompaction(live)
       const result = await live.client.request({
         type: 'prompt',
         message,
@@ -590,6 +596,7 @@ export class PiRpcRuntime implements HarnessAdapter {
       await live.client.request({ type: 'abort' }, 5000).catch(() => undefined)
       await live.client.stop()
     } finally {
+      smartCompactionGate.forget(id)
       this.live.delete(id)
       await live.bridge.close()
       this.broadcastRunning()
@@ -627,21 +634,63 @@ export class PiRpcRuntime implements HarnessAdapter {
       pendingMessageCount: number
     }
     const extra = desktop as DesktopSnapshot
+    const compacting = state.isCompacting || smartCompactionGate.isRunning(id)
+    const usage =
+      extra.contextUsage ??
+      (typeof extra.contextWindow === 'number'
+        ? { tokens: null, contextWindow: extra.contextWindow, percent: null }
+        : null)
     return {
       sessionId: state.sessionId,
       sessionFile: state.sessionFile ?? '',
-      status: state.isCompacting ? 'compacting' : live.busy || !extra.idle ? 'running' : 'idle',
+      status: compacting ? 'compacting' : live.busy || !extra.idle ? 'running' : 'idle',
       isStreaming: state.isStreaming,
       isPromptRunning: live.busy,
       isBashRunning: false,
-      isCompacting: state.isCompacting,
+      isCompacting: compacting,
       model: state.model ? { id: state.model.id, provider: state.model.provider } : undefined,
       thinkingLevel: state.thinkingLevel,
       autoCompactionEnabled: state.autoCompactionEnabled,
-      contextUsage: extra.contextUsage,
+      contextUsage: usage,
+      compaction: smartCompactionGate.status(id, {
+        usage: usage ? { tokens: usage.tokens, contextWindow: usage.contextWindow } : null,
+        autoEnabled: state.autoCompactionEnabled,
+        reserveTokens: extra.reserveTokens ?? DEFAULT_RESERVE_TOKENS
+      }),
       pendingMessageCount: state.pendingMessageCount,
       queuedMessages: { steering: [...live.queue.steering], followUp: [...live.queue.followUp] }
     }
+  }
+
+  /** Compact using the live model's context window, then continue the user's prompt. */
+  private async ensureSmartCompaction(live: LiveSession): Promise<void> {
+    await smartCompactionGate.beforePrompt(live.id, {
+      read: async () => {
+        const [state, desktop] = await Promise.all([
+          live.client.request({ type: 'get_state' }) as Promise<{
+            autoCompactionEnabled?: boolean
+            isCompacting?: boolean
+          }>,
+          live.bridge.request('snapshot') as Promise<DesktopSnapshot>
+        ])
+        const usage =
+          desktop.contextUsage ??
+          (typeof desktop.contextWindow === 'number'
+            ? { tokens: null, contextWindow: desktop.contextWindow, percent: null }
+            : null)
+        return {
+          usage: usage ? { tokens: usage.tokens, contextWindow: usage.contextWindow } : null,
+          autoEnabled: state.autoCompactionEnabled !== false,
+          reserveTokens: desktop.reserveTokens ?? DEFAULT_RESERVE_TOKENS,
+          idle: desktop.idle && !state.isCompacting
+        }
+      },
+      compact: () =>
+        live.client.request({ type: 'compact' }, 300_000).catch((error) => {
+          throw error instanceof Error ? error : new Error(String(error))
+        }),
+      emit: (event) => this.emit(live.id, event)
+    })
   }
   async getState(id: string) {
     const snapshot = await this.getAgentState(id)
@@ -948,6 +997,7 @@ export class PiRpcRuntime implements HarnessAdapter {
       if (now - live.lastSnapshotAt < 200) event = { ...event, message: undefined }
       else live.lastSnapshotAt = now
     }
+    smartCompactionGate.observe(live.id, event as { type: string; [key: string]: unknown })
     if (event.type === 'extension_ui_request') {
       if (['select', 'confirm', 'input', 'editor'].includes(String(event.method)))
         live.client.write({ type: 'extension_ui_response', id: event.id, cancelled: true })

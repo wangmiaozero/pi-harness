@@ -52,7 +52,7 @@ interface ComposerImageModelTarget {
   modelId: string
 }
 
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 const active = useChatViewActive()
 const agent = useAgentStore()
 const sessions = useSessionStore()
@@ -113,7 +113,29 @@ const contextColor = computed(() => {
   if (percent !== null && percent > 70) return 'var(--warning)'
   return 'var(--text-tertiary)'
 })
-const replyTruncated = computed(() => inspectRuntimeError(agent.error).kind === 'truncated')
+const replyError = computed(() => inspectRuntimeError(agent.error))
+const replyTruncated = computed(() => replyError.value.kind === 'truncated')
+const replyRateLimited = computed(() => replyError.value.kind === 'rate_limit')
+const compaction = computed(() => agent.state?.compaction ?? null)
+const compactionLabel = computed(() => {
+  const status = compaction.value
+  if (!status) return null
+  if (status.phase === 'compacting' || agent.state?.isCompacting)
+    return String(t('workspace.compactingNow'))
+  if (status.phase === 'failed' && status.error) return status.error
+  if (status.phase === 'succeeded' && status.tokensBefore != null && status.tokensAfter != null) {
+    return String(
+      t('workspace.compactDoneRange', {
+        before: status.tokensBefore.toLocaleString(),
+        after: status.tokensAfter.toLocaleString()
+      })
+    )
+  }
+  if (status.smartEnabled && status.threshold != null) {
+    return `${String(t('workspace.compactionThreshold'))}: ${compactNumber(status.threshold)}`
+  }
+  return null
+})
 const userName = computed(() => normalizeUserName(settings.settings?.userName))
 const assistantName = computed(() => normalizeAssistantName(settings.settings?.assistantName))
 
@@ -415,9 +437,26 @@ function duration(value: number): string {
             :running="active && (submitting || agent.isBusy(sessions.currentId))"
             :live-message="liveMessage"
           />
-          <div v-if="agent.error" role="alert" class="mt-2 text-[12px] [overflow-wrap:anywhere]">
-            <p class="text-[var(--danger)]">
-              {{ replyTruncated ? $t('workspace.replyTruncated') : agent.error }}
+          <div
+            v-if="agent.error || compaction?.phase === 'compacting' || agent.state?.isCompacting"
+            role="alert"
+            class="mt-2 text-[12px] [overflow-wrap:anywhere]"
+          >
+            <p
+              v-if="agent.state?.isCompacting || compaction?.phase === 'compacting'"
+              class="text-[var(--text-secondary)]"
+              data-testid="compacting-status"
+            >
+              {{ $t('workspace.compactingNow') }}
+            </p>
+            <p v-else-if="agent.error" class="text-[var(--danger)]">
+              {{
+                replyTruncated
+                  ? $t('workspace.replyTruncated')
+                  : replyRateLimited
+                    ? $t('workspace.rateLimitRetry')
+                    : agent.error
+              }}
             </p>
           </div>
         </div>
@@ -587,6 +626,20 @@ function duration(value: number): string {
               {{ contextPercent === null ? '?' : `${contextPercent.toFixed(1)}%` }} /
               {{ compactNumber(contextUsage.contextWindow) }}
             </dd>
+          </template>
+          <template v-if="compaction">
+            <dt class="text-[var(--text-tertiary)]">{{ $t('settings.smartCompaction') }}</dt>
+            <dd>
+              {{ compaction.smartEnabled ? $t('common.enabled') : $t('common.disabled') }}
+            </dd>
+            <template v-if="compaction.threshold != null">
+              <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.compactionThreshold') }}</dt>
+              <dd>{{ compactNumber(compaction.threshold) }}</dd>
+            </template>
+            <template v-if="compactionLabel && compaction.phase !== 'idle'">
+              <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.autoCompaction') }}</dt>
+              <dd class="max-w-[14rem] truncate" :title="compactionLabel">{{ compactionLabel }}</dd>
+            </template>
           </template>
         </dl>
       </section>

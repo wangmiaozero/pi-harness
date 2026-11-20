@@ -254,8 +254,10 @@ export const useAgentStore = defineStore('agent', () => {
         break
       case 'compaction_start':
       case 'auto_compaction_start':
+      case 'smart_compaction_start':
       case 'compaction_end':
       case 'auto_compaction_end':
+      case 'smart_compaction_end':
       case 'agent_end':
       case 'agent_settled':
         void reconcile(loadedSessionId)
@@ -1033,7 +1035,8 @@ function isCompactionSettleEvent(type: string): boolean {
     type === 'agent_end' ||
     type === 'agent_settled' ||
     type === 'compaction_end' ||
-    type === 'auto_compaction_end'
+    type === 'auto_compaction_end' ||
+    type === 'smart_compaction_end'
   )
 }
 

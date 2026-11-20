@@ -43,3 +43,18 @@ export interface AppUpdateState {
   preferences: UpdatePreferences
   error: UpdateFailure | null
 }
+
+/** True when a newer release should interrupt the user. Dismissal is not stored. */
+export function shouldRemindUpdate(
+  state: Pick<AppUpdateState, 'available' | 'status' | 'latestVersion' | 'currentVersion'> | null,
+  dismissedVersion: string | null
+): boolean {
+  if (!state?.available || !state.latestVersion || state.latestVersion === state.currentVersion)
+    return false
+  if (state.latestVersion === dismissedVersion) return false
+  return (
+    state.status === 'available' ||
+    state.status === 'manual_fallback' ||
+    state.status === 'ready_to_install'
+  )
+}

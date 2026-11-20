@@ -17,7 +17,8 @@ import {
   Image as ImageIcon,
   Upload,
   Download,
-  Sparkles
+  Sparkles,
+  EyeOff
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import type {
@@ -54,7 +55,7 @@ import { formatRelativeTime } from '@renderer/utils/format'
 import { chooseModelCreateProvider } from '@renderer/utils/model-provider-selection'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { isImageGenerationModel } from '@shared/models/image-model'
-import { latestModelIds } from '@shared/providers/latest-models'
+import { latestModelIds, pickNewestModel } from '@shared/providers/latest-models'
 import { rasterizeSvgImageResult } from '@renderer/utils/svg-rasterize'
 
 const props = withDefaults(
@@ -300,6 +301,27 @@ async function saveVisibility(entries: { id: string; enabled: boolean }[]) {
 async function setVisible(model: ModelDefinition, enabled: boolean) {
   try {
     await saveVisibility([{ id: model.id, enabled }])
+  } catch (e) {
+    toast.error((e as { message?: string }).message ?? t('common.failed'))
+  }
+}
+
+async function showOnlyNewestModel() {
+  const owned =
+    providerFilter.value === 'all'
+      ? modelsStore.items
+      : modelsStore.items.filter((model) => model.providerId === providerFilter.value)
+  const keep = pickNewestModel(owned)
+  if (!keep) {
+    toast.info(t('models.newestUnavailable'))
+    return
+  }
+  const entries = owned
+    .filter((model) => model.enabled !== (model.id === keep.id))
+    .map((model) => ({ id: model.id, enabled: model.id === keep.id }))
+  try {
+    if (entries.length) await saveVisibility(entries)
+    toast.success(t('models.newestKept', { name: keep.displayName || keep.modelId }))
   } catch (e) {
     toast.error((e as { message?: string }).message ?? t('common.failed'))
   }
@@ -696,6 +718,16 @@ onMounted(async () => {
         >
           <Sparkles class="size-3.5" :stroke-width="1.75" />
           {{ $t('models.showLatest') }}
+        </Button>
+        <Button
+          size="sm"
+          data-testid="models-keep-newest"
+          :title="$t('models.keepNewestHint')"
+          :disabled="modelsStore.items.length === 0 || savingVisibility"
+          @click="showOnlyNewestModel"
+        >
+          <EyeOff class="size-3.5" :stroke-width="1.75" />
+          {{ $t('models.keepNewest') }}
         </Button>
         <Button
           variant="primary"

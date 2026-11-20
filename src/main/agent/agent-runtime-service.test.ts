@@ -861,7 +861,12 @@ function createAgentSession(manager: PiSessionManagerLike): AgentSessionLike {
     setSessionName: () => undefined,
     setAutoCompactionEnabled: () => undefined,
     setActiveToolsByName: vi.fn(),
-    settingsManager: { getBlockImages: () => false },
+    settingsManager: {
+      getBlockImages: () => false,
+      getCompactionReserveTokens: () => 16_384,
+      applyOverrides: () => undefined
+    },
+    isIdle: true,
     getAllTools: () => [],
     getActiveToolNames: () => [],
     getContextUsage: () => null,

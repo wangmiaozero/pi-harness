@@ -773,6 +773,8 @@ export interface AppSettings {
   petSleepMinutes: number
   petSound: boolean
   chatContentMaxWidth: number
+  /** Early compaction before Pi's native threshold; keeps recent context and continues work. */
+  smartCompaction: import('../workspace/smart-compaction').SmartCompactionSettings
   mockMode: boolean
   manualCliPath: string | null
   manualConfigDir: string | null

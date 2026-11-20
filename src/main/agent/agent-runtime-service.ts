@@ -67,8 +67,40 @@ import { getRuntimeProvider } from '../runtime/active'
 import { assertMcpNodeExecution } from '../runtime/node-execution-guard'
 import { resolveExecutable } from '../environment/command-resolver'
 import { validateExecutable } from '../runtime/validator'
+import { smartCompactionGate } from './smart-compaction-gate'
+import { smartCompactionThreshold } from '@shared/workspace/smart-compaction'
 
 const IDLE_MS = 10 * 60 * 1000
+const DEFAULT_RESERVE_TOKENS = 16_384
+
+/** Raise Pi's in-memory reserve so mid-turn native compaction fires at the smart threshold. */
+function applySmartReserve(session: AgentSessionLike): void {
+  const settings = smartCompactionGate.getSettings()
+  const model = session.model
+  const applyOverrides = session.settingsManager?.applyOverrides?.bind(session.settingsManager)
+  if (!model || !settings.enabled || !applyOverrides) return
+  const window = model.contextWindow ?? 0
+  const threshold = smartCompactionThreshold({
+    contextWindow: window,
+    reserveTokens: DEFAULT_RESERVE_TOKENS,
+    settings
+  })
+  if (threshold === null) return
+  applyOverrides({
+    compaction: { reserveTokens: Math.max(DEFAULT_RESERVE_TOKENS, window - threshold) }
+  })
+}
+
+function readReserveTokens(session: AgentSessionLike): number {
+  const model = session.model
+  const read = session.settingsManager?.getCompactionReserveTokens?.bind(session.settingsManager)
+  if (!model || !read) return DEFAULT_RESERVE_TOKENS
+  try {
+    return read(model)
+  } catch {
+    return DEFAULT_RESERVE_TOKENS
+  }
+}
 function toolRegistry(session: AgentSessionLike) {
   return {
     getAllTools: () => session.getAllTools(),
@@ -129,6 +161,7 @@ export class AgentSessionWrapper {
     this.toolSelection = createToolSelection(toolRegistry(inner))
     if (systemPromptController) systemPromptController.toolSelection = this.toolSelection
     if (inner.autoCompactionEnabled === false) inner.setAutoCompactionEnabled(true)
+    applySmartReserve(inner)
     this.installFileToolEnforcement()
   }
 
@@ -146,13 +179,14 @@ export class AgentSessionWrapper {
       (this.pendingPromptCount > 0 ||
         this.inner.isStreaming ||
         this.inner.isCompacting ||
+        smartCompactionGate.isRunning(this.sessionId) ||
         this.inner.isBashRunning)
     )
   }
 
   status(): AgentRuntimeStatus {
     if (!this._alive) return 'idle'
-    if (this.inner.isCompacting) return 'compacting'
+    if (this.inner.isCompacting || smartCompactionGate.isRunning(this.sessionId)) return 'compacting'
     if (this.isRunning()) return 'running'
     return 'idle'
   }
@@ -163,6 +197,7 @@ export class AgentSessionWrapper {
         if (event.type === 'agent_start') this.promptErrorMessage = null
         const eventError = runtimeEventError(event)
         if (eventError !== undefined) this.promptErrorMessage = eventError
+        smartCompactionGate.observe(this.sessionId, event)
         if (event.type === 'tool_execution_end') {
           const completed = event as { toolName?: string; isError?: boolean }
           if (
@@ -254,6 +289,9 @@ export class AgentSessionWrapper {
           if (this.inner.isBashRunning) {
             throw new AgentError('Cannot send a prompt while a shell command is running')
           }
+          // Compact against this model's window first; then continue the user's turn.
+          await this.ensureSmartCompaction(revision)
+          this.assertPromptActive(revision)
           const images = await this.prepareImages(command.images)
           this.assertPromptActive(revision)
           let preflightAccepted = false
@@ -354,6 +392,7 @@ export class AgentSessionWrapper {
           configuredInput: model.input
         })
         await this.inner.setModel({ ...model, input: [...resolvedInput] })
+        applySmartReserve(this.inner)
         return {
           id: (model as { id: string }).id,
           provider: (model as { provider: string }).provider
@@ -462,6 +501,14 @@ export class AgentSessionWrapper {
     const contextUsage = this.inner.getContextUsage() ?? null
     const steeringMessages = this.inner.getSteeringMessages()
     const followUpMessages = this.inner.getFollowUpMessages()
+    const usage = contextUsage
+      ? {
+          percent: contextUsage.percent,
+          contextWindow: contextUsage.contextWindow,
+          tokens: contextUsage.tokens
+        }
+      : null
+    const reserveTokens = readReserveTokens(this.inner)
     return {
       sessionId: this.inner.sessionId,
       sessionFile: this.inner.sessionFile ?? '',
@@ -469,17 +516,20 @@ export class AgentSessionWrapper {
       isStreaming: this.inner.isStreaming,
       isPromptRunning: this.pendingPromptCount > 0,
       isBashRunning: this.inner.isBashRunning,
-      isCompacting: this.inner.isCompacting,
+      isCompacting: this.inner.isCompacting || smartCompactionGate.isRunning(this.sessionId),
       autoCompactionEnabled: this.inner.autoCompactionEnabled === true,
       model: model ? { id: model.id, provider: model.provider } : undefined,
       thinkingLevel: this.inner.thinkingLevel,
-      contextUsage: contextUsage
-        ? {
-            percent: contextUsage.percent,
-            contextWindow: contextUsage.contextWindow,
-            tokens: contextUsage.tokens
-          }
-        : null,
+      contextUsage: usage,
+      compaction: smartCompactionGate.status(this.sessionId, {
+        usage: usage
+          ? { tokens: usage.tokens, contextWindow: usage.contextWindow }
+          : model?.contextWindow
+            ? { tokens: null, contextWindow: model.contextWindow }
+            : null,
+        autoEnabled: this.inner.autoCompactionEnabled === true,
+        reserveTokens
+      }),
       pendingMessageCount: this.inner.pendingMessageCount ?? 0,
       queuedMessages: {
         steering: [...steeringMessages],
@@ -499,10 +549,38 @@ export class AgentSessionWrapper {
     if (!this._alive) return
     this._alive = false
     this.abortRevision++
+    smartCompactionGate.forget(this.sessionId)
     if (this.idleTimer) clearTimeout(this.idleTimer)
     if (this.inner.isBashRunning) this.inner.abortBash()
     this.unsubscribe?.()
     this.onDestroyCallback?.()
+  }
+
+  /**
+   * Uses the active model's context window. Shows compacting, summarizes with that
+   * model, then the caller continues the user's prompt.
+   */
+  private async ensureSmartCompaction(revision: number): Promise<void> {
+    applySmartReserve(this.inner)
+    await smartCompactionGate.beforePrompt(this.sessionId, {
+      read: async () => {
+        const usage = this.inner.getContextUsage()
+        const model = this.inner.model
+        return {
+          usage: usage
+            ? { tokens: usage.tokens, contextWindow: usage.contextWindow }
+            : model?.contextWindow
+              ? { tokens: null, contextWindow: model.contextWindow }
+              : null,
+          autoEnabled: this.inner.autoCompactionEnabled === true,
+          reserveTokens: readReserveTokens(this.inner),
+          idle: this.inner.isIdle !== false && !this.inner.isCompacting
+        }
+      },
+      compact: () => this.inner.compact(),
+      emit: (event) => this.emit(event)
+    })
+    this.assertPromptActive(revision)
   }
 
   async shutdown(): Promise<void> {

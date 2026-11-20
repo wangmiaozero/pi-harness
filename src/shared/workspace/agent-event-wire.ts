@@ -156,7 +156,9 @@ export function isCompactionEvent(type: string): boolean {
     type === 'compaction_start' ||
     type === 'compaction_end' ||
     type === 'auto_compaction_start' ||
-    type === 'auto_compaction_end'
+    type === 'auto_compaction_end' ||
+    type === 'smart_compaction_start' ||
+    type === 'smart_compaction_end'
   )
 }
 

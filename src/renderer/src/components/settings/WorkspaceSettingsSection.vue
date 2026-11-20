@@ -2,6 +2,10 @@
 import { computed, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AppSettings } from '@shared/ipc/api-types'
+import {
+  SMART_COMPACTION_MAX_TOKENS,
+  SMART_COMPACTION_RATIOS
+} from '@shared/workspace/smart-compaction'
 import Select from '@renderer/components/ui/Select.vue'
 import Switch from '@renderer/components/ui/Switch.vue'
 import InspectorSection from '@renderer/components/ui/InspectorSection.vue'
@@ -31,6 +35,20 @@ const agentModeOptions = computed(() => [
   { value: 'goal', label: t('workspace.modeGoal') }
 ])
 
+const ratioOptions = computed(() =>
+  SMART_COMPACTION_RATIOS.map((ratio) => ({
+    value: String(ratio),
+    label: `${Math.round(ratio * 100)}%`
+  }))
+)
+
+const maxTokenOptions = computed(() =>
+  SMART_COMPACTION_MAX_TOKENS.map((tokens) => ({
+    value: String(tokens),
+    label: tokens >= 1_000_000 ? `${tokens / 1_000_000}M` : `${tokens / 1000}K`
+  }))
+)
+
 function onPresetChange(value: string): void {
   draft.value.defaultToolPreset = value as AppSettings['defaultToolPreset']
 }
@@ -41,6 +59,20 @@ function onPermissionModeChange(value: string): void {
 
 function onAgentModeChange(value: string): void {
   draft.value.defaultAgentMode = value as AppSettings['defaultAgentMode']
+}
+
+function onSmartRatioChange(value: string): void {
+  draft.value.smartCompaction = {
+    ...draft.value.smartCompaction,
+    ratio: Number(value) as AppSettings['smartCompaction']['ratio']
+  }
+}
+
+function onSmartMaxTokensChange(value: string): void {
+  draft.value.smartCompaction = {
+    ...draft.value.smartCompaction,
+    maxTokens: Number(value) as AppSettings['smartCompaction']['maxTokens']
+  }
 }
 </script>
 
@@ -80,6 +112,30 @@ function onAgentModeChange(value: string): void {
           <Switch v-model="draft.autoOpenLastProject" :label="$t('settings.autoOpenLastProject')" />
         </div>
       </PropertyRow>
+      <PropertyRow :label="$t('settings.smartCompaction')">
+        <div class="flex items-center justify-end">
+          <Switch
+            v-model="draft.smartCompaction.enabled"
+            :label="$t('settings.smartCompaction')"
+          />
+        </div>
+      </PropertyRow>
+      <Select
+        v-if="draft.smartCompaction.enabled"
+        :model-value="String(draft.smartCompaction.ratio)"
+        :label="$t('settings.smartCompactionRatio')"
+        :options="ratioOptions"
+        layout="row"
+        @update:model-value="onSmartRatioChange"
+      />
+      <Select
+        v-if="draft.smartCompaction.enabled"
+        :model-value="String(draft.smartCompaction.maxTokens)"
+        :label="$t('settings.smartCompactionMaxTokens')"
+        :options="maxTokenOptions"
+        layout="row"
+        @update:model-value="onSmartMaxTokensChange"
+      />
     </div>
   </InspectorSection>
 </template>

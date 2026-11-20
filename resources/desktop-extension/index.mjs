@@ -168,10 +168,20 @@ export default async function desktopExtension(pi) {
       if (context.isIdle()) toolSelection.refresh()
       if (method === 'tools') return listTools(pi)
     }
-    if (method === 'snapshot')
+    if (method === 'snapshot') {
+      const settings = pi.getSettings?.() ?? {}
+      const model = context.model
+      const modelKey = model ? `${model.provider}/${model.id}` : undefined
+      const override = modelKey ? settings.compaction?.modelOverrides?.[modelKey] : undefined
+      const reserveTokens =
+        override?.reserveTokens ??
+        settings.compaction?.reserveTokens ??
+        16_384
       return {
         tools: listTools(pi),
         contextUsage: context.getContextUsage() ?? null,
+        reserveTokens,
+        contextWindow: model?.contextWindow ?? null,
         idle: context.isIdle(),
         entries: context.sessionManager.getEntries().map((entry) => ({
           id: entry.id,
@@ -186,6 +196,7 @@ export default async function desktopExtension(pi) {
         sessionId: context.sessionManager.getSessionId(),
         sessionName: pi.getSessionName()
       }
+    }
     if (method === 'set_tools') {
       if (!context.isIdle())
         throw new ToolSelectionError('Wait for the current run to finish before changing tools')

@@ -488,6 +488,8 @@ export interface AgentStateSnapshot {
     contextWindow: number
     tokens: number | null
   } | null
+  /** Smart / native compaction status for the context HUD. Absent on older runtimes. */
+  compaction?: import('../workspace/smart-compaction').CompactionStatus
   pendingMessageCount: number
   queuedMessages: { steering: string[]; followUp: string[] }
 }
