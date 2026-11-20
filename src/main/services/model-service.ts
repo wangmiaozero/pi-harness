@@ -11,11 +11,12 @@ import { modelMetaKey } from '../services/metadata-store'
 import { NotFoundError, ValidationError } from '../services/errors'
 import type { PiConfigService, WriteOptions } from '../pi/config-service'
 import { domainModelToPi, modelToDomain, providerProtocolFromPi } from '../pi/adapter'
-import type { PiModelConfig } from '@shared/types/pi'
+import type { PiModelConfig, PiModelsConfig } from '@shared/types/pi'
 import { PI_THINKING_LEVELS } from '@shared/constants/index'
 import {
   findModelPreset,
   findProviderPreset,
+  presetReasoningFields,
   resolveModelDefaults
 } from '@shared/constants/provider-presets'
 
@@ -42,6 +43,8 @@ export class ModelService {
           ...model,
           contextWindow: provider.modelOverrides?.[m.id]?.contextWindow ?? model.contextWindow,
           maxOutputTokens: provider.modelOverrides?.[m.id]?.maxTokens ?? model.maxOutputTokens,
+          reasoning:
+            modelMeta?.capabilities?.reasoning ?? m.reasoning ?? defaults?.reasoning ?? false,
           tools: modelMeta?.capabilities?.tools ?? defaults?.tools ?? model.tools,
           thinkingLevels:
             model.thinkingLevels ??
@@ -55,6 +58,44 @@ export class ModelService {
       }
     }
     return out
+  }
+
+  /** Imported models never declared reasoning; give known ones their preset thinking levels. */
+  async fillPresetReasoning(): Promise<number> {
+    const pending = (providers: PiModelsConfig['providers']) =>
+      Object.entries(providers).flatMap(([key, provider]) => {
+        const preset = findProviderPreset({
+          key,
+          protocol: providerProtocolFromPi(provider.api),
+          baseUrl: provider.baseUrl
+        })
+        return (provider.models ?? []).flatMap((model) => {
+          if (model.reasoning !== undefined || model.thinkingLevelMap !== undefined) return []
+          const fields = presetReasoningFields(model.id, preset)
+          return fields ? [{ key, id: model.id, fields }] : []
+        })
+      })
+    const { models } = await this.config.read()
+    if (!pending(models.providers).length) return 0
+    let filled = 0
+    await this.config.patchModels(
+      (current) => {
+        const updates = pending(current.providers)
+        filled = updates.length
+        if (!filled) return current
+        const providers = { ...current.providers }
+        for (const { key, id, fields } of updates) {
+          const provider = providers[key]!
+          providers[key] = {
+            ...provider,
+            models: provider.models?.map((model) => (model.id === id ? { ...model, ...fields } : model))
+          }
+        }
+        return { ...current, providers }
+      },
+      { reason: 'fill model thinking levels' }
+    )
+    return filled
   }
 
   async create(raw: unknown, options?: WriteOptions): Promise<ModelDefinition> {

@@ -95,7 +95,10 @@ const providerKeyDraft = ref('')
 
 const listGrid = {
   gridTemplateColumns:
-    '20px minmax(8rem, 1.2fr) minmax(6rem, 1fr) max-content max-content 4.75rem max-content max-content 19rem'
+    '20px minmax(8rem, 1.2fr) minmax(6rem, 1fr) max-content max-content 4.75rem max-content 21.5rem'
+} as const
+const actionGrid = {
+  gridTemplateColumns: '2.75rem 6rem 3.5rem 3.5rem 3.5rem'
 } as const
 
 const defaultForm = (): ModelForm => ({
@@ -799,14 +802,15 @@ onMounted(async () => {
             <span class="min-w-0 truncate">{{ $t('models.colProvider') }}</span>
             <span class="min-w-0 truncate">{{ $t('models.colProtocol') }}</span>
             <span class="min-w-0 truncate">{{ $t('models.colCapabilities') }}</span>
-            <span class="min-w-0 truncate text-center" :title="$t('models.colVisibleHint')">
-              {{ $t('models.colVisible') }}
-            </span>
             <span class="min-w-0 truncate">{{ $t('models.colUpdated') }}</span>
             <span
-              class="sticky right-0 z-20 flex self-stretch items-center justify-end border-l border-[var(--border-subtle)] table-sticky-cell pl-2 pr-3"
+              class="sticky right-0 z-20 grid self-stretch items-center border-l border-[var(--border-subtle)] table-sticky-cell pl-2 pr-3"
+              :style="actionGrid"
             >
-              {{ $t('common.actions') }}
+              <span class="truncate text-center" :title="$t('models.colVisibleHint')">
+                {{ $t('models.colVisible') }}
+              </span>
+              <span class="col-span-4 text-right">{{ $t('common.actions') }}</span>
             </span>
           </div>
 
@@ -926,16 +930,6 @@ onMounted(async () => {
               </span>
             </div>
 
-            <div class="flex justify-center">
-              <Switch
-                data-testid="model-visible-switch"
-                :model-value="model.enabled"
-                :disabled="savingVisibility"
-                :label="`${$t('models.colVisible')} · ${model.displayName}`"
-                @update:model-value="setVisible(model, $event)"
-              />
-            </div>
-
             <div
               class="whitespace-nowrap text-[10.5px] text-[var(--text-tertiary)]"
               :title="formatRelativeTime(model.updatedAt, locale)"
@@ -945,8 +939,18 @@ onMounted(async () => {
 
             <div
               data-testid="model-action-cell"
-              class="sticky right-0 z-10 grid h-full grid-cols-[6rem_3.5rem_3.5rem_3.5rem] items-center border-l border-[var(--border-subtle)] table-sticky-cell pl-2 pr-3"
+              class="sticky right-0 z-10 grid h-full items-center border-l border-[var(--border-subtle)] table-sticky-cell pl-2 pr-3"
+              :style="actionGrid"
             >
+              <div class="flex items-center justify-center">
+                <Switch
+                  data-testid="model-visible-switch"
+                  :model-value="model.enabled"
+                  :disabled="savingVisibility"
+                  :label="`${$t('models.colVisible')} · ${model.displayName}`"
+                  @update:model-value="setVisible(model, $event)"
+                />
+              </div>
               <div class="flex min-w-0 items-center justify-center">
                 <IconButton
                   v-if="isImageGenerationModel(model)"

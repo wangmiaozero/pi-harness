@@ -57,7 +57,11 @@ import type { ImageModelResult } from '@shared/ipc/api-types'
 import { imageModelRequestSchema } from '@shared/schemas/domain'
 import { isProtocolId } from '@shared/constants/protocols'
 import type { ProtocolId } from '@shared/constants/protocols'
-import { findModelPreset, findProviderPreset } from '@shared/constants/provider-presets'
+import {
+  findModelPreset,
+  findProviderPreset,
+  presetReasoningFields
+} from '@shared/constants/provider-presets'
 import { getOfficialModelGroup, officialModelGroups } from '@shared/providers/official-model-groups'
 import { log, redactSecretText } from '../services/logger'
 import {
@@ -506,7 +510,7 @@ export class ProviderService {
         return applyProviderModelLimits(
           seedOfficialModels(
             ensureDefaultModel(
-              mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol),
+              mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol, form.key),
               form.defaultModelId ?? null,
               form.protocol,
               form.defaultModel ?? null,
@@ -619,7 +623,7 @@ export class ProviderService {
       })
       return applyProviderModelLimits(
         ensureDefaultModel(
-          mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol),
+          mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol, form.key),
           form.defaultModelId ?? null,
           form.protocol,
           form.defaultModel ?? null,
@@ -2089,14 +2093,17 @@ function seedOfficialModels(provider: PiProviderConfig, form: ProviderForm): PiP
 function mergeDiscoveredModels(
   provider: PiProviderConfig,
   discovered: DiscoveredProviderModel[],
-  protocol: ProviderModelDiscoveryInput['protocol']
+  protocol: ProviderModelDiscoveryInput['protocol'],
+  providerKey: string
 ): PiProviderConfig {
   if (discovered.length === 0) return provider
+  const preset = findProviderPreset({ key: providerKey, protocol, baseUrl: provider.baseUrl })
   const models = [...(provider.models ?? [])]
   const existingIds = new Set(models.map((model) => model.id))
   for (const model of discovered) {
     const id = model.id.trim()
     if (!id || existingIds.has(id)) continue
+    const reasoning = presetReasoningFields(id, preset)
     models.push(
       domainModelToPi(
         undefined,
@@ -2104,10 +2111,11 @@ function mergeDiscoveredModels(
           modelId: id,
           displayName: model.name.trim() || id,
           protocol,
-          reasoning: false,
+          reasoning: reasoning !== null,
           vision: model.input?.includes('image') ?? false,
           contextWindow: null,
-          maxOutputTokens: null
+          maxOutputTokens: null,
+          thinkingLevels: reasoning?.thinkingLevelMap
         },
         protocol
       )

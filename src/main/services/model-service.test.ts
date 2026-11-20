@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { PiProviderConfig } from '@shared/types/pi'
 import type { AppMetadata } from './metadata-store'
 import { ModelService } from './model-service'
@@ -120,4 +120,72 @@ it('shows and hides models without touching Pi config or other model metadata', 
     createdAt: 1
   })
   expect(JSON.stringify(providers)).toBe(before)
+})
+
+it('fills preset thinking levels only for imported models that never declared reasoning', async () => {
+  let models = {
+    providers: {
+      openai: {
+        api: 'openai-completions',
+        baseUrl: 'https://api.openai.com/v1',
+        vendorOption: { keep: true },
+        models: [
+          { id: 'gpt-6.2-sol', name: 'gpt-6.2-sol', vendorModelOption: true },
+          { id: 'gpt-5-2025-08-07' },
+          { id: 'gpt-5.5', reasoning: false },
+          { id: 'gpt-6.1-terra', thinkingLevelMap: { high: 'high' } },
+          { id: 'gpt-4.1' },
+          { id: 'whisper-1' }
+        ]
+      }
+    } as Record<string, PiProviderConfig>
+  }
+  const patchModels = vi.fn(
+    async (mutate: (current: typeof models) => typeof models, options: { reason?: string }) => {
+      expect(options.reason).toBeTruthy()
+      models = mutate(models)
+    }
+  )
+  const meta = {
+    providers: {},
+    models: {},
+    capabilities: {},
+    builtinSkills: { schemaVersion: 1, installed: {} }
+  } as AppMetadata
+  const service = new ModelService(
+    { read: async () => ({ models, settings: {} }), patchModels } as never,
+    { read: async () => meta } as never
+  )
+
+  expect(await service.fillPresetReasoning()).toBe(2)
+  const [sol, snapshot, explicitOff, explicitMap, chat, audio] = models.providers.openai.models!
+  expect(sol).toEqual({
+    id: 'gpt-6.2-sol',
+    name: 'gpt-6.2-sol',
+    vendorModelOption: true,
+    reasoning: true,
+    thinkingLevelMap: {
+      off: null,
+      minimal: null,
+      low: 'low',
+      medium: 'medium',
+      high: 'high',
+      xhigh: 'xhigh',
+      max: 'max'
+    }
+  })
+  expect(snapshot).toMatchObject({ reasoning: true, thinkingLevelMap: { minimal: 'minimal' } })
+  expect(explicitOff).toEqual({ id: 'gpt-5.5', reasoning: false })
+  expect(explicitMap).toEqual({ id: 'gpt-6.1-terra', thinkingLevelMap: { high: 'high' } })
+  expect(chat).toEqual({ id: 'gpt-4.1' })
+  expect(audio).toEqual({ id: 'whisper-1' })
+  expect(models.providers.openai.vendorOption).toEqual({ keep: true })
+
+  const listed = await service.list()
+  expect(listed.find((model) => model.modelId === 'gpt-6.2-sol')?.reasoning).toBe(true)
+  expect(listed.find((model) => model.modelId === 'gpt-5.5')?.reasoning).toBe(false)
+
+  patchModels.mockClear()
+  expect(await service.fillPresetReasoning()).toBe(0)
+  expect(patchModels).not.toHaveBeenCalled()
 })

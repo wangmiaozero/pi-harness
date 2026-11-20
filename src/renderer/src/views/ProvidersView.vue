@@ -176,7 +176,7 @@ const modelDiscoveryFeedback = ref<{
 /** Share column widths across rows; leave room for the name and its icon. */
 const listGrid = {
   gridTemplateColumns:
-    'minmax(10rem, 1fr) minmax(9rem, max-content) max-content max-content max-content max-content minmax(9.5rem, max-content)'
+    'minmax(10rem, 1fr) minmax(9rem, max-content) max-content max-content max-content minmax(14.5rem, max-content)'
 } as const
 
 const defaultForm = (): ProviderForm => ({
@@ -1352,14 +1352,14 @@ onMounted(() => {
               <span>{{ $t('providers.colProtocol') }}</span>
               <span class="px-1 text-center">{{ $t('providers.colModels') }}</span>
               <span>{{ $t('providers.colKey') }}</span>
-              <span class="text-center" :title="$t('providers.gatewayHint')">
-                {{ $t('providers.colGateway') }}
-              </span>
               <span>{{ $t('providers.colUpdated') }}</span>
               <span
-                class="sticky right-0 z-20 flex self-stretch items-center justify-end border-l border-[var(--border-subtle)] table-sticky-cell px-3.5"
+                class="sticky right-0 z-20 flex self-stretch items-center border-l border-[var(--border-subtle)] table-sticky-cell pl-2 pr-3"
               >
-                {{ $t('common.actions') }}
+                <span class="w-[4.75rem] shrink-0 truncate text-center" :title="$t('providers.gatewayHint')">
+                  {{ $t('providers.colGateway') }}
+                </span>
+                <span class="ml-auto">{{ $t('common.actions') }}</span>
               </span>
             </div>
 
@@ -1421,18 +1421,6 @@ onMounted(() => {
                 </Badge>
               </div>
 
-              <div class="flex justify-center" :title="$t('providers.gatewayHint')">
-                <Switch
-                  v-if="row.provider"
-                  data-testid="provider-gateway-switch"
-                  :model-value="row.provider.gateway === true"
-                  :disabled="switchingGateway === row.provider.key"
-                  :label="`${$t('providers.colGateway')} · ${row.name}`"
-                  @update:model-value="setGateway(row.provider, $event)"
-                />
-                <span v-else class="text-[12px] text-[var(--text-tertiary)]">—</span>
-              </div>
-
               <div
                 class="whitespace-nowrap text-[11.5px] tabular-nums text-[var(--text-tertiary)]"
                 :title="formatRelativeTime(row.updatedAt, locale)"
@@ -1442,8 +1430,23 @@ onMounted(() => {
 
               <div
                 data-testid="provider-action-cell"
-                class="sticky right-0 z-10 flex self-stretch items-center justify-end gap-1.5 border-l border-[var(--border-subtle)] table-sticky-cell pl-2 pr-3"
+                class="sticky right-0 z-10 flex self-stretch items-center gap-1.5 border-l border-[var(--border-subtle)] table-sticky-cell pl-2 pr-3"
               >
+                <div
+                  class="flex w-[4.75rem] shrink-0 items-center justify-center"
+                  :title="$t('providers.gatewayHint')"
+                >
+                  <Switch
+                    v-if="row.provider"
+                    data-testid="provider-gateway-switch"
+                    :model-value="row.provider.gateway === true"
+                    :disabled="switchingGateway === row.provider.key"
+                    :label="`${$t('providers.colGateway')} · ${row.name}`"
+                    @update:model-value="setGateway(row.provider, $event)"
+                  />
+                  <span v-else class="text-[12px] text-[var(--text-tertiary)]">—</span>
+                </div>
+                <div class="ml-auto flex items-center gap-1.5">
                 <template v-if="row.provider">
                   <IconButton show-label :label="$t('common.test')" @click="openTest(row.provider)">
                     <Zap class="size-3.5 shrink-0" :stroke-width="1.75" />
@@ -1476,6 +1479,7 @@ onMounted(() => {
                 >
                   <UserRound class="size-3.5 shrink-0" :stroke-width="1.75" />
                 </IconButton>
+                </div>
               </div>
             </div>
           </div>

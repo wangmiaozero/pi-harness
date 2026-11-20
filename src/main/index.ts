@@ -297,6 +297,9 @@ async function bootstrap(): Promise<void> {
   const providerQuota = new ProviderQuota(providers)
   void localAccounts.list()
   const models = new ModelService(config, metadata)
+  await models
+    .fillPresetReasoning()
+    .catch(() => log.config.warn('Could not fill model thinking levels'))
   const freeModels = new FreeModelService(path.join(userData(), 'free-models'), (snapshot) => {
     if (mainWindow && !mainWindow.isDestroyed())
       mainWindow.webContents.send(IPC_EVENT.freeModelsChanged, snapshot)

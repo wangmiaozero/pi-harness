@@ -126,6 +126,17 @@ export function findModelPreset(
   modelId: string,
   provider?: ProviderPreset
 ): ProviderPresetModel | undefined {
+  const found = findExactModelPreset(modelId, provider)
+  if (found) return found
+  // Dated snapshots such as gpt-5-2025-08-07 share their base model's capabilities.
+  const snapshot = /^(.+)-\d{4}-\d{2}-\d{2}$/.exec(modelId.trim())
+  return snapshot ? findExactModelPreset(snapshot[1]!, provider) : undefined
+}
+
+function findExactModelPreset(
+  modelId: string,
+  provider?: ProviderPreset
+): ProviderPresetModel | undefined {
   const key = modelId.trim().toLowerCase()
   const matches = (model: ProviderPresetModel) =>
     model.id.toLowerCase() === key || model.aliases?.some((alias) => alias.toLowerCase() === key)
@@ -152,6 +163,18 @@ export function findModelPreset(
       ...Object.values(commonCatalog.providers).flat()
     ] as ProviderPresetModel[]
   ).find((model) => !model.providerScoped && matches(model))
+}
+
+/** Pi only offers thinking levels for models whose configuration declares reasoning. */
+export function presetReasoningFields(
+  modelId: string,
+  provider?: ProviderPreset
+): { reasoning: true; thinkingLevelMap?: Partial<Record<PiThinkingLevel, string | null>> } | null {
+  const preset = findModelPreset(modelId, provider)
+  if (preset?.reasoning !== true) return null
+  return preset.thinkingLevels
+    ? { reasoning: true, thinkingLevelMap: { ...preset.thinkingLevels } }
+    : { reasoning: true }
 }
 
 /** Editable initial values for unlisted endpoints, not a claim about model capacity. */

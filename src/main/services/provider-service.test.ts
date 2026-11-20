@@ -752,6 +752,72 @@ describe('ProviderService model discovery', () => {
     expect(created.name).toBe('acme')
   })
 
+  it('imports discovered models with their preset reasoning and thinking levels', async () => {
+    const providers: Record<string, PiProviderConfig> = {}
+    const metadataState = {
+      providers: {},
+      models: {},
+      capabilities: {},
+      builtinSkills: { schemaVersion: 1, installed: {} }
+    }
+    const config = {
+      read: async () => ({
+        models: { providers },
+        settings: {},
+        modelsMtime: null,
+        settingsMtime: null
+      }),
+      patchProvider: async (
+        key: string,
+        update: (cur: PiProviderConfig | undefined) => PiProviderConfig
+      ) => {
+        providers[key] = update(providers[key])
+      },
+      getActiveModel: vi.fn(async () => ({ providerKey: null, modelId: null })),
+      setActiveModel: vi.fn(async () => undefined)
+    }
+    const metadata = {
+      read: vi.fn(async () => metadataState),
+      update: vi.fn(async (patch: Partial<typeof metadataState>) =>
+        Object.assign(metadataState, patch)
+      )
+    }
+    const service = new ProviderService(config as never, metadata as never)
+
+    await service.create({
+      key: 'openai',
+      name: 'openai',
+      displayName: 'OpenAI',
+      enabled: true,
+      protocol: 'openai-completions',
+      baseUrl: 'https://api.openai.com/v1',
+      apiKey: null,
+      headers: {},
+      authHeader: true,
+      timeout: null,
+      defaultModelId: null,
+      discoveredModels: [
+        { id: 'gpt-6.2-sol', name: 'gpt-6.2-sol' },
+        { id: 'gpt-5-2025-08-07', name: 'gpt-5-2025-08-07' },
+        { id: 'gpt-4.1', name: 'gpt-4.1' }
+      ]
+    })
+
+    const imported = Object.fromEntries(
+      (providers.openai?.models ?? []).map((model) => [model.id, model])
+    )
+    expect(imported['gpt-6.2-sol']).toMatchObject({
+      reasoning: true,
+      thinkingLevelMap: { low: 'low', high: 'high', max: 'max' }
+    })
+    expect(imported['gpt-5-2025-08-07']).toMatchObject({
+      reasoning: true,
+      thinkingLevelMap: { minimal: 'minimal' }
+    })
+    expect(imported['gpt-4.1']?.reasoning).toBeUndefined()
+    expect(imported['gpt-4.1']?.thinkingLevelMap).toBeUndefined()
+  })
+
   it('initializes a current default model with verified limits and thinking support', async () => {
     const providers: Record<string, PiProviderConfig> = {}
     const metadataState = {

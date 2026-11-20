@@ -6,6 +6,7 @@ import {
   resolveModelDefaults,
   suggestedModelPresets,
   PROVIDER_PRESETS,
+  presetReasoningFields,
   resolveModelInput
 } from '@shared/constants/provider-presets'
 
@@ -145,10 +146,14 @@ describe('provider preset catalog', () => {
     const openai = findProviderPreset({ key: 'openai' })!
     expect(suggestedModelPresets(openai).map((m) => m.id)).toEqual([
       'gpt-6-astra',
+      'gpt-6.2-sol',
+      'gpt-6.2-astra',
       'gpt-6.1-sol',
       'gpt-6.1-terra',
+      'gpt-6-sol',
       'gpt-6-luna'
     ])
+    expect(suggestedModelPresets(openai).map((m) => m.id)).not.toContain('gpt-5.6-sol')
     expect(findModelPreset('gpt-6-astra', openai)).toMatchObject({
       contextWindow: 1050000,
       maxOutputTokens: 128000,
@@ -199,4 +204,38 @@ it('supplies complete compatible defaults for common and unlisted models', () =>
     contextWindow: 131072,
     thinkingLevels: { off: null, low: 'low', medium: 'medium', high: 'high', max: null }
   })
+})
+
+it('gives every current OpenAI reasoning model, its snapshots and Pro variants thinking levels', () => {
+  const openai = findProviderPreset({ key: 'openai' })
+  for (const id of [
+    'gpt-6.2-sol',
+    'gpt-6.2-astra',
+    'gpt-6.1-sol',
+    'gpt-6.1-terra',
+    'gpt-6-astra',
+    'gpt-6-sol',
+    'gpt-6-luna',
+    'gpt-5.6-sol',
+    'gpt-5.6-terra',
+    'gpt-5.6-luna',
+    'gpt-5.5-pro',
+    'gpt-5.4-pro',
+    'gpt-5.2-pro',
+    'gpt-5-pro',
+    'gpt-5-2025-08-07',
+    'gpt-5.4-pro-2026-03-05',
+    'o3-2025-04-16'
+  ]) {
+    const fields = presetReasoningFields(id, openai)
+    expect(fields, id).not.toBeNull()
+    expect(
+      Object.values(fields!.thinkingLevelMap ?? {}).some((value) => typeof value === 'string'),
+      id
+    ).toBe(true)
+  }
+  expect(findModelPreset('gpt-5-2025-08-07', openai)?.id).toBe('gpt-5')
+  expect(presetReasoningFields('gpt-4.1-2025-04-14', openai)).toBeNull()
+  expect(presetReasoningFields('whisper-1', openai)).toBeNull()
+  expect(presetReasoningFields('gpt-6.2-sol-preview', openai)).toBeNull()
 })

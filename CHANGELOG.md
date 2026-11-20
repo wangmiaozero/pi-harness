@@ -2,6 +2,24 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.14 — 2026-11-20
+
+### Added
+
+#### Model thinking
+
+- Imported models that support reasoning get thinking levels, including current GPT models, Pro models and dated snapshots.
+
+### Fixed
+
+#### Provider list
+
+- The gateway switch sits with the other actions on the right.
+
+#### Model list
+
+- The show switch sits with the other actions on the right.
+
 ## 2.4.13 — 2026-11-19
 
 ### Added
