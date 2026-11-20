@@ -15,7 +15,7 @@ Pi のセッション、設定、Skills、拡張機能は、アプリの中で�
 
 **[ダウンロード](https://github.com/wangmiaozero/pi-harness/releases)** &nbsp;·&nbsp; **[動画](#watch)** &nbsp;·&nbsp; **[機能](#features)** &nbsp;·&nbsp; **[Harness Plugins](#harness-plugins)** &nbsp;·&nbsp; **[ドキュメント](#documentation)** &nbsp;·&nbsp; **[変更履歴](CHANGELOG.md)**
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · **日本語** · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md)
+[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · **日本語** · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md) · [Español](README.es-ES.md)
 
 <br>
 

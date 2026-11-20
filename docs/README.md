@@ -8,7 +8,7 @@ The Models page screenshots were refreshed on 2026-11-17 using Pi-Harness 2.4.10
 
 「模型」页截图于 2026-11-17 使用 Pi-Harness 2.4.10 更新。ChatGPT 授权和免费模型截图来自 2.4.8。截图中的账户和用量为示例。
 
-[English](../README.md) · [简体中文](../README.zh-CN.md) · [繁體中文](../README.zh-TW.md) · [日本語](../README.ja-JP.md) · [한국어](../README.ko-KR.md) · [Русский](../README.ru-RU.md) · [Français](../README.fr-FR.md) · [Deutsch](../README.de-DE.md)
+[English](../README.md) · [简体中文](../README.zh-CN.md) · [繁體中文](../README.zh-TW.md) · [日本語](../README.ja-JP.md) · [한국어](../README.ko-KR.md) · [Русский](../README.ru-RU.md) · [Français](../README.fr-FR.md) · [Deutsch](../README.de-DE.md) · [Español](../README.es-ES.md)
 
 [Agent settings guide / 智能体设置使用指南](agent-settings.md) · [Changelog / 更新日志](../CHANGELOG.md)
 

@@ -15,7 +15,7 @@
 
 **[下载](https://github.com/wangmiaozero/pi-harness/releases)** &nbsp;·&nbsp; **[实拍](#watch)** &nbsp;·&nbsp; **[功能](#features)** &nbsp;·&nbsp; **[Harness Plugins](#harness-plugins)** &nbsp;·&nbsp; **[文档](#documentation)** &nbsp;·&nbsp; **[更新记录](CHANGELOG.md)** &nbsp;·&nbsp; **[支持作者](#support)**
 
-[English](README.md) · **简体中文** · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md)
+[English](README.md) · **简体中文** · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md) · [Español](README.es-ES.md)
 
 <br>
 

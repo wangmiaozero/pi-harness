@@ -15,7 +15,7 @@ et vos sessions, configurations, Skills et extensions Pi continuent de fonctionn
 
 **[Télécharger](https://github.com/wangmiaozero/pi-harness/releases)** &nbsp;·&nbsp; **[Vidéo](#watch)** &nbsp;·&nbsp; **[Fonctionnalités](#features)** &nbsp;·&nbsp; **[Harness Plugins](#harness-plugins)** &nbsp;·&nbsp; **[Documentation](#documentation)** &nbsp;·&nbsp; **[Historique des versions](CHANGELOG.md)**
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · **Français** · [Deutsch](README.de-DE.md)
+[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · **Français** · [Deutsch](README.de-DE.md) · [Español](README.es-ES.md)
 
 <br>
 

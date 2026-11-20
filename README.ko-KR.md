@@ -15,7 +15,7 @@ Pi 세션, 설정, Skills, 확장 기능은 앱 안과 밖에서 그대로 동�
 
 **[다운로드](https://github.com/wangmiaozero/pi-harness/releases)** &nbsp;·&nbsp; **[영상](#watch)** &nbsp;·&nbsp; **[기능](#features)** &nbsp;·&nbsp; **[Harness Plugins](#harness-plugins)** &nbsp;·&nbsp; **[문서](#documentation)** &nbsp;·&nbsp; **[변경 기록](CHANGELOG.md)**
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · **한국어** · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md)
+[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · **한국어** · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · [Deutsch](README.de-DE.md) · [Español](README.es-ES.md)
 
 <br>
 

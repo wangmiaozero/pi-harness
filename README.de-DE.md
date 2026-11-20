@@ -15,7 +15,7 @@ und deine Pi-Sitzungen, Konfiguration, Skills und Erweiterungen funktionieren in
 
 **[Download](https://github.com/wangmiaozero/pi-harness/releases)** &nbsp;·&nbsp; **[Video](#watch)** &nbsp;·&nbsp; **[Funktionen](#features)** &nbsp;·&nbsp; **[Harness Plugins](#harness-plugins)** &nbsp;·&nbsp; **[Dokumentation](#documentation)** &nbsp;·&nbsp; **[Änderungsprotokoll](CHANGELOG.md)**
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · **Deutsch**
+[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md) · [Русский](README.ru-RU.md) · [Français](README.fr-FR.md) · **Deutsch** · [Español](README.es-ES.md)
 
 <br>
 
