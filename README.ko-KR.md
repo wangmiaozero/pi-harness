@@ -19,7 +19,7 @@ Pi 세션, 설정, Skills, 확장 기능은 앱 안과 밖에서 그대로 동�
 
 <br>
 
-<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png" width="900" alt="Pi-Harness 작업 영역: 대화, 프로젝트 파일, Git을 한 창에서">
+<img src="docs/assets/workspace-macbook.jpg" width="900" alt="MacBook의 Pi-Harness: 대화와 프로젝트 사이드바를 한 창에서">
 
 </div>
 

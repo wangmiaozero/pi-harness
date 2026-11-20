@@ -19,7 +19,7 @@ et vos sessions, configurations, Skills et extensions Pi continuent de fonctionn
 
 <br>
 
-<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png" width="900" alt="L’espace de travail Pi-Harness : conversations, fichiers du projet et Git dans une seule fenêtre">
+<img src="docs/assets/workspace-macbook.jpg" width="900" alt="Pi-Harness sur un MacBook : une conversation et la barre latérale du projet dans une seule fenêtre">
 
 </div>
 

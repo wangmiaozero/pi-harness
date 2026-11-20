@@ -19,7 +19,7 @@
 
 <br>
 
-<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png" width="900" alt="Рабочая область Pi-Harness: разговоры, файлы проекта и Git в одном окне">
+<img src="docs/assets/workspace-macbook.jpg" width="900" alt="Pi-Harness на MacBook: разговор и боковая панель проекта в одном окне">
 
 </div>
 

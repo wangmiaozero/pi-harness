@@ -19,7 +19,7 @@ and your Pi sessions, configuration, Skills and extensions keep working inside a
 
 <br>
 
-<img src="docs/%E5%8A%9F%E8%83%BD%E7%95%8C%E9%9D%A2/%E7%BB%8F%E5%85%B8%E4%B8%BB%E9%A2%98/%E5%B7%A5%E4%BD%9C%E5%8C%BA.png" width="900" alt="The Pi-Harness workspace: conversations, project files and Git in one window">
+<img src="docs/assets/workspace-macbook.jpg" width="900" alt="Pi-Harness on a MacBook: a conversation and the project sidebar in one window">
 
 </div>
 
