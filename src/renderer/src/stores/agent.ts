@@ -149,7 +149,10 @@ export const useAgentStore = defineStore('agent', () => {
               ? inspectRuntimeError(body.event.errorMessage ?? 'Agent error').userMessage
               : undefined
           if (body.event.success === false) {
-            error.value = completionError ?? 'Agent error'
+            error.value =
+              inspectRuntimeError(body.event.errorMessage ?? 'Agent error').kind === 'aborted'
+                ? null
+                : (completionError ?? 'Agent error')
             streaming.value = streamReducer(streaming.value, { type: 'end' })
           } else {
             completionCount.value += 1
@@ -214,7 +217,8 @@ export const useAgentStore = defineStore('agent', () => {
               : completed
           messages.value = [...messages.value, normalizeToolCalls(stored)]
           if (stored.role === 'assistant' && stored.errorMessage) {
-            error.value = inspectRuntimeError(stored.errorMessage).userMessage
+            const info = inspectRuntimeError(stored.errorMessage)
+            error.value = info.kind === 'aborted' ? null : info.userMessage
           }
         } else if (completed?.role === 'user') {
           // Native system/tool messages can arrive after the optimistic user
@@ -248,10 +252,12 @@ export const useAgentStore = defineStore('agent', () => {
         streaming.value = streamReducer(streaming.value, { type: 'end' })
         break
       }
-      case 'prompt_error':
-        error.value = inspectRuntimeError(event.errorMessage ?? 'Agent error').userMessage
+      case 'prompt_error': {
+        const info = inspectRuntimeError(event.errorMessage ?? 'Agent error')
+        error.value = info.kind === 'aborted' ? null : info.userMessage
         streaming.value = streamReducer(streaming.value, { type: 'end' })
         break
+      }
       case 'compaction_start':
       case 'auto_compaction_start':
       case 'smart_compaction_start':

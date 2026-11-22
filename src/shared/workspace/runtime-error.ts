@@ -9,6 +9,7 @@ export type RuntimeErrorKind =
   | 'output_limit'
   | 'provider'
   | 'truncated'
+  | 'aborted'
   | 'generic'
 
 const TRUNCATED_REPLY_ERROR =
@@ -29,7 +30,9 @@ export function runtimeEventError(event: {
       { role?: unknown; stopReason?: unknown; errorMessage?: unknown } | undefined
     if (message?.role !== 'assistant') return undefined
     if (typeof message.errorMessage === 'string' && message.errorMessage.trim()) {
-      return inspectRuntimeError(message.errorMessage).userMessage
+      const info = inspectRuntimeError(message.errorMessage)
+      if (info.kind === 'aborted') return null
+      return info.userMessage
     }
     if (message.stopReason === 'error') return 'Agent error'
     if (message.stopReason === 'length') return TRUNCATED_REPLY_ERROR
@@ -66,9 +69,13 @@ const CONTEXT_OVERFLOW =
   /context_length_exceeded|maximum context length|context (?:length|window) (?:is )?exceeded|exceeds? the (?:model'?s? )?(?:context|maximum (?:context|input))|prompt is too long|input is too long|reduce the length of the (?:messages|prompt)|request too large for model/i
 const OUTPUT_LIMIT =
   /token cap and the summary is incomplete|max_output_tokens|maximum output tokens|output token limit/i
+/** A stop or a local runner reporting that the caller went away. Not a failed reply. */
+const ABORTED =
+  /^(?:request aborted|aborted by (?:the )?user|operation (?:was )?aborted)\b|the operation was aborted|request timed out\.?:?\s*the operation was aborted|\brequest was aborted\b/i
 
 export function inspectRuntimeError(raw: unknown): RuntimeErrorInfo {
   const text = extractErrorText(raw)
+  if (ABORTED.test(text)) return { kind: 'aborted', userMessage: text }
   if (text === TRUNCATED_REPLY_ERROR) return { kind: 'truncated', userMessage: text }
   const stripped = text.replace(SUMMARIZATION_PREFIX, '').trim()
   const match = stripped.match(PROVIDER_STATUS_JSON)

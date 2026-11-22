@@ -13,6 +13,7 @@ import {
   type LocalGatewayState
 } from '@shared/providers/gateway'
 import { GatewayModelError } from './gateway-models'
+import { noteLocalGatewayBaseUrl } from '../agent/ollama-runner'
 import type { ProviderService } from './provider-service'
 import type { ChatGptAccounts } from './chatgpt-accounts'
 import { isSelectableChatGptModel } from '@shared/providers/account-management'
@@ -153,6 +154,7 @@ export class LocalProviderGateway {
         }
         this.apiKey = apiKey
         this.connection = connection
+        noteLocalGatewayBaseUrl(connection.baseUrl)
         resolve(connection)
       })
     })
@@ -176,6 +178,7 @@ export class LocalProviderGateway {
     websockets?.clients.forEach((client) => client.terminate())
     websockets?.close()
     this.connection = undefined
+    noteLocalGatewayBaseUrl(null)
     this.apiKey = undefined
     this.listener = undefined
     if (!listener) return

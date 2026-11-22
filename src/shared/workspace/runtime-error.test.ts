@@ -69,6 +69,20 @@ describe('inspectRuntimeError', () => {
     ).toBe('quota')
   })
 
+  it('treats a stopped local model as an abort, not a failed reply', () => {
+    expect(inspectRuntimeError('Request aborted').kind).toBe('aborted')
+    expect(inspectRuntimeError('Request timed out.: The operation was aborted. (20)').kind).toBe(
+      'aborted'
+    )
+    expect(
+      runtimeEventError({
+        type: 'message_end',
+        message: { role: 'assistant', errorMessage: 'Request aborted' }
+      })
+    ).toBeNull()
+    expect(inspectRuntimeError('Request timed out').kind).toBe('generic')
+  })
+
   it('separates context overflow and summary output caps from throttling', () => {
     expect(
       inspectRuntimeError(

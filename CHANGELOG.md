@@ -2,6 +2,15 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.16 — 2026-11-22
+
+### Fixed
+
+#### Local models
+
+- Stopping a reply also stops a local model that keeps running, including Ollama and other models on this computer. The gateway proxy stays running.
+- Stopping that reply no longer leaves a red abort or timeout error in the conversation.
+
 ## 2.4.15 — 2026-11-20
 
 ### Added

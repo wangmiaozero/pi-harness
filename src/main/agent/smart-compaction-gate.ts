@@ -211,6 +211,10 @@ export class SmartCompactionGate {
     }
     if (typeof event.errorMessage === 'string' && event.errorMessage.trim()) {
       const info = inspectRuntimeError(event.errorMessage)
+      if (info.kind === 'aborted') {
+        if (state.trigger !== 'smart') state.phase = 'idle'
+        return
+      }
       Object.assign(state, { phase: 'failed', error: info.userMessage, errorKind: info.kind })
     }
   }

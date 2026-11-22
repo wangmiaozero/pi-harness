@@ -68,6 +68,7 @@ import { assertMcpNodeExecution } from '../runtime/node-execution-guard'
 import { resolveExecutable } from '../environment/command-resolver'
 import { validateExecutable } from '../runtime/validator'
 import { smartCompactionGate } from './smart-compaction-gate'
+import { stopUserLocalModel } from './ollama-runner'
 import { smartCompactionThreshold } from '@shared/workspace/smart-compaction'
 
 const IDLE_MS = 10 * 60 * 1000
@@ -372,10 +373,14 @@ export class AgentSessionWrapper {
           release()
         }
       }
-      case 'abort':
+      case 'abort': {
         this.abortRevision++
-        await this.inner.abort()
+        const baseUrl = this.inner.model?.baseUrl
+        const aborted = Promise.resolve().then(() => this.inner.abort())
+        if (baseUrl) await stopUserLocalModel(baseUrl).catch(() => undefined)
+        await aborted
         return null
+      }
       case 'get_state':
         return this.snapshot()
       case 'set_model': {

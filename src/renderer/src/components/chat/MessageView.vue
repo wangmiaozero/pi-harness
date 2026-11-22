@@ -16,6 +16,7 @@ import { hasRenderableMessageContent } from './message-visibility'
 import { parseSkillInvocation } from './skill-invocation'
 import { stripImageMetadataSuffix } from '@shared/workspace/image-attachments'
 import { callApi, getApi } from '@renderer/composables/useApi'
+import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 
 const props = defineProps<{
   message: AgentMessage
@@ -288,7 +289,7 @@ const messageCopyText = computed(() => {
           </button>
         </template>
         <p
-          v-if="message.errorMessage"
+          v-if="message.errorMessage && inspectRuntimeError(message.errorMessage).kind !== 'aborted'"
           data-testid="assistant-error"
           class="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2 text-[12px] text-[var(--danger)]"
         >

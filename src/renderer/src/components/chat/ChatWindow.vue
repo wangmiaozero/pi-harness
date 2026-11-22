@@ -116,6 +116,7 @@ const contextColor = computed(() => {
 const replyError = computed(() => inspectRuntimeError(agent.error))
 const replyTruncated = computed(() => replyError.value.kind === 'truncated')
 const replyRateLimited = computed(() => replyError.value.kind === 'rate_limit')
+const replyAborted = computed(() => replyError.value.kind === 'aborted')
 const compaction = computed(() => agent.state?.compaction ?? null)
 const compactionLabel = computed(() => {
   const status = compaction.value
@@ -438,7 +439,11 @@ function duration(value: number): string {
             :live-message="liveMessage"
           />
           <div
-            v-if="agent.error || compaction?.phase === 'compacting' || agent.state?.isCompacting"
+            v-if="
+              (agent.error && !replyAborted) ||
+              compaction?.phase === 'compacting' ||
+              agent.state?.isCompacting
+            "
             role="alert"
             class="mt-2 text-[12px] [overflow-wrap:anywhere]"
           >
@@ -449,7 +454,7 @@ function duration(value: number): string {
             >
               {{ $t('workspace.compactingNow') }}
             </p>
-            <p v-else-if="agent.error" class="text-[var(--danger)]">
+            <p v-else-if="agent.error && !replyAborted" class="text-[var(--danger)]">
               {{
                 replyTruncated
                   ? $t('workspace.replyTruncated')

@@ -248,7 +248,7 @@ export function toErrorPayload(err: unknown): AppErrorPayload {
   if (err instanceof AppError) return redactErrorPayload(err.toPayload())
   if (err instanceof Error) {
     const runtime = inspectRuntimeError(err)
-    if (runtime.kind !== 'generic') {
+    if (runtime.kind !== 'generic' && runtime.kind !== 'aborted') {
       return {
         code: 'AGENT_ERROR',
         message: redactSecretText(runtime.userMessage),

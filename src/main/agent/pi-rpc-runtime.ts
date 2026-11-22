@@ -53,6 +53,7 @@ import { persistExternalImageResult, type AgentRuntimeService } from './agent-ru
 import { loadPiCodingAgent } from './pi-sdk'
 import { assertMcpNodeExecution } from '../runtime/node-execution-guard'
 import { smartCompactionGate } from './smart-compaction-gate'
+import { stopUserLocalModel, userLocalModelBaseUrl } from './ollama-runner'
 
 interface DesktopSnapshot {
   tools: HarnessTool[]
@@ -89,6 +90,8 @@ interface LiveSession {
   idleTimer: ReturnType<typeof setTimeout> | null
   queue: { steering: string[]; followUp: string[] }
   commandName: string
+  /** Loopback model server for this session, excluding the in-app gateway proxy. */
+  localModelBaseUrl: string | null
   /** Undefined keeps the legacy fail-closed containment for unspecified modes. */
   permissionMode: PermissionMode | undefined
   pendingPermissions: Map<string, (approved: boolean) => void>
@@ -456,10 +459,12 @@ export class PiRpcRuntime implements HarnessAdapter {
     }
     try {
       env = { ...env, ...(await bridge.start(os.tmpdir())) }
+      const localModelBaseUrl = await userLocalModelBaseUrl(agentDir, intended?.provider)
       live = {
         id,
         cwd,
         client,
+        localModelBaseUrl,
         // An unspecified mode must not relax the workspace guards (fail-closed).
         permissionMode: isPermissionMode(input.permissionMode) ? input.permissionMode : undefined,
         pendingPermissions: new Map(),
@@ -583,8 +588,11 @@ export class PiRpcRuntime implements HarnessAdapter {
   async abort(id: string): Promise<void> {
     const live = this.live.get(id)
     if (!live) return
+    const localModelBaseUrl = live.localModelBaseUrl
     live.controller.abort()
-    await live.client.request({ type: 'abort' })
+    const aborted = live.client.request({ type: 'abort' })
+    if (localModelBaseUrl) await stopUserLocalModel(localModelBaseUrl).catch(() => undefined)
+    await aborted
   }
   async stopSession(id: string): Promise<void> {
     const live = this.live.get(id)
@@ -958,18 +966,22 @@ export class PiRpcRuntime implements HarnessAdapter {
           images: command.images
         })
       }
-      case 'set_model':
+      case 'set_model': {
         if (command.provider === FREE_PROVIDER_KEY) {
           await this.options.freeModels?.assertSelectable(String(command.modelId ?? ''))
           await live.bridge.request('free_models_sync')
         }
         if (String(command.provider ?? '').startsWith(CHATGPT_PROVIDER_PREFIX))
           await live.bridge.request('chatgpt_sync')
-        return live.client.request({
+        const provider = String(command.provider ?? '')
+        const result = await live.client.request({
           type: 'set_model',
-          provider: String(command.provider ?? ''),
+          provider,
           modelId: String(command.modelId ?? '')
         })
+        live.localModelBaseUrl = await userLocalModelBaseUrl(this.options.configDir(), provider)
+        return result
+      }
       case 'set_auto_compaction':
         return live.client.request({
           type: 'set_auto_compaction',
