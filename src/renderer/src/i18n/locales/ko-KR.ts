@@ -953,7 +953,7 @@ export const koKR: MessageTree = {
     updateRemindBody: '현재 버전은 {current}이고 최신 버전은 {latest}입니다.',
     updateRemindAgain: '닫아도 업데이트되지 않습니다. 다음 실행 때 다시 알립니다.',
     updateRemindLater: '나중에',
-    updateRemindNow: '업데이트',
+    updateRemindNow: '다운로드 후 다시 시작',
     updateNotes: "Release notes",
     updateSignature: "Release signature",
     updateIntegrity: "Installer verification",

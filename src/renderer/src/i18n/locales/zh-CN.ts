@@ -929,7 +929,7 @@ export const zhCN: MessageTree = {
     updateRemindBody: '当前版本 {current}，最新版本 {latest}。',
     updateRemindAgain: '关闭后如果没有更新，下次打开还会提醒。',
     updateRemindLater: '稍后',
-    updateRemindNow: '去更新',
+    updateRemindNow: '下载并重启',
     updateNotes: "更新内容",
     updateSignature: "发行签名",
     updateIntegrity: "安装包验证",

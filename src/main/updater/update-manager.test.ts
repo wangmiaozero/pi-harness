@@ -335,3 +335,20 @@ it.each(['healthy', 'unhealthy'])(
     }
   }
 )
+
+it('applies a verified download only after the user asks to restart into it', async () => {
+  const { manager, options } = await setup()
+  await expect(manager.applyInteractive()).rejects.toMatchObject({ reason: 'INSTALL_UNVERIFIED' })
+  expect(options.install).not.toHaveBeenCalled()
+  await manager.check()
+  expect(await manager.download()).toMatchObject({
+    status: 'manual_fallback',
+    downloaded: true,
+    integrity: 'verified',
+    canInstall: false
+  })
+  await expect(manager.applyInteractive()).resolves.toMatchObject({ status: 'restarting' })
+  expect(options.install).toHaveBeenCalledTimes(1)
+  expect(options.install.mock.calls[0][2]).toEqual({ interactive: true })
+  expect(manager.snapshot().canInstall).toBe(false)
+})

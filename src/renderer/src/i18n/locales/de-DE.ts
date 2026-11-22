@@ -962,7 +962,7 @@ export const deDE: MessageTree = {
     updateRemindBody: 'Installiert ist {current}, aktuell ist {latest}.',
     updateRemindAgain: 'Schließen installiert nichts. Beim nächsten Start erscheint die Erinnerung wieder.',
     updateRemindLater: 'Später',
-    updateRemindNow: 'Aktualisieren',
+    updateRemindNow: 'Laden und neu starten',
     updateNotes: "Release notes",
     updateSignature: "Release signature",
     updateIntegrity: "Installer verification",

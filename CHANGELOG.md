@@ -2,6 +2,14 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.17 — 2026-11-22
+
+### Added
+
+#### Updates
+
+- The update reminder downloads the full installer and shows progress. On macOS, the app installs that update and restarts.
+
 ## 2.4.16 — 2026-11-22
 
 ### Fixed

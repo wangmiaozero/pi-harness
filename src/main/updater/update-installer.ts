@@ -1,8 +1,10 @@
 import fs from 'node:fs/promises'
+import path from 'node:path'
 import type { NsisUpdater } from 'electron-updater'
 import type { TrustedCandidate } from './update-provider'
 import { verifyInstaller } from './security/manifest.mjs'
 import { installCapability } from './update-capabilities'
+import { stageMacUpdate } from './mac-apply'
 import { UpdateError } from './update-error'
 import { atomicWriteJson } from '../services/storage'
 
@@ -73,10 +75,29 @@ export async function installVerifiedUpdate(options: {
   file: string
   journal: string
   appImage?: string
+  interactive?: boolean
+  bundle?: string
+  stageMac?: typeof stageMacUpdate
   relaunch: (executable?: string) => void
   quit: () => void
 }) {
   const { candidate, platform, arch, variant, currentVersion, file } = options
+  if (options.interactive && platform === 'darwin') {
+    await verifyInstaller(file, candidate.installer)
+    if (!options.bundle)
+      throw new UpdateError(
+        'INSTALL_UNSUPPORTED',
+        'Use the verified installer to update this application manually.'
+      )
+    await (options.stageMac ?? stageMacUpdate)({
+      file,
+      bundle: options.bundle,
+      stageRoot: path.dirname(file),
+      pid: process.pid
+    })
+    options.quit()
+    return
+  }
   if (!installCapability(platform, arch, variant, currentVersion, candidate.version).canInstall)
     throw new UpdateError(
       'INSTALL_UNVERIFIED',

@@ -73,6 +73,7 @@ import {
   downloadUpdate,
   getUpdateState,
   installUpdate,
+  applyUpdate,
   openReleasePage
 } from '../updater'
 import { updatePreferencesSchema } from '@shared/schemas/update'
@@ -1061,6 +1062,7 @@ export function registerIpc(services: Services): void {
     [IPC_INVOKE.updaterCheck, checkForUpdates],
     [IPC_INVOKE.updaterDownload, downloadUpdate],
     [IPC_INVOKE.updaterInstall, installUpdate],
+    [IPC_INVOKE.updaterApply, applyUpdate],
     [IPC_INVOKE.updaterCancel, cancelUpdate],
     [IPC_INVOKE.updaterRetry, retryUpdate],
     [IPC_INVOKE.updaterDefer, async () => deferUpdate()],

@@ -961,7 +961,7 @@ export const ruRU: MessageTree = {
     updateRemindBody: 'Сейчас {current}, последняя — {latest}.',
     updateRemindAgain: 'Закрытие ничего не устанавливает. При следующем запуске напоминание появится снова.',
     updateRemindLater: 'Позже',
-    updateRemindNow: 'Обновить',
+    updateRemindNow: 'Скачать и перезапустить',
     updateNotes: "Release notes",
     updateSignature: "Release signature",
     updateIntegrity: "Installer verification",

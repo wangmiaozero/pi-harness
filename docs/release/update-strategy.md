@@ -1,9 +1,11 @@
 # Updates
 
-Community builds check for new versions in the app and open the
-[official Releases page](https://github.com/wangmiaozero/pi-harness/releases) for manual download
-and installation. Automatic installation remains disabled. Older installations may retain
-their previous update behavior.
+Community builds check for new versions in the app. The reminder downloads the signed
+package and shows progress. On macOS it replaces the installed app and restarts. Windows
+and Linux still install that package by hand. Unattended automatic installation remains
+disabled. Older installations may retain their previous update behavior. The
+[official Releases page](https://github.com/wangmiaozero/pi-harness/releases) remains
+available when the in-app update cannot replace the running app.
 
 1. Download the new package for the same operating system and architecture.
 2. Verify its checksum against the release's `SHA256SUMS`.

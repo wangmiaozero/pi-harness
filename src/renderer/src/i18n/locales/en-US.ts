@@ -959,7 +959,7 @@ export const enUS = {
     updateRemindBody: 'You are on {current}. The latest version is {latest}.',
     updateRemindAgain: 'Closing this does not install the update. The next launch will remind you again.',
     updateRemindLater: 'Not now',
-    updateRemindNow: 'Update',
+    updateRemindNow: 'Download and restart',
     updateNotes: "Release notes",
     updateSignature: "Release signature",
     updateIntegrity: "Installer verification",

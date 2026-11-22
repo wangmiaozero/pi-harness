@@ -929,7 +929,7 @@ export const zhTW: MessageTree = {
     updateRemindBody: '目前版本 {current}，最新版本 {latest}。',
     updateRemindAgain: '關閉後如果沒有更新，下次開啟還會提醒。',
     updateRemindLater: '稍後',
-    updateRemindNow: '前往更新',
+    updateRemindNow: '下載並重新啟動',
     updateNotes: "Release notes",
     updateSignature: "Release signature",
     updateIntegrity: "Installer verification",

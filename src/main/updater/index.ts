@@ -37,7 +37,7 @@ function service() {
     }),
     downloader: new UpdateDownload({ directory: path.join(directory, 'downloads'), fetcher }),
     reveal: (file) => shell.showItemInFolder(file),
-    install: (candidate, file) =>
+    install: (candidate, file, mode) =>
       installVerifiedUpdate({
         platform: process.platform,
         arch: process.arch,
@@ -47,6 +47,9 @@ function service() {
         file,
         journal: path.join(directory, 'upgrade.json'),
         appImage: process.env.APPIMAGE,
+        interactive: mode?.interactive === true,
+        bundle:
+          process.platform === 'darwin' ? path.resolve(process.execPath, '../../..') : undefined,
         relaunch: (executable) => app.relaunch(executable ? { execPath: executable } : {}),
         quit: () => app.quit()
       }),
@@ -78,6 +81,7 @@ export const deferUpdate = () => service().defer()
 export const revealUpdate = () => service().reveal()
 export const updatePreferences = (value: UpdatePreferences) => service().preferences(value)
 export const installUpdate = () => service().install()
+export const applyUpdate = () => service().applyInteractive()
 export const openReleasePage = () => shell.openExternal(LATEST_RELEASE_URL)
 export const startAutomaticUpdates = (delay = 10_000) => service().start(delay)
 export const stopAutomaticUpdates = () => manager?.stop()

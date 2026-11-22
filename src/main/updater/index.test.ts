@@ -68,6 +68,7 @@ it('keeps unsigned historical versions as manual information and never silently 
   })
   expect(await updater.downloadUpdate()).toMatchObject({ canInstall: false, downloaded: false })
   await expect(updater.installUpdate()).rejects.toMatchObject({ code: 'SECURITY_ERROR' })
+  await expect(updater.applyUpdate()).rejects.toMatchObject({ code: 'SECURITY_ERROR' })
   expect(mocks.quit).not.toHaveBeenCalled()
 })
 it('follows the signed release files through the GitHub CDN redirect', async () => {

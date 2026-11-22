@@ -135,7 +135,7 @@ sha256sum "Pi-Harness-VERSION.AppImage"        # Linux
 Get-FileHash ".\Pi-Harness-Setup-VERSION.exe" -Algorithm SHA256   # Windows
 ```
 
-<sub>SHA256 checks consistency with the checksum list; it does not independently prove publisher identity. Use the official <a href="https://github.com/wangmiaozero/pi-harness/releases">GitHub Releases</a> page, and report suspected vulnerabilities privately to <a href="mailto:tuziling84@gmail.com">tuziling84@gmail.com</a>. Community builds check for new versions in the app and open the Releases page for manual download and installation on all platforms. Automatic installation stays disabled until cross-version installation is verified, and existing installations keep their previous update behavior. See <a href="docs/release/community-release.md">Community Release</a> and <a href="docs/release/update-strategy.md">update details</a>.</sub>
+<sub>SHA256 checks consistency with the checksum list; it does not independently prove publisher identity. Use the official <a href="https://github.com/wangmiaozero/pi-harness/releases">GitHub Releases</a> page, and report suspected vulnerabilities privately to <a href="mailto:tuziling84@gmail.com">tuziling84@gmail.com</a>. Community builds check for new versions in the app. The reminder downloads the signed package and shows progress. On macOS it replaces the installed app and restarts. Windows and Linux still install that package by hand. Unattended automatic installation stays disabled until cross-version installation is verified, and existing installations keep their previous update behavior. See <a href="docs/release/community-release.md">Community Release</a> and <a href="docs/release/update-strategy.md">update details</a>.</sub>
 
 <a id="architecture"></a>
 

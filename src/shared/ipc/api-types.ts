@@ -1196,6 +1196,7 @@ export interface PiSwitchAPI {
     check(): Promise<AppUpdateState>
     download(): Promise<AppUpdateState>
     install(): Promise<void>
+    apply(): Promise<AppUpdateState>
     cancel(): Promise<AppUpdateState>
     retry(): Promise<AppUpdateState>
     defer(): Promise<AppUpdateState>

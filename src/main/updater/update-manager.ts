@@ -22,7 +22,11 @@ export interface UpdateManagerOptions {
   provider: ReleaseProvider
   downloader: UpdateDownload
   reveal: (file: string) => void
-  install: (candidate: TrustedCandidate, file: string) => Promise<void>
+  install: (
+    candidate: TrustedCandidate,
+    file: string,
+    mode?: { interactive?: boolean }
+  ) => Promise<void>
   healthCheck: () => Promise<void>
 }
 export class UpdateManager {
@@ -406,6 +410,44 @@ export class UpdateManager {
       this.task = null
     })
     await this.task
+  }
+  async applyInteractive() {
+    if (!this.options.packaged)
+      throw new UpdateError('INSTALL_UNSUPPORTED', 'Install the app before applying an update.')
+    if (
+      this.task ||
+      !this.candidate ||
+      !this.file ||
+      !this.state.downloaded ||
+      this.state.signature !== 'verified' ||
+      this.state.integrity !== 'verified'
+    )
+      throw new UpdateError(
+        'INSTALL_UNVERIFIED',
+        'Download and verify the update before restarting into it.'
+      )
+    const candidate = this.candidate
+    const file = this.file
+    this.task = (async () => {
+      try {
+        this.set({ status: 'verifying', integrity: 'verifying', canInstall: false })
+        await this.options.downloader.revalidate(candidate, file)
+        this.set({ status: 'installing', integrity: 'verified' })
+        await this.options.install(candidate, file, { interactive: true })
+        return this.set({ status: 'restarting' })
+      } catch (error) {
+        return this.set({
+          status: 'manual_fallback',
+          downloaded: true,
+          integrity: 'verified',
+          error: updateFailure(error),
+          canInstall: false
+        })
+      }
+    })().finally(() => {
+      this.task = null
+    })
+    return this.task
   }
   defer() {
     return this.snapshot()

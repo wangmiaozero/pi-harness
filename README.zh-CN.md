@@ -128,7 +128,7 @@ sha256sum "Pi-Harness-VERSION.AppImage"        # Linux
 Get-FileHash ".\Pi-Harness-Setup-VERSION.exe" -Algorithm SHA256   # Windows
 ```
 
-<sub>SHA256 用于确认文件与校验列表一致，不能独立证明发布者身份。请使用官方 <a href="https://github.com/wangmiaozero/pi-harness/releases">GitHub Releases</a> 页面，疑似安全漏洞请私下联系 <a href="mailto:tuziling84@gmail.com">tuziling84@gmail.com</a>。Community 版本在应用内检查新版本，并在各平台打开官方 Releases 页面供手动下载安装。自动安装在跨版本升级验证完成前保持关闭，已有安装保留原有更新行为。详见 <a href="docs/release/community-release.md">Community Release</a> 与<a href="docs/release/update-strategy.md">更新说明</a>。</sub>
+<sub>SHA256 用于确认文件与校验列表一致，不能独立证明发布者身份。请使用官方 <a href="https://github.com/wangmiaozero/pi-harness/releases">GitHub Releases</a> 页面，疑似安全漏洞请私下联系 <a href="mailto:tuziling84@gmail.com">tuziling84@gmail.com</a>。Community 版本在应用内检查新版本。提醒窗口会下载已签名的安装包并显示进度。macOS 会替换当前应用并重新打开。Windows 和 Linux 仍需手动安装该安装包。无人值守的自动安装在跨版本升级验证完成前保持关闭，已有安装保留原有更新行为。详见 <a href="docs/release/community-release.md">Community Release</a> 与<a href="docs/release/update-strategy.md">更新说明</a>。</sub>
 
 <a id="architecture"></a>
 

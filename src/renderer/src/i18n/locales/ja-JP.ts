@@ -953,7 +953,7 @@ export const jaJP: MessageTree = {
     updateRemindBody: '現在のバージョンは {current}、最新は {latest} です。',
     updateRemindAgain: '閉じても更新されません。次回起動時に再度お知らせします。',
     updateRemindLater: 'あとで',
-    updateRemindNow: '更新する',
+    updateRemindNow: 'ダウンロードして再起動',
     updateNotes: "Release notes",
     updateSignature: "Release signature",
     updateIntegrity: "Installer verification",

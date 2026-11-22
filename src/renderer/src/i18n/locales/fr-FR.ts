@@ -961,7 +961,7 @@ export const frFR: MessageTree = {
     updateRemindBody: 'Version actuelle : {current}. Dernière version : {latest}.',
     updateRemindAgain: 'Fermer n’installe pas la mise à jour. Le prochain lancement la rappellera.',
     updateRemindLater: 'Plus tard',
-    updateRemindNow: 'Mettre à jour',
+    updateRemindNow: 'Télécharger et redémarrer',
     updateNotes: "Release notes",
     updateSignature: "Release signature",
     updateIntegrity: "Installer verification",
