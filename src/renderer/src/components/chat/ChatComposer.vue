@@ -1845,12 +1845,23 @@ onBeforeUnmount(() => {
 
 @container (max-width: 640px) {
   .command-console-controls {
-    flex-wrap: wrap;
     column-gap: 4px;
   }
 
   .composer-tools {
     gap: 0;
+  }
+
+  .composer-tools :deep(.cockpit-control-button),
+  .console-tool-strip :deep(.cockpit-control-button) {
+    width: 24px;
+    min-width: 24px;
+    padding-inline: 0;
+    justify-content: center;
+  }
+
+  .composer-tools :deep(.composer-context-usage span) {
+    display: none;
   }
 
   .console-tool-strip {
@@ -1863,27 +1874,25 @@ onBeforeUnmount(() => {
     display: none;
   }
 
+  .console-tool-strip :deep([data-testid='workspace-model-select']) {
+    min-width: 24px;
+    max-width: 28px;
+  }
+
   .console-tool-strip :deep(.ui-select-trigger) {
-    column-gap: 4px;
-    padding-inline: 4px;
+    column-gap: 0;
+    padding-inline: 0;
+    width: 24px;
   }
 }
 </style>
 
 <style scoped>
-@container (max-width: 420px) {
+@container (max-width: 324px) {
   .command-console-controls {
+    flex-wrap: wrap;
     gap: 4px;
     padding-inline: 8px;
-  }
-  .composer-tools :deep(.cockpit-control-button:not(.composer-context-usage)),
-  .console-tool-strip :deep(.cockpit-control-button) {
-    width: 24px;
-    min-width: 24px;
-    padding-inline: 0;
-  }
-  .console-tool-strip :deep([data-testid='workspace-model-select']) {
-    min-width: 48px;
   }
   .command-execute-button,
   .composer-abort-button {

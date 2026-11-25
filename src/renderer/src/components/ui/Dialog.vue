@@ -98,7 +98,11 @@ function onEscapeKeyDown(event: Event, closeOnEscape: boolean | undefined) {
             </DialogClose>
           </div>
         </div>
-        <div v-if="$slots.default" class="px-4 pb-4" :class="bodyClass ?? 'overflow-y-auto'">
+        <div
+          v-if="$slots.default"
+          class="min-h-0 px-4 pb-4"
+          :class="bodyClass ?? 'overflow-y-auto'"
+        >
           <slot />
         </div>
         <footer
