@@ -35,12 +35,8 @@ for (const kind of ['pi', 'node']) {
     const run = async (file, args) =>
       (await promisify(execFile)(file, args, { env, timeout: 30_000 })).stdout.trim()
     const version = await run(executable, ['--version'])
-    if (
-      kind === 'node'
-        ? version !== `v${catalog.node.version}`
-        : !version.includes(catalog.pi.version)
-    )
-      throw new Error(`${kind} version mismatch`)
+    const expected = kind === 'node' ? `v${catalog.node.version}` : catalog.pi.version
+    if (version !== expected) throw new Error(`${kind} version mismatch`)
     process.stdout.write(`${kind}: ${version}\n`)
     if (kind === 'node') {
       for (const tool of ['npm', 'npx']) {

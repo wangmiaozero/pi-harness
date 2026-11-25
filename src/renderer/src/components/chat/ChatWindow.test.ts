@@ -2,6 +2,7 @@ import { flushPromises, shallowMount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
+import { Gauge } from '@lucide/vue'
 import { CHAT_VIEW_ACTIVE } from '@renderer/composables/chat-view-activity'
 import { i18n } from '@renderer/i18n'
 import type { PiSwitchAPI } from '@shared/ipc/api-types'
@@ -12,6 +13,7 @@ import ChatWindow from './ChatWindow.vue'
 import ChatComposer from './ChatComposer.vue'
 import MessageHistory from './MessageHistory.vue'
 import type { ToolPreset } from '@shared/workspace/tool-presets'
+import type { AgentStateSnapshot } from '@shared/types/workspace'
 
 afterEach(() => {
   delete window.piSwitch
@@ -53,7 +55,7 @@ it.each([
       const images = queued
         ? [{ type: 'image' as const, data: 'fixture', mimeType: 'image/png' }]
         : []
-      const composer = wrapper.findComponent(ChatComposer)
+      const composer = wrapper.getComponent<typeof ChatComposer>(ChatComposer)
       if (queued) composer.vm.$emit('sendQueue', images, 'plan')
       else composer.vm.$emit('send', null, 'plan')
       await flushPromises()
@@ -100,9 +102,9 @@ it.each([false, true])(
     )
     const wrapper = shallowMount(ChatWindow, { global: { plugins: [i18n] } })
     try {
-      const composer = wrapper.findComponent(ChatComposer)
-      composer.vm.$emit('send')
-      composer.vm.$emit('send')
+      const composer = wrapper.getComponent<typeof ChatComposer>(ChatComposer)
+      composer.vm.$emit('send', null)
+      composer.vm.$emit('send', null)
       await flushPromises()
       expect(composer.props('submitting')).toBe(true)
       expect(wrapper.findComponent(MessageHistory).props('running')).toBe(true)
@@ -155,7 +157,7 @@ it('persists the first sent session before asynchronous workspace restoration fi
   })
   const wrapper = shallowMount(ChatWindow, { global: { plugins: [i18n] } })
   try {
-    wrapper.findComponent(ChatComposer).vm.$emit('send')
+    wrapper.getComponent<typeof ChatComposer>(ChatComposer).vm.$emit('send', null)
     await flushPromises()
     expect(sessions.currentId).toBe('first-session')
     const snapshot = [...saved.values()]
@@ -209,4 +211,53 @@ it('suspends hidden transcript presentation and resumes from the current store w
     content: [{ text: 'Complete background stream' }]
   })
   wrapper.unmount()
+})
+
+it('colors only the composer context icon when usage exceeds 80%', async () => {
+  window.piSwitch = { on: vi.fn(() => () => undefined) } as unknown as PiSwitchAPI
+  setActivePinia(createPinia())
+  const agent = useAgentStore()
+  const state: AgentStateSnapshot = {
+    sessionId: 'context-fixture',
+    sessionFile: '',
+    status: 'idle',
+    isStreaming: false,
+    isPromptRunning: false,
+    isBashRunning: false,
+    isCompacting: false,
+    autoCompactionEnabled: true,
+    thinkingLevel: 'off',
+    contextUsage: null,
+    pendingMessageCount: 0,
+    queuedMessages: { steering: [], followUp: [] }
+  }
+  const wrapper = shallowMount(ChatWindow, {
+    global: {
+      plugins: [i18n],
+      stubs: { ChatComposer: { template: '<div><slot name="session-actions" /></div>' } }
+    }
+  })
+  try {
+    for (const percent of [null, 70, 80, 80.5]) {
+      agent.state = {
+        ...state,
+        contextUsage: {
+          percent,
+          tokens: percent === null ? null : percent * 100,
+          contextWindow: 10000
+        }
+      }
+      await wrapper.vm.$nextTick()
+      const usage = wrapper.get('[data-testid="composer-context-usage"]')
+      expect(usage.text()).toBe(
+        percent === null ? '?' : `${percent.toLocaleString(i18n.global.locale.value)}%`
+      )
+      expect(usage.getComponent(Gauge).classes().includes('text-[var(--danger)]')).toBe(
+        percent !== null && percent > 80
+      )
+      expect(usage.classes()).not.toContain('text-[var(--danger)]')
+    }
+  } finally {
+    wrapper.unmount()
+  }
 })

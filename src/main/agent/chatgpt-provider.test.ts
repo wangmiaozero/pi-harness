@@ -13,7 +13,7 @@ afterEach(() => vi.unstubAllGlobals())
 
 const nativeModel = openaiProvider()
   .getModels()
-  .find(({ api }) => api === 'openai-responses')!
+  .find(({ id }) => id === 'gpt-6.2-sol')!
 const account: ChatGptAccount = {
   id: 'chatgpt-account-493957de-923a-4681-b5b6-d8de350c293a',
   label: '293a',
@@ -63,6 +63,7 @@ it('runs the Pi Responses streaming and tool-call path on the account model', as
     expect(new Headers(init?.headers).get('authorization')).toBe('Bearer pi-harness-chatgpt')
     const body = JSON.parse(String(init?.body))
     expect(body).toMatchObject({ model: nativeModel.id, stream: true, store: false })
+    expect(body.reasoning?.effort).toBe('low')
     expect(body).not.toHaveProperty('max_output_tokens')
     return new Response(
       payloads.map((event) => 'data: ' + JSON.stringify(event) + '\n\n').join(''),
@@ -98,7 +99,7 @@ it('runs the Pi Responses streaming and tool-call path on the account model', as
     {
       messages: [{ role: 'user', content: 'Read the fixture', timestamp: Date.now() }]
     },
-    { maxTokens: 128 }
+    { maxTokens: 128, reasoning: 'low' }
   )
   const types = []
   for await (const event of stream) types.push(event.type)

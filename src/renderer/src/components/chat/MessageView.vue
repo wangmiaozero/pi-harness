@@ -39,6 +39,13 @@ const previewOpen = ref(false)
 const markdownFailed = ref(false)
 const userDisplayName = computed(() => normalizeUserName(props.userName))
 const assistantDisplayName = computed(() => normalizeAssistantName(props.assistantName))
+const assistantError = computed(() => {
+  const message = props.message
+  if (message.role !== 'assistant' || !message.errorMessage) return null
+  const info = inspectRuntimeError(message.errorMessage)
+  if (info.kind === 'aborted') return null
+  return info.kind === 'rate_limit' ? info.userMessage : message.errorMessage
+})
 const hasVisibleContent = computed(
   () =>
     hasRenderableMessageContent(props.message) ||
@@ -289,11 +296,11 @@ const messageCopyText = computed(() => {
           </button>
         </template>
         <p
-          v-if="message.errorMessage && inspectRuntimeError(message.errorMessage).kind !== 'aborted'"
+          v-if="assistantError"
           data-testid="assistant-error"
           class="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2 text-[12px] text-[var(--danger)]"
         >
-          {{ message.errorMessage }}
+          {{ assistantError }}
         </p>
         <FileChangesCard v-if="fileChanges && !streaming" :changes="fileChanges" />
       </div>

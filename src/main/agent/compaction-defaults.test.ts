@@ -12,6 +12,12 @@ describe('compaction channel limits', () => {
     })
     expect(model.maxTokens).toBe(4096)
   })
+  it.each(['gpt-6.2-sol', 'gpt-6.2-astra'])('uses the active context window for %s', (id) => {
+    const model = { provider: 'openai', id, contextWindow: 500000 }
+    const limits = compactionDefaults(model)
+    expect(limits?.maxOutputTokens).toBe(128000)
+    expect(limits?.contextWindow).toBeUndefined()
+  })
   it.each([
     null,
     { provider: 'ark-code', id: 'unknown-model' },

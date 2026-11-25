@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { i18n } from '@renderer/i18n'
 import { useAgentStore } from '@renderer/stores/agent'
+import { useCompactionStore } from '@renderer/stores/compaction'
 import { useModelsStore } from '@renderer/stores/models'
 import { useProvidersStore } from '@renderer/stores/providers'
 import { useSessionStore } from '@renderer/stores/sessions'
@@ -178,8 +179,29 @@ describe('ChatComposer model capabilities', () => {
   })
 })
 
-describe('ChatComposer automatic compaction', () => {
-  it('has no manual compaction action while retaining task controls', async () => {
+describe('ChatComposer manual compaction', () => {
+  it('compacts the current session directly from the toolbar', async () => {
+    const sessions = useSessionStore()
+    const compaction = useCompactionStore()
+    const request = vi.spyOn(compaction, 'requestSmartCompaction').mockResolvedValue({
+      status: 'compacted'
+    })
+    const wrapper = mount(ChatComposer, {
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    const button = wrapper.get('[data-testid="composer-compact"]')
+    expect(button.attributes('disabled')).toBeDefined()
+
+    sessions.addTransientSession('session-1', '/code/project', 'hello')
+    sessions.selectSession('session-1')
+    await wrapper.vm.$nextTick()
+    expect(button.attributes('disabled')).toBeUndefined()
+    await button.trigger('click')
+    expect(request).toHaveBeenCalledExactlyOnceWith({ sessionId: 'session-1', force: true })
+  })
+
+  it('disables manual compaction while the current task is running', async () => {
     const sessions = useSessionStore()
     const agent = useAgentStore()
     sessions.addTransientSession('session-1', '/code/project', 'hello')
@@ -193,10 +215,7 @@ describe('ChatComposer automatic compaction', () => {
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
     })
-    await wrapper.get('[data-testid="composer-more"]').trigger('keydown', { key: 'Enter' })
-    await wrapper.vm.$nextTick()
-    const button = document.querySelector<HTMLButtonElement>('[data-testid="composer-compact"]')
-    expect(button).toBeNull()
+    expect(wrapper.get('[data-testid="composer-compact"]').attributes('disabled')).toBeDefined()
     await wrapper.get('[data-testid="composer-abort"]').trigger('click')
     expect(wrapper.emitted('abort')).toHaveLength(1)
   })

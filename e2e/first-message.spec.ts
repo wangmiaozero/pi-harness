@@ -205,10 +205,7 @@ for (const [withImage, precreated] of [
       await expect(composer.getByRole('button', { name: /终止|Abort/, exact: true })).toHaveCount(0)
       await expect(users).toHaveCount(2)
 
-      await page
-        .getByTestId('chat-status-hud')
-        .getByRole('button', { name: /完整历史|Full history/ })
-        .click()
+      await composer.getByRole('button', { name: /完整历史|Full history/ }).click()
       const dialog = page.getByRole('dialog', { name: /完整历史|Full history/ })
       await expect(dialog.locator('[data-message-role="user"]')).toHaveCount(2)
       if (withImage)

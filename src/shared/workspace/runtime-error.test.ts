@@ -25,7 +25,7 @@ describe('inspectRuntimeError', () => {
   })
 
   const TPM =
-    '429 Rate limit reached for gpt-6.2-sol in organization org-fixture on tokens per min (TPM): Limit 500000, Used 480210, Requested 61204. Please try again in 4.85s. Visit https://platform.openai.com/account/rate-limits to learn more.'
+    '429 Rate limit reached for gpt-6.2-sol in organization org-fixture on tokens per min (TPM): Limit 500000, Used 480210, Requested 61204. Please try again in 5.201s. Visit https://platform.openai.com/account/rate-limits to learn more. You can increase your rate limit by adding a payment method to your account at https://platform.openai.com/account/billing.'
 
   it.each([
     ['plain provider text', TPM],
@@ -37,14 +37,14 @@ describe('inspectRuntimeError', () => {
     ['a failed compaction', `Compaction failed: ${TPM}`]
   ])('treats TPM throttling in %s as a transient rate limit, not overflow or quota', (_, raw) => {
     const info = inspectRuntimeError(raw)
-    expect(info).toMatchObject({ kind: 'rate_limit', rateLimitScope: 'tokens', retryAfterMs: 4850 })
+    expect(info).toMatchObject({ kind: 'rate_limit', rateLimitScope: 'tokens', retryAfterMs: 5201 })
     expect(info.userMessage).toContain('tokens per minute')
     expect(info.userMessage).not.toMatch(/quota|switch/i)
     // Pi-Harness stores the user message; inspecting it again keeps the classification.
     expect(inspectRuntimeError(info.userMessage)).toMatchObject({
       kind: 'rate_limit',
       rateLimitScope: 'tokens',
-      retryAfterMs: 5000
+      retryAfterMs: 6000
     })
   })
 

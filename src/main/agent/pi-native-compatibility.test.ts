@@ -14,9 +14,12 @@ import { loadPiCodingAgent } from './pi-sdk'
 import { mapAgentEvent } from '../harness/harness-events'
 import { RunRegistry } from '../harness/runs/run-registry'
 
-type Reply = { tool: string; args: Record<string, unknown> } | string
+type Reply =
+  | { tool: string; args: Record<string, unknown> }
+  | { error: string; status: number; retryAfter?: string }
+  | string
 
-describe('Pi 1.5 native execution compatibility', () => {
+describe('Pi native execution compatibility', () => {
   let root: string
   let cwd: string
   let agentDir: string
@@ -24,6 +27,7 @@ describe('Pi 1.5 native execution compatibility', () => {
   let runtime: AgentRuntimeService
   const replies: Reply[] = []
   const requests: Record<string, unknown>[] = []
+  const requestTimes: number[] = []
   const events: AgentEvent[] = []
   let workspace = 'first project'
   let policySignal: AbortSignal | undefined
@@ -38,7 +42,7 @@ describe('Pi 1.5 native execution compatibility', () => {
     await fs.mkdir(cwd)
     await fs.mkdir(agentDir)
     vi.stubEnv('PI_CODING_AGENT_DIR', agentDir)
-    replies.length = requests.length = events.length = 0
+    replies.length = requests.length = requestTimes.length = events.length = 0
     workspace = 'first project'
     policySignal = undefined
     largeUsage = capEverySummary = false
@@ -48,6 +52,7 @@ describe('Pi 1.5 native execution compatibility', () => {
       for await (const chunk of request) body += chunk
       const payload = JSON.parse(body)
       requests.push(payload)
+      requestTimes.push(performance.now())
       const summary = JSON.stringify(payload.messages).includes('context summarization assistant')
       const capped =
         summary &&
@@ -55,6 +60,14 @@ describe('Pi 1.5 native execution compatibility', () => {
           (largeUsage && payload.reasoning_effort !== 'low') ||
           Math.max(payload.max_tokens ?? 0, payload.max_completion_tokens ?? 0) < summaryMinOutput)
       const reply = replies.shift() ?? 'completed'
+      if (typeof reply !== 'string' && 'error' in reply) {
+        response.writeHead(reply.status, {
+          'Content-Type': 'application/json',
+          ...(reply.retryAfter ? { 'Retry-After': reply.retryAfter } : {})
+        })
+        response.end(JSON.stringify({ error: { message: reply.error } }))
+        return
+      }
       if (reply === 'provider-error-fixture') {
         response
           .writeHead(500, { 'Content-Type': 'application/json' })
@@ -196,6 +209,56 @@ describe('Pi 1.5 native execution compatibility', () => {
       .toBe(true)
     return events.slice(before).filter((event) => event.type === 'tool_execution_end')
   }
+
+  it.each([
+    ['read ECONNRESET', 400],
+    ['connect ETIMEDOUT', 400],
+    ['write EPIPE', 400],
+    ['Connection closed.', 400],
+    [
+      'Rate limit reached on tokens per min (TPM). Please try again in 0.1s. You can increase your rate limit by adding a payment method to your account at https://platform.openai.com/account/billing.',
+      429
+    ]
+  ])('recovers a single native retry after %s', async (error, status) => {
+    const settings = path.join(agentDir, 'settings.json')
+    const saved = JSON.parse(await fs.readFile(settings, 'utf8'))
+    await fs.writeFile(
+      settings,
+      JSON.stringify({
+        ...saved,
+        retry: { enabled: true, maxRetries: 1, baseDelayMs: 1, provider: { maxRetries: 0 } }
+      })
+    )
+    const { sessionId } = await start()
+    await run(sessionId, { error, status })
+    expect(requests).toHaveLength(2)
+    expect(events.filter((event) => event.type === 'prompt_done')).toEqual([
+      { type: 'prompt_done', success: true }
+    ])
+  })
+
+  it.each(['tokens per minute (TPM)', 'requests per minute (RPM)'])(
+    'honors Retry-After for a 429 on %s',
+    async (scope) => {
+      const settings = path.join(agentDir, 'settings.json')
+      const saved = JSON.parse(await fs.readFile(settings, 'utf8'))
+      await fs.writeFile(
+        settings,
+        JSON.stringify({ ...saved, retry: { enabled: false, provider: { maxRetries: 1 } } })
+      )
+      const { sessionId } = await start()
+      await run(sessionId, {
+        error: `Rate limit exceeded on ${scope}`,
+        status: 429,
+        retryAfter: '0.1'
+      })
+      expect(requests).toHaveLength(2)
+      expect(requestTimes[1]! - requestTimes[0]!).toBeGreaterThanOrEqual(95)
+      expect(events.filter((event) => event.type === 'prompt_done')).toEqual([
+        { type: 'prompt_done', success: true }
+      ])
+    }
+  )
 
   it('executes native tools and nested Codemode through workspace and policy guards', async () => {
     const wrapper = await start(['read', 'write', 'edit', 'bash', 'codemode'])

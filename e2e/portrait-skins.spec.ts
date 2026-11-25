@@ -369,9 +369,9 @@ test('ming portrait themes render full figures beside parchment conversation sur
       path: path.join(testInfo.outputDir, `${skin}-titlebar-top-left.png`),
       clip: { x: 0, y: 0, width: 520, height: 70 }
     })
-    const statsToggle = page.getByTestId('chat-status-hud').locator('button[aria-expanded]')
+    const statsToggle = page.getByTestId('composer-context-usage')
     await statsToggle.click()
-    await expect(page.locator('.session-hud')).toBeVisible()
+    await expect(page.locator('.session-hud')).toHaveCSS('opacity', '1')
     await page.screenshot({ path: path.join(testInfo.outputDir, `${skin}-conversation.png`) })
     if (skin === 'ming-moon' && process.env.PI_HARNESS_DESIGN_QA_DIR) {
       await page.setViewportSize({ width: 2048, height: 1324 })
@@ -787,18 +787,21 @@ test('switches original portrait skins, persists selection and restores plain th
         const imageBox = (await image.boundingBox())!
         expect(messageBox.x).toBeGreaterThan(imageBox.x + imageBox.width)
       }
-      const statsToggle = page.getByTestId('chat-status-hud').locator('button[aria-expanded]')
+      const statsToggle = page.getByTestId('composer-context-usage')
+      const composer = page.getByTestId('chat-composer')
+      const before = await composer.boundingBox()
       await expect(statsToggle).toBeVisible()
       await statsToggle.click()
       const sessionHud = page.locator('.session-hud')
       await expect(sessionHud).toBeVisible()
       const [composerBox, sessionBox, statusBox] = await Promise.all([
-        page.getByTestId('chat-composer').boundingBox(),
+        composer.boundingBox(),
         sessionHud.boundingBox(),
         page.getByTestId('chat-status-hud').boundingBox()
       ])
-      expect(composerBox!.y + composerBox!.height).toBeCloseTo(sessionBox!.y, 0)
-      expect(sessionBox!.y + sessionBox!.height).toBeCloseTo(statusBox!.y, 0)
+      expect(composerBox).toEqual(before)
+      expect(sessionBox!.y + sessionBox!.height).toBeLessThanOrEqual(composerBox!.y)
+      expect(composerBox!.y + composerBox!.height).toBeCloseTo(statusBox!.y, 0)
       await statsToggle.click()
       await expect(sessionHud).toHaveCount(0)
       await page.screenshot({

@@ -18,6 +18,56 @@ const piProvider = {
   models: []
 }
 
+it('rejects creation when the key was taken before the config write', async () => {
+  const existing = { ...piProvider, baseUrl: 'https://api.example.test/v1', apiKey: '$FIRST_KEY' }
+  const providers: Record<string, PiProviderConfig> = {}
+  const config = {
+    read: async () => ({ models: { providers } }),
+    patchProvider: async (
+      key: string,
+      update: (current: PiProviderConfig | undefined) => PiProviderConfig
+    ) => {
+      providers[key] = existing
+      providers[key] = update(providers[key])
+    }
+  }
+  const metadata = {
+    read: async () => ({ providers: {}, models: {} }),
+    update: vi.fn()
+  }
+  const writeSecret = vi.spyOn(secretStore, 'setProviderSecret').mockResolvedValue(undefined)
+  const removeSecret = vi.spyOn(secretStore, 'removeSecret').mockResolvedValue(undefined)
+  try {
+    const service = new ProviderService(config as never, metadata as never)
+    await expect(
+      service.create(
+        {
+          key: 'acme',
+          name: 'acme',
+          displayName: 'Acme',
+          protocol: 'openai-completions',
+          baseUrl: 'https://api.example.test/v1',
+          apiKey: { kind: 'literal', literal: 'next-fixture-credential' },
+          headers: {},
+          authHeader: true,
+          enabled: true,
+          timeout: null
+        },
+        { overwrite: true }
+      )
+    ).rejects.toThrow('Provider key already exists: acme')
+    expect(providers.acme).toBe(existing)
+    expect(metadata.update).not.toHaveBeenCalled()
+    expect(writeSecret).toHaveBeenCalledOnce()
+    expect(removeSecret).toHaveBeenCalledExactlyOnceWith(writeSecret.mock.calls[0]?.[0], {
+      strict: true
+    })
+  } finally {
+    writeSecret.mockRestore()
+    removeSecret.mockRestore()
+  }
+})
+
 it('removes the retired OpenCode connection, its dedicated credentials and catalog', async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-retired-provider-'))
   const file = path.join(directory, 'opencode-free.json')

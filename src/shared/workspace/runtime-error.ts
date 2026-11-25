@@ -62,7 +62,7 @@ const PROVIDER_STATUS_JSON = /(\d{3})\s+(\{[\s\S]*\})/
 const SUMMARIZATION_PREFIX = /^(?:Summarization failed|(?:Auto-)?[Cc]ompaction failed):\s*/i
 
 const HARD_QUOTA =
-  /insufficient_quota|exceeded your current quota|AccountQuotaExceeded|usage quota|billing|out of budget|available balance|GoUsageLimitError|FreeUsageLimitError|Monthly usage limit|subscription_sharing_(?:workplace_individual_)?usage_limit_exceeded|"code"\s*:\s*"?1308(?!\d)/i
+  /insufficient_quota|exceeded your current quota|AccountQuotaExceeded|usage quota|billing_hard_limit_reached|billing_not_active|billing (?:hard )?limit (?:reached|exceeded)|out of budget|available balance|GoUsageLimitError|FreeUsageLimitError|Monthly usage limit|subscription_sharing_(?:workplace_individual_)?usage_limit_exceeded|"code"\s*:\s*"?1308(?!\d)/i
 const RATE_LIMIT =
   /rate.?limit|too many requests|tokens per min|requests per min|\b[TR]PM\b|TooManyRequests|throttl|ResourceExhausted|RESOURCE_EXHAUSTED/i
 const CONTEXT_OVERFLOW =

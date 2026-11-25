@@ -102,6 +102,7 @@ function openModels(provider = 'all', create = false) {
   modelScope.value = provider
 }
 const catalogOpen = ref(false)
+const catalogAddOnly = ref(true)
 const catalogDetail = ref<AddCatalogSubscriptionId | null>(null)
 const catalogAccountId = ref<string>()
 const catalogQuery = ref('')
@@ -429,7 +430,8 @@ function rememberSeededIdentity(): void {
 }
 
 function recognizedPreset(baseUrl: string, key: string): ProviderPreset | undefined {
-  const byUrl = findProviderPreset({ baseUrl })
+  const byUrl =
+    findProviderPreset({ baseUrl, protocol: form.value.protocol }) ?? findProviderPreset({ baseUrl })
   if (byUrl && !byUrl.id.endsWith('-compatible')) return byUrl
   return PROVIDER_PRESETS.find((preset) => preset.id === key && preset.defaultModelId.trim())
 }
@@ -464,8 +466,10 @@ function applyProviderIdentity(manual: boolean): void {
     return
   }
   const preset = recognizedPreset(normalized.url, suggestion.key)
-  const key = uniqueProviderKey(preset?.id ?? suggestion.key)
-  const displayName = preset?.name ?? suggestion.displayName
+  const { key, displayName } = newProviderIdentity(
+    preset?.id ?? suggestion.key,
+    preset?.name ?? suggestion.displayName
+  )
   const name = preset?.id ?? suggestion.internalName
   const modelId = preset?.defaultModelId.trim() || preset?.models[0]?.id || ''
   const same =
@@ -544,10 +548,18 @@ function uniqueProviderKey(base: string): string {
   const existing = new Set(
     providersStore.items.filter((p) => p.key !== editingKey.value).map((p) => p.key)
   )
-  if (!existing.has(base)) return base
-  let i = 2
-  while (existing.has(`${base}-${i}`)) i++
-  return `${base}-${i}`.slice(0, 128)
+  let key = base
+  for (let i = 2; existing.has(key); i++) {
+    const suffix = `-${i}`
+    key = `${base.slice(0, 128 - suffix.length)}${suffix}`
+  }
+  return key
+}
+
+function newProviderIdentity(baseKey: string, name: string) {
+  const key = uniqueProviderKey(baseKey)
+  const displayName = key === baseKey ? name : `${name} ${key.slice(key.lastIndexOf('-') + 1)}`
+  return { key, displayName }
 }
 
 function openCreate(presetId?: string) {
@@ -575,9 +587,8 @@ function openCreate(presetId?: string) {
     form.value.baseUrl = preset.defaultBaseUrl
     form.value.authHeader = preset.authHeader
     form.value.name = preset.id
-    form.value.displayName = preset.name
     // Prefill key so save never hits empty-key validation. Keep preset id casing.
-    form.value.key = uniqueProviderKey(suggestProviderKey(preset.id))
+    Object.assign(form.value, newProviderIdentity(suggestProviderKey(preset.id), preset.name))
     if (preset.placeholderApiKey) {
       apiKeyKind.value = 'literal'
       // Placeholder only — user replaces with real secret (e.g. nvapi-…).
@@ -591,6 +602,7 @@ function openCreate(presetId?: string) {
 
 function openCatalog(detail: AddCatalogSubscriptionId | null = null, accountId?: string) {
   catalogQuery.value = ''
+  catalogAddOnly.value = detail === null
   catalogDetail.value = detail
   catalogAccountId.value = accountId
   catalogOpen.value = true
@@ -598,17 +610,24 @@ function openCatalog(detail: AddCatalogSubscriptionId | null = null, accountId?:
 
 function setCatalogDetail(detail: AddCatalogSubscriptionId | null) {
   catalogDetail.value = detail
+  if (detail === null) catalogAddOnly.value = true
   if (detail !== 'chatgpt') catalogAccountId.value = undefined
 }
 
 function chooseCatalogPreset(presetId: string) {
   catalogOpen.value = false
-  selectProviderPreset(presetId)
+  openCreate(presetId)
 }
 
-async function openAuthorizedProvider(key: string) {
+async function finishAccountAddition() {
   catalogOpen.value = false
   await Promise.all([providersStore.fetchList(), modelsStore.fetchList()])
+  toast.success(t('providers.created'))
+}
+
+function editCatalogProvider(key: string) {
+  if (catalogAddOnly.value) return
+  catalogOpen.value = false
   const provider = providersStore.items.find((item) => item.key === key)
   if (provider) openEdit(provider)
 }
@@ -617,16 +636,6 @@ async function openPresetKeyPage(url: string) {
   await getApi()
     .system.openExternal(url)
     .catch(() => toast.error(t('common.failed')))
-}
-
-function selectProviderPreset(presetId: string) {
-  const configured = providersStore.items.find((provider) => provider.key === presetId)
-  const preset = PROVIDER_PRESETS.find((item) => item.id === presetId)
-  if (configured && preset?.defaultBaseUrl) {
-    openEdit(configured)
-    return
-  }
-  openCreate(presetId)
 }
 
 function openEdit(provider: ProviderProfile) {
@@ -1505,13 +1514,14 @@ onMounted(() => {
       <AddProviderCatalog
         :presets="PROVIDER_PRESETS"
         :configured-ids="configuredCatalogIds"
+        :add-only="catalogAddOnly"
         :initial-detail="catalogDetail"
         :account-id="catalogAccountId"
         :query="catalogQuery"
         @update:detail="setCatalogDetail"
         @select-preset="chooseCatalogPreset"
-        @openrouter-connected="openAuthorizedProvider"
-        @edit-provider="openAuthorizedProvider"
+        @account-added="finishAccountAddition"
+        @edit-provider="editCatalogProvider"
       />
     </Dialog>
 

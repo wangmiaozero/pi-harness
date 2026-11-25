@@ -6,6 +6,176 @@ import { once } from 'node:events'
 import fs from 'node:fs'
 import path from 'node:path'
 
+for (const { key, name, subscription } of [
+  { key: 'openai', name: 'OpenAI', subscription: null },
+  { key: 'anthropic', name: 'Anthropic', subscription: 'claude' },
+  { key: 'google', name: 'Google', subscription: 'gemini' }
+] as const) {
+  test(`adds and selects separate ${name} API accounts`, async ({ page, electronApp }) => {
+    const modelId = 'fixture-shared-model'
+    await electronApp.evaluate(({ clipboard }) => {
+      process.env.PI_HARNESS_TEST_ACCOUNT_1 = 'fixture-first-credential'
+      process.env.PI_HARNESS_TEST_ACCOUNT_2 = 'fixture-second-credential'
+      clipboard.writeText = (text) => {
+        Object.assign(globalThis, { copiedFixtureKey: text })
+      }
+    })
+    await page.evaluate(async (provider) => {
+      const { providers } = window.piSwitch
+      if ((await providers.list()).some(({ key }) => key === provider)) {
+        await providers.delete(provider, { overwrite: true })
+      }
+    }, key)
+    await page.locator('a[href="#/models"]').click()
+
+    const catalog = page.getByTestId('add-provider-catalog')
+    const dialog = page.getByRole('dialog', { name: '新建提供商', exact: true })
+    const editing = page.getByRole('dialog', { name: '编辑提供商', exact: true })
+    for (const index of [1, 2]) {
+      await page.getByTestId('add-provider').click()
+      if (subscription) {
+        await catalog.getByTestId(`add-provider-subscription-${subscription}`).click()
+        await expect(catalog.locator('article')).toHaveCount(0)
+        await catalog.getByTestId('subscription-use-api').click()
+      } else {
+        await catalog.getByTestId(`add-provider-preset-${key}`).click()
+      }
+      await expect(dialog).toBeVisible()
+      await expect(editing).toHaveCount(0)
+      await expect(dialog.getByLabel('API 密钥', { exact: true })).toHaveValue('')
+      await expect(dialog.getByRole('button', { name: '复制已保存的 API 密钥' })).toHaveCount(0)
+      await dialog.getByTestId('provider-advanced-options').click()
+      await expect(dialog.getByLabel('提供商标识')).toHaveValue(index === 1 ? key : `${key}-2`)
+      await expect(dialog.getByLabel('显示名称')).toHaveValue(index === 1 ? name : `${name} 2`)
+      await dialog.getByRole('button', { name: 'API 密钥类型', exact: true }).click()
+      await page.getByRole('option', { name: '环境变量', exact: true }).click()
+      await dialog.getByLabel('API 密钥', { exact: true }).fill(`$PI_HARNESS_TEST_ACCOUNT_${index}`)
+      await dialog.getByLabel('默认模型 ID').fill(modelId)
+      await dialog.getByLabel('默认模型 ID').press('Escape')
+      await dialog.getByRole('button', { name: '保存', exact: true }).click()
+      await expect(dialog).toHaveCount(0)
+    }
+
+    const profiles = [
+      { key, name, account: 1, secret: 'fixture-first-credential' },
+      { key: `${key}-2`, name: `${name} 2`, account: 2, secret: 'fixture-second-credential' }
+    ]
+    for (const profile of profiles) {
+      const row = page
+        .getByTestId('provider-row')
+        .filter({ has: page.getByText(profile.name, { exact: true }) })
+      await row.getByRole('button', { name: '编辑', exact: true }).click()
+      await expect(editing.getByLabel('API 密钥', { exact: true })).toHaveValue(
+        `$PI_HARNESS_TEST_ACCOUNT_${profile.account}`
+      )
+      await page.evaluate((provider) => window.piSwitch.providers.copyApiKey(provider), profile.key)
+      await expect
+        .poll(() =>
+          electronApp.evaluate(
+            () => (globalThis as typeof globalThis & { copiedFixtureKey?: string }).copiedFixtureKey
+          )
+        )
+        .toBe(profile.secret)
+      if (key === 'openai' && profile.key !== key) {
+        // Users can intentionally give two configurations the same display name.
+        await editing.getByTestId('provider-advanced-options').click()
+        await editing.getByLabel('显示名称').fill(name)
+        await editing.getByRole('button', { name: '保存', exact: true }).click()
+      } else {
+        await editing.getByRole('button', { name: '取消', exact: true }).click()
+      }
+      await expect(editing).toHaveCount(0)
+    }
+
+    await page.locator('a[href="#/workspace"]').click()
+    const picker = page.getByTestId('workspace-model-select').getByRole('button')
+    const modelPanel = page.getByTestId('composer-model-panel')
+    const vendors = page.getByTestId('composer-vendor-panel')
+    for (const profile of profiles) {
+      await picker.click()
+      await modelPanel.getByRole('button', { name: '全部提供商' }).click()
+      const group = key === 'openai' ? `${name} · ${profile.key}` : profile.name
+      await vendors.getByRole('button', { name: group, exact: true }).hover()
+      await modelPanel.getByRole('option', { name: modelId, exact: true }).click()
+      await expect
+        .poll(() => page.evaluate(() => window.piSwitch.models.getActive()))
+        .toMatchObject({ providerKey: profile.key, modelId })
+    }
+  })
+}
+
+test('opens a fresh form for configured vendor, relay, local and custom presets', async ({
+  page,
+  electronApp,
+  piAgentDir
+}) => {
+  const presetIds = ['deepseek', 'openrouter', 'ollama', 'openai-compatible']
+  await page.evaluate(async (keys) => {
+    const { providers } = window.piSwitch
+    const existing = await providers.list()
+    for (const key of keys) {
+      if (existing.some((provider) => provider.key === key)) continue
+      await providers.create({
+        key,
+        name: key,
+        displayName: `Fixture ${key}`,
+        protocol: 'openai-completions',
+        baseUrl: 'http://127.0.0.1:9/v1',
+        apiKey: { kind: 'env', envRef: '$FIXTURE_ORIGINAL_KEY' },
+        headers: {},
+        authHeader: true,
+        enabled: true,
+        timeout: null
+      })
+    }
+  }, presetIds)
+  await page.locator('a[href="#/models"]').click()
+  const original = page.getByTestId('provider-row').filter({ hasText: 'Fixture openrouter' })
+  await expect(original).toBeVisible()
+
+  const catalog = page.getByTestId('add-provider-catalog')
+  const create = page.getByRole('dialog', { name: '新建提供商', exact: true })
+  const edit = page.getByRole('dialog', { name: '编辑提供商', exact: true })
+  for (const id of presetIds) {
+    await page.getByTestId('add-provider').click()
+    await page.getByRole('searchbox', { name: '查找提供商' }).fill(id)
+    await catalog.getByTestId(`add-provider-preset-${id}`).click()
+    await expect(create).toBeVisible()
+    await expect(edit).toHaveCount(0)
+    if (id !== 'openai-compatible') {
+      await create.getByTestId('provider-advanced-options').click()
+    }
+    await expect(create.getByLabel('提供商标识')).toHaveValue(`${id}-2`)
+    await expect(create.getByRole('button', { name: '复制已保存的 API 密钥' })).toHaveCount(0)
+    await create.getByRole('button', { name: '取消', exact: true }).click()
+  }
+
+  await electronApp.evaluate(
+    ({ ipcMain }, { channel, file }) => {
+      const fs = process.getBuiltinModule('node:fs')!
+      ipcMain.removeHandler(channel)
+      ipcMain.handle(channel, () => {
+        const models = JSON.parse(fs.readFileSync(file, 'utf8'))
+        const key = 'openrouter-fixture-authorized'
+        models.providers[key] = { ...models.providers.openrouter, apiKey: '$FIXTURE_NEW_KEY' }
+        fs.writeFileSync(file, JSON.stringify(models))
+        return { ok: true, data: key }
+      })
+    },
+    { channel: IPC_INVOKE.openRouterConnect, file: path.join(piAgentDir, 'models.json') }
+  )
+  await page.getByTestId('add-provider').click()
+  await catalog.getByTestId('add-provider-subscription-openrouter').click()
+  await catalog.getByTestId('openrouter-connect').click()
+  await page.getByTestId('openrouter-connect-confirm').click()
+  await expect(catalog).toHaveCount(0)
+  await expect(edit).toHaveCount(0)
+  await expect(original).toBeVisible()
+  await expect(
+    page.getByTestId('provider-row').filter({ hasText: 'openrouter-fixture-authorized' })
+  ).toBeVisible()
+})
+
 test('keeps all configured providers selectable and handles local Ollama without a visible key', async ({
   page,
   piAgentDir
@@ -743,6 +913,10 @@ test('shows the account catalogue and manages the default and allowed fallback',
   await expect(catalog.getByTestId('provider-row')).toHaveCount(0)
   await catalog.getByTestId('add-provider-subscription-chatgpt').click()
   const accounts = page.getByTestId('provider-local-accounts').locator('article')
+  await expect(catalog.getByTestId('chatgpt-connect')).toBeVisible()
+  await expect(accounts).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await page.getByTestId('open-subscription-chatgpt').click()
   await expect(accounts.filter({ hasText: 'ChatGPT · •••• mary' })).toBeVisible()
   await expect(accounts.filter({ hasText: 'ChatGPT · primary' })).toHaveCount(0)
   await page.keyboard.press('Escape')

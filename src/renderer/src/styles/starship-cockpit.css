@@ -606,13 +606,9 @@
 }
 
 :root[data-visual-skin='starship-cockpit'] .session-hud {
-  margin: 0 8px;
-  border-top: 1px solid rgb(104 220 255 / 0.18);
-  border-right: 1px solid rgb(104 220 255 / 0.18);
-  border-bottom: 0;
-  border-left: 1px solid rgb(104 220 255 / 0.18);
-  border-radius: 7px 7px 0 0;
-  background: rgb(3 15 34 / 0.78);
+  border: 1px solid rgb(104 220 255 / 0.18);
+  border-radius: 7px;
+  background: rgb(3 15 34 / 0.96);
   backdrop-filter: blur(14px);
 }
 

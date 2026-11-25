@@ -14,7 +14,7 @@ import {
   PROJECT_REPOSITORY_URL,
   type ProjectLinkTarget
 } from '@shared/constants'
-import { APP_SPONSORS, SPONSOR_MAIL } from '@shared/providers/sponsors'
+import { SPONSOR_MAIL } from '@shared/providers/sponsors'
 
 const { t } = useI18n()
 const opening = ref<ProjectLinkTarget | null>(null)
@@ -145,19 +145,6 @@ async function openExternal(url: string): Promise<void> {
       >
         <Heart aria-hidden="true" class="size-3.5" />
         {{ $t('settings.aboutSponsorAction') }}
-      </Button>
-    </div>
-    <div class="flex flex-wrap gap-2 border-t border-[var(--border-subtle)] px-3 py-3">
-      <Button
-        v-for="sponsor in APP_SPONSORS"
-        :key="sponsor.id"
-        size="sm"
-        :data-testid="'about-sponsor-' + sponsor.id"
-        :title="$t(`providerAccounts.sponsorNote.${sponsor.id}`)"
-        :disabled="openingExternal"
-        @click="openExternal(sponsor.url)"
-      >
-        {{ sponsor.name }}
       </Button>
     </div>
   </InspectorSection>

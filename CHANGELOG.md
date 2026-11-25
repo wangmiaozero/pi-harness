@@ -2,6 +2,37 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.18 — 2026-11-25
+
+### Added
+
+#### Chat
+
+- Compact the current conversation directly from the composer toolbar.
+- Open full history and context details from the composer toolbar. The context icon turns red above 80%, and details open above the composer while the conversation stays in place.
+
+#### Providers
+
+- Configure and select multiple OpenAI, Anthropic, and Google API accounts independently.
+
+#### Runtime
+
+- The app ships with Pi Coding Agent 1.6.0.
+
+### Fixed
+
+#### Providers
+
+- Adding a provider always opens a fresh form, including when the same provider already has a saved configuration.
+
+#### Chat
+
+- Temporary OpenAI token rate limits trigger automatic retries. If throttling persists, the conversation shows the provider's suggested wait time when available.
+
+#### About
+
+- Removed the three sponsor listings from About.
+
 ## 2.4.17 — 2026-11-22
 
 ### Added

@@ -3,6 +3,7 @@ import http from 'node:http'
 import { Readable } from 'node:stream'
 import { randomUUID } from 'node:crypto'
 import { installCompactionPolicy } from './compaction.mjs'
+import { installRateLimitHandling } from './rate-limit.mjs'
 import { installProviderSettings } from './provider-settings.mjs'
 import { chatGptProviderSync } from './chatgpt-provider.mjs'
 import { createToolSelection, listTools, ToolSelectionError } from './tool-selection.mjs'
@@ -76,6 +77,7 @@ export default async function desktopExtension(pi) {
       }),
     compact
   )
+  installRateLimitHandling(pi)
   let providerTransport
   const startProviderSettings = installProviderSettings(
     pi,

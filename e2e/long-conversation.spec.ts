@@ -159,8 +159,8 @@ for (const knownProfile of [false, true]) {
         ])
         expect(summaryCalls.every((r) => r.reasoning_effort === 'low')).toBe(true)
       }
+      await expect(composer.getByTestId('composer-compact')).toBeEnabled()
       await composer.getByTestId('composer-more').click()
-      await expect(page.getByTestId('composer-compact')).toHaveCount(0)
       await expect(page.getByTestId('composer-sound-toggle')).toBeVisible()
       await page.keyboard.press('Escape')
       await page.screenshot({ path: path.join(testInfo.outputDir, 'automatic-compaction.png') })

@@ -335,6 +335,72 @@ native('official standalone Pi with independent Node', () => {
       await client.stop()
     }
   }, 45_000)
+  it('binds extension lifecycle events once per native RPC session replacement', async () => {
+    const extension = path.join(config, 'lifecycle.mjs')
+    const log = path.join(config, 'lifecycle.log')
+    await fs.writeFile(
+      extension,
+      `import { appendFileSync } from 'node:fs'
+export default function (pi) {
+  const record = (event) => appendFileSync(${JSON.stringify(log)}, event + '\\n')
+  pi.on('resources_discover', () => { record('resources') })
+  pi.on('session_start', (event) => {
+    record('start')
+    pi.appendEntry('rpc-lifecycle', { reason: event.reason })
+  })
+  pi.on('session_shutdown', () => { record('shutdown') })
+}`
+    )
+    const client = new PiRpcClient()
+    const starts: unknown[] = []
+    let settled!: () => void
+    const promptDone = new Promise<void>((resolve) => (settled = resolve))
+    const unsubscribe = client.onEvent((event) => {
+      if (event.type === 'entry_appended') {
+        const entry = event.entry as { customType?: string; data?: { reason?: string } }
+        if (entry.customType === 'rpc-lifecycle') starts.push(entry.data?.reason)
+      }
+      if (event.type === 'agent_settled') settled()
+    })
+    try {
+      client.start(
+        path.join(bundledRoot, 'pi', runtimeLayout('pi', process.platform).executable),
+        ['--mode', 'rpc', '--provider', 'fixture', '--model', 'fixture', '-e', extension],
+        cwd,
+        {
+          PATH: root,
+          HOME: root,
+          USERPROFILE: root,
+          PI_CODING_AGENT_DIR: config,
+          SystemRoot: process.env.SystemRoot,
+          TEMP: root
+        }
+      )
+      await client.request({ type: 'prompt', message: 'Persist the lifecycle fixture' })
+      await promptDone
+      const state = (await client.request({ type: 'get_state' })) as { sessionFile: string }
+      const { messages } = (await client.request({ type: 'get_fork_messages' })) as {
+        messages: Array<{ entryId: string }>
+      }
+      expect(starts).toEqual(['startup'])
+      for (const [command, reason] of [
+        [{ type: 'new_session' }, 'new'],
+        [{ type: 'switch_session', sessionPath: state.sessionFile }, 'resume'],
+        [{ type: 'clone' }, 'fork'],
+        [{ type: 'fork', entryId: messages[0]!.entryId }, 'fork']
+      ] as const) {
+        const previous = starts.length
+        expect(await client.request(command)).toMatchObject({ cancelled: false })
+        expect(starts.slice(previous)).toEqual([reason])
+      }
+    } finally {
+      unsubscribe()
+      await client.stop()
+    }
+    const lifecycle = (await fs.readFile(log, 'utf8')).trim().split('\n')
+    for (const event of ['resources', 'start', 'shutdown'])
+      expect(lifecycle.filter((value) => value === event)).toHaveLength(5)
+  }, 45_000)
   it('executes real bundled node/npm/npx with an otherwise empty PATH', async () => {
     const node = await manager.resolveNodeRuntime()
     expect(node).toMatchObject({

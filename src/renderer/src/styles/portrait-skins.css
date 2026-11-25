@@ -2582,16 +2582,6 @@ html[data-video-skin='on']:is([data-visual-skin='rope-deepseek'], [data-visual-s
     [data-visual-skin='ming-moon']
   )
   .chat-window
-  > .session-hud {
-  order: 2;
-}
-
-:root:is(
-    [data-visual-skin='ming-snow'],
-    [data-visual-skin='zhang-juzheng-snow'],
-    [data-visual-skin='ming-moon']
-  )
-  .chat-window
   > .command-console {
   order: 3;
 }

@@ -54,6 +54,9 @@ test('uses a conventional settings sidebar and displays the current application 
   await expect(about).toContainText('tuziling84@gmail.com')
   await expect(about).toContainText('https://github.com/wangmiaozero')
   await expect(about).toContainText('https://github.com/wangmiaozero/pi-harness')
+  const sponsorship = page.getByTestId('about-sponsors')
+  await expect(sponsorship.getByTestId('about-sponsor')).toBeVisible()
+  await expect(sponsorship.getByRole('button')).toHaveCount(1)
 
   await page.getByTestId('about-author-link').click()
   await expect

@@ -43,11 +43,34 @@ test('renders full history inside the themed Pi-Harness dialog', async ({
     /^data:image\/png;base64,/
   )
 
+  const composer = page.getByTestId('chat-composer')
+  const contextUsage = composer.getByTestId('composer-context-usage')
+  const scroller = page.getByTestId('chat-scroller')
+  const statusHud = page.getByTestId('chat-status-hud')
+  const sessionHud = page.getByRole('region', { name: /会话信息|Session info/ })
+  const layout = () =>
+    Promise.all([
+      composer.boundingBox(),
+      statusHud.boundingBox(),
+      scroller.boundingBox(),
+      scroller.evaluate((element) => element.scrollTop)
+    ])
+  const before = await layout()
+  await expect(contextUsage).toHaveAttribute('aria-expanded', 'false')
+  await contextUsage.click()
+  await expect(contextUsage).toHaveAttribute('aria-expanded', 'true')
+  await expect(sessionHud).toBeVisible()
+  expect(await layout()).toEqual(before)
+  const sessionBox = (await sessionHud.boundingBox())!
+  expect(sessionBox.y + sessionBox.height).toBeLessThanOrEqual(before[0]!.y)
+  await contextUsage.click()
+  await expect(sessionHud).toBeHidden()
+  expect(await layout()).toEqual(before)
+
   const windowCount = electronApp.windows().length
-  await page
-    .getByTestId('chat-status-hud')
-    .getByRole('button', { name: /完整历史|Full history/ })
-    .click()
+  const fullHistory = composer.getByRole('button', { name: /完整历史|Full history/ })
+  await expect(fullHistory).toHaveText('')
+  await fullHistory.click()
 
   const dialog = page.getByRole('dialog', { name: /完整历史|Full history/ })
   const history = page.getByTestId('full-history-dialog')
@@ -80,6 +103,16 @@ test('renders full history inside the themed Pi-Harness dialog', async ({
   await page.screenshot({ path: path.join(testInfo.outputDir, 'full-history-starship.png') })
   await dialog.getByRole('button', { name: /关闭|Close/ }).click()
   await expect(dialog).toHaveCount(0)
+  await page.setViewportSize({ width: 960, height: 700 })
+  for (const button of [
+    fullHistory,
+    contextUsage,
+    composer.getByRole('button', { name: /发送|Send/, exact: true })
+  ]) {
+    await expect(button).toBeInViewport({ ratio: 1 })
+  }
+  await contextUsage.click()
+  await expect(sessionHud).toBeInViewport({ ratio: 1 })
   expect(pageErrors).toEqual([])
   expect(consoleErrors).toEqual([])
 })

@@ -39,10 +39,14 @@ import ChatGptModelPreferencesPanel from './ChatGptModelPreferences.vue'
 import ChatGptAdvancedSettings from './ChatGptAdvancedSettings.vue'
 
 const props = withDefaults(
-  defineProps<{ focus?: 'chatgpt' | 'claude' | 'gemini'; accountId?: string }>(),
-  { focus: 'chatgpt', accountId: undefined }
+  defineProps<{ focus?: 'chatgpt' | 'claude' | 'gemini'; accountId?: string; addOnly?: boolean }>(),
+  { focus: 'chatgpt', accountId: undefined, addOnly: false }
 )
-const emit = defineEmits<{ 'configure-api': []; 'edit-provider': [key: string] }>()
+const emit = defineEmits<{
+  'configure-api': []
+  'edit-provider': [key: string]
+  'account-added': []
+}>()
 const { t, locale } = useI18n()
 const accounts = useChatGptAccounts()
 const models = useModelsStore()
@@ -77,9 +81,12 @@ const cliSource = computed(() =>
   props.focus === 'claude' ? 'claude' : props.focus === 'gemini' ? 'gemini' : 'codex'
 )
 const focusedLocal = computed(() => local.value.find((item) => item.source === cliSource.value))
-const primary = computed(() => accounts.items.find((account) => account.defaultModelId))
+const primary = computed(() =>
+  props.addOnly ? undefined : accounts.items.find((account) => account.defaultModelId)
+)
 const hasFallback = computed(() => accounts.items.some((account) => account.fallbackRank))
 const displayedAccounts = computed(() => {
+  if (props.addOnly) return []
   const selected = accounts.items.find(({ id }) => id === props.accountId)
   return selected
     ? [selected, ...accounts.items.filter(({ id }) => id !== selected.id)]
@@ -89,7 +96,9 @@ const official = computed(() =>
   props.focus === 'chatgpt' ? null : officialModelGroups[props.focus]
 )
 const officialProviders = computed(() =>
-  providers.items.filter((provider) => getOfficialModelGroup(provider) === props.focus)
+  props.addOnly
+    ? []
+    : providers.items.filter((provider) => getOfficialModelGroup(provider) === props.focus)
 )
 
 function providerModels(provider: ProviderProfile) {
@@ -208,7 +217,7 @@ async function refresh(refresh = false) {
         : Promise.all([providers.fetchList(), models.fetchList()])
     ])
     local.value = result
-    if (props.focus === 'chatgpt') void accounts.loadAllowances(refresh)
+    if (props.focus === 'chatgpt' && !props.addOnly) void accounts.loadAllowances(refresh)
   } catch {
     feedback.value = t('providerAccounts.loadFailed')
   } finally {
@@ -314,7 +323,8 @@ async function connect() {
   try {
     await getApi().accounts.connect()
     await accounts.load(true)
-    void accounts.loadAllowances()
+    if (props.addOnly) emit('account-added')
+    else void accounts.loadAllowances()
     feedback.value = ''
   } catch (error) {
     const details = (
@@ -473,7 +483,10 @@ async function transferAccount() {
         : await api.importChatGptAccount({ password })
     if (done) {
       transfer.value = null
-      if (task.mode === 'import') await accounts.load(true)
+      if (task.mode === 'import') {
+        await accounts.load(true)
+        if (props.addOnly) emit('account-added')
+      }
       feedback.value = t(
         task.mode === 'import'
           ? 'providerAccounts.accountImported'
@@ -669,7 +682,7 @@ onMounted(() => void refresh())
     </template>
     <div v-if="focus === 'chatgpt'" class="flex flex-wrap items-center justify-between gap-2 pt-2">
       <h2 class="text-sm font-semibold">{{ $t('providerAccounts.chatGpt') }}</h2>
-      <Button size="sm" variant="ghost" class="ml-auto" @click="openChatGptUsage">
+      <Button v-if="!addOnly" size="sm" variant="ghost" class="ml-auto" @click="openChatGptUsage">
         {{ $t('providerAccounts.openChatGptUsage') }} ↗
       </Button>
       <Button size="sm" :disabled="!!busy" @click="openTransfer('import')">

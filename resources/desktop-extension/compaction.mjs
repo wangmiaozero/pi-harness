@@ -29,8 +29,8 @@ export function installCompactionPolicy(pi, resolveDefaults, compactNative) {
     const model = {
       ...ctx.model,
       contextWindow: defaults.contextWindow ?? ctx.model.contextWindow,
-      reasoning: defaults.reasoning ?? ctx.model.reasoning,
-      thinkingLevelMap: defaults.thinkingLevels ?? ctx.model.thinkingLevelMap,
+      reasoning: ctx.model.reasoning ?? defaults.reasoning,
+      thinkingLevelMap: ctx.model.thinkingLevelMap ?? defaults.thinkingLevels,
       ...(defaults.forceEffort && ctx.model.api === 'openai-completions'
         ? {
             compat: { ...ctx.model.compat, supportsReasoningEffort: true, thinkingFormat: 'openai' }

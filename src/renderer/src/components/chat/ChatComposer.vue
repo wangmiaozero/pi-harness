@@ -26,6 +26,7 @@ import {
 import { shouldSendComposerKey } from './composer-keys'
 import { useWorkspaceStore, type ChatDraftImage } from '@renderer/stores/workspace'
 import { useAgentStore } from '@renderer/stores/agent'
+import { useCompactionStore } from '@renderer/stores/compaction'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useChatGptAccounts } from '@renderer/stores/chatgpt-accounts'
 import { isSelectableChatGptModel, orderChatGptModels } from '@shared/providers/account-management'
@@ -58,6 +59,8 @@ import {
   Hand,
   ImagePlus,
   ListChecks,
+  LoaderCircle,
+  Minimize2,
   MoreHorizontal,
   Square,
   Pencil,
@@ -118,6 +121,7 @@ const { t } = useI18n()
 const active = useChatViewActive()
 const workspace = useWorkspaceStore()
 const agent = useAgentStore()
+const compaction = useCompactionStore()
 const sessions = useSessionStore()
 const models = useModelsStore()
 const chatGpt = useChatGptAccounts()
@@ -161,12 +165,27 @@ const permissionModeValue = computed({
 // busy (e.g. showing 终止 on a session that is idle).
 const busy = computed(() => agent.isBusy(sessions.currentId))
 const toolsApplying = computed(() => agent.isApplyingTools(sessions.currentId))
+const manualCompacting = computed(() => compaction.isRunning(sessions.currentId))
 const inputLocked = computed(
   () =>
     props.submitting ||
     toolsApplying.value ||
+    manualCompacting.value ||
     (agent.sending && agent.sendingSessionId === sessions.currentId)
 )
+const compactDisabled = computed(
+  () =>
+    !sessions.currentId ||
+    busy.value ||
+    inputLocked.value ||
+    compaction.buttonPhase(sessions.currentId) !== 'idle'
+)
+
+function compactContext() {
+  if (compactDisabled.value) return
+  void compaction.requestSmartCompaction({ sessionId: sessions.currentId, force: true })
+}
+
 const pasteQueueCurrent = computed(
   () => pasteQueue.value[Math.min(pasteQueueIndex.value, pasteQueue.value.length - 1)] ?? null
 )
@@ -260,6 +279,10 @@ async function acceptFreePrivacy() {
 }
 
 const modelOptions = computed(() => {
+  const providerNameCounts = new Map<string, number>()
+  for (const { displayName } of providers.items) {
+    providerNameCounts.set(displayName, (providerNameCounts.get(displayName) ?? 0) + 1)
+  }
   const options: Array<{
     value: string
     label: string
@@ -273,11 +296,12 @@ const modelOptions = computed(() => {
     .map((model) => {
       const provider = providers.items.find((item) => item.id === model.providerId)
       const key = provider?.key ?? model.providerId
+      const name = provider?.displayName || key
       const official = provider && getOfficialModelGroup(provider)
       return {
         value: `${key}/${model.modelId}`,
         label: model.displayName || model.modelId,
-        group: provider?.displayName || key,
+        group: (providerNameCounts.get(name) ?? 0) > 1 ? `${name} · ${key}` : name,
         recommendationRank:
           official && provider.enabled ? officialModelRank(official, model.modelId) : undefined,
         fast: supportsFastMode({ key, baseUrl: provider?.baseUrl }, model.modelId)
@@ -1503,6 +1527,31 @@ onBeforeUnmount(() => {
               :menu-width="390"
               @interact="emit('unlockAudio')"
             />
+            <button
+              type="button"
+              data-testid="composer-compact"
+              class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+              :disabled="compactDisabled"
+              :aria-label="$t('workspace.compactContext')"
+              :aria-busy="manualCompacting"
+              :title="
+                !sessions.currentId
+                  ? $t('workspace.compactSessionMissing')
+                  : manualCompacting
+                    ? $t('workspace.compactingNow')
+                    : $t('workspace.compactContext')
+              "
+              @click="compactContext"
+            >
+              <LoaderCircle
+                v-if="manualCompacting"
+                aria-hidden="true"
+                class="size-3.5 motion-safe:animate-spin"
+                :stroke-width="1.8"
+              />
+              <Minimize2 v-else aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
+            </button>
+            <slot name="session-actions" />
           </div>
           <div
             class="console-tool-strip ml-auto flex flex-1 flex-nowrap items-center justify-end gap-1"
@@ -1787,7 +1836,7 @@ onBeforeUnmount(() => {
   .command-console-controls :deep(.composer-option-label) {
     display: none;
   }
-  .composer-tools :deep(.cockpit-control-button) {
+  .composer-tools :deep(.cockpit-control-button:not(.composer-context-usage)) {
     width: 32px;
     padding-inline: 0;
     justify-content: center;
@@ -1796,6 +1845,7 @@ onBeforeUnmount(() => {
 
 @container (max-width: 640px) {
   .command-console-controls {
+    flex-wrap: wrap;
     column-gap: 4px;
   }
 
@@ -1826,7 +1876,7 @@ onBeforeUnmount(() => {
     gap: 4px;
     padding-inline: 8px;
   }
-  .composer-tools :deep(.cockpit-control-button),
+  .composer-tools :deep(.cockpit-control-button:not(.composer-context-usage)),
   .console-tool-strip :deep(.cockpit-control-button) {
     width: 24px;
     min-width: 24px;

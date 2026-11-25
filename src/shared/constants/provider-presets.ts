@@ -116,9 +116,28 @@ const importedPresets = (generatedCatalog.providers as unknown as ProviderPreset
   applyCurrentModelOverrides({ ...preset, keyUrl: existingKeyPages[preset.id] })
 )
 
+const openAiResponsesPreset: ProviderPreset = {
+  id: 'openai-responses',
+  name: 'OpenAI Responses',
+  protocol: 'openai-responses',
+  defaultBaseUrl: 'https://api.openai.com/v1',
+  placeholderApiKey: 'sk-...',
+  keyUrl: existingKeyPages.openai,
+  authHeader: true,
+  defaultModelId: 'gpt-6.2-sol',
+  documentation: 'OpenAI Responses supports tool calling for GPT-6.2 models.',
+  sources: ['Pi-Harness'],
+  // The official API allows longer requests. Pi's API-key defaults use the
+  // standard pricing window, and the model form lets users choose a longer one.
+  models: currentCatalog.providers.openai
+    .filter((model) => model.id === 'gpt-6.2-sol' || model.id === 'gpt-6.2-astra')
+    .map((model) => ({ ...model, input: ['text', 'image'], contextWindow: 272000 }))
+}
+
 export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
   ...genericPresets,
   ...importedPresets,
+  openAiResponsesPreset,
   ...OFFICIAL_PROVIDER_PRESETS
 ]
 
@@ -150,6 +169,11 @@ function findExactModelPreset(
   if (common) return common
   const configured = provider?.models.find(matches)
   if (configured) return configured
+  if (provider?.id === openAiResponsesPreset.id)
+    return findExactModelPreset(
+      modelId,
+      importedPresets.find((preset) => preset.id === 'openai')
+    )
   const legacy =
     provider &&
     (generatedCatalog.providers as unknown as ProviderPreset[])
@@ -210,6 +234,7 @@ export function resolveModelDefaults(
 
 export function suggestedModelPresets(provider?: ProviderPreset): readonly ProviderPresetModel[] {
   if (provider) {
+    if (provider.id === openAiResponsesPreset.id) return openAiResponsesPreset.models
     const latest = (currentCatalog.providers as Record<string, ProviderPresetModel[]>)[provider.id]
     if (latest) return latest.filter((model) => model.recommended !== false)
     if (!provider.id.endsWith('-compatible')) return []
@@ -238,13 +263,18 @@ export function findProviderPreset(input: {
 }): ProviderPreset | undefined {
   const key = input.key?.trim()
   const protocol = input.protocol ?? undefined
+  const baseUrl = normalizeBaseUrl(input.baseUrl ?? '')
   if (key) {
     const byKey = PROVIDER_PRESETS.find(
-      (preset) => preset.id === key && (!protocol || preset.protocol === protocol)
+      (preset) =>
+        preset.id === key &&
+        (!protocol || preset.protocol === protocol) &&
+        (preset !== openAiResponsesPreset ||
+          !baseUrl ||
+          baseUrl === normalizeBaseUrl(preset.defaultBaseUrl))
     )
     if (byKey) return byKey
   }
-  const baseUrl = normalizeBaseUrl(input.baseUrl ?? '')
   if (!baseUrl) return undefined
   return PROVIDER_PRESETS.find(
     (preset) =>

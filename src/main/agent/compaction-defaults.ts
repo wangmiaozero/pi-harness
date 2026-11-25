@@ -15,7 +15,12 @@ export function compactionDefaults(input: unknown): CompactionDefaults | undefin
   if (!defaults?.maxOutputTokens) return undefined
   return {
     maxOutputTokens: defaults.maxOutputTokens,
-    contextWindow: defaults.contextWindow,
+    // GPT-6.2 has different windows by channel and the user may set a
+    // long-context window. The summary should use the running model's limit.
+    contextWindow:
+      defaults.id === 'gpt-6.2-sol' || defaults.id === 'gpt-6.2-astra'
+        ? undefined
+        : defaults.contextWindow,
     reasoning: defaults.reasoning,
     thinkingLevels: defaults.thinkingLevels,
     forceEffort: provider.id === 'ark-code'

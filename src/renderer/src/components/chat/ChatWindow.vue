@@ -107,12 +107,17 @@ const stats = computed(() => agent.sessionStats)
 const contextUsage = computed(() => agent.state?.contextUsage ?? null)
 const chatContentMaxWidth = computed(() => `${settings.settings?.chatContentMaxWidth ?? 760}px`)
 const contextPercent = computed(() => contextUsage.value?.percent ?? null)
-const contextColor = computed(() => {
-  const percent = contextPercent.value
-  if (percent !== null && percent > 90) return 'var(--danger)'
-  if (percent !== null && percent > 70) return 'var(--warning)'
-  return 'var(--text-tertiary)'
-})
+const contextPercentLabel = computed(() =>
+  contextPercent.value === null
+    ? '?'
+    : `${contextPercent.value.toLocaleString(locale.value, { maximumFractionDigits: 1 })}%`
+)
+const showContextWarning = computed(
+  () => contextPercent.value !== null && contextPercent.value > 80
+)
+const canViewFullHistory = computed(() =>
+  Boolean(sessions.currentId && !sessions.current?.transient)
+)
 const replyError = computed(() => inspectRuntimeError(agent.error))
 const replyTruncated = computed(() => replyError.value.kind === 'truncated')
 const replyRateLimited = computed(() => replyError.value.kind === 'rate_limit')
@@ -500,6 +505,132 @@ function duration(value: number): string {
           <ArrowDown aria-hidden="true" class="size-3.5" :stroke-width="1.9" />
         </button>
       </div>
+      <Transition name="session-hud">
+        <section
+          v-if="statsOpen"
+          :aria-label="$t('workspace.sessionInfo')"
+          class="session-hud absolute inset-x-3 bottom-2 z-30 overflow-x-hidden overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] px-4 py-3 font-[family-name:var(--font-mono)] text-[11.5px] leading-5 shadow-[var(--shadow-popover)]"
+        >
+          <div class="session-hud-grid grid gap-x-6 gap-y-3">
+            <section class="min-w-0">
+              <h3 class="mb-1.5 font-semibold text-[var(--text-primary)]">
+                {{ $t('workspace.sessionInfo') }}
+              </h3>
+              <div
+                v-if="stats"
+                class="grid grid-cols-[max-content_minmax(0,1fr)_24px] items-start gap-x-3 gap-y-1"
+              >
+                <template v-if="stats.sessionName">
+                  <span class="text-[var(--text-tertiary)]">{{ $t('workspace.sessionName') }}</span>
+                  <span class="col-span-2 break-words text-[var(--text-secondary)]">{{
+                    stats.sessionName
+                  }}</span>
+                </template>
+                <span class="text-[var(--text-tertiary)]">{{ $t('workspace.sessionFile') }}</span>
+                <span class="break-all text-[var(--text-secondary)]">{{
+                  stats.sessionFile || $t('workspace.inMemory')
+                }}</span>
+                <button
+                  v-if="stats.sessionFile"
+                  type="button"
+                  class="inline-flex size-5 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+                  :title="$t('workspace.copyFile')"
+                  @click="copyStat('file', stats.sessionFile)"
+                >
+                  <Check
+                    v-if="copiedField === 'file'"
+                    aria-hidden="true"
+                    class="size-3 text-[var(--success)]"
+                  />
+                  <Copy v-else aria-hidden="true" class="size-3" />
+                </button>
+                <span class="text-[var(--text-tertiary)]">ID</span>
+                <span class="break-all text-[var(--text-secondary)]">{{ stats.sessionId }}</span>
+                <button
+                  type="button"
+                  class="inline-flex size-5 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+                  :title="$t('workspace.copyId')"
+                  @click="copyStat('id', stats.sessionId)"
+                >
+                  <Check
+                    v-if="copiedField === 'id'"
+                    aria-hidden="true"
+                    class="size-3 text-[var(--success)]"
+                  />
+                  <Copy v-else aria-hidden="true" class="size-3" />
+                </button>
+                <template v-if="stats.totalActiveMs">
+                  <span class="text-[var(--text-tertiary)]">{{
+                    $t('workspace.activeDuration')
+                  }}</span>
+                  <span class="col-span-2 text-[var(--text-secondary)]">{{
+                    duration(stats.totalActiveMs)
+                  }}</span>
+                </template>
+              </div>
+            </section>
+            <section v-if="stats" class="min-w-0">
+              <h3 class="mb-1.5 font-semibold text-[var(--text-primary)]">
+                {{ $t('workspace.messages') }}
+              </h3>
+              <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 tabular-nums">
+                <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.messageUser') }}</dt>
+                <dd>{{ stats.userMessages.toLocaleString(locale) }}</dd>
+                <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.messageAssistant') }}</dt>
+                <dd>{{ stats.assistantMessages.toLocaleString(locale) }}</dd>
+                <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.toolCalls') }}</dt>
+                <dd>{{ stats.toolCalls.toLocaleString(locale) }}</dd>
+                <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.toolResults') }}</dt>
+                <dd>{{ stats.toolResults.toLocaleString(locale) }}</dd>
+                <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.total') }}</dt>
+                <dd>{{ stats.totalMessages.toLocaleString(locale) }}</dd>
+              </dl>
+            </section>
+            <section v-if="stats" class="min-w-0">
+              <h3 class="mb-1.5 font-semibold text-[var(--text-primary)]">Token</h3>
+              <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 tabular-nums">
+                <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.tokenInput') }}</dt>
+                <dd>{{ stats.tokens.input.toLocaleString(locale) }}</dd>
+                <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.tokenOutput') }}</dt>
+                <dd>{{ stats.tokens.output.toLocaleString(locale) }}</dd>
+                <template v-if="stats.tokens.cacheRead">
+                  <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.cacheRead') }}</dt>
+                  <dd>{{ stats.tokens.cacheRead.toLocaleString(locale) }}</dd>
+                </template>
+                <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.total') }}</dt>
+                <dd>{{ stats.tokens.total.toLocaleString(locale) }}</dd>
+                <template v-if="contextUsage?.contextWindow">
+                  <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.context') }}</dt>
+                  <dd>
+                    {{ contextPercent === null ? '?' : `${contextPercent.toFixed(1)}%` }} /
+                    {{ compactNumber(contextUsage.contextWindow) }}
+                  </dd>
+                </template>
+                <template v-if="compaction">
+                  <dt class="text-[var(--text-tertiary)]">{{ $t('settings.smartCompaction') }}</dt>
+                  <dd>
+                    {{ compaction.smartEnabled ? $t('common.enabled') : $t('common.disabled') }}
+                  </dd>
+                  <template v-if="compaction.threshold != null">
+                    <dt class="text-[var(--text-tertiary)]">
+                      {{ $t('workspace.compactionThreshold') }}
+                    </dt>
+                    <dd>{{ compactNumber(compaction.threshold) }}</dd>
+                  </template>
+                  <template v-if="compactionLabel && compaction.phase !== 'idle'">
+                    <dt class="text-[var(--text-tertiary)]">
+                      {{ $t('workspace.autoCompaction') }}
+                    </dt>
+                    <dd class="max-w-[14rem] truncate" :title="compactionLabel">
+                      {{ compactionLabel }}
+                    </dd>
+                  </template>
+                </template>
+              </dl>
+            </section>
+          </div>
+        </section>
+      </Transition>
     </div>
     <div
       v-for="request in permissionRequests"
@@ -535,147 +666,54 @@ function duration(value: number): string {
       @abort="onAbort"
       @toggle-sound="toggleCompletionSound"
       @unlock-audio="completionSound.unlock"
-    />
-    <div
-      v-if="statsOpen"
-      class="session-hud grid shrink-0 grid-cols-[minmax(320px,1.7fr)_minmax(150px,.55fr)_minmax(190px,.75fr)] gap-6 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] px-4 py-3 font-[family-name:var(--font-mono)] text-[11.5px] leading-5 shadow-[var(--shadow-sm)]"
     >
-      <section class="min-w-0">
-        <h3 class="mb-1.5 font-semibold text-[var(--text-primary)]">
-          {{ $t('workspace.sessionInfo') }}
-        </h3>
-        <div
-          v-if="stats"
-          class="grid grid-cols-[max-content_minmax(0,1fr)_24px] items-start gap-x-3 gap-y-1"
+      <template #session-actions>
+        <button
+          type="button"
+          data-testid="composer-full-history"
+          class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+          :disabled="!canViewFullHistory"
+          :aria-label="$t('workspace.fullHistory')"
+          :title="
+            canViewFullHistory
+              ? $t('workspace.fullHistory')
+              : $t('workspace.fullHistoryUnavailable')
+          "
+          @click="viewFullHistory"
         >
-          <template v-if="stats.sessionName">
-            <span class="text-[var(--text-tertiary)]">{{ $t('workspace.sessionName') }}</span>
-            <span class="col-span-2 break-words text-[var(--text-secondary)]">{{
-              stats.sessionName
-            }}</span>
-          </template>
-          <span class="text-[var(--text-tertiary)]">{{ $t('workspace.sessionFile') }}</span>
-          <span class="break-all text-[var(--text-secondary)]">{{
-            stats.sessionFile || $t('workspace.inMemory')
-          }}</span>
-          <button
-            v-if="stats.sessionFile"
-            type="button"
-            class="inline-flex size-5 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
-            :title="$t('workspace.copyFile')"
-            @click="copyStat('file', stats.sessionFile)"
-          >
-            <Check
-              v-if="copiedField === 'file'"
-              aria-hidden="true"
-              class="size-3 text-[var(--success)]"
-            />
-            <Copy v-else aria-hidden="true" class="size-3" />
-          </button>
-          <span class="text-[var(--text-tertiary)]">ID</span>
-          <span class="break-all text-[var(--text-secondary)]">{{ stats.sessionId }}</span>
-          <button
-            type="button"
-            class="inline-flex size-5 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
-            :title="$t('workspace.copyId')"
-            @click="copyStat('id', stats.sessionId)"
-          >
-            <Check
-              v-if="copiedField === 'id'"
-              aria-hidden="true"
-              class="size-3 text-[var(--success)]"
-            />
-            <Copy v-else aria-hidden="true" class="size-3" />
-          </button>
-          <template v-if="stats.totalActiveMs">
-            <span class="text-[var(--text-tertiary)]">{{ $t('workspace.activeDuration') }}</span>
-            <span class="col-span-2 text-[var(--text-secondary)]">{{
-              duration(stats.totalActiveMs)
-            }}</span>
-          </template>
-        </div>
-      </section>
-      <section v-if="stats" class="min-w-0">
-        <h3 class="mb-1.5 font-semibold text-[var(--text-primary)]">
-          {{ $t('workspace.messages') }}
-        </h3>
-        <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 tabular-nums">
-          <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.messageUser') }}</dt>
-          <dd>{{ stats.userMessages.toLocaleString(locale) }}</dd>
-          <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.messageAssistant') }}</dt>
-          <dd>{{ stats.assistantMessages.toLocaleString(locale) }}</dd>
-          <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.toolCalls') }}</dt>
-          <dd>{{ stats.toolCalls.toLocaleString(locale) }}</dd>
-          <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.toolResults') }}</dt>
-          <dd>{{ stats.toolResults.toLocaleString(locale) }}</dd>
-          <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.total') }}</dt>
-          <dd>{{ stats.totalMessages.toLocaleString(locale) }}</dd>
-        </dl>
-      </section>
-      <section v-if="stats" class="min-w-0">
-        <h3 class="mb-1.5 font-semibold text-[var(--text-primary)]">Token</h3>
-        <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 tabular-nums">
-          <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.tokenInput') }}</dt>
-          <dd>{{ stats.tokens.input.toLocaleString(locale) }}</dd>
-          <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.tokenOutput') }}</dt>
-          <dd>{{ stats.tokens.output.toLocaleString(locale) }}</dd>
-          <template v-if="stats.tokens.cacheRead">
-            <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.cacheRead') }}</dt>
-            <dd>{{ stats.tokens.cacheRead.toLocaleString(locale) }}</dd>
-          </template>
-          <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.total') }}</dt>
-          <dd>{{ stats.tokens.total.toLocaleString(locale) }}</dd>
-          <template v-if="contextUsage?.contextWindow">
-            <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.context') }}</dt>
-            <dd>
-              {{ contextPercent === null ? '?' : `${contextPercent.toFixed(1)}%` }} /
-              {{ compactNumber(contextUsage.contextWindow) }}
-            </dd>
-          </template>
-          <template v-if="compaction">
-            <dt class="text-[var(--text-tertiary)]">{{ $t('settings.smartCompaction') }}</dt>
-            <dd>
-              {{ compaction.smartEnabled ? $t('common.enabled') : $t('common.disabled') }}
-            </dd>
-            <template v-if="compaction.threshold != null">
-              <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.compactionThreshold') }}</dt>
-              <dd>{{ compactNumber(compaction.threshold) }}</dd>
-            </template>
-            <template v-if="compactionLabel && compaction.phase !== 'idle'">
-              <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.autoCompaction') }}</dt>
-              <dd class="max-w-[14rem] truncate" :title="compactionLabel">{{ compactionLabel }}</dd>
-            </template>
-          </template>
-        </dl>
-      </section>
-    </div>
+          <History aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
+        </button>
+        <button
+          v-if="stats || contextUsage"
+          type="button"
+          data-testid="composer-context-usage"
+          class="composer-context-usage cockpit-control-button inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-[11px] text-[var(--text-secondary)] tabular-nums transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+          :class="statsOpen ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]' : ''"
+          :aria-label="`${$t('workspace.sessionInfo')} ${contextPercentLabel}`"
+          :title="$t('workspace.sessionInfo')"
+          :aria-expanded="statsOpen"
+          @click="statsOpen = !statsOpen"
+        >
+          <Gauge
+            aria-hidden="true"
+            class="size-3.5 shrink-0"
+            :class="{ 'text-[var(--danger)]': showContextWarning }"
+            :stroke-width="1.8"
+          />
+          <span>{{ contextPercentLabel }}</span>
+        </button>
+      </template>
+    </ChatComposer>
     <div
       data-testid="chat-status-hud"
       class="chat-status-hud flex h-9 shrink-0 items-stretch border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[11px] text-[var(--text-secondary)]"
     >
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 border-r border-[var(--border-subtle)] px-3 transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-        :disabled="!sessions.currentId || sessions.current?.transient"
-        :title="
-          sessions.currentId ? $t('workspace.fullHistory') : $t('workspace.fullHistoryUnavailable')
-        "
-        @click="viewFullHistory"
-      >
-        <History aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
-        {{ $t('workspace.fullHistory') }}
-      </button>
       <span class="flex min-w-0 items-center truncate px-3 text-[var(--text-tertiary)]">
         {{ models.active.providerKey }}/{{ models.active.modelId }} · {{ agent.thinkingLevel }}
       </span>
-      <button
-        v-if="stats || contextUsage"
-        type="button"
-        class="ml-auto inline-flex items-center gap-2 border-l border-[var(--border-subtle)] px-3 tabular-nums transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-        :class="statsOpen ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]' : ''"
-        :title="$t('workspace.sessionInfo')"
-        :aria-expanded="statsOpen"
-        @click="statsOpen = !statsOpen"
+      <div
+        v-if="stats?.tokens.input || stats?.tokens.output"
+        class="ml-auto inline-flex shrink-0 items-center gap-2 border-l border-[var(--border-subtle)] px-3 tabular-nums"
       >
         <span v-if="stats?.tokens.input" class="inline-flex items-center gap-1">
           <ArrowUp aria-hidden="true" class="size-3" />{{ compactNumber(stats.tokens.input) }}
@@ -683,16 +721,7 @@ function duration(value: number): string {
         <span v-if="stats?.tokens.output" class="inline-flex items-center gap-1">
           <ArrowDown aria-hidden="true" class="size-3" />{{ compactNumber(stats.tokens.output) }}
         </span>
-        <span
-          v-if="contextUsage?.contextWindow"
-          class="inline-flex items-center gap-1"
-          :style="{ color: contextColor }"
-        >
-          <Gauge aria-hidden="true" class="size-3" />
-          {{ contextPercent === null ? '?' : `${Math.round(contextPercent)}%` }} /
-          {{ compactNumber(contextUsage.contextWindow) }}
-        </span>
-      </button>
+      </div>
     </div>
     <FullHistoryDialog
       v-model:open="fullHistoryOpen"
@@ -705,6 +734,44 @@ function duration(value: number): string {
 </template>
 
 <style scoped>
+.session-hud {
+  container-type: inline-size;
+  max-height: calc(100% - 1rem);
+}
+
+@container (min-width: 28rem) {
+  .session-hud-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .session-hud-grid > :first-child {
+    grid-column: span 2;
+  }
+}
+
+@container (min-width: 44rem) {
+  .session-hud-grid {
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 0.65fr) minmax(0, 0.85fr);
+  }
+  .session-hud-grid > :first-child {
+    grid-column: auto;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .session-hud-enter-active,
+  .session-hud-leave-active {
+    transition:
+      opacity 150ms ease,
+      transform 150ms ease;
+  }
+
+  .session-hud-enter-from,
+  .session-hud-leave-to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 .chat-scroller {
   /*
    * Browser scroll anchoring fights stick-to-bottom: measuring an off-screen

@@ -497,32 +497,38 @@ export class ProviderService {
     const localNoAuth = form.apiKey === null && isLocalOllamaEndpoint(form.baseUrl)
     const apiKeyValue = localNoAuth ? 'ollama' : serialiseApiKey(apiKeySpec, secretId)
 
-    await this.config.patchProvider(
-      form.key,
-      (cur) => {
-        const next = domainProviderToPi(cur, {
-          protocol: form.protocol,
-          baseUrl: form.baseUrl,
-          headers: form.headers,
-          authHeader: localNoAuth ? false : form.authHeader,
-          apiKeyValue
-        })
-        return applyProviderModelLimits(
-          seedOfficialModels(
-            ensureDefaultModel(
-              mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol, form.key),
-              form.defaultModelId ?? null,
-              form.protocol,
-              form.defaultModel ?? null,
-              form.key
+    try {
+      await this.config.patchProvider(
+        form.key,
+        (current) => {
+          if (current) throw new ValidationError(`Provider key already exists: ${form.key}`)
+          const next = domainProviderToPi(undefined, {
+            protocol: form.protocol,
+            baseUrl: form.baseUrl,
+            headers: form.headers,
+            authHeader: localNoAuth ? false : form.authHeader,
+            apiKeyValue
+          })
+          return applyProviderModelLimits(
+            seedOfficialModels(
+              ensureDefaultModel(
+                mergeDiscoveredModels(next, form.discoveredModels ?? [], form.protocol, form.key),
+                form.defaultModelId ?? null,
+                form.protocol,
+                form.defaultModel ?? null,
+                form.key
+              ),
+              form
             ),
-            form
-          ),
-          form.advanced
-        )
-      },
-      { overwrite: options?.overwrite, reason: `create provider ${form.key}` }
-    )
+            form.advanced
+          )
+        },
+        { overwrite: options?.overwrite, reason: `create provider ${form.key}` }
+      )
+    } catch (error) {
+      if (secretId) await this.removeUnusedSecret(secretId)
+      throw error
+    }
 
     const now = Date.now()
     const meta = await this.metadata.read()

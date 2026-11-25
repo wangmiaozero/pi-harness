@@ -20,6 +20,7 @@ const props = defineProps<{
   presets: readonly ProviderPreset[]
   partnerIds?: readonly string[]
   configuredIds?: readonly string[]
+  addOnly: boolean
   initialDetail?: AddCatalogSubscriptionId | null
   accountId?: string
   query?: string
@@ -27,7 +28,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'select-preset': [id: string]
   'update:detail': [id: AddCatalogSubscriptionId | null]
-  'openrouter-connected': [key: string]
+  'account-added': []
   'edit-provider': [key: string]
 }>()
 const { t } = useI18n()
@@ -71,9 +72,9 @@ async function connectOpenRouter() {
   openRouterPending.value = true
   openRouterFailed.value = false
   try {
-    const key = await getApi().accounts.connectOpenRouter()
+    await getApi().accounts.connectOpenRouter()
     openRouterPending.value = false
-    emit('openrouter-connected', key)
+    emit('account-added')
   } catch (error) {
     const details = (error as { details?: { reason?: string } })?.details
     openRouterFailed.value = details?.reason !== 'cancelled'
@@ -112,8 +113,10 @@ function openSponsor(url: string) {
       <LocalAccountsPanel
         v-if="detail === 'chatgpt' || detail === 'claude' || detail === 'gemini'"
         :focus="detail"
+        :add-only="addOnly"
         :account-id="detail === 'chatgpt' ? accountId : undefined"
         @configure-api="configureApi"
+        @account-added="emit('account-added')"
         @edit-provider="emit('edit-provider', $event)"
       />
       <div v-else-if="detail === 'openrouter'" class="space-y-3">

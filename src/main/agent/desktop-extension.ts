@@ -5,6 +5,7 @@ import { extractToolPath } from '../workspace/workspace-tool-guard'
 import type { PermissionMode } from '@shared/workspace/permission-mode'
 import type { ToolSelection } from '../../../resources/desktop-extension/tool-selection.mjs'
 import { installCompactionPolicy } from '../../../resources/desktop-extension/compaction.mjs'
+import { installRateLimitHandling } from '../../../resources/desktop-extension/rate-limit.mjs'
 import { compactionDefaults } from './compaction-defaults'
 import { loadPiCodingAgent } from './pi-sdk'
 import type { ProviderAdvancedSettings } from '@shared/providers/advanced-settings'
@@ -33,6 +34,7 @@ export function createDesktopExtension(
   return async (pi) => {
     const { compact } = await loadPiCodingAgent()
     installCompactionPolicy(pi, compactionDefaults, compact)
+    installRateLimitHandling(pi)
     if (context.providerSettings && context.providerNetwork)
       await installProviderSettings(pi, context.providerSettings, context.providerNetwork)()
     pi.on('session_start', () => context.toolSelection?.refresh())

@@ -131,7 +131,7 @@ test('retains the working transcript across routes and tools while hidden stream
   await expect(page.getByRole('dialog', { name: /重命名聊天|Rename chat/ })).toHaveCount(0)
   await page.locator('a[href="#/workspace"]').click()
   await page
-    .getByTestId('chat-status-hud')
+    .getByTestId('chat-composer')
     .getByRole('button', { name: /完整历史|Full history/ })
     .click()
   await expect(page.getByRole('dialog', { name: /完整历史|Full history/ })).toBeVisible()
