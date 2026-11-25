@@ -26,7 +26,7 @@ describe('bundled native Pi desktop extension', () => {
           '11111111-1111-4111-8111-111111111111'
         ],
         {
-          cwd: root,
+          cwd: os.tmpdir(),
           env: { ...process.env, PI_CODING_AGENT_DIR: root },
           stdio: ['pipe', 'pipe', 'pipe']
         }
@@ -55,7 +55,17 @@ describe('bundled native Pi desktop extension', () => {
         expect(stderr).not.toContain('Cannot find module')
         expect(code).toBe(1)
       } finally {
-        await fs.rm(root, { recursive: true, force: true })
+        if (child.exitCode === null) {
+          child.kill()
+          await new Promise<void>((resolve) => {
+            const timer = setTimeout(resolve, 1_000)
+            child.once('close', () => {
+              clearTimeout(timer)
+              resolve()
+            })
+          })
+        }
+        await fs.rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
       }
     },
     20_000
