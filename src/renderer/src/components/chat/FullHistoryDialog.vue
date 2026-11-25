@@ -36,6 +36,7 @@ const description = computed(() => {
     v-model:open="open"
     large
     prominent-title
+    body-class="max-h-[calc(85vh-7.5rem)] overflow-y-auto"
     :title="t('workspace.fullHistory')"
     :description="description"
   >

@@ -87,8 +87,12 @@ test('renders full history inside the themed Pi-Harness dialog', async ({
   expect(electronApp.windows()).toHaveLength(windowCount)
 
   const dialogBox = await dialog.boundingBox()
-  expect(dialogBox!.width).toBeLessThanOrEqual(822)
-  expect(dialogBox!.height).toBeLessThanOrEqual(0.85 * 1050 + 2)
+  const viewport = await page.evaluate(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight
+  }))
+  expect(dialogBox!.width).toBeLessThanOrEqual(Math.min(822, viewport.width * 0.92 + 2))
+  expect(dialogBox!.height).toBeLessThanOrEqual(viewport.height * 0.85 + 2)
   await expect
     .poll(() =>
       history.evaluate((element) => {
