@@ -48,18 +48,26 @@ test('renders full history inside the themed Pi-Harness dialog', async ({
   const scroller = page.getByTestId('chat-scroller')
   const statusHud = page.getByTestId('chat-status-hud')
   const sessionHud = page.getByRole('region', { name: /会话信息|Session info/ })
+  const scrollTop = () => scroller.evaluate((element) => element.scrollTop)
   const layout = () =>
     Promise.all([
       composer.boundingBox(),
       statusHud.boundingBox(),
       scroller.boundingBox(),
-      scroller.evaluate((element) => element.scrollTop)
+      scrollTop()
     ])
+
+  // Leave follow-latest mode before measuring a reader's position. At the
+  // bottom, late rendering of history can legitimately change scrollTop.
+  await page.getByTestId('chat-scroll-top').click()
+  await expect.poll(scrollTop).toBe(0)
+  await scroller.evaluate((element) => element.scrollTo({ top: 160, behavior: 'instant' }))
+  await expect.poll(scrollTop).toBe(160)
   const before = await layout()
   await expect(contextUsage).toHaveAttribute('aria-expanded', 'false')
   await contextUsage.click()
   await expect(contextUsage).toHaveAttribute('aria-expanded', 'true')
-  await expect(sessionHud).toBeVisible()
+  await expect(sessionHud).toHaveCSS('opacity', '1')
   expect(await layout()).toEqual(before)
   const sessionBox = (await sessionHud.boundingBox())!
   expect(sessionBox.y + sessionBox.height).toBeLessThanOrEqual(before[0]!.y)
