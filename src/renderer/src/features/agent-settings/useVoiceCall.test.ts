@@ -33,7 +33,10 @@ describe('voice capture ownership', () => {
           grant = resolve
         })
     )
-    vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: microphone } })
+    vi.stubGlobal('navigator', {
+      language: 'en-US',
+      mediaDevices: { getUserMedia: microphone }
+    })
     const { useVoiceCall } = await import('./useVoiceCall')
     const voice = useVoiceCall(),
       trackStop = vi.fn()
@@ -59,7 +62,10 @@ describe('voice capture ownership', () => {
         })
     )
     const microphone = vi.fn()
-    vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: microphone } })
+    vi.stubGlobal('navigator', {
+      language: 'en-US',
+      mediaDevices: { getUserMedia: microphone }
+    })
     const { useVoiceCall } = await import('./useVoiceCall')
     const voice = useVoiceCall(),
       started = voice.start('Microphone denied')
@@ -71,5 +77,23 @@ describe('voice capture ownership', () => {
     expect(mocks.stop).toHaveBeenCalledWith('late-call')
     expect(voice.phase.value).toBe('ended')
     voice.dispose()
+  })
+  it('turns mapped provider error codes into localized guidance', async () => {
+    vi.resetModules()
+    vi.stubGlobal('navigator', { language: 'en-US' })
+    const { voiceErrorMessage } = await import('./useVoiceCall')
+    const { i18n } = await import('@renderer/i18n')
+    const localized = (code?: string, message = 'provider text') =>
+      voiceErrorMessage({ callId: 'fixture-call', kind: 'error', message, code })
+    expect(localized('45000003')).toContain('microphone stream stopped while unmuted')
+    expect(localized('DOUBAO_KEY_REJECTED')).toContain('independent API key')
+    expect(localized('DOUBAO_SERVICE_NOT_GRANTED')).toContain('Seed-Realtime')
+    expect(localized('SOMETHING_ELSE')).toBe('provider text')
+    expect(localized()).toBe('provider text')
+    i18n.global.locale.value = 'zh-CN'
+    expect(localized('45000003')).toContain('（45000003）')
+    expect(localized('DOUBAO_SERVICE_NOT_GRANTED')).toContain('端到端实时音视频通话')
+    expect(localized('DOUBAO_KEY_REJECTED')).toContain('API Key')
+    i18n.global.locale.value = 'en-US'
   })
 })

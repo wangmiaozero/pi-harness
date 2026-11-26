@@ -1,11 +1,25 @@
 import { ref } from 'vue'
 import type {
+  VoiceEvent,
   VoicePreparation,
   VoicePublicSettings,
   VoiceWorkOperation
 } from '@shared/agent-settings/schema'
+import { voiceErrorCodes } from '@shared/agent-settings/schema'
+import { i18n } from '@renderer/i18n'
 import { getApi } from '@renderer/composables/useApi'
 import captureUrl from './pcm-capture.js?url&no-inline'
+
+// Provider codes that carry actionable guidance; anything else keeps the Main-provided message.
+const VOICE_ERROR_MESSAGES: Record<string, string> = {
+  [voiceErrorCodes.noInput]: 'agentSettings.voiceErrorNoInput',
+  [voiceErrorCodes.keyRejected]: 'agentSettings.voiceErrorAuth',
+  [voiceErrorCodes.serviceNotGranted]: 'agentSettings.voiceErrorNotGranted'
+}
+export function voiceErrorMessage(event: VoiceEvent & { kind: 'error' }): string {
+  const key = event.code ? VOICE_ERROR_MESSAGES[event.code] : undefined
+  return key ? i18n.global.t(key) : event.message
+}
 
 function createVoiceCall() {
   const phase = ref<'ended' | 'connecting' | 'listening'>('ended'),
@@ -80,7 +94,7 @@ function createVoiceCall() {
   const unsubscribe = getApi().agentSettings.voice.onEvent((event) => {
     if (event.callId !== callId) return
     if (event.kind === 'error') {
-      error.value = event.message
+      error.value = voiceErrorMessage(event)
       void stop()
     } else if (event.kind === 'ended') void stop()
     else if (event.kind === 'interrupted') {

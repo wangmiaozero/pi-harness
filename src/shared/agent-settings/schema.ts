@@ -179,11 +179,17 @@ export interface VoiceWorkOperation {
   instruction: string
   status: 'review' | 'sending' | 'sent' | 'rejected' | 'failed'
 }
+// Provider codes the renderer turns into localized guidance; unknown codes fall back to the message.
+export const voiceErrorCodes = {
+  noInput: '45000003',
+  keyRejected: 'DOUBAO_KEY_REJECTED',
+  serviceNotGranted: 'DOUBAO_SERVICE_NOT_GRANTED'
+} as const
 export type VoiceEvent =
   | { callId: string; kind: 'ready' | 'ended' | 'interrupted' }
   | { callId: string; kind: 'audio'; data: string }
   | { callId: string; kind: 'transcript'; role: 'user' | 'assistant'; text: string }
-  | { callId: string; kind: 'error'; message: string }
+  | { callId: string; kind: 'error'; message: string; code?: string }
   | { callId: string; kind: 'activity'; userSpeaking?: boolean; assistantSpeaking?: boolean }
   | { callId: string; kind: 'work'; operation: VoiceWorkOperation }
   | { callId: string; kind: 'signal'; message: string }

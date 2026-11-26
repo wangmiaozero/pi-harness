@@ -1,8 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import type { WebContents } from 'electron'
 import WebSocket from 'ws'
-import type { VoiceEvent, VoicePublicSettings, VoiceSettings } from '@shared/agent-settings/schema'
-import { voiceSettingsSchema } from '@shared/agent-settings/schema'
+import type {
+  VoiceEvent,
+  VoicePublicSettings,
+  VoiceSettings
+} from '@shared/agent-settings/schema'
+import { voiceErrorCodes, voiceSettingsSchema } from '@shared/agent-settings/schema'
 import { JsonStore } from '../services/storage'
 import { secretStore } from '../security/secret-store'
 import { ConfigError } from '../services/errors'
@@ -24,6 +28,16 @@ export const DEFAULT_VOICE: VoiceSettings = {
   voice: 'marin',
   profile: 'realtime-ga'
 }
+
+// Doubao-only guidance: main-process messages stay English, the renderer localizes by code.
+const DOUBAO_NO_INPUT =
+  'The voice call ended because the microphone stream stopped while unmuted. Keep the microphone muted while you are away from the call.'
+const DOUBAO_KEY_REJECTED =
+  'The voice key was rejected. Check the independent Volcano speech-console API key in voice settings.'
+const DOUBAO_NOT_GRANTED =
+  'The Seed-Realtime service is not enabled for this key. Enable 端到端实时音视频通话 (Seed-Realtime) in the Volcano speech console.'
+const GENERIC_REJECTION =
+  'Voice provider rejected or ended the call. Check the account and model.'
 
 let captureLease: { contents: WebContents; url: string; expires: number } | null = null
 export function canUseVoiceMicrophone(
@@ -79,6 +93,8 @@ type Call = {
   activeResponse?: string
   interruptedResponses: Set<string>
   interrupted: boolean
+  closing: boolean
+  closeTimer?: ReturnType<typeof setTimeout>
   geminiTranscript: { user: string; assistant: string }
   pcmCarry: { remainder: Buffer }
   requests: Set<string>
@@ -148,6 +164,7 @@ export class LiveVoiceService {
       controller: new AbortController(),
       interruptedResponses: new Set(),
       interrupted: false,
+      closing: false,
       geminiTranscript: { user: '', assistant: '' },
       pcmCarry: { remainder: Buffer.alloc(0) },
       requests: new Set(),
@@ -166,6 +183,8 @@ export class LiveVoiceService {
     if (!call || call.id !== id || call.starting)
       throw new ConfigError('Voice call expired. Start a new call.')
     call.starting = true
+    const isDoubao = call.settings.adapter === 'doubao-realtime'
+    let socketOpened = false
     try {
       const settings = call.settings
       const auth: { key: string | null; endpoint?: string; accountId?: string } | undefined =
@@ -259,6 +278,7 @@ export class LiveVoiceService {
         socket.terminate()
         return
       }
+      socketOpened = true
       call.socket = socket
       socket.on('message', (data, binary) => {
         if (this.call !== call) return
@@ -270,9 +290,20 @@ export class LiveVoiceService {
         }
       })
       socket.on('close', () => {
-        if (this.call === call) this.stop(id)
+        if (this.call !== call) return
+        if (!isDoubao) return this.stop(id)
+        // A Doubao transport that never reached session.created refused the handshake.
+        if (!call.ready)
+          return this.fail(call, DOUBAO_NOT_GRANTED, voiceErrorCodes.serviceNotGranted)
+        // After session.closed, or a provider-initiated teardown, a close is a clean end.
+        this.finishClose(call)
       })
-      socket.on('error', () => this.fail(call, 'Voice connection interrupted.'))
+      socket.on('error', () => {
+        if (this.call !== call) return
+        if (isDoubao && !call.ready)
+          return this.fail(call, DOUBAO_NOT_GRANTED, voiceErrorCodes.serviceNotGranted)
+        this.fail(call, 'Voice connection interrupted.')
+      })
       // Install readiness listeners before sending setup; no socket-open success shortcut.
       const confirmed = new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => {
@@ -302,6 +333,16 @@ export class LiveVoiceService {
       )
       await confirmed
     } catch (e) {
+      if (isDoubao && !call.ready) {
+        // Coded events carry the actionable, localizable guidance a thrown ConfigError would hide.
+        if (this.call === call)
+          this.fail(
+            call,
+            socketOpened ? DOUBAO_NOT_GRANTED : DOUBAO_KEY_REJECTED,
+            socketOpened ? voiceErrorCodes.serviceNotGranted : voiceErrorCodes.keyRejected
+          )
+        return
+      }
       this.stop(id)
       throw e instanceof ConfigError
         ? e
@@ -315,9 +356,9 @@ export class LiveVoiceService {
     call.expires = setTimeout(() => this.stop(call.id), 30 * 60 * 1000)
     this.emit({ callId: call.id, kind: 'ready' })
   }
-  private fail(call: Call, message: string): void {
+  private fail(call: Call, message: string, code?: string): void {
     if (this.call !== call) return
-    this.emit({ callId: call.id, kind: 'error', message })
+    this.emit({ callId: call.id, kind: 'error', message, ...(code ? { code } : {}) })
     this.stop(call.id)
   }
   // All peer data is bounded by the socket/data-channel limits and parsed here in Main.
@@ -338,14 +379,22 @@ export class LiveVoiceService {
       )
         this.emit({ callId: call.id, kind: 'audio', data })
     }
-    if (m.error || m.type === 'error' || m.goAway)
-      return this.fail(
-        call,
-        'Voice provider rejected or ended the call. Check the account and model.'
-      )
+    if (m.error || m.type === 'error' || m.goAway) {
+      // A hang-up is already under way: provider noise during the close window is not an error.
+      if (call.closing) return
+      const code = m.error?.status_code ?? m.error?.code ?? m.status_code ?? m.code
+      const mapped = code === undefined || code === null ? undefined : String(code)
+      if (call.settings.adapter === 'doubao-realtime' && mapped === voiceErrorCodes.noInput)
+        return this.fail(call, DOUBAO_NO_INPUT, voiceErrorCodes.noInput)
+      return this.fail(call, GENERIC_REJECTION)
+    }
     if (m.setupComplete !== undefined && call.settings.adapter === 'gemini-live') this.ready(call)
     if (m.type === 'session.created' && call.settings.adapter === 'doubao-realtime')
       this.ready(call)
+    if (m.type === 'session.closed' && call.settings.adapter === 'doubao-realtime') {
+      this.finishClose(call)
+      return
+    }
     if (
       m.type === 'session.updated' &&
       call.settings.adapter !== 'codex-live' &&
@@ -575,16 +624,34 @@ export class LiveVoiceService {
   stop(id: string): void {
     if (this.call?.id !== id) return
     const call = this.call
+    if (call.closing) return
+    // Doubao keeps the provider session closable: one session.close, then a bounded wait for
+    // session.closed before the transport is torn down instead of racing a close frame.
+    if (
+      call.settings.adapter === 'doubao-realtime' &&
+      call.ready &&
+      call.socket?.readyState === WebSocket.OPEN
+    ) {
+      call.closing = true
+      call.socket.send(JSON.stringify({ type: 'session.close' }))
+      call.closeTimer = setTimeout(() => this.finishClose(call), 3000)
+      return
+    }
+    this.finishClose(call)
+  }
+  private finishClose(call: Call): void {
+    if (this.call !== call) return
     this.call = null
     captureLease = null
     clearTimeout(call.expires)
+    if (call.closeTimer) clearTimeout(call.closeTimer)
     call.controller.abort()
     call.cleanupOwner()
     call.socket?.terminate()
-    this.emit({ callId: id, kind: 'ended' })
+    this.emit({ callId: call.id, kind: 'ended' })
   }
   dispose(): void {
-    if (this.call) this.stop(this.call.id)
+    if (this.call) this.finishClose(this.call)
     captureLease = null
   }
 }
