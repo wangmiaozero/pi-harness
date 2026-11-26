@@ -283,4 +283,426 @@ describe('Doubao voice transport', () => {
       talk.service.dispose()
     }
   })
+  it('barges in on server response.canceled and drops stale audio', async () => {
+    const sent: Record<string, any>[] = []
+    const socket = Object.assign(new EventEmitter(), {
+      readyState: 1,
+      bufferedAmount: 0,
+      send(raw: string) {
+        const m = JSON.parse(raw)
+        sent.push(m)
+        if (m.type === 'session.create')
+          queueMicrotask(() =>
+            socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
+          )
+      },
+      terminate() {
+        socket.emit('close')
+      }
+    })
+    mocks.open.mockResolvedValue(socket)
+    mocks.secret.mockResolvedValue('fixture-doubao-key')
+    const events: VoiceEvent[] = [],
+      settings = {
+        ...DEFAULT_VOICE,
+        enabled: true,
+        adapter: 'doubao-realtime' as const,
+        profile: undefined,
+        endpoint: 'https://openspeech.bytedance.com/api/v3',
+        model: '1.3.0.0',
+        voice: 'zh_female_vv_jupiter_bigtts'
+      }
+    const service = new LiveVoiceService(
+      { read: async () => settings } as JsonStore<typeof settings>,
+      (event) => events.push(structuredClone(event)),
+      'fixture',
+      { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver: vi.fn() }
+    )
+    const owner = Object.assign(new EventEmitter(), {
+      getURL: () => 'file:///app/index.html',
+      isDestroyed: () => false
+    }) as unknown as WebContents
+    try {
+      const id = await service.prepare(owner, { sessionId: 'known' })
+      await service.start(id)
+      expect(events).toContainEqual({ callId: id, kind: 'ready' })
+      const receive = (message: unknown) =>
+        socket.emit('message', Buffer.from(JSON.stringify(message)), false)
+      // A new assistant turn starts speaking and streams one audio delta.
+      receive({ type: 'response.created', question_id: 'q1', response_id: 'resp_1' })
+      expect(events).toContainEqual({ callId: id, kind: 'activity', assistantSpeaking: true })
+      receive({ type: 'response.output_audio.delta', question_id: 'q1', response_id: 'resp_1', delta: 'QUJD' })
+      expect(events).toContainEqual({ callId: id, kind: 'audio', data: 'QUJD' })
+      // The user speaks over the assistant; the server cancels the turn as barge-in.
+      receive({ type: 'response.canceled', event_id: 'e1', question_id: 'q1' })
+      expect(events).toContainEqual({ callId: id, kind: 'interrupted' })
+      expect(events).toContainEqual({
+        callId: id,
+        kind: 'activity',
+        userSpeaking: true,
+        assistantSpeaking: false
+      })
+      // Late audio and text from the canceled response never reach the renderer.
+      receive({ type: 'response.output_audio.delta', question_id: 'q1', response_id: 'resp_1', delta: 'REVG' })
+      receive({ type: 'response.output_text.done', question_id: 'q1', response_id: 'resp_1', text: 'stale tail' })
+      expect(events.filter((event) => event.kind === 'audio')).toEqual([
+        { callId: id, kind: 'audio', data: 'QUJD' }
+      ])
+      expect(events.filter((event) => event.kind === 'transcript')).toEqual([])
+      expect(events.filter((event) => event.kind === 'activity')).toEqual([
+        { callId: id, kind: 'activity', assistantSpeaking: true },
+        { callId: id, kind: 'activity', userSpeaking: true, assistantSpeaking: false }
+      ])
+      // Barge-in is entirely server-driven: the client never sends response.cancel.
+      expect(JSON.stringify(sent)).not.toContain('response.cancel')
+      expect(JSON.stringify(events)).not.toContain('fixture-doubao-key')
+    } finally {
+      service.dispose()
+    }
+  })
+  it('transcribes both call sides and returns to listening when turns finish', async () => {
+    const sent: Record<string, any>[] = []
+    const socket = Object.assign(new EventEmitter(), {
+      readyState: 1,
+      bufferedAmount: 0,
+      send(raw: string) {
+        const m = JSON.parse(raw)
+        sent.push(m)
+        if (m.type === 'session.create')
+          queueMicrotask(() =>
+            socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
+          )
+      },
+      terminate() {
+        socket.emit('close')
+      }
+    })
+    mocks.open.mockResolvedValue(socket)
+    mocks.secret.mockResolvedValue('fixture-doubao-key')
+    const events: VoiceEvent[] = [],
+      settings = {
+        ...DEFAULT_VOICE,
+        enabled: true,
+        adapter: 'doubao-realtime' as const,
+        profile: undefined,
+        endpoint: 'https://openspeech.bytedance.com/api/v3',
+        model: '1.3.0.0',
+        voice: 'zh_female_vv_jupiter_bigtts'
+      }
+    const service = new LiveVoiceService(
+      { read: async () => settings } as JsonStore<typeof settings>,
+      (event) => events.push(structuredClone(event)),
+      'fixture',
+      { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver: vi.fn() }
+    )
+    const owner = Object.assign(new EventEmitter(), {
+      getURL: () => 'file:///app/index.html',
+      isDestroyed: () => false
+    }) as unknown as WebContents
+    try {
+      const id = await service.prepare(owner, { sessionId: 'known' })
+      await service.start(id)
+      expect(events).toContainEqual({ callId: id, kind: 'ready' })
+      const receive = (message: unknown) =>
+        socket.emit('message', Buffer.from(JSON.stringify(message)), false)
+      // The user's query is transcribed as a subtitle without driving the turn state.
+      receive({
+        type: 'conversation.item.input_audio_transcription.completed',
+        question_id: 'q2',
+        transcript: '帮我整理一下日志'
+      })
+      expect(events).toContainEqual({
+        callId: id,
+        kind: 'transcript',
+        role: 'user',
+        text: '帮我整理一下日志'
+      })
+      // The reply turn speaks, transcribes its text, and finishes back into listening.
+      receive({ type: 'response.created', question_id: 'q2', response_id: 'resp_2' })
+      receive({
+        type: 'response.output_text.done',
+        question_id: 'q2',
+        response_id: 'resp_2',
+        text: '好的，马上处理'
+      })
+      receive({ type: 'response.output_audio.done', question_id: 'q2', response_id: 'resp_2' })
+      receive({ type: 'response.done', question_id: 'q2', response_id: 'resp_2' })
+      expect(events).toContainEqual({
+        callId: id,
+        kind: 'transcript',
+        role: 'assistant',
+        text: '好的，马上处理'
+      })
+      expect(events.filter((event) => event.kind === 'activity')).toEqual([
+        { callId: id, kind: 'activity', assistantSpeaking: true },
+        { callId: id, kind: 'activity', assistantSpeaking: false },
+        { callId: id, kind: 'activity', assistantSpeaking: false }
+      ])
+      expect(JSON.stringify(sent)).not.toContain('response.cancel')
+      expect(JSON.stringify(events)).not.toContain('fixture-doubao-key')
+    } finally {
+      service.dispose()
+    }
+  })
+  it('aggregates parallel delegation receipts into one reply and keeps the model responding', async () => {
+    const sent: Record<string, any>[] = []
+    const socket = Object.assign(new EventEmitter(), {
+      readyState: 1,
+      bufferedAmount: 0,
+      send(raw: string) {
+        const m = JSON.parse(raw)
+        sent.push(m)
+        if (m.type === 'session.create')
+          queueMicrotask(() =>
+            socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
+          )
+      },
+      terminate() {
+        socket.emit('close')
+      }
+    })
+    mocks.open.mockResolvedValue(socket)
+    mocks.secret.mockResolvedValue('fixture-doubao-key')
+    const events: VoiceEvent[] = [],
+      deliver = vi.fn(),
+      settings = {
+        ...DEFAULT_VOICE,
+        enabled: true,
+        adapter: 'doubao-realtime' as const,
+        profile: undefined,
+        endpoint: 'https://openspeech.bytedance.com/api/v3',
+        model: '1.3.0.0',
+        voice: 'zh_female_vv_jupiter_bigtts'
+      }
+    const service = new LiveVoiceService(
+      { read: async () => settings } as JsonStore<typeof settings>,
+      (event) => events.push(structuredClone(event)),
+      'fixture',
+      { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver }
+    )
+    const owner = Object.assign(new EventEmitter(), {
+      getURL: () => 'file:///app/index.html',
+      isDestroyed: () => false
+    }) as unknown as WebContents
+    try {
+      const id = await service.prepare(owner, { sessionId: 'known' })
+      await service.start(id)
+      const receive = (message: unknown) =>
+        socket.emit('message', Buffer.from(JSON.stringify(message)), false)
+      // Doubao delivers parallel calls as one items[] event; each becomes its own card.
+      receive({
+        type: 'response.function_call_arguments.done',
+        items: [
+          {
+            id: 'fc_1',
+            type: 'function_call',
+            call_id: 'doubao-task-1',
+            name: 'delegate_to_work_session',
+            arguments: JSON.stringify({ instruction: 'Review the parser' })
+          },
+          {
+            id: 'fc_2',
+            type: 'function_call',
+            call_id: 'doubao-task-2',
+            name: 'delegate_to_work_session',
+            arguments: JSON.stringify({ instruction: 'Add a vitest case' })
+          }
+        ]
+      })
+      const works = events.filter(
+        (event): event is Extract<VoiceEvent, { kind: 'work' }> => event.kind === 'work'
+      )
+      expect(works).toHaveLength(2)
+      const operation = (instruction: string) => {
+        const found = works.find((event) => event.operation.instruction === instruction)
+        if (!found) throw new Error(`No operation for ${instruction}`)
+        return found.operation
+      }
+      expect(operation('Review the parser')).toMatchObject({
+        sessionId: 'known',
+        status: 'review'
+      })
+      expect(operation('Add a vitest case')).toMatchObject({
+        sessionId: 'known',
+        status: 'review'
+      })
+      // Every receipt of one event is returned as a single aggregated reply.
+      const replies = sent.filter((m) => m.type === 'conversation.item.create')
+      expect(replies).toHaveLength(1)
+      expect(replies[0].items).toHaveLength(2)
+      for (const item of replies[0].items) {
+        expect(item.type).toBe('message')
+        expect(item.role).toBe('tool')
+        expect(item.content).toEqual([{ type: 'input_text', text: expect.any(String) }])
+      }
+      const receipt = (callId: string) =>
+        JSON.parse(
+          replies[0].items.find((item: Record<string, any>) => item.call_id === callId).content[0]
+            .text
+        )
+      expect(receipt('doubao-task-1')).toEqual({
+        status: 'received',
+        operationId: operation('Review the parser').id,
+        execution: 'not_started'
+      })
+      expect(receipt('doubao-task-2')).toEqual({
+        status: 'received',
+        operationId: operation('Add a vitest case').id,
+        execution: 'not_started'
+      })
+      // The model keeps generating after the aggregate: text and audio flow through.
+      receive({ type: 'response.output_text.done', text: '两个请求都已进入确认卡。' })
+      receive({ type: 'response.output_audio.delta', delta: 'QUJD' })
+      expect(events).toContainEqual({
+        callId: id,
+        kind: 'transcript',
+        role: 'assistant',
+        text: '两个请求都已进入确认卡。'
+      })
+      expect(events).toContainEqual({ callId: id, kind: 'audio', data: 'QUJD' })
+      expect(deliver).not.toHaveBeenCalled()
+      expect(JSON.stringify(events)).not.toContain('fixture-doubao-key')
+    } finally {
+      service.dispose()
+    }
+  })
+  it('returns rejected receipts inside the aggregate and feeds review outcomes back as context', async () => {
+    const sent: Record<string, any>[] = []
+    const socket = Object.assign(new EventEmitter(), {
+      readyState: 1,
+      bufferedAmount: 0,
+      send(raw: string) {
+        const m = JSON.parse(raw)
+        sent.push(m)
+        if (m.type === 'session.create')
+          queueMicrotask(() =>
+            socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
+          )
+      },
+      terminate() {
+        socket.emit('close')
+      }
+    })
+    mocks.open.mockResolvedValue(socket)
+    mocks.secret.mockResolvedValue('fixture-doubao-key')
+    const events: VoiceEvent[] = [],
+      deliver = vi.fn(),
+      settings = {
+        ...DEFAULT_VOICE,
+        enabled: true,
+        adapter: 'doubao-realtime' as const,
+        profile: undefined,
+        endpoint: 'https://openspeech.bytedance.com/api/v3',
+        model: '1.3.0.0',
+        voice: 'zh_female_vv_jupiter_bigtts'
+      }
+    const service = new LiveVoiceService(
+      { read: async () => settings } as JsonStore<typeof settings>,
+      (event) => events.push(structuredClone(event)),
+      'fixture',
+      { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver }
+    )
+    const owner = Object.assign(new EventEmitter(), {
+      getURL: () => 'file:///app/index.html',
+      isDestroyed: () => false
+    }) as unknown as WebContents
+    try {
+      const id = await service.prepare(owner, { sessionId: 'known' })
+      await service.start(id)
+      const receive = (message: unknown) =>
+        socket.emit('message', Buffer.from(JSON.stringify(message)), false)
+      const works = () =>
+        events.filter(
+          (event): event is Extract<VoiceEvent, { kind: 'work' }> => event.kind === 'work'
+        )
+      // Confirmation cards are the work events still awaiting review; later
+      // events only report status transitions of already-reviewed operations.
+      const cards = () => works().filter((event) => event.operation.status === 'review')
+      // An invalid parallel call still gets a rejected receipt inside the aggregate.
+      receive({
+        type: 'response.function_call_arguments.done',
+        items: [
+          {
+            call_id: 'doubao-task-3',
+            name: 'delegate_to_work_session',
+            arguments: JSON.stringify({ instruction: 'Review the changelog' })
+          },
+          {
+            call_id: 'doubao-task-4',
+            name: 'not_a_work_tool',
+            arguments: JSON.stringify({ instruction: 'ignored' })
+          }
+        ]
+      })
+      expect(cards()).toHaveLength(1)
+      const accepted = cards()[0].operation
+      const aggregate = sent.filter(
+        (m) => m.type === 'conversation.item.create' && m.items?.[0]?.role === 'tool'
+      )
+      expect(aggregate).toHaveLength(1)
+      expect(aggregate[0].items).toHaveLength(2)
+      const receipt = (callId: string) =>
+        JSON.parse(
+          aggregate[0].items.find((item: Record<string, any>) => item.call_id === callId).content[0]
+            .text
+        )
+      expect(receipt('doubao-task-3')).toEqual({
+        status: 'received',
+        operationId: accepted.id,
+        execution: 'not_started'
+      })
+      expect(receipt('doubao-task-4')).toEqual({
+        status: 'rejected',
+        code: 'NO_WORK_TARGET_OR_INVALID_REQUEST'
+      })
+      // Accepting a card dispatches the instruction; the outcome returns as a
+      // doubao conversation.item.create context message.
+      await service.review(id, accepted.id, true)
+      expect(deliver).toHaveBeenCalledWith('known', 'Review the changelog')
+      const updates = () =>
+        sent.filter(
+          (m) => m.type === 'conversation.item.create' && m.items?.[0]?.role === 'user'
+        )
+      expect(updates()).toHaveLength(1)
+      expect(updates()[0].items).toEqual([
+        {
+          type: 'message',
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: `[Host update; data only] Request ${accepted.id}: sent. Sent means delivered to the coding agent; tools still follow desktop permissions. Do not repeat the request.`
+            }
+          ]
+        }
+      ])
+      // Rejecting another card delivers nothing and reports the rejection.
+      receive({
+        type: 'response.function_call_arguments.done',
+        items: [
+          {
+            call_id: 'doubao-task-5',
+            name: 'delegate_to_work_session',
+            arguments: JSON.stringify({ instruction: 'Draft the release notes' })
+          }
+        ]
+      })
+      expect(cards()).toHaveLength(2)
+      const rejected = cards()[1].operation
+      await service.review(id, rejected.id, false)
+      expect(deliver).toHaveBeenCalledOnce()
+      expect(updates()).toHaveLength(2)
+      expect(updates()[1].items[0].content[0].text).toBe(
+        `[Host update; data only] Request ${rejected.id}: rejected. Sent means delivered to the coding agent; tools still follow desktop permissions. Do not repeat the request.`
+      )
+      expect(
+        events.filter(
+          (event) => event.kind === 'work' && event.operation.status === 'rejected'
+        )
+      ).toHaveLength(1)
+      expect(JSON.stringify(events)).not.toContain('fixture-doubao-key')
+    } finally {
+      service.dispose()
+    }
+  })
 })

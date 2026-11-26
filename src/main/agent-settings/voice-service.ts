@@ -101,6 +101,20 @@ type Call = {
   operations: Map<string, VoiceWorkOperation>
   feedback: Map<string, string>
 }
+// Tool-call arguments arrive as a JSON string; oversized or malformed payloads parse to null.
+const parseToolArguments = (raw: unknown): unknown => {
+  if (typeof raw !== 'string' || raw.length > 10000) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+type WorkReceipt =
+  | { status: 'received'; operationId: string; execution: 'not_started' }
+  | { status: 'rejected'; code: 'NO_WORK_TARGET_OR_INVALID_REQUEST' }
+// A per-call receipt returned to the provider; Doubao aggregates these per event.
+type WorkReceiptReply = { call_id: string; receipt: WorkReceipt }
 export class LiveVoiceService {
   private call: Call | null = null
   constructor(
@@ -364,8 +378,6 @@ export class LiveVoiceService {
   // All peer data is bounded by the socket/data-channel limits and parsed here in Main.
   private message(call: Call, m: Record<string, any>): void {
     if (!m || typeof m !== 'object') throw new Error()
-    const send = (event: Omit<VoiceEvent, 'callId'>) =>
-      this.emit({ callId: call.id, ...event } as VoiceEvent)
     const transcript = (role: 'user' | 'assistant', text: unknown) => {
       if (typeof text === 'string' && text.length)
         this.emit({ callId: call.id, kind: 'transcript', role, text: text.slice(0, 20000) })
@@ -413,7 +425,12 @@ export class LiveVoiceService {
       if (!valid) throw new Error()
       this.ready(call)
     }
-    if (m.type === 'response.created' && typeof m.response?.id === 'string') {
+    if (m.type === 'response.created' && call.settings.adapter === 'doubao-realtime') {
+      const id = m.response?.id ?? m.response_id
+      if (typeof id === 'string') call.activeResponse = id
+      call.interrupted = false
+      this.emit({ callId: call.id, kind: 'activity', assistantSpeaking: true })
+    } else if (m.type === 'response.created' && typeof m.response?.id === 'string') {
       call.activeResponse = m.response.id
       call.interrupted = false
     }
@@ -425,18 +442,19 @@ export class LiveVoiceService {
       !staleResponse
     )
       audio(m.delta)
-    if (m.type === 'input_audio_buffer.speech_started' || m.serverContent?.interrupted) {
-      if (call.activeResponse) {
-        call.interruptedResponses.add(call.activeResponse)
-        if (call.interruptedResponses.size > 256)
-          call.interruptedResponses.delete(call.interruptedResponses.values().next().value!)
-      }
-      call.interrupted = true
-      send({ kind: 'interrupted' })
-      this.emit({ callId: call.id, kind: 'activity', userSpeaking: true, assistantSpeaking: false })
-    }
+    if (m.type === 'input_audio_buffer.speech_started' || m.serverContent?.interrupted)
+      this.interrupt(call)
+    // Doubao barge-in: the server itself cancels the turn; this client never sends response.cancel.
+    if (m.type === 'response.canceled' && call.settings.adapter === 'doubao-realtime')
+      this.interrupt(call)
     if (m.type === 'input_audio_buffer.speech_stopped')
       this.emit({ callId: call.id, kind: 'activity', userSpeaking: false })
+    // Doubao ends a turn with either done event and returns to listening.
+    if (
+      call.settings.adapter === 'doubao-realtime' &&
+      ['response.done', 'response.output_audio.done'].includes(m.type)
+    )
+      this.emit({ callId: call.id, kind: 'activity', assistantSpeaking: false })
     if (m.type === 'conversation.item.input_audio_transcription.completed')
       transcript('user', m.transcript)
     if (
@@ -444,19 +462,36 @@ export class LiveVoiceService {
       ['response.audio_transcript.done', 'response.output_audio_transcript.done'].includes(m.type)
     )
       transcript('assistant', m.transcript)
+    // Doubao's only assistant-text completion event carries the text as `text`.
+    if (m.type === 'response.output_text.done' && !staleResponse) transcript('assistant', m.text)
     if (m.type === 'input_transcript.added') transcript('user', m.text)
     if (m.type === 'output_transcript.added') transcript('assistant', m.text)
     if (m.type === 'response.function_call_arguments.done') {
-      let args: unknown
-      try {
-        args =
-          typeof m.arguments === 'string' && m.arguments.length <= 10000
-            ? JSON.parse(m.arguments)
-            : null
-      } catch {
-        args = null
-      }
-      this.candidate(call, m.call_id, m.name, args)
+      if (call.settings.adapter === 'doubao-realtime') {
+        // Doubao delivers parallel calls as items; the receipts of one event are
+        // answered by a single aggregated conversation.item.create.
+        const receipts: WorkReceiptReply[] = []
+        for (const item of (Array.isArray(m.items) ? m.items : []).slice(0, 16)) {
+          const reply = this.candidate(
+            call,
+            item?.call_id,
+            item?.name,
+            parseToolArguments(item?.arguments)
+          )
+          if (reply) receipts.push(reply)
+        }
+        if (receipts.length)
+          this.send(call, {
+            type: 'conversation.item.create',
+            items: receipts.map((reply) => ({
+              type: 'message',
+              role: 'tool',
+              call_id: reply.call_id,
+              content: [{ type: 'input_text', text: JSON.stringify(reply.receipt) }]
+            }))
+          })
+      } else
+        this.candidate(call, m.call_id, m.name, parseToolArguments(m.arguments))
     }
     if (
       m.type === 'delegation.created' &&
@@ -498,13 +533,32 @@ export class LiveVoiceService {
         this.candidate(call, fn.id, fn.name, fn.args)
     }
   }
+  // A barge-in marks the active response stale so its late audio and text are dropped, then
+  // clears renderer playback and reports the user speaking over the assistant.
+  private interrupt(call: Call): void {
+    if (call.activeResponse) {
+      call.interruptedResponses.add(call.activeResponse)
+      if (call.interruptedResponses.size > 256)
+        call.interruptedResponses.delete(call.interruptedResponses.values().next().value!)
+    }
+    call.interrupted = true
+    this.emit({ callId: call.id, kind: 'interrupted' })
+    this.emit({ callId: call.id, kind: 'activity', userSpeaking: true, assistantSpeaking: false })
+  }
   private send(call: Call, message: unknown): void {
     if (this.call !== call || !call.ready) return
     if (call.settings.adapter === 'codex-live')
       this.emit({ callId: call.id, kind: 'signal', message: JSON.stringify(message) })
     else if (call.socket?.readyState === WebSocket.OPEN) call.socket.send(JSON.stringify(message))
   }
-  private candidate(call: Call, request: unknown, name: unknown, args: unknown): void {
+  // Processes one work-tool request and replies per adapter; returns the receipt
+  // entry so Doubao can aggregate the receipts of one event into a single reply.
+  private candidate(
+    call: Call,
+    request: unknown,
+    name: unknown,
+    args: unknown
+  ): WorkReceiptReply | null {
     if (
       !call.ready ||
       typeof request !== 'string' ||
@@ -512,9 +566,11 @@ export class LiveVoiceService {
       request.length > 256 ||
       call.requests.has(request)
     )
-      return
-    if (call.requests.size >= 256)
-      return this.fail(call, 'Voice call reached its request limit. Start a new call.')
+      return null
+    if (call.requests.size >= 256) {
+      this.fail(call, 'Voice call reached its request limit. Start a new call.')
+      return null
+    }
     call.requests.add(request)
     const parsed = workArguments.safeParse(args)
     const sessionId = call.preparation.sessionId
@@ -527,7 +583,7 @@ export class LiveVoiceService {
           status: 'review' as const
         }
       : null
-    const receipt = operation
+    const receipt: WorkReceipt = operation
       ? { status: 'received', operationId: operation.id, execution: 'not_started' }
       : { status: 'rejected', code: 'NO_WORK_TARGET_OR_INVALID_REQUEST' }
     if (operation) {
@@ -535,6 +591,7 @@ export class LiveVoiceService {
       call.feedback.set(operation.id, request)
       this.emit({ callId: call.id, kind: 'work', operation })
     }
+    if (call.settings.adapter === 'doubao-realtime') return { call_id: request, receipt }
     if (call.settings.adapter === 'gemini-live')
       this.send(call, {
         toolResponse: { functionResponses: [{ id: request, name, response: receipt }] }
@@ -551,6 +608,7 @@ export class LiveVoiceService {
         type: 'conversation.item.create',
         item: { type: 'function_call_output', call_id: request, output: JSON.stringify(receipt) }
       })
+    return { call_id: request, receipt }
   }
   async review(id: string, operationId: string, accept: boolean): Promise<void> {
     const call = this.call,
@@ -582,6 +640,11 @@ export class LiveVoiceService {
         delegation_item_id: call.feedback.get(operationId),
         channel: 'commentary',
         content: [{ type: 'input_text', text }]
+      })
+    else if (call.settings.adapter === 'doubao-realtime')
+      this.send(call, {
+        type: 'conversation.item.create',
+        items: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text }] }]
       })
     else
       this.send(call, {
