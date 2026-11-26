@@ -89,4 +89,33 @@ describe('agent settings boundaries', () => {
     expect(voiceSaveSchema.safeParse(voice).success).toBe(true)
     expect(voiceSaveSchema.safeParse({ ...voice, arbitraryCommand: 'bad' }).success).toBe(false)
   })
+  it('requires the OpenAI voice profile and forbids it for Doubao realtime', () => {
+    const doubao = {
+      enabled: true,
+      adapter: 'doubao-realtime',
+      endpoint: 'https://openspeech.bytedance.com/api/v3',
+      model: '1.3.0.0',
+      voice: 'zh_female_vv_jupiter_bigtts'
+    }
+    expect(voiceSaveSchema.safeParse(doubao).success).toBe(true)
+    expect(voiceSaveSchema.safeParse({ ...doubao, profile: 'realtime-ga' }).success).toBe(false)
+    expect(
+      voiceSaveSchema.safeParse({ ...doubao, profile: 'realtime-compat-v1' }).success
+    ).toBe(false)
+    const openai = {
+      enabled: true,
+      endpoint: 'https://api.openai.com/v1',
+      model: 'gpt-realtime',
+      voice: 'marin'
+    }
+    expect(voiceSaveSchema.safeParse(openai).success).toBe(false)
+    expect(voiceSaveSchema.safeParse({ ...openai, adapter: 'openai-realtime' }).success).toBe(
+      false
+    )
+    expect(voiceSaveSchema.safeParse({ ...openai, profile: 'realtime-ga' }).success).toBe(true)
+    expect(
+      voiceSaveSchema.safeParse({ ...openai, adapter: 'openai-realtime', profile: 'realtime-ga' })
+        .success
+    ).toBe(true)
+  })
 })

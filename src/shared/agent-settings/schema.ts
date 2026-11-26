@@ -134,15 +134,36 @@ export const shortcutOverridesSchema = z
     return true
   }, 'Shortcut is already assigned.')
 
-export const voiceSettingsSchema = z.strictObject({
+// The voice profile is an OpenAI-Realtime-only protocol switch: required for OpenAI, rejected for Doubao.
+const voiceSettingsBase = z.strictObject({
   enabled: z.boolean(),
-  adapter: z.enum(['openai-realtime', 'gemini-live', 'codex-live']).optional(),
+  adapter: z
+    .enum(['openai-realtime', 'gemini-live', 'codex-live', 'doubao-realtime'])
+    .optional(),
   providerKey: resourceId.optional(),
   endpoint: httpEndpoint,
   model: text.min(1).max(128),
   voice: text.min(1).max(100),
-  profile: z.enum(['realtime-ga', 'realtime-compat-v1'])
+  profile: z.enum(['realtime-ga', 'realtime-compat-v1']).optional()
 })
+const voiceProfileRefine = (
+  value: z.infer<typeof voiceSettingsBase>,
+  ctx: z.RefinementCtx
+) => {
+  if (value.adapter === 'doubao-realtime' && value.profile !== undefined)
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['profile'],
+      message: 'The protocol field applies to OpenAI Realtime only.'
+    })
+  if ((!value.adapter || value.adapter === 'openai-realtime') && !value.profile)
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['profile'],
+      message: 'Choose a protocol for OpenAI Realtime.'
+    })
+}
+export const voiceSettingsSchema = voiceSettingsBase.superRefine(voiceProfileRefine)
 export type VoiceSettings = z.infer<typeof voiceSettingsSchema>
 export interface VoicePublicSettings extends VoiceSettings {
   hasCredential: boolean
@@ -166,9 +187,9 @@ export type VoiceEvent =
   | { callId: string; kind: 'activity'; userSpeaking?: boolean; assistantSpeaking?: boolean }
   | { callId: string; kind: 'work'; operation: VoiceWorkOperation }
   | { callId: string; kind: 'signal'; message: string }
-export const voiceSaveSchema = voiceSettingsSchema.extend({
-  apiKey: z.string().min(1).max(8192).optional()
-})
+export const voiceSaveSchema = voiceSettingsBase
+  .extend({ apiKey: z.string().min(1).max(8192).optional() })
+  .superRefine(voiceProfileRefine)
 export const callIdSchema = z.strictObject({ callId: z.string().uuid() })
 export const voiceStartSchema = callIdSchema.extend({
   offerSdp: z.string().min(1).max(262144).optional()
