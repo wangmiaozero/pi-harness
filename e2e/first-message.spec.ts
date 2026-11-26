@@ -201,18 +201,50 @@ for (const [withImage, precreated] of [
       await editor.press('Enter')
       await expect.poll(() => requests.length).toBe(2)
       await expect(users).toHaveCount(2)
+      const queuedText = 'Review this follow-up image'
+      const queue = composer.getByTestId('composer-follow-up-queue')
+      if (withImage) {
+        await composer.getByTestId('composer-add').click()
+        await expect(page.getByTestId('composer-mode-goal')).toBeDisabled()
+        await expect(page.getByTestId('composer-mode-plan')).toBeDisabled()
+        const [chooser] = await Promise.all([
+          page.waitForEvent('filechooser'),
+          page.getByTestId('composer-add-image').click()
+        ])
+        await chooser.setFiles({
+          name: 'follow-up.png',
+          mimeType: 'image/png',
+          buffer: Buffer.from(imageData, 'base64')
+        })
+        await expect(composer.getByAltText('follow-up.png')).toBeVisible()
+        await expect(editor).toBeFocused()
+        await expect(queue).toBeHidden()
+        await editor.pressSequentially(queuedText)
+        await editor.press('Enter')
+        await expect(editor).toBeEmpty()
+        await expect(queue).toContainText(queuedText)
+        expect(requests).toHaveLength(2)
+      }
       finishResponse!()
+      if (withImage) {
+        await expect.poll(() => requests.length).toBe(3)
+        const followUp = requests[2].messages.filter((message) => message.role === 'user').at(-1)
+        expect(JSON.stringify(followUp)).toContain(queuedText)
+        expect(JSON.stringify(followUp)).toContain('data:image/png;base64,')
+        await expect(queue).toBeHidden()
+        finishResponse!()
+      }
       await expect(composer.getByRole('button', { name: /终止|Abort/, exact: true })).toHaveCount(0)
-      await expect(users).toHaveCount(2)
+      const messageCount = withImage ? 3 : 2
+      await expect(users).toHaveCount(messageCount)
 
       await composer.getByRole('button', { name: /完整历史|Full history/ }).click()
       const dialog = page.getByRole('dialog', { name: /完整历史|Full history/ })
-      await expect(dialog.locator('[data-message-role="user"]')).toHaveCount(2)
+      await expect(dialog.locator('[data-message-role="user"]')).toHaveCount(messageCount)
       if (withImage)
-        await expect(dialog.locator('[data-message-role="user"] img')).toHaveAttribute(
-          'src',
-          /^data:image\/png;base64,/
-        )
+        await expect(
+          dialog.locator('[data-message-role="user"]').last().locator('img')
+        ).toHaveAttribute('src', /^data:image\/png;base64,/)
       await dialog.getByRole('button', { name: /关闭|Close/ }).click()
 
       if (withImage) {

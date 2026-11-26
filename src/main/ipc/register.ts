@@ -17,6 +17,8 @@ import {
   ipcMain as electronIpcMain,
   shell,
   clipboard,
+  ClipboardItem,
+  nativeImage,
   app,
   nativeTheme,
   dialog
@@ -27,7 +29,12 @@ import { NODE_DOWNLOAD_URL, PI_INSTALL_COMMAND } from '@shared/constants/pi-inst
 import { toErrorPayload } from '../services/errors'
 import { log } from '../services/logger'
 import { savePastedFiles } from '../services/paste-store'
-import { pasteSaveSchema, externalUrlSchema, clipboardTextSchema } from '@shared/schemas/ipc'
+import {
+  pasteSaveSchema,
+  externalUrlSchema,
+  clipboardTextSchema,
+  clipboardImageSchema
+} from '@shared/schemas/ipc'
 import { APP_VERSION, PROJECT_LINK_URLS } from '@shared/constants/index'
 import { normalizePermissionMode } from '@shared/workspace/permission-mode'
 import {
@@ -364,6 +371,15 @@ export function registerIpc(services: Services): void {
     wrap(async () => {
       const text = parseInput(clipboardTextSchema, input, 'Invalid clipboard text')
       clipboard.writeText(text)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.systemCopyImage, (_e, input: unknown) =>
+    wrap(async () => {
+      const image = parseInput(clipboardImageSchema, input, 'Invalid clipboard image')
+      const decoded = nativeImage.createFromDataURL(`data:${image.mimeType};base64,${image.data}`)
+      if (decoded.isEmpty()) throw new ValidationError('Could not decode clipboard image')
+      const png = new Blob([new Uint8Array(decoded.toPNG())], { type: 'image/png' })
+      await clipboard.write([new ClipboardItem({ 'image/png': png })])
     })
   )
 

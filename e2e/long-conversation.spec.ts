@@ -159,7 +159,9 @@ for (const knownProfile of [false, true]) {
         ])
         expect(summaryCalls.every((r) => r.reasoning_effort === 'low')).toBe(true)
       }
-      await expect(composer.getByTestId('composer-compact')).toBeEnabled()
+      await composer.getByTestId('composer-add').click()
+      await expect(page.getByTestId('composer-compact')).toBeEnabled()
+      await page.keyboard.press('Escape')
       await composer.getByTestId('composer-more').click()
       await expect(page.getByTestId('composer-sound-toggle')).toBeVisible()
       await page.keyboard.press('Escape')

@@ -30,7 +30,7 @@ it.each([
   ['planning', 'full', 'read-only', true],
   ['planning', 'none', 'none', true]
 ] as const)(
-  'uses the displayed planning tools for session %s (%s → %s, queued images: %s)',
+  'uses the displayed planning tools for session %s (%s → %s, with images: %s)',
   async (sessionId, selected: ToolPreset, effective, queued) => {
     vi.stubGlobal(
       'ResizeObserver',
@@ -56,8 +56,18 @@ it.each([
         ? [{ type: 'image' as const, data: 'fixture', mimeType: 'image/png' }]
         : []
       const composer = wrapper.getComponent<typeof ChatComposer>(ChatComposer)
-      if (queued) composer.vm.$emit('sendQueue', images, 'plan')
-      else composer.vm.$emit('send', null, 'plan')
+      if (queued) {
+        agent.runningIds = [sessionId!]
+        workspace.addDraftImages(
+          images.map((image) => ({
+            ...image,
+            id: 'fixture-image',
+            name: 'fixture.png',
+            size: 7
+          }))
+        )
+      }
+      composer.vm.$emit('send', null, 'plan')
       await flushPromises()
       expect(send).toHaveBeenCalledWith(
         sessionId,
@@ -65,7 +75,7 @@ it.each([
         expect.stringContaining('[Mode: plan]'),
         effective,
         images,
-        queued ? '' : 'Inspect this project',
+        'Inspect this project',
         'auto'
       )
     } finally {
@@ -213,7 +223,7 @@ it('suspends hidden transcript presentation and resumes from the current store w
   wrapper.unmount()
 })
 
-it('colors only the composer context icon when usage exceeds 80%', async () => {
+it('hides unknown context usage and colors the icon only above 80%', async () => {
   window.piSwitch = { on: vi.fn(() => () => undefined) } as unknown as PiSwitchAPI
   setActivePinia(createPinia())
   const agent = useAgentStore()
@@ -238,7 +248,8 @@ it('colors only the composer context icon when usage exceeds 80%', async () => {
     }
   })
   try {
-    for (const percent of [null, 70, 80, 80.5]) {
+    expect(wrapper.find('[data-testid="composer-context-usage"]').exists()).toBe(false)
+    for (const percent of [0, 70, 80, 80.5, null]) {
       agent.state = {
         ...state,
         contextUsage: {
@@ -248,12 +259,14 @@ it('colors only the composer context icon when usage exceeds 80%', async () => {
         }
       }
       await wrapper.vm.$nextTick()
-      const usage = wrapper.get('[data-testid="composer-context-usage"]')
-      expect(usage.text()).toBe(
-        percent === null ? '?' : `${percent.toLocaleString(i18n.global.locale.value)}%`
-      )
+      const usage = wrapper.find('[data-testid="composer-context-usage"]')
+      if (percent === null) {
+        expect(usage.exists()).toBe(false)
+        continue
+      }
+      expect(usage.text()).toBe(`${percent.toLocaleString(i18n.global.locale.value)}%`)
       expect(usage.getComponent(Gauge).classes().includes('text-[var(--danger)]')).toBe(
-        percent !== null && percent > 80
+        percent > 80
       )
       expect(usage.classes()).not.toContain('text-[var(--danger)]')
     }

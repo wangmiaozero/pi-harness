@@ -84,6 +84,7 @@ export const IPC_INVOKE = {
   systemOpenProjectLink: invoke('system:open-project-link'),
   systemOpenExternal: invoke('system:open-external'),
   systemCopyText: invoke('system:copy-text'),
+  systemCopyImage: invoke('system:copy-image'),
 
   // pi environment
   piDetect: invoke('pi:detect'),

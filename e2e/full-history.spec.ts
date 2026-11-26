@@ -1,8 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { test, expect } from './fixtures'
+import { test, expect, mockSessionContextUsage } from './fixtures'
 
 test.use({ themePacks: true })
+const attachedGif = 'R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
 
 test('renders full history inside the themed Pi-Harness dialog', async ({
   page,
@@ -18,6 +19,7 @@ test('renders full history inside the themed Pi-Harness dialog', async ({
   })
   const sessionId = '01a05784-c8cd-7200-97fb-581f0caf60eb'
   seedHistorySession(piAgentDir, workspaceRoot, sessionId)
+  await mockSessionContextUsage(electronApp, sessionId)
 
   await page.setViewportSize({ width: 1869, height: 1050 })
   await page.locator('a[href="#/settings"]').click()
@@ -45,6 +47,7 @@ test('renders full history inside the themed Pi-Harness dialog', async ({
 
   const composer = page.getByTestId('chat-composer')
   const contextUsage = composer.getByTestId('composer-context-usage')
+  await expect(contextUsage).toHaveText('34%')
   const scroller = page.getByTestId('chat-scroller')
   const statusHud = page.getByTestId('chat-status-hud')
   const sessionHud = page.getByRole('region', { name: /会话信息|Session info/ })
@@ -129,6 +132,101 @@ test('renders full history inside the themed Pi-Harness dialog', async ({
   expect(consoleErrors).toEqual([])
 })
 
+test('zooms, copies and downloads an image from the chat preview', async ({
+  page,
+  electronApp,
+  piAgentDir,
+  testUserData,
+  workspaceRoot
+}) => {
+  const sessionId = '01a05784-c8cd-7200-97fb-581f0caf60ec'
+  seedHistorySession(piAgentDir, workspaceRoot, sessionId)
+
+  const output = path.join(testUserData, 'downloaded-chat-image.gif')
+  await electronApp.evaluate(({ BrowserWindow, clipboard, nativeImage }, destination) => {
+    const window = BrowserWindow.getAllWindows().find((window) => window.isVisible())!
+    clipboard.write = async ([item]) => {
+      const png = await item.getType('image/png')
+      const decoded = nativeImage.createFromBuffer(Buffer.from(await png.arrayBuffer()))
+      Reflect.set(globalThis, 'copiedChatImage', decoded.getSize())
+    }
+    window.webContents.session.once('will-download', (_event, item) => {
+      const filename = item.getFilename()
+      item.setSavePath(destination)
+      item.once('done', (_event, state) => {
+        Reflect.set(globalThis, 'chatImageDownload', { filename, state })
+      })
+    })
+  }, output)
+
+  await page.locator('a[href="#/workspace"]').click()
+  await page.getByTestId('workspace-refresh').click()
+  await page
+    .getByTestId('session-row-' + sessionId)
+    .getByRole('button', { name: '历史弹窗样式验证', exact: true })
+    .click()
+  const chat = page.getByTestId('chat-scroller')
+  const attachment = chat.locator('[data-message-role="user"] button:has(img)')
+  await expect(attachment.locator('img')).toHaveAttribute(
+    'src',
+    'data:image/gif;base64,' + attachedGif
+  )
+  await expect(page.getByTestId('composer-context-usage')).toHaveCount(0)
+  await attachment.click()
+
+  const dialog = page.getByRole('dialog', { name: /预览图片|Preview image/ })
+  const image = dialog.getByTestId('chat-image-preview')
+  const zoom = dialog.getByTestId('chat-image-zoom')
+  const zoomIn = dialog.getByTestId('chat-image-zoom-in')
+  const zoomOut = dialog.getByTestId('chat-image-zoom-out')
+  await expect(zoomIn).toBeEnabled()
+  const width = (await image.boundingBox())!.width
+  await zoomIn.click()
+  await expect(zoom).toHaveText('125%')
+  expect((await image.boundingBox())!.width).toBeGreaterThan(width)
+  await zoomOut.click()
+  await expect(zoom).toHaveText('100%')
+  expect((await image.boundingBox())!.width).toBe(width)
+
+  await expect(
+    page.evaluate(() =>
+      window.piSwitch.system
+        .copyImage({
+          type: 'image',
+          mimeType: 'image/png',
+          data: 'AAAA'
+        })
+        .catch((error: unknown) => error)
+    )
+  ).resolves.toMatchObject({ message: 'Could not decode clipboard image' })
+  expect(
+    await electronApp.evaluate(() => Reflect.get(globalThis, 'copiedChatImage'))
+  ).toBeUndefined()
+
+  await dialog.getByTestId('chat-image-copy').click()
+  await expect
+    .poll(() => electronApp.evaluate(() => Reflect.get(globalThis, 'copiedChatImage')))
+    .toEqual({ width: 1, height: 1 })
+  await dialog.getByTestId('chat-image-download').click()
+  await expect
+    .poll(() => electronApp.evaluate(() => Reflect.get(globalThis, 'chatImageDownload')))
+    .toEqual({ filename: 'chat-image.gif', state: 'completed' })
+  expect(fs.readFileSync(output)).toEqual(Buffer.from(attachedGif, 'base64'))
+
+  await zoomOut.click()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await attachment.click()
+  await expect(zoom).toHaveText('100%')
+  await dialog.getByRole('button', { name: /关闭|Close/ }).click()
+
+  await page.getByTestId('composer-full-history').click()
+  const history = page.getByTestId('full-history-dialog')
+  await history.locator('[data-message-role="assistant"] button:has(img)').click()
+  await expect(dialog.getByTestId('chat-image-copy')).toBeEnabled()
+  await expect(image).toHaveAttribute('src', /^data:image\/png;base64,/)
+})
+
 function seedHistorySession(agentDir: string, cwd: string, sessionId: string): void {
   const safePath = `--${path
     .resolve(cwd)
@@ -157,7 +255,7 @@ function seedHistorySession(agentDir: string, cwd: string, sessionId: string): v
                   { type: 'text', text: `第 ${index + 1} 条历史消息` },
                   {
                     type: 'image',
-                    data: 'R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
+                    data: attachedGif,
                     mimeType: 'image/gif'
                   }
                 ]

@@ -25,6 +25,10 @@ import { providerKeySchema } from './domain'
 import { customSkinSelectionSchema } from './custom-skin'
 import { CHAT_PARTICIPANT_NAME_MAX_LENGTH } from '../constants/chat-participants'
 import { normalizeSmartCompaction } from '../workspace/smart-compaction'
+import {
+  isBase64ImageWithinLimits,
+  MAX_ATTACHED_IMAGE_BASE64_LENGTH
+} from '../workspace/image-attachments'
 
 export const projectLinkTargetSchema = z.enum(['author', 'repository'])
 
@@ -43,6 +47,15 @@ export const externalUrlSchema = z
 
 /** Text the desktop shell may place on the system clipboard. */
 export const clipboardTextSchema = z.string().max(5 * 1024 * 1024)
+
+/** Bounded raster data for an explicit write to the desktop clipboard. */
+export const clipboardImageSchema = z
+  .strictObject({
+    type: z.literal('image'),
+    mimeType: z.enum(['image/png', 'image/jpeg']),
+    data: z.string().max(MAX_ATTACHED_IMAGE_BASE64_LENGTH)
+  })
+  .refine(isBase64ImageWithinLimits, 'invalid base64 image data')
 
 export const noArgsSchema = z.tuple([])
 

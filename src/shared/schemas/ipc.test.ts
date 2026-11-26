@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   appSettingsPatchSchema,
   backupRetentionSchema,
+  clipboardImageSchema,
   clipboardTextSchema,
   externalUrlSchema,
   modelCompositeIdSchema,
@@ -11,6 +12,7 @@ import {
   uiStateSchema
 } from './ipc'
 import { backupIdSchema } from './domain'
+import { MAX_ATTACHED_IMAGE_BASE64_LENGTH } from '../workspace/image-attachments'
 
 describe('IPC schemas', () => {
   it('only allows http(s) and mailto external URLs', () => {
@@ -25,6 +27,24 @@ describe('IPC schemas', () => {
   it('bounds clipboard text', () => {
     expect(clipboardTextSchema.safeParse('普通文本').success).toBe(true)
     expect(clipboardTextSchema.safeParse('x'.repeat(5 * 1024 * 1024 + 1)).success).toBe(false)
+  })
+
+  it('only accepts bounded base64 PNG or JPEG data for clipboard images', () => {
+    const image = { type: 'image', mimeType: 'image/png', data: 'iVBORw0KGgo=' }
+    expect(clipboardImageSchema.safeParse(image).success).toBe(true)
+    expect(clipboardImageSchema.safeParse({ ...image, mimeType: 'image/jpeg' }).success).toBe(true)
+    expect(clipboardImageSchema.safeParse({ ...image, mimeType: 'image/svg+xml' }).success).toBe(
+      false
+    )
+    expect(
+      clipboardImageSchema.safeParse({ ...image, data: 'file:///tmp/image.png' }).success
+    ).toBe(false)
+    expect(
+      clipboardImageSchema.safeParse({
+        ...image,
+        data: 'A'.repeat(MAX_ATTACHED_IMAGE_BASE64_LENGTH + 4)
+      }).success
+    ).toBe(false)
   })
   it('rejects arbitrary URLs and options for argument-free actions', () => {
     expect(noArgsSchema.safeParse([]).success).toBe(true)

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { FileText, FileDiff, FolderOpen, FolderTree, PanelRightClose } from '@lucide/vue'
 import RunChangesPreview from './RunChangesPreview.vue'
 import FileExplorer from '@renderer/components/files/FileExplorer.vue'
@@ -20,9 +21,7 @@ const workspace = useWorkspaceStore()
 const sessions = useSessionStore()
 const fileTabs = ref<InstanceType<typeof WorkspaceTabs> | null>(null)
 const panelElement = ref<HTMLElement | null>(null)
-const panelMode = ref<'tree' | 'preview' | 'changes'>(
-  workspace.changePreview ? 'changes' : workspace.activeFileTab ? 'preview' : 'tree'
-)
+const { filePanelMode: panelMode } = storeToRefs(workspace)
 const panelWidth = ref<number | null>(readStoredPanelWidth())
 const resizing = ref(false)
 let stopResize: (() => void) | null = null
@@ -31,27 +30,6 @@ const panelStyle = computed(() =>
   panelWidth.value === null
     ? undefined
     : { '--workspace-files-panel-width': `${panelWidth.value}px` }
-)
-
-watch(
-  () => workspace.activeFileTab?.id,
-  (activeId, previousId) => {
-    if (!activeId) panelMode.value = 'tree'
-    else if (activeId !== previousId) panelMode.value = 'preview'
-  }
-)
-
-watch(
-  () => workspace.changePreview,
-  (preview) => {
-    if (preview) panelMode.value = 'changes'
-  }
-)
-watch(
-  () => workspace.fileRevealTarget,
-  (target) => {
-    if (target) panelMode.value = 'tree'
-  }
 )
 
 function clampPanelWidth(width: number): number {
@@ -155,7 +133,10 @@ defineExpose({ closeActiveFile })
     data-testid="workspace-files-panel"
     :aria-label="$t('workspace.files')"
     class="workspace-files-panel flex min-h-0 min-w-0 flex-col border-l border-[var(--border-default)] bg-[var(--bg-surface)]"
-    :class="resizing ? 'workspace-files-panel--resizing' : ''"
+    :class="{
+      'workspace-files-panel--resizing': resizing,
+      'workspace-files-panel--changes': panelMode === 'changes'
+    }"
     :style="panelStyle"
   >
     <div
@@ -278,8 +259,12 @@ defineExpose({ closeActiveFile })
 <style scoped>
 .workspace-files-panel {
   position: relative;
-  flex: 0 0 var(--workspace-files-panel-width, clamp(360px, 48%, 760px));
+  flex: 0 0 var(--workspace-files-panel-width, var(--workspace-files-default-width, clamp(360px, 48%, 760px)));
   max-width: 760px;
+}
+
+.workspace-files-panel--changes {
+  --workspace-files-default-width: clamp(360px, 56%, 760px);
 }
 
 .workspace-files-resizer {

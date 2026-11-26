@@ -12,6 +12,38 @@ export interface UnifiedDiffChangeCount {
   deletions: number
 }
 
+export type SplitDiffRow =
+  | { kind: 'marker'; line: UnifiedDiffLine }
+  | { kind: 'code'; before: UnifiedDiffLine | null; after: UnifiedDiffLine | null }
+
+export function splitUnifiedDiffLines(lines: readonly UnifiedDiffLine[]): SplitDiffRow[] {
+  const rows: SplitDiffRow[] = []
+  const before: UnifiedDiffLine[] = []
+  const after: UnifiedDiffLine[] = []
+  function flushChanges(): void {
+    for (let i = 0; i < Math.max(before.length, after.length); i++) {
+      rows.push({ kind: 'code', before: before[i] ?? null, after: after[i] ?? null })
+    }
+    before.length = 0
+    after.length = 0
+  }
+
+  for (const line of lines) {
+    if (line.kind === 'deletion') before.push(line)
+    else if (line.kind === 'addition') after.push(line)
+    else {
+      flushChanges()
+      rows.push(
+        line.kind === 'context'
+          ? { kind: 'code', before: line, after: line }
+          : { kind: 'marker', line }
+      )
+    }
+  }
+  flushChanges()
+  return rows
+}
+
 const HUNK_HEADER_RE = /^@@\s+-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/
 
 export function parseUnifiedDiff(patch: string): UnifiedDiffLine[] {

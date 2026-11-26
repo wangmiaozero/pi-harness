@@ -104,12 +104,18 @@ function focusComposer() {
 defineExpose({ focusComposer })
 
 const stats = computed(() => agent.sessionStats)
+const followUpQueue = computed(() =>
+  harness.state?.sessionId === sessions.currentId ? harness.state?.queue.followUp : undefined
+)
 const contextUsage = computed(() => agent.state?.contextUsage ?? null)
 const chatContentMaxWidth = computed(() => `${settings.settings?.chatContentMaxWidth ?? 760}px`)
-const contextPercent = computed(() => contextUsage.value?.percent ?? null)
+const contextPercent = computed(() => {
+  const percent = contextUsage.value?.percent
+  return typeof percent === 'number' && Number.isFinite(percent) ? percent : null
+})
 const contextPercentLabel = computed(() =>
   contextPercent.value === null
-    ? '?'
+    ? ''
     : `${contextPercent.value.toLocaleString(locale.value, { maximumFractionDigits: 1 })}%`
 )
 const showContextWarning = computed(
@@ -222,6 +228,10 @@ watch(
   { immediate: true }
 )
 
+watch(contextPercent, (percent) => {
+  if (percent === null) statsOpen.value = false
+})
+
 function toggleCompletionSound() {
   completionSound.toggle()
   void settings
@@ -318,30 +328,6 @@ async function sendDraft(imageModel: ComposerImageModelTarget | null, mode?: Age
     // A reload immediately after the first reply must reopen this session.
     workspace.ensureChatTab(sessionId, displayText.slice(0, 32) || sessionId)
   }
-}
-
-async function onSendQueue(images: AgentImageAttachment[], mode?: AgentMode) {
-  await submitDraft(() => sendQueuedImages(images, mode))
-}
-
-async function sendQueuedImages(images: AgentImageAttachment[], mode?: AgentMode) {
-  if (!images.length) return
-  const sessionId = sessions.currentId
-  const cwd = workspace.currentCwd
-  const permissionMode = permission.modeFor(sessionId)
-  const selectedMode = normalizeAgentMode(mode)
-  const preset = toolPresetForAgentMode(selectedMode, agent.activePreset())
-  await completionSound.unlock()
-  stickToLatest()
-  await agent.send(
-    sessionId,
-    cwd,
-    agentModeDirective(selectedMode) ?? '',
-    preset,
-    images,
-    '',
-    permissionMode
-  )
 }
 
 async function onAbort() {
@@ -599,10 +585,10 @@ function duration(value: number): string {
                 </template>
                 <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.total') }}</dt>
                 <dd>{{ stats.tokens.total.toLocaleString(locale) }}</dd>
-                <template v-if="contextUsage?.contextWindow">
+                <template v-if="contextUsage?.contextWindow && contextPercent !== null">
                   <dt class="text-[var(--text-tertiary)]">{{ $t('workspace.context') }}</dt>
                   <dd>
-                    {{ contextPercent === null ? '?' : `${contextPercent.toFixed(1)}%` }} /
+                    {{ contextPercentLabel }} /
                     {{ compactNumber(contextUsage.contextWindow) }}
                   </dd>
                 </template>
@@ -661,8 +647,8 @@ function duration(value: number): string {
       ref="composer"
       :sound-enabled="completionSound.enabled.value"
       :submitting="submitting"
+      :follow-up-queue="followUpQueue"
       @send="onSend"
-      @send-queue="onSendQueue"
       @abort="onAbort"
       @toggle-sound="toggleCompletionSound"
       @unlock-audio="completionSound.unlock"
@@ -684,7 +670,7 @@ function duration(value: number): string {
           <History aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
         </button>
         <button
-          v-if="stats || contextUsage"
+          v-if="contextPercent !== null"
           type="button"
           data-testid="composer-context-usage"
           class="composer-context-usage cockpit-control-button inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-[11px] text-[var(--text-secondary)] tabular-nums transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"

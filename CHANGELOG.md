@@ -2,6 +2,32 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.19 — 2026-11-26
+
+### Added
+
+#### Chat
+
+- Zoom in or out, copy, and download images from the chat preview.
+- Use the + menu in the composer to attach images, select a Skill, switch to Goal or Plan mode, or compact the conversation.
+- See queued follow-up messages above the composer while a task is running.
+
+#### File changes
+
+- Review changes in a side-by-side diff and navigate them from a searchable file tree.
+
+### Fixed
+
+#### Chat
+
+- Images stay in the draft while a task is running. Send them together with your text or on their own.
+- Chat links open local files directly and ask for confirmation before opening external addresses.
+- The context indicator appears when a usage percentage is available.
+
+#### File changes
+
+- Selecting a changed file scrolls to it in the right panel, even when the change list is long.
+
 ## 2.4.18 — 2026-11-25
 
 ### Added

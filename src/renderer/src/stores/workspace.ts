@@ -86,6 +86,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const activeTabId = ref<string | null>(null)
   const activeFileTabId = ref<string | null>(null)
   const filePanelOpen = ref(false)
+  const filePanelMode = ref<'tree' | 'preview' | 'changes'>('tree')
+  const fileOpenTarget = shallowRef<{ path: string; line?: number } | null>(null)
   const changePreview = shallowRef<{
     runId: string
     files: Array<{
@@ -103,6 +105,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function revealFileInTree(filePath: string): void {
     if (!hasSessionWorkspace.value || !folderForPath(filePath) || !activeSessionWorkspaceId.value)
       return
+    filePanelMode.value = 'tree'
     filePanelOpen.value = true
     fileRevealTarget.value = {
       path: filePath,
@@ -142,6 +145,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeSessionWorkspaceId,
     () => {
       changePreview.value = null
+      fileOpenTarget.value = null
       fileRevealTarget.value = null
     },
     { flush: 'sync' }
@@ -397,6 +401,17 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       sessionFileTabs.value.at(-1) ??
       null
   )
+  watch(
+    () => activeFileTab.value?.id,
+    (id) => {
+      filePanelMode.value = id ? 'preview' : 'tree'
+    }
+  )
+  watch(changePreview, (preview) => {
+    if (preview) filePanelMode.value = 'changes'
+    else if (filePanelMode.value === 'changes')
+      filePanelMode.value = activeFileTab.value ? 'preview' : 'tree'
+  })
   const draftKey = computed(() => sessions.currentId ?? '__new__')
   const draft = computed({
     get: () => drafts.value[draftKey.value] ?? '',
@@ -468,11 +483,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return Boolean(buffer && buffer.content !== buffer.savedContent)
   }
 
-  function addDraftImages(images: ChatDraftImage[]) {
+  function addDraftImages(images: ChatDraftImage[], key = draftKey.value) {
     if (!images.length) return
     draftImageMap.value = {
       ...draftImageMap.value,
-      [draftKey.value]: [...draftImages.value, ...images].slice(0, MAX_ATTACHED_IMAGES)
+      [key]: [...(draftImageMap.value[key] ?? []), ...images].slice(0, MAX_ATTACHED_IMAGES)
     }
   }
 
@@ -494,17 +509,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return true
   }
 
-  function openFileTab(filePath: string, title: string) {
-    if (!hasSessionWorkspace.value || !folderForPath(filePath)) return
-    const id = `file:${filePath}`
+  function openFileTab(filePath: string, title: string, line?: number): boolean {
     const folder = folderForPath(filePath)
-    const tabTitle =
-      isMultiRoot.value && folder && !title.includes('/') ? `${folder.name}/${title}` : title
+    if (!hasSessionWorkspace.value || !folder) return false
+    const id = `file:${filePath}`
+    const tabTitle = isMultiRoot.value && !title.includes('/') ? `${folder.name}/${title}` : title
     if (!tabs.value.some((t) => t.id === id)) {
       tabs.value = [...tabs.value, { id, kind: 'file', title: tabTitle, filePath, closable: true }]
     }
     activeFileTabId.value = id
+    filePanelMode.value = 'preview'
     filePanelOpen.value = true
+    fileOpenTarget.value = { path: filePath, line }
+    return true
   }
 
   function openDiffTab(
@@ -587,6 +604,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (tab.kind === 'file') {
       if (sessionFileTabs.value.some((item) => item.id === id)) {
         activeFileTabId.value = id
+        filePanelMode.value = 'preview'
         filePanelOpen.value = true
       }
       return
@@ -1841,7 +1859,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeFileTab,
     sessionFileTabs,
     filePanelOpen,
+    filePanelMode,
     changePreview,
+    fileOpenTarget,
     fileRevealTarget,
     revealFileInTree,
     hasSessionWorkspace,

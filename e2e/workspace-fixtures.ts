@@ -147,7 +147,8 @@ export function seedWorkspaceSession(
   agentDir: string,
   cwd: string,
   sessionId: string,
-  label = 'Fixture session'
+  label = 'Fixture session',
+  assistantText?: string
 ) {
   const safePath = `--${path
     .resolve(cwd)
@@ -155,18 +156,38 @@ export function seedWorkspaceSession(
     .replace(/[/\\:]/g, '-')}--`
   const sessionDir = path.join(agentDir, 'sessions', safePath)
   const timestamp = '2026-08-29T05:00:00.000Z'
+  const userEntryId = '01a026a4-0796-73ff-990a-a2be2198353d'
+  const entries = [
+    JSON.stringify({ type: 'session', version: 3, id: sessionId, timestamp, cwd }),
+    JSON.stringify({
+      type: 'message',
+      id: userEntryId,
+      parentId: null,
+      timestamp,
+      message: { role: 'user', content: label, timestamp: Date.parse(timestamp) }
+    })
+  ]
+  if (assistantText) {
+    entries.push(
+      JSON.stringify({
+        type: 'message',
+        id: 'assistant-with-links',
+        parentId: userEntryId,
+        timestamp,
+        message: {
+          role: 'assistant',
+          provider: 'openai',
+          model: 'gpt-5',
+          content: [{ type: 'text', text: assistantText }],
+          stopReason: 'stop',
+          timestamp: Date.parse(timestamp)
+        }
+      })
+    )
+  }
   fs.mkdirSync(sessionDir, { recursive: true })
   fs.writeFileSync(
     path.join(sessionDir, `2026-08-29T05-00-00-000Z_${sessionId}.jsonl`),
-    [
-      JSON.stringify({ type: 'session', version: 3, id: sessionId, timestamp, cwd }),
-      JSON.stringify({
-        type: 'message',
-        id: '01a026a4-0796-73ff-990a-a2be2198353d',
-        parentId: null,
-        timestamp,
-        message: { role: 'user', content: label, timestamp: Date.parse(timestamp) }
-      })
-    ].join('\n') + '\n'
+    entries.join('\n') + '\n'
   )
 }

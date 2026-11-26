@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countUnifiedDiffChanges, parseUnifiedDiff } from './unified-diff'
+import { countUnifiedDiffChanges, parseUnifiedDiff, splitUnifiedDiffLines } from './unified-diff'
 
 describe('parseUnifiedDiff', () => {
   it('tracks old and new line numbers across hunks', () => {
@@ -44,4 +44,20 @@ describe('countUnifiedDiffChanges', () => {
 
     expect(countUnifiedDiffChanges(patch)).toEqual({ additions: 2, deletions: 1 })
   })
+})
+
+it('aligns replacements, keeps unmatched additions, and separates hunks in split view', () => {
+  const lines = parseUnifiedDiff(
+    ['@@ -10,2 +20,3 @@', '-old', '+new', '+extra', ' shared', '@@ -32 +44,0 @@', '-removed'].join(
+      '\n'
+    )
+  )
+  expect(splitUnifiedDiffLines(lines)).toEqual([
+    { kind: 'marker', line: lines[0] },
+    { kind: 'code', before: lines[1], after: lines[2] },
+    { kind: 'code', before: null, after: lines[3] },
+    { kind: 'code', before: lines[4], after: lines[4] },
+    { kind: 'marker', line: lines[5] },
+    { kind: 'code', before: lines[6], after: null }
+  ])
 })

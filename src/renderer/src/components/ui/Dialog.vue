@@ -84,7 +84,10 @@ function onEscapeKeyDown(event: Event, closeOnEscape: boolean | undefined) {
             >
               {{ title }}
             </DialogTitle>
-            <p v-if="description" class="mt-0.5 text-[12px] text-[var(--text-secondary)]">
+            <p
+              v-if="description"
+              class="mt-0.5 text-[12px] [overflow-wrap:anywhere] text-[var(--text-secondary)]"
+            >
               {{ description }}
             </p>
           </div>

@@ -1,6 +1,6 @@
 import path from 'node:path'
 import fs from 'node:fs'
-import { test, expect, type Page } from './fixtures'
+import { test, expect, mockSessionContextUsage, type Page } from './fixtures'
 import { IPC_INVOKE } from '../src/shared/ipc/channels'
 import type { AssistantMessage } from '@earendil-works/pi-ai'
 
@@ -115,6 +115,7 @@ test('ming portrait themes render full figures beside parchment conversation sur
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   const id = '01a070f4-cc39-79f0-9666-6872c2c3b479'
+  await mockSessionContextUsage(electronApp, id)
   const timestamp = '2026-09-05T06:00:00.000Z'
   const directory = path.join(
     piAgentDir,
@@ -579,6 +580,8 @@ test('switches original portrait skins, persists selection and restores plain th
   piAgentDir,
   workspaceRoot
 }, testInfo) => {
+  const contextSessionId = '01a026a4-0796-73ff-990a-a2be219835ad'
+  await mockSessionContextUsage(electronApp, contextSessionId)
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await page.setViewportSize({ width: 1728, height: 1084 })
@@ -719,7 +722,7 @@ test('switches original portrait skins, persists selection and restores plain th
     await page.screenshot({ path: saveScreenshot })
 
     {
-      const id = '01a026a4-0796-73ff-990a-a2be219835ad'
+      const id = contextSessionId
       const timestamp = '2026-08-30T05:00:00.000Z'
       const directory = path.join(
         piAgentDir,

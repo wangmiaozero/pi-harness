@@ -49,13 +49,14 @@ const sessionId = '01a0ddce-5d0b-75b1-bb98-filechanges'
 const runId = 'h:user-file-changes'
 const missingEvidenceRunId = 'h:user-no-write'
 
-const test = base.extend({
-  piAgentDir: async ({ testUserData, workspaceRoot }, use) => {
+const test = base.extend<{ extraChangedFiles: number }>({
+  extraChangedFiles: [0, { option: true }],
+  piAgentDir: async ({ testUserData, workspaceRoot, extraChangedFiles }, use) => {
     const root = path.resolve(import.meta.dirname, '..')
     const piAgentDir = path.join(testUserData, 'mock-pi-file-changes')
     fs.cpSync(path.join(root, 'fixtures', 'mock-pi'), piAgentDir, { recursive: true })
     seedSession(piAgentDir, workspaceRoot)
-    seedHarnessData(testUserData, workspaceRoot)
+    seedHarnessData(testUserData, workspaceRoot, extraChangedFiles)
     await use(piAgentDir)
   }
 })
@@ -110,7 +111,9 @@ test('shows final-response file changes and opens the selected diff preview', as
   await card.getByTestId('message-file-change-artifact-app').click()
   await expect(page.getByTestId('unified-diff-preview')).toBeVisible()
   await expect(page.getByTestId('unified-diff-preview')).toContainText('const answer = 42')
-  await expect(page.getByTestId('run-changes-preview')).toContainText('src/app.ts')
+  await expect(
+    page.getByTestId('changes-file-tree').getByRole('button', { name: 'src/app.ts', exact: true })
+  ).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByTestId('chat-window')).toBeVisible()
   await page.getByTestId('changes-reveal-file').click()
   await expect(page.locator('[data-file-path][aria-current="true"]')).toHaveText('app.ts')
@@ -129,6 +132,63 @@ test('shows final-response file changes and opens the selected diff preview', as
 
   expect(pageErrors).toEqual([])
   expect(consoleErrors).toEqual([])
+})
+
+test.describe('many changed files', () => {
+  test.use({ extraChangedFiles: 29 })
+
+  test('keeps diffs visible and scrolls to the file selected in chat', async ({
+    page,
+    workspaceRoot
+  }, testInfo) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.evaluate(() => window.piSwitch.settings.set({ theme: 'dark' }))
+    await page.reload()
+    await settleStartup(page)
+    await openFixture(page, workspaceRoot)
+
+    const card = page.getByTestId('message-file-changes').first()
+    await expect(card).toContainText(/已编辑 33 个文件|Edited 33 files/)
+    await card.getByTestId('message-file-changes-view').click()
+    const changes = page.getByTestId('run-changes-preview')
+    const diff = changes.getByTestId('unified-diff-preview')
+    const tree = changes.getByTestId('changes-file-tree')
+    const filter = changes.getByTestId('changes-file-filter')
+    await expect(diff.getByText('const change33 = true')).toBeInViewport()
+    await expect(diff.getByTestId('split-diff')).toBeVisible()
+    await expect(diff.getByText('export const before = true')).toBeInViewport()
+
+    const lastFile = tree.getByRole('button', { name: 'src/app.ts', exact: true })
+    await expect(lastFile).not.toBeInViewport()
+    await card.getByTestId('message-file-changes-expand').click()
+    await card.getByTestId('message-file-change-artifact-app').click()
+    await expect(lastFile).toHaveAttribute('aria-pressed', 'true')
+    await expect(lastFile).toBeInViewport({ ratio: 1 })
+    await expect(diff.getByText('const answer = 42')).toBeInViewport()
+
+    const folder = tree.getByRole('button', { name: 'src', exact: true })
+    await folder.click()
+    await expect(lastFile).toBeHidden()
+    await filter.fill('subscription-preferences/change-5.ts')
+    const matchingFile = tree.getByRole('button', { name: /change-5\.ts/ })
+    await expect(matchingFile).toBeVisible()
+    await expect(tree.getByRole('button', { name: /change-6\.ts/ })).toBeHidden()
+    await matchingFile.click()
+    await expect(diff.getByText('const change5 = true')).toBeInViewport()
+    await changes.screenshot({ path: testInfo.outputPath('changes-wide.png') })
+
+    await changes.getByTestId('changes-diff-layout').click()
+    await expect(diff.getByTestId('split-diff')).toBeHidden()
+    await expect(diff.getByText('const change5 = true')).toBeInViewport()
+    const resizer = page.getByTestId('workspace-files-resizer')
+    await resizer.press('Home')
+    await expect(matchingFile).toBeInViewport()
+    await expect(diff.getByText('const change5 = true')).toBeInViewport()
+    await changes.screenshot({ path: testInfo.outputPath('changes-narrow.png') })
+
+    await changes.getByTestId('changes-reveal-file').click()
+    await expect(page.locator('[data-file-path][aria-current="true"]')).toHaveText('change-5.ts')
+  })
 })
 
 test('scene transcripts, titlebar actions and minimum sidebar width stay usable in every skin', async ({
@@ -449,7 +509,7 @@ function seedSession(piAgentDir: string, workspaceRoot: string) {
   )
 }
 
-function seedHarnessData(testUserData: string, workspaceRoot: string) {
+function seedHarnessData(testUserData: string, workspaceRoot: string, extraChangedFiles: number) {
   const startedAt = Date.parse('2026-09-27T08:00:00.000Z')
   fs.mkdirSync(path.join(testUserData, 'file-undo'), { recursive: true })
   fs.writeFileSync(
@@ -558,11 +618,21 @@ function seedHarnessData(testUserData: string, workspaceRoot: string) {
     )}\n`
   )
 
+  const extraFiles = Array.from({ length: extraChangedFiles }, (_, index) => {
+    const number = index + 5
+    const relativePath = `src/modules/account-management/services/subscription-preferences/change-${number}.ts`
+    const addedLine = `const change${number} = true`
+    const filePath = path.join(workspaceRoot, relativePath)
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, `${addedLine}\n`)
+    return [`artifact-change-${number}`, relativePath, 1, 1, addedLine] as const
+  })
   const files = [
     ['artifact-app', 'src/app.ts', 2, 1, 'const answer = 42'],
     ['artifact-state', 'src/state.ts', 8, 2, 'const state = true'],
     ['artifact-types', 'src/types.ts', 4, 0, 'type Ready = true'],
-    ['artifact-view', 'src/view.vue', 12, 3, '<template>Ready</template>']
+    ['artifact-view', 'src/view.vue', 12, 3, '<template>Ready</template>'],
+    ...extraFiles
   ] as const
   const artifacts = files.map(([id, relativePath, additions, deletions, addedLine], index) => ({
     id,

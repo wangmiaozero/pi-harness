@@ -69,6 +69,7 @@ const description = computed(() => {
           :message="message"
           :user-name="userName"
           :assistant-name="assistantName"
+          @file-opened="open = false"
         />
       </div>
     </div>

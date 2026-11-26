@@ -1,4 +1,10 @@
-import { mount, type VueWrapper } from '@vue/test-utils'
+import {
+  DOMWrapper,
+  enableAutoUnmount,
+  flushPromises,
+  mount,
+  type VueWrapper
+} from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { i18n } from '@renderer/i18n'
@@ -16,6 +22,8 @@ vi.mock('@renderer/features/agent-settings/WorkspaceVoiceControl.vue', () => ({
   default: { template: '<button aria-label="Realtime voice" />' }
 }))
 
+enableAutoUnmount(afterEach)
+
 beforeEach(() => {
   setActivePinia(createPinia())
   window.piSwitch = {
@@ -27,8 +35,8 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  document.body.innerHTML = ''
   delete window.piSwitch
+  vi.restoreAllMocks()
 })
 
 describe('ChatComposer skill mentions', () => {
@@ -95,7 +103,9 @@ describe('ChatComposer skill mentions', () => {
     await wrapper.vm.$nextTick()
     const input = wrapper.get('[data-testid="composer-editor"]')
     setContentSelection(input.element, 11)
-    await wrapper.get('[data-testid="composer-skill-trigger"]').trigger('click')
+    await openAddMenu(wrapper)
+    await addMenuItem('composer-skill-trigger').trigger('click')
+    await flushPromises()
 
     expect(workspace.draft).toBe('Review this @')
     expect(document.body.querySelector('[data-testid="composer-skill-menu"]')).not.toBeNull()
@@ -112,6 +122,44 @@ function setContentSelection(element: Element, offset: number) {
   selection?.addRange(range)
 }
 
+async function openAddMenu(wrapper: VueWrapper) {
+  await wrapper.get('[data-testid="composer-add"]').trigger('keydown', { key: 'Enter' })
+  await flushPromises()
+}
+
+function addMenuItem(testId: string) {
+  return new DOMWrapper(document.body).get(`[data-testid="${testId}"]`)
+}
+
+describe('ChatComposer Add menu', () => {
+  it('applies and clears Goal and Plan choices for the normal send action', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.projectRoots = ['/code/test']
+    workspace.pickedCwd = '/code/test'
+    workspace.draft = 'Inspect this'
+    const wrapper = mount(ChatComposer, {
+      attachTo: document.body,
+      props: { soundEnabled: false },
+      global: { plugins: [i18n] }
+    })
+    for (const mode of ['goal', 'plan'] as const) {
+      await openAddMenu(wrapper)
+      const choice = addMenuItem(`composer-mode-${mode}`)
+      expect(choice.attributes('aria-checked')).toBe('false')
+      await choice.trigger('click')
+      await wrapper.get('.command-execute-button').trigger('click')
+      expect(wrapper.emitted('send')?.at(-1)).toEqual([null, mode])
+
+      await openAddMenu(wrapper)
+      const selected = addMenuItem(`composer-mode-${mode}`)
+      expect(selected.attributes('aria-checked')).toBe('true')
+      await selected.trigger('click')
+      await wrapper.get('.command-execute-button').trigger('click')
+      expect(wrapper.emitted('send')?.at(-1)).toEqual([null, 'agent'])
+    }
+  })
+})
+
 describe('ChatComposer model capabilities', () => {
   it('only enables image input for models that declare vision support', async () => {
     const models = useModelsStore()
@@ -124,15 +172,17 @@ describe('ChatComposer model capabilities', () => {
     workspace.pickedCwd = '/code/test'
 
     const wrapper = mount(ChatComposer, {
+      attachTo: document.body,
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
     })
-    const attach = wrapper.get(`button[aria-label="${i18n.global.t('workspace.attachImage')}"]`)
-    expect(attach.attributes('disabled')).toBeDefined()
+    await openAddMenu(wrapper)
+    const attach = addMenuItem('composer-add-image')
+    expect(attach.attributes('data-disabled')).toBeDefined()
 
     models.active = { providerKey: 'provider', modelId: 'vision' }
     await wrapper.vm.$nextTick()
-    expect(attach.attributes('disabled')).toBeUndefined()
+    expect(attach.attributes('data-disabled')).toBeUndefined()
 
     workspace.addDraftImages([
       {
@@ -165,11 +215,13 @@ describe('ChatComposer model capabilities', () => {
     workspace.draft = 'draw a lighthouse'
 
     const wrapper = mount(ChatComposer, {
+      attachTo: document.body,
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
     })
-    const attach = wrapper.get(`button[aria-label="${i18n.global.t('workspace.attachImage')}"]`)
-    expect(attach.attributes('disabled')).toBeUndefined()
+    await openAddMenu(wrapper)
+    const attach = addMenuItem('composer-add-image')
+    expect(attach.attributes('data-disabled')).toBeUndefined()
 
     await wrapper.get('.command-execute-button').trigger('click')
 
@@ -180,23 +232,25 @@ describe('ChatComposer model capabilities', () => {
 })
 
 describe('ChatComposer manual compaction', () => {
-  it('compacts the current session directly from the toolbar', async () => {
+  it('compacts the current session from the Add menu', async () => {
     const sessions = useSessionStore()
     const compaction = useCompactionStore()
     const request = vi.spyOn(compaction, 'requestSmartCompaction').mockResolvedValue({
       status: 'compacted'
     })
     const wrapper = mount(ChatComposer, {
+      attachTo: document.body,
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
     })
-    const button = wrapper.get('[data-testid="composer-compact"]')
-    expect(button.attributes('disabled')).toBeDefined()
+    await openAddMenu(wrapper)
+    const button = addMenuItem('composer-compact')
+    expect(button.attributes('data-disabled')).toBeDefined()
 
     sessions.addTransientSession('session-1', '/code/project', 'hello')
     sessions.selectSession('session-1')
     await wrapper.vm.$nextTick()
-    expect(button.attributes('disabled')).toBeUndefined()
+    expect(button.attributes('data-disabled')).toBeUndefined()
     await button.trigger('click')
     expect(request).toHaveBeenCalledExactlyOnceWith({ sessionId: 'session-1', force: true })
   })
@@ -212,10 +266,12 @@ describe('ChatComposer manual compaction', () => {
     agent.streaming = { ...agent.streaming, isStreaming: true }
 
     const wrapper = mount(ChatComposer, {
+      attachTo: document.body,
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
     })
-    expect(wrapper.get('[data-testid="composer-compact"]').attributes('disabled')).toBeDefined()
+    await openAddMenu(wrapper)
+    expect(addMenuItem('composer-compact').attributes('data-disabled')).toBeDefined()
     await wrapper.get('[data-testid="composer-abort"]').trigger('click')
     expect(wrapper.emitted('abort')).toHaveLength(1)
   })
@@ -416,7 +472,7 @@ function skill(name: string, description: string) {
   }
 }
 
-describe('ChatComposer paste queue', () => {
+describe('ChatComposer image drafts', () => {
   beforeEach(() => {
     const models = useModelsStore()
     const providers = useProvidersStore()
@@ -426,115 +482,83 @@ describe('ChatComposer paste queue', () => {
     models.active = { providerKey: 'provider', modelId: 'vision' }
     workspace.projectRoots = ['/code/test']
     workspace.pickedCwd = '/code/test'
+    vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(() => undefined)
   })
 
-  function pngFile(name: string): File {
-    return new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], name, { type: 'image/png' })
+  async function selectImage(wrapper: VueWrapper) {
+    const input = wrapper.get('input[type="file"]')
+    const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'shot.png', {
+      type: 'image/png'
+    })
+    Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+    await input.trigger('change')
   }
 
-  async function attachPngs(
-    wrapper: VueWrapper,
-    count: number,
-    until?: () => boolean
-  ): Promise<void> {
-    const input = wrapper.get('input[type="file"]')
-    const files = Array.from({ length: count }, (_, index) => pngFile(`shot-${index}.png`))
-    Object.defineProperty(input.element, 'files', { value: files, configurable: true })
-    await input.trigger('change')
-    for (let tick = 0; tick < 100 && !(until?.() ?? false); tick += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 5))
-      await wrapper.vm.$nextTick()
-    }
+  async function finishReading() {
+    const reader = vi.mocked(FileReader.prototype.readAsDataURL).mock.contexts[0] as FileReader
+    Object.defineProperty(reader, 'result', { value: 'data:image/png;base64,iVBORw==' })
+    reader.dispatchEvent(new ProgressEvent('load'))
+    await flushPromises()
   }
 
   function mountComposer() {
     return mount(ChatComposer, {
+      attachTo: document.body,
       props: { soundEnabled: false },
       global: { plugins: [i18n] }
     })
   }
 
-  it('queues pasted images while the agent is busy and sends the whole queue at once', async () => {
-    const workspace = useWorkspaceStore()
+  function startRunning() {
     const sessions = useSessionStore()
-    const agent = useAgentStore()
     sessions.addTransientSession('session-1', '/code/project', 'hello')
     sessions.selectSession('session-1')
-    agent.runningIds = ['session-1']
+    useAgentStore().runningIds = ['session-1']
+    return sessions
+  }
 
+  it.each(['Please review the screenshot', ''])(
+    'keeps the image in the draft during a run until Enter submits it with %j',
+    async (text) => {
+      startRunning()
+      const workspace = useWorkspaceStore()
+      const wrapper = mountComposer()
+      const editor = wrapper.get('[data-testid="composer-editor"]')
+      await selectImage(wrapper)
+      expect(document.activeElement).toBe(editor.element)
+      editor.element.textContent = text
+      await editor.trigger('input')
+      expect(workspace.draft).toBe(text)
+      await editor.trigger('keydown', { key: 'Enter' })
+      expect(wrapper.emitted('send')).toBeUndefined()
+
+      await finishReading()
+      expect(workspace.draftImages).toHaveLength(1)
+      expect(wrapper.emitted('send')).toBeUndefined()
+      expect(wrapper.find('[data-testid="composer-follow-up-queue"]').exists()).toBe(false)
+
+      await editor.trigger('keydown', { key: 'Enter' })
+      expect(wrapper.emitted('send')).toEqual([[null, 'agent']])
+    }
+  )
+
+  it('keeps attachments with the original chat if the user switches chats during the read', async () => {
+    const sessions = startRunning()
+    const workspace = useWorkspaceStore()
     const wrapper = mountComposer()
-    await attachPngs(wrapper, 2, () =>
-      wrapper.find('[data-testid="composer-paste-queue"]').exists()
-    )
+    await selectImage(wrapper)
 
+    sessions.addTransientSession('session-2', '/code/project', 'second chat')
+    sessions.selectSession('session-2')
+    await finishReading()
     expect(workspace.draftImages).toHaveLength(0)
-    const queue = wrapper.get('[data-testid="composer-paste-queue"]')
-    expect(queue.text()).toContain('2/2')
 
-    await wrapper
-      .get(`button[aria-label="${i18n.global.t('workspace.pasteQueuePrev')}"]`)
-      .trigger('click')
-    expect(queue.text()).toContain('1/2')
-    await wrapper
-      .get(`button[aria-label="${i18n.global.t('workspace.pasteQueueNext')}"]`)
-      .trigger('click')
-    expect(queue.text()).toContain('2/2')
-
-    await wrapper.get('[data-testid="composer-paste-queue-send"]').trigger('click')
-    expect(wrapper.emitted('sendQueue')).toHaveLength(1)
-    const payload = wrapper.emitted('sendQueue')![0][0] as Array<{ type: string; data: string }>
-    expect(payload).toHaveLength(2)
-    expect(payload.every((image) => image.type === 'image' && image.data.length > 0)).toBe(true)
-    expect(wrapper.find('[data-testid="composer-paste-queue"]').exists()).toBe(false)
-  })
-
-  it('keeps idle pastes as direct attachments', async () => {
-    const workspace = useWorkspaceStore()
-
-    const wrapper = mountComposer()
-    await attachPngs(wrapper, 1, () => workspace.draftImages.length === 1)
-
-    expect(workspace.draftImages).toHaveLength(1)
-    expect(wrapper.find('[data-testid="composer-paste-queue"]').exists()).toBe(false)
-  })
-
-  it('moves a queued item back to the attachment drafts with the edit action', async () => {
-    const workspace = useWorkspaceStore()
-    const sessions = useSessionStore()
-    const agent = useAgentStore()
-    sessions.addTransientSession('session-1', '/code/project', 'hello')
     sessions.selectSession('session-1')
-    agent.runningIds = ['session-1']
-
-    const wrapper = mountComposer()
-    await attachPngs(wrapper, 1, () =>
-      wrapper.find('[data-testid="composer-paste-queue"]').exists()
-    )
-
+    await flushPromises()
+    expect(workspace.draftImages.map((image) => image.name)).toEqual(['shot.png'])
     await wrapper
-      .get(`button[aria-label="${i18n.global.t('workspace.pasteQueueToDraft')}"]`)
-      .trigger('click')
-    expect(workspace.draftImages).toHaveLength(1)
-    expect(wrapper.find('[data-testid="composer-paste-queue"]').exists()).toBe(false)
-  })
-
-  it('removes the current queue item without touching the drafts', async () => {
-    const workspace = useWorkspaceStore()
-    const sessions = useSessionStore()
-    const agent = useAgentStore()
-    sessions.addTransientSession('session-1', '/code/project', 'hello')
-    sessions.selectSession('session-1')
-    agent.runningIds = ['session-1']
-
-    const wrapper = mountComposer()
-    await attachPngs(wrapper, 1, () =>
-      wrapper.find('[data-testid="composer-paste-queue"]').exists()
-    )
-
-    await wrapper
-      .get(`button[aria-label="${i18n.global.t('workspace.pasteQueueRemove')}"]`)
+      .get(`button[aria-label="${i18n.global.t('workspace.removeImage')}"]`)
       .trigger('click')
     expect(workspace.draftImages).toHaveLength(0)
-    expect(wrapper.find('[data-testid="composer-paste-queue"]').exists()).toBe(false)
   })
 })

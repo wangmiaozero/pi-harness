@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { markdownOptions, markdownPlugins } from './message-markdown'
 import { computed, onErrorCaptured, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { Archive, Brain, ChevronRight } from '@lucide/vue'
 import type { AgentMessage, ImageContent } from '@shared/types/workspace'
 import ToolCallView from './ToolCallView.vue'
@@ -8,7 +10,7 @@ import MessageActions from './MessageActions.vue'
 import BranchNavigator from './BranchNavigator.vue'
 import DeferredMarkdown from './DeferredMarkdown.vue'
 import FileChangesCard from './FileChangesCard.vue'
-import Dialog from '@renderer/components/ui/Dialog.vue'
+import ChatImagePreview from './ChatImagePreview.vue'
 import type { MessageFileChanges } from './message-file-changes'
 import type { ToolResults } from './message-activity'
 import { normalizeAssistantName, normalizeUserName } from '@shared/constants/chat-participants'
@@ -16,7 +18,10 @@ import { hasRenderableMessageContent } from './message-visibility'
 import { parseSkillInvocation } from './skill-invocation'
 import { stripImageMetadataSuffix } from '@shared/workspace/image-attachments'
 import { callApi, getApi } from '@renderer/composables/useApi'
+import { askConfirm } from '@renderer/composables/useConfirmDialog'
+import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { inspectRuntimeError } from '@shared/workspace/runtime-error'
+import { resolveMessageFilePath } from './message-file-link'
 
 const props = defineProps<{
   message: AgentMessage
@@ -30,6 +35,8 @@ const props = defineProps<{
   activityRunning?: boolean
   embedded?: boolean
 }>()
+const emit = defineEmits<{ 'file-opened': [] }>()
+const { t } = useI18n()
 const compactionOpen = ref(false)
 const isCompaction = computed(
   () => props.message.role === 'custom' && props.message.customType === 'compaction'
@@ -71,23 +78,44 @@ function openPreview(src: string) {
   previewOpen.value = true
 }
 
-/**
- * Markdown links must open in the user's browser: the window blocks in-app
- * navigation and scripted popups, so intercept anchor clicks and hand the URL
- * to the shell instead.
- */
-async function openExternalLink(event: MouseEvent): Promise<void> {
+async function openMessageLink(event: MouseEvent): Promise<void> {
+  if (event.type === 'auxclick' && event.button !== 1) return
   const anchor = (event.target as HTMLElement | null)?.closest('a')
   if (!anchor) return
   const href = anchor.getAttribute('href')
   if (!href) return
   event.preventDefault()
   event.stopPropagation()
-  if (!/^(https?:|mailto:)/i.test(href)) return
+
+  if (href.startsWith('#workspace-file=')) {
+    const target = new URLSearchParams(href.slice(1))
+    const file = target.get('workspace-file')
+    if (!file || file.includes('\0')) return
+    const workspace = useWorkspaceStore()
+    const path = resolveMessageFilePath(file, workspace.currentCwd)
+    const title = path?.split(/[\\/]/).pop()
+    const requestedLine = Number(target.get('line'))
+    const line = Number.isSafeInteger(requestedLine) && requestedLine > 0 ? requestedLine : undefined
+    if (!path || !title || !workspace.openFileTab(path, title, line)) {
+      toast.error(t('workspace.fileLoadFailed'), { description: file })
+    } else emit('file-opened')
+    return
+  }
+
+  const externalHref = href.startsWith('//') ? `https:${href}` : href
+  if (!/^(https?:|mailto:)/i.test(externalHref) || !URL.canParse(externalHref)) return
+  const url = new URL(externalHref).href
+  const accepted = await askConfirm({
+    title: t('workspace.confirmExternalLink'),
+    description: url,
+    confirmLabel: t('common.open'),
+    tone: 'primary'
+  })
+  if (!accepted) return
   try {
-    await callApi(() => getApi().system.openExternal(href))
+    await callApi(() => getApi().system.openExternal(url))
   } catch {
-    /* the shell rejects invalid URLs; nothing to show in a chat bubble */
+    toast.error(t('common.failed'))
   }
 }
 
@@ -237,7 +265,11 @@ const messageCopyText = computed(() => {
     </template>
 
     <template v-else-if="message.role === 'assistant'">
-      <div class="assistant-message-body space-y-2" @click.capture="openExternalLink">
+      <div
+        class="assistant-message-body space-y-2"
+        @click.capture="openMessageLink"
+        @auxclick.capture="openMessageLink"
+      >
         <template v-for="(block, i) in message.content" :key="i">
           <p
             v-if="block.type === 'text' && block.text.trim() && markdownFailed"
@@ -347,9 +379,7 @@ const messageCopyText = computed(() => {
 
     <BranchNavigator v-if="entryId" :entry-id="entryId" />
 
-    <Dialog v-model:open="previewOpen" wide :title="$t('workspace.previewImage')">
-      <img v-if="previewSrc" :src="previewSrc" alt="" class="max-h-[68vh] w-full object-contain" />
-    </Dialog>
+    <ChatImagePreview v-if="previewSrc" v-model:open="previewOpen" :src="previewSrc" />
   </article>
 </template>
 

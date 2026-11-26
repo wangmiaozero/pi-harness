@@ -65,7 +65,9 @@ README、CHANGELOG、GitHub Release、提交信息、界面文案只写已发布
 ## 7. 发布
 1. 更新 `package.json` 版本和 `CHANGELOG.md`（`## X.Y.Z — YYYY-MM-DD`，只用 `### Added` / `### Fixed`）。
 2. 本地验证通过，且 `pnpm security:node --source-only --online --audit --release` 退出码 0、结果为 `PASS`。
-3. **只推 main**，等这个提交的 CI 全部通过。
-4. 再给这个已通过 CI 的提交打注释标签 `vX.Y.Z` 并推送。
+3. **只推 main**，报告提交 SHA 后结束本轮。以用户反馈确认该提交的 CI 结果。
+4. 用户确认该提交的 CI 全部通过并要求发布后，给该提交打注释标签 `vX.Y.Z` 并推送。报告标签后结束本轮。
+
+**禁止盯 CI/CD。** 推送分支或标签后，不轮询、不运行 `gh run watch`、不安排后台或定时监控。用户提供失败信息或明确要求查看某次运行时，只检查该次运行。
 
 禁止 main 和标签同时推送，禁止给 CI 未通过的提交打标签，禁止移动或覆盖已推送的标签和已公开的 Release；标签推送后发布失败，修复后发下一个补丁版本。

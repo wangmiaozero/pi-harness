@@ -58,6 +58,7 @@ import type {
   FileSearchScope,
   FileTreeEntry,
   FileWriteResult,
+  ImageContent,
   GitFileDiffResponse,
   GitCommitInfo,
   GitCommitDetails,
@@ -989,6 +990,7 @@ export interface PiSwitchAPI {
     openProjectLink(target: ProjectLinkTarget): Promise<void>
     openExternal(url: string): Promise<void>
     copyText(text: string): Promise<void>
+    copyImage(image: ImageContent): Promise<void>
   }
   pi: {
     detect(): Promise<PiEnvironment>

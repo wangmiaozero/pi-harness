@@ -192,7 +192,9 @@ for (const value of APP_THEMES) {
       if (['pink', 'purple', 'green', 'blue', 'orange', 'red', 'cyan'].includes(value)) {
         expect(Math.max(...colors.background) - Math.min(...colors.background)).toBeLessThan(5)
       }
-      await expect(composer.getByTestId('composer-compact')).toBeVisible()
+      await composer.getByTestId('composer-add').click()
+      await expect(page.getByTestId('composer-compact')).toBeVisible()
+      await page.keyboard.press('Escape')
       await page.getByTestId('composer-more').click()
       await expect(page.getByTestId('composer-sound-toggle')).toBeVisible()
       await page.keyboard.press('Escape')

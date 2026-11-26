@@ -6,7 +6,8 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { redactSecretText } from '../src/main/services/logger'
 import { installPetFixtures, installThemeFixtures } from './installed-packs'
-import type { StartAgentSessionInput } from '../src/shared/types/workspace'
+import { IPC_INVOKE } from '../src/shared/ipc/channels'
+import type { AgentStateSnapshot, StartAgentSessionInput } from '../src/shared/types/workspace'
 import {
   test as base,
   expect,
@@ -217,4 +218,48 @@ export async function startFixtureSession(page: Page, input: StartAgentSessionIn
       throw new Error(JSON.stringify(error), { cause: error })
     }
   }, input)
+}
+
+export async function mockSessionContextUsage(electronApp: ElectronApplication, sessionId: string) {
+  const snapshot: AgentStateSnapshot = {
+    sessionId,
+    sessionFile: '',
+    status: 'idle',
+    isStreaming: false,
+    isPromptRunning: false,
+    isBashRunning: false,
+    isCompacting: false,
+    autoCompactionEnabled: true,
+    thinkingLevel: 'off',
+    contextUsage: { tokens: 3400, contextWindow: 10000, percent: 34 },
+    pendingMessageCount: 0,
+    queuedMessages: { steering: [], followUp: [] }
+  }
+  await electronApp.evaluate(
+    ({ ipcMain }, { stateChannel, commandChannel, snapshot }) => {
+      const handlers = (
+        ipcMain as unknown as {
+          _invokeHandlers: Map<string, (...args: unknown[]) => unknown>
+        }
+      )._invokeHandlers
+      const originalState = handlers.get(stateChannel)!
+      const originalCommand = handlers.get(commandChannel)!
+      ipcMain.removeHandler(stateChannel)
+      ipcMain.handle(stateChannel, (event, id: unknown) =>
+        id === snapshot.sessionId ? { ok: true, data: snapshot } : originalState(event, id)
+      )
+      // Reading tools or stats normally opens the Pi runtime. Keep this snapshot
+      // independent of the startup events emitted during a real session restore.
+      ipcMain.removeHandler(commandChannel)
+      ipcMain.handle(commandChannel, (event, input: unknown) => {
+        const command = input as { sessionId?: string; type?: string } | null
+        if (command?.sessionId === snapshot.sessionId) {
+          if (command.type === 'get_tools') return { ok: true, data: [] }
+          if (command.type === 'get_session_stats') return { ok: true, data: {} }
+        }
+        return originalCommand(event, input)
+      })
+    },
+    { stateChannel: IPC_INVOKE.agentState, commandChannel: IPC_INVOKE.agentCommand, snapshot }
+  )
 }

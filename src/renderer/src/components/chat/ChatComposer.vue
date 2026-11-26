@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import {
@@ -7,7 +7,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuPortal,
   DropdownMenuContent,
-  DropdownMenuItem
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator
 } from 'reka-ui'
 import WorkspaceVoiceControl from '@renderer/features/agent-settings/WorkspaceVoiceControl.vue'
 import Button from '@renderer/components/ui/Button.vue'
@@ -49,12 +51,12 @@ import {
   MAX_ATTACHED_IMAGES
 } from '@shared/workspace/image-attachments'
 import {
-  ArrowDown,
   ArrowUp,
   AtSign,
   BookOpen,
-  Bot,
   Boxes,
+  Check,
+  Clock3,
   CircleOff,
   Hand,
   ImagePlus,
@@ -62,8 +64,8 @@ import {
   LoaderCircle,
   Minimize2,
   MoreHorizontal,
+  Plus,
   Square,
-  Pencil,
   ShieldCheck,
   ShieldAlert,
   SquareTerminal,
@@ -74,7 +76,11 @@ import {
   X
 } from '@lucide/vue'
 import { isImageGenerationModel } from '@shared/models/image-model'
-import { AGENT_MODES, normalizeAgentMode, type AgentMode } from '@shared/workspace/agent-mode'
+import {
+  agentModeDirective,
+  normalizeAgentMode,
+  type AgentMode
+} from '@shared/workspace/agent-mode'
 import { PERMISSION_MODES, normalizePermissionMode } from '@shared/workspace/permission-mode'
 import { usePermissionStore } from '@renderer/stores/permission'
 import {
@@ -82,24 +88,22 @@ import {
   removeSkillMention,
   type ActiveSkillMention
 } from './skill-invocation'
-import type { AgentImageAttachment } from '@shared/types/workspace'
 interface ComposerImageModelTarget {
   providerKey: string
   modelId: string
 }
 
-const props = defineProps<{ soundEnabled: boolean; submitting?: boolean }>()
-interface PasteQueueItem {
-  id: string
-  name: string
-  image: ChatDraftImage
-}
-
+const props = defineProps<{
+  soundEnabled: boolean
+  submitting?: boolean
+  followUpQueue?: readonly string[]
+}>()
 const AGENT_MODE_LABEL_KEYS: Record<AgentMode, string> = {
   agent: 'workspace.modeAgent',
   plan: 'workspace.modePlan',
   goal: 'workspace.modeGoal'
 }
+const ADD_MENU_MODES = ['goal', 'plan'] as const
 
 const PERMISSION_MODE_LABEL_KEYS: Record<string, string> = {
   ask: 'workspace.permissionAsk',
@@ -112,7 +116,6 @@ const LARGE_PASTE_THRESHOLD = 8_000
 
 const emit = defineEmits<{
   send: [imageModel: ComposerImageModelTarget | null, mode?: AgentMode]
-  sendQueue: [images: AgentImageAttachment[], mode: AgentMode]
   abort: []
   toggleSound: []
   unlockAudio: []
@@ -134,12 +137,12 @@ const inputBox = ref<HTMLElement | null>(null)
 const editorFocused = ref(false)
 const previewImage = ref<ChatDraftImage | null>(null)
 const previewOpen = ref(false)
+const addMenuOpen = ref(false)
 const moreOpen = ref(false)
 const dragActive = ref(false)
-const pendingImageCount = ref(0)
+const pendingImageReads = reactive(new Map<string, number>())
+const pendingImageCount = computed(() => pendingImageReads.get(workspace.draftKey) ?? 0)
 const modelSwitching = ref(false)
-const pasteQueue = ref<PasteQueueItem[]>([])
-const pasteQueueIndex = ref(0)
 const imageModelValue = ref<string | null>(null)
 const skillMention = ref<ActiveSkillMention | null>(null)
 const activeSkillIndex = ref(0)
@@ -147,12 +150,27 @@ const skillMenuStyle = ref<Record<string, string>>({})
 let dragDepth = 0
 const permission = usePermissionStore()
 const agentMode = ref<AgentMode>(normalizeAgentMode(settings.settings?.defaultAgentMode ?? 'agent'))
-const agentModeValue = computed({
-  get: () => agentMode.value,
-  set: (value: string) => {
-    agentMode.value = normalizeAgentMode(value)
-  }
+const queuePreviews = computed(() => {
+  const directives = ADD_MENU_MODES.map(agentModeDirective)
+  return (props.followUpQueue ?? []).map((message) => {
+    const prefix = directives.find((directive) => directive && message.startsWith(directive))
+    return message
+      .slice(prefix?.length ?? 0)
+      .trim()
+      .split('\n', 1)[0]
+  })
 })
+
+function switchComposerMode(mode: AgentMode) {
+  if (busy.value || inputLocked.value) return
+  agentMode.value = agentMode.value === mode ? 'agent' : mode
+  emit('unlockAudio')
+  focus()
+}
+
+function restoreAddMenuFocus(event: Event) {
+  if (editorFocused.value) event.preventDefault()
+}
 const permissionModeValue = computed({
   get: () => permission.modeFor(sessions.currentId),
   set: (value: string) => {
@@ -186,9 +204,6 @@ function compactContext() {
   void compaction.requestSmartCompaction({ sessionId: sessions.currentId, force: true })
 }
 
-const pasteQueueCurrent = computed(
-  () => pasteQueue.value[Math.min(pasteQueueIndex.value, pasteQueue.value.length - 1)] ?? null
-)
 function onEditorFocus() {
   editorFocused.value = true
   ensureEditorTextNode()
@@ -515,7 +530,7 @@ function warnImageUnsupported() {
 }
 
 function emitSend() {
-  if (inputLocked.value) return
+  if (!canSend.value) return
   const value = modelValue.value
   const slash = value.indexOf('/')
   emit(
@@ -961,8 +976,8 @@ async function processImageFiles(files: File[]) {
     toast.warning(t('workspace.imageTooLarge', { size: MAX_ATTACHED_IMAGE_BYTES / 1024 / 1024 }))
   }
   const imageLimit = selectedImageModel.value ? 1 : MAX_ATTACHED_IMAGES
-  const queuedCount = busy.value ? pasteQueue.value.length : workspace.draftImages.length
-  const remaining = Math.max(0, imageLimit - queuedCount - pendingImageCount.value)
+  const draftKey = workspace.draftKey
+  const remaining = Math.max(0, imageLimit - workspace.draftImages.length - pendingImageCount.value)
   if (remaining === 0) {
     toast.warning(t('workspace.imageLimit', { count: imageLimit }))
     return
@@ -973,69 +988,19 @@ async function processImageFiles(files: File[]) {
   }
   if (!accepted.length) return
 
-  pendingImageCount.value += accepted.length
+  pendingImageReads.set(draftKey, pendingImageCount.value + accepted.length)
   try {
     const results = await Promise.allSettled(accepted.map(readImage))
     const images = results.flatMap((result) =>
       result.status === 'fulfilled' ? [result.value] : []
     )
-    if (images.length) {
-      if (busy.value) enqueuePasteImages(images)
-      else workspace.addDraftImages(images)
-    }
+    workspace.addDraftImages(images, draftKey)
     if (images.length < results.length) toast.error(t('workspace.imageReadFailed'))
   } finally {
-    pendingImageCount.value -= accepted.length
+    const pending = (pendingImageReads.get(draftKey) ?? 0) - accepted.length
+    if (pending > 0) pendingImageReads.set(draftKey, pending)
+    else pendingImageReads.delete(draftKey)
   }
-}
-function enqueuePasteImages(images: ChatDraftImage[]) {
-  pasteQueue.value = [
-    ...pasteQueue.value,
-    ...images.map((image) => ({ id: image.id, name: image.name, image }))
-  ]
-  pasteQueueIndex.value = pasteQueue.value.length - 1
-}
-
-function clearPasteQueue() {
-  pasteQueue.value = []
-  pasteQueueIndex.value = 0
-}
-
-function cyclePasteQueue(step: 1 | -1) {
-  if (pasteQueue.value.length < 2) return
-  pasteQueueIndex.value =
-    (pasteQueueIndex.value + step + pasteQueue.value.length) % pasteQueue.value.length
-}
-
-function movePasteQueueItemToDraft() {
-  const current = pasteQueueCurrent.value
-  if (!current) return
-  workspace.addDraftImages([current.image])
-  removePasteQueueItem(current.id)
-}
-
-function removePasteQueueItem(id: string) {
-  const index = pasteQueue.value.findIndex((item) => item.id === id)
-  if (index < 0) return
-  pasteQueue.value = pasteQueue.value.filter((item) => item.id !== id)
-  pasteQueueIndex.value = Math.max(0, Math.min(index, pasteQueue.value.length - 1))
-}
-
-function removePasteQueueCurrent() {
-  const current = pasteQueueCurrent.value
-  if (current) removePasteQueueItem(current.id)
-}
-
-function sendPasteQueue() {
-  if (!pasteQueue.value.length || inputLocked.value) return
-  const images: AgentImageAttachment[] = pasteQueue.value.map((item) => ({
-    type: 'image' as const,
-    data: item.image.data,
-    mimeType: item.image.mimeType
-  }))
-  clearPasteQueue()
-  emit('unlockAudio')
-  emit('sendQueue', images, agentMode.value)
 }
 
 function chooseImages() {
@@ -1050,8 +1015,11 @@ function chooseImages() {
 
 function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement
-  void processImageFiles(Array.from(input.files ?? []))
+  const files = Array.from(input.files ?? [])
   input.value = ''
+  if (!files.length || inputLocked.value) return
+  void processImageFiles(files)
+  focus()
 }
 async function savePastedToSession(files: File[]): Promise<string[] | null> {
   try {
@@ -1141,6 +1109,7 @@ function onDrop(event: DragEvent) {
   event.preventDefault()
   if (inputLocked.value) return
   void processImageFiles(files)
+  if (!editorFocused.value) focus()
 }
 
 function onSoundToggle() {
@@ -1152,11 +1121,6 @@ watch(
   () => workspace.currentCwd,
   () => void skills.fetchSkills(),
   { immediate: true }
-)
-
-watch(
-  () => workspace.draftKey,
-  () => clearPasteQueue()
 )
 
 watch(
@@ -1188,6 +1152,7 @@ watch(active, (visible) => {
   skillMention.value = null
   previewOpen.value = false
   customToolsOpen.value = false
+  addMenuOpen.value = false
   moreOpen.value = false
 })
 
@@ -1231,6 +1196,25 @@ onBeforeUnmount(() => {
         class="hidden"
         @change="onFileChange"
       />
+      <section
+        v-if="queuePreviews.length"
+        data-testid="composer-follow-up-queue"
+        :aria-label="$t('workspace.harnessQueue')"
+        class="mb-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-xs"
+      >
+        <div class="mb-1 flex items-center gap-1.5 font-medium text-[var(--text-secondary)]">
+          <Clock3 aria-hidden="true" class="size-3.5" />
+          <span>{{ $t('workspace.harnessQueue') }}</span>
+          <span class="tabular-nums text-[var(--text-tertiary)]">{{ queuePreviews.length }}</span>
+        </div>
+        <ol
+          class="max-h-24 list-inside list-decimal space-y-1 overflow-auto text-[var(--text-primary)]"
+        >
+          <li v-for="(message, index) in queuePreviews" :key="index" class="truncate">
+            {{ message || $t('workspace.harnessArtifactType.image') }}
+          </li>
+        </ol>
+      </section>
       <div v-if="workspace.draftImages.length" class="mb-2 flex flex-wrap gap-2">
         <div
           v-for="image in workspace.draftImages"
@@ -1263,74 +1247,6 @@ onBeforeUnmount(() => {
       <p v-else-if="hasTooManyImageSources" class="mb-2 text-[11px] text-[var(--danger)]">
         {{ $t('workspace.imageLimit', { count: 1 }) }}
       </p>
-      <div
-        v-if="pasteQueue.length"
-        data-testid="composer-paste-queue"
-        class="mb-2 flex min-w-0 items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--control-border)] bg-[var(--control-bg)] px-2 py-1.5 shadow-[var(--control-shadow)]"
-        role="group"
-        :aria-label="$t('workspace.pasteQueueLabel')"
-      >
-        <button
-          type="button"
-          class="inline-flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-xs)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-          :disabled="pasteQueue.length < 2"
-          :title="$t('workspace.pasteQueuePrev')"
-          :aria-label="$t('workspace.pasteQueuePrev')"
-          @click="cyclePasteQueue(-1)"
-        >
-          <ArrowUp aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
-        </button>
-        <button
-          type="button"
-          class="inline-flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-xs)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-          :disabled="pasteQueue.length < 2"
-          :title="$t('workspace.pasteQueueNext')"
-          :aria-label="$t('workspace.pasteQueueNext')"
-          @click="cyclePasteQueue(1)"
-        >
-          <ArrowDown aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
-        </button>
-        <span
-          class="min-w-0 flex-1 truncate font-[family-name:var(--font-mono)] text-[11.5px] text-[var(--text-primary)]"
-          :title="pasteQueueCurrent?.name"
-        >
-          @{{ pasteQueueCurrent?.name ?? $t('workspace.pastedImage') }}
-        </span>
-        <span
-          class="shrink-0 font-[family-name:var(--font-mono)] text-[10.5px] text-[var(--text-tertiary)]"
-        >
-          {{ pasteQueueIndex + 1 }}/{{ pasteQueue.length }}
-        </span>
-        <Button
-          data-testid="composer-paste-queue-send"
-          variant="primary"
-          size="sm"
-          :disabled="inputLocked"
-          :loading="Boolean(inputLocked)"
-          :title="$t('workspace.pasteQueueSend')"
-          @click="sendPasteQueue"
-        >
-          {{ $t('workspace.pasteQueueSend') }}
-        </Button>
-        <button
-          type="button"
-          class="inline-flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-xs)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-          :title="$t('workspace.pasteQueueToDraft')"
-          :aria-label="$t('workspace.pasteQueueToDraft')"
-          @click="movePasteQueueItemToDraft"
-        >
-          <Pencil aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
-        </button>
-        <button
-          type="button"
-          class="inline-flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-xs)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--danger)]"
-          :title="$t('workspace.pasteQueueRemove')"
-          :aria-label="$t('workspace.pasteQueueRemove')"
-          @click="removePasteQueueCurrent"
-        >
-          <X aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
-        </button>
-      </div>
       <div
         ref="inputBox"
         class="command-console-input relative overflow-hidden rounded-[var(--radius-composer)] border border-[var(--composer-border)] bg-[var(--composer-bg)] shadow-[var(--composer-shadow)] transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]"
@@ -1454,29 +1370,109 @@ onBeforeUnmount(() => {
         </Teleport>
         <div class="command-console-controls flex min-w-0 flex-nowrap items-center gap-2">
           <div class="composer-tools flex min-w-0 items-center gap-0.5">
+            <DropdownMenuRoot v-model:open="addMenuOpen" :modal="false">
+              <DropdownMenuTrigger as-child>
+                <button
+                  type="button"
+                  data-testid="composer-add"
+                  class="cockpit-control-button inline-flex h-8 min-w-8 shrink-0 items-center justify-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] data-[state=open]:bg-[var(--bg-hover)]"
+                  :aria-label="$t('workspace.composerAdd')"
+                  :title="$t('workspace.composerAdd')"
+                >
+                  <Plus aria-hidden="true" class="size-4 shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuContent
+                  side="top"
+                  align="start"
+                  :side-offset="8"
+                  :collision-padding="8"
+                  class="z-[125] w-[min(15rem,calc(100vw-16px))] rounded-[var(--menu-radius)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1.5 shadow-[var(--shadow-popover)]"
+                  @close-auto-focus="restoreAddMenuFocus"
+                >
+                  <DropdownMenuItem
+                    data-testid="composer-add-image"
+                    class="composer-add-item"
+                    :disabled="inputLocked || !supportsImages"
+                    :title="!supportsImages ? $t('workspace.imageUnsupported') : undefined"
+                    @select="chooseImages"
+                  >
+                    <ImagePlus aria-hidden="true" class="size-4 shrink-0" />
+                    {{ $t('workspace.attachImage') }}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    data-testid="composer-skill-trigger"
+                    class="composer-add-item"
+                    :disabled="Boolean(selectedImageModel || inputLocked)"
+                    @select="openSkillMention"
+                  >
+                    <AtSign aria-hidden="true" class="size-4 shrink-0" />
+                    {{ $t('workspace.mentionSkill') }}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    data-testid="composer-compact"
+                    class="composer-add-item"
+                    :disabled="compactDisabled"
+                    :aria-busy="manualCompacting"
+                    :title="
+                      !sessions.currentId
+                        ? $t('workspace.compactSessionMissing')
+                        : manualCompacting
+                          ? $t('workspace.compactingNow')
+                          : undefined
+                    "
+                    @select="compactContext"
+                  >
+                    <LoaderCircle
+                      v-if="manualCompacting"
+                      aria-hidden="true"
+                      class="size-4 shrink-0 motion-safe:animate-spin"
+                    />
+                    <Minimize2 v-else aria-hidden="true" class="size-4 shrink-0" />
+                    {{ $t('workspace.compactContext') }}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator class="my-1 border-t border-[var(--border-subtle)]" />
+                  <DropdownMenuCheckboxItem
+                    v-for="mode in ADD_MENU_MODES"
+                    :key="mode"
+                    :data-testid="`composer-mode-${mode}`"
+                    class="composer-add-item"
+                    :model-value="agentMode === mode"
+                    :disabled="busy || inputLocked"
+                    :title="t(`${AGENT_MODE_LABEL_KEYS[mode]}Description`)"
+                    @select="switchComposerMode(mode)"
+                  >
+                    <component
+                      :is="mode === 'plan' ? ListChecks : Target"
+                      aria-hidden="true"
+                      class="size-4 shrink-0"
+                    />
+                    <span>{{ t(AGENT_MODE_LABEL_KEYS[mode]) }}</span>
+                    <Check
+                      v-if="agentMode === mode"
+                      aria-hidden="true"
+                      class="ml-auto size-4 shrink-0"
+                    />
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenuPortal>
+            </DropdownMenuRoot>
             <button
+              v-if="agentMode !== 'agent'"
               type="button"
-              data-testid="composer-skill-trigger"
-              class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-              :disabled="selectedImageModel || inputLocked"
-              :title="$t('workspace.mentionSkill')"
-              :aria-label="$t('workspace.mentionSkill')"
-              @click="openSkillMention"
+              class="cockpit-control-button inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--accent-tint)] px-2 text-xs text-[var(--accent)] disabled:opacity-60"
+              :disabled="busy || inputLocked"
+              :aria-label="$t('workspace.modeAgent')"
+              :title="$t('workspace.modeAgent')"
+              @click="switchComposerMode(agentMode)"
             >
-              <AtSign aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
-            </button>
-            <button
-              type="button"
-              class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-              :class="workspace.draftImages.length ? 'text-[var(--accent)]' : ''"
-              :disabled="inputLocked || !supportsImages"
-              :title="
-                supportsImages ? $t('workspace.attachImage') : $t('workspace.imageUnsupported')
-              "
-              :aria-label="$t('workspace.attachImage')"
-              @click="chooseImages"
-            >
-              <ImagePlus aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
+              <component
+                :is="agentMode === 'plan' ? ListChecks : Target"
+                aria-hidden="true"
+                class="size-3.5"
+              />
+              <span class="composer-option-label">{{ t(AGENT_MODE_LABEL_KEYS[agentMode]) }}</span>
             </button>
             <ComposerOptionMenu
               ref="toolsMenu"
@@ -1489,23 +1485,6 @@ onBeforeUnmount(() => {
               :disabled="busy || toolsApplying"
               :menu-width="390"
               @reselect="(value) => value === 'custom' && openCustomTools()"
-              @interact="emit('unlockAudio')"
-            />
-            <ComposerOptionMenu
-              v-model="agentModeValue"
-              :disabled="busy"
-              :label="$t('workspace.agentModeLabel')"
-              :heading="$t('workspace.agentModeHeading')"
-              :icon="agentMode === 'plan' ? ListChecks : agentMode === 'goal' ? Target : Bot"
-              :options="
-                AGENT_MODES.map((mode) => ({
-                  value: mode,
-                  label: t(AGENT_MODE_LABEL_KEYS[mode]),
-                  description: t(`${AGENT_MODE_LABEL_KEYS[mode]}Description`),
-                  icon: mode === 'plan' ? ListChecks : mode === 'goal' ? Target : Bot
-                }))
-              "
-              :menu-width="390"
               @interact="emit('unlockAudio')"
             />
             <ComposerOptionMenu
@@ -1527,30 +1506,6 @@ onBeforeUnmount(() => {
               :menu-width="390"
               @interact="emit('unlockAudio')"
             />
-            <button
-              type="button"
-              data-testid="composer-compact"
-              class="cockpit-control-button inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-              :disabled="compactDisabled"
-              :aria-label="$t('workspace.compactContext')"
-              :aria-busy="manualCompacting"
-              :title="
-                !sessions.currentId
-                  ? $t('workspace.compactSessionMissing')
-                  : manualCompacting
-                    ? $t('workspace.compactingNow')
-                    : $t('workspace.compactContext')
-              "
-              @click="compactContext"
-            >
-              <LoaderCircle
-                v-if="manualCompacting"
-                aria-hidden="true"
-                class="size-3.5 motion-safe:animate-spin"
-                :stroke-width="1.8"
-              />
-              <Minimize2 v-else aria-hidden="true" class="size-3.5" :stroke-width="1.8" />
-            </button>
             <slot name="session-actions" />
           </div>
           <div
@@ -1797,6 +1752,31 @@ onBeforeUnmount(() => {
 
 .command-console-controls {
   padding: 0 10px 10px;
+}
+
+.composer-add-item {
+  display: flex;
+  min-height: 34px;
+  cursor: default;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius-xs);
+  padding: 5px 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+}
+
+.composer-add-item[data-highlighted] {
+  background: var(--bg-hover);
+}
+
+.composer-add-item[data-state='checked'] {
+  color: var(--accent);
+}
+
+.composer-add-item[data-disabled] {
+  opacity: 0.45;
 }
 
 .composer-tools > *,

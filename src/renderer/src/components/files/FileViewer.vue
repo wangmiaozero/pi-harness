@@ -164,16 +164,25 @@ watch(
         ]
       })
     })
-    if (props.sourceLine && props.sourceLine <= view.state.doc.lines) {
-      const line = view.state.doc.line(props.sourceLine)
-      view.dispatch({
-        selection: { anchor: line.from },
-        effects: EditorView.scrollIntoView(line.from, { y: 'center' })
-      })
-    }
+    jumpToSourceLine()
   },
   { flush: 'post' }
 )
+
+watch([() => props.sourceLine, () => workspace.fileOpenTarget], jumpToSourceLine, { flush: 'post' })
+
+function jumpToSourceLine(): void {
+  const target = workspace.fileOpenTarget
+  const lineNumber =
+    props.sourceLine ??
+    (!props.sourcePath && target?.path === filePath.value ? target?.line : undefined)
+  if (!view || !lineNumber || lineNumber > view.state.doc.lines) return
+  const line = view.state.doc.line(lineNumber)
+  view.dispatch({
+    selection: { anchor: line.from },
+    effects: EditorView.scrollIntoView(line.from, { y: 'center' })
+  })
+}
 
 async function loadLanguage(fileName: string): Promise<{ extension: Extension; label: string }> {
   const description = LanguageDescription.matchFilename(languages, fileName)
