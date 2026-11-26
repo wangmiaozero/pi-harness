@@ -85,6 +85,20 @@ type Call = {
   operations: Map<string, VoiceWorkOperation>
   feedback: Map<string, string>
 }
+// Tool-call arguments arrive as a JSON string; oversized or malformed payloads parse to null.
+const parseToolArguments = (raw: unknown): unknown => {
+  if (typeof raw !== 'string' || raw.length > 10000) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+type WorkReceipt =
+  | { status: 'received'; operationId: string; execution: 'not_started' }
+  | { status: 'rejected'; code: 'NO_WORK_TARGET_OR_INVALID_REQUEST' }
+// A per-call receipt returned to the provider; Doubao aggregates these per event.
+type WorkReceiptReply = { call_id: string; receipt: WorkReceipt }
 export class LiveVoiceService {
   private call: Call | null = null
   constructor(
@@ -404,16 +418,31 @@ export class LiveVoiceService {
     if (m.type === 'input_transcript.added') transcript('user', m.text)
     if (m.type === 'output_transcript.added') transcript('assistant', m.text)
     if (m.type === 'response.function_call_arguments.done') {
-      let args: unknown
-      try {
-        args =
-          typeof m.arguments === 'string' && m.arguments.length <= 10000
-            ? JSON.parse(m.arguments)
-            : null
-      } catch {
-        args = null
-      }
-      this.candidate(call, m.call_id, m.name, args)
+      if (call.settings.adapter === 'doubao-realtime') {
+        // Doubao delivers parallel calls as items; the receipts of one event are
+        // answered by a single aggregated conversation.item.create.
+        const receipts: WorkReceiptReply[] = []
+        for (const item of (Array.isArray(m.items) ? m.items : []).slice(0, 16)) {
+          const reply = this.candidate(
+            call,
+            item?.call_id,
+            item?.name,
+            parseToolArguments(item?.arguments)
+          )
+          if (reply) receipts.push(reply)
+        }
+        if (receipts.length)
+          this.send(call, {
+            type: 'conversation.item.create',
+            items: receipts.map((reply) => ({
+              type: 'message',
+              role: 'tool',
+              call_id: reply.call_id,
+              content: [{ type: 'input_text', text: JSON.stringify(reply.receipt) }]
+            }))
+          })
+      } else
+        this.candidate(call, m.call_id, m.name, parseToolArguments(m.arguments))
     }
     if (
       m.type === 'delegation.created' &&
@@ -473,7 +502,14 @@ export class LiveVoiceService {
       this.emit({ callId: call.id, kind: 'signal', message: JSON.stringify(message) })
     else if (call.socket?.readyState === WebSocket.OPEN) call.socket.send(JSON.stringify(message))
   }
-  private candidate(call: Call, request: unknown, name: unknown, args: unknown): void {
+  // Processes one work-tool request and replies per adapter; returns the receipt
+  // entry so Doubao can aggregate the receipts of one event into a single reply.
+  private candidate(
+    call: Call,
+    request: unknown,
+    name: unknown,
+    args: unknown
+  ): WorkReceiptReply | null {
     if (
       !call.ready ||
       typeof request !== 'string' ||
@@ -481,9 +517,11 @@ export class LiveVoiceService {
       request.length > 256 ||
       call.requests.has(request)
     )
-      return
-    if (call.requests.size >= 256)
-      return this.fail(call, 'Voice call reached its request limit. Start a new call.')
+      return null
+    if (call.requests.size >= 256) {
+      this.fail(call, 'Voice call reached its request limit. Start a new call.')
+      return null
+    }
     call.requests.add(request)
     const parsed = workArguments.safeParse(args)
     const sessionId = call.preparation.sessionId
@@ -496,7 +534,7 @@ export class LiveVoiceService {
           status: 'review' as const
         }
       : null
-    const receipt = operation
+    const receipt: WorkReceipt = operation
       ? { status: 'received', operationId: operation.id, execution: 'not_started' }
       : { status: 'rejected', code: 'NO_WORK_TARGET_OR_INVALID_REQUEST' }
     if (operation) {
@@ -504,6 +542,7 @@ export class LiveVoiceService {
       call.feedback.set(operation.id, request)
       this.emit({ callId: call.id, kind: 'work', operation })
     }
+    if (call.settings.adapter === 'doubao-realtime') return { call_id: request, receipt }
     if (call.settings.adapter === 'gemini-live')
       this.send(call, {
         toolResponse: { functionResponses: [{ id: request, name, response: receipt }] }
@@ -520,6 +559,7 @@ export class LiveVoiceService {
         type: 'conversation.item.create',
         item: { type: 'function_call_output', call_id: request, output: JSON.stringify(receipt) }
       })
+    return { call_id: request, receipt }
   }
   async review(id: string, operationId: string, accept: boolean): Promise<void> {
     const call = this.call,
@@ -551,6 +591,11 @@ export class LiveVoiceService {
         delegation_item_id: call.feedback.get(operationId),
         channel: 'commentary',
         content: [{ type: 'input_text', text }]
+      })
+    else if (call.settings.adapter === 'doubao-realtime')
+      this.send(call, {
+        type: 'conversation.item.create',
+        items: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text }] }]
       })
     else
       this.send(call, {
