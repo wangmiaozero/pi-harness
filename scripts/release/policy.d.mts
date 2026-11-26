@@ -10,4 +10,10 @@ export function validateMetadata(
   version: string,
   expected: string[]
 ): Promise<unknown>
+export function validateBuiltMetadata(
+  directory: string,
+  platform: string,
+  variant: string,
+  version: string
+): Promise<unknown>
 export function digest(file: string, algorithm?: string, encoding?: string): Promise<string>

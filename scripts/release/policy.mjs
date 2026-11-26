@@ -8,8 +8,12 @@ export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const require = createRequire(import.meta.url)
 const builder = createRequire(require.resolve('electron-builder'))
 export const yaml = builder('js-yaml')
-export { assetNames } from '../../src/main/updater/security/manifest.mjs'
-import { releasePlatforms, releaseVariants } from '../../src/main/updater/security/manifest.mjs'
+import {
+  assetNames,
+  releasePlatforms,
+  releaseVariants
+} from '../../src/main/updater/security/manifest.mjs'
+export { assetNames }
 export const platforms = releasePlatforms
 export const experimentalPlatforms = ['win32-arm64', 'linux-arm64']
 export const variants = releaseVariants
@@ -83,4 +87,36 @@ export async function validateMetadata(directory, name, version, expected) {
   )
     throw new Error(`Legacy update fields do not match: ${name}`)
   return data
+}
+
+export async function validateBuiltMetadata(directory, platform, variant, version) {
+  const name = metadataName(platform, variant)
+  const expected = assetNames(version, platform, variant)
+  if (platform.startsWith('darwin-')) {
+    const metadataFile = path.join(directory, name)
+    try {
+      await fs.access(metadataFile)
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+      // The caller removed these artifacts before the build. Recover only the
+      // missing CI metadata, using both installers produced by that build.
+      const [dmg, zip] = expected
+      const zipPath = path.join(directory, zip)
+      const dmgInfo = await fs.lstat(path.join(directory, dmg))
+      const zipInfo = await fs.lstat(zipPath)
+      if (!dmgInfo.isFile() || !dmgInfo.size || !zipInfo.isFile() || !zipInfo.size)
+        throw new Error('macOS packaging did not produce a usable DMG and ZIP', { cause: error })
+      const sha512 = await digest(zipPath, 'sha512', 'base64')
+      const metadata = {
+        version,
+        files: [{ url: zip, sha512, size: zipInfo.size }],
+        path: zip,
+        sha512,
+        releaseDate: new Date().toISOString()
+      }
+      await fs.writeFile(metadataFile, yaml.dump(metadata), { flag: 'wx' })
+      process.stdout.write(`Rebuilt ${name} from ${zip}\n`)
+    }
+  }
+  return validateMetadata(directory, name, version, expected)
 }

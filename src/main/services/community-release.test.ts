@@ -9,6 +9,7 @@ import {
   assetNames,
   metadataName,
   validateMetadata,
+  validateBuiltMetadata,
   digest
 } from '../../../scripts/release/policy.mjs'
 import { publishRelease } from '../../../scripts/release/publish.mjs'
@@ -85,6 +86,55 @@ it('validates generated payload bytes and rejects wrong variant or unsafe metada
   await fs.writeFile(path.join(dir, file), 'altered')
   await expect(validateMetadata(dir, 'latest.yml', '2.0.1', [file])).rejects.toThrow('integrity')
 })
+it.each(['darwin-x64', 'darwin-arm64'])(
+  'rebuilds missing metadata for complete %s installers and verifies the ZIP',
+  async (platform) => {
+    const dir = await directory()
+    const version = '2.4.18'
+    const [dmg, zip] = assetNames(version, platform, 'standard')
+    const payload = 'installer zip fixture'
+    await fs.writeFile(path.join(dir, dmg), 'installer dmg fixture')
+    await fs.writeFile(path.join(dir, zip), payload)
+
+    const sha512 = createHash('sha512').update(payload).digest('base64')
+    await expect(validateBuiltMetadata(dir, platform, 'standard', version)).resolves.toMatchObject({
+      version,
+      files: [{ url: zip, sha512, size: Buffer.byteLength(payload) }],
+      path: zip,
+      sha512
+    })
+    await fs.appendFile(path.join(dir, zip), 'corrupted')
+    await expect(validateBuiltMetadata(dir, platform, 'standard', version)).rejects.toThrow(
+      'Update integrity mismatch'
+    )
+  }
+)
+
+it('requires both macOS installers before rebuilding missing metadata', async () => {
+  const dir = await directory()
+  const version = '2.4.18'
+  const platform = 'darwin-x64'
+  const [dmg, zip] = assetNames(version, platform, 'standard')
+  await fs.writeFile(path.join(dir, zip), 'installer zip fixture')
+  await expect(validateBuiltMetadata(dir, platform, 'standard', version)).rejects.toMatchObject({
+    code: 'ENOENT',
+    path: path.join(dir, dmg)
+  })
+  await expect(fs.stat(path.join(dir, 'latest-mac.yml'))).rejects.toMatchObject({ code: 'ENOENT' })
+})
+
+it('requires the builder metadata on non-macOS packages', async () => {
+  const dir = await directory()
+  const version = '2.4.18'
+  const platform = 'win32-x64'
+  const [installer] = assetNames(version, platform, 'standard')
+  await fs.writeFile(path.join(dir, installer), 'installer fixture')
+  await expect(validateBuiltMetadata(dir, platform, 'standard', version)).rejects.toMatchObject({
+    code: 'ENOENT',
+    path: path.join(dir, 'latest.yml')
+  })
+})
+
 function fixtureClient() {
   const fixture = signingFixture()
   const assets = new Map<string, Buffer>(

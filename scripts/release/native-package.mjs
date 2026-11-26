@@ -7,7 +7,7 @@ import {
   root,
   assetNames,
   metadataName,
-  validateMetadata,
+  validateBuiltMetadata,
   variants,
   digest,
   channel
@@ -153,7 +153,7 @@ try {
     if (process.platform === 'win32' && process.arch === 'arm64')
       args.push(`-c.win.artifactName=Pi-Harness-Setup-\${version}-arm64.\${ext}`)
     await command(`package-${variant}`, args, { CSC_IDENTITY_AUTO_DISCOVERY: 'false' })
-    await validateMetadata(directory, metadata, version, names)
+    await validateBuiltMetadata(directory, platform, variant, version)
     const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-community-install-'))
     let preserveMount = false
     try {
