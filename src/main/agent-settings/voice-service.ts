@@ -323,8 +323,6 @@ export class LiveVoiceService {
   // All peer data is bounded by the socket/data-channel limits and parsed here in Main.
   private message(call: Call, m: Record<string, any>): void {
     if (!m || typeof m !== 'object') throw new Error()
-    const send = (event: Omit<VoiceEvent, 'callId'>) =>
-      this.emit({ callId: call.id, ...event } as VoiceEvent)
     const transcript = (role: 'user' | 'assistant', text: unknown) => {
       if (typeof text === 'string' && text.length)
         this.emit({ callId: call.id, kind: 'transcript', role, text: text.slice(0, 20000) })
@@ -364,7 +362,12 @@ export class LiveVoiceService {
       if (!valid) throw new Error()
       this.ready(call)
     }
-    if (m.type === 'response.created' && typeof m.response?.id === 'string') {
+    if (m.type === 'response.created' && call.settings.adapter === 'doubao-realtime') {
+      const id = m.response?.id ?? m.response_id
+      if (typeof id === 'string') call.activeResponse = id
+      call.interrupted = false
+      this.emit({ callId: call.id, kind: 'activity', assistantSpeaking: true })
+    } else if (m.type === 'response.created' && typeof m.response?.id === 'string') {
       call.activeResponse = m.response.id
       call.interrupted = false
     }
@@ -376,18 +379,19 @@ export class LiveVoiceService {
       !staleResponse
     )
       audio(m.delta)
-    if (m.type === 'input_audio_buffer.speech_started' || m.serverContent?.interrupted) {
-      if (call.activeResponse) {
-        call.interruptedResponses.add(call.activeResponse)
-        if (call.interruptedResponses.size > 256)
-          call.interruptedResponses.delete(call.interruptedResponses.values().next().value!)
-      }
-      call.interrupted = true
-      send({ kind: 'interrupted' })
-      this.emit({ callId: call.id, kind: 'activity', userSpeaking: true, assistantSpeaking: false })
-    }
+    if (m.type === 'input_audio_buffer.speech_started' || m.serverContent?.interrupted)
+      this.interrupt(call)
+    // Doubao barge-in: the server itself cancels the turn; this client never sends response.cancel.
+    if (m.type === 'response.canceled' && call.settings.adapter === 'doubao-realtime')
+      this.interrupt(call)
     if (m.type === 'input_audio_buffer.speech_stopped')
       this.emit({ callId: call.id, kind: 'activity', userSpeaking: false })
+    // Doubao ends a turn with either done event and returns to listening.
+    if (
+      call.settings.adapter === 'doubao-realtime' &&
+      ['response.done', 'response.output_audio.done'].includes(m.type)
+    )
+      this.emit({ callId: call.id, kind: 'activity', assistantSpeaking: false })
     if (m.type === 'conversation.item.input_audio_transcription.completed')
       transcript('user', m.transcript)
     if (
@@ -395,6 +399,8 @@ export class LiveVoiceService {
       ['response.audio_transcript.done', 'response.output_audio_transcript.done'].includes(m.type)
     )
       transcript('assistant', m.transcript)
+    // Doubao's only assistant-text completion event carries the text as `text`.
+    if (m.type === 'response.output_text.done' && !staleResponse) transcript('assistant', m.text)
     if (m.type === 'input_transcript.added') transcript('user', m.text)
     if (m.type === 'output_transcript.added') transcript('assistant', m.text)
     if (m.type === 'response.function_call_arguments.done') {
@@ -448,6 +454,18 @@ export class LiveVoiceService {
       for (const fn of (m.toolCall?.functionCalls ?? []).slice(0, 16))
         this.candidate(call, fn.id, fn.name, fn.args)
     }
+  }
+  // A barge-in marks the active response stale so its late audio and text are dropped, then
+  // clears renderer playback and reports the user speaking over the assistant.
+  private interrupt(call: Call): void {
+    if (call.activeResponse) {
+      call.interruptedResponses.add(call.activeResponse)
+      if (call.interruptedResponses.size > 256)
+        call.interruptedResponses.delete(call.interruptedResponses.values().next().value!)
+    }
+    call.interrupted = true
+    this.emit({ callId: call.id, kind: 'interrupted' })
+    this.emit({ callId: call.id, kind: 'activity', userSpeaking: true, assistantSpeaking: false })
   }
   private send(call: Call, message: unknown): void {
     if (this.call !== call || !call.ready) return
