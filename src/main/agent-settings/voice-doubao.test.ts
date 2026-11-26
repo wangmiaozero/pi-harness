@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EventEmitter } from 'node:events'
 import type { WebContents } from 'electron'
 import type { JsonStore } from '../services/storage'
@@ -91,6 +91,83 @@ describe('Doubao voice transport', () => {
       })
       expect(events).toContainEqual({ callId: id, kind: 'ended' })
       expect(JSON.stringify(events)).not.toContain('fixture-doubao-key')
+    } finally {
+      service.dispose()
+    }
+  })
+})
+
+describe('Doubao protocol mute', () => {
+  beforeEach(() => vi.clearAllMocks())
+  function startDoubaoCall() {
+    const sent: Record<string, any>[] = []
+    const socket = Object.assign(new EventEmitter(), {
+      readyState: 1,
+      bufferedAmount: 0,
+      send(raw: string) {
+        const m = JSON.parse(raw)
+        sent.push(m)
+        if (m.type === 'session.create')
+          queueMicrotask(() =>
+            socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
+          )
+      },
+      terminate() {
+        socket.emit('close')
+      }
+    })
+    mocks.open.mockResolvedValue(socket)
+    mocks.secret.mockResolvedValue('fixture-doubao-key')
+    const events: VoiceEvent[] = []
+    const settings = {
+      ...DEFAULT_VOICE,
+      enabled: true,
+      adapter: 'doubao-realtime' as const,
+      profile: undefined,
+      endpoint: 'https://openspeech.bytedance.com/api/v3',
+      model: '1.3.0.0',
+      voice: 'zh_female_vv_jupiter_bigtts'
+    }
+    const service = new LiveVoiceService(
+      { read: async () => settings } as JsonStore<typeof settings>,
+      (event) => events.push(structuredClone(event)),
+      'fixture',
+      { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver: vi.fn() }
+    )
+    const owner = Object.assign(new EventEmitter(), {
+      getURL: () => 'file:///app/index.html',
+      isDestroyed: () => false
+    }) as unknown as WebContents
+    return { events, sent, service, owner }
+  }
+  it('commits protocol mute and unmute to the provider session', async () => {
+    const { events, sent, service, owner } = startDoubaoCall()
+    try {
+      const id = await service.prepare(owner, { sessionId: 'known' })
+      await service.start(id)
+      service.mute(id, true)
+      service.mute(id, false)
+      expect(events).toContainEqual({ callId: id, kind: 'ready' })
+      expect(sent.slice(1)).toEqual([
+        { type: 'input_audio_mute.commit' },
+        { type: 'input_audio_unmute.commit' }
+      ])
+      expect(JSON.stringify(sent)).not.toContain('fixture-doubao-key')
+    } finally {
+      service.dispose()
+    }
+  })
+  it('rejects mute for a wrong or expired call id', async () => {
+    const { sent, service, owner } = startDoubaoCall()
+    try {
+      const id = await service.prepare(owner, { sessionId: 'known' })
+      await service.start(id)
+      expect(() =>
+        service.mute('00000000-0000-4000-8000-000000000000', true)
+      ).toThrow('Voice call is not ready.')
+      service.stop(id)
+      expect(() => service.mute(id, true)).toThrow('Voice call is not ready.')
+      expect(sent).toHaveLength(1)
     } finally {
       service.dispose()
     }

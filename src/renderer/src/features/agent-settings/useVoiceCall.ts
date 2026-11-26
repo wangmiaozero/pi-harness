@@ -276,7 +276,23 @@ function createVoiceCall() {
     }
   }
   function toggleMute() {
-    muted.value = !muted.value
+    const next = !muted.value
+    // Ordering is provider-verified: muting commits the protocol mute before the
+    // uplink frames stop, and unmuting restores frames first, because stopping
+    // frames while unmuted tears the provider stream down.
+    if (next) {
+      if (callId)
+        void getApi()
+          .agentSettings.voice.mute(callId, true)
+          .catch(() => undefined)
+      muted.value = true
+    } else {
+      muted.value = false
+      if (callId)
+        void getApi()
+          .agentSettings.voice.mute(callId, false)
+          .catch(() => undefined)
+    }
     stream?.getAudioTracks().forEach((track) => {
       track.enabled = !muted.value
     })

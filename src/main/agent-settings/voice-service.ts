@@ -550,6 +550,15 @@ export class LiveVoiceService {
       this.fail(call, 'Invalid voice response.')
     }
   }
+  // Protocol mute is visible to the provider: only the Doubao session speaks it.
+  // Other adapters keep muting purely local (the renderer's track switch), so
+  // they send nothing here.
+  mute(id: string, muted: boolean): void {
+    const call = this.call
+    if (!call || call.id !== id || !call.ready) throw new ConfigError('Voice call is not ready.')
+    if (call.settings.adapter === 'doubao-realtime')
+      this.send(call, { type: muted ? 'input_audio_mute.commit' : 'input_audio_unmute.commit' })
+  }
   audio(id: string, data: string): void {
     const call = this.call
     if (!call || call.id !== id || !call.ready || call.socket?.readyState !== WebSocket.OPEN)
