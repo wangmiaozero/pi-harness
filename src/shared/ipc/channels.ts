@@ -29,6 +29,7 @@ export const IPC_INVOKE = {
   voiceReview: invoke('voice:review'),
   voiceStop: invoke('voice:stop'),
   voiceAudio: invoke('voice:audio'),
+  voiceMute: invoke('voice:mute'),
   remoteHostsList: invoke('remote:hosts:list'),
   remoteHostsPair: invoke('remote:hosts:pair'),
   remoteHostsConnect: invoke('remote:hosts:connect'),

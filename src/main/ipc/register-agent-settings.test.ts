@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   mcp: vi.fn(),
   pair: vi.fn(),
   audio: vi.fn(),
+  mute: vi.fn(),
   get: vi.fn()
 }))
 vi.mock('electron', () => ({ app: { getPath: () => '/fixture', once: vi.fn() } }))
@@ -26,6 +27,7 @@ vi.mock('../agent-settings/voice-service', () => ({
   DEFAULT_VOICE: {},
   LiveVoiceService: class {
     audio = mocks.audio
+    mute = mocks.mute
     settings = mocks.get
   }
 }))
@@ -84,6 +86,12 @@ describe('agent settings IPC', () => {
       'Invalid'
     )
     await expect(
+      invoke(IPC_INVOKE.voiceMute, { callId: '00000000-0000-4000-8000-000000000000', muted: 'yes' })
+    ).rejects.toThrow('Invalid')
+    await expect(invoke(IPC_INVOKE.voiceMute, { callId: 'wrong', muted: true })).rejects.toThrow(
+      'Invalid'
+    )
+    await expect(
       invoke(IPC_INVOKE.remoteHostsPair, {
         label: 'Host',
         url: 'ws://outside.test/v1/racp/ws',
@@ -99,9 +107,14 @@ describe('agent settings IPC', () => {
     await invoke(IPC_INVOKE.agentSettingsMcpList, { root: '/project' })
     const input = { label: 'Fixture', url: 'ws://127.0.0.1:1234/v1/racp/ws', token: 'ppt1.fixture' }
     await invoke(IPC_INVOKE.remoteHostsPair, input)
+    await invoke(IPC_INVOKE.voiceMute, {
+      callId: '00000000-0000-4000-8000-000000000000',
+      muted: false
+    })
     expect(mocks.ai).toHaveBeenCalledOnce()
     expect(mocks.instructions).toHaveBeenCalledWith({})
     expect(mocks.mcp).toHaveBeenCalledWith({ root: '/project' })
     expect(mocks.pair).toHaveBeenCalledWith(input)
+    expect(mocks.mute).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000000', false)
   })
 })

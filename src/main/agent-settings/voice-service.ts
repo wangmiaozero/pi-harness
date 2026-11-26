@@ -306,16 +306,20 @@ export class LiveVoiceService {
       socket.on('close', () => {
         if (this.call !== call) return
         if (!isDoubao) return this.stop(id)
+        if (call.closing) return this.finishClose(call)
         // A Doubao transport that never reached session.created refused the handshake.
         if (!call.ready)
           return this.fail(call, DOUBAO_NOT_GRANTED, voiceErrorCodes.serviceNotGranted)
-        // After session.closed, or a provider-initiated teardown, a close is a clean end.
+        // A provider-initiated teardown of a live call is a clean end too.
         this.finishClose(call)
       })
       socket.on('error', () => {
         if (this.call !== call) return
-        if (isDoubao && !call.ready)
-          return this.fail(call, DOUBAO_NOT_GRANTED, voiceErrorCodes.serviceNotGranted)
+        if (isDoubao) {
+          if (call.closing) return this.finishClose(call)
+          if (!call.ready)
+            return this.fail(call, DOUBAO_NOT_GRANTED, voiceErrorCodes.serviceNotGranted)
+        }
         this.fail(call, 'Voice connection interrupted.')
       })
       // Install readiness listeners before sending setup; no socket-open success shortcut.
@@ -662,6 +666,15 @@ export class LiveVoiceService {
       this.fail(call, 'Invalid voice response.')
     }
   }
+  // Protocol mute is visible to the provider: only the Doubao session speaks it.
+  // Other adapters keep muting purely local (the renderer's track switch), so
+  // they send nothing here.
+  mute(id: string, muted: boolean): void {
+    const call = this.call
+    if (!call || call.id !== id || !call.ready) throw new ConfigError('Voice call is not ready.')
+    if (call.settings.adapter === 'doubao-realtime')
+      this.send(call, { type: muted ? 'input_audio_mute.commit' : 'input_audio_unmute.commit' })
+  }
   audio(id: string, data: string): void {
     const call = this.call
     if (!call || call.id !== id || !call.ready || call.socket?.readyState !== WebSocket.OPEN)
@@ -696,6 +709,8 @@ export class LiveVoiceService {
       call.socket?.readyState === WebSocket.OPEN
     ) {
       call.closing = true
+      // The call accepts no audio, mute or tool replies once the close is under way.
+      call.ready = false
       call.socket.send(JSON.stringify({ type: 'session.close' }))
       call.closeTimer = setTimeout(() => this.finishClose(call), 3000)
       return
