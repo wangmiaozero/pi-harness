@@ -32,7 +32,8 @@ export const liveVoiceEn = {
   adapter: 'Voice service',
   accountSource: 'Service account',
   ownKey: 'Use a separate API key',
-  codexHint: 'Uses your existing Codex sign-in in Pi.'
+  codexHint: 'Uses your existing Codex sign-in in Pi.',
+  doubao: 'Doubao Realtime'
 }
 export const liveVoiceZh = {
   prepare: '准备语音',
@@ -67,5 +68,6 @@ export const liveVoiceZh = {
   adapter: '语音服务',
   accountSource: '服务账号',
   ownKey: '使用独立 API 密钥',
-  codexHint: '使用你在 Pi 中已有的 Codex 登录账号。'
+  codexHint: '使用你在 Pi 中已有的 Codex 登录账号。',
+  doubao: '豆包实时语音'
 }
