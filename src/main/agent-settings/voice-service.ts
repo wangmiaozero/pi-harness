@@ -12,6 +12,7 @@ import {
   voiceSetup,
   voiceInput,
   voiceInstructions,
+  needs16kInput,
   workArguments
 } from './voice-protocol'
 import type { VoicePreparation, VoiceWorkOperation } from '@shared/agent-settings/schema'
@@ -93,9 +94,9 @@ export class LiveVoiceService {
     private host?: VoiceHost
   ) {}
   private credential(settings: VoiceSettings): string {
-    return settings.adapter === 'gemini-live'
-      ? `${this.credentialSlot}-gemini`
-      : this.credentialSlot
+    if (settings.adapter === 'gemini-live') return `${this.credentialSlot}-gemini`
+    if (settings.adapter === 'doubao-realtime') return `${this.credentialSlot}-doubao`
+    return this.credentialSlot
   }
   async settings(): Promise<VoicePublicSettings> {
     const settings = voiceSettingsSchema.parse(await this.store.read())
@@ -243,7 +244,8 @@ export class LiveVoiceService {
           : new URL((auth.endpoint ?? settings.endpoint).replace(/\/$/, '') + '/realtime')
       endpoint.protocol = ['https:', 'wss:'].includes(endpoint.protocol) ? 'wss:' : 'ws:'
       if (settings.adapter === 'gemini-live') endpoint.searchParams.set('key', auth.key)
-      else endpoint.searchParams.set('model', settings.model)
+      else if (settings.adapter !== 'doubao-realtime')
+        endpoint.searchParams.set('model', settings.model)
       const socket = await openSocket(
         endpoint.toString(),
         settings.adapter === 'gemini-live'
@@ -342,7 +344,13 @@ export class LiveVoiceService {
         'Voice provider rejected or ended the call. Check the account and model.'
       )
     if (m.setupComplete !== undefined && call.settings.adapter === 'gemini-live') this.ready(call)
-    if (m.type === 'session.updated' && call.settings.adapter !== 'codex-live') {
+    if (m.type === 'session.created' && call.settings.adapter === 'doubao-realtime')
+      this.ready(call)
+    if (
+      m.type === 'session.updated' &&
+      call.settings.adapter !== 'codex-live' &&
+      call.settings.adapter !== 'doubao-realtime'
+    ) {
       const s = m.session
       const valid =
         call.settings.profile === 'realtime-ga'
@@ -550,7 +558,7 @@ export class LiveVoiceService {
     if (
       !bytes.length ||
       bytes.length % 2 ||
-      bytes.length > (call.settings.adapter === 'gemini-live' ? 4800 : 24000)
+      bytes.length > (needs16kInput(call.settings) ? 4800 : 24000)
     )
       throw new ConfigError('Invalid audio frame.')
     if (Date.now() - call.window >= 1000) {
