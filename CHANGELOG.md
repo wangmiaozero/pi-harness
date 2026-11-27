@@ -2,6 +2,26 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.20 — 2026-11-27
+
+### Added
+
+#### Providers
+
+- Select a preset API URL to set the matching protocol, or enter a custom URL with any supported protocol.
+- Configure Volcengine Ark Agent Plan with OpenAI or Anthropic endpoints and choose from its supported models.
+
+#### Runtime
+
+- Choose whether to update or reinstall the bundled Pi or the Pi used by your terminal. When only the bundled Pi is present, the action starts directly.
+- The app ships with Pi Coding Agent 1.6.1.
+
+### Fixed
+
+#### Runtime
+
+- Refreshing runtime settings keeps the chosen source and custom executable path.
+
 ## 2.4.19 — 2026-11-26
 
 ### Added
