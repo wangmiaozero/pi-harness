@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { PROTOCOL_IDS } from '@shared/constants/protocols'
 import {
   findProviderPreset,
+  findProviderEndpoint,
+  getProviderEndpointPresets,
   findModelPreset,
   resolveModelDefaults,
   suggestedModelPresets,
@@ -78,6 +80,70 @@ describe('provider preset catalog', () => {
       })?.id
     ).toBe('deepseek')
   })
+
+  it.each([
+    ['deepseek', 'https://api.deepseek.com/anthropic', 'anthropic-messages', 'deepseek'],
+    [
+      'google',
+      'https://generativelanguage.googleapis.com/v1beta/openai',
+      'openai-completions',
+      'google'
+    ],
+    [
+      'qwen',
+      'https://dashscope-intl.aliyuncs.com/apps/anthropic',
+      'anthropic-messages',
+      'qwen-international'
+    ],
+    ['stepfun', 'https://api.stepfun.com/step_plan', 'anthropic-messages', 'step-plan'],
+    ['siliconflow', 'https://api.siliconflow.com/v1', 'openai-completions', 'siliconflow-com']
+  ] as const)('links %s to %s', (key, baseUrl, protocol, id) => {
+    const endpoints = getProviderEndpointPresets(key)
+    const endpoint = findProviderEndpoint(endpoints, baseUrl)
+    expect(endpoint).toMatchObject({ id, protocol, defaultBaseUrl: baseUrl })
+    expect(findProviderPreset({ key, baseUrl, protocol })).toBe(endpoint)
+  })
+
+  it('uses one shared URL for OpenAI protocols and preserves plan identity at shared endpoints', () => {
+    const openAiEndpoints = getProviderEndpointPresets('openai')
+    expect(new Set(openAiEndpoints.map(({ defaultBaseUrl }) => defaultBaseUrl)).size).toBe(1)
+    expect(
+      findProviderEndpoint(openAiEndpoints, 'https://api.openai.com/v1', 'openai-responses')?.id
+    ).toBe('openai-responses')
+    expect(
+      findProviderEndpoint(
+        getProviderEndpointPresets('minimax-coding-plan'),
+        'https://api.minimax.io/anthropic'
+      )?.id
+    ).toBe('minimax-coding-plan')
+    expect(getProviderEndpointPresets('anthropic')).toHaveLength(1)
+    expect(getProviderEndpointPresets('openai-compatible')).toHaveLength(0)
+  })
+
+  it.each(['openai-completions', 'anthropic-messages'] as const)(
+    'selects the Ark Agent Plan models for %s, even under the doubao key',
+    (protocol) => {
+      const baseUrl =
+        'https://ark.cn-beijing.volces.com/api/plan' +
+        (protocol === 'openai-completions' ? '/v3' : '')
+      const preset = findProviderPreset({ key: 'doubao', protocol, baseUrl: baseUrl + '/' })
+      expect(preset).toMatchObject({ id: 'ark-agent-plan', protocol, defaultBaseUrl: baseUrl })
+      expect(suggestedModelPresets(preset).map((model) => model.id)).toEqual([
+        'ark-code-latest',
+        'glm-5.4',
+        'glm-5.3',
+        'glm-5.3-flash',
+        'kimi-k3.1-pro',
+        'deepseek-v4-flash',
+        'doubao-seed-2.1-pro'
+      ])
+      expect(resolveModelDefaults('glm-5.4', preset)).toMatchObject({
+        input: ['text', 'image'],
+        contextWindow: 1_024_000
+      })
+      expect(findProviderPreset({ key: 'doubao' })?.defaultModelId).toBe('doubao-seed-1-6')
+    }
+  )
 
   it('excludes media-only and utility model APIs', () => {
     const modelIds = PROVIDER_PRESETS.flatMap((preset) => preset.models.map((model) => model.id))

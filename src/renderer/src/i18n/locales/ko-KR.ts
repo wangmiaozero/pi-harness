@@ -224,6 +224,7 @@ export const koKR: MessageTree = {
     internalNamePlaceholder: 'nvidia',
     fieldProtocol: '프로토콜',
     fieldBaseUrl: '기본 URL',
+    customBaseUrl: '사용자 지정 URL',
     baseUrlPlaceholder: 'https://api.example.com/v1',
     fieldApiKeyType: 'API 키 유형',
     fieldApiKeyValue: 'API 키 값',

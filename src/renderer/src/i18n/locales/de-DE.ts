@@ -227,6 +227,7 @@ export const deDE: MessageTree = {
     internalNamePlaceholder: 'nvidia',
     fieldProtocol: 'Protokoll',
     fieldBaseUrl: 'Basis-URL',
+    customBaseUrl: 'Benutzerdefinierte URL',
     baseUrlPlaceholder: 'https://api.example.com/v1',
     fieldApiKeyType: 'API-Schlüsseltyp',
     fieldApiKeyValue: 'API-Schlüsselwert',

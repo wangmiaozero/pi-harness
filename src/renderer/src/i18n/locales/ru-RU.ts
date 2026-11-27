@@ -226,6 +226,7 @@ export const ruRU: MessageTree = {
     internalNamePlaceholder: 'nvidia',
     fieldProtocol: 'Протокол',
     fieldBaseUrl: 'Базовый URL',
+    customBaseUrl: 'Пользовательский URL',
     baseUrlPlaceholder: 'https://api.example.com/v1',
     fieldApiKeyType: 'Тип ключа API',
     fieldApiKeyValue: 'Значение ключа API',

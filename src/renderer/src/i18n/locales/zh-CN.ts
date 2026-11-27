@@ -219,6 +219,7 @@ export const zhCN: MessageTree = {
     internalNamePlaceholder: 'nvidia',
     fieldProtocol: '协议',
     fieldBaseUrl: 'API 基础 URL',
+    customBaseUrl: '自定义 URL',
     baseUrlPlaceholder: 'https://api.example.com/v1',
     fieldApiKeyType: 'API 密钥类型',
     fieldApiKeyValue: 'API 密钥',

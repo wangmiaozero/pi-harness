@@ -29,8 +29,17 @@ import type {
   DiscoveredProviderModel
 } from '@shared/ipc/api-types'
 import type { ProviderForm } from '@shared/schemas/domain'
-import { PROTOCOLS, PROVIDER_PRESETS, type ProviderPreset } from '@shared/constants/protocols'
-import { findProviderPreset } from '@shared/constants/provider-presets'
+import {
+  PROTOCOLS,
+  PROVIDER_PRESETS,
+  isProtocolId,
+  type ProviderPreset
+} from '@shared/constants/protocols'
+import {
+  findProviderEndpoint,
+  findProviderPreset,
+  getProviderEndpointPresets
+} from '@shared/constants/provider-presets'
 import { isKeychainCommand, keychainServiceName } from '@shared/utils/api-key'
 import {
   isMissingModelCatalogMessage,
@@ -205,7 +214,58 @@ const copyingApiKey = ref(false)
 const preservedCommand = ref<string | null>(null)
 const keychainService = ref<string | null>(null)
 
-const protocolOptions = computed(() => PROTOCOLS.map((p) => ({ value: p.id, label: p.label })))
+const endpointPresets = computed(() => getProviderEndpointPresets(activePreset.value?.id))
+const endpointOptions = computed(() =>
+  [...new Set(endpointPresets.value.map((preset) => preset.defaultBaseUrl))].map((url) => ({
+    value: url,
+    label: url
+  }))
+)
+const selectedEndpoint = computed(() =>
+  findProviderEndpoint(endpointPresets.value, form.value.baseUrl, form.value.protocol)
+)
+const protocolOptions = PROTOCOLS.map(({ id, label }) => ({ value: id, label }))
+const modelPreset = computed(() => selectedEndpoint.value ?? identityPreset.value ?? activePreset.value)
+const providerKeyUrl = computed(() => selectedEndpoint.value?.keyUrl ?? activePreset.value?.keyUrl)
+
+function selectProviderEndpoint(baseUrl: string, previousUrl: string) {
+  const endpoint = findProviderEndpoint(endpointPresets.value, baseUrl)
+  if (!endpoint) return
+  const currentModel = defaultModelIdStr.value.trim()
+  const previousPreset =
+    findProviderEndpoint(endpointPresets.value, previousUrl, form.value.protocol) ??
+    identityPreset.value ??
+    activePreset.value
+  selectProviderProtocol(endpoint.protocol)
+  if (endpoint !== previousPreset) form.value.authHeader = endpoint.authHeader
+  if (
+    !currentModel ||
+    (previousPreset?.models.some(({ id }) => id === currentModel) &&
+      !endpoint.models.some(({ id }) => id === currentModel))
+  ) {
+    defaultModelIdStr.value = endpoint.defaultModelId
+  }
+}
+
+function updateProviderBaseUrl(baseUrl: string) {
+  form.value.baseUrl = baseUrl
+  clearDraftConnectionTest()
+}
+
+function clearDraftConnectionTest() {
+  const requestId = draftRequestId
+  draftRequestId = undefined
+  draftTesting.value = false
+  draftTestResult.value = null
+  if (requestId) void cancelTest(requestId)
+}
+
+function selectProviderProtocol(protocol: string) {
+  if (!isProtocolId(protocol) || protocol === form.value.protocol) return
+  form.value.protocol = protocol
+  clearDraftConnectionTest()
+}
+
 const currentDiscoveredModels = computed(() =>
   discoveredSource.value === modelDiscoverySource() ? discoveredModels.value : []
 )
@@ -227,7 +287,7 @@ const modelDiscoveryFeedbackClass = computed(() => {
 })
 const modelOptions = computed(() => {
   const options = new Map<string, { value: string; label: string; hint?: string }>()
-  for (const model of (identityPreset.value ?? activePreset.value)?.models ?? []) {
+  for (const model of modelPreset.value?.models ?? []) {
     options.set(model.id, {
       value: model.id,
       label: model.name,
@@ -259,8 +319,8 @@ const modelOptions = computed(() => {
 const selectedDefaultModel = computed(() => {
   const id = defaultModelIdStr.value.trim()
   const preset =
-    identityPreset.value?.models.find((model) => model.id === id) ??
-    activePreset.value?.models.find((model) => model.id === id)
+    modelPreset.value?.models.find((model) => model.id === id) ??
+    (!selectedEndpoint.value ? activePreset.value?.models.find((model) => model.id === id) : undefined)
   if (preset) return preset
   const existing = modelsStore.items.find(
     (model) => model.providerId === editingKey.value && model.modelId === id
@@ -443,10 +503,7 @@ function canFillModelId(): boolean {
 
 watch(dialogOpen, (open) => {
   if (!open) {
-    if (draftRequestId) void cancelTest(draftRequestId)
-    draftRequestId = undefined
-    draftTesting.value = false
-    draftTestResult.value = null
+    clearDraftConnectionTest()
     clearApiKeyReveal()
     if (identityTimer) clearTimeout(identityTimer)
     identityTimer = null
@@ -506,7 +563,8 @@ watch(
 function scheduleProviderIdentity(): void {
   if (identityTimer) clearTimeout(identityTimer)
   identityTimer = null
-  if (isEditing.value || !providerIdentityUrlReady(form.value.baseUrl)) return
+  if (isEditing.value || hasPresetEndpoint.value || !providerIdentityUrlReady(form.value.baseUrl))
+    return
   identityTimer = setTimeout(() => {
     identityTimer = null
     if (!isEditing.value && providerIdentityUrlReady(form.value.baseUrl)) {
@@ -523,7 +581,8 @@ function onBaseUrlBlur() {
   }
   if (identityTimer) clearTimeout(identityTimer)
   identityTimer = null
-  if (!isEditing.value && providerIdentityUrlReady(form.value.baseUrl)) applyProviderIdentity(false)
+  if (!isEditing.value && !hasPresetEndpoint.value && providerIdentityUrlReady(form.value.baseUrl))
+    applyProviderIdentity(false)
 }
 
 function modelDiscoverySource(): string {
@@ -665,10 +724,13 @@ function openEdit(provider: ProviderProfile) {
     ''
   activePreset.value =
     findProviderPreset({
-      key: provider.key,
+      key: provider.name || provider.key,
       protocol: provider.protocol,
       baseUrl: provider.baseUrl
-    }) ?? null
+    }) ??
+    findProviderPreset({ key: provider.key }) ??
+    findProviderPreset({ key: provider.name }) ??
+    null
   discoveredModels.value = []
   discoveredSource.value = ''
   modelDiscoveryFeedback.value = null
@@ -1564,12 +1626,28 @@ onMounted(() => {
         />
         <Select
           v-if="showProviderOptions"
-          v-model="form.protocol"
+          :model-value="form.protocol"
           :label="$t('providers.fieldProtocol')"
           :options="protocolOptions"
+          @update:model-value="selectProviderProtocol"
+        />
+        <Combobox
+          v-if="endpointOptions.length > 0"
+          :model-value="form.baseUrl"
+          :label="$t('providers.fieldBaseUrl')"
+          :placeholder="$t('providers.baseUrlPlaceholder')"
+          :hint="baseUrlHint"
+          :options="endpointOptions"
+          :custom-option-label="$t('providers.customBaseUrl')"
+          mono
+          data-testid="provider-base-url-presets"
+          @blur="onBaseUrlBlur"
+          @update:model-value="updateProviderBaseUrl"
+          @select="selectProviderEndpoint"
         />
         <div v-if="showProviderOptions" class="space-y-2">
           <Input
+            v-if="endpointOptions.length === 0"
             v-model="form.baseUrl"
             :label="$t('providers.fieldBaseUrl')"
             :placeholder="$t('providers.baseUrlPlaceholder')"
@@ -1662,7 +1740,7 @@ onMounted(() => {
             </p>
           </template>
           <div
-            v-if="hasSavedSecret || activePreset?.keyUrl"
+            v-if="hasSavedSecret || providerKeyUrl"
             class="flex flex-wrap items-center gap-2"
           >
             <Button
@@ -1675,10 +1753,10 @@ onMounted(() => {
               {{ $t('providerAccounts.copySavedKey') }}
             </Button>
             <Button
-              v-if="activePreset?.keyUrl"
+              v-if="providerKeyUrl"
               size="sm"
               data-testid="provider-key-page"
-              @click="openPresetKeyPage(activePreset.keyUrl)"
+              @click="openPresetKeyPage(providerKeyUrl)"
             >
               {{ $t('providerAccounts.getApiKey') }}
             </Button>

@@ -5,6 +5,7 @@ import { OFFICIAL_PROVIDER_PRESETS } from './official-provider-presets'
 import type { PiThinkingLevel } from './index'
 import type { PiInputType } from './index'
 import type { ProtocolId } from './protocols'
+import { ADDITIONAL_PROVIDER_ENDPOINTS, PROVIDER_ENDPOINT_FAMILIES } from './provider-endpoints'
 
 export interface ProviderPresetModel {
   id: string
@@ -109,6 +110,7 @@ const existingKeyPages: Record<string, string> = {
   google: 'https://aistudio.google.com/apikey',
   xai: 'https://console.x.ai/',
   openrouter: 'https://openrouter.ai/settings/keys',
+  doubao: 'https://ark.volcengine.com/region:cn-beijing/apikey',
   'kimi-for-coding': 'https://www.kimi.com/code/console'
 }
 
@@ -140,6 +142,44 @@ export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
   openAiResponsesPreset,
   ...OFFICIAL_PROVIDER_PRESETS
 ]
+
+const endpointPresets = [
+  ...PROVIDER_PRESETS.filter((preset) => preset.defaultBaseUrl),
+  ...ADDITIONAL_PROVIDER_ENDPOINTS.flatMap(({ presetId, ...endpoint }) => {
+    const preset = PROVIDER_PRESETS.find(({ id }) => id === presetId)
+    return preset ? [{ ...preset, ...endpoint }] : []
+  })
+]
+
+const endpointsByUrl = new Map<string, ProviderPreset[]>()
+for (const preset of endpointPresets) {
+  const url = normalizeBaseUrl(preset.defaultBaseUrl)
+  const matches = endpointsByUrl.get(url)
+  if (matches) matches.push(preset)
+  else endpointsByUrl.set(url, [preset])
+}
+
+export function getProviderEndpointPresets(presetId?: string): readonly ProviderPreset[] {
+  if (!presetId) return []
+  const family = PROVIDER_ENDPOINT_FAMILIES.find((ids) => ids.includes(presetId)) ?? []
+  // Prefer the active preset when a standard API and a plan share an address.
+  return [
+    ...endpointPresets.filter(({ id }) => id === presetId),
+    ...endpointPresets.filter(({ id }) => id !== presetId && family.includes(id))
+  ]
+}
+
+export function findProviderEndpoint(
+  presets: readonly ProviderPreset[],
+  baseUrl: string,
+  protocol?: ProtocolId
+): ProviderPreset | undefined {
+  const url = normalizeBaseUrl(baseUrl)
+  return presets.find(
+    (preset) =>
+      normalizeBaseUrl(preset.defaultBaseUrl) === url && (!protocol || preset.protocol === protocol)
+  )
+}
 
 export function findModelPreset(
   modelId: string,
@@ -234,7 +274,8 @@ export function resolveModelDefaults(
 
 export function suggestedModelPresets(provider?: ProviderPreset): readonly ProviderPresetModel[] {
   if (provider) {
-    if (provider.id === openAiResponsesPreset.id) return openAiResponsesPreset.models
+    if (provider.id === openAiResponsesPreset.id || provider.id === 'ark-agent-plan')
+      return provider.models
     const latest = (currentCatalog.providers as Record<string, ProviderPresetModel[]>)[provider.id]
     if (latest) return latest.filter((model) => model.recommended !== false)
     if (!provider.id.endsWith('-compatible')) return []
@@ -264,8 +305,17 @@ export function findProviderPreset(input: {
   const key = input.key?.trim()
   const protocol = input.protocol ?? undefined
   const baseUrl = normalizeBaseUrl(input.baseUrl ?? '')
-  if (key) {
-    const byKey = PROVIDER_PRESETS.find(
+  const matches = (endpointsByUrl.get(baseUrl) ?? []).filter(
+    (preset) => !protocol || preset.protocol === protocol
+  )
+  const exactKey = matches.find(({ id }) => id === key)
+  if (exactKey) return exactKey
+  const family = key && PROVIDER_ENDPOINT_FAMILIES.find((ids) => ids.includes(key))
+  const relatedEndpoint = family && matches.find(({ id }) => family.includes(id))
+  if (relatedEndpoint) return relatedEndpoint
+  const byKey =
+    key &&
+    PROVIDER_PRESETS.find(
       (preset) =>
         preset.id === key &&
         (!protocol || preset.protocol === protocol) &&
@@ -273,14 +323,7 @@ export function findProviderPreset(input: {
           !baseUrl ||
           baseUrl === normalizeBaseUrl(preset.defaultBaseUrl))
     )
-    if (byKey) return byKey
-  }
-  if (!baseUrl) return undefined
-  return PROVIDER_PRESETS.find(
-    (preset) =>
-      normalizeBaseUrl(preset.defaultBaseUrl) === baseUrl &&
-      (!protocol || preset.protocol === protocol)
-  )
+  return byKey || matches[0]
 }
 
 export function resolveModelInput(input: {

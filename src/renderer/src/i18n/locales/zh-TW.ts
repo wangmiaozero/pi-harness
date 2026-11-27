@@ -219,6 +219,7 @@ export const zhTW: MessageTree = {
     internalNamePlaceholder: 'nvidia',
     fieldProtocol: '協定',
     fieldBaseUrl: 'API 基礎 URL',
+    customBaseUrl: '自訂 URL',
     baseUrlPlaceholder: 'https://api.example.com/v1',
     fieldApiKeyType: 'API 金鑰類型',
     fieldApiKeyValue: 'API 金鑰',

@@ -224,6 +224,7 @@ export const enUS = {
     internalNamePlaceholder: 'nvidia',
     fieldProtocol: 'Protocol',
     fieldBaseUrl: 'Base URL',
+    customBaseUrl: 'Custom URL',
     baseUrlPlaceholder: 'https://api.example.com/v1',
     fieldApiKeyType: 'API key type',
     fieldApiKeyValue: 'API key value',

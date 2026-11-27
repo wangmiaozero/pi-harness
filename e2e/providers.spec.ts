@@ -104,6 +104,101 @@ for (const { key, name, subscription } of [
   })
 }
 
+test('shows editable Ark URLs, switches protocols and saves a Plan model', async ({ page }) => {
+  const arkRoot = 'https://ark.cn-beijing.volces.com/api'
+  await page.locator('a[href="#/models"]').click()
+  await page.getByTestId('add-provider').click()
+  await page.getByTestId('add-provider-preset-doubao').click()
+  const dialog = page.getByRole('dialog', { name: '新建提供商', exact: true })
+  const baseUrl = dialog.getByLabel('API 基础 URL', { exact: true })
+  const urlPicker = dialog.getByTestId('provider-base-url-presets').getByRole('button')
+  const protocol = dialog.getByRole('button', { name: '协议', exact: true })
+  await expect(baseUrl).toHaveValue(arkRoot + '/v3')
+  await urlPicker.click()
+  const urlOptions = page.locator('[data-combobox-panel]')
+  for (const suffix of ['/v3', '/compatible', '/plan/v3', '/plan']) {
+    await expect(
+      urlOptions.getByRole('button', { name: arkRoot + suffix, exact: true })
+    ).toBeVisible()
+  }
+  await expect(urlOptions.getByRole('button').last()).toHaveText('自定义 URL')
+  await urlOptions.getByRole('button', { name: arkRoot + '/plan', exact: true }).click()
+  await expect(baseUrl).toHaveValue(arkRoot + '/plan')
+  await dialog.getByTestId('provider-advanced-options').click()
+  await expect(protocol).toHaveText('Anthropic Messages')
+  await protocol.click()
+  await page.getByRole('option', { name: 'OpenAI Chat Completions', exact: true }).click()
+  await expect(baseUrl).toHaveValue(arkRoot + '/plan')
+
+  await urlPicker.click()
+  await urlOptions.getByRole('button', { name: '自定义 URL', exact: true }).click()
+  await expect(baseUrl).toBeFocused()
+  await expect(baseUrl).toHaveValue('')
+  await expect(protocol).toHaveText('OpenAI Chat Completions')
+  await baseUrl.fill(arkRoot + '/compatible')
+  await expect(protocol).toHaveText('OpenAI Chat Completions')
+  await urlPicker.click()
+  await urlOptions.getByRole('button', { name: arkRoot + '/compatible', exact: true }).click()
+  await expect(protocol).toHaveText('Anthropic Messages')
+  await urlPicker.click()
+  await urlOptions.getByRole('button', { name: arkRoot + '/plan', exact: true }).click()
+  await expect(protocol).toHaveText('Anthropic Messages')
+  await expect(dialog.getByLabel('提供商标识')).toHaveValue('doubao')
+  const model = dialog.getByLabel('默认模型 ID', { exact: true })
+  await model.click()
+  const modelOptions = page.locator('[data-combobox-panel]')
+  for (const id of [
+    'glm-5.4',
+    'glm-5.3',
+    'glm-5.3-flash',
+    'kimi-k3.1-pro',
+    'deepseek-v4-flash',
+    'doubao-seed-2.1-pro'
+  ]) {
+    await expect(modelOptions.getByText(id, { exact: true })).toBeVisible()
+  }
+  await modelOptions.getByText('glm-5.4', { exact: true }).click()
+  await dialog.getByRole('button', { name: 'API 密钥类型', exact: true }).click()
+  await page.getByRole('option', { name: '环境变量', exact: true }).click()
+  await dialog.getByLabel('API 密钥', { exact: true }).fill('ARK_AGENT_PLAN_TEST_KEY')
+  await dialog.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  const profile = await page.evaluate(async () =>
+    (await window.piSwitch.providers.list()).find(({ key }) => key === 'doubao')
+  )
+  expect(profile).toMatchObject({
+    protocol: 'anthropic-messages',
+    baseUrl: arkRoot + '/plan',
+    defaultModelId: 'glm-5.4'
+  })
+  const row = page.getByTestId('provider-row').filter({ hasText: arkRoot + '/plan' })
+  await row.getByRole('button', { name: '编辑', exact: true }).click()
+  const editing = page.getByRole('dialog', { name: '编辑提供商', exact: true })
+  const savedBaseUrl = editing.getByLabel('API 基础 URL', { exact: true })
+  await expect(savedBaseUrl).toHaveValue(arkRoot + '/plan')
+  await editing.getByTestId('provider-base-url-presets').getByRole('button').click()
+  await urlOptions.getByRole('button', { name: '自定义 URL', exact: true }).click()
+  await expect(savedBaseUrl).toHaveValue('')
+  const customUrl = arkRoot + '/custom'
+  await savedBaseUrl.fill(customUrl)
+  await editing.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(editing).toBeHidden()
+  await page
+    .getByTestId('provider-row')
+    .filter({ hasText: customUrl })
+    .getByRole('button', { name: '编辑', exact: true })
+    .click()
+  await expect(savedBaseUrl).toHaveValue(customUrl)
+  await editing.getByTestId('provider-base-url-presets').getByRole('button').click()
+  await expect(
+    urlOptions.getByRole('button', { name: arkRoot + '/plan', exact: true })
+  ).toBeVisible()
+  await editing.getByTestId('provider-advanced-options').click()
+  await expect(editing.getByRole('button', { name: '协议', exact: true })).toHaveText(
+    'Anthropic Messages'
+  )
+})
+
 test('opens a fresh form for configured vendor, relay, local and custom presets', async ({
   page,
   electronApp,
@@ -435,15 +530,29 @@ test.describe('Providers', () => {
       'border-top-width',
       '0px'
     )
-    await expect(dialog.getByLabel(/API 基础 URL|API Base URL/)).toBeHidden()
+    const baseUrl = dialog.getByLabel(/API 基础 URL|Base URL/)
+    const protocol = dialog.getByRole('button', { name: /^(协议|Protocol)$/ })
+    await expect(baseUrl).toHaveValue('https://api.deepseek.com')
     await expect(dialog.getByLabel(/API 密钥$|API key$/)).toBeVisible()
     await dialog.getByTestId('provider-advanced-options').click()
     await expect(dialog.getByLabel(/提供商标识|Provider key/)).toHaveValue('deepseek')
     await expect(dialog.getByLabel(/显示名称|Display name/)).toHaveValue('DeepSeek')
     await expect(dialog.getByLabel(/内部名称|Internal name/)).toHaveValue('deepseek')
-    await expect(dialog.getByLabel(/API 基础 URL|API Base URL/)).toHaveValue(
-      'https://api.deepseek.com'
-    )
+    await dialog.getByTestId('provider-base-url-presets').getByRole('button').click()
+    await page
+      .locator('[data-combobox-panel]')
+      .getByRole('button', { name: 'https://api.deepseek.com/anthropic', exact: true })
+      .click()
+    await expect(baseUrl).toHaveValue('https://api.deepseek.com/anthropic')
+    await expect(protocol).toHaveText('Anthropic Messages')
+    await protocol.click()
+    await page.getByRole('option', { name: 'OpenAI Chat Completions', exact: true }).click()
+    await expect(baseUrl).toHaveValue('https://api.deepseek.com/anthropic')
+    await dialog.getByTestId('provider-base-url-presets').getByRole('button').click()
+    const urlOptions = page.locator('[data-combobox-panel]')
+    await expect(urlOptions.getByRole('button').last()).toHaveText(/自定义 URL|Custom URL/)
+    await urlOptions.getByRole('button', { name: 'https://api.deepseek.com', exact: true }).click()
+    await expect(baseUrl).toHaveValue('https://api.deepseek.com')
     await expect(
       dialog.getByRole('button', { name: /API 密钥类型|API key type/, exact: true })
     ).toContainText(/明文|Literal/)

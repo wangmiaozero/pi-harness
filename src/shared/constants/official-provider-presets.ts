@@ -1,9 +1,14 @@
 import type { ProviderPreset } from './provider-presets'
+import { ARK_AGENT_PLAN_OPENAI_URL } from './provider-endpoints'
 
 type CompatiblePreset = Pick<ProviderPreset, 'id' | 'name' | 'defaultBaseUrl' | 'keyUrl'> & {
   modelId?: string
+  models?: ProviderPreset['models']
+  documentation?: string
   catalogGroup?: ProviderPreset['catalogGroup']
 }
+
+const arkPiDocumentation = 'https://docs.volcengine.com/docs/ark/agent-plan-personal-pi?lang=zh'
 
 const vendors: readonly CompatiblePreset[] = [
   {
@@ -147,9 +152,30 @@ const vendors: readonly CompatiblePreset[] = [
   {
     id: 'ark-agent-plan',
     name: 'Volcengine Ark Agent Plan',
-    defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/plan/v3',
-    keyUrl: 'https://ark.volcengine.com/region:cn-beijing/apikey',
-    modelId: 'ark-code-latest'
+    defaultBaseUrl: ARK_AGENT_PLAN_OPENAI_URL,
+    keyUrl: 'https://ark.volcengine.com/region:cn-beijing/subscription/agent-plan',
+    modelId: 'ark-code-latest',
+    documentation: arkPiDocumentation,
+    models: [
+      { id: 'ark-code-latest', name: 'ark-code-latest' },
+      ...(
+        [
+          ['glm-5.4', ['text', 'image'], 128_000],
+          ['glm-5.3', ['text'], 128_000],
+          ['glm-5.3-flash', ['text', 'image'], 128_000],
+          ['kimi-k3.1-pro', ['text', 'image'], 1_024_000],
+          ['deepseek-v4-flash', ['text'], 384_000],
+          ['doubao-seed-2.1-pro', ['text', 'image'], 256_000]
+        ] as const
+      ).map(([id, input, maxOutputTokens]) => ({
+        id,
+        name: id,
+        input,
+        contextWindow: 1_024_000,
+        maxOutputTokens,
+        sources: [arkPiDocumentation]
+      }))
+    ]
   },
   {
     id: 'bedrock',
@@ -223,14 +249,14 @@ const compatiblePresets: readonly CompatiblePreset[] = [
 ]
 
 export const OFFICIAL_PROVIDER_PRESETS: readonly ProviderPreset[] = compatiblePresets.map(
-  ({ modelId, ...preset }) => ({
+  ({ modelId, models, documentation, ...preset }) => ({
     ...preset,
     protocol: 'openai-completions',
     authHeader: true,
     placeholderApiKey: preset.keyUrl ? 'API key' : '',
     defaultModelId: modelId ?? '',
-    models: modelId ? [{ id: modelId, name: modelId }] : [],
-    documentation: '',
+    models: models ?? (modelId ? [{ id: modelId, name: modelId }] : []),
+    documentation: documentation ?? '',
     sources: []
   })
 )

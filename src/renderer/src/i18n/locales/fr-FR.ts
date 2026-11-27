@@ -226,6 +226,7 @@ export const frFR: MessageTree = {
     internalNamePlaceholder: 'nvidia',
     fieldProtocol: 'Protocole',
     fieldBaseUrl: 'URL de base',
+    customBaseUrl: 'URL personnalisée',
     baseUrlPlaceholder: 'https://api.example.com/v1',
     fieldApiKeyType: 'Type de clé API',
     fieldApiKeyValue: 'Valeur de la clé API',

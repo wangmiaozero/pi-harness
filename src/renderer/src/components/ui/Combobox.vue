@@ -4,7 +4,8 @@ import { Check, ChevronDown } from '@lucide/vue'
 
 const model = defineModel<string>({ default: '' })
 const emit = defineEmits<{
-  select: [value: string]
+  blur: [event: FocusEvent]
+  select: [value: string, previousValue: string]
 }>()
 
 const props = withDefaults(
@@ -15,6 +16,7 @@ const props = withDefaults(
     error?: string
     disabled?: boolean
     mono?: boolean
+    customOptionLabel?: string
     options?: { value: string; label: string; hint?: string }[]
   }>(),
   {
@@ -23,6 +25,7 @@ const props = withDefaults(
     hint: '',
     error: '',
     disabled: false,
+    customOptionLabel: '',
     options: () => []
   }
 )
@@ -89,10 +92,18 @@ function toggleAllOptions() {
 }
 
 function pick(opt: { value: string }) {
+  const previousValue = model.value
   model.value = opt.value
   open.value = false
   showAllOptions.value = false
-  emit('select', opt.value)
+  emit('select', opt.value, previousValue)
+}
+
+function editCustomValue() {
+  model.value = ''
+  rootRef.value?.querySelector('input')?.focus()
+  open.value = false
+  showAllOptions.value = false
 }
 
 function onDocPointer(e: PointerEvent) {
@@ -152,6 +163,7 @@ const inputClasses = computed(() => {
         class="ui-combobox-trigger"
         :class="inputClasses"
         @focus="showFilteredPanel"
+        @blur="emit('blur', $event)"
         @input="showFilteredPanel"
         @keydown.esc="dismissPanel"
       />
@@ -175,7 +187,7 @@ const inputClasses = computed(() => {
     </p>
     <Teleport to="body">
       <div
-        v-if="open && filtered.length > 0"
+        v-if="open && (filtered.length > 0 || customOptionLabel)"
         ref="panelRef"
         data-combobox-panel
         class="ui-combobox-menu pointer-events-auto fixed z-[110] max-h-[240px] overflow-y-auto rounded-[var(--menu-radius)] border border-[var(--border-default)] bg-[var(--bg-surface-raised)] p-1 shadow-[var(--shadow-popover)]"
@@ -206,6 +218,15 @@ const inputClasses = computed(() => {
             class="size-3 shrink-0 text-[var(--accent)]"
             :stroke-width="2"
           />
+        </button>
+        <button
+          v-if="customOptionLabel"
+          type="button"
+          class="ui-combobox-option w-full rounded-[var(--radius-xs)] px-2 py-[6px] text-left text-[12.5px] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+          @mousedown.prevent
+          @click="editCustomValue"
+        >
+          {{ customOptionLabel }}
         </button>
       </div>
     </Teleport>

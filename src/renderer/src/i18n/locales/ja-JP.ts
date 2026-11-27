@@ -225,6 +225,7 @@ export const jaJP: MessageTree = {
     internalNamePlaceholder: 'nvidia',
     fieldProtocol: 'プロトコル',
     fieldBaseUrl: 'ベース URL',
+    customBaseUrl: 'カスタム URL',
     baseUrlPlaceholder: 'https://api.example.com/v1',
     fieldApiKeyType: 'API キーの種類',
     fieldApiKeyValue: 'API キーの値',
