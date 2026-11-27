@@ -487,8 +487,9 @@ export class LiveVoiceService {
       ['response.done', 'response.output_audio.done'].includes(m.type)
     )
       this.emit({ callId: call.id, kind: 'activity', assistantSpeaking: false })
+    // The live service carries the doubao user transcript as `text` (OpenAI-style `transcript` kept as fallback).
     if (m.type === 'conversation.item.input_audio_transcription.completed')
-      transcript('user', m.transcript)
+      transcript('user', m.text ?? m.transcript)
     if (
       !staleResponse &&
       ['response.audio_transcript.done', 'response.output_audio_transcript.done'].includes(m.type)

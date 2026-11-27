@@ -458,16 +458,28 @@ describe('Doubao voice transport', () => {
       const receive = (message: unknown) =>
         socket.emit('message', Buffer.from(JSON.stringify(message)), false)
       // The user's query is transcribed as a subtitle without driving the turn state.
+      // Live service shape: the transcript rides in `text` (probe-verified 2026-11-27); OpenAI-style `transcript` stays as fallback.
       receive({
         type: 'conversation.item.input_audio_transcription.completed',
-        question_id: 'q2',
-        transcript: '帮我整理一下日志'
+        item_id: '63151043002341890',
+        content_index: 1,
+        text: '帮我整理一下日志'
+      })
+      receive({
+        type: 'conversation.item.input_audio_transcription.completed',
+        transcript: '仅旧字段时回退读取'
       })
       expect(events).toContainEqual({
         callId: id,
         kind: 'transcript',
         role: 'user',
         text: '帮我整理一下日志'
+      })
+      expect(events).toContainEqual({
+        callId: id,
+        kind: 'transcript',
+        role: 'user',
+        text: '仅旧字段时回退读取'
       })
       // The reply turn speaks, transcribes its text, and finishes back into listening.
       receive({ type: 'response.created', question_id: 'q2', response_id: 'resp_2' })
