@@ -1304,6 +1304,256 @@ describe('agent store new-session handshake', () => {
       errorMessage: '404 status code (no body)'
     })
   })
+
+  it('drops the previous session transcript as soon as another session is selected', async () => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    let resolveOther!: (detail: unknown) => void
+    const firstUser: AgentMessage = { role: 'user', content: 'first session' }
+    const reply = (text: string): AgentMessage => ({
+      role: 'assistant',
+      model: 'm',
+      provider: 'p',
+      content: [{ type: 'text', text }]
+    })
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      sessions: {
+        get: vi.fn().mockImplementation((id: string) => {
+          if (id === 'session-1')
+            return Promise.resolve({
+              ...sessionDetail('medium'),
+              context: {
+                ...sessionDetail('medium').context,
+                messages: [firstUser],
+                entryIds: ['e1']
+              }
+            })
+          return new Promise((resolve) => {
+            resolveOther = resolve
+          })
+        })
+      },
+      agent: {
+        state: vi.fn().mockResolvedValue(null),
+        running: vi.fn().mockResolvedValue(['session-1']),
+        command: vi.fn().mockResolvedValue(null)
+      }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    agent.setupListeners()
+    await agent.load('session-1')
+    onAgentEvent?.({
+      sessionId: 'session-1',
+      event: { type: 'message_end', message: reply('running reply') }
+    })
+    expect(agent.messages).toEqual([firstUser, reply('running reply')])
+
+    const switching = agent.load('session-2')
+    expect(agent.messages).toEqual([])
+    onAgentEvent?.({
+      sessionId: 'session-1',
+      event: { type: 'message_end', message: reply('later reply') }
+    })
+    expect(agent.messages).toEqual([])
+
+    resolveOther({
+      ...sessionDetail('medium'),
+      sessionId: 'session-2',
+      context: {
+        ...sessionDetail('medium').context,
+        messages: [{ role: 'user', content: 'second session' }]
+      }
+    })
+    await switching
+    expect(agent.messages).toEqual([{ role: 'user', content: 'second session' }])
+  })
+
+  it('reports a session as loading until its history has arrived', async () => {
+    const pending: ((detail: unknown) => void)[] = []
+    window.piSwitch = {
+      sessions: {
+        get: vi.fn(
+          () =>
+            new Promise((resolve) => {
+              pending.push(resolve)
+            })
+        )
+      },
+      agent: {
+        state: vi.fn().mockResolvedValue(null),
+        running: vi.fn().mockResolvedValue([]),
+        command: vi.fn().mockResolvedValue(null)
+      }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    const older = agent.load('session-1')
+    expect(agent.loadingSession).toBe(true)
+    const newer = agent.load('session-1')
+    pending[0](sessionDetail('medium'))
+    await older
+    expect(agent.loadingSession).toBe(true)
+    pending[1](sessionDetail('medium'))
+    await newer
+    expect(agent.loadingSession).toBe(false)
+
+    await agent.load(null)
+    expect(agent.loadingSession).toBe(false)
+  })
+
+  it.each(['send', 'sendImage'] as const)(
+    'does not add a %s message to another session opened while the composer was unlocking',
+    async (method) => {
+      const otherUser: AgentMessage = { role: 'user', content: 'other session' }
+      window.piSwitch = {
+        sessions: {
+          list: vi.fn().mockResolvedValue([]),
+          get: vi.fn().mockResolvedValue({
+            ...sessionDetail('medium'),
+            context: { ...sessionDetail('medium').context, messages: [otherUser] }
+          })
+        },
+        models: { invokeImage: vi.fn().mockResolvedValue(null) },
+        agent: {
+          start: vi.fn().mockResolvedValue({ sessionId: 'session-2', cwd: '/code/project' }),
+          prompt: vi.fn().mockResolvedValue(null),
+          state: vi.fn().mockResolvedValue(null),
+          running: vi.fn().mockResolvedValue([]),
+          command: vi.fn().mockResolvedValue(null)
+        }
+      } as unknown as PiSwitchAPI
+
+      const agent = useAgentStore()
+      await agent.load('session-1')
+      await (method === 'send'
+        ? agent.send('session-2', '/code/project', 'hello', 'default')
+        : agent.sendImage('session-2', '/code/project', 'draw a lighthouse', 'default', {
+            providerKey: 'step-plan',
+            modelId: 'step-image-edit-2'
+          }))
+      expect(agent.messages).toEqual([otherUser])
+    }
+  )
+
+  it('keeps the selected session when a new session finishes starting after the user switched away', async () => {
+    let onAgentEvent: ((payload: unknown) => void) | undefined
+    let resolveStart!: (started: { sessionId: string; cwd: string }) => void
+    const otherUser: AgentMessage = { role: 'user', content: 'other session' }
+    window.piSwitch = {
+      on: vi.fn((name: string, listener: (payload: unknown) => void) => {
+        if (name === 'agent-event') onAgentEvent = listener
+        return () => undefined
+      }),
+      sessions: {
+        get: vi.fn().mockResolvedValue({
+          ...sessionDetail('medium'),
+          context: { ...sessionDetail('medium').context, messages: [otherUser] }
+        })
+      },
+      agent: {
+        start: vi.fn().mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              resolveStart = resolve
+            })
+        ),
+        prompt: vi.fn().mockResolvedValue(null),
+        state: vi.fn().mockResolvedValue(null),
+        running: vi.fn().mockResolvedValue([]),
+        command: vi.fn().mockResolvedValue(null)
+      }
+    } as unknown as PiSwitchAPI
+
+    const agent = useAgentStore()
+    agent.setupListeners()
+    const sending = agent.send(null, '/code/project', 'hello', 'read-only')
+    await agent.load('session-1')
+    resolveStart({ sessionId: 'session-new', cwd: '/code/project' })
+    await sending
+    expect(agent.isSessionLoaded('session-1')).toBe(true)
+    onAgentEvent?.({
+      sessionId: 'session-new',
+      event: {
+        type: 'message_end',
+        message: {
+          role: 'assistant',
+          model: 'm',
+          provider: 'p',
+          content: [{ type: 'text', text: 'new session reply' }]
+        }
+      }
+    })
+    expect(agent.messages).toEqual([otherUser])
+    expect(agent.toolPreset).toBe('full')
+  })
+
+  it.each(['finishes', 'fails'])(
+    'keeps another session untouched when image generation %s after the user switched away',
+    async (outcome) => {
+      let settleImage!: () => void
+      const secondUser: AgentMessage = { role: 'user', content: 'second session' }
+      window.piSwitch = {
+        models: {
+          // The result is only delivered once the other session is on screen.
+          invokeImage: vi.fn(
+            () =>
+              new Promise((resolve, reject) => {
+                settleImage = () => {
+                  if (outcome === 'fails') reject(new Error('image model unavailable'))
+                  else resolve({ mimeType: 'image/png', base64: 'TQ==', revisedPrompt: null })
+                }
+              })
+          )
+        },
+        sessions: {
+          list: vi.fn().mockResolvedValue([]),
+          get: vi.fn().mockImplementation((id: string) =>
+            Promise.resolve(
+              id === 'session-1'
+                ? sessionDetail('medium')
+                : {
+                    ...sessionDetail('medium'),
+                    sessionId: 'session-2',
+                    context: {
+                      ...sessionDetail('medium').context,
+                      messages: [secondUser],
+                      entryIds: ['e2']
+                    }
+                  }
+            )
+          )
+        },
+        agent: {
+          state: vi.fn().mockResolvedValue(null),
+          running: vi.fn().mockResolvedValue([]),
+          command: vi.fn().mockResolvedValue({
+            userEntryId: 'user-image-entry',
+            assistantEntryId: 'assistant-image-entry'
+          })
+        }
+      } as unknown as PiSwitchAPI
+
+      const agent = useAgentStore()
+      await agent.load('session-1')
+      const generating = agent.sendImage(
+        'session-1',
+        '/code/project',
+        'draw a lighthouse',
+        'default',
+        { providerKey: 'step-plan', modelId: 'step-image-edit-2' }
+      )
+      await agent.load('session-2')
+      settleImage()
+      await generating
+
+      expect(agent.messages).toEqual([secondUser])
+      expect(agent.entryIds).toEqual(['e2'])
+    }
+  )
 })
 
 function sessionDetail(thinkingLevel: string) {

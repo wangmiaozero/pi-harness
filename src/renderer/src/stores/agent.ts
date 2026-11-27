@@ -69,6 +69,8 @@ export const useAgentStore = defineStore('agent', () => {
   const completionCount = ref(0)
   const error = ref<string | null>(null)
   const sending = ref(false)
+  // True while the selected session's history is being read.
+  const loadingSession = ref(false)
   // Session the in-flight `send()` belongs to, so "busy" UI stays scoped to
   // that conversation instead of leaking onto whichever session is selected.
   const sendingSessionId = ref<string | null>(null)
@@ -274,6 +276,18 @@ export const useAgentStore = defineStore('agent', () => {
   }
 
   async function load(sessionId: string | null) {
+    loadingSession.value = sessionId !== null
+    const pending = loadSession(sessionId)
+    const generation = loadGeneration
+    try {
+      await pending
+    } finally {
+      // A load that a newer one superseded must not clear that newer load's state.
+      if (loadGeneration === generation) loadingSession.value = false
+    }
+  }
+
+  async function loadSession(sessionId: string | null) {
     const sameSession = sessionId === loadedSessionId
     const previousPersisted = new Set(
       sameSession
@@ -291,6 +305,9 @@ export const useAgentStore = defineStore('agent', () => {
     if (!sameSession) {
       // Per-session snapshots belong to the previously loaded conversation;
       // dropping them keeps busy/streaming UI from leaking across switches.
+      messages.value = []
+      entryIds.value = []
+      entryParents.value = {}
       state.value = null
       tools.value = []
       customToolNames.value = []
@@ -498,8 +515,12 @@ export const useAgentStore = defineStore('agent', () => {
       content: imageBlocks.length ? [...textBlocks, ...imageBlocks] : message,
       timestamp: Date.now()
     }
-    optimisticUserMessages.add(optimistic)
-    messages.value = [...messages.value, optimistic]
+    // A session opened while the composer was unlocking must not take this message.
+    const shownHere = loadedSessionId === null || loadedSessionId === sessionId
+    if (shownHere) {
+      optimisticUserMessages.add(optimistic)
+      messages.value = [...messages.value, optimistic]
+    }
     let createdSessionId: string | null = null
     try {
       if (!sessionId) {
@@ -530,14 +551,17 @@ export const useAgentStore = defineStore('agent', () => {
             ...(permissionMode ? { permissionMode } : {})
           })
         )
-        loadedSessionId = started.sessionId
+        // A conversation opened while Pi was starting stays selected.
+        if (loadedSessionId === null) {
+          loadedSessionId = started.sessionId
+          toolPreset.value = preset
+        }
         sendingSessionId.value = started.sessionId
         transientSessionIds.add(started.sessionId)
         composerSelections.set(started.sessionId, {
           thinkingLevel: thinkingLevel.value,
           toolPreset: preset
         })
-        toolPreset.value = preset
         createdSessionId = started.sessionId
         useSessionStore().addTransientSession(
           started.sessionId,
@@ -618,6 +642,7 @@ export const useAgentStore = defineStore('agent', () => {
   ) {
     const text = prompt.trim()
     if (!text || sourceImages.length > 1) return sessionId
+    const requestedInSessionId = loadedSessionId
     sending.value = true
     error.value = null
     const optimistic: AgentMessage = {
@@ -632,7 +657,9 @@ export const useAgentStore = defineStore('agent', () => {
       ],
       timestamp: Date.now()
     }
-    messages.value = [...messages.value, optimistic]
+    // A session opened while the composer was unlocking must not take this message.
+    if (loadedSessionId === null || loadedSessionId === sessionId)
+      messages.value = [...messages.value, optimistic]
     let createdSessionId: string | null = null
     try {
       const source = sourceImages[0]
@@ -667,7 +694,7 @@ export const useAgentStore = defineStore('agent', () => {
           })
         )
         activeSessionId = started.sessionId
-        loadedSessionId = activeSessionId
+        if (loadedSessionId === null) loadedSessionId = activeSessionId
         createdSessionId = activeSessionId
         transientSessionIds.add(activeSessionId)
         composerSelections.set(activeSessionId, {
@@ -696,16 +723,19 @@ export const useAgentStore = defineStore('agent', () => {
         stopReason: 'stop',
         timestamp: Date.now()
       }
-      messages.value = [...messages.value, assistant]
-      entryIds.value = [...entryIds.value, persisted.userEntryId, persisted.assistantEntryId]
-      loadedStatsOverride = null
-      refreshLocalStats()
+      // Only the conversation the image was requested in, or its own new one, shows it.
+      if (loadedSessionId === requestedInSessionId || loadedSessionId === activeSessionId) {
+        messages.value = [...messages.value, assistant]
+        entryIds.value = [...entryIds.value, persisted.userEntryId, persisted.assistantEntryId]
+        loadedStatsOverride = null
+        refreshLocalStats()
+      }
       completionCount.value += 1
       await syncPersistedSession(activeSessionId)
       return activeSessionId
     } catch (cause) {
       error.value = getErrorMessage(cause)
-      messages.value = messages.value.slice(0, -1)
+      messages.value = messages.value.filter((message) => message !== optimistic)
       if (createdSessionId) {
         transientSessionIds.delete(createdSessionId)
         composerSelections.delete(createdSessionId)
@@ -988,6 +1018,7 @@ export const useAgentStore = defineStore('agent', () => {
     error,
     sending,
     sendingSessionId,
+    loadingSession,
     setupListeners,
     load,
     adoptRunningSession,
