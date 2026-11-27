@@ -15,6 +15,7 @@ import { PI_INSTALL_ARGS, PI_INSTALL_COMMAND } from '@shared/constants/pi-instal
 import { PI_NPM_PACKAGE, PiInstallService } from './install-service'
 import { EnvironmentError } from '../services/errors'
 import { resolveExecutable, type ResolvedExecutable } from '../environment/command-resolver'
+import { catalog } from '../runtime/distribution.mjs'
 
 const readyRuntime = {
   nodeInstalled: true,
@@ -34,6 +35,7 @@ const writablePrefix = {
   previousPrefix: '/tmp/npm-global',
   env: { PATH: '/tmp/bin:/tmp/npm-global/bin' }
 }
+const bundledVersion = catalog.pi.version
 
 describe('PiInstallService', () => {
   beforeEach(() => {
@@ -71,7 +73,7 @@ describe('PiInstallService', () => {
           return { pi: await resolveExecutable('pi', { env, pathOnly: true }), env }
         }
         const runCommand = vi.fn(async (_command: string, _args: string[]) => {
-          await writeVersion('1.6.0')
+          await writeVersion(bundledVersion)
           return { exitCode: 0, stdout: '', stderr: '', signal: null }
         })
         const service = new PiInstallService({
@@ -80,13 +82,15 @@ describe('PiInstallService', () => {
           runCommand
         })
 
-        await expect(service.maintainTerminal('1.6.0', { force }, '/bundled/pi')).resolves.toEqual({
+        await expect(
+          service.maintainTerminal(bundledVersion, { force }, '/bundled/pi')
+        ).resolves.toEqual({
           previousVersion: '0.8.0',
-          currentVersion: '1.6.0'
+          currentVersion: bundledVersion
         })
         expect(runCommand).toHaveBeenCalledWith(
           '/tmp/bin/npm',
-          ['install', '-g', '--ignore-scripts', '--force', `${PI_NPM_PACKAGE}@1.6.0`],
+          ['install', '-g', '--ignore-scripts', '--force', `${PI_NPM_PACKAGE}@${bundledVersion}`],
           expect.objectContaining({ env: expect.objectContaining({ NPM_CONFIG_PREFIX: prefix }) })
         )
         expect(piProcessMock.resolveCliPath).not.toHaveBeenCalled()
@@ -102,7 +106,7 @@ describe('PiInstallService', () => {
     const runCommand = vi.fn().mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
     const service = new PiInstallService({ resolveTerminal, runCommand })
 
-    await expect(service.maintainTerminal('1.6.0')).rejects.toMatchObject({
+    await expect(service.maintainTerminal(bundledVersion)).rejects.toMatchObject({
       code: 'PI_NOT_FOUND_AFTER_INSTALL',
       message: expect.stringContaining('Terminal still resolves Pi 0.8.0')
     })
@@ -114,19 +118,19 @@ describe('PiInstallService', () => {
     const runCommand = vi.fn()
     const service = new PiInstallService({ resolveTerminal, runCommand })
 
-    await expect(service.maintainTerminal('1.6.0', { force: true })).resolves.toBeNull()
+    await expect(service.maintainTerminal(bundledVersion, { force: true })).resolves.toBeNull()
     expect(runCommand).not.toHaveBeenCalled()
   })
 
   it('does not treat the bundled executable on PATH as a separate installation', async () => {
     const bundledPath = path.join(os.tmpdir(), 'bundled', 'pi')
-    const resolveTerminal = vi.fn().mockResolvedValue(terminalFixture(bundledPath, '1.6.0'))
+    const resolveTerminal = vi.fn().mockResolvedValue(terminalFixture(bundledPath, bundledVersion))
     const runCommand = vi.fn()
     const service = new PiInstallService({ resolveTerminal, runCommand })
 
     await expect(service.getTerminalInstallation(bundledPath)).resolves.toBeNull()
     await expect(
-      service.maintainTerminal('1.6.0', { force: true }, bundledPath)
+      service.maintainTerminal(bundledVersion, { force: true }, bundledPath)
     ).resolves.toBeNull()
     expect(runCommand).not.toHaveBeenCalled()
   })

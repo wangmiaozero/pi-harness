@@ -2,6 +2,7 @@ import { openOverflowPage } from './navigation'
 import path from 'node:path'
 import fs from 'node:fs'
 import { IPC_INVOKE } from '../src/shared/ipc/channels'
+import catalog from '../src/main/runtime/catalog.json' with { type: 'json' }
 import { test, expect } from './fixtures'
 import { seedWorkspaceSession as seedSession, verifyFileEditing } from './workspace-fixtures'
 
@@ -34,7 +35,7 @@ test.describe('Pi-Harness smoke', () => {
       page.evaluate(() => window.piSwitch.pi.reinstall({ cliPath: '/tmp/pi' } as never))
     ).rejects.toThrow('Invalid Pi installation')
     await electronApp.evaluate(
-      ({ ipcMain }, { channels, environment }) => {
+      ({ ipcMain }, { channels, environment, bundledVersion }) => {
         const state = Object.assign(globalThis, {
           piMaintenanceFixture: { terminalInstalled: true, calls: [] as [string, unknown][] }
         }).piMaintenanceFixture
@@ -44,7 +45,7 @@ test.describe('Pi-Harness smoke', () => {
           data: {
             ...environment,
             installed: true,
-            version: '1.6.0',
+            version: bundledVersion,
             piStatus: 'ready',
             state: 'ready'
           }
@@ -61,7 +62,7 @@ test.describe('Pi-Harness smoke', () => {
               ok: true,
               action,
               previousVersion: '0.8.0',
-              currentVersion: '1.6.0',
+              currentVersion: bundledVersion,
               latestVersion: null,
               message: 'Pi verified',
               log: ''
@@ -80,7 +81,8 @@ test.describe('Pi-Harness smoke', () => {
           piUpdate: IPC_INVOKE.piUpdate,
           piReinstall: IPC_INVOKE.piReinstall
         },
-        environment
+        environment,
+        bundledVersion: catalog.pi.version
       }
     )
     const getCalls = () =>
