@@ -5,6 +5,29 @@ import type { IpcHandleRegistrar } from './trusted-ipc'
 
 vi.mock('electron', () => ({ BrowserWindow: {}, Menu: {}, dialog: {} }))
 
+it('resolves only valid file path inputs through the file service', async () => {
+  const handlers = new Map<string, (...args: unknown[]) => Promise<unknown>>()
+  const resolveFile = vi.fn(async (_path: string) => '/project/file.txt')
+  registerWorkspaceIpc(
+    {
+      handle: (channel: string, handler: (...args: unknown[]) => Promise<unknown>) =>
+        handlers.set(channel, handler)
+    } as unknown as IpcHandleRegistrar,
+    async (fn) => ({ ok: true, data: await fn() }),
+    { files: { resolveFile } } as unknown as WorkspaceServices
+  )
+  const resolve = handlers.get(IPC_INVOKE.filesResolve)!
+  for (const malformed of [null, '', '/bad\0path', { path: '/project/file.txt' }]) {
+    await expect(resolve(null, malformed)).rejects.toThrow('Invalid path')
+  }
+  expect(resolveFile).not.toHaveBeenCalled()
+  await expect(resolve(null, '/alias/file.txt')).resolves.toEqual({
+    ok: true,
+    data: '/project/file.txt'
+  })
+  expect(resolveFile).toHaveBeenCalledExactlyOnceWith('/alias/file.txt')
+})
+
 describe('managed workspace identity IPC', () => {
   it('routes only a new chat and passes the physical provider to the agent runtime', async () => {
     const handlers = new Map<string, (...args: unknown[]) => Promise<unknown>>()

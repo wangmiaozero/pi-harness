@@ -19,6 +19,7 @@ import { parseSkillInvocation } from './skill-invocation'
 import { stripImageMetadataSuffix } from '@shared/workspace/image-attachments'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
+import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { inspectRuntimeError } from '@shared/workspace/runtime-error'
 import { resolveMessageFilePath } from './message-file-link'
@@ -92,10 +93,19 @@ async function openMessageLink(event: MouseEvent): Promise<void> {
     const file = target.get('workspace-file')
     if (!file || file.includes('\0')) return
     const workspace = useWorkspaceStore()
-    const path = resolveMessageFilePath(file, workspace.currentCwd)
+    const candidate = resolveMessageFilePath(file, workspace.currentCwd)
+    let path = candidate
+    if (candidate && !workspace.folderForPath(candidate)) {
+      // Windows short paths and other filesystem aliases may name a file in this workspace.
+      const sessions = useSessionStore()
+      const sessionId = sessions.currentId
+      path = await callApi(() => getApi().files.resolve(candidate)).catch(() => null)
+      if (sessions.currentId !== sessionId) return
+    }
     const title = path?.split(/[\\/]/).pop()
     const requestedLine = Number(target.get('line'))
-    const line = Number.isSafeInteger(requestedLine) && requestedLine > 0 ? requestedLine : undefined
+    const line =
+      Number.isSafeInteger(requestedLine) && requestedLine > 0 ? requestedLine : undefined
     if (!path || !title || !workspace.openFileTab(path, title, line)) {
       toast.error(t('workspace.fileLoadFailed'), { description: file })
     } else emit('file-opened')

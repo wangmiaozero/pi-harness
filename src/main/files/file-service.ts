@@ -48,10 +48,19 @@ export class FileService {
     })
   }
 
-  async readPreview(filePath: string): Promise<FilePreview> {
+  private async inspectFile(filePath: string) {
     const realPath = await this.access.assertAllowed(filePath, { mustExist: true })
     const st = await stat(realPath)
     if (!st.isFile()) throw new FileSystemError('Not a file', { filePath })
+    return { realPath, st }
+  }
+
+  async resolveFile(filePath: string): Promise<string> {
+    return (await this.inspectFile(filePath)).realPath
+  }
+
+  async readPreview(filePath: string): Promise<FilePreview> {
+    const { realPath, st } = await this.inspectFile(filePath)
     const name = path.basename(realPath)
     const imageMime = getImageMime(realPath)
     const audioMime = getAudioMime(realPath)

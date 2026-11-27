@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import type { FileAccessService } from './file-access-service'
+import { FileAccessService } from './file-access-service'
 import { FileService } from './file-service'
 import { TEXT_PREVIEW_MAX_BYTES } from '@shared/workspace/file-types'
 
@@ -21,6 +21,31 @@ describe('FileService', () => {
 
   afterEach(async () => {
     await rm(directory, { recursive: true, force: true })
+  })
+
+  it('canonicalizes file aliases within allowed roots and rejects escapes', async () => {
+    const project = path.join(directory, 'project')
+    const outside = path.join(directory, 'outside')
+    await Promise.all([mkdir(project), mkdir(outside)])
+    const file = path.join(project, 'file.txt')
+    const outsideFile = path.join(outside, 'file.txt')
+    await Promise.all([writeFile(file, 'content'), writeFile(outsideFile, 'outside')])
+    const alias = path.join(directory, 'alias')
+    const escape = path.join(project, 'escape')
+    const linkType = process.platform === 'win32' ? 'junction' : 'dir'
+    await symlink(project, alias, linkType)
+    await symlink(outside, escape, linkType)
+
+    const access = new FileAccessService()
+    access.allowRoot(project)
+    const files = new FileService(access)
+    await expect(files.resolveFile(path.join(alias, 'file.txt'))).resolves.toBe(
+      await realpath(file)
+    )
+    await expect(files.resolveFile(path.join(escape, 'file.txt'))).rejects.toMatchObject({
+      code: 'PATH_DENIED'
+    })
+    await expect(files.resolveFile(project)).rejects.toThrow('Not a file')
   })
 
   it('lists hidden files, dependency directories, and generated content', async () => {

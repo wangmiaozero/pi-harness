@@ -36,6 +36,7 @@ import {
   workspaceBindSessionSchema,
   workspaceOpenFileSchema,
   workspaceOpenTerminalSchema,
+  workspacePathSchema,
   workspaceRelocateFolderSchema,
   workspaceSaveSchema,
   workspaceSearchSchema,
@@ -470,6 +471,14 @@ export function registerWorkspaceIpc(
       if (!parsed.success)
         throw new ValidationError('Invalid directory', { issues: parsed.error.issues })
       return files.list(parsed.data.directory)
+    })
+  )
+  ipcMain.handle(IPC_INVOKE.filesResolve, (_e, input: unknown) =>
+    wrap(async () => {
+      const parsed = workspacePathSchema.safeParse(input)
+      if (!parsed.success)
+        throw new ValidationError('Invalid path', { issues: parsed.error.issues })
+      return files.resolveFile(parsed.data)
     })
   )
   ipcMain.handle(IPC_INVOKE.filesRead, (_e, input: unknown) =>

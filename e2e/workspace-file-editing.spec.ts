@@ -13,19 +13,28 @@ test('opens files from chat links and confirms before leaving the app', async ({
   page,
   electronApp,
   workspaceRoot,
-  piAgentDir
+  piAgentDir,
+  testUserData
 }) => {
   const sessionId = '01a026a4-0796-73ff-990a-a2be21983541'
   const filePath = path.join(workspaceRoot, 'migrations', '002 support.sql')
   const website = 'https://example.invalid/docs?tab=migrations'
   fs.mkdirSync(path.dirname(filePath))
   fs.writeFileSync(filePath, '-- Schema migration\nSELECT 2;\nSELECT 3;\n')
+  const alias = path.join(testUserData, 'workspace-alias')
+  fs.symlinkSync(workspaceRoot, alias, process.platform === 'win32' ? 'junction' : 'dir')
+  const aliasUrl = pathToFileURL(path.join(alias, 'migrations', '002 support.sql')).href
   seedWorkspaceSession(
     piAgentDir,
     workspaceRoot,
     sessionId,
     'Show the migration',
-    `[V002 迁移](migrations/002%20support.sql:2) · [Absolute file](${pathToFileURL(filePath).href}#L3) · [Website](${website})`
+    [
+      '[V002 迁移](migrations/002%20support.sql:2)',
+      `[Absolute file](${pathToFileURL(filePath).href}#L3)`,
+      `[Aliased file](${aliasUrl}#L2)`,
+      `[Website](${website})`
+    ].join(' · ')
   )
   await electronApp.evaluate(({ shell }) => {
     const opened: string[] = []
@@ -67,6 +76,10 @@ test('opens files from chat links and confirms before leaving the app', async ({
   await page.getByTestId('workspace-files-mode-tree').click()
   await page.getByRole('link', { name: 'Absolute file' }).click()
   await expect(editor.locator('.cm-line.cm-activeLine')).toHaveText('SELECT 3;')
+
+  await page.getByTestId('workspace-files-mode-tree').click()
+  await page.getByRole('link', { name: 'Aliased file' }).click()
+  await expect(editor.locator('.cm-line.cm-activeLine')).toHaveText('SELECT 2;')
 
   const link = page.getByRole('link', { name: 'Website' })
   const openedUrls = () => electronApp.evaluate(() => Reflect.get(globalThis, 'openedChatLinks'))

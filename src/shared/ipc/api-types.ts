@@ -1479,6 +1479,7 @@ export interface PiSwitchAPI {
   }
   files: {
     list(directory: string): Promise<FileTreeEntry[]>
+    resolve(path: string): Promise<string>
     read(path: string): Promise<FilePreview>
     write(
       path: string,

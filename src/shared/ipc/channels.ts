@@ -385,6 +385,7 @@ export const IPC_INVOKE = {
   orchestrationListHandoffs: invoke('orchestration:list-handoffs'),
 
   filesList: invoke('files:list'),
+  filesResolve: invoke('files:resolve'),
   filesRead: invoke('files:read'),
   filesWrite: invoke('files:write'),
   filesUpload: invoke('files:upload'),

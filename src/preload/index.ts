@@ -551,6 +551,7 @@ const api: PiSwitchAPI = {
   },
   files: {
     list: (directory) => invoke(IPC_INVOKE.filesList, directory),
+    resolve: (path) => invoke(IPC_INVOKE.filesResolve, path),
     read: (path) => invoke(IPC_INVOKE.filesRead, path),
     write: (path, text, expectedRevision, overwrite) =>
       invoke(IPC_INVOKE.filesWrite, { path, text, expectedRevision, overwrite }),
