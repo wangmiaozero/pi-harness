@@ -1,5 +1,6 @@
-import { getRuntimeProvider } from '../runtime/active'
-import type { RuntimeKind, RuntimeDiagnostics } from '@shared/runtime/schema'
+import { getRuntimeProvider, type RuntimeProvider } from '../runtime/active'
+import { catalog } from '../runtime/distribution.mjs'
+import type { PiMaintenanceTarget, RuntimeKind, RuntimeDiagnostics } from '@shared/runtime/schema'
 import { randomUUID } from 'node:crypto'
 import type {
   AppSettings,
@@ -7,7 +8,8 @@ import type {
   EnvironmentInstallTask,
   EnvironmentInstallTaskType,
   PiEnvironment,
-  PiInstallResult
+  PiInstallResult,
+  PiTerminalInstallation
 } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
 import { piEnvironment } from '../pi/environment'
@@ -62,6 +64,11 @@ export class EnvironmentManager {
     return this.dependencies.detectEnvironment(this.settingsStore.peek())
   }
 
+  async getTerminalPi(): Promise<PiTerminalInstallation | null> {
+    const bundled = await getRuntimeProvider()?.resolve('pi', { source: 'bundled' })
+    return this.dependencies.piInstaller.getTerminalInstallation(bundled?.executablePath ?? null)
+  }
+
   async checkLatest() {
     const provider = getRuntimeProvider()
     if (provider) {
@@ -92,17 +99,7 @@ export class EnvironmentManager {
       )
       diagnostics =
         operation === 'update'
-          ? await provider.update(kind, signal, (phase, progress) => {
-              const descriptions: Record<string, string> = {
-                'verifying-source': 'Verifying the download source',
-                'acquiring-runtime': 'Downloading or reading the verified runtime cache',
-                'extracting-runtime': 'Extracting runtime files',
-                'verifying-runtime': 'Verifying runtime integrity'
-              }
-              const message = descriptions[phase] ?? 'Preparing runtime'
-              this.update(phase, progress, message)
-              this.appendLog(message)
-            })
+          ? await this.updateManagedRuntime(provider, kind, signal)
           : await provider.rollback(kind)
       this.update('verified-runtime', 98, 'Runtime verification completed')
       return null
@@ -233,25 +230,16 @@ export class EnvironmentManager {
     return task.result
   }
 
-  reinstallPi(): Promise<PiInstallResult> {
-    return this.bootstrap(true)
+  reinstallPi(target: PiMaintenanceTarget = 'bundled'): Promise<PiInstallResult> {
+    const provider = getRuntimeProvider()
+    if (target === 'terminal') return this.maintainTerminalPi('install', true)
+    return provider ? this.maintainBundledPi(provider, 'install') : this.bootstrap(true)
   }
 
-  async updatePi(force = false): Promise<PiInstallResult> {
+  async updatePi(force = false, target: PiMaintenanceTarget = 'bundled'): Promise<PiInstallResult> {
     const provider = getRuntimeProvider()
-    if (provider) {
-      const previous = await provider.resolve('pi')
-      const current = await this.maintainRuntime('pi', 'update')
-      return {
-        ok: current.pi.valid,
-        action: 'update',
-        previousVersion: previous.version,
-        currentVersion: current.pi.version,
-        latestVersion: current.pi.version,
-        message: 'Pi is ready',
-        log: 'Managed runtime verified'
-      }
-    }
+    if (target === 'terminal') return this.maintainTerminalPi('update', force)
+    if (provider) return this.maintainBundledPi(provider, 'update')
     if (this.active) {
       const existing = await this.active
       if (existing.result) return existing.result
@@ -269,6 +257,100 @@ export class EnvironmentManager {
     })
     if (!task.result) throw new ValidationError('Pi update finished without a result')
     return task.result
+  }
+
+  private async maintainBundledPi(
+    provider: RuntimeProvider,
+    action: 'install' | 'update'
+  ): Promise<PiInstallResult> {
+    if (this.active) throw new ValidationError('Another environment operation is in progress')
+    const task = await this.runTask('pi', async (signal) => {
+      const previous = await provider.resolve('pi', { source: 'bundled' })
+      this.update('preparing-runtime', 10, 'Preparing Pi-Harness Pi')
+      const diagnostics = await this.updateManagedRuntime(provider, 'pi', signal, { bundled: true })
+      const current =
+        diagnostics.pi.source === 'bundled'
+          ? diagnostics.pi
+          : await provider.resolve('pi', { source: 'bundled' })
+      if (!current.valid) {
+        throw new EnvironmentError(
+          'PI_NOT_FOUND_AFTER_INSTALL',
+          current.diagnosticMessages.join('; ') || 'Pi-Harness could not verify its selected Pi'
+        )
+      }
+      const message = `Pi-Harness Pi ${current.version} is ready`
+      return {
+        ok: true,
+        action,
+        previousVersion: previous.version,
+        currentVersion: current.version,
+        latestVersion: current.version,
+        message,
+        log: message
+      }
+    })
+    if (!task.result) throw new ValidationError('Pi maintenance finished without a result')
+    return task.result
+  }
+
+  private async maintainTerminalPi(
+    action: 'install' | 'update',
+    force: boolean
+  ): Promise<PiInstallResult> {
+    if (this.active) throw new ValidationError('Another environment operation is in progress')
+    const task = await this.runTask('pi', async (signal) => {
+      const provider = getRuntimeProvider()
+      const bundled = await provider?.resolve('pi', { source: 'bundled' })
+      if (provider && (await provider.diagnostics()).activeSessions > 0) {
+        throw new ValidationError('Finish or stop active sessions before updating runtimes')
+      }
+      this.update('checking-terminal-pi', 10, 'Checking the Pi used in your terminal')
+      const terminal = await this.dependencies.piInstaller.maintainTerminal(
+        catalog.pi.version,
+        {
+          force,
+          signal,
+          onProgress: (progress) => this.mapPiUpdateProgress(progress),
+          onLog: (message, level) => this.appendLog(message, level)
+        },
+        bundled?.executablePath ?? null
+      )
+      if (!terminal) {
+        throw new EnvironmentError(
+          'PI_NOT_FOUND_AFTER_INSTALL',
+          'Pi is no longer available on the terminal PATH'
+        )
+      }
+      provider?.invalidate()
+      const message = `Terminal Pi ${terminal.currentVersion} verified`
+      return { ok: true, action, ...terminal, latestVersion: null, message, log: message }
+    })
+    if (!task.result) throw new ValidationError('Pi maintenance finished without a result')
+    return task.result
+  }
+
+  private updateManagedRuntime(
+    provider: RuntimeProvider,
+    kind: RuntimeKind,
+    signal: AbortSignal,
+    options?: { bundled: true }
+  ): Promise<RuntimeDiagnostics> {
+    return provider.update(
+      kind,
+      signal,
+      (phase, progress) => {
+        const descriptions: Record<string, string> = {
+          'verifying-source': 'Verifying the download source',
+          'acquiring-runtime': 'Downloading or reading the verified runtime cache',
+          'extracting-runtime': 'Extracting runtime files',
+          'verifying-runtime': 'Verifying runtime integrity'
+        }
+        const message = descriptions[phase] ?? 'Preparing runtime'
+        this.update(phase, progress, message)
+        this.appendLog(message)
+      },
+      options
+    )
   }
 
   async cancel(): Promise<EnvironmentInstallTask | null> {

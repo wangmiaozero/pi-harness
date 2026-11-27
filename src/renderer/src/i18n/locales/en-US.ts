@@ -145,14 +145,11 @@ export const enUS = {
     installLogs: 'Installation logs',
     cancelInstall: 'Cancel',
     reinstallPi: 'Reinstall Pi',
-    reinstallConfirm:
-      'Reinstall Pi Coding Agent with npm global install and verify `pi --version` afterward?',
+    choosePiTarget: 'Choose which Pi installation to maintain.',
+    bundledPi: 'Pi bundled with Pi-Harness',
+    terminalPi: 'Pi on this computer',
     copyCommand: 'Copy command',
     installCommandCopied: 'Install command copied',
-    updateConfirmTitle: 'Update Pi',
-    updateConfirm:
-      'Update Pi Coding Agent using its current installation source? This may take a minute.',
-    updateAction: 'Update',
     setupWarnNoModels: 'You have providers but no models. Go to Models and add one.',
     setupWarnActiveMissing:
       'The active model’s provider “{provider}” is not in models.json. Choose another active model, or rename the matching provider to “{provider}”.',

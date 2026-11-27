@@ -88,6 +88,7 @@ export const IPC_INVOKE = {
 
   // pi environment
   piDetect: invoke('pi:detect'),
+  piGetTerminalInstallation: invoke('pi:get-terminal-installation'),
   piGetVersion: invoke('pi:get-version'),
   piRunHelp: invoke('pi:run-help'),
   piCheckLatest: invoke('pi:check-latest'),

@@ -147,14 +147,11 @@ export const ruRU: MessageTree = {
     installLogs: 'Журнал установки',
     cancelInstall: 'Отмена',
     reinstallPi: 'Переустановить Pi',
-    reinstallConfirm:
-      'Переустановить Pi Coding Agent глобально через npm и затем проверить `pi --version`?',
+    choosePiTarget: 'Выберите, какую установку Pi обслужить.',
+    bundledPi: 'Pi в составе Pi-Harness',
+    terminalPi: 'Pi на этом компьютере',
     copyCommand: 'Копировать команду',
     installCommandCopied: 'Команда установки скопирована',
-    updateConfirmTitle: 'Обновить Pi',
-    updateConfirm:
-      'Обновить Pi Coding Agent с учётом текущего источника установки? Это может занять около минуты.',
-    updateAction: 'Обновить',
     setupWarnNoModels: 'Провайдеры есть, а моделей нет. Добавьте модель в разделе «Модели».',
     setupWarnActiveMissing:
       'Провайдер «{provider}» активной модели отсутствует в models.json. Выберите другую активную модель или переименуйте соответствующего провайдера в «{provider}».',

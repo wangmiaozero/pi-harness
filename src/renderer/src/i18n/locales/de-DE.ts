@@ -148,14 +148,11 @@ export const deDE: MessageTree = {
     installLogs: 'Installationsprotokolle',
     cancelInstall: 'Abbrechen',
     reinstallPi: 'Pi neu installieren',
-    reinstallConfirm:
-      'Pi Coding Agent per npm-Globalinstallation neu installieren und anschließend `pi --version` prüfen?',
+    choosePiTarget: 'Pi-Installation auswählen.',
+    bundledPi: 'In Pi-Harness integriertes Pi',
+    terminalPi: 'Pi auf diesem Computer',
     copyCommand: 'Befehl kopieren',
     installCommandCopied: 'Installationsbefehl kopiert',
-    updateConfirmTitle: 'Pi aktualisieren',
-    updateConfirm:
-      'Pi Coding Agent passend zur aktuellen Installationsquelle aktualisieren? Das kann eine Minute dauern.',
-    updateAction: 'Aktualisieren',
     setupWarnNoModels: 'Es gibt Anbieter, aber keine Modelle. Fügen Sie unter Modelle eines hinzu.',
     setupWarnActiveMissing:
       'Der Anbieter „{provider}“ des aktiven Modells steht nicht in models.json. Wählen Sie ein anderes aktives Modell oder benennen Sie den passenden Anbieter in „{provider}“ um.',

@@ -262,15 +262,16 @@ export class RuntimeManager {
   async update(
     kind: RuntimeKind,
     signal?: AbortSignal,
-    onProgress?: (phase: string, progress: number) => void
+    onProgress?: (phase: string, progress: number) => void,
+    options?: { bundled: true }
   ): Promise<RuntimeDiagnostics> {
     return this.exclusive(async () => {
       await this.initialize()
-      if (this.state!.configuration[kind].source !== 'bundled')
+      if (!options?.bundled && this.state!.configuration[kind].source !== 'bundled')
         throw new ValidationError('System and custom runtimes are managed by their owner')
       if (this.options.busy?.())
         throw new ValidationError('Finish or stop active sessions before updating runtimes')
-      const previousRuntime = await this.resolve(kind)
+      const previousRuntime = await this.resolve(kind, { source: 'bundled' })
       const id = `${catalog[kind].version}-${randomUUID()}`
       const destination = path.join(this.options.userRoot, kind, id)
       await acquireDistribution({

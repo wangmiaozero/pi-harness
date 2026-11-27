@@ -1,8 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppSettings, PiEnvironment, PiInstallResult } from '@shared/ipc/api-types'
 import type { JsonStore } from '../services/storage'
 import { EnvironmentError } from '../services/errors'
 import { isNodeVersionSupported } from '../pi/node-environment'
+import { setRuntimeProvider, type RuntimeProvider } from '../runtime/active'
+import { catalog } from '../runtime/distribution.mjs'
+import type { ResolvedRuntime } from '@shared/runtime/schema'
 
 const piProcessMock = vi.hoisted(() => ({ invalidateCache: vi.fn() }))
 vi.mock('../process/pi-process', () => ({ piProcess: piProcessMock }))
@@ -28,6 +31,91 @@ const updateResult: PiInstallResult = {
 
 describe('EnvironmentManager', () => {
   beforeEach(() => vi.clearAllMocks())
+  afterEach(() => setRuntimeProvider(null))
+
+  it.each(['update', 'reinstall'] as const)(
+    'limits %s to the selected terminal installation',
+    async (action) => {
+      const { provider, runtime } = useBundledPi()
+      const fixture = managerFixture({ nodeVersion: 'v24.22.1', piReady: true })
+      fixture.piInstaller.maintainTerminal.mockResolvedValue({
+        previousVersion: '0.8.0',
+        currentVersion: runtime.version
+      })
+
+      const result =
+        action === 'update'
+          ? fixture.manager.updatePi(false, 'terminal')
+          : fixture.manager.reinstallPi('terminal')
+      await expect(result).resolves.toMatchObject({
+        previousVersion: '0.8.0',
+        currentVersion: runtime.version,
+        ok: true
+      })
+      expect(provider.update).not.toHaveBeenCalled()
+      expect(fixture.piInstaller.maintainTerminal).toHaveBeenCalledWith(
+        runtime.version,
+        expect.objectContaining({ force: action === 'reinstall' }),
+        runtime.executablePath
+      )
+      expect(fixture.manager.getTask()).toMatchObject({ state: 'success', progress: 100 })
+    }
+  )
+
+  it.each(['updatePi', 'reinstallPi'] as const)(
+    'only updates bundled Pi when %s has no explicit target',
+    async (action) => {
+      const { provider, runtime } = useBundledPi()
+      const fixture = managerFixture({ nodeVersion: 'v24.22.1', piReady: true })
+      await expect(fixture.manager[action]()).resolves.toMatchObject({
+        currentVersion: runtime.version,
+        ok: true
+      })
+      expect(provider.update).toHaveBeenCalledWith(
+        'pi',
+        expect.any(AbortSignal),
+        expect.any(Function),
+        { bundled: true }
+      )
+      expect(fixture.piInstaller.maintainTerminal).not.toHaveBeenCalled()
+    }
+  )
+
+  it('reports terminal verification failure without updating bundled Pi', async () => {
+    const { provider } = useBundledPi()
+    const fixture = managerFixture({ nodeVersion: 'v24.22.1', piReady: true })
+    fixture.piInstaller.maintainTerminal.mockRejectedValue(
+      new Error('Terminal still resolves Pi 0.8.0')
+    )
+
+    await expect(fixture.manager.updatePi(false, 'terminal')).rejects.toThrow(
+      'Terminal still resolves Pi 0.8.0'
+    )
+    expect(provider.update).not.toHaveBeenCalled()
+    expect(fixture.manager.getTask()).toMatchObject({ state: 'failed', result: null })
+  })
+
+  it('fails safely if the chosen terminal Pi disappears', async () => {
+    const { provider } = useBundledPi()
+    const fixture = managerFixture({ nodeVersion: 'v24.22.1', piReady: true })
+    fixture.piInstaller.maintainTerminal.mockResolvedValue(null)
+
+    await expect(fixture.manager.reinstallPi('terminal')).rejects.toMatchObject({
+      code: 'PI_NOT_FOUND_AFTER_INSTALL'
+    })
+    expect(provider.update).not.toHaveBeenCalled()
+  })
+
+  it('discovers terminal Pi independently of the bundled runtime', async () => {
+    const { provider, runtime } = useBundledPi()
+    const fixture = managerFixture({ nodeVersion: 'v24.22.1', piReady: true })
+    const terminal = { cliPath: '/terminal/pi', version: '0.8.0' }
+    fixture.piInstaller.getTerminalInstallation.mockResolvedValue(terminal)
+
+    await expect(fixture.manager.getTerminalPi()).resolves.toEqual(terminal)
+    expect(fixture.piInstaller.getTerminalInstallation).toHaveBeenCalledWith(runtime.executablePath)
+    expect(provider.update).not.toHaveBeenCalled()
+  })
 
   it('installs Node before Pi when Node is missing', async () => {
     const fixture = managerFixture({ nodeVersion: null, piReady: false })
@@ -179,6 +267,27 @@ describe('EnvironmentManager', () => {
   })
 })
 
+function useBundledPi() {
+  const runtime: ResolvedRuntime = {
+    source: 'bundled',
+    executablePath: '/bundled/pi',
+    version: catalog.pi.version,
+    platform: process.platform,
+    arch: process.arch,
+    valid: true,
+    integrity: 'verified',
+    diagnosticMessages: []
+  }
+  const provider = {
+    resolve: vi.fn().mockResolvedValue(runtime),
+    update: vi.fn().mockResolvedValue({ pi: runtime }),
+    diagnostics: vi.fn().mockResolvedValue({ activeSessions: 0 }),
+    invalidate: vi.fn()
+  }
+  setRuntimeProvider(provider as unknown as RuntimeProvider)
+  return { provider, runtime }
+}
+
 function managerFixture(options: { nodeVersion: string | null; piReady: boolean }) {
   let nodeVersion = options.nodeVersion
   let piReady = options.piReady
@@ -210,6 +319,8 @@ function managerFixture(options: { nodeVersion: string | null; piReady: boolean 
       piReady = true
       return installResult
     }),
+    getTerminalInstallation: vi.fn(),
+    maintainTerminal: vi.fn(),
     update: vi.fn(),
     checkLatest: vi.fn()
   }

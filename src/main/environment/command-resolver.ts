@@ -120,6 +120,7 @@ export interface ResolveExecutableOptions {
   additionalDirectories?: Array<{ path: string; source?: CommandResolutionSource } | string>
   versionArgs?: string[]
   loginShell?: boolean
+  pathOnly?: boolean
   env?: NodeJS.ProcessEnv
   cwd?: string
   requireVersion?: boolean
@@ -163,6 +164,8 @@ export async function resolveExecutable(
     }
   }
 
+  if (options.pathOnly) return missing(command)
+
   if (process.platform !== 'win32' && options.loginShell !== false) {
     const shellPath = await resolveFromLoginShell(command)
     if (shellPath) {
@@ -183,7 +186,7 @@ export async function resolveLoginShellPath(
   options: { probeNode?: boolean; cwd?: string; refreshWindowsPath?: boolean } = {}
 ): Promise<LoginShellEnvironment> {
   const isWindows = process.platform === 'win32'
-  if (isWindows && !options.probeNode) {
+  if (isWindows && !options.probeNode && !options.refreshWindowsPath) {
     return { shell: process.env.ComSpec ?? null, path: process.env.PATH ?? null }
   }
   const shells = isWindows ? ['pwsh.exe', 'powershell.exe'] : loginShellCandidates()
@@ -193,7 +196,7 @@ export async function resolveLoginShellPath(
       // Run node itself: command -v alone only identifies a manager's shim, and
       // misses shell functions/lazy activation. The script contains no user input.
       const script = isWindows
-        ? `${options.refreshWindowsPath ? windowsRegistryPathRefreshScript() : ''}Write-Output ("${LOGIN_SHELL_PATH_MARKER}" + $env:PATH); '${NODE_PROBE}' | node; exit 0`
+        ? `${options.refreshWindowsPath ? windowsRegistryPathRefreshScript(!options.probeNode) : ''}Write-Output ("${LOGIN_SHELL_PATH_MARKER}" + $env:PATH); ${options.probeNode ? `'${NODE_PROBE}' | node; ` : ''}exit 0`
         : `printf '\n${LOGIN_SHELL_PATH_MARKER}%s\n' "$PATH"${options.probeNode ? `; node -e '${NODE_PROBE}'; true` : ''}`
       const { stdout } = isWindows
         ? await execFileP(shell, ['-NoLogo', '-NonInteractive', '-Command', script], {
@@ -298,7 +301,7 @@ async function parseNodeProbe(
   return null
 }
 
-function windowsRegistryPathRefreshScript(): string {
+function windowsRegistryPathRefreshScript(terminal: boolean): string {
   // A running Electron process can retain the PATH from before Node was installed.
   // A new terminal receives the current user and machine PATH from the registry.
   return (
@@ -307,7 +310,9 @@ function windowsRegistryPathRefreshScript(): string {
       "$machinePath=[Environment]::GetEnvironmentVariable('Path','Machine')",
       'if($userPath){$userPath=[Environment]::ExpandEnvironmentVariables($userPath)}',
       'if($machinePath){$machinePath=[Environment]::ExpandEnvironmentVariables($machinePath)}',
-      "$env:PATH=(@($userPath,$machinePath,$env:PATH) | Where-Object { $_ }) -join ';'"
+      terminal
+        ? "$env:PATH=(@($machinePath,$userPath) | Where-Object { $_ }) -join ';'"
+        : "$env:PATH=(@($userPath,$machinePath,$env:PATH) | Where-Object { $_ }) -join ';'"
     ].join(';') + ';'
   )
 }

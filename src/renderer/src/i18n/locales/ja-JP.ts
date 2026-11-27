@@ -148,14 +148,11 @@ export const jaJP: MessageTree = {
     installLogs: 'インストールログ',
     cancelInstall: 'キャンセル',
     reinstallPi: 'Pi を再インストール',
-    reinstallConfirm:
-      'npm のグローバルインストールで Pi Coding Agent を再インストールし、完了後に `pi --version` を検証しますか？',
+    choosePiTarget: '対象の Pi を選択してください。',
+    bundledPi: 'Pi-Harness に同梱の Pi',
+    terminalPi: 'このコンピューターの Pi',
     copyCommand: 'コマンドをコピー',
     installCommandCopied: 'インストールコマンドをコピーしました',
-    updateConfirmTitle: 'Pi を更新',
-    updateConfirm:
-      '現在のインストール元に合わせて Pi Coding Agent を更新しますか？1 分ほどかかる場合があります。',
-    updateAction: '更新',
     setupWarnNoModels: 'プロバイダーはありますが、モデルがありません。「モデル」で追加してください。',
     setupWarnActiveMissing:
       '現在のモデルのプロバイダー「{provider}」が models.json にありません。別のモデルを現在のモデルに設定するか、該当するプロバイダーのキーを「{provider}」に変更してください。',

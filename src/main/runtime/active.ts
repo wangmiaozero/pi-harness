@@ -19,7 +19,8 @@ export interface RuntimeProvider {
   update(
     kind: RuntimeKind,
     signal?: AbortSignal,
-    onProgress?: (phase: string, progress: number) => void
+    onProgress?: (phase: string, progress: number) => void,
+    options?: { bundled: true }
   ): Promise<RuntimeDiagnostics>
   rollback(kind: RuntimeKind): Promise<RuntimeDiagnostics>
   checkUpdates(): Promise<RuntimeUpdateReport>

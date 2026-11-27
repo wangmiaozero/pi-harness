@@ -6,6 +6,7 @@ import type {
   PiInstallResult,
   PiLatestInfo
 } from '@shared/ipc/api-types'
+import type { PiMaintenanceTarget } from '@shared/runtime/schema'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { useSettingsStore } from './settings'
 
@@ -201,11 +202,11 @@ export const usePiStore = defineStore('pi', () => {
     }
   }
 
-  async function reinstall(): Promise<PiInstallResult> {
+  async function reinstall(target: PiMaintenanceTarget): Promise<PiInstallResult> {
     actionPending.value = true
     error.value = null
     try {
-      const result = await callApi(() => getApi().pi.reinstall())
+      const result = await callApi(() => getApi().pi.reinstall(target))
       lastActionLog.value = result.log
       await refresh()
       return result
@@ -222,14 +223,14 @@ export const usePiStore = defineStore('pi', () => {
     await detect()
   }
 
-  async function update(force = false): Promise<PiInstallResult> {
+  async function update(target: PiMaintenanceTarget): Promise<PiInstallResult> {
     if (!environment.value?.installed) {
       throw { message: 'Pi not installed' }
     }
     actionPending.value = true
     error.value = null
     try {
-      const result = await callApi(() => getApi().pi.update(force))
+      const result = await callApi(() => getApi().pi.update(false, target))
       lastActionLog.value = result.log
       await refresh()
       return result

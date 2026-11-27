@@ -1,10 +1,18 @@
 /** Pi Coding Agent install/update lifecycle. All commands use argument arrays and stream output. */
 
+import fs from 'node:fs/promises'
+import { homedir } from 'node:os'
 import path from 'node:path'
+import semver from 'semver'
 import { piProcess } from '../process/pi-process'
 import { log } from '../services/logger'
 import { AppError, EnvironmentError, PiCliError, ValidationError } from '../services/errors'
-import type { NodeRuntimeInfo, PiInstallResult, PiLatestInfo } from '@shared/ipc/api-types'
+import type {
+  NodeRuntimeInfo,
+  PiInstallResult,
+  PiLatestInfo,
+  PiTerminalInstallation
+} from '@shared/ipc/api-types'
 import { PI_INSTALL_ARGS, PI_INSTALL_COMMAND, PI_NPM_PACKAGE } from '@shared/constants/pi-install'
 import { detectNodeRuntime } from './node-environment'
 import { displayCommand, runCommand, type CommandRunOptions } from '../environment/command-runner'
@@ -14,6 +22,7 @@ import {
   type WritableNpmEnvironment
 } from '../environment/npm-environment'
 import { refreshRuntimePath } from '../environment/path-manager'
+import { resolveExecutable, resolveLoginShellPath } from '../environment/command-resolver'
 
 export { PI_NPM_PACKAGE } from '@shared/constants/pi-install'
 
@@ -35,6 +44,7 @@ interface PiInstallDependencies {
   runCommand: typeof runCommand
   ensurePrefix: typeof ensureWritableNpmPrefix
   refreshPath: typeof refreshRuntimePath
+  resolveTerminal: typeof resolveTerminalPi
 }
 
 function parseSemverHint(text: string): string | null {
@@ -51,6 +61,7 @@ export class PiInstallService {
       runCommand,
       ensurePrefix: ensureWritableNpmPrefix,
       refreshPath: refreshRuntimePath,
+      resolveTerminal: resolveTerminalPi,
       ...dependencies
     }
   }
@@ -162,33 +173,12 @@ export class PiInstallService {
       onStdout: (chunk) => options.onLog?.(chunk.trimEnd(), 'stdout'),
       onStderr: (chunk) => options.onLog?.(chunk.trimEnd(), 'stderr')
     }
-    progress('installing-pi', 35, 'Installing Pi Coding Agent with npm')
-    let result
-    let elapsedSeconds = 0
-    const heartbeat = setInterval(() => {
-      elapsedSeconds += 15
-      progress(
-        'installing-pi',
-        Math.min(78, 35 + Math.floor(elapsedSeconds / 5)),
-        `npm install is still running (${elapsedSeconds}s elapsed)`
-      )
-    }, 15_000)
-    try {
-      result = await this.dependencies.runCommand(
-        runtime.npmPath,
-        [...PI_INSTALL_ARGS],
-        commandOptions
-      )
-    } catch (error) {
-      if (options.signal?.aborted) {
-        throw new EnvironmentError('INSTALL_CANCELLED', 'Pi installation was cancelled')
-      }
-      throw normalizeNpmCommandError(error)
-    } finally {
-      clearInterval(heartbeat)
-    }
-    if (result.exitCode !== 0)
-      throw classifyNpmFailure(result.stderr, result.stdout, result.exitCode)
+    const result = await this.runNpmInstall(
+      runtime.npmPath,
+      [...PI_INSTALL_ARGS],
+      commandOptions,
+      progress
+    )
 
     progress('resolving-pi', 82, 'npm install completed; resolving the Pi executable')
     const pathDirectories = [
@@ -233,6 +223,128 @@ export class PiInstallService {
         .filter(Boolean)
         .join('\n')
         .slice(0, 8_000)
+    }
+  }
+
+  async getTerminalInstallation(
+    bundledPath: string | null
+  ): Promise<PiTerminalInstallation | null> {
+    const terminal = await this.resolveExternalTerminal(bundledPath)
+    return terminal ? { cliPath: terminal.cliPath, version: terminal.pi.version } : null
+  }
+
+  private async resolveExternalTerminal(bundledPath: string | null) {
+    const result = await this.dependencies.resolveTerminal()
+    const cliPath = result.pi.path
+    if (!cliPath) return null
+    const realPath = await fs.realpath(cliPath).catch(() => cliPath)
+    if (bundledPath && pathIdentity(realPath) === pathIdentity(bundledPath)) return null
+    return { ...result, cliPath, realPath }
+  }
+
+  async maintainTerminal(
+    version: string,
+    options: PiInstallOptions = {},
+    bundledPath: string | null = null
+  ): Promise<{ previousVersion: string | null; currentVersion: string } | null> {
+    options.signal?.throwIfAborted()
+    const before = await this.resolveExternalTerminal(bundledPath)
+    if (!before) return null
+    const { cliPath, realPath } = before
+    const previousVersion = semver.valid(parseSemverHint(before.pi.version ?? ''))
+    const targetVersion =
+      previousVersion && semver.gt(previousVersion, version) ? previousVersion : version
+    if (options.force || previousVersion !== targetVersion) {
+      options.onLog?.(`Updating terminal Pi at ${cliPath}`, 'info')
+      const npm = await terminalNpmInstall(cliPath, realPath)
+      if (npm) {
+        const runtime = await this.dependencies.detectRuntime()
+        if (!runtime.nodeSupported || !runtime.npmPath) {
+          throw new EnvironmentError(
+            'NPM_NOT_FOUND',
+            'A supported Node.js runtime and npm are required to update terminal Pi'
+          )
+        }
+        const args = [
+          ...PI_INSTALL_ARGS.slice(0, -1),
+          ...(npm.legacy ? ['--force'] : []),
+          `${PI_NPM_PACKAGE}@${targetVersion}`
+        ]
+        await this.runNpmInstall(
+          runtime.npmPath,
+          args,
+          {
+            cwd: homedir(),
+            timeoutMs: 10 * 60_000,
+            signal: options.signal,
+            env: npmEnvironment(runtime.nodePath, npm.prefix, before.env),
+            onStdout: (chunk) => options.onLog?.(chunk.trimEnd(), 'stdout'),
+            onStderr: (chunk) => options.onLog?.(chunk.trimEnd(), 'stderr')
+          },
+          (phase, progress, message) => options.onProgress?.({ phase, progress, message })
+        )
+      } else {
+        const result = await this.dependencies.runCommand(
+          cliPath,
+          options.force ? ['update', '--self', '--force'] : ['update', '--self'],
+          {
+            cwd: homedir(),
+            timeoutMs: 5 * 60_000,
+            signal: options.signal,
+            env: before.env,
+            onStdout: (chunk) => options.onLog?.(chunk.trimEnd(), 'stdout'),
+            onStderr: (chunk) => options.onLog?.(chunk.trimEnd(), 'stderr')
+          }
+        )
+        if (result.exitCode !== 0) {
+          throw new PiCliError(`Could not update terminal Pi at ${cliPath}`, {
+            exitCode: result.exitCode,
+            stderr: result.stderr.slice(0, 2000)
+          })
+        }
+      }
+    }
+    options.signal?.throwIfAborted()
+    const after = await this.resolveExternalTerminal(bundledPath)
+    const currentVersion = semver.valid(parseSemverHint(after?.pi.version ?? ''))
+    if (!currentVersion || semver.lt(currentVersion, targetVersion)) {
+      throw new EnvironmentError(
+        'PI_NOT_FOUND_AFTER_INSTALL',
+        `Terminal still resolves Pi ${currentVersion ?? '(unavailable)'} at ${after?.cliPath ?? cliPath}; expected ${targetVersion} or newer`
+      )
+    }
+    options.onLog?.(`Terminal Pi ${currentVersion} verified at ${after?.cliPath}`, 'info')
+    return { previousVersion, currentVersion }
+  }
+
+  private async runNpmInstall(
+    npmPath: string,
+    args: string[],
+    commandOptions: CommandRunOptions,
+    progress: (phase: string, value: number, message: string) => void
+  ) {
+    progress('installing-pi', 35, 'Installing Pi Coding Agent with npm')
+    let elapsedSeconds = 0
+    const heartbeat = setInterval(() => {
+      elapsedSeconds += 15
+      progress(
+        'installing-pi',
+        Math.min(78, 35 + Math.floor(elapsedSeconds / 5)),
+        `npm install is still running (${elapsedSeconds}s elapsed)`
+      )
+    }, 15_000)
+    try {
+      const result = await this.dependencies.runCommand(npmPath, args, commandOptions)
+      if (result.exitCode !== 0)
+        throw classifyNpmFailure(result.stderr, result.stdout, result.exitCode)
+      return result
+    } catch (error) {
+      if (commandOptions.signal?.aborted) {
+        throw new EnvironmentError('INSTALL_CANCELLED', 'Pi installation was cancelled')
+      }
+      throw normalizeNpmCommandError(error)
+    } finally {
+      clearInterval(heartbeat)
     }
   }
 
@@ -327,6 +439,47 @@ export class PiInstallService {
   }
 }
 
+async function resolveTerminalPi() {
+  const windows = process.platform === 'win32'
+  const login = await resolveLoginShellPath({ refreshWindowsPath: windows })
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    PATH: login.path ?? process.env.PATH ?? '',
+    NODE_OPTIONS: undefined,
+    ELECTRON_RUN_AS_NODE: undefined
+  }
+  const pi = await resolveExecutable('pi', { env, cwd: homedir(), pathOnly: true })
+  return { pi, env }
+}
+
+async function terminalNpmInstall(cliPath: string, realPath: string) {
+  const bin = path.dirname(cliPath)
+  const windows = process.platform === 'win32'
+  const prefix = windows ? bin : path.dirname(bin)
+  const legacyPackage = '@mariozechner/pi-coding-agent'
+  for (const name of [PI_NPM_PACKAGE, legacyPackage]) {
+    const root = windows
+      ? path.join(prefix, 'node_modules', name)
+      : path.join(prefix, 'lib', 'node_modules', name)
+    if (windows) {
+      if (!/\.(?:cmd|bat)$/i.test(cliPath)) return null
+      const stat = await fs.stat(cliPath).catch(() => null)
+      if (!stat?.isFile() || stat.size > 64 * 1024) return null
+      const shim = (await fs.readFile(cliPath, 'utf8')).replaceAll('\\', '/').toLowerCase()
+      if (
+        !shim.includes(`%dp0%/node_modules/${name}/`) &&
+        !shim.includes(`%~dp0/node_modules/${name}/`)
+      )
+        continue
+    } else {
+      const realRoot = await fs.realpath(root).catch(() => root)
+      if (!realPath.startsWith(realRoot + path.sep) || path.basename(bin) !== 'bin') continue
+    }
+    return { prefix, legacy: name === legacyPackage }
+  }
+  return null
+}
+
 /**
  * Environment for `pi update --self`. The Pi CLI resolves npm by name, so the
  * resolved Node/npm bin directories are prepended to PATH; inherited npm config
@@ -380,7 +533,7 @@ function selfUpdateRequiresPackageManager(stderr: string, stdout: string): boole
 function classifyNpmFailure(stderr: string, stdout: string, exitCode: number): EnvironmentError {
   const combined = `${stderr}\n${stdout}`
   const details = { exitCode, stderr: stderr.slice(0, 2500), stdout: stdout.slice(0, 1000) }
-  if (/EACCES|permission denied|operation not permitted/i.test(combined)) {
+  if (/EACCES|EPERM|permission denied|operation not permitted/i.test(combined)) {
     return new EnvironmentError(
       'NPM_PERMISSION_DENIED',
       'npm global installation was denied by filesystem permissions',

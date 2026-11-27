@@ -147,14 +147,11 @@ export const koKR: MessageTree = {
     installLogs: '설치 로그',
     cancelInstall: '취소',
     reinstallPi: 'Pi 다시 설치',
-    reinstallConfirm:
-      'npm 전역 설치로 Pi Coding Agent를 다시 설치하고 완료 후 `pi --version`을 확인할까요?',
+    choosePiTarget: '작업할 Pi 설치를 선택하세요.',
+    bundledPi: 'Pi-Harness 내장 Pi',
+    terminalPi: '이 컴퓨터의 Pi',
     copyCommand: '명령 복사',
     installCommandCopied: '설치 명령을 복사했습니다',
-    updateConfirmTitle: 'Pi 업데이트',
-    updateConfirm:
-      '현재 설치 소스에 맞게 Pi Coding Agent를 업데이트할까요? 1분 정도 걸릴 수 있습니다.',
-    updateAction: '업데이트',
     setupWarnNoModels: '제공자는 있지만 모델이 없습니다. 모델 페이지에서 모델을 추가하세요.',
     setupWarnActiveMissing:
       '현재 모델의 제공자 “{provider}”가 models.json에 없습니다. 다른 모델을 현재 모델로 설정하거나 해당 제공자의 키를 “{provider}”(으)로 변경하세요.',

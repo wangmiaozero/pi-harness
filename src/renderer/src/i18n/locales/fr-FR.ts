@@ -147,14 +147,11 @@ export const frFR: MessageTree = {
     installLogs: 'Journaux d\'installation',
     cancelInstall: 'Annuler',
     reinstallPi: 'Réinstaller Pi',
-    reinstallConfirm:
-      'Réinstaller Pi Coding Agent via npm en global, puis vérifier `pi --version` ?',
+    choosePiTarget: 'Choisissez l’installation de Pi à utiliser.',
+    bundledPi: 'Pi intégré à Pi-Harness',
+    terminalPi: 'Pi sur cet ordinateur',
     copyCommand: 'Copier la commande',
     installCommandCopied: 'Commande d\'installation copiée',
-    updateConfirmTitle: 'Mettre à jour Pi',
-    updateConfirm:
-      'Mettre Pi Coding Agent à jour selon sa source d’installation actuelle ? Cela peut prendre une minute.',
-    updateAction: 'Mettre à jour',
     setupWarnNoModels: 'Vous avez des fournisseurs mais aucun modèle. Ajoutez-en un dans Modèles.',
     setupWarnActiveMissing:
       'Le fournisseur « {provider} » du modèle actif n’est pas dans models.json. Choisissez un autre modèle actif ou renommez le fournisseur correspondant en « {provider} ».',

@@ -1,6 +1,7 @@
 import { openOverflowPage } from './navigation'
 import path from 'node:path'
 import fs from 'node:fs'
+import { IPC_INVOKE } from '../src/shared/ipc/channels'
 import { test, expect } from './fixtures'
 import { seedWorkspaceSession as seedSession, verifyFileEditing } from './workspace-fixtures'
 
@@ -22,6 +23,124 @@ test.describe('Pi-Harness smoke', () => {
     ).toBeVisible()
     await expect(page.getByTestId('navigation-settings')).toBeVisible()
     await expect(page.getByTestId('page-mascot-background')).toHaveCount(0)
+  })
+
+  test('Pi maintenance selects one installation and skips the chooser when only bundled Pi exists', async ({
+    page,
+    electronApp
+  }) => {
+    const environment = await page.evaluate(() => window.piSwitch.pi.detect())
+    await expect(
+      page.evaluate(() => window.piSwitch.pi.reinstall({ cliPath: '/tmp/pi' } as never))
+    ).rejects.toThrow('Invalid Pi installation')
+    await electronApp.evaluate(
+      ({ ipcMain }, { channels, environment }) => {
+        const state = Object.assign(globalThis, {
+          piMaintenanceFixture: { terminalInstalled: true, calls: [] as [string, unknown][] }
+        }).piMaintenanceFixture
+        for (const channel of Object.values(channels)) ipcMain.removeHandler(channel)
+        ipcMain.handle(channels.piDetect, () => ({
+          ok: true,
+          data: {
+            ...environment,
+            installed: true,
+            version: '1.6.0',
+            piStatus: 'ready',
+            state: 'ready'
+          }
+        }))
+        ipcMain.handle(channels.piGetTerminalInstallation, () => ({
+          ok: true,
+          data: state.terminalInstalled ? { cliPath: '/terminal/pi', version: '0.8.0' } : null
+        }))
+        function result(action: 'update' | 'install', target: unknown) {
+          state.calls.push([action, target])
+          return {
+            ok: true,
+            data: {
+              ok: true,
+              action,
+              previousVersion: '0.8.0',
+              currentVersion: '1.6.0',
+              latestVersion: null,
+              message: 'Pi verified',
+              log: ''
+            }
+          }
+        }
+        ipcMain.handle(channels.piUpdate, (_event, _force: unknown, target: unknown) =>
+          result('update', target)
+        )
+        ipcMain.handle(channels.piReinstall, (_event, target: unknown) => result('install', target))
+      },
+      {
+        channels: {
+          piDetect: IPC_INVOKE.piDetect,
+          piGetTerminalInstallation: IPC_INVOKE.piGetTerminalInstallation,
+          piUpdate: IPC_INVOKE.piUpdate,
+          piReinstall: IPC_INVOKE.piReinstall
+        },
+        environment
+      }
+    )
+    const getCalls = () =>
+      electronApp.evaluate(
+        () =>
+          (
+            globalThis as typeof globalThis & {
+              piMaintenanceFixture: { calls: [string, string][] }
+            }
+          ).piMaintenanceFixture.calls
+      )
+
+    await page.getByTestId('navigation-settings').click()
+    await page.getByTestId('settings-section-overview').click()
+    await page
+      .getByRole('button', { name: /^(刷新|Refresh)$/ })
+      .first()
+      .click()
+    const update = /^(更新 Pi|Update Pi)$/
+    const reinstall = /^(重新安装 Pi|Reinstall Pi)$/
+    const bundled = /Pi-Harness 内置的 Pi|Pi bundled with Pi-Harness/
+    const terminal = /电脑上的 Pi|Pi on this computer/
+    const updateDialog = page.getByRole('dialog', { name: update })
+    const reinstallDialog = page.getByRole('dialog', { name: reinstall })
+
+    await page.getByRole('button', { name: update }).click()
+    await updateDialog.getByRole('button', { name: /^(取消|Cancel)$/ }).click()
+    await expect(updateDialog).toBeHidden()
+    expect(await getCalls()).toEqual([])
+
+    await page.getByRole('button', { name: update }).click()
+    await expect(updateDialog.getByRole('button', { name: bundled })).toBeVisible()
+    await expect(updateDialog.getByText('/terminal/pi')).toBeVisible()
+    await updateDialog.getByRole('button', { name: terminal }).click()
+    await expect.poll(getCalls).toEqual([['update', 'terminal']])
+
+    await page.getByRole('button', { name: reinstall }).click()
+    await expect(reinstallDialog.getByRole('button', { name: terminal })).toBeVisible()
+    await reinstallDialog.getByRole('button', { name: bundled }).click()
+    await expect.poll(getCalls).toEqual([
+      ['update', 'terminal'],
+      ['install', 'bundled']
+    ])
+
+    await electronApp.evaluate(() => {
+      ;(
+        globalThis as typeof globalThis & { piMaintenanceFixture: { terminalInstalled: boolean } }
+      ).piMaintenanceFixture.terminalInstalled = false
+    })
+    await page.getByRole('button', { name: update }).click()
+    await expect.poll(getCalls).toHaveLength(3)
+    await expect(updateDialog).toBeHidden()
+    await page.getByRole('button', { name: reinstall }).click()
+    await expect.poll(getCalls).toEqual([
+      ['update', 'terminal'],
+      ['install', 'bundled'],
+      ['update', 'bundled'],
+      ['install', 'bundled']
+    ])
+    await expect(reinstallDialog).toBeHidden()
   })
 
   test('navigates every primary page with the default mascot hidden', async ({

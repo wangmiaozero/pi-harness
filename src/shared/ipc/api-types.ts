@@ -22,6 +22,7 @@ import type {
   UsageReport
 } from '../providers/account-management'
 import type {
+  PiMaintenanceTarget,
   RuntimeDiagnostics,
   RuntimeKind,
   RuntimeSelection,
@@ -215,6 +216,11 @@ export interface PiEnvironment {
   state: EnvironmentState
   piStatus: RuntimeStatus
   checks: EnvironmentCheckResult[]
+}
+
+export interface PiTerminalInstallation {
+  cliPath: string
+  version: string | null
 }
 
 export type EnvironmentCheckStatus = 'healthy' | 'warning' | 'error'
@@ -994,6 +1000,7 @@ export interface PiSwitchAPI {
   }
   pi: {
     detect(): Promise<PiEnvironment>
+    getTerminalInstallation(): Promise<PiTerminalInstallation | null>
     getVersion(): Promise<PiVersionInfo>
     runHelp(): Promise<string>
     checkLatest(): Promise<PiLatestInfo>
@@ -1002,11 +1009,10 @@ export interface PiSwitchAPI {
     /** Install/repair Node, npm, and Pi as one guarded task. */
     bootstrap(): Promise<PiInstallResult>
     installNode(): Promise<EnvironmentInstallTask>
-    reinstall(): Promise<PiInstallResult>
+    reinstall(target?: PiMaintenanceTarget): Promise<PiInstallResult>
     getInstallTask(): Promise<EnvironmentInstallTask | null>
     cancelInstall(): Promise<EnvironmentInstallTask | null>
-    /** Update installed Pi using its detected installation source. */
-    update(force?: boolean): Promise<PiInstallResult>
+    update(force?: boolean, target?: PiMaintenanceTarget): Promise<PiInstallResult>
     copyInstallCommand(): Promise<string>
     openNodeDownload(): Promise<void>
   }

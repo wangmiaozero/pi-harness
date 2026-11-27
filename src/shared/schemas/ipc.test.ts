@@ -13,8 +13,16 @@ import {
 } from './ipc'
 import { backupIdSchema } from './domain'
 import { MAX_ATTACHED_IMAGE_BASE64_LENGTH } from '../workspace/image-attachments'
+import { piMaintenanceTargetSchema } from '../runtime/schema'
 
 describe('IPC schemas', () => {
+  it('only accepts bundled or terminal Pi maintenance targets, defaulting to bundled', () => {
+    expect(piMaintenanceTargetSchema.parse(undefined)).toBe('bundled')
+    expect(piMaintenanceTargetSchema.parse('bundled')).toBe('bundled')
+    expect(piMaintenanceTargetSchema.parse('terminal')).toBe('terminal')
+    expect(piMaintenanceTargetSchema.safeParse({ cliPath: '/tmp/pi' }).success).toBe(false)
+    expect(piMaintenanceTargetSchema.safeParse('both').success).toBe(false)
+  })
   it('only allows http(s) and mailto external URLs', () => {
     expect(externalUrlSchema.safeParse('https://github.com/actions').success).toBe(true)
     expect(externalUrlSchema.safeParse('http://example.com/a?b=1').success).toBe(true)

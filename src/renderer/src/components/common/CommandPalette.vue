@@ -12,6 +12,7 @@ import {
 } from 'reka-ui'
 import { getApi } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
+import { choosePiMaintenanceTarget } from '@renderer/composables/usePiMaintenanceTarget'
 import { useModelsStore } from '@renderer/stores/models'
 import { usePiStore } from '@renderer/stores/pi'
 import { useSettingsStore } from '@renderer/stores/settings'
@@ -248,14 +249,9 @@ const commands = computed<PaletteCommand[]>(() => {
           toast.info(t('overview.installHint'))
           return
         }
-        const ok = await askConfirm({
-          title: t('overview.updateConfirmTitle'),
-          description: t('overview.updateConfirm'),
-          confirmLabel: t('overview.updateAction'),
-          tone: 'primary'
-        })
-        if (!ok) return
-        const result = await pi.update(false)
+        const target = await choosePiMaintenanceTarget('update')
+        if (!target) return
+        const result = await pi.update(target)
         toast.success(result.message)
       }
     },

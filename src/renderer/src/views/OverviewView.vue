@@ -27,6 +27,7 @@ import { useProvidersStore } from '@renderer/stores/providers'
 import { useModelsStore } from '@renderer/stores/models'
 import { callApi, getApi } from '@renderer/composables/useApi'
 import { askConfirm } from '@renderer/composables/useConfirmDialog'
+import { choosePiMaintenanceTarget, piMaintenancePending } from '@renderer/composables/usePiMaintenanceTarget'
 import { PI_INSTALL_COMMAND } from '@shared/constants/pi-install'
 import EnvironmentTaskProgress from '@renderer/components/environment/EnvironmentTaskProgress.vue'
 
@@ -187,15 +188,10 @@ async function copyInstallCommand() {
 
 async function updatePi() {
   if (!env.value?.installed) return
-  const ok = await askConfirm({
-    title: t('overview.updateConfirmTitle'),
-    description: t('overview.updateConfirm'),
-    confirmLabel: t('overview.updateAction'),
-    tone: 'primary'
-  })
-  if (!ok) return
   try {
-    const result = await piStore.update(false)
+    const target = await choosePiMaintenanceTarget('update')
+    if (!target) return
+    const result = await piStore.update(target)
     actionMessage.value = result.message
     if (
       result.previousVersion &&
@@ -212,15 +208,10 @@ async function updatePi() {
 }
 
 async function reinstallPi() {
-  const ok = await askConfirm({
-    title: t('overview.reinstallPi'),
-    description: t('overview.reinstallConfirm'),
-    confirmLabel: t('overview.reinstallPi'),
-    tone: 'primary'
-  })
-  if (!ok) return
   try {
-    const result = await piStore.reinstall()
+    const target = await choosePiMaintenanceTarget('reinstall')
+    if (!target) return
+    const result = await piStore.reinstall(target)
     actionMessage.value = result.message
     await refreshAll()
     toast.success(t('overview.installOk'), { description: result.message })
@@ -502,7 +493,7 @@ onMounted(() => {
             :variant="piStore.updateAvailable ? 'primary' : 'secondary'"
             size="sm"
             :loading="piStore.mutating"
-            :disabled="piStore.mutating"
+            :disabled="piStore.mutating || piMaintenancePending"
             @click="updatePi"
           >
             <ArrowUpCircle class="size-3.5" :stroke-width="1.75" />
@@ -512,7 +503,7 @@ onMounted(() => {
             v-if="env?.installed"
             variant="secondary"
             size="sm"
-            :disabled="piStore.mutating"
+            :disabled="piStore.mutating || piMaintenancePending"
             @click="reinstallPi"
           >
             <Download class="size-3.5" :stroke-width="1.75" />

@@ -40,7 +40,8 @@ export async function runCommand(
     }
     const isWindowsShim = process.platform === 'win32' && /\.(?:cmd|bat)$/i.test(executable)
     const file = isWindowsShim ? (process.env.ComSpec ?? 'cmd.exe') : executable
-    const fileArgs = isWindowsShim ? ['/d', '/s', '/c', executable, ...args] : args
+    // Match the version probe so cmd /s preserves a quoted shim path with spaces.
+    const fileArgs = isWindowsShim ? ['/d', '/s', '/c', '@', executable, ...args] : args
     const child = spawn(file, fileArgs, {
       cwd: options.cwd,
       env: {

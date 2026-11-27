@@ -19,8 +19,10 @@ export const runtimeSwitchSchema = z
   .object({ kind: runtimeKindSchema, selection: runtimeSelectionSchema })
   .strict()
 export const runtimeMaintenanceSchema = z.object({ kind: runtimeKindSchema }).strict()
+export const piMaintenanceTargetSchema = z.enum(['bundled', 'terminal']).default('bundled')
 
 export type RuntimeKind = z.infer<typeof runtimeKindSchema>
+export type PiMaintenanceTarget = z.infer<typeof piMaintenanceTargetSchema>
 export type RuntimeSelection = z.infer<typeof runtimeSelectionSchema>
 export type RuntimeSource = RuntimeSelection['source']
 export interface RuntimeVersionStatus {

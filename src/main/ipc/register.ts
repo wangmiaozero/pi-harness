@@ -7,7 +7,11 @@ import type { HarnessPluginHost } from '../harness/plugins/plugin-host'
 import { registerHarnessPluginsIpc } from './register-harness-plugins'
 import fs from 'node:fs/promises'
 import type { RuntimeManager } from '../runtime/runtime-manager'
-import { runtimeSwitchSchema, runtimeMaintenanceSchema } from '@shared/runtime/schema'
+import {
+  piMaintenanceTargetSchema,
+  runtimeSwitchSchema,
+  runtimeMaintenanceSchema
+} from '@shared/runtime/schema'
 /**
  * IPC handler registration — all channels validated; errors become AppErrorPayload.
  */
@@ -385,6 +389,12 @@ export function registerIpc(services: Services): void {
 
   // ---- pi ----
   ipcMain.handle(IPC_INVOKE.piDetect, () => wrap(() => environment.detect()))
+  ipcMain.handle(IPC_INVOKE.piGetTerminalInstallation, (_event, ...args: unknown[]) =>
+    wrap(() => {
+      parseInput(noArgsSchema, args, 'Invalid terminal installation request')
+      return environment.getTerminalPi()
+    })
+  )
   ipcMain.handle(IPC_INVOKE.piGetVersion, () =>
     wrap(async () => {
       const s = settingsStore.peek()
@@ -398,13 +408,16 @@ export function registerIpc(services: Services): void {
   ipcMain.handle(IPC_INVOKE.piInstall, () => wrap(() => environment.installPi()))
   ipcMain.handle(IPC_INVOKE.piBootstrap, () => wrap(() => environment.bootstrap()))
   ipcMain.handle(IPC_INVOKE.piInstallNode, () => wrap(() => environment.installNode()))
-  ipcMain.handle(IPC_INVOKE.piReinstall, () => wrap(() => environment.reinstallPi()))
+  ipcMain.handle(IPC_INVOKE.piReinstall, (_event, target: unknown) =>
+    wrap(() => environment.reinstallPi(parseInput(piMaintenanceTargetSchema, target, 'Invalid Pi installation')))
+  )
   ipcMain.handle(IPC_INVOKE.piGetInstallTask, () => wrap(async () => environment.getTask()))
   ipcMain.handle(IPC_INVOKE.piCancelInstall, () => wrap(() => environment.cancel()))
-  ipcMain.handle(IPC_INVOKE.piUpdate, (_e, force: unknown) =>
+  ipcMain.handle(IPC_INVOKE.piUpdate, (_e, force: unknown, target: unknown) =>
     wrap(() =>
       environment.updatePi(
-        parseInput(optionalBooleanSchema, force, 'Invalid update option') ?? false
+        parseInput(optionalBooleanSchema, force, 'Invalid update option') ?? false,
+        parseInput(piMaintenanceTargetSchema, target, 'Invalid Pi installation')
       )
     )
   )

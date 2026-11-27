@@ -8,6 +8,7 @@ import StartupAnimation from '@renderer/components/layout/StartupAnimation.vue'
 import CommandPalette from '@renderer/components/common/CommandPalette.vue'
 import ConflictDialog from '@renderer/components/common/ConflictDialog.vue'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.vue'
+import PiMaintenanceDialog from '@renderer/components/common/PiMaintenanceDialog.vue'
 import UpdateReminderDialog from '@renderer/components/common/UpdateReminderDialog.vue'
 import AgentAuraGlow from '@renderer/components/ui/AgentAuraGlow.vue'
 import { Toaster } from 'vue-sonner'
@@ -144,6 +145,7 @@ onBeforeUnmount(() => {
   <CommandPalette v-model:open="paletteOpen" />
   <ConflictDialog />
   <ConfirmDialog />
+  <PiMaintenanceDialog />
   <UpdateReminderDialog />
   <Toaster
     :theme="toasterTheme"
