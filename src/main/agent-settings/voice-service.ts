@@ -38,6 +38,7 @@ const DOUBAO_NOT_GRANTED =
   'The Seed-Realtime service is not enabled for this key. Enable 端到端实时音视频通话 (Seed-Realtime) in the Volcano speech console.'
 const GENERIC_REJECTION =
   'Voice provider rejected or ended the call. Check the account and model.'
+const INTERRUPTED = 'Voice connection interrupted.'
 
 let captureLease: { contents: WebContents; url: string; expires: number } | null = null
 export function canUseVoiceMicrophone(
@@ -109,6 +110,31 @@ const parseToolArguments = (raw: unknown): unknown => {
   } catch {
     return null
   }
+}
+// A refused upgrade carries the provider's HTTP status; DNS, timeout, TLS and refused-connection
+// failures carry none, so only a stated status is diagnosable.
+const handshakeStatus = (error: unknown): number | undefined => {
+  const status = (error as { statusCode?: unknown } | null)?.statusCode
+  return typeof status === 'number' ? status : undefined
+}
+// Doubao's two credential-facing refusals: 401/403 reject the key, any other 4xx means the
+// Seed-Realtime service is not enabled for this app id.
+const doubaoRefusal = (error: unknown): { message: string; code: string } | undefined => {
+  const status = handshakeStatus(error)
+  if (status === 401 || status === 403)
+    return { message: DOUBAO_KEY_REJECTED, code: voiceErrorCodes.keyRejected }
+  if (status !== undefined && status >= 400 && status < 500)
+    return { message: DOUBAO_NOT_GRANTED, code: voiceErrorCodes.serviceNotGranted }
+  return undefined
+}
+// A close frame the provider filled in itself names why it closed; a bare drop (abnormal or
+// statusless close) names nothing.
+const readCloseFrame = (code: unknown, reason: unknown): { stated: boolean; text: string } => {
+  const text =
+    typeof reason === 'string' ? reason : Buffer.isBuffer(reason) ? reason.toString() : ''
+  const policyClose =
+    typeof code === 'number' && (code === 1008 || (code >= 4000 && code <= 4999))
+  return { stated: policyClose || text.trim().length > 0, text }
 }
 type WorkReceipt =
   | { status: 'received'; operationId: string; execution: 'not_started' }
@@ -198,7 +224,6 @@ export class LiveVoiceService {
       throw new ConfigError('Voice call expired. Start a new call.')
     call.starting = true
     const isDoubao = call.settings.adapter === 'doubao-realtime'
-    let socketOpened = false
     try {
       const settings = call.settings
       const auth: { key: string | null; endpoint?: string; accountId?: string } | undefined =
@@ -292,7 +317,6 @@ export class LiveVoiceService {
         socket.terminate()
         return
       }
-      socketOpened = true
       call.socket = socket
       socket.on('message', (data, binary) => {
         if (this.call !== call) return
@@ -303,24 +327,32 @@ export class LiveVoiceService {
           this.fail(call, 'Invalid voice response.')
         }
       })
-      socket.on('close', () => {
+      socket.on('close', (code: unknown, reason: unknown) => {
         if (this.call !== call) return
         if (!isDoubao) return this.stop(id)
         if (call.closing) return this.finishClose(call)
-        // A Doubao transport that never reached session.created refused the handshake.
-        if (!call.ready)
-          return this.fail(call, DOUBAO_NOT_GRANTED, voiceErrorCodes.serviceNotGranted)
-        // A provider-initiated teardown of a live call is a clean end too.
-        this.finishClose(call)
+        const frame = readCloseFrame(code, reason)
+        // Before session.created the provider refuses the handshake: a close frame it filled in
+        // itself names the refusal, a bare transport drop is left to the setup rejection.
+        if (!call.ready) {
+          if (frame.stated)
+            this.fail(call, DOUBAO_NOT_GRANTED, voiceErrorCodes.serviceNotGranted)
+          return
+        }
+        // A provider close during a live call is a transport failure; the clean end belongs to
+        // the client-initiated close window only.
+        if (frame.text.includes(voiceErrorCodes.noInput))
+          return this.fail(call, DOUBAO_NO_INPUT, voiceErrorCodes.noInput)
+        this.fail(call, INTERRUPTED)
       })
       socket.on('error', () => {
         if (this.call !== call) return
         if (isDoubao) {
           if (call.closing) return this.finishClose(call)
-          if (!call.ready)
-            return this.fail(call, DOUBAO_NOT_GRANTED, voiceErrorCodes.serviceNotGranted)
+          // Before session.created the setup rejection reports the failure.
+          if (!call.ready) return
         }
-        this.fail(call, 'Voice connection interrupted.')
+        this.fail(call, INTERRUPTED)
       })
       // Install readiness listeners before sending setup; no socket-open success shortcut.
       const confirmed = new Promise<void>((resolve, reject) => {
@@ -352,14 +384,10 @@ export class LiveVoiceService {
       await confirmed
     } catch (e) {
       if (isDoubao && !call.ready) {
-        // Coded events carry the actionable, localizable guidance a thrown ConfigError would hide.
-        if (this.call === call)
-          this.fail(
-            call,
-            socketOpened ? DOUBAO_NOT_GRANTED : DOUBAO_KEY_REJECTED,
-            socketOpened ? voiceErrorCodes.serviceNotGranted : voiceErrorCodes.keyRejected
-          )
-        return
+        // The call is already over when the refusal came from the close frame.
+        if (this.call !== call) return
+        const refusal = doubaoRefusal(e)
+        if (refusal) return this.fail(call, refusal.message, refusal.code)
       }
       this.stop(id)
       throw e instanceof ConfigError
@@ -447,10 +475,10 @@ export class LiveVoiceService {
     )
       audio(m.delta)
     if (m.type === 'input_audio_buffer.speech_started' || m.serverContent?.interrupted)
-      this.interrupt(call)
+      this.serverBargeIn(call)
     // Doubao barge-in: the server itself cancels the turn; this client never sends response.cancel.
     if (m.type === 'response.canceled' && call.settings.adapter === 'doubao-realtime')
-      this.interrupt(call)
+      this.serverBargeIn(call)
     if (m.type === 'input_audio_buffer.speech_stopped')
       this.emit({ callId: call.id, kind: 'activity', userSpeaking: false })
     // Doubao ends a turn with either done event and returns to listening.
@@ -537,9 +565,9 @@ export class LiveVoiceService {
         this.candidate(call, fn.id, fn.name, fn.args)
     }
   }
-  // A barge-in marks the active response stale so its late audio and text are dropped, then
+  // Server barge-in marks the active response stale so its late audio and text are dropped, then
   // clears renderer playback and reports the user speaking over the assistant.
-  private interrupt(call: Call): void {
+  private serverBargeIn(call: Call): void {
     if (call.activeResponse) {
       call.interruptedResponses.add(call.activeResponse)
       if (call.interruptedResponses.size > 256)

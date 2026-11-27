@@ -3,6 +3,8 @@ const mocks = vi.hoisted(() => ({
   prepare: vi.fn(),
   get: vi.fn(),
   stop: vi.fn(async () => undefined),
+  start: vi.fn<(callId: string, offerSdp?: string) => Promise<void>>(),
+  mute: vi.fn<(callId: string, muted: boolean) => Promise<void>>(),
   onEvent: vi.fn(() => () => undefined)
 }))
 vi.mock('@renderer/composables/useApi', () => ({
@@ -95,5 +97,109 @@ describe('voice capture ownership', () => {
     expect(localized('DOUBAO_SERVICE_NOT_GRANTED')).toContain('端到端实时音视频通话')
     expect(localized('DOUBAO_KEY_REJECTED')).toContain('API Key')
     i18n.global.locale.value = 'en-US'
+  })
+  it('commits the protocol mute before the frames stop, and restores frames before unmuting', async () => {
+    vi.resetModules()
+    mocks.get.mockResolvedValue(settings)
+    mocks.prepare.mockResolvedValue('fixture-call')
+    mocks.start.mockResolvedValue(undefined)
+    const track = { enabled: true, stop: vi.fn() }
+    vi.stubGlobal('navigator', {
+      language: 'en-US',
+      mediaDevices: { getUserMedia: vi.fn(async () => ({ getTracks: () => [track], getAudioTracks: () => [track] })) }
+    })
+    class FakeAudioContext {
+      sampleRate = 24000
+      currentTime = 0
+      state = 'running'
+      destination = {}
+      resume = async () => undefined
+      close = async () => undefined
+      audioWorklet = { addModule: async () => undefined }
+      createMediaStreamSource = () => ({ connect: () => undefined, disconnect: () => undefined })
+      createBuffer = () => ({ getChannelData: () => new Float32Array(0) })
+      createBufferSource = () => ({
+        connect: () => undefined,
+        start: () => undefined,
+        stop: () => undefined
+      })
+    }
+    class FakeAudioWorkletNode {
+      port = { onmessage: null, postMessage: () => undefined }
+      connect = () => undefined
+      disconnect = () => undefined
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext)
+    vi.stubGlobal('AudioWorkletNode', FakeAudioWorkletNode)
+    const { useVoiceCall } = await import('./useVoiceCall')
+    const voice = useVoiceCall()
+    await voice.start('Microphone denied', { sessionId: 'bound' })
+    expect(voice.phase.value).toBe('listening')
+    let commitMute!: () => void
+    mocks.mute.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          commitMute = resolve
+        })
+    )
+    const muting = voice.toggleMute()
+    // Until the protocol mute is committed, the mic and uplink frames keep running.
+    expect(mocks.mute).toHaveBeenCalledWith('fixture-call', true)
+    expect(voice.muted.value).toBe(false)
+    expect(track.enabled).toBe(true)
+    commitMute()
+    await muting
+    expect(voice.muted.value).toBe(true)
+    expect(track.enabled).toBe(false)
+    // Unmuting is the reverse: frames resume first, the provider unmute follows.
+    const unmuting = voice.toggleMute()
+    expect(voice.muted.value).toBe(false)
+    expect(track.enabled).toBe(true)
+    await unmuting
+    expect(mocks.mute).toHaveBeenLastCalledWith('fixture-call', false)
+    voice.dispose()
+  })
+  it('keeps the frames flowing when the protocol mute fails', async () => {
+    vi.resetModules()
+    mocks.get.mockResolvedValue(settings)
+    mocks.prepare.mockResolvedValue('fixture-call')
+    mocks.start.mockResolvedValue(undefined)
+    const track = { enabled: true, stop: vi.fn() }
+    vi.stubGlobal('navigator', {
+      language: 'en-US',
+      mediaDevices: { getUserMedia: vi.fn(async () => ({ getTracks: () => [track], getAudioTracks: () => [track] })) }
+    })
+    class FakeAudioContext {
+      sampleRate = 24000
+      currentTime = 0
+      state = 'running'
+      destination = {}
+      resume = async () => undefined
+      close = async () => undefined
+      audioWorklet = { addModule: async () => undefined }
+      createMediaStreamSource = () => ({ connect: () => undefined, disconnect: () => undefined })
+      createBuffer = () => ({ getChannelData: () => new Float32Array(0) })
+      createBufferSource = () => ({
+        connect: () => undefined,
+        start: () => undefined,
+        stop: () => undefined
+      })
+    }
+    class FakeAudioWorkletNode {
+      port = { onmessage: null, postMessage: () => undefined }
+      connect = () => undefined
+      disconnect = () => undefined
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext)
+    vi.stubGlobal('AudioWorkletNode', FakeAudioWorkletNode)
+    const { useVoiceCall } = await import('./useVoiceCall')
+    const voice = useVoiceCall()
+    await voice.start('Microphone denied', { sessionId: 'bound' })
+    mocks.mute.mockRejectedValueOnce(new Error('bridge down'))
+    await voice.toggleMute()
+    expect(voice.muted.value).toBe(false)
+    expect(track.enabled).toBe(true)
+    expect(voice.error.value).toContain('Muting failed')
+    voice.dispose()
   })
 })

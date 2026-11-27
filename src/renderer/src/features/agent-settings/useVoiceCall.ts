@@ -289,16 +289,21 @@ function createVoiceCall() {
       await stop()
     }
   }
-  function toggleMute() {
+  async function toggleMute() {
     const next = !muted.value
     // Ordering is provider-verified: muting commits the protocol mute before the
     // uplink frames stop, and unmuting restores frames first, because stopping
-    // frames while unmuted tears the provider stream down.
+    // frames while unmuted tears the provider stream down. A failed protocol mute
+    // keeps the frames flowing so the provider never sees an unmuted frame-stop.
     if (next) {
-      if (callId)
-        void getApi()
-          .agentSettings.voice.mute(callId, true)
-          .catch(() => undefined)
+      if (callId) {
+        try {
+          await getApi().agentSettings.voice.mute(callId, true)
+        } catch {
+          error.value = 'Muting failed. The microphone stays open. Try again.'
+          return
+        }
+      }
       muted.value = true
     } else {
       muted.value = false

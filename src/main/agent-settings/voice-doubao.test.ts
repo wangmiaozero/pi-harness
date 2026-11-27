@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { EventEmitter } from 'node:events'
 import type { WebContents } from 'electron'
 import type { JsonStore } from '../services/storage'
@@ -22,11 +22,20 @@ const REJECTED_CALL = 'Voice provider rejected or ended the call. Check the acco
 const KEY_REJECTED = 'The voice key was rejected.'
 const NOT_GRANTED = 'Seed-Realtime'
 const NO_INPUT = 'microphone stream stopped while unmuted'
+const INTERRUPTED = 'Voice connection interrupted.'
+const GENERIC_START = 'Unable to start realtime voice. Check the account and voice settings.'
 
+type CallOptions = {
+  settings?: Partial<VoiceSettings>
+  secret?: string | null
+  // A provider that refuses the handshake closes the socket instead of sending session.created.
+  sessionCreated?: boolean
+  refusedClose?: { code: number; reason: string }
+  openRejection?: unknown
+  deliver?: Mock<(sessionId: string, instruction: string) => Promise<void>>
+}
 
-function createTalk(
-  options: { sessionCreated?: boolean; openFails?: boolean; secret?: string | null } = {}
-) {
+function createCall(options: CallOptions = {}) {
   const sent: Record<string, any>[] = []
   const terminated = vi.fn()
   const socket = Object.assign(new EventEmitter(), {
@@ -36,30 +45,37 @@ function createTalk(
       const message = JSON.parse(raw)
       sent.push(message)
       if (message.type !== 'session.create') return
-      if (options.sessionCreated === false) socket.emit('close')
-      else socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
+      if (options.sessionCreated !== false) {
+        socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
+        return
+      }
+      const refusal = options.refusedClose
+      if (refusal) socket.emit('close', refusal.code, Buffer.from(refusal.reason))
+      else socket.emit('close')
     },
     terminate() {
       terminated()
       socket.emit('close')
     }
   })
-  if (options.openFails) mocks.open.mockRejectedValue(new Error('Connection failed.'))
+  // Real ws flips readyState to CLOSED before listeners see the close; mirror that so the
+  // service's stop() knows the transport is already gone and skips the closing window.
+  socket.on('close', () => {
+    socket.readyState = 3
+  })
+  if (options.openRejection) mocks.open.mockRejectedValue(options.openRejection)
   else mocks.open.mockResolvedValue(socket)
   mocks.secret.mockResolvedValue(
     options.secret === undefined ? 'fixture-doubao-key' : options.secret
   )
   const events: VoiceEvent[] = []
+  const settings = { ...DOUBAO_SETTINGS, ...options.settings }
+  const deliver = options.deliver ?? vi.fn<(sessionId: string, instruction: string) => Promise<void>>()
   const service = new LiveVoiceService(
-    { read: async () => DOUBAO_SETTINGS } as JsonStore<VoiceSettings>,
+    { read: async () => settings } as JsonStore<VoiceSettings>,
     (event) => events.push(structuredClone(event)),
     'fixture',
-    {
-      hasCredential: vi.fn(),
-      resolve: vi.fn(),
-      context: async () => '',
-      deliver: vi.fn()
-    }
+    { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver }
   )
   const owner = Object.assign(new EventEmitter(), {
     getURL: () => 'file:///app/index.html',
@@ -72,6 +88,7 @@ function createTalk(
     socket,
     owner,
     terminated,
+    deliver,
     receive: (message: unknown) =>
       socket.emit('message', Buffer.from(JSON.stringify(message)), false)
   }
@@ -96,8 +113,8 @@ describe('Doubao voice transport', () => {
     vi.restoreAllMocks()
     vi.clearAllMocks()
   })
-  it('creates a session, relays 16 kHz microphone frames and fails on provider errors', async () => {
-    const talk = createTalk()
+  it('creates a provider session, relays 16 kHz microphone frames and fails on provider errors', async () => {
+    const talk = createCall()
     try {
       const id = await talk.service.prepare(talk.owner, { sessionId: 'known' })
       await talk.service.start(id)
@@ -145,7 +162,7 @@ describe('Doubao voice transport', () => {
   })
 
   it('closes the provider session once and ends cleanly on session.closed', async () => {
-    const talk = createTalk()
+    const talk = createCall()
     try {
       const id = await talk.service.prepare(talk.owner, { sessionId: 'known' })
       await talk.service.start(id)
@@ -168,7 +185,7 @@ describe('Doubao voice transport', () => {
   })
 
   it('ends cleanly when session.closed never arrives within the close window', async () => {
-    const talk = createTalk()
+    const talk = createCall()
     try {
       const id = await talk.service.prepare(talk.owner)
       await talk.service.start(id)
@@ -185,24 +202,65 @@ describe('Doubao voice transport', () => {
     }
   })
 
-  it('ends cleanly when the provider closes the socket without a hang-up', async () => {
-    const talk = createTalk()
+  it('ends without an error when the provider closes during the close window', async () => {
+    const talk = createCall()
     try {
       const id = await talk.service.prepare(talk.owner)
       await talk.service.start(id)
-      talk.socket.emit('close')
+      talk.service.stop(id)
+      expect(closes(talk.sent)).toHaveLength(1)
+      // The close lands inside the window stop() opened, so it is the hang-up succeeding.
+      talk.socket.emit('close', 1006, Buffer.alloc(0))
       expect(ends(talk.events, id)).toEqual([{ callId: id, kind: 'ended' }])
       expect(errors(talk.events, id)).toHaveLength(0)
+    } finally {
+      talk.service.dispose()
+    }
+  })
+
+  it('surfaces a provider close during a live call as an interruption and ends once', async () => {
+    const talk = createCall()
+    try {
+      const id = await talk.service.prepare(talk.owner)
+      await talk.service.start(id)
+      expect(errors(talk.events, id)).toHaveLength(0)
+      talk.socket.emit('close', 1006, Buffer.alloc(0))
+      expect(errors(talk.events, id)).toEqual([
+        { callId: id, kind: 'error', message: INTERRUPTED }
+      ])
+      expect(ends(talk.events, id)).toEqual([{ callId: id, kind: 'ended' }])
+      // A provider that already closed its session is never sent session.close.
       expect(closes(talk.sent)).toHaveLength(0)
       talk.socket.emit('close')
       expect(ends(talk.events, id)).toHaveLength(1)
+      expect(errors(talk.events, id)).toHaveLength(1)
+    } finally {
+      talk.service.dispose()
+    }
+  })
+
+  it('reports the no-input timeout when the provider close frame names it', async () => {
+    const talk = createCall()
+    try {
+      const id = await talk.service.prepare(talk.owner)
+      await talk.service.start(id)
+      talk.socket.emit('close', 1008, Buffer.from('{"status_code":45000003}'))
+      expect(errors(talk.events, id)).toEqual([
+        {
+          callId: id,
+          kind: 'error',
+          message: expect.stringContaining(NO_INPUT),
+          code: '45000003'
+        }
+      ])
+      expect(ends(talk.events, id)).toEqual([{ callId: id, kind: 'ended' }])
     } finally {
       talk.service.dispose()
     }
   })
 
   it('reports the no-input timeout with its provider error code', async () => {
-    const talk = createTalk()
+    const talk = createCall()
     try {
       const id = await talk.service.prepare(talk.owner)
       await talk.service.start(id)
@@ -221,7 +279,7 @@ describe('Doubao voice transport', () => {
   })
 
   it('reads the no-input error code from a flat provider payload', async () => {
-    const talk = createTalk()
+    const talk = createCall()
     try {
       const id = await talk.service.prepare(talk.owner)
       await talk.service.start(id)
@@ -235,8 +293,8 @@ describe('Doubao voice transport', () => {
     }
   })
 
-  it('surfaces a rejected handshake as the independent API key check', async () => {
-    const talk = createTalk({ openFails: true })
+  it('surfaces an unauthorized handshake as the independent API key check', async () => {
+    const talk = createCall({ openRejection: { statusCode: 401 } })
     try {
       const id = await talk.service.prepare(talk.owner)
       await talk.service.start(id)
@@ -255,8 +313,27 @@ describe('Doubao voice transport', () => {
     }
   })
 
-  it('surfaces a refused provider session as the Seed-Realtime enablement check', async () => {
-    const talk = createTalk({ sessionCreated: false })
+  it('surfaces a forbidden handshake as the independent API key check', async () => {
+    const talk = createCall({ openRejection: { statusCode: 403 } })
+    try {
+      const id = await talk.service.prepare(talk.owner)
+      await talk.service.start(id)
+      expect(errors(talk.events, id)).toEqual([
+        {
+          callId: id,
+          kind: 'error',
+          message: expect.stringContaining(KEY_REJECTED),
+          code: 'DOUBAO_KEY_REJECTED'
+        }
+      ])
+      expect(ends(talk.events, id)).toEqual([{ callId: id, kind: 'ended' }])
+    } finally {
+      talk.service.dispose()
+    }
+  })
+
+  it('surfaces a refused upgrade without credentials as the Seed-Realtime enablement check', async () => {
+    const talk = createCall({ openRejection: { statusCode: 404 } })
     try {
       const id = await talk.service.prepare(talk.owner)
       await talk.service.start(id)
@@ -270,8 +347,53 @@ describe('Doubao voice transport', () => {
     }
   })
 
+  it('keeps the generic start message when the handshake fails without a provider status', async () => {
+    const talk = createCall({ openRejection: new Error('Connection failed.') })
+    try {
+      const id = await talk.service.prepare(talk.owner)
+      await expect(talk.service.start(id)).rejects.toThrow(GENERIC_START)
+      // No status means no credential or service diagnosis: no coded error event.
+      expect(errors(talk.events, id)).toHaveLength(0)
+      expect(ends(talk.events, id)).toEqual([{ callId: id, kind: 'ended' }])
+    } finally {
+      talk.service.dispose()
+    }
+  })
+
+  it('surfaces a refused provider session as the Seed-Realtime enablement check', async () => {
+    const talk = createCall({
+      sessionCreated: false,
+      refusedClose: { code: 1008, reason: 'Seed-Realtime is not enabled for this app id' }
+    })
+    try {
+      const id = await talk.service.prepare(talk.owner)
+      await talk.service.start(id)
+      const error = errors(talk.events, id)
+      expect(error).toHaveLength(1)
+      expect(error[0]).toMatchObject({ code: 'DOUBAO_SERVICE_NOT_GRANTED' })
+      expect(JSON.stringify(error)).toContain(NOT_GRANTED)
+      expect(ends(talk.events, id)).toEqual([{ callId: id, kind: 'ended' }])
+    } finally {
+      talk.service.dispose()
+    }
+  })
+
+  it('keeps the generic start message when the socket drops before a provider reason', async () => {
+    const talk = createCall({ sessionCreated: false })
+    try {
+      const id = await talk.service.prepare(talk.owner)
+      await expect(talk.service.start(id)).rejects.toThrow(
+        'Voice connection ended during setup.'
+      )
+      expect(errors(talk.events, id)).toHaveLength(0)
+      expect(ends(talk.events, id)).toEqual([{ callId: id, kind: 'ended' }])
+    } finally {
+      talk.service.dispose()
+    }
+  })
+
   it('closes the provider session gracefully when the 30-minute cap expires', async () => {
-    const talk = createTalk()
+    const talk = createCall()
     try {
       const id = await talk.service.prepare(talk.owner)
       await talk.service.start(id)
@@ -284,45 +406,10 @@ describe('Doubao voice transport', () => {
       talk.service.dispose()
     }
   })
+
   it('barges in on server response.canceled and drops stale audio', async () => {
-    const sent: Record<string, any>[] = []
-    const socket = Object.assign(new EventEmitter(), {
-      readyState: 1,
-      bufferedAmount: 0,
-      send(raw: string) {
-        const m = JSON.parse(raw)
-        sent.push(m)
-        if (m.type === 'session.create')
-          queueMicrotask(() =>
-            socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
-          )
-      },
-      terminate() {
-        socket.emit('close')
-      }
-    })
-    mocks.open.mockResolvedValue(socket)
-    mocks.secret.mockResolvedValue('fixture-doubao-key')
-    const events: VoiceEvent[] = [],
-      settings = {
-        ...DEFAULT_VOICE,
-        enabled: true,
-        adapter: 'doubao-realtime' as const,
-        profile: undefined,
-        endpoint: 'https://openspeech.bytedance.com/api/v3',
-        model: '1.3.0.0',
-        voice: 'zh_female_vv_jupiter_bigtts'
-      }
-    const service = new LiveVoiceService(
-      { read: async () => settings } as JsonStore<typeof settings>,
-      (event) => events.push(structuredClone(event)),
-      'fixture',
-      { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver: vi.fn() }
-    )
-    const owner = Object.assign(new EventEmitter(), {
-      getURL: () => 'file:///app/index.html',
-      isDestroyed: () => false
-    }) as unknown as WebContents
+    const talk = createCall(),
+      { events, sent, socket, service, owner } = talk
     try {
       const id = await service.prepare(owner, { sessionId: 'known' })
       await service.start(id)
@@ -362,44 +449,8 @@ describe('Doubao voice transport', () => {
     }
   })
   it('transcribes both call sides and returns to listening when turns finish', async () => {
-    const sent: Record<string, any>[] = []
-    const socket = Object.assign(new EventEmitter(), {
-      readyState: 1,
-      bufferedAmount: 0,
-      send(raw: string) {
-        const m = JSON.parse(raw)
-        sent.push(m)
-        if (m.type === 'session.create')
-          queueMicrotask(() =>
-            socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
-          )
-      },
-      terminate() {
-        socket.emit('close')
-      }
-    })
-    mocks.open.mockResolvedValue(socket)
-    mocks.secret.mockResolvedValue('fixture-doubao-key')
-    const events: VoiceEvent[] = [],
-      settings = {
-        ...DEFAULT_VOICE,
-        enabled: true,
-        adapter: 'doubao-realtime' as const,
-        profile: undefined,
-        endpoint: 'https://openspeech.bytedance.com/api/v3',
-        model: '1.3.0.0',
-        voice: 'zh_female_vv_jupiter_bigtts'
-      }
-    const service = new LiveVoiceService(
-      { read: async () => settings } as JsonStore<typeof settings>,
-      (event) => events.push(structuredClone(event)),
-      'fixture',
-      { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver: vi.fn() }
-    )
-    const owner = Object.assign(new EventEmitter(), {
-      getURL: () => 'file:///app/index.html',
-      isDestroyed: () => false
-    }) as unknown as WebContents
+    const talk = createCall(),
+      { events, sent, socket, service, owner } = talk
     try {
       const id = await service.prepare(owner, { sessionId: 'known' })
       await service.start(id)
@@ -446,45 +497,8 @@ describe('Doubao voice transport', () => {
     }
   })
   it('aggregates parallel delegation receipts into one reply and keeps the model responding', async () => {
-    const sent: Record<string, any>[] = []
-    const socket = Object.assign(new EventEmitter(), {
-      readyState: 1,
-      bufferedAmount: 0,
-      send(raw: string) {
-        const m = JSON.parse(raw)
-        sent.push(m)
-        if (m.type === 'session.create')
-          queueMicrotask(() =>
-            socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
-          )
-      },
-      terminate() {
-        socket.emit('close')
-      }
-    })
-    mocks.open.mockResolvedValue(socket)
-    mocks.secret.mockResolvedValue('fixture-doubao-key')
-    const events: VoiceEvent[] = [],
-      deliver = vi.fn(),
-      settings = {
-        ...DEFAULT_VOICE,
-        enabled: true,
-        adapter: 'doubao-realtime' as const,
-        profile: undefined,
-        endpoint: 'https://openspeech.bytedance.com/api/v3',
-        model: '1.3.0.0',
-        voice: 'zh_female_vv_jupiter_bigtts'
-      }
-    const service = new LiveVoiceService(
-      { read: async () => settings } as JsonStore<typeof settings>,
-      (event) => events.push(structuredClone(event)),
-      'fixture',
-      { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver }
-    )
-    const owner = Object.assign(new EventEmitter(), {
-      getURL: () => 'file:///app/index.html',
-      isDestroyed: () => false
-    }) as unknown as WebContents
+    const talk = createCall(),
+      { events, sent, socket, service, owner, deliver } = talk
     try {
       const id = await service.prepare(owner, { sessionId: 'known' })
       await service.start(id)
@@ -568,45 +582,8 @@ describe('Doubao voice transport', () => {
     }
   })
   it('returns rejected receipts inside the aggregate and feeds review outcomes back as context', async () => {
-    const sent: Record<string, any>[] = []
-    const socket = Object.assign(new EventEmitter(), {
-      readyState: 1,
-      bufferedAmount: 0,
-      send(raw: string) {
-        const m = JSON.parse(raw)
-        sent.push(m)
-        if (m.type === 'session.create')
-          queueMicrotask(() =>
-            socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
-          )
-      },
-      terminate() {
-        socket.emit('close')
-      }
-    })
-    mocks.open.mockResolvedValue(socket)
-    mocks.secret.mockResolvedValue('fixture-doubao-key')
-    const events: VoiceEvent[] = [],
-      deliver = vi.fn(),
-      settings = {
-        ...DEFAULT_VOICE,
-        enabled: true,
-        adapter: 'doubao-realtime' as const,
-        profile: undefined,
-        endpoint: 'https://openspeech.bytedance.com/api/v3',
-        model: '1.3.0.0',
-        voice: 'zh_female_vv_jupiter_bigtts'
-      }
-    const service = new LiveVoiceService(
-      { read: async () => settings } as JsonStore<typeof settings>,
-      (event) => events.push(structuredClone(event)),
-      'fixture',
-      { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver }
-    )
-    const owner = Object.assign(new EventEmitter(), {
-      getURL: () => 'file:///app/index.html',
-      isDestroyed: () => false
-    }) as unknown as WebContents
+    const talk = createCall(),
+      { events, sent, socket, service, owner, deliver } = talk
     try {
       const id = await service.prepare(owner, { sessionId: 'known' })
       await service.start(id)
@@ -710,49 +687,9 @@ describe('Doubao voice transport', () => {
 
 describe('Doubao protocol mute', () => {
   beforeEach(() => vi.clearAllMocks())
-  function startDoubaoCall() {
-    const sent: Record<string, any>[] = []
-    const socket = Object.assign(new EventEmitter(), {
-      readyState: 1,
-      bufferedAmount: 0,
-      send(raw: string) {
-        const m = JSON.parse(raw)
-        sent.push(m)
-        if (m.type === 'session.create')
-          queueMicrotask(() =>
-            socket.emit('message', Buffer.from('{"type":"session.created"}'), false)
-          )
-      },
-      terminate() {
-        socket.emit('close')
-      }
-    })
-    mocks.open.mockResolvedValue(socket)
-    mocks.secret.mockResolvedValue('fixture-doubao-key')
-    const events: VoiceEvent[] = []
-    const settings = {
-      ...DEFAULT_VOICE,
-      enabled: true,
-      adapter: 'doubao-realtime' as const,
-      profile: undefined,
-      endpoint: 'https://openspeech.bytedance.com/api/v3',
-      model: '1.3.0.0',
-      voice: 'zh_female_vv_jupiter_bigtts'
-    }
-    const service = new LiveVoiceService(
-      { read: async () => settings } as JsonStore<typeof settings>,
-      (event) => events.push(structuredClone(event)),
-      'fixture',
-      { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver: vi.fn() }
-    )
-    const owner = Object.assign(new EventEmitter(), {
-      getURL: () => 'file:///app/index.html',
-      isDestroyed: () => false
-    }) as unknown as WebContents
-    return { events, sent, service, owner }
-  }
   it('commits protocol mute and unmute to the provider session', async () => {
-    const { events, sent, service, owner } = startDoubaoCall()
+    const talk = createCall(),
+      { events, sent, service, owner } = talk
     try {
       const id = await service.prepare(owner, { sessionId: 'known' })
       await service.start(id)
@@ -765,11 +702,12 @@ describe('Doubao protocol mute', () => {
       ])
       expect(JSON.stringify(sent)).not.toContain('fixture-doubao-key')
     } finally {
-      service.dispose()
+      talk.service.dispose()
     }
   })
   it('rejects mute for a wrong or expired call id', async () => {
-    const { sent, service, owner } = startDoubaoCall()
+    const talk = createCall(),
+      { sent, service, owner } = talk
     try {
       const id = await service.prepare(owner, { sessionId: 'known' })
       await service.start(id)
@@ -781,7 +719,7 @@ describe('Doubao protocol mute', () => {
       // The rejected mute sends nothing; only the graceful close follows the session.create.
       expect(sent.slice(1)).toEqual([{ type: 'session.close' }])
     } finally {
-      service.dispose()
+      talk.service.dispose()
     }
   })
 })
