@@ -61,7 +61,7 @@ test('shows independent runtimes in existing settings and rejects invalid select
   ).toBe('bundled')
 })
 
-test('preserves independent custom Node selection after the application restarts', async ({
+test('preserves runtime selections on refresh and restores the applied source after restart', async ({
   page,
   electronApp,
   testUserData,
@@ -73,12 +73,42 @@ test('preserves independent custom Node selection after the application restarts
   await electronApp.evaluate(({ dialog }, selectedPath) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [selectedPath] })
   }, nodePath)
-  const approved = await page.evaluate(() => window.piSwitch.runtimes.pick('node'))
-  expect(approved).toBe(nodePath)
-  await page.evaluate(
-    (customPath) => window.piSwitch.runtimes.switch('node', { source: 'custom', customPath }),
-    approved!
-  )
+  await page.locator('a[href="#/settings"]').click()
+  await page.getByTestId('settings-section-paths').click()
+  const settings = page.getByTestId('runtime-settings')
+  const pi = settings.getByTestId('runtime-pi')
+  const node = settings.getByTestId('runtime-node')
+  const piSource = pi.getByRole('button', { name: '来源', exact: true })
+  const nodeSource = node.getByRole('button', { name: '来源', exact: true })
+  const customPath = node.getByRole('textbox', { name: '可执行文件路径', exact: true })
+  const refresh = settings.getByRole('button', { name: '刷新', exact: true })
+
+  await piSource.click()
+  await page.getByRole('option', { name: '系统', exact: true }).click()
+  await nodeSource.click()
+  await page.getByRole('option', { name: '自定义', exact: true }).click()
+  await node.getByRole('button', { name: '选择文件', exact: true }).click()
+  await expect(customPath).toHaveValue(nodePath)
+
+  await refresh.click()
+  await expect(refresh).toBeEnabled()
+  await expect(piSource).toHaveText('系统')
+  await expect(nodeSource).toHaveText('自定义')
+  await expect(customPath).toHaveValue(nodePath)
+  expect(
+    await page.evaluate(() => window.piSwitch.runtimes.diagnostics().then((d) => d.configuration))
+  ).toEqual({
+    pi: { source: 'bundled' },
+    node: { source: 'bundled' }
+  })
+
+  await node.getByRole('button', { name: '验证并应用', exact: true }).click()
+  await expect(settings.getByRole('status')).toHaveText('已保存运行时选择。')
+  await expect(piSource).toHaveText('系统')
+  await refresh.click()
+  await expect(refresh).toBeEnabled()
+  await expect(nodeSource).toHaveText('自定义')
+  await expect(customPath).toHaveValue(nodePath)
   const stateFile = path.join(testUserData, 'runtime-configuration.json')
   expect(JSON.parse(fs.readFileSync(stateFile, 'utf8')).configuration.pi.source).toBe('bundled')
   const executablePath = await electronApp.evaluate(() => process.execPath)

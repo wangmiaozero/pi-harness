@@ -2,7 +2,12 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useApi } from '@renderer/composables/useApi'
-import type { RuntimeDiagnostics, RuntimeKind, RuntimeSelection } from '@shared/runtime/schema'
+import {
+  DEFAULT_RUNTIME_CONFIGURATION,
+  type RuntimeDiagnostics,
+  type RuntimeKind,
+  type RuntimeSelection
+} from '@shared/runtime/schema'
 import type { EnvironmentInstallTask } from '@shared/ipc/api-types'
 import Button from '@renderer/components/ui/Button.vue'
 import Select from '@renderer/components/ui/Select.vue'
@@ -12,27 +17,39 @@ import EnvironmentTaskProgress from '@renderer/components/environment/Environmen
 const { api } = useApi()
 const { t } = useI18n()
 const diagnostics = ref<RuntimeDiagnostics | null>(null)
-const selected = reactive<Record<RuntimeKind, RuntimeSelection>>({
-  pi: { source: 'bundled' },
-  node: { source: 'bundled' }
-})
+const drafts = reactive<Partial<Record<RuntimeKind, RuntimeSelection>>>({})
+const saved = computed(() => diagnostics.value?.configuration ?? DEFAULT_RUNTIME_CONFIGURATION)
+const selected = computed(() => ({ ...saved.value, ...drafts }))
 const busy = ref(false)
 const message = ref('')
 const error = ref('')
 const task = ref<EnvironmentInstallTask | null>(null)
 const kinds: RuntimeKind[] = ['pi', 'node']
+const sources = ['bundled', 'system', 'custom'] as const
 const version = (component: string) =>
   diagnostics.value?.versions?.components.find((entry) => entry.component === component)
 const options = computed(() =>
-  ['bundled', 'system', 'custom'].map((source) => ({
+  sources.map((source) => ({
     value: source,
     label: t(`runtime.${source}`)
   }))
 )
 let unsubscribe: (() => void) | undefined
-function sync(value: RuntimeDiagnostics): void {
-  diagnostics.value = value
-  for (const kind of kinds) selected[kind] = { ...value.configuration[kind] }
+function setSelection(kind: RuntimeKind, selection: RuntimeSelection): void {
+  const current = saved.value[kind]
+  if (
+    selection.source === current.source &&
+    (selection.source !== 'custom' || selection.customPath === current.customPath)
+  ) {
+    delete drafts[kind]
+  } else {
+    drafts[kind] = selection
+  }
+}
+
+function selectSource(kind: RuntimeKind, value: string): void {
+  const source = sources.find((item) => item === value)
+  if (source) setSelection(kind, { ...selected.value[kind], source })
 }
 async function run(action: () => Promise<void>): Promise<void> {
   busy.value = true
@@ -48,25 +65,32 @@ async function run(action: () => Promise<void>): Promise<void> {
   }
 }
 async function refresh(): Promise<void> {
-  await run(async () => sync(await api.runtimes.diagnostics()))
+  await run(async () => {
+    diagnostics.value = await api.runtimes.diagnostics()
+  })
 }
 async function apply(kind: RuntimeKind): Promise<void> {
   await run(async () => {
-    sync(await api.runtimes.switch(kind, selected[kind]))
+    const { source, customPath } = selected.value[kind]
+    const selection = source === 'custom' ? { source, customPath } : { source }
+    diagnostics.value = await api.runtimes.switch(kind, selection)
+    delete drafts[kind]
     message.value = t('runtime.saved')
   })
 }
 async function choose(kind: RuntimeKind): Promise<void> {
   await run(async () => {
     const file = await api.runtimes.pick(kind)
-    if (file) selected[kind].customPath = file
+    if (file) setSelection(kind, { source: 'custom', customPath: file })
   })
 }
 async function maintain(
   kind: RuntimeKind,
   operation: 'verify' | 'update' | 'rollback'
 ): Promise<void> {
-  await run(async () => sync(await api.runtimes[operation](kind)))
+  await run(async () => {
+    diagnostics.value = await api.runtimes[operation](kind)
+  })
 }
 async function check(): Promise<void> {
   await run(async () => {
@@ -119,13 +143,15 @@ onUnmounted(() => unsubscribe?.())
         >
       </div>
       <Select
-        v-model="selected[kind].source"
+        :model-value="selected[kind].source"
         :label="t('runtime.source')"
         :options="options"
+        :hint="drafts[kind] ? t('runtime.pendingSelection') : undefined"
         :disabled="busy"
+        @update:model-value="selectSource(kind, $event)"
       />
       <template v-if="selected[kind].source === 'custom'">
-        <Input v-model="selected[kind].customPath" :label="t('runtime.path')" mono readonly />
+        <Input :model-value="selected[kind].customPath" :label="t('runtime.path')" mono readonly />
         <Button size="sm" :disabled="busy" @click="choose(kind)">{{ t('runtime.browse') }}</Button>
         <p class="text-[11px] text-[var(--text-secondary)]">{{ t('runtime.customTrust') }}</p>
       </template>
