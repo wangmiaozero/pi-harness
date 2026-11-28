@@ -1,5 +1,6 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { once } from 'node:events'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -11,62 +12,58 @@ const binary = path.resolve(
 )
 
 describe('bundled native Pi desktop extension', () => {
+  let root: string | undefined
+
+  afterEach(async () => {
+    if (!root) return
+    await fs.rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
+    root = undefined
+  })
+
   it.skipIf(!existsSync(binary))(
-    'loads ChatGPT support from the standalone Pi binary',
+    'loads the desktop extension and rejects startup without an authenticated host',
     async () => {
-      const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-chatgpt-binary-'))
+      root = await fs.mkdtemp(path.join(os.tmpdir(), 'pi-chatgpt-binary-'))
       const child = spawn(
         binary,
         [
           '--mode',
           'rpc',
+          '--offline',
+          '--no-session',
+          '--no-extensions', // Pi still loads explicit extension paths.
+          '--no-skills',
+          '--no-context-files',
           '--extension',
-          path.resolve('resources/desktop-extension/index.mjs'),
-          '--session-id',
-          '11111111-1111-4111-8111-111111111111'
+          path.resolve('resources/desktop-extension/index.mjs')
         ],
         {
-          cwd: os.tmpdir(),
-          env: { ...process.env, PI_CODING_AGENT_DIR: root },
-          stdio: ['pipe', 'pipe', 'pipe']
+          cwd: root,
+          env: {
+            PATH: root,
+            HOME: root,
+            USERPROFILE: root,
+            TEMP: root,
+            TMP: root,
+            TMPDIR: root,
+            SystemRoot: process.env.SystemRoot,
+            PI_CODING_AGENT_DIR: root
+          },
+          // Keep RPC input open until Pi exits on its own with the extension diagnostic.
+          stdio: ['pipe', 'ignore', 'pipe'],
+          timeout: 15_000,
+          killSignal: 'SIGKILL'
         }
       )
-      child.stdin.end()
       let stderr = ''
-      child.stderr.on('data', (data: Buffer) => {
-        stderr += data.toString('utf8')
+      child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
+        stderr += chunk
       })
-      try {
-        const code = await new Promise<number | null>((resolve, reject) => {
-          const timer = setTimeout(() => {
-            child.kill()
-            reject(new Error(`Native Pi timeout: ${stderr}`))
-          }, 15_000)
-          child.once('error', (error) => {
-            clearTimeout(timer)
-            reject(error)
-          })
-          child.once('close', (exit) => {
-            clearTimeout(timer)
-            resolve(exit)
-          })
-        })
-        expect(stderr).toContain('Desktop extension requires an authenticated host')
-        expect(stderr).not.toContain('Cannot find module')
-        expect(code).toBe(1)
-      } finally {
-        if (child.exitCode === null) {
-          child.kill()
-          await new Promise<void>((resolve) => {
-            const timer = setTimeout(resolve, 1_000)
-            child.once('close', () => {
-              clearTimeout(timer)
-              resolve()
-            })
-          })
-        }
-        await fs.rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
-      }
+      const [code, signal] = await once(child, 'close')
+      expect(signal, stderr).toBeNull()
+      expect(code, stderr).toBe(1)
+      expect(stderr).toContain('Desktop extension requires an authenticated host')
+      expect(stderr).not.toContain('Cannot find module')
     },
     20_000
   )
