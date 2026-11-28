@@ -193,6 +193,7 @@ for (const [withImage, precreated] of [
       }
 
       await page.reload()
+      await expect(page.getByTestId('startup-animation')).toBeHidden()
       await expect(users).toHaveCount(1)
       if (withImage)
         await expect(users.locator('img')).toHaveAttribute('src', /^data:image\/png;base64,/)
@@ -220,6 +221,7 @@ for (const [withImage, precreated] of [
         await expect(editor).toBeFocused()
         await expect(queue).toBeHidden()
         await editor.pressSequentially(queuedText)
+        await expect(editor).toHaveText(queuedText)
         await editor.press('Enter')
         await expect(editor).toBeEmpty()
         await expect(queue).toContainText(queuedText)

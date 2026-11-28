@@ -129,6 +129,16 @@ function skip(): void {
 
 function onKey(event: KeyboardEvent): void {
   if (event.key !== 'Escape' && event.code !== 'Space') return
+  // During the iris reveal, the workspace can already receive clicks and focus.
+  const target = event.target
+  if (
+    revealStarted !== undefined &&
+    target instanceof Element &&
+    target !== document.body &&
+    target !== document.documentElement &&
+    !surface.value?.contains(target)
+  )
+    return
   event.preventDefault()
   event.stopImmediatePropagation()
   skip()

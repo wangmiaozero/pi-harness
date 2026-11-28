@@ -64,6 +64,31 @@ for (const input of ['click', 'Escape', 'Space'] as const) {
   })
 }
 
+test('lets focused workspace controls receive Escape and Space during the reveal', async ({
+  page
+}) => {
+  const keys = await page.waitForFunction(() => {
+    const reveal = document.querySelector(
+      '[data-testid="cinematic-flow-startup"][data-flow-stage="iris"]'
+    )
+    const workspace = document.querySelector<HTMLAnchorElement>('a[href="#/workspace"]')
+    if (!reveal || !workspace) return null
+    workspace.focus()
+    if (document.activeElement !== workspace) return null
+    return ['Escape', 'Space'].map((code) =>
+      workspace.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: code === 'Space' ? ' ' : code,
+          code,
+          bubbles: true,
+          cancelable: true
+        })
+      )
+    )
+  })
+  expect(await keys.jsonValue()).toEqual([true, true])
+})
+
 async function holdEnvironmentCheck(electronApp: ElectronApplication) {
   await electronApp.evaluate(({ ipcMain }, channel) => {
     const registry = ipcMain as unknown as {

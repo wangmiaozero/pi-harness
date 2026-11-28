@@ -107,6 +107,7 @@ test('permission menu controls execution and termination remains available durin
       await window.piSwitch.settings.set({ theme: 'dark' })
     })
     await page.reload()
+    await expect(page.getByTestId('startup-animation')).toBeHidden()
     await page.evaluate(async () => {
       await window.piSwitch.models.list()
       await window.piSwitch.models.setActive({ providerKey: 'fixture', modelId: 'fixture' })
@@ -319,6 +320,7 @@ test('permission menu controls execution and termination remains available durin
     expect(fs.readFileSync(externalFile, 'utf8')).toBe('Custom write fixture')
 
     await page.reload()
+    await expect(page.getByTestId('startup-animation')).toBeHidden()
     await expect(toolPreset).toHaveText('自定义')
     await toolPreset.click()
     await toolMenu.getByRole('option', { name: '自定义', exact: true }).click()
