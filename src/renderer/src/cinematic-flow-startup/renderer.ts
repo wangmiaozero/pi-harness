@@ -154,7 +154,9 @@ export function createFlowRenderer(canvas: HTMLCanvasElement) {
     }
 
     if (time >= T.unfold) {
+      const budget = performance.now() + 16
       for (let i = 0; i < (low ? coreFibers : fibers.length); i++) {
+        if (performance.now() > budget) break
         const { title, mark, letterX, lane, band, phase, reach, rate, orbit, span, power, color } =
           fibers[i]
         const core = i < coreFibers

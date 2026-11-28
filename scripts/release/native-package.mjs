@@ -67,10 +67,15 @@ async function command(name, args, env = {}) {
     child.once('close', (code) => resolve(code))
   })
   await log.close()
-  if (code !== 0)
+  if (code !== 0) {
+    const logPath = path.join(evidenceDirectory, `${name}.log`)
+    const text = await fs.readFile(logPath, 'utf8').catch(() => '')
+    const tail = text.trim().split(/\r?\n/).slice(-200).join('\n')
+    if (tail) process.stdout.write(`${tail}\n`)
     throw new Error(
       `${name} failed (${code}); see ${path.relative(root, evidenceDirectory)}/${name}.log`
     )
+  }
   process.stdout.write(`${name}: PASS\n`)
 }
 async function stageInstaller(directory, names, temporary) {

@@ -88,6 +88,7 @@ let startupDecided = false
 let holdFallback: ReturnType<typeof setTimeout> | null = null
 let flowTimer: ReturnType<typeof setTimeout> | undefined
 let dismissalTimer: ReturnType<typeof setTimeout> | undefined
+let coverDeadline: ReturnType<typeof setTimeout> | undefined
 let stars: Star[] = []
 let ambient: Star[] = []
 let width = 0
@@ -423,14 +424,23 @@ function clearFlowTimer(): void {
   window.removeEventListener('keydown', skipPendingFlow, true)
 }
 
-function finishFlow(): void {
+function dismissCover(): void {
   clearFlowTimer()
   clearTimeout(dismissalTimer)
   dismissalTimer = undefined
+  clearTimeout(coverDeadline)
+  coverDeadline = undefined
+  cancelAnimationFrame(frameId)
+  frameId = 0
   visible.value = false
   flowComponent.value = null
   setCinematicCover(false)
   delete document.documentElement.dataset.cinematicFlow
+  releaseStartupLock()
+}
+
+function finishFlow(): void {
+  dismissCover()
 }
 
 function fallbackFlow(timedOut = false): void {
@@ -561,6 +571,13 @@ watch(() => [settings.settings, settings.loading, settings.error] as const, cons
 
 onMounted(() => {
   if (!visible.value) return
+  // Packaged tests only wait 12s. Hold plus a later flow deadline can exceed that
+  // when a frame blocks the clock, so the default cover has one deadline from mount.
+  if (startupScheme !== 'flow') {
+    coverDeadline = setTimeout(() => {
+      if (visible.value) dismissCover()
+    }, 10_000)
+  }
   if (startupScheme === 'flow') {
     void beginFlow()
     return
@@ -584,6 +601,8 @@ onBeforeUnmount(() => {
   clearFlowTimer()
   clearTimeout(dismissalTimer)
   dismissalTimer = undefined
+  clearTimeout(coverDeadline)
+  coverDeadline = undefined
   if (mode.value === 'flow' || mode.value === 'flow-wait') {
     visible.value = false
     delete document.documentElement.dataset.cinematicFlow
