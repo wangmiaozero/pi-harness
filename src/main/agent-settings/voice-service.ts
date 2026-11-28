@@ -1,8 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import type { WebContents } from 'electron'
 import WebSocket from 'ws'
-import type { VoiceEvent, VoicePublicSettings, VoiceSettings } from '@shared/agent-settings/schema'
-import { voiceSettingsSchema } from '@shared/agent-settings/schema'
+import type {
+  VoiceEvent,
+  VoicePublicSettings,
+  VoiceSettings
+} from '@shared/agent-settings/schema'
+import { voiceErrorCodes, voiceSettingsSchema } from '@shared/agent-settings/schema'
 import { JsonStore } from '../services/storage'
 import { secretStore } from '../security/secret-store'
 import { ConfigError } from '../services/errors'
@@ -12,6 +16,7 @@ import {
   voiceSetup,
   voiceInput,
   voiceInstructions,
+  needs16kInput,
   workArguments
 } from './voice-protocol'
 import type { VoicePreparation, VoiceWorkOperation } from '@shared/agent-settings/schema'
@@ -23,6 +28,17 @@ export const DEFAULT_VOICE: VoiceSettings = {
   voice: 'marin',
   profile: 'realtime-ga'
 }
+
+// Doubao-only guidance: main-process messages stay English, the renderer localizes by code.
+const DOUBAO_NO_INPUT =
+  'The voice call ended because the microphone stream stopped while unmuted. Keep the microphone muted while you are away from the call.'
+const DOUBAO_KEY_REJECTED =
+  'The voice key was rejected. Check the independent Volcano speech-console API key in voice settings.'
+const DOUBAO_NOT_GRANTED =
+  'The Seed-Realtime service is not enabled for this key. Enable 端到端实时音视频通话 (Seed-Realtime) in the Volcano speech console.'
+const GENERIC_REJECTION =
+  'Voice provider rejected or ended the call. Check the account and model.'
+const INTERRUPTED = 'Voice connection interrupted.'
 
 let captureLease: { contents: WebContents; url: string; expires: number } | null = null
 export function canUseVoiceMicrophone(
@@ -78,12 +94,53 @@ type Call = {
   activeResponse?: string
   interruptedResponses: Set<string>
   interrupted: boolean
+  closing: boolean
+  closeTimer?: ReturnType<typeof setTimeout>
   geminiTranscript: { user: string; assistant: string }
   pcmCarry: { remainder: Buffer }
   requests: Set<string>
   operations: Map<string, VoiceWorkOperation>
   feedback: Map<string, string>
 }
+// Tool-call arguments arrive as a JSON string; oversized or malformed payloads parse to null.
+const parseToolArguments = (raw: unknown): unknown => {
+  if (typeof raw !== 'string' || raw.length > 10000) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+// A refused upgrade carries the provider's HTTP status; DNS, timeout, TLS and refused-connection
+// failures carry none, so only a stated status is diagnosable.
+const handshakeStatus = (error: unknown): number | undefined => {
+  const status = (error as { statusCode?: unknown } | null)?.statusCode
+  return typeof status === 'number' ? status : undefined
+}
+// Doubao's two credential-facing refusals: 401/403 reject the key, any other 4xx means the
+// Seed-Realtime service is not enabled for this app id.
+const doubaoRefusal = (error: unknown): { message: string; code: string } | undefined => {
+  const status = handshakeStatus(error)
+  if (status === 401 || status === 403)
+    return { message: DOUBAO_KEY_REJECTED, code: voiceErrorCodes.keyRejected }
+  if (status !== undefined && status >= 400 && status < 500)
+    return { message: DOUBAO_NOT_GRANTED, code: voiceErrorCodes.serviceNotGranted }
+  return undefined
+}
+// A close frame the provider filled in itself names why it closed; a bare drop (abnormal or
+// statusless close) names nothing.
+const readCloseFrame = (code: unknown, reason: unknown): { stated: boolean; text: string } => {
+  const text =
+    typeof reason === 'string' ? reason : Buffer.isBuffer(reason) ? reason.toString() : ''
+  const policyClose =
+    typeof code === 'number' && (code === 1008 || (code >= 4000 && code <= 4999))
+  return { stated: policyClose || text.trim().length > 0, text }
+}
+type WorkReceipt =
+  | { status: 'received'; operationId: string; execution: 'not_started' }
+  | { status: 'rejected'; code: 'NO_WORK_TARGET_OR_INVALID_REQUEST' }
+// A per-call receipt returned to the provider; Doubao aggregates these per event.
+type WorkReceiptReply = { call_id: string; receipt: WorkReceipt }
 export class LiveVoiceService {
   private call: Call | null = null
   constructor(
@@ -93,9 +150,9 @@ export class LiveVoiceService {
     private host?: VoiceHost
   ) {}
   private credential(settings: VoiceSettings): string {
-    return settings.adapter === 'gemini-live'
-      ? `${this.credentialSlot}-gemini`
-      : this.credentialSlot
+    if (settings.adapter === 'gemini-live') return `${this.credentialSlot}-gemini`
+    if (settings.adapter === 'doubao-realtime') return `${this.credentialSlot}-doubao`
+    return this.credentialSlot
   }
   async settings(): Promise<VoicePublicSettings> {
     const settings = voiceSettingsSchema.parse(await this.store.read())
@@ -147,6 +204,7 @@ export class LiveVoiceService {
       controller: new AbortController(),
       interruptedResponses: new Set(),
       interrupted: false,
+      closing: false,
       geminiTranscript: { user: '', assistant: '' },
       pcmCarry: { remainder: Buffer.alloc(0) },
       requests: new Set(),
@@ -165,6 +223,7 @@ export class LiveVoiceService {
     if (!call || call.id !== id || call.starting)
       throw new ConfigError('Voice call expired. Start a new call.')
     call.starting = true
+    const isDoubao = call.settings.adapter === 'doubao-realtime'
     try {
       const settings = call.settings
       const auth: { key: string | null; endpoint?: string; accountId?: string } | undefined =
@@ -243,7 +302,8 @@ export class LiveVoiceService {
           : new URL((auth.endpoint ?? settings.endpoint).replace(/\/$/, '') + '/realtime')
       endpoint.protocol = ['https:', 'wss:'].includes(endpoint.protocol) ? 'wss:' : 'ws:'
       if (settings.adapter === 'gemini-live') endpoint.searchParams.set('key', auth.key)
-      else endpoint.searchParams.set('model', settings.model)
+      else if (settings.adapter !== 'doubao-realtime')
+        endpoint.searchParams.set('model', settings.model)
       const socket = await openSocket(
         endpoint.toString(),
         settings.adapter === 'gemini-live'
@@ -267,10 +327,33 @@ export class LiveVoiceService {
           this.fail(call, 'Invalid voice response.')
         }
       })
-      socket.on('close', () => {
-        if (this.call === call) this.stop(id)
+      socket.on('close', (code: unknown, reason: unknown) => {
+        if (this.call !== call) return
+        if (!isDoubao) return this.stop(id)
+        if (call.closing) return this.finishClose(call)
+        const frame = readCloseFrame(code, reason)
+        // Before session.created the provider refuses the handshake: a close frame it filled in
+        // itself names the refusal, a bare transport drop is left to the setup rejection.
+        if (!call.ready) {
+          if (frame.stated)
+            this.fail(call, DOUBAO_NOT_GRANTED, voiceErrorCodes.serviceNotGranted)
+          return
+        }
+        // A provider close during a live call is a transport failure; the clean end belongs to
+        // the client-initiated close window only.
+        if (frame.text.includes(voiceErrorCodes.noInput))
+          return this.fail(call, DOUBAO_NO_INPUT, voiceErrorCodes.noInput)
+        this.fail(call, INTERRUPTED)
       })
-      socket.on('error', () => this.fail(call, 'Voice connection interrupted.'))
+      socket.on('error', () => {
+        if (this.call !== call) return
+        if (isDoubao) {
+          if (call.closing) return this.finishClose(call)
+          // Before session.created the setup rejection reports the failure.
+          if (!call.ready) return
+        }
+        this.fail(call, INTERRUPTED)
+      })
       // Install readiness listeners before sending setup; no socket-open success shortcut.
       const confirmed = new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => {
@@ -300,6 +383,12 @@ export class LiveVoiceService {
       )
       await confirmed
     } catch (e) {
+      if (isDoubao && !call.ready) {
+        // The call is already over when the refusal came from the close frame.
+        if (this.call !== call) return
+        const refusal = doubaoRefusal(e)
+        if (refusal) return this.fail(call, refusal.message, refusal.code)
+      }
       this.stop(id)
       throw e instanceof ConfigError
         ? e
@@ -313,16 +402,14 @@ export class LiveVoiceService {
     call.expires = setTimeout(() => this.stop(call.id), 30 * 60 * 1000)
     this.emit({ callId: call.id, kind: 'ready' })
   }
-  private fail(call: Call, message: string): void {
+  private fail(call: Call, message: string, code?: string): void {
     if (this.call !== call) return
-    this.emit({ callId: call.id, kind: 'error', message })
+    this.emit({ callId: call.id, kind: 'error', message, ...(code ? { code } : {}) })
     this.stop(call.id)
   }
   // All peer data is bounded by the socket/data-channel limits and parsed here in Main.
   private message(call: Call, m: Record<string, any>): void {
     if (!m || typeof m !== 'object') throw new Error()
-    const send = (event: Omit<VoiceEvent, 'callId'>) =>
-      this.emit({ callId: call.id, ...event } as VoiceEvent)
     const transcript = (role: 'user' | 'assistant', text: unknown) => {
       if (typeof text === 'string' && text.length)
         this.emit({ callId: call.id, kind: 'transcript', role, text: text.slice(0, 20000) })
@@ -336,13 +423,27 @@ export class LiveVoiceService {
       )
         this.emit({ callId: call.id, kind: 'audio', data })
     }
-    if (m.error || m.type === 'error' || m.goAway)
-      return this.fail(
-        call,
-        'Voice provider rejected or ended the call. Check the account and model.'
-      )
+    if (m.error || m.type === 'error' || m.goAway) {
+      // A hang-up is already under way: provider noise during the close window is not an error.
+      if (call.closing) return
+      const code = m.error?.status_code ?? m.error?.code ?? m.status_code ?? m.code
+      const mapped = code === undefined || code === null ? undefined : String(code)
+      if (call.settings.adapter === 'doubao-realtime' && mapped === voiceErrorCodes.noInput)
+        return this.fail(call, DOUBAO_NO_INPUT, voiceErrorCodes.noInput)
+      return this.fail(call, GENERIC_REJECTION)
+    }
     if (m.setupComplete !== undefined && call.settings.adapter === 'gemini-live') this.ready(call)
-    if (m.type === 'session.updated' && call.settings.adapter !== 'codex-live') {
+    if (m.type === 'session.created' && call.settings.adapter === 'doubao-realtime')
+      this.ready(call)
+    if (m.type === 'session.closed' && call.settings.adapter === 'doubao-realtime') {
+      this.finishClose(call)
+      return
+    }
+    if (
+      m.type === 'session.updated' &&
+      call.settings.adapter !== 'codex-live' &&
+      call.settings.adapter !== 'doubao-realtime'
+    ) {
       const s = m.session
       const valid =
         call.settings.profile === 'realtime-ga'
@@ -356,7 +457,12 @@ export class LiveVoiceService {
       if (!valid) throw new Error()
       this.ready(call)
     }
-    if (m.type === 'response.created' && typeof m.response?.id === 'string') {
+    if (m.type === 'response.created' && call.settings.adapter === 'doubao-realtime') {
+      const id = m.response?.id ?? m.response_id
+      if (typeof id === 'string') call.activeResponse = id
+      call.interrupted = false
+      this.emit({ callId: call.id, kind: 'activity', assistantSpeaking: true })
+    } else if (m.type === 'response.created' && typeof m.response?.id === 'string') {
       call.activeResponse = m.response.id
       call.interrupted = false
     }
@@ -368,38 +474,57 @@ export class LiveVoiceService {
       !staleResponse
     )
       audio(m.delta)
-    if (m.type === 'input_audio_buffer.speech_started' || m.serverContent?.interrupted) {
-      if (call.activeResponse) {
-        call.interruptedResponses.add(call.activeResponse)
-        if (call.interruptedResponses.size > 256)
-          call.interruptedResponses.delete(call.interruptedResponses.values().next().value!)
-      }
-      call.interrupted = true
-      send({ kind: 'interrupted' })
-      this.emit({ callId: call.id, kind: 'activity', userSpeaking: true, assistantSpeaking: false })
-    }
+    if (m.type === 'input_audio_buffer.speech_started' || m.serverContent?.interrupted)
+      this.serverBargeIn(call)
+    // Doubao barge-in: the server itself cancels the turn; this client never sends response.cancel.
+    if (m.type === 'response.canceled' && call.settings.adapter === 'doubao-realtime')
+      this.serverBargeIn(call)
     if (m.type === 'input_audio_buffer.speech_stopped')
       this.emit({ callId: call.id, kind: 'activity', userSpeaking: false })
+    // Doubao ends a turn with either done event and returns to listening.
+    if (
+      call.settings.adapter === 'doubao-realtime' &&
+      ['response.done', 'response.output_audio.done'].includes(m.type)
+    )
+      this.emit({ callId: call.id, kind: 'activity', assistantSpeaking: false })
+    // The live service carries the doubao user transcript as `text` (OpenAI-style `transcript` kept as fallback).
     if (m.type === 'conversation.item.input_audio_transcription.completed')
-      transcript('user', m.transcript)
+      transcript('user', m.text ?? m.transcript)
     if (
       !staleResponse &&
       ['response.audio_transcript.done', 'response.output_audio_transcript.done'].includes(m.type)
     )
       transcript('assistant', m.transcript)
+    // Doubao's only assistant-text completion event carries the text as `text`.
+    if (m.type === 'response.output_text.done' && !staleResponse) transcript('assistant', m.text)
     if (m.type === 'input_transcript.added') transcript('user', m.text)
     if (m.type === 'output_transcript.added') transcript('assistant', m.text)
     if (m.type === 'response.function_call_arguments.done') {
-      let args: unknown
-      try {
-        args =
-          typeof m.arguments === 'string' && m.arguments.length <= 10000
-            ? JSON.parse(m.arguments)
-            : null
-      } catch {
-        args = null
-      }
-      this.candidate(call, m.call_id, m.name, args)
+      if (call.settings.adapter === 'doubao-realtime') {
+        // Doubao delivers parallel calls as items; the receipts of one event are
+        // answered by a single aggregated conversation.item.create.
+        const receipts: WorkReceiptReply[] = []
+        for (const item of (Array.isArray(m.items) ? m.items : []).slice(0, 16)) {
+          const reply = this.candidate(
+            call,
+            item?.call_id,
+            item?.name,
+            parseToolArguments(item?.arguments)
+          )
+          if (reply) receipts.push(reply)
+        }
+        if (receipts.length)
+          this.send(call, {
+            type: 'conversation.item.create',
+            items: receipts.map((reply) => ({
+              type: 'message',
+              role: 'tool',
+              call_id: reply.call_id,
+              content: [{ type: 'input_text', text: JSON.stringify(reply.receipt) }]
+            }))
+          })
+      } else
+        this.candidate(call, m.call_id, m.name, parseToolArguments(m.arguments))
     }
     if (
       m.type === 'delegation.created' &&
@@ -441,13 +566,32 @@ export class LiveVoiceService {
         this.candidate(call, fn.id, fn.name, fn.args)
     }
   }
+  // Server barge-in marks the active response stale so its late audio and text are dropped, then
+  // clears renderer playback and reports the user speaking over the assistant.
+  private serverBargeIn(call: Call): void {
+    if (call.activeResponse) {
+      call.interruptedResponses.add(call.activeResponse)
+      if (call.interruptedResponses.size > 256)
+        call.interruptedResponses.delete(call.interruptedResponses.values().next().value!)
+    }
+    call.interrupted = true
+    this.emit({ callId: call.id, kind: 'interrupted' })
+    this.emit({ callId: call.id, kind: 'activity', userSpeaking: true, assistantSpeaking: false })
+  }
   private send(call: Call, message: unknown): void {
     if (this.call !== call || !call.ready) return
     if (call.settings.adapter === 'codex-live')
       this.emit({ callId: call.id, kind: 'signal', message: JSON.stringify(message) })
     else if (call.socket?.readyState === WebSocket.OPEN) call.socket.send(JSON.stringify(message))
   }
-  private candidate(call: Call, request: unknown, name: unknown, args: unknown): void {
+  // Processes one work-tool request and replies per adapter; returns the receipt
+  // entry so Doubao can aggregate the receipts of one event into a single reply.
+  private candidate(
+    call: Call,
+    request: unknown,
+    name: unknown,
+    args: unknown
+  ): WorkReceiptReply | null {
     if (
       !call.ready ||
       typeof request !== 'string' ||
@@ -455,9 +599,11 @@ export class LiveVoiceService {
       request.length > 256 ||
       call.requests.has(request)
     )
-      return
-    if (call.requests.size >= 256)
-      return this.fail(call, 'Voice call reached its request limit. Start a new call.')
+      return null
+    if (call.requests.size >= 256) {
+      this.fail(call, 'Voice call reached its request limit. Start a new call.')
+      return null
+    }
     call.requests.add(request)
     const parsed = workArguments.safeParse(args)
     const sessionId = call.preparation.sessionId
@@ -470,7 +616,7 @@ export class LiveVoiceService {
           status: 'review' as const
         }
       : null
-    const receipt = operation
+    const receipt: WorkReceipt = operation
       ? { status: 'received', operationId: operation.id, execution: 'not_started' }
       : { status: 'rejected', code: 'NO_WORK_TARGET_OR_INVALID_REQUEST' }
     if (operation) {
@@ -478,6 +624,7 @@ export class LiveVoiceService {
       call.feedback.set(operation.id, request)
       this.emit({ callId: call.id, kind: 'work', operation })
     }
+    if (call.settings.adapter === 'doubao-realtime') return { call_id: request, receipt }
     if (call.settings.adapter === 'gemini-live')
       this.send(call, {
         toolResponse: { functionResponses: [{ id: request, name, response: receipt }] }
@@ -494,6 +641,7 @@ export class LiveVoiceService {
         type: 'conversation.item.create',
         item: { type: 'function_call_output', call_id: request, output: JSON.stringify(receipt) }
       })
+    return { call_id: request, receipt }
   }
   async review(id: string, operationId: string, accept: boolean): Promise<void> {
     const call = this.call,
@@ -526,6 +674,11 @@ export class LiveVoiceService {
         channel: 'commentary',
         content: [{ type: 'input_text', text }]
       })
+    else if (call.settings.adapter === 'doubao-realtime')
+      this.send(call, {
+        type: 'conversation.item.create',
+        items: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text }] }]
+      })
     else
       this.send(call, {
         type: 'conversation.item.create',
@@ -542,6 +695,15 @@ export class LiveVoiceService {
       this.fail(call, 'Invalid voice response.')
     }
   }
+  // Protocol mute is visible to the provider: only the Doubao session speaks it.
+  // Other adapters keep muting purely local (the renderer's track switch), so
+  // they send nothing here.
+  mute(id: string, muted: boolean): void {
+    const call = this.call
+    if (!call || call.id !== id || !call.ready) throw new ConfigError('Voice call is not ready.')
+    if (call.settings.adapter === 'doubao-realtime')
+      this.send(call, { type: muted ? 'input_audio_mute.commit' : 'input_audio_unmute.commit' })
+  }
   audio(id: string, data: string): void {
     const call = this.call
     if (!call || call.id !== id || !call.ready || call.socket?.readyState !== WebSocket.OPEN)
@@ -550,7 +712,7 @@ export class LiveVoiceService {
     if (
       !bytes.length ||
       bytes.length % 2 ||
-      bytes.length > (call.settings.adapter === 'gemini-live' ? 4800 : 24000)
+      bytes.length > (needs16kInput(call.settings) ? 4800 : 24000)
     )
       throw new ConfigError('Invalid audio frame.')
     if (Date.now() - call.window >= 1000) {
@@ -567,16 +729,36 @@ export class LiveVoiceService {
   stop(id: string): void {
     if (this.call?.id !== id) return
     const call = this.call
+    if (call.closing) return
+    // Doubao keeps the provider session closable: one session.close, then a bounded wait for
+    // session.closed before the transport is torn down instead of racing a close frame.
+    if (
+      call.settings.adapter === 'doubao-realtime' &&
+      call.ready &&
+      call.socket?.readyState === WebSocket.OPEN
+    ) {
+      call.closing = true
+      // The call accepts no audio, mute or tool replies once the close is under way.
+      call.ready = false
+      call.socket.send(JSON.stringify({ type: 'session.close' }))
+      call.closeTimer = setTimeout(() => this.finishClose(call), 3000)
+      return
+    }
+    this.finishClose(call)
+  }
+  private finishClose(call: Call): void {
+    if (this.call !== call) return
     this.call = null
     captureLease = null
     clearTimeout(call.expires)
+    if (call.closeTimer) clearTimeout(call.closeTimer)
     call.controller.abort()
     call.cleanupOwner()
     call.socket?.terminate()
-    this.emit({ callId: id, kind: 'ended' })
+    this.emit({ callId: call.id, kind: 'ended' })
   }
   dispose(): void {
-    if (this.call) this.stop(this.call.id)
+    if (this.call) this.finishClose(this.call)
     captureLease = null
   }
 }

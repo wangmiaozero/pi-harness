@@ -1,5 +1,19 @@
 import WebSocket from 'ws'
+import type { ClientRequest, IncomingMessage } from 'node:http'
 import { ConfigError } from '../services/errors'
+
+/**
+ * A refused WebSocket upgrade. The provider's HTTP status is the only refusal detail it states;
+ * DNS, timeout, TLS and refused-connection failures carry none. Callers read `statusCode` to tell
+ * a credential refusal from a transport failure.
+ */
+class HandshakeRejectedError extends ConfigError {
+  readonly statusCode?: number
+  constructor(statusCode?: number) {
+    super('Connection failed. Check the address and credential.')
+    this.statusCode = statusCode
+  }
+}
 
 /** Main-only authenticated sockets. Neither credentials nor raw peer errors cross IPC. */
 export async function openSocket(url: string, headers: Record<string, string>): Promise<WebSocket> {
@@ -20,16 +34,24 @@ export async function openSocket(url: string, headers: Record<string, string>): 
         clearTimeout(timer)
         socket.off('open', ready)
         socket.off('error', failed)
+        socket.off('unexpected-response', rejected)
         socket.off('close', closed)
         if (error) reject(error)
         else resolve()
       }
       const ready = () => done()
+      const rejected = (_request: ClientRequest, response: IncomingMessage) => {
+        // The upgrade never happened, so the response body is drained and the socket is
+        // terminated below; the status is what a caller can act on.
+        response.resume()
+        done(new HandshakeRejectedError(response.statusCode))
+      }
       const failed = () =>
         done(new ConfigError('Connection failed. Check the address and credential.'))
       const closed = () => done(new ConfigError('Connection closed before it was ready.'))
       socket.once('open', ready)
       socket.once('error', failed)
+      socket.once('unexpected-response', rejected)
       socket.once('close', closed)
     })
     return socket

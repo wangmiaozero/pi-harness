@@ -24,6 +24,14 @@ const availableAccounts = computed(() =>
 const voiceCall = useVoiceCall()
 const settings = ref<VoicePublicSettings | null>(null),
   apiKey = ref('')
+// Flagship Doubao S2S voices (jupiter generation); free-text input stays allowed for cloned voices.
+const doubaoVoices = [
+  { id: 'zh_female_vv_jupiter_bigtts', name: 'Vivi 2.0' },
+  { id: 'zh_female_xiaohe_jupiter_bigtts', name: '小何 2.0' },
+  { id: 'zh_male_yunzhou_jupiter_bigtts', name: '云舟 2.0' },
+  { id: 'zh_male_xiaotian_jupiter_bigtts', name: '小天 2.0' }
+]
+const DOUBAO_ENDPOINT = 'https://openspeech.bytedance.com/api/v3'
 const load = () =>
   run(async () => {
     ;[settings.value, accounts.value] = await Promise.all([
@@ -41,7 +49,7 @@ const save = () =>
       endpoint: s.endpoint,
       model: s.model,
       voice: s.voice,
-      profile: s.profile,
+      ...(s.adapter === 'doubao-realtime' ? {} : { profile: s.profile }),
       ...(apiKey.value ? { apiKey: apiKey.value } : {})
     })
     apiKey.value = ''
@@ -50,6 +58,15 @@ const save = () =>
 function adapterChanged() {
   if (!settings.value) return
   settings.value.providerKey = undefined
+  if (settings.value.adapter === 'doubao-realtime') {
+    settings.value.endpoint = DOUBAO_ENDPOINT
+    settings.value.model = '1.3.0.0'
+    settings.value.voice = 'zh_female_vv_jupiter_bigtts'
+    return
+  }
+  // Leaving Doubao restores the OpenAI base only while the field still holds the Doubao default.
+  if (settings.value.endpoint === DOUBAO_ENDPOINT)
+    settings.value.endpoint = 'https://api.openai.com/v1'
   settings.value.model =
     settings.value.adapter === 'gemini-live' ? 'gemini-3.8-live' : 'gpt-realtime'
   settings.value.voice =
@@ -81,9 +98,12 @@ onMounted(load)
             <option value="openai-realtime">OpenAI Realtime · API</option>
             <option value="gemini-live">Gemini Live</option>
             <option value="codex-live">Codex Live</option>
+            <option value="doubao-realtime">{{ t('liveVoice.doubao') }}</option>
           </select></label
         >
-        <label v-if="settings.adapter !== 'codex-live'" class="feature-field"
+        <label
+          v-if="settings.adapter !== 'codex-live' && settings.adapter !== 'doubao-realtime'"
+          class="feature-field"
           >{{ t('liveVoice.accountSource')
           }}<select v-model="settings.providerKey" class="feature-input">
             <option :value="undefined">{{ t('liveVoice.ownKey') }}</option>
@@ -92,10 +112,15 @@ onMounted(load)
             </option>
           </select></label
         >
-        <p v-else class="feature-hint">{{ t('liveVoice.codexHint') }}</p>
+        <p v-else-if="settings.adapter === 'codex-live'" class="feature-hint">
+          {{ t('liveVoice.codexHint') }}
+        </p>
         <label
           v-if="
-            !settings.providerKey && (!settings.adapter || settings.adapter === 'openai-realtime')
+            !settings.providerKey &&
+            (!settings.adapter ||
+              settings.adapter === 'openai-realtime' ||
+              settings.adapter === 'doubao-realtime')
           "
           class="feature-field"
           >{{ t('agentSettings.voiceEndpoint')
@@ -116,8 +141,18 @@ onMounted(load)
               maxlength="128" /></label
           ><label class="feature-field"
             >{{ t('agentSettings.voiceName')
-            }}<input v-model="settings.voice" class="feature-input" required maxlength="100"
-          /></label>
+            }}<input
+              v-model="settings.voice"
+              class="feature-input"
+              required
+              maxlength="100"
+              :list="settings.adapter === 'doubao-realtime' ? 'doubao-voices' : undefined"
+            /><datalist v-if="settings.adapter === 'doubao-realtime'" id="doubao-voices">
+              <option v-for="voice in doubaoVoices" :key="voice.id" :value="voice.id">
+                {{ voice.name }}
+              </option>
+            </datalist></label
+          >
         </div>
         <label
           v-if="!settings.adapter || settings.adapter === 'openai-realtime'"

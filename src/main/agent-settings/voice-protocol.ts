@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import type { VoiceSettings } from '@shared/agent-settings/schema'
 
@@ -30,6 +31,20 @@ export function voiceInstructions(context: string, sessionId?: string): string {
   ].join('\n\n')
 }
 export function voiceSetup(settings: VoiceSettings, instructions: string, work: boolean): unknown {
+  if (settings.adapter === 'doubao-realtime')
+    return {
+      type: 'session.create',
+      session: {
+        id: randomUUID(),
+        model: settings.model,
+        instructions,
+        audio: {
+          input: { format: { type: 'pcm', rate: 16000 } },
+          output: { format: { type: 'pcm_s16le', rate: 24000 }, voice: settings.voice }
+        },
+        ...(work ? { tools: [workTool] } : {})
+      }
+    }
   if (settings.adapter === 'gemini-live')
     return {
       setup: {
@@ -84,27 +99,39 @@ export function voiceSetup(settings: VoiceSettings, instructions: string, work: 
           }
   }
 }
+// Adapters whose uplink requires 16 kHz PCM input; they share the 24 kHz -> 16 kHz resample path.
+export function needs16kInput(settings: VoiceSettings): boolean {
+  return settings.adapter === 'gemini-live' || settings.adapter === 'doubao-realtime'
+}
+// Area-weighted 24 kHz -> 16 kHz PCM, preserving duration across pairs of output samples.
+function downsample24to16(pcm: Buffer, carry?: { remainder: Buffer }): Buffer {
+  if (carry?.remainder.length) pcm = Buffer.concat([carry.remainder, pcm])
+  if (carry) carry.remainder = pcm.subarray(Math.floor(pcm.length / 6) * 6)
+  const output = Buffer.alloc(Math.floor(pcm.length / 6) * 4)
+  for (let i = 0, o = 0; o < output.length; i += 6, o += 4) {
+    const a = pcm.readInt16LE(i),
+      b = pcm.readInt16LE(i + 2),
+      c = pcm.readInt16LE(i + 4)
+    output.writeInt16LE(Math.round((a * 2 + b) / 3), o)
+    output.writeInt16LE(Math.round((b + c * 2) / 3), o + 2)
+  }
+  return output
+}
 export function voiceInput(
   settings: VoiceSettings,
   pcm24k: Buffer,
   carry?: { remainder: Buffer }
 ): unknown {
-  if (settings.adapter !== 'gemini-live')
+  if (!needs16kInput(settings))
     return { type: 'input_audio_buffer.append', audio: pcm24k.toString('base64') }
-  // Area-weighted 24 kHz -> 16 kHz PCM, preserving duration across pairs of output samples.
-  if (carry?.remainder.length) pcm24k = Buffer.concat([carry.remainder, pcm24k])
-  if (carry) carry.remainder = pcm24k.subarray(Math.floor(pcm24k.length / 6) * 6)
-  const output = Buffer.alloc(Math.floor(pcm24k.length / 6) * 4)
-  for (let i = 0, o = 0; o < output.length; i += 6, o += 4) {
-    const a = pcm24k.readInt16LE(i),
-      b = pcm24k.readInt16LE(i + 2),
-      c = pcm24k.readInt16LE(i + 4)
-    output.writeInt16LE(Math.round((a * 2 + b) / 3), o)
-    output.writeInt16LE(Math.round((b + c * 2) / 3), o + 2)
-  }
-  return {
-    realtimeInput: { audio: { mimeType: 'audio/pcm;rate=16000', data: output.toString('base64') } }
-  }
+  const pcm16k = downsample24to16(pcm24k, carry)
+  if (settings.adapter === 'gemini-live')
+    return {
+      realtimeInput: {
+        audio: { mimeType: 'audio/pcm;rate=16000', data: pcm16k.toString('base64') }
+      }
+    }
+  return { type: 'input_audio_buffer.append', audio: pcm16k.toString('base64') }
 }
 export function normalizeSdp(raw: string): string {
   if (Buffer.byteLength(raw) > 262144 || raw.includes('\0')) throw new Error('Invalid SDP')

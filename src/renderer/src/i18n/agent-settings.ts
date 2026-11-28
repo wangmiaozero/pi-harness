@@ -121,6 +121,12 @@ export const agentSettingsEn = {
   transcriptEmpty: 'Your words and replies will appear here.',
   microphoneError:
     'Microphone access failed. Allow microphone access in system settings and try again.',
+  voiceErrorNoInput:
+    'The call ended because the microphone stream stopped while unmuted. Keep the microphone muted while you are away from the call.',
+  voiceErrorAuth:
+    'The voice key was rejected. Check the independent API key from the Volcano speech console in voice settings.',
+  voiceErrorNotGranted:
+    'This key has not enabled Doubao realtime voice. Enable 端到端实时音视频通话 (Seed-Realtime) in the Volcano speech console.',
   user: 'You',
   assistant: 'Assistant',
   voiceOnly: 'Voice conversations can discuss your work. To run a task, send it in the workspace.',
@@ -290,6 +296,11 @@ export const agentSettingsZh: typeof agentSettingsEn = {
   transcript: '对话记录',
   transcriptEmpty: '你说的话和助手的回复会显示在这里。',
   microphoneError: '无法访问麦克风。请在系统设置中允许访问后重试。',
+  voiceErrorNoInput:
+    '通话已结束：麦克风开着却长时间没有音频送达，服务端中断了这次通话（45000003）。离开通话时请关闭麦克风。',
+  voiceErrorAuth: '语音密钥被拒绝。请在语音设置中检查火山引擎语音技术控制台的独立 API Key。',
+  voiceErrorNotGranted:
+    '该密钥尚未开通豆包实时语音。请在火山引擎语音技术控制台开通「端到端实时音视频通话（Seed-Realtime）」。',
   user: '你',
   assistant: '助手',
   voiceOnly: '语音通话可以讨论工作。如需执行任务，请在工作区发送。',

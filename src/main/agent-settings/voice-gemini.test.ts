@@ -101,4 +101,44 @@ describe('Gemini voice transport', () => {
       service.dispose()
     }
   })
+  it('keeps muting purely local: no provider message on mute', async () => {
+    const sent: Record<string, any>[] = []
+    const socket = Object.assign(new EventEmitter(), {
+      readyState: 1,
+      bufferedAmount: 0,
+      send(raw: string) {
+        const m = JSON.parse(raw)
+        sent.push(m)
+        if (m.setup)
+          queueMicrotask(() => socket.emit('message', Buffer.from('{"setupComplete":{}}'), true))
+      },
+      terminate() {
+        socket.emit('close')
+      }
+    })
+    mocks.open.mockResolvedValue(socket)
+    mocks.secret.mockResolvedValue('fixture-gemini-key')
+    const events: VoiceEvent[] = [],
+      settings = { ...DEFAULT_VOICE, enabled: true, adapter: 'gemini-live' as const, voice: 'Kore' }
+    const service = new LiveVoiceService(
+      { read: async () => settings } as JsonStore<typeof settings>,
+      (event) => events.push(structuredClone(event)),
+      'fixture',
+      { hasCredential: vi.fn(), resolve: vi.fn(), context: async () => '', deliver: vi.fn() }
+    )
+    const owner = Object.assign(new EventEmitter(), {
+      getURL: () => 'file:///app/index.html',
+      isDestroyed: () => false
+    }) as unknown as WebContents
+    try {
+      const id = await service.prepare(owner, { sessionId: 'known' })
+      await service.start(id)
+      service.mute(id, true)
+      expect(events).toContainEqual({ callId: id, kind: 'ready' })
+      expect(sent).toHaveLength(1)
+      expect(events.filter((event) => event.kind === 'error')).toEqual([])
+    } finally {
+      service.dispose()
+    }
+  })
 })
