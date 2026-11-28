@@ -414,6 +414,7 @@ function duration(value: number): string {
               !persistedMessages.length &&
               !liveMessage &&
               !submitting &&
+              !agent.loadingSession &&
               !agent.isBusy(sessions.currentId)
             "
             :title="$t('workspace.emptyChat')"
