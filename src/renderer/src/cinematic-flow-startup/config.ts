@@ -51,6 +51,13 @@ export const FLOW_LIMITS = {
   points: 43
 } as const
 
+/** Wall-clock limit. A stalled frame loop must not leave the cover up. */
+export function flowDismissalCap(brief: boolean): number {
+  const timeline = brief ? BRIEF_FLOW.end : FLOW_TIMELINE.end
+  const ready = brief ? BRIEF_FLOW.readyTimeout : FLOW_LIMITS.readyTimeout
+  return timeline + ready
+}
+
 export function clamp(value: number): number {
   return Math.max(0, Math.min(value, 1))
 }

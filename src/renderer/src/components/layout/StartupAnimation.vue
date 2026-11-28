@@ -15,7 +15,7 @@ import {
   startupPhase,
   startupScheme
 } from '@renderer/startup'
-import { BRIEF_FLOW, FLOW_LIMITS } from '@renderer/cinematic-flow-startup/config'
+import { BRIEF_FLOW, FLOW_LIMITS, flowDismissalCap } from '@renderer/cinematic-flow-startup/config'
 import { useSettingsStore } from '@renderer/stores/settings'
 import {
   deepseekBootClip,
@@ -87,6 +87,7 @@ let particleStarted = false
 let startupDecided = false
 let holdFallback: ReturnType<typeof setTimeout> | null = null
 let flowTimer: ReturnType<typeof setTimeout> | undefined
+let dismissalTimer: ReturnType<typeof setTimeout> | undefined
 let stars: Star[] = []
 let ambient: Star[] = []
 let width = 0
@@ -424,6 +425,8 @@ function clearFlowTimer(): void {
 
 function finishFlow(): void {
   clearFlowTimer()
+  clearTimeout(dismissalTimer)
+  dismissalTimer = undefined
   visible.value = false
   flowComponent.value = null
   setCinematicCover(false)
@@ -455,6 +458,8 @@ async function beginFlow(animate = true): Promise<void> {
   if (minimumTimer) clearTimeout(minimumTimer)
   if (holdFallback) clearTimeout(holdFallback)
   setCinematicCover(true)
+  if (dismissalTimer === undefined)
+    dismissalTimer = setTimeout(() => fallbackFlow(true), flowDismissalCap(brief))
   if (!animate || prefersReducedMotion()) {
     fallbackFlow()
     return
@@ -577,6 +582,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   clearFlowTimer()
+  clearTimeout(dismissalTimer)
+  dismissalTimer = undefined
   if (mode.value === 'flow' || mode.value === 'flow-wait') {
     visible.value = false
     delete document.documentElement.dataset.cinematicFlow

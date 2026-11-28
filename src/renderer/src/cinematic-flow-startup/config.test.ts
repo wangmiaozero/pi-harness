@@ -3,6 +3,7 @@ import {
   BRIEF_FLOW,
   FLOW_TIMELINE as T,
   briefFlowTime,
+  flowDismissalCap,
   flowResolution,
   flowStage,
   irisRadius
@@ -37,6 +38,12 @@ describe('Cinematic Flow timeline', () => {
       expect(irisRadius(width, height, 0.8)).toBeGreaterThan(irisRadius(width, height, 0.2))
       expect(irisRadius(width, height, 1)).toBeGreaterThan(Math.hypot(width, height) / 2)
     }
+  })
+
+  it('closes a stalled brief cover inside the packaged startup wait', () => {
+    expect(flowDismissalCap(true)).toBe(BRIEF_FLOW.end + BRIEF_FLOW.readyTimeout)
+    expect(flowDismissalCap(true)).toBeLessThan(12_000)
+    expect(flowDismissalCap(false)).toBeGreaterThan(T.end)
   })
 
   it('limits the pixel count on Retina displays and further reduces it in economy mode', () => {

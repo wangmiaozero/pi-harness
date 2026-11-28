@@ -16,6 +16,10 @@ Release notes describe user-visible additions and fixes.
 
 - The first window may open with a new startup animation.
 
+### Fixed
+
+- The startup cover closes if the animation cannot keep drawing.
+
 ## 2.4.20 — 2026-11-27
 
 ### Added
