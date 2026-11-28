@@ -1,3 +1,4 @@
+import { imageStudioMessages } from './image-studio'
 import { providerDiagnostics } from './provider-diagnostics'
 import { providerAccountsEn, providerAccountsZh } from './provider-accounts'
 import { providerAdvancedEn, providerAdvancedZh } from './provider-advanced'
@@ -38,6 +39,7 @@ import {
 
 const enMessages = {
   ...enUS,
+  imageStudio: imageStudioMessages['en-US'],
   providerDiagnostics: providerDiagnostics['en-US'],
   providerAccounts: providerAccountsEn,
   providerAdvanced: providerAdvancedEn,
@@ -52,6 +54,7 @@ const enMessages = {
 
 const zhMessages = {
   ...zhCN,
+  imageStudio: imageStudioMessages['zh-CN'],
   providerDiagnostics: providerDiagnostics['zh-CN'],
   providerAccounts: providerAccountsZh,
   providerAdvanced: providerAdvancedZh,
@@ -66,6 +69,7 @@ const zhMessages = {
 
 const zhTwMessages = {
   ...zhTW,
+  imageStudio: imageStudioMessages['zh-TW'],
   providerDiagnostics: providerDiagnostics['zh-TW'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,
@@ -80,6 +84,7 @@ const zhTwMessages = {
 
 const jaMessages = {
   ...jaJP,
+  imageStudio: imageStudioMessages['ja-JP'],
   providerDiagnostics: providerDiagnostics['ja-JP'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,
@@ -94,6 +99,7 @@ const jaMessages = {
 
 const koMessages = {
   ...koKR,
+  imageStudio: imageStudioMessages['ko-KR'],
   providerDiagnostics: providerDiagnostics['ko-KR'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,
@@ -108,6 +114,7 @@ const koMessages = {
 
 const ruMessages = {
   ...ruRU,
+  imageStudio: imageStudioMessages['ru-RU'],
   providerDiagnostics: providerDiagnostics['ru-RU'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,
@@ -122,6 +129,7 @@ const ruMessages = {
 
 const frMessages = {
   ...frFR,
+  imageStudio: imageStudioMessages['fr-FR'],
   providerDiagnostics: providerDiagnostics['fr-FR'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,
@@ -136,6 +144,7 @@ const frMessages = {
 
 const deMessages = {
   ...deDE,
+  imageStudio: imageStudioMessages['de-DE'],
   providerDiagnostics: providerDiagnostics['de-DE'],
   providerAdvanced: providerAdvancedEn,
   providerAccounts: providerAccountsEn,

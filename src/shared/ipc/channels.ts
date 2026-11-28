@@ -161,6 +161,7 @@ export const IPC_INVOKE = {
   modelFastMode: invoke('models:fast-mode'),
   modelSetFastMode: invoke('models:set-fast-mode'),
   modelInvokeImage: invoke('models:invoke-image'),
+  modelCancelImage: invoke('models:cancel-image'),
 
   // config (Pi native config service)
   configRead: invoke('config:read'),

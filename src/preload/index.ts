@@ -245,7 +245,8 @@ const api: PiSwitchAPI = {
     setVisibility: (entries) => invoke(IPC_INVOKE.modelSetVisibility, entries),
     fastMode: () => invoke(IPC_INVOKE.modelFastMode),
     setFastMode: (enabled) => invoke(IPC_INVOKE.modelSetFastMode, enabled),
-    invokeImage: (input) => invoke(IPC_INVOKE.modelInvokeImage, input)
+    invokeImage: (input) => invoke(IPC_INVOKE.modelInvokeImage, input),
+    cancelImage: (requestId) => invoke(IPC_INVOKE.modelCancelImage, requestId)
   },
   config: {
     read: () => invoke(IPC_INVOKE.configRead),

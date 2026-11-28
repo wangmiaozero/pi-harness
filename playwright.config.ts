@@ -1,5 +1,7 @@
 import { defineConfig } from '@playwright/test'
 
+process.env.PI_HARNESS_STARTUP_TEST = '1'
+
 /**
  * Electron smoke E2E. Requires a prior `pnpm compile` so `out/main/index.js` exists.
  * Launch uses the local electron binary + built main entry.

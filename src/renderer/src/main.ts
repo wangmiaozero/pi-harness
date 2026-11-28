@@ -22,7 +22,7 @@ import type { AppUpdateState } from '@shared/ipc/api-types'
 import { usePetStore } from '@renderer/stores/pet'
 import { installPetRuntimeAdapter } from '@renderer/pet/install-runtime-adapter'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
-import { runtimeStartupChecks, startupChecks, startupPhase } from './startup'
+import { runtimeStartupChecks, startupChecks, startupPhase, startupScheme } from './startup'
 import {
   applyVisualSkin,
   setInstalledPetIds,
@@ -31,6 +31,7 @@ import {
 import { publishInstalledCatalog } from '@renderer/market/catalog'
 
 // Main sets nativeTheme before creating the window, including a saved dark theme.
+if (startupScheme === 'flow') document.documentElement.dataset.cinematicFlow = 'on'
 applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'soft-light')
 installAuthorWatermark()
 
@@ -161,6 +162,7 @@ async function bootstrap() {
             : '未配置'
     })
     await Promise.all([environmentCheck, providersStore.fetchList(), modelsStore.fetchList()])
+    if (startupScheme === 'flow') await router.isReady()
   } finally {
     startupPhase.value = 'ready'
   }
@@ -169,6 +171,7 @@ async function bootstrap() {
 setInstalledThemeAssets([])
 setInstalledPetIds([])
 void bootstrap()
+if (startupScheme === 'flow') app.mount('#app')
 void getApi()
   .market.installed()
   .then((installed) => {
@@ -177,7 +180,7 @@ void getApi()
   })
   .catch(() => undefined)
   .finally(() => {
-    app.mount('#app')
+    if (startupScheme !== 'flow') app.mount('#app')
   })
 
 if (import.meta.hot) {

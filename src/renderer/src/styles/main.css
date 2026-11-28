@@ -5,6 +5,13 @@
 @import './portrait-skins.css';
 @import './scene-conversation.css';
 
+:root[data-cinematic-flow='on'] #app:empty::before {
+  position: fixed;
+  inset: 0;
+  background: #030207;
+  content: '';
+}
+
 .harness-card {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);

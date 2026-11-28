@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { redactSecretText } from '../src/main/services/logger'
 import { installPetFixtures, installThemeFixtures } from './installed-packs'
 import { IPC_INVOKE } from '../src/shared/ipc/channels'
+import type { StartupScheme } from '../src/shared/startup-selection'
 import type { AgentStateSnapshot, StartAgentSessionInput } from '../src/shared/types/workspace'
 import {
   test as base,
@@ -48,6 +49,8 @@ type Fixtures = {
   isolateSystemRuntime: boolean
   themePacks: boolean
   petPacks: boolean
+  startupBranch: StartupScheme
+  waitForStartup: boolean
   electronApp: ElectronApplication
   page: Page
   workspaceRoot: string
@@ -62,6 +65,8 @@ export const test = base.extend<Fixtures>({
   fakeAudio: [false, { option: true }],
   themePacks: [false, { option: true }],
   petPacks: [false, { option: true }],
+  startupBranch: ['legacy', { option: true }],
+  waitForStartup: [true, { option: true }],
   workspaceRoot: async ({}, use) => {
     const workspaceRoot = fs.realpathSync(
       fs.mkdtempSync(path.join(os.tmpdir(), 'pi-harness-e2e-workspace-'))
@@ -91,7 +96,15 @@ export const test = base.extend<Fixtures>({
     await use(isolatedPi)
   },
   electronApp: async (
-    { workspaceRoot, testUserData, piAgentDir, isolateSystemRuntime, fakeAudio, freeModelsTest },
+    {
+      workspaceRoot,
+      testUserData,
+      piAgentDir,
+      isolateSystemRuntime,
+      fakeAudio,
+      freeModelsTest,
+      startupBranch
+    },
     use,
     testInfo
   ) => {
@@ -169,6 +182,7 @@ export const test = base.extend<Fixtures>({
         PI_HARNESS_PI_CONFIG_DIR: piAgentDir,
         PI_CODING_AGENT_DIR: piAgentDir,
         PI_HARNESS_USER_DATA: testUserData,
+        PI_HARNESS_STARTUP: startupBranch,
         PI_HARNESS_DISABLE_ACCOUNT_DISCOVERY: '1',
         PI_HARNESS_FREE_MODELS_TEST: freeModelsTest,
         PI_HARNESS_SESSION_HOME: path.join(testUserData, 'history-home'),
@@ -195,10 +209,12 @@ export const test = base.extend<Fixtures>({
       await testInfo.attach('application log', { path: file, contentType: 'text/plain' })
     }
   },
-  page: async ({ electronApp }, use) => {
+  page: async ({ electronApp, waitForStartup }, use) => {
     const page = await waitForMainWindow(electronApp)
     await page.waitForLoadState('domcontentloaded')
-    await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+    if (waitForStartup) {
+      await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+    }
     await use(page)
   },
   startupMetrics: async ({ electronApp, page }, use) => {

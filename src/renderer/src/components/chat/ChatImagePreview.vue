@@ -7,7 +7,7 @@ import Dialog from '@renderer/components/ui/Dialog.vue'
 import IconButton from '@renderer/components/ui/IconButton.vue'
 import { callApi, getApi } from '@renderer/composables/useApi'
 
-const props = defineProps<{ src: string }>()
+const props = defineProps<{ src: string; downloadName?: string }>()
 const open = defineModel<boolean>('open', { required: true })
 const { t } = useI18n()
 
@@ -110,7 +110,7 @@ function downloadImage(): void {
   }
   const link = document.createElement('a')
   link.href = props.src
-  link.download = 'chat-image.' + (extensions[subtype] ?? subtype)
+  link.download = props.downloadName ?? 'chat-image.' + (extensions[subtype] ?? subtype)
   link.click()
 }
 </script>

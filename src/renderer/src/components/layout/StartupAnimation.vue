@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowRef,
+  watch,
+  type Component
+} from 'vue'
 import {
   STARTUP_MINIMUM_VISIBLE_MS,
   startupAnimationVisible,
-  startupChecks,
-  startupPhase
+  startupPhase,
+  startupScheme
 } from '@renderer/startup'
+import { BRIEF_FLOW, FLOW_LIMITS } from '@renderer/cinematic-flow-startup/config'
 import { useSettingsStore } from '@renderer/stores/settings'
 import {
   deepseekBootClip,
@@ -17,6 +27,7 @@ import {
 import { MASCOT_ENABLED } from '@shared/feature-flags'
 import { petPackInstalled, themePackInstalled } from '@renderer/utils/visual-skin'
 import { themeAppearance } from '@shared/constants/theme'
+import StartupDiagnostics from './StartupDiagnostics.vue'
 import {
   particleOrigin,
   resolveStartupVariant,
@@ -36,7 +47,11 @@ type Star = {
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const settings = useSettingsStore()
-const mode = ref<'hold' | 'particle' | 'fish'>(MASCOT_ENABLED ? 'hold' : 'particle')
+const mode = ref<'hold' | 'particle' | 'fish' | 'flow' | 'flow-wait'>(
+  startupScheme === 'flow' ? 'flow' : MASCOT_ENABLED ? 'hold' : 'particle'
+)
+const flowComponent = shallowRef<Component | null>(null)
+const brief = startupScheme === 'legacy'
 const variant = computed(() => resolveStartupVariant(settings.settings))
 const palette = computed(() => STARTUP_PALETTES[variant.value])
 const colorVariables = computed(() => ({
@@ -71,6 +86,7 @@ let leaveStartedAt = 0
 let particleStarted = false
 let startupDecided = false
 let holdFallback: ReturnType<typeof setTimeout> | null = null
+let flowTimer: ReturnType<typeof setTimeout> | undefined
 let stars: Star[] = []
 let ambient: Star[] = []
 let width = 0
@@ -350,6 +366,7 @@ function armMinimum(): void {
 
 watch(startupPhase, (phase) => {
   if (mode.value === 'particle' && phase === 'ready') finishWhenReady()
+  if (mode.value === 'flow-wait' && phase === 'ready') finishFlow()
 })
 watch(variant, () => {
   if (canvas.value && visible.value && mode.value === 'particle') buildField()
@@ -365,10 +382,14 @@ function releaseStartupLock(): void {
   document.body.style.overflow = ''
 }
 
-async function beginParticle(): Promise<void> {
+async function beginLegacyStartup(animateDefault = true): Promise<void> {
   setCinematicCover(false)
   if (particleStarted || !visible.value) return
   particleStarted = true
+  if (variant.value === 'none') {
+    await beginFlow(animateDefault)
+    return
+  }
   mode.value = 'particle'
   // The hold screen is already the cover. Counting the minimum only after the
   // field is built adds another 5s on a cold packaged launch.
@@ -395,6 +416,59 @@ function setCinematicCover(active: boolean): void {
   else delete document.documentElement.dataset.cinematicStartup
 }
 
+function clearFlowTimer(): void {
+  clearTimeout(flowTimer)
+  flowTimer = undefined
+  window.removeEventListener('keydown', skipPendingFlow, true)
+}
+
+function finishFlow(): void {
+  clearFlowTimer()
+  visible.value = false
+  flowComponent.value = null
+  setCinematicCover(false)
+  delete document.documentElement.dataset.cinematicFlow
+}
+
+function fallbackFlow(timedOut = false): void {
+  if (!visible.value || mode.value !== 'flow') return
+  clearFlowTimer()
+  if (startupPhase.value === 'ready' || timedOut) {
+    finishFlow()
+    return
+  }
+  mode.value = 'flow-wait'
+  flowComponent.value = null
+  flowTimer = setTimeout(finishFlow, brief ? BRIEF_FLOW.readyTimeout : FLOW_LIMITS.readyTimeout)
+}
+
+function skipPendingFlow(event: KeyboardEvent): void {
+  if (event.key !== 'Escape' && event.code !== 'Space') return
+  event.preventDefault()
+  event.stopImmediatePropagation()
+  fallbackFlow()
+}
+
+async function beginFlow(animate = true): Promise<void> {
+  startupDecided = true
+  mode.value = 'flow'
+  if (minimumTimer) clearTimeout(minimumTimer)
+  if (holdFallback) clearTimeout(holdFallback)
+  setCinematicCover(true)
+  if (!animate || prefersReducedMotion()) {
+    fallbackFlow()
+    return
+  }
+  window.addEventListener('keydown', skipPendingFlow, true)
+  flowTimer = setTimeout(() => fallbackFlow(), FLOW_LIMITS.moduleTimeout)
+  try {
+    const { default: Flow } = await import('@renderer/cinematic-flow-startup/CinematicFlow.vue')
+    if (visible.value && mode.value === 'flow') flowComponent.value = Flow
+  } catch {
+    fallbackFlow()
+  }
+}
+
 async function playStartupVideo(clip: DeepseekBootClip): Promise<void> {
   mode.value = 'fish'
   const { playVideoBoot } = await import('@renderer/bigfish-startup/play')
@@ -408,7 +482,7 @@ async function finishCinematic(): Promise<void> {
     visible.value = false
     return
   }
-  await beginParticle()
+  await beginLegacyStartup(false)
 }
 
 async function beginFishStartup(thenVideo: boolean, clip: DeepseekBootClip): Promise<void> {
@@ -431,7 +505,7 @@ async function beginFishStartup(thenVideo: boolean, clip: DeepseekBootClip): Pro
     const { cancelVideoBoot } = await import('@renderer/bigfish-startup/play')
     cancelVideoBoot()
     releaseStartupLock()
-    await beginParticle()
+    await beginLegacyStartup(false)
     return
   }
   await finishCinematic()
@@ -442,14 +516,14 @@ async function beginVideoStartup(clip: DeepseekBootClip): Promise<void> {
     await playStartupVideo(clip)
   } catch {
     releaseStartupLock()
-    await beginParticle()
+    await beginLegacyStartup(false)
     return
   }
   await finishCinematic()
 }
 
 function considerStartup(): void {
-  if (!visible.value || !MASCOT_ENABLED || startupDecided) return
+  if (startupScheme === 'flow' || !visible.value || !MASCOT_ENABLED || startupDecided) return
   if (settings.settings) {
     startupDecided = true
     const reducedMotion = prefersReducedMotion()
@@ -466,13 +540,13 @@ function considerStartup(): void {
     } else if (fish) {
       void beginFishStartup(placement === 'after', clip)
     } else {
-      void beginParticle()
+      void beginLegacyStartup()
     }
     return
   }
   if (!settings.loading && settings.error) {
     startupDecided = true
-    void beginParticle()
+    void beginLegacyStartup()
   }
 }
 
@@ -482,21 +556,31 @@ watch(() => [settings.settings, settings.loading, settings.error] as const, cons
 
 onMounted(() => {
   if (!visible.value) return
+  if (startupScheme === 'flow') {
+    void beginFlow()
+    return
+  }
+  if (mode.value === 'flow' || mode.value === 'flow-wait') return
   armMinimum()
   if (!MASCOT_ENABLED) {
-    void beginParticle()
+    void beginLegacyStartup()
     return
   }
   // Settings normally arrive immediately. A hung read must not leave the cover up.
   holdFallback = setTimeout(() => {
     if (mode.value === 'hold' && !startupDecided) {
       startupDecided = true
-      void beginParticle()
+      void beginLegacyStartup(false)
     }
   }, 8000)
 })
 
 onBeforeUnmount(() => {
+  clearFlowTimer()
+  if (mode.value === 'flow' || mode.value === 'flow-wait') {
+    visible.value = false
+    delete document.documentElement.dataset.cinematicFlow
+  }
   setCinematicCover(false)
   cancelAnimationFrame(frameId)
   resizeObserver?.disconnect()
@@ -508,53 +592,51 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <component
+    :is="flowComponent"
+    v-if="visible && mode === 'flow' && flowComponent"
+    :ready="startupPhase === 'ready'"
+    :brief="brief"
+    :data-startup-variant="brief ? variant : undefined"
+    @initialized="clearFlowTimer"
+    @finish="finishFlow"
+    @fallback="fallbackFlow(false)"
+    @timeout="fallbackFlow(true)"
+  >
+    <StartupDiagnostics v-if="brief" :status="status" layout="brief" />
+  </component>
   <div
-    v-if="visible && mode === 'particle'"
+    v-else-if="visible && (mode === 'particle' || mode === 'flow-wait')"
     class="startup-animation"
-    :class="{ 'startup-animation--leaving': leaving }"
+    :class="{
+      'startup-animation--leaving': leaving,
+      'startup-animation--waiting': mode === 'flow-wait'
+    }"
     :style="colorVariables"
     data-testid="startup-animation"
     :data-startup-variant="variant"
+    :data-flow-wait="mode === 'flow-wait' || undefined"
     role="status"
     :aria-label="status"
   >
-    <canvas ref="canvas" class="startup-animation__canvas" aria-hidden="true" />
-    <div class="startup-animation__vignette" aria-hidden="true" />
-    <div class="startup-animation__content">
-      <p class="startup-animation__eyebrow">PI-HARNESS / SYSTEM INIT</p>
-      <p class="startup-animation__status"><span class="startup-animation__pulse" />{{ status }}</p>
-      <div class="startup-animation__rule" aria-hidden="true"><span /></div>
-      <dl class="startup-animation__checks">
-        <div
-          v-for="(check, id) in startupChecks"
-          :key="id"
-          class="startup-animation__check"
-          :data-testid="`startup-check-${id}`"
-        >
-          <dt>
-            {{
-              {
-                node: 'Node.js',
-                npm: 'npm',
-                pi: 'Pi Agent',
-                config: '配置文件'
-              }[id]
-            }}
-          </dt>
-          <dd :class="`startup-animation__result--${check.state}`">
-            <span class="startup-animation__indicator" />{{ check.detail }}
-          </dd>
-        </div>
-      </dl>
-    </div>
+    <canvas
+      v-if="mode === 'particle'"
+      ref="canvas"
+      class="startup-animation__canvas"
+      aria-hidden="true"
+    />
+    <div v-if="mode === 'particle'" class="startup-animation__vignette" aria-hidden="true" />
+    <StartupDiagnostics :status="status" :layout="mode === 'particle' ? 'themed' : 'waiting'" />
   </div>
   <div
     v-else-if="visible && mode !== 'fish'"
     class="startup-animation startup-animation--hold"
+    :class="{ 'startup-animation--waiting': mode === 'flow' }"
     data-testid="startup-animation"
     data-startup-variant="pending"
     role="status"
     aria-label="正在启动…"
+    @click="mode === 'flow' && fallbackFlow()"
   />
 </template>
 
@@ -575,6 +657,12 @@ onBeforeUnmount(() => {
 .startup-animation--hold {
   background: #000;
 }
+.startup-animation--waiting {
+  z-index: 2147483647;
+  background: #030207;
+  color: #dad0ff;
+  app-region: no-drag;
+}
 .startup-animation__canvas,
 .startup-animation__vignette {
   position: absolute;
@@ -586,115 +674,8 @@ onBeforeUnmount(() => {
   pointer-events: none;
   background: radial-gradient(ellipse at 50% 46%, transparent 18%, rgba(0, 0, 0, 0.8) 100%);
 }
-.startup-animation__content {
-  position: absolute;
-  top: 62%;
-  left: 50%;
-  width: min(340px, 70vw);
-  transform: translateX(-50%);
-  text-align: center;
-}
-.startup-animation__eyebrow {
-  margin: 0 0 13px;
-  color: color-mix(in srgb, var(--startup-text) 37%, transparent);
-  font:
-    10px/1.4 ui-monospace,
-    SFMono-Regular,
-    monospace;
-  letter-spacing: 0.25em;
-}
-.startup-animation__status {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 9px;
-  margin: 0;
-  color: color-mix(in srgb, var(--startup-text) 72%, transparent);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-}
-.startup-animation__pulse {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--startup-accent);
-  box-shadow: 0 0 12px var(--startup-accent);
-  animation: pulse 1.3s ease-in-out infinite;
-}
-.startup-animation__rule {
-  height: 1px;
-  margin-top: 23px;
-  background: color-mix(in srgb, var(--startup-text) 12%, transparent);
-  overflow: hidden;
-}
-.startup-animation__rule span {
-  display: block;
-  width: 35%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, var(--startup-accent), transparent);
-  animation: scan 1.7s ease-in-out infinite;
-}
-.startup-animation__checks {
-  margin: 14px 0 0;
-  padding: 0;
-}
-.startup-animation__check {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 26px;
-  color: color-mix(in srgb, var(--startup-text) 48%, transparent);
-  font:
-    11px/1.4 ui-monospace,
-    SFMono-Regular,
-    monospace;
-  letter-spacing: 0.03em;
-}
-.startup-animation__check dt,
-.startup-animation__check dd {
-  margin: 0;
-}
-.startup-animation__check dd {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: color-mix(in srgb, var(--startup-text) 64%, transparent);
-}
-.startup-animation__indicator {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #68727f;
-}
-.startup-animation__result--healthy .startup-animation__indicator {
-  background: var(--startup-accent);
-  box-shadow: 0 0 8px var(--startup-accent);
-}
-.startup-animation__result--warning .startup-animation__indicator {
-  background: #f87915;
-}
-.startup-animation__result--error .startup-animation__indicator {
-  background: #f06565;
-}
-@keyframes pulse {
-  50% {
-    opacity: 0.25;
-    transform: scale(0.65);
-  }
-}
-@keyframes scan {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(380%);
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .startup-animation,
-  .startup-animation__pulse,
-  .startup-animation__rule span {
-    animation: none;
+  .startup-animation {
     transition: none;
   }
 }

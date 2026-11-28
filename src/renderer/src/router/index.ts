@@ -14,6 +14,12 @@ const router = createRouter({
       meta: { title: 'Workspace', i18nKey: 'nav.workspace' }
     },
     {
+      path: '/images',
+      name: 'images',
+      component: () => import('@renderer/views/ImagesView.vue'),
+      meta: { title: 'Images', i18nKey: 'imageStudio.title' }
+    },
+    {
       path: '/git',
       name: 'git',
       component: () => import('@renderer/views/GitView.vue'),

@@ -9,6 +9,7 @@ export const ruRU: MessageTree = {
   universal: universalMessages['ru-RU'],
   nav: {
     home: 'Главная',
+    images: 'Изображения',
     more: 'Ещё',
     aiSessions: 'История ИИ',
     overview: 'Обзор',

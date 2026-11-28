@@ -32,6 +32,7 @@ it.each(['[]', '["git","skills"]', 'not json'])(
     const wrapper = await render('/workspace')
     expect(wrapper.findAll('nav a').map((link) => link.attributes('href'))).toEqual([
       '/workspace',
+      '/images',
       '/models'
     ])
     expect(wrapper.findAll('nav a')[0]!.attributes('aria-label')).toBe('nav.home')

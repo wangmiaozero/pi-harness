@@ -2,6 +2,20 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.21 — 2026-11-28
+
+### Added
+
+#### Images
+
+- Open Images from the sidebar to generate or edit pictures with configured image models. Models are grouped by provider, the same way as the home composer.
+- A placeholder shows the prompt and model while an image is generating. Stop the request from the button beside send.
+- Browse featured prompts and templates, then keep results in My images to download, reuse as a reference, or delete.
+
+#### Startup
+
+- The first window may open with a new startup animation.
+
 ## 2.4.20 — 2026-11-27
 
 ### Added

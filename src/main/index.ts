@@ -1,3 +1,4 @@
+import { CHATGPT_PROVIDER_PREFIX } from '@shared/providers/account-management'
 import { ChatGptAccounts } from './services/chatgpt-accounts'
 import {
   FreeModelService,
@@ -69,6 +70,7 @@ import { normalizeAppTheme, themeAppearance } from '@shared/constants/theme'
 import { DEFAULT_MACOS27_BACKGROUND } from '@shared/constants/macos27-background'
 import { defaultDesktopPetSettings } from '@shared/pet/desktop'
 import { MASCOT_ENABLED } from '@shared/feature-flags'
+import { createStartupSelector, startupOverride } from '@shared/startup-selection'
 import { FileAccessService, type AuthorizedRootsState } from './files/file-access-service'
 import { FileService } from './files/file-service'
 import { GitService } from './git/git-service'
@@ -258,14 +260,21 @@ async function bootstrap(): Promise<void> {
   await metadata.read()
 
   let mainWindow: BrowserWindow | null = null
-  let startupWindowOpened = false
+  const selectWindowStartup = createStartupSelector()
+  const forcedStartup = startupOverride(
+    process.env.PI_HARNESS_STARTUP,
+    !app.isPackaged,
+    process.env.PI_HARNESS_STARTUP_TEST === '1' && Boolean(process.env.PI_HARNESS_USER_DATA)
+  )
   const screenMotion = new ScreenMotionOverlayController()
 
   const openMainWindow = (initialHash?: string, userActivation = false): void => {
     const settings = settingsStore.peek()
-    const showStartup = !startupWindowOpened
-    startupWindowOpened = true
-    mainWindow = createMainWindow(selectedAppIconPath(settings), initialHash, showStartup)
+    mainWindow = createMainWindow(
+      selectedAppIconPath(settings),
+      initialHash,
+      selectWindowStartup(forcedStartup)
+    )
     if (userActivation) {
       const created = mainWindow
       created.once('ready-to-show', () => activateMainWindow(created))
@@ -297,6 +306,11 @@ async function bootstrap(): Promise<void> {
       .catch(() => log.config.warn('Stored provider key migration was not completed'))
   const chatGpt = new ChatGptAccounts(path.join(userData(), 'chatgpt-accounts.json'))
   chatGpt.useFastMode(() => providers.fastMode())
+  providers.useImageAccountToken((providerKey, modelId) =>
+    providerKey.startsWith(CHATGPT_PROVIDER_PREFIX)
+      ? chatGpt.resolve(providerKey, modelId)
+      : Promise.resolve(null)
+  )
   const openRouter = new OpenRouterAuthorization(providers)
   const localAccounts = new LocalAccountDiscovery()
   const providerGateway = new LocalProviderGateway(providers, chatGpt)

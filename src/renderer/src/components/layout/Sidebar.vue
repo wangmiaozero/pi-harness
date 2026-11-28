@@ -2,7 +2,16 @@
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Cpu, Settings, Sparkles, Home, GitBranch, History, MoreHorizontal } from '@lucide/vue'
+import {
+  Cpu,
+  Settings,
+  Sparkles,
+  Home,
+  GitBranch,
+  History,
+  Image,
+  MoreHorizontal
+} from '@lucide/vue'
 import { useSettingsStore } from '@renderer/stores/settings'
 import {
   DropdownMenuRoot,
@@ -36,7 +45,10 @@ const mingPlumBranchUrl = computed(() =>
 )
 
 const catalog = computed(
-  (): Record<NavItemId, { name: NavItemId; to: string; icon: typeof Home; label: string }> => ({
+  (): Record<
+    NavItemId | 'images',
+    { name: NavItemId | 'images'; to: string; icon: typeof Home; label: string }
+  > => ({
     'ai-sessions': {
       name: 'ai-sessions',
       to: '/ai-sessions',
@@ -48,6 +60,12 @@ const catalog = computed(
       to: '/workspace',
       icon: Home,
       label: t('nav.home')
+    },
+    images: {
+      name: 'images',
+      to: '/images',
+      icon: Image,
+      label: t('nav.images')
     },
     models: {
       name: 'models',
@@ -76,14 +94,16 @@ const catalog = computed(
   })
 )
 
-const navItems = computed(() =>
-  normalizeNavOrder(settings.settings?.navOrder).map((id) => catalog.value[id])
-)
-
 const moreOpen = ref(false)
-const visibleItems = computed(() => [catalog.value.workspace, catalog.value.models])
+const visibleItems = computed(() => [
+  catalog.value.workspace,
+  catalog.value.images,
+  catalog.value.models
+])
 const overflowItems = computed(() =>
-  navItems.value.filter((item) => OVERFLOW_NAV_ITEM_IDS.includes(item.name))
+  normalizeNavOrder(settings.settings?.navOrder)
+    .filter((id) => OVERFLOW_NAV_ITEM_IDS.includes(id))
+    .map((id) => catalog.value[id])
 )
 const hiddenActive = computed(() => overflowItems.value.some((item) => isActive(item.to)))
 

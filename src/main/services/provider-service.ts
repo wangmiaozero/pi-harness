@@ -55,6 +55,13 @@ import { isLocalOllamaEndpoint } from '@shared/providers/local-ollama'
 import type { ConnectionTestResult } from '@shared/ipc/api-types'
 import type { ImageModelResult } from '@shared/ipc/api-types'
 import { imageModelRequestSchema } from '@shared/schemas/domain'
+import {
+  CHAT_IMAGE_MODEL_IDS,
+  DEFAULT_COMPATIBLE_IMAGE_SIZE,
+  isChatImageModel,
+  isGptImageModel,
+  isImageToolModel
+} from '@shared/models/image-model'
 import { isProtocolId } from '@shared/constants/protocols'
 import type { ProtocolId } from '@shared/constants/protocols'
 import {
@@ -83,10 +90,20 @@ const OPENAI_API_ORIGIN = 'https://api.openai.com'
 export class ProviderService {
   private readonly queues = new Map<string, ProviderRequestQueue>()
   private readonly chatRoutes = new Map<string, ChatGatewayRoute>()
+  private imageAccountToken:
+    | ((providerKey: string, modelId: string) => Promise<string | null>)
+    | null = null
   constructor(
     private readonly config: PiConfigService,
     private readonly metadata: JsonStore<AppMetadata>
   ) {}
+
+  /** ChatGPT accounts are not models.json providers; their token is resolved here. */
+  useImageAccountToken(
+    resolve: (providerKey: string, modelId: string) => Promise<string | null>
+  ): void {
+    this.imageAccountToken = resolve
+  }
 
   async list(): Promise<ProviderProfile[]> {
     const snap = await this.config.read()
@@ -988,16 +1005,33 @@ export class ProviderService {
   }
 
   /** Invoke an OpenAI-compatible Images API without exposing credentials to the renderer. */
-  async invokeImageModel(raw: unknown): Promise<ImageModelResult> {
+  async invokeImageModel(raw: unknown, cancellation?: AbortSignal): Promise<ImageModelResult> {
     const parsed = imageModelRequestSchema.safeParse(raw)
     if (!parsed.success) {
       throw new ValidationError('Invalid image model request', { issues: parsed.error.issues })
     }
     const input = parsed.data
-    const provider = await this.get(input.providerKey)
-    if (!provider) throw new NotFoundError(`Provider not found: ${input.providerKey}`)
+    if (cancellation?.aborted) throw imageCancelled()
+    const gptImage = isGptImageModel(input.modelId)
+    const size = input.size ?? (gptImage ? undefined : DEFAULT_COMPATIBLE_IMAGE_SIZE)
+    if (input.quality && !gptImage) {
+      throw new ValidationError('This image model uses its default quality')
+    }
+    const configured = await this.get(input.providerKey)
+    const accountToken =
+      configured || !this.imageAccountToken
+        ? null
+        : await this.imageAccountToken(input.providerKey, input.modelId)
+    if (!configured && !accountToken)
+      throw new NotFoundError(`Provider not found: ${input.providerKey}`)
+    if (!configured && accountToken && !gptImage) {
+      throw new ValidationError(
+        'ChatGPT subscription models cannot generate images. Choose an image model from a provider with an API key.'
+      )
+    }
+    const provider = configured ?? accountImageProvider(input.providerKey)
 
-    const apiKey = await resolveCredentialForTest(provider)
+    const apiKey = accountToken ?? (await resolveCredentialForTest(provider))
     if (!apiKey && provider.apiKey) {
       throw new ValidationError('No API key resolved for this provider. Re-enter the key and save.')
     }
@@ -1012,6 +1046,20 @@ export class ProviderService {
     if (!['http:', 'https:'].includes(endpoint.protocol)) {
       throw new ValidationError('Base URL must use HTTP or HTTPS')
     }
+    if (isChatImageModel(input.modelId)) {
+      const image = await this.invokeSvgImageFallback(
+        input,
+        provider,
+        apiKey,
+        [input.modelId],
+        cancellation
+      )
+      if (image.failure) throw new ValidationError(image.failure)
+      if (!image.result) throw new ValidationError(`Image request failed for ${input.modelId}`)
+      return image.result
+    }
+    const imageTool = isImageToolModel(input.modelId)
+    if (imageTool) endpoint = new URL(`${root}/responses`)
 
     const headers: Record<string, string> = { ...provider.headers }
     setHeaderIfMissing(headers, 'Accept', 'application/json')
@@ -1019,29 +1067,37 @@ export class ProviderService {
       setHeaderIfMissing(headers, 'Authorization', `Bearer ${apiKey}`)
 
     let sourceBytes: Uint8Array<ArrayBuffer> | null = null
-    if (input.sourceImage) {
+    if (imageTool) {
+      setHeaderIfMissing(headers, 'Content-Type', 'application/json')
+    } else if (input.sourceImage) {
       sourceBytes = decodeImageBase64(input.sourceImage.base64)
       removeHeader(headers, 'Content-Type')
     } else {
       setHeaderIfMissing(headers, 'Content-Type', 'application/json')
     }
 
+    const stepPlan = !gptImage && isStepPlanImageApi(root)
     const controller = new AbortController()
+    const unbind = bindImageCancellation(controller, cancellation)
     const timer = setTimeout(
       () => controller.abort(),
       Math.min(provider.timeout ?? 120_000, 300_000)
     )
     try {
       for (let attempt = 1; attempt <= IMAGE_REQUEST_MAX_ATTEMPTS; attempt += 1) {
-        const body = input.sourceImage
-          ? createImageEditBody(input, sourceBytes!, isStepPlanImageApi(root))
-          : JSON.stringify({
-              model: input.modelId,
-              prompt: input.prompt,
-              size: input.size,
-              response_format: 'b64_json',
-              ...(isStepPlanImageApi(root) ? stepPlanImageDefaults() : {})
-            })
+        if (cancellation?.aborted) throw imageCancelled()
+        const body = imageTool
+          ? JSON.stringify(responsesImageBody(input))
+          : input.sourceImage
+            ? createImageEditBody(input, sourceBytes!, gptImage, stepPlan)
+            : JSON.stringify({
+                model: input.modelId,
+                prompt: input.prompt,
+                ...(size ? { size } : {}),
+                ...(input.quality ? { quality: input.quality } : {}),
+                ...(gptImage ? {} : { response_format: 'b64_json' }),
+                ...(stepPlan ? stepPlanImageDefaults() : {})
+              })
         const response = await fetch(endpoint, {
           method: 'POST',
           headers,
@@ -1079,7 +1135,7 @@ export class ProviderService {
         } catch {
           throw new ValidationError('Image endpoint returned invalid JSON')
         }
-        const item = imageResultItem(payload)
+        const item = imageTool ? imageToolResultItem(payload) : imageResultItem(payload)
         if (item.base64) {
           const bytes = decodeImageBase64(item.base64)
           return {
@@ -1094,12 +1150,19 @@ export class ProviderService {
       }
       throw new NetworkError('Image request failed after retries')
     } catch (error) {
+      if (cancellation?.aborted) throw imageCancelled()
       if ((error as Error).name === 'AbortError')
         throw new ValidationError('Image request timed out')
       if (error instanceof NetworkError && !input.sourceImage) {
         clearTimeout(timer)
-        const fallback = await this.invokeSvgImageFallback(input, provider, apiKey)
-        if (fallback) return fallback
+        const fallback = await this.invokeSvgImageFallback(
+          input,
+          provider,
+          apiKey,
+          CHAT_IMAGE_MODEL_IDS,
+          cancellation
+        )
+        if (fallback.result) return fallback.result
       }
       if (error instanceof ValidationError || error instanceof NetworkError) throw error
       throw new ValidationError(
@@ -1107,20 +1170,24 @@ export class ProviderService {
       )
     } finally {
       clearTimeout(timer)
+      unbind()
     }
   }
 
   private async invokeSvgImageFallback(
-    input: { providerKey: string; prompt: string; size: string },
+    input: { providerKey: string; prompt: string; size?: string },
     provider: ProviderProfile,
-    apiKey: string | null
-  ): Promise<ImageModelResult | null> {
+    apiKey: string | null,
+    preferredModelIds: readonly string[] = CHAT_IMAGE_MODEL_IDS,
+    cancellation?: AbortSignal
+  ): Promise<{ result: ImageModelResult | null; failure: string | null }> {
     const snapshot = await this.config.read()
     const configuredModels = new Set(
       snapshot.models.providers[input.providerKey]?.models?.map((model) => model.id) ?? []
     )
-    const candidates = ['step-5-preview', 'step-3.7-flash'].filter((id) => configuredModels.has(id))
-    if (candidates.length === 0) return null
+    const candidates = preferredModelIds.filter((id) => configuredModels.has(id))
+    if (cancellation?.aborted) throw imageCancelled()
+    if (candidates.length === 0) return { result: null, failure: null }
 
     const root = imageApiBaseUrl(provider.baseUrl)
     const endpoint = new URL(`${root}/chat/completions`)
@@ -1131,14 +1198,19 @@ export class ProviderService {
     if (apiKey && provider.authHeader)
       setHeaderIfMissing(headers, 'Authorization', `Bearer ${apiKey}`)
 
-    const [height, width] = input.size.split('x').map(Number) as [number, number]
+    const [height, width] = (input.size ?? DEFAULT_COMPATIBLE_IMAGE_SIZE)
+      .split('x')
+      .map(Number) as [number, number]
+    let failure: string | null = null
     for (const modelId of candidates) {
       const controller = new AbortController()
+      const unbind = bindImageCancellation(controller, cancellation)
       const timer = setTimeout(
         () => controller.abort(),
-        Math.min(provider.timeout ?? 120_000, 180_000)
+        Math.min(provider.timeout ?? 300_000, 300_000)
       )
       try {
+        if (cancellation?.aborted) throw imageCancelled()
         log.provider.warn('image engine unavailable; trying local SVG fallback', { modelId })
         const response = await fetch(endpoint, {
           method: 'POST',
@@ -1147,7 +1219,7 @@ export class ProviderService {
             model: modelId,
             stream: false,
             max_tokens: 16_000,
-            reasoning_effort: 'medium',
+            reasoning_effort: 'low',
             messages: [
               {
                 role: 'system',
@@ -1161,6 +1233,7 @@ export class ProviderService {
         })
         const text = await response.text()
         if (!response.ok) {
+          failure = imageFailure(modelId, summarizeErrorBody(text) || `HTTP ${response.status}`)
           log.provider.warn('SVG fallback model request failed', {
             modelId,
             status: response.status,
@@ -1168,29 +1241,42 @@ export class ProviderService {
           })
           continue
         }
-        if (text.length > 2_000_000) continue
+        if (text.length > 2_000_000) {
+          failure = imageFailure(modelId, 'Image response is too large')
+          continue
+        }
 
         const payload = JSON.parse(text) as unknown
         const generated = extractChatCompletionText(payload)
-        if (!generated) continue
+        if (!generated || !/<svg\b/i.test(generated)) {
+          failure = imageFailure(modelId, 'The model returned no image')
+          continue
+        }
         const svg = sanitizeGeneratedSvg(generated, width, height)
         return {
-          mimeType: 'image/svg+xml',
-          base64: Buffer.from(svg, 'utf8').toString('base64'),
-          revisedPrompt: null,
-          fallbackModelId: modelId,
-          fallbackKind: 'svg'
+          result: {
+            mimeType: 'image/svg+xml',
+            base64: Buffer.from(svg, 'utf8').toString('base64'),
+            revisedPrompt: null,
+            fallbackModelId: modelId,
+            fallbackKind: 'svg'
+          },
+          failure: null
         }
       } catch (error) {
-        log.provider.warn('SVG fallback model failed', {
-          modelId,
-          error: redactSecretText((error as Error).message)
-        })
+        if (cancellation?.aborted) throw imageCancelled()
+        const reason =
+          (error as Error).name === 'AbortError'
+            ? 'Image request timed out'
+            : redactSecretText((error as Error).message)
+        failure = imageFailure(modelId, reason)
+        log.provider.warn('SVG fallback model failed', { modelId, error: reason })
       } finally {
         clearTimeout(timer)
+        unbind()
       }
     }
-    return null
+    return { result: null, failure }
   }
 
   async testConnection(
@@ -1433,9 +1519,12 @@ function createImageEditBody(
   input: {
     modelId: string
     prompt: string
+    size?: string
+    quality?: string
     sourceImage?: { mimeType: string; fileName: string }
   },
   bytes: Uint8Array<ArrayBuffer>,
+  gptImage: boolean,
   stepPlan: boolean
 ): FormData {
   const form = new FormData()
@@ -1446,7 +1535,12 @@ function createImageEditBody(
     new Blob([bytes], { type: input.sourceImage!.mimeType }),
     input.sourceImage!.fileName
   )
-  form.set('response_format', 'b64_json')
+  if (gptImage) {
+    if (input.size) form.set('size', input.size)
+    if (input.quality) form.set('quality', input.quality)
+  } else {
+    form.set('response_format', 'b64_json')
+  }
   if (stepPlan) {
     for (const [key, value] of Object.entries(stepPlanImageDefaults())) {
       form.set(key, String(value))
@@ -1532,6 +1626,74 @@ function removeHeader(headers: Record<string, string>, name: string): void {
     (candidate) => candidate.toLowerCase() === name.toLowerCase()
   )
   if (key) delete headers[key]
+}
+
+function responsesImageBody(input: {
+  modelId: string
+  prompt: string
+  sourceImage?: { mimeType: string; base64: string }
+}): Record<string, unknown> {
+  const tool = {
+    model: input.modelId,
+    tools: [{ type: 'image_generation' }],
+    tool_choice: { type: 'image_generation' }
+  }
+  if (!input.sourceImage) return { ...tool, input: input.prompt }
+  return {
+    ...tool,
+    input: [
+      {
+        role: 'user',
+        content: [
+          { type: 'input_text', text: input.prompt },
+          {
+            type: 'input_image',
+            image_url: `data:${input.sourceImage.mimeType};base64,${input.sourceImage.base64}`
+          }
+        ]
+      }
+    ]
+  }
+}
+
+function imageToolResultItem(payload: unknown): {
+  base64: string | null
+  url: string | null
+  revisedPrompt: string | null
+} {
+  const output = asRecord(payload)?.output
+  if (!Array.isArray(output)) return { base64: null, url: null, revisedPrompt: null }
+  for (const entry of output) {
+    const item = asRecord(entry)
+    if (item?.type !== 'image_generation_call' || typeof item.result !== 'string' || !item.result) {
+      continue
+    }
+    return {
+      base64: item.result,
+      url: null,
+      revisedPrompt: typeof item.revised_prompt === 'string' ? item.revised_prompt : null
+    }
+  }
+  return { base64: null, url: null, revisedPrompt: null }
+}
+
+function imageCancelled(): ValidationError {
+  return new ValidationError('Image generation cancelled', { cancelled: true })
+}
+
+function bindImageCancellation(controller: AbortController, cancellation?: AbortSignal): () => void {
+  if (!cancellation) return () => {}
+  const abort = () => controller.abort()
+  if (cancellation.aborted) {
+    abort()
+    return () => {}
+  }
+  cancellation.addEventListener('abort', abort, { once: true })
+  return () => cancellation.removeEventListener('abort', abort)
+}
+
+function imageFailure(modelId: string, reason: string): string {
+  return `Image request failed for ${modelId}: ${reason}`
 }
 
 function imageResultItem(payload: unknown): {
@@ -2006,6 +2168,28 @@ async function resolveCredentialForTest(
     return String(stdout).trim() || null
   }
   return null
+}
+
+function accountImageProvider(providerKey: string): ProviderProfile {
+  const now = Date.now()
+  return {
+    id: providerKey,
+    key: providerKey,
+    name: 'Codex',
+    displayName: 'Codex',
+    enabled: true,
+    protocol: 'openai-responses',
+    baseUrl: 'https://api.openai.com/v1',
+    apiKeyRef: null,
+    apiKey: null,
+    headers: {},
+    authHeader: true,
+    timeout: null,
+    defaultModelId: null,
+    modelCount: 0,
+    createdAt: now,
+    updatedAt: now
+  }
 }
 
 function ensureDefaultModel(

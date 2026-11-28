@@ -9,6 +9,7 @@ export const jaJP: MessageTree = {
   universal: universalMessages['ja-JP'],
   nav: {
     home: 'ホーム',
+    images: '画像',
     more: 'その他',
     aiSessions: 'AI 履歴',
     overview: '概要',

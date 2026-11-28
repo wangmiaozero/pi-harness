@@ -14,7 +14,7 @@ test('overflow navigation accepts an already open menu and waits for selection t
   await expect(page).toHaveURL(/#\/ai-sessions$/)
 })
 
-test('Home and Models stay above More while Settings stays at the bottom', async ({
+test('Home, Images and Models stay above More while Settings stays at the bottom', async ({
   page
 }, testInfo) => {
   await page.setViewportSize({ width: 1200, height: 780 })
@@ -22,10 +22,11 @@ test('Home and Models stay above More while Settings stays at the bottom', async
   const more = page.getByTestId('navigation-more')
   const menu = page.getByTestId('navigation-more-menu')
   const settings = page.getByTestId('navigation-settings')
-  await expect(rail.locator('nav a')).toHaveCount(2)
+  await expect(rail.locator('nav a')).toHaveCount(3)
   await expect(rail.locator('nav a').first()).toHaveAttribute('href', '#/workspace')
   await expect(rail.locator('nav a').first()).toHaveAttribute('aria-label', '首页')
-  await expect(rail.locator('nav a').nth(1)).toHaveAttribute('href', '#/models')
+  await expect(rail.locator('nav a').nth(1)).toHaveAttribute('href', '#/images')
+  await expect(rail.locator('nav a').nth(2)).toHaveAttribute('href', '#/models')
   await expect(rail.locator('nav a').first()).toHaveText('')
   expect((await rail.boundingBox())!.width).toBe(52)
   const railBox = (await rail.boundingBox())!
@@ -42,7 +43,7 @@ test('Home and Models stay above More while Settings stays at the bottom', async
   await expect(page.getByRole('tooltip')).toHaveCount(0)
   await page.keyboard.press('Tab')
   await expect(rail.locator('nav a').nth(1)).toBeFocused()
-  await expect(page.getByRole('tooltip')).toHaveText('模型')
+  await expect(page.getByRole('tooltip')).toHaveText('图像')
   await page.keyboard.press('Escape')
   await expect(page.getByRole('tooltip')).toHaveCount(0)
   await page.keyboard.press('Shift+Tab')
@@ -50,7 +51,7 @@ test('Home and Models stay above More while Settings stays at the bottom', async
   await expect(page.getByRole('tooltip')).toHaveText('首页')
   await page.mouse.move(600, 400)
   await expect(page.getByRole('tooltip')).toHaveCount(0)
-  await rail.locator('nav a').nth(1).hover()
+  await rail.locator('nav a').nth(2).hover()
   await expect(page.getByRole('tooltip')).toHaveText('模型')
   await settings.hover()
   await expect(page.getByRole('tooltip')).toHaveText('设置')
@@ -74,6 +75,7 @@ test('Home and Models stay above More while Settings stays at the bottom', async
   await expect(more).not.toHaveClass(/bg-\[var\(--bg-surface-raised\)\]/)
   await page.evaluate(() => window.piSwitch.settings.set({ theme: 'dark' }))
   await page.reload()
+  await expect(page.getByTestId('startup-animation')).toHaveCount(0)
   await more.click()
   await expect(menu).toBeVisible()
   await page.screenshot({ path: path.join(testInfo.outputDir, 'navigation-more-dark.png') })
@@ -103,7 +105,7 @@ test('navigation width and bottom Settings remain fixed across skins', async ({ 
     )
     await page.reload()
     const rail = page.getByTestId('app-navigation-rail')
-    await expect(rail.locator('nav a')).toHaveCount(2)
+    await expect(rail.locator('nav a')).toHaveCount(3)
     expect((await rail.boundingBox())!.width).toBe(52)
     const railBox = (await rail.boundingBox())!
     const settingsBox = (await page.getByTestId('navigation-settings').boundingBox())!

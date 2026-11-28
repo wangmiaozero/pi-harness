@@ -1,5 +1,6 @@
 import { reactive, ref } from 'vue'
 import type { NodeRuntimeInfo } from '@shared/ipc/api-types'
+import type { StartupScheme } from '@shared/startup-selection'
 
 export type StartupPhase = 'settings' | 'services' | 'ready'
 
@@ -12,9 +13,10 @@ export function shouldPlayStartupAnimation(search: string): boolean {
 }
 
 export const startupPhase = ref<StartupPhase>('settings')
-export const startupAnimationVisible = ref(
-  shouldPlayStartupAnimation(typeof location === 'undefined' ? '' : location.search)
-)
+const search = typeof location === 'undefined' ? '' : location.search
+export const startupScheme: StartupScheme =
+  new URLSearchParams(search).get('startup') === 'flow' ? 'flow' : 'legacy'
+export const startupAnimationVisible = ref(shouldPlayStartupAnimation(search))
 
 export type StartupCheckState = 'checking' | 'healthy' | 'warning' | 'error'
 

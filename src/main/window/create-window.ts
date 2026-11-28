@@ -6,6 +6,7 @@ import { BrowserWindow } from 'electron'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { DEFAULT_WINDOW } from '@shared/constants/index'
+import type { WindowStartup } from '@shared/startup-selection'
 import { getIsDev } from '../services/app-paths'
 import { log } from '../services/logger'
 import { attachRendererGuards } from './renderer-guards'
@@ -14,8 +15,8 @@ import { installArchitectureFullscreen } from './architecture-fullscreen'
 
 export function createMainWindow(
   iconPath: string,
-  initialHash?: string,
-  showStartup = true
+  initialHash: string | undefined,
+  startup: WindowStartup
 ): BrowserWindow {
   const rendererEntry = path.join(import.meta.dirname, '../renderer/index.html')
   const developmentRendererUrl =
@@ -28,7 +29,7 @@ export function createMainWindow(
     minWidth: DEFAULT_WINDOW.minWidth,
     minHeight: DEFAULT_WINDOW.minHeight,
     show: false,
-    backgroundColor: '#17191C',
+    backgroundColor: startup === 'flow' ? '#030207' : '#17191C',
     icon: iconPath,
     // Keep the native macOS titlebar behavior (drag and double-click zoom),
     // while drawing the title and controls ourselves in the renderer.
@@ -82,17 +83,14 @@ export function createMainWindow(
   attachRendererGuards(win, rendererUrl)
 
   if (developmentRendererUrl) {
-    const hashIndex = developmentRendererUrl.indexOf('#')
-    const base =
-      hashIndex >= 0 ? developmentRendererUrl.slice(0, hashIndex) : developmentRendererUrl
-    const existingHash = hashIndex >= 0 ? developmentRendererUrl.slice(hashIndex) : ''
-    const query = showStartup ? '' : `${base.includes('?') ? '&' : '?'}startup=0`
-    const hash = initialHash ? `#${initialHash}` : existingHash
-    void win.loadURL(`${base}${query}${hash}`)
+    const url = new URL(developmentRendererUrl)
+    url.searchParams.set('startup', startup)
+    if (initialHash) url.hash = initialHash
+    void win.loadURL(url.href)
     log.app.info('loaded development renderer')
   } else {
     void win.loadFile(rendererEntry, {
-      ...(showStartup ? {} : { query: { startup: '0' } }),
+      query: { startup },
       ...(initialHash ? { hash: initialHash } : {})
     })
   }

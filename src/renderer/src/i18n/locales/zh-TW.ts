@@ -9,6 +9,7 @@ export const zhTW: MessageTree = {
   universal: universalMessages['zh-TW'],
   nav: {
     home: '首頁',
+    images: '圖像',
     more: '更多',
     aiSessions: 'AI 會話',
     overview: '總覽',

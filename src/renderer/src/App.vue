@@ -23,8 +23,12 @@ import {
 } from '@renderer/composables/useAgentAuraFrame'
 import { getApi, isBridgeAvailable } from '@renderer/composables/useApi'
 import { usesDeepseekVideoSkin } from '@renderer/bigfish-startup/gate'
-import { themePackInstalled } from '@renderer/utils/visual-skin'
-import { applyVisualSkin, getActiveVisualSkin } from '@renderer/utils/visual-skin'
+import {
+  applyVisualSkin,
+  getActiveVisualSkin,
+  installRevision,
+  themePackInstalled
+} from '@renderer/utils/visual-skin'
 
 const settings = useSettingsStore()
 const agent = useAgentStore()
@@ -63,7 +67,8 @@ watch(
     settings.settings?.theme,
     settings.settings?.mascotStyle,
     settings.settings?.mascotUnlocked,
-    settings.settings?.customSkinId
+    settings.settings?.customSkinId,
+    installRevision.value
   ],
   () => {
     applyVisualSkin(settings.settings)
@@ -149,7 +154,7 @@ onBeforeUnmount(() => {
   <UpdateReminderDialog />
   <Toaster
     :theme="toasterTheme"
-    position="bottom-right"
+    :position="router.currentRoute.value.name === 'images' ? 'top-right' : 'bottom-right'"
     :toast-options="{ class: 'pi-harness-toast' }"
   />
   <div

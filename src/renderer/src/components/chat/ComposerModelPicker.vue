@@ -22,7 +22,7 @@ interface VendorGroup {
 }
 
 const modelValue = defineModel<string>('model', { required: true })
-const thinkingValue = defineModel<string>('thinking', { required: true })
+const thinkingValue = defineModel<string>('thinking', { default: 'auto' })
 const fastValue = defineModel<boolean>('fast', { default: false })
 const emit = defineEmits<{ interact: []; open: []; refresh: [] }>()
 const props = withDefaults(
@@ -36,6 +36,9 @@ const props = withDefaults(
     refreshGroup?: string
     refreshLabel?: string
     refreshing?: boolean
+    showThinking?: boolean
+    ariaLabel?: string
+    testId?: string
   }>(),
   {
     defaultModel: '',
@@ -43,7 +46,10 @@ const props = withDefaults(
     thinkingLabels: () => ({}),
     disabled: false,
     refreshGroup: '',
-    refreshLabel: ''
+    refreshLabel: '',
+    showThinking: true,
+    ariaLabel: '',
+    testId: 'workspace-model-select'
   }
 )
 
@@ -120,6 +126,7 @@ const selectedLabel = computed(() => {
   const group =
     selected.value?.group || (modelValue.value.includes('/') ? modelValue.value.split('/')[0] : '')
   const base = group ? `${group} / ${modelLabel.value}` : modelLabel.value
+  if (!props.showThinking) return base
   const label = `${base} · ${thinkingLabel.value}`
   return fastActive.value ? `${label} · ${t('workspace.fastMode')}` : label
 })
@@ -326,7 +333,7 @@ watch(active, (visible) => {
 </script>
 
 <template>
-  <div data-testid="workspace-model-select" class="min-w-0 max-w-[300px] shrink">
+  <div :data-testid="testId" class="min-w-0 max-w-[300px] shrink">
     <button
       ref="trigger"
       type="button"
@@ -335,7 +342,7 @@ watch(active, (visible) => {
       :aria-disabled="switching || undefined"
       :aria-expanded="open"
       aria-haspopup="dialog"
-      :aria-label="$t('workspace.model')"
+      :aria-label="ariaLabel || $t('workspace.model')"
       :title="selectedLabel"
       @click="toggle"
     >
@@ -344,7 +351,7 @@ watch(active, (visible) => {
         modelLabel
       }}</span>
       <span
-        v-if="modelValue"
+        v-if="showThinking && modelValue"
         data-testid="composer-thinking-level"
         class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[var(--text-tertiary)]"
       >
@@ -530,8 +537,9 @@ watch(active, (visible) => {
             {{ $t('workspace.noMatchingModels') }}
           </p>
         </div>
-        <div class="-mx-1 mt-1 h-px shrink-0 bg-[var(--border-default)]" />
-        <div class="relative z-10 flex shrink-0 flex-col px-1 pb-1">
+        <template v-if="showThinking">
+          <div class="-mx-1 mt-1 h-px shrink-0 bg-[var(--border-default)]" />
+          <div class="relative z-10 flex shrink-0 flex-col px-1 pb-1">
           <div class="relative z-10 flex items-center justify-between gap-2 px-1">
             <span class="text-[13px] font-medium text-[var(--text-primary)]">
               {{ $t('workspace.thinkingIntensity') }}
@@ -572,7 +580,8 @@ watch(active, (visible) => {
               :model-id="modelValue"
             />
           </div>
-        </div>
+          </div>
+        </template>
       </div>
     </Teleport>
   </div>

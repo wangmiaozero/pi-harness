@@ -81,7 +81,11 @@ it('removes the retired OpenCode connection, its dedicated credentials and catal
             'opencode-go': { ...piProvider, baseUrl: 'https://opencode.ai/inference/go/openai/v1' },
             'opencode-zen': { ...piProvider, baseUrl: 'https://opencode.ai/inference/v1' },
             custom: { ...piProvider, baseUrl: 'https://opencode.ai/inference/openai/v1' },
-            'pi-harness-free': { ...piProvider, baseUrl: 'http://127.0.0.1:9/v1', apiKey: 'internal' }
+            'pi-harness-free': {
+              ...piProvider,
+              baseUrl: 'http://127.0.0.1:9/v1',
+              apiKey: 'internal'
+            }
           }
         }
       })
@@ -207,14 +211,17 @@ describe('ProviderService enabled-state invariant', () => {
 describe('ProviderService image models', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  function imageService(fallbackModels: string[] = []) {
+  function imageService(
+    fallbackModels: string[] = [],
+    baseUrl = 'https://api.stepfun.com/step_plan/v1'
+  ) {
     const config = {
       read: vi.fn(async () => ({
         models: {
           providers: {
             stepfun: {
               api: 'openai-completions',
-              baseUrl: 'https://api.stepfun.com/step_plan/v1',
+              baseUrl,
               authHeader: true,
               models: [
                 { id: 'step-image-edit-2', name: 'Step Image Edit 2' },
@@ -239,7 +246,7 @@ describe('ProviderService image models', () => {
     return new ProviderService(config as never, metadata as never)
   }
 
-  it('uses the generations endpoint when no source image is supplied', async () => {
+  it('uses the generations endpoint and compatible defaults without a source image or size', async () => {
     const fetchMock = vi.fn(
       async (_input: string | URL | Request, _init?: RequestInit) =>
         new Response(JSON.stringify({ data: [{ b64_json: 'iVBORw==' }] }), { status: 200 })
@@ -249,8 +256,7 @@ describe('ProviderService image models', () => {
     const result = await imageService().invokeImageModel({
       providerKey: 'stepfun',
       modelId: 'step-image-edit-2',
-      prompt: 'ink landscape',
-      size: '1024x1024'
+      prompt: 'ink landscape'
     })
 
     expect(result).toMatchObject({ mimeType: 'image/png', base64: 'iVBORw==' })
@@ -260,6 +266,7 @@ describe('ProviderService image models', () => {
     expect(JSON.parse(String(fetchMock.mock.calls[0]![1]?.body))).toMatchObject({
       model: 'step-image-edit-2',
       prompt: 'ink landscape',
+      size: '1024x1024',
       response_format: 'b64_json',
       cfg_scale: 1,
       steps: 8,
@@ -299,6 +306,127 @@ describe('ProviderService image models', () => {
     expect(body.get('steps')).toBe('8')
     expect(body.get('seed')).toBe('1')
     expect(body.get('text_mode')).toBe('false')
+  })
+
+  it('uses GPT Image generation and edit parameters with automatic base64 responses', async () => {
+    const fetchMock = vi.fn(
+      async (_input: string | URL | Request, _init?: RequestInit) =>
+        new Response(JSON.stringify({ data: [{ b64_json: 'iVBORw==' }] }))
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const service = imageService([], 'https://api.openai.com/v1')
+    const request = {
+      providerKey: 'stepfun',
+      modelId: 'gpt-image-2-2026-04-21',
+      prompt: 'Draw a coastal landscape',
+      size: '1536x1024',
+      quality: 'high'
+    }
+    await service.invokeImageModel(request)
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      'https://api.openai.com/v1/images/generations'
+    )
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      model: request.modelId,
+      prompt: request.prompt,
+      size: request.size,
+      quality: request.quality
+    })
+    await service.invokeImageModel({
+      ...request,
+      size: '1024x1536',
+      sourceImage: { mimeType: 'image/png', base64: 'iVBORw==', fileName: 'coast.png' }
+    })
+    expect(String(fetchMock.mock.calls[1]?.[0])).toBe('https://api.openai.com/v1/images/edits')
+    const fields = fetchMock.mock.calls[1]?.[1]?.body as FormData
+    expect(fields.get('size')).toBe('1024x1536')
+    expect(fields.get('quality')).toBe('high')
+    expect(fields.get('image')).toBeInstanceOf(Blob)
+    expect(fields.has('response_format')).toBe(false)
+  })
+
+  it('sends a configured ChatGPT account image model through the OpenAI images API', async () => {
+    const fetchMock = vi.fn(
+      async (_input: string | URL | Request, _init?: RequestInit) =>
+        new Response(JSON.stringify({ data: [{ b64_json: 'iVBORw==' }] }))
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const service = imageService([], 'https://api.openai.com/v1')
+    const providerKey = 'chatgpt-account-493957de-923a-4681-b5b6-d8de350c293a'
+    service.useImageAccountToken(async (key, modelId) => {
+      expect(key).toBe(providerKey)
+      expect(modelId).toBe('gpt-image-2')
+      return 'account-token'
+    })
+    await service.invokeImageModel({
+      providerKey,
+      modelId: 'gpt-image-2',
+      prompt: 'a red square',
+      quality: 'auto'
+    })
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      'https://api.openai.com/v1/images/generations'
+    )
+    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>
+    expect(headers.Authorization).toBe('Bearer account-token')
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      model: 'gpt-image-2',
+      prompt: 'a red square',
+      quality: 'auto'
+    })
+
+    service.useImageAccountToken(async () => null)
+    await expect(
+      service.invokeImageModel({
+        providerKey,
+        modelId: 'gpt-image-2',
+        prompt: 'a red square'
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  it('rejects ChatGPT subscription chat models before calling the image tool', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const service = imageService([], 'https://api.openai.com/v1')
+    service.useImageAccountToken(async () => 'account-token')
+    await expect(
+      service.invokeImageModel({
+        providerKey: 'chatgpt-account-493957de-923a-4681-b5b6-d8de350c293a',
+        modelId: 'gpt-6.1-sol',
+        prompt: 'a red square'
+      })
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects unrecognized image sizes before contacting the provider', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(
+      imageService().invokeImageModel({
+        providerKey: 'stepfun',
+        modelId: 'step-image-edit-2',
+        prompt: 'Paint a landscape',
+        size: '0x0'
+      })
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects quality levels outside the image API contract', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(
+      imageService([], 'https://api.openai.com/v1').invokeImageModel({
+        providerKey: 'stepfun',
+        modelId: 'gpt-image-2',
+        prompt: 'Paint a landscape',
+        size: '1024x1024',
+        quality: 'invalid'
+      })
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('retries temporary image engine failures and re-creates the request', async () => {
@@ -430,6 +558,88 @@ describe('ProviderService image models', () => {
     )
     expect(JSON.parse(String(fetchMock.mock.calls[4]![1]?.body))).toMatchObject({
       model: 'step-5-preview'
+    })
+  })
+
+  it('renders a selected Step chat image model through that model', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content:
+                  '<svg width="10" height="10"><rect width="10" height="10" fill="#123456"/></svg>'
+              }
+            }
+          ]
+        }),
+        { status: 200 }
+      )
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await imageService(['step-3.7-flash']).invokeImageModel({
+      providerKey: 'stepfun',
+      modelId: 'step-3.7-flash',
+      prompt: 'ink landscape'
+    })
+
+    expect(result.mimeType).toBe('image/svg+xml')
+    expect(result.fallbackModelId).toBe('step-3.7-flash')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(String(fetchMock.mock.calls[0]![0])).toBe(
+      'https://api.stepfun.com/step_plan/v1/chat/completions'
+    )
+    expect(JSON.parse(String(fetchMock.mock.calls[0]![1]?.body))).toMatchObject({
+      model: 'step-3.7-flash'
+    })
+  })
+
+  it('stops before calling the model when image generation is already cancelled', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const cancellation = new AbortController()
+    cancellation.abort()
+
+    await expect(
+      imageService(['step-3.7-flash']).invokeImageModel(
+        {
+          providerKey: 'stepfun',
+          modelId: 'step-3.7-flash',
+          prompt: 'ink landscape'
+        },
+        cancellation.signal
+      )
+    ).rejects.toMatchObject({ details: { cancelled: true } })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('sends an OpenAI mainline image model through the image generation tool', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          output: [{ type: 'image_generation_call', result: 'iVBORw==', revised_prompt: 'a cat' }]
+        }),
+        { status: 200 }
+      )
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await imageService([], 'https://api.openai.com/v1').invokeImageModel({
+      providerKey: 'stepfun',
+      modelId: 'gpt-6.2-sol',
+      prompt: 'a cat'
+    })
+
+    expect(result).toMatchObject({ mimeType: 'image/png', revisedPrompt: 'a cat' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(String(fetchMock.mock.calls[0]![0])).toBe('https://api.openai.com/v1/responses')
+    expect(JSON.parse(String(fetchMock.mock.calls[0]![1]?.body))).toEqual({
+      model: 'gpt-6.2-sol',
+      input: 'a cat',
+      tools: [{ type: 'image_generation' }],
+      tool_choice: { type: 'image_generation' }
     })
   })
 })

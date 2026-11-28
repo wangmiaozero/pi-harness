@@ -1,4 +1,5 @@
 import type { AgentSettingsAPI } from '../agent-settings/schema'
+import type { ImageModelSize, ImageQuality } from '../models/image-model'
 import type {
   MarketInstalled,
   MarketInstallResult,
@@ -924,7 +925,8 @@ export interface ImageModelRequest {
   providerKey: string
   modelId: string
   prompt: string
-  size: '1024x1024' | '768x1360' | '896x1184' | '1360x768' | '1184x896'
+  size?: ImageModelSize
+  quality?: ImageQuality
   sourceImage?: {
     mimeType: 'image/png' | 'image/jpeg' | 'image/webp'
     base64: string
@@ -1094,7 +1096,8 @@ export interface PiSwitchAPI {
     setVisibility(entries: { id: string; enabled: boolean }[]): Promise<ModelDefinition[]>
     fastMode(): Promise<boolean>
     setFastMode(enabled: boolean): Promise<boolean>
-    invokeImage(input: ImageModelRequest): Promise<ImageModelResult>
+    invokeImage(input: ImageModelRequest & { requestId?: string }): Promise<ImageModelResult>
+    cancelImage(requestId: string): Promise<void>
   }
   config: {
     read(): Promise<RawConfig>

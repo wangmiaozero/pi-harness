@@ -19,7 +19,38 @@ const ALLOWED_ELEMENTS = new Set([
   'text',
   'tspan',
   'clippath',
-  'mask'
+  'mask',
+  'filter',
+  'fegaussianblur',
+  'feflood',
+  'feoffset',
+  'feblend',
+  'fecomposite',
+  'fecolormatrix',
+  'femerge',
+  'femergenode',
+  'fecomponenttransfer',
+  'fefunca',
+  'fefuncb',
+  'fefuncg',
+  'fefuncr',
+  'feturbulence',
+  'femorphology',
+  'fedropshadow'
+])
+const REJECTED_ELEMENTS = new Set([
+  'script',
+  'foreignobject',
+  'iframe',
+  'object',
+  'embed',
+  'audio',
+  'video',
+  'animate',
+  'animatetransform',
+  'animatemotion',
+  'set',
+  'handler'
 ])
 const ALLOWED_ATTRIBUTES = new Set([
   'xmlns',
@@ -59,7 +90,25 @@ const ALLOWED_ATTRIBUTES = new Set([
   'font-size',
   'font-weight',
   'text-anchor',
-  'dominant-baseline'
+  'dominant-baseline',
+  'filter',
+  'stdDeviation',
+  'in',
+  'in2',
+  'result',
+  'mode',
+  'type',
+  'values',
+  'dx',
+  'dy',
+  'operator',
+  'k1',
+  'k2',
+  'k3',
+  'k4',
+  'flood-color',
+  'flood-opacity',
+  'color-interpolation-filters'
 ])
 
 export function svgFallbackPrompt(prompt: string, width: number, height: number): string {
@@ -67,17 +116,26 @@ export function svgFallbackPrompt(prompt: string, width: number, height: number)
 }
 
 export function extractChatCompletionText(payload: unknown): string | null {
-  const content = (payload as { choices?: Array<{ message?: { content?: unknown } }> })?.choices?.[0]
-    ?.message?.content
-  if (typeof content === 'string') return content
-  if (Array.isArray(content)) {
-    const text = content
+  const message = (payload as { choices?: Array<{ message?: unknown }> })?.choices?.[0]?.message
+  if (!message || typeof message !== 'object') return null
+  const record = message as Record<string, unknown>
+  const texts = [record.content, record.reasoning, record.reasoning_content]
+    .map(textContent)
+    .filter((value): value is string => !!value)
+  return texts.find((value) => /<svg\b/i.test(value)) ?? texts[0] ?? null
+}
+
+function textContent(value: unknown): string | null {
+  if (typeof value === 'string') return value.trim() || null
+  if (Array.isArray(value)) {
+    const text = value
       .map((item) =>
         item && typeof item === 'object' && typeof (item as { text?: unknown }).text === 'string'
           ? (item as { text: string }).text
           : ''
       )
       .join('')
+      .trim()
     return text || null
   }
   return null
@@ -118,8 +176,12 @@ function extractSvg(raw: string): string | null {
 
 function sanitizeElement(element: Element): void {
   const tag = element.tagName.toLowerCase()
-  if (!ALLOWED_ELEMENTS.has(tag)) {
+  if (REJECTED_ELEMENTS.has(tag)) {
     throw new ValidationError(`SVG fallback used unsupported element: ${tag}`)
+  }
+  if (!ALLOWED_ELEMENTS.has(tag)) {
+    element.parentNode?.removeChild(element)
+    return
   }
 
   for (const attribute of Array.from(element.attributes)) {

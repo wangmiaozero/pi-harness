@@ -9,6 +9,7 @@ export const koKR: MessageTree = {
   universal: universalMessages['ko-KR'],
   nav: {
     home: '홈',
+    images: '이미지',
     more: '더 보기',
     aiSessions: 'AI 기록',
     overview: '개요',

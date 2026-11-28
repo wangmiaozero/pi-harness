@@ -9,6 +9,7 @@ export const frFR: MessageTree = {
   universal: universalMessages['fr-FR'],
   nav: {
     home: 'Accueil',
+    images: 'Images',
     more: 'Plus',
     aiSessions: 'Historique IA',
     overview: 'Vue d\'ensemble',

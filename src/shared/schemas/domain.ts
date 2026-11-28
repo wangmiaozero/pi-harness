@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod'
+import { IMAGE_MODEL_SIZES, IMAGE_QUALITIES } from '../models/image-model'
 import { providerAdvancedSchema } from '../providers/advanced-settings'
 import { piApiTypeSchema, piInputTypeSchema, piThinkingLevelSchema } from './pi'
 
@@ -110,7 +111,8 @@ export const imageModelRequestSchema = z
     providerKey: providerKeySchema,
     modelId: z.string().trim().min(1).max(256),
     prompt: z.string().trim().min(1).max(8_000),
-    size: z.enum(['1024x1024', '768x1360', '896x1184', '1360x768', '1184x896']),
+    size: z.enum(IMAGE_MODEL_SIZES).optional(),
+    quality: z.enum(IMAGE_QUALITIES).optional(),
     sourceImage: z
       .object({
         mimeType: z.enum(['image/png', 'image/jpeg', 'image/webp']),

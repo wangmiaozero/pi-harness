@@ -25,6 +25,19 @@ describe('SVG image fallback', () => {
     ).toThrow('unsupported element')
   })
 
+  it('keeps a blur filter and drops an external filter image', () => {
+    const svg = sanitizeGeneratedSvg(
+      '<svg><filter id="blur"><feGaussianBlur stdDeviation="2"/><feImage href="https://bad.test/a"/></filter><rect width="10" height="10" filter="url(#blur)" fill="#123456"/></svg>',
+      10,
+      10
+    )
+    expect(svg).toContain('feGaussianBlur')
+    expect(svg).toContain('filter="url(#blur)"')
+    expect(svg).toContain('#123456')
+    expect(svg).not.toContain('feImage')
+    expect(svg).not.toContain('bad.test')
+  })
+
   it('removes external references and event handlers', () => {
     const svg = sanitizeGeneratedSvg(
       '<svg><rect width="10" height="10" onclick="alert(1)" fill="url(https://bad.test/a)"/></svg>',
@@ -40,5 +53,10 @@ describe('SVG image fallback', () => {
     expect(
       extractChatCompletionText({ choices: [{ message: { content: '<svg></svg>' } }] })
     ).toBe('<svg></svg>')
+    expect(
+      extractChatCompletionText({
+        choices: [{ message: { content: null, reasoning: 'plan\n<svg></svg>' } }]
+      })
+    ).toBe('plan\n<svg></svg>')
   })
 })

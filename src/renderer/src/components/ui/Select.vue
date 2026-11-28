@@ -31,6 +31,7 @@ const props = withDefaults(
     tone?: 'default' | 'success' | 'warning' | 'error'
     menuMinWidth?: number
     cascade?: boolean
+    showSelectedGroup?: boolean
   }>(),
   {
     label: '',
@@ -43,7 +44,8 @@ const props = withDefaults(
     size: 'md',
     tone: 'default',
     menuMinWidth: 0,
-    cascade: false
+    cascade: false,
+    showSelectedGroup: true
   }
 )
 
@@ -66,7 +68,7 @@ const cascadeFocus = ref<'group' | 'option'>('group')
 const selected = computed(() => props.options.find((o) => o.value === model.value))
 const selectedLabel = computed(() => {
   if (!selected.value) return ''
-  return selected.value.group
+  return selected.value.group && props.showSelectedGroup
     ? `${selected.value.group} / ${selected.value.label}`
     : selected.value.label
 })

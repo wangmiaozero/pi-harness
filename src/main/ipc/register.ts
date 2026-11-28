@@ -1,3 +1,4 @@
+import { registerImageRequests } from './register-image-requests'
 import { registerProviderConnection } from './register-provider-connection'
 import { registerProviderGatewaySwitch } from './register-provider-gateway-switch'
 import { registerModelPreferences } from './register-model-preferences'
@@ -553,9 +554,7 @@ export function registerIpc(services: Services): void {
       )
   )
   ipcMain.handle(IPC_INVOKE.modelGetActive, () => wrap(() => models.getActive()))
-  ipcMain.handle(IPC_INVOKE.modelInvokeImage, (_e, input: unknown) =>
-    wrap(() => providers.invokeImageModel(input))
-  )
+  registerImageRequests(ipcMain, wrap, providers)
 
   // ---- config ----
   ipcMain.handle(IPC_INVOKE.configRead, () =>

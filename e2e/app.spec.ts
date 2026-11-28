@@ -144,16 +144,23 @@ test.describe('Application shell', () => {
     expect(draggableButtons).toBe(0)
   })
 
-  test('shows the particle startup animation on each window load', async ({ page }) => {
+  test('shows the short flow with startup checks on each window load', async ({
+    page
+  }, testInfo) => {
     await page.reload()
-    await expect(page.getByTestId('startup-animation')).toBeVisible()
-    await expect(page.getByTestId('startup-animation')).toContainText('检测')
+    const startup = page.getByTestId('startup-animation')
+    await expect(startup).toHaveAttribute('data-startup-variant', 'none')
+    await expect(startup).toContainText('检测')
+    await expect(startup).toHaveAttribute('data-flow-stage', 'title')
+    await page.screenshot({ path: testInfo.outputPath('default-startup-flow.png') })
     await expect(page.getByTestId('startup-check-network')).toHaveCount(0)
     await expect(page.getByTestId('startup-check-node')).toContainText(
       /已就绪|未检测到|版本过低|检测失败/
     )
     await expect(page.getByTestId('startup-check-npm')).toContainText(/已就绪|未检测到|检测失败/)
-    await expect(page.getByTestId('startup-animation')).toBeHidden({ timeout: 12_000 })
+    await expect(startup).toHaveAttribute('data-flow-stage', 'iris')
+    await expect(startup).toHaveCount(0)
+    await expect(page.getByTestId('app-shell')).toBeVisible()
   })
 
   test('keeps the command palette open on outside clicks and closes by Escape or its close button', async ({

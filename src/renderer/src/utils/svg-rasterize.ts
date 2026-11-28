@@ -1,8 +1,9 @@
-import type { ImageModelRequest, ImageModelResult } from '@shared/ipc/api-types'
+import type { ImageModelResult } from '@shared/ipc/api-types'
+import { DEFAULT_COMPATIBLE_IMAGE_SIZE, type ImageModelSize } from '@shared/models/image-model'
 
 export async function rasterizeSvgImageResult(
   result: ImageModelResult,
-  size: ImageModelRequest['size']
+  size: ImageModelSize = DEFAULT_COMPATIBLE_IMAGE_SIZE
 ): Promise<ImageModelResult> {
   if (result.mimeType !== 'image/svg+xml') return result
 

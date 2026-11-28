@@ -9,6 +9,7 @@ export const deDE: MessageTree = {
   universal: universalMessages['de-DE'],
   nav: {
     home: 'Startseite',
+    images: 'Bilder',
     more: 'Mehr',
     aiSessions: 'KI Verlauf',
     overview: 'Übersicht',

@@ -9,6 +9,7 @@ export const zhCN: MessageTree = {
   universal: universalMessages['zh-CN'],
   nav: {
     home: '首页',
+    images: '图像',
     more: '更多',
     aiSessions: 'AI 会话',
     overview: '概览',

@@ -8,6 +8,7 @@ export const enUS = {
   universal: universalMessages['en-US'],
   nav: {
     home: 'Home',
+    images: 'Images',
     more: 'More',
     aiSessions: 'AI Sessions',
     overview: 'Overview',
