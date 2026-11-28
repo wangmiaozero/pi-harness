@@ -75,6 +75,47 @@ describe('MessageView', () => {
     expect(writeText).toHaveBeenCalledWith('**交付摘要**')
   })
 
+  it('copies the selected Markdown code block verbatim', async () => {
+    const copyText = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined)
+    vi.stubGlobal('piSwitch', { system: { copyText } })
+    const code = '  <p>A & B</p>\n\n    <span>indented</span>  '
+    const message: AssistantMessage = {
+      role: 'assistant',
+      model: 'test-model',
+      provider: 'test-provider',
+      content: [
+        {
+          type: 'text',
+          text: [
+            'Use `inline`.',
+            '',
+            '```sh',
+            'echo first',
+            '```',
+            '',
+            '```html',
+            code,
+            '```'
+          ].join('\n')
+        }
+      ]
+    }
+    const wrapper = mount(MessageView, { props: { message }, global: { plugins: [i18n] } })
+    try {
+      await flushPromises()
+      const buttons = wrapper.findAll('[data-testid="copy-message-code"]')
+      expect(buttons).toHaveLength(2)
+      await buttons[1].trigger('click')
+      await flushPromises()
+      expect(copyText).toHaveBeenCalledExactlyOnceWith(code)
+      expect(buttons[0].attributes('title')).toBe('Copy code')
+      expect(buttons[1].attributes('title')).toBe('Copied to clipboard')
+    } finally {
+      wrapper.unmount()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('uses the configured user display name', () => {
     const message: AgentMessage = { role: 'user', content: '请继续' }
     const wrapper = mount(MessageView, {

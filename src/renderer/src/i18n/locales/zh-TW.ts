@@ -1634,6 +1634,7 @@ export const zhTW: MessageTree = {
     copyFile: '複製檔案路徑',
     copyId: '複製工作階段 ID',
     copyMessage: '複製回覆',
+    copyCode: '複製程式碼',
     messages: '訊息',
     messageUser: '使用者',
     messageAssistant: '助手',

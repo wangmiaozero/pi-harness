@@ -1670,6 +1670,7 @@ export const frFR: MessageTree = {
     copyFile: 'Copier le chemin du fichier',
     copyId: 'Copier l\'ID de session',
     copyMessage: 'Copier le message',
+    copyCode: 'Copier le code',
     messages: 'Messages',
     messageUser: 'Utilisateur',
     messageAssistant: 'Assistant',

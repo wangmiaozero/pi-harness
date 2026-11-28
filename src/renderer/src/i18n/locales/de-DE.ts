@@ -1671,6 +1671,7 @@ export const deDE: MessageTree = {
     copyFile: 'Dateipfad kopieren',
     copyId: 'Sitzungs-ID kopieren',
     copyMessage: 'Nachricht kopieren',
+    copyCode: 'Code kopieren',
     messages: 'Nachrichten',
     messageUser: 'Nutzer',
     messageAssistant: 'Assistent',

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { Markdown } from '@comark/vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import ChatCodeBlock from './ChatCodeBlock.vue'
+
+const components = { pre: ChatCodeBlock }
 
 /**
  * Streaming text arrives as many small deltas, and the Markdown renderer
@@ -74,6 +77,7 @@ onBeforeUnmount(clearPendingTimer)
     :value="displayed"
     :options="options"
     :plugins="markdownPlugins"
+    :components="components"
     :streaming="streaming"
   />
 </template>

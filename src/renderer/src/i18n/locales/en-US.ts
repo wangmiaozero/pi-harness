@@ -1672,6 +1672,7 @@ export const enUS = {
     copyFile: 'Copy file path',
     copyId: 'Copy session ID',
     copyMessage: 'Copy message',
+    copyCode: 'Copy code',
     messages: 'Messages',
     messageUser: 'User',
     messageAssistant: 'Assistant',

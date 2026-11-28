@@ -534,6 +534,7 @@ const messageCopyText = computed(() => {
 .markdown-content :deep(ul),
 .markdown-content :deep(ol),
 .markdown-content :deep(pre),
+.markdown-content :deep(.chat-code-block),
 .markdown-content :deep(blockquote),
 .markdown-content :deep(table) {
   margin: 0 0 0.75em;
@@ -630,6 +631,11 @@ const messageCopyText = computed(() => {
   background: var(--code-bg);
   padding: 10px 12px;
   line-height: 1.55;
+}
+
+.markdown-content :deep(.chat-code-block > pre) {
+  margin: 0;
+  padding-bottom: 42px;
 }
 
 .markdown-content :deep(pre code) {

@@ -3,6 +3,7 @@ import path from 'node:path'
 import { test as base, expect } from './fixtures'
 
 const sessionId = '01a0ddce-5d0b-75b1-bb98-role-layout'
+const codeSample = '<section>\n  <p>A & B</p>\n</section>'
 
 const test = base.extend({
   piAgentDir: async ({ testUserData, workspaceRoot }, use) => {
@@ -17,6 +18,7 @@ const test = base.extend({
 
 test('places user messages on the right and visually separates agent output', async ({
   page,
+  electronApp,
   workspaceRoot
 }, testInfo) => {
   const pageErrors: string[] = []
@@ -121,6 +123,26 @@ test('places user messages on the right and visually separates agent output', as
   fs.mkdirSync(qaDir, { recursive: true })
   await page.screenshot({ path: path.join(qaDir, 'chat-message-role-layout.png') })
 
+  await electronApp.evaluate(({ clipboard }) => {
+    clipboard.writeText = (text: string) => {
+      Reflect.set(globalThis, 'copiedMessageCode', text)
+    }
+  })
+  const block = assistant.locator('.chat-code-block')
+  const copyCode = block.getByRole('button', { name: '复制代码', exact: true })
+  await expect(copyCode).toBeVisible()
+  const blockBox = (await block.boundingBox())!
+  const buttonBox = (await copyCode.boundingBox())!
+  expect(buttonBox.x).toBeGreaterThan(blockBox.x + blockBox.width / 2)
+  expect(buttonBox.y).toBeGreaterThan(blockBox.y + blockBox.height / 2)
+  expect(buttonBox.x + buttonBox.width).toBeLessThan(blockBox.x + blockBox.width)
+  expect(buttonBox.y + buttonBox.height).toBeLessThan(blockBox.y + blockBox.height)
+  await copyCode.click()
+  await expect(copyCode).toHaveAttribute('title', '已复制到剪贴板')
+  await expect
+    .poll(() => electronApp.evaluate(() => Reflect.get(globalThis, 'copiedMessageCode')))
+    .toBe(codeSample)
+
   await page.locator('a[href="#/settings"]').click()
   const userNameInput = page.getByTestId('user-name-input')
   const assistantNameInput = page.getByTestId('assistant-name-input')
@@ -214,7 +236,7 @@ function seedSession(piAgentDir: string, workspaceRoot: string): void {
           content: [
             {
               type: 'text',
-              text: '已将用户消息放到右侧，并为用户与 Agent 使用不同的背景、气泡形状和角色标签。\n\n- 用户：强调色气泡\n- Agent：中性面板气泡'
+              text: `已将用户消息放到右侧，并为用户与 Agent 使用不同的背景、气泡形状和角色标签。\n\n- 用户：强调色气泡\n- Agent：中性面板气泡\n\n\`\`\`html\n${codeSample}\n\`\`\``
             }
           ]
         }

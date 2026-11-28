@@ -2,6 +2,20 @@
 
 Release notes describe user-visible additions and fixes.
 
+## 2.4.22 — 2026-11-28
+
+### Added
+
+#### Chat
+
+- Copy an individual code block in chat using the button in its bottom-right corner.
+
+### Fixed
+
+#### Chat
+
+- Expand reasoning in one step, including when it appears alongside tool calls. Consecutive reasoning fragments open together in Full History and AI Sessions.
+
 ## 2.4.21 — 2026-11-28
 
 ### Added

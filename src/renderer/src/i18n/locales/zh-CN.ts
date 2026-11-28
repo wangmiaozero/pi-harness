@@ -1634,6 +1634,7 @@ export const zhCN: MessageTree = {
     copyFile: '复制文件路径',
     copyId: '复制会话 ID',
     copyMessage: '复制回复',
+    copyCode: '复制代码',
     messages: '消息',
     messageUser: '用户',
     messageAssistant: '助手',

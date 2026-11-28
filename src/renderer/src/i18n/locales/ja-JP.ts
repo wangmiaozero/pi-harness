@@ -1662,6 +1662,7 @@ export const jaJP: MessageTree = {
     copyFile: 'ファイルパスをコピー',
     copyId: 'セッション ID をコピー',
     copyMessage: 'メッセージをコピー',
+    copyCode: 'コードをコピー',
     messages: 'メッセージ',
     messageUser: 'ユーザー',
     messageAssistant: 'アシスタント',
