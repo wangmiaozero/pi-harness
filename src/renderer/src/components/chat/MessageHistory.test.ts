@@ -2,6 +2,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h, onUpdated, type PropType } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import { i18n } from '@renderer/i18n'
+import type { HarnessRun } from '@shared/types/harness'
+import type { AssistantMessage } from '@shared/types/workspace'
 import MessageHistory from './MessageHistory.vue'
 import type { ConversationItem, HistoryItem } from './message-activity'
 
@@ -34,6 +36,58 @@ async function openDetails(element: Element, open: boolean) {
 }
 
 describe('MessageHistory activities', () => {
+  it('reveals standalone thinking once and keeps it open when the reply finishes', async () => {
+    const history: HistoryItem[] = [
+      { key: 'user', message: { role: 'user', content: 'Explain the result' } }
+    ]
+    const thinking: AssistantMessage = {
+      role: 'assistant',
+      model: 'test',
+      provider: 'test',
+      content: [{ type: 'thinking', thinking: 'Checking the result' }]
+    }
+    const wrapper = mount(MessageHistory, {
+      props: {
+        items: history,
+        userName: 'Me',
+        assistantName: 'Pi',
+        running: true,
+        liveMessage: thinking
+      },
+      global
+    })
+    const group = wrapper.get('[data-testid="message-activity"]')
+    expect(group.text()).not.toContain('Checking the result')
+    await openDetails(group.element, true)
+    expect(group.find('details').exists()).toBe(false)
+    expect(group.text()).toContain('Checking the result')
+    expect(group.get('summary').text()).toBe('Thinking')
+
+    const reply: AssistantMessage = {
+      ...thinking,
+      content: [
+        { type: 'thinking', thinking: 'Finished checking the result' },
+        { type: 'thinking', thinking: '', deferred: true },
+        { type: 'text', text: 'Here is the result.' }
+      ]
+    }
+    await wrapper.setProps({ liveMessage: reply })
+    expect(group.get('summary').text()).toBe('Thought')
+    await wrapper.setProps({
+      items: [...history, { key: 'reply', message: reply }],
+      liveMessage: null,
+      running: false,
+      runs: [{ anchorEntryId: 'user', startedAt: 0, finishedAt: 3000 } as HarnessRun]
+    })
+    expect(wrapper.get('[data-testid="message-activity"]').element).toBe(group.element)
+    expect(group.isVisible()).toBe(true)
+    expect((group.element as HTMLDetailsElement).open).toBe(true)
+    expect(group.text()).toContain('Finished checking the result')
+    expect(group.text()).toContain('Thinking omitted from the initial payload')
+    expect(wrapper.get('[data-testid="assistant-turn-duration"]').text()).toBe('Worked for 0:03')
+    wrapper.unmount()
+  })
+
   it('keeps one collapsed activity row from live thinking through successive command results', async () => {
     const wrapper = mount(MessageHistory, {
       props: { items: [], userName: 'Me', assistantName: 'Pi', running: true },
@@ -80,6 +134,48 @@ describe('MessageHistory activities', () => {
       expect((row as HTMLDetailsElement).open).toBe(false)
     }
     expect(wrapper.get('summary').text()).toContain('Ran commands · 3')
+    wrapper.unmount()
+  })
+
+  it('keeps thinking readable when a tool arrives and the elapsed time appears', async () => {
+    const history: HistoryItem[] = [
+      { key: 'user', message: { role: 'user', content: 'Check the result' } }
+    ]
+    const command = items()[0].message
+    if (command.role !== 'assistant') throw new Error('Expected assistant fixture')
+    const thinking: AssistantMessage = {
+      ...command,
+      content: [{ type: 'thinking', thinking: 'I will run the checks.' }]
+    }
+    const wrapper = mount(MessageHistory, {
+      props: {
+        items: history,
+        userName: 'Me',
+        assistantName: 'Pi',
+        running: true,
+        liveMessage: thinking
+      },
+      global
+    })
+    const group = wrapper.get('[data-testid="message-activity"]')
+    await openDetails(group.element, true)
+    const mixed = { ...command, content: [...thinking.content, ...command.content] }
+    await wrapper.setProps({ liveMessage: mixed })
+    expect(group.text()).toContain('I will run the checks.')
+    expect(group.find('[data-testid="thinking-details"]').exists()).toBe(false)
+    expect(group.get('.tool-call-hud').attributes('open')).toBeUndefined()
+
+    await wrapper.setProps({
+      items: [...history, { key: 'reply', message: mixed }],
+      liveMessage: null,
+      running: false,
+      runs: [{ anchorEntryId: 'user', startedAt: 0, finishedAt: 3000 } as HarnessRun]
+    })
+    expect(group.isVisible()).toBe(true)
+    expect((group.element as HTMLDetailsElement).open).toBe(true)
+    expect(wrapper.get('[data-testid="assistant-turn-duration"]').attributes('aria-expanded')).toBe(
+      'true'
+    )
     wrapper.unmount()
   })
 

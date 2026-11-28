@@ -6,6 +6,7 @@ import type {
   ToolResultMessage
 } from '@shared/types/workspace'
 import type { MessageFileChanges } from './message-file-changes'
+import { hasRenderableThinking } from './message-visibility'
 
 export interface HistoryItem {
   key: string
@@ -55,6 +56,10 @@ export function toolActivityTarget(block: ToolCallContent): string {
   return ''
 }
 
+function isActivityBlock(block: AssistantContentBlock): boolean {
+  return block.type === 'toolCall' || (block.type === 'thinking' && hasRenderableThinking(block))
+}
+
 export function isActivityOnly(item: HistoryItem): boolean {
   const message = item.message
   if (message.role !== 'assistant') {
@@ -63,7 +68,7 @@ export function isActivityOnly(item: HistoryItem): boolean {
   return (
     !item.fileChanges &&
     !message.errorMessage &&
-    message.content.some((block) => block.type === 'thinking' || block.type === 'toolCall') &&
+    message.content.some(isActivityBlock) &&
     message.content.every(
       (block) =>
         block.type === 'thinking' ||
@@ -76,12 +81,12 @@ export function isActivityOnly(item: HistoryItem): boolean {
 function splitAssistantItem(item: HistoryItem): HistoryItem[] {
   const message = item.message
   if (message.role !== 'assistant' || isActivityOnly(item)) return [item]
-  if (!message.content.some((block) => block.type === 'toolCall' || block.type === 'thinking'))
-    return [item]
+  if (!message.content.some(isActivityBlock)) return [item]
 
   const segments: Array<{ activity: boolean; start: number; content: AssistantContentBlock[] }> = []
   message.content.forEach((block, index) => {
     if (block.type === 'text' && !block.text.trim()) return
+    if (block.type === 'thinking' && !hasRenderableThinking(block)) return
     const activity = block.type === 'toolCall' || block.type === 'thinking'
     const previous = segments.at(-1)
     if (previous?.activity === activity) previous.content.push(block)

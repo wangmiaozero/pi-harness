@@ -22,6 +22,7 @@ import { askConfirm } from '@renderer/composables/useConfirmDialog'
 import { useSessionStore } from '@renderer/stores/sessions'
 import { useWorkspaceStore } from '@renderer/stores/workspace'
 import { inspectRuntimeError } from '@shared/workspace/runtime-error'
+import { groupThinkingBlocks } from '@renderer/utils/group-thinking-blocks'
 import { resolveMessageFilePath } from './message-file-link'
 
 const props = defineProps<{
@@ -35,6 +36,7 @@ const props = defineProps<{
   pendingToolCalls?: ReadonlyMap<string, string>
   activityRunning?: boolean
   embedded?: boolean
+  inlineThinking?: boolean
 }>()
 const emit = defineEmits<{ 'file-opened': [] }>()
 const { t } = useI18n()
@@ -58,6 +60,15 @@ const hasVisibleContent = computed(
   () =>
     hasRenderableMessageContent(props.message) ||
     (props.message.role === 'assistant' && Boolean(props.fileChanges) && !props.streaming)
+)
+const assistantBlocks = computed(() =>
+  props.message.role === 'assistant'
+    ? groupThinkingBlocks(props.message.content, (block) => {
+        if (typeof block.thinking === 'string' && block.thinking.trim()) return block.thinking
+        if (block.deferred) return t('workspace.thinkingDeferred')
+        return undefined
+      })
+    : []
 )
 
 onErrorCaptured(() => {
@@ -280,7 +291,7 @@ const messageCopyText = computed(() => {
         @click.capture="openMessageLink"
         @auxclick.capture="openMessageLink"
       >
-        <template v-for="(block, i) in message.content" :key="i">
+        <template v-for="{ block, index, thinking } in assistantBlocks" :key="index">
           <p
             v-if="block.type === 'text' && block.text.trim() && markdownFailed"
             class="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]"
@@ -301,20 +312,21 @@ const messageCopyText = computed(() => {
               </p>
             </template>
           </Suspense>
-          <details
-            v-else-if="block.type === 'thinking'"
-            data-testid="thinking-details"
-            class="thinking-hud"
+          <component
+            :is="inlineThinking ? 'div' : 'details'"
+            v-else-if="thinking"
+            :data-testid="inlineThinking ? undefined : 'thinking-details'"
+            :class="{ 'thinking-hud': !inlineThinking }"
           >
-            <summary class="thinking-summary">
+            <summary v-if="!inlineThinking" class="thinking-summary">
               <Brain aria-hidden="true" class="size-3.5 shrink-0" />
               {{ $t('workspace.thinking') }}
               <ChevronRight aria-hidden="true" class="thinking-chevron ml-auto size-3 shrink-0" />
             </summary>
-            <p class="mt-1 whitespace-pre-wrap text-[12px] text-[var(--text-secondary)]">
-              {{ block.thinking || (block.deferred ? $t('workspace.thinkingDeferred') : '') }}
+            <p class="thinking-text whitespace-pre-wrap text-[12px] text-[var(--text-secondary)]">
+              {{ thinking.join('\n\n') }}
             </p>
-          </details>
+          </component>
           <ToolCallView
             v-else-if="block.type === 'toolCall'"
             :block="block"
@@ -427,13 +439,15 @@ const messageCopyText = computed(() => {
 .thinking-hud[open] .thinking-chevron {
   transform: rotate(90deg);
 }
-.thinking-hud > p {
+.thinking-text {
   max-height: 20rem;
   overflow: auto;
+  line-height: 1.6;
+}
+.thinking-hud > .thinking-text {
   margin: 3px 0 10px 7px;
   padding: 6px 13px;
   border-left: 1px solid var(--border-subtle);
-  line-height: 1.6;
 }
 .message-role-label {
   display: flex;

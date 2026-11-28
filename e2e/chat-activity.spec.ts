@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { test as base, expect } from './fixtures'
 import { IPC_EVENT } from '../src/shared/ipc/channels'
-import type { AgentMessage } from '../src/shared/types/workspace'
+import type { AgentMessage, AssistantMessage } from '../src/shared/types/workspace'
 
 const sessionId = '01a1-compact-tool-activity'
 const test = base.extend({
@@ -67,7 +67,9 @@ test('shows compact activity with two independent expansion levels', async ({
   await expect(tools.nth(1).locator('summary')).toContainText('未找到结果')
   await expect(group).toHaveAttribute('data-outcome', 'completed-with-errors')
   await expect(chat.locator('pre')).toHaveCount(0)
-  await expect(group.getByTestId('thinking-details')).not.toHaveAttribute('open')
+  await expect(group.getByTestId('thinking-details')).toHaveCount(0)
+  await expect(group.getByText('先检查配置，再运行类型检查。')).toBeVisible()
+  await expect(group.getByText('先确认项目的检查命令。')).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('activity-first-level.png') })
 
   const summaryY = Math.round((await tools.nth(2).locator('summary').boundingBox())!.y)
@@ -93,6 +95,16 @@ test('shows compact activity with two independent expansion levels', async ({
     .getByRole('dialog', { name: '预览图片' })
     .getByRole('button', { name: '关闭', exact: true })
     .click()
+
+  await page.getByTestId('composer-full-history').click()
+  const fullHistory = page.getByRole('dialog', { name: '完整历史' })
+  const recordedThinking = fullHistory.getByTestId('thinking-details')
+  await expect(recordedThinking).toHaveCount(1)
+  await recordedThinking.locator('summary').click()
+  await expect(recordedThinking.locator('p')).toBeVisible()
+  await expect(recordedThinking.locator('p')).toContainText('先检查配置，再运行类型检查。')
+  await expect(recordedThinking.locator('p')).toContainText('先确认项目的检查命令。')
+  await fullHistory.getByRole('button', { name: '关闭', exact: true }).click()
 
   await page.reload()
   await expect(page.getByTestId('startup-animation')).toBeHidden()
@@ -207,6 +219,39 @@ test('shows compact activity with two independent expansion levels', async ({
   await expect(live).toHaveAttribute('open')
   await expect(liveTool).toHaveAttribute('open')
   await expect(page.getByTestId('assistant-turn')).toHaveCount(2)
+
+  await emit({ type: 'message_end', message: { role: 'user', content: 'Consider the result.' } })
+  await emit({ type: 'agent_start' })
+  const thinking: AssistantMessage = {
+    role: 'assistant',
+    model: 'test',
+    provider: 'test',
+    content: [{ type: 'thinking', thinking: 'Reviewing the result.' }]
+  }
+  await emit({ type: 'message_start', message: thinking })
+  const reasoning = chat.getByTestId('assistant-turn').last().getByTestId('message-activity')
+  const reasoningSummary = reasoning.locator(':scope > summary')
+  await expect(reasoningSummary).toHaveText('正在思考')
+  await reasoningSummary.click()
+  await expect(reasoning.getByText('Reviewing the result.', { exact: true })).toBeVisible()
+  await expect(reasoning.locator('details')).toHaveCount(0)
+  await emit({
+    type: 'message_update',
+    assistantMessageEvent: { type: 'thinking_delta', contentIndex: 0, delta: ' Checking sources.' }
+  })
+  await expect(reasoning.getByText('Reviewing the result. Checking sources.')).toBeVisible()
+  await emit({
+    type: 'message_update',
+    assistantMessageEvent: {
+      type: 'toolcall_start',
+      contentIndex: 1,
+      id: 'reasoning-tool',
+      toolName: 'read'
+    }
+  })
+  await expect(reasoning.locator('.tool-call-hud')).toBeVisible()
+  await expect(reasoning.getByText('Reviewing the result. Checking sources.')).toBeVisible()
+  await expect(reasoning.getByTestId('thinking-details')).toHaveCount(0)
   expect(errors).toEqual([])
 })
 
@@ -322,6 +367,7 @@ function seed(directory: string, cwd: string) {
       provider: 'test',
       content: [
         { type: 'thinking', thinking: '先检查配置，再运行类型检查。' },
+        { type: 'thinking', thinking: '先确认项目的检查命令。' },
         {
           type: 'toolCall',
           toolCallId: 'read-config',

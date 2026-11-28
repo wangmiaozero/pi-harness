@@ -99,6 +99,7 @@ function summarize(
       warning: boolean
       note: string
       outcome: string
+      thinkingOnly: boolean
     }
   >()
   for (const group of presentation.items) {
@@ -159,6 +160,18 @@ function summarize(
       }
     }
     if (counts.size > 1) counts.delete('thinking')
+    const thinkingOnly = counts.has('thinking')
+    const lastEntry = group.items.at(-1)
+    if (
+      running &&
+      group === presentation.items.at(-1) &&
+      lastEntry?.streaming &&
+      lastEntry.message.role === 'assistant' &&
+      lastEntry.message.content.at(-1)?.type === 'thinking'
+    ) {
+      activeKind = 'thinking'
+      target = ''
+    }
     const warning = failures > 0 && complete && endedGroups.has(group.key)
     const error = failures > 0 && !warning
     const note = failures
@@ -195,6 +208,7 @@ function summarize(
       error,
       warning,
       note,
+      thinkingOnly,
       outcome: warning
         ? 'completed-with-errors'
         : error

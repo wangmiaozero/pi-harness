@@ -1,4 +1,4 @@
-import type { AgentMessage } from '@shared/types/workspace'
+import type { AgentMessage, ThinkingContent } from '@shared/types/workspace'
 
 function hasText(value: unknown): boolean {
   return typeof value === 'string' && value.trim().length > 0
@@ -6,6 +6,10 @@ function hasText(value: unknown): boolean {
 
 function hasImageData(value: unknown): boolean {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+export function hasRenderableThinking(block: ThinkingContent): boolean {
+  return hasText(block.thinking) || block.deferred === true
 }
 
 export function hasRenderableMessageContent(message: AgentMessage): boolean {
@@ -27,7 +31,7 @@ export function hasRenderableMessageContent(message: AgentMessage): boolean {
       if (hasText(message.errorMessage)) return true
       return message.content.some((block) => {
         if (block.type === 'text') return hasText(block.text)
-        if (block.type === 'thinking') return hasText(block.thinking) || block.deferred === true
+        if (block.type === 'thinking') return hasRenderableThinking(block)
         if (block.type === 'toolCall') return hasText(block.toolName) || hasText(block.toolCallId)
         return hasImageData(block.data)
       })

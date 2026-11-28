@@ -214,12 +214,19 @@ describe('MessageView', () => {
     expect(details.get('pre').text()).toBe('<html>generated output</html>')
   })
 
-  it('collapses assistant thinking by default and allows expanding it', async () => {
+  it('collapses consecutive thinking blocks together and keeps later thinking separate', async () => {
     const message: AssistantMessage = {
       role: 'assistant',
       model: 'test-model',
       provider: 'test-provider',
-      content: [{ type: 'thinking', thinking: '分析问题' }]
+      content: [
+        { type: 'thinking', thinking: '分析问题' },
+        { type: 'thinking', thinking: ' ', deferred: true },
+        { type: 'thinking', thinking: '核对结果' },
+        { type: 'thinking', thinking: '' },
+        { type: 'text', text: '第一步完成' },
+        { type: 'thinking', thinking: '复查' }
+      ]
     }
 
     const wrapper = mount(MessageView, {
@@ -235,9 +242,14 @@ describe('MessageView', () => {
       }
     })
 
-    const details = wrapper.get('[data-testid="thinking-details"]')
+    const disclosures = wrapper.findAll('[data-testid="thinking-details"]')
+    expect(disclosures).toHaveLength(2)
+    const [details, later] = disclosures
     expect(details.attributes('open')).toBeUndefined()
     expect(details.text()).toContain('分析问题')
+    expect(details.text()).toContain('Thinking omitted from the initial payload')
+    expect(details.text()).toContain('核对结果')
+    expect(later.text()).toContain('复查')
 
     await details.get('summary').trigger('click')
     expect((details.element as HTMLDetailsElement).open).toBe(true)

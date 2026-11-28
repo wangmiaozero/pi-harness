@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import type { UniversalMessage } from '@shared/universal/schema'
+import { computed } from 'vue'
 import HistoricalText from './HistoricalText.vue'
 import { useI18n } from 'vue-i18n'
 import { recordedTokens } from '@shared/universal/usage'
-defineProps<{ message: UniversalMessage }>()
+import { groupThinkingBlocks } from '@renderer/utils/group-thinking-blocks'
+const props = defineProps<{ message: UniversalMessage }>()
 const { t } = useI18n()
+const parts = computed(() =>
+  groupThinkingBlocks(props.message.parts, (part) => (part.text.trim() ? part.text : undefined))
+)
 </script>
 
 <template>
@@ -16,7 +21,7 @@ const { t } = useI18n()
       <strong>{{ t(`universal.role${message.role}`) }}</strong
       ><time>{{ message.timestamp }}</time>
     </header>
-    <template v-for="(part, index) in message.parts" :key="index">
+    <template v-for="{ block: part, index, thinking } in parts" :key="index">
       <HistoricalText
         v-if="part.type === 'text' || part.type === 'code'"
         :text="
@@ -25,9 +30,9 @@ const { t } = useI18n()
             : part.text
         "
       />
-      <details v-else-if="part.type === 'thinking'" class="mb-2">
+      <details v-else-if="thinking" class="mb-2">
         <summary>{{ t('universal.thinking') }}</summary>
-        <pre class="history-prose">{{ part.text }}</pre>
+        <pre class="history-prose">{{ thinking.join('\n\n') }}</pre>
       </details>
       <details v-else-if="part.type === 'tool-call'" class="mb-2">
         <summary>{{ part.name }} · {{ part.callId }}</summary>

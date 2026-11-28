@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ChevronRight, Wrench } from '@lucide/vue'
 import type { ConversationItem, HistoryItem, buildMessagePresentation } from './message-activity'
 import MessageView from './MessageView.vue'
 import AssistantTurn from './AssistantTurn.vue'
-defineProps<{
+const props = defineProps<{
   durationMs?: number | null
   turn: ConversationItem
   userName: string
@@ -24,18 +24,49 @@ defineProps<{
       warning: boolean
       note: string
       outcome: string
+      thinkingOnly: boolean
     }
   >
 }>()
 const processOpen = ref(false)
+const openGroups = new Set<string>()
+const hasGroupedActivity = computed(
+  () =>
+    props.turn.type === 'turn' &&
+    props.turn.items.some(
+      (item) => item.type === 'activity' && !props.summaries.get(item.key)?.thinkingOnly
+    )
+)
 function duration(ms: number): string {
   const seconds = Math.floor(Math.max(0, ms) / 1000)
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 const emit = defineEmits<{ reveal: [key: string] }>()
 function toggle(key: string, event: Event) {
-  if ((event.target as HTMLDetailsElement).open) emit('reveal', key)
+  if ((event.target as HTMLDetailsElement).open) {
+    openGroups.add(key)
+    emit('reveal', key)
+  } else {
+    openGroups.delete(key)
+  }
 }
+watch(
+  () => props.durationMs != null,
+  (settled) => {
+    if (
+      settled &&
+      props.turn.type === 'turn' &&
+      props.turn.items.some(
+        (item) =>
+          item.type === 'activity' &&
+          openGroups.has(item.key) &&
+          !props.summaries.get(item.key)?.thinkingOnly
+      )
+    ) {
+      processOpen.value = true
+    }
+  }
+)
 function activityEntryKey(entry: HistoryItem): string {
   const message = entry.message
   const call =
@@ -60,17 +91,24 @@ function activityEntryKey(entry: HistoryItem): string {
     :text="turn.text"
     :streaming="running && isLast"
   >
-    <button
+    <component
+      :is="hasGroupedActivity ? 'button' : 'p'"
       v-if="durationMs != null"
-      type="button"
+      :type="hasGroupedActivity ? 'button' : undefined"
       data-testid="assistant-turn-duration"
-      :aria-expanded="processOpen"
-      class="mb-3 flex w-full items-center gap-2 border-b border-[var(--border-subtle)] pb-2 text-left text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-      @click="processOpen = !processOpen"
+      :aria-expanded="hasGroupedActivity ? processOpen : undefined"
+      class="mb-3 flex w-full items-center gap-2 border-b border-[var(--border-subtle)] pb-2 text-left text-xs text-[var(--text-tertiary)]"
+      :class="{ 'hover:text-[var(--text-primary)]': hasGroupedActivity }"
+      @click="hasGroupedActivity && (processOpen = !processOpen)"
     >
       {{ $t('workspace.turnElapsed', { duration: duration(durationMs) })
-      }}<ChevronRight class="size-3.5" :class="{ 'rotate-90': processOpen }" />
-    </button>
+      }}<ChevronRight
+        v-if="hasGroupedActivity"
+        aria-hidden="true"
+        class="size-3.5"
+        :class="{ 'rotate-90': processOpen }"
+      />
+    </component>
     <template v-for="item in turn.items" :key="item.key">
       <MessageView
         v-if="item.type === 'message'"
@@ -88,8 +126,8 @@ function activityEntryKey(entry: HistoryItem): string {
       />
       <details
         v-else
-        v-show="durationMs == null || processOpen"
-        :open="durationMs != null && processOpen"
+        v-show="summaries.get(item.key)?.thinkingOnly || durationMs == null || processOpen"
+        :open="!summaries.get(item.key)?.thinkingOnly && durationMs != null && processOpen"
         class="activity-group mb-4"
         data-testid="message-activity"
         :data-outcome="summaries.get(item.key)?.outcome"
@@ -131,6 +169,7 @@ function activityEntryKey(entry: HistoryItem): string {
             :pending-tool-calls="presentation.pending"
             :activity-running="running"
             :streaming="entry.streaming"
+            inline-thinking
             embedded
           />
         </div>

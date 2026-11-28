@@ -803,7 +803,15 @@ test('opens history from the whole card and keeps continuation separate', async 
           payload: {
             type: 'message',
             role: 'assistant',
-            content: [{ type: 'output_text', text: `Read-only history for card ${i + 1}` }]
+            content: [
+              ...(i === 0
+                ? [
+                    { type: 'reasoning_text', text: 'Review the source.' },
+                    { type: 'reasoning_text', text: 'Verify the result.' }
+                  ]
+                : []),
+              { type: 'output_text', text: `Read-only history for card ${i + 1}` }
+            ]
           }
         }
       ]
@@ -822,7 +830,13 @@ test('opens history from the whole card and keeps continuation separate', async 
   const header = page.getByTestId('history-detail-header')
   await card(titles[0]!).getByText(titles[0]!, { exact: true }).click()
   await expect(header.getByRole('heading')).toHaveText(titles[0]!)
-  await expect(page.getByTestId('history-messages')).toContainText('Read-only history for card 1')
+  const history = page.getByTestId('history-messages')
+  await expect(history).toContainText('Read-only history for card 1')
+  const reasoning = history.locator('details').filter({ hasText: 'Review the source.' })
+  await expect(history.locator('summary')).toHaveCount(1)
+  await reasoning.locator('summary').click()
+  await expect(reasoning.locator('pre')).toBeVisible()
+  await expect(reasoning.locator('pre')).toContainText('Verify the result.')
   await expect(header).not.toContainText('external_codex_apps_open_page')
   await expect(card(titles[0]!)).toHaveAttribute('aria-pressed', 'true')
   await page.screenshot({ path: path.join(testInfo.outputDir, 'history-cards-glass.png') })

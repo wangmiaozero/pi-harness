@@ -81,6 +81,22 @@ describe('message activity presentation', () => {
     expect(view.results.get('mixed:activity-1')?.get('read-1')?.message).toEqual(result().message)
   })
 
+  it('omits an empty thinking disclosure before text but retains deferred thinking', () => {
+    const empty = assistant('empty', [
+      { type: 'thinking', thinking: ' ' },
+      { type: 'text', text: 'Done.' }
+    ])
+    const deferred = assistant('deferred', [
+      { type: 'thinking', thinking: '', deferred: true },
+      { type: 'text', text: 'Done.' }
+    ])
+    expect(buildMessagePresentation([empty]).items.map((item) => item.type)).toEqual(['message'])
+    expect(buildMessagePresentation([deferred]).items.map((item) => item.type)).toEqual([
+      'activity',
+      'message'
+    ])
+  })
+
   it('never pairs reused tool ids across user turns and retains orphan results', () => {
     const view = buildMessagePresentation([
       assistant('old', [call()]),

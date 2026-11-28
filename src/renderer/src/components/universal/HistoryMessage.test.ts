@@ -15,6 +15,7 @@ describe('read-only history rendering', () => {
       parts: [
         { type: 'usage', cost: 0.01 },
         { type: 'thinking', text: '分析' },
+        { type: 'thinking', text: '核对结果' },
         {
           type: 'text',
           text: '<img src="https://example.invalid/secret"><script>alert(1)</script>'
@@ -37,6 +38,8 @@ describe('read-only history rendering', () => {
     })
     expect(wrapper.text()).toContain('助手')
     expect(wrapper.text()).toContain('思考 / 推理')
+    expect(wrapper.findAll('details')).toHaveLength(1)
+    expect(wrapper.get('details pre').text()).toContain('分析\n\n核对结果')
     expect(wrapper.text()).toContain('暂无 Token 数据')
     expect(wrapper.text()).toContain('记录的 Token · 19')
     expect(wrapper.findAll('img, script, a')).toHaveLength(0)
